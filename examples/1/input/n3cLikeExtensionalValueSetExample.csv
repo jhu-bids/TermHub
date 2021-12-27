@@ -1,0 +1,4 @@
+valueSet.id,valueSet.name,valueSet.description,valueSet.status,valueSet.codeSystem,valueSet.codeSystemVersion,concept.code,concept.display
+1,bear family,A family of bears.,draft,http://loinc.org,2.36,1234,mama bear
+1,bear family,A family of bears.,draft,http://loinc.org,2.36,1235,papa bear
+1,bear family,A family of bears.,draft,http://loinc.org,2.36,1236,baby bear

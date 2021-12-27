@@ -1,0 +1,20 @@
+# Boilerplate
+__pycache__/
+_archive/
+_dev/
+.idea/
+build/
+dev/
+dist/
+env/
+ignored/
+output/
+*~$*
+*.DS_Store
+*.egg-info
+*.swp
+tags
+MANIFEST
+
+# Custom
+/*.json
