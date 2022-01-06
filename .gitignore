@@ -18,3 +18,5 @@ MANIFEST
 
 # Custom
 /*.json
+*/cache/*
+!*/cache/.keep

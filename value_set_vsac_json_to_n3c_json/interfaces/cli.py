@@ -4,8 +4,8 @@
 from argparse import ArgumentParser
 from sys import stderr
 
-from value_set_csv_to_fhir_json.definitions.error import PackageException
-from value_set_csv_to_fhir_json.fhir_value_set_csv_to_json import run
+from value_set_vsac_json_to_n3c_json.definitions.error import PackageException
+from value_set_vsac_json_to_n3c_json.main import run
 
 
 def get_parser():
