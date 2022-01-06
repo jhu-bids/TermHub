@@ -4,3 +4,4 @@ google-auth-httplib2
 google-auth-oauthlib
 pandas
 python-dotenv
+xmltodict

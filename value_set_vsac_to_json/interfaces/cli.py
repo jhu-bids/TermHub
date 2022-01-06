@@ -4,8 +4,8 @@
 from argparse import ArgumentParser
 from sys import stderr
 
-from value_set_vsac_json_to_n3c_json.definitions.error import PackageException
-from value_set_vsac_json_to_n3c_json.main import run
+from value_set_vsac_to_json.definitions.error import PackageException
+from value_set_vsac_to_json.main import run
 
 
 def get_parser():
@@ -14,11 +14,14 @@ def get_parser():
     Returns:
         ArgumentParser: Argeparse object.
     """
-    package_description = 'Tool for converting extensinoal value sets in CSV ' \
-        'format to JSON format able to be uploaded to a FHIR server.'
+    package_description = 'Tool for converting VSAC value sets into various formats.'
     parser = ArgumentParser(description=package_description)
 
-    parser.add_argument('-f', '--file-path', help='Path to CSV file')
+    parser.add_argument(
+        '-f', '--format',
+        choices=['fhir', 'omop'],
+        default='omop',
+        help='Destination format to transform VSAC value set into')
 
     # arg2_help = 'Description'
     # parser.add_argument('-s', '--second-arg', nargs='+', help=arg2_help)
@@ -44,7 +47,7 @@ def cli():
     kwargs = parser.parse_args()
 
     try:
-        run(file_path=kwargs.file_path)
+        run(format=kwargs.format)
     except PackageException as err:
         err = 'An error occurred.\n\n' + str(err)
         print(err, file=stderr)

@@ -14,7 +14,7 @@ def get_parser():
     Returns:
         ArgumentParser: Argeparse object.
     """
-    package_description = 'Tool for converting extensinoal value sets in CSV ' \
+    package_description = 'Tool for converting extensional value sets in CSV ' \
         'format to JSON format able to be uploaded to a FHIR server.'
     parser = ArgumentParser(description=package_description)
 

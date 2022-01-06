@@ -10,18 +10,16 @@ https://developers.google.com/workspace/guides/create-credentials
 
 # Setup
 Google cloud project console:
+# TODO: When changing project from 'ohbehave' to a new one, update this URL:
 https://console.cloud.google.com/apis/credentials/oauthclient/299107039403-jm7n7m3s9u771dnec1kncsllgoiv8p5a.apps.googleusercontent.com?project=ohbehave
 
 # Data sources
-Sheet of interest:
-- XLSX version: https://docs.google.com/spreadsheets/d/17hHiqc6GKWv9trcW-lRnv-MhZL8Swrx2/edit#gid=1335629675
-- https://docs.google.com/spreadsheets/d/1jzGrVELQz5L4B_-DqPflPIcpBaTfJOUTrVJT5nS_j18/edit#gid=405597125
+- Refer to config.py
 """
 import json
 import os
 from typing import List, Dict
 from datetime import datetime, timedelta
-from dateutil.parser import parse as parse_datetime_str
 
 from google.auth.exceptions import RefreshError
 from googleapiclient.discovery import build
@@ -31,14 +29,12 @@ from google.oauth2.credentials import Credentials
 import pandas as pd
 from pandas import DataFrame
 
-from value_set_vsac_json_to_n3c_json.config import ENV_DIR, CACHE_DIR
+from value_set_vsac_to_json.config import ENV_DIR, CACHE_DIR, SAMPLE_RANGE_NAME, SAMPLE_SPREADSHEET_ID
 
 # If modifying these scopes, delete the file token.json.
 SCOPES = ['https://www.googleapis.com/auth/spreadsheets.readonly']
 
 # The ID and range of a sample spreadsheet.
-SAMPLE_SPREADSHEET_ID = '1jzGrVELQz5L4B_-DqPflPIcpBaTfJOUTrVJT5nS_j18'
-SAMPLE_RANGE_NAME = 'CDC reference table list!A1:AC'
 TOKEN_PATH = os.path.join(ENV_DIR, 'token.json')
 CREDS_PATH = os.path.join(ENV_DIR, 'credentials.json')
 cache_file_path = os.path.join(CACHE_DIR, 'data.json')
@@ -94,8 +90,6 @@ def _get_sheets_cache(path=cache_file_path) -> Dict:
         return {}
 
 
-# TODO: get oids from this
-# https://docs.google.com/spreadsheets/d/17hHiqc6GKWv9trcW-lRnv-MhZL8Swrx2/edit#gid=1335629675
 def get_sheets_data(
     cache_threshold_datetime: datetime = datetime.now() - timedelta(days=7)
 ) -> pd.DataFrame:
@@ -106,12 +100,16 @@ def get_sheets_data(
     and overwrites cache.
     """
     result: Dict = {}
-    if cache_threshold_datetime:
-        cached: Dict = _get_sheets_cache()
-        last_timestamp = parse_datetime_str(
-            cached['values'][-1][0]) if cached else None
-        if last_timestamp and last_timestamp > cache_threshold_datetime:
-            result = cached
+    # TODO: caching broken because need to figure out how to tell when sheet last updated
+    # https://stackoverflow.com/questions/43411138/get-google-sheets-last-edit-date-using-sheets-api-v4-java
+    # ...apparently this is not available in google sheets api, only google drive file api
+    # if cache_threshold_datetime:
+    #     cached: Dict = _get_sheets_cache()
+    # #... this is how it was done in other project:
+    #     last_timestamp = parse_datetime_str(
+    #         cached['values'][-1][0]) if cached else None
+    #     if last_timestamp and last_timestamp > cache_threshold_datetime:
+    #         result = cached
     if not result:
         result = _get_sheets_live()
         with open(cache_file_path, 'w') as fp:
@@ -119,9 +117,12 @@ def get_sheets_data(
 
     values: List[List[str]] = result.get('values', [])
     header = values[0]
-    values = values[1:]
+    # values = values[1:]
 
-    df: DataFrame = pd.DataFrame(values, columns=header).fillna('')
+    # df: DataFrame = pd.DataFrame(values, columns=header).fillna('')
+    df: DataFrame = pd.DataFrame(values).fillna('')
+    df.columns = header
+    df = df.drop([0])
 
     return df
 

@@ -2,7 +2,7 @@
 from typing import Any, Dict
 
 
-JSON_TEMPLATE: Dict[str, Any] = {
+FHIR_JSON_TEMPLATE: Dict[str, Any] = {
     "resourceType": "ValueSet",  # not defined in http://hl7.org/fhir/valueset.html
     "id": "TO_FILL",  # not defined in http://hl7.org/fhir/valueset.html
     "meta": {  # not defined in http://hl7.org/fhir/valueset.html
@@ -86,5 +86,28 @@ JSON_TEMPLATE: Dict[str, Any] = {
                 ]
             }
         ]
+    }
+}
+
+
+OMOP_JSON_TEMPLATE = {
+    "Concept Set Name": "",
+    "Created At": "",
+    "Created By": "",
+    "Intention": {
+        "Clinical Focus": "",
+        "Inclusion Criteria": "",
+        "Data Element Scope": "",
+    },
+    "Limitations": {
+        "Exclusion Criteria": "",
+        "VSAC Note": None,  # VSAC Note: (exclude if null)
+    },
+    "Provenance": {
+        "VSAC Steward": "",
+        "OID": "",
+        "Code System(s)": [],
+        "Definition Type": "",
+        "Definition Version": "",
     }
 }

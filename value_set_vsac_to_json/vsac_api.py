@@ -2,17 +2,22 @@
 
 Docs:
 - https://documentation.uts.nlm.nih.gov/rest/authentication.html
+- https://www.nlm.nih.gov/vsac/support/usingvsac/vsacfhirapi.html
 """
-from bs4 import BeautifulSoup
-import urllib3.util
-import requests
+from typing import Dict, List, OrderedDict
 
-from value_set_vsac_json_to_n3c_json.config import config
+from bs4 import BeautifulSoup
+import requests
+import urllib3.util
+import xmltodict as xd
+
+from value_set_vsac_to_json.config import config
 
 
 API_KEY = config['vsac_api_key']
 
 
+# TODO: This only needs to be done once a day
 def get_ticket_granting_ticket() -> str:
     """Get TGT (Ticket-granting ticket)"""
     # 'curl -X POST https://utslogin.nlm.nih.gov/cas/v1/api-key -H 'content-type: application/x-www-form-urlencoded'
@@ -46,3 +51,33 @@ def get_service_ticket(tgt) -> str:
     service_ticket = response2.text
 
     return service_ticket
+
+
+def get_value_set(oid: str, tgt: str) -> Dict:
+    """Get a value set"""
+    service_ticket = get_service_ticket(tgt)
+    # url = f'https://cts.nlm.nih.gov/fhir/ValueSet/{oid}&ticket={service_ticket}'
+    url = f'https://vsac.nlm.nih.gov/vsac/svs/RetrieveValueSet?id={oid}&ticket={service_ticket}'
+    response = requests.get(
+        url=url,
+        data={'apikey': API_KEY})
+    xml_str = response.text
+    d: OrderedDict = xd.parse(xml_str)
+
+    return d
+
+
+# TODO: Figure out if / how I want to cache this
+# 11 seconds to fetch all 62 oids
+def get_value_sets(oids: List[str], tgt: str) -> OrderedDict:
+    """Get a value set"""
+    oids_str = ','.join(oids)
+    service_ticket = get_service_ticket(tgt)
+    url = f'https://vsac.nlm.nih.gov/vsac/svs/RetrieveMultipleValueSets?id={oids_str}&ticket={service_ticket}'
+    response = requests.get(
+        url=url,
+        data={'apikey': API_KEY})
+    xml_str = response.text
+    d: OrderedDict = xd.parse(xml_str)
+
+    return d

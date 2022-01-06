@@ -6,7 +6,6 @@ _dev/
 build/
 dev/
 dist/
-env/
 ignored/
 output/
 *~$*
@@ -18,5 +17,9 @@ MANIFEST
 
 # Custom
 /*.json
-*/cache/*
-!*/cache/.keep
+cache/*
+!cache/.keep
+value_set_vsac_to_json/data/cache/*
+!value_set_vsac_to_json/data/cache/.keep
+/env/*
+!/env/.env.example
