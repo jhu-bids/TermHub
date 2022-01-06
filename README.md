@@ -7,12 +7,16 @@ FHIR server.
 1. You must have [Python3](https://www.python.org/downloads/) installed.
 2. `git clone https://github.com/HOT-Ecosystem/ValueSet-Converters.git`
 
-## Usage
+## Tools
 First, `cd` into the directory where this repository was cloned.
-### Syntax
+
+### 1. CSV to FHIR JSON 
+First, convert your CSV to have column names like the example below. Then can 
+run these commands.
+#### Syntax
 `python3 -m value_set_csv_to_fhir_json path/to/FILE.csv`
 
-### Example
+#### Example
 `python3 -m value_set_csv_to_fhir_json examples/1/input/n3cLikeExtensionalValueSetExample.csv`
 
 Before:
@@ -65,3 +69,12 @@ After:
     }
 }
 ```
+
+### 2. VSAC JSON to N3C JSON
+TODO
+
+#### Syntax
+`python3 -m value_set_vsac_json_to_n3c_json ...`
+
+#### Example
+`python3 -m value_set_csv_to_fhir_json ...`
