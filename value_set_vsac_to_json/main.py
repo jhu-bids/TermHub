@@ -154,3 +154,6 @@ def run(artefact=['csv_fields', 'json', 'tsv_code'][2], format=['fhir', 'omop'][
                     json.dump(d, fp)
     elif artefact == 'csv_fields':
         pass
+
+if __name__ == '__main__':
+    run()
