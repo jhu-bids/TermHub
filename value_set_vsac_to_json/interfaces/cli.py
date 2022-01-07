@@ -23,8 +23,11 @@ def get_parser():
         default='omop',
         help='Destination format to transform VSAC value set into')
 
-    # arg2_help = 'Description'
-    # parser.add_argument('-s', '--second-arg', nargs='+', help=arg2_help)
+    parser.add_argument(
+        '-a', '--artefact',
+        choices=['csv_fields', 'json', 'tsv_code'],
+        default='json',
+        help='The kind of output artefact to create')
 
     # out_help = ('Path to save output file. If not present, same directory of'
     #             'any input files passed will be used.')

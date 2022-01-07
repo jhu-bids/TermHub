@@ -7,7 +7,6 @@ build/
 dev/
 dist/
 ignored/
-output/
 *~$*
 *.DS_Store
 *.egg-info

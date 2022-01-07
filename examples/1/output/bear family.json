@@ -1,0 +1,39 @@
+{
+    "resourceType": "ValueSet",
+    "id": 1,
+    "meta": {
+        "profile": [
+            "http://hl7.org/fhir/StructureDefinition/shareablevalueset"
+        ]
+    },
+    "text": {
+        "status": "generated",
+        "div": "<div xmlns=\"http://www.w3.org/1999/xhtml\">\n\t\t\t<p>A family of bears.</p>\n\t\t</div>"
+    },
+    "name": "bear family",
+    "title": "bear family",
+    "status": "draft",
+    "description": "A family of bears.",
+    "compose": {
+        "include": [
+            {
+                "system": "http://loinc.org",
+                "version": 2.36,
+                "concept": [
+                    {
+                        "code": 1234,
+                        "display": "mama bear"
+                    },
+                    {
+                        "code": 1235,
+                        "display": "papa bear"
+                    },
+                    {
+                        "code": 1236,
+                        "display": "baby bear"
+                    }
+                ]
+            }
+        ]
+    }
+}

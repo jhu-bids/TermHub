@@ -5,12 +5,14 @@
   https://docs.google.com/spreadsheets/d/1uroJbhMmOTJqRkTddlSNYleSKxw4i2216syGUSK7ZuU/edit?userstoinvite=joeflack4@gmail.com&actionButton=1#gid=435465078
 """
 import json
+import os
 from copy import copy
 from datetime import datetime
 from typing import Dict, List, OrderedDict
 
 import pandas as pd
 
+from value_set_vsac_to_json.config import OUTPUT_DIR
 from value_set_vsac_to_json.definitions.constants import FHIR_JSON_TEMPLATE, OMOP_JSON_TEMPLATE
 from value_set_vsac_to_json.google_sheets import get_sheets_data
 from value_set_vsac_to_json.vsac_api import get_ticket_granting_ticket, get_value_set, get_value_sets
@@ -36,7 +38,7 @@ def vsac_to_fhir(value_set: Dict) -> Dict:
 
 
 # TODO:
-def vsac_to_omop(v: Dict) -> Dict:
+def vsac_to_omop(v: Dict, depth=2) -> Dict:
     """Convert VSAC JSON dict to OMOP JSON dict"""
 
     # Attempt at regexp
@@ -77,7 +79,31 @@ def vsac_to_omop(v: Dict) -> Dict:
     return d
 
 
-def run(format=['fhir', 'omop'][1], indent=4) -> List[Dict]:
+def get_tsv_code_list(v: Dict) -> pd.DataFrame:
+    """get a list of codes"""
+    rows = []
+    for value_set in v:
+        codes = []
+        for code_dict in value_set['ns0:ConceptList']['ns0:Concept']:
+            codes.append(code_dict['@code'])
+        # print(value_set['@ID'], '\t', ','.join(codes))
+        row = {
+            'oid': value_set['@ID'],
+            'codes': ','.join(codes)
+        }
+        rows.append(row)
+
+    df = pd.DataFrame(rows)
+    outdir = os.path.join(OUTPUT_DIR, datetime.now().strftime('%Y.%m.%d'))
+    if not os.path.exists(outdir):
+        os.mkdir(outdir)
+    outpath = os.path.join(outdir, 'list_of_codes.tsv')
+    df.to_csv(outpath, sep='\t', index=False)
+
+    return df
+
+
+def run(artefact=['csv_fields', 'json', 'tsv_code'][2], format=['fhir', 'omop'][1], indent=4):
     """Main function
 
     Args:
@@ -95,25 +121,29 @@ def run(format=['fhir', 'omop'][1], indent=4) -> List[Dict]:
     # service_ticket = get_service_ticket(tgt)
 
     value_sets_dict: OrderedDict = get_value_sets(object_ids, tgt)
-    value_sets: List[OrderedDict] = value_sets_dict['ns0:RetrieveMultipleValueSetsResponse']['ns0:DescribedValueSet']
+    value_sets: List[OrderedDict] = value_sets_dict['ns0:RetrieveMultipleValueSetsResponse'][
+        'ns0:DescribedValueSet']
 
-    # Populate JSON objs
-    d_list: List[Dict] = []
-    for value_set in value_sets:
-        value_set2 = {}
-        if format == 'fhir':
-            value_set2 = vsac_to_fhir(value_set)
-        elif format == 'omop':
-            value_set2 = vsac_to_omop(value_set)
-        d_list.append(value_set2)
+    if artefact == 'tsv_code':
+        get_tsv_code_list(value_sets)
+    elif artefact == 'json':
+        # Populate JSON objs
+        d_list: List[Dict] = []
+        for value_set in value_sets:
+            value_set2 = {}
+            if format == 'fhir':
+                value_set2 = vsac_to_fhir(value_set)
+            elif format == 'omop':
+                value_set2 = vsac_to_omop(value_set)
+            d_list.append(value_set2)
 
-    # Save file
-    for d in d_list:
-        valueset_name = d['name']
-        with open(valueset_name + '.json', 'w') as fp:
-            if indent:
-                json.dump(d, fp, indent=indent)
-            else:
-                json.dump(d, fp)
-
-    return d_list
+        # Save file
+        for d in d_list:
+            valueset_name = d['name']
+            with open(valueset_name + '.json', 'w') as fp:
+                if indent:
+                    json.dump(d, fp, indent=indent)
+                else:
+                    json.dump(d, fp)
+    elif artefact == 'csv_fields':
+        pass
