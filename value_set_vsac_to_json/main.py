@@ -38,7 +38,7 @@ def vsac_to_fhir(value_set: Dict) -> Dict:
 
 
 # TODO:
-def vsac_to_omop(v: Dict, depth=2) -> Dict:
+def vsac_to_vsac(v: Dict, depth=2) -> Dict:     # this is the format @DaveraGabriel specified by looking at the vsac web interface
     """Convert VSAC JSON dict to OMOP JSON dict"""
 
     # Attempt at regexp
@@ -141,7 +141,7 @@ def run(artefact=['csv_fields', 'json', 'tsv_code'][2], format=['fhir', 'omop'][
             if format == 'fhir':
                 value_set2 = vsac_to_fhir(value_set)
             elif format == 'omop':
-                value_set2 = vsac_to_omop(value_set)
+                value_set2 = vsac_to_vsac(value_set)
             d_list.append(value_set2)
 
         # Save file
