@@ -83,16 +83,23 @@ def get_tsv_code_list(v: Dict) -> pd.DataFrame:
     """get a list of codes"""
     rows = []
     for value_set in v:
-        codes = []
-        for code_dict in value_set['ns0:ConceptList']['ns0:Concept']:
-            codes.append(code_dict['@code'])
-        # print(value_set['@ID'], '\t', ','.join(codes))
-        row = {
-            'oid': value_set['@ID'],
-            'codes': ','.join(codes)
-        }
-        rows.append(row)
+        code_system_codes = {}
+        for concept_dict in value_set['ns0:ConceptList']['ns0:Concept']:
+            code = concept_dict['@code']
+            code_system = concept_dict['@codeSystemName']
+            if code_system not in code_system_codes:
+                code_system_codes[code_system] = []
+            else:
+                code_system_codes[code_system].append(code)
+        for code_system, codes in code_system_codes.items():
+            row = {
+                'oid': value_set['@ID'],
+                'codeSystem': code_system,
+                'codes': ','.join(codes),
+            }
+            rows.append(row)
 
+    # Create/Return DF & Save CSV
     df = pd.DataFrame(rows)
     outdir = os.path.join(OUTPUT_DIR, datetime.now().strftime('%Y.%m.%d'))
     if not os.path.exists(outdir):
