@@ -41,7 +41,8 @@ def vsac_to_fhir(value_set: Dict) -> Dict:
 
 # TODO: use depth to make this either nested JSON, or, if depth=1, concatenate
 #  ... all intention sub-fields into a single string, etc.
-def vsac_to_omop(v: Dict, depth=2) -> Dict:
+# TODO:
+def vsac_to_vsac(v: Dict, depth=2) -> Dict:     # this is the format @DaveraGabriel specified by looking at the vsac web interface
     """Convert VSAC JSON dict to OMOP JSON dict"""
 
     # Attempt at regexp
@@ -176,7 +177,7 @@ def run(
             if format == 'fhir':
                 value_set2 = vsac_to_fhir(value_set)
             elif format == 'omop':
-                value_set2 = vsac_to_omop(value_set)
+                value_set2 = vsac_to_vsac(value_set)
             d_list.append(value_set2)
 
         # Save file
