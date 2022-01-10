@@ -1,11 +1,11 @@
-# ValueSet Converters
-Tools for converting value sets in different formats. Such as converting 
+# ValueSet Tools
+Tools for converting value sets in different formats, such as converting 
 extensional value sets in CSV format to JSON format able to be uploaded to a 
-FHIR server.
+FHIR server. Tools to automate CRUD operations such as reads and updates from various different data sources and web services.
 
 ## Set up / installation
 1. You must have [Python3](https://www.python.org/downloads/) installed.
-2. Run to clone repo: `git clone https://github.com/HOT-Ecosystem/ValueSet-Converters.git`
+2. Run to clone repo: `git https://github.com/HOT-Ecosystem/ValueSet-Tools.git`
 3. Change directory: `cd ValueSet-Converters`
 4. Make & use virtual environment: `virtualenv env; source env/bin/activate`
 5. Run to install dependencies: `pip install -r requirements.txt` 
@@ -14,8 +14,7 @@ FHIR server.
    3.a. Access to [this 
    google sheet](https://docs.google.com/spreadsheets/d/1jzGrVELQz5L4B_-DqPflPIcpBaTfJOUTrVJT5nS_j18/edit#gid=1335629675).  
    3.b. Place `credentials.json` and `token.json` inside the `env/` directory. 
-   These can be obtained from Joe (will upload them to a Google Drive folder 
-   later).
+   For [BIDS](http://dhsi.med.jhmi.edu/) members, these can be downloaded from the BIDS OneDrive [here](https://livejohnshopkins-my.sharepoint.com/personal/jflack1_jh_edu/_layouts/15/onedrive.aspx?id=%2Fsites%2FBiomedicalInformaticsandDataScience%2FShared%20Documents%2FProjects%2FCD2H%2C%20N3C%2C%20PASC%2FValueSet%20Tools%2Fenv&listurl=https%3A%2F%2Flivejohnshopkins%2Esharepoint%2Ecom%2Fsites%2FBiomedicalInformaticsandDataScience%2FShared%20Documents&viewid=51daccc9%2D8479%2D4ef4%2Da7bf%2D65b689881f3a).
 7. Create an `env/.env` file based on `env/.env.example`, replacing `VSAC_API_KEY` 
    with your own [VSAC API key](https://uts.nlm.nih.gov/uts/edit-profile) as 
    shown in your profile. More instructions on getting an API key can be found in 
