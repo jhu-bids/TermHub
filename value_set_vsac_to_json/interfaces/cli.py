@@ -2,9 +2,7 @@
 # -*- coding: utf-8 -*-
 """Command Line Interface."""
 from argparse import ArgumentParser
-from sys import stderr
 
-from value_set_vsac_to_json.definitions.error import PackageException
 from value_set_vsac_to_json.main import run
 
 
@@ -18,42 +16,72 @@ def get_parser():
     parser = ArgumentParser(description=package_description)
 
     parser.add_argument(
-        '-f', '--format',
-        choices=['fhir', 'omop'],
-        default='omop',
-        help='Destination format to transform VSAC value set into')
-
+        '-s', '--output-structure',
+        choices=['fhir', 'vsac'],
+        default='vsac',
+        help='Destination structure. This determines the specific fields, in some cases, internal structure of the '
+             'data in those fields.')
     parser.add_argument(
-        '-a', '--artefact',
-        choices=['csv_fields', 'json', 'tsv_code'],
+        '-f', '--output-format',
+        choices=['tabular/csv', 'json'],
         default='json',
-        help='The kind of output artefact to create')
-
-    # out_help = ('Path to save output file. If not present, same directory of'
-    #             'any input files passed will be used.')
-    # parser.add_argument('-o', '--outpath', help=out_help)
+        help='The output format. If csv/tabular, it will produce a tabular file; CSV by default. This can be changed '
+             'to TSV by passing "\t" as the field-delimiter.')
+    parser.add_argument(
+        '-d', '--tabular-field-delimiter',
+        choices=[',', '\t'],
+        default=',',
+        help='Field delimiter for tabular output. This applies when selecting "tabular/csv" for "output-format". By '
+             'default, uses ",", which menas that the output will be CSV (Comma-Separated Values). If "\t" is chosen, '
+             'output will be TSV (Tab-Separated Values).')
+    parser.add_argument(
+        '-d2', '--tabular-intra-field-delimiter',
+        choices=[',', '\t', ';', '|'],
+        default='|',
+        help='Intra-field delimiter for tabular output. This applies when selecting "tabular/csv" for "output-format". '
+             'This delimiter will be used when a specific field contains multiple values. For example, in "tabular/csv"'
+             ' format, there will be 1 row per combination of OID (Object ID) + code system. A single OID represents '
+             'a single value set, which can have codes from multiple code systems. For a given OID+CodeSystem combo, '
+             'there will likely be multiple codes in the "code" field. These codes will be delimited using the '
+             '"intra-field delimiter".')
+    parser.add_argument(
+        '-i', '--json-indent',
+        default=4,
+        help='The number of spacees to indent when outputting JSON. If 0, there will not only be no indent, but there '
+             'will also be no whitespace. 0 is useful for minimal file size. 2 and 4 tend to be  standard indent values'
+             ' for readability.')
+    parser.add_argument(
+        '-c', '--use-cache',
+        action='store_true',
+        help='When running this tool, a cache of the results from the VSAC API will always be saved. If this flag is '
+             'passed, the cached results will be used instead of calling the API. This is useful for (i) working '
+             'offline, or (ii) speeding up processing. In order to not use the cache and get the most up-to-date '
+             'results (both from (i) the OIDs present in the Google Sheet, and (ii) results from VSAC), simply run the'
+             ' tool without this flag.'),
 
     return parser
 
 
+def validate_args(kwargs):
+    """Validate CLI args"""
+    msg = 'Must select different delimiters for "tabular field delimiter" and "tabular intra-field delimiter".'
+    if kwargs.tabular_field_delimiter == kwargs.tabular_intra_field_delimiter:
+        raise RuntimeError(msg)
+
 def cli():
     """Command line interface for package.
 
-    Side Effects: Executes program.
-
-    Command Syntax:
-
-    Examples:
-
-    """
+    Side Effects: Executes program."""
     parser = get_parser()
     kwargs = parser.parse_args()
-
-    try:
-        run(format=kwargs.format)
-    except PackageException as err:
-        err = 'An error occurred.\n\n' + str(err)
-        print(err, file=stderr)
+    validate_args(kwargs)
+    run(
+        output_structure=kwargs.output_structure,
+        output_format=kwargs.output_format,
+        field_delimiter=kwargs.tabular_field_delimiter,
+        intra_field_delimiter=kwargs.tabular_intra_field_delimiter,
+        json_indent=kwargs.json_indent,
+        use_cache=kwargs.use_cache)
 
 
 if __name__ == '__main__':
