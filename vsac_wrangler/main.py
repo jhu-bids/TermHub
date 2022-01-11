@@ -14,10 +14,10 @@ from typing import Dict, List, OrderedDict
 
 import pandas as pd
 
-from value_set_vsac_to_json.config import CACHE_DIR, OUTPUT_DIR
-from value_set_vsac_to_json.definitions.constants import FHIR_JSON_TEMPLATE
-from value_set_vsac_to_json.google_sheets import get_sheets_data
-from value_set_vsac_to_json.vsac_api import get_ticket_granting_ticket, get_value_sets
+from vsac_wrangler.config import CACHE_DIR, OUTPUT_DIR
+from vsac_wrangler.definitions.constants import FHIR_JSON_TEMPLATE
+from vsac_wrangler.google_sheets import get_sheets_data
+from vsac_wrangler.vsac_api import get_ticket_granting_ticket, get_value_sets
 
 
 # TODO: repurpose this to use VSAC format

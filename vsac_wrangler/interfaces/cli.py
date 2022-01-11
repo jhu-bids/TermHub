@@ -3,7 +3,7 @@
 """Command Line Interface."""
 from argparse import ArgumentParser
 
-from value_set_vsac_to_json.main import run
+from vsac_wrangler.main import run
 
 
 def get_parser():

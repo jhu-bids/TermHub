@@ -11,7 +11,7 @@ import requests
 import urllib3.util
 import xmltodict as xd
 
-from value_set_vsac_to_json.config import config
+from vsac_wrangler.config import config
 
 
 API_KEY = config['vsac_api_key']

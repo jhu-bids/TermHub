@@ -18,7 +18,7 @@ MANIFEST
 /*.json
 cache/*
 !cache/.keep
-value_set_vsac_to_json/data/cache/*
-!value_set_vsac_to_json/data/cache/.keep
+vsac_wrangler/data/cache/*
+!vsac_wrangler/data/cache/.keep
 /env/*
 !/env/.env.example
