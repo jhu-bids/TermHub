@@ -29,7 +29,7 @@ from google.oauth2.credentials import Credentials
 import pandas as pd
 from pandas import DataFrame
 
-from value_set_vsac_to_json.config import ENV_DIR, CACHE_DIR, SAMPLE_RANGE_NAME, SAMPLE_SPREADSHEET_ID
+from vsac_wrangler.config import ENV_DIR, CACHE_DIR, SAMPLE_RANGE_NAME, SAMPLE_SPREADSHEET_ID
 
 # If modifying these scopes, delete the file token.json.
 SCOPES = ['https://www.googleapis.com/auth/spreadsheets.readonly']

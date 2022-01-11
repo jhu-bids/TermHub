@@ -23,14 +23,37 @@ FHIR server. Tools to automate CRUD operations such as reads and updates from va
 ## Tools
 First, `cd` into the directory where this repository was cloned.
 
-### 1. CSV to FHIR JSON 
+### 1. VSAC Wrangler
+This will fetch OIDs from the "OID" column of [this google sheet](https://docs.google.com/spreadsheets/d/1jzGrVELQz5L4B_-DqPflPIcpBaTfJOUTrVJT5nS_j18/edit#gid=1335629675), make VSAC API calls, and produce output.
+
+#### Syntax
+`python3 -m vsac_wrangler <options>`
+
+Options:
+
+|Short flag | Long flag | Choices | Default | Description |
+|---	|---	|---	|--- | --- |
+| `-s` | `--output-structure` |`['fhir', 'vsac']` | `'vsac'` | Destination structure. This determines the specific fields, in some cases, internal structure of the data in those fields. |
+| `-f` | `--output-format` |`['tabular/csv', 'json']` | `'json'` | The output format. If csv/tabular, it will produce a tabular file; CSV by default. This can be changed to TSV by passing "\t" as the field-delimiter. |
+| `-d` | `--tabular-field-delimiter` |`[',', '\t']` | `','` | Field delimiter for tabular output. This applies when selecting "tabular/csv" for "output-format". By default, uses ",", which menas that the output will be CSV (Comma-Separated Values). If "\t" is chosen, output will be TSV (Tab-Separated Values). |
+| `-d2` | `--tabular-intra-field-delimiter` | <code>[',', '\t', ';', '&#124;']</code> | <code>&#124;</code> | Intra-field delimiter for tabular output. This applies when selecting "tabular/csv" for "output-format". This delimiter will be used when a specific field contains multiple values. For example, in "tabular/csv" format, there will be 1 row per combination of OID (Object ID) + code system. A single OID represents a single value set, which can have codes from multiple code systems. For a given OID+CodeSystem combo, there will likely be multiple codes in the "code" field. These codes will be delimited using the "intra-field delimiter". |
+| `-i` | `--json-indent` | 0 - 4 | 4 | The number of spacees to indent when outputting JSON. If 0, there will not only be no indent, but there will also be no whitespace. 0 is useful for minimal file size. 2 and 4 tend to be  standard indent values for readability. |
+| `-c` | `--use-cache` |  | | When running this tool, a cache of the results from the VSAC API will always be saved. If this flag is passed, the cached results will be used instead of calling the API. This is useful for (i) working offline, or (ii) speeding up processing. In order to not use the cache and get the most up-to-date results (both from (i) the OIDs present in the Google Sheet, and (ii) results from VSAC), simply run the tool without this flag. |
+| `-g` | `--help` |  | | Shows help information for using the tool. |
+
+#### Examples
+##### 1. Create a TSV with comma-delimited VSAC codes, and use the last cached results from the VSAC API.
+`python -m vsac_wrangler -s vsac -f tabular/csv -d \t -d2 , -c`
+
+### 2. CSV to FHIR JSON 
 First, convert your CSV to have column names like the example below. Then can 
 run these commands.
+
 #### Syntax
-`python3 -m value_set_csv_to_fhir_json path/to/FILE.csv`
+`python3 -m csv_to_fhir path/to/FILE.csv`
 
 #### Example
-`python3 -m value_set_csv_to_fhir_json examples/1/input/n3cLikeExtensionalValueSetExample.csv`
+`python3 -m csv_to_fhir examples/1/input/n3cLikeExtensionalValueSetExample.csv`
 
 Before:
 ```csv
@@ -82,17 +105,3 @@ After:
     }
 }
 ```
-
-### 2. VSAC to OMOP/FHIR JSON
-This will fetch from the following google sheet:
-https://docs.google.com/spreadsheets/d/1jzGrVELQz5L4B_-DqPflPIcpBaTfJOUTrVJT5nS_j18/edit#gid=1335629675
-
-#### Syntax
-- With default options: `python3 -m value_set_vsac_to_json`
-- Choosing an output format: `python3 -m value_set_vsac_to_json -f omop`
-
-Options:
-
-|Short flag | Long flag | Options | Default | Description|
-|---	|---	|---	|---	|---	|
-| `-f` | `--format` | `['omop', 'fhir']` | 'omop' | Output format. |

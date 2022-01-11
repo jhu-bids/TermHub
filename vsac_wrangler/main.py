@@ -14,15 +14,17 @@ from typing import Dict, List, OrderedDict
 
 import pandas as pd
 
-from value_set_vsac_to_json.config import CACHE_DIR, OUTPUT_DIR
-from value_set_vsac_to_json.definitions.constants import FHIR_JSON_TEMPLATE, OMOP_JSON_TEMPLATE
-from value_set_vsac_to_json.google_sheets import get_sheets_data
-from value_set_vsac_to_json.vsac_api import get_ticket_granting_ticket, get_value_set, get_value_sets
+from vsac_wrangler.config import CACHE_DIR, OUTPUT_DIR
+from vsac_wrangler.definitions.constants import FHIR_JSON_TEMPLATE
+from vsac_wrangler.google_sheets import get_sheets_data
+from vsac_wrangler.vsac_api import get_ticket_granting_ticket, get_value_sets
 
 
 # TODO: repurpose this to use VSAC format
+# noinspection DuplicatedCode
 def vsac_to_fhir(value_set: Dict) -> Dict:
     """Convert VSAC JSON dict to FHIR JSON dict"""
+    # TODO: cop/paste FHIR_JSON_TEMPLATE literally here instead and use like other func
     d: Dict = copy(FHIR_JSON_TEMPLATE)
     d['id'] = int(value_set['valueSet.id'][0])
     d['text']['div'] = d['text']['div'].format(value_set['valueSet.description'][0])
@@ -39,14 +41,15 @@ def vsac_to_fhir(value_set: Dict) -> Dict:
     return d
 
 
-# TODO: use depth to make this either nested JSON, or, if depth=1, concatenate
-#  ... all intention sub-fields into a single string, etc.
 # TODO:
-def vsac_to_vsac(v: Dict, depth=2) -> Dict:     # this is the format @DaveraGabriel specified by looking at the vsac web interface
-    """Convert VSAC JSON dict to OMOP JSON dict"""
-
+def vsac_to_vsac(v: Dict, depth=2) -> Dict:
+    """Convert VSAC JSON dict to OMOP JSON dict
+    This is the format @DaveraGabriel specified by looking at the VSAC web interface."""
     # Attempt at regexp
-    # Clinical Focus: Asthma conditions which suggest applicability of NHLBI NAEPP EPR3 Guidelines for the Diagnosis and Management of Asthma (2007) and the 2020 Focused Updates to the Asthma Management Guidelines),(Data Element Scope: FHIR Condition.code),(Inclusion Criteria: SNOMEDCT concepts in "Asthma SCT" and ICD10CM concepts in "Asthma ICD10CM" valuesets.),(Exclusion Criteria: none)
+    # Clinical Focus: Asthma conditions which suggest applicability of NHLBI NAEPP EPR3 Guidelines for the Diagnosis and
+    # Management of Asthma (2007) and the 2020 Focused Updates to the Asthma Management Guidelines),(Data Element Scope:
+    # FHIR Condition.code),(Inclusion Criteria: SNOMEDCT concepts in "Asthma SCT" and ICD10CM concepts in "Asthma
+    # ICD10CM" valuesets.),(Exclusion Criteria: none)
     # import re
     # regexer = re.compile('\((.+): (.+)\)')  # fail
     # regexer = re.compile('\((.+): (.+)\)[,$]')
@@ -79,6 +82,12 @@ def vsac_to_vsac(v: Dict, depth=2) -> Dict:     # this is the format @DaveraGabr
             "Definition Version": "",
         }
     }
+    # TODO: use depth to make this either nested JSON, or, if depth=1, concatenate
+    #  ... all intention sub-fields into a single string, etc.
+    if depth == 1:
+        d['Intention'] = ''
+    elif depth < 1 or depth > 2:
+        raise RuntimeError(f'vsac_to_vsac: depth parameter valid range: 1-2, but depth of {depth} was requested.')
 
     return d
 
@@ -105,7 +114,7 @@ def get_csv(value_sets: List[OrderedDict], field_delimiter=',', code_delimiter='
                 'codes': code_delimiter.join(codes),
                 'limitations': str(purposes[3]),
                 'intention': str(purposes[0:2]),
-                # 'intention': code_delimiter.join([x for x in intention_dict.values()]),
+                # 'intention': intra_field_delimiter.join([x for x in intention_dict.values()]),
                 # 'intention.json': intention_json_str,
                 'provenance': {
                     'VSAC Steward': value_set['ns0:Source'],
@@ -130,18 +139,14 @@ def get_csv(value_sets: List[OrderedDict], field_delimiter=',', code_delimiter='
 
 
 def run(
-    artefact=['csv_fields', 'json', 'tsv_code'][2],
-    format=['fhir', 'omop'][1],
+    output_format=['csv/tabular', 'json'][0],
+    output_structure=['fhir', 'vsac'][1],
     field_delimiter=[',', '\t'][0],  # TODO: add to cli
-    code_delimiter=[',', ';', '|'][2],  # TODO: add to cli
-    json_indent=4, use_cache=True):
+    intra_field_delimiter=[',', ';', '|'][2],  # TODO: add to cli
+    json_indent=4, use_cache=False
+):
     """Main function
-
-    Args:
-        file_path (str): Path to file
-        json_indent (int): If 0, there will be no line breaks and no indents. Else,
-        ...you get both.
-    """
+    Refer to interfaces/cli.py for argument descriptions."""
     value_sets = []
     pickle_file = Path(CACHE_DIR, 'value_sets.pickle')
 
@@ -167,16 +172,19 @@ def run(
         with open(pickle_file, 'wb') as handle:
             pickle.dump(value_sets, handle, protocol=pickle.HIGHEST_PROTOCOL)
 
-    if artefact == 'tsv_code':
-        get_csv(value_sets, field_delimiter, code_delimiter)
-    elif artefact == 'json':
+    if output_format == 'csv/tabular':
+        if output_structure == 'vsac':
+            get_csv(value_sets, field_delimiter, intra_field_delimiter)
+        elif output_structure == 'fhir':
+            raise NotImplementedError('output_structure "fhir" not available for output_format "csv/tabular".')
+    elif output_format == 'json':
         # Populate JSON objs
         d_list: List[Dict] = []
         for value_set in value_sets:
             value_set2 = {}
-            if format == 'fhir':
+            if output_structure == 'fhir':
                 value_set2 = vsac_to_fhir(value_set)
-            elif format == 'omop':
+            elif output_structure == 'vsac':
                 value_set2 = vsac_to_vsac(value_set)
             d_list.append(value_set2)
 
@@ -188,5 +196,3 @@ def run(
                     json.dump(d, fp, indent=json_indent)
                 else:
                     json.dump(d, fp)
-    elif artefact == 'csv_fields':
-        pass
