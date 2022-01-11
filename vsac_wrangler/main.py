@@ -121,17 +121,14 @@ def get_csv(
                 'codeSystem': code_system,
                 'limitations': purposes2[3],
                 'intention': '; '.join(purposes2[0:3]),
-                # 'intention': intra_field_delimiter.join([x for x in intention_dict.values()]),
-                # 'intention.json': intention_json_str,
-                # TODO:
-                'provenance': {
-                    'Steward': value_set['ns0:Source'],
-                    'OID': value_set['@ID'],
-                    'Code System(s)': ','.join(list(code_system_codes.keys())),
-                    'Definition Type': value_set['ns0:Type'],
-                    'Definition Version': value_set['@version'],
-                    'Accessed': str(datetime.now())[0:-7]
-                },
+                'provenance': '; '.join([
+                    'Steward: ' + value_set['ns0:Source'],
+                    'OID: ' + value_set['@ID'],
+                    'Code System(s): ' + ','.join(list(code_system_codes.keys())),
+                    'Definition Type: ' + value_set['ns0:Type'],
+                    'Definition Version: ' + value_set['@version'],
+                    'Accessed: ' + str(datetime.now())[0:-7]
+                ]),
             }
             if len(codes) < 2000:
                 row['codes'] = code_delimiter.join(codes)
