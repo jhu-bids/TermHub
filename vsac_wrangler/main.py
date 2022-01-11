@@ -75,7 +75,7 @@ def vsac_to_vsac(v: Dict, depth=2) -> Dict:
             "VSAC Note": None,  # VSAC Note: (exclude if null)
         },
         "Provenance": {
-            "VSAC Steward": "",
+            "Steward": "",
             "OID": "",
             "Code System(s)": [],
             "Definition Type": "",
@@ -92,7 +92,9 @@ def vsac_to_vsac(v: Dict, depth=2) -> Dict:
     return d
 
 
-def get_csv(value_sets: List[OrderedDict], field_delimiter=',', code_delimiter='|') -> pd.DataFrame:
+def get_csv(
+    value_sets: List[OrderedDict], field_delimiter=',', code_delimiter='|'
+) -> pd.DataFrame:
     """get a list of codes"""
     rows = []
     for value_set in value_sets:
@@ -105,19 +107,25 @@ def get_csv(value_sets: List[OrderedDict], field_delimiter=',', code_delimiter='
             if code_system not in code_system_codes:
                 code_system_codes[code_system] = []
             code_system_codes[code_system].append(code)
+
         for code_system, codes in code_system_codes.items():
+            purposes2 = []
+            for p in purposes:
+                i1 = 1 if p.startswith('(') else 0
+                i2 = -1 if p[len(p) - 1] == ')' else len(p)
+                purposes2.append(p[i1:i2])
             row = {
                 'name': name,
                 'nameVSAC': '[VSAC] ' + name,
                 'oid': value_set['@ID'],
                 'codeSystem': code_system,
-                'codes': code_delimiter.join(codes),
-                'limitations': str(purposes[3]),
-                'intention': str(purposes[0:2]),
+                'limitations': purposes2[3],
+                'intention': '; '.join(purposes2[0:3]),
                 # 'intention': intra_field_delimiter.join([x for x in intention_dict.values()]),
                 # 'intention.json': intention_json_str,
+                # TODO:
                 'provenance': {
-                    'VSAC Steward': value_set['ns0:Source'],
+                    'Steward': value_set['ns0:Source'],
                     'OID': value_set['@ID'],
                     'Code System(s)': ','.join(list(code_system_codes.keys())),
                     'Definition Type': value_set['ns0:Type'],
@@ -125,6 +133,16 @@ def get_csv(value_sets: List[OrderedDict], field_delimiter=',', code_delimiter='
                     'Accessed': str(datetime.now())[0:-7]
                 },
             }
+            if len(codes) < 2000:
+                row['codes'] = code_delimiter.join(codes)
+            else:
+                row['codes'] = code_delimiter.join(codes[0:1999])
+                if len(codes) < 4000:
+                    row['codes2'] = code_delimiter.join(codes[2000:])
+                else:
+                    row['codes2'] = code_delimiter.join(codes[2000:3999])
+                    row['codes3'] = code_delimiter.join(codes[4000:])
+
             rows.append(row)
 
     # Create/Return DF & Save CSV
@@ -132,14 +150,15 @@ def get_csv(value_sets: List[OrderedDict], field_delimiter=',', code_delimiter='
     outdir = os.path.join(OUTPUT_DIR, datetime.now().strftime('%Y.%m.%d'))
     if not os.path.exists(outdir):
         os.mkdir(outdir)
-    outpath = os.path.join(outdir, 'list_of_codes.tsv')
+    output_format = 'csv' if field_delimiter == ',' else 'tsv' if field_delimiter == '\t' else 'txt'
+    outpath = os.path.join(outdir, f'list_of_codes.{output_format}')
     df.to_csv(outpath, sep=field_delimiter, index=False)
 
     return df
 
 
 def run(
-    output_format=['csv/tabular', 'json'][0],
+    output_format=['tabular/csv', 'json'][0],
     output_structure=['fhir', 'vsac'][1],
     field_delimiter=[',', '\t'][0],  # TODO: add to cli
     intra_field_delimiter=[',', ';', '|'][2],  # TODO: add to cli
@@ -172,7 +191,7 @@ def run(
         with open(pickle_file, 'wb') as handle:
             pickle.dump(value_sets, handle, protocol=pickle.HIGHEST_PROTOCOL)
 
-    if output_format == 'csv/tabular':
+    if output_format == 'tabular/csv':
         if output_structure == 'vsac':
             get_csv(value_sets, field_delimiter, intra_field_delimiter)
         elif output_structure == 'fhir':
