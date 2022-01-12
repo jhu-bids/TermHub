@@ -304,7 +304,7 @@ def get_palantir_csv(
             # I'm surprised these aren't used in the enclave `concept_set_container_edited` table:
             # code = concept_dict['@code']
             # code_system = concept_dict['@codeSystemName']
-            concept_set_name = '[VSAC] ' + concept_dict['@displayName']
+            concept_set_name = '[VSAC Bulk-Import test] ' + concept_dict['@displayName']
             row = {
                 'concept_set_id': concept_set_name,
                 'concept_set_name': concept_set_name,
