@@ -9,11 +9,11 @@ import json
 import os
 import pickle
 from copy import copy
-from datetime import datetime
+from datetime import datetime, timezone
 from pathlib import Path
 from random import randint
 from typing import Dict, List, OrderedDict
-from uuid import uuid1
+from uuid import uuid4
 
 import pandas as pd
 
@@ -21,6 +21,10 @@ from vsac_wrangler.config import CACHE_DIR, OUTPUT_DIR
 from vsac_wrangler.definitions.constants import FHIR_JSON_TEMPLATE
 from vsac_wrangler.google_sheets import get_sheets_data
 from vsac_wrangler.vsac_api import get_ticket_granting_ticket, get_value_sets
+
+
+# USER1: This is an actual ID to a valid user in palantir, who works on our BIDS team.
+PALANTIR_ENCLAVE_USER_ID_1 = 'a39723f3-dc9c-48ce-90ff-06891c29114f'
 
 
 def _save_csv(df: pd.DataFrame, filename='output', field_delimiter=',', ):
@@ -34,6 +38,12 @@ def _save_csv(df: pd.DataFrame, filename='output', field_delimiter=',', ):
     output_format = 'csv' if field_delimiter == ',' else 'tsv' if field_delimiter == '\t' else 'txt'
     outpath = os.path.join(outdir2, f'{filename}.{output_format}')
     df.to_csv(outpath, sep=field_delimiter, index=False)
+
+
+def _datetime_palantir_format() -> str:
+    """Returns datetime str in format used by palantir data enclave
+    e.g. 2021-03-03T13:24:48.000Z (milliseconds allowed, but not common in observed table)"""
+    return datetime.now(timezone.utc).strftime("%Y-%m-%dT%H:%M:%S.%fZ")[:-4] + 'Z'
 
 
 # TODO: repurpose this to use VSAC format
@@ -113,9 +123,14 @@ def get_vsac_csv(
     """Convert VSAC hiearchical XML in a VSAC-oriented tabular file"""
     rows = []
     for value_set in value_sets:
+        code_system_codes = {}
         name = value_set['@displayName']
         purposes = value_set['ns0:Purpose'].split('),')
-        code_system_codes = {}
+        purposes2 = []
+        for p in purposes:
+            i1 = 1 if p.startswith('(') else 0
+            i2 = -1 if p[len(p) - 1] == ')' else len(p)
+            purposes2.append(p[i1:i2])
         for concept_dict in value_set['ns0:ConceptList']['ns0:Concept']:
             code = concept_dict['@code']
             code_system = concept_dict['@codeSystemName']
@@ -124,11 +139,6 @@ def get_vsac_csv(
             code_system_codes[code_system].append(code)
 
         for code_system, codes in code_system_codes.items():
-            purposes2 = []
-            for p in purposes:
-                i1 = 1 if p.startswith('(') else 0
-                i2 = -1 if p[len(p) - 1] == ')' else len(p)
-                purposes2.append(p[i1:i2])
             row = {
                 'name': name,
                 'nameVSAC': '[VSAC] ' + name,
@@ -166,33 +176,168 @@ def get_vsac_csv(
 
 
 def get_palantir_csv(
-    value_sets: List[OrderedDict], field_delimiter=',', filename='concept_set_version_item_rv_edited') -> pd.DataFrame:
+    value_sets: List[OrderedDict], field_delimiter=',', filename1='concept_set_version_item_rv_edited',
+    filename2='code_sets', filename3='concept_set_container_edited') -> Dict[str, pd.DataFrame]:
     """Convert VSAC hiearchical XML to CSV compliant w/ Palantir's OMOP-inspired concept set editor data model"""
-    rows = []
+    # I. Create IDs that will be shared between files
+    codesystem_code__concept_id_map = {}  # currently unused; as no common field in these 3 tables
+    oid__codeset_id_map = {}
+    for value_set in value_sets:
+        # will let palantir verify ID is indeed unique:
+        oid__codeset_id_map[value_set['@ID']] = randint(0, 1000000000)
+        for concept_dict in value_set['ns0:ConceptList']['ns0:Concept']:
+            code = concept_dict['@code']
+            code_system = concept_dict['@codeSystemName']
+            if code_system not in codesystem_code__concept_id_map:
+                codesystem_code__concept_id_map[code_system] = {}
+            # will let palantir verify ID is indeed unique:
+            codesystem_code__concept_id_map[code_system][code] = randint(0, 1000000000)
+
+    # II. Create & save exports
+    all = {}
+    # 1. Palantir enclave table: concept_set_version_item_rv_edited
+    rows1 = []
     for value_set in value_sets:
         for concept_dict in value_set['ns0:ConceptList']['ns0:Concept']:
             code = concept_dict['@code']
             code_system = concept_dict['@codeSystemName']
             row = {
-                'codeset_id': randint(0, 1000000000),  # will let palantir verify ID is indeed unique
+                'codeset_id': oid__codeset_id_map[value_set['@ID']],
                 'concept_id': '',  # leave blank for now
+                # <non-palantir fields>
+                'code': code,
+                'codeSystem': code_system,
+                # </non-palantir fields>
                 'isExcluded': False,
                 'includeDescendants': True,
                 'includeMapped': False,
-                'item_id': str(uuid1()),  # will let palantir verify ID is indeed unique
+                'item_id': str(uuid4()),  # will let palantir verify ID is indeed unique
                 'annotation': 'Generated from VSAC export',
-                'created_by': 'DI&H Bulk Import',
-                'created_at': '',  # leave blank; will be calculated when uploaded
-                'codeSystem': code_system,
-                'code': code
+                # 'created_by': 'DI&H Bulk Import',
+                'created_by': PALANTIR_ENCLAVE_USER_ID_1,
+                'created_at': _datetime_palantir_format()
             }
-            rows.append(row)
+            rows1.append(row)
+    df1 = pd.DataFrame(rows1)
+    all[filename1] = df1
+    _save_csv(df1, filename=filename1, field_delimiter=field_delimiter)
 
-    # Create/Return DF & Save CSV
-    df = pd.DataFrame(rows)
-    _save_csv(df, filename=filename, field_delimiter=field_delimiter)
+    # TODO:
+    # 2. Palantir enclave table: code_sets
+    rows2 = []
+    for value_set in value_sets:
+        concept_set_name = value_set['@displayName']
+        purposes = value_set['ns0:Purpose'].split('),')
+        purposes2 = []
+        for p in purposes:
+            i1 = 1 if p.startswith('(') else 0
+            i2 = -1 if p[len(p) - 1] == ')' else len(p)
+            purposes2.append(p[i1:i2])
+        code_system_codes = {}
+        for concept_dict in value_set['ns0:ConceptList']['ns0:Concept']:
+            code = concept_dict['@code']
+            code_system = concept_dict['@codeSystemName']
+            if code_system not in code_system_codes:
+                code_system_codes[code_system] = []
+            code_system_codes[code_system].append(code)
+        row = {
+            'codeset_id': oid__codeset_id_map[value_set['@ID']],
+            'concept_set_name': concept_set_name,
+            'concept_set_version_title': concept_set_name + ' (v1)',
+            'project': 'RP-4A9E',  # always use this project id for bulk import
+            'source_application': 'EXTERNAL VSAC',
+            'source_application_version': '',  # nullable
+            'created_at': _datetime_palantir_format(),
+            'atlas_json': '',  # nullable
+            'is_most_recent_version': True,
+            'version': 1,
+            'comments': 'Exported from VSAC and bulk imported to N3C.',
+            'intention': '; '.join(purposes2[0:3]),  # nullable
+            'limitations': purposes2[3],  # nullable
+            'issues': '',  # nullable
+            'update_message': 'Initial version.',  # nullable (maybe?)
+            # status field stats as appears in the code_set table 2022/01/12:
+            # 'status': [
+            #     '',  # null
+            #     'Finished',
+            #     'In Progress',
+            #     'Awaiting Review',
+            #     'In progress',
+            # ][2],
+            # status field doesn't show this in stats in code_set table, but UI uses this value by default:
+            'status': 'Under Construction',
+            'has_review': '',  # boolean (nullable)
+            'reviewed_by': '',  # nullable
+            'created_by': PALANTIR_ENCLAVE_USER_ID_1,
+            'provenance': '; '.join([
+                    'Steward: ' + value_set['ns0:Source'],
+                    'OID: ' + value_set['@ID'],
+                    'Code System(s): ' + ','.join(list(code_system_codes.keys())),
+                    'Definition Type: ' + value_set['ns0:Type'],
+                    'Definition Version: ' + value_set['@version'],
+                    'Accessed: ' + str(datetime.now())[0:-7]
+                ]),
+            'atlas_json_resource_url': '',  # nullable
+            # null, initial version will not have the parent version so this field would be always null:
+            'parent_version_id': '',  # nullable
+            # True ( after the import view it from the concept set editor to review the concept set and click done.
+            # We can add the comments like we imported from VSAC and reviewed it from the concept set editor. )
+            # 1. import 2. manual check 3 click done to finish the definition. - if we want to manually review them
+            # first and click Done:
+            'is_draft': True,
+        }
+        rows2.append(row)
+    df2 = pd.DataFrame(rows2)
+    all[filename2] = df2
+    _save_csv(df2, filename=filename2, field_delimiter=field_delimiter)
 
-    return df
+    # 3. Palantir enclave table: concept_set_container_edited
+    rows3 = []
+    for value_set in value_sets:
+        purposes = value_set['ns0:Purpose'].split('),')
+        purposes2 = []
+        for p in purposes:
+            i1 = 1 if p.startswith('(') else 0
+            i2 = -1 if p[len(p) - 1] == ')' else len(p)
+            purposes2.append(p[i1:i2])
+        for concept_dict in value_set['ns0:ConceptList']['ns0:Concept']:
+            # I'm surprised these aren't used in the enclave `concept_set_container_edited` table:
+            # code = concept_dict['@code']
+            # code_system = concept_dict['@codeSystemName']
+            concept_set_name = '[VSAC] ' + concept_dict['@displayName']
+            row = {
+                'concept_set_id': concept_set_name,
+                'concept_set_name': concept_set_name,
+                'project_id': '',  # nullable
+                'assigned_informatician': PALANTIR_ENCLAVE_USER_ID_1,  # nullable
+                'assigned_sme': PALANTIR_ENCLAVE_USER_ID_1,  # nullable
+                'status': ['Finished', 'Under Construction', 'N3C Validation Complete'][1],
+                'stage': [
+                    'Finished',
+                    'Awaiting Editing',
+                    'Candidate for N3C Review',
+                    'Awaiting N3C Committee Review',
+                    'Awaiting SME Review',
+                    'Under N3C Committee Review',
+                    'Under SME Review',
+                    'N3C Validation Complete',
+                    'Awaiting Informatician Review',
+                    'Under Informatician Review',
+                ][1],
+                'intention': '; '.join(purposes2[0:3]),
+                'n3c_reviewer': '',  # nullable
+                'alias': concept_dict['@displayName'],
+                'archived': False,
+                # 'created_by': 'DI&H Bulk Import',
+                'created_by': PALANTIR_ENCLAVE_USER_ID_1,
+                'created_at': _datetime_palantir_format()
+            }
+            rows3.append(row)
+    df3 = pd.DataFrame(rows3)
+    all[filename3] = df3
+    _save_csv(df3, filename=filename3, field_delimiter=field_delimiter)
+
+    return all
 
 
 def run(
