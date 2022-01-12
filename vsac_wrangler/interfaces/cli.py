@@ -17,7 +17,7 @@ def get_parser():
 
     parser.add_argument(
         '-s', '--output-structure',
-        choices=['fhir', 'vsac'],
+        choices=['fhir', 'vsac', 'palantir-concept-set-tables', 'atlas'],
         default='vsac',
         help='Destination structure. This determines the specific fields, in some cases, internal structure of the '
              'data in those fields.')
@@ -66,6 +66,13 @@ def validate_args(kwargs):
     """Validate CLI args"""
     msg = 'Must select different delimiters for "tabular field delimiter" and "tabular intra-field delimiter".'
     if kwargs.tabular_field_delimiter == kwargs.tabular_intra_field_delimiter:
+        raise RuntimeError(msg)
+    msg = 'For "palantir-concept-set-tables" output-structure, output-format "json" is not available. ' \
+          'Try "tabular/csv" instead.'
+    if kwargs.output_structure == 'palantir-concept-set-tables' and kwargs.output_format == 'json':
+        raise RuntimeError(msg)
+    msg = 'For "atlas" output-structure, output-format "tabular/csv" is not available. Try "json" instead.'
+    if kwargs.output_structure == 'atlas' and kwargs.output_format == 'tabular/csv':
         raise RuntimeError(msg)
 
 def cli():
