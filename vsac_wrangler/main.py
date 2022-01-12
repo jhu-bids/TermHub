@@ -11,7 +11,9 @@ import pickle
 from copy import copy
 from datetime import datetime
 from pathlib import Path
+from random import randint
 from typing import Dict, List, OrderedDict
+from uuid import uuid1
 
 import pandas as pd
 
@@ -19,6 +21,19 @@ from vsac_wrangler.config import CACHE_DIR, OUTPUT_DIR
 from vsac_wrangler.definitions.constants import FHIR_JSON_TEMPLATE
 from vsac_wrangler.google_sheets import get_sheets_data
 from vsac_wrangler.vsac_api import get_ticket_granting_ticket, get_value_sets
+
+
+def _save_csv(df: pd.DataFrame, filename='output', field_delimiter=',', ):
+    """Side effects: Save CSV"""
+    outdir = os.path.join(OUTPUT_DIR, filename)
+    if not os.path.exists(outdir):
+        os.mkdir(outdir)
+    outdir2 = os.path.join(outdir, datetime.now().strftime('%Y.%m.%d'))
+    if not os.path.exists(outdir2):
+        os.mkdir(outdir2)
+    output_format = 'csv' if field_delimiter == ',' else 'tsv' if field_delimiter == '\t' else 'txt'
+    outpath = os.path.join(outdir2, f'{filename}.{output_format}')
+    df.to_csv(outpath, sep=field_delimiter, index=False)
 
 
 # TODO: repurpose this to use VSAC format
@@ -93,10 +108,9 @@ def vsac_to_vsac(v: Dict, depth=2) -> Dict:
     return d
 
 
-def get_csv(
-    value_sets: List[OrderedDict], field_delimiter=',', code_delimiter='|'
-) -> pd.DataFrame:
-    """get a list of codes"""
+def get_vsac_csv(
+    value_sets: List[OrderedDict], field_delimiter=',', code_delimiter='|', filename='vsac_csv') -> pd.DataFrame:
+    """Convert VSAC hiearchical XML in a VSAC-oriented tabular file"""
     rows = []
     for value_set in value_sets:
         name = value_set['@displayName']
@@ -145,12 +159,38 @@ def get_csv(
 
     # Create/Return DF & Save CSV
     df = pd.DataFrame(rows)
-    outdir = os.path.join(OUTPUT_DIR, datetime.now().strftime('%Y.%m.%d'))
-    if not os.path.exists(outdir):
-        os.mkdir(outdir)
-    output_format = 'csv' if field_delimiter == ',' else 'tsv' if field_delimiter == '\t' else 'txt'
-    outpath = os.path.join(outdir, f'list_of_codes.{output_format}')
-    df.to_csv(outpath, sep=field_delimiter, index=False)
+    _save_csv(df, filename=filename, field_delimiter=field_delimiter)
+
+    return df
+
+
+
+def get_palantir_csv(
+    value_sets: List[OrderedDict], field_delimiter=',', filename='concept_set_version_item_rv_edited') -> pd.DataFrame:
+    """Convert VSAC hiearchical XML to CSV compliant w/ Palantir's OMOP-inspired concept set editor data model"""
+    rows = []
+    for value_set in value_sets:
+        for concept_dict in value_set['ns0:ConceptList']['ns0:Concept']:
+            code = concept_dict['@code']
+            code_system = concept_dict['@codeSystemName']
+            row = {
+                'codeset_id': randint(0, 1000000000),  # will let palantir verify ID is indeed unique
+                'concept_id': '',  # leave blank for now
+                'isExcluded': False,
+                'includeDescendants': True,
+                'includeMapped': False,
+                'item_id': str(uuid1()),  # will let palantir verify ID is indeed unique
+                'annotation': 'Generated from VSAC export',
+                'created_by': 'DI&H Bulk Import',
+                'created_at': '',  # leave blank; will be calculated when uploaded
+                'codeSystem': code_system,
+                'code': code
+            }
+            rows.append(row)
+
+    # Create/Return DF & Save CSV
+    df = pd.DataFrame(rows)
+    _save_csv(df, filename=filename, field_delimiter=field_delimiter)
 
     return df
 
@@ -191,7 +231,9 @@ def run(
 
     if output_format == 'tabular/csv':
         if output_structure == 'vsac':
-            get_csv(value_sets, field_delimiter, intra_field_delimiter)
+            get_vsac_csv(value_sets, field_delimiter, intra_field_delimiter)
+        elif output_structure == 'palantir-concept-set-tables':
+            get_palantir_csv(value_sets, field_delimiter)
         elif output_structure == 'fhir':
             raise NotImplementedError('output_structure "fhir" not available for output_format "csv/tabular".')
     elif output_format == 'json':
@@ -203,6 +245,8 @@ def run(
                 value_set2 = vsac_to_fhir(value_set)
             elif output_structure == 'vsac':
                 value_set2 = vsac_to_vsac(value_set)
+            elif output_structure == 'atlas':  # TODO: Implement
+                raise NotImplementedError('For "atlas" output-structure, output-format "json" not yet implemented.')
             d_list.append(value_set2)
 
         # Save file
