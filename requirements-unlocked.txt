@@ -4,4 +4,6 @@ google-auth-httplib2
 google-auth-oauthlib
 pandas
 python-dotenv
+# temporary: may not need this later; using it to check out amin's code
+pyspark
 xmltodict
