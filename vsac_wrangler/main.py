@@ -25,6 +25,7 @@ from vsac_wrangler.vsac_api import get_ticket_granting_ticket, get_value_sets
 
 # USER1: This is an actual ID to a valid user in palantir, who works on our BIDS team.
 PALANTIR_ENCLAVE_USER_ID_1 = 'a39723f3-dc9c-48ce-90ff-06891c29114f'
+VSAC_LABEL_PREFIX = '[VSAC Bulk-Import test] '
 
 
 def _save_csv(df: pd.DataFrame, filename='output', field_delimiter=',', ):
@@ -222,11 +223,13 @@ def get_palantir_csv(
     all[filename1] = df1
     _save_csv(df1, filename=filename1, field_delimiter=field_delimiter)
 
-    # TODO:
+    # TODO: Find: Acute severe exacerbation of asthma co-occurrent with allergic rhinitis (disorder)
+    # TODO: Why so few rows; correct here
+
     # 2. Palantir enclave table: code_sets
     rows2 = []
     for value_set in value_sets:
-        concept_set_name = value_set['@displayName']
+        concept_set_name = VSAC_LABEL_PREFIX + value_set['@displayName']
         purposes = value_set['ns0:Purpose'].split('),')
         purposes2 = []
         for p in purposes:
@@ -300,11 +303,12 @@ def get_palantir_csv(
             i1 = 1 if p.startswith('(') else 0
             i2 = -1 if p[len(p) - 1] == ')' else len(p)
             purposes2.append(p[i1:i2])
+        concept_set_name = VSAC_LABEL_PREFIX + value_set['@displayName']
         for concept_dict in value_set['ns0:ConceptList']['ns0:Concept']:
             # I'm surprised these aren't used in the enclave `concept_set_container_edited` table:
             # code = concept_dict['@code']
             # code_system = concept_dict['@codeSystemName']
-            concept_set_name = '[VSAC Bulk-Import test] ' + concept_dict['@displayName']
+
             row = {
                 'concept_set_id': concept_set_name,
                 'concept_set_name': concept_set_name,
