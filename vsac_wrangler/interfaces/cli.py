@@ -16,7 +16,15 @@ def get_parser():
     parser = ArgumentParser(description=package_description)
 
     parser.add_argument(
-        '-s', '--output-structure',
+        '-i', '--input-source-type',
+        choices=['google-sheet', 'vsac-xlsx', 'oids-txt'],
+        default='vsac-xlsx',
+        help='What is the nature of the input? If "vsac-xlsx", provide the path to a single VSAC .xlsx file or a folder'
+             'containing a number of VSAC .xlsx files. A "VSAC .xlsx file" is a value set file dowlnoaded from VSAC.'
+             'It has a specific structure, and also its file name is an OID. Use the "oids-txt" option if you have'
+             'a .txt file with a list of OIDs on each separate line.')
+    parser.add_argument(
+        '-o', '--output-structure',
         choices=['fhir', 'vsac', 'palantir-concept-set-tables', 'atlas'],
         default='vsac',
         help='Destination structure. This determines the specific fields, in some cases, internal structure of the '
