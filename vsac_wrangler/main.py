@@ -346,17 +346,17 @@ def get_palantir_csv(
 
 
 def run(
+    input_source_type=['google-sheet', 'oids-txt'][1],
     output_format=['tabular/csv', 'json'][0],
     output_structure=['fhir', 'vsac'][1],
-    input_source_type=['google-sheet', 'vsac-xlsx', 'oids-txt'][2],
-    field_delimiter=[',', '\t'][0],  # TODO: add to cli
-    intra_field_delimiter=[',', ';', '|'][2],  # TODO: add to cli
+    field_delimiter=[',', '\t'][0],
+    intra_field_delimiter=[',', ';', '|'][2],
     json_indent=4, use_cache=False
 ):
     """Main function
     Refer to interfaces/cli.py for argument descriptions."""
     value_sets = []
-    pickle_file = Path(CACHE_DIR, 'value_sets.pickle')
+    pickle_file = Path(CACHE_DIR, f'value_sets - from {input_source_type}.pickle')
 
     if use_cache:
         if pickle_file.is_file() and use_cache:
@@ -370,10 +370,8 @@ def run(
             df: pd.DataFrame = get_sheets_data()
             object_ids: List[str] = [x for x in list(df['OID']) if x != '']
         elif input_source_type == 'oids-txt':
-            object_ids: List[str] = []
             with open(f'{PROJECT_ROOT}/input/oids.txt', 'r') as f:
-                object_ids = [oid for oid in f.readlines()]
-
+                object_ids: List[str] = [oid.rstrip() for oid in f.readlines()]
 
         # 2. Get VSAC auth ticket
         tgt: str = get_ticket_granting_ticket()

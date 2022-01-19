@@ -17,12 +17,10 @@ def get_parser():
 
     parser.add_argument(
         '-i', '--input-source-type',
-        choices=['google-sheet', 'vsac-xlsx', 'oids-txt'],
+        choices=['google-sheet', 'oids-txt'],
         default='oids-txt',
-        help='What is the nature of the input? If "vsac-xlsx", provide the path to a single VSAC .xlsx file or a folder'
-             'containing a number of VSAC .xlsx files. A "VSAC .xlsx file" is a value set file dowlnoaded from VSAC.'
-             'It has a specific structure, and also its file name is an OID. Use the "oids-txt" option if you have'
-             'a .txt file with a list of OIDs on each separate line.')
+        help='If "google-sheet", this will fetch from a specific, hard-coded Google Sheet, and pull OIDs from a '
+             'specific column in that sheet. If "oids-txt" it will pull a list of OIDs from "input/oids.txt".')
     parser.add_argument(
         '-o', '--output-structure',
         choices=['fhir', 'vsac', 'palantir-concept-set-tables', 'atlas'],
@@ -91,8 +89,8 @@ def cli():
     kwargs = parser.parse_args()
     validate_args(kwargs)
     run(
-        output_structure=kwargs.output_structure,
         input_source_type=kwargs.input_source_type,
+        output_structure=kwargs.output_structure,
         output_format=kwargs.output_format,
         field_delimiter=kwargs.tabular_field_delimiter,
         intra_field_delimiter=kwargs.tabular_intra_field_delimiter,
