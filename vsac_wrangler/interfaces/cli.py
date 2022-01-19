@@ -53,9 +53,9 @@ def get_parser():
              'there will likely be multiple codes in the "code" field. These codes will be delimited using the '
              '"intra-field delimiter".')
     parser.add_argument(
-        '-i', '--json-indent',
+        '-j', '--json-indent',
         default=4,
-        help='The number of spacees to indent when outputting JSON. If 0, there will not only be no indent, but there '
+        help='The number of spaces to indent when outputting JSON. If 0, there will not only be no indent, but there '
              'will also be no whitespace. 0 is useful for minimal file size. 2 and 4 tend to be  standard indent values'
              ' for readability.')
     parser.add_argument(

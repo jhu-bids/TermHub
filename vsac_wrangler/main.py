@@ -202,6 +202,8 @@ def get_palantir_csv(
         for concept_dict in value_set['ns0:ConceptList']['ns0:Concept']:
             code = concept_dict['@code']
             code_system = concept_dict['@codeSystemName']
+            # The 3 fields isExcluded, includeDescendants, and includeMapped, are from OMOP but also in VSAC. If it has
+            # ...these 3 options, it is intensional. And when you execute these 3, it is now extensional / expansion.
             row = {
                 'codeset_id': oid__codeset_id_map[value_set['@ID']],
                 'concept_id': '',  # leave blank for now
