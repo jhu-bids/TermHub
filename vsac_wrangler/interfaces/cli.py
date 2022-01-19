@@ -18,7 +18,7 @@ def get_parser():
     parser.add_argument(
         '-i', '--input-source-type',
         choices=['google-sheet', 'vsac-xlsx', 'oids-txt'],
-        default='vsac-xlsx',
+        default='oids-txt',
         help='What is the nature of the input? If "vsac-xlsx", provide the path to a single VSAC .xlsx file or a folder'
              'containing a number of VSAC .xlsx files. A "VSAC .xlsx file" is a value set file dowlnoaded from VSAC.'
              'It has a specific structure, and also its file name is an OID. Use the "oids-txt" option if you have'
@@ -53,7 +53,7 @@ def get_parser():
              'there will likely be multiple codes in the "code" field. These codes will be delimited using the '
              '"intra-field delimiter".')
     parser.add_argument(
-        '-i', '--json-indent',
+        '-j', '--json-indent',
         default=4,
         help='The number of spacees to indent when outputting JSON. If 0, there will not only be no indent, but there '
              'will also be no whitespace. 0 is useful for minimal file size. 2 and 4 tend to be  standard indent values'
@@ -92,6 +92,7 @@ def cli():
     validate_args(kwargs)
     run(
         output_structure=kwargs.output_structure,
+        input_source_type=kwargs.input_source_type,
         output_format=kwargs.output_format,
         field_delimiter=kwargs.tabular_field_delimiter,
         intra_field_delimiter=kwargs.tabular_intra_field_delimiter,

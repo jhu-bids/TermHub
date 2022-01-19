@@ -17,11 +17,10 @@ from uuid import uuid4
 
 import pandas as pd
 
-from vsac_wrangler.config import CACHE_DIR, OUTPUT_DIR
+from vsac_wrangler.config import CACHE_DIR, OUTPUT_DIR, PROJECT_ROOT
 from vsac_wrangler.definitions.constants import FHIR_JSON_TEMPLATE
 from vsac_wrangler.google_sheets import get_sheets_data
 from vsac_wrangler.vsac_api import get_ticket_granting_ticket, get_value_sets
-
 
 # USER1: This is an actual ID to a valid user in palantir, who works on our BIDS team.
 PALANTIR_ENCLAVE_USER_ID_1 = 'a39723f3-dc9c-48ce-90ff-06891c29114f'
@@ -347,6 +346,7 @@ def get_palantir_csv(
 def run(
     output_format=['tabular/csv', 'json'][0],
     output_structure=['fhir', 'vsac'][1],
+    input_source_type=['google-sheet', 'vsac-xlsx', 'oids-txt'][2],
     field_delimiter=[',', '\t'][0],  # TODO: add to cli
     intra_field_delimiter=[',', ';', '|'][2],  # TODO: add to cli
     json_indent=4, use_cache=False
@@ -364,8 +364,14 @@ def run(
     if not use_cache:
         # 1. Get OIDs to query
         # TODO: Get a different API_Key for this than my 'ohbehave' project
-        df: pd.DataFrame = get_sheets_data()
-        object_ids: List[str] = [x for x in list(df['OID']) if x != '']
+        if input_source_type == 'google-sheet':
+            df: pd.DataFrame = get_sheets_data()
+            object_ids: List[str] = [x for x in list(df['OID']) if x != '']
+        elif input_source_type == 'oids-txt':
+            object_ids: List[str] = []
+            with open(f'{PROJECT_ROOT}/input/oids.txt', 'r') as f:
+                object_ids = [oid for oid in f.readlines()]
+
 
         # 2. Get VSAC auth ticket
         tgt: str = get_ticket_granting_ticket()
