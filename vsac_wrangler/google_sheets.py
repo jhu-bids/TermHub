@@ -51,7 +51,7 @@ def _get_and_use_new_token():
         token.write(creds.to_json())
 
 
-def _get_sheets_live() -> Dict:
+def _get_sheets_live(google_sheet_name) -> Dict:
     """Get sheets from online source"""
     creds = None
     # The file token.json stores the user's access and refresh tokens, and is
@@ -75,7 +75,7 @@ def _get_sheets_live() -> Dict:
     sheet = service.spreadsheets()
     result: Dict = sheet.values().get(
         spreadsheetId=SAMPLE_SPREADSHEET_ID,
-        range=SAMPLE_RANGE_NAME).execute()
+        range=SAMPLE_RANGE_NAME.format(google_sheet_name)).execute()
 
     return result
 
@@ -90,8 +90,10 @@ def _get_sheets_cache(path=cache_file_path) -> Dict:
         return {}
 
 
+# TODO: Utilize these params?
 def get_sheets_data(
-    cache_threshold_datetime: datetime = datetime.now() - timedelta(days=7)
+    google_sheet_name
+    # cache_threshold_datetime: datetime = datetime.now() - timedelta(days=7)
 ) -> pd.DataFrame:
     """Shows basic usage of the Sheets API.
     Prints values from a sample spreadsheet.
@@ -111,7 +113,7 @@ def get_sheets_data(
     #     if last_timestamp and last_timestamp > cache_threshold_datetime:
     #         result = cached
     if not result:
-        result = _get_sheets_live()
+        result = _get_sheets_live(google_sheet_name)
         with open(cache_file_path, 'w') as fp:
             json.dump(result, fp)
 
@@ -128,4 +130,4 @@ def get_sheets_data(
 
 
 if __name__ == '__main__':
-    get_sheets_data()
+    get_sheets_data('CDC reference table list')

@@ -27,7 +27,7 @@ PALANTIR_ENCLAVE_USER_ID_1 = 'a39723f3-dc9c-48ce-90ff-06891c29114f'
 VSAC_LABEL_PREFIX = '[VSAC Bulk-Import test] '
 
 
-def _save_csv(df: pd.DataFrame, filename='output', field_delimiter=',', ):
+def _save_csv(df: pd.DataFrame, filename='output', subfolder=None, field_delimiter=',', ):
     """Side effects: Save CSV"""
     outdir = os.path.join(OUTPUT_DIR, filename)
     if not os.path.exists(outdir):
@@ -35,8 +35,13 @@ def _save_csv(df: pd.DataFrame, filename='output', field_delimiter=',', ):
     outdir2 = os.path.join(outdir, datetime.now().strftime('%Y.%m.%d'))
     if not os.path.exists(outdir2):
         os.mkdir(outdir2)
+
+    outdir3 = outdir2 if subfolder is None else os.path.join(outdir2, subfolder)
+    if not os.path.exists(outdir3):
+        os.mkdir(outdir3)
+
     output_format = 'csv' if field_delimiter == ',' else 'tsv' if field_delimiter == '\t' else 'txt'
-    outpath = os.path.join(outdir2, f'{filename}.{output_format}')
+    outpath = os.path.join(outdir3, f'{filename}.{output_format}')
     df.to_csv(outpath, sep=field_delimiter, index=False)
 
 
@@ -119,7 +124,8 @@ def vsac_to_vsac(v: Dict, depth=2) -> Dict:
 
 
 def get_vsac_csv(
-    value_sets: List[OrderedDict], field_delimiter=',', code_delimiter='|', filename='vsac_csv') -> pd.DataFrame:
+    value_sets: List[OrderedDict], google_sheet_name=None, field_delimiter=',', code_delimiter='|', filename='vsac_csv'
+) -> pd.DataFrame:
     """Convert VSAC hiearchical XML in a VSAC-oriented tabular file"""
     rows = []
     for value_set in value_sets:
@@ -169,15 +175,16 @@ def get_vsac_csv(
 
     # Create/Return DF & Save CSV
     df = pd.DataFrame(rows)
-    _save_csv(df, filename=filename, field_delimiter=field_delimiter)
+    _save_csv(df, filename=filename, subfolder=google_sheet_name, field_delimiter=field_delimiter)
 
     return df
 
 
 
 def get_palantir_csv(
-    value_sets: List[OrderedDict], field_delimiter=',', filename1='concept_set_version_item_rv_edited',
-    filename2='code_sets', filename3='concept_set_container_edited') -> Dict[str, pd.DataFrame]:
+    value_sets: List[OrderedDict], google_sheet_name=None, field_delimiter=',',
+    filename1='concept_set_version_item_rv_edited', filename2='code_sets', filename3='concept_set_container_edited'
+) -> Dict[str, pd.DataFrame]:
     """Convert VSAC hiearchical XML to CSV compliant w/ Palantir's OMOP-inspired concept set editor data model"""
     # I. Create IDs that will be shared between files
     codesystem_code__concept_id_map = {}  # currently unused; as no common field in these 3 tables
@@ -222,7 +229,7 @@ def get_palantir_csv(
             rows1.append(row)
     df1 = pd.DataFrame(rows1)
     all[filename1] = df1
-    _save_csv(df1, filename=filename1, field_delimiter=field_delimiter)
+    _save_csv(df1, filename=filename1, subfolder=google_sheet_name, field_delimiter=field_delimiter)
 
     # TODO: Find: Acute severe exacerbation of asthma co-occurrent with allergic rhinitis (disorder)
     # TODO: Why so few rows; correct here
@@ -293,7 +300,7 @@ def get_palantir_csv(
         rows2.append(row)
     df2 = pd.DataFrame(rows2)
     all[filename2] = df2
-    _save_csv(df2, filename=filename2, field_delimiter=field_delimiter)
+    _save_csv(df2, filename=filename2, subfolder=google_sheet_name, field_delimiter=field_delimiter)
 
     # 3. Palantir enclave table: concept_set_container_edited
     rows3 = []
@@ -340,13 +347,14 @@ def get_palantir_csv(
             rows3.append(row)
     df3 = pd.DataFrame(rows3)
     all[filename3] = df3
-    _save_csv(df3, filename=filename3, field_delimiter=field_delimiter)
+    _save_csv(df3, filename=filename3, subfolder=google_sheet_name, field_delimiter=field_delimiter)
 
     return all
 
 
 def run(
     input_source_type=['google-sheet', 'oids-txt'][1],
+    google_sheet_name=None,
     output_format=['tabular/csv', 'json'][0],
     output_structure=['fhir', 'vsac'][1],
     field_delimiter=[',', '\t'][0],
@@ -367,7 +375,7 @@ def run(
         # 1. Get OIDs to query
         # TODO: Get a different API_Key for this than my 'ohbehave' project
         if input_source_type == 'google-sheet':
-            df: pd.DataFrame = get_sheets_data()
+            df: pd.DataFrame = get_sheets_data(google_sheet_name)
             object_ids: List[str] = [x for x in list(df['OID']) if x != '']
         elif input_source_type == 'oids-txt':
             with open(f'{PROJECT_ROOT}/input/oids.txt', 'r') as f:
@@ -386,9 +394,9 @@ def run(
 
     if output_format == 'tabular/csv':
         if output_structure == 'vsac':
-            get_vsac_csv(value_sets, field_delimiter, intra_field_delimiter)
+            get_vsac_csv(value_sets, google_sheet_name, field_delimiter, intra_field_delimiter)
         elif output_structure == 'palantir-concept-set-tables':
-            get_palantir_csv(value_sets, field_delimiter)
+            get_palantir_csv(value_sets, google_sheet_name, field_delimiter)
         elif output_structure == 'fhir':
             raise NotImplementedError('output_structure "fhir" not available for output_format "csv/tabular".')
     elif output_format == 'json':

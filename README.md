@@ -37,6 +37,7 @@ Options:
 |Short flag | Long flag | Choices | Default | Description |
 |---	|---	|---	|--- | --- |
 | `-i` | `--input-source-type` |`['google-sheet', 'oids-txt']` | `'oids-txt'` | If "google-sheet", this will fetch from a specific, hard-coded Google Sheet, and pull OIDs from a specific column in that sheet. If "oids-txt" it will pull a list of OIDs from `input/oids.txt`. |
+| `-g` | `--google-sheet-name` |`['CDC reference table list', 'VSAC Lisa1']` | `'CDC reference table list'` | The name of the tab within a the Google Sheet containing the target data within OID column. Make sure to encapsulate the text in quotes, e.g. `-g "VSAC Lisa1"`. This option can only be used if `--input-source-type` is `google-sheet`. |
 | `-o` | `--output-structure` |`['fhir', 'vsac', 'palantir-concept-set-tables', 'atlas']` | `'vsac'` | Destination structure. This determines the specific fields, in some cases, internal structure of the data in those fields. |
 | `-f` | `--output-format` |`['tabular/csv', 'json']` | `'json'` | The output format. If csv/tabular, it will produce a tabular file; CSV by default. This can be changed to TSV by passing "\t" as the field-delimiter. |
 | `-d` | `--tabular-field-delimiter` |`[',', '\t']` | `','` | Field delimiter for tabular output. This applies when selecting "tabular/csv" for "output-format". By default, uses ",", which menas that the output will be CSV (Comma-Separated Values). If "\t" is chosen, output will be TSV (Tab-Separated Values). |

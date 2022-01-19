@@ -22,6 +22,13 @@ def get_parser():
         help='If "google-sheet", this will fetch from a specific, hard-coded Google Sheet, and pull OIDs from a '
              'specific column in that sheet. If "oids-txt" it will pull a list of OIDs from "input/oids.txt".')
     parser.add_argument(
+        '-g', '--google-sheet-name',
+        choices=['CDC reference table list', 'VSAC Lisa1'],
+        default='CDC reference table list',
+        help='The name of the tab within a the Google Sheet containing the target data within OID column. Make sure to '
+             'encapsulate the text in quotes, e.g. `-g "VSAC Lisa1"`. This option can only be used if '
+             '`--input-source-type` is `google-sheet`.')
+    parser.add_argument(
         '-o', '--output-structure',
         choices=['fhir', 'vsac', 'palantir-concept-set-tables', 'atlas'],
         default='vsac',
@@ -80,6 +87,11 @@ def validate_args(kwargs):
     msg = 'For "atlas" output-structure, output-format "tabular/csv" is not available. Try "json" instead.'
     if kwargs.output_structure == 'atlas' and kwargs.output_format == 'tabular/csv':
         raise RuntimeError(msg)
+    if kwargs.output_structure == 'atlas' and kwargs.output_format == 'tabular/csv':
+        raise RuntimeError(msg)
+    msg = 'Can only pass google sheet name if input sourc eis a google shet.'
+    if 'google_sheet_name' in kwargs and kwargs.input_source_type != 'google-sheet':
+        raise RuntimeError(msg)
 
 def cli():
     """Command line interface for package.
@@ -90,6 +102,7 @@ def cli():
     validate_args(kwargs)
     run(
         input_source_type=kwargs.input_source_type,
+        google_sheet_name=kwargs.google_sheet_name,
         output_structure=kwargs.output_structure,
         output_format=kwargs.output_format,
         field_delimiter=kwargs.tabular_field_delimiter,
