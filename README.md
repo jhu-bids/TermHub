@@ -36,7 +36,7 @@ Options:
 
 |Short flag | Long flag | Choices | Default | Description |
 |---	|---	|---	|--- | --- |
-| `-s` | `--output-structure` |`['fhir', 'vsac', 'palantir-concept-set-tables', 'atlas']` | `'vsac'` | Destination structure. This determines the specific fields, in some cases, internal structure of the data in those fields. |
+| `-o` | `--output-structure` |`['fhir', 'vsac', 'palantir-concept-set-tables', 'atlas']` | `'vsac'` | Destination structure. This determines the specific fields, in some cases, internal structure of the data in those fields. |
 | `-f` | `--output-format` |`['tabular/csv', 'json']` | `'json'` | The output format. If csv/tabular, it will produce a tabular file; CSV by default. This can be changed to TSV by passing "\t" as the field-delimiter. |
 | `-d` | `--tabular-field-delimiter` |`[',', '\t']` | `','` | Field delimiter for tabular output. This applies when selecting "tabular/csv" for "output-format". By default, uses ",", which menas that the output will be CSV (Comma-Separated Values). If "\t" is chosen, output will be TSV (Tab-Separated Values). |
 | `-d2` | `--tabular-intra-field-delimiter` | <code>[',', '\t', ';', '&#124;']</code> | <code>&#124;</code> | Intra-field delimiter for tabular output. This applies when selecting "tabular/csv" for "output-format". This delimiter will be used when a specific field contains multiple values. For example, in "tabular/csv" format, there will be 1 row per combination of OID (Object ID) + code system. A single OID represents a single value set, which can have codes from multiple code systems. For a given OID+CodeSystem combo, there will likely be multiple codes in the "code" field. These codes will be delimited using the "intra-field delimiter". |
