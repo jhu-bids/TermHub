@@ -19,6 +19,9 @@ FHIR server. Tools to automate CRUD operations such as reads and updates from va
    with your own [VSAC API key](https://uts.nlm.nih.gov/uts/edit-profile) as 
    shown in your profile. More instructions on getting an API key can be found in 
    ["Step 1" on this page](https://documentation.uts.nlm.nih.gov/rest/authentication.html).
+   Or, if you are a BIDS member, you can simply download and use the `.env` file
+   [from the BIDS OneDrive](https://livejohnshopkins.sharepoint.com/:f:/r/sites/BiomedicalInformaticsandDataScience/Shared%20Documents/Projects/CD2H,%20N3C,%20PASC/ValueSet%20Tools/env?csf=1&web=1&e=f2iR9S).
+   It already has an API key from the shared UMLS BIDS account pre-populated.
 
 ## Tools
 First, `cd` into the directory where this repository was cloned.
