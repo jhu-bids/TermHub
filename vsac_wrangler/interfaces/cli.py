@@ -107,7 +107,7 @@ def cli():
     validate_args(kwargs)
     kwargs_dict: Dict = vars(kwargs)
     # TODO: this is probably better done a different way? This is a fix so that subfolder isn't created when not needed
-    if kwargs_dict['input_sourcee_type'] == 'oids-txt':
+    if kwargs_dict['input_source_type'] == 'oids-txt':
         del kwargs_dict['google_sheet_name']
     run(**kwargs_dict)
 
