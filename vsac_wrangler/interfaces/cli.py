@@ -38,7 +38,8 @@ def get_parser():
     parser.add_argument(
         '-f', '--output-format',
         choices=['tabular/csv', 'json'],
-        default='json',
+        # default='tabular/csv',
+        required=True,
         help='The output format. If csv/tabular, it will produce a tabular file; CSV by default. This can be changed '
              'to TSV by passing "\t" as the field-delimiter.')
     parser.add_argument(
@@ -96,6 +97,7 @@ def validate_args(kwargs):
     # if 'google_sheet_name' in kwargs and kwargs.input_source_type != 'google-sheet':
     #     raise RuntimeError(msg)
 
+
 def cli():
     """Command line interface for package.
 
@@ -104,6 +106,9 @@ def cli():
     kwargs = parser.parse_args()
     validate_args(kwargs)
     kwargs_dict: Dict = vars(kwargs)
+    # TODO: this is probably better done a different way? This is a fix so that subfolder isn't created when not needed
+    if kwargs_dict['input_sourcee_type'] == 'oids-txt':
+        del kwargs_dict['google_sheet_name']
     run(**kwargs_dict)
 
 

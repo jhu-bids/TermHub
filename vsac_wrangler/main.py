@@ -97,9 +97,9 @@ def vsac_to_vsac(v: Dict, depth=2) -> Dict:
         # "Created By": "https://github.com/HOT-Ecosystem/ValueSet-Converters",
         "Intention": {
             "Clinical Focus": purposes[0].split('(Clinical Focus: ')[1],
-            "Inclusion Criteria": purposes[0].split('(Inclusion Criteria: ')[1],
-            "Data Element Scope": purposes[0].split('(Data Element Scope: ')[1],
-            "Exclusion Criteria": purposes[0].split('(Exclusion Criteria: ')[1],
+            "Inclusion Criteria": purposes[2].split('(Inclusion Criteria: ')[1],
+            "Data Element Scope": purposes[1].split('(Data Element Scope: ')[1],
+            "Exclusion Criteria": purposes[3].split('(Exclusion Criteria: ')[1],
         },
         "Limitations": {
             "Exclusion Criteria": "",
@@ -414,8 +414,14 @@ def run(
 
         # Save file
         for d in d_list:
-            valueset_name = d['name']
-            with open(valueset_name + '.json', 'w') as fp:
+            if 'name' in d:
+                valueset_name = d['name']
+            else:
+                valueset_name = d['Concept Set Name']
+            valueset_name = valueset_name.replace('/', '|')
+            filename = valueset_name + '.json'
+            filepath = os.path.join(OUTPUT_DIR, filename)
+            with open(filepath, 'w') as fp:
                 if json_indent:
                     json.dump(d, fp, indent=json_indent)
                 else:
