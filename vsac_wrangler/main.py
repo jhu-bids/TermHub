@@ -357,8 +357,8 @@ def run(
     google_sheet_name=None,
     output_format=['tabular/csv', 'json'][0],
     output_structure=['fhir', 'vsac'][1],
-    field_delimiter=[',', '\t'][0],
-    intra_field_delimiter=[',', ';', '|'][2],
+    tabular_field_delimiter=[',', '\t'][0],
+    tabular_intra_field_delimiter=[',', ';', '|'][2],
     json_indent=4, use_cache=False
 ):
     """Main function
@@ -394,9 +394,9 @@ def run(
 
     if output_format == 'tabular/csv':
         if output_structure == 'vsac':
-            get_vsac_csv(value_sets, google_sheet_name, field_delimiter, intra_field_delimiter)
+            get_vsac_csv(value_sets, google_sheet_name, tabular_field_delimiter, tabular_intra_field_delimiter)
         elif output_structure == 'palantir-concept-set-tables':
-            get_palantir_csv(value_sets, google_sheet_name, field_delimiter)
+            get_palantir_csv(value_sets, google_sheet_name, tabular_field_delimiter)
         elif output_structure == 'fhir':
             raise NotImplementedError('output_structure "fhir" not available for output_format "csv/tabular".')
     elif output_format == 'json':

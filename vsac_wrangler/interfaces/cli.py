@@ -2,6 +2,7 @@
 # -*- coding: utf-8 -*-
 """Command Line Interface."""
 from argparse import ArgumentParser
+from typing import Dict
 
 from vsac_wrangler.main import run
 
@@ -89,9 +90,11 @@ def validate_args(kwargs):
         raise RuntimeError(msg)
     if kwargs.output_structure == 'atlas' and kwargs.output_format == 'tabular/csv':
         raise RuntimeError(msg)
-    msg = 'Can only pass google sheet name if input sourc eis a google shet.'
-    if 'google_sheet_name' in kwargs and kwargs.input_source_type != 'google-sheet':
-        raise RuntimeError(msg)
+    # to-do: It would be ideal if we could show this error when the user /explicitly/ passes these arguments.
+    # ...but unfortunately this error also shows even if the user passes no arguments at all, due to the default args.
+    # msg = 'Can only pass google sheet name if input source is a google shet.'
+    # if 'google_sheet_name' in kwargs and kwargs.input_source_type != 'google-sheet':
+    #     raise RuntimeError(msg)
 
 def cli():
     """Command line interface for package.
@@ -100,15 +103,8 @@ def cli():
     parser = get_parser()
     kwargs = parser.parse_args()
     validate_args(kwargs)
-    run(
-        input_source_type=kwargs.input_source_type,
-        google_sheet_name=kwargs.google_sheet_name,
-        output_structure=kwargs.output_structure,
-        output_format=kwargs.output_format,
-        field_delimiter=kwargs.tabular_field_delimiter,
-        intra_field_delimiter=kwargs.tabular_intra_field_delimiter,
-        json_indent=kwargs.json_indent,
-        use_cache=kwargs.use_cache)
+    kwargs_dict: Dict = vars(kwargs)
+    run(**kwargs_dict)
 
 
 if __name__ == '__main__':

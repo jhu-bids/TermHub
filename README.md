@@ -44,11 +44,11 @@ Options:
 | `-d2` | `--tabular-intra-field-delimiter` | <code>[',', '\t', ';', '&#124;']</code> | <code>&#124;</code> | Intra-field delimiter for tabular output. This applies when selecting "tabular/csv" for "output-format". This delimiter will be used when a specific field contains multiple values. For example, in "tabular/csv" format, there will be 1 row per combination of OID (Object ID) + code system. A single OID represents a single value set, which can have codes from multiple code systems. For a given OID+CodeSystem combo, there will likely be multiple codes in the "code" field. These codes will be delimited using the "intra-field delimiter". |
 | `-j` | `--json-indent` | 0 - 4 | 4 | The number of spacees to indent when outputting JSON. If 0, there will not only be no indent, but there will also be no whitespace. 0 is useful for minimal file size. 2 and 4 tend to be  standard indent values for readability. |
 | `-c` | `--use-cache` |  | | When running this tool, a cache of the results from the VSAC API will always be saved. If this flag is passed, the cached results will be used instead of calling the API. This is useful for (i) working offline, or (ii) speeding up processing. In order to not use the cache and get the most up-to-date results (both from (i) the OIDs present in the Google Sheet, and (ii) results from VSAC), simply run the tool without this flag. |
-| `-g` | `--help` |  | | Shows help information for using the tool. |
+| `-h` | `--help` |  | | Shows help information for using the tool. |
 
 #### Examples
 ##### 1. Create a TSV with comma-delimited VSAC codes, and use the last cached results from the VSAC API.
-`python -m vsac_wrangler -s vsac -f tabular/csv -d \t -d2 , -c`
+`python -m vsac_wrangler -o vsac -f tabular/csv -d \t -d2 , -c`
 
 ### 2. CSV to FHIR JSON 
 First, convert your CSV to have column names like the example below. Then can 
