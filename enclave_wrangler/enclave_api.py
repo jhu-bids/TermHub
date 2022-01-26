@@ -56,7 +56,15 @@ cs_create_data = {
             },
             "ri.actions.main.parameter.a3eace19-c42d-4ff5-aa63-b515f3f79bdd": {
                 "type": "objectLocator",
-                "objectLocator": "[RP-4A9E27]"
+                "objectLocator": {
+                    "objectTypeId": "research_project",
+                    "primaryKey": {
+                            "research_project_uid": {
+                            "type": "string",
+                            "string": "[RP-4A9E27]"
+                            },
+                        }
+                    }},
             },
         }
         },
@@ -147,15 +155,15 @@ cs_version_create_data = {
                 "ri.actions.main.parameter.465404ad-c767-4d73-ab26-0d6e083eab8e": {
                 "type": "objectLocator",
                 "objectLocator": 	{
-                    "objectTypeId": "research-project-id",
+                    "objectTypeId": "research-project",
                     "primaryKey": {
-                        "project_id": {
+                        "research_project_uid": {
                         "type": "string",
                         "string": "[RP-4A9E27]"
 			}
     }}}}}}
 
-### 3/3. createCodeSystmeConceptVersionExpressionItems
+### 3/3. createCodeSystemConceptVersionExpressionItems
 # - bulk call for a single concept set; can contain many expressions in one call. can only do 1 concept set per call
 # TODO: need more info: domain team (object) : ri.actions.main.parameter.4e790085-47ed-41ad-b12e-72439b645031
 # TODO: How to know the ID of the concept set version created in the API:
