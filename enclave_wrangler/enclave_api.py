@@ -57,11 +57,11 @@ cs_create_data = {
             "ri.actions.main.parameter.a3eace19-c42d-4ff5-aa63-b515f3f79bdd": {
                 "type": "objectLocator",
                 "objectLocator": {
-                    "objectTypeId": "research_project",
+                    "objectTypeId": "research-project",
                     "primaryKey": {
                             "research_project_uid": {
                             "type": "string",
-                            "string": "[RP-4A9E27]"
+                            "string": "RP-4A9E27"
                             },
                         }
                     }},
@@ -159,12 +159,13 @@ cs_version_create_data = {
                     "primaryKey": {
                         "research_project_uid": {
                         "type": "string",
-                        "string": "[RP-4A9E27]"
+                        "string": "RP-4A9E27"
 			}
     }}}}}}
 
 ### 3/3. createCodeSystemConceptVersionExpressionItems
 # - bulk call for a single concept set; can contain many expressions in one call. can only do 1 concept set per call
+# TODO: Plantir to expose new api that will accept a codes and codeSystem instead of the concept_ids
 # TODO: need more info: domain team (object) : ri.actions.main.parameter.4e790085-47ed-41ad-b12e-72439b645031
 # TODO: How to know the ID of the concept set version created in the API:
 #  - Amin said that in the API, we can accept the ID. they will validate that it is in the correct range. and if it is
