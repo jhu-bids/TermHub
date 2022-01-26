@@ -1,4 +1,9 @@
-SRC=project_name/
+# This is a boilerplate makefile. It has some issues
+# - commands for package management for distribution to PyPi, but we're not using
+# - includes codestyle packages which we're currently not using
+# - includes test commands but we have no tests right now
+# - set up to manage 1 package per repo, but we have multiple packages
+SRC=vsac_wrangler/
 
 .PHONY: lint tags ltags test all lintall codestyle docstyle lintsrc \
 linttest doctest doc docs code linters_all codesrc codetest docsrc \
@@ -51,23 +56,22 @@ test:
 testdoc:
 	python3 -m test.test --doctests-only
 testall: test testdoc
-test-survey-cto: #TODO: run a single unit test
-	python3 -m unittest discover -v
 
 # Package Management
-remove-previous-build:
-	rm -rf ./dist; 
-	rm -rf ./build; 
-	rm -rf ./*.egg-info
-build: remove-previous-build
-	python3 setup.py sdist bdist_wheel
-dist: build
-pypi-push-test: build
-	twine upload --repository-url https://test.pypi.org/legacy/ dist/*
-pypi-push:
-	twine upload --repository-url https://upload.pypi.org/legacy/ dist/*; \
-	make remove-previous-build
-pypi-test: pypi-push-test
-pip-test: pypi-push-test
-pypi: pypi-push
-pip: pypi-push
+
+# remove-previous-build:
+# 	rm -rf ./dist;
+# 	rm -rf ./build;
+# 	rm -rf ./*.egg-info
+# build: remove-previous-build
+# 	python3 setup.py sdist bdist_wheel
+# dist: build
+# pypi-push-test: build
+# 	twine upload --repository-url https://test.pypi.org/legacy/ dist/*
+# pypi-push:
+# 	twine upload --repository-url https://upload.pypi.org/legacy/ dist/*; \
+# 	make remove-previous-build
+# pypi-test: pypi-push-test
+# pip-test: pypi-push-test
+# pypi: pypi-push
+# pip: pypi-push

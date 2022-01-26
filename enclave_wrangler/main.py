@@ -1,6 +1,6 @@
 """Main module
-
-
+# TODO's:
+- For mappings, I believe Amin will be providing us to .parquet files. We can read with pandas: https://pandas.pydata.org/docs/reference/api/pandas.read_parquet.html
 """
 import os
 from datetime import datetime, timezone
