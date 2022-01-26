@@ -1,15 +1,13 @@
-from typing import Dict, List, OrderedDict
-from bs4 import BeautifulSoup
-import requests
-import urllib3.util
-import xmltodict as xd
-
-"""
-## BulkImport VSAC Concept Sets and import them into the N3C Enclave using the API
+"""BulkImport VSAC Concept Sets and import them into the N3C Enclave using the API
 ## APIs need to be called in the following order:
 ## 1. Create new concept set container
 ## 2. Create new draft version
-## 3. Create CodSystemExpression items - TBD
+## 3. Create CodSystemExpression items - TBD"""
+import requests
+
+
+## 1/3. Create new concept set container
+# - 1 call per container
 #post request to call create the concept set container
 # CreateNewConceptSet rid =ri.actions.main.action-type.ef6f89de-d5e3-450c-91ea-17132c8636ae
 #1. header should contain the authentication bearer token
@@ -27,7 +25,6 @@ import xmltodict as xd
 # status (string whose value is always "Under Construction") : ri.actions.main.parameter.2b3e7cd9-6704-40a0-9383-b6c734032eb3
 # stage (string whose value is always "Awaiting Editing"): ri.actions.main.parameter.02dbf67e-0acc-43bf-a0a9-cc8d1007771b
 # Research Project (object) : ri.actions.main.parameter.a3eace19-c42d-4ff5-aa63-b515f3f79bdd
-"""
 cs_create_data = {
     "actionTypeRid": "ri.actions.main.action-type.ef6f89de-d5e3-450c-91ea-17132c8636ae",
     "parameters": {
@@ -58,8 +55,8 @@ cs_create_data = {
                 "string": "<stage value set to>Awaiting Edition"
             },
             "ri.actions.main.parameter.a3eace19-c42d-4ff5-aa63-b515f3f79bdd": {
-                "type": "object",
-                "object": "[RP-4A9E27]"
+                "type": "objectLocator",
+                "objectLocator": "[RP-4A9E27]"
             },
         }
         },
@@ -75,6 +72,7 @@ cs_create_data = {
 		}
 	}
 }}
+
 ## PLEASE READ THIS NOTE!!!
 ## IMPORTANT: the authentication bearer token value cannot be uploaded to gitHub
 ## if that happens the token will become invalidated
@@ -90,7 +88,8 @@ def post_cs_container( cs_create_data ):
     return r
 
 
-### createNewDraftConceptSetVersion()
+### 2/3. createNewDraftConceptSetVersion()
+# - 1 call per version
 ### data for creating a new draft version of the concept set - we will always be creating a version 1
 ### actionTypeRid: ri.actions.main.action-type.fb260d04-b50e-4e29-9d39-6cce126fda7f
 ### parameters :
@@ -103,7 +102,6 @@ def post_cs_container( cs_create_data ):
 ### provenance (string) ri.actions.main.parameter.5577422c-02a4-454a-97d0-3fb76425ba8c
 ### intended research project (object): ri.actions.main.parameter.465404ad-c767-4d73-ab26-0d6e083eab8e
 ### domain team (object) : ri.actions.main.parameter.4e790085-47ed-41ad-b12e-72439b645031
-
 cs_version_create_data = {
     "actionTypeRid": "ri.actions.main.action-type.fb260d04-b50e-4e29-9d39-6cce126fda7f",
     "parameters": {
@@ -130,33 +128,33 @@ cs_version_create_data = {
 				    "type": "integer",
 				    "integer": 1
 			}}}},
-            "ri.actions.main.parameter.ae8b8a16-c690-42fa-b828-e6032<4074661": {
-            "type": "string",
-            "string": "Initial [VSAC] version"
+                "ri.actions.main.parameter.ae8b8a16-c690-42fa-b828-e6032<4074661": {
+                "type": "string",
+                "string": "Initial [VSAC] version"
             },
-            "ri.actions.main.parameter.2d5df665-6728-4f6e-83e5-8256551f8851" : {
-            "type": "string",
-            "string": "<intension string build from vsac source is set here>"
+                "ri.actions.main.parameter.2d5df665-6728-4f6e-83e5-8256551f8851" : {
+                "type": "string",
+                "string": "<intension string build from vsac source is set here>"
             },
-            "ri.actions.main.parameter.32d1ce35-0bc1-4935-ad18-ba4a45e8113f": {
-             "type": "string",
-             "string": "<limitations text from vsac source is set here>"
+                "ri.actions.main.parameter.32d1ce35-0bc1-4935-ad18-ba4a45e8113f": {
+                 "type": "string",
+                 "string": "<limitations text from vsac source is set here>"
             },
-            "ri.actions.main.parameter.5577422c-02a4-454a-97d0-3fb76425ba8c": {
-            "type": "string",
-            "string": "<provenance built from the VSAC source is set here>"
+                "ri.actions.main.parameter.5577422c-02a4-454a-97d0-3fb76425ba8c": {
+                "type": "string",
+                "string": "<provenance built from the VSAC source is set here>"
             },
-            "ri.actions.main.parameter.465404ad-c767-4d73-ab26-0d6e083eab8e": {
-            "type": "objectLocator",
-			"objectLocator": 	{
-	        	"objectTypeId": "research-project-id",
-		        "primaryKey": {
-			        "project_id": {
-				    "type": "string",
-				    "string": "[RP-4A9E27]"
+                "ri.actions.main.parameter.465404ad-c767-4d73-ab26-0d6e083eab8e": {
+                "type": "objectLocator",
+                "objectLocator": 	{
+                    "objectTypeId": "research-project-id",
+                    "primaryKey": {
+                        "project_id": {
+                        "type": "string",
+                        "string": "[RP-4A9E27]"
 			}
+    }}}}}}
 
-    }}}
-
-### need more info: domain team (object) : ri.actions.main.parameter.4e790085-47ed-41ad-b12e-72439b645031
-###createCodeSystmeConceptVersionExpressionItems
+### 3/3. createCodeSystmeConceptVersionExpressionItems
+# - bulk call for a single concept set; can contain many expressions in one call. can only do 1 concept set per call
+### TODO: need more info: domain team (object) : ri.actions.main.parameter.4e790085-47ed-41ad-b12e-72439b645031

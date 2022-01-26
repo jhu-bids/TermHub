@@ -21,9 +21,11 @@ pbr==5.8.0
 platformdirs==2.4.1
 protobuf==3.19.1
 py4j==0.10.9.2
+pyarrow==6.0.1
 pyasn1==0.4.8
 pyasn1-modules==0.2.8
 pyparsing==3.0.6
+pyspark==3.2.0
 python-dateutil==2.8.2
 python-dotenv==0.19.2
 pytz==2021.3
