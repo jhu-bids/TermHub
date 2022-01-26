@@ -20,7 +20,7 @@ FHIR server. Tools to automate CRUD operations such as reads and updates from va
    shown in your profile. More instructions on getting an API key can be found in 
    ["Step 1" on this page](https://documentation.uts.nlm.nih.gov/rest/authentication.html).
    Or, if you are a BIDS member, you can simply download and use the `.env` file
-   [from the BIDS OneDrive](https://livejohnshopkins.sharepoint.com/:f:/r/sites/BiomedicalInformaticsandDataScience/Shared%20Documents/Projects/CD2H,%20N3C,%20PASC/ValueSet%20Tools/env?csf=1&web=1&e=f2iR9S).
+   [from the BIDS OneDrive](https://livejohnshopkins.sharepoint.com/:f:/r/sites/BiomedicalInformaticsandDataScience/Shared%20Documents/Projects/CD2H,%20N3C,%20PASC/ValueSet%20Tools/env?csf=1&web=1&e=f2iR9S) ([mirror link](https://livejohnshopkins.sharepoint.com/sites/BiomedicalInformaticsandDataScience/Shared%20Documents/Forms/AllItems.aspx?OR=Teams%2DHL&CT=1643222213761&sourceId=&params=%7B%22AppName%22%3A%22Teams%2DDesktop%22%2C%22AppVersion%22%3A%2228%2F21110108720%22%7D&id=%2Fsites%2FBiomedicalInformaticsandDataScience%2FShared%20Documents%2FProjects%2FCD2H%2C%20N3C%2C%20PASC%2FValueSet%20Tools%2Fenv&viewid=51daccc9%2D8479%2D4ef4%2Da7bf%2D65b689881f3a)).
    It already has an API key from the shared UMLS BIDS account pre-populated.
 
 ## Tools
