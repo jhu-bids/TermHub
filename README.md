@@ -50,7 +50,20 @@ Options:
 ##### 1. Create a TSV with comma-delimited VSAC codes, and use the last cached results from the VSAC API.
 `python -m vsac_wrangler -o vsac -f tabular/csv -d \t -d2 , -c`
 
-### 2. CSV to FHIR JSON 
+### 2. Enclave Wrangler
+Tool for working w/ the Palantir Foundry enclave API.
+
+#### Syntax
+`python3 -m enclave_wrangler <options>`
+
+Options:
+
+|Short flag | Long flag | Choices | Default | Description |
+|---	|---	|---	|--- | --- |
+| `-i` | `--input-csv-folder-path` | | | Path to folder with 3 files that have specific columns that adhere to concept table data model. These files must have the following names: i. code_sets.csv, ii. concept_set_container_edited.csv, iii. concept_set_version_item_rv_edited.csv |
+| `-h` | `--help` |  | | Shows help information for using the tool. |
+
+### 3. CSV to FHIR JSON 
 First, convert your CSV to have column names like the example below. Then can 
 run these commands.
 
