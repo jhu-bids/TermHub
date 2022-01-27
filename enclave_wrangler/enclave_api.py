@@ -25,6 +25,7 @@ import requests
 # status (string whose value is always "Under Construction") : ri.actions.main.parameter.2b3e7cd9-6704-40a0-9383-b6c734032eb3
 # stage (string whose value is always "Awaiting Editing"): ri.actions.main.parameter.02dbf67e-0acc-43bf-a0a9-cc8d1007771b
 # Research Project (object) : ri.actions.main.parameter.a3eace19-c42d-4ff5-aa63-b515f3f79bdd
+
 cs_create_data = {
     "actionTypeRid": "ri.actions.main.action-type.ef6f89de-d5e3-450c-91ea-17132c8636ae",
     "parameters": {
@@ -59,27 +60,28 @@ cs_create_data = {
                 "objectLocator": {
                     "objectTypeId": "research-project",
                     "primaryKey": {
-                            "research_project_uid": {
+                        "research_project_uid": {
                             "type": "string",
                             "string": "RP-4A9E27"
-                            },
-                        }
-                    }},
+                        },
+                    }
+                }
             },
-        }
         },
-    "ri.actions.main.parameter.36a1670f-49ca-4491-bb42-c38707bbcbb2": {
-    		"type": "objectLocator",
-			"objectLocator": 	{
-	        	"objectTypeId": "omop-concept-set-container",
-		        "primaryKey": {
-			        "concept_set_id": {
-				    "type": "string",
-				    "string": "<[VSAC] VSAC Concept set name>"
-			}
-		}
-	}
-}}
+        "ri.actions.main.parameter.36a1670f-49ca-4491-bb42-c38707bbcbb2": {
+            "type": "objectLocator",
+            "objectLocator": 	{
+                "objectTypeId": "omop-concept-set-container",
+                "primaryKey": {
+                    "concept_set_id": {
+                        "type": "string",
+                        "string": "<[VSAC] VSAC Concept set name>"
+                    }
+                }
+            }
+        }
+    }
+}
 
 ## PLEASE READ THIS NOTE!!!
 ## IMPORTANT: the authentication bearer token value cannot be uploaded to gitHub
@@ -116,59 +118,70 @@ cs_version_create_data = {
         "params": {
             "ri.actions.main.parameter.51e12235-c217-47e2-a347-240d379434e8": {
                 "type": "objectLocator",
-			    "objectLocator": 	{
-	        	"objectTypeId": "omop-concept-set-container",
-		        "primaryKey": {
-			        "concept_set_id": {
-				    "type": "string",
-				    "string": "<must match the concept name string specified in the container creation>"
-            }}}},
-            "ri.actions.main.parameter.c58b7fa6-e6b4-49ad-8535-433507fe3d13": {
-             "type": "integer",
-             "integer": 1,
-            },
-            "ri.actions.main.parameter.c3e857d9-a9d8-423c-9dec-610e4e90f971": {
-                "type": "objectLocator",
-			    "objectLocator": 	{
-	        	"objectTypeId": "version_id",
-		        "primaryKey": {
-			        "version_id": {
-				    "type": "integer",
-				    "integer": 1
-			}}}},
-                "ri.actions.main.parameter.ae8b8a16-c690-42fa-b828-e6032<4074661": {
-                "type": "string",
-                "string": "Initial [VSAC] version"
-            },
-                "ri.actions.main.parameter.2d5df665-6728-4f6e-83e5-8256551f8851" : {
-                "type": "string",
-                "string": "<intension string build from vsac source is set here>"
-            },
-                "ri.actions.main.parameter.32d1ce35-0bc1-4935-ad18-ba4a45e8113f": {
-                 "type": "string",
-                 "string": "<limitations text from vsac source is set here>"
-            },
-                "ri.actions.main.parameter.5577422c-02a4-454a-97d0-3fb76425ba8c": {
-                "type": "string",
-                "string": "<provenance built from the VSAC source is set here>"
-            },
-                "ri.actions.main.parameter.465404ad-c767-4d73-ab26-0d6e083eab8e": {
-                "type": "objectLocator",
                 "objectLocator": 	{
-                    "objectTypeId": "research-project",
+                    "objectTypeId": "omop-concept-set-container",
                     "primaryKey": {
-                        "research_project_uid": {
-                        "type": "string",
-                        "string": "RP-4A9E27"
-			}
-    }}}}}}
+                        "concept_set_id": {
+                            "type": "string",
+                            "string": "<must match the concept name string specified in the container creation>"
+                        }
+                    }
+                },
+                "ri.actions.main.parameter.c58b7fa6-e6b4-49ad-8535-433507fe3d13": {
+                    "type": "integer",
+                    "integer": 1,
+                },
+                "ri.actions.main.parameter.c3e857d9-a9d8-423c-9dec-610e4e90f971": {
+                    "type": "objectLocator",
+                    "objectLocator": 	{
+                        "objectTypeId": "version_id",
+                        "primaryKey": {
+                            "version_id": {
+                                "type": "integer",
+                                "integer": 1
+                            }
+                        }
+                    }
+                },
+                "ri.actions.main.parameter.ae8b8a16-c690-42fa-b828-e6032<4074661": {
+                    "type": "string",
+                    "string": "Initial [VSAC] version"
+                },
+                "ri.actions.main.parameter.2d5df665-6728-4f6e-83e5-8256551f8851" : {
+                    "type": "string",
+                    "string": "<intension string build from vsac source is set here>"
+                },
+                "ri.actions.main.parameter.32d1ce35-0bc1-4935-ad18-ba4a45e8113f": {
+                    "type": "string",
+                    "string": "<limitations text from vsac source is set here>"
+                },
+                "ri.actions.main.parameter.5577422c-02a4-454a-97d0-3fb76425ba8c": {
+                    "type": "string",
+                    "string": "<provenance built from the VSAC source is set here>"
+                },
+                "ri.actions.main.parameter.465404ad-c767-4d73-ab26-0d6e083eab8e": {
+                    "type": "objectLocator",
+                    "objectLocator": 	{
+                        "objectTypeId": "research-project",
+                        "primaryKey": {
+                            "research_project_uid": {
+                                "type": "string",
+                                "string": "RP-4A9E27"
+                            }
+                        }
+                    }
+                }
+            }
+        }
+    }
+}
 
-### 3/3. createCodeSystemConceptVersionExpressionItems
-# - bulk call for a single concept set; can contain many expressions in one call. can only do 1 concept set per call
-# TODO: Plantir to expose new api that will accept a codes and codeSystem instead of the concept_ids
-# TODO: need more info: domain team (object) : ri.actions.main.parameter.4e790085-47ed-41ad-b12e-72439b645031
-# TODO: How to know the ID of the concept set version created in the API:
-#  - Amin said that in the API, we can accept the ID. they will validate that it is in the correct range. and if it is
-#  valid, our POST request will succeed. and then we can re-use that version ID
+    ### 3/3. createCodeSystemConceptVersionExpressionItems
+    # - bulk call for a single concept set; can contain many expressions in one call. can only do 1 concept set per call
+    # TODO: Plantir to expose new api that will accept a codes and codeSystem instead of the concept_ids
+    # TODO: need more info: domain team (object) : ri.actions.main.parameter.4e790085-47ed-41ad-b12e-72439b645031
+    # TODO: How to know the ID of the concept set version created in the API:
+    #  - Amin said that in the API, we can accept the ID. they will validate that it is in the correct range. and if it is
+    #  valid, our POST request will succeed. and then we can re-use that version ID
 
-# 4. A mapping table, I believe, that Amin is creating/exposing for us, for converting to standard codes
+    # 4. A mapping table, I believe, that Amin is creating/exposing for us, for converting to standard codes

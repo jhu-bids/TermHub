@@ -107,6 +107,7 @@ def run(input_csv_folder_path):
     }
     # API_URL = 'https://unite.nih.gov/actions/'
     data = concept_set_container_edited_json_all_rows[0]
+    print(f'{API_URL}\ndata={data}\nheaders={header}')
     response = requests.post(
         API_URL,
         data=data,
