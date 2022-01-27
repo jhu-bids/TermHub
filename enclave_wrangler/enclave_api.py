@@ -2,7 +2,12 @@
 ## APIs need to be called in the following order:
 ## 1. Create new concept set container
 ## 2. Create new draft version
-## 3. Create CodSystemExpression items - TBD"""
+## 3. Create CodSystemExpression items - TBD
+
+Resources
+- Validate URL (for testing POSTs without it actually taking effect): https://unite.nih.gov/actions/api/actions/validate
+- Wiki article on how to create these JSON: https://github.com/National-COVID-Cohort-Collaborative/Data-Ingestion-and-Harmonization/wiki/BulkImportConceptSet-REST-APIs
+"""
 import requests
 
 
