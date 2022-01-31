@@ -30,63 +30,22 @@ import requests
 # status (string whose value is always "Under Construction") : ri.actions.main.parameter.2b3e7cd9-6704-40a0-9383-b6c734032eb3
 # stage (string whose value is always "Awaiting Editing"): ri.actions.main.parameter.02dbf67e-0acc-43bf-a0a9-cc8d1007771b
 # Research Project (object) : ri.actions.main.parameter.a3eace19-c42d-4ff5-aa63-b515f3f79bdd
-
-cs_create_data = {
-    "actionTypeRid": "ri.actions.main.action-type.ef6f89de-d5e3-450c-91ea-17132c8636ae",
-    "parameters": {
-        "params": {
+## concept_set_name
+def get_cs_container_data( cs_name: str ):
+    cs_container_data = {
+        "actionTypeRid": "ri.actions.main.action-type.ef6f89de-d5e3-450c-91ea-17132c8636ae",
+        "parameters": {
             "ri.actions.main.parameter.1b5cd6e9-b220-4551-b97d-245b9fa86807":
-            {
-                "type": "string",
-                "string": "<concept name i.e. [VSAC BulkImport - Test] concept name goes here>"
-            },
-            "ri.actions.main.parameter.9e33b4d9-c7eb-4f27-81cd-152cc89f334b": {
-                "type": "string",
-                "string": "<intention text value goes here>"
-            },
-            "ri.actions.main.parameter.28448734-2b6c-41e7-94aa-9f0d2ac1936f": {
-                "type": "string",
-                "string": "<assigned informatician i.e.>"
-            },
-            "ri.actions.main.parameter.f04fd21f-4c97-4640-84e3-f7ecff9d1018": {
-                "type": "string",
-                "string": "<assigned sme>"
-            },
-            "ri.actions.main.parameter.2b3e7cd9-6704-40a0-9383-b6c734032eb3": {
-                "type": "string",
-                "string": "<status value set to>Under Construction"
-            },
-            "ri.actions.main.parameter.02dbf67e-0acc-43bf-a0a9-cc8d1007771b": {
-                "type": "string",
-                "string": "<stage value set to>Awaiting Edition"
-            },
+            {"type": "string", "string": cs_name},
+            "ri.actions.main.parameter.28448734-2b6c-41e7-94aa-9f0d2ac1936f": {"null": {}, "type": "null"},  # "a39723f3-dc9c-48ce-90ff-06891c29114f"},  # informatician
+            "ri.actions.main.parameter.f04fd21f-4c97-4640-84e3-f7ecff9d1018": {"null": {}, "type": "null"},  # sme
+            "ri.actions.main.parameter.2b3e7cd9-6704-40a0-9383-b6c734032eb3": {"string": "Under Construction", "type": "string"},
+            "ri.actions.main.parameter.02dbf67e-0acc-43bf-a0a9-cc8d1007771b": {"string": "Awaiting Editing", "type": "string"},
+            "ri.actions.main.parameter.9e33b4d9-c7eb-4f27-81cd-152cc89f334b": {"string": "Broad(sensitive)", "type": "string"},
             "ri.actions.main.parameter.a3eace19-c42d-4ff5-aa63-b515f3f79bdd": {
-                "type": "objectLocator",
-                "objectLocator": {
-                    "objectTypeId": "research-project",
-                    "primaryKey": {
-                        "research_project_uid": {
-                            "type": "string",
-                            "string": "RP-4A9E27"
-                        },
-                    }
-                }
-            },
-        },
-        "ri.actions.main.parameter.36a1670f-49ca-4491-bb42-c38707bbcbb2": {
-            "type": "objectLocator",
-            "objectLocator": 	{
-                "objectTypeId": "omop-concept-set-container",
-                "primaryKey": {
-                    "concept_set_id": {
-                        "type": "string",
-                        "string": "<[VSAC] VSAC Concept set name>"
-                    }
-                }
-            }
-        }
-    }
-}
+                    "objectLocator": {"objectTypeId": "research-project", "primaryKey": {
+                        "research_project_uid": {"string": "RP-4A9E27", "type": "string"}}}, "type": "objectLocator"}}}
+    return cs_container_data
 
 ## PLEASE READ THIS NOTE!!!
 ## IMPORTANT: the authentication bearer token value cannot be uploaded to gitHub
@@ -190,3 +149,6 @@ cs_version_create_data = {
     #  valid, our POST request will succeed. and then we can re-use that version ID
 
     # 4. A mapping table, I believe, that Amin is creating/exposing for us, for converting to standard codes
+
+
+
