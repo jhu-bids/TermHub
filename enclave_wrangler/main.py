@@ -6,6 +6,7 @@ Resources
 - Validate URL (for testing POSTs without it actually taking effect): https://unite.nih.gov/actions/api/actions/validate
 - Wiki article on how to create these JSON: https://github.com/National-COVID-Cohort-Collaborative/Data-Ingestion-and-Harmonization/wiki/BulkImportConceptSet-REST-APIs
 """
+import json
 import os
 from datetime import datetime, timezone
 
@@ -24,9 +25,9 @@ VSAC_LABEL_PREFIX = '[VSAC Bulk-Import test1] '
 # API_URL query params:
 # 1. ?synchronousPropagation=false: Not sure what this does or if it helps.
 API_URL = 'https://unite.nih.gov/actions/api/actions'
-# TODO: is this required?: ?synchronousPropagation=false
-API_VALIDATE_URL = 'https://unite.nih.gov/actions/api/actions/validate'
-# API_VALIDATE_URL = 'https://unite.nih.gov/actions/api/actions/validate?synchronousPropagation=false'
+# Based on curl usage, it seems that '?synchronousPropagation=false' is not required
+# API_VALIDATE_URL = 'https://unite.nih.gov/actions/api/actions/validate'
+API_VALIDATE_URL = 'https://unite.nih.gov/actions/api/actions/validate?synchronousPropagation=false'
 
 
 def _datetime_palantir_format() -> str:
@@ -51,11 +52,9 @@ def run(input_csv_folder_path):
         single_row = get_cs_container_data(row['concept_set_name'])
         concept_set_container_edited_json_all_rows.append(single_row)
 
-    # TODO: 1. try copy/pasting what we created into curl
-    # TODO: 2. check if valid
     # Do a test first using 'valdiate'
     api_url = API_VALIDATE_URL
-    test_data = concept_set_container_edited_json_all_rows[0]
+    test_data_dict = concept_set_container_edited_json_all_rows[0]
     header = {
         "authorization": f"Bearer {config['PALANTIR_ENCLAVE_AUTHENTICATION_BEARER_TOKEN']}",
         'content-type': 'application/json'
@@ -64,7 +63,7 @@ def run(input_csv_folder_path):
         log_debug_info()
     response = requests.post(
         api_url,
-        data=test_data,
+        data=json.dumps(test_data_dict),
         headers=header)
     response_json = response.json()
     # TODO: Fix issues; not successfully uploading
