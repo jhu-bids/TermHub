@@ -76,6 +76,11 @@ def post_cs_container( cs_create_data ):
 ### provenance (string) ri.actions.main.parameter.5577422c-02a4-454a-97d0-3fb76425ba8c
 ### intended research project (object): ri.actions.main.parameter.465404ad-c767-4d73-ab26-0d6e083eab8e
 ### domain team (object) : ri.actions.main.parameter.4e790085-47ed-41ad-b12e-72439b645031
+# TODO: Amin said on 2022/01/28:
+# hey foks, the create new version API call now has a new parameter that you will need to provide - the concept set version id of the version you're creating. You're responsible for its uniqueness, and you have a reserved range.
+# Its id is  ri.actions.main.parameter.eac89354-a3bf-465e-a4be-bbf22a6e2c50
+# and it's an integer in the following range: (1,000,000,000, 1,001,000,000).
+
 cs_version_create_data = {
     "actionTypeRid": "ri.actions.main.action-type.fb260d04-b50e-4e29-9d39-6cce126fda7f",
     "parameters": {
