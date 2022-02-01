@@ -1,8 +1,10 @@
 """BulkImport VSAC Concept Sets and import them into the N3C Enclave using the API
 ## APIs need to be called in the following order:
 ## 1. Create new concept set container
-## 2. Create new draft version
-## 3. Create CodSystemExpression items - TBD
+## 2. Create new draft version  -
+## Note, new draft version id must be generated within the range of 1,000,000,000, 1,001,000,000.
+## and used to add the CodeSystemExpressionItems
+## 3. Create CodeSystemExpression items - TBD
 
 Resources
 - Validate URL (for testing POSTs without it actually taking effect): https://unite.nih.gov/actions/api/actions/validate
@@ -40,14 +42,14 @@ def get_cs_container_data( cs_name: str ):
                 "string": cs_name
             },
             "ri.actions.main.parameter.28448734-2b6c-41e7-94aa-9f0d2ac1936f": {
-                "null": {},
-                "type": "null"
+                #informatician
+                "type": "string",
+                "string": "a39723f3-dc9c-48ce-90ff-06891c29114f"
             },
-            # "a39723f3-dc9c-48ce-90ff-06891c29114f",  # informatician (currently exlcluded)
             "ri.actions.main.parameter.f04fd21f-4c97-4640-84e3-f7ecff9d1018": {
                 "null": {},
                 "type": "null"
-            },  # sme
+            }, # sme
             "ri.actions.main.parameter.2b3e7cd9-6704-40a0-9383-b6c734032eb3": {
                 "string": "Under Construction",
                 "type": "string"
@@ -57,7 +59,7 @@ def get_cs_container_data( cs_name: str ):
                 "type": "string"
             },
             "ri.actions.main.parameter.9e33b4d9-c7eb-4f27-81cd-152cc89f334b": {
-                "string": "Broad (sensitive)",
+                "string": "Mixed",
                 "type": "string"
             },
             "ri.actions.main.parameter.a3eace19-c42d-4ff5-aa63-b515f3f79bdd": {
@@ -75,12 +77,14 @@ def get_cs_container_data( cs_name: str ):
 ## IMPORTANT: the authentication bearer token value cannot be uploaded to gitHub
 ## if that happens the token will become invalidated
 ## THIS TOKEN IS FOR OUR JHU TEAM USE ONLY!!!
-def post_cs_container( cs_create_data ):
+## following code
+def post_cs_container( cs_name ):
     """create a concept set container """
 
-    url = f'https://unite.nih.gov/actions/'
-    header = f'Authentication: Bearer 1351351351t3135dfadgaddt'
-    response = requests.post( url, data=cs_create_data)
+    url = f'https://unite.nih.gov/actions/api/actions'
+    my_header = f'Authentication: Bearer 1351351351t3135dfadgaddt'
+    container_data = get_cs_container_data (cs_name)
+    response = requests.post( url, headers = my_header, data=container_data)
 
     r = response.json()
     return r

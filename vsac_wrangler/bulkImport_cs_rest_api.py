@@ -3,6 +3,7 @@ from bs4 import BeautifulSoup
 import requests
 import urllib3.util
 import xmltodict as xd
+print(pd.__version__)
 
 ###createNewConceptSet
 ##"ri.actions.main.parameter.36a1670f-49ca-4491-bb42-c38707bbcbb2":
