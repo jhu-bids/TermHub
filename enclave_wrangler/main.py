@@ -18,7 +18,7 @@ from enclave_wrangler.enclave_api import get_cs_container_data
 from enclave_wrangler.utils import log_debug_info
 
 
-DEBUG = False
+DEBUG = True
 # PALANTIR_ENCLAVE_USER_ID_1: This is an actual ID to a valid user in palantir, who works on our BIDS team.
 PALANTIR_ENCLAVE_USER_ID_1 = 'a39723f3-dc9c-48ce-90ff-06891c29114f'
 VSAC_LABEL_PREFIX = '[VSAC Bulk-Import test1] '
@@ -64,6 +64,7 @@ def run(input_csv_folder_path):
     response = requests.post(
         api_url,
         data=json.dumps(test_data_dict),
+        #data= single_row,
         headers=header)
     response_json = response.json()
     # TODO: Fix issues; not successfully uploading
