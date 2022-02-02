@@ -6,6 +6,7 @@ Resources
 - Validate URL (for testing POSTs without it actually taking effect): https://unite.nih.gov/actions/api/actions/validate
 - Wiki article on how to create these JSON: https://github.com/National-COVID-Cohort-Collaborative/Data-Ingestion-and-Harmonization/wiki/BulkImportConceptSet-REST-APIs
 """
+import json
 import os
 from datetime import datetime, timezone
 
@@ -13,15 +14,21 @@ import requests
 import pandas as pd
 
 from enclave_wrangler.config import config
+from enclave_wrangler.enclave_api import get_cs_container_data
+from enclave_wrangler.enclave_api import get_cs_version_data
+from enclave_wrangler.utils import log_debug_info
 
 
-# USER1: This is an actual ID to a valid user in palantir, who works on our BIDS team.
+DEBUG = True
+# PALANTIR_ENCLAVE_USER_ID_1: This is an actual ID to a valid user in palantir, who works on our BIDS team.
 PALANTIR_ENCLAVE_USER_ID_1 = 'a39723f3-dc9c-48ce-90ff-06891c29114f'
-VSAC_LABEL_PREFIX = '[VSAC Bulk-Import test] '
+VSAC_LABEL_PREFIX = '[VSAC Bulk-Import test1] '
 # API_URL query params:
 # 1. ?synchronousPropagation=false: Not sure what this does or if it helps.
 API_URL = 'https://unite.nih.gov/actions/api/actions'
-API_VALIDATE_URL = 'https://unite.nih.gov/actions/api/actions/validate'
+# Based on curl usage, it seems that '?synchronousPropagation=false' is not required
+# API_VALIDATE_URL = 'https://unite.nih.gov/actions/api/actions/validate'
+API_VALIDATE_URL = 'https://unite.nih.gov/actions/api/actions/validate?synchronousPropagation=false'
 
 
 def _datetime_palantir_format() -> str:
@@ -32,107 +39,71 @@ def _datetime_palantir_format() -> str:
 
 def run(input_csv_folder_path):
     """Main function"""
-    # code_sets_df = pd.read_csv(os.path.join(input_csv_folder_path, 'code_sets.csv')).fillna('')
+    # TODO: Create 3 JSON structures per concept set and link them on ID
+    ## 1. container
     concept_set_container_edited_df = pd.read_csv(os.path.join(input_csv_folder_path, 'concept_set_container_edited.csv')).fillna('')
+    code_sets_df = pd.read_csv(os.path.join(input_csv_folder_path, 'code_sets.csv')).fillna('')
     # concept_set_version_item_rv_edited_df = pd.read_csv(os.path.join(input_csv_folder_path, 'concept_set_version_item_rv_edited.csv')).fillna('')
 
-    # TODO: We're not 100% sure how to submit multiple containers in a single request yet
     concept_set_container_edited_json_all_rows = []
+    code_set_version_json_all_rows = []
+    # concept_set_container_version_all_rows = []
+    # concept_set_container_code_expression_all_rows = []
     for index, row in concept_set_container_edited_df.iterrows():
-        concept_set_container_edited_json_single_row = {
-            "actionTypeRid": "ri.actions.main.action-type.ef6f89de-d5e3-450c-91ea-17132c8636ae",
-            "parameters": {
-                # 7/13 required fields:
-                # <concept name i.e. [VSAC BulkImport - Test] concept name goes here>
-                "ri.actions.main.parameter.1b5cd6e9-b220-4551-b97d-245b9fa86807": {
-                    "type": "string",
-                    "string": row['concept_set_name']
-                },
-                # <intention text value goes here>
-                # -
-                "ri.actions.main.parameter.9e33b4d9-c7eb-4f27-81cd-152cc89f334b": {
-                    "type": "string",
-                    "string": row['intention']
-                },
-                # <assigned_informatician>
-                "ri.actions.main.parameter.28448734-2b6c-41e7-94aa-9f0d2ac1936f": {
-                    "type": "string",
-                    "string": row['created_by']
-                },
-                # <assigned_sme>
-                "ri.actions.main.parameter.f04fd21f-4c97-4640-84e3-f7ecff9d1018": {
-                    # "type": "string",
-                    # # Which CSV / table field corresponds to this param??
-                    # "string": ''
-                    "null": {},
-                    "type": "null"
-                },
-                # <status value set to>Under Construction
-                "ri.actions.main.parameter.2b3e7cd9-6704-40a0-9383-b6c734032eb3": {
-                    "type": "string",
-                    "string": row['status']
-                },
-                # <stage value set to>Awaiting Edition
-                "ri.actions.main.parameter.02dbf67e-0acc-43bf-a0a9-cc8d1007771b": {
-                    "type": "string",
-                    # Which CSV / table field corresponds to this param??
-                    "string": 'Awaiting Edition'
-                },
-                # <project_id>, e.g. [RP-4A9E27]
-                "ri.actions.main.parameter.a3eace19-c42d-4ff5-aa63-b515f3f79bdd": {
-                    "objectLocator": {
-                        "objectTypeId": "research-project",
-                        "primaryKey": {
-                            "research_project_uid": {
-                                "string": row['project_id'],
-                                "type": "string"
-                            }
-                        }
-                    },
-                    "type": "objectLocator"
-                },
-                # 6/13 Optional fields not included:
-                # - alias
-                # - created_at
-                # - n3c_reviewer
-                # - ???
-                # - ???
-                # - ???
-            }
-            # This field was not in Amin's working example JSON, so commenting it out - Joe:
-            # "ri.actions.main.parameter.36a1670f-49ca-4491-bb42-c38707bbcbb2": {
-            #     "type": "objectLocator",
-            #     "objectLocator": {
-            #         "objectTypeId": "omop-concept-set-container",
-            #         "primaryKey": {
-            #             # <[VSAC] VSAC Concept set name>
-            #             "concept_set_id": {
-            #                 "type": "string",
-            #                 "string": row['concept_set_name']
-            #             }
-            #         }
-            #     }
-            # }
-        }
-        concept_set_container_edited_json_all_rows.append(concept_set_container_edited_json_single_row)
+        cs_name = row['concept_set_name']
+        single_row = get_cs_container_data(row['concept_set_name'])
+        concept_set_container_edited_json_all_rows.append(single_row)
+
+
+    for index, row in code_sets_df.iterrows():
+        cs_id = row['codeset_id']
+        cs_name = row['concept_set_name']
+        cs_intention = row['intention']
+        cs_limitations = row['limitations']
+        cs_update_msg = row['update_message']
+        cs_status = row['status']
+        cs_provenance = row['provenance']
+        single_row = get_cs_version_data(cs_name, cs_id, cs_intention, cs_limitations, cs_update_msg, cs_provenance)
+        # cs_name, cs_id, intension, limitation, update_msg, status, provenance
+        code_set_version_json_all_rows.append(single_row)
 
     # Do a test first using 'valdiate'
     api_url = API_VALIDATE_URL
-    data = concept_set_container_edited_json_all_rows[0]
+    test_data_dict = concept_set_container_edited_json_all_rows[0]
     header = {
-        'authorization': f'Bearer {config["PALANTIR_ENCLAVE_AUTHENTICATION_BEARER_TOKEN"]}'
-        # 'Authentication': f'Bearer {config["PALANTIR_ENCLAVE_AUTHENTICATION_BEARER_TOKEN"]}'
+        "authorization": f"Bearer {config['PALANTIR_ENCLAVE_AUTHENTICATION_BEARER_TOKEN']}",
+        'content-type': 'application/json'
     }
+    if DEBUG:
+        log_debug_info()
     response = requests.post(
         api_url,
-        data=data,
+        data=json.dumps(test_data_dict),
         headers=header)
     response_json = response.json()
+    ## TODO : validate all three calls before calling the acutal APIs. successfully validated results
+    ## {'type': 'validResponse', 'validResponse':
+    ## {'results':
+    ## {'ri.actions.main.validation-rule.fe2770c2-3600-4dd7-b59c-b38f47ad122a': { ...}}}
     print(response_json)
 
     # TODO: After successful validate, do real POSTs (check if they exist first?
-    print()
+    # TODO: after the action POST check for successful return code before calling the 2nd api
+    ## {'errorCode': 'INVALID_ARGUMENT', 'errorName': 'Conjure:UnprocessableEntity', 'errorInstanceId': 'c3eefa5a-61b9-45fc-aaa7-30355c15c92b', 'parameters': {}}
 
+    ##TODO: if type returned is 'validResponse' then continue checking for the 2nd POST call to createNewDraftConceptSetVersion()
+    api_url = API_VALIDATE_URL
+    header = {
+        "authorization": f"Bearer {config['PALANTIR_ENCLAVE_AUTHENTICATION_BEARER_TOKEN']}",
+        'content-type': 'application/json'}
+    cs_version_data_dict = code_set_version_json_all_rows[0]
+    if DEBUG:
+        log_debug_info()
+    response = requests.post(api_url, data=json.dumps(cs_version_data_dict), headers=header)
+    response_json = response.json()
+    print(response_json)
+
+    return response_json
 
 if __name__ == '__main__':
     run(None)
