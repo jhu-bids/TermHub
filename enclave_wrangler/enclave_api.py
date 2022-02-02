@@ -84,8 +84,8 @@ def get_cs_version_data ( cs_name, cs_id, intention, limitations, update_msg, pr
         "parameters": {
             "ri.actions.main.parameter.eac89354-a3bf-465e-a4be-bbf22a6e2c50": {
                 "type": "integer",
-                "integer ": 1000000000
-            },
+                "integer ": 1000000001
+            },  # reserved id list from DI&H id bank, cannot be reused
             "ri.actions.main.parameter.51e12235-c217-47e2-a347-240d379434e8": {
                 "type": "objectLocator",
                 "objectLocator": {
@@ -95,31 +95,31 @@ def get_cs_version_data ( cs_name, cs_id, intention, limitations, update_msg, pr
                             "type": "string",
                             "string": "stephanie cs example"
                         }}}
-                },
+                },  # cs_name must match the string from the container
             "ri.actions.main.parameter.c58b7fa6-e6b4-49ad-8535-433507fe3d13": {
                 "null": {},
                 "type": "null"
-            },
+            }, # current max version, deprecated, passing in null
             "ri.actions.main.parameter.c3e857d9-a9d8-423c-9dec-610e4e90f971": {
                 "null": {},
                 "type": "null"
-            },
+            },  # deprecated, passing in null, version to start with
             "ri.actions.main.parameter.ae8b8a16-c690-42fa-b828-e6032<4074661": {
                 "type": "string",
                 "string": update_msg
-            },
+            },  # update_message
             "ri.actions.main.parameter.2d5df665-6728-4f6e-83e5-8256551f8851": {
                 "type": "string",
                 "string": intention
-            },
+            },  # intention
             "ri.actions.main.parameter.32d1ce35-0bc1-4935-ad18-ba4a45e8113f": {
                 "type": "string",
                 "string": limitations
-            },
+            },  # limitations
             "ri.actions.main.parameter.5577422c-02a4-454a-97d0-3fb76425ba8c": {
                 "type": "string",
                 "string": provenance
-            },
+            },  # provenance
             "ri.actions.main.parameter.465404ad-c767-4d73-ab26-0d6e083eab8e": {
                 "objectLocator": {
                     "objectTypeId": "research-project", "primaryKey": {
@@ -133,7 +133,7 @@ def get_cs_version_data ( cs_name, cs_id, intention, limitations, update_msg, pr
             "ri.actions.main.parameter.4e790085-47ed-41ad-b12e-72439b645031": {
                 "null": {},
                 "type": "null"
-            }
+            }  # domainteam, optional only if research_id is submitted
         }
     }
     return cs_version_data
