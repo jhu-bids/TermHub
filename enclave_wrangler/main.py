@@ -4,6 +4,7 @@
 
 Resources
 - Validate URL (for testing POSTs without it actually taking effect): https://unite.nih.gov/actions/api/actions/validate
+# TODO: Update wiki article to be up-to-date with correct params for 'concept set version':
 - Wiki article on how to create these JSON: https://github.com/National-COVID-Cohort-Collaborative/Data-Ingestion-and-Harmonization/wiki/BulkImportConceptSet-REST-APIs
 """
 import json
