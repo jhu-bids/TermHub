@@ -10,6 +10,8 @@ Resources
 - Validate URL (for testing POSTs without it actually taking effect): https://unite.nih.gov/actions/api/actions/validate
 - Wiki article on how to create these JSON: https://github.com/National-COVID-Cohort-Collaborative/Data-Ingestion-and-Harmonization/wiki/BulkImportConceptSet-REST-APIs
 """
+from typing import Dict
+
 import requests
 
 
@@ -33,7 +35,7 @@ import requests
 # stage (string whose value is always "Awaiting Editing"): ri.actions.main.parameter.02dbf67e-0acc-43bf-a0a9-cc8d1007771b
 # Research Project (object) : ri.actions.main.parameter.a3eace19-c42d-4ff5-aa63-b515f3f79bdd
 ## concept_set_name
-def get_cs_container_data( cs_name: str ):
+def get_cs_container_data( cs_name: str ) -> Dict:
     cs_container_data = {
         "actionTypeRid": "ri.actions.main.action-type.ef6f89de-d5e3-450c-91ea-17132c8636ae",
         "parameters": {
@@ -72,6 +74,69 @@ def get_cs_container_data( cs_name: str ):
                         }
                     }, "type": "objectLocator"}}}
     return cs_container_data
+
+## # cs_name, cs_id, intension, limitation, update_msg, status, provenance
+## TODO: cs_name, cs_id
+def get_cs_version_data ( cs_name, cs_id, intention, limitations, update_msg, provenance   ):
+
+    cs_version_data = {
+        "actionTypeRid": "ri.actions.main.action-type.fb260d04-b50e-4e29-9d39-6cce126fda7f",
+        "parameters": {
+            "ri.actions.main.parameter.eac89354-a3bf-465e-a4be-bbf22a6e2c50": {
+                "type": "integer",
+                "integer ": 1000000000
+            },
+            "ri.actions.main.parameter.51e12235-c217-47e2-a347-240d379434e8": {
+                "type": "objectLocator",
+                "objectLocator": {
+                    "objectTypeId": "omop-concept-set-container",
+                    "primaryKey": {
+                        "concept_set_id": {
+                            "type": "string",
+                            "string": "stephanie cs example"
+                        }}}
+                },
+            "ri.actions.main.parameter.c58b7fa6-e6b4-49ad-8535-433507fe3d13": {
+                "null": {},
+                "type": "null"
+            },
+            "ri.actions.main.parameter.c3e857d9-a9d8-423c-9dec-610e4e90f971": {
+                "null": {},
+                "type": "null"
+            },
+            "ri.actions.main.parameter.ae8b8a16-c690-42fa-b828-e6032<4074661": {
+                "type": "string",
+                "string": update_msg
+            },
+            "ri.actions.main.parameter.2d5df665-6728-4f6e-83e5-8256551f8851": {
+                "type": "string",
+                "string": intention
+            },
+            "ri.actions.main.parameter.32d1ce35-0bc1-4935-ad18-ba4a45e8113f": {
+                "type": "string",
+                "string": limitations
+            },
+            "ri.actions.main.parameter.5577422c-02a4-454a-97d0-3fb76425ba8c": {
+                "type": "string",
+                "string": provenance
+            },
+            "ri.actions.main.parameter.465404ad-c767-4d73-ab26-0d6e083eab8e": {
+                "objectLocator": {
+                    "objectTypeId": "research-project", "primaryKey": {
+                        "research_project_uid": {
+                            "type": "string",
+                            "string": "RP-4A9E27"
+                        }
+                    }
+                }, "type": "objectLocator"
+            },
+            "ri.actions.main.parameter.4e790085-47ed-41ad-b12e-72439b645031": {
+                "null": {},
+                "type": "null"
+            }
+        }
+    }
+    return cs_version_data
 
 ## PLEASE READ THIS NOTE!!!
 ## IMPORTANT: the authentication bearer token value cannot be uploaded to gitHub
