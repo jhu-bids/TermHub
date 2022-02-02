@@ -20,7 +20,8 @@ from enclave_wrangler.enclave_api import get_cs_version_data
 from enclave_wrangler.utils import log_debug_info
 
 
-DEBUG = True
+# TODO: Add debug as a CLI param
+DEBUG = False
 # PALANTIR_ENCLAVE_USER_ID_1: This is an actual ID to a valid user in palantir, who works on our BIDS team.
 PALANTIR_ENCLAVE_USER_ID_1 = 'a39723f3-dc9c-48ce-90ff-06891c29114f'
 VSAC_LABEL_PREFIX = '[VSAC Bulk-Import test1] '
@@ -70,40 +71,42 @@ def run(input_csv_folder_path):
 
     # Do a test first using 'valdiate'
     api_url = API_VALIDATE_URL
-    test_data_dict = concept_set_container_edited_json_all_rows[0]
     header = {
         "authorization": f"Bearer {config['PALANTIR_ENCLAVE_AUTHENTICATION_BEARER_TOKEN']}",
         'content-type': 'application/json'
     }
     if DEBUG:
         log_debug_info()
+
+    # TODO: We should create a function for these calls or modify existing function(s) in enclave_api.py
+    #  ...in order to reduce duplicated code here. - Joe 2022/02/02
+    # Validate 1: Concept set container
+    test_data_dict = concept_set_container_edited_json_all_rows[0]
     response = requests.post(
         api_url,
         data=json.dumps(test_data_dict),
         headers=header)
     response_json = response.json()
-    ## TODO : validate all three calls before calling the acutal APIs. successfully validated results
-    ## {'type': 'validResponse', 'validResponse':
-    ## {'results':
-    ## {'ri.actions.main.validation-rule.fe2770c2-3600-4dd7-b59c-b38f47ad122a': { ...}}}
-    print(response_json)
+    # TODO : validate all three calls before calling the acutal APIs. successfully validated results
+    #  ...After the action POST check for successful return code before calling the 2nd api.
+    # print(response_json)  # temp
+    if 'type' not in response_json or response_json['type'] != 'validResponse':
+        raise SystemError(json.dumps(response_json, indent=2))
 
-    # TODO: After successful validate, do real POSTs (check if they exist first?
-    # TODO: after the action POST check for successful return code before calling the 2nd api
-    ## {'errorCode': 'INVALID_ARGUMENT', 'errorName': 'Conjure:UnprocessableEntity', 'errorInstanceId': 'c3eefa5a-61b9-45fc-aaa7-30355c15c92b', 'parameters': {}}
-
-    ##TODO: if type returned is 'validResponse' then continue checking for the 2nd POST call to createNewDraftConceptSetVersion()
-    api_url = API_VALIDATE_URL
-    header = {
-        "authorization": f"Bearer {config['PALANTIR_ENCLAVE_AUTHENTICATION_BEARER_TOKEN']}",
-        'content-type': 'application/json'}
+    # Validate 2: Concept set version item
     cs_version_data_dict = code_set_version_json_all_rows[0]
-    if DEBUG:
-        log_debug_info()
+    # print(json.dumps(cs_version_data_dict, indent=4))  # temp
     response = requests.post(api_url, data=json.dumps(cs_version_data_dict), headers=header)
     response_json = response.json()
-    print(response_json)
+    # print(response_json)  # temp
+    if 'type' not in response_json or response_json['type'] != 'validResponse':
+        raise SystemError(json.dumps(response_json, indent=2))
 
+    # Error: Amin says that in the backend, he's seeing error that "integer cannot be null".
+    # ...It looks like this may be related to a problem on their end parsing the integer ID, even though it is valid. He's looking into it.
+    # {'errorCode': 'INVALID_ARGUMENT', 'errorName': 'Conjure:UnprocessableEntity', 'errorInstanceId': 'c3eefa5a-61b9-45fc-aaa7-30355c15c92b', 'parameters': {}}
+
+    # TODO: After successful validations, do real POSTs (check if they exist first)?
     return response_json
 
 if __name__ == '__main__':
