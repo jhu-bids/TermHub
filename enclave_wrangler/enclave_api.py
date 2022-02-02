@@ -160,8 +160,9 @@ def get_cs_version_data(cs_name, cs_id, intention, limitations, update_msg, prov
                 # "integer ": 1000000001
                 "type": "null",
                 "null": {}
-            },
+            }, # reserved id list from DI&H id bank, cannot be reused
             # TODO: does "stephanie cs example" match an actual container?
+
             "ri.actions.main.parameter.51e12235-c217-47e2-a347-240d379434e8": {
                 "type": "objectLocator",
                 "objectLocator": {
@@ -175,8 +176,8 @@ def get_cs_version_data(cs_name, cs_id, intention, limitations, update_msg, prov
                         }
                     }
                 }
-            },
-            # Current maximum version:
+            }, # cs_name must match the string from the container
+            # Current maximum version (deprecated):
             # - In the ConceptSetEditor GUI, maximum version is passed in. But in the case where
             # ...we're creating the first version, this can be null.
             "ri.actions.main.parameter.c58b7fa6-e6b4-49ad-8535-433507fe3d13": {
@@ -193,7 +194,7 @@ def get_cs_version_data(cs_name, cs_id, intention, limitations, update_msg, prov
                 "null": {},
                 "type": "null"
             },
-            # Update message (optional):
+            # Update message (optional; deprecated):
             "ri.actions.main.parameter.ae8b8a16-c690-42fa-b828-e60324074661": {
                 "type": "string",
                 "string": update_msg
@@ -229,7 +230,7 @@ def get_cs_version_data(cs_name, cs_id, intention, limitations, update_msg, prov
             "ri.actions.main.parameter.4e790085-47ed-41ad-b12e-72439b645031": {
                 "null": {},
                 "type": "null"
-            }
+            }  # domainteam, optional only if research_id is submitted
         }
     }
     return cs_version_data
@@ -253,7 +254,7 @@ def post_cs_container(cs_name, token):
 ### concept_set_container object (object) ri.actions.main.parameter.51e12235-c217-47e2-a347-240d379434e8
 ### current max version number (integer) : ri.actions.main.parameter.c58b7fa6-e6b4-49ad-8535-433507fe3d13
 ### version to start with (object) :ri.actions.main.parameter.c3e857d9-a9d8-423c-9dec-610e4e90f971
-### update message (string) : ri.actions.main.parameter.ae8b8a16-c690-42fa-b828-e6032<4074661
+### update message (string) : ri.actions.main.parameter.ae8b8a16-c690-42fa-b828-e60324074661
 ### intention (string): ri.actions.main.parameter.2d5df665-6728-4f6e-83e5-8256551f8851
 ### limitations (string) : ri.actions.main.parameter.32d1ce35-0bc1-4935-ad18-ba4a45e8113f
 ### provenance (string) ri.actions.main.parameter.5577422c-02a4-454a-97d0-3fb76425ba8c
