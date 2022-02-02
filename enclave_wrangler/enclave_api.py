@@ -130,7 +130,11 @@ def get_cs_version_data ( cs_name, cs_id, intention, limitations, update_msg, pr
                         }
                     }
                 }, "type": "objectLocator"
-            }  # research_project
+            },  # research_project
+            "ri.actions.main.parameter.4e790085 - 47ed - 41ad - b12e - 72439b645031": {
+                "null": {},
+                "type": "null"
+            }  # domainteam
         }  # eof parameters
     }
     return cs_version_data
