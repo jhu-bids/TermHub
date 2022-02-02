@@ -15,6 +15,7 @@ import pandas as pd
 
 from enclave_wrangler.config import config
 from enclave_wrangler.enclave_api import get_cs_container_data
+from enclave_wrangler.enclave_api import get_cs_version_data
 from enclave_wrangler.utils import log_debug_info
 
 
@@ -39,18 +40,32 @@ def _datetime_palantir_format() -> str:
 def run(input_csv_folder_path):
     """Main function"""
     # TODO: Create 3 JSON structures per concept set and link them on ID
-    # code_sets_df = pd.read_csv(os.path.join(input_csv_folder_path, 'code_sets.csv')).fillna('')
-    ##does not work in pc...
+    ## 1. container
     concept_set_container_edited_df = pd.read_csv(os.path.join(input_csv_folder_path, 'concept_set_container_edited.csv')).fillna('')
-    #concept_set_container_edited_df = pd.read_csv(os.path.join('C:\git\ValueSet-Tools\input\enclave_3_csv_files', 'concept_set_container_edited.csv')).fillna('')
+    code_sets_df = pd.read_csv(os.path.join(input_csv_folder_path, 'code_sets.csv')).fillna('')
     # concept_set_version_item_rv_edited_df = pd.read_csv(os.path.join(input_csv_folder_path, 'concept_set_version_item_rv_edited.csv')).fillna('')
 
     concept_set_container_edited_json_all_rows = []
+    code_set_version_json_all_rows = []
     # concept_set_container_version_all_rows = []
     # concept_set_container_code_expression_all_rows = []
     for index, row in concept_set_container_edited_df.iterrows():
+        cs_name = row['concept_set_name']
         single_row = get_cs_container_data(row['concept_set_name'])
         concept_set_container_edited_json_all_rows.append(single_row)
+
+
+    for index, row in code_sets_df.iterrows():
+        cs_id = row['codeset_id']
+        cs_name = row['concept_set_name']
+        cs_intention = row['intention']
+        cs_limitations = row['limitations']
+        cs_update_msg = row['update_message']
+        cs_status = row['status']
+        cs_provenance = row['provenance']
+        single_row = get_cs_version_data(cs_name, cs_id, cs_intention, cs_limitations, cs_update_msg, cs_provenance)
+        # cs_name, cs_id, intension, limitation, update_msg, status, provenance
+        code_set_version_json_all_rows.append(single_row)
 
     # Do a test first using 'valdiate'
     api_url = API_VALIDATE_URL
@@ -64,19 +79,31 @@ def run(input_csv_folder_path):
     response = requests.post(
         api_url,
         data=json.dumps(test_data_dict),
-        #data= single_row,
         headers=header)
     response_json = response.json()
-    # TODO: Fix issues; not successfully uploading
-    # 1. https://unite.nih.gov/actions/api/actions/validate?synchronousPropagation=false:
-    # {'errorCode': 'INVALID_ARGUMENT', 'errorName': 'Default:InvalidArgument', 'errorInstanceId': '4cc15ef0-7b22-477d-adaa-4f32102a9893', 'parameters': {}}
-    # 2. https://unite.nih.gov/actions/api/actions/validate:
-    # {'errorCode': 'INVALID_ARGUMENT', 'errorName': 'Default:InvalidArgument', 'errorInstanceId': '6595ba39-f129-4a9f-a8f4-15c57e1cc64a', 'parameters': {}}
+    ## TODO : validate all three calls before calling the acutal APIs. successfully validated results
+    ## {'type': 'validResponse', 'validResponse':
+    ## {'results':
+    ## {'ri.actions.main.validation-rule.fe2770c2-3600-4dd7-b59c-b38f47ad122a': { ...}}}
     print(response_json)
 
     # TODO: After successful validate, do real POSTs (check if they exist first?
-    print()
+    # TODO: after the action POST check for successful return code before calling the 2nd api
+    ## {'errorCode': 'INVALID_ARGUMENT', 'errorName': 'Conjure:UnprocessableEntity', 'errorInstanceId': 'c3eefa5a-61b9-45fc-aaa7-30355c15c92b', 'parameters': {}}
 
+    ##TODO: if type returned is 'validResponse' then continue checking for the 2nd POST call to createNewDraftConceptSetVersion()
+    api_url = API_VALIDATE_URL
+    header = {
+        "authorization": f"Bearer {config['PALANTIR_ENCLAVE_AUTHENTICATION_BEARER_TOKEN']}",
+        'content-type': 'application/json'}
+    cs_version_data_dict = code_set_version_json_all_rows[0]
+    if DEBUG:
+        log_debug_info()
+    response = requests.post(api_url, data=json.dumps(cs_version_data_dict), headers=header)
+    response_json = response.json()
+    print(response_json)
+
+    return response_json
 
 if __name__ == '__main__':
     run(None)
