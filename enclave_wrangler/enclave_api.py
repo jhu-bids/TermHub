@@ -35,7 +35,7 @@ import requests
 # stage (string whose value is always "Awaiting Editing"): ri.actions.main.parameter.02dbf67e-0acc-43bf-a0a9-cc8d1007771b
 # Research Project (object) : ri.actions.main.parameter.a3eace19-c42d-4ff5-aa63-b515f3f79bdd
 ## concept_set_name
-def get_cs_container_data( cs_name: str ) -> Dict:
+def get_cs_container_data(cs_name: str) -> Dict:
     cs_container_data = {
         "actionTypeRid": "ri.actions.main.action-type.ef6f89de-d5e3-450c-91ea-17132c8636ae",
         "parameters": {
@@ -76,16 +76,92 @@ def get_cs_container_data( cs_name: str ) -> Dict:
     return cs_container_data
 
 ## # cs_name, cs_id, intension, limitation, update_msg, status, provenance
-## TODO: cs_name, cs_id
-def get_cs_version_data ( cs_name, cs_id, intention, limitations, update_msg, provenance   ):
+## TODO: utilize: cs_name, cs_id
+def get_cs_version_data(cs_name, cs_id, intention, limitations, update_msg, provenance):
+    """This code will be used to pass to 'action' endpoint, then it passes to this TypeScript function
+    which will create a modified object, pass it back to 'action', and 'action' will make the actual change:
+    https://unite.nih.gov/workspace/data-integration/code/repos/ri.stemma.main.repository.f4a40537-2187-46f4-ae90-c54ca36eb0c2/contents/f6a597efe3/functions-typescript/src/editor.ts
+    """
 
+    # Temp: Leaving this here for now as a static example of an attempt that actually worked today. - Joe 2022/02/02
+#     return {
+#     "actionTypeRid": "ri.actions.main.action-type.fb260d04-b50e-4e29-9d39-6cce126fda7f",
+#     "parameters": {
+#         "ri.actions.main.parameter.c3e857d9-a9d8-423c-9dec-610e4e90f971": {
+#             "null": {},
+#             "type": "null"
+#         },
+#         "ri.actions.main.parameter.51e12235-c217-47e2-a347-240d379434e8": {
+#             "objectLocator": {
+#                 "objectTypeId": "omop-concept-set-container",
+#                 "primaryKey": {
+#                     "concept_set_id": {
+#                         "string": "stephanie test cs",
+#                         "type": "string"
+#                     }
+#                 }
+#             },
+#             "type": "objectLocator"
+#         },
+#         "ri.actions.main.parameter.465404ad-c767-4d73-ab26-0d6e083eab8e": {
+#             "objectLocator": {
+#                 "objectTypeId": "research-project",
+#                 "primaryKey": {
+#                     "research_project_uid": {
+#                         "string": "RP-4A9E27",
+#                         "type": "string"
+#                     }
+#                 }
+#             },
+#             "type": "objectLocator"
+#         },
+#         "ri.actions.main.parameter.c58b7fa6-e6b4-49ad-8535-433507fe3d13": {
+#             "null": {},
+#             "type": "null"
+#         },
+#         "ri.actions.main.parameter.ae8b8a16-c690-42fa-b828-e60324074661": {
+#             "string": "upd",
+#             "type": "string"
+#         },
+#         "ri.actions.main.parameter.4e790085-47ed-41ad-b12e-72439b645031": {
+#             "null": {},
+#             "type": "null"
+#         },
+#         "ri.actions.main.parameter.5577422c-02a4-454a-97d0-3fb76425ba8c": {
+#             "null": {},
+#             "type": "null"
+#         },
+#         "ri.actions.main.parameter.2d5df665-6728-4f6e-83e5-8256551f8851": {
+#             "type": "string",
+#             "string": "Broad (sensitive)"
+#         },
+#         "ri.actions.main.parameter.32d1ce35-0bc1-4935-ad18-ba4a45e8113f": {
+#             "null": {},
+#             "type": "null"
+#         },
+#         "ri.actions.main.parameter.eac89354-a3bf-465e-a4be-bbf22a6e2c50": {
+#             "null": {},
+#             "type": "null"
+#         }
+#     }
+# }
+
+    # TODO: We should add a quality control check:
+    #  If any of the values passed are null/None, need to do "type": "null" and "null": {} instead of  e.g. "string"
+    #  ...Amin said this is only needed for optional params.
     cs_version_data = {
         "actionTypeRid": "ri.actions.main.action-type.fb260d04-b50e-4e29-9d39-6cce126fda7f",
         "parameters": {
+            # ID: range(1billion, 1.1billion; non-inclusive) (optional)
+            # TODO: We had success by nullifying this. Amin told us that our integer ID looks good,
+            #  ...but they're still seeing an error on their end, so he's looking into it. - Joe 2022/02/02
             "ri.actions.main.parameter.eac89354-a3bf-465e-a4be-bbf22a6e2c50": {
-                "type": "integer",
-                "integer ": 1000000000
+                # "type": "integer",
+                # "integer ": 1000000001
+                "type": "null",
+                "null": {}
             },
+            # TODO: does "stephanie cs example" match an actual container?
             "ri.actions.main.parameter.51e12235-c217-47e2-a347-240d379434e8": {
                 "type": "objectLocator",
                 "objectLocator": {
@@ -93,36 +169,55 @@ def get_cs_version_data ( cs_name, cs_id, intention, limitations, update_msg, pr
                     "primaryKey": {
                         "concept_set_id": {
                             "type": "string",
-                            "string": "stephanie cs example"
-                        }}}
-                },
+                            # Amin asked us to use this instead:
+                            # "string": "stephanie cs example"
+                            "string": "stephanie test cs"
+                        }
+                    }
+                }
+            },
+            # Current maximum version:
+            # - In the ConceptSetEditor GUI, maximum version is passed in. But in the case where
+            # ...we're creating the first version, this can be null.
             "ri.actions.main.parameter.c58b7fa6-e6b4-49ad-8535-433507fe3d13": {
                 "null": {},
                 "type": "null"
+                # "double": 0,
+                # "type": "double"
             },
+            # Actual object concept version (starting from) (optional):
+            # - Logic is that you might create a new version. This is the parent version.
+            # - If "current max version" is null, this needs to be null. This param is required to be non-null if
+            # ...and only if "current max version" is not null.
             "ri.actions.main.parameter.c3e857d9-a9d8-423c-9dec-610e4e90f971": {
                 "null": {},
                 "type": "null"
             },
-            "ri.actions.main.parameter.ae8b8a16-c690-42fa-b828-e6032<4074661": {
+            # Update message (optional):
+            "ri.actions.main.parameter.ae8b8a16-c690-42fa-b828-e60324074661": {
                 "type": "string",
                 "string": update_msg
             },
+            # Intention:
             "ri.actions.main.parameter.2d5df665-6728-4f6e-83e5-8256551f8851": {
                 "type": "string",
                 "string": intention
             },
+            # Limitations:
             "ri.actions.main.parameter.32d1ce35-0bc1-4935-ad18-ba4a45e8113f": {
                 "type": "string",
                 "string": limitations
             },
+            # Provenance:
             "ri.actions.main.parameter.5577422c-02a4-454a-97d0-3fb76425ba8c": {
                 "type": "string",
                 "string": provenance
             },
+            # Research project (1 of: [DomainTeam || ResearchProject] = required):
             "ri.actions.main.parameter.465404ad-c767-4d73-ab26-0d6e083eab8e": {
                 "objectLocator": {
-                    "objectTypeId": "research-project", "primaryKey": {
+                    "objectTypeId": "research-project",
+                    "primaryKey": {
                         "research_project_uid": {
                             "type": "string",
                             "string": "RP-4A9E27"
@@ -130,6 +225,7 @@ def get_cs_version_data ( cs_name, cs_id, intention, limitations, update_msg, pr
                     }
                 }, "type": "objectLocator"
             },
+            # Domain team (1 of: [DomainTeam || ResearchProject] = required):
             "ri.actions.main.parameter.4e790085-47ed-41ad-b12e-72439b645031": {
                 "null": {},
                 "type": "null"
@@ -138,19 +234,13 @@ def get_cs_version_data ( cs_name, cs_id, intention, limitations, update_msg, pr
     }
     return cs_version_data
 
-## PLEASE READ THIS NOTE!!!
-## IMPORTANT: the authentication bearer token value cannot be uploaded to gitHub
-## if that happens the token will become invalidated
-## THIS TOKEN IS FOR OUR JHU TEAM USE ONLY!!!
-## following code
-def post_cs_container( cs_name ):
+
+def post_cs_container(cs_name, token):
     """create a concept set container """
-
     url = f'https://unite.nih.gov/actions/api/actions'
-    my_header = f'Authentication: Bearer 1351351351t3135dfadgaddt'
-    container_data = get_cs_container_data (cs_name)
+    my_header = f'Authentication: Bearer {token}'
+    container_data = get_cs_container_data(cs_name)
     response = requests.post( url, headers = my_header, data=container_data)
-
     r = response.json()
     return r
 
@@ -205,7 +295,7 @@ cs_version_create_data = {
                         }
                     }
                 },
-                "ri.actions.main.parameter.ae8b8a16-c690-42fa-b828-e6032<4074661": {
+                "ri.actions.main.parameter.ae8b8a16-c690-42fa-b828-e6032-4074661": {
                     "type": "string",
                     "string": "Initial [VSAC] version"
                 },
@@ -238,15 +328,12 @@ cs_version_create_data = {
     }
 }
 
-    ### 3/3. createCodeSystemConceptVersionExpressionItems
-    # - bulk call for a single concept set; can contain many expressions in one call. can only do 1 concept set per call
-    # TODO: Plantir to expose new api that will accept a codes and codeSystem instead of the concept_ids
-    # TODO: need more info: domain team (object) : ri.actions.main.parameter.4e790085-47ed-41ad-b12e-72439b645031
-    # TODO: How to know the ID of the concept set version created in the API:
-    #  - Amin said that in the API, we can accept the ID. they will validate that it is in the correct range. and if it is
-    #  valid, our POST request will succeed. and then we can re-use that version ID
+### 3/3. createCodeSystemConceptVersionExpressionItems
+# - bulk call for a single concept set; can contain many expressions in one call. can only do 1 concept set per call
+# TODO: Plantir to expose new api that will accept a codes and codeSystem instead of the concept_ids
+# TODO: need more info: domain team (object) : ri.actions.main.parameter.4e790085-47ed-41ad-b12e-72439b645031
+# TODO: How to know the ID of the concept set version created in the API:
+#  - Amin said that in the API, we can accept the ID. they will validate that it is in the correct range. and if it is
+#  valid, our POST request will succeed. and then we can re-use that version ID
 
-    # 4. A mapping table, I believe, that Amin is creating/exposing for us, for converting to standard codes
-
-
-
+# 4. A mapping table, I believe, that Amin is creating/exposing for us, for converting to standard codes

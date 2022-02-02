@@ -18,27 +18,38 @@ def get_parser():
 
     parser.add_argument(
         '-i', '--input-source-type',
-        choices=['google-sheet', 'oids-txt'],
-        default='oids-txt',
-        help='If "google-sheet", this will fetch from a specific, hard-coded Google Sheet, and pull OIDs from a '
-             'specific column in that sheet. If "oids-txt" it will pull a list of OIDs from "input/oids.txt".')
+        choices=['google-sheet', 'txt', 'csv'],
+        default='csv',
+        help='If (a) "google-sheet", this will fetch from a specific, hard-coded GoogleSheet URL, and pull OIDs from a '
+             'specific hard-codeed column in that sheet. You may also want to specify the `--google-sheet-name`. If (b)'
+             ' "txt", or (c) "csv", please supply an `--input-path`. In case of "txt", it is expected that each '
+             'line of the file contains an OID and nothing else. In case of "csv", it is expected that there be an '
+             '"oid" column.')
+    parser.add_argument(
+        '-p', '--input-path', required=False,
+        help='Path to input file. Required if `--input-source-type` is "txt" or "csv".')
+    # to-do: Add Google Sheet URL
     parser.add_argument(
         '-g', '--google-sheet-name',
-        choices=['CDC reference table list', 'VSAC Lisa1'],
+        choices=['CDC reference table list', 'Lisa1 VSAC', 'Lisa2 VSAC GRAVITY'],
         default='CDC reference table list',
-        help='The name of the tab within a the Google Sheet containing the target data within OID column. Make sure to '
-             'encapsulate the text in quotes, e.g. `-g "VSAC Lisa1"`. This option can only be used if '
+        help='The name of the tab within a the GoogleSheet containing the target data within OID column. Make sure to '
+             'encapsulate the text in quotes, e.g. `-g "Lisa1 VSAC"`. This option can only be used if '
              '`--input-source-type` is `google-sheet`.')
     parser.add_argument(
         '-o', '--output-structure',
-        choices=['fhir', 'vsac', 'palantir-concept-set-tables', 'atlas'],
+        choices=['fhir', 'vsac', 'palantir-concept-set-tables', 'atlas', 'normalized'],
         default='vsac',
         help='Destination structure. This determines the specific fields, in some cases, internal structure of the '
-             'data in those fields.')
+             'data in those fields. About structures: (a) "fhir" is intended to be uploaded to a FHIR server, (b) '
+             '"vsac" retains similar struture/fields as VSAC data model, (c) "palantir-concept-set-tables" produces'
+             'CSV files that can be bulk uploaded / appended in the N3C Palantir Foundry data enclave, (d) "atlas" '
+             'produces a JSON format adherent to the Atlas DB data model, and (e) "normalized" creates a data structure'
+             'that is normalized as much as possible, containing minimal amount of information / structure needed.')
     parser.add_argument(
         '-f', '--output-format',
         choices=['tabular/csv', 'json'],
-        # default='tabular/csv',
+        default='tabular/csv',
         required=True,
         help='The output format. If csv/tabular, it will produce a tabular file; CSV by default. This can be changed '
              'to TSV by passing "\t" as the field-delimiter.')
@@ -82,14 +93,15 @@ def validate_args(kwargs):
     msg = 'Must select different delimiters for "tabular field delimiter" and "tabular intra-field delimiter".'
     if kwargs.tabular_field_delimiter == kwargs.tabular_intra_field_delimiter:
         raise RuntimeError(msg)
-    msg = 'For "palantir-concept-set-tables" output-structure, output-format "json" is not available. ' \
+    msg = f'For "{kwargs.output_structure}" `--output-structure`, `--output-format` "json" is not available. ' \
           'Try "tabular/csv" instead.'
-    if kwargs.output_structure == 'palantir-concept-set-tables' and kwargs.output_format == 'json':
+    if kwargs.output_structure in ['palantir-concept-set-tables', 'normalized'] and kwargs.output_format == 'json':
         raise RuntimeError(msg)
-    msg = 'For "atlas" output-structure, output-format "tabular/csv" is not available. Try "json" instead.'
+    msg = 'For "atlas" `--output-structure`, `--output-format` "tabular/csv" is not available. Try "json" instead.'
     if kwargs.output_structure == 'atlas' and kwargs.output_format == 'tabular/csv':
         raise RuntimeError(msg)
-    if kwargs.output_structure == 'atlas' and kwargs.output_format == 'tabular/csv':
+    msg = 'If `--input-source-type` is "txt" or "csv", `--input-path` is required.'
+    if kwargs.input_source_type in ['txt', 'csv'] and not kwargs.input_path:
         raise RuntimeError(msg)
     # to-do: It would be ideal if we could show this error when the user /explicitly/ passes these arguments.
     # ...but unfortunately this error also shows even if the user passes no arguments at all, due to the default args.
@@ -107,7 +119,7 @@ def cli():
     validate_args(kwargs)
     kwargs_dict: Dict = vars(kwargs)
     # TODO: this is probably better done a different way? This is a fix so that subfolder isn't created when not needed
-    if kwargs_dict['input_source_type'] == 'oids-txt':
+    if kwargs_dict['input_source_type'] == 'txt':
         del kwargs_dict['google_sheet_name']
     run(**kwargs_dict)
 

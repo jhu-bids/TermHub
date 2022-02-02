@@ -17,7 +17,7 @@ from uuid import uuid4
 
 import pandas as pd
 
-from vsac_wrangler.config import CACHE_DIR, OUTPUT_DIR, PROJECT_ROOT
+from vsac_wrangler.config import CACHE_DIR, OUTPUT_DIR
 from vsac_wrangler.definitions.constants import FHIR_JSON_TEMPLATE
 from vsac_wrangler.google_sheets import get_sheets_data
 from vsac_wrangler.vsac_api import get_ticket_granting_ticket, get_value_sets
@@ -49,6 +49,38 @@ def _datetime_palantir_format() -> str:
     """Returns datetime str in format used by palantir data enclave
     e.g. 2021-03-03T13:24:48.000Z (milliseconds allowed, but not common in observed table)"""
     return datetime.now(timezone.utc).strftime("%Y-%m-%dT%H:%M:%S.%fZ")[:-4] + 'Z'
+
+
+def save_json(value_sets, output_structure, json_indent=4) -> List[Dict]:
+    """Save JSON"""
+    # Populate JSON objs
+    d_list: List[Dict] = []
+    for value_set in value_sets:
+        value_set2 = {}
+        if output_structure == 'fhir':
+            value_set2 = vsac_to_fhir(value_set)
+        elif output_structure == 'vsac':
+            value_set2 = vsac_to_vsac(value_set)
+        elif output_structure == 'atlas':  # TODO: Implement
+            raise NotImplementedError('For "atlas" output-structure, output-format "json" not yet implemented.')
+        d_list.append(value_set2)
+
+    # Save file
+    for d in d_list:
+        if 'name' in d:
+            valueset_name = d['name']
+        else:
+            valueset_name = d['Concept Set Name']
+        valueset_name = valueset_name.replace('/', '|')
+        filename = valueset_name + '.json'
+        filepath = os.path.join(OUTPUT_DIR, filename)
+        with open(filepath, 'w') as fp:
+            if json_indent:
+                json.dump(d, fp, indent=json_indent)
+            else:
+                json.dump(d, fp)
+
+    return d_list
 
 
 # TODO: repurpose this to use VSAC format
@@ -352,14 +384,58 @@ def get_palantir_csv(
     return all
 
 
+def get_normalized_csv(
+    value_sets: List[OrderedDict], tabular_field_delimiter=',', tabular_intra_field_delimiter='|', filename='normalized'
+) -> pd.DataFrame:
+    """Get normalized CSV"""
+    # TODO: Include as many fields as possible from each of 3 CSVs, and save as one
+    rows = []
+    for vs in value_sets:
+        concepts = vs['ns0:ConceptList']['ns0:Concept']
+        concepts = concepts if type(concepts) == 'list' else [concepts]
+        for concept in concepts:
+            # TODO: save demo row and check it
+            rows.append({
+                # 1/3: code_sets fields
+                "codeset_id": concept['@code'],
+                # "concept_set_name": concept['xxx'],
+                # "concept_set_version_title": concept['xxx'],
+                # "project": concept['xxx'],
+                # "source_application": concept['xxx'],
+                # "source_application_version": concept['xxx'],
+                # "created_at": concept['xxx'],
+                # "atlas_json": concept['xxx'],
+                # "is_most_recent_version": concept['xxx'],
+                # "version": concept['xxx'],
+                # "comments": concept['xxx'],
+                # "intention": concept['xxx'],
+                # "limitations": concept['xxx'],
+                # "issues": concept['xxx'],
+                # "update_message": concept['xxx'],
+                # "status": concept['xxx'],
+                # "has_review": concept['xxx'],
+                # "reviewed_by": concept['xxx'],
+                # "created_by": concept['xxx'],
+                # "provenance": concept['xxx'],
+                # "atlas_json_resource_url": concept['xxx'],
+                # "parent_version_id": concept['xxx'],
+                # "is_draft": concept['xxx']
+            })
+
+    df = pd.DataFrame(rows)
+    _save_csv(df, filename=filename, subfolder=filename, field_delimiter=tabular_field_delimiter)
+
+    return df
+
+
 def run(
-    input_source_type=['google-sheet', 'oids-txt'][1],
+    input_source_type=['google-sheet', 'txt', 'csv'][-1],
     google_sheet_name=None,
     output_format=['tabular/csv', 'json'][0],
-    output_structure=['fhir', 'vsac'][1],
+    output_structure=['fhir', 'vsac', 'palantir-concept-set-tables', 'atlas', 'normalized'][-1],
     tabular_field_delimiter=[',', '\t'][0],
     tabular_intra_field_delimiter=[',', ';', '|'][2],
-    json_indent=4, use_cache=False
+    json_indent=4, use_cache=False, input_path=None
 ):
     """Main function
     Refer to interfaces/cli.py for argument descriptions."""
@@ -372,57 +448,44 @@ def run(
         else:
             use_cache = False
     if not use_cache:
-        # 1. Get OIDs to query
-        # TODO: Get a different API_Key for this than my 'ohbehave' project
+        # 1/3 Get OIDs to query
+        # TODO: Get a different API_Key for this than Joe's 'ohbehave' project
+        object_ids: List[str] = []
         if input_source_type == 'google-sheet':
             df: pd.DataFrame = get_sheets_data(google_sheet_name)
-            object_ids: List[str] = [x for x in list(df['OID']) if x != '']
-        elif input_source_type == 'oids-txt':
-            with open(f'{PROJECT_ROOT}/input/oids.txt', 'r') as f:
-                object_ids: List[str] = [oid.rstrip() for oid in f.readlines()]
+            object_ids = [x for x in list(df['OID']) if x != '']
+        elif input_source_type in ['txt', 'csv']:
+            if not Path(input_path).is_file():
+                input_path = Path(os.getcwd(), input_path)
+                if not Path(input_path).is_file():
+                    raise FileNotFoundError(input_path)
+        if input_source_type == 'txt':
+            with open(input_path, 'r') as f:
+                object_ids = [oid.rstrip() for oid in f.readlines()]
+        elif input_source_type == 'csv':
+            df = pd.read_csv(input_path)
+            object_ids = list(df['oid'])
 
-        # 2. Get VSAC auth ticket
+        # 2/3: Query VSAC
         tgt: str = get_ticket_granting_ticket()
-        # service_ticket = get_service_ticket(tgt)
-
+        # service_ticket = get_service_ticket(tgt)  # this is called later
         value_sets_dict: OrderedDict = get_value_sets(object_ids, tgt)
         value_sets: List[OrderedDict] = value_sets_dict['ns0:RetrieveMultipleValueSetsResponse'][
             'ns0:DescribedValueSet']
 
+        # Save to cache
         with open(pickle_file, 'wb') as handle:
             pickle.dump(value_sets, handle, protocol=pickle.HIGHEST_PROTOCOL)
 
+    # 3/3: Generate output
     if output_format == 'tabular/csv':
-        if output_structure == 'vsac':
+        if output_structure == 'normalized':
+            get_normalized_csv(value_sets, tabular_field_delimiter, tabular_intra_field_delimiter)
+        elif output_structure == 'vsac':
             get_vsac_csv(value_sets, google_sheet_name, tabular_field_delimiter, tabular_intra_field_delimiter)
         elif output_structure == 'palantir-concept-set-tables':
             get_palantir_csv(value_sets, google_sheet_name, tabular_field_delimiter)
         elif output_structure == 'fhir':
             raise NotImplementedError('output_structure "fhir" not available for output_format "csv/tabular".')
     elif output_format == 'json':
-        # Populate JSON objs
-        d_list: List[Dict] = []
-        for value_set in value_sets:
-            value_set2 = {}
-            if output_structure == 'fhir':
-                value_set2 = vsac_to_fhir(value_set)
-            elif output_structure == 'vsac':
-                value_set2 = vsac_to_vsac(value_set)
-            elif output_structure == 'atlas':  # TODO: Implement
-                raise NotImplementedError('For "atlas" output-structure, output-format "json" not yet implemented.')
-            d_list.append(value_set2)
-
-        # Save file
-        for d in d_list:
-            if 'name' in d:
-                valueset_name = d['name']
-            else:
-                valueset_name = d['Concept Set Name']
-            valueset_name = valueset_name.replace('/', '|')
-            filename = valueset_name + '.json'
-            filepath = os.path.join(OUTPUT_DIR, filename)
-            with open(filepath, 'w') as fp:
-                if json_indent:
-                    json.dump(d, fp, indent=json_indent)
-                else:
-                    json.dump(d, fp)
+        save_json(value_sets, output_structure, json_indent)
