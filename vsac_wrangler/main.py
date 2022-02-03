@@ -344,39 +344,36 @@ def get_palantir_csv(
             i2 = -1 if p[len(p) - 1] == ')' else len(p)
             purposes2.append(p[i1:i2])
         concept_set_name = VSAC_LABEL_PREFIX + value_set['@displayName']
-        for concept_dict in value_set['ns0:ConceptList']['ns0:Concept']:
-            # I'm surprised these aren't used in the enclave `concept_set_container_edited` table:
-            # code = concept_dict['@code']
-            # code_system = concept_dict['@codeSystemName']
-
-            row = {
-                'concept_set_id': concept_set_name,
-                'concept_set_name': concept_set_name,
-                'project_id': '',  # nullable
-                'assigned_informatician': PALANTIR_ENCLAVE_USER_ID_1,  # nullable
-                'assigned_sme': PALANTIR_ENCLAVE_USER_ID_1,  # nullable
-                'status': ['Finished', 'Under Construction', 'N3C Validation Complete'][1],
-                'stage': [
-                    'Finished',
-                    'Awaiting Editing',
-                    'Candidate for N3C Review',
-                    'Awaiting N3C Committee Review',
-                    'Awaiting SME Review',
-                    'Under N3C Committee Review',
-                    'Under SME Review',
-                    'N3C Validation Complete',
-                    'Awaiting Informatician Review',
-                    'Under Informatician Review',
-                ][1],
-                'intention': '; '.join(purposes2[0:3]),
-                'n3c_reviewer': '',  # nullable
-                'alias': concept_dict['@displayName'],
-                'archived': False,
-                # 'created_by': 'DI&H Bulk Import',
-                'created_by': PALANTIR_ENCLAVE_USER_ID_1,
-                'created_at': _datetime_palantir_format()
-            }
-            rows3.append(row)
+        # code = concept_dict['@code']
+        # code_system = concept_dict['@codeSystemName']
+        row = {
+            'concept_set_id': concept_set_name,
+            'concept_set_name': concept_set_name,
+            'project_id': '',  # nullable
+            'assigned_informatician': PALANTIR_ENCLAVE_USER_ID_1,  # nullable
+            'assigned_sme': PALANTIR_ENCLAVE_USER_ID_1,  # nullable
+            'status': ['Finished', 'Under Construction', 'N3C Validation Complete'][1],
+            'stage': [
+                'Finished',
+                'Awaiting Editing',
+                'Candidate for N3C Review',
+                'Awaiting N3C Committee Review',
+                'Awaiting SME Review',
+                'Under N3C Committee Review',
+                'Under SME Review',
+                'N3C Validation Complete',
+                'Awaiting Informatician Review',
+                'Under Informatician Review',
+            ][1],
+            'intention': '; '.join(purposes2[0:3]),
+            'n3c_reviewer': '',  # nullable
+            'alias': None,
+            'archived': False,
+            # 'created_by': 'DI&H Bulk Import',
+            'created_by': PALANTIR_ENCLAVE_USER_ID_1,
+            'created_at': _datetime_palantir_format()
+        }
+        rows3.append(row)
     df3 = pd.DataFrame(rows3)
     all[filename3] = df3
     _save_csv(df3, filename=filename3, subfolder=google_sheet_name, field_delimiter=field_delimiter)
