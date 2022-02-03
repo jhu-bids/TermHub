@@ -419,6 +419,7 @@ def get_normalized_csv(
         concepts = concepts if type(concepts) == list else [concepts]
         for concept in concepts:
             # TODO: save demo row and check it
+            # TODO: should not have line breaks either
             rows.append({
                 # 1/3: code_sets fields
                 "codeset_id": concept['@code'],
