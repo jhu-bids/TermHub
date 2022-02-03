@@ -171,7 +171,7 @@ def get_vsac_csv(
             purposes2.append(p[i1:i2])
 
         concepts = value_set['ns0:ConceptList']['ns0:Concept']
-        concepts = concepts if type(concepts) == 'list' else [concepts]
+        concepts = concepts if type(concepts) == list else [concepts]
         for concept in concepts:
             code = concept['@code']
             code_system = concept['@codeSystemName']
@@ -205,7 +205,10 @@ def get_vsac_csv(
                 else:
                     row['codes2'] = code_delimiter.join(codes[2000:3999])
                     row['codes3'] = code_delimiter.join(codes[4000:])
-
+            row2 = {}
+            for k, v in row.items():
+                row2[k] = v.replace('\n', ' - ') if type(v) == str else v
+            row = row2
             rows.append(row)
 
     # Create/Return DF & Save CSV
@@ -228,7 +231,8 @@ def get_palantir_csv(
         # will let palantir verify ID is indeed unique:
         oid__codeset_id_map[value_set['@ID']] = randint(0, 1000000000)
         concepts = value_set['ns0:ConceptList']['ns0:Concept']
-        concepts = concepts if type(concepts) == 'list' else [concepts]
+
+        concepts = concepts if type(concepts) == list else [concepts]
         for concept in concepts:
             code = concept['@code']
             code_system = concept['@codeSystemName']
@@ -243,7 +247,7 @@ def get_palantir_csv(
     rows1 = []
     for value_set in value_sets:
         concepts = value_set['ns0:ConceptList']['ns0:Concept']
-        concepts = concepts if type(concepts) == 'list' else [concepts]
+        concepts = concepts if type(concepts) == list else [concepts]
         for concept in concepts:
             code = concept['@code']
             code_system = concept['@codeSystemName']
@@ -265,6 +269,10 @@ def get_palantir_csv(
                 'created_by': PALANTIR_ENCLAVE_USER_ID_1,
                 'created_at': _datetime_palantir_format()
             }
+            row2 = {}
+            for k, v in row.items():
+                row2[k] = v.replace('\n', ' - ') if type(v) == str else v
+            row = row2
             rows1.append(row)
     df1 = pd.DataFrame(rows1)
     all[filename1] = df1
@@ -285,7 +293,7 @@ def get_palantir_csv(
             purposes2.append(p[i1:i2])
         code_system_codes = {}
         concepts = value_set['ns0:ConceptList']['ns0:Concept']
-        concepts = concepts if type(concepts) == 'list' else [concepts]
+        concepts = concepts if type(concepts) == list else [concepts]
         for concept  in concepts:
             code = concept['@code']
             code_system = concept['@codeSystemName']
@@ -338,6 +346,10 @@ def get_palantir_csv(
             # first and click Done:
             'is_draft': True,
         }
+        row2 = {}
+        for k, v in row.items():
+            row2[k] = v.replace('\n', ' - ') if type(v) == str else v
+        row = row2
         rows2.append(row)
     df2 = pd.DataFrame(rows2)
     all[filename2] = df2
@@ -382,6 +394,12 @@ def get_palantir_csv(
             'created_by': PALANTIR_ENCLAVE_USER_ID_1,
             'created_at': _datetime_palantir_format()
         }
+
+        row2 = {}
+        for k, v in row.items():
+            row2[k] = v.replace('\n', ' - ') if type(v) == str else v
+        row = row2
+
         rows3.append(row)
     df3 = pd.DataFrame(rows3)
     all[filename3] = df3
@@ -398,7 +416,7 @@ def get_normalized_csv(
     rows = []
     for vs in value_sets:
         concepts = vs['ns0:ConceptList']['ns0:Concept']
-        concepts = concepts if type(concepts) == 'list' else [concepts]
+        concepts = concepts if type(concepts) == list else [concepts]
         for concept in concepts:
             # TODO: save demo row and check it
             rows.append({
