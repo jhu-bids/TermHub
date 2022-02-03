@@ -169,9 +169,12 @@ def get_vsac_csv(
             i1 = 1 if p.startswith('(') else 0
             i2 = -1 if p[len(p) - 1] == ')' else len(p)
             purposes2.append(p[i1:i2])
-        for concept_dict in value_set['ns0:ConceptList']['ns0:Concept']:
-            code = concept_dict['@code']
-            code_system = concept_dict['@codeSystemName']
+
+        concepts = value_set['ns0:ConceptList']['ns0:Concept']
+        concepts = concepts if type(concepts) == 'list' else [concepts]
+        for concept in concepts:
+            code = concept['@code']
+            code_system = concept['@codeSystemName']
             if code_system not in code_system_codes:
                 code_system_codes[code_system] = []
             code_system_codes[code_system].append(code)
@@ -224,9 +227,11 @@ def get_palantir_csv(
     for value_set in value_sets:
         # will let palantir verify ID is indeed unique:
         oid__codeset_id_map[value_set['@ID']] = randint(0, 1000000000)
-        for concept_dict in value_set['ns0:ConceptList']['ns0:Concept']:
-            code = concept_dict['@code']
-            code_system = concept_dict['@codeSystemName']
+        concepts = value_set['ns0:ConceptList']['ns0:Concept']
+        concepts = concepts if type(concepts) == 'list' else [concepts]
+        for concept in concepts:
+            code = concept['@code']
+            code_system = concept['@codeSystemName']
             if code_system not in codesystem_code__concept_id_map:
                 codesystem_code__concept_id_map[code_system] = {}
             # will let palantir verify ID is indeed unique:
@@ -237,9 +242,11 @@ def get_palantir_csv(
     # 1. Palantir enclave table: concept_set_version_item_rv_edited
     rows1 = []
     for value_set in value_sets:
-        for concept_dict in value_set['ns0:ConceptList']['ns0:Concept']:
-            code = concept_dict['@code']
-            code_system = concept_dict['@codeSystemName']
+        concepts = value_set['ns0:ConceptList']['ns0:Concept']
+        concepts = concepts if type(concepts) == 'list' else [concepts]
+        for concept in concepts:
+            code = concept['@code']
+            code_system = concept['@codeSystemName']
             # The 3 fields isExcluded, includeDescendants, and includeMapped, are from OMOP but also in VSAC. If it has
             # ...these 3 options, it is intensional. And when you execute these 3, it is now extensional / expansion.
             row = {
@@ -277,9 +284,11 @@ def get_palantir_csv(
             i2 = -1 if p[len(p) - 1] == ')' else len(p)
             purposes2.append(p[i1:i2])
         code_system_codes = {}
-        for concept_dict in value_set['ns0:ConceptList']['ns0:Concept']:
-            code = concept_dict['@code']
-            code_system = concept_dict['@codeSystemName']
+        concepts = value_set['ns0:ConceptList']['ns0:Concept']
+        concepts = concepts if type(concepts) == 'list' else [concepts]
+        for concept  in concepts:
+            code = concept['@code']
+            code_system = concept['@codeSystemName']
             if code_system not in code_system_codes:
                 code_system_codes[code_system] = []
             code_system_codes[code_system].append(code)
