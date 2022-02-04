@@ -52,7 +52,7 @@ Options:
 `python -m vsac_wrangler -o vsac -f tabular/csv -d \t -d2 , -c`
 
 ### 2. Enclave Wrangler
-Tool for working w/ the Palantir Foundry enclave API.
+Tool for working w/ the Palantir Foundry enclave API. Some documentation for the API endpoints involved can be found: [here](https://github.com/National-COVID-Cohort-Collaborative/Data-Ingestion-and-Harmonization/wiki/BulkImportConceptSet-REST-APIs).
 
 #### Syntax
 `python3 -m enclave_wrangler <options>`

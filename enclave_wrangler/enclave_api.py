@@ -31,7 +31,7 @@ def post_request_enclave_api(api_url, header, json_data):
     return response_json
 
 
-## 1/3. Create new concept set container
+## 1/3. Create new concept set container (concept_set_container_edited.csv)
 # - 1 call per container
 #post request to call create the concept set container
 # CreateNewConceptSet rid =ri.actions.main.action-type.ef6f89de-d5e3-450c-91ea-17132c8636ae
@@ -252,7 +252,21 @@ def get_cs_version_data(cs_name, cs_id, intention, limitations, update_msg, prov
     return cs_version_data
 
 
+<<<<<<< HEAD
 ### 2/3. createNewDraftConceptSetVersion()
+=======
+def post_cs_container(cs_name, token):
+    """create a concept set container """
+    url = f'https://unite.nih.gov/actions/api/actions'
+    my_header = f'Authentication: Bearer {token}'
+    container_data = get_cs_container_data(cs_name)
+    response = requests.post( url, headers = my_header, data=container_data)
+    r = response.json()
+    return r
+
+
+### 2/3. createNewDraftConceptSetVersion() (CreateNewConceptSet: concept_set_container_edited.csv)
+>>>>>>> bde9e03dabfe88b0d591e4a1c7956a73c29c87cd
 # - 1 call per version
 ### data for creating a new draft version of the concept set - we will always be creating a version 1
 ### actionTypeRid: ri.actions.main.action-type.fb260d04-b50e-4e29-9d39-6cce126fda7f
@@ -339,6 +353,13 @@ cs_version_create_data = {
 # action item id: action type rid: ri.actions.main.action-type.e07f2503-c7c9-47b9-9418-225544b56b71
 # use same id used to create the concept set version, the id is persisted in the csv files as the codeset_id in the
 # concept_set_version_item_rv_edited.csv
+### 3/3. createCodeSystemConceptVersionExpressionItems (addCodeAsVersionExpression: concept_set_version_item_rv_edited.csv)
+# - bulk call for a single concept set; can contain many expressions in one call. can only do 1 concept set per call
+# TODO: need more info: domain team (object) : ri.actions.main.parameter.4e790085-47ed-41ad-b12e-72439b645031
+# TODO: How to know the ID of the concept set version created in the API:
+#  - Amin said that in the API, we can accept the ID. they will validate that it is in the correct range. and if it is
+#  valid, our POST request will succeed. and then we can re-use that version ID
+
 def get_cs_version_expression_data(current_code_set_id, cs_name, code_list, bExclude, bDescendents, bMapped, annotation):
     cs_version_expression_data = {
         "actionTypeRid": "ri.actions.main.action-type.e07f2503-c7c9-47b9-9418-225544b56b71",
