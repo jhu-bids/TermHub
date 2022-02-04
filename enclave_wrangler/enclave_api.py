@@ -170,11 +170,17 @@ def get_cs_version_data(cs_name, cs_id, intention, limitations, update_msg, prov
             # ID: range(1billion, 1.1billion; non-inclusive) (optional)
             # TODO: We had success by nullifying this. Amin told us that our integer ID looks good,
             #  ...but they're still seeing an error on their end, so he's looking into it. - Joe 2022/02/02
+            # pass in as a string
             "ri.actions.main.parameter.eac89354-a3bf-465e-a4be-bbf22a6e2c50": {
                 # "type": "integer",
                 # "integer ": 1000000001
-                "type": "null",
-                "null": {}
+                 "type": "null",
+                 "null": {}
+                # enclave generated this id when a draft version is created, so we have to query for this id value
+                # there was an issue when passing in the integer type as an id failed due to unknown issue in the Enclave
+                # note: 2/4/ 2022
+                # "type": "integer",
+                # "integer": cs_id
             },  # reserved id list from DI&H id bank, cannot be reused
             # TODO: does "stephanie cs example" match an actual container?
 
@@ -188,6 +194,9 @@ def get_cs_version_data(cs_name, cs_id, intention, limitations, update_msg, prov
                             # Amin asked us to use this instead:
                             # "string": "stephanie cs example"
                             "string": "stephanie test cs"
+                            # TODO: eventually pass in the name we generated from the VSAC
+                            # for now pass in the name of the container that we created
+                            # "string": cs_name
                         }
                     }
                 }
@@ -372,7 +381,11 @@ def get_cs_version_expression_data(
                     "primaryKey": {
                         "version_id": {
                             "type": "integer",
-                            "integer": current_code_set_id
+                            # "integer": current_code_set_id
+                            # call the api to find out want draft version was created to and ask for the ID
+                            # and pass that number here
+                            # "integer": 671112503 draftversion id from Amin
+                            "integer": 462280913 # id from create version api call
                         }
                     }
                 }
