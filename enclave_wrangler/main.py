@@ -146,6 +146,9 @@ def run(input_csv_folder_path):
     ## Actually create a version so that we can test the api to add the expression items
     api_url = API_CREATE_URL
     #response_json = post_request_enclave_api(api_url, header, cs_version_data_dict)
+    # validate step 2a:
+    # TODO query the enclave and ask for the if the draft version we careated.
+    # use the that id to pass into the add the expression items.
 
     # Validate 3: Concept set expression
     # noinspection PyUnusedLocal
