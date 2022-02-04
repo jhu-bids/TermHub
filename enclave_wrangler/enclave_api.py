@@ -15,7 +15,7 @@ from typing import Dict
 import requests
 
 
-## 1/3. Create new concept set container
+## 1/3. Create new concept set container (concept_set_container_edited.csv)
 # - 1 call per container
 #post request to call create the concept set container
 # CreateNewConceptSet rid =ri.actions.main.action-type.ef6f89de-d5e3-450c-91ea-17132c8636ae
@@ -246,7 +246,7 @@ def post_cs_container(cs_name, token):
     return r
 
 
-### 2/3. createNewDraftConceptSetVersion()
+### 2/3. createNewDraftConceptSetVersion() (CreateNewConceptSet: concept_set_container_edited.csv)
 # - 1 call per version
 ### data for creating a new draft version of the concept set - we will always be creating a version 1
 ### actionTypeRid: ri.actions.main.action-type.fb260d04-b50e-4e29-9d39-6cce126fda7f
@@ -329,7 +329,7 @@ cs_version_create_data = {
     }
 }
 
-### 3/3. createCodeSystemConceptVersionExpressionItems
+### 3/3. createCodeSystemConceptVersionExpressionItems (addCodeAsVersionExpression: concept_set_version_item_rv_edited.csv)
 # - bulk call for a single concept set; can contain many expressions in one call. can only do 1 concept set per call
 # TODO: Plantir to expose new api that will accept a codes and codeSystem instead of the concept_ids
 # TODO: need more info: domain team (object) : ri.actions.main.parameter.4e790085-47ed-41ad-b12e-72439b645031

@@ -6,6 +6,9 @@ Resources
 - Validate URL (for testing POSTs without it actually taking effect): https://unite.nih.gov/actions/api/actions/validate
 # TODO: Update wiki article to be up-to-date with correct params for 'concept set version':
 - Wiki article on how to create these JSON: https://github.com/National-COVID-Cohort-Collaborative/Data-Ingestion-and-Harmonization/wiki/BulkImportConceptSet-REST-APIs
+  - CreateNewDraftOMOPConceptSetVersion: code_sets.csv
+  - CreateNewConceptSet: concept_set_container_edited.csv
+  - addCodeAsVersionExpression: concept_set_version_item_rv_edited.csv
 """
 import json
 import os
@@ -56,7 +59,8 @@ def run(input_csv_folder_path):
         single_row = get_cs_container_data(row['concept_set_name'])
         concept_set_container_edited_json_all_rows.append(single_row)
 
-
+    # TODO: for codeset_id, use the one in data/oid_enclaveId.csv
+    # TODO: re-use for concept_set_version_item_rv_edited
     for index, row in code_sets_df.iterrows():
         cs_id = row['codeset_id']
         cs_name = row['concept_set_name']
