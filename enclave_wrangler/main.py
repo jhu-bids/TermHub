@@ -67,7 +67,7 @@ def run(input_csv_folder_path):
 
 
     # build the list of cs version json data
-    # TODO: for codeset_id, use the one in data/oid_enclaveId.csv (2 of the CSV files)
+    # TODO: for codeset_id, use the one in data/oid_enclave_code_set_id.csv (2 of the CSV files)
     # TODO: re-use for concept_set_version_item_rv_edited
     for index, row in code_sets_df.iterrows():
         cs_id = row['codeset_id']

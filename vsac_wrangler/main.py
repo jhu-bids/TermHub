@@ -17,7 +17,7 @@ from uuid import uuid4
 
 import pandas as pd
 
-from vsac_wrangler.config import CACHE_DIR, OUTPUT_DIR
+from vsac_wrangler.config import CACHE_DIR, OUTPUT_DIR, PROJECT_ROOT
 from vsac_wrangler.definitions.constants import FHIR_JSON_TEMPLATE
 from vsac_wrangler.google_sheets import get_sheets_data
 from vsac_wrangler.vsac_api import get_ticket_granting_ticket, get_value_sets
@@ -218,28 +218,16 @@ def get_vsac_csv(
     return df
 
 
-
 def get_palantir_csv(
     value_sets: List[OrderedDict], google_sheet_name=None, field_delimiter=',',
     filename1='concept_set_version_item_rv_edited', filename2='code_sets', filename3='concept_set_container_edited'
 ) -> Dict[str, pd.DataFrame]:
     """Convert VSAC hiearchical XML to CSV compliant w/ Palantir's OMOP-inspired concept set editor data model"""
     # I. Create IDs that will be shared between files
-    codesystem_code__concept_id_map = {}  # currently unused; as no common field in these 3 tables
-    oid__codeset_id_map = {}
-    for value_set in value_sets:
-        # will let palantir verify ID is indeed unique:
-        oid__codeset_id_map[value_set['@ID']] = randint(0, 1000000000)
-        concepts = value_set['ns0:ConceptList']['ns0:Concept']
-
-        concepts = concepts if type(concepts) == list else [concepts]
-        for concept in concepts:
-            code = concept['@code']
-            code_system = concept['@codeSystemName']
-            if code_system not in codesystem_code__concept_id_map:
-                codesystem_code__concept_id_map[code_system] = {}
-            # will let palantir verify ID is indeed unique:
-            codesystem_code__concept_id_map[code_system][code] = randint(0, 1000000000)
+    oid_enclave_code_set_id_map_csv_path = os.path.join(PROJECT_ROOT, 'data', 'oids_enclave_code_set_id.csv')
+    oid_enclave_code_set_id_df = pd.read_csv(oid_enclave_code_set_id_map_csv_path)
+    # TODO: I probably want to rename the CSV name and field to 'enclave_codeset_id'
+    oid__codeset_id_map = dict(zip(oid_enclave_code_set_id_df['oid'], oid_enclave_code_set_id_df['enclave_code_set_id']))
 
     # II. Create & save exports
     all = {}
@@ -277,9 +265,6 @@ def get_palantir_csv(
     df1 = pd.DataFrame(rows1)
     all[filename1] = df1
     _save_csv(df1, filename=filename1, subfolder=google_sheet_name, field_delimiter=field_delimiter)
-
-    # TODO: Find: Acute severe exacerbation of asthma co-occurrent with allergic rhinitis (disorder)
-    # TODO: Why so few rows; correct here
 
     # 2. Palantir enclave table: code_sets
     rows2 = []

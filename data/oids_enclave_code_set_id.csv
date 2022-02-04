@@ -1,4 +1,4 @@
-﻿oid,enclaveId,source
+﻿oid,enclave_code_set_id,source
 2.16.840.1.113762.1.4.1029.63,1000000001,input/oids.txt
 2.16.840.1.113762.1.4.1029.211,1000000002,input/oids.txt
 2.16.840.1.113762.1.4.1029.213,1000000003,input/oids.txt
