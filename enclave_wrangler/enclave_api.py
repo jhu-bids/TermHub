@@ -10,12 +10,27 @@ Resources
 - Validate URL (for testing POSTs without it actually taking effect): https://unite.nih.gov/actions/api/actions/validate
 - Wiki article on how to create these JSON: https://github.com/National-COVID-Cohort-Collaborative/Data-Ingestion-and-Harmonization/wiki/BulkImportConceptSet-REST-APIs
 """
-from typing import Dict
+from typing import Any, Dict, List, Union
 
 import requests
+import json
+from enclave_wrangler.utils import log_debug_info
+
+DEBUG = True
+
+def post_request_enclave_api(api_url: str, header: Dict, data: Dict):
+    response = requests.post(api_url, data=json.dumps(data), headers=header)
+    response_json = response.json()
+    if DEBUG:
+        log_debug_info()
+        print(response_json)  # temp
+    if 'type' not in response_json or response_json['type'] != 'validResponse':
+        raise SystemError(json.dumps(response_json, indent=2))
+
+    return response_json
 
 
-## 1/3. Create new concept set container
+## 1/3. Create new concept set container (concept_set_container_edited.csv)
 # - 1 call per container
 #post request to call create the concept set container
 # CreateNewConceptSet rid =ri.actions.main.action-type.ef6f89de-d5e3-450c-91ea-17132c8636ae
@@ -155,12 +170,18 @@ def get_cs_version_data(cs_name, cs_id, intention, limitations, update_msg, prov
             # ID: range(1billion, 1.1billion; non-inclusive) (optional)
             # TODO: We had success by nullifying this. Amin told us that our integer ID looks good,
             #  ...but they're still seeing an error on their end, so he's looking into it. - Joe 2022/02/02
+            # pass in as a string
             "ri.actions.main.parameter.eac89354-a3bf-465e-a4be-bbf22a6e2c50": {
                 # "type": "integer",
                 # "integer ": 1000000001
-                "type": "null",
-                "null": {}
-            }, # reserved id list from DI&H id bank, cannot be reused
+                 "type": "null",
+                 "null": {}
+                # enclave generated this id when a draft version is created, so we have to query for this id value
+                # there was an issue when passing in the integer type as an id failed due to unknown issue in the Enclave
+                # note: 2/4/ 2022
+                # "type": "integer",
+                # "integer": cs_id
+            },  # reserved id list from DI&H id bank, cannot be reused
             # TODO: does "stephanie cs example" match an actual container?
 
             "ri.actions.main.parameter.51e12235-c217-47e2-a347-240d379434e8": {
@@ -173,10 +194,13 @@ def get_cs_version_data(cs_name, cs_id, intention, limitations, update_msg, prov
                             # Amin asked us to use this instead:
                             # "string": "stephanie cs example"
                             "string": "stephanie test cs"
+                            # TODO: eventually pass in the name we generated from the VSAC
+                            # for now pass in the name of the container that we created
+                            # "string": cs_name
                         }
                     }
                 }
-            }, # cs_name must match the string from the container
+            },  # cs_name must match the string from the container
             # Current maximum version (deprecated):
             # - In the ConceptSetEditor GUI, maximum version is passed in. But in the case where
             # ...we're creating the first version, this can be null.
@@ -230,12 +254,14 @@ def get_cs_version_data(cs_name, cs_id, intention, limitations, update_msg, prov
             "ri.actions.main.parameter.4e790085-47ed-41ad-b12e-72439b645031": {
                 "null": {},
                 "type": "null"
-            }  # domainteam, optional only if research_id is submitted
+            }  # domainTeam, optional only if research_id is submitted
         }
     }
     return cs_version_data
 
 
+
+### 2/3. createNewDraftConceptSetVersion()
 def post_cs_container(cs_name, token):
     """create a concept set container """
     url = f'https://unite.nih.gov/actions/api/actions'
@@ -246,7 +272,8 @@ def post_cs_container(cs_name, token):
     return r
 
 
-### 2/3. createNewDraftConceptSetVersion()
+### 2/3. createNewDraftConceptSetVersion() (CreateNewConceptSet: concept_set_container_edited.csv)
+
 # - 1 call per version
 ### data for creating a new draft version of the concept set - we will always be creating a version 1
 ### actionTypeRid: ri.actions.main.action-type.fb260d04-b50e-4e29-9d39-6cce126fda7f
@@ -268,7 +295,6 @@ def post_cs_container(cs_name, token):
 cs_version_create_data = {
     "actionTypeRid": "ri.actions.main.action-type.fb260d04-b50e-4e29-9d39-6cce126fda7f",
     "parameters": {
-        "params": {
             "ri.actions.main.parameter.51e12235-c217-47e2-a347-240d379434e8": {
                 "type": "objectLocator",
                 "objectLocator": 	{
@@ -325,16 +351,78 @@ cs_version_create_data = {
                     }
                 }
             }
-        }
     }
 }
 
-### 3/3. createCodeSystemConceptVersionExpressionItems
+### 3/3. add-code-system-codes-as-omop-version-expressions
+# - bulk call for a single concept set; may contain many expressions in one call. can only do 1 concept set version per post request
+# new api that will accept a codes and codeSystem instead of the concept_ids
+# action item id: action type rid: ri.actions.main.action-type.e07f2503-c7c9-47b9-9418-225544b56b71
+# use same id used to create the concept set version, the id is persisted in the csv files as the codeset_id in the
+# concept_set_version_item_rv_edited.csv
+### 3/3. createCodeSystemConceptVersionExpressionItems (addCodeAsVersionExpression: concept_set_version_item_rv_edited.csv)
 # - bulk call for a single concept set; can contain many expressions in one call. can only do 1 concept set per call
-# TODO: Plantir to expose new api that will accept a codes and codeSystem instead of the concept_ids
 # TODO: need more info: domain team (object) : ri.actions.main.parameter.4e790085-47ed-41ad-b12e-72439b645031
 # TODO: How to know the ID of the concept set version created in the API:
 #  - Amin said that in the API, we can accept the ID. they will validate that it is in the correct range. and if it is
 #  valid, our POST request will succeed. and then we can re-use that version ID
 
-# 4. A mapping table, I believe, that Amin is creating/exposing for us, for converting to standard codes
+def get_cs_version_expression_data(
+    current_code_set_id: Union[str, int], cs_name: str, code_list: List[str], bExclude: bool, bDescendents: bool,
+    bMapped: bool, annotation: str) -> Dict[str, Any]:
+    cs_version_expression_data = {
+        "actionTypeRid": "ri.actions.main.action-type.e07f2503-c7c9-47b9-9418-225544b56b71",
+        "parameters": {
+            # Version (object type): id used in version creation should be used
+            "ri.actions.main.parameter.ad298972-0db3-4d85-9bbc-0c9ecd6ecf01": {
+                "type": "objectLocator",
+                "objectLocator": {
+                    "objectTypeId": "version_id",
+                    "primaryKey": {
+                        "version_id": {
+                            "type": "integer",
+                            # "integer": current_code_set_id
+                            # call the api to find out want draft version was created to and ask for the ID
+                            # and pass that number here
+                            # "integer": 671112503 draftversion id from Amin
+                            "integer": 462280913 # id from create version api call
+                        }
+                    }
+                }
+            },
+            # Exclude (boolean type): ri.actions.main.parameter.4a7ac14f-b292-4105-b7f5-5d0817b8cdc4
+            "ri.actions.main.parameter.4a7ac14f-b292-4105-b7f5-5d0817b8cdc4": {
+                "type": "boolean",
+                "boolean": bExclude
+            },
+
+            # Include Descendents (boolean type): ri.actions.main.parameter.6cb950fd-894d-4176-9ad5-080373e26777
+            "ri.actions.main.parameter.6cb950fd-894d-4176-9ad5-080373e26777": {
+                "type": "boolean",
+                "boolean": bDescendents
+            },
+
+            # Include Mapped (boolean type): ri.actions.main.parameter.1666c70c-0cb8-47c0-91e5-cb1d7e5bf316
+            "ri.actions.main.parameter.1666c70c-0cb8-47c0-91e5-cb1d7e5bf316": {
+                "type": "boolean",
+                "boolean": bMapped
+            },
+
+            # Optional Annotation (string | null type): ri.actions.main.parameter.63e31a99-6b94-4580-b95a-a482ed64fed0
+            "ri.actions.main.parameter.63e31a99-6b94-4580-b95a-a482ed64fed0": {
+                "null": {},
+                "type": "null"
+            },
+
+            # Codes (List of colon-delimited strings): ri.actions.main.parameter.c9a1b531-86ef-4f80-80a5-cc774d2e4c33
+            "ri.actions.main.parameter.c9a1b531-86ef-4f80-80a5-cc774d2e4c33": {
+                "type": "stringList",
+                "stringList": code_list
+            }
+
+        }
+    }
+    return cs_version_expression_data
+
+
+
