@@ -32,7 +32,7 @@ PALANTIR_ENCLAVE_USER_ID_1 = 'a39723f3-dc9c-48ce-90ff-06891c29114f'
 VSAC_LABEL_PREFIX = '[VSAC Bulk-Import test1] '
 # API_URL query params:
 # 1. ?synchronousPropagation=false: Not sure what this does or if it helps.
-API_URL = 'https://unite.nih.gov/actions/api/actions'
+API_CREATE_URL = 'https://unite.nih.gov/actions/api/actions'
 # Based on curl usage, it seems that '?synchronousPropagation=false' is not required
 # API_VALIDATE_URL = 'https://unite.nih.gov/actions/api/actions/validate'
 API_VALIDATE_URL = 'https://unite.nih.gov/actions/api/actions/validate?synchronousPropagation=false'
@@ -140,9 +140,19 @@ def run(input_csv_folder_path):
     cs_version_data_dict = code_set_version_json_all_rows[0]
     # noinspection PyUnusedLocal
     response_json = post_request_enclave_api(api_url, header, cs_version_data_dict)
+    # TODO test creating the a draft version, so we can test the third api
+    ## DEBUG:urllib3.connectionpool:https://unite.nih.gov:443 "POST /actions/api/actions HTTP/1.1" 200 107
+    ## {'actionRid': 'ri.actions.main.action.9dea4a02-fb9c-4009-b623-b91ad6a0192b', 'synchronouslyPropagated': False}
+    ## Actually create a version so that we can test the api to add the expression items
+    api_url = API_CREATE_URL
+    #response_json = post_request_enclave_api(api_url, header, cs_version_data_dict)
+    # validate step 2a:
+    # TODO query the enclave and ask for the if the draft version we careated.
+    # use the that id to pass into the add the expression items.
 
     # Validate 3: Concept set expression
     # noinspection PyUnusedLocal
+    api_url = API_VALIDATE_URL
     response_json = post_request_enclave_api(api_url, header, code_set_expression_items_json_all_rows[0])
 
     # TODO: After successful validations, do real POSTs (check if they exist first)?
