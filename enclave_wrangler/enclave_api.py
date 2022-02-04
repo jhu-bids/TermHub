@@ -10,7 +10,7 @@ Resources
 - Validate URL (for testing POSTs without it actually taking effect): https://unite.nih.gov/actions/api/actions/validate
 - Wiki article on how to create these JSON: https://github.com/National-COVID-Cohort-Collaborative/Data-Ingestion-and-Harmonization/wiki/BulkImportConceptSet-REST-APIs
 """
-from typing import Dict
+from typing import Any, Dict, List, Union
 
 import requests
 import json
@@ -18,9 +18,8 @@ from enclave_wrangler.utils import log_debug_info
 
 DEBUG = True
 
-def post_request_enclave_api(api_url, header, json_data):
-
-    response = requests.post(api_url, data=json_data, headers=header)
+def post_request_enclave_api(api_url: str, header: Dict, data: Dict):
+    response = requests.post(api_url, data=json.dumps(data), headers=header)
     response_json = response.json()
     if DEBUG:
         log_debug_info()
@@ -359,7 +358,9 @@ cs_version_create_data = {
 #  - Amin said that in the API, we can accept the ID. they will validate that it is in the correct range. and if it is
 #  valid, our POST request will succeed. and then we can re-use that version ID
 
-def get_cs_version_expression_data(current_code_set_id, cs_name, code_list, bExclude, bDescendents, bMapped, annotation):
+def get_cs_version_expression_data(
+    current_code_set_id: Union[str, int], cs_name: str, code_list: List[str], bExclude: bool, bDescendents: bool,
+    bMapped: bool, annotation: str) -> Dict[str, Any]:
     cs_version_expression_data = {
         "actionTypeRid": "ri.actions.main.action-type.e07f2503-c7c9-47b9-9418-225544b56b71",
         "parameters": {
@@ -376,23 +377,22 @@ def get_cs_version_expression_data(current_code_set_id, cs_name, code_list, bExc
                     }
                 }
             },
-
             # Exclude (boolean type): ri.actions.main.parameter.4a7ac14f-b292-4105-b7f5-5d0817b8cdc4
             "ri.actions.main.parameter.4a7ac14f-b292-4105-b7f5-5d0817b8cdc4": {
                 "type": "boolean",
-                "boolean": "false"
+                "boolean": bExclude
             },
 
             # Include Descendents (boolean type): ri.actions.main.parameter.6cb950fd-894d-4176-9ad5-080373e26777
             "ri.actions.main.parameter.6cb950fd-894d-4176-9ad5-080373e26777": {
                 "type": "boolean",
-                "boolean": "true"
+                "boolean": bDescendents
             },
 
             # Include Mapped (boolean type): ri.actions.main.parameter.1666c70c-0cb8-47c0-91e5-cb1d7e5bf316
             "ri.actions.main.parameter.1666c70c-0cb8-47c0-91e5-cb1d7e5bf316": {
                 "type": "boolean",
-                "boolean": "false"
+                "boolean": bMapped
             },
 
             # Optional Annotation (string | null type): ri.actions.main.parameter.63e31a99-6b94-4580-b95a-a482ed64fed0

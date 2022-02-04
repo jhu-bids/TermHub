@@ -53,7 +53,7 @@ def run(input_csv_folder_path):
     code_sets_df = pd.read_csv(os.path.join(input_csv_folder_path, 'code_sets.csv')).fillna('')
     concept_set_version_item_rv_edited_df = pd.read_csv(os.path.join(input_csv_folder_path, 'concept_set_version_item_rv_edited.csv')).fillna('')
 
-    cs_result = pd.merge(code_sets_df, concept_set_version_item_rv_edited_df, on=['codeset_id'])
+    # cs_result = pd.merge(code_sets_df, concept_set_version_item_rv_edited_df, on=['codeset_id'])
 
     concept_set_container_edited_json_all_rows = []
     code_set_version_json_all_rows = []
@@ -61,49 +61,57 @@ def run(input_csv_folder_path):
 
     # build the list of container json data
     for index, row in concept_set_container_edited_df.iterrows():
-        cs_name = row['concept_set_name']
+        # cs_name = row['concept_set_name']
         single_row = get_cs_container_data(row['concept_set_name'])
         concept_set_container_edited_json_all_rows.append(single_row)
 
 
     # build the list of cs version json data
-    # TODO: for codeset_id, use the one in data/oid_enclaveId.csv
+    # TODO: for codeset_id, use the one in data/oid_enclaveId.csv (2 of the CSV files)
     # TODO: re-use for concept_set_version_item_rv_edited
-
     for index, row in code_sets_df.iterrows():
         cs_id = row['codeset_id']
         cs_name = row['concept_set_name']
         cs_intention = row['intention']
         cs_limitations = row['limitations']
         cs_update_msg = row['update_message']
-        cs_status = row['status']
+        # cs_status = row['status']
         cs_provenance = row['provenance']
         single_row = get_cs_version_data(cs_name, cs_id, cs_intention, cs_limitations, cs_update_msg, cs_provenance)
         # cs_name, cs_id, intension, limitation, update_msg, status, provenance
         code_set_version_json_all_rows.append(single_row)
+
+    concept_set_version_item_dict = {}
+    for index, row in concept_set_version_item_rv_edited_df.iterrows():
+        key = row['codeset_id']
+        if key not in concept_set_version_item_dict:
+            concept_set_version_item_dict[key] = []
+        concept_set_version_item_dict[key].append(row)
 
     for index, row in code_sets_df.iterrows():
             current_code_set_id = row['codeset_id']
             # build the code and codeSystem list for the current codeSet
             # reset the code list
             code_list = []
-            cs_current_code_set_df = row
             cs_name = row['concept_set_name']
             # code and code system list
-            for i in range(len(concept_set_version_item_rv_edited_df)):
-                # grab all the rows that items match
-                if concept_set_version_item_rv_edited_df.loc[i, 'codeset_id'] == current_code_set_id:
-                    code_codesystem_pair = concept_set_version_item_rv_edited_df.loc[i,'code'] + ":" + concept_set_version_item_rv_edited_df.loc[i,'codeSystem']
-                    code_list.append(code_codesystem_pair)
-                # print(code_list)
-                exclude = concept_set_version_item_rv_edited_df.loc[i, 'isExcluded']
-                descendents = concept_set_version_item_rv_edited_df.loc[i, 'includeDescendants']
-                mapped = concept_set_version_item_rv_edited_df.loc[i, 'includeMapped']
-                annotation = concept_set_version_item_rv_edited_df.loc[i, 'annotation']
+            concept_set_version_item_rows = concept_set_version_item_dict[current_code_set_id]
+            for concept_set_version_item_row in concept_set_version_item_rows:
+                code_codesystem_pair = concept_set_version_item_row['code'] + ":" + concept_set_version_item_row['codeSystem']
+                code_list.append(code_codesystem_pair)
+            # to-do(future): Right now, the API doesn't expect variation between the following 4 values among
+            # ...concept set items, so right now we can just take any of the rows and use its values. But, in
+            # ...the future, when there is variation, we may need to do some update here. - Joe 2022/02/04
+            concept_set_version_item_row1 = concept_set_version_item_rows[0]
+            exclude = concept_set_version_item_row1['isExcluded']
+            descendents = concept_set_version_item_row1['includeDescendants']
+            mapped = concept_set_version_item_row1['includeMapped']
+            annotation = concept_set_version_item_row1['annotation']
             #now that we have the code list, generate the json for the versionExpression data
-            single_row = get_cs_version_expression_data( current_code_set_id, cs_name, code_list, exclude, descendents, mapped, annotation)
+            single_row = get_cs_version_expression_data(
+                current_code_set_id, cs_name, code_list, exclude, descendents, mapped, annotation)
             code_set_expression_items_json_all_rows.append(single_row)
-    print(code_set_expression_items_json_all_rows[0])
+    # print(code_set_expression_items_json_all_rows[0])
 
     # Do a test first using 'valdiate'
     api_url = API_VALIDATE_URL
@@ -120,36 +128,24 @@ def run(input_csv_folder_path):
     ## 3. addCodeAsVersionExpression
     # TODO: We should create a function for these calls or modify existing function(s) in enclave_api.py
     #  ...in order to reduce duplicated code here. - Joe 2022/02/02
-    # Validate 1: Concept set container
-    test_data_dict = concept_set_container_edited_json_all_rows[0]
-    respons_json = post_request_enclave_api(api_url, header, json.dumps(test_data_dict))
-
-    #response = requests.post( api_url, data=json.dumps(test_data_dict), headers=header)
-    #response_json = response.json()
     # TODO : validate all three calls before calling the acutal APIs. successfully validated results
     #  ...After the action POST check for successful return code before calling the 2nd api.
-    # print(response_json)  # temp
-    #if 'type' not in response_json or response_json['type'] != 'validResponse':
-    #    raise SystemError(json.dumps(response_json, indent=2))
+
+    # Validate 1: Concept set container
+    test_data_dict = concept_set_container_edited_json_all_rows[0]
+    # noinspection PyUnusedLocal
+    response_json = post_request_enclave_api(api_url, header, test_data_dict)
 
     # Validate 2: Concept set version item
     cs_version_data_dict = code_set_version_json_all_rows[0]
-    # print(json.dumps(cs_version_data_dict, indent=4))  # temp
-    response = requests.post(api_url, data=json.dumps(cs_version_data_dict), headers=header)
-    response_json = response.json()
-    # print(response_json)  # temp
-    if 'type' not in response_json or response_json['type'] != 'validResponse':
-        raise SystemError(json.dumps(response_json, indent=2))
+    # noinspection PyUnusedLocal
+    response_json = post_request_enclave_api(api_url, header, cs_version_data_dict)
 
-    # Error: Amin says that in the backend, he's seeing error that "integer cannot be null".
-    # ...It looks like this may be related to a problem on their end parsing the integer ID, even though it is valid. He's looking into it.
-    # {'errorCode': 'INVALID_ARGUMENT', 'errorName': 'Conjure:UnprocessableEntity', 'errorInstanceId': 'c3eefa5a-61b9-45fc-aaa7-30355c15c92b', 'parameters': {}}
-    # temporarily passed in no id to see if it works and it did. Will wait for the updated api 2/2/2022
-    cs_version_expression_dict = code_set_expression_items_json_all_rows = [0]
-    response_json = post_request_enclave_api(api_url, header, json.dumps(cs_version_expression_dict))
+    # Validate 3: Concept set expression
+    # noinspection PyUnusedLocal
+    response_json = post_request_enclave_api(api_url, header, code_set_expression_items_json_all_rows[0])
 
     # TODO: After successful validations, do real POSTs (check if they exist first)?
-
     return response_json
 
 if __name__ == '__main__':
