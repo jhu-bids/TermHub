@@ -5,5 +5,6 @@ google-auth-oauthlib
 pandas
 pyarrow
 python-dotenv
+psycopg2-binary
 sqlalchemy
 xmltodict
