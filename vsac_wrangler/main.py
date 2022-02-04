@@ -11,7 +11,6 @@ import pickle
 from copy import copy
 from datetime import datetime, timezone
 from pathlib import Path
-from random import randint
 from typing import Dict, List, OrderedDict
 from uuid import uuid4
 
@@ -226,7 +225,6 @@ def get_palantir_csv(
     # I. Create IDs that will be shared between files
     oid_enclave_code_set_id_map_csv_path = os.path.join(PROJECT_ROOT, 'data', 'oids_enclave_code_set_id.csv')
     oid_enclave_code_set_id_df = pd.read_csv(oid_enclave_code_set_id_map_csv_path)
-    # TODO: I probably want to rename the CSV name and field to 'enclave_codeset_id'
     oid__codeset_id_map = dict(zip(oid_enclave_code_set_id_df['oid'], oid_enclave_code_set_id_df['enclave_code_set_id']))
 
     # II. Create & save exports

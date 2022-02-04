@@ -97,7 +97,7 @@ def run(input_csv_folder_path):
             # code and code system list
             concept_set_version_item_rows = concept_set_version_item_dict[current_code_set_id]
             for concept_set_version_item_row in concept_set_version_item_rows:
-                code_codesystem_pair = concept_set_version_item_row['code'] + ":" + concept_set_version_item_row['codeSystem']
+                code_codesystem_pair = concept_set_version_item_row['codeSystem'] + ":" + concept_set_version_item_row['code']
                 code_list.append(code_codesystem_pair)
             # to-do(future): Right now, the API doesn't expect variation between the following 4 values among
             # ...concept set items, so right now we can just take any of the rows and use its values. But, in
