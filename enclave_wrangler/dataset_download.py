@@ -4,29 +4,43 @@
 from argparse import ArgumentParser
 from typing import Dict
 
-# dataset download API, three steps:
 import requests
+from typing import Dict
+from typeguard import typechecked
+import json
+import os
+from datetime import datetime, timezone
+import requests
+import pandas as pd
 
-steps = [
-    {'endpoint':    'https://unite.nih.gov/foundry-catalog/api/catalog/datasets/transactions/master',
-     'params':      '-H "authorization: Bearer $OTHER_TOKEN"',
-     'api-docs':    ''
-    } ,
-    {}
-]
-def download(rid, cs_create_data, output_dir=None):
-    """download a dataset from the enclave"""
+from enclave_wrangler.config import config
+from enclave_wrangler.utils import log_debug_info
 
-    # curl https://unite.nih.gov/foundry-catalog/api/catalog/datasets/ri.foundry.main.dataset.5cb3c4a3-327a-47bf-a8bf-daf0cafe6772/transactions/master -H "authorization: Bearer $PALANTIR_ENCLAVE_AUTHENTICATION_BEARER_TOKEN" | json_pp
-    # curl https://unite.nih.gov/foundry-catalog/api/catalog/datasets/ri.foundry.main.dataset.47a26e85-307e-4a21-9583-f58c90b73455/transactions/master -H "authorization: Bearer $OTHER_TOKEN" | json_pp
+HEADERS = {
+    "authorization": f"Bearer {config['PALANTIR_ENCLAVE_AUTHENTICATION_BEARER_TOKEN']}",
+    #'content-type': 'application/json'
+}
+DEBUG = False
 
-    url = f'https://unite.nih.gov/actions/'
-    header = f'Authentication: Bearer 1351351351t3135dfadgaddt'
-    response = requests.post(url, data=cs_create_data)
 
-    r = response.json()
-    return r
+@typechecked
+def getTransaction(datasetRid: str, ref: str = 'master') -> dict:
+    """API documentation at https://unite.nih.gov/workspace/documentation/developer/api/catalog/services/CatalogService/endpoints/getTransaction
+    tested with curl:
+    curl https://unite.nih.gov/foundry-catalog/api/catalog/datasets/ri.foundry.main.dataset.5cb3c4a3-327a-47bf-a8bf-daf0cafe6772/transactions/master -H "authorization: Bearer $PALANTIR_ENCLAVE_AUTHENTICATION_BEARER_TOKEN" | json_pp
+    curl https://unite.nih.gov/foundry-catalog/api/catalog/datasets/ri.foundry.main.dataset.47a26e85-307e-4a21-9583-f58c90b73455/transactions/master -H "authorization: Bearer $OTHER_TOKEN" | json_pp
+    """
+    if DEBUG:
+        log_debug_info()
 
+    endpoint = 'https://unite.nih.gov/foundry-catalog/api/catalog/datasets/transactions/master/'
+    template = '{url}{datasetRid}/transactions/{ref}'
+    url = template.format(url=endpoint, datasetRid=datasetRid, ref=ref)
+
+    response = requests.get(url, headers=HEADERS,)
+    response_json = response.json()
+    print(response_json)
+    return response_json
 
 def get_parser():
     """Add required fields to parser.
@@ -43,9 +57,15 @@ def get_parser():
         help='Path to folder where you want output files, if there are any')
 
     parser.add_argument(
-        '--rid',
-        help='Rid of enclave dataset you want to download. Use -o to specify output directory, or who knows '
+        '--datasetRid',
+        help='RID of enclave dataset you want to download. Use -o to specify output directory, or who knows '
              'where it will end up.')
+
+    parser.add_argument(
+        '--ref',
+        default='master',
+        help='Should be the branch of the dataset -- I think. Refer to API documentation at '
+                'https://unite.nih.gov/workspace/documentation/developer/api/catalog/services/CatalogService/endpoints/getTransaction')
 
     return parser
 
@@ -58,13 +78,10 @@ def cli():
     kwargs = parser.parse_args()
     kwargs_dict: Dict = vars(kwargs)
 
-    if kwargs_dict['dataset-download'] is not None:
-        download(**kwargs_dict) # i don't know how to fit this into main.py...it could go somewhere else. Or I could
-                                # skip the whole get args thing and just write a separate standalone py file here
-        return
-
-    download(**kwargs_dict)
-
+    # if kwargs_dict['dataset-download'] is not None:
+    args = {key: kwargs_dict[key] for key in ['datasetRid','ref']}
+    getTransaction(**args)
+    return
 
 if __name__ == '__main__':
     cli()
