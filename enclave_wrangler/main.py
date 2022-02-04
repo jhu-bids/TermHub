@@ -91,6 +91,7 @@ def run(input_csv_folder_path):
             cs_name = row['concept_set_name']
             # code and code system list
             for i in range(len(concept_set_version_item_rv_edited_df)):
+                # grab all the rows that items match
                 if concept_set_version_item_rv_edited_df.loc[i, 'codeset_id'] == current_code_set_id:
                     code_codesystem_pair = concept_set_version_item_rv_edited_df.loc[i,'code'] + ":" + concept_set_version_item_rv_edited_df.loc[i,'codeSystem']
                     code_list.append(code_codesystem_pair)

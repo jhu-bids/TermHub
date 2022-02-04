@@ -252,9 +252,8 @@ def get_cs_version_data(cs_name, cs_id, intention, limitations, update_msg, prov
     return cs_version_data
 
 
-<<<<<<< HEAD
+
 ### 2/3. createNewDraftConceptSetVersion()
-=======
 def post_cs_container(cs_name, token):
     """create a concept set container """
     url = f'https://unite.nih.gov/actions/api/actions'
@@ -266,7 +265,7 @@ def post_cs_container(cs_name, token):
 
 
 ### 2/3. createNewDraftConceptSetVersion() (CreateNewConceptSet: concept_set_container_edited.csv)
->>>>>>> bde9e03dabfe88b0d591e4a1c7956a73c29c87cd
+
 # - 1 call per version
 ### data for creating a new draft version of the concept set - we will always be creating a version 1
 ### actionTypeRid: ri.actions.main.action-type.fb260d04-b50e-4e29-9d39-6cce126fda7f
