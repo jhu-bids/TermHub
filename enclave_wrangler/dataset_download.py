@@ -5,6 +5,8 @@ from argparse import ArgumentParser
 from typing import Dict
 
 # dataset download API, three steps:
+import requests
+
 steps = [
     {'endpoint':    'https://unite.nih.gov/foundry-catalog/api/catalog/datasets/transactions/master',
      'params':      '-H "authorization: Bearer $OTHER_TOKEN"',
@@ -12,7 +14,7 @@ steps = [
     } ,
     {}
 ]
-def download(rid, output_dir=None):
+def download(rid, cs_create_data, output_dir=None):
     """download a dataset from the enclave"""
 
     # curl https://unite.nih.gov/foundry-catalog/api/catalog/datasets/ri.foundry.main.dataset.5cb3c4a3-327a-47bf-a8bf-daf0cafe6772/transactions/master -H "authorization: Bearer $PALANTIR_ENCLAVE_AUTHENTICATION_BEARER_TOKEN" | json_pp
@@ -32,8 +34,8 @@ def get_parser():
     Returns:
         ArgumentParser: Argeparse object.
     """
-    package_description = 'Tool for working w/ the Palantir Foundry enclave API.'
-                          'This part is for downloading enclave datasets.'
+    package_description = 'Tool for working w/ the Palantir Foundry enclave API. ' \
+          'This part is for downloading enclave datasets.'
     parser = ArgumentParser(description=package_description)
 
     parser.add_argument(
