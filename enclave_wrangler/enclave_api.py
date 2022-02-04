@@ -383,8 +383,8 @@ def get_cs_version_expression_data(current_code_set_id, cs_name, code_list, bExc
 
             # Codes (List of colon-delimited strings): ri.actions.main.parameter.c9a1b531-86ef-4f80-80a5-cc774d2e4c33
             "ri.actions.main.parameter.c9a1b531-86ef-4f80-80a5-cc774d2e4c33": {
-                "type": "string",
-                "string": code_list
+                "type": "stringList",
+                "stringList": code_list
             }
 
         }
