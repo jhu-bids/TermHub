@@ -13,6 +13,22 @@ Resources
 from typing import Dict
 
 import requests
+import json
+from enclave_wrangler.utils import log_debug_info
+
+DEBUG = True
+
+def post_request_enclave_api(api_url, header, json_data):
+
+    response = requests.post(api_url, data=json_data, headers=header)
+    response_json = response.json()
+    if DEBUG:
+        log_debug_info()
+        print(response_json)  # temp
+    if 'type' not in response_json or response_json['type'] != 'validResponse':
+        raise SystemError(json.dumps(response_json, indent=2))
+
+    return response_json
 
 
 ## 1/3. Create new concept set container
@@ -160,7 +176,7 @@ def get_cs_version_data(cs_name, cs_id, intention, limitations, update_msg, prov
                 # "integer ": 1000000001
                 "type": "null",
                 "null": {}
-            }, # reserved id list from DI&H id bank, cannot be reused
+            },  # reserved id list from DI&H id bank, cannot be reused
             # TODO: does "stephanie cs example" match an actual container?
 
             "ri.actions.main.parameter.51e12235-c217-47e2-a347-240d379434e8": {
@@ -176,7 +192,7 @@ def get_cs_version_data(cs_name, cs_id, intention, limitations, update_msg, prov
                         }
                     }
                 }
-            }, # cs_name must match the string from the container
+            },  # cs_name must match the string from the container
             # Current maximum version (deprecated):
             # - In the ConceptSetEditor GUI, maximum version is passed in. But in the case where
             # ...we're creating the first version, this can be null.
@@ -230,20 +246,10 @@ def get_cs_version_data(cs_name, cs_id, intention, limitations, update_msg, prov
             "ri.actions.main.parameter.4e790085-47ed-41ad-b12e-72439b645031": {
                 "null": {},
                 "type": "null"
-            }  # domainteam, optional only if research_id is submitted
+            }  # domainTeam, optional only if research_id is submitted
         }
     }
     return cs_version_data
-
-
-def post_cs_container(cs_name, token):
-    """create a concept set container """
-    url = f'https://unite.nih.gov/actions/api/actions'
-    my_header = f'Authentication: Bearer {token}'
-    container_data = get_cs_container_data(cs_name)
-    response = requests.post( url, headers = my_header, data=container_data)
-    r = response.json()
-    return r
 
 
 ### 2/3. createNewDraftConceptSetVersion()
@@ -268,7 +274,6 @@ def post_cs_container(cs_name, token):
 cs_version_create_data = {
     "actionTypeRid": "ri.actions.main.action-type.fb260d04-b50e-4e29-9d39-6cce126fda7f",
     "parameters": {
-        "params": {
             "ri.actions.main.parameter.51e12235-c217-47e2-a347-240d379434e8": {
                 "type": "objectLocator",
                 "objectLocator": 	{
@@ -325,16 +330,66 @@ cs_version_create_data = {
                     }
                 }
             }
-        }
     }
 }
 
-### 3/3. createCodeSystemConceptVersionExpressionItems
-# - bulk call for a single concept set; can contain many expressions in one call. can only do 1 concept set per call
-# TODO: Plantir to expose new api that will accept a codes and codeSystem instead of the concept_ids
-# TODO: need more info: domain team (object) : ri.actions.main.parameter.4e790085-47ed-41ad-b12e-72439b645031
-# TODO: How to know the ID of the concept set version created in the API:
-#  - Amin said that in the API, we can accept the ID. they will validate that it is in the correct range. and if it is
-#  valid, our POST request will succeed. and then we can re-use that version ID
+### 3/3. add-code-system-codes-as-omop-version-expressions
+# - bulk call for a single concept set; may contain many expressions in one call. can only do 1 concept set version per post request
+# new api that will accept a codes and codeSystem instead of the concept_ids
+# action item id: action type rid: ri.actions.main.action-type.e07f2503-c7c9-47b9-9418-225544b56b71
+# use same id used to create the concept set version, the id is persisted in the csv files as the codeset_id in the
+# concept_set_version_item_rv_edited.csv
+def get_cs_version_expression_data(current_code_set_id, cs_name, code_list, bExclude, bDescendents, bMapped, annotation):
+    cs_version_expression_data = {
+        "actionTypeRid": "ri.actions.main.action-type.e07f2503-c7c9-47b9-9418-225544b56b71",
+        "parameters": {
+            # Version (object type): id used in version creation should be used
+            "ri.actions.main.parameter.ad298972-0db3-4d85-9bbc-0c9ecd6ecf01": {
+                "type": "objectLocator",
+                "objectLocator": {
+                    "objectTypeId": "version_id",
+                    "primaryKey": {
+                        "version_id": {
+                            "type": "integer",
+                            "integer": current_code_set_id
+                        }
+                    }
+                }
+            },
 
-# 4. A mapping table, I believe, that Amin is creating/exposing for us, for converting to standard codes
+            # Exclude (boolean type): ri.actions.main.parameter.4a7ac14f-b292-4105-b7f5-5d0817b8cdc4
+            "ri.actions.main.parameter.4a7ac14f-b292-4105-b7f5-5d0817b8cdc4": {
+                "type": "boolean",
+                "boolean": "false"
+            },
+
+            # Include Descendents (boolean type): ri.actions.main.parameter.6cb950fd-894d-4176-9ad5-080373e26777
+            "ri.actions.main.parameter.6cb950fd-894d-4176-9ad5-080373e26777": {
+                "type": "boolean",
+                "boolean": "true"
+            },
+
+            # Include Mapped (boolean type): ri.actions.main.parameter.1666c70c-0cb8-47c0-91e5-cb1d7e5bf316
+            "ri.actions.main.parameter.1666c70c-0cb8-47c0-91e5-cb1d7e5bf316": {
+                "type": "boolean",
+                "boolean": "false"
+            },
+
+            # Optional Annotation (string | null type): ri.actions.main.parameter.63e31a99-6b94-4580-b95a-a482ed64fed0
+            "ri.actions.main.parameter.63e31a99-6b94-4580-b95a-a482ed64fed0": {
+                "null": {},
+                "type": "null"
+            },
+
+            # Codes (List of colon-delimited strings): ri.actions.main.parameter.c9a1b531-86ef-4f80-80a5-cc774d2e4c33
+            "ri.actions.main.parameter.c9a1b531-86ef-4f80-80a5-cc774d2e4c33": {
+                "type": "string",
+                "string": code_list
+            }
+
+        }
+    }
+    return cs_version_expression_data
+
+
+
