@@ -6,3 +6,4 @@ pandas
 pyarrow
 python-dotenv
 xmltodict
+ArgumentParser

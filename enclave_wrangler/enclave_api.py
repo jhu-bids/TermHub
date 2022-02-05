@@ -4,11 +4,14 @@
 ## 2. Create new draft version  -
 ## Note, new draft version id must be generated within the range of 1,000,000,000, 1,001,000,000.
 ## and used to add the CodeSystemExpressionItems
+## pre-generated ids is limited and it caused an issue in the Enclave the new process is as follows.
+## query for the id and use it in the addExpressionItems api
 ## 3. Create CodeSystemExpression items - TBD
 
 Resources
 - Validate URL (for testing POSTs without it actually taking effect): https://unite.nih.gov/actions/api/actions/validate
-- Wiki article on how to create these JSON: https://github.com/National-COVID-Cohort-Collaborative/Data-Ingestion-and-Harmonization/wiki/BulkImportConceptSet-REST-APIs
+- Wiki article on how to create these JSON
+- https://github.com/National-COVID-Cohort-Collaborative/Data-Ingestion-and-Harmonization/wiki/BulkImportConceptSet-REST-APIs
 """
 from typing import Any, Dict, List, Union
 
@@ -16,10 +19,25 @@ import requests
 import json
 from enclave_wrangler.utils import log_debug_info
 
+# endpoint to post to create concept set
+API_CREATE_URL = 'https://unite.nih.gov/actions/api/actions'
+# Based on curl usage, it seems that '?synchronousPropagation=false' is not required but added here since it worked
+API_VALIDATE_URL = 'https://unite.nih.gov/actions/api/actions/validate?synchronousPropagation=false'
+API_QUERY_URL = 'https://unite.nih.gov/actions/api/actions/edits/'
+# example - https://unite.nih.gov/actions/api/actions/edits/ri.actions.main.action.f8ea6ccc-4035-4418-9dd3-d4d0f32ce396
+API_OBJECT_URL = 'https://unite.nih.gov/phonograph2/api/storage/load/objects/'
+
 DEBUG = True
 
-def post_request_enclave_api(api_url: str, header: Dict, data: Dict):
-    response = requests.post(api_url, data=json.dumps(data), headers=header)
+def key_val_split_list(list1):
+    key, val = list1.split(':')
+    return key, val
+
+def post_request_enclave_api(api_url: str, header: Dict, data_dict: Dict):
+    data = json.dumps(data_dict)
+    headers = header
+    # validate the request
+    response = requests.post(api_url, data, headers)
     response_json = response.json()
     if DEBUG:
         log_debug_info()
@@ -30,13 +48,138 @@ def post_request_enclave_api(api_url: str, header: Dict, data: Dict):
     return response_json
 
 
-## 1/3. Create new concept set container (concept_set_container_edited.csv)
+def post_request_enclave_api_create_container(api_url: str, header: Dict, data_dict: Dict):
+    # validate the request
+    api_url = API_VALIDATE_URL
+    response = requests.post(api_url, data=json.dumps(data_dict), headers=header)
+    response_json = response.json()
+    if DEBUG:
+        log_debug_info()
+        print(response_json)  # temp
+    if 'type' not in response_json or response_json['type'] != 'validResponse':
+        raise SystemError(json.dumps(response_json, indent=2))
+
+    # TODO if validResponse is returned, create the container
+    api_url = API_CREATE_URL
+    response = requests.post(api_url, data=json.dumps(data_dict), headers=header)
+    response_json = response.json()
+    if DEBUG:
+        log_debug_info()
+        print(response_json)  # temp
+    # example error code - {'errorCode': 'INVALID_ARGUMENT',
+    # 'errorName': 'Actions:ObjectsAlreadyExist', 'errorInstanceId': 'deca8342-deb0-4f4c-8888-78b1e195d4dc',
+    # 'parameters': {'objectLocators': '[ObjectLocator{objectTypeId: omop-concept-set-container, primaryKey:
+    #  {concept_set_id=PrimaryKeyValue{value: StringWrapper{
+    #  value: [VSAC Bulk-Import test] Cirrhosis or other liver disease}}}}]'}}
+    # TODO if the container already exist than it is not an error so we should allow the next step.
+    # i.e. if the errorCode is invalid_argument and the errorName is 'Actions:ObjectsAlreadyExist'
+    #
+    if 'errorCode' in response_json and response_json['errorName'] == 'Actions:ObjectsAlreadyExist':
+        return response_json
+
+    if 'actionRid' not in response_json and response_json['errorCode'] != '':
+        raise SystemError(json.dumps(response_json, indent=2))
+
+    return response_json
+
+
+# TODO
+# create version, it should return the action id
+# use the action id in the url to ask what effect creation app call had which should return
+#
+def post_request_enclave_api_create_version(header, cs_version_data_dict):
+    # create - skipping validate
+    codeset_id = 0
+    api_url = API_CREATE_URL
+    data = json.dumps(cs_version_data_dict)
+    response = requests.post(api_url, data=json.dumps(cs_version_data_dict), headers=header)
+    response_json = response.json()
+    if DEBUG:
+        log_debug_info()
+        print(response_json)  # temp
+    # create the version - we can skip validation step
+    # if 'type' not in response_json or response_json['type'] != 'validResponse':
+    #    raise SystemError(json.dumps(response_json, indent=2))
+
+    # if validResponse then post call to create cs version
+    # The successful creation will return the following response
+    # {"actionRid":"ri.actions.main.action.f8ea6ccc-4035-4418-9dd3-d4d0f32ce396","synchronouslyPropagated":false}
+    # request get and ask what effect your create API call had with the following endpoint
+    # https://unite.nih.gov/actions/api/actions/edits/ri.actions.main.action.f8ea6ccc-4035-4418-9dd3-d4d0f32ce396
+    # the action rid must match the rid from the returned response from the create version post response
+
+    action_ridValue = response_json['actionRid']
+
+    # build the query endpoint url to ask for the details
+    api_url = API_QUERY_URL + action_ridValue
+
+    # ask what effect your API call had. i.e. what edits it effected by calling the get
+    response = requests.get(api_url, headers=header)
+    # the get response should look something like the following:
+    response_json = response.json()
+    # i.e. the response should contain the objectRid
+    # {"objectEditLocators":
+    # [{"objectOrLinkRid":{"type":"objectRid","objectRid":"ri.phonograph2-objects.main.object.1b0ff201-e0e0-44f5-b7a6-950ed074cc7e"},
+    # "editsVersion":0,"editType":"ADD_OBJECT","maybeWorkstateMetadata":null}],"manyToManyLinkEditLocators":[]}
+    #
+    # objectEditLocators returns a list:
+    # {'objectOrLinkRid': {'type': 'objectRid', 'objectRid': 'ri.phonograph2-objects.main.object.725be25b-e7a5-467e-8764-aa1a9600d5b5'},
+    #  'editsVersion': 0,
+    # 'editType': 'ADD_OBJECT',
+    #  'maybeWorkstateMetadata': None}]
+
+    if 'objectEditLocators' in response_json:
+        objectEditLocatorsValue = response_json['objectEditLocators']
+        print(objectEditLocatorsValue)
+        # converting list to dictionary
+        # {'objectOrLinkRid': {'type': 'objectRid',
+        #                     'objectRid': 'ri.phonograph2-objects.main.object.440d160d-dd0a-4cf1-97d7-a243be4bd517'},
+        # 'editsVersion': 0, 'editType': 'ADD_OBJECT', 'maybeWorkstateMetadata': None}
+
+        # init dictionary with returned response values
+        # objectOrLinkRid values
+        resp_dict = dict(objectEditLocatorsValue[0])
+        if DEBUG:
+            log_debug_info()
+            print(resp_dict)
+
+        #init dictionary with objectOrLinkRid
+        # {'type': 'objectRid', 'objectRid': 'ri.phonograph2-objects.main.object.535d21a3-b7d2-4d40-9432-215d66b68da5'}
+        obj_dict = dict(resp_dict['objectOrLinkRid'])
+        if DEBUG:
+            log_debug_info()
+            print(obj_dict)
+
+        if DEBUG:
+            log_debug_info()
+            print(obj_dict['objectRid'])
+
+        #get object rid so that the url can be built to request the cs version id
+        objectRidValue = obj_dict['objectRid']
+        # curl -X GET "https://unite.nih.gov/phonograph2/api/storage/load/objects/ri.phonograph2-objects.main.object.1b0ff201-e0e0-44f5-b7a6-950ed074cc7e"
+        # build the url using the object rid to get the codeset_id value
+        api_url = API_OBJECT_URL + objectRidValue
+        if DEBUG:
+            log_debug_info()
+            print("request get:: " + api_url)
+        response = requests.get(api_url, headers=header)
+        response_json = response.json()
+        # the response should contain the codeset_id
+        codeset_id_dict = dict(response_json['primaryKey'])
+        codeset_id = codeset_id_dict['codeset_id']
+        print(codeset_id)
+        # use the codeset_id to add the cs expression items
+    # return the cs version id that can be used to build the
+    return codeset_id
+
+
+# 1/3. Create new concept set container (concept_set_container_edited.csv)
 # - 1 call per container
-#post request to call create the concept set container
+# post request to call create the concept set container
 # CreateNewConceptSet rid =ri.actions.main.action-type.ef6f89de-d5e3-450c-91ea-17132c8636ae
-#1. header should contain the authentication bearer token
-#2. set actionTypeRid for the createNewConceptSet in the data
-#3. set all parameter types and values in the data
+# 1. header should contain the authentication bearer token
+# 2. set actionTypeRid for the createNewConceptSet in the data
+# 3. set all parameter types and values in the data
 # Example, data = { “actionTypeRid”: “ri.actions.main.action-type.ef6f89de-d5e3-450c-91ea-17132c8636ae”,
 # for creating a new concept set container, need to set following parameters:
 # concept set name, intention, assigned informatician, assigned SME, status, stage, and Research Project
@@ -49,7 +192,7 @@ def post_request_enclave_api(api_url: str, header: Dict, data: Dict):
 # status (string whose value is always "Under Construction") : ri.actions.main.parameter.2b3e7cd9-6704-40a0-9383-b6c734032eb3
 # stage (string whose value is always "Awaiting Editing"): ri.actions.main.parameter.02dbf67e-0acc-43bf-a0a9-cc8d1007771b
 # Research Project (object) : ri.actions.main.parameter.a3eace19-c42d-4ff5-aa63-b515f3f79bdd
-## concept_set_name
+# concept_set_name
 def get_cs_container_data(cs_name: str) -> Dict:
     cs_container_data = {
         "actionTypeRid": "ri.actions.main.action-type.ef6f89de-d5e3-450c-91ea-17132c8636ae",
@@ -59,14 +202,14 @@ def get_cs_container_data(cs_name: str) -> Dict:
                 "string": cs_name
             },
             "ri.actions.main.parameter.28448734-2b6c-41e7-94aa-9f0d2ac1936f": {
-                #informatician
+                # informatician
                 "type": "string",
                 "string": "a39723f3-dc9c-48ce-90ff-06891c29114f"
             },
             "ri.actions.main.parameter.f04fd21f-4c97-4640-84e3-f7ecff9d1018": {
                 "null": {},
                 "type": "null"
-            }, # sme
+            },  # sme
             "ri.actions.main.parameter.2b3e7cd9-6704-40a0-9383-b6c734032eb3": {
                 "string": "Under Construction",
                 "type": "string"
@@ -80,15 +223,16 @@ def get_cs_container_data(cs_name: str) -> Dict:
                 "type": "string"
             },
             "ri.actions.main.parameter.a3eace19-c42d-4ff5-aa63-b515f3f79bdd": {
-                    "objectLocator": {
-                        "objectTypeId": "research-project", "primaryKey": {
-                            "research_project_uid": {
-                                "string": "RP-4A9E27",
-                                "type": "string"
-                            }
+                "objectLocator": {
+                    "objectTypeId": "research-project", "primaryKey": {
+                        "research_project_uid": {
+                            "string": "RP-4A9E27",
+                            "type": "string"
                         }
-                    }, "type": "objectLocator"}}}
+                    }
+                }, "type": "objectLocator"}}}
     return cs_container_data
+
 
 ## # cs_name, cs_id, intension, limitation, update_msg, status, provenance
 ## TODO: utilize: cs_name, cs_id
@@ -99,67 +243,67 @@ def get_cs_version_data(cs_name, cs_id, intention, limitations, update_msg, prov
     """
 
     # Temp: Leaving this here for now as a static example of an attempt that actually worked today. - Joe 2022/02/02
-#     return {
-#     "actionTypeRid": "ri.actions.main.action-type.fb260d04-b50e-4e29-9d39-6cce126fda7f",
-#     "parameters": {
-#         "ri.actions.main.parameter.c3e857d9-a9d8-423c-9dec-610e4e90f971": {
-#             "null": {},
-#             "type": "null"
-#         },
-#         "ri.actions.main.parameter.51e12235-c217-47e2-a347-240d379434e8": {
-#             "objectLocator": {
-#                 "objectTypeId": "omop-concept-set-container",
-#                 "primaryKey": {
-#                     "concept_set_id": {
-#                         "string": "stephanie test cs",
-#                         "type": "string"
-#                     }
-#                 }
-#             },
-#             "type": "objectLocator"
-#         },
-#         "ri.actions.main.parameter.465404ad-c767-4d73-ab26-0d6e083eab8e": {
-#             "objectLocator": {
-#                 "objectTypeId": "research-project",
-#                 "primaryKey": {
-#                     "research_project_uid": {
-#                         "string": "RP-4A9E27",
-#                         "type": "string"
-#                     }
-#                 }
-#             },
-#             "type": "objectLocator"
-#         },
-#         "ri.actions.main.parameter.c58b7fa6-e6b4-49ad-8535-433507fe3d13": {
-#             "null": {},
-#             "type": "null"
-#         },
-#         "ri.actions.main.parameter.ae8b8a16-c690-42fa-b828-e60324074661": {
-#             "string": "upd",
-#             "type": "string"
-#         },
-#         "ri.actions.main.parameter.4e790085-47ed-41ad-b12e-72439b645031": {
-#             "null": {},
-#             "type": "null"
-#         },
-#         "ri.actions.main.parameter.5577422c-02a4-454a-97d0-3fb76425ba8c": {
-#             "null": {},
-#             "type": "null"
-#         },
-#         "ri.actions.main.parameter.2d5df665-6728-4f6e-83e5-8256551f8851": {
-#             "type": "string",
-#             "string": "Broad (sensitive)"
-#         },
-#         "ri.actions.main.parameter.32d1ce35-0bc1-4935-ad18-ba4a45e8113f": {
-#             "null": {},
-#             "type": "null"
-#         },
-#         "ri.actions.main.parameter.eac89354-a3bf-465e-a4be-bbf22a6e2c50": {
-#             "null": {},
-#             "type": "null"
-#         }
-#     }
-# }
+    #     return {
+    #     "actionTypeRid": "ri.actions.main.action-type.fb260d04-b50e-4e29-9d39-6cce126fda7f",
+    #     "parameters": {
+    #         "ri.actions.main.parameter.c3e857d9-a9d8-423c-9dec-610e4e90f971": {
+    #             "null": {},
+    #             "type": "null"
+    #         },
+    #         "ri.actions.main.parameter.51e12235-c217-47e2-a347-240d379434e8": {
+    #             "objectLocator": {
+    #                 "objectTypeId": "omop-concept-set-container",
+    #                 "primaryKey": {
+    #                     "concept_set_id": {
+    #                         "string": "stephanie test cs",
+    #                         "type": "string"
+    #                     }
+    #                 }
+    #             },
+    #             "type": "objectLocator"
+    #         },
+    #         "ri.actions.main.parameter.465404ad-c767-4d73-ab26-0d6e083eab8e": {
+    #             "objectLocator": {
+    #                 "objectTypeId": "research-project",
+    #                 "primaryKey": {
+    #                     "research_project_uid": {
+    #                         "string": "RP-4A9E27",
+    #                         "type": "string"
+    #                     }
+    #                 }
+    #             },
+    #             "type": "objectLocator"
+    #         },
+    #         "ri.actions.main.parameter.c58b7fa6-e6b4-49ad-8535-433507fe3d13": {
+    #             "null": {},
+    #             "type": "null"
+    #         },
+    #         "ri.actions.main.parameter.ae8b8a16-c690-42fa-b828-e60324074661": {
+    #             "string": "upd",
+    #             "type": "string"
+    #         },
+    #         "ri.actions.main.parameter.4e790085-47ed-41ad-b12e-72439b645031": {
+    #             "null": {},
+    #             "type": "null"
+    #         },
+    #         "ri.actions.main.parameter.5577422c-02a4-454a-97d0-3fb76425ba8c": {
+    #             "null": {},
+    #             "type": "null"
+    #         },
+    #         "ri.actions.main.parameter.2d5df665-6728-4f6e-83e5-8256551f8851": {
+    #             "type": "string",
+    #             "string": "Broad (sensitive)"
+    #         },
+    #         "ri.actions.main.parameter.32d1ce35-0bc1-4935-ad18-ba4a45e8113f": {
+    #             "null": {},
+    #             "type": "null"
+    #         },
+    #         "ri.actions.main.parameter.eac89354-a3bf-465e-a4be-bbf22a6e2c50": {
+    #             "null": {},
+    #             "type": "null"
+    #         }
+    #     }
+    # }
 
     # TODO: We should add a quality control check:
     #  If any of the values passed are null/None, need to do "type": "null" and "null": {} instead of  e.g. "string"
@@ -171,16 +315,19 @@ def get_cs_version_data(cs_name, cs_id, intention, limitations, update_msg, prov
             # TODO: We had success by nullifying this. Amin told us that our integer ID looks good,
             #  ...but they're still seeing an error on their end, so he's looking into it. - Joe 2022/02/02
             # pass in as a string
+            # TODO: method changed - Stephanie 2/4/2022
+            # enclave is still having error passing in the codeset_id.
+            # work around is for us to query the id after the draft version is created.
             "ri.actions.main.parameter.eac89354-a3bf-465e-a4be-bbf22a6e2c50": {
                 # "type": "integer",
                 # "integer ": 1000000001
-                 "type": "null",
-                 "null": {}
+                "type": "null",
+                "null": {}
                 # enclave generated this id when a draft version is created, so we have to query for this id value
                 # there was an issue when passing in the integer type as an id failed due to unknown issue in the Enclave
                 # note: 2/4/ 2022
                 # "type": "integer",
-                # "integer": cs_id
+                # "integer": cs_id - passing in cs_id did not work
             },  # reserved id list from DI&H id bank, cannot be reused
             # TODO: does "stephanie cs example" match an actual container?
 
@@ -193,10 +340,9 @@ def get_cs_version_data(cs_name, cs_id, intention, limitations, update_msg, prov
                             "type": "string",
                             # Amin asked us to use this instead:
                             # "string": "stephanie cs example"
-                            "string": "stephanie test cs"
-                            # TODO: eventually pass in the name we generated from the VSAC
-                            # for now pass in the name of the container that we created
-                            # "string": cs_name
+                            # "string": "stephanie test cs"
+                            # cs contain name generated from VSAC
+                            "string": cs_name
                         }
                     }
                 }
@@ -260,14 +406,13 @@ def get_cs_version_data(cs_name, cs_id, intention, limitations, update_msg, prov
     return cs_version_data
 
 
-
 ### 2/3. createNewDraftConceptSetVersion()
 def post_cs_container(cs_name, token):
     """create a concept set container """
     url = f'https://unite.nih.gov/actions/api/actions'
     my_header = f'Authentication: Bearer {token}'
     container_data = get_cs_container_data(cs_name)
-    response = requests.post( url, headers = my_header, data=container_data)
+    response = requests.post(url, headers=my_header, data=container_data)
     r = response.json()
     return r
 
@@ -295,64 +440,65 @@ def post_cs_container(cs_name, token):
 cs_version_create_data = {
     "actionTypeRid": "ri.actions.main.action-type.fb260d04-b50e-4e29-9d39-6cce126fda7f",
     "parameters": {
-            "ri.actions.main.parameter.51e12235-c217-47e2-a347-240d379434e8": {
+        "ri.actions.main.parameter.51e12235-c217-47e2-a347-240d379434e8": {
+            "type": "objectLocator",
+            "objectLocator": {
+                "objectTypeId": "omop-concept-set-container",
+                "primaryKey": {
+                    "concept_set_id": {
+                        "type": "string",
+                        "string": "<must match the concept name string specified in the container creation>"
+                    }
+                }
+            },
+            "ri.actions.main.parameter.c58b7fa6-e6b4-49ad-8535-433507fe3d13": {
+                "type": "integer",
+                "integer": 1,
+            },
+            "ri.actions.main.parameter.c3e857d9-a9d8-423c-9dec-610e4e90f971": {
                 "type": "objectLocator",
-                "objectLocator": 	{
-                    "objectTypeId": "omop-concept-set-container",
+                "objectLocator": {
+                    "objectTypeId": "version_id",
                     "primaryKey": {
-                        "concept_set_id": {
+                        "version_id": {
+                            "type": "integer",
+                            "integer": 1
+                        }
+                    }
+                }
+            },
+            "ri.actions.main.parameter.ae8b8a16-c690-42fa-b828-e6032-4074661": {
+                "type": "string",
+                "string": "Initial [VSAC] version"
+            },
+            "ri.actions.main.parameter.2d5df665-6728-4f6e-83e5-8256551f8851": {
+                "type": "string",
+                "string": "<intension string build from vsac source is set here>"
+            },
+            "ri.actions.main.parameter.32d1ce35-0bc1-4935-ad18-ba4a45e8113f": {
+                "type": "string",
+                "string": "<limitations text from vsac source is set here>"
+            },
+            "ri.actions.main.parameter.5577422c-02a4-454a-97d0-3fb76425ba8c": {
+                "type": "string",
+                "string": "<provenance built from the VSAC source is set here>"
+            },
+            "ri.actions.main.parameter.465404ad-c767-4d73-ab26-0d6e083eab8e": {
+                "type": "objectLocator",
+                "objectLocator": {
+                    "objectTypeId": "research-project",
+                    "primaryKey": {
+                        "research_project_uid": {
                             "type": "string",
-                            "string": "<must match the concept name string specified in the container creation>"
-                        }
-                    }
-                },
-                "ri.actions.main.parameter.c58b7fa6-e6b4-49ad-8535-433507fe3d13": {
-                    "type": "integer",
-                    "integer": 1,
-                },
-                "ri.actions.main.parameter.c3e857d9-a9d8-423c-9dec-610e4e90f971": {
-                    "type": "objectLocator",
-                    "objectLocator": 	{
-                        "objectTypeId": "version_id",
-                        "primaryKey": {
-                            "version_id": {
-                                "type": "integer",
-                                "integer": 1
-                            }
-                        }
-                    }
-                },
-                "ri.actions.main.parameter.ae8b8a16-c690-42fa-b828-e6032-4074661": {
-                    "type": "string",
-                    "string": "Initial [VSAC] version"
-                },
-                "ri.actions.main.parameter.2d5df665-6728-4f6e-83e5-8256551f8851" : {
-                    "type": "string",
-                    "string": "<intension string build from vsac source is set here>"
-                },
-                "ri.actions.main.parameter.32d1ce35-0bc1-4935-ad18-ba4a45e8113f": {
-                    "type": "string",
-                    "string": "<limitations text from vsac source is set here>"
-                },
-                "ri.actions.main.parameter.5577422c-02a4-454a-97d0-3fb76425ba8c": {
-                    "type": "string",
-                    "string": "<provenance built from the VSAC source is set here>"
-                },
-                "ri.actions.main.parameter.465404ad-c767-4d73-ab26-0d6e083eab8e": {
-                    "type": "objectLocator",
-                    "objectLocator": 	{
-                        "objectTypeId": "research-project",
-                        "primaryKey": {
-                            "research_project_uid": {
-                                "type": "string",
-                                "string": "RP-4A9E27"
-                            }
+                            "string": "RP-4A9E27"
                         }
                     }
                 }
             }
+        }
     }
 }
+
 
 ### 3/3. add-code-system-codes-as-omop-version-expressions
 # - bulk call for a single concept set; may contain many expressions in one call. can only do 1 concept set version per post request
@@ -362,14 +508,17 @@ cs_version_create_data = {
 # concept_set_version_item_rv_edited.csv
 ### 3/3. createCodeSystemConceptVersionExpressionItems (addCodeAsVersionExpression: concept_set_version_item_rv_edited.csv)
 # - bulk call for a single concept set; can contain many expressions in one call. can only do 1 concept set per call
-# TODO: need more info: domain team (object) : ri.actions.main.parameter.4e790085-47ed-41ad-b12e-72439b645031
+# domain team (object) : ri.actions.main.parameter.4e790085-47ed-41ad-b12e-72439b645031 is optional if
+# research project is set
+#
 # TODO: How to know the ID of the concept set version created in the API:
 #  - Amin said that in the API, we can accept the ID. they will validate that it is in the correct range. and if it is
 #  valid, our POST request will succeed. and then we can re-use that version ID
 
 def get_cs_version_expression_data(
-    current_code_set_id: Union[str, int], cs_name: str, code_list: List[str], bExclude: bool, bDescendents: bool,
-    bMapped: bool, annotation: str) -> Dict[str, Any]:
+        current_code_set_id: Union[str, int], cs_name: str, code_list: List[str],
+        bExclude: bool, bDescendents: bool,
+        bMapped: bool, annotation: str) -> Dict[str, Any]:
     cs_version_expression_data = {
         "actionTypeRid": "ri.actions.main.action-type.e07f2503-c7c9-47b9-9418-225544b56b71",
         "parameters": {
@@ -385,7 +534,7 @@ def get_cs_version_expression_data(
                             # call the api to find out want draft version was created to and ask for the ID
                             # and pass that number here
                             # "integer": 671112503 draftversion id from Amin
-                            "integer": 462280913 # id from create version api call
+                            "integer": 462280913  # id from create version api call
                         }
                     }
                 }
@@ -423,6 +572,3 @@ def get_cs_version_expression_data(
         }
     }
     return cs_version_expression_data
-
-
-

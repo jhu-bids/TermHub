@@ -17,7 +17,7 @@ def get_parser():
     """Add required fields to parser.
 
     Returns:
-        ArgumentParser: Argeparse object.
+        ArgumentParser: Argparse object.
     """
     package_description = 'Tool for working w/ the Palantir Foundry enclave API.'
     parser = ArgumentParser(description=package_description)
