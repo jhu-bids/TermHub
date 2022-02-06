@@ -27,6 +27,7 @@ from enclave_wrangler.enclave_api import get_cs_version_expression_data
 from enclave_wrangler.enclave_api import post_request_enclave_api
 from enclave_wrangler.enclave_api import post_request_enclave_api_create_container
 from enclave_wrangler.enclave_api import post_request_enclave_api_create_version
+from enclave_wrangler.enclave_api import update_cs_version_expression_data_with_codesetid
 from enclave_wrangler.utils import log_debug_info
 
 
@@ -58,7 +59,7 @@ def run(input_csv_folder_path):
     code_sets_df = pd.read_csv(os.path.join(input_csv_folder_path, 'code_sets.csv')).fillna('')
     concept_set_version_item_rv_edited_df = pd.read_csv(os.path.join(input_csv_folder_path, 'concept_set_version_item_rv_edited.csv')).fillna('')
 
-    cs_result = pd.merge(code_sets_df, concept_set_version_item_rv_edited_df, on=['codeset_id'])
+    #cs_result = pd.merge(code_sets_df, concept_set_version_item_rv_edited_df, on=['codeset_id'])
 
     concept_set_container_edited_json_all_rows = []
     code_set_version_json_all_rows = []
@@ -144,23 +145,29 @@ def run(input_csv_folder_path):
     response_json = post_request_enclave_api_create_container(api_url, header, test_data_dict)
 
     # Validate 2: Concept set version item
+    # noinspection PyUnusedLocal
+    # DEBUG:urllib3.connectionpool:https://unite.nih.gov:443 "POST /actions/api/actions HTTP/1.1" 200 107
+    # {'actionRid': 'ri.actions.main.action.9dea4a02-fb9c-4009-b623-b91ad6a0192b', 'synchronouslyPropagated': False}
+    # Actually create a version so that we can test the api to add the expression items
+
     cs_version_data_dict = code_set_version_json_all_rows[0]
     # noinspection PyUnusedLocal
     # create the version and ask Enclave for the version_id that can be used to addCodeExpressionItems
     cs_version_id = post_request_enclave_api_create_version(header, cs_version_data_dict)
-
-    ## DEBUG:urllib3.connectionpool:https://unite.nih.gov:443 "POST /actions/api/actions HTTP/1.1" 200 107
-    ## {'actionRid': 'ri.actions.main.action.9dea4a02-fb9c-4009-b623-b91ad6a0192b', 'synchronouslyPropagated': False}
-    ## Actually create a version so that we can test the api to add the expression items
+    upd_cs_ver_expression_items_dict = code_set_expression_items_json_all_rows[0]
+    upd_cs_ver_expression_items_dict = update_cs_version_expression_data_with_codesetid( cs_version_id, upd_cs_ver_expression_items_dict)
 
 
-    # Validate 3: Concept set expression
+    # Validate 3: add the concept set expressions to draft version by passing as code and code system
+    # third api
+    # https://unite.nih.gov/workspace/ontology/action-type/add-code-system-codes-as-omop-version-expressions/overview
+    # action type rid: ri.actions.main.action-type.e07f2503-c7c9-47b9-9418-225544b56b71
     # noinspection PyUnusedLocal
     #  TODO
     #  update the json data using with the new concept version id, instead of using the pre-assigned
     #
     api_url = API_VALIDATE_URL
-    response_json = post_request_enclave_api(api_url, header, code_set_expression_items_json_all_rows[0])
+    response_json = post_request_enclave_api(api_url, header, upd_cs_ver_expression_items_dict)
 
     # TODO: After successful validations, do real POSTs (check if they exist first)?
     return response_json

@@ -34,16 +34,25 @@ def key_val_split_list(list1):
     return key, val
 
 def post_request_enclave_api(api_url: str, header: Dict, data_dict: Dict):
-    data = json.dumps(data_dict)
-    headers = header
+
     # validate the request
-    response = requests.post(api_url, data, headers)
+    # {'errorCode': 'INVALID_ARGUMENT', 'errorName': 'Conjure:UnprocessableEntity', 'errorInstanceId': '14a1177b-6431-40a4-92c2-714a2d8102b6', 'parameters': {}}
+    # third request is returning invalid argument
+    response = requests.post(api_url, data=json.dumps(data_dict), headers=header)
     response_json = response.json()
     if DEBUG:
         log_debug_info()
         print(response_json)  # temp
     if 'type' not in response_json or response_json['type'] != 'validResponse':
         raise SystemError(json.dumps(response_json, indent=2))
+
+    # add the code system expression items to draft cs version
+    api_url = API_CREATE_URL
+    response = requests.post(api_url, data=json.dumps(data_dict), headers=header)
+    response_json = response.json()
+    if DEBUG:
+        log_debug_info()
+        print(json.dumps(response))  # temp
 
     return response_json
 
@@ -91,7 +100,7 @@ def post_request_enclave_api_create_version(header, cs_version_data_dict):
     # create - skipping validate
     codeset_id = 0
     api_url = API_CREATE_URL
-    data = json.dumps(cs_version_data_dict)
+    #data = json.dumps(cs_version_data_dict)
     response = requests.post(api_url, data=json.dumps(cs_version_data_dict), headers=header)
     response_json = response.json()
     if DEBUG:
@@ -130,7 +139,9 @@ def post_request_enclave_api_create_version(header, cs_version_data_dict):
 
     if 'objectEditLocators' in response_json:
         objectEditLocatorsValue = response_json['objectEditLocators']
-        print(objectEditLocatorsValue)
+        if DEBUG:
+            log_debug_info()
+            print(objectEditLocatorsValue)
         # converting list to dictionary
         # {'objectOrLinkRid': {'type': 'objectRid',
         #                     'objectRid': 'ri.phonograph2-objects.main.object.440d160d-dd0a-4cf1-97d7-a243be4bd517'},
@@ -167,7 +178,9 @@ def post_request_enclave_api_create_version(header, cs_version_data_dict):
         # the response should contain the codeset_id
         codeset_id_dict = dict(response_json['primaryKey'])
         codeset_id = codeset_id_dict['codeset_id']
-        print(codeset_id)
+        if DEBUG:
+            log_debug_info()
+            print(codeset_id)
         # use the codeset_id to add the cs expression items
     # return the cs version id that can be used to build the
     return codeset_id
@@ -515,10 +528,8 @@ cs_version_create_data = {
 #  - Amin said that in the API, we can accept the ID. they will validate that it is in the correct range. and if it is
 #  valid, our POST request will succeed. and then we can re-use that version ID
 
-def get_cs_version_expression_data(
-        current_code_set_id: Union[str, int], cs_name: str, code_list: List[str],
-        bExclude: bool, bDescendents: bool,
-        bMapped: bool, annotation: str) -> Dict[str, Any]:
+def get_cs_version_expression_data(current_code_set_id: Union[str, int], cs_name: str, code_list: List[str],
+        bExclude: bool, bDescendents: bool, bMapped: bool, annotation: str) -> Dict[str, Any]:
     cs_version_expression_data = {
         "actionTypeRid": "ri.actions.main.action-type.e07f2503-c7c9-47b9-9418-225544b56b71",
         "parameters": {
@@ -534,7 +545,8 @@ def get_cs_version_expression_data(
                             # call the api to find out want draft version was created to and ask for the ID
                             # and pass that number here
                             # "integer": 671112503 draftversion id from Amin
-                            "integer": 462280913  # id from create version api call
+                            #"integer": 462280913  # id from create version api call
+                            "integer": "$codeset_id"
                         }
                     }
                 }
@@ -572,3 +584,14 @@ def get_cs_version_expression_data(
         }
     }
     return cs_version_expression_data
+
+def update_cs_version_expression_data_with_codesetid(cs_version_id, cs_version_expression_items_dict):
+    cs_version_id_str = str(cs_version_id)
+    if DEBUG:
+        log_debug_info()
+        print(json.dumps(cs_version_expression_items_dict))
+    cs_version_expression_items_dict = json.loads(json.dumps(cs_version_expression_items_dict).replace('"$codeset_id"', cs_version_id_str ))
+    if DEBUG:
+        log_debug_info()
+        print(json.dumps(cs_version_expression_items_dict))
+    return cs_version_expression_items_dict
