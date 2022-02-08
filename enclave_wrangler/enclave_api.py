@@ -35,9 +35,11 @@ def key_val_split_list(list1):
 
 def post_request_enclave_api(api_url: str, header: Dict, data_dict: Dict):
 
-    # validate the request
+    # 1. validate the request
+    # 2. addCodeExpressionItems
     # {'errorCode': 'INVALID_ARGUMENT', 'errorName': 'Conjure:UnprocessableEntity', 'errorInstanceId': '14a1177b-6431-40a4-92c2-714a2d8102b6', 'parameters': {}}
-    # third request is returning invalid argument
+    # invalid argument error was fixed by
+    # reply: 'HTTP/1.1 422 Unprocessable Entity\r\n'
     response = requests.post(api_url, data=json.dumps(data_dict), headers=header)
     response_json = response.json()
     if DEBUG:
@@ -46,6 +48,7 @@ def post_request_enclave_api(api_url: str, header: Dict, data_dict: Dict):
     if 'type' not in response_json or response_json['type'] != 'validResponse':
         raise SystemError(json.dumps(response_json, indent=2))
 
+    # if validResponse add the CodeExpressionItems
     # add the code system expression items to draft cs version
     api_url = API_CREATE_URL
     response = requests.post(api_url, data=json.dumps(data_dict), headers=header)
@@ -355,7 +358,9 @@ def get_cs_version_data(cs_name, cs_id, intention, limitations, update_msg, prov
                             # "string": "stephanie cs example"
                             # "string": "stephanie test cs"
                             # cs contain name generated from VSAC
-                            "string": cs_name
+                            # "string": cs_name
+                            # 2/7/22, steph- using test cs until we can validate all three calls are working
+                            "string": "stephanie test cs"
                         }
                     }
                 }
@@ -537,9 +542,9 @@ def get_cs_version_expression_data(current_code_set_id: Union[str, int], cs_name
             "ri.actions.main.parameter.ad298972-0db3-4d85-9bbc-0c9ecd6ecf01": {
                 "type": "objectLocator",
                 "objectLocator": {
-                    "objectTypeId": "version_id",
+                    "objectTypeId": "omop-concept-set",
                     "primaryKey": {
-                        "version_id": {
+                        "codeset_id": {
                             "type": "integer",
                             # "integer": current_code_set_id
                             # call the api to find out want draft version was created to and ask for the ID
