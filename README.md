@@ -65,15 +65,29 @@ Options:
 | `-h` | `--help` |  | | Shows help information for using the tool. |
 
 ### 3. CSV to FHIR JSON 
-First, convert your CSV to have column names like the example below. Then can 
-run these commands.
+Tool for converting extensional value sets in CSV format to JSON format able to 
+be uploaded to a FHIR server.
 
 #### Syntax
-`python3 -m csv_to_fhir path/to/FILE.csv`
+`python3 -m csv_to_fhir <options>`
 
-#### Example
-`python3 -m csv_to_fhir examples/1/input/n3cLikeExtensionalValueSetExample.csv`
+|Short flag | Long flag | Choices | Default | Description |
+|---	|---	|---	|--- | --- |
+| `-p` | `--input-file-path` | | | Path to CSV file(s). If `--input-schema-format` is "palantir-concept-set-tables", should pass 2 CSV paths, in any order, e.g. `-p code_sets.csv concept_set_version_item_rv_edited.csv`. |
+| `-f` | `--input-schema-format` | `['palantir-concept-set-tables']` | `'palantir-concept-set-tables'` | The schema format of the CSV. Corresponds to the expected fields/column names. |
+| `-o` | `--output-json` | | | If this flag is present, or if both this flag and `--upload-url` are absent, converted JSON will be saved in the directory where CLI is called from. |
+| `-u` | `--upload-url` | | | If present, will upload value sets ValueSet resource at specified endpoint (e.g. http://localhost:8080/fhir/ValueSet) or server (e.g. http://localhost:8080). |
+| `-j` | `--json-indent` | 0 - 4 | 4 | The number of spacees to indent when outputting JSON. If 0, there will not only be no indent, but there will also be no whitespace. 0 is useful for minimal file size. 2 and 4 tend to be  standard indent values for readability. |
+| `-h` | `--help` |  | | Shows help information for using the tool. |
 
+#### Examples
+##### Example 1
+`python3 -m csv_to_fhir -o -u http://localhost:8080 -p output/concept_set_version_item_rv_edited/2022.02.04/concept_set_version_item_rv_edited.csv`
+
+##### Example 2
+`python3 -m csv_to_fhir -p examples/1/input/n3cLikeExtensionalValueSetExample.csv`
+
+##### TODO: Need to update this to palantir version of columns:
 Before:
 ```csv
 valueSet.id,valueSet.name,valueSet.description,valueSet.status,valueSet.codeSystem,valueSet.codeSystemVersion,concept.code,concept.display

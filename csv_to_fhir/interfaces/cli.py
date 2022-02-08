@@ -1,10 +1,16 @@
 #!/usr/bin/env python3
 # -*- coding: utf-8 -*-
 """Command Line Interface."""
-from argparse import ArgumentParser
-from sys import stderr
+# TODO: For some reason, 'argparse' is not available in Stephanie's Python3.9 standard library, so she has installed
+#  the "ArgumentParser" class manually. However, we really want everyone to be using the same libraries, so
+#  we need to find out why this is happening to her, and fix it, instead of the workaround below: - Joe 2022/02/02
+from typing import Dict
 
-from csv_to_fhir.definitions.error import PackageException
+try:
+    import ArgumentParser
+except ModuleNotFoundError:
+    from argparse import ArgumentParser
+
 from csv_to_fhir.main import run
 
 
@@ -17,15 +23,26 @@ def get_parser():
     package_description = 'Tool for converting extensional value sets in CSV ' \
         'format to JSON format able to be uploaded to a FHIR server.'
     parser = ArgumentParser(description=package_description)
-
-    parser.add_argument('-f', '--file-path', help='Path to CSV file')
-
-    # arg2_help = 'Description'
-    # parser.add_argument('-s', '--second-arg', nargs='+', help=arg2_help)
-
-    # out_help = ('Path to save output file. If not present, same directory of'
-    #             'any input files passed will be used.')
-    # parser.add_argument('-o', '--outpath', help=out_help)
+    parser.add_argument(
+        '-p', '--input-file-path', nargs='+',
+        help='Path to CSV file(s). If `--input-schema-format` is "palantir-concept-set-tables", should pass 2 CSV '
+             'paths, in any order, e.g. `-p code_sets.csv concept_set_version_item_rv_edited.csv`.')
+    parser.add_argument(
+        '-f', '--input-schema-format', choices=['palantir-concept-set-tables'], default='palantir-concept-set-tables',
+        help='The schema format of the CSV. Corresponds to the expected fields/column names.')
+    parser.add_argument(
+        '-o', '--output-json', action='store_true',
+        help='If this flag is present, or if both this flag and `--upload-url` are absent, converted JSON will be saved'
+             ' in the directory where CLI is called from.')
+    parser.add_argument(
+        '-u', '--upload-url', required=False,
+        help='If present, will upload value sets ValueSet resource at specified endpoint (e.g. '
+             'http://localhost:8080/fhir/ValueSet) or server (e.g. http://localhost:8080).')
+    parser.add_argument(
+        '-j', '--json-indent', default=4,
+        help='The number of spaces to indent when outputting JSON. If 0, there will not only be no indent, but there '
+             'will also be no whitespace. 0 is useful for minimal file size. 2 and 4 tend to be  standard indent values'
+             ' for readability.')
 
     return parser
 
@@ -43,11 +60,12 @@ def cli():
     parser = get_parser()
     kwargs = parser.parse_args()
 
-    try:
-        run(file_path=kwargs.file_path)
-    except PackageException as err:
-        err = 'An error occurred.\n\n' + str(err)
-        print(err, file=stderr)
+    # Corrections
+    if not kwargs.output_json or kwargs.upload_url:
+        kwargs.output_json = True
+
+    kwargs_dict: Dict = vars(kwargs)
+    run(**kwargs_dict)
 
 
 if __name__ == '__main__':

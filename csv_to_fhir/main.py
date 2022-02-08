@@ -1,49 +1,14 @@
 """Main module
-# resources
+# Resources
 - http://hl7.org/fhir/valueset.html
-- Example sheet: https://docs.google.com/spreadsheets/d/1yopYzXbMG-4Fo6q6_bCaIcb9SUEfGUd_F8EHa7-IUcs/edit#gid=0
+- Example sheet: https://docs.google.com/spreadsheets/d/1Vxx0EXxSk8shxEWybVP68quCG4oey1vwoWvhADQjkek
 # to-do's
 1. auto-gen curl commands for upload
   - a. include json explicitly in string, or
   - b. link to file
 2. fhir bundle, instead of multiple json files
-"""
-import json
-from copy import copy
-from typing import Dict, Any, List
-
-import pandas as pd
-
-
-# to-do: Move to constants?
-# commented out fields are optional
-JSON_TEMPLATE: Dict[str, Any] = {
-    "resourceType": "ValueSet",  # not defined in http://hl7.org/fhir/valueset.html
-    "id": "TO_FILL",  # not defined in http://hl7.org/fhir/valueset.html
-    "meta": {  # not defined in http://hl7.org/fhir/valueset.html
-        "profile": [
-          "http://hl7.org/fhir/StructureDefinition/shareablevalueset"
-        ]
-    },
-    "text": {  # not defined in http://hl7.org/fhir/valueset.html
-        "status": "generated",
-        "div": "<div xmlns=\"http://www.w3.org/1999/xhtml\">\n\t\t\t<p>{}</p>\n\t\t</div>"
-    },
-    "url": "http://n3cValueSets.org/fhir/ValueSet/{}",  # can format w/ id  # optional?
-    # "identifier": [
-    #   {
-    #     "system": "e.g. http://acme.com/identifiers/valuesets",
-    #     "value": "e.g. loinc-cholesterol-int"
-    #   }
-    # ],
-    # "version": "e.g. 1",
-    "name": "TO_FILL",  # Name for this value set (computer friendly)
-    "title": "TO_FILL",  # Name for this value set (human friendly)
-    "status": "TO_FILL",  # draft | active | retired | unknown
-    # "experimental": True,
-    # "date": "2015-06-22",
-    # "publisher": "e.g. HL7 International",
-    # "contact": [
+3. Add following fields?
+    # "contact": [  # do we have a BIDS email? or want to use?
     #   {
     #     "name": "e.g. FHIR project team",
     #     "telecom": [
@@ -54,73 +19,51 @@ JSON_TEMPLATE: Dict[str, Any] = {
     #     ]
     #   }
     # ],
-    "description": "TO_FILL",  # optional
-    # "useContext": [
-    #   {
-    #     "code": {
-    #       "system": "e.g. http://terminology.hl7.org/CodeSystem/usage-context-type",
-    #       "code": "e.g. age"
-    #     },
-    #     "valueQuantity": {  # example
-    #       "value": 18,
-    #       "comparator": ">",
-    #       "unit": "yrs",
-    #       "system": "http://unitsofmeasure.org",
-    #       "code": "a"
-    #     }
-    #   }
-    # ],
-    # "jurisdiction": [
-    #   {
-    #     "coding": [
-    #       {
-    #         "system": "e.g. urn:iso:std:iso:3166",
-    #         "code": "US"
-    #       }
-    #     ]
-    #   }
-    # ],
-    # "purpose": "e.g. This value set was published by ACME Inc in order to make clear which codes are used for...",
-    # "copyright": "e.g. This content from LOINC ® is...",  # not defined in http://hl7.org/fhir/valueset.html
-    "compose": {
-        # "lockedDate": "e.g 2012-06-13",
-        # "inactive": True,
-        "include": [
-            {
-                "system": "TO_FILL",  # e.g. http://loinc.org
-                "version": "TO_FILL",  # e.g. 2.36
-                "concept": [  # examples below
-                    # {
-                    #   "code": "14647-2",
-                    #   "display": "Cholesterol [Moles/Volume]"
-                    # },
-                    # {
-                    #   "code": "2093-3",
-                    #   "display": "Cholesterol [Mass/Volume]"
-                    # },
-                ]
-            }
-        ]
-    }
-}
+    # "version": "e.g. 1",  # JOIN on other table/CSV to get?
+    # "experimental": True,  # how to determine?
+    # auto-generated?:
+    "text": {  # not defined in http://hl7.org/fhir/valueset.html
+        "status": "generated",
+        "div": "<div xmlns=\"http://www.w3.org/1999/xhtml\">\n\t\t\t<p>{}</p>\n\t\t</div>"
+    },
+    # "date": "2015-06-22",  # Date of what? Upload? initial create? last update?
+    # "publisher": "e.g. HL7 International",
+"""
+import json
+from typing import Dict, Any, List, Union
+
+import pandas as pd
 
 
-def run(file_path: str, indent=4):
-    """Main function
+def upload(d_list: List[Dict], upload_url: str) -> str:
+    """Upload to FHIR server"""
+    # TODO: If upload_url is a server, add /fhir/ValueSet to url
+    #  ...and maybe do a try/except just in case was overzealous in assuming their first url wasnt a real endpoint?
+    response_json: str = ''
+    print(d_list, upload_url)
+    return response_json
 
-    Args:
-        file_path (str): Path to file
-        indent (int): If 0, there will be no line breaks and no indents. Else,
-        ...you get both.
-    """
-    df: pd.DataFrame = pd.read_csv(file_path)
 
-    # Populate JSON objs
+def save_json(d_list: List[Dict], json_indent=4):
+    """Save JSON"""
+    # TODO: Mkdir
+    for d in d_list:
+        valueset_name = d['name']
+        with open(valueset_name + '.json', 'w') as fp:
+            if json_indent:
+                json.dump(d, fp, indent=json_indent)
+            else:
+                json.dump(d, fp)
+
+
+def get_json_custom1(input_file_path: str) -> List[Dict[str, Any]]:
+    """TODO: placeholder; remove this func and control logic in run() later - Joe 2022/02/08"""
+    df: pd.DataFrame = pd.read_csv(input_file_path)
     d_list: List[Dict] = []
     valueset_ids: List[str] = list(df['valueSet.id'].unique())
     for valueset_id in valueset_ids:
         df_i = df[df['valueSet.id'] == valueset_id]
-        d: Dict = copy(JSON_TEMPLATE)
+        d: Dict[str, Any] = {}
         d['id'] = int(df_i['valueSet.id'][0])
         d['text']['div'] = d['text']['div'].format(df_i['valueSet.description'][0])
         d['url'] = d['url'].format(str(df_i['valueSet.id'][0]))
@@ -138,15 +81,101 @@ def run(file_path: str, indent=4):
             })
         d['compose']['include'][0]['concept'] = concepts
         d_list.append(d)
-        print()
 
-    # Save file
-    for d in d_list:
-        valueset_name = d['name']
-        with open(valueset_name + '.json', 'w') as fp:
-            if indent:
-                json.dump(d, fp, indent=indent)
-            else:
-                json.dump(d, fp)
+    return d_list
 
-    print()
+
+def get_palantir_concept_set_tables(input_file_path: List[str]) -> List[Dict[str, Any]]:
+    """get_palantir_concept_set_tables JSON dicts"""
+    # Vars
+    valueset_id_fld = 'codeset_id'
+
+    # Read and validate files
+    df_list: List[pd.DataFrame] = [pd.read_csv(p) for p in input_file_path]
+    code_sets_df: pd.DataFrame
+    concepts_df: pd.DataFrame
+    err = 'CSVs do not have expected field names. For the code_sets table, at least the field "concept_set_name" is ' \
+          'expected. For the concept members table, at least the field "code" is expected. Either 1 or both of the' \
+          'supplied CSVs did not have these expected fields.'
+    for df in df_list:
+        if 'concept_set_name' in df.columns:
+            code_sets_df = df
+        elif 'code' in df.columns:
+            concepts_df = df
+    # noinspection PyUnboundLocalVariable
+    if code_sets_df.empty or concepts_df.empty:
+        raise RuntimeError(err)
+
+    # Construct JSON dictionaries
+    d_list: List[Dict] = []
+    valueset_ids: List[str] = list(code_sets_df[valueset_id_fld].unique())
+    for valueset_id in valueset_ids:
+        code_sets_df_i = code_sets_df[code_sets_df[valueset_id_fld] == valueset_id]
+        d: Dict[str, Any] = {}
+
+        # TODO: valueSet fields. use code_sets_df_i for fields at the code_set level
+        d["resourceType"] = "ValueSet",  # not defined in http://hl7.org/fhir/valueset.html
+        # "meta": {  # not defined in http://hl7.org/fhir/valueset.html
+        #     "profile": [
+        #         "http://hl7.org/fhir/StructureDefinition/shareablevalueset"
+        #     ]
+        # },
+        d['id'] = int(valueset_id)  # not defined in http://hl7.org/fhir/valueset.html
+        d["url"] = f"http://n3cValueSets.org/fhir/ValueSet/{valueset_id}"
+        # "name": "TO_FILL",  # Name for this value set (computer friendly)
+        # "title": "TO_FILL",  # Name for this value set (human friendly)
+        # "status": "TO_FILL",  # draft | active | retired | unknown
+        # "description": "TO_FILL",  # optional
+        # "purpose":  "TO_FILL" # (we can take this from the 'intention' field)
+
+        # TODO: concept fields taken from concepts_df_i
+        concepts = []
+        concepts_df_i = concepts_df[concepts_df[valueset_id_fld] == valueset_id]
+        for index, row in concepts_df_i.iterrows():
+            # "compose": {
+            #     "include": [
+            #         {
+            #             "system": "TO_FILL",  # e.g. http://loinc.org
+            #             "version": "TO_FILL",  # e.g. 2.36
+            #             "concept": [  # examples below
+            #                 # {
+            #                 #   "code": "14647-2",
+            #                 #   "display": "Cholesterol [Moles/Volume]"
+            #                 # },
+            #             ]
+            #         }
+            #     ]
+            # }
+            concepts.append({
+                'code': row['concept.code'],  # TODO: change to actual field
+                'display': row['concept.display']  # TODO: change to actual field
+            })
+        # TODO: Don't do this 0 thing. actually filter systems found and
+        #  include system etc and iterate over. This can be done by getting the unique() values
+        #  of code systems found in concepts_df_i.
+        d['compose']['include'][0]['concept'] = concepts
+
+        d_list.append(d)
+
+    return d_list
+
+
+def run(
+    input_file_path: Union[str, List[str]], input_schema_format: str, output_json: bool, upload_url: str, json_indent=4
+) -> List[Dict]:
+    """Main function"""
+    # Get JSON dicts
+    d_list: List[Dict]
+    if input_schema_format == 'custom1':
+        d_list = get_json_custom1(input_file_path)  # TODO: placeholder to remove
+    elif input_schema_format == 'palantir-concept-set-tables':
+        d_list = get_palantir_concept_set_tables(input_file_path)  # TODO
+
+    # Return & side effects
+    if output_json:
+        # noinspection PyUnboundLocalVariable
+        save_json(d_list, json_indent)  # TODO
+    if upload_url:
+        upload(d_list, upload_url)  # TODO
+
+    return d_list
