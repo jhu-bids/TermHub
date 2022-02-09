@@ -33,13 +33,14 @@ def key_val_split_list(list1):
     key, val = list1.split(':')
     return key, val
 
-def post_request_enclave_api(api_url: str, header: Dict, data_dict: Dict):
+def post_request_enclave_api_addExpressionItems(header: Dict, data_dict: Dict):
 
     # 1. validate the request
     # 2. addCodeExpressionItems
     # {'errorCode': 'INVALID_ARGUMENT', 'errorName': 'Conjure:UnprocessableEntity', 'errorInstanceId': '14a1177b-6431-40a4-92c2-714a2d8102b6', 'parameters': {}}
     # invalid argument error was fixed by
     # reply: 'HTTP/1.1 422 Unprocessable Entity\r\n'
+    api_url = API_VALIDATE_URL
     response = requests.post(api_url, data=json.dumps(data_dict), headers=header)
     response_json = response.json()
     if DEBUG:
@@ -51,6 +52,7 @@ def post_request_enclave_api(api_url: str, header: Dict, data_dict: Dict):
     # if validResponse add the CodeExpressionItems
     # add the code system expression items to draft cs version
     api_url = API_CREATE_URL
+    print("request post:: " + api_url)
     response = requests.post(api_url, data=json.dumps(data_dict), headers=header)
     response_json = response.json()
     if DEBUG:
@@ -124,7 +126,7 @@ def post_request_enclave_api_create_version(header, cs_version_data_dict):
 
     # build the query endpoint url to ask for the details
     api_url = API_QUERY_URL + action_ridValue
-
+    print("request get:: " + api_url)
     # ask what effect your API call had. i.e. what edits it effected by calling the get
     response = requests.get(api_url, headers=header)
     # the get response should look something like the following:
@@ -168,7 +170,7 @@ def post_request_enclave_api_create_version(header, cs_version_data_dict):
             log_debug_info()
             print(obj_dict['objectRid'])
 
-        #get object rid so that the url can be built to request the cs version id
+        # get object rid so that the url can be built to request the cs version id
         objectRidValue = obj_dict['objectRid']
         # curl -X GET "https://unite.nih.gov/phonograph2/api/storage/load/objects/ri.phonograph2-objects.main.object.1b0ff201-e0e0-44f5-b7a6-950ed074cc7e"
         # build the url using the object rid to get the codeset_id value
@@ -184,8 +186,8 @@ def post_request_enclave_api_create_version(header, cs_version_data_dict):
         if DEBUG:
             log_debug_info()
             print(codeset_id)
-        # use the codeset_id to add the cs expression items
-    # return the cs version id that can be used to build the
+    # Need to use the codeset_id to add the cs expression items
+    # return the codeset_id
     return codeset_id
 
 
@@ -519,20 +521,21 @@ cs_version_create_data = {
 
 
 ### 3/3. add-code-system-codes-as-omop-version-expressions
-# - bulk call for a single concept set; may contain many expressions in one call. can only do 1 concept set version per post request
+# - bulk call for a single concept set; may contain many expressions in one call.
+# can only do 1 concept set version per post request
 # new api that will accept a codes and codeSystem instead of the concept_ids
-# action item id: action type rid: ri.actions.main.action-type.e07f2503-c7c9-47b9-9418-225544b56b71
-# use same id used to create the concept set version, the id is persisted in the csv files as the codeset_id in the
+# ri for he api that addsCodeExpressionItem
+# ri.actions.main.action-type.e07f2503-c7c9-47b9-9418-225544b56b71
+# version id generated when draft version is created.
+# send get request to query for the codeset_id
 # concept_set_version_item_rv_edited.csv
 ### 3/3. createCodeSystemConceptVersionExpressionItems (addCodeAsVersionExpression: concept_set_version_item_rv_edited.csv)
-# - bulk call for a single concept set; can contain many expressions in one call. can only do 1 concept set per call
-# domain team (object) : ri.actions.main.parameter.4e790085-47ed-41ad-b12e-72439b645031 is optional if
-# research project is set
+# - bulk call for a single concept set; can contain many expressions in one call.
+#  can only do 1 concept set per call
+# domain team (object) : ri.actions.main.parameter.4e790085-47ed-41ad-b12e-72439b645031 is an
+# optional parameter, not need to send if research project is set
+# codeset_id is added as a variable which we can replace with actual codeset_id returned from the Enclave
 #
-# TODO: How to know the ID of the concept set version created in the API:
-#  - Amin said that in the API, we can accept the ID. they will validate that it is in the correct range. and if it is
-#  valid, our POST request will succeed. and then we can re-use that version ID
-
 def get_cs_version_expression_data(current_code_set_id: Union[str, int], cs_name: str, code_list: List[str],
         bExclude: bool, bDescendents: bool, bMapped: bool, annotation: str) -> Dict[str, Any]:
     cs_version_expression_data = {
@@ -556,36 +559,45 @@ def get_cs_version_expression_data(current_code_set_id: Union[str, int], cs_name
                     }
                 }
             },
-            # Exclude (boolean type): ri.actions.main.parameter.4a7ac14f-b292-4105-b7f5-5d0817b8cdc4
+            # Exclude (boolean type):
+            # ri.actions.main.parameter.4a7ac14f-b292-4105-b7f5-5d0817b8cdc4
             "ri.actions.main.parameter.4a7ac14f-b292-4105-b7f5-5d0817b8cdc4": {
                 "type": "boolean",
                 "boolean": bExclude
             },
 
-            # Include Descendents (boolean type): ri.actions.main.parameter.6cb950fd-894d-4176-9ad5-080373e26777
+            # Include Descendents (boolean type):
+            # ri.actions.main.parameter.6cb950fd-894d-4176-9ad5-080373e26777
             "ri.actions.main.parameter.6cb950fd-894d-4176-9ad5-080373e26777": {
                 "type": "boolean",
                 "boolean": bDescendents
             },
 
-            # Include Mapped (boolean type): ri.actions.main.parameter.1666c70c-0cb8-47c0-91e5-cb1d7e5bf316
+            # Include Mapped (boolean type):
+            # ri.actions.main.parameter.1666c70c-0cb8-47c0-91e5-cb1d7e5bf316
             "ri.actions.main.parameter.1666c70c-0cb8-47c0-91e5-cb1d7e5bf316": {
                 "type": "boolean",
                 "boolean": bMapped
             },
 
-            # Optional Annotation (string | null type): ri.actions.main.parameter.63e31a99-6b94-4580-b95a-a482ed64fed0
+            # Optional Annotation (string | null type):
+            # ri.actions.main.parameter.63e31a99-6b94-4580-b95a-a482ed64fed0
             "ri.actions.main.parameter.63e31a99-6b94-4580-b95a-a482ed64fed0": {
                 "null": {},
                 "type": "null"
             },
 
-            # Codes (List of colon-delimited strings): ri.actions.main.parameter.c9a1b531-86ef-4f80-80a5-cc774d2e4c33
+            # Codes (List of colon-delimited strings):
+            # ri.actions.main.parameter.c9a1b531-86ef-4f80-80a5-cc774d2e4c33
             "ri.actions.main.parameter.c9a1b531-86ef-4f80-80a5-cc774d2e4c33": {
                 "type": "stringList",
-                "stringList": code_list
+                "stringList": {
+                    "strings":
+                     code_list
+                    # TODO -following test code list worked, testcase, replace with code_list
+                    # ["SNOMEDCT:253811003", "ICD10CM:K76.5", "ICD10CM:K76.6"]
+                }
             }
-
         }
     }
     return cs_version_expression_data
