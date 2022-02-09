@@ -7,5 +7,6 @@ pyarrow
 python-dotenv
 psycopg2-binary
 sqlalchemy
+typeguard
 xmltodict
 ArgumentParser
