@@ -5,7 +5,7 @@ FHIR server. Tools to automate CRUD operations such as reads and updates from va
 
 ## Set up / installation
 1. You must have [Python3](https://www.python.org/downloads/) installed.
-2. Run to clone repo: `git https://github.com/HOT-Ecosystem/ValueSet-Tools.git`
+2. Run to clone repo: `git clone https://github.com/HOT-Ecosystem/ValueSet-Tools.git`
 3. Change directory: `cd ValueSet-Converters`
 4. Make & use virtual environment: `virtualenv env; source env/bin/activate`
 5. Run to install dependencies: `pip install -r requirements.txt` 
