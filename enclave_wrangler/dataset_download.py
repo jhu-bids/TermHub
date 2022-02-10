@@ -14,7 +14,7 @@ import requests
 import pandas as pd
 import tempfile
 import pyarrow.parquet as pq
-
+import shutil
 
 from enclave_wrangler.config import config
 from enclave_wrangler.utils import log_debug_info
@@ -75,15 +75,28 @@ def datasets_views(datasetRid: str, file_parts: [str]) -> None:
     endpoint = 'https://unite.nih.gov/foundry-data-proxy/api/dataproxy/datasets'
     template = '{endpoint}/{datasetRid}/views/master/{fp}'
 
-    with tempfile.TemporaryDirectory() as tmpdirname:
-        print('created temporary directory', tmpdirname)
+    # download parquet files
+    with tempfile.TemporaryDirectory() as parquet_dir:
+        print('created temporary directory', parquet_dir)
         parquet_parts = []
-        for i, fp in enumerate(file_parts):
+        for fp in file_parts:
             url = template.format(endpoint=endpoint, datasetRid=datasetRid, fp=fp)
-            response = requests.get(url, headers=HEADERS, )
-            f = open()
-            parquet_parts.append(response)
-        print("hmmm...")
+            response = requests.get(url, headers=HEADERS, stream=True)
+            if response.status_code == 200:
+                fname = parquet_dir + fp.replace('spark', '')
+                with open(fname, "wb") as f:
+                    response.raw.decode_content = True
+                    shutil.copyfileobj(response.raw, f)
+                    print(f'wrote {fname}')
+                    part_df = pd.read_parquet(fname)
+                    parquet_parts.append(fname)
+        combined_parquet_fname = parquet_dir + '/combined.parquet'
+        combine_parquet_files(parquet_dir, combined_parquet_fname)
+
+        df = pd.read_parquet(combined_parquet_fname)
+
+
+        print("<<hmmm...")
 
         # p1 = pd.read_parquet('./spark%2Fpart-00000-c94edb9f-1221-4ae8-ba74-58848a4d79cb-c000.snappy.parquet')
 
