@@ -24,7 +24,7 @@ from enclave_wrangler.config import config
 from enclave_wrangler.enclave_api import get_cs_container_data
 from enclave_wrangler.enclave_api import get_cs_version_data
 from enclave_wrangler.enclave_api import get_cs_version_expression_data
-from enclave_wrangler.enclave_api import post_request_enclave_api
+from enclave_wrangler.enclave_api import post_request_enclave_api_addExpressionItems
 from enclave_wrangler.enclave_api import post_request_enclave_api_create_container
 from enclave_wrangler.enclave_api import post_request_enclave_api_create_version
 from enclave_wrangler.enclave_api import update_cs_version_expression_data_with_codesetid
@@ -152,10 +152,11 @@ def run(input_csv_folder_path):
 
     cs_version_data_dict = code_set_version_json_all_rows[0]
     # noinspection PyUnusedLocal
-    # create the version and ask Enclave for the version_id that can be used to addCodeExpressionItems
-    cs_version_id = post_request_enclave_api_create_version(header, cs_version_data_dict)
+    # create the version and ask Enclave for the codeset_id that can be used to addCodeExpressionItems
+    codeset_id = post_request_enclave_api_create_version(header, cs_version_data_dict)
     upd_cs_ver_expression_items_dict = code_set_expression_items_json_all_rows[0]
-    upd_cs_ver_expression_items_dict = update_cs_version_expression_data_with_codesetid( cs_version_id, upd_cs_ver_expression_items_dict)
+    # update the payload with the codeset_id returned from the
+    upd_cs_ver_expression_items_dict = update_cs_version_expression_data_with_codesetid( codeset_id, upd_cs_ver_expression_items_dict)
 
 
     # Validate 3: add the concept set expressions to draft version by passing as code and code system
@@ -163,13 +164,8 @@ def run(input_csv_folder_path):
     # https://unite.nih.gov/workspace/ontology/action-type/add-code-system-codes-as-omop-version-expressions/overview
     # action type rid: ri.actions.main.action-type.e07f2503-c7c9-47b9-9418-225544b56b71
     # noinspection PyUnusedLocal
-    #  TODO
-    #  update the json data using with the new concept version id, instead of using the pre-assigned
-    #
-    api_url = API_VALIDATE_URL
-    response_json = post_request_enclave_api(api_url, header, upd_cs_ver_expression_items_dict)
+    response_json = post_request_enclave_api_addExpressionItems(header, upd_cs_ver_expression_items_dict)
 
-    # TODO: After successful validations, do real POSTs (check if they exist first)?
     return response_json
 
 if __name__ == '__main__':
