@@ -102,6 +102,11 @@ def run(input_csv_folder_path):
         cs_name = row['concept_set_name']
         # code and code system list
         concept_set_version_item_rows = concept_set_version_item_dict[current_code_set_id]
+        concept_set_version_item_row1 = concept_set_version_item_rows[0]
+        exclude = concept_set_version_item_row1['isExcluded']
+        descendents = concept_set_version_item_row1['includeDescendants']
+        mapped = concept_set_version_item_row1['includeMapped']
+        annotation = concept_set_version_item_row1['annotation']
         for concept_set_version_item_row in concept_set_version_item_rows:
                 code_codesystem_pair = concept_set_version_item_row['codeSystem'] + ":" + concept_set_version_item_row['code']
                 code_list.append(code_codesystem_pair)
@@ -110,14 +115,10 @@ def run(input_csv_folder_path):
                 # ...the future, when there is variation, we may need to do some update here. - Joe 2022/02/04
                 # this is same limitation OMOP concept expression works, so for now it is sufficient
                 # we can explorer more granular control later if necessary -Stephanie 02/05/2022
-                concept_set_version_item_row1 = concept_set_version_item_rows[0]
-                exclude = concept_set_version_item_row1['isExcluded']
-                descendents = concept_set_version_item_row1['includeDescendants']
-                mapped = concept_set_version_item_row1['includeMapped']
-                annotation = concept_set_version_item_row1['annotation']
+
                 # now that we have the code list, generate the json for the versionExpression data
                 single_row = get_cs_version_expression_data(
-                current_code_set_id, cs_name, code_list, exclude, descendents, mapped, annotation)
+                    current_code_set_id, cs_name, code_list, exclude, descendents, mapped, annotation)
                 code_set_expression_items_json_all_rows.append(single_row)
     # print(code_set_expression_items_json_all_rows[0])
 
@@ -134,15 +135,11 @@ def run(input_csv_folder_path):
     # 1. createNewConceptSet
     # 2. createNewDraftOMOPConceptSetVersion, query for the id and use the id to add the expression items.
     # 3. addCodeAsVersionExpression
-    # TODO: We should create a function for these calls or modify existing function(s) in enclave_api.py
-    #  ...in order to reduce duplicated code here. - Joe 2022/02/02
-    # TODO : validate all three calls before calling the acutal APIs. successfully validated results
-    #  ...After the action POST check for successful return code before calling the 2nd api.
     # Validate and create the Concept set container
-    test_data_dict = concept_set_container_edited_json_all_rows[0]
-    # noinspection PyUnusedLocal
-    #response_json = post_request_enclave_api(api_url, header, test_data_dict)
-    response_json = post_request_enclave_api_create_container(api_url, header, test_data_dict)
+    for data_dict in code_set_expression_items_json_all_rows:
+        # noinspection PyUnusedLocal
+        #response_json = post_request_enclave_api(api_url, header, test_data_dict)
+        response_json = post_request_enclave_api_create_container(api_url, header, data_dict)
 
     # Validate 2: Concept set version item
     # noinspection PyUnusedLocal
@@ -153,7 +150,9 @@ def run(input_csv_folder_path):
     cs_version_data_dict = code_set_version_json_all_rows[0]
     # noinspection PyUnusedLocal
     # create the version and ask Enclave for the codeset_id that can be used to addCodeExpressionItems
+    # TODO: Everything in code_set_expression_items_json_all_rows is same
     codeset_id = post_request_enclave_api_create_version(header, cs_version_data_dict)
+    # TOOD: It's just accessing irst row here
     upd_cs_ver_expression_items_dict = code_set_expression_items_json_all_rows[0]
     # update the payload with the codeset_id returned from the
     upd_cs_ver_expression_items_dict = update_cs_version_expression_data_with_codesetid( codeset_id, upd_cs_ver_expression_items_dict)
