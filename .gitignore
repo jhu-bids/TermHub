@@ -28,5 +28,6 @@ junk_was_value_set_vsac_to_json
 old_bash_scripts
 .ipynb_checkpoints/
 *.parquet*
-venv/
+/venv/
 junk
+/input/

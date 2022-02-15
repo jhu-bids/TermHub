@@ -222,6 +222,7 @@ def get_palantir_csv(
     filename1='concept_set_version_item_rv_edited', filename2='code_sets', filename3='concept_set_container_edited'
 ) -> Dict[str, pd.DataFrame]:
     """Convert VSAC hiearchical XML to CSV compliant w/ Palantir's OMOP-inspired concept set editor data model"""
+    # TODO: the name should only include code_systems to disambiguate. so we should only add it if there's more than one in list
     # I. Create IDs that will be shared between files
     oid_enclave_code_set_id_map_csv_path = os.path.join(PROJECT_ROOT, 'data', 'oids_of_value_sets_uploaded_to_enclave.csv')
     oid_enclave_code_set_id_df = pd.read_csv(oid_enclave_code_set_id_map_csv_path)
@@ -278,12 +279,16 @@ def get_palantir_csv(
         code_system_codes = {}
         concepts = value_set['ns0:ConceptList']['ns0:Concept']
         concepts = concepts if type(concepts) == list else [concepts]
-        for concept  in concepts:
+        code_systems = []
+        for concept in concepts:
             code = concept['@code']
             code_system = concept['@codeSystemName']
             if code_system not in code_system_codes:
                 code_system_codes[code_system] = []
+            if code_system not in code_systems:
+                code_systems.append(code_system)
             code_system_codes[code_system].append(code)
+        concept_set_name = concept_set_name + ' ' + '(' + ';'.join(code_systems) + ')'
         row = {
             'codeset_id': oid__codeset_id_map[value_set['@ID']],
             'concept_set_name': concept_set_name,
@@ -349,8 +354,16 @@ def get_palantir_csv(
             i2 = -1 if p[len(p) - 1] == ')' else len(p)
             purposes2.append(p[i1:i2])
         concept_set_name = VSAC_LABEL_PREFIX + value_set['@displayName']
-        # code = concept_dict['@code']
-        # code_system = concept_dict['@codeSystemName']
+
+        code_systems = []
+        concepts = value_set['ns0:ConceptList']['ns0:Concept']
+        concepts = concepts if type(concepts) == list else [concepts]
+        for concept in concepts:
+            code_system = concept['@codeSystemName']
+            if code_system not in code_systems:
+                code_systems.append(code_system)
+        concept_set_name = concept_set_name + ' ' + '(' + ';'.join(code_systems) + ')'
+
         row = {
             'concept_set_id': concept_set_name,
             'concept_set_name': concept_set_name,
