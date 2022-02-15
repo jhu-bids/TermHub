@@ -19,7 +19,7 @@ import pandas as pd
 from vsac_wrangler.config import CACHE_DIR, OUTPUT_DIR, PROJECT_ROOT
 from vsac_wrangler.definitions.constants import FHIR_JSON_TEMPLATE
 from vsac_wrangler.google_sheets import get_sheets_data
-from vsac_wrangler.vsac_api import get_ticket_granting_ticket, get_value_sets
+from vsac_wrangler.vsac_api import get_value_sets
 
 # USER1: This is an actual ID to a valid user in palantir, who works on our BIDS team.
 PALANTIR_ENCLAVE_USER_ID_1 = 'a39723f3-dc9c-48ce-90ff-06891c29114f'
@@ -475,9 +475,7 @@ def run(
             object_ids = list(df['oid'])
 
         # 2/3: Query VSAC
-        tgt: str = get_ticket_granting_ticket()
-        # service_ticket = get_service_ticket(tgt)  # this is called later
-        value_sets_dict: OrderedDict = get_value_sets(object_ids, tgt)
+        value_sets_dict: OrderedDict = get_value_sets(object_ids)
         value_sets: List[OrderedDict] = value_sets_dict['ns0:RetrieveMultipleValueSetsResponse'][
             'ns0:DescribedValueSet']
 
