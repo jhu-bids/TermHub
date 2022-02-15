@@ -94,6 +94,7 @@ def run(input_csv_folder_path):
             concept_set_version_item_dict[key] = []
         concept_set_version_item_dict[key].append(row)
 
+    # TODO: Create dict w/ codeset ID as the pk
     for index, row in code_sets_df.iterrows():
         current_code_set_id = row['codeset_id']
         # build the code and codeSystem list for the current codeSet
