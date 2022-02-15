@@ -36,7 +36,7 @@ def get_parser():
              ' in the directory where CLI is called from.')
     parser.add_argument(
         '-u', '--upload-url', required=False,
-        help='If present, will upload value sets ValueSet resource at specified endpoint (e.g. '
+        help='If present, will upload value sets to the ValueSet resource at specified endpoint (e.g. '
              'http://localhost:8080/fhir/ValueSet) or server (e.g. http://localhost:8080).')
     parser.add_argument(
         '-j', '--json-indent', default=4,
