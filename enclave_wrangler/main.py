@@ -116,9 +116,10 @@ def run(input_csv_folder_path):
                 # ...the future, when there is variation, we may need to do some update here. - Joe 2022/02/04
                 # this is same limitation OMOP concept expression works, so for now it is sufficient
                 # we can explorer more granular control later if necessary -Stephanie 02/05/2022
+
                 # now that we have the code list, generate the json for the versionExpression data
                 single_row = get_cs_version_expression_data(
-                current_code_set_id, cs_name, code_list, exclude, descendents, mapped, annotation)
+                    current_code_set_id, cs_name, code_list, exclude, descendents, mapped, annotation)
                 code_set_expression_items_json_all_rows.append(single_row)
     # print(code_set_expression_items_json_all_rows[0])
 
@@ -175,6 +176,7 @@ def run(input_csv_folder_path):
         response_json = post_request_enclave_api_addExpressionItems(header, upd_cs_ver_expression_items_dict)
         # print(json.dumps(response_json))
         # return response_json
+
 
 if __name__ == '__main__':
     run(None)

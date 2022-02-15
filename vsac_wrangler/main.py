@@ -223,7 +223,7 @@ def get_palantir_csv(
 ) -> Dict[str, pd.DataFrame]:
     """Convert VSAC hiearchical XML to CSV compliant w/ Palantir's OMOP-inspired concept set editor data model"""
     # I. Create IDs that will be shared between files
-    oid_enclave_code_set_id_map_csv_path = os.path.join(PROJECT_ROOT, 'data', 'oids_enclave_code_set_id.csv')
+    oid_enclave_code_set_id_map_csv_path = os.path.join(PROJECT_ROOT, 'data', 'oids_of_value_sets_uploaded_to_enclave.csv')
     oid_enclave_code_set_id_df = pd.read_csv(oid_enclave_code_set_id_map_csv_path)
     oid__codeset_id_map = dict(zip(oid_enclave_code_set_id_df['oid'], oid_enclave_code_set_id_df['enclave_code_set_id']))
 
@@ -234,13 +234,14 @@ def get_palantir_csv(
     for value_set in value_sets:
         concepts = value_set['ns0:ConceptList']['ns0:Concept']
         concepts = concepts if type(concepts) == list else [concepts]
+        codeset_id = oid__codeset_id_map[value_set['@ID']]
         for concept in concepts:
             code = concept['@code']
             code_system = concept['@codeSystemName']
             # The 3 fields isExcluded, includeDescendants, and includeMapped, are from OMOP but also in VSAC. If it has
             # ...these 3 options, it is intensional. And when you execute these 3, it is now extensional / expansion.
             row = {
-                'codeset_id': oid__codeset_id_map[value_set['@ID']],
+                'codeset_id': codeset_id,
                 'concept_id': '',  # leave blank for now
                 # <non-palantir fields>
                 'code': code,
