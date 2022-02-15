@@ -30,3 +30,4 @@ old_bash_scripts
 *.parquet*
 venv/
 junk
+test-scripts/old-vsac-api-scripts/tgt.txt
