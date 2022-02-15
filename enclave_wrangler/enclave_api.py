@@ -35,29 +35,32 @@ def key_val_split_list(list1):
 
 def post_request_enclave_api_addExpressionItems(header: Dict, data_dict: Dict):
 
-    # 1. validate the request
+    # 1. validate the request - no need to validate as it does not add benefit at this point
     # 2. addCodeExpressionItems
     # {'errorCode': 'INVALID_ARGUMENT', 'errorName': 'Conjure:UnprocessableEntity', 'errorInstanceId': '14a1177b-6431-40a4-92c2-714a2d8102b6', 'parameters': {}}
     # invalid argument error was fixed by
     # reply: 'HTTP/1.1 422 Unprocessable Entity\r\n'
+
     api_url = API_VALIDATE_URL
     response = requests.post(api_url, data=json.dumps(data_dict), headers=header)
     response_json = response.json()
     if DEBUG:
-        log_debug_info()
-        print(response_json)  # temp
+       log_debug_info()
+       print(response_json)  # temp
     if 'type' not in response_json or response_json['type'] != 'validResponse':
         raise SystemError(json.dumps(response_json, indent=2))
 
     # if validResponse add the CodeExpressionItems
     # add the code system expression items to draft cs version
+    # add the expression items for the specified version
     api_url = API_CREATE_URL
     print("request post:: " + api_url)
     response = requests.post(api_url, data=json.dumps(data_dict), headers=header)
     response_json = response.json()
+    print("post request returned from addingCodeExpressionItems")
     if DEBUG:
         log_debug_info()
-        print(json.dumps(response))  # temp
+        print(json.dumps(response_json))  # temp
 
     return response_json
 
@@ -105,13 +108,13 @@ def post_request_enclave_api_create_version(header, cs_version_data_dict):
     # create - skipping validate
     codeset_id = 0
     api_url = API_CREATE_URL
-    #data = json.dumps(cs_version_data_dict)
+    # data = json.dumps(cs_version_data_dict)
     response = requests.post(api_url, data=json.dumps(cs_version_data_dict), headers=header)
     response_json = response.json()
     if DEBUG:
         log_debug_info()
         print(response_json)  # temp
-    # create the version - we can skip validation step
+    # create the version - we can skip validation step, as previous version can exist
     # if 'type' not in response_json or response_json['type'] != 'validResponse':
     #    raise SystemError(json.dumps(response_json, indent=2))
 
@@ -168,7 +171,7 @@ def post_request_enclave_api_create_version(header, cs_version_data_dict):
 
         if DEBUG:
             log_debug_info()
-            print(obj_dict['objectRid'])
+            print("EnclaveAPI:: objectRid: " + str(obj_dict['objectRid']))
 
         # get object rid so that the url can be built to request the cs version id
         objectRidValue = obj_dict['objectRid']
@@ -177,7 +180,7 @@ def post_request_enclave_api_create_version(header, cs_version_data_dict):
         api_url = API_OBJECT_URL + objectRidValue
         if DEBUG:
             log_debug_info()
-            print("request get:: " + api_url)
+            print("EnclaveAPI:: request get:: " + api_url)
         response = requests.get(api_url, headers=header)
         response_json = response.json()
         # the response should contain the codeset_id
@@ -185,7 +188,7 @@ def post_request_enclave_api_create_version(header, cs_version_data_dict):
         codeset_id = codeset_id_dict['codeset_id']
         if DEBUG:
             log_debug_info()
-            print(codeset_id)
+            print("EnclaveAPI:: container version id, codeset_id: " + str(codeset_id))
     # Need to use the codeset_id to add the cs expression items
     # return the codeset_id
     return codeset_id
@@ -360,9 +363,9 @@ def get_cs_version_data(cs_name, cs_id, intention, limitations, update_msg, prov
                             # "string": "stephanie cs example"
                             # "string": "stephanie test cs"
                             # cs contain name generated from VSAC
-                            # "string": cs_name
+                            "string": cs_name
                             # 2/7/22, steph- using test cs until we can validate all three calls are working
-                            "string": "stephanie test cs"
+                            # "string": "stephanie test cs"
                         }
                     }
                 }
