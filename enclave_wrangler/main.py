@@ -12,14 +12,10 @@ Resources
   - CreateNewConceptSet: concept_set_container_edited.csv
   - addCodeAsVersionExpression: concept_set_version_item_rv_edited.csv
 """
-# import json
 import os
 from datetime import datetime, timezone
-# from typing import Dict
 
-# import requests
 import pandas as pd
-import json
 from enclave_wrangler.config import config
 from enclave_wrangler.enclave_api import get_cs_container_data
 from enclave_wrangler.enclave_api import get_cs_version_data
@@ -55,8 +51,22 @@ def run(input_csv_folder_path):
     if DEBUG:
         log_debug_info()
 
+    # 0.1 Create mappings between
+    # - concept_set_container_edited.csv[concept_set_name], and...
+    # - code_sets.csv[codeset_id]
+    cs_name_id_mappings = {}
+    code_sets_df = pd.read_csv(os.path.join(input_csv_folder_path, 'code_sets.csv')).fillna('')
+    for index, row in code_sets_df.iterrows():
+        cs_id = row['codeset_id']
+        cs_name = row['concept_set_name']
+        cs_name_id_mappings[cs_name] = cs_id
+    # 0.2 create a list of premade coedeset ids
+    premade_codeset_ids = []
+    for index, row in code_sets_df.iterrows():
+        premade_codeset_ids.append(row['codeset_id'])
+
     # I. Create structures
-    # I.0. concept_set_version_item_dict
+    # I.0. concept_set_version_item_dict; key=codeset_id
     concept_set_version_item_dict = {}
     concept_set_version_item_rv_edited_df = pd.read_csv(
         os.path.join(input_csv_folder_path, 'concept_set_version_item_rv_edited.csv')).fillna('')
@@ -67,14 +77,7 @@ def run(input_csv_folder_path):
         concept_set_version_item_dict[key].append(row)
     # cs_result = pd.merge(code_sets_df, concept_set_version_item_rv_edited_df, on=['codeset_id'])
 
-    # I.1. build the list of container json data; key=cs_name
-    # I.1.i: get codeset_id::concept_set_name mappings
-    cs_name_id_mappings = {}
-    code_sets_df = pd.read_csv(os.path.join(input_csv_folder_path, 'code_sets.csv')).fillna('')
-    for index, row in code_sets_df.iterrows():
-        cs_id = row['codeset_id']
-        cs_name = row['concept_set_name']
-        cs_name_id_mappings[cs_name] = cs_id
+    # I.1. build the list of container json data; key=codeset_id
     # I.1.ii. Get the actual container data
     concept_set_container_edited_json_all_rows = {}
     concept_set_container_edited_df = pd.read_csv(
@@ -134,8 +137,7 @@ def run(input_csv_folder_path):
 
     # II. call the REST APIs to create them on the Enclave
     # ...now that we have all the data from concept set are created
-    # TODO: Do we need 'row' here?
-    for code_set_id, row in code_set_version_json_all_rows.items():
+    for premade_codeset_id in premade_codeset_ids:
         # Do a test first using 'valdiate'
         api_url = API_VALIDATE_URL
         header = {
@@ -143,7 +145,7 @@ def run(input_csv_folder_path):
             'content-type': 'application/json'
         }
 
-        test_data_dict = concept_set_container_edited_json_all_rows[code_set_id]
+        test_data_dict = concept_set_container_edited_json_all_rows[premade_codeset_id]
         # noinspection PyUnusedLocal
         #response_json = post_request_enclave_api(api_url, header, test_data_dict)
         response_json = post_request_enclave_api_create_container(api_url, header, test_data_dict)
@@ -155,14 +157,22 @@ def run(input_csv_folder_path):
         # Actually create a version so that we can test the api to add the expression items
 
         # cs_version_data_dict = code_set_version_json_all_rows[0]
-        cs_version_data_dict = code_set_version_json_all_rows[code_set_id]
+        cs_version_data_dict = code_set_version_json_all_rows[premade_codeset_id]
         # noinspection PyUnusedLocal
         # create the version and ask Enclave for the codeset_id that can be used to addCodeExpressionItems
         codeset_id = post_request_enclave_api_create_version(header, cs_version_data_dict)
         # upd_cs_ver_expression_items_dict = code_set_expression_items_json_all_rows[item]
-        upd_cs_ver_expression_items_dict = code_set_expression_items_json_all_rows[code_set_id]
+        upd_cs_ver_expression_items_dict = code_set_expression_items_json_all_rows[premade_codeset_id]
         # update the payload with the codeset_id returned from the
-        upd_cs_ver_expression_items_dict = update_cs_version_expression_data_with_codesetid(codeset_id, upd_cs_ver_expression_items_dict)
+
+        # DEBUG: Can use this to check to make sure code list is OK:
+        # stringList = upd_cs_ver_expression_items_dict['parameters']['ri.actions.main.parameter.c9a1b531-86ef-4f80-80a5-cc774d2e4c33']['stringList']['strings']
+        # print(premade_codeset_id)
+        # print(len(stringList))
+        # print('---')
+
+        upd_cs_ver_expression_items_dict = \
+            update_cs_version_expression_data_with_codesetid(codeset_id, upd_cs_ver_expression_items_dict)
 
 
         # Validate 3: add the concept set expressions to draft version by passing as code and code system
