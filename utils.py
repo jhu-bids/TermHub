@@ -1,6 +1,6 @@
 """Extra utilities"""
 import logging
-
+import json
 
 def log_debug_info():
     """Logs additional info when making HTTP requests"""
@@ -20,3 +20,6 @@ def log_debug_info():
     requests_log = logging.getLogger("requests.packages.urllib3")
     requests_log.setLevel(logging.DEBUG)
     requests_log.propagate = True
+
+def pretty_print(data):
+    print(json.dumps(data, indent=2))
