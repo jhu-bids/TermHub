@@ -1,5 +1,8 @@
 """Extra utilities"""
 import logging
+from http.client import HTTPConnection
+import contextlib
+
 
 
 def log_debug_info():
@@ -11,7 +14,7 @@ def log_debug_info():
         import http.client as http_client
     except ImportError:
         # Python 2
-        import httplib as http_client
+        import httplib2 as http_client
     http_client.HTTPConnection.debuglevel = 1
 
     # You must initialize logging, otherwise you'll not see debug output.
@@ -20,3 +23,15 @@ def log_debug_info():
     requests_log = logging.getLogger("requests.packages.urllib3")
     requests_log.setLevel(logging.DEBUG)
     requests_log.propagate = True
+
+
+def debug_requests_off():
+    # ''' Switches off logging of the requests module, might be some side-effects '''
+    HTTPConnection.debuglevel = 0
+
+    root_logger = logging.getLogger()
+    root_logger.setLevel(logging.WARNING)
+    root_logger.handlers = []
+    requests_log = logging.getLogger("requests.packages.urllib3")
+    requests_log.setLevel(logging.WARNING)
+    requests_log.propagate = False

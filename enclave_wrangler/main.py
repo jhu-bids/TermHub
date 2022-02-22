@@ -1,5 +1,5 @@
 """Main module
-# TODO's:
+# TODO:
 - For mappings, I believe Amin will be providing us to .parquet files. We can read with pandas:
 --https://pandas.pydata.org/docs/reference/api/pandas.read_parquet.html
 
@@ -14,7 +14,7 @@ Resources
 """
 import os
 from datetime import datetime, timezone
-
+import json
 import pandas as pd
 from enclave_wrangler.config import config
 from enclave_wrangler.enclave_api import get_cs_container_data
@@ -54,6 +54,8 @@ def run(input_csv_folder_path):
     # 0.1 Create mappings between
     # - concept_set_container_edited.csv[concept_set_name], and...
     # - code_sets.csv[codeset_id]
+    # use the concept_set_name as key to store the pre-made codeset_ids,
+    # store the codeset_ids in the premade_codeset_ids
     cs_name_id_mappings = {}
     code_sets_df = pd.read_csv(os.path.join(input_csv_folder_path, 'code_sets.csv')).fillna('')
     for index, row in code_sets_df.iterrows():
@@ -104,7 +106,8 @@ def run(input_csv_folder_path):
         code_set_version_json_all_rows[cs_id] = single_row
         # code_set_version_json_all_rows_dict[codeset_id] = single_row
 
-    # I.3. Expression items; key=codeset_id
+    # I.3. Build all of the Expression items to add to a CS version; key=codeset_id,
+    # codeset_id = pre-made codeset_id to iterate through the codesets
     code_set_expression_items_json_all_rows = {}
     for index, row in code_sets_df.iterrows():
         current_code_set_id = row['codeset_id']
@@ -114,6 +117,8 @@ def run(input_csv_folder_path):
         cs_name = row['concept_set_name']
         # code and code system list
         concept_set_version_item_rows = concept_set_version_item_dict[current_code_set_id]
+        # always use the same entry from the first set as currently
+        # we do not have a support to save these flags per expressionItems
         concept_set_version_item_row1 = concept_set_version_item_rows[0]
         exclude = concept_set_version_item_row1['isExcluded']
         descendents = concept_set_version_item_row1['includeDescendants']
@@ -135,20 +140,37 @@ def run(input_csv_folder_path):
                 code_set_expression_items_json_all_rows[current_code_set_id] = single_row
                 # code_set_expression_items_json_all_rows_dict[codeset_id] = single_row
 
+
+    # --- Steph: check the failed cases 2/15/22-----------------------------
+    # begin test code
+    # for premade_codeset_id in premade_codeset_ids:
+    #    # we have problem with very large code list - 16(3623) and 39(5104) 58(1820) 73(6791) 74(1501)
+    #    upd_cs_ver_expression_items_dict1 = code_set_expression_items_json_all_rows[premade_codeset_id]
+    #    codeStringList1 = upd_cs_ver_expression_items_dict1['parameters']['ri.actions.main.parameter.c9a1b531-86ef-4f80-80a5-cc774d2e4c33']['stringList']['strings']
+    #    print( str(premade_codeset_id) + "codelistLength: " + str(len(codeStringList1)))
+    #    print('------')
+    # end test code ------------------------------- #
+
+
     # II. call the REST APIs to create them on the Enclave
     # ...now that we have all the data from concept set are created
+    # problem with 16(3623) and 39(5104) 58(1820) 73(6791) 74(1501)
     for premade_codeset_id in premade_codeset_ids:
-        # Do a test first using 'valdiate'
+        #    if premade_codeset_id != 1000000058:
+        #        continue
+
+        # Do a test first using 'validate'
         api_url = API_VALIDATE_URL
         header = {
-            "authorization": f"Bearer {config['PALANTIR_ENCLAVE_AUTHENTICATION_BEARER_TOKEN']}",
-            'content-type': 'application/json'
+                "authorization": f"Bearer {config['PALANTIR_ENCLAVE_AUTHENTICATION_BEARER_TOKEN']}",
+                'content-type': 'application/json'
         }
 
-        test_data_dict = concept_set_container_edited_json_all_rows[premade_codeset_id]
+        container_data_dict = concept_set_container_edited_json_all_rows[premade_codeset_id]
         # noinspection PyUnusedLocal
-        #response_json = post_request_enclave_api(api_url, header, test_data_dict)
-        response_json = post_request_enclave_api_create_container(api_url, header, test_data_dict)
+        # response_json = post_request_enclave_api(api_url, header, test_data_dict)
+        # create concept set container -----
+        response_json = post_request_enclave_api_create_container(header, container_data_dict)
 
         # Validate 2: Concept set version item
         # noinspection PyUnusedLocal
@@ -160,17 +182,21 @@ def run(input_csv_folder_path):
         cs_version_data_dict = code_set_version_json_all_rows[premade_codeset_id]
         # noinspection PyUnusedLocal
         # create the version and ask Enclave for the codeset_id that can be used to addCodeExpressionItems
+        # create version -----
         codeset_id = post_request_enclave_api_create_version(header, cs_version_data_dict)
         # upd_cs_ver_expression_items_dict = code_set_expression_items_json_all_rows[item]
         upd_cs_ver_expression_items_dict = code_set_expression_items_json_all_rows[premade_codeset_id]
         # update the payload with the codeset_id returned from the
 
         # DEBUG: Can use this to check to make sure code list is OK:
-        # stringList = upd_cs_ver_expression_items_dict['parameters']['ri.actions.main.parameter.c9a1b531-86ef-4f80-80a5-cc774d2e4c33']['stringList']['strings']
-        # print(premade_codeset_id)
-        # print(len(stringList))
-        # print('---')
+        if DEBUG:
+            stringList = upd_cs_ver_expression_items_dict['parameters']['ri.actions.main.parameter.c9a1b531-86ef-4f80-80a5-cc774d2e4c33']['stringList']['strings']
+            print(premade_codeset_id)
+            print(len(stringList))
+            print(str(codeset_id))
+            print('------')
 
+        # update the json data with the correct codeset_id -----
         upd_cs_ver_expression_items_dict = \
             update_cs_version_expression_data_with_codesetid(codeset_id, upd_cs_ver_expression_items_dict)
 
@@ -180,8 +206,9 @@ def run(input_csv_folder_path):
         # https://unite.nih.gov/workspace/ontology/action-type/add-code-system-codes-as-omop-version-expressions/overview
         # action type rid: ri.actions.main.action-type.e07f2503-c7c9-47b9-9418-225544b56b71
         # noinspection PyUnusedLocal
+        # add expressionItems to version -----
         response_json = post_request_enclave_api_addExpressionItems(header, upd_cs_ver_expression_items_dict)
-        # print(json.dumps(response_json))
+        print(json.dumps(response_json))
         # return response_json
 
 

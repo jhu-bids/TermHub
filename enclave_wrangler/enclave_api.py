@@ -29,9 +29,11 @@ API_OBJECT_URL = 'https://unite.nih.gov/phonograph2/api/storage/load/objects/'
 
 DEBUG = True
 
+
 def key_val_split_list(list1):
     key, val = list1.split(':')
     return key, val
+
 
 def post_request_enclave_api_addExpressionItems(header: Dict, data_dict: Dict):
 
@@ -40,13 +42,13 @@ def post_request_enclave_api_addExpressionItems(header: Dict, data_dict: Dict):
     # {'errorCode': 'INVALID_ARGUMENT', 'errorName': 'Conjure:UnprocessableEntity', 'errorInstanceId': '14a1177b-6431-40a4-92c2-714a2d8102b6', 'parameters': {}}
     # invalid argument error was fixed by
     # reply: 'HTTP/1.1 422 Unprocessable Entity\r\n'
-
+    # validate before creating, not sure if this is extra step not adding any value at this point, ssh 2/16/22.
     api_url = API_VALIDATE_URL
     response = requests.post(api_url, data=json.dumps(data_dict), headers=header)
     response_json = response.json()
     if DEBUG:
-       log_debug_info()
-       print(response_json)  # temp
+        log_debug_info()
+        print(response_json)  # temp
     if 'type' not in response_json or response_json['type'] != 'validResponse':
         raise SystemError(json.dumps(response_json, indent=2))
 
@@ -57,7 +59,7 @@ def post_request_enclave_api_addExpressionItems(header: Dict, data_dict: Dict):
     print("request post:: " + api_url)
     response = requests.post(api_url, data=json.dumps(data_dict), headers=header)
     response_json = response.json()
-    print("post request returned from addingCodeExpressionItems")
+    print("post request returned from addingCodeExpressionItems:  --------")
     if DEBUG:
         log_debug_info()
         print(json.dumps(response_json))  # temp
@@ -65,7 +67,7 @@ def post_request_enclave_api_addExpressionItems(header: Dict, data_dict: Dict):
     return response_json
 
 
-def post_request_enclave_api_create_container(api_url: str, header: Dict, data_dict: Dict):
+def post_request_enclave_api_create_container(header: Dict, data_dict: Dict):
     # validate the request
     api_url = API_VALIDATE_URL
     response = requests.post(api_url, data=json.dumps(data_dict), headers=header)
@@ -586,8 +588,11 @@ def get_cs_version_expression_data(current_code_set_id: Union[str, int], cs_name
             # Optional Annotation (string | null type):
             # ri.actions.main.parameter.63e31a99-6b94-4580-b95a-a482ed64fed0
             "ri.actions.main.parameter.63e31a99-6b94-4580-b95a-a482ed64fed0": {
-                "null": {},
-                "type": "null"
+                # "null": {},
+                # "type": "null"
+                "type": "string",
+                "string": annotation
+
             },
 
             # Codes (List of colon-delimited strings):
