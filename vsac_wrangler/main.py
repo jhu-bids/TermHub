@@ -23,7 +23,7 @@ from vsac_wrangler.vsac_api import get_ticket_granting_ticket, get_value_sets
 
 # USER1: This is an actual ID to a valid user in palantir, who works on our BIDS team.
 PALANTIR_ENCLAVE_USER_ID_1 = 'a39723f3-dc9c-48ce-90ff-06891c29114f'
-VSAC_LABEL_PREFIX = '[VSAC Bulk-Import test] '
+VSAC_LABEL_PREFIX = '[VSAC] '
 
 
 def _save_csv(df: pd.DataFrame, filename='output', subfolder=None, field_delimiter=',', ):
@@ -222,11 +222,20 @@ def get_palantir_csv(
     filename1='concept_set_version_item_rv_edited', filename2='code_sets', filename3='concept_set_container_edited'
 ) -> Dict[str, pd.DataFrame]:
     """Convert VSAC hiearchical XML to CSV compliant w/ Palantir's OMOP-inspired concept set editor data model"""
-    # TODO: the name should only include code_systems to disambiguate. so we should only add it if there's more than one in list
+    # - This will allow us to find name collisions:
+    # cset_name_value_set_map = {}
+    # for vs in value_sets:
+    #     vs_name = vs['@displayName']
+    #     if vs_name not in cset_name_value_set_map:
+    #         cset_name_value_set_map[vs_name] = []
+    #     cset_name_value_set_map[vs_name].append(vs)
+
     # I. Create IDs that will be shared between files
-    oid_enclave_code_set_id_map_csv_path = os.path.join(PROJECT_ROOT, 'data', 'oids_of_value_sets_uploaded_to_enclave.csv')
+    oid_enclave_code_set_id_map_csv_path = os.path.join(PROJECT_ROOT, 'data', 'cset.csv')
     oid_enclave_code_set_id_df = pd.read_csv(oid_enclave_code_set_id_map_csv_path)
-    oid__codeset_id_map = dict(zip(oid_enclave_code_set_id_df['oid'], oid_enclave_code_set_id_df['enclave_code_set_id']))
+    oid__codeset_id_map = dict(zip(
+        oid_enclave_code_set_id_df['oid'],
+        oid_enclave_code_set_id_df['internal_id']))
 
     # II. Create & save exports
     all = {}
@@ -288,7 +297,7 @@ def get_palantir_csv(
             if code_system not in code_systems:
                 code_systems.append(code_system)
             code_system_codes[code_system].append(code)
-        concept_set_name = concept_set_name + ' ' + '(' + ';'.join(code_systems) + ')'
+        # concept_set_name = concept_set_name + ' ' + '(' + ';'.join(code_systems) + ')'
         row = {
             'codeset_id': oid__codeset_id_map[value_set['@ID']],
             'concept_set_name': concept_set_name,
@@ -362,7 +371,7 @@ def get_palantir_csv(
             code_system = concept['@codeSystemName']
             if code_system not in code_systems:
                 code_systems.append(code_system)
-        concept_set_name = concept_set_name + ' ' + '(' + ';'.join(code_systems) + ')'
+        # concept_set_name = concept_set_name + ' ' + '(' + ';'.join(code_systems) + ')'
 
         row = {
             'concept_set_id': concept_set_name,
@@ -462,7 +471,9 @@ def run(
     """Main function
     Refer to interfaces/cli.py for argument descriptions."""
     value_sets = []
-    pickle_file = Path(CACHE_DIR, f'value_sets - from {input_source_type}.pickle')
+    pickle_filename = f'value_sets_{input_source_type}' + google_sheet_name.replace(' ', '-').replace('/', '-').replace('\\', '') if google_sheet_name else '' \
+        + input_path.replace(' ', '-').replace('/', '-').replace('\\', '') if input_path else '' + '.pickle'
+    pickle_file = Path(CACHE_DIR, pickle_filename)
 
     if use_cache:
         if pickle_file.is_file() and use_cache:

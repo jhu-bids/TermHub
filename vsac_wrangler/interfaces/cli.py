@@ -38,6 +38,8 @@ def get_parser():
     parser.add_argument(
         '-g', '--google-sheet-name',
         choices=['CDC reference table list', 'Lisa1 VSAC', 'Lisa2 VSAC GRAVITY'],
+        # TODO: support multiple sheets at once
+        # nargs='+',
         default='CDC reference table list',
         help='The name of the tab within a the GoogleSheet containing the target data within OID column. Make sure to '
              'encapsulate the text in quotes, e.g. `-g "Lisa1 VSAC"`. This option can only be used if '
