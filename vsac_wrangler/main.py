@@ -231,11 +231,11 @@ def get_palantir_csv(
     #     cset_name_value_set_map[vs_name].append(vs)
 
     # I. Create IDs that will be shared between files
-    # oid_enclave_code_set_id_map_csv_path = os.path.join(PROJECT_ROOT, 'data', 'cset.csv')
-    # oid_enclave_code_set_id_df = pd.read_csv(oid_enclave_code_set_id_map_csv_path)
-    # oid__codeset_id_map = dict(zip(
-    #     oid_enclave_code_set_id_df['oid'],
-    #     oid_enclave_code_set_id_df['internal_id']))
+    oid_enclave_code_set_id_map_csv_path = os.path.join(PROJECT_ROOT, 'data', 'cset.csv')
+    oid_enclave_code_set_id_df = pd.read_csv(oid_enclave_code_set_id_map_csv_path)
+    oid__codeset_id_map = dict(zip(
+        oid_enclave_code_set_id_df['oid'],
+        oid_enclave_code_set_id_df['internal_id']))
 
     # II. Create & save exports
     all = {}
@@ -243,11 +243,11 @@ def get_palantir_csv(
     rows1 = []
     for i, value_set in value_sets.iterrows():
         # moved two lines from here to fix_vsac_api
-        # try:
-        #     codeset_id = oid__codeset_id_map[value_set['@ID']]
-        # except Exception as e:
-        #     print(e)
-        codeset_id = value_set['@displayName']
+        try:
+            codeset_id = oid__codeset_id_map[value_set['@ID']]
+        except Exception as e:
+            print(e)
+        # codeset_id = value_set['@displayName']
 
         for concept in value_set['concepts']:
             code = concept['@code']
@@ -282,6 +282,10 @@ def get_palantir_csv(
     # 2. Palantir enclave table: code_sets
     rows2 = []
     for i, value_set in value_sets.iterrows():
+        try:
+            codeset_id = oid__codeset_id_map[value_set['@ID']]
+        except Exception as e:
+            print(e)
         concept_set_name = VSAC_LABEL_PREFIX + value_set['@displayName']
         purposes = value_set['ns0:Purpose'].split('),')
         purposes2 = []
@@ -302,7 +306,8 @@ def get_palantir_csv(
         # concept_set_name = concept_set_name + ' ' + '(' + ';'.join(code_systems) + ')'
         row = {
             # 'codeset_id': oid__codeset_id_map[value_set['@ID']],
-            'codeset_id': value_set['@displayName'],
+            # 'codeset_id': value_set['@displayName'],
+            'codeset_id': codeset_id,
             'concept_set_name': concept_set_name,
             'concept_set_version_title': concept_set_name + ' (v1)',
             'project': 'RP-4A9E',  # always use this project id for bulk import
@@ -415,7 +420,8 @@ def get_palantir_csv(
     return all
 
 
-def get_normalized_csv(
+def get_normalized_csv(     # do we really need this?
+    # TODO: delete this function unless it is still needed
     value_sets: List[OrderedDict], tabular_field_delimiter=',', tabular_intra_field_delimiter='|', filename='normalized'
 ) -> pd.DataFrame:
     """Get normalized CSV"""
@@ -460,6 +466,11 @@ def get_normalized_csv(
     return df
 
 def fix_vsac_api_structure(vs_results: OrderedDict) -> List[OrderedDict]:
+    """
+        - Gets rid of useless ns0:... stuff in vsac api value sets
+        - Fixes name collisions (fixed rows move to the top)
+        - converts from OrderedDict to DataFrame
+    """
     value_sets = vs_results['ns0:RetrieveMultipleValueSetsResponse']['ns0:DescribedValueSet']
     for value_set in value_sets:
         concepts = value_set['ns0:ConceptList']['ns0:Concept']
@@ -479,8 +490,6 @@ def fix_vsac_api_structure(vs_results: OrderedDict) -> List[OrderedDict]:
     rows_with_name_collisions['@displayName'] = rows_with_name_collisions['@displayName'] + ' ' + last_oid_parts
 
     return pd.concat([rows_with_name_collisions, rows_without])
-
-    #return value_sets
 
 def run(
     input_source_type=['google-sheet', 'txt', 'csv'][-1],
