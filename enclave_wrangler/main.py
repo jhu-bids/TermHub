@@ -31,7 +31,7 @@ from enclave_wrangler.utils import log_debug_info
 DEBUG = False
 # PALANTIR_ENCLAVE_USER_ID_1: This is an actual ID to a valid user in palantir, who works on our BIDS team.
 PALANTIR_ENCLAVE_USER_ID_1 = 'a39723f3-dc9c-48ce-90ff-06891c29114f'
-VSAC_LABEL_PREFIX = '[VSAC Bulk-Import test1] '
+VSAC_LABEL_PREFIX = '[VSAC] '
 # API_URL query params:
 # 1. ?synchronousPropagation=false: Not sure what this does or if it helps.
 API_CREATE_URL = 'https://unite.nih.gov/actions/api/actions'

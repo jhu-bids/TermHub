@@ -89,7 +89,7 @@ def post_request_enclave_api_create_container(header: Dict, data_dict: Dict):
     # 'errorName': 'Actions:ObjectsAlreadyExist', 'errorInstanceId': 'deca8342-deb0-4f4c-8888-78b1e195d4dc',
     # 'parameters': {'objectLocators': '[ObjectLocator{objectTypeId: omop-concept-set-container, primaryKey:
     #  {concept_set_id=PrimaryKeyValue{value: StringWrapper{
-    #  value: [VSAC Bulk-Import test] Cirrhosis or other liver disease}}}}]'}}
+    #  value: [VSAC] Cirrhosis or other liver disease}}}}]'}}
     # TODO if the container already exist than it is not an error so we should allow the next step.
     # i.e. if the errorCode is invalid_argument and the errorName is 'Actions:ObjectsAlreadyExist'
     #
