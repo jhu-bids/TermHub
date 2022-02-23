@@ -370,10 +370,6 @@ def get_palantir_csv(
             i1 = 1 if p.startswith('(') else 0
             i2 = -1 if p[len(p) - 1] == ')' else len(p)
             purposes2.append(p[i1:i2])
-        try:
-            codeset_id = oid__codeset_id_map[value_set['@ID']]
-        except Exception as e:
-            print(e)
         concept_set_name = VSAC_LABEL_PREFIX + value_set['@displayName']
 
         code_systems = []
@@ -384,7 +380,7 @@ def get_palantir_csv(
         # concept_set_name = concept_set_name + ' ' + '(' + ';'.join(code_systems) + ')'
 
         row = {
-            'concept_set_id': codeset_id,
+            'concept_set_id': concept_set_name,
             'concept_set_name': concept_set_name,
             'project_id': '',  # nullable
             'assigned_informatician': PALANTIR_ENCLAVE_USER_ID_1,  # nullable
