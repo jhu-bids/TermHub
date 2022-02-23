@@ -159,7 +159,13 @@ def get_palantir_concept_set_tables(input_file_path: List[str]) -> List[Dict[str
 
     return d_list
 
+def get_vsac_value_sets(oids: List[str]) -> List[dict]:
+    pass
 
+"""
+useful info about getting multiple gets at once: https://stackoverflow.com/a/66874788/1368860
+
+"""
 def run(
     input_file_path: Union[str, List[str]], input_schema_format: str, output_json: bool, upload_url: str, json_indent=4
 ) -> List[Dict]:
