@@ -231,21 +231,25 @@ def get_palantir_csv(
     #     cset_name_value_set_map[vs_name].append(vs)
 
     # I. Create IDs that will be shared between files
-    oid_enclave_code_set_id_map_csv_path = os.path.join(PROJECT_ROOT, 'data', 'cset.csv')
-    oid_enclave_code_set_id_df = pd.read_csv(oid_enclave_code_set_id_map_csv_path)
-    oid__codeset_id_map = dict(zip(
-        oid_enclave_code_set_id_df['oid'],
-        oid_enclave_code_set_id_df['internal_id']))
+    # oid_enclave_code_set_id_map_csv_path = os.path.join(PROJECT_ROOT, 'data', 'cset.csv')
+    # oid_enclave_code_set_id_df = pd.read_csv(oid_enclave_code_set_id_map_csv_path)
+    # oid__codeset_id_map = dict(zip(
+    #     oid_enclave_code_set_id_df['oid'],
+    #     oid_enclave_code_set_id_df['internal_id']))
 
     # II. Create & save exports
     all = {}
     # 1. Palantir enclave table: concept_set_version_item_rv_edited
     rows1 = []
-    for value_set in value_sets:
-        concepts = value_set['ns0:ConceptList']['ns0:Concept']
-        concepts = concepts if type(concepts) == list else [concepts]
-        codeset_id = oid__codeset_id_map[value_set['@ID']]
-        for concept in concepts:
+    for i, value_set in value_sets.iterrows():
+        # moved two lines from here to fix_vsac_api
+        # try:
+        #     codeset_id = oid__codeset_id_map[value_set['@ID']]
+        # except Exception as e:
+        #     print(e)
+        codeset_id = value_set['@displayName']
+
+        for concept in value_set['concepts']:
             code = concept['@code']
             code_system = concept['@codeSystemName']
             # The 3 fields isExcluded, includeDescendants, and includeMapped, are from OMOP but also in VSAC. If it has
@@ -277,7 +281,7 @@ def get_palantir_csv(
 
     # 2. Palantir enclave table: code_sets
     rows2 = []
-    for value_set in value_sets:
+    for i, value_set in value_sets.iterrows():
         concept_set_name = VSAC_LABEL_PREFIX + value_set['@displayName']
         purposes = value_set['ns0:Purpose'].split('),')
         purposes2 = []
@@ -286,10 +290,8 @@ def get_palantir_csv(
             i2 = -1 if p[len(p) - 1] == ')' else len(p)
             purposes2.append(p[i1:i2])
         code_system_codes = {}
-        concepts = value_set['ns0:ConceptList']['ns0:Concept']
-        concepts = concepts if type(concepts) == list else [concepts]
         code_systems = []
-        for concept in concepts:
+        for concept in value_set['concepts']:
             code = concept['@code']
             code_system = concept['@codeSystemName']
             if code_system not in code_system_codes:
@@ -299,7 +301,8 @@ def get_palantir_csv(
             code_system_codes[code_system].append(code)
         # concept_set_name = concept_set_name + ' ' + '(' + ';'.join(code_systems) + ')'
         row = {
-            'codeset_id': oid__codeset_id_map[value_set['@ID']],
+            # 'codeset_id': oid__codeset_id_map[value_set['@ID']],
+            'codeset_id': value_set['@displayName'],
             'concept_set_name': concept_set_name,
             'concept_set_version_title': concept_set_name + ' (v1)',
             'project': 'RP-4A9E',  # always use this project id for bulk import
@@ -355,7 +358,7 @@ def get_palantir_csv(
 
     # 3. Palantir enclave table: concept_set_container_edited
     rows3 = []
-    for value_set in value_sets:
+    for i, value_set in value_sets.iterrows():
         purposes = value_set['ns0:Purpose'].split('),')
         purposes2 = []
         for p in purposes:
@@ -365,9 +368,7 @@ def get_palantir_csv(
         concept_set_name = VSAC_LABEL_PREFIX + value_set['@displayName']
 
         code_systems = []
-        concepts = value_set['ns0:ConceptList']['ns0:Concept']
-        concepts = concepts if type(concepts) == list else [concepts]
-        for concept in concepts:
+        for concept in value_set['concepts']:
             code_system = concept['@codeSystemName']
             if code_system not in code_systems:
                 code_systems.append(code_system)
@@ -458,6 +459,28 @@ def get_normalized_csv(
 
     return df
 
+def fix_vsac_api_structure(vs_results: OrderedDict) -> List[OrderedDict]:
+    value_sets = vs_results['ns0:RetrieveMultipleValueSetsResponse']['ns0:DescribedValueSet']
+    for value_set in value_sets:
+        concepts = value_set['ns0:ConceptList']['ns0:Concept']
+        concepts = concepts if type(concepts) == list else [concepts]
+        value_set.pop('ns0:ConceptList')
+        value_set['concepts'] = concepts
+
+    vsets = pd.DataFrame(value_sets)
+    rows_by_name = vsets.groupby('@displayName')
+    rows_with_name_collisions = rows_by_name.filter(lambda x: len(x) > 1)
+    rows_without = rows_by_name.filter(lambda x: len(x) == 1)
+
+    last_oid_parts = rows_with_name_collisions['@ID'].str.split('.').apply(lambda parts: parts[-1])
+
+    # append_oid_part_to_name = lambda row: f'{row["Name"]} {}'
+
+    rows_with_name_collisions['@displayName'] = rows_with_name_collisions['@displayName'] + ' ' + last_oid_parts
+
+    return pd.concat([rows_with_name_collisions, rows_without])
+
+    #return value_sets
 
 def run(
     input_source_type=['google-sheet', 'txt', 'csv'][-1],
@@ -497,14 +520,16 @@ def run(
                 object_ids = [oid.rstrip() for oid in f.readlines()]
         elif input_source_type == 'csv':
             df = pd.read_csv(input_path)
-            object_ids = list(df['oid'])
+            try:        # the most recent spreadsheet has OID instead of oid
+                object_ids = list(df['oid'])
+            except KeyError:
+                object_ids = list(df['OID'])
 
         # 2/3: Query VSAC
         tgt: str = get_ticket_granting_ticket()
         # service_ticket = get_service_ticket(tgt)  # this is called later
-        value_sets_dict: OrderedDict = get_value_sets(object_ids, tgt)
-        value_sets: List[OrderedDict] = value_sets_dict['ns0:RetrieveMultipleValueSetsResponse'][
-            'ns0:DescribedValueSet']
+
+        value_sets: List[OrderedDict] = fix_vsac_api_structure(get_value_sets(object_ids, tgt))
 
         # Save to cache
         with open(pickle_file, 'wb') as handle:
