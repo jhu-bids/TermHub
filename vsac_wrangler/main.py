@@ -238,7 +238,7 @@ def get_palantir_csv(
         oid_enclave_code_set_id_df['internal_id']))
 
     # II. Create & save exports
-    all = {}
+    _all = {}
     # 1. Palantir enclave table: concept_set_version_item_rv_edited
     rows1 = []
     for i, value_set in value_sets.iterrows():
@@ -276,7 +276,7 @@ def get_palantir_csv(
             row = row2
             rows1.append(row)
     df1 = pd.DataFrame(rows1)
-    all[filename1] = df1
+    _all[filename1] = df1
     _save_csv(df1, filename=filename1, subfolder=google_sheet_name, field_delimiter=field_delimiter)
 
     # 2. Palantir enclave table: code_sets
@@ -358,7 +358,7 @@ def get_palantir_csv(
         row = row2
         rows2.append(row)
     df2 = pd.DataFrame(rows2)
-    all[filename2] = df2
+    _all[filename2] = df2
     _save_csv(df2, filename=filename2, subfolder=google_sheet_name, field_delimiter=field_delimiter)
 
     # 3. Palantir enclave table: concept_set_container_edited
@@ -414,10 +414,10 @@ def get_palantir_csv(
 
         rows3.append(row)
     df3 = pd.DataFrame(rows3)
-    all[filename3] = df3
+    _all[filename3] = df3
     _save_csv(df3, filename=filename3, subfolder=google_sheet_name, field_delimiter=field_delimiter)
 
-    return all
+    return _all
 
 
 def get_normalized_csv(     # do we really need this?
