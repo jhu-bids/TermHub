@@ -218,11 +218,12 @@ def get_vsac_csv(
 
 
 def get_palantir_csv(
-    value_sets: List[OrderedDict], google_sheet_name=None, field_delimiter=',',
+    value_sets: pd.DataFrame, google_sheet_name=None, field_delimiter=',',
     filename1='concept_set_version_item_rv_edited', filename2='code_sets', filename3='concept_set_container_edited'
 ) -> Dict[str, pd.DataFrame]:
     """Convert VSAC hiearchical XML to CSV compliant w/ Palantir's OMOP-inspired concept set editor data model"""
     # - This will allow us to find name collisions:
+    # TODO: How's joe's code working out here?
     cset_name_value_set_map: Dict[str, List[OrderedDict]] = {}
     for vs in value_sets:
         vs_name = vs['@displayName']
@@ -240,6 +241,7 @@ def get_palantir_csv(
                 vs['@displayName'] = vs['@displayName'] + ' ' + last_3_of_oid
                 value_sets_names_updated.append(vs)
     value_sets = value_sets_names_updated
+
 
     # I. Create IDs that will be shared between files
     oid_enclave_code_set_id_map_csv_path = os.path.join(PROJECT_ROOT, 'data', 'cset.csv')
@@ -476,7 +478,7 @@ def get_normalized_csv(     # do we really need this?
 
     return df
 
-def fix_vsac_api_structure(vs_results: OrderedDict) -> List[OrderedDict]:
+def fix_vsac_api_structure(vs_results: OrderedDict) -> pd.DataFrame:
     """
         - Gets rid of useless ns0:... stuff in vsac api value sets
         - Fixes name collisions (fixed rows move to the top)
@@ -547,9 +549,6 @@ def run(
 
         # 2/3: Query VSAC
         tgt: str = get_ticket_granting_ticket()
-        # service_ticket = get_service_ticket(tgt)  # this is called later
-
-        value_sets: List[OrderedDict] = fix_vsac_api_structure(get_value_sets(object_ids, tgt))
 
         # Save to cache
         with open(pickle_file, 'wb') as handle:
@@ -558,10 +557,13 @@ def run(
     # 3/3: Generate output
     if output_format == 'tabular/csv':
         if output_structure == 'normalized':
+            value_sets: List[OrderedDict] = get_value_sets(object_ids, tgt)
             get_normalized_csv(value_sets, tabular_field_delimiter, tabular_intra_field_delimiter)
         elif output_structure == 'vsac':
+            value_sets: List[OrderedDict] = get_value_sets(object_ids, tgt)
             get_vsac_csv(value_sets, google_sheet_name, tabular_field_delimiter, tabular_intra_field_delimiter)
         elif output_structure == 'palantir-concept-set-tables':
+            value_sets: pd.DataFrame = fix_vsac_api_structure(get_value_sets(object_ids, tgt))
             get_palantir_csv(value_sets, google_sheet_name, tabular_field_delimiter)
         elif output_structure == 'fhir':
             raise NotImplementedError('output_structure "fhir" not available for output_format "csv/tabular".')
