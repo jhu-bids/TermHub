@@ -223,12 +223,23 @@ def get_palantir_csv(
 ) -> Dict[str, pd.DataFrame]:
     """Convert VSAC hiearchical XML to CSV compliant w/ Palantir's OMOP-inspired concept set editor data model"""
     # - This will allow us to find name collisions:
-    # cset_name_value_set_map = {}
-    # for vs in value_sets:
-    #     vs_name = vs['@displayName']
-    #     if vs_name not in cset_name_value_set_map:
-    #         cset_name_value_set_map[vs_name] = []
-    #     cset_name_value_set_map[vs_name].append(vs)
+    cset_name_value_set_map: Dict[str, List[OrderedDict]] = {}
+    for vs in value_sets:
+        vs_name = vs['@displayName']
+        if vs_name not in cset_name_value_set_map:
+            cset_name_value_set_map[vs_name] = []
+        cset_name_value_set_map[vs_name].append(vs)
+
+    value_sets_names_updated = []
+    for cset_name, csets in cset_name_value_set_map.items():
+        if len(csets) < 2:
+            value_sets_names_updated.append(csets[0])
+        else:
+            for vs in csets:
+                last_3_of_oid = vs['@ID'].split('.')[-1]
+                vs['@displayName'] = vs['@displayName'] + ' ' + last_3_of_oid
+                value_sets_names_updated.append(vs)
+    value_sets = value_sets_names_updated
 
     # I. Create IDs that will be shared between files
     oid_enclave_code_set_id_map_csv_path = os.path.join(PROJECT_ROOT, 'data', 'cset.csv')
