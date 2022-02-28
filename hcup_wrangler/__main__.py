@@ -1,4 +1,7 @@
-"""Take an HCUP data set and convert to enclave data set"""
+"""Take an HCUP data set and convert to enclave data set
+Resources
+- https://docs.google.com/spreadsheets/d/1cbHB9AZLpirOz4_N7SrsnDLomg1I6VgbPFp8rzGnpzc/edit#gid=510825150
+"""
 import os
 from argparse import ArgumentParser
 from datetime import datetime, timezone
@@ -10,26 +13,24 @@ import pandas as pd
 
 PKG_ROOT = os.path.dirname(os.path.realpath(__file__))
 PROJECT_ROOT = os.path.join(PKG_ROOT, '..')
-OUTPUT_DIR = os.path.join(PROJECT_ROOT, 'output', 'hcup')
+DATA_DIR = os.path.join(PROJECT_ROOT, 'data')
 CONCEPT_CSV_NAME = 'Dx_Concepts_Codes_for_Enclave.csv'
 CONCEPT_METADATA_CSV_NAME = 'CCSR_Prov_Intent_Limit.csv'
+PROJECT_NAME = 'RP-4A9E27'
 PALANTIR_ENCLAVE_USER_ID_1 = 'a39723f3-dc9c-48ce-90ff-06891c29114f'
 HCUP_CODESYSTEM = 'ICD10CM'
 HCUP_LABEL_PREFIX = '[HCUP] '
 
 
-def _save_csv(df: pd.DataFrame, filename, field_delimiter=','):
+# to-do: Shared lib for this stuff?
+# noinspection DuplicatedCode
+def _save_csv(df: pd.DataFrame, output_name, source_name, filename, field_delimiter=','):
     """Side effects: Save CSV"""
-    outdir = os.path.join(OUTPUT_DIR)
-    if not os.path.exists(outdir):
-        os.mkdir(outdir)
-    outdir2 = os.path.join(outdir, datetime.now().strftime('%Y.%m.%d'))
-    if not os.path.exists(outdir2):
-        os.mkdir(outdir2)
-
+    date_str = datetime.now().strftime('%Y.%m.%d')
+    out_dir = os.path.join(DATA_DIR, output_name, source_name, date_str, 'output')
+    os.makedirs(out_dir, exist_ok=True)
     output_format = 'csv' if field_delimiter == ',' else 'tsv' if field_delimiter == '\t' else 'txt'
-    outpath = os.path.join(outdir2, f'{filename}.{output_format}')
-
+    outpath = os.path.join(out_dir, f'{filename}.{output_format}')
     df.to_csv(outpath, sep=field_delimiter, index=False)
 
 
@@ -84,8 +85,8 @@ def load_cup_data(input_dir_path: str) -> pd.DataFrame:
 
 
 def get_palantir_csv_from_hcup(
-    hcup_value_sets: pd.DataFrame, field_delimiter=',', filename1='concept_set_version_item_rv_edited',
-    filename2='code_sets', filename3='concept_set_container_edited'
+    hcup_value_sets: pd.DataFrame, field_delimiter=',', output_name='palantir-three-file', source_name='hcup',
+    filename1='concept_set_version_item_rv_edited', filename2='code_sets', filename3='concept_set_container_edited'
 ) -> Dict[str, pd.DataFrame]:
     """Convert VSAC hiearchical XML to CSV compliant w/ Palantir's OMOP-inspired concept set editor data model"""
     # I. Create IDs that will be shared between files
@@ -128,7 +129,7 @@ def get_palantir_csv_from_hcup(
         rows1.append(row)
     df_code_set_members = pd.DataFrame(rows1)
     _all[filename1] = df_code_set_members
-    _save_csv(df_code_set_members, filename=filename1, field_delimiter=field_delimiter)
+    _save_csv(df_code_set_members, output_name, source_name, filename1, field_delimiter)
 
     # 2. Palantir enclave table: code_sets
     rows2 = []
@@ -141,7 +142,7 @@ def get_palantir_csv_from_hcup(
             'codeset_id': codeset_id,
             'concept_set_name': concept_set_name,
             'concept_set_version_title': concept_set_name + ' (v1)',
-            'project': 'RP-4A9E',  # always use this project id for bulk import
+            'project': PROJECT_NAME,  # always use this project id for bulk import
             'source_application': 'EXTERNAL VSAC',
             'source_application_version': '',  # nullable
             'created_at': _datetime_palantir_format(),
@@ -179,7 +180,7 @@ def get_palantir_csv_from_hcup(
         rows2.append(row)
     df_code_sets = pd.DataFrame(rows2)
     _all[filename2] = df_code_sets
-    _save_csv(df_code_sets, filename=filename2, field_delimiter=field_delimiter)
+    _save_csv(df_code_sets, output_name, source_name, filename2, field_delimiter)
 
     # 3. Palantir enclave table: concept_set_container_edited
     rows3 = []
@@ -221,7 +222,7 @@ def get_palantir_csv_from_hcup(
         rows3.append(row)
     df_code_sets__container_variation = pd.DataFrame(rows3)
     _all[filename3] = df_code_sets__container_variation
-    _save_csv(df_code_sets__container_variation, filename=filename3, field_delimiter=field_delimiter)
+    _save_csv(df_code_sets__container_variation, output_name, source_name, filename3, field_delimiter)
 
     return _all
 
