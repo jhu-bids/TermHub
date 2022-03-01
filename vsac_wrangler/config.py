@@ -3,12 +3,12 @@ import os
 from dotenv import load_dotenv
 
 
-APP_ROOT = os.path.dirname(os.path.realpath(__file__))
-PROJECT_ROOT = os.path.join(APP_ROOT, '..')
+PKG_ROOT = os.path.dirname(os.path.realpath(__file__))
+PROJECT_ROOT = os.path.join(PKG_ROOT, '..')
 ENV_DIR = os.path.join(PROJECT_ROOT, 'env')
-OUTPUT_DIR = os.path.join(PROJECT_ROOT, 'output')
+DATA_DIR = os.path.join(PROJECT_ROOT, 'data')
 ENV_FILE = os.path.join(ENV_DIR, '.env')
-CACHE_DIR = os.path.join(APP_ROOT, 'data', 'cache')
+CACHE_DIR = os.path.join(PKG_ROOT, 'data', 'cache')
 # Sheet of interest:
 # - XLSX version: https://docs.google.com/spreadsheets/d/17hHiqc6GKWv9trcW-lRnv-MhZL8Swrx2/edit#gid=1335629675
 # - https://docs.google.com/spreadsheets/d/1jzGrVELQz5L4B_-DqPflPIcpBaTfJOUTrVJT5nS_j18/edit#gid=405597125
