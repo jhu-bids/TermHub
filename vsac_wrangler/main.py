@@ -16,31 +16,26 @@ from uuid import uuid4
 
 import pandas as pd
 
-from vsac_wrangler.config import CACHE_DIR, OUTPUT_DIR, PROJECT_ROOT
+from vsac_wrangler.config import CACHE_DIR, DATA_DIR, PROJECT_ROOT
 from vsac_wrangler.definitions.constants import FHIR_JSON_TEMPLATE
 from vsac_wrangler.google_sheets import get_sheets_data
 from vsac_wrangler.vsac_api import get_ticket_granting_ticket, get_value_sets
 
 # USER1: This is an actual ID to a valid user in palantir, who works on our BIDS team.
+PROJECT_NAME = 'RP-4A9E27'
 PALANTIR_ENCLAVE_USER_ID_1 = 'a39723f3-dc9c-48ce-90ff-06891c29114f'
 VSAC_LABEL_PREFIX = '[VSAC] '
 
 
-def _save_csv(df: pd.DataFrame, filename='output', subfolder=None, field_delimiter=',', ):
+# to-do: Shared lib for this stuff?
+# noinspection DuplicatedCode
+def _save_csv(df: pd.DataFrame, output_name, source_name, filename, field_delimiter=','):
     """Side effects: Save CSV"""
-    outdir = os.path.join(OUTPUT_DIR, filename)
-    if not os.path.exists(outdir):
-        os.mkdir(outdir)
-    outdir2 = os.path.join(outdir, datetime.now().strftime('%Y.%m.%d'))
-    if not os.path.exists(outdir2):
-        os.mkdir(outdir2)
-
-    outdir3 = outdir2 if subfolder is None else os.path.join(outdir2, subfolder)
-    if not os.path.exists(outdir3):
-        os.mkdir(outdir3)
-
+    date_str = datetime.now().strftime('%Y.%m.%d')
+    out_dir = os.path.join(DATA_DIR, output_name, source_name, date_str, 'output')
+    os.makedirs(out_dir, exist_ok=True)
     output_format = 'csv' if field_delimiter == ',' else 'tsv' if field_delimiter == '\t' else 'txt'
-    outpath = os.path.join(outdir3, f'{filename}.{output_format}')
+    outpath = os.path.join(out_dir, f'{filename}.{output_format}')
     df.to_csv(outpath, sep=field_delimiter, index=False)
 
 
@@ -60,7 +55,7 @@ def save_json(value_sets, output_structure, json_indent=4) -> List[Dict]:
             value_set2 = vsac_to_fhir(value_set)
         elif output_structure == 'vsac':
             value_set2 = vsac_to_vsac(value_set)
-        elif output_structure == 'atlas':  # TODO: Implement
+        elif output_structure == 'atlas':
             raise NotImplementedError('For "atlas" output-structure, output-format "json" not yet implemented.')
         d_list.append(value_set2)
 
@@ -72,7 +67,7 @@ def save_json(value_sets, output_structure, json_indent=4) -> List[Dict]:
             valueset_name = d['Concept Set Name']
         valueset_name = valueset_name.replace('/', '|')
         filename = valueset_name + '.json'
-        filepath = os.path.join(OUTPUT_DIR, filename)
+        filepath = os.path.join(DATA_DIR, filename)
         with open(filepath, 'w') as fp:
             if json_indent:
                 json.dump(d, fp, indent=json_indent)
@@ -212,25 +207,37 @@ def get_vsac_csv(
 
     # Create/Return DF & Save CSV
     df = pd.DataFrame(rows)
-    _save_csv(df, filename=filename, subfolder=google_sheet_name, field_delimiter=field_delimiter)
+    _save_csv(df, filename=filename, source_name=google_sheet_name, field_delimiter=field_delimiter)
 
     return df
 
 
 def get_palantir_csv(
-    value_sets: List[OrderedDict], google_sheet_name=None, field_delimiter=',',
+    value_sets: pd.DataFrame, output_name='palantir-three-file', source_name='vsac', field_delimiter=',',
     filename1='concept_set_version_item_rv_edited', filename2='code_sets', filename3='concept_set_container_edited'
 ) -> Dict[str, pd.DataFrame]:
     """Convert VSAC hiearchical XML to CSV compliant w/ Palantir's OMOP-inspired concept set editor data model"""
-    # - This will allow us to find name collisions:
-    # cset_name_value_set_map = {}
-    # for vs in value_sets:
-    #     vs_name = vs['@displayName']
-    #     if vs_name not in cset_name_value_set_map:
-    #         cset_name_value_set_map[vs_name] = []
-    #     cset_name_value_set_map[vs_name].append(vs)
+    # I.i. Update value set names
+    cset_name_value_set_map: Dict[str, List[pd.Series]] = {}
+    for i, value_set in value_sets.iterrows():
+        vs_name = value_set['@displayName']
+        if vs_name not in cset_name_value_set_map:
+            cset_name_value_set_map[vs_name] = []
+        cset_name_value_set_map[vs_name].append(value_set)
 
-    # I. Create IDs that will be shared between files
+    value_sets_names_updated = []
+    for cset_name, csets in cset_name_value_set_map.items():
+        if len(csets) < 2:
+            value_sets_names_updated.append(csets[0])
+        else:
+            for vs in csets:
+                last_3_of_oid = vs['@ID'].split('.')[-1]
+                vs['@displayName'] = vs['@displayName'] + ' ' + last_3_of_oid
+                value_sets_names_updated.append(vs)
+    value_sets = pd.DataFrame(value_sets_names_updated)
+
+
+    # I.ii. Create IDs that will be shared between files
     oid_enclave_code_set_id_map_csv_path = os.path.join(PROJECT_ROOT, 'data', 'cset.csv')
     oid_enclave_code_set_id_df = pd.read_csv(oid_enclave_code_set_id_map_csv_path)
     oid__codeset_id_map = dict(zip(
@@ -238,17 +245,11 @@ def get_palantir_csv(
         oid_enclave_code_set_id_df['internal_id']))
 
     # II. Create & save exports
-    all = {}
+    _all = {}
     # 1. Palantir enclave table: concept_set_version_item_rv_edited
     rows1 = []
     for i, value_set in value_sets.iterrows():
-        # moved two lines from here to fix_vsac_api
-        try:
-            codeset_id = oid__codeset_id_map[value_set['@ID']]
-        except Exception as e:
-            print(e)
-        # codeset_id = value_set['@displayName']
-
+        codeset_id = oid__codeset_id_map[value_set['@ID']]
         for concept in value_set['concepts']:
             code = concept['@code']
             code_system = concept['@codeSystemName']
@@ -276,16 +277,14 @@ def get_palantir_csv(
             row = row2
             rows1.append(row)
     df1 = pd.DataFrame(rows1)
-    all[filename1] = df1
-    _save_csv(df1, filename=filename1, subfolder=google_sheet_name, field_delimiter=field_delimiter)
+    _all[filename1] = df1
+    _save_csv(
+        df1, filename=filename1, output_name=output_name, source_name=source_name, field_delimiter=field_delimiter)
 
     # 2. Palantir enclave table: code_sets
     rows2 = []
     for i, value_set in value_sets.iterrows():
-        try:
-            codeset_id = oid__codeset_id_map[value_set['@ID']]
-        except Exception as e:
-            print(e)
+        codeset_id = oid__codeset_id_map[value_set['@ID']]
         concept_set_name = VSAC_LABEL_PREFIX + value_set['@displayName']
         purposes = value_set['ns0:Purpose'].split('),')
         purposes2 = []
@@ -310,7 +309,7 @@ def get_palantir_csv(
             'codeset_id': codeset_id,
             'concept_set_name': concept_set_name,
             'concept_set_version_title': concept_set_name + ' (v1)',
-            'project': 'RP-4A9E',  # always use this project id for bulk import
+            'project': PROJECT_NAME,  # always use this project id for bulk import
             'source_application': 'EXTERNAL VSAC',
             'source_application_version': '',  # nullable
             'created_at': _datetime_palantir_format(),
@@ -358,8 +357,9 @@ def get_palantir_csv(
         row = row2
         rows2.append(row)
     df2 = pd.DataFrame(rows2)
-    all[filename2] = df2
-    _save_csv(df2, filename=filename2, subfolder=google_sheet_name, field_delimiter=field_delimiter)
+    _all[filename2] = df2
+    _save_csv(
+        df2, filename=filename2, output_name=output_name, source_name=source_name, field_delimiter=field_delimiter)
 
     # 3. Palantir enclave table: concept_set_container_edited
     rows3 = []
@@ -414,64 +414,19 @@ def get_palantir_csv(
 
         rows3.append(row)
     df3 = pd.DataFrame(rows3)
-    all[filename3] = df3
-    _save_csv(df3, filename=filename3, subfolder=google_sheet_name, field_delimiter=field_delimiter)
+    _all[filename3] = df3
+    _save_csv(
+        df3, filename=filename3, output_name=output_name, source_name=source_name, field_delimiter=field_delimiter)
 
-    return all
+    return _all
 
 
-def get_normalized_csv(     # do we really need this?
-    # TODO: delete this function unless it is still needed
-    value_sets: List[OrderedDict], tabular_field_delimiter=',', tabular_intra_field_delimiter='|', filename='normalized'
-) -> pd.DataFrame:
-    """Get normalized CSV"""
-    # TODO: Include as many fields as possible from each of 3 CSVs, and save as one
-    rows = []
-    for vs in value_sets:
-        concepts = vs['ns0:ConceptList']['ns0:Concept']
-        concepts = concepts if type(concepts) == list else [concepts]
-        for concept in concepts:
-            # TODO: save demo row and check it
-            # TODO: should not have line breaks either
-            rows.append({
-                # 1/3: code_sets fields
-                "codeset_id": concept['@code'],
-                # "concept_set_name": concept['xxx'],
-                # "concept_set_version_title": concept['xxx'],
-                # "project": concept['xxx'],
-                # "source_application": concept['xxx'],
-                # "source_application_version": concept['xxx'],
-                # "created_at": concept['xxx'],
-                # "atlas_json": concept['xxx'],
-                # "is_most_recent_version": concept['xxx'],
-                # "version": concept['xxx'],
-                # "comments": concept['xxx'],
-                # "intention": concept['xxx'],
-                # "limitations": concept['xxx'],
-                # "issues": concept['xxx'],
-                # "update_message": concept['xxx'],
-                # "status": concept['xxx'],
-                # "has_review": concept['xxx'],
-                # "reviewed_by": concept['xxx'],
-                # "created_by": concept['xxx'],
-                # "provenance": concept['xxx'],
-                # "atlas_json_resource_url": concept['xxx'],
-                # "parent_version_id": concept['xxx'],
-                # "is_draft": concept['xxx']
-            })
-
-    df = pd.DataFrame(rows)
-    _save_csv(df, filename=filename, subfolder=filename, field_delimiter=tabular_field_delimiter)
-
-    return df
-
-def fix_vsac_api_structure(vs_results: OrderedDict) -> List[OrderedDict]:
+def fix_vsac_api_structure(value_sets: List[OrderedDict]) -> pd.DataFrame:
     """
         - Gets rid of useless ns0:... stuff in vsac api value sets
         - Fixes name collisions (fixed rows move to the top)
         - converts from OrderedDict to DataFrame
     """
-    value_sets = vs_results['ns0:RetrieveMultipleValueSetsResponse']['ns0:DescribedValueSet']
     for value_set in value_sets:
         concepts = value_set['ns0:ConceptList']['ns0:Concept']
         concepts = concepts if type(concepts) == list else [concepts]
@@ -528,17 +483,19 @@ def run(
             with open(input_path, 'r') as f:
                 object_ids = [oid.rstrip() for oid in f.readlines()]
         elif input_source_type == 'csv':
-            df = pd.read_csv(input_path)
+            df = pd.read_csv(input_path).fillna('')
             try:        # the most recent spreadsheet has OID instead of oid
                 object_ids = list(df['oid'])
             except KeyError:
                 object_ids = list(df['OID'])
+            object_ids = [x for x in object_ids if x]
 
         # 2/3: Query VSAC
         tgt: str = get_ticket_granting_ticket()
-        # service_ticket = get_service_ticket(tgt)  # this is called later
 
-        value_sets: List[OrderedDict] = fix_vsac_api_structure(get_value_sets(object_ids, tgt))
+        value_sets_dict = get_value_sets(object_ids, tgt)
+        value_sets: List[OrderedDict] = value_sets_dict['ns0:RetrieveMultipleValueSetsResponse'][
+            'ns0:DescribedValueSet']
 
         # Save to cache
         with open(pickle_file, 'wb') as handle:
@@ -547,11 +504,12 @@ def run(
     # 3/3: Generate output
     if output_format == 'tabular/csv':
         if output_structure == 'normalized':
-            get_normalized_csv(value_sets, tabular_field_delimiter, tabular_intra_field_delimiter)
+            raise NotImplementedError('Not implemented.')
         elif output_structure == 'vsac':
             get_vsac_csv(value_sets, google_sheet_name, tabular_field_delimiter, tabular_intra_field_delimiter)
         elif output_structure == 'palantir-concept-set-tables':
-            get_palantir_csv(value_sets, google_sheet_name, tabular_field_delimiter)
+            value_sets: pd.DataFrame = fix_vsac_api_structure(value_sets)
+            get_palantir_csv(value_sets, field_delimiter=tabular_field_delimiter)
         elif output_structure == 'fhir':
             raise NotImplementedError('output_structure "fhir" not available for output_format "csv/tabular".')
     elif output_format == 'json':

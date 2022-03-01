@@ -64,7 +64,22 @@ Options:
 | `-i` | `--input-csv-folder-path` | | | Path to folder with 3 files that have specific columns that adhere to concept table data model. These files must have the following names: i. code_sets.csv, ii. concept_set_container_edited.csv, iii. concept_set_version_item_rv_edited.csv |
 | `-h` | `--help` |  | | Shows help information for using the tool. |
 
-### 3. CSV to FHIR JSON 
+
+### 3. HCUP Wrangler
+Creates N3C Palantir Foundry data enclave upload files from HCUP dataset.
+
+#### Syntax
+`python3 -m enclave_wrangler <options>`
+
+Options:
+
+|Short flag | Long flag | Choices | Default | Description |
+|---	|---	|---	|--- | --- |
+| `-i` | `--input-csv-folder-path` | | | Path to input directory. This should be a folder with 2 files: "CSSR_Prov_Intent_Limit.csv" and "Dx_Concepts_Codes_for_Enclave.csv". |
+| `-h` | `--help` |  | | Shows help information for using the tool. |
+
+
+### 4. CSV to FHIR JSON 
 Tool for converting extensional value sets in CSV format to JSON format able to 
 be uploaded to a FHIR server.
 

@@ -114,7 +114,7 @@ def validate_args(kwargs):
     # to-do: It would be ideal if we could show this error when the user /explicitly/ passes these arguments.
     # ...but unfortunately this error also shows even if the user passes no arguments at all, due to the default args.
     # msg = 'Can only pass google sheet name if input source is a google shet.'
-    # if 'google_sheet_name' in kwargs and kwargs.input_source_type != 'google-sheet':
+    # if 'output_name' in kwargs and kwargs.input_source_type != 'google-sheet':
     #     raise RuntimeError(msg)
 
 
@@ -126,9 +126,6 @@ def cli():
     kwargs = parser.parse_args()
     validate_args(kwargs)
     kwargs_dict: Dict = vars(kwargs)
-    # TODO: this is probably better done a different way? This is a fix so that subfolder isn't created when not needed
-    if kwargs_dict['input_source_type'] != 'google-sheet':
-        del kwargs_dict['google_sheet_name']
     run(**kwargs_dict)
 
 
