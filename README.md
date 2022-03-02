@@ -75,7 +75,7 @@ Options:
 
 |Short flag | Long flag | Choices | Default | Description |
 |---	|---	|---	|--- | --- |
-| `-i` | `--input-csv-folder-path` | | | Path to input directory. This should be a folder with 2 files: "CSSR_Prov_Intent_Limit.csv" and "Dx_Concepts_Codes_for_Enclave.csv". |
+| `-i` | `--input-csv-folder-path` | | | Path to input directory. This should be a folder with 2 files: "CCSR_Prov_Intent_Limit.csv" and "Dx_Concepts_Codes_for_Enclave.csv". |
 | `-h` | `--help` |  | | Shows help information for using the tool. |
 
 
