@@ -114,7 +114,7 @@ def get_palantir_csv_from_hcup(
             'codeSystem': code_system,
             # </non-palantir fields>
             'isExcluded': False,
-            'includeDescendants': True,
+            'includeDescendants': False,
             'includeMapped': False,
             'item_id': str(uuid4()),  # will let palantir verify ID is indeed unique
             'annotation': 'Curated HCUP CCSR value set.',
@@ -134,10 +134,11 @@ def get_palantir_csv_from_hcup(
     # 2. Palantir enclave table: code_sets
     rows2 = []
     for i, value_set in hcup_value_sets.iterrows():
-        codeset_id = cssr__codeset_id__map[value_set['ccsr_code']]
+        cssr_code = value_set['ccsr_code']
+        codeset_id = cssr__codeset_id__map[cssr_code]
         # to-do: The source dataset comes in format like f'{ccsr_code} {description}'.
         # ...Maybe we should do: .replace(codeset_id, '').
-        concept_set_name = HCUP_LABEL_PREFIX + value_set['ccsr_description']
+        concept_set_name = HCUP_LABEL_PREFIX + value_set['ccsr_description'].replace(cssr_code + ' ', '')
         row = {
             'codeset_id': codeset_id,
             'concept_set_name': concept_set_name,
@@ -167,7 +168,7 @@ def get_palantir_csv_from_hcup(
             'has_review': '',  # boolean (nullable)
             'reviewed_by': '',  # nullable
             'created_by': PALANTIR_ENCLAVE_USER_ID_1,
-            'provenance': value_set['PROVENANCE'],
+            'provenance': value_set['PROVENANCE'] + '; CSSR Code: ' + cssr_code,
             'atlas_json_resource_url': '',  # nullable
             # null, initial version will not have the parent version so this field would be always null:
             'parent_version_id': '',  # nullable
@@ -185,7 +186,8 @@ def get_palantir_csv_from_hcup(
     # 3. Palantir enclave table: concept_set_container_edited
     rows3 = []
     for i, value_set in hcup_value_sets.iterrows():
-        concept_set_name = HCUP_LABEL_PREFIX + value_set['ccsr_description']
+        cssr_code = value_set['ccsr_code']
+        concept_set_name = HCUP_LABEL_PREFIX + value_set['ccsr_description'].replace(cssr_code + ' ', '')
         row = {
             'concept_set_id': concept_set_name,
             'concept_set_name': concept_set_name,
