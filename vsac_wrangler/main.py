@@ -494,8 +494,12 @@ def run(
         object_ids: List[str] = []
         if input_source_type == 'google-sheet':
             df: pd.DataFrame = get_sheets_data(google_sheet_name)
-            df = df[df['DoNotLoad'] != True]
-            object_ids = [x for x in list(df['OID']) if x != '']
+            if 'DoNotLoad' in df.columns:
+                df = df[df['DoNotLoad'] != True]
+            try:
+                object_ids = [x for x in list(df['OID']) if x != '']
+            except KeyError:
+                object_ids = [x for x in list(df['oid']) if x != '']
         elif input_source_type in ['txt', 'csv']:
             if not Path(input_path).is_file():
                 input_path = Path(os.getcwd(), input_path)
@@ -506,10 +510,9 @@ def run(
                 object_ids = [oid.rstrip() for oid in f.readlines()]
         elif input_source_type == 'csv':
             df = pd.read_csv(input_path).fillna('')
-
             # added new column to spreadsheet for rows not to include
-            df = df[df['DoNotLoad'] != True]
-
+            if 'DoNotLoad' in df.columns:
+                df = df[df['DoNotLoad'] != True]
             try:        # the most recent spreadsheet has OID instead of oid
                 object_ids = list(df['oid'])
             except KeyError:
