@@ -34,6 +34,11 @@ def get_parser():
     parser.add_argument(
         '-p', '--input-path', required=False,
         help='Path to input file. Required if `--input-source-type` is "txt" or "csv".')
+    parser.add_argument(
+        '--google-sheet-url', required=False,
+        help='URL of google sheet. Does not require google sheet input. Will currently be used only'
+             ' in main.py: get_palantir_csv to populate cset.cvs:internal_source when new internal_ids'
+             'are generated.')
     # to-do: Add Google Sheet URL
     parser.add_argument(
         '-g', '--google-sheet-name',
@@ -126,7 +131,7 @@ def cli():
     kwargs = parser.parse_args()
     validate_args(kwargs)
     kwargs_dict: Dict = vars(kwargs)
-    run(**kwargs_dict)
+    run(get_parser, **kwargs_dict)
 
 
 if __name__ == '__main__':

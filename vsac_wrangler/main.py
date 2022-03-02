@@ -16,6 +16,11 @@ from uuid import uuid4
 
 import pandas as pd
 
+try:
+    import ArgumentParser
+except ModuleNotFoundError:
+    from argparse import ArgumentParser
+
 from vsac_wrangler.config import CACHE_DIR, DATA_DIR, PROJECT_ROOT
 from vsac_wrangler.definitions.constants import FHIR_JSON_TEMPLATE
 from vsac_wrangler.google_sheets import get_sheets_data
@@ -25,6 +30,7 @@ from vsac_wrangler.vsac_api import get_ticket_granting_ticket, get_value_sets
 PROJECT_NAME = 'RP-4A9E27'
 PALANTIR_ENCLAVE_USER_ID_1 = 'a39723f3-dc9c-48ce-90ff-06891c29114f'
 VSAC_LABEL_PREFIX = '[VSAC] '
+PARSE_ARGS = None   # will fill this later
 
 
 # to-do: Shared lib for this stuff?
@@ -212,44 +218,55 @@ def get_vsac_csv(
     return df
 
 
+def get_ids_for_palantir3file(value_sets: pd.DataFrame) -> Dict[str, int]:
+    oid_enclave_code_set_id_map_csv_path = os.path.join(PROJECT_ROOT, 'data', 'cset.csv')
+    oid_enclave_code_set_id_df = pd.read_csv(oid_enclave_code_set_id_map_csv_path)
+
+    missing_oids = set(value_sets['@ID']) - set(oid_enclave_code_set_id_df['oid'])
+    if len(missing_oids) > 0:
+        google_sheet_url = PARSE_ARGS.google_sheet_url
+        new_ids = [id for id in oid_enclave_code_set_id_df.internal_id.max() +
+                   1 + range(0, len(missing_oids))]
+
+        missing_recs = pd.DataFrame(data={
+            'source_id_field': ['oid' for i in range(0, len(missing_oids))],
+            'oid': [oid for oid in missing_oids],
+            'ccsr_code': [None for i in range(0, len(missing_oids))],
+            'internal_id': new_ids,
+            'internal_source': [google_sheet_url for i in range(0, len(missing_oids))],
+            'cset_source': ['VSAC' for i in range(0, len(missing_oids))],
+            'grouped_by_bids': [None for i in range(0, len(missing_oids))],
+            'concept_id': [None for i in range(0, len(missing_oids))],
+        })
+        oid_enclave_code_set_id_df = pd.concat([oid_enclave_code_set_id_df, missing_recs])
+        oid_enclave_code_set_id_df.to_csv(oid_enclave_code_set_id_map_csv_path, index=False)
+
+    oid__codeset_id_map = dict(zip(
+        oid_enclave_code_set_id_df['oid'],
+        oid_enclave_code_set_id_df['internal_id']))
+
+    return oid__codeset_id_map
+
 def get_palantir_csv(
     value_sets: pd.DataFrame, output_name='palantir-three-file', source_name='vsac', field_delimiter=',',
     filename1='concept_set_version_item_rv_edited', filename2='code_sets', filename3='concept_set_container_edited'
 ) -> Dict[str, pd.DataFrame]:
     """Convert VSAC hiearchical XML to CSV compliant w/ Palantir's OMOP-inspired concept set editor data model"""
-    # I.i. Update value set names
-    cset_name_value_set_map: Dict[str, List[pd.Series]] = {}
-    for i, value_set in value_sets.iterrows():
-        vs_name = value_set['@displayName']
-        if vs_name not in cset_name_value_set_map:
-            cset_name_value_set_map[vs_name] = []
-        cset_name_value_set_map[vs_name].append(value_set)
 
-    value_sets_names_updated = []
-    for cset_name, csets in cset_name_value_set_map.items():
-        if len(csets) < 2:
-            value_sets_names_updated.append(csets[0])
-        else:
-            for vs in csets:
-                last_3_of_oid = vs['@ID'].split('.')[-1]
-                vs['@displayName'] = vs['@displayName'] + ' ' + last_3_of_oid
-                value_sets_names_updated.append(vs)
-    value_sets = pd.DataFrame(value_sets_names_updated)
+    # I. Create IDs that will be shared between files
+    oid__codeset_id_map = get_ids_for_palantir3file(value_sets)
 
-
-    # I.ii. Create IDs that will be shared between files
-    oid_enclave_code_set_id_map_csv_path = os.path.join(PROJECT_ROOT, 'data', 'cset.csv')
-    oid_enclave_code_set_id_df = pd.read_csv(oid_enclave_code_set_id_map_csv_path)
-    oid__codeset_id_map = dict(zip(
-        oid_enclave_code_set_id_df['oid'],
-        oid_enclave_code_set_id_df['internal_id']))
 
     # II. Create & save exports
     _all = {}
     # 1. Palantir enclave table: concept_set_version_item_rv_edited
     rows1 = []
     for i, value_set in value_sets.iterrows():
-        codeset_id = oid__codeset_id_map[value_set['@ID']]
+        try:
+            codeset_id = oid__codeset_id_map[value_set['@ID']]
+        except KeyError:
+            print('WTF')
+
         for concept in value_set['concepts']:
             code = concept['@code']
             code_system = concept['@codeSystemName']
@@ -447,14 +464,18 @@ def fix_vsac_api_structure(value_sets: List[OrderedDict]) -> pd.DataFrame:
     return pd.concat([rows_with_name_collisions, rows_without])
 
 def run(
+    get_parser,
     input_source_type=['google-sheet', 'txt', 'csv'][-1],
     google_sheet_name=None,
+    google_sheet_url=None,  # not passing this. just grabbing it from argparse when i need it
     output_format=['tabular/csv', 'json'][0],
     output_structure=['fhir', 'vsac', 'palantir-concept-set-tables', 'atlas', 'normalized'][-1],
     tabular_field_delimiter=[',', '\t'][0],
     tabular_intra_field_delimiter=[',', ';', '|'][2],
-    json_indent=4, use_cache=False, input_path=None
+    json_indent=4, use_cache=False, input_path=None,
 ):
+    global PARSE_ARGS
+    PARSE_ARGS = get_parser().parse_args()  # for convenient access later
     """Main function
     Refer to interfaces/cli.py for argument descriptions."""
     value_sets = []
@@ -473,6 +494,7 @@ def run(
         object_ids: List[str] = []
         if input_source_type == 'google-sheet':
             df: pd.DataFrame = get_sheets_data(google_sheet_name)
+            df = df[df['DoNotLoad'] != True]
             object_ids = [x for x in list(df['OID']) if x != '']
         elif input_source_type in ['txt', 'csv']:
             if not Path(input_path).is_file():
@@ -484,6 +506,10 @@ def run(
                 object_ids = [oid.rstrip() for oid in f.readlines()]
         elif input_source_type == 'csv':
             df = pd.read_csv(input_path).fillna('')
+
+            # added new column to spreadsheet for rows not to include
+            df = df[df['DoNotLoad'] != True]
+
             try:        # the most recent spreadsheet has OID instead of oid
                 object_ids = list(df['oid'])
             except KeyError:
