@@ -455,13 +455,32 @@ def fix_vsac_api_structure(value_sets: List[OrderedDict]) -> pd.DataFrame:
     rows_with_name_collisions = rows_by_name.filter(lambda x: len(x) > 1)
     rows_without = rows_by_name.filter(lambda x: len(x) == 1)
 
-    last_oid_parts = rows_with_name_collisions['@ID'].str.split('.').apply(lambda parts: parts[-1])
-
+    # append last 3 of oid
     # append_oid_part_to_name = lambda row: f'{row["Name"]} {}'
+    last_oid_parts = rows_with_name_collisions['@ID'].str.split('.').apply(lambda parts: parts[-1])
+    rows_with_name_collisions['@displayName'] =\
+        rows_with_name_collisions['@displayName'] + ' ' + last_oid_parts
 
-    rows_with_name_collisions['@displayName'] = rows_with_name_collisions['@displayName'] + ' ' + last_oid_parts
+    df = pd.concat([rows_with_name_collisions, rows_without])
 
-    return pd.concat([rows_with_name_collisions, rows_without])
+    # Fix cases of codeSystem appearing in @displayName
+    def name_fixer(name) -> str:
+        """Fixes names"""
+        snomed_cases = [
+            'SNOMEDCT',
+            'SNOMED CT',
+            'SNOMED',
+            'SCT',
+            'SM CT']
+        for case in snomed_cases:
+            wrapped = f'({case})'
+            name = name.replace(wrapped, '')
+            name = name.replace(case, '')
+            print()
+        return name
+    df['@displayName'] = df['@displayName'].apply(name_fixer)
+
+    return df
 
 def run(
     get_parser,
