@@ -54,7 +54,7 @@ def cli():
     parser = ArgumentParser(description=package_description)
     parser.add_argument(
         '-p', '--input-dir-path', required=False,
-        help='Path to input directory. This should be a folder with 2 files: "CSSR_Prov_Intent_Limit.csv" and '
+        help='Path to input directory. This should be a folder with 2 files: "CCSR_Prov_Intent_Limit.csv" and '
              '"Dx_Concepts_Codes_for_Enclave.csv".')
     kwargs = parser.parse_args()
     kwargs_dict: Dict = vars(kwargs)
@@ -75,8 +75,8 @@ def load_cup_data(input_dir_path: str) -> pd.DataFrame:
 
     # JOIN
     df: pd.DataFrame = pd.merge(
-        concept_csv_name_df, concept_metadata_csv_name_df, how='left',
-        left_on=['ccsr_code'], right_on=['CCSR'])
+        concept_metadata_csv_name_df, concept_csv_name_df, how='left',
+        left_on=['CCSR'], right_on=['ccsr_code'])
 
     # Fix codes
     df['icd10cm_code'] = df['icd10cm_code'].apply(_icd10cm_code_fixer)
@@ -85,24 +85,35 @@ def load_cup_data(input_dir_path: str) -> pd.DataFrame:
 
 
 def get_palantir_csv_from_hcup(
-    hcup_value_sets: pd.DataFrame, field_delimiter=',', output_name='palantir-three-file', source_name='hcup',
+    hcup_value_set_items: pd.DataFrame, field_delimiter=',', output_name='palantir-three-file', source_name='hcup',
     filename1='concept_set_version_item_rv_edited', filename2='code_sets', filename3='concept_set_container_edited'
 ) -> Dict[str, pd.DataFrame]:
     """Convert VSAC hiearchical XML to CSV compliant w/ Palantir's OMOP-inspired concept set editor data model"""
     # I. Create IDs that will be shared between files
-    cssr__enclave_code_set_id__map_csv_path = os.path.join(PROJECT_ROOT, 'data', 'cset.csv')
-    cssr__enclave_code_set_id__df = pd.read_csv(cssr__enclave_code_set_id__map_csv_path)
-    cssr__codeset_id__map = dict(zip(
-        cssr__enclave_code_set_id__df['ccsr_code'],
-        cssr__enclave_code_set_id__df['internal_id']))
+    ccsr__enclave_code_set_id__map_csv_path = os.path.join(PROJECT_ROOT, 'data', 'cset.csv')
+    ccsr__enclave_code_set_id__df = pd.read_csv(ccsr__enclave_code_set_id__map_csv_path)
+    ccsr__codeset_id__map = dict(zip(
+        ccsr__enclave_code_set_id__df['ccsr_code'],
+        ccsr__enclave_code_set_id__df['internal_id']))
+    ccsr_codes = list(hcup_value_set_items['CCSR'].unique())
 
     # II. Create & save exports
     _all = {}
     # 1. Palantir enclave table: concept_set_version_item_rv_edited
     rows1 = []
-    for i, value_set in hcup_value_sets.iterrows():
-        codeset_id = cssr__codeset_id__map[value_set['ccsr_code']]
-        code = value_set['icd10cm_code']
+    codeset_id__code__map = {}
+    for i, this_value_set_items in hcup_value_set_items.iterrows():
+        codeset_id = ccsr__codeset_id__map[this_value_set_items['ccsr_code']]
+        code = this_value_set_items['icd10cm_code']
+
+        # This will help us avoid duplicate codes in single concept set
+        if codeset_id not in codeset_id__code__map:
+            codeset_id__code__map[codeset_id] = []
+        if code not in codeset_id__code__map[codeset_id]:
+            codeset_id__code__map[codeset_id].append(code)
+        else:
+            continue
+
         code_system = HCUP_CODESYSTEM
         # The 3 fields isExcluded, includeDescendants, and includeMapped, are from OMOP but also in VSAC. If it has
         # ...these 3 options, it is intensional. And when you execute these 3, it is now extensional / expansion.
@@ -133,12 +144,12 @@ def get_palantir_csv_from_hcup(
 
     # 2. Palantir enclave table: code_sets
     rows2 = []
-    for i, value_set in hcup_value_sets.iterrows():
-        cssr_code = value_set['ccsr_code']
-        codeset_id = cssr__codeset_id__map[cssr_code]
+    for ccsr_code in ccsr_codes:
+        this_value_set_items = hcup_value_set_items[hcup_value_set_items['CCSR'] == ccsr_code]
+        codeset_id = ccsr__codeset_id__map[ccsr_code]
         # to-do: The source dataset comes in format like f'{ccsr_code} {description}'.
         # ...Maybe we should do: .replace(codeset_id, '').
-        concept_set_name = HCUP_LABEL_PREFIX + value_set['ccsr_description'].replace(cssr_code + ' ', '')
+        concept_set_name = HCUP_LABEL_PREFIX + list(this_value_set_items['ccsr_description'])[0].replace(ccsr_code + ' ', '')
         row = {
             'codeset_id': codeset_id,
             'concept_set_name': concept_set_name,
@@ -151,8 +162,8 @@ def get_palantir_csv_from_hcup(
             'is_most_recent_version': True,
             'version': 1,
             'comments': 'Exported from VSAC and bulk imported to N3C.',
-            'intention': value_set['INTENTION'],  # nullable
-            'limitations': value_set['LIMITATION'],  # nullable
+            'intention': list(this_value_set_items['INTENTION'])[0],  # nullable
+            'limitations': list(this_value_set_items['LIMITATION'])[0],  # nullable
             'issues': '',  # nullable
             'update_message': 'Initial version.',  # nullable (maybe?)
             # status field stats as appears in the code_set table 2022/01/12:
@@ -168,7 +179,7 @@ def get_palantir_csv_from_hcup(
             'has_review': '',  # boolean (nullable)
             'reviewed_by': '',  # nullable
             'created_by': PALANTIR_ENCLAVE_USER_ID_1,
-            'provenance': value_set['PROVENANCE'] + '; CSSR Code: ' + cssr_code,
+            'provenance': list(this_value_set_items['PROVENANCE'])[0] + '; CCSR Code: ' + ccsr_code,
             'atlas_json_resource_url': '',  # nullable
             # null, initial version will not have the parent version so this field would be always null:
             'parent_version_id': '',  # nullable
@@ -185,11 +196,12 @@ def get_palantir_csv_from_hcup(
 
     # 3. Palantir enclave table: concept_set_container_edited
     rows3 = []
-    for i, value_set in hcup_value_sets.iterrows():
-        cssr_code = value_set['ccsr_code']
-        concept_set_name = HCUP_LABEL_PREFIX + value_set['ccsr_description'].replace(cssr_code + ' ', '')
+    for ccsr_code in ccsr_codes:
+        this_value_set_items = hcup_value_set_items[hcup_value_set_items['CCSR'] == ccsr_code]
+        codeset_id = ccsr__codeset_id__map[ccsr_code]
+        concept_set_name = HCUP_LABEL_PREFIX + list(this_value_set_items['ccsr_description'])[0].replace(ccsr_code + ' ', '')
         row = {
-            'concept_set_id': concept_set_name,
+            'concept_set_id': codeset_id,
             'concept_set_name': concept_set_name,
             'project_id': '',  # nullable
             'assigned_informatician': PALANTIR_ENCLAVE_USER_ID_1,  # nullable
@@ -207,7 +219,7 @@ def get_palantir_csv_from_hcup(
                 'Awaiting Informatician Review',
                 'Under Informatician Review',
             ][1],
-            'intention': value_set['INTENTION'],  # nullable
+            'intention': list(this_value_set_items['INTENTION'])[0],  # nullable
             'n3c_reviewer': '',  # nullable
             'alias': None,
             'archived': False,
@@ -232,9 +244,9 @@ def get_palantir_csv_from_hcup(
 def run(input_dir_path: str):
     """Does the transform"""
     # Read data
-    df: pd.DataFrame = load_cup_data(input_dir_path)
+    codes_df: pd.DataFrame = load_cup_data(input_dir_path)
     # Write CSVs
-    get_palantir_csv_from_hcup(df)
+    get_palantir_csv_from_hcup(codes_df)
 
 
 # Runtime
