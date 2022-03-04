@@ -1,0 +1,433 @@
+﻿annotation,concept_set_name,code_count
+test,ALT test,1
+Curated HCUP CCSR value set.,[HCUP] Acute and unspecified renal failure,6
+Curated HCUP CCSR value set.,[HCUP] Acute myocardial infarction,17
+Curated HCUP CCSR value set.,[HCUP] Bipolar and related disorders,34
+Curated HCUP CCSR value set.,[HCUP] Chronic obstructive pulmonary disease and bronchiectasis,15
+Curated HCUP CCSR value set.,[HCUP] Complications of acute myocardial infarction,10
+Curated HCUP CCSR value set.,[HCUP] Depressive disorders,19
+Curated HCUP CCSR value set.,[HCUP] Diabetes mellitus with complication,281
+Curated HCUP CCSR value set.,[HCUP] Diabetes mellitus without complication,4
+Curated HCUP CCSR value set.,[HCUP] Diseases of white blood cells,25
+Curated HCUP CCSR value set.,"[HCUP] Disruptive, impulse-control and conduct disorders",11
+Curated HCUP CCSR value set.,[HCUP] Gastroduodenal ulcer,20
+Curated HCUP CCSR value set.,[HCUP] Hepatic failure,8
+Curated HCUP CCSR value set.,[HCUP] Immunity disorders,67
+Curated HCUP CCSR value set.,[HCUP] Nephritis; nephrosis; renal sclerosis,63
+Curated HCUP CCSR value set.,[HCUP] Other specified and unspecified diseases of kidney and ureters,30
+Curated HCUP CCSR value set.,[HCUP] Other specified and unspecified liver disease,34
+Curated HCUP CCSR value set.,[HCUP] Other specified and unspecified lower respiratory disease,44
+Curated HCUP CCSR value set.,[HCUP] Other specified and unspecified mood disorders,6
+Curated HCUP CCSR value set.,[HCUP] Peripheral and visceral vascular disease,232
+Curated HCUP CCSR value set.,[HCUP] Proteinuria,15
+Curated HCUP CCSR value set.,[HCUP] Regional enteritis and ulcerative colitis,77
+Curated HCUP CCSR value set.,[HCUP] Schizophrenia spectrum and other psychotic disorders,21
+Curated HCUP CCSR value set.,[HCUP] Tobacco-related disorders,12
+null,[VSAC Bulk-Import test] Active Bleeding,581
+null,[VSAC Bulk-Import test] Active Bleeding (SNOMEDCT;ICD10CM),31
+Generated from VSAC export,[VSAC Bulk-Import test] Active Bleeding (SNOMEDCT;ICD10CM),31
+Generated from VSAC export,[VSAC Bulk-Import test] Acute Heart Failure (ICD10CM),19
+null,[VSAC Bulk-Import test] Acute Heart Failure (ICD10CM),19
+null,[VSAC Bulk-Import test] Acute Heart Failure (SNOMEDCT),10
+Generated from VSAC export,[VSAC Bulk-Import test] Acute Heart Failure (SNOMEDCT),10
+Generated from VSAC export,[VSAC Bulk-Import test] Acute Myocardial Infarction (AMI) (SNOMEDCT;ICD9CM;ICD10CM),100
+null,[VSAC Bulk-Import test] Acute Renal Failure (ICD10CM),6
+Generated from VSAC export,[VSAC Bulk-Import test] Acute Renal Failure (ICD10CM),6
+null,[VSAC Bulk-Import test] Acute Renal Failure (SNOMEDCT),17
+Generated from VSAC export,[VSAC Bulk-Import test] Acute Renal Failure (SNOMEDCT),17
+Generated from VSAC export,[VSAC Bulk-Import test] Acute Respiratory Distress Syndrome (ICD10CM),17
+null,[VSAC Bulk-Import test] Acute Respiratory Distress Syndrome (ICD10CM),17
+Generated from VSAC export,[VSAC Bulk-Import test] Acute Respiratory Distress Syndrome (SNOMEDCT),3
+null,[VSAC Bulk-Import test] Acute Respiratory Distress Syndrome (SNOMEDCT),3
+null,[VSAC Bulk-Import test] Air and Thrombotic Embolism (ICD10CM),29
+Generated from VSAC export,[VSAC Bulk-Import test] Air and Thrombotic Embolism (ICD10CM),29
+Generated from VSAC export,[VSAC Bulk-Import test] Air and Thrombotic Embolism (SNOMEDCT),76
+null,[VSAC Bulk-Import test] Air and Thrombotic Embolism (SNOMEDCT),76
+Generated from VSAC export,[VSAC Bulk-Import test] Alzheimer’s Disease (ICD9CM;ICD10CM),5
+Generated from VSAC export,[VSAC Bulk-Import test] Amyotrophic Lateral Sclerosis (ALS) and Related Motor Neuron Disease (ICD9CM;ICD10CM),5
+Generated from VSAC export,[VSAC Bulk-Import test] Anemia (ICD10CM),50
+null,[VSAC Bulk-Import test] Anemia (ICD10CM),50
+null,[VSAC Bulk-Import test] Anticoagulant Therapy (RXNORM),51
+Generated from VSAC export,[VSAC Bulk-Import test] Anticoagulant Therapy (RXNORM),51
+Generated from VSAC export,[VSAC Bulk-Import test] Antithrombotic Therapy (RXNORM),101
+null,[VSAC Bulk-Import test] Antithrombotic Therapy (RXNORM),101
+null,[VSAC Bulk-Import test] Antithrombotic Therapy_Anticoagulant (RXNORM),55
+Generated from VSAC export,[VSAC Bulk-Import test] Antithrombotic Therapy_Anticoagulant (RXNORM),55
+Generated from VSAC export,[VSAC Bulk-Import test] Antithrombotic Therapy_Antiplatelet (RXNORM),46
+null,[VSAC Bulk-Import test] Antithrombotic Therapy_Antiplatelet (RXNORM),46
+Generated from VSAC export,[VSAC Bulk-Import test] Asthma (SNOMEDCT;ICD10CM),170
+null,[VSAC Bulk-Import test] Asthma (SNOMEDCT;ICD10CM),170
+null,[VSAC Bulk-Import test] Atrial Fibrillation/Flutter (SNOMEDCT;ICD9CM;ICD10CM),30
+Generated from VSAC export,[VSAC Bulk-Import test] Atrial Fibrillation/Flutter (SNOMEDCT;ICD9CM;ICD10CM),30
+Generated from VSAC export,[VSAC Bulk-Import test] Autoimmune Disease (ICD10CM),84
+null,[VSAC Bulk-Import test] Autoimmune Disease (ICD10CM),84
+Generated from VSAC export,[VSAC Bulk-Import test] Autoimmune Disease (SNOMEDCT),223
+null,[VSAC Bulk-Import test] Autoimmune Disease (SNOMEDCT),223
+null,[VSAC Bulk-Import test] Bariatric Surgery (ICD10CM),5
+Generated from VSAC export,[VSAC Bulk-Import test] Bariatric Surgery (ICD10CM),5
+Generated from VSAC export,"[VSAC Bulk-Import test] Bells Palsy, diagnosis codes for AE reporting (SNOMEDCT;ICD10CM)",5
+null,[VSAC Bulk-Import test] Bleeding Disorder,550
+Generated from VSAC export,[VSAC Bulk-Import test] Bleeding Disorder (ICD10CM),28
+null,[VSAC Bulk-Import test] Bleeding Disorder (ICD10CM),28
+null,[VSAC Bulk-Import test] Blood Transfusion,550
+Generated from VSAC export,[VSAC Bulk-Import test] Blood Transfusion (SNOMEDCT;CPT),49
+null,[VSAC Bulk-Import test] Blood Transfusion (SNOMEDCT;CPT),49
+Generated from VSAC export,[VSAC Bulk-Import test] Blood Transfusion (SNOMEDCT;ICD10PCS),43
+null,[VSAC Bulk-Import test] Blood Transfusion (SNOMEDCT;ICD10PCS),43
+Generated from VSAC export,[VSAC Bulk-Import test] Brain Injury (SNOMEDCT;ICD9CM;ICD10CM),625
+Generated from VSAC export,[VSAC Bulk-Import test] Brain Tumor (SNOMEDCT;ICD10CM),80
+null,[VSAC Bulk-Import test] Bronchiectasis Disorder ICD10CM (ICD10CM),5
+Generated from VSAC export,[VSAC Bulk-Import test] Bronchiectasis Disorder ICD10CM (ICD10CM),5
+null,[VSAC Bulk-Import test] Bronchiectasis Disorder SNOMED (SNOMEDCT),23
+Generated from VSAC export,[VSAC Bulk-Import test] Bronchiectasis Disorder SNOMED (SNOMEDCT),23
+Generated from VSAC export,[VSAC Bulk-Import test] Cancer (SNOMEDCT;ICD10CM),5104
+null,[VSAC Bulk-Import test] Cancer (SNOMEDCT;ICD10CM),5104
+Generated from VSAC export,[VSAC Bulk-Import test] Cardiac Disease (ICD10CM),241
+null,[VSAC Bulk-Import test] Cardiac Disease (ICD10CM),241
+null,[VSAC Bulk-Import test] Cardiomyopathy (SNOMEDCT;ICD10CM),162
+Generated from VSAC export,[VSAC Bulk-Import test] Cardiomyopathy (SNOMEDCT;ICD10CM),162
+Generated from VSAC export,[VSAC Bulk-Import test] Cerebrovascular Diseases (ICD10CM),229
+null,[VSAC Bulk-Import test] Cerebrovascular Diseases (ICD10CM),229
+Generated from VSAC export,[VSAC Bulk-Import test] Chronic Kidney Disease All Stages (1 through 5) (SNOMEDCT;ICD10CM),96
+null,[VSAC Bulk-Import test] Chronic Kidney Disease All Stages (1 through 5) (SNOMEDCT;ICD10CM),96
+null,[VSAC Bulk-Import test] Chronic Liver Disease (SNOMEDCT;ICD9CM;ICD10CM),139
+Generated from VSAC export,[VSAC Bulk-Import test] Chronic Liver Disease (SNOMEDCT;ICD9CM;ICD10CM),139
+null,[VSAC Bulk-Import test] Chronic Obstructive Pulmonary Disease (SNOMEDCT;ICD9CM;ICD10CM),15
+Generated from VSAC export,[VSAC Bulk-Import test] Chronic Obstructive Pulmonary Disease (SNOMEDCT;ICD9CM;ICD10CM),15
+null,[VSAC Bulk-Import test] Cirrhosis or other liver disease,550
+null,[VSAC Bulk-Import test] Cirrhosis or other liver disease (SNOMEDCT;ICD9CM;ICD10CM),550
+Generated from VSAC export,[VSAC Bulk-Import test] Cirrhosis or other liver disease (SNOMEDCT;ICD9CM;ICD10CM),550
+null,[VSAC Bulk-Import test] Comorbid Conditions for Respiratory Conditions (SNOMEDCT;ICD10CM),689
+Generated from VSAC export,[VSAC Bulk-Import test] Comorbid Conditions for Respiratory Conditions (SNOMEDCT;ICD10CM),689
+Generated from VSAC export,[VSAC Bulk-Import test] Congenital Anomalies Group (SNOMEDCT;ICD9CM;ICD10CM),1501
+null,[VSAC Bulk-Import test] Congenital Anomalies Group (SNOMEDCT;ICD9CM;ICD10CM),1501
+Generated from VSAC export,[VSAC Bulk-Import test] Congenital Malformations (SNOMEDCT;ICD10CM),6791
+null,[VSAC Bulk-Import test] Congenital Malformations (SNOMEDCT;ICD10CM),6791
+null,[VSAC Bulk-Import test] Congenital heart disease (ICD10CM) (ICD10CM),82
+Generated from VSAC export,[VSAC Bulk-Import test] Congenital heart disease (ICD10CM) (ICD10CM),82
+Generated from VSAC export,[VSAC Bulk-Import test] Congenital heart disease (SNOMED) (SNOMEDCT),805
+Generated from VSAC export,[VSAC Bulk-Import test] Coronary Artery Disease No MI (SNOMEDCT;ICD10CM),105
+null,[VSAC Bulk-Import test] Coronary Artery Disease No MI (SNOMEDCT;ICD10CM),105
+null,"[VSAC Bulk-Import test] Corticosteroids, Systemic (RXNORM)",520
+Generated from VSAC export,"[VSAC Bulk-Import test] Corticosteroids, Systemic (RXNORM)",520
+Generated from VSAC export,[VSAC Bulk-Import test] Cystic Fibrosis (SNOMEDCT;ICD9CM;ICD10CM),15
+null,[VSAC Bulk-Import test] Cystic Fibrosis (SNOMEDCT;ICD9CM;ICD10CM),15
+Generated from VSAC export,[VSAC Bulk-Import test] Dementia & Mental Degenerations (SNOMEDCT;ICD10CM),117
+Generated from VSAC export,[VSAC Bulk-Import test] Diabetes (SNOMEDCT;ICD9CM;ICD10CM),447
+Generated from VSAC export,[VSAC Bulk-Import test] Disseminated Intravascular Coagulation (ICD10CM),29
+null,[VSAC Bulk-Import test] Disseminated Intravascular Coagulation (ICD10CM),29
+null,[VSAC Bulk-Import test] Disseminated Intravascular Coagulation (SNOMEDCT),2
+Generated from VSAC export,[VSAC Bulk-Import test] Disseminated Intravascular Coagulation (SNOMEDCT),2
+Generated from VSAC export,[VSAC Bulk-Import test] Eclampsia (ICD10CM),6
+null,[VSAC Bulk-Import test] Eclampsia (ICD10CM),6
+Generated from VSAC export,[VSAC Bulk-Import test] Eclampsia (SNOMEDCT),9
+null,[VSAC Bulk-Import test] Eclampsia (SNOMEDCT),9
+Generated from VSAC export,[VSAC Bulk-Import test] Elder Abuse Diagnoses (SNOMEDCT;ICD10CM),47
+Generated from VSAC export,[VSAC Bulk-Import test] Elder Abuse Goals (SNOMEDCT),1
+Generated from VSAC export,[VSAC Bulk-Import test] Elder Abuse Procedures (SNOMEDCT;CPT),50
+Generated from VSAC export,[VSAC Bulk-Import test] Elder Abuse Service Requests (SNOMEDCT;CPT),50
+Generated from VSAC export,[VSAC Bulk-Import test] Encephalitis (ICD10CM) (ICD10CM),22
+Generated from VSAC export,[VSAC Bulk-Import test] Encephalitis (SNOMED) (SNOMEDCT),35
+Generated from VSAC export,[VSAC Bulk-Import test] Epilepsy (SNOMEDCT;ICD9CM;ICD10CM),54
+Generated from VSAC export,[VSAC Bulk-Import test] Financial Insecurity Goals (SNOMEDCT),1
+Generated from VSAC export,[VSAC Bulk-Import test] Financial Insecurity Procedures (SNOMEDCT;CPT),27
+Generated from VSAC export,[VSAC Bulk-Import test] Financial Insecurity Service Requests (SNOMEDCT;CPT),27
+Generated from VSAC export,[VSAC Bulk-Import test] Food Insecurity Diagnoses (SNOMEDCT;ICD10CM),12
+Generated from VSAC export,[VSAC Bulk-Import test] Food Insecurity Goals (SNOMEDCT),1
+Generated from VSAC export,[VSAC Bulk-Import test] Food Insecurity Procedures (SNOMEDCT;CPT;HCPCS Level II),128
+Generated from VSAC export,[VSAC Bulk-Import test] Food Insecurity Service Requests (SNOMEDCT;CPT;HCPCS Level II),128
+null,[VSAC Bulk-Import test] Gastrointestinal Disease (ICD10CM),271
+Generated from VSAC export,[VSAC Bulk-Import test] Gastrointestinal Disease (ICD10CM),271
+Generated from VSAC export,[VSAC Bulk-Import test] General Surgery (ICD10PCS;SNOMEDCT),3623
+null,[VSAC Bulk-Import test] General Surgery (ICD10PCS;SNOMEDCT),3623
+null,[VSAC Bulk-Import test] Gestational Diabetes,550
+Generated from VSAC export,[VSAC Bulk-Import test] Gestational Diabetes (ICD10CM),12
+null,[VSAC Bulk-Import test] Gestational Diabetes (ICD10CM),12
+Generated from VSAC export,[VSAC Bulk-Import test] Guillain Barre Syndrome (SNOMEDCT;ICD10CM),2
+Generated from VSAC export,[VSAC Bulk-Import test] HIV (ICD9CM;SNOMEDCT;ICD10CM),213
+null,[VSAC Bulk-Import test] HIV (ICD9CM;SNOMEDCT;ICD10CM),213
+Generated from VSAC export,[VSAC Bulk-Import test] Headache (SNOMEDCT;ICD10CM),45
+null,[VSAC Bulk-Import test] Heart Failure (SNOMEDCT;ICD10CM),94
+Generated from VSAC export,[VSAC Bulk-Import test] Heart Failure (SNOMEDCT;ICD10CM),94
+null,[VSAC Bulk-Import test] Hematopoietic stem cell transplant (SNOMEDCT;ICD9CM;ICD10CM),32
+Generated from VSAC export,[VSAC Bulk-Import test] Hematopoietic stem cell transplant (SNOMEDCT;ICD9CM;ICD10CM),32
+Generated from VSAC export,[VSAC Bulk-Import test] Hemiplegia Symptoms (ICD10CM),57
+null,[VSAC Bulk-Import test] Hemorrhagic Stroke (SNOMEDCT;ICD10CM),64
+Generated from VSAC export,[VSAC Bulk-Import test] Hemorrhagic Stroke (SNOMEDCT;ICD10CM),64
+null,[VSAC Bulk-Import test] Hip Fracture Surgery (ICD10PCS;SNOMEDCT),15
+Generated from VSAC export,[VSAC Bulk-Import test] Hip Fracture Surgery (ICD10PCS;SNOMEDCT),15
+null,[VSAC Bulk-Import test] Hip Replacement Surgery (ICD10PCS;SNOMEDCT),168
+Generated from VSAC export,[VSAC Bulk-Import test] Hip Replacement Surgery (ICD10PCS;SNOMEDCT),168
+Generated from VSAC export,[VSAC Bulk-Import test] Homelessness Diagnoses (SNOMEDCT;ICD10CM),4
+Generated from VSAC export,[VSAC Bulk-Import test] Homelessness Procedures (SNOMEDCT;CPT),85
+Generated from VSAC export,[VSAC Bulk-Import test] Homelessness Service Requests (SNOMEDCT;CPT),85
+Generated from VSAC export,[VSAC Bulk-Import test] Housing Instability Diagnoses (SNOMEDCT;ICD10CM),9
+Generated from VSAC export,[VSAC Bulk-Import test] Housing Instability Procedures (SNOMEDCT;CPT),54
+Generated from VSAC export,[VSAC Bulk-Import test] Housing Instability Service Requests (SNOMEDCT;CPT),54
+null,[VSAC Bulk-Import test] Hypertension (ICD10CM),37
+Generated from VSAC export,[VSAC Bulk-Import test] Hypertension (ICD10CM),37
+Generated from VSAC export,[VSAC Bulk-Import test] Immunodeficient Conditions (ICD9CM;SNOMEDCT;ICD10CM),177
+null,[VSAC Bulk-Import test] Immunodeficient Conditions (ICD9CM;SNOMEDCT;ICD10CM),177
+null,[VSAC Bulk-Import test] Immunosuppressant medications for inflammatory bowel disease or rheumatoid arthritis (RXNORM),596
+Generated from VSAC export,[VSAC Bulk-Import test] Immunosuppressant medications for inflammatory bowel disease or rheumatoid arthritis (RXNORM),596
+Generated from VSAC export,[VSAC Bulk-Import test] Inadequate Housing Goals (SNOMEDCT),2
+Generated from VSAC export,[VSAC Bulk-Import test] Inadequate Housing Diagnoses (SNOMEDCT;ICD10CM),6
+Generated from VSAC export,[VSAC Bulk-Import test] Inadequate Housing Procedures (SNOMEDCT;CPT),44
+Generated from VSAC export,[VSAC Bulk-Import test] Inadequate Housing Service Requests (SNOMEDCT;CPT),44
+null,[VSAC Bulk-Import test] Inhaled Corticosteroids (RXNORM),30
+Generated from VSAC export,[VSAC Bulk-Import test] Inhaled Corticosteroids (RXNORM),30
+null,[VSAC Bulk-Import test] Interstitial lung disease (SNOMEDCT;ICD9CM;ICD10CM),37
+Generated from VSAC export,[VSAC Bulk-Import test] Interstitial lung disease (SNOMEDCT;ICD9CM;ICD10CM),37
+Generated from VSAC export,[VSAC Bulk-Import test] Intimate Partner Violence Diagnoses (SNOMEDCT;ICD10CM),55
+Generated from VSAC export,[VSAC Bulk-Import test] Intimate Partner Violence Goals (SNOMEDCT),2
+Generated from VSAC export,[VSAC Bulk-Import test] Intimate Partner Violence Procedures (SNOMEDCT;CPT),53
+Generated from VSAC export,[VSAC Bulk-Import test] Intimate Partner Violence Service Requests (SNOMEDCT;CPT),53
+null,[VSAC Bulk-Import test] Intracranial Neurosurgery (ICD10PCS;SNOMEDCT),302
+Generated from VSAC export,[VSAC Bulk-Import test] Intracranial Neurosurgery (ICD10PCS;SNOMEDCT),302
+Generated from VSAC export,[VSAC Bulk-Import test] Ischemic Stroke (SNOMEDCT;ICD9CM;ICD10CM),43
+null,[VSAC Bulk-Import test] Kidney Transplant (ICD10PCS;SNOMEDCT;CPT;HCPCS Level II),23
+Generated from VSAC export,[VSAC Bulk-Import test] Kidney Transplant (ICD10PCS;SNOMEDCT;CPT;HCPCS Level II),23
+Generated from VSAC export,[VSAC Bulk-Import test] Knee Replacement Surgery (ICD10PCS;SNOMEDCT),93
+null,[VSAC Bulk-Import test] Knee Replacement Surgery (ICD10PCS;SNOMEDCT),93
+Generated from VSAC export,[VSAC Bulk-Import test] Less than high school education Goals (SNOMEDCT),2
+Generated from VSAC export,[VSAC Bulk-Import test] Less than high school education Procedures (SNOMEDCT;CPT),27
+Generated from VSAC export,[VSAC Bulk-Import test] Less than high school education Service Requests (SNOMEDCT;CPT),27
+null,[VSAC Bulk-Import test] Long Term Anticoagulant Use (ICD10CM),1
+Generated from VSAC export,[VSAC Bulk-Import test] Long Term Anticoagulant Use (ICD10CM),1
+Generated from VSAC export,[VSAC Bulk-Import test] Major Transplant (ICD10PCS;SNOMEDCT;CPT;ICD9CM;HCPCS Level II),199
+null,[VSAC Bulk-Import test] Major Transplant (ICD10PCS;SNOMEDCT;CPT;ICD9CM;HCPCS Level II),199
+Generated from VSAC export,[VSAC Bulk-Import test] Material Hardship Diagnoses (SNOMEDCT;ICD10CM),7
+Generated from VSAC export,[VSAC Bulk-Import test] Material Hardship Goals (SNOMEDCT),1
+Generated from VSAC export,[VSAC Bulk-Import test] Material Hardship Procedures (SNOMEDCT;CPT),27
+Generated from VSAC export,[VSAC Bulk-Import test] Material Hardship Service Requests (SNOMEDCT;CPT),27
+Generated from VSAC export,[VSAC Bulk-Import test] Meningitis (ICD10CM) (ICD10CM),16
+Generated from VSAC export,[VSAC Bulk-Import test] Meningitis (SNOMED) (SNOMEDCT),28
+Generated from VSAC export,[VSAC Bulk-Import test] Mental Health Disorder (ICD10CM),123
+null,[VSAC Bulk-Import test] Mental Health Disorder (ICD10CM),123
+Generated from VSAC export,[VSAC Bulk-Import test] Multiple Sclerosis (SNOMEDCT;ICD10CM),15
+Generated from VSAC export,[VSAC Bulk-Import test] Myocardial Infarction (SNOMEDCT;ICD9CM;ICD10CM),79
+Generated from VSAC export,[VSAC Bulk-Import test] Neuromuscular Disease (ICD10CM),55
+Generated from VSAC export,[VSAC Bulk-Import test] Obesity Conditions (SNOMEDCT;ICD10CM),73
+null,[VSAC Bulk-Import test] Obesity Conditions (SNOMEDCT;ICD10CM),73
+null,[VSAC Bulk-Import test] Overweight or Obese (SNOMEDCT;ICD10CM),16
+Generated from VSAC export,[VSAC Bulk-Import test] Overweight or Obese (SNOMEDCT;ICD10CM),16
+Generated from VSAC export,[VSAC Bulk-Import test] Parkinson's Disease (ICD9CM;ICD10CM),2
+Generated from VSAC export,[VSAC Bulk-Import test] Parkinson's Disease (SNOMED) (SNOMEDCT),5
+Generated from VSAC export,[VSAC Bulk-Import test] Pregnancy (SNOMEDCT;ICD10CM),1820
+null,[VSAC Bulk-Import test] Pregnancy (SNOMEDCT;ICD10CM),1820
+Generated from VSAC export,[VSAC Bulk-Import test] Pulmonary Embolism or DVT (SNOMEDCT;ICD10CM),218
+null,[VSAC Bulk-Import test] Pulmonary Embolism or DVT (SNOMEDCT;ICD10CM),218
+Generated from VSAC export,[VSAC Bulk-Import test] Pulmonary Hypertension (ICD10CM),7
+null,[VSAC Bulk-Import test] Pulmonary Hypertension (ICD10CM),7
+Generated from VSAC export,[VSAC Bulk-Import test] Sepsis (SNOMEDCT;ICD10CM),96
+null,[VSAC Bulk-Import test] Sickle Cell Disease and Related Blood Disorders (SNOMEDCT;ICD10CM),52
+Generated from VSAC export,[VSAC Bulk-Import test] Sickle Cell Disease and Related Blood Disorders (SNOMEDCT;ICD10CM),52
+null,[VSAC Bulk-Import test] Smoking or Cigarette Use (SNOMEDCT;LOINC),38
+Generated from VSAC export,[VSAC Bulk-Import test] Smoking or Cigarette Use (SNOMEDCT;LOINC),38
+Generated from VSAC export,[VSAC Bulk-Import test] Social Connection Diagnoses (SNOMEDCT;ICD10CM),23
+Generated from VSAC export,[VSAC Bulk-Import test] Social Connection Goals (SNOMEDCT),1
+Generated from VSAC export,[VSAC Bulk-Import test] Social Connection Procedures (SNOMEDCT;CPT),30
+Generated from VSAC export,[VSAC Bulk-Import test] Social Connection Service Requests (SNOMEDCT;CPT),30
+Generated from VSAC export,[VSAC Bulk-Import test] Social Determinants of Health Conditions (SNOMEDCT;ICD10CM),165
+Generated from VSAC export,[VSAC Bulk-Import test] Social Determinants of Health Goals (SNOMEDCT),22
+Generated from VSAC export,[VSAC Bulk-Import test] Social Determinants of Health Procedures (SNOMEDCT;CPT;HCPCS Level II),234
+Generated from VSAC export,[VSAC Bulk-Import test] Social Determinants of Health Service Requests (SNOMEDCT;CPT;HCPCS Level II),234
+Generated from VSAC export,[VSAC Bulk-Import test] Stress Diagnoses (SNOMEDCT;ICD10CM),5
+Generated from VSAC export,[VSAC Bulk-Import test] Stress Goals (SNOMEDCT),1
+Generated from VSAC export,[VSAC Bulk-Import test] Stress Procedures (SNOMEDCT;CPT),44
+Generated from VSAC export,[VSAC Bulk-Import test] Stress Service Requests (SNOMEDCT;CPT),44
+Generated from VSAC export,[VSAC Bulk-Import test] Substance Use Disorder (SNOMEDCT;ICD10CM),558
+null,[VSAC Bulk-Import test] Substance Use Disorder (SNOMEDCT;ICD10CM),558
+Generated from VSAC export,[VSAC Bulk-Import test] Thalassemia (SNOMEDCT;ICD10CM),89
+null,[VSAC Bulk-Import test] Thalassemia (SNOMEDCT;ICD10CM),89
+Generated from VSAC export,[VSAC Bulk-Import test] Transportation Insecurity Diagnoses (SNOMEDCT),4
+Generated from VSAC export,[VSAC Bulk-Import test] Transportation Insecurity Procedures (SNOMEDCT;CPT),27
+Generated from VSAC export,[VSAC Bulk-Import test] Transportation Insecurity Service Requests (SNOMEDCT;CPT),27
+Generated from VSAC export,[VSAC Bulk-Import test] Tuberculosis Disorders (SNOMEDCT;ICD10CM),321
+null,[VSAC Bulk-Import test] Tuberculosis Disorders (SNOMEDCT;ICD10CM),321
+Generated from VSAC export,[VSAC Bulk-Import test] Type 1 Diabetes (SNOMEDCT;ICD9CM;ICD10CM),161
+Generated from VSAC export,[VSAC Bulk-Import test] Type II Diabetes (SNOMEDCT;ICD10CM),146
+Generated from VSAC export,[VSAC Bulk-Import test] Unemployment Diagnoses (SNOMEDCT;ICD10CM),5
+Generated from VSAC export,[VSAC Bulk-Import test] Unemployment Goals (SNOMEDCT),12
+Generated from VSAC export,[VSAC Bulk-Import test] Unemployment Procedures (SNOMEDCT;CPT),31
+Generated from VSAC export,[VSAC Bulk-Import test] Unemployment Service Requests (SNOMEDCT;CPT),31
+Generated from VSAC export,[VSAC Bulk-Import test] Veteran Status Diagnoses (SNOMEDCT;ICD10CM),6
+Generated from VSAC export,[VSAC Bulk-Import test] Veteran Status Procedures (SNOMEDCT;CPT),27
+Generated from VSAC export,[VSAC Bulk-Import test] Veteran Status Service Requests (SNOMEDCT;CPT),27
+Generated from VSAC export,[VSAC] Active Bleeding,11
+Generated from VSAC export,[VSAC] Acute Heart Failure,21
+Generated from VSAC export,[VSAC] Acute Myocardial Infarction (AMI),100
+Generated from VSAC export,[VSAC] Acute Renal Failure,23
+Generated from VSAC export,[VSAC] Acute Respiratory Distress Syndrome,3
+Generated from VSAC export,[VSAC] Acute Respiratory Distress Syndrome 214,17
+Generated from VSAC export,[VSAC] Acute Respiratory Distress Syndrome 215,3
+Generated from VSAC export,[VSAC] Acute Respiratory Distress Syndrome 367,16
+Generated from VSAC export,[VSAC] Air and Thrombotic Embolism,106
+Generated from VSAC export,[VSAC] Anemia,382
+Generated from VSAC export,[VSAC] Anemia 321,50
+Generated from VSAC export,[VSAC] Anemia 322,382
+Generated from VSAC export,[VSAC] Anemia 323,50
+Generated from VSAC export,[VSAC] Antithrombotic Therapy_Antiplatelet,51
+Generated from VSAC export,[VSAC] Arrhythmia,113
+Generated from VSAC export,[VSAC] Asthma·,144
+Generated from VSAC export,[VSAC] Atrial Fibrillation/Flutter,19
+Generated from VSAC export,[VSAC] Autoimmune Disease,223
+Generated from VSAC export,[VSAC] Autoimmune Disease 309,84
+Generated from VSAC export,[VSAC] Autoimmune Disease 310,223
+Generated from VSAC export,[VSAC] Bariatric Surgery,1
+Generated from VSAC export,"[VSAC] Bells Palsy, codes for AE reporting",2
+Generated from VSAC export,[VSAC] Bleeding Disorder,221
+Generated from VSAC export,[VSAC] Blood Transfusion 246,11
+Generated from VSAC export,[VSAC] Blood Transfusion 81,49
+Generated from VSAC export,[VSAC] Bradycardia,11
+Generated from VSAC export,[VSAC] Brain Injury,72
+Generated from VSAC export,[VSAC] Brain Tumor,58
+Generated from VSAC export,[VSAC] Bronchiectasis·,19
+Generated from VSAC export,[VSAC] Cancer,3812
+Generated from VSAC export,[VSAC] Cardiac Disease,87
+Generated from VSAC export,[VSAC] Cardiac Surgery,100
+Generated from VSAC export,[VSAC] Cardiomyopathy,162
+Generated from VSAC export,[VSAC] Chronic Kidney Disease All Stages (1 through 5)·,66
+Generated from VSAC export,[VSAC] Chronic Liver Disease,75
+Generated from VSAC export,[VSAC] Chronic Obstructive Pulmonary Disease,15
+Generated from VSAC export,[VSAC] Chronic Stable Angina,50
+Generated from VSAC export,[VSAC] Comorbid Conditions for Respiratory Conditions,371
+Generated from VSAC export,[VSAC] Congenital Anomalies S,808
+Generated from VSAC export,[VSAC] Congenital Malformations,5860
+Generated from VSAC export,[VSAC] Congenital heart disease·,805
+Generated from VSAC export,[VSAC] Coronary Artery Disease No MI,60
+Generated from VSAC export,"[VSAC] Corticosteroids, Systemic",520
+Generated from VSAC export,[VSAC] Cystic Fibrosis,5
+Generated from VSAC export,[VSAC] Dementia & Mental Degenerations,101
+Generated from VSAC export,[VSAC] Diabetes,639
+Generated from VSAC export,[VSAC] Diastolic Heart Failure,19
+Generated from VSAC export,[VSAC] Disseminated Intravascular Coagulation,2
+Generated from VSAC export,[VSAC] Disseminated Intravascular Coagulation 223,29
+Generated from VSAC export,[VSAC] Disseminated Intravascular Coagulation 224,2
+Generated from VSAC export,[VSAC] Eclampsia,15
+Generated from VSAC export,[VSAC] Elder Abuse Diagnoses,47
+Generated from VSAC export,[VSAC] Elder Abuse Diagnoses·,13
+Generated from VSAC export,[VSAC] Elder Abuse Goals,1
+Generated from VSAC export,[VSAC] Elder Abuse Goals·,1
+Generated from VSAC export,[VSAC] Elder Abuse Interventions·,23
+Generated from VSAC export,[VSAC] Elder Abuse Procedures,50
+Generated from VSAC export,[VSAC] Elder Abuse Service Requests,50
+Generated from VSAC export,[VSAC] Encephalitis (Disorders)·,35
+Generated from VSAC export,[VSAC] Financial Insecurity Goals,1
+Generated from VSAC export,[VSAC] Financial Insecurity Goals·,1
+Generated from VSAC export,[VSAC] Financial Insecurity Procedures,27
+Generated from VSAC export,[VSAC] Financial Insecurity Service Requests,27
+Generated from VSAC export,[VSAC] Food Insecurity Diagnoses,12
+Generated from VSAC export,[VSAC] Food Insecurity Diagnoses·,8
+Generated from VSAC export,[VSAC] Food Insecurity Goals,1
+Generated from VSAC export,[VSAC] Food Insecurity Goals·,1
+Generated from VSAC export,[VSAC] Food Insecurity Interventions·,96
+Generated from VSAC export,[VSAC] Food Insecurity Procedures,128
+Generated from VSAC export,[VSAC] Food Insecurity Service Requests,128
+Generated from VSAC export,[VSAC] Guillain Barre Syndrome·,1
+Generated from VSAC export,[VSAC] HIV 1,218
+Generated from VSAC export,[VSAC] Headache,33
+Generated from VSAC export,[VSAC] Heart Failure,72
+Generated from VSAC export,[VSAC] Hematopoietic stem cell transplant,12
+Generated from VSAC export,[VSAC] Homelessness Diagnoses,4
+Generated from VSAC export,[VSAC] Homelessness Diagnoses·,1
+Generated from VSAC export,[VSAC] Homelessness Intervention·,58
+Generated from VSAC export,[VSAC] Homelessness Procedures,85
+Generated from VSAC export,[VSAC] Homelessness Service Requests,85
+Generated from VSAC export,[VSAC] Housing Instability Diagnoses,9
+Generated from VSAC export,[VSAC] Housing Instability Diagnoses·,6
+Generated from VSAC export,[VSAC] Housing Instability Intervention·,27
+Generated from VSAC export,[VSAC] Housing Instability Procedures,54
+Generated from VSAC export,[VSAC] Housing Instability Service Requests,54
+Generated from VSAC export,[VSAC] Hypertension,31
+Generated from VSAC export,[VSAC] Hypotension,24
+Generated from VSAC export,[VSAC] Hypothyroidism,94
+Generated from VSAC export,[VSAC] Immunodeficient Conditions·,100
+Generated from VSAC export,[VSAC] Immunosuppressant medications for inflammatory bowel disease or rheumatoid arthritis,596
+Generated from VSAC export,[VSAC] Inadequate Housing Goals,2
+Generated from VSAC export,[VSAC] Inadequate Housing Diagnoses,6
+Generated from VSAC export,[VSAC] Inadequate Housing Diagnoses·,5
+Generated from VSAC export,[VSAC] Inadequate Housing Goals·,2
+Generated from VSAC export,[VSAC] Inadequate Housing Interventions·,17
+Generated from VSAC export,[VSAC] Inadequate Housing Procedures,44
+Generated from VSAC export,[VSAC] Inadequate Housing Service Requests,44
+Generated from VSAC export,[VSAC] Inhaled Corticosteroids,30
+Generated from VSAC export,[VSAC] Interstitial lung disease·,12
+Generated from VSAC export,[VSAC] Intimate Partner Violence Diagnoses,55
+Generated from VSAC export,[VSAC] Intimate Partner Violence Diagnoses·,15
+Generated from VSAC export,[VSAC] Intimate Partner Violence Goals,2
+Generated from VSAC export,[VSAC] Intimate Partner Violence Goals·,2
+Generated from VSAC export,[VSAC] Intimate Partner Violence Interventions·,26
+Generated from VSAC export,[VSAC] Intimate Partner Violence Procedures,53
+Generated from VSAC export,[VSAC] Intimate Partner Violence Service Requests,53
+Generated from VSAC export,[VSAC] Ischemic Stroke_Embolism,2
+Generated from VSAC export,[VSAC] Ischemic Stroke_Other,20
+Generated from VSAC export,[VSAC] Ischemic Stroke_Thrombosis,3
+Generated from VSAC export,[VSAC] Kidney Transplant,13
+Generated from VSAC export,[VSAC] Less than high school education Goals,2
+Generated from VSAC export,[VSAC] Less than high school education Goals·,2
+Generated from VSAC export,[VSAC] Less than high school education Procedures,27
+Generated from VSAC export,[VSAC] Less than high school education Service Requests,27
+Generated from VSAC export,[VSAC] Major Transplant,65
+Generated from VSAC export,[VSAC] Material Hardship Diagnoses,7
+Generated from VSAC export,[VSAC] Material Hardship Diagnoses·,6
+Generated from VSAC export,[VSAC] Material Hardship Goals,1
+Generated from VSAC export,[VSAC] Material Hardship Goals·,1
+Generated from VSAC export,[VSAC] Material Hardship Procedures,27
+Generated from VSAC export,[VSAC] Material Hardship Service Requests,27
+Generated from VSAC export,[VSAC] Meningitis·,28
+Generated from VSAC export,[VSAC] Mental Behavioral and Neurodevelopmental Disorders,2804
+Generated from VSAC export,[VSAC] Mental Health Disorder,112
+Generated from VSAC export,[VSAC] Multiple Sclerosis·,14
+Generated from VSAC export,[VSAC] Myocardial Infarction,101
+Generated from VSAC export,[VSAC] Neuromuscular Disease,205
+Generated from VSAC export,[VSAC] Obesity·,66
+Generated from VSAC export,[VSAC] Overweight or Obese,9
+Generated from VSAC export,[VSAC] Parkinson's Disease·,5
+Generated from VSAC export,[VSAC] Pregnancy,63
+Generated from VSAC export,[VSAC] Pulmonary Embolism or DVT,173
+Generated from VSAC export,[VSAC] Pulmonary Hypertension,66
+Generated from VSAC export,[VSAC] Sepsis,69
+Generated from VSAC export,[VSAC] Sickle Cell Disease,36
+Generated from VSAC export,[VSAC] Smoking or Cigarette Use,31
+Generated from VSAC export,[VSAC] Social Connection Diagnoses,23
+Generated from VSAC export,[VSAC] Social Connection Diagnoses·,17
+Generated from VSAC export,[VSAC] Social Connection Goals,1
+Generated from VSAC export,[VSAC] Social Connection Goals·,1
+Generated from VSAC export,[VSAC] Social Connection Interventions·,3
+Generated from VSAC export,[VSAC] Social Connection Procedures,30
+Generated from VSAC export,[VSAC] Social Connection Service Requests,30
+Generated from VSAC export,[VSAC] Social Determinants of Health Conditions,165
+Generated from VSAC export,[VSAC] Social Determinants of Health General Interventions·,24
+Generated from VSAC export,[VSAC] Social Determinants of Health Goals,22
+Generated from VSAC export,[VSAC] Social Determinants of Health Procedures,234
+Generated from VSAC export,[VSAC] Social Determinants of Health Service Requests,234
+Generated from VSAC export,[VSAC] Stress Diagnoses,5
+Generated from VSAC export,[VSAC] Stress Diagnoses·,4
+Generated from VSAC export,[VSAC] Stress Goals,1
+Generated from VSAC export,[VSAC] Stress Goals·,1
+Generated from VSAC export,[VSAC] Stress Interventions·,17
+Generated from VSAC export,[VSAC] Stress Procedures,44
+Generated from VSAC export,[VSAC] Stress Service Requests,44
+Generated from VSAC export,[VSAC] Substance Use Disorder,287
+Generated from VSAC export,[VSAC] Thalassemia,72
+Generated from VSAC export,[VSAC] Transportation Insecurity Diagnoses,4
+Generated from VSAC export,[VSAC] Transportation Insecurity Diagnoses·,4
+Generated from VSAC export,[VSAC] Transportation Insecurity Procedures,27
+Generated from VSAC export,[VSAC] Transportation Insecurity Service Requests,27
+Generated from VSAC export,[VSAC] Tuberculosis (Disorders)·,259
+Generated from VSAC export,[VSAC] Type 1 Diabetes,43
+Generated from VSAC export,[VSAC] Type II Diabetes,46
+Generated from VSAC export,[VSAC] Unemployment Diagnoses,5
+Generated from VSAC export,[VSAC] Unemployment Diagnoses·,4
+Generated from VSAC export,[VSAC] Unemployment Goals,12
+Generated from VSAC export,[VSAC] Unemployment Goals·,12
+Generated from VSAC export,[VSAC] Unemployment Interventions·,4
+Generated from VSAC export,[VSAC] Unemployment Procedures,31
+Generated from VSAC export,[VSAC] Unemployment Service Requests,31
+Generated from VSAC export,[VSAC] Veteran Status Diagnoses,6
+Generated from VSAC export,[VSAC] Veteran Status Diagnoses·,5
+Generated from VSAC export,[VSAC] Veteran Status Procedures,27
+Generated from VSAC export,[VSAC] Veteran Status Service Requests,27
+Generated from VSAC export,[VSAC] epilepsy (active)·,13
+null,stephanie test cs,550
