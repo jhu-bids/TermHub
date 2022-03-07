@@ -28,14 +28,15 @@ def quick_and_dirty():
 
     try:
         print(f"vsac enclave sets: {len(set(counts[counts.prefix == '[VSAC]'].concept_set_name))}")
-        print(f"vsac csv sets: {len(set(v_versions.concept_set_name))}")
+        print(f"vsac csv sets: {len(set(v_versions.concept_set_name)}")
         print(f"hcup enclave sets: {len(set(counts[counts.prefix == '[HCUP]'].concept_set_name))}")
-        print(f"hcup csv sets: {len(set(h_versions.concept_set_name))}")
+        print(f"hcup csv sets: {len(set(h_versions.concept_set_name)")
         assert len(set(counts[counts.prefix == '[VSAC]'].concept_set_name) - set(v_versions.concept_set_name))
         assert len(set(v_versions.concept_set_name) - set(counts[counts.prefix == '[VSAC]'].concept_set_name))
         assert len(set(counts[counts.prefix == '[HCUP]'].concept_set_name) - set(h_versions.concept_set_name))
         assert len(set(h_versions.concept_set_name) - set(counts[counts.prefix == '[HCUP]'].concept_set_name))
     except AssertionError as ae:
+        print("\n".join(set(v_versions.concept_set_name) - set(counts[counts.prefix == '[VSAC]'].concept_set_name)))
         print(ae)
 
 
