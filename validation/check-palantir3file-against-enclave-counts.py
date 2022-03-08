@@ -1,6 +1,8 @@
 import pandas as pd
 import os
 import re
+import pprint
+pp = pprint.PrettyPrinter(compact=True)
 
 THREE_FILES = ('code_sets.csv', 'concept_set_container_edited.csv', 'concept_set_version_item_rv_edited.csv')
 VSAC_PATH = 'data/palantir-three-file/Lisa3/2022.03.02/output'
@@ -46,19 +48,37 @@ def quick_and_dirty():
     csets['cset_id'] = csets.concept_set_name.apply(strip)
 
     counts = counts[counts.prefix != '[VSAC Bulk-Import test]']
+    counts = counts[counts.cset_id.str.endswith(' Requests') != True]
+    counts = counts[counts.cset_id.str.startswith('[')]
 
     missing_from_enclave = set(versions.cset_id) - set(counts.cset_id)
     extra_on_enclave = set(counts.cset_id) - set(versions.cset_id)
 
-    s_missing_from_enclave = set(n.strip() for n in missing_from_enclave)
-    s_extra_on_enclave = set(n.strip() for n in extra_on_enclave)
+    if len(missing_from_enclave) > 0:
+        raise Exception("CSV csets exist that didn't get to enclave: " + ''.join([f'\n   {n}' for n in missing_from_enclave]))
 
-    [g for g in pd.DataFrame({'w': [n == n.strip() for n in versions.concept_set_name], 'n': versions.concept_set_name,
-                              's': [n.strip() for n in versions.concept_set_name]}).groupby('w')]
+    if len(extra_on_enclave) > 0:
+        print("CSV csets exist on enclave but not CSVs: ")
+        pp.pprint(extra_on_enclave)
+
 
     codesetid2name = dict(zip(versions.codeset_id, versions.concept_set_name))
 
+    items['cset_id'] = [codesetid2name[id] for id in items.codeset_id]
+    items['cd'] = items.codeSystem + ':' + items.code
 
+    count_pairs = pd.DataFrame(items.groupby('cset_id')['cd'].nunique().reset_index()
+                                ).merge(counts[['cset_id', 'code_count']], on='cset_id', how='left')
+
+    count_pairs['cd'] = count_pairs.cd.astype('Int64')
+    count_pairs['code_count'] = count_pairs.code_count.astype('Int64')
+
+    discrepant_csets = count_pairs[abs(count_pairs.code_count - count_pairs.cd) > 0]
+    print(discrepant_csets)
+
+    return discrepant_csets
+
+    ''' all this helped me get my bearings. not sure if i'll want any of it again:
 
     ann_pre = {x[0]: x[1].groupby('annotation') for x in counts.groupby('annotation')}
 
@@ -83,7 +103,6 @@ def quick_and_dirty():
         print(f"hcup csv sets: {len(set(v_versions[v_versions.prefix == 'HCUP']))}")
         #print(f"hcup csv sets: {len(set(h_versions.concept_set_name)")
 
-
         'vsac_enclave', 'vsac_cs', 'hcup_enclav', 'hcup_cs',
         set(counts[counts.prefix == '[VSAC]'].concept_set_name)
         set(v_versions[v_versions.prefix == '[VSAC]'].concept_set_name)
@@ -105,15 +124,7 @@ def quick_and_dirty():
             print("\n".join(set(v_versions.concept_set_name) - set(counts[counts.prefix == '[VSAC]'].concept_set_name)))
             print(ae)
 
-
-
-    cv = pd.merge(counts,versions, on='concept_set_name', how='left')
-    by_annotation = cv.groupby('annotation').count()
-
-    print(by_annotation)
-
-    set(counts[counts.annotation == 'Curated HCUP CCSR value set.'].concept_set_name)
-
+        '''
 
 if __name__ == '__main__':
     quick_and_dirty()
