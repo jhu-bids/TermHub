@@ -1,6 +1,7 @@
 import pandas as pd
 import os
 import re
+import json
 import pprint
 pp = pprint.PrettyPrinter(compact=True)
 
@@ -18,15 +19,40 @@ def strip(s: str) -> str:
     s = re.sub(r'  +', ' ', s)
     return s
 
+def addPrefix(df: pd.DataFrame) -> pd.DataFrame:
+    df['prefix'] = df.cset_id.str.replace('\].*', ']', regex=True)
+    return df
+
 
 def quick_and_dirty():
-    v_versions, v_csets, v_items = load3file(VSAC_PATH)
-    vsac_dfs = [v_versions, v_csets, v_items]
-    h_versions, h_csets, h_items = load3file(HCUP_PATH)
-    hcup_dfs = [h_versions, h_csets, h_items]
-    versions, csets, items = [pd.concat([vsac_dfs[i], hcup_dfs[i]]) for i in range(3)]
+    '''
+    counts is from /UNITE/[RP-4A9E27] DI&H - Data Quality/Users/Harold/workbook-output/Non-Archived Concept Sets (2021-05-21 at 08:59:45.15 AM)/Expr Items By Cset
+            url: https://unite.nih.gov/workspace/data-integration/dataset/preview/ri.foundry.main.dataset.4b3df5ac-9389-4d83-8599-4dea3479ad3f/master
+      which comes from code_system_concept_set_version_expression_item_schema_edited with
+      concept_set_name added from /N3C Export Area/Concept Set Ontology/Concept Set Ontology/hubble_base/code_sets
+
+      the query for it is:  SELECT  annotation,
+                                    cset_id,
+                                    count(distinct code, codeSystem) AS code_count,
+                                    collect_set(codeSystem || ':' || code) AS codesyscode
+                            FROM expr_items_plus_cset_name
+                            WHERE annotation IS NOT NULL
+                              AND cset_id LIKE '[VSAC]%' or cset_id LIKE '[HCUP]%'
+                            GROUP BY 1,2
+    '''
 
     counts = pd.read_csv('data/Lisa3forMarch9Bonanza/code_counts_back_from_enclave.csv', keep_default_na=False)
+    counts['concept_set_name'] = list(counts['cset_id'])  # counts already has cset_id, copy it to concept_set_name
+
+    vsac_dfs = load3file(VSAC_PATH)
+    hcup_dfs = load3file(HCUP_PATH)
+    versions, csets, items = [pd.concat([vsac_dfs[i], hcup_dfs[i]]) for i in range(3)]
+
+    # for the rest, make a corrected name column called cset_id
+    for df in versions, v_versions, h_versions, csets, h_csets, v_csets:
+        df['cset_id'] = df.concept_set_name.apply(strip)
+
+    for df in versions, v_versions, h_versions, csets, h_csets, v_csets:
 
     # some of this code was written just to figure out what was going on with all this messed up data and how to fix it
     # part of what stumped me for a long time. A bunch of the enclave concept_set_names have an ASCII 183 at the end
@@ -40,7 +66,6 @@ def quick_and_dirty():
     h_versions['prefix'] = h_versions.concept_set_name.str.replace('\].*', ']', regex=True)
     versions['prefix'] = versions.concept_set_name.str.replace('\].*', ']', regex=True)
 
-    counts['concept_set_name'] = list(counts['cset_id'])
     counts['cset_id'] = counts.concept_set_name.apply(strip)
     counts['whitespace'] = counts.concept_set_name == counts.cset_id
 
@@ -67,6 +92,12 @@ def quick_and_dirty():
     items['cset_id'] = [codesetid2name[id] for id in items.codeset_id]
     items['cd'] = items.codeSystem + ':' + items.code
 
+    counts['cd'] = counts.codesyscode.apply(lambda s: s[2:-2].split(', ')).apply(lambda x: set(x))
+
+    len(list(list(counts[counts.cset_id == '[VSAC] Diabetes'].cd)[0]))
+
+    itemgrps = items.groupby('cset_id')['cd'].agg(codesyscode=lambda x: set(x), len=lambda x: len(x))
+
     count_pairs = pd.DataFrame(items.groupby('cset_id')['cd'].nunique().reset_index()
                                 ).merge(counts[['cset_id', 'code_count']], on='cset_id', how='left')
 
@@ -74,6 +105,13 @@ def quick_and_dirty():
     count_pairs['code_count'] = count_pairs.code_count.astype('Int64')
 
     discrepant_csets = count_pairs[abs(count_pairs.code_count - count_pairs.cd) > 0]
+
+    cc = counts[['cset_id', 'cd']].merge(discrepant_csets, on='cset_id')
+
+    [r.codesyscode - r.cd_x for n, r in cc.iterrows()]
+    [r.cd_x - r.codesyscode for n, r in cc.iterrows()]
+
+    cc = cc.merge(itemgrps, on='cset_id')
     print(discrepant_csets)
 
     return discrepant_csets
