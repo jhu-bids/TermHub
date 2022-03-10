@@ -169,7 +169,12 @@ def run(input_csv_folder_path):
         container_data_dict = concept_set_container_edited_json_all_rows[premade_codeset_id]
         # noinspection PyUnusedLocal
         # response_json = post_request_enclave_api(api_url, header, test_data_dict)
-        # create concept set container -----
+        # create concept set container -----container_data_dict['parameters']['ri.actions.main.parameter.1b5cd6e9-b220-4551-b97d-245b9fa86807']
+        # 'ri.actions.main.parameter.1b5cd6e9-b220-4551-b97d-245b9fa86807': {'type': 'string', 'string': '[VSAC] Eclampsia'},
+        if DEBUG:
+            csContainerName = container_data_dict['parameters']['ri.actions.main.parameter.1b5cd6e9-b220-4551-b97d-245b9fa86807']['string']
+            print(csContainerName)
+            print('------------------------------')
         response_json = post_request_enclave_api_create_container(header, container_data_dict)
 
         # Validate 2: Concept set version item
@@ -189,12 +194,16 @@ def run(input_csv_folder_path):
         # update the payload with the codeset_id returned from the
 
         # DEBUG: Can use this to check to make sure code list is OK:
-        if DEBUG:
-            stringList = upd_cs_ver_expression_items_dict['parameters']['ri.actions.main.parameter.c9a1b531-86ef-4f80-80a5-cc774d2e4c33']['stringList']['strings']
-            print(premade_codeset_id)
-            print(len(stringList))
-            print(str(codeset_id))
-            print('------')
+        # if DEBUG:
+        csContainerName = \
+        container_data_dict['parameters']['ri.actions.main.parameter.1b5cd6e9-b220-4551-b97d-245b9fa86807'][
+            'string']
+        print('csContainerName: ' + str(csContainerName))
+        stringList = upd_cs_ver_expression_items_dict['parameters']['ri.actions.main.parameter.c9a1b531-86ef-4f80-80a5-cc774d2e4c33']['stringList']['strings']
+        print('premade_codeset_id: ' + str(premade_codeset_id))
+        print('len(stringList): ' + str(len(stringList)))
+        print('codeset_id: ' + str(codeset_id))
+        print('------')
 
         # update the json data with the correct codeset_id -----
         upd_cs_ver_expression_items_dict = \

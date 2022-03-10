@@ -405,6 +405,7 @@ def get_cs_version_data(cs_name, cs_id, intention, limitations, update_msg, prov
                 "string": limitations
             },
             # Provenance:
+            # ri.actions.main.parameter.5577422c-02a4-454a-97d0-3fb76425ba8c
             "ri.actions.main.parameter.5577422c-02a4-454a-97d0-3fb76425ba8c": {
                 "type": "string",
                 "string": provenance
@@ -575,6 +576,7 @@ def get_cs_version_expression_data(current_code_set_id: Union[str, int], cs_name
             # ri.actions.main.parameter.6cb950fd-894d-4176-9ad5-080373e26777
             "ri.actions.main.parameter.6cb950fd-894d-4176-9ad5-080373e26777": {
                 "type": "boolean",
+                # "boolean": bDescendents
                 "boolean": bDescendents
             },
 
