@@ -354,6 +354,7 @@ def get_palantir_csv(
             'provenance': '; '.join([
                     'Steward: ' + value_set['ns0:Source'],
                     'OID: ' + value_set['@ID'],
+                    'bids_id: ' + str(codeset_id),
                     'Code System(s): ' + ','.join(list(code_system_codes.keys())),
                     'Definition Type: ' + value_set['ns0:Type'],
                     'Definition Version: ' + value_set['@version'],
