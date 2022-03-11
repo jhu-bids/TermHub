@@ -13,14 +13,30 @@ def load3file(dirpath):
     return (pd.read_csv(os.path.join(dirpath, file)) for file in THREE_FILES)
 
 
-def strip(s: str) -> str:
-    s = re.sub(r'^[·\s]+', '', s)
-    s = re.sub(r'[·\s]+$', '', s)
-    s = re.sub(r'  +', ' ', s)
+def strip(s: str) -> str:   # concept_set_name fixes
+    '''
+    part of what stumped me for a while: a bunch of the enclave concept_set_names have an ASCII 183 at the end
+    which looks like this:  ·  , a period in the middle of the line. don't ask me why
+
+    another: the enclave unhelpfully "fixed" our double spaces so  '[VSAC] Bells Palsy,  codes for AE reporting'
+    in the CSV ended up '[VSAC] Bells Palsy, codes for AE reporting' on the enclave
+    '''
+    s = re.sub(r'[·\s]+$', '', s)   # fix ASCII 183 and any whitespace at end of lines (like trim, but more)
+    s = re.sub(r'^[·\s]+', '', s)   # do same at beginning for good measure, currently has no effect
+    s = re.sub(r'  +', ' ', s)      # within lines convert multiple space to single space to match enclave
     return s
 
+
 def addPrefix(df: pd.DataFrame) -> pd.DataFrame:
-    df['prefix'] = df.cset_id.str.replace('\].*', ']', regex=True)
+    df['prefix'] = df.cset_id.str.replace('\].*', ']', regex=True) # prefix = [VSAC] or [HCUP]
+    return df
+
+
+def delete_rows(df: pd.DataFrame) -> pd.DataFrame:
+    # delete unneeded rows (doing this on enclave now? well doesn't hurt)
+    df = df[df.prefix != '[VSAC Bulk-Import test]']
+    df = df[df.cset_id.str.endswith(' Requests') != True]
+    df = df[df.cset_id.str.startswith('[')]
     return df
 
 
@@ -41,80 +57,80 @@ def quick_and_dirty():
                             GROUP BY 1,2
     '''
 
-    counts = pd.read_csv('data/Lisa3forMarch9Bonanza/code_counts_back_from_enclave.csv', keep_default_na=False)
-    counts['concept_set_name'] = list(counts['cset_id'])  # counts already has cset_id, copy it to concept_set_name
+    now = re.sub(r':\d\d\.\d+', '', str(pd.to_datetime('today')))
+    print(f"\nOutput from {os.path.basename(__file__)} on {now}\n")
 
-    vsac_dfs = load3file(VSAC_PATH)
-    hcup_dfs = load3file(HCUP_PATH)
+    counts = pd.read_csv('data/Lisa3forMarch9Bonanza/code_counts_back_from_enclave.csv', keep_default_na=False)
+    counts['concept_set_name'] = list(counts['cset_id'])  # copy cset_id to concept_set_name (same thing, but see below)
+
+    vsac_dfs = list(load3file(VSAC_PATH))
+    hcup_dfs = list(load3file(HCUP_PATH))
+
+    # combine into single dfs for easier comparison
     versions, csets, items = [pd.concat([vsac_dfs[i], hcup_dfs[i]]) for i in range(3)]
 
-    # for the rest, make a corrected name column called cset_id
-    for df in versions, v_versions, h_versions, csets, h_csets, v_csets:
+    # make a corrected name column using strip function (above) called cset_id
+    for df in versions, csets, counts:
         df['cset_id'] = df.concept_set_name.apply(strip)
+        addPrefix(df)
 
-    for df in versions, v_versions, h_versions, csets, h_csets, v_csets:
+    counts = delete_rows(counts)
 
-    # some of this code was written just to figure out what was going on with all this messed up data and how to fix it
-    # part of what stumped me for a long time. A bunch of the enclave concept_set_names have an ASCII 183 at the end
-    # which looks like this:  ·  , a period in the middle of the line. don't ask me why
-
-    # another: the enclave unhelpfully "fixed" our double spaces so  '[VSAC] Bells Palsy,  codes for AE reporting'
-    # in the CSV ended up '[VSAC] Bells Palsy, codes for AE reporting' on the enclave
-
-    counts['prefix'] = counts.cset_id.str.replace('\].*', ']', regex=True)
-    v_versions['prefix'] = v_versions.concept_set_name.str.replace('\].*', ']', regex=True)
-    h_versions['prefix'] = h_versions.concept_set_name.str.replace('\].*', ']', regex=True)
-    versions['prefix'] = versions.concept_set_name.str.replace('\].*', ']', regex=True)
-
-    counts['cset_id'] = counts.concept_set_name.apply(strip)
-    counts['whitespace'] = counts.concept_set_name == counts.cset_id
-
-    versions['cset_id'] = versions.concept_set_name.apply(strip)
-    csets['cset_id'] = csets.concept_set_name.apply(strip)
-
-    counts = counts[counts.prefix != '[VSAC Bulk-Import test]']
-    counts = counts[counts.cset_id.str.endswith(' Requests') != True]
-    counts = counts[counts.cset_id.str.startswith('[')]
-
+    # find cset_ids only in counts or only in cvs
     missing_from_enclave = set(versions.cset_id) - set(counts.cset_id)
     extra_on_enclave = set(counts.cset_id) - set(versions.cset_id)
 
-    if len(missing_from_enclave) > 0:
+    if len(missing_from_enclave) > 0:   # currently not a problem. fail if it starts happening
         raise Exception("CSV csets exist that didn't get to enclave: " + ''.join([f'\n   {n}' for n in missing_from_enclave]))
 
-    if len(extra_on_enclave) > 0:
-        print("CSV csets exist on enclave but not CSVs: ")
-        pp.pprint(extra_on_enclave)
+    if len(extra_on_enclave) > 0:       # csets on enclave that we didn't expect,
+                                        # print these out and figure out where they came from
+        print(f"{len(extra_on_enclave)} CSV csets exist on enclave but not CSVs: " +
+                ''.join([f'\n    {name}' for name in extra_on_enclave]) + '\n\n')
 
+        # get rid of enclave records missing from csv
+        counts = counts[counts.cset_id.apply(lambda n: n not in extra_on_enclave)]
 
-    codesetid2name = dict(zip(versions.codeset_id, versions.concept_set_name))
+    # lookup from codeset_id (our internal id) to concept set name (cset_id)
+    codesetid2name = dict(zip(versions.codeset_id, versions.cset_id))
 
     items['cset_id'] = [codesetid2name[id] for id in items.codeset_id]
-    items['cd'] = items.codeSystem + ':' + items.code
+    items['csv_codes'] = items.codeSystem + ':' + items.code
 
-    counts['cd'] = counts.codesyscode.apply(lambda s: s[2:-2].split(', ')).apply(lambda x: set(x))
+    counts['enclave_codes'] = list(counts.codesyscode.apply(lambda s: s[2:-2].split(', ')).apply(lambda x: set(x)))
 
-    len(list(list(counts[counts.cset_id == '[VSAC] Diabetes'].cd)[0]))
+    len(list(list(counts[counts.cset_id == '[VSAC] Diabetes'].enclave_codes)[0]))
 
-    itemgrps = items.groupby('cset_id')['cd'].agg(codesyscode=lambda x: set(x), len=lambda x: len(x))
+    itemgrps = items.groupby('cset_id')['csv_codes'].agg(csv_codes=lambda x: set(x), csv_code_count=lambda x: len(x))
 
-    count_pairs = pd.DataFrame(items.groupby('cset_id')['cd'].nunique().reset_index()
-                                ).merge(counts[['cset_id', 'code_count']], on='cset_id', how='left')
+    versions['internal_id'] = versions['codeset_id']
+    csvcodes = versions[['internal_id', 'cset_id']].merge(itemgrps, on='cset_id', how='outer')
+    csvcodes['csv_code_count'] = csvcodes.csv_code_count.astype('Int64')
 
-    count_pairs['cd'] = count_pairs.cd.astype('Int64')
-    count_pairs['code_count'] = count_pairs.code_count.astype('Int64')
+    enclavecodes = pd.DataFrame({'cset_id': list(counts.cset_id),
+                                 'enclave_codes': list(counts.enclave_codes),
+                                 'enclave_code_count': list(counts.code_count.astype('Int64'))})
 
-    discrepant_csets = count_pairs[abs(count_pairs.code_count - count_pairs.cd) > 0]
+    # enclavecodes = counts[['cset_id', 'enclave_codes', ]] # where's 'codeset_id', ?
+    # enclavecodes['enclave_code_count'] = counts['code_count'].astype('Int64')
 
-    cc = counts[['cset_id', 'cd']].merge(discrepant_csets, on='cset_id')
+    merged = csvcodes.merge(enclavecodes, on='cset_id', how="outer")
 
-    [r.codesyscode - r.cd_x for n, r in cc.iterrows()]
-    [r.cd_x - r.codesyscode for n, r in cc.iterrows()]
+    for i, r in merged.iterrows():
+        try:
+            codes_missing_from_enclave = r.csv_codes - r.enclave_codes
+            codes_extra_in_enclave = r.enclave_codes - r.csv_codes
+            if len(codes_missing_from_enclave):
+                print(f'{r.cset_id} ({r.internal_id}) is missing {len(codes_missing_from_enclave)} codes on enclave: ' +
+                        ','.join(codes_missing_from_enclave))
+            if len(codes_extra_in_enclave):
+                print(f'{r.cset_id} ({r.internal_id}) has {len(codes_extra_in_enclave)} extra codes on enclave: ' +
+                        ','.join(codes_extra_in_enclave))
+        except Exception as e:
+            print("problem with pair:")
+            print(r)
 
-    cc = cc.merge(itemgrps, on='cset_id')
-    print(discrepant_csets)
-
-    return discrepant_csets
+    return
 
 
 '''     Here's what the output looks like:
@@ -129,7 +145,7 @@ CSV csets exist on enclave but not CSVs:
  '[VSAC] Disseminated Intravascular Coagulation 224',
  '[VSAC] Social Determinants of Health Conditions'}
 
-                                               cset_id    cd  code_count
+                                               cset_id    csv  enclave
 24                          [VSAC] Acute Heart Failure    10          21
 25            [VSAC] Acute Myocardial Infarction (AMI)    63         100
 26                          [VSAC] Acute Renal Failure    17          23
