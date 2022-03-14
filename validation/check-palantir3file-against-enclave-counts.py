@@ -77,11 +77,17 @@ def quick_and_dirty():
     counts = delete_rows(counts)
 
     # find cset_ids only in counts or only in cvs
-    missing_from_enclave = set(versions.cset_id) - set(counts.cset_id)
+    # missing_from_enclave = set(versions.cset_id) - set(counts.cset_id)
+    missing_from_enclave = set(versions.cset_id) - set(counts[counts.archived == False].cset_id)
     extra_on_enclave = set(counts.cset_id) - set(versions.cset_id)
 
     if len(missing_from_enclave) > 0:   # currently not a problem. fail if it starts happening
-        raise Exception("CSV csets exist that didn't get to enclave: " + ''.join([f'\n   {n}' for n in missing_from_enclave]))
+        missing_because_archived_on_enclave = set(versions.cset_id).intersection(set(counts[counts.archived == True].cset_id))
+        print(f"{len(missing_because_archived_on_enclave)} CVS csets exist on enclave but are archived: " +
+              ''.join([f'\n    {name}' for name in missing_because_archived_on_enclave]) + '\n\n')
+        if missing_from_enclave > missing_because_archived_on_enclave:
+            raise Exception("CSV csets exist that didn't get to enclave at all: " + ''.join([f'\n   {n}' for n in missing_from_enclave]))
+
 
     if len(extra_on_enclave) > 0:       # csets on enclave that we didn't expect,
                                         # print these out and figure out where they came from
