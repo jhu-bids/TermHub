@@ -72,7 +72,7 @@ def quick_and_dirty():
     # make a corrected name column using strip function (above) called cset_id
     for df in versions, csets, counts:
         df['cset_id'] = df.concept_set_name.apply(strip)
-        addPrefix(df)
+        df = addPrefix(df)
 
     counts = delete_rows(counts)
 
@@ -85,11 +85,13 @@ def quick_and_dirty():
 
     if len(extra_on_enclave) > 0:       # csets on enclave that we didn't expect,
                                         # print these out and figure out where they came from
-        print(f"{len(extra_on_enclave)} CSV csets exist on enclave but not CSVs: " +
+        print(f"{len(extra_on_enclave)} csets exist on enclave but not CSVs: " +
                 ''.join([f'\n    {name}' for name in extra_on_enclave]) + '\n\n')
 
         # get rid of enclave records missing from csv
         counts = counts[counts.cset_id.apply(lambda n: n not in extra_on_enclave)]
+
+    # so far only compared based on name, now going to compare on included codes
 
     # lookup from codeset_id (our internal id) to concept set name (cset_id)
     codesetid2name = dict(zip(versions.codeset_id, versions.cset_id))
@@ -99,7 +101,7 @@ def quick_and_dirty():
 
     counts['enclave_codes'] = list(counts.codesyscode.apply(lambda s: s[2:-2].split(', ')).apply(lambda x: set(x)))
 
-    len(list(list(counts[counts.cset_id == '[VSAC] Diabetes'].enclave_codes)[0]))
+    # len(list(list(counts[counts.cset_id == '[VSAC] Diabetes'].enclave_codes)[0]))
 
     itemgrps = items.groupby('cset_id')['csv_codes'].agg(csv_codes=lambda x: set(x), csv_code_count=lambda x: len(x))
 
