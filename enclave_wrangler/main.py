@@ -155,9 +155,12 @@ def run(input_csv_folder_path):
     # II. call the REST APIs to create them on the Enclave
     # ...now that we have all the data from concept set are created
     # problem with 16(3623) and 39(5104) 58(1820) 73(6791) 74(1501)
+
     for premade_codeset_id in premade_codeset_ids:
-        #    if premade_codeset_id != 1000000058:
-        #        continue
+        # TODO: temporary debug code to look for missing concept container not showing in the UI
+        # TODO: debug code for adding expressionItems to missing container from UI, l162,l163
+        ##if premade_codeset_id != 1000000181:
+        ##    continue
 
         # Do a test first using 'validate'
         api_url = API_VALIDATE_URL
@@ -171,12 +174,12 @@ def run(input_csv_folder_path):
         # response_json = post_request_enclave_api(api_url, header, test_data_dict)
         # create concept set container -----container_data_dict['parameters']['ri.actions.main.parameter.1b5cd6e9-b220-4551-b97d-245b9fa86807']
         # 'ri.actions.main.parameter.1b5cd6e9-b220-4551-b97d-245b9fa86807': {'type': 'string', 'string': '[VSAC] Eclampsia'},
-        if DEBUG:
-            csContainerName = container_data_dict['parameters']['ri.actions.main.parameter.1b5cd6e9-b220-4551-b97d-245b9fa86807']['string']
-            print(csContainerName)
-            print('------------------------------')
+        #if DEBUG:
+            #csContainerName = container_data_dict['parameters']['ri.actions.main.parameter.1b5cd6e9-b220-4551-b97d-245b9fa86807']['string']
+            #print(csContainerName)
+            #print('------------------------------')
         response_json = post_request_enclave_api_create_container(header, container_data_dict)
-
+        # i.e container object may already exist but we can create another version within a container: {'errorCode': 'INVALID_ARGUMENT', 'errorName': 'Actions:ObjectsAlreadyExist', 'errorInstanceId': '96fb2188-1947-4004-a7b3-d0572a5a0008', 'parameters': {'objectLocators': '[ObjectLocator{objectTypeId: omop-concept-set-container, primaryKey: {concept_set_id=PrimaryKeyValue{value: StringWrapper{value: [VSAC] Mental Behavioral and Neurodevelopmental Disorders}}}}]'}}
         # Validate 2: Concept set version item
         # noinspection PyUnusedLocal
         # DEBUG:urllib3.connectionpool:https://unite.nih.gov:443 "POST /actions/api/actions HTTP/1.1" 200 107
@@ -189,12 +192,20 @@ def run(input_csv_folder_path):
         # create the version and ask Enclave for the codeset_id that can be used to addCodeExpressionItems
         # create version -----
         codeset_id = post_request_enclave_api_create_version(header, cs_version_data_dict)
+        # TODO begin ------------------------------------------------------------
+        # 3/14/22, stephanie, save the codeset_id with container name in csContainerName
+        # save codeset_id of a draft version with the container name saved in container_name= container_data_dict['parameters']['ri.actions.main.parameter.1b5cd6e9-b220-4551-b97d-245b9fa86807']['string']
+        # premade_codeset_id = dih internal id
+        # csContainerName = container name
+        # codeset_id = version id
+        # --persist the data in the output folder = input_csv_folder_path
+        # end TODO---------------------------------------------------------------
         # upd_cs_ver_expression_items_dict = code_set_expression_items_json_all_rows[item]
         upd_cs_ver_expression_items_dict = code_set_expression_items_json_all_rows[premade_codeset_id]
         # update the payload with the codeset_id returned from the
 
         # DEBUG: Can use this to check to make sure code list is OK:
-        # if DEBUG:
+        # if DEBUG: # updated json data is saved in upd_cs_ver_expression_items_dict
         csContainerName = \
         container_data_dict['parameters']['ri.actions.main.parameter.1b5cd6e9-b220-4551-b97d-245b9fa86807'][
             'string']
@@ -203,7 +214,7 @@ def run(input_csv_folder_path):
         print('premade_codeset_id: ' + str(premade_codeset_id))
         print('len(stringList): ' + str(len(stringList)))
         print('codeset_id: ' + str(codeset_id))
-        print('------')
+        print('------------------------------')
 
         # update the json data with the correct codeset_id -----
         upd_cs_ver_expression_items_dict = \
@@ -217,9 +228,25 @@ def run(input_csv_folder_path):
         # noinspection PyUnusedLocal
         # add expressionItems to version -----
         response_json = post_request_enclave_api_addExpressionItems(header, upd_cs_ver_expression_items_dict)
-        print(json.dumps(response_json))
+        print('post request to add expressionItems returned: ----------' + json.dumps(response_json))
+        # Once the expression items has been added save the enclave concept_id so that we can update the code_sets.csv file
+        # update code_sets_df with the enclave_codeset_id column of the  value in the codeset_id retured from the enclave
+        # and if needed we can also save the json data in upd_cs_ver_expression_items_dict
+        # premade_codeset_id is stored in the codeset_id column in the csv files, save the id in the enclave_codeset_id column
+        # update when it was uploaded as well, Stephane 3/15/22
+        code_sets_df.set_index('codeset_id', inplace=True)
+        code_sets_df.at[premade_codeset_id, 'enclave_codeset_id'] = codeset_id
+        code_sets_df.at[premade_codeset_id, 'enclave_codeset_id_updated_at'] = _datetime_palantir_format()
+        code_sets_df.reset_index()
         # return response_json
 
+
+    # write out the update csv file with the enclave_codeset_id
+    # print('before terminating write out the updated code_sets.csv file here')
+    date_str = datetime.now().strftime('%Y_%m_%d_%H_%M')
+    output_filename = 'code_sets_updated_' + date_str + '.csv'
+    # output_filename = 'code_sets.csv' -- should we overwrite the input file? or create a new file
+    code_sets_df.to_csv(os.path.join(input_csv_folder_path, output_filename), index=True, encoding='utf-8')
 
 if __name__ == '__main__':
     run(None)

@@ -352,7 +352,7 @@ def get_cs_version_data(cs_name, cs_id, intention, limitations, update_msg, prov
                 # "type": "integer",
                 # "integer": cs_id - passing in cs_id did not work
             },  # reserved id list from DI&H id bank, cannot be reused
-            # TODO: does "stephanie cs example" match an actual container?
+            # 3/14/22 Stephanie - revised method is to query for the id and use the id from the enclave
 
             "ri.actions.main.parameter.51e12235-c217-47e2-a347-240d379434e8": {
                 "type": "objectLocator",
@@ -392,7 +392,9 @@ def get_cs_version_data(cs_name, cs_id, intention, limitations, update_msg, prov
             # Update message (optional; deprecated):
             "ri.actions.main.parameter.ae8b8a16-c690-42fa-b828-e60324074661": {
                 "type": "string",
-                "string": update_msg
+                # "string": update_msg
+                # use the provenance text for the update_msg - due to the current UI functionality - 3/11/22 shong
+                "string": provenance
             },
             # Intention:
             "ri.actions.main.parameter.2d5df665-6728-4f6e-83e5-8256551f8851": {
