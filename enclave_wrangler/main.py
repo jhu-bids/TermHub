@@ -16,7 +16,7 @@ import os
 from datetime import datetime, timezone
 import json
 import pandas as pd
-from enclave_wrangler.config import config
+from enclave_wrangler.config import PROJECT_ROOT, config
 from enclave_wrangler.enclave_api import get_cs_container_data
 from enclave_wrangler.enclave_api import get_cs_version_data
 from enclave_wrangler.enclave_api import get_cs_version_expression_data
@@ -51,13 +51,18 @@ def run(input_csv_folder_path):
     if DEBUG:
         log_debug_info()
 
+    # Read data
+    code_sets_df = pd.read_csv(os.path.join(input_csv_folder_path, 'code_sets.csv')).fillna('')
+    # For some reason, was being read with .0's at the end.
+    code_sets_df['enclave_codeset_id'] = pd.to_numeric(code_sets_df['enclave_codeset_id'], errors='coerce')\
+        .astype('Int64')
+
     # 0.1 Create mappings between
     # - concept_set_container_edited.csv[concept_set_name], and...
     # - code_sets.csv[codeset_id]
     # use the concept_set_name as key to store the pre-made codeset_ids,
     # store the codeset_ids in the premade_codeset_ids
     cs_name_id_mappings = {}
-    code_sets_df = pd.read_csv(os.path.join(input_csv_folder_path, 'code_sets.csv')).fillna('')
     for index, row in code_sets_df.iterrows():
         cs_id = row['codeset_id']
         cs_name = row['concept_set_name']
@@ -142,6 +147,8 @@ def run(input_csv_folder_path):
 
 
     # --- Steph: check the failed cases 2/15/22-----------------------------
+    # @Steph: Can we remove this block yet? I don't mind keeping for a while for convenienice, but I like the practice
+    # ...of keeping code like this inside a copy of the file in a git ignored folder. - Joe 2022/03/15
     # begin test code
     # for premade_codeset_id in premade_codeset_ids:
     #    # we have problem with very large code list - 16(3623) and 39(5104) 58(1820) 73(6791) 74(1501)
@@ -155,15 +162,14 @@ def run(input_csv_folder_path):
     # II. call the REST APIs to create them on the Enclave
     # ...now that we have all the data from concept set are created
     # problem with 16(3623) and 39(5104) 58(1820) 73(6791) 74(1501)
-
+    temp_testing_cset_id = 1000000273  # Stephanie said this was a draft or archived set - Joe 2022/03/15
     for premade_codeset_id in premade_codeset_ids:
         # TODO: temporary debug code to look for missing concept container not showing in the UI
         # TODO: debug code for adding expressionItems to missing container from UI, l162,l163
-        ##if premade_codeset_id != 1000000181:
-        ##    continue
+        if premade_codeset_id != temp_testing_cset_id:
+            continue
 
         # Do a test first using 'validate'
-        api_url = API_VALIDATE_URL
         header = {
                 "authorization": f"Bearer {config['PALANTIR_ENCLAVE_AUTHENTICATION_BEARER_TOKEN']}",
                 'content-type': 'application/json'
@@ -243,10 +249,18 @@ def run(input_csv_folder_path):
 
     # write out the update csv file with the enclave_codeset_id
     # print('before terminating write out the updated code_sets.csv file here')
-    date_str = datetime.now().strftime('%Y_%m_%d_%H_%M')
-    output_filename = 'code_sets_updated_' + date_str + '.csv'
-    # output_filename = 'code_sets.csv' -- should we overwrite the input file? or create a new file
+    # date_str = datetime.now().strftime('%Y_%m_%d_%H_%M')
+    # output_filename = 'code_sets_updated_' + date_str + '.csv'
+    output_filename = 'code_sets.csv'
     code_sets_df.to_csv(os.path.join(input_csv_folder_path, output_filename), index=True, encoding='utf-8')
+
+    # Save to persistence layer
+    persistence_csv_path = os.path.join(PROJECT_ROOT, 'data', 'cset.csv')
+    code_sets_df_limited = code_sets_df[['enclave_codeset_id', 'enclave_codeset_id_updated_at', 'concept_set_name']]
+    persistence_df = pd.read_csv(persistence_csv_path).fillna('')
+    persistence_df_new = persistence_df.merge(
+        code_sets_df_limited, how='left', left_on='internal_id', right_on='codeset_id').fillna('')
+    persistence_df_new.to_csv(persistence_csv_path, index=False)
 
 if __name__ == '__main__':
     run(None)
