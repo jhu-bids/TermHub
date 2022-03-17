@@ -14,7 +14,10 @@ import requests
 import pandas as pd
 import tempfile
 import pyarrow.parquet as pq
+
+import asyncio
 import shutil
+import time
 
 from enclave_wrangler.config import config
 from enclave_wrangler.utils import log_debug_info
@@ -67,7 +70,7 @@ def views2(datasetRid: str, endRef: str) -> [str]:
     return file_parts[1:]
 
 @typechecked
-def datasets_views(datasetRid: str, file_parts: [str]) -> None:
+async def datasets_views(datasetRid: str, file_parts: [str]) -> None:
     """tested with cURL:
     wget https://unite.nih.gov/foundry-data-proxy/api/dataproxy/datasets/ri.foundry.main.dataset.5cb3c4a3-327a-47bf-a8bf-daf0cafe6772/views/master/spark%2Fpart-00000-c94edb9f-1221-4ae8-ba74-58848a4d79cb-c000.snappy.parquet --header "authorization: Bearer $PALANTIR_ENCLAVE_AUTHENTICATION_BEARER_TOKEN"
     """
@@ -86,17 +89,23 @@ def datasets_views(datasetRid: str, file_parts: [str]) -> None:
                 fname = parquet_dir + fp.replace('spark', '')
                 with open(fname, "wb") as f:
                     response.raw.decode_content = True
+                    print(f'{fname} copying {time.strftime("%X")} ---> ', end='')
                     shutil.copyfileobj(response.raw, f)
-                    print(f'wrote {fname}')
-                    part_df = pd.read_parquet(fname)
+                    print(f'sleeping {time.strftime("%X")} ---> ', end='')
+                    await asyncio.sleep(2)
+                    print(f'waking {time.strftime("%X")} ---> ', end='')
+                    try:
+                        print(f'reading {time.strftime("%X")} ---> ', end='')
+                        part_df = pd.read_parquet(fname)
+                        print(f'read {time.strftime("%X")}')
+                    except Exception as e:
+                        print(f'errored {time.strftime("%X")} ----> {e}')
+                        raise e
                     parquet_parts.append(fname)
         combined_parquet_fname = parquet_dir + '/combined.parquet'
         combine_parquet_files(parquet_dir, combined_parquet_fname)
-
         df = pd.read_parquet(combined_parquet_fname)
 
-
-        print("<<hmmm...")
 
         # p1 = pd.read_parquet('./spark%2Fpart-00000-c94edb9f-1221-4ae8-ba74-58848a4d79cb-c000.snappy.parquet')
 
@@ -123,7 +132,7 @@ def run(datasetRid: str, ref: str = 'master') -> None:
     endRef = getTransaction(datasetRid, ref)
     args = {'datasetRid': datasetRid, 'endRef': endRef}
     file_parts = views2(**args)
-    datasets_views(datasetRid, file_parts)
+    asyncio.run(datasets_views(datasetRid, file_parts))
 
 
 
