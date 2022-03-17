@@ -4,10 +4,10 @@
 # TODO: For some reason, 'argparse' is not available in Stephanie's Python3.9 standard library, so she has installed
 #  the "ArgumentParser" class manually. However, we really want everyone to be using the same libraries, so
 #  we need to find out why this is happening to her, and fix it, instead of the workaround below: - Joe 2022/02/02
-try:
-    import ArgumentParser
-except ModuleNotFoundError:
-    from argparse import ArgumentParser
+#try:
+#    import ArgumentParser
+#except ModuleNotFoundError:
+from argparse import ArgumentParser
 from typing import Dict
 
 from enclave_wrangler.main import run
