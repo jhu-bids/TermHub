@@ -56,6 +56,9 @@ def run(input_csv_folder_path):
     # For some reason, was being read with .0's at the end.
     code_sets_df['enclave_codeset_id'] = pd.to_numeric(code_sets_df['enclave_codeset_id'], errors='coerce')\
         .astype('Int64')
+    # be sure to strip the spaces in the beginning and the end of the name
+    code_sets_df.columns.str.lstrip()
+    code_sets_df.columns.str.rstrip()
 
     # 0.1 Create mappings between
     # - concept_set_container_edited.csv[concept_set_name], and...
@@ -161,8 +164,7 @@ def run(input_csv_folder_path):
 
     # II. call the REST APIs to create them on the Enclave
     # ...now that we have all the data from concept set are created
-    # problem with 16(3623) and 39(5104) 58(1820) 73(6791) 74(1501)
-    temp_testing_cset_id = 1000000273  # Stephanie said this was a draft or archived set - Joe 2022/03/15
+    temp_testing_cset_id = 1000000326  # Stephanie said this was a draft or archived set - Joe 2022/03/15
     for premade_codeset_id in premade_codeset_ids:
         # TODO: temporary debug code to look for missing concept container not showing in the UI
         # TODO: debug code for adding expressionItems to missing container from UI, l162,l163
