@@ -62,6 +62,7 @@ Options:
 |Short flag | Long flag | Choices | Default | Description |
 |---	|---	|---	|--- | --- |
 | `-i` | `--input-csv-folder-path` | | | Path to folder with 3 files that have specific columns that adhere to concept table data model. These files must have the following names: i. code_sets.csv, ii. concept_set_container_edited.csv, iii. concept_set_version_item_rv_edited.csv |
+| `-c` | `--use-cache` | | | If present, will check the input file and look at the `enclave_codeset_id` column. If no empty values are present, this indicates that the `enclave_wrangler` has already been run and that the input file itself can be used as cached data. The only thing that will happen is an update to the persistence layer, (`data/cset.csv` as of 2022/03/18). |
 | `-h` | `--help` |  | | Shows help information for using the tool. |
 
 

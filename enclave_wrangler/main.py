@@ -7,7 +7,8 @@ Resources
 - Validate URL (for testing POSTs without it actually taking effect): https://unite.nih.gov/actions/api/actions/validate
 # TODO: Update wiki article to be up-to-date with correct params for 'concept set version':
 - Wiki article on how to create these JSON:
-- https://github.com/National-COVID-Cohort-Collaborative/Data-Ingestion-and-Harmonization/wiki/BulkImportConceptSet-REST-APIs
+- https://github.com/
+  National-COVID-Cohort-Collaborative/Data-Ingestion-and-Harmonization/wiki/BulkImportConceptSet-REST-APIs
   - CreateNewDraftOMOPConceptSetVersion: code_sets.csv
   - CreateNewConceptSet: concept_set_container_edited.csv
   - addCodeAsVersionExpression: concept_set_version_item_rv_edited.csv
@@ -15,6 +16,8 @@ Resources
 import os
 from datetime import datetime, timezone
 import json
+from typing import Dict, List, Union
+
 import pandas as pd
 from enclave_wrangler.config import PROJECT_ROOT, config
 from enclave_wrangler.enclave_api import get_cs_container_data
@@ -28,6 +31,7 @@ from enclave_wrangler.utils import log_debug_info
 
 
 # TODO: Add debug as a CLI param
+# TODO: Add log info as a CLI param and implement
 DEBUG = False
 # PALANTIR_ENCLAVE_USER_ID_1: This is an actual ID to a valid user in palantir, who works on our BIDS team.
 PALANTIR_ENCLAVE_USER_ID_1 = 'a39723f3-dc9c-48ce-90ff-06891c29114f'
@@ -46,21 +50,45 @@ def _datetime_palantir_format() -> str:
     return datetime.now(timezone.utc).strftime("%Y-%m-%dT%H:%M:%S.%fZ")[:-4] + 'Z'
 
 
-def run(input_csv_folder_path):
-    """Main function"""
+def _load_standardized_input_df(
+    path, integer_id_fields=['enclave_codeset_id', 'codeset_id', 'internal_id']
+) -> pd.DataFrame:
+    """Loads known input dataframe in a standardized way:
+        - Sets data types
+        - Fill na values"""
+    df: pd.DataFrame = pd.read_csv(path).fillna('')
+
+    # Strip: remove the spaces in the beginning and the end of the name
+    df.columns.str.lstrip()
+    df.columns.str.rstrip()
+
+    # Float->Int: For some reason, was being read with .0's at the end.
+    for field in [x for x in integer_id_fields if x in list(df.columns)]:
+        df[field] = pd.to_numeric(df[field], errors='coerce')\
+            .astype('Int64')
+
+    return df
+
+
+def load_cache_if_valid(input_csv_folder_path) -> Union[pd.DataFrame, None]:
+    """Checks `enclave_codeset_id` and, if no empty vals, uses this file as cache."""
+    df: pd.DataFrame = _load_standardized_input_df(os.path.join(input_csv_folder_path, 'code_sets.csv'))
+    ids = list(df['enclave_codeset_id'])
+    valid = not any([x == '' for x in ids])
+
+    return df if valid else None
+
+
+def post_to_enclave_and_update_code_sets_csv(input_csv_folder_path) -> pd.DataFrame:
+    """Uploads data to enclave and updates the following column in the input's code_sets.csv:
+    - enclave_codeset_id
+    - enclave_codeset_id_updated_at
+    - concept_set_name"""
     if DEBUG:
         log_debug_info()
 
     # Read data
-    code_sets_df = pd.read_csv(os.path.join(input_csv_folder_path, 'code_sets.csv')).fillna('')
-    if 'codeset_id' not in code_sets_df.columns:
-        print('WTF???')
-    # For some reason, was being read with .0's at the end.
-    code_sets_df['enclave_codeset_id'] = pd.to_numeric(code_sets_df['enclave_codeset_id'], errors='coerce')\
-        .astype('Int64')
-    # be sure to strip the spaces in the beginning and the end of the name
-    code_sets_df.columns.str.lstrip()
-    code_sets_df.columns.str.rstrip()
+    code_sets_df: pd.DataFrame = _load_standardized_input_df(input_csv_folder_path)
 
     # 0.1 Create mappings between
     # - concept_set_container_edited.csv[concept_set_name], and...
@@ -136,20 +164,20 @@ def run(input_csv_folder_path):
         annotation = concept_set_version_item_row1['annotation']
 
         for concept_set_version_item_row in concept_set_version_item_rows:
-                code_codesystem_pair = concept_set_version_item_row['codeSystem'] + ":" + concept_set_version_item_row['code']
-                code_list.append(code_codesystem_pair)
-                # to-do(future): Right now, the API doesn't expect variation between the following 4 values among
-                # ...concept set items, so right now we can just take any of the rows and use its values. But, in
-                # ...the future, when there is variation, we may need to do some update here. - Joe 2022/02/04
-                # this is same limitation OMOP concept expression works, so for now it is sufficient
-                # we can explorer more granular control later if necessary -Stephanie 02/05/2022
+            code_codesystem_pair = \
+                concept_set_version_item_row['codeSystem'] + ":" + concept_set_version_item_row['code']
+            code_list.append(code_codesystem_pair)
+            # to-do(future): Right now, the API doesn't expect variation between the following 4 values among
+            # ...concept set items, so right now we can just take any of the rows and use its values. But, in
+            # ...the future, when there is variation, we may need to do some update here. - Joe 2022/02/04
+            # this is same limitation OMOP concept expression works, so for now it is sufficient
+            # we can explorer more granular control later if necessary -Stephanie 02/05/2022
 
-                # now that we have the code list, generate the json for the versionExpression data
-                single_row = get_cs_version_expression_data(
-                    current_code_set_id, cs_name, code_list, exclude, descendents, mapped, annotation)
-                code_set_expression_items_json_all_rows[current_code_set_id] = single_row
-                # code_set_expression_items_json_all_rows_dict[codeset_id] = single_row
-
+            # now that we have the code list, generate the json for the versionExpression data
+            single_row = get_cs_version_expression_data(
+                current_code_set_id, cs_name, code_list, exclude, descendents, mapped, annotation)
+            code_set_expression_items_json_all_rows[current_code_set_id] = single_row
+            # code_set_expression_items_json_all_rows_dict[codeset_id] = single_row
 
     # --- Steph: check the failed cases 2/15/22-----------------------------
     # @Steph: Can we remove this block yet? I don't mind keeping for a while for convenienice, but I like the practice
@@ -158,20 +186,21 @@ def run(input_csv_folder_path):
     # for premade_codeset_id in premade_codeset_ids:
     #    # we have problem with very large code list - 16(3623) and 39(5104) 58(1820) 73(6791) 74(1501)
     #    upd_cs_ver_expression_items_dict1 = code_set_expression_items_json_all_rows[premade_codeset_id]
-    #    codeStringList1 = upd_cs_ver_expression_items_dict1['parameters']['ri.actions.main.parameter.c9a1b531-86ef-4f80-80a5-cc774d2e4c33']['stringList']['strings']
+    #    codeStringList1 = upd_cs_ver_expression_items_dict1['parameters'][
+    #        'ri.actions.main.parameter.c9a1b531-86ef-4f80-80a5-cc774d2e4c33']['stringList']['strings']
     #    print( str(premade_codeset_id) + "codelistLength: " + str(len(codeStringList1)))
     #    print('------')
     # end test code ------------------------------- #
 
-
     # II. call the REST APIs to create them on the Enclave
     # ...now that we have all the data from concept set are created
-    temp_testing_cset_id = 1000000326  # Stephanie said this was a draft or archived set - Joe 2022/03/15
+    # temp_testing_cset_id = 1000000326  # Stephanie said this was a draft or archived set - Joe 2022/03/15
     for premade_codeset_id in premade_codeset_ids:
         # TODO: temporary debug code to look for missing concept container not showing in the UI
         # TODO: debug code for adding expressionItems to missing container from UI, l162,l163
-    #    if premade_codeset_id != temp_testing_cset_id:
-    #        continue
+
+        #    if premade_codeset_id != temp_testing_cset_id:
+        #        continue
 
         # Do a test first using 'validate'
         header = {
@@ -182,14 +211,21 @@ def run(input_csv_folder_path):
         container_data_dict = concept_set_container_edited_json_all_rows[premade_codeset_id]
         # noinspection PyUnusedLocal
         # response_json = post_request_enclave_api(api_url, header, test_data_dict)
-        # create concept set container -----container_data_dict['parameters']['ri.actions.main.parameter.1b5cd6e9-b220-4551-b97d-245b9fa86807']
-        # 'ri.actions.main.parameter.1b5cd6e9-b220-4551-b97d-245b9fa86807': {'type': 'string', 'string': '[VSAC] Eclampsia'},
-        #if DEBUG:
-            #csContainerName = container_data_dict['parameters']['ri.actions.main.parameter.1b5cd6e9-b220-4551-b97d-245b9fa86807']['string']
-            #print(csContainerName)
-            #print('------------------------------')
+        # create concept set containe:
+        #  ----- container_data_dict['parameters']['ri.actions.main.parameter.1b5cd6e9-b220-4551-b97d-245b9fa86807']
+        # 'ri.actions.main.parameter.1b5cd6e9-b220-4551-b97d-245b9fa86807': {
+        #   'type': 'string', 'string': '[VSAC] Eclampsia'},
+        # if DEBUG:
+        #     csContainerName = container_data_dict[
+        #         'parameters']['ri.actions.main.parameter.1b5cd6e9-b220-4551-b97d-245b9fa86807']['string']
+        #     print(csContainerName)
+        #     print('------------------------------')
         response_json = post_request_enclave_api_create_container(header, container_data_dict)
-        # i.e container object may already exist but we can create another version within a container: {'errorCode': 'INVALID_ARGUMENT', 'errorName': 'Actions:ObjectsAlreadyExist', 'errorInstanceId': '96fb2188-1947-4004-a7b3-d0572a5a0008', 'parameters': {'objectLocators': '[ObjectLocator{objectTypeId: omop-concept-set-container, primaryKey: {concept_set_id=PrimaryKeyValue{value: StringWrapper{value: [VSAC] Mental Behavioral and Neurodevelopmental Disorders}}}}]'}}
+        # i.e container object may already exist but we can create another version within a container:
+        # {'errorCode': 'INVALID_ARGUMENT', 'errorName': 'Actions:ObjectsAlreadyExist',
+        # 'errorInstanceId': '96fb2188-1947-4004-a7b3-d0572a5a0008', 'parameters': {'objectLocators':
+        # '[ObjectLocator{objectTypeId: omop-concept-set-container, primaryKey: {concept_set_id=PrimaryKeyValue{
+        #   value: StringWrapper{value: [VSAC] Mental Behavioral and Neurodevelopmental Disorders}}}}]'}}
         # Validate 2: Concept set version item
         # noinspection PyUnusedLocal
         # DEBUG:urllib3.connectionpool:https://unite.nih.gov:443 "POST /actions/api/actions HTTP/1.1" 200 107
@@ -204,7 +240,8 @@ def run(input_csv_folder_path):
         codeset_id = post_request_enclave_api_create_version(header, cs_version_data_dict)
         # TODO begin ------------------------------------------------------------
         # 3/14/22, stephanie, save the codeset_id with container name in csContainerName
-        # save codeset_id of a draft version with the container name saved in container_name= container_data_dict['parameters']['ri.actions.main.parameter.1b5cd6e9-b220-4551-b97d-245b9fa86807']['string']
+        # save codeset_id of a draft version with the container name saved in container_name= container_data_dict[
+        #   'parameters']['ri.actions.main.parameter.1b5cd6e9-b220-4551-b97d-245b9fa86807']['string']
         # premade_codeset_id = dih internal id
         # csContainerName = container name
         # codeset_id = version id
@@ -216,21 +253,19 @@ def run(input_csv_folder_path):
 
         # DEBUG: Can use this to check to make sure code list is OK:
         # if DEBUG: # updated json data is saved in upd_cs_ver_expression_items_dict
-        csContainerName = \
-        container_data_dict['parameters']['ri.actions.main.parameter.1b5cd6e9-b220-4551-b97d-245b9fa86807'][
-            'string']
-        print('csContainerName: ' + str(csContainerName))
-        stringList = upd_cs_ver_expression_items_dict['parameters']['ri.actions.main.parameter.c9a1b531-86ef-4f80-80a5-cc774d2e4c33']['stringList']['strings']
+        cs_container_name = container_data_dict[
+            'parameters']['ri.actions.main.parameter.1b5cd6e9-b220-4551-b97d-245b9fa86807']['string']
+        print('csContainerName: ' + str(cs_container_name))
+        string_list = upd_cs_ver_expression_items_dict[
+            'parameters']['ri.actions.main.parameter.c9a1b531-86ef-4f80-80a5-cc774d2e4c33']['stringList']['strings']
         print('premade_codeset_id: ' + str(premade_codeset_id))
-        print('len(stringList): ' + str(len(stringList)))
+        print('len(stringList): ' + str(len(string_list)))
         print('codeset_id: ' + str(codeset_id))
         print('------------------------------')
 
         # update the json data with the correct codeset_id -----
         upd_cs_ver_expression_items_dict = \
             update_cs_version_expression_data_with_codesetid(codeset_id, upd_cs_ver_expression_items_dict)
-
-
         # Validate 3: add the concept set expressions to draft version by passing as code and code system
         # third api
         # https://unite.nih.gov/workspace/ontology/action-type/add-code-system-codes-as-omop-version-expressions/overview
@@ -239,11 +274,11 @@ def run(input_csv_folder_path):
         # add expressionItems to version -----
         response_json = post_request_enclave_api_addExpressionItems(header, upd_cs_ver_expression_items_dict)
         print('post request to add expressionItems returned: ----------' + json.dumps(response_json))
-        # Once the expression items has been added save the enclave concept_id so that we can update the code_sets.csv file
-        # update code_sets_df with the enclave_codeset_id column of the  value in the codeset_id retured from the enclave
-        # and if needed we can also save the json data in upd_cs_ver_expression_items_dict
-        # premade_codeset_id is stored in the codeset_id column in the csv files, save the id in the enclave_codeset_id column
-        # update when it was uploaded as well, Stephane 3/15/22
+        # Once the expression items has been added save the enclave concept_id so that we can update the code_sets.csv
+        # file update code_sets_df with the enclave_codeset_id column of the  value in the codeset_id retured from the
+        # enclave and if needed we can also save the json data in upd_cs_ver_expression_items_dict premade_codeset_id is
+        # stored in the codeset_id column in the csv files, save the id in the enclave_codeset_id column update when it
+        # was uploaded as well, Stephane 3/15/22
         try:
             code_sets_df.set_index('codeset_id', inplace=True)
         except Exception as e:
@@ -254,21 +289,64 @@ def run(input_csv_folder_path):
         code_sets_df = code_sets_df.reset_index()
         # return response_json
 
-
     # write out the update csv file with the enclave_codeset_id
     # print('before terminating write out the updated code_sets.csv file here')
     # date_str = datetime.now().strftime('%Y_%m_%d_%H_%M')
     # output_filename = 'code_sets_updated_' + date_str + '.csv'
+    # TODO: fix creates these columns depending on how we're doing indexing: Unnamed: 0	Unnamed: 0.1, etc
     output_filename = 'code_sets.csv'
     code_sets_df.to_csv(os.path.join(input_csv_folder_path, output_filename), index=True, encoding='utf-8')
 
-    # Save to persistence layer
-    persistence_csv_path = os.path.join(PROJECT_ROOT, 'data', 'cset.csv')
-    code_sets_df_limited = code_sets_df[['codeset_id', 'enclave_codeset_id', 'enclave_codeset_id_updated_at', 'concept_set_name']]
-    persistence_df = pd.read_csv(persistence_csv_path).fillna('')
-    persistence_df_new = persistence_df.merge(
-        code_sets_df_limited, how='left', left_on='internal_id', right_on='codeset_id').fillna('')
-    persistence_df_new.to_csv(persistence_csv_path, index=False)
+    return code_sets_df
 
-if __name__ == '__main__':
-    run(None)
+
+def left_join_update(df, df2):
+    """Does a left join, but where column names are the same, keeps right value if exists, else left value."""
+    new_df = df.merge(
+        df2, how='left', left_on='internal_id', right_on='codeset_id')
+
+    xy_col_counts: Dict[str, int] = {}
+    for col in list(new_df.columns):
+        if any([col.endswith(x) for x in ['_x', '_y']]):
+            common_col = col[:-2]
+            if common_col not in xy_col_counts:
+                xy_col_counts[common_col] = 0
+            xy_col_counts[common_col] += 1
+
+    xy_cols: List[str] = [k for k, v in xy_col_counts.items() if v == 2]
+    for col in xy_cols:
+        new_df[col] = new_df[col + '_y'].fillna(new_df[col + '_x'])
+        new_df = new_df.drop([col + '_x', col + '_y'], axis=1)
+
+    return new_df
+
+
+def persist_to_db(code_sets_df) -> pd.DataFrame:
+    """Save updated items to persistence layer"""
+    # Vars
+    join_col = 'codeset_id'
+    update_cols = ['enclave_codeset_id', 'enclave_codeset_id_updated_at', 'concept_set_name']
+
+    # Read
+    persistence_csv_path = os.path.join(PROJECT_ROOT, 'data', 'cset.csv')
+    persistence_df = _load_standardized_input_df(persistence_csv_path)
+
+    # Subset
+    try:
+        code_sets_df_limited = code_sets_df[[join_col] + update_cols]
+    except KeyError:  # if KeyError, `join_col` is an index
+        code_sets_df_limited = code_sets_df[update_cols]
+    # Join
+    persistence_df_new = left_join_update(persistence_df, code_sets_df_limited)
+
+    # Save and return
+    persistence_df_new.to_csv(persistence_csv_path, index=False)
+    return persistence_df_new
+
+
+def run(input_csv_folder_path, use_cache=False):
+    """Main function"""
+    code_sets_df: Union[pd.DataFrame, None] = load_cache_if_valid(input_csv_folder_path) if use_cache else None
+    if code_sets_df is None:
+        code_sets_df: pd.DataFrame = post_to_enclave_and_update_code_sets_csv(input_csv_folder_path)
+    persist_to_db(code_sets_df)
