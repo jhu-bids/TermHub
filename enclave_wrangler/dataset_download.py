@@ -13,9 +13,9 @@ from datetime import datetime, timezone
 import requests
 import pandas as pd
 import tempfile
+# import pyarrow as pa
 import pyarrow.parquet as pq
-
-import asyncio
+# import asyncio
 import shutil
 import time
 
@@ -27,6 +27,7 @@ HEADERS = {
     #'content-type': 'application/json'
 }
 DEBUG = False
+TARGET_CSV_DIR='data/datasets/'
 
 
 @typechecked
@@ -70,7 +71,7 @@ def views2(datasetRid: str, endRef: str) -> [str]:
     return file_parts[1:]
 
 @typechecked
-async def datasets_views(datasetRid: str, file_parts: [str]) -> None:
+def datasets_views(datasetRid: str, file_parts: [str]) -> None:
     """tested with cURL:
     wget https://unite.nih.gov/foundry-data-proxy/api/dataproxy/datasets/ri.foundry.main.dataset.5cb3c4a3-327a-47bf-a8bf-daf0cafe6772/views/master/spark%2Fpart-00000-c94edb9f-1221-4ae8-ba74-58848a4d79cb-c000.snappy.parquet --header "authorization: Bearer $PALANTIR_ENCLAVE_AUTHENTICATION_BEARER_TOKEN"
     """
@@ -91,20 +92,24 @@ async def datasets_views(datasetRid: str, file_parts: [str]) -> None:
                     response.raw.decode_content = True
                     print(f'{fname} copying {time.strftime("%X")} ---> ', end='')
                     shutil.copyfileobj(response.raw, f)
-                    print(f'sleeping {time.strftime("%X")} ---> ', end='')
-                    await asyncio.sleep(2)
-                    print(f'waking {time.strftime("%X")} ---> ', end='')
-                    try:
-                        print(f'reading {time.strftime("%X")} ---> ', end='')
-                        part_df = pd.read_parquet(fname)
-                        print(f'read {time.strftime("%X")}')
-                    except Exception as e:
-                        print(f'errored {time.strftime("%X")} ----> {e}')
-                        raise e
+                    # print(f'sleeping {time.strftime("%X")} ---> ', end='')
+                    # await asyncio.sleep(2)
+                    # print(f'waking {time.strftime("%X")} ---> ', end='')
+                    print()
+                try:
+                    print(f'reading {time.strftime("%X")} ---> ', end='')
+                    part_df = pd.read_parquet(fname)
+                    print(f'read {time.strftime("%X")}')
+                except Exception as e:
+                    print(f'errored {time.strftime("%X")} ----> {e}')
+                    raise e
                     parquet_parts.append(fname)
+            else:
+                raise f'failed opening {url} with {response.status_code}: {response.content}'
         combined_parquet_fname = parquet_dir + '/combined.parquet'
         combine_parquet_files(parquet_dir, combined_parquet_fname)
         df = pd.read_parquet(combined_parquet_fname)
+        df.to_csv()
 
 
         # p1 = pd.read_parquet('./spark%2Fpart-00000-c94edb9f-1221-4ae8-ba74-58848a4d79cb-c000.snappy.parquet')
@@ -116,13 +121,15 @@ def combine_parquet_files(input_folder, target_path):
         files = []
         for file_name in os.listdir(input_folder):
             files.append(pq.read_table(os.path.join(input_folder, file_name)))
+
         with pq.ParquetWriter(target_path,
                               files[0].schema,
                               version='2.0',
                               compression='gzip',
                               use_dictionary=True,
                               data_page_size=2097152,  # 2MB
-                              write_statistics=True) as writer:
+                              write_statistics=True
+        ) as writer:
             for f in files:
                 writer.write_table(f)
     except Exception as e:
@@ -132,7 +139,8 @@ def run(datasetRid: str, ref: str = 'master') -> None:
     endRef = getTransaction(datasetRid, ref)
     args = {'datasetRid': datasetRid, 'endRef': endRef}
     file_parts = views2(**args)
-    asyncio.run(datasets_views(datasetRid, file_parts))
+    datasets_views(datasetRid, file_parts)
+    # asyncio.run(datasets_views(datasetRid, file_parts))
 
 
 
@@ -152,9 +160,12 @@ def get_parser():
         help='Name of the environment variable holding the auth token you want to use')
 
     parser.add_argument(
+        '--datasetName',
+        help='Name of enclave dataset you want to download. CSV will be saved to ValueSet-Tools/data/datasets/<name>')
+
+    parser.add_argument(
         '--datasetRid',
-        help='RID of enclave dataset you want to download. Use -o to specify output directory, or who knows '
-             'where it will end up.')
+        help='RID of enclave dataset you want to download.')
 
     parser.add_argument(
         '--ref',
@@ -162,9 +173,9 @@ def get_parser():
         help='Should be the branch of the dataset -- I think. Refer to API documentation at '
                 'https://unite.nih.gov/workspace/documentation/developer/api/catalog/services/CatalogService/endpoints/getTransaction')
 
-    parser.add_argument(
-        '-o', '--output_dir',
-        help='Path to folder where you want output files, if there are any')
+#    parser.add_argument(
+#        '-o', '--output_dir',
+#        help='Path to folder where you want output files, if there are any')
 
     return parser
 
