@@ -376,6 +376,8 @@ def get_palantir_csv(
         rows2.append(row)
     df2 = pd.DataFrame(rows2)
     _all[filename2] = df2
+    df2['enclave_codeset_id'] = ''
+    df2['enclave_codeset_id_updated_at'] = ''
     _save_csv(
         df2, filename=filename2, output_name=output_name, source_name=source_name, field_delimiter=field_delimiter)
 
