@@ -168,8 +168,8 @@ def run(input_csv_folder_path):
     for premade_codeset_id in premade_codeset_ids:
         # TODO: temporary debug code to look for missing concept container not showing in the UI
         # TODO: debug code for adding expressionItems to missing container from UI, l162,l163
-        if premade_codeset_id != temp_testing_cset_id:
-            continue
+    #    if premade_codeset_id != temp_testing_cset_id:
+    #        continue
 
         # Do a test first using 'validate'
         header = {
