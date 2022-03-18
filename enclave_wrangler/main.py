@@ -53,6 +53,8 @@ def run(input_csv_folder_path):
 
     # Read data
     code_sets_df = pd.read_csv(os.path.join(input_csv_folder_path, 'code_sets.csv')).fillna('')
+    if 'codeset_id' not in code_sets_df.columns:
+        print('WTF???')
     # For some reason, was being read with .0's at the end.
     code_sets_df['enclave_codeset_id'] = pd.to_numeric(code_sets_df['enclave_codeset_id'], errors='coerce')\
         .astype('Int64')
@@ -242,10 +244,14 @@ def run(input_csv_folder_path):
         # and if needed we can also save the json data in upd_cs_ver_expression_items_dict
         # premade_codeset_id is stored in the codeset_id column in the csv files, save the id in the enclave_codeset_id column
         # update when it was uploaded as well, Stephane 3/15/22
-        code_sets_df.set_index('codeset_id', inplace=True)
+        try:
+            code_sets_df.set_index('codeset_id', inplace=True)
+        except Exception as e:
+            print(e)
+
         code_sets_df.at[premade_codeset_id, 'enclave_codeset_id'] = codeset_id
         code_sets_df.at[premade_codeset_id, 'enclave_codeset_id_updated_at'] = _datetime_palantir_format()
-        code_sets_df.reset_index()
+        code_sets_df = code_sets_df.reset_index()
         # return response_json
 
 
@@ -258,7 +264,7 @@ def run(input_csv_folder_path):
 
     # Save to persistence layer
     persistence_csv_path = os.path.join(PROJECT_ROOT, 'data', 'cset.csv')
-    code_sets_df_limited = code_sets_df[['enclave_codeset_id', 'enclave_codeset_id_updated_at', 'concept_set_name']]
+    code_sets_df_limited = code_sets_df[['codeset_id', 'enclave_codeset_id', 'enclave_codeset_id_updated_at', 'concept_set_name']]
     persistence_df = pd.read_csv(persistence_csv_path).fillna('')
     persistence_df_new = persistence_df.merge(
         code_sets_df_limited, how='left', left_on='internal_id', right_on='codeset_id').fillna('')
