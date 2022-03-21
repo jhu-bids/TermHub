@@ -285,6 +285,7 @@ def get_palantir_csv(
                 'includeMapped': False,
                 'item_id': str(uuid4()),  # will let palantir verify ID is indeed unique
                 'annotation': json.dumps({
+                    'bids_id': codeset_id,
                     'when': str(datetime.now().strftime('%Y-%m-%d')),
                     'who': 'BIDS',
                     'project': 'N3C-enclave-import',
