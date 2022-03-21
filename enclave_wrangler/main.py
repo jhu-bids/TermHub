@@ -67,6 +67,8 @@ def _load_standardized_input_df(
         df[field] = pd.to_numeric(df[field], errors='coerce')\
             .astype('Int64')
 
+    # TODO: This returns <NA> in columns sometimes. how do i fix this? should we fix this?
+
     return df
 
 
@@ -74,6 +76,7 @@ def load_cache_if_valid(input_csv_folder_path) -> Union[pd.DataFrame, None]:
     """Checks `enclave_codeset_id` and, if no empty vals, uses this file as cache."""
     df: pd.DataFrame = _load_standardized_input_df(os.path.join(input_csv_folder_path, 'code_sets.csv'))
     ids = list(df['enclave_codeset_id'])
+    # TODO: This should account for <NA>. either should remove those first, or check for them here
     valid = not any([x == '' for x in ids])
 
     return df if valid else None
@@ -88,7 +91,8 @@ def post_to_enclave_and_update_code_sets_csv(input_csv_folder_path) -> pd.DataFr
         log_debug_info()
 
     # Read data
-    code_sets_df: pd.DataFrame = _load_standardized_input_df(input_csv_folder_path)
+    code_sets_df: pd.DataFrame = _load_standardized_input_df(
+        os.path.join(input_csv_folder_path, 'code_sets.csv'))
 
     # 0.1 Create mappings between
     # - concept_set_container_edited.csv[concept_set_name], and...

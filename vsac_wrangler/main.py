@@ -11,7 +11,7 @@ import pickle
 from copy import copy
 from datetime import datetime, timezone
 from pathlib import Path
-from typing import Dict, List, OrderedDict
+from typing import Dict, List, OrderedDict, Union
 from uuid import uuid4
 
 import pandas as pd
@@ -19,7 +19,7 @@ import pandas as pd
 try:
     import ArgumentParser
 except ModuleNotFoundError:
-    from argparse import ArgumentParser
+    from argparse import ArgumentParser, Namespace
 
 from vsac_wrangler.config import CACHE_DIR, DATA_DIR, PROJECT_ROOT
 from vsac_wrangler.definitions.constants import FHIR_JSON_TEMPLATE
@@ -30,6 +30,7 @@ from vsac_wrangler.vsac_api import get_ticket_granting_ticket, get_value_sets
 PROJECT_NAME = 'RP-4A9E27'
 PALANTIR_ENCLAVE_USER_ID_1 = 'a39723f3-dc9c-48ce-90ff-06891c29114f'
 VSAC_LABEL_PREFIX = '[VSAC] '
+# PARSE_ARGS: Union[Namespace, None] = None   # will fill this later
 PARSE_ARGS = None   # will fill this later
 
 
@@ -283,7 +284,13 @@ def get_palantir_csv(
                 'includeDescendants': True,
                 'includeMapped': False,
                 'item_id': str(uuid4()),  # will let palantir verify ID is indeed unique
-                'annotation': 'Generated from VSAC export',
+                'annotation': json.dumps({
+                    'when': str(datetime.now().strftime('%Y-%m-%d')),
+                    'who': 'BIDS',
+                    'project': 'N3C-enclave-import',
+                    'oids-source': PARSE_ARGS.input_path,
+                    'valueset-source': 'VSAC',
+                }),
                 # 'created_by': 'DI&H Bulk Import',
                 'created_by': PALANTIR_ENCLAVE_USER_ID_1,
                 'created_at': _datetime_palantir_format()
@@ -497,6 +504,7 @@ def run(
     json_indent=4, use_cache=False, input_path=None,
 ):
     global PARSE_ARGS
+    # PARSE_ARGS: Dict = vars(get_parser().parse_args())  # for convenient access later
     PARSE_ARGS = get_parser().parse_args()  # for convenient access later
     """Main function
     Refer to interfaces/cli.py for argument descriptions."""
