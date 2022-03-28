@@ -38,7 +38,7 @@ oid,2.16.840.1.113762.1.4.1219.2,,1000000036,https://docs.google.com/spreadsheet
 oid,2.16.840.1.113762.1.4.1219.1,,1000000037,https://docs.google.com/spreadsheets/d/1jzGrVELQz5L4B_-DqPflPIcpBaTfJOUTrVJT5nS_j18/edit#gid=1335629675,VSAC,,,,,,
 oid,2.16.840.1.113883.3.464.1003.102.12.1025,,1000000038,https://docs.google.com/spreadsheets/d/1jzGrVELQz5L4B_-DqPflPIcpBaTfJOUTrVJT5nS_j18/edit#gid=1335629675,VSAC,,,,,,
 oid,2.16.840.1.113883.3.526.3.1010,,1000000039,https://docs.google.com/spreadsheets/d/1jzGrVELQz5L4B_-DqPflPIcpBaTfJOUTrVJT5nS_j18/edit#gid=1335629675,VSAC,,,,,,
-oid,2.16.840.1.113883.3.3616.200.110.102.3213,,1000000040,https://docs.google.com/spreadsheets/d/1jzGrVELQz5L4B_-DqPflPIcpBaTfJOUTrVJT5nS_j18/edit#gid=1335629675,VSAC,,,1000000040,218195822,2022-03-18T19:52:44.726Z,[VSAC] Cerebrovascular Diseases
+oid,2.16.840.1.113883.3.3616.200.110.102.3213,,1000000040,https://docs.google.com/spreadsheets/d/1jzGrVELQz5L4B_-DqPflPIcpBaTfJOUTrVJT5nS_j18/edit#gid=1335629675,VSAC,,,1000000040.0,218195822.0,2022-03-18T19:52:44.726Z,[VSAC] Cerebrovascular Diseases
 oid,2.16.840.1.113762.1.4.1222.159,,1000000041,https://docs.google.com/spreadsheets/d/1jzGrVELQz5L4B_-DqPflPIcpBaTfJOUTrVJT5nS_j18/edit#gid=1335629675,VSAC,,,,,,
 oid,2.16.840.1.113883.3.464.1003.199.12.1035,,1000000042,https://docs.google.com/spreadsheets/d/1jzGrVELQz5L4B_-DqPflPIcpBaTfJOUTrVJT5nS_j18/edit#gid=1335629675,VSAC,,,,,,
 oid,2.16.840.1.113883.3.464.1003.102.12.1007,,1000000043,https://docs.google.com/spreadsheets/d/1jzGrVELQz5L4B_-DqPflPIcpBaTfJOUTrVJT5nS_j18/edit#gid=1335629675,VSAC,,,,,,
@@ -46,7 +46,7 @@ oid,2.16.840.1.113883.3.464.1003.102.12.1002,,1000000044,https://docs.google.com
 oid,2.16.840.1.113762.1.4.1029.341,,1000000047,https://docs.google.com/spreadsheets/d/1jzGrVELQz5L4B_-DqPflPIcpBaTfJOUTrVJT5nS_j18/edit#gid=1335629675,VSAC,,,,,,
 oid,2.16.840.1.113883.3.526.3.376,,1000000048,https://docs.google.com/spreadsheets/d/1jzGrVELQz5L4B_-DqPflPIcpBaTfJOUTrVJT5nS_j18/edit#gid=1335629675,VSAC,,,,,,
 oid,2.16.840.1.113883.3.526.3.369,,1000000049,https://docs.google.com/spreadsheets/d/1jzGrVELQz5L4B_-DqPflPIcpBaTfJOUTrVJT5nS_j18/edit#gid=1335629675,VSAC,,,,,,
-oid,2.16.840.1.113762.1.4.1222.579,,1000000050,https://docs.google.com/spreadsheets/d/1jzGrVELQz5L4B_-DqPflPIcpBaTfJOUTrVJT5nS_j18/edit#gid=1335629675,VSAC,,,,627401718,2022-03-15T07:26:50.329Z,[VSAC] Cardiomyopathy
+oid,2.16.840.1.113762.1.4.1222.579,,1000000050,https://docs.google.com/spreadsheets/d/1jzGrVELQz5L4B_-DqPflPIcpBaTfJOUTrVJT5nS_j18/edit#gid=1335629675,VSAC,,,,627401718.0,2022-03-15T07:26:50.329Z,[VSAC] Cardiomyopathy
 oid,2.16.840.1.113883.3.464.1003.120.12.1003,,1000000051,https://docs.google.com/spreadsheets/d/1jzGrVELQz5L4B_-DqPflPIcpBaTfJOUTrVJT5nS_j18/edit#gid=1335629675,VSAC,,,,,,
 oid,2.16.840.1.113762.1.4.1029.332,,1000000052,https://docs.google.com/spreadsheets/d/1jzGrVELQz5L4B_-DqPflPIcpBaTfJOUTrVJT5nS_j18/edit#gid=1335629675,VSAC,,,,,,
 oid,2.16.840.1.113883.3.666.5.1726,,1000000053,https://docs.google.com/spreadsheets/d/1jzGrVELQz5L4B_-DqPflPIcpBaTfJOUTrVJT5nS_j18/edit#gid=1335629675,VSAC,,,,,,
@@ -92,7 +92,7 @@ oid,2.16.840.1.113762.1.4.1034.596,,1000000092,https://docs.google.com/spreadshe
 oid,2.16.840.1.113762.1.4.1029.353,,1000000093,https://docs.google.com/spreadsheets/d/1jzGrVELQz5L4B_-DqPflPIcpBaTfJOUTrVJT5nS_j18/edit#gid=1335629675,VSAC,,,,,,
 oid,2.16.840.1.113883.3.464.1003.104.12.1024,,1000000094,https://docs.google.com/spreadsheets/d/1jzGrVELQz5L4B_-DqPflPIcpBaTfJOUTrVJT5nS_j18/edit#gid=1335629675,VSAC,,,,,,
 oid,2.16.840.1.113762.1.4.1029.308,,1000000095,https://docs.google.com/spreadsheets/d/1jzGrVELQz5L4B_-DqPflPIcpBaTfJOUTrVJT5nS_j18/edit#gid=1335629675,VSAC,,,,,,
-oid,2.16.840.1.113762.1.4.1206.36,,1000000096,https://docs.google.com/spreadsheets/d/1jzGrVELQz5L4B_-DqPflPIcpBaTfJOUTrVJT5nS_j18/edit#gid=1335629675,VSAC,,,1000000096,798820225,2022-03-18T19:52:33.368Z,[VSAC] Hemiplegia Symptoms
+oid,2.16.840.1.113762.1.4.1206.36,,1000000096,https://docs.google.com/spreadsheets/d/1jzGrVELQz5L4B_-DqPflPIcpBaTfJOUTrVJT5nS_j18/edit#gid=1335629675,VSAC,,,1000000096.0,798820225.0,2022-03-18T19:52:33.368Z,[VSAC] Hemiplegia Symptoms
 oid,2.16.840.1.113762.1.4.1247.63,,1000000103,https://docs.google.com/spreadsheets/d/1jzGrVELQz5L4B_-DqPflPIcpBaTfJOUTrVJT5nS_j18/edit#gid=1272275514,VSAC,,,,,,
 oid,2.16.840.1.113762.1.4.1247.17,,1000000104,https://docs.google.com/spreadsheets/d/1jzGrVELQz5L4B_-DqPflPIcpBaTfJOUTrVJT5nS_j18/edit#gid=1272275514,VSAC,,,,,,
 oid,2.16.840.1.113762.1.4.1247.18,,1000000105,https://docs.google.com/spreadsheets/d/1jzGrVELQz5L4B_-DqPflPIcpBaTfJOUTrVJT5nS_j18/edit#gid=1272275514,VSAC,,,,,,
@@ -171,7 +171,7 @@ oid,2.16.840.1.113762.1.4.1178.68,,1000000177,https://docs.google.com/spreadshee
 oid,2.16.840.1.113883.3.526.3.370,,1000000178,https://docs.google.com/spreadsheets/d/1jzGrVELQz5L4B_-DqPflPIcpBaTfJOUTrVJT5nS_j18/edit#gid=612526229,VSAC,,,,,,
 oid,2.16.840.1.113762.1.4.1178.6,,1000000179,https://docs.google.com/spreadsheets/d/1jzGrVELQz5L4B_-DqPflPIcpBaTfJOUTrVJT5nS_j18/edit#gid=612526229,VSAC,,,,,,
 oid,2.16.840.1.113883.3.464.1003.105.12.1203,,1000000180,https://docs.google.com/spreadsheets/d/1jzGrVELQz5L4B_-DqPflPIcpBaTfJOUTrVJT5nS_j18/edit#gid=612526229,VSAC,,,,,,
-oid,2.16.840.1.113762.1.4.1029.307,,1000000181,https://docs.google.com/spreadsheets/d/1jzGrVELQz5L4B_-DqPflPIcpBaTfJOUTrVJT5nS_j18/edit#gid=612526229,VSAC,,,,881239411,2022-03-15T07:48:05.228Z,[VSAC] Neuromuscular Disease
+oid,2.16.840.1.113762.1.4.1029.307,,1000000181,https://docs.google.com/spreadsheets/d/1jzGrVELQz5L4B_-DqPflPIcpBaTfJOUTrVJT5nS_j18/edit#gid=612526229,VSAC,,,,881239411.0,2022-03-15T07:48:05.228Z,[VSAC] Neuromuscular Disease
 oid,2.16.840.1.113762.1.4.1247.63,,1000000182,https://docs.google.com/spreadsheets/d/1jzGrVELQz5L4B_-DqPflPIcpBaTfJOUTrVJT5nS_j18/edit#gid=612526229,VSAC,,,,,,
 oid,2.16.840.1.113762.1.4.1247.17,,1000000183,https://docs.google.com/spreadsheets/d/1jzGrVELQz5L4B_-DqPflPIcpBaTfJOUTrVJT5nS_j18/edit#gid=612526229,VSAC,,,,,,
 oid,2.16.840.1.113762.1.4.1247.18,,1000000184,https://docs.google.com/spreadsheets/d/1jzGrVELQz5L4B_-DqPflPIcpBaTfJOUTrVJT5nS_j18/edit#gid=612526229,VSAC,,,,,,
@@ -253,7 +253,7 @@ cssr_code,,GEN006,1000000259,https://docs.google.com/spreadsheets/d/1cbHB9AZLpir
 cssr_code,,GEN002,1000000260,https://docs.google.com/spreadsheets/d/1cbHB9AZLpirOz4_N7SrsnDLomg1I6VgbPFp8rzGnpzc/edit#gid=510825150,HCUP,,,,,,
 oid,2.16.840.1.113883.3.666.5.1671,,1000000261,,VSAC,,,,,,[VSAC] Congenital Anomalies S
 oid,2.16.840.1.113883.3.526.2.185,,1000000262,,VSAC,,,,,,[VSAC] Hypotension
-oid,2.16.840.1.113883.3.526.2.25,,1000000263,,VSAC,,,,142651859,2022-03-15T07:26:50.329Z,[VSAC] Heart Failure
+oid,2.16.840.1.113883.3.526.2.25,,1000000263,,VSAC,,,,142651859.0,2022-03-15T07:26:50.329Z,[VSAC] Heart Failure
 oid,2.16.840.1.113762.1.4.1247.22,,1000000264,,VSAC,,,,,,[VSAC] Housing Instability Diagnoses 
 oid,2.16.840.1.113883.3.600.2387,,1000000265,,VSAC,,,,,,[VSAC] Overweight or Obese
 oid,2.16.840.1.113883.17.4077.2.1057,,1000000266,,VSAC,,,,,,[VSAC] Pulmonary Embolism or DVT
@@ -263,7 +263,7 @@ oid,2.16.840.1.113883.3.464.1003.103.11.1027,,1000000269,,VSAC,,,,,,[VSAC] Type 
 oid,2.16.840.1.113883.17.4077.2.1027,,1000000270,,VSAC,,,,,,[VSAC] Brain Tumor
 oid,2.16.840.1.113762.1.4.1247.93,,1000000271,,VSAC,,,,,,[VSAC] Social Connection Interventions 
 oid,2.16.840.1.113762.1.4.1029.33,,1000000272,,VSAC,,,,,,[VSAC] Sickle Cell Disease
-oid,2.16.840.1.113762.1.4.1029.238,,1000000273,,VSAC,,,,315873915,2022-03-16T04:42:40.586Z,[VSAC] Sepsis
+oid,2.16.840.1.113762.1.4.1029.238,,1000000273,,VSAC,,,,315873915.0,2022-03-16T04:42:40.586Z,[VSAC] Sepsis
 oid,2.16.840.1.113883.3.117.1.7.1.246,,1000000274,,VSAC,,,,,,[VSAC] Atrial Fibrillation/Flutter
 oid,2.16.840.1.113883.17.4077.2.1043,,1000000275,,VSAC,,,,,,[VSAC] Headache
 oid,2.16.840.1.113762.1.4.1247.82,,1000000276,,VSAC,,,,,,[VSAC] Intimate Partner Violence Diagnoses 
@@ -335,7 +335,7 @@ oid,2.16.840.1.113762.1.4.1247.1,,1000000341,,VSAC,,,,,,[VSAC] Food Insecurity D
 oid,2.16.840.1.113762.1.4.1247.54,,1000000342,,VSAC,,,,,,[VSAC] Less than high school education Goals 
 oid,2.16.840.1.113762.1.4.1110.60,,1000000343,,VSAC,,,,,,[VSAC] Ischemic Stroke_Other
 oid,2.16.840.1.113762.1.4.1247.49,,1000000344,,VSAC,,,,,,[VSAC] Inadequate Housing Goals 
-oid,2.16.840.1.113883.3.526.2.120,,1000000345,,VSAC,,,,866452655,2022-03-15T07:26:50.329Z,[VSAC] Coronary Artery Disease No MI
+oid,2.16.840.1.113883.3.526.2.120,,1000000345,,VSAC,,,,866452655.0,2022-03-15T07:26:50.329Z,[VSAC] Coronary Artery Disease No MI
 oid,2.16.840.1.113762.1.4.1247.69,,1000000346,,VSAC,,,,,,[VSAC] Unemployment Goals 
 oid,2.16.840.1.113762.1.4.1247.79,,1000000347,,VSAC,,,,,,[VSAC] Social Connection Diagnoses 
 oid,2.16.840.1.113883.3.666.5.2131,,1000000348,,VSAC,,,,,,[VSAC] Bronchiectasis 
@@ -344,5 +344,8 @@ oid,2.16.840.1.113762.1.4.1247.64,,1000000350,,VSAC,,,,,,[VSAC] Elder Abuse Goal
 oid,2.16.840.1.113762.1.4.1247.85,,1000000351,,VSAC,,,,,,[VSAC] Stress Goals 
 oid,2.16.840.1.113762.1.4.1247.6,,1000000352,,VSAC,,,,,,[VSAC] Food Insecurity Interventions 
 oid,2.16.840.1.113883.3.3566.2.1006,,1000000353,,VSAC,,,,,,[VSAC] Chronic Stable Angina
-oid,2.16.840.1.113762.1.4.1034.441,,1000000354,https://docs.google.com/spreadsheets/d/1jzGrVELQz5L4B_-DqPflPIcpBaTfJOUTrVJT5nS_j18,VSAC,,,1000000354,221979484,2022-03-18T19:52:54.890Z,[VSAC] Alzheimer's Disease (ICD10CM)
-oid,2.16.840.1.113762.1.4.1034.390,,1000000355,https://docs.google.com/spreadsheets/d/1jzGrVELQz5L4B_-DqPflPIcpBaTfJOUTrVJT5nS_j18,VSAC,,,1000000355,33647039,2022-03-18T19:53:05.385Z,[VSAC] Amyotrophic Lateral Sclerosis (ALS) and Related Motor Neuron Disease (ICD10CM)
+oid,2.16.840.1.113762.1.4.1034.441,,1000000354,https://docs.google.com/spreadsheets/d/1jzGrVELQz5L4B_-DqPflPIcpBaTfJOUTrVJT5nS_j18,VSAC,,,1000000354.0,221979484.0,2022-03-18T19:52:54.890Z,[VSAC] Alzheimer's Disease (ICD10CM)
+oid,2.16.840.1.113762.1.4.1034.390,,1000000355,https://docs.google.com/spreadsheets/d/1jzGrVELQz5L4B_-DqPflPIcpBaTfJOUTrVJT5nS_j18,VSAC,,,1000000355.0,33647039.0,2022-03-18T19:53:05.385Z,[VSAC] Amyotrophic Lateral Sclerosis (ALS) and Related Motor Neuron Disease (ICD10CM)
+oid,2.16.840.1.113883.3.3616.200.110.102.3085,,1000000356,,VSAC,,,,,,
+oid,2.16.840.1.113883.3.464.1003.113.11.1081,,1000000357,,VSAC,,,,,,
+oid,2.16.840.1.113883.3.7643.2.1048,,1000000358,,VSAC,,,,,,

@@ -123,6 +123,8 @@ fast on local data
 
 ## ideas for names
 
+**Terminology Central**
+
 | letters for acronym | words                                                |
 | ------------------- | ---------------------------------------------------- |
 | TRASH-Collector     | Terminology Resources Archive Semantic Hub Collector |
