@@ -29,4 +29,5 @@ old_bash_scripts
 *.parquet*
 /venv/
 junk
-/input/
+*.ipynb
+scripts/old-vsac-api-scripts/tgt.txt

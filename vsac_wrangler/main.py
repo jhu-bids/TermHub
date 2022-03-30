@@ -25,20 +25,32 @@ from vsac_wrangler.config import CACHE_DIR, DATA_DIR, PROJECT_ROOT
 from vsac_wrangler.definitions.constants import FHIR_JSON_TEMPLATE
 from vsac_wrangler.google_sheets import get_sheets_data
 from vsac_wrangler.vsac_api import get_ticket_granting_ticket, get_value_sets
+from _cli import get_parser
+
 
 # USER1: This is an actual ID to a valid user in palantir, who works on our BIDS team.
 PROJECT_NAME = 'RP-4A9E27'
 PALANTIR_ENCLAVE_USER_ID_1 = 'a39723f3-dc9c-48ce-90ff-06891c29114f'
-VSAC_LABEL_PREFIX = '[VSAC] '
-PARSE_ARGS = None   # will fill this later
 
+PARSE_ARGS = get_parser().parse_args()  # for convenient access later
+
+OUTPUT_NAME='palantir-three-file' # currently this is the only value used
+SOURCE_NAME='vsac'
+
+
+def add_prefix(label):
+    return f'[oids from {PARSE_ARGS.input_path} => VSAC trad API => 3-file dir {get_out_dir()}] {label}'
+
+def get_out_dir(output_name=OUTPUT_NAME, source_name=SOURCE_NAME):
+    date_str = datetime.now().strftime('%Y.%m.%d')
+    out_dir = os.path.join(DATA_DIR, output_name, source_name, date_str, 'output')
+    return out_dir
 
 # to-do: Shared lib for this stuff?
 # noinspection DuplicatedCode
-def _save_csv(df: pd.DataFrame, output_name, source_name, filename, field_delimiter=','):
+def _save_csv(df: pd.DataFrame, filename, output_name=OUTPUT_NAME, source_name=SOURCE_NAME, field_delimiter=','):
     """Side effects: Save CSV"""
-    date_str = datetime.now().strftime('%Y.%m.%d')
-    out_dir = os.path.join(DATA_DIR, output_name, source_name, date_str, 'output')
+    out_dir = get_out_dir(output_name=output_name, source_name=source_name)
     os.makedirs(out_dir, exist_ok=True)
     output_format = 'csv' if field_delimiter == ',' else 'tsv' if field_delimiter == '\t' else 'txt'
     outpath = os.path.join(out_dir, f'{filename}.{output_format}')
@@ -248,7 +260,7 @@ def get_ids_for_palantir3file(value_sets: pd.DataFrame) -> Dict[str, int]:
     return oid__codeset_id_map
 
 def get_palantir_csv(
-    value_sets: pd.DataFrame, output_name='palantir-three-file', source_name='vsac', field_delimiter=',',
+    value_sets: pd.DataFrame, source_name='vsac', field_delimiter=',',
     filename1='concept_set_version_item_rv_edited', filename2='code_sets', filename3='concept_set_container_edited'
 ) -> Dict[str, pd.DataFrame]:
     """Convert VSAC hiearchical XML to CSV compliant w/ Palantir's OMOP-inspired concept set editor data model"""
@@ -296,13 +308,13 @@ def get_palantir_csv(
     df1 = pd.DataFrame(rows1)
     _all[filename1] = df1
     _save_csv(
-        df1, filename=filename1, output_name=output_name, source_name=source_name, field_delimiter=field_delimiter)
+        df1, filename=filename1, source_name=source_name, field_delimiter=field_delimiter)
 
     # 2. Palantir enclave table: code_sets
     rows2 = []
     for i, value_set in value_sets.iterrows():
         codeset_id = oid__codeset_id_map[value_set['@ID']]
-        concept_set_name = VSAC_LABEL_PREFIX + value_set['@displayName']
+        concept_set_name = add_prefix(value_set['@displayName'])
         purposes = value_set['ns0:Purpose'].split('),')
         purposes2 = []
         for p in purposes:
@@ -379,7 +391,7 @@ def get_palantir_csv(
     df2['enclave_codeset_id'] = ''
     df2['enclave_codeset_id_updated_at'] = ''
     _save_csv(
-        df2, filename=filename2, output_name=output_name, source_name=source_name, field_delimiter=field_delimiter)
+        df2, filename=filename2, source_name=source_name, field_delimiter=field_delimiter)
 
     # 3. Palantir enclave table: concept_set_container_edited
     rows3 = []
@@ -390,7 +402,7 @@ def get_palantir_csv(
             i1 = 1 if p.startswith('(') else 0
             i2 = -1 if p[len(p) - 1] == ')' else len(p)
             purposes2.append(p[i1:i2])
-        concept_set_name = VSAC_LABEL_PREFIX + value_set['@displayName']
+        concept_set_name = add_prefix(value_set['@displayName'])
 
         code_systems = []
         for concept in value_set['concepts']:
@@ -436,7 +448,7 @@ def get_palantir_csv(
     df3 = pd.DataFrame(rows3)
     _all[filename3] = df3
     _save_csv(
-        df3, filename=filename3, output_name=output_name, source_name=source_name, field_delimiter=field_delimiter)
+        df3, filename=filename3, source_name=source_name, field_delimiter=field_delimiter)
 
     return _all
 
@@ -486,18 +498,17 @@ def fix_vsac_api_structure(value_sets: List[OrderedDict]) -> pd.DataFrame:
     return df
 
 def run(
-    get_parser,
     input_source_type=['google-sheet', 'txt', 'csv'][-1],
     google_sheet_name=None,
     google_sheet_url=None,  # not passing this. just grabbing it from argparse when i need it
     output_format=['tabular/csv', 'json'][0],
     output_structure=['fhir', 'vsac', 'palantir-concept-set-tables', 'atlas', 'normalized'][-1],
+            # confusing...normalized is not implemented, right?
+
     tabular_field_delimiter=[',', '\t'][0],
     tabular_intra_field_delimiter=[',', ';', '|'][2],
     json_indent=4, use_cache=False, input_path=None,
 ):
-    global PARSE_ARGS
-    PARSE_ARGS = get_parser().parse_args()  # for convenient access later
     """Main function
     Refer to interfaces/cli.py for argument descriptions."""
     value_sets = []
@@ -557,6 +568,7 @@ def run(
         if output_structure == 'normalized':
             raise NotImplementedError('Not implemented.')
         elif output_structure == 'vsac':
+            raise NotImplementedError('is output_structure vsac ever used? if you are seeing this, then yes.')
             get_vsac_csv(value_sets, google_sheet_name, tabular_field_delimiter, tabular_intra_field_delimiter)
         elif output_structure == 'palantir-concept-set-tables':
             value_sets: pd.DataFrame = fix_vsac_api_structure(value_sets)
@@ -564,4 +576,5 @@ def run(
         elif output_structure == 'fhir':
             raise NotImplementedError('output_structure "fhir" not available for output_format "csv/tabular".')
     elif output_format == 'json':
+        raise NotImplementedError('is output_format json ever used? if you are seeing this, then yes.')
         save_json(value_sets, output_structure, json_indent)
