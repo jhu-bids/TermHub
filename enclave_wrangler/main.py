@@ -88,7 +88,7 @@ def post_to_enclave_and_update_code_sets_csv(input_csv_folder_path) -> pd.DataFr
         log_debug_info()
 
     # Read data
-    code_sets_df = _load_standardized_input_df(os.path.join(input_csv_folder_path, 'code_sets.csv')).fillna()
+    code_sets_df = _load_standardized_input_df(os.path.join(input_csv_folder_path, 'code_sets.csv')) #.fillna('')
 
     # 0.1 Create mappings between
     # - concept_set_container_edited.csv[concept_set_name], and...
