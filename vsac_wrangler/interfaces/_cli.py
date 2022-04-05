@@ -44,7 +44,6 @@ def get_parser():
         choices=['CDC reference table list', 'Lisa1 VSAC', 'Lisa2 VSAC GRAVITY'],
         # TODO: support multiple sheets at once
         # nargs='+',
-        default='CDC reference table list',
         help='The name of the tab within a the GoogleSheet containing the target data within OID column. Make sure to '
              'encapsulate the text in quotes, e.g. `-g "Lisa1 VSAC"`. This option can only be used if '
              '`--input-source-type` is `google-sheet`.')
@@ -95,7 +94,7 @@ def get_parser():
              'passed, the cached results will be used instead of calling the API. This is useful for (i) working '
              'offline, or (ii) speeding up processing. In order to not use the cache and get the most up-to-date '
              'results (both from (i) the OIDs present in the Google Sheet, and (ii) results from VSAC), simply run the'
-             ' tool without this flag.'),
+             ' tool without this flag.')
 
     return parser
 
@@ -121,3 +120,7 @@ def validate_args(kwargs):
     # if 'output_name' in kwargs and kwargs.input_source_type != 'google-sheet':
     #     raise RuntimeError(msg)
 
+def format_kwargs(kwargs):
+    """Extra formatting steps to differentiate between default args and what was passed by user explicitly.
+    todo: Joe: This was for caching and google sheet name. But I jus tremoved the default arg for now"""
+    return kwargs

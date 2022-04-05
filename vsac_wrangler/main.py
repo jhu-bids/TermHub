@@ -8,6 +8,7 @@
 import json
 import os
 import pickle
+import sys
 from copy import copy
 from datetime import datetime, timezone
 from pathlib import Path
@@ -25,7 +26,7 @@ from vsac_wrangler.config import CACHE_DIR, DATA_DIR, PROJECT_ROOT
 from vsac_wrangler.definitions.constants import FHIR_JSON_TEMPLATE
 from vsac_wrangler.google_sheets import get_sheets_data
 from vsac_wrangler.vsac_api import get_ticket_granting_ticket, get_value_sets
-from _cli import get_parser
+from vsac_wrangler.interfaces._cli import get_parser
 
 
 # USER1: This is an actual ID to a valid user in palantir, who works on our BIDS team.
@@ -34,14 +35,22 @@ PALANTIR_ENCLAVE_USER_ID_1 = 'a39723f3-dc9c-48ce-90ff-06891c29114f'
 
 PARSE_ARGS = get_parser().parse_args()  # for convenient access later
 
-OUTPUT_NAME='palantir-three-file' # currently this is the only value used
-SOURCE_NAME='vsac'
+OUTPUT_NAME ='palantir-three-file' # currently this is the only value used
+SOURCE_NAME ='vsac'
 
 
-def add_prefix(label):
-    return f'[oids from {PARSE_ARGS.input_path} => VSAC trad API => 3-file dir {get_out_dir()}] {label}'
+def get_runtime_provenance() -> str:
+    """Get provenance info related to this runtime operation"""
+    return f'oids from {PARSE_ARGS.input_path} => VSAC trad API => 3-file dir {get_out_dir()}'
 
-def get_out_dir(output_name=OUTPUT_NAME, source_name=SOURCE_NAME):
+
+def format_label(label, verbose_prefix=False) -> str:
+    """Adds prefix and trims whitespace"""
+    label = label.strip()
+    prefix = 'VSAC' if not verbose_prefix else get_runtime_provenance()
+    return f'[{prefix}] {label}'
+
+def get_out_dir(output_name=OUTPUT_NAME, source_name=SOURCE_NAME) -> str:
     date_str = datetime.now().strftime('%Y.%m.%d')
     out_dir = os.path.join(DATA_DIR, output_name, source_name, date_str, 'output')
     return out_dir
@@ -237,8 +246,8 @@ def get_ids_for_palantir3file(value_sets: pd.DataFrame) -> Dict[str, int]:
     missing_oids = set(value_sets['@ID']) - set(oid_enclave_code_set_id_df['oid'])
     if len(missing_oids) > 0:
         google_sheet_url = PARSE_ARGS.google_sheet_url
-        new_ids = [id for id in oid_enclave_code_set_id_df.internal_id.max() +
-                   1 + range(0, len(missing_oids))]
+        new_ids = [
+            id for id in oid_enclave_code_set_id_df.internal_id.max() + 1 + range(0, len(missing_oids))]
 
         missing_recs = pd.DataFrame(data={
             'source_id_field': ['oid' for i in range(0, len(missing_oids))],
@@ -259,6 +268,7 @@ def get_ids_for_palantir3file(value_sets: pd.DataFrame) -> Dict[str, int]:
 
     return oid__codeset_id_map
 
+
 def get_palantir_csv(
     value_sets: pd.DataFrame, source_name='vsac', field_delimiter=',',
     filename1='concept_set_version_item_rv_edited', filename2='code_sets', filename3='concept_set_container_edited'
@@ -274,11 +284,7 @@ def get_palantir_csv(
     # 1. Palantir enclave table: concept_set_version_item_rv_edited
     rows1 = []
     for i, value_set in value_sets.iterrows():
-        try:
-            codeset_id = oid__codeset_id_map[value_set['@ID']]
-        except KeyError:
-            print('WTF')
-
+        codeset_id = oid__codeset_id_map[value_set['@ID']]
         for concept in value_set['concepts']:
             code = concept['@code']
             code_system = concept['@codeSystemName']
@@ -295,7 +301,14 @@ def get_palantir_csv(
                 'includeDescendants': True,
                 'includeMapped': False,
                 'item_id': str(uuid4()),  # will let palantir verify ID is indeed unique
-                'annotation': 'Generated from VSAC export',
+                'annotation': json.dumps({
+                    'when': str(datetime.now().strftime('%Y-%m-%d')),
+                    'who': 'Data Ingest & Harmonization (DIH)',
+                    'project': 'N3C-enclave-import',
+                    'oids-source': PARSE_ARGS.input_path,
+                    'generation-process': get_runtime_provenance(),
+                    'valueset-source': 'VSAC',
+                }),
                 # 'created_by': 'DI&H Bulk Import',
                 'created_by': PALANTIR_ENCLAVE_USER_ID_1,
                 'created_at': _datetime_palantir_format()
@@ -314,7 +327,7 @@ def get_palantir_csv(
     rows2 = []
     for i, value_set in value_sets.iterrows():
         codeset_id = oid__codeset_id_map[value_set['@ID']]
-        concept_set_name = add_prefix(value_set['@displayName'])
+        concept_set_name = format_label(value_set['@displayName'])
         purposes = value_set['ns0:Purpose'].split('),')
         purposes2 = []
         for p in purposes:
@@ -366,7 +379,7 @@ def get_palantir_csv(
             'provenance': '; '.join([
                     'Steward: ' + value_set['ns0:Source'],
                     'OID: ' + value_set['@ID'],
-                    'bids_id: ' + str(codeset_id),
+                    'dih_id: ' + str(codeset_id),
                     'Code System(s): ' + ','.join(list(code_system_codes.keys())),
                     'Definition Type: ' + value_set['ns0:Type'],
                     'Definition Version: ' + value_set['@version'],
@@ -402,7 +415,7 @@ def get_palantir_csv(
             i1 = 1 if p.startswith('(') else 0
             i2 = -1 if p[len(p) - 1] == ')' else len(p)
             purposes2.append(p[i1:i2])
-        concept_set_name = add_prefix(value_set['@displayName'])
+        concept_set_name = format_label(value_set['@displayName'])
 
         code_systems = []
         for concept in value_set['concepts']:
@@ -454,18 +467,30 @@ def get_palantir_csv(
 
 
 def fix_vsac_api_structure(value_sets: List[OrderedDict]) -> pd.DataFrame:
-    """
+    """Fixes structure and removes empty sets
+    Structure fixes:
         - Gets rid of useless ns0:... stuff in vsac api value sets
         - Fixes name collisions (fixed rows move to the top)
-        - converts from OrderedDict to DataFrame
-    """
+        - converts from OrderedDict to DataFrame"""
+    warning = 'VSAC returned 0 concepts in the following value set and will be skipped:\n- oid: {oid}\n- name: {name}'
+    key1 = 'ns0:ConceptList'
+    value_sets2: List[OrderedDict] = []
     for value_set in value_sets:
-        concepts = value_set['ns0:ConceptList']['ns0:Concept']
+        try:
+            concepts = value_set[key1]['ns0:Concept']
+        except TypeError:
+            if value_set[key1] is None:
+                warning = warning.format(
+                    oid=value_set['@ID'],
+                    name='@displayName')
+                print(warning, file=sys.stderr)
+            continue
         concepts = concepts if type(concepts) == list else [concepts]
         value_set.pop('ns0:ConceptList')
         value_set['concepts'] = concepts
+        value_sets2.append(value_set)
 
-    vsets = pd.DataFrame(value_sets)
+    vsets = pd.DataFrame(value_sets2)
     rows_by_name = vsets.groupby('@displayName')
     rows_with_name_collisions = rows_by_name.filter(lambda x: len(x) > 1)
     rows_without = rows_by_name.filter(lambda x: len(x) == 1)
@@ -491,7 +516,6 @@ def fix_vsac_api_structure(value_sets: List[OrderedDict]) -> pd.DataFrame:
             wrapped = f'({case})'
             name = name.replace(wrapped, '')
             name = name.replace(case, '')
-            print()
         return name
     df['@displayName'] = df['@displayName'].apply(name_fixer)
 

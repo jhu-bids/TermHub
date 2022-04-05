@@ -67,17 +67,34 @@ def get_value_set(oid: str, tgt: str) -> Dict:
     return d
 
 
-# TODO: Figure out if / how I want to cache this
-# 11 seconds to fetch all 62 oids
-def get_value_sets(oids: List[str], tgt: str) -> OrderedDict:
-    """Get a value set"""
-    oids_str = ','.join(oids)
-    service_ticket = get_service_ticket(tgt)
-    url = f'https://vsac.nlm.nih.gov/vsac/svs/RetrieveMultipleValueSets?id={oids_str}&ticket={service_ticket}'
-    response = requests.get(
-        url=url,
-        data={'apikey': API_KEY})
-    xml_str = response.text
-    d: OrderedDict = xd.parse(xml_str)
+def chunks(lst, n):
+    """Yield successive n-sized chunks from lst."""
+    for i in range(0, len(lst), n):
+        yield lst[i:i + n]
 
-    return d
+
+# 11 seconds to fetch 62 oids
+def get_value_sets(oids: List[str], tgt: str, n_oids_per_req=200) -> OrderedDict:
+    """Get multiple value sets.
+
+    :param n_oids_per_req: In our experience, VSAC returns error 400 when a certain number of OIDs
+    gets passed; somewhere between 220-250. Therefore, arbitrarily deciding to chunk requests at 200 OIDs each."""
+    d_list: List[OrderedDict] = []
+    for chunk in chunks(oids, n_oids_per_req):
+        oids_str = ','.join(chunk)
+        service_ticket = get_service_ticket(tgt)
+        url = f'https://vsac.nlm.nih.gov/vsac/svs/RetrieveMultipleValueSets?id={oids_str}&ticket={service_ticket}'
+        response = requests.get(
+            url=url,
+            data={'apikey': API_KEY})
+        xml_str = response.text
+        d: OrderedDict = xd.parse(xml_str)
+        d_list.append(d)
+
+    final_d: OrderedDict = d_list[0]
+    key1 = 'ns0:RetrieveMultipleValueSetsResponse'
+    key2 = 'ns0:DescribedValueSet'
+    for d in d_list[1:]:
+        final_d[key1][key2] += d[key1][key2]
+
+    return final_d

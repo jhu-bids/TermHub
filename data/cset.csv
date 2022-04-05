@@ -30,7 +30,6 @@ oid,2.16.840.1.113762.1.4.1029.234,,1000000028,input/oids.txt,VSAC,,,,,,[VSAC] A
 oid,2.16.840.1.113762.1.4.1029.243,,1000000029,input/oids.txt,VSAC,,,,,,
 oid,2.16.840.1.113762.1.4.1029.244,,1000000030,input/oids.txt,VSAC,,,,,,[VSAC] Air and Thrombotic Embolism
 oid,2.16.840.1.113762.1.4.1029.309,,1000000031,input/oids.txt,VSAC,,,,,,
-oid,2.16.840.1.113762.1.4.1029.310,,1000000032,input/oids.txt,VSAC,,,,,,
 oid,2.16.840.1.113762.1.4.1029.225,,1000000033,input/oids.txt,VSAC,,,,,,
 oid,2.16.840.1.113762.1.4.1029.226,,1000000034,input/oids.txt,VSAC,,,,,,[VSAC] Eclampsia
 oid,2.16.840.1.113762.1.4.1196.475,,1000000035,https://docs.google.com/spreadsheets/d/1jzGrVELQz5L4B_-DqPflPIcpBaTfJOUTrVJT5nS_j18/edit#gid=1335629675,VSAC,,,,,,
