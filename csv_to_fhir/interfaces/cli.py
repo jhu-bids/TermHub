@@ -24,9 +24,9 @@ def get_parser():
         'format to JSON format able to be uploaded to a FHIR server.'
     parser = ArgumentParser(description=package_description)
     parser.add_argument(
-        '-p', '--input-file-path', nargs='+',
-        help='Path to CSV file(s). If `--input-schema-format` is "palantir-concept-set-tables", should pass 2 CSV '
-             'paths, in any order, e.g. `-p code_sets.csv concept_set_version_item_rv_edited.csv`.')
+        '-p', '--input-path',
+        help='Path to input data. If `--input-schema-format` is "palantir-concept-set-tables", should be a dir 2 CSVs'
+             'named code_sets.csv concept_set_version_item_rv_edited.csv.')
     parser.add_argument(
         '-f', '--input-schema-format', choices=['palantir-concept-set-tables'], default='palantir-concept-set-tables',
         help='The schema format of the CSV. Corresponds to the expected fields/column names.')
@@ -35,9 +35,15 @@ def get_parser():
         help='If this flag is present, or if both this flag and `--upload-url` are absent, converted JSON will be saved'
              ' in the directory where CLI is called from.')
     parser.add_argument(
-        '-u', '--upload-url', required=False,
+        '-u', '--upload-url', required=False, nargs='+',
         help='If present, will upload value sets ValueSet resource at specified endpoint (e.g. '
-             'http://localhost:8080/fhir/ValueSet) or server (e.g. http://localhost:8080).')
+             'http://localhost:8080/fhir/ValueSet). If uploading to more than one location, can repeat this flag as '
+             'many times as needed.')
+    parser.add_argument(
+        '-c', '--use-cache',
+        action='store_true',
+        help='If present, this flag will indicate that rather than read from `--intput-path`, shall read from the '
+             'cache. The cache saves to a folder name that is based on the `--intput-path`.')
     parser.add_argument(
         '-j', '--json-indent', default=4,
         help='The number of spaces to indent when outputting JSON. If 0, there will not only be no indent, but there '
@@ -59,11 +65,6 @@ def cli():
     """
     parser = get_parser()
     kwargs = parser.parse_args()
-
-    # Corrections
-    if not kwargs.output_json or kwargs.upload_url:
-        kwargs.output_json = True
-
     kwargs_dict: Dict = vars(kwargs)
     run(**kwargs_dict)
 

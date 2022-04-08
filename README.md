@@ -92,7 +92,8 @@ be uploaded to a FHIR server.
 | `-p` | `--input-file-path` | | | Path to CSV file(s). If `--input-schema-format` is "palantir-concept-set-tables", should pass 2 CSV paths, in any order, e.g. `-p code_sets.csv concept_set_version_item_rv_edited.csv`. |
 | `-f` | `--input-schema-format` | `['palantir-concept-set-tables']` | `'palantir-concept-set-tables'` | The schema format of the CSV. Corresponds to the expected fields/column names. |
 | `-o` | `--output-json` | | | If this flag is present, or if both this flag and `--upload-url` are absent, converted JSON will be saved in the directory where CLI is called from. |
-| `-u` | `--upload-url` | | | If present, will upload value sets ValueSet resource at specified endpoint (e.g. http://localhost:8080/fhir/ValueSet) or server (e.g. http://localhost:8080). |
+| `-u` | `--upload-url` | | | If present, will upload value sets ValueSet resource at specified endpoint (e.g. http://localhost:8080/fhir/ValueSet).  If uploading to more than one location, can repeat this flag as many times as needed.|
+| `-c` | `--use-cache` | | | If present, this flag will indicate that rather than read from `--intput-path`, shall read from the cache. The cache saves to a folder name that is based on the `--intput-path`. |
 | `-j` | `--json-indent` | 0 - 4 | 4 | The number of spacees to indent when outputting JSON. If 0, there will not only be no indent, but there will also be no whitespace. 0 is useful for minimal file size. 2 and 4 tend to be  standard indent values for readability. |
 | `-h` | `--help` |  | | Shows help information for using the tool. |
 
@@ -154,3 +155,15 @@ After:
     }
 }
 ```
+
+### 5. FHIR Wrangler 
+A FHIR client, mostly for BIDS / N3C DI&H / TIMS internal purposes. 
+
+#### Syntax
+`python3 -m fhir_wrangler <options>`
+
+|Short flag | Long flag | Choices | Default | Description |
+|---	|---	|---	|--- | --- |
+| `-d` | `--delete-nonauthoritative-value-sets` | | | If this options is present, this tool will look at the`internal_id` / `dih_id` in `data/cset.csv` and delete any value sets with IDs not in this list. Note that in HAPI / FHIR, at least one non-numeric character is required for assigned IDs. We've handled this by prepending an 'a' before the integer IDs. This client has been programmed to account for this. | 
+| `-u` | `--url` | | | One or more URLs of ValueSet endpoint(s), e.g. http://localhost:8080/fhir/ValueSet). Repeat this flag as many times as needed, e.g. `-u <url1> -u <url2>. |
+| `-h` | `--help` |  | | Shows help information for using the tool. |

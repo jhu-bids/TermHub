@@ -16,8 +16,8 @@ MANIFEST
 
 # Custom
 /*.json
-cache/*
-!cache/.keep
+*/cache/*
+!*/cache/.keep
 vsac_wrangler/data/cache/*
 !vsac_wrangler/data/cache/.keep
 /env/*
