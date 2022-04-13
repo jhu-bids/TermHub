@@ -1,0 +1,6 @@
+[submodule "termhub-vocab"]
+	path = termhub-vocab
+	url = git@github.com:jhu-bids/termhub-vocab.git
+[submodule "termhub-csets"]
+	path = termhub-csets
+	url = git@github.com:jhu-bids/termhub-csets.git
