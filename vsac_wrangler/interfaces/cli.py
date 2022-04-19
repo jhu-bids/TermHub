@@ -1,7 +1,6 @@
 #!/usr/bin/env python3
 # -*- coding: utf-8 -*-
 """Command Line Interface."""
-
 from typing import Dict
 
 from vsac_wrangler.interfaces._cli import  get_parser, validate_args, format_kwargs
