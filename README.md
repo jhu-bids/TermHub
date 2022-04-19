@@ -1,12 +1,12 @@
-(will be called **TermHub** and move to [jhu-bids](https://github.com/jhu-bids) eventually)
-# ValueSet Tools   
-
-
-(do something with this: https://docs.google.com/presentation/d/1g1xqBgyk_zuIx27SCaj3FfdIRUx11LfdWtELhS7Untw/edit#slide=id.gcd2b1f6545_0_0)
-
+# ValueSet Tools
 Tools for converting value sets in different formats, such as converting 
 extensional value sets in CSV format to JSON format able to be uploaded to a 
 FHIR server. Tools to automate CRUD operations such as reads and updates from various different data sources and web services.
+
+## To-do's
+1. Do something with this: [concept set publishing
+](https://docs.google.com/presentation/d/1g1xqBgyk_zuIx27SCaj3FfdIRUx11LfdWtELhS7Untw/edit#slide=id.gcd2b1f6545_0_0)
+2. The `termhub` branch, or all of this code potentially, will be named **TermHub** and move to [jhu-bids](https://github.com/jhu-bids) eventually.
 
 ## Set up / installation
 1. You must have [Python3](https://www.python.org/downloads/) installed.
@@ -27,6 +27,14 @@ FHIR server. Tools to automate CRUD operations such as reads and updates from va
    Or, if you are a BIDS member, you can simply download and use the `.env` file
    [from the BIDS OneDrive](https://livejohnshopkins.sharepoint.com/:f:/r/sites/BiomedicalInformaticsandDataScience/Shared%20Documents/Projects/CD2H,%20N3C,%20PASC/ValueSet%20Tools/env?csf=1&web=1&e=f2iR9S) ([mirror link](https://livejohnshopkins.sharepoint.com/sites/BiomedicalInformaticsandDataScience/Shared%20Documents/Forms/AllItems.aspx?OR=Teams%2DHL&CT=1643222213761&sourceId=&params=%7B%22AppName%22%3A%22Teams%2DDesktop%22%2C%22AppVersion%22%3A%2228%2F21110108720%22%7D&id=%2Fsites%2FBiomedicalInformaticsandDataScience%2FShared%20Documents%2FProjects%2FCD2H%2C%20N3C%2C%20PASC%2FValueSet%20Tools%2Fenv&viewid=51daccc9%2D8479%2D4ef4%2Da7bf%2D65b689881f3a)).
    It already has an API key from the shared UMLS BIDS account pre-populated.
+
+## Special branches
+### `termhub`
+This is the working branch for TermHub, which will eventually be moved to a separate location.
+1. Clone the repo if you haven't already.
+2. `git checkout termhub`
+3. `git submodule init`
+4. `git submodule update`
 
 ## Tools
 First, `cd` into the directory where this repository was cloned.
