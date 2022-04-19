@@ -164,7 +164,7 @@ def post_to_enclave_and_update_code_sets_csv(input_csv_folder_path) -> pd.DataFr
 
         for concept_set_version_item_row in concept_set_version_item_rows:
             code_codesystem_pair = \
-                concept_set_version_item_row['codeSystem'] + ":" + concept_set_version_item_row['code']
+                concept_set_version_item_row['codeSystem'] + ":" + str(concept_set_version_item_row['code'])
             code_list.append(code_codesystem_pair)
             # to-do(future): Right now, the API doesn't expect variation between the following 4 values among
             # ...concept set items, so right now we can just take any of the rows and use its values. But, in

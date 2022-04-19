@@ -24,6 +24,7 @@
     </EXTENSION>
     <option name="SCRIPT_NAME" value="$PROJECT_DIR$/csv_to_fhir" />
     <option name="PARAMETERS" value="-c -u http://20.119.216.32:8080/fhir/ValueSet -p data/palantir-three-file/vsac/2022.04.05/output" />
+    <option name="PARAMETERS" value="-c -u http://20.98.235.170:8080/dtsserverws/fhir/ValueSet -p data/palantir-three-file/vsac/2022.04.05/output" />
     <option name="SHOW_COMMAND_LINE" value="false" />
     <option name="EMULATE_TERMINAL" value="false" />
     <option name="MODULE_MODE" value="false" />
