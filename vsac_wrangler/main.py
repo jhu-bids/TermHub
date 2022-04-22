@@ -580,8 +580,9 @@ def run(
         tgt: str = get_ticket_granting_ticket()
 
         value_sets_dict = get_value_sets(object_ids, tgt)
-        value_sets: List[OrderedDict] = value_sets_dict['ns0:RetrieveMultipleValueSetsResponse'][
-            'ns0:DescribedValueSet']
+        # value_sets: List[OrderedDict] = value_sets_dict['ns0:RetrieveMultipleValueSetsResponse']['ns0:DescribedValueSet']
+        # dereffing in get_value_sets now
+        value_sets: List[OrderedDict] = value_sets_dict
 
         # Save to cache
         with open(pickle_file, 'wb') as handle:

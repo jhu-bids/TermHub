@@ -97,4 +97,8 @@ def get_value_sets(oids: List[str], tgt: str, n_oids_per_req=200) -> OrderedDict
     for d in d_list[1:]:
         final_d[key1][key2] += d[key1][key2]
 
-    return final_d
+    #if type(final_d)
+    if type(final_d[key1][key2]) == list:
+        return final_d[key1][key2]
+    else:
+        return [final_d[key1][key2]]
