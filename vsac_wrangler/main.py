@@ -301,14 +301,24 @@ def get_palantir_csv(
                 'includeDescendants': True,
                 'includeMapped': False,
                 'item_id': str(uuid4()),  # will let palantir verify ID is indeed unique
-                'annotation': json.dumps({
-                    'when': str(datetime.now().strftime('%Y-%m-%d')),
-                    'who': 'Data Ingest & Harmonization (DIH)',
-                    'project': 'N3C-enclave-import',
-                    'oids-source': PARSE_ARGS.input_path,
-                    'generation-process': get_runtime_provenance(),
-                    'valueset-source': 'VSAC',
-                }),
+                # TODO: @Stephanie: Is there any annotation we want at all?
+                # 'annotation': json.dumps({
+                #     'when': str(datetime.now().strftime('%Y-%m-%d')),
+                #     'who': 'Data Ingest & Harmonization (DIH)',
+                #     'project': 'N3C-enclave-import',
+                #     'oids-source': PARSE_ARGS.input_path,
+                #     'generation-process': get_runtime_provenance(),
+                #     'valueset-source': 'VSAC',
+                # }),
+                # 'annotation': '; '.join([
+                #     'when: ' + str(datetime.now().strftime('%Y-%m-%d')),
+                #     'who: ' + 'Data Ingest & Harmonization (DIH)',
+                #     'project: ' + 'N3C-enclave-import',
+                #     'oids-source: ' + PARSE_ARGS.input_path,
+                #     'generation-process: ' + get_runtime_provenance(),
+                #     'valueset-source: ' + 'VSAC',
+                # ]),
+                'annotation': '',
                 # 'created_by': 'DI&H Bulk Import',
                 'created_by': PALANTIR_ENCLAVE_USER_ID_1,
                 'created_at': _datetime_palantir_format()
