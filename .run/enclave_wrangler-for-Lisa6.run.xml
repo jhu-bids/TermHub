@@ -1,5 +1,5 @@
 <component name="ProjectRunConfigurationManager">
-  <configuration default="false" name="en_wrangler_for_lisa6" type="PythonConfigurationType" factoryName="Python">
+  <configuration default="false" name="enclave_wrangler-for-Lisa6" type="PythonConfigurationType" factoryName="Python">
     <module name="ValueSet-Tools" />
     <option name="INTERPRETER_OPTIONS" value="" />
     <option name="PARENT_ENVS" value="true" />
@@ -12,8 +12,8 @@
     <option name="ADD_CONTENT_ROOTS" value="true" />
     <option name="ADD_SOURCE_ROOTS" value="true" />
     <EXTENSION ID="PythonCoverageRunConfigurationExtension" runner="coverage.py" />
-    <option name="SCRIPT_NAME" value="$PROJECT_DIR$/vsac_wrangler/interfaces/cli.py" />
-    <option name="PARAMETERS" value="-i csv -p &quot;data/vsac-OIDs/Lisa6-VSAC-2022-04-21.csv&quot; -o palantir-concept-set-tables -f tabular/csv" />
+    <option name="SCRIPT_NAME" value="$PROJECT_DIR$/enclave_wrangler/interfaces/cli.py" />
+    <option name="PARAMETERS" value="-p data/palantir-three-file/vsac/2022.04.22/output" />
     <option name="SHOW_COMMAND_LINE" value="false" />
     <option name="EMULATE_TERMINAL" value="false" />
     <option name="MODULE_MODE" value="false" />
