@@ -11,7 +11,6 @@ except ModuleNotFoundError:
     from argparse import ArgumentParser
 
 
-
 def get_parser():
     """Add required fields to parser.
 
@@ -119,6 +118,7 @@ def validate_args(kwargs):
     # msg = 'Can only pass google sheet name if input source is a google shet.'
     # if 'output_name' in kwargs and kwargs.input_source_type != 'google-sheet':
     #     raise RuntimeError(msg)
+
 
 def format_kwargs(kwargs):
     """Extra formatting steps to differentiate between default args and what was passed by user explicitly.
