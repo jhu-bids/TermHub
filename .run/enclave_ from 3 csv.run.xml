@@ -1,5 +1,5 @@
 <component name="ProjectRunConfigurationManager">
-  <configuration default="false" name="enclave: from 3 csv" type="PythonConfigurationType" factoryName="Python">
+  <configuration default="false" name="enclave: from 3 csv" type="PythonConfigurationType" factoryName="Python" folderName="enclave_wrangler">
     <module name="ValueSet-Tools" />
     <option name="INTERPRETER_OPTIONS" value="" />
     <option name="PARENT_ENVS" value="true" />

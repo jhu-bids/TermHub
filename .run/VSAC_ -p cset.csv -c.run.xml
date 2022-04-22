@@ -1,5 +1,5 @@
 <component name="ProjectRunConfigurationManager">
-  <configuration default="false" name="VSAC: -p cset.csv -c" type="PythonConfigurationType" factoryName="Python">
+  <configuration default="false" name="VSAC: -p cset.csv -c" type="PythonConfigurationType" factoryName="Python" folderName="vsac_wrangler">
     <module name="ValueSet-Tools" />
     <option name="INTERPRETER_OPTIONS" value="" />
     <option name="PARENT_ENVS" value="true" />

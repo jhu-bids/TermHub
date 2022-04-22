@@ -1,5 +1,5 @@
 <component name="ProjectRunConfigurationManager">
-  <configuration default="false" name="csv_to_fhir: -i hcup 2022.04.05" type="PythonConfigurationType" factoryName="Python">
+  <configuration default="false" name="csv_to_fhir: -i hcup 2022.04.05" type="PythonConfigurationType" factoryName="Python" folderName="csv_to_fhir">
     <module name="ValueSet-Tools" />
     <option name="INTERPRETER_OPTIONS" value="" />
     <option name="PARENT_ENVS" value="true" />

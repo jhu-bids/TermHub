@@ -74,7 +74,7 @@ def chunks(lst, n):
 
 
 # 11 seconds to fetch 62 oids
-def get_value_sets(oids: List[str], tgt: str, n_oids_per_req=200) -> OrderedDict:
+def get_value_sets(oids: List[str], tgt: str, n_oids_per_req=200) -> List[OrderedDict]:
     """Get multiple value sets.
 
     :param n_oids_per_req: In our experience, VSAC returns error 400 when a certain number of OIDs
@@ -94,11 +94,15 @@ def get_value_sets(oids: List[str], tgt: str, n_oids_per_req=200) -> OrderedDict
     final_d: OrderedDict = d_list[0]
     key1 = 'ns0:RetrieveMultipleValueSetsResponse'
     key2 = 'ns0:DescribedValueSet'
-    for d in d_list[1:]:
-        final_d[key1][key2] += d[key1][key2]
 
-    #if type(final_d)
-    if type(final_d[key1][key2]) == list:
-        return final_d[key1][key2]
-    else:
-        return [final_d[key1][key2]]
+    value_sets: List[OrderedDict]
+    if len(d_list) > 1:
+        for d in d_list[1:]:
+            final_d[key1][key2] += d[key1][key2]
+        value_sets = final_d[key1][key2]
+    elif type(final_d[key1][key2]) == list:
+        value_sets = final_d[key1][key2]
+    elif str(type(final_d[key1][key2])) == '<class \'collections.OrderedDict\'>':
+        value_sets = [final_d[key1][key2]]
+
+    return value_sets
