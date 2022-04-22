@@ -1,0 +1,6 @@
+[submodule "termhub-csets"]
+	path = termhub-csets
+	url = ./termhub-csets
+[submodule "termhub-vocab"]
+	path = termhub-vocab
+	url = ./termhub-vocab
