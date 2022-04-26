@@ -1,2 +1,35 @@
+# Boilerplate
+__pycache__/
+_archive/
+_dev/
+.idea/
+build/
+dev/
+dist/
+ignored/
+*~$*
+*.DS_Store
+*.egg-info
+*.swp
+tags
+MANIFEST
+
+# Custom
+/*.json
+*/cache/*
+!*/cache/.keep
+vsac_wrangler/data/cache/*
+!vsac_wrangler/data/cache/.keep
+/env/*
+!/env/.env.example
+input/VSAC Values Sets 17Jan22
+junk_was_value_set_vsac_to_json
+old_bash_scripts
+.ipynb_checkpoints/
+*.parquet*
+/venv/
+junk
+*.ipynb
+scripts/old-vsac-api-scripts/tgt.txt
 .idea
 .DS_Store
