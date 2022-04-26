@@ -386,6 +386,7 @@ def get_palantir_csv(
             'has_review': '',  # boolean (nullable)
             'reviewed_by': '',  # nullable
             'created_by': PALANTIR_ENCLAVE_USER_ID_1,
+            'authority': value_set['ns0:Source'],
             'provenance': '; '.join([
                     'Steward: ' + value_set['ns0:Source'],
                     'OID: ' + value_set['@ID'],
@@ -394,7 +395,7 @@ def get_palantir_csv(
                     'Definition Type: ' + value_set['ns0:Type'],
                     'Definition Version: ' + value_set['@version'],
                     'Accessed: ' + str(datetime.now())[0:-7]
-                ]),
+            ]),
             'atlas_json_resource_url': '',  # nullable
             # null, initial version will not have the parent version so this field would be always null:
             'parent_version_id': '',  # nullable
