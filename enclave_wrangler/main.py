@@ -136,8 +136,8 @@ def post_to_enclave_and_update_code_sets_csv(input_csv_folder_path) -> pd.DataFr
         cs_intention = row['intention'].strip()
         cs_limitations = row['limitations'].strip()
         cs_update_msg = row['update_message'].strip()
-        # cs_authority = strip(row['authority']) ## TODO: shong, 4/26/22,  uncomment when the property is available
-        cs_authority = "Mathematica"
+        cs_authority = row['authority'].strip()
+        ##cs_authority = "Mathematica"  ## TODO: shong, 4/26/22, code_sets.csv need to build the authority value, uncomment when available
         cs_provenance = row['provenance'].strip()
         single_row = get_cs_version_data(cs_name, cs_id, cs_intention, cs_limitations, cs_update_msg, cs_provenance, cs_authority)
         # cs_name, cs_id, intention, limitation, update_msg, status, provenance
