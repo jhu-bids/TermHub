@@ -122,7 +122,7 @@ def post_to_enclave_and_update_code_sets_csv(input_csv_folder_path) -> pd.DataFr
     concept_set_container_edited_df = pd.read_csv(
         os.path.join(input_csv_folder_path, 'concept_set_container_edited.csv')).fillna('')
     for index, row in concept_set_container_edited_df.iterrows():
-        cs_name = row['concept_set_name']
+        cs_name = row['concept_set_name'].strip()
         single_row = get_cs_container_data(cs_name)
         cs_id = cs_name_id_mappings[cs_name]
         concept_set_container_edited_json_all_rows[cs_id] = single_row
@@ -132,14 +132,15 @@ def post_to_enclave_and_update_code_sets_csv(input_csv_folder_path) -> pd.DataFr
     # code_sets_df = pd.read_csv(os.path.join(input_csv_folder_path, 'code_sets.csv')).fillna('')
     for index, row in code_sets_df.iterrows():
         cs_id = row['codeset_id']
-        cs_name = row['concept_set_name']
-        cs_intention = row['intention']
-        cs_limitations = row['limitations']
-        cs_update_msg = row['update_message']
-        # cs_status = row['status']
-        cs_provenance = row['provenance']
-        single_row = get_cs_version_data(cs_name, cs_id, cs_intention, cs_limitations, cs_update_msg, cs_provenance)
-        # cs_name, cs_id, intension, limitation, update_msg, status, provenance
+        cs_name = row['concept_set_name'].strip()
+        cs_intention = row['intention'].strip()
+        cs_limitations = row['limitations'].strip()
+        cs_update_msg = row['update_message'].strip()
+        # cs_authority = strip(row['authority']) ## TODO: shong, 4/26/22,  uncomment when the property is available
+        cs_authority = "Mathematica"
+        cs_provenance = row['provenance'].strip()
+        single_row = get_cs_version_data(cs_name, cs_id, cs_intention, cs_limitations, cs_update_msg, cs_provenance, cs_authority)
+        # cs_name, cs_id, intention, limitation, update_msg, status, provenance
         code_set_version_json_all_rows[cs_id] = single_row
         # code_set_version_json_all_rows_dict[codeset_id] = single_row
 
@@ -151,7 +152,7 @@ def post_to_enclave_and_update_code_sets_csv(input_csv_folder_path) -> pd.DataFr
         # build the code and codeSystem list for the current codeSet
         # reset the code list
         code_list = []
-        cs_name = row['concept_set_name']
+        cs_name = row['concept_set_name'].strip()
         # code and code system list
         concept_set_version_item_rows = concept_set_version_item_dict[current_code_set_id]
         # always use the same entry from the first set as currently
@@ -160,17 +161,21 @@ def post_to_enclave_and_update_code_sets_csv(input_csv_folder_path) -> pd.DataFr
         exclude = concept_set_version_item_row1['isExcluded']
         descendents = concept_set_version_item_row1['includeDescendants']
         mapped = concept_set_version_item_row1['includeMapped']
-        annotation = concept_set_version_item_row1['annotation']
+        annotation = concept_set_version_item_row1['annotation'].strip()
 
         for concept_set_version_item_row in concept_set_version_item_rows:
-            code_codesystem_pair = \
-                concept_set_version_item_row['codeSystem'] + ":" + str(concept_set_version_item_row['code'])
+            code_codesystem_pair = concept_set_version_item_row['codeSystem'] + ":" + str(concept_set_version_item_row['code'])
             code_list.append(code_codesystem_pair)
             # to-do(future): Right now, the API doesn't expect variation between the following 4 values among
             # ...concept set items, so right now we can just take any of the rows and use its values. But, in
             # ...the future, when there is variation, we may need to do some update here. - Joe 2022/02/04
             # this is same limitation OMOP concept expression works, so for now it is sufficient
             # we can explorer more granular control later if necessary -Stephanie 02/05/2022
+
+            # now that we have the code list, generate the json for the versionExpression data
+            single_row = get_cs_version_expression_data(current_code_set_id, cs_name, code_list, exclude, descendents, mapped, annotation)
+            code_set_expression_items_json_all_rows[current_code_set_id] = single_row
+            # code_set_expression_items_json_all_rows_dict[codeset_id] = single_row
 
             # now that we have the code list, generate the json for the versionExpression data
             single_row = get_cs_version_expression_data(

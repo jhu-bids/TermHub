@@ -93,7 +93,7 @@ def post_request_enclave_api_create_container(header: Dict, data_dict: Dict):
     # TODO if the container already exist than it is not an error so we should allow the next step.
     # i.e. if the errorCode is invalid_argument and the errorName is 'Actions:ObjectsAlreadyExist'
     #
-    if 'errorCode' in response_json and response_json['errorName'] == 'Actions:ObjectsAlreadyExist':
+    if response_json['errorCode'] == 'INVALID_ARGUMENT' and response_json['errorName'] == 'Actions:ObjectsAlreadyExist':
         return response_json
 
     if 'actionRid' not in response_json and response_json['errorCode'] != '':
@@ -258,8 +258,8 @@ def get_cs_container_data(cs_name: str) -> Dict:
 
 
 ## # cs_name, cs_id, intension, limitation, update_msg, status, provenance
-## TODO: utilize: cs_name, cs_id
-def get_cs_version_data(cs_name, cs_id, intention, limitations, update_msg, provenance):
+## TODO: utilize: cs_name, cs_id, pass in authority value when it becomes available in the codesets.csv
+def get_cs_version_data(cs_name, cs_id, intention, limitations, update_msg, provenance, authority):
     """This code will be used to pass to 'action' endpoint, then it passes to this TypeScript function
     which will create a modified object, pass it back to 'action', and 'action' will make the actual change:
     https://unite.nih.gov/workspace/data-integration/code/repos/ri.stemma.main.repository.f4a40537-2187-46f4-ae90-c54ca36eb0c2/contents/f6a597efe3/functions-typescript/src/editor.ts
@@ -428,7 +428,11 @@ def get_cs_version_data(cs_name, cs_id, intention, limitations, update_msg, prov
             "ri.actions.main.parameter.4e790085-47ed-41ad-b12e-72439b645031": {
                 "null": {},
                 "type": "null"
-            }  # domainTeam, optional only if research_id is submitted
+            },  # domainTeam, optional only if research_id is submitted
+            "ri.actions.main.parameter.f6766c2d-79a6-445f-a664-d245e1abf199": {
+                "type": "string",
+                "string": authority
+            }  # authority source
         }
     }
     return cs_version_data
