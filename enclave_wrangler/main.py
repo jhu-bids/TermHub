@@ -19,7 +19,7 @@ from typing import Dict, List, Union
 
 import pandas as pd
 from enclave_wrangler.config import PROJECT_ROOT, config
-from enclave_wrangler.enclave_api import get_cs_container_data
+from enclave_wrangler.enclave_api import get_cs_container_data, post_concept_set_bundle
 from enclave_wrangler.enclave_api import get_cs_version_data
 from enclave_wrangler.enclave_api import get_cs_version_expression_data
 from enclave_wrangler.enclave_api import post_request_enclave_api_addExpressionItems
@@ -41,6 +41,10 @@ API_CREATE_URL = 'https://unite.nih.gov/actions/api/actions'
 # Based on curl usage, it seems that '?synchronousPropagation=false' is not required
 # API_VALIDATE_URL = 'https://unite.nih.gov/actions/api/actions/validate'
 API_VALIDATE_URL = 'https://unite.nih.gov/actions/api/actions/validate?synchronousPropagation=false'
+HEADER = {
+    "authorization": f"Bearer {config['PALANTIR_ENCLAVE_AUTHENTICATION_BEARER_TOKEN']}",
+    'content-type': 'application/json'
+}
 
 
 def _datetime_palantir_format() -> str:
@@ -207,11 +211,6 @@ def post_to_enclave_and_update_code_sets_csv(input_csv_folder_path) -> pd.DataFr
         #        continue
 
         # Do a test first using 'validate'
-        header = {
-                "authorization": f"Bearer {config['PALANTIR_ENCLAVE_AUTHENTICATION_BEARER_TOKEN']}",
-                'content-type': 'application/json'
-        }
-
         container_data_dict = concept_set_container_edited_json_all_rows[premade_codeset_id]
         # noinspection PyUnusedLocal
         # response_json = post_request_enclave_api(api_url, header, test_data_dict)
@@ -224,7 +223,7 @@ def post_to_enclave_and_update_code_sets_csv(input_csv_folder_path) -> pd.DataFr
         #         'parameters']['ri.actions.main.parameter.1b5cd6e9-b220-4551-b97d-245b9fa86807']['string']
         #     print(csContainerName)
         #     print('------------------------------')
-        response_json = post_request_enclave_api_create_container(header, container_data_dict)
+        response_json = post_request_enclave_api_create_container(HEADER, container_data_dict)
         # i.e container object may already exist but we can create another version within a container:
         # {'errorCode': 'INVALID_ARGUMENT', 'errorName': 'Actions:ObjectsAlreadyExist',
         # 'errorInstanceId': '96fb2188-1947-4004-a7b3-d0572a5a0008', 'parameters': {'objectLocators':
@@ -241,7 +240,7 @@ def post_to_enclave_and_update_code_sets_csv(input_csv_folder_path) -> pd.DataFr
         # noinspection PyUnusedLocal
         # create the version and ask Enclave for the codeset_id that can be used to addCodeExpressionItems
         # create version -----
-        codeset_id = post_request_enclave_api_create_version(header, cs_version_data_dict)
+        codeset_id = post_request_enclave_api_create_version(HEADER, cs_version_data_dict)
         # TODO begin ------------------------------------------------------------
         # 3/14/22, stephanie, save the codeset_id with container name in csContainerName
         # save codeset_id of a draft version with the container name saved in container_name= container_data_dict[
@@ -276,7 +275,7 @@ def post_to_enclave_and_update_code_sets_csv(input_csv_folder_path) -> pd.DataFr
         # action type rid: ri.actions.main.action-type.e07f2503-c7c9-47b9-9418-225544b56b71
         # noinspection PyUnusedLocal
         # add expressionItems to version -----
-        response_json = post_request_enclave_api_addExpressionItems(header, upd_cs_ver_expression_items_dict)
+        response_json = post_request_enclave_api_addExpressionItems(HEADER, upd_cs_ver_expression_items_dict)
         print('post request to add expressionItems returned: ----------' + json.dumps(response_json))
         # Once the expression items has been added save the enclave concept_id so that we can update the code_sets.csv
         # file update code_sets_df with the enclave_codeset_id column of the  value in the codeset_id retured from the
@@ -348,8 +347,11 @@ def persist_to_db(code_sets_df) -> pd.DataFrame:
     return persistence_df_new
 
 
-def run(input_csv_folder_path, use_cache=False):
+def run(input_csv_folder_path, bundle_create: str, use_cache=False):
     """Main function"""
+    if bundle_create:
+        post_concept_set_bundle(HEADER, bundle_create)
+        return
     code_sets_df: Union[pd.DataFrame, None] = load_cache_if_valid(input_csv_folder_path) if use_cache else None
     if code_sets_df is None:
         code_sets_df: pd.DataFrame = post_to_enclave_and_update_code_sets_csv(input_csv_folder_path)

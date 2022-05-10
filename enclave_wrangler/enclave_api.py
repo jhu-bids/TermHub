@@ -36,7 +36,6 @@ def key_val_split_list(list1):
 
 
 def post_request_enclave_api_addExpressionItems(header: Dict, data_dict: Dict):
-
     # 1. validate the request - no need to validate as it does not add benefit at this point
     # 2. addCodeExpressionItems
     # {'errorCode': 'INVALID_ARGUMENT', 'errorName': 'Conjure:UnprocessableEntity', 'errorInstanceId': '14a1177b-6431-40a4-92c2-714a2d8102b6', 'parameters': {}}
@@ -618,6 +617,7 @@ def get_cs_version_expression_data(current_code_set_id: Union[str, int], cs_name
     }
     return cs_version_expression_data
 
+
 def update_cs_version_expression_data_with_codesetid(cs_version_id, cs_version_expression_items_dict):
     cs_version_id_str = str(cs_version_id)
     if DEBUG:
@@ -628,3 +628,32 @@ def update_cs_version_expression_data_with_codesetid(cs_version_id, cs_version_e
         log_debug_info()
         print(json.dumps(cs_version_expression_items_dict))
     return cs_version_expression_items_dict
+
+
+def post_concept_set_bundle(header: Dict, bundle_name: str) -> Dict:
+    """POST a new concept set bundle
+    Action URL: https://unite.nih.gov/workspace/ontology/action-type/create-concept-set-bundle/"""
+    d = {
+    "actionTypeRid": "ri.actions.main.action-type.e07f2503-c7c9-47b9-9418-225544b56b71",
+        "parameters": {
+            "ri.actions.main.parameter.63e31a99-6b94-4580-b95a-a482ed64fed0": {
+                "type": "string",
+                "string": bundle_name
+            }
+        }
+    }
+    api_url = API_VALIDATE_URL
+    response = requests.post(api_url, data=json.dumps(d), headers=header)
+    response_json = response.json()
+    if DEBUG:
+        log_debug_info()
+    if 'type' not in response_json or response_json['type'] != 'validResponse':
+        raise SystemError(json.dumps(response_json, indent=2))
+
+    api_url = API_CREATE_URL
+    response = requests.post(api_url, data=json.dumps(d), headers=header)
+    response_json = response.json()
+    if DEBUG:
+        log_debug_info()
+
+    return response_json

@@ -34,6 +34,9 @@ def get_parser():
              ' present, this indicates that the `enclave_wrangler` has already been run and that the input file itself '
              'can be used as cached data. The only thing that will happen is an update to the persistence layer, '
              '(`data/cset.csv` as of 2022/03/18).'),
+    parser.add_argument(
+        '-b', '--bundle-create',
+        help='Create a new concept set bundle using name passed as `--bundle-create <BUNDLE_NAME>`.')
 
     return parser
 
