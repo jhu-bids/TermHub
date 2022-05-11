@@ -1,26 +1,23 @@
 #!/usr/bin/env python3
 # -*- coding: utf-8 -*-
 """Command Line Interface."""
-from argparse import ArgumentParser
-from typing import Dict
-
-import requests
-from typing import Dict
-from typeguard import typechecked
+# import asyncio
 import json
 import os
-from datetime import datetime, timezone
-import requests
 import pandas as pd
-import tempfile
 # import pyarrow as pa
 import pyarrow.parquet as pq
-# import asyncio
-import shutil
+import requests
+import tempfile
 import time
+import shutil
+from argparse import ArgumentParser
+from typeguard import typechecked
+from typing import Dict
 
 from enclave_wrangler.config import config
 from enclave_wrangler.utils import log_debug_info
+
 
 HEADERS = {
     "authorization": f"Bearer {config['PALANTIR_ENCLAVE_AUTHENTICATION_BEARER_TOKEN']}",
@@ -46,8 +43,12 @@ def getTransaction(datasetRid: str, ref: str = 'master') -> str:
 
     response = requests.get(url, headers=HEADERS,)
     response_json = response.json()
-    print(response_json)
+
+    if response.status_code >= 400:
+        raise RuntimeError(json.dumps(response_json))
+
     return response_json['rid']
+
 
 @typechecked
 def views2(datasetRid: str, endRef: str) -> [str]:
@@ -70,8 +71,9 @@ def views2(datasetRid: str, endRef: str) -> [str]:
     file_parts = [f['logicalPath'] for f in response_json['values']]
     return file_parts[1:]
 
+
 @typechecked
-def datasets_views(datasetRid: str, file_parts: [str]) -> None:
+def datasets_views(datasetRid: str, file_parts: [str]) -> pd.DataFrame:
     """tested with cURL:
     wget https://unite.nih.gov/foundry-data-proxy/api/dataproxy/datasets/ri.foundry.main.dataset.5cb3c4a3-327a-47bf-a8bf-daf0cafe6772/views/master/spark%2Fpart-00000-c94edb9f-1221-4ae8-ba74-58848a4d79cb-c000.snappy.parquet --header "authorization: Bearer $PALANTIR_ENCLAVE_AUTHENTICATION_BEARER_TOKEN"
     """
@@ -105,15 +107,13 @@ def datasets_views(datasetRid: str, file_parts: [str]) -> None:
                     raise e
                     parquet_parts.append(fname)
             else:
-                raise f'failed opening {url} with {response.status_code}: {response.content}'
+                raise RuntimeError(f'failed opening {url} with {response.status_code}: {response.content}')
         combined_parquet_fname = parquet_dir + '/combined.parquet'
         combine_parquet_files(parquet_dir, combined_parquet_fname)
         df = pd.read_parquet(combined_parquet_fname)
-        df.to_csv()
-
-
         # p1 = pd.read_parquet('./spark%2Fpart-00000-c94edb9f-1221-4ae8-ba74-58848a4d79cb-c000.snappy.parquet')
 
+        return df
 
 
 def combine_parquet_files(input_folder, target_path):
@@ -135,13 +135,52 @@ def combine_parquet_files(input_folder, target_path):
     except Exception as e:
         print(e)
 
-def run(datasetRid: str, ref: str = 'master') -> None:
+
+def cli_validate(args: Dict):
+    """Validate CLI parameters"""
+    # TODO: @Siggie: If we do want `--download-all-registered-datasets` as a param here, I think it would be good to
+    #  throw an error like this. But if you don't want that, or if you think I need to make this message clearer, let me know. - Joe 2022/05/11
+    if args['download_all_registered_datasets'] and (args['datasetName'] or args['datasetRid']):
+        raise RuntimeError('Parameter (1) `--download-all-registered-datasets` was passed, but either/both (2) `--datasetName` and '
+                           '`--datasetRid` were also passed. Please either pass only (1) to download all datasets, or (2) '
+                           'to download 1 dataset, but not both sets of these parameters at the same time.')
+
+
+def run_single(datasetRid: str, ref: str = 'master', write_csv_in_calling_dir=True) -> None:
+    """Run progam"""
     endRef = getTransaction(datasetRid, ref)
     args = {'datasetRid': datasetRid, 'endRef': endRef}
     file_parts = views2(**args)
-    datasets_views(datasetRid, file_parts)
+    df = datasets_views(datasetRid, file_parts)
     # asyncio.run(datasets_views(datasetRid, file_parts))
+    if write_csv_in_calling_dir:
+        df.to_csv()
 
+
+def run_all() -> None:
+    """Run progam"""
+    # ref = 'master'
+    # endRef = getTransaction(datasetRid, ref)
+    # args = {'datasetRid': datasetRid, 'endRef': endRef}
+    # file_parts = views2(**args)
+    # datasets_views(datasetRid, file_parts)
+    project_dir = os.path.join(os.path.dirname(os.path.realpath(__file__)), '..')
+    submodule_names = ['termhub-csets', 'termhub-vocab']
+    for module_dir in submodule_names:
+        datasets_dir = os.path.join(project_dir, module_dir, 'datasets')
+        registry_path = os.path.join(datasets_dir, 'registry.json')
+        with open(registry_path, 'r') as f:
+            dataset_name_rid_map: Dict[str, str] = json.load(f)
+        for dataset_name, dataset_rid in dataset_name_rid_map.items():
+            dataset_dir = os.path.join(datasets_dir, dataset_name)
+            os.makedirs(dataset_dir, exist_ok=True)
+            # TODO: Consider making subdirs: <ref>, <transaction-id>, <date>?
+            #  ...And update READMEs w/ the info
+            # TODO: Solve error I got with `'concept_set_version_item_rv_edited_mapped'`:
+            #  {'errorCode': 'INVALID_ARGUMENT', 'errorName': 'Catalog:BranchesNotFound', 'errorInstanceId': '537796d5-230c-481c-8a45-2e56f309c3d9', 'parameters': {'datasetRids': '[ri.foundry.main.dataset.e7941080-8df0-4392-96c5-82fc2f84e2a7]', 'branchIds': '[master]'}}
+            df = run_single(dataset_rid, write_csv_in_calling_dir=False)
+            # TODO: Save the DF
+            print()
 
 
 def get_parser():
@@ -173,11 +212,25 @@ def get_parser():
         help='Should be the branch of the dataset -- I think. Refer to API documentation at '
                 'https://unite.nih.gov/workspace/documentation/developer/api/catalog/services/CatalogService/endpoints/getTransaction')
 
+    # TODO: @Siggie: I'm not sure if adding this as an option here is the best design, but it seemed like the
+    #  easiest/fastest way I could think of, and probably isn't a bad way anyhow. If you approve, you can remove this
+    #  comment. Otherwise, we should figure out the preferred way to implement this feature. - Joe 2022/05/11
+    parser.add_argument(
+        '-A', '--download-all-registered-datasets',
+        action='store_true',
+        help='If present, this will initiatie download of all "registered" datasets. This is tightly coupled with the '
+             'environment that this dataset_download CLI is being run in. That is, it is expected that, within the same'
+             'directory as `enclave_wrangler/`, there also be two additional directories / git submodules: '
+             '`termhub-csets` and `termhub-vocab`. Within both of these directories, there should be a '
+             '`datasets/registry.json`, which contains key-value pairs, where the values are RIDs of datasets to be '
+             'downloaded from the N3C data enclave.')
+
 #    parser.add_argument(
 #        '-o', '--output_dir',
 #        help='Path to folder where you want output files, if there are any')
 
     return parser
+
 
 def cli():
     """Command line interface for package.
@@ -187,10 +240,16 @@ def cli():
     kwargs = parser.parse_args()
     kwargs_dict: Dict = vars(kwargs)
 
-    # if kwargs_dict['dataset-download'] is not None:
-    args = {key: kwargs_dict[key] for key in ['datasetRid','ref']}
-    run(**args)
-    return
+    cli_validate(kwargs_dict)
+
+    if kwargs_dict['download_all_registered_datasets']:
+        run_all()
+    else:
+        # if kwargs_dict['dataset-download'] is not None:
+        args = {key: kwargs_dict[key] for key in ['datasetRid','ref']}
+        # should only have -A by itself or other otpoins without -A
+        run_single(**args)
+
 
 if __name__ == '__main__':
     cli()
