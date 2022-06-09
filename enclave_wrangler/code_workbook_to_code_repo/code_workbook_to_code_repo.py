@@ -1,5 +1,8 @@
 from argparse import ArgumentParser
 import re
+import util
+
+util.smart_open
 
 '''
 transform pipeline.sql files from enclave code workbook git exports to
