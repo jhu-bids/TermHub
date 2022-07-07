@@ -2,8 +2,6 @@ from argparse import ArgumentParser
 import re
 import util
 
-util.smart_open
-
 '''
 transform pipeline.sql files from enclave code workbook git exports to
 code repository formatted pyspark.
@@ -67,8 +65,8 @@ def convert_workbook_node(query):
         return query
 
 def run(input_path: str, output_path: str) -> None:
-        with open(input_path) as f:
-                whole_doc = ''.join(f.readlines())
+        with util.smart_open(input_path) as f:
+                sql = ''.join(f.readlines())
 
         in_queries = split_document(whole_doc)
         out_queries = [convert_workbook_node(query) for query in in_queries]
@@ -85,11 +83,11 @@ def get_parser():
 
         parser.add_argument(
                 '-i', '--input_path',
-                default='./pipeline.sql',
+                # default='./pipeline.sql',
                 help='Path to folder where you want output file')
         parser.add_argument(
                 '-o', '--output_path',
-                default='./sql-pipeline.py',
+                # default='./pipeline.py',
                 help='Path to where you want output file')
 
         return parser
