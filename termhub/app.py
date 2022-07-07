@@ -1,12 +1,35 @@
+"""TermHub
+
+Resources
+  1. Features to add: https://docs.google.com/spreadsheets/d/19_eBv0MIBWPcXMTw3JJdcfPoEFhns93F-TKdODW27B8/edit#gid=0
+  2. Flask boilerplate: https://github.com/realpython/flask-boilerplate
+
+TODO's:
+  - Heroku: submodules issue: google "heroku deploy with git submodules"
+  - Patient counts: Get from N3C when they give us this API.
+  - Datasets: Find hosting for static files / database: (a) AWS, (b) DataBricks, (c) our FHIR server
+    https://docs.databricks.com/data-engineering/delta-live-tables/delta-live-tables-api-guide.html
+    Background info: Stephanie has delta table in DataBricks. Can connect to CRISP (state of MD) data source, for ex.
+    We would want to get this in OMOP format.
+  - Add features: See resource (1) above.
+  - Add API library: FastAPI?
+  - later: SPA: Use React or something else to improve UX.
+  - later: Heroku: slug size: !Warning: slug size (381 MB) exceeds our soft limit (300 MB) which may affect boot time.
+  - later: Heroku: stack architecture: This app is using the Heroku-20 stack, however a newer stack is available.
+    To upgrade to Heroku-22, see: https://devcenter.heroku.com/articles/upgrading-to-the-latest-stack
+"""
 #----------------------------------------------------------------------------#
 # Imports
 #----------------------------------------------------------------------------#
-
+import pandas as pd
 from flask import Flask, render_template, request
 # from flask.ext.sqlalchemy import SQLAlchemy
 import logging
 from logging import Formatter, FileHandler
-from forms import *
+try:
+    from termhub.forms import *
+except ModuleNotFoundError:
+    from forms import *
 import os
 
 #----------------------------------------------------------------------------#
@@ -14,7 +37,10 @@ import os
 #----------------------------------------------------------------------------#
 
 app = Flask(__name__)
-app.config.from_object('config')
+try:
+    app.config.from_object('termhub.config')
+except ModuleNotFoundError:
+    app.config.from_object('config')
 #db = SQLAlchemy(app)
 
 # Automatically tear down SQLAlchemy.
@@ -37,13 +63,34 @@ def login_required(test):
     return wrap
 '''
 #----------------------------------------------------------------------------#
+# Variables on load
+#----------------------------------------------------------------------------#
+# todo
+
+#----------------------------------------------------------------------------#
 # Controllers.
 #----------------------------------------------------------------------------#
-
-
 @app.route('/')
 def home():
-    return render_template('pages/placeholder.home.html')
+    return render_template('pages/home.html')
+
+
+@app.route('/concept_sets')
+def concept_sets():
+    # TODO: maybe move this later
+    TERMHUB_DIR = os.path.dirname(os.path.realpath(__file__))
+    DATASETS_DIR = os.path.join(TERMHUB_DIR, '..', 'termhub-csets')
+    concept_set_names_df = pd.read_csv(os.path.join(DATASETS_DIR, 'codesets-junk.csv'), sep='\t')
+    concept_sets = {}
+    for _index, row in concept_set_names_df.iterrows():
+        concept_sets[row['concept_set_name']] = row['codeset_id']
+    return render_template('pages/concept_sets.html', concept_sets=concept_sets)
+
+
+# TODO: AssertionError: View function mapping is overwriting an existing endpoint function: concept_sets
+@app.route('/concept_sets/<concept_set_id>')
+def concept_set(concept_set_id):
+    return render_template('pages/concept_sets.html', concept_set_id=concept_set_id, concept_set_name='example')
 
 
 @app.route('/about')
