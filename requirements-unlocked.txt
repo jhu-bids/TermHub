@@ -1,0 +1,24 @@
+# TermHub requirements
+coverage
+Fabric
+Flask-SQLAlchemy
+Flask-WTF
+gunicorn
+WTForms
+# ecdsa
+# paramiko
+# pycrypto
+
+# Other requirements
+bs4
+google-api-python-client
+google-auth-httplib2
+google-auth-oauthlib
+pandas
+pyarrow
+python-dotenv
+psycopg2-binary
+sqlalchemy
+typeguard
+xmltodict
+ArgumentParser

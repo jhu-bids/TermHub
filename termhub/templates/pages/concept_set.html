@@ -1,0 +1,11 @@
+{% extends 'layouts/main.html' %}
+{% block title %}Home{% endblock %}
+{% block content %}
+
+<ul>
+  {% for concept_set_name, concept_set_id in concept_sets.items() -%}
+    <li><a href="/concept_sets/{{concept_set_id}}">{{ concept_set_name }}</a></li>
+  {% endfor %}
+</ul>
+
+{% endblock %}
