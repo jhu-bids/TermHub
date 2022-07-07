@@ -1,7 +1,12 @@
-# ValueSet Tools
-Tools for converting value sets in different formats, such as converting 
-extensional value sets in CSV format to JSON format able to be uploaded to a 
-FHIR server. Tools to automate CRUD operations such as reads and updates from various different data sources and web services.
+# TermHub
+Tools for managing biomedical terminologies.
+
+## Features
+### Value Set tools
+Can convert value sets in different formats, such as extensional value sets in 
+CSV format to JSON format able to be uploaded to a FHIR server. Tools to 
+automate CRUD operations such as reads and updates from various different data 
+sources and web services.
 
 ## To-do's
 1. Do something with this: [concept set publishing
