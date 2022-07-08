@@ -90,7 +90,7 @@ def concept_sets():
 # TODO: AssertionError: View function mapping is overwriting an existing endpoint function: concept_sets
 @app.route('/concept_sets/<concept_set_id>')
 def concept_set(concept_set_id):
-    return render_template('pages/concept_sets.html', concept_set_id=concept_set_id, concept_set_name='example')
+    return render_template('pages/concept_set.html', concept_set_id=concept_set_id, concept_set_name='example')
 
 
 @app.route('/about')
