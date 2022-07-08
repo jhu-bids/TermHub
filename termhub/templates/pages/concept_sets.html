@@ -2,6 +2,7 @@
 {% block title %}Termhub - Concept Set{% endblock %}
 {% block content %}
 
+<h1>Concept Sets</h1>
 <ul>
   {% for concept_set_name, concept_set_id in concept_sets.items() -%}
     <li><a href="/concept_sets/{{concept_set_id}}">{{ concept_set_name }}</a></li>
