@@ -1,0 +1,27 @@
+{% extends 'layouts/main.html' %}
+{% block title %}TermHub - FHIR Terminology{% endblock %}
+{% block content %}
+
+<h1>FHIR Terminology</h1>
+<span class="dropdown">
+  FHIR API: <a class="dropdown-toggle" data-toggle="dropdown">{{ fhir_api_urls[fhir_api_url_selection_id] }} <b class="caret"></b></a>
+  <ul class="dropdown-menu">
+  {% for i, url in fhir_api_urls.items() -%}
+    <li><a>{{ i }}. {{ url }}</a></li>
+  {% endfor %}
+  </ul>
+</span>
+
+<h2>CodeSystem</h2>
+TODO
+{{ code_systems }}
+
+<h2>ValueSet</h2>
+TODO
+{{ value_sets }}
+
+<h2>ConceptMap</h2>
+TODO
+{{ concept_maps }}
+
+{% endblock %}

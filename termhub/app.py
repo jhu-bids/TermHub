@@ -5,6 +5,7 @@ Resources
   2. Flask boilerplate: https://github.com/realpython/flask-boilerplate
 
 TODO's:
+  - Fetch from my FHIR server and see what it looks like
   - Heroku: submodules issue: google "heroku deploy with git submodules"
   - Patient counts: Get from N3C when they give us this API.
   - Datasets: Find hosting for static files / database: (a) AWS, (b) DataBricks, (c) our FHIR server
@@ -24,6 +25,7 @@ TODO's:
 from typing import Dict
 
 import pandas as pd
+import requests
 from flask import Flask, render_template, request
 # from flask.ext.sqlalchemy import SQLAlchemy
 import logging
@@ -87,6 +89,7 @@ def load_concept_sets(by_id: bool = False) -> Dict[str, str]:
             concept_sets[row['concept_set_name']] = row['codeset_id']
     return concept_sets
 
+
 @app.route('/')
 def home():
     concept_sets: Dict = load_concept_sets()
@@ -95,18 +98,46 @@ def home():
     return render_template('pages/concept_sets.html', concept_sets=concept_sets)
 
 
-@app.route('/concept_sets')
+@app.route('/concept-sets')
 def concept_sets():
     concept_sets: Dict = load_concept_sets()
     return render_template('pages/concept_sets.html', concept_sets=concept_sets)
 
 
 # TODO: AssertionError: View function mapping is overwriting an existing endpoint function: concept_sets
-@app.route('/concept_sets/<concept_set_id>')
+@app.route('/concept-sets/<concept_set_id>')
 def concept_set(concept_set_id: str):
     concept_sets: Dict = load_concept_sets(by_id=True)
     concept_set_name: str = concept_sets[concept_set_id]
     return render_template('pages/concept_set.html', concept_set_id=concept_set_id, concept_set_name=concept_set_name)
+
+
+@app.route('/fhir-terminology')
+def fhir_terminology():
+    return fhir_terminology_i()
+
+
+# TODO: standardize this use case. right now this is just an experiment
+# TODO: Move some of this up to a config
+@app.route('/fhir-terminology/<api_url_id>')
+def fhir_terminology_i(api_url_id: str = '1'):
+    """FHIR Terminology"""
+    fhir_api_base_url = 'http://20.119.216.32:8080/fhir/'
+    fhir_codesystem_url = fhir_api_base_url + 'CodeSystem'
+    fhir_valueset_url = fhir_api_base_url + 'ValueSet'
+    fhir_conceptmap_url = fhir_api_base_url + 'ConceptMap'
+    code_systems = requests.get(fhir_codesystem_url).json()
+    value_sets = requests.get(fhir_valueset_url).json()
+    concept_maps = requests.get(fhir_conceptmap_url).json()
+    fhir_api_urls: Dict[int, str] = {
+        1: fhir_api_base_url
+    }
+    return render_template('pages/fhir_terminology.html',
+        fhir_api_url_selection_id=int(api_url_id),
+        fhir_api_urls=fhir_api_urls,
+        code_systems=code_systems,
+        value_sets=value_sets,
+        concept_maps=concept_maps)
 
 
 @app.route('/about')
