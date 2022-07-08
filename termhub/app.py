@@ -5,12 +5,18 @@ Resources
   2. Flask boilerplate: https://github.com/realpython/flask-boilerplate
 
 TODO's:
+  - Heroku: submodules issue: google "heroku deploy with git submodules"
   - Patient counts: Get from N3C when they give us this API.
-  - Datasets: Find hosting for static files / database: (a) AWS, (b) DataBricks
+  - Datasets: Find hosting for static files / database: (a) AWS, (b) DataBricks, (c) our FHIR server
     https://docs.databricks.com/data-engineering/delta-live-tables/delta-live-tables-api-guide.html
     Background info: Stephanie has delta table in DataBricks. Can connect to CRISP (state of MD) data source, for ex.
     We would want to get this in OMOP format.
   - Add features: See resource (1) above.
+  - Add API library: FastAPI?
+  - later: SPA: Use React or something else to improve UX.
+  - later: Heroku: slug size: !Warning: slug size (381 MB) exceeds our soft limit (300 MB) which may affect boot time.
+  - later: Heroku: stack architecture: This app is using the Heroku-20 stack, however a newer stack is available.
+    To upgrade to Heroku-22, see: https://devcenter.heroku.com/articles/upgrading-to-the-latest-stack
 """
 #----------------------------------------------------------------------------#
 # Imports
