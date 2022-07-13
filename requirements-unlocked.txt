@@ -3,6 +3,7 @@ coverage
 Fabric
 Flask-SQLAlchemy
 Flask-WTF
+flask_restful
 gunicorn
 WTForms
 # ecdsa

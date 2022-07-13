@@ -52,6 +52,8 @@ CONFIG = {
 }
 
 app = Flask(__name__)
+
+# get config from termhub directory or directory above
 try:
     app.config.from_object('termhub.config')
 except ModuleNotFoundError:
@@ -65,7 +67,7 @@ class HelloWorld(Resource):
     def get(self):
         return {'hello': 'world'}
 
-api.add_resource(HelloWorld, '/')
+api.add_resource(HelloWorld, '/hello')
 
 if __name__ == '__main__':
     app.run(debug=True)
@@ -101,7 +103,7 @@ def login_required(test):
 #----------------------------------------------------------------------------#
 def browse_onto_data() -> Dict[str, str]:
     ot = objTypes()
-    apiNames = sorted([t['apiName'] for t in ot])
+    apiNames = sorted([t['apiName'] for t in ot if t['apiName'].startswith('OMOP')])
     # raise 'debugging'
     return apiNames
 

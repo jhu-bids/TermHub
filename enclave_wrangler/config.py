@@ -13,6 +13,6 @@ ENV_FILE = os.path.join(ENV_DIR, '.env')
 load_dotenv(ENV_FILE)
 config = {
     'PALANTIR_ENCLAVE_AUTHENTICATION_BEARER_TOKEN': os.getenv('PALANTIR_ENCLAVE_AUTHENTICATION_BEARER_TOKEN'),
-    'HOSTNAME': os.getenv('HOSTNAME'),
-    'ONTOLOGY_RID': os.getenv('ONTOLOGY_RID'),
+    'HOSTNAME': os.getenv('HOSTNAME', 'unite.nih.gov'),
+    'ONTOLOGY_RID': os.getenv('ONTOLOGY_RID', 'ri.ontology.main.ontology.00000000-0000-0000-0000-000000000000'),
 }
