@@ -42,7 +42,7 @@ def objTypes() -> [{}]:
 
     response = requests.get(url, headers=HEADERS,)
     response_json = response.json()
-    print(response_json)
+    # print(response_json)
     # types = pd.DataFrame(data=response_json)
     return response_json['data']
 

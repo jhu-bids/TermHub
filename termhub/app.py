@@ -36,6 +36,11 @@ try:
 except ModuleNotFoundError:
     from forms import *
 import os
+from enclave_wrangler.dataset_download_new_api import objTypes
+
+
+
+
 
 #----------------------------------------------------------------------------#
 # App Config.
@@ -51,6 +56,20 @@ try:
     app.config.from_object('termhub.config')
 except ModuleNotFoundError:
     app.config.from_object('config')
+
+
+from flask_restful import Resource, Api
+api = Api(app)
+
+class HelloWorld(Resource):
+    def get(self):
+        return {'hello': 'world'}
+
+api.add_resource(HelloWorld, '/')
+
+if __name__ == '__main__':
+    app.run(debug=True)
+
 #db = SQLAlchemy(app)
 
 # Automatically tear down SQLAlchemy.
@@ -80,6 +99,19 @@ def login_required(test):
 #----------------------------------------------------------------------------#
 # Controllers.
 #----------------------------------------------------------------------------#
+def browse_onto_data() -> Dict[str, str]:
+    ot = objTypes()
+    apiNames = sorted([t['apiName'] for t in ot])
+    # raise 'debugging'
+    return apiNames
+
+
+@app.route('/browse-onto')
+def browse_onto():
+    object_types: List = browse_onto_data()
+    return render_template('pages/browse_onto.html', object_types=object_types)
+
+
 def load_concept_sets(by_id: bool = False) -> Dict[str, str]:
     # TODO: maybe move this later
     TERMHUB_DIR = os.path.dirname(os.path.realpath(__file__))
@@ -223,7 +255,7 @@ if not app.debug:
 
 # Default port:
 if __name__ == '__main__':
-    app.run()
+    app.run(debug=True, evalex=True)
 
 # Or specify port manually:
 '''

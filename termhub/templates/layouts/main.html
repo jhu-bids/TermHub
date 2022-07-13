@@ -55,6 +55,7 @@
             <li {% if request.endpoint == 'home' %} class="active" {% endif %}><a href="{{ url_for('home') }}">Home</a></li>
 <!--            <li {% if request.endpoint == 'about' %} class="active" {% endif %}><a href="{{ url_for('about') }}">About</a></li>-->
             <li {% if request.endpoint == 'concept_sets' %} class="active" {% endif %}><a href="{{ url_for('concept_sets') }}">Concept sets</a></li>
+            <li {% if request.endpoint == 'browse_onto' %} class="active" {% endif %}><a href="{{ url_for('browse_onto') }}">Browse</a></li>
             <li {% if request.endpoint == 'fhir_terminology' %} class="active" {% endif %}><a href="{{ url_for('fhir_terminology') }}">FHIR terminology</a></li>
             <li {% if request.endpoint == 'enclave' %} class="active" {% endif %}><a href="{{ url_for('enclave') }}">N3C Enclave</a></li>
 <!--            <li class="dropdown">-->

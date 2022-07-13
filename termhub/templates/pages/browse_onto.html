@@ -1,0 +1,27 @@
+{% extends 'layouts/main.html' %}
+{% block title %}Termhub - Browse ontology{% endblock %}
+{% block content %}
+    <script>
+        function testjs() {
+
+            alert('hello world')
+        }
+    </script>
+
+    <div style="float: left; padding: 10px; border: solid 1px brown;">
+        <h1>Object types</h1>
+        <ul>
+          {% for object_type in object_types -%}
+            <!-- <li><a href="/concept-sets/{{object_type}}">{{ object_type }}</a></li -->
+            <li><a href="javascript:testjs()">{{ object_type }}</a></li>
+          {% endfor %}
+        </ul>
+    </div>
+
+    <div style="float: left; width: 300px; height: 400px; border: solid 1px brown; margin-left: 30px">
+        <p>
+            Hello!
+        </p>
+    </div>
+
+{% endblock %}
