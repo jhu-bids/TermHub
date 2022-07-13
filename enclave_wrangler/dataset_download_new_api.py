@@ -29,6 +29,20 @@ HEADERS = {
 DEBUG = False
 # TARGET_CSV_DIR='data/datasets/'
 
+def ontocall(path) -> [{}]:
+    """API documentation at
+    https://www.palantir.com/docs/foundry/api/ontology-resources/object-types/list-object-types/
+    """
+
+    ontologyRid = config['ONTOLOGY_RID']
+    api_path = f'/api/v1/ontologies/{ontologyRid}/path'
+    url = f'https://{config["HOSTNAME"]}{api_path}'
+
+    response = requests.get(url, headers=HEADERS,)
+    response_json = response.json()
+    # print(response_json)
+    # types = pd.DataFrame(data=response_json)
+    return response_json['data']
 
 @typechecked
 def objTypes() -> [{}]:

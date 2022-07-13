@@ -2,9 +2,14 @@
 {% block title %}Termhub - Browse ontology{% endblock %}
 {% block content %}
     <script>
-        function testjs() {
+        async function testjs(x) {
 
-            alert('hello world')
+            console.log(x)
+            p = fetch('/hello')
+            js = await p.then(response => response.json())
+
+            console.log(js)
+            //alert('hello world')
         }
     </script>
 
@@ -13,7 +18,7 @@
         <ul>
           {% for object_type in object_types -%}
             <!-- <li><a href="/concept-sets/{{object_type}}">{{ object_type }}</a></li -->
-            <li><a href="javascript:testjs()">{{ object_type }}</a></li>
+            <li><a href="javascript:testjs('{{object_type}}')">{{ object_type }}</a></li>
           {% endfor %}
         </ul>
     </div>
