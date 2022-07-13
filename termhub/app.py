@@ -23,24 +23,22 @@ TODO's:
 #----------------------------------------------------------------------------#
 # Imports
 #----------------------------------------------------------------------------#
-from typing import Dict
+import os
+from typing import Dict, List
 
 import pandas as pd
 import requests
 from flask import Flask, render_template, request
+from flask_restful import Resource, Api
 # from flask.ext.sqlalchemy import SQLAlchemy
 import logging
 from logging import Formatter, FileHandler
+
 try:
     from termhub.forms import *
 except ModuleNotFoundError:
     from forms import *
-import os
-from enclave_wrangler.dataset_download_new_api import objTypes
-
-
-
-
+from enclave_wrangler.config import config
 
 #----------------------------------------------------------------------------#
 # App Config.
@@ -59,18 +57,8 @@ try:
 except ModuleNotFoundError:
     app.config.from_object('config')
 
-
-from flask_restful import Resource, Api
 api = Api(app)
 
-class HelloWorld(Resource):
-    def get(self):
-        return {'hello': 'world'}
-
-api.add_resource(HelloWorld, '/hello')
-
-if __name__ == '__main__':
-    app.run(debug=True)
 
 #db = SQLAlchemy(app)
 
@@ -101,16 +89,69 @@ def login_required(test):
 #----------------------------------------------------------------------------#
 # Controllers.
 #----------------------------------------------------------------------------#
-def browse_onto_data() -> Dict[str, str]:
-    ot = objTypes()
+# TODO: take a param
+class HelloWorld(Resource):
+    def get(self):
+        return {'hello': 'world'}
+api.add_resource(HelloWorld, '/hello/<x>')
+
+
+def ontocall(path) -> [{}]:
+    """API documentation at
+    https://www.palantir.com/docs/foundry/api/ontology-resources/objects/list-objects/
+    https://www.palantir.com/docs/foundry/api/ontology-resources/object-types/list-object-types/
+    """
+    headers = {
+        "authorization": f"Bearer {config['PALANTIR_ENCLAVE_AUTHENTICATION_BEARER_TOKEN']}",
+        # 'content-type': 'application/json'
+    }
+    ontologyRid = config['ONTOLOGY_RID']
+    api_path = f'/api/v1/ontologies/{ontologyRid}/{path}'
+    url = f'https://{config["HOSTNAME"]}{api_path}'
+    response = requests.get(url, headers=headers,)
+    response_json = response.json()
+    return response_json['data']
+
+
+class OntoCall(Resource):
+    """Get ontology objects
+    - Outdated docs: https://flask-restful.readthedocs.io/en/latest/quickstart.html#argument-parsing
+    - If we want to add request validation:
+      https://stackoverflow.com/questions/30779584/flask-restful-passing-parameters-to-get-request"""
+    def get(self):
+        # Example response is a list of dictionairies that lok like this:
+        # {
+        #   "properties": {
+        #     "conceptSetId": " Heavy menstrual bleeding",
+        #     "assignedInformatician": "4b054b72-ee25-48ca-9183-696cb9bff7ee",
+        #     "archived": true,
+        #     "stage": "Awaiting Editing",
+        #     "alias": "heavy_menstrual_bleeding",
+        #     "createdAt": "2021-07-28T19:20:04.268Z",
+        #     "createdBy": "976125fc-a13b-4571-a5bd-52c1918ff99b",
+        #     "conceptSetName": " Heavy menstrual bleeding",
+        #     "status": "Under Construction",
+        #     "intention": "Mixed"
+        #   },
+        #   "rid": "ri.phonograph2-objects.main.object.8d6c23f0-2015-451e-a6ce-cad6637eb23c"
+        # }
+        response: List[Dict] = ontocall(request.args['path'])
+        dict_rows: List[Dict] = [x['properties'] for x in response]
+        return dict_rows
+# todo: figure out what is the advantage of declaring 'endpoint'
+# api.add_resource(OntoCall, '/ontocall', endpoint='ontocall')
+api.add_resource(OntoCall, '/ontocall')
+
+
+def browse_onto_data() -> List[str]:
+    ot: List = ontocall('objectTypes')
     apiNames = sorted([t['apiName'] for t in ot if t['apiName'].startswith('OMOP')])
-    # raise 'debugging'
     return apiNames
 
 
 @app.route('/browse-onto')
 def browse_onto():
-    object_types: List = browse_onto_data()
+    object_types = browse_onto_data()
     return render_template('pages/browse_onto.html', object_types=object_types)
 
 
