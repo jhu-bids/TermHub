@@ -1,6 +1,8 @@
 # TermHub requirements
 coverage
 Fabric
+# Flask-Parcel
+flask_cors
 Flask-SQLAlchemy
 Flask-WTF
 flask_restful
