@@ -85,3 +85,6 @@ serve:
 	python3 -m termhub; \
 	open http://localhost:5000
 
+${TERMHUB_FRONTEND_BUILD_PATH}=../TermHub-FrontEnd/build
+update-react-build:
+	cp -r ${TERMHUB_FRONTEND_BUILD_PATH}/* termhub/
