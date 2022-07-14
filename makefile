@@ -1,9 +1,11 @@
-SRC=termhub/
-
 .PHONY: lint tags ltags test all lintall codestyle docstyle lintsrc \
 linttest doctest doc docs code linters_all codesrc codetest docsrc \
 doctest build dist pypi-push-test pypi-push pypi-test pip-test pypi \
-pip remove-previous-build upgrade upgrade-dependencies
+pip remove-previous-build upgrade upgrade-dependencies update-react-build
+SRC=termhub/
+TERMHUB_FRONTEND_BUILD_PATH =../TermHub-FrontEnd/build
+TERMHUB_BACKEND_PATH = termhub
+
 
 # Batched Commands
 # - Code & Style Linters
@@ -85,6 +87,6 @@ serve:
 	python3 -m termhub; \
 	open http://localhost:5000
 
-${TERMHUB_FRONTEND_BUILD_PATH}=../TermHub-FrontEnd/build
+# Front-end orchestration
 update-react-build:
-	cp -r ${TERMHUB_FRONTEND_BUILD_PATH}/* termhub/
+	cp -r ${TERMHUB_FRONTEND_BUILD_PATH}/* ${TERMHUB_BACKEND_PATH}
