@@ -33,3 +33,5 @@ junk
 scripts/old-vsac-api-scripts/tgt.txt
 .idea
 .DS_Store
+termhub/static
+./junk
