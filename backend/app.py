@@ -1,9 +1,10 @@
 """TermHub backend"""
-from typing import Union
+from typing import Dict, List
 
+import requests
 from fastapi import FastAPI
 
-from enclave_wrangler import config
+from enclave_wrangler.config import config
 
 
 app = FastAPI()
@@ -11,12 +12,8 @@ app = FastAPI()
 
 @app.get("/")
 def read_root():
-    return {"Hello": "World2"}
-
-
-@app.get("/items/{item_id}")
-def read_item(item_id: int, q: Union[str, None] = None):
-    return {"item_id": item_id, "q": q}
+    # return {"Hello": "World"}
+    return ontocall('objectTypes')
 
 
 def ontocall(path) -> [{}]:
@@ -32,9 +29,15 @@ def ontocall(path) -> [{}]:
   api_path = f'/api/v1/ontologies/{ontologyRid}/{path}'
   url = f'https://{config["HOSTNAME"]}{api_path}'
   print(f'ontocall: {api_path}\n{url}')
-  response = requests.get(url, headers=headers)
-  response_json = response.json()
-  return response_json['data']
+
+  response: List[Dict] = requests.get(url, headers=headers).json()
+  response = response['data']
+  if path == 'objectTypes':
+    apiNames = sorted([
+        t['apiName'] for t in response if t['api    Name'].startswith('OMOP')])
+    return apiNames
+
+  return {'unrecognized path': path}
 
 
 @app.route('/browse-onto')
@@ -44,3 +47,6 @@ def browse_onto():
   pass
 
 
+if __name__ == '__main__':
+    import uvicorn
+    uvicorn.run(app, host='0.0.0.0', port=8000)

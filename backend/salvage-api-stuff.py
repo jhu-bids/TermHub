@@ -70,12 +70,7 @@ class OntoCall(Resource):
     #   },
     #   "rid": "ri.phonograph2-objects.main.object.8d6c23f0-2015-451e-a6ce-cad6637eb23c"
     # }
-    response: List[Dict] = ontocall(path)
-    if path == 'objectTypes':
-      apiNames = sorted([t['apiName'] for t in response if t['apiName'].startswith('OMOP')])
-      return apiNames
 
-    return {'unrecognized path': path}
     # dict_rows: List[Dict] = [x['properties'] for x in response]
     # return dict_rows
 # todo: figure out what is the advantage of declaring 'endpoint'

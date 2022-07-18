@@ -1,5 +1,6 @@
 # dependencies
 fastapi
+requests
 uvicorn[standard]
 
 # dev dependencies
