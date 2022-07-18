@@ -1,5 +1,5 @@
-
-
+import os
+from typing import Dict
 
 
 @app.route('/concept-sets')
@@ -43,39 +43,6 @@ def fhir_terminology_i(api_url_id: str = '1'):
                          code_systems=code_systems,
                          value_sets=value_sets,
                          concept_maps=concept_maps)
-
-
-
-
-
-class OntoCall(Resource):
-  """Get ontology objects
-  - Outdated docs: https://flask-restful.readthedocs.io/en/latest/quickstart.html#argument-parsing
-  - If we want to add request validation:
-    https://stackoverflow.com/questions/30779584/flask-restful-passing-parameters-to-get-request"""
-  def get(self, path):
-    # Example response is a list of dictionairies that lok like this:
-    # {
-    #   "properties": {
-    #     "conceptSetId": " Heavy menstrual bleeding",
-    #     "assignedInformatician": "4b054b72-ee25-48ca-9183-696cb9bff7ee",
-    #     "archived": true,
-    #     "stage": "Awaiting Editing",
-    #     "alias": "heavy_menstrual_bleeding",
-    #     "createdAt": "2021-07-28T19:20:04.268Z",
-    #     "createdBy": "976125fc-a13b-4571-a5bd-52c1918ff99b",
-    #     "conceptSetName": " Heavy menstrual bleeding",
-    #     "status": "Under Construction",
-    #     "intention": "Mixed"
-    #   },
-    #   "rid": "ri.phonograph2-objects.main.object.8d6c23f0-2015-451e-a6ce-cad6637eb23c"
-    # }
-
-    # dict_rows: List[Dict] = [x['properties'] for x in response]
-    # return dict_rows
-# todo: figure out what is the advantage of declaring 'endpoint'
-# api.add_resource(OntoCall, '/ontocall', endpoint='ontocall')
-api.add_resource(OntoCall, '/ontocall/<path:path>')
 
 
 def load_concept_sets(by_id: bool = False) -> Dict[str, str]:

@@ -12,39 +12,34 @@ app = FastAPI()
 
 @app.get("/")
 def read_root():
+    """Root route"""
     # return {"Hello": "World"}
     return ontocall('objectTypes')
 
 
 def ontocall(path) -> [{}]:
-  """API documentation at
-  https://www.palantir.com/docs/foundry/api/ontology-resources/objects/list-objects/
-  https://www.palantir.com/docs/foundry/api/ontology-resources/object-types/list-object-types/
-  """
-  headers = {
-    "authorization": f"Bearer {config['PALANTIR_ENCLAVE_AUTHENTICATION_BEARER_TOKEN']}",
-    # 'content-type': 'application/json'
-  }
-  ontologyRid = config['ONTOLOGY_RID']
-  api_path = f'/api/v1/ontologies/{ontologyRid}/{path}'
-  url = f'https://{config["HOSTNAME"]}{api_path}'
-  print(f'ontocall: {api_path}\n{url}')
+    """API documentation at
+    https://www.palantir.com/docs/foundry/api/ontology-resources/objects/list-objects/
+    https://www.palantir.com/docs/foundry/api/ontology-resources/object-types/list-object-types/
+    """
+    headers = {
+        "authorization": f"Bearer {config['PALANTIR_ENCLAVE_AUTHENTICATION_BEARER_TOKEN']}",
+        # 'content-type': 'application/json'
+    }
+    ontology_rid = config['ONTOLOGY_RID']
+    api_path = f'/api/v1/ontologies/{ontology_rid}/{path}'
+    url = f'https://{config["HOSTNAME"]}{api_path}'
+    print(f'ontocall: {api_path}\n{url}')
 
-  response: List[Dict] = requests.get(url, headers=headers).json()
-  response = response['data']
-  if path == 'objectTypes':
-    apiNames = sorted([
-        t['apiName'] for t in response if t['api    Name'].startswith('OMOP')])
-    return apiNames
+    response: List[Dict] = requests.get(url, headers=headers).json()
+    # noinspection PyTypeChecker
+    response = response['data']
+    if path == 'objectTypes':
+        api_names = sorted([
+            t['apiName'] for t in response if t['api    Name'].startswith('OMOP')])
+        return api_names
 
-  return {'unrecognized path': path}
-
-
-@app.route('/browse-onto')
-def browse_onto():
-  # object_types = browse_onto_data()
-  # return render_template('pages/browse_onto.html', object_types=object_types)
-  pass
+    return {'unrecognized path': path}
 
 
 if __name__ == '__main__':
