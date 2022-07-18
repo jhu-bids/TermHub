@@ -1,25 +1,6 @@
-# TermHub requirements
-coverage
-Fabric
-Flask-SQLAlchemy
-Flask-WTF
-flask_restful
-gunicorn
-WTForms
-# ecdsa
-# paramiko
-# pycrypto
+# dependencies
+fastapi
+uvicorn[standard]
 
-# Other requirements
-bs4
-google-api-python-client
-google-auth-httplib2
-google-auth-oauthlib
-pandas
-pyarrow
-python-dotenv
-psycopg2-binary
-sqlalchemy
-typeguard
-xmltodict
-ArgumentParser
+# dev dependencies
+virtualenvwrapper
