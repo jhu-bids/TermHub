@@ -1,24 +1,5 @@
 
-@app.route('/browse-onto')
-def browse_onto():
-  object_types = browse_onto_data()
-  return render_template('pages/browse_onto.html', object_types=object_types)
 
-
-def load_concept_sets(by_id: bool = False) -> Dict[str, str]:
-  # TODO: maybe move this later
-  TERMHUB_DIR = os.path.dirname(os.path.realpath(__file__))
-  # DATASETS_DIR = os.path.join(TERMHUB_DIR, '..', 'termhub-csets')
-  # concept_set_names_df = pd.read_csv(os.path.join(DATASETS_DIR, 'codesets-junk.csv'), sep='\t')
-  # todo : temporarily moved this file
-  concept_set_names_df = pd.read_csv(os.path.join(TERMHUB_DIR, 'codesets-junk.csv'), sep='\t')
-  concept_sets = {}
-  for _index, row in concept_set_names_df.iterrows():
-    if by_id:
-      concept_sets[str(row['codeset_id'])] = row['concept_set_name']
-    else:
-      concept_sets[row['concept_set_name']] = row['codeset_id']
-  return concept_sets
 
 
 @app.route('/concept-sets')
@@ -64,22 +45,7 @@ def fhir_terminology_i(api_url_id: str = '1'):
                          concept_maps=concept_maps)
 
 
-def ontocall(path) -> [{}]:
-  """API documentation at
-  https://www.palantir.com/docs/foundry/api/ontology-resources/objects/list-objects/
-  https://www.palantir.com/docs/foundry/api/ontology-resources/object-types/list-object-types/
-  """
-  headers = {
-    "authorization": f"Bearer {config['PALANTIR_ENCLAVE_AUTHENTICATION_BEARER_TOKEN']}",
-    # 'content-type': 'application/json'
-  }
-  ontologyRid = config['ONTOLOGY_RID']
-  api_path = f'/api/v1/ontologies/{ontologyRid}/{path}'
-  url = f'https://{config["HOSTNAME"]}{api_path}'
-  print(f'ontocall: {api_path}\n{url}')
-  response = requests.get(url, headers=headers,)
-  response_json = response.json()
-  return response_json['data']
+
 
 
 class OntoCall(Resource):
@@ -116,3 +82,18 @@ class OntoCall(Resource):
 # api.add_resource(OntoCall, '/ontocall', endpoint='ontocall')
 api.add_resource(OntoCall, '/ontocall/<path:path>')
 
+
+def load_concept_sets(by_id: bool = False) -> Dict[str, str]:
+  # TODO: maybe move this later
+  TERMHUB_DIR = os.path.dirname(os.path.realpath(__file__))
+  # DATASETS_DIR = os.path.join(TERMHUB_DIR, '..', 'termhub-csets')
+  # concept_set_names_df = pd.read_csv(os.path.join(DATASETS_DIR, 'codesets-junk.csv'), sep='\t')
+  # todo : temporarily moved this file
+  concept_set_names_df = pd.read_csv(os.path.join(TERMHUB_DIR, 'codesets-junk.csv'), sep='\t')
+  concept_sets = {}
+  for _index, row in concept_set_names_df.iterrows():
+    if by_id:
+      concept_sets[str(row['codeset_id'])] = row['concept_set_name']
+    else:
+      concept_sets[row['concept_set_name']] = row['codeset_id']
+  return concept_sets

@@ -1,1 +1,1 @@
-web: gunicorn termhub.app:app --log-file=-
+web: uvicorn backend.app:app --reload

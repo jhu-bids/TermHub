@@ -82,6 +82,4 @@ pip: pypi-push
 
 # Serve
 serve:
-	python3 -m termhub; \
-	open http://localhost:5000
-
+	uvicorn backend.app:app --reload
