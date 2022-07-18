@@ -233,6 +233,76 @@ if not app.debug:
 api = Api(app)
 
 
+
+
+####################################################################################################
+# testing junk from https://flask-restful.readthedocs.io/en/latest/quickstart.html#full-example
+from flask_restful import reqparse, abort, Api, Resource
+
+TODOS = {
+    'todo1': {'task': 'build an API'},
+    'todo2': {'task': '?????'},
+    'todo3': {'task': 'profit!'},
+}
+
+
+def abort_if_todo_doesnt_exist(todo_id):
+    if todo_id not in TODOS:
+        abort(404, message="Todo {} doesn't exist".format(todo_id))
+
+parser = reqparse.RequestParser()
+parser.add_argument('task')
+
+
+# Todo
+# shows a single todo item and lets you delete a todo item
+class Todo(Resource):
+    def get(self, todo_id):
+        abort_if_todo_doesnt_exist(todo_id)
+        return TODOS[todo_id]
+
+    def delete(self, todo_id):
+        abort_if_todo_doesnt_exist(todo_id)
+        del TODOS[todo_id]
+        return '', 204
+
+    def put(self, todo_id):
+        args = parser.parse_args()
+        task = {'task': args['task']}
+        TODOS[todo_id] = task
+        return task, 201
+
+
+# TodoList
+# shows a list of all todos, and lets you POST to add new tasks
+class TodoList(Resource):
+    def get(self):
+        return TODOS
+
+    def post(self, **kwargs):
+        print(kwargs)
+        args = parser.parse_args()
+        todo_id = int(max(TODOS.keys()).lstrip('todo')) + 1
+        todo_id = 'todo%i' % todo_id
+        TODOS[todo_id] = {'task': args['task']}
+        return TODOS[todo_id], 201
+
+##
+## Actually setup the Api resource routing here
+##
+api.add_resource(TodoList, '/todos')
+api.add_resource(Todo, '/todos/<todo_id>')
+####################################################################################################
+
+class EnclaveAPI(Resource):
+    def get(self, ):
+        abort_if_todo_doesnt_exist(todo_id)
+        return TODOS[todo_id]
+
+
+
+
+
 # TODO: Package enclave_wrangler separately. add this functionality there, and import that
 @app.route('/enclave')
 def enclave():
@@ -279,6 +349,7 @@ def ontocall(path) -> [{}]:
     ontologyRid = config['ONTOLOGY_RID']
     api_path = f'/api/v1/ontologies/{ontologyRid}/{path}'
     url = f'https://{config["HOSTNAME"]}{api_path}'
+    print(f'ontocall: {api_path}\n{url}')
     response = requests.get(url, headers=headers,)
     response_json = response.json()
     return response_json['data']
@@ -289,7 +360,7 @@ class OntoCall(Resource):
     - Outdated docs: https://flask-restful.readthedocs.io/en/latest/quickstart.html#argument-parsing
     - If we want to add request validation:
       https://stackoverflow.com/questions/30779584/flask-restful-passing-parameters-to-get-request"""
-    def get(self):
+    def get(self, path):
         # Example response is a list of dictionairies that lok like this:
         # {
         #   "properties": {
@@ -306,12 +377,17 @@ class OntoCall(Resource):
         #   },
         #   "rid": "ri.phonograph2-objects.main.object.8d6c23f0-2015-451e-a6ce-cad6637eb23c"
         # }
-        response: List[Dict] = ontocall(request.args['path'])
-        dict_rows: List[Dict] = [x['properties'] for x in response]
-        return dict_rows
+        response: List[Dict] = ontocall(path)
+        if path == 'objectTypes':
+          apiNames = sorted([t['apiName'] for t in response if t['apiName'].startswith('OMOP')])
+          return apiNames
+
+        return {'unrecognized path': path}
+        # dict_rows: List[Dict] = [x['properties'] for x in response]
+        # return dict_rows
 # todo: figure out what is the advantage of declaring 'endpoint'
 # api.add_resource(OntoCall, '/ontocall', endpoint='ontocall')
-api.add_resource(OntoCall, '/ontocall')
+api.add_resource(OntoCall, '/ontocall/<path:path>')
 
 
 #----------------------------------------------------------------------------#
