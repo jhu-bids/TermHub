@@ -3,20 +3,29 @@ from typing import Dict, List
 
 import requests
 from fastapi import FastAPI
+from fastapi.middleware.cors import CORSMiddleware
 
 from enclave_wrangler.config import config
 
 
 app = FastAPI()
 
+app.add_middleware(
+    CORSMiddleware,
+    allow_origins=['*'],
+    allow_methods=['*'],
+    allow_headers=['*']
+)
+
 
 @app.get("/")
 def read_root():
     """Root route"""
-    # return {"Hello": "World"}
-    return ontocall('objectTypes')
+    return {"Hello": "World"}
+    # return ontocall('objectTypes')
 
 
+@app.get("/ontocall/{path}")
 def ontocall(path) -> [{}]:
     """API documentation at
     https://www.palantir.com/docs/foundry/api/ontology-resources/objects/list-objects/
@@ -36,7 +45,7 @@ def ontocall(path) -> [{}]:
     response = response['data']
     if path == 'objectTypes':
         api_names = sorted([
-            t['apiName'] for t in response if t['api    Name'].startswith('OMOP')])
+            t['apiName'] for t in response if t['apiName'].startswith('OMOP')])
         return api_names
 
     return {'unrecognized path': path}
