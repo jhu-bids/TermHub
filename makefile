@@ -81,5 +81,6 @@ pypi: pypi-push
 pip: pypi-push
 
 # Serve
+# TODO: add backend, frontend, and both
 serve:
 	uvicorn backend.app:app --reload
