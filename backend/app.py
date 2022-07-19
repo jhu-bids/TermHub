@@ -26,7 +26,7 @@ def read_root():
     # return ontocall('objectTypes')
 
 
-@app.get("/ontocall/{path}")
+@app.get("/ontocall")
 def ontocall(path) -> [{}]:
     """API documentation at
     https://www.palantir.com/docs/foundry/api/ontology-resources/objects/list-objects/
@@ -36,6 +36,8 @@ def ontocall(path) -> [{}]:
         "authorization": f"Bearer {config['PALANTIR_ENCLAVE_AUTHENTICATION_BEARER_TOKEN']}",
         # 'content-type': 'application/json'
     }
+    # return {'path': path}
+    print(f'ontocall param: {path}\n')
     ontology_rid = config['ONTOLOGY_RID']
     api_path = f'/api/v1/ontologies/{ontology_rid}/{path}'
     url = f'https://{config["HOSTNAME"]}{api_path}'
@@ -43,13 +45,15 @@ def ontocall(path) -> [{}]:
 
     response: List[Dict] = requests.get(url, headers=headers).json()
     # noinspection PyTypeChecker
-    response = response['data']
     if path == 'objectTypes':
+        response = response['data']
         api_names = sorted([
             t['apiName'] for t in response if t['apiName'].startswith('OMOP')])
         return api_names
+    if path.startswith('objectTypes/'):
+        return response
 
-    return {'unrecognized path': path}
+    return {'unrecognized path': path, 'response': response}
 
 
 if __name__ == '__main__':
