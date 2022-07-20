@@ -6,14 +6,21 @@ https://github.com/mui/material-ui
 import React from 'react';
 // import logo from './logo.svg';
 import './App.css';
-import { Link, Outlet, useParams } from "react-router-dom";
+import { Link, Outlet, useParams, useSearchParams, useLocation } from "react-router-dom";
+import RRD from "react-router-dom";
 import Box from '@mui/joy/Box';
 import List from '@mui/joy/List';
 import ListItem from '@mui/joy/ListItem';
 // import ListItemButton from '@mui/material/ListItemButton';
 import ListItemButton from '@mui/joy/ListItemButton';
 import ListItemText from '@mui/material/ListItemText';
+import AGtest from "./aggrid-test";
 
+// function useQuery() { // from https://v5.reactrouter.com/web/example/query-parameters
+//   const { search } = useLocation();
+//
+//   return React.useMemo(() => new URLSearchParams(search), [search]);
+// }
 
 // Issue: "ListItemText not defined" in JS console, and also my IDE highlights it in a different color here,
 // ...yet when I ctrl+click "ListItemText", it opens up the source code.
@@ -30,13 +37,49 @@ function App() {
         }}
       >
         <Link to="/objTypes">ObjTypes</Link> |{" "}
-        <Link to="/else">Something else</Link>
+        <Link style={{ display: "block", margin: "1rem 0" }}
+              to={"/ontocall?path=objectTypes"}
+        >
+          objectTypes
+        </Link>
+        <Link to="/ag-test">AG-Grid testing</Link>
       </nav>
       <h3>outlet here:</h3>
       <Outlet />
     </div>
   );
 }
+function extractApiData(path, data) {
+}
+function EnclaveOntoAPI() {
+  let [searchParams, setSearchParams] = useSearchParams();
+  let path = searchParams.get('path')
+  let apiUrl = `http://127.0.0.1:8000/ontocall?path=${path}`
+  const [enclaveData, setEnclaveData] = React.useState([]);
+  //const [apiUrl, setApiUrl] = React.useState(path);
+
+  React.useEffect(() => {
+    fetch(apiUrl)
+        .then(results => results.json())
+        .then(data => {
+          console.log(data)
+          let rows = extractApiData(path, data)
+          let rd = rowData.map(r=>'properties' in r ? r.properties : r)
+          let rd = rowData.json.data.map(r=>'properties' in r ? r.properties : r)
+          return setEnclaveData(rows);
+        });
+  }, []); // <-- Have to pass in [] here!
+
+  return (
+      <div>
+        <p>I am supposed to be the results of <a href={apiUrl}>{apiUrl}</a></p>
+        <AGtest apiUrl={apiUrl} />
+
+        {JSON.stringify(enclaveData, null, 2)}
+      </div>
+  );
+}
+
 //<N3CObjectType/>
 
 // TODO: Fix: Warning: React has detected a change in the order of Hooks called by N3CObjectTypes. This will lead to bugs and errors if not fixed. For more information, read the Rules of Hooks: https://reactjs.org/link/rules-of-hooks
@@ -119,4 +162,4 @@ function Else() {
   return <h1>else?</h1>
 }
 
-export {App, N3CObjectTypes, N3CObjectType, Else};
+export {App, N3CObjectTypes, N3CObjectType, EnclaveOntoAPI};

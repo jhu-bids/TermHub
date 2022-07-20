@@ -43,17 +43,30 @@ def ontocall(path) -> [{}]:
     url = f'https://{config["HOSTNAME"]}{api_path}'
     print(f'ontocall: {api_path}\n{url}')
 
-    response: List[Dict] = requests.get(url, headers=headers).json()
+    try:
+        response: List[Dict] = requests.get(url, headers=headers)
+        response.raise_for_status()
+        json = response.json()
+        if 'data' in json:
+            data = json['data']
+        else:
+            data = json
+    except BaseException as err:
+        print(f"Unexpected {err=}, {type(err)=}")
+        return {'ERROR': str(err)}
+
     # noinspection PyTypeChecker
     if path == 'objectTypes':
-        response = response['data']
+        # data = json['data']
+        print(data)
+        return data
         api_names = sorted([
-            t['apiName'] for t in response if t['apiName'].startswith('OMOP')])
+            t['apiName'] for t in data if t['apiName'].startswith('OMOP')])
         return api_names
     if path.startswith('objectTypes/'):
-        return response
+        return json
 
-    return {'unrecognized path': path, 'response': response}
+    return {'valid but unhandled path': path, 'json': json}
 
 
 if __name__ == '__main__':

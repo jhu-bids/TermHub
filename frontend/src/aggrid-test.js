@@ -3,10 +3,12 @@ import { render } from 'react-dom';
 import { AgGridReact } from 'ag-grid-react'; // the AG Grid React Component
 
 import 'ag-grid-community/styles/ag-grid.css'; // Core grid CSS, always needed
-import 'ag-grid-community/styles/ag-theme-alpine.css'; // Optional theme CSS
+import 'ag-grid-community/styles/ag-theme-alpine.css';
+// import {useParams} from "react-router-dom"; // Optional theme CSS
 
-const AGtest = () => {
-
+const AGtest = (props) => {
+  const {apiUrl} = props;
+  // let params = useParams();
   const gridRef = useRef(); // Optional - for accessing Grid's API
   const [rowData, setRowData] = useState(); // Set rowData to Array of Objects, one Object per Row
 
@@ -18,24 +20,29 @@ const AGtest = () => {
      {field: 'price'}
    ]);
    */
-  const [columnDefs, setColumnDefs] = useState([
-   {field: "codesetId", },
-   {field: "createdAt", },
-   {field: "conceptSetVersionTitle", },
-   {field: "isMostRecentVersion", },
-   {field: "version", },
-   {field: "createdBy", },
-   {field: "conceptSetNameOMOP", },
-   {field: "intention", },
-   {field: "updateMessage", },
-   {field: "atlasJsonResourceUrl", },
-   {field: "provenance", },
-   {field: "sourceApplicationVersion", },
-   {field: "isDraft", },
-   {field: "sourceApplication", },
-   {field: "limitations" },
-  ]);
-
+  const [columnDefs, _setColumnDefs] = useState();
+  function setColumnDefs(colNames) {
+    let defs = colNames.map(n => ({field: n}) )
+    _setColumnDefs(defs)
+  }
+  //     [
+  //  {field: "codesetId", },
+  //  {field: "createdAt", },
+  //  {field: "conceptSetVersionTitle", },
+  //  {field: "isMostRecentVersion", },
+  //  {field: "version", },
+  //  {field: "createdBy", },
+  //  {field: "conceptSetNameOMOP", },
+  //  {field: "intention", },
+  //  {field: "updateMessage", },
+  //  {field: "atlasJsonResourceUrl", },
+  //  {field: "provenance", },
+  //  {field: "sourceApplicationVersion", },
+  //  {field: "isDraft", },
+  //  {field: "sourceApplication", },
+  //  {field: "limitations" },
+  // ]);
+  //
  // DefaultColDef sets props common to all Columns
  const defaultColDef = useMemo( ()=> ({
      sortable: true
@@ -51,12 +58,14 @@ const AGtest = () => {
    // fetch('https://www.ag-grid.com/example-assets/row-data.json')
    // .then(result => result.json())
    // .then(rowData => setRowData(rowData))
-   fetch('http://localhost:8000/ontocall?path=objects/OMOPConceptSet')
+   // fetch('http://localhost:8000/ontocall?path=objects/OMOPConceptSet')
+   fetch(apiUrl)
    .then(result => result.json())
    .then(rowData => {
-     let rd = rowData.response.data.map(r=>r.properties)
+     let rd = rowData.json.data.map(r=>'properties' in r ? r.properties : r)
      // debugger
      setRowData(rd)
+     setColumnDefs(Object.keys(rd[0]))
    })
  }, []);
 

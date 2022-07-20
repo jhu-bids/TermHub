@@ -1,9 +1,9 @@
 import React from 'react';
 import ReactDOM from 'react-dom/client';
-import { BrowserRouter, Routes, Route } from "react-router-dom";
+import { BrowserRouter, Routes, Route, matchPath } from "react-router-dom";
 
 import './index.css';
-import {App, N3CObjectTypes, N3CObjectType, Else} from './App';
+import {App, N3CObjectTypes, N3CObjectType, EnclaveOntoAPI} from './App';
 import AGtest from './aggrid-test'
 
 // import reportWebVitals from './reportWebVitals';
@@ -12,11 +12,12 @@ const root = ReactDOM.createRoot(document.getElementById('root'));
 root.render(
     <BrowserRouter>
       <Routes>
-        <Route path="/" element={<AGtest />}>
-          <Route path="else" element={<Else />} />
+        <Route path="/" element={<App />}>
           <Route path="objTypes" element={<N3CObjectTypes />}>
             <Route path=":objType" element={<N3CObjectType />} />
           </Route>
+          <Route path="ontocall" element={<EnclaveOntoAPI />} />
+          <Route path="ag-test" element={<AGtest />} />
         </Route>
       </Routes>
     </BrowserRouter>
