@@ -81,6 +81,11 @@ pypi: pypi-push
 pip: pypi-push
 
 # Serve
-# TODO: add backend, frontend, and both
-serve:
+serve-frontend:
+	cd frontend; npm run start
+
+serve-backend:
 	uvicorn backend.app:app --reload
+
+# TODO: does this work?
+serve: serve-backend serve-frontend
