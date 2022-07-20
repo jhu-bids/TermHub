@@ -8,16 +8,17 @@ import AGtest from './aggrid-test'
 
 // import reportWebVitals from './reportWebVitals';
 
+function ErrorPath() {
+  return <h3>Unknown path</h3>
+}
 const root = ReactDOM.createRoot(document.getElementById('root'));
 root.render(
     <BrowserRouter>
       <Routes>
         <Route path="/" element={<App />}>
-          <Route path="objTypes" element={<N3CObjectTypes />}>
-            <Route path=":objType" element={<N3CObjectType />} />
-          </Route>
           <Route path="ontocall" element={<EnclaveOntoAPI />} />
           <Route path="ag-test" element={<AGtest />} />
+          <Route path="*"  element={<ErrorPath/>} />
         </Route>
       </Routes>
     </BrowserRouter>

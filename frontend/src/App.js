@@ -29,14 +29,12 @@ import AGtest from "./aggrid-test";
 function App() {
   return (
     <div className="App">
-      <h2>whatever</h2>
       <nav
         style={{
           borderBottom: "solid 1px",
           paddingBottom: "1rem",
         }}
       >
-        <Link to="/objTypes">ObjTypes</Link> |{" "}
         <Link style={{ display: "block", margin: "1rem 0" }}
               to={"/ontocall?path=objectTypes"}
         >
@@ -44,15 +42,18 @@ function App() {
         </Link>
         <Link to="/ag-test">AG-Grid testing</Link>
       </nav>
-      <h3>outlet here:</h3>
       <Outlet />
     </div>
   );
 }
+function propIfExists(obj, prop) {
+  return prop in obj ? obj[prop] : obj
+}
 function extractApiData(path, data) {
-  debugger
-  // let rd = data.map(r=>'properties' in r ? r.properties : r)
-  // let rd = rowData.json.data.map(r=>'properties' in r ? r.properties : r)
+  const possiblePropPathItems = ['data', 'json', 'data']
+  const obj = possiblePropPathItems.reduce(propIfExists, data)
+  let rows = obj.map(r=>propIfExists(r, 'properties'));
+  return rows
 }
 function EnclaveOntoAPI() {
   let [searchParams, setSearchParams] = useSearchParams();
@@ -81,8 +82,7 @@ function EnclaveOntoAPI() {
   );
 }
 
-//<N3CObjectType/>
-
+/*
 // TODO: Fix: Warning: React has detected a change in the order of Hooks called by N3CObjectTypes. This will lead to bugs and errors if not fixed. For more information, read the Rules of Hooks: https://reactjs.org/link/rules-of-hooks
 // TODO: I think this is bad because considered nested function (call)
 // TODO: I think I can fix by creating a state 'selectedN3CObject' instead of using onclick()
@@ -118,8 +118,9 @@ function N3CObjectType() {
 function displayN3CObjectType(typeName) {
   return () => <div>HERE IT IS: {typeName}</div>
 }
-
-/* https://stackoverflow.com/questions/53219113/where-can-i-make-api-call-with-hooks-in-react */
+*/
+/*
+// https://stackoverflow.com/questions/53219113/where-can-i-make-api-call-with-hooks-in-react
 function N3CObjectTypes() {
   const [n3cObjects, setN3cObjects] = React.useState([]);
 
@@ -135,7 +136,7 @@ function N3CObjectTypes() {
     <div>
       <h3>wtf?</h3>
       <Outlet />
-      {/*{!data ? 'Loading...' : JSON.stringify(data)}*/}
+      {/*{!data ? 'Loading...' : JSON.stringify(data)}* /}
       <Box sx={{ width: '100%', maxWidth: 360, bgcolor: 'background.paper' }}>
         <nav aria-label="main mailbox folders">
           <List>
@@ -148,7 +149,7 @@ function N3CObjectTypes() {
                 >
                   {x}
                 </Link>
-                {/*<ListItemText key={x} primary={x} onClick={displayN3CObjectType(x)}/> */}
+                {/*<ListItemText key={x} primary={x} onClick={displayN3CObjectType(x)}/> * /}
               </ListItemButton>
             </ListItem>
           )}
@@ -158,9 +159,6 @@ function N3CObjectTypes() {
     </div>
   );
 }
+*/
 
-function Else() {
-  return <h1>else?</h1>
-}
-
-export {App, N3CObjectTypes, N3CObjectType, EnclaveOntoAPI};
+export {App, EnclaveOntoAPI};
