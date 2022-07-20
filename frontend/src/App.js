@@ -50,6 +50,9 @@ function App() {
   );
 }
 function extractApiData(path, data) {
+  debugger
+  // let rd = data.map(r=>'properties' in r ? r.properties : r)
+  // let rd = rowData.json.data.map(r=>'properties' in r ? r.properties : r)
 }
 function EnclaveOntoAPI() {
   let [searchParams, setSearchParams] = useSearchParams();
@@ -64,8 +67,6 @@ function EnclaveOntoAPI() {
         .then(data => {
           console.log(data)
           let rows = extractApiData(path, data)
-          let rd = rowData.map(r=>'properties' in r ? r.properties : r)
-          let rd = rowData.json.data.map(r=>'properties' in r ? r.properties : r)
           return setEnclaveData(rows);
         });
   }, []); // <-- Have to pass in [] here!
