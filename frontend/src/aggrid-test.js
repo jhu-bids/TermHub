@@ -7,10 +7,10 @@ import 'ag-grid-community/styles/ag-theme-alpine.css';
 // import {useParams} from "react-router-dom"; // Optional theme CSS
 
 const AGtest = (props) => {
-  const {apiUrl} = props;
+  const {rowData} = props;
   // let params = useParams();
   const gridRef = useRef(); // Optional - for accessing Grid's API
-  const [rowData, setRowData] = useState(); // Set rowData to Array of Objects, one Object per Row
+  // const [rowData, setRowData] = useState(); // Set rowData to Array of Objects, one Object per Row
 
  // Each Column Definition results in one Column.
   /*
@@ -25,80 +25,70 @@ const AGtest = (props) => {
     let defs = colNames.map(n => ({field: n}) )
     _setColumnDefs(defs)
   }
+  useEffect(() => {
+    if (props.rowData && rowData.length) {
+      setColumnDefs(Object.keys(rowData[0]))
+    }
+  }, [rowData, props]);
   //     [
-  //  {field: "codesetId", },
-  //  {field: "createdAt", },
-  //  {field: "conceptSetVersionTitle", },
-  //  {field: "isMostRecentVersion", },
-  //  {field: "version", },
-  //  {field: "createdBy", },
-  //  {field: "conceptSetNameOMOP", },
-  //  {field: "intention", },
-  //  {field: "updateMessage", },
-  //  {field: "atlasJsonResourceUrl", },
-  //  {field: "provenance", },
-  //  {field: "sourceApplicationVersion", },
-  //  {field: "isDraft", },
-  //  {field: "sourceApplication", },
-  //  {field: "limitations" },
-  // ]);
-  //
- // DefaultColDef sets props common to all Columns
- const defaultColDef = useMemo( ()=> ({
+  // DefaultColDef sets props common to all Columns
+  const defaultColDef = useMemo( ()=> ({
      sortable: true
    }));
 
- // Example of consuming Grid Event
- const cellClickedListener = useCallback( event => {
-   console.log('cellClicked', event);
- }, []);
+  // Example of consuming Grid Event
+  const cellClickedListener = useCallback( event => {
+    console.log('cellClicked', event);
+  }, []);
 
- // Example load data from sever
- useEffect(() => {
-   // fetch('https://www.ag-grid.com/example-assets/row-data.json')
-   // .then(result => result.json())
-   // .then(rowData => setRowData(rowData))
-   // fetch('http://localhost:8000/ontocall?path=objects/OMOPConceptSet')
-   fetch(apiUrl)
-   .then(result => result.json())
-   .then(rowData => {
-     let rd = rowData.json.data.map(r=>'properties' in r ? r.properties : r)
-     // debugger
-     setRowData(rd)
-     setColumnDefs(Object.keys(rd[0]))
-   })
- }, []);
+  /*
+  // Example load data from sever
+  useEffect(() => {
+    // fetch('https://www.ag-grid.com/example-assets/row-data.json')
+    // .then(result => result.json())
+    // .then(rowData => setRowData(rowData))
+    // fetch('http://localhost:8000/ontocall?path=objects/OMOPConceptSet')
+    fetch(apiUrl)
+    .then(result => result.json())
+    .then(rowData => {
+      let rd = rowData.json.data.map(r=>'properties' in r ? r.properties : r)
+      // debugger
+      setRowData(rd)
+      setColumnDefs(Object.keys(rd[0]))
+    })
+  }, []);
+  */
 
- // Example using Grid's API
- const buttonListener = useCallback( e => {
-   gridRef.current.api.deselectAll();
- }, []);
+  // Example using Grid's API
+  const buttonListener = useCallback( e => {
+    gridRef.current.api.deselectAll();
+  }, []);
 
- return (
-   <div>
+  return (
+    <div>
 
-     {/* Example using Grid's API */}
-     <button onClick={buttonListener}>Push Me</button>
+      {/* Example using Grid's API */}
+      <button onClick={buttonListener}>Push Me</button>
 
-     {/* On div wrapping Grid a) specify theme CSS Class Class and b) sets Grid size */}
-     <div className="ag-theme-alpine" style={{width: 500, height: 500}}>
+      {/* On div wrapping Grid a) specify theme CSS Class Class and b) sets Grid size */}
+      <div className="ag-theme-alpine" style={{width: 500, height: 500}}>
 
-       <AgGridReact
-           ref={gridRef} // Ref for accessing Grid's API
+        <AgGridReact
+            ref={gridRef} // Ref for accessing Grid's API
 
-           rowData={rowData} // Row Data for Rows
+            rowData={rowData} // Row Data for Rows
 
-           columnDefs={columnDefs} // Column Defs for Columns
-           defaultColDef={defaultColDef} // Default Column Properties
+            columnDefs={columnDefs} // Column Defs for Columns
+            defaultColDef={defaultColDef} // Default Column Properties
 
-           animateRows={true} // Optional - set to 'true' to have rows animate when sorted
-           rowSelection='multiple' // Options - allows click selection of rows
+            animateRows={true} // Optional - set to 'true' to have rows animate when sorted
+            rowSelection='multiple' // Options - allows click selection of rows
 
-           onCellClicked={cellClickedListener} // Optional - registering for Grid Event
-           />
-     </div>
-   </div>
- );
+            onCellClicked={cellClickedListener} // Optional - registering for Grid Event
+            />
+      </div>
+    </div>
+  );
 };
 
 export default AGtest;

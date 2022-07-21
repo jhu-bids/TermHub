@@ -8,13 +8,14 @@ import React from 'react';
 import './App.css';
 import { Link, Outlet, useParams, useSearchParams, useLocation } from "react-router-dom";
 import RRD from "react-router-dom";
-import Box from '@mui/joy/Box';
-import List from '@mui/joy/List';
-import ListItem from '@mui/joy/ListItem';
+// import Box from '@mui/joy/Box';
+// import List from '@mui/joy/List';
+// import ListItem from '@mui/joy/ListItem';
 // import ListItemButton from '@mui/material/ListItemButton';
-import ListItemButton from '@mui/joy/ListItemButton';
-import ListItemText from '@mui/material/ListItemText';
+// import ListItemButton from '@mui/joy/ListItemButton';
+// import ListItemText from '@mui/material/ListItemText';
 import AGtest from "./aggrid-test";
+
 
 // function useQuery() { // from https://v5.reactrouter.com/web/example/query-parameters
 //   const { search } = useLocation();
@@ -26,21 +27,34 @@ import AGtest from "./aggrid-test";
 // ...yet when I ctrl+click "ListItemText", it opens up the source code.
 // import ListItemText from '@mui/joy/ListItemText';
 
+import Tabs from '@mui/material/Tabs';
+// import LinkTab from '@mui/material/LinkTab';
+import Tab from "@mui/material/Tab";
+import Button from "@mui/material/Button";
+
 function App() {
+  const [tabNum, setTabNum] = React.useState(0);
+  let handleChange = (evt, tabnum) => {
+    setTabNum(tabnum)
+  }
   return (
     <div className="App">
+      <Tabs value={tabNum} onChange={handleChange} aria-label="nav tabs">
+        <Tab label="Onto obj types" href="/ontocall?path=objectTypes" />
+        <Tab label="Concept sets" href="/ontocall?path=objects/OMOPConceptSet" />
+      </Tabs>
       <nav
         style={{
           borderBottom: "solid 1px",
           paddingBottom: "1rem",
         }}
       >
-        <Link style={{ display: "block", margin: "1rem 0" }}
-              to={"/ontocall?path=objectTypes"}
-        >
+        <Link style={{ display: "block", margin: "1rem 0" }} to={"/ontocall?path=objectTypes"} >
           objectTypes
         </Link>
-        <Link to="/ag-test">AG-Grid testing</Link>
+        <Link style={{ display: "block", margin: "1rem 0" }} to={"/ontocall?path=objects/OMOPConceptSet"} >
+          Concept sets
+        </Link>
       </nav>
       <Outlet />
     </div>
@@ -75,9 +89,11 @@ function EnclaveOntoAPI() {
   return (
       <div>
         <p>I am supposed to be the results of <a href={apiUrl}>{apiUrl}</a></p>
-        <AGtest apiUrl={apiUrl} />
+        <AGtest rowData={enclaveData} />
 
-        {JSON.stringify(enclaveData, null, 2)}
+        <pre>
+          {JSON.stringify(enclaveData, null, 2)}
+        </pre>
       </div>
   );
 }
