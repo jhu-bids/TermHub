@@ -32,17 +32,47 @@ import Tabs from '@mui/material/Tabs';
 import Tab from "@mui/material/Tab";
 import Button from "@mui/material/Button";
 
+/*
+// from https://mui.com/material-ui/guides/composition/#link
+// referred to by https://stackoverflow.com/questions/63216730/can-you-use-material-ui-link-with-react-router-dom-link
+import { LinkProps, Omit } from 'react-router-dom';
+function ListItemLink(props) {
+  const { icon, primary, to } = props;
+
+  const CustomLink = React.useMemo(
+    () =>
+      React.forwardRef<HTMLAnchorElement, Omit<LinkProps, 'to'>>(function Link(
+        linkProps,
+        ref,
+      ) {
+        return <Link ref={ref} to={to} {...linkProps} />;
+      }),
+    [to],
+  );
+
+  return (
+    <li>
+      <ListItem button component={CustomLink}>
+        <ListItemIcon>{icon}</ListItemIcon>
+        <ListItemText primary={primary} />
+      </ListItem>
+    </li>
+  );
+}
+        <Tabs value={tabNum} onChange={handleChange} aria-label="nav tabs">
+          <Tab label="Onto obj types" href="/ontocall?path=objectTypes" />
+          <Tab label="Concept sets" href="/ontocall?path=objects/OMOPConceptSet" />
+        </Tabs>
+*/
+
 function App() {
   const [tabNum, setTabNum] = React.useState(0);
   let handleChange = (evt, tabnum) => {
     setTabNum(tabnum)
   }
+
   return (
     <div className="App">
-      <Tabs value={tabNum} onChange={handleChange} aria-label="nav tabs">
-        <Tab label="Onto obj types" href="/ontocall?path=objectTypes" />
-        <Tab label="Concept sets" href="/ontocall?path=objects/OMOPConceptSet" />
-      </Tabs>
       <nav
         style={{
           borderBottom: "solid 1px",
@@ -64,9 +94,26 @@ function propIfExists(obj, prop) {
   return prop in obj ? obj[prop] : obj
 }
 function extractApiData(path, data) {
+  if (path == 'objectTypes') {
+    return objectTypesData(data)
+  }
   const possiblePropPathItems = ['data', 'json', 'data']
   const obj = possiblePropPathItems.reduce(propIfExists, data)
   let rows = obj.map(r=>propIfExists(r, 'properties'));
+  return rows
+}
+function objectTypesData(data) {
+  const someObjTypePropertiesHaveDesc = data.some(d=>Object.entries(d.properties).some(d=>d.description))
+  // console.log(data.map(d=>Object.entries(d.properties).map(p=>`${p[0]}(${p[1].baseType})`).join(', ')).join('\n\n'))
+  if (someObjTypePropertiesHaveDesc) {
+    console.log('someObjTypePropertiesHaveDesc!!!!!')
+  }
+  let rows = data.map(d => ({
+    apiName: d.apiName,
+    description: d.description,
+    primaryKey: d.primaryKey.join(','),
+    properties: Object.keys(d.properties).join(', '),
+  }))
   return rows
 }
 function EnclaveOntoAPI() {
@@ -84,7 +131,7 @@ function EnclaveOntoAPI() {
           let rows = extractApiData(path, data)
           return setEnclaveData(rows);
         });
-  }, []); // <-- Have to pass in [] here!
+  }, [apiUrl]); // <-- Have to pass in [] here!
 
   return (
       <div>
