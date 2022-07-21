@@ -71,7 +71,7 @@ const AGtest = (props) => {
       <button onClick={buttonListener}>Push Me</button>
 
       {/* On div wrapping Grid a) specify theme CSS Class Class and b) sets Grid size */}
-      <div className="ag-theme-alpine" style={{width: 500, height: 500}}>
+      <div className="ag-theme-alpine" style={{width: '100%', height: window.innerHeight * .8}}>
 
         <AgGridReact
             ref={gridRef} // Ref for accessing Grid's API

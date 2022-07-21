@@ -138,9 +138,11 @@ function EnclaveOntoAPI() {
         <p>I am supposed to be the results of <a href={apiUrl}>{apiUrl}</a></p>
         <AGtest rowData={enclaveData} />
 
+        {/*
         <pre>
           {JSON.stringify(enclaveData, null, 2)}
         </pre>
+        */}
       </div>
   );
 }
