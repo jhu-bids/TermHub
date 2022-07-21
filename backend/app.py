@@ -3,6 +3,7 @@ https://github.com/tiangolo/fastapi"""
 from typing import Dict, List
 
 import requests
+import uvicorn
 from fastapi import FastAPI
 from fastapi.middleware.cors import CORSMiddleware
 
@@ -69,6 +70,10 @@ def ontocall(path) -> [{}]:
     return {'valid but unhandled path': path, 'json': json}
 
 
+def run(port: int = 8000):
+    """Run app"""
+    uvicorn.run(app, host='0.0.0.0', port=port)
+
+
 if __name__ == '__main__':
-    import uvicorn
-    uvicorn.run(app, host='0.0.0.0', port=8000)
+    run()
