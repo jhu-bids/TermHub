@@ -120,8 +120,16 @@ function EnclaveOntoAPI() {
   let [searchParams, setSearchParams] = useSearchParams();
   let path = searchParams.get('path')
   let apiUrl = `http://127.0.0.1:8000/ontocall?path=${path}`
+  let rowCallback = d=>d;
   const [enclaveData, setEnclaveData] = React.useState([]);
   //const [apiUrl, setApiUrl] = React.useState(path);
+
+  function csetCallback({rowData, colClicked}) {
+    setSearchParams(path=`objects/OMOPConceptSet/${rowData.codesetId}`)
+  }
+  if (path == 'objects/OMOPConceptSet') {
+    rowCallback = csetCallback
+  }
 
   React.useEffect(() => {
     fetch(apiUrl)
@@ -136,7 +144,7 @@ function EnclaveOntoAPI() {
   return (
       <div>
         <p>I am supposed to be the results of <a href={apiUrl}>{apiUrl}</a></p>
-        <AGtest rowData={enclaveData} />
+        <AGtest rowData={enclaveData} rowCallback={rowCallback}/>
 
         {/*
         <pre>
