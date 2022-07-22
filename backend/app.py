@@ -52,9 +52,13 @@ def ontocall(path) -> [{}]:
             data = json['data']
         else:
             data = json
+        if 'properties' in data:
+            data = data['properties'] # e.g., http://127.0.0.1:8000/ontocall?path=objects/OMOPConceptSet/729489911
     except BaseException as err:
         print(f"Unexpected {err=}, {type(err)=}")
         return {'ERROR': str(err)}
+
+    return data
 
     # noinspection PyTypeChecker
     if path == 'objectTypes':
@@ -64,6 +68,8 @@ def ontocall(path) -> [{}]:
         api_names = sorted([
             t['apiName'] for t in data if t['apiName'].startswith('OMOP')])
         return api_names
+    if path.startswith('objectTypes/'):
+        return json
     if path.startswith('objectTypes/'):
         return json
 

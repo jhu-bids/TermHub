@@ -38,8 +38,10 @@ const AGtest = (props) => {
 
   // Example of consuming Grid Event
   const cellClickedListener = useCallback( event => {
-    rowCallback({rowData: event.data, colClicked:event.colDef.field})
-  }, [props.callback]);
+    const callbackProps = {rowData: event.data, colClicked:event.colDef.field};
+    console.log('rowCallback with ' + JSON.stringify(callbackProps, null, 2))
+    rowCallback(callbackProps)
+  }, [rowCallback]);
 
   /*
   // Example load data from sever

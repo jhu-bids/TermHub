@@ -3,10 +3,11 @@ https://mui.com/material-ui/react-list/
 https://mui.com/material-ui/getting-started/usage/
 https://github.com/mui/material-ui
 */
-import React from 'react';
+import React, {useState} from 'react';
 // import logo from './logo.svg';
 import './App.css';
-import { Link, Outlet, useParams, useSearchParams, useLocation } from "react-router-dom";
+import { Link, Outlet, useHref, useNavigate, useParams, useSearchParams, useLocation } from "react-router-dom";
+
 import RRD from "react-router-dom";
 // import Box from '@mui/joy/Box';
 // import List from '@mui/joy/List';
@@ -14,15 +15,6 @@ import RRD from "react-router-dom";
 // import ListItemButton from '@mui/material/ListItemButton';
 // import ListItemButton from '@mui/joy/ListItemButton';
 // import ListItemText from '@mui/material/ListItemText';
-import AGtest from "./aggrid-test";
-
-
-// function useQuery() { // from https://v5.reactrouter.com/web/example/query-parameters
-//   const { search } = useLocation();
-//
-//   return React.useMemo(() => new URLSearchParams(search), [search]);
-// }
-
 // Issue: "ListItemText not defined" in JS console, and also my IDE highlights it in a different color here,
 // ...yet when I ctrl+click "ListItemText", it opens up the source code.
 // import ListItemText from '@mui/joy/ListItemText';
@@ -32,38 +24,10 @@ import Tabs from '@mui/material/Tabs';
 import Tab from "@mui/material/Tab";
 import Button from "@mui/material/Button";
 
-/*
-// from https://mui.com/material-ui/guides/composition/#link
+import AGtest from "./aggrid-test";   // name should be changed because it's no longer just test code
+
+// might be useful to look at https://mui.com/material-ui/guides/composition/#link
 // referred to by https://stackoverflow.com/questions/63216730/can-you-use-material-ui-link-with-react-router-dom-link
-import { LinkProps, Omit } from 'react-router-dom';
-function ListItemLink(props) {
-  const { icon, primary, to } = props;
-
-  const CustomLink = React.useMemo(
-    () =>
-      React.forwardRef<HTMLAnchorElement, Omit<LinkProps, 'to'>>(function Link(
-        linkProps,
-        ref,
-      ) {
-        return <Link ref={ref} to={to} {...linkProps} />;
-      }),
-    [to],
-  );
-
-  return (
-    <li>
-      <ListItem button component={CustomLink}>
-        <ListItemIcon>{icon}</ListItemIcon>
-        <ListItemText primary={primary} />
-      </ListItem>
-    </li>
-  );
-}
-        <Tabs value={tabNum} onChange={handleChange} aria-label="nav tabs">
-          <Tab label="Onto obj types" href="/ontocall?path=objectTypes" />
-          <Tab label="Concept sets" href="/ontocall?path=objects/OMOPConceptSet" />
-        </Tabs>
-*/
 
 function App() {
   const [tabNum, setTabNum] = React.useState(0);
@@ -85,6 +49,10 @@ function App() {
         <Link style={{ display: "block", margin: "1rem 0" }} to={"/ontocall?path=objects/OMOPConceptSet"} >
           Concept sets
         </Link>
+        <Tabs value={tabNum} onChange={handleChange} aria-label="nav tabs">
+          <Tab label="Onto obj types" href="/ontocall?path=objectTypes" />
+          <Tab label="Concept sets" href="/ontocall?path=objects/OMOPConceptSet" />
+        </Tabs>
       </nav>
       <Outlet />
     </div>
@@ -96,6 +64,9 @@ function propIfExists(obj, prop) {
 function extractApiData(path, data) {
   if (path == 'objectTypes') {
     return objectTypesData(data)
+  }
+  if (path.startsWith('objects/OMOPConceptSet/')) {
+    debugger
   }
   const possiblePropPathItems = ['data', 'json', 'data']
   const obj = possiblePropPathItems.reduce(propIfExists, data)
@@ -116,31 +87,56 @@ function objectTypesData(data) {
   }))
   return rows
 }
-function EnclaveOntoAPI() {
-  let [searchParams, setSearchParams] = useSearchParams();
-  let path = searchParams.get('path')
-  let apiUrl = `http://127.0.0.1:8000/ontocall?path=${path}`
-  let rowCallback = d=>d;
-  const [enclaveData, setEnclaveData] = React.useState([]);
-  //const [apiUrl, setApiUrl] = React.useState(path);
+function ConceptSet() {
 
-  function csetCallback({rowData, colClicked}) {
-    setSearchParams(path=`objects/OMOPConceptSet/${rowData.codesetId}`)
+}
+function EnclaveOntoAPI() {
+  const [searchParams, setSearchParams] = useSearchParams();
+  function makeApiUrl() {
+    return 'http://127.0.0.1:8000/ontocall?path=' + searchParams.get('path')
   }
-  if (path == 'objects/OMOPConceptSet') {
-    rowCallback = csetCallback
+  let [apiUrl, setApiUrl] = useState(makeApiUrl());
+  const [rowCallback, setRowCallback] = useState(d=>d);
+  const [enclaveData, setEnclaveData] = useState([]);
+  let navigate = useNavigate();
+  async function csetCallback(props) {
+    let {rowData, colClicked} = props
+    navigate(`/OMOPConceptSet/${rowData.codesetId}`)
+    // setSearchParams({path:`objects/OMOPConceptSet/${rowData.codesetId}`})
   }
 
   React.useEffect(() => {
-    fetch(apiUrl)
-        .then(results => results.json())
-        .then(data => {
-          console.log(data)
-          let rows = extractApiData(path, data)
-          return setEnclaveData(rows);
-        });
-  }, [apiUrl]); // <-- Have to pass in [] here!
+    // async function fetchData() {
+      let path = searchParams.get('path')
+      let rows = []
+      if (!path) {
+        return setEnclaveData(rows);
+      }
+      let rc = d=>d;
+      if (path == 'objects/OMOPConceptSet') {
+        rc = csetCallback
+      }
+      setRowCallback(()=>rc)
+      setApiUrl(makeApiUrl())
+      // let data = await fetch(apiUrl)
+      let data = fetch(apiUrl)
+          //.then(results => results.json())
+          .then(results => {
+            return results.json()
+          })
+          //.then(await (data => {   }))
+          .then(data => {
+            console.log(data)
+            rows = extractApiData(path, data)
+            setEnclaveData(rows);
+            // return rows;
+          });
+      // return data
+    // }
+    // fetchData()
+  }, [searchParams]); // <-- Have to pass in [] here!
 
+  console.log('rowCallback is', rowCallback)
   return (
       <div>
         <p>I am supposed to be the results of <a href={apiUrl}>{apiUrl}</a></p>
@@ -234,4 +230,4 @@ function N3CObjectTypes() {
 }
 */
 
-export {App, EnclaveOntoAPI};
+export {App, EnclaveOntoAPI, ConceptSet};
