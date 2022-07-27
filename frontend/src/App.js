@@ -86,6 +86,7 @@ function App() {
           Concept sets
         </Link>
       </nav>
+      {/* Outlet: Will render the results of whatever nested route has been clicked/activated. */}
       <Outlet />
     </div>
   );
