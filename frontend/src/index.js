@@ -3,7 +3,7 @@ import ReactDOM from 'react-dom/client';
 import { BrowserRouter, Routes, Route, matchPath } from "react-router-dom";
 
 import './index.css';
-import {App, N3CObjectTypes, N3CObjectType, EnclaveOntoAPI} from './App';
+import {App, N3CObjectTypes, N3CObjectType, EnclaveOntoAPI, ConceptSet, } from './App';
 import AGtest from './aggrid-test'
 
 // import reportWebVitals from './reportWebVitals';
@@ -17,7 +17,9 @@ root.render(
       <Routes>
         <Route path="/" element={<App />}>
           <Route path="ontocall" element={<EnclaveOntoAPI />} />
-          <Route path="ag-test" element={<AGtest />} />
+          <Route path="OMOPConceptSet" >
+            <Route path=":conceptId" element={<ConceptSet />}/>
+          </Route>
           <Route path="*"  element={<ErrorPath/>} />
         </Route>
       </Routes>

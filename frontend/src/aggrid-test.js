@@ -7,7 +7,7 @@ import 'ag-grid-community/styles/ag-theme-alpine.css';
 // import {useParams} from "react-router-dom"; // Optional theme CSS
 
 const AGtest = (props) => {
-  const {rowData} = props;
+  const {rowData, rowCallback} = props;
   // let params = useParams();
   const gridRef = useRef(); // Optional - for accessing Grid's API
   // const [rowData, setRowData] = useState(); // Set rowData to Array of Objects, one Object per Row
@@ -38,8 +38,10 @@ const AGtest = (props) => {
 
   // Example of consuming Grid Event
   const cellClickedListener = useCallback( event => {
-    console.log('cellClicked', event);
-  }, []);
+    const callbackProps = {rowData: event.data, colClicked:event.colDef.field};
+    console.log('rowCallback with ' + JSON.stringify(callbackProps, null, 2))
+    rowCallback(callbackProps)
+  }, [rowCallback]);
 
   /*
   // Example load data from sever
