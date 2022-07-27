@@ -43,28 +43,24 @@ function App() {
   //return (<MuiAppBar />);
   return (
     <div className="App">
-      <nav
-        style={{
-          borderBottom: "solid 1px",
-          paddingBottom: "1rem",
-        }}
-      >
-        <Link style={{ display: "block", margin: "1rem 0" }} to={"/ontocall?path=objectTypes"} >
-          objectTypes
-        </Link>
-        <Link style={{ display: "block", margin: "1rem 0" }} to={"/ontocall?path=objects/OMOPConceptSet"} >
-          Concept sets
-        </Link>
-        <Tabs value={tabNum} onChange={handleChange} aria-label="nav tabs">
-          <Tab label="Onto obj types" href="/ontocall?path=objectTypes" />
-          <Tab label="Concept sets" href="/ontocall?path=objects/OMOPConceptSet" />
-        </Tabs>
-      </nav>
+      {/*
+      <Link style={{ display: "block", margin: "1rem 0" }} to={"/ontocall?path=objectTypes"} >
+        objectTypes
+      </Link>
+      <Link style={{ display: "block", margin: "1rem 0" }} to={"/ontocall?path=objects/OMOPConceptSet"} >
+        Concept sets
+      </Link>
+      */}
+      <Tabs value={tabNum} onChange={handleChange} aria-label="nav tabs">
+        {/* <Tab label="Onto obj types" to="/ontocall?path=objectTypes" component={Link} /> */}
+        <Tab label="Concept sets" to="/ontocall?path=objects/OMOPConceptSet" component={Link}/>
+      </Tabs>
       {/* Outlet: Will render the results of whatever nested route has been clicked/activated. */}
       <Outlet />
     </div>
   );
 }
+
 /*
 function getObjLinks() {
   // https://www.palantir.com/docs/foundry/api/ontology-resources/objects/list-linked-objects
@@ -104,21 +100,23 @@ function ConceptSet(props) {
     return `http://127.0.0.1:8000/ontocall?path=objects/OMOPConceptSet/${conceptId}`
   }
   const [apiUrl, setApiUrl] = useState(makeApiUrl());
-  const { status, data } = useFetch(apiUrl);
-  console.log({status, data})
+  const { csetStatus, csetData } = useFetch(apiUrl);
+  const { conceptsStatus, conceptsData } = useFetch(apiUrl + '/links/omopconcepts');
+  // let conceptsApiUrl = `http://127.0.0.1:8000/ontocall?path=objects/OMOPConceptSet/${conceptId}/links/omopconcepts'`
+  console.log(conceptsStatus, conceptsData)
   const csetPageUrl = 'https://unite.nih.gov/workspace/hubble/exploration/autosaved/5e0c2366-8fe8-40d4-ab9e-544cb7f5c4f0_8V2KrH9XeLXy_0'
 
   let ddata = [
-    {field: 'Code set ID', value: data.codesetId},
-    {field: 'Created at', value: data.createdAt},
-    {field: 'Version title', value: data.conceptSetVersionTitle},
-    {field: 'Is most recent version', value: data.isMostRecentVersion},
-    {field: 'Intention', value: data.intention},
-    {field: 'Update message', value: data.updateMessage},
-    {field: 'Provenance', value: data.provenance},
-    {field: 'Limitations', value: data.limitations},
+    {field: 'Code set ID', value: csetData.codesetId},
+    {field: 'Created at', value: csetData.createdAt},
+    {field: 'Version title', value: csetData.conceptSetVersionTitle},
+    {field: 'Is most recent version', value: csetData.isMostRecentVersion},
+    {field: 'Intention', value: csetData.intention},
+    {field: 'Update message', value: csetData.updateMessage},
+    {field: 'Provenance', value: csetData.provenance},
+    {field: 'Limitations', value: csetData.limitations},
   ]
-
+  
   return (
       <div>
         <List>
@@ -131,7 +129,7 @@ function ConceptSet(props) {
         </List>
 
 
-        <h3><a href={csetPageUrl + '?objectId=' + data.rid}>Concept set browser page</a></h3>
+        <h3><a href={csetPageUrl + '?objectId=' + csetData.rid}>Concept set browser page</a></h3>
         <pre>getting codesetId {conceptId} from <a href={apiUrl}>{apiUrl}</a></pre>
       </div>
   )
