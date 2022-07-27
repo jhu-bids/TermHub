@@ -40,8 +40,7 @@ def ontocall(path) -> [{}]:
     }
     # return {'path': path}
     print(f'ontocall param: {path}\n')
-    # ontology_rid = config['ONTOLOGY_RID']
-    ontology_rid = 'ri.ontology.main.ontology.00000000-0000-0000-0000-000000000000'
+    ontology_rid = config['ONTOLOGY_RID']
     api_path = f'/api/v1/ontologies/{ontology_rid}/{path}'
     url = f'https://{config["HOSTNAME"]}{api_path}'
     print(f'ontocall: {api_path}\n{url}')
