@@ -17,9 +17,7 @@ root.render(
       <Routes>
         <Route path="/" element={<App />}>
           <Route path="ontocall" element={<EnclaveOntoAPI />} />
-          <Route path="OMOPConceptSet" >
-            <Route path=":conceptId" element={<ConceptSet />}/>
-          </Route>
+          <Route path="OMOPConceptSet/:conceptId" element={<ConceptSet />}/>
           <Route path="*"  element={<ErrorPath/>} />
         </Route>
       </Routes>
