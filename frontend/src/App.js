@@ -136,7 +136,8 @@ function ConceptSet(props) {
 }
 
 
-
+/* use*: Anything with 'use' in front is treated like a hook. A hook must be a component. Component can't be in global
+ space. But if called from a component, we're good. That component can be the App component.*/
 const useFetch = (url) => {
   const cache = useRef({});
 
