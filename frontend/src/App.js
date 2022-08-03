@@ -79,7 +79,11 @@ function ConceptSet(props) {
   /* useEffect: 2 params: (1) what to do / function, (2) list of observables that trigger
   * If has only 1 param, only runs once component is mounted. */
   useEffect(() => {
-    csetData && setDisplayData([
+    if (!csetData) {
+      return;
+    }
+    console.log(csetData)
+    setDisplayData([
       {field: 'Code set ID', value: csetData.codesetId},
       {field: 'Created at', value: csetData.createdAt},
       {field: 'Version title', value: csetData.conceptSetVersionTitle},
@@ -107,6 +111,10 @@ function ConceptSet(props) {
         <pre>getting codesetId {conceptId} from <a href={apiUrl}>{apiUrl}</a></pre>
       </div>
   )
+}
+function ConceptList(props) {
+  let {conceptId} = useParams();
+  return <p>you want to see concepts for {conceptId}?</p>
 }
 
 
@@ -152,7 +160,7 @@ const useFetch = (url) => {
           cache.current[url] = data;
           if (cancelRequest) return;
           dispatch({ type: 'FETCHED', payload: data });
-          console.log('dispatched', data)
+          // console.log('dispatched', data)
         } catch (error) {
           if (cancelRequest) return;
           dispatch({ type: 'FETCH_ERROR', payload: error.message });
@@ -167,7 +175,7 @@ const useFetch = (url) => {
     };
   }, [url]);
 
-  console.log('useFetch returning', state )
+  // console.log('useFetch returning', state )
   return state
 };
 
@@ -271,4 +279,4 @@ function AboutPage() {
 }
 
 
-export {App, AboutPage, EnclaveOntoAPI, ConceptSet};
+export {App, AboutPage, EnclaveOntoAPI, ConceptSet, ConceptList};
