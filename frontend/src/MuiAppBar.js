@@ -1,5 +1,4 @@
 // from https://mui.com/material-ui/react-app-bar/#ResponsiveAppBar.js
-// i'm giving up on it for now (sg)
 import * as React from 'react';
 import AppBar from '@mui/material/AppBar';
 import Box from '@mui/material/Box';
@@ -14,13 +13,14 @@ import Button from '@mui/material/Button';
 import Tooltip from '@mui/material/Tooltip';
 import MenuItem from '@mui/material/MenuItem';
 import AdbIcon from '@mui/icons-material/Adb';
-import Tabs from "@mui/material/Tabs";
-import Tab from "@mui/material/Tab";
-import {useHref} from "react-router-dom";
+import {Link} from "react-router-dom";
 
-const pages = ['Products', 'Pricing', 'Blog'];
-const settings = ['Profile', 'Account', 'Dashboard', 'Logout'];
+const pages = [
+  {name: 'Concept sets', href: '/ontocall?path=objects/OMOPConceptSet'}, {name: 'Test area', href: '/testing'}, {name: 'About', href: '/about'}
+];
+const settings = ['About'];
 
+/* https://mui.com/material-ui/react-app-bar/ */
 const MuiAppBar = () => {
   const [anchorElNav, setAnchorElNav] = React.useState(null);
   const [anchorElUser, setAnchorElUser] = React.useState(null);
@@ -41,14 +41,6 @@ const MuiAppBar = () => {
   const handleCloseUserMenu = () => {
     setAnchorElUser(null);
   };
-  const [tabNum, setTabNum] = React.useState(0);
-  let handleChange = (evt, tabnum) => {
-    setTabNum(tabnum)
-  }
-  const links = [
-    [ 'Object types', useHref('/ontocall?path=objectTypes') ],
-    [ 'Concept sets', useHref('/ontocall?path=objects/OMOPConceptSet') ],
-  ]
 
   return (
     <AppBar position="static">
@@ -70,7 +62,7 @@ const MuiAppBar = () => {
               textDecoration: 'none',
             }}
           >
-            TIMS/TermHub
+            TermHub
           </Typography>
 
           <Box sx={{ flexGrow: 1, display: { xs: 'flex', md: 'none' } }}>
@@ -103,8 +95,8 @@ const MuiAppBar = () => {
               }}
             >
               {pages.map((page) => (
-                <MenuItem key={page} onClick={handleCloseNavMenu}>
-                  <Typography textAlign="center">{page}</Typography>
+                <MenuItem key={page.name} component={Link} to={page.href} onClick={handleCloseNavMenu}>
+                  <Typography textAlign="center">{page.name}</Typography>
                 </MenuItem>
               ))}
             </Menu>
@@ -126,22 +118,17 @@ const MuiAppBar = () => {
               textDecoration: 'none',
             }}
           >
-            LOGO
+            TermHub
           </Typography>
-          {/*
-          <Tabs value={tabNum} onChange={handleChange} aria-label="nav tabs">
-            <Tab label="Onto obj types" href="/ontocall?path=objectTypes" />
-            <Tab label="Concept sets" href="/ontocall?path=objects/OMOPConceptSet" />
-          </Tabs>
-          */}
           <Box sx={{ flexGrow: 1, display: { xs: 'none', md: 'flex' } }}>
             {pages.map((page) => (
               <Button
-                key={page}
+                key={page.name}
+                href={page.href}  // https://mui.com/material-ui/guides/routing/
                 onClick={handleCloseNavMenu}
                 sx={{ my: 2, color: 'white', display: 'block' }}
               >
-                {page}
+                {page.name}
               </Button>
             ))}
           </Box>

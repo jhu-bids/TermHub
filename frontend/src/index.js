@@ -3,7 +3,8 @@ import ReactDOM from 'react-dom/client';
 import { BrowserRouter, Routes, Route, matchPath } from "react-router-dom";
 
 import './index.css';
-import {App, N3CObjectTypes, N3CObjectType, EnclaveOntoAPI, ConceptSet, } from './App';
+import {App, AboutPage, N3CObjectTypes, N3CObjectType, EnclaveOntoAPI, ConceptSet, } from './App';
+import MuiAppBar from './MuiAppBar';
 import AGtest from './aggrid-test'
 
 // import reportWebVitals from './reportWebVitals';
@@ -17,6 +18,8 @@ root.render(
       <Routes>
         <Route path="/" element={<App />}>
           <Route path="ontocall" element={<EnclaveOntoAPI />} />
+          <Route path="about" element={<AboutPage />} />
+          <Route path="testing" element={<MuiAppBar />} />
           <Route path="OMOPConceptSet/:conceptId" element={<ConceptSet />}/>
           <Route path="*"  element={<ErrorPath/>} />
         </Route>
