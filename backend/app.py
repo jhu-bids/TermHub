@@ -23,8 +23,23 @@ app.add_middleware(
 @app.get("/")
 def read_root():
     """Root route"""
-    return {"Hello": "World"}
+    return {"try": "/ontocall?path=<enclave path after '/api/v1/ontologies/'>",
+            "example": "/ontocall?path=objects/list-objects/"}
     # return ontocall('objectTypes')
+
+@app.get("linkTypesForObjectTypes")
+def linkTypes(path) -> [{}]:
+    """
+    TODO write this api call?
+    TODO        curl below gets json for
+    curl -H "Content-type: application/json" -H "Authorization: Bearer $OTHER_TOKEN" "https://unite.nih.gov/ontology-metadata/api/ontology/linkTypesForObjectTypes" --data '{
+        "objectTypeVersions": {
+            "ri.ontology.main.object-type.a11d04a3-601a-45a9-9bc2-5d0e77dd512e": "00000001-9834-2acf-8327-ecb491e69b5c"
+        }
+    }'
+    jq '..|objects|.apiName//empty' $@
+    """
+    pass
 
 
 @app.get("/ontocall")
