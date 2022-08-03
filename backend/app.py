@@ -1,11 +1,12 @@
 """TermHub backend
 https://github.com/tiangolo/fastapi"""
-from typing import Dict, List
+from typing import Any, Dict, List
 
 import requests
 import uvicorn
 from fastapi import FastAPI
 from fastapi.middleware.cors import CORSMiddleware
+from pydantic import BaseModel
 
 from enclave_wrangler.config import config
 
@@ -23,23 +24,28 @@ app.add_middleware(
 @app.get("/")
 def read_root():
     """Root route"""
-    return {"try": "/ontocall?path=<enclave path after '/api/v1/ontologies/'>",
-            "example": "/ontocall?path=objects/list-objects/"}
+    url_list = [{"path": route.path, "name": route.name} for route in app.routes]
+    return url_list
+    # return {"try": "/ontocall?path=<enclave path after '/api/v1/ontologies/'>",
+    #         "example": "/ontocall?path=objects/list-objects/"}
     # return ontocall('objectTypes')
 
+
 @app.get("linkTypesForObjectTypes")
-def linkTypes(path) -> [{}]:
+def link_types(path) -> List[Dict]:
     """
-    TODO write this api call?
-    TODO        curl below gets json for
-    curl -H "Content-type: application/json" -H "Authorization: Bearer $OTHER_TOKEN" "https://unite.nih.gov/ontology-metadata/api/ontology/linkTypesForObjectTypes" --data '{
+    TODO: write this api call?
+    TODO: curl below gets json for
+    curl -H "Content-type: application/json" -H "Authorization: Bearer $OTHER_TOKEN" \
+    "https://unite.nih.gov/ontology-metadata/api/ontology/linkTypesForObjectTypes" --data '{
         "objectTypeVersions": {
             "ri.ontology.main.object-type.a11d04a3-601a-45a9-9bc2-5d0e77dd512e": "00000001-9834-2acf-8327-ecb491e69b5c"
         }
     }'
     jq '..|objects|.apiName//empty' $@
     """
-    pass
+    print(path)
+    return [{}]
 
 
 @app.get("/ontocall")
@@ -61,15 +67,15 @@ def ontocall(path) -> [{}]:
     print(f'ontocall: {api_path}\n{url}')
 
     try:
-        response: List[Dict] = requests.get(url, headers=headers)
+        response = requests.get(url, headers=headers)
         response.raise_for_status()
-        json = response.json()
+        json: Dict = response.json()
         if 'data' in json:
             data = json['data']
         else:
             data = json
         if 'properties' in data:
-            data = data['properties'] # e.g., http://127.0.0.1:8000/ontocall?path=objects/OMOPConceptSet/729489911
+            data = data['properties']  # e.g., http://127.0.0.1:8000/ontocall?path=objects/OMOPConceptSet/729489911
             data['rid'] = json['rid']
     except BaseException as err:
         print(f"Unexpected {err=}, {type(err)=}")
@@ -77,20 +83,45 @@ def ontocall(path) -> [{}]:
 
     return data
 
-    # noinspection PyTypeChecker
-    if path == 'objectTypes':
-        # data = json['data']
-        print(data)
-        return data
-        api_names = sorted([
-            t['apiName'] for t in data if t['apiName'].startswith('OMOP')])
-        return api_names
-    if path.startswith('objectTypes/'):
-        return json
-    if path.startswith('objectTypes/'):
-        return json
+    # TODO: @siggie: This code was unreachable because of `return data` above, so i commented out
+    # if path == 'objectTypes':
+    #     # data = json['data']
+    #     print(data)
+    #     return data
+    #     api_names = sorted([
+    #         t['apiName'] for t in data if t['apiName'].startswith('OMOP')])
+    #     return api_names
+    # if path.startswith('objectTypes/'):
+    #     return json
+    # return {'valid but unhandled path': path, 'json': json}
 
-    return {'valid but unhandled path': path, 'json': json}
+
+@app.put("/datasets/vocab")
+def vocab_update():
+    """Update vocab dataset"""
+    pass
+
+
+# TODO: figure out where we want to put this. models.py? Create route files and include class along w/ route func?
+class CsetsUpdate(BaseModel):
+    """Update concept sets.
+    dataset_path: File path. Relative to `/termhub-csets/datasets/`
+    row_index_data_map: Keys are integers of row indices in the dataset. Values are dictionaries, where keys are the
+      name of the fields to be updated, and values contain the values to update in that particular cell."""
+    dataset_path: str = ''
+    row_index_data_map: Dict[int, Dict[str, Any]] = {}
+
+
+@app.put("/datasets/csets")
+def csets_update(payload: CsetsUpdate = None) -> Dict:
+# def csets_update(dataset_path: str, row_index_data_map) -> Dict:
+    """Update cset dataset. Works only on tabular files."""
+    result = 'success'  # | failure
+
+    return {
+        'result': result,
+        'details': '',
+    }
 
 
 def run(port: int = 8000):
