@@ -55,3 +55,7 @@ User Interactions
 ## Developer docs
 - [Frontend](./frontend/README.md)  
 - [Backend](./backend/README.md)
+
+Setup
+1. Clone this repository.
+2. Run `git submodule update`
