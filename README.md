@@ -3,7 +3,7 @@
 ## [Features under development / consideration](https://docs.google.com/spreadsheets/d/19_eBv0MIBWPcXMTw3JJdcfPoEFhns93F-TKdODW27B8/edit#gid=0)
 More info: [Requirements](https://github.com/jhu-bids/TermHub/issues/72)
 
-### Vocabulary management (aka, a single concept)
+### Vocabulary management (a single concept, subsets of or an entire vocabulary)
 The simple concept vocabulary mapping, SNOMED, etc.
 
 ### One concept set (cset)
