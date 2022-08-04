@@ -14,10 +14,19 @@ import List from '@mui/material/List';
 import ListItem from '@mui/material/ListItem';
 import AGtest from "./aggrid-test";   // name should be changed because it's no longer just test code
 import RRD from "react-router-dom";
+
+// wanting to install react-query and axios and use those for data fetch/cache/etc.
+//  is this helpful? https://blog.openreplay.com/fetching-and-updating-data-with-react-query
+import axios from "axios";
+
+console.log(axios)
 // import logo from './logo.svg';
 // import Box from '@mui/joy/Box';
 /*
 when in doubt: https://reactjs.org/docs/hooks-reference.html and https://reactrouter.com/docs/en/v6
+
+just found this: https://betterprogramming.pub/why-you-should-be-separating-your-server-cache-from-your-ui-state-1585a9ae8336
+All the stuff below was from trying to find a solution to fetching data and using it across components
 
 https://reactjs.org/docs/hooks-reference.html#useref
   React guarantees that setState function identity is stable and won’t change on re-renders.
