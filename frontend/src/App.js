@@ -16,9 +16,40 @@ import AGtest from "./aggrid-test";   // name should be changed because it's no 
 import RRD from "react-router-dom";
 // import logo from './logo.svg';
 // import Box from '@mui/joy/Box';
+/*
+when in doubt: https://reactjs.org/docs/hooks-reference.html and https://reactrouter.com/docs/en/v6
 
+https://reactjs.org/docs/hooks-reference.html#useref
+  React guarantees that setState function identity is stable and won’t change on re-renders.
+  This is why it’s safe to omit from the useEffect or useCallback dependency list.
+
+cool: https://reactjs.org/docs/hooks-reference.html#useref
+  If the new state is computed using the previous state, you can pass
+  a function to setState.The function will receive the previous
+  value, and return an updated value.
+     const [count, setCount] = useState(initialCount);
+     <button onClick={() => setCount(initialCount)}>Reset</button>           // set with static value
+     <button onClick={() => setCount(prevCount => prevCount - 1)}>-</button> // set with function
+
+https://reactjs.org/docs/hooks-reference.html#conditionally-firing-an-effect
+  The default behavior for effects is to fire the effect after every completed render.
+  However, this may be overkill in some cases, like the subscription example from the
+    previous section. We don’t need to create a new subscription on every update, only
+    if the source prop has changed.... To implement this, pass a second argument to
+    useEffect that is the array of values that the effect depends on.
+OH!! Does that mean: without a dependency list, the useEffects function will run on every render?
+
+*/
 
 function App() {
+  let location = useLocation();
+  let navigate = useNavigate();
+  useEffect(() => {
+    if (location.pathname == '/') {
+      navigate('/OMOPConceptSets')
+    }
+    console.log(location)
+  }, [location])  // maybe not necessary to have location in dependencies
   return (
     <div className="App">
       <MuiAppBar/>
@@ -63,10 +94,20 @@ function getObjLinks() {
 }
 */
 
+function ConceptSets(props) {
+
+  return  <div>
+            nothing here yet, except
+            <pre>
+              {JSON.stringify({props}, null, 4)}
+            </pre>
+          </div>
+}
 
 function ConceptSet(props) {
   let { conceptId } = useParams();
   function makeApiUrl() {
+    // don't hard code the prefix!! and then
     return `http://127.0.0.1:8000/ontocall?path=objects/OMOPConceptSet/${conceptId}`
   }
   const [apiUrl, setApiUrl] = useState(makeApiUrl());
@@ -79,10 +120,10 @@ function ConceptSet(props) {
   /* useEffect: 2 params: (1) what to do / function, (2) list of observables that trigger
   * If has only 1 param, only runs once component is mounted. */
   useEffect(() => {
+    console.log({conceptsData, csetData, conceptsStatus, csetStatus, csetPageUrl})
     if (!csetData) {
       return;
     }
-    console.log(csetData)
     setDisplayData([
       {field: 'Code set ID', value: csetData.codesetId},
       {field: 'Created at', value: csetData.createdAt},
@@ -93,7 +134,7 @@ function ConceptSet(props) {
       {field: 'Provenance', value: csetData.provenance},
       {field: 'Limitations', value: csetData.limitations},
     ])
-  }, [csetData]);
+  }, [conceptsData, csetData, conceptsStatus, csetStatus, csetPageUrl]);
 
   return (
       <div>
@@ -105,8 +146,7 @@ function ConceptSet(props) {
             )
           }
         </List>
-
-
+        <Outlet/>
         {/*<h3><a href={csetPageUrl + '?objectId=' + csetData.rid}>Concept set browser page</a></h3>*/}
         <pre>getting codesetId {conceptId} from <a href={apiUrl}>{apiUrl}</a></pre>
       </div>
@@ -114,7 +154,18 @@ function ConceptSet(props) {
 }
 function ConceptList(props) {
   let {conceptId} = useParams();
-  return <p>you want to see concepts for {conceptId}?</p>
+  let params = useParams();
+  return <div>
+          <p>you want to see concepts for {conceptId}?</p>
+          <pre>
+            props:
+            {JSON.stringify(props, null, 2)}
+          </pre>
+          <pre>
+            params:
+            {JSON.stringify(params, null, 2)}
+          </pre>
+        </div>
 }
 
 
@@ -130,6 +181,7 @@ const useFetch = (url) => {
   };
 
   const [state, dispatch] = useReducer((state, action) => {
+    console.log(action, state)
     switch (action.type) {
       case 'FETCHING':
         return { ...initialState, status: 'fetching' };
@@ -149,6 +201,7 @@ const useFetch = (url) => {
     if (!url) return;
 
     const fetchData = async () => {
+      console.log(`about to fetch ${url}`)
       dispatch({ type: 'FETCHING' });
       if (cache.current[url]) {
         const data = cache.current[url];
@@ -175,7 +228,7 @@ const useFetch = (url) => {
     };
   }, [url]);
 
-  // console.log('useFetch returning', state )
+  console.log('useFetch returning', state )
   return state
 };
 
@@ -279,4 +332,4 @@ function AboutPage() {
 }
 
 
-export {App, AboutPage, EnclaveOntoAPI, ConceptSet, ConceptList};
+export {App, AboutPage, EnclaveOntoAPI, ConceptSets, ConceptSet, ConceptList};
