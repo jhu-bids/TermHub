@@ -18,12 +18,12 @@ root.render(
       <Routes>
 
         <Route path="/" element={<App />}>
-          <Route path="ontocall" element={<EnclaveOntoAPI />} />
+          {/*<Route path="ontocall" element={<EnclaveOntoAPI />} />*/}
           <Route path="OMOPConceptSets" element={<ConceptSets />} />
           <Route path="about" element={<AboutPage />} />
           <Route path="testing" element={<MuiAppBar />} />
-          <Route path="OMOPConceptSet" element={<ConceptSet />}>
-            <Route path=":conceptId" element={<ConceptList />}/>
+          <Route path="OMOPConceptSet/:conceptId" element={<ConceptSet />}>
+            {/*<Route path=":conceptId" element={<ConceptList />}/>*/}
           </Route>
           <Route path="*"  element={<ErrorPath/>} />
         </Route>

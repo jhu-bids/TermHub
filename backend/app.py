@@ -53,6 +53,33 @@ def link_types(path) -> List[Dict]:
     return [{}]
 
 
+@app.get("/passthru")
+def passthru(path) -> [{}]:
+    """API documentation at
+    https://www.palantir.com/docs/foundry/api/ontology-resources/objects/list-objects/
+    https://www.palantir.com/docs/foundry/api/ontology-resources/object-types/list-object-types/
+    """
+    headers = {
+        # "authorization": f"Bearer {config['PALANTIR_ENCLAVE_AUTHENTICATION_BEARER_TOKEN']}",
+        "authorization": f"Bearer {config['PERSONAL_ENCLAVE_TOKEN']}",
+        # 'content-type': 'application/json'
+    }
+    ontology_rid = config['ONTOLOGY_RID']
+    api_path = f'/api/v1/ontologies/{ontology_rid}/{path}'
+    url = f'https://{config["HOSTNAME"]}{api_path}'
+    print(f'ontocall: {api_path}\n{url}')
+
+    try:
+        response = requests.get(url, headers=headers)
+        response.raise_for_status()
+        json: Dict = response.json()
+        return json
+    except BaseException as err:
+        print(f"Unexpected {err=}, {type(err)=}")
+        return {'ERROR': str(err)}
+
+    return data
+
 @app.get("/ontocall")
 def ontocall(path) -> [{}]:
     """API documentation at
