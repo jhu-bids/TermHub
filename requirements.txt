@@ -12,6 +12,7 @@ numpy==1.23.1
 pandas==1.4.3
 pbr==5.9.0
 platformdirs==2.5.2
+pyarrow==9.0.0
 pydantic==1.9.1
 python-dateutil==2.8.2
 python-dotenv==0.20.0
@@ -22,6 +23,7 @@ six==1.16.0
 sniffio==1.2.0
 starlette==0.19.1
 stevedore==4.0.0
+typeguard==2.13.3
 typing_extensions==4.3.0
 urllib3==1.26.10
 uvicorn==0.18.2

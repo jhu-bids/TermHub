@@ -1,7 +1,9 @@
 # dependencies
 fastapi
 pandas
+pyarrow
 requests
+typeguard
 uvicorn[standard]
 
 # dev dependencies
