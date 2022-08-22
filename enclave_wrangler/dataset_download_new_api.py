@@ -93,9 +93,12 @@ class EnclaveClient:
             if not os.path.exists(cache_dir):
                 os.mkdir(cache_dir)
             df.to_csv(cache_path, index=False)
+            # todo: Would be good to have all enclave_wrangler requests basically wrap around python `requests` and also
+            #  ...utilize this error reporting, if they are saving to disk.
             if response.status_code >= 400:
+                error_report: Dict = {'request': url, 'response': response_json}
                 with open(os.path.join(cache_dir, f'{date_str} - error {response.status_code}.json'), 'w') as file:
-                    json.dump(response_json, file)
+                    json.dump(error_report, file)
 
             return df
 
