@@ -8,6 +8,7 @@ PROJECT_ROOT = os.path.join(APP_ROOT, '..')
 ENV_DIR = os.path.join(PROJECT_ROOT, 'env')
 OUTPUT_DIR = os.path.join(PROJECT_ROOT, 'output')
 ENV_FILE = os.path.join(ENV_DIR, '.env')
+CACHE_DIR = os.path.join(PROJECT_ROOT, 'termhub-csets', 'temp')
 
 
 load_dotenv(ENV_FILE)
@@ -16,4 +17,5 @@ config = {
     'PERSONAL_ENCLAVE_TOKEN': os.getenv('OTHER_TOKEN'),
     'HOSTNAME': os.getenv('HOSTNAME', 'unite.nih.gov'),
     'ONTOLOGY_RID': os.getenv('ONTOLOGY_RID', 'ri.ontology.main.ontology.00000000-0000-0000-0000-000000000000'),
+    'CACHE_DIR': CACHE_DIR,
 }

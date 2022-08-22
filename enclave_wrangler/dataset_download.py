@@ -1,6 +1,6 @@
 #!/usr/bin/env python3
 # -*- coding: utf-8 -*-
-"""Command Line Interface."""
+"""Dataset download."""
 from argparse import ArgumentParser
 from typing import Dict
 
