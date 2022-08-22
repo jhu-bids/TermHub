@@ -21,7 +21,7 @@ root.render(
           {/*<Route path="ontocall" element={<EnclaveOntoAPI />} />*/}
           <Route path="OMOPConceptSets" element={<ConceptSets />} />
           <Route path="about" element={<AboutPage />} />
-          <Route path="testing" element={<MuiAppBar />} />
+          <Route path="testing" element={<Testing />} />
           <Route path="OMOPConceptSet/:conceptId" element={<ConceptSet />}>
             {/*<Route path=":conceptId" element={<ConceptList />}/>*/}
           </Route>
@@ -30,6 +30,10 @@ root.render(
       </Routes>
     </BrowserRouter>
 );
+
+function Testing() {
+  return <h3>nothing to see here</h3>
+}
 /*
 <React.StrictMode>
 </React.StrictMode>
