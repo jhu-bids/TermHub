@@ -107,7 +107,7 @@ class EnclaveClient:
         curl -H "Content-type: application/json" -H "Authorization: Bearer $OTHER_TOKEN" \
         "https://unite.nih.gov/ontology-metadata/api/ontology/linkTypesForObjectTypes" --data '{
             "objectTypeVersions": {
-                "ri.ontology.main.object-type.a11d04a3-601a-45a9-9bc2-5d0e77dd512e": \
+                "ri.ontology.main.object-type.a11d04a3-601a-45a9-9bc2-5d0e77dd512e":
                 "00000001-9834-2acf-8327-ecb491e69b5c"
             }
         }'
@@ -116,6 +116,7 @@ class EnclaveClient:
         # TODO: @Siggie I tried using the above curl in Python but I got this (- Joe 2022/08/21):
         #  {'errorCode': 'INVALID_ARGUMENT', 'errorName': 'Conjure:UnsupportedMediaType', 'errorInstanceId':
         #  '7976c277-8187-4a5a-91b9-2e8bd1c9934c', 'parameters': {}}
+        #  @jflack: There was an extra backslash in the curl cmd. see #96
         data = {
             "objectTypeVersions": {
                 "ri.ontology.main.object-type.a11d04a3-601a-45a9-9bc2-5d0e77dd512e":
