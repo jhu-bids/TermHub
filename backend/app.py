@@ -25,6 +25,9 @@ app.add_middleware(
     allow_headers=['*']
 )
 
+# jq docs: https://stedolan.github.io/jq/manual/
+# jq python api doc: https://github.com/mwilliamson/jq.py
+CSETS.JSON = f'{PROJECT_DIR}/termhub-csets/temp/objects/OMOPConceptSet/latest.json'
 
 @app.get("/")
 def read_root():
@@ -34,6 +37,10 @@ def read_root():
     # return {"try": "/ontocall?path=<enclave path after '/api/v1/ontologies/'>",
     #         "example": "/ontocall?path=objects/list-objects/"}
     # return ontocall('objectTypes')
+
+@app.get("jq-cset-names")
+def csetNames():
+    # 'jq '.[] | .conceptSetNameOMOP' with CSET
 
 
 @app.get("linkTypesForObjectTypes")

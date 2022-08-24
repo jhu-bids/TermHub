@@ -5,6 +5,7 @@ pyarrow
 requests
 typeguard
 uvicorn[standard]
+jq
 
 # dev dependencies
 virtualenvwrapper
