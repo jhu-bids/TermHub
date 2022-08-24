@@ -106,6 +106,9 @@ class EnclaveClient:
                 error_report: Dict = {'request': url, 'response': response_json}
                 with open(os.path.join(cache_dir, f'latest - error {response.status_code}.json'), 'w') as file:
                     json.dump(error_report, file)
+                curl_str = f'curl -H "Content-type: application/json" -H "Authorization: Bearer $OTHER_TOKEN" {url}'
+                with open(os.path.join(cache_dir, f'latest - error {response.status_code} - curl.sh'), 'w') as file:
+                    file.write(curl_str)
 
             return df
 
