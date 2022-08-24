@@ -27,24 +27,31 @@ app.add_middleware(
 
 # jq docs: https://stedolan.github.io/jq/manual/
 # jq python api doc: https://github.com/mwilliamson/jq.py
-CSETS.JSON = f'{PROJECT_DIR}/termhub-csets/temp/objects/OMOPConceptSet/latest.json'
+CSETS_JSON = f'{PROJECT_DIR}/termhub-csets/temp/objects/OMOPConceptSet/latest.json'
+
 
 @app.get("/")
 def read_root():
     """Root route"""
+    # noinspection PyUnresolvedReferences
     url_list = [{"path": route.path, "name": route.name} for route in app.routes]
     return url_list
     # return {"try": "/ontocall?path=<enclave path after '/api/v1/ontologies/'>",
     #         "example": "/ontocall?path=objects/list-objects/"}
     # return ontocall('objectTypes')
 
+
 @app.get("jq-cset-names")
-def csetNames():
+def cset_names():
+    """Get concept set names"""
+    # # jq docs: https://stedolan.github.io/jq/manual/
+    # # jq python api doc: https://github.com/mwilliamson/jq.py
     # 'jq '.[] | .conceptSetNameOMOP' with CSET
+    pass
 
 
 @app.get("linkTypesForObjectTypes")
-def link_types(path) -> List[Dict]:
+def link_types() -> List[Dict]:
     """
     TODO: write this api call?
     TODO: curl below gets json for
@@ -55,25 +62,23 @@ def link_types(path) -> List[Dict]:
         }
     }' | jq '..|objects|.apiName//empty'
     """
+    headers = {
+        # "authorization": f"Bearer {config['PALANTIR_ENCLAVE_AUTHENTICATION_BEARER_TOKEN']}",
+        "authorization": f"Bearer {config['PERSONAL_ENCLAVE_TOKEN']}",
+        # 'content-type': 'application/json'
+    }
+    # ontology_rid = config['ONTOLOGY_RID']
     data = {
         "objectTypeVersions": {
             "ri.ontology.main.object-type.a11d04a3-601a-45a9-9bc2-5d0e77dd512e":
                 "00000001-9834-2acf-8327-ecb491e69b5c"
         }
     }
-    headers = {
-        # "authorization": f"Bearer {config['PALANTIR_ENCLAVE_AUTHENTICATION_BEARER_TOKEN']}",
-        "authorization": f"Bearer {config['PERSONAL_ENCLAVE_TOKEN']}",
-        # 'content-type': 'application/json'
-    }
-    ontology_rid = config['ONTOLOGY_RID']
     api_path = '/ontology-metadata/api/ontology/linkTypesForObjectTypes'
     url = f'https://{config["HOSTNAME"]}{api_path}'
-    response = requests.post(url, headers=self.headers, data=data)
+    response = requests.post(url, headers=headers, data=data)
     response_json = response.json()
     return response_json
-    print(path)
-    return [{}]
 
 
 @app.get("/passthru")
@@ -98,10 +103,9 @@ def passthru(path) -> [{}]:
         json: Dict = response.json()
         return json
     except BaseException as err:
-        print(f"Unexpected {err=}, {type(err)=}")
+        print(f"Unexpected {type(err)}: {str(err)}")
         return {'ERROR': str(err)}
 
-    return data
 
 @app.get("/ontocall")
 def ontocall(path) -> [{}]:
@@ -133,7 +137,7 @@ def ontocall(path) -> [{}]:
             data = data['properties']  # e.g., http://127.0.0.1:8000/ontocall?path=objects/OMOPConceptSet/729489911
             data['rid'] = json['rid']
     except BaseException as err:
-        print(f"Unexpected {err=}, {type(err)=}")
+        print(f"Unexpected {type(err)}: {str(err)}")
         return {'ERROR': str(err)}
 
     return data
