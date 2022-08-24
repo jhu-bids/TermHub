@@ -46,9 +46,25 @@ def link_types(path) -> List[Dict]:
         "objectTypeVersions": {
             "ri.ontology.main.object-type.a11d04a3-601a-45a9-9bc2-5d0e77dd512e": "00000001-9834-2acf-8327-ecb491e69b5c"
         }
-    }'
-    jq '..|objects|.apiName//empty' $@
+    }' | jq '..|objects|.apiName//empty'
     """
+    data = {
+        "objectTypeVersions": {
+            "ri.ontology.main.object-type.a11d04a3-601a-45a9-9bc2-5d0e77dd512e":
+                "00000001-9834-2acf-8327-ecb491e69b5c"
+        }
+    }
+    headers = {
+        # "authorization": f"Bearer {config['PALANTIR_ENCLAVE_AUTHENTICATION_BEARER_TOKEN']}",
+        "authorization": f"Bearer {config['PERSONAL_ENCLAVE_TOKEN']}",
+        # 'content-type': 'application/json'
+    }
+    ontology_rid = config['ONTOLOGY_RID']
+    api_path = '/ontology-metadata/api/ontology/linkTypesForObjectTypes'
+    url = f'https://{config["HOSTNAME"]}{api_path}'
+    response = requests.post(url, headers=self.headers, data=data)
+    response_json = response.json()
+    return response_json
     print(path)
     return [{}]
 

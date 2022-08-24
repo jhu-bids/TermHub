@@ -17,6 +17,7 @@ import {Link} from "react-router-dom";
 
 const pages = [
   {name: 'Concept sets', href: '/OMOPConceptSets'},
+  {name: 'Csets', href: '/csets-from-disk'},
   {name: 'Test area', href: '/testing'},
   {name: 'About', href: '/about'}
 ];
