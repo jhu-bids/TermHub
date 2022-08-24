@@ -1,6 +1,12 @@
 #!/usr/bin/env python3
 # -*- coding: utf-8 -*-
-"""Dataset download."""
+"""Dataset download.
+
+TODO's
+ 1. Consider refactor: Python -> Bash (curl + JQ)
+ 2. Are the tables in 'datasets' isomorphic w/ 'objects'? e.g. object OmopConceptSetVersionItem == table
+ concept_set_version_item_rv_edited_mapped.
+"""
 import json
 import os
 from argparse import ArgumentParser
@@ -89,16 +95,17 @@ class EnclaveClient:
             # Cache
             # TODO: temporary cache code until decide where/how to write these
             cache_dir = os.path.join(self.cache_dir, 'objects', object_type)
-            date_str = str(datetime.now()).replace(':', '-')
-            cache_path = os.path.join(cache_dir, date_str + '.csv')
+            cache_path = os.path.join(cache_dir, 'latest.csv')
             if not os.path.exists(cache_dir):
                 os.mkdir(cache_dir)
             df.to_csv(cache_path, index=False)
+            with open(cache_path.replace('.csv', '.json'), 'w') as f:
+                json.dump(results, f)
             # todo: Would be good to have all enclave_wrangler requests basically wrap around python `requests` and also
             #  ...utilize this error reporting, if they are saving to disk.
             if response.status_code >= 400:
                 error_report: Dict = {'request': url, 'response': response_json}
-                with open(os.path.join(cache_dir, f'{date_str} - error {response.status_code}.json'), 'w') as file:
+                with open(os.path.join(cache_dir, f'latest - error {response.status_code}.json'), 'w') as file:
                     json.dump(error_report, file)
 
             return df
@@ -146,13 +153,12 @@ def run(request_types: List[str]) -> Dict[str, Dict]:
 
 
 # TODO: @Siggie: Temp; just want to look at all the data before deciding what to do w/ it
-def cache_objects_of_interest():
+def cache_objects_of_interest(force_if_exists=True):
     """Cache objects of interest"""
     of_interest = [
         # 'CodeSystemConceptSetVersionExpressionItem',
         # {'errorCode': 'INVALID_ARGUMENT', 'errorName': 'ObjectsExceededLimit', 'errorInstanceId':
         # '693c5f19-df1f-487e-afb9-ea6c6adb8996', 'parameters': {}}
-
         'OMOPConcept',
         'OMOPConceptSet',
         'OMOPConceptSetContainer',
@@ -161,7 +167,9 @@ def cache_objects_of_interest():
     client = EnclaveClient()
     for o in of_interest:
         # Only runs if nothing exists in cache
-        if not os.path.exists(os.path.join(config['CACHE_DIR'], 'objects', o)):
+        if not force_if_exists and not os.path.exists(os.path.join(config['CACHE_DIR'], 'objects', o)):
+            client.objects(o)
+        elif force_if_exists:
             client.objects(o)
 
 
