@@ -70,7 +70,154 @@ def load_json(objtype: str) -> List[Dict]:
         return d
     return {'Error': f'failure in load_json({objtype}'}
 
+
+# TODO: figure out where we want to put this. models.py? Create route files and include class along w/ route func?
+# TODO: Maybe change to `id` instead of row index
+class CsetsUpdate(BaseModel):
+    """Update concept sets.
+    dataset_path: File path. Relative to `/termhub-csets/datasets/`
+    row_index_data_map: Keys are integers of row indices in the dataset. Values are dictionaries, where keys are the
+      name of the fields to be updated, and values contain the values to update in that particular cell."""
+    dataset_path: str = ''
+    row_index_data_map: Dict[int, Dict[str, Any]] = {}
+
 # Routes
+
+# group_by(.conceptSetNameOMOP) | map({ key: .[0].conceptSetNameOMOP | tostring, value: [.[] | {version, codesetId}] }) | from_entries
+
+
+@app.get("/concept-set-names")
+@app.get("/datasets/csets/names")
+@app.get("/jq-cset-names")
+def cset_names() -> Union[Dict, List]:
+    """Get concept set names"""
+    return csets_read(field_filter=['conceptSetNameOMOP'])
+
+
+@app.get("/cset-versions")
+def csetVersions() -> Union[Dict, List]:
+    query = 'group_by(.conceptSetNameOMOP) | map({ key: .[0].conceptSetNameOMOP | tostring, value: [.[] | {version, codesetId}] }) | from_entries'
+    return jqQuery('OMOPConceptSet', query)
+
+
+def jqQuery(objtype: str, query: str, ) -> Union[Dict, List]:
+    objlist = load_json(objtype)
+    if DEBUG:
+        jpath = json_path(objtype)
+        cmd = f"jq '{query}' {jpath}"
+        print(f'jq cmd:\n{cmd}')
+
+    result = jq.compile(query).input(objlist).all()
+    return result
+
+
+@app.get("/fields-from-objlist")
+def fields_from_objlist(field: List[str] = Query(...), objtype: str = Query(...)) -> Union[Dict, List]:
+    """
+        get one or more fields from specified object type, example:
+        http://127.0.0.1:8000/fields-from-objlist?field=conceptSetNameOMOP&field=codesetId&objtype=OMOPConceptSet
+    """
+    query = objlistQuery(objlist, field)
+    return jqQuery(objtype, query)
+
+
+def objlistQuery(objlist: List[Dict], field: List[str]):
+    """ helper for fields_from_objlist"""
+    all_fields = jq.compile('.[0] | keys'). input(objlist).first()
+    ok_fields = [f for f in field if f in all_fields]
+    return '.[] | {' + ','.join(ok_fields) + '}'
+
+
+@app.get("/datasets/csets")
+def csets_read(field_filter: Union[List[str], None] = Query(default=None)) -> Union[Dict, List]:
+    """Get concept sets
+
+    field_filter: If present, the data returned will only contain these fields. Example: Passing `conceptSetNameOMOP` as
+    the only field_filter for OMOPConceptSet will return a string list of concept set names.
+
+    Resources: jq docs: https://stedolan.github.io/jq/manual/ , jq python api doc: https://github.com/mwilliamson/jq.py
+    """
+    if field_filter:
+        if len(field_filter) > 1:
+            d = {'error': 'Currently only 1 field_filter is allowed.'}
+        else:
+            # TODO: Need to replace this with Python API. Otherwise, deployment will be harder and must global
+            #  installation of JQ.
+            #  DONE
+
+            query = f".[] | .{field_filter[0]}"
+            cmd = f"jq '{query}' {CSETS_JSON_PATH}"
+            print(f'jq cmd:\n{cmd}')
+
+            with open(CSETS_JSON_PATH, 'r') as f:
+                d = json.load(f)
+                result = jq.compile(query).input(d).all()
+                return result
+
+            # output, err = jq_wrapper(query)
+            # if err:
+            #     return {'error': str('error')}
+            # d = output.split('\n')
+            # # x[1:-1]: What gets returned is a \n-delimited string of names, where each name is formatted
+            # # as '"{NAME}"',so we need to remove the extra set of quotations.
+            # # TODO: This operation likely needs to be done in a variety of cases, but I don't know JQ well enough to
+            # #  anticipate all of the situations where this might arise. - joeflack4 2022/08/24
+            # # todo: Is this List[str] preferable to List[Dict,? e.g. [{'conceptSetNameOMOP': 'HEART FAILURE'}, ...]?
+            # d = [x[1:-1] for x in d]
+            # return d
+    else:
+        with open(CSETS_JSON_PATH, 'r') as f:
+            d = json.load(f)
+    return d
+
+
+# TODO: Maybe change to `id` instead of row index
+@app.put("/datasets/csets")
+def csets_update(d: CsetsUpdate = None) -> Dict:
+    """Update cset dataset. Works only on tabular files."""
+    # Vars
+    result = 'success'
+    details = ''
+    cset_dir = os.path.join(PROJECT_DIR, 'termhub-csets')
+    path_root = os.path.join(cset_dir, 'datasets')
+
+    # Update cset
+    # todo: dtypes need to be registered somewhere. perhaps a <CSV_NAME>_codebook.json()?, accessed based on filename,
+    #  and inserted here
+    # todo: check git status first to ensure clean? maybe doesn't matter since we can just add by filename
+    path = os.path.join(path_root, d.dataset_path)
+    # noinspection PyBroadException
+    try:
+        df = pd.read_csv(path, dtype={'id': np.int32, 'last_name': str, 'first_name': str}).fillna('')
+        for index, field_values in d.row_index_data_map.items():
+            for field, value in field_values.items():
+                df.at[index, field] = value
+        df.to_csv(path, index=False)
+    except BaseException as err:
+        result = 'failure'
+        details = str(err)
+
+    # Push commit
+    # todo?: Correct git status after change should show something like this near end: `modified: FILENAME`
+    relative_path = os.path.join('datasets', d.dataset_path)
+    # todo: Want to see result as string? only getting int: 1 / 0
+    #  ...answer: it's being printed to stderr and stdout. I remember there's some way to pipe and capture if needed
+    # TODO: What if the update resulted in no changes? e.g. changed values were same?
+    git_add_result = sp_call(f'git add {relative_path}'.split(), cwd=cset_dir)
+    if git_add_result != 0:
+        result = 'failure'
+        details = f'Error: Git add: {d.dataset_path}'
+    git_commit_result = sp_call(['git', 'commit', '-m', f'Updated by server: {relative_path}'], cwd=cset_dir)
+    if git_commit_result != 0:
+        result = 'failure'
+        details = f'Error: Git commit: {d.dataset_path}'
+    git_push_result = sp_call('git push origin HEAD:main'.split(), cwd=cset_dir)
+    if git_push_result != 0:
+        result = 'failure'
+        details = f'Error: Git push: {d.dataset_path}'
+
+    return {'result': result, 'details': details}
+
 @app.get("/")
 def read_root():
     """Root route"""
@@ -191,138 +338,6 @@ def link_types() -> List[Dict]:
     response = requests.post(url, headers=headers, data=data)
     response_json = response.json()
     return response_json
-
-
-# TODO: figure out where we want to put this. models.py? Create route files and include class along w/ route func?
-# TODO: Maybe change to `id` instead of row index
-class CsetsUpdate(BaseModel):
-    """Update concept sets.
-    dataset_path: File path. Relative to `/termhub-csets/datasets/`
-    row_index_data_map: Keys are integers of row indices in the dataset. Values are dictionaries, where keys are the
-      name of the fields to be updated, and values contain the values to update in that particular cell."""
-    dataset_path: str = ''
-    row_index_data_map: Dict[int, Dict[str, Any]] = {}
-
-
-@app.get("/concept-set-names")
-@app.get("/datasets/csets/names")
-@app.get("/jq-cset-names")
-def cset_names() -> Union[Dict, List]:
-    """Get concept set names"""
-    return csets_read(field_filter=['conceptSetNameOMOP'])
-
-
-@app.get("/fields-from-objlist")
-def fields_from_objlist(field: List[str] = Query(...), objtype: str = Query(...)) -> Union[Dict, List]:
-    """get one or more fields from specified object type"""
-    objlist = load_json(objtype)
-    query = objlistQuery(objlist, field)
-
-    if DEBUG:
-        jpath = json_path(objtype)
-        cmd = f"jq '{query}' {jpath}"
-        print(f'jq cmd:\n{cmd}')
-
-    result = jq.compile(query).input(objlist).all()
-    return result
-
-
-def objlistQuery(objlist: List[Dict], field: List[str]):
-    """ helper for fields_from_objlist"""
-    all_fields = jq.compile('.[0] | keys'). input(objlist).first()
-    ok_fields = [f for f in field if f in all_fields]
-    return '.[] | {' + ','.join(ok_fields) + '}'
-
-
-@app.get("/datasets/csets")
-def csets_read(field_filter: Union[List[str], None] = Query(default=None)) -> Union[Dict, List]:
-    """Get concept sets
-
-    field_filter: If present, the data returned will only contain these fields. Example: Passing `conceptSetNameOMOP` as
-    the only field_filter for OMOPConceptSet will return a string list of concept set names.
-
-    Resources: jq docs: https://stedolan.github.io/jq/manual/ , jq python api doc: https://github.com/mwilliamson/jq.py
-    """
-    if field_filter:
-        if len(field_filter) > 1:
-            d = {'error': 'Currently only 1 field_filter is allowed.'}
-        else:
-            # TODO: Need to replace this with Python API. Otherwise, deployment will be harder and must global
-            #  installation of JQ.
-            #  DONE
-
-            query = f".[] | .{field_filter[0]}"
-            cmd = f"jq '{query}' {CSETS_JSON_PATH}"
-            print(f'jq cmd:\n{cmd}')
-
-            with open(CSETS_JSON_PATH, 'r') as f:
-                d = json.load(f)
-                result = jq.compile(query).input(d).all()
-                return result
-
-            # output, err = jq_wrapper(query)
-            # if err:
-            #     return {'error': str('error')}
-            # d = output.split('\n')
-            # # x[1:-1]: What gets returned is a \n-delimited string of names, where each name is formatted
-            # # as '"{NAME}"',so we need to remove the extra set of quotations.
-            # # TODO: This operation likely needs to be done in a variety of cases, but I don't know JQ well enough to
-            # #  anticipate all of the situations where this might arise. - joeflack4 2022/08/24
-            # # todo: Is this List[str] preferable to List[Dict,? e.g. [{'conceptSetNameOMOP': 'HEART FAILURE'}, ...]?
-            # d = [x[1:-1] for x in d]
-            # return d
-    else:
-        with open(CSETS_JSON_PATH, 'r') as f:
-            d = json.load(f)
-    return d
-
-
-# TODO: Maybe change to `id` instead of row index
-@app.put("/datasets/csets")
-def csets_update(d: CsetsUpdate = None) -> Dict:
-    """Update cset dataset. Works only on tabular files."""
-    # Vars
-    result = 'success'
-    details = ''
-    cset_dir = os.path.join(PROJECT_DIR, 'termhub-csets')
-    path_root = os.path.join(cset_dir, 'datasets')
-
-    # Update cset
-    # todo: dtypes need to be registered somewhere. perhaps a <CSV_NAME>_codebook.json()?, accessed based on filename,
-    #  and inserted here
-    # todo: check git status first to ensure clean? maybe doesn't matter since we can just add by filename
-    path = os.path.join(path_root, d.dataset_path)
-    # noinspection PyBroadException
-    try:
-        df = pd.read_csv(path, dtype={'id': np.int32, 'last_name': str, 'first_name': str}).fillna('')
-        for index, field_values in d.row_index_data_map.items():
-            for field, value in field_values.items():
-                df.at[index, field] = value
-        df.to_csv(path, index=False)
-    except BaseException as err:
-        result = 'failure'
-        details = str(err)
-
-    # Push commit
-    # todo?: Correct git status after change should show something like this near end: `modified: FILENAME`
-    relative_path = os.path.join('datasets', d.dataset_path)
-    # todo: Want to see result as string? only getting int: 1 / 0
-    #  ...answer: it's being printed to stderr and stdout. I remember there's some way to pipe and capture if needed
-    # TODO: What if the update resulted in no changes? e.g. changed values were same?
-    git_add_result = sp_call(f'git add {relative_path}'.split(), cwd=cset_dir)
-    if git_add_result != 0:
-        result = 'failure'
-        details = f'Error: Git add: {d.dataset_path}'
-    git_commit_result = sp_call(['git', 'commit', '-m', f'Updated by server: {relative_path}'], cwd=cset_dir)
-    if git_commit_result != 0:
-        result = 'failure'
-        details = f'Error: Git commit: {d.dataset_path}'
-    git_push_result = sp_call('git push origin HEAD:main'.split(), cwd=cset_dir)
-    if git_push_result != 0:
-        result = 'failure'
-        details = f'Error: Git push: {d.dataset_path}'
-
-    return {'result': result, 'details': details}
 
 
 def run(port: int = 8000):
