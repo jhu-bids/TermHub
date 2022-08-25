@@ -21,6 +21,7 @@ from pydantic import BaseModel
 
 from enclave_wrangler.config import config
 
+import jq
 
 PROJECT_DIR = Path(os.path.dirname(__file__)).parent
 CSETS_JSON_PATH = f'{PROJECT_DIR}/termhub-csets/temp/objects/OMOPConceptSet/latest.json'
@@ -200,18 +201,27 @@ def csets_read(field_filter: Union[List[str], None] = Query(default=None)) -> Un
         else:
             # TODO: Need to replace this with Python API. Otherwise, deployment will be harder and must global
             #  installation of JQ.
-            query = f"jq '.[] | .{field_filter[0]}' {CSETS_JSON_PATH}"
-            output, err = jq_wrapper(query)
-            if err:
-                return {'error': str('error')}
-            d = output.split('\n')
-            # x[1:-1]: What gets returned is a \n-delimited string of names, where each name is formatted
-            # as '"{NAME}"',so we need to remove the extra set of quotations.
-            # TODO: This operation likely needs to be done in a variety of cases, but I don't know JQ well enough to
-            #  anticipate all of the situations where this might arise. - joeflack4 2022/08/24
-            # todo: Is this List[str] preferable to List[Dict,? e.g. [{'conceptSetNameOMOP': 'HEART FAILURE'}, ...]?
-            d = [x[1:-1] for x in d]
-            return d
+            #  DONE
+
+            # query = f"jq '.[] | .{field_filter[0]}' {CSETS_JSON_PATH}"
+            query = f".[] | .{field_filter[0]}"
+
+            with open(CSETS_JSON_PATH, 'r') as f:
+                d = json.load(f)
+                result = jq.compile(query).input(d).all()
+                return result
+
+            # output, err = jq_wrapper(query)
+            # if err:
+            #     return {'error': str('error')}
+            # d = output.split('\n')
+            # # x[1:-1]: What gets returned is a \n-delimited string of names, where each name is formatted
+            # # as '"{NAME}"',so we need to remove the extra set of quotations.
+            # # TODO: This operation likely needs to be done in a variety of cases, but I don't know JQ well enough to
+            # #  anticipate all of the situations where this might arise. - joeflack4 2022/08/24
+            # # todo: Is this List[str] preferable to List[Dict,? e.g. [{'conceptSetNameOMOP': 'HEART FAILURE'}, ...]?
+            # d = [x[1:-1] for x in d]
+            # return d
     else:
         with open(CSETS_JSON_PATH, 'r') as f:
             d = json.load(f)
