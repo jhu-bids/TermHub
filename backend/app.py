@@ -6,7 +6,8 @@ Resources
 - jq python api docs: https://github.com/mwilliamson/jq.py
 """
 import json
-import os.path
+import os.path  # TODO: Siggie confused: are you supposed to use path.<method>(...) or os.path.<method>(...)?
+import errno
 from pathlib import Path
 from subprocess import PIPE, Popen, call as sp_call
 from typing import Any, Dict, List, Union
@@ -23,8 +24,11 @@ from enclave_wrangler.config import config
 
 import jq
 
+DEBUG = True
 PROJECT_DIR = Path(os.path.dirname(__file__)).parent
-CSETS_JSON_PATH = f'{PROJECT_DIR}/termhub-csets/temp/objects/OMOPConceptSet/latest.json'
+JSON_PATH = f'{PROJECT_DIR}/termhub-csets/temp/objects'
+CSETS_JSON_PATH = f'{JSON_PATH}/OMOPConceptSet/latest.json'
+
 app = FastAPI()
 app.add_middleware(
     CORSMiddleware,
@@ -43,6 +47,28 @@ def jq_wrapper(query: str):
     err = err.decode("utf-8")
     return output, err
 
+
+def json_path(objtype: str) -> str:
+    """ construct path for json file given an object type name, e.g., OMOPConceptSet """
+    jdir = f'{JSON_PATH}/{objtype}'
+    if os.path.isdir(jdir):
+        jpath = f'{jdir}/latest.json'
+        if os.path.isfile(jpath):
+            return jpath
+        else:
+            # from https://stackoverflow.com/a/36077407/1368860
+            raise FileNotFoundError(errno.ENOENT, os.strerror(errno.ENOENT), jpath)
+    else:
+        raise FileNotFoundError(errno.ENOENT, os.strerror(errno.ENOENT), jdir)
+
+
+def load_json(objtype: str) -> List[Dict]:
+    """ load json file given an object type name, e.g., OMOPConceptSet """
+    jpath = json_path(objtype)
+    with open(CSETS_JSON_PATH, 'r') as f:
+        d = json.load(f)
+        return d
+    return {'Error': f'failure in load_json({objtype}'}
 
 # Routes
 @app.get("/")
@@ -70,7 +96,7 @@ def passthru(path) -> [{}]:
     ontology_rid = config['ONTOLOGY_RID']
     api_path = f'/api/v1/ontologies/{ontology_rid}/{path}'
     url = f'https://{config["HOSTNAME"]}{api_path}'
-    print(f'ontocall: {api_path}\n{url}')
+    print(f'passthru: {api_path}\n{url}')
 
     try:
         response = requests.get(url, headers=headers)
@@ -82,7 +108,7 @@ def passthru(path) -> [{}]:
         return {'ERROR': str(err)}
 
 
-@app.get("/ontocall")
+@app.get("/ontocallOBSOLETE")   # TODO: still using ontocall anywhere? time to get rid of it?
 def ontocall(path) -> [{}]:
     """API documentation at
     https://www.palantir.com/docs/foundry/api/ontology-resources/objects/list-objects/
@@ -125,7 +151,7 @@ def ontocall(path) -> [{}]:
     #     api_names = sorted([
     #         t['apiName'] for t in data if t['apiName'].startswith('OMOP')])
     #     return api_names
-    # if path.startswith('objectTypes/'):
+    # if os.path.startswith('objectTypes/'):
     #     return json
     # return {'valid but unhandled path': path, 'json': json}
 
@@ -186,6 +212,28 @@ def cset_names() -> Union[Dict, List]:
     return csets_read(field_filter=['conceptSetNameOMOP'])
 
 
+@app.get("/fields-from-objlist")
+def fields_from_objlist(field: List[str] = Query(...), objtype: str = Query(...)) -> Union[Dict, List]:
+    """get one or more fields from specified object type"""
+    objlist = load_json(objtype)
+    query = objlistQuery(objlist, field)
+
+    if DEBUG:
+        jpath = json_path(objtype)
+        cmd = f"jq '{query}' {jpath}"
+        print(f'jq cmd:\n{cmd}')
+
+    result = jq.compile(query).input(objlist).all()
+    return result
+
+
+def objlistQuery(objlist: List[Dict], field: List[str]):
+    """ helper for fields_from_objlist"""
+    all_fields = jq.compile('.[0] | keys'). input(objlist).first()
+    ok_fields = [f for f in field if f in all_fields]
+    return '.[] | {' + ','.join(ok_fields) + '}'
+
+
 @app.get("/datasets/csets")
 def csets_read(field_filter: Union[List[str], None] = Query(default=None)) -> Union[Dict, List]:
     """Get concept sets
@@ -203,8 +251,9 @@ def csets_read(field_filter: Union[List[str], None] = Query(default=None)) -> Un
             #  installation of JQ.
             #  DONE
 
-            # query = f"jq '.[] | .{field_filter[0]}' {CSETS_JSON_PATH}"
             query = f".[] | .{field_filter[0]}"
+            cmd = f"jq '{query}' {CSETS_JSON_PATH}"
+            print(f'jq cmd:\n{cmd}')
 
             with open(CSETS_JSON_PATH, 'r') as f:
                 d = json.load(f)
