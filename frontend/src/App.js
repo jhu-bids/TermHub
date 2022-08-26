@@ -29,7 +29,7 @@ import { ReactQueryDevtools } from '@tanstack/react-query-devtools'
 import axios from "axios";
 const queryClient = new QueryClient()
 
-console.log(axios)
+// console.log(axios)
 // import logo from './logo.svg';
 // import Box from '@mui/joy/Box';
 /*
@@ -59,8 +59,6 @@ https://reactjs.org/docs/hooks-reference.html#conditionally-firing-an-effect
 OH!! Does that mean: without a dependency list, the useEffects function will run on every render?
 
 */
-const API_ROOT = 'http://127.0.0.1:8000'
-const enclave_url = path => `${API_ROOT}/passthru?path=${path}`
 
 function App() {
   let location = useLocation();
@@ -69,7 +67,7 @@ function App() {
     if (location.pathname == '/') {
       navigate('/OMOPConceptSets')
     }
-    console.log(location)
+    // console.log(location)
   }, [location])  // maybe not necessary to have location in dependencies
   return (
     <QueryClientProvider client={queryClient}>
@@ -110,7 +108,8 @@ function AboutPage() {
 }
 
 
-export {App, AboutPage, ConceptSets, ConceptSet, ConceptList};
+export {App, AboutPage, };
+
 /*
 function getObjLinks() {
   // https://www.palantir.com/docs/foundry/api/ontology-resources/objects/list-linked-objects
