@@ -8,6 +8,7 @@ filelock==3.7.1
 h11==0.13.0
 httptools==0.4.0
 idna==3.3
+jq==1.2.2
 numpy==1.23.1
 pandas==1.4.3
 pbr==5.9.0
