@@ -117,13 +117,14 @@ def fields_from_objlist(field: List[str] = Query(...), objtype: str = Query(...)
         get one or more fields from specified object type, example:
         http://127.0.0.1:8000/fields-from-objlist?field=conceptSetNameOMOP&field=codesetId&objtype=OMOPConceptSet
     """
+    objlist = load_json(objtype)
     query = objlistQuery(objlist, field)
     return jqQuery(objtype, query)
 
 
 def objlistQuery(objlist: List[Dict], field: List[str]):
     """ helper for fields_from_objlist"""
-    all_fields = jq.compile('.[0] | keys'). input(objlist).first()
+    all_fields = jq.compile('.[0] | keys').input(objlist).first()
     ok_fields = [f for f in field if f in all_fields]
     return '.[] | {' + ','.join(ok_fields) + '}'
 

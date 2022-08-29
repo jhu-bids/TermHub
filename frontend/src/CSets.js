@@ -31,6 +31,9 @@ function CSetsFromDisk(props) {
   let path = 'cset-versions';
   let url = backend_url(path)
   let navigate = useNavigate();
+
+  const [value, setValue] = useState([]);
+
   const { isLoading, error, data, isFetching } = useQuery([url], () =>
       axios
           .get(url)
@@ -41,15 +44,16 @@ function CSetsFromDisk(props) {
                   csetName.match(/^\d*$/) || // name is all digits
                   csetName.match(/^ /)       // name starts with space
               ) {
-                console.log(`deleting ${csetName}`)
+                // console.log(`deleting ${csetName}`)
                 delete res.data[0][csetName]
               //} else {
               // console.log(`keeping ${csetName}`)
               }
             })
-            //console.log(res)
-            return Object.entries(res.data[0]).map(([csetName,v], i) => ({label: csetName, version: v[0].version, codesetId: v[0].codesetId}))
-            //return res
+            // let data = Object.entries(res.data[0]).map(([csetName,v], i) => ({label: csetName, version: v[0].version, codesetId: v[0].codesetId}))
+            let data = Object.entries(res.data[0]).map(([csetName,v], i) => ({label: csetName + (v.length > 1 ? ` (${v.length} versions)` : ''), versions: v.map(d=>d.version).join(', ')}))
+            console.log(data)
+            return data
           })
   );
   if (isLoading) return "Loading...";
@@ -64,13 +68,26 @@ function CSetsFromDisk(props) {
 
   return  (
       <div>
-        <CSetsSelect data={data} />
+        <Autocomplete
+          multiple
+          disablePortal
+          onChange={(event, newValue) => {
+            setValue(newValue);
+          }}
+          id="combo-box-demo"
+          /* options={top100Films} */
+          options={data}
+          sx={{ width: 300 }}
+          renderInput={(params) => <TextField {...params} label="Concept set" />}
+        />
         {/* <AGtest rowData={data} rowCallback={csetCallback}/>
         <pre>
           {JSON.stringify(data, null, 4)}
         </pre>
         <p>I am supposed to be the results of <a href={url}>{url}</a></p>
         */}
+        <pre>selected value:
+            {JSON.stringify(value, null, 2)}</pre>
         <div>{isFetching ? "Updating..." : ""}</div>
         <ReactQueryDevtools initialIsOpen />
       </div>)
@@ -81,19 +98,7 @@ function CSetsFromDisk(props) {
   )
 }
 
-function CSetsSelect(props) {
-  let {data} = props
-  let csetChooser = <Autocomplete
-                        disablePortal
-                        id="combo-box-demo"
-                        /* options={top100Films} */
-                        options={data}
-                        sx={{ width: 300 }}
-                        renderInput={(params) => <TextField {...params} label="Concept set" />}
-                      />
-  return csetChooser
-
-  {/*
+  /*
       want to group by cset name and then list version. use https://mui.com/material-ui/react-autocomplete/ Grouped
       and also use Multiple Values
   <Autocomplete
@@ -104,8 +109,7 @@ function CSetsSelect(props) {
   sx={{ width: 300 }}
   renderInput={(params) => <TextField {...params} label="With categories" />}
 />
-  */}
-}
+  */
 
 const API_ROOT = 'http://127.0.0.1:8000'
 const enclave_url = path => `${API_ROOT}/passthru?path=${path}`
