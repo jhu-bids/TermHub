@@ -26,6 +26,7 @@ import Autocomplete from '@mui/material/Autocomplete';
 import { Link, Outlet, useHref, useNavigate, useParams, useSearchParams, useLocation } from "react-router-dom";
 import React, {useState, useReducer, useEffect, useRef} from 'react';
 
+// TODO: constantly says 'loading
 function CSetsFromDisk(props) {
   // let path = 'concept-set-names';
   let path = 'cset-versions';
@@ -114,36 +115,178 @@ function CSetsFromDisk(props) {
 const API_ROOT = 'http://127.0.0.1:8000'
 const enclave_url = path => `${API_ROOT}/passthru?path=${path}`
 const backend_url = path => `${API_ROOT}/${path}`
+// let url_concept_sets = enclave_url('objects/OMOPConceptSet')
+let url_concept_sets = backend_url('datasets/csets')
 
-function ConceptSets(props) {
-  let path = 'objects/OMOPConceptSet';
-  let url = enclave_url(path)
+
+// TODO: Fix
+// Uncaught Error: Objects are not valid as a React child (found: [object Promise]). If you meant to render a collection of children, use an array instead.
+//  Uncaught (in promise) TypeError: Cannot read properties of null (reading 'useContext')
+async function ConceptSets(props) {
+  let url = url_concept_sets
   let navigate = useNavigate();
-  const { isLoading, error, data, isFetching } = useQuery([url], () =>
-      axios
-          .get(url)
-          .then((res) => res.data.data.map(d => d.properties))
-  );
-  if (isLoading) return "Loading...";
-
-  if (error) return "An error has occurred: " + error.message;
+  // https://stackoverflow.com/questions/69085220/axios-get-function-returns-a-promise-in-react
+  const fetchData = async(url) => {
+    return await axios.get(url).then(res => res.data);
+  }
+  const data = await fetchData(url);
+  // const data = await axios
+  //   .get(url)
+  //   .then((res) => res.data )  // res.data.map(d => d.properties)
+  // todo: Add this back one day because it's probably better. But for some reason setting breakpoint didn't work
+  //  ...after I fixed the data.data.map -> data.map issue. And this was returning 'undefined' for `data`.
+  //  - Problem 1: However later on, there was an object `rowData` with correct number of rows, but all of the rows were
+  //  ...undefined. I tried making the function `async function ConceptSets` and `await useQuery` but didn't help.
+  //  - Problem 2: Uncaught Error: Objects are not valid as a React child (found: [object Promise]).
+  //  If you meant to render a collection of children, use an array instead.
+  // const {isLoading, error, data, isFetching} = await useQuery([url], () =>
+  //   axios
+  //   .get(url)
+  //   .then((res) => res.data))
+  //   // .then((res) => res.data.map(d => d.properties)))
+  // if (isLoading) return "Loading...";
+  // if (error) {
+  //   const err = "An error has occurred: " + error.message;
+  //   console.error(err)
+  //   return err
+  // }
   async function csetCallback(props) {
     let {rowData, colClicked} = props
     navigate(`/OMOPConceptSet/${rowData.codesetId}`)
   }
 
-  return  (
-      <div>
-        <AGtest rowData={data} rowCallback={csetCallback}/>
-        <pre>
-        {JSON.stringify({data}, null, 4)}
+  return (
+    <div>
+      <AGtest rowData={data} rowCallback={csetCallback}/>
+      <pre>
+          {JSON.stringify({data}, null, 4)}
       </pre>
-        <div>{isFetching ? "Updating..." : ""}</div>
-        <p>I am supposed to be the results of <a href={url}>{url}</a></p>
-        <ReactQueryDevtools initialIsOpen />
-      </div>)
+      {/*<div>{isFetching ? "Updating..." : ""}</div>*/}
+      <p>I am supposed to be the results of <a href={url}>{url}</a></p>
+      <ReactQueryDevtools initialIsOpen/>
+    </div>)
 }
 
+// ConceptSets attempt
+// Got 'undefined' for conceptsData. Constantly in state of 'FETCHING'
+// const useFetch = (url) => {
+//   const cache = useRef({});
+//   const initialState = {
+//     status: 'idle',
+//     error: null,
+//     data: [],
+//   };
+//   const [state, dispatch] = useReducer((state, action) => {
+//     console.log(action, state)
+//     switch (action.type) {
+//       case 'FETCHING':
+//         return { ...initialState, status: 'fetching' };
+//       case 'FETCHED':
+//         return { ...initialState, status: 'fetched', data: action.payload };
+//       case 'FETCH_ERROR':
+//         return { ...initialState, status: 'error', error: action.payload };
+//       default:
+//         return state;
+//     }
+//   }, initialState);
+//
+//   /* useEffect: 2 params: (1) what to do / function, (2) list of observables that trigger
+//   * If has only 1 param, only runs once component is mounted. */
+//   useEffect(() => {
+//     let cancelRequest = false;
+//     if (!url) return;
+//
+//     const fetchData = async () => {
+//       console.log(`about to fetch ${url}`)
+//       dispatch({ type: 'FETCHING' });
+//       if (cache.current[url]) {
+//         const data = cache.current[url];
+//         dispatch({ type: 'FETCHED', payload: data });
+//       } else {
+//         try {
+//           const response = await fetch(url);
+//           const data = await response.json();
+//           cache.current[url] = data;
+//           if (cancelRequest) return;
+//           dispatch({ type: 'FETCHED', payload: data });
+//           // console.log('dispatched', data)
+//         } catch (error) {
+//           if (cancelRequest) return;
+//           dispatch({ type: 'FETCH_ERROR', payload: error.message });
+//         }
+//       }
+//     };
+//     fetchData();
+//     return function cleanup() {
+//       cancelRequest = true;
+//     };
+//   }, [url]);
+//
+//   console.log('useFetch returning', state )
+//   return state
+// };
+// function ConceptSets(props) {
+//   let { conceptId } = useParams();
+//   function makeApiUrl() {
+//     // don't hard code the prefix!! and then
+//     return url_concept_sets
+//   }
+//   const [apiUrl, setApiUrl] = useState(makeApiUrl());
+//   const [displayData, setDisplayData] = useState([]);
+//   const { conceptsData } = useFetch(apiUrl);
+//   /* useEffect: 2 params: (1) what to do / function, (2) list of observables that trigger
+//   * If has only 1 param, only runs once component is mounted. */
+//   useEffect(() => {
+//     console.log('conceptsData:')
+//     console.log(conceptsData)
+//     if (!conceptsData) {
+//       return;
+//     }
+//     setDisplayData([
+//       {field: 'testing', value: '123'},
+//     ])
+//   }, [conceptsData]);
+//   return (
+//       <div>
+//         <List>
+//           <ListItem><b>Foo:</b>&nbsp;Bar<br/></ListItem>
+//           {
+//             displayData.map(({field, value}) =>
+//               <ListItem key={field}><b>{field}:</b>&nbsp; {value}<br/></ListItem>
+//             )
+//           }
+//         </List>
+//         <Outlet/>
+//         <pre>getting codesetId {conceptId} from <a href={apiUrl}>{apiUrl}</a></pre>
+//       </div>
+//   )
+// }
+
+// ConceptSets attempt
+// Err (see useState below; probably the cause): Uncaught Error: Objects are not valid as a React child (found: [object Promise]). If you meant to render a collection of children, use an array instead.
+// https://www.freecodecamp.org/news/how-to-use-axios-with-react/
+// async function ConceptSets(props) {
+//   let url = url_concept_sets
+//   // Err: Uncaught (in promise) TypeError: Cannot read properties of null (reading 'useState')
+//   const [post, setPost] = useState();
+//
+//   useEffect(() => {
+//     axios.get(url).then((response) => {
+//       setPost(response.data);
+//     });
+//   }, [url]);
+//
+//   if (!post) return null;
+//
+//   return (
+//     <div>
+//       {/*{post}*/}
+//       hello
+//     </div>
+//   );
+// }
+
+// TODO: Constantly in state 'loding' / 'isFetching'
 function ConceptSet(props) {
   let {conceptId} = useParams();
   let path = `objects/OMOPConceptSet/${conceptId}`
@@ -184,6 +327,7 @@ function ConceptSet(props) {
     {/*<ReactQueryDevtools initialIsOpen />*/}
   </div>
 }
+
 function ConceptList(props) {
   let params = useParams();
   let {conceptId} = params;
@@ -206,8 +350,7 @@ function ConceptList(props) {
 // TODO: @Joe: work on this table: it calls using enclave_wrangler. but I need to change this to pull from the Flask
 //  API from disk.
 function ConceptSetsTable(props) {
-  let path = 'objects/OMOPConceptSet';
-  let url = enclave_url(path)
+  let url = url_concept_sets
   let navigate = useNavigate();
   const { isLoading, error, data, isFetching } = useQuery([url], () =>
       axios
