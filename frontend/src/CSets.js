@@ -32,7 +32,7 @@ function CSetsFromDisk(props) {
   let url = backend_url(path)
   let navigate = useNavigate();
 
-  const [value, setValue] = useState([]);
+  const [csets, setCSets] = useState([]);
 
   const { isLoading, error, data, isFetching } = useQuery([url], () =>
       axios
@@ -51,7 +51,16 @@ function CSetsFromDisk(props) {
               }
             })
             // let data = Object.entries(res.data[0]).map(([csetName,v], i) => ({label: csetName, version: v[0].version, codesetId: v[0].codesetId}))
-            let data = Object.entries(res.data[0]).map(([csetName,v], i) => ({label: csetName + (v.length > 1 ? ` (${v.length} versions)` : ''), versions: v.map(d=>d.version).join(', ')}))
+            let data = Object.entries(res.data[0]).map(
+                ([csetName,v], i) => {
+                  v = v.sort((a,b) => a.version - b.version)
+                  return {
+                        label: csetName + (v.length > 1 ? ` (${v.length} versions)` : ''),
+                        versions: v.map(d=>d.version).join(', '),
+                        v,
+                        latest: v.at(-1),
+                      }
+                })
             console.log(data)
             return data
           })
@@ -72,7 +81,7 @@ function CSetsFromDisk(props) {
           multiple
           disablePortal
           onChange={(event, newValue) => {
-            setValue(newValue);
+            setCSets(newValue);
           }}
           id="combo-box-demo"
           /* options={top100Films} */
@@ -81,21 +90,19 @@ function CSetsFromDisk(props) {
           renderInput={(params) => <TextField {...params} label="Concept set" />}
         />
         {/* <AGtest rowData={data} rowCallback={csetCallback}/>
-        <pre>
-          {JSON.stringify(data, null, 4)}
-        </pre>
         <p>I am supposed to be the results of <a href={url}>{url}</a></p>
         */}
-        <pre>selected value:
-            {JSON.stringify(value, null, 2)}</pre>
+        <div>
+          {
+            csets.map(cset => {
+              // return <ListItem key={cset.label}><b>{cset.label}</b>&nbsp; <pre>{JSON.stringify(cset, null, 2)}:</pre></ListItem>
+              return <ConceptSet key={cset.label} conceptId={cset.latest.codesetId} />
+            })
+          }
+        </div>
         <div>{isFetching ? "Updating..." : ""}</div>
         <ReactQueryDevtools initialIsOpen />
       </div>)
-  return (
-    <div>
-      <h3>not doing anything yet</h3>
-    </div>
-  )
 }
 
   /*
@@ -145,7 +152,11 @@ function ConceptSets(props) {
 }
 
 function ConceptSet(props) {
-  let {conceptId} = useParams();
+  let {_conceptId} = useParams();
+  const [conceptId, setConceptId] = useState(_conceptId || props['conceptId'])
+  useEffect(() => {
+    setConceptId(_conceptId || props['conceptId'])
+  }, [props, _conceptId]);
   let path = `objects/OMOPConceptSet/${conceptId}`
   let url = enclave_url(path)
   const { isLoading, error, data, isFetching } = useQuery([path], () =>
