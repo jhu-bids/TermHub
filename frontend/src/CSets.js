@@ -17,7 +17,7 @@ TODO's
 */
 import {useQuery} from "@tanstack/react-query";
 import axios from "axios";
-import AGtest from "./aggrid-test";
+import Table from "./Table";
 import {ReactQueryDevtools} from "@tanstack/react-query-devtools";
 import List from "@mui/material/List";
 import ListItem from "@mui/material/ListItem";
@@ -26,83 +26,125 @@ import Autocomplete from '@mui/material/Autocomplete';
 import { Link, Outlet, useHref, useNavigate, useParams, useSearchParams, useLocation } from "react-router-dom";
 import React, {useState, useReducer, useEffect, useRef} from 'react';
 
-function CSetsFromDisk(props) {
+/* CsetSEarch: Grabs stuff from disk*/
+/* TODO: Solve:
+    react_devtools_backend.js:4026 MUI: The value provided to Autocomplete is invalid.
+    None of the options match with `[{"label":"11-Beta Hydroxysteroid Dehydrogenase Inhibitor","codesetId":584452082},{"label":"74235-3 (Blood type)","codesetId":761463499}]`.
+    You can use the `isOptionEqualToValue` prop to customize the equality test.
+* */
+function CsetSearch(props) {
   // let path = 'concept-set-names';
   let path = 'cset-versions';
   let url = backend_url(path)
+  // TODO: something like: http://localhost:3000/OMOPConceptSets?selected=7577017,7577017
   let navigate = useNavigate();
-
+  let defaultOptionsTest = [
+    {"label": "11-Beta Hydroxysteroid Dehydrogenase Inhibitor", "codesetId": 584452082},
+    {"label": "74235-3 (Blood type)", "codesetId": 761463499}
+  ]
   const [csets, setCSets] = useState([]);
+  const [value, setValue] = React.useState();
+  const [inputValue, setInputValue] = React.useState('');
 
   const { isLoading, error, data, isFetching } = useQuery([url], () =>
-      axios
-          .get(url)
-          .then((res) => {
-            Object.keys(res.data[0]).forEach(csetName => {
-              // delete junk concept set names
-              if (csetName === 'null'             || // no name
-                  csetName.match(/^\d*$/) || // name is all digits
-                  csetName.match(/^ /)       // name starts with space
-              ) {
-                // console.log(`deleting ${csetName}`)
-                delete res.data[0][csetName]
-              //} else {
-              // console.log(`keeping ${csetName}`)
-              }
-            })
-            // let data = Object.entries(res.data[0]).map(([csetName,v], i) => ({label: csetName, version: v[0].version, codesetId: v[0].codesetId}))
-            let data = Object.entries(res.data[0]).map(
-                ([csetName,v], i) => {
-                  v = v.sort((a,b) => a.version - b.version)
-                  return {
-                        label: csetName + (v.length > 1 ? ` (${v.length} versions)` : ''),
-                        versions: v.map(d=>d.version).join(', '),
-                        v,
-                        latest: v.at(-1),
-                      }
-                })
-            console.log(data)
-            return data
+    axios
+      .get(url)
+      .then((res) => {
+        Object.keys(res.data[0]).forEach(csetName => {
+          // delete junk concept set names
+          if (csetName === 'null'             || // no name
+              csetName.match(/^\d*$/) || // name is all digits
+              csetName.match(/^ /)       // name starts with space
+          ) {
+            delete res.data[0][csetName]
+          }
+        })
+        // let data = Object.entries(res.data[0]).map(([csetName,v], i) => ({label: csetName, version: v[0].version, codesetId: v[0].codesetId}))
+        let data = Object.entries(res.data[0]).map(
+          ([csetName,v], i) => {
+            v = v.sort((a,b) => a.version - b.version)
+            return {
+              label: csetName + (v.length > 1 ? ` (${v.length} versions)` : ''),
+              codesetId: v.at(-1).codesetId
+              // versions: v.map(d=>d.version).join(', '),
+              // v,
+              // latest: v.at(-1),
+            }
           })
+        return data
+      })
   );
-  if (isLoading) return "Loading...";
-
+  if (isLoading) {
+    return "Loading...";
+  }
+  if (data && !value) {
+    setValue(defaultOptionsTest)
+  }
   if (error) return "An error has occurred: " + error.message;
-  /*
-  async function csetCallback(props) {
+  /* async function csetCallback(props) {
     let {rowData, colClicked} = props
     navigate(`/OMOPConceptSet/${rowData.codesetId}`)
-  }
-  */
+  } */
 
-  return  (
-      <div>
-        <Autocomplete
-          multiple
-          disablePortal
-          onChange={(event, newValue) => {
-            setCSets(newValue);
-          }}
-          id="combo-box-demo"
-          /* options={top100Films} */
-          options={data}
-          sx={{ width: 300 }}
-          renderInput={(params) => <TextField {...params} label="Concept set" />}
-        />
-        {/* <AGtest rowData={data} rowCallback={csetCallback}/>
-        <p>I am supposed to be the results of <a href={url}>{url}</a></p>
-        */}
-        <div>
-          {
-            csets.map(cset => {
-              // return <ListItem key={cset.label}><b>{cset.label}</b>&nbsp; <pre>{JSON.stringify(cset, null, 2)}:</pre></ListItem>
-              return <ConceptSet key={cset.label} conceptId={cset.latest.codesetId} />
-            })
-          }
-        </div>
-        <div>{isFetching ? "Updating..." : ""}</div>
-        <ReactQueryDevtools initialIsOpen />
-      </div>)
+  return (
+    <div>
+      {/* https://mui.com/material-ui/react-autocomplete/ */}
+      {/* New way: manual state control; gets values from URL */}
+      <span>New way</span>
+      <Autocomplete
+        multiple
+        disablePortal
+
+        value={value}
+        // onChange={(event, newValue) => {
+        //   setCSets(newValue);
+        //   console.log(csets);
+        // }}
+        onChange={(event, newValue) => {
+          setValue(newValue);
+        }}
+        inputValue={inputValue}
+        onInputChange={(event, newInputValue) => {
+          setInputValue(newInputValue);
+        }}
+
+        id="combo-box-demo-new"
+        /* options={top100Films} */
+        options={data}
+        sx={{ width: 300 }}
+        renderInput={(params) => <TextField {...params} label="Concept set" />}
+      />
+
+      {/* Old way: doesn't get values from URL; automatic state control */}
+      <span>Old way</span>
+      <Autocomplete
+        multiple
+        disablePortal
+        onChange={(event, newValue) => {
+          setCSets(newValue);
+        }}
+        id="combo-box-demo"
+        /* options={top100Films} */
+        options={data}
+        sx={{ width: 300 }}
+        renderInput={(params) => <TextField {...params} label="Concept set" />}
+      />
+
+      {/* <AGtest rowData={data} rowCallback={csetCallback}/>
+      <p>I am supposed to be the results of <a href={url}>{url}</a></p>
+      */}
+      {/* Concept set property list: */}
+      {/*<div>*/}
+      {/*  {*/}
+      {/*    csets.map(cset => {*/}
+      {/*      // return <ListItem key={cset.label}><b>{cset.label}</b>&nbsp; <pre>{JSON.stringify(cset, null, 2)}:</pre></ListItem>*/}
+      {/*      return <ConceptSet key={cset.label} conceptId={cset.latest.codesetId} />*/}
+      {/*    })*/}
+      {/*  }*/}
+      {/*</div>*/}
+      {/*<div>{isFetching ? "Updating..." : ""}</div>*/}
+      <ReactQueryDevtools initialIsOpen />
+    </div>)
 }
 
   /*
@@ -127,9 +169,9 @@ function ConceptSets(props) {
   let url = enclave_url(path)
   let navigate = useNavigate();
   const { isLoading, error, data, isFetching } = useQuery([url], () =>
-      axios
-          .get(url)
-          .then((res) => res.data.data.map(d => d.properties))
+    axios
+      .get(url)
+      .then((res) => res.data.data.map(d => d.properties))
   );
   if (isLoading) return "Loading...";
 
@@ -139,9 +181,11 @@ function ConceptSets(props) {
     navigate(`/OMOPConceptSet/${rowData.codesetId}`)
   }
 
-  return  (
+  return (
       <div>
-        <AGtest rowData={data} rowCallback={csetCallback}/>
+        {/*TODO: ADD AUTOCOMPLETE WIGET */}
+        <CsetSearch/>
+        <Table rowData={data} rowCallback={csetCallback}/>
         <pre>
         {JSON.stringify({data}, null, 4)}
       </pre>
@@ -160,9 +204,9 @@ function ConceptSet(props) {
   let path = `objects/OMOPConceptSet/${conceptId}`
   let url = enclave_url(path)
   const { isLoading, error, data, isFetching } = useQuery([path], () =>
-      axios
-          .get(url)
-          .then((res) => {
+    axios
+      .get(url)
+      .then((res) => {
             let csetData = res.data.properties;
             return [
               {field: 'Code set ID', value: csetData.codesetId},
@@ -183,18 +227,14 @@ function ConceptSet(props) {
     <List>
       {
         data.map(({field, value}) =>
-                     <ListItem key={field}><b>{field}:</b>&nbsp; {value}<br/></ListItem>
+           <ListItem key={field}><b>{field}:</b>&nbsp; {value}<br/></ListItem>
         )
       }
     </List>
     <ConceptList />
-    {/*nothing here yet except*/}
-    {/*<pre>*/}
-    {/*  {JSON.stringify({data}, null, 4)}*/}
-    {/*</pre>*/}
-    {/*<ReactQueryDevtools initialIsOpen />*/}
   </div>
 }
+
 function ConceptList(props) {
   let params = useParams();
   let {conceptId} = params;
@@ -205,7 +245,7 @@ function ConceptList(props) {
           .get(url)
           .then((res) => res.data.data.map(d => d.properties)) )
   return <div>
-    <AGtest rowData={data} />
+    <Table rowData={data} />
     {/*rowCallback={csetCallback}/>*/}
     <p>you want to see concepts for {conceptId}?</p>
     <pre>
@@ -235,7 +275,7 @@ function ConceptSetsTable(props) {
 
   return  (
     <div>
-      <AGtest rowData={data} rowCallback={csetCallback}/>
+      <Table rowData={data} rowCallback={csetCallback}/>
       <pre>
         {JSON.stringify({data}, null, 4)}
       </pre>
@@ -245,7 +285,7 @@ function ConceptSetsTable(props) {
     </div>)
 }
 
-export {ConceptSets, CSetsFromDisk, ConceptSet, ConceptList};
+export {ConceptSets, CsetSearch, ConceptSet, ConceptList};
 
 // const top100Films = [
 //   { label: 'The Shawshank Redemption', year: 1994 },

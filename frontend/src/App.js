@@ -12,7 +12,7 @@ import { Link, Outlet, useHref, useNavigate, useParams, useSearchParams, useLoca
 import MuiAppBar from "./MuiAppBar";
 import List from '@mui/material/List';
 import ListItem from '@mui/material/ListItem';
-import AGtest from "./aggrid-test";   // name should be changed because it's no longer just test code
+import Table from "./Table";   // name should be changed because it's no longer just test code
 import RRD from "react-router-dom";
 
 import {
