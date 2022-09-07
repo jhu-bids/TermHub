@@ -194,7 +194,6 @@ function ConceptSets(props) {
       <div>
         {/*TODO: ADD AUTOCOMPLETE WIGET */}
         <CsetSearch/>
-        <pre></pre>
         {
           isLoading && "Loading..." ||
           error && `An error has occurred: ${error.stack}` ||
@@ -210,48 +209,24 @@ function ConceptSets(props) {
           //<ReactQueryDevtools initialIsOpen />
         }
         <Table rowData={data} rowCallback={csetCallback}/>
+        {
+          data.map(cset => {
+            return <ConceptSet key={cset.codesetId} cset={cset} />
+          })
+        }
         <p>I am supposed to be the results of <a href={url}>{url}</a></p>
       </div>)
 }
 
 function ConceptSet(props) {
-  let {_conceptId} = useParams();
-  const [conceptId, setConceptId] = useState(_conceptId || props['conceptId'])
-  useEffect(() => {
-    setConceptId(_conceptId || props['conceptId'])
-  }, [props, _conceptId]);
-  let path = `objects/OMOPConceptSet/${conceptId}`
-  let url = enclave_url(path)
-  const { isLoading, error, data, isFetching } = useQuery([path], () =>
-    axios
-      .get(url)
-      .then((res) => {
-            let csetData = res.data.properties;
-            return [
-              {field: 'Code set ID', value: csetData.codesetId},
-              {field: 'Created at', value: csetData.createdAt},
-              {field: 'Version title', value: csetData.conceptSetVersionTitle},
-              {field: 'Is most recent version', value: csetData.isMostRecentVersion},
-              {field: 'Intention', value: csetData.intention},
-              {field: 'Update message', value: csetData.updateMessage},
-              {field: 'Provenance', value: csetData.provenance},
-              {field: 'Limitations', value: csetData.limitations},
-            ]
-          })
-  );
-
-  if (isLoading) return `Loading... (isFetching: ${JSON.stringify(isFetching)}`;
-  if (error) return `An error has occurred with ${<a href={url}>{url}</a>}: ` + error.message;
-  return <div>
-    <List>
-      {
-        data.map(({field, value}) =>
-           <ListItem key={field}><b>{field}:</b>&nbsp; {value}<br/></ListItem>
-        )
-      }
-    </List>
-    <ConceptList />
-  </div>
+  console.log('ConceptSet props', props)
+  let {cset} = props;
+  return (
+      <div>
+        <strong>{cset.conceptSetNameOMOP} v{cset.version}</strong>
+        {/* <ConceptList />   --- should get this data here or through props? */}
+      </div>
+  )
 }
 
 function ConceptList(props) {
@@ -295,39 +270,40 @@ function ConceptList(props) {
 
 /*
 // TODO: @Joe: work on this table: it calls using enclave_wrangler. but I need to change this to pull from the Flask
-    do we still need this?
+do we still need this?
 //  API from disk.
+
 function ConceptSetsTable(props) {
-  let path = 'objects/OMOPConceptSet';
-  let url = enclave_url(path)
-  let navigate = useNavigate();
-  const { isLoading, error, data, isFetching } = useQuery([url], () =>
-      axios
-          .get(url)
-          .then((res) => res.data.data.map(d => d.properties))
-  );
-  if (isLoading) return "Loading...";
+let path = 'objects/OMOPConceptSet';
+let url = enclave_url(path)
+let navigate = useNavigate();
+const { isLoading, error, data, isFetching } = useQuery([url], () =>
+axios
+  .get(url)
+  .then((res) => res.data.data.map(d => d.properties))
+);
+if (isLoading) return "Loading...";
 
-  if (error) return "An error has occurred: " + error.message;
-  async function csetCallback(props) {
-    let {rowData, colClicked} = props
-    navigate(`/OMOPConceptSet/${rowData.codesetId}`)
-  }
+if (error) return "An error has occurred: " + error.message;
+async function csetCallback(props) {
+let {rowData, colClicked} = props
+navigate(`/OMOPConceptSet/${rowData.codesetId}`)
+}
 
-  return  (
-    <div>
-      <Table rowData={data} rowCallback={csetCallback}/>
-      <pre>
-        {JSON.stringify({data}, null, 4)}
-      </pre>
-      <div>{isFetching ? "Updating..." : ""}</div>
-      <p>I am supposed to be the results of <a href={url}>{url}</a></p>
-      <ReactQueryDevtools initialIsOpen />
-    </div>)
+return  (
+<div>
+<Table rowData={data} rowCallback={csetCallback}/>
+<pre>
+{JSON.stringify({data}, null, 4)}
+</pre>
+<div>{isFetching ? "Updating..." : ""}</div>
+<p>I am supposed to be the results of <a href={url}>{url}</a></p>
+<ReactQueryDevtools initialIsOpen />
+</div>)
 }
 */
 
-export {ConceptSets, CsetSearch, ConceptSet, ConceptList};
+export {ConceptSets, CsetSearch, ConceptList};
 
 // const top100Films = [
 //   { label: 'The Shawshank Redemption', year: 1994 },
@@ -456,3 +432,38 @@ export {ConceptSets, CsetSearch, ConceptSet, ConceptList};
 //   { label: 'Monty Python and the Holy Grail', year: 1975 },
 // ];
 //
+/* function ConceptSet(props) {
+  let {conceptId} = props;
+  let path = `objects/OMOPConceptSet/${conceptId}`
+  let url = enclave_url(path)
+  const { isLoading, error, data, isFetching } = useQuery([path], () =>
+      axios
+          .get(url)
+          .then((res) => {
+            let csetData = res.data.properties;
+            return [
+              {field: 'Code set ID', value: csetData.codesetId},
+              {field: 'Created at', value: csetData.createdAt},
+              {field: 'Version title', value: csetData.conceptSetVersionTitle},
+              {field: 'Is most recent version', value: csetData.isMostRecentVersion},
+              {field: 'Intention', value: csetData.intention},
+              {field: 'Update message', value: csetData.updateMessage},
+              {field: 'Provenance', value: csetData.provenance},
+              {field: 'Limitations', value: csetData.limitations},
+            ]
+          })
+  );
+
+  if (isLoading) return `Loading... (isFetching: ${JSON.stringify(isFetching)}`;
+  if (error) return `An error has occurred with ${<a href={url}>{url}</a>}: ` + error.message;
+  return <div>
+    <List>
+      {
+        data.map(({field, value}) =>
+                     <ListItem key={field}><b>{field}:</b>&nbsp; {value}<br/></ListItem>
+        )
+      }
+    </List>
+    <ConceptList />
+  </div>
+} */

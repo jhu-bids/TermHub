@@ -73,7 +73,12 @@ const Table = (props) => {
       <button onClick={buttonListener}>Push Me</button>
 
       {/* On div wrapping Grid a) specify theme CSS Class Class and b) sets Grid size */}
-      <div className="ag-theme-alpine" style={{width: '100%', height: window.innerHeight * .8}}>
+      <div className="ag-theme-alpine"
+            style={{
+              width: '95%',
+              height: rowData ? rowData.length * 75 : 100,
+              //height: window.innerHeight * .8
+            }}>
 
         <AgGridReact
             ref={gridRef} // Ref for accessing Grid's API

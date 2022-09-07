@@ -4,7 +4,7 @@ import { BrowserRouter, Routes, Route, matchPath } from "react-router-dom";
 
 import './index.css';
 import {App, AboutPage, EnclaveOntoAPI, } from './App';
-import {ConceptSets, ConceptSet, CsetSearch, ConceptList } from './CSets';
+import {ConceptSets, CsetSearch, ConceptList } from './CSets';
 import MuiAppBar from './MuiAppBar';
 import Table from './Table'
 // script src="http://localhost:8097"></script>
@@ -22,12 +22,12 @@ root.render(
         <Route path="/" element={<App />}>
           {/*<Route path="ontocall" element={<EnclaveOntoAPI />} />*/}
           <Route path="csets-from-disk" element={<CsetSearch/>} />
-          <Route path="csets-from-disk/:conceptId" element={<ConceptSet />} />
+          {/* <Route path="csets-from-disk/:conceptId" element={<ConceptSet />} /> */}
           <Route path="OMOPConceptSets" element={<ConceptSets />} />
           <Route path="about" element={<AboutPage />} />
           <Route path="testing" element={<Testing />} />
-          <Route path="OMOPConceptSet/:conceptId" element={<ConceptSet />} />
-            {/*<Route path=":conceptId" element={<ConceptList />}/>*/}
+          {/* <Route path="OMOPConceptSet/:conceptId" element={<OldConceptSet />} /> */}
+          {/*<Route path=":conceptId" element={<ConceptList />}/>*/}
           <Route path="*"  element={<ErrorPath/>} />
         </Route>
       </Routes>
