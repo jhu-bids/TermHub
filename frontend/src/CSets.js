@@ -206,13 +206,15 @@ function ConceptSets(props) {
              */
             //"hiding ConceptList and cset tables" ||
           data && (<div>
-                    <Table rowData={data} rowCallback={csetCallback}/>
-                    <ConceptList />
+                    {/*Concepts: */}
+                    {/*<ConceptList />*/}
+                    {/*Concept sets: */}
+                    {/*<Table rowData={data} rowCallback={csetCallback}/>*/}
                   </div>)
           //<ReactQueryDevtools initialIsOpen />
         }
         {
-          data && data.map(cset => {
+          (codesetIds.length > 0) && data && data.map(cset => {
             return <ConceptSet key={cset.codesetId} cset={cset} />
           })
         }
@@ -253,7 +255,7 @@ function ConceptList(props) {
       //return {isLoading: false, error: null, data: [], isFetching: false}
     //}
   });
-  console.log('rowData', data)
+  // console.log('rowData', data)
   return  <div>
             <h4>Concepts:</h4>
             <Table rowData={data} />
