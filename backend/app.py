@@ -26,7 +26,7 @@ import jq
 
 DEBUG = True
 PROJECT_DIR = Path(os.path.dirname(__file__)).parent
-JSON_PATH = f'{PROJECT_DIR}/termhub-csets/temp/objects'
+JSON_PATH = f'{PROJECT_DIR}/termhub-csets/objects'
 CSETS_JSON_PATH = f'{JSON_PATH}/OMOPConceptSet/latest.json'
 
 app = FastAPI()
