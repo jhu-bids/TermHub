@@ -192,7 +192,6 @@ function ConceptSets(props) {
 
   return (
       <div>
-        {/*TODO: ADD AUTOCOMPLETE WIGET */}
         <CsetSearch/>
         {
           isLoading && "Loading..." ||
@@ -205,12 +204,14 @@ function ConceptSets(props) {
                     .... </pre>) ||
             //"data not anything"
              */
-          data && <ConceptList />
+          data && (<div>
+                    <ConceptList />
+                    <Table rowData={data} rowCallback={csetCallback}/>
+                  </div>)
           //<ReactQueryDevtools initialIsOpen />
         }
-        <Table rowData={data} rowCallback={csetCallback}/>
         {
-          data.map(cset => {
+          data && data.map(cset => {
             return <ConceptSet key={cset.codesetId} cset={cset} />
           })
         }
