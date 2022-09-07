@@ -24,6 +24,9 @@ import {
 } from '@tanstack/react-query'
 import { ReactQueryDevtools } from '@tanstack/react-query-devtools'
 
+import { createGlobalState } from 'react-hooks-global-state';
+import _ from 'lodash';
+
 // wanting to install react-query and axios and use those for data fetch/cache/etc.
 //  is this helpful? https://blog.openreplay.com/fetching-and-updating-data-with-react-query
 import axios from "axios";
@@ -60,19 +63,46 @@ OH!! Does that mean: without a dependency list, the useEffects function will run
 
 */
 
+const { useGlobalState } = createGlobalState({qsParams:[], syncedToQs: false});
+
 function App() {
-  let location = useLocation();
-  let navigate = useNavigate();
+  const location = useLocation();
+  const navigate = useNavigate();
+  //const [syncedToQs, setSyncedToQs] = useGlobalState('syncedToQs');
+  const [qsParams, setQsParams] = useGlobalState('qsParams');
+  const [searchParams, setSearchParams] = useSearchParams();
+
   useEffect(() => {
     if (location.pathname == '/') {
       navigate('/OMOPConceptSets')
     }
     // console.log(location)
   }, [location])  // maybe not necessary to have location in dependencies
+
+  let qsKeys = Array.from(new Set(searchParams.keys()))
+  let o = {}
+  qsKeys.forEach(key => {
+    let vals = searchParams.getAll(key)
+    o[key] = vals.map(v => parseInt(v) == v ? parseInt(v) : v).sort()
+  })
+  // console.log('syncing to qsParams', o)
+  useEffect(() => {
+    _.isEqual(qsParams, o) || setQsParams(o)
+  }, [searchParams])
+
+  /*
+  if (!syncedToQs) {
+    if (! qsParams.length > 0) {
+      syncQsParams()
+    }
+  }
+  */
+
+
   return (
     <QueryClientProvider client={queryClient}>
       <div className="App">
-        <ReactQueryDevtools initialIsOpen={false} />
+          {/* <ReactQueryDevtools initialIsOpen={false} /> */ }
         <MuiAppBar/>
         {/* Outlet: Will render the results of whatever nested route has been clicked/activated. */}
         <Outlet />
@@ -108,7 +138,7 @@ function AboutPage() {
 }
 
 
-export {App, AboutPage, };
+export {App, AboutPage, useGlobalState};
 
 /*
 function getObjLinks() {

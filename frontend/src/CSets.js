@@ -23,28 +23,42 @@ import List from "@mui/material/List";
 import ListItem from "@mui/material/ListItem";
 import TextField from '@mui/material/TextField';
 import Autocomplete from '@mui/material/Autocomplete';
+import Chip from '@mui/material/Chip';
 import { Link, Outlet, useHref, useNavigate, useParams, useSearchParams, useLocation } from "react-router-dom";
 import React, {useState, useReducer, useEffect, useRef} from 'react';
+import _ from 'lodash';
+import {useGlobalState} from "./App";
+
+const API_ROOT = 'http://127.0.0.1:8000'
+const enclave_url = path => `${API_ROOT}/passthru?path=${path}`
+const backend_url = path => `${API_ROOT}/${path}`
 
 /* CsetSEarch: Grabs stuff from disk*/
 /* TODO: Solve:
     react_devtools_backend.js:4026 MUI: The value provided to Autocomplete is invalid.
     None of the options match with `[{"label":"11-Beta Hydroxysteroid Dehydrogenase Inhibitor","codesetId":584452082},{"label":"74235-3 (Blood type)","codesetId":761463499}]`.
     You can use the `isOptionEqualToValue` prop to customize the equality test.
-* */
+*/
 function CsetSearch(props) {
-  // let path = 'concept-set-names';
-  let path = 'cset-versions';
-  let url = backend_url(path)
+  let {applyChangeCallback} = props;
+  const [qsParams, setQsParams] = useGlobalState('qsParams');
+
+  let codesetIds = qsParams && qsParams.codesetId && qsParams.codesetId.sort() || []
+
+  let url = backend_url('cset-versions');
+
   // TODO: something like: http://localhost:3000/OMOPConceptSets?selected=7577017,7577017
-  let navigate = useNavigate();
+  // let navigate = useNavigate();
+  /*
   let defaultOptionsTest = [
     {"label": "11-Beta Hydroxysteroid Dehydrogenase Inhibitor", "codesetId": 584452082},
     {"label": "74235-3 (Blood type)", "codesetId": 761463499}
   ]
   const [csets, setCSets] = useState([]);
-  const [value, setValue] = React.useState();
-  const [inputValue, setInputValue] = React.useState('');
+   */
+  const [value, setValue] = useState([]);
+  const [inputValue, setInputValue] = useState('');
+  const [searchParams, setSearchParams] = useSearchParams();
 
   const { isLoading, error, data, isFetching } = useQuery([url], () =>
     axios
@@ -74,37 +88,47 @@ function CsetSearch(props) {
         return data
       })
   );
+  useEffect(() => {
+    if (!data) return
+    let selectedCids = value && value.map(d => d.codesetId).sort() || []
+    if (!_.isEqual(codesetIds, selectedCids)) {
+      //console.log(value)
+      //console.log(urlCids)
+      let selection = (data || []).filter(d => codesetIds.includes(d.codesetId))
+      setValue(selection)
+    }
+  }, [qsParams, data]);
   if (isLoading) {
     return "Loading...";
   }
-  if (data && !value) {
-    setValue(defaultOptionsTest)
+  if (error) {
+    console.error(error.stack)
+    return "An error has occurred: " + error.stack;
   }
-  if (error) return "An error has occurred: " + error.message;
-  /* async function csetCallback(props) {
-    let {rowData, colClicked} = props
-    navigate(`/OMOPConceptSet/${rowData.codesetId}`)
-  } */
 
   return (
-    <div>
+    <div style={{padding:'9px', }}>
+      {/* <pre>getting data from: {url}</pre> */}
       {/* https://mui.com/material-ui/react-autocomplete/ */}
       {/* New way: manual state control; gets values from URL */}
-      <span>New way</span>
       <Autocomplete
         multiple
-        disablePortal
+        size="small"
+        fullWidth={true}
+        //disablePortal
 
         value={value}
-        // onChange={(event, newValue) => {
-        //   setCSets(newValue);
-        //   console.log(csets);
-        // }}
+        isOptionEqualToValue={(option, value) => {
+          return option.codesetId === value.codesetId
+        }}
         onChange={(event, newValue) => {
           setValue(newValue);
+          let ids = newValue.map(d=>d.codesetId)
+          setSearchParams({codesetId: ids})
         }}
         inputValue={inputValue}
         onInputChange={(event, newInputValue) => {
+          // I think this is for changes in the options
           setInputValue(newInputValue);
         }}
 
@@ -112,86 +136,81 @@ function CsetSearch(props) {
         /* options={top100Films} */
         options={data}
         sx={{ width: 300 }}
-        renderInput={(params) => <TextField {...params} label="Concept set" />}
+        renderInput={(params) => (
+            <TextField {...params}
+                size="medium"
+                label="Concept sets" />)}
+        renderTags={(value, getTagProps) =>
+          value.map((option, index) => (
+            <Chip
+              variant="outlined"
+              label={option.label}
+              size="small"
+              {...getTagProps({ index })}
+            />
+          ))
+        }
       />
-
-      {/* Old way: doesn't get values from URL; automatic state control */}
-      <span>Old way</span>
-      <Autocomplete
-        multiple
-        disablePortal
-        onChange={(event, newValue) => {
-          setCSets(newValue);
-        }}
-        id="combo-box-demo"
-        /* options={top100Films} */
-        options={data}
-        sx={{ width: 300 }}
-        renderInput={(params) => <TextField {...params} label="Concept set" />}
-      />
-
-      {/* <AGtest rowData={data} rowCallback={csetCallback}/>
-      <p>I am supposed to be the results of <a href={url}>{url}</a></p>
-      */}
-      {/* Concept set property list: */}
-      {/*<div>*/}
-      {/*  {*/}
-      {/*    csets.map(cset => {*/}
-      {/*      // return <ListItem key={cset.label}><b>{cset.label}</b>&nbsp; <pre>{JSON.stringify(cset, null, 2)}:</pre></ListItem>*/}
-      {/*      return <ConceptSet key={cset.label} conceptId={cset.latest.codesetId} />*/}
-      {/*    })*/}
-      {/*  }*/}
-      {/*</div>*/}
-      {/*<div>{isFetching ? "Updating..." : ""}</div>*/}
-      <ReactQueryDevtools initialIsOpen />
     </div>)
+  /* want to group by cset name and then list version. use https://mui.com/material-ui/react-autocomplete/ Grouped
+     and also use Multiple Values */
 }
 
-  /*
-      want to group by cset name and then list version. use https://mui.com/material-ui/react-autocomplete/ Grouped
-      and also use Multiple Values
-  <Autocomplete
-  id="grouped-demo"
-  options={options.sort((a, b) => -b.firstLetter.localeCompare(a.firstLetter))}
-  groupBy={(option) => option.firstLetter}
-  getOptionLabel={(option) => option.title}
-  sx={{ width: 300 }}
-  renderInput={(params) => <TextField {...params} label="With categories" />}
-/>
-  */
-
-const API_ROOT = 'http://127.0.0.1:8000'
-const enclave_url = path => `${API_ROOT}/passthru?path=${path}`
-const backend_url = path => `${API_ROOT}/${path}`
-
 function ConceptSets(props) {
-  let path = 'objects/OMOPConceptSet';
-  let url = enclave_url(path)
+  // return <CsetSearch />;
   let navigate = useNavigate();
-  const { isLoading, error, data, isFetching } = useQuery([url], () =>
-    axios
-      .get(url)
-      .then((res) => res.data.data.map(d => d.properties))
-  );
-  if (isLoading) return "Loading...";
+  const [qsParams, setQsParams] = useGlobalState('qsParams');
+  //const [filteredData, setFilteredData] = useState([]);
+  let codesetIds = qsParams && qsParams.codesetId && qsParams.codesetId.sort() || []
 
-  if (error) return "An error has occurred: " + error.message;
+  let url = backend_url('fields-from-objlist?') +
+      [
+        'objtype=OMOPConceptSet',
+        'filter=codesetId:' + codesetIds.join('|')
+      ].join('&')
+
+  const { isLoading, error, data, isFetching } = useQuery([url], () => {
+    //if (codesetIds.length) {
+      console.log('fetching backend_url', url)
+      return axios.get(url).then((res) => res.data)
+      // console.log('enclave_url', enclave_url('objects/OMOPConceptSet'))
+      // .then((res) => res.data.data.map(d => d.properties))
+    //} else {
+      //return {isLoading: false, error: null, data: [], isFetching: false}
+    //}
+  });
   async function csetCallback(props) {
     let {rowData, colClicked} = props
     navigate(`/OMOPConceptSet/${rowData.codesetId}`)
+  }
+
+  //function applySearchFilter(filteredData, setFilteredData) { }
+  function applySearchFilter() {
+    // filteredData, setFilteredData) { }
+
   }
 
   return (
       <div>
         {/*TODO: ADD AUTOCOMPLETE WIGET */}
         <CsetSearch/>
+        <pre></pre>
+        {
+          isLoading && "Loading..." ||
+          error && `An error has occurred: ${error.stack}` ||
+          isFetching && "Updating..." ||
+            /*
+            data && (<pre> here's the data: {
+                      JSON.stringify(data,null,4).substr(0,2000)
+                    }
+                    .... </pre>) ||
+            //"data not anything"
+             */
+          data && <ConceptList />
+          //<ReactQueryDevtools initialIsOpen />
+        }
         <Table rowData={data} rowCallback={csetCallback}/>
-        <pre>
-        {JSON.stringify({data}, null, 4)}
-      </pre>
-        <div>{isFetching ? "Updating..." : ""}</div>
         <p>I am supposed to be the results of <a href={url}>{url}</a></p>
-        <ReactQueryDevtools initialIsOpen />
       </div>)
 }
 
@@ -236,6 +255,33 @@ function ConceptSet(props) {
 }
 
 function ConceptList(props) {
+  // http://127.0.0.1:8000/fields-from-objlist?objtype=OmopConceptSetVersionItem&filter=codesetId:822173787|74555844
+  const [qsParams, setQsParams] = useGlobalState('qsParams');
+  //const [filteredData, setFilteredData] = useState([]);
+  let codesetIds = qsParams && qsParams.codesetId && qsParams.codesetId.sort() || []
+
+  let url = backend_url('fields-from-objlist?') +
+      [
+        'objtype=OmopConceptSetVersionItem',
+        'filter=codesetId:' + codesetIds.join('|')
+      ].join('&')
+
+  const { isLoading, error, data, isFetching } = useQuery([url], () => {
+    //if (codesetIds.length) {
+      console.log('fetching backend_url', url)
+      return axios.get(url).then((res) => res.data)
+      // console.log('enclave_url', enclave_url('objects/OMOPConceptSet'))
+      // .then((res) => res.data.data.map(d => d.properties))
+    //} else {
+      //return {isLoading: false, error: null, data: [], isFetching: false}
+    //}
+  });
+  console.log('rowData', data)
+  return  <div>
+            <h4>Concepts:</h4>
+            <Table rowData={data} />
+          </div>
+  /*
   let params = useParams();
   let {conceptId} = params;
   let path = `objects/OMOPConceptSet/${conceptId}/links/omopconcepts`;
@@ -244,17 +290,12 @@ function ConceptList(props) {
       axios
           .get(url)
           .then((res) => res.data.data.map(d => d.properties)) )
-  return <div>
-    <Table rowData={data} />
-    {/*rowCallback={csetCallback}/>*/}
-    <p>you want to see concepts for {conceptId}?</p>
-    <pre>
-      {JSON.stringify({props, params, data}, null, 2)}
-    </pre>
-  </div>
+  */
 }
 
+/*
 // TODO: @Joe: work on this table: it calls using enclave_wrangler. but I need to change this to pull from the Flask
+    do we still need this?
 //  API from disk.
 function ConceptSetsTable(props) {
   let path = 'objects/OMOPConceptSet';
@@ -284,6 +325,7 @@ function ConceptSetsTable(props) {
       <ReactQueryDevtools initialIsOpen />
     </div>)
 }
+*/
 
 export {ConceptSets, CsetSearch, ConceptSet, ConceptList};
 

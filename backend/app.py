@@ -39,15 +39,6 @@ app.add_middleware(
 
 
 # Utils
-def jq_wrapper(query: str):
-    """Shim around Python->Shell for calling JQ. Useful until/if we change to the JQ Python API."""
-    p = Popen(query, stdin=PIPE, stdout=PIPE, stderr=PIPE, shell=True)
-    output, err = p.communicate()
-    output = output.decode("utf-8")
-    err = err.decode("utf-8")
-    return output, err
-
-
 def json_path(objtype: str) -> str:
     """ construct path for json file given an object type name, e.g., OMOPConceptSet """
     jdir = f'{JSON_PATH}/{objtype}'
@@ -65,7 +56,7 @@ def json_path(objtype: str) -> str:
 def load_json(objtype: str) -> List[Dict]:
     """ load json file given an object type name, e.g., OMOPConceptSet """
     jpath = json_path(objtype)
-    with open(CSETS_JSON_PATH, 'r') as f:
+    with open(jpath, 'r') as f:
         d = json.load(f)
         return d
     return {'Error': f'failure in load_json({objtype}'}
@@ -97,11 +88,11 @@ def cset_names() -> Union[Dict, List]:
 @app.get("/cset-versions")
 def csetVersions() -> Union[Dict, List]:
     query = 'group_by(.conceptSetNameOMOP) | map({ key: .[0].conceptSetNameOMOP | tostring, value: [.[] | {version, codesetId}] }) | from_entries'
-    return jqQuery('OMOPConceptSet', query)
+    return jqQuery(objtype='OMOPConceptSet', query=query)
 
 
-def jqQuery(objtype: str, query: str, ) -> Union[Dict, List]:
-    objlist = load_json(objtype)
+def jqQuery(objtype: str, query: str, objlist=None, ) -> Union[Dict, List]:
+    objlist = objlist or load_json(objtype)
     if DEBUG:
         jpath = json_path(objtype)
         cmd = f"jq '{query}' {jpath}"
@@ -112,25 +103,49 @@ def jqQuery(objtype: str, query: str, ) -> Union[Dict, List]:
 
 
 @app.get("/fields-from-objlist")
-def fields_from_objlist(field: List[str] = Query(...), objtype: str = Query(...)) -> Union[Dict, List]:
+def fields_from_objlist(objtype: str = Query(...),
+                        filter: Union[List[str], None] = Query(default=[]),
+                        field: Union[List[str], None] = Query(default=[]),
+                            ) -> Union[Dict, List]:
     """
         get one or more fields from specified object type, example:
         http://127.0.0.1:8000/fields-from-objlist?field=conceptSetNameOMOP&field=codesetId&objtype=OMOPConceptSet
     """
+    queryClauses = []
     objlist = load_json(objtype)
-    query = objlistQuery(objlist, field)
-    return jqQuery(objtype, query)
+    fields = validFieldList(objlist=objlist, fields=field)
+    if len(fields):
+        queryClauses.append('{' + ', '.join(fields) + '}')
+
+    valFilters = {k: v and v.split('|') or [] for k, v in [filt.split(':') for filt in filter]}
+    filterFields = validFieldList(objlist=objlist, fields=valFilters.keys())
+    for filterField in filterFields:
+        filtVals = valFilters[filterField]
+        if len(filtVals):
+            condition = 'or'.join([f' .codesetId == {val} ' for val in filtVals])
+            clause = f'select({condition})'
+            queryClauses.insert(0, clause)
+
+    queryClauses.insert(0, '.[]')
+    query = ' | '.join(queryClauses)
+    subset = jqQuery(objtype=objtype, objlist=objlist, query=query)
+    return subset
+    # groupQuery = 'group_by(.conceptSetNameOMOP) | map({ key: .[0].conceptSetNameOMOP | tostring, value: [.[] | {version, codesetId}] }) | from_entries'
+    # res = jqQuery(objtype=objtype, objlist=subset, query=groupQuery)
+    # return res
 
 
-def objlistQuery(objlist: List[Dict], field: List[str]):
+def validFieldList(objlist: List[Dict], fields: List[str]):
     """ helper for fields_from_objlist"""
     all_fields = jq.compile('.[0] | keys').input(objlist).first()
-    ok_fields = [f for f in field if f in all_fields]
-    return '.[] | {' + ','.join(ok_fields) + '}'
+    ok_fields = [f for f in fields if f in all_fields]
+    return ok_fields
 
 
 @app.get("/datasets/csets")
-def csets_read(field_filter: Union[List[str], None] = Query(default=None)) -> Union[Dict, List]:
+def csets_read(field_filter: Union[List[str], None] = Query(default=None),
+               # value_filter: Union[List[str], None] = Query(default=None) # not implemented here
+               ) -> Union[Dict, List]:
     """Get concept sets
 
     field_filter: If present, the data returned will only contain these fields. Example: Passing `conceptSetNameOMOP` as
@@ -348,3 +363,14 @@ def run(port: int = 8000):
 
 if __name__ == '__main__':
     run()
+
+
+# def jq_wrapper(query: str):
+#     """Shim around Python->Shell for calling JQ. Useful until/if we change to the JQ Python API."""
+#     p = Popen(query, stdin=PIPE, stdout=PIPE, stderr=PIPE, shell=True)
+#     output, err = p.communicate()
+#     output = output.decode("utf-8")
+#     err = err.decode("utf-8")
+#     return output, err
+
+

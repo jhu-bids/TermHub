@@ -6,7 +6,7 @@ import 'ag-grid-community/styles/ag-grid.css'; // Core grid CSS, always needed
 import 'ag-grid-community/styles/ag-theme-alpine.css';
 // import {useParams} from "react-router-dom"; // Optional theme CSS
 
-const AGtest = (props) => {
+const Table = (props) => {
   const {rowData, rowCallback} = props;
   // let params = useParams();
   const gridRef = useRef(); // Optional - for accessing Grid's API
@@ -93,4 +93,4 @@ const AGtest = (props) => {
   );
 };
 
-export default AGtest;
+export default Table;
