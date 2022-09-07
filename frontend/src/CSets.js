@@ -204,9 +204,10 @@ function ConceptSets(props) {
                     .... </pre>) ||
             //"data not anything"
              */
+            //"hiding ConceptList and cset tables" ||
           data && (<div>
-                    <ConceptList />
                     <Table rowData={data} rowCallback={csetCallback}/>
+                    <ConceptList />
                   </div>)
           //<ReactQueryDevtools initialIsOpen />
         }

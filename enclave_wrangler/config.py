@@ -14,7 +14,7 @@ CACHE_DIR = os.path.join(PROJECT_ROOT, 'termhub-csets', 'temp')
 load_dotenv(ENV_FILE)
 config = {
     'PALANTIR_ENCLAVE_AUTHENTICATION_BEARER_TOKEN': os.getenv('PALANTIR_ENCLAVE_AUTHENTICATION_BEARER_TOKEN'),
-    'PERSONAL_ENCLAVE_TOKEN': os.getenv('OTHER_TOKEN'),
+    'OTHER_TOKEN': os.getenv('OTHER_TOKEN'),
     'HOSTNAME': os.getenv('HOSTNAME', 'unite.nih.gov'),
     'ONTOLOGY_RID': os.getenv('ONTOLOGY_RID', 'ri.ontology.main.ontology.00000000-0000-0000-0000-000000000000'),
     'CACHE_DIR': CACHE_DIR,

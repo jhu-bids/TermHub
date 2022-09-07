@@ -23,7 +23,8 @@ from enclave_wrangler.config import config
 from enclave_wrangler.utils import log_debug_info
 
 HEADERS = {
-    "authorization": f"Bearer {config['PALANTIR_ENCLAVE_AUTHENTICATION_BEARER_TOKEN']}",
+    "authorization": f"Bearer {config['OTHER_TOKEN']}",
+    #"authorization": f"Bearer {config['PALANTIR_ENCLAVE_AUTHENTICATION_BEARER_TOKEN']}",
     #'content-type': 'application/json'
 }
 DEBUG = False
@@ -109,7 +110,7 @@ def datasets_views(datasetRid: str, file_parts: [str]) -> None:
         combined_parquet_fname = parquet_dir + '/combined.parquet'
         combine_parquet_files(parquet_dir, combined_parquet_fname)
         df = pd.read_parquet(combined_parquet_fname)
-        df.to_csv()
+        df.to_csv('/tmp/dataset_download.csv')   # TODO: specify where output goes in a better way than this!!
 
 
         # p1 = pd.read_parquet('./spark%2Fpart-00000-c94edb9f-1221-4ae8-ba74-58848a4d79cb-c000.snappy.parquet')
