@@ -20,7 +20,8 @@ import requests
 # import pyarrow as pa
 # import asyncio
 
-from enclave_wrangler.config import config
+from enclave_wrangler.config import config, TERMHUB_CSETS_DIR
+
 # from enclave_wrangler.utils import log_debug_info
 
 
@@ -41,7 +42,9 @@ class EnclaveClient:
         self.debug = DEBUG
         self.base_url = f'https://{config["HOSTNAME"]}'
         self.ontology_rid = config['ONTOLOGY_RID']
-        self.cache_dir = config['CACHE_DIR']
+        self.outdir_root = TERMHUB_CSETS_DIR
+        self.outdir_objects = os.path.join(TERMHUB_CSETS_DIR, 'objects')
+        self.outdir_datasets = os.path.join(TERMHUB_CSETS_DIR, 'datasets')
 
     @typechecked
     def obj_types(self) -> List[Dict]:
@@ -94,21 +97,21 @@ class EnclaveClient:
 
             # Cache
             # TODO: temporary cache code until decide where/how to write these
-            cache_dir = os.path.join(self.cache_dir, 'objects', object_type)
-            cache_path = os.path.join(cache_dir, 'latest.csv')
-            if not os.path.exists(cache_dir):
-                os.mkdir(cache_dir)
-            df.to_csv(cache_path, index=False)
-            with open(cache_path.replace('.csv', '.json'), 'w') as f:
+            outdir = os.path.join(self.outdir_objects, object_type)
+            outpath = os.path.join(outdir, 'latest.csv')
+            if not os.path.exists(outdir):
+                os.mkdir(outdir)
+            df.to_csv(outpath, index=False)
+            with open(outpath.replace('.csv', '.json'), 'w') as f:
                 json.dump(results, f)
             # todo: Would be good to have all enclave_wrangler requests basically wrap around python `requests` and also
             #  ...utilize this error reporting, if they are saving to disk.
             if response.status_code >= 400:
                 error_report: Dict = {'request': url, 'response': response_json}
-                with open(os.path.join(cache_dir, f'latest - error {response.status_code}.json'), 'w') as file:
+                with open(os.path.join(outdir, f'latest - error {response.status_code}.json'), 'w') as file:
                     json.dump(error_report, file)
                 curl_str = f'curl -H "Content-type: application/json" -H "Authorization: Bearer $OTHER_TOKEN" {url}'
-                with open(os.path.join(cache_dir, f'latest - error {response.status_code} - curl.sh'), 'w') as file:
+                with open(os.path.join(outdir, f'latest - error {response.status_code} - curl.sh'), 'w') as file:
                     file.write(curl_str)
 
             return df

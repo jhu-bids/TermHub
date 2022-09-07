@@ -22,10 +22,25 @@ import time
 from enclave_wrangler.config import config
 from enclave_wrangler.utils import log_debug_info
 
+
 HEADERS = {
     "authorization": f"Bearer {config['OTHER_TOKEN']}",
     #"authorization": f"Bearer {config['PALANTIR_ENCLAVE_AUTHENTICATION_BEARER_TOKEN']}",
     #'content-type': 'application/json'
+}
+FAVORITE_DATASETS = {
+    'concept': {
+        'name': 'concept',
+        'rid': 'ri.foundry.main.dataset.5cb3c4a3-327a-47bf-a8bf-daf0cafe6772',
+    },
+    'concept_set_version_item': {
+        'name': 'concept_set_version_item',
+        'rid': 'ri.foundry.main.dataset.1323fff5-7c7b-4915-bcde-4d5ba882c993',
+    },
+    'concept_set_members': {
+        'name': 'concept_set_members',
+        'rid': 'ri.foundry.main.dataset.e670c5ad-42ca-46a2-ae55-e917e3e161b6',
+    },
 }
 DEBUG = False
 TARGET_CSV_DIR='data/datasets/'
@@ -72,18 +87,16 @@ def views2(datasetRid: str, endRef: str) -> [str]:
     return file_parts[1:]
 
 @typechecked
-def datasets_views(datasetRid: str, file_parts: [str]) -> None:
+def download_and_combine_dataset_parts(datasetRid: str, file_parts: [str], outpath: str) -> pd.DataFrame:
     """tested with cURL:
     wget https://unite.nih.gov/foundry-data-proxy/api/dataproxy/datasets/ri.foundry.main.dataset.5cb3c4a3-327a-47bf-a8bf-daf0cafe6772/views/master/spark%2Fpart-00000-c94edb9f-1221-4ae8-ba74-58848a4d79cb-c000.snappy.parquet --header "authorization: Bearer $PALANTIR_ENCLAVE_AUTHENTICATION_BEARER_TOKEN"
     """
-
     endpoint = 'https://unite.nih.gov/foundry-data-proxy/api/dataproxy/datasets'
     template = '{endpoint}/{datasetRid}/views/master/{fp}'
 
     # download parquet files
     with tempfile.TemporaryDirectory() as parquet_dir:
         print('created temporary directory', parquet_dir)
-        parquet_parts = []
         for fp in file_parts:
             url = template.format(endpoint=endpoint, datasetRid=datasetRid, fp=fp)
             response = requests.get(url, headers=HEADERS, stream=True)
@@ -93,10 +106,7 @@ def datasets_views(datasetRid: str, file_parts: [str]) -> None:
                     response.raw.decode_content = True
                     print(f'{fname} copying {time.strftime("%X")} ---> ', end='')
                     shutil.copyfileobj(response.raw, f)
-                    # print(f'sleeping {time.strftime("%X")} ---> ', end='')
-                    # await asyncio.sleep(2)
-                    # print(f'waking {time.strftime("%X")} ---> ', end='')
-                    print()
+                # TODO: @Siggie: part_df unused. `parquet_parts` in 'except' block doesn't exist and comes after raise
                 try:
                     print(f'reading {time.strftime("%X")} ---> ', end='')
                     part_df = pd.read_parquet(fname)
@@ -110,11 +120,9 @@ def datasets_views(datasetRid: str, file_parts: [str]) -> None:
         combined_parquet_fname = parquet_dir + '/combined.parquet'
         combine_parquet_files(parquet_dir, combined_parquet_fname)
         df = pd.read_parquet(combined_parquet_fname)
-        df.to_csv('/tmp/dataset_download.csv')   # TODO: specify where output goes in a better way than this!!
-
-
-        # p1 = pd.read_parquet('./spark%2Fpart-00000-c94edb9f-1221-4ae8-ba74-58848a4d79cb-c000.snappy.parquet')
-
+        if outpath:
+            df.to_csv(outpath)
+        return df
 
 
 def combine_parquet_files(input_folder, target_path):
@@ -136,13 +144,32 @@ def combine_parquet_files(input_folder, target_path):
     except Exception as e:
         print(e)
 
-def run(datasetRid: str, ref: str = 'master') -> None:
+
+def run(datasetRid: str, ref: str = 'master', outdir: str = None) -> pd.DataFrame:
+    # TODO: Temp: would be good to accept either 'outdir' or 'outpath'.
+    outpath = os.path.join(outdir, f'{datasetRid}__{ref}.csv') if outdir else None
     endRef = getTransaction(datasetRid, ref)
     args = {'datasetRid': datasetRid, 'endRef': endRef}
     file_parts = views2(**args)
-    datasets_views(datasetRid, file_parts)
-    # asyncio.run(datasets_views(datasetRid, file_parts))
+    df: pd.DataFrame = download_and_combine_dataset_parts(datasetRid, file_parts, outpath=outpath)
+    # asyncio.run(download_and_combine_dataset_parts(datasetRid, file_parts))
+    return df
 
+
+def favorite_updates__concept(df: pd.DataFrame):
+    """Updates to the `concept` table prior to downloading."""
+
+    return df
+
+
+def download_favorites():
+    """Download favorite datasets"""
+    for fav in FAVORITE_DATASETS.values():
+        # TODO: Does this write to disk?
+        df: pd.DataFrame = run(datasetRid=fav['rid'])
+        if fav['name'] == 'concept':
+            df = favorite_updates__concept(df)
+        print()
 
 
 def get_parser():
@@ -161,22 +188,24 @@ def get_parser():
         help='Name of the environment variable holding the auth token you want to use')
 
     parser.add_argument(
-        '--datasetName',
+        '-n', '--datasetName',
         help='Name of enclave dataset you want to download. CSV will be saved to ValueSet-Tools/data/datasets/<name>')
 
     parser.add_argument(
-        '--datasetRid',
+        '-i', '--datasetRid',
         help='RID of enclave dataset you want to download.')
-
     parser.add_argument(
-        '--ref',
+        '-r', '--ref',
         default='master',
         help='Should be the branch of the dataset -- I think. Refer to API documentation at '
                 'https://unite.nih.gov/workspace/documentation/developer/api/catalog/services/CatalogService/endpoints/getTransaction')
-
-#    parser.add_argument(
-#        '-o', '--output_dir',
-#        help='Path to folder where you want output files, if there are any')
+    parser.add_argument(
+        '-f', '--favorites',
+        default=False, action='store_true',
+        help='Just download all the datasets that are currently hardcoded as "favorites".')
+    parser.add_argument(
+       '-o', '--output_dir',
+       help='Path to folder where you want output files, if there are any')
 
     return parser
 
@@ -188,10 +217,12 @@ def cli():
     kwargs = parser.parse_args()
     kwargs_dict: Dict = vars(kwargs)
 
-    # if kwargs_dict['dataset-download'] is not None:
-    args = {key: kwargs_dict[key] for key in ['datasetRid','ref']}
-    run(**args)
-    return
+    # Run
+    if kwargs_dict['favorites']:
+        download_favorites()
+    else:
+        args = {key: kwargs_dict[key] for key in ['datasetRid','ref']}
+        run(**args)
 
 if __name__ == '__main__':
     cli()
