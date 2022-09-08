@@ -7,11 +7,11 @@ import 'ag-grid-community/styles/ag-theme-alpine.css';
 // import {useParams} from "react-router-dom"; // Optional theme CSS
 
 const Table = (props) => {
+  const tableHeaderHeight = 100;
   const {rowData, rowCallback} = props;
   // let params = useParams();
   const gridRef = useRef(); // Optional - for accessing Grid's API
   // const [rowData, setRowData] = useState(); // Set rowData to Array of Objects, one Object per Row
-
  // Each Column Definition results in one Column.
   /*
    const [columnDefs, setColumnDefs] = useState([
@@ -70,13 +70,13 @@ const Table = (props) => {
     <div>
 
       {/* Example using Grid's API */}
-      <button onClick={buttonListener}>Push Me</button>
+      <button onClick={buttonListener}>Reset table</button>
 
-      {/* On div wrapping Grid a) specify theme CSS Class Class and b) sets Grid size */}
+      {/* On div wrapping Grid a) specify theme CSS Class and b) sets Grid size */}
       <div className="ag-theme-alpine"
             style={{
               width: '95%',
-              height: rowData ? rowData.length * 75 : 100,
+              height: rowData ? (tableHeaderHeight + rowData.length * 75) : tableHeaderHeight,
               //height: window.innerHeight * .8
             }}>
 
