@@ -113,6 +113,7 @@ def download_and_combine_dataset_parts(datasetRid: str, file_parts: [str], outpa
         combine_parquet_files(parquet_dir, combined_parquet_fname)
         df = pd.read_parquet(combined_parquet_fname)
         if outpath:
+            os.makedirs(os.path.dirname(outpath))
             df.to_csv(outpath)
         return df
 
@@ -123,13 +124,14 @@ def combine_parquet_files(input_folder, target_path):
         for file_name in os.listdir(input_folder):
             files.append(pq.read_table(os.path.join(input_folder, file_name)))
 
-        with pq.ParquetWriter(target_path,
-                              files[0].schema,
-                              version='2.0',
-                              compression='gzip',
-                              use_dictionary=True,
-                              data_page_size=2097152,  # 2MB
-                              write_statistics=True
+        with pq.ParquetWriter(
+            target_path,
+            files[0].schema,
+            version='2.0',
+            compression='gzip',
+            use_dictionary=True,
+            data_page_size=2097152,  # 2MB
+            write_statistics=True
         ) as writer:
             for f in files:
                 writer.write_table(f)

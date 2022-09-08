@@ -17,7 +17,7 @@ import {Link} from "react-router-dom";
 
 const pages = [
   {name: 'Cset search', href: '/OMOPConceptSets'},
-  {name: 'Cset comparison', href: '/csets-from-disk'},
+  {name: 'Cset comparison', href: '/cset-comparison'},
   {name: 'Test area', href: '/testing'},
   {name: 'About', href: '/about'}
 ];
@@ -209,7 +209,8 @@ const MuiAppBar = () => {
           <Box sx={{ flexGrow: 0 }}>
             <Tooltip title="Open settings">
               <IconButton onClick={handleOpenUserMenu} sx={{ p: 0 }}>
-                <Avatar alt="Remy Sharp" src="/static/images/avatar/2.jpg" />
+                {/*<Avatar alt="Remy Sharp" src="/static/images/avatar/2.jpg" />*/}
+                <Avatar alt="TermHub" src="/static/images/termhubIcon.jpg" />
               </IconButton>
             </Tooltip>
             <Menu

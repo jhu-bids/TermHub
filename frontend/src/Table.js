@@ -98,4 +98,41 @@ const Table = (props) => {
   );
 };
 
-export default Table;
+// TODO's: (i) finish this implementation: "x"s -> checkmarks?, (ii) matrix widget too/instead? (header x side header)
+const ComparisonTable = (props) => {
+  const rowHeight = 42;
+  const headerHeight = rowHeight * 1.25;
+  const {rowData} = props;
+  const gridRef = useRef(); // Optional - for accessing Grid's API
+  // const [rowData, setRowData] = useState(); // Set rowData to Array of Objects, one Object per Row
+ // Each Column Definition results in one Column.
+  const [columnDefs, _setColumnDefs] = useState();
+  function setColumnDefs(colNames) {
+    let defs = colNames.map(n => ({field: n}) )
+    _setColumnDefs(defs)
+  }
+  useEffect(() => {
+    if (props.rowData && rowData.length) {
+      setColumnDefs(Object.keys(rowData[0]))
+    }
+  }, [rowData, props]);
+  const defaultColDef = useMemo(() => ({ sortable: true}));
+
+  return (
+    <div className="ag-theme-alpine" style={{
+      width: '95%',
+      height: rowData ? (headerHeight + rowData.length * rowHeight) : headerHeight,
+    }}>
+      <AgGridReact
+        ref={gridRef} // Ref for accessing Grid's API
+        rowData={rowData} // Row Data for Rows
+        columnDefs={columnDefs} // Column Defs for Columns
+        defaultColDef={defaultColDef} // Default Column Properties
+        animateRows={true} // Optional - set to 'true' to have rows animate when sorted
+        rowSelection='multiple' // Options - allows click selection of rows
+      />
+    </div>
+  );
+};
+
+export {Table, ComparisonTable};

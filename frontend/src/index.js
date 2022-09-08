@@ -3,10 +3,10 @@ import ReactDOM from 'react-dom/client';
 import { BrowserRouter, Routes, Route, matchPath } from "react-router-dom";
 
 import './index.css';
-import {App, AboutPage, EnclaveOntoAPI, } from './App';
-import {ConceptSetsPage, CsetSearch, ConceptList } from './CSets';
-import MuiAppBar from './MuiAppBar';
-import Table from './Table'
+import {App, AboutPage} from './App';
+import {ConceptSetsPage, CsetComparisonPage} from './CSets';
+// import MuiAppBar from './MuiAppBar';
+// import Table from './Table'
 // script src="http://localhost:8097"></script>
 // import reportWebVitals from './reportWebVitals';
 
@@ -21,8 +21,8 @@ root.render(
 
         <Route path="/" element={<App />}>
           {/*<Route path="ontocall" element={<EnclaveOntoAPI />} />*/}
-          <Route path="csets-from-disk" element={<CsetSearch/>} />
-          {/* <Route path="csets-from-disk/:conceptId" element={<ConceptSet />} /> */}
+          <Route path="cset-comparison" element={<CsetComparisonPage/>} />
+          {/* <Route path="cset-comparison/:conceptId" element={<ConceptSet />} /> */}
           <Route path="OMOPConceptSets" element={<ConceptSetsPage />} />
           <Route path="about" element={<AboutPage />} />
           <Route path="testing" element={<Testing />} />

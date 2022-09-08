@@ -6,27 +6,25 @@ Resources
 - jq python api docs: https://github.com/mwilliamson/jq.py
 """
 import json
-import os.path  # TODO: Siggie confused: are you supposed to use path.<method>(...) or os.path.<method>(...)?
+import os
 import errno
 from pathlib import Path
-from subprocess import PIPE, Popen, call as sp_call
+from subprocess import call as sp_call
 from typing import Any, Dict, List, Union
 
 import numpy as np
 import pandas as pd
-
 import requests
 import uvicorn
 from fastapi import FastAPI, Query
 from fastapi.middleware.cors import CORSMiddleware
+from pandasql import sqldf
 from pydantic import BaseModel
 
 from enclave_wrangler.config import config, FAVORITE_DATASETS
 
 import jq
 
-from pandasql import sqldf
-pysqldf = lambda q: sqldf(q, globals())
 
 DEBUG = True
 PROJECT_DIR = Path(os.path.dirname(__file__)).parent
@@ -34,32 +32,35 @@ OBJECTS_PATH = f'{PROJECT_DIR}/termhub-csets/objects'
 CSETS_JSON_PATH = f'{OBJECTS_PATH}/OMOPConceptSet/latest.json'
 CONCEPTS_JSON_PATH = f'{OBJECTS_PATH}/OMOPConcept/latest.json'
 CONCEPT_SET_VERSION_ITEM_JSON_PATH = f'{OBJECTS_PATH}/OmopConceptSetVersionItem/latest.json'
-
 CSV_PATH = f'{PROJECT_DIR}/termhub-csets/datasets'
 
 # load big files!
 # TODO: this is too slow for development where the backend has to restart all the time
-#       @Joe: would it be too crazy to run two backend servers, one to hold the data
-#             and one to service requests and handle logic? probably....
-ds = { name: pd.read_csv(os.path.join(CSV_PATH, name + '.csv')) for name in FAVORITE_DATASETS}
-print(ds.keys())
+#  @Joe: would it be too crazy to run 2 backend servers, 1 to hold the data and 1 to service requests / logic? probably.
+#  @Siggie: Not a bad idea. If we invest time in that, may be better to do RDBMS instead, but I think running 2
+#   *might* not take too much time... actually maybe it would. Need to pass data between the processes. RCP? We could
+#   do it over REST, but idk. Maybe worth looking into / trying for an hour.
 
-concept = ds['concept']
-cnts = pysqldf("""
+# TODO: #2: remove try/except when download datasets
+try:
+    DS = {name: pd.read_csv(os.path.join(CSV_PATH, name + '.csv')) for name in FAVORITE_DATASETS}
+    print(f'Favorite datasets loaded: {DS.keys()}')
+    CONCEPT = DS['concept']
+    PYSQLDF = lambda q: sqldf(q, globals())
+    COUNTS = PYSQLDF("""
         SELECT vocabulary_id, COUNT(*) AS cnt
-        FROM concept
+        FROM CONCEPT
         GROUP BY 1""")
+except FileNotFoundError:
+    print('Datasets not loaded.')
 
-app = FastAPI()
-app.add_middleware(
+APP = FastAPI()
+APP.add_middleware(
     CORSMiddleware,
     allow_origins=['*'],
     allow_methods=['*'],
     allow_headers=['*']
 )
-
-
-
 
 
 # Utils
@@ -97,19 +98,15 @@ class CsetsUpdate(BaseModel):
     row_index_data_map: Dict[int, Dict[str, Any]] = {}
 
 # Routes
-
-# group_by(.conceptSetNameOMOP) | map({ key: .[0].conceptSetNameOMOP | tostring, value: [.[] | {version, codesetId}] }) | from_entries
-
-
-@app.get("/concept-set-names")
-@app.get("/datasets/csets/names")
-@app.get("/jq-cset-names")
+@APP.get("/concept-set-names")
+@APP.get("/datasets/csets/names")
+@APP.get("/jq-cset-names")
 def cset_names() -> Union[Dict, List]:
     """Get concept set names"""
     return csets_read(field_filter=['conceptSetNameOMOP'])
 
 
-@app.get("/cset-versions")
+@APP.get("/cset-versions")
 def csetVersions() -> Union[Dict, List]:
     query = 'group_by(.conceptSetNameOMOP) | map({ key: .[0].conceptSetNameOMOP | tostring, value: [.[] | {version, codesetId}] }) | from_entries'
     return jqQuery(objtype='OMOPConceptSet', query=query)
@@ -126,7 +123,7 @@ def jqQuery(objtype: str, query: str, objlist=None, ) -> Union[Dict, List]:
     return result
 
 
-@app.get("/fields-from-objlist")
+@APP.get("/fields-from-objlist")
 def fields_from_objlist(
     objtype: str = Query(...),
     filter: Union[List[str], None] = Query(default=[]),
@@ -162,7 +159,7 @@ def fields_from_objlist(
 
 
 
-@app.get("/concept-sets-with-concepts")
+@APP.get("/concept-sets-with-concepts")
 def concept_sets_with_concepts(
     codeset_id: Union[str, None] = Query(default=[]),
     field: Union[List[str], None] = Query(default=[]),
@@ -194,7 +191,7 @@ def concept_sets_with_concepts(
 
 
 # TODO:
-@app.get("/concept-sets-page")
+@APP.get("/concept-sets-page")
 def concept_sets_page():
     """Everything that the concept set page needs to in 1 single request, ideally."""
     # todo: cache and update it when newer source datasets are detected
@@ -208,7 +205,7 @@ def validFieldList(objlist: List[Dict], fields: List[str]):
     return ok_fields
 
 
-@app.get("/datasets/csets")
+@APP.get("/datasets/csets")
 def csets_read(
     field_filter: Union[List[str], None] = Query(default=None), path=CSETS_JSON_PATH
     # value_filter: Union[List[str], None] = Query(default=None) # not implemented here
@@ -255,7 +252,7 @@ def csets_read(
 
 
 # todo: @Siggie: Not sure how to do what I needed in JQ, so no JQ in here yet
-@app.get("/datasets/concepts")
+@APP.get("/datasets/concepts")
 def concepts_read(
     field_filter: Union[List[str], None] = Query(default=None),
     concept_set_id: Union[List[int], None] = Query(default=None), path=CONCEPTS_JSON_PATH,
@@ -276,11 +273,11 @@ def concepts_read(
     # I feel like this could be done in less lines - Joe 2022/09/07
     if concept_set_id:
         # concept_set_items: For codesetId->conceptId mapping
-        concept_set_items = [d for d in concept_set_items if d['codesetId'] in concept_set_id]
+        concept_set_items2 = [d for d in concept_set_items if d['codesetId'] in concept_set_id]
         concept_lookup = {d['conceptId']: d for d in concepts}
 
         concept_set_concepts: Dict[int, Dict] = {}
-        for item in concept_set_items:
+        for item in concept_set_items2:
             cs_id: int = item['codesetId']
             c_id: int = item['conceptId']
             if cs_id not in concept_set_concepts:
@@ -305,7 +302,7 @@ def concepts_read(
 
 
 # TODO: Maybe change to `id` instead of row index
-@app.put("/datasets/csets")
+@APP.put("/datasets/csets")
 def csets_update(d: CsetsUpdate = None) -> Dict:
     """Update cset dataset. Works only on tabular files."""
     # Vars
@@ -351,18 +348,18 @@ def csets_update(d: CsetsUpdate = None) -> Dict:
 
     return {'result': result, 'details': details}
 
-@app.get("/")
+@APP.get("/")
 def read_root():
     """Root route"""
     # noinspection PyUnresolvedReferences
-    url_list = [{"path": route.path, "name": route.name} for route in app.routes]
+    url_list = [{"path": route.path, "name": route.name} for route in APP.routes]
     return url_list
     # return {"try": "/ontocall?path=<enclave path after '/api/v1/ontologies/'>",
     #         "example": "/ontocall?path=objects/list-objects/"}
     # return ontocall('objectTypes')
 
 
-@app.get("/passthru")
+@APP.get("/passthru")
 def passthru(path) -> [{}]:
     """API documentation at
     https://www.palantir.com/docs/foundry/api/ontology-resources/objects/list-objects/
@@ -388,7 +385,7 @@ def passthru(path) -> [{}]:
         return {'ERROR': str(err)}
 
 
-@app.get("/ontocallOBSOLETE")   # TODO: still using ontocall anywhere? time to get rid of it?
+@APP.get("/ontocallOBSOLETE")   # TODO: still using ontocall anywhere? time to get rid of it?
 def ontocall(path) -> [{}]:
     """API documentation at
     https://www.palantir.com/docs/foundry/api/ontology-resources/objects/list-objects/
@@ -436,13 +433,13 @@ def ontocall(path) -> [{}]:
     # return {'valid but unhandled path': path, 'json': json}
 
 
-@app.put("/datasets/vocab")
+@APP.put("/datasets/vocab")
 def vocab_update():
     """Update vocab dataset"""
     pass
 
 
-@app.get("linkTypesForObjectTypes")
+@APP.get("linkTypesForObjectTypes")
 def link_types() -> List[Dict]:
     """
     TODO: write this api call?
@@ -475,19 +472,8 @@ def link_types() -> List[Dict]:
 
 def run(port: int = 8000):
     """Run app"""
-    uvicorn.run(app, host='0.0.0.0', port=port)
+    uvicorn.run(APP, host='0.0.0.0', port=port)
 
 
 if __name__ == '__main__':
     run()
-
-
-# def jq_wrapper(query: str):
-#     """Shim around Python->Shell for calling JQ. Useful until/if we change to the JQ Python API."""
-#     p = Popen(query, stdin=PIPE, stdout=PIPE, stderr=PIPE, shell=True)
-#     output, err = p.communicate()
-#     output = output.decode("utf-8")
-#     err = err.decode("utf-8")
-#     return output, err
-
-
