@@ -21,6 +21,7 @@ from fastapi.middleware.cors import CORSMiddleware
 from pydantic import BaseModel
 
 from enclave_wrangler.config import config
+from enclave_wrangler.config import FAVORITE_DATASETS
 
 import jq
 
@@ -31,6 +32,15 @@ CSETS_JSON_PATH = f'{OBJECTS_PATH}/OMOPConceptSet/latest.json'
 CONCEPTS_JSON_PATH = f'{OBJECTS_PATH}/OMOPConcept/latest.json'
 CONCEPT_SET_VERSION_ITEM_JSON_PATH = f'{OBJECTS_PATH}/OmopConceptSetVersionItem/latest.json'
 
+CSV_PATH = f'{PROJECT_DIR}/termhub-csets/datasets'
+
+# load big files!
+# TODO: this is too slow for development where the backend has to restart all the time
+#       @Joe: would it be too crazy to run two backend servers, one to hold the data
+#             and one to service requests and handle logic? probably....
+ds = { name: pd.read_csv(os.path.join(CSV_PATH, name + '.csv')) for name in FAVORITE_DATASETS}
+print(ds.keys())
+
 app = FastAPI()
 app.add_middleware(
     CORSMiddleware,
@@ -38,6 +48,9 @@ app.add_middleware(
     allow_methods=['*'],
     allow_headers=['*']
 )
+
+
+
 
 
 # Utils

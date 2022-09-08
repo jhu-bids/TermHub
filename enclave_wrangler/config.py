@@ -18,3 +18,22 @@ config = {
     'HOSTNAME': os.getenv('HOSTNAME', 'unite.nih.gov'),
     'ONTOLOGY_RID': os.getenv('ONTOLOGY_RID', 'ri.ontology.main.ontology.00000000-0000-0000-0000-000000000000'),
 }
+
+FAVORITE_DATASETS = {
+    'concept': {
+        'name': 'concept',
+        'rid': 'ri.foundry.main.dataset.5cb3c4a3-327a-47bf-a8bf-daf0cafe6772',
+    },
+    'concept_relationship': {
+        'name': 'concept_relationship',
+        'rid': 'ri.foundry.main.dataset.0469a283-692e-4654-bb2e-26922aff9d71'
+    },
+    'concept_set_version_item': {
+        'name': 'concept_set_version_item',
+        'rid': 'ri.foundry.main.dataset.1323fff5-7c7b-4915-bcde-4d5ba882c993',
+    },
+    'concept_set_members': {
+        'name': 'concept_set_members',
+        'rid': 'ri.foundry.main.dataset.e670c5ad-42ca-46a2-ae55-e917e3e161b6',
+    },
+}
