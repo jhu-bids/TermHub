@@ -14,16 +14,19 @@ from typing import Any, Dict, List, Union
 
 import numpy as np
 import pandas as pd
+
 import requests
 import uvicorn
 from fastapi import FastAPI, Query
 from fastapi.middleware.cors import CORSMiddleware
 from pydantic import BaseModel
 
-from enclave_wrangler.config import config
-from enclave_wrangler.config import FAVORITE_DATASETS
+from enclave_wrangler.config import config, FAVORITE_DATASETS
 
 import jq
+
+from pandasql import sqldf
+pysqldf = lambda q: sqldf(q, globals())
 
 DEBUG = True
 PROJECT_DIR = Path(os.path.dirname(__file__)).parent
@@ -40,6 +43,12 @@ CSV_PATH = f'{PROJECT_DIR}/termhub-csets/datasets'
 #             and one to service requests and handle logic? probably....
 ds = { name: pd.read_csv(os.path.join(CSV_PATH, name + '.csv')) for name in FAVORITE_DATASETS}
 print(ds.keys())
+
+concept = ds['concept']
+cnts = pysqldf("""
+        SELECT vocabulary_id, COUNT(*) AS cnt
+        FROM concept
+        GROUP BY 1""")
 
 app = FastAPI()
 app.add_middleware(
