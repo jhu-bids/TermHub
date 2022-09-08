@@ -298,16 +298,6 @@ function ConceptSetsPage(props) {
       </div>)
 }
 
-// todo: move this back in, or accept cols as params
-// https://www.ag-grid.com/react-data-grid/column-definitions/
-const getColumnDefs = () => {
-  return [
-    { field: 'ConceptID' },
-    // { field: '23007370' },
-    // { field: '23600781' },
-  ];
-};
-
 // TODO: Page state refresh should not be 'on window focus', but on autocomplete widget selection
 // TODO: Should we move comparison logic python side and do query at new backend_url?
 function CsetComparisonPage(props) {
@@ -323,7 +313,6 @@ function CsetComparisonPage(props) {
       // todo: o(1) instead of o(n) would be better; like a python dict instead of array
       let csetIdConcepts = res.data.map((row) => {return {codesetId: row.codesetId, conceptIds: Object.keys(row.concepts)}});
       let tableData = conceptsSet.map((conceptId) => {return {'ConceptID': conceptId}});
-
       // todo: o(1) instead of o(n) would be better; like a python dict instead of array
       // Iterate over sets and put info in rows
       let tableData2 = []
@@ -338,24 +327,10 @@ function CsetComparisonPage(props) {
             }
           }
         }
-        // TODO: Reorder cols here if possible (
-        //  -this doesn't work. even when i play around in node. even some responses say it doesn't work, even though
-        //  the response i took this example from has most votes
-        //  https://stackoverflow.com/questions/6959817/changing-the-order-of-the-object-keys
-        const objectOrder = {'ConceptID': null}
-        newRow = Object.assign(objectOrder, newRow);
         tableData2.push(newRow);
       }
-      
       return tableData2
   })});
-
-  // TODO: How to pass column order? could I just put 'ConceptID' as the only column thta mtters
-  //  https://www.ag-grid.com/react-data-grid/column-updating-definitions/
-  //  https://www.ag-grid.com/react-data-grid/column-definitions/
-  //  defaultColDef? columnDefs?
-  //  this doesn't work:
-  const [columnDefs, setColumnDefs] = useState(getColumnDefs());
 
   return (
       <div>
@@ -367,8 +342,7 @@ function CsetComparisonPage(props) {
           (data && (<div>
             <ComparisonTable
               rowData={data}
-              columnDefs={columnDefs}
-              // defaultColDef={defaultColDef}
+              firstColName={'ConceptID'}
             />
           </div>))
         }
