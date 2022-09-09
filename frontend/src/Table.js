@@ -102,10 +102,8 @@ const Table = (props) => {
 const ComparisonTable = (props) => {
   const rowHeight = 42;
   const headerHeight = rowHeight * 1.25;
-  const {rowData} = props;
+  const {rowData, firstColName} = props;
   const gridRef = useRef(); // Optional - for accessing Grid's API
-  // const [rowData, setRowData] = useState(); // Set rowData to Array of Objects, one Object per Row
- // Each Column Definition results in one Column.
   const [columnDefs, _setColumnDefs] = useState();
   function setColumnDefs(colNames) {
     let defs = colNames.map(n => ({field: n}) )
@@ -113,7 +111,9 @@ const ComparisonTable = (props) => {
   }
   useEffect(() => {
     if (props.rowData && rowData.length) {
-      setColumnDefs(Object.keys(rowData[0]))
+      const otherCols = Object.keys(rowData[0]).filter(function(item) {return item !== firstColName})
+      const cols = [].concat(...[firstColName], otherCols)
+      setColumnDefs(cols)
     }
   }, [rowData, props]);
   const defaultColDef = useMemo(() => ({ sortable: true}));
