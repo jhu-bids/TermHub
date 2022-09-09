@@ -34,6 +34,14 @@ CONCEPTS_JSON_PATH = f'{OBJECTS_PATH}/OMOPConcept/latest.json'
 CONCEPT_SET_VERSION_ITEM_JSON_PATH = f'{OBJECTS_PATH}/OmopConceptSetVersionItem/latest.json'
 CSV_PATH = f'{PROJECT_DIR}/termhub-csets/datasets'
 
+API_NAME_TO_DATASET_NAME = {        # made this lookup, but then didn't need it
+                                    # keep if need later?
+    'OMOPConcept':               'concept',
+    'OMOPConceptSet':            'concept_set_members',
+    'OMOPConceptSetContainer':   'concept_set_version_item',
+    'OmopConceptSetVersionItem': 'concept_relationship',
+}
+
 # load big files!
 # TODO: this is too slow for development where the backend has to restart all the time
 #  @Joe: would it be too crazy to run 2 backend servers, 1 to hold the data and 1 to service requests / logic? probably.
@@ -46,11 +54,11 @@ try:
     DS = {name: pd.read_csv(os.path.join(CSV_PATH, name + '.csv')) for name in FAVORITE_DATASETS}
     print(f'Favorite datasets loaded: {DS.keys()}')
     CONCEPT = DS['concept']
-    PYSQLDF = lambda q: sqldf(q, globals())
-    COUNTS = PYSQLDF("""
-        SELECT vocabulary_id, COUNT(*) AS cnt
-        FROM CONCEPT
-        GROUP BY 1""")
+    # PYSQLDF = lambda q: sqldf(q, globals()) # I think you need to call this in the function you're using it in
+    # COUNTS = PYSQLDF("""
+    #     SELECT vocabulary_id, COUNT(*) AS cnt
+    #     FROM CONCEPT
+    #     GROUP BY 1""")
 except FileNotFoundError:
     print('Datasets not loaded.')
 
@@ -133,6 +141,7 @@ def fields_from_objlist(
         get one or more fields from specified object type, example:
         http://127.0.0.1:8000/fields-from-objlist?field=conceptSetNameOMOP&field=codesetId&objtype=OMOPConceptSet
     """
+
     queryClauses = []
     objlist = load_json(objtype)
     fields = validFieldList(objlist=objlist, fields=field)
@@ -158,7 +167,6 @@ def fields_from_objlist(
     # return res
 
 
-
 @APP.get("/concept-sets-with-concepts")
 def concept_sets_with_concepts(
     codeset_id: Union[str, None] = Query(default=[]),
@@ -167,27 +175,63 @@ def concept_sets_with_concepts(
 ) -> Union[Dict, List]:
     """Returns list of concept sets selected and their concepts
 
-    If no codeset_id, doesn't return concepts; just concept_sets."""
-    concept_sets = fields_from_objlist(objtype='OMOPConceptSet', filter=[f'codesetId:{codeset_id}'], field=field)
-    if not codeset_id:
-        return concept_sets
-    else:
-        # Mutate `concept_sets` by adding `concepts` field
-        concept_sets_lookup = {x['codesetId']: x for x in concept_sets}
-        concept_id_concepts_map = concepts_read(
-            concept_set_id=[x['codesetId'] for x in concept_sets], field_filter=concept_field_filter)
-        for cs_id, cs in concept_sets_lookup.items():
-            cs['concepts'] = concept_id_concepts_map[cs_id]
+    If no codeset_id, doesn't return concepts; just concept_sets.
+        TODO: is that still true?
 
-        # TODO: Remove this block after we get all the data. This just fills in missing data for easy frontend rendering
-        for cs in concept_sets:
-            for concept_id, concept_props in cs['concepts'].items():
-                if not concept_props:
-                    cs['concepts'][concept_id] = {
-                        **{'conceptId': concept_id},
-                        **{f: '<Data not yet downloaded>' for f in concept_field_filter if f != 'conceptId'}}
+    Switched to using pandas (not pandasql) not sure if it works like it should -- well
+        something's going wrong in json conversion, hitting error when returning. End of
+        stacktrace is:
+          File "/opt/homebrew/Cellar/python@3.10/3.10.5/Frameworks/Python.framework/Versions/3.10/lib/python3.10/json/encoder.py", line 257, in iterencode
+            return _iterencode(o, 0)
+        ValueError: Out of range float values are not JSON compliant
+    @joeflack4 can you take a look? thanks!
 
-        return concept_sets
+    """
+
+    codeset_ids = [int(cid) for cid in codeset_id.split('|')]
+
+    # TODO: switch to using pandasql
+    print(f'Favorite datasets loaded: {DS.keys()}')
+    sql = lambda q: sqldf(q, globals())
+
+    # ds_name = API_NAME_TO_DATASET_NAME[objtype]
+    # cdf = DS['concept']
+    csm = DS['concept_set_members']
+    # container = DS['concept_set_container_edited']
+    codeset = DS['code_sets']
+
+    # using pandasql seems to be MUCH slower than regular pandas:
+    # csets = sql(f"""
+    #     SELECT concept_id
+    #     FROM csm
+    #     WHERE codeset_id IN (23007370, 23600781)
+    # """)
+    csm = csm[csm.codeset_id.isin(codeset_ids)]
+    codeset = codeset[codeset.codeset_id.isin(codeset_ids)]
+    csets = codeset.to_dict(orient='records')
+    for cset in csets:
+        cset['concepts'] = csm[csm.codeset_id == cset['codeset_id']].to_dict(orient='records')
+    return csets
+
+    # concept_sets = fields_from_objlist(objtype='OMOPConceptSet', filter=[f'codesetId:{codeset_id}'], field=field)
+    # if not codeset_id:
+    #     return concept_sets
+    # else:
+    #     # Mutate `concept_sets` by adding `concepts` field
+    #     concept_sets_lookup = {x['codesetId']: x for x in concept_sets}
+    #     concept_id_concepts_map = concepts_read(
+    #         concept_set_id=[x['codesetId'] for x in concept_sets], field_filter=concept_field_filter)
+    #     for cs_id, cs in concept_sets_lookup.items():
+    #         cs['concepts'] = concept_id_concepts_map[cs_id]
+    #
+    #     # TODO: Remove this block after we get all the data. This just fills in missing data for easy frontend rendering
+    #     for cs in concept_sets:
+    #         for concept_id, concept_props in cs['concepts'].items():
+    #             if not concept_props:
+    #                 cs['concepts'][concept_id] = {
+    #                     **{'conceptId': concept_id},
+    #                     **{f: '<Data not yet downloaded>' for f in concept_field_filter if f != 'conceptId'}}
+    #     return concept_sets
 
 
 # TODO:

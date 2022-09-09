@@ -28,6 +28,14 @@ FAVORITE_DATASETS = {
         'name': 'concept_relationship',
         'rid': 'ri.foundry.main.dataset.0469a283-692e-4654-bb2e-26922aff9d71'
     },
+    'concept_set_container_edited': {
+        'name': 'concept_set_container_edited',
+        'rid': 'ri.foundry.main.dataset.8cb458de-6937-4f50-8ef5-2b345382dbd4',
+    },
+    'code_sets': {
+        'name': 'code_sets',
+        'rid': 'ri.foundry.main.dataset.7104f18e-b37c-419b-9755-a732bfa33b03',
+    },
     'concept_set_version_item': {
         'name': 'concept_set_version_item',
         'rid': 'ri.foundry.main.dataset.1323fff5-7c7b-4915-bcde-4d5ba882c993',
@@ -36,4 +44,8 @@ FAVORITE_DATASETS = {
         'name': 'concept_set_members',
         'rid': 'ri.foundry.main.dataset.e670c5ad-42ca-46a2-ae55-e917e3e161b6',
     },
+    # '': {
+    #     'name': '',
+    #     'rid': '',
+    # },
 }

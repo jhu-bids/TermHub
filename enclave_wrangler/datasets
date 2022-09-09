@@ -113,7 +113,7 @@ def download_and_combine_dataset_parts(datasetRid: str, file_parts: [str], outpa
         combine_parquet_files(parquet_dir, combined_parquet_fname)
         df = pd.read_parquet(combined_parquet_fname)
         if outpath:
-            os.makedirs(os.path.dirname(outpath))
+            os.makedirs(os.path.dirname(outpath), exist_ok=True)
             df.to_csv(outpath)
         return df
 
