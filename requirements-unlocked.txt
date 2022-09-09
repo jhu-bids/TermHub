@@ -1,6 +1,7 @@
 # dependencies
 fastapi
 pandas
+pandasql
 pyarrow
 requests
 typeguard

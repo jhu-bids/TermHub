@@ -17,7 +17,7 @@ TODO's
 */
 import {useQuery} from "@tanstack/react-query";
 import axios from "axios";
-import Table from "./Table";
+import {Table, ComparisonTable} from "./Table";
 import {ReactQueryDevtools} from "@tanstack/react-query-devtools";
 import List from "@mui/material/List";
 import ListItem from "@mui/material/ListItem";
@@ -33,11 +33,85 @@ const API_ROOT = 'http://127.0.0.1:8000'
 const enclave_url = path => `${API_ROOT}/passthru?path=${path}`
 const backend_url = path => `${API_ROOT}/${path}`
 
+
+//TODO: How to get hierarchy data?
+// - It's likely in one of the datasets we haven't downloaded yet. When we get it, we can do indents.
+function ConceptSet(props) {
+  let {cset} = props;
+  return (
+    // (isLoading && "Loading...") ||
+    // (error && `An error has occurred: ${error.stack}`) ||
+    // (isFetching && "Updating...") ||
+    // (data && <div style={{
+    (<div style={{
+        padding: '1px 15px 1px 15px',
+        margin: '5px 5px 5px 5px',
+        border: '5px 5px 5px 5px',
+        background: '#d3d3d3',
+        borderRadius: '10px',
+      }}>
+        <h4>{cset.conceptSetNameOMOP} v{cset.version}</h4>
+        <List>
+          {Object.values(cset.concepts).map((concept, i) => {
+            return <ListItem style={{
+              margin: '3px 3px 3px 3px',
+              background: '#dbdbdb',
+              borderRadius: '5px',
+              fontSize: '0.8em'
+            }} key={i}>
+              {concept.conceptId}: {concept.conceptName}
+            </ListItem>
+          })}
+        </List>
+      </div>)
+  )
+}
+
+function ConceptList(props) {
+  // http://127.0.0.1:8000/fields-from-objlist?objtype=OmopConceptSetVersionItem&filter=codesetId:822173787|74555844
+  const [qsParams, setQsParams] = useGlobalState('qsParams');
+  //const [filteredData, setFilteredData] = useState([]);
+  let codesetIds = qsParams && qsParams.codesetId && qsParams.codesetId.sort() || []
+
+  let url = backend_url('fields-from-objlist?') +
+      [
+        'objtype=OmopConceptSetVersionItem',
+        'filter=codesetId:' + codesetIds.join('|')
+      ].join('&')
+
+  const { isLoading, error, data, isFetching } = useQuery([url], () => {
+    //if (codesetIds.length) {
+    //   console.log('fetching backend_url', url)
+      return axios.get(url).then((res) => res.data)
+      // console.log('enclave_url', enclave_url('objects/OMOPConceptSet'))
+      // .then((res) => res.data.data.map(d => d.properties))
+    //} else {
+      //return {isLoading: false, error: null, data: [], isFetching: false}
+    //}
+  });
+  // console.log('rowData', data)
+  return  <div>
+            <h4>Concepts:</h4>
+            <Table rowData={data} />
+          </div>
+  /*
+  let params = useParams();
+  let {conceptId} = params;
+  let path = `objects/OMOPConceptSet/${conceptId}/links/omopconcepts`;
+  let url = enclave_url(path)
+  const { isLoading, error, data, isFetching } = useQuery([path], () =>
+      axios
+          .get(url)
+          .then((res) => res.data.data.map(d => d.properties)) )
+  */
+}
+
 /* CsetSEarch: Grabs stuff from disk*/
 /* TODO: Solve:
     react_devtools_backend.js:4026 MUI: The value provided to Autocomplete is invalid.
     None of the options match with `[{"label":"11-Beta Hydroxysteroid Dehydrogenase Inhibitor","codesetId":584452082},{"label":"74235-3 (Blood type)","codesetId":761463499}]`.
     You can use the `isOptionEqualToValue` prop to customize the equality test.
+    @ SIggie: is this fixed?
 */
 function CsetSearch(props) {
   let {applyChangeCallback} = props;
@@ -156,6 +230,7 @@ function CsetSearch(props) {
      and also use Multiple Values */
 }
 
+// TODO: Page state refresh should not be 'on window focus', but on autocomplete widget selection
 function ConceptSetsPage(props) {
   // return <CsetSearch />;
   let navigate = useNavigate();
@@ -223,114 +298,82 @@ function ConceptSetsPage(props) {
       </div>)
 }
 
-//TODO: How to get hierarchy data?
-// - It's likely in one of the datasets we haven't downloaded yet. When we get it, we can do indents.
-function ConceptSet(props) {
-  let {cset} = props;
-  return (
-    // (isLoading && "Loading...") ||
-    // (error && `An error has occurred: ${error.stack}`) ||
-    // (isFetching && "Updating...") ||
-    // (data && <div style={{
-    (<div style={{
-        padding: '1px 15px 1px 15px',
-        margin: '5px 5px 5px 5px',
-        border: '5px 5px 5px 5px',
-        background: '#d3d3d3',
-        'border-radius': '10px',
-      }}>
-        <h4>{cset.conceptSetNameOMOP} v{cset.version}</h4>
-        <List>
-          {Object.values(cset.concepts).map((concept, i) => {
-            return <ListItem style={{
-              margin: '3px 3px 3px 3px',
-              background: '#dbdbdb',
-              'border-radius': '5px',
-              'font-size': '0.8em'
-            }} key={i}>
-              {concept.conceptId}: {concept.conceptName}
-            </ListItem>
-          })}
-        </List>
-      </div>)
-  )
-}
+// todo: move this back in, or accept cols as params
+// https://www.ag-grid.com/react-data-grid/column-definitions/
+const getColumnDefs = () => {
+  return [
+    { field: 'ConceptID' },
+    // { field: '23007370' },
+    // { field: '23600781' },
+  ];
+};
 
-function ConceptList(props) {
-  // http://127.0.0.1:8000/fields-from-objlist?objtype=OmopConceptSetVersionItem&filter=codesetId:822173787|74555844
+// TODO: Page state refresh should not be 'on window focus', but on autocomplete widget selection
+// TODO: Should we move comparison logic python side and do query at new backend_url?
+function CsetComparisonPage(props) {
   const [qsParams, setQsParams] = useGlobalState('qsParams');
-  //const [filteredData, setFilteredData] = useState([]);
-  let codesetIds = qsParams && qsParams.codesetId && qsParams.codesetId.sort() || []
-
-  let url = backend_url('fields-from-objlist?') +
-      [
-        'objtype=OmopConceptSetVersionItem',
-        'filter=codesetId:' + codesetIds.join('|')
-      ].join('&')
+  let codesetIds = (qsParams && qsParams.codesetId && qsParams.codesetId.sort()) || []
+  let url = backend_url('concept-sets-with-concepts?concept_field_filter=conceptId&concept_field_filter=conceptName&codeset_id=' + codesetIds.join('|'))
 
   const { isLoading, error, data, isFetching } = useQuery([url], () => {
-    //if (codesetIds.length) {
-    //   console.log('fetching backend_url', url)
-      return axios.get(url).then((res) => res.data)
-      // console.log('enclave_url', enclave_url('objects/OMOPConceptSet'))
-      // .then((res) => res.data.data.map(d => d.properties))
-    //} else {
-      //return {isLoading: false, error: null, data: [], isFetching: false}
-    //}
-  });
-  // console.log('rowData', data)
-  return  <div>
-            <h4>Concepts:</h4>
-            <Table rowData={data} />
-          </div>
-  /*
-  let params = useParams();
-  let {conceptId} = params;
-  let path = `objects/OMOPConceptSet/${conceptId}/links/omopconcepts`;
-  let url = enclave_url(path)
-  const { isLoading, error, data, isFetching } = useQuery([path], () =>
-      axios
-          .get(url)
-          .then((res) => res.data.data.map(d => d.properties)) )
-  */
+    return axios.get(url).then((res) => {
+      let concepts2darr = res.data.map((row) => {return Object.keys(row.concepts)});
+      let conceptsArr = [].concat(...concepts2darr);
+      let conceptsSet = [...new Set(conceptsArr)];
+      // todo: o(1) instead of o(n) would be better; like a python dict instead of array
+      let csetIdConcepts = res.data.map((row) => {return {codesetId: row.codesetId, conceptIds: Object.keys(row.concepts)}});
+      let tableData = conceptsSet.map((conceptId) => {return {'ConceptID': conceptId}});
+
+      // todo: o(1) instead of o(n) would be better; like a python dict instead of array
+      // Iterate over sets and put info in rows
+      let tableData2 = []
+      for (let row of tableData) {
+        let newRow = row;
+        for (let {codesetId, conceptIds} of csetIdConcepts) {
+          newRow[codesetId] = 'X';
+          for (let conceptId of conceptIds) {
+            if (conceptId === row.ConceptID) {
+              newRow[codesetId] = 'O';
+              break;
+            }
+          }
+        }
+        // TODO: Reorder cols here if possible (
+        //  -this doesn't work. even when i play around in node. even some responses say it doesn't work, even though
+        //  the response i took this example from has most votes
+        //  https://stackoverflow.com/questions/6959817/changing-the-order-of-the-object-keys
+        const objectOrder = {'ConceptID': null}
+        newRow = Object.assign(objectOrder, newRow);
+        tableData2.push(newRow);
+      }
+      
+      return tableData2
+  })});
+
+  // TODO: How to pass column order? could I just put 'ConceptID' as the only column thta mtters
+  //  https://www.ag-grid.com/react-data-grid/column-updating-definitions/
+  //  https://www.ag-grid.com/react-data-grid/column-definitions/
+  //  defaultColDef? columnDefs?
+  //  this doesn't work:
+  const [columnDefs, setColumnDefs] = useState(getColumnDefs());
+
+  return (
+      <div>
+        <CsetSearch/>
+        {
+          (isLoading && "Loading...") ||
+          (error && `An error has occurred: ${error.stack}`) ||
+          (isFetching && "Updating...") ||
+          (data && (<div>
+            <ComparisonTable
+              rowData={data}
+              columnDefs={columnDefs}
+              // defaultColDef={defaultColDef}
+            />
+          </div>))
+        }
+      </div>)
 }
 
 
-export {ConceptSetsPage, CsetSearch, ConceptList};
-
-/* function ConceptSet(props) {
-  let {conceptId} = props;
-  let path = `objects/OMOPConceptSet/${conceptId}`
-  let url = enclave_url(path)
-  const { isLoading, error, data, isFetching } = useQuery([path], () =>
-      axios
-          .get(url)
-          .then((res) => {
-            let csetData = res.data.properties;
-            return [
-              {field: 'Code set ID', value: csetData.codesetId},
-              {field: 'Created at', value: csetData.createdAt},
-              {field: 'Version title', value: csetData.conceptSetVersionTitle},
-              {field: 'Is most recent version', value: csetData.isMostRecentVersion},
-              {field: 'Intention', value: csetData.intention},
-              {field: 'Update message', value: csetData.updateMessage},
-              {field: 'Provenance', value: csetData.provenance},
-              {field: 'Limitations', value: csetData.limitations},
-            ]
-          })
-  );
-
-  if (isLoading) return `Loading... (isFetching: ${JSON.stringify(isFetching)}`;
-  if (error) return `An error has occurred with ${<a href={url}>{url}</a>}: ` + error.message;
-  return <div>
-    <List>
-      {
-        data.map(({field, value}) =>
-                     <ListItem key={field}><b>{field}:</b>&nbsp; {value}<br/></ListItem>
-        )
-      }
-    </List>
-    <ConceptList />
-  </div>
-} */
-
+export {ConceptSetsPage, CsetSearch, ConceptList, CsetComparisonPage};

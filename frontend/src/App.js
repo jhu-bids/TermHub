@@ -10,26 +10,21 @@ import React, {useState, useReducer, useEffect, useRef} from 'react';
 import './App.css';
 import { Link, Outlet, useHref, useNavigate, useParams, useSearchParams, useLocation } from "react-router-dom";
 import MuiAppBar from "./MuiAppBar";
-import List from '@mui/material/List';
-import ListItem from '@mui/material/ListItem';
-import Table from "./Table";   // name should be changed because it's no longer just test code
 import RRD from "react-router-dom";
-
 import {
-    useQuery,
-    useMutation,
-    useQueryClient,
+    // useQuery,
+    // useMutation,
+    // useQueryClient,
     QueryClient,
     QueryClientProvider,
 } from '@tanstack/react-query'
 import { ReactQueryDevtools } from '@tanstack/react-query-devtools'
-
 import { createGlobalState } from 'react-hooks-global-state';
 import _ from 'lodash';
-
 // wanting to install react-query and axios and use those for data fetch/cache/etc.
 //  is this helpful? https://blog.openreplay.com/fetching-and-updating-data-with-react-query
 import axios from "axios";
+
 const queryClient = new QueryClient()
 
 // console.log(axios)
@@ -140,6 +135,7 @@ function AboutPage() {
 
 export {App, AboutPage, useGlobalState};
 
+// TODO: @Siggie: Can we remove this comment or we need this list of links for ref still?
 /*
 function getObjLinks() {
   // https://www.palantir.com/docs/foundry/api/ontology-resources/objects/list-linked-objects

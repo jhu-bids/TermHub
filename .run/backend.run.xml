@@ -1,7 +1,7 @@
 <component name="ProjectRunConfigurationManager">
   <configuration default="false" name="backend" type="Python.FastAPI">
     <option name="file" value="$PROJECT_DIR$/backend/app.py" />
-    <module name="TermHub" />
+    <module name="ValueSet-Tools" />
     <option name="INTERPRETER_OPTIONS" value="" />
     <option name="PARENT_ENVS" value="true" />
     <option name="SDK_HOME" value="" />
