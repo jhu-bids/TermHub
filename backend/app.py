@@ -51,6 +51,23 @@ API_NAME_TO_DATASET_NAME = {        # made this lookup, but then didn't need it
 
 # TODO: #2: remove try/except when download datasets
 try:
+
+    # code_set.version got mangled into version numbers like 1.0, 2.0
+    #  TODO: try to fix.... not working yet:
+    #
+    # converters = {
+    #     'int': lambda v: v.astype(int)
+    # }
+    # def bool_converter(v):
+    #     return v and True or False
+    #
+    # csv_opts = {
+    #     # 'code_sets': {'dtype': {'version': int}}
+    #     'code_sets': {'converters': {'version': converters['int']}}
+    # }
+    #
+    # df = pd.read_csv(os.path.join(CSV_PATH, 'code_sets' + '.csv'), **(csv_opts['code_sets']))
+
     DS = {name: pd.read_csv(os.path.join(CSV_PATH, name + '.csv'), keep_default_na=False) for name in FAVORITE_DATASETS}
     #  TODO: Fix this warning?
     #   DtypeWarning: Columns (4) have mixed types. Specify dtype option on import or set low_memory=False.
@@ -124,9 +141,35 @@ def cset_names() -> Union[Dict, List]:
 
 @APP.get("/cset-versions")
 def csetVersions() -> Union[Dict, List]:
-    query = 'group_by(.conceptSetNameOMOP) | map({ key: .[0].conceptSetNameOMOP | tostring, value: [.[] | {version, codesetId}] }) | from_entries'
+    # query = 'group_by(.conceptSetNameOMOP) | map({ key: .[0].conceptSetNameOMOP | tostring, value: [.[] | {version, codesetId}] }) | from_entries'
+    # return jqQuery(objtype='OMOPConceptSet', query=query)
     # query = 'group_by(.concept_set_name) | map({ key: .[0].concept_set_name | tostring, value: [.[] | {version, codeset_id}] }) | from_entries'
-    return jqQuery(objtype='OMOPConceptSet', query=query)
+    csm = DS['code_sets']
+    # g = csm.groupby('concept_set_name')[['version', 'codeset_id']].apply(dict)
+    g = csm[['concept_set_name', 'codeset_id', 'version']].groupby('concept_set_name').agg(dict)
+    return g
+    # @joeflack4: the code above isn't working, it's supposed to produce the same format as earlier, which looks like this:
+    # "DG COVID 19 Vaccine": [
+    #     {
+    #         "version": 3,
+    #         "codesetId": 267696715
+    #     },
+    #     {
+    #         "version": 2,
+    #         "codesetId": 705273705
+    #     },
+    #     {
+    #         "version": 1,
+    #         "codesetId": 249849651
+    #     }
+    # ],
+    # "DG Morphine": [
+    #     {
+    #     "version": 1,
+    #     "codesetId": 58437116
+    #     }
+    # ],
+
 
 
 def jqQuery(objtype: str, query: str, objlist=None, ) -> Union[Dict, List]:
