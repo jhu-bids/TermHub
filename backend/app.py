@@ -51,7 +51,7 @@ API_NAME_TO_DATASET_NAME = {        # made this lookup, but then didn't need it
 
 # TODO: #2: remove try/except when download datasets
 try:
-    DS = {name: pd.read_csv(os.path.join(CSV_PATH, name + '.csv')) for name in FAVORITE_DATASETS}
+    DS = {name: pd.read_csv(os.path.join(CSV_PATH, name + '.csv'), keep_default_na=False) for name in FAVORITE_DATASETS}
     print(f'Favorite datasets loaded: {DS.keys()}')
     CONCEPT = DS['concept']
     # PYSQLDF = lambda q: sqldf(q, globals()) # I think you need to call this in the function you're using it in
@@ -211,27 +211,35 @@ def concept_sets_with_concepts(
     csets = codeset.to_dict(orient='records')
     for cset in csets:
         cset['concepts'] = csm[csm.codeset_id == cset['codeset_id']].to_dict(orient='records')
+
+        # del csets[0]['Unnamed: 0']
+    print(csets)
     return csets
 
-    # concept_sets = fields_from_objlist(objtype='OMOPConceptSet', filter=[f'codesetId:{codeset_id}'], field=field)
-    # if not codeset_id:
-    #     return concept_sets
-    # else:
-    #     # Mutate `concept_sets` by adding `concepts` field
-    #     concept_sets_lookup = {x['codesetId']: x for x in concept_sets}
-    #     concept_id_concepts_map = concepts_read(
-    #         concept_set_id=[x['codesetId'] for x in concept_sets], field_filter=concept_field_filter)
-    #     for cs_id, cs in concept_sets_lookup.items():
-    #         cs['concepts'] = concept_id_concepts_map[cs_id]
-    #
-    #     # TODO: Remove this block after we get all the data. This just fills in missing data for easy frontend rendering
-    #     for cs in concept_sets:
-    #         for concept_id, concept_props in cs['concepts'].items():
-    #             if not concept_props:
-    #                 cs['concepts'][concept_id] = {
-    #                     **{'conceptId': concept_id},
-    #                     **{f: '<Data not yet downloaded>' for f in concept_field_filter if f != 'conceptId'}}
-    #     return concept_sets
+    concept_sets = fields_from_objlist(objtype='OMOPConceptSet', filter=[f'codesetId:{codeset_id}'], field=field)
+    if not codeset_id:
+        return concept_sets
+    else:
+        # Mutate `concept_sets` by adding `concepts` field
+        concept_sets_lookup = {x['codesetId']: x for x in concept_sets}
+        concept_id_concepts_map = concepts_read(
+            concept_set_id=[x['codesetId'] for x in concept_sets], field_filter=concept_field_filter)
+        for cs_id, cs in concept_sets_lookup.items():
+            if cs_id in concept_id_concepts_map:
+                cs['concepts'] = concept_id_concepts_map[cs_id]
+            else:
+                cs['concepts'] = {}
+
+
+        # TODO: Remove this block after we get all the data. This just fills in missing data for easy frontend rendering
+        for cs in concept_sets:
+            for concept_id, concept_props in cs['concepts'].items():
+                if not concept_props:
+                    cs['concepts'][concept_id] = {
+                        **{'conceptId': concept_id},
+                        **{f: '<Data not yet downloaded>' for f in concept_field_filter if f != 'conceptId'}}
+    return concept_sets
+    #return {'error': 'not working yet'}
 
 
 # TODO:
