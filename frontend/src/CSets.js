@@ -50,7 +50,7 @@ function ConceptSet(props) {
         background: '#d3d3d3',
         borderRadius: '10px',
       }}>
-        <h4>{cset.conceptSetNameOMOP} v{cset.version}</h4>
+        <h4>{cset.concept_set_name/*conceptSetNameOMOP*/} v{cset.version}</h4>
         <List>
           {Object.values(cset.concepts).map((concept, i) => {
             return <ListItem style={{
@@ -59,7 +59,7 @@ function ConceptSet(props) {
               borderRadius: '5px',
               fontSize: '0.8em'
             }} key={i}>
-              {concept.conceptId}: {concept.conceptName}
+              {concept.concept_id}: {concept.concept_name}
             </ListItem>
           })}
         </List>
@@ -98,8 +98,8 @@ function ConceptList(props) {
           </div>
   /*
   let params = useParams();
-  let {conceptId} = params;
-  let path = `objects/OMOPConceptSet/${conceptId}/links/omopconcepts`;
+  let {concept_id} = params;
+  let path = `objects/OMOPConceptSet/${concept_id}/links/omopconcepts`;
   let url = enclave_url(path)
   const { isLoading, error, data, isFetching } = useQuery([path], () =>
       axios
@@ -165,7 +165,7 @@ function CsetSearch(props) {
       })
   );
   useEffect(() => {
-    if (!data) return
+    if (!data || !data.length) return
     let selectedCids = value && value.map(d => d.codeset_id).sort() || []
     if (!_.isEqual(codeset_ids, selectedCids)) {
       //console.log(value)
@@ -247,7 +247,7 @@ function ConceptSetsPage(props) {
   //       'objtype=OMOPConceptSet',
   //       'filter=codeset_id:' + codeset_ids.join('|')
   //     ].join('&')
-  let url = enabled ? backend_url('concept-sets-with-concepts?concept_field_filter=conceptId&concept_field_filter=conceptName&codeset_id=' + codeset_ids.join('|'))
+  let url = enabled ? backend_url('concept-sets-with-concepts?concept_field_filter=concept_id&concept_field_filter=concept_name&codeset_id=' + codeset_ids.join('|'))
                     : `invalid ConceptSetsPage url, no codeset_ids, enabled: ${enabled}`;
 
   const { isLoading, error, data, isFetching } = useQuery([url], () => {
@@ -310,7 +310,7 @@ function CsetComparisonPage(props) {
   const [qsParams, setQsParams] = useGlobalState('qsParams');
   let codeset_ids = (qsParams && qsParams.codeset_id && qsParams.codeset_id.sort()) || []
   let enabled = !!codeset_ids.length
-  let url = enabled ? backend_url('concept-sets-with-concepts?concept_field_filter=conceptId&concept_field_filter=conceptName&codeset_id=' + codeset_ids.join('|'))
+  let url = enabled ? backend_url('concept-sets-with-concepts?concept_field_filter=concept_id&concept_field_filter=concept_name&codeset_id=' + codeset_ids.join('|'))
       : `invalid CsetComparisonPage url, no codeset_ids, enabled: ${enabled}`;
 
   const { isLoading, error, data, isFetching } = useQuery([url], () => {
@@ -319,17 +319,17 @@ function CsetComparisonPage(props) {
       let conceptsArr = [].concat(...concepts2darr);
       let conceptsSet = [...new Set(conceptsArr)];
       // todo: o(1) instead of o(n) would be better; like a python dict instead of array
-      let csetIdConcepts = res.data.map((row) => {return {codeset_id: row.codeset_id, conceptIds: Object.keys(row.concepts)}});
-      let tableData = conceptsSet.map((conceptId) => {return {'ConceptID': conceptId}});
+      let csetIdConcepts = res.data.map((row) => {return {codeset_id: row.codeset_id, concept_ids: Object.keys(row.concepts)}});
+      let tableData = conceptsSet.map((concept_id) => {return {'ConceptID': concept_id}});
       // todo: o(1) instead of o(n) would be better; like a python dict instead of array
       // Iterate over sets and put info in rows
       let tableData2 = []
       for (let row of tableData) {
         let newRow = row;
-        for (let {codeset_id, conceptIds} of csetIdConcepts) {
+        for (let {codeset_id, concept_ids} of csetIdConcepts) {
           newRow[codeset_id] = 'X';
-          for (let conceptId of conceptIds) {
-            if (conceptId === row.ConceptID) {
+          for (let concept_id of concept_ids) {
+            if (concept_id === row.ConceptID) {
               newRow[codeset_id] = 'O';
               break;
             }

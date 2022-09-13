@@ -24,6 +24,8 @@ from enclave_wrangler.utils import log_debug_info
 
 from enclave_wrangler.config import FAVORITE_DATASETS
 
+# TODO: get rid of unnamed row number at start of csv files
+
 HEADERS = {
     "authorization": f"Bearer {config['OTHER_TOKEN']}",
     #"authorization": f"Bearer {config['PALANTIR_ENCLAVE_AUTHENTICATION_BEARER_TOKEN']}",

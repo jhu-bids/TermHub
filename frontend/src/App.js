@@ -80,7 +80,7 @@ function App() {
     let vals = searchParams.getAll(key)
     o[key] = vals.map(v => parseInt(v) == v ? parseInt(v) : v).sort()
   })
-  // console.log('syncing to qsParams', o)
+  console.log('syncing to global state qsParams', o)
   useEffect(() => {
     _.isEqual(qsParams, o) || setQsParams(o)
   }, [searchParams])

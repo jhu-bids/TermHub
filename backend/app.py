@@ -54,6 +54,12 @@ try:
     DS = {name: pd.read_csv(os.path.join(CSV_PATH, name + '.csv'), keep_default_na=False) for name in FAVORITE_DATASETS}
     #  TODO: Fix this warning?
     #   DtypeWarning: Columns (4) have mixed types. Specify dtype option on import or set low_memory=False.
+    #   keep_default_na fixes some or all the warnings, but doesn't manage dtypes well.
+    #   did this in termhub-csets/datasets/fixing-and-paring-down-csv-files.ipynb:
+    #   csm = pd.read_csv('./concept_set_members.csv',
+    #                    # dtype={'archived': bool},    # doesn't work because of missing values
+    #                   converters={'archived': lambda x: x and True or False}, # this makes it a bool field
+    #                   keep_default_na=False)
     print(f'Favorite datasets loaded: {DS.keys()}')
     CONCEPT = DS['concept']
     # PYSQLDF = lambda q: sqldf(q, globals()) # I think you need to call this in the function you're using it in
@@ -113,12 +119,13 @@ class CsetsUpdate(BaseModel):
 @APP.get("/jq-cset-names")
 def cset_names() -> Union[Dict, List]:
     """Get concept set names"""
-    return csets_read(field_filter=['conceptSetNameOMOP'])
+    return csets_read(field_filter=['concept_set_name'])
 
 
 @APP.get("/cset-versions")
 def csetVersions() -> Union[Dict, List]:
     query = 'group_by(.conceptSetNameOMOP) | map({ key: .[0].conceptSetNameOMOP | tostring, value: [.[] | {version, codesetId}] }) | from_entries'
+    # query = 'group_by(.concept_set_name) | map({ key: .[0].concept_set_name | tostring, value: [.[] | {version, codeset_id}] }) | from_entries'
     return jqQuery(objtype='OMOPConceptSet', query=query)
 
 
@@ -133,40 +140,40 @@ def jqQuery(objtype: str, query: str, objlist=None, ) -> Union[Dict, List]:
     return result
 
 
-@APP.get("/fields-from-objlist")
-def fields_from_objlist(
-    objtype: str = Query(...),
-    filter: Union[List[str], None] = Query(default=[]),
-    field: Union[List[str], None] = Query(default=[]),
-) -> Union[Dict, List]:
-    """
-        get one or more fields from specified object type, example:
-        http://127.0.0.1:8000/fields-from-objlist?field=conceptSetNameOMOP&field=codesetId&objtype=OMOPConceptSet
-    """
-
-    queryClauses = []
-    objlist = load_json(objtype)
-    fields = validFieldList(objlist=objlist, fields=field)
-    if len(fields):
-        queryClauses.append('{' + ', '.join(fields) + '}')
-
-    valFilters = {k: v and v.split('|') or [] for k, v in [filt.split(':') for filt in filter]}
-    filterFields = validFieldList(objlist=objlist, fields=valFilters.keys())
-    for filterField in filterFields:
-        filtVals = valFilters[filterField]
-        if len(filtVals):
-            condition = 'or'.join([f' .codesetId == {val} ' for val in filtVals])
-            clause = f'select({condition})'
-            queryClauses.insert(0, clause)
-
-    queryClauses.insert(0, '.[]')
-    query = ' | '.join(queryClauses)
-    subset = jqQuery(objtype=objtype, objlist=objlist, query=query)
-
-    return subset
-    # groupQuery = 'group_by(.conceptSetNameOMOP) | map({ key: .[0].conceptSetNameOMOP | tostring, value: [.[] | {version, codesetId}] }) | from_entries'
-    # res = jqQuery(objtype=objtype, objlist=subset, query=groupQuery)
-    # return res
+# @APP.get("/fields-from-objlist")
+# def fields_from_objlist(
+#     objtype: str = Query(...),
+#     filter: Union[List[str], None] = Query(default=[]),
+#     field: Union[List[str], None] = Query(default=[]),
+# ) -> Union[Dict, List]:
+#     """
+#         get one or more fields from specified object type, example:
+#         http://127.0.0.1:8000/fields-from-objlist?field=concept_set_name&field=codeset_id&objtype=OMOPConceptSet
+#     """
+#
+#     queryClauses = []
+#     objlist = load_json(objtype)
+#     fields = validFieldList(objlist=objlist, fields=field)
+#     if len(fields):
+#         queryClauses.append('{' + ', '.join(fields) + '}')
+#
+#     valFilters = {k: v and v.split('|') or [] for k, v in [filt.split(':') for filt in filter]}
+#     filterFields = validFieldList(objlist=objlist, fields=valFilters.keys())
+#     for filterField in filterFields:
+#         filtVals = valFilters[filterField]
+#         if len(filtVals):
+#             condition = 'or'.join([f' .codeset_id == {val} ' for val in filtVals])
+#             clause = f'select({condition})'
+#             queryClauses.insert(0, clause)
+#
+#     queryClauses.insert(0, '.[]')
+#     query = ' | '.join(queryClauses)
+#     subset = jqQuery(objtype=objtype, objlist=objlist, query=query)
+#
+#     return subset
+#     # groupQuery = 'group_by(.concept_set_name) | map({ key: .[0].concept_set_name | tostring, value: [.[] | {version, codeset_id}] }) | from_entries'
+#     # res = jqQuery(objtype=objtype, objlist=subset, query=groupQuery)
+#     # return res
 
 
 @APP.get("/concept-sets-with-concepts")
@@ -177,6 +184,9 @@ def concept_sets_with_concepts(
 ) -> Union[Dict, List]:
     """Returns list of concept sets selected and their concepts
 
+    sample url:
+        http://127.0.0.1:8000/concept-sets-with-concepts?concept_field_filter=conceptId&concept_field_filter=conceptName&codeset_id=614602276&codeset_id=490710207&codeset_id=394464897&codeset_id=13193785
+        
     If no codeset_id, doesn't return concepts; just concept_sets.
         TODO: is that still true?
 
@@ -218,14 +228,14 @@ def concept_sets_with_concepts(
         # del csets[0]['Unnamed: 0']
 
     # don't think we need this anymore. TODO: delete when sure
-    # concept_sets = fields_from_objlist(objtype='OMOPConceptSet', filter=[f'codesetId:{codeset_id}'], field=field)
+    # concept_sets = fields_from_objlist(objtype='OMOPConceptSet', filter=[f'codeset_id:{codeset_id}'], field=field)
     # if not codeset_id:
     #     return concept_sets
     # else:
     #     # Mutate `concept_sets` by adding `concepts` field
-    #     concept_sets_lookup = {x['codesetId']: x for x in concept_sets}
+    #     concept_sets_lookup = {x['codeset_id']: x for x in concept_sets}
     #     concept_id_concepts_map = concepts_read(
-    #         concept_set_id=[x['codesetId'] for x in concept_sets], field_filter=concept_field_filter)
+    #         concept_set_id=[x['codeset_id'] for x in concept_sets], field_filter=concept_field_filter)
     #     for cs_id, cs in concept_sets_lookup.items():
     #         if cs_id in concept_id_concepts_map:
     #             cs['concepts'] = concept_id_concepts_map[cs_id]
@@ -238,8 +248,8 @@ def concept_sets_with_concepts(
     #         for concept_id, concept_props in cs['concepts'].items():
     #             if not concept_props:
     #                 cs['concepts'][concept_id] = {
-    #                     **{'conceptId': concept_id},
-    #                     **{f: '<Data not yet downloaded>' for f in concept_field_filter if f != 'conceptId'}}
+    #                     **{'concept_id': concept_id},
+    #                     **{f: '<Data not yet downloaded>' for f in concept_field_filter if f != 'concept_id'}}
     # print(json.dumps(concept_sets, indent=2)[0:400])
     # print(json.dumps(csets, indent=2)[0:400])
     return csets
@@ -268,7 +278,7 @@ def csets_read(
 ) -> Union[Dict, List]:
     """Get concept sets
 
-    field_filter: If present, the data returned will only contain these fields. Example: Passing `conceptSetNameOMOP` as
+    field_filter: If present, the data returned will only contain these fields. Example: Passing `concept_set_name` as
     the only field_filter for OMOPConceptSet will return a string list of concept set names.
 
     Resources: jq docs: https://stedolan.github.io/jq/manual/ , jq python api doc: https://github.com/mwilliamson/jq.py
@@ -298,7 +308,7 @@ def csets_read(
             # # as '"{NAME}"',so we need to remove the extra set of quotations.
             # # TODO: This operation likely needs to be done in a variety of cases, but I don't know JQ well enough to
             # #  anticipate all of the situations where this might arise. - joeflack4 2022/08/24
-            # # todo: Is this List[str] preferable to List[Dict,? e.g. [{'conceptSetNameOMOP': 'HEART FAILURE'}, ...]?
+            # # todo: Is this List[str] preferable to List[Dict,? e.g. [{'concept_set_name': 'HEART FAILURE'}, ...]?
             # d = [x[1:-1] for x in d]
             # return d
     else:
@@ -307,54 +317,54 @@ def csets_read(
     return d
 
 
-# todo: @Siggie: Not sure how to do what I needed in JQ, so no JQ in here yet
-@APP.get("/datasets/concepts")
-def concepts_read(
-    field_filter: Union[List[str], None] = Query(default=None),
-    concept_set_id: Union[List[int], None] = Query(default=None), path=CONCEPTS_JSON_PATH,
-) -> Union[Dict, List]:
-    """Get concept sets
-
-    field_filter: If present, the data returned will only contain these fields. Example: Passing `conceptName` as
-    the only field_filter for OMOPConcept will return a string list of concept names.
-    concept_set_id: Only include concepts w/ these IDs. Returned data will be like {concept_set_id: <data>}
-
-    Resources: jq docs: https://stedolan.github.io/jq/manual/ , jq python api doc: https://github.com/mwilliamson/jq.py
-    """
-    with open(path, 'r') as f:
-        concepts: Union[List, Dict] = json.load(f)
-    with open(CONCEPT_SET_VERSION_ITEM_JSON_PATH, 'r') as f:
-        concept_set_items: List[Dict] = json.load(f)
-
-    # I feel like this could be done in less lines - Joe 2022/09/07
-    if concept_set_id:
-        # concept_set_items: For codesetId->conceptId mapping
-        concept_set_items2 = [d for d in concept_set_items if d['codesetId'] in concept_set_id]
-        concept_lookup = {d['conceptId']: d for d in concepts}
-
-        concept_set_concepts: Dict[int, Dict] = {}
-        for item in concept_set_items2:
-            cs_id: int = item['codesetId']
-            c_id: int = item['conceptId']
-            if cs_id not in concept_set_concepts:
-                concept_set_concepts[cs_id] = {}
-            concept_set_concepts[cs_id][c_id] = concept_lookup.get(c_id, {})
-
-        concepts = concept_set_concepts
-        if field_filter:
-            concept_set_concepts_new = {}
-            for cset_id, concept_dicts in concept_set_concepts.items():
-                new_cset = {}
-                for concept_id, concept_dict in concept_dicts.items():
-                    new_dict = {k: v for k, v in concept_dict.items() if k in field_filter}
-                    new_cset[concept_id] = new_dict
-                concept_set_concepts_new[cset_id] = new_cset
-            concepts = concept_set_concepts_new
-
-    elif field_filter:
-        pass  # TODO
-
-    return concepts
+# # todo: @Siggie: Not sure how to do what I needed in JQ, so no JQ in here yet
+# @APP.get("/datasets/concepts")
+# def concepts_read(
+#     field_filter: Union[List[str], None] = Query(default=None),
+#     concept_set_id: Union[List[int], None] = Query(default=None), path=CONCEPTS_JSON_PATH,
+# ) -> Union[Dict, List]:
+#     """Get concept sets
+#
+#     field_filter: If present, the data returned will only contain these fields. Example: Passing `concept_name` as
+#     the only field_filter for OMOPConcept will return a string list of concept names.
+#     concept_set_id: Only include concepts w/ these IDs. Returned data will be like {concept_set_id: <data>}
+#
+#     Resources: jq docs: https://stedolan.github.io/jq/manual/ , jq python api doc: https://github.com/mwilliamson/jq.py
+#     """
+#     with open(path, 'r') as f:
+#         concepts: Union[List, Dict] = json.load(f)
+#     with open(CONCEPT_SET_VERSION_ITEM_JSON_PATH, 'r') as f:
+#         concept_set_items: List[Dict] = json.load(f)
+#
+#     # I feel like this could be done in less lines - Joe 2022/09/07
+#     if concept_set_id:
+#         # concept_set_items: For codeset_id->concept_id mapping
+#         concept_set_items2 = [d for d in concept_set_items if d['codeset_id'] in concept_set_id]
+#         concept_lookup = {d['concept_id']: d for d in concepts}
+#
+#         concept_set_concepts: Dict[int, Dict] = {}
+#         for item in concept_set_items2:
+#             cs_id: int = item['codeset_id']
+#             c_id: int = item['concept_id']
+#             if cs_id not in concept_set_concepts:
+#                 concept_set_concepts[cs_id] = {}
+#             concept_set_concepts[cs_id][c_id] = concept_lookup.get(c_id, {})
+#
+#         concepts = concept_set_concepts
+#         if field_filter:
+#             concept_set_concepts_new = {}
+#             for cset_id, concept_dicts in concept_set_concepts.items():
+#                 new_cset = {}
+#                 for concept_id, concept_dict in concept_dicts.items():
+#                     new_dict = {k: v for k, v in concept_dict.items() if k in field_filter}
+#                     new_cset[concept_id] = new_dict
+#                 concept_set_concepts_new[cset_id] = new_cset
+#             concepts = concept_set_concepts_new
+#
+#     elif field_filter:
+#         pass  # TODO
+#
+#     return concepts
 
 
 # TODO: Maybe change to `id` instead of row index
