@@ -68,19 +68,21 @@ function ConceptSet(props) {
 }
 
 function ConceptList(props) {
-  // http://127.0.0.1:8000/fields-from-objlist?objtype=OmopConceptSetVersionItem&filter=codesetId:822173787|74555844
+  // http://127.0.0.1:8000/fields-from-objlist?objtype=OmopConceptSetVersionItem&filter=codeset_id:822173787|74555844
   const [qsParams, setQsParams] = useGlobalState('qsParams');
   //const [filteredData, setFilteredData] = useState([]);
-  let codesetIds = qsParams && qsParams.codesetId && qsParams.codesetId.sort() || []
+  let codeset_ids = qsParams && qsParams.codeset_id && qsParams.codeset_id.sort() || []
+  let enabled = !!codeset_ids.length
 
-  let url = backend_url('fields-from-objlist?') +
-      [
-        'objtype=OmopConceptSetVersionItem',
-        'filter=codesetId:' + codesetIds.join('|')
-      ].join('&')
+  let url = enabled ? backend_url('fields-from-objlist?') +
+                      [
+                        'objtype=OmopConceptSetVersionItem',
+                        'filter=codeset_id:' + codeset_ids.join('|')
+                      ].join('&')
+                    : `invalid ConceptList url, no codeset_ids, enabled: ${enabled}`;
 
   const { isLoading, error, data, isFetching } = useQuery([url], () => {
-    //if (codesetIds.length) {
+    //if (codeset_ids.length) {
     //   console.log('fetching backend_url', url)
       return axios.get(url).then((res) => res.data)
       // console.log('enclave_url', enclave_url('objects/OMOPConceptSet'))
@@ -88,7 +90,7 @@ function ConceptList(props) {
     //} else {
       //return {isLoading: false, error: null, data: [], isFetching: false}
     //}
-  });
+  }, {enabled});
   // console.log('rowData', data)
   return  <div>
             <h4>Concepts:</h4>
@@ -109,7 +111,7 @@ function ConceptList(props) {
 /* CsetSEarch: Grabs stuff from disk*/
 /* TODO: Solve:
     react_devtools_backend.js:4026 MUI: The value provided to Autocomplete is invalid.
-    None of the options match with `[{"label":"11-Beta Hydroxysteroid Dehydrogenase Inhibitor","codesetId":584452082},{"label":"74235-3 (Blood type)","codesetId":761463499}]`.
+    None of the options match with `[{"label":"11-Beta Hydroxysteroid Dehydrogenase Inhibitor","codeset_id":584452082},{"label":"74235-3 (Blood type)","codeset_id":761463499}]`.
     You can use the `isOptionEqualToValue` prop to customize the equality test.
     @ SIggie: is this fixed?
 */
@@ -117,7 +119,7 @@ function CsetSearch(props) {
   let {applyChangeCallback} = props;
   const [qsParams, setQsParams] = useGlobalState('qsParams');
 
-  let codesetIds = qsParams && qsParams.codesetId && qsParams.codesetId.sort() || []
+  let codeset_ids = qsParams && qsParams.codeset_id && qsParams.codeset_id.sort() || []
 
   let url = backend_url('cset-versions');
 
@@ -125,8 +127,8 @@ function CsetSearch(props) {
   // let navigate = useNavigate();
   /*
   let defaultOptionsTest = [
-    {"label": "11-Beta Hydroxysteroid Dehydrogenase Inhibitor", "codesetId": 584452082},
-    {"label": "74235-3 (Blood type)", "codesetId": 761463499}
+    {"label": "11-Beta Hydroxysteroid Dehydrogenase Inhibitor", "codeset_id": 584452082},
+    {"label": "74235-3 (Blood type)", "codeset_id": 761463499}
   ]
   const [csets, setCSets] = useState([]);
    */
@@ -147,13 +149,13 @@ function CsetSearch(props) {
             delete res.data[0][csetName]
           }
         })
-        // let data = Object.entries(res.data[0]).map(([csetName,v], i) => ({label: csetName, version: v[0].version, codesetId: v[0].codesetId}))
+        // let data = Object.entries(res.data[0]).map(([csetName,v], i) => ({label: csetName, version: v[0].version, codeset_id: v[0].codeset_id}))
         let data = Object.entries(res.data[0]).map(
           ([csetName,v], i) => {
             v = v.sort((a,b) => a.version - b.version)
             return {
               label: csetName + (v.length > 1 ? ` (${v.length} versions)` : ''),
-              codesetId: v.at(-1).codesetId
+              codeset_id: v.at(-1).codeset_id
               // versions: v.map(d=>d.version).join(', '),
               // v,
               // latest: v.at(-1),
@@ -164,11 +166,11 @@ function CsetSearch(props) {
   );
   useEffect(() => {
     if (!data) return
-    let selectedCids = value && value.map(d => d.codesetId).sort() || []
-    if (!_.isEqual(codesetIds, selectedCids)) {
+    let selectedCids = value && value.map(d => d.codeset_id).sort() || []
+    if (!_.isEqual(codeset_ids, selectedCids)) {
       //console.log(value)
       //console.log(urlCids)
-      let selection = (data || []).filter(d => codesetIds.includes(d.codesetId))
+      let selection = (data || []).filter(d => codeset_ids.includes(d.codeset_id))
       setValue(selection)
     }
   }, [qsParams, data]);
@@ -193,12 +195,12 @@ function CsetSearch(props) {
 
         value={value}
         isOptionEqualToValue={(option, value) => {
-          return option.codesetId === value.codesetId
+          return option.codeset_id === value.codeset_id
         }}
         onChange={(event, newValue) => {
           setValue(newValue);
-          let ids = newValue.map(d=>d.codesetId)
-          setSearchParams({codesetId: ids})
+          let ids = newValue.map(d=>d.codeset_id)
+          setSearchParams({codeset_id: ids})
         }}
         inputValue={inputValue}
         onInputChange={(event, newInputValue) => {
@@ -236,18 +238,20 @@ function ConceptSetsPage(props) {
   let navigate = useNavigate();
   const [qsParams, setQsParams] = useGlobalState('qsParams');
   //const [filteredData, setFilteredData] = useState([]);
-  let codesetIds = qsParams && qsParams.codesetId && qsParams.codesetId.sort() || []
+  let codeset_ids = qsParams && qsParams.codeset_id && qsParams.codeset_id.sort() || []
+  let enabled = !!codeset_ids.length
 
   // pre-2022/09/07 url (for temporary reference):
   // let url = backend_url('fields-from-objlist?') +
   //     [
   //       'objtype=OMOPConceptSet',
-  //       'filter=codesetId:' + codesetIds.join('|')
+  //       'filter=codeset_id:' + codeset_ids.join('|')
   //     ].join('&')
-  let url = backend_url('concept-sets-with-concepts?concept_field_filter=conceptId&concept_field_filter=conceptName&codeset_id=' + codesetIds.join('|'))
+  let url = enabled ? backend_url('concept-sets-with-concepts?concept_field_filter=conceptId&concept_field_filter=conceptName&codeset_id=' + codeset_ids.join('|'))
+                    : `invalid ConceptSetsPage url, no codeset_ids, enabled: ${enabled}`;
 
   const { isLoading, error, data, isFetching } = useQuery([url], () => {
-    //if (codesetIds.length) {
+    //if (codeset_ids.length) {
       console.log('fetching backend_url', url)
       return axios.get(url).then((res) => res.data)
       // console.log('enclave_url', enclave_url('objects/OMOPConceptSet'))
@@ -255,23 +259,25 @@ function ConceptSetsPage(props) {
     //} else {
       //return {isLoading: false, error: null, data: [], isFetching: false}
     //}
-  });
+  }, {enabled});
   async function csetCallback(props) {
     let {rowData, colClicked} = props
-    navigate(`/OMOPConceptSet/${rowData.codesetId}`)
+    navigate(`/OMOPConceptSet/${rowData.codeset_id}`)
   }
 
 
   //function applySearchFilter(filteredData, setFilteredData) { }
 
+  let link = <a href={url}>{url}</a>;
+  let msg = (isLoading && <p>Loading from {link}...</p>) ||
+            (error && <p>An error has occurred with {link}: {error.stack}</p>) ||
+            (isFetching && <p>Updating from {link}...</p>)
   return (
       <div>
         <CsetSearch/>
         {
-          (isLoading && "Loading...") ||
-          (error && `An error has occurred: ${error.stack}`) ||
-          (isFetching && "Updating...") ||
-          (data && (<div>
+          msg ||
+          (data && (<div>did have tables here... should they come back?
             {/*Concepts: */}
             {/*<ConceptList />*/}
             {/*Concept sets: */}
@@ -281,7 +287,7 @@ function ConceptSetsPage(props) {
         }
         {
           // todo: Create component: <ConceptSetsPanels>
-          (codesetIds.length > 0) && data && (
+          (codeset_ids.length > 0) && data && (
             <div style={{
               display: 'flex',
               // todo: I don't remember how to get it to take up the whole window in this case.  these are working
@@ -290,7 +296,7 @@ function ConceptSetsPage(props) {
               // flex: '0 0 100%',
             }}>
               {data.map(cset => {
-                return <ConceptSet key={cset.codesetId} cset={cset} />
+                return <ConceptSet key={cset.codeset_id} cset={cset} />
               })}
             </div>)
         }
@@ -302,8 +308,10 @@ function ConceptSetsPage(props) {
 // TODO: Should we move comparison logic python side and do query at new backend_url?
 function CsetComparisonPage(props) {
   const [qsParams, setQsParams] = useGlobalState('qsParams');
-  let codesetIds = (qsParams && qsParams.codesetId && qsParams.codesetId.sort()) || []
-  let url = backend_url('concept-sets-with-concepts?concept_field_filter=conceptId&concept_field_filter=conceptName&codeset_id=' + codesetIds.join('|'))
+  let codeset_ids = (qsParams && qsParams.codeset_id && qsParams.codeset_id.sort()) || []
+  let enabled = !!codeset_ids.length
+  let url = enabled ? backend_url('concept-sets-with-concepts?concept_field_filter=conceptId&concept_field_filter=conceptName&codeset_id=' + codeset_ids.join('|'))
+      : `invalid CsetComparisonPage url, no codeset_ids, enabled: ${enabled}`;
 
   const { isLoading, error, data, isFetching } = useQuery([url], () => {
     return axios.get(url).then((res) => {
@@ -311,18 +319,18 @@ function CsetComparisonPage(props) {
       let conceptsArr = [].concat(...concepts2darr);
       let conceptsSet = [...new Set(conceptsArr)];
       // todo: o(1) instead of o(n) would be better; like a python dict instead of array
-      let csetIdConcepts = res.data.map((row) => {return {codesetId: row.codesetId, conceptIds: Object.keys(row.concepts)}});
+      let csetIdConcepts = res.data.map((row) => {return {codeset_id: row.codeset_id, conceptIds: Object.keys(row.concepts)}});
       let tableData = conceptsSet.map((conceptId) => {return {'ConceptID': conceptId}});
       // todo: o(1) instead of o(n) would be better; like a python dict instead of array
       // Iterate over sets and put info in rows
       let tableData2 = []
       for (let row of tableData) {
         let newRow = row;
-        for (let {codesetId, conceptIds} of csetIdConcepts) {
-          newRow[codesetId] = 'X';
+        for (let {codeset_id, conceptIds} of csetIdConcepts) {
+          newRow[codeset_id] = 'X';
           for (let conceptId of conceptIds) {
             if (conceptId === row.ConceptID) {
-              newRow[codesetId] = 'O';
+              newRow[codeset_id] = 'O';
               break;
             }
           }
@@ -330,7 +338,8 @@ function CsetComparisonPage(props) {
         tableData2.push(newRow);
       }
       return tableData2
-  })});
+    })
+  }, {enabled});
 
   return (
       <div>
