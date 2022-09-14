@@ -2,14 +2,10 @@
 # -*- coding: utf-8 -*-
 """Dataset download."""
 from argparse import ArgumentParser
-from typing import Dict
 
-import requests
 from typing import Dict
 from typeguard import typechecked
-import json
 import os
-from datetime import datetime, timezone
 import requests
 import pandas as pd
 import tempfile
@@ -55,6 +51,7 @@ def getTransaction(datasetRid: str, ref: str = 'master') -> str:
         print(response_json)
     return response_json['rid']
 
+
 @typechecked
 def views2(datasetRid: str, endRef: str) -> [str]:
     """API documentation at
@@ -75,6 +72,7 @@ def views2(datasetRid: str, endRef: str) -> [str]:
     response_json = response.json()
     file_parts = [f['logicalPath'] for f in response_json['values']]
     return file_parts[1:]
+
 
 @typechecked
 def download_and_combine_dataset_parts(datasetRid: str, file_parts: [str], outpath: str) -> pd.DataFrame:
@@ -148,7 +146,7 @@ def run(datasetRid: str, ref: str = 'master', outdir: str = None, outpath: str =
     if os.path.exists(outpath):
         t = time.ctime(os.path.getmtime(outpath))
         print(f'Skipping {outpath}: {t}, {os.path.getsize(outpath)} bytes.')
-        return
+        return pd.read_csv(outpath)
     endRef = getTransaction(datasetRid, ref)
     args = {'datasetRid': datasetRid, 'endRef': endRef}
     file_parts = views2(**args)
@@ -163,11 +161,10 @@ def favorite_updates__concept(df: pd.DataFrame):
     return df
 
 
-def download_favorites():
+def download_favorites(outdir: str = TARGET_CSV_DIR):
     """Download favorite datasets"""
     for fav in FAVORITE_DATASETS.values():
-        # TODO: Does this write to disk?
-        outpath = os.path.join(TARGET_CSV_DIR, fav['name'] + '.csv')
+        outpath = os.path.join(outdir, fav['name'] + '.csv')
         df: pd.DataFrame = run(datasetRid=fav['rid'], outpath=outpath)
         if fav['name'] == 'concept':
             df = favorite_updates__concept(df)
@@ -222,7 +219,7 @@ def cli():
 
     # Run
     if kwargs_dict['favorites']:
-        download_favorites()
+        download_favorites(outdir=kwargs_dict['output_dir'])
     else:
         args = {key: kwargs_dict[key] for key in ['datasetRid','ref']}
         run(**args)

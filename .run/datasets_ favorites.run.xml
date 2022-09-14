@@ -1,6 +1,6 @@
 <component name="ProjectRunConfigurationManager">
   <configuration default="false" name="datasets: favorites" type="PythonConfigurationType" factoryName="Python" folderName="enclave_wrangler">
-    <module name="TermHub" />
+    <module name="ValueSet-Tools" />
     <option name="INTERPRETER_OPTIONS" value="" />
     <option name="PARENT_ENVS" value="true" />
     <envs>

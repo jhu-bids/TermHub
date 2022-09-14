@@ -141,35 +141,23 @@ def cset_names() -> Union[Dict, List]:
 
 @APP.get("/cset-versions")
 def csetVersions() -> Union[Dict, List]:
-    # query = 'group_by(.conceptSetNameOMOP) | map({ key: .[0].conceptSetNameOMOP | tostring, value: [.[] | {version, codesetId}] }) | from_entries'
-    # return jqQuery(objtype='OMOPConceptSet', query=query)
-    # query = 'group_by(.concept_set_name) | map({ key: .[0].concept_set_name | tostring, value: [.[] | {version, codeset_id}] }) | from_entries'
     csm = DS['code_sets']
-    # g = csm.groupby('concept_set_name')[['version', 'codeset_id']].apply(dict)
-    g = csm[['concept_set_name', 'codeset_id', 'version']].groupby('concept_set_name').agg(dict)
-    return g
-    # @joeflack4: the code above isn't working, it's supposed to produce the same format as earlier, which looks like this:
-    # "DG COVID 19 Vaccine": [
-    #     {
-    #         "version": 3,
-    #         "codesetId": 267696715
-    #     },
-    #     {
-    #         "version": 2,
-    #         "codesetId": 705273705
-    #     },
-    #     {
-    #         "version": 1,
-    #         "codesetId": 249849651
-    #     }
-    # ],
-    # "DG Morphine": [
-    #     {
-    #     "version": 1,
-    #     "codesetId": 58437116
-    #     }
-    # ],
+    # todo: would be nicer to do this in a cleaner, shorter way, e.g.:
+    # g = csm[['concept_set_name', 'codeset_id', 'version']].groupby('concept_set_name').agg(dict)
+    g: Dict[List[Dict[str, int]]] = {}
+    concept_set_names = list(csm['concept_set_name'].unique())
+    for cs_name in concept_set_names:
+        csm_i = csm[csm['concept_set_name'] == cs_name]
+        for _index, row in csm_i.iterrows():
+            version: int = int(float(row['version'])) if row['version'] else None
+            codeset_id: int = row['codeset_id']
+            if not version:
+                continue
+            if cs_name not in g:
+                g[cs_name] = []
+            g[cs_name].append({'version': version, 'codeset_id': codeset_id})
 
+    return g
 
 
 def jqQuery(objtype: str, query: str, objlist=None, ) -> Union[Dict, List]:

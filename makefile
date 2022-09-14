@@ -85,7 +85,7 @@ serve-frontend:
 	cd frontend; npm run start
 
 serve-backend:
-	uvicorn backend.app:app --reload
+	uvicorn backend.app:APP --reload
 
 # TODO: does this work?
 serve: serve-backend serve-frontend

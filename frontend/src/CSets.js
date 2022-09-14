@@ -140,17 +140,17 @@ function CsetSearch(props) {
     axios
       .get(url)
       .then((res) => {
-        Object.keys(res.data[0]).forEach(csetName => {
+        Object.keys(res.data).forEach(csetName => {
           // delete junk concept set names
           if (csetName === 'null'             || // no name
               csetName.match(/^\d*$/) || // name is all digits
               csetName.match(/^ /)       // name starts with space
           ) {
-            delete res.data[0][csetName]
+            delete res.data[csetName]
           }
         })
         // let data = Object.entries(res.data[0]).map(([csetName,v], i) => ({label: csetName, version: v[0].version, codeset_id: v[0].codeset_id}))
-        let data = Object.entries(res.data[0]).map(
+        let data = Object.entries(res.data).map(
           ([csetName,v], i) => {
             v = v.sort((a,b) => a.version - b.version)
             return {
@@ -253,6 +253,8 @@ function ConceptSetsPage(props) {
   const { isLoading, error, data, isFetching } = useQuery([url], () => {
     //if (codeset_ids.length) {
       console.log('fetching backend_url', url)
+      console.log(enabled)  // TODO: remove these when done debugging
+      console.log(codeset_ids)
       return axios.get(url).then((res) => res.data)
       // console.log('enclave_url', enclave_url('objects/OMOPConceptSet'))
       // .then((res) => res.data.data.map(d => d.properties))
@@ -277,7 +279,7 @@ function ConceptSetsPage(props) {
         <CsetSearch/>
         {
           msg ||
-          (data && (<div>did have tables here... should they come back?
+          (data && (<div>
             {/*Concepts: */}
             {/*<ConceptList />*/}
             {/*Concept sets: */}
