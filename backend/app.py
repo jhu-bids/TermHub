@@ -42,18 +42,23 @@ API_NAME_TO_DATASET_NAME = {        # made this lookup, but then didn't need it
     'OmopConceptSetVersionItem': 'concept_relationship',
 }
 
-# load big files!
-# TODO: this is too slow for development where the backend has to restart all the time
-#  @Joe: would it be too crazy to run 2 backend servers, 1 to hold the data and 1 to service requests / logic? probably.
-#  @Siggie: Not a bad idea. If we invest time in that, may be better to do RDBMS instead, but I think running 2
-#   *might* not take too much time... actually maybe it would. Need to pass data between the processes. RCP? We could
-#   do it over REST, but idk. Maybe worth looking into / trying for an hour.
-
-# TODO: #2: remove try/except when download datasets
+# todo: consider: run 2 backend servers, 1 to hold the data and 1 to service requests / logic? probably.
+# TODO: #2: remove try/except when git lfs fully set up
 try:
+    # todo: temp until we decide if this is the correct way
+    dataset_names = list(FAVORITE_DATASETS.keys()) + ['concept_relationship_is_a']
+    DS = {name: pd.read_csv(os.path.join(CSV_PATH, name + '.csv'), keep_default_na=False) for name in dataset_names}
+    #  TODO: Fix this warning? (Joe: doing so will help load faster, actually)
+    #   DtypeWarning: Columns (4) have mixed types. Specify dtype option on import or set low_memory=False.
+    #   keep_default_na fixes some or all the warnings, but doesn't manage dtypes well.
+    #   did this in termhub-csets/datasets/fixing-and-paring-down-csv-files.ipynb:
+    #   csm = pd.read_csv('./concept_set_members.csv',
+    #                    # dtype={'archived': bool},    # doesn't work because of missing values
+    #                   converters={'archived': lambda x: x and True or False}, # this makes it a bool field
+    #                   keep_default_na=False)
 
-    # code_set.version got mangled into version numbers like 1.0, 2.0
     #  TODO: try to fix.... not working yet:
+    # code_set.version got mangled into version numbers like 1.0, 2.0
     #
     # converters = {
     #     'int': lambda v: v.astype(int)
@@ -68,17 +73,10 @@ try:
     #
     # df = pd.read_csv(os.path.join(CSV_PATH, 'code_sets' + '.csv'), **(csv_opts['code_sets']))
 
-    DS = {name: pd.read_csv(os.path.join(CSV_PATH, name + '.csv'), keep_default_na=False) for name in FAVORITE_DATASETS}
-    #  TODO: Fix this warning?
-    #   DtypeWarning: Columns (4) have mixed types. Specify dtype option on import or set low_memory=False.
-    #   keep_default_na fixes some or all the warnings, but doesn't manage dtypes well.
-    #   did this in termhub-csets/datasets/fixing-and-paring-down-csv-files.ipynb:
-    #   csm = pd.read_csv('./concept_set_members.csv',
-    #                    # dtype={'archived': bool},    # doesn't work because of missing values
-    #                   converters={'archived': lambda x: x and True or False}, # this makes it a bool field
-    #                   keep_default_na=False)
-    print(f'Favorite datasets loaded: {DS.keys()}')
-    CONCEPT = DS['concept']
+    print(f'Favorite datasets loaded: {list(DS.keys())}')
+    CONCEPT: pd.DataFrame = DS['concept']
+
+    # todo: pandasql better?
     # PYSQLDF = lambda q: sqldf(q, globals()) # I think you need to call this in the function you're using it in
     # COUNTS = PYSQLDF("""
     #     SELECT vocabulary_id, COUNT(*) AS cnt
@@ -171,48 +169,208 @@ def jqQuery(objtype: str, query: str, objlist=None, ) -> Union[Dict, List]:
     return result
 
 
-# @APP.get("/fields-from-objlist")
-# def fields_from_objlist(
-#     objtype: str = Query(...),
-#     filter: Union[List[str], None] = Query(default=[]),
-#     field: Union[List[str], None] = Query(default=[]),
-# ) -> Union[Dict, List]:
-#     """
-#         get one or more fields from specified object type, example:
-#         http://127.0.0.1:8000/fields-from-objlist?field=concept_set_name&field=codeset_id&objtype=OMOPConceptSet
-#     """
-#
-#     queryClauses = []
-#     objlist = load_json(objtype)
-#     fields = validFieldList(objlist=objlist, fields=field)
-#     if len(fields):
-#         queryClauses.append('{' + ', '.join(fields) + '}')
-#
-#     valFilters = {k: v and v.split('|') or [] for k, v in [filt.split(':') for filt in filter]}
-#     filterFields = validFieldList(objlist=objlist, fields=valFilters.keys())
-#     for filterField in filterFields:
-#         filtVals = valFilters[filterField]
-#         if len(filtVals):
-#             condition = 'or'.join([f' .codeset_id == {val} ' for val in filtVals])
-#             clause = f'select({condition})'
-#             queryClauses.insert(0, clause)
-#
-#     queryClauses.insert(0, '.[]')
-#     query = ' | '.join(queryClauses)
-#     subset = jqQuery(objtype=objtype, objlist=objlist, query=query)
-#
-#     return subset
-#     # groupQuery = 'group_by(.concept_set_name) | map({ key: .[0].concept_set_name | tostring, value: [.[] | {version, codeset_id}] }) | from_entries'
-#     # res = jqQuery(objtype=objtype, objlist=subset, query=groupQuery)
-#     # return res
+# TODO: FINISH
+# TODO: i. Fix: Very slow on large N. For one attempt, I got back ~7,000 results for 'concepts' variables. I think this is
+#  because one of the csets was 'immunotherapy'; a big set.
+# TODO: ii. Color table
+# Example: http://127.0.0.1:8000/concept-set-overlap-table-data?codeset_id=314083061|728628308|98365468
+@APP.get("/concept-set-overlap-table-data")
+def concept_overlap_table_data(
+    codeset_id: Union[str, None] = Query(default=[]),
+) -> List[Dict]:
+    """Concept overlap table: hierarchical"""
+    # Load data
+    # indent_string = '->'  # looked weird
+    # indent_string = '   '  # @Siggie: As I feared, this gets trimmed / reduced to a single space
+    indent_string = '---'
+    concepts_and_concept_sets: Dict = concept_sets_by_concept(codeset_id)
+    concept_set_ids = codeset_id.split('|')
+    concept_set_ids = [int(x) for x in concept_set_ids]
+    df_concept_set_members = DS['concept_set_members']
+    df_relationships = DS['concept_ancestor']
+    df_concept_set_members_i = df_concept_set_members[df_concept_set_members['codeset_id'].isin(concept_set_ids)]
+    df_concept_ancestor_i = df_relationships[
+        (df_relationships.ancestor_concept_id.isin(df_concept_set_members_i.concept_id)) &
+        (df_relationships.descendant_concept_id.isin(df_concept_set_members_i.concept_id))]
+
+    # Transform: get essential information
+    # todo: account for max_levels_of_separation, or just get direct parent/child relationships
+    concepts = concepts_and_concept_sets['concepts']
+    table_data = []
+    for concept_id, concept in concepts.items():
+        if concept_id not in table_data:
+            df_concept_ancestor_i2 = df_concept_ancestor_i[
+                df_concept_ancestor_i['descendant_concept_id'] == int(concept_id)]
+            df_concept_ancestor_i2 = df_concept_ancestor_i2.sort_values(['min_levels_of_separation'], ascending=True)
+            ancestors_d_list: List[Dict] = df_concept_ancestor_i2.to_dict(orient='records')
+            for d in ancestors_d_list:
+                ancestor = str(d['ancestor_concept_id'])
+                new_d = {
+                    'ConceptID': concept['concept_id'],
+                    'AncestorID': ancestor,
+                    'min_levels_of_separation': d['min_levels_of_separation'],
+                }
+                for concept_set_id in [str(x) for x in concept_set_ids]:
+                    new_d[concept_set_id] = \
+                        'O' if ancestor in [str(x) for x in concept['concept_sets']] else 'X'
+                table_data.append(new_d)
+
+    # Transform: Visualize indent
+    table_data_2 = []
+    for row in table_data:
+        row['ConceptID'] = row['AncestorID']
+        row['ConceptID'] = f"{indent_string * row['min_levels_of_separation']}{row['ConceptID']}"
+        del row['AncestorID']
+        del row['min_levels_of_separation']
+        table_data_2.append(row)
+
+    return table_data_2
 
 
-# TODO: New route
+# todo: (i) and (ii) in route '/concept-set-overlap-table-data' apply to this as well
+# Example: http://127.0.0.1:8000/concept-set-overlap-table-data-simple-hierarchy?codeset_id=314083061|728628308|98365468
+@APP.get("/concept-set-overlap-table-data-simple-hierarchy")
+def concept_overlap_table_data_simple_hierarchy(
+    codeset_id: Union[str, None] = Query(default=[]),
+) -> List[Dict]:
+    """Concept overlap table: hierarchical"""
+    # Load data
+    # indent_string = '->'  # looked weird
+    # indent_string = '   '  # @Siggie: As I feared, this gets trimmed / reduced to a single space
+    indent_string = '---'
+    concepts_and_concept_sets: Dict = concept_sets_by_concept(codeset_id)
+    concept_set_ids = codeset_id.split('|')
+    concept_set_ids = [int(x) for x in concept_set_ids]
+    df_concept_set_members = DS['concept_set_members']
+    df_concept_ancestor = DS['concept_ancestor']
+    df_concept_set_members_i = df_concept_set_members[df_concept_set_members['codeset_id'].isin(concept_set_ids)]
+    df_concept_ancestor_i = df_concept_ancestor[
+        (df_concept_ancestor.ancestor_concept_id.isin(df_concept_set_members_i.concept_id)) &
+        (df_concept_ancestor.descendant_concept_id.isin(df_concept_set_members_i.concept_id))]
+
+    # Transform: get essential information
+    # todo: account for max_levels_of_separation, or just get direct parent/child relationships
+    req_concepts: Dict = concepts_and_concept_sets['concepts']
+    req_csets: Dict = concepts_and_concept_sets['concept_sets']
+    table_data = []
+    for concept_id, concept in req_concepts.items():
+        if concept_id not in table_data:
+            df_concept_ancestor_i2 = df_concept_ancestor_i[
+                df_concept_ancestor_i['descendant_concept_id'] == int(concept_id)]
+            df_concept_ancestor_i2 = df_concept_ancestor_i2.sort_values(['min_levels_of_separation'], ascending=True)
+            ancestors_d_list: List[Dict] = df_concept_ancestor_i2.to_dict(orient='records')
+            for d in ancestors_d_list:
+                ancestor = str(d['ancestor_concept_id'])
+                new_d = {
+                    'ConceptID': concept['concept_id'],
+                    'AncestorID': ancestor,
+                    'min_levels_of_separation': d['min_levels_of_separation'],
+                }
+                for concept_set_id in [str(x) for x in concept_set_ids]:
+                    cset_concepts: List[str] = [str(x) for x in req_csets[int(concept_set_id)]['concepts'].keys()]
+                    new_d[concept_set_id] = \
+                        'O' if ancestor in [str(x) for x in cset_concepts] else 'X'
+                table_data.append(new_d)
+
+    # Transform: Visualize indent
+    table_data_2 = []
+    # todo: temp initializing these vars here until later refactor
+    concept_ids = []
+    cset_ids = []
+    for row in table_data:
+        row['ConceptID'] = row['AncestorID']
+        row['ConceptID'] = f"{indent_string * row['min_levels_of_separation']}{row['ConceptID']}"
+        del row['AncestorID']
+        del row['min_levels_of_separation']
+        table_data_2.append(row)
+        # todo: temp until later refactor
+        concept_ids.append(row['ConceptID'])
+        for cset_id in [x for x in row.keys() if x != 'ConceptID']:
+            cset_ids.append(cset_id)
+
+    # get labels
+    # todo: this whole route needs to be refactored eventually.
+    # todo: we may want to pickle some lookup maps maybe
+    concept_ids_set = set([int(x.replace('-', '')) for x in concept_ids])
+    concept_df = CONCEPT[CONCEPT['concept_id'].isin(concept_ids_set)]
+    concept_id_name_map = {}
+    for _index, row in concept_df.iterrows():
+        concept_id_name_map[str(row['concept_id'])] = str(row['concept_name'])
+
+    cset_ids_set = set([int(x) for x in cset_ids])
+    cset_df_all = DS['code_sets']
+    cset_df = cset_df_all[cset_df_all['codeset_id'].isin(cset_ids_set)]
+    cset_id_name_map = {}
+    for _index, row in cset_df.iterrows():
+        cset_id_name_map[str(row['codeset_id'])] = str(row['concept_set_name'])
+
+    table_data_3 = []
+    for row in table_data_2:
+        concept_id_hyphenated = row['ConceptID']
+        hyphens = concept_id_hyphenated.count('-') * '-'
+        concept_id = concept_id_hyphenated.replace('-', '')
+        new_row = {'ConceptID': hyphens + concept_id_name_map[concept_id]}
+        for cset_id in [x for x in row.keys() if x != 'ConceptID']:
+            cset_name = cset_id_name_map[cset_id]
+            new_row[cset_name] = row[cset_id]
+        table_data_3.append(new_row)
+
+    return table_data_3
+
+
+# todo: (i) and (ii) in route '/concept-set-overlap-table-data' apply to this as well
+# Example: http://127.0.0.1:8000/concept-set-overlap-table-data-simple?codeset_id=314083061|728628308|98365468
+@APP.get("/concept-set-overlap-table-data-simple")
+def concept_overlap_table_data_simple(
+    codeset_id: Union[str, None] = Query(default=[]),
+) -> List[Dict]:
+    """Concept overlap table: simple, non-hierarchical"""
+    concepts_and_concept_sets: Dict = concept_sets_by_concept(codeset_id)
+    concept_set_ids = codeset_id.split('|')
+
+    concepts = concepts_and_concept_sets['concepts']
+    table_data = {}
+    for concept_id, concept in concepts.items():
+        if concept_id not in table_data:
+            table_data[concept_id] = {'ConceptID': concept['concept_id']}
+        for concept_set_id in concept_set_ids:
+            table_data[concept_id][concept_set_id] = \
+                'O' if str(concept_set_id) in [str(x) for x in concept['concept_sets']] else 'X'
+
+    table_data_list = list(table_data.values())
+    return table_data_list
+
+
+# Example: http://127.0.0.1:8000/concept-sets-by-concept?codeset_id=314083061|728628308|98365468
 @APP.get("/concept-sets-by-concept")
 def concept_sets_by_concept(
     codeset_id: Union[str, None] = Query(default=[]),
 ) -> Union[Dict, List]:
+    """Concept sets by concept"""
+    _concept_sets_with_concepts: List[Dict] = concept_sets_with_concepts(codeset_id)
+    concept_sets_concept_map: Dict = {x['codeset_id']: x for x in _concept_sets_with_concepts}
+
+    concepts_concept_sets_map: Dict[str, Dict] = {}
+    for cs_id, cs in concept_sets_concept_map.items():
+        for concept_id, concept in cs['concepts'].items():
+            if concept_id not in concepts_concept_sets_map:
+                concepts_concept_sets_map[concept_id] = concept
+            #     concepts_concept_sets_map[concept_id]['concept_sets'] = {}
+            # concepts_concept_sets_map[concept_id]['concept_sets'][cs_id] = \
+            #     {k: v for k, v in cs.items() if k != 'concepts'}
+                concepts_concept_sets_map[concept_id]['concept_sets'] = []
+            concepts_concept_sets_map[concept_id]['concept_sets'].append(cs_id)
+
+    response = {
+        'concepts': concepts_concept_sets_map,
+        'concept_sets': concept_sets_concept_map  # todo: includes concepts=`concepts_concept_sets_map[x]`. remove?
+    }
+
+    # TODO: Add concept ancestor info
     pass
+
+    # TODO: finally: remove/update JS in <CsetComparisonPage/>
+    return response
 
 
 @APP.get("/concept-sets-with-concepts")
@@ -222,7 +380,7 @@ def concept_sets_with_concepts(
     """Returns list of concept sets selected and their concepts
 
     sample url:
-        http://127.0.0.1:8000/concept-sets-with-concepts?concept_field_filter=conceptId&concept_field_filter=conceptName&codeset_id=614602276&codeset_id=490710207&codeset_id=394464897&codeset_id=13193785
+        http://127.0.0.1:8000/concept-sets-with-concepts?codeset_id=394464897&codeset_id=13193785
         
     If no codeset_id, doesn't return concepts; just concept_sets.
         TODO: is that still true?
@@ -534,6 +692,42 @@ def link_types() -> List[Dict]:
     response = requests.post(url, headers=headers, data=data)
     response_json = response.json()
     return response_json
+
+
+# @APP.get("/fields-from-objlist")
+# def fields_from_objlist(
+#     objtype: str = Query(...),
+#     filter: Union[List[str], None] = Query(default=[]),
+#     field: Union[List[str], None] = Query(default=[]),
+# ) -> Union[Dict, List]:
+#     """
+#         get one or more fields from specified object type, example:
+#         http://127.0.0.1:8000/fields-from-objlist?field=concept_set_name&field=codeset_id&objtype=OMOPConceptSet
+#     """
+#
+#     queryClauses = []
+#     objlist = load_json(objtype)
+#     fields = validFieldList(objlist=objlist, fields=field)
+#     if len(fields):
+#         queryClauses.append('{' + ', '.join(fields) + '}')
+#
+#     valFilters = {k: v and v.split('|') or [] for k, v in [filt.split(':') for filt in filter]}
+#     filterFields = validFieldList(objlist=objlist, fields=valFilters.keys())
+#     for filterField in filterFields:
+#         filtVals = valFilters[filterField]
+#         if len(filtVals):
+#             condition = 'or'.join([f' .codeset_id == {val} ' for val in filtVals])
+#             clause = f'select({condition})'
+#             queryClauses.insert(0, clause)
+#
+#     queryClauses.insert(0, '.[]')
+#     query = ' | '.join(queryClauses)
+#     subset = jqQuery(objtype=objtype, objlist=objlist, query=query)
+#
+#     return subset
+#     # groupQuery = 'group_by(.concept_set_name) | map({ key: .[0].concept_set_name | tostring, value: [.[] | {version, codeset_id}] }) | from_entries'
+#     # res = jqQuery(objtype=objtype, objlist=subset, query=groupQuery)
+#     # return res
 
 
 def run(port: int = 8000):

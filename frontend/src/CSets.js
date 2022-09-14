@@ -1,19 +1,10 @@
 /*
 TODO's
-  1. Put the table back in (@Joe)
-  2. Filtering & selecting 2 concept sets: (@Joe:First stab at filtering table)
-    (A) keep combo box (input select list w/ an autocomplete) at the top. This box will have 2
-  purposes: (i) you immediately see all the sets and their versions that are matched by what you're typing, and (ii),
-  whatever you've typed in the combo box also filters the table.
-  Additionally, combo box also supports multiple select (tags).
-    (B) forget autocomplete and do filtering through table (might be too slow) and do multiple select by enabling
-  checkboxes on table rows so even if we filter the table, if we've checked any boxes, those rows shouldn't disappear
-  once the user has checked to csets they want to work with, they need a button in order to launch analysis.
-  ...
-  later: associated concepts: show them the concepts associated with the concept sets they've selected
-  later: intensionality: also show them concept version items (intensional). but once we've got more than one cset
-  selected, start doing comparison stuff
-  At that point, we can share.
+  1. todo: Page state refresh should not be 'on window focus', but on autocomplete widget selection
+  2. todo: later: associated concepts: show them the concepts associated with the concept sets they've selected
+  3. todo: later: intensionality: also show them concept version items (intensional). but once we've got more than one cset
+      selected, start doing comparison stuff
+
 */
 import {useQuery} from "@tanstack/react-query";
 import axios from "axios";
@@ -307,46 +298,53 @@ function ConceptSetsPage(props) {
 }
 
 // TODO: Find concepts w/ good overlap and save a good URL for that
-// TODO: bugfix: concept_id is now showing indexes and not concept id
-// todo: Page state refresh should not be 'on window focus', but on autocomplete widget selection
-// todo: Should we move comparison logic python side and do query at new backend_url?
+// TODO: show table w/ hierarchical indent
+// TODO: Color table: I guess would need to see if could pass extra values/props and see if table widget can use that
+//  ...for coloration, since we want certain rows grouped together
 function CsetComparisonPage(props) {
   const [qsParams, setQsParams] = useGlobalState('qsParams');
   let codeset_ids = (qsParams && qsParams.codeset_id && qsParams.codeset_id.sort()) || []
   let enabled = !!codeset_ids.length
-  let url = enabled ? backend_url('concept-sets-with-concepts?concept_field_filter=concept_id&concept_field_filter=concept_name&codeset_id=' + codeset_ids.join('|'))
+  // 1. this url is for simple X/O table with no hierarchy:
+  // let url = enabled ? backend_url('concept-sets-with-concepts?concept_field_filter=concept_id&concept_field_filter=concept_name&codeset_id=' + codeset_ids.join('|'))
+  // 2. this url is for simple hierarchy using ancestor table and no direct relationshps:
+  let url = enabled ? backend_url('concept-set-overlap-table-data-simple-hierarchy?codeset_id=' + codeset_ids.join('|'))
+  // 3. this url uses direct relationships:
+  // let url = enabled ? backend_url('concept-set-overlap-table-data?codeset_id=' + codeset_ids.join('|'))
       : `invalid CsetComparisonPage url, no codeset_ids, enabled: ${enabled}`;
 
   const { isLoading, error, data, isFetching } = useQuery([url], () => {
-    return axios.get(url).then((res) => {
-      let concepts2darr = res.data.map((row) => {return Object.keys(row.concepts)});
-      let conceptsArr = [].concat(...concepts2darr);
-      let conceptsSet = [...new Set(conceptsArr)];
-      // todo: o(1) instead of o(n) would be better; like a python dict instead of array
-      let csetIdConcepts = res.data.map((row) => {return {codeset_id: row.codeset_id, concept_ids: Object.keys(row.concepts)}});
-      // todo: use mroe concept info
-      // let csetIdConcepts = res.data.map((row) => {return {codeset_id: row.codeset_id, concepts: row.concepts}});
-      let tableData = conceptsSet.map((concept_id) => {return {'ConceptID': concept_id}});
-      // todo: o(1) instead of o(n) would be better; like a python dict instead of array
-      // Iterate over sets and put info in rows
-      let tableData2 = []
-      for (let row of tableData) {
-        let newRow = row;
-        for (let {codeset_id, concept_ids} of csetIdConcepts) {
-          newRow[codeset_id] = 'X';
-          for (let concept_id of concept_ids) {
-            if (concept_id === row.ConceptID) {
-              newRow[codeset_id] = 'O';
-              break;
-            }
-          }
+    return axios.get(url).then((res) => {return res.data})
+  }, {enabled});
+
+  return (
+      <div>
+        <CsetSearch/>
+        {
+          (isLoading && "Loading...") ||
+          (error && `An error has occurred: ${error.stack}`) ||
+          (isFetching && "Updating...") ||
+          (data && (<div>
+            <ComparisonTable
+              rowData={data}
+              firstColName={'ConceptID'}
+            />
+          </div>))
         }
-        tableData2.push(newRow);
-      }
-      console.log(tableData);
-      console.log(csetIdConcepts)
-      return tableData2
-    })
+      </div>)
+}
+
+
+function CsetComparisonPageXOTable(props) {
+  const [qsParams, setQsParams] = useGlobalState('qsParams');
+  let codeset_ids = (qsParams && qsParams.codeset_id && qsParams.codeset_id.sort()) || []
+  let enabled = !!codeset_ids.length
+  //let url = enabled ? backend_url('concept-sets-with-concepts?concept_field_filter=concept_id&concept_field_filter=concept_name&codeset_id=' + codeset_ids.join('|'))
+  let url = enabled ? backend_url('concept-set-overlap-table-data-simple?codeset_id=' + codeset_ids.join('|'))
+      : `invalid CsetComparisonPage url, no codeset_ids, enabled: ${enabled}`;
+
+  const { isLoading, error, data, isFetching } = useQuery([url], () => {
+    return axios.get(url).then((res) => {return res.data})
   }, {enabled});
 
   return (
