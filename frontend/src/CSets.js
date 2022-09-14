@@ -306,8 +306,10 @@ function ConceptSetsPage(props) {
       </div>)
 }
 
-// TODO: Page state refresh should not be 'on window focus', but on autocomplete widget selection
-// TODO: Should we move comparison logic python side and do query at new backend_url?
+// TODO: Find concepts w/ good overlap and save a good URL for that
+// TODO: bugfix: concept_id is now showing indexes and not concept id
+// todo: Page state refresh should not be 'on window focus', but on autocomplete widget selection
+// todo: Should we move comparison logic python side and do query at new backend_url?
 function CsetComparisonPage(props) {
   const [qsParams, setQsParams] = useGlobalState('qsParams');
   let codeset_ids = (qsParams && qsParams.codeset_id && qsParams.codeset_id.sort()) || []
@@ -322,6 +324,8 @@ function CsetComparisonPage(props) {
       let conceptsSet = [...new Set(conceptsArr)];
       // todo: o(1) instead of o(n) would be better; like a python dict instead of array
       let csetIdConcepts = res.data.map((row) => {return {codeset_id: row.codeset_id, concept_ids: Object.keys(row.concepts)}});
+      // todo: use mroe concept info
+      // let csetIdConcepts = res.data.map((row) => {return {codeset_id: row.codeset_id, concepts: row.concepts}});
       let tableData = conceptsSet.map((concept_id) => {return {'ConceptID': concept_id}});
       // todo: o(1) instead of o(n) would be better; like a python dict instead of array
       // Iterate over sets and put info in rows
@@ -339,6 +343,8 @@ function CsetComparisonPage(props) {
         }
         tableData2.push(newRow);
       }
+      console.log(tableData);
+      console.log(csetIdConcepts)
       return tableData2
     })
   }, {enabled});

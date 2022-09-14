@@ -207,11 +207,17 @@ def jqQuery(objtype: str, query: str, objlist=None, ) -> Union[Dict, List]:
 #     # return res
 
 
+# TODO: New route
+@APP.get("/concept-sets-by-concept")
+def concept_sets_by_concept(
+    codeset_id: Union[str, None] = Query(default=[]),
+) -> Union[Dict, List]:
+    pass
+
+
 @APP.get("/concept-sets-with-concepts")
 def concept_sets_with_concepts(
     codeset_id: Union[str, None] = Query(default=[]),
-    field: Union[List[str], None] = Query(default=[]),
-    concept_field_filter: Union[List[str], None] = Query(default=None),
 ) -> Union[Dict, List]:
     """Returns list of concept sets selected and their concepts
 
@@ -228,71 +234,34 @@ def concept_sets_with_concepts(
             return _iterencode(o, 0)
         ValueError: Out of range float values are not JSON compliant
     @joeflack4 can you take a look? thanks!
+    @siggie: I'm not sure if you still want this, but I coudln't replicate. I added '#pandasql' to a comment below. For
+    ...some reason, it said 'table csm not found' when I tried running the sql query.
 
     """
-
     # if codeset_id empty, [] otherwise split and convert to int
     codeset_ids = codeset_id and [int(cid) for cid in codeset_id.split('|')] or []
 
-    # TODO: switch to using pandasql
-    print(f'Favorite datasets loaded: {DS.keys()}')
-    sql = lambda q: sqldf(q, globals())
-
-    # ds_name = API_NAME_TO_DATASET_NAME[objtype]
-    # cdf = DS['concept']
     csm = DS['concept_set_members']
-    # container = DS['concept_set_container_edited']
     codeset = DS['code_sets']
 
+    # TODO #pandasql: switch to using pandasql
+    # print(f'Favorite datasets loaded: {DS.keys()}')
+    # sql = lambda q: sqldf(q, globals())
     # using pandasql seems to be MUCH slower than regular pandas:
     # csets = sql(f"""
     #     SELECT concept_id
     #     FROM csm
     #     WHERE codeset_id IN (23007370, 23600781)
     # """)
+
     csm = csm[csm.codeset_id.isin(codeset_ids)]
     codeset = codeset[codeset.codeset_id.isin(codeset_ids)]
     csets = codeset.to_dict(orient='records')
     for cset in csets:
-        cset['concepts'] = csm[csm.codeset_id == cset['codeset_id']].to_dict(orient='records')
+        concept_data: List[Dict] = csm[csm.codeset_id == cset['codeset_id']].to_dict(orient='records')
+        cset['concepts'] = {x['concept_id']: x for x in concept_data} if concept_data else {}
 
-        # del csets[0]['Unnamed: 0']
-
-    # don't think we need this anymore. TODO: delete when sure
-    # concept_sets = fields_from_objlist(objtype='OMOPConceptSet', filter=[f'codeset_id:{codeset_id}'], field=field)
-    # if not codeset_id:
-    #     return concept_sets
-    # else:
-    #     # Mutate `concept_sets` by adding `concepts` field
-    #     concept_sets_lookup = {x['codeset_id']: x for x in concept_sets}
-    #     concept_id_concepts_map = concepts_read(
-    #         concept_set_id=[x['codeset_id'] for x in concept_sets], field_filter=concept_field_filter)
-    #     for cs_id, cs in concept_sets_lookup.items():
-    #         if cs_id in concept_id_concepts_map:
-    #             cs['concepts'] = concept_id_concepts_map[cs_id]
-    #         else:
-    #             cs['concepts'] = {}
-    #
-    #
-    #     # TODO: Remove this block after we get all the data. This just fills in missing data for easy frontend rendering
-    #     for cs in concept_sets:
-    #         for concept_id, concept_props in cs['concepts'].items():
-    #             if not concept_props:
-    #                 cs['concepts'][concept_id] = {
-    #                     **{'concept_id': concept_id},
-    #                     **{f: '<Data not yet downloaded>' for f in concept_field_filter if f != 'concept_id'}}
-    # print(json.dumps(concept_sets, indent=2)[0:400])
-    # print(json.dumps(csets, indent=2)[0:400])
     return csets
-    # return concept_sets
-
-
-# TODO:
-@APP.get("/concept-sets-page")
-def concept_sets_page():
-    """Everything that the concept set page needs to in 1 single request, ideally."""
-    # todo: cache and update it when newer source datasets are detected
-    pass
 
 
 def validFieldList(objlist: List[Dict], fields: List[str]):
