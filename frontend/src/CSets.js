@@ -305,42 +305,13 @@ function CsetComparisonPage(props) {
   const [qsParams, setQsParams] = useGlobalState('qsParams');
   let codeset_ids = (qsParams && qsParams.codeset_id && qsParams.codeset_id.sort()) || []
   let enabled = !!codeset_ids.length
+  // Table Variations
   // 1. this url is for simple X/O table with no hierarchy:
   // let url = enabled ? backend_url('concept-sets-with-concepts?concept_field_filter=concept_id&concept_field_filter=concept_name&codeset_id=' + codeset_ids.join('|'))
   // 2. this url is for simple hierarchy using ancestor table and no direct relationshps:
   let url = enabled ? backend_url('concept-set-overlap-table-data-simple-hierarchy?codeset_id=' + codeset_ids.join('|'))
-  // 3. this url uses direct relationships:
+  // todo: 3. this url uses direct relationships:
   // let url = enabled ? backend_url('concept-set-overlap-table-data?codeset_id=' + codeset_ids.join('|'))
-      : `invalid CsetComparisonPage url, no codeset_ids, enabled: ${enabled}`;
-
-  const { isLoading, error, data, isFetching } = useQuery([url], () => {
-    return axios.get(url).then((res) => {return res.data})
-  }, {enabled});
-
-  return (
-      <div>
-        <CsetSearch/>
-        {
-          (isLoading && "Loading...") ||
-          (error && `An error has occurred: ${error.stack}`) ||
-          (isFetching && "Updating...") ||
-          (data && (<div>
-            <ComparisonTable
-              rowData={data}
-              firstColName={'ConceptID'}
-            />
-          </div>))
-        }
-      </div>)
-}
-
-
-function CsetComparisonPageXOTable(props) {
-  const [qsParams, setQsParams] = useGlobalState('qsParams');
-  let codeset_ids = (qsParams && qsParams.codeset_id && qsParams.codeset_id.sort()) || []
-  let enabled = !!codeset_ids.length
-  //let url = enabled ? backend_url('concept-sets-with-concepts?concept_field_filter=concept_id&concept_field_filter=concept_name&codeset_id=' + codeset_ids.join('|'))
-  let url = enabled ? backend_url('concept-set-overlap-table-data-simple?codeset_id=' + codeset_ids.join('|'))
       : `invalid CsetComparisonPage url, no codeset_ids, enabled: ${enabled}`;
 
   const { isLoading, error, data, isFetching } = useQuery([url], () => {

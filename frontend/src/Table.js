@@ -106,7 +106,8 @@ const ComparisonTable = (props) => {
   const gridRef = useRef(); // Optional - for accessing Grid's API
   const [columnDefs, _setColumnDefs] = useState();
   function setColumnDefs(colNames) {
-    let defs = colNames.map(n => ({field: n}) )
+    // TODO: Are these widths ok?
+    let defs = colNames.map(n => ({field: n, minWidth: 400}) )
     _setColumnDefs(defs)
   }
   useEffect(() => {

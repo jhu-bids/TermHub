@@ -18,7 +18,7 @@ import requests
 import uvicorn
 from fastapi import FastAPI, Query
 from fastapi.middleware.cors import CORSMiddleware
-from pandasql import sqldf
+# from pandasql import sqldf
 from pydantic import BaseModel
 
 from enclave_wrangler.config import config, FAVORITE_DATASETS
@@ -75,7 +75,6 @@ try:
 
     print(f'Favorite datasets loaded: {list(DS.keys())}')
     CONCEPT: pd.DataFrame = DS['concept']
-
     # todo: pandasql better?
     # PYSQLDF = lambda q: sqldf(q, globals()) # I think you need to call this in the function you're using it in
     # COUNTS = PYSQLDF("""
@@ -112,10 +111,12 @@ def json_path(objtype: str) -> str:
 def load_json(objtype: str) -> List[Dict]:
     """ load json file given an object type name, e.g., OMOPConceptSet """
     jpath = json_path(objtype)
-    with open(jpath, 'r') as f:
-        d = json.load(f)
-        return d
-    return {'Error': f'failure in load_json({objtype}'}
+    try:
+        with open(jpath, 'r') as f:
+            d = json.load(f)
+            return d
+    except Exception:
+        return [{'Error': f'failure in load_json({objtype}'}]
 
 
 # TODO: figure out where we want to put this. models.py? Create route files and include class along w/ route func?
@@ -169,7 +170,7 @@ def jqQuery(objtype: str, query: str, objlist=None, ) -> Union[Dict, List]:
     return result
 
 
-# TODO: FINISH
+# TODO: Finish this route
 # TODO: i. Fix: Very slow on large N. For one attempt, I got back ~7,000 results for 'concepts' variables. I think this is
 #  because one of the csets was 'immunotherapy'; a big set.
 # TODO: ii. Color table
@@ -179,52 +180,10 @@ def concept_overlap_table_data(
     codeset_id: Union[str, None] = Query(default=[]),
 ) -> List[Dict]:
     """Concept overlap table: hierarchical"""
-    # Load data
-    # indent_string = '->'  # looked weird
-    # indent_string = '   '  # @Siggie: As I feared, this gets trimmed / reduced to a single space
-    indent_string = '---'
-    concepts_and_concept_sets: Dict = concept_sets_by_concept(codeset_id)
-    concept_set_ids = codeset_id.split('|')
-    concept_set_ids = [int(x) for x in concept_set_ids]
-    df_concept_set_members = DS['concept_set_members']
-    df_relationships = DS['concept_ancestor']
-    df_concept_set_members_i = df_concept_set_members[df_concept_set_members['codeset_id'].isin(concept_set_ids)]
-    df_concept_ancestor_i = df_relationships[
-        (df_relationships.ancestor_concept_id.isin(df_concept_set_members_i.concept_id)) &
-        (df_relationships.descendant_concept_id.isin(df_concept_set_members_i.concept_id))]
+    # TODO: copy/paste over code from /concept-set-overlap-table-data-simple-hierarchy
+    #  - then, repurpose to use `concept_relationship_is_a.csv`
 
-    # Transform: get essential information
-    # todo: account for max_levels_of_separation, or just get direct parent/child relationships
-    concepts = concepts_and_concept_sets['concepts']
-    table_data = []
-    for concept_id, concept in concepts.items():
-        if concept_id not in table_data:
-            df_concept_ancestor_i2 = df_concept_ancestor_i[
-                df_concept_ancestor_i['descendant_concept_id'] == int(concept_id)]
-            df_concept_ancestor_i2 = df_concept_ancestor_i2.sort_values(['min_levels_of_separation'], ascending=True)
-            ancestors_d_list: List[Dict] = df_concept_ancestor_i2.to_dict(orient='records')
-            for d in ancestors_d_list:
-                ancestor = str(d['ancestor_concept_id'])
-                new_d = {
-                    'ConceptID': concept['concept_id'],
-                    'AncestorID': ancestor,
-                    'min_levels_of_separation': d['min_levels_of_separation'],
-                }
-                for concept_set_id in [str(x) for x in concept_set_ids]:
-                    new_d[concept_set_id] = \
-                        'O' if ancestor in [str(x) for x in concept['concept_sets']] else 'X'
-                table_data.append(new_d)
-
-    # Transform: Visualize indent
-    table_data_2 = []
-    for row in table_data:
-        row['ConceptID'] = row['AncestorID']
-        row['ConceptID'] = f"{indent_string * row['min_levels_of_separation']}{row['ConceptID']}"
-        del row['AncestorID']
-        del row['min_levels_of_separation']
-        table_data_2.append(row)
-
-    return table_data_2
+    return []
 
 
 # todo: (i) and (ii) in route '/concept-set-overlap-table-data' apply to this as well
