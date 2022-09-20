@@ -190,12 +190,9 @@ def concept_overlap_table_data(
 # Example: http://127.0.0.1:8000/concept-set-overlap-table-data-simple-hierarchy?codeset_id=314083061|728628308|98365468
 @APP.get("/concept-set-overlap-table-data-simple-hierarchy")
 def concept_overlap_table_data_simple_hierarchy(
-    codeset_id: Union[str, None] = Query(default=[]),
+        codeset_id: Union[str, None] = Query(default=[]),
 ) -> List[Dict]:
     """Concept overlap table: hierarchical"""
-    # Load data
-    # indent_string = '->'  # looked weird
-    # indent_string = '   '  # @Siggie: As I feared, this gets trimmed / reduced to a single space
     indent_string = '---'
     concepts_and_concept_sets: Dict = concept_sets_by_concept(codeset_id)
     concept_set_ids = codeset_id.split('|')
@@ -275,6 +272,115 @@ def concept_overlap_table_data_simple_hierarchy(
         table_data_3.append(new_row)
 
     return table_data_3
+
+
+# TODO: the following is just based on concept_relationship
+#       should also check whether relationships exist in concept_ancestor
+#       that aren't captured here
+# TODO: Add concepts outside the list of codeset_ids?
+#       Or just make new issue for starting from one cset or concept
+#       and fanning out to other csets from there?
+# Example: http://127.0.0.1:8000/cr-hierarchy?codeset_id=818292046&codeset_id=484619125&codeset_id=400614256
+@APP.get("/cr-hierarchy")        # maybe junk, or maybe start of a refactor of above
+def cr_hierarchy(codeset_id: Union[str, None] = Query(default=[]), ) -> List[Dict]:
+    concept_set_ids = codeset_id.split('|')
+    concept_set_ids = [int(x) for x in concept_set_ids]
+    df_concept_set_members = DS['concept_set_members']
+    df_concept_relationship = DS['concept_relationship']
+    df_concept_set_members_i = df_concept_set_members[df_concept_set_members['codeset_id'].isin(concept_set_ids)]
+
+    df_concept_relationship_i = df_concept_relationship[
+        (df_concept_relationship.concept_id_1.isin(df_concept_set_members_i.concept_id)) &
+        (df_concept_relationship.concept_id_2.isin(df_concept_set_members_i.concept_id)) &
+        (df_concept_relationship.concept_id_1 != df_concept_relationship.concept_id_2)   &
+        (df_concept_relationship.relationship_id == 'Subsumes')]
+
+    cnames = df_concept_set_members_i[['concept_id', 'concept_name']] \
+        .drop_duplicates() \
+        .set_index('concept_name') \
+        .groupby('concept_id').groups
+    # [(cid, len(names)) for cid, names in cnames.items() if len(names) > 1]    # should be 1-to-1
+    for cid, names in cnames.items():
+        cnames[cid] = names[0]
+
+    top_level_cids = list(df_concept_relationship_i[
+                              ~df_concept_relationship_i.concept_id_1.isin(
+                                  df_concept_relationship_i.concept_id_2)
+                          ].concept_id_1.unique())
+
+    links = df_concept_relationship_i.groupby('concept_id_1')
+
+    def child_cids(cid):
+        if cid in links.groups.keys():
+            return list(links.get_group(cid).concept_id_2)
+
+    lines = []
+    def cid_data(cid, parent=-1, level=0):
+        # fastapi jsonencoder keeps choking on the ints
+        return {'concept_id': int(cid), 'concept_name': cnames[cid], 'level': int(level), 'parent': int(parent)}
+
+    def nested_list(cids, parent=-1, level=0):
+        cids = set(cids)
+        for cid in cids:
+            d = cid_data(cid, parent, level)
+            lines.append(d)
+            children = child_cids(cid)
+            if children:
+    #             print('    ', children)
+                c = set(children) - cids
+                nested_list(children, parent=cid, level=level+1)
+
+    hierarchy_of_cids = nested_list(top_level_cids)
+    return lines
+
+
+# Example: http://127.0.0.1:8000/hierarchy-again?codeset_id=818292046&codeset_id=484619125&codeset_id=400614256
+@APP.get("/hierarchy-again")        # maybe junk, or maybe start of a refactor of above
+def hierarchy_again(
+    codeset_id: Union[str, None] = Query(default=[]), ) -> List[Dict]:
+    concept_set_ids = codeset_id.split('|')
+    concept_set_ids = [int(x) for x in concept_set_ids]
+    df_concept_set_members = DS['concept_set_members']
+    df_concept_ancestor = DS['concept_ancestor']
+    df_concept_set_members_i = df_concept_set_members[df_concept_set_members['codeset_id'].isin(concept_set_ids)]
+    df_concept_ancestor_i = df_concept_ancestor[
+        (df_concept_ancestor.ancestor_concept_id.isin(df_concept_set_members_i.concept_id)) &
+        (df_concept_ancestor.descendant_concept_id.isin(df_concept_set_members_i.concept_id)) &
+        (df_concept_ancestor.descendant_concept_id != df_concept_ancestor.ancestor_concept_id)]
+
+    cnames = df_concept_set_members_i[['concept_id', 'concept_name']]   \
+                .drop_duplicates()   \
+                .set_index('concept_name')   \
+                .groupby('concept_id').groups
+    # [(cid, len(names)) for cid, names in cnames.items() if len(names) > 1]    # should be 1-to-1
+    for cid, names in cnames.items():
+        cnames[cid] = names[0]
+    # cnames
+
+    df_concept_ancestor_i = df_concept_ancestor_i[df_concept_ancestor_i.columns[:-1]] \
+        .rename(columns={'min_levels_of_separation': 'sep'}, ) \
+        .set_index('ancestor_concept_id')
+
+    anc = df_concept_ancestor_i.groupby(['sep', 'ancestor_concept_id'])
+    max_lvl = 0
+    descendants_by_level = {}
+    for key, desc_cids in anc.groups.items():
+        sep, anc_cid = key
+        max_lvl = max(sep, max_lvl)
+        #     print(desc_cid, sep, list(anc_cids))
+        descendants_by_level[sep] = descendants_by_level[sep] if sep in descendants_by_level else {}
+        descendants_by_level[sep][anc_cid] = list(desc_cids)
+
+    lines = []
+    for anc_cid, descs in descendants_by_level[1].items():
+        lines.append({'lvl': 0, 'cid': anc_cid, 'name': cnames[anc_cid]})
+        for cid in descs:
+            try:
+                lines.append({'lvl': 1, 'cid': cid, 'name': cnames[cid]})
+            except:
+                print(f'{cid} not in cnames')
+
+    return lines
 
 
 # todo: (i) and (ii) in route '/concept-set-overlap-table-data' apply to this as well
