@@ -93,8 +93,6 @@ try:
     #     GROUP BY 1""")
 except Exception as err:
     print(f'failed loading datasets', err)
-# except FileNotFoundError:
-#     print('Datasets not loaded.')
 
 APP = FastAPI()
 APP.add_middleware(
@@ -207,11 +205,11 @@ def concept_overlap_table_data_simple_hierarchy(
     """Concept overlap table: hierarchical"""
     indent_string = '---'
     concepts_and_concept_sets: Dict = concept_sets_by_concept(codeset_id)
-    concept_set_ids = codeset_id.split('|')
-    concept_set_ids = [int(x) for x in concept_set_ids]
+    requested_codeset_ids = codeset_id.split('|')
+    requested_codeset_ids = [int(x) for x in requested_codeset_ids]
     df_concept_set_members = DS['concept_set_members']
     df_concept_ancestor = DS['concept_ancestor']
-    df_concept_set_members_i = df_concept_set_members[df_concept_set_members['codeset_id'].isin(concept_set_ids)]
+    df_concept_set_members_i = df_concept_set_members[df_concept_set_members['codeset_id'].isin(requested_codeset_ids)]
     df_concept_ancestor_i = df_concept_ancestor[
         (df_concept_ancestor.ancestor_concept_id.isin(df_concept_set_members_i.concept_id)) &
         (df_concept_ancestor.descendant_concept_id.isin(df_concept_set_members_i.concept_id))]
@@ -234,7 +232,7 @@ def concept_overlap_table_data_simple_hierarchy(
                     'AncestorID': ancestor,
                     'min_levels_of_separation': d['min_levels_of_separation'],
                 }
-                for concept_set_id in [str(x) for x in concept_set_ids]:
+                for concept_set_id in [str(x) for x in requested_codeset_ids]:
                     cset_concepts: List[str] = [str(x) for x in req_csets[int(concept_set_id)]['concepts'].keys()]
                     new_d[concept_set_id] = \
                         'O' if ancestor in [str(x) for x in cset_concepts] else 'X'
@@ -286,6 +284,21 @@ def concept_overlap_table_data_simple_hierarchy(
     return table_data_3
 
 
+# Example: http://127.0.0.1:8000/codeset-info?codeset_id=400614256|411456218|484619125|818292046|826535586
+@APP.get("/codeset-info")        # maybe junk, or maybe start of a refactor of above
+def codeset_info(codeset_id: Union[str, None] = Query(default=[]), ) -> List[Dict]:
+    requested_codeset_ids = codeset_id.split('|')
+    requested_codeset_ids = [int(x) for x in requested_codeset_ids]
+
+    df_code_sets = DS['code_sets']
+    df_concept_set_container_edited = DS['concept_set_container_edited']
+    df_code_sets_i = df_code_sets[df_code_sets['codeset_id'].isin(requested_codeset_ids)]
+    # containers don't have a codeset_id of course
+    # df_concept_set_container_edited_i = df_concept_set_container_edited[df_concept_set_container_edited['codeset_id'].isin(requested_codeset_ids)]
+    df = df_code_sets_i.merge(df_concept_set_container_edited, left_on='concept_set_name', right_on='concept_set_id')
+    return json.loads(df.to_json(orient='records'))
+
+
 # TODO: the following is just based on concept_relationship
 #       should also check whether relationships exist in concept_ancestor
 #       that aren't captured here
@@ -295,13 +308,12 @@ def concept_overlap_table_data_simple_hierarchy(
 # Example: http://127.0.0.1:8000/cr-hierarchy?codeset_id=818292046&codeset_id=484619125&codeset_id=400614256
 @APP.get("/cr-hierarchy")        # maybe junk, or maybe start of a refactor of above
 def cr_hierarchy(codeset_id: Union[str, None] = Query(default=[]), ) -> List[Dict]:
-    concept_set_ids = codeset_id.split('|')
-    concept_set_ids = [int(x) for x in concept_set_ids]
+    requested_codeset_ids = codeset_id.split('|')
+    requested_codeset_ids = [int(x) for x in requested_codeset_ids]
 
-    print(f'Favorite datasets loaded: {list(DS.keys())}')
     df_concept_set_members = DS['concept_set_members']
     df_concept_relationship = DS['concept_relationship']
-    df_concept_set_members_i = df_concept_set_members[df_concept_set_members['codeset_id'].isin(concept_set_ids)]
+    df_concept_set_members_i = df_concept_set_members[df_concept_set_members['codeset_id'].isin(requested_codeset_ids)]
 
     df_concept_relationship_i = df_concept_relationship[
         (df_concept_relationship.concept_id_1.isin(df_concept_set_members_i.concept_id)) &
@@ -363,11 +375,11 @@ def cr_hierarchy(codeset_id: Union[str, None] = Query(default=[]), ) -> List[Dic
 @APP.get("/hierarchy-again")        # maybe junk, or maybe start of a refactor of above
 def hierarchy_again(
     codeset_id: Union[str, None] = Query(default=[]), ) -> List[Dict]:
-    concept_set_ids = codeset_id.split('|')
-    concept_set_ids = [int(x) for x in concept_set_ids]
+    requested_codeset_ids = codeset_id.split('|')
+    requested_codeset_ids = [int(x) for x in requested_codeset_ids]
     df_concept_set_members = DS['concept_set_members']
     df_concept_ancestor = DS['concept_ancestor']
-    df_concept_set_members_i = df_concept_set_members[df_concept_set_members['codeset_id'].isin(concept_set_ids)]
+    df_concept_set_members_i = df_concept_set_members[df_concept_set_members['codeset_id'].isin(requested_codeset_ids)]
     df_concept_ancestor_i = df_concept_ancestor[
         (df_concept_ancestor.ancestor_concept_id.isin(df_concept_set_members_i.concept_id)) &
         (df_concept_ancestor.descendant_concept_id.isin(df_concept_set_members_i.concept_id)) &
@@ -416,14 +428,14 @@ def concept_overlap_table_data_simple(
 ) -> List[Dict]:
     """Concept overlap table: simple, non-hierarchical"""
     concepts_and_concept_sets: Dict = concept_sets_by_concept(codeset_id)
-    concept_set_ids = codeset_id.split('|')
+    requested_codeset_ids = codeset_id.split('|')
 
     concepts = concepts_and_concept_sets['concepts']
     table_data = {}
     for concept_id, concept in concepts.items():
         if concept_id not in table_data:
             table_data[concept_id] = {'ConceptID': concept['concept_id']}
-        for concept_set_id in concept_set_ids:
+        for concept_set_id in requested_codeset_ids:
             table_data[concept_id][concept_set_id] = \
                 'O' if str(concept_set_id) in [str(x) for x in concept['concept_sets']] else 'X'
 
