@@ -329,12 +329,26 @@ def cr_hierarchy(codeset_id: Union[str, None] = Query(default=[]), ) -> List[Dic
     for cid, names in cname.items():
         cname[cid] = names[0]
 
+    cset_names = df_concept_set_members_i[['codeset_id', 'concept_set_name']] \
+        .drop_duplicates() \
+        .set_index('concept_set_name') \
+        .groupby('codeset_id').groups
+    # [(cid, len(names)) for cid, names in cname.items() if len(names) > 1]    # should be 1-to-1
+    for cset_id, names in cset_names.items():
+        cset_names[cset_id] = names[0]
+
     cid_csets = df_concept_set_members_i[['concept_id', 'codeset_id']] \
         .drop_duplicates() \
         .set_index('codeset_id') \
         .groupby('concept_id').groups
     for cid, codeset_ids in cid_csets.items():
         cid_csets[cid] = [int(codeset_id) for codeset_id in codeset_ids]
+
+    def concept_set_columns(cset_ids: List):
+        """get columns for table"""
+        return {'': v for v in cset_names.items()}
+    concept_set_columns(cid_csets)
+    print()
 
     top_level_cids = list(df_concept_relationship_i[
                               ~df_concept_relationship_i.concept_id_1.isin(df_concept_relationship_i.concept_id_2)
@@ -349,11 +363,19 @@ def cr_hierarchy(codeset_id: Union[str, None] = Query(default=[]), ) -> List[Dic
     lines = []
     def cid_data(cid, parent=-1, level=0):
         # fastapi jsonencoder keeps choking on the ints
-        return {'concept_id': int(cid),
-                'concept_name': cname[cid],
-                'codeset_ids': cid_csets[cid],
-                'level': int(level),
-                'parent': int(parent)}
+        to_return = {}
+        to_return[cname[cid]] = 'O'
+        # TODO: Use cset_names?
+        return {
+            # 'concept_id': int(cid),
+            # 'concept_name': cname[cid],
+            # 'codeset_ids': cid_csets[cid],
+            # 'level': int(level),
+            # 'parent': int(parent),
+            # TODO: See if ??? in cid_csets[cid]?
+            "ConceptID": "Central chest pain",
+            "[RP-6B45AE]Chest pain or pressure": "O"
+            }
 
     def nested_list(cids, parent=-1, level=0):
         cids = set(cids)

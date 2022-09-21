@@ -22,7 +22,6 @@ const Table = (props) => {
    */
   const [columnDefs, _setColumnDefs] = useState()
   function setColumnDefs(colNames) {
-    console.log(colNames)
     let defs = colNames.map(n => ({
       field: n,
       // tooltipField: ''
@@ -103,27 +102,31 @@ const Table = (props) => {
   );
 };
 
-// TODO
-const rowTooltip = (props) => {
-  console.log(props)
+// TODO update to show new keyvals from: http://127.0.0.1:8000/codeset-info?codeset_id=400614256%7C411456218%7C484619125%7C818292046%7C826535586
+// https://www.ag-grid.com/archive/27.0.0/react-data-grid/component-tooltip/
+// https://ag-grid.com/angular-data-grid/column-headers/
+// https://www.ag-grid.com/javascript-data-grid/grid-options/#miscellaneous
+const tableTooltip = (props) => {
+  // console.log(props)
   const isHeader = props.rowIndex === undefined;
-  const isGroupedHeader = isHeader && !!props.colDef.children;
   const valueToDisplay = props.value.value ? props.value.value : '- Missing -';
 
   // TODO: pass real tooltips
   return isHeader ? (
     <div className="custom-tooltip">
-      <p>{props.value}</p>
-      <ConceptSetCard cset={{
-        concept_set_name: 'concept_set_name',
-        version: 'version',
-        concepts: [
-          {
-            concept_id: 'concept_id',
-            concept_name: 'concept_name'
-          }
-        ]
-      }}/>
+      <p><b>{props.value}</b></p>
+      {/*<ConceptSetCard cset={{*/}
+      {/*  concept_set_name: 'concept_set_name',*/}
+      {/*  version: 'version',*/}
+      {/*  concepts: [*/}
+      {/*    {*/}
+      {/*      // '.': props.value*/}
+      {/*      concept_id: 'concept_id',*/}
+      {/*      concept_name: 'concept_name'*/}
+      {/*    }*/}
+      {/*  ]*/}
+      {/*}}*/}
+      {/*/>*/}
     </div>
   ) : (
     <div className="custom-tooltip">
@@ -139,15 +142,22 @@ const tooltipValueGetter = (params) => ({ value: params.value });
 
 
 // TODO's: (i) finish this implementation: "x"s -> checkmarks?, (ii) matrix widget too/instead? (header x side header)
+//  - version title
+//  - limitations
+//  - update message
+//  - provenance
+// todo: a link to open it up in the concept set browser
 const ComparisonTable = (props) => {
   const rowHeight = 25;
   const headerHeight = rowHeight * 1.25;
   const {rowData, firstColName} = props;
   const gridRef = useRef(); // Optional - for accessing Grid's API
   const [columnDefs, setColumnDefs] = useState();
-    // TODO: labels as tooltip
+  // TODO: labels as tooltip
   useEffect(() => {
     if (props.rowData && rowData.length) {
+      // console.log(props)
+
       const otherCols = Object.keys(rowData[0]).filter(function(item) {return item !== firstColName})
       const cols = [].concat(...[firstColName], otherCols)
       let firstCol = {
@@ -158,7 +168,7 @@ const ComparisonTable = (props) => {
         wrapText: true,
         autoHeight: true,
         headerTooltip: firstColName,
-        tooltipComponent: rowTooltip,
+        tooltipComponent: tableTooltip,
         tooltipValueGetter: tooltipValueGetter,
         // tooltip: firstColName,  // row tooltips: not working
       }
@@ -169,7 +179,7 @@ const ComparisonTable = (props) => {
         width: 50,
         overflow: 'visible',
         headerTooltip: n,
-        tooltipComponent: rowTooltip,
+        tooltipComponent: tableTooltip,
         tooltipValueGetter: tooltipValueGetter,
         // tooltip: n,  // row tooltips: not working
         //minWidth: 400
@@ -218,7 +228,6 @@ const ComparisonTable = (props) => {
         animateRows={true} // Optional - set to 'true' to have rows animate when sorted
         rowSelection='multiple' // Options - allows click selection of rows
         tooltipShowDelay={0}
-        tooltipHideDelay={2000}
       />
     </div>
   );
