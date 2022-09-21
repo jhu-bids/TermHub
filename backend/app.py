@@ -42,12 +42,22 @@ API_NAME_TO_DATASET_NAME = {        # made this lookup, but then didn't need it
     'OmopConceptSetVersionItem': 'concept_relationship',
 }
 
+def load_dataset(ds_name):
+    try:
+        path = os.path.join(CSV_PATH, ds_name + '.csv')
+        print(f'loading {path}')
+        ds = pd.read_csv(path, keep_default_na=False)
+        return ds
+    except Exception as err:
+        print(f'failed loading {path}')
+        raise err
+
 # todo: consider: run 2 backend servers, 1 to hold the data and 1 to service requests / logic? probably.
 # TODO: #2: remove try/except when git lfs fully set up
 try:
     # todo: temp until we decide if this is the correct way
     dataset_names = list(FAVORITE_DATASETS.keys()) + ['concept_relationship_is_a']
-    DS = {name: pd.read_csv(os.path.join(CSV_PATH, name + '.csv'), keep_default_na=False) for name in dataset_names}
+    DS = {name: load_dataset(name) for name in dataset_names}
     #  TODO: Fix this warning? (Joe: doing so will help load faster, actually)
     #   DtypeWarning: Columns (4) have mixed types. Specify dtype option on import or set low_memory=False.
     #   keep_default_na fixes some or all the warnings, but doesn't manage dtypes well.
@@ -81,8 +91,10 @@ try:
     #     SELECT vocabulary_id, COUNT(*) AS cnt
     #     FROM CONCEPT
     #     GROUP BY 1""")
-except FileNotFoundError:
-    print('Datasets not loaded.')
+except Exception as err:
+    print(f'failed loading datasets', err)
+# except FileNotFoundError:
+#     print('Datasets not loaded.')
 
 APP = FastAPI()
 APP.add_middleware(
@@ -285,6 +297,8 @@ def concept_overlap_table_data_simple_hierarchy(
 def cr_hierarchy(codeset_id: Union[str, None] = Query(default=[]), ) -> List[Dict]:
     concept_set_ids = codeset_id.split('|')
     concept_set_ids = [int(x) for x in concept_set_ids]
+
+    print(f'Favorite datasets loaded: {list(DS.keys())}')
     df_concept_set_members = DS['concept_set_members']
     df_concept_relationship = DS['concept_relationship']
     df_concept_set_members_i = df_concept_set_members[df_concept_set_members['codeset_id'].isin(concept_set_ids)]
@@ -295,13 +309,20 @@ def cr_hierarchy(codeset_id: Union[str, None] = Query(default=[]), ) -> List[Dic
         (df_concept_relationship.concept_id_1 != df_concept_relationship.concept_id_2)   &
         (df_concept_relationship.relationship_id == 'Subsumes')]
 
-    cnames = df_concept_set_members_i[['concept_id', 'concept_name']] \
+    cname = df_concept_set_members_i[['concept_id', 'concept_name']] \
         .drop_duplicates() \
         .set_index('concept_name') \
         .groupby('concept_id').groups
-    # [(cid, len(names)) for cid, names in cnames.items() if len(names) > 1]    # should be 1-to-1
-    for cid, names in cnames.items():
-        cnames[cid] = names[0]
+    # [(cid, len(names)) for cid, names in cname.items() if len(names) > 1]    # should be 1-to-1
+    for cid, names in cname.items():
+        cname[cid] = names[0]
+
+    cid_csets = df_concept_set_members_i[['concept_id', 'codeset_id']] \
+        .drop_duplicates() \
+        .set_index('codeset_id') \
+        .groupby('concept_id').groups
+    for cid, codeset_ids in cid_csets.items():
+        cid_csets[cid] = [int(codeset_id) for codeset_id in codeset_ids]
 
     top_level_cids = list(df_concept_relationship_i[
                               ~df_concept_relationship_i.concept_id_1.isin(
@@ -317,7 +338,11 @@ def cr_hierarchy(codeset_id: Union[str, None] = Query(default=[]), ) -> List[Dic
     lines = []
     def cid_data(cid, parent=-1, level=0):
         # fastapi jsonencoder keeps choking on the ints
-        return {'concept_id': int(cid), 'concept_name': cnames[cid], 'level': int(level), 'parent': int(parent)}
+        return {'concept_id': int(cid),
+                'concept_name': cname[cid],
+                'codeset_ids': cid_csets[cid],
+                'level': int(level),
+                'parent': int(parent)}
 
     def nested_list(cids, parent=-1, level=0):
         cids = set(cids)
@@ -348,14 +373,14 @@ def hierarchy_again(
         (df_concept_ancestor.descendant_concept_id.isin(df_concept_set_members_i.concept_id)) &
         (df_concept_ancestor.descendant_concept_id != df_concept_ancestor.ancestor_concept_id)]
 
-    cnames = df_concept_set_members_i[['concept_id', 'concept_name']]   \
+    cname = df_concept_set_members_i[['concept_id', 'concept_name']]   \
                 .drop_duplicates()   \
                 .set_index('concept_name')   \
                 .groupby('concept_id').groups
-    # [(cid, len(names)) for cid, names in cnames.items() if len(names) > 1]    # should be 1-to-1
-    for cid, names in cnames.items():
-        cnames[cid] = names[0]
-    # cnames
+    # [(cid, len(names)) for cid, names in cname.items() if len(names) > 1]    # should be 1-to-1
+    for cid, names in cname.items():
+        cname[cid] = names[0]
+    # cname
 
     df_concept_ancestor_i = df_concept_ancestor_i[df_concept_ancestor_i.columns[:-1]] \
         .rename(columns={'min_levels_of_separation': 'sep'}, ) \
@@ -373,12 +398,12 @@ def hierarchy_again(
 
     lines = []
     for anc_cid, descs in descendants_by_level[1].items():
-        lines.append({'lvl': 0, 'cid': anc_cid, 'name': cnames[anc_cid]})
+        lines.append({'lvl': 0, 'cid': anc_cid, 'name': cname[anc_cid]})
         for cid in descs:
             try:
-                lines.append({'lvl': 1, 'cid': cid, 'name': cnames[cid]})
+                lines.append({'lvl': 1, 'cid': cid, 'name': cname[cid]})
             except:
-                print(f'{cid} not in cnames')
+                print(f'{cid} not in cname')
 
     return lines
 

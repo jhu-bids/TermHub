@@ -48,6 +48,12 @@ FAVORITE_DATASETS = {
         'name': 'concept_set_members',
         'rid': 'ri.foundry.main.dataset.e670c5ad-42ca-46a2-ae55-e917e3e161b6',
     },
+    # not downloadable -- yet
+    # 'safe_harbor_term_usage': {
+    #     'name': 'safe_harbor_term_usage',
+    #     'enclave_path': '/UNITE/Concept Term Usage Analysis/datasets/safe_harbor_term_usage',
+    #     'rid': 'ri.foundry.main.dataset.c37927d3-db40-4c54-bea5-036b76c858c9',
+    # },
     # '': {
     #     'name': '',
     #     'rid': '',
