@@ -311,7 +311,7 @@ function CsetComparisonPage(props) {
   // 2. this url is for simple hierarchy using ancestor table and no direct relationshps:
   // let url = enabled ? backend_url('cr-hierarchy?codeset_id=' + codeset_ids.join('|'))
   // todo: 3. this url uses direct relationships:
-  let url = enabled ? backend_url('concept-set-overlap-table-data?codeset_id=' + codeset_ids.join('|'))
+  let url = enabled ? backend_url('concept-set-overlap-table-data-simple-hierarchy?codeset_id=' + codeset_ids.join('|'))
       : `invalid CsetComparisonPage url, no codeset_ids, enabled: ${enabled}`;
 
   const { isLoading, error, data, isFetching } = useQuery([url], () => {
