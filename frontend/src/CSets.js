@@ -27,7 +27,7 @@ const backend_url = path => `${API_ROOT}/${path}`
 
 //TODO: How to get hierarchy data?
 // - It's likely in one of the datasets we haven't downloaded yet. When we get it, we can do indents.
-function ConceptSet(props) {
+function ConceptSetCard(props) {
   let {cset} = props;
   return (
     // (isLoading && "Loading...") ||
@@ -289,7 +289,7 @@ function ConceptSetsPage(props) {
               // flex: '0 0 100%',
             }}>
               {data.map(cset => {
-                return <ConceptSet key={cset.codeset_id} cset={cset} />
+                return <ConceptSetCard key={cset.codeset_id} cset={cset} />
               })}
             </div>)
         }
@@ -337,4 +337,4 @@ function CsetComparisonPage(props) {
 }
 
 
-export {ConceptSetsPage, CsetSearch, ConceptList, CsetComparisonPage};
+export {ConceptSetsPage, CsetSearch, ConceptList, CsetComparisonPage, ConceptSetCard};

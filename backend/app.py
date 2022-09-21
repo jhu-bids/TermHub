@@ -306,7 +306,7 @@ def codeset_info(codeset_id: Union[str, None] = Query(default=[]), ) -> List[Dic
 #       Or just make new issue for starting from one cset or concept
 #       and fanning out to other csets from there?
 # Example: http://127.0.0.1:8000/cr-hierarchy?codeset_id=818292046&codeset_id=484619125&codeset_id=400614256
-@APP.get("/cr-hierarchy")        # maybe junk, or maybe start of a refactor of above
+@APP.get("/cr-hierarchy")  # maybe junk, or maybe start of a refactor of above
 def cr_hierarchy(codeset_id: Union[str, None] = Query(default=[]), ) -> List[Dict]:
     requested_codeset_ids = codeset_id.split('|')
     requested_codeset_ids = [int(x) for x in requested_codeset_ids]
@@ -337,15 +337,14 @@ def cr_hierarchy(codeset_id: Union[str, None] = Query(default=[]), ) -> List[Dic
         cid_csets[cid] = [int(codeset_id) for codeset_id in codeset_ids]
 
     top_level_cids = list(df_concept_relationship_i[
-                              ~df_concept_relationship_i.concept_id_1.isin(
-                                  df_concept_relationship_i.concept_id_2)
+                              ~df_concept_relationship_i.concept_id_1.isin(df_concept_relationship_i.concept_id_2)
                           ].concept_id_1.unique())
 
     links = df_concept_relationship_i.groupby('concept_id_1')
 
     def child_cids(cid):
         if cid in links.groups.keys():
-            return list(links.get_group(cid).concept_id_2)
+            return list(links.get_group(cid).concept_id_2.unique())
 
     lines = []
     def cid_data(cid, parent=-1, level=0):
@@ -364,10 +363,10 @@ def cr_hierarchy(codeset_id: Union[str, None] = Query(default=[]), ) -> List[Dic
             children = child_cids(cid)
             if children:
     #             print('    ', children)
-                c = set(children) - cids
+    #             c = set(children) - cids
                 nested_list(children, parent=cid, level=level+1)
 
-    hierarchy_of_cids = nested_list(top_level_cids)
+    nested_list(top_level_cids)
     return lines
 
 
