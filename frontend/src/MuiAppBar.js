@@ -18,7 +18,6 @@ import {Link} from "react-router-dom";
 const pages = [
   {name: 'Cset search', href: '/OMOPConceptSets'},
   {name: 'Cset comparison', href: '/cset-comparison'},
-  {name: 'New Cset comparison', href: '/new-cset-comparison'},
   {name: 'Test area', href: '/testing'},
   {name: 'About', href: '/about'}
 ];

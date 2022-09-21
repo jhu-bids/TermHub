@@ -99,80 +99,6 @@ const Table = (props) => {
 };
 
 // TODO's: (i) finish this implementation: "x"s -> checkmarks?, (ii) matrix widget too/instead? (header x side header)
-const NewComparisonTable = (props) => {
-  const rowHeight = 25;
-  const headerHeight = rowHeight * 1.25;
-  const {rowData, firstColName} = props;
-  const gridRef = useRef(); // Optional - for accessing Grid's API
-  const [columnDefs, setColumnDefs] = useState();
-  useEffect(() => {
-    if (props.rowData && rowData.length) {
-      const otherCols = Object.keys(rowData[0]).filter(function(item) {return item !== firstColName})
-      const cols = [].concat(...[firstColName], otherCols)
-      // TODO: Are these widths ok?
-      let firstCol = {
-        field: firstColName,
-        //width: 200,
-        minWidth: 400,
-        className: 'first-col',
-        wrapText: true,
-        autoHeight: true,
-      }
-      let others = otherCols.map(n => ({
-        field: n,
-        type: 'checkboxCol',
-        headerClass: 'header-checkbox',
-        width: 50,
-        overflow: 'visible',
-        //minWidth: 400
-      }) )
-      setColumnDefs([firstCol, ...others])
-    }
-  }, [rowData, props]);
-  //const defaultColDef = useMemo(() => ({ sortable: true}));
-  const columnTypes = {
-    // nonEditableColumn: { editable: false },
-    checkboxCol: {
-      className: 'checkbox',
-      backgroundColor: 'purple',
-    }
-  };
-
-
-  const gridOptions = {
-    columnDefs: columnDefs,
-    rowData: null,
-    /*
-    defaultColDef: {
-      sortable: true,
-      resizable: true,
-    },
-    groupHeaderHeight: 75,
-    headerHeight: 150,
-    floatingFiltersHeight: 50,
-    pivotGroupHeaderHeight: 50,
-    pivotHeaderHeight: 100,
-    */
-  };
-
-  return (
-      <div className="ag-theme-alpine ag-theme-comparison" style={{
-        width: '95%',
-        height: window.innerHeight * .7,
-        //height: rowData ? (headerHeight + rowData.length * rowHeight) : headerHeight,
-      }}>
-        <AgGridReact
-            rowHeight={25}
-            ref={gridRef} // Ref for accessing Grid's API
-            rowData={rowData} // Row Data for Rows
-            columnDefs={columnDefs} // Column Defs for Columns
-            //defaultColDef={defaultColDef} // Default Column Properties
-            animateRows={true} // Optional - set to 'true' to have rows animate when sorted
-            rowSelection='multiple' // Options - allows click selection of rows
-        />
-      </div>
-  );
-};
 const ComparisonTable = (props) => {
   const rowHeight = 25;
   const headerHeight = rowHeight * 1.25;
@@ -248,4 +174,4 @@ const ComparisonTable = (props) => {
   );
 };
 
-export {Table, ComparisonTable, NewComparisonTable};
+export {Table, ComparisonTable};

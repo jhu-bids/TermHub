@@ -22,7 +22,6 @@ root.render(
         <Route path="/" element={<App />}>
           {/*<Route path="ontocall" element={<EnclaveOntoAPI />} />*/}
           <Route path="cset-comparison" element={<CsetComparisonPage/>} />
-          <Route path="new-cset-comparison" element={<CsetComparisonPage/>} newp={true} />
           {/* <Route path="cset-comparison/:conceptId" element={<ConceptSet />} /> */}
           <Route path="OMOPConceptSets" element={<ConceptSetsPage />} />
           <Route path="about" element={<AboutPage />} />
