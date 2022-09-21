@@ -1,7 +1,7 @@
 import React, { useState, useRef, useEffect, useMemo, useCallback} from 'react';
 import { render } from 'react-dom';
 import { AgGridReact } from 'ag-grid-react'; // the AG Grid React Component
-
+import { ConceptSetCard } from './CSets'
 import 'ag-grid-community/styles/ag-grid.css'; // Core grid CSS, always needed
 import 'ag-grid-community/styles/ag-theme-alpine.css';
 // import {useParams} from "react-router-dom"; // Optional theme CSS
@@ -20,9 +20,14 @@ const Table = (props) => {
      {field: 'price'}
    ]);
    */
-  const [columnDefs, _setColumnDefs] = useState();
+  const [columnDefs, _setColumnDefs] = useState()
   function setColumnDefs(colNames) {
-    let defs = colNames.map(n => ({field: n}) )
+    console.log(colNames)
+    let defs = colNames.map(n => ({
+      field: n,
+      // tooltipField: ''
+      // headerTooltip: ''
+    }) )
     _setColumnDefs(defs)
   }
   useEffect(() => {
@@ -98,6 +103,41 @@ const Table = (props) => {
   );
 };
 
+// TODO
+const rowTooltip = (props) => {
+  console.log(props)
+  const isHeader = props.rowIndex === undefined;
+  const isGroupedHeader = isHeader && !!props.colDef.children;
+  const valueToDisplay = props.value.value ? props.value.value : '- Missing -';
+
+  // TODO: pass real tooltips
+  return isHeader ? (
+    <div className="custom-tooltip">
+      <p>{props.value}</p>
+      <ConceptSetCard cset={{
+        concept_set_name: 'concept_set_name',
+        version: 'version',
+        concepts: [
+          {
+            concept_id: 'concept_id',
+            concept_name: 'concept_name'
+          }
+        ]
+      }}/>
+    </div>
+  ) : (
+    <div className="custom-tooltip">
+      <p>
+        {/*<span>{props.value}</span>*/}
+        <span>{valueToDisplay}</span>
+      </p>
+    </div>
+  );
+};
+
+const tooltipValueGetter = (params) => ({ value: params.value });
+
+
 // TODO's: (i) finish this implementation: "x"s -> checkmarks?, (ii) matrix widget too/instead? (header x side header)
 const ComparisonTable = (props) => {
   const rowHeight = 25;
@@ -105,11 +145,11 @@ const ComparisonTable = (props) => {
   const {rowData, firstColName} = props;
   const gridRef = useRef(); // Optional - for accessing Grid's API
   const [columnDefs, setColumnDefs] = useState();
+    // TODO: labels as tooltip
   useEffect(() => {
     if (props.rowData && rowData.length) {
       const otherCols = Object.keys(rowData[0]).filter(function(item) {return item !== firstColName})
       const cols = [].concat(...[firstColName], otherCols)
-      // TODO: Are these widths ok?
       let firstCol = {
         field: firstColName,
         //width: 200,
@@ -117,6 +157,10 @@ const ComparisonTable = (props) => {
         className: 'first-col',
         wrapText: true,
         autoHeight: true,
+        headerTooltip: firstColName,
+        tooltipComponent: rowTooltip,
+        tooltipValueGetter: tooltipValueGetter,
+        // tooltip: firstColName,  // row tooltips: not working
       }
       let others = otherCols.map(n => ({
         field: n,
@@ -124,6 +168,10 @@ const ComparisonTable = (props) => {
         headerClass: 'header-checkbox',
         width: 50,
         overflow: 'visible',
+        headerTooltip: n,
+        tooltipComponent: rowTooltip,
+        tooltipValueGetter: tooltipValueGetter,
+        // tooltip: n,  // row tooltips: not working
         //minWidth: 400
       }) )
       setColumnDefs([firstCol, ...others])
@@ -169,6 +217,8 @@ const ComparisonTable = (props) => {
         //defaultColDef={defaultColDef} // Default Column Properties
         animateRows={true} // Optional - set to 'true' to have rows animate when sorted
         rowSelection='multiple' // Options - allows click selection of rows
+        tooltipShowDelay={0}
+        tooltipHideDelay={2000}
       />
     </div>
   );
