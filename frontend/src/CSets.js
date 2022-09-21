@@ -9,6 +9,7 @@ TODO's
 import {useQuery} from "@tanstack/react-query";
 import axios from "axios";
 import {Table, ComparisonTable} from "./Table";
+import {ComparisonDataTable} from "./ComparisonDataTable";
 import {ReactQueryDevtools} from "@tanstack/react-query-devtools";
 import List from "@mui/material/List";
 import ListItem from "@mui/material/ListItem";
@@ -312,14 +313,13 @@ function CsetComparisonPage(props) {
   // let url = enabled ? backend_url('cr-hierarchy?codeset_id=' + codeset_ids.join('|'))
   // todo: 3. this url uses direct relationships:
     // TODO: use cr hierarchy
-  let url = enabled ? backend_url('cr-hierarchy?codeset_id=' + codeset_ids.join('|'))
+  let url = enabled ? backend_url('cr-hierarchy?format=xo&codeset_id=' + codeset_ids.join('|'))
   // let url = enabled ? backend_url('concept-set-overlap-table-data-simple-hierarchy?codeset_id=' + codeset_ids.join('|'))
       : `invalid CsetComparisonPage url, no codeset_ids, enabled: ${enabled}`;
 
   const { isLoading, error, data, isFetching } = useQuery([url], () => {
     return axios.get(url).then((res) => {return res.data})
   }, {enabled});
-  console.log(data)
 
   return (
       <div>
@@ -329,6 +329,12 @@ function CsetComparisonPage(props) {
           (error && `An error has occurred: ${error.stack}`) ||
           (isFetching && "Updating...") ||
           (data && (<div>
+            {/*
+            <ComparisonDataTable
+                rowData={data}
+                firstColName={'ConceptID'}
+            />
+            */}
             <ComparisonTable
               rowData={data}
               firstColName={'ConceptID'}
