@@ -312,9 +312,9 @@ function CsetComparisonPage(props) {
   // 2. this url is for simple hierarchy using ancestor table and no direct relationshps:
   // let url = enabled ? backend_url('cr-hierarchy?codeset_id=' + codeset_ids.join('|'))
   // todo: 3. this url uses direct relationships:
-    // TODO: use cr hierarchy
-  let url = enabled ? backend_url('cr-hierarchy?format=xo&codeset_id=' + codeset_ids.join('|'))
-  // let url = enabled ? backend_url('concept-set-overlap-table-data-simple-hierarchy?codeset_id=' + codeset_ids.join('|'))
+  // TODO: use cr hierarchy
+  //let url = enabled ? backend_url('cr-hierarchy?format=xo&codeset_id=' + codeset_ids.join('|'))
+  let url = enabled ? backend_url('cr-hierarchy?format=flat&codeset_id=' + codeset_ids.join('|'))
       : `invalid CsetComparisonPage url, no codeset_ids, enabled: ${enabled}`;
 
   const { isLoading, error, data, isFetching } = useQuery([url], () => {
@@ -329,16 +329,15 @@ function CsetComparisonPage(props) {
           (error && `An error has occurred: ${error.stack}`) ||
           (isFetching && "Updating...") ||
           (data && (<div>
-            {/*
             <ComparisonDataTable
-                rowData={data}
-                firstColName={'ConceptID'}
+                data={data}
             />
-            */}
+            {/*
             <ComparisonTable
               rowData={data}
               firstColName={'ConceptID'}
             />
+            */}
           </div>))
         }
       </div>)

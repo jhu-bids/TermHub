@@ -295,7 +295,7 @@ def codeset_info(codeset_id: Union[str, None] = Query(default=[]), ) -> List[Dic
     df_code_sets_i = df_code_sets[df_code_sets['codeset_id'].isin(requested_codeset_ids)]
     # containers don't have a codeset_id of course
     # df_concept_set_container_edited_i = df_concept_set_container_edited[df_concept_set_container_edited['codeset_id'].isin(requested_codeset_ids)]
-    df = df_code_sets_i.merge(df_concept_set_container_edited, left_on='concept_set_name', right_on='concept_set_id')
+    df_code_sets_i.merge(df_concept_set_container_edited, on='concept_set_name')
     return json.loads(df.to_json(orient='records'))
 
 
@@ -313,7 +313,8 @@ def cr_hierarchy(
     ) -> List[Dict]:
 
 
-    csets_info = codeset_info(codeset_id)
+    csets_info = {int(ci['codeset_id']): ci for ci in codeset_info(codeset_id)}
+                # int isn't working. in result, still shows as a string key
 
     requested_codeset_ids = codeset_id.split('|')
     requested_codeset_ids = [int(x) for x in requested_codeset_ids]
@@ -384,6 +385,13 @@ def cr_hierarchy(
             rec = {
               "ConceptID": (' -- ' * level) + cname[cid],
             } | concept_set_columns(cid_csets[cid])
+        if format == 'flat':
+            rec = {
+                'concept_id': int(cid),
+                'concept_name': cname[cid],
+                'level': int(level),
+                'codeset_ids': cid_csets[cid],
+                  }  # | concept_set_columns(cid_csets[cid])
 
         return rec
 
@@ -399,7 +407,9 @@ def cr_hierarchy(
                 nested_list(children, parent=cid, level=level+1)
 
     nested_list(top_level_cids)
-    return lines
+    result = {'lines': lines, 'csets_info': csets_info}
+    return result
+    # return json.loads(df.to_json(orient='records'))
 
 
 # Example: http://127.0.0.1:8000/hierarchy-again?codeset_id=818292046&codeset_id=484619125&codeset_id=400614256
