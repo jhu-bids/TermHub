@@ -83,11 +83,56 @@
 .checkbox {
   width: 50px;
 }
-.header-checkbox {
-  transform: rotate(-180deg) !important;
+
+ [data-column-id="2"][role="columnheader"],
+ [data-column-id="3"][role="columnheader"],
+ [data-column-id="4"][role="columnheader"],
+ [data-column-id="5"][role="columnheader"],
+ [data-column-id="6"][role="columnheader"],
+ [data-column-id="7"][role="columnheader"],
+ [data-column-id="8"][role="columnheader"],
+ [data-column-id="9"][role="columnheader"],
+[data-column-id="10"][role="columnheader"],
+[data-column-id="11"][role="columnheader"],
+[data-column-id="12"][role="columnheader"],
+[data-column-id="13"][role="columnheader"],
+[data-column-id="14"][role="columnheader"],
+[data-column-id="15"][role="columnheader"]
+{
+  overflow: visible;
+  text-overflow: unset;
+  justify-content: left; /* fixes weird thing with rightmost col shifting left when rotated */
+  margin-right: auto;
+  transform: translate(18px,0px) rotate(-45deg);
+  transform-origin: bottom left;
+  /*
+  border-bottom: 0.5px solid #BBB;
+  margin-top: auto;
+  height: 150px;
+  .header-checkbox {
+      transform: rotate(-180deg) !important;
   writing-mode: vertical-lr;
   -ms-writing-mode: tb-lr;
   overflow: visible;
+  */
+}
+[data-column-id="2"][role="columnheader"] div,
+[data-column-id="3"][role="columnheader"] div,
+[data-column-id="4"][role="columnheader"] div,
+[data-column-id="5"][role="columnheader"] div,
+[data-column-id="6"][role="columnheader"] div,
+[data-column-id="7"][role="columnheader"] div,
+[data-column-id="8"][role="columnheader"] div,
+[data-column-id="9"][role="columnheader"] div,
+[data-column-id="10"][role="columnheader"] div,
+[data-column-id="11"][role="columnheader"] div,
+[data-column-id="12"][role="columnheader"] div,
+[data-column-id="13"][role="columnheader"] div,
+[data-column-id="14"][role="columnheader"] div,
+[data-column-id="15"][role="columnheader"] div {
+  overflow: visible;
+  text-overflow: unset;
+  margin-top: auto;
 }
 
 .ag-header-cell-label .ag-header-cell-text {
