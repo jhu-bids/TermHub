@@ -200,8 +200,12 @@ def get_parser():
                 'https://unite.nih.gov/workspace/documentation/developer/api/catalog/services/CatalogService/endpoints/getTransaction')
     parser.add_argument(
         '-f', '--favorites',
-        default=False, action='store_true', # what does action do?
+        default=False, action='store_true',
         help='Just download all the datasets that are currently hardcoded as "favorites".')
+    parser.add_argument(
+        '-t', '--transforms-only',
+        default=False, action='store_true',
+        help='When present, will only apply data transformations to datasets. Will not download updates.')
     parser.add_argument(
         '-o', '--output_dir',
         default=FAVORITE_DATASETS,
@@ -215,13 +219,13 @@ def cli():
     Side Effects: Executes program."""
     parser = get_parser()
     kwargs = parser.parse_args()
-    kwargs_dict: Dict = vars(kwargs)
+    d: Dict = vars(kwargs)
 
     # Run
-    if kwargs_dict['favorites']:
-        download_favorites(outdir=kwargs_dict['output_dir'])
+    if d['favorites']:
+        download_favorites(outdir=d['output_dir'], transforms_only=d['transforms_only'])
     else:
-        args = {key: kwargs_dict[key] for key in ['datasetRid','ref']}
+        args = {key: d[key] for key in ['datasetRid','ref']}
         run(**args)
 
 if __name__ == '__main__':

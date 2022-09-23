@@ -22,7 +22,7 @@
         <ENTRY IS_ENABLED="true" PARSER="runconfig" />
       </ENTRIES>
     </EXTENSION>
-    <option name="SCRIPT_NAME" value="$PROJECT_DIR$/enclave_wrangler/datasets" />
+    <option name="SCRIPT_NAME" value="$PROJECT_DIR$/enclave_wrangler/datasets.py" />
     <option name="PARAMETERS" value="-f -o termhub-csets/datasets/large-files-not-ready-to-push" />
     <option name="SHOW_COMMAND_LINE" value="false" />
     <option name="EMULATE_TERMINAL" value="false" />
