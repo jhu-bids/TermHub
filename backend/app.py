@@ -422,6 +422,17 @@ def concept_sets_with_concepts(
     return csets
 
 
+# TODO: figure out where we want to put this. models.py? Create route files and include class along w/ route func?
+# TODO: Maybe change to `id` instead of row index
+class CsetsUpdate(BaseModel):
+    """Update concept sets.
+    dataset_path: File path. Relative to `/termhub-csets/datasets/`
+    row_index_data_map: Keys are integers of row indices in the dataset. Values are dictionaries, where keys are the
+      name of the fields to be updated, and values contain the values to update in that particular cell."""
+    dataset_path: str = ''
+    row_index_data_map: Dict[int, Dict[str, Any]] = {}
+
+
 # TODO: Maybe change to `id` instead of row index
 @APP.put("/datasets/csets")
 def csets_update(d: CsetsUpdate = None) -> Dict:
