@@ -141,110 +141,6 @@ def csetVersions() -> Union[Dict, List]:
     return g
 
 
-# TODO: Finish this route
-# TODO: i. Fix: Very slow on large N. For one attempt, I got back ~7,000 results for 'concepts' variables. I think this is
-#  because one of the csets was 'immunotherapy'; a big set.
-# TODO: ii. Color table
-# Example: http://127.0.0.1:8000/concept-set-overlap-table-data?codeset_id=314083061|728628308|98365468
-@APP.get("/concept-set-overlap-table-data")
-def concept_overlap_table_data(
-    codeset_id: Union[str, None] = Query(default=[]),
-) -> List[Dict]:
-    """Concept overlap table: hierarchical"""
-    # TODO: copy/paste over code from /concept-set-overlap-table-data-simple-hierarchy
-    #  - then, repurpose to use `concept_relationship_is_a.csv`
-
-    return []
-
-
-# todo: (i) and (ii) in route '/concept-set-overlap-table-data' apply to this as well
-# Example: http://127.0.0.1:8000/concept-set-overlap-table-data-simple-hierarchy?codeset_id=314083061|728628308|98365468
-@APP.get("/concept-set-overlap-table-data-simple-hierarchy")
-def concept_overlap_table_data_simple_hierarchy(
-        codeset_id: Union[str, None] = Query(default=[]),
-) -> List[Dict]:
-    """Concept overlap table: hierarchical"""
-    indent_string = '---'
-    concepts_and_concept_sets: Dict = concept_sets_by_concept(codeset_id)
-    requested_codeset_ids = codeset_id.split('|')
-    requested_codeset_ids = [int(x) for x in requested_codeset_ids]
-    df_concept_set_members = DS['concept_set_members']
-    df_concept_ancestor = DS['concept_ancestor']
-    df_concept_set_members_i = df_concept_set_members[df_concept_set_members['codeset_id'].isin(requested_codeset_ids)]
-    df_concept_ancestor_i = df_concept_ancestor[
-        (df_concept_ancestor.ancestor_concept_id.isin(df_concept_set_members_i.concept_id)) &
-        (df_concept_ancestor.descendant_concept_id.isin(df_concept_set_members_i.concept_id))]
-
-    # Transform: get essential information
-    # todo: account for max_levels_of_separation, or just get direct parent/child relationships
-    req_concepts: Dict = concepts_and_concept_sets['concepts']
-    req_csets: Dict = concepts_and_concept_sets['concept_sets']
-    table_data = []
-    for concept_id, concept in req_concepts.items():
-        if concept_id not in table_data:
-            df_concept_ancestor_i2 = df_concept_ancestor_i[
-                df_concept_ancestor_i['descendant_concept_id'] == int(concept_id)]
-            df_concept_ancestor_i2 = df_concept_ancestor_i2.sort_values(['min_levels_of_separation'], ascending=True)
-            ancestors_d_list: List[Dict] = df_concept_ancestor_i2.to_dict(orient='records')
-            for d in ancestors_d_list:
-                ancestor = str(d['ancestor_concept_id'])
-                new_d = {
-                    'ConceptID': concept['concept_id'],
-                    'AncestorID': ancestor,
-                    'min_levels_of_separation': d['min_levels_of_separation'],
-                }
-                for concept_set_id in [str(x) for x in requested_codeset_ids]:
-                    cset_concepts: List[str] = [str(x) for x in req_csets[int(concept_set_id)]['concepts'].keys()]
-                    new_d[concept_set_id] = \
-                        'O' if ancestor in [str(x) for x in cset_concepts] else 'X'
-                table_data.append(new_d)
-
-    # Transform: Visualize indent
-    table_data_2 = []
-    # todo: temp initializing these vars here until later refactor
-    concept_ids = []
-    cset_ids = []
-    for row in table_data:
-        row['ConceptID'] = row['AncestorID']
-        row['ConceptID'] = f"{indent_string * row['min_levels_of_separation']}{row['ConceptID']}"
-        del row['AncestorID']
-        del row['min_levels_of_separation']
-        table_data_2.append(row)
-        # todo: temp until later refactor
-        concept_ids.append(row['ConceptID'])
-        for cset_id in [x for x in row.keys() if x != 'ConceptID']:
-            cset_ids.append(cset_id)
-
-    # get labels
-    # todo: this whole route needs to be refactored eventually.
-    # todo: we may want to pickle some lookup maps maybe
-    concept_ids_set = set([int(x.replace('-', '')) for x in concept_ids])
-    concept_df = CONCEPT[CONCEPT['concept_id'].isin(concept_ids_set)]
-    concept_id_name_map = {}
-    for _index, row in concept_df.iterrows():
-        concept_id_name_map[str(row['concept_id'])] = str(row['concept_name'])
-
-    cset_ids_set = set([int(x) for x in cset_ids])
-    cset_df_all = DS['code_sets']
-    cset_df = cset_df_all[cset_df_all['codeset_id'].isin(cset_ids_set)]
-    cset_id_name_map = {}
-    for _index, row in cset_df.iterrows():
-        cset_id_name_map[str(row['codeset_id'])] = str(row['concept_set_name'])
-
-    table_data_3 = []
-    for row in table_data_2:
-        concept_id_hyphenated = row['ConceptID']
-        hyphens = concept_id_hyphenated.count('-') * '-'
-        concept_id = concept_id_hyphenated.replace('-', '')
-        new_row = {'ConceptID': hyphens + concept_id_name_map[concept_id]}
-        for cset_id in [x for x in row.keys() if x != 'ConceptID']:
-            cset_name = cset_id_name_map[cset_id]
-            new_row[cset_name] = row[cset_id]
-        table_data_3.append(new_row)
-
-    return table_data_3
-
-
 # Example: http://127.0.0.1:8000/codeset-info?codeset_id=400614256|411456218|484619125|818292046|826535586
 @APP.get("/codeset-info")        # maybe junk, or maybe start of a refactor of above
 def codeset_info(codeset_id: Union[str, None] = Query(default=[]), ) -> List[Dict]:
@@ -599,3 +495,110 @@ def run(port: int = 8000):
 
 if __name__ == '__main__':
     run()
+
+
+
+# not using this stuff anymore:
+
+# TODO: Finish this route
+# TODO: i. Fix: Very slow on large N. For one attempt, I got back ~7,000 results for 'concepts' variables. I think this is
+#  because one of the csets was 'immunotherapy'; a big set.
+# TODO: ii. Color table
+# Example: http://127.0.0.1:8000/concept-set-overlap-table-data?codeset_id=314083061|728628308|98365468
+@APP.get("/concept-set-overlap-table-data")
+def concept_overlap_table_data(
+        codeset_id: Union[str, None] = Query(default=[]),
+) -> List[Dict]:
+    """Concept overlap table: hierarchical"""
+    # TODO: copy/paste over code from /concept-set-overlap-table-data-simple-hierarchy
+    #  - then, repurpose to use `concept_relationship_is_a.csv`
+
+    return []
+
+
+# todo: (i) and (ii) in route '/concept-set-overlap-table-data' apply to this as well
+# Example: http://127.0.0.1:8000/concept-set-overlap-table-data-simple-hierarchy?codeset_id=314083061|728628308|98365468
+@APP.get("/concept-set-overlap-table-data-simple-hierarchy")
+def concept_overlap_table_data_simple_hierarchy(
+        codeset_id: Union[str, None] = Query(default=[]),
+) -> List[Dict]:
+    """Concept overlap table: hierarchical"""
+    indent_string = '---'
+    concepts_and_concept_sets: Dict = concept_sets_by_concept(codeset_id)
+    requested_codeset_ids = codeset_id.split('|')
+    requested_codeset_ids = [int(x) for x in requested_codeset_ids]
+    df_concept_set_members = DS['concept_set_members']
+    df_concept_ancestor = DS['concept_ancestor']
+    df_concept_set_members_i = df_concept_set_members[df_concept_set_members['codeset_id'].isin(requested_codeset_ids)]
+    df_concept_ancestor_i = df_concept_ancestor[
+        (df_concept_ancestor.ancestor_concept_id.isin(df_concept_set_members_i.concept_id)) &
+        (df_concept_ancestor.descendant_concept_id.isin(df_concept_set_members_i.concept_id))]
+
+    # Transform: get essential information
+    # todo: account for max_levels_of_separation, or just get direct parent/child relationships
+    req_concepts: Dict = concepts_and_concept_sets['concepts']
+    req_csets: Dict = concepts_and_concept_sets['concept_sets']
+    table_data = []
+    for concept_id, concept in req_concepts.items():
+        if concept_id not in table_data:
+            df_concept_ancestor_i2 = df_concept_ancestor_i[
+                df_concept_ancestor_i['descendant_concept_id'] == int(concept_id)]
+            df_concept_ancestor_i2 = df_concept_ancestor_i2.sort_values(['min_levels_of_separation'], ascending=True)
+            ancestors_d_list: List[Dict] = df_concept_ancestor_i2.to_dict(orient='records')
+            for d in ancestors_d_list:
+                ancestor = str(d['ancestor_concept_id'])
+                new_d = {
+                    'ConceptID': concept['concept_id'],
+                    'AncestorID': ancestor,
+                    'min_levels_of_separation': d['min_levels_of_separation'],
+                }
+                for concept_set_id in [str(x) for x in requested_codeset_ids]:
+                    cset_concepts: List[str] = [str(x) for x in req_csets[int(concept_set_id)]['concepts'].keys()]
+                    new_d[concept_set_id] = \
+                        'O' if ancestor in [str(x) for x in cset_concepts] else 'X'
+                table_data.append(new_d)
+
+    # Transform: Visualize indent
+    table_data_2 = []
+    # todo: temp initializing these vars here until later refactor
+    concept_ids = []
+    cset_ids = []
+    for row in table_data:
+        row['ConceptID'] = row['AncestorID']
+        row['ConceptID'] = f"{indent_string * row['min_levels_of_separation']}{row['ConceptID']}"
+        del row['AncestorID']
+        del row['min_levels_of_separation']
+        table_data_2.append(row)
+        # todo: temp until later refactor
+        concept_ids.append(row['ConceptID'])
+        for cset_id in [x for x in row.keys() if x != 'ConceptID']:
+            cset_ids.append(cset_id)
+
+    # get labels
+    # todo: this whole route needs to be refactored eventually.
+    # todo: we may want to pickle some lookup maps maybe
+    concept_ids_set = set([int(x.replace('-', '')) for x in concept_ids])
+    concept_df = CONCEPT[CONCEPT['concept_id'].isin(concept_ids_set)]
+    concept_id_name_map = {}
+    for _index, row in concept_df.iterrows():
+        concept_id_name_map[str(row['concept_id'])] = str(row['concept_name'])
+
+    cset_ids_set = set([int(x) for x in cset_ids])
+    cset_df_all = DS['code_sets']
+    cset_df = cset_df_all[cset_df_all['codeset_id'].isin(cset_ids_set)]
+    cset_id_name_map = {}
+    for _index, row in cset_df.iterrows():
+        cset_id_name_map[str(row['codeset_id'])] = str(row['concept_set_name'])
+
+    table_data_3 = []
+    for row in table_data_2:
+        concept_id_hyphenated = row['ConceptID']
+        hyphens = concept_id_hyphenated.count('-') * '-'
+        concept_id = concept_id_hyphenated.replace('-', '')
+        new_row = {'ConceptID': hyphens + concept_id_name_map[concept_id]}
+        for cset_id in [x for x in row.keys() if x != 'ConceptID']:
+            cset_name = cset_id_name_map[cset_id]
+            new_row[cset_name] = row[cset_id]
+        table_data_3.append(new_row)
+
+    return table_data_3
