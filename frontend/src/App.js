@@ -25,7 +25,16 @@ import _ from 'lodash';
 //  is this helpful? https://blog.openreplay.com/fetching-and-updating-data-with-react-query
 import axios from "axios";
 
-const queryClient = new QueryClient()
+
+const queryClient = new QueryClient({
+  // fixes constant refetch
+  // https://tanstack.com/query/v4/docs/guides/window-focus-refetching
+  defaultOptions: {
+    queries: {
+      refetchOnWindowFocus: false,
+    },
+  },
+})
 
 // console.log(axios)
 // import logo from './logo.svg';
