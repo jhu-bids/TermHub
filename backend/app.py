@@ -23,7 +23,7 @@ from enclave_wrangler.config import config, FAVORITE_DATASETS
 
 DEBUG = True
 PROJECT_DIR = Path(os.path.dirname(__file__)).parent
-CSV_PATH = f'{PROJECT_DIR}/termhub-csets/datasets'
+CSV_PATH = f'{PROJECT_DIR}/termhub-csets/datasets/prepped_files/'
 
 def load_dataset(ds_name):
     try:
