@@ -29,8 +29,9 @@ HEADERS = {
 }
 DEBUG = False
 # TODO: Once git LFS set up, dl directly to datasets folder, or put these in raw/ and move csvs_repaired to datasets/
-CSV_DOWNLOAD_DIR = os.path.join(TERMHUB_CSETS_DIR, 'datasets', 'large-files-not-ready-to-push')
-CSV_TRANSFORM_DIR = os.path.join(TERMHUB_CSETS_DIR, 'datasets', 'csvs_repaired')
+CSV_DOWNLOAD_DIR = os.path.join(TERMHUB_CSETS_DIR, 'datasets', 'downloads')
+CSV_TRANSFORM_DIR = os.path.join(TERMHUB_CSETS_DIR, 'datasets', 'prepped_files')
+os.makedirs(CSV_TRANSFORM_DIR, exist_ok=True)
 
 
 @typechecked
@@ -144,7 +145,7 @@ def combine_parquet_files(input_folder, target_path):
 def transform_dataset__concept_relationship(dataset_name: str) -> pd.DataFrame:
     """Transformations to concept_relationship.csv"""
     df = pd.read_csv(os.path.join(CSV_DOWNLOAD_DIR, dataset_name + '.csv'), keep_default_na=False).fillna('')
-    df = transforms_common(df)
+    df = transforms_common(df, dataset_name)
 
     # JOIN & Filter
     try:
@@ -169,7 +170,7 @@ def transform_dataset__concept_relationship(dataset_name: str) -> pd.DataFrame:
 def transform_dataset__concept(dataset_name: str) -> pd.DataFrame:
     """Transformations to concept.csv"""
     df = pd.read_csv(os.path.join(CSV_DOWNLOAD_DIR, dataset_name + '.csv'), keep_default_na=False).fillna('')
-    df = transforms_common(df)
+    df = transforms_common(df, dataset_name)
 
     # JOIN
     try:
@@ -188,7 +189,7 @@ def transform_dataset__concept(dataset_name: str) -> pd.DataFrame:
 def transform_dataset__concept_ancestor(dataset_name: str) -> pd.DataFrame:
     """Transformations to concept_ancestor.csv"""
     df = pd.read_csv(os.path.join(CSV_DOWNLOAD_DIR, dataset_name + '.csv'), keep_default_na=False).fillna('')
-    df = transforms_common(df)
+    df = transforms_common(df, dataset_name)
 
     # JOIN
     try:
@@ -211,7 +212,7 @@ def transform_dataset__concept_set_members(dataset_name: str) -> pd.DataFrame:
         # dtype={'archived': bool},    # doesn't work because of missing values
         converters={'archived': lambda v: v and True or False},  # this makes it a bool field
         keep_default_na=False).fillna('')
-    df = transforms_common(df)
+    df = transforms_common(df, dataset_name)
 
     return df
 
@@ -219,7 +220,7 @@ def transform_dataset__concept_set_members(dataset_name: str) -> pd.DataFrame:
 def transform_dataset__code_sets(dataset_name: str) -> pd.DataFrame:
     """Transformations to code_sets.csv"""
     df = pd.read_csv(os.path.join(CSV_DOWNLOAD_DIR, dataset_name + '.csv'), keep_default_na=False).fillna('')
-    df = transforms_common(df)
+    df = transforms_common(df, dataset_name)
 
     # JOIN
     try:
@@ -236,15 +237,23 @@ def transform_dataset__code_sets(dataset_name: str) -> pd.DataFrame:
     return df
 
 
-def transforms_common(df: pd.DataFrame) -> pd.DataFrame:
+def transforms_common(df: pd.DataFrame, dataset_name) -> pd.DataFrame:
     """Common transformations"""
     # - Removed 'Unnamed' columns
     for col in [x for x in list(df.columns) if x.startswith('Unnamed')]:  # e.g. 'Unnamed: 0'
         df.drop(col, axis=1, inplace=True)
+    df.sort_values(FAVORITE_DATASETS[dataset_name]['sort_idx'], inplace=True)
+
     return df
 
 
 def transform(dataset_name: str) -> pd.DataFrame:
+    ipath = os.path.join(CSV_DOWNLOAD_DIR, dataset_name + '.csv')
+    opath = os.path.join(CSV_TRANSFORM_DIR, dataset_name + '.csv')
+    if os.path.exists(opath) and os.path.getctime(ipath) < os.path.getctime(opath):
+        print(f'transformed file is newer than downloaded file. If you really want to transform again, delete {opath} and try again.')
+        return pd.DataFrame()
+
     """Data transformations"""
     dataset_funcs = {  # todo: using introspection, can remove need for this if function names are consistent w/ files
         'concept': transform_dataset__concept,
@@ -254,10 +263,15 @@ def transform(dataset_name: str) -> pd.DataFrame:
         'code_sets': transform_dataset__code_sets,
     }
     func = dataset_funcs.get(dataset_name, '')
-    if not func:
-        return pd.DataFrame()
-    df = func(dataset_name)
-    df.to_csv(os.path.join(CSV_TRANSFORM_DIR, dataset_name + '.csv'), index=False)
+
+    print(f'transforming {dataset_name}')
+    if func:
+        df = func(dataset_name)
+    else:
+        df = pd.read_csv(ipath, keep_default_na=False).fillna('')
+        df = transforms_common(df, dataset_name)
+
+    df.to_csv(opath, index=False)
     return df
 
 
@@ -293,7 +307,7 @@ def run(
 def run_favorites(outdir: str = CSV_DOWNLOAD_DIR, transforms_only=False, specific=[]):
     """Run on favorite datasets"""
     for fav in FAVORITE_DATASETS.values():
-        if specific and fav['name'] in specific:
+        if not specific or fav['name'] in specific:
             outpath = os.path.join(outdir, fav['name'] + '.csv')
             run(dataset_name=fav['name'], outpath=outpath, transforms_only=transforms_only)
 
