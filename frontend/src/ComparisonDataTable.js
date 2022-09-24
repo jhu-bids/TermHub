@@ -63,7 +63,10 @@ function ComparisonDataTable(props) {
             name: 'Concept name',
             selector: row => row.concept_name,
             // sortable: true,
-            maxWidth: '300px',
+            // maxWidth: '300px',
+            //  table: style: maxWidth is 85% and cset_columns are 50px, so fill
+            //      the rest of the space with this column
+            width: (window.innerWidth - cset_columns.length * 50) * .85,
             wrap: true,
             compact: true,
             conditionalCellStyles: [
