@@ -290,11 +290,12 @@ def run(
     return df2 if len(df2) > 0 else df
 
 
-def run_favorites(outdir: str = CSV_DOWNLOAD_DIR, transforms_only=False):
+def run_favorites(outdir: str = CSV_DOWNLOAD_DIR, transforms_only=False, specific=[]):
     """Run on favorite datasets"""
     for fav in FAVORITE_DATASETS.values():
-        outpath = os.path.join(outdir, fav['name'] + '.csv')
-        run(dataset_name=fav['name'], outpath=outpath, transforms_only=transforms_only)
+        if specific and fav['name'] in specific:
+            outpath = os.path.join(outdir, fav['name'] + '.csv')
+            run(dataset_name=fav['name'], outpath=outpath, transforms_only=transforms_only)
 
 
 def get_parser():
@@ -348,10 +349,14 @@ def cli():
     d: Dict = vars(kwargs)
 
     # Run
+    specific = []
+    if d['datasetName']:
+        specific.append(d['datasetName'])
+
     if d['favorites']:
-        run_favorites(outdir=d['output_dir'], transforms_only=d['transforms_only'])
+        run_favorites(outdir=d['output_dir'], transforms_only=d['transforms_only'], specific=specific)
     else:
-        args = {key: d[key] for key in ['datasetRid','ref']}
+        args = {key: d[key] for key in ['datasetRid', 'ref']}
         run(**args)
 
 if __name__ == '__main__':
