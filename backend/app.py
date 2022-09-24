@@ -86,40 +86,6 @@ APP.add_middleware(
 )
 
 
-# Utils
-def json_path(objtype: str) -> str:
-    """ construct path for json file given an object type name, e.g., OMOPConceptSet """
-    jdir = f'{OBJECTS_PATH}/{objtype}'
-    if os.path.isdir(jdir):
-        jpath = f'{jdir}/latest.json'
-        if os.path.isfile(jpath):
-            return jpath
-        else:
-            # from https://stackoverflow.com/a/36077407/1368860
-            raise FileNotFoundError(errno.ENOENT, os.strerror(errno.ENOENT), jpath)
-    else:
-        raise FileNotFoundError(errno.ENOENT, os.strerror(errno.ENOENT), jdir)
-
-
-def load_json(objtype: str) -> List[Dict]:
-    """ load json file given an object type name, e.g., OMOPConceptSet """
-    jpath = json_path(objtype)
-    try:
-        with open(jpath, 'r') as f:
-            d = json.load(f)
-            return d
-    except Exception:
-        return [{'Error': f'failure in load_json({objtype}'}]
-
-
-# # Routes
-# @APP.get("/concept-set-names")
-# @APP.get("/datasets/csets/names")
-# def cset_names() -> Union[Dict, List]:
-#     """Get concept set names"""
-#     return csets_read(field_filter=['concept_set_name'])
-
-
 @APP.get("/cset-versions")
 def csetVersions() -> Union[Dict, List]:
     csm = DS['code_sets']
@@ -152,8 +118,14 @@ def codeset_info(codeset_id: Union[str, None] = Query(default=[]), ) -> List[Dic
     df_code_sets_i = df_code_sets[df_code_sets['codeset_id'].isin(requested_codeset_ids)]
     # containers don't have a codeset_id of course
     # df_concept_set_container_edited_i = df_concept_set_container_edited[df_concept_set_container_edited['codeset_id'].isin(requested_codeset_ids)]
-    df_code_sets_i.merge(df_concept_set_container_edited, on='concept_set_name')
+    df = df_code_sets_i.merge(df_concept_set_container_edited, on='concept_set_name')
     return json.loads(df.to_json(orient='records'))
+
+
+def related_csets(cids):
+    df_concept_set_members = DS['concept_set_members']
+    csm_with_cids = df_concept_set_members[df_concept_set_members.concept_id.isin(cids)]
+    return csm_with_cids.groupby(['codeset_id','concept_set_name']).nunique().concept_id.sort_values(ascending=False)
 
 
 # TODO: the following is just based on concept_relationship
@@ -166,12 +138,10 @@ def codeset_info(codeset_id: Union[str, None] = Query(default=[]), ) -> List[Dic
 @APP.get("/cr-hierarchy")  # maybe junk, or maybe start of a refactor of above
 def cr_hierarchy(
         format: str='default',
-        codeset_id: Union[str, None] = Query(default=[]),
-    ) -> List[Dict]:
-
+        codeset_id: Union[str, None] = Query(default=[]), ) -> List[Dict]:
 
     csets_info = {int(ci['codeset_id']): ci for ci in codeset_info(codeset_id)}
-                # int isn't working. in result, still shows as a string key
+    # int isn't working. in result, still shows as a string key
 
     requested_codeset_ids = codeset_id.split('|')
     requested_codeset_ids = [int(x) for x in requested_codeset_ids]
@@ -179,6 +149,9 @@ def cr_hierarchy(
     df_concept_set_members = DS['concept_set_members']
     df_concept_relationship = DS['concept_relationship']
     df_concept_set_members_i = df_concept_set_members[df_concept_set_members['codeset_id'].isin(requested_codeset_ids)]
+
+    # TODO: figure out what to do with these related codesets
+    related = related_csets(df_concept_set_members_i.concept_id.unique())
 
     df_concept_relationship_i = df_concept_relationship[
         (df_concept_relationship.concept_id_1.isin(df_concept_set_members_i.concept_id)) &
@@ -318,61 +291,6 @@ def hierarchy_again(
     return lines
 
 
-# todo: (i) and (ii) in route '/concept-set-overlap-table-data' apply to this as well
-# Example: http://127.0.0.1:8000/concept-set-overlap-table-data-simple?codeset_id=314083061|728628308|98365468
-@APP.get("/concept-set-overlap-table-data-simple")
-def concept_overlap_table_data_simple(
-    codeset_id: Union[str, None] = Query(default=[]),
-) -> List[Dict]:
-    """Concept overlap table: simple, non-hierarchical"""
-    concepts_and_concept_sets: Dict = concept_sets_by_concept(codeset_id)
-    requested_codeset_ids = codeset_id.split('|')
-
-    concepts = concepts_and_concept_sets['concepts']
-    table_data = {}
-    for concept_id, concept in concepts.items():
-        if concept_id not in table_data:
-            table_data[concept_id] = {'ConceptID': concept['concept_id']}
-        for concept_set_id in requested_codeset_ids:
-            table_data[concept_id][concept_set_id] = \
-                'O' if str(concept_set_id) in [str(x) for x in concept['concept_sets']] else 'X'
-
-    table_data_list = list(table_data.values())
-    return table_data_list
-
-
-# Example: http://127.0.0.1:8000/concept-sets-by-concept?codeset_id=314083061|728628308|98365468
-@APP.get("/concept-sets-by-concept")
-def concept_sets_by_concept(
-    codeset_id: Union[str, None] = Query(default=[]),
-) -> Union[Dict, List]:
-    """Concept sets by concept"""
-    _concept_sets_with_concepts: List[Dict] = concept_sets_with_concepts(codeset_id)
-    concept_sets_concept_map: Dict = {x['codeset_id']: x for x in _concept_sets_with_concepts}
-
-    concepts_concept_sets_map: Dict[str, Dict] = {}
-    for cs_id, cs in concept_sets_concept_map.items():
-        for concept_id, concept in cs['concepts'].items():
-            if concept_id not in concepts_concept_sets_map:
-                concepts_concept_sets_map[concept_id] = concept
-            #     concepts_concept_sets_map[concept_id]['concept_sets'] = {}
-            # concepts_concept_sets_map[concept_id]['concept_sets'][cs_id] = \
-            #     {k: v for k, v in cs.items() if k != 'concepts'}
-                concepts_concept_sets_map[concept_id]['concept_sets'] = []
-            concepts_concept_sets_map[concept_id]['concept_sets'].append(cs_id)
-
-    response = {
-        'concepts': concepts_concept_sets_map,
-        'concept_sets': concept_sets_concept_map  # todo: includes concepts=`concepts_concept_sets_map[x]`. remove?
-    }
-
-    # TODO: Add concept ancestor info
-    pass
-
-    # TODO: finally: remove/update JS in <CsetComparisonPage/>
-    return response
-
-
 @APP.get("/concept-sets-with-concepts")
 def concept_sets_with_concepts(
     codeset_id: Union[str, None] = Query(default=[]),
@@ -381,7 +299,7 @@ def concept_sets_with_concepts(
 
     sample url:
         http://127.0.0.1:8000/concept-sets-with-concepts?codeset_id=394464897&codeset_id=13193785
-        
+
     If no codeset_id, doesn't return concepts; just concept_sets.
         TODO: is that still true?
 
@@ -613,3 +531,58 @@ def concept_overlap_table_data_simple_hierarchy(
         table_data_3.append(new_row)
 
     return table_data_3
+
+
+# todo: (i) and (ii) in route '/concept-set-overlap-table-data' apply to this as well
+# Example: http://127.0.0.1:8000/concept-set-overlap-table-data-simple?codeset_id=314083061|728628308|98365468
+@APP.get("/concept-set-overlap-table-data-simple")
+def concept_overlap_table_data_simple(
+        codeset_id: Union[str, None] = Query(default=[]),
+) -> List[Dict]:
+    """Concept overlap table: simple, non-hierarchical"""
+    concepts_and_concept_sets: Dict = concept_sets_by_concept(codeset_id)
+    requested_codeset_ids = codeset_id.split('|')
+
+    concepts = concepts_and_concept_sets['concepts']
+    table_data = {}
+    for concept_id, concept in concepts.items():
+        if concept_id not in table_data:
+            table_data[concept_id] = {'ConceptID': concept['concept_id']}
+        for concept_set_id in requested_codeset_ids:
+            table_data[concept_id][concept_set_id] = \
+                'O' if str(concept_set_id) in [str(x) for x in concept['concept_sets']] else 'X'
+
+    table_data_list = list(table_data.values())
+    return table_data_list
+
+
+# Example: http://127.0.0.1:8000/concept-sets-by-concept?codeset_id=314083061|728628308|98365468
+@APP.get("/concept-sets-by-concept")
+def concept_sets_by_concept(
+        codeset_id: Union[str, None] = Query(default=[]),
+) -> Union[Dict, List]:
+    """Concept sets by concept"""
+    _concept_sets_with_concepts: List[Dict] = concept_sets_with_concepts(codeset_id)
+    concept_sets_concept_map: Dict = {x['codeset_id']: x for x in _concept_sets_with_concepts}
+
+    concepts_concept_sets_map: Dict[str, Dict] = {}
+    for cs_id, cs in concept_sets_concept_map.items():
+        for concept_id, concept in cs['concepts'].items():
+            if concept_id not in concepts_concept_sets_map:
+                concepts_concept_sets_map[concept_id] = concept
+                #     concepts_concept_sets_map[concept_id]['concept_sets'] = {}
+                # concepts_concept_sets_map[concept_id]['concept_sets'][cs_id] = \
+                #     {k: v for k, v in cs.items() if k != 'concepts'}
+                concepts_concept_sets_map[concept_id]['concept_sets'] = []
+            concepts_concept_sets_map[concept_id]['concept_sets'].append(cs_id)
+
+    response = {
+        'concepts': concepts_concept_sets_map,
+        'concept_sets': concept_sets_concept_map  # todo: includes concepts=`concepts_concept_sets_map[x]`. remove?
+    }
+
+    # TODO: Add concept ancestor info
+    pass
+
+    # TODO: finally: remove/update JS in <CsetComparisonPage/>
+    return response
