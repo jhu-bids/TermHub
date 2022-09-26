@@ -38,7 +38,7 @@ createTheme('custom-theme', {
 
 function ComparisonDataTable(props) {
     let {data} = props;
-    let {csets_info, lines} = data;
+    let {csets_info, lines, related} = data;
 
     console.log(props);
     let cset_columns = Object.keys(csets_info).map(codeset_id => {

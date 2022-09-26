@@ -1,9 +1,9 @@
 import React, {useEffect, useState} from 'react';
 import ReactDOM from 'react-dom/client';
-import {BrowserRouter, Routes, Route, matchPath, useLocation, useNavigate, useSearchParams, createSearchParams} from "react-router-dom";
+import {BrowserRouter, Routes, Route, matchPath, useLocation, useNavigate, createSearchParams} from "react-router-dom";
 import {ConceptSetsPage, CsetComparisonPage} from './Csets';
 import _ from 'lodash';
-import {App, AboutPage, useSearchState, /* useGlobalState, */} from './App';
+import {App, AboutPage, useSearchState, } from './App';
 import './index.css';
 // import MuiAppBar from './MuiAppBar';
 // import Table from './Table'
@@ -20,10 +20,6 @@ function CsetsRoutes() {
 
   const location = useLocation();
   const navigate = useNavigate();
-  //const [syncedToQs, setSyncedToQs] = useGlobalState('syncedToQs');
-  const [searchParams, setSearchParams] = useSearchParams();
-  // const [qsParams, setQsParams] = useGlobalState('qsParams');
-  // const codeset_ids = qsParams && qsParams.codeset_id && qsParams.codeset_id.sort() || []
 
   let searchParamsAsObject = useSearchState();
 
@@ -43,15 +39,6 @@ function CsetsRoutes() {
     }
     setCodeset_ids(searchParamsAsObject.codeset_id)
   }, [location]);  // maybe not necessary to have location in dependencies
-
-  /*
-  useEffect(() => {
-    if (! _.isEqual(qsParams, o)) {
-      console.log('syncing to global_state.qsParams:', o)
-      setQsParams(o)
-    }
-  }, [searchParams])
-  */
 
   console.log({codeset_ids})
   return (

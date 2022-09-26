@@ -19,7 +19,6 @@ import Autocomplete from '@mui/material/Autocomplete';
 import Chip from '@mui/material/Chip';
 import { Link, Outlet, useHref, useNavigate, useParams, useSearchParams, useLocation } from "react-router-dom";
 import _ from 'lodash';
-import {useGlobalState} from "./App";
 
 const API_ROOT = 'http://127.0.0.1:8000'
 const enclave_url = path => `${API_ROOT}/passthru?path=${path}`
@@ -61,8 +60,6 @@ function ConceptSetCard(props) {
 
 function ConceptList(props) {
   // http://127.0.0.1:8000/fields-from-objlist?objtype=OmopConceptSetVersionItem&filter=codeset_id:822173787|74555844
-  // const [qsParams, setQsParams] = useGlobalState('qsParams');
-  // let codeset_ids = qsParams && qsParams.codeset_id && qsParams.codeset_id.sort() || []
   const codeset_ids = props.codeset_ids || [];
   let enabled = !!codeset_ids.length
 
@@ -108,10 +105,20 @@ function ConceptList(props) {
     @ SIggie: is this fixed?
 */
 function CsetSearch(props) {
-  let {applyChangeCallback} = props;
-  // const [qsParams, setQsParams] = useGlobalState('qsParams');
-  // let codeset_ids = qsParams && qsParams.codeset_id && qsParams.codeset_id.sort() || []
   const codeset_ids = props.codeset_ids || [];
+  const {relatedCsets} = props;
+  const relatedList = (
+      <ul>
+        {
+          relatedCsets.filter(d => !d.selected).map(d => (
+            <li key={d.codeset_id}>{d.concept_set_name} v{d.version} ({d.concepts} concepts)</li>
+          ))
+        }
+      </ul>)
+  if (relatedCsets.length) {
+    console.log({relatedCsets, relatedList})
+  }
+
 
   let url = backend_url('cset-versions');
 
@@ -211,17 +218,14 @@ function CsetSearch(props) {
           ))
         }
       />
+      {relatedList}
     </div>)
   /* want to group by cset name and then list version. use https://mui.com/material-ui/react-autocomplete/ Grouped
      and also use Multiple Values */
 }
 
 function ConceptSetsPage(props) {
-  // return <CsetSearch />;
   let navigate = useNavigate();
-  //const [filteredData, setFilteredData] = useState([]);
-  // const [qsParams, setQsParams] = useGlobalState('qsParams');
-  // let codeset_ids = qsParams && qsParams.codeset_id && qsParams.codeset_id.sort() || []
   const codeset_ids = props.codeset_ids || [];
   let enabled = !!codeset_ids.length
 
@@ -265,8 +269,7 @@ function ConceptSetsPage(props) {
         {
           !enabled ? msg :
           (data && (<div>
-            Concepts:
-            <ConceptList />
+            {/* Concepts: <ConceptList /> */}
             {/*Concept sets: */}
             {/*<Table rowData={data} rowCallback={csetCallback}/>*/}
           </div>))
@@ -296,8 +299,6 @@ function ConceptSetsPage(props) {
 // TODO: Color table: I guess would need to see if could pass extra values/props and see if table widget can use that
 //  ...for coloration, since we want certain rows grouped together
 function CsetComparisonPage(props) {
-  // const [qsParams, setQsParams] = useGlobalState('qsParams');
-  // let codeset_ids = (qsParams && qsParams.codeset_id && qsParams.codeset_id.sort()) || []
   const codeset_ids = props.codeset_ids || [];
   let enabled = !!codeset_ids.length
   // Table Variations
@@ -321,7 +322,7 @@ function CsetComparisonPage(props) {
 
   return (
       <div>
-        <CsetSearch {...props} />
+        <CsetSearch {...props} relatedCsets={data && data.related_csets || []}/>
         {
           !enabled ? msg :
           (data && (<div>

@@ -19,7 +19,6 @@ import {
     QueryClientProvider,
 } from '@tanstack/react-query'
 import { ReactQueryDevtools } from '@tanstack/react-query-devtools'
-// import { createGlobalState } from 'react-hooks-global-state';
 // wanting to install react-query and axios and use those for data fetch/cache/etc.
 //  is this helpful? https://blog.openreplay.com/fetching-and-updating-data-with-react-query
 import axios from "axios";
@@ -90,8 +89,6 @@ OH!! Does that mean: without a dependency list, the useEffects function will run
 
 */
 
-// const { useGlobalState } = createGlobalState({qsParams:[], syncedToQs: false});
-
 /*
 function objectTypesData(data) {
   const someObjTypePropertiesHaveDesc = data.some(d=>Object.entries(d.properties).some(d=>d.description))
@@ -118,7 +115,7 @@ function AboutPage() {
 }
 
 
-export {App, AboutPage, useSearchState, /* useGlobalState, */ };
+export {App, AboutPage, useSearchState, };
 
 // TODO: @Siggie: Can we remove this comment or we need this list of links for ref still?
 //       @Joe: we should move it to the individual concept set display component(s) as a

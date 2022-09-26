@@ -122,10 +122,17 @@ def codeset_info(codeset_id: Union[str, None] = Query(default=[]), ) -> List[Dic
     return json.loads(df.to_json(orient='records'))
 
 
-def related_csets(cids):
+def related_csets(cids, requested_codeset_ids):
     df_concept_set_members = DS['concept_set_members']
     csm_with_cids = df_concept_set_members[df_concept_set_members.concept_id.isin(cids)]
-    return csm_with_cids.groupby(['codeset_id','concept_set_name']).nunique().concept_id.sort_values(ascending=False)
+    related = csm_with_cids.groupby(['codeset_id', 'concept_set_name', 'version']).nunique().concept_id.sort_values(ascending=False)
+    related = dict(related)
+    return [{'codeset_id': x[0][0],
+             'concept_set_name': x[0][1],
+             'version': str(x[0][2]),
+             'concepts': int(x[1]),
+             'selected': x[0][0] in requested_codeset_ids,
+             } for x in related.items()]
 
 
 # TODO: the following is just based on concept_relationship
@@ -141,7 +148,7 @@ def cr_hierarchy(
         codeset_id: Union[str, None] = Query(default=[]), ) -> List[Dict]:
 
     csets_info = {int(ci['codeset_id']): ci for ci in codeset_info(codeset_id)}
-    # int isn't working. in result, still shows as a string key
+    # casting as int here isn't working. in result, still shows as a string key
 
     requested_codeset_ids = codeset_id.split('|')
     requested_codeset_ids = [int(x) for x in requested_codeset_ids]
@@ -151,7 +158,7 @@ def cr_hierarchy(
     df_concept_set_members_i = df_concept_set_members[df_concept_set_members['codeset_id'].isin(requested_codeset_ids)]
 
     # TODO: figure out what to do with these related codesets
-    related = related_csets(df_concept_set_members_i.concept_id.unique())
+    related = related_csets(df_concept_set_members_i.concept_id.unique(), requested_codeset_ids)
 
     df_concept_relationship_i = df_concept_relationship[
         (df_concept_relationship.concept_id_1.isin(df_concept_set_members_i.concept_id)) &
@@ -237,7 +244,7 @@ def cr_hierarchy(
                 nested_list(children, parent=cid, level=level+1)
 
     nested_list(top_level_cids)
-    result = {'lines': lines, 'csets_info': csets_info}
+    result = {'lines': lines, 'csets_info': csets_info, 'related_csets': related, }
     return result
     # return json.loads(df.to_json(orient='records'))
 
