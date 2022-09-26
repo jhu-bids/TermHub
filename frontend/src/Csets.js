@@ -6,6 +6,7 @@ TODO's
       selected, start doing comparison stuff
 
 */
+import React, {useState, useEffect, /* useReducer, useRef, */} from 'react';
 import {useQuery} from "@tanstack/react-query";
 import axios from "axios";
 import {Table, ComparisonTable} from "./Table";
@@ -17,7 +18,6 @@ import TextField from '@mui/material/TextField';
 import Autocomplete from '@mui/material/Autocomplete';
 import Chip from '@mui/material/Chip';
 import { Link, Outlet, useHref, useNavigate, useParams, useSearchParams, useLocation } from "react-router-dom";
-import React, {useState, useReducer, useEffect, useRef} from 'react';
 import _ from 'lodash';
 import {useGlobalState} from "./App";
 
@@ -61,9 +61,9 @@ function ConceptSetCard(props) {
 
 function ConceptList(props) {
   // http://127.0.0.1:8000/fields-from-objlist?objtype=OmopConceptSetVersionItem&filter=codeset_id:822173787|74555844
-  const [qsParams, setQsParams] = useGlobalState('qsParams');
-  //const [filteredData, setFilteredData] = useState([]);
-  let codeset_ids = qsParams && qsParams.codeset_id && qsParams.codeset_id.sort() || []
+  // const [qsParams, setQsParams] = useGlobalState('qsParams');
+  // let codeset_ids = qsParams && qsParams.codeset_id && qsParams.codeset_id.sort() || []
+  const codeset_ids = props.codeset_ids || [];
   let enabled = !!codeset_ids.length
 
   let url = enabled ? backend_url('fields-from-objlist?') +
@@ -109,21 +109,12 @@ function ConceptList(props) {
 */
 function CsetSearch(props) {
   let {applyChangeCallback} = props;
-  const [qsParams, setQsParams] = useGlobalState('qsParams');
-
-  let codeset_ids = qsParams && qsParams.codeset_id && qsParams.codeset_id.sort() || []
+  // const [qsParams, setQsParams] = useGlobalState('qsParams');
+  // let codeset_ids = qsParams && qsParams.codeset_id && qsParams.codeset_id.sort() || []
+  const codeset_ids = props.codeset_ids || [];
 
   let url = backend_url('cset-versions');
 
-  // TODO: something like: http://localhost:3000/OMOPConceptSets?selected=7577017,7577017
-  // let navigate = useNavigate();
-  /*
-  let defaultOptionsTest = [
-    {"label": "11-Beta Hydroxysteroid Dehydrogenase Inhibitor", "codeset_id": 584452082},
-    {"label": "74235-3 (Blood type)", "codeset_id": 761463499}
-  ]
-  const [csets, setCsets] = useState([]);
-   */
   const [value, setValue] = useState([]);
   const [inputValue, setInputValue] = useState('');
   const [searchParams, setSearchParams] = useSearchParams();
@@ -157,6 +148,7 @@ function CsetSearch(props) {
       })
   );
   useEffect(() => {
+    console.log('setting value of search box')
     if (!data || !data.length) return
     let selectedCids = value && value.map(d => d.codeset_id).sort() || []
     if (!_.isEqual(codeset_ids, selectedCids)) {
@@ -165,7 +157,7 @@ function CsetSearch(props) {
       let selection = (data || []).filter(d => codeset_ids.includes(d.codeset_id))
       setValue(selection)
     }
-  }, [qsParams, data]);
+  }, [codeset_ids, data]);
   if (isLoading) {
     return "Loading...";
   }
@@ -224,13 +216,13 @@ function CsetSearch(props) {
      and also use Multiple Values */
 }
 
-// TODO: Page state refresh should not be 'on window focus', but on autocomplete widget selection
 function ConceptSetsPage(props) {
   // return <CsetSearch />;
   let navigate = useNavigate();
-  const [qsParams, setQsParams] = useGlobalState('qsParams');
   //const [filteredData, setFilteredData] = useState([]);
-  let codeset_ids = qsParams && qsParams.codeset_id && qsParams.codeset_id.sort() || []
+  // const [qsParams, setQsParams] = useGlobalState('qsParams');
+  // let codeset_ids = qsParams && qsParams.codeset_id && qsParams.codeset_id.sort() || []
+  const codeset_ids = props.codeset_ids || [];
   let enabled = !!codeset_ids.length
 
   // pre-2022/09/07 url (for temporary reference):
@@ -269,7 +261,7 @@ function ConceptSetsPage(props) {
               : "Choose one or more concept sets";
   return (
       <div>
-        <CsetSearch/>
+        <CsetSearch {...props} />
         {
           !enabled ? msg :
           (data && (<div>
@@ -304,8 +296,9 @@ function ConceptSetsPage(props) {
 // TODO: Color table: I guess would need to see if could pass extra values/props and see if table widget can use that
 //  ...for coloration, since we want certain rows grouped together
 function CsetComparisonPage(props) {
-  const [qsParams, setQsParams] = useGlobalState('qsParams');
-  let codeset_ids = (qsParams && qsParams.codeset_id && qsParams.codeset_id.sort()) || []
+  // const [qsParams, setQsParams] = useGlobalState('qsParams');
+  // let codeset_ids = (qsParams && qsParams.codeset_id && qsParams.codeset_id.sort()) || []
+  const codeset_ids = props.codeset_ids || [];
   let enabled = !!codeset_ids.length
   // Table Variations
   // 1. this url is for simple X/O table with no hierarchy:
@@ -328,7 +321,7 @@ function CsetComparisonPage(props) {
 
   return (
       <div>
-        <CsetSearch/>
+        <CsetSearch {...props} />
         {
           !enabled ? msg :
           (data && (<div>

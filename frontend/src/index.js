@@ -1,37 +1,80 @@
-import React from 'react';
+import React, {useEffect, useState} from 'react';
 import ReactDOM from 'react-dom/client';
-import { BrowserRouter, Routes, Route, matchPath } from "react-router-dom";
-
-import './index.css';
-import {App, AboutPage} from './App';
+import {BrowserRouter, Routes, Route, matchPath, useLocation, useNavigate, useSearchParams, createSearchParams} from "react-router-dom";
 import {ConceptSetsPage, CsetComparisonPage} from './Csets';
+import _ from 'lodash';
+import {App, AboutPage, useSearchState, /* useGlobalState, */} from './App';
+import './index.css';
 // import MuiAppBar from './MuiAppBar';
 // import Table from './Table'
 // script src="http://localhost:8097"></script>
 // import reportWebVitals from './reportWebVitals';
 
+const test_codeset_ids = [400614256, 411456218, 419757429, 484619125, 818292046, 826535586];
 
 function ErrorPath() {
   return <h3>Unknown path</h3>
 }
-const root = ReactDOM.createRoot(document.getElementById('root'));
-root.render(
-    <BrowserRouter>
-      <Routes>
 
+function CsetsRoutes() {
+
+  const location = useLocation();
+  const navigate = useNavigate();
+  //const [syncedToQs, setSyncedToQs] = useGlobalState('syncedToQs');
+  const [searchParams, setSearchParams] = useSearchParams();
+  // const [qsParams, setQsParams] = useGlobalState('qsParams');
+  // const codeset_ids = qsParams && qsParams.codeset_id && qsParams.codeset_id.sort() || []
+
+  let searchParamsAsObject = useSearchState();
+
+  const [codeset_ids, setCodeset_ids] = useState(searchParamsAsObject.codeset_id || []);
+
+  useEffect(() => {
+    if (location.pathname == '/') {
+      navigate('/OMOPConceptSets');
+      return;
+    }
+    if (location.pathname == '/testing') {
+      let params = createSearchParams({codeset_id: test_codeset_ids});
+      navigate({
+        pathname: '/cset-comparison',
+        search: `?${params}`,
+      });
+    }
+    setCodeset_ids(searchParamsAsObject.codeset_id)
+  }, [location]);  // maybe not necessary to have location in dependencies
+
+  /*
+  useEffect(() => {
+    if (! _.isEqual(qsParams, o)) {
+      console.log('syncing to global_state.qsParams:', o)
+      setQsParams(o)
+    }
+  }, [searchParams])
+  */
+
+  console.log({codeset_ids})
+  return (
+      <Routes>
         <Route path="/" element={<App />}>
           {/*<Route path="ontocall" element={<EnclaveOntoAPI />} />*/}
-          <Route path="cset-comparison" element={<CsetComparisonPage/>} />
+          <Route path="cset-comparison" element={<CsetComparisonPage codeset_ids={codeset_ids}/>} />
           {/* <Route path="cset-comparison/:conceptId" element={<ConceptSet />} /> */}
-          <Route path="OMOPConceptSets" element={<ConceptSetsPage />} />
+          <Route path="OMOPConceptSets" element={<ConceptSetsPage codeset_ids={codeset_ids} />} />
           <Route path="about" element={<AboutPage />} />
-          <Route path="testing" element={<Testing />} />
+          {/* <Route path="testing" element={<ConceptSetsPage codeset_ids={test_codeset_ids}/>} /> */}
           {/* <Route path="OMOPConceptSet/:conceptId" element={<OldConceptSet />} /> */}
-              {/*<Route path=":conceptId" element={<ConceptList />}/>*/}
+          {/*<Route path=":conceptId" element={<ConceptList />}/>*/}
           <Route path="*"  element={<ErrorPath/>} />
         </Route>
       </Routes>
-    </BrowserRouter>
+  )
+}
+const root = ReactDOM.createRoot(document.getElementById('root'));
+root.render(
+  <BrowserRouter>
+    <CsetsRoutes />
+  </BrowserRouter>
 );
 
 function Testing() {

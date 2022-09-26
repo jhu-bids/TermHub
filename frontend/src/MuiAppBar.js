@@ -13,18 +13,20 @@ import Button from '@mui/material/Button';
 import Tooltip from '@mui/material/Tooltip';
 import MenuItem from '@mui/material/MenuItem';
 import AdbIcon from '@mui/icons-material/Adb';
-import {Link} from "react-router-dom";
+import {NavLink, useLocation} from "react-router-dom";
 
 const pages = [
   {name: 'Cset search', href: '/OMOPConceptSets'},
   {name: 'Cset comparison', href: '/cset-comparison'},
-  {name: 'Example comparison', href: '/cset-comparison?codeset_id=818292046&codeset_id=484619125&codeset_id=400614256&codeset_id=826535586&codeset_id=879212923&codeset_id=419757429'},
+  {name: 'Example comparison', href: '/testing'},
   {name: 'About', href: '/about'}
 ];
 const settings = ['About'];
 
 /* https://mui.com/material-ui/react-app-bar/ */
 const MuiAppBar = () => {
+  const {search} = useLocation();
+
   const [anchorElNav, setAnchorElNav] = React.useState(null);
   const [anchorElCsets, setAnchorElCsets] = React.useState(null);
   const [anchorElUser, setAnchorElUser] = React.useState(null);
@@ -83,7 +85,10 @@ const MuiAppBar = () => {
             }}
         >
           {pages.map((page) => (
-              <MenuItem key={page.name} component={Link} to={page.href} onClick={handleCloseNavMenu}>
+              <MenuItem key={page.name}
+                        component={NavLink}
+                        to={`${page.href}${search}`}
+                        onClick={handleCloseNavMenu}>
                 <Typography textAlign="center">{page.name}</Typography>
               </MenuItem>
           ))}
@@ -149,7 +154,8 @@ const MuiAppBar = () => {
         {pages.map((page) => (
             <Button
                 key={page.name}
-                href={page.href}  // https://mui.com/material-ui/guides/routing/
+                component={NavLink} // NavLink is supposed to show different if it's active; doesn't seem to be working
+                to={`${page.href}${search}`}
                 onClick={handleCloseNavMenu}
                 sx={{ my: 2, color: 'white', display: 'block' }}
             >

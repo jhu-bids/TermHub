@@ -19,12 +19,21 @@ import {
     QueryClientProvider,
 } from '@tanstack/react-query'
 import { ReactQueryDevtools } from '@tanstack/react-query-devtools'
-import { createGlobalState } from 'react-hooks-global-state';
-import _ from 'lodash';
+// import { createGlobalState } from 'react-hooks-global-state';
 // wanting to install react-query and axios and use those for data fetch/cache/etc.
 //  is this helpful? https://blog.openreplay.com/fetching-and-updating-data-with-react-query
 import axios from "axios";
 
+function useSearchState() {
+  const [searchParams, setSearchParams] = useSearchParams();
+  const qsKeys = Array.from(new Set(searchParams.keys()));
+  let searchParamsAsObject = {};
+  qsKeys.forEach(key => {
+    let vals = searchParams.getAll(key);
+    searchParamsAsObject[key] = vals.map(v => parseInt(v) == v ? parseInt(v) : v).sort();
+  });
+  return searchParamsAsObject;
+}
 
 const queryClient = new QueryClient({
   // fixes constant refetch
@@ -35,6 +44,20 @@ const queryClient = new QueryClient({
     },
   },
 })
+
+function App() {
+  return (
+      <QueryClientProvider client={queryClient}>
+        <div className="App">
+          {/* <ReactQueryDevtools initialIsOpen={false} /> */ }
+          <MuiAppBar/>
+          {/* Outlet: Will render the results of whatever nested route has been clicked/activated. */}
+          <Outlet />
+        </div>
+      </QueryClientProvider>
+  );
+}
+
 
 // console.log(axios)
 // import logo from './logo.svg';
@@ -67,47 +90,7 @@ OH!! Does that mean: without a dependency list, the useEffects function will run
 
 */
 
-const { useGlobalState } = createGlobalState({qsParams:[], syncedToQs: false});
-
-function App() {
-  const location = useLocation();
-  const navigate = useNavigate();
-  //const [syncedToQs, setSyncedToQs] = useGlobalState('syncedToQs');
-  const [qsParams, setQsParams] = useGlobalState('qsParams');
-  const [searchParams, setSearchParams] = useSearchParams();
-
-  useEffect(() => {
-    if (location.pathname == '/') {
-      navigate('/OMOPConceptSets')
-    }
-    // console.log(location)
-  }, [location])  // maybe not necessary to have location in dependencies
-
-  let qsKeys = Array.from(new Set(searchParams.keys()))
-  let o = {}
-  qsKeys.forEach(key => {
-    let vals = searchParams.getAll(key)
-    o[key] = vals.map(v => parseInt(v) == v ? parseInt(v) : v).sort()
-  })
-  useEffect(() => {
-    if (! _.isEqual(qsParams, o)) {
-      console.log('syncing to global_state.qsParams:', o)
-      setQsParams(o)
-    }
-  }, [searchParams])
-
-  return (
-    <QueryClientProvider client={queryClient}>
-      <div className="App">
-          {/* <ReactQueryDevtools initialIsOpen={false} /> */ }
-        <MuiAppBar/>
-        {/* Outlet: Will render the results of whatever nested route has been clicked/activated. */}
-        <Outlet />
-      </div>
-    </QueryClientProvider>
-  );
-}
-
+// const { useGlobalState } = createGlobalState({qsParams:[], syncedToQs: false});
 
 /*
 function objectTypesData(data) {
@@ -135,9 +118,11 @@ function AboutPage() {
 }
 
 
-export {App, AboutPage, useGlobalState};
+export {App, AboutPage, useSearchState, /* useGlobalState, */ };
 
 // TODO: @Siggie: Can we remove this comment or we need this list of links for ref still?
+//       @Joe: we should move it to the individual concept set display component(s) as a
+//             list of all the data we could be including
 /*
 function getObjLinks() {
   // https://www.palantir.com/docs/foundry/api/ontology-resources/objects/list-linked-objects
