@@ -18,7 +18,7 @@ import {Link} from "react-router-dom";
 const pages = [
   {name: 'Cset search', href: '/OMOPConceptSets'},
   {name: 'Cset comparison', href: '/cset-comparison'},
-  {name: 'Test area', href: '/testing'},
+  {name: 'Example comparison', href: '/cset-comparison?codeset_id=818292046&codeset_id=484619125&codeset_id=400614256&codeset_id=826535586&codeset_id=879212923&codeset_id=419757429'},
   {name: 'About', href: '/about'}
 ];
 const settings = ['About'];

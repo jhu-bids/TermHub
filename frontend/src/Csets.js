@@ -122,7 +122,7 @@ function CsetSearch(props) {
     {"label": "11-Beta Hydroxysteroid Dehydrogenase Inhibitor", "codeset_id": 584452082},
     {"label": "74235-3 (Blood type)", "codeset_id": 761463499}
   ]
-  const [csets, setCSets] = useState([]);
+  const [csets, setCsets] = useState([]);
    */
   const [value, setValue] = useState([]);
   const [inputValue, setInputValue] = useState('');
@@ -239,8 +239,7 @@ function ConceptSetsPage(props) {
   //       'objtype=OMOPConceptSet',
   //       'filter=codeset_id:' + codeset_ids.join('|')
   //     ].join('&')
-  let url = enabled ? backend_url('concept-sets-with-concepts?concept_field_filter=concept_id&concept_field_filter=concept_name&codeset_id=' + codeset_ids.join('|'))
-                    : `invalid ConceptSetsPage url, no codeset_ids, enabled: ${enabled}`;
+  let url = backend_url('concept-sets-with-concepts?concept_field_filter=concept_id&concept_field_filter=concept_name&codeset_id=' + codeset_ids.join('|'))
 
   const { isLoading, error, data, isFetching } = useQuery([url], () => {
     //if (codeset_ids.length) {
@@ -263,17 +262,19 @@ function ConceptSetsPage(props) {
   //function applySearchFilter(filteredData, setFilteredData) { }
 
   let link = <a href={url}>{url}</a>;
-  let msg = (isLoading && <p>Loading from {link}...</p>) ||
-            (error && <p>An error has occurred with {link}: {error.stack}</p>) ||
-            (isFetching && <p>Updating from {link}...</p>)
+  let msg = enabled
+              ? (isLoading && <p>Loading from {link}...</p>) ||
+                (error && <p>An error has occurred with {link}: {error.stack}</p>) ||
+                (isFetching && <p>Updating from {link}...</p>)
+              : "Choose one or more concept sets";
   return (
       <div>
         <CsetSearch/>
         {
-          msg ||
+          !enabled ? msg :
           (data && (<div>
-            {/*Concepts: */}
-            {/*<ConceptList />*/}
+            Concepts:
+            <ConceptList />
             {/*Concept sets: */}
             {/*<Table rowData={data} rowCallback={csetCallback}/>*/}
           </div>))
@@ -314,20 +315,22 @@ function CsetComparisonPage(props) {
   // todo: 3. this url uses direct relationships:
   // TODO: use cr hierarchy
   //let url = enabled ? backend_url('cr-hierarchy?format=xo&codeset_id=' + codeset_ids.join('|'))
-  let url = enabled ? backend_url('cr-hierarchy?format=flat&codeset_id=' + codeset_ids.join('|'))
-      : `invalid CsetComparisonPage url, no codeset_ids, enabled: ${enabled}`;
+  let url = backend_url('cr-hierarchy?format=flat&codeset_id=' + codeset_ids.join('|'))
 
   const { isLoading, error, data, isFetching } = useQuery([url], () => {
     return axios.get(url).then((res) => {return res.data})
   }, {enabled});
+  let msg = enabled
+      ? (isLoading && <p>Loading from {url}...</p>) ||
+      (error && <p>An error has occurred with {url}: {error.stack}</p>) ||
+      (isFetching && <p>Updating from {url}...</p>)
+      : "Choose one or more concept sets";
 
   return (
       <div>
         <CsetSearch/>
         {
-          (isLoading && "Loading...") ||
-          (error && `An error has occurred: ${error.stack}`) ||
-          (isFetching && "Updating...") ||
+          !enabled ? msg :
           (data && (<div>
             <ComparisonDataTable
                 data={data}
@@ -344,4 +347,4 @@ function CsetComparisonPage(props) {
 }
 
 
-export {ConceptSetsPage, CsetSearch, ConceptList, CsetComparisonPage, ConceptSetCard};
+export {ConceptSetsPage, CsetComparisonPage, ConceptSetCard};

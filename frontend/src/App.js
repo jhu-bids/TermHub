@@ -89,19 +89,12 @@ function App() {
     let vals = searchParams.getAll(key)
     o[key] = vals.map(v => parseInt(v) == v ? parseInt(v) : v).sort()
   })
-  console.log('syncing to global state qsParams', o)
   useEffect(() => {
-    _.isEqual(qsParams, o) || setQsParams(o)
-  }, [searchParams])
-
-  /*
-  if (!syncedToQs) {
-    if (! qsParams.length > 0) {
-      syncQsParams()
+    if (! _.isEqual(qsParams, o)) {
+      console.log('syncing to global_state.qsParams:', o)
+      setQsParams(o)
     }
-  }
-  */
-
+  }, [searchParams])
 
   return (
     <QueryClientProvider client={queryClient}>

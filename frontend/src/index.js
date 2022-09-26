@@ -4,7 +4,7 @@ import { BrowserRouter, Routes, Route, matchPath } from "react-router-dom";
 
 import './index.css';
 import {App, AboutPage} from './App';
-import {ConceptSetsPage, CsetComparisonPage} from './CSets';
+import {ConceptSetsPage, CsetComparisonPage} from './Csets';
 // import MuiAppBar from './MuiAppBar';
 // import Table from './Table'
 // script src="http://localhost:8097"></script>
@@ -27,7 +27,7 @@ root.render(
           <Route path="about" element={<AboutPage />} />
           <Route path="testing" element={<Testing />} />
           {/* <Route path="OMOPConceptSet/:conceptId" element={<OldConceptSet />} /> */}
-          {/*<Route path=":conceptId" element={<ConceptList />}/>*/}
+              {/*<Route path=":conceptId" element={<ConceptList />}/>*/}
           <Route path="*"  element={<ErrorPath/>} />
         </Route>
       </Routes>
