@@ -20,15 +20,12 @@ import Chip from '@mui/material/Chip';
 import { Link, Outlet, useHref, useNavigate, useParams, useSearchParams, useLocation } from "react-router-dom";
 import _ from 'lodash';
 
-const API_ROOT = 'http://127.0.0.1:8000'
-const enclave_url = path => `${API_ROOT}/passthru?path=${path}`
-const backend_url = path => `${API_ROOT}/${path}`
-
+import {backend_url} from './App';
 
 //TODO: How to get hierarchy data?
 // - It's likely in one of the datasets we haven't downloaded yet. When we get it, we can do indents.
 function ConceptSetCard(props) {
-  let {cset} = props;
+  let {cset, cols} = props;
   return (
     // (isLoading && "Loading...") ||
     // (error && `An error has occurred: ${error.stack}`) ||
@@ -42,7 +39,7 @@ function ConceptSetCard(props) {
         borderRadius: '10px',
       }}>
         <h4>{cset.concept_set_name/*conceptSetNameOMOP*/} v{cset.version}</h4>
-        <List>
+        <List style={{height: '20vh', width: Math.floor(100 / cols) + 'vh', overflow: 'scroll'}}>
           {Object.values(cset.concepts).map((concept, i) => {
             return <ListItem style={{
               margin: '3px 3px 3px 3px',
@@ -105,8 +102,9 @@ function ConceptList(props) {
     @ SIggie: is this fixed?
 */
 function CsetSearch(props) {
-  const codeset_ids = props.codeset_ids || [];
-  const {relatedCsets} = props;
+  let {codeset_ids, relatedCsets} = props;
+  codeset_ids = codeset_ids || [];
+  relatedCsets = relatedCsets || [];
   const relatedList = (
       <ul>
         {
@@ -280,13 +278,16 @@ function ConceptSetsPage(props) {
           (codeset_ids.length > 0) && data && (
             <div style={{
               display: 'flex',
+              flexDirection: 'row',
+              flexWrap: 'wrap',
+
               // todo: I don't remember how to get it to take up the whole window in this case.  these are working
               // width: '100%',
               // 'flex-shrink': 0,
               // flex: '0 0 100%',
             }}>
               {data.map(cset => {
-                return <ConceptSetCard key={cset.codeset_id} cset={cset} />
+                return <ConceptSetCard key={cset.codeset_id} cset={cset} cols={Math.min(4, data.length)}/>
               })}
             </div>)
         }
@@ -299,33 +300,14 @@ function ConceptSetsPage(props) {
 // TODO: Color table: I guess would need to see if could pass extra values/props and see if table widget can use that
 //  ...for coloration, since we want certain rows grouped together
 function CsetComparisonPage(props) {
-  const codeset_ids = props.codeset_ids || [];
-  let enabled = !!codeset_ids.length
-  // Table Variations
-  // 1. this url is for simple X/O table with no hierarchy:
-  // let url = enabled ? backend_url('concept-sets-with-concepts?concept_field_filter=concept_id&concept_field_filter=concept_name&codeset_id=' + codeset_ids.join('|'))
-  // 2. this url is for simple hierarchy using ancestor table and no direct relationshps:
-  // let url = enabled ? backend_url('cr-hierarchy?codeset_id=' + codeset_ids.join('|'))
-  // todo: 3. this url uses direct relationships:
-  // TODO: use cr hierarchy
-  //let url = enabled ? backend_url('cr-hierarchy?format=xo&codeset_id=' + codeset_ids.join('|'))
-  let url = backend_url('cr-hierarchy?format=flat&codeset_id=' + codeset_ids.join('|'))
-
-  const { isLoading, error, data, isFetching } = useQuery([url], () => {
-    return axios.get(url).then((res) => {return res.data})
-  }, {enabled});
-  let msg = enabled
-      ? (isLoading && <p>Loading from {url}...</p>) ||
-      (error && <p>An error has occurred with {url}: {error.stack}</p>) ||
-      (isFetching && <p>Updating from {url}...</p>)
-      : "Choose one or more concept sets";
-
+  console.log(props);
+  /* moved the data stuff to App.js, now it gets passed down to here */
+  const data = props.cset_data || {}
   return (
       <div>
-        <CsetSearch {...props} relatedCsets={data && data.related_csets || []}/>
+        {/* <CsetSearch {...props} relatedCsets={data && data.related_csets || []}/> */}
         {
-          !enabled ? msg :
-          (data && (<div>
+          (data && data.csets_info && (<div>
             <ComparisonDataTable
                 data={data}
             />
