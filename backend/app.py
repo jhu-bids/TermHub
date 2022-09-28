@@ -77,6 +77,7 @@ try:
 except Exception as err:
     print(f'failed loading datasets', err)
 
+
 APP = FastAPI()
 APP.add_middleware(
     CORSMiddleware,
@@ -84,6 +85,14 @@ APP.add_middleware(
     allow_methods=['*'],
     allow_headers=['*']
 )
+
+
+@APP.get("/")
+def read_root():
+    """Root route"""
+    # noinspection PyUnresolvedReferences
+    url_list = [{"path": route.path, "name": route.name} for route in APP.routes]
+    return url_list
 
 
 @APP.get("/cset-versions")
