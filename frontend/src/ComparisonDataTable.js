@@ -38,7 +38,7 @@ createTheme('custom-theme', {
 
 function ComparisonDataTable(props) {
     let {data} = props;
-    let {csets_info, lines} = data;
+    let {csets_info, concept_membership} = data;
 
     console.log(props);
     let cset_columns = Object.keys(csets_info).map(codeset_id => {
@@ -143,13 +143,15 @@ function ComparisonDataTable(props) {
         */
     };
 
+    // TODO: Datatable is getting cut off vertically, as if it's in an iframe, but it has no scroll bar.
     return (
+        /* https://react-data-table-component.netlify.app/ */
         <DataTable
             className="comparison-data-table"
             theme="custom-theme"
             // theme="light"
             columns={columns}
-            data={lines}
+            data={concept_membership}
             customStyles={customStyles}
 
             dense

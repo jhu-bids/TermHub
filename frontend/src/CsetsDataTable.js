@@ -1,4 +1,5 @@
 import React from 'react';
+import {orderBy} from 'lodash';
 import DataTable, { createTheme } from 'react-data-table-component';
 
 // createTheme creates a new theme named solarized that overrides the build in dark theme
@@ -38,7 +39,7 @@ createTheme('custom-theme', {
 
 function CsetsDataTable(props) {
     let {cset_data} = props;
-    let {csets_info, lines, related_csets} = cset_data;
+    let {csets_info, concept_membership, related_csets} = cset_data;
 
     console.log(props);
     /*  example row
@@ -100,7 +101,7 @@ function CsetsDataTable(props) {
                 // maxWidth: '400px', doesn't work ?
             }
         },
-        /*
+            /*
         headRow: {
             style: {
                 // backgroundColor: theme.background.default,
@@ -149,6 +150,11 @@ function CsetsDataTable(props) {
         },
         */
     };
+    const rowSelectCritera = row => row.selected;
+
+    const customSort = (rows, selector, direction) => {
+        return orderBy(rows, selector, direction);
+    };
 
     // todo: p -> data table: data table has a property for showing some sort of paragraph text
     // TODO: y concepts -> get the number
@@ -158,7 +164,6 @@ function CsetsDataTable(props) {
             <p>The {csets_info.length} concept sets selected contain a total of y concepts. The following concept sets have 1 or more
                 concepts in common with the selected sets. Select from below if you want to add to the above list.</p>
             <DataTable
-
                 // theme="custom-theme"
                 // theme="light"
                 columns={columns}
@@ -191,6 +196,9 @@ function CsetsDataTable(props) {
                   selectableRowsHighlight
                   subHeaderAlign="right"
                   subHeaderWrap
+
+                selectableRowSelected={rowSelectCritera}
+                sortFunction={customSort}
             />
         </div>
     );
