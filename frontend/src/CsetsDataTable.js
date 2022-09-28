@@ -41,7 +41,7 @@ function CsetsDataTable(props) {
     let {cset_data} = props;
     let {csets_info, concept_membership, related_csets} = cset_data;
 
-    console.log(props);
+    console.log('CsetsDataTable props: ', props);
     /*  example row
     {
         "codeset_id": 826535586,
@@ -152,10 +152,6 @@ function CsetsDataTable(props) {
     };
     const rowSelectCritera = row => row.selected;
 
-    const customSort = (rows, selector, direction) => {
-        return orderBy(rows, selector, direction);
-    };
-
     // todo: p -> data table: data table has a property for showing some sort of paragraph text
     // TODO: y concepts -> get the number
     return (
@@ -198,7 +194,6 @@ function CsetsDataTable(props) {
                   subHeaderWrap
 
                 selectableRowSelected={rowSelectCritera}
-                sortFunction={customSort}
             />
         </div>
     );

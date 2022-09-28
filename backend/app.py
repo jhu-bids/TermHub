@@ -170,6 +170,7 @@ def cr_hierarchy(
 
     # TODO: figure out what to do with these related codesets
     related = related_csets(df_concept_set_members_i.concept_id.unique(), requested_codeset_ids)
+    related = sorted(related, key=lambda k: (-k['selected'], k['concept_set_name']))
 
     df_concept_relationship_i = df_concept_relationship[
         (df_concept_relationship.concept_id_1.isin(df_concept_set_members_i.concept_id)) &
@@ -256,13 +257,7 @@ def cr_hierarchy(
                 nested_list(children, parent=cid, level=level+1)
     nested_list(top_level_cids)
 
-    # # TODO: data structure to make easy expand/collapse for comparison table
-    # [ {
-    #   cid: <cid1>,
-    #   name:...,
-    #   children: [....repeat ]   # not descendents; just children
-    #   }, {cid: <cid2>,...}]
-    # So when we take this and flatten it, we can skip any further descendents
+    # TODO: Sort related
 
     result = {'concept_membership': lines, 'csets_info': csets_info, 'related_csets': related, }
     return result
