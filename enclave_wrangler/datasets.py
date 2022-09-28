@@ -19,8 +19,13 @@ import pyarrow.parquet as pq
 import shutil
 import time
 
-from enclave_wrangler.config import config, TERMHUB_CSETS_DIR, FAVORITE_DATASETS, FAVORITE_DATASETS_RID_NAME_MAP
-from enclave_wrangler.utils import log_debug_info
+try:
+    from enclave_wrangler.config import config, TERMHUB_CSETS_DIR, FAVORITE_DATASETS, FAVORITE_DATASETS_RID_NAME_MAP
+    from enclave_wrangler.utils import log_debug_info
+except ModuleNotFoundError:
+    from config import config, TERMHUB_CSETS_DIR, FAVORITE_DATASETS, FAVORITE_DATASETS_RID_NAME_MAP
+    from utils import log_debug_info
+
 
 HEADERS = {
     "authorization": f"Bearer {config['OTHER_TOKEN']}",
