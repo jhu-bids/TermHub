@@ -84,7 +84,7 @@ function QueryStringStateMgr() {
       // <DataContainer codeset_ids={codeset_ids}/>
 
 }
-
+/* Contains data fetched via URL query params, providing data to any pages which we've set to use this. */
 function DataContainer(props) {
   let {codeset_ids} = props;
   codeset_ids = codeset_ids || [];
@@ -109,11 +109,11 @@ function DataContainer(props) {
 
   return (
       <div>
-        <CsetsRoutes cset_data={data} {...props} />
+        <RoutesContainer cset_data={data} {...props} />
       </div>
   );
 }
-function CsetsRoutes(props) {
+function RoutesContainer(props) {
   console.log(props)
   return (
       <Routes>

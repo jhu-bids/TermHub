@@ -150,7 +150,13 @@ function CsetsDataTable(props) {
         */
     };
 
+    // todo: p -> data table: data table has a property for showing some sort of paragraph text
+    // TODO: y concepts -> get the number
     return (
+        <div>
+            <h1>Related concept sets</h1>
+            <p>The {csets_info.length} concept sets selected contain a total of y concepts. The following concept sets have 1 or more
+                concepts in common with the selected sets. Select from below if you want to add to the above list.</p>
             <DataTable
 
                 // theme="custom-theme"
@@ -186,6 +192,7 @@ function CsetsDataTable(props) {
                   subHeaderAlign="right"
                   subHeaderWrap
             />
+        </div>
     );
 }
 

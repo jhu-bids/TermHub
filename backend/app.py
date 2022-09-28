@@ -131,6 +131,7 @@ def codeset_info(codeset_id: Union[str, None] = Query(default=[]), ) -> List[Dic
     return json.loads(df.to_json(orient='records'))
 
 
+# TODO: Change order returned: nConcepts -> %overlap
 def related_csets(cids, requested_codeset_ids):
     df_concept_set_members = DS['concept_set_members']
     csm_with_cids = df_concept_set_members[df_concept_set_members.concept_id.isin(cids)]
@@ -432,17 +433,6 @@ class CsetsUpdate(BaseModel):
     row_index_data_map: Dict[int, Dict[str, Any]] = {}
 
 
-
-def run(port: int = 8000):
-    """Run app"""
-    uvicorn.run(APP, host='0.0.0.0', port=port)
-
-
-if __name__ == '__main__':
-    run()
-
-
-
 # not using this stuff anymore:
 
 # TODO: Finish this route
@@ -602,3 +592,12 @@ def concept_sets_by_concept(
 
     # TODO: finally: remove/update JS in <CsetComparisonPage/>
     return response
+
+
+def run(port: int = 8000):
+    """Run app"""
+    uvicorn.run(APP, host='0.0.0.0', port=port)
+
+
+if __name__ == '__main__':
+    run()
