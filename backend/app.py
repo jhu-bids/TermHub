@@ -259,53 +259,6 @@ def cr_hierarchy(
     # return json.loads(df.to_json(orient='records'))
 
 
-# Example: http://127.0.0.1:8000/hierarchy-again?codeset_id=818292046&codeset_id=484619125&codeset_id=400614256
-@APP.get("/hierarchy-again")        # maybe junk, or maybe start of a refactor of above
-def hierarchy_again(
-    codeset_id: Union[str, None] = Query(default=[]), ) -> List[Dict]:
-    requested_codeset_ids = codeset_id.split('|')
-    requested_codeset_ids = [int(x) for x in requested_codeset_ids]
-    df_concept_set_members = DS['concept_set_members']
-    df_concept_ancestor = DS['concept_ancestor']
-    df_concept_set_members_i = df_concept_set_members[df_concept_set_members['codeset_id'].isin(requested_codeset_ids)]
-    df_concept_ancestor_i = df_concept_ancestor[
-        (df_concept_ancestor.ancestor_concept_id.isin(df_concept_set_members_i.concept_id)) &
-        (df_concept_ancestor.descendant_concept_id.isin(df_concept_set_members_i.concept_id)) &
-        (df_concept_ancestor.descendant_concept_id != df_concept_ancestor.ancestor_concept_id)]
-
-    cname = df_concept_set_members_i[['concept_id', 'concept_name']]   \
-                .drop_duplicates()   \
-                .set_index('concept_name')   \
-                .groupby('concept_id').groups
-    # [(cid, len(names)) for cid, names in cname.items() if len(names) > 1]    # should be 1-to-1
-    for cid, names in cname.items():
-        cname[cid] = names[0]
-    # cname
-
-    df_concept_ancestor_i = df_concept_ancestor_i[df_concept_ancestor_i.columns[:-1]] \
-        .rename(columns={'min_levels_of_separation': 'sep'}, ) \
-        .set_index('ancestor_concept_id')
-
-    anc = df_concept_ancestor_i.groupby(['sep', 'ancestor_concept_id'])
-    max_lvl = 0
-    descendants_by_level = {}
-    for key, desc_cids in anc.groups.items():
-        sep, anc_cid = key
-        max_lvl = max(sep, max_lvl)
-        #     print(desc_cid, sep, list(anc_cids))
-        descendants_by_level[sep] = descendants_by_level[sep] if sep in descendants_by_level else {}
-        descendants_by_level[sep][anc_cid] = list(desc_cids)
-
-    lines = []
-    for anc_cid, descs in descendants_by_level[1].items():
-        lines.append({'lvl': 0, 'cid': anc_cid, 'name': cname[anc_cid]})
-        for cid in descs:
-            try:
-                lines.append({'lvl': 1, 'cid': cid, 'name': cname[cid]})
-            except:
-                print(f'{cid} not in cname')
-
-    return lines
 
 
 @APP.get("/concept-sets-with-concepts")
