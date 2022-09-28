@@ -6,6 +6,7 @@ TODO's
       selected, start doing comparison stuff
 
 */
+import React, {useState, useEffect, /* useReducer, useRef, */} from 'react';
 import {useQuery} from "@tanstack/react-query";
 import axios from "axios";
 import {Table, ComparisonTable} from "./Table";
@@ -17,19 +18,14 @@ import TextField from '@mui/material/TextField';
 import Autocomplete from '@mui/material/Autocomplete';
 import Chip from '@mui/material/Chip';
 import { Link, Outlet, useHref, useNavigate, useParams, useSearchParams, useLocation } from "react-router-dom";
-import React, {useState, useReducer, useEffect, useRef} from 'react';
 import _ from 'lodash';
-import {useGlobalState} from "./App";
 
-const API_ROOT = 'http://127.0.0.1:8000'
-const enclave_url = path => `${API_ROOT}/passthru?path=${path}`
-const backend_url = path => `${API_ROOT}/${path}`
-
+import {backend_url} from './App';
 
 //TODO: How to get hierarchy data?
 // - It's likely in one of the datasets we haven't downloaded yet. When we get it, we can do indents.
 function ConceptSetCard(props) {
-  let {cset} = props;
+  let {cset, cols} = props;
   return (
     // (isLoading && "Loading...") ||
     // (error && `An error has occurred: ${error.stack}`) ||
@@ -43,7 +39,7 @@ function ConceptSetCard(props) {
         borderRadius: '10px',
       }}>
         <h4>{cset.concept_set_name/*conceptSetNameOMOP*/} v{cset.version}</h4>
-        <List>
+        <List style={{height: '20vh', width: Math.floor(100 / cols) + 'vh', overflow: 'scroll'}}>
           {Object.values(cset.concepts).map((concept, i) => {
             return <ListItem style={{
               margin: '3px 3px 3px 3px',
@@ -61,9 +57,7 @@ function ConceptSetCard(props) {
 
 function ConceptList(props) {
   // http://127.0.0.1:8000/fields-from-objlist?objtype=OmopConceptSetVersionItem&filter=codeset_id:822173787|74555844
-  const [qsParams, setQsParams] = useGlobalState('qsParams');
-  //const [filteredData, setFilteredData] = useState([]);
-  let codeset_ids = qsParams && qsParams.codeset_id && qsParams.codeset_id.sort() || []
+  const codeset_ids = props.codeset_ids || [];
   let enabled = !!codeset_ids.length
 
   let url = enabled ? backend_url('fields-from-objlist?') +
@@ -108,22 +102,24 @@ function ConceptList(props) {
     @ SIggie: is this fixed?
 */
 function CsetSearch(props) {
-  let {applyChangeCallback} = props;
-  const [qsParams, setQsParams] = useGlobalState('qsParams');
+  let {codeset_ids, relatedCsets} = props;
+  codeset_ids = codeset_ids || [];
+  relatedCsets = relatedCsets || [];
+  const relatedList = (
+      <ul>
+        {
+          relatedCsets.filter(d => !d.selected).map(d => (
+            <li key={d.codeset_id}>{d.concept_set_name} v{d.version} ({d.concepts} concepts)</li>
+          ))
+        }
+      </ul>)
+  if (relatedCsets.length) {
+    console.log({relatedCsets, relatedList})
+  }
 
-  let codeset_ids = qsParams && qsParams.codeset_id && qsParams.codeset_id.sort() || []
 
   let url = backend_url('cset-versions');
 
-  // TODO: something like: http://localhost:3000/OMOPConceptSets?selected=7577017,7577017
-  // let navigate = useNavigate();
-  /*
-  let defaultOptionsTest = [
-    {"label": "11-Beta Hydroxysteroid Dehydrogenase Inhibitor", "codeset_id": 584452082},
-    {"label": "74235-3 (Blood type)", "codeset_id": 761463499}
-  ]
-  const [csets, setCSets] = useState([]);
-   */
   const [value, setValue] = useState([]);
   const [inputValue, setInputValue] = useState('');
   const [searchParams, setSearchParams] = useSearchParams();
@@ -157,6 +153,7 @@ function CsetSearch(props) {
       })
   );
   useEffect(() => {
+    console.log('setting value of search box')
     if (!data || !data.length) return
     let selectedCids = value && value.map(d => d.codeset_id).sort() || []
     if (!_.isEqual(codeset_ids, selectedCids)) {
@@ -165,7 +162,7 @@ function CsetSearch(props) {
       let selection = (data || []).filter(d => codeset_ids.includes(d.codeset_id))
       setValue(selection)
     }
-  }, [qsParams, data]);
+  }, [codeset_ids, data]);
   if (isLoading) {
     return "Loading...";
   }
@@ -219,18 +216,15 @@ function CsetSearch(props) {
           ))
         }
       />
+      {relatedList}
     </div>)
   /* want to group by cset name and then list version. use https://mui.com/material-ui/react-autocomplete/ Grouped
      and also use Multiple Values */
 }
 
-// TODO: Page state refresh should not be 'on window focus', but on autocomplete widget selection
 function ConceptSetsPage(props) {
-  // return <CsetSearch />;
   let navigate = useNavigate();
-  const [qsParams, setQsParams] = useGlobalState('qsParams');
-  //const [filteredData, setFilteredData] = useState([]);
-  let codeset_ids = qsParams && qsParams.codeset_id && qsParams.codeset_id.sort() || []
+  const codeset_ids = props.codeset_ids || [];
   let enabled = !!codeset_ids.length
 
   // pre-2022/09/07 url (for temporary reference):
@@ -239,8 +233,7 @@ function ConceptSetsPage(props) {
   //       'objtype=OMOPConceptSet',
   //       'filter=codeset_id:' + codeset_ids.join('|')
   //     ].join('&')
-  let url = enabled ? backend_url('concept-sets-with-concepts?concept_field_filter=concept_id&concept_field_filter=concept_name&codeset_id=' + codeset_ids.join('|'))
-                    : `invalid ConceptSetsPage url, no codeset_ids, enabled: ${enabled}`;
+  let url = backend_url('concept-sets-with-concepts?concept_field_filter=concept_id&concept_field_filter=concept_name&codeset_id=' + codeset_ids.join('|'))
 
   const { isLoading, error, data, isFetching } = useQuery([url], () => {
     //if (codeset_ids.length) {
@@ -263,17 +256,18 @@ function ConceptSetsPage(props) {
   //function applySearchFilter(filteredData, setFilteredData) { }
 
   let link = <a href={url}>{url}</a>;
-  let msg = (isLoading && <p>Loading from {link}...</p>) ||
-            (error && <p>An error has occurred with {link}: {error.stack}</p>) ||
-            (isFetching && <p>Updating from {link}...</p>)
+  let msg = enabled
+              ? (isLoading && <p>Loading from {link}...</p>) ||
+                (error && <p>An error has occurred with {link}: {error.stack}</p>) ||
+                (isFetching && <p>Updating from {link}...</p>)
+              : "Choose one or more concept sets";
   return (
       <div>
-        <CsetSearch/>
+        <CsetSearch {...props} />
         {
-          msg ||
+          !enabled ? msg :
           (data && (<div>
-            {/*Concepts: */}
-            {/*<ConceptList />*/}
+            {/* Concepts: <ConceptList /> */}
             {/*Concept sets: */}
             {/*<Table rowData={data} rowCallback={csetCallback}/>*/}
           </div>))
@@ -284,13 +278,16 @@ function ConceptSetsPage(props) {
           (codeset_ids.length > 0) && data && (
             <div style={{
               display: 'flex',
+              flexDirection: 'row',
+              flexWrap: 'wrap',
+
               // todo: I don't remember how to get it to take up the whole window in this case.  these are working
               // width: '100%',
               // 'flex-shrink': 0,
               // flex: '0 0 100%',
             }}>
               {data.map(cset => {
-                return <ConceptSetCard key={cset.codeset_id} cset={cset} />
+                return <ConceptSetCard key={cset.codeset_id} cset={cset} cols={Math.min(4, data.length)}/>
               })}
             </div>)
         }
@@ -303,32 +300,14 @@ function ConceptSetsPage(props) {
 // TODO: Color table: I guess would need to see if could pass extra values/props and see if table widget can use that
 //  ...for coloration, since we want certain rows grouped together
 function CsetComparisonPage(props) {
-  const [qsParams, setQsParams] = useGlobalState('qsParams');
-  let codeset_ids = (qsParams && qsParams.codeset_id && qsParams.codeset_id.sort()) || []
-  let enabled = !!codeset_ids.length
-  // Table Variations
-  // 1. this url is for simple X/O table with no hierarchy:
-  // let url = enabled ? backend_url('concept-sets-with-concepts?concept_field_filter=concept_id&concept_field_filter=concept_name&codeset_id=' + codeset_ids.join('|'))
-  // 2. this url is for simple hierarchy using ancestor table and no direct relationshps:
-  // let url = enabled ? backend_url('cr-hierarchy?codeset_id=' + codeset_ids.join('|'))
-  // todo: 3. this url uses direct relationships:
-  // TODO: use cr hierarchy
-  //let url = enabled ? backend_url('cr-hierarchy?format=xo&codeset_id=' + codeset_ids.join('|'))
-  let url = enabled ? backend_url('cr-hierarchy?format=flat&codeset_id=' + codeset_ids.join('|'))
-      : `invalid CsetComparisonPage url, no codeset_ids, enabled: ${enabled}`;
-
-  const { isLoading, error, data, isFetching } = useQuery([url], () => {
-    return axios.get(url).then((res) => {return res.data})
-  }, {enabled});
-
+  console.log(props);
+  /* moved the data stuff to App.js, now it gets passed down to here */
+  const data = props.cset_data || {}
   return (
       <div>
-        <CsetSearch/>
+        {/* <CsetSearch {...props} relatedCsets={data && data.related_csets || []}/> */}
         {
-          (isLoading && "Loading...") ||
-          (error && `An error has occurred: ${error.stack}`) ||
-          (isFetching && "Updating...") ||
-          (data && (<div>
+          (data && data.csets_info && (<div>
             <ComparisonDataTable
                 data={data}
             />
@@ -344,4 +323,4 @@ function CsetComparisonPage(props) {
 }
 
 
-export {ConceptSetsPage, CsetSearch, ConceptList, CsetComparisonPage, ConceptSetCard};
+export {ConceptSetsPage, CsetComparisonPage, ConceptSetCard};
