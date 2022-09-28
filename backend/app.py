@@ -154,8 +154,9 @@ def related_csets(cids, requested_codeset_ids):
 # Example: http://127.0.0.1:8000/cr-hierarchy?codeset_id=818292046&codeset_id=484619125&codeset_id=400614256
 @APP.get("/cr-hierarchy")  # maybe junk, or maybe start of a refactor of above
 def cr_hierarchy(
-        format: str='default',
-        codeset_id: Union[str, None] = Query(default=[]), ) -> List[Dict]:
+    format: str='default',
+    codeset_id: Union[str, None] = Query(default=[]),
+) -> Dict:
 
     csets_info = {int(ci['codeset_id']): ci for ci in codeset_info(codeset_id)}
     # casting as int here isn't working. in result, still shows as a string key
@@ -209,12 +210,12 @@ def cr_hierarchy(
 
     links = df_concept_relationship_i.groupby('concept_id_1')
 
-    def child_cids(cid):
+    def child_cids(cid: int) -> List[int]:
         if cid in links.groups.keys():
             return list(links.get_group(cid).concept_id_2.unique())
 
     lines = []
-    def cid_data(cid, parent=-1, level=0):
+    def cid_data(cid: int, parent=-1, level=0):
         # fastapi jsonencoder keeps choking on the ints
         to_return = {}
         to_return[cname[cid]] = 'O'
@@ -242,19 +243,28 @@ def cr_hierarchy(
 
         return rec
 
-    def nested_list(cids, parent=-1, level=0):
+    # TODO: Figure out how to get to return what we need, instead of doing transformation below
+    def nested_list(cids: List[int], parent=-1, level=0):
         cids = set(cids)
         for cid in cids:
             d = cid_data(cid, parent, level)
             lines.append(d)
-            children = child_cids(cid)
+            children: List[int] = child_cids(cid)
             if children:
     #             print('    ', children)
     #             c = set(children) - cids
                 nested_list(children, parent=cid, level=level+1)
-
     nested_list(top_level_cids)
-    result = {'lines': lines, 'csets_info': csets_info, 'related_csets': related, }
+
+    # # TODO: data structure to make easy expand/collapse for comparison table
+    # [ {
+    #   cid: <cid1>,
+    #   name:...,
+    #   children: [....repeat ]   # not descendents; just children
+    #   }, {cid: <cid2>,...}]
+    # So when we take this and flatten it, we can skip any further descendents
+
+    result = {'concept_membership': lines, 'csets_info': csets_info, 'related_csets': related, }
     return result
     # return json.loads(df.to_json(orient='records'))
 
