@@ -36,47 +36,49 @@ createTheme('custom-theme', {
 // https://react-data-table-component.netlify.app/?path=/docs/api-custom-styles--page
 //  Internally, customStyles will deep merges your customStyles with the default styling.
 
-function ComparisonDataTable(props) {
-    let {data} = props;
-    let {csets_info, lines} = data;
+function CsetsDataTable(props) {
+    let {cset_data} = props;
+    let {csets_info, lines, related_csets} = cset_data;
 
     console.log(props);
-    let cset_columns = Object.keys(csets_info).map(codeset_id => {
-        let ci = csets_info[codeset_id]
-        let def = {
-            // id: ____?,
-            name: ci.concept_set_version_title,
-            selector: row => {
-                return row.codeset_ids.includes(parseInt(codeset_id)) ? '\u2713' : '';
-            },
-            // sortable: true,
-            compact: true,
-            width: '50px',
-            // maxWidth: 50,
-            center: true,
-        }
-        return def;
-    })
+    /*  example row
+    {
+        "codeset_id": 826535586,
+        "concept_set_name": "UVA Equity Asthma",
+        "version": "1",
+        "concepts": 619,
+        "selected": true
+    }
+    */
     let columns = [
         // { name: 'level', selector: row => row.level, },
         {
-            name: 'Concept name',
-            selector: row => row.concept_name,
-            // sortable: true,
-            // maxWidth: '300px',
-            //  table: style: maxWidth is 85% and cset_columns are 50px, so fill
-            //      the rest of the space with this column
-            width: (window.innerWidth - cset_columns.length * 50) * .85,
+            name: 'Concept set name',
+            selector: row => `${row.concept_set_name} (v${row.version})`,
             wrap: true,
             compact: true,
-            conditionalCellStyles: [
-                { when: row => true,
-                  style: row => ({paddingLeft: 16 + row.level * 16 + 'px'})
-                }
-            ],
         },
-        ...cset_columns
+        {
+            name: 'Concepts',
+            selector: row => row.concepts,
+            wrap: true,
+            compact: true,
+            width: '70px',
+            center: true,
+        },
     ];
+    /*
+    const conditionalRowStyles = [{
+        when: row => row.selected,
+        style: {
+            backgroundColor: 'rgba(63, 195, 128, 0.9)',
+            color: 'white',
+            '&:hover': {
+                cursor: 'pointer',
+            },
+        }
+    }];
+    */
     const customStyles = {
         /*
         	tableWrapper: {
@@ -90,15 +92,19 @@ function ComparisonDataTable(props) {
         */
         table: {
             style: {
-                maxWidth: '85%',
-                marginLeft: '20px',
+                padding: '20px',
+                width: '100%',
+                // margin: '20px',
+                // height: '20vh',
+                // maxWidth: '85%',
                 // maxWidth: '400px', doesn't work ?
             }
         },
+        /*
         headRow: {
             style: {
                 // backgroundColor: theme.background.default,
-                height: '152px',
+                // height: '152px',
                 // borderBottomWidth: '1px',
                 // borderBottomColor: theme.divider.default,
                 borderBottomStyle: 'solid',
@@ -127,6 +133,8 @@ function ComparisonDataTable(props) {
         },
         rows: {
             style: {
+                marginLeft: '20px',
+                padding: '20px',
                 minHeight: 'auto', // override the row height
                 borderLeft: '0.5px solid #BBB',
             },
@@ -139,37 +147,49 @@ function ComparisonDataTable(props) {
                 borderRight: '0.5px solid #BBB',
             },
         },
-        /*
         */
     };
 
     return (
-        <DataTable
-            className="comparison-data-table"
-            theme="custom-theme"
-            // theme="light"
-            columns={columns}
-            data={lines}
-            customStyles={customStyles}
+            <DataTable
 
-            dense
-            fixedHeader
-            fixedHeaderScrollHeight={(window.innerHeight - 275) + 'px'}
-            highlightOnHover
-            responsive
-            //striped
-            subHeaderAlign="right"
-            subHeaderWrap
-            //pagination
-            //selectableRowsComponent={Checkbox}
-            //selectableRowsComponentProps={selectProps}
-            //sortIcon={sortIcon}
-            // {...props}
-        />
+                // theme="custom-theme"
+                // theme="light"
+                columns={columns}
+                data={related_csets}
+                customStyles={customStyles}
+                // conditionalRowStyles={conditionalRowStyles}
+
+                height={300}
+                highlightOnHover
+                responsive
+                //striped
+                subHeaderAlign="right"
+                subHeaderWrap
+                //pagination
+                //selectableRowsComponent={Checkbox}
+                //selectableRowsComponentProps={selectProps}
+                //sortIcon={sortIcon}
+                // {...props}
+
+                  dense
+                  direction="auto"
+                  expandOnRowClicked
+                  expandableRows
+                  fixedHeader
+                  fixedHeaderScrollHeight="300px"
+                  highlightOnHover
+                  pointerOnHover
+                  responsive
+                  selectableRows
+                  selectableRowsHighlight
+                  subHeaderAlign="right"
+                  subHeaderWrap
+            />
     );
 }
 
-export {ComparisonDataTable};
+export {CsetsDataTable};
 
 
 /*

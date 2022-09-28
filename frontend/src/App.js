@@ -86,7 +86,8 @@ function QueryStringStateMgr() {
 }
 
 function DataContainer(props) {
-  const {codeset_ids} = props;
+  let {codeset_ids} = props;
+  codeset_ids = codeset_ids || [];
   // Table Variations
   // 1. this url is for simple X/O table with no hierarchy:
   // let url = enabled ? backend_url('concept-sets-with-concepts?concept_field_filter=concept_id&concept_field_filter=concept_name&codeset_id=' + codeset_ids.join('|'))
@@ -108,7 +109,6 @@ function DataContainer(props) {
 
   return (
       <div>
-        <h2>DataContainer</h2>
         <CsetsRoutes cset_data={data} {...props} />
       </div>
   );
@@ -137,7 +137,6 @@ function App() {
         {/* <ReactQueryDevtools initialIsOpen={false} /> */ }
         <MuiAppBar/>
         {/* Outlet: Will render the results of whatever nested route has been clicked/activated. */}
-        <h2>Routes</h2>
         <Outlet/>
       </div>
   );

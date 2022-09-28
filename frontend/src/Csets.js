@@ -11,6 +11,7 @@ import {useQuery} from "@tanstack/react-query";
 import axios from "axios";
 import {Table, ComparisonTable} from "./Table";
 import {ComparisonDataTable} from "./ComparisonDataTable";
+import {CsetsDataTable} from "./CsetsDataTable";
 import {ReactQueryDevtools} from "@tanstack/react-query-devtools";
 import List from "@mui/material/List";
 import ListItem from "@mui/material/ListItem";
@@ -24,36 +25,6 @@ import {backend_url} from './App';
 
 //TODO: How to get hierarchy data?
 // - It's likely in one of the datasets we haven't downloaded yet. When we get it, we can do indents.
-function ConceptSetCard(props) {
-  let {cset, cols} = props;
-  return (
-    // (isLoading && "Loading...") ||
-    // (error && `An error has occurred: ${error.stack}`) ||
-    // (isFetching && "Updating...") ||
-    // (data && <div style={{
-    (<div style={{
-        padding: '1px 15px 1px 15px',
-        margin: '5px 5px 5px 5px',
-        border: '5px 5px 5px 5px',
-        background: '#d3d3d3',
-        borderRadius: '10px',
-      }}>
-        <h4>{cset.concept_set_name/*conceptSetNameOMOP*/} v{cset.version}</h4>
-        <List style={{height: '20vh', width: Math.floor(100 / cols) + 'vh', overflow: 'scroll'}}>
-          {Object.values(cset.concepts).map((concept, i) => {
-            return <ListItem style={{
-              margin: '3px 3px 3px 3px',
-              background: '#dbdbdb',
-              borderRadius: '5px',
-              fontSize: '0.8em'
-            }} key={i}>
-              {concept.concept_id}: {concept.concept_name}
-            </ListItem>
-          })}
-        </List>
-      </div>)
-  )
-}
 
 function ConceptList(props) {
   // http://127.0.0.1:8000/fields-from-objlist?objtype=OmopConceptSetVersionItem&filter=codeset_id:822173787|74555844
@@ -264,22 +235,21 @@ function ConceptSetsPage(props) {
   return (
       <div>
         <CsetSearch {...props} />
+        { enabled || msg }
         {
-          !enabled ? msg :
-          (data && (<div>
-            {/* Concepts: <ConceptList /> */}
-            {/*Concept sets: */}
-            {/*<Table rowData={data} rowCallback={csetCallback}/>*/}
-          </div>))
-          //<ReactQueryDevtools initialIsOpen />
+           props.cset_data && <CsetsDataTable {...props} />
         }
         {
           // todo: Create component: <ConceptSetsPanels>
           (codeset_ids.length > 0) && data && (
             <div style={{
+              marginTop: '20px',
               display: 'flex',
               flexDirection: 'row',
               flexWrap: 'wrap',
+              // height: '90vh',
+              // alignItems: 'stretch',
+              // border: '1px solid green',
 
               // todo: I don't remember how to get it to take up the whole window in this case.  these are working
               // width: '100%',
@@ -287,12 +257,48 @@ function ConceptSetsPage(props) {
               // flex: '0 0 100%',
             }}>
               {data.map(cset => {
-                return <ConceptSetCard key={cset.codeset_id} cset={cset} cols={Math.min(4, data.length)}/>
+                let widestConceptName = _.max(Object.values(cset.concepts).map(d => d.concept_name.length))
+                return <ConceptSetCard key={cset.codeset_id} cset={cset} widestConceptName={widestConceptName}
+                                       cols={Math.min(4, data.length)}/>
               })}
             </div>)
         }
         {/*<p>I am supposed to be the results of <a href={url}>{url}</a></p>*/}
       </div>)
+}
+function ConceptSetCard(props) {
+  let {cset, cols} = props;
+  return (
+      // (isLoading && "Loading...") ||
+      // (error && `An error has occurred: ${error.stack}`) ||
+      // (isFetching && "Updating...") ||
+      // (data && <div style={{
+      (<div style={{
+        flex: '1 1 auto',
+        height: '400px',    // can't figure out how to make these fill but not overfill the window with rows
+        width: '300px',
+        padding: '1px 15px 1px 15px',
+        margin: '5px 5px 5px 5px',
+        border: '5px 5px 5px 5px',
+        background: '#d3d3d3',
+        borderRadius: '10px',
+        // width: Math.floor(100 / cols) + 'vh',
+      }}>
+        <h4>{cset.concept_set_name/*conceptSetNameOMOP*/} v{cset.version}</h4>
+        <List style={{height: '70%', overflowX: 'clip', overflowY: 'scroll'}}>
+          {Object.values(cset.concepts).map((concept, i) => {
+            return <ListItem style={{
+              margin: '3px 3px 3px 3px',
+              background: '#dbdbdb',
+              borderRadius: '5px',
+              fontSize: '0.8em'
+            }} key={i}>
+              {concept.concept_id}: {concept.concept_name}
+            </ListItem>
+          })}
+        </List>
+      </div>)
+  )
 }
 
 // TODO: Find concepts w/ good overlap and save a good URL for that
@@ -323,4 +329,4 @@ function CsetComparisonPage(props) {
 }
 
 
-export {ConceptSetsPage, CsetComparisonPage, ConceptSetCard};
+export {ConceptSetsPage, CsetComparisonPage, };
