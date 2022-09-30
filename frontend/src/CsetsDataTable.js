@@ -41,7 +41,7 @@ function CsetsDataTable(props) {
     let {cset_data} = props;
     let {csets_info, concept_membership, related_csets} = cset_data;
 
-    console.log(props);
+    console.log('CsetsDataTable props: ', props);
     /*  example row
     {
         "codeset_id": 826535586,
@@ -152,10 +152,6 @@ function CsetsDataTable(props) {
     };
     const rowSelectCritera = row => row.selected;
 
-    const customSort = (rows, selector, direction) => {
-        return orderBy(rows, selector, direction);
-    };
-
     const subHeader =
         <p style={{margin:0, fontSize: 'small',}}>The <strong>{Object.keys(csets_info).length}</strong> concept sets
             selected contain a total of <strong>{uniq(cset_data.concept_membership.map(d => d.concept_id)).length}</strong> concepts. The following concept sets have 1 or more concepts
@@ -198,8 +194,7 @@ function CsetsDataTable(props) {
                 selectableRowSelected={rowSelectCritera}
                 subHeaderAlign="right"
                 subHeaderWrap
-
-                sortFunction={customSort}
+                // sortFunction={customSort}
             />
         </div>
     );

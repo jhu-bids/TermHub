@@ -309,13 +309,7 @@ def cr_hierarchy(
                 nested_list(children, parent=cid, level=level+1)
     nested_list(dsi.top_level_cids)
 
-    # # TODO: data structure to make easy expand/collapse for comparison table
-    # [ {
-    #   cid: <cid1>,
-    #   name:...,
-    #   children: [....repeat ]   # not descendents; just children
-    #   }, {cid: <cid2>,...}]
-    # So when we take this and flatten it, we can skip any further descendents
+    # TODO: Sort related
 
     result = {'concept_membership': lines, 'csets_info': dsi.csets_info,
               'related_csets': dsi.related.to_dict(orient='records'), }
