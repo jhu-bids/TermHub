@@ -1,5 +1,5 @@
 import React from 'react';
-import {orderBy} from 'lodash';
+import {orderBy, uniq} from 'lodash';
 import DataTable, { createTheme } from 'react-data-table-component';
 
 // createTheme creates a new theme named solarized that overrides the build in dark theme
@@ -156,48 +156,49 @@ function CsetsDataTable(props) {
         return orderBy(rows, selector, direction);
     };
 
+    const subHeader =
+        <p style={{margin:0, fontSize: 'small',}}>The <strong>{Object.keys(csets_info).length}</strong> concept sets
+            selected contain a total of <strong>{uniq(cset_data.concept_membership.map(d => d.concept_id)).length}</strong> concepts. The following concept sets have 1 or more concepts
+            in common with the selected sets. Select from below if you want to add to the above list.</p>
+
     // todo: p -> data table: data table has a property for showing some sort of paragraph text
     // TODO: y concepts -> get the number
     return (
-        <div>
-            <h1>Related concept sets</h1>
-            <p>The {csets_info.length} concept sets selected contain a total of y concepts. The following concept sets have 1 or more
-                concepts in common with the selected sets. Select from below if you want to add to the above list.</p>
+        <div className="csets-data-table" >
             <DataTable
+                noHeader={false}
+                title="Related concept sets"
+                subHeader
+                subHeaderComponent={subHeader}
                 // theme="custom-theme"
                 // theme="light"
                 columns={columns}
                 data={related_csets}
                 customStyles={customStyles}
                 // conditionalRowStyles={conditionalRowStyles}
-
-                height={300}
-                highlightOnHover
-                responsive
+                height="300px"
                 //striped
-                subHeaderAlign="right"
-                subHeaderWrap
                 //pagination
                 //selectableRowsComponent={Checkbox}
                 //selectableRowsComponentProps={selectProps}
                 //sortIcon={sortIcon}
                 // {...props}
 
-                  dense
-                  direction="auto"
-                  expandOnRowClicked
-                  expandableRows
-                  fixedHeader
-                  fixedHeaderScrollHeight="300px"
-                  highlightOnHover
-                  pointerOnHover
-                  responsive
-                  selectableRows
-                  selectableRowsHighlight
-                  subHeaderAlign="right"
-                  subHeaderWrap
-
+                dense
+                direction="auto"
+                // expandOnRowClicked
+                // expandableRows
+                fixedHeader
+                fixedHeaderScrollHeight="300px"
+                highlightOnHover
+                pointerOnHover
+                responsive
+                selectableRows
+                selectableRowsHighlight
                 selectableRowSelected={rowSelectCritera}
+                subHeaderAlign="right"
+                subHeaderWrap
+
                 sortFunction={customSort}
             />
         </div>
@@ -205,19 +206,3 @@ function CsetsDataTable(props) {
 }
 
 export {CsetsDataTable};
-
-
-/*
-from https://react-data-table-component.netlify.app/?path=/docs/getting-started-kitchen-sink--kitchen-sink
-<KitchenSinkStory
-  dense
-  direction="auto"
-  fixedHeader
-  fixedHeaderScrollHeight="300px"
-  highlightOnHover
-  responsive
-  striped
-  subHeaderAlign="right"
-  subHeaderWrap
-/>
- */

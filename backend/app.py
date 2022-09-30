@@ -67,7 +67,6 @@ try:
     # df = pd.read_csv(os.path.join(CSV_PATH, 'code_sets' + '.csv'), **(csv_opts['code_sets']))
 
     print(f'Favorite datasets loaded: {list(DS.keys())}')
-    CONCEPT: pd.DataFrame = DS['concept']
     # todo: pandasql better?
     # PYSQLDF = lambda q: sqldf(q, globals()) # I think you need to call this in the function you're using it in
     # COUNTS = PYSQLDF("""
@@ -77,6 +76,131 @@ try:
 except Exception as err:
     print(f'failed loading datasets', err)
 
+
+class Bunch(object):    # dictionary to namespace, a la https://stackoverflow.com/a/2597440/1368860
+  def __init__(self, adict):
+    self.__dict__.update(adict)
+
+def make_data_stuff():
+    """
+    expose tables and other stuff in namespace for convenient reference
+        links                   # concept_relationship grouped by concept_id_1, subsumes only
+        child_cids()            # function returning all the concept_ids that are
+                                #   children (concept_id_1) of a concept_id
+        connect_children()      # function returning concept hierarchy. see #139
+                                #   (https://github.com/jhu-bids/TermHub/issues/139)
+                                #   currently doing lists of tuples, will probably
+                                #   switch to dict of dicts
+        concept_name_lookup     # lookup by concept_id
+        codeset_name_lookup     # lookup by concept_id
+    """
+    ds = Bunch(DS)
+
+    ds.subsumes = ds.concept_relationship[ds.concept_relationship.relationship_id == 'Subsumes']
+    ds.links = ds.subsumes.groupby('concept_id_1')
+
+    def child_cids(cid):
+        if cid in ds.links.groups.keys():
+            return [int(c) for c in ds.links.get_group(cid).concept_id_2.unique() if c != cid]
+    ds.child_cids = child_cids
+
+
+    def connect_children(pc): # how to declare this should be tuple of int or None and list of ints
+        pcid, cids = pc
+        pcid in cids and cids.remove(pcid)
+        expanded_cids = [ds.child_cids(cid) for cid in cids]
+        return (pcid, [connect_children(ec) if type(ec)==tuple else ec for ec in expanded_cids])
+    ds.connect_children = connect_children
+
+    ds.concept_name_lookup = ds.concept_set_members[['concept_id', 'concept_name']] \
+        .drop_duplicates() \
+        .set_index('concept_name') \
+        .groupby('concept_id').groups
+    # [(cid, len(names)) for cid, names in concept_name_lookup.items() if len(names) > 1]    # should be 1-to-1
+    for cid, names in ds.concept_name_lookup.items():
+        ds.concept_name_lookup[cid] = names[0]
+
+    ds.codeset_name_lookup = ds.concept_set_members[['codeset_id', 'concept_set_name']] \
+        .drop_duplicates() \
+        .set_index('concept_set_name') \
+        .groupby('codeset_id').groups
+    # [(cid, len(names)) for cid, names in concept_name_lookup.items() if len(names) > 1]    # should be 1-to-1
+    for cset_id, names in ds.codeset_name_lookup.items():
+        ds.codeset_name_lookup[cset_id] = names[0]
+
+    print('Done building global ds objects')
+    return ds
+
+ds = make_data_stuff()
+
+def data_stuff_for_codeset_ids(codeset_ids):
+    """
+    for specific codeset_ids:
+        subsets of tables:
+            df_code_set_i
+            df_concept_set_members_i
+            df_concept_relationship_i
+        and other stuff:
+            csets_info              # code_set_i with container info columns appended
+            concept_ids             # union of all the concept_ids across the requested codesets
+            related                 # sorted list of related concept sets
+            codesets_by_concept_id  # lookup codeset_ids a concept_id belongs to (in dsi instead of ds because of possible performance impacts)
+            top_level_cids          # concepts in selected codesets that have no parent concepts in this group
+            cset_name_columns       #
+
+    """
+    dsi = Bunch({})
+
+    dsi.code_sets_i = ds.code_sets[ds.code_sets['codeset_id'].isin(codeset_ids)]
+
+    dsi.concept_set_members_i = ds.concept_set_members[ds.concept_set_members['codeset_id'].isin(codeset_ids)]
+
+    dsi.concept_relationship_i = ds.concept_relationship[
+        (ds.concept_relationship.concept_id_1.isin(dsi.concept_set_members_i.concept_id)) &
+        (ds.concept_relationship.concept_id_2.isin(dsi.concept_set_members_i.concept_id)) &
+        (ds.concept_relationship.concept_id_1 != ds.concept_relationship.concept_id_2)   &
+        (ds.concept_relationship.relationship_id == 'Subsumes')]
+
+    dsi.csets_info = {int(ci['codeset_id']): ci for ci in codeset_info(codeset_ids=codeset_ids, dsi=dsi)}  # append container info columns
+    # casting as int here isn't working. in json results, still shows as a string key
+
+    dsi.concept_ids = dsi.concept_set_members_i.concept_id.unique()
+
+    dsi.subsumes = dsi.concept_relationship_i[dsi.concept_relationship_i.relationship_id == 'Subsumes']
+    dsi.links = dsi.subsumes.groupby('concept_id_1')
+
+    def child_cids(cid):
+        if cid in dsi.links.groups.keys():
+            return [int(c) for c in dsi.links.get_group(cid).concept_id_2.unique() if c != cid]
+    dsi.child_cids = child_cids
+
+    related_csm = ds.concept_set_members[ds.concept_set_members.concept_id.isin(dsi.concept_ids)]
+    c = pd.DataFrame({'selected': related_csm.codeset_id.isin(codeset_ids)})
+    related_csm['selected'] = c  # not sure how to get around SettingWithCopyWarning
+    dsi.related = related_csm.groupby(['selected', 'codeset_id', 'concept_set_name', 'version']
+                                      )['concept_id'].nunique().reset_index() \
+        .sort_values(by=['selected','concept_id'], ascending=False).rename(columns={'concept_id': 'concepts'})
+
+    dsi.codesets_by_concept_id = dsi.concept_set_members_i[['concept_id', 'codeset_id']] \
+        .drop_duplicates() \
+        .set_index('codeset_id') \
+        .groupby('concept_id').groups
+    for cid, codeset_ids in dsi.codesets_by_concept_id.items():
+        dsi.codesets_by_concept_id[cid] = [int(codeset_id) for codeset_id in codeset_ids]
+
+
+    dsi.top_level_cids = list(dsi.concept_relationship_i[
+                              ~dsi.concept_relationship_i.concept_id_1.isin(dsi.concept_relationship_i.concept_id_2)
+                          ].concept_id_1.unique())
+
+    dsi.cset_name_columns = {ds.codeset_name_lookup[codeset_id]: u'\N{check mark}' for codeset_id in codeset_ids}
+
+    return dsi
+
+def parse_codeset_ids(qstring):
+    requested_codeset_ids = qstring.split('|')
+    requested_codeset_ids = [int(x) for x in requested_codeset_ids]
+    return requested_codeset_ids
 
 APP = FastAPI()
 APP.add_middleware(
@@ -118,31 +242,16 @@ def csetVersions() -> Union[Dict, List]:
 
 # Example: http://127.0.0.1:8000/codeset-info?codeset_id=400614256|411456218|484619125|818292046|826535586
 @APP.get("/codeset-info")        # maybe junk, or maybe start of a refactor of above
-def codeset_info(codeset_id: Union[str, None] = Query(default=[]), ) -> List[Dict]:
-    requested_codeset_ids = codeset_id.split('|')
-    requested_codeset_ids = [int(x) for x in requested_codeset_ids]
+def codeset_info(codeset_id: Union[str, None] = Query(default=[]), codeset_ids=[], dsi=None) -> List[Dict]:
+    """
+    join container info onto dsi.code_sets_i     # maybe just do this off the bat for all code sets?
+    """
 
-    df_code_sets = DS['code_sets']
-    df_concept_set_container_edited = DS['concept_set_container_edited']
-    df_code_sets_i = df_code_sets[df_code_sets['codeset_id'].isin(requested_codeset_ids)]
-    # containers don't have a codeset_id of course
-    # df_concept_set_container_edited_i = df_concept_set_container_edited[df_concept_set_container_edited['codeset_id'].isin(requested_codeset_ids)]
-    df = df_code_sets_i.merge(df_concept_set_container_edited, on='concept_set_name')
+    requested_codeset_ids = codeset_ids or parse_codeset_ids(codeset_id)
+    dsi = dsi or data_stuff_for_codeset_ids(requested_codeset_ids)
+
+    df = dsi.code_sets_i.merge(ds.concept_set_container_edited, on='concept_set_name')
     return json.loads(df.to_json(orient='records'))
-
-
-# TODO: Change order returned: nConcepts -> %overlap
-def related_csets(cids, requested_codeset_ids):
-    df_concept_set_members = DS['concept_set_members']
-    csm_with_cids = df_concept_set_members[df_concept_set_members.concept_id.isin(cids)]
-    related = csm_with_cids.groupby(['codeset_id', 'concept_set_name', 'version']).nunique().concept_id.sort_values(ascending=False)
-    related = dict(related)
-    return [{'codeset_id': x[0][0],
-             'concept_set_name': x[0][1],
-             'version': str(x[0][2]),
-             'concepts': int(x[1]),
-             'selected': x[0][0] in requested_codeset_ids,
-             } for x in related.items()]
 
 
 # TODO: the following is just based on concept_relationship
@@ -158,88 +267,32 @@ def cr_hierarchy(
     codeset_id: Union[str, None] = Query(default=[]),
 ) -> Dict:
 
-    csets_info = {int(ci['codeset_id']): ci for ci in codeset_info(codeset_id)}
-    # casting as int here isn't working. in result, still shows as a string key
-
-    requested_codeset_ids = codeset_id.split('|')
-    requested_codeset_ids = [int(x) for x in requested_codeset_ids]
-
-    df_concept_set_members = DS['concept_set_members']
-    df_concept_relationship = DS['concept_relationship']
-    df_concept_set_members_i = df_concept_set_members[df_concept_set_members['codeset_id'].isin(requested_codeset_ids)]
-
-    # TODO: figure out what to do with these related codesets
-    related = related_csets(df_concept_set_members_i.concept_id.unique(), requested_codeset_ids)
-
-    df_concept_relationship_i = df_concept_relationship[
-        (df_concept_relationship.concept_id_1.isin(df_concept_set_members_i.concept_id)) &
-        (df_concept_relationship.concept_id_2.isin(df_concept_set_members_i.concept_id)) &
-        (df_concept_relationship.concept_id_1 != df_concept_relationship.concept_id_2)   &
-        (df_concept_relationship.relationship_id == 'Subsumes')]
-
-    cname = df_concept_set_members_i[['concept_id', 'concept_name']] \
-        .drop_duplicates() \
-        .set_index('concept_name') \
-        .groupby('concept_id').groups
-    # [(cid, len(names)) for cid, names in cname.items() if len(names) > 1]    # should be 1-to-1
-    for cid, names in cname.items():
-        cname[cid] = names[0]
-
-    cset_name = df_concept_set_members_i[['codeset_id', 'concept_set_name']] \
-        .drop_duplicates() \
-        .set_index('concept_set_name') \
-        .groupby('codeset_id').groups
-    # [(cid, len(names)) for cid, names in cname.items() if len(names) > 1]    # should be 1-to-1
-    for cset_id, names in cset_name.items():
-        cset_name[cset_id] = names[0]
-
-    cid_csets = df_concept_set_members_i[['concept_id', 'codeset_id']] \
-        .drop_duplicates() \
-        .set_index('codeset_id') \
-        .groupby('concept_id').groups
-    for cid, codeset_ids in cid_csets.items():
-        cid_csets[cid] = [int(codeset_id) for codeset_id in codeset_ids]
-
-    def concept_set_columns(cset_ids: List):
-        """get columns for table"""
-        return {name: u'\N{check mark}' if (csid in cset_ids) else '' for csid, name in cset_name.items()}
-
-    top_level_cids = list(df_concept_relationship_i[
-                              ~df_concept_relationship_i.concept_id_1.isin(df_concept_relationship_i.concept_id_2)
-                          ].concept_id_1.unique())
-
-    links = df_concept_relationship_i.groupby('concept_id_1')
-
-    def child_cids(cid: int) -> List[int]:
-        if cid in links.groups.keys():
-            return list(links.get_group(cid).concept_id_2.unique())
+    requested_codeset_ids = parse_codeset_ids(codeset_id)
+    dsi = data_stuff_for_codeset_ids(requested_codeset_ids)
 
     lines = []
     def cid_data(cid: int, parent=-1, level=0):
         # fastapi jsonencoder keeps choking on the ints
-        to_return = {}
-        to_return[cname[cid]] = 'O'
-        # TODO: Use cset_name?
 
         rec = {
                   # 'concept_id': int(cid),
-                  # 'concept_name': cname[cid],
-                  # 'codeset_ids': cid_csets[cid],
+                  # 'concept_name': concept_name_lookup[cid],
+                  # 'codeset_ids': dsi.codesets_by_concept_id[cid],
                   'level': int(level),
                   # 'parent': int(parent),
-                  "ConceptID": cname[cid],
-              } | concept_set_columns(cid_csets[cid])
+                  "ConceptID": ds.concept_name_lookup[cid],
+              } | dsi.cset_name_columns
         if format == 'xo':
             rec = {
-              "ConceptID": (' -- ' * level) + cname[cid],
-            } | concept_set_columns(cid_csets[cid])
+              "ConceptID": (' -- ' * level) + ds.concept_name_lookup[cid],
+            } | dsi.cset_name_columns
         if format == 'flat':
             rec = {
                 'concept_id': int(cid),
-                'concept_name': cname[cid],
+                'concept_name': ds.concept_name_lookup[cid],
                 'level': int(level),
-                'codeset_ids': cid_csets[cid],
-                  }  # | concept_set_columns(cid_csets[cid])
+                'codeset_ids': dsi.codesets_by_concept_id[cid] if cid in dsi.codesets_by_concept_id else None,
+                  }  # | dsi.cset_name_columns
 
         return rec
 
@@ -249,12 +302,12 @@ def cr_hierarchy(
         for cid in cids:
             d = cid_data(cid, parent, level)
             lines.append(d)
-            children: List[int] = child_cids(cid)
+            children: List[int] = dsi.child_cids(cid)
             if children:
     #             print('    ', children)
     #             c = set(children) - cids
                 nested_list(children, parent=cid, level=level+1)
-    nested_list(top_level_cids)
+    nested_list(dsi.top_level_cids)
 
     # # TODO: data structure to make easy expand/collapse for comparison table
     # [ {
@@ -264,11 +317,64 @@ def cr_hierarchy(
     #   }, {cid: <cid2>,...}]
     # So when we take this and flatten it, we can skip any further descendents
 
-    result = {'concept_membership': lines, 'csets_info': csets_info, 'related_csets': related, }
+    result = {'concept_membership': lines, 'csets_info': dsi.csets_info,
+              'related_csets': dsi.related.to_dict(orient='records'), }
     return result
     # return json.loads(df.to_json(orient='records'))
 
 
+@APP.get("/new-hierarchy-stuff")  # maybe junk, or maybe start of a refactor of above
+def new_hierarch_stuff(
+        format: str='default',
+        codeset_id: Union[str, None] = Query(default=[]), ) -> List[Dict]:
+
+    requested_codeset_ids = parse_codeset_ids(codeset_id)
+    dsi = data_stuff_for_codeset_ids(requested_codeset_ids)
+
+
+
+
+    lines = []
+    def cid_data(cid, parent=-1, level=0):
+        # fastapi jsonencoder keeps choking on the ints
+
+        rec = {
+                  # 'concept_id': int(cid),
+                  # 'concept_name': ds.concept_name_lookup[cid],
+                  # 'codeset_ids': dsi.codesets_by_concept_id[cid],
+                  'level': int(level),
+                  # 'parent': int(parent),
+                  "ConceptID": ds.concept_name_lookup[cid],
+              } | dsi.cset_name_columns
+        if format == 'xo':
+            rec = {
+                      "ConceptID": (' -- ' * level) + ds.concept_name_lookup[cid],
+                  } | dsi.cset_name_columns
+        if format == 'flat':
+            rec = {
+                'concept_id': int(cid),
+                'concept_name': ds.concept_name_lookup[cid],
+                'level': int(level),
+                'codeset_ids': dsi.codesets_by_concept_id[cid] if cid in dsi.codesets_by_concept_id else None,
+            }  # | dsi.cset_name_columns
+
+        return rec
+
+    def nested_list(cids, parent=-1, level=0):
+        cids = set(cids)
+        for cid in cids:
+            d = cid_data(cid, parent, level)
+            lines.append(d)
+            children = ds.child_cids(cid)
+            if children:
+                #             print('    ', children)
+                #             c = set(children) - cids
+                nested_list(children, parent=cid, level=level+1)
+
+    nested_list(dsi.top_level_cids)
+    result = {'lines': lines, 'csets_info': dsi.csets_info, 'related_csets': dsi.related, }
+    return result
+    # return json.loads(df.to_json(orient='records'))
 
 
 @APP.get("/concept-sets-with-concepts")
@@ -297,8 +403,8 @@ def concept_sets_with_concepts(
     # if codeset_id empty, [] otherwise split and convert to int
     codeset_ids = codeset_id and [int(cid) for cid in codeset_id.split('|')] or []
 
-    csm = DS['concept_set_members']
-    codeset = DS['code_sets']
+    csm = ds.concept_set_members
+    codeset = ds.code_sets
 
     # TODO #pandasql: switch to using pandasql
     # print(f'Favorite datasets loaded: {DS.keys()}')
@@ -394,167 +500,6 @@ class CsetsUpdate(BaseModel):
       name of the fields to be updated, and values contain the values to update in that particular cell."""
     dataset_path: str = ''
     row_index_data_map: Dict[int, Dict[str, Any]] = {}
-
-
-# not using this stuff anymore:
-
-# TODO: Finish this route
-# TODO: i. Fix: Very slow on large N. For one attempt, I got back ~7,000 results for 'concepts' variables. I think this is
-#  because one of the csets was 'immunotherapy'; a big set.
-# TODO: ii. Color table
-# Example: http://127.0.0.1:8000/concept-set-overlap-table-data?codeset_id=314083061|728628308|98365468
-@APP.get("/concept-set-overlap-table-data")
-def concept_overlap_table_data(
-        codeset_id: Union[str, None] = Query(default=[]),
-) -> List[Dict]:
-    """Concept overlap table: hierarchical"""
-    # TODO: copy/paste over code from /concept-set-overlap-table-data-simple-hierarchy
-    #  - then, repurpose to use `concept_relationship_is_a.csv`
-
-    return []
-
-
-# todo: (i) and (ii) in route '/concept-set-overlap-table-data' apply to this as well
-# Example: http://127.0.0.1:8000/concept-set-overlap-table-data-simple-hierarchy?codeset_id=314083061|728628308|98365468
-@APP.get("/concept-set-overlap-table-data-simple-hierarchy")
-def concept_overlap_table_data_simple_hierarchy(
-        codeset_id: Union[str, None] = Query(default=[]),
-) -> List[Dict]:
-    """Concept overlap table: hierarchical"""
-    indent_string = '---'
-    concepts_and_concept_sets: Dict = concept_sets_by_concept(codeset_id)
-    requested_codeset_ids = codeset_id.split('|')
-    requested_codeset_ids = [int(x) for x in requested_codeset_ids]
-    df_concept_set_members = DS['concept_set_members']
-    df_concept_ancestor = DS['concept_ancestor']
-    df_concept_set_members_i = df_concept_set_members[df_concept_set_members['codeset_id'].isin(requested_codeset_ids)]
-    df_concept_ancestor_i = df_concept_ancestor[
-        (df_concept_ancestor.ancestor_concept_id.isin(df_concept_set_members_i.concept_id)) &
-        (df_concept_ancestor.descendant_concept_id.isin(df_concept_set_members_i.concept_id))]
-
-    # Transform: get essential information
-    # todo: account for max_levels_of_separation, or just get direct parent/child relationships
-    req_concepts: Dict = concepts_and_concept_sets['concepts']
-    req_csets: Dict = concepts_and_concept_sets['concept_sets']
-    table_data = []
-    for concept_id, concept in req_concepts.items():
-        if concept_id not in table_data:
-            df_concept_ancestor_i2 = df_concept_ancestor_i[
-                df_concept_ancestor_i['descendant_concept_id'] == int(concept_id)]
-            df_concept_ancestor_i2 = df_concept_ancestor_i2.sort_values(['min_levels_of_separation'], ascending=True)
-            ancestors_d_list: List[Dict] = df_concept_ancestor_i2.to_dict(orient='records')
-            for d in ancestors_d_list:
-                ancestor = str(d['ancestor_concept_id'])
-                new_d = {
-                    'ConceptID': concept['concept_id'],
-                    'AncestorID': ancestor,
-                    'min_levels_of_separation': d['min_levels_of_separation'],
-                }
-                for concept_set_id in [str(x) for x in requested_codeset_ids]:
-                    cset_concepts: List[str] = [str(x) for x in req_csets[int(concept_set_id)]['concepts'].keys()]
-                    new_d[concept_set_id] = \
-                        'O' if ancestor in [str(x) for x in cset_concepts] else 'X'
-                table_data.append(new_d)
-
-    # Transform: Visualize indent
-    table_data_2 = []
-    # todo: temp initializing these vars here until later refactor
-    concept_ids = []
-    cset_ids = []
-    for row in table_data:
-        row['ConceptID'] = row['AncestorID']
-        row['ConceptID'] = f"{indent_string * row['min_levels_of_separation']}{row['ConceptID']}"
-        del row['AncestorID']
-        del row['min_levels_of_separation']
-        table_data_2.append(row)
-        # todo: temp until later refactor
-        concept_ids.append(row['ConceptID'])
-        for cset_id in [x for x in row.keys() if x != 'ConceptID']:
-            cset_ids.append(cset_id)
-
-    # get labels
-    # todo: this whole route needs to be refactored eventually.
-    # todo: we may want to pickle some lookup maps maybe
-    concept_ids_set = set([int(x.replace('-', '')) for x in concept_ids])
-    concept_df = CONCEPT[CONCEPT['concept_id'].isin(concept_ids_set)]
-    concept_id_name_map = {}
-    for _index, row in concept_df.iterrows():
-        concept_id_name_map[str(row['concept_id'])] = str(row['concept_name'])
-
-    cset_ids_set = set([int(x) for x in cset_ids])
-    cset_df_all = DS['code_sets']
-    cset_df = cset_df_all[cset_df_all['codeset_id'].isin(cset_ids_set)]
-    cset_id_name_map = {}
-    for _index, row in cset_df.iterrows():
-        cset_id_name_map[str(row['codeset_id'])] = str(row['concept_set_name'])
-
-    table_data_3 = []
-    for row in table_data_2:
-        concept_id_hyphenated = row['ConceptID']
-        hyphens = concept_id_hyphenated.count('-') * '-'
-        concept_id = concept_id_hyphenated.replace('-', '')
-        new_row = {'ConceptID': hyphens + concept_id_name_map[concept_id]}
-        for cset_id in [x for x in row.keys() if x != 'ConceptID']:
-            cset_name = cset_id_name_map[cset_id]
-            new_row[cset_name] = row[cset_id]
-        table_data_3.append(new_row)
-
-    return table_data_3
-
-
-# todo: (i) and (ii) in route '/concept-set-overlap-table-data' apply to this as well
-# Example: http://127.0.0.1:8000/concept-set-overlap-table-data-simple?codeset_id=314083061|728628308|98365468
-@APP.get("/concept-set-overlap-table-data-simple")
-def concept_overlap_table_data_simple(
-        codeset_id: Union[str, None] = Query(default=[]),
-) -> List[Dict]:
-    """Concept overlap table: simple, non-hierarchical"""
-    concepts_and_concept_sets: Dict = concept_sets_by_concept(codeset_id)
-    requested_codeset_ids = codeset_id.split('|')
-
-    concepts = concepts_and_concept_sets['concepts']
-    table_data = {}
-    for concept_id, concept in concepts.items():
-        if concept_id not in table_data:
-            table_data[concept_id] = {'ConceptID': concept['concept_id']}
-        for concept_set_id in requested_codeset_ids:
-            table_data[concept_id][concept_set_id] = \
-                'O' if str(concept_set_id) in [str(x) for x in concept['concept_sets']] else 'X'
-
-    table_data_list = list(table_data.values())
-    return table_data_list
-
-
-# Example: http://127.0.0.1:8000/concept-sets-by-concept?codeset_id=314083061|728628308|98365468
-@APP.get("/concept-sets-by-concept")
-def concept_sets_by_concept(
-        codeset_id: Union[str, None] = Query(default=[]),
-) -> Union[Dict, List]:
-    """Concept sets by concept"""
-    _concept_sets_with_concepts: List[Dict] = concept_sets_with_concepts(codeset_id)
-    concept_sets_concept_map: Dict = {x['codeset_id']: x for x in _concept_sets_with_concepts}
-
-    concepts_concept_sets_map: Dict[str, Dict] = {}
-    for cs_id, cs in concept_sets_concept_map.items():
-        for concept_id, concept in cs['concepts'].items():
-            if concept_id not in concepts_concept_sets_map:
-                concepts_concept_sets_map[concept_id] = concept
-                #     concepts_concept_sets_map[concept_id]['concept_sets'] = {}
-                # concepts_concept_sets_map[concept_id]['concept_sets'][cs_id] = \
-                #     {k: v for k, v in cs.items() if k != 'concepts'}
-                concepts_concept_sets_map[concept_id]['concept_sets'] = []
-            concepts_concept_sets_map[concept_id]['concept_sets'].append(cs_id)
-
-    response = {
-        'concepts': concepts_concept_sets_map,
-        'concept_sets': concept_sets_concept_map  # todo: includes concepts=`concepts_concept_sets_map[x]`. remove?
-    }
-
-    # TODO: Add concept ancestor info
-    pass
-
-    # TODO: finally: remove/update JS in <CsetComparisonPage/>
-    return response
 
 
 def run(port: int = 8000):

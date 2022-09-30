@@ -57,6 +57,13 @@
   margin-top: auto;
 }
 
+.csets-data-table > .rdt_TableHeader {
+    min-height: 0px;
+}
+.csets-data-table .rdt_Table {
+    padding: 0px;
+}
+
 /*
 .ag-header-cell-label .ag-header-cell-text {
   /*Force the width corresponding at how much width
