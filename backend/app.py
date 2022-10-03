@@ -103,6 +103,16 @@ def make_data_stuff():
         codeset_name_lookup     # lookup by concept_id
     """
     ds = Bunch(DS)
+
+    ds.concept_set_members = ds.concept_set_members[ds.concept_set_members.concept_set_name.str.len() > 0]
+    # TODO: try this later. will require filtering other stuff also?
+    # ds.concept_set_members = ds.concept_set_members[~ds.concept_set_members.archived]
+    # ds.data_messages = [
+    #     'concept_set_members filtered to exclude concept sets with empty names'
+    #     'concept_set_members filtered to exclude archived concept set'
+    # ]
+
+
     ds.concept_relationship = ds.concept_relationship_subsumes_only
     ds.concept.set_index('concept_id', inplace=True)
 
@@ -121,14 +131,6 @@ def make_data_stuff():
         expanded_cids = [ds.child_cids(cid) for cid in cids]
         return (pcid, [connect_children(ec) if type(ec)==tuple else ec for ec in expanded_cids])
     ds.connect_children = connect_children
-
-    # ds.concept_name_lookup = ds.concept_set_members[['concept_id', 'concept_name']] \
-    #     .drop_duplicates() \
-    #     .set_index('concept_name') \
-    #     .groupby('concept_id').groups
-    # # [(cid, len(names)) for cid, names in concept_name_lookup.items() if len(names) > 1]    # should be 1-to-1
-    # for cid, names in ds.concept_name_lookup.items():
-    #     ds.concept_name_lookup[cid] = names[0]
 
     ds.codeset_name_lookup = ds.concept_set_members[['codeset_id', 'concept_set_name']] \
         .drop_duplicates() \
@@ -189,7 +191,8 @@ def data_stuff_for_codeset_ids(codeset_ids):
     related_csm['selected'] = c  # not sure how to get around SettingWithCopyWarning
     dsi.related = related_csm.groupby(['selected', 'codeset_id', 'concept_set_name', 'version']
                                       )['concept_id'].nunique().reset_index() \
-        .sort_values(by=['selected','concept_id'], ascending=False).rename(columns={'concept_id': 'concepts'})
+                        .rename(columns={'concept_id': 'concepts'}) \
+                        .sort_values(by=['selected', 'concepts'], ascending=False)
 
     dsi.codesets_by_concept_id = dsi.concept_set_members_i[['concept_id', 'codeset_id']] \
         .drop_duplicates() \
@@ -310,7 +313,7 @@ def cr_hierarchy(
     result = {'flattened_concept_hierarchy': lines,
               'csets_info': dsi.csets_info,
               'related_csets': dsi.related.to_dict(orient='records'),
-              'concept_set_members_i': json.loads(dsi.concept_set_members_i.to_json(orient='records'))
+              'concept_set_members_i': json.loads(dsi.concept_set_members_i.to_json(orient='records')),
               }
     return result
 
@@ -342,10 +345,15 @@ def new_hierarchy_stuff(
 
     lines = []
     nested_list_generator(lines, rec_format, dsi, ds.child_cids)(dsi.top_level_cids)
+
+    all_csets = df = ds.concept_set_members.groupby(['codeset_id', 'concept_set_name', 'version','archived']
+                                  )['concept_id'].nunique().reset_index().rename(columns={'concept_id': 'concepts'})
+
     result = {'flattened_concept_hierarchy': lines,
               'csets_info': dsi.csets_info,
               'related_csets': dsi.related.to_dict(orient='records'),
-              'concept_set_members_i': json.loads(dsi.concept_set_members_i.to_json(orient='records'))
+              'concept_set_members_i': json.loads(dsi.concept_set_members_i.to_json(orient='records')),
+              'all_csets': json.loads(all_csets.to_json(orient='records'))
               }
     return result
 

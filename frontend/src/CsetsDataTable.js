@@ -1,6 +1,7 @@
 import React from 'react';
-import {orderBy, uniq} from 'lodash';
+import {isEqual, } from 'lodash';
 import DataTable, { createTheme } from 'react-data-table-component';
+import {useSearchParams} from "react-router-dom";
 
 // createTheme creates a new theme named solarized that overrides the build in dark theme
 // https://github.com/jbetancur/react-data-table-component/blob/master/src/DataTable/themes.ts
@@ -42,6 +43,9 @@ function CsetsDataTable(props) {
     let {csets_info, flattened_concept_hierarchy, related_csets, concept_set_members_i} = cset_data;
 
     console.log('CsetsDataTable props: ', props);
+    const [selectedRows, setSelectedRows] = React.useState(false);
+    const [searchParams, setSearchParams] = useSearchParams();
+    // const [toggledClearRows, setToggleClearRows] = React.useState(false);
     /*  example row
     {
         "codeset_id": 826535586,
@@ -150,6 +154,17 @@ function CsetsDataTable(props) {
         },
         */
     };
+
+
+    const handleSelectionChange = React.useCallback(state => {
+        const {selectedRows} = state;
+        let ids = selectedRows.map(d => d.codeset_id).sort()
+        if (!isEqual(codeset_ids, ids)) {
+            setSearchParams({codeset_id: ids});
+        }
+        // setSelectedRows(selectedRows);
+    }, [])
+
     const related_ids = new Set(flattened_concept_hierarchy.map(d => d.concept_id));
     const all_concept_ids = new Set(concept_set_members_i.map(d => d.concept_id));
     let stats = {
@@ -208,6 +223,7 @@ function CsetsDataTable(props) {
                 selectableRows
                 selectableRowsHighlight
                 selectableRowSelected={rowSelectCritera}
+                onSelectedRowsChange={handleSelectionChange}
                 subHeaderAlign="right"
                 subHeaderWrap
                 // sortFunction={customSort}

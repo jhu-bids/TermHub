@@ -73,28 +73,18 @@ function ConceptList(props) {
     @ SIggie: is this fixed?
 */
 function CsetSearch(props) {
-  let {codeset_ids, relatedCsets} = props;
-  codeset_ids = codeset_ids || [];
-  relatedCsets = relatedCsets || [];
-  const relatedList = (
-      <ul>
-        {
-          relatedCsets.filter(d => !d.selected).map(d => (
-            <li key={d.codeset_id}>{d.concept_set_name} v{d.version} ({d.concepts} concepts)</li>
-          ))
-        }
-      </ul>)
-  if (relatedCsets.length) {
-    console.log({relatedCsets, relatedList})
-  }
+  let {codeset_ids=[], cset_data={}} = props;
+  let {csets_info, flattened_concept_hierarchy, related_csets=[],
+       concept_set_members_i, all_csets=[], } = cset_data;
 
 
   let url = backend_url('cset-versions');
 
-  const [value, setValue] = useState([]);
+  const [value, setValue] = useState('');
   const [inputValue, setInputValue] = useState('');
   const [searchParams, setSearchParams] = useSearchParams();
 
+  /*
   const { isLoading, error, data, isFetching } = useQuery([url], () =>
     axios
       .get(url)
@@ -124,14 +114,14 @@ function CsetSearch(props) {
       })
   );
   useEffect(() => {
-    console.log('setting value of search box')
     if (!data || !data.length) return
     let selectedCids = value && value.map(d => d.codeset_id).sort() || []
     if (!_.isEqual(codeset_ids, selectedCids)) {
       //console.log(value)
       //console.log(urlCids)
-      let selection = (data || []).filter(d => codeset_ids.includes(d.codeset_id))
-      setValue(selection)
+      let selection = (data || []).filter(d => codeset_ids.includes(d.codeset_id));
+      console.log('changing search box', selectedCids, 'to', selection);
+      setValue(selection);
     }
   }, [codeset_ids, data]);
   if (isLoading) {
@@ -141,22 +131,43 @@ function CsetSearch(props) {
     console.error(error.stack)
     return "An error has occurred: " + error.stack;
   }
+*/
 
+  // need to include codeset_id in label because there are sometimes two csets with same name
+  //  and same version number, and label acts as key
+  const opts = all_csets.map(d => ({
+    label: `${d.codeset_id} - ${d.concept_set_name} v${d.version}${d.archived ? 'x' : ''} (${d.concepts})`,
+    id: d.codeset_id,
+  }))
   return (
     <div style={{padding:'9px', }}>
       {/* <pre>getting data from: {url}</pre> */}
       {/* https://mui.com/material-ui/react-autocomplete/ */}
       {/* New way: manual state control; gets values from URL */}
       <Autocomplete
-        multiple
+        disablePortal
+        id="combo-box-demo"
+        options={opts}
+        blurOnSelect={true}
+        sx={{ width: 300 }}
+        renderInput={(params) => <TextField {...params} label="Add concept set" />}
+        onChange={(event, newValue) => {
+          setSearchParams({codeset_id: [...codeset_ids, newValue.id]})
+        }}
+      />
+      {/*
+      <Autocomplete
+        // multiple
         size="small"
         fullWidth={true}
         //disablePortal
 
-        value={value}
+        // value={value}
+        /*
         isOptionEqualToValue={(option, value) => {
           return option.codeset_id === value.codeset_id
         }}
+        * /
         onChange={(event, newValue) => {
           setValue(newValue);
           let ids = newValue.map(d=>d.codeset_id)
@@ -165,17 +176,17 @@ function CsetSearch(props) {
         inputValue={inputValue}
         onInputChange={(event, newInputValue) => {
           // I think this is for changes in the options
-          setInputValue(newInputValue);
+          // setInputValue(newInputValue);
         }}
 
         id="combo-box-demo-new"
-        /* options={top100Films} */
         options={data}
         sx={{ width: 300 }}
         renderInput={(params) => (
             <TextField {...params}
                 size="medium"
                 label="Concept sets" />)}
+        /*
         renderTags={(value, getTagProps) =>
           value.map((option, index) => (
             <Chip
@@ -186,8 +197,9 @@ function CsetSearch(props) {
             />
           ))
         }
+        * /
       />
-      {relatedList}
+      */}
     </div>)
   /* want to group by cset name and then list version. use https://mui.com/material-ui/react-autocomplete/ Grouped
      and also use Multiple Values */
