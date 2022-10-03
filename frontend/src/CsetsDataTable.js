@@ -38,8 +38,8 @@ createTheme('custom-theme', {
 //  Internally, customStyles will deep merges your customStyles with the default styling.
 
 function CsetsDataTable(props) {
-    let {cset_data} = props;
-    let {csets_info, concept_membership, related_csets} = cset_data;
+    let {codeset_ids, cset_data} = props;
+    let {csets_info, flattened_concept_hierarchy, related_csets, concept_set_members_i} = cset_data;
 
     console.log('CsetsDataTable props: ', props);
     /*  example row
@@ -150,13 +150,29 @@ function CsetsDataTable(props) {
         },
         */
     };
-    const rowSelectCritera = row => row.selected;
+    const related_ids = new Set(flattened_concept_hierarchy.map(d => d.concept_id));
+    const all_concept_ids = new Set(concept_set_members_i.map(d => d.concept_id));
+    let stats = {
+        csets_chosen: codeset_ids.length,
+        hierarchy_concepts: related_ids.size,
+        nested_list_lines: flattened_concept_hierarchy.length,
+        total_concepts: all_concept_ids.size,
+        related_csets: related_csets.length,
+    }
+    let not_in_list = [...concept_set_members_i].filter(d => !related_ids.has(d.concept_id))
+    console.log(not_in_list);
 
-    const subHeader =
-        <p style={{margin:0, fontSize: 'small',}}>The <strong>{Object.keys(csets_info).length}</strong> concept sets
-            selected contain a total of <strong>{uniq(cset_data.concept_membership.map(d => d.concept_id)).length}</strong> concepts. The following concept sets have 1 or more concepts
+    const subHeader = <div>
+        <p style={{margin:0, fontSize: 'small',}}>The <strong>{stats.csets_chosen} concept sets </strong>
+            selected contain a total of <strong>{stats.total_concepts} distinct concepts </strong>
+            of which <strong>only {stats.hierarchy_concepts}</strong> (why? not sure yet) appear
+            in the <strong>{stats.nested_list_lines} lines</strong> of the nested hierarchy on the
+            comparison page.</p>
+        <p> The following <strong>{stats.related_csets} concept sets</strong> have 1 or more concepts
             in common with the selected sets. Select from below if you want to add to the above list.</p>
+    </div>;
 
+    const rowSelectCritera = row => row.selected;
     // todo: p -> data table: data table has a property for showing some sort of paragraph text
     // TODO: y concepts -> get the number
     return (

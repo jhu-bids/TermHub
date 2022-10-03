@@ -39,7 +39,16 @@ def load_dataset(ds_name):
 # TODO: #2: remove try/except when git lfs fully set up
 try:
     # todo: temp until we decide if this is the correct way
-    dataset_names = list(FAVORITE_DATASETS.keys()) + ['concept_relationship_is_a']
+
+    # dataset_names = list(FAVORITE_DATASETS.keys()) + ['concept_relationship_is_a']
+
+    dataset_names = ['concept_set_members',
+                     'concept',
+                     'concept_relationship_subsumes_only',
+                     'concept_set_container_edited',
+                     'code_sets',
+                     'concept_set_version_item']
+
     DS = {name: load_dataset(name) for name in dataset_names}
     #  TODO: Fix this warning? (Joe: doing so will help load faster, actually)
     #   DtypeWarning: Columns (4) have mixed types. Specify dtype option on import or set low_memory=False.
@@ -91,10 +100,11 @@ def make_data_stuff():
                                 #   (https://github.com/jhu-bids/TermHub/issues/139)
                                 #   currently doing lists of tuples, will probably
                                 #   switch to dict of dicts
-        concept_name_lookup     # lookup by concept_id
         codeset_name_lookup     # lookup by concept_id
     """
     ds = Bunch(DS)
+    ds.concept_relationship = ds.concept_relationship_subsumes_only
+    ds.concept.set_index('concept_id', inplace=True)
 
     ds.subsumes = ds.concept_relationship[ds.concept_relationship.relationship_id == 'Subsumes']
     ds.links = ds.subsumes.groupby('concept_id_1')
@@ -112,13 +122,13 @@ def make_data_stuff():
         return (pcid, [connect_children(ec) if type(ec)==tuple else ec for ec in expanded_cids])
     ds.connect_children = connect_children
 
-    ds.concept_name_lookup = ds.concept_set_members[['concept_id', 'concept_name']] \
-        .drop_duplicates() \
-        .set_index('concept_name') \
-        .groupby('concept_id').groups
-    # [(cid, len(names)) for cid, names in concept_name_lookup.items() if len(names) > 1]    # should be 1-to-1
-    for cid, names in ds.concept_name_lookup.items():
-        ds.concept_name_lookup[cid] = names[0]
+    # ds.concept_name_lookup = ds.concept_set_members[['concept_id', 'concept_name']] \
+    #     .drop_duplicates() \
+    #     .set_index('concept_name') \
+    #     .groupby('concept_id').groups
+    # # [(cid, len(names)) for cid, names in concept_name_lookup.items() if len(names) > 1]    # should be 1-to-1
+    # for cid, names in ds.concept_name_lookup.items():
+    #     ds.concept_name_lookup[cid] = names[0]
 
     ds.codeset_name_lookup = ds.concept_set_members[['codeset_id', 'concept_set_name']] \
         .drop_duplicates() \
@@ -254,6 +264,30 @@ def codeset_info(codeset_id: Union[str, None] = Query(default=[]), codeset_ids=[
     return json.loads(df.to_json(orient='records'))
 
 
+def cid_data(rec_format, dsi, cid, parent=-1, level=0):
+    rec = {'level': int(level), "ConceptID": ds.concept.loc[cid].concept_name, } | dsi.cset_name_columns
+    if rec_format == 'xo':
+        rec = {"ConceptID": (' -- ' * level) + ds.concept.loc[cid].concept_name, } | dsi.cset_name_columns
+    if rec_format == 'flat':
+        rec = {'concept_id': int(cid),
+               'concept_name': ds.concept.loc[cid].concept_name,
+               'level': int(level),
+               'codeset_ids': dsi.codesets_by_concept_id[cid] if cid in dsi.codesets_by_concept_id else None, }
+    return rec
+
+
+def nested_list_generator(lines, rec_format, dsi, child_cids_func):
+    def nested_list(cids, parent=-1, level=0):
+        cids = set(cids)
+        for cid in cids:
+            d = cid_data(rec_format, dsi, cid, parent, level)
+            lines.append(d)
+            children: List[int] = child_cids_func(cid)
+            if children:
+                nested_list(children, parent=cid, level=level+1)
+    return nested_list
+
+
 # TODO: the following is just based on concept_relationship
 #       should also check whether relationships exist in concept_ancestor
 #       that aren't captured here
@@ -263,7 +297,7 @@ def codeset_info(codeset_id: Union[str, None] = Query(default=[]), codeset_ids=[
 # Example: http://127.0.0.1:8000/cr-hierarchy?codeset_id=818292046&codeset_id=484619125&codeset_id=400614256
 @APP.get("/cr-hierarchy")  # maybe junk, or maybe start of a refactor of above
 def cr_hierarchy(
-    format: str='default',
+    rec_format: str='default',
     codeset_id: Union[str, None] = Query(default=[]),
 ) -> Dict:
 
@@ -271,103 +305,51 @@ def cr_hierarchy(
     dsi = data_stuff_for_codeset_ids(requested_codeset_ids)
 
     lines = []
-    def cid_data(cid: int, parent=-1, level=0):
-        # fastapi jsonencoder keeps choking on the ints
+    nested_list_generator(lines, rec_format, dsi, dsi.child_cids)(dsi.top_level_cids)
 
-        rec = {
-                  # 'concept_id': int(cid),
-                  # 'concept_name': concept_name_lookup[cid],
-                  # 'codeset_ids': dsi.codesets_by_concept_id[cid],
-                  'level': int(level),
-                  # 'parent': int(parent),
-                  "ConceptID": ds.concept_name_lookup[cid],
-              } | dsi.cset_name_columns
-        if format == 'xo':
-            rec = {
-              "ConceptID": (' -- ' * level) + ds.concept_name_lookup[cid],
-            } | dsi.cset_name_columns
-        if format == 'flat':
-            rec = {
-                'concept_id': int(cid),
-                'concept_name': ds.concept_name_lookup[cid],
-                'level': int(level),
-                'codeset_ids': dsi.codesets_by_concept_id[cid] if cid in dsi.codesets_by_concept_id else None,
-                  }  # | dsi.cset_name_columns
-
-        return rec
-
-    # TODO: Figure out how to get to return what we need, instead of doing transformation below
-    def nested_list(cids: List[int], parent=-1, level=0):
-        cids = set(cids)
-        for cid in cids:
-            d = cid_data(cid, parent, level)
-            lines.append(d)
-            children: List[int] = dsi.child_cids(cid)
-            if children:
-    #             print('    ', children)
-    #             c = set(children) - cids
-                nested_list(children, parent=cid, level=level+1)
-    nested_list(dsi.top_level_cids)
-
-    # TODO: Sort related
-
-    result = {'concept_membership': lines, 'csets_info': dsi.csets_info,
-              'related_csets': dsi.related.to_dict(orient='records'), }
+    result = {'flattened_concept_hierarchy': lines,
+              'csets_info': dsi.csets_info,
+              'related_csets': dsi.related.to_dict(orient='records'),
+              'concept_set_members_i': json.loads(dsi.concept_set_members_i.to_json(orient='records'))
+              }
     return result
-    # return json.loads(df.to_json(orient='records'))
 
 
 @APP.get("/new-hierarchy-stuff")  # maybe junk, or maybe start of a refactor of above
-def new_hierarch_stuff(
-        format: str='default',
+def new_hierarchy_stuff(
+        rec_format: str='default',
         codeset_id: Union[str, None] = Query(default=[]), ) -> List[Dict]:
+    """
+    The only difference between cr_hierarchy and new_hierarchy_stuff is whether the
+    child_cids function is from ds or dsi -- that is, is it filtered to codeset_ids or not?
+    And the only difference in output appears to be a few records in flattened_concept_hierarchy (used to be `lines`)
 
+           http://127.0.0.1:8000/cr-hierarchy?rec_format=flat&codeset_id=400614256|411456218|419757429|484619125|818292046|826535586
+    http://127.0.0.1:8000/new-hierarchy-stuff?rec_format=flat&codeset_id=400614256|411456218|419757429|484619125|818292046|826535586
+    {
+        "flattened_concept_hierarchy": [],  // 965 items in cr_hierarchy, 991 items in new_hierarchy_stuff
+        "csets_info": {},                   // 6 items
+        "related_csets": [],                // 208 items
+        "concept_set_members_i": []         // 1629 items
+    }
+    I haven't figured out what the difference is yet and whether it matters.
+    TODO: come back and figure it out later and generally deal with how to filter in datasets.py and
+          which versions of datasets to load, and how hierarchy is generated -- does it include concepts
+          outside the selected concept sets or not?
+    """
     requested_codeset_ids = parse_codeset_ids(codeset_id)
     dsi = data_stuff_for_codeset_ids(requested_codeset_ids)
 
-
-
-
     lines = []
-    def cid_data(cid, parent=-1, level=0):
-        # fastapi jsonencoder keeps choking on the ints
-
-        rec = {
-                  # 'concept_id': int(cid),
-                  # 'concept_name': ds.concept_name_lookup[cid],
-                  # 'codeset_ids': dsi.codesets_by_concept_id[cid],
-                  'level': int(level),
-                  # 'parent': int(parent),
-                  "ConceptID": ds.concept_name_lookup[cid],
-              } | dsi.cset_name_columns
-        if format == 'xo':
-            rec = {
-                      "ConceptID": (' -- ' * level) + ds.concept_name_lookup[cid],
-                  } | dsi.cset_name_columns
-        if format == 'flat':
-            rec = {
-                'concept_id': int(cid),
-                'concept_name': ds.concept_name_lookup[cid],
-                'level': int(level),
-                'codeset_ids': dsi.codesets_by_concept_id[cid] if cid in dsi.codesets_by_concept_id else None,
-            }  # | dsi.cset_name_columns
-
-        return rec
-
-    def nested_list(cids, parent=-1, level=0):
-        cids = set(cids)
-        for cid in cids:
-            d = cid_data(cid, parent, level)
-            lines.append(d)
-            children = ds.child_cids(cid)
-            if children:
-                #             print('    ', children)
-                #             c = set(children) - cids
-                nested_list(children, parent=cid, level=level+1)
-
-    nested_list(dsi.top_level_cids)
-    result = {'lines': lines, 'csets_info': dsi.csets_info, 'related_csets': dsi.related, }
+    nested_list_generator(lines, rec_format, dsi, ds.child_cids)(dsi.top_level_cids)
+    result = {'flattened_concept_hierarchy': lines,
+              'csets_info': dsi.csets_info,
+              'related_csets': dsi.related.to_dict(orient='records'),
+              'concept_set_members_i': json.loads(dsi.concept_set_members_i.to_json(orient='records'))
+              }
     return result
+
+
     # return json.loads(df.to_json(orient='records'))
 
 

@@ -261,7 +261,8 @@ def transform(dataset_name: str) -> pd.DataFrame:
 
     """Data transformations"""
     dataset_funcs = {  # todo: using introspection, can remove need for this if function names are consistent w/ files
-        'concept': transform_dataset__concept,
+        # skip filtering for now
+        # 'concept': transform_dataset__concept,
         'concept_set_members': transform_dataset__concept_set_members,
         'concept_relationship': transform_dataset__concept_relationship,
         'concept_ancestor': transform_dataset__concept_ancestor,

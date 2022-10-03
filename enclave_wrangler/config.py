@@ -33,12 +33,11 @@ FAVORITE_DATASETS = OrderedDict({
         'rid': 'ri.foundry.main.dataset.5cb3c4a3-327a-47bf-a8bf-daf0cafe6772',
         'sort_idx': ['concept_id'],
     },
-    # skip loading for now
-    # 'concept_ancestor': {  # transform depends on: concept_set_members transform
-    #     'name': 'concept_ancestor',
-    #     'rid': 'ri.foundry.main.dataset.c5e0521a-147e-4608-b71e-8f53bcdbe03c',
-    #     'sort_idx': ['ancestor_concept_id', 'descendant_concept_id'],
-    # },
+    'concept_ancestor': {  # transform depends on: concept_set_members transform
+        'name': 'concept_ancestor',
+        'rid': 'ri.foundry.main.dataset.c5e0521a-147e-4608-b71e-8f53bcdbe03c',
+        'sort_idx': ['ancestor_concept_id', 'descendant_concept_id'],
+    },
     'concept_relationship': {  # transform depends on: concept_set_members transform
         'name': 'concept_relationship',
         'rid': 'ri.foundry.main.dataset.0469a283-692e-4654-bb2e-26922aff9d71',

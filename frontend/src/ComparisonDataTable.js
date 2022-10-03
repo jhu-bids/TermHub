@@ -38,7 +38,7 @@ createTheme('custom-theme', {
 
 function ComparisonDataTable(props) {
     let {data} = props;
-    let {csets_info, concept_membership} = data;
+    let {csets_info, flattened_concept_hierarchy} = data;
 
     console.log(props);
     let cset_columns = Object.keys(csets_info).map(codeset_id => {
@@ -151,7 +151,7 @@ function ComparisonDataTable(props) {
             theme="custom-theme"
             // theme="light"
             columns={columns}
-            data={concept_membership}
+            data={flattened_concept_hierarchy}
             customStyles={customStyles}
 
             dense
