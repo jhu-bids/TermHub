@@ -310,11 +310,18 @@ def cr_hierarchy(
     lines = []
     nested_list_generator(lines, rec_format, dsi, dsi.child_cids)(dsi.top_level_cids)
 
+    all_csets = df = ds.concept_set_members.groupby(['codeset_id', 'concept_set_name', 'version','archived']
+                                                    )['concept_id'].nunique().reset_index().rename(columns={'concept_id': 'concepts'})
+
     result = {'flattened_concept_hierarchy': lines,
+              # 'csets_info': json.loads(dsi.csets_info.to_json(orient='records')),
               'csets_info': dsi.csets_info,
               'related_csets': dsi.related.to_dict(orient='records'),
               'concept_set_members_i': json.loads(dsi.concept_set_members_i.to_json(orient='records')),
+              # 'all_csets': json.loads(dsi.all_csets.to_json(orient='records'))
+              'all_csets': json.loads(all_csets.to_json(orient='records'))
               }
+
     return result
 
 
