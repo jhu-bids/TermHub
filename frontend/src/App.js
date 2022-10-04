@@ -97,20 +97,25 @@ function DataContainer(props) {
   // TODO: use cr hierarchy
   //let url = enabled ? backend_url('cr-hierarchy?rec_format=xo&codeset_id=' + codeset_ids.join('|'))
   let enabled = !!codeset_ids.length
-  // let url = backend_url('cr-hierarchy?rec_format=flat&codeset_id=' + codeset_ids.join('|'))
-  let url = backend_url('new-hierarchy-stuff?rec_format=flat&codeset_id=' + codeset_ids.join('|'))
+  let url = backend_url('cr-hierarchy?rec_format=flat&codeset_id=' + codeset_ids.join('|'))
+  // let url = backend_url('new-hierarchy-stuff?rec_format=flat&codeset_id=' + codeset_ids.join('|'))
   const { isLoading, error, data, isFetching } = useQuery([url], () => {
-    return axios.get(url).then((res) => {return res.data})
+    const get = axios.get(url).then((res) => {
+      return res.data
+    })
+    console.log(`getting ${url}`, get);
+    return get;
   }, {enabled});
   let msg = enabled
       ? (isLoading && <p>Loading from {url}...</p>) ||
       (error && <p>An error has occurred with {url}: {error.stack}</p>) ||
       (isFetching && <p>Updating from {url}...</p>)
-      : "Choose one or more concept sets";
+      : '';
 
   return (
       <div>
         <RoutesContainer cset_data={data} {...props} />
+        {msg}
       </div>
   );
 }

@@ -76,62 +76,9 @@ function CsetSearch(props) {
   let {codeset_ids=[], cset_data={}} = props;
   let {csets_info, flattened_concept_hierarchy, related_csets=[],
        concept_set_members_i, all_csets=[], } = cset_data;
-
-
-  let url = backend_url('cset-versions');
-
   const [value, setValue] = useState('');
   const [inputValue, setInputValue] = useState('');
   const [searchParams, setSearchParams] = useSearchParams();
-
-  /*
-  const { isLoading, error, data, isFetching } = useQuery([url], () =>
-    axios
-      .get(url)
-      .then((res) => {
-        Object.keys(res.data).forEach(csetName => {
-          // delete junk concept set names
-          if (csetName === 'null'             || // no name
-              csetName.match(/^\d*$/) || // name is all digits
-              csetName.match(/^ /)       // name starts with space
-          ) {
-            delete res.data[csetName]
-          }
-        })
-        // let data = Object.entries(res.data[0]).map(([csetName,v], i) => ({label: csetName, version: v[0].version, codeset_id: v[0].codeset_id}))
-        let data = Object.entries(res.data).map(
-          ([csetName,v], i) => {
-            v = v.sort((a,b) => a.version - b.version)
-            return {
-              label: csetName + (v.length > 1 ? ` (${v.length} versions)` : ''),
-              codeset_id: v.at(-1).codeset_id
-              // versions: v.map(d=>d.version).join(', '),
-              // v,
-              // latest: v.at(-1),
-            }
-          })
-        return data
-      })
-  );
-  useEffect(() => {
-    if (!data || !data.length) return
-    let selectedCids = value && value.map(d => d.codeset_id).sort() || []
-    if (!_.isEqual(codeset_ids, selectedCids)) {
-      //console.log(value)
-      //console.log(urlCids)
-      let selection = (data || []).filter(d => codeset_ids.includes(d.codeset_id));
-      console.log('changing search box', selectedCids, 'to', selection);
-      setValue(selection);
-    }
-  }, [codeset_ids, data]);
-  if (isLoading) {
-    return "Loading...";
-  }
-  if (error) {
-    console.error(error.stack)
-    return "An error has occurred: " + error.stack;
-  }
-*/
 
   // need to include codeset_id in label because there are sometimes two csets with same name
   //  and same version number, and label acts as key
@@ -139,67 +86,24 @@ function CsetSearch(props) {
     label: `${d.codeset_id} - ${d.concept_set_name} v${d.version}${d.archived ? 'x' : ''} (${d.concepts})`,
     id: d.codeset_id,
   }))
+
+  const autocomplete = (
+      // https://mui.com/material-ui/react-autocomplete/
+      <Autocomplete
+          disablePortal
+          id="add-codeset-id"
+          options={opts}
+          blurOnSelect={true}
+          clearOnBlur={true}
+          sx={{ width: 300 }}
+          renderInput={(params) => <TextField {...params} label="Add concept set" />}
+          onChange={(event, newValue) => {
+            setSearchParams({codeset_id: [...codeset_ids, newValue.id]})
+          }}
+      />);
   return (
     <div style={{padding:'9px', }}>
-      {/* <pre>getting data from: {url}</pre> */}
-      {/* https://mui.com/material-ui/react-autocomplete/ */}
-      {/* New way: manual state control; gets values from URL */}
-      <Autocomplete
-        disablePortal
-        id="combo-box-demo"
-        options={opts}
-        blurOnSelect={true}
-        sx={{ width: 300 }}
-        renderInput={(params) => <TextField {...params} label="Add concept set" />}
-        onChange={(event, newValue) => {
-          setSearchParams({codeset_id: [...codeset_ids, newValue.id]})
-        }}
-      />
-      {/*
-      <Autocomplete
-        // multiple
-        size="small"
-        fullWidth={true}
-        //disablePortal
-
-        // value={value}
-        /*
-        isOptionEqualToValue={(option, value) => {
-          return option.codeset_id === value.codeset_id
-        }}
-        * /
-        onChange={(event, newValue) => {
-          setValue(newValue);
-          let ids = newValue.map(d=>d.codeset_id)
-          setSearchParams({codeset_id: ids})
-        }}
-        inputValue={inputValue}
-        onInputChange={(event, newInputValue) => {
-          // I think this is for changes in the options
-          // setInputValue(newInputValue);
-        }}
-
-        id="combo-box-demo-new"
-        options={data}
-        sx={{ width: 300 }}
-        renderInput={(params) => (
-            <TextField {...params}
-                size="medium"
-                label="Concept sets" />)}
-        /*
-        renderTags={(value, getTagProps) =>
-          value.map((option, index) => (
-            <Chip
-              variant="outlined"
-              label={option.label}
-              size="small"
-              {...getTagProps({ index })}
-            />
-          ))
-        }
-        * /
-      />
-      */}
+      {autocomplete}
     </div>)
   /* want to group by cset name and then list version. use https://mui.com/material-ui/react-autocomplete/ Grouped
      and also use Multiple Values */

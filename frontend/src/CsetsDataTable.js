@@ -224,7 +224,7 @@ function CsetsDataTable(props) {
                 selectableRowsHighlight
                 selectableRowSelected={rowSelectCritera}
                 onSelectedRowsChange={handleSelectionChange}
-                subHeaderAlign="right"
+                subHeaderAlign="left"
                 subHeaderWrap
                 // sortFunction={customSort}
             />

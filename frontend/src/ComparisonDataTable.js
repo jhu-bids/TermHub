@@ -98,7 +98,7 @@ function ComparisonDataTable(props) {
         headRow: {
             style: {
                 // backgroundColor: theme.background.default,
-                height: '152px',
+                height: '182px',
                 // borderBottomWidth: '1px',
                 // borderBottomColor: theme.divider.default,
                 borderBottomStyle: 'solid',
