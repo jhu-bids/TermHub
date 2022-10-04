@@ -217,8 +217,20 @@ def transform_dataset__concept_set_members(dataset_name: str) -> pd.DataFrame:
         # dtype={'archived': bool},    # doesn't work because of missing values
         converters={'archived': lambda v: v and True or False},  # this makes it a bool field
         keep_default_na=False).fillna('')
-    df = transforms_common(df, dataset_name)
+    # JOIN
+    try:
+        # Note: Depends on `code_sets.csv` now -- don't load concept_set_members unless codeset exists
+        # don't have to do that anymore, I think
+        cs_df = pd.read_csv(
+            os.path.join(CSV_TRANSFORM_DIR, 'code_sets.csv'), keep_default_na=False).fillna('')
+        codeset_ids = set(cs_df['codeset_id'])
+        df = df[df['codeset_id'].isin(codeset_ids)]
+    except FileNotFoundError:
+        print('Warning: Tried transforming code_sets.csv, but concept_set_container_edited.csv must be downloaded and '
+              'transformed first. Try running again after this process completes. Eventually need to do these '
+              'transformations dependency ordered fashion.', file=sys.stderr)
 
+    df = transforms_common(df, dataset_name)
     return df
 
 
@@ -229,9 +241,11 @@ def transform_dataset__code_sets(dataset_name: str) -> pd.DataFrame:
 
     # JOIN
     try:
+        # Note: Depends on `concept_set_container.csv` -- don't load code_sets unless container exists
         # Note: Depends on `concept_set_container_edited.csv`, but there is no transform for it. So, read from DL dir.
+        # don't have to do that anymore, I think
         csc_df = pd.read_csv(
-            os.path.join(CSV_DOWNLOAD_DIR, 'concept_set_container_edited.csv'), keep_default_na=False).fillna('')
+            os.path.join(CSV_TRANSFORM_DIR, 'concept_set_container_edited.csv'), keep_default_na=False).fillna('')
         container_concept_set_name_ids = set(csc_df['concept_set_id'])
         df = df[df['concept_set_name'].isin(container_concept_set_name_ids)]
     except FileNotFoundError:
@@ -252,11 +266,13 @@ def transforms_common(df: pd.DataFrame, dataset_name) -> pd.DataFrame:
     return df
 
 
+# TODO: currently overwrites if download is newer than prepped. should also overwrite if dependency
+#   prepped files are newer than this
 def transform(dataset_name: str) -> pd.DataFrame:
     ipath = os.path.join(CSV_DOWNLOAD_DIR, dataset_name + '.csv')
     opath = os.path.join(CSV_TRANSFORM_DIR, dataset_name + '.csv')
     if os.path.exists(opath) and os.path.getctime(ipath) < os.path.getctime(opath):
-        print(f'transformed file is newer than downloaded file. If you really want to transform again, delete {opath} and try again.')
+        print(f'Skipping {dataset_name}: transformed file is newer than downloaded file. If you really want to transform again, delete {opath} and try again.')
         return pd.DataFrame()
 
     """Data transformations"""

@@ -23,6 +23,16 @@ config = {
 
 # Ordered because of transformation dependencies
 FAVORITE_DATASETS = OrderedDict({
+    'concept_set_container_edited': {
+        'name': 'concept_set_container_edited',
+        'rid': 'ri.foundry.main.dataset.8cb458de-6937-4f50-8ef5-2b345382dbd4',
+        'sort_idx': ['concept_set_name'],
+    },
+    'code_sets': {  # transform depends on: concept_set_container_edited untransformed
+        'name': 'code_sets',
+        'rid': 'ri.foundry.main.dataset.7104f18e-b37c-419b-9755-a732bfa33b03',
+        'sort_idx': ['codeset_id'],
+    },
     'concept_set_members': {
         'name': 'concept_set_members',
         'rid': 'ri.foundry.main.dataset.e670c5ad-42ca-46a2-ae55-e917e3e161b6',
@@ -42,16 +52,6 @@ FAVORITE_DATASETS = OrderedDict({
         'name': 'concept_relationship',
         'rid': 'ri.foundry.main.dataset.0469a283-692e-4654-bb2e-26922aff9d71',
         'sort_idx': ['concept_id_1', 'concept_id_2'],
-    },
-    'concept_set_container_edited': {
-        'name': 'concept_set_container_edited',
-        'rid': 'ri.foundry.main.dataset.8cb458de-6937-4f50-8ef5-2b345382dbd4',
-        'sort_idx': ['concept_set_name'],
-    },
-    'code_sets': {  # transform depends on: concept_set_container_edited untransformed
-        'name': 'code_sets',
-        'rid': 'ri.foundry.main.dataset.7104f18e-b37c-419b-9755-a732bfa33b03',
-        'sort_idx': ['codeset_id'],
     },
     'concept_set_version_item': {
         'name': 'concept_set_version_item',
