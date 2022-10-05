@@ -101,7 +101,6 @@ def make_data_stuff():
                                 #   currently doing lists of tuples, will probably
                                 #   switch to dict of dicts
         codeset_name_lookup     # lookup by concept_id
-        csets_info              # code_set_i with container info columns appended
     """
     ds = Bunch(DS)
 
@@ -141,8 +140,6 @@ def make_data_stuff():
     for cset_id, names in ds.codeset_name_lookup.items():
         ds.codeset_name_lookup[cset_id] = names[0]
 
-    # ds.csets_info = ds.code_sets.merge(ds.concept_set_container_edited, on='concept_set_name')
-
     print('Done building global ds objects')
     return ds
 
@@ -156,7 +153,6 @@ def data_stuff_for_codeset_ids(codeset_ids):
             df_concept_set_members_i
             df_concept_relationship_i
         and other stuff:
-            # csets_info              # code_set_i with container info columns appended
             concept_ids             # union of all the concept_ids across the requested codesets
             related                 # sorted list of related concept sets
             codesets_by_concept_id  # lookup codeset_ids a concept_id belongs to (in dsi instead of ds because of possible performance impacts)
@@ -173,15 +169,11 @@ def data_stuff_for_codeset_ids(codeset_ids):
     dsi.concept_relationship_i = ds.concept_relationship[
         (ds.concept_relationship.concept_id_1.isin(dsi.concept_set_members_i.concept_id)) &
         (ds.concept_relationship.concept_id_2.isin(dsi.concept_set_members_i.concept_id)) &
-        (ds.concept_relationship.concept_id_1 != ds.concept_relationship.concept_id_2)   &
-        # (ds.concept_relationship.relationship_id == 'Subsumes')
+        (ds.concept_relationship.concept_id_1 != ds.concept_relationship.concept_id_2)
+        # & (ds.concept_relationship.relationship_id == 'Subsumes')
         ]
 
-    # dsi.csets_info = {int(ci['codeset_id']): ci for ci in codeset_info(codeset_ids=codeset_ids, dsi=dsi)}  # append container info columns
-    # dsi.csets_info = dsi.code_sets_i.merge(ds.concept_set_container_edited, on='concept_set_name')
-    # casting as int here isn't working. in json results, still shows as a string key
-
-    all_csets = (ds.codesets.merge(ds.concept_set_container, suffixes=['_version', '_container'],
+    all_csets = (ds.code_sets.merge(ds.concept_set_container_edited, suffixes=['_version', '_container'],
                                   on='concept_set_name')
                     .merge(ds.concept_set_members
                                 .groupby('codeset_id')['concept_id']
@@ -189,17 +181,18 @@ def data_stuff_for_codeset_ids(codeset_ids):
                             on='codeset_id'))
 
     all_csets = all_csets[['codeset_id', 'concept_set_version_title', 'is_most_recent_version',
-                           'intention_x', 'intention_y', 'limitations', 'issues', 'update_message',
+                           'intention_version', 'intention_container', 'limitations', 'issues', 'update_message',
                            'has_review', 'provenance', 'authoritative_source', 'project_id',
-                           'status_x', 'status_y', 'stage', 'archived', 'concepts']]
+                           'status_version', 'status_container', 'stage', 'archived', 'concepts']]
 
     all_csets['selected'] = all_csets['codeset_id'].isin(codeset_ids)
 
-    # TODO: I think most of these datasets can be combined into all_csets
-    #       still need to add column for whether the cset is in the related csets group
-    #       and then can get rid of dsi.related, I think
-
     dsi.concept_ids = dsi.concept_set_members_i.concept_id.unique()
+
+    dsi.related_codeset_ids = ds.concept_set_members[ds.concept_set_members.concept_id.isin(dsi.concept_ids)].codeset_id.unique()
+
+    all_csets['related'] = all_csets['codeset_id'].isin(dsi.related_codeset_ids)
+    dsi.all_csets = all_csets.drop_duplicates().sort_values(by=['selected', 'concepts'], ascending=False)
 
     # dsi.subsumes = dsi.concept_relationship_i[dsi.concept_relationship_i.relationship_id == 'Subsumes']
     dsi.links = dsi.concept_relationship_i.groupby('concept_id_1')
@@ -208,14 +201,6 @@ def data_stuff_for_codeset_ids(codeset_ids):
         if cid in dsi.links.groups.keys():
             return [int(c) for c in dsi.links.get_group(cid).concept_id_2.unique() if c != cid]
     dsi.child_cids = child_cids
-
-    related_csm = ds.concept_set_members[ds.concept_set_members.concept_id.isin(dsi.concept_ids)]
-    c = pd.DataFrame({'selected': related_csm.codeset_id.isin(codeset_ids)})
-    related_csm['selected'] = c  # not sure how to get around SettingWithCopyWarning
-    dsi.related = related_csm.groupby(['selected', 'codeset_id', 'concept_set_name', 'version']
-                                      )['concept_id'].nunique().reset_index() \
-                        .rename(columns={'concept_id': 'concepts'}) \
-                        .sort_values(by=['selected', 'concepts'], ascending=False)
 
     dsi.codesets_by_concept_id = dsi.concept_set_members_i[['concept_id', 'codeset_id']] \
         .drop_duplicates() \
@@ -361,12 +346,8 @@ def cr_hierarchy(
     lines = []
     nested_list_generator(lines, rec_format, dsi, dsi.child_cids)(dsi.top_level_cids)
 
-    # all_csets = df = ds.concept_set_members.groupby(['codeset_id', 'concept_set_name', 'version','archived']
-    #                                                 )['concept_id'].nunique().reset_index().rename(columns={'concept_id': 'concepts'})
-
     result = {'flattened_concept_hierarchy': lines,
-              'csets_info': json.loads(dsi.csets_info.to_json(orient='records')),
-              'related_csets': dsi.related.to_dict(orient='records'),
+              # 'related_csets': dsi.related.to_dict(orient='records'),
               'concept_set_members_i': json.loads(dsi.concept_set_members_i.to_json(orient='records')),
               'all_csets': json.loads(dsi.all_csets.to_json(orient='records'))
               }
@@ -386,7 +367,6 @@ def new_hierarchy_stuff(
     http://127.0.0.1:8000/new-hierarchy-stuff?rec_format=flat&codeset_id=400614256|411456218|419757429|484619125|818292046|826535586
     {
         "flattened_concept_hierarchy": [],  // 965 items in cr_hierarchy, 991 items in new_hierarchy_stuff
-        "csets_info": {},                   // 6 items
         "related_csets": [],                // 208 items
         "concept_set_members_i": []         // 1629 items
     }
@@ -405,8 +385,7 @@ def new_hierarchy_stuff(
                                   )['concept_id'].nunique().reset_index().rename(columns={'concept_id': 'concepts'})
 
     result = {'flattened_concept_hierarchy': lines,
-              'csets_info': dsi.csets_info,
-              'related_csets': dsi.related.to_dict(orient='records'),
+              # 'related_csets': dsi.related.to_dict(orient='records'),
               'concept_set_members_i': json.loads(dsi.concept_set_members_i.to_json(orient='records')),
               'all_csets': json.loads(all_csets.to_json(orient='records'))
               }

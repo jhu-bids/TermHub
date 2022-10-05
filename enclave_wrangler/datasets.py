@@ -215,7 +215,7 @@ def transform_dataset__concept_set_members(dataset_name: str) -> pd.DataFrame:
     df = pd.read_csv(
         os.path.join(CSV_DOWNLOAD_DIR, dataset_name + '.csv'),
         # dtype={'archived': bool},    # doesn't work because of missing values
-        converters={'archived': lambda v: v and True or False},  # this makes it a bool field
+        converters={'archived': lambda x: True if x == 'True' else False},  # this makes it a bool field
         keep_default_na=False).fillna('')
     # JOIN
     try:
@@ -268,7 +268,8 @@ def transforms_common(df: pd.DataFrame, dataset_name) -> pd.DataFrame:
 
 # TODO: currently overwrites if download is newer than prepped. should also overwrite if dependency
 #   prepped files are newer than this
-def transform(dataset_name: str) -> pd.DataFrame:
+def transform(fav: dict) -> pd.DataFrame:
+    dataset_name: str = fav['name']
     ipath = os.path.join(CSV_DOWNLOAD_DIR, dataset_name + '.csv')
     opath = os.path.join(CSV_TRANSFORM_DIR, dataset_name + '.csv')
     if os.path.exists(opath) and os.path.getctime(ipath) < os.path.getctime(opath):
@@ -290,14 +291,15 @@ def transform(dataset_name: str) -> pd.DataFrame:
     if func:
         df = func(dataset_name)
     else:
-        df = pd.read_csv(ipath, keep_default_na=False).fillna('')
+        converters = fav.get('converters') or {}
+        df = pd.read_csv(ipath, keep_default_na=False, converters=converters).fillna('')
         df = transforms_common(df, dataset_name)
 
     df.to_csv(opath, index=False)
     return df
 
 
-def run(
+def run( fav,
     dataset_name: str = None, dataset_rid: str = None, ref: str = 'master', outdir: str = None, outpath: str = None,
     transforms_only=False
 ) -> pd.DataFrame:
@@ -321,7 +323,7 @@ def run(
         df: pd.DataFrame = download_and_combine_dataset_parts(dataset_rid, file_parts, outpath=outpath)
 
     # Transform
-    df2: pd.DataFrame = transform(dataset_name)
+    df2: pd.DataFrame = transform(fav)
 
     return df2 if len(df2) > 0 else df
 
@@ -331,7 +333,7 @@ def run_favorites(outdir: str = CSV_DOWNLOAD_DIR, transforms_only=False, specifi
     for fav in FAVORITE_DATASETS.values():
         if not specific or fav['name'] in specific:
             outpath = os.path.join(outdir, fav['name'] + '.csv')
-            run(dataset_name=fav['name'], outpath=outpath, transforms_only=transforms_only)
+            run(fav=fav, dataset_name=fav['name'], outpath=outpath, transforms_only=transforms_only, )
 
 
 def get_parser():
