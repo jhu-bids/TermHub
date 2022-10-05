@@ -47,10 +47,10 @@ function ComparisonDataTable(props) {
             let def = {
                 // id: ____?,
                 name: ci.concept_set_version_title,
-                selector: row => row.selected ? '\u2713' : '',
-                // selector: row => {
-                //     return row.codeset_ids.includes(parseInt(ci.codeset_id)) ? '\u2713' : '';
-                // },
+                // selector: row => row.selected ? '\u2713' : '',
+                selector: row => {
+                    return row.codeset_ids.includes(parseInt(ci.codeset_id)) ? '\u2713' : '';
+                },
                 // sortable: true,
                 compact: true,
                 width: '50px',
@@ -118,6 +118,7 @@ function ComparisonDataTable(props) {
                 // transform: 'translate(0px,30px)',
                 // height: '100%',
                 // position: 'absolute',
+                fontSize: '120%',
                 overflow: 'visible',
                 verticalAlign: 'bottom', // doesn't work
                 marginTop: 'auto',
@@ -129,6 +130,7 @@ function ComparisonDataTable(props) {
         },
         rows: {
             style: {
+                color: 'black',
                 minHeight: 'auto', // override the row height
                 borderLeft: '0.5px solid #BBB',
             },
@@ -153,7 +155,7 @@ function ComparisonDataTable(props) {
             theme="custom-theme"
             // theme="light"
             columns={columns}
-            data={flattened_concept_hierarchy}
+            data={props.nested ? flattened_concept_hierarchy : props.nodups}
             customStyles={customStyles}
 
             dense

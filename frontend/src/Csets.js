@@ -12,16 +12,17 @@ import axios from "axios";
 import {Table, ComparisonTable} from "./Table";
 import {ComparisonDataTable} from "./ComparisonDataTable";
 import {CsetsDataTable} from "./CsetsDataTable";
+import ConceptSetCard from "./ConceptSetCard";
 import {ReactQueryDevtools} from "@tanstack/react-query-devtools";
-import List from "@mui/material/List";
-import ListItem from "@mui/material/ListItem";
 import TextField from '@mui/material/TextField';
 import Autocomplete from '@mui/material/Autocomplete';
+import Button from '@mui/material/Button';
 import Chip from '@mui/material/Chip';
 import { Link, Outlet, useHref, useNavigate, useParams, useSearchParams, useLocation } from "react-router-dom";
-import _ from 'lodash';
+import {max, omit, uniq, } from 'lodash';
 
 import {backend_url} from './App';
+import Typography from "@mui/material/Typography";
 
 //TODO: How to get hierarchy data?
 // - It's likely in one of the datasets we haven't downloaded yet. When we get it, we can do indents.
@@ -113,16 +114,12 @@ function CsetSearch(props) {
 }
 
 function ConceptSetsPage(props) {
+  const {codeset_ids=[], cset_data={}} = props;
+  const {flattened_concept_hierarchy=[], concept_set_members_i=[], all_csets=[], } = cset_data;
   let navigate = useNavigate();
-  const codeset_ids = props.codeset_ids || [];
   let enabled = !!codeset_ids.length
 
-  // pre-2022/09/07 url (for temporary reference):
-  // let url = backend_url('fields-from-objlist?') +
-  //     [
-  //       'objtype=OMOPConceptSet',
-  //       'filter=codeset_id:' + codeset_ids.join('|')
-  //     ].join('&')
+  // will replace this fetch with stuff from cset_data...
   let url = backend_url('concept-sets-with-concepts?concept_field_filter=concept_id&concept_field_filter=concept_name&codeset_id=' + codeset_ids.join('|'))
 
   const { isLoading, error, data, isFetching } = useQuery([url], () => {
@@ -142,9 +139,6 @@ function ConceptSetsPage(props) {
     navigate(`/OMOPConceptSet/${rowData.codeset_id}`)
   }
 
-
-  //function applySearchFilter(filteredData, setFilteredData) { }
-
   let link = <a href={url}>{url}</a>;
   let msg = enabled
               ? (isLoading && <p>Loading from {link}...</p>) ||
@@ -162,10 +156,12 @@ function ConceptSetsPage(props) {
           // todo: Create component: <ConceptSetsPanels>
           (codeset_ids.length > 0) && data && (
             <div style={{
-              marginTop: '20px',
               display: 'flex',
-              flexDirection: 'row',
               flexWrap: 'wrap',
+              flexDirection: 'row',
+              margin: '20px',
+              /*
+               */
               // height: '90vh',
               // alignItems: 'stretch',
               // border: '1px solid green',
@@ -176,48 +172,21 @@ function ConceptSetsPage(props) {
               // flex: '0 0 100%',
             }}>
               {data.map(cset => {
-                let widestConceptName = _.max(Object.values(cset.concepts).map(d => d.concept_name.length))
-                return <ConceptSetCard key={cset.codeset_id} cset={cset} widestConceptName={widestConceptName}
-                                       cols={Math.min(4, data.length)}/>
+                let widestConceptName = max(Object.values(cset.concepts).map(d => d.concept_name.length))
+                return (all_csets.length && cset)
+                       ? <ConceptSetCard  {...props}
+                                        codeset_id={cset.codeset_id}
+                                        // switch to using data from cset_data -- passed down props
+                                        key={cset.codeset_id}
+                                        cset={cset}
+                                        widestConceptName={widestConceptName}
+                                        cols={Math.min(4, data.length)}/>
+                      : ''
               })}
             </div>)
         }
         {/*<p>I am supposed to be the results of <a href={url}>{url}</a></p>*/}
       </div>)
-}
-function ConceptSetCard(props) {
-  let {cset, cols} = props;
-  return (
-      // (isLoading && "Loading...") ||
-      // (error && `An error has occurred: ${error.stack}`) ||
-      // (isFetching && "Updating...") ||
-      // (data && <div style={{
-      (<div style={{
-        flex: '1 1 auto',
-        height: '400px',    // can't figure out how to make these fill but not overfill the window with rows
-        width: '300px',
-        padding: '1px 15px 1px 15px',
-        margin: '5px 5px 5px 5px',
-        border: '5px 5px 5px 5px',
-        background: '#d3d3d3',
-        borderRadius: '10px',
-        // width: Math.floor(100 / cols) + 'vh',
-      }}>
-        <h4>{cset.concept_set_name/*conceptSetNameOMOP*/} v{cset.version}</h4>
-        <List style={{height: '70%', overflowX: 'clip', overflowY: 'scroll'}}>
-          {Object.values(cset.concepts).map((concept, i) => {
-            return <ListItem style={{
-              margin: '3px 3px 3px 3px',
-              background: '#dbdbdb',
-              borderRadius: '5px',
-              fontSize: '0.8em'
-            }} key={i}>
-              {concept.concept_id}: {concept.concept_name}
-            </ListItem>
-          })}
-        </List>
-      </div>)
-  )
 }
 
 // TODO: Find concepts w/ good overlap and save a good URL for that
@@ -225,10 +194,23 @@ function ConceptSetCard(props) {
 // TODO: Color table: I guess would need to see if could pass extra values/props and see if table widget can use that
 //  ...for coloration, since we want certain rows grouped together
 function CsetComparisonPage(props) {
+  const {codeset_ids=[], cset_data={}} = props;
+  let {flattened_concept_hierarchy=[], concept_set_members_i=[], all_csets=[], } = cset_data;
   console.log(props);
+  const [nested, setNested] = useState(true);
+  let nodups = flattened_concept_hierarchy.map(d => omit(d, ['level', ]))
+  nodups = uniq(nodups.map(d => JSON.stringify(d))).map(d => JSON.parse(d))
   return (
       <div>
-        <ComparisonDataTable {...props} />
+        <h5 style={{margin:20, }}>
+          <Button onClick={() => setNested(true)}>
+            {flattened_concept_hierarchy.length} lines in nested list.
+          </Button>
+          <Button onClick={() => setNested(false)}>
+            {nodups.length} lines without nesting
+          </Button>
+        </h5>
+        <ComparisonDataTable nodups={nodups} nested={nested} {...props} />
       </div>)
 }
 
