@@ -8,7 +8,7 @@ import os
 import errno
 from pathlib import Path
 from subprocess import call as sp_call
-from typing import Any, Dict, List, Union
+from typing import Any, Dict, List, Union, Callable, Set
 
 import numpy as np
 import pandas as pd
@@ -24,6 +24,8 @@ from enclave_wrangler.config import config, FAVORITE_DATASETS
 DEBUG = True
 PROJECT_DIR = Path(os.path.dirname(__file__)).parent
 CSV_PATH = f'{PROJECT_DIR}/termhub-csets/datasets/prepped_files/'
+DS = None  # Contains all the datasets as a dict
+ds = None  # Contains all datasets, transformed datasets, and a few functions as a nameespace
 
 def load_dataset(ds_name):
     try:
@@ -104,33 +106,36 @@ def make_data_stuff():
     """
     ds = Bunch(DS)
 
+    # Filters out any concepts w/ no name
     ds.concept_set_members = ds.concept_set_members[ds.concept_set_members.concept_set_name.str.len() > 0]
-    # TODO: try this later. will require filtering other stuff also?
+    # TODO: try this later. will require filtering other stuff also? This will be useful for provenance
     # ds.concept_set_members = ds.concept_set_members[~ds.concept_set_members.archived]
     # ds.data_messages = [
     #     'concept_set_members filtered to exclude concept sets with empty names'
     #     'concept_set_members filtered to exclude archived concept set'
     # ]
 
-
     ds.concept.set_index('concept_id', inplace=True)
 
+    # Reassign; we only care about the subsumes_only
     # ds.subsumes = ds.concept_relationship[ds.concept_relationship.relationship_id == 'Subsumes']
     ds.concept_relationship = ds.concept_relationship_subsumes_only
     ds.links = ds.concept_relationship.groupby('concept_id_1')
 
     def child_cids(cid):
+        """Return list of `concept_id_2` for each `concept_id_1` (aka all its children)"""
         if cid in ds.links.groups.keys():
             return [int(c) for c in ds.links.get_group(cid).concept_id_2.unique() if c != cid]
     ds.child_cids = child_cids
 
-
+    # todo: Not being used yet. Will use when doing hierarchical stuff later.
     def connect_children(pc): # how to declare this should be tuple of int or None and list of ints
         pcid, cids = pc
         pcid in cids and cids.remove(pcid)
         expanded_cids = [ds.child_cids(cid) for cid in cids]
         return (pcid, [connect_children(ec) if type(ec)==tuple else ec for ec in expanded_cids])
     ds.connect_children = connect_children
+
 
     ds.codeset_name_lookup = ds.concept_set_members[['codeset_id', 'concept_set_name']] \
         .drop_duplicates() \
@@ -173,35 +178,40 @@ def data_stuff_for_codeset_ids(codeset_ids):
         # & (ds.concept_relationship.relationship_id == 'Subsumes')
         ]
 
-    all_csets = (ds.code_sets.merge(ds.concept_set_container_edited, suffixes=['_version', '_container'],
-                                  on='concept_set_name')
-                    .merge(ds.concept_set_members
-                                .groupby('codeset_id')['concept_id']
-                                .nunique().reset_index().rename(columns={'concept_id': 'concepts'}),
-                            on='codeset_id'))
+    # Take codesets, and merge on container. Add to each version. Certain versions have the same name, hence suffix
+    # ...The merge on `concept_set_members` is used for concept counts for each codeset version.
+    all_csets = ds.code_sets.merge(
+        ds.concept_set_container_edited, suffixes=['_version', '_container'], on='concept_set_name').merge(
+        ds.concept_set_members.groupby('codeset_id')['concept_id'].nunique().reset_index().rename(
+            columns={'concept_id': 'concepts'}), on='codeset_id')
 
-    all_csets = all_csets[['codeset_id', 'concept_set_version_title', 'is_most_recent_version',
-                           'intention_version', 'intention_container', 'limitations', 'issues', 'update_message',
-                           'has_review', 'provenance', 'authoritative_source', 'project_id',
-                           'status_version', 'status_container', 'stage', 'archived', 'concepts']]
+    all_csets = all_csets[[
+        'codeset_id', 'concept_set_version_title', 'is_most_recent_version', 'intention_version', 'intention_container',
+        'limitations', 'issues', 'update_message', 'has_review', 'provenance', 'authoritative_source', 'project_id',
+        'status_version', 'status_container', 'stage', 'archived', 'concepts']]
 
     all_csets['selected'] = all_csets['codeset_id'].isin(codeset_ids)
 
-    dsi.concept_ids = dsi.concept_set_members_i.concept_id.unique()
-
-    dsi.related_codeset_ids = ds.concept_set_members[ds.concept_set_members.concept_id.isin(dsi.concept_ids)].codeset_id.unique()
-
+    # Get related codeset IDs
+    concept_ids: Set[int] = set(dsi.concept_set_members_i.concept_id.unique())
+    dsi.related_codeset_ids = ds.concept_set_members[
+        ds.concept_set_members.concept_id.isin(concept_ids)].codeset_id.unique()
     all_csets['related'] = all_csets['codeset_id'].isin(dsi.related_codeset_ids)
+
+    # Drop duplicates & sort
     dsi.all_csets = all_csets.drop_duplicates().sort_values(by=['selected', 'concepts'], ascending=False)
 
-    # dsi.subsumes = dsi.concept_relationship_i[dsi.concept_relationship_i.relationship_id == 'Subsumes']
+    # Get relationships for selected code sets
     dsi.links = dsi.concept_relationship_i.groupby('concept_id_1')
 
+    # Get child `concept_id`
     def child_cids(cid):
+        """Closure for geting child concept IDs"""
         if cid in dsi.links.groups.keys():
             return [int(c) for c in dsi.links.get_group(cid).concept_id_2.unique() if c != cid]
     dsi.child_cids = child_cids
 
+    # For a given `concept_id`, get a list of `codeset_id` that it appears in
     dsi.codesets_by_concept_id = dsi.concept_set_members_i[['concept_id', 'codeset_id']] \
         .drop_duplicates() \
         .set_index('codeset_id') \
@@ -209,12 +219,10 @@ def data_stuff_for_codeset_ids(codeset_ids):
     for cid, codeset_ids in dsi.codesets_by_concept_id.items():
         dsi.codesets_by_concept_id[cid] = [int(codeset_id) for codeset_id in codeset_ids]
 
-
-    dsi.top_level_cids = list(dsi.concept_relationship_i[
-                              ~dsi.concept_relationship_i.concept_id_1.isin(dsi.concept_relationship_i.concept_id_2)
-                          ].concept_id_1.unique())
-
-    dsi.cset_name_columns = {ds.codeset_name_lookup[codeset_id]: u'\N{check mark}' for codeset_id in codeset_ids}
+    # Top level concept IDs for the root of our flattened hierarchy
+    dsi.top_level_cids = list(
+        dsi.concept_relationship_i[~dsi.concept_relationship_i.concept_id_1.isin(dsi.concept_relationship_i.concept_id_2)
+        ].concept_id_1.unique())
 
     return dsi
 
@@ -276,19 +284,22 @@ def csetVersions() -> Union[Dict, List]:
 
 
 def cid_data(rec_format, dsi, cid, parent=-1, level=0):
-    rec = {'level': int(level), "ConceptID": ds.concept.loc[cid].concept_name, } | dsi.cset_name_columns
-    if rec_format == 'xo':
-        rec = {"ConceptID": (' -- ' * level) + ds.concept.loc[cid].concept_name, } | dsi.cset_name_columns
+    """Concept ID data: DESCRIPTION"""
     if rec_format == 'flat':
         rec = {'concept_id': int(cid),
                'concept_name': ds.concept.loc[cid].concept_name,
                'level': int(level),
                'codeset_ids': dsi.codesets_by_concept_id[cid] if cid in dsi.codesets_by_concept_id else None, }
+    else:
+        raise NotImplemented(f'No such format {rec_format}!')
     return rec
 
 
-def nested_list_generator(lines, rec_format, dsi, child_cids_func):
+def nested_list_generator(lines: List, rec_format, dsi, child_cids_func: Callable):
+    """`lines` variable that it puts data into. Passes back `nested_list` func w/ copies of vars that you passed int.
+    `rec_format`: Record format"""
     def nested_list(cids, parent=-1, level=0):
+        """Closure. Updates the `lines` variable from outer scope that was passed here during generation."""
         cids = set(cids)
         for cid in cids:
             d = cid_data(rec_format, dsi, cid, parent, level)
@@ -341,13 +352,15 @@ def cr_hierarchy(
 ) -> Dict:
 
     requested_codeset_ids = parse_codeset_ids(codeset_id)
+    # A namespace (like `ds`) specifically for these codeset IDs.
     dsi = data_stuff_for_codeset_ids(requested_codeset_ids)
 
     lines = []
     nested_list_generator(lines, rec_format, dsi, dsi.child_cids)(dsi.top_level_cids)
 
-    all_csets = df = ds.concept_set_members.groupby(['codeset_id', 'concept_set_name', 'version','archived']
-                                                    )['concept_id'].nunique().reset_index().rename(columns={'concept_id': 'concepts'})
+    all_csets = df = ds.concept_set_members.groupby(
+        ['codeset_id', 'concept_set_name', 'version','archived']
+    )['concept_id'].nunique().reset_index().rename(columns={'concept_id': 'concepts'})
 
     result = {'flattened_concept_hierarchy': lines,
               # 'related_csets': dsi.related.to_dict(orient='records'),

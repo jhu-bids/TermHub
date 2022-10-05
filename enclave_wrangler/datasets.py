@@ -166,8 +166,8 @@ def transform_dataset__concept_relationship(dataset_name: str) -> pd.DataFrame:
               'transformations dependency ordered fashion.', file=sys.stderr)
 
     # Filter
-    df2 = df[df['relationship_id'] == 'Is a']
-    df2.to_csv(os.path.join(CSV_TRANSFORM_DIR, 'concept_relationship_is_a.csv'), index=False)
+    df2 = df[df['relationship_id'] == 'Subsumes']
+    df2.to_csv(os.path.join(CSV_TRANSFORM_DIR, 'concept_relationship_subsumes_only.csv'), index=False)
 
     return df
 
