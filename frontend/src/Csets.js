@@ -73,19 +73,22 @@ function ConceptList(props) {
     @ SIggie: is this fixed?
 */
 function CsetSearch(props) {
-  let {codeset_ids=[], cset_data={}} = props;
-  let {csets_info, flattened_concept_hierarchy, related_csets=[],
-       concept_set_members_i, all_csets=[], } = cset_data;
+  const {codeset_ids=[], cset_data={}} = props;
+  const {flattened_concept_hierarchy=[], concept_set_members_i=[], all_csets=[], } = cset_data;
   const [value, setValue] = useState('');
   const [inputValue, setInputValue] = useState('');
   const [searchParams, setSearchParams] = useSearchParams();
 
   // need to include codeset_id in label because there are sometimes two csets with same name
   //  and same version number, and label acts as key
-  const opts = all_csets.map(d => ({
-    label: `${d.codeset_id} - ${d.concept_set_name} v${d.version}${d.archived ? 'x' : ''} (${d.concepts})`,
-    id: d.codeset_id,
-  }))
+  const opts = (
+      all_csets
+          .filter(d => !d.selected)
+          .map(d => ({
+            label: `${d.codeset_id} - ${d.concept_set_version_title} ` +
+                   `${d.archived ? 'archived' : ''} (${d.concepts} concepts)`,
+            id: d.codeset_id,
+  })));
 
   const autocomplete = (
       // https://mui.com/material-ui/react-autocomplete/
@@ -95,7 +98,7 @@ function CsetSearch(props) {
           options={opts}
           blurOnSelect={true}
           clearOnBlur={true}
-          sx={{ width: 300 }}
+          sx={{ width: '100%', }}
           renderInput={(params) => <TextField {...params} label="Add concept set" />}
           onChange={(event, newValue) => {
             setSearchParams({codeset_id: [...codeset_ids, newValue.id]})
@@ -223,26 +226,10 @@ function ConceptSetCard(props) {
 //  ...for coloration, since we want certain rows grouped together
 function CsetComparisonPage(props) {
   console.log(props);
-  /* moved the data stuff to App.js, now it gets passed down to here */
-  const data = props.cset_data || {}
   return (
       <div>
-        {/* <CsetSearch {...props} relatedCsets={data && data.related_csets || []}/> */}
-        {
-          (data && data.csets_info && (<div>
-            <ComparisonDataTable
-                data={data}
-            />
-            {/*
-            <ComparisonTable
-              rowData={data}
-              firstColName={'ConceptID'}
-            />
-            */}
-          </div>))
-        }
+        <ComparisonDataTable {...props} />
       </div>)
 }
-
 
 export {ConceptSetsPage, CsetComparisonPage, };

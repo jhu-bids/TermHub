@@ -37,26 +37,28 @@ createTheme('custom-theme', {
 //  Internally, customStyles will deep merges your customStyles with the default styling.
 
 function ComparisonDataTable(props) {
-    let {data} = props;
-    let {csets_info, flattened_concept_hierarchy} = data;
+    const {codeset_ids=[], cset_data={}} = props;
+    const {flattened_concept_hierarchy=[], concept_set_members_i=[], all_csets=[], } = cset_data;
 
     console.log(props);
-    let cset_columns = Object.keys(csets_info).map(codeset_id => {
-        let ci = csets_info[codeset_id]
-        let def = {
-            // id: ____?,
-            name: ci.concept_set_version_title,
-            selector: row => {
-                return row.codeset_ids.includes(parseInt(codeset_id)) ? '\u2713' : '';
-            },
-            // sortable: true,
-            compact: true,
-            width: '50px',
-            // maxWidth: 50,
-            center: true,
-        }
-        return def;
-    })
+    let cset_columns = (all_csets
+        .filter(d => codeset_ids.includes(d.codeset_id))
+        .map(ci => {
+            let def = {
+                // id: ____?,
+                name: ci.concept_set_version_title,
+                selector: row => row.selected ? '\u2713' : '',
+                // selector: row => {
+                //     return row.codeset_ids.includes(parseInt(ci.codeset_id)) ? '\u2713' : '';
+                // },
+                // sortable: true,
+                compact: true,
+                width: '50px',
+                // maxWidth: 50,
+                center: true,
+            }
+            return def;
+    }));
     let columns = [
         // { name: 'level', selector: row => row.level, },
         {

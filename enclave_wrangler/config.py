@@ -27,7 +27,8 @@ FAVORITE_DATASETS = OrderedDict({
         'name': 'concept_set_container_edited',
         'rid': 'ri.foundry.main.dataset.8cb458de-6937-4f50-8ef5-2b345382dbd4',
         'sort_idx': ['concept_set_name'],
-    },
+        'converters': {'archived': lambda x: True if x == 'True' else False},  # this makes it a bool field
+},
     'code_sets': {  # transform depends on: concept_set_container_edited untransformed
         'name': 'code_sets',
         'rid': 'ri.foundry.main.dataset.7104f18e-b37c-419b-9755-a732bfa33b03',

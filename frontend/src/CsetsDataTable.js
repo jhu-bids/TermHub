@@ -39,8 +39,10 @@ createTheme('custom-theme', {
 //  Internally, customStyles will deep merges your customStyles with the default styling.
 
 function CsetsDataTable(props) {
-    let {codeset_ids, cset_data} = props;
-    let {csets_info, flattened_concept_hierarchy, related_csets, concept_set_members_i} = cset_data;
+    const {codeset_ids=[], cset_data={}} = props;
+    const {flattened_concept_hierarchy=[], concept_set_members_i=[], all_csets=[], } = cset_data;
+
+    const related_csets = all_csets.filter(d => d.related)
 
     console.log('CsetsDataTable props: ', props);
     const [selectedRows, setSelectedRows] = React.useState(false);
@@ -59,14 +61,21 @@ function CsetsDataTable(props) {
         // { name: 'level', selector: row => row.level, },
         {
             name: 'Concept set name',
-            selector: row => `${row.concept_set_name} (v${row.version})`,
+            // selector: row => `${row.concept_set_name} (v${row.version})`,
+            selector: row => row.concept_set_version_title,
             wrap: true,
             compact: true,
         },
         {
             name: 'Concepts',
             selector: row => row.concepts,
-            wrap: true,
+            compact: true,
+            width: '70px',
+            center: true,
+        },
+        {
+            name: 'Archived',
+            selector: row => row.archived ? '\u2713' : '',
             compact: true,
             width: '70px',
             center: true,

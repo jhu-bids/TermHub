@@ -2,6 +2,11 @@
   /* text-align: center; */
 }
 
+.MuiAutocomplete-option {
+  padding: 0px;
+  margin: 0px;
+  line-height: 10px;
+}
 .comparison-data-table .rdt_TableHeadRow > div + div
 {
   overflow: visible;
