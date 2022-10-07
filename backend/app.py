@@ -192,6 +192,7 @@ def data_stuff_for_codeset_ids(codeset_ids):
     # Drop duplicates & sort
     dsi.all_csets = all_csets.drop_duplicates().sort_values(by=['selected', 'concepts'], ascending=False)
 
+    # Add columns for % overlap: 1) % of selected csets' concepts and 2) % of related cset's concepts
     dsi.concept_set_members_r = ds.concept_set_members[
         ds.concept_set_members['codeset_id'].isin(dsi.related_codeset_ids)]
 
