@@ -1,0 +1,33 @@
+# curie_map:,,,,,,,,,,,
+#  ICD10CM: http://purl.bioontology.org/ontology/ICD10CM/,,,,,,,,,,,
+#  OMOP: https://athena.ohdsi.org/search-terms/terms/,,,,,,,,,,,
+#  SNOMED: https://athena.ohdsi.org/search-terms/terms/,,,,,,,,,,,
+#  license: http://w3id.org/sssom/license/unspecified,,,,,,,,,,,
+#  skos: http://www.w3.org/2004/02/skos/core#,,,,,,,,,,,
+#  semapv: https://w3id.org/semapv,,,,,,,,,,,
+#  BIOPORTAL_ICD10CM: https://data.bioontology.org/ontologies/ICD10CM/submissions/22/download?apikey=8b5b7825-538d-40e0-9e9e-5ab9274a9aeb,,,,,,,,,,,
+,,,,,,,,,,,
+# curie_map:,,,,,,,,,,,
+#   ICD10CM: http://apps.who.int/classifications/icd10/browse/2010/en#/,,,,,,,,,,,
+#   SNOMED: http://www.snomedbrowser.com/Codes/Details/,,,,,,,,,,,
+,,,,,,,,,,,
+# mapping_set_id: http://w3id.org/sssom/mappings/< may need to create one>,,,,,,,,,,,
+subject_id,subject_label,predicate_id,object_id,object_label,confidence,mapping_justification,comment,mapping_date,author_id,subject_source_version,object_source_version
+ICD10CM:I28,Other diseases of pulmonary vessels,skos:narrower,SNOMED: 433208,Disorder of pulmonary circulation,1,semapv:LexicalMatching,omop vocabulary concept relationship,6-Oct-2022,orcid:0000-0002-0795-1293,BIOPORTAL_ICD10CM:8b5b7825-538d-40e0-9e9e-5ab9274a9aeb,v5.0 09-SEP-22
+ICD10CM:I28,Other diseases of pulmonary vessels,skos:narrower,OMOP:433208,Disorder of pulmonary circulation,1,semapv:LexicalMatching,omop vocabulary concept relationship,6-Oct-2022,orcid:0000-0002-0795-1293,BIOPORTAL_ICD10CM:8b5b7825-538d-40e0-9e9e-5ab9274a9aeb,v5.0 09-SEP-22
+ICD10CM:Z59.0,Homelessness,skos:exactMatch,SNOMED:4139934,Homeless,1,semapv:LexicalMatching,omop vocabulary concept relationship,6-Oct-2022,orcid:0000-0002-0795-1293,BIOPORTAL_ICD10CM:8b5b7825-538d-40e0-9e9e-5ab9274a9aeb,v5.0 09-SEP-22
+ICD10CM:Z59.0,Homelessness,skos:exactMatch,OMOP:4139934,Homelessness,1,semapv:LexicalMatching,,6-Oct-2022,orcid:0000-0002-0795-1293,BIOPORTAL_ICD10CM:8b5b7825-538d-40e0-9e9e-5ab9274a9aeb,v5.0 09-SEP-22
+ICD10CM:R87.619,Unspecified abnormal cytological findings in specimens from cervix uteri,skos:narrower,SNOMED:4171912,Abnormal cytological finding in specimen from female genital organ,1,semapv:LexicalMatching,omop vocabulary concept relationship,6-Oct-2022,orcid:0000-0002-0795-1293,BIOPORTAL_ICD10CM:8b5b7825-538d-40e0-9e9e-5ab9274a9aeb,v5.0 09-SEP-22
+ICD10CM:R87.619,Abnormal cytological finding in specimen from female genital organ,skos:exactMatch,OMOP:4171912,Unspecified abnormal cytological findings in specimens from cervix uteri,1,semapv:LexicalMatching,omop vocabulary concept relationship,6-Oct-2022,orcid:0000-0002-0795-1293,BIOPORTAL_ICD10CM:8b5b7825-538d-40e0-9e9e-5ab9274a9aeb,v5.0 09-SEP-22
+ICD10CM:T44.6X2A,"Poisoning by alpha-adrenoreceptor antagonists, intentional self-harm, initial encounter",skos:exactMatch,SNOMED:4152376,Intentional self poisoning,1,semapv:LexicalMatching,omop vocabulary concept relationship,6-Oct-2022,orcid:0000-0002-0795-1293,BIOPORTAL_ICD10CM:8b5b7825-538d-40e0-9e9e-5ab9274a9aeb,v5.0 09-SEP-22
+ICD10CM:T44.6X2A,"Poisoning by alpha-adrenoreceptor antagonists, intentional self-harm, initial encounter",skos:exactMatch,OMOP:4152376,Intentional self poisoning,1,semapv:LexicalMatching,omop vocabulary concept relationship,6-Oct-2022,orcid:0000-0002-0795-1293,BIOPORTAL_ICD10CM:8b5b7825-538d-40e0-9e9e-5ab9274a9aeb,v5.0 09-SEP-22
+ICD10CM:T44.6X2A,"Poisoning by alpha-adrenoreceptor antagonists, intentional self-harm, initial encounter",skos:exactMatch,SNOMED:442767,Poisoning by antiadrenergic drug,1,semapv:LexicalMatching,omop vocabulary concept relationship,6-Oct-2022,orcid:0000-0002-0795-1293,BIOPORTAL_ICD10CM:8b5b7825-538d-40e0-9e9e-5ab9274a9aeb,v5.0 09-SEP-22
+ICD10CM:T44.6X2A,"Poisoning by alpha-adrenoreceptor antagonists, intentional self-harm, initial encounter",skos:exactMatch,OMOP:442767,Poisoning by antiadrenergic drug,1,semapv:LexicalMatching,omop vocabulary concept relationship,6-Oct-2022,orcid:0000-0002-0795-1293,BIOPORTAL_ICD10CM:8b5b7825-538d-40e0-9e9e-5ab9274a9aeb,v5.0 09-SEP-22
+ICD10CM:T44.6X2A,"Poisoning by alpha-adrenoreceptor antagonists, intentional self-harm, initial encounter",skos:exactMatch,SNOMED:4196024,Intentional poisoning by drug,1,semapv:LexicalMatching,omop vocabulary concept relationship,6-Oct-2022,orcid:0000-0002-0795-1293,BIOPORTAL_ICD10CM:8b5b7825-538d-40e0-9e9e-5ab9274a9aeb,v5.0 09-SEP-22
+ICD10CM:T44.6X2A,"Poisoning by alpha-adrenoreceptor antagonists, intentional self-harm, initial encounter",skos:exactMatch,OMOP:4196024,Intentional poisoning by drug,1,semapv:LexicalMatching,omop vocabulary concept relationship,6-Oct-2022,orcid:0000-0002-0795-1293,BIOPORTAL_ICD10CM:8b5b7825-538d-40e0-9e9e-5ab9274a9aeb,v5.0 09-SEP-22
+ICD10CM:T44.6X2A,"Poisoning by alpha-adrenoreceptor antagonists, intentional self-harm, initial encounter",skos:exactMatch,SNOMED:439235,Self inflicted injury,1,semapv:LexicalMatching,omop vocabulary concept relationship,6-Oct-2022,orcid:0000-0002-0795-1293,BIOPORTAL_ICD10CM:8b5b7825-538d-40e0-9e9e-5ab9274a9aeb,v5.0 09-SEP-22
+ICD10CM:T44.6X2A,"Poisoning by alpha-adrenoreceptor antagonists, intentional self-harm, initial encounter",skos:exactMatch,OMOP:439235,Self inflicted injury,1,semapv:LexicalMatching,omop vocabulary concept relationship,6-Oct-2022,orcid:0000-0002-0795-1293,BIOPORTAL_ICD10CM:8b5b7825-538d-40e0-9e9e-5ab9274a9aeb,v5.0 09-SEP-22
+ICD10CM:I97.810,Intraoperative cerebvasc infarction during cardiac surgery,skos:exactMatch,SNOMED:40479572,Infarct of cerebrum due to iatrogenic cerebrovascular accident,1,semapv:LexicalMatching,omop vocabulary concept relationship,6-Oct-2022,orcid:0000-0002-0795-1293,BIOPORTAL_ICD10CM:8b5b7825-538d-40e0-9e9e-5ab9274a9aeb,v5.0 09-SEP-22
+ICD10CM:I97.810,Intraoperative cerebvasc infarction during cardiac surgery,skos:exactMatch,OMOP: 40479572,Infarct of cerebrum due to iatrogenic cerebrovascular accident,1,semapv:LexicalMatching,omop vocabulary concept relationship,6-Oct-2022,orcid:0000-0002-0795-1293,BIOPORTAL_ICD10CM:8b5b7825-538d-40e0-9e9e-5ab9274a9aeb,v5.0 09-SEP-22
+ICD10CM:I21,Acute myocardial infarction,skos:exactMatch,SNOMED:312327,Acute myocardial infarction,1,semapv:LexicalMatching,omop vocabulary concept relationship,6-Oct-2022,orcid:0000-0002-0795-1293,BIOPORTAL_ICD10CM:8b5b7825-538d-40e0-9e9e-5ab9274a9aeb,v5.0 09-SEP-22
+ICD10CM:I21,Acute myocardial infarction,skos:exactMatch,OMOP:312327,Acute myocardial infarction,1,semapv:LexicalMatching,omop vocabulary concept relationship,6-Oct-2022,orcid:0000-0002-0795-1293,BIOPORTAL_ICD10CM:8b5b7825-538d-40e0-9e9e-5ab9274a9aeb,v5.0 09-SEP-22
