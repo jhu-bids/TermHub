@@ -57,6 +57,7 @@ function CsetsDataTable(props) {
         "selected": true
     }
     */
+    const pct_fmt = num => Number(num/100).toLocaleString(undefined,{style: 'percent', minimumFractionDigits:2});
     let columns = [
         // { name: 'level', selector: row => row.level, },
         {
@@ -65,6 +66,7 @@ function CsetsDataTable(props) {
             selector: row => row.concept_set_version_title,
             wrap: true,
             compact: true,
+            sortable: true,
         },
         {
             name: 'Concepts',
@@ -72,6 +74,31 @@ function CsetsDataTable(props) {
             compact: true,
             width: '70px',
             center: true,
+            sortable: true,
+        },
+        {
+            name: 'Shared concepts',
+            selector: row => row.intersecting_concepts,
+            compact: true,
+            width: '70px',
+            center: true,
+            sortable: true,
+        },
+        {
+            name: 'Precision',
+            selector: row => pct_fmt(row.precision),
+            compact: true,
+            width: '70px',
+            center: true,
+            sortable: true,
+        },
+        {
+            name: 'Recall',
+            selector: row => pct_fmt(row.recall),
+            compact: true,
+            width: '70px',
+            center: true,
+            sortable: true,
         },
         {
             name: 'Archived',
@@ -79,6 +106,7 @@ function CsetsDataTable(props) {
             compact: true,
             width: '70px',
             center: true,
+            sortable: true,
         },
     ];
     /*

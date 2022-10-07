@@ -190,14 +190,30 @@ def data_stuff_for_codeset_ids(codeset_ids):
     all_csets['related'] = all_csets['codeset_id'].isin(dsi.related_codeset_ids)
 
     # Drop duplicates & sort
-    dsi.all_csets = all_csets.drop_duplicates().sort_values(by=['selected', 'concepts'], ascending=False)
+    all_csets = all_csets.drop_duplicates().sort_values(by=['selected', 'concepts'], ascending=False)
 
     # Add columns for % overlap: 1) % of selected csets' concepts and 2) % of related cset's concepts
     dsi.concept_set_members_r = ds.concept_set_members[
-        ds.concept_set_members['codeset_id'].isin(dsi.related_codeset_ids)]
+        ds.concept_set_members['codeset_id'].isin(dsi.related_codeset_ids)
+        ].drop_duplicates()
+
+    # dsi.concept_set_members_i.merge(dsi.concept_set_members_r, how='right', on='codeset_id').drop_duplicates()
+
+    g = dsi.concept_set_members_r.groupby('codeset_id')
+    r_with_intersecting_cids = g.apply(lambda r: set(r.concept_id).intersection(concept_ids))
+    if len(r_with_intersecting_cids):
+        x = pd.DataFrame(data={'intersecting_concept_ids': r_with_intersecting_cids,})
+        x['intersecting_concepts'] = x.intersecting_concept_ids.apply(lambda r: len(r))
+        x.drop('intersecting_concept_ids', axis=1, inplace=True)
+        all_csets = all_csets.merge(x, how='left', on='codeset_id')
+        all_csets = all_csets.convert_dtypes({'intersecting_concepts': 'int'})
+        all_csets['recall'] = all_csets.intersecting_concepts / len(concept_ids)
+        all_csets['precision'] = all_csets.intersecting_concepts / all_csets.concepts
+    dsi.all_csets = all_csets
 
     # Get relationships for selected code sets
     dsi.links = dsi.concept_relationship_i.groupby('concept_id_1')
+
 
     # Get child `concept_id`
     def child_cids(cid):
