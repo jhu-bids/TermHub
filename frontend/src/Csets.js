@@ -19,7 +19,7 @@ import Autocomplete from '@mui/material/Autocomplete';
 import Button from '@mui/material/Button';
 import Chip from '@mui/material/Chip';
 import { Link, Outlet, useHref, useNavigate, useParams, useSearchParams, useLocation } from "react-router-dom";
-import {max, } from 'lodash';
+import {max, omit, uniq, } from 'lodash';
 
 import {backend_url} from './App';
 import Typography from "@mui/material/Typography";
@@ -194,7 +194,25 @@ function ConceptSetsPage(props) {
 // TODO: Color table: I guess would need to see if could pass extra values/props and see if table widget can use that
 //  ...for coloration, since we want certain rows grouped together
 function CsetComparisonPage(props) {
-  return <ComparisonDataTable {...props} />
+  const {codeset_ids=[], cset_data={}} = props;
+  let {flattened_concept_hierarchy=[], concept_set_members_i=[], all_csets=[], } = cset_data;
+  console.log(props);
+  const [nested, setNested] = useState(true);
+  let nodups = flattened_concept_hierarchy.map(d => omit(d, ['level', ]))
+  nodups = uniq(nodups.map(d => JSON.stringify(d))).map(d => JSON.parse(d))
+  // return <ComparisonDataTable {...props} />
+  return (
+      <div>
+        <h5 style={{margin:20, }}>
+          <Button variant={nested ? "contained" : "outlined" } onClick={() => setNested(true)}>
+            {flattened_concept_hierarchy.length} lines in nested list.
+          </Button>
+          <Button  variant={nested ? "outlined" : "contained"} sx={{marginLeft: '20px'}} onClick={() => setNested(false)}>
+            {nodups.length} lines without nesting
+          </Button>
+        </h5>
+        <ComparisonDataTable nodups={nodups} nested={nested} {...props} />
+      </div>)
 }
 
 export {ConceptSetsPage, CsetComparisonPage, };

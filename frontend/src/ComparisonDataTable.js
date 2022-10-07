@@ -4,6 +4,7 @@ import {createSearchParams} from "react-router-dom";
 import Button from "@mui/material/Button";
 import {omit, uniq, } from 'lodash';
 
+
 function ComparisonDataTable(props) {
     const {codeset_ids=[], cset_data={}} = props;
     const {flattened_concept_hierarchy=[], concept_set_members_i=[], all_csets=[], } = cset_data;
@@ -12,47 +13,35 @@ function ComparisonDataTable(props) {
     nodups = uniq(nodups.map(d => JSON.stringify(d))).map(d => JSON.parse(d))
 
     const customStyles = styles();
-    const [columns, setColumns] = useState(colConfig(props));
+    // const [columns, setColumns] = useState(colConfig(props));
+    const columns = colConfig(props);
 
-    useEffect(() => {
-        setColumns(colConfig(props));
-    }, [nested]);  // maybe not necessary to have location in dependencies
 
+    // TODO: Datatable is getting cut off vertically, as if it's in an iframe, but it has no scroll bar.
     return (
         /* https://react-data-table-component.netlify.app/ */
-        <div>
-            <h5 style={{margin:20, }}>
-                <Button onClick={() => setNested(true)}>
-                    {flattened_concept_hierarchy.length} lines in nested list.
-                </Button>
-                <Button onClick={() => setNested(false)}>
-                    {nodups.length} lines without nesting
-                </Button>
-            </h5>
-            <ComparisonDataTable nodups={nodups} nested={nested} {...props} />
-            <DataTable
-                className="comparison-data-table"
-                theme="custom-theme"
-                // theme="light"
-                columns={columns}
-                data={nested ? flattened_concept_hierarchy : nodups}
-                customStyles={customStyles}
+        <DataTable
+            className="comparison-data-table"
+            theme="custom-theme"
+            // theme="light"
+            columns={columns}
+            data={props.nested ? flattened_concept_hierarchy : props.nodups}
+            customStyles={customStyles}
 
-                dense
-                fixedHeader
-                fixedHeaderScrollHeight={(window.innerHeight - 275) + 'px'}
-                highlightOnHover
-                responsive
-                //striped
-                subHeaderAlign="right"
-                subHeaderWrap
-                //pagination
-                //selectableRowsComponent={Checkbox}
-                //selectableRowsComponentProps={selectProps}
-                //sortIcon={sortIcon}
-                // {...props}
-            />
-        </div>
+            dense
+            fixedHeader
+            fixedHeaderScrollHeight={(window.innerHeight - 275) + 'px'}
+            highlightOnHover
+            responsive
+            //striped
+            subHeaderAlign="right"
+            subHeaderWrap
+            //pagination
+            //selectableRowsComponent={Checkbox}
+            //selectableRowsComponentProps={selectProps}
+            //sortIcon={sortIcon}
+            // {...props}
+        />
     );
 }
 function colConfig(props) {
@@ -196,7 +185,6 @@ function styles() {
         /*
         */
     };
-
 }
 export {ComparisonDataTable};
 
