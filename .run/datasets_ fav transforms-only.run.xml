@@ -1,5 +1,5 @@
 <component name="ProjectRunConfigurationManager">
-  <configuration default="false" name="datasets: favorites" type="PythonConfigurationType" factoryName="Python" folderName="enclave_wrangler">
+  <configuration default="false" name="datasets: fav transforms-only" type="PythonConfigurationType" factoryName="Python" folderName="enclave_wrangler">
     <module name="TermHub" />
     <option name="INTERPRETER_OPTIONS" value="" />
     <option name="PARENT_ENVS" value="true" />
@@ -23,7 +23,7 @@
       </ENTRIES>
     </EXTENSION>
     <option name="SCRIPT_NAME" value="$PROJECT_DIR$/enclave_wrangler/datasets.py" />
-    <option name="PARAMETERS" value="-f -o termhub-csets/datasets/large-files-not-ready-to-push" />
+    <option name="PARAMETERS" value="-f -t" />
     <option name="SHOW_COMMAND_LINE" value="false" />
     <option name="EMULATE_TERMINAL" value="false" />
     <option name="MODULE_MODE" value="false" />

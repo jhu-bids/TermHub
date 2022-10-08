@@ -1,6 +1,10 @@
 [submodule "termhub-vocab"]
 	path = termhub-vocab
 	url = git@github.com:jhu-bids/termhub-vocab.git
+	branch = main
+	update = merge
 [submodule "termhub-csets"]
 	path = termhub-csets
 	url = git@github.com:jhu-bids/termhub-csets.git
+	branch = main
+	update = merge
