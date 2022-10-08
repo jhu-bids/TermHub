@@ -1,24 +1,42 @@
-import React, {useEffect, useState} from 'react';
+import React from 'react';
 import ReactDOM from 'react-dom/client';
-import {BrowserRouter, Routes, Route, matchPath, useLocation, useNavigate, createSearchParams} from "react-router-dom";
-import {ConceptSetsPage, CsetComparisonPage} from './Csets';
-import _ from 'lodash';
-import {App, AboutPage, QCProvider,} from './App';
+import { BrowserRouter, Routes, Route, matchPath } from "react-router-dom";
+
 import './index.css';
-import axios from "axios";
+import {App, AboutPage} from './App';
+import {ConceptSetsPage, CsetComparisonPage} from './CSets';
 // import MuiAppBar from './MuiAppBar';
 // import Table from './Table'
 // script src="http://localhost:8097"></script>
 // import reportWebVitals from './reportWebVitals';
 
+
+function ErrorPath() {
+  return <h3>Unknown path</h3>
+}
 const root = ReactDOM.createRoot(document.getElementById('root'));
 root.render(
     <BrowserRouter>
-      <QCProvider />
+      <Routes>
+
+        <Route path="/" element={<App />}>
+          {/*<Route path="ontocall" element={<EnclaveOntoAPI />} />*/}
+          <Route path="cset-comparison" element={<CsetComparisonPage/>} />
+          {/* <Route path="cset-comparison/:conceptId" element={<ConceptSet />} /> */}
+          <Route path="OMOPConceptSets" element={<ConceptSetsPage />} />
+          <Route path="about" element={<AboutPage />} />
+          <Route path="testing" element={<Testing />} />
+          {/* <Route path="OMOPConceptSet/:conceptId" element={<OldConceptSet />} /> */}
+          {/*<Route path=":conceptId" element={<ConceptList />}/>*/}
+          <Route path="*"  element={<ErrorPath/>} />
+        </Route>
+      </Routes>
     </BrowserRouter>
 );
 
-
+function Testing() {
+  return <h3>nothing to see here</h3>
+}
 /*
 <React.StrictMode>
 </React.StrictMode>

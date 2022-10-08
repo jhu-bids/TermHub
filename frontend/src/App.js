@@ -8,152 +8,24 @@ referred to by https://stackoverflow.com/questions/63216730/can-you-use-material
 */
 import React, {useState, useReducer, useEffect, useRef} from 'react';
 import './App.css';
-import { // Link, useHref, useParams, BrowserRouter,
-          Outlet, useNavigate, useSearchParams, useLocation,
-          createSearchParams, Routes, Route, } from "react-router-dom";
+import { Link, Outlet, useHref, useNavigate, useParams, useSearchParams, useLocation } from "react-router-dom";
 import MuiAppBar from "./MuiAppBar";
-import { // useMutation, // useQueryClient,
-          useQuery, QueryClient, QueryClientProvider, } from '@tanstack/react-query'
+import RRD from "react-router-dom";
+import {
+    // useQuery,
+    // useMutation,
+    // useQueryClient,
+    QueryClient,
+    QueryClientProvider,
+} from '@tanstack/react-query'
+import { ReactQueryDevtools } from '@tanstack/react-query-devtools'
+import { createGlobalState } from 'react-hooks-global-state';
+import _ from 'lodash';
+// wanting to install react-query and axios and use those for data fetch/cache/etc.
+//  is this helpful? https://blog.openreplay.com/fetching-and-updating-data-with-react-query
 import axios from "axios";
-import {ConceptSetsPage, CsetComparisonPage} from "./Csets";
-const API_ROOT = 'http://127.0.0.1:8000'
-// const enclave_url = path => `${API_ROOT}/passthru?path=${path}`
-const backend_url = path => `${API_ROOT}/${path}`
 
-const queryClient = new QueryClient({   // fixes constant refetch
-    // https://tanstack.com/query/v4/docs/guides/window-focus-refetching
-    defaultOptions: { queries: { refetchOnWindowFocus: false, }, }, })
-
-/* structure is:
-    <BrowserRouter>                     // from index.js root.render
-        <QCProvider>                    // all descendent components will be able to call useQuery
-            <QueryStringStateMgr>       // gets state (codeset_ids for now) from query string, passes down through props
-                <DataContainer>         // fetches data from cr-hierarchy
-                    <CsetsRoutes>       // where routes are defined (used to be directly in BrowserRouter in index.js
-                        <App>           // all routes start with App
-                            <Outlet/>   // this is where route content goes, all the other components
-                        </App>
-                    </CsetsRoutes>
-                </DataContainer>
-            <QueryStringStateMgr>
-        </QCProvider />
-    </BrowserRouter>
-*/
-function QCProvider() {
-  return (
-      <QueryClientProvider client={queryClient}>
-        <QueryStringStateMgr/>
-      </QueryClientProvider>
-  );
-}
-function QueryStringStateMgr() {
-  // gets state (codeset_ids for now) from query string, passes down through props
-  const location = useLocation();
-  const navigate = useNavigate();
-
-  const [searchParams, setSearchParams] = useSearchParams();
-  const qsKeys = Array.from(new Set(searchParams.keys()));
-  let searchParamsAsObject = {};
-  qsKeys.forEach(key => {
-    let vals = searchParams.getAll(key);
-    searchParamsAsObject[key] = vals.map(v => parseInt(v) == v ? parseInt(v) : v).sort();
-  });
-
-  // const [codeset_ids, setCodeset_ids] = useState(searchParamsAsObject.codeset_id || []);
-
-  useEffect(() => {
-    if (location.pathname == '/') {
-      navigate('/OMOPConceptSets');
-      return;
-    }
-    if (location.pathname == '/testing') {
-      const test_codeset_ids = [400614256, 411456218, 419757429, 484619125, 818292046, 826535586];
-      let params = createSearchParams({codeset_id: test_codeset_ids});
-      navigate({
-                 pathname: '/cset-comparison',
-                 search: `?${params}`,
-               });
-    }
-
-    // setCodeset_ids(searchParamsAsObject.codeset_id)
-
-  }, [location]);  // maybe not necessary to have location in dependencies
-  return (
-      <DataContainer codeset_ids={searchParamsAsObject.codeset_id}/>
-  );
-      // <DataContainer codeset_ids={codeset_ids}/>
-
-}
-/* Contains data fetched via URL query params, providing data to any pages which we've set to use this. */
-function DataContainer(props) {
-  let {codeset_ids} = props;
-  codeset_ids = codeset_ids || [];
-  // Table Variations
-  // 1. this url is for simple X/O table with no hierarchy:
-  // let url = enabled ? backend_url('concept-sets-with-concepts?concept_field_filter=concept_id&concept_field_filter=concept_name&codeset_id=' + codeset_ids.join('|'))
-  // 2. this url is for simple hierarchy using ancestor table and no direct relationshps:
-  // let url = enabled ? backend_url('cr-hierarchy?codeset_id=' + codeset_ids.join('|'))
-  // todo: 3. this url uses direct relationships:
-  // TODO: use cr hierarchy
-  //let url = enabled ? backend_url('cr-hierarchy?rec_format=xo&codeset_id=' + codeset_ids.join('|'))
-  // let enabled = !!codeset_ids.length
-  let url = backend_url('cr-hierarchy?rec_format=flat&codeset_id=' + codeset_ids.join('|'))
-  // let url = backend_url('new-hierarchy-stuff?rec_format=flat&codeset_id=' + codeset_ids.join('|'))
-  console.log('url', url)
-  const { isLoading, error, data, isFetching } = useQuery([url], () => {
-    console.log('getting it');
-    const get = axios.get(url).then((res) => {
-      console.log('got something')
-      return res.data
-    })
-    // console.log(`getting ${url}`, get);
-    return get;
-  }, /*{enabled}*/);
-  let msg =
-      (isLoading && <p>Loading from {url}...</p>) ||
-      (error && <p>An error has occurred with {url}: {error.stack}</p>) ||
-      (isFetching && <p>Updating from {url}...</p>);
-
-  return (
-      <div>
-        <RoutesContainer cset_data={data} {...props} />
-        {msg}
-      </div>
-  );
-}
-function RoutesContainer(props) {
-  console.log(props)
-  return (
-      <Routes>
-        <Route path="/" element={<App {...props} />}>
-          {/*<Route path="ontocall" element={<EnclaveOntoAPI />} />*/}
-          <Route path="cset-comparison" element={<CsetComparisonPage {...props} />} />
-          {/* <Route path="cset-comparison/:conceptId" element={<ConceptSet />} /> */}
-          <Route path="OMOPConceptSets" element={<ConceptSetsPage {...props}  />} />
-          <Route path="about" element={<AboutPage />} />
-          {/* <Route path="testing" element={<ConceptSetsPage codeset_ids={test_codeset_ids}/>} /> */}
-          {/* <Route path="OMOPConceptSet/:conceptId" element={<OldConceptSet />} /> */}
-          {/*<Route path=":conceptId" element={<ConceptList />}/>*/}
-          <Route path="*"  element={<ErrorPath/>} />
-        </Route>
-      </Routes>
-  )
-}
-function App() {
-  return (
-      <div className="App">
-        {/* <ReactQueryDevtools initialIsOpen={false} /> */ }
-        <MuiAppBar/>
-        {/* Outlet: Will render the results of whatever nested route has been clicked/activated. */}
-        <Outlet/>
-      </div>
-  );
-}
-
-function ErrorPath() {
-  return <h3>Unknown path</h3>
-}
-
+const queryClient = new QueryClient()
 
 // console.log(axios)
 // import logo from './logo.svg';
@@ -186,6 +58,55 @@ OH!! Does that mean: without a dependency list, the useEffects function will run
 
 */
 
+const { useGlobalState } = createGlobalState({qsParams:[], syncedToQs: false});
+
+function App() {
+  const location = useLocation();
+  const navigate = useNavigate();
+  //const [syncedToQs, setSyncedToQs] = useGlobalState('syncedToQs');
+  const [qsParams, setQsParams] = useGlobalState('qsParams');
+  const [searchParams, setSearchParams] = useSearchParams();
+
+  useEffect(() => {
+    if (location.pathname == '/') {
+      navigate('/OMOPConceptSets')
+    }
+    // console.log(location)
+  }, [location])  // maybe not necessary to have location in dependencies
+
+  let qsKeys = Array.from(new Set(searchParams.keys()))
+  let o = {}
+  qsKeys.forEach(key => {
+    let vals = searchParams.getAll(key)
+    o[key] = vals.map(v => parseInt(v) == v ? parseInt(v) : v).sort()
+  })
+  console.log('syncing to global state qsParams', o)
+  useEffect(() => {
+    _.isEqual(qsParams, o) || setQsParams(o)
+  }, [searchParams])
+
+  /*
+  if (!syncedToQs) {
+    if (! qsParams.length > 0) {
+      syncQsParams()
+    }
+  }
+  */
+
+
+  return (
+    <QueryClientProvider client={queryClient}>
+      <div className="App">
+          {/* <ReactQueryDevtools initialIsOpen={false} /> */ }
+        <MuiAppBar/>
+        {/* Outlet: Will render the results of whatever nested route has been clicked/activated. */}
+        <Outlet />
+      </div>
+    </QueryClientProvider>
+  );
+}
+
+
 /*
 function objectTypesData(data) {
   const someObjTypePropertiesHaveDesc = data.some(d=>Object.entries(d.properties).some(d=>d.description))
@@ -212,11 +133,9 @@ function AboutPage() {
 }
 
 
-export {QCProvider, AboutPage, backend_url};
+export {App, AboutPage, useGlobalState};
 
 // TODO: @Siggie: Can we remove this comment or we need this list of links for ref still?
-//       @Joe: we should move it to the individual concept set display component(s) as a
-//             list of all the data we could be including
 /*
 function getObjLinks() {
   // https://www.palantir.com/docs/foundry/api/ontology-resources/objects/list-linked-objects

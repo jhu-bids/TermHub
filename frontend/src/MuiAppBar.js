@@ -13,20 +13,18 @@ import Button from '@mui/material/Button';
 import Tooltip from '@mui/material/Tooltip';
 import MenuItem from '@mui/material/MenuItem';
 import AdbIcon from '@mui/icons-material/Adb';
-import {NavLink, useLocation} from "react-router-dom";
+import {Link} from "react-router-dom";
 
 const pages = [
   {name: 'Cset search', href: '/OMOPConceptSets'},
   {name: 'Cset comparison', href: '/cset-comparison'},
-  {name: 'Example comparison', href: '/testing'},
+  {name: 'Test area', href: '/testing'},
   {name: 'About', href: '/about'}
 ];
 const settings = ['About'];
 
 /* https://mui.com/material-ui/react-app-bar/ */
 const MuiAppBar = () => {
-  const {search} = useLocation();
-
   const [anchorElNav, setAnchorElNav] = React.useState(null);
   const [anchorElCsets, setAnchorElCsets] = React.useState(null);
   const [anchorElUser, setAnchorElUser] = React.useState(null);
@@ -85,10 +83,7 @@ const MuiAppBar = () => {
             }}
         >
           {pages.map((page) => (
-              <MenuItem key={page.name}
-                        component={NavLink}
-                        to={`${page.href}${search}`}
-                        onClick={handleCloseNavMenu}>
+              <MenuItem key={page.name} component={Link} to={page.href} onClick={handleCloseNavMenu}>
                 <Typography textAlign="center">{page.name}</Typography>
               </MenuItem>
           ))}
@@ -154,8 +149,7 @@ const MuiAppBar = () => {
         {pages.map((page) => (
             <Button
                 key={page.name}
-                component={NavLink} // NavLink is supposed to show different if it's active; doesn't seem to be working
-                to={`${page.href}${search}`}
+                href={page.href}  // https://mui.com/material-ui/guides/routing/
                 onClick={handleCloseNavMenu}
                 sx={{ my: 2, color: 'white', display: 'block' }}
             >
