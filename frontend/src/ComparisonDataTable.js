@@ -84,6 +84,9 @@ function useColConfig(codeset_ids, nested, all_csets, rowData, nodups) {
         })
     }
     useEffect(() => {
+        if (! Object.keys(cbStates).length) {
+            return
+        }
         let cset_cols = selected_csets.map(cset_col => {
             let def = {
                 // id: ____?,
@@ -95,7 +98,7 @@ function useColConfig(codeset_ids, nested, all_csets, rowData, nodups) {
                     // let toggle = <span
                     // return checked ? '\u2713' : '';
                     let checkbox_id = `${cset_col.codeset_id}:${row.concept_id}`;
-                    return <Checkbox id={checkbox_id} checked={checked}
+                    return <Checkbox checked={checked}
                                      onChange={checkboxChange(cset_col.codeset_id, row.concept_id)}/>
                 },
                 // sortable: true,
