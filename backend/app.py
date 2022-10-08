@@ -47,7 +47,7 @@ try:
     dataset_names = ['concept_set_members',
                      'concept',
                      'concept_relationship_subsumes_only',
-                     'concept_set_container_edited',
+                     'concept_set_container',
                      'code_sets',
                      'concept_set_version_item']
 
@@ -139,7 +139,7 @@ def make_data_stuff():
     # Some columns in codeset and container have the same name, hence suffix
     # ...The merge on `concept_set_members` is used for concept counts for each codeset version.
     ds.all_csets = ds.code_sets.merge(
-        ds.concept_set_container_edited, suffixes=['_version', '_container'], on='concept_set_name').merge(
+        ds.concept_set_container, suffixes=['_version', '_container'], on='concept_set_name').merge(
         ds.concept_set_members.groupby('codeset_id')['concept_id'].nunique().reset_index().rename(
             columns={'concept_id': 'concepts'}), on='codeset_id')
 
@@ -292,7 +292,7 @@ def csetVersions() -> Union[Dict, List]:
 #     requested_codeset_ids = codeset_ids or parse_codeset_ids(codeset_id)
 #     dsi = dsi or data_stuff_for_codeset_ids(requested_codeset_ids)
 #
-#     df = dsi.code_sets_i.merge(ds.concept_set_container_edited, on='concept_set_name')
+#     df = dsi.code_sets_i.merge(ds.concept_set_container, on='concept_set_name')
 #     return json.loads(df.to_json(orient='records'))
 
 
@@ -416,55 +416,6 @@ def new_hierarchy_stuff(
 
 
     # return json.loads(df.to_json(orient='records'))
-
-
-@APP.get("/concept-sets-with-concepts")
-def concept_sets_with_concepts(
-    codeset_id: Union[str, None] = Query(default=[]),
-) -> Union[Dict, List]:
-    """Returns list of concept sets selected and their concepts
-
-    sample url:
-        http://127.0.0.1:8000/concept-sets-with-concepts?codeset_id=394464897&codeset_id=13193785
-
-    If no codeset_id, doesn't return concepts; just concept_sets.
-        TODO: is that still true?
-
-    Switched to using pandas (not pandasql) not sure if it works like it should -- well
-        something's going wrong in json conversion, hitting error when returning. End of
-        stacktrace is:
-          File "/opt/homebrew/Cellar/python@3.10/3.10.5/Frameworks/Python.framework/Versions/3.10/lib/python3.10/json/encoder.py", line 257, in iterencode
-            return _iterencode(o, 0)
-        ValueError: Out of range float values are not JSON compliant
-    @joeflack4 can you take a look? thanks!
-    @siggie: I'm not sure if you still want this, but I coudln't replicate. I added '#pandasql' to a comment below. For
-    ...some reason, it said 'table csm not found' when I tried running the sql query.
-
-    """
-    # if codeset_id empty, [] otherwise split and convert to int
-    codeset_ids = codeset_id and [int(cid) for cid in codeset_id.split('|')] or []
-
-    csm = ds.concept_set_members
-    codeset = ds.code_sets
-
-    # TODO #pandasql: switch to using pandasql
-    # print(f'Favorite datasets loaded: {DS.keys()}')
-    # sql = lambda q: sqldf(q, globals())
-    # using pandasql seems to be MUCH slower than regular pandas:
-    # csets = sql(f"""
-    #     SELECT concept_id
-    #     FROM csm
-    #     WHERE codeset_id IN (23007370, 23600781)
-    # """)
-
-    csm = csm[csm.codeset_id.isin(codeset_ids)]
-    codeset = codeset[codeset.codeset_id.isin(codeset_ids)]
-    csets = codeset.to_dict(orient='records')
-    for cset in csets:
-        concept_data: List[Dict] = csm[csm.codeset_id == cset['codeset_id']].to_dict(orient='records')
-        cset['concepts'] = {x['concept_id']: x for x in concept_data} if concept_data else {}
-
-    return csets
 
 
 # TODO: figure out where we want to put this. models.py? Create route files and include class along w/ route func?

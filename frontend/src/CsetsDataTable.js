@@ -42,7 +42,7 @@ function CsetsDataTable(props) {
     const {codeset_ids=[], cset_data={}} = props;
     const {flattened_concept_hierarchy=[], concept_set_members_i=[], all_csets=[], } = cset_data;
 
-    const related_csets = all_csets.filter(d => d.related)
+    let related_csets = all_csets.filter(d => d.related);
 
     console.log('CsetsDataTable props: ', props);
     const [selectedRows, setSelectedRows] = React.useState(false);
@@ -238,7 +238,9 @@ function CsetsDataTable(props) {
                 // theme="light"
                 columns={columns}
                 data={related_csets}
-                customStyles={customStyles}
+
+                //customStyles={customStyles}   PUT THIS BACK
+
                 // conditionalRowStyles={conditionalRowStyles}
                 height="300px"
                 //striped

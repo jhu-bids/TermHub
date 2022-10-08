@@ -23,12 +23,22 @@ config = {
 
 # Ordered because of transformation dependencies
 FAVORITE_DATASETS = OrderedDict({
-    'concept_set_container_edited': {
-        'name': 'concept_set_container_edited',
-        'rid': 'ri.foundry.main.dataset.8cb458de-6937-4f50-8ef5-2b345382dbd4',
+    # apparently concept_set_container has a lot more rows than concept_set_container_edited. not sure
+    #   why we were getting edited or why they're different
+    'concept_set_container': {
+        'name': 'concept_set_container',
+        #   https://unite.nih.gov/workspace/data-integration/dataset/preview/ri.foundry.main.dataset.c9932f52-8b27-4e7b-bdb1-eec79e142182/master
+        #   /N3C Export Area/Concept Set Ontology/Concept Set Ontology/hubble_base/concept_set_container
+        'rid': 'ri.foundry.main.dataset.c9932f52-8b27-4e7b-bdb1-eec79e142182',
         'sort_idx': ['concept_set_name'],
         'converters': {'archived': lambda x: True if x == 'True' else False},  # this makes it a bool field
-},
+    },
+    # 'concept_set_container_edited': {
+    #     'name': 'concept_set_container_edited',
+    #     'rid': 'ri.foundry.main.dataset.8cb458de-6937-4f50-8ef5-2b345382dbd4',
+    #     'sort_idx': ['concept_set_name'],
+    #     'converters': {'archived': lambda x: True if x == 'True' else False},  # this makes it a bool field
+    # },
     'code_sets': {  # transform depends on: concept_set_container_edited untransformed
         'name': 'code_sets',
         'rid': 'ri.foundry.main.dataset.7104f18e-b37c-419b-9755-a732bfa33b03',

@@ -23,7 +23,7 @@
       </ENTRIES>
     </EXTENSION>
     <option name="SCRIPT_NAME" value="$PROJECT_DIR$/enclave_wrangler/datasets.py" />
-    <option name="PARAMETERS" value="-f -o termhub-csets/datasets/large-files-not-ready-to-push" />
+    <option name="PARAMETERS" value="-f -o termhub-csets/datasets/downloads" />
     <option name="SHOW_COMMAND_LINE" value="false" />
     <option name="EMULATE_TERMINAL" value="false" />
     <option name="MODULE_MODE" value="false" />

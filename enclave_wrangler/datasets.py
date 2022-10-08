@@ -226,7 +226,7 @@ def transform_dataset__concept_set_members(dataset_name: str) -> pd.DataFrame:
         codeset_ids = set(cs_df['codeset_id'])
         df = df[df['codeset_id'].isin(codeset_ids)]
     except FileNotFoundError:
-        print('Warning: Tried transforming code_sets.csv, but concept_set_container_edited.csv must be downloaded and '
+        print('Warning: Tried transforming code_sets.csv, but concept_set_container.csv must be downloaded and '
               'transformed first. Try running again after this process completes. Eventually need to do these '
               'transformations dependency ordered fashion.', file=sys.stderr)
 
@@ -242,14 +242,14 @@ def transform_dataset__code_sets(dataset_name: str) -> pd.DataFrame:
     # JOIN
     try:
         # Note: Depends on `concept_set_container.csv` -- don't load code_sets unless container exists
-        # Note: Depends on `concept_set_container_edited.csv`, but there is no transform for it. So, read from DL dir.
+        # Note: Depends on `concept_set_container.csv`, but there is no transform for it. So, read from DL dir.
         # don't have to do that anymore, I think
         csc_df = pd.read_csv(
-            os.path.join(CSV_TRANSFORM_DIR, 'concept_set_container_edited.csv'), keep_default_na=False).fillna('')
+            os.path.join(CSV_TRANSFORM_DIR, 'concept_set_container.csv'), keep_default_na=False).fillna('')
         container_concept_set_name_ids = set(csc_df['concept_set_id'])
         df = df[df['concept_set_name'].isin(container_concept_set_name_ids)]
     except FileNotFoundError:
-        print('Warning: Tried transforming code_sets.csv, but concept_set_container_edited.csv must be downloaded and '
+        print('Warning: Tried transforming code_sets.csv, but concept_set_container.csv must be downloaded and '
               'transformed first. Try running again after this process completes. Eventually need to do these '
               'transformations dependency ordered fashion.', file=sys.stderr)
 

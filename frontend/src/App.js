@@ -90,13 +90,9 @@ function DataContainer(props) {
   codeset_ids = codeset_ids || [];
   // Table Variations
   // 1. this url is for simple X/O table with no hierarchy:
-  // let url = enabled ? backend_url('concept-sets-with-concepts?concept_field_filter=concept_id&concept_field_filter=concept_name&codeset_id=' + codeset_ids.join('|'))
   // 2. this url is for simple hierarchy using ancestor table and no direct relationshps:
-  // let url = enabled ? backend_url('cr-hierarchy?codeset_id=' + codeset_ids.join('|'))
   // todo: 3. this url uses direct relationships:
   // TODO: use cr hierarchy
-  //let url = enabled ? backend_url('cr-hierarchy?rec_format=xo&codeset_id=' + codeset_ids.join('|'))
-  // let enabled = !!codeset_ids.length
   let url = backend_url('cr-hierarchy?rec_format=flat&codeset_id=' + codeset_ids.join('|'))
   // let url = backend_url('new-hierarchy-stuff?rec_format=flat&codeset_id=' + codeset_ids.join('|'))
   console.log('url', url)
@@ -108,7 +104,7 @@ function DataContainer(props) {
     })
     // console.log(`getting ${url}`, get);
     return get;
-  }, /*{enabled}*/);
+  });
   let msg =
       (isLoading && <p>Loading from {url}...</p>) ||
       (error && <p>An error has occurred with {url}: {error.stack}</p>) ||
@@ -133,7 +129,6 @@ function RoutesContainer(props) {
           <Route path="about" element={<AboutPage />} />
           {/* <Route path="testing" element={<ConceptSetsPage codeset_ids={test_codeset_ids}/>} /> */}
           {/* <Route path="OMOPConceptSet/:conceptId" element={<OldConceptSet />} /> */}
-          {/*<Route path=":conceptId" element={<ConceptList />}/>*/}
           <Route path="*"  element={<ErrorPath/>} />
         </Route>
       </Routes>

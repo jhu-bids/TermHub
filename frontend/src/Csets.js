@@ -27,45 +27,6 @@ import Typography from "@mui/material/Typography";
 //TODO: How to get hierarchy data?
 // - It's likely in one of the datasets we haven't downloaded yet. When we get it, we can do indents.
 
-function ConceptList(props) {
-  // http://127.0.0.1:8000/fields-from-objlist?objtype=OmopConceptSetVersionItem&filter=codeset_id:822173787|74555844
-  const codeset_ids = props.codeset_ids || [];
-  let enabled = !!codeset_ids.length
-
-  let url = enabled ? backend_url('fields-from-objlist?') +
-                      [
-                        'objtype=OmopConceptSetVersionItem',
-                        'filter=codeset_id:' + codeset_ids.join('|')
-                      ].join('&')
-                    : `invalid ConceptList url, no codeset_ids, enabled: ${enabled}`;
-
-  const { isLoading, error, data, isFetching } = useQuery([url], () => {
-    //if (codeset_ids.length) {
-    //   console.log('fetching backend_url', url)
-      return axios.get(url).then((res) => res.data)
-      // console.log('enclave_url', enclave_url('objects/OMOPConceptSet'))
-      // .then((res) => res.data.data.map(d => d.properties))
-    //} else {
-      //return {isLoading: false, error: null, data: [], isFetching: false}
-    //}
-  }, {enabled});
-  // console.log('rowData', data)
-  return  <div>
-            <h4>Concepts:</h4>
-            <Table rowData={data} />
-          </div>
-  /*
-  let params = useParams();
-  let {concept_id} = params;
-  let path = `objects/OMOPConceptSet/${concept_id}/links/omopconcepts`;
-  let url = enclave_url(path)
-  const { isLoading, error, data, isFetching } = useQuery([path], () =>
-      axios
-          .get(url)
-          .then((res) => res.data.data.map(d => d.properties)) )
-  */
-}
-
 /* CsetSEarch: Grabs stuff from disk*/
 /* TODO: Solve:
     react_devtools_backend.js:4026 MUI: The value provided to Autocomplete is invalid.
@@ -117,72 +78,40 @@ function ConceptSetsPage(props) {
   const {codeset_ids=[], cset_data={}} = props;
   const {flattened_concept_hierarchy=[], concept_set_members_i=[], all_csets=[], } = cset_data;
   let navigate = useNavigate();
-  let enabled = !!codeset_ids.length
 
-  // will replace this fetch with stuff from cset_data...
-  let url = backend_url('concept-sets-with-concepts?concept_field_filter=concept_id&concept_field_filter=concept_name&codeset_id=' + codeset_ids.join('|'))
-
-  const { isLoading, error, data, isFetching } = useQuery([url], () => {
-    //if (codeset_ids.length) {
-      console.log('fetching backend_url', url)
-      console.log(enabled)  // TODO: remove these when done debugging
-      console.log(codeset_ids)
-      return axios.get(url).then((res) => res.data)
-      // console.log('enclave_url', enclave_url('objects/OMOPConceptSet'))
-      // .then((res) => res.data.data.map(d => d.properties))
-    //} else {
-      //return {isLoading: false, error: null, data: [], isFetching: false}
-    //}
-  }, {enabled});
-  async function csetCallback(props) {
-    let {rowData, colClicked} = props
-    navigate(`/OMOPConceptSet/${rowData.codeset_id}`)
-  }
-
-  let link = <a href={url}>{url}</a>;
-  let msg = enabled
-              ? (isLoading && <p>Loading from {link}...</p>) ||
-                (error && <p>An error has occurred with {link}: {error.stack}</p>) ||
-                (isFetching && <p>Updating from {link}...</p>)
-              : "Choose one or more concept sets";
   return (
       <div>
         <CsetSearch {...props} />
-        { enabled || msg }
         {
            props.cset_data && <CsetsDataTable {...props} />
         }
         {
           // todo: Create component: <ConceptSetsPanels>
-          (codeset_ids.length > 0) && data && (
-            <div style={{
-              display: 'flex',
-              flexWrap: 'wrap',
-              flexDirection: 'row',
-              margin: '20px',
-              /*
-               */
-              // height: '90vh',
-              // alignItems: 'stretch',
-              // border: '1px solid green',
-
-              // todo: I don't remember how to get it to take up the whole window in this case.  these are working
-              // width: '100%',
-              // 'flex-shrink': 0,
-              // flex: '0 0 100%',
+          (codeset_ids.length > 0 && all_csets.length) && (
+            <div style={{ display: 'flex', flexWrap: 'wrap', flexDirection: 'row', margin: '20px',
+              /* height: '90vh', alignItems: 'stretch', border: '1px solid green', width: '100%', 'flex-shrink': 0, flex: '0 0 100%', */
             }}>
-              {data.map(cset => {
-                let widestConceptName = max(Object.values(cset.concepts).map(d => d.concept_name.length))
-                return (all_csets.length && cset)
-                       ? <ConceptSetCard  {...props}
-                                        codeset_id={cset.codeset_id}
-                                        // switch to using data from cset_data -- passed down props
-                                        key={cset.codeset_id}
-                                        cset={cset}
-                                        widestConceptName={widestConceptName}
-                                        cols={Math.min(4, data.length)}/>
-                      : ''
-              })}
+              {
+                (() => {
+                  let cards = all_csets.length ? codeset_ids.map(codeset_id => {
+                    let cset = all_csets.filter(d => d.codeset_id === codeset_id).pop();  // will replace cset and won't need concept-sets-with-concepts fetch
+                    let concepts = concept_set_members_i.filter(d => d.codeset_id === codeset_id);
+                    cset.concept_items = concepts;
+
+                    let widestConceptName = max(Object.values(cset.concepts).map(d => d.concept_name.length))
+                    let card = (all_csets.length && cset)
+                        ? <ConceptSetCard  {...props}
+                                           codeset_id={cset.codeset_id}
+                                           key={cset.codeset_id}
+                                           cset={cset}
+                                           widestConceptName={widestConceptName}
+                                           cols={Math.min(4, codeset_ids.length)}/>
+                        : <p key={codeset_id}>waiting for card data</p>
+                    return card;
+                  }) : '';
+                  return cards;
+                })()
+              }
             </div>)
         }
         {/*<p>I am supposed to be the results of <a href={url}>{url}</a></p>*/}

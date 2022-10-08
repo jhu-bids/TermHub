@@ -71,54 +71,51 @@ export default function ConceptSetCard(props) {
   const {codeset_ids = [], cset_data = {}} = props;
   const {flattened_concept_hierarchy = [], concept_set_members_i = [], all_csets = [],} = cset_data;
 
-  let cset_new = all_csets.filter(d => d.codeset_id === codeset_id).pop();  // will replace cset and won't need concept-sets-with-concepts fetch
-  let concepts = concept_set_members_i.filter(d => d.codeset_id === codeset_id)
-
   let tags = [];
   let display_props = {}
-  display_props['Code set ID'] = cset_new.codeset_id;
-  display_props['Concepts'] = concepts.length;
+  display_props['Code set ID'] = cset.codeset_id;
+  display_props['Concepts'] = cset.concepts;
 
-  if (cset_new.is_most_recent_version) {
+  if (cset.is_most_recent_version) {
     tags.push('Most recent version');
   }
 
   let intention = [];
-  if (cset_new.intention_container) {
-    intention.push('Container: ' + cset_new.intention_container);
+  if (cset.intention_container) {
+    intention.push('Container: ' + cset.intention_container);
   }
-  if (cset_new.intention_version) {
-    intention.push('Version: ' + cset_new.intention_version);
+  if (cset.intention_version) {
+    intention.push('Version: ' + cset.intention_version);
   }
   if (intention.length) {
     display_props.Intention = intention.join('; ');
   }
-  if (cset_new.update_message) {
-    display_props['Update message'] = cset_new.update_message;
+  if (cset.update_message) {
+    display_props['Update message'] = cset.update_message;
   }
-  if (cset_new.archived) {
+  if (cset.archived) {
     tags.push('Archived');
   }
-  if (cset_new.has_review) {
+  if (cset.has_review) {
     tags.push('Has review');
   }
-  if (cset_new.provenance) {
-    display_props['Provenance'] = cset_new.provenance;
+  if (cset.provenance) {
+    display_props['Provenance'] = cset.provenance;
   }
-  if (cset_new.limitations) {
-    display_props['Limitations'] = cset_new.limitations;
+  if (cset.limitations) {
+    display_props['Limitations'] = cset.limitations;
   }
-  if (cset_new.limitations) {
-    display_props['Limitations'] = cset_new.limitations;
+  if (cset.limitations) {
+    display_props['Limitations'] = cset.limitations;
   }
-  if (cset_new.issues) {
-    display_props['Issues'] = cset_new.issues;
+  if (cset.issues) {
+    display_props['Issues'] = cset.issues;
   }
-  if (cset_new.authoritative_source) {
-    display_props['Authoritative source'] = cset_new.authoritative_source;
+  if (cset.authoritative_source) {
+    display_props['Authoritative source'] = cset.authoritative_source;
   }
-  if (cset_new.project_id) {
-    display_props['Project ID'] = cset_new.project_id;
+  if (cset.project_id) {
+    display_props['Project ID'] = cset.project_id;
   }
   // display_props['props not included yet'] = 'status_version, status_container, stage, concept count';
   return (
@@ -137,7 +134,7 @@ export default function ConceptSetCard(props) {
           */}
           <CardContent sx={{}}>
             <Typography variant="h6" color="text.primary" gutterBottom>
-              {cset_new.concept_set_version_title}
+              {cset.concept_set_version_title}
             </Typography>
             <Typography color="text.primary" gutterBottom>
               {tags.join(', ')}
@@ -171,7 +168,7 @@ export default function ConceptSetCard(props) {
             <CardContent>
               <List style={{height: '40%', overflowX: 'clip', overflowY: 'scroll'}}>
                 { // TODO: figure out height for list
-                  concepts.map((concept, i) => {
+                  cset.concept_items.map((concept, i) => {
                     return <ListItem style={{
                       margin: '3px 3px 3px 3px',
                       background: '#dbdbdb',
