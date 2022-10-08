@@ -200,13 +200,14 @@ function CsetComparisonPage(props) {
   const [nested, setNested] = useState(true);
   let nodups = flattened_concept_hierarchy.map(d => omit(d, ['level', ]))
   nodups = uniq(nodups.map(d => JSON.stringify(d))).map(d => JSON.parse(d))
+  // return <ComparisonDataTable {...props} />
   return (
       <div>
         <h5 style={{margin:20, }}>
-          <Button onClick={() => setNested(true)}>
+          <Button variant={nested ? "contained" : "outlined" } onClick={() => setNested(true)}>
             {flattened_concept_hierarchy.length} lines in nested list.
           </Button>
-          <Button onClick={() => setNested(false)}>
+          <Button  variant={nested ? "outlined" : "contained"} sx={{marginLeft: '20px'}} onClick={() => setNested(false)}>
             {nodups.length} lines without nesting
           </Button>
         </h5>

@@ -102,7 +102,6 @@ def make_data_stuff():
                                 #   (https://github.com/jhu-bids/TermHub/issues/139)
                                 #   currently doing lists of tuples, will probably
                                 #   switch to dict of dicts
-        codeset_name_lookup     # lookup by concept_id
     """
     ds = Bunch(DS)
 
@@ -136,14 +135,13 @@ def make_data_stuff():
         return (pcid, [connect_children(ec) if type(ec)==tuple else ec for ec in expanded_cids])
     ds.connect_children = connect_children
 
-
-    ds.codeset_name_lookup = ds.concept_set_members[['codeset_id', 'concept_set_name']] \
-        .drop_duplicates() \
-        .set_index('concept_set_name') \
-        .groupby('codeset_id').groups
-    # [(cid, len(names)) for cid, names in concept_name_lookup.items() if len(names) > 1]    # should be 1-to-1
-    for cset_id, names in ds.codeset_name_lookup.items():
-        ds.codeset_name_lookup[cset_id] = names[0]
+    # Take codesets, and merge on container. Add to each version.
+    # Some columns in codeset and container have the same name, hence suffix
+    # ...The merge on `concept_set_members` is used for concept counts for each codeset version.
+    ds.all_csets = ds.code_sets.merge(
+        ds.concept_set_container_edited, suffixes=['_version', '_container'], on='concept_set_name').merge(
+        ds.concept_set_members.groupby('codeset_id')['concept_id'].nunique().reset_index().rename(
+            columns={'concept_id': 'concepts'}), on='codeset_id')
 
     print('Done building global ds objects')
     return ds
@@ -178,14 +176,7 @@ def data_stuff_for_codeset_ids(codeset_ids):
         # & (ds.concept_relationship.relationship_id == 'Subsumes')
         ]
 
-    # Take codesets, and merge on container. Add to each version. Certain versions have the same name, hence suffix
-    # ...The merge on `concept_set_members` is used for concept counts for each codeset version.
-    all_csets = ds.code_sets.merge(
-        ds.concept_set_container_edited, suffixes=['_version', '_container'], on='concept_set_name').merge(
-        ds.concept_set_members.groupby('codeset_id')['concept_id'].nunique().reset_index().rename(
-            columns={'concept_id': 'concepts'}), on='codeset_id')
-
-    all_csets = all_csets[[
+    all_csets = ds.all_csets[[
         'codeset_id', 'concept_set_version_title', 'is_most_recent_version', 'intention_version', 'intention_container',
         'limitations', 'issues', 'update_message', 'has_review', 'provenance', 'authoritative_source', 'project_id',
         'status_version', 'status_container', 'stage', 'archived', 'concepts']]
@@ -199,10 +190,30 @@ def data_stuff_for_codeset_ids(codeset_ids):
     all_csets['related'] = all_csets['codeset_id'].isin(dsi.related_codeset_ids)
 
     # Drop duplicates & sort
-    dsi.all_csets = all_csets.drop_duplicates().sort_values(by=['selected', 'concepts'], ascending=False)
+    all_csets = all_csets.drop_duplicates().sort_values(by=['selected', 'concepts'], ascending=False)
+
+    # Add columns for % overlap: 1) % of selected csets' concepts and 2) % of related cset's concepts
+    dsi.concept_set_members_r = ds.concept_set_members[
+        ds.concept_set_members['codeset_id'].isin(dsi.related_codeset_ids)
+        ].drop_duplicates()
+
+    # dsi.concept_set_members_i.merge(dsi.concept_set_members_r, how='right', on='codeset_id').drop_duplicates()
+
+    g = dsi.concept_set_members_r.groupby('codeset_id')
+    r_with_intersecting_cids = g.apply(lambda r: set(r.concept_id).intersection(concept_ids))
+    if len(r_with_intersecting_cids):
+        x = pd.DataFrame(data={'intersecting_concept_ids': r_with_intersecting_cids,})
+        x['intersecting_concepts'] = x.intersecting_concept_ids.apply(lambda r: len(r))
+        x.drop('intersecting_concept_ids', axis=1, inplace=True)
+        all_csets = all_csets.merge(x, how='left', on='codeset_id')
+        all_csets = all_csets.convert_dtypes({'intersecting_concepts': 'int'})
+        all_csets['recall'] = all_csets.intersecting_concepts / len(concept_ids)
+        all_csets['precision'] = all_csets.intersecting_concepts / all_csets.concepts
+    dsi.all_csets = all_csets
 
     # Get relationships for selected code sets
     dsi.links = dsi.concept_relationship_i.groupby('concept_id_1')
+
 
     # Get child `concept_id`
     def child_cids(cid):
@@ -227,6 +238,8 @@ def data_stuff_for_codeset_ids(codeset_ids):
     return dsi
 
 def parse_codeset_ids(qstring):
+    if not qstring:
+        return []
     requested_codeset_ids = qstring.split('|')
     requested_codeset_ids = [int(x) for x in requested_codeset_ids]
     return requested_codeset_ids
@@ -348,7 +361,7 @@ def experimental_nested_list_generator(lines, rec_format, dsi, child_cids_func):
 @APP.get("/cr-hierarchy")  # maybe junk, or maybe start of a refactor of above
 def cr_hierarchy(
     rec_format: str='default',
-    codeset_id: Union[str, None] = Query(default=[]),
+    codeset_id: Union[str, None] = Query(default=''),
 ) -> Dict:
 
     requested_codeset_ids = parse_codeset_ids(codeset_id)
@@ -357,10 +370,6 @@ def cr_hierarchy(
 
     lines = []
     nested_list_generator(lines, rec_format, dsi, dsi.child_cids)(dsi.top_level_cids)
-
-    all_csets = df = ds.concept_set_members.groupby(
-        ['codeset_id', 'concept_set_name', 'version','archived']
-    )['concept_id'].nunique().reset_index().rename(columns={'concept_id': 'concepts'})
 
     result = {'flattened_concept_hierarchy': lines,
               # 'related_csets': dsi.related.to_dict(orient='records'),
@@ -398,13 +407,10 @@ def new_hierarchy_stuff(
     lines = []
     nested_list_generator(lines, rec_format, dsi, ds.child_cids)(dsi.top_level_cids)
 
-    all_csets = df = ds.concept_set_members.groupby(['codeset_id', 'concept_set_name', 'version','archived']
-                                  )['concept_id'].nunique().reset_index().rename(columns={'concept_id': 'concepts'})
-
     result = {'flattened_concept_hierarchy': lines,
               # 'related_csets': dsi.related.to_dict(orient='records'),
               'concept_set_members_i': json.loads(dsi.concept_set_members_i.to_json(orient='records')),
-              'all_csets': json.loads(all_csets.to_json(orient='records'))
+              'all_csets': json.loads(dsi.all_csets.to_json(orient='records'))
               }
     return result
 
