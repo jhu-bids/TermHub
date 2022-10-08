@@ -418,6 +418,15 @@ def new_hierarchy_stuff(
     # return json.loads(df.to_json(orient='records'))
 
 
+@APP.get("/modify-cset")  # maybe junk, or maybe start of a refactor of above
+def cr_hierarchy(
+        codeset_id: int, concept_id: int, state: bool
+) -> Dict:
+    modification = {'codeset_id': codeset_id, 'concept_id': concept_id, 'state': state}
+    print(f'modify-cset: {codeset_id}, {concept_id}, {state}')
+    return modification
+
+
 # TODO: figure out where we want to put this. models.py? Create route files and include class along w/ route func?
 # TODO: Maybe change to `id` instead of row index
 class CsetsUpdate(BaseModel):

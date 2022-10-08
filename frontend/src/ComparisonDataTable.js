@@ -1,8 +1,11 @@
 import React, {useState, useEffect, /* useReducer, useRef, */} from 'react';
 import DataTable, { createTheme } from 'react-data-table-component';
+import Checkbox from '@mui/material/Checkbox';
 import {createSearchParams} from "react-router-dom";
 import Button from "@mui/material/Button";
 import {omit, uniq, } from 'lodash';
+import axios from "axios";
+import {backend_url} from "./App";
 
 
 function ComparisonDataTable(props) {
@@ -11,11 +14,10 @@ function ComparisonDataTable(props) {
     const [nested, setNested] = useState(true);
     let nodups = flattened_concept_hierarchy.map(d => omit(d, ['level', ]))
     nodups = uniq(nodups.map(d => JSON.stringify(d))).map(d => JSON.parse(d))
+    let rowData = nested ? flattened_concept_hierarchy : nodups;
 
     const customStyles = styles();
-    // const [columns, setColumns] = useState(colConfig(props));
-    const columns = colConfig(props);
-
+    const coldefs = useColConfig(codeset_ids, nested, all_csets, rowData, nodups);
 
     // TODO: Datatable is getting cut off vertically, as if it's in an iframe, but it has no scroll bar.
     return (
@@ -24,8 +26,9 @@ function ComparisonDataTable(props) {
             className="comparison-data-table"
             theme="custom-theme"
             // theme="light"
-            columns={columns}
-            data={props.nested ? flattened_concept_hierarchy : props.nodups}
+            columns={coldefs}
+            // data={props.nested ? flattened_concept_hierarchy : props.nodups}
+            data={rowData}
             customStyles={customStyles}
 
             dense
@@ -44,19 +47,56 @@ function ComparisonDataTable(props) {
         />
     );
 }
-function colConfig(props) {
-    const {codeset_ids=[], cset_data={}, nested=true, nodups=[], } = props;
-    const {flattened_concept_hierarchy=[], concept_set_members_i=[], all_csets=[], } = cset_data;
+function getCbStates(csets, nodups) {
+    let grid = {};
+    csets.forEach(cset => {
+        let cbRow = {};
+        nodups.forEach(row => {
+            cbRow[row.concept_id] = row.codeset_ids.includes(cset.codeset_id);
+        })
+        grid[cset.codeset_id] = cbRow;
+    })
+    return grid
+}
+function useColConfig(codeset_ids, nested, all_csets, rowData, nodups) {
+    // const {codeset_ids=[], cset_data={}, nested=true, nodups=[], } = props;
+    // const {flattened_concept_hierarchy=[], concept_set_members_i=[], all_csets=[], } = cset_data;
+    let selected_csets = all_csets.filter(d => codeset_ids.includes(d.codeset_id));
 
-    let cset_columns = (all_csets
-        .filter(d => codeset_ids.includes(d.codeset_id))
-        .map(ci => {
+    const [cbStates, setCbStates] = useState({});
+    const [coldefs, setColdefs] = useState([]);
+    const [stateChanges, setStateChanges] = useState(0);
+
+    useEffect(() => {
+        setCbStates(getCbStates(selected_csets, nodups));
+    }, [selected_csets.length])
+    console.log(cbStates);
+
+    let checkboxChange = (codeset_id, concept_id) => (evt, state) => {
+        console.log({codeset_id, concept_id, state});
+        cbStates[codeset_id][concept_id] = state;
+        setCbStates(cbStates);
+        setStateChanges(stateChanges + 1);
+        let url = backend_url(`modify-cset?codeset_id=${codeset_id}&concept_id=${concept_id}&state=${state}`);
+        axios.get(url).then((res) => {
+            console.log({url, res});
+            return res.data
+        })
+    }
+    useEffect(() => {
+        let cset_cols = selected_csets.map(cset_col => {
             let def = {
                 // id: ____?,
-                name: ci.concept_set_version_title,
+                name: cset_col.concept_set_version_title,
                 // selector: row => row.selected ? '\u2713' : '',
                 selector: row => {
-                    return row.codeset_ids.includes(parseInt(ci.codeset_id)) ? '\u2713' : '';
+                    // let checked = row.codeset_ids.includes(parseInt(cset_col.codeset_id));
+                    let checked = cbStates[cset_col.codeset_id][row.concept_id];
+                    // let toggle = <span
+                    // return checked ? '\u2713' : '';
+                    let checkbox_id = `${cset_col.codeset_id}:${row.concept_id}`;
+                    return <Checkbox id={checkbox_id} checked={checked}
+                                     onChange={checkboxChange(cset_col.codeset_id, row.concept_id)}/>
                 },
                 // sortable: true,
                 compact: true,
@@ -65,31 +105,34 @@ function colConfig(props) {
                 center: true,
             }
             return def;
-        }));
-    let columns = [
-        // { name: 'level', selector: row => row.level, },
-        {
-            name: 'Concept name',
-            selector: row => row.concept_name,
-            // sortable: true,
-            // maxWidth: '300px',
-            //  table: style: maxWidth is 85% and cset_columns are 50px, so fill
-            //      the rest of the space with this column
-            width: (window.innerWidth - cset_columns.length * 50) * .85,
-            wrap: true,
-            compact: true,
-            conditionalCellStyles: [
-                { when: row => true,
-                    style: row => ({paddingLeft: 16 + row.level * 16 + 'px'})
-                }
-            ],
-        },
-        ...cset_columns
-    ];
-    if (!nested) {
-        delete columns[0].conditionalCellStyles;
-    }
-    return columns;
+        });
+        let coldefs = [
+            // { name: 'level', selector: row => row.level, },
+            {
+                name: 'Concept name',
+                selector: row => row.concept_name,
+                // sortable: true,
+                // maxWidth: '300px',
+                //  table: style: maxWidth is 85% and selected_csets are 50px, so fill
+                //      the rest of the space with this column
+                width: (window.innerWidth - selected_csets.length * 50) * .85,
+                wrap: true,
+                compact: true,
+                conditionalCellStyles: [
+                    { when: row => true,
+                        style: row => ({paddingLeft: 16 + row.level * 16 + 'px'})
+                    }
+                ],
+            },
+            ...cset_cols
+        ];
+        if (!nested) {
+            delete coldefs[0].conditionalCellStyles;
+        }
+        setColdefs(coldefs);
+    }, [cbStates, stateChanges])
+
+    return coldefs;
 }
 // createTheme creates a new theme named solarized that overrides the build in dark theme
 // https://github.com/jbetancur/react-data-table-component/blob/master/src/DataTable/themes.ts
