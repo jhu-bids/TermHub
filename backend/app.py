@@ -120,6 +120,7 @@ def make_data_stuff():
     # ds.subsumes = ds.concept_relationship[ds.concept_relationship.relationship_id == 'Subsumes']
     ds.concept_relationship = ds.concept_relationship_subsumes_only
     ds.links = ds.concept_relationship.groupby('concept_id_1')
+    # ds.all_concept_relationship_cids = set(ds.concept_relationship.concept_id_1).union(set(ds.concept_relationship.concept_id_2))
 
     def child_cids(cid):
         """Return list of `concept_id_2` for each `concept_id_1` (aka all its children)"""
@@ -198,6 +199,8 @@ def data_stuff_for_codeset_ids(codeset_ids):
         ].drop_duplicates()
 
     # dsi.concept_set_members_i.merge(dsi.concept_set_members_r, how='right', on='codeset_id').drop_duplicates()
+    # dsi.csm_related_to_nothing = dsi.concept_set_members_i[
+    #    ~ dsi.concept_set_members_i.concept_id.isin(ds.all_concept_relationship_cids)]
 
     g = dsi.concept_set_members_r.groupby('codeset_id')
     r_with_intersecting_cids = g.apply(lambda r: set(r.concept_id).intersection(concept_ids))
@@ -209,6 +212,8 @@ def data_stuff_for_codeset_ids(codeset_ids):
         all_csets = all_csets.convert_dtypes({'intersecting_concepts': 'int'})
         all_csets['recall'] = all_csets.intersecting_concepts / len(concept_ids)
         all_csets['precision'] = all_csets.intersecting_concepts / all_csets.concepts
+        # all_csets['csm_related_to_nothing'] = dsi.csm_related_to_nothing
+
     dsi.all_csets = all_csets
 
     # Get relationships for selected code sets
@@ -370,6 +375,11 @@ def cr_hierarchy(
 
     lines = []
     nested_list_generator(lines, rec_format, dsi, dsi.child_cids)(dsi.top_level_cids)
+    # all_csets['csm_related_to_nothing'] = dsi.csm_related_to_nothing
+
+    csm_not_related = dsi.concept_set_members_i[
+        ~ dsi.concept_set_members_i.concept_id.isin([l['concept_id'] for l in lines])]
+    lines.extend( [ cid_data(rec_format, dsi, cid) for cid in list(csm_not_related.concept_id)] )
 
     result = {'flattened_concept_hierarchy': lines,
               # 'related_csets': dsi.related.to_dict(orient='records'),

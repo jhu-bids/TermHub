@@ -91,7 +91,7 @@ function CsetsDataTable(props) {
         related_csets: related_csets.length,
     }
     let not_in_list = [...concept_set_members_i].filter(d => !related_ids.has(d.concept_id))
-    console.log(not_in_list);
+    console.log({stats, not_in_list, concept_set_members_i, related_ids, related_csets});
 
     const subHeader = <div>
         <p style={{margin:0, fontSize: 'small',}}>The <strong>{stats.csets_chosen} concept sets </strong>
