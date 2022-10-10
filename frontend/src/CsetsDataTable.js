@@ -1,5 +1,5 @@
 import React from 'react';
-import {isEqual, } from 'lodash';
+import {isEqual, orderBy, } from 'lodash';
 import DataTable, { createTheme } from 'react-data-table-component';
 import {useSearchParams} from "react-router-dom";
 
@@ -57,58 +57,7 @@ function CsetsDataTable(props) {
         "selected": true
     }
     */
-    const pct_fmt = num => Number(num/100).toLocaleString(undefined,{style: 'percent', minimumFractionDigits:2});
-    let columns = [
-        // { name: 'level', selector: row => row.level, },
-        {
-            name: 'Concept set name',
-            // selector: row => `${row.concept_set_name} (v${row.version})`,
-            selector: row => row.concept_set_version_title,
-            wrap: true,
-            compact: true,
-            sortable: true,
-        },
-        {
-            name: 'Concepts',
-            selector: row => row.concepts,
-            compact: true,
-            width: '70px',
-            center: true,
-            sortable: true,
-        },
-        {
-            name: 'Shared concepts',
-            selector: row => row.intersecting_concepts,
-            compact: true,
-            width: '70px',
-            center: true,
-            sortable: true,
-        },
-        {
-            name: 'Precision',
-            selector: row => pct_fmt(row.precision),
-            compact: true,
-            width: '70px',
-            center: true,
-            sortable: true,
-        },
-        {
-            name: 'Recall',
-            selector: row => pct_fmt(row.recall),
-            compact: true,
-            width: '70px',
-            center: true,
-            sortable: true,
-        },
-        {
-            name: 'Archived',
-            selector: row => row.archived ? '\u2713' : '',
-            compact: true,
-            width: '70px',
-            center: true,
-            sortable: true,
-        },
-    ];
+    let coldefs = getColdefs();
     /*
     const conditionalRowStyles = [{
         when: row => row.selected,
@@ -121,78 +70,8 @@ function CsetsDataTable(props) {
         }
     }];
     */
-    const customStyles = {
-        /*
-        	tableWrapper: {
-            style: {
-              display: 'table',
-            },
-          },
-            denseStyle: {
-                minHeight: '32px',
-            },
-        */
-        table: {
-            style: {
-                padding: '20px',
-                width: '100%',
-                // margin: '20px',
-                // height: '20vh',
-                // maxWidth: '85%',
-                // maxWidth: '400px', doesn't work ?
-            }
-        },
-            /*
-        headRow: {
-            style: {
-                // backgroundColor: theme.background.default,
-                // height: '152px',
-                // borderBottomWidth: '1px',
-                // borderBottomColor: theme.divider.default,
-                borderBottomStyle: 'solid',
-                padding: 0,
-                verticalAlign: 'bottom',
-                // border: '3px solid red',
-                overflow: 'visible',
-                textOverflow: 'unset',
-                marginTop: 'auto',
-            },
-          },
-        headCells: {
-            style: {
-                // transform: 'translate(10px,-15px) rotate(-45deg)',
-                // transform: 'translate(0px,30px)',
-                // height: '100%',
-                // position: 'absolute',
-                overflow: 'visible',
-                verticalAlign: 'bottom', // doesn't work
-                marginTop: 'auto',
-                // border: '3px solid green',
-                padding: 0,
-                // paddingLeft: '8px', // override the cell padding for head cells
-                // paddingRight: '8px',
-            },
-        },
-        rows: {
-            style: {
-                marginLeft: '20px',
-                padding: '20px',
-                minHeight: 'auto', // override the row height
-                borderLeft: '0.5px solid #BBB',
-            },
-        },
-        cells: {
-            style: {
-                // paddingLeft: '8px', // override the cell padding for data cells
-                // paddingRight: '8px',
-                padding: 0, //'0px 5px 0px 5px',
-                borderRight: '0.5px solid #BBB',
-            },
-        },
-        */
-    };
 
-
+    let customStyles = getCustomStyles();
     const handleSelectionChange = React.useCallback(state => {
         const {selectedRows} = state;
         let ids = selectedRows.map(d => d.codeset_id).sort()
@@ -236,7 +115,9 @@ function CsetsDataTable(props) {
                 subHeaderComponent={subHeader}
                 // theme="custom-theme"
                 // theme="light"
-                columns={columns}
+                columns={coldefs}
+                defaultSortFieldId={4}
+                defaultSortAsc={false}
                 data={related_csets}
 
                 //customStyles={customStyles}   PUT THIS BACK
@@ -269,6 +150,137 @@ function CsetsDataTable(props) {
             />
         </div>
     );
+}
+function getColdefs() {
+    const pct_fmt = num => Number(num/100).toLocaleString(undefined,{style: 'percent', minimumFractionDigits:2});
+    const descending = (rows, selector, direction) => {
+        return orderBy(rows, selector, ['desc']);
+    };
+    return [
+        // { name: 'level', selector: row => row.level, },
+        {
+            name: 'Concept set name',
+            // selector: row => `${row.concept_set_name} (v${row.version})`,
+            selector: row => row.concept_set_version_title,
+            wrap: true,
+            compact: true,
+            sortable: true,
+        },
+        {
+            name: 'Concepts',
+            selector: row => row.concepts,
+            compact: true,
+            width: '70px',
+            center: true,
+            sortable: true,
+        },
+        {
+            name: 'Shared concepts',
+            selector: row => row.intersecting_concepts,
+            compact: true,
+            width: '70px',
+            center: true,
+            sortable: true,
+        },
+        {
+            name: 'Precision',
+            selector: row => row.precision,
+            format: row => pct_fmt(row.precision),
+            desc: true,
+            compact: true,
+            width: '70px',
+            center: true,
+            sortable: true,
+            // sortFunction: descending,
+        },
+        {
+            name: 'Recall',
+            selector: row => pct_fmt(row.recall),
+            compact: true,
+            width: '70px',
+            center: true,
+            sortable: true,
+        },
+        {
+            name: 'Archived',
+            selector: row => row.archived ? '\u2713' : '',
+            compact: true,
+            width: '70px',
+            center: true,
+            sortable: true,
+        },
+    ];
+}
+
+function getCustomStyles() {
+    return {
+        table: {
+            style: {
+                padding: '20px',
+                width: '100%',
+                // margin: '20px',
+                // height: '20vh',
+                // maxWidth: '85%',
+                // maxWidth: '400px', doesn't work ?
+            }
+        },
+        /*
+        tableWrapper: {
+            style: {
+                display: 'table',
+            },
+        },
+        denseStyle: {
+            minHeight: '32px',
+        },
+        headRow: {
+            style: {
+                // backgroundColor: theme.background.default,
+                // height: '152px',
+                // borderBottomWidth: '1px',
+                // borderBottomColor: theme.divider.default,
+                borderBottomStyle: 'solid',
+                padding: 0,
+                verticalAlign: 'bottom',
+                // border: '3px solid red',
+                overflow: 'visible',
+                textOverflow: 'unset',
+                marginTop: 'auto',
+            },
+        },
+        headCells: {
+            style: {
+                // transform: 'translate(10px,-15px) rotate(-45deg)',
+                // transform: 'translate(0px,30px)',
+                // height: '100%',
+                // position: 'absolute',
+                overflow: 'visible',
+                verticalAlign: 'bottom', // doesn't work
+                marginTop: 'auto',
+                // border: '3px solid green',
+                padding: 0,
+                // paddingLeft: '8px', // override the cell padding for head cells
+                // paddingRight: '8px',
+            },
+        },
+        rows: {
+            style: {
+                marginLeft: '20px',
+                padding: '20px',
+                minHeight: 'auto', // override the row height
+                borderLeft: '0.5px solid #BBB',
+            },
+        },
+        cells: {
+            style: {
+                // paddingLeft: '8px', // override the cell padding for data cells
+                // paddingRight: '8px',
+                padding: 0, //'0px 5px 0px 5px',
+                borderRight: '0.5px solid #BBB',
+            },
+        },
+    */
+    };
 }
 
 export {CsetsDataTable};
