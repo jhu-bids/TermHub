@@ -16,14 +16,30 @@ import numpy as np
 import pandas as pd
 import requests
 import uvicorn
-from fastapi import FastAPI, Query
+from fastapi import FastAPI, Query, Request
 from fastapi.middleware.cors import CORSMiddleware
 # from pandasql import sqldf
 from pydantic import BaseModel
-
 from enclave_wrangler.config import config, FAVORITE_DATASETS
-
 import jq
+
+# TODO:
+#   action types to look at (http://127.0.0.1:8000/passthru?path=actionTypes):
+#       "create-new-concept-set"
+#       "create-new-draft-omop-concept-set-version"
+#
+# TODO:
+#   get RIDs for concept sets -- not available in dataset download
+#       http://127.0.0.1:8000/passthru?path=objects/OMOPConceptSet
+#
+# other api calls might be handy:
+#   concepts for concept set:
+#       http://127.0.0.1:8000/ontocall?path=objects/OMOPConceptSet/729489911/links/omopconcepts
+#   concepts for concept set:
+#       http://127.0.0.1:8000/ontocall?path=objects/OMOPConceptSet/729489911/links/omopconcepts
+#   linktypes:
+#       http://127.0.0.1:8000/linkTypesForObjectTypes
+
 
 
 DEBUG = True
@@ -181,6 +197,13 @@ def csets_read(
 #     return concepts
 
 
+@APP.middleware("http")
+async def catch_all(request: Request, call_next):
+    print('called backend with url', request.url)
+    response = await call_next(request)
+    return response
+
+
 @APP.get("/")
 def read_root():
     """Root route"""
@@ -200,7 +223,7 @@ def passthru(path) -> [{}]:
     """
     headers = {
         # "authorization": f"Bearer {config['PALANTIR_ENCLAVE_AUTHENTICATION_BEARER_TOKEN']}",
-        "authorization": f"Bearer {config['PERSONAL_ENCLAVE_TOKEN']}",
+        "authorization": f"Bearer {config['OTHER_TOKEN']}",
         # 'content-type': 'application/json'
     }
     ontology_rid = config['ONTOLOGY_RID']
@@ -218,7 +241,7 @@ def passthru(path) -> [{}]:
         return {'ERROR': str(err)}
 
 
-@APP.get("/ontocallOBSOLETE")   # TODO: still using ontocall anywhere? time to get rid of it?
+@APP.get("/ontocall")   # TODO: still using ontocall anywhere? time to get rid of it?
 def ontocall(path) -> [{}]:
     """API documentation at
     https://www.palantir.com/docs/foundry/api/ontology-resources/objects/list-objects/
@@ -226,7 +249,7 @@ def ontocall(path) -> [{}]:
     """
     headers = {
         # "authorization": f"Bearer {config['PALANTIR_ENCLAVE_AUTHENTICATION_BEARER_TOKEN']}",
-        "authorization": f"Bearer {config['PERSONAL_ENCLAVE_TOKEN']}",
+        "authorization": f"Bearer {config['OTHER_TOKEN']}",
         # 'content-type': 'application/json'
     }
     # return {'path': path}
@@ -272,7 +295,7 @@ def vocab_update():
     pass
 
 
-@APP.get("linkTypesForObjectTypes")
+@APP.get("/linkTypesForObjectTypes")
 def link_types() -> List[Dict]:
     """
     TODO: write this api call?
@@ -286,16 +309,16 @@ def link_types() -> List[Dict]:
     """
     headers = {
         # "authorization": f"Bearer {config['PALANTIR_ENCLAVE_AUTHENTICATION_BEARER_TOKEN']}",
-        "authorization": f"Bearer {config['PERSONAL_ENCLAVE_TOKEN']}",
-        # 'content-type': 'application/json'
+        "authorization": f"Bearer {config['OTHER_TOKEN']}",
+        'Content-type': 'application/json',
     }
     # ontology_rid = config['ONTOLOGY_RID']
-    data = {
+    data = json.dumps({
         "objectTypeVersions": {
             "ri.ontology.main.object-type.a11d04a3-601a-45a9-9bc2-5d0e77dd512e":
                 "00000001-9834-2acf-8327-ecb491e69b5c"
         }
-    }
+    })
     api_path = '/ontology-metadata/api/ontology/linkTypesForObjectTypes'
     url = f'https://{config["HOSTNAME"]}{api_path}'
     response = requests.post(url, headers=headers, data=data)
