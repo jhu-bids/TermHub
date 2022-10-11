@@ -301,12 +301,14 @@ def csetVersions() -> Union[Dict, List]:
 #     return json.loads(df.to_json(orient='records'))
 
 
-def cid_data(rec_format, dsi, cid, parent=-1, level=0):
+def cid_data(rec_format, dsi, cid, parent=-1, parent_line=-1, level=0):
     """Concept ID data: DESCRIPTION"""
     if rec_format == 'flat':
         rec = {'concept_id': int(cid),
                'concept_name': ds.concept.loc[cid].concept_name,
                'level': int(level),
+               'parent_concept_id': int(parent),
+               'parent_line': int(parent_line),
                'codeset_ids': dsi.codesets_by_concept_id[cid] if cid in dsi.codesets_by_concept_id else None, }
     else:
         raise NotImplemented(f'No such format {rec_format}!')
@@ -316,15 +318,16 @@ def cid_data(rec_format, dsi, cid, parent=-1, level=0):
 def nested_list_generator(lines: List, rec_format, dsi, child_cids_func: Callable):
     """`lines` variable that it puts data into. Passes back `nested_list` func w/ copies of vars that you passed int.
     `rec_format`: Record format"""
-    def nested_list(cids, parent=-1, level=0):
+    def nested_list(cids, parent=-1, parent_line=-1, level=0):
         """Closure. Updates the `lines` variable from outer scope that was passed here during generation."""
         cids = set(cids)
         for cid in cids:
-            d = cid_data(rec_format, dsi, cid, parent, level)
+            d = cid_data(rec_format, dsi, cid, parent, parent_line, level)
             lines.append(d)
             children: List[int] = child_cids_func(cid)
+            d['has_children'] = bool(children)
             if children:
-                nested_list(children, parent=cid, level=level+1)
+                nested_list(children, parent=cid, parent_line=len(lines)-1, level=level+1)
     return nested_list
 
 

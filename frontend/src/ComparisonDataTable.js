@@ -1,6 +1,8 @@
 import React, {useState, useEffect, /* useReducer, useRef, */} from 'react';
 import DataTable, { createTheme } from 'react-data-table-component';
 import Checkbox from '@mui/material/Checkbox';
+// import ExpandMoreIcon from '@mui/icons-material/ExpandMore';
+// import MoreVertIcon from '@mui/icons-material/MoreVert';
 import {createSearchParams} from "react-router-dom";
 import Button from "@mui/material/Button";
 import {omit, uniq, } from 'lodash';
@@ -12,12 +14,33 @@ function ComparisonDataTable(props) {
     const {codeset_ids=[], cset_data={}} = props;
     const {flattened_concept_hierarchy=[], concept_set_members_i=[], all_csets=[], } = cset_data;
     const [nested, setNested] = useState(true);
-    let nodups = flattened_concept_hierarchy.map(d => omit(d, ['level', ]))
-    nodups = uniq(nodups.map(d => JSON.stringify(d))).map(d => JSON.parse(d))
-    let rowData = nested ? flattened_concept_hierarchy : nodups;
+    let nodups;
+
+    let selected_csets = all_csets.filter(d => codeset_ids.includes(d.codeset_id));
+
+
+    const [rowData, setRowData] = useState();
+    function tableDataUpdate(nested, flattened_concept_hierarchy, nodups, row, updateFunc) {
+        let rowData = nested ? flattened_concept_hierarchy : nodups;
+        if (row && updateFunc) {
+            rowData[row.line_no] = updateFunc(row);
+        }
+        // return rowData;  // probably need to replace with a copy for table to update
+        setRowData([...rowData]);
+    }
+    useEffect(() => {
+        let nodups = flattened_concept_hierarchy.map(d => omit(d, ['level', ]));
+        nodups = uniq(nodups.map(d => JSON.stringify(d))).map(d => JSON.parse(d));
+        nodups.forEach((row,i) => {
+            row.checkboxes = selected_csets.map(cset => row.codeset_ids.includes(cset.codeset_id));
+            row.line_no = i;
+        })
+        flattened_concept_hierarchy.forEach((row,i) => row.line_no = i);
+        tableDataUpdate(nested, flattened_concept_hierarchy, nodups);
+    }, [selected_csets.length])
 
     const customStyles = styles();
-    const coldefs = useColConfig(codeset_ids, nested, all_csets, rowData, nodups);
+    const coldefs = useColConfig(codeset_ids, nested, selected_csets, flattened_concept_hierarchy, nodups, tableDataUpdate);
 
     // TODO: Datatable is getting cut off vertically, as if it's in an iframe, but it has no scroll bar.
     return (
@@ -43,6 +66,8 @@ function ComparisonDataTable(props) {
             //selectableRowsComponent={Checkbox}
             //selectableRowsComponentProps={selectProps}
             //sortIcon={sortIcon}
+            // expandOnRowClicked
+            // expandableRows
             // {...props}
         />
     );
@@ -58,19 +83,17 @@ function getCbStates(csets, nodups) {
     })
     return grid
 }
-function useColConfig(codeset_ids, nested, all_csets, rowData, nodups) {
-    // const {codeset_ids=[], cset_data={}, nested=true, nodups=[], } = props;
-    // const {flattened_concept_hierarchy=[], concept_set_members_i=[], all_csets=[], } = cset_data;
-    let selected_csets = all_csets.filter(d => codeset_ids.includes(d.codeset_id));
+function useColConfig(codeset_ids, nested, selected_csets, flattened_concept_hierarchy, nodups, tableDataUpdate) {
 
     const [cbStates, setCbStates] = useState({});
     const [coldefs, setColdefs] = useState([]);
     const [stateChanges, setStateChanges] = useState(0);
+    const [collapsedRows, setCollapsedRows] = useState([]);
 
     useEffect(() => {
         setCbStates(getCbStates(selected_csets, nodups));
     }, [selected_csets.length])
-    console.log(cbStates);
+    console.log({nodups, cbStates, flattened_concept_hierarchy});
 
     let checkboxChange = (codeset_id, concept_id) => (evt, state) => {
         console.log({codeset_id, concept_id, state});
@@ -82,6 +105,19 @@ function useColConfig(codeset_ids, nested, all_csets, rowData, nodups) {
             console.log({url, res});
             return res.data
         })
+    }
+    let toggleExpand = (row) => {
+        tableDataUpdate(nested,
+                        flattened_concept_hierarchy,
+                        nodups,
+                        row,
+                        row => row.collapsed = !row.collapsed)
+        /*
+        console.log('toggling', row, collapsedRows)
+        collapsedRows[row.line_no] = !collapsedRows[row.line_no];
+        setCollapsedRows(collapsedRows);
+        row.collapsed = !row.collapsed;
+        */
     }
     useEffect(() => {
         if (! Object.keys(cbStates).length) {
@@ -109,11 +145,21 @@ function useColConfig(codeset_ids, nested, all_csets, rowData, nodups) {
             }
             return def;
         });
+        let rowfmt = row => row.has_children
+                        ? collapsedRows[row.line_no]
+                            ? <span onClick={() => toggleExpand(row)}>{expandIcon}{row.concept_name}</span>
+                            : <span onClick={() => toggleExpand(row)}>{collapseIcon}{row.concept_name}</span>
+                        : <span>{blankIcon}{row.concept_name}</span>;
         let coldefs = [
             // { name: 'level', selector: row => row.level, },
             {
                 name: 'Concept name',
                 selector: row => row.concept_name,
+                format: row => row.has_children
+                                    ? collapsedRows[row.line_no]
+                                        ? <span onClick={() => toggleExpand(row)}>{expandIcon}{row.concept_name} {row.collapsed && 'collapsed'}</span>
+                                        : <span onClick={() => toggleExpand(row)}>{collapseIcon}{row.concept_name} {row.collapsed && 'collapsed'}</span>
+                                    : <span>{blankIcon}{row.concept_name}</span>,
                 // sortable: true,
                 // maxWidth: '300px',
                 //  table: style: maxWidth is 85% and selected_csets are 50px, so fill
@@ -133,7 +179,7 @@ function useColConfig(codeset_ids, nested, all_csets, rowData, nodups) {
             delete coldefs[0].conditionalCellStyles;
         }
         setColdefs(coldefs);
-    }, [cbStates, stateChanges])
+    }, [cbStates, stateChanges, collapsedRows])
 
     return coldefs;
 }
@@ -232,6 +278,9 @@ function styles() {
         */
     };
 }
+const expandIcon    = <svg fill="currentColor" height="20" viewBox="0 -6 24 24" width="24" xmlns="http://www.w3.org/2000/svg"><path d="M8.59 16.34l4.58-4.59-4.58-4.59L10 5.75l6 6-6 6z"></path><path d="M0-.25h24v24H0z" fill="none"></path></svg>
+const collapseIcon  = <svg fill="currentColor" height="20" viewBox="0 -6 24 24" width="24" xmlns="http://www.w3.org/2000/svg"><path d="M7.41 7.84L12 12.42l4.59-4.58L18 9.25l-6 6-6-6z"></path><path d="M0-.75h24v24H0z" fill="none"></path></svg>
+const blankIcon     = <svg fill="currentColor" height="20" viewBox="0 -6 24 24" width="24" xmlns="http://www.w3.org/2000/svg" />
 export {ComparisonDataTable};
 
 
