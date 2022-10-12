@@ -1,32 +1,59 @@
-import React, {useState, useEffect, /* useReducer, useRef, */} from 'react';
+import React, {useState, useEffect, useMemo, /* useReducer, useRef, */} from 'react';
 import DataTable, { createTheme } from 'react-data-table-component';
 import Checkbox from '@mui/material/Checkbox';
 // import ExpandMoreIcon from '@mui/icons-material/ExpandMore';
 // import MoreVertIcon from '@mui/icons-material/MoreVert';
 import {createSearchParams} from "react-router-dom";
 import Button from "@mui/material/Button";
-import {omit, uniq, } from 'lodash';
+import {omit, uniq, reduce, cloneDeepWith, } from 'lodash';
 import axios from "axios";
 import {backend_url} from "./App";
 
 
 function ComparisonDataTable(props) {
     const {codeset_ids=[], cset_data={}} = props;
-    const {flattened_concept_hierarchy=[], concept_set_members_i=[], all_csets=[], } = cset_data;
+    const {hierarchy={}, flattened_concept_hierarchy=[], concept_set_members_i=[], all_csets=[], } = cset_data;
     const [nested, setNested] = useState(true);
     let nodups;
+    // const [coldefs, setColdefs] = useState([]);
 
     let selected_csets = all_csets.filter(d => codeset_ids.includes(d.codeset_id));
+
+    let junk = cloneDeepWith(hierarchy, function(c) {
+        return c;
+    })
 
 
     const [rowData, setRowData] = useState();
     function tableDataUpdate(nested, flattened_concept_hierarchy, nodups, row, updateFunc) {
         let rowData = nested ? flattened_concept_hierarchy : nodups;
         if (row && updateFunc) {
-            rowData[row.line_no] = updateFunc(row);
+            if (updateFunc === 'toggleCollapse') {
+                row.collapsed = !row.collapsed
+                if (row.collapsed) {
+                    let rowsToHide = [];
+                    function iter(parentsToHideChildrenOf, row, i, data) {
+                        if (parentsToHideChildrenOf.length) {
+                            let moreRowsToHide = rowData.filter(d => parentsToHideChildrenOf.includes(d.parent_line));
+                            rowsToHide = rowsToHide.concat(moreRowsToHide);
+                            return moreRowsToHide.filter(d => d.has_children).map(d => d.line_no)
+                        }
+                        return [];
+                    }
+                    reduce(rowData, iter, [row.line_no]);
+                    console.log(rowsToHide);
+                    rowData = rowData.filter(d => !rowsToHide.includes(d.line_no))
+                }
+            } else if (typeof(updateFunc) === 'function') {
+                updateFunc(row);
+            } else {
+                throw `unrecognized updateFunc ${updateFunc}`
+            }
+            // row.concept_name = row.concept_name + ' x';
+            rowData[row.line_no] = row;
         }
-        // return rowData;  // probably need to replace with a copy for table to update
-        setRowData([...rowData]);
+        //console.log(rowData);
+        setRowData(rowData);
     }
     useEffect(() => {
         let nodups = flattened_concept_hierarchy.map(d => omit(d, ['level', ]));
@@ -35,12 +62,19 @@ function ComparisonDataTable(props) {
             row.checkboxes = selected_csets.map(cset => row.codeset_ids.includes(cset.codeset_id));
             row.line_no = i;
         })
-        flattened_concept_hierarchy.forEach((row,i) => row.line_no = i);
+        flattened_concept_hierarchy.forEach((row,i) => {
+            row.line_no = i;
+            row.checkboxes = selected_csets.map(cset => row.codeset_ids.includes(cset.codeset_id));
+        });
         tableDataUpdate(nested, flattened_concept_hierarchy, nodups);
-    }, [selected_csets.length])
+    }, [selected_csets.length]);
+
+    const columns = useMemo(() => {
+        return plainColConfig(codeset_ids, nested, selected_csets, flattened_concept_hierarchy, nodups, tableDataUpdate);
+    });
 
     const customStyles = styles();
-    const coldefs = useColConfig(codeset_ids, nested, selected_csets, flattened_concept_hierarchy, nodups, tableDataUpdate);
+    // const coldefs = useColConfig(codeset_ids, nested, selected_csets, flattened_concept_hierarchy, nodups, tableDataUpdate);
 
     // TODO: Datatable is getting cut off vertically, as if it's in an iframe, but it has no scroll bar.
     return (
@@ -49,7 +83,7 @@ function ComparisonDataTable(props) {
             className="comparison-data-table"
             theme="custom-theme"
             // theme="light"
-            columns={coldefs}
+            columns={columns}
             // data={props.nested ? flattened_concept_hierarchy : props.nodups}
             data={rowData}
             customStyles={customStyles}
@@ -72,6 +106,7 @@ function ComparisonDataTable(props) {
         />
     );
 }
+/*
 function getCbStates(csets, nodups) {
     let grid = {};
     csets.forEach(cset => {
@@ -83,23 +118,102 @@ function getCbStates(csets, nodups) {
     })
     return grid
 }
+*/
+function plainColConfig(codeset_ids, nested, selected_csets, flattened_concept_hierarchy, nodups, tableDataUpdate) {
+    let checkboxChange = (codeset_id, concept_id) => (evt, state) => {
+        console.log({codeset_id, concept_id, state});
+        let url = backend_url(`modify-cset?codeset_id=${codeset_id}&concept_id=${concept_id}&state=${state}`);
+        axios.get(url).then((res) => {
+            console.log({url, res});
+            return res.data
+        })
+    }
+    let toggleExpand = (row) => {
+        tableDataUpdate(nested,
+                        flattened_concept_hierarchy,
+                        nodups,
+                        row,
+                        'toggleCollapse'
+                        // row => row.collapsed = !row.collapsed
+        )
+    }
+    let cset_cols = selected_csets.map((cset_col, col_idx) => {
+        let def = {
+            // id: ____?,
+            name: cset_col.concept_set_version_title,
+            // selector: row => row.selected ? '\u2713' : '',
+            selector: row => {
+                // let checked = row.codeset_ids.includes(parseInt(cset_col.codeset_id));
+                // let checked = cbStates[cset_col.codeset_id][row.concept_id];
+                let checked = row.checkboxes[col_idx];
+                // let toggle = <span
+                return checked ? '\u2713' : '';
+                let checkbox_id = `${cset_col.codeset_id}:${row.concept_id}`;
+                return <Checkbox checked={checked}
+                                 onChange={checkboxChange(cset_col.codeset_id, row.concept_id)}/>
+            },
+            // sortable: true,
+            compact: true,
+            width: '50px',
+            // maxWidth: 50,
+            center: true,
+        }
+        return def;
+    });
+    let coldefs = [
+        // { name: 'level', selector: row => row.level, },
+        {
+            name: 'Concept name',
+            selector: row => row.concept_name,
+            format: row => {
+                let content = row.has_children
+                    ? row.collapsed
+                        ? <span onClick={() => toggleExpand(row)}>{expandIcon}{row.concept_name} {row.collapsed && 'collapsed'}</span>
+                        : <span onClick={() => toggleExpand(row)}>{collapseIcon}{row.concept_name} {row.collapsed && 'collapsed'}</span>
+                    : <span>{blankIcon}{row.concept_name}</span>
+                return content;
+            },
+            // sortable: true,
+            // maxWidth: '300px',
+            //  table: style: maxWidth is 85% and selected_csets are 50px, so fill
+            //      the rest of the space with this column
+            width: (window.innerWidth - selected_csets.length * 50) * .85,
+            wrap: true,
+            compact: true,
+            conditionalCellStyles: [
+                { when: row => true,
+                    style: row => ({paddingLeft: 16 + row.level * 16 + 'px'})
+                }
+            ],
+        },
+        ...cset_cols
+    ];
+    if (!nested) {
+        delete coldefs[0].conditionalCellStyles;
+    }
+    return coldefs;
+}
 function useColConfig(codeset_ids, nested, selected_csets, flattened_concept_hierarchy, nodups, tableDataUpdate) {
 
-    const [cbStates, setCbStates] = useState({});
+    // const [cbStates, setCbStates] = useState({});
     const [coldefs, setColdefs] = useState([]);
-    const [stateChanges, setStateChanges] = useState(0);
-    const [collapsedRows, setCollapsedRows] = useState([]);
+    // const [stateChanges, setStateChanges] = useState(0);
+    // const [collapsedRows, setCollapsedRows] = useState([]);
 
+    /*
     useEffect(() => {
         setCbStates(getCbStates(selected_csets, nodups));
     }, [selected_csets.length])
     console.log({nodups, cbStates, flattened_concept_hierarchy});
+    */
 
     let checkboxChange = (codeset_id, concept_id) => (evt, state) => {
         console.log({codeset_id, concept_id, state});
+        /*
         cbStates[codeset_id][concept_id] = state;
         setCbStates(cbStates);
         setStateChanges(stateChanges + 1);
+        */
         let url = backend_url(`modify-cset?codeset_id=${codeset_id}&concept_id=${concept_id}&state=${state}`);
         axios.get(url).then((res) => {
             console.log({url, res});
@@ -120,17 +234,20 @@ function useColConfig(codeset_ids, nested, selected_csets, flattened_concept_hie
         */
     }
     useEffect(() => {
+        /*
         if (! Object.keys(cbStates).length) {
             return
         }
-        let cset_cols = selected_csets.map(cset_col => {
+        */
+        let cset_cols = selected_csets.map((cset_col, col_idx) => {
             let def = {
                 // id: ____?,
                 name: cset_col.concept_set_version_title,
                 // selector: row => row.selected ? '\u2713' : '',
                 selector: row => {
                     // let checked = row.codeset_ids.includes(parseInt(cset_col.codeset_id));
-                    let checked = cbStates[cset_col.codeset_id][row.concept_id];
+                    // let checked = cbStates[cset_col.codeset_id][row.concept_id];
+                    let checked = row.checkboxes[col_idx];
                     // let toggle = <span
                     // return checked ? '\u2713' : '';
                     let checkbox_id = `${cset_col.codeset_id}:${row.concept_id}`;
@@ -145,18 +262,13 @@ function useColConfig(codeset_ids, nested, selected_csets, flattened_concept_hie
             }
             return def;
         });
-        let rowfmt = row => row.has_children
-                        ? collapsedRows[row.line_no]
-                            ? <span onClick={() => toggleExpand(row)}>{expandIcon}{row.concept_name}</span>
-                            : <span onClick={() => toggleExpand(row)}>{collapseIcon}{row.concept_name}</span>
-                        : <span>{blankIcon}{row.concept_name}</span>;
         let coldefs = [
             // { name: 'level', selector: row => row.level, },
             {
                 name: 'Concept name',
                 selector: row => row.concept_name,
                 format: row => row.has_children
-                                    ? collapsedRows[row.line_no]
+                                    ? row.collapsed
                                         ? <span onClick={() => toggleExpand(row)}>{expandIcon}{row.concept_name} {row.collapsed && 'collapsed'}</span>
                                         : <span onClick={() => toggleExpand(row)}>{collapseIcon}{row.concept_name} {row.collapsed && 'collapsed'}</span>
                                     : <span>{blankIcon}{row.concept_name}</span>,
@@ -179,7 +291,7 @@ function useColConfig(codeset_ids, nested, selected_csets, flattened_concept_hie
             delete coldefs[0].conditionalCellStyles;
         }
         setColdefs(coldefs);
-    }, [cbStates, stateChanges, collapsedRows])
+    }, [selected_csets.length]); // [cbStates, stateChanges, collapsedRows])
 
     return coldefs;
 }
