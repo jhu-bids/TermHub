@@ -129,11 +129,14 @@ def make_data_stuff():
     ds.child_cids = child_cids
 
     # todo: Not being used yet. Will use when doing hierarchical stuff later.
-    def connect_children(pc): # how to declare this should be tuple of int or None and list of ints
-        pcid, cids = pc
+    def connect_children(pcid, cids):  # how to declare this should be tuple of int or None and list of ints
+        if not cids:
+            return None
         pcid in cids and cids.remove(pcid)
-        expanded_cids = [ds.child_cids(cid) for cid in cids]
-        return (pcid, [connect_children(ec) if type(ec)==tuple else ec for ec in expanded_cids])
+        pcid_kids = {int(cid): child_cids(cid) for cid in cids}
+        # pdump({'kids': pcid_kids})
+        return {cid: connect_children(cid, kids) for cid, kids in pcid_kids.items()}
+
     ds.connect_children = connect_children
 
     # Take codesets, and merge on container. Add to each version.
@@ -219,13 +222,21 @@ def data_stuff_for_codeset_ids(codeset_ids):
     # Get relationships for selected code sets
     dsi.links = dsi.concept_relationship_i.groupby('concept_id_1')
 
-
-    # Get child `concept_id`
+    # Get child `concept_id`s
     def child_cids(cid):
         """Closure for geting child concept IDs"""
         if cid in dsi.links.groups.keys():
             return [int(c) for c in dsi.links.get_group(cid).concept_id_2.unique() if c != cid]
     dsi.child_cids = child_cids
+
+    # Top level concept IDs for the root of our flattened hierarchy
+    # dsi.top_level_cids = list(
+    #     dsi.concept_relationship_i[
+    #         ~ dsi.concept_relationship_i.concept_id_1.isin(dsi.concept_relationship_i.concept_id_2)
+    #     ].concept_id_1.unique())
+
+    dsi.top_level_cids = ( set(dsi.concept_set_members_i.concept_id)
+                            .difference(set(dsi.concept_relationship_i.concept_id_2)))
 
     # For a given `concept_id`, get a list of `codeset_id` that it appears in
     dsi.codesets_by_concept_id = dsi.concept_set_members_i[['concept_id', 'codeset_id']] \
@@ -234,11 +245,6 @@ def data_stuff_for_codeset_ids(codeset_ids):
         .groupby('concept_id').groups
     for cid, codeset_ids in dsi.codesets_by_concept_id.items():
         dsi.codesets_by_concept_id[cid] = [int(codeset_id) for codeset_id in codeset_ids]
-
-    # Top level concept IDs for the root of our flattened hierarchy
-    dsi.top_level_cids = list(
-        dsi.concept_relationship_i[~dsi.concept_relationship_i.concept_id_1.isin(dsi.concept_relationship_i.concept_id_2)
-        ].concept_id_1.unique())
 
     return dsi
 
@@ -384,10 +390,13 @@ def cr_hierarchy(
         ~ dsi.concept_set_members_i.concept_id.isin([l['concept_id'] for l in lines])]
     lines.extend( [ cid_data(rec_format, dsi, cid) for cid in list(csm_not_related.concept_id)] )
 
+    c = ds.connect_children(-1, dsi.top_level_cids)
+
     result = {'flattened_concept_hierarchy': lines,
               # 'related_csets': dsi.related.to_dict(orient='records'),
               'concept_set_members_i': json.loads(dsi.concept_set_members_i.to_json(orient='records')),
-              'all_csets': json.loads(dsi.all_csets.to_json(orient='records'))
+              'all_csets': json.loads(dsi.all_csets.to_json(orient='records')),
+              'hierarchy': c,
               }
 
     return result
@@ -397,6 +406,14 @@ def cr_hierarchy(
 def new_hierarchy_stuff(
         rec_format: str='default',
         codeset_id: Union[str, None] = Query(default=[]), ) -> List[Dict]:
+
+    requested_codeset_ids = parse_codeset_ids(codeset_id)
+    dsi = data_stuff_for_codeset_ids(requested_codeset_ids)
+
+    links = dsi.concept_relationship_i.groupby('concept_id_1')
+
+    c = ds.connect_children(-1, dsi.top_level_cids)
+
     """
     The only difference between cr_hierarchy and new_hierarchy_stuff is whether the
     child_cids function is from ds or dsi -- that is, is it filtered to codeset_ids or not?
@@ -414,8 +431,6 @@ def new_hierarchy_stuff(
           which versions of datasets to load, and how hierarchy is generated -- does it include concepts
           outside the selected concept sets or not?
     """
-    requested_codeset_ids = parse_codeset_ids(codeset_id)
-    dsi = data_stuff_for_codeset_ids(requested_codeset_ids)
 
     lines = []
     nested_list_generator(lines, rec_format, dsi, ds.child_cids)(dsi.top_level_cids)
@@ -423,7 +438,8 @@ def new_hierarchy_stuff(
     result = {'flattened_concept_hierarchy': lines,
               # 'related_csets': dsi.related.to_dict(orient='records'),
               'concept_set_members_i': json.loads(dsi.concept_set_members_i.to_json(orient='records')),
-              'all_csets': json.loads(dsi.all_csets.to_json(orient='records'))
+              'all_csets': json.loads(dsi.all_csets.to_json(orient='records')),
+              'hierarchy': c,
               }
     return result
 
@@ -523,3 +539,6 @@ def run(port: int = 8000):
 
 if __name__ == '__main__':
     run()
+
+def pdump(o):
+    print(json.dumps(o, indent=2))
