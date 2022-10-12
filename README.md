@@ -59,3 +59,5 @@ User Interactions
 Setup
 1. Clone this repository.
 2. Run `git submodule update`
+3. Run: `git lfs install` if not installed already
+4. If any expected files are not showing up in `termhub-csets/`, run `git lfs pull`
