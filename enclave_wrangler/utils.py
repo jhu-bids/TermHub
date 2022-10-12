@@ -1,5 +1,6 @@
 """Extra utilities"""
 import logging
+from datetime import datetime, timezone
 from http.client import HTTPConnection
 import contextlib
 
@@ -35,3 +36,9 @@ def debug_requests_off():
     requests_log = logging.getLogger("requests.packages.urllib3")
     requests_log.setLevel(logging.WARNING)
     requests_log.propagate = False
+
+
+def _datetime_palantir_format() -> str:
+    """Returns datetime str in format used by palantir data enclave
+    e.g. 2021-03-03T13:24:48.000Z (milliseconds allowed, but not common in observed table)"""
+    return datetime.now(timezone.utc).strftime("%Y-%m-%dT%H:%M:%S.%fZ")[:-4] + 'Z'
