@@ -28,7 +28,7 @@ except ModuleNotFoundError:
 
 
 HEADERS = {
-    "authorization": f"Bearer {config['OTHER_TOKEN']}",
+    "authorization": f"Bearer {config.get('OTHER_TOKEN', '')}",
     #"authorization": f"Bearer {config['PALANTIR_ENCLAVE_AUTHENTICATION_BEARER_TOKEN']}",
     #'content-type': 'application/json'
 }

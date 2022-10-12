@@ -20,6 +20,16 @@ config = {
     'HOSTNAME': os.getenv('HOSTNAME', 'unite.nih.gov'),
     'ONTOLOGY_RID': os.getenv('ONTOLOGY_RID', 'ri.ontology.main.ontology.00000000-0000-0000-0000-000000000000'),
 }
+necessary_env_vars = ['OTHER_TOKEN', 'PALANTIR_ENCLAVE_AUTHENTICATION_BEARER_TOKEN']
+missing_env_vars = [x for x in necessary_env_vars if not config[x]]
+if missing_env_vars:
+    cause_msg = f'The file {ENV_FILE} is missing. This file is necessary and must contain these ' \
+                f'environmental variables in order to connect to the enclave.' if not os.path.exists(ENV_FILE) else \
+                f'Please make update {ENV_FILE} to include these variables.'
+    raise EnvironmentError(
+        f'Attempted to load config, but wasn\'t able to load the following environmental variables: '
+        f'{", ".join(missing_env_vars)}\n'
+        f'{cause_msg}')
 
 # Ordered because of transformation dependencies
 FAVORITE_DATASETS = OrderedDict({
