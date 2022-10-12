@@ -5,21 +5,18 @@ Resources
 """
 import json
 import os
-import errno
 from pathlib import Path
 from subprocess import call as sp_call
 from typing import Any, Dict, List, Union, Callable, Set
 
 import numpy as np
 import pandas as pd
-import requests
 import uvicorn
 from fastapi import FastAPI, Query
 from fastapi.middleware.cors import CORSMiddleware
-# from pandasql import sqldf
 from pydantic import BaseModel
 
-from enclave_wrangler.config import config, FAVORITE_DATASETS
+from enclave_wrangler.datasets import run_favorites as update_termhub_csets
 
 DEBUG = True
 PROJECT_DIR = Path(os.path.dirname(__file__)).parent
@@ -33,66 +30,17 @@ def load_dataset(ds_name):
         print(f'loading {path}')
         ds = pd.read_csv(path, keep_default_na=False)
         return ds
+    except FileNotFoundError as err:
+        raise err
     except Exception as err:
         print(f'failed loading {path}')
         raise err
-
-# todo: consider: run 2 backend servers, 1 to hold the data and 1 to service requests / logic? probably.
-# TODO: #2: remove try/except when git lfs fully set up
-try:
-    # todo: temp until we decide if this is the correct way
-
-    # dataset_names = list(FAVORITE_DATASETS.keys()) + ['concept_relationship_is_a']
-
-    dataset_names = ['concept_set_members',
-                     'concept',
-                     'concept_relationship_subsumes_only',
-                     'concept_set_container',
-                     'code_sets',
-                     'concept_set_version_item']
-
-    DS = {name: load_dataset(name) for name in dataset_names}
-    #  TODO: Fix this warning? (Joe: doing so will help load faster, actually)
-    #   DtypeWarning: Columns (4) have mixed types. Specify dtype option on import or set low_memory=False.
-    #   keep_default_na fixes some or all the warnings, but doesn't manage dtypes well.
-    #   did this in termhub-csets/datasets/fixing-and-paring-down-csv-files.ipynb:
-    #   csm = pd.read_csv('./concept_set_members.csv',
-    #                    # dtype={'archived': bool},    # doesn't work because of missing values
-    #                   converters={'archived': lambda x: x and True or False}, # this makes it a bool field
-    #                   keep_default_na=False)
-
-    #  TODO: try to fix.... not working yet:
-    # code_set.version got mangled into version numbers like 1.0, 2.0
-    #
-    # converters = {
-    #     'int': lambda v: v.astype(int)
-    # }
-    # def bool_converter(v):
-    #     return v and True or False
-    #
-    # csv_opts = {
-    #     # 'code_sets': {'dtype': {'version': int}}
-    #     'code_sets': {'converters': {'version': converters['int']}}
-    # }
-    #
-    # df = pd.read_csv(os.path.join(CSV_PATH, 'code_sets' + '.csv'), **(csv_opts['code_sets']))
-
-    print(f'Favorite datasets loaded: {list(DS.keys())}')
-    # todo: pandasql better?
-    # PYSQLDF = lambda q: sqldf(q, globals()) # I think you need to call this in the function you're using it in
-    # COUNTS = PYSQLDF("""
-    #     SELECT vocabulary_id, COUNT(*) AS cnt
-    #     FROM CONCEPT
-    #     GROUP BY 1""")
-except Exception as err:
-    print(f'failed loading datasets', err)
-
 
 class Bunch(object):    # dictionary to namespace, a la https://stackoverflow.com/a/2597440/1368860
   def __init__(self, adict):
     self.__dict__.update(adict)
 
-def make_data_stuff():
+def load_globals():
     """
     expose tables and other stuff in namespace for convenient reference
         links                   # concept_relationship grouped by concept_id_1, subsumes only
@@ -150,7 +98,61 @@ def make_data_stuff():
     print('Done building global ds objects')
     return ds
 
-ds = make_data_stuff()
+# todo: consider: run 2 backend servers, 1 to hold the data and 1 to service requests / logic? probably.
+# TODO: #2: remove try/except when git lfs fully set up
+try:
+    # todo: temp until we decide if this is the correct way
+
+    # dataset_names = list(FAVORITE_DATASETS.keys()) + ['concept_relationship_is_a']
+
+    dataset_names = ['concept_set_members',
+                     'concept',
+                     'concept_relationship_subsumes_only',
+                     'concept_set_container',
+                     'code_sets',
+                     'concept_set_version_item']
+
+    try:
+        DS = {name: load_dataset(name) for name in dataset_names}
+        ds = load_globals()
+        #  TODO: Fix this warning? (Joe: doing so will help load faster, actually)
+        #   DtypeWarning: Columns (4) have mixed types. Specify dtype option on import or set low_memory=False.
+        #   keep_default_na fixes some or all the warnings, but doesn't manage dtypes well.
+        #   did this in termhub-csets/datasets/fixing-and-paring-down-csv-files.ipynb:
+        #   csm = pd.read_csv('./concept_set_members.csv',
+        #                    # dtype={'archived': bool},    # doesn't work because of missing values
+        #                   converters={'archived': lambda x: x and True or False}, # this makes it a bool field
+        #                   keep_default_na=False)
+
+        #  TODO: try to fix.... not working yet:
+        # code_set.version got mangled into version numbers like 1.0, 2.0
+        #
+        # converters = {
+        #     'int': lambda v: v.astype(int)
+        # }
+        # def bool_converter(v):
+        #     return v and True or False
+        #
+        # csv_opts = {
+        #     # 'code_sets': {'dtype': {'version': int}}
+        #     'code_sets': {'converters': {'version': converters['int']}}
+        # }
+        #
+        # df = pd.read_csv(os.path.join(CSV_PATH, 'code_sets' + '.csv'), **(csv_opts['code_sets']))
+    except FileNotFoundError:
+        # todo: what if they haven't downloaded? maybe need to ls files and see if anything needs to be downloaded first
+        update_termhub_csets(transforms_only=True)
+        DS = {name: load_dataset(name) for name in dataset_names}
+        ds = load_globals()
+    print(f'Favorite datasets loaded: {list(DS.keys())}')
+    # todo: pandasql better?
+    # PYSQLDF = lambda q: sqldf(q, globals()) # I think you need to call this in the function you're using it in
+    # COUNTS = PYSQLDF("""
+    #     SELECT vocabulary_id, COUNT(*) AS cnt
+    #     FROM CONCEPT
+    #     GROUP BY 1""")
+except Exception as err:
+    print(f'failed loading datasets', err)
 
 def data_stuff_for_codeset_ids(codeset_ids):
     """
@@ -447,12 +449,12 @@ def new_hierarchy_stuff(
     # return json.loads(df.to_json(orient='records'))
 
 
-@APP.get("/modify-cset")  # maybe junk, or maybe start of a refactor of above
-def cr_hierarchy(
-        codeset_id: int, concept_id: int, state: bool
+@APP.get("/update-cset")  # maybe junk, or maybe start of a refactor of above
+def update_cset(
+    codeset_id: int, concept_id: int, state: bool
 ) -> Dict:
     modification = {'codeset_id': codeset_id, 'concept_id': concept_id, 'state': state}
-    print(f'modify-cset: {codeset_id}, {concept_id}, {state}')
+    print(f'update-cset: {codeset_id}, {concept_id}, {state}')
     return modification
 
 

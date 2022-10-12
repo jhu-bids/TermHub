@@ -336,15 +336,13 @@ def get_parser():
           'This part is for downloading enclave datasets.'
     parser = ArgumentParser(description=package_description)
 
-    parser.add_argument(
-        '-a', '--auth_token_env_var',
-        default='PALANTIR_ENCLAVE_AUTHENTICATION_BEARER_TOKEN',
-        help='Name of the environment variable holding the auth token you want to use')
-
+    # parser.add_argument(
+    #     '-a', '--auth_token_env_var',
+    #     default='PALANTIR_ENCLAVE_AUTHENTICATION_BEARER_TOKEN',
+    #     help='Name of the environment variable holding the auth token you want to use')
     parser.add_argument(
         '-n', '--datasetName',
         help='Name of enclave dataset you want to download. CSV will be saved to ValueSet-Tools/data/datasets/<name>')
-
     parser.add_argument(
         '-i', '--datasetRid',
         help='RID of enclave dataset you want to download.')

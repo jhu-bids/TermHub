@@ -214,7 +214,7 @@ function useColConfig(codeset_ids, nested, selected_csets, flattened_concept_hie
         setCbStates(cbStates);
         setStateChanges(stateChanges + 1);
         */
-        let url = backend_url(`modify-cset?codeset_id=${codeset_id}&concept_id=${concept_id}&state=${state}`);
+        let url = backend_url(`update-cset?codeset_id=${codeset_id}&concept_id=${concept_id}&state=${state}`);
         axios.get(url).then((res) => {
             console.log({url, res});
             return res.data

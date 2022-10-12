@@ -299,28 +299,29 @@ def transform(fav: dict) -> pd.DataFrame:
     return df
 
 
-def run( fav,
-    dataset_name: str = None, dataset_rid: str = None, ref: str = 'master', outdir: str = None, outpath: str = None,
-    transforms_only=False
+def run(
+    dataset_name: str = None, dataset_rid: str = None, ref: str = 'master', output_dir: str = None, outpath: str = None,
+    transforms_only=False, fav: Dict = None
 ) -> pd.DataFrame:
     dataset_rid = FAVORITE_DATASETS[dataset_name]['rid'] if not dataset_rid else dataset_rid
     dataset_name = FAVORITE_DATASETS_RID_NAME_MAP[dataset_rid] if not dataset_name else dataset_name
+    fav = fav if fav else FAVORITE_DATASETS[dataset_name]
 
     # Download
     df = pd.DataFrame()
     if not transforms_only:
         # TODO: Temp: would be good to accept either 'outdir' or 'outpath'.
         if not outpath:
-            outpath = os.path.join(outdir, f'{dataset_rid}__{ref}.csv') if outdir else None
+            outpath = os.path.join(output_dir, f'{dataset_name}.csv') if output_dir else None
         if os.path.exists(outpath):
             t = time.ctime(os.path.getmtime(outpath))
             print(f'Skipping {outpath}: {t}, {os.path.getsize(outpath)} bytes.')
-            return pd.read_csv(outpath)
-        endRef = getTransaction(dataset_rid, ref)
-        args = {'datasetRid': dataset_rid, 'endRef': endRef}
-        file_parts = views2(**args)
-        # asyncio.run(download_and_combine_dataset_parts(datasetRid, file_parts))
-        df: pd.DataFrame = download_and_combine_dataset_parts(dataset_rid, file_parts, outpath=outpath)
+        else:
+            endRef = getTransaction(dataset_rid, ref)
+            args = {'datasetRid': dataset_rid, 'endRef': endRef}
+            file_parts = views2(**args)
+            # asyncio.run(download_and_combine_dataset_parts(datasetRid, file_parts))
+            df: pd.DataFrame = download_and_combine_dataset_parts(dataset_rid, file_parts, outpath=outpath)
 
     # Transform
     df2: pd.DataFrame = transform(fav)
@@ -333,7 +334,7 @@ def run_favorites(outdir: str = CSV_DOWNLOAD_DIR, transforms_only=False, specifi
     for fav in FAVORITE_DATASETS.values():
         if not specific or fav['name'] in specific:
             outpath = os.path.join(outdir, fav['name'] + '.csv')
-            run(fav=fav, dataset_name=fav['name'], outpath=outpath, transforms_only=transforms_only, )
+            run(fav=fav, dataset_name=fav['name'], outpath=outpath, transforms_only=transforms_only)
 
 
 def get_parser():
@@ -346,17 +347,15 @@ def get_parser():
           'This part is for downloading enclave datasets.'
     parser = ArgumentParser(description=package_description)
 
+    # parser.add_argument(
+    #     '-a', '--auth_token_env_var',
+    #     default='PALANTIR_ENCLAVE_AUTHENTICATION_BEARER_TOKEN',
+    #     help='Name of the environment variable holding the auth token you want to use')
     parser.add_argument(
-        '-a', '--auth_token_env_var',
-        default='PALANTIR_ENCLAVE_AUTHENTICATION_BEARER_TOKEN',
-        help='Name of the environment variable holding the auth token you want to use')
-
-    parser.add_argument(
-        '-n', '--datasetName',
+        '-n', '--dataset-name',
         help='Name of enclave dataset you want to download. CSV will be saved to ValueSet-Tools/data/datasets/<name>')
-
     parser.add_argument(
-        '-i', '--datasetRid',
+        '-i', '--dataset-rid',
         help='RID of enclave dataset you want to download.')
     parser.add_argument(
         '-r', '--ref',
@@ -388,14 +387,14 @@ def cli():
 
     # Run
     specific = []
-    if d['datasetName']:
-        specific.append(d['datasetName'])
+    if d['dataset_name']:
+        specific.append(d['dataset_name'])
 
     if d['favorites']:
         run_favorites(outdir=d['output_dir'], transforms_only=d['transforms_only'], specific=specific)
     else:
-        args = {key: d[key] for key in ['datasetRid', 'ref']}
-        run(**args)
+        del d['favorites']
+        run(**d)
 
 if __name__ == '__main__':
     cli()
