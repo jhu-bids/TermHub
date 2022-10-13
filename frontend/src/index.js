@@ -1,15 +1,7 @@
-import React, {useEffect, useState} from 'react';
 import ReactDOM from 'react-dom/client';
-import {BrowserRouter, Routes, Route, matchPath, useLocation, useNavigate, createSearchParams} from "react-router-dom";
-import {ConceptSetsPage, CsetComparisonPage} from './Csets';
-import _ from 'lodash';
-import {App, AboutPage, QCProvider,} from './App';
+import {BrowserRouter, } from "react-router-dom";
+import {App, QCProvider,} from './App';
 import './index.css';
-import axios from "axios";
-// import MuiAppBar from './MuiAppBar';
-// import Table from './Table'
-// script src="http://localhost:8097"></script>
-// import reportWebVitals from './reportWebVitals';
 
 const root = ReactDOM.createRoot(document.getElementById('root'));
 root.render(
@@ -17,7 +9,6 @@ root.render(
       <QCProvider />
     </BrowserRouter>
 );
-
 
 /*
 <React.StrictMode>
