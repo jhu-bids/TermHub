@@ -5,7 +5,7 @@ import Checkbox from '@mui/material/Checkbox';
 // import MoreVertIcon from '@mui/icons-material/MoreVert';
 import {createSearchParams} from "react-router-dom";
 import Button from "@mui/material/Button";
-import {omit, uniq, reduce, cloneDeepWith, } from 'lodash';
+import {map, omit, pick, uniq, reduce, cloneDeepWith, isEqual, uniqWith, groupBy, } from 'lodash';
 import axios from "axios";
 import {backend_url} from "./App";
 
@@ -15,14 +15,6 @@ function ComparisonDataTable(props) {
     const {hierarchy={}, flattened_concept_hierarchy=[], concept_set_members_i=[], all_csets=[], } = cset_data;
     const [nested, setNested] = useState(true);
     let nodups;
-    // const [coldefs, setColdefs] = useState([]);
-
-    let selected_csets = all_csets.filter(d => codeset_ids.includes(d.codeset_id));
-
-    let junk = cloneDeepWith(hierarchy, function(c) {
-        return c;
-    })
-
 
     const [rowData, setRowData] = useState();
     function tableDataUpdate(nested, flattened_concept_hierarchy, nodups, row, updateFunc) {
@@ -55,6 +47,25 @@ function ComparisonDataTable(props) {
         //console.log(rowData);
         setRowData(rowData);
     }
+    let selected_csets = all_csets.filter(d => codeset_ids.includes(d.codeset_id));
+    let checkboxes = Object.fromEntries(selected_csets.map(d => [d.codeset_id, false]));
+
+    let all_concepts = uniqWith(concept_set_members_i.map(d => pick(d, ['concept_id','concept_name'])), isEqual);
+    all_concepts = Object.fromEntries(all_concepts.map(d => [d.concept_id, {...d, checkboxes: {...checkboxes}}]));
+    concept_set_members_i.forEach(d => all_concepts[d.concept_id].checkboxes[d.codeset_id] = true);
+    // can't figure out how to transverse yet
+    let lines = []
+    let traverse = (obj, parent=-1, level=0) => {
+      lines.push([parent, level, obj])
+      return map(obj, (o,k) => {
+        if (o && typeof o === 'object') {
+          return traverse(o, k, level+1)
+        } else {
+          return {[k]: o}
+        }
+      })
+    }
+
     useEffect(() => {
         let nodups = flattened_concept_hierarchy.map(d => omit(d, ['level', ]));
         nodups = uniq(nodups.map(d => JSON.stringify(d))).map(d => JSON.parse(d));
