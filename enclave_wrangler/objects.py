@@ -52,6 +52,8 @@ class EnclaveClient:
         """Gets object types.
         API docs: https://www.palantir.com/docs/foundry/api/ontology-resources/object-types/list-object-types/
 
+        curl -H "Content-type: application/json" -H "Authorization: Bearer $OTHER_TOKEN" "https://unite.nih.gov/api/v1/ontologies/ri.ontology.main.ontology.00000000-0000-0000-0000-000000000000/objectTypes" | jq
+
         TODO: @Siggie: Here's what I found that looked interesting:
          ConceptRelationship, ConceptSetBundleItem, ConceptSetTag, ConceptSetVersionChangeAcknowledgement,
          ConceptSuccessorRelationship, ConceptUsageCounts, CsetVersionInfo, CodeSystemConceptSetVersionExpressionItem,

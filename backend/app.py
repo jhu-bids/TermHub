@@ -76,7 +76,6 @@ def load_globals():
             return [int(c) for c in ds.links.get_group(cid).concept_id_2.unique() if c != cid]
     ds.child_cids = child_cids
 
-    # todo: Not being used yet. Will use when doing hierarchical stuff later.
     def connect_children(pcid, cids):  # how to declare this should be tuple of int or None and list of ints
         if not cids:
             return None
@@ -230,6 +229,15 @@ def data_stuff_for_codeset_ids(codeset_ids):
         if cid in dsi.links.groups.keys():
             return [int(c) for c in dsi.links.get_group(cid).concept_id_2.unique() if c != cid]
     dsi.child_cids = child_cids
+
+    def connect_children(pcid, cids):  # how to declare this should be tuple of int or None and list of ints
+        if not cids:
+            return None
+        pcid in cids and cids.remove(pcid)
+        pcid_kids = {int(cid): child_cids(cid) for cid in cids}
+        # pdump({'kids': pcid_kids})
+        return {cid: connect_children(cid, kids) for cid, kids in pcid_kids.items()}
+    dsi.connect_children = connect_children
 
     # Top level concept IDs for the root of our flattened hierarchy
     # dsi.top_level_cids = list(
@@ -392,7 +400,7 @@ def cr_hierarchy(
         ~ dsi.concept_set_members_i.concept_id.isin([l['concept_id'] for l in lines])]
     lines.extend( [ cid_data(rec_format, dsi, cid) for cid in list(csm_not_related.concept_id)] )
 
-    c = ds.connect_children(-1, dsi.top_level_cids)
+    c = dsi.connect_children(-1, dsi.top_level_cids)
 
     result = {'flattened_concept_hierarchy': lines,
               # 'related_csets': dsi.related.to_dict(orient='records'),
