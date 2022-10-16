@@ -125,7 +125,7 @@ function ConceptSetsPage(props) {
 function CsetComparisonPage(props) {
   const {codeset_ids=[], cset_data={}} = props;
   let {flattened_concept_hierarchy=[], concept_set_members_i=[], all_csets=[], } = cset_data;
-  console.log(props);
+  // console.log(props);
   const [nested, setNested] = useState(true);
   let nodups = flattened_concept_hierarchy.map(d => omit(d, ['level', ]))
   nodups = uniq(nodups.map(d => JSON.stringify(d))).map(d => JSON.parse(d))

@@ -1,7 +1,6 @@
-.App {
-  /* text-align: center; */
+.toggle-collapse {
+  cursor: pointer;
 }
-
 .MuiAutocomplete-option {
   padding: 0px;
   margin: 0px;

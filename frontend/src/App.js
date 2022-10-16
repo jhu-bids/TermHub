@@ -97,9 +97,9 @@ function DataContainer(props) {
   // let url = backend_url('new-hierarchy-stuff?rec_format=flat&codeset_id=' + codeset_ids.join('|'))
   console.log('url', url)
   const { isLoading, error, data, isFetching } = useQuery([url], () => {
-    console.log('getting it');
+    // console.log('getting it');
     const get = axios.get(url).then((res) => {
-      console.log('got something')
+      // console.log('got something')
       return res.data
     })
     // console.log(`getting ${url}`, get);
@@ -118,7 +118,7 @@ function DataContainer(props) {
   );
 }
 function RoutesContainer(props) {
-  console.log(props)
+  // console.log(props)
   return (
       <Routes>
         <Route path="/" element={<App {...props} />}>

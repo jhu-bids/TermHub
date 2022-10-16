@@ -1,11 +1,11 @@
 import React, {useState, useEffect, useMemo, /* useReducer, useRef, */} from 'react';
 import DataTable, { createTheme } from 'react-data-table-component';
 import Checkbox from '@mui/material/Checkbox';
-// import ExpandMoreIcon from '@mui/icons-material/ExpandMore';
-// import MoreVertIcon from '@mui/icons-material/MoreVert';
+import AddCircle from '@mui/icons-material/AddCircle';
+import RemoveCircle from '@mui/icons-material/RemoveCircle';
 import {createSearchParams} from "react-router-dom";
 import Button from "@mui/material/Button";
-import {map, omit, pick, uniq, reduce, cloneDeepWith, isEqual, uniqWith, groupBy, } from 'lodash';
+import {get, map, omit, pick, uniq, reduce, cloneDeepWith, isEqual, uniqWith, groupBy, } from 'lodash';
 import axios from "axios";
 import {backend_url} from "./App";
 
@@ -14,80 +14,55 @@ function ComparisonDataTable(props) {
     const {codeset_ids=[], cset_data={}} = props;
     const {hierarchy={}, flattened_concept_hierarchy=[], concept_set_members_i=[], all_csets=[], } = cset_data;
     const [nested, setNested] = useState(true);
-    let nodups;
-
+    const [allConcepts, setAllConcepts] = useState();
     const [rowData, setRowData] = useState();
-    function tableDataUpdate(nested, flattened_concept_hierarchy, nodups, row, updateFunc) {
-        let rowData = nested ? flattened_concept_hierarchy : nodups;
-        if (row && updateFunc) {
-            if (updateFunc === 'toggleCollapse') {
-                row.collapsed = !row.collapsed
-                if (row.collapsed) {
-                    let rowsToHide = [];
-                    function iter(parentsToHideChildrenOf, row, i, data) {
-                        if (parentsToHideChildrenOf.length) {
-                            let moreRowsToHide = rowData.filter(d => parentsToHideChildrenOf.includes(d.parent_line));
-                            rowsToHide = rowsToHide.concat(moreRowsToHide);
-                            return moreRowsToHide.filter(d => d.has_children).map(d => d.line_no)
-                        }
-                        return [];
-                    }
-                    reduce(rowData, iter, [row.line_no]);
-                    console.log(rowsToHide);
-                    rowData = rowData.filter(d => !rowsToHide.includes(d.line_no))
-                }
-            } else if (typeof(updateFunc) === 'function') {
-                updateFunc(row);
-            } else {
-                throw `unrecognized updateFunc ${updateFunc}`
-            }
-            // row.concept_name = row.concept_name + ' x';
-            rowData[row.line_no] = row;
-        }
-        //console.log(rowData);
-        setRowData(rowData);
-    }
+    const [columns, setColumns] = useState();
+    const [collapsed, setCollapsed] = useState({});
     let selected_csets = all_csets.filter(d => codeset_ids.includes(d.codeset_id));
-    let checkboxes = Object.fromEntries(selected_csets.map(d => [d.codeset_id, false]));
+    // let nodups;
 
-    let all_concepts = uniqWith(concept_set_members_i.map(d => pick(d, ['concept_id','concept_name'])), isEqual);
-    all_concepts = Object.fromEntries(all_concepts.map(d => [d.concept_id, {...d, checkboxes: {...checkboxes}}]));
-    concept_set_members_i.forEach(d => all_concepts[d.concept_id].checkboxes[d.codeset_id] = true);
-    // can't figure out how to transverse yet
-    let lines = []
-    let traverse = (obj, parent=-1, level=0) => {
-      lines.push([parent, level, obj])
-      return map(obj, (o,k) => {
-        if (o && typeof o === 'object') {
-          return traverse(o, k, level+1)
-        } else {
-          return {[k]: o}
+    function toggleCollapse(row) {
+        collapsed[row.path] = !get(collapsed, row.path);
+        setCollapsed({...collapsed});
+    }
+    function tableDataUpdate(nested, allConcepts) {
+        let rowData = [];
+        let traverse = (o, path=[], level=0) => {
+            Object.keys(o).forEach(k => {
+                let row = {...allConcepts[k], level, path: [...path, k]};
+                rowData.push(row);
+                if (o[k] && typeof(o[k] === 'object')) {
+                    row.has_children = true;
+                    if (!collapsed[row.path]) {
+                        traverse(o[k], k, level+1);
+                    }
+                }
+            })
         }
-      })
+        console.log('start traverse')
+        traverse(hierarchy)
+        // console.log('just after traverse', {rowData});
+        setRowData(rowData);
+        setColumns(colConfig(codeset_ids, nested, selected_csets, rowData, collapsed, toggleCollapse, ));
+        console.log('done tableDataUpdate')
+        window.data = {hierarchy, allConcepts, selected_csets, rowData, columns, collapsed, }
     }
 
     useEffect(() => {
-        let nodups = flattened_concept_hierarchy.map(d => omit(d, ['level', ]));
-        nodups = uniq(nodups.map(d => JSON.stringify(d))).map(d => JSON.parse(d));
-        nodups.forEach((row,i) => {
-            row.checkboxes = selected_csets.map(cset => row.codeset_ids.includes(cset.codeset_id));
-            row.line_no = i;
-        })
-        flattened_concept_hierarchy.forEach((row,i) => {
-            row.line_no = i;
-            row.checkboxes = selected_csets.map(cset => row.codeset_ids.includes(cset.codeset_id));
-        });
-        tableDataUpdate(nested, flattened_concept_hierarchy, nodups);
+        let checkboxes = Object.fromEntries(selected_csets.map(d => [d.codeset_id, false]));
+        let allConcepts = uniqWith(concept_set_members_i.map(d => pick(d, ['concept_id','concept_name'])), isEqual);
+        allConcepts = Object.fromEntries(allConcepts.map(d => [d.concept_id, {...d, checkboxes: {...checkboxes}}]));
+        concept_set_members_i.forEach(d => allConcepts[d.concept_id].checkboxes[d.codeset_id] = true);
+        setAllConcepts(allConcepts);
+        tableDataUpdate(nested, allConcepts);
+        // can't figure out how to transverse yet
     }, [selected_csets.length]);
+    useEffect(() => {
+        tableDataUpdate(nested, allConcepts);
+    }, [collapsed, ]);
 
-    const columns = useMemo(() => {
-        return plainColConfig(codeset_ids, nested, selected_csets, flattened_concept_hierarchy, nodups, tableDataUpdate);
-    });
-
+    // console.log('just before render', {rowData});
     const customStyles = styles();
-    // const coldefs = useColConfig(codeset_ids, nested, selected_csets, flattened_concept_hierarchy, nodups, tableDataUpdate);
-
-    // TODO: Datatable is getting cut off vertically, as if it's in an iframe, but it has no scroll bar.
     return (
         /* https://react-data-table-component.netlify.app/ */
         <DataTable
@@ -130,7 +105,9 @@ function getCbStates(csets, nodups) {
     return grid
 }
 */
-function plainColConfig(codeset_ids, nested, selected_csets, flattened_concept_hierarchy, nodups, tableDataUpdate) {
+function colConfig(codeset_ids, nested, selected_csets, rowData, collapsed, toggleCollapse, ) {
+    console.log('setting coldefs');
+    /*
     let checkboxChange = (codeset_id, concept_id) => (evt, state) => {
         console.log({codeset_id, concept_id, state});
         let url = backend_url(`modify-cset?codeset_id=${codeset_id}&concept_id=${concept_id}&state=${state}`);
@@ -139,29 +116,22 @@ function plainColConfig(codeset_ids, nested, selected_csets, flattened_concept_h
             return res.data
         })
     }
-    let toggleExpand = (row) => {
-        tableDataUpdate(nested,
-                        flattened_concept_hierarchy,
-                        nodups,
-                        row,
-                        'toggleCollapse'
-                        // row => row.collapsed = !row.collapsed
-        )
-    }
+    */
     let cset_cols = selected_csets.map((cset_col, col_idx) => {
         let def = {
-            // id: ____?,
             name: cset_col.concept_set_version_title,
-            // selector: row => row.selected ? '\u2713' : '',
-            selector: row => {
-                // let checked = row.codeset_ids.includes(parseInt(cset_col.codeset_id));
-                // let checked = cbStates[cset_col.codeset_id][row.concept_id];
-                let checked = row.checkboxes[col_idx];
-                // let toggle = <span
+            selector: (row,idx) => {
+                if (!row.checkboxes) {
+                    console.log('problem!!!!', {idx, row, rowData})
+                }
+                let checked = row.checkboxes[cset_col.codeset_id];
                 return checked ? '\u2713' : '';
+                /*
                 let checkbox_id = `${cset_col.codeset_id}:${row.concept_id}`;
                 return <Checkbox checked={checked}
                                  onChange={checkboxChange(cset_col.codeset_id, row.concept_id)}/>
+
+                 */
             },
             // sortable: true,
             compact: true,
@@ -172,16 +142,24 @@ function plainColConfig(codeset_ids, nested, selected_csets, flattened_concept_h
         return def;
     });
     let coldefs = [
-        // { name: 'level', selector: row => row.level, },
         {
             name: 'Concept name',
             selector: row => row.concept_name,
-            format: row => {
+            format: (row, idx) => {
+                /*
+                if (!(idx % 100)) {
+                    console.log('showing row', idx);
+                }
+                */
+                if (!row.checkboxes) {
+                    console.log('problem!!!!', {idx, row, rowData})
+                }
+                // return row.concept_name;
                 let content = row.has_children
-                    ? row.collapsed
-                        ? <span onClick={() => toggleExpand(row)}>{expandIcon}{row.concept_name} {row.collapsed && 'collapsed'}</span>
-                        : <span onClick={() => toggleExpand(row)}>{collapseIcon}{row.concept_name} {row.collapsed && 'collapsed'}</span>
-                    : <span>{blankIcon}{row.concept_name}</span>
+                    ? collapsed[row.path]
+                        ? <span className="toggle-collapse" onClick={() => toggleCollapse(row)}><AddCircle sx={{fontSize:'13px'}}/> {row.concept_name} {row.collapsed && 'collapsed'}</span>
+                        : <span className="toggle-collapse" onClick={() => toggleCollapse(row)}><RemoveCircle sx={{fontSize:'13px'}}/> {row.concept_name} {row.collapsed && 'collapsed'}</span>
+                    : <span><RemoveCircle sx={{fontSize:'13px', visibility:'hidden'}}/> {row.concept_name}</span>
                 return content;
             },
             // sortable: true,
@@ -203,108 +181,7 @@ function plainColConfig(codeset_ids, nested, selected_csets, flattened_concept_h
         delete coldefs[0].conditionalCellStyles;
     }
     return coldefs;
-}
-function useColConfig(codeset_ids, nested, selected_csets, flattened_concept_hierarchy, nodups, tableDataUpdate) {
-
-    // const [cbStates, setCbStates] = useState({});
-    const [coldefs, setColdefs] = useState([]);
-    // const [stateChanges, setStateChanges] = useState(0);
-    // const [collapsedRows, setCollapsedRows] = useState([]);
-
-    /*
-    useEffect(() => {
-        setCbStates(getCbStates(selected_csets, nodups));
-    }, [selected_csets.length])
-    console.log({nodups, cbStates, flattened_concept_hierarchy});
-    */
-
-    let checkboxChange = (codeset_id, concept_id) => (evt, state) => {
-        console.log({codeset_id, concept_id, state});
-        /*
-        cbStates[codeset_id][concept_id] = state;
-        setCbStates(cbStates);
-        setStateChanges(stateChanges + 1);
-        */
-        let url = backend_url(`update-cset?codeset_id=${codeset_id}&concept_id=${concept_id}&state=${state}`);
-        axios.get(url).then((res) => {
-            console.log({url, res});
-            return res.data
-        })
-    }
-    let toggleExpand = (row) => {
-        tableDataUpdate(nested,
-                        flattened_concept_hierarchy,
-                        nodups,
-                        row,
-                        row => row.collapsed = !row.collapsed)
-        /*
-        console.log('toggling', row, collapsedRows)
-        collapsedRows[row.line_no] = !collapsedRows[row.line_no];
-        setCollapsedRows(collapsedRows);
-        row.collapsed = !row.collapsed;
-        */
-    }
-    useEffect(() => {
-        /*
-        if (! Object.keys(cbStates).length) {
-            return
-        }
-        */
-        let cset_cols = selected_csets.map((cset_col, col_idx) => {
-            let def = {
-                // id: ____?,
-                name: cset_col.concept_set_version_title,
-                // selector: row => row.selected ? '\u2713' : '',
-                selector: row => {
-                    // let checked = row.codeset_ids.includes(parseInt(cset_col.codeset_id));
-                    // let checked = cbStates[cset_col.codeset_id][row.concept_id];
-                    let checked = row.checkboxes[col_idx];
-                    // let toggle = <span
-                    // return checked ? '\u2713' : '';
-                    let checkbox_id = `${cset_col.codeset_id}:${row.concept_id}`;
-                    return <Checkbox checked={checked}
-                                     onChange={checkboxChange(cset_col.codeset_id, row.concept_id)}/>
-                },
-                // sortable: true,
-                compact: true,
-                width: '50px',
-                // maxWidth: 50,
-                center: true,
-            }
-            return def;
-        });
-        let coldefs = [
-            // { name: 'level', selector: row => row.level, },
-            {
-                name: 'Concept name',
-                selector: row => row.concept_name,
-                format: row => row.has_children
-                                    ? row.collapsed
-                                        ? <span onClick={() => toggleExpand(row)}>{expandIcon}{row.concept_name} {row.collapsed && 'collapsed'}</span>
-                                        : <span onClick={() => toggleExpand(row)}>{collapseIcon}{row.concept_name} {row.collapsed && 'collapsed'}</span>
-                                    : <span>{blankIcon}{row.concept_name}</span>,
-                // sortable: true,
-                // maxWidth: '300px',
-                //  table: style: maxWidth is 85% and selected_csets are 50px, so fill
-                //      the rest of the space with this column
-                width: (window.innerWidth - selected_csets.length * 50) * .85,
-                wrap: true,
-                compact: true,
-                conditionalCellStyles: [
-                    { when: row => true,
-                        style: row => ({paddingLeft: 16 + row.level * 16 + 'px'})
-                    }
-                ],
-            },
-            ...cset_cols
-        ];
-        if (!nested) {
-            delete coldefs[0].conditionalCellStyles;
-        }
-        setColdefs(coldefs);
-    }, [selected_csets.length]); // [cbStates, stateChanges, collapsedRows])
-
-    return coldefs;
+    console.log('done setting coldefs');
 }
 // createTheme creates a new theme named solarized that overrides the build in dark theme
 // https://github.com/jbetancur/react-data-table-component/blob/master/src/DataTable/themes.ts
@@ -401,9 +278,9 @@ function styles() {
         */
     };
 }
-const expandIcon    = <svg fill="currentColor" height="20" viewBox="0 -6 24 24" width="24" xmlns="http://www.w3.org/2000/svg"><path d="M8.59 16.34l4.58-4.59-4.58-4.59L10 5.75l6 6-6 6z"></path><path d="M0-.25h24v24H0z" fill="none"></path></svg>
-const collapseIcon  = <svg fill="currentColor" height="20" viewBox="0 -6 24 24" width="24" xmlns="http://www.w3.org/2000/svg"><path d="M7.41 7.84L12 12.42l4.59-4.58L18 9.25l-6 6-6-6z"></path><path d="M0-.75h24v24H0z" fill="none"></path></svg>
-const blankIcon     = <svg fill="currentColor" height="20" viewBox="0 -6 24 24" width="24" xmlns="http://www.w3.org/2000/svg" />
+// const expandIcon    = <svg fill="currentColor" height="20" viewBox="0 -6 24 24" width="24" xmlns="http://www.w3.org/2000/svg"><path d="M8.59 16.34l4.58-4.59-4.58-4.59L10 5.75l6 6-6 6z"></path><path d="M0-.25h24v24H0z" fill="none"></path></svg>
+// const collapseIcon  = <svg fill="currentColor" height="20" viewBox="0 -6 24 24" width="24" xmlns="http://www.w3.org/2000/svg"><path d="M7.41 7.84L12 12.42l4.59-4.58L18 9.25l-6 6-6-6z"></path><path d="M0-.75h24v24H0z" fill="none"></path></svg>
+// const blankIcon     = <svg fill="currentColor" height="20" viewBox="0 -6 24 24" width="24" xmlns="http://www.w3.org/2000/svg" />
 export {ComparisonDataTable};
 
 
