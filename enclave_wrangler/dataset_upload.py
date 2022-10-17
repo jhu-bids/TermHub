@@ -455,7 +455,7 @@ def transform_moffit_to_palantir3file(inpath: str) -> str:
             'codeSystem': code_system,
             # </non-palantir fields>
             'isExcluded': False,
-            'includeDescendants': False,
+            'includeDescendants': True if code_system == 'SNOMED' else False,
             'includeMapped': False,
             'item_id': str(uuid4()),  # will let palantir verify ID is indeed unique
             'annotation': f'Curated value set: {MOFFIT_PREFIX}',
