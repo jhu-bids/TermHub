@@ -5,6 +5,7 @@
   "dependencies": {
     "@emotion/react": "^11.9.3",
     "@emotion/styled": "^11.9.3",
+    "@floating-ui/react-dom-interactions": "^0.10.1",
     "@mui/icons-material": "^5.8.4",
     "@mui/joy": "^5.0.0-alpha.37",
     "@mui/material": "^5.9.1",
@@ -19,6 +20,7 @@
     "react-data-table-component": "^7.5.3",
     "react-dom": "^18.2.0",
     "react-hooks-global-state": "^2.0.0",
+    "react-merge-refs": "^2.0.1",
     "react-router-dom": "^6.3.0",
     "react-scripts": "5.0.1",
     "web-vitals": "^2.1.4"

@@ -1,6 +1,16 @@
 .toggle-collapse {
   cursor: pointer;
 }
+.Tooltip {
+  background: #222;
+  color: white;
+  pointer-events: none;
+  border-radius: 6px;
+  padding: 4px 6px;
+  font-size: 14px;
+  width: 150px;
+}
+
 .MuiAutocomplete-option {
   padding: 0px;
   margin: 0px;

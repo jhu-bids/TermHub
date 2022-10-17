@@ -137,7 +137,7 @@ function CsetComparisonPage(props) {
             {flattened_concept_hierarchy.length} lines in nested list.
           </Button>
           <Button  variant={nested ? "outlined" : "contained"} sx={{marginLeft: '20px'}} onClick={() => setNested(false)}>
-            {nodups.length} lines without nesting
+            {concept_set_members_i.length} lines without nesting
           </Button>
         </h5>
         <ComparisonDataTable nodups={nodups} nested={nested} {...props} />

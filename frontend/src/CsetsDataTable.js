@@ -2,6 +2,7 @@ import React from 'react';
 import {isEqual, orderBy, } from 'lodash';
 import DataTable, { createTheme } from 'react-data-table-component';
 import {useSearchParams} from "react-router-dom";
+import {Tooltip} from './Tooltip';
 
 // createTheme creates a new theme named solarized that overrides the build in dark theme
 // https://github.com/jbetancur/react-data-table-component/blob/master/src/DataTable/themes.ts
@@ -103,6 +104,7 @@ function CsetsDataTable(props) {
             in common with the selected sets. Select from below if you want to add to the above list.</p>
     </div>;
 
+
     const rowSelectCritera = row => row.selected;
     // todo: p -> data table: data table has a property for showing some sort of paragraph text
     // TODO: y concepts -> get the number
@@ -152,7 +154,7 @@ function CsetsDataTable(props) {
     );
 }
 function getColdefs() {
-    const pct_fmt = num => Number(num/100).toLocaleString(undefined,{style: 'percent', minimumFractionDigits:2});
+    const pct_fmt = num => Number(num).toLocaleString(undefined,{style: 'percent', minimumFractionDigits:2});
     const descending = (rows, selector, direction) => {
         return orderBy(rows, selector, ['desc']);
     };
@@ -167,7 +169,10 @@ function getColdefs() {
             sortable: true,
         },
         {
-            name: 'Concepts',
+            //name: 'Concepts',
+            name:   <Tooltip label="Number of concepts in this concept set.">
+                        <span>Concepts</span>
+                    </Tooltip>,
             selector: row => row.concepts,
             compact: true,
             width: '70px',
@@ -175,7 +180,10 @@ function getColdefs() {
             sortable: true,
         },
         {
-            name: 'Shared concepts',
+            // name: 'Shared concepts',
+            name:   <Tooltip label="Number of concepts in this set that also belong to the selected concept sets.">
+                        <span>Shared</span>
+                    </Tooltip>,
             selector: row => row.intersecting_concepts,
             compact: true,
             width: '70px',
@@ -183,7 +191,9 @@ function getColdefs() {
             sortable: true,
         },
         {
-            name: 'Precision',
+            name:   <Tooltip label="Portion of the concepts in this set shared with the selected concept sets.">
+                        <span>Precision</span>
+                    </Tooltip>,
             selector: row => row.precision,
             format: row => pct_fmt(row.precision),
             desc: true,
@@ -194,15 +204,23 @@ function getColdefs() {
             // sortFunction: descending,
         },
         {
-            name: 'Recall',
-            selector: row => pct_fmt(row.recall),
+            // name: 'Recall',
+            name:   <Tooltip label="Portion of concepts in the selected concept sets that belong to this set.">
+                        <span>Recall</span>
+                    </Tooltip>,
+            selector: row => row.recall,
+            format: row => pct_fmt(row.recall),
+            desc: true,
             compact: true,
             width: '70px',
             center: true,
             sortable: true,
         },
         {
-            name: 'Archived',
+            // name: 'Archived',
+            name:   <Tooltip label="Checked if this concept set is marked as archived in the enclave.">
+                        <span>Archived</span>
+                    </Tooltip>,
             selector: row => row.archived ? '\u2713' : '',
             compact: true,
             width: '70px',
