@@ -19,7 +19,7 @@ import Autocomplete from '@mui/material/Autocomplete';
 import Button from '@mui/material/Button';
 import Chip from '@mui/material/Chip';
 import { Link, Outlet, useHref, useNavigate, useParams, useSearchParams, useLocation } from "react-router-dom";
-import {max, omit, uniq, } from 'lodash';
+import {isEqual, pick, uniqWith, max, omit, uniq, } from 'lodash';
 
 import {backend_url} from './App';
 import Typography from "@mui/material/Typography";
@@ -36,7 +36,7 @@ import Typography from "@mui/material/Typography";
 */
 function CsetSearch(props) {
   const {codeset_ids=[], cset_data={}} = props;
-  const {flattened_concept_hierarchy=[], concept_set_members_i=[], all_csets=[], } = cset_data;
+  const {concept_set_members_i=[], all_csets=[], } = cset_data;
   const [value, setValue] = useState('');
   const [inputValue, setInputValue] = useState('');
   const [searchParams, setSearchParams] = useSearchParams();
@@ -76,7 +76,7 @@ function CsetSearch(props) {
 
 function ConceptSetsPage(props) {
   const {codeset_ids=[], cset_data={}} = props;
-  const {flattened_concept_hierarchy=[], concept_set_members_i=[], all_csets=[], } = cset_data;
+  const {concept_set_members_i=[], all_csets=[], } = cset_data;
   let navigate = useNavigate();
 
   return (
@@ -124,23 +124,57 @@ function ConceptSetsPage(props) {
 //  ...for coloration, since we want certain rows grouped together
 function CsetComparisonPage(props) {
   const {codeset_ids=[], cset_data={}} = props;
-  let {flattened_concept_hierarchy=[], concept_set_members_i=[], all_csets=[], } = cset_data;
-  // console.log(props);
+  const {hierarchy={}, concept_set_members_i=[], all_csets=[], } = cset_data;
+  let selected_csets = all_csets.filter(d => codeset_ids.includes(d.codeset_id));
   const [nested, setNested] = useState(true);
-  let nodups = flattened_concept_hierarchy.map(d => omit(d, ['level', ]))
-  nodups = uniq(nodups.map(d => JSON.stringify(d))).map(d => JSON.parse(d))
-  // return <ComparisonDataTable {...props} />
+  const [rowData, setRowData] = useState([]);
+
+  if (!all_csets.length) {
+    return <p>Downloading...</p>
+  }
+  let checkboxes = Object.fromEntries(selected_csets.map(d => [d.codeset_id, false]));
+  let allConcepts = uniqWith(concept_set_members_i.map(d => pick(d, ['concept_id','concept_name'])), isEqual);
+  allConcepts = Object.fromEntries(allConcepts.map(d => [d.concept_id, {...d, checkboxes: {...checkboxes}}]));
+  concept_set_members_i.forEach(d => allConcepts[d.concept_id].checkboxes[d.codeset_id] = true);
+
+  function makeRowData(collapsed={}) {
+    if (!nested) {
+      setRowData(Object.values(allConcepts));
+    }
+    let rowData = [];
+    let traverse = (o, path=[], level=0) => {
+      Object.keys(o).forEach(k => {
+        let row = {...allConcepts[k], level, path: [...path, k]};
+        rowData.push(row);
+        if (o[k] && typeof(o[k] === 'object')) {
+          row.has_children = true;
+          if (!collapsed[row.path]) {
+            traverse(o[k], k, level+1);
+          }
+        }
+      })
+    }
+    console.log('start traverse')
+    traverse(hierarchy)
+    console.log('just after traverse', {rowData});
+    setRowData(rowData);
+  }
+  function toggleNested() {
+    setNested(!nested);
+    makeRowData({});
+  }
+  let moreProps = {...props, nested, makeRowData, rowData, selected_csets, };
   return (
       <div>
         <h5 style={{margin:20, }}>
-          <Button variant={nested ? "contained" : "outlined" } onClick={() => setNested(true)}>
-            {flattened_concept_hierarchy.length} lines in nested list.
+          <Button variant={nested ? "contained" : "outlined" } onClick={toggleNested}>
+            {rowData.length} lines in nested list.
           </Button>
-          <Button  variant={nested ? "outlined" : "contained"} sx={{marginLeft: '20px'}} onClick={() => setNested(false)}>
-            {concept_set_members_i.length} lines without nesting
+          <Button  variant={nested ? "outlined" : "contained"} sx={{marginLeft: '20px'}} onClick={toggleNested}>
+            {Object.keys(allConcepts).length} lines without nesting
           </Button>
         </h5>
-        <ComparisonDataTable nodups={nodups} nested={nested} {...props} />
+        <ComparisonDataTable {...moreProps} />
       </div>)
 }
 

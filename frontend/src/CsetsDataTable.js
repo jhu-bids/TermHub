@@ -41,7 +41,7 @@ createTheme('custom-theme', {
 
 function CsetsDataTable(props) {
     const {codeset_ids=[], cset_data={}} = props;
-    const {flattened_concept_hierarchy=[], concept_set_members_i=[], all_csets=[], } = cset_data;
+    const {concept_set_members_i=[], all_csets=[], } = cset_data;
 
     let related_csets = all_csets.filter(d => d.related);
 
@@ -82,17 +82,17 @@ function CsetsDataTable(props) {
         // setSelectedRows(selectedRows);
     }, [])
 
-    const related_ids = new Set(flattened_concept_hierarchy.map(d => d.concept_id));
+    // const related_ids = new Set(f lattened_concept_hierarchy.map(d => d.concept_id));
     const all_concept_ids = new Set(concept_set_members_i.map(d => d.concept_id));
     let stats = {
         csets_chosen: codeset_ids.length,
-        hierarchy_concepts: related_ids.size,
-        nested_list_lines: flattened_concept_hierarchy.length,
+        hierarchy_concepts: '---', // related_ids.size,
+        nested_list_lines: '---', // f lattened_concept_hierarchy.length,
         total_concepts: all_concept_ids.size,
         related_csets: related_csets.length,
     }
-    let not_in_list = [...concept_set_members_i].filter(d => !related_ids.has(d.concept_id))
-    console.log({stats, not_in_list, concept_set_members_i, related_ids, related_csets});
+    // let not_in_list = [...concept_set_members_i].filter(d => !related_ids.has(d.concept_id))
+    // console.log({stats, not_in_list, concept_set_members_i, related_ids, related_csets});
 
     const subHeader = <div>
         <p style={{margin:0, fontSize: 'small',}}>The <strong>{stats.csets_chosen} concept sets </strong>

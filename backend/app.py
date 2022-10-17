@@ -317,62 +317,62 @@ def csetVersions() -> Union[Dict, List]:
 #     return json.loads(df.to_json(orient='records'))
 
 
-def cid_data(rec_format, dsi, cid, parent=-1, parent_line=-1, level=0):
-    """Concept ID data: DESCRIPTION"""
-    if rec_format == 'flat':
-        rec = {'concept_id': int(cid),
-               'concept_name': ds.concept.loc[cid].concept_name,
-               'level': int(level),
-               'parent_concept_id': int(parent),
-               'parent_line': int(parent_line),
-               'codeset_ids': dsi.codesets_by_concept_id[cid] if cid in dsi.codesets_by_concept_id else None, }
-    else:
-        raise NotImplemented(f'No such format {rec_format}!')
-    return rec
-
-
-def nested_list_generator(lines: List, rec_format, dsi, child_cids_func: Callable):
-    """`lines` variable that it puts data into. Passes back `nested_list` func w/ copies of vars that you passed int.
-    `rec_format`: Record format"""
-    def nested_list(cids, parent=-1, parent_line=-1, level=0):
-        """Closure. Updates the `lines` variable from outer scope that was passed here during generation."""
-        cids = set(cids)
-        for cid in cids:
-            d = cid_data(rec_format, dsi, cid, parent, parent_line, level)
-            lines.append(d)
-            children: List[int] = child_cids_func(cid)
-            d['has_children'] = bool(children)
-            if children:
-                nested_list(children, parent=cid, parent_line=len(lines)-1, level=level+1)
-    return nested_list
-
-
-def experimental_nested_list_generator(lines, rec_format, dsi, child_cids_func):
-    # not working yet. trying to do recursion with return stuff, and memoizing stuff that repeats
-    memo = {}
-    def nested_list(cids, parent=-1, level=0):
-        return_lines = []
-        cids = set(cids)
-        for cid in cids:
-            cid = int(cid)
-            d = cid_data(rec_format, dsi, cid, parent, level)
-            return_lines.append(d)
-            lines.append(d)
-            children: List[int] = child_cids_func(cid)
-            if children:
-                params = json.dumps([children, cid, level+1])
-                val = memo.get(params)
-                if val:
-                    # print(f'already got children for {params}')
-                    # pass
-                    # temporarily:
-                    val = [{'included_above': 'yes'}]
-                else:
-                    #print(f'getting children for {params}')
-                    val = memo[params] = nested_list(children, parent=cid, level=level+1)
-                return_lines.extend(val)
-            return return_lines
-    return nested_list
+# def cid_data(rec_format, dsi, cid, parent=-1, parent_line=-1, level=0):
+#     """Concept ID data: DESCRIPTION"""
+#     if rec_format == 'flat':
+#         rec = {'concept_id': int(cid),
+#                'concept_name': ds.concept.loc[cid].concept_name,
+#                'level': int(level),
+#                'parent_concept_id': int(parent),
+#                'parent_line': int(parent_line),
+#                'codeset_ids': dsi.codesets_by_concept_id[cid] if cid in dsi.codesets_by_concept_id else None, }
+#     else:
+#         raise NotImplemented(f'No such format {rec_format}!')
+#     return rec
+#
+#
+# def nested_list_generator(lines: List, rec_format, dsi, child_cids_func: Callable):
+#     """`lines` variable that it puts data into. Passes back `nested_list` func w/ copies of vars that you passed int.
+#     `rec_format`: Record format"""
+#     def nested_list(cids, parent=-1, parent_line=-1, level=0):
+#         """Closure. Updates the `lines` variable from outer scope that was passed here during generation."""
+#         cids = set(cids)
+#         for cid in cids:
+#             d = cid_data(rec_format, dsi, cid, parent, parent_line, level)
+#             lines.append(d)
+#             children: List[int] = child_cids_func(cid)
+#             d['has_children'] = bool(children)
+#             if children:
+#                 nested_list(children, parent=cid, parent_line=len(lines)-1, level=level+1)
+#     return nested_list
+#
+#
+# def experimental_nested_list_generator(lines, rec_format, dsi, child_cids_func):
+#     # not working yet. trying to do recursion with return stuff, and memoizing stuff that repeats
+#     memo = {}
+#     def nested_list(cids, parent=-1, level=0):
+#         return_lines = []
+#         cids = set(cids)
+#         for cid in cids:
+#             cid = int(cid)
+#             d = cid_data(rec_format, dsi, cid, parent, level)
+#             return_lines.append(d)
+#             lines.append(d)
+#             children: List[int] = child_cids_func(cid)
+#             if children:
+#                 params = json.dumps([children, cid, level+1])
+#                 val = memo.get(params)
+#                 if val:
+#                     # print(f'already got children for {params}')
+#                     # pass
+#                     # temporarily:
+#                     val = [{'included_above': 'yes'}]
+#                 else:
+#                     #print(f'getting children for {params}')
+#                     val = memo[params] = nested_list(children, parent=cid, level=level+1)
+#                 return_lines.extend(val)
+#             return return_lines
+#     return nested_list
 
 
 # TODO: the following is just based on concept_relationship
@@ -396,13 +396,13 @@ def cr_hierarchy(
     nested_list_generator(lines, rec_format, dsi, dsi.child_cids)(dsi.top_level_cids)
     # all_csets['csm_related_to_nothing'] = dsi.csm_related_to_nothing
 
-    csm_not_related = dsi.concept_set_members_i[
-        ~ dsi.concept_set_members_i.concept_id.isin([l['concept_id'] for l in lines])]
-    lines.extend( [ cid_data(rec_format, dsi, cid) for cid in list(csm_not_related.concept_id)] )
+    # csm_not_related = dsi.concept_set_members_i[
+    #     ~ dsi.concept_set_members_i.concept_id.isin([l['concept_id'] for l in lines])]
+    # lines.extend( [ cid_data(rec_format, dsi, cid) for cid in list(csm_not_related.concept_id)] )
 
     c = dsi.connect_children(-1, dsi.top_level_cids)
 
-    result = {'flattened_concept_hierarchy': lines,
+    result = {#'flattened_concept_hierarchy': lines,
               # 'related_csets': dsi.related.to_dict(orient='records'),
               'concept_set_members_i': json.loads(dsi.concept_set_members_i.to_json(orient='records')),
               'all_csets': json.loads(dsi.all_csets.to_json(orient='records')),
@@ -432,7 +432,7 @@ def new_hierarchy_stuff(
            http://127.0.0.1:8000/cr-hierarchy?rec_format=flat&codeset_id=400614256|411456218|419757429|484619125|818292046|826535586
     http://127.0.0.1:8000/new-hierarchy-stuff?rec_format=flat&codeset_id=400614256|411456218|419757429|484619125|818292046|826535586
     {
-        "flattened_concept_hierarchy": [],  // 965 items in cr_hierarchy, 991 items in new_hierarchy_stuff
+        # "flattened_concept_hierarchy": [],  // 965 items in cr_hierarchy, 991 items in new_hierarchy_stuff
         "related_csets": [],                // 208 items
         "concept_set_members_i": []         // 1629 items
     }
@@ -442,10 +442,10 @@ def new_hierarchy_stuff(
           outside the selected concept sets or not?
     """
 
-    lines = []
-    nested_list_generator(lines, rec_format, dsi, ds.child_cids)(dsi.top_level_cids)
+    # lines = []
+    # nested_list_generator(lines, rec_format, dsi, ds.child_cids)(dsi.top_level_cids)
 
-    result = {'flattened_concept_hierarchy': lines,
+    result = {# 'flattened_concept_hierarchy': lines,
               # 'related_csets': dsi.related.to_dict(orient='records'),
               'concept_set_members_i': json.loads(dsi.concept_set_members_i.to_json(orient='records')),
               'all_csets': json.loads(dsi.all_csets.to_json(orient='records')),

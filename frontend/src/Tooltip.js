@@ -14,7 +14,7 @@ import {
 } from "@floating-ui/react-dom-interactions";
 import { mergeRefs } from "react-merge-refs";
 
-export const Tooltip = ({ children, label, placement = "top" }) => {
+const Tooltip = ({ children, label, placement = "top" }) => {
   const [open, setOpen] = useState(false);
 
   const { x, y, reference, floating, strategy, context } = useFloating({
@@ -58,3 +58,5 @@ export const Tooltip = ({ children, label, placement = "top" }) => {
     </>
   );
 };
+
+export {Tooltip};

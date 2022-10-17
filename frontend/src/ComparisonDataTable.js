@@ -11,57 +11,29 @@ import {backend_url} from "./App";
 
 
 function ComparisonDataTable(props) {
-    const {codeset_ids=[], cset_data={}} = props;
-    const {hierarchy={}, flattened_concept_hierarchy=[], concept_set_members_i=[], all_csets=[], } = cset_data;
-    const [nested, setNested] = useState(true);
-    const [allConcepts, setAllConcepts] = useState();
-    const [rowData, setRowData] = useState();
+    const {codeset_ids=[], nested=true, makeRowData, rowData, selected_csets, } = props;
     const [columns, setColumns] = useState();
     const [collapsed, setCollapsed] = useState({});
-    let selected_csets = all_csets.filter(d => codeset_ids.includes(d.codeset_id));
-    // let nodups;
+    console.log(window.data = props);
 
     function toggleCollapse(row) {
         collapsed[row.path] = !get(collapsed, row.path);
         setCollapsed({...collapsed});
+        makeRowData(collapsed);
     }
-    function tableDataUpdate(nested, allConcepts) {
-        let rowData = [];
-        let traverse = (o, path=[], level=0) => {
-            Object.keys(o).forEach(k => {
-                let row = {...allConcepts[k], level, path: [...path, k]};
-                rowData.push(row);
-                if (o[k] && typeof(o[k] === 'object')) {
-                    row.has_children = true;
-                    if (!collapsed[row.path]) {
-                        traverse(o[k], k, level+1);
-                    }
-                }
-            })
+
+    useEffect(() => {
+        if (!selected_csets.length) {
+            return;
         }
-        console.log('start traverse')
-        traverse(hierarchy)
-        // console.log('just after traverse', {rowData});
-        setRowData(rowData);
+        console.log('makeRowData because', {selected_csets});
+        makeRowData({});
+    }, [selected_csets.length, ]);
+    useEffect(() => {
+        console.log('selColumns because', {rowData});
         setColumns(colConfig(codeset_ids, nested, selected_csets, rowData, collapsed, toggleCollapse, ));
-        console.log('done tableDataUpdate')
-        window.data = {hierarchy, allConcepts, selected_csets, rowData, columns, collapsed, }
-    }
+    }, [rowData, ]);
 
-    useEffect(() => {
-        let checkboxes = Object.fromEntries(selected_csets.map(d => [d.codeset_id, false]));
-        let allConcepts = uniqWith(concept_set_members_i.map(d => pick(d, ['concept_id','concept_name'])), isEqual);
-        allConcepts = Object.fromEntries(allConcepts.map(d => [d.concept_id, {...d, checkboxes: {...checkboxes}}]));
-        concept_set_members_i.forEach(d => allConcepts[d.concept_id].checkboxes[d.codeset_id] = true);
-        setAllConcepts(allConcepts);
-        tableDataUpdate(nested, allConcepts);
-        // can't figure out how to transverse yet
-    }, [selected_csets.length]);
-    useEffect(() => {
-        tableDataUpdate(nested, allConcepts);
-    }, [collapsed, ]);
-
-    // console.log('just before render', {rowData});
     const customStyles = styles();
     return (
         /* https://react-data-table-component.netlify.app/ */
@@ -70,7 +42,6 @@ function ComparisonDataTable(props) {
             theme="custom-theme"
             // theme="light"
             columns={columns}
-            // data={props.nested ? flattened_concept_hierarchy : props.nodups}
             data={rowData}
             customStyles={customStyles}
 
@@ -133,9 +104,14 @@ function colConfig(codeset_ids, nested, selected_csets, rowData, collapsed, togg
 
                  */
             },
+            conditionalCellStyles: [
+                { when: row => row.checkboxes[cset_col.codeset_id],
+                    style: {backgroundColor: 'green'}
+                }
+            ],
             // sortable: true,
             compact: true,
-            width: '50px',
+            width: '20px',
             // maxWidth: 50,
             center: true,
         }
@@ -154,12 +130,13 @@ function colConfig(codeset_ids, nested, selected_csets, rowData, collapsed, togg
                 if (!row.checkboxes) {
                     console.log('problem!!!!', {idx, row, rowData})
                 }
-                // return row.concept_name;
-                let content = row.has_children
-                    ? collapsed[row.path]
-                        ? <span className="toggle-collapse" onClick={() => toggleCollapse(row)}><AddCircle sx={{fontSize:'13px'}}/> {row.concept_name} {row.collapsed && 'collapsed'}</span>
-                        : <span className="toggle-collapse" onClick={() => toggleCollapse(row)}><RemoveCircle sx={{fontSize:'13px'}}/> {row.concept_name} {row.collapsed && 'collapsed'}</span>
-                    : <span><RemoveCircle sx={{fontSize:'13px', visibility:'hidden'}}/> {row.concept_name}</span>
+                let content = nested
+                    ? row.has_children
+                        ? collapsed[row.path]
+                            ? <span className="toggle-collapse" onClick={() => toggleCollapse(row)}><AddCircle sx={{fontSize:'13px'}}/> {row.concept_name} {row.collapsed && 'collapsed'}</span>
+                            : <span className="toggle-collapse" onClick={() => toggleCollapse(row)}><RemoveCircle sx={{fontSize:'13px'}}/> {row.concept_name} {row.collapsed && 'collapsed'}</span>
+                        : <span><RemoveCircle sx={{fontSize:'13px', visibility:'hidden'}}/> {row.concept_name}</span>
+                    : row.concept_name
                 return content;
             },
             // sortable: true,
@@ -217,9 +194,9 @@ function styles() {
               display: 'table',
             },
           },
-            denseStyle: {
-                minHeight: '32px',
-            },
+        denseStyle: {
+            minHeight: '2px',
+        },
         */
         table: {
             style: {
@@ -262,12 +239,17 @@ function styles() {
         rows: {
             style: {
                 color: 'black',
-                minHeight: 'auto', // override the row height
+                minHeight: '0px', // override the row height    -- doesn't work, can only seem to do it from css
+                padding: '2px',
+                // height: '2px',
+                // fontSize: '2px',
+                // height: '3px',
                 borderLeft: '0.5px solid #BBB',
             },
         },
         cells: {
             style: {
+                minHeight: '0px', // override the row height
                 // paddingLeft: '8px', // override the cell padding for data cells
                 // paddingRight: '8px',
                 padding: 0, //'0px 5px 0px 5px',
