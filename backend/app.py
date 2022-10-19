@@ -202,10 +202,6 @@ def data_stuff_for_codeset_ids(codeset_ids):
         ds.concept_set_members['codeset_id'].isin(dsi.related_codeset_ids)
         ].drop_duplicates()
 
-    # dsi.concept_set_members_i.merge(dsi.concept_set_members_r, how='right', on='codeset_id').drop_duplicates()
-    # dsi.csm_related_to_nothing = dsi.concept_set_members_i[
-    #    ~ dsi.concept_set_members_i.concept_id.isin(ds.all_concept_relationship_cids)]
-
     g = dsi.concept_set_members_r.groupby('codeset_id')
     r_with_intersecting_cids = g.apply(lambda r: set(r.concept_id).intersection(concept_ids))
     if len(r_with_intersecting_cids):
@@ -216,7 +212,6 @@ def data_stuff_for_codeset_ids(codeset_ids):
         all_csets = all_csets.convert_dtypes({'intersecting_concepts': 'int'})
         all_csets['recall'] = all_csets.intersecting_concepts / len(concept_ids)
         all_csets['precision'] = all_csets.intersecting_concepts / all_csets.concepts
-        # all_csets['csm_related_to_nothing'] = dsi.csm_related_to_nothing
 
     dsi.all_csets = all_csets
 
@@ -303,78 +298,6 @@ def csetVersions() -> Union[Dict, List]:
     return g
 
 
-# # Example: http://127.0.0.1:8000/codeset-info?codeset_id=400614256|411456218|484619125|818292046|826535586
-# @APP.get("/codeset-info")        # maybe junk, or maybe start of a refactor of above
-# def codeset_info(codeset_id: Union[str, None] = Query(default=[]), codeset_ids=[], dsi=None) -> List[Dict]:
-#     """
-#     join container info onto dsi.code_sets_i     # maybe just do this off the bat for all code sets?
-#     """
-#
-#     requested_codeset_ids = codeset_ids or parse_codeset_ids(codeset_id)
-#     dsi = dsi or data_stuff_for_codeset_ids(requested_codeset_ids)
-#
-#     df = dsi.code_sets_i.merge(ds.concept_set_container, on='concept_set_name')
-#     return json.loads(df.to_json(orient='records'))
-
-
-# def cid_data(rec_format, dsi, cid, parent=-1, parent_line=-1, level=0):
-#     """Concept ID data: DESCRIPTION"""
-#     if rec_format == 'flat':
-#         rec = {'concept_id': int(cid),
-#                'concept_name': ds.concept.loc[cid].concept_name,
-#                'level': int(level),
-#                'parent_concept_id': int(parent),
-#                'parent_line': int(parent_line),
-#                'codeset_ids': dsi.codesets_by_concept_id[cid] if cid in dsi.codesets_by_concept_id else None, }
-#     else:
-#         raise NotImplemented(f'No such format {rec_format}!')
-#     return rec
-#
-#
-# def nested_list_generator(lines: List, rec_format, dsi, child_cids_func: Callable):
-#     """`lines` variable that it puts data into. Passes back `nested_list` func w/ copies of vars that you passed int.
-#     `rec_format`: Record format"""
-#     def nested_list(cids, parent=-1, parent_line=-1, level=0):
-#         """Closure. Updates the `lines` variable from outer scope that was passed here during generation."""
-#         cids = set(cids)
-#         for cid in cids:
-#             d = cid_data(rec_format, dsi, cid, parent, parent_line, level)
-#             lines.append(d)
-#             children: List[int] = child_cids_func(cid)
-#             d['has_children'] = bool(children)
-#             if children:
-#                 nested_list(children, parent=cid, parent_line=len(lines)-1, level=level+1)
-#     return nested_list
-#
-#
-# def experimental_nested_list_generator(lines, rec_format, dsi, child_cids_func):
-#     # not working yet. trying to do recursion with return stuff, and memoizing stuff that repeats
-#     memo = {}
-#     def nested_list(cids, parent=-1, level=0):
-#         return_lines = []
-#         cids = set(cids)
-#         for cid in cids:
-#             cid = int(cid)
-#             d = cid_data(rec_format, dsi, cid, parent, level)
-#             return_lines.append(d)
-#             lines.append(d)
-#             children: List[int] = child_cids_func(cid)
-#             if children:
-#                 params = json.dumps([children, cid, level+1])
-#                 val = memo.get(params)
-#                 if val:
-#                     # print(f'already got children for {params}')
-#                     # pass
-#                     # temporarily:
-#                     val = [{'included_above': 'yes'}]
-#                 else:
-#                     #print(f'getting children for {params}')
-#                     val = memo[params] = nested_list(children, parent=cid, level=level+1)
-#                 return_lines.extend(val)
-#             return return_lines
-#     return nested_list
-
-
 # TODO: the following is just based on concept_relationship
 #       should also check whether relationships exist in concept_ancestor
 #       that aren't captured here
@@ -392,17 +315,9 @@ def cr_hierarchy(
     # A namespace (like `ds`) specifically for these codeset IDs.
     dsi = data_stuff_for_codeset_ids(requested_codeset_ids)
 
-    lines = []
-    nested_list_generator(lines, rec_format, dsi, dsi.child_cids)(dsi.top_level_cids)
-    # all_csets['csm_related_to_nothing'] = dsi.csm_related_to_nothing
-
-    # csm_not_related = dsi.concept_set_members_i[
-    #     ~ dsi.concept_set_members_i.concept_id.isin([l['concept_id'] for l in lines])]
-    # lines.extend( [ cid_data(rec_format, dsi, cid) for cid in list(csm_not_related.concept_id)] )
-
     c = dsi.connect_children(-1, dsi.top_level_cids)
 
-    result = {#'flattened_concept_hierarchy': lines,
+    result = {
               # 'related_csets': dsi.related.to_dict(orient='records'),
               'concept_set_members_i': json.loads(dsi.concept_set_members_i.to_json(orient='records')),
               'all_csets': json.loads(dsi.all_csets.to_json(orient='records')),
@@ -425,6 +340,8 @@ def new_hierarchy_stuff(
     c = ds.connect_children(-1, dsi.top_level_cids)
 
     """
+    TODO: fix comments -- no longer accurate
+    
     The only difference between cr_hierarchy and new_hierarchy_stuff is whether the
     child_cids function is from ds or dsi -- that is, is it filtered to codeset_ids or not?
     And the only difference in output appears to be a few records in flattened_concept_hierarchy (used to be `lines`)
@@ -442,19 +359,12 @@ def new_hierarchy_stuff(
           outside the selected concept sets or not?
     """
 
-    # lines = []
-    # nested_list_generator(lines, rec_format, dsi, ds.child_cids)(dsi.top_level_cids)
-
-    result = {# 'flattened_concept_hierarchy': lines,
-              # 'related_csets': dsi.related.to_dict(orient='records'),
+    result = { # 'related_csets': dsi.related.to_dict(orient='records'),
               'concept_set_members_i': json.loads(dsi.concept_set_members_i.to_json(orient='records')),
               'all_csets': json.loads(dsi.all_csets.to_json(orient='records')),
               'hierarchy': c,
               }
     return result
-
-
-    # return json.loads(df.to_json(orient='records'))
 
 
 @APP.get("/update-cset")  # maybe junk, or maybe start of a refactor of above

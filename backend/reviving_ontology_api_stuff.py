@@ -57,6 +57,81 @@ APP.add_middleware(
     allow_headers=['*']
 )
 
+# get actionType endpoints:
+# curl -H "Content-type: application/json" -H "Authorization: Bearer $PALANTIR_ENCLAVE_AUTHENTICATION_BEARER_TOKEN" "https://unite.nih.gov/api/v1/ontologies/ri.ontology.main.ontology.00000000-0000-0000-0000-000000000000/actionTypes"
+
+createNewConceptSetDescription = {
+    "apiName": "create-new-concept-set",
+    "description": "Creates a new 'empty' Concept Set linked to a research project",
+    "rid": "ri.actions.main.action-type.ef6f89de-d5e3-450c-91ea-17132c8636ae",
+    "parameters": {
+        "assigned_sme": {
+            "description": "",
+            "baseType": "String"
+        },
+        "assigned_informatician": {
+            "description": "",
+            "baseType": "String"
+        },
+        "concept_set_id": {
+            "description": "",
+            "baseType": "String"
+        },
+        "status": {
+            "description": "",
+            "baseType": "String"
+        },
+        "intention": {
+            "description": "",
+            "baseType": "String"
+        },
+        "research-project": {
+            "description": "Research project Concept Set is being created for",
+            "baseType": "OntologyObject"
+        },
+        "stage": {
+            "description": "",
+            "baseType": "String"
+        }
+    }
+}
+
+
+def createNewConceptSetDescription():
+    """
+    curl -H "Content-type: application/json" -H "Authorization: Bearer $OTHER_TOKEN" \
+        "https://unite.nih.gov/api/v1/ontologies/ri.ontology.main.ontology.00000000-0000-"\
+            "0000-0000-000000000000/actions/create-new-concept-set/apply" \
+            --data '{"parameters":{"intention":"just for testing of action api by Siggie" }}' | jq
+    """
+    passthru('actions/create-new-concept-set/validate')
+
+
+@APP.get("/passthru-post")
+def passthruPost(path, data) -> [{}]:
+    """API documentation at
+    https://www.palantir.com/docs/foundry/api/ontology-resources/objects/list-objects/
+    https://www.palantir.com/docs/foundry/api/ontology-resources/object-types/list-object-types/
+    """
+    headers = {
+        "authorization": f"Bearer {config['PALANTIR_ENCLAVE_AUTHENTICATION_BEARER_TOKEN']}",
+        # "authorization": f"Bearer {config['OTHER_TOKEN']}",
+    }
+    ontology_rid = config['ONTOLOGY_RID']
+    api_path = f'/api/v1/ontologies/{ontology_rid}/{path}'
+    url = f'https://{config["HOSTNAME"]}{api_path}'
+    print(f'passthru: {api_path}\n{url}')
+
+    try:
+        response = requests.post(url, headers=headers, data=data)
+        response.raise_for_status()
+        response_json: Dict = response.json()
+        return response_json
+    except BaseException as err:
+        print(f"Unexpected {type(err)}: {str(err)}")
+        return {'ERROR': str(err)}
+
+
 # Utils
 def json_path(objtype: str) -> str:
     """ construct path for json file given an object type name, e.g., OMOPConceptSet """
@@ -222,9 +297,8 @@ def passthru(path) -> [{}]:
     https://www.palantir.com/docs/foundry/api/ontology-resources/object-types/list-object-types/
     """
     headers = {
-        # "authorization": f"Bearer {config['PALANTIR_ENCLAVE_AUTHENTICATION_BEARER_TOKEN']}",
-        "authorization": f"Bearer {config['OTHER_TOKEN']}",
-        # 'content-type': 'application/json'
+        "authorization": f"Bearer {config['PALANTIR_ENCLAVE_AUTHENTICATION_BEARER_TOKEN']}",
+        # "authorization": f"Bearer {config['OTHER_TOKEN']}",
     }
     ontology_rid = config['ONTOLOGY_RID']
     api_path = f'/api/v1/ontologies/{ontology_rid}/{path}'
