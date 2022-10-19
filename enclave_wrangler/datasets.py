@@ -40,7 +40,7 @@ os.makedirs(CSV_TRANSFORM_DIR, exist_ok=True)
 
 
 @typechecked
-def getTransaction(datasetRid: str, ref: str = 'master') -> str:
+def getTransaction(dataset_rid: str, ref: str = 'master') -> str:
     """API documentation at
     https://unite.nih.gov/workspace/documentation/developer/api/catalog/services/CatalogService/endpoints/getTransaction
     tested with curl:
@@ -50,8 +50,8 @@ def getTransaction(datasetRid: str, ref: str = 'master') -> str:
         log_debug_info()
 
     endpoint = 'https://unite.nih.gov/foundry-catalog/api/catalog/datasets/'
-    template = '{url}{datasetRid}/transactions/{ref}'
-    url = template.format(url=endpoint, datasetRid=datasetRid, ref=ref)
+    template = '{url}{dataset_rid}/transactions/{ref}'
+    url = template.format(url=endpoint, dataset_rid=dataset_rid, ref=ref)
 
     response = requests.get(url, headers=HEADERS,)
     response_json = response.json()
@@ -61,7 +61,7 @@ def getTransaction(datasetRid: str, ref: str = 'master') -> str:
 
 
 @typechecked
-def views2(datasetRid: str, endRef: str) -> [str]:
+def views2(dataset_rid: str, endRef: str) -> [str]:
     """API documentation at
     https://unite.nih.gov/workspace/documentation/developer/api/catalog/services/CatalogService/endpoints/getDatasetViewFiles2
     tested with curl:
@@ -73,8 +73,8 @@ def views2(datasetRid: str, endRef: str) -> [str]:
         log_debug_info()
 
     endpoint = 'https://unite.nih.gov/foundry-catalog/api/catalog/datasets/'
-    template = '{endpoint}{datasetRid}/views2/{endRef}/files?pageSize=100'
-    url = template.format(endpoint=endpoint, datasetRid=datasetRid, endRef=endRef)
+    template = '{endpoint}{dataset_rid}/views2/{endRef}/files?pageSize=100'
+    url = template.format(endpoint=endpoint, dataset_rid=dataset_rid, endRef=endRef)
 
     response = requests.get(url, headers=HEADERS,)
     response_json = response.json()
@@ -88,9 +88,9 @@ def download_and_combine_dataset_parts(fav: dict, file_parts: [str], outpath: st
     wget https://unite.nih.gov/foundry-data-proxy/api/dataproxy/datasets/ri.foundry.main.dataset.5cb3c4a3-327a-47bf-a8bf-daf0cafe6772/views/master/spark%2Fpart-00000-c94edb9f-1221-4ae8-ba74-58848a4d79cb-c000.snappy.parquet --header "authorization: Bearer $PALANTIR_ENCLAVE_AUTHENTICATION_BEARER_TOKEN"
     """
 
-    datasetRid: str = fav['rid']
+    dataset_rid: str = fav['rid']
     endpoint = 'https://unite.nih.gov/foundry-data-proxy/api/dataproxy/datasets'
-    template = '{endpoint}/{datasetRid}/views/master/{fp}'
+    template = '{endpoint}/{dataset_rid}/views/master/{fp}'
     # if DEBUG:
 
     # download parquet files
@@ -98,7 +98,7 @@ def download_and_combine_dataset_parts(fav: dict, file_parts: [str], outpath: st
         # if DEBUG:
         print(f'\nDownloading {outpath}; tempdir {parquet_dir}, filepart endpoints:')
         for fp in file_parts:
-            url = template.format(endpoint=endpoint, datasetRid=datasetRid, fp=fp)
+            url = template.format(endpoint=endpoint, dataset_rid=dataset_rid, fp=fp)
             print('\t' + url)
             response = requests.get(url, headers=HEADERS, stream=True)
             if response.status_code == 200:
@@ -332,9 +332,9 @@ def run(
             print(f'Skipping {outpath}: {t}, {os.path.getsize(outpath)} bytes.')
         else:
             endRef = getTransaction(dataset_rid, ref)
-            args = {'datasetRid': dataset_rid, 'endRef': endRef}
+            args = {'dataset_rid': dataset_rid, 'endRef': endRef}
             file_parts = views2(**args)
-            # asyncio.run(download_and_combine_dataset_parts(datasetRid, file_parts))
+            # asyncio.run(download_and_combine_dataset_parts(dataset_rid, file_parts))
             df: pd.DataFrame = download_and_combine_dataset_parts(fav, file_parts, outpath=outpath)
 
     # Transform
