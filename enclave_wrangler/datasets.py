@@ -83,10 +83,12 @@ def views2(datasetRid: str, endRef: str) -> [str]:
 
 
 @typechecked
-def download_and_combine_dataset_parts(datasetRid: str, file_parts: [str], outpath: str) -> pd.DataFrame:
+def download_and_combine_dataset_parts(fav: dict, file_parts: [str], outpath: str) -> pd.DataFrame:
     """tested with cURL:
     wget https://unite.nih.gov/foundry-data-proxy/api/dataproxy/datasets/ri.foundry.main.dataset.5cb3c4a3-327a-47bf-a8bf-daf0cafe6772/views/master/spark%2Fpart-00000-c94edb9f-1221-4ae8-ba74-58848a4d79cb-c000.snappy.parquet --header "authorization: Bearer $PALANTIR_ENCLAVE_AUTHENTICATION_BEARER_TOKEN"
     """
+
+    datasetRid: str = fav['rid']
     endpoint = 'https://unite.nih.gov/foundry-data-proxy/api/dataproxy/datasets'
     template = '{endpoint}/{datasetRid}/views/master/{fp}'
     # if DEBUG:
@@ -118,20 +120,32 @@ def download_and_combine_dataset_parts(datasetRid: str, file_parts: [str], outpa
             else:
                 raise f'failed opening {url} with {response.status_code}: {response.content}'
         combined_parquet_fname = parquet_dir + '/combined.parquet'
-        combine_parquet_files(parquet_dir, combined_parquet_fname)
-        df = pd.read_parquet(combined_parquet_fname)
+
+        files = []
+        for file_name in os.listdir(parquet_dir):
+            files.append(os.path.join(parquet_dir, file_name))
+
+        if files[0].endswith('.parquet'):
+            combine_parquet_files(parquet_dir, combined_parquet_fname)
+            df = pd.read_parquet(combined_parquet_fname)
+        elif files[0].endswith('.csv'):
+            if len(files) != 1:
+                raise f"with csv, only expected one file; got: [{', '.join(files)}]"
+            df = pd.read_csv(files[0], names=fav['column_names'])
+        else:
+            raise f"unexpected file(s) downloaded: [{', '.join(files)}]"
+
         if outpath:
             os.makedirs(os.path.dirname(outpath), exist_ok=True)
             df.to_csv(outpath, index=False)
         return df
 
 
-def combine_parquet_files(input_folder, target_path):
+def combine_parquet_files(input_files, target_path):
     try:
         files = []
-        for file_name in os.listdir(input_folder):
+        for file_name in input_files:
             files.append(pq.read_table(os.path.join(input_folder, file_name)))
-
         with pq.ParquetWriter(
             target_path,
             files[0].schema,
@@ -321,7 +335,7 @@ def run(
             args = {'datasetRid': dataset_rid, 'endRef': endRef}
             file_parts = views2(**args)
             # asyncio.run(download_and_combine_dataset_parts(datasetRid, file_parts))
-            df: pd.DataFrame = download_and_combine_dataset_parts(dataset_rid, file_parts, outpath=outpath)
+            df: pd.DataFrame = download_and_combine_dataset_parts(fav, file_parts, outpath=outpath)
 
     # Transform
     df2: pd.DataFrame = transform(fav)

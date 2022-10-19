@@ -79,6 +79,18 @@ FAVORITE_DATASETS = OrderedDict({
         'rid': 'ri.foundry.main.dataset.1323fff5-7c7b-4915-bcde-4d5ba882c993',
         'sort_idx': ['codeset_id', 'concept_id'],
     },
+    'concept_set_counts_clamped': { # gets downloaded as csv without column names, not parquet
+        'name': 'concept_set_counts_clamped',
+        'rid': 'ri.foundry.main.dataset.f945409a-37f1-402f-a840-29b6bd675cb0',
+        'column_names': ["codeset_id", "approx_distinct_person_count", "approx_total_record_count"],
+        'sort_idx': ['codeset_id'],
+    },
+    'deidentified_term_usage_by_domain_clamped': { # gets downloaded as csv without column names, not parquet
+        'name': 'deidentified_term_usage_by_domain_clamped',
+        'rid': 'ri.foundry.main.dataset.e393f03a-00d0-4071-802c-ff20e543ce01',
+        'column_names': ["concept_id", "domain", "total_count", "distinct_person_count"],
+        'sort_idx': ['concept_id', 'domain'],
+    },
     # not downloadable -- yet
     # 'safe_harbor_term_usage': {
     #     'name': 'safe_harbor_term_usage',
