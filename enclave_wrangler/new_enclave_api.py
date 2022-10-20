@@ -508,7 +508,6 @@ def make_request(api_name: str, data: Union[List, Dict] = None, validate=False, 
         "Content-type": "application/json",
 
     }
-    from pdb import set_trace; set_trace()
     ontology_rid = config['ONTOLOGY_RID']
     api_path = f'/api/v1/ontologies/{ontology_rid}/actions/{api_name}/'
     api_path += 'validate' if validate else 'apply'
