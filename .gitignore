@@ -33,6 +33,7 @@ junk
 scripts/old-vsac-api-scripts/tgt.txt
 .idea
 .DS_Store
+backup/
 
 # JS: CreateReactApp
 # See https://help.github.com/articles/ignoring-files/ for more about ignoring files.

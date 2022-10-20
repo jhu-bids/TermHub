@@ -367,12 +367,61 @@ def new_hierarchy_stuff(
     return result
 
 
-@APP.get("/update-cset")  # maybe junk, or maybe start of a refactor of above
-def update_cset(
-    codeset_id: int, concept_id: int, state: bool
-) -> Dict:
-    modification = {'codeset_id': codeset_id, 'concept_id': concept_id, 'state': state}
-    print(f'update-cset: {codeset_id}, {concept_id}, {state}')
+# TODO
+#  - example case: http://localhost:8000/update-cset-concept-inclusion?codeset_id=496860542&concept_ids=35787839&concept_ids=35787840
+#  - old example case pre param change: http://localhost:8000/update-cset-concept-inclusion?codeset_id=496860542&concept_ids=35787839&state=false
+# TODO: frontend change
+#  We should change this to `concept_ids`: When a box is checked/unchecked, send frontend should send *all* the concept_ids to be included
+@APP.get("/update-cset-concept-inclusion")
+def update_cset(codeset_id: int, concept_ids: Union[List[int], None] = Query(default=None)) -> Dict:
+    modification = {'codeset_id': codeset_id, 'concept_ids': concept_ids}
+    print(f'update-cset-concept-inclusion: {codeset_id}: {concept_ids}')
+    # TODO: enclave_wrangler: Before doing this, need enclave_wrangler to save files w/ last git hash at time that it last did a download/transform
+    #  TODO: uploads/cset_upload_registry
+    #    - internal_id: a new id: max(df['internal_id']) + 1
+    #    ...source_id_type,source_id,source_id_field,oid,ccsr_code,internal_source,cset_source,grouped_by_bids,concept_id,codeset_id,enclave_codeset_id,enclave_codeset_id_updated_at,concept_set_name
+    pass  # todo: read this file, get a new internal_id, and write a new row
+
+    #  TODO: code_sets
+    #    - codeset_id: get from uploads/cset_upload_registry.internal_id
+    #    - concept_set_version_title: add new row: <name> (v#) --> <name> (draft)
+    #    ...project,concept_set_name,source_application,source_application_version,created_at,atlas_json,is_most_recent_version,version,comments,intention,limitations,issues,update_message,status,has_review,reviewed_by,created_by,provenance,atlas_json_resource_url,parent_version_id,authoritative_source,is_draft
+    pass  # todo: Could I speed this up by, rather than (a) pandas read/write, (b) open file with python in 'append' mode and add a CSV row. Maybe use csv.writer or just serialize and hope no commas in label, or wrap in "" if comma present?
+
+    #  TODO: concept_set_container
+    #    - concept_set_id: this should be same as code_sets.concept_set_version_title
+    #    ...project_id,assigned_informatician,assigned_sme,status,stage,intention,n3c_reviewer,alias,archived,concept_set_name,created_by,created_at
+    pass
+
+    #  TODO: concept_set_version_item (multiple rows)
+    #    - codeset_id: get from uploads/cset_upload_registry.internal_id
+    #    - concept_id: Need multiple concept_ids from UI. One row for each. Shouldn't need to look at the concepts that were included in the previous version.
+    #    ...item_id,isExcluded,includeDescendants,includeMapped,annotation,created_by,created_at
+    pass
+
+    #  TODO: concept_set_members (multiple rows)
+    #    (X: do i need this one? will this get automatically updated when we upload to enclave and re-download?
+    #    - codeset_id: get from uploads/cset_upload_registry.internal_id
+    #    - concept_id: see 'concept_set_version_item.concept_id' notes
+    #    ...concept_set_name,is_most_recent_version,version,concept_name,archived
+    pass
+
+    # TODO: csets_update() doesn't meet exact needs. not actually updating to an existing index. adding a new row.
+    #  - soution: can set index to -1, perhaps, to indicate that it is a new row
+    #  - edge case: do i need to worry about multiple drafts at this point? delete if one exists? keep multiple? or at upload time
+    #    ...should we update latest and delete excess drafts if exist?
+    pass
+
+    # TODO: call the function i defined for updating local git stuff. persist these changes and patch etc
+    #     dataset_path: File path. Relative to `/termhub-csets/datasets/`
+    #     row_index_data_map: Keys are integers of row indices in the dataset. Values are dictionaries, where keys are the
+    #       name of the fields to be updated, and values contain the values to update in that particular cell."""
+    # TODO: git/patch changes (do this inside csets_update()): https://github.com/jhu-bids/TermHub/issues/165#issuecomment-1276557733
+    result = csets_update(dataset_path='', row_index_data_map={})
+
+    # TODO: Then push to enclave?
+    pass
+
     return modification
 
 
@@ -387,9 +436,8 @@ class CsetsUpdate(BaseModel):
     row_index_data_map: Dict[int, Dict[str, Any]] = {}
 
 
-# TODO: Maybe change to `id` instead of row index
-@APP.put("/datasets/csets")
-def csets_update(d: CsetsUpdate = None) -> Dict:
+# TODO: git/patch changes: https://github.com/jhu-bids/TermHub/issues/165#issuecomment-1276557733
+def csets_update(dataset_path: str, row_index_data_map: Dict[int, Dict[str, Any]]) -> Dict:
     """Update cset dataset. Works only on tabular files."""
     # Vars
     result = 'success'
@@ -401,11 +449,11 @@ def csets_update(d: CsetsUpdate = None) -> Dict:
     # todo: dtypes need to be registered somewhere. perhaps a <CSV_NAME>_codebook.json()?, accessed based on filename,
     #  and inserted here
     # todo: check git status first to ensure clean? maybe doesn't matter since we can just add by filename
-    path = os.path.join(path_root, d.dataset_path)
+    path = os.path.join(path_root, dataset_path)
     # noinspection PyBroadException
     try:
         df = pd.read_csv(path, dtype={'id': np.int32, 'last_name': str, 'first_name': str}).fillna('')
-        for index, field_values in d.row_index_data_map.items():
+        for index, field_values in row_index_data_map.items():
             for field, value in field_values.items():
                 df.at[index, field] = value
         df.to_csv(path, index=False)
@@ -415,24 +463,31 @@ def csets_update(d: CsetsUpdate = None) -> Dict:
 
     # Push commit
     # todo?: Correct git status after change should show something like this near end: `modified: FILENAME`
-    relative_path = os.path.join('datasets', d.dataset_path)
+    relative_path = os.path.join('datasets', dataset_path)
     # todo: Want to see result as string? only getting int: 1 / 0
     #  ...answer: it's being printed to stderr and stdout. I remember there's some way to pipe and capture if needed
     # TODO: What if the update resulted in no changes? e.g. changed values were same?
     git_add_result = sp_call(f'git add {relative_path}'.split(), cwd=cset_dir)
     if git_add_result != 0:
         result = 'failure'
-        details = f'Error: Git add: {d.dataset_path}'
+        details = f'Error: Git add: {dataset_path}'
     git_commit_result = sp_call(['git', 'commit', '-m', f'Updated by server: {relative_path}'], cwd=cset_dir)
     if git_commit_result != 0:
         result = 'failure'
-        details = f'Error: Git commit: {d.dataset_path}'
+        details = f'Error: Git commit: {dataset_path}'
     git_push_result = sp_call('git push origin HEAD:main'.split(), cwd=cset_dir)
     if git_push_result != 0:
         result = 'failure'
-        details = f'Error: Git push: {d.dataset_path}'
+        details = f'Error: Git push: {dataset_path}'
 
     return {'result': result, 'details': details}
+
+
+# TODO: Maybe change to `id` instead of row index
+@APP.put("/datasets/csets")
+def put_csets_update(d: CsetsUpdate = None) -> Dict:
+    """HTTP PUT wrapper for csets_update()"""
+    return csets_update(d.dataset_path, d.row_index_data_map)
 
 
 @APP.put("/datasets/vocab")
@@ -452,6 +507,10 @@ class CsetsUpdate(BaseModel):
     row_index_data_map: Dict[int, Dict[str, Any]] = {}
 
 
+def pdump(o):
+    print(json.dumps(o, indent=2))
+
+
 def run(port: int = 8000):
     """Run app"""
     uvicorn.run(APP, host='0.0.0.0', port=port)
@@ -459,6 +518,3 @@ def run(port: int = 8000):
 
 if __name__ == '__main__':
     run()
-
-def pdump(o):
-    print(json.dumps(o, indent=2))

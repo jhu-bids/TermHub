@@ -570,7 +570,7 @@ def transform_moffit_to_palantir3file(inpath: str) -> str:
     return out_dir
 
 
-def run(input_path: str, format='palantir-three-file', use_cache=False):
+def upload_dataset(input_path: str, format='palantir-three-file', use_cache=False):
     """Main function"""
     if format == 'moffit':
         input_path = transform_moffit_to_palantir3file(input_path)
@@ -608,7 +608,7 @@ def cli():
     #          '(`data/cset.csv` as of 2022/03/18).'),
     kwargs = parser.parse_args()
     kwargs_dict: Dict = vars(kwargs)
-    run(**kwargs_dict)
+    upload_dataset(**kwargs_dict)
 
 
 if __name__ == '__main__':
