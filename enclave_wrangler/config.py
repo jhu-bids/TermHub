@@ -15,10 +15,10 @@ TERMHUB_CSETS_DIR = os.path.join(PROJECT_ROOT, 'termhub-csets')
 
 load_dotenv(ENV_FILE)
 config = {
-    'PALANTIR_ENCLAVE_AUTHENTICATION_BEARER_TOKEN': os.getenv('PALANTIR_ENCLAVE_AUTHENTICATION_BEARER_TOKEN'),
-    'OTHER_TOKEN': os.getenv('OTHER_TOKEN'),
-    'HOSTNAME': os.getenv('HOSTNAME', 'unite.nih.gov'),
-    'ONTOLOGY_RID': os.getenv('ONTOLOGY_RID', 'ri.ontology.main.ontology.00000000-0000-0000-0000-000000000000'),
+    'PALANTIR_ENCLAVE_AUTHENTICATION_BEARER_TOKEN': os.getenv('PALANTIR_ENCLAVE_AUTHENTICATION_BEARER_TOKEN').replace('\r', ''),
+    'OTHER_TOKEN': os.getenv('OTHER_TOKEN').replace('\r', ''),
+    'HOSTNAME': os.getenv('HOSTNAME', 'unite.nih.gov').replace('\r', ''),
+    'ONTOLOGY_RID': os.getenv('ONTOLOGY_RID', 'ri.ontology.main.ontology.00000000-0000-0000-0000-000000000000').replace('\r', ''),
 }
 necessary_env_vars = ['OTHER_TOKEN', 'PALANTIR_ENCLAVE_AUTHENTICATION_BEARER_TOKEN']
 missing_env_vars = [x for x in necessary_env_vars if not config[x]]

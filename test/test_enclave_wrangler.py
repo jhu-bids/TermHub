@@ -5,7 +5,13 @@ TODO's
  - 2. Change from validate to apply, or do both
 """
 import os
+import sys
 
+TEST_DIR = os.path.dirname(__file__)
+PROJECT_ROOT = os.path.join(TEST_DIR, '..')
+# todo: why is this necessary in this case and almost never otherwise?
+# https://stackoverflow.com/questions/33862963/python-cant-find-my-module
+sys.path.insert(0, PROJECT_ROOT)
 from enclave_wrangler.new_enclave_api import JSON_TYPE, upload_concept, upload_concept_set, upload_draft_concept_set
 
 # todo: replace what I've done here w/ `upload_dataset` eventually if I can. Right now limited by not being able to
@@ -13,7 +19,7 @@ from enclave_wrangler.new_enclave_api import JSON_TYPE, upload_concept, upload_c
 # from enclave_wrangler.dataset_upload import upload_dataset
 
 
-TEST_INPUT_DIR = os.path.join(os.path.dirname(__file__), 'input', 'test_enclave_wrangler')
+TEST_INPUT_DIR = os.path.join(TEST_DIR, 'input', 'test_enclave_wrangler')
 
 
 # todo: Can add this test by composing other non-validation tests (then, remove 'PyUnusedLocal' line)

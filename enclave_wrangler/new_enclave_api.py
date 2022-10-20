@@ -337,7 +337,6 @@ def upload_draft_concept_set(
 
 
 # TODO: Failure: test_upload_concept_set {'errorCode': 'INVALID_ARGUMENT', 'errorName': 'InvalidUserId', 'errorInstanceId': '8ee43d3a-39d5-40a9-b868-12f768ba5f50', 'parameters': {'userId': 'x'}}
-# TODO: Failure: test_upload_concept_set {'errorCode': 'INVALID_ARGUMENT', 'errorName': 'InvalidUserId', 'errorInstanceId': 'd92f54bd-2f77-4752-8fcf-faf2464f4b55', 'parameters': {'userId': 'x'}}
 def upload_concept_set(
     concept_set_id: str, intention: str, research_project: str, assigned_sme: str = None,
     assigned_informatician: str = None, validate=False
@@ -509,6 +508,7 @@ def make_request(api_name: str, data: Union[List, Dict] = None, validate=False, 
         "Content-type": "application/json",
 
     }
+    from pdb import set_trace; set_trace()
     ontology_rid = config['ONTOLOGY_RID']
     api_path = f'/api/v1/ontologies/{ontology_rid}/actions/{api_name}/'
     api_path += 'validate' if validate else 'apply'
