@@ -20,7 +20,11 @@ config = {
     'HOSTNAME': os.getenv('HOSTNAME', 'unite.nih.gov').replace('\r', ''),
     'ONTOLOGY_RID': os.getenv('ONTOLOGY_RID', 'ri.ontology.main.ontology.00000000-0000-0000-0000-000000000000').replace('\r', ''),
 }
-necessary_env_vars = ['OTHER_TOKEN', 'PALANTIR_ENCLAVE_AUTHENTICATION_BEARER_TOKEN']
+# todo: as of 2022/10/20, it looks like some functionality/endpoints need PALANTIR_ENCLAVE_AUTHENTICATION_BEARER_TOKEN,
+#  and others need OTHER_TOKEN, but it's not entirely clear where each are required yet. when that's figured out, can
+#  move this `raise EnvironmentError` check further down to where the env var is actually needed.
+necessary_env_vars = []
+# necessary_env_vars = ['OTHER_TOKEN', 'PALANTIR_ENCLAVE_AUTHENTICATION_BEARER_TOKEN']
 missing_env_vars = [x for x in necessary_env_vars if not config[x]]
 if missing_env_vars:
     cause_msg = f'The file {ENV_FILE} is missing. This file is necessary and must contain these ' \

@@ -2,11 +2,12 @@
 import json
 import os
 from argparse import ArgumentParser
-from typing import Dict, List, Set, Union
+from typing import Any, Dict, List, Set, Union
 from uuid import uuid4
 
 import pandas as pd
 
+from enclave_wrangler.new_enclave_api import upload_concept, upload_concept_set, upload_draft_concept_set
 
 try:
     from enclave_wrangler.config import config, PROJECT_ROOT, TERMHUB_CSETS_DIR
@@ -34,11 +35,131 @@ UPLOADS_DIR = os.path.join(TERMHUB_CSETS_DIR, 'datasets', 'uploads')
 CSET_UPLOAD_REGISTRY_PATH = os.path.join(UPLOADS_DIR, 'cset_upload_registry.csv')
 
 
-def post_to_enclave_and_update_code_sets_csv(input_csv_folder_path) -> pd.DataFrame:
+# TODO: Rewrite to use new API
+def post_to_enclave(input_csv_folder_path: str, enclave_api=['old_rid_based', 'default'][1]):
+    """Uploads data to enclave and updates the following column in the input's code_sets.csv:
+    # TODO: Siggie: updating these files is probably not worth / necessary right now
+    - enclave_codeset_id
+    - enclave_codeset_id_updated_at
+    - concept_set_name
+
+    :param enclave_api (str): One of 'old_rid_based' or 'default'. The 'old_rid_based' Enclave API is the one which
+    required RIDs for params rather than the param name, and there may be other differences. 'default' refers to the
+    newer Enclave API (as of 2022/10).
+    """
+    if enclave_api == 'old_rid_based':
+        return post_to_enclave_old_api(input_csv_folder_path)
+    if DEBUG:
+        log_debug_info()
+
+    # Read data
+    concept_set_container_edited_df = pd.read_csv(
+        os.path.join(input_csv_folder_path, 'concept_set_container_edited.csv')).fillna('')
+    concept_set_container_edited_d = json.loads(concept_set_container_edited_df.to_json(orient='records'))
+    code_sets_df = _load_standardized_input_df(os.path.join(input_csv_folder_path, 'code_sets.csv'))  # .fillna('')
+    concept_set_version_item_rv_edited_df = pd.read_csv(
+        os.path.join(input_csv_folder_path, 'concept_set_version_item_rv_edited.csv')).fillna('')
+
+    # Link data into single iterable
+    # todo: @Siggie: You mentioned to delete the internal_id we assigned, but I don't know how to link these together otherwise
+    linked_csets: Dict = {}
+    for container_d in concept_set_container_edited_d:
+        cset_name = container_d['concept_set_id']
+        linked_csets[cset_name] = {'versions': {}}
+        linked_csets[cset_name]['container'] = container_d
+        code_sets_df_i = code_sets_df[code_sets_df['concept_set_name'] == cset_name]
+        code_sets_d_i = json.loads(code_sets_df_i.to_json(orient='records'))
+        for version_d in code_sets_d_i:
+            version_id = version_d['codeset_id']
+            linked_csets[cset_name]['versions'][version_id] = {'items': []}
+            linked_csets[cset_name]['versions'][version_id]['version'] = version_d
+            concept_set_version_item_rv_edited_df_i = concept_set_version_item_rv_edited_df[
+                concept_set_version_item_rv_edited_df['codeset_id'] == version_id]
+            concept_set_version_item_rv_edited_d_i = json.loads(concept_set_version_item_rv_edited_df_i.to_json(orient='records'))
+            for item_d in concept_set_version_item_rv_edited_d_i:
+                linked_csets[cset_name]['versions'][version_id]['items'].append(item_d)
+
+    # Upload to enclave
+    for linked_cset in linked_csets.values():
+        container_d = linked_cset['container']
+        response = upload_concept_set(  # concept_set_container
+            concept_set_id=container_d['concept_set_name'],
+            intention=container_d['intention'],
+            # todo: research_project: (a) default this to ENCLAVE_PROJECT_NAME in func, (b) do that here, (c) add it as a column to an
+            #  updated palantir-3-file for the new api
+            research_project=ENCLAVE_PROJECT_NAME,
+            assigned_sme=PALANTIR_ENCLAVE_USER_ID_1,
+            assigned_informatician=PALANTIR_ENCLAVE_USER_ID_1,
+            # TODO: validate first (if this func says validate_first=True, then upload
+            validate=True)
+
+        for version in linked_cset['versions'].values():
+            version_d = version['version']
+            response = upload_draft_concept_set(  # code_set
+                # todo: domain_team: @Siggie: Not sure what to put here, but it is optional param, so I'm leaving blank.
+                # domain_team=version_d[''],
+                provenance=version_d['provenance'],
+                # todo: current-max-version: @Siggie: Sucks that we have to set this. but probaby because version types
+                #  can be arbitrary, so enclave can't know. but this means we have to have a local registry for most
+                #  recent version as well for anything we're uploading, or get it when we re-download, right?
+                #  ...docs, for reference: This must be set to the current maximum version number assigned to a version
+                #  of this concept set, or null if creating the first version of a concept set. If null, then
+                #  baseVersion is not "required".
+                #  ...Leaving this blank for now since is optional param.
+                # current_max_version=version_d[''],
+                # todo: concept_set: is this correct?
+                concept_set=version_d['concept_set_name'],  # == container_d['concept_set_name']
+                # todo: annotation: this should be moved into the new palantir-3-file data model, whatever that is
+                annotation='Curated value set: ' + version_d['concept_set_name'],
+                limitations=version_d['limitations'],
+                intention=version_d['intention'],
+                # todo: base_version: @Siggie: Leaving out, since is optional param, and not possible to include without
+                #  first adding current_max_version, for which more time is needed to figure out how to reliably ascertain.
+                # base_version=1,
+                # todo: intended_research_project: (a) default this to ENCLAVE_PROJECT_NAME in func, (b) do that here, (c) add it as a column to an
+                #  updated palantir-3-file for the new api
+                intended_research_project=ENCLAVE_PROJECT_NAME,
+                version_id=version_d['version'],
+                # todo: authority: @Siggie: Not sure what to put here, but it is optional param, so I'm leaving blank
+                #  - we didn't have this in the old palantir-3-file data model, but should add to the new one
+                # authority=version_d[''],
+                # TODO: validate first (if this func says validate_first=True, then upload
+                validate=True)
+
+            for item_d in version['items']:
+                # TODO: validate first (if this func says validate_first=True, then upload
+                # TODO: Not finished. How to actually add the concepts to existing concept set version?
+                #  ...look at comments above new_enclave_api.upload_concept() for some alternative endpoints, etc
+                # TODO: When doing w/ 'validate=False', I got the following error:
+                #  Unexpected <class 'requests.exceptions.HTTPError'>: 400 Client Error: Bad Request for url: https://unite.nih.gov/api/v1/ontologies/ri.ontology.main.ontology.00000000-0000-0000-0000-000000000000/actions/set-omop-concept-set-version-item/apply
+                response = upload_concept(  # concept_set_version_items / expressions
+                    include_descendants=item_d['includeDescendants'],
+                    # todo: concept_set_version_item: What to put here? (item_id is a random uuid)
+                    concept_set_version_item=item_d['item_id'],
+                    is_excluded=item_d['isExcluded'],
+                    include_mapped=item_d['includeMapped'],
+                    # TODO: validate first (if this func says validate_first=True, then upload
+                    validate=True)
+
+    # TODO: Siggie: updating these files is probably not worth / necessary right now
+    # todo: if doing this step, though, wouldn't I also need to update the registry?
+    # try:
+    #     code_sets_df.set_index('codeset_id', inplace=True)
+    #     output_filename = 'code_sets.csv'
+    #     code_sets_df.to_csv(os.path.join(input_csv_folder_path, output_filename), index=False, encoding='utf-8')
+    # except Exception as e:
+    #     print(e)
+
+    # todo: it would be nice to return something. this makes sense, as it has the actual IDs of what was uploaded
+    # return code_sets_df
+
+
+def post_to_enclave_old_api(input_csv_folder_path: str) -> pd.DataFrame:
     """Uploads data to enclave and updates the following column in the input's code_sets.csv:
     - enclave_codeset_id
     - enclave_codeset_id_updated_at
-    - concept_set_name"""
+    - concept_set_name
+    """
     if DEBUG:
         log_debug_info()
 
@@ -261,7 +382,7 @@ def post_to_enclave_and_update_code_sets_csv(input_csv_folder_path) -> pd.DataFr
 
 
 def _load_standardized_input_df(
-    path, integer_id_fields=['enclave_codeset_id', 'codeset_id', 'internal_id']
+    path: str, integer_id_fields=['enclave_codeset_id', 'codeset_id', 'internal_id']
 ) -> pd.DataFrame:
     """Loads known input dataframe in a standardized way:
         - Sets data types
@@ -278,15 +399,6 @@ def _load_standardized_input_df(
             .astype('Int64')
 
     return df
-
-
-def load_cache_if_valid(input_csv_folder_path) -> Union[pd.DataFrame, None]:
-    """Checks `enclave_codeset_id` and, if no empty vals, uses this file as cache."""
-    df: pd.DataFrame = _load_standardized_input_df(os.path.join(input_csv_folder_path, 'code_sets.csv'))
-    ids = list(df['enclave_codeset_id'])
-    valid = not any([x == '' for x in ids])
-
-    return df if valid else None
 
 
 def left_join_update(df, df2):
@@ -310,7 +422,7 @@ def left_join_update(df, df2):
     return new_df
 
 
-def persist_to_db(code_sets_df) -> pd.DataFrame:
+def persist_to_db(code_sets_df: pd.DataFrame) -> pd.DataFrame:
     """Save updated items to persistence layer"""
     # Vars
     join_col = 'codeset_id'
@@ -574,9 +686,7 @@ def upload_dataset(input_path: str, format='palantir-three-file', use_cache=Fals
     """Main function"""
     if format == 'moffit':
         input_path = transform_moffit_to_palantir3file(input_path)
-    code_sets_df: Union[pd.DataFrame, None] = load_cache_if_valid(input_path) if use_cache else None
-    if code_sets_df is None:
-        code_sets_df: pd.DataFrame = post_to_enclave_and_update_code_sets_csv(input_path)
+    code_sets_df: pd.DataFrame = post_to_enclave(input_path)
     persist_to_db(code_sets_df)
 
 

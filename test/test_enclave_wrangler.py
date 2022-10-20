@@ -7,6 +7,8 @@ TODO's
 import os
 import sys
 
+from enclave_wrangler.dataset_upload import PALANTIR_ENCLAVE_USER_ID_1, post_to_enclave
+
 TEST_DIR = os.path.dirname(__file__)
 PROJECT_ROOT = os.path.join(TEST_DIR, '..')
 # todo: why is this necessary in this case and almost never otherwise?
@@ -28,10 +30,7 @@ TEST_INPUT_DIR = os.path.join(TEST_DIR, 'input', 'test_enclave_wrangler')
 def test_dataset_upload(inpath=os.path.join(TEST_INPUT_DIR, 'test_dataset_upload')):
     """Test upload of a new dataset"""
     # TODO: use dataset_upload to upload a palantir-3-file set
-    pass
-
-    # TODO: When I create a new draft, does it give me the ID back? because we want to avoid assigning 'internal_id'
-    pass
+    post_to_enclave(inpath)
 
     # TODO: teardown
     #  1. "apiName": "delete-omop-concept-set-version"
@@ -52,16 +51,13 @@ def test_dataset_upload(inpath=os.path.join(TEST_INPUT_DIR, 'test_dataset_upload
     pass
 
 
-def test_upload_concept_set():
+def test_upload_concept_set(user_id=PALANTIR_ENCLAVE_USER_ID_1):
     response: JSON_TYPE = upload_concept_set(
-        concept_set_id='x', intention='x', research_project='x',
-        # TODO: Need to get valid user IDs for these
-        # assigned_sme='x',
-        # assigned_informatician='x',
-        validate=True)
+        concept_set_id='x', intention='x', research_project='x', assigned_sme=user_id,
+        assigned_informatician=user_id, validate=True)
     # self.assertTrue('result' in response and not response['result'] == 'VALID')
     if not('result' in response and response['result'] == 'VALID'):
-        print('Failure: test_upload_concept_set', response)
+        print('Failure: test_upload_concept_set\n', response, file=sys.stderr)
 
 
 def test_upload_concept():
@@ -69,7 +65,7 @@ def test_upload_concept():
         include_descendants=True, concept_set_version_item='x', is_excluded=True, include_mapped=True, validate=True)
     # self.assertTrue('result' in response and not response['result'] == 'VALID')
     if not('result' in response and response['result'] == 'VALID'):
-        print('Failure: test_upload_concept_set', response)
+        print('Failure: test_upload_concept_set\n', response, file=sys.stderr)
 
 
 def test_upload_draft_concept_set():
@@ -78,12 +74,12 @@ def test_upload_draft_concept_set():
         intention='x', base_version=1, intended_research_project='x', version_id=1, authority='x', validate=True)
     # self.assertTrue('result' in response and not response['result'] == 'VALID')
     if not('result' in response and response['result'] == 'VALID'):
-        print('Failure: test_upload_concept_set', response)
+        print('Failure: test_upload_concept_set\n', response, file=sys.stderr)
 
 
 if __name__ == '__main__':
-    # test_dataset_upload()  # todo
-    test_upload_concept_set()  # ok
+    test_dataset_upload()  # todo
+    # test_upload_concept_set()  # ok
     # test_upload_concept()  # ok
-    # test_upload_draft_concept_set()  # TODO: not ok; asking Amin
+    # test_upload_draft_concept_set()  # TODO: try again after param changes
     pass
