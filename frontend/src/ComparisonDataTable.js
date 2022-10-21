@@ -1,14 +1,13 @@
 import React, {useState, useEffect, useMemo, /* useReducer, useRef, */} from 'react';
 import DataTable, { createTheme } from 'react-data-table-component';
-import Checkbox from '@mui/material/Checkbox';
 import AddCircle from '@mui/icons-material/AddCircle';
 import RemoveCircle from '@mui/icons-material/RemoveCircle';
-import {createSearchParams} from "react-router-dom";
-import Button from "@mui/material/Button";
 import {get, map, omit, pick, uniq, reduce, cloneDeepWith, isEqual, uniqWith, groupBy, } from 'lodash';
-import axios from "axios";
-import {backend_url} from "./App";
-
+// import Checkbox from '@mui/material/Checkbox';
+// import {createSearchParams} from "react-router-dom";
+// import Button from "@mui/material/Button";
+// import axios from "axios";
+// import {backend_url} from "./App";
 
 function ComparisonDataTable(props) {
     const {codeset_ids=[], nested=true, makeRowData, rowData, selected_csets, } = props;
@@ -151,6 +150,16 @@ function colConfig(codeset_ids, nested, selected_csets, rowData, collapsed, togg
                     style: row => ({paddingLeft: 16 + row.level * 16 + 'px'})
                 }
             ],
+        },
+        {
+            name: 'Patients',
+            selector: row => row.distinct_person_count,
+            width: '50px',
+        },
+        {
+            name: 'Records',
+            selector: row => row.total_count,
+            width: '50px',
         },
         ...cset_cols
     ];

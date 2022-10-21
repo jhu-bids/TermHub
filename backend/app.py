@@ -12,8 +12,9 @@ from typing import Any, Dict, List, Union, Callable, Set
 import numpy as np
 import pandas as pd
 import uvicorn
-from fastapi import FastAPI, Query
+from fastapi import FastAPI, Query, Response
 from fastapi.middleware.cors import CORSMiddleware
+from fastapi.middleware.gzip import GZipMiddleware
 from pydantic import BaseModel
 
 from enclave_wrangler.datasets import run_favorites as update_termhub_csets
@@ -53,8 +54,6 @@ def load_globals():
     """
     ds = Bunch(DS)
 
-    # Filters out any concepts w/ no name
-    ds.concept_set_members = ds.concept_set_members[ds.concept_set_members.concept_set_name.str.len() > 0]
     # TODO: try this later. will require filtering other stuff also? This will be useful for provenance
     # ds.concept_set_members = ds.concept_set_members[~ds.concept_set_members.archived]
     # ds.data_messages = [
@@ -62,11 +61,20 @@ def load_globals():
     #     'concept_set_members filtered to exclude archived concept set'
     # ]
 
-    ds.concept.set_index('concept_id', inplace=True)
-
-    # Reassign; we only care about the subsumes_only
-    # ds.subsumes = ds.concept_relationship[ds.concept_relationship.relationship_id == 'Subsumes']
     ds.concept_relationship = ds.concept_relationship_subsumes_only
+
+    # Filters out any concepts/concept sets w/ no name
+    ds.concept_set_members = ds.concept_set_members[ds.concept_set_members.concept_set_name.str.len() > 0]
+    all_member_concepts = set(ds.concept_set_members.concept_id)
+    ds.all_related_concepts = set(ds.concept_relationship.concept_id_1).union(
+                                set(ds.concept_relationship.concept_id_2))
+    all_findable_concepts = all_member_concepts.union(ds.all_related_concepts)
+
+    ds.concept.drop(['domain_id', 'vocabulary_id', 'concept_class_id', 'standard_concept', 'concept_code',
+                      'invalid_reason', ], inplace=True, axis=1)
+
+    ds.concept = ds.concept[ds.concept.concept_id.isin(all_findable_concepts)]
+
     ds.links = ds.concept_relationship.groupby('concept_id_1')
     # ds.all_concept_relationship_cids = set(ds.concept_relationship.concept_id_1).union(set(ds.concept_relationship.concept_id_2))
 
@@ -89,11 +97,61 @@ def load_globals():
     # Take codesets, and merge on container. Add to each version.
     # Some columns in codeset and container have the same name, hence suffix
     # ...The merge on `concept_set_members` is used for concept counts for each codeset version.
-    ds.all_csets = ds.code_sets.merge(
-        ds.concept_set_container, suffixes=['_version', '_container'], on='concept_set_name').merge(
-        ds.concept_set_members.groupby('codeset_id')['concept_id'].nunique().reset_index().rename(
-            columns={'concept_id': 'concepts'}), on='codeset_id')
+    #   Then adding cset usage counts
+    ds.all_csets = (
+        ds
+            .code_sets.merge(ds.concept_set_container, suffixes=['_version', '_container'],
+                             on='concept_set_name')
+            .merge(ds.concept_set_members
+                        .groupby('codeset_id')['concept_id']
+                            .nunique()
+                            .reset_index()
+                            .rename(columns={'concept_id': 'concepts'}), on='codeset_id')
+            .merge(ds.concept_set_counts_clamped, on='codeset_id')
+    )
+    print('added usage counts to code_sets')
 
+    """
+        Term usage is broken down by domain and some concepts appear in multiple domains.
+        (each concept has only one domain_id in the concept table, but the same concept might
+        appear in condition_occurrence and visit and procedure, so it would have usage counts
+        in multiple domains.) We can sum total_counts across domain, but not distinct_person_counts
+        (possible double counting). So, for now at least, distinct_person_count will appear as a 
+        comma-delimited list of counts -- which, of course, makes it hard to use in visualization.
+        Maybe we should just use the domain with the highest distinct person count? Not sure.
+    """
+    # df = df[df.concept_id.isin([9202, 9201])]
+    domains = {
+        'drug_exposure': 'd',
+        'visit_occurrence': 'v',
+        'observation': 'o',
+        'condition_occurrence': 'c',
+        'procedure_occurrence': 'p',
+        'measurement': 'm'
+    }
+    ds.deidentified_term_usage_by_domain_clamped['domain'] = \
+        [domains[d] for d in ds.deidentified_term_usage_by_domain_clamped.domain]
+
+    g = ds.deidentified_term_usage_by_domain_clamped.groupby(['concept_id'])
+    concept_usage_counts = (
+        g.size().to_frame(name='domain_cnt')
+         .join(g.agg(
+                    total_count=('total_count', sum),
+                    domain=('domain', ','.join),
+                    distinct_person_count=('distinct_person_count', lambda x: ','.join([str(c) for c in x]))
+                ))
+        .reset_index())
+    print('combined usage counts across domains')
+
+    # c = ds.concept.reset_index()
+    # cs = c[c.concept_id.isin([9202, 9201, 4])]
+    ds.concept = (
+        ds.concept.drop(['valid_start_date','valid_end_date'], axis=1)
+            .merge(concept_usage_counts, on='concept_id', how='left')
+            .fillna({'domain_cnt': 0, 'domain': '', 'total_count': 0, 'distinct_person_count': 0})
+            .astype({'domain_cnt': int, 'total_count': int})
+            # .set_index('concept_id')
+    )
     print('Done building global ds objects')
     return ds
 
@@ -109,7 +167,9 @@ try:
                      'concept_relationship_subsumes_only',
                      'concept_set_container',
                      'code_sets',
-                     'concept_set_version_item']
+                     'concept_set_version_item',
+                     'deidentified_term_usage_by_domain_clamped',
+                     'concept_set_counts_clamped']
 
     try:
         DS = {name: load_dataset(name) for name in dataset_names}
@@ -184,7 +244,8 @@ def data_stuff_for_codeset_ids(codeset_ids):
     all_csets = ds.all_csets[[
         'codeset_id', 'concept_set_version_title', 'is_most_recent_version', 'intention_version', 'intention_container',
         'limitations', 'issues', 'update_message', 'has_review', 'provenance', 'authoritative_source', 'project_id',
-        'status_version', 'status_container', 'stage', 'archived', 'concepts']]
+        'status_version', 'status_container', 'stage', 'archived', 'concepts',
+        'approx_distinct_person_count', 'approx_total_record_count', ]]
 
     all_csets['selected'] = all_csets['codeset_id'].isin(codeset_ids)
 
@@ -212,6 +273,7 @@ def data_stuff_for_codeset_ids(codeset_ids):
         all_csets = all_csets.convert_dtypes({'intersecting_concepts': 'int'})
         all_csets['recall'] = all_csets.intersecting_concepts / len(concept_ids)
         all_csets['precision'] = all_csets.intersecting_concepts / all_csets.concepts
+        all_csets.fillna(0, inplace=True)
 
     dsi.all_csets = all_csets
 
@@ -251,6 +313,8 @@ def data_stuff_for_codeset_ids(codeset_ids):
     for cid, codeset_ids in dsi.codesets_by_concept_id.items():
         dsi.codesets_by_concept_id[cid] = [int(codeset_id) for codeset_id in codeset_ids]
 
+    # dsi.concept = ds.concept[ds.concept.concept_id.isin(ds.all_related_concepts)].head(5000) #.union(concept_ids))]
+
     return dsi
 
 def parse_codeset_ids(qstring):
@@ -267,6 +331,7 @@ APP.add_middleware(
     allow_methods=['*'],
     allow_headers=['*']
 )
+APP.add_middleware(GZipMiddleware, minimum_size=1000)
 
 
 @APP.get("/")
@@ -311,20 +376,35 @@ def cr_hierarchy(
     codeset_id: Union[str, None] = Query(default=''),
 ) -> Dict:
 
+    print(ds)
     requested_codeset_ids = parse_codeset_ids(codeset_id)
     # A namespace (like `ds`) specifically for these codeset IDs.
     dsi = data_stuff_for_codeset_ids(requested_codeset_ids)
 
     c = dsi.connect_children(-1, dsi.top_level_cids)
 
+    cids = []
+    if c:
+        cids = set([int(str(k).split('.')[-1]) for k in pd.json_normalize(c).to_dict(orient='records')[0].keys()])
+    concepts = ds.concept[ds.concept.concept_id.isin(cids.union(set(dsi.concept_set_members_i.concept_id)))]
+
     result = {
               # 'related_csets': dsi.related.to_dict(orient='records'),
-              'concept_set_members_i': json.loads(dsi.concept_set_members_i.to_json(orient='records')),
-              'all_csets': json.loads(dsi.all_csets.to_json(orient='records')),
+              'concept_set_members_i': dsi.concept_set_members_i.to_dict(orient='records'),
+              'all_csets': dsi.all_csets.to_dict(orient='records'),
               'hierarchy': c,
+              'concepts': concepts.to_dict(orient='records'),
               }
-
     return result
+    # result = {
+    #     'concept_set_members_i': dsi.concept_set_members_i.to_dict(),
+    #     'all_csets': dsi.all_csets.to_dict(),
+    #     'hierarchy': c,
+    #     'concepts': dsi.concept.to_json(),
+    # }
+    # return Response(json.dumps(result), media_type="application/json")
+    # https://stackoverflow.com/questions/71203579/how-to-return-a-csv-file-pandas-dataframe-in-json-format-using-fastapi/71205127#71205127
+
 
 
 @APP.get("/new-hierarchy-stuff")  # maybe junk, or maybe start of a refactor of above

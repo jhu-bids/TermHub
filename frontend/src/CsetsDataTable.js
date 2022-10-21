@@ -39,6 +39,33 @@ createTheme('custom-theme', {
 // https://react-data-table-component.netlify.app/?path=/docs/api-custom-styles--page
 //  Internally, customStyles will deep merges your customStyles with the default styling.
 
+function StatsMessage(props) {
+    const {codeset_ids=[], cset_data={}} = props;
+    const {concept_set_members_i=[], all_csets=[], } = cset_data;
+    let related_csets = all_csets.filter(d => d.related);
+    const [selectedRows, setSelectedRows] = React.useState(false);
+    const [searchParams, setSearchParams] = useSearchParams();
+    const all_concept_ids = new Set(concept_set_members_i.map(d => d.concept_id));
+    let stats = {
+        csets_chosen: codeset_ids.length,
+        hierarchy_concepts: '---', // related_ids.size,
+        nested_list_lines: '---', // f lattened_concept_hierarchy.length,
+        total_concepts: all_concept_ids.size,
+        related_csets: related_csets.length,
+    }
+    // let not_in_list = [...concept_set_members_i].filter(d => !related_ids.has(d.concept_id))
+    // console.log({stats, not_in_list, concept_set_members_i, related_ids, related_csets});
+
+    return  <div>
+                <p style={{margin:0, fontSize: 'small',}}>The <strong>{stats.csets_chosen} concept sets </strong>
+                    selected contain a total of <strong>{stats.total_concepts} distinct concepts </strong>
+                    of which <strong>only {stats.hierarchy_concepts}</strong> (why? not sure yet) appear
+                    in the <strong>{stats.nested_list_lines} lines</strong> of the nested hierarchy on the
+                    comparison page.</p>
+                <p> The following <strong>{stats.related_csets} concept sets</strong> have 1 or more concepts
+                    in common with the selected sets. Select from below if you want to add to the above list.</p>
+            </div>;
+}
 function CsetsDataTable(props) {
     const {codeset_ids=[], cset_data={}} = props;
     const {concept_set_members_i=[], all_csets=[], } = cset_data;
@@ -83,27 +110,7 @@ function CsetsDataTable(props) {
     }, [])
 
     // const related_ids = new Set(f lattened_concept_hierarchy.map(d => d.concept_id));
-    const all_concept_ids = new Set(concept_set_members_i.map(d => d.concept_id));
-    let stats = {
-        csets_chosen: codeset_ids.length,
-        hierarchy_concepts: '---', // related_ids.size,
-        nested_list_lines: '---', // f lattened_concept_hierarchy.length,
-        total_concepts: all_concept_ids.size,
-        related_csets: related_csets.length,
-    }
-    // let not_in_list = [...concept_set_members_i].filter(d => !related_ids.has(d.concept_id))
-    // console.log({stats, not_in_list, concept_set_members_i, related_ids, related_csets});
-
-    const subHeader = <div>
-        <p style={{margin:0, fontSize: 'small',}}>The <strong>{stats.csets_chosen} concept sets </strong>
-            selected contain a total of <strong>{stats.total_concepts} distinct concepts </strong>
-            of which <strong>only {stats.hierarchy_concepts}</strong> (why? not sure yet) appear
-            in the <strong>{stats.nested_list_lines} lines</strong> of the nested hierarchy on the
-            comparison page.</p>
-        <p> The following <strong>{stats.related_csets} concept sets</strong> have 1 or more concepts
-            in common with the selected sets. Select from below if you want to add to the above list.</p>
-    </div>;
-
+    const subHeader = <StatsMessage {...props} />
 
     const rowSelectCritera = row => row.selected;
     // todo: p -> data table: data table has a property for showing some sort of paragraph text
@@ -301,4 +308,4 @@ function getCustomStyles() {
     };
 }
 
-export {CsetsDataTable};
+export {CsetsDataTable, StatsMessage};

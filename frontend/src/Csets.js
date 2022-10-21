@@ -8,10 +8,9 @@ TODO's
 */
 import React, {useState, useEffect, /* useReducer, useRef, */} from 'react';
 import {useQuery} from "@tanstack/react-query";
-import axios from "axios";
 import {Table, ComparisonTable} from "./Table";
 import {ComparisonDataTable} from "./ComparisonDataTable";
-import {CsetsDataTable} from "./CsetsDataTable";
+import {CsetsDataTable, StatsMessage} from "./CsetsDataTable";
 import ConceptSetCard from "./ConceptSetCard";
 import {ReactQueryDevtools} from "@tanstack/react-query-devtools";
 import TextField from '@mui/material/TextField';
@@ -124,7 +123,7 @@ function ConceptSetsPage(props) {
 //  ...for coloration, since we want certain rows grouped together
 function CsetComparisonPage(props) {
   const {codeset_ids=[], cset_data={}} = props;
-  const {hierarchy={}, concept_set_members_i=[], all_csets=[], } = cset_data;
+  const {hierarchy={}, concept_set_members_i=[], all_csets=[], concepts=[]} = cset_data;
   let selected_csets = all_csets.filter(d => codeset_ids.includes(d.codeset_id));
   const [nested, setNested] = useState(true);
   const [rowData, setRowData] = useState([]);
@@ -133,8 +132,8 @@ function CsetComparisonPage(props) {
     return <p>Downloading...</p>
   }
   let checkboxes = Object.fromEntries(selected_csets.map(d => [d.codeset_id, false]));
-  let allConcepts = uniqWith(concept_set_members_i.map(d => pick(d, ['concept_id','concept_name'])), isEqual);
-  allConcepts = Object.fromEntries(allConcepts.map(d => [d.concept_id, {...d, checkboxes: {...checkboxes}}]));
+  // let allConcepts = uniqWith(concept_set_members_i.map(d => pick(d, ['concept_id','concept_name'])), isEqual);
+  let allConcepts = Object.fromEntries(concepts.map(d => [d.concept_id, {...d, checkboxes: {...checkboxes}}]));
   concept_set_members_i.forEach(d => allConcepts[d.concept_id].checkboxes[d.codeset_id] = true);
 
   function makeRowData(collapsed={}) {
@@ -171,9 +170,10 @@ function CsetComparisonPage(props) {
             {rowData.length} lines in nested list.
           </Button>
           <Button  variant={nested ? "outlined" : "contained"} sx={{marginLeft: '20px'}} onClick={toggleNested}>
-            {Object.keys(allConcepts).length} lines without nesting
+            {Object.keys(allConcepts).length} distinct concepts
           </Button>
         </h5>
+        <StatsMessage {...props} />
         <ComparisonDataTable {...moreProps} />
       </div>)
 }
