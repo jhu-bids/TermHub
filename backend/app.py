@@ -8,6 +8,7 @@ import os
 from pathlib import Path
 from subprocess import call as sp_call
 from typing import Any, Dict, List, Union, Callable, Set
+from functools import cache
 
 import numpy as np
 import pandas as pd
@@ -37,9 +38,45 @@ def load_dataset(ds_name):
         print(f'failed loading {path}')
         raise err
 
+
 class Bunch(object):    # dictionary to namespace, a la https://stackoverflow.com/a/2597440/1368860
   def __init__(self, adict):
     self.__dict__.update(adict)
+
+
+def cnt(vals):
+    return len(set(vals))
+
+
+def commify(n):
+    return f'{n:,}'
+
+
+def filter(msg, ds, dfname, func, cols):
+    df = ds.__dict__[dfname]
+    before = { col: cnt(df[col]) for col in cols }
+
+    ds.__dict__[dfname] = func(df)
+    if ds.__dict__[dfname].equals(df):
+        log_counts(f'{msg}. No change.', **before)
+    else:
+        log_counts(f'{msg}. Before', **before)
+        after = { col: cnt(df[col]) for col in cols }
+        log_counts(f'{msg}. After', **after)
+        # change = { col: (after[col] - before[col]) / before[col] for col in cols }
+
+
+def _log_counts():
+    msgs = []
+    def __log_counts(msg=None, concept_set_name=None, codeset_id=None, concept_id=None):
+        if msg:
+            msgs.append([msg, *[int(n) if n else None for n in [concept_set_name, codeset_id, concept_id]]])
+        return msgs
+    return __log_counts
+
+
+log_counts = _log_counts()
+
 
 def load_globals():
     """
@@ -55,20 +92,111 @@ def load_globals():
     ds = Bunch(DS)
 
     # TODO: try this later. will require filtering other stuff also? This will be useful for provenance
-    # ds.concept_set_members = ds.concept_set_members[~ds.concept_set_members.archived]
-    # ds.data_messages = [
-    #     'concept_set_members filtered to exclude concept sets with empty names'
-    #     'concept_set_members filtered to exclude archived concept set'
-    # ]
+    # ds.data_messages = []
+    other_msgs = []
 
-    ds.concept_relationship = ds.concept_relationship_subsumes_only
+    log_counts('concept_set_container', concept_set_name=cnt(ds.concept_set_container.concept_set_name))
+    log_counts('code_sets',
+               concept_set_name=cnt(ds.code_sets.concept_set_name),
+               codeset_id=cnt(ds.code_sets.codeset_id))
+    log_counts('concept_set_members',
+               concept_set_name=cnt(ds.concept_set_members.concept_set_name),
+               codeset_id=cnt(ds.concept_set_members.codeset_id),
+               concept_id=cnt(ds.concept_set_members.concept_id))
+    log_counts('concept_set_version_item',
+               concept_set_name=cnt(ds.concept_set_members.concept_set_name),
+               codeset_id=cnt(ds.concept_set_version_item.codeset_id),
+               concept_id=cnt(ds.concept_set_version_item.concept_id))
+    log_counts('intersection(containers, codesets)',
+               concept_set_name=len(set.intersection(set(ds.concept_set_container.concept_set_name),
+                                                     set(ds.code_sets.concept_set_name))))
+    log_counts('intersection(codesets, members, version_items)',
+               codeset_id=len(set.intersection(set(ds.code_sets.codeset_id),
+                                               set(ds.concept_set_members.codeset_id),
+                                               set(ds.concept_set_version_item.codeset_id))))
+    log_counts('intersection(codesets, version_items)',
+               codeset_id=len(set.intersection(set(ds.code_sets.codeset_id),
+                                               set(ds.concept_set_version_item.codeset_id))))
+    log_counts('intersection(members, version_items)',
+               codeset_id=len(set.intersection(set(ds.concept_set_members.codeset_id),
+                                               set(ds.concept_set_version_item.codeset_id))),
+               concept_id=len(set.intersection(set(ds.concept_set_members.concept_id),
+                                               set(ds.concept_set_version_item.concept_id))))
+
+    codeset_ids = set(ds.concept_set_version_item.codeset_id)
+
+    filter('weird that there would be versions (in code_sets and concept_set_members) '
+                        'that have nothing in concept_set_version_item...filtering those out',
+           ds, 'code_sets', lambda df: df[df.codeset_id.isin(codeset_ids)], ['codeset_id'])
+
+    # no change (2022-10-23):
+    filter('concept_set_container filtered to exclude archived',
+           ds, 'concept_set_container', lambda df: df[~ df.archived], ['concept_set_name'])
+
+    #
+    filter('concept_set_members filtered to exclude archived',
+           ds, 'concept_set_members', lambda df: df[~ df.archived], ['codeset_id', 'concept_id'])
+
+    concept_set_names = set.intersection(
+                            set(ds.concept_set_container.concept_set_name),
+                            set(ds.code_sets.concept_set_name))
+
+    # csm_archived_names = set(DS['concept_set_members'][DS['concept_set_members'].archived].concept_set_name)
+    # concept_set_names = concept_set_names.difference(csm_archived_names)
+
+    # no change (2022-10-23):
+    filter('concept_set_container filtered to have matching code_sets/versions',
+           ds, 'concept_set_container', lambda df: df[df.concept_set_name.isin(concept_set_names)], ['concept_set_name'])
+
+    filter('code_sets filtered to have matching concept_set_container',
+           ds, 'code_sets', lambda df: df[df.concept_set_name.isin(concept_set_names)], ['concept_set_name'])
+
+    codeset_ids = set.intersection(set(ds.code_sets.codeset_id),
+                                   set(ds.concept_set_version_item.codeset_id))
+    filter(
+        'concept_set_members filtered to filtered code_sets', ds, 'concept_set_members',
+        lambda df: df[df.codeset_id.isin(set(ds.code_sets.codeset_id))], ['codeset_id', 'concept_id'])
 
     # Filters out any concepts/concept sets w/ no name
-    ds.concept_set_members = ds.concept_set_members[ds.concept_set_members.concept_set_name.str.len() > 0]
-    all_member_concepts = set(ds.concept_set_members.concept_id)
+    filter('concept_set_members filtered to exclude concept sets with empty names',
+            ds, 'concept_set_members',
+           lambda df: df[~df.archived],
+           ['codeset_id', 'concept_id'])
+
+    filter('concept_set_members filtered to exclude archived concept set.',
+           ds, 'concept_set_members',
+           lambda df: df[~df.archived],
+           ['codeset_id', 'concept_id'])
+
+    ds.concept_relationship = ds.concept_relationship_subsumes_only
+    other_msgs.append('only using subsumes relationships in concept_relationship')
+
+    # I don't know why, there's a bunch of codesets that have no concept_set_version_items:
+    # >>> len(set(ds.concept_set_members.codeset_id))
+    # 3733
+    # >>> len(set(ds.concept_set_version_item.codeset_id))
+    # 3021
+    # >>> len(set(ds.concept_set_members.codeset_id).difference(set(ds.concept_set_version_item.codeset_id)))
+    # 1926
+    # should just toss them, right?
+
+    # len(set(ds.concept_set_members.concept_id))             1,483,260
+    # len(set(ds.concept_set_version_item.concept_id))          429,470
+    # len(set(ds.concept_set_version_item.concept_id)
+    #     .difference(set(ds.concept_set_members.concept_id)))   19,996
+    #
+    member_concepts = set(ds.concept_set_members.concept_id)
+        #.difference(set(ds.concept_set_version_item))
+
+    ds.concept_set_version_item = ds.concept_set_version_item[
+        ds.concept_set_version_item.concept_id.isin(member_concepts)]
+
+    # only need these two columns now:
+    ds.concept_set_members = ds.concept_set_members[['codeset_id', 'concept_id']]
+
     ds.all_related_concepts = set(ds.concept_relationship.concept_id_1).union(
                                 set(ds.concept_relationship.concept_id_2))
-    all_findable_concepts = all_member_concepts.union(ds.all_related_concepts)
+    all_findable_concepts = member_concepts.union(ds.all_related_concepts)
 
     ds.concept.drop(['domain_id', 'vocabulary_id', 'concept_class_id', 'standard_concept', 'concept_code',
                       'invalid_reason', ], inplace=True, axis=1)
@@ -78,12 +206,14 @@ def load_globals():
     ds.links = ds.concept_relationship.groupby('concept_id_1')
     # ds.all_concept_relationship_cids = set(ds.concept_relationship.concept_id_1).union(set(ds.concept_relationship.concept_id_2))
 
+    @cache
     def child_cids(cid):
         """Return list of `concept_id_2` for each `concept_id_1` (aka all its children)"""
         if cid in ds.links.groups.keys():
             return [int(c) for c in ds.links.get_group(cid).concept_id_2.unique() if c != cid]
     ds.child_cids = child_cids
 
+    # @cache
     def connect_children(pcid, cids):  # how to declare this should be tuple of int or None and list of ints
         if not cids:
             return None
@@ -157,62 +287,63 @@ def load_globals():
 
 # todo: consider: run 2 backend servers, 1 to hold the data and 1 to service requests / logic? probably.
 # TODO: #2: remove try/except when git lfs fully set up
+# try:
+# todo: temp until we decide if this is the correct way
+
+# dataset_names = list(FAVORITE_DATASETS.keys()) + ['concept_relationship_is_a']
+
+dataset_names = ['concept_set_members',
+                 'concept',
+                 'concept_relationship_subsumes_only',
+                 'concept_set_container',
+                 'code_sets',
+                 'concept_set_version_item',
+                 'deidentified_term_usage_by_domain_clamped',
+                 'concept_set_counts_clamped']
+
 try:
-    # todo: temp until we decide if this is the correct way
+    DS = {name: load_dataset(name) for name in dataset_names}
+    ds = load_globals()
+    #  TODO: Fix this warning? (Joe: doing so will help load faster, actually)
+    #   DtypeWarning: Columns (4) have mixed types. Specify dtype option on import or set low_memory=False.
+    #   keep_default_na fixes some or all the warnings, but doesn't manage dtypes well.
+    #   did this in termhub-csets/datasets/fixing-and-paring-down-csv-files.ipynb:
+    #   csm = pd.read_csv('./concept_set_members.csv',
+    #                    # dtype={'archived': bool},    # doesn't work because of missing values
+    #                   converters={'archived': lambda x: x and True or False}, # this makes it a bool field
+    #                   keep_default_na=False)
 
-    # dataset_names = list(FAVORITE_DATASETS.keys()) + ['concept_relationship_is_a']
+    #  TODO: try to fix.... not working yet:
+    # code_set.version got mangled into version numbers like 1.0, 2.0
+    #
+    # converters = {
+    #     'int': lambda v: v.astype(int)
+    # }
+    # def bool_converter(v):
+    #     return v and True or False
+    #
+    # csv_opts = {
+    #     # 'code_sets': {'dtype': {'version': int}}
+    #     'code_sets': {'converters': {'version': converters['int']}}
+    # }
+    #
+    # df = pd.read_csv(os.path.join(CSV_PATH, 'code_sets' + '.csv'), **(csv_opts['code_sets']))
+except FileNotFoundError:
+    # todo: what if they haven't downloaded? maybe need to ls files and see if anything needs to be downloaded first
+    update_termhub_csets(transforms_only=True)
+    DS = {name: load_dataset(name) for name in dataset_names}
+    ds = load_globals()
+print(f'Favorite datasets loaded: {list(DS.keys())}')
+# todo: pandasql better?
+# PYSQLDF = lambda q: sqldf(q, globals()) # I think you need to call this in the function you're using it in
+# COUNTS = PYSQLDF("""
+#     SELECT vocabulary_id, COUNT(*) AS cnt
+#     FROM CONCEPT
+#     GROUP BY 1""")
+#except Exception as err:
+#    print(f'failed loading datasets', err)
 
-    dataset_names = ['concept_set_members',
-                     'concept',
-                     'concept_relationship_subsumes_only',
-                     'concept_set_container',
-                     'code_sets',
-                     'concept_set_version_item',
-                     'deidentified_term_usage_by_domain_clamped',
-                     'concept_set_counts_clamped']
-
-    try:
-        DS = {name: load_dataset(name) for name in dataset_names}
-        ds = load_globals()
-        #  TODO: Fix this warning? (Joe: doing so will help load faster, actually)
-        #   DtypeWarning: Columns (4) have mixed types. Specify dtype option on import or set low_memory=False.
-        #   keep_default_na fixes some or all the warnings, but doesn't manage dtypes well.
-        #   did this in termhub-csets/datasets/fixing-and-paring-down-csv-files.ipynb:
-        #   csm = pd.read_csv('./concept_set_members.csv',
-        #                    # dtype={'archived': bool},    # doesn't work because of missing values
-        #                   converters={'archived': lambda x: x and True or False}, # this makes it a bool field
-        #                   keep_default_na=False)
-
-        #  TODO: try to fix.... not working yet:
-        # code_set.version got mangled into version numbers like 1.0, 2.0
-        #
-        # converters = {
-        #     'int': lambda v: v.astype(int)
-        # }
-        # def bool_converter(v):
-        #     return v and True or False
-        #
-        # csv_opts = {
-        #     # 'code_sets': {'dtype': {'version': int}}
-        #     'code_sets': {'converters': {'version': converters['int']}}
-        # }
-        #
-        # df = pd.read_csv(os.path.join(CSV_PATH, 'code_sets' + '.csv'), **(csv_opts['code_sets']))
-    except FileNotFoundError:
-        # todo: what if they haven't downloaded? maybe need to ls files and see if anything needs to be downloaded first
-        update_termhub_csets(transforms_only=True)
-        DS = {name: load_dataset(name) for name in dataset_names}
-        ds = load_globals()
-    print(f'Favorite datasets loaded: {list(DS.keys())}')
-    # todo: pandasql better?
-    # PYSQLDF = lambda q: sqldf(q, globals()) # I think you need to call this in the function you're using it in
-    # COUNTS = PYSQLDF("""
-    #     SELECT vocabulary_id, COUNT(*) AS cnt
-    #     FROM CONCEPT
-    #     GROUP BY 1""")
-except Exception as err:
-    print(f'failed loading datasets', err)
-
+# @cache
 def data_stuff_for_codeset_ids(codeset_ids):
     """
     for specific codeset_ids:
@@ -230,9 +361,13 @@ def data_stuff_for_codeset_ids(codeset_ids):
     """
     dsi = Bunch({})
 
+    print(f'data_stuff_for_codeset_ids({codeset_ids})')
+
     dsi.code_sets_i = ds.code_sets[ds.code_sets['codeset_id'].isin(codeset_ids)]
 
     dsi.concept_set_members_i = ds.concept_set_members[ds.concept_set_members['codeset_id'].isin(codeset_ids)]
+
+    dsi.concept_set_version_item_i = ds.concept_set_version_item[ds.concept_set_version_item['codeset_id'].isin(codeset_ids)]
 
     dsi.concept_relationship_i = ds.concept_relationship[
         (ds.concept_relationship.concept_id_1.isin(dsi.concept_set_members_i.concept_id)) &
@@ -281,12 +416,14 @@ def data_stuff_for_codeset_ids(codeset_ids):
     dsi.links = dsi.concept_relationship_i.groupby('concept_id_1')
 
     # Get child `concept_id`s
+    @cache
     def child_cids(cid):
         """Closure for geting child concept IDs"""
         if cid in dsi.links.groups.keys():
             return [int(c) for c in dsi.links.get_group(cid).concept_id_2.unique() if c != cid]
     dsi.child_cids = child_cids
 
+    # @cache
     def connect_children(pcid, cids):  # how to declare this should be tuple of int or None and list of ints
         if not cids:
             return None
@@ -317,6 +454,7 @@ def data_stuff_for_codeset_ids(codeset_ids):
 
     return dsi
 
+@cache
 def parse_codeset_ids(qstring):
     if not qstring:
         return []
@@ -383,7 +521,7 @@ def cr_hierarchy(
 
     c = dsi.connect_children(-1, dsi.top_level_cids)
 
-    cids = []
+    cids = set([])
     if c:
         cids = set([int(str(k).split('.')[-1]) for k in pd.json_normalize(c).to_dict(orient='records')[0].keys()])
     concepts = ds.concept[ds.concept.concept_id.isin(cids.union(set(dsi.concept_set_members_i.concept_id)))]
@@ -391,10 +529,12 @@ def cr_hierarchy(
     result = {
               # 'related_csets': dsi.related.to_dict(orient='records'),
               'concept_set_members_i': dsi.concept_set_members_i.to_dict(orient='records'),
+              'concept_set_version_item_i': dsi.concept_set_version_item_i.to_dict(orient='records'),
               'all_csets': dsi.all_csets.to_dict(orient='records'),
               'hierarchy': c,
               'concepts': concepts.to_dict(orient='records'),
-              }
+              'data_counts': log_counts(),
+    }
     return result
     # result = {
     #     'concept_set_members_i': dsi.concept_set_members_i.to_dict(),
