@@ -61,75 +61,53 @@ from enclave_wrangler.config import config
 JSON_TYPE = Union[List, Dict]
 
 
-# concept_set_version_items / expressions
-# TODO: How to know which concept set and version to add it to?
-#  A. Siggie suggests 2nd call: edit-omop-concept-set-version-item
-#   ... but looking at it, this looks almost the same
-#     {
-#       "apiName": "edit-omop-concept-set-version-item",
-#       "description": "",
-#       "rid": "ri.actions.main.action-type.be264050-8b7f-44fe-9082-5fb4b748049a",
-#       "parameters": {
-#         "include_descendants": {
-#           "description": "If true, then these expression items will match on the selected OMOP Concepts, and all of their descendants.",
-#           "baseType": "Boolean"
-#         },
-#         "is_excluded": {
-#           "description": "If true, then any concepts matched will be added to the expression as exclusion rather than inclusion criteria. Exclusion criteria take precedence over inclusion criteria, in cases when a single OMOP Concept is affected by more than one entry in the OMOP Concept Set Expression.",
-#           "baseType": "Boolean"
-#         },
-#         "OmopConceptSetVersionItem": {
-#           "description": "",
-#           "baseType": "OntologyObject"
-#         },
-#         "version": {
-#           "description": "",
-#           "baseType": "OntologyObject"
-#         },
-#         "include_mapped": {
-#           "description": "If true, then these expression items will match on the selected OMOP Concepts, and all of the Non-Standard OMOP Concepts that map to them. If Include Descendants is also true, then this option will also include all OMOP Concepts that map to the included descendants. Setting this to true enables you to include non-standard Concepts in your Concept Set. Mapping is the process to transform one Concept into a Standard one. Read more: ohdsi.github.io/TheBookOfOhdsi/Cohorts.html#conceptSets and https://www.ohdsi.org/web/wiki/doku.php?id=documentation:vocabulary:mapping",
-#           "baseType": "Boolean"
-#         }
-#       }
-#     },
-#  B. How about this one?
-#      - attn: 'concepts' (Array<OntologyObject>). are these new or previously uploaded ones?
-#     {
-#       "apiName": "add-selected-concepts-as-omop-version-expressions",
-#       "description": "",
-#       "rid": "ri.actions.main.action-type.d1ad39f8-a303-4f46-8f46-bd48c5362915",
-#       "parameters": {
-#         "concepts": {
-#           "description": "",
-#           "baseType": "Array<OntologyObject>"
-#         },
-#         "includeMapped": {
-#           "description": "If true, then these expression items will match on the selected OMOP Concepts, and all of the Non-Standard OMOP Concepts that map to them. If Include Descendants is also true, then this option will also include all OMOP Concepts that map to the included descendants. Setting this to true enables you to include non-standard Concepts in your Concept Set. Mapping is the process to transform one Concept into a Standard one. Read more: ohdsi.github.io/TheBookOfOhdsi/Cohorts.html#conceptSets and https://www.ohdsi.org/web/wiki/doku.php?id=documentation:vocabulary:mapping",
-#           "baseType": "Boolean"
-#         },
-#         "includeDescendants": {
-#           "description": "If true, then these expression items will match on the selected OMOP Concepts, and all of their descendants.",
-#           "baseType": "Boolean"
-#         },
-#         "version": {
-#           "description": "",
-#           "baseType": "OntologyObject"
-#         },
-#         "isExcluded": {
-#           "description": "If true, then any concepts matched will be added to the expression as exclusion rather than inclusion criteria. Exclusion criteria take precedence over inclusion criteria, in cases when a single OMOP Concept is affected by more than one entry in the OMOP Concept Set Expression.",
-#           "baseType": "Boolean"
-#         },
-#         "optional-annotation": {
-#           "description": "What are you trying to accomplish? Reason?",
-#           "baseType": "String"
-#         }
-#       }
-#     },
-def upload_concept(
+# todo: Which to use for uploading concept? (upload_concept_via_array | upload_concept_via_set | upload_concept_via_edit)
+# api_name = 'add-selected-concepts-as-omop-version-expressions'
+def upload_concept_via_array(
+    concepts: List[int], version: str, includeMapped=False, includeDescendants=False, isExcluded=False,
+    optionalAnnotation: str = None, validate=False
+) -> JSON_TYPE:
+    """Create new concepets within concept set
+    Non-required params set to `None`.
+    """
+    api_name = 'add-selected-concepts-as-omop-version-expressions'
+    # Commented out portions are part of the api definition
+    d = {
+        # "apiName": "add-selected-concepts-as-omop-version-expressions",
+        # "description": "",
+        # "rid": "ri.actions.main.action-type.d1ad39f8-a303-4f46-8f46-bd48c5362915",
+        "parameters": {
+            "concepts": concepts,
+              # "description": "",
+              # "baseType": "Array<OntologyObject>"
+            "includeMapped": includeMapped,
+              # "description": "If true, then these expression items will match on the selected OMOP Concepts, and all of the Non-Standard OMOP Concepts that map to them. If Include Descendants is also true, then this option will also include all OMOP Concepts that map to the included descendants. Setting this to true enables you to include non-standard Concepts in your Concept Set. Mapping is the process to transform one Concept into a Standard one. Read more: ohdsi.github.io/TheBookOfOhdsi/Cohorts.html#conceptSets and https://www.ohdsi.org/web/wiki/doku.php?id=documentation:vocabulary:mapping",
+              # "baseType": "Boolean"
+            "includeDescendants": includeDescendants,
+              # "description": "If true, then these expression items will match on the selected OMOP Concepts, and all of their descendants.",
+              # "baseType": "Boolean"
+            "version": version,
+              # "description": "",
+              # "baseType": "OntologyObject"
+            "isExcluded": isExcluded,
+              # "description": "If true, then any concepts matched will be added to the expression as exclusion rather than inclusion criteria. Exclusion criteria take precedence over inclusion criteria, in cases when a single OMOP Concept is affected by more than one entry in the OMOP Concept Set Expression.",
+              # "baseType": "Boolean"
+            "optional-annotation": optionalAnnotation,
+              # "description": "What are you trying to accomplish? Reason?",
+              # "baseType": "String"
+        }
+    }
+    return post(api_name, d, validate)
+
+
+# todo: Which to use for uploading concept? (upload_concept_via_array | upload_concept_via_set | upload_concept_via_edit)
+# api_name = 'set-omop-concept-set-version-item'
+def upload_concept_via_set(
     include_descendants: bool, concept_set_version_item: str, is_excluded: bool, include_mapped: bool, validate=False
 ) -> JSON_TYPE:
     """Create new concepets within concept set
     Non-required params set to `None`.
+
     Example curl:
         curl -H "Content-type: application/json" -H "Authorization: Bearer $OTHER_TOKEN" \
         https://unite.nih.gov/api/v1/ontologies/ri.ontology.main.ontology.00000000-0000-0000-0000-000000000000/actions/set-omop-concept-set-version-item/validate \
@@ -138,42 +116,42 @@ def upload_concept(
         - Apply: (replace /validate with /apply in above string)
         - This is a sign that it worked: "curl: (52) Empty reply from server"
 
-# todo: remove this when no longer needed for reference:
-{
-  "result": "INVALID",
-  "submissionCriteria": [
+    Example validation:
     {
       "result": "INVALID",
-      "configuredFailureMessage": "Condition not met"
-    }
-  ],
-  "parameters": {
-    "include_descendants": {
-      "result": "VALID",
-      "evaluatedConstraints": [],
-      "required": true
-    },
-    "is_excluded": {
-      "result": "INVALID",
-      "evaluatedConstraints": [],
-      "required": true
-    },
-    "concept-set-version-item": {
-      "result": "INVALID",
-      "evaluatedConstraints": [
+      "submissionCriteria": [
         {
-          "type": "objectQueryResult"
+          "result": "INVALID",
+          "configuredFailureMessage": "Condition not met"
         }
       ],
-      "required": true
-    },
-    "include_mapped": {
-      "result": "INVALID",
-      "evaluatedConstraints": [],
-      "required": true
+      "parameters": {
+        "include_descendants": {
+          "result": "VALID",
+          "evaluatedConstraints": [],
+          "required": true
+        },
+        "is_excluded": {
+          "result": "INVALID",
+          "evaluatedConstraints": [],
+          "required": true
+        },
+        "concept-set-version-item": {
+          "result": "INVALID",
+          "evaluatedConstraints": [
+            {
+              "type": "objectQueryResult"
+            }
+          ],
+          "required": true
+        },
+        "include_mapped": {
+          "result": "INVALID",
+          "evaluatedConstraints": [],
+          "required": true
+        }
+      }
     }
-  }
-}
     """
     api_name = 'set-omop-concept-set-version-item'
     # Commented out portions are part of the api definition
@@ -181,13 +159,13 @@ def upload_concept(
         # "apiName": "set-omop-concept-set-version-item",
         # "description": "",
         # "rid": "ri.actions.main.action-type.56ce9a5b-c535-4413-be70-5526a8c152ed",
-        # TODO: Fix commented out fields 1 at a time. getting errors 400/500, so idk what's wrong yet
         # - Required params
         "parameters": {
             "include_descendants": include_descendants,
             # "include_descendants": {
             #   "description": "",
             #   "baseType": "Boolean"
+            # TODO: is this supposed to be OMOP concept_id?
             "concept-set-version-item": concept_set_version_item,
             # "concept-set-version-item": {
             #   "description": "",
@@ -205,35 +183,44 @@ def upload_concept(
     return post(api_name, d, validate)
 
 
+# todo: Which to use for uploading concept? (upload_concept_via_array | upload_concept_via_set | upload_concept_via_edit)
+# api_name = 'edit-omop-concept-set-version-item'
+def upload_concept_via_edit(
+    OmopConceptSetVersionItem: str, version: str, include_descendants=False, is_excluded=False, include_mapped=False,
+    validate=False
+) -> JSON_TYPE:
+    """Create new concepets within concept set
+    Non-required params set to `None`.
+    """
+    api_name = 'edit-omop-concept-set-version-item'
+    d = {
+        # "apiName": "edit-omop-concept-set-version-item",
+        # "description": "",
+        # "rid": "ri.actions.main.action-type.be264050-8b7f-44fe-9082-5fb4b748049a",
+        "parameters": {
+            "include_descendants": include_descendants,
+              # "description": "If true, then these expression items will match on the selected OMOP Concepts, and all of their descendants.",
+              # "baseType": "Boolean"
+            "is_excluded": is_excluded,
+              # "description": "If true, then any concepts matched will be added to the expression as exclusion rather than inclusion criteria. Exclusion criteria take precedence over inclusion criteria, in cases when a single OMOP Concept is affected by more than one entry in the OMOP Concept Set Expression.",
+              # "baseType": "Boolean"
+            "OmopConceptSetVersionItem": OmopConceptSetVersionItem,
+              # "description": "",
+              # "baseType": "OntologyObject"
+            "version": version,
+              # "description": "",
+              # "baseType": "OntologyObject"
+            "include_mapped": include_mapped,
+              # "description": "If true, then these expression items will match on the selected OMOP Concepts, and all of the Non-Standard OMOP Concepts that map to them. If Include Descendants is also true, then this option will also include all OMOP Concepts that map to the included descendants. Setting this to true enables you to include non-standard Concepts in your Concept Set. Mapping is the process to transform one Concept into a Standard one. Read more: ohdsi.github.io/TheBookOfOhdsi/Cohorts.html#conceptSets and https://www.ohdsi.org/web/wiki/doku.php?id=documentation:vocabulary:mapping",
+              # "baseType": "Boolean"
+        }
+    }
+    return post(api_name, d, validate)
+
+
 # code_set
-# todo: is this useful?
-#     {
-#       "apiName": "finalize-draft-omop-concept-set-version",
-#       "description": "",
-#       "rid": "ri.actions.main.action-type.d53c0a2b-db9d-4a72-b10b-ad5f467f3f9c",
-#       "parameters": {
-#         "new-parameter1": {
-#           "description": "",
-#           "baseType": "String"
-#         },
-#         "concept-set-container": {
-#           "description": "",
-#           "baseType": "OntologyObject"
-#         },
-#         "version": {
-#           "description": "",
-#           "baseType": "OntologyObject"
-#         },
-#         "currentMaxVersion": {
-#           "description": "",
-#           "baseType": "Double"
-#         },
-#         "new-parameter": {
-#           "description": "",
-#           "baseType": "String"
-#         }
-#       }
-#     },
+# todo: is this useful?: "apiName": "finalize-draft-omop-concept-set-version",
+#  (more information about params in this function's docstring)
 def upload_draft_concept_set(
     concept_set: str, intention: str, domain_team: str = None, provenance: str = None, current_max_version: float = None
     , annotation: str = None, limitations: str = None, base_version: int = None, intended_research_project: str = None,
@@ -241,6 +228,7 @@ def upload_draft_concept_set(
 ) -> JSON_TYPE:
     """Create a new draft concept set
     Non-required params set to `None`.
+
     Example curl:
         curl -H "Content-type: application/json" -H "Authorization: Bearer $OTHER_TOKEN" \
             https://unite.nih.gov/api/v1/ontologies/ri.ontology.main.ontology.00000000-0000-0000-0000-000000000000/actions/create-new-draft-omop-concept-set-version/validate \
@@ -249,103 +237,133 @@ def upload_draft_concept_set(
         - Apply: (replace /validate with /apply in above string)
         - This is a sign that it worked: "curl: (52) Empty reply from server"
 
-# todo: remove this when no longer needed for reference:
-{
-  "result": "INVALID",
-  "submissionCriteria": [],
-  "parameters": {
-    "domain-team": {
-      "result": "VALID",
-      "evaluatedConstraints": [
+    # todo: is this useful?
         {
-          "type": "objectQueryResult"
-        }
-      ],
-      "required": false
-    },
-    "provenance": {
-      "result": "VALID",
-      "evaluatedConstraints": [],
-      "required": false
-    },
-    "current-max-version": {
-      "result": "VALID",
-      "evaluatedConstraints": [],
-      "required": false
-    },
-    "conceptSet": {
-      "result": "INVALID",
-      "evaluatedConstraints": [
-        {
-          "type": "objectQueryResult"
-        }
-      ],
-      "required": true
-    },
-    "annotation": {
-      "result": "VALID",
-      "evaluatedConstraints": [],
-      "required": false
-    },
-    "limitations": {
-      "result": "VALID",
-      "evaluatedConstraints": [],
-      "required": false
-    },
-    "intention": {
-      "result": "INVALID",
-      "evaluatedConstraints": [
-        {
-          "type": "oneOf",
-          "options": [
-            {
-              "displayName": "",
-              "value": "Broad (sensitive)"
+          "apiName": "finalize-draft-omop-concept-set-version",
+          "description": "",
+          "rid": "ri.actions.main.action-type.d53c0a2b-db9d-4a72-b10b-ad5f467f3f9c",
+          "parameters": {
+            "new-parameter1": {
+              "description": "",
+              "baseType": "String"
             },
-            {
-              "displayName": "",
-              "value": "Narrow (specific)"
+            "concept-set-container": {
+              "description": "",
+              "baseType": "OntologyObject"
             },
+            "version": {
+              "description": "",
+              "baseType": "OntologyObject"
+            },
+            "currentMaxVersion": {
+              "description": "",
+              "baseType": "Double"
+            },
+            "new-parameter": {
+              "description": "",
+              "baseType": "String"
+            }
+          }
+        },
+
+    # todo: remove this when no longer needed for reference:
+    Example validation:
+    {
+      "result": "INVALID",
+      "submissionCriteria": [],
+      "parameters": {
+        "domain-team": {
+          "result": "VALID",
+          "evaluatedConstraints": [
             {
-              "displayName": "",
-              "value": "Mixed"
+              "type": "objectQueryResult"
             }
           ],
-          "otherValuesAllowed": true
+          "required": false
+        },
+        "provenance": {
+          "result": "VALID",
+          "evaluatedConstraints": [],
+          "required": false
+        },
+        "current-max-version": {
+          "result": "VALID",
+          "evaluatedConstraints": [],
+          "required": false
+        },
+        "conceptSet": {
+          "result": "INVALID",
+          "evaluatedConstraints": [
+            {
+              "type": "objectQueryResult"
+            }
+          ],
+          "required": true
+        },
+        "annotation": {
+          "result": "VALID",
+          "evaluatedConstraints": [],
+          "required": false
+        },
+        "limitations": {
+          "result": "VALID",
+          "evaluatedConstraints": [],
+          "required": false
+        },
+        "intention": {
+          "result": "INVALID",
+          "evaluatedConstraints": [
+            {
+              "type": "oneOf",
+              "options": [
+                {
+                  "displayName": "",
+                  "value": "Broad (sensitive)"
+                },
+                {
+                  "displayName": "",
+                  "value": "Narrow (specific)"
+                },
+                {
+                  "displayName": "",
+                  "value": "Mixed"
+                }
+              ],
+              "otherValuesAllowed": true
+            }
+          ],
+          "required": true
+        },
+        "baseVersion": {
+          "result": "VALID",
+          "evaluatedConstraints": [
+            {
+              "type": "objectQueryResult"
+            }
+          ],
+          "required": false
+        },
+        "intended-research-project": {
+          "result": "VALID",
+          "evaluatedConstraints": [
+            {
+              "type": "objectQueryResult"
+            }
+          ],
+          "required": false
+        },
+        "versionId": {
+          "result": "VALID",
+          "evaluatedConstraints": [],
+          "required": false
+        },
+        "authority": {
+          "result": "VALID",
+          "evaluatedConstraints": [],
+          "required": false
         }
-      ],
-      "required": true
-    },
-    "baseVersion": {
-      "result": "VALID",
-      "evaluatedConstraints": [
-        {
-          "type": "objectQueryResult"
-        }
-      ],
-      "required": false
-    },
-    "intended-research-project": {
-      "result": "VALID",
-      "evaluatedConstraints": [
-        {
-          "type": "objectQueryResult"
-        }
-      ],
-      "required": false
-    },
-    "versionId": {
-      "result": "VALID",
-      "evaluatedConstraints": [],
-      "required": false
-    },
-    "authority": {
-      "result": "VALID",
-      "evaluatedConstraints": [],
-      "required": false
+      }
     }
-  }
-}
     """
     api_name = 'create-new-draft-omop-concept-set-version'
 

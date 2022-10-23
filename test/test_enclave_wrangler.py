@@ -14,7 +14,8 @@ PROJECT_ROOT = os.path.join(TEST_DIR, '..')
 # todo: why is this necessary in this case and almost never otherwise?
 # https://stackoverflow.com/questions/33862963/python-cant-find-my-module
 sys.path.insert(0, PROJECT_ROOT)
-from enclave_wrangler.new_enclave_api import JSON_TYPE, upload_concept, upload_concept_set, upload_draft_concept_set
+from enclave_wrangler.new_enclave_api import JSON_TYPE, upload_concept_set, upload_concept_via_set, \
+    upload_draft_concept_set
 
 # todo: replace what I've done here w/ `upload_dataset` eventually if I can. Right now limited by not being able to
 #  delete a container.
@@ -61,7 +62,7 @@ def test_upload_concept_set(user_id=PALANTIR_ENCLAVE_USER_ID_1):
 
 
 def test_upload_concept():
-    response: JSON_TYPE = upload_concept(
+    response: JSON_TYPE = upload_concept_via_set(
         include_descendants=True, concept_set_version_item='x', is_excluded=True, include_mapped=True, validate=True)
     # self.assertTrue('result' in response and not response['result'] == 'VALID')
     if not('result' in response and response['result'] == 'VALID'):
