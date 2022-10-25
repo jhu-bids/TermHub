@@ -11,14 +11,16 @@ ENV_DIR = os.path.join(PROJECT_ROOT, 'env')
 OUTPUT_DIR = os.path.join(PROJECT_ROOT, 'output')
 ENV_FILE = os.path.join(ENV_DIR, '.env')
 TERMHUB_CSETS_DIR = os.path.join(PROJECT_ROOT, 'termhub-csets')
+UPLOADS_DIR = os.path.join(TERMHUB_CSETS_DIR, 'datasets', 'uploads')
+CSET_UPLOAD_REGISTRY_PATH = os.path.join(UPLOADS_DIR, 'cset_upload_registry.csv')
 
+# CSET_VERSION_MIN_ID: For concept set versions we are uploading, we can assign our own ID. Must be higher than this num
+CSET_VERSION_MIN_ID = 1000000000
+ENCLAVE_PROJECT_NAME = 'RP-4A9E27'
 PALANTIR_ENCLAVE_USER_ID_1 = 'a39723f3-dc9c-48ce-90ff-06891c29114f'
 MOFFIT_PREFIX = 'Simplified autoimmune disease'
 MOFFIT_SOURCE_URL = 'https://docs.google.com/spreadsheets/d/1tHHHeMtzX0SA85gbH8Mvw2E0cxH-x1ii/edit#gid=1762989244'
 MOFFIT_SOURCE_ID_TYPE = 'moffit'
-ENCLAVE_PROJECT_NAME = 'RP-4A9E27'
-UPLOADS_DIR = os.path.join(TERMHUB_CSETS_DIR, 'datasets', 'uploads')
-CSET_UPLOAD_REGISTRY_PATH = os.path.join(UPLOADS_DIR, 'cset_upload_registry.csv')
 
 
 load_dotenv(ENV_FILE)

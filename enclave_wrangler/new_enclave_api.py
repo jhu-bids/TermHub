@@ -62,41 +62,58 @@ JSON_TYPE = Union[List, Dict]
 VALIDATE_FIRST = True  # if True, will /validate before doing /apply, and return validation error if any.
 
 
-# TODO: current implementation assumes all params same for each concept, but function needs to be completed
-#  so that it checks for any differences and properly reroutes
-# TODO: look futher down at add_concept_via_set(): Needs to be changed out
 def add_concepts_to_cset(omop_concepts: List[Dict], version__codeset_id: int) -> JSON_TYPE:
     """Wrapper function for routing to appropriate endpoint. Add existing OMOP concepts to a versioned concept set / codeset.
 
-    :param omop_concepts (List[Dict]): A list of dictionaries. Each dictionary must have a 'concept_id' (int) key
-    which should be a valid OMOP concept ID. For additional params, refer to the documentation for the
-    endpoint: set-omop-concept-set-version-item
+    :param omop_concepts (List[Dict]): A list of dictionaries.
+      Each dictionary should have the following keys:
+        - `concept_id` (int) (required)
+        - `includeDescendants` (bool) (required)
+        - `isExcluded` (bool) (required)
+        - `includeMapped` (bool) (required)
+        - `annotation` (str) (optional)
+      Example:
+        {
+          "concept_id": 45259000,
+          "includeDescendants": True,
+          "isExcluded": False,
+          "includeMapped": True,
+          "annotation": "This is my concept annotation."
+        }
+     For additional information, refer to the documentation for the add_concepts_via_array(), i.e. docs for
+     ...endpoint: add-selected-concepts-as-omop-version-expressions
     """
-    # TODO: Calc if params are same
-    params_same = True
-    pass
+    # Group together all concepts that have the same settings
+    relevant_keys = ['isExcluded', 'includeMapped', 'includeDescendants', 'annotation']
+    omop_concept_groups: Dict[str, Dict] = {}
+    for concept in omop_concepts:
+        group_key = '__'.join([f'{k}_{v}' for k, v in concept.items() if k in relevant_keys])
+        if group_key not in omop_concept_groups:
+            omop_concept_groups[group_key] = {
+                key: concept[key]
+                for key in relevant_keys
+            }
+            omop_concept_groups[group_key]['omop_concept_ids'] = []
+        omop_concept_groups[group_key]['omop_concept_ids'].append(concept)
 
-    if params_same:
-        response: JSON_TYPE = add_concepts_via_array(
-            concepts=[x['concept_id'] for x in omop_concepts],
-            version=version__codeset_id)  # == code_sets.codeset_id
-    else:
-        response: JSON_TYPE = []
-        # TODO: This doesn't actually use correct endpoint, becuase can't pass codeset_id / concept set version ID.
-        #  use this instead: add_concept_via_edit
-        for concept in omop_concepts:
-            response_i: JSON_TYPE = add_concept_via_set(  # concept_set_version_items / expressions
-                include_descendants=concept['includeDescendants'],
-                concept_set_version_item=concept['concept_id'],
-                is_excluded=concept['isExcluded'],
-                include_mapped=concept['includeMapped'])
-            response.append(response_i)
+    # Make calls for all grouped concepts
+    response: JSON_TYPE = []
+    for group in omop_concept_groups.values():
+        response_i: JSON_TYPE = add_concepts_via_array(
+            version=version__codeset_id,  # == code_sets.codeset_id
+            concepts=group['omop_concept_ids'],
+            is_excluded=group['isExcluded'],
+            include_mapped=group['includeMapped'],
+            include_descendants=group['includeDescendants'],
+            optional_annotation=group['annotation'] if group['annotation'] else None)
+        response.append(response_i)
+
     return response
 
 
 # api_name = 'add-selected-concepts-as-omop-version-expressions'
 def add_concepts_via_array(
-    concepts: List[int], version: int, include_mapped=False, include_descendants=False, is_excluded=False,
+    concepts: List[int], version: int, include_mapped: bool, include_descendants: bool, is_excluded: bool,
     optional_annotation: str = None, validate_first=VALIDATE_FIRST
 ) -> JSON_TYPE:
     """Create new concepts within concept set, AKA concept_set_version_items / expressions
@@ -138,14 +155,16 @@ def add_concepts_via_array(
 
 
 # api_name = 'set-omop-concept-set-version-item'
-# TODO: remove this, as can't pass the codeset_id / verion_id
-# By default, we use `upload_concept_via_array`. However, `upload_concept_via_set` is likely more useful when the
-# values of these params are not the same for every concept in the concept set.
-def add_concept_via_set(
+# TODO: Considering removing this function to this endpoint, as can't pass the codeset_id / verion_id, and not sure
+#  if we will find useful at all.
+# noinspection PyUnusedLocal
+def update_concept_version_item(
     include_descendants: bool, concept_set_version_item: str, is_excluded: bool, include_mapped: bool, validate_first=VALIDATE_FIRST
 ) -> JSON_TYPE:
     """Create new concepets within concept set
-    Non-required params set to `None`.
+
+    This endpoint: in concept set editor w/ existing expression item, can click on it and change one of those flags to
+    different value. It just changes the values.
 
     :param concept_set_version_item (str): todo: What to put here? OMOP concept_id? (item_id is a random uuid)
 
@@ -156,43 +175,6 @@ def add_concept_via_set(
         - Validate: Use above CURL
         - Apply: (replace /validate with /apply in above string)
         - This is a sign that it worked: "curl: (52) Empty reply from server"
-
-    Example validation:
-    {
-      "result": "INVALID",
-      "submissionCriteria": [
-        {
-          "result": "INVALID",
-          "configuredFailureMessage": "Condition not met"
-        }
-      ],
-      "parameters": {
-        "include_descendants": {
-          "result": "VALID",
-          "evaluatedConstraints": [],
-          "required": true
-        },
-        "is_excluded": {
-          "result": "INVALID",
-          "evaluatedConstraints": [],
-          "required": true
-        },
-        "concept-set-version-item": {
-          "result": "INVALID",
-          "evaluatedConstraints": [
-            {
-              "type": "objectQueryResult"
-            }
-          ],
-          "required": true
-        },
-        "include_mapped": {
-          "result": "INVALID",
-          "evaluatedConstraints": [],
-          "required": true
-        }
-      }
-    }
     """
     api_name = 'set-omop-concept-set-version-item'
     # Commented out portions are part of the api definition
@@ -206,12 +188,13 @@ def add_concept_via_set(
             # "include_descendants": {
             #   "description": "",
             #   "baseType": "Boolean"
-            # TODO: is this supposed to be OMOP concept_id?
-            # concept-set-version-item: More docs in function docstring.
             "concept-set-version-item": concept_set_version_item,
+            # concept-set-version-item: More docs in function docstring.
+            # TODO: is this supposed to be OMOP concept_id? (I think it's something else; expression have own id?)
             # "concept-set-version-item": {
             #   "description": "",
             #   "baseType": "OntologyObject"
+            # - validation info: Needs to be a valid reference (objectQueryResult) to object/property/value already existing in enclave.
             "is_excluded": is_excluded,
             # "is_excluded": {
             #   "description": "",
@@ -226,7 +209,9 @@ def add_concept_via_set(
 
 
 # api_name = 'edit-omop-concept-set-version-item'
-# Currently unused, but will be useful for updates
+# TODO: Ask Amin: Is this alternative to 'add-selected-concepts-as-omop-version-expressions' (add_concepts_via_array())?
+#  ...that is, does it do the same thing as passing an array of size 1 to that endpoint? If not, what's different?
+#  ...If it indeed is the same, then I imagine for OmopConceptSetVersionItem I want to pass an OMOP concept_id? Or?
 def add_concept_via_edit(
     OmopConceptSetVersionItem: str, version: int, include_descendants=False, is_excluded=False, include_mapped=False,
     validate_first=VALIDATE_FIRST
@@ -263,7 +248,7 @@ def add_concept_via_edit(
 
 # code_set
 # TODO: strange that new-parameter and new-parameter1 are required. I added arbitrary strings
-def upload_draft_concept_set(
+def upload_concept_set_version(
     concept_set: str, intention: str, domain_team: str = None, provenance: str = None, current_max_version: float = None
     , annotation: str = None, limitations: str = None, base_version: int = None, intended_research_project: str = None,
     version_id: int = None, authority: str = None, validate_first=VALIDATE_FIRST
@@ -290,105 +275,6 @@ def upload_draft_concept_set(
         - Validate: Use above CURL
         - Apply: (replace /validate with /apply in above string)
         - This is a sign that it worked: "curl: (52) Empty reply from server"
-
-    # todo: remove this when no longer needed for reference:
-    Example validation:
-    {
-      "result": "INVALID",
-      "submissionCriteria": [],
-      "parameters": {
-        "domain-team": {
-          "result": "VALID",
-          "evaluatedConstraints": [
-            {
-              "type": "objectQueryResult"
-            }
-          ],
-          "required": false
-        },
-        "provenance": {
-          "result": "VALID",
-          "evaluatedConstraints": [],
-          "required": false
-        },
-        "current-max-version": {
-          "result": "VALID",
-          "evaluatedConstraints": [],
-          "required": false
-        },
-        "conceptSet": {
-          "result": "INVALID",
-          "evaluatedConstraints": [
-            {
-              "type": "objectQueryResult"
-            }
-          ],
-          "required": true
-        },
-        "annotation": {
-          "result": "VALID",
-          "evaluatedConstraints": [],
-          "required": false
-        },
-        "limitations": {
-          "result": "VALID",
-          "evaluatedConstraints": [],
-          "required": false
-        },
-        "intention": {
-          "result": "INVALID",
-          "evaluatedConstraints": [
-            {
-              "type": "oneOf",
-              "options": [
-                {
-                  "displayName": "",
-                  "value": "Broad (sensitive)"
-                },
-                {
-                  "displayName": "",
-                  "value": "Narrow (specific)"
-                },
-                {
-                  "displayName": "",
-                  "value": "Mixed"
-                }
-              ],
-              "otherValuesAllowed": true
-            }
-          ],
-          "required": true
-        },
-        "baseVersion": {
-          "result": "VALID",
-          "evaluatedConstraints": [
-            {
-              "type": "objectQueryResult"
-            }
-          ],
-          "required": false
-        },
-        "intended-research-project": {
-          "result": "VALID",
-          "evaluatedConstraints": [
-            {
-              "type": "objectQueryResult"
-            }
-          ],
-          "required": false
-        },
-        "versionId": {
-          "result": "VALID",
-          "evaluatedConstraints": [],
-          "required": false
-        },
-        "authority": {
-          "result": "VALID",
-          "evaluatedConstraints": [],
-          "required": false
-        }
-      }
-    }
 
     API call 2 of 2: finalize-draft-omop-concept-set-version
     # todo: add any further docs for this step here
@@ -420,19 +306,21 @@ def upload_draft_concept_set(
             # "conceptSet": {
             #   "description": "",
             #   "baseType": "OntologyObject"
-            # conceptSet: Validate shows:
-            #   "evaluatedConstraints": [{"type": "objectQueryResult"}],
+            # - validation info: Needs to be a valid reference (objectQueryResult) to object/property/value already existing in enclave.
 
             "intention": intention,
             # "intention": {
             #   "description": "",
             #   "baseType": "String"
+            # - validation info: Ideally one of the following, though other values are accepted:
+            #   "Broad (sensitive)", "Narrow (specific)", "Mixed"
         }
     }
     # - Optional params
     # "domain-team": {
     #   "description": "",
     #   "baseType": "OntologyObject"
+    # - validation info: Needs to be a valid reference (objectQueryResult) to object/property/value already existing in enclave.
     # todo: more info in function docstring
     if domain_team:
         d['parameters']['domain-team'] = domain_team
@@ -468,6 +356,7 @@ def upload_draft_concept_set(
     # "baseVersion": {
     #   "description": "",
     #   "baseType": "OntologyObject"
+    # - validation info: Needs to be a valid reference (objectQueryResult) to object/property/value already existing in enclave.
     # todo: more info in function docstring
     if base_version:
         d['parameters']['baseVersion'] = base_version
@@ -475,6 +364,7 @@ def upload_draft_concept_set(
     # "intended-research-project": {
     #   "description": "",
     #   "baseType": "OntologyObject"
+    # - validation info: Needs to be a valid reference (objectQueryResult) to object/property/value already existing in enclave.
     # todo: more info in function docstring
     if intended_research_project:
         d['parameters']['intended-research-project'] = intended_research_project
@@ -530,16 +420,19 @@ def upload_draft_concept_set(
     return {'create-new-draft-omop-concept-set-version': response, 'finalize-draft-omop-concept-set-version': response}
 
 
-
 # concept_set_container
-def upload_concept_set(
+def upload_concept_set_container(
     concept_set_id: str, intention: str, research_project: ENCLAVE_PROJECT_NAME, assigned_sme: str = None,
     assigned_informatician: str = None, validate_first=VALIDATE_FIRST
 ) -> JSON_TYPE:
     """Create a new concept set
     Non-required params set to `None`.
 
-    :param research_project (str): todo: add it as a column to an updated palantir-3-file
+    :param concept_set_id (str) (required):
+    :param intention (str) (required):
+    :param research_project (str) (required): todo: add it as a column to an updated palantir-3-file
+    :param assigned_sme (str) (optional):
+    :param assigned_informatician (str) (optional):
 
     Example curl:
         curl -H "Content-type: application/json" -H "Authorization: Bearer $OTHER_TOKEN" \
@@ -548,103 +441,6 @@ def upload_concept_set(
         - Validate: Use above CURL
         - Apply: (replace /validate with /apply in above string)
         - This is a sign that it worked: "curl: (52) Empty reply from server"
-
-    todo: remove this when no longer needed for reference:
-    Validation example:
-    {
-      "result": "VALID",
-      "submissionCriteria": [],
-      "parameters": {
-        "assigned_sme": {
-          "result": "VALID",
-          "evaluatedConstraints": [
-            {
-              "type": "groupMember"
-            }
-          ],
-          "required": false
-        },
-        "assigned_informatician": {
-          "result": "VALID",
-          "evaluatedConstraints": [
-            {
-              "type": "groupMember"
-            }
-          ],
-          "required": false
-        },
-        "concept_set_id": {
-          "result": "VALID",
-          "evaluatedConstraints": [],
-          "required": true
-        },
-        "intention": {
-          "result": "VALID",
-          "evaluatedConstraints": [
-            {
-              "type": "oneOf",
-              "options": [
-                {
-                  "displayName": "",
-                  "value": "Broad (sensitive)"
-                },
-                {
-                  "displayName": "",
-                  "value": "Narrow (specific)"
-                },
-                {
-                  "displayName": "",
-                  "value": "Mixed"
-                }
-              ],
-              "otherValuesAllowed": true
-            }
-          ],
-          "required": true
-        },
-        "research-project": {
-          "result": "VALID",
-          "evaluatedConstraints": [
-            {
-              "type": "objectQueryResult"
-            }
-          ],
-          "required": true
-        },
-        "status": {
-          "result": "VALID",
-          "evaluatedConstraints": [
-            {
-              "type": "oneOf",
-              "options": [
-                {
-                  "displayName": "",
-                  "value": "Under Construction"
-                }
-              ],
-              "otherValuesAllowed": false
-            }
-          ],
-          "required": true
-        },
-        "stage": {
-          "result": "VALID",
-          "evaluatedConstraints": [
-            {
-              "type": "oneOf",
-              "options": [
-                {
-                  "displayName": "",
-                  "value": "Awaiting Editing"
-                }
-              ],
-              "otherValuesAllowed": false
-            }
-          ],
-          "required": true
-        }
-      }
-    }
     """
     api_name = 'create-new-concept-set'
     # Commented out portions are part of the api definition
@@ -659,34 +455,40 @@ def upload_concept_set(
             #     "description": "",
             #     "baseType": "String"
             "status": "Under Construction",
-            # status: As of 2022/10/19, only 'Under Construction' is allowed
             # "status": {
             #     "description": "",
             #     "baseType": "String"
+            # - validation info: oneOf: "Under Construction" (only allows for this value)
             "intention": intention,
             # "intention": {
             #     "description": "",
             #     "baseType": "String"
+            # - validation info: Ideally one of the following, though other values are accepted:
+            #   "Broad (sensitive)", "Narrow (specific)", "Mixed"
             "research-project": research_project,
             # "research-project": {
             #     "description": "Research project Concept Set is being created for",
             #     "baseType": "OntologyObject"
+            # - validation info: Needs to be a valid reference (objectQueryResult) to object/property/value already existing in enclave.
             "stage": "Awaiting Editing",
-            # stage: As of 2022/10/19, only 'Awaiting Editing' is allowed
             # "stage": {
             #     "description": "",
             #     "baseType": "String"
+            # - validation info: oneOf: "Awaiting Editing" (only allows for this value)
         }
     }
     # - Optional params
     # "assigned_sme": {
     #     "description": "",
     #     "baseType": "String"
+    # - validation info: Needs to be a valid reference (groupMember) to object/property/value already existing in enclave.
     if assigned_sme:
         d['parameters']['assigned_sme'] = assigned_sme
+
     # "assigned_informatician": {
     #     "description": "",
     #     "baseType": "String"
+    # - validation info: Needs to be a valid reference (groupMember) to object/property/value already existing in enclave.
     if assigned_informatician:
         d['parameters']['assigned_informatician'] = assigned_informatician
 

@@ -13,14 +13,9 @@ PROJECT_ROOT = os.path.join(TEST_DIR, '..')
 # todo: why is this necessary in this case and almost never otherwise?
 # https://stackoverflow.com/questions/33862963/python-cant-find-my-module
 sys.path.insert(0, PROJECT_ROOT)
-from enclave_wrangler.new_enclave_api import JSON_TYPE, upload_concept_set, add_concept_via_set, \
-    upload_draft_concept_set
-from enclave_wrangler.dataset_upload import post_to_enclave
+from enclave_wrangler.new_enclave_api import JSON_TYPE, upload_concept_set_container, upload_concept_set_version
+from enclave_wrangler.dataset_upload import post_to_enclave_from_3csv
 from enclave_wrangler.config import PALANTIR_ENCLAVE_USER_ID_1
-
-# todo: replace what I've done here w/ `upload_dataset` eventually if I can. Right now limited by not being able to
-#  delete a container.
-# from enclave_wrangler.dataset_upload import upload_dataset
 
 
 TEST_INPUT_DIR = os.path.join(TEST_DIR, 'input', 'test_enclave_wrangler')
@@ -32,7 +27,7 @@ TEST_INPUT_DIR = os.path.join(TEST_DIR, 'input', 'test_enclave_wrangler')
 def test_dataset_upload(inpath=os.path.join(TEST_INPUT_DIR, 'test_dataset_upload')):
     """Test upload of a new dataset"""
     # TODO: use dataset_upload to upload a palantir-3-file set
-    post_to_enclave(inpath, create_cset_container=False, create_cset_versions=False)
+    post_to_enclave_from_3csv(inpath, create_cset_container=False, create_cset_versions=False)
 
     # TODO: do actual uploads as well; but this requires "teardown" completion first
     # post_to_enclave(inpath)
@@ -56,8 +51,8 @@ def test_dataset_upload(inpath=os.path.join(TEST_INPUT_DIR, 'test_dataset_upload
     pass
 
 
-def test_upload_concept_set(user_id=PALANTIR_ENCLAVE_USER_ID_1):
-    response: JSON_TYPE = upload_concept_set(
+def test_upload_concept_set_container(user_id=PALANTIR_ENCLAVE_USER_ID_1):
+    response: JSON_TYPE = upload_concept_set_container(
         concept_set_id='x', intention='x', research_project='x', assigned_sme=user_id,
         assigned_informatician=user_id)
     # self.assertTrue('result' in response and not response['result'] == 'VALID')
@@ -65,16 +60,17 @@ def test_upload_concept_set(user_id=PALANTIR_ENCLAVE_USER_ID_1):
         print('Failure: test_upload_concept_set\n', response, file=sys.stderr)
 
 
-def test_upload_concept():
-    response: JSON_TYPE = add_concept_via_set(
-        include_descendants=True, concept_set_version_item='x', is_excluded=True, include_mapped=True)
-    # self.assertTrue('result' in response and not response['result'] == 'VALID')
-    if not('result' in response and response['result'] == 'VALID'):
-        print('Failure: test_upload_concept_set\n', response, file=sys.stderr)
+# TODO:
+def test_add_concept_to_cset():
+    pass
+    # response = add_concepts_via_array()
+    # # self.assertTrue('result' in response and not response['result'] == 'VALID')
+    # if not('result' in response and response['result'] == 'VALID'):
+    #     print('Failure: test_upload_concept_set\n', response, file=sys.stderr)
 
 
-def test_upload_draft_concept_set():
-    response: JSON_TYPE = upload_draft_concept_set(
+def test_upload_concept_set_version():
+    response: JSON_TYPE = upload_concept_set_version(
         domain_team='x', provenance='x', current_max_version=2.1, concept_set='x', annotation='x', limitations='x',
         intention='x', base_version=1, intended_research_project='x', version_id=1, authority='x')
     # self.assertTrue('result' in response and not response['result'] == 'VALID')

@@ -16,6 +16,7 @@ from fastapi import FastAPI, Query
 from fastapi.middleware.cors import CORSMiddleware
 from pydantic import BaseModel
 
+from enclave_wrangler.dataset_upload import upload_new_container_with_concepts, upload_new_cset_version_with_concepts
 from enclave_wrangler.datasets import run_favorites as update_termhub_csets
 
 DEBUG = True
@@ -367,67 +368,168 @@ def new_hierarchy_stuff(
     return result
 
 
-# TODO
-#  - example case: http://localhost:8000/update-cset-concept-inclusion?codeset_id=496860542&concept_ids=35787839&concept_ids=35787840
-#  - old example case pre param change: http://localhost:8000/update-cset-concept-inclusion?codeset_id=496860542&concept_ids=35787839&state=false
-# TODO: frontend change
-#  We should change this to `concept_ids`: When a box is checked/unchecked, send frontend should send *all* the concept_ids to be included
-@APP.get("/update-cset-concept-inclusion")
-def update_cset(codeset_id: int, concept_ids: Union[List[int], None] = Query(default=None)) -> Dict:
-    modification = {'codeset_id': codeset_id, 'concept_ids': concept_ids}
-    print(f'update-cset-concept-inclusion: {codeset_id}: {concept_ids}')
-    # TODO: enclave_wrangler: Before doing this, need enclave_wrangler to save files w/ last git hash at time that it last did a download/transform
-    #  TODO: uploads/cset_upload_registry
-    #    - internal_id: a new id: max(df['internal_id']) + 1
-    #    ...source_id_type,source_id,source_id_field,oid,ccsr_code,internal_source,cset_source,grouped_by_bids,concept_id,codeset_id,enclave_codeset_id,enclave_codeset_id_updated_at,concept_set_name
-    pass  # todo: read this file, get a new internal_id, and write a new row
+# todo: Some redundancy. (i) should only need concept_set_name once
+class UploadNewCsetVersionWithConcepts(BaseModel):
+    """Schema for route: /upload-new-cset-version-with-concepts
 
-    #  TODO: code_sets
-    #    - codeset_id: get from uploads/cset_upload_registry.internal_id
-    #    - concept_set_version_title: add new row: <name> (v#) --> <name> (draft)
-    #    ...project,concept_set_name,source_application,source_application_version,created_at,atlas_json,is_most_recent_version,version,comments,intention,limitations,issues,update_message,status,has_review,reviewed_by,created_by,provenance,atlas_json_resource_url,parent_version_id,authoritative_source,is_draft
-    pass  # todo: Could I speed this up by, rather than (a) pandas read/write, (b) open file with python in 'append' mode and add a CSV row. Maybe use csv.writer or just serialize and hope no commas in label, or wrap in "" if comma present?
+    Upload a concept set version along with its concepts.
 
-    #  TODO: concept_set_container
-    #    - concept_set_id: this should be same as code_sets.concept_set_version_title
-    #    ...project_id,assigned_informatician,assigned_sme,status,stage,intention,n3c_reviewer,alias,archived,concept_set_name,created_by,created_at
-    pass
+    This schema is for POSTing to a FastAPI route.
 
-    #  TODO: concept_set_version_item (multiple rows)
-    #    - codeset_id: get from uploads/cset_upload_registry.internal_id
-    #    - concept_id: Need multiple concept_ids from UI. One row for each. Shouldn't need to look at the concepts that were included in the previous version.
-    #    ...item_id,isExcluded,includeDescendants,includeMapped,annotation,created_by,created_at
-    pass
+    Schema:
+    :param version_with_concepts (Dict): Has the following schema: {
+        'omop_concepts': [
+          {
+            'concept_id' (int) (required):
+            'includeDescendants' (bool) (required):
+            'isExcluded' (bool) (required):
+            'includeMapped' (bool) (required):
+            'annotation' (str) (optional):
+          }
+        ],
+        'provenance' (str) (required):
+        'concept_set_name' (str) (required):
+        'annotation' (str) (optional): Default:`'Curated value set: ' + version['concept_set_name']`
+        'limitations' (str) (required):
+        'intention' (str) (required):
+        'intended_research_project' (str) (optional): Default:`ENCLAVE_PROJECT_NAME`
+        'codeset_id' (int) (required): Default:Will ge generated if not passed.
+    }
 
-    #  TODO: concept_set_members (multiple rows)
-    #    (X: do i need this one? will this get automatically updated when we upload to enclave and re-download?
-    #    - codeset_id: get from uploads/cset_upload_registry.internal_id
-    #    - concept_id: see 'concept_set_version_item.concept_id' notes
-    #    ...concept_set_name,is_most_recent_version,version,concept_name,archived
-    pass
+    # TODO: verify that this example is correct
+    Example:
+    {
+        "omop_concepts": [
+            {
+              "concept_id": 45259000,
+              "includeDescendants": true,
+              "isExcluded": false,
+              "includeMapped": true,
+              "annotation": "This is my concept annotation."
+            }
+        ],
+        "provenance": "Created through TermHub.",
+        "concept_set_name": "My test concept set",
+        "limitations": "",
+        "intention": ""
+    }
+    """
+    omop_concepts: List[Dict]
+    provenance: str
+    concept_set_name: str
+    limitations: str
+    intention: str
 
-    # TODO: csets_update() doesn't meet exact needs. not actually updating to an existing index. adding a new row.
-    #  - soution: can set index to -1, perhaps, to indicate that it is a new row
-    #  - edge case: do i need to worry about multiple drafts at this point? delete if one exists? keep multiple? or at upload time
-    #    ...should we update latest and delete excess drafts if exist?
-    pass
 
-    # TODO: call the function i defined for updating local git stuff. persist these changes and patch etc
+@APP.post("/upload-new-cset-version-with-concepts")
+def route_upload_new_cset_version_with_concepts(d: UploadNewCsetVersionWithConcepts) -> Dict:
+    # TODO: Persist: see route_upload_new_container_with_concepts() for more info
+    # result = csets_update(dataset_path='', row_index_data_map={})
+
+    # todo: this is redundant. need to flesh out func param arity in various places
+    response = upload_new_cset_version_with_concepts({
+        'omop_concepts': d.omop_concepts,
+        'provenance': d.provenance,
+        'concept_set_name': d.concept_set_name,
+        'limitations': d.limitations,
+        'intention': d.intention})
+
+    return {}  # todo: return. should include: assigned codeset_id's
+
+
+# todo: Some redundancy. (i) should only need concept_set_name once
+class UploadNewContainerWithConcepts(BaseModel):
+    """Schema for route: /upload-new-container-with-concepts
+
+    Upload a concept set container, along with versions version which include concepts.
+
+    This schema is for POSTing to a FastAPI route.
+
+    Schema:
+    Should be JSON with top-level keys: container, versions_with_concepts
+
+    :param container (Dict): Has the following keys:
+        concept_set_name (str) (required):
+        intention (str) (required):
+        research_project (str) (required): Default:`ENCLAVE_PROJECT_NAME`
+        assigned_sme (str) (optional): Default:`PALANTIR_ENCLAVE_USER_ID_1`
+        assigned_informatician (str) (optional): Default:`PALANTIR_ENCLAVE_USER_ID_1`
+
+    :param versions_with_concepts (List[Dict]): Has the following schema: [
+      {
+        'omop_concepts': [
+          {
+            'concept_id' (int) (required):
+            'includeDescendants' (bool) (required):
+            'isExcluded' (bool) (required):
+            'includeMapped' (bool) (required):
+            'annotation' (str) (optional):
+          }
+        ],
+        'provenance' (str) (required):
+        'concept_set_name' (str) (required):
+        'annotation' (str) (optional): Default:`'Curated value set: ' + version['concept_set_name']`
+        'limitations' (str) (required):
+        'intention' (str) (required):
+        'intended_research_project' (str) (optional): Default:`ENCLAVE_PROJECT_NAME`
+        'codeset_id' (int) (required): Will be generated if not passed.
+      }
+    ]
+
+    Example:
+    {
+      "container": {
+        "concept_set_name": "My test concept set",
+        "intention": "",
+        "research_project": "",
+        "assigned_sme": "",
+        "assigned_informatician": ""
+      },
+      "versions_with_concepts": [{
+        "omop_concepts": [
+            {
+              "concept_id": 45259000,
+              "includeDescendants": true,
+              "isExcluded": false,
+              "includeMapped": true,
+              "annotation": "This is my concept annotation."
+            }
+        ],
+        "provenance": "Created through TermHub.",
+        "concept_set_name": "My test concept set",
+        "limitations": "",
+        "intention": ""
+      }]
+    }
+    """
+    container: Dict
+    versions_with_concepts: List[Dict]
+
+
+@APP.post("/upload-new-container-with-concepts")
+def route_upload_new_container_with_concepts(d: UploadNewContainerWithConcepts) -> Dict:
+    # TODO: Persist
+    #  - call the function i defined for updating local git stuff. persist these changes and patch etc
     #     dataset_path: File path. Relative to `/termhub-csets/datasets/`
     #     row_index_data_map: Keys are integers of row indices in the dataset. Values are dictionaries, where keys are the
     #       name of the fields to be updated, and values contain the values to update in that particular cell."""
-    # TODO: git/patch changes (do this inside csets_update()): https://github.com/jhu-bids/TermHub/issues/165#issuecomment-1276557733
-    result = csets_update(dataset_path='', row_index_data_map={})
+    #  - csets_update() doesn't meet exact needs. not actually updating to an existing index. adding a new row.
+    #    - soution: can set index to -1, perhaps, to indicate that it is a new row
+    #    - edge case: do i need to worry about multiple drafts at this point? delete if one exists? keep multiple? or at upload time
+    #    ...should we update latest and delete excess drafts if exist?
+    #  - git/patch changes (do this inside csets_update()): https://github.com/jhu-bids/TermHub/issues/165#issuecomment-1276557733
+    # result = csets_update(dataset_path='', row_index_data_map={})
 
-    # TODO: Then push to enclave?
-    pass
+    response = upload_new_container_with_concepts(
+        container=d.container,
+        versions_with_concepts=d.versions_with_concepts)
 
-    return modification
+    return {}  # todo: return. should include: assigned codeset_id's
 
 
 # TODO: figure out where we want to put this. models.py? Create route files and include class along w/ route func?
 # TODO: Maybe change to `id` instead of row index
-class CsetsUpdate(BaseModel):
+class CsetsGitUpdate(BaseModel):
     """Update concept sets.
     dataset_path: File path. Relative to `/termhub-csets/datasets/`
     row_index_data_map: Keys are integers of row indices in the dataset. Values are dictionaries, where keys are the
@@ -436,8 +538,11 @@ class CsetsUpdate(BaseModel):
     row_index_data_map: Dict[int, Dict[str, Any]] = {}
 
 
+# TODO: (i) move most of this functionality out of route into separate function (potentially keeping this route which
+#  simply calls that function as well), (ii) can then connect that function as step in the routes that coordinate
+#  enclave uploads
 # TODO: git/patch changes: https://github.com/jhu-bids/TermHub/issues/165#issuecomment-1276557733
-def csets_update(dataset_path: str, row_index_data_map: Dict[int, Dict[str, Any]]) -> Dict:
+def csets_git_update(dataset_path: str, row_index_data_map: Dict[int, Dict[str, Any]]) -> Dict:
     """Update cset dataset. Works only on tabular files."""
     # Vars
     result = 'success'
@@ -485,26 +590,15 @@ def csets_update(dataset_path: str, row_index_data_map: Dict[int, Dict[str, Any]
 
 # TODO: Maybe change to `id` instead of row index
 @APP.put("/datasets/csets")
-def put_csets_update(d: CsetsUpdate = None) -> Dict:
+def put_csets_update(d: CsetsGitUpdate = None) -> Dict:
     """HTTP PUT wrapper for csets_update()"""
-    return csets_update(d.dataset_path, d.row_index_data_map)
+    return csets_git_update(d.dataset_path, d.row_index_data_map)
 
 
 @APP.put("/datasets/vocab")
 def vocab_update():
     """Update vocab dataset"""
     pass
-
-
-# TODO: figure out where we want to put this. models.py? Create route files and include class along w/ route func?
-# TODO: Maybe change to `id` instead of row index
-class CsetsUpdate(BaseModel):
-    """Update concept sets.
-    dataset_path: File path. Relative to `/termhub-csets/datasets/`
-    row_index_data_map: Keys are integers of row indices in the dataset. Values are dictionaries, where keys are the
-      name of the fields to be updated, and values contain the values to update in that particular cell."""
-    dataset_path: str = ''
-    row_index_data_map: Dict[int, Dict[str, Any]] = {}
 
 
 def pdump(o):
