@@ -7,15 +7,16 @@ TODO's
 import os
 import sys
 
-from enclave_wrangler.dataset_upload import PALANTIR_ENCLAVE_USER_ID_1, post_to_enclave
 
 TEST_DIR = os.path.dirname(__file__)
 PROJECT_ROOT = os.path.join(TEST_DIR, '..')
 # todo: why is this necessary in this case and almost never otherwise?
 # https://stackoverflow.com/questions/33862963/python-cant-find-my-module
 sys.path.insert(0, PROJECT_ROOT)
-from enclave_wrangler.new_enclave_api import JSON_TYPE, upload_concept_set, upload_concept_via_set, \
+from enclave_wrangler.new_enclave_api import JSON_TYPE, upload_concept_set, add_concept_via_set, \
     upload_draft_concept_set
+from enclave_wrangler.dataset_upload import post_to_enclave
+from enclave_wrangler.config import PALANTIR_ENCLAVE_USER_ID_1
 
 # todo: replace what I've done here w/ `upload_dataset` eventually if I can. Right now limited by not being able to
 #  delete a container.
@@ -31,7 +32,10 @@ TEST_INPUT_DIR = os.path.join(TEST_DIR, 'input', 'test_enclave_wrangler')
 def test_dataset_upload(inpath=os.path.join(TEST_INPUT_DIR, 'test_dataset_upload')):
     """Test upload of a new dataset"""
     # TODO: use dataset_upload to upload a palantir-3-file set
-    post_to_enclave(inpath)
+    post_to_enclave(inpath, create_cset_container=False, create_cset_versions=False)
+
+    # TODO: do actual uploads as well; but this requires "teardown" completion first
+    # post_to_enclave(inpath)
 
     # TODO: teardown
     #  1. "apiName": "delete-omop-concept-set-version"
@@ -55,15 +59,15 @@ def test_dataset_upload(inpath=os.path.join(TEST_INPUT_DIR, 'test_dataset_upload
 def test_upload_concept_set(user_id=PALANTIR_ENCLAVE_USER_ID_1):
     response: JSON_TYPE = upload_concept_set(
         concept_set_id='x', intention='x', research_project='x', assigned_sme=user_id,
-        assigned_informatician=user_id, validate=True)
+        assigned_informatician=user_id)
     # self.assertTrue('result' in response and not response['result'] == 'VALID')
     if not('result' in response and response['result'] == 'VALID'):
         print('Failure: test_upload_concept_set\n', response, file=sys.stderr)
 
 
 def test_upload_concept():
-    response: JSON_TYPE = upload_concept_via_set(
-        include_descendants=True, concept_set_version_item='x', is_excluded=True, include_mapped=True, validate=True)
+    response: JSON_TYPE = add_concept_via_set(
+        include_descendants=True, concept_set_version_item='x', is_excluded=True, include_mapped=True)
     # self.assertTrue('result' in response and not response['result'] == 'VALID')
     if not('result' in response and response['result'] == 'VALID'):
         print('Failure: test_upload_concept_set\n', response, file=sys.stderr)
@@ -72,7 +76,7 @@ def test_upload_concept():
 def test_upload_draft_concept_set():
     response: JSON_TYPE = upload_draft_concept_set(
         domain_team='x', provenance='x', current_max_version=2.1, concept_set='x', annotation='x', limitations='x',
-        intention='x', base_version=1, intended_research_project='x', version_id=1, authority='x', validate=True)
+        intention='x', base_version=1, intended_research_project='x', version_id=1, authority='x')
     # self.assertTrue('result' in response and not response['result'] == 'VALID')
     if not('result' in response and response['result'] == 'VALID'):
         print('Failure: test_upload_concept_set\n', response, file=sys.stderr)

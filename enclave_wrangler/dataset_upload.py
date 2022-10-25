@@ -2,44 +2,46 @@
 import json
 import os
 from argparse import ArgumentParser
-from typing import Any, Dict, List, Set, Union
+from typing import Dict, List, Set
 from uuid import uuid4
 
 import pandas as pd
 
-from enclave_wrangler.new_enclave_api import upload_concept_set, upload_concept_via_array, \
-    upload_concept_via_edit, upload_concept_via_set, upload_draft_concept_set
 
 try:
-    from enclave_wrangler.config import config, PROJECT_ROOT, TERMHUB_CSETS_DIR
+    from enclave_wrangler.config import CSET_UPLOAD_REGISTRY_PATH, ENCLAVE_PROJECT_NAME, MOFFIT_PREFIX, \
+    MOFFIT_SOURCE_ID_TYPE, MOFFIT_SOURCE_URL, PALANTIR_ENCLAVE_USER_ID_1, UPLOADS_DIR, config, PROJECT_ROOT, \
+    TERMHUB_CSETS_DIR
     from enclave_wrangler.enclave_api import get_cs_container_data, get_cs_version_data, get_cs_version_expression_data, \
     post_request_enclave_api_addExpressionItems, post_request_enclave_api_create_container, \
-    post_request_enclave_api_create_version, \
-    update_cs_version_expression_data_with_codesetid
+    post_request_enclave_api_create_version, update_cs_version_expression_data_with_codesetid
+    from enclave_wrangler.new_enclave_api import JSON_TYPE, add_concepts_to_cset, upload_concept_set, \
+        upload_draft_concept_set
     from enclave_wrangler.utils import _datetime_palantir_format, log_debug_info
 except ModuleNotFoundError:
-    from config import config, PROJECT_ROOT, TERMHUB_CSETS_DIR
+    from config import CSET_UPLOAD_REGISTRY_PATH, ENCLAVE_PROJECT_NAME, MOFFIT_PREFIX, \
+    MOFFIT_SOURCE_ID_TYPE, MOFFIT_SOURCE_URL, PALANTIR_ENCLAVE_USER_ID_1, UPLOADS_DIR, config, PROJECT_ROOT, \
+    TERMHUB_CSETS_DIR
     from enclave_api import get_cs_container_data, get_cs_version_data, get_cs_version_expression_data, \
         post_request_enclave_api_addExpressionItems, post_request_enclave_api_create_container, \
-        post_request_enclave_api_create_version, \
-        update_cs_version_expression_data_with_codesetid
+        post_request_enclave_api_create_version, update_cs_version_expression_data_with_codesetid
+    from new_enclave_api import JSON_TYPE, add_concepts_to_cset, upload_concept_set, \
+        upload_draft_concept_set
     from utils import _datetime_palantir_format, log_debug_info
 
 
 DEBUG = False
-PALANTIR_ENCLAVE_USER_ID_1 = 'a39723f3-dc9c-48ce-90ff-06891c29114f'
-MOFFIT_PREFIX = 'Simplified autoimmune disease'
-MOFFIT_SOURCE_URL = 'https://docs.google.com/spreadsheets/d/1tHHHeMtzX0SA85gbH8Mvw2E0cxH-x1ii/edit#gid=1762989244'
-MOFFIT_SOURCE_ID_TYPE = 'moffit'
-ENCLAVE_PROJECT_NAME = 'RP-4A9E27'
-UPLOADS_DIR = os.path.join(TERMHUB_CSETS_DIR, 'datasets', 'uploads')
-CSET_UPLOAD_REGISTRY_PATH = os.path.join(UPLOADS_DIR, 'cset_upload_registry.csv')
 
 
 # TODO: Rewrite to use new API
-def post_to_enclave(input_csv_folder_path: str, enclave_api=['old_rid_based', 'default'][1]):
+# todo: need to have 2 variations: 1 for creates, and 1 for updates. w/ exception handling and proper error messaging
+# todo: need to allow 'upload' based on if it is / isn't in the local termhub-csets/datasets/cset_upload_registry.csv
+def post_to_enclave(
+    input_csv_folder_path: str, enclave_api=['old_rid_based', 'default'][1], create_cset_container=True,
+    create_cset_versions=True
+):
     """Uploads data to enclave and updates the following column in the input's code_sets.csv:
-    # TODO: Siggie: updating these files is probably not worth / necessary right now
+    # todo: Siggie: updating these files is probably not worth / necessary right now. Joe: We might want to do at some point
     - enclave_codeset_id
     - enclave_codeset_id_updated_at
     - concept_set_name
@@ -47,6 +49,12 @@ def post_to_enclave(input_csv_folder_path: str, enclave_api=['old_rid_based', 'd
     :param enclave_api (str): One of 'old_rid_based' or 'default'. The 'old_rid_based' Enclave API is the one which
     required RIDs for params rather than the param name, and there may be other differences. 'default' refers to the
     newer Enclave API (as of 2022/10).
+
+    # todo: after adding 'update' functionality, add params / update these docs
+    :param create_cset_container (bool): If true, will identify concept set containers from `input_csv_folder_path` and
+    make a POST request to enclave to create them. Only applicable to the new 'default' API.
+    :param create_cset_versions (bool): If true, will identify concept set versions from `input_csv_folder_path` and
+    make a POST request to enclave to create them. Only applicable to the new 'default' API.
     """
     if enclave_api == 'old_rid_based':
         return post_to_enclave_old_api(input_csv_folder_path)
@@ -62,7 +70,7 @@ def post_to_enclave(input_csv_folder_path: str, enclave_api=['old_rid_based', 'd
         os.path.join(input_csv_folder_path, 'concept_set_version_item_rv_edited.csv')).fillna('')
 
     # Link data into single iterable
-    # todo: @Siggie: You mentioned to delete the internal_id we assigned, but I don't know how to link these together otherwise
+    # temp: @Siggie: You mentioned to delete the internal_id we assigned, but I don't know how to link these together otherwise
     linked_csets: Dict = {}
     for container_d in concept_set_container_edited_d:
         cset_name = container_d['concept_set_id']
@@ -71,11 +79,11 @@ def post_to_enclave(input_csv_folder_path: str, enclave_api=['old_rid_based', 'd
         code_sets_df_i = code_sets_df[code_sets_df['concept_set_name'] == cset_name]
         code_sets_d_i = json.loads(code_sets_df_i.to_json(orient='records'))
         for version_d in code_sets_d_i:
-            version_id = version_d['codeset_id']
+            version_id = version_d['codeset_id']  # == code_sets.codeset_id
             linked_csets[cset_name]['versions'][version_id] = {'items': []}
             linked_csets[cset_name]['versions'][version_id]['version'] = version_d
             concept_set_version_item_rv_edited_df_i = concept_set_version_item_rv_edited_df[
-                concept_set_version_item_rv_edited_df['codeset_id'] == version_id]
+                concept_set_version_item_rv_edited_df['codeset_id'] == version_id]  # == code_sets.codeset_id
             concept_set_version_item_rv_edited_d_i = json.loads(concept_set_version_item_rv_edited_df_i.to_json(orient='records'))
             for item_d in concept_set_version_item_rv_edited_d_i:
                 linked_csets[cset_name]['versions'][version_id]['items'].append(item_d)
@@ -83,171 +91,44 @@ def post_to_enclave(input_csv_folder_path: str, enclave_api=['old_rid_based', 'd
     # Upload to enclave
     for linked_cset in list(linked_csets.values()):
         # Step 1 of 3: Upload concept set container
+        # todo: upload_concept_set() has todo's related to questions / concerns / fine-tuning. Check function docstring
         container_d = linked_cset['container']
-        response = upload_concept_set(  # concept_set_container
-            concept_set_id=container_d['concept_set_name'],
-            intention=container_d['intention'],
-            # todo: research_project: (a) default this to ENCLAVE_PROJECT_NAME in func, (b) do that here, (c) add it as a column to an
-            #  updated palantir-3-file for the new api
-            research_project=ENCLAVE_PROJECT_NAME,
-            assigned_sme=PALANTIR_ENCLAVE_USER_ID_1,
-            assigned_informatician=PALANTIR_ENCLAVE_USER_ID_1,
-            # TODO: validate first (if this func says validate_first=True, then upload
-            validate=True)
+        if create_cset_container:
+            # noinspection PyUnusedLocal
+            response_upload_concept_set: JSON_TYPE = upload_concept_set(  # concept_set_container
+                concept_set_id=container_d['concept_set_name'],
+                intention=container_d['intention'],
+                research_project=ENCLAVE_PROJECT_NAME,
+                assigned_sme=PALANTIR_ENCLAVE_USER_ID_1,
+                assigned_informatician=PALANTIR_ENCLAVE_USER_ID_1)
 
         for version in linked_cset['versions'].values():
-            version_d = version['version']
             # Step 2 of 3: Upload concept set version
-            response = upload_draft_concept_set(  # code_set
-                # todo: domain_team: @Siggie: Not sure what to put here, but it is optional param, so I'm leaving blank.
-                # domain_team=version_d[''],
-                provenance=version_d['provenance'],
-                # todo: current-max-version: @Siggie: Sucks that we have to set this. but probaby because version types
-                #  can be arbitrary, so enclave can't know. but this means we have to have a local registry for most
-                #  recent version as well for anything we're uploading, or get it when we re-download, right?
-                #  ...docs, for reference: This must be set to the current maximum version number assigned to a version
-                #  of this concept set, or null if creating the first version of a concept set. If null, then
-                #  baseVersion is not "required".
-                #  ...Leaving this blank for now since is optional param.
-                # current_max_version=version_d[''],
-                # todo: concept_set: is this correct?
-                concept_set=version_d['concept_set_name'],  # == container_d['concept_set_name']
-                # todo: annotation: this should be moved into the new palantir-3-file data model, whatever that is
-                annotation='Curated value set: ' + version_d['concept_set_name'],
-                limitations=version_d['limitations'],
-                intention=version_d['intention'],
-                # todo: base_version: @Siggie: Leaving out, since is optional param, and not possible to include without
-                #  first adding current_max_version, for which more time is needed to figure out how to reliably ascertain.
-                # base_version=1,
-                # todo: intended_research_project: (a) default this to ENCLAVE_PROJECT_NAME in func, (b) do that here, (c) add it as a column to an
-                #  updated palantir-3-file for the new api
-                intended_research_project=ENCLAVE_PROJECT_NAME,
-                # TODO!: need to incremetn and store this version
-                version_id=version_d['version'] + 4,
-                # todo: authority: @Siggie: Not sure what to put here, but it is optional param, so I'm leaving blank
-                #  - we didn't have this in the old palantir-3-file data model, but should add to the new one
-                # authority=version_d[''],
-                # TODO: validate first (if this func says validate_first=True, then upload
-                validate=True)
-            print(response)
+            # todo: upload_draft_concept_set() has todo's related to questions / concerns / fine-tuning. Check function docstring
+            version_d = version['version']
+            if create_cset_versions:
+                # noinspection PyUnusedLocal
+                response_upload_draft_concept_set: JSON_TYPE = upload_draft_concept_set(  # code_set
+                    provenance=version_d['provenance'],
+                    concept_set=version_d['concept_set_name'],  # == container_d['concept_set_name']
+                    annotation='Curated value set: ' + version_d['concept_set_name'],
+                    limitations=version_d['limitations'],
+                    intention=version_d['intention'],
+                    intended_research_project=ENCLAVE_PROJECT_NAME,
+                    version_id=version_d['codeset_id'])  # == code_sets.codeset_id
 
             # Step 3 of 3: Upload concepts
-            api_to_try = ['add-selected-concepts-as-omop-version-expressions', 'edit-omop-concept-set-version-item', 'set-omop-concept-set-version-item'][0]  # todo: temp
-
-            # Alternative 1 (FAIL): create-link-selected-code
-            # example_omop_concept_id = 42912305
-            # from enclave_wrangler.new_enclave_api import make_request
-            # response = make_request(
-            #     api_name='create-link-selected-code',
-            #     data={
-            #         "parameters": {
-            #             # Unexpected <class 'requests.exceptions.HTTPError'>: 400 Client Error: Bad Request for url: https://unite.nih.gov/api/v1/ontologies/ri.ontology.main.ontology.00000000-0000-0000-0000-000000000000/actions/create-link-selected-code/apply
-            #             "codeset-draft": version_d['concept_set_name'],
-            #             # Unexpected <class 'requests.exceptions.HTTPError'>: 400 Client Error: Bad Request for url: https://unite.nih.gov/api/v1/ontologies/ri.ontology.main.ontology.00000000-0000-0000-0000-000000000000/actions/create-link-selected-code/apply
-            #             # "codeset-draft": '[DRAFT] ' + version_d['concept_set_name'],
-            #             "omop-concepts": [example_omop_concept_id]
-            #     }},
-            #     validate=False)
-
-            # Alternative 2 (FAIL): finalize-draft-omop-concept-set-version
-            from enclave_wrangler.new_enclave_api import make_request
-            # {'result': 'VALID', 'submissionCriteria': [], 'parameters': {'new-parameter1': {'result': 'VALID', 'evaluatedConstraints': [], 'required': True}, 'concept-set-container': {'result': 'VALID', 'evaluatedConstraints': [{'type': 'objectQueryResult'}], 'required': False}, 'version': {'result': 'VALID', 'evaluatedConstraints': [{'type': 'objectQueryResult'}], 'required': True}, 'currentMaxVersion': {'result': 'VALID', 'evaluatedConstraints': [], 'required': False}, 'new-parameter': {'result': 'VALID', 'evaluatedConstraints': [], 'required': True}}}
-            response = make_request(
-                api_name='finalize-draft-omop-concept-set-version',
-                data={
-                    "parameters": {
-                        "new-parameter1": 'hi',  # required
-                        #   "description": "",
-                        #   "baseType": "String"
-                        "concept-set-container": container_d['concept_set_name'],
-                          # "description": "",
-                          # "baseType": "OntologyObject"
-                        "version": 101,
-                          # "description": "",
-                          # "baseType": "OntologyObject"
-                        # "currentMaxVersion": {
-                        #   "description": "",
-                        #   "baseType": "Double"
-                        "new-parameter": 'hi',  # required
-                        #   "description": "",
-                        #   "baseType": "String"
-                    }
-                },
-                validate=False)
-            print(response)
-
-            #  TODO: testing. i grabbed a diret 'concept_id' from: https://unite.nih.gov/workspace/data-integration/dataset/preview/ri.foundry.main.dataset.f2355e2f-51b6-4ae1-ae80-7e869c1933ac/master
-            example_omop_concept_id = 42912305
-            # TODO one of these should work i hope:
-            # concept_ids = [x['code'] for x in version['items']]
-            # todo: fix: i got: Unexpected <class 'requests.exceptions.HTTPError'>: 400 Client Error: Bad Request for url: https://unite.nih.gov/api/v1/ontologies/ri.ontology.main.ontology.00000000-0000-0000-0000-000000000000/actions/add-selected-concepts-as-omop-version-expressions/validate
-            # Step 3 of 3: Upload concepts
-            # - Attempt A: add-selected-concepts-as-omop-version-expressions
-            # TODO: It seems to indicate that I need to pass 'codesetId' as 'Integer'
-            if api_to_try == 'add-selected-concepts-as-omop-version-expressions':
-                # todo: Interesting. When I passed 'version=2', because that was the legit codeset_id, I got: 'Only draft versions can be edited'}],
-                #  ...but how do i get the ID unless I post a draft?
-                response = upload_concept_via_array(  # concept_set_version_items / expressions
-                    # concepts=concept_ids,
-                    concepts=[example_omop_concept_id],  # TODO: testing. i grabbed a diret 'concept_id' from: https://unite.nih.gov/workspace/data-integration/dataset/preview/ri.foundry.main.dataset.f2355e2f-51b6-4ae1-ae80-7e869c1933ac/master
-                    # todo; maybe try version=version_d['concept_set_name']?
-                    # version=version_d['version'],
-                    # version='[Termhub Test] [Simplified autoimmune disease] GI: Celiac Disease (v1)',
-                    # TODO: How to get the codeset_id
-                    version=3,  # Works! Can see codeset id at one of these two locations, filtering by the concept set name:
-                    #  - https://unite.nih.gov/workspace/data-integration/dataset/preview/ri.foundry.main.dataset.7104f18e-b37c-419b-9755-a732bfa33b03/master
-                    #  - https://unite.nih.gov/workspace/module/view/latest/ri.workshop.main.module.5a6c64c0-e82b-4cf8-ba5b-645cd77a1dbf
-                    # TODO: validate first (if this func says validate_first=True, then upload
-                    validate=True)
-                print(response)
-                print()
-            elif api_to_try in ['edit-omop-concept-set-version-item', 'set-omop-concept-set-version-item']:
-                for item_d in version['items']:
-                    # TODO: validate first (if this func says validate_first=True, then upload
-                    # TODO: Not finished. How to actually add the concepts to existing concept set version?
-                    #  ...look at comments above new_enclave_api.upload_concept() for some alternative endpoints, etc
-                    # TODO: When doing w/ 'validate=False', I got the following error:
-                    #  Unexpected <class 'requests.exceptions.HTTPError'>: 400 Client Error: Bad Request for url: https://unite.nih.gov/api/v1/ontologies/ri.ontology.main.ontology.00000000-0000-0000-0000-000000000000/actions/set-omop-concept-set-version-item/apply
-                    # TODO: I likely need to add this step as well to upload_concept(): It should call this endpoint in
-                    #  order to add to a concept set version: edit-omop-concept-set-version-item
-
-                    # todo: fix: ['concept_set_name'] gave me 400, version_d['version' gave me 500
-                    # Step 3 of 3: Upload concepts
-                    # - Attempt B: edit-omop-concept-set-version-item
-                    if api_to_try == 'edit-omop-concept-set-version-item':
-                        upload_concept_via_edit(
-                            OmopConceptSetVersionItem=example_omop_concept_id,
-                            version=version_d['concept_set_name'],
-                            # version=version_d['version'],
-                            validate=True)
-
-                    # Step 3 of 3: Upload concepts
-                    # - Attempt C: set-omop-concept-set-version-item
-                    elif api_to_try == 'set-omop-concept-set-version-item':
-                        response = upload_concept_via_set(  # concept_set_version_items / expressions
-                            include_descendants=item_d['includeDescendants'],
-                            # todo: concept_set_version_item: What to put here? (item_id is a random uuid)
-                            concept_set_version_item=item_d['item_id'],
-                            is_excluded=item_d['isExcluded'],
-                            include_mapped=item_d['includeMapped'],
-                            # TODO: validate first (if this func says validate_first=True, then upload
-                            validate=True)
-                    print()
-
-
+            # noinspection PyUnusedLocal
+            # TODO: Fix this error. I thought it would work now that I think I've solved for uploading cset versions, but I got this:
+            #  Failure: add-selected-concepts-as-omop-version-expressions
+            #   {'errorCode': 'INVALID_ARGUMENT', 'errorName': 'InvalidPropertyValue', 'errorInstanceId': 'c78cfe80-0463-413a-800d-d0cf5d332cdf', 'parameters': {'propertyBaseType': 'Integer', 'property': 'conceptId', 'propertyValue': ''}}
+            # TODO: current implementation assumes all params same for each concept, but function needs to be completed
+            #  so that it checks for any differences and properly reroutes
+            response_upload_concepts: JSON_TYPE = add_concepts_to_cset(
+                omop_concepts=version['items'],
+                version__codeset_id=version_d['codeset_id'])
             print()
-
-    # TODO: Siggie: updating these files is probably not worth / necessary right now
-    # todo: if doing this step, though, wouldn't I also need to update the registry?
-    # try:
-    #     code_sets_df.set_index('codeset_id', inplace=True)
-    #     output_filename = 'code_sets.csv'
-    #     code_sets_df.to_csv(os.path.join(input_csv_folder_path, output_filename), index=False, encoding='utf-8')
-    # except Exception as e:
-    #     print(e)
-
-    # todo: it would be nice to return something. this makes sense, as it has the actual IDs of what was uploaded
-    # return code_sets_df
+        return {}  # todo: return {request: response} ?
 
 
 def post_to_enclave_old_api(input_csv_folder_path: str) -> pd.DataFrame:

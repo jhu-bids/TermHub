@@ -1,3 +1,3 @@
 codeset_id,concept_id,code,codeSystem,isExcluded,includeDescendants,includeMapped,item_id,annotation,created_by,created_at
-1000000408,,45259000,ICD10CM,False,False,False,dadebab9-e0ad-4086-9143-ee5d49ffd87d,Curated value set: Simplified autoimmune disease,a39723f3-dc9c-48ce-90ff-06891c29114f,2022-10-13T18:38:52.747Z
-1000000408,,61715008,ICD10CM,False,False,False,70673b98-00f6-4c0b-a0de-66f8e8d21f91,Curated value set: Simplified autoimmune disease,a39723f3-dc9c-48ce-90ff-06891c29114f,2022-10-13T18:38:52.747Z
+977770000,,45259000,ICD10CM,False,False,False,dadebab9-e0ad-4086-9143-ee5d49ffd87d,Curated value set: Simplified autoimmune disease,a39723f3-dc9c-48ce-90ff-06891c29114f,2022-10-13T18:38:52.747Z
+977770000,,61715008,ICD10CM,False,False,False,70673b98-00f6-4c0b-a0de-66f8e8d21f91,Curated value set: Simplified autoimmune disease,a39723f3-dc9c-48ce-90ff-06891c29114f,2022-10-13T18:38:52.747Z
