@@ -225,10 +225,10 @@ def load_globals():
     ds.connect_children = connect_children
 
     # Take codesets, and merge on container. Add to each version.
-    # Some columns in codeset and container have the same name, hence suffix
+    # Some columns in codeset and container have the same name, so suffix is needed to distinguish them
     # ...The merge on `concept_set_members` is used for concept counts for each codeset version.
     #   Then adding cset usage counts
-    ds.all_csets = (
+    all_csets = (
         ds
             .code_sets.merge(ds.concept_set_container, suffixes=['_version', '_container'],
                              on='concept_set_name')
@@ -239,6 +239,14 @@ def load_globals():
                             .rename(columns={'concept_id': 'concepts'}), on='codeset_id')
             .merge(ds.concept_set_counts_clamped, on='codeset_id')
     )
+    all_csets = all_csets[[
+        'codeset_id', 'concept_set_version_title', 'is_most_recent_version', 'intention_version', 'intention_container',
+        'limitations', 'issues', 'update_message', 'has_review', 'provenance', 'authoritative_source', 'project_id',
+        'status_version', 'status_container', 'stage', 'archived', 'concepts',
+        'approx_distinct_person_count', 'approx_total_record_count', ]]
+    all_csets = all_csets.drop_duplicates()
+    ds.all_csets = all_csets
+
     print('added usage counts to code_sets')
 
     """
@@ -376,41 +384,28 @@ def data_stuff_for_codeset_ids(codeset_ids):
         # & (ds.concept_relationship.relationship_id == 'Subsumes')
         ]
 
-    all_csets = ds.all_csets[[
-        'codeset_id', 'concept_set_version_title', 'is_most_recent_version', 'intention_version', 'intention_container',
-        'limitations', 'issues', 'update_message', 'has_review', 'provenance', 'authoritative_source', 'project_id',
-        'status_version', 'status_container', 'stage', 'archived', 'concepts',
-        'approx_distinct_person_count', 'approx_total_record_count', ]]
-
-    all_csets['selected'] = all_csets['codeset_id'].isin(codeset_ids)
-
     # Get related codeset IDs
-    concept_ids: Set[int] = set(dsi.concept_set_members_i.concept_id.unique())
-    dsi.related_codeset_ids = ds.concept_set_members[
-        ds.concept_set_members.concept_id.isin(concept_ids)].codeset_id.unique()
-    all_csets['related'] = all_csets['codeset_id'].isin(dsi.related_codeset_ids)
+    selected_concept_ids: Set[int] = set(dsi.concept_set_members_i.concept_id.unique())
+    related_codeset_ids = set(ds.concept_set_members[
+        ds.concept_set_members.concept_id.isin(selected_concept_ids)].codeset_id)
 
-    # Drop duplicates & sort
-    all_csets = all_csets.drop_duplicates().sort_values(by=['selected', 'concepts'], ascending=False)
+    dsi.related_csets = (
+      ds.all_csets[ds.all_csets['codeset_id'].isin(related_codeset_ids)]
+        .merge(ds.concept_set_members, on='codeset_id')
+        .groupby(list(ds.all_csets.columns))['concept_id']
+        .agg(intersecting_concepts=lambda x: len(set(x).intersection(selected_concept_ids)))
+        .reset_index()
+        .convert_dtypes({'intersecting_concept_ids': 'int'})
+        .assign(recall=lambda row: row.intersecting_concepts / len(selected_concept_ids),
+                precision=lambda row: row.intersecting_concepts / row.concepts,
+                selected= lambda row: row.codeset_id.isin(codeset_ids))
+        .sort_values(by=['selected', 'concepts'], ascending=False)
+    )
 
-    # Add columns for % overlap: 1) % of selected csets' concepts and 2) % of related cset's concepts
-    dsi.concept_set_members_r = ds.concept_set_members[
-        ds.concept_set_members['codeset_id'].isin(dsi.related_codeset_ids)
-        ].drop_duplicates()
+    # all_csets['selected'] = all_csets['codeset_id'].isin(codeset_ids)
+    # all_csets = all_csets.sort_values(by=['selected', 'concepts'], ascending=False)
+    dsi.selected_csets = dsi.related_csets[dsi.related_csets['codeset_id'].isin(codeset_ids)]
 
-    g = dsi.concept_set_members_r.groupby('codeset_id')
-    r_with_intersecting_cids = g.apply(lambda r: set(r.concept_id).intersection(concept_ids))
-    if len(r_with_intersecting_cids):
-        x = pd.DataFrame(data={'intersecting_concept_ids': r_with_intersecting_cids,})
-        x['intersecting_concepts'] = x.intersecting_concept_ids.apply(lambda r: len(r))
-        x.drop('intersecting_concept_ids', axis=1, inplace=True)
-        all_csets = all_csets.merge(x, how='left', on='codeset_id')
-        all_csets = all_csets.convert_dtypes({'intersecting_concepts': 'int'})
-        all_csets['recall'] = all_csets.intersecting_concepts / len(concept_ids)
-        all_csets['precision'] = all_csets.intersecting_concepts / all_csets.concepts
-        all_csets.fillna(0, inplace=True)
-
-    dsi.all_csets = all_csets
 
     # Get relationships for selected code sets
     dsi.links = dsi.concept_relationship_i.groupby('concept_id_1')
@@ -450,7 +445,7 @@ def data_stuff_for_codeset_ids(codeset_ids):
     for cid, codeset_ids in dsi.codesets_by_concept_id.items():
         dsi.codesets_by_concept_id[cid] = [int(codeset_id) for codeset_id in codeset_ids]
 
-    # dsi.concept = ds.concept[ds.concept.concept_id.isin(ds.all_related_concepts)].head(5000) #.union(concept_ids))]
+    # dsi.concept = ds.concept[ds.concept.concept_id.isin(ds.all_related_concepts)].head(5000) #.union(selected_concept_ids))]
 
     return dsi
 
@@ -480,25 +475,30 @@ def read_root():
     return url_list
 
 
-@APP.get("/cset-versions")
-def csetVersions() -> Union[Dict, List]:
-    csm = DS['code_sets']
-    # todo: would be nicer to do this in a cleaner, shorter way, e.g.:
-    # g = csm[['concept_set_name', 'codeset_id', 'version']].groupby('concept_set_name').agg(dict)
-    g: Dict[List[Dict[str, int]]] = {}
-    concept_set_names = list(csm['concept_set_name'].unique())
-    for cs_name in concept_set_names:
-        csm_i = csm[csm['concept_set_name'] == cs_name]
-        for _index, row in csm_i.iterrows():
-            version: int = int(float(row['version'])) if row['version'] else None
-            codeset_id: int = row['codeset_id']
-            if not version:
-                continue
-            if cs_name not in g:
-                g[cs_name] = []
-            g[cs_name].append({'version': version, 'codeset_id': codeset_id})
+# @APP.get("/cset-versions")
+# def csetVersions() -> Union[Dict, List]:
+#     csm = DS['code_sets']
+#     # todo: would be nicer to do this in a cleaner, shorter way, e.g.:
+#     # g = csm[['concept_set_name', 'codeset_id', 'version']].groupby('concept_set_name').agg(dict)
+#     g: Dict[List[Dict[str, int]]] = {}
+#     concept_set_names = list(csm['concept_set_name'].unique())
+#     for cs_name in concept_set_names:
+#         csm_i = csm[csm['concept_set_name'] == cs_name]
+#         for _index, row in csm_i.iterrows():
+#             version: int = int(float(row['version'])) if row['version'] else None
+#             codeset_id: int = row['codeset_id']
+#             if not version:
+#                 continue
+#             if cs_name not in g:
+#                 g[cs_name] = []
+#             g[cs_name].append({'version': version, 'codeset_id': codeset_id})
+#
+#     return g
 
-    return g
+
+@APP.get("/get-all-csets")
+def get_all_csets() -> Union[Dict, List]:
+  return ds.all_csets.to_dict(orient='records')
 
 
 # TODO: the following is just based on concept_relationship
@@ -527,10 +527,11 @@ def cr_hierarchy(
     concepts = ds.concept[ds.concept.concept_id.isin(cids.union(set(dsi.concept_set_members_i.concept_id)))]
 
     result = {
-              # 'related_csets': dsi.related.to_dict(orient='records'),
+              # 'all_csets': dsi.all_csets.to_dict(orient='records'),
+              'related_csets': dsi.related_csets.to_dict(orient='records'),
+              'selected_csets': dsi.selected_csets.to_dict(orient='records'),
               'concept_set_members_i': dsi.concept_set_members_i.to_dict(orient='records'),
               'concept_set_version_item_i': dsi.concept_set_version_item_i.to_dict(orient='records'),
-              'all_csets': dsi.all_csets.to_dict(orient='records'),
               'hierarchy': c,
               'concepts': concepts.to_dict(orient='records'),
               'data_counts': log_counts(),
