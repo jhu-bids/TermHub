@@ -69,7 +69,7 @@ export default function ConceptSetCard(props) {
   let {codeset_id, cset, cols, widestConceptName,} = props;
   // switch to using data from cset_data -- passed down props:
   const {codeset_ids = [], cset_data = {}} = props;
-  const {concept_set_members_i = [], all_csets = [],} = cset_data;
+  const {concept_set_members_i = [],} = cset_data;
 
   let tags = [];
   let display_props = {}

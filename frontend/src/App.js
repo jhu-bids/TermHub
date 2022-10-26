@@ -13,9 +13,10 @@ import { // Link, useHref, useParams, BrowserRouter,
           createSearchParams, Routes, Route, } from "react-router-dom";
 import MuiAppBar from "./MuiAppBar";
 import { // useMutation, // useQueryClient,
-          useQuery, QueryClient, QueryClientProvider, } from '@tanstack/react-query'
+          QueryClient, useQuery, useQueries, QueryClientProvider, } from '@tanstack/react-query'
 import axios from "axios";
 import {ConceptSetsPage, CsetComparisonPage} from "./Csets";
+import {get} from "lodash";
 const API_ROOT = 'http://127.0.0.1:8000'
 // const enclave_url = path => `${API_ROOT}/passthru?path=${path}`
 const backend_url = path => `${API_ROOT}/${path}`
@@ -51,7 +52,8 @@ function QueryStringStateMgr() {
   const location = useLocation();
   const navigate = useNavigate();
 
-  const [searchParams, setSearchParams] = useSearchParams();
+  const [searchParams, /* setSearchParams */] = useSearchParams();
+  const [props, setProps] = useState({});
   const qsKeys = Array.from(new Set(searchParams.keys()));
   let searchParamsAsObject = {};
   qsKeys.forEach(key => {
@@ -78,47 +80,82 @@ function QueryStringStateMgr() {
     // setCodeset_ids(searchParamsAsObject.codeset_id)
 
   }, [location]);  // maybe not necessary to have location in dependencies
-  return (
-      <DataContainer codeset_ids={searchParamsAsObject.codeset_id}/>
-  );
-      // <DataContainer codeset_ids={codeset_ids}/>
-
+  const codeset_ids = searchParamsAsObject.codeset_id;
+  useEffect(() => {
+    let props = { dataRequests: [ {url: backend_url('get-all-csets'), dataName:'all_csets'}, ]}
+    props.dataRequests.push()
+    if (codeset_ids && codeset_ids.length) {
+      props.codeset_ids = codeset_ids;
+      props.dataRequests.push({ url: backend_url('cr-hierarchy?rec_format=flat&codeset_id=' + codeset_ids.join('|')),
+                                dataName:'cset_data'})
+    }
+    props.dataRequests.forEach(r => console.log(r.url))
+    setProps(props);
+  }, [codeset_ids.join(',')])
+  return <DataContainer {...props} />
 }
-/* Contains data fetched via URL query params, providing data to any pages which we've set to use this. */
 function DataContainer(props) {
-  let {codeset_ids} = props;
-  codeset_ids = codeset_ids || [];
-  // Table Variations
-  // 1. this url is for simple X/O table with no hierarchy:
-  // 2. this url is for simple hierarchy using ancestor table and no direct relationshps:
-  // todo: 3. this url uses direct relationships:
-  // TODO: use cr hierarchy
-  let url = backend_url('cr-hierarchy?rec_format=flat&codeset_id=' + codeset_ids.join('|'))
-  // let url = backend_url('new-hierarchy-stuff?rec_format=flat&codeset_id=' + codeset_ids.join('|'))
-  console.log('url', url)
-  const { isLoading, error, data, isFetching } = useQuery([url], () => {
-    // console.log('getting it');
-    const get = axios.get(url).then((res) => {
-      // console.log('got something')
-      return res.data
-    })
-    // console.log(`getting ${url}`, get);
-    return get;
-  });
-  let msg =
-      (isLoading && <p>Loading from {url}...</p>) ||
-      (error && <p>An error has occurred with {url}: {error.stack}</p>) ||
-      (isFetching && <p>Updating from {url}...</p>);
+  console.log(props);
+  let {codeset_ids=[], dataRequests=[], } = props;
+  // const requests = useDataRequests(dataRequests);
+  const results = useQueries({
+                               queries: dataRequests.map(
+                                   req => ({
+                                     queryKey: ['query', req.dataName],
+                                     queryFn: () => axios.get(req.url),
+                                     staleTime: Infinity
+                                   })
+                               )
+                             })
+  useEffect(() => {
+    if (results.length > 1 && results[1].isFetched) {
+      results[1].refetch();
+    }
+  }, [codeset_ids.join(',')])
+  if (!dataRequests.length ) {
+    return <RoutesContainer />
+  }
 
-  return (
-      <div>
-        <RoutesContainer cset_data={data} {...props} />
-        {msg}
-      </div>
-  );
+  const data = dataRequests.map(
+      (req,i) => ({
+        ...req,
+        status: results[i].status,
+        data: get(get(results[i], 'data'), 'data'),
+      }))
+  let p = {};
+  data.forEach(req => { p[req.dataName] = req.data })
+
+  return  <RoutesContainer codeset_ids={codeset_ids} results={results} {...p} />
 }
+/*
+function useDataRequests(dataRequests) {
+  const [requests, setRequests] = useState([]);
+  for (const _req of dataRequests) {
+    let req = {..._req};
+
+    // const { isLoading, error, data, isFetching } = useQuery req.url], () =>
+    const queryStateStuff = useQuery([req.url], () => {
+      // console.log('getting it');
+      const get = axios.get(req.url).then((res) => {
+        // console.log('got something')
+        return req[req.dataName] = res.data;
+      })
+      // console.log(`getting ${url}`, get);
+      return req['get'] = get;
+    });
+    setRequests({...req, ...queryStateStuff});
+    /*
+    let msg =
+        (isLoading && <p>Loading from {url}...</p>) ||
+        (error && <p>An error has occurred with {url}: {error.stack}</p>) ||
+        (isFetching && <p>Updating from {url}...</p>);
+     * /
+  }
+  return requests;
+}
+*/
 function RoutesContainer(props) {
-  // console.log(props)
+  console.log(props)
   return (
       <Routes>
         <Route path="/" element={<App {...props} />}>

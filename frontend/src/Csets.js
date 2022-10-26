@@ -8,10 +8,9 @@ TODO's
 */
 import React, {useState, useEffect, /* useReducer, useRef, */} from 'react';
 import {useQuery} from "@tanstack/react-query";
-import axios from "axios";
 import {Table, ComparisonTable} from "./Table";
 import {ComparisonDataTable} from "./ComparisonDataTable";
-import {CsetsDataTable} from "./CsetsDataTable";
+import {CsetsDataTable, StatsMessage} from "./CsetsDataTable";
 import ConceptSetCard from "./ConceptSetCard";
 import {ReactQueryDevtools} from "@tanstack/react-query-devtools";
 import TextField from '@mui/material/TextField';
@@ -35,8 +34,8 @@ import Typography from "@mui/material/Typography";
     @ SIggie: is this fixed?
 */
 function CsetSearch(props) {
-  const {codeset_ids=[], cset_data={}} = props;
-  const {concept_set_members_i=[], all_csets=[], } = cset_data;
+  const {codeset_ids=[], all_csets=[], cset_data={}} = props;
+  const {concept_set_members_i=[], } = cset_data;
   const [value, setValue] = useState('');
   const [inputValue, setInputValue] = useState('');
   const [searchParams, setSearchParams] = useSearchParams();
@@ -51,6 +50,7 @@ function CsetSearch(props) {
                    `${d.archived ? 'archived' : ''} (${d.concepts} concepts)`,
             id: d.codeset_id,
   })));
+  console.log({opts});
 
   const autocomplete = (
       // https://mui.com/material-ui/react-autocomplete/
@@ -75,8 +75,8 @@ function CsetSearch(props) {
 }
 
 function ConceptSetsPage(props) {
-  const {codeset_ids=[], cset_data={}} = props;
-  const {concept_set_members_i=[], all_csets=[], } = cset_data;
+  const {codeset_ids=[], all_csets=[], cset_data={}} = props;
+  const {concept_set_members_i=[], } = cset_data;
   let navigate = useNavigate();
 
   return (
@@ -123,8 +123,8 @@ function ConceptSetsPage(props) {
 // TODO: Color table: I guess would need to see if could pass extra values/props and see if table widget can use that
 //  ...for coloration, since we want certain rows grouped together
 function CsetComparisonPage(props) {
-  const {codeset_ids=[], cset_data={}} = props;
-  const {hierarchy={}, concept_set_members_i=[], all_csets=[], } = cset_data;
+  const {codeset_ids=[], all_csets=[], cset_data={}} = props;
+  const {hierarchy={}, concept_set_members_i=[], concepts=[]} = cset_data;
   let selected_csets = all_csets.filter(d => codeset_ids.includes(d.codeset_id));
   const [nested, setNested] = useState(true);
   const [rowData, setRowData] = useState([]);
@@ -133,8 +133,8 @@ function CsetComparisonPage(props) {
     return <p>Downloading...</p>
   }
   let checkboxes = Object.fromEntries(selected_csets.map(d => [d.codeset_id, false]));
-  let allConcepts = uniqWith(concept_set_members_i.map(d => pick(d, ['concept_id','concept_name'])), isEqual);
-  allConcepts = Object.fromEntries(allConcepts.map(d => [d.concept_id, {...d, checkboxes: {...checkboxes}}]));
+  // let allConcepts = uniqWith(concept_set_members_i.map(d => pick(d, ['concept_id','concept_name'])), isEqual);
+  let allConcepts = Object.fromEntries(concepts.map(d => [d.concept_id, {...d, checkboxes: {...checkboxes}}]));
   concept_set_members_i.forEach(d => allConcepts[d.concept_id].checkboxes[d.codeset_id] = true);
 
   function makeRowData(collapsed={}) {
@@ -171,9 +171,10 @@ function CsetComparisonPage(props) {
             {rowData.length} lines in nested list.
           </Button>
           <Button  variant={nested ? "outlined" : "contained"} sx={{marginLeft: '20px'}} onClick={toggleNested}>
-            {Object.keys(allConcepts).length} lines without nesting
+            {Object.keys(allConcepts).length} distinct concepts
           </Button>
         </h5>
+        <StatsMessage {...props} />
         <ComparisonDataTable {...moreProps} />
       </div>)
 }

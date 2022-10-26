@@ -79,7 +79,7 @@ def upload_new_cset_version_with_concepts(version_with_concepts: Dict) -> JSON_T
     # Handle missing IDs
     # todo: this is temporary until I handle registry persistence
     if 'codeset_id' not in version_with_concepts or not version_with_concepts['codeset_id']:
-        arbitrary_range = 10000
+        arbitrary_range = 100000
         new_id: int = randint(CSET_VERSION_MIN_ID, CSET_VERSION_MIN_ID + arbitrary_range)
         version_with_concepts['codeset_id'] = new_id
 

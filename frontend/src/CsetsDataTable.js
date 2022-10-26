@@ -1,4 +1,4 @@
-import React from 'react';
+import React, {useState, useCallback, useEffect, useMemo, } from 'react';
 import {isEqual, orderBy, } from 'lodash';
 import DataTable, { createTheme } from 'react-data-table-component';
 import {useSearchParams} from "react-router-dom";
@@ -39,71 +39,80 @@ createTheme('custom-theme', {
 // https://react-data-table-component.netlify.app/?path=/docs/api-custom-styles--page
 //  Internally, customStyles will deep merges your customStyles with the default styling.
 
-function CsetsDataTable(props) {
-    const {codeset_ids=[], cset_data={}} = props;
-    const {concept_set_members_i=[], all_csets=[], } = cset_data;
+function StatsMessage(props) {
+    const {codeset_ids=[], all_csets=[], cset_data={}} = props;
+    const {concept_set_members_i=[], related_csets, concepts } = cset_data;
 
-    let related_csets = all_csets.filter(d => d.related);
-
-    console.log('CsetsDataTable props: ', props);
-    const [selectedRows, setSelectedRows] = React.useState(false);
-    const [searchParams, setSearchParams] = useSearchParams();
-    // const [toggledClearRows, setToggleClearRows] = React.useState(false);
-    /*  example row
-    {
-        "codeset_id": 826535586,
-        "concept_set_name": "UVA Equity Asthma",
-        "version": "1",
-        "concepts": 619,
-        "selected": true
-    }
-    */
-    let coldefs = getColdefs();
+    return <p style={{margin:0, fontSize: 'small',}}>The <strong>{codeset_ids.length} concept sets </strong>
+            selected contain <strong>{concepts.length} distinct concepts</strong>.
+            The following <strong>{related_csets.length} concept sets</strong> have 1 or more concepts
+            in common with the selected sets. Select from below if you want to add to the above list.</p>
     /*
-    const conditionalRowStyles = [{
-        when: row => row.selected,
-        style: {
-            backgroundColor: 'rgba(63, 195, 128, 0.9)',
-            color: 'white',
-            '&:hover': {
-                cursor: 'pointer',
-            },
-        }
-    }];
-    */
+    const [stats, setStats] = useState({
+        csets_chosen: codeset_ids.length,
+        total_concepts: concepts.length,
+        related_csets: related_csets.length,
+    });
+    // const all_concept_ids = new Set(concept_set_members_i.map(d => d.concept_id));
+    useEffect(() => {
+        const stats = {
+           csets_chosen: codeset_ids.length,
+           hierarchy_concepts: '---', // related_ids.size,
+           nested_list_lines: '---', // f lattened_concept_hierarchy.length,
+           total_concepts: concepts.length,
+           related_csets: related_csets.length,
+        };
+        setStats(stats);
+    }, [codeset_ids.join(',')])
+    console.log({codeset_ids, stats, concept_set_members_i, related_csets, concepts, });
+
+    return  <div>
+                <p style={{margin:0, fontSize: 'small',}}>The <strong>{stats.csets_chosen} concept sets </strong>
+                    selected contain <strong>{stats.total_concepts} distinct concepts</strong>.
+                    The following <strong>{stats.related_csets} concept sets</strong> have 1 or more concepts
+                    in common with the selected sets. Select from below if you want to add to the above list.</p>
+            </div>;
+     */
+}
+function CsetsDataTable(props) {
+    const {codeset_ids=[], all_csets=[], cset_data={}} = props;
+    const [relatedCsets, setRelatedCsets] = useState(cset_data.related_csets);
+    const [searchParams, setSearchParams] = useSearchParams();
+
+    useEffect(() => {
+        relatedCsets.forEach(rc => rc.selected = codeset_ids.includes(rc.codeset_id))
+        const rcsets = orderBy(relatedCsets, ['selected', 'precision'], ['desc', 'desc'])
+        console.log({props, rcsets});
+        setRelatedCsets(rcsets);
+    }, [codeset_ids.join(',')])
+    let coldefs = getColdefs();
+    /* const conditionalRowStyles = [{ when: row => row.selected,
+        style: { backgroundColor: 'rgba(63, 195, 128, 0.9)', color: 'white',
+                '&:hover': { cursor: 'pointer', }, } }]; */
 
     let customStyles = getCustomStyles();
-    const handleSelectionChange = React.useCallback(state => {
+    const handleRowClick = useCallback(row => {
+        if ((codeset_ids||[]).includes(row.codeset_id)) {
+            const cids = codeset_ids.filter(cid => cid !== row.codeset_id);
+            setSearchParams({codeset_id: cids, });
+        } else {
+            setSearchParams({codeset_id: [...codeset_ids, row.codeset_id], });
+        }
+    }, [codeset_ids]);
+    /*
+    const handleSelectionChange = useCallback(state => {
         const {selectedRows} = state;
         let ids = selectedRows.map(d => d.codeset_id).sort()
-        if (!isEqual(codeset_ids, ids)) {
-            setSearchParams({codeset_id: ids});
+        if (!isEqual(props.codeset_ids, ids)) {
+            console.log(`try to change qs[codeset_id] from ${codeset_ids} to ${ids}`)
+            setSearchParams({codeset_id: ids, });
         }
         // setSelectedRows(selectedRows);
-    }, [])
+    }, [codeset_ids]);
+     */
 
     // const related_ids = new Set(f lattened_concept_hierarchy.map(d => d.concept_id));
-    const all_concept_ids = new Set(concept_set_members_i.map(d => d.concept_id));
-    let stats = {
-        csets_chosen: codeset_ids.length,
-        hierarchy_concepts: '---', // related_ids.size,
-        nested_list_lines: '---', // f lattened_concept_hierarchy.length,
-        total_concepts: all_concept_ids.size,
-        related_csets: related_csets.length,
-    }
-    // let not_in_list = [...concept_set_members_i].filter(d => !related_ids.has(d.concept_id))
-    // console.log({stats, not_in_list, concept_set_members_i, related_ids, related_csets});
-
-    const subHeader = <div>
-        <p style={{margin:0, fontSize: 'small',}}>The <strong>{stats.csets_chosen} concept sets </strong>
-            selected contain a total of <strong>{stats.total_concepts} distinct concepts </strong>
-            of which <strong>only {stats.hierarchy_concepts}</strong> (why? not sure yet) appear
-            in the <strong>{stats.nested_list_lines} lines</strong> of the nested hierarchy on the
-            comparison page.</p>
-        <p> The following <strong>{stats.related_csets} concept sets</strong> have 1 or more concepts
-            in common with the selected sets. Select from below if you want to add to the above list.</p>
-    </div>;
-
+    const subHeader = <StatsMessage {...props} />
 
     const rowSelectCritera = row => row.selected;
     // todo: p -> data table: data table has a property for showing some sort of paragraph text
@@ -111,6 +120,12 @@ function CsetsDataTable(props) {
     return (
         <div className="csets-data-table" >
             <DataTable
+                // selectableRows
+                selectableRowsHighlight
+                selectableRowSelected={rowSelectCritera}
+                // onSelectedRowsChange={handleSelectionChange}
+                onRowClicked={handleRowClick}
+
                 noHeader={false}
                 title="Related concept sets"
                 subHeader
@@ -118,11 +133,11 @@ function CsetsDataTable(props) {
                 // theme="custom-theme"
                 // theme="light"
                 columns={coldefs}
-                defaultSortFieldId={4}
-                defaultSortAsc={false}
-                data={related_csets}
+                // defaultSortFieldId={4}
+                // defaultSortAsc={false}
+                data={relatedCsets}
 
-                //customStyles={customStyles}   PUT THIS BACK
+                customStyles={customStyles}   PUT THIS BACK
 
                 // conditionalRowStyles={conditionalRowStyles}
                 height="300px"
@@ -142,10 +157,6 @@ function CsetsDataTable(props) {
                 highlightOnHover
                 pointerOnHover
                 responsive
-                selectableRows
-                selectableRowsHighlight
-                selectableRowSelected={rowSelectCritera}
-                onSelectedRowsChange={handleSelectionChange}
                 subHeaderAlign="left"
                 subHeaderWrap
                 // sortFunction={customSort}
@@ -160,6 +171,14 @@ function getColdefs() {
     };
     return [
         // { name: 'level', selector: row => row.level, },
+        {
+            name: 'Version ID',
+            // selector: row => `${row.concept_set_name} (v${row.version})`,
+            selector: row => row.codeset_id,
+            compact: true,
+            sortable: true,
+            width: '90px',
+        },
         {
             name: 'Concept set name',
             // selector: row => `${row.concept_set_name} (v${row.version})`,
@@ -235,7 +254,8 @@ function getCustomStyles() {
         table: {
             style: {
                 padding: '20px',
-                width: '100%',
+                margin: '1%',
+                width: '98%',
                 // margin: '20px',
                 // height: '20vh',
                 // maxWidth: '85%',
@@ -301,4 +321,4 @@ function getCustomStyles() {
     };
 }
 
-export {CsetsDataTable};
+export {CsetsDataTable, StatsMessage};
