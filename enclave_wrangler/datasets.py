@@ -142,8 +142,9 @@ def download_and_combine_dataset_parts(fav: dict, file_parts: [str], outpath: st
 
 
 def combine_parquet_files(input_files, target_path):
+    files = []
+    input_folder = os.path.dirname(input_files)
     try:
-        files = []
         for file_name in input_files:
             # was: files.append(pq.read_table(os.path.join(input_folder, file_name)))
             files.append(pq.read_table(file_name))
@@ -159,7 +160,7 @@ def combine_parquet_files(input_files, target_path):
             for f in files:
                 writer.write_table(f)
     except Exception as e:
-        print(e)
+        print(e, file=sys.stderr)
 
 
 def transform_dataset__concept_relationship(dataset_name: str) -> pd.DataFrame:

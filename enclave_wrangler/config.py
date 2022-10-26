@@ -11,16 +11,30 @@ ENV_DIR = os.path.join(PROJECT_ROOT, 'env')
 OUTPUT_DIR = os.path.join(PROJECT_ROOT, 'output')
 ENV_FILE = os.path.join(ENV_DIR, '.env')
 TERMHUB_CSETS_DIR = os.path.join(PROJECT_ROOT, 'termhub-csets')
+UPLOADS_DIR = os.path.join(TERMHUB_CSETS_DIR, 'datasets', 'uploads')
+CSET_UPLOAD_REGISTRY_PATH = os.path.join(UPLOADS_DIR, 'cset_upload_registry.csv')
+
+# CSET_VERSION_MIN_ID: For concept set versions we are uploading, we can assign our own ID. Must be higher than this num
+CSET_VERSION_MIN_ID = 1000000000
+ENCLAVE_PROJECT_NAME = 'RP-4A9E27'
+PALANTIR_ENCLAVE_USER_ID_1 = 'a39723f3-dc9c-48ce-90ff-06891c29114f'
+MOFFIT_PREFIX = 'Simplified autoimmune disease'
+MOFFIT_SOURCE_URL = 'https://docs.google.com/spreadsheets/d/1tHHHeMtzX0SA85gbH8Mvw2E0cxH-x1ii/edit#gid=1762989244'
+MOFFIT_SOURCE_ID_TYPE = 'moffit'
 
 
 load_dotenv(ENV_FILE)
 config = {
-    'PALANTIR_ENCLAVE_AUTHENTICATION_BEARER_TOKEN': os.getenv('PALANTIR_ENCLAVE_AUTHENTICATION_BEARER_TOKEN'),
-    'OTHER_TOKEN': os.getenv('OTHER_TOKEN'),
-    'HOSTNAME': os.getenv('HOSTNAME', 'unite.nih.gov'),
-    'ONTOLOGY_RID': os.getenv('ONTOLOGY_RID', 'ri.ontology.main.ontology.00000000-0000-0000-0000-000000000000'),
+    'PALANTIR_ENCLAVE_AUTHENTICATION_BEARER_TOKEN': os.getenv('PALANTIR_ENCLAVE_AUTHENTICATION_BEARER_TOKEN', '').replace('\r', ''),
+    'OTHER_TOKEN': os.getenv('OTHER_TOKEN', '').replace('\r', ''),
+    'HOSTNAME': os.getenv('HOSTNAME', 'unite.nih.gov').replace('\r', ''),
+    'ONTOLOGY_RID': os.getenv('ONTOLOGY_RID', 'ri.ontology.main.ontology.00000000-0000-0000-0000-000000000000').replace('\r', ''),
 }
-necessary_env_vars = ['OTHER_TOKEN', 'PALANTIR_ENCLAVE_AUTHENTICATION_BEARER_TOKEN']
+# todo: as of 2022/10/20, it looks like some functionality/endpoints need PALANTIR_ENCLAVE_AUTHENTICATION_BEARER_TOKEN,
+#  and others need OTHER_TOKEN, but it's not entirely clear where each are required yet. when that's figured out, can
+#  move this `raise EnvironmentError` check further down to where the env var is actually needed.
+necessary_env_vars = []
+# necessary_env_vars = ['OTHER_TOKEN', 'PALANTIR_ENCLAVE_AUTHENTICATION_BEARER_TOKEN']
 missing_env_vars = [x for x in necessary_env_vars if not config[x]]
 if missing_env_vars:
     cause_msg = f'The file {ENV_FILE} is missing. This file is necessary and must contain these ' \
