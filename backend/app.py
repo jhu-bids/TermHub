@@ -367,16 +367,17 @@ def data_stuff_for_codeset_ids(codeset_ids):
         on=['codeset_id', 'concept_id'], how='outer', suffixes=['_l','_r']
       ).fillna({'item_flags': '', 'csm': False, 'item': False})
 
+    selected_concept_ids: Set[int] = set.union(set(dsi.cset_members_items.concept_id))
+
     dsi.concept_relationship_i = ds.concept_relationship[
-        (ds.concept_relationship.concept_id_1.isin(dsi.concept_set_members_i.concept_id)) &
-        (ds.concept_relationship.concept_id_2.isin(dsi.concept_set_members_i.concept_id)) &
+        (ds.concept_relationship.concept_id_1.isin(selected_concept_ids)) &
+        (ds.concept_relationship.concept_id_2.isin(selected_concept_ids)) &
         (ds.concept_relationship.concept_id_1 != ds.concept_relationship.concept_id_2)
         # & (ds.concept_relationship.relationship_id == 'Subsumes')
         ]
 
     # Get related codeset IDs
-    selected_concept_ids: Set[int] = set(dsi.concept_set_members_i.concept_id)
-    related_codeset_ids = set(ds.concept_set_members[
+    related_codeset_ids: Set[int] = set(ds.concept_set_members[
         ds.concept_set_members.concept_id.isin(selected_concept_ids)].codeset_id)
 
     dsi.related_csets = (
@@ -474,14 +475,14 @@ def cr_hierarchy(
     cids = set([])
     if c:
         cids = set([int(str(k).split('.')[-1]) for k in pd.json_normalize(c).to_dict(orient='records')[0].keys()])
-    concepts = ds.concept[ds.concept.concept_id.isin(cids.union(set(dsi.concept_set_members_i.concept_id)))]
+    concepts = ds.concept[ds.concept.concept_id.isin(cids.union(set(dsi.cset_members_items.concept_id)))]
 
     result = {
               # 'all_csets': dsi.all_csets.to_dict(orient='records'),
               'related_csets': dsi.related_csets.to_dict(orient='records'),
               'selected_csets': dsi.selected_csets.to_dict(orient='records'),
-              'concept_set_members_i': dsi.concept_set_members_i.to_dict(orient='records'),
-              'concept_set_version_item_i': dsi.concept_set_version_item_i.to_dict(orient='records'),
+              # 'concept_set_members_i': dsi.concept_set_members_i.to_dict(orient='records'),
+              # 'concept_set_version_item_i': dsi.concept_set_version_item_i.to_dict(orient='records'),
               'cset_members_items': dsi.cset_members_items.to_dict(orient='records'),
               'hierarchy': c,
               'concepts': concepts.to_dict(orient='records'),

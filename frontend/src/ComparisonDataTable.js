@@ -106,15 +106,19 @@ function colConfig(codeset_ids, nested, selected_csets, rowData, collapsed, togg
             },
             conditionalCellStyles: [
                 { when: row => row.checkboxes[cset_col.codeset_id],
-                    style: {backgroundColor: 'blue'}
-                },
-                { when: row => row.checkboxes[cset_col.codeset_id],
-                    style: {backgroundColor: 'green'}
+                    style: row => {
+                        let cb = row.checkboxes[cset_col.codeset_id];
+                        let bg = 'purple';
+                        if      (cb.csm && cb.item) { bg = 'orange' }
+                        else if (cb.csm)             { bg = 'pink' }
+                        else if (cb.item)            { bg = 'gray' }
+                        return { backgroundColor: bg, };
+                    }
                 },
             ],
             // sortable: true,
             compact: true,
-            width: '20px',
+            width: '30px',
             // maxWidth: 50,
             center: true,
         }

@@ -80,7 +80,7 @@ function QueryStringStateMgr() {
     // setCodeset_ids(searchParamsAsObject.codeset_id)
 
   }, [location]);  // maybe not necessary to have location in dependencies
-  const codeset_ids = searchParamsAsObject.codeset_id;
+  const codeset_ids = searchParamsAsObject.codeset_id || [];
   useEffect(() => {
     let props = { dataRequests: [ {url: backend_url('get-all-csets'), dataName:'all_csets'}, ]}
     props.dataRequests.push()

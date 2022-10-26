@@ -211,15 +211,16 @@ function getColdefs() {
             sortable: true,
         },
         {
-            name:   <Tooltip label="Approximate distinct person count. Small counts rounded up to 20.">
-                <span>Patients</span>
-            </Tooltip>,
+            name:   <Tooltip label="Record count. Small counts rounded up to 20.">
+                        <span>Records</span>
+                    </Tooltip>,
             selector: row => row.approx_total_record_count.toLocaleString(),
             compact: true,
             width: '70px',
             center: true,
             sortable: true,
         },
+        /*
         {
             name:   <Tooltip label="Checked if this concept set is marked as archived in the enclave.">
                 <span>Archived</span>
@@ -230,6 +231,7 @@ function getColdefs() {
             center: true,
             sortable: true,
         },
+         */
     ];
 }
 

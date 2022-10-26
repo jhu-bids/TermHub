@@ -51,6 +51,9 @@ function CsetSearch(props) {
             id: d.codeset_id,
   })));
   console.log({opts});
+  useEffect(() => {
+    console.log(autocomplete.value);
+  }, [codeset_ids.join(',')])
 
   const autocomplete = (
       // https://mui.com/material-ui/react-autocomplete/
@@ -80,10 +83,10 @@ function ConceptSetsPage(props) {
   let navigate = useNavigate();
 
   return (
-      <div>
+      <div style={{}}>
         <CsetSearch {...props} />
-        { selected_csets.length && <CsetsDataTable {...props} /> }
-        { selected_csets.length && <ConceptSetCards {...props} /> }
+        { selected_csets.length ? <CsetsDataTable {...props} /> : ''}
+        { selected_csets.length ? <ConceptSetCards {...props} /> : ''}
         { /* todo: Create component: <ConceptSetsPanels> */ }
         {/*<p>I am supposed to be the results of <a href={url}>{url}</a></p>*/}
       </div>)
@@ -95,7 +98,7 @@ function ConceptSetsPage(props) {
 //  ...for coloration, since we want certain rows grouped together
 function CsetComparisonPage(props) {
   const {codeset_ids=[], all_csets=[], cset_data={}} = props;
-  const {hierarchy={}, selected_csets=[], concept_set_members_i=[], concepts=[]} = cset_data;
+  const {hierarchy={}, selected_csets=[], concepts=[], cset_members_items=[]} = cset_data;
   // let selected_csets = all_csets.filter(d => codeset_ids.includes(d.codeset_id));
   const [nested, setNested] = useState(true);
   const [rowData, setRowData] = useState([]);
@@ -110,7 +113,7 @@ function CsetComparisonPage(props) {
   let checkboxes = Object.fromEntries(selected_csets.map(d => [d.codeset_id, false]));
   // let allConcepts = uniqWith(concept_set_members_i.map(d => pick(d, ['concept_id','concept_name'])), isEqual);
   let allConcepts = Object.fromEntries(concepts.map(d => [d.concept_id, {...d, checkboxes: {...checkboxes}}]));
-  concept_set_members_i.forEach(d => allConcepts[d.concept_id].checkboxes[d.codeset_id] = true);
+  cset_members_items.forEach(d => allConcepts[d.concept_id].checkboxes[d.codeset_id] = d);
 
   function makeRowData(collapsed={}) {
     if (!nested) {
