@@ -41,10 +41,10 @@ createTheme('custom-theme', {
 
 function StatsMessage(props) {
     const {codeset_ids=[], all_csets=[], cset_data={}} = props;
-    const {concept_set_members_i=[], related_csets, concepts } = cset_data;
+    const {concept_set_members_i=[], related_csets=[], concepts } = cset_data;
 
     return <p style={{margin:0, fontSize: 'small',}}>The <strong>{codeset_ids.length} concept sets </strong>
-            selected contain <strong>{concepts.length} distinct concepts</strong>.
+            selected contain <strong>{(concepts||[]).length} distinct concepts</strong>.
             The following <strong>{related_csets.length} concept sets</strong> have 1 or more concepts
             in common with the selected sets. Select from below if you want to add to the above list.</p>
     /*
@@ -126,6 +126,7 @@ function CsetsDataTable(props) {
                 // onSelectedRowsChange={handleSelectionChange}
                 onRowClicked={handleRowClick}
 
+                customStyles={customStyles}
                 noHeader={false}
                 title="Related concept sets"
                 subHeader
@@ -137,7 +138,6 @@ function CsetsDataTable(props) {
                 // defaultSortAsc={false}
                 data={relatedCsets}
 
-                customStyles={customStyles}   PUT THIS BACK
 
                 // conditionalRowStyles={conditionalRowStyles}
                 height="300px"
@@ -236,10 +236,29 @@ function getColdefs() {
             sortable: true,
         },
         {
-            // name: 'Archived',
-            name:   <Tooltip label="Checked if this concept set is marked as archived in the enclave.">
-                        <span>Archived</span>
+            name:   <Tooltip label="Approximate distinct person count. Small counts rounded up to 20.">
+                        <span>Patients</span>
                     </Tooltip>,
+            selector: row => row.approx_distinct_person_count.toLocaleString(),
+            compact: true,
+            width: '70px',
+            center: true,
+            sortable: true,
+        },
+        {
+            name:   <Tooltip label="Approximate distinct person count. Small counts rounded up to 20.">
+                <span>Patients</span>
+            </Tooltip>,
+            selector: row => row.approx_total_record_count.toLocaleString(),
+            compact: true,
+            width: '70px',
+            center: true,
+            sortable: true,
+        },
+        {
+            name:   <Tooltip label="Checked if this concept set is marked as archived in the enclave.">
+                <span>Archived</span>
+            </Tooltip>,
             selector: row => row.archived ? '\u2713' : '',
             compact: true,
             width: '70px',

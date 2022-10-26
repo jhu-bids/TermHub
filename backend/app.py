@@ -320,36 +320,13 @@ try:
     #                    # dtype={'archived': bool},    # doesn't work because of missing values
     #                   converters={'archived': lambda x: x and True or False}, # this makes it a bool field
     #                   keep_default_na=False)
-
-    #  TODO: try to fix.... not working yet:
-    # code_set.version got mangled into version numbers like 1.0, 2.0
-    #
-    # converters = {
-    #     'int': lambda v: v.astype(int)
-    # }
-    # def bool_converter(v):
-    #     return v and True or False
-    #
-    # csv_opts = {
-    #     # 'code_sets': {'dtype': {'version': int}}
-    #     'code_sets': {'converters': {'version': converters['int']}}
-    # }
-    #
-    # df = pd.read_csv(os.path.join(CSV_PATH, 'code_sets' + '.csv'), **(csv_opts['code_sets']))
 except FileNotFoundError:
     # todo: what if they haven't downloaded? maybe need to ls files and see if anything needs to be downloaded first
     update_termhub_csets(transforms_only=True)
     DS = {name: load_dataset(name) for name in dataset_names}
     ds = load_globals()
 print(f'Favorite datasets loaded: {list(DS.keys())}')
-# todo: pandasql better?
-# PYSQLDF = lambda q: sqldf(q, globals()) # I think you need to call this in the function you're using it in
-# COUNTS = PYSQLDF("""
-#     SELECT vocabulary_id, COUNT(*) AS cnt
-#     FROM CONCEPT
-#     GROUP BY 1""")
-#except Exception as err:
-#    print(f'failed loading datasets', err)
+
 
 # @cache
 def data_stuff_for_codeset_ids(codeset_ids):
@@ -402,8 +379,6 @@ def data_stuff_for_codeset_ids(codeset_ids):
         .sort_values(by=['selected', 'concepts'], ascending=False)
     )
 
-    # all_csets['selected'] = all_csets['codeset_id'].isin(codeset_ids)
-    # all_csets = all_csets.sort_values(by=['selected', 'concepts'], ascending=False)
     dsi.selected_csets = dsi.related_csets[dsi.related_csets['codeset_id'].isin(codeset_ids)]
 
 
@@ -429,23 +404,8 @@ def data_stuff_for_codeset_ids(codeset_ids):
     dsi.connect_children = connect_children
 
     # Top level concept IDs for the root of our flattened hierarchy
-    # dsi.top_level_cids = list(
-    #     dsi.concept_relationship_i[
-    #         ~ dsi.concept_relationship_i.concept_id_1.isin(dsi.concept_relationship_i.concept_id_2)
-    #     ].concept_id_1.unique())
-
     dsi.top_level_cids = ( set(dsi.concept_set_members_i.concept_id)
                             .difference(set(dsi.concept_relationship_i.concept_id_2)))
-
-    # For a given `concept_id`, get a list of `codeset_id` that it appears in
-    dsi.codesets_by_concept_id = dsi.concept_set_members_i[['concept_id', 'codeset_id']] \
-        .drop_duplicates() \
-        .set_index('codeset_id') \
-        .groupby('concept_id').groups
-    for cid, codeset_ids in dsi.codesets_by_concept_id.items():
-        dsi.codesets_by_concept_id[cid] = [int(codeset_id) for codeset_id in codeset_ids]
-
-    # dsi.concept = ds.concept[ds.concept.concept_id.isin(ds.all_related_concepts)].head(5000) #.union(selected_concept_ids))]
 
     return dsi
 
@@ -473,27 +433,6 @@ def read_root():
     # noinspection PyUnresolvedReferences
     url_list = [{"path": route.path, "name": route.name} for route in APP.routes]
     return url_list
-
-
-# @APP.get("/cset-versions")
-# def csetVersions() -> Union[Dict, List]:
-#     csm = DS['code_sets']
-#     # todo: would be nicer to do this in a cleaner, shorter way, e.g.:
-#     # g = csm[['concept_set_name', 'codeset_id', 'version']].groupby('concept_set_name').agg(dict)
-#     g: Dict[List[Dict[str, int]]] = {}
-#     concept_set_names = list(csm['concept_set_name'].unique())
-#     for cs_name in concept_set_names:
-#         csm_i = csm[csm['concept_set_name'] == cs_name]
-#         for _index, row in csm_i.iterrows():
-#             version: int = int(float(row['version'])) if row['version'] else None
-#             codeset_id: int = row['codeset_id']
-#             if not version:
-#                 continue
-#             if cs_name not in g:
-#                 g[cs_name] = []
-#             g[cs_name].append({'version': version, 'codeset_id': codeset_id})
-#
-#     return g
 
 
 @APP.get("/get-all-csets")
@@ -536,55 +475,6 @@ def cr_hierarchy(
               'concepts': concepts.to_dict(orient='records'),
               'data_counts': log_counts(),
     }
-    return result
-    # result = {
-    #     'concept_set_members_i': dsi.concept_set_members_i.to_dict(),
-    #     'all_csets': dsi.all_csets.to_dict(),
-    #     'hierarchy': c,
-    #     'concepts': dsi.concept.to_json(),
-    # }
-    # return Response(json.dumps(result), media_type="application/json")
-    # https://stackoverflow.com/questions/71203579/how-to-return-a-csv-file-pandas-dataframe-in-json-format-using-fastapi/71205127#71205127
-
-
-
-@APP.get("/new-hierarchy-stuff")  # maybe junk, or maybe start of a refactor of above
-def new_hierarchy_stuff(
-        rec_format: str='default',
-        codeset_id: Union[str, None] = Query(default=[]), ) -> List[Dict]:
-
-    requested_codeset_ids = parse_codeset_ids(codeset_id)
-    dsi = data_stuff_for_codeset_ids(requested_codeset_ids)
-
-    links = dsi.concept_relationship_i.groupby('concept_id_1')
-
-    c = ds.connect_children(-1, dsi.top_level_cids)
-
-    """
-    TODO: fix comments -- no longer accurate
-    
-    The only difference between cr_hierarchy and new_hierarchy_stuff is whether the
-    child_cids function is from ds or dsi -- that is, is it filtered to codeset_ids or not?
-    And the only difference in output appears to be a few records in flattened_concept_hierarchy (used to be `lines`)
-
-           http://127.0.0.1:8000/cr-hierarchy?rec_format=flat&codeset_id=400614256|411456218|419757429|484619125|818292046|826535586
-    http://127.0.0.1:8000/new-hierarchy-stuff?rec_format=flat&codeset_id=400614256|411456218|419757429|484619125|818292046|826535586
-    {
-        # "flattened_concept_hierarchy": [],  // 965 items in cr_hierarchy, 991 items in new_hierarchy_stuff
-        "related_csets": [],                // 208 items
-        "concept_set_members_i": []         // 1629 items
-    }
-    I haven't figured out what the difference is yet and whether it matters.
-    TODO: come back and figure it out later and generally deal with how to filter in datasets.py and
-          which versions of datasets to load, and how hierarchy is generated -- does it include concepts
-          outside the selected concept sets or not?
-    """
-
-    result = { # 'related_csets': dsi.related.to_dict(orient='records'),
-              'concept_set_members_i': json.loads(dsi.concept_set_members_i.to_json(orient='records')),
-              'all_csets': json.loads(dsi.all_csets.to_json(orient='records')),
-              'hierarchy': c,
-              }
     return result
 
 

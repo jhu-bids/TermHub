@@ -129,6 +129,10 @@ function CsetComparisonPage(props) {
   const [nested, setNested] = useState(true);
   const [rowData, setRowData] = useState([]);
 
+  useEffect(() => {
+    makeRowData();
+  }, [codeset_ids.length, concepts.length]);
+
   if (!all_csets.length) {
     return <p>Downloading...</p>
   }
@@ -164,6 +168,7 @@ function CsetComparisonPage(props) {
     makeRowData({});
   }
   let moreProps = {...props, nested, makeRowData, rowData, selected_csets, };
+  console.log({moreProps});
   return (
       <div>
         <h5 style={{margin:20, }}>

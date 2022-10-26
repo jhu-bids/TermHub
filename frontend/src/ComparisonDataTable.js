@@ -105,8 +105,11 @@ function colConfig(codeset_ids, nested, selected_csets, rowData, collapsed, togg
             },
             conditionalCellStyles: [
                 { when: row => row.checkboxes[cset_col.codeset_id],
+                    style: {backgroundColor: 'blue'}
+                },
+                { when: row => row.checkboxes[cset_col.codeset_id],
                     style: {backgroundColor: 'green'}
-                }
+                },
             ],
             // sortable: true,
             compact: true,
