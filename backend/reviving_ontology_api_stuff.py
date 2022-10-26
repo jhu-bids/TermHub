@@ -1,9 +1,16 @@
-"""TermHub backend
+"""Temporary routes for trying stuff out. will merge into backend.py
 
-Resources
-- https://github.com/tiangolo/fastapi
-- jq docs: https://stedolan.github.io/jq/manual/
-- jq python api docs: https://github.com/mwilliamson/jq.py
+TODO's
+  1. Joe will rewrite enclave_api.py, and then we can connect backend.py with that. At around that point, we should no
+  longer need 'reviving_ontology_api_stuff.py' when that is working correctly.
+
+# other api calls might be handy:
+#   concepts for concept set:
+#       http://127.0.0.1:8000/ontocall?path=objects/OMOPConceptSet/729489911/links/omopconcepts
+#   concepts for concept set:
+#       http://127.0.0.1:8000/ontocall?path=objects/OMOPConceptSet/729489911/links/omopconcepts
+#   linktypes:
+#       http://127.0.0.1:8000/linkTypesForObjectTypes
 """
 import json
 import os
@@ -23,24 +30,6 @@ from pydantic import BaseModel
 from enclave_wrangler.config import config, FAVORITE_DATASETS
 import jq
 
-# TODO:
-#   action types to look at (http://127.0.0.1:8000/passthru?path=actionTypes):
-#       "create-new-concept-set"
-#       "create-new-draft-omop-concept-set-version"
-#
-# TODO:
-#   get RIDs for concept sets -- not available in dataset download
-#       http://127.0.0.1:8000/passthru?path=objects/OMOPConceptSet
-#
-# other api calls might be handy:
-#   concepts for concept set:
-#       http://127.0.0.1:8000/ontocall?path=objects/OMOPConceptSet/729489911/links/omopconcepts
-#   concepts for concept set:
-#       http://127.0.0.1:8000/ontocall?path=objects/OMOPConceptSet/729489911/links/omopconcepts
-#   linktypes:
-#       http://127.0.0.1:8000/linkTypesForObjectTypes
-
-
 
 DEBUG = True
 PROJECT_DIR = Path(os.path.dirname(__file__)).parent
@@ -56,55 +45,6 @@ APP.add_middleware(
     allow_methods=['*'],
     allow_headers=['*']
 )
-
-# get actionType endpoints:
-# curl -H "Content-type: application/json" -H "Authorization: Bearer $PALANTIR_ENCLAVE_AUTHENTICATION_BEARER_TOKEN" "https://unite.nih.gov/api/v1/ontologies/ri.ontology.main.ontology.00000000-0000-0000-0000-000000000000/actionTypes"
-
-createNewConceptSetDescription = {
-    "apiName": "create-new-concept-set",
-    "description": "Creates a new 'empty' Concept Set linked to a research project",
-    "rid": "ri.actions.main.action-type.ef6f89de-d5e3-450c-91ea-17132c8636ae",
-    "parameters": {
-        "assigned_sme": {
-            "description": "",
-            "baseType": "String"
-        },
-        "assigned_informatician": {
-            "description": "",
-            "baseType": "String"
-        },
-        "concept_set_id": {
-            "description": "",
-            "baseType": "String"
-        },
-        "status": {
-            "description": "",
-            "baseType": "String"
-        },
-        "intention": {
-            "description": "",
-            "baseType": "String"
-        },
-        "research-project": {
-            "description": "Research project Concept Set is being created for",
-            "baseType": "OntologyObject"
-        },
-        "stage": {
-            "description": "",
-            "baseType": "String"
-        }
-    }
-}
-
-
-def createNewConceptSetDescription():
-    """
-    curl -H "Content-type: application/json" -H "Authorization: Bearer $OTHER_TOKEN" \
-        "https://unite.nih.gov/api/v1/ontologies/ri.ontology.main.ontology.00000000-0000-"\
-            "0000-0000-000000000000/actions/create-new-concept-set/apply" \
-            --data '{"parameters":{"intention":"just for testing of action api by Siggie" }}' | jq
-    """
-    passthru('actions/create-new-concept-set/validate')
 
 
 @APP.get("/passthru-post")

@@ -1,12 +1,13 @@
 """BulkImport VSAC Concept Sets and import them into the N3C Enclave using the API
-## APIs need to be called in the following order:
-## 1. Create new concept set container
-## 2. Create new draft version  -
-## Note, new draft version id must be generated within the range of 1,000,000,000, 1,001,000,000.
-## and used to add the CodeSystemExpressionItems
-## pre-generated ids is limited and it caused an issue in the Enclave the new process is as follows.
-## query for the id and use it in the addExpressionItems api
-## 3. Create CodeSystemExpression items - TBD
+
+APIs need to be called in the following order:
+1. Create new concept set container
+2. Create new draft version  -
+Note, new draft version id must be generated within the range of 1,000,000,000, 1,001,000,000.
+and used to add the CodeSystemExpressionItems
+pre-generated ids is limited and it caused an issue in the Enclave the new process is as follows.
+query for the id and use it in the addExpressionItems api
+3. Create CodeSystemExpression items - TBD
 
 Resources
 - Validate URL (for testing POSTs without it actually taking effect): https://unite.nih.gov/actions/api/actions/validate

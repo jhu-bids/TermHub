@@ -178,6 +178,7 @@ function colConfig(codeset_ids, nested, selected_csets, rowData, collapsed, togg
     }
     return coldefs;
     console.log('done setting coldefs');
+
 }
 // createTheme creates a new theme named solarized that overrides the build in dark theme
 // https://github.com/jbetancur/react-data-table-component/blob/master/src/DataTable/themes.ts
