@@ -3,6 +3,7 @@ import DataTable, { createTheme } from 'react-data-table-component';
 import AddCircle from '@mui/icons-material/AddCircle';
 import RemoveCircle from '@mui/icons-material/RemoveCircle';
 import {get, map, omit, pick, uniq, reduce, cloneDeepWith, isEqual, uniqWith, groupBy, } from 'lodash';
+import {fmt} from './utils';
 // import Checkbox from '@mui/material/Checkbox';
 // import {createSearchParams} from "react-router-dom";
 // import Button from "@mui/material/Button";
@@ -157,12 +158,18 @@ function colConfig(codeset_ids, nested, selected_csets, rowData, collapsed, togg
         {
             name: 'Patients',
             selector: row => row.distinct_person_count,
-            width: '50px',
+            format: row => fmt(row.distinct_person_count),
+            right: true,
+            width: '80px',
+            style: { paddingRight: '8px', },
         },
         {
             name: 'Records',
             selector: row => row.total_count,
-            width: '50px',
+            format: row => fmt(row.total_count),
+            right: true,
+            width: '80px',
+            style: { paddingRight: '8px', },
         },
         ...cset_cols
     ];

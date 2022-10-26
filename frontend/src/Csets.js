@@ -10,8 +10,9 @@ import React, {useState, useEffect, /* useReducer, useRef, */} from 'react';
 import {useQuery} from "@tanstack/react-query";
 import {Table, ComparisonTable} from "./Table";
 import {ComparisonDataTable} from "./ComparisonDataTable";
-import {CsetsDataTable, StatsMessage} from "./CsetsDataTable";
-import ConceptSetCard from "./ConceptSetCard";
+import {CsetsDataTable, } from "./CsetsDataTable";
+import {StatsMessage} from "./utils";
+import ConceptSetCards from "./ConceptSetCard";
 import {ReactQueryDevtools} from "@tanstack/react-query-devtools";
 import TextField from '@mui/material/TextField';
 import Autocomplete from '@mui/material/Autocomplete';
@@ -35,7 +36,6 @@ import Typography from "@mui/material/Typography";
 */
 function CsetSearch(props) {
   const {codeset_ids=[], all_csets=[], cset_data={}} = props;
-  const {concept_set_members_i=[], } = cset_data;
   const [value, setValue] = useState('');
   const [inputValue, setInputValue] = useState('');
   const [searchParams, setSearchParams] = useSearchParams();
@@ -75,45 +75,16 @@ function CsetSearch(props) {
 }
 
 function ConceptSetsPage(props) {
-  const {codeset_ids=[], all_csets=[], cset_data={}} = props;
-  const {concept_set_members_i=[], } = cset_data;
+  const {codeset_ids=[], cset_data={}} = props;
+  const {selected_csets=[], } = cset_data;
   let navigate = useNavigate();
 
   return (
       <div>
         <CsetSearch {...props} />
-        {
-           props.cset_data && <CsetsDataTable {...props} />
-        }
-        {
-          // todo: Create component: <ConceptSetsPanels>
-          (codeset_ids.length > 0 && all_csets.length) && (
-            <div style={{ display: 'flex', flexWrap: 'wrap', flexDirection: 'row', margin: '20px',
-              /* height: '90vh', alignItems: 'stretch', border: '1px solid green', width: '100%', 'flex-shrink': 0, flex: '0 0 100%', */
-            }}>
-              {
-                (() => {
-                  let cards = all_csets.length ? codeset_ids.map(codeset_id => {
-                    let cset = all_csets.filter(d => d.codeset_id === codeset_id).pop();  // will replace cset and won't need concept-sets-with-concepts fetch
-                    let concepts = concept_set_members_i.filter(d => d.codeset_id === codeset_id);
-                    cset.concept_items = concepts;
-
-                    let widestConceptName = max(Object.values(cset.concepts).map(d => d.concept_name.length))
-                    let card = (all_csets.length && cset)
-                        ? <ConceptSetCard  {...props}
-                                           codeset_id={cset.codeset_id}
-                                           key={cset.codeset_id}
-                                           cset={cset}
-                                           widestConceptName={widestConceptName}
-                                           cols={Math.min(4, codeset_ids.length)}/>
-                        : <p key={codeset_id}>waiting for card data</p>
-                    return card;
-                  }) : '';
-                  return cards;
-                })()
-              }
-            </div>)
-        }
+        { selected_csets.length && <CsetsDataTable {...props} /> }
+        { selected_csets.length && <ConceptSetCards {...props} /> }
+        { /* todo: Create component: <ConceptSetsPanels> */ }
         {/*<p>I am supposed to be the results of <a href={url}>{url}</a></p>*/}
       </div>)
 }
@@ -124,8 +95,8 @@ function ConceptSetsPage(props) {
 //  ...for coloration, since we want certain rows grouped together
 function CsetComparisonPage(props) {
   const {codeset_ids=[], all_csets=[], cset_data={}} = props;
-  const {hierarchy={}, concept_set_members_i=[], concepts=[]} = cset_data;
-  let selected_csets = all_csets.filter(d => codeset_ids.includes(d.codeset_id));
+  const {hierarchy={}, selected_csets=[], concept_set_members_i=[], concepts=[]} = cset_data;
+  // let selected_csets = all_csets.filter(d => codeset_ids.includes(d.codeset_id));
   const [nested, setNested] = useState(true);
   const [rowData, setRowData] = useState([]);
 

@@ -353,6 +353,18 @@ def data_stuff_for_codeset_ids(codeset_ids):
     dsi.concept_set_members_i = ds.concept_set_members[ds.concept_set_members['codeset_id'].isin(codeset_ids)]
 
     dsi.concept_set_version_item_i = ds.concept_set_version_item[ds.concept_set_version_item['codeset_id'].isin(codeset_ids)]
+    flags = ['includeDescendants', 'includeMapped', 'isExcluded']
+
+    dsi.concept_set_version_item_i['item_flags'] = dsi.concept_set_version_item_i[
+      ['codeset_id', 'concept_id', *flags]].apply(lambda row: (', '.join([f for f in flags if row[f]])), axis=1)
+
+    dsi.concept_set_version_item_i = dsi.concept_set_version_item_i[['codeset_id', 'concept_id', 'item_flags']]
+
+    dsi.cset_members_items = \
+      dsi.concept_set_members_i.assign(csm=True).merge(
+        dsi.concept_set_version_item_i.assign(item=True),
+        on=['codeset_id', 'concept_id'], how='outer', suffixes=['_l','_r']
+      ).fillna({'item_flags': '', 'csm': False, 'item': False})
 
     dsi.concept_relationship_i = ds.concept_relationship[
         (ds.concept_relationship.concept_id_1.isin(dsi.concept_set_members_i.concept_id)) &
@@ -362,7 +374,7 @@ def data_stuff_for_codeset_ids(codeset_ids):
         ]
 
     # Get related codeset IDs
-    selected_concept_ids: Set[int] = set(dsi.concept_set_members_i.concept_id.unique())
+    selected_concept_ids: Set[int] = set(dsi.concept_set_members_i.concept_id)
     related_codeset_ids = set(ds.concept_set_members[
         ds.concept_set_members.concept_id.isin(selected_concept_ids)].codeset_id)
 
@@ -380,7 +392,6 @@ def data_stuff_for_codeset_ids(codeset_ids):
     )
 
     dsi.selected_csets = dsi.related_csets[dsi.related_csets['codeset_id'].isin(codeset_ids)]
-
 
     # Get relationships for selected code sets
     dsi.links = dsi.concept_relationship_i.groupby('concept_id_1')
@@ -404,8 +415,7 @@ def data_stuff_for_codeset_ids(codeset_ids):
     dsi.connect_children = connect_children
 
     # Top level concept IDs for the root of our flattened hierarchy
-    dsi.top_level_cids = ( set(dsi.concept_set_members_i.concept_id)
-                            .difference(set(dsi.concept_relationship_i.concept_id_2)))
+    dsi.top_level_cids = (set(selected_concept_ids).difference(set(dsi.concept_relationship_i.concept_id_2)))
 
     return dsi
 
@@ -453,7 +463,7 @@ def cr_hierarchy(
     codeset_id: Union[str, None] = Query(default=''),
 ) -> Dict:
 
-    print(ds)
+    # print(ds) uncomment just to put ds in scope for looking at in debugger
     requested_codeset_ids = parse_codeset_ids(codeset_id)
     # A namespace (like `ds`) specifically for these codeset IDs.
     dsi = data_stuff_for_codeset_ids(requested_codeset_ids)
@@ -471,6 +481,7 @@ def cr_hierarchy(
               'selected_csets': dsi.selected_csets.to_dict(orient='records'),
               'concept_set_members_i': dsi.concept_set_members_i.to_dict(orient='records'),
               'concept_set_version_item_i': dsi.concept_set_version_item_i.to_dict(orient='records'),
+              'cset_members_items': dsi.cset_members_items.to_dict(orient='records'),
               'hierarchy': c,
               'concepts': concepts.to_dict(orient='records'),
               'data_counts': log_counts(),

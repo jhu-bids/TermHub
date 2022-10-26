@@ -1,6 +1,7 @@
 import React, {useState, useCallback, useEffect, useMemo, } from 'react';
 import {isEqual, orderBy, } from 'lodash';
 import DataTable, { createTheme } from 'react-data-table-component';
+import {pct_fmt, StatsMessage, } from './utils';
 import {useSearchParams} from "react-router-dom";
 import {Tooltip} from './Tooltip';
 
@@ -39,41 +40,6 @@ createTheme('custom-theme', {
 // https://react-data-table-component.netlify.app/?path=/docs/api-custom-styles--page
 //  Internally, customStyles will deep merges your customStyles with the default styling.
 
-function StatsMessage(props) {
-    const {codeset_ids=[], all_csets=[], cset_data={}} = props;
-    const {concept_set_members_i=[], related_csets=[], concepts } = cset_data;
-
-    return <p style={{margin:0, fontSize: 'small',}}>The <strong>{codeset_ids.length} concept sets </strong>
-            selected contain <strong>{(concepts||[]).length} distinct concepts</strong>.
-            The following <strong>{related_csets.length} concept sets</strong> have 1 or more concepts
-            in common with the selected sets. Select from below if you want to add to the above list.</p>
-    /*
-    const [stats, setStats] = useState({
-        csets_chosen: codeset_ids.length,
-        total_concepts: concepts.length,
-        related_csets: related_csets.length,
-    });
-    // const all_concept_ids = new Set(concept_set_members_i.map(d => d.concept_id));
-    useEffect(() => {
-        const stats = {
-           csets_chosen: codeset_ids.length,
-           hierarchy_concepts: '---', // related_ids.size,
-           nested_list_lines: '---', // f lattened_concept_hierarchy.length,
-           total_concepts: concepts.length,
-           related_csets: related_csets.length,
-        };
-        setStats(stats);
-    }, [codeset_ids.join(',')])
-    console.log({codeset_ids, stats, concept_set_members_i, related_csets, concepts, });
-
-    return  <div>
-                <p style={{margin:0, fontSize: 'small',}}>The <strong>{stats.csets_chosen} concept sets </strong>
-                    selected contain <strong>{stats.total_concepts} distinct concepts</strong>.
-                    The following <strong>{stats.related_csets} concept sets</strong> have 1 or more concepts
-                    in common with the selected sets. Select from below if you want to add to the above list.</p>
-            </div>;
-     */
-}
 function CsetsDataTable(props) {
     const {codeset_ids=[], all_csets=[], cset_data={}} = props;
     const [relatedCsets, setRelatedCsets] = useState(cset_data.related_csets);
@@ -165,7 +131,6 @@ function CsetsDataTable(props) {
     );
 }
 function getColdefs() {
-    const pct_fmt = num => Number(num).toLocaleString(undefined,{style: 'percent', minimumFractionDigits:2});
     const descending = (rows, selector, direction) => {
         return orderBy(rows, selector, ['desc']);
     };
@@ -340,4 +305,4 @@ function getCustomStyles() {
     };
 }
 
-export {CsetsDataTable, StatsMessage};
+export {CsetsDataTable, };

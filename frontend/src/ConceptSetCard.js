@@ -59,7 +59,30 @@ const ExpandMore = styled((props) => {
   }),
 }));
 
-export default function ConceptSetCard(props) {
+export default function ConceptSetCards(props) {
+  const {codeset_ids=[], cset_data={}} = props;
+  const {selected_csets=[], } = cset_data;
+  if (!selected_csets.length) {
+    return <div></div>;
+  }
+  return <div style={{ display: 'flex', flexWrap: 'wrap', flexDirection: 'row', margin: '20px',
+                      /* height: '90vh', alignItems: 'stretch', border: '1px solid green', width:'100%',
+                        'flex-shrink': 0, flex: '0 0 100%', */ }}>
+        {
+          selected_csets.map(cset => {
+            // let widestConceptName = max(Object.values(cset.concepts).map(d => d.concept_name.length))
+            return <ConceptSetCard  {...props}
+                     codeset_id={cset.codeset_id}
+                     key={cset.codeset_id}
+                     cset={cset}
+                     // widestConceptName={widestConceptName}
+                     cols={Math.min(4, codeset_ids.length)}/>
+
+          })
+        }
+      </div>;
+}
+function ConceptSetCard(props) {
   const [expanded, setExpanded] = React.useState(false);
 
   const handleExpandClick = () => {
@@ -69,7 +92,6 @@ export default function ConceptSetCard(props) {
   let {codeset_id, cset, cols, widestConceptName,} = props;
   // switch to using data from cset_data -- passed down props:
   const {codeset_ids = [], cset_data = {}} = props;
-  const {concept_set_members_i = [],} = cset_data;
 
   let tags = [];
   let display_props = {}
@@ -149,6 +171,7 @@ export default function ConceptSetCard(props) {
                   ))
                 }
           </CardContent>
+          {/*
           <CardActions disableSpacing>
             <IconButton size="small" aria-label="add to favorites">
               <FavoriteIcon/>
@@ -185,6 +208,7 @@ export default function ConceptSetCard(props) {
               </List>
             </CardContent>
           </Collapse>
+          */}
         </Card>
       </Box>
   );
