@@ -75,8 +75,11 @@ FAVORITE_DATASETS = OrderedDict({
         'sort_idx': ['concept_id_1', 'concept_id_2'],
     },
     'concept_set_version_item': {
+        # actually, this one is missing stuff. using concept_set_version_item_rv instead
+        #   but leaving the inaccurate name so I don't have to change it all over the code
         'name': 'concept_set_version_item',
-        'rid': 'ri.foundry.main.dataset.1323fff5-7c7b-4915-bcde-4d5ba882c993',
+        'rid': 'ri.foundry.main.dataset.f2355e2f-51b6-4ae1-ae80-7e869c1933ac',
+        # was: 'rid': 'ri.foundry.main.dataset.1323fff5-7c7b-4915-bcde-4d5ba882c993',
         'sort_idx': ['codeset_id', 'concept_id'],
     },
     'concept_set_counts_clamped': { # gets downloaded as csv without column names, not parquet

@@ -126,7 +126,7 @@ def download_and_combine_dataset_parts(fav: dict, file_parts: [str], outpath: st
             files.append(os.path.join(parquet_dir, file_name))
 
         if files[0].endswith('.parquet'):
-            combine_parquet_files(parquet_dir, combined_parquet_fname)
+            combine_parquet_files(files, combined_parquet_fname)
             df = pd.read_parquet(combined_parquet_fname)
         elif files[0].endswith('.csv'):
             if len(files) != 1:
@@ -145,7 +145,8 @@ def combine_parquet_files(input_files, target_path):
     try:
         files = []
         for file_name in input_files:
-            files.append(pq.read_table(os.path.join(input_folder, file_name)))
+            # was: files.append(pq.read_table(os.path.join(input_folder, file_name)))
+            files.append(pq.read_table(file_name))
         with pq.ParquetWriter(
             target_path,
             files[0].schema,
