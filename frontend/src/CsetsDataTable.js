@@ -1,37 +1,9 @@
 import React, {useState, useCallback, useEffect, useMemo, } from 'react';
-import {isEqual, orderBy, } from 'lodash';
+import {isEqual, orderBy, get, } from 'lodash';
 import DataTable, { createTheme } from 'react-data-table-component';
 import {pct_fmt, StatsMessage, } from './utils';
 import {useSearchParams} from "react-router-dom";
 import {Tooltip} from './Tooltip';
-
-// createTheme creates a new theme named solarized that overrides the build in dark theme
-// https://github.com/jbetancur/react-data-table-component/blob/master/src/DataTable/themes.ts
-createTheme('custom-theme', {
-    text: {
-      primary: '#268bd2',
-      secondary: '#2aa198',
-    },
-    context: {
-        background: '#cb4b16',
-        text: '#FFFFFF',
-    },
-    /*
-    divider: {
-        default: '#073642',
-    },
-    background: {
-        default: '#002b36',
-    },
-    action: {
-      button: 'rgba(0,0,0,.54)',
-      hover: 'rgba(0,0,0,.08)',
-      disabled: 'rgba(0,0,0,.12)',
-    },
-    */
-}, 'light');
-
-
 // import Checkbox from '@material-ui/core/Checkbox';
 // import ArrowDownward from '@material-ui/icons/ArrowDownward';
 // const sortIcon = <ArrowDownward />;
@@ -42,15 +14,16 @@ createTheme('custom-theme', {
 
 function CsetsDataTable(props) {
     const {codeset_ids=[], all_csets=[], cset_data={}} = props;
+    const {selected_csets, } = cset_data;
     const [relatedCsets, setRelatedCsets] = useState(cset_data.related_csets);
     const [searchParams, setSearchParams] = useSearchParams();
 
     useEffect(() => {
-        relatedCsets.forEach(rc => rc.selected = codeset_ids.includes(rc.codeset_id))
-        const rcsets = orderBy(relatedCsets, ['selected', 'precision'], ['desc', 'desc'])
+        // props.csetData.relatedCsets.forEach(rc => rc.selected = codeset_ids.includes(rc.codeset_id))
+        const rcsets = orderBy(get(props, 'cset_data.related_csets', []), ['selected', 'precision'], ['desc', 'desc'])
         console.log({props, rcsets});
         setRelatedCsets(rcsets);
-    }, [codeset_ids.join(',')])
+    }, [codeset_ids.join(','), selected_csets.length])
     let coldefs = getColdefs();
     /* const conditionalRowStyles = [{ when: row => row.selected,
         style: { backgroundColor: 'rgba(63, 195, 128, 0.9)', color: 'white',
@@ -86,6 +59,7 @@ function CsetsDataTable(props) {
     return (
         <div className="csets-data-table" >
             <DataTable
+                data={relatedCsets}
                 // selectableRows
                 selectableRowsHighlight
                 selectableRowSelected={rowSelectCritera}
@@ -102,7 +76,6 @@ function CsetsDataTable(props) {
                 columns={coldefs}
                 // defaultSortFieldId={4}
                 // defaultSortAsc={false}
-                data={relatedCsets}
 
 
                 // conditionalRowStyles={conditionalRowStyles}
@@ -306,5 +279,30 @@ function getCustomStyles() {
     */
     };
 }
+// createTheme creates a new theme named solarized that overrides the build in dark theme
+// https://github.com/jbetancur/react-data-table-component/blob/master/src/DataTable/themes.ts
+createTheme('custom-theme', {
+    text: {
+        primary: '#268bd2',
+        secondary: '#2aa198',
+    },
+    context: {
+        background: '#cb4b16',
+        text: '#FFFFFF',
+    },
+    /*
+    divider: {
+        default: '#073642',
+    },
+    background: {
+        default: '#002b36',
+    },
+    action: {
+      button: 'rgba(0,0,0,.54)',
+      hover: 'rgba(0,0,0,.08)',
+      disabled: 'rgba(0,0,0,.12)',
+    },
+    */
+}, 'light');
 
 export {CsetsDataTable, };

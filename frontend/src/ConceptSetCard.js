@@ -128,7 +128,6 @@ function ConceptSetCard(props) {
             <Typography color="text.primary" gutterBottom>
               {tags.join(', ')}
             </Typography>
-            <a href={backend_url(`cset-download?codeset_id=${cset.codeset_id}`)} target="_blank">Export JSON</a>
             {
               Object.keys(display_props).map(pkey => (
                   <Typography variant="body2" color="text.secondary" key={pkey} sx={{overflow: 'clip',}}>
@@ -136,6 +135,9 @@ function ConceptSetCard(props) {
                   </Typography>
               ))
             }
+            <Typography color="text.primary" gutterBottom>
+              <a href={backend_url(`cset-download?codeset_id=${cset.codeset_id}`)} target="_blank">Export JSON</a>
+            </Typography>
           </CardContent>
           {/*
           <CardActions disableSpacing>
