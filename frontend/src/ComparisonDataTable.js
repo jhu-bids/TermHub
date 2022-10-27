@@ -4,11 +4,6 @@ import AddCircle from '@mui/icons-material/AddCircle';
 import RemoveCircle from '@mui/icons-material/RemoveCircle';
 import {get, map, omit, pick, uniq, reduce, cloneDeepWith, isEqual, uniqWith, groupBy, } from 'lodash';
 import {fmt} from './utils';
-// import Checkbox from '@mui/material/Checkbox';
-// import {createSearchParams} from "react-router-dom";
-// import Button from "@mui/material/Button";
-// import axios from "axios";
-// import {backend_url} from "./App";
 
 function ComparisonDataTable(props) {
     const {codeset_ids=[], nested=true, makeRowData, rowData, selected_csets, } = props;

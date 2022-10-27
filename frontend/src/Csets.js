@@ -7,22 +7,19 @@ TODO's
 
 */
 import React, {useState, useEffect, /* useReducer, useRef, */} from 'react';
-import {useQuery} from "@tanstack/react-query";
-import {Table, ComparisonTable} from "./Table";
+// import {useQuery} from "@tanstack/react-query";
+// import {Table, ComparisonTable} from "./Table";
 import {ComparisonDataTable} from "./ComparisonDataTable";
 import {CsetsDataTable, } from "./CsetsDataTable";
 import {StatsMessage} from "./utils";
 import ConceptSetCards from "./ConceptSetCard";
-import {ReactQueryDevtools} from "@tanstack/react-query-devtools";
+// import {ReactQueryDevtools} from "@tanstack/react-query-devtools";
 import TextField from '@mui/material/TextField';
 import Autocomplete from '@mui/material/Autocomplete';
 import Button from '@mui/material/Button';
-import Chip from '@mui/material/Chip';
+// import Chip from '@mui/material/Chip';
 import { Link, Outlet, useHref, useNavigate, useParams, useSearchParams, useLocation } from "react-router-dom";
-import {isEqual, pick, uniqWith, max, omit, uniq, } from 'lodash';
-
-import {backend_url} from './App';
-import Typography from "@mui/material/Typography";
+// import {isEqual, pick, uniqWith, max, omit, uniq, } from 'lodash';
 
 //TODO: How to get hierarchy data?
 // - It's likely in one of the datasets we haven't downloaded yet. When we get it, we can do indents.

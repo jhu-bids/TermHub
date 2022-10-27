@@ -268,8 +268,8 @@ def load_globals():
         'procedure_occurrence': 'p',
         'measurement': 'm'
     }
-    ds.deidentified_term_usage_by_domain_clamped['domain'] = \
-        [domains[d] for d in ds.deidentified_term_usage_by_domain_clamped.domain]
+    # ds.deidentified_term_usage_by_domain_clamped['domain'] = \
+    #     [domains[d] for d in ds.deidentified_term_usage_by_domain_clamped.domain]
 
     g = ds.deidentified_term_usage_by_domain_clamped.groupby(['concept_id'])
     concept_usage_counts = (
@@ -284,6 +284,9 @@ def load_globals():
 
     # c = ds.concept.reset_index()
     # cs = c[c.concept_id.isin([9202, 9201, 4])]
+
+    # h = [r[1] for r in ds.deidentified_term_usage_by_domain_clamped.head(3).iterrows()]
+    # [{r.domain: {'records': r.total_count, 'patients': r.distinct_person_count}} for r in h]
     ds.concept = (
         ds.concept.drop(['valid_start_date','valid_end_date'], axis=1)
             .merge(concept_usage_counts, on='concept_id', how='left')
@@ -489,6 +492,17 @@ def cr_hierarchy(
               'data_counts': log_counts(),
     }
     return result
+
+
+@APP.get("/cset-download")  # maybe junk, or maybe start of a refactor of above
+def cset_download(codeset_id: int) -> Dict:
+  dsi = data_stuff_for_codeset_ids([codeset_id])
+
+  concepts = ds.concept[ds.concept.concept_id.isin(set(dsi.cset_members_items.concept_id))]
+  cset = ds.all_csets[ds.all_csets.codeset_id == codeset_id].to_dict(orient='records')[0]
+  cset['concept_count'] = cset['concepts']
+  cset['concepts'] = concepts.to_dict(orient='records')
+  return cset
 
 
 # todo: Some redundancy. (i) should only need concept_set_name once

@@ -1,51 +1,16 @@
 import * as React from 'react';
 import { styled } from '@mui/material/styles';
-import List from "@mui/material/List";
-import ListItem from "@mui/material/ListItem";
 import Card from '@mui/material/Card';
-import CardHeader from '@mui/material/CardHeader';
-import CardMedia from '@mui/material/CardMedia';
 import CardContent from '@mui/material/CardContent';
-import CardActions from '@mui/material/CardActions';
-import Collapse from '@mui/material/Collapse';
-import Avatar from '@mui/material/Avatar';
+// import CardActions from '@mui/material/CardActions';
 import IconButton from '@mui/material/IconButton';
 import Typography from '@mui/material/Typography';
-import { red } from '@mui/material/colors';
-import FavoriteIcon from '@mui/icons-material/Favorite';
-import ShareIcon from '@mui/icons-material/Share';
-import ExpandMoreIcon from '@mui/icons-material/ExpandMore';
-import MoreVertIcon from '@mui/icons-material/MoreVert';
-
 import Box from '@mui/material/Box';
-import Button from '@mui/material/Button';
+// import Button from '@mui/material/Button';
+import {backend_url} from './App';
 
 const bull = (
   <Box component="span" sx={{ display: 'inline-block', mx: '2px', transform: 'scale(0.8)' }} >•</Box>
-);
-
-const card = (
-  <React.Fragment>
-    <CardContent>
-      <Typography sx={{ fontSize: 14 }} color="text.secondary" gutterBottom>
-        Word of the Day
-      </Typography>
-      <Typography variant="h5" component="div">
-        be{bull}nev{bull}o{bull}lent
-      </Typography>
-      <Typography sx={{ mb: 1.5 }} color="text.secondary">
-        adjective
-      </Typography>
-      <Typography variant="body2">
-        well meaning and kindly.
-        <br />
-        {'"a benevolent smile"'}
-      </Typography>
-    </CardContent>
-    <CardActions>
-      <Button size="small">Learn More</Button>
-    </CardActions>
-  </React.Fragment>
 );
 
 const ExpandMore = styled((props) => {
@@ -163,13 +128,14 @@ function ConceptSetCard(props) {
             <Typography color="text.primary" gutterBottom>
               {tags.join(', ')}
             </Typography>
-                {
-                  Object.keys(display_props).map(pkey => (
-                      <Typography variant="body2" color="text.secondary" key={pkey} sx={{overflow: 'clip',}}>
-                        <strong>{pkey}</strong>: {display_props[pkey]}
-                      </Typography>
-                  ))
-                }
+            <a href={backend_url(`cset-download?codeset_id=${cset.codeset_id}`)} target="_blank">Export JSON</a>
+            {
+              Object.keys(display_props).map(pkey => (
+                  <Typography variant="body2" color="text.secondary" key={pkey} sx={{overflow: 'clip',}}>
+                    <strong>{pkey}</strong>: {display_props[pkey]}
+                  </Typography>
+              ))
+            }
           </CardContent>
           {/*
           <CardActions disableSpacing>
