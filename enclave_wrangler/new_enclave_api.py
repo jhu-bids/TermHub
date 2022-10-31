@@ -537,6 +537,37 @@ def make_request(api_name: str, data: Union[List, Dict] = None, validate=False, 
     return response_json
 
 
+def make_read_request(path: str, verbose=False) -> JSON_TYPE:
+    """Passthrough for HTTP request
+    If `data`, knows to do a POST. Otherwise does a GET.
+    Enclave docs:
+      https://www.palantir.com/docs/foundry/api/ontology-resources/objects/list-objects/
+      https://www.palantir.com/docs/foundry/api/ontology-resources/object-types/list-object-types/
+    """
+    headers = {
+        # todo: When/if @Amin et al allow enclave service token to write to the new API, change this back from.
+        # "authorization": f"Bearer {config['PALANTIR_ENCLAVE_AUTHENTICATION_BEARER_TOKEN']}",
+        "authorization": f"Bearer {config['OTHER_TOKEN']}",
+        "Content-type": "application/json",
+
+    }
+    ontology_rid = config['ONTOLOGY_RID']
+    api_path = f'/api/v1/ontologies/{ontology_rid}/{path}'
+    url = f'https://{config["HOSTNAME"]}{api_path}'
+    if verbose:
+        print(f'make_request: {api_path}\n{url}')
+
+    try:
+        response = requests.get(url, headers=headers)
+        response.raise_for_status()
+    except BaseException as err:
+        print(f"Unexpected {type(err)}: {str(err)}", file=sys.stderr)
+
+    # noinspection PyUnboundLocalVariable
+    response_json: JSON_TYPE = response.json()
+    return response_json
+
+
 def get(api_name: str, validate=False) -> JSON_TYPE:
     """For GET request"""
     return make_request(api_name, validate=validate)

@@ -155,6 +155,12 @@ function colConfig(codeset_ids, nested, selected_csets, rowData, collapsed, togg
             ],
         },
         {
+            name: 'Concept ID',
+            selector: row => row.concept_id,
+            width: '80px',
+            style: { paddingRight: '8px', },
+        },
+        {
             name: 'Patients',
             selector: row => row.distinct_person_count,
             format: row => fmt(row.distinct_person_count),

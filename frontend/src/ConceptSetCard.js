@@ -6,6 +6,7 @@ import CardContent from '@mui/material/CardContent';
 import IconButton from '@mui/material/IconButton';
 import Typography from '@mui/material/Typography';
 import Box from '@mui/material/Box';
+import {get, } from 'lodash';
 // import Button from '@mui/material/Button';
 import {backend_url} from './App';
 
@@ -106,6 +107,24 @@ function ConceptSetCard(props) {
   if (cset.project_id) {
     display_props['Project ID'] = cset.project_id;
   }
+  let researcherContent = '';
+  if ((cset.researchers||[]).length) {
+    const r = Object.entries(cset.researchers).map(e => {
+      const type = e[0];
+      const name = get(e[1], 'properties.name', 'huh?');
+      return (
+          <Typography variant="body2" color="text.secondary" key={type} sx={{overflow: 'clip',}}>
+            <strong>{type}</strong>: {name}
+          </Typography>
+      )
+    });
+    return  <div>
+              <Typography variant="h6" color="text.primary" gutterBottom>
+                Contributors
+              </Typography>
+              {r}
+            </div>
+  }
   // display_props['props not included yet'] = 'status_version, status_container, stage, concept count';
   return (
       <Box sx={{ minWidth: 275, margin: '8px',  }}>
@@ -135,6 +154,8 @@ function ConceptSetCard(props) {
                   </Typography>
               ))
             }
+            { researcherContent }
+
             <Typography color="text.primary" gutterBottom>
               <a href={backend_url(`cset-download?codeset_id=${cset.codeset_id}`)} target="_blank">Export JSON</a>
             </Typography>

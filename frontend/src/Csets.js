@@ -33,24 +33,27 @@ import { Link, Outlet, useHref, useNavigate, useParams, useSearchParams, useLoca
 */
 function CsetSearch(props) {
   const {codeset_ids=[], all_csets=[], cset_data={}} = props;
-  const [value, setValue] = useState('');
-  const [inputValue, setInputValue] = useState('');
+  // const {selected_csets} = cset_data;
+  const [opts, setOpts] = useState([]);
   const [searchParams, setSearchParams] = useSearchParams();
 
-  // need to include codeset_id in label because there are sometimes two csets with same name
-  //  and same version number, and label acts as key
-  const opts = (
-      all_csets
-          .filter(d => !d.selected)
-          .map(d => ({
-            label: `${d.codeset_id} - ${d.concept_set_version_title} ` +
-                   `${d.archived ? 'archived' : ''} (${d.concepts} concepts)`,
-            id: d.codeset_id,
-  })));
-  console.log({opts});
   useEffect(() => {
-    console.log(autocomplete.value);
-  }, [codeset_ids.join(',')])
+    if (! all_csets.length) {
+      return;
+    }
+    // need to include codeset_id in label because there are sometimes two csets with same name
+    //  and same version number, and label acts as key
+    const opts = (
+        all_csets
+            .filter(d => !codeset_ids.includes(d.codeset_id))
+            .map(d => ({
+              label: `${d.codeset_id} - ${d.concept_set_version_title} ` +
+                  `${d.archived ? 'archived' : ''} (${d.concepts} concepts)`,
+              id: d.codeset_id,
+            })));
+    console.log({autocomplete_value: autocomplete.value, opts});
+    setOpts(opts);
+  }, [codeset_ids.length, all_csets.length])
 
   const autocomplete = (
       // https://mui.com/material-ui/react-autocomplete/

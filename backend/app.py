@@ -20,6 +20,7 @@ from pydantic import BaseModel
 
 from enclave_wrangler.dataset_upload import upload_new_container_with_concepts, upload_new_cset_version_with_concepts
 from enclave_wrangler.datasets import run_favorites as update_termhub_csets
+from enclave_wrangler.new_enclave_api import make_read_request
 
 DEBUG = True
 PROJECT_DIR = Path(os.path.dirname(__file__)).parent
@@ -69,9 +70,11 @@ def filter(msg, ds, dfname, func, cols):
 
 def _log_counts():
     msgs = []
-    def __log_counts(msg=None, concept_set_name=None, codeset_id=None, concept_id=None):
+    def __log_counts(msg=None, concept_set_name=None, codeset_id=None, concept_id=None, print=False):
         if msg:
             msgs.append([msg, *[int(n) if n else None for n in [concept_set_name, codeset_id, concept_id]]])
+        if (print):
+          pdump(msgs)
         return msgs
     return __log_counts
 
@@ -126,9 +129,17 @@ def load_globals():
 
     codeset_ids = set(ds.concept_set_version_item.codeset_id)
 
-    filter('weird that there would be versions (in code_sets and concept_set_members) '
+    if len(set(ds.code_sets.codeset_id).difference(codeset_ids)):
+      filter('weird that there would be versions (in code_sets and concept_set_members) '
                         'that have nothing in concept_set_version_item...filtering those out',
-           ds, 'code_sets', lambda df: df[df.codeset_id.isin(codeset_ids)], ['codeset_id'])
+             ds, 'code_sets', lambda df: df[df.codeset_id.isin(codeset_ids)], ['codeset_id'])
+
+    if len(ds.concept_set_container) > cnt(ds.concept_set_container.concept_set_name):
+      filter('concept_set_containers have duplicate items with different created_at and/or created_by. deleting all but most recent',
+             ds, 'concept_set_container',
+             lambda df: df.sort_values('created_at').groupby('concept_set_name').agg(lambda g: g.head(1)).reset_index(),
+             ['concept_set_name'])
+
 
     # no change (2022-10-23):
     filter('concept_set_container filtered to exclude archived',
@@ -240,11 +251,31 @@ def load_globals():
                             .rename(columns={'concept_id': 'concepts'}), on='codeset_id')
             .merge(ds.concept_set_counts_clamped, on='codeset_id')
     )
-    all_csets = all_csets[[
-        'codeset_id', 'concept_set_version_title', 'is_most_recent_version', 'intention_version', 'intention_container',
-        'limitations', 'issues', 'update_message', 'has_review', 'provenance', 'authoritative_source', 'project_id',
-        'status_version', 'status_container', 'stage', 'archived', 'concepts',
-        'approx_distinct_person_count', 'approx_total_record_count', ]]
+    """
+    all_csets columns:
+    ['codeset_id', 'concept_set_version_title', 'project',
+       'concept_set_name', 'source_application', 'source_application_version',
+       'created_at_version', 'atlas_json', 'is_most_recent_version', 'version',
+       'comments', 'intention_version', 'limitations', 'issues',
+       'update_message', 'status_version', 'has_review', 'reviewed_by',
+       'created_by_version', 'provenance', 'atlas_json_resource_url',
+       'parent_version_id', 'authoritative_source', 'is_draft',
+       'concept_set_id', 'project_id', 'assigned_informatician',
+       'assigned_sme', 'status_container', 'stage', 'intention_container',
+       'n3c_reviewer', 'alias', 'archived', 'created_by_container',
+       'created_at_container', 'concepts', 'approx_distinct_person_count',
+       'approx_total_record_count'],
+    had been dropping all these and all the research UIDs... should
+      start doing stuff with that info.... had just been looking for ways 
+      to make data smaller.... 
+    
+    all_csets = all_csets.drop([
+      'parent_version_id', 'concept_set_name', 'source_application', 
+      'is_draft', 'project', 'atlas_json', 'created_at_container', 
+      'source_application_version', 'version', 'comments', 'alias', 
+      'concept_set_id', 'created_at_version', 'atlas_json_resource_url'])
+    """
+
     all_csets = all_csets.drop_duplicates()
     ds.all_csets = all_csets
 
@@ -396,7 +427,17 @@ def data_stuff_for_codeset_ids(codeset_ids):
         .sort_values(by=['selected', 'concepts'], ascending=False)
     )
 
+    researcher_cols = ['created_by_container', 'created_by_version',
+                       'assigned_sme', 'reviewed_by', 'n3c_reviewer',
+                       'assigned_informatician', ]
+
     dsi.selected_csets = dsi.related_csets[dsi.related_csets['codeset_id'].isin(codeset_ids)]
+
+    # works but is currently too slow. commenting out till ready to make faster
+    # researchers = []
+    # for (i, row) in dsi.selected_csets.iterrows():
+    #   researchers.append({col: get_researcher(row[col]) for col in researcher_cols if row[col]})
+    # dsi.selected_csets['researchers'] = researchers
 
     # Get relationships for selected code sets
     dsi.links = dsi.concept_relationship_i.groupby('concept_id_1')
@@ -452,7 +493,8 @@ def read_root():
 
 @APP.get("/get-all-csets")
 def get_all_csets() -> Union[Dict, List]:
-  return ds.all_csets.to_dict(orient='records')
+  smaller = ds.all_csets[['codeset_id', 'concept_set_version_title', 'concepts']]
+  return smaller.to_dict(orient='records')
 
 
 # TODO: the following is just based on concept_relationship
@@ -504,6 +546,10 @@ def cset_download(codeset_id: int) -> Dict:
   cset['concepts'] = concepts.to_dict(orient='records')
   return cset
 
+
+@cache
+def get_researcher(uid):
+  return make_read_request(f'objects/researcher/{uid}')
 
 # todo: Some redundancy. (i) should only need concept_set_name once
 class UploadNewCsetVersionWithConcepts(BaseModel):
