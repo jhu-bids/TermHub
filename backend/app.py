@@ -17,6 +17,7 @@ from fastapi import FastAPI, Query, Response
 from fastapi.middleware.cors import CORSMiddleware
 from fastapi.middleware.gzip import GZipMiddleware
 from pydantic import BaseModel
+import urllib.parse
 
 from enclave_wrangler.dataset_upload import upload_new_container_with_concepts, upload_new_cset_version_with_concepts
 from enclave_wrangler.datasets import run_favorites as update_termhub_csets
@@ -439,6 +440,8 @@ def data_stuff_for_codeset_ids(codeset_ids):
     #   researchers.append({col: get_researcher(row[col]) for col in researcher_cols if row[col]})
     # dsi.selected_csets['researchers'] = researchers
 
+    dsi.selected_csets['rid'] = [get_container(name)['rid'] for name in dsi.selected_csets.concept_set_name]
+
     # Get relationships for selected code sets
     dsi.links = dsi.concept_relationship_i.groupby('concept_id_1')
 
@@ -550,6 +553,10 @@ def cset_download(codeset_id: int) -> Dict:
 @cache
 def get_researcher(uid):
   return make_read_request(f'objects/researcher/{uid}')
+
+@cache
+def get_container(concept_set_name):
+  return make_read_request(f'objects/OMOPConceptSetContainer/{urllib.parse.quote(concept_set_name)}')
 
 # todo: Some redundancy. (i) should only need concept_set_name once
 class UploadNewCsetVersionWithConcepts(BaseModel):

@@ -157,7 +157,18 @@ function colConfig(codeset_ids, nested, selected_csets, rowData, collapsed, togg
         {
             name: 'Concept ID',
             selector: row => row.concept_id,
-            width: '80px',
+            format: row => (
+                <span><span style={{backgroundColor: 'lightgray',}} >
+                    <a href={`https://atlas-demo.ohdsi.org/#/concept/${row.concept_id}`} target="_blank">
+                        <img height="15px" src="atlas.ico" />
+                    </a>
+                    <a href={`https://athena.ohdsi.org/search-terms/terms/${row.concept_id}`} target="_blank"
+                    >
+                        <img height="15px" src="athena.ico" />
+                    </a>
+                </span>
+                {row.concept_id}</span>),
+            width: '110px',
             style: { paddingRight: '8px', },
         },
         {

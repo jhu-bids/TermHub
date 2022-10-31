@@ -162,7 +162,7 @@ function CsetComparisonPage(props) {
             {Object.keys(allConcepts).length} distinct concepts
           </Button>
         </h5>
-        <StatsMessage {...props} />
+        {/* <StatsMessage {...props} /> */}
         <ComparisonDataTable {...moreProps} />
       </div>)
 }

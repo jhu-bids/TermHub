@@ -157,6 +157,9 @@ function ConceptSetCard(props) {
             { researcherContent }
 
             <Typography color="text.primary" gutterBottom>
+              <a href={`https://unite.nih.gov/workspace/hubble/objects/${cset.rid}`} target="_blank">Open in Enclave</a>
+            </Typography>
+            <Typography color="text.primary" gutterBottom>
               <a href={backend_url(`cset-download?codeset_id=${cset.codeset_id}`)} target="_blank">Export JSON</a>
             </Typography>
           </CardContent>

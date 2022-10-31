@@ -189,7 +189,7 @@ function getColdefs() {
                     </Tooltip>,
             selector: row => row.approx_total_record_count.toLocaleString(),
             compact: true,
-            width: '70px',
+            width: '78px',
             center: true,
             sortable: true,
         },
