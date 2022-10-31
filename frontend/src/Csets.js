@@ -19,6 +19,7 @@ import Autocomplete from '@mui/material/Autocomplete';
 import Button from '@mui/material/Button';
 // import Chip from '@mui/material/Chip';
 import { Link, Outlet, useHref, useNavigate, useParams, useSearchParams, useLocation } from "react-router-dom";
+import { every, } from 'lodash';
 // import {isEqual, pick, uniqWith, max, omit, uniq, } from 'lodash';
 
 //TODO: How to get hierarchy data?
@@ -63,6 +64,14 @@ function CsetSearch(props) {
           options={opts}
           blurOnSelect={true}
           clearOnBlur={true}
+          filterOptions={(options, state) => {
+            let strings = state.inputValue.split(' ').filter(s => s.length);
+            if (!strings.length) {
+              return options;
+            }
+            let match = strings.map(m => new RegExp(m, 'i'))
+            return options.filter(o => every(match.map(m => o.label.match(m))))
+          }}
           sx={{ width: '100%', }}
           renderInput={(params) => <TextField {...params} label="Add concept set" />}
           onChange={(event, newValue) => {
