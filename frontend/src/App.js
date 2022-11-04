@@ -21,6 +21,13 @@ const API_ROOT = 'http://127.0.0.1:8000'
 // const enclave_url = path => `${API_ROOT}/passthru?path=${path}`
 const backend_url = path => `${API_ROOT}/${path}`
 
+/*
+  TODO: I've got some bad state stuff going on. Maybe violating this principle:
+  For example, one rule is that you should not mutate an existing state object or ref object. Doing so
+  may lead to unexpected behavior such as not triggering re-renders, triggering too many re-renders, and
+  triggering partial re-renders (meaning some components re-render while others don't when they should).
+    -- Kato, Daishi. Micro State Management with React Hooks (p. 32). Packt Publishing. Kindle Edition.
+ */
 const queryClient = new QueryClient({   // fixes constant refetch
     // https://tanstack.com/query/v4/docs/guides/window-focus-refetching
     defaultOptions: { queries: { refetchOnWindowFocus: false, }, }, })

@@ -5,10 +5,47 @@ import RemoveCircle from '@mui/icons-material/RemoveCircle';
 import {get, map, omit, pick, uniq, reduce, cloneDeepWith, isEqual, uniqWith, groupBy, } from 'lodash';
 import {fmt} from './utils';
 
+/*
+import Box from '@mui/material/Box';
+import Slider from '@mui/material/Slider';
+
+export default function SquishSlider(onChange) {
+    // not refreshing... work on later
+  function preventHorizontalKeyboardNavigation(event) {
+    if (event.key === 'ArrowLeft' || event.key === 'ArrowRight') {
+      event.preventDefault();
+    }
+  }
+
+  return (
+    <Box sx={{ height: 300 }}>
+      <Slider
+        sx={{
+            width: '30%',
+            marginLeft: '15%',
+            marginTop: '15px',
+          // '& input[type="range"]': { WebkitAppearance: 'slider-vertical', },
+        }}
+        onChange={() => (e,val) => onChange(val)}
+        // orientation="vertical"
+        min={0}
+        max={1}
+        step={.1}
+        defaultValue={0}
+        aria-label="Temperature"
+        valueLabelDisplay="auto"
+        onKeyDown={preventHorizontalKeyboardNavigation}
+      />
+    </Box>
+  );
+}
+ */
+
 function ComparisonDataTable(props) {
     const {codeset_ids=[], nested=true, makeRowData, rowData, selected_csets, } = props;
     const [columns, setColumns] = useState();
     const [collapsed, setCollapsed] = useState({});
+    // const [squish, setSquish] = useState(0);
     console.log(window.data = props);
 
     function toggleCollapse(row) {
@@ -30,6 +67,7 @@ function ComparisonDataTable(props) {
     }, [rowData, ]);
 
     const customStyles = styles();
+    // <div style={{}} > {squish} <SquishSlider onChange={setSquish}/> </div>
     return (
         /* https://react-data-table-component.netlify.app/ */
         <DataTable
@@ -111,7 +149,7 @@ function colConfig(codeset_ids, nested, selected_csets, rowData, collapsed, togg
                     }
                 },
             ],
-            // sortable: true,
+            sortable: !nested,
             compact: true,
             width: '30px',
             // maxWidth: 50,
@@ -141,7 +179,8 @@ function colConfig(codeset_ids, nested, selected_csets, rowData, collapsed, togg
                     : row.concept_name
                 return content;
             },
-            // sortable: true,
+            sortable: !nested,
+            sortable: true,
             // maxWidth: '300px',
             //  table: style: maxWidth is 85% and selected_csets are 50px, so fill
             //      the rest of the space with this column
@@ -157,24 +196,32 @@ function colConfig(codeset_ids, nested, selected_csets, rowData, collapsed, togg
         {
             name: 'Concept ID',
             selector: row => row.concept_id,
-            format: row => (
-                <span><span style={{backgroundColor: 'lightgray',}} >
-                    <a href={`https://atlas-demo.ohdsi.org/#/concept/${row.concept_id}`} target="_blank">
-                        <img height="15px" src="atlas.ico" />
-                    </a>
-                    <a href={`https://athena.ohdsi.org/search-terms/terms/${row.concept_id}`} target="_blank"
-                    >
-                        <img height="15px" src="athena.ico" />
-                    </a>
-                </span>
-                {row.concept_id}</span>),
-            width: '110px',
+            sortable: !nested,
+            width: '80px',
             style: { paddingRight: '8px', },
         },
         {
+            name: 'Concept links',
+            selector: row => row.concept_id,
+            format: row => (
+                <span style={{backgroundColor: 'lightgray', height: '20px'}} >
+                    <a href={`https://atlas-demo.ohdsi.org/#/concept/${row.concept_id}`} target="_blank">
+                        <img height="12px" src="atlas.ico" />
+                    </a>&nbsp;
+                    <a href={`https://athena.ohdsi.org/search-terms/terms/${row.concept_id}`} target="_blank"
+                    >
+                        <img height="10px" src="athena.ico" />
+                    </a>
+                </span>),
+            sortable: !nested,
+            width: '29px',
+            style: { paddingRight: '0px', },
+        },
+        {
             name: 'Patients',
-            selector: row => row.distinct_person_count,
+            selector: row => parseInt(row.distinct_person_count),
             format: row => fmt(row.distinct_person_count),
+            sortable: !nested,
             right: true,
             width: '80px',
             style: { paddingRight: '8px', },
@@ -183,6 +230,7 @@ function colConfig(codeset_ids, nested, selected_csets, rowData, collapsed, togg
             name: 'Records',
             selector: row => row.total_count,
             format: row => fmt(row.total_count),
+            sortable: !nested,
             right: true,
             width: '80px',
             style: { paddingRight: '8px', },
