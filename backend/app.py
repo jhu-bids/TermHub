@@ -391,8 +391,13 @@ def data_stuff_for_codeset_ids(codeset_ids):
     dsi.concept_set_version_item_i = ds.concept_set_version_item[ds.concept_set_version_item['codeset_id'].isin(codeset_ids)]
     flags = ['includeDescendants', 'includeMapped', 'isExcluded']
 
-    dsi.concept_set_version_item_i['item_flags'] = dsi.concept_set_version_item_i[
-      ['codeset_id', 'concept_id', *flags]].apply(lambda row: (', '.join([f for f in flags if row[f]])), axis=1)
+    dsi.concept_set_version_item_i = dsi.concept_set_version_item_i[['codeset_id', 'concept_id', *flags]]
+    # doesn't work if df is empty
+    if len(dsi.concept_set_version_item_i):
+      dsi.concept_set_version_item_i['item_flags'] = dsi.concept_set_version_item_i.apply(
+        lambda row: (', '.join([f for f in flags if row[f]])), axis=1)
+    else:
+      dsi.concept_set_version_item_i = dsi.concept_set_version_item_i.assign(item_flags='')
 
     dsi.concept_set_version_item_i = dsi.concept_set_version_item_i[['codeset_id', 'concept_id', 'item_flags']]
 

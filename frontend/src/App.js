@@ -14,13 +14,40 @@ import { // Link, useHref, useParams, BrowserRouter,
 import MuiAppBar from "./MuiAppBar";
 import { // useMutation, // useQueryClient,
           QueryClient, useQuery, useQueries, QueryClientProvider, } from '@tanstack/react-query'
+
 import axios from "axios";
 import {ConceptSetsPage, CsetComparisonPage} from "./Csets";
 import {get} from "lodash";
+import { persistQueryClient } from '@tanstack/react-query-persist-client'
+import { createSyncStoragePersister } from '@tanstack/query-sync-storage-persister'
+import { ReactQueryDevtools } from '@tanstack/react-query-devtools'
+
+
 const API_ROOT = 'http://127.0.0.1:8000'
 // const enclave_url = path => `${API_ROOT}/passthru?path=${path}`
 const backend_url = path => `${API_ROOT}/${path}`
 
+const queryClient = new QueryClient({
+  defaultOptions: {
+    queries: {
+      cacheTime: 1000 * 60 * 60 * 24, // 24 hours
+      // https://tanstack.com/query/v4/docs/guides/window-focus-refetching
+      refetchOnWindowFocus: false,
+      refetchOnmount: false,
+      refetchOnReconnect: false,
+      retry: false,
+      staleTime: 24*60*1000,
+    },
+  },
+})
+
+const localStoragePersister = createSyncStoragePersister({ storage: window.localStorage })
+// const sessionStoragePersister = createSyncStoragePersister({ storage: window.sessionStorage })
+
+persistQueryClient({
+  queryClient,
+  persister: localStoragePersister,
+})
 /*
   TODO: I've got some bad state stuff going on. Maybe violating this principle:
   For example, one rule is that you should not mutate an existing state object or ref object. Doing so
@@ -28,9 +55,6 @@ const backend_url = path => `${API_ROOT}/${path}`
   triggering partial re-renders (meaning some components re-render while others don't when they should).
     -- Kato, Daishi. Micro State Management with React Hooks (p. 32). Packt Publishing. Kindle Edition.
  */
-const queryClient = new QueryClient({   // fixes constant refetch
-    // https://tanstack.com/query/v4/docs/guides/window-focus-refetching
-    defaultOptions: { queries: { refetchOnWindowFocus: false, }, }, })
 
 /* structure is:
     <BrowserRouter>                     // from index.js root.render
@@ -49,9 +73,12 @@ const queryClient = new QueryClient({   // fixes constant refetch
 */
 function QCProvider() {
   return (
-      <QueryClientProvider client={queryClient}>
-        <QueryStringStateMgr/>
-      </QueryClientProvider>
+      <React.StrictMode>
+        <QueryClientProvider client={queryClient}>
+          <QueryStringStateMgr/>
+          <ReactQueryDevtools initialIsOpen={false} />
+        </QueryClientProvider>
+      </React.StrictMode>
   );
 }
 function QueryStringStateMgr() {
@@ -83,11 +110,9 @@ function QueryStringStateMgr() {
                  search: `?${params}`,
                });
     }
-
-    // setCodeset_ids(searchParamsAsObject.codeset_id)
-
   }, [location]);  // maybe not necessary to have location in dependencies
   const codeset_ids = searchParamsAsObject.codeset_id || [];
+  /*
   useEffect(() => {
     let props = { dataRequests: [ {url: backend_url('get-all-csets'), dataName:'all_csets'}, ]}
     props.dataRequests.push()
@@ -99,12 +124,30 @@ function QueryStringStateMgr() {
     props.dataRequests.forEach(r => console.log(r.url))
     setProps(props);
   }, [codeset_ids.join(',')])
-  return <DataContainer {...props} />
+   */
+  return <DataContainer codeset_ids={codeset_ids} cidstr={'cset_data' + codeset_ids.join(',')}/>
+}
+function axiosGet(path, backend=true) {
+  let url = backend ? backend_url(path) : path;
+  return axios.get(url).then((res) => res.data);
 }
 function DataContainer(props) {
-  console.log(props);
-  let {codeset_ids=[], dataRequests=[], } = props;
+  let {codeset_ids=[], cidstr=''} = props;
+  const { isLoading: all_csets_loading,
+          error: all_csets_error,
+          data: all_csets,
+          isFetching: all_csets_fetching
+          } = useQuery(["all_csets"], ()=>axiosGet('get-all-csets'));
+
+  const { isLoading: cset_data_loading,
+    error: cset_data_error,
+    data: cset_data,
+    isFetching: cset_data_fetching
+  } = useQuery([cidstr], // if I make cidstr here, it refetches even with no change
+               ()=>axiosGet(
+  'cr-hierarchy?rec_format=flat&codeset_id=' + codeset_ids.join('|')));
   // const requests = useDataRequests(dataRequests);
+  /*
   const results = useQueries({
                                queries: dataRequests.map(
                                    req => ({
@@ -114,6 +157,7 @@ function DataContainer(props) {
                                    })
                                )
                              })
+
   useEffect(() => {
     if (results.length > 1 && results[1].isFetched) {
       results[1].refetch();
@@ -131,8 +175,9 @@ function DataContainer(props) {
       }))
   let p = {};
   data.forEach(req => { p[req.dataName] = req.data })
-
   return  <RoutesContainer codeset_ids={codeset_ids} results={results} {...p} />
+   */
+  return  <RoutesContainer codeset_ids={codeset_ids} all_csets={all_csets} cset_data={cset_data}/>
 }
 /*
 function useDataRequests(dataRequests) {
