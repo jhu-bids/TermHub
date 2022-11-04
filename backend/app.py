@@ -508,10 +508,7 @@ def get_all_csets() -> Union[Dict, List]:
 #       and fanning out to other csets from there?
 # Example: http://127.0.0.1:8000/cr-hierarchy?codeset_id=818292046&codeset_id=484619125&codeset_id=400614256
 @APP.get("/cr-hierarchy")  # maybe junk, or maybe start of a refactor of above
-def cr_hierarchy(
-    rec_format: str='default',
-    codeset_id: Union[str, None] = Query(default=''),
-) -> Dict:
+def cr_hierarchy( rec_format: str='default', codeset_id: Union[str, None] = Query(default=''), ) -> Dict:
 
     # print(ds) uncomment just to put ds in scope for looking at in debugger
     requested_codeset_ids = parse_codeset_ids(codeset_id)
