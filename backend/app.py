@@ -558,7 +558,9 @@ def get_researcher(uid):
 
 @cache
 def get_container(concept_set_name):
-  return make_read_request(f'objects/OMOPConceptSetContainer/{urllib.parse.quote(concept_set_name)}')
+    """This is for getting the RID of a dataset. This is available via the ontology API, not the dataset API.
+    TODO: This needs caching, but the @cache decorator is not working."""
+    return make_read_request(f'objects/OMOPConceptSetContainer/{urllib.parse.quote(concept_set_name)}')
 
 # todo: Some redundancy. (i) should only need concept_set_name once
 class UploadNewCsetVersionWithConcepts(BaseModel):

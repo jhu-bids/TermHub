@@ -129,6 +129,7 @@ function QueryStringStateMgr() {
 }
 function axiosGet(path, backend=true) {
   let url = backend ? backend_url(path) : path;
+  console.log('axiosGet url: ', url);
   return axios.get(url).then((res) => res.data);
 }
 function DataContainer(props) {
