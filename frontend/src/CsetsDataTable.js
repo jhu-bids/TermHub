@@ -12,6 +12,7 @@ import {Tooltip} from './Tooltip';
 // https://react-data-table-component.netlify.app/?path=/docs/api-custom-styles--page
 //  Internally, customStyles will deep merges your customStyles with the default styling.
 
+/* TODO: review function for appropriate state management */
 function CsetsDataTable(props) {
     const {codeset_ids=[], all_csets=[], cset_data={}} = props;
     const {selected_csets, } = cset_data;
@@ -21,7 +22,7 @@ function CsetsDataTable(props) {
     useEffect(() => {
         // props.csetData.relatedCsets.forEach(rc => rc.selected = codeset_ids.includes(rc.codeset_id))
         const rcsets = orderBy(get(props, 'cset_data.related_csets', []), ['selected', 'precision'], ['desc', 'desc'])
-        console.log({props, rcsets});
+        // console.log({props, rcsets});
         setRelatedCsets(rcsets);
     }, [codeset_ids.join(','), selected_csets.length])
     let coldefs = getColdefs();
@@ -43,7 +44,7 @@ function CsetsDataTable(props) {
         const {selectedRows} = state;
         let ids = selectedRows.map(d => d.codeset_id).sort()
         if (!isEqual(props.codeset_ids, ids)) {
-            console.log(`try to change qs[codeset_id] from ${codeset_ids} to ${ids}`)
+            // console.log(`try to change qs[codeset_id] from ${codeset_ids} to ${ids}`)
             setSearchParams({codeset_id: ids, });
         }
         // setSelectedRows(selectedRows);

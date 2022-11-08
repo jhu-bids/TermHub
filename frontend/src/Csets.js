@@ -1,31 +1,16 @@
-/*
-TODO's
-  1. todo: Page state refresh should not be 'on window focus', but on autocomplete widget selection
-  2. todo: later: associated concepts: show them the concepts associated with the concept sets they've selected
-  3. todo: later: intensionality: also show them concept version items (intensional). but once we've got more than one cset
-      selected, start doing comparison stuff
-
-*/
 import React, {useState, useEffect, /* useReducer, useRef, */} from 'react';
-// import {useQuery} from "@tanstack/react-query";
-// import {Table, ComparisonTable} from "./Table";
 import {ComparisonDataTable} from "./ComparisonDataTable";
 import {CsetsDataTable, } from "./CsetsDataTable";
 import {StatsMessage} from "./utils";
 import ConceptSetCards from "./ConceptSetCard";
-// import {ReactQueryDevtools} from "@tanstack/react-query-devtools";
 import TextField from '@mui/material/TextField';
 import Autocomplete from '@mui/material/Autocomplete';
 import Button from '@mui/material/Button';
 // import Chip from '@mui/material/Chip';
-import { Link, Outlet, useHref, useNavigate, useParams, useSearchParams, useLocation } from "react-router-dom";
+import { Link, Outlet, useHref, useParams, useSearchParams, useLocation } from "react-router-dom";
 import { every, } from 'lodash';
 // import {isEqual, pick, uniqWith, max, omit, uniq, } from 'lodash';
 
-//TODO: How to get hierarchy data?
-// - It's likely in one of the datasets we haven't downloaded yet. When we get it, we can do indents.
-
-/* CsetSEarch: Grabs stuff from disk*/
 /* TODO: Solve
     react_devtools_backend.js:4026 MUI: The value provided to Autocomplete is invalid.
     None of the options match with `[{"label":"11-Beta Hydroxysteroid Dehydrogenase Inhibitor","codeset_id":584452082},{"label":"74235-3 (Blood type)","codeset_id":761463499}]`.
@@ -44,7 +29,7 @@ function CsetSearch(props) {
     }
     // need to include codeset_id in label because there are sometimes two csets with same name
     //  and same version number, and label acts as key
-    const opts = (
+    const _opts = (
         all_csets
             .filter(d => !codeset_ids.includes(d.codeset_id))
             .map(d => ({
@@ -52,8 +37,8 @@ function CsetSearch(props) {
                   `${d.archived ? 'archived' : ''} (${d.concepts} concepts)`,
               id: d.codeset_id,
             })));
-    console.log({autocomplete_value: autocomplete.value, opts});
-    setOpts(opts);
+    console.log({autocomplete_value: autocomplete.value, _opts});
+    setOpts(_opts);
   }, [codeset_ids.length, all_csets.length])
 
   const autocomplete = (
@@ -89,7 +74,6 @@ function CsetSearch(props) {
 function ConceptSetsPage(props) {
   const {codeset_ids=[], cset_data={}} = props;
   const {selected_csets=[], } = cset_data;
-  let navigate = useNavigate();
 
   return (
       <div style={{}}>
@@ -112,6 +96,7 @@ function CsetComparisonPage(props) {
   const [nested, setNested] = useState(true);
   const [rowData, setRowData] = useState([]);
 
+  /* TODO: review function for appropriate state management */
   useEffect(() => {
     makeRowData();
   }, [codeset_ids.length, concepts.length]);
@@ -128,11 +113,11 @@ function CsetComparisonPage(props) {
     if (!nested) {
       setRowData(Object.values(allConcepts));
     }
-    let rowData = [];
+    let _rowData = [];
     let traverse = (o, path=[], level=0) => {
       Object.keys(o).forEach(k => {
         let row = {...allConcepts[k], level, path: [...path, k]};
-        rowData.push(row);
+        _rowData.push(row);
         if (o[k] && typeof(o[k] === 'object')) {
           row.has_children = true;
           if (!collapsed[row.path]) {
@@ -141,17 +126,16 @@ function CsetComparisonPage(props) {
         }
       })
     }
-    console.log('start traverse')
     traverse(hierarchy)
-    console.log('just after traverse', {rowData});
-    setRowData(rowData);
+    // console.log('just after traverse', {_rowData});
+    setRowData(_rowData);
   }
   function toggleNested() {
     setNested(!nested);
     makeRowData({});
   }
   let moreProps = {...props, nested, makeRowData, rowData, selected_csets, };
-  console.log({moreProps});
+  // console.log({moreProps});
   return (
       <div>
         <h5 style={{margin:20, }}>

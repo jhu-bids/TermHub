@@ -46,7 +46,7 @@ function ComparisonDataTable(props) {
     const [columns, setColumns] = useState();
     const [collapsed, setCollapsed] = useState({});
     // const [squish, setSquish] = useState(0);
-    console.log(window.data = props);
+    // console.log(window.data = props);
 
     function toggleCollapse(row) {
         collapsed[row.path] = !get(collapsed, row.path);
@@ -58,11 +58,11 @@ function ComparisonDataTable(props) {
         if (!selected_csets.length) {
             return;
         }
-        console.log('makeRowData because', {selected_csets});
+        // console.log('makeRowData because', {selected_csets});
         makeRowData({});
     }, [selected_csets.length, ]);
     useEffect(() => {
-        console.log('selColumns because', {rowData});
+        // console.log('setColumns because', {rowData});
         setColumns(colConfig(codeset_ids, nested, selected_csets, rowData, collapsed, toggleCollapse, ));
     }, [rowData, ]);
 
@@ -110,13 +110,13 @@ function getCbStates(csets, nodups) {
 }
 */
 function colConfig(codeset_ids, nested, selected_csets, rowData, collapsed, toggleCollapse, ) {
-    console.log('setting coldefs');
+    // console.log('setting coldefs');
     /*
     let checkboxChange = (codeset_id, concept_id) => (evt, state) => {
-        console.log({codeset_id, concept_id, state});
+        // console.log({codeset_id, concept_id, state});
         let url = backend_url(`modify-cset?codeset_id=${codeset_id}&concept_id=${concept_id}&state=${state}`);
         axios.get(url).then((res) => {
-            console.log({url, res});
+            // console.log({url, res});
             return res.data
         })
     }
@@ -241,7 +241,7 @@ function colConfig(codeset_ids, nested, selected_csets, rowData, collapsed, togg
         delete coldefs[0].conditionalCellStyles;
     }
     return coldefs;
-    console.log('done setting coldefs');
+    // console.log('done setting coldefs');
 
 }
 // createTheme creates a new theme named solarized that overrides the build in dark theme
