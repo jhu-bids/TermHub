@@ -12,6 +12,10 @@ OUTPUT_DIR = os.path.join(PROJECT_ROOT, 'output')
 ENV_FILE = os.path.join(ENV_DIR, '.env')
 TERMHUB_CSETS_DIR = os.path.join(PROJECT_ROOT, 'termhub-csets')
 UPLOADS_DIR = os.path.join(TERMHUB_CSETS_DIR, 'datasets', 'uploads')
+OUTDIR_OBJECTS = os.path.join(TERMHUB_CSETS_DIR, 'objects')
+OUTDIR_DATASETS = os.path.join(TERMHUB_CSETS_DIR, 'datasets')
+OUTDIR_DATASETS_DOWNLOADED = os.path.join(OUTDIR_DATASETS, 'downloads')
+OUTDIR_DATASETS_TRANSFORMED = os.path.join(OUTDIR_DATASETS, 'prepped_files')
 CSET_UPLOAD_REGISTRY_PATH = os.path.join(UPLOADS_DIR, 'cset_upload_registry.csv')
 
 # CSET_VERSION_MIN_ID: For concept set versions we are uploading, we can assign our own ID. Must be higher than this num
@@ -45,6 +49,16 @@ if missing_env_vars:
         f'{", ".join(missing_env_vars)}\n'
         f'{cause_msg}')
 
+FAVORITE_OBJECTS = [
+    # 'CodeSystemConceptSetVersionExpressionItem',
+    # {'errorCode': 'INVALID_ARGUMENT', 'errorName': 'ObjectsExceededLimit', 'errorInstanceId':
+    # '693c5f19-df1f-487e-afb9-ea6c6adb8996', 'parameters': {}}
+    'OMOPConcept',
+    'OMOPConceptSet',
+    'OMOPConceptSetContainer',
+    'OmopConceptSetVersionItem',
+    'researcher'
+]
 # Ordered because of transformation dependencies
 FAVORITE_DATASETS = OrderedDict({
     # apparently concept_set_container has a lot more rows than concept_set_container_edited. not sure

@@ -7,39 +7,56 @@ import json
 import os
 from pathlib import Path
 from subprocess import call as sp_call
-from typing import Any, Dict, List, Union, Callable, Set
+from typing import Any, Dict, List, Union, Set
 from functools import cache
 
 import numpy as np
 import pandas as pd
 import uvicorn
-from fastapi import FastAPI, Query, Response
+import urllib.parse
+from fastapi import FastAPI, Query
 from fastapi.middleware.cors import CORSMiddleware
 from fastapi.middleware.gzip import GZipMiddleware
 from pydantic import BaseModel
-import urllib.parse
 
+from enclave_wrangler.config import OUTDIR_DATASETS_TRANSFORMED, OUTDIR_OBJECTS
 from enclave_wrangler.dataset_upload import upload_new_container_with_concepts, upload_new_cset_version_with_concepts
 from enclave_wrangler.datasets import run_favorites as update_termhub_csets
 from enclave_wrangler.new_enclave_api import make_read_request
 
+
 DEBUG = True
 PROJECT_DIR = Path(os.path.dirname(__file__)).parent
-CSV_PATH = f'{PROJECT_DIR}/termhub-csets/datasets/prepped_files/'
+# GLOBAL_DATASET_NAMES = list(FAVORITE_DATASETS.keys()) + ['concept_relationship_is_a']
+GLOBAL_DATASET_NAMES = [
+    'concept_set_members',
+    'concept',
+    'concept_relationship_subsumes_only',
+    'concept_set_container',
+    'code_sets',
+    'concept_set_version_item',
+    'deidentified_term_usage_by_domain_clamped',
+    'concept_set_counts_clamped'
+]
+GLOBAL_OBJECT_DATASET_NAMES = [
+    'researcher'
+]
 DS = None  # Contains all the datasets as a dict
-ds = None  # Contains all datasets, transformed datasets, and a few functions as a nameespace
+DS2 = None  # Contains all datasets, transformed datasets, and a few functions as a namespace
 
-def load_dataset(ds_name):
+
+# Globals --------------------------------------------------------------------------------------------------------------
+def load_dataset(ds_name, is_object=False) -> pd.DataFrame:
+    """Load a local dataset CSV as a pandas DF"""
+    csv_dir = OUTDIR_DATASETS_TRANSFORMED if not is_object else os.path.join(OUTDIR_OBJECTS, ds_name)
+    path = os.path.join(csv_dir, ds_name + '.csv') if not is_object else os.path.join(csv_dir, 'latest.csv')
+    print(f'loading: {path}')
     try:
-        path = os.path.join(CSV_PATH, ds_name + '.csv')
-        print(f'loading {path}')
         ds = pd.read_csv(path, keep_default_na=False)
-        return ds
-    except FileNotFoundError as err:
-        raise err
     except Exception as err:
         print(f'failed loading {path}')
         raise err
+    return ds
 
 
 class Bunch(object):    # dictionary to namespace, a la https://stackoverflow.com/a/2597440/1368860
@@ -327,27 +344,18 @@ def load_globals():
             # .set_index('concept_id')
     )
     print('Done building global ds objects')
+
     return ds
 
 # todo: consider: run 2 backend servers, 1 to hold the data and 1 to service requests / logic? probably.
 # TODO: #2: remove try/except when git lfs fully set up
-# try:
 # todo: temp until we decide if this is the correct way
-
-# dataset_names = list(FAVORITE_DATASETS.keys()) + ['concept_relationship_is_a']
-
-dataset_names = ['concept_set_members',
-                 'concept',
-                 'concept_relationship_subsumes_only',
-                 'concept_set_container',
-                 'code_sets',
-                 'concept_set_version_item',
-                 'deidentified_term_usage_by_domain_clamped',
-                 'concept_set_counts_clamped']
-
 try:
-    DS = {name: load_dataset(name) for name in dataset_names}
-    ds = load_globals()
+    DS = {
+        **{name: load_dataset(name) for name in GLOBAL_DATASET_NAMES},
+        **{name: load_dataset(name, is_object=True) for name in GLOBAL_OBJECT_DATASET_NAMES},
+    }
+    DS2 = load_globals()
     #  TODO: Fix this warning? (Joe: doing so will help load faster, actually)
     #   DtypeWarning: Columns (4) have mixed types. Specify dtype option on import or set low_memory=False.
     #   keep_default_na fixes some or all the warnings, but doesn't manage dtypes well.
@@ -358,12 +366,17 @@ try:
     #                   keep_default_na=False)
 except FileNotFoundError:
     # todo: what if they haven't downloaded? maybe need to ls files and see if anything needs to be downloaded first
+    # TODO: objects should be updated too
     update_termhub_csets(transforms_only=True)
-    DS = {name: load_dataset(name) for name in dataset_names}
-    ds = load_globals()
+    DS = {
+        **{name: load_dataset(name) for name in GLOBAL_DATASET_NAMES},
+        **{name: load_dataset(name, is_object=True) for name in GLOBAL_OBJECT_DATASET_NAMES},
+    }
+    DS2 = load_globals()
 print(f'Favorite datasets loaded: {list(DS.keys())}')
 
 
+# Utility functions ----------------------------------------------------------------------------------------------------
 # @cache
 def data_stuff_for_codeset_ids(codeset_ids):
     """
@@ -384,13 +397,12 @@ def data_stuff_for_codeset_ids(codeset_ids):
 
     print(f'data_stuff_for_codeset_ids({codeset_ids})')
 
-    dsi.code_sets_i = ds.code_sets[ds.code_sets['codeset_id'].isin(codeset_ids)]
-
-    dsi.concept_set_members_i = ds.concept_set_members[ds.concept_set_members['codeset_id'].isin(codeset_ids)]
-
-    dsi.concept_set_version_item_i = ds.concept_set_version_item[ds.concept_set_version_item['codeset_id'].isin(codeset_ids)]
+    # Vocab table data
+    dsi.code_sets_i = DS2.code_sets[DS2.code_sets['codeset_id'].isin(codeset_ids)]
+    dsi.concept_set_members_i = DS2.concept_set_members[DS2.concept_set_members['codeset_id'].isin(codeset_ids)]
+    # - version items
+    dsi.concept_set_version_item_i = DS2.concept_set_version_item[DS2.concept_set_version_item['codeset_id'].isin(codeset_ids)]
     flags = ['includeDescendants', 'includeMapped', 'isExcluded']
-
     dsi.concept_set_version_item_i = dsi.concept_set_version_item_i[['codeset_id', 'concept_id', *flags]]
     # doesn't work if df is empty
     if len(dsi.concept_set_version_item_i):
@@ -398,32 +410,30 @@ def data_stuff_for_codeset_ids(codeset_ids):
         lambda row: (', '.join([f for f in flags if row[f]])), axis=1)
     else:
       dsi.concept_set_version_item_i = dsi.concept_set_version_item_i.assign(item_flags='')
-
     dsi.concept_set_version_item_i = dsi.concept_set_version_item_i[['codeset_id', 'concept_id', 'item_flags']]
-
+    # - cset member items
     dsi.cset_members_items = \
       dsi.concept_set_members_i.assign(csm=True).merge(
         dsi.concept_set_version_item_i.assign(item=True),
         on=['codeset_id', 'concept_id'], how='outer', suffixes=['_l','_r']
       ).fillna({'item_flags': '', 'csm': False, 'item': False})
 
+    # - selected csets and relationships
     selected_concept_ids: Set[int] = set.union(set(dsi.cset_members_items.concept_id))
-
-    dsi.concept_relationship_i = ds.concept_relationship[
-        (ds.concept_relationship.concept_id_1.isin(selected_concept_ids)) &
-        (ds.concept_relationship.concept_id_2.isin(selected_concept_ids)) &
-        (ds.concept_relationship.concept_id_1 != ds.concept_relationship.concept_id_2)
+    dsi.concept_relationship_i = DS2.concept_relationship[
+        (DS2.concept_relationship.concept_id_1.isin(selected_concept_ids)) &
+        (DS2.concept_relationship.concept_id_2.isin(selected_concept_ids)) &
+        (DS2.concept_relationship.concept_id_1 != DS2.concept_relationship.concept_id_2)
         # & (ds.concept_relationship.relationship_id == 'Subsumes')
         ]
 
     # Get related codeset IDs
-    related_codeset_ids: Set[int] = set(ds.concept_set_members[
-        ds.concept_set_members.concept_id.isin(selected_concept_ids)].codeset_id)
-
+    related_codeset_ids: Set[int] = set(DS2.concept_set_members[
+        DS2.concept_set_members.concept_id.isin(selected_concept_ids)].codeset_id)
     dsi.related_csets = (
-      ds.all_csets[ds.all_csets['codeset_id'].isin(related_codeset_ids)]
-        .merge(ds.concept_set_members, on='codeset_id')
-        .groupby(list(ds.all_csets.columns))['concept_id']
+      DS2.all_csets[DS2.all_csets['codeset_id'].isin(related_codeset_ids)]
+        .merge(DS2.concept_set_members, on='codeset_id')
+        .groupby(list(DS2.all_csets.columns))['concept_id']
         .agg(intersecting_concepts=lambda x: len(set(x).intersection(selected_concept_ids)))
         .reset_index()
         .convert_dtypes({'intersecting_concept_ids': 'int'})
@@ -432,19 +442,20 @@ def data_stuff_for_codeset_ids(codeset_ids):
                 selected= lambda row: row.codeset_id.isin(codeset_ids))
         .sort_values(by=['selected', 'concepts'], ascending=False)
     )
-
-    researcher_cols = ['created_by_container', 'created_by_version',
-                       'assigned_sme', 'reviewed_by', 'n3c_reviewer',
-                       'assigned_informatician', ]
-
     dsi.selected_csets = dsi.related_csets[dsi.related_csets['codeset_id'].isin(codeset_ids)]
 
-    # works but is currently too slow. commenting out till ready to make faster
-    # researchers = []
-    # for (i, row) in dsi.selected_csets.iterrows():
-    #   researchers.append({col: get_researcher(row[col]) for col in researcher_cols if row[col]})
-    # dsi.selected_csets['researchers'] = researchers
+    # Researchers
+    researcher_cols = ['created_by_container', 'created_by_version', 'assigned_sme', 'reviewed_by', 'n3c_reviewer',
+                       'assigned_informatician']
+    researcher_ids = []
+    for i, row in dsi.selected_csets.iterrows():
+      for _id in [row[col] for col in researcher_cols if hasattr(row, col) and row[col]]:
+        researcher_ids.append(_id)
+    researcher_ids: List[str] = list(set(researcher_ids))
+    researchers: List[Dict] = DS2.researcher[DS2.researcher['multipassId'].isin(researcher_ids)].to_dict(orient='records')
+    dsi.selected_csets['researchers'] = researchers
 
+    # Selected cset RIDs
     dsi.selected_csets['rid'] = [get_container(name)['rid'] for name in dsi.selected_csets.concept_set_name]
 
     # Get relationships for selected code sets
@@ -481,6 +492,7 @@ def parse_codeset_ids(qstring):
     requested_codeset_ids = [int(x) for x in requested_codeset_ids]
     return requested_codeset_ids
 
+# Routes ---------------------------------------------------------------------------------------------------------------
 APP = FastAPI()
 APP.add_middleware(
     CORSMiddleware,
@@ -501,7 +513,7 @@ def read_root():
 
 @APP.get("/get-all-csets")
 def get_all_csets() -> Union[Dict, List]:
-  smaller = ds.all_csets[['codeset_id', 'concept_set_version_title', 'concepts']]
+  smaller = DS2.all_csets[['codeset_id', 'concept_set_version_title', 'concepts']]
   return smaller.to_dict(orient='records')
 
 
@@ -525,7 +537,7 @@ def cr_hierarchy( rec_format: str='default', codeset_id: Union[str, None] = Quer
     cids = set([])
     if c:
         cids = set([int(str(k).split('.')[-1]) for k in pd.json_normalize(c).to_dict(orient='records')[0].keys()])
-    concepts = ds.concept[ds.concept.concept_id.isin(cids.union(set(dsi.cset_members_items.concept_id)))]
+    concepts = DS2.concept[DS2.concept.concept_id.isin(cids.union(set(dsi.cset_members_items.concept_id)))]
 
     result = {
               # 'all_csets': dsi.all_csets.to_dict(orient='records'),
@@ -545,16 +557,12 @@ def cr_hierarchy( rec_format: str='default', codeset_id: Union[str, None] = Quer
 def cset_download(codeset_id: int) -> Dict:
   dsi = data_stuff_for_codeset_ids([codeset_id])
 
-  concepts = ds.concept[ds.concept.concept_id.isin(set(dsi.cset_members_items.concept_id))]
-  cset = ds.all_csets[ds.all_csets.codeset_id == codeset_id].to_dict(orient='records')[0]
+  concepts = DS2.concept[DS2.concept.concept_id.isin(set(dsi.cset_members_items.concept_id))]
+  cset = DS2.all_csets[DS2.all_csets.codeset_id == codeset_id].to_dict(orient='records')[0]
   cset['concept_count'] = cset['concepts']
   cset['concepts'] = concepts.to_dict(orient='records')
   return cset
 
-
-@cache
-def get_researcher(uid):
-  return make_read_request(f'objects/researcher/{uid}')
 
 @cache
 def get_container(concept_set_name):
