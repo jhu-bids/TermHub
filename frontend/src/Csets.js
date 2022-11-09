@@ -1,14 +1,14 @@
 import React, {useState, useEffect, /* useReducer, useRef, */} from 'react';
 import {ComparisonDataTable} from "./ComparisonDataTable";
 import {CsetsDataTable, } from "./CsetsDataTable";
-import {StatsMessage} from "./utils";
+import {searchParamsToObj, StatsMessage} from "./utils";
 import ConceptSetCards from "./ConceptSetCard";
 import TextField from '@mui/material/TextField';
 import Autocomplete from '@mui/material/Autocomplete';
 import Button from '@mui/material/Button';
 // import Chip from '@mui/material/Chip';
 import { Link, Outlet, useHref, useParams, useSearchParams, useLocation } from "react-router-dom";
-import { every, } from 'lodash';
+import { every, get, isEmpty, } from 'lodash';
 // import {isEqual, pick, uniqWith, max, omit, uniq, } from 'lodash';
 
 /* TODO: Solve
@@ -18,32 +18,26 @@ import { every, } from 'lodash';
     @ SIggie: is this fixed?
 */
 function CsetSearch(props) {
-  const {codeset_ids=[], all_csets=[], cset_data={}} = props;
-  // const {selected_csets} = cset_data;
-  const [opts, setOpts] = useState([]);
-  const [searchParams, setSearchParams] = useSearchParams();
+  const {codeset_ids, changeCodesetIds, all_csets=[], cset_data={}} = props;
 
-  useEffect(() => {
-    if (! all_csets.length) {
-      return;
-    }
-    // need to include codeset_id in label because there are sometimes two csets with same name
-    //  and same version number, and label acts as key
-    const _opts = (
-        all_csets
-            .filter(d => !codeset_ids.includes(d.codeset_id))
-            .map(d => ({
-              label: `${d.codeset_id} - ${d.concept_set_version_title} ` +
-                  `${d.archived ? 'archived' : ''} (${d.concepts} concepts)`,
-              id: d.codeset_id,
-            })));
-    console.log({autocomplete_value: autocomplete.value, _opts});
-    setOpts(_opts);
-  }, [codeset_ids.length, all_csets.length])
+  const [keyForRefreshingAutocomplete, setKeyForRefreshingAutocomplete] = useState(0);
+  // necessary to change key for reset because of Autocomplete bug, according to https://stackoverflow.com/a/59845474/1368860
 
+  if (! all_csets.length) {
+    return <span/>;
+  }
+  const opts = (
+      all_csets
+          .filter(d => !codeset_ids.includes(d.codeset_id))
+          .map(d => ({
+            label: `${d.codeset_id} - ${d.concept_set_version_title} ` +
+                `${d.archived ? 'archived' : ''} (${d.concepts} concepts)`,
+            id: d.codeset_id,
+          })));
   const autocomplete = (
       // https://mui.com/material-ui/react-autocomplete/
       <Autocomplete
+          key={keyForRefreshingAutocomplete}
           disablePortal
           id="add-codeset-id"
           options={opts}
@@ -60,7 +54,8 @@ function CsetSearch(props) {
           sx={{ width: '100%', }}
           renderInput={(params) => <TextField {...params} label="Add concept set" />}
           onChange={(event, newValue) => {
-            setSearchParams({codeset_id: [...codeset_ids, newValue.id]})
+            changeCodesetIds(newValue.id, 'add');
+            setKeyForRefreshingAutocomplete(k => k+1);
           }}
       />);
   return (
@@ -72,16 +67,15 @@ function CsetSearch(props) {
 }
 
 function ConceptSetsPage(props) {
-  const {codeset_ids=[], cset_data={}} = props;
-  const {selected_csets=[], } = cset_data;
-
+  const noSelectedCsets = ! get(props, 'cset_data.selected_csets', []).length;
+  if (noSelectedCsets) {
+    return <div style={{}}><CsetSearch {...props} /></div>;
+  }
   return (
       <div style={{}}>
         <CsetSearch {...props} />
-        { selected_csets.length ? <CsetsDataTable {...props} /> : ''}
-        { selected_csets.length ? <ConceptSetCards {...props} /> : ''}
-        { /* todo: Create component: <ConceptSetsPanels> */ }
-        {/*<p>I am supposed to be the results of <a href={url}>{url}</a></p>*/}
+        { <CsetsDataTable {...props} /> }
+        { <ConceptSetCards {...props} /> }
       </div>)
 }
 
@@ -110,6 +104,9 @@ function CsetComparisonPage(props) {
   cset_members_items.forEach(d => allConcepts[d.concept_id].checkboxes[d.codeset_id] = d);
 
   function makeRowData(collapsed={}) {
+    if (isEmpty(allConcepts)) {
+      return;
+    }
     if (!nested) {
       setRowData(Object.values(allConcepts));
     }

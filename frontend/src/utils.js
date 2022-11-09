@@ -15,4 +15,15 @@ function StatsMessage(props) {
     below if you want to add to the above list.</p>
 }
 
-export {pct_fmt, fmt, StatsMessage, };
+function searchParamsToObj(searchParams) {
+  const qsKeys = Array.from(new Set(searchParams.keys()));
+  let searchParamsAsObject = {};
+  qsKeys.forEach(key => {
+    let vals = searchParams.getAll(key);
+    searchParamsAsObject[key] = vals.map(v => parseInt(v) == v ? parseInt(v) : v).sort();
+  });
+  searchParamsAsObject.codeset_ids = searchParamsAsObject.codeset_id;
+  delete searchParamsAsObject.codeset_id;
+  return searchParamsAsObject;
+}
+export {pct_fmt, fmt, StatsMessage, searchParamsToObj, };

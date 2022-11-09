@@ -10,17 +10,17 @@ import React, {useState, useReducer, useEffect, useRef} from 'react';
 import './App.css';
 import { // Link, useHref, useParams, BrowserRouter,
           Outlet, Navigate, useSearchParams, useLocation,
-          createSearchParams, Routes, Route, } from "react-router-dom";
+          createSearchParams, Routes, Route, redirect, } from "react-router-dom";
 import MuiAppBar from "./MuiAppBar";
 import { // useMutation, // useQueryClient,
           QueryClient, useQuery, useQueries, QueryClientProvider, } from '@tanstack/react-query'
-
 import axios from "axios";
-import {ConceptSetsPage, CsetComparisonPage} from "./Csets";
-import {get} from "lodash";
-import { persistQueryClient } from '@tanstack/react-query-persist-client'
+import {isEqual} from "lodash";
+import { persistQueryClient, removeOldestQuery,} from '@tanstack/react-query-persist-client'
 import { createSyncStoragePersister } from '@tanstack/query-sync-storage-persister'
 import { ReactQueryDevtools } from '@tanstack/react-query-devtools'
+import {ConceptSetsPage, CsetComparisonPage} from "./Csets";
+import {searchParamsToObj} from "./utils";
 
 
 const API_ROOT = 'http://127.0.0.1:8000'
@@ -36,7 +36,7 @@ const queryClient = new QueryClient({
       refetchOnmount: false,
       refetchOnReconnect: false,
       retry: false,
-      staleTime: 24*60*1000,
+      staleTime: Infinity,
     },
   },
 })
@@ -47,6 +47,8 @@ const localStoragePersister = createSyncStoragePersister({ storage: window.local
 persistQueryClient({
   queryClient,
   persister: localStoragePersister,
+  retry: removeOldestQuery,
+  maxAge: Infinity,
 })
 /*
   TODO: I've got some bad state stuff going on. Maybe violating this principle:
@@ -82,19 +84,40 @@ function QCProvider() {
       </React.StrictMode>
   );
 }
-function QueryStringStateMgr({location}) {
+function QueryStringStateMgr(props) {
+  const {location} = props;
+  const [searchParams, setSearchParams ] = useSearchParams();
   // gets state (codeset_ids for now) from query string, passes down through props
+  const sp = searchParamsToObj(searchParams);
+  const [codeset_ids, setCodeset_ids] = useState(sp.codeset_ids || []);
+  // console.log(props);
 
-  const [searchParams, /* setSearchParams */] = useSearchParams();
-  const [props, setProps] = useState({});
-  const qsKeys = Array.from(new Set(searchParams.keys()));
-  let searchParamsAsObject = {};
-  qsKeys.forEach(key => {
-    let vals = searchParams.getAll(key);
-    searchParamsAsObject[key] = vals.map(v => parseInt(v) == v ? parseInt(v) : v).sort();
-  });
+  useEffect(() => {
+    if (sp.codeset_ids && !isEqual(codeset_ids, sp.codeset_ids)) {
+      setCodeset_ids(sp.codeset_ids);
+    }
+  }, [searchParams]);
 
-  // const [codeset_ids, setCodeset_ids] = useState(searchParamsAsObject.codeset_id || []);
+  function changeCodesetIds(codeset_id, how) {
+    // how = add | remove | toggle
+    const included = codeset_ids.includes(codeset_id);
+    let action = how;
+    if (how == 'add' && included) return;
+    if (how == 'remove' && !included) return;
+    if (how == 'toggle') {
+      action = included ? 'remove' : 'add';
+    }
+    let params;
+    if (action == 'add') {
+      params = createSearchParams({codeset_id: [...codeset_ids, codeset_id]});
+    } else if (action == 'remove') {
+      if (!included) return;
+      params = createSearchParams({codeset_id: codeset_ids.filter(d => d != codeset_id)});
+    } else {
+      throw 'unrecognized action in changeCodesetIds: ' + JSON.stringify({how, codeset_id});
+    }
+    setSearchParams(params);
+  }
 
   if (location.pathname == '/') {
     return <Navigate to='/OMOPConceptSets' />;
@@ -103,10 +126,16 @@ function QueryStringStateMgr({location}) {
   if (location.pathname == '/testing') {
     const test_codeset_ids = [400614256, 411456218, 419757429, 484619125, ];
     let params = createSearchParams({codeset_id: test_codeset_ids});
-    return <Navigate pathname='/cset-comparison' search={`?${params}`} />;
+    // setSearchParams(params);
+    let url = '/cset-comparison?' + params;
+    // return redirect(url); not exported even though it's in the docs
+    return <Navigate to={url}
+                     replace={true} /* what does this do? */ />;
   }
-  const codeset_ids = searchParamsAsObject.codeset_id || [];
-  return <DataContainer codeset_ids={codeset_ids} cidstr={'cset_data' + codeset_ids.join(',')}/>
+  return <DataContainer /* searchParams={searchParams}*/
+                        codeset_ids={codeset_ids}
+                        changeCodesetIds={changeCodesetIds}
+                        />;
 }
 function axiosGet(path, backend=true) {
   let url = backend ? backend_url(path) : path;
@@ -114,24 +143,30 @@ function axiosGet(path, backend=true) {
   return axios.get(url).then((res) => res.data);
 }
 function DataContainer(props) {
-  let {codeset_ids=[], cidstr=''} = props;
+  let {codeset_ids, } = props;
+  const all_csets_url = 'get-all-csets';
+  const cset_data_url = 'cr-hierarchy?rec_format=flat&codeset_id=' + codeset_ids.join('|');
   const { isLoading: all_csets_loading,
           error: all_csets_error,
           data: all_csets,
           isFetching: all_csets_fetching
-          } = useQuery(["all_csets"], ()=>axiosGet('get-all-csets'));
+          } = useQuery(["all_csets"], ()=>axiosGet(all_csets_url));
 
   const { isLoading: cset_data_loading,
     error: cset_data_error,
     data: cset_data,
     isFetching: cset_data_fetching
-  } = useQuery([cidstr], // if I make cidstr here, it refetches even with no change
-               ()=>axiosGet(
-  'cr-hierarchy?rec_format=flat&codeset_id=' + codeset_ids.join('|')));
-  return  <RoutesContainer codeset_ids={codeset_ids} all_csets={all_csets} cset_data={cset_data}/>
+  } = useQuery([codeset_ids.join('|')],
+               ()=>axiosGet(cset_data_url));
+
+  // console.log({all_csets_fetching, all_csets_loading, all_csets_error, all_csets});
+  // console.log({cset_data_fetching, cset_data_loading, cset_data_error, cset_data, cset_data_url});
+  return  <RoutesContainer {...props} all_csets={all_csets} cset_data={cset_data}/>
 }
 function RoutesContainer(props) {
-  // console.log(props)
+  // const {codeset_ids, all_csets=[], cset_data={}} = props;
+  // const {selected_csets} = cset_data;
+  // console.log({codeset_ids, selected_csets, all: all_csets.length});
   return (
       <Routes>
         <Route path="/" element={<App {...props} />}>
