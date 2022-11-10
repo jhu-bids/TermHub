@@ -10,17 +10,17 @@ TODO's
 import json
 import os
 from argparse import ArgumentParser
-from datetime import datetime
 from typing import List, Dict, Callable
 
 import pandas as pd
+from requests import Response
 from typeguard import typechecked
 
 import requests
 # import pyarrow as pa
 # import asyncio
 
-from enclave_wrangler.config import config, TERMHUB_CSETS_DIR
+from enclave_wrangler.config import FAVORITE_OBJECTS, OUTDIR_OBJECTS, config, TERMHUB_CSETS_DIR
 
 # from enclave_wrangler.utils import log_debug_info
 
@@ -32,7 +32,6 @@ HEADERS = {
     #'content-type': 'application/json'
 }
 DEBUG = False
-# TARGET_CSV_DIR='data/datasets/'
 
 
 class EnclaveClient:
@@ -44,8 +43,6 @@ class EnclaveClient:
         self.base_url = f'https://{config["HOSTNAME"]}'
         self.ontology_rid = config['ONTOLOGY_RID']
         self.outdir_root = TERMHUB_CSETS_DIR
-        self.outdir_objects = os.path.join(TERMHUB_CSETS_DIR, 'objects')
-        self.outdir_datasets = os.path.join(TERMHUB_CSETS_DIR, 'datasets')
 
     @typechecked
     def obj_types(self) -> List[Dict]:
@@ -67,21 +64,10 @@ class EnclaveClient:
         # types = sorted([x['apiName'] for x in response_json])
         return response_json['data']
 
-    # TODO: Implement this func to get all concept sets
-    #  - handle pagination. I think get 1k at a time
-    # TODO: after: for each set, get all concepts.
-    # TODO: Look at Siggie's frontend/ code to see how OMOPConceptSet etc are being called/used
-    # TODO: Need to find the right object_type, then write a wrapper func around this to get concept sets
-    #  - To Try: CodeSystemConceptSetVersionExpressionItem, OMOPConcept, OMOPConceptSet, OMOPConceptSetContainer,
-    #    OmopConceptSetVersionItem
-    def objects(self, object_type) -> pd.DataFrame:
-        """Get objects
-        Docs: https://www.palantir.com/docs/foundry/api/ontology-resources/objects/list-objects/
-        https://www.palantir.com/docs/foundry/api/ontology-resources/objects/object-basics/"""
-        # Request
+    def _handle_paginated_request(self, first_page_url: str) -> (List[Dict], Response):
+        """Handles a request that has a nextPageToken, automatically fetching all pages and combining the data"""
+        url = first_page_url
         results: List[Dict] = []
-        url_base = f'{self.base_url}/api/v1/ontologies/{self.ontology_rid}/objects/{object_type}'
-        url = url_base
         while True:
             response = requests.get(url, headers=self.headers)
             response_json = response.json()
@@ -90,34 +76,54 @@ class EnclaveClient:
             results += response_json['data']
             if 'nextPageToken' not in response_json or not response_json['nextPageToken']:
                 break
-            url = url_base + '?pageToken=' + response_json["nextPageToken"]
+            url = first_page_url + '?pageToken=' + response_json["nextPageToken"]
+        return results, response
+
+
+    # todo?: Need to find the right object_type, then write a wrapper func around this to get concept sets
+    #  - To Try: CodeSystemConceptSetVersionExpressionItem, OMOPConcept, OMOPConceptSet, OMOPConceptSetContainer,
+    #    OmopConceptSetVersionItem
+    def get_objects_by_type(
+        self, object_type: str, save_csv=True, save_json=True, outdir: str = None) -> pd.DataFrame:
+        """Get objects
+        Docs: https://www.palantir.com/docs/foundry/api/ontology-resources/objects/list-objects/
+        https://www.palantir.com/docs/foundry/api/ontology-resources/objects/object-basics/"""
+        # Request
+        first_page_url = f'{self.base_url}/api/v1/ontologies/{self.ontology_rid}/objects/{object_type}'
+        results, last_response = self._handle_paginated_request(first_page_url)
 
         # Parse
         # Get rid of nested 'properties' key, and add 'rid' in with the other fields
+        df = pd.DataFrame()
         if results:
             results = [{**x['properties'], **{'rid': x['rid']}} for x in results]
             df = pd.DataFrame(results).fillna('')
 
-            # Cache
-            # TODO: temporary cache code until decide where/how to write these
-            outdir = os.path.join(self.outdir_objects, object_type)
-            outpath = os.path.join(outdir, 'latest.csv')
-            if not os.path.exists(outdir):
-                os.mkdir(outdir)
+        # Save
+        outdir = outdir if outdir else os.path.join(OUTDIR_OBJECTS, object_type)
+        outpath = os.path.join(outdir, 'latest.csv')
+        if not os.path.exists(outdir) and (save_json or save_csv):
+            os.mkdir(outdir)
+        # - csv
+        if save_csv:
             df.to_csv(outpath, index=False)
+        # - json
+        if save_json:
             with open(outpath.replace('.csv', '.json'), 'w') as f:
                 json.dump(results, f)
-            # todo: Would be good to have all enclave_wrangler requests basically wrap around python `requests` and also
-            #  ...utilize this error reporting, if they are saving to disk.
-            if response.status_code >= 400:
-                error_report: Dict = {'request': url, 'response': response_json}
-                with open(os.path.join(outdir, f'latest - error {response.status_code}.json'), 'w') as file:
-                    json.dump(error_report, file)
-                curl_str = f'curl -H "Content-type: application/json" -H "Authorization: Bearer $OTHER_TOKEN" {url}'
-                with open(os.path.join(outdir, f'latest - error {response.status_code} - curl.sh'), 'w') as file:
-                    file.write(curl_str)
+        # - error report
+        # todo: Would be good to have all enclave_wrangler requests basically wrap around python `requests` and also
+        #  ...utilize this error reporting, if they are saving to disk.
+        if last_response.status_code >= 400:
+            error_report: Dict = {'request': last_response.url, 'response': last_response.json()}
+            with open(os.path.join(outdir, f'latest - error {last_response.status_code}.json'), 'w') as file:
+                json.dump(error_report, file)
+            curl_str = f'curl -H "Content-type: application/json" ' \
+                       f'-H "Authorization: Bearer $OTHER_TOKEN" {last_response.url}'
+            with open(os.path.join(outdir, f'latest - error {last_response.status_code} - curl.sh'), 'w') as file:
+                file.write(curl_str)
 
-            return df
+        return df
 
     def link_types(self) -> List[Dict]:
         """Get link types
@@ -149,7 +155,7 @@ def run(request_types: List[str]) -> Dict[str, Dict]:
     """Run"""
     client = EnclaveClient()
     request_funcs: Dict[str, Callable] = {
-        'objects': client.objects,
+        'objects': client.get_objects_by_type,
         'object_types': client.obj_types,
         'link_types': client.link_types,
     }
@@ -161,25 +167,14 @@ def run(request_types: List[str]) -> Dict[str, Dict]:
     return results
 
 
-# TODO: @Siggie: Temp; just want to look at all the data before deciding what to do w/ it
-def cache_objects_of_interest(force_if_exists=True):
-    """Cache objects of interest"""
-    of_interest = [
-        # 'CodeSystemConceptSetVersionExpressionItem',
-        # {'errorCode': 'INVALID_ARGUMENT', 'errorName': 'ObjectsExceededLimit', 'errorInstanceId':
-        # '693c5f19-df1f-487e-afb9-ea6c6adb8996', 'parameters': {}}
-        'OMOPConcept',
-        'OMOPConceptSet',
-        'OMOPConceptSetContainer',
-        'OmopConceptSetVersionItem'
-    ]
+def download_favorite_objects(fav_obj_names: List[str] = FAVORITE_OBJECTS, force_if_exists=True):
+    """Download objects of interest"""
     client = EnclaveClient()
-    for o in of_interest:
-        # Only runs if nothing exists in cache
-        if not force_if_exists and not os.path.exists(os.path.join(config['CACHE_DIR'], 'objects', o)):
-            client.objects(o)
-        elif force_if_exists:
-            client.objects(o)
+    for o in fav_obj_names:
+        outdir = os.path.join(OUTDIR_OBJECTS, o)
+        exists = os.path.exists(outdir)
+        if not exists or (exists and force_if_exists):
+            client.get_objects_by_type(o, outdir=outdir)
 
 
 def cli():
@@ -198,14 +193,14 @@ def cli():
         nargs='+', default=['object_types', 'objects', 'link_types'],
         help='Types of requests to make to the API.')
     parser.add_argument(
-        '-c', '--cache-objects-of-interest',
-        action='store_true', help='Cache objects as CSV.')
+        '-f', '--downoad-favorite-objects',
+        action='store_true', help='Download favorite objects as CSV and JSON.')
     kwargs = parser.parse_args()
     kwargs_dict: Dict = vars(kwargs)
-    if kwargs_dict['cache_objects_of_interest']:
-        cache_objects_of_interest()
+    if kwargs_dict['download_favorite_objects']:
+        download_favorite_objects()
     else:
-        del kwargs_dict['cache_objects_of_interest']
+        del kwargs_dict['download_favorite_objects']
         run(**kwargs_dict)
 
 
