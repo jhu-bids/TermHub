@@ -487,7 +487,7 @@ def data_stuff_for_codeset_ids(codeset_ids):
     leaf_cids = set([])
     if h:
       leaf_cids = set([int(str(k).split('.')[-1]) for k in pd.json_normalize(h).to_dict(orient='records')[0].keys()])
-    dsi.concepts = ds.concept[ds.concept.concept_id.isin(leaf_cids.union(set(dsi.cset_members_items.concept_id)))]
+    dsi.concepts = DS2.concept[DS2.concept.concept_id.isin(leaf_cids.union(set(dsi.cset_members_items.concept_id)))]
 
     return dsi
 
