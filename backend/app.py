@@ -482,6 +482,13 @@ def data_stuff_for_codeset_ids(codeset_ids):
     # Top level concept IDs for the root of our flattened hierarchy
     dsi.top_level_cids = (set(selected_concept_ids).difference(set(dsi.concept_relationship_i.concept_id_2)))
 
+    dsi.hierarchy = h = dsi.connect_children(-1, dsi.top_level_cids)
+
+    leaf_cids = set([])
+    if h:
+      leaf_cids = set([int(str(k).split('.')[-1]) for k in pd.json_normalize(h).to_dict(orient='records')[0].keys()])
+    dsi.concepts = ds.concept[ds.concept.concept_id.isin(leaf_cids.union(set(dsi.cset_members_items.concept_id)))]
+
     return dsi
 
 @cache
@@ -532,13 +539,6 @@ def cr_hierarchy( rec_format: str='default', codeset_id: Union[str, None] = Quer
     # A namespace (like `ds`) specifically for these codeset IDs.
     dsi = data_stuff_for_codeset_ids(requested_codeset_ids)
 
-    c = dsi.connect_children(-1, dsi.top_level_cids)
-
-    cids = set([])
-    if c:
-        cids = set([int(str(k).split('.')[-1]) for k in pd.json_normalize(c).to_dict(orient='records')[0].keys()])
-    concepts = DS2.concept[DS2.concept.concept_id.isin(cids.union(set(dsi.cset_members_items.concept_id)))]
-
     result = {
               # 'all_csets': dsi.all_csets.to_dict(orient='records'),
               'related_csets': dsi.related_csets.to_dict(orient='records'),
@@ -546,8 +546,8 @@ def cr_hierarchy( rec_format: str='default', codeset_id: Union[str, None] = Quer
               # 'concept_set_members_i': dsi.concept_set_members_i.to_dict(orient='records'),
               # 'concept_set_version_item_i': dsi.concept_set_version_item_i.to_dict(orient='records'),
               'cset_members_items': dsi.cset_members_items.to_dict(orient='records'),
-              'hierarchy': c,
-              'concepts': concepts.to_dict(orient='records'),
+              'hierarchy': dsi.hierarchy,
+              'concepts': dsi.concepts.to_dict(orient='records'),
               'data_counts': log_counts(),
     }
     return result

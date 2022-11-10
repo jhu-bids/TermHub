@@ -1,8 +1,7 @@
 import React, {useState, useCallback, useEffect, useMemo, } from 'react';
 import {isEqual, orderBy, get, } from 'lodash';
 import DataTable, { createTheme } from 'react-data-table-component';
-import {pct_fmt, StatsMessage, } from './utils';
-import {useSearchParams} from "react-router-dom";
+import {pct_fmt, StatsMessage,} from './utils';
 import {Tooltip} from './Tooltip';
 // import Checkbox from '@material-ui/core/Checkbox';
 // import ArrowDownward from '@material-ui/icons/ArrowDownward';
@@ -12,16 +11,17 @@ import {Tooltip} from './Tooltip';
 // https://react-data-table-component.netlify.app/?path=/docs/api-custom-styles--page
 //  Internally, customStyles will deep merges your customStyles with the default styling.
 
+/* TODO: review function for appropriate state management */
 function CsetsDataTable(props) {
-    const {codeset_ids=[], all_csets=[], cset_data={}} = props;
+    const {codeset_ids, changeCodesetIds, cset_data={}} = props;
     const {selected_csets, } = cset_data;
+
     const [relatedCsets, setRelatedCsets] = useState(cset_data.related_csets);
-    const [searchParams, setSearchParams] = useSearchParams();
 
     useEffect(() => {
         // props.csetData.relatedCsets.forEach(rc => rc.selected = codeset_ids.includes(rc.codeset_id))
         const rcsets = orderBy(get(props, 'cset_data.related_csets', []), ['selected', 'precision'], ['desc', 'desc'])
-        console.log({props, rcsets});
+        // console.log({props, rcsets});
         setRelatedCsets(rcsets);
     }, [codeset_ids.join(','), selected_csets.length])
     let coldefs = getColdefs();
@@ -30,20 +30,13 @@ function CsetsDataTable(props) {
                 '&:hover': { cursor: 'pointer', }, } }]; */
 
     let customStyles = getCustomStyles();
-    const handleRowClick = useCallback(row => {
-        if ((codeset_ids||[]).includes(row.codeset_id)) {
-            const cids = codeset_ids.filter(cid => cid !== row.codeset_id);
-            setSearchParams({codeset_id: cids, });
-        } else {
-            setSearchParams({codeset_id: [...codeset_ids, row.codeset_id], });
-        }
-    }, [codeset_ids]);
+    const handleRowClick = useCallback(row => changeCodesetIds(row.codeset_id, 'toggle'));
     /*
     const handleSelectionChange = useCallback(state => {
         const {selectedRows} = state;
         let ids = selectedRows.map(d => d.codeset_id).sort()
         if (!isEqual(props.codeset_ids, ids)) {
-            console.log(`try to change qs[codeset_id] from ${codeset_ids} to ${ids}`)
+            // console.log(`try to change qs[codeset_id] from ${codeset_ids} to ${ids}`)
             setSearchParams({codeset_id: ids, });
         }
         // setSelectedRows(selectedRows);
