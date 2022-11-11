@@ -111,14 +111,15 @@ function CsetComparisonPage(props) {
       setRowData(Object.values(allConcepts));
     }
     let _rowData = [];
-    let traverse = (o, path=[], level=0) => {
+    let traverse = (o, pathToRoot=[], level=0) => {
       Object.keys(o).forEach(k => {
-        let row = {...allConcepts[k], level, path: [...path, k]};
+        k = parseInt(k);
+        let row = {...allConcepts[k], level, pathToRoot: [...pathToRoot, k]};
         _rowData.push(row);
         if (o[k] && typeof(o[k] === 'object')) {
           row.has_children = true;
-          if (!collapsed[row.path]) {
-            traverse(o[k], k, level+1);
+          if (!collapsed[row.pathToRoot]) {
+            traverse(o[k], row.pathToRoot, level+1);
           }
         }
       })

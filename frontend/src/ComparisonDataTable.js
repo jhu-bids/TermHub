@@ -49,7 +49,7 @@ function ComparisonDataTable(props) {
     // console.log(window.data = props);
 
     function toggleCollapse(row) {
-        collapsed[row.path] = !get(collapsed, row.path);
+        collapsed[row.pathToRoot] = !get(collapsed, row.pathToRoot.join(','));
         setCollapsed({...collapsed});
         makeRowData(collapsed);
     }
@@ -172,7 +172,7 @@ function colConfig(codeset_ids, nested, selected_csets, rowData, collapsed, togg
                 }
                 let content = nested
                     ? row.has_children
-                        ? collapsed[row.path]
+                        ? collapsed[row.pathToRoot]
                             ? <span className="toggle-collapse" onClick={() => toggleCollapse(row)}><AddCircle sx={{fontSize:'13px'}}/> {row.concept_name} {row.collapsed && 'collapsed'}</span>
                             : <span className="toggle-collapse" onClick={() => toggleCollapse(row)}><RemoveCircle sx={{fontSize:'13px'}}/> {row.concept_name} {row.collapsed && 'collapsed'}</span>
                         : <span><RemoveCircle sx={{fontSize:'13px', visibility:'hidden'}}/> {row.concept_name}</span>
