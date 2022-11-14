@@ -6,46 +6,12 @@ import {get, map, omit, pick, uniq, reduce, cloneDeepWith, isEqual, uniqWith, gr
 import {fmt} from './utils';
 
 /*
-import Box from '@mui/material/Box';
-import Slider from '@mui/material/Slider';
-
-export default function SquishSlider(onChange) {
-    // not refreshing... work on later
-  function preventHorizontalKeyboardNavigation(event) {
-    if (event.key === 'ArrowLeft' || event.key === 'ArrowRight') {
-      event.preventDefault();
-    }
-  }
-
-  return (
-    <Box sx={{ height: 300 }}>
-      <Slider
-        sx={{
-            width: '30%',
-            marginLeft: '15%',
-            marginTop: '15px',
-          // '& input[type="range"]': { WebkitAppearance: 'slider-vertical', },
-        }}
-        onChange={() => (e,val) => onChange(val)}
-        // orientation="vertical"
-        min={0}
-        max={1}
-        step={.1}
-        defaultValue={0}
-        aria-label="Temperature"
-        valueLabelDisplay="auto"
-        onKeyDown={preventHorizontalKeyboardNavigation}
-      />
-    </Box>
-  );
-}
  */
 
 function ComparisonDataTable(props) {
-    const {codeset_ids=[], nested=true, makeRowData, rowData, selected_csets, } = props;
+    const {codeset_ids=[], nested=true, makeRowData, rowData, selected_csets, squishTo} = props;
     const [columns, setColumns] = useState();
     const [collapsed, setCollapsed] = useState({});
-    // const [squish, setSquish] = useState(0);
     // console.log(window.data = props);
 
     function toggleCollapse(row) {
@@ -61,13 +27,22 @@ function ComparisonDataTable(props) {
         // console.log('makeRowData because', {selected_csets});
         makeRowData({});
     }, [selected_csets.length, ]);
+
+    let sizes = {
+        rowFontSize:  (13 * squishTo) + 'px',
+        rowPadding:   ( 2 * squishTo) + 'px',
+        collapseIcon: (13 * squishTo) + 'px',
+        linkHeight:   (20 * squishTo) + 'px',
+        atlasHeight:  (12 * squishTo) + 'px',
+        athenaHeight: (10 * squishTo) + 'px',
+    }
     useEffect(() => {
         // console.log('setColumns because', {rowData});
-        setColumns(colConfig(codeset_ids, nested, selected_csets, rowData, collapsed, toggleCollapse, ));
-    }, [rowData, ]);
+        setColumns(colConfig(codeset_ids, nested, selected_csets, rowData, collapsed, toggleCollapse, sizes, ));
+    }, [rowData, squishTo]);
+    // console.log({squishTo});
 
-    const customStyles = styles();
-    // <div style={{}} > {squish} <SquishSlider onChange={setSquish}/> </div>
+    const customStyles = styles(sizes);
     return (
         /* https://react-data-table-component.netlify.app/ */
         <DataTable
@@ -109,7 +84,7 @@ function getCbStates(csets, nodups) {
     return grid
 }
 */
-function colConfig(codeset_ids, nested, selected_csets, rowData, collapsed, toggleCollapse, ) {
+function colConfig(codeset_ids, nested, selected_csets, rowData, collapsed, toggleCollapse, sizes, ) {
     // console.log('setting coldefs');
     /*
     let checkboxChange = (codeset_id, concept_id) => (evt, state) => {
@@ -121,6 +96,7 @@ function colConfig(codeset_ids, nested, selected_csets, rowData, collapsed, togg
         })
     }
     */
+
     let cset_cols = selected_csets.map((cset_col, col_idx) => {
         let def = {
             name: cset_col.concept_set_version_title,
@@ -173,9 +149,9 @@ function colConfig(codeset_ids, nested, selected_csets, rowData, collapsed, togg
                 let content = nested
                     ? row.has_children
                         ? collapsed[row.pathToRoot]
-                            ? <span className="toggle-collapse" onClick={() => toggleCollapse(row)}><AddCircle sx={{fontSize:'13px'}}/> {row.concept_name} {row.collapsed && 'collapsed'}</span>
-                            : <span className="toggle-collapse" onClick={() => toggleCollapse(row)}><RemoveCircle sx={{fontSize:'13px'}}/> {row.concept_name} {row.collapsed && 'collapsed'}</span>
-                        : <span><RemoveCircle sx={{fontSize:'13px', visibility:'hidden'}}/> {row.concept_name}</span>
+                            ? <span className="toggle-collapse" onClick={() => toggleCollapse(row)}><AddCircle sx={{fontSize:sizes.collapseIcon}}/> {row.concept_name} {row.collapsed && 'collapsed'}</span>
+                            : <span className="toggle-collapse" onClick={() => toggleCollapse(row)}><RemoveCircle sx={{fontSize:sizes.collapseIcon}}/> {row.concept_name} {row.collapsed && 'collapsed'}</span>
+                        : <span><RemoveCircle sx={{fontSize:sizes.collapseIcon, visibility:'hidden'}}/> {row.concept_name}</span>
                     : row.concept_name
                 return content;
             },
@@ -204,13 +180,13 @@ function colConfig(codeset_ids, nested, selected_csets, rowData, collapsed, togg
             name: 'Concept links',
             selector: row => row.concept_id,
             format: row => (
-                <span style={{backgroundColor: 'lightgray', height: '20px'}} >
+                <span style={{backgroundColor: 'lightgray', height: sizes.linkHeight}} >
                     <a href={`https://atlas-demo.ohdsi.org/#/concept/${row.concept_id}`} target="_blank">
-                        <img height="12px" src="atlas.ico" />
+                        <img height={sizes.atlasHeight} src="atlas.ico" />
                     </a>&nbsp;
                     <a href={`https://athena.ohdsi.org/search-terms/terms/${row.concept_id}`} target="_blank"
                     >
-                        <img height="10px" src="athena.ico" />
+                        <img height={sizes.athenaHeight} src="athena.ico" />
                     </a>
                 </span>),
             sortable: !nested,
@@ -270,7 +246,7 @@ createTheme('custom-theme', {
     */
 }, 'light');
 
-function styles() {
+function styles(sizes) {
     return {
         /*
         	tableWrapper: {
@@ -324,7 +300,8 @@ function styles() {
             style: {
                 color: 'black',
                 minHeight: '0px', // override the row height    -- doesn't work, can only seem to do it from css
-                padding: '2px',
+                padding: sizes.rowPadding,
+                fontSize: sizes.rowFontSize,
                 // height: '2px',
                 // fontSize: '2px',
                 // height: '3px',

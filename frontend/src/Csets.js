@@ -1,4 +1,4 @@
-import React, {useState, useEffect, /* useReducer, useRef, */} from 'react';
+import React, {useState, useEffect, useCallback, /* useReducer, useRef, */} from 'react';
 import {ComparisonDataTable} from "./ComparisonDataTable";
 import {CsetsDataTable, } from "./CsetsDataTable";
 import {searchParamsToObj, StatsMessage} from "./utils";
@@ -8,8 +8,10 @@ import Autocomplete from '@mui/material/Autocomplete';
 import Button from '@mui/material/Button';
 // import Chip from '@mui/material/Chip';
 import { Link, Outlet, useHref, useParams, useSearchParams, useLocation } from "react-router-dom";
-import { every, get, isEmpty, } from 'lodash';
+import { every, get, isEmpty, throttle, } from 'lodash';
 // import {isEqual, pick, uniqWith, max, omit, uniq, } from 'lodash';
+import Box from '@mui/material/Box';
+import Slider from '@mui/material/Slider';
 
 /* TODO: Solve
     react_devtools_backend.js:4026 MUI: The value provided to Autocomplete is invalid.
@@ -89,6 +91,19 @@ function CsetComparisonPage(props) {
   // let selected_csets = all_csets.filter(d => codeset_ids.includes(d.codeset_id));
   const [nested, setNested] = useState(true);
   const [rowData, setRowData] = useState([]);
+  const [squishTo, setSquishTo] = useState(1);
+  const tsquish = throttle(
+      val => {
+        // console.log(`squish: ${squishTo} -> ${val}`);
+        setSquishTo(val);
+      }, 200);
+  const squishChange = useCallback(tsquish);
+  /*
+  const squishChange = useCallback(val => {
+    // console.log(`squish: ${squish} -> ${val}`);
+    setSquish(val);
+  });
+   */
 
   /* TODO: review function for appropriate state management */
   useEffect(() => {
@@ -132,7 +147,7 @@ function CsetComparisonPage(props) {
     setNested(!nested);
     makeRowData({});
   }
-  let moreProps = {...props, nested, makeRowData, rowData, selected_csets, };
+  let moreProps = {...props, nested, makeRowData, rowData, selected_csets, squishTo};
   // console.log({moreProps});
   return (
       <div>
@@ -145,8 +160,47 @@ function CsetComparisonPage(props) {
           </Button>
         </h5>
         {/* <StatsMessage {...props} /> */}
-        <ComparisonDataTable {...moreProps} />
+        <ComparisonDataTable squishTo={squishTo} {...moreProps} />
+        <div style={{}} ><SquishSlider setSquish={squishChange}/> </div>
       </div>)
+}
+
+function SquishSlider({setSquish}) {
+  // not refreshing... work on later
+  function preventHorizontalKeyboardNavigation(event) {
+    if (event.key === 'ArrowLeft' || event.key === 'ArrowRight') {
+      event.preventDefault();
+    }
+  }
+  function onChange(e, val) {
+    // console.log('val: ', val);
+    setSquish(val);
+  }
+
+  return (
+      <Box sx={{ height: 300 }}>
+        <Slider
+            // key={`slider-${squish}`}
+            sx={{
+              width: '30%',
+              marginLeft: '15%',
+              marginTop: '15px',
+              // '& input[type="range"]': { WebkitAppearance: 'slider-vertical', },
+            }}
+            onChange={onChange}
+            // onChangeCommitted={onChange}
+            // orientation="vertical"
+            min={0}
+            max={1}
+            step={.1}
+            // value={squish}
+            defaultValue={1}
+            aria-label="Squish factor"
+            valueLabelDisplay="auto"
+            onKeyDown={preventHorizontalKeyboardNavigation}
+        />
+      </Box>
+  );
 }
 
 export {ConceptSetsPage, CsetComparisonPage, };
