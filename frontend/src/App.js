@@ -20,6 +20,7 @@ import { persistQueryClient, removeOldestQuery,} from '@tanstack/react-query-per
 import { createSyncStoragePersister } from '@tanstack/query-sync-storage-persister'
 import { ReactQueryDevtools } from '@tanstack/react-query-devtools'
 import {ConceptSetsPage, CsetComparisonPage} from "./Csets";
+import {AboutPage} from "./AboutPage";
 import {searchParamsToObj} from "./utils";
 
 
@@ -174,7 +175,7 @@ function RoutesContainer(props) {
           <Route path="cset-comparison" element={<CsetComparisonPage {...props} />} />
           {/* <Route path="cset-comparison/:conceptId" element={<ConceptSet />} /> */}
           <Route path="OMOPConceptSets" element={<ConceptSetsPage {...props}  />} />
-          <Route path="about" element={<AboutPage />} />
+          <Route path="about" element={<AboutPage {...props} />} />
           {/* <Route path="testing" element={<ConceptSetsPage codeset_ids={test_codeset_ids}/>} /> */}
           {/* <Route path="OMOPConceptSet/:conceptId" element={<OldConceptSet />} /> */}
           <Route path="*"  element={<ErrorPath/>} />
@@ -246,16 +247,7 @@ function objectTypesData(data) {
 }
 */
 
-function AboutPage() {
-  return (
-      <div>
-        <p>TermHub is terminology management heaven.</p>
-      </div>
-  );
-}
-
-
-export {QCProvider, AboutPage, backend_url};
+export {QCProvider, backend_url};
 
 // TODO: @Siggie: Can we remove this comment or we need this list of links for ref still?
 //       @Joe: we should move it to the individual concept set display component(s) as a

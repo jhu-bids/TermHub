@@ -182,7 +182,7 @@ function SquishSlider({setSquish}) {
         <Slider
             // key={`slider-${squish}`}
             sx={{
-              width: '30%',
+              width: '60%',
               marginLeft: '15%',
               marginTop: '15px',
               // '& input[type="range"]': { WebkitAppearance: 'slider-vertical', },
@@ -190,8 +190,8 @@ function SquishSlider({setSquish}) {
             onChange={onChange}
             // onChangeCommitted={onChange}
             // orientation="vertical"
-            min={0}
-            max={1}
+            min={0.01}
+            max={2}
             step={.1}
             // value={squish}
             defaultValue={1}

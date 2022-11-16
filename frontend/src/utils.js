@@ -2,6 +2,8 @@ import React from 'react';
 
 const pct_fmt = num => Number(num).toLocaleString(undefined,{style: 'percent', minimumFractionDigits:2});
 const fmt = num => Number(num).toLocaleString();
+// cfmt = conditional format -- as number if number, otherwise no change
+const cfmt = v => (parseInt(v) == v || parseFloat(v) == v) ? Number(v).toLocaleString() : v;
 
 function StatsMessage(props) {
   const {codeset_ids=[], all_csets=[], cset_data={}} = props;
@@ -26,4 +28,4 @@ function searchParamsToObj(searchParams) {
   delete searchParamsAsObject.codeset_id;
   return searchParamsAsObject;
 }
-export {pct_fmt, fmt, StatsMessage, searchParamsToObj, };
+export {pct_fmt, fmt, cfmt, StatsMessage, searchParamsToObj, };
