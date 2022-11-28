@@ -63,4 +63,7 @@ User Interactions
 1. Clone this repository.
 2. Run: `pip install -r requirements.txt`
 3. Run `git submodule update`
-3. Set up MySQL: (i) install it, (ii) create a user `root` and save the password, (iii)  
+4. Set up MySQL  
+  4.1. install it  
+  4.2. (ii) create a user `root` and save the password, (iii)
+5. xxx

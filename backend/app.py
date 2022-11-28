@@ -27,6 +27,8 @@ from enclave_wrangler.new_enclave_api import make_read_request
 
 DEBUG = True
 PROJECT_DIR = Path(os.path.dirname(__file__)).parent
+# TODO: Replace LFS implementation here with DB
+# TODO: initialize if doesn't exist on start
 # GLOBAL_DATASET_NAMES = list(FAVORITE_DATASETS.keys()) + ['concept_relationship_is_a']
 GLOBAL_DATASET_NAMES = [
     'concept_set_members',
