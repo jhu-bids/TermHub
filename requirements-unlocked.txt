@@ -4,6 +4,7 @@ pandas
 pandasql
 pyarrow
 requests
+sqlalchemy
 typeguard
 uvicorn[standard]
 jq
