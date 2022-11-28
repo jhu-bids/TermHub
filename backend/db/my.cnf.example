@@ -1,0 +1,41 @@
+[mysqld]
+disable-log-bin = 1
+skip-name-resolve = 1
+performance-schema = 0
+local-infile = 0
+mysqlx = 0
+bind-address = [IPs removed]
+default-storage-engine = InnoDB
+open_files_limit = 200000
+max_allowed_packet = 256M
+sql_mode = "STRICT_TRANS_TABLES,ONLY_FULL_GROUP_BY,ERROR_FOR_DIVISION_BY_ZERO,NO_ENGINE_SUBSTITUTION"
+
+innodb_dedicated_server = 1
+innodb_buffer_pool_instances = 48
+innodb_log_buffer_size = 64M
+innodb_read_io_threads = 12
+innodb_write_io_threads = 12
+innodb_stats_on_metadata = 0
+innodb_file_per_table = 1
+
+max_connections = 500
+thread_cache_size = 128
+table_definition_cache = 65536
+table_open_cache = 65536
+
+wait_timeout = 10
+connect_timeout = 5
+interactive_timeout = 30
+
+tmp_table_size = 128M
+max_heap_table_size = 128M
+
+read_buffer_size = 256K
+join_buffer_size = 1M
+sort_buffer_size = 512K
+read_rnd_buffer_size = 512K
+
+slow-query-log = 1
+long_query_time = 2
+slow_query_log_file = /var/log/mysql_slow_query.log
+log-error = /var/log/mysql/db.[removed].com.err
