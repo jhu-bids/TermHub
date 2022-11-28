@@ -4,6 +4,8 @@ import AddCircle from '@mui/icons-material/AddCircle';
 import RemoveCircle from '@mui/icons-material/RemoveCircle';
 import {get, map, omit, pick, uniq, reduce, cloneDeepWith, isEqual, uniqWith, groupBy, } from 'lodash';
 import {fmt} from './utils';
+import {Tooltip} from './Tooltip';
+// import Button from '@mui/material/Button';
 
 /*
  */
@@ -99,7 +101,11 @@ function colConfig(codeset_ids, nested, selected_csets, rowData, collapsed, togg
 
     let cset_cols = selected_csets.map((cset_col, col_idx) => {
         let def = {
-            name: cset_col.concept_set_version_title,
+            // name: 'asdf asdf asdf asdf adsf' + cset_col.concept_set_version_title,
+            name: <span>{cset_col.concept_set_version_title}</span>,
+            // name:   <Tooltip label="Number of concepts in this concept set.">
+            //             <span>{cset_col.concept_set_version_title}</span>
+            //         </Tooltip>,
             selector: (row,idx) => {
                 if (!row.checkboxes) {
                     console.log('problem!!!!', {idx, row, rowData})
