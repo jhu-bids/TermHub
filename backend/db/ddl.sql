@@ -1,5 +1,6 @@
-
-
+# TODO's
+#  1. For each tablee: don't do anything if these tables exist & initialized
+#  2. Fix syntax error. This may be a a SqlAlchemy thing only
 CREATE DATABASE IF NOT EXISTS termhub_n3c;
 CREATE TABLE IF NOT EXISTS code_sets (
     codeset_id INT NOT NULL PRIMARY KEY,
@@ -28,10 +29,13 @@ CREATE TABLE IF NOT EXISTS code_sets (
     is_draft BOOLEAN
 );
 
-
+TRUNCATE code_sets;
 LOAD DATA INFILE './termhub-csets/datasets/prepped_files/code_sets.csv'
 INTO TABLE code_sets
 FIELDS TERMINATED BY ','
 ENCLOSED BY '"'
 LINES TERMINATED BY '\n'
+# IGNORE 1 ROWS: PyCharm says syntax err & got sqlalchemy.exc.ProgrammingError: (pymysql.err.ProgrammingError) (1064, "You have an error in your SQL syntax;
+# Google: mysql LOAD DATA INFILE ignore header
+# https://stackoverflow.com/questions/13568707/mysql-infile-ignore-header-row
 IGNORE 1 ROWS;

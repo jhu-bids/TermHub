@@ -56,8 +56,11 @@ User Interactions
 - [Frontend](./frontend/README.md)  
 - [Backend](./backend/README.md)
 
-Setup
+[//]: # (3. Run: `git lfs install` if not installed already
+[//]: # (4. If any expected files are not showing up in `termhub-csets/`, run `git lfs pull`)
+
+### Setup
 1. Clone this repository.
-2. Run `git submodule update`
-3. Run: `git lfs install` if not installed already
-4. If any expected files are not showing up in `termhub-csets/`, run `git lfs pull`
+2. Run: `pip install -r requirements.txt`
+3. Run `git submodule update`
+3. Set up MySQL: (i) install it, (ii) create a user `root` and save the password, (iii)  
