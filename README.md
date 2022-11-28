@@ -65,5 +65,5 @@ User Interactions
 3. Run `git submodule update`
 4. Set up MySQL  
   4.1. install it  
-  4.2. (ii) create a user `root` and save the password, (iii)
-5. xxx
+  4.2. create a user `root` and save the password,
+  4.3. setup config.. involves setting config file in GUI to backend/db/my.cnf 
