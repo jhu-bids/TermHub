@@ -7,12 +7,10 @@ from sqlalchemy.exc import OperationalError, ProgrammingError
 from sqlalchemy.sql import text
 from pymysql.err import DataError
 import re
-
-from backend.db.config import BRAND_NEW_DB_URL, DB_URL, DDL_PATH
-# from backend.db.config import BRAND_NEW_DB_URL, DDL_PATH
+from backend.db.mysql_utils import run_sql, get_mysql_connection
 
 
-def initialize(db_url: str):
+def initialize():
     """Initialize set up of DB
 
     Resources
@@ -33,8 +31,7 @@ def initialize(db_url: str):
         'concept_set_version_item',
         'deidentified_term_usage_by_domain_clamped',
     ]
-    engine = create_engine(db_url)
-    with engine.connect() as con:
+    with get_mysql_connection() as con:
 
         run_sql(con, 'CREATE DATABASE IF NOT EXISTS termhub_n3c')
         run_sql(con, 'USE termhub_n3c')
@@ -51,7 +48,7 @@ def initialize(db_url: str):
                      ('concept_relationship', 'valid_start_date')
                      ]
         # TODO: alter columns above as indicated
-        
+
         # with open(DDL_PATH, 'r') as file:
         #     contents: str = file.read()
         # commands: List[str] = [x + ';' for x in contents.split(';\n')]
@@ -94,13 +91,6 @@ def load_csv(con, table, replace_if_exists=True):
     # except Exception as err:
     #     print(err)
 
-def run_sql(con, command):
-    statement = text(command)
-    try:
-        con.execute(statement)
-    except (ProgrammingError, OperationalError):
-        raise RuntimeError(f'Got an error executing the following statement:\n{command}')
-
 # pymysql.err.OperationalError: (1290, 'The MySQL server is running with the --secure-file-priv option so it cannot execute this statement')
 
 
@@ -110,4 +100,4 @@ if __name__ == '__main__':
     #     initialize(DB_URL)
     # except OperationalError:
     #     initialize(BRAND_NEW_DB_URL)
-    initialize(DB_URL)
+    initialize()

@@ -1,6 +1,38 @@
 # TODO's
 #  1. For each table: don't do anything if these tables exist & initialized
-#  2. Fix syntax error. This may be a a SqlAlchemy thing only
+#  2. Add alters to fix data types
+#  3. Run stuff in this file again (not doing that currently)
+
+DROP TABLE IF EXISTS all_csets;
+CREATE TABLE all_csets AS           -- table instead of view for performance
+                                    -- (no materialized views in mySQL)
+SELECT DISTINCT
+        cs.*,
+		csc.project_id,
+        csc.assigned_informatician,
+        csc.assigned_sme,
+        csc.status container_status,
+        csc.stage,
+        csc.intention container_intentionall_csets,
+        csc.n3c_reviewer,
+        csc.alias,
+        csc.archived,
+        csc.created_by container_created_by,
+        csc.created_at container_created_at,
+		COALESCE(cids.concepts, 0) concepts,
+        cscc.approx_distinct_person_count,
+        cscc.approx_total_record_count
+FROM code_sets cs
+JOIN concept_set_container csc ON cs.concept_set_name = csc.concept_set_name
+LEFT JOIN (
+	SELECT codeset_id, COUNT(DISTINCT concept_id) concepts
+	FROM concept_set_members
+    GROUP BY codeset_id
+) cids ON cs.codeset_id = cids.codeset_id
+LEFT JOIN concept_set_counts_clamped cscc ON cs.codeset_id = cscc.codeset_id;
+
+
+/* this is all happening directly in initialize.py now:
 CREATE DATABASE IF NOT EXISTS termhub_n3c;
 USE termhub_n3c;
 CREATE TABLE IF NOT EXISTS code_sets (
@@ -29,6 +61,7 @@ CREATE TABLE IF NOT EXISTS code_sets (
     authoritative_source TEXT,
     is_draft BOOLEAN
 );
+ */
 
 # TRUNCATE code_sets;
 #

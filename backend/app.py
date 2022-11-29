@@ -24,7 +24,10 @@ from enclave_wrangler.dataset_upload import upload_new_container_with_concepts, 
 from enclave_wrangler.datasets import run_favorites as update_termhub_csets
 from enclave_wrangler.new_enclave_api import make_read_request
 
+from backend.db.mysql_utils import run_sql, get_mysql_connection
 
+CON = get_mysql_connection()  # using a global connection object is probably a terrible idea, but
+                              # shouldn't matter much until there are multiple users on the same server
 DEBUG = True
 PROJECT_DIR = Path(os.path.dirname(__file__)).parent
 # TODO: Replace LFS implementation here with DB
@@ -54,6 +57,8 @@ def load_dataset(ds_name, is_object=False) -> pd.DataFrame:
     path = os.path.join(csv_dir, ds_name + '.csv') if not is_object else os.path.join(csv_dir, 'latest.csv')
     print(f'loading: {path}')
     try:
+        # tried just reading into pandas from sql tables --- incredibly slow!
+        # ds = pd.read_sql_table(ds_name, CON, 'termhub_n3c')
         ds = pd.read_csv(path, keep_default_na=False)
     except Exception as err:
         print(f'failed loading {path}')
@@ -120,6 +125,10 @@ def load_globals():
     other_msgs = []
 
     log_counts('concept_set_container', concept_set_name=cnt(ds.concept_set_container.concept_set_name))
+
+    # s = run_sql(CON, 'select count(*) from concept_set_container')
+    # print(s)
+
     log_counts('code_sets',
                concept_set_name=cnt(ds.code_sets.concept_set_name),
                codeset_id=cnt(ds.code_sets.codeset_id))
@@ -522,6 +531,11 @@ def read_root():
 
 @APP.get("/get-all-csets")
 def get_all_csets() -> Union[Dict, List]:
+  q = CON.execute('SELECT codeset_id, '
+                  '       concept_set_version_title, '
+                  '       concepts '
+                  'FROM all_csets');
+  return q.fetchall()
   smaller = DS2.all_csets[['codeset_id', 'concept_set_version_title', 'concepts']]
   return smaller.to_dict(orient='records')
 
