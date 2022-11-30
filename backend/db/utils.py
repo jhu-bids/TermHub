@@ -16,6 +16,13 @@ def get_db_connection(new_db=False):
     return engine.connect()
 
 
+def database_exists(con: Connection, db_name: str) -> bool:
+    """Check if database exists"""
+    result = \
+        run_sql(con, f"SELECT datname FROM pg_catalog.pg_database WHERE datname = '{db_name}';").fetchall()
+    return len(result) == 1
+
+
 def sql_query(
     con: Connection,
     query: Union[text, str],
