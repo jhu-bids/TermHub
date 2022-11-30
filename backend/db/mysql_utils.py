@@ -8,7 +8,7 @@ from sqlalchemy.exc import OperationalError, ProgrammingError
 from sqlalchemy.sql import text
 # from pymysql.err import DataError
 
-from backend.db.config import BRAND_NEW_DB_URL, DB_URL, DDL_PATH
+from backend.db.config import DB_URL #, BRAND_NEW_DB_URL, DDL_PATH
 # from backend.db.config import BRAND_NEW_DB_URL, DDL_PATH
 
 

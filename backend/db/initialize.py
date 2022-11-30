@@ -8,6 +8,7 @@ from sqlalchemy.sql import text
 from pymysql.err import DataError
 import re
 from backend.db.mysql_utils import run_sql, get_mysql_connection
+from backend.db.config import CONFIG
 
 
 def initialize():
@@ -33,17 +34,18 @@ def initialize():
     ]
     with get_mysql_connection() as con:
 
-        run_sql(con, 'CREATE DATABASE IF NOT EXISTS termhub_n3c')
-        run_sql(con, 'USE termhub_n3c')
+        # postgres doesn't have create database if not exists
+        # run_sql(con, 'CREATE DATABASE IF NOT EXISTS termhub_n3c')
+        # run_sql(con, 'USE termhub_n3c')
 
         for table in tables_to_load:
-            print(f'loading {table} into mysql')
+            print(f'loading {table} into {CONFIG["server"]}:{CONFIG["db"]}')
             load_csv(con, table)
 
         datetime_cols = [('code_sets', 'created_at'),
                          ()]
         date_cols = [('concept', 'valid_end_date'),
-                     ('concept', 'valid_start_date')
+                     ('concept', 'valid_start_date'),
                      ('concept_relationship', 'valid_end_date'),
                      ('concept_relationship', 'valid_start_date')
                      ]
