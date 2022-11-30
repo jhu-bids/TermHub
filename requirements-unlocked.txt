@@ -9,6 +9,7 @@ sqlalchemy
 typeguard
 uvicorn[standard]
 jq
+psycopg2
 
 # dev dependencies
 virtualenvwrapper

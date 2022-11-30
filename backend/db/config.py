@@ -17,6 +17,8 @@ CONFIG = {
     'db': os.getenv('TERMHUB_DB_DB'),
     'pass': os.getenv('TERMHUB_DB_PASS'),
     'port': os.getenv('TERMHUB_DB_PORT'),
+    'rdbms': ['mysql+pymysql', 'postgresql+psycopg2'][1]
 }
-DB_URL = f'mysql+pymysql://{CONFIG["user"]}:{CONFIG["pass"]}@{CONFIG["host"]}:{CONFIG["port"]}/{CONFIG["db"]}?charset=utf8mb4'
-BRAND_NEW_DB_URL = f'mysql+pymysql://{CONFIG["user"]}:{CONFIG["pass"]}@{CONFIG["host"]}:{CONFIG["port"]}?charset=utf8mb4'
+BRAND_NEW_DB_URL = \
+    f'{CONFIG["rdbms"]}://{CONFIG["user"]}:{CONFIG["pass"]}@{CONFIG["host"]}:{CONFIG["port"]}?charset=utf8mb4'
+DB_URL = BRAND_NEW_DB_URL.replace('?charset=utf8mb4', f'/{CONFIG["db"]}?charset=utf8mb4')
