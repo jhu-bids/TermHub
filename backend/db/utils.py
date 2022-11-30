@@ -4,6 +4,7 @@ from sqlalchemy import create_engine
 from sqlalchemy.engine.base import Connection
 from sqlalchemy.exc import OperationalError, ProgrammingError
 from sqlalchemy.sql import text
+from sqlalchemy.sql.elements import TextClause
 from typing import Dict, Union
 
 from backend.db.config import BRAND_NEW_DB_URL, DB_URL
@@ -33,8 +34,8 @@ def sql_query(
     conn.execute(sqlalchemy.text(query), ids=some_ids)
     """
     try:
-        query = text(query) if not isinstance(query, text) else query
-        q = con.execute(query, **params)
+        query = text(query) if not isinstance(query, TextClause) else query
+        q = con.execute(query, **params) if params else con.execute(query)
         return q.fetchall()
     except (ProgrammingError, OperationalError):
         raise RuntimeError(f'Got an error executing the following statement:\n{query}, {json.dumps(params, indent=2)}')
