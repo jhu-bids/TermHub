@@ -9,8 +9,9 @@ from backend.db.config import BRAND_NEW_DB_URL, DB_URL, DDL_PATH
 # from backend.db.config import BRAND_NEW_DB_URL, DDL_PATH
 
 
-def get_mysql_connection():
-  engine = create_engine(DB_URL)
+def get_db_connection(new_db=False):
+  url = BRAND_NEW_DB_URL if new_db else DB_URL
+  engine = create_engine(url)
   return engine.connect()
 
 

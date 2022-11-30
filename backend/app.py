@@ -24,9 +24,9 @@ from enclave_wrangler.dataset_upload import upload_new_container_with_concepts, 
 from enclave_wrangler.datasets import run_favorites as update_termhub_csets
 from enclave_wrangler.new_enclave_api import make_read_request
 
-from backend.db.mysql_utils import run_sql, get_mysql_connection
+from backend.db.utils import run_sql, get_db_connection
 
-CON = get_mysql_connection()  # using a global connection object is probably a terrible idea, but
+CON = get_db_connection()  # using a global connection object is probably a terrible idea, but
                               # shouldn't matter much until there are multiple users on the same server
 DEBUG = True
 PROJECT_DIR = Path(os.path.dirname(__file__)).parent

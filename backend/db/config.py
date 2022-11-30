@@ -8,6 +8,8 @@ PROJECT_ROOT = os.path.join(BACKEND_DIR, '..')
 ENV_DIR = os.path.join(PROJECT_ROOT, 'env')
 ENV_FILE = os.path.join(ENV_DIR, '.env')
 DDL_PATH = os.path.join(DB_DIR, 'ddl.sql')
+TERMHUB_CSETS_PATH = os.path.join(PROJECT_ROOT, 'termhub-csets')
+DATASETS_PATH = os.path.join(TERMHUB_CSETS_PATH, 'datasets', 'prepped_files')
 load_dotenv(ENV_FILE)
 CONFIG = {
     'host': os.getenv('TERMHUB_DB_HOST'),

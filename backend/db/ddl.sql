@@ -71,9 +71,8 @@ CREATE TABLE IF NOT EXISTS code_sets (
 # ENCLOSED BY '"'
 # LINES TERMINATED BY '\n'
 # IGNORE 1 ROWS;
-
-# IGNORE 1 ROWS: PyCharm says syntax err & got sqlalchemy.exc.ProgrammingError: (pymysql.err.ProgrammingError) (1064, "You have an error in your SQL syntax
-# Google: mysql LOAD DATA INFILE ignore header
-# https://stackoverflow.com/questions/13568707/mysql-infile-ignore-header-row
-# IGNORE 1 ROWS;
-# IGNORE 1 LINES;
+## IGNORE 1 ROWS: PyCharm says syntax err & got sqlalchemy.exc.ProgrammingError: (pymysql.err.ProgrammingError) (1064, "You have an error in your SQL syntax
+## Google: mysql LOAD DATA INFILE ignore header
+## https://stackoverflow.com/questions/13568707/mysql-infile-ignore-header-row
+## IGNORE 1 ROWS;
+## IGNORE 1 LINES;

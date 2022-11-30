@@ -1,13 +1,12 @@
 """Initialize database"""
-from typing import List
+import os
 import pandas as pd
-from sqlalchemy import create_engine
-from sqlalchemy.exc import OperationalError, ProgrammingError
-# from sqlalchemy.exc import OperationalError
-from sqlalchemy.sql import text
-from pymysql.err import DataError
 import re
-from backend.db.mysql_utils import run_sql, get_mysql_connection
+from sqlalchemy.exc import ProgrammingError
+from sqlalchemy.sql import text
+
+from backend.db.config import DATASETS_PATH
+from backend.db.utils import run_sql, get_db_connection
 
 
 def initialize():
@@ -31,22 +30,23 @@ def initialize():
         'concept_set_version_item',
         'deidentified_term_usage_by_domain_clamped',
     ]
-    with get_mysql_connection() as con:
+    with get_db_connection(new_db=True) as con:
 
         run_sql(con, 'CREATE DATABASE IF NOT EXISTS termhub_n3c')
         run_sql(con, 'USE termhub_n3c')
 
         for table in tables_to_load:
-            print(f'loading {table} into mysql')
+            print(f'loading {table} into db')
             load_csv(con, table)
 
-        datetime_cols = [('code_sets', 'created_at'),
-                         ()]
-        date_cols = [('concept', 'valid_end_date'),
-                     ('concept', 'valid_start_date')
-                     ('concept_relationship', 'valid_end_date'),
-                     ('concept_relationship', 'valid_start_date')
-                     ]
+        datetime_cols = [
+            ('code_sets', 'created_at'),
+            ()]
+        date_cols = [
+            ('concept', 'valid_end_date'),
+            ('concept', 'valid_start_date'),
+            ('concept_relationship', 'valid_end_date'),
+            ('concept_relationship', 'valid_start_date')]
         # TODO: alter columns above as indicated
 
         # with open(DDL_PATH, 'r') as file:
@@ -60,7 +60,7 @@ def initialize():
     return
 
 def load_csv(con, table, replace_if_exists=True):
-    df = pd.read_csv(f'~/git-repos/TermHub/termhub-csets/datasets/prepped_files/{table}.csv')
+    df = pd.read_csv(os.path.join(DATASETS_PATH, f'{table}.csv'))
     # https://pandas.pydata.org/docs/reference/api/pandas.DataFrame.to_sql.html
     # df.to_sql(name, con, schema=None, if_exists='fail', index=True, index_label=None, chunksize=None, dtype=None, method=None)
     # todo: fix "data too long" / data type issues:
@@ -79,7 +79,12 @@ def load_csv(con, table, replace_if_exists=True):
     except ProgrammingError as err:
         pass
     try:
-        df.to_sql(table, con, if_exists='append', index=False)
+        # TODO: Fix: Why is Joe getting this error?
+        #  OperationalError('(pymysql.err.OperationalError) (1050, "Table \'code_sets\' already exists")')
+        # If don't pass `schema='termhub_n3c'`, Joe gets OperationalError('(pymysql.err.OperationalError) (1050, "Table
+        #   \'code_sets\' already exists")')
+        #   https://stackoverflow.com/questions/69906698/pandas-to-sql-gives-table-already-exists-error-with-if-exists-append
+        df.to_sql(table, con, if_exists='append', schema='termhub_n3c', index=False)
     except Exception as err:
         # if data too long error, change column to longtext and try again
         m = re.match("Data too long for column '(.*)'.*", err.orig.args[1])
