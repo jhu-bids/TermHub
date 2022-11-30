@@ -1,11 +1,13 @@
 """Initialize database"""
 import os
-import pandas as pd
 import re
+
+import pandas as pd
+from sqlalchemy.engine import Connection
 from sqlalchemy.exc import ProgrammingError
 from sqlalchemy.sql import text
 
-from backend.db.config import DATASETS_PATH
+from backend.db.config import DATASETS_PATH, CONFIG
 from backend.db.utils import run_sql, get_db_connection
 
 
@@ -32,11 +34,12 @@ def initialize():
     ]
     with get_db_connection(new_db=True) as con:
 
-        run_sql(con, 'CREATE DATABASE IF NOT EXISTS termhub_n3c')
-        run_sql(con, 'USE termhub_n3c')
+        # postgres doesn't have create database if not exists
+        # run_sql(con, 'CREATE DATABASE IF NOT EXISTS termhub_n3c')
+        # run_sql(con, 'USE termhub_n3c')
 
         for table in tables_to_load:
-            print(f'loading {table} into db')
+            print(f'loading {table} into {CONFIG["server"]}:{CONFIG["db"]}')
             load_csv(con, table)
 
         datetime_cols = [
@@ -59,15 +62,13 @@ def initialize():
 
     return
 
-def load_csv(con, table, replace_if_exists=True):
+
+def load_csv(con: Connection, table: str, replace_if_exists=True):
+    """Load CSV into table
+
+    - Uses: https://pandas.pydata.org/docs/reference/api/pandas.DataFrame.to_sql.html
+    """
     df = pd.read_csv(os.path.join(DATASETS_PATH, f'{table}.csv'))
-    # https://pandas.pydata.org/docs/reference/api/pandas.DataFrame.to_sql.html
-    # df.to_sql(name, con, schema=None, if_exists='fail', index=True, index_label=None, chunksize=None, dtype=None, method=None)
-    # todo: fix "data too long" / data type issues:
-    #  @Siggie: how to iteratively fix: (i) drop table, (ii) recreate table, (iii) rerun this script
-    #  sqlalchemy.exc.DataError: (pymysql.err.DataError) (1406, "Data too long for column 'atlas_json_resource_url' at row 274")
-    #  @jflack4: "data too long" is fixed. there are other changes we probably want to make with these pandas-created
-    #            tables. Like datetimes.... doing some of this above now
     if not replace_if_exists:
         # TODO: make this work:
         # query:  show tables where Tables_in_termhub_n3c = {table}
@@ -76,19 +77,18 @@ def load_csv(con, table, replace_if_exists=True):
         pass
     try:
         con.execute(text(f'TRUNCATE {table}'))
-    except ProgrammingError as err:
+    except ProgrammingError:
         pass
+    # `schema='termhub_n3c'`: Passed so Joe doesn't get OperationalError('(pymysql.err.OperationalError) (1050,
+    #  "Table \'code_sets\' already exists")')
+    #  https://stackoverflow.com/questions/69906698/pandas-to-sql-gives-table-already-exists-error-with-if-exists-append
     try:
-        # TODO: Fix: Why is Joe getting this error?
-        #  OperationalError('(pymysql.err.OperationalError) (1050, "Table \'code_sets\' already exists")')
-        # If don't pass `schema='termhub_n3c'`, Joe gets OperationalError('(pymysql.err.OperationalError) (1050, "Table
-        #   \'code_sets\' already exists")')
-        #   https://stackoverflow.com/questions/69906698/pandas-to-sql-gives-table-already-exists-error-with-if-exists-append
         df.to_sql(table, con, if_exists='append', schema='termhub_n3c', index=False)
     except Exception as err:
         # if data too long error, change column to longtext and try again
+        # noinspection PyUnresolvedReferences
         m = re.match("Data too long for column '(.*)'.*", err.orig.args[1])
-        if (m):
+        if m:
             run_sql(con, f'ALTER TABLE {table} MODIFY {m[1]} LONGTEXT')
             load_csv(con, table)
         else:
@@ -96,13 +96,6 @@ def load_csv(con, table, replace_if_exists=True):
     # except Exception as err:
     #     print(err)
 
-# pymysql.err.OperationalError: (1290, 'The MySQL server is running with the --secure-file-priv option so it cannot execute this statement')
-
 
 if __name__ == '__main__':
-    # May not ever need to connect directly to 'termhub' db, at least not in initialization
-    # try:
-    #     initialize(DB_URL)
-    # except OperationalError:
-    #     initialize(BRAND_NEW_DB_URL)
     initialize()
