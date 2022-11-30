@@ -24,7 +24,7 @@ from enclave_wrangler.dataset_upload import upload_new_container_with_concepts, 
 from enclave_wrangler.datasets import run_favorites as update_termhub_csets
 from enclave_wrangler.new_enclave_api import make_read_request
 
-from backend.db.mysql_utils import run_sql, get_mysql_connection
+from backend.db.mysql_utils import sql_query, get_mysql_connection
 
 CON = get_mysql_connection()  # using a global connection object is probably a terrible idea, but
                               # shouldn't matter much until there are multiple users on the same server
@@ -358,33 +358,35 @@ def load_globals():
 
     return ds
 
-# todo: consider: run 2 backend servers, 1 to hold the data and 1 to service requests / logic? probably.
-# TODO: #2: remove try/except when git lfs fully set up
-# todo: temp until we decide if this is the correct way
-try:
-    DS = {
-        **{name: load_dataset(name) for name in GLOBAL_DATASET_NAMES},
-        **{name: load_dataset(name, is_object=True) for name in GLOBAL_OBJECT_DATASET_NAMES},
-    }
-    DS2 = load_globals()
-    #  TODO: Fix this warning? (Joe: doing so will help load faster, actually)
-    #   DtypeWarning: Columns (4) have mixed types. Specify dtype option on import or set low_memory=False.
-    #   keep_default_na fixes some or all the warnings, but doesn't manage dtypes well.
-    #   did this in termhub-csets/datasets/fixing-and-paring-down-csv-files.ipynb:
-    #   csm = pd.read_csv('./concept_set_members.csv',
-    #                    # dtype={'archived': bool},    # doesn't work because of missing values
-    #                   converters={'archived': lambda x: x and True or False}, # this makes it a bool field
-    #                   keep_default_na=False)
-except FileNotFoundError:
-    # todo: what if they haven't downloaded? maybe need to ls files and see if anything needs to be downloaded first
-    # TODO: objects should be updated too
-    update_termhub_csets(transforms_only=True)
-    DS = {
-        **{name: load_dataset(name) for name in GLOBAL_DATASET_NAMES},
-        **{name: load_dataset(name, is_object=True) for name in GLOBAL_OBJECT_DATASET_NAMES},
-    }
-    DS2 = load_globals()
-print(f'Favorite datasets loaded: {list(DS.keys())}')
+
+def disabling_globals():
+    # todo: consider: run 2 backend servers, 1 to hold the data and 1 to service requests / logic? probably.
+    # TODO: #2: remove try/except when git lfs fully set up
+    # todo: temp until we decide if this is the correct way
+    try:
+        DS = {
+            **{name: load_dataset(name) for name in GLOBAL_DATASET_NAMES},
+            **{name: load_dataset(name, is_object=True) for name in GLOBAL_OBJECT_DATASET_NAMES},
+        }
+        DS2 = load_globals()
+        #  TODO: Fix this warning? (Joe: doing so will help load faster, actually)
+        #   DtypeWarning: Columns (4) have mixed types. Specify dtype option on import or set low_memory=False.
+        #   keep_default_na fixes some or all the warnings, but doesn't manage dtypes well.
+        #   did this in termhub-csets/datasets/fixing-and-paring-down-csv-files.ipynb:
+        #   csm = pd.read_csv('./concept_set_members.csv',
+        #                    # dtype={'archived': bool},    # doesn't work because of missing values
+        #                   converters={'archived': lambda x: x and True or False}, # this makes it a bool field
+        #                   keep_default_na=False)
+    except FileNotFoundError:
+        # todo: what if they haven't downloaded? maybe need to ls files and see if anything needs to be downloaded first
+        # TODO: objects should be updated too
+        update_termhub_csets(transforms_only=True)
+        DS = {
+            **{name: load_dataset(name) for name in GLOBAL_DATASET_NAMES},
+            **{name: load_dataset(name, is_object=True) for name in GLOBAL_OBJECT_DATASET_NAMES},
+        }
+        DS2 = load_globals()
+    print(f'Favorite datasets loaded: {list(DS.keys())}')
 
 
 # Utility functions ----------------------------------------------------------------------------------------------------
@@ -531,13 +533,17 @@ def read_root():
 
 @APP.get("/get-all-csets")
 def get_all_csets() -> Union[Dict, List]:
-  q = CON.execute('SELECT codeset_id, '
-                  '       concept_set_version_title, '
-                  '       concepts '
-                  'FROM all_csets');
-  return q.fetchall()
-  smaller = DS2.all_csets[['codeset_id', 'concept_set_version_title', 'concepts']]
-  return smaller.to_dict(orient='records')
+  # this returns 4,327 rows. the old one below returned 3,127 rows
+  # TODO: figure out why and if all_csets query in ddl.sql needs to be fixed
+
+  return sql_query(
+    CON, """ 
+    SELECT codeset_id,
+          concept_set_version_title,
+          concepts
+    FROM all_csets""")
+  # smaller = DS2.all_csets[['codeset_id', 'concept_set_version_title', 'concepts']]
+  # return smaller.to_dict(orient='records')
 
 
 # TODO: the following is just based on concept_relationship
@@ -547,6 +553,16 @@ def get_all_csets() -> Union[Dict, List]:
 #       Or just make new issue for starting from one cset or concept
 #       and fanning out to other csets from there?
 # Example: http://127.0.0.1:8000/cr-hierarchy?codeset_id=818292046&codeset_id=484619125&codeset_id=400614256
+@APP.get("/selected-csets")
+def selected_csets(codeset_id: Union[str, None] = Query(default=''), ) -> Dict:
+  requested_codeset_ids = parse_codeset_ids(codeset_id)
+  return sql_query(CON, """
+      SELECT *
+      FROM all_csets
+      WHERE codeset_id IN (:codeset_ids);""",
+      {'codeset_ids': ','.join([str(id) for id in requested_codeset_ids])})
+
+
 @APP.get("/cr-hierarchy")  # maybe junk, or maybe start of a refactor of above
 def cr_hierarchy( rec_format: str='default', codeset_id: Union[str, None] = Query(default=''), ) -> Dict:
 

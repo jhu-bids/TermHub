@@ -16,5 +16,7 @@ CONFIG = {
     'pass': os.getenv('TERMHUB_DB_PASS'),
     'port': os.getenv('TERMHUB_DB_PORT'),
 }
-DB_URL = f'mysql+pymysql://{CONFIG["user"]}:{CONFIG["pass"]}@{CONFIG["host"]}:{CONFIG["port"]}/{CONFIG["db"]}?charset=utf8mb4'
-BRAND_NEW_DB_URL = f'mysql+pymysql://{CONFIG["user"]}:{CONFIG["pass"]}@{CONFIG["host"]}:{CONFIG["port"]}?charset=utf8mb4'
+# DB_URL = f'mysql+pymysql://{CONFIG["user"]}:{CONFIG["pass"]}@{CONFIG["host"]}:{CONFIG["port"]}/{CONFIG["db"]}?charset=utf8mb4'
+# BRAND_NEW_DB_URL = f'mysql+pymysql://{CONFIG["user"]}:{CONFIG["pass"]}@{CONFIG["host"]}:{CONFIG["port"]}?charset=utf8mb4'
+DB_URL = f'postgresql+psycopg2://{CONFIG["user"]}:{CONFIG["pass"]}@{CONFIG["host"]}:{CONFIG["port"]}/{CONFIG["db"]}?charset=utf8mb4'
+BRAND_NEW_DB_URL = f'postgresql+psycopg2://{CONFIG["user"]}:{CONFIG["pass"]}@{CONFIG["host"]}:{CONFIG["port"]}?charset=utf8mb4'
