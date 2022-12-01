@@ -559,8 +559,9 @@ def selected_csets(codeset_id: Union[str, None] = Query(default=''), ) -> Dict:
   return sql_query(CON, """
       SELECT *
       FROM all_csets
-      WHERE codeset_id IN (:codeset_ids);""",
-      {'codeset_ids': ','.join([str(id) for id in requested_codeset_ids])})
+      WHERE codeset_id = ANY(:codeset_ids);""",
+      {'codeset_ids': requested_codeset_ids})
+      # {'codeset_ids': ','.join([str(id) for id in requested_codeset_ids])})
 
 
 @APP.get("/cr-hierarchy")  # maybe junk, or maybe start of a refactor of above

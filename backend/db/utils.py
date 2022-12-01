@@ -37,8 +37,8 @@ def sql_query(
         query = text(query) if not isinstance(query, TextClause) else query
         q = con.execute(query, **params) if params else con.execute(query)
         return q.fetchall()
-    except (ProgrammingError, OperationalError):
-        raise RuntimeError(f'Got an error executing the following statement:\n{query}, {json.dumps(params, indent=2)}')
+    except (ProgrammingError, OperationalError) as err:
+        raise RuntimeError(f'Got an error [{err}] executing the following statement:\n{query}, {json.dumps(params, indent=2)}')
 
 
 def run_sql(con: Connection, command: str):
