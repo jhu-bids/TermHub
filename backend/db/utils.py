@@ -5,10 +5,11 @@ from sqlalchemy.engine.base import Connection
 from sqlalchemy.exc import OperationalError, ProgrammingError
 from sqlalchemy.sql import text
 from sqlalchemy.sql.elements import TextClause
-from typing import Dict, Union
+from typing import Dict, Union, List
 
 from backend.db.config import BRAND_NEW_DB_URL, DB_URL
 
+DEBUG = True
 
 def get_db_connection(new_db=False):
     """Connect to db"""
@@ -36,6 +37,9 @@ def sql_query(
     try:
         query = text(query) if not isinstance(query, TextClause) else query
         q = con.execute(query, **params) if params else con.execute(query)
+
+        if DEBUG:
+            print(f'{query}\n{json.dumps(params, indent=2)}')
         return q.fetchall()
     except (ProgrammingError, OperationalError) as err:
         raise RuntimeError(f'Got an error [{err}] executing the following statement:\n{query}, {json.dumps(params, indent=2)}')
@@ -48,3 +52,23 @@ def run_sql(con: Connection, command: str):
         return con.execute(statement)
     except (ProgrammingError, OperationalError):
         raise RuntimeError(f'Got an error executing the following statement:\n{command}')
+
+def get_concept_set_members(con,
+                            codeset_ids: List[int],
+                            columns: Union[List[str], None] = None,
+                            column: Union[str, None] = None):
+    if column:
+        columns = [column]
+    if not columns:
+        columns = ['codeset_id', 'concept_id']
+
+    # should check that column names are valid columns in concept_set_members
+    query = f"""
+        SELECT DISTINCT {', '.join(columns)}
+        FROM concept_set_members csm
+        WHERE csm.codeset_id = ANY(:codeset_ids)
+    """
+    res = sql_query(con, query, {'codeset_ids': codeset_ids})
+    if column:  # with single column, don't return List[Dict] but just List(<column>)
+        return [r[0] for r in res]
+    return res

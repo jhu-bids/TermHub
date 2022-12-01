@@ -24,7 +24,7 @@ from enclave_wrangler.dataset_upload import upload_new_container_with_concepts, 
 from enclave_wrangler.datasets import run_favorites as update_termhub_csets
 from enclave_wrangler.new_enclave_api import make_read_request
 
-from backend.db.utils import run_sql, get_db_connection, sql_query
+from backend.db.utils import run_sql, get_db_connection, sql_query, get_concept_set_members
 
 CON = get_db_connection()  # using a global connection object is probably a terrible idea, but
                               # shouldn't matter much until there are multiple users on the same server
@@ -560,8 +560,14 @@ def selected_csets(codeset_id: Union[str, None] = Query(default=''), ) -> Dict:
       SELECT *
       FROM all_csets
       WHERE codeset_id = ANY(:codeset_ids);""",
-      {'codeset_ids': requested_codeset_ids})
-      # {'codeset_ids': ','.join([str(id) for id in requested_codeset_ids])})
+                   {'codeset_ids': requested_codeset_ids})
+  # {'codeset_ids': ','.join([str(id) for id in requested_codeset_ids])})
+
+
+@APP.get("/related-csets")
+def related_csets(codeset_id: Union[str, None] = Query(default=''), ) -> Dict:
+  requested_codeset_ids = parse_codeset_ids(codeset_id)
+  return get_concept_set_members(CON, requested_codeset_ids, column='concept_id')
 
 
 @APP.get("/cr-hierarchy")  # maybe junk, or maybe start of a refactor of above

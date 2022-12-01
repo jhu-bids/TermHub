@@ -1,6 +1,6 @@
 <component name="ProjectRunConfigurationManager">
   <configuration default="false" name="backend" type="Python.FastAPI">
-    <option name="additionalOptions" />
+    <option name="additionalOptions" value="--port 8000" />
     <option name="file" value="$PROJECT_DIR$/backend/app.py" />
     <module name="TermHub" />
     <option name="INTERPRETER_OPTIONS" value="" />
