@@ -52,6 +52,7 @@ However, archive-concept-set is good enough for now.
 
 TODO: Remove this temporary list of API endpoints when done / if advisable
 """
+import json
 import sys
 from typing import Dict, List, Union
 
@@ -502,17 +503,20 @@ def upload_concept_set_container(
     return response
 
 
-def make_request(api_name: str, data: Union[List, Dict] = None, validate=False, verbose=False) -> JSON_TYPE:
+def make_request(api_name: str, data: Union[List, Dict] = None, validate=False, verbose=True) -> JSON_TYPE:
     """Passthrough for HTTP request
     If `data`, knows to do a POST. Otherwise does a GET.
     Enclave docs:
       https://www.palantir.com/docs/foundry/api/ontology-resources/objects/list-objects/
       https://www.palantir.com/docs/foundry/api/ontology-resources/object-types/list-object-types/
     """
+    # temporarily!!!
+    # TODO: fix
+    data['on-behalf-of'] = '5c560c3e-8e55-485c-9a66-f96285f273a0'
     headers = {
         # todo: When/if @Amin et al allow enclave service token to write to the new API, change this back from.
-        # "authorization": f"Bearer {config['PALANTIR_ENCLAVE_AUTHENTICATION_BEARER_TOKEN']}",
-        "authorization": f"Bearer {config['OTHER_TOKEN']}",
+        "authorization": f"Bearer {config['PALANTIR_ENCLAVE_AUTHENTICATION_BEARER_TOKEN']}",
+        # "authorization": f"Bearer {config['OTHER_TOKEN']}",
         "Content-type": "application/json",
 
     }
@@ -521,7 +525,12 @@ def make_request(api_name: str, data: Union[List, Dict] = None, validate=False, 
     api_path += 'validate' if validate else 'apply'
     url = f'https://{config["HOSTNAME"]}{api_path}'
     if verbose:
-        print(f'make_request: {api_path}\n{url}')
+        # print(f'make_request: {api_path}\n{url}')
+        print(f"""\ncurl  -H "Content-type: application/json" \\
+            -H "Authorization: Bearer $PALANTIR_ENCLAVE_AUTHENTICATION_BEARER_TOKEN" \\
+            {url} \\
+            --data '{"parameters"}: {json.dumps(data)}'
+            """)
 
     try:
         if data:
@@ -531,6 +540,7 @@ def make_request(api_name: str, data: Union[List, Dict] = None, validate=False, 
         response.raise_for_status()
     except BaseException as err:
         print(f"Unexpected {type(err)}: {str(err)}", file=sys.stderr)
+        raise err
 
     # noinspection PyUnboundLocalVariable
     response_json: JSON_TYPE = response.json()
