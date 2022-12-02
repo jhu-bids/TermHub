@@ -3,6 +3,9 @@
 #  2. Add alters to fix data types
 #  3. Run stuff in this file again (not doing that currently)
 
+CREATE INDEX concept_idx ON concept(concept_id);
+CREATE INDEX concept_idx2 ON concept(concept_code);
+
 DROP TABLE IF EXISTS all_csets;
 CREATE TABLE all_csets AS           -- table instead of view for performance
                                     -- (no materialized views in mySQL)
