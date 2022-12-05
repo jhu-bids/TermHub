@@ -5,6 +5,12 @@
 
 CREATE INDEX concept_idx ON concept(concept_id);
 CREATE INDEX concept_idx2 ON concept(concept_code);
+CREATE INDEX csm_idx1 ON concept_set_members(codeset_id);
+CREATE INDEX csm_idx2 ON concept_set_members(concept_id);
+CREATE INDEX csm_idx3 ON concept_set_members(codeset_id, concept_id);
+CREATE INDEX vi_idx1 ON concept_set_version_item(codeset_id);
+CREATE INDEX vi_idx2 ON concept_set_version_item(concept_id);
+CREATE INDEX vi_idx3 ON concept_set_version_item(codeset_id, concept_id);
 
 DROP TABLE IF EXISTS all_csets;
 CREATE TABLE all_csets AS           -- table instead of view for performance
