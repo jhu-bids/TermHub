@@ -17,8 +17,9 @@ try:
     from enclave_wrangler.enclave_api import get_cs_container_data, get_cs_version_data, get_cs_version_expression_data, \
     post_request_enclave_api_addExpressionItems, post_request_enclave_api_create_container, \
     post_request_enclave_api_create_version, update_cs_version_expression_data_with_codesetid
-    from enclave_wrangler.new_enclave_api import JSON_TYPE, add_concepts_to_cset, upload_concept_set_container, \
-        upload_concept_set_version
+    from enclave_wrangler.new_enclave_api import JSON_TYPE, add_concepts_to_cset, finalize_concept_set_version, \
+    upload_concept_set_container, \
+    upload_concept_set_version
     from enclave_wrangler.utils import _datetime_palantir_format, log_debug_info
 except ModuleNotFoundError:
     from config import CSET_UPLOAD_REGISTRY_PATH, ENCLAVE_PROJECT_NAME, MOFFIT_PREFIX, \
@@ -37,6 +38,7 @@ DEBUG = False
 
 # TODO: Need to do proper codeset_id assignment: (i) look up registry and get next available ID, (ii) assign it here,
 #  (iii) persist new ID / set to registry, (iv) persist new ID to any files passed through CLI, (v), return the new ID
+# todo: @Siggie: Do we want to change this to accept named params instead of a dictionary? - Joe 2022/12/05
 def upload_new_cset_version_with_concepts(version_with_concepts: Dict) -> JSON_TYPE:
     """Upload a concept set version along with its concepts.
 
@@ -84,11 +86,6 @@ def upload_new_cset_version_with_concepts(version_with_concepts: Dict) -> JSON_T
         version_with_concepts['codeset_id'] = new_id
 
     # Upload
-    # TODO: fix
-    #       @jflack4: here's the problem. upload_concept_set_version calls both
-    #                 create-new-draft-omop-concept-set-version and
-    #                 finalize-draft-omop-concept-set-version, but I think
-    #                 add_concepts_to_ceset has to be called before finalize
     response_upload_draft_concept_set: JSON_TYPE = upload_concept_set_version(  # code_set
         provenance=version_with_concepts['provenance'],
         concept_set=version_with_concepts['concept_set_name'],  # == container_d['concept_set_name']
@@ -96,14 +93,21 @@ def upload_new_cset_version_with_concepts(version_with_concepts: Dict) -> JSON_T
         limitations=version_with_concepts['limitations'],
         intention=version_with_concepts['intention'],
         intended_research_project=version_with_concepts.get('intended_research_project', ENCLAVE_PROJECT_NAME),
-        version_id=version_with_concepts['codeset_id'])  # == code_sets.codeset_id
+        version_id=version_with_concepts['codeset_id'],
+        on_behalf_of=version_with_concepts['on_behalf_of'])  # == code_sets.codeset_id
     response_upload_concepts: JSON_TYPE = add_concepts_to_cset(
         omop_concepts=version_with_concepts['omop_concepts'],
-        version__codeset_id=version_with_concepts['codeset_id'])
+        version__codeset_id=version_with_concepts['codeset_id'],
+        on_behalf_of=version_with_concepts['on_behalf_of'])  # == code_sets.codeset_id
+    response_finalize_concept_set_version: JSON_TYPE = finalize_concept_set_version(
+        concept_set=version_with_concepts['concept_set_name'],  # == container_d['concept_set_name']
+        version_id=version_with_concepts['codeset_id'],
+        on_behalf_of=version_with_concepts['on_behalf_of'])  # == code_sets.codeset_id
 
     return {
         'upload_concept_set_version': response_upload_draft_concept_set,
-        'add_concepts_to_cset': response_upload_concepts}
+        'add_concepts_to_cset': response_upload_concepts,
+        'finalize_concept_set_version': response_finalize_concept_set_version}
 
 
 # TODO: support concept params, e.g. exclude_children

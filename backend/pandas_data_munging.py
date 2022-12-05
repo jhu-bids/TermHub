@@ -1,4 +1,4 @@
-from backend.utils import cnt
+from backend.utils import Bunch, cnt
 import numpy as np
 import pandas as pd
 from subprocess import call as sp_call
@@ -475,10 +475,6 @@ def data_stuff_for_codeset_ids(codeset_ids):
   dsi.concepts = DS2.concept[DS2.concept.concept_id.isin(leaf_cids.union(set(dsi.cset_members_items.concept_id)))]
 
   return dsi
-
-class Bunch(object):    # dictionary to namespace, a la https://stackoverflow.com/a/2597440/1368860
-  def __init__(self, adict):
-    self.__dict__.update(adict)
 
 
 # TODO: (i) move most of this functionality out of route into separate function (potentially keeping this route which

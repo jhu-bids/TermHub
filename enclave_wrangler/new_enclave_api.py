@@ -65,7 +65,7 @@ JSON_TYPE = Union[List, Dict]
 VALIDATE_FIRST = True  # if True, will /validate before doing /apply, and return validation error if any.
 
 
-def add_concepts_to_cset(omop_concepts: List[Dict], version__codeset_id: int) -> JSON_TYPE:
+def add_concepts_to_cset(omop_concepts: List[Dict], version__codeset_id: int, on_behalf_of: str = None) -> JSON_TYPE:
     """Wrapper function for routing to appropriate endpoint. Add existing OMOP concepts to a versioned concept set / codeset.
 
     :param omop_concepts (List[Dict]): A list of dictionaries.
@@ -108,7 +108,8 @@ def add_concepts_to_cset(omop_concepts: List[Dict], version__codeset_id: int) ->
             is_excluded=group['isExcluded'],
             include_mapped=group['includeMapped'],
             include_descendants=group['includeDescendants'],
-            optional_annotation=group['annotation'] if group['annotation'] else None)
+            optional_annotation=group['annotation'] if group['annotation'] else None,
+            on_behalf_of=on_behalf_of)
         response.append(response_i)
 
     return response
@@ -117,7 +118,7 @@ def add_concepts_to_cset(omop_concepts: List[Dict], version__codeset_id: int) ->
 # api_name = 'add-selected-concepts-as-omop-version-expressions'
 def add_concepts_via_array(
     concepts: List[int], version: int, include_mapped: bool, include_descendants: bool, is_excluded: bool,
-    optional_annotation: str = None, validate_first=VALIDATE_FIRST
+    optional_annotation: str = None, on_behalf_of: str = None, validate_first=VALIDATE_FIRST
 ) -> JSON_TYPE:
     """Create new concepts within concept set, AKA concept_set_version_items / expressions
     Non-required params set to `None`.
@@ -128,6 +129,7 @@ def add_concepts_via_array(
     """
     api_name = 'add-selected-concepts-as-omop-version-expressions'
     # Commented out portions are part of the api definition
+    # Required params
     d = {
         # "apiName": "add-selected-concepts-as-omop-version-expressions",
         # "description": "",
@@ -154,6 +156,11 @@ def add_concepts_via_array(
               # "baseType": "String"
         }
     }
+
+    # Optional params
+    if on_behalf_of:
+        d['parameters']['on-behalf-of'] = on_behalf_of
+
     return post(api_name, d, validate_first)
 
 
@@ -254,13 +261,9 @@ def add_concept_via_edit(
 def upload_concept_set_version(
     concept_set: str, intention: str, domain_team: str = None, provenance: str = None, current_max_version: float = None
     , annotation: str = None, limitations: str = None, base_version: int = None, intended_research_project: str = None,
-    version_id: int = None, authority: str = None, validate_first=VALIDATE_FIRST
+    version_id: int = None, authority: str = None, on_behalf_of: str = None, validate_first=VALIDATE_FIRST
 ) -> JSON_TYPE:
-    """Create a new draft concept set. Wrapper for two API calls: (i) create-new-draft-omop-concept-set-version,
-    (ii) finalize-draft-omop-concept-set-version
-
-    TODO: @jflack4, where do the version items get added? don't you also have to call
-            add-code-system-codes-as-omop-version-expressions?
+    """Create a new draft concept set version.
 
     :param domain_team (str): todo: domain_team: Not sure what to put here, but it is optional param, so I'm leaving blank - Joe
     :param annotation (str): todo: annotation: this should be moved into the new palantir-3-file data model, whatever that is - Joe
@@ -273,7 +276,6 @@ def upload_concept_set_version(
 
     Non-required params set to `None`.
 
-    API call 1 of 2: create-new-draft-omop-concept-set-version
     Example curl:
         curl -H "Content-type: application/json" -H "Authorization: Bearer $OTHER_TOKEN" \
             https://unite.nih.gov/api/v1/ontologies/ri.ontology.main.ontology.00000000-0000-0000-0000-000000000000/actions/create-new-draft-omop-concept-set-version/validate \
@@ -282,8 +284,6 @@ def upload_concept_set_version(
         - Apply: (replace /validate with /apply in above string)
         - This is a sign that it worked: "curl: (52) Empty reply from server"
 
-    API call 2 of 2: finalize-draft-omop-concept-set-version
-    # todo: add any further docs for this step here
     """
     api_name = 'create-new-draft-omop-concept-set-version'
 
@@ -388,42 +388,68 @@ def upload_concept_set_version(
     if authority:
         d['parameters']['authority'] = authority
 
+    if on_behalf_of:
+        d['parameters']['on-behalf-of'] = on_behalf_of
+
     response: JSON_TYPE = post(api_name, d, validate_first)
     if 'errorCode' in response:
         print(response, file=sys.stderr)
         # todo: What can I add to help the user figure out what to do to fix, until API returns better responses?
 
-    # TODO: strange that new-parameter and new-parameter1 are required. I added arbitrary strings
-    response2: JSON_TYPE = post(
-        api_name='finalize-draft-omop-concept-set-version',
-        data={
-            "parameters": {
-                "new-parameter1": 'hello new-parameter1',  # required
-                #   "description": "",
-                #   "baseType": "String"
-                "concept-set-container": concept_set,
-                # "description": "",
-                # "baseType": "OntologyObject"
-                "version": version_id,
-                # "description": "",
-                # "baseType": "OntologyObject"
-                # "currentMaxVersion": {
-                #   "description": "",
-                #   "baseType": "Double"
-                "new-parameter": 'hello new-parameter',  # required
-                #   "description": "",
-                #   "baseType": "String"
-            }
-        },
-        validate_first=validate_first)
-    if 'errorCode' in response2:
+    return {'create-new-draft-omop-concept-set-version': response, 'finalize-draft-omop-concept-set-version': response}
+
+
+def finalize_concept_set_version(
+    concept_set: str, version_id: int = None, on_behalf_of: str = None, validate_first=VALIDATE_FIRST
+) -> JSON_TYPE:
+    """Finalize a concept set version
+
+    # todo: add docs for params & curl example
+    :param version_id (int): Equal to code_sets.codeset_id:
+    https://unite.nih.gov/workspace/data-integration/dataset/preview/ri.foundry.main.dataset.7104f18e-b37c-419b-9755-a732bfa33b03/master
+
+    Non-required params set to `None`.
+    """
+    api_name = 'finalize-draft-omop-concept-set-version'
+
+    # Commented out portions are part of the api definition
+    # TODO: Ask Amin to remove these strange required 'new-parameter's? I added arbitrary strings
+    d = {
+        # "apiName": api_name,
+        # "description": "",
+        # "rid": "ri.actions.main.action-type.fb260d04-b50e-4e29-9d39-6cce126fda7f",
+        # - Required params
+        "parameters": {
+            "new-parameter": 'hello new-parameter',  # required
+            #   "description": "",
+            #   "baseType": "String"
+            "new-parameter1": 'hello new-parameter1',  # required
+            #   "description": "",
+            #   "baseType": "String"
+            "concept-set-container": concept_set,
+            # "description": "",
+            # "baseType": "OntologyObject"
+            # - validation info: Needs to be a valid reference (objectQueryResult) to object/property/value already
+            #   existing in enclave.
+            "version": version_id,
+            # "description": "",
+            # "baseType": "OntologyObject"
+            # "currentMaxVersion": {
+            #   "description": "",
+            #   "baseType": "Double"
+        }
+    }
+    # - Optional params
+    if on_behalf_of:
+        d['parameters']['on-behalf-of'] = on_behalf_of
+
+    response: JSON_TYPE = post(api_name, d, validate_first)
+
+    if 'errorCode' in response:
         print(response, file=sys.stderr)
         # todo: What can I add to help the user figure out what to do to fix, until API returns better responses?
 
-    if 'errorCode' in response or 'errorCode' in response2:
-        print('This function upload_draft_concept_set() calls two endpoints. At least one of them errored. '
-              'See response by endpoint below.', file=sys.stderr)
-    return {'create-new-draft-omop-concept-set-version': response, 'finalize-draft-omop-concept-set-version': response}
+    return response
 
 
 # concept_set_container
@@ -514,8 +540,6 @@ def make_request(api_name: str, data: Union[List, Dict] = None, validate=False, 
       https://www.palantir.com/docs/foundry/api/ontology-resources/object-types/list-object-types/
     """
     # temporarily!!!
-    # TODO: fix
-    data['parameters']['on-behalf-of'] = '5c560c3e-8e55-485c-9a66-f96285f273a0'
     headers = {
         # todo: When/if @Amin et al allow enclave service token to write to the new API, change this back from.
         "authorization": f"Bearer {config['PALANTIR_ENCLAVE_AUTHENTICATION_BEARER_TOKEN']}",

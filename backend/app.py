@@ -189,14 +189,7 @@ def route_upload_new_cset_version_with_concepts(d: UploadNewCsetVersionWithConce
     """Upload new version of existing container, with concepets"""
     # TODO: Persist: see route_upload_new_container_with_concepts() for more info
     # result = csets_update(dataset_path='', row_index_data_map={})
-
-    # todo: this is redundant. need to flesh out func param arity in various places
-    response = upload_new_cset_version_with_concepts({
-        'omop_concepts': d.omop_concepts,
-        'provenance': d.provenance,
-        'concept_set_name': d.concept_set_name,
-        'limitations': d.limitations,
-        'intention': d.intention})
+    response = upload_new_cset_version_with_concepts(d.__dict__)
 
     return {}  # todo: return. should include: assigned codeset_id's
 

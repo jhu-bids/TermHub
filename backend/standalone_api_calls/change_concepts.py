@@ -1,3 +1,4 @@
+# TODO: make this a test case
 import pandas as pd
 from pathlib import Path
 import os
@@ -9,19 +10,21 @@ CSV_DIR = os.path.join(PROJECT_DIR, 'termhub-csets/n3c-upload-jobs')
 
 def run():
   # fname = os.path.join(CSV_DIR, 'Other Diabetes.csv')
-  fname = os.path.join(CSV_DIR, 'diabetes-recommended-csets-modifications/type-2-diabetes-mellitus.csv')
-  df = pd.read_csv(fname)
-  omop_concepts = df[['concept_id',
-                      'includeDescendants',
-                      'isExcluded',
-                      'includeMapped',
-                      'annotation']].to_dict(orient='records')
+  fname = os.path.join(CSV_DIR, 'diabetes-recommended-csets-modifications', 'type-2-diabetes-mellitus.csv')
+  df = pd.read_csv(fname).fillna('')
+  omop_concepts = df[[
+      'concept_id',
+      'includeDescendants',
+      'isExcluded',
+      'includeMapped',
+      'annotation']].to_dict(orient='records')
   new_version = {
     "omop_concepts": omop_concepts,
     "provenance": "Created through TermHub.",
     "concept_set_name": "[DM]Type2 Diabetes Mellitus",
     "limitations": "",
-    "intention": ""
+    "intention": "",
+    "on_behalf_of": '5c560c3e-8e55-485c-9a66-f96285f273a0'
   }
   new_version = Bunch(new_version)
   res = route_upload_new_cset_version_with_concepts(new_version)
