@@ -432,11 +432,10 @@ def data_stuff_for_codeset_ids(codeset_ids):
   # Researchers
   researcher_cols = ['created_by_container', 'created_by_version', 'assigned_sme', 'reviewed_by', 'n3c_reviewer',
                      'assigned_informatician']
-  researcher_ids = []
+  researcher_ids = set()
   for i, row in dsi.selected_csets.iterrows():
     for _id in [row[col] for col in researcher_cols if hasattr(row, col) and row[col]]:
-      researcher_ids.append(_id)
-  researcher_ids: List[str] = list(set(researcher_ids))
+      researcher_ids.add(_id)
   researchers: List[Dict] = DS2.researcher[DS2.researcher['multipassId'].isin(researcher_ids)].to_dict(orient='records')
   dsi.selected_csets['researchers'] = researchers
 

@@ -396,7 +396,7 @@ def upload_concept_set_version(
         print(response, file=sys.stderr)
         # todo: What can I add to help the user figure out what to do to fix, until API returns better responses?
 
-    return {'create-new-draft-omop-concept-set-version': response, 'finalize-draft-omop-concept-set-version': response}
+    return response
 
 
 def finalize_concept_set_version(

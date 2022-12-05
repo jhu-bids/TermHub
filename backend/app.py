@@ -129,6 +129,8 @@ def get_container(concept_set_name):
     return make_read_request(f'objects/OMOPConceptSetContainer/{urllib.parse.quote(concept_set_name)}')
 
 # todo: Some redundancy. (i) should only need concept_set_name once
+# TODO: @Siggie: Do we want to add: annotation, intended_research_project, and on_behalf_of?
+#  - These are params in upload_new_cset_version_with_concepts()  - Joe 2022/12/05
 class UploadNewCsetVersionWithConcepts(BaseModel):
     """Schema for route: /upload-new-cset-version-with-concepts
 
@@ -189,7 +191,7 @@ def route_upload_new_cset_version_with_concepts(d: UploadNewCsetVersionWithConce
     """Upload new version of existing container, with concepets"""
     # TODO: Persist: see route_upload_new_container_with_concepts() for more info
     # result = csets_update(dataset_path='', row_index_data_map={})
-    response = upload_new_cset_version_with_concepts(d.__dict__)
+    response = upload_new_cset_version_with_concepts(**d.__dict__)
 
     return {}  # todo: return. should include: assigned codeset_id's
 

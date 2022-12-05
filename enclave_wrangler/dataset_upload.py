@@ -39,10 +39,14 @@ DEBUG = False
 # TODO: Need to do proper codeset_id assignment: (i) look up registry and get next available ID, (ii) assign it here,
 #  (iii) persist new ID / set to registry, (iv) persist new ID to any files passed through CLI, (v), return the new ID
 # todo: @Siggie: Do we want to change this to accept named params instead of a dictionary? - Joe 2022/12/05
-def upload_new_cset_version_with_concepts(version_with_concepts: Dict) -> JSON_TYPE:
+def upload_new_cset_version_with_concepts(
+    omop_concepts: List[Dict], provenance: str, concept_set_name: str, limitations: str, intention: str,
+    annotation: str = None, intended_research_project: str = None, on_behalf_of: str = None, codeset_id: int = None,
+) -> JSON_TYPE:
     """Upload a concept set version along with its concepts.
 
-    :param version_with_concepts (Dict): Has the following schema: {
+    # todo: Update this slightly now that this function accepts named params instead of a dict 
+    
         'omop_concepts': [
           {
             'concept_id' (int) (required):
@@ -54,9 +58,9 @@ def upload_new_cset_version_with_concepts(version_with_concepts: Dict) -> JSON_T
         ],
         'provenance' (str) (required):
         'concept_set_name' (str) (required):
-        'annotation' (str) (optional): Default:`'Curated value set: ' + version['concept_set_name']`
         'limitations' (str) (required):
         'intention' (str) (required):
+        'annotation' (str) (optional): Default:`'Curated value set: ' + version['concept_set_name']`
         'intended_research_project' (str) (optional): Default:`ENCLAVE_PROJECT_NAME`
         'codeset_id' (int) (required): Default:Will ge generated if not passed.
     }
@@ -78,31 +82,34 @@ def upload_new_cset_version_with_concepts(version_with_concepts: Dict) -> JSON_T
         "intention": ""
     }
     """
-    # Handle missing IDs
-    # todo: this is temporary until I handle registry persistence
-    if 'codeset_id' not in version_with_concepts or not version_with_concepts['codeset_id']:
+    # Handle missing params
+    if not codeset_id:
+        # todo: this is temporary until I handle registry persistence
         arbitrary_range = 100000
-        new_id: int = randint(CSET_VERSION_MIN_ID, CSET_VERSION_MIN_ID + arbitrary_range)
-        version_with_concepts['codeset_id'] = new_id
+        codeset_id = randint(CSET_VERSION_MIN_ID, CSET_VERSION_MIN_ID + arbitrary_range)
+    if not annotation:
+        annotation =  'Curated value set: ' + concept_set_name
+    if not intended_research_project:
+        intended_research_project = ENCLAVE_PROJECT_NAME
 
     # Upload
     response_upload_draft_concept_set: JSON_TYPE = upload_concept_set_version(  # code_set
-        provenance=version_with_concepts['provenance'],
-        concept_set=version_with_concepts['concept_set_name'],  # == container_d['concept_set_name']
-        annotation=version_with_concepts.get('annotation', 'Curated value set: ' + version_with_concepts['concept_set_name']),
-        limitations=version_with_concepts['limitations'],
-        intention=version_with_concepts['intention'],
-        intended_research_project=version_with_concepts.get('intended_research_project', ENCLAVE_PROJECT_NAME),
-        version_id=version_with_concepts['codeset_id'],
-        on_behalf_of=version_with_concepts['on_behalf_of'])  # == code_sets.codeset_id
+        provenance=provenance,
+        concept_set=concept_set_name,  # == container_d['concept_set_name']
+        annotation=annotation,
+        limitations=limitations,
+        intention=intention,
+        intended_research_project=intended_research_project,
+        version_id=codeset_id,
+        on_behalf_of=on_behalf_of)  # == code_sets.codeset_id
     response_upload_concepts: JSON_TYPE = add_concepts_to_cset(
-        omop_concepts=version_with_concepts['omop_concepts'],
-        version__codeset_id=version_with_concepts['codeset_id'],
-        on_behalf_of=version_with_concepts['on_behalf_of'])  # == code_sets.codeset_id
+        omop_concepts=omop_concepts,
+        version__codeset_id=codeset_id,
+        on_behalf_of=on_behalf_of)  # == code_sets.codeset_id
     response_finalize_concept_set_version: JSON_TYPE = finalize_concept_set_version(
-        concept_set=version_with_concepts['concept_set_name'],  # == container_d['concept_set_name']
-        version_id=version_with_concepts['codeset_id'],
-        on_behalf_of=version_with_concepts['on_behalf_of'])  # == code_sets.codeset_id
+        concept_set=concept_set_name,  # == container_d['concept_set_name']
+        version_id=codeset_id,
+        on_behalf_of=on_behalf_of)  # == code_sets.codeset_id
 
     return {
         'upload_concept_set_version': response_upload_draft_concept_set,
