@@ -259,6 +259,9 @@ def upload_concept_set_version(
     """Create a new draft concept set. Wrapper for two API calls: (i) create-new-draft-omop-concept-set-version,
     (ii) finalize-draft-omop-concept-set-version
 
+    TODO: @jflack4, where do the version items get added? don't you also have to call
+            add-code-system-codes-as-omop-version-expressions?
+
     :param domain_team (str): todo: domain_team: Not sure what to put here, but it is optional param, so I'm leaving blank - Joe
     :param annotation (str): todo: annotation: this should be moved into the new palantir-3-file data model, whatever that is - Joe
     :param intended_research_project (str): todo: intended_research_project: (a) default this to ENCLAVE_PROJECT_NAME in func, (b) do that here, (c) add it as a column to an updated palantir-3-file for the new api - Joe
@@ -512,7 +515,7 @@ def make_request(api_name: str, data: Union[List, Dict] = None, validate=False, 
     """
     # temporarily!!!
     # TODO: fix
-    data['on-behalf-of'] = '5c560c3e-8e55-485c-9a66-f96285f273a0'
+    data['parameters']['on-behalf-of'] = '5c560c3e-8e55-485c-9a66-f96285f273a0'
     headers = {
         # todo: When/if @Amin et al allow enclave service token to write to the new API, change this back from.
         "authorization": f"Bearer {config['PALANTIR_ENCLAVE_AUTHENTICATION_BEARER_TOKEN']}",
@@ -529,7 +532,7 @@ def make_request(api_name: str, data: Union[List, Dict] = None, validate=False, 
         print(f"""\ncurl  -H "Content-type: application/json" \\
             -H "Authorization: Bearer $PALANTIR_ENCLAVE_AUTHENTICATION_BEARER_TOKEN" \\
             {url} \\
-            --data '{"parameters"}: {json.dumps(data)}'
+            --data '{json.dumps(data)}'
             """)
 
     try:

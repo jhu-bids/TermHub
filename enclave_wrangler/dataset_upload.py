@@ -84,6 +84,11 @@ def upload_new_cset_version_with_concepts(version_with_concepts: Dict) -> JSON_T
         version_with_concepts['codeset_id'] = new_id
 
     # Upload
+    # TODO: fix
+    #       @jflack4: here's the problem. upload_concept_set_version calls both
+    #                 create-new-draft-omop-concept-set-version and
+    #                 finalize-draft-omop-concept-set-version, but I think
+    #                 add_concepts_to_ceset has to be called before finalize
     response_upload_draft_concept_set: JSON_TYPE = upload_concept_set_version(  # code_set
         provenance=version_with_concepts['provenance'],
         concept_set=version_with_concepts['concept_set_name'],  # == container_d['concept_set_name']
