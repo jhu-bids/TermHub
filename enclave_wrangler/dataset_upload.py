@@ -104,12 +104,10 @@ def upload_new_cset_version_with_concepts(
         on_behalf_of=on_behalf_of)  # == code_sets.codeset_id
     response_upload_concepts: JSON_TYPE = add_concepts_to_cset(
         omop_concepts=omop_concepts,
-        version__codeset_id=codeset_id,
-        on_behalf_of=on_behalf_of)  # == code_sets.codeset_id
+        version__codeset_id=codeset_id) # == code_sets.codeset_id
     response_finalize_concept_set_version: JSON_TYPE = finalize_concept_set_version(
         concept_set=concept_set_name,  # == container_d['concept_set_name']
-        version_id=codeset_id,
-        on_behalf_of=on_behalf_of)  # == code_sets.codeset_id
+        version_id=codeset_id)
 
     return {
         'upload_concept_set_version': response_upload_draft_concept_set,

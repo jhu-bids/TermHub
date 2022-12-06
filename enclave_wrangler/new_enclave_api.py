@@ -64,8 +64,33 @@ from enclave_wrangler.config import config, ENCLAVE_PROJECT_NAME
 JSON_TYPE = Union[List, Dict]
 VALIDATE_FIRST = True  # if True, will /validate before doing /apply, and return validation error if any.
 
+# TODO: fix all this -- we've been switching back and forth between service token and personal
+#       because some APIs are open to one, some to the other (and sometimes the service one has
+#       been expired. In the past we've switched by hard coding the api call header, but now
+#       we have to make api calls (temporarily, see https://cd2h.slack.com/archives/C034EG5ESU9/p1670337451241379?thread_ts=1667317248.546169&cid=C034EG5ESU9)
+#       using one and then the other
+#
+# "authorization": f"Bearer {config['PALANTIR_ENCLAVE_AUTHENTICATION_BEARER_TOKEN']}",
+# "authorization": f"Bearer {config['OTHER_TOKEN']}",
+SERVICE_TOKEN_KEY = 'PALANTIR_ENCLAVE_AUTHENTICATION_BEARER_TOKEN'
+PERSONAL_TOKEN_KEY = 'OTHER_TOKEN'
+TOKEN_KEY = SERVICE_TOKEN_KEY
 
-def add_concepts_to_cset(omop_concepts: List[Dict], version__codeset_id: int, on_behalf_of: str = None) -> JSON_TYPE:
+
+def set_auth_token_key(personal=False):
+    global TOKEN_KEY
+    TOKEN_KEY = PERSONAL_TOKEN_KEY if personal else SERVICE_TOKEN_KEY
+
+
+def get_auth_token_key():
+    return TOKEN_KEY
+
+
+def get_auth_token():
+    return config[TOKEN_KEY]
+
+
+def add_concepts_to_cset(omop_concepts: List[Dict], version__codeset_id: int) -> JSON_TYPE:
     """Wrapper function for routing to appropriate endpoint. Add existing OMOP concepts to a versioned concept set / codeset.
 
     :param omop_concepts (List[Dict]): A list of dictionaries.
@@ -104,12 +129,11 @@ def add_concepts_to_cset(omop_concepts: List[Dict], version__codeset_id: int, on
     for group in omop_concept_groups.values():
         response_i: JSON_TYPE = add_concepts_via_array(
             version=version__codeset_id,  # == code_sets.codeset_id
-            concepts=group['omop_concept_ids'],
+            concepts=[c['concept_id'] for c in group['omop_concept_ids']],
             is_excluded=group['isExcluded'],
             include_mapped=group['includeMapped'],
             include_descendants=group['includeDescendants'],
-            optional_annotation=group['annotation'] if group['annotation'] else None,
-            on_behalf_of=on_behalf_of)
+            optional_annotation=group['annotation'] if group['annotation'] else "")
         response.append(response_i)
 
     return response
@@ -118,7 +142,7 @@ def add_concepts_to_cset(omop_concepts: List[Dict], version__codeset_id: int, on
 # api_name = 'add-selected-concepts-as-omop-version-expressions'
 def add_concepts_via_array(
     concepts: List[int], version: int, include_mapped: bool, include_descendants: bool, is_excluded: bool,
-    optional_annotation: str = None, on_behalf_of: str = None, validate_first=VALIDATE_FIRST
+    optional_annotation: str = "", validate_first=VALIDATE_FIRST
 ) -> JSON_TYPE:
     """Create new concepts within concept set, AKA concept_set_version_items / expressions
     Non-required params set to `None`.
@@ -157,18 +181,17 @@ def add_concepts_via_array(
         }
     }
 
-    # Optional params
-    if on_behalf_of:
-        d['parameters']['on-behalf-of'] = on_behalf_of
-
-    return post(api_name, d, validate_first)
+    set_auth_token_key(personal=True)
+    result = post(api_name, d, validate_first)
+    set_auth_token_key(personal=False)
+    return result
 
 
 # api_name = 'set-omop-concept-set-version-item'
 # TODO: Considering removing this function to this endpoint, as can't pass the codeset_id / verion_id, and not sure
 #  if we will find useful at all.
 # noinspection PyUnusedLocal
-def update_concept_version_item(
+def update_concept_version_item(        # TODO: delete? not being used currently
     include_descendants: bool, concept_set_version_item: str, is_excluded: bool, include_mapped: bool, validate_first=VALIDATE_FIRST
 ) -> JSON_TYPE:
     """Create new concepets within concept set
@@ -222,6 +245,9 @@ def update_concept_version_item(
 # TODO: Ask Amin: Is this alternative to 'add-selected-concepts-as-omop-version-expressions' (add_concepts_via_array())?
 #  ...that is, does it do the same thing as passing an array of size 1 to that endpoint? If not, what's different?
 #  ...If it indeed is the same, then I imagine for OmopConceptSetVersionItem I want to pass an OMOP concept_id? Or?
+#   @jflack4: yeah, this is for a single version item and requires the version item identifier --
+#             not sure if we would use it. I think it's for editing version items already added while
+#             editing draft cset versions in the concept set editor
 def add_concept_via_edit(
     OmopConceptSetVersionItem: str, version: int, include_descendants=False, is_excluded=False, include_mapped=False,
     validate_first=VALIDATE_FIRST
@@ -390,6 +416,8 @@ def upload_concept_set_version(
 
     if on_behalf_of:
         d['parameters']['on-behalf-of'] = on_behalf_of
+    else:
+        raise "expecting 'on-behalf-of'"
 
     response: JSON_TYPE = post(api_name, d, validate_first)
     if 'errorCode' in response:
@@ -400,7 +428,7 @@ def upload_concept_set_version(
 
 
 def finalize_concept_set_version(
-    concept_set: str, version_id: int = None, on_behalf_of: str = None, validate_first=VALIDATE_FIRST
+    concept_set: str, version_id: int = None, validate_first=VALIDATE_FIRST
 ) -> JSON_TYPE:
     """Finalize a concept set version
 
@@ -426,11 +454,15 @@ def finalize_concept_set_version(
             "new-parameter1": 'hello new-parameter1',  # required
             #   "description": "",
             #   "baseType": "String"
-            "concept-set-container": concept_set,
+
+            # not sure what the hell happened to the r in the api container parameter
+            # "concept-set-container": concept_set,
+            "concept-set-containe": concept_set,
             # "description": "",
             # "baseType": "OntologyObject"
             # - validation info: Needs to be a valid reference (objectQueryResult) to object/property/value already
             #   existing in enclave.
+
             "version": version_id,
             # "description": "",
             # "baseType": "OntologyObject"
@@ -439,11 +471,11 @@ def finalize_concept_set_version(
             #   "baseType": "Double"
         }
     }
-    # - Optional params
-    if on_behalf_of:
-        d['parameters']['on-behalf-of'] = on_behalf_of
 
+
+    set_auth_token_key(personal=True)
     response: JSON_TYPE = post(api_name, d, validate_first)
+    set_auth_token_key(personal=False)
 
     if 'errorCode' in response:
         print(response, file=sys.stderr)
@@ -542,8 +574,7 @@ def make_request(api_name: str, data: Union[List, Dict] = None, validate=False, 
     # temporarily!!!
     headers = {
         # todo: When/if @Amin et al allow enclave service token to write to the new API, change this back from.
-        "authorization": f"Bearer {config['PALANTIR_ENCLAVE_AUTHENTICATION_BEARER_TOKEN']}",
-        # "authorization": f"Bearer {config['OTHER_TOKEN']}",
+        "authorization": f"Bearer {get_auth_token()}",
         "Content-type": "application/json",
 
     }
@@ -554,20 +585,20 @@ def make_request(api_name: str, data: Union[List, Dict] = None, validate=False, 
     if verbose:
         # print(f'make_request: {api_path}\n{url}')
         print(f"""\ncurl  -H "Content-type: application/json" \\
-            -H "Authorization: Bearer $PALANTIR_ENCLAVE_AUTHENTICATION_BEARER_TOKEN" \\
+            -H "Authorization: Bearer ${get_auth_token_key()}" \\
             {url} \\
             --data '{json.dumps(data)}'
             """)
 
-    try:
-        if data:
-            response = requests.post(url, headers=headers, json=data)
-        else:
-            response = requests.get(url, headers=headers)
-        response.raise_for_status()
-    except BaseException as err:
-        print(f"Unexpected {type(err)}: {str(err)}", file=sys.stderr)
-        raise err
+    # try:
+    if data:
+        response = requests.post(url, headers=headers, json=data)
+    else:
+        response = requests.get(url, headers=headers)
+    response.raise_for_status()
+    # except BaseException as err:
+    #     print(f"Unexpected {type(err)}: {str(err)}", file=sys.stderr)
+    #     raise err
 
     # noinspection PyUnboundLocalVariable
     response_json: JSON_TYPE = response.json()
@@ -582,9 +613,7 @@ def make_read_request(path: str, verbose=False) -> JSON_TYPE:
       https://www.palantir.com/docs/foundry/api/ontology-resources/object-types/list-object-types/
     """
     headers = {
-        # todo: When/if @Amin et al allow enclave service token to write to the new API, change this back from.
-        # "authorization": f"Bearer {config['PALANTIR_ENCLAVE_AUTHENTICATION_BEARER_TOKEN']}",
-        "authorization": f"Bearer {config['OTHER_TOKEN']}",
+        "authorization": f"Bearer {get_auth_token()}",
         "Content-type": "application/json",
 
     }
