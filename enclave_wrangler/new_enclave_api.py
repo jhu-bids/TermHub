@@ -583,6 +583,7 @@ def make_request(api_name: str, data: Union[List, Dict] = None, validate=False, 
     api_path += 'validate' if validate else 'apply'
     url = f'https://{config["HOSTNAME"]}{api_path}'
     if verbose:
+        # TODO: add this to make_read_request also
         # print(f'make_request: {api_path}\n{url}')
         print(f"""\ncurl  -H "Content-type: application/json" \\
             -H "Authorization: Bearer ${get_auth_token_key()}" \\
@@ -632,6 +633,10 @@ def make_read_request(path: str, verbose=False) -> JSON_TYPE:
     # noinspection PyUnboundLocalVariable
     response_json: JSON_TYPE = response.json()
     return response_json
+
+
+# def check_token():
+# curl -XGET https://unite.nih.gov/multipass/api/me -H "Authorization: Bearer $PALANTIR_ENCLAVE_AUTHENTICATION_BEARER_TOKEN"
 
 
 def get(api_name: str, validate=False) -> JSON_TYPE:
