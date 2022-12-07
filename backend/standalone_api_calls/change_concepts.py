@@ -24,7 +24,7 @@ def run():
     "concept_set_name": "[DM]Type2 Diabetes Mellitus",
     "limitations": "",
     "intention": "",
-    "on_behalf_of": '5c560c3e-8e55-485c-9a66-f96285f273a0'
+    "on_behalf_of": os.getenv('ON_BEHALF_OF')
   }
   new_version = Bunch(new_version)
   res = route_upload_new_cset_version_with_concepts(new_version)
