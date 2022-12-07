@@ -59,7 +59,7 @@ from typing import Dict, List, Union
 import requests
 
 from enclave_wrangler.config import config, ENCLAVE_PROJECT_NAME
-
+from enclave_wrangler.utils import check_token_ttl
 
 JSON_TYPE = Union[List, Dict]
 VALIDATE_FIRST = True  # if True, will /validate before doing /apply, and return validation error if any.
@@ -595,10 +595,13 @@ def make_request(api_name: str, data: Union[List, Dict] = None, validate=False, 
         response = requests.post(url, headers=headers, json=data)
     else:
         response = requests.get(url, headers=headers)
-    response.raise_for_status()
-    # except BaseException as err:
-    #     print(f"Unexpected {type(err)}: {str(err)}", file=sys.stderr)
-    #     raise err
+    try:
+        response.raise_for_status()
+    except Exception as err:
+        ttl = check_token_ttl(get_auth_token())
+        if ttl == 0:
+            raise RuntimeError(f'Error: Token expired: ' + get_auth_token_key())
+        raise err
 
     # noinspection PyUnboundLocalVariable
     response_json: JSON_TYPE = response.json()
