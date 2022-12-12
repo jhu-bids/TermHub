@@ -12,10 +12,6 @@ from backend.db.config import DATASETS_PATH, CONFIG
 from backend.db.utils import database_exists, run_sql, get_db_connection
 
 
-DB = CONFIG["db"]
-SCHEMA = CONFIG["schema"]
-
-
 def initialize():
     """Initialize set up of DB
 
@@ -38,16 +34,16 @@ def initialize():
         'deidentified_term_usage_by_domain_clamped',
     ]
     # TODO: alter these columns as indicated:
-    datetime_cols = [
-        ('code_sets', 'created_at'),
-        ()]
-    date_cols = [
-        ('concept', 'valid_end_date'),
-        ('concept', 'valid_start_date'),
-        ('concept_relationship', 'valid_end_date'),
-        ('concept_relationship', 'valid_start_date')]
+    # datetime_cols = [
+    #     ('code_sets', 'created_at'),
+    #     ()]
+    # date_cols = [
+    #     ('concept', 'valid_end_date'),
+    #     ('concept', 'valid_start_date'),
+    #     ('concept_relationship', 'valid_end_date'),
+    #     ('concept_relationship', 'valid_start_date')]
 
-    with get_db_connection(new_db=True) as con:
+    with get_db_connection(new_db=False) as con:
         # postgres doesn't have create database if not exists
         if CONFIG["server"] != 'postgresql':
             run_sql(con, 'CREATE DATABASE IF NOT EXISTS ' + DB)
@@ -61,11 +57,12 @@ def initialize():
                 con.connection.connection.set_isolation_level(1)
 
             # create schema isn't working, not sure why -- I had to create it manually
-            run_sql(con, f'CREATE SCHEMA IF NOT EXISTS {SCHEMA}')
-            run_sql(con, f'SET search_path TO {SCHEMA}, public')
+            # run_sql(con, f'CREATE SCHEMA IF NOT EXISTS {SCHEMA}')
+            # run_sql(con, f'SET search_path TO {SCHEMA}, public')
+            run_sql(con, f'SET search_path TO {SCHEMA}')
 
         for table in tables_to_load:
-            print(f'loading {table} into {CONFIG["server"]}:{DB}')
+            print(f'loading {SCHEMA}.{table} into {CONFIG["server"]}:{DB}')
             load_csv(con, table)
 
         # with open(DDL_PATH, 'r') as file:
@@ -93,7 +90,7 @@ def load_csv(con: Connection, table: str, replace_rule='replace if diff row coun
         existing_rows = r.one()[0]
     except Exception as err:
         if isinstance(err.orig, UndefinedTable):
-            print(f'{table} does not not exist; will create it')
+            print(f'{SCHEMA}.{table} does not not exist; will create it')
         else:
             raise err
 
@@ -106,13 +103,13 @@ def load_csv(con: Connection, table: str, replace_rule='replace if diff row coun
         return
 
     try:
-        con.execute(text(f'TRUNCATE {table}'))
+        con.execute(text(f'TRUNCATE {SCHEMA}.{table}'))
     except ProgrammingError:
         pass
     # `schema='termhub_n3c'`: Passed so Joe doesn't get OperationalError('(pymysql.err.OperationalError) (1050,
     #  "Table \'code_sets\' already exists")')
     #  https://stackoverflow.com/questions/69906698/pandas-to-sql-gives-table-already-exists-error-with-if-exists-append
-    kwargs = {'if_exists': 'append', 'index': False}
+    kwargs = {'if_exists': 'append', 'index': False, 'schema': SCHEMA}
     if False:   # this was necessary for mysql, probably not for postgres
         try:
             if CONFIG['server'] == 'mysql':

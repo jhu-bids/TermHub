@@ -40,6 +40,9 @@ LEFT JOIN (
 ) cids ON cs.codeset_id = cids.codeset_id
 LEFT JOIN concept_set_counts_clamped cscc ON cs.codeset_id = cscc.codeset_id;
 
+CREATE INDEX  ac_idx1 ON all_csets(codeset_id);
+CREATE INDEX  ac_idx2 ON all_csets(concept_set_name);
+
 
 /* this is all happening directly in initialize.py now:
 CREATE DATABASE IF NOT EXISTS termhub_n3c;

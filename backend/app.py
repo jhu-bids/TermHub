@@ -19,7 +19,7 @@ from enclave_wrangler.datasets import run_favorites as update_termhub_csets
 from enclave_wrangler.new_enclave_api import make_read_request
 
 from backend.utils import cnt # , pdump
-from backend.db.utils import run_sql, get_db_connection, sql_query, get_concept_set_members
+from backend.db.utils import run_sql, get_db_connection, sql_query, get_concept_set_members, SCHEMA
 
 CON = get_db_connection()  # using a global connection object is probably a terrible idea, but
                               # shouldn't matter much until there are multiple users on the same server
@@ -56,11 +56,11 @@ def get_all_csets() -> Union[Dict, List]:
   # TODO: figure out why and if all_csets query in ddl.sql needs to be fixed
 
   return sql_query(
-    CON, """ 
+    CON, f""" 
     SELECT codeset_id,
           concept_set_version_title,
           concepts
-    FROM all_csets""")
+    FROM {SCHEMA}.all_csets""")
     # smaller = DS2.all_csets[['codeset_id', 'concept_set_version_title', 'concepts']]
     # return smaller.to_dict(orient='records')
 

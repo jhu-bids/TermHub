@@ -7,9 +7,12 @@ from sqlalchemy.sql import text
 from sqlalchemy.sql.elements import TextClause
 from typing import Dict, Union, List
 
-from backend.db.config import BRAND_NEW_DB_URL, DB_URL
+from backend.db.config import BRAND_NEW_DB_URL, DB_URL, CONFIG
 
 DEBUG = True
+DB = CONFIG["db"]
+SCHEMA = CONFIG["schema"]
+
 
 def get_db_connection(new_db=False):
     """Connect to db"""
