@@ -25,6 +25,7 @@ PALANTIR_ENCLAVE_USER_ID_1 = 'a39723f3-dc9c-48ce-90ff-06891c29114f'
 MOFFIT_PREFIX = 'Simplified autoimmune disease'
 MOFFIT_SOURCE_URL = 'https://docs.google.com/spreadsheets/d/1tHHHeMtzX0SA85gbH8Mvw2E0cxH-x1ii/edit#gid=1762989244'
 MOFFIT_SOURCE_ID_TYPE = 'moffit'
+VALIDATE_FIRST = True  # if True, will /validate before doing /apply, and return validation error if any.
 
 
 load_dotenv(ENV_FILE)

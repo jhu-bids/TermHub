@@ -16,7 +16,7 @@ from pydantic import BaseModel
 
 from enclave_wrangler.dataset_upload import upload_new_container_with_concepts, upload_new_cset_version_with_concepts
 from enclave_wrangler.datasets import run_favorites as update_termhub_csets
-from enclave_wrangler.new_enclave_api import make_read_request
+from enclave_wrangler.utils import make_read_request
 
 from backend.utils import cnt # , pdump
 from backend.db.utils import run_sql, get_db_connection, sql_query, get_concept_set_members

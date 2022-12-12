@@ -16,13 +16,16 @@ from typing import Dict, List, Union
 import pandas as pd
 from requests import Response
 
+from enclave_wrangler.objects_api import EnclaveClient
+
 TEST_DIR = os.path.dirname(__file__)
 PROJECT_ROOT = Path(TEST_DIR).parent
 # todo: why is this necessary in this case and almost never otherwise?
 # https://stackoverflow.com/questions/33862963/python-cant-find-my-module
 sys.path.insert(0, str(PROJECT_ROOT))
-from enclave_wrangler.new_enclave_api import JSON_TYPE, make_request, upload_concept_set_container, \
+from enclave_wrangler.actions_api import upload_concept_set_container, \
     upload_concept_set_version
+from enclave_wrangler.utils import make_request
 from enclave_wrangler.dataset_upload import post_to_enclave_from_3csv, upload_new_cset_version_with_concepts
 from enclave_wrangler.config import PALANTIR_ENCLAVE_USER_ID_1
 
@@ -108,6 +111,13 @@ class TestEnclaveWrangler(unittest.TestCase):
         #     to locate the expression items so that I can delete them...
         #     Siggie: it would be the objects api. I don't have all those calls listed. you can do a list objects call.
         #   3. that's the version, yes.
+
+        # TODO: get expression items from version created
+        #   - call object/ontology API. need to get linked objects?
+        client = EnclaveClient()
+        print()
+
+
         # make_request(
         #     api_name='delete-omop-concept-set-version',
         #     data={
@@ -159,7 +169,7 @@ class TestEnclaveWrangler(unittest.TestCase):
     #       }
     #     },
     def test_upload_concept_set_container(self, user_id=PALANTIR_ENCLAVE_USER_ID_1):
-        response: JSON_TYPE = upload_concept_set_container(
+        response: Response = upload_concept_set_container(
             concept_set_id='x', intention='x', research_project='x', assigned_sme=user_id,
             assigned_informatician=user_id)
         # self.assertTrue('result' in response and not response['result'] == 'VALID')

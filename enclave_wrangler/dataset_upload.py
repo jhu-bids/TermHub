@@ -14,10 +14,10 @@ try:
     from enclave_wrangler.config import CSET_UPLOAD_REGISTRY_PATH, CSET_VERSION_MIN_ID, ENCLAVE_PROJECT_NAME, MOFFIT_PREFIX, \
     MOFFIT_SOURCE_ID_TYPE, MOFFIT_SOURCE_URL, PALANTIR_ENCLAVE_USER_ID_1, UPLOADS_DIR, config, PROJECT_ROOT, \
     TERMHUB_CSETS_DIR
-    from enclave_wrangler.enclave_api import get_cs_container_data, get_cs_version_data, get_cs_version_expression_data, \
+    from enclave_wrangler.actions_api import get_cs_container_data, get_cs_version_data, get_cs_version_expression_data, \
     post_request_enclave_api_addExpressionItems, post_request_enclave_api_create_container, \
     post_request_enclave_api_create_version, update_cs_version_expression_data_with_codesetid
-    from enclave_wrangler.new_enclave_api import JSON_TYPE, add_concepts_to_cset, finalize_concept_set_version, \
+    from enclave_wrangler.actions_api import JSON_TYPE, add_concepts_to_cset, finalize_concept_set_version, \
     upload_concept_set_container, \
     upload_concept_set_version
     from enclave_wrangler.utils import _datetime_palantir_format, log_debug_info
@@ -25,10 +25,10 @@ except ModuleNotFoundError:
     from config import CSET_UPLOAD_REGISTRY_PATH, ENCLAVE_PROJECT_NAME, MOFFIT_PREFIX, \
     MOFFIT_SOURCE_ID_TYPE, MOFFIT_SOURCE_URL, PALANTIR_ENCLAVE_USER_ID_1, UPLOADS_DIR, config, PROJECT_ROOT, \
     TERMHUB_CSETS_DIR, CSET_VERSION_MIN_ID
-    from enclave_api import get_cs_container_data, get_cs_version_data, get_cs_version_expression_data, \
+    from actions_api import get_cs_container_data, get_cs_version_data, get_cs_version_expression_data, \
         post_request_enclave_api_addExpressionItems, post_request_enclave_api_create_container, \
         post_request_enclave_api_create_version, update_cs_version_expression_data_with_codesetid
-    from new_enclave_api import JSON_TYPE, add_concepts_to_cset, upload_concept_set_container, \
+    from actions_api import JSON_TYPE, add_concepts_to_cset, upload_concept_set_container, \
         upload_concept_set_version
     from utils import _datetime_palantir_format, log_debug_info
 

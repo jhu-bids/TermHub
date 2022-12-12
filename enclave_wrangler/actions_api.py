@@ -52,43 +52,13 @@ However, archive-concept-set is good enough for now.
 
 TODO: Remove this temporary list of API endpoints when done / if advisable
 """
-import json
 import sys
-from typing import Dict, List, Union
+from typing import Dict, List
 
-import requests
 from requests import Response
 
-from enclave_wrangler.config import config, ENCLAVE_PROJECT_NAME
-from enclave_wrangler.utils import check_token_ttl
-
-JSON_TYPE = Union[List, Dict]
-VALIDATE_FIRST = True  # if True, will /validate before doing /apply, and return validation error if any.
-
-# TODO: fix all this -- we've been switching back and forth between service token and personal
-#       because some APIs are open to one, some to the other (and sometimes the service one has
-#       been expired. In the past we've switched by hard coding the api call header, but now
-#       we have to make api calls (temporarily, see https://cd2h.slack.com/archives/C034EG5ESU9/p1670337451241379?thread_ts=1667317248.546169&cid=C034EG5ESU9)
-#       using one and then the other
-#
-# "authorization": f"Bearer {config['PALANTIR_ENCLAVE_AUTHENTICATION_BEARER_TOKEN']}",
-# "authorization": f"Bearer {config['OTHER_TOKEN']}",
-SERVICE_TOKEN_KEY = 'PALANTIR_ENCLAVE_AUTHENTICATION_BEARER_TOKEN'
-PERSONAL_TOKEN_KEY = 'OTHER_TOKEN'
-TOKEN_KEY = SERVICE_TOKEN_KEY
-
-
-def set_auth_token_key(personal=False):
-    global TOKEN_KEY
-    TOKEN_KEY = PERSONAL_TOKEN_KEY if personal else SERVICE_TOKEN_KEY
-
-
-def get_auth_token_key():
-    return TOKEN_KEY
-
-
-def get_auth_token():
-    return config[TOKEN_KEY]
+from enclave_wrangler.config import ENCLAVE_PROJECT_NAME, VALIDATE_FIRST
+from enclave_wrangler.utils import post, set_auth_token_key
 
 
 def add_concepts_to_cset(omop_concepts: List[Dict], version__codeset_id: int)-> List[Response]:
@@ -563,84 +533,3 @@ def upload_concept_set_container(
         print('If above error message does not say what is wrong, it is probably the case that the `concept_set_id` '
               f'already exists. You passed: {concept_set_id}')
     return response
-
-
-def make_request(api_name: str, data: Union[List, Dict] = None, validate=False, verbose=True) -> Response:
-    """Passthrough for HTTP request
-    If `data`, knows to do a POST. Otherwise does a GET.
-    Enclave docs:
-      https://www.palantir.com/docs/foundry/api/ontology-resources/objects/list-objects/
-      https://www.palantir.com/docs/foundry/api/ontology-resources/object-types/list-object-types/
-    """
-    # temporarily!!!
-    headers = {
-        # todo: When/if @Amin et al allow enclave service token to write to the new API, change this back from.
-        "authorization": f"Bearer {get_auth_token()}",
-        "Content-type": "application/json",
-
-    }
-    ontology_rid = config['ONTOLOGY_RID']
-    api_path = f'/api/v1/ontologies/{ontology_rid}/actions/{api_name}/'
-    api_path += 'validate' if validate else 'apply'
-    url = f'https://{config["HOSTNAME"]}{api_path}'
-    if verbose:
-        # print(f'make_request: {api_path}\n{url}')
-        print(f"""\ncurl  -H "Content-type: application/json" \\
-            -H "Authorization: Bearer ${get_auth_token_key()}" \\
-            {url} \\
-            --data '{json.dumps(data)}'
-            """)
-
-    # try:
-    if data:
-        response = requests.post(url, headers=headers, json=data)
-    else:
-        response = requests.get(url, headers=headers)
-    try:
-        response.raise_for_status()
-    except Exception as err:
-        ttl = check_token_ttl(get_auth_token())
-        if ttl == 0:
-            raise RuntimeError(f'Error: Token expired: ' + get_auth_token_key())
-        raise err
-
-    return response
-
-
-def make_read_request(path: str, verbose=False) -> Response:
-    """Passthrough for HTTP request
-    If `data`, knows to do a POST. Otherwise does a GET.
-    Enclave docs:
-      https://www.palantir.com/docs/foundry/api/ontology-resources/objects/list-objects/
-      https://www.palantir.com/docs/foundry/api/ontology-resources/object-types/list-object-types/
-    """
-    headers = {
-        "authorization": f"Bearer {get_auth_token()}",
-        "Content-type": "application/json",
-
-    }
-    ontology_rid = config['ONTOLOGY_RID']
-    api_path = f'/api/v1/ontologies/{ontology_rid}/{path}'
-    url = f'https://{config["HOSTNAME"]}{api_path}'
-    if verbose:
-        print(f'make_request: {api_path}\n{url}')
-
-    response = requests.get(url, headers=headers)
-    response.raise_for_status()
-
-    return response
-
-
-def get(api_name: str, validate=False)-> Response:
-    """For GET request"""
-    return make_request(api_name, validate=validate)
-
-
-def post(api_name: str, data: Dict, validate_first=VALIDATE_FIRST)-> Response:
-    """For POST request"""
-    if validate_first:
-        response: Response = make_request(api_name, data, validate=True)
-        if not ('result' in response.json() and response.json()['result'] == 'VALID'):
-            print(f'Failure: {api_name}\n', response, file=sys.stderr)
-            return response
-    return make_request(api_name, data, validate=False)
