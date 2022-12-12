@@ -10,7 +10,7 @@ TODO's
 import json
 import os
 from argparse import ArgumentParser
-from typing import List, Dict, Callable
+from typing import List, Dict, Callable, Union
 
 import pandas as pd
 from requests import Response
@@ -21,6 +21,7 @@ import requests
 # import asyncio
 
 from enclave_wrangler.config import FAVORITE_OBJECTS, OUTDIR_OBJECTS, config, TERMHUB_CSETS_DIR
+from enclave_wrangler.utils import make_read_request
 
 # from enclave_wrangler.utils import log_debug_info
 
@@ -45,7 +46,7 @@ class EnclaveClient:
         self.outdir_root = TERMHUB_CSETS_DIR
 
     @typechecked
-    def obj_types(self) -> List[Dict]:
+    def get_obj_types(self) -> List[Dict]:
         """Gets object types.
         API docs: https://www.palantir.com/docs/foundry/api/ontology-resources/object-types/list-object-types/
 
@@ -125,8 +126,17 @@ class EnclaveClient:
 
         return df
 
-    def link_types(self) -> List[Dict]:
+    def get_link_types(self, use_cache_if_failure=False) -> List[Union[Dict, str]]:
         """Get link types
+
+        https://www.palantir.com/docs/foundry/api/ontology-resources/objects/list-linked-objects/
+
+        todo: This doesn't work on Joe's machine, in PyCharm or shell. Works for Siggie. We both tried using
+          PALANTIR_ENCLAVE_AUTHENTICATION_BEARER_TOKEN (we use the same one) instead as well- 2022/12/12
+        todo: What is the UUID starting with 00000001?
+        todo: Do equivalent of `jq '..|objects|.apiName//empty'` here so that what's returned from response.json() is
+          the also a List[str], like what's 'cached' here.
+
         curl -H "Content-type: application/json" -H "Authorization: Bearer $OTHER_TOKEN" \
         "https://unite.nih.gov/ontology-metadata/api/ontology/linkTypesForObjectTypes" --data '{
             "objectTypeVersions": {
@@ -135,20 +145,69 @@ class EnclaveClient:
             }
         }' | jq '..|objects|.apiName//empty'
         """
-        # TODO: @Siggie I tried using the above curl in Python but I got this (- Joe 2022/08/21):
-        #  {'errorCode': 'INVALID_ARGUMENT', 'errorName': 'Conjure:UnsupportedMediaType', 'errorInstanceId':
-        #  '7976c277-8187-4a5a-91b9-2e8bd1c9934c', 'parameters': {}}
-        #  @jflack: There was an extra backslash in the curl cmd. see #96
-        data = {
-            "objectTypeVersions": {
-                "ri.ontology.main.object-type.a11d04a3-601a-45a9-9bc2-5d0e77dd512e":
-                    "00000001-9834-2acf-8327-ecb491e69b5c"
+        # cached: 2022/12/12
+        cached_types: List[str] = [
+            'cohortLinks',
+            'cohortVersions',
+            'conceptSetBundleItem',
+            'conceptSetTag',
+            'conceptSetVersionChangeAcknowledgement',
+            'conceptSetVersionInfo',
+            'conceptSetVersions',
+            'conceptSetVersionsCreatedForThisResearchProject',
+            'consumedConceptSetVersion',
+            'consumingProtocolSection',
+            'createdOmopConceptSetVersions',
+            'creator',
+            'documentationNodeRv',
+            'draftCohortLinks',
+            'intendedDomainTeam',
+            'intendedResearchProject',
+            'omopConceptChange',
+            'omopConceptDomains',
+            'omopConceptSetVersion',
+            'omopConceptSetVersionIntendedForDT',
+            'omopConceptSetVersionItem',
+            'omopConceptSetVersions',
+            'omopconceptSet',
+            'omopconceptSetChildVersion',
+            'omopconceptSetContainer',
+            'omopconceptSetParentVersion',
+            'omopconceptSetReview',
+            'omopconcepts',
+            'omopconceptsets',
+            'omopvocabularyVersion',
+            'producedConceptSetVersion',
+            'producingProtocolSection',
+            'researchProject',
+            'revisedconceptSetVersionChangeAcknowledgement',
+            'revisedomopconceptSet',
+        ]
+
+        # noinspection PyBroadException
+        try:
+            data = {
+                "objectTypeVersions": {
+                    "ri.ontology.main.object-type.a11d04a3-601a-45a9-9bc2-5d0e77dd512e":
+                        "00000001-9834-2acf-8327-ecb491e69b5c"
+                }
             }
-        }
-        url = f'{self.base_url}/ontology-metadata/api/ontology/linkTypesForObjectTypes'
-        response = requests.post(url, headers=self.headers, data=data)
-        response_json = response.json()
-        return response_json
+            url = f'{self.base_url}/ontology-metadata/api/ontology/linkTypesForObjectTypes'
+            response = requests.post(url, headers=self.headers, data=data)
+            response_json: List[Dict] = response.json()
+            return response_json
+        except Exception as err:
+            if use_cache_if_failure:
+                return cached_types
+            raise err
+
+    def get_object_links(self, object_type: str, object_id: str, link_type: str) -> Response:
+        """Get links of a given type for a given object
+
+        Cavaets
+        - If the `link_type` is not valid for a given `object_type`, you'll get a 404 not found.
+        """
+        return make_read_request(f'objects/{object_type}/{object_id}/links/{link_type}')
 
 
 def run(request_types: List[str]) -> Dict[str, Dict]:
@@ -156,8 +215,8 @@ def run(request_types: List[str]) -> Dict[str, Dict]:
     client = EnclaveClient()
     request_funcs: Dict[str, Callable] = {
         'objects': client.get_objects_by_type,
-        'object_types': client.obj_types,
-        'link_types': client.link_types,
+        'object_types': client.get_obj_types,
+        'link_types': client.get_link_types,
     }
     results = {}
     for req in request_types:

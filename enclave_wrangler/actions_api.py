@@ -53,15 +53,19 @@ However, archive-concept-set is good enough for now.
 TODO: Remove this temporary list of API endpoints when done / if advisable
 """
 import sys
-from typing import Dict, List
+from typing import Dict, List, Union
 
 from requests import Response
 
 from enclave_wrangler.config import ENCLAVE_PROJECT_NAME, VALIDATE_FIRST
-from enclave_wrangler.utils import post, set_auth_token_key
+from enclave_wrangler.objects_api import EnclaveClient
+from enclave_wrangler.utils import make_read_request, post, set_auth_token_key
 
 
-def add_concepts_to_cset(omop_concepts: List[Dict], version__codeset_id: int)-> List[Response]:
+UUID = str
+
+
+def add_concepts_to_cset(omop_concepts: List[Dict], version__codeset_id: int, validate_first=VALIDATE_FIRST)-> List[Response]:
     """Wrapper function for routing to appropriate endpoint. Add existing OMOP concepts to a versioned concept set / codeset.
 
     :param omop_concepts (List[Dict]): A list of dictionaries.
@@ -104,7 +108,8 @@ def add_concepts_to_cset(omop_concepts: List[Dict], version__codeset_id: int)-> 
             is_excluded=group['isExcluded'],
             include_mapped=group['includeMapped'],
             include_descendants=group['includeDescendants'],
-            optional_annotation=group['annotation'] if group['annotation'] else "")
+            optional_annotation=group['annotation'] if group['annotation'] else "",
+            validate_first=validate_first)
         responses.append(response_i)
 
     return responses
@@ -533,3 +538,62 @@ def upload_concept_set_container(
         print('If above error message does not say what is wrong, it is probably the case that the `concept_set_id` '
               f'already exists. You passed: {concept_set_id}')
     return response
+
+
+def delete_concept_set_version(version_id: int, validate_first=VALIDATE_FIRST) -> Response:
+    """Delete a concept set version
+
+    Cavaets:
+    1. Amin said `isMostRecentVersion` note in API definition here does not matter for our use case, or it is not a
+      correct warning.
+    2. We need to add `expression-items` because enclave isn't set up to clear orphan expression items when version
+      is deleted, so we need to ask to delete them manually.
+    3. If `version_id` is not available because we did not pre-assign before uploading new version, we don't at the
+      moment know how to get it. So best if we pre-assign. - Joe 2022/12/12
+    4. `omop-concept-set` is not for the container name, but the version ID.
+
+    """
+    api_name = 'delete-omop-concept-set-version'
+    expression_items: List[UUID] = get_concept_set_version_expression_items(version_id)
+    # todo?: Expression items not reliably showing up after version just created: I don't know if this will be reliable
+    #  100% of the time. at first... i was getting no expression items back after just creating it and trying to delete.
+    #  i checked the enclave, and I saw that the version did indeed have expression items. I take this to mean that
+    #  there is some delay before the API can fetch these items. So maybe if wea `wait`, that might fix the problem.
+    #  For now, immediately calling it again works. - Joe 2022/12/12
+    if not expression_items:
+        print('INFO: Could not find expression items while trying to delete concept set. '
+              'This probably means it was just uploaded. Trying again.')
+        expression_items: List[UUID] = get_concept_set_version_expression_items(version_id)
+    # Note: Ignore 'description' below. See 'cavaet 1' in this function's docstring.
+    d = {
+        # "apiName": api_name,
+        # "description": "Do not forget to the flag 'Is Most Recent Version' of the previous Concept Set Version",
+        # "rid": "ri.actions.main.action-type.93b82f88-bd55-4daf-a0f9-f6537bf2bce1",
+        "parameters": {
+            # - Required params
+            "omop-concept-set": version_id,
+            # "omop-concept-set": {
+            #     "description": "",
+            #     "baseType": "OntologyObject"
+            "expression-items": expression_items,
+            # "expression-items": {
+            #     "description": "",
+            #     "baseType": "Array<OntologyObject>"
+        }
+    }
+    # TODO: Solve: requests.exceptions.HTTPError: 400 Client Error: Bad Request for url: https://unite.nih.gov/api/v1/ontologies/ri.ontology.main.ontology.00000000-0000-0000-0000-000000000000/actions/delete-omop-concept-set-version/apply
+    #  - Joe: I sent Siggie the curl for this unit test request on 2022/12/12
+    response: Response = post(api_name, d, validate_first)
+    return response
+
+
+def get_concept_set_version_expression_items(version_id: Union[str, int]) -> List[UUID]:
+    """Get concept set version expression items"""
+    version_id = str(version_id)
+    client = EnclaveClient()
+    response: Response = client.get_object_links(
+        object_type='OMOPConceptSet',
+        object_id=version_id,
+        link_type='omopConceptSetVersionItem')
+    expression_items: List[UUID] = [x['properties']['itemId'] for x in response.json()['data']]
+    return expression_items

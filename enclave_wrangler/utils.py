@@ -121,6 +121,8 @@ def make_request(api_name: str, data: Union[List, Dict] = None, validate=False, 
     else:
         response = requests.get(url, headers=headers)
     try:
+        if 'errorCode' in response.text:
+            print('Error: ' + response.text)
         response.raise_for_status()
     except Exception as err:
         ttl = check_token_ttl(get_auth_token())
@@ -144,6 +146,7 @@ def make_read_request(path: str, verbose=False) -> Response:
 
     }
     ontology_rid = config['ONTOLOGY_RID']
+    path = path[1:] if path.startswith('/') else path
     api_path = f'/api/v1/ontologies/{ontology_rid}/{path}'
     url = f'https://{config["HOSTNAME"]}{api_path}'
     if verbose:

@@ -23,9 +23,9 @@ PROJECT_ROOT = Path(TEST_DIR).parent
 # todo: why is this necessary in this case and almost never otherwise?
 # https://stackoverflow.com/questions/33862963/python-cant-find-my-module
 sys.path.insert(0, str(PROJECT_ROOT))
-from enclave_wrangler.actions_api import upload_concept_set_container, \
+from enclave_wrangler.actions_api import delete_concept_set_version, upload_concept_set_container, \
     upload_concept_set_version
-from enclave_wrangler.utils import make_request
+from enclave_wrangler.utils import make_read_request, make_request
 from enclave_wrangler.dataset_upload import post_to_enclave_from_3csv, upload_new_cset_version_with_concepts
 from enclave_wrangler.config import PALANTIR_ENCLAVE_USER_ID_1
 
@@ -45,11 +45,9 @@ class TestEnclaveWrangler(unittest.TestCase):
         pass
 
     def test_upload(self):
-        # todo: when data format is complete, copy over file(s) from termhub/csets/n3c-upload-jobs to TEST_INPUT_DIR
-        csv_dir = os.path.join(PROJECT_ROOT, 'termhub-csets', 'n3c-upload-jobs')
-        # fname = os.path.join(csv_dir, 'Other Diabetes.csv')
-        fname = os.path.join(csv_dir, 'diabetes-recommended-csets-modifications', 'type-2-diabetes-mellitus.csv')
-
+        """Test uploading a new cset version with concepts"""
+        csv_dir = os.path.join(TEST_INPUT_DIR, 'test_dataset_upload')
+        fname = os.path.join(csv_dir, 'type-2-diabetes-mellitus.csv')
         df = pd.read_csv(fname).fillna('')
         omop_concepts = df[[
             'concept_id',
@@ -65,68 +63,21 @@ class TestEnclaveWrangler(unittest.TestCase):
             "intention": "",
             "on_behalf_of": os.getenv('ON_BEHALF_OF')
         }
-        try:
-            responses: Dict[str, Union[Response, List[Response]]] = upload_new_cset_version_with_concepts(**new_version)
-            for response in responses.values():
-                if isinstance(response, list):  # List[Response] returned by concepts upload
-                    for response_i in response:
-                        self.assertLess(response_i.status_code, 400)
-                else:
-                    self.assertLess(response.status_code, 400)
-        except Exception as err:
-            print(err, file=sys.stderr)
+
+        d: Dict = upload_new_cset_version_with_concepts(**new_version, validate_first=False)
+        responses: Dict[str, Union[Response, List[Response]]] = d['responses']
+        version_id: int = d['versionId']
+        for response in responses.values():
+            if isinstance(response, list):  # List[Response] returned by concepts upload
+                for response_i in response:
+                    self.assertLess(response_i.status_code, 400)
+            else:
+                self.assertLess(response.status_code, 400)
 
         # Teardown
-        # todo: can remove try/except when properly implement teardown
-        #      {
-        #       "apiName": "delete-omop-concept-set-version",
-        #       "description": "Do not forget to the flag 'Is Most Recent Version' of the previous Concept Set Version
-        #         to True!",
-        #       "rid": "ri.actions.main.action-type.93b82f88-bd55-4daf-a0f9-f6537bf2bce1",
-        #       "parameters": {
-        #         "omop-concept-set": {
-        #           "description": "",
-        #           "baseType": "OntologyObject"
-        #         },
-        #         "expression-items": {
-        #           "description": "",
-        #           "baseType": "Array<OntologyObject>"
-        #         }
-        #       }
-        #     },
-        # TODO: 1. I think I need to do what it suggested above regarding 'most recent version'. I think this means that my
-        #  teardown step here will involve another step to update the previous version and label it most recent.
-        # todo: 2. ask amin?: Why do i need to declare expression items?
-        # todo: how do I know the version? is the version returned in the response json? (
-        #  in upload_concept_set_version(), I can declare the version, but it is an optional param. this could be a
-        #  problem if we don't know what the version is and want to delete it.)
-        # todo: 3. where do I pass the version? omop-concept-set param? Ask amin, is that just poorly named? if that param
-        #  is indeed for the container, then is there not a way to stipulate a version? does it just delete the most
-        #  recent version?
-        #  ---amin's answers:
-        #   1. I believe this is safe to ignore / not a correct warning.
-        #   2. So that we clean up the expression items too and they don't remain orphaned *(me: ok i should do this).
-        #     NOTE: these will be UUIDs of expression items created on the backend, i believe, after we've given them
-        #     concept IDs. So I wonder if we need to do GET request(s) against the concept set container or the version
-        #     to locate the expression items so that I can delete them...
-        #     Siggie: it would be the objects api. I don't have all those calls listed. you can do a list objects call.
-        #   3. that's the version, yes.
-
-        # TODO: get expression items from version created
-        #   - call object/ontology API. need to get linked objects?
-        client = EnclaveClient()
-        print()
-
-
-        # make_request(
-        #     api_name='delete-omop-concept-set-version',
-        #     data={
-        #         "parameters": {
-        #             "omop-concept-set": '',
-        #             "expression-items": [],
-        #         }
-        #     })
-        print()
+        # TODO: After getting to work, turn validate_first=False
+        response: Response = delete_concept_set_version(version_id, validate_first=True)
+        self.assertLess(response.status_code, 400)
 
 
     # TODO
@@ -221,7 +172,4 @@ class TestEnclaveWrangler(unittest.TestCase):
 
 
 if __name__ == '__main__':
-    # TODO: after we're done testing this specific set, change back to: unittest.main()
-    # unittest.main()
-    tests = TestEnclaveWrangler()
-    tests.test_upload()
+    unittest.main()
