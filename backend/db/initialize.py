@@ -9,7 +9,7 @@ from sqlalchemy.sql import text
 from psycopg2.errors import UndefinedTable
 
 from backend.db.config import DATASETS_PATH, CONFIG
-from backend.db.utils import database_exists, run_sql, get_db_connection
+from backend.db.utils import database_exists, run_sql, get_db_connection, DB, SCHEMA
 
 
 def initialize():
