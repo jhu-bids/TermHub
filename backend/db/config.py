@@ -17,6 +17,7 @@ CONFIG = {
     'host': os.getenv('TERMHUB_DB_HOST'),
     'user': os.getenv('TERMHUB_DB_USER'),
     'db': os.getenv('TERMHUB_DB_DB'),
+    'schema': os.getenv('TERMHUB_DB_SCHEMA'),
     'pass': os.getenv('TERMHUB_DB_PASS'),
     'port': os.getenv('TERMHUB_DB_PORT'),
 }

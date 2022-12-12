@@ -13,6 +13,7 @@ from backend.db.utils import database_exists, run_sql, get_db_connection
 
 
 DB = CONFIG["db"]
+SCHEMA = CONFIG["schema"]
 
 
 def initialize():
@@ -59,6 +60,10 @@ def initialize():
                 run_sql(con, 'CREATE DATABASE ' + DB)
                 con.connection.connection.set_isolation_level(1)
 
+            # create schema isn't working, not sure why -- I had to create it manually
+            run_sql(con, f'CREATE SCHEMA IF NOT EXISTS {SCHEMA}')
+            run_sql(con, f'SET search_path TO {SCHEMA}, public')
+
         for table in tables_to_load:
             print(f'loading {table} into {CONFIG["server"]}:{DB}')
             load_csv(con, table)
@@ -76,6 +81,9 @@ def initialize():
 
 def load_csv(con: Connection, table: str, replace_rule='replace if diff row count'):
     """Load CSV into table
+    replace_rule = 'replace if diff row count' or 'do not replace'
+    first will  replace table (that is, truncate and load records; will fail if table cols have changed, i think
+    'do not replace'  will create new table or load table if table exists but is empty
 
     - Uses: https://pandas.pydata.org/docs/reference/api/pandas.DataFrame.to_sql.html
     """

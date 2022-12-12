@@ -3,11 +3,11 @@ import json
 import os
 from argparse import ArgumentParser
 from random import randint
-from typing import Dict, List, Set
+from typing import Dict, List, Set, Union
 from uuid import uuid4
 
 import pandas as pd
-
+from requests import Response
 
 # TODO: See if sys.path(0) thing works; doesn't require maintenance. Look at unit tests
 try:
@@ -42,7 +42,7 @@ DEBUG = False
 def upload_new_cset_version_with_concepts(
     omop_concepts: List[Dict], provenance: str, concept_set_name: str, limitations: str, intention: str,
     annotation: str = None, intended_research_project: str = None, on_behalf_of: str = None, codeset_id: int = None,
-) -> JSON_TYPE:
+) -> Dict[str, Union[Response, List[Response]]]:
     """Upload a concept set version along with its concepts.
 
     # todo: Update this slightly now that this function accepts named params instead of a dict 

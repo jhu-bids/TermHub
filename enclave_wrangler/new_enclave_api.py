@@ -57,9 +57,10 @@ import sys
 from typing import Dict, List, Union
 
 import requests
+from requests import Response
 
 from enclave_wrangler.config import config, ENCLAVE_PROJECT_NAME
-
+from enclave_wrangler.utils import check_token_ttl
 
 JSON_TYPE = Union[List, Dict]
 VALIDATE_FIRST = True  # if True, will /validate before doing /apply, and return validation error if any.
@@ -90,7 +91,7 @@ def get_auth_token():
     return config[TOKEN_KEY]
 
 
-def add_concepts_to_cset(omop_concepts: List[Dict], version__codeset_id: int) -> JSON_TYPE:
+def add_concepts_to_cset(omop_concepts: List[Dict], version__codeset_id: int)-> List[Response]:
     """Wrapper function for routing to appropriate endpoint. Add existing OMOP concepts to a versioned concept set / codeset.
 
     :param omop_concepts (List[Dict]): A list of dictionaries.
@@ -125,25 +126,25 @@ def add_concepts_to_cset(omop_concepts: List[Dict], version__codeset_id: int) ->
         omop_concept_groups[group_key]['omop_concept_ids'].append(concept)
 
     # Make calls for all grouped concepts
-    response: JSON_TYPE = []
+    responses: List[Response] = []
     for group in omop_concept_groups.values():
-        response_i: JSON_TYPE = add_concepts_via_array(
+        response_i: Response = add_concepts_via_array(
             version=version__codeset_id,  # == code_sets.codeset_id
             concepts=[c['concept_id'] for c in group['omop_concept_ids']],
             is_excluded=group['isExcluded'],
             include_mapped=group['includeMapped'],
             include_descendants=group['includeDescendants'],
             optional_annotation=group['annotation'] if group['annotation'] else "")
-        response.append(response_i)
+        responses.append(response_i)
 
-    return response
+    return responses
 
 
 # api_name = 'add-selected-concepts-as-omop-version-expressions'
 def add_concepts_via_array(
     concepts: List[int], version: int, include_mapped: bool, include_descendants: bool, is_excluded: bool,
     optional_annotation: str = "", validate_first=VALIDATE_FIRST
-) -> JSON_TYPE:
+)-> Response:
     """Create new concepts within concept set, AKA concept_set_version_items / expressions
     Non-required params set to `None`.
 
@@ -193,7 +194,7 @@ def add_concepts_via_array(
 # noinspection PyUnusedLocal
 def update_concept_version_item(        # TODO: delete? not being used currently
     include_descendants: bool, concept_set_version_item: str, is_excluded: bool, include_mapped: bool, validate_first=VALIDATE_FIRST
-) -> JSON_TYPE:
+)-> Response:
     """Create new concepets within concept set
 
     This endpoint: in concept set editor w/ existing expression item, can click on it and change one of those flags to
@@ -251,7 +252,7 @@ def update_concept_version_item(        # TODO: delete? not being used currently
 def add_concept_via_edit(
     OmopConceptSetVersionItem: str, version: int, include_descendants=False, is_excluded=False, include_mapped=False,
     validate_first=VALIDATE_FIRST
-) -> JSON_TYPE:
+)-> Response:
     """Create new concepets within concept set
     Non-required params set to `None`.
     """
@@ -288,7 +289,7 @@ def upload_concept_set_version(
     concept_set: str, intention: str, domain_team: str = None, provenance: str = None, current_max_version: float = None
     , annotation: str = None, limitations: str = None, base_version: int = None, intended_research_project: str = None,
     version_id: int = None, authority: str = None, on_behalf_of: str = None, validate_first=VALIDATE_FIRST
-) -> JSON_TYPE:
+)-> Response:
     """Create a new draft concept set version.
 
     :param domain_team (str): todo: domain_team: Not sure what to put here, but it is optional param, so I'm leaving blank - Joe
@@ -419,7 +420,7 @@ def upload_concept_set_version(
     else:
         raise "expecting 'on-behalf-of'"
 
-    response: JSON_TYPE = post(api_name, d, validate_first)
+    response: Response = post(api_name, d, validate_first)
     if 'errorCode' in response:
         print(response, file=sys.stderr)
         # todo: What can I add to help the user figure out what to do to fix, until API returns better responses?
@@ -429,7 +430,7 @@ def upload_concept_set_version(
 
 def finalize_concept_set_version(
     concept_set: str, version_id: int = None, validate_first=VALIDATE_FIRST
-) -> JSON_TYPE:
+)-> Response:
     """Finalize a concept set version
 
     # todo: add docs for params & curl example
@@ -474,7 +475,7 @@ def finalize_concept_set_version(
 
 
     set_auth_token_key(personal=True)
-    response: JSON_TYPE = post(api_name, d, validate_first)
+    response: Response = post(api_name, d, validate_first)
     set_auth_token_key(personal=False)
 
     if 'errorCode' in response:
@@ -488,7 +489,7 @@ def finalize_concept_set_version(
 def upload_concept_set_container(
     concept_set_id: str, intention: str, research_project: ENCLAVE_PROJECT_NAME, assigned_sme: str = None,
     assigned_informatician: str = None, validate_first=VALIDATE_FIRST
-) -> JSON_TYPE:
+)-> Response:
     """Create a new concept set
     Non-required params set to `None`.
 
@@ -556,7 +557,7 @@ def upload_concept_set_container(
     if assigned_informatician:
         d['parameters']['assigned_informatician'] = assigned_informatician
 
-    response: JSON_TYPE = post(api_name, d, validate_first)
+    response: Response = post(api_name, d, validate_first)
     if 'errorCode' in response:
         print(response, file=sys.stderr)
         print('If above error message does not say what is wrong, it is probably the case that the `concept_set_id` '
@@ -564,7 +565,7 @@ def upload_concept_set_container(
     return response
 
 
-def make_request(api_name: str, data: Union[List, Dict] = None, validate=False, verbose=True) -> JSON_TYPE:
+def make_request(api_name: str, data: Union[List, Dict] = None, validate=False, verbose=True) -> Response:
     """Passthrough for HTTP request
     If `data`, knows to do a POST. Otherwise does a GET.
     Enclave docs:
@@ -596,17 +597,18 @@ def make_request(api_name: str, data: Union[List, Dict] = None, validate=False, 
         response = requests.post(url, headers=headers, json=data)
     else:
         response = requests.get(url, headers=headers)
-    response.raise_for_status()
-    # except BaseException as err:
-    #     print(f"Unexpected {type(err)}: {str(err)}", file=sys.stderr)
-    #     raise err
+    try:
+        response.raise_for_status()
+    except Exception as err:
+        ttl = check_token_ttl(get_auth_token())
+        if ttl == 0:
+            raise RuntimeError(f'Error: Token expired: ' + get_auth_token_key())
+        raise err
 
-    # noinspection PyUnboundLocalVariable
-    response_json: JSON_TYPE = response.json()
-    return response_json
+    return response
 
 
-def make_read_request(path: str, verbose=False) -> JSON_TYPE:
+def make_read_request(path: str, verbose=False) -> Response:
     """Passthrough for HTTP request
     If `data`, knows to do a POST. Otherwise does a GET.
     Enclave docs:
@@ -624,31 +626,24 @@ def make_read_request(path: str, verbose=False) -> JSON_TYPE:
     if verbose:
         print(f'make_request: {api_path}\n{url}')
 
-    try:
-        response = requests.get(url, headers=headers)
-        response.raise_for_status()
-    except BaseException as err:
-        print(f"Unexpected {type(err)}: {str(err)}", file=sys.stderr)
+    response = requests.get(url, headers=headers)
+    response.raise_for_status()
 
-    # noinspection PyUnboundLocalVariable
-    response_json: JSON_TYPE = response.json()
-    return response_json
-
+    return response
 
 # def check_token():
 # curl -XGET https://unite.nih.gov/multipass/api/me -H "Authorization: Bearer $PALANTIR_ENCLAVE_AUTHENTICATION_BEARER_TOKEN"
 
-
-def get(api_name: str, validate=False) -> JSON_TYPE:
+def get(api_name: str, validate=False)-> Response:
     """For GET request"""
     return make_request(api_name, validate=validate)
 
 
-def post(api_name: str, data: Dict, validate_first=VALIDATE_FIRST) -> JSON_TYPE:
+def post(api_name: str, data: Dict, validate_first=VALIDATE_FIRST)-> Response:
     """For POST request"""
     if validate_first:
-        response: JSON_TYPE = make_request(api_name, data, validate=True)
-        if not ('result' in response and response['result'] == 'VALID'):
+        response: Response = make_request(api_name, data, validate=True)
+        if not ('result' in response.json() and response.json()['result'] == 'VALID'):
             print(f'Failure: {api_name}\n', response, file=sys.stderr)
             return response
     return make_request(api_name, data, validate=False)
