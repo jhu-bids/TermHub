@@ -6,12 +6,14 @@ import pandas as pd
 from sqlalchemy.engine import Connection
 from sqlalchemy.exc import ProgrammingError
 from sqlalchemy.sql import text
+from psycopg2.errors import UndefinedTable
 
 from backend.db.config import DATASETS_PATH, CONFIG
 from backend.db.utils import database_exists, run_sql, get_db_connection
 
 
-DB = CONFIG["DB"]
+DB = CONFIG["db"]
+SCHEMA = CONFIG["schema"]
 
 
 def initialize():
@@ -58,6 +60,10 @@ def initialize():
                 run_sql(con, 'CREATE DATABASE ' + DB)
                 con.connection.connection.set_isolation_level(1)
 
+            # create schema isn't working, not sure why -- I had to create it manually
+            run_sql(con, f'CREATE SCHEMA IF NOT EXISTS {SCHEMA}')
+            run_sql(con, f'SET search_path TO {SCHEMA}, public')
+
         for table in tables_to_load:
             print(f'loading {table} into {CONFIG["server"]}:{DB}')
             load_csv(con, table)
@@ -73,18 +79,32 @@ def initialize():
     return
 
 
-def load_csv(con: Connection, table: str, replace_if_exists=True):
+def load_csv(con: Connection, table: str, replace_rule='replace if diff row count'):
     """Load CSV into table
+    replace_rule = 'replace if diff row count' or 'do not replace'
+    first will  replace table (that is, truncate and load records; will fail if table cols have changed, i think
+    'do not replace'  will create new table or load table if table exists but is empty
 
     - Uses: https://pandas.pydata.org/docs/reference/api/pandas.DataFrame.to_sql.html
     """
+    existing_rows = 0
+    try:
+        r = con.execute(f'select count(*) from {table}x')
+        existing_rows = r.one()[0]
+    except Exception as err:
+        if isinstance(err.orig, UndefinedTable):
+            print(f'{table} does not not exist; will create it')
+        else:
+            raise err
+
+    if replace_rule == 'do not replace' and existing_rows > 0:
+        return
+
     df = pd.read_csv(os.path.join(DATASETS_PATH, f'{table}.csv'))
-    if not replace_if_exists:
-        # TODO: make this work:
-        # query:  show tables where Tables_in_termhub_n3c = {table}
-        # if query not returns empty:
-        #   return
-        pass
+
+    if replace_rule == 'replace if diff row count' and existing_rows == len(df):
+        return
+
     try:
         con.execute(text(f'TRUNCATE {table}'))
     except ProgrammingError:
@@ -92,20 +112,23 @@ def load_csv(con: Connection, table: str, replace_if_exists=True):
     # `schema='termhub_n3c'`: Passed so Joe doesn't get OperationalError('(pymysql.err.OperationalError) (1050,
     #  "Table \'code_sets\' already exists")')
     #  https://stackoverflow.com/questions/69906698/pandas-to-sql-gives-table-already-exists-error-with-if-exists-append
-    try:
-        kwargs = {'if_exists': 'append', 'index': False}
-        if CONFIG['server'] == 'mysql':
-            kwargs['schema'] = DB
+    kwargs = {'if_exists': 'append', 'index': False}
+    if False:   # this was necessary for mysql, probably not for postgres
+        try:
+            if CONFIG['server'] == 'mysql':
+                kwargs['schema'] = DB
+            df.to_sql(table, con, **kwargs)
+        except Exception as err:
+            # if data too long error, change column to longtext and try again
+            # noinspection PyUnresolvedReferences
+            m = re.match("Data too long for column '(.*)'.*", str(err.orig.args))
+            if m:
+                run_sql(con, f'ALTER TABLE {table} MODIFY {m[1]} LONGTEXT')
+                load_csv(con, table)
+            else:
+                raise err
+    else:
         df.to_sql(table, con, **kwargs)
-    except Exception as err:
-        # if data too long error, change column to longtext and try again
-        # noinspection PyUnresolvedReferences
-        m = re.match("Data too long for column '(.*)'.*", str(err.orig.args))
-        if m:
-            run_sql(con, f'ALTER TABLE {table} MODIFY {m[1]} LONGTEXT')
-            load_csv(con, table)
-        else:
-            raise err
 
 
 if __name__ == '__main__':

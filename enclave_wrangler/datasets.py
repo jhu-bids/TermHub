@@ -10,6 +10,7 @@ from argparse import ArgumentParser
 from typing import Dict
 from typeguard import typechecked
 import os
+import re
 import requests
 import pandas as pd
 import tempfile
@@ -18,6 +19,7 @@ import pyarrow.parquet as pq
 # import asyncio
 import shutil
 import time
+from backend.utils import commify, pdump
 
 import enclave_wrangler.utils
 
@@ -81,7 +83,8 @@ def views2(dataset_rid: str, endRef: str) -> [str]:
     response = requests.get(url, headers=HEADERS,)
     response_json = response.json()
     file_parts = [f['logicalPath'] for f in response_json['values']]
-    return file_parts[1:]
+    file_parts = [fp for fp in file_parts if re.match('.*part-\d\d\d\d\d', fp)]
+    return file_parts
 
 
 @typechecked
@@ -140,15 +143,15 @@ def download_and_combine_dataset_parts(fav: dict, file_parts: [str], outpath: st
         if outpath:
             os.makedirs(os.path.dirname(outpath), exist_ok=True)
             df.to_csv(outpath, index=False)
+        print(f'Downloaded {os.path.basename(outpath)}, {commify(len(df))} records\n')
         return df
 
 
 def combine_parquet_files(input_files, target_path):
     files = []
-    input_folder = os.path.dirname(input_files)
+    input_folder = os.path.dirname(target_path)
     try:
         for file_name in input_files:
-            # was: files.append(pq.read_table(os.path.join(input_folder, file_name)))
             files.append(pq.read_table(file_name))
         with pq.ParquetWriter(
             target_path,
