@@ -52,46 +52,20 @@ However, archive-concept-set is good enough for now.
 
 TODO: Remove this temporary list of API endpoints when done / if advisable
 """
-import json
 import sys
 from typing import Dict, List, Union
 
-import requests
 from requests import Response
 
-from enclave_wrangler.config import config, ENCLAVE_PROJECT_NAME
-from enclave_wrangler.utils import check_token_ttl
-
-JSON_TYPE = Union[List, Dict]
-VALIDATE_FIRST = True  # if True, will /validate before doing /apply, and return validation error if any.
-
-# TODO: fix all this -- we've been switching back and forth between service token and personal
-#       because some APIs are open to one, some to the other (and sometimes the service one has
-#       been expired. In the past we've switched by hard coding the api call header, but now
-#       we have to make api calls (temporarily, see https://cd2h.slack.com/archives/C034EG5ESU9/p1670337451241379?thread_ts=1667317248.546169&cid=C034EG5ESU9)
-#       using one and then the other
-#
-# "authorization": f"Bearer {config['PALANTIR_ENCLAVE_AUTHENTICATION_BEARER_TOKEN']}",
-# "authorization": f"Bearer {config['OTHER_TOKEN']}",
-SERVICE_TOKEN_KEY = 'PALANTIR_ENCLAVE_AUTHENTICATION_BEARER_TOKEN'
-PERSONAL_TOKEN_KEY = 'OTHER_TOKEN'
-TOKEN_KEY = SERVICE_TOKEN_KEY
+from enclave_wrangler.config import ENCLAVE_PROJECT_NAME, VALIDATE_FIRST
+from enclave_wrangler.objects_api import EnclaveClient
+from enclave_wrangler.utils import make_read_request, post, set_auth_token_key
 
 
-def set_auth_token_key(personal=False):
-    global TOKEN_KEY
-    TOKEN_KEY = PERSONAL_TOKEN_KEY if personal else SERVICE_TOKEN_KEY
+UUID = str
 
 
-def get_auth_token_key():
-    return TOKEN_KEY
-
-
-def get_auth_token():
-    return config[TOKEN_KEY]
-
-
-def add_concepts_to_cset(omop_concepts: List[Dict], version__codeset_id: int)-> List[Response]:
+def add_concepts_to_cset(omop_concepts: List[Dict], version__codeset_id: int, validate_first=VALIDATE_FIRST)-> List[Response]:
     """Wrapper function for routing to appropriate endpoint. Add existing OMOP concepts to a versioned concept set / codeset.
 
     :param omop_concepts (List[Dict]): A list of dictionaries.
@@ -134,7 +108,8 @@ def add_concepts_to_cset(omop_concepts: List[Dict], version__codeset_id: int)-> 
             is_excluded=group['isExcluded'],
             include_mapped=group['includeMapped'],
             include_descendants=group['includeDescendants'],
-            optional_annotation=group['annotation'] if group['annotation'] else "")
+            optional_annotation=group['annotation'] if group['annotation'] else "",
+            validate_first=validate_first)
         responses.append(response_i)
 
     return responses
@@ -565,85 +540,60 @@ def upload_concept_set_container(
     return response
 
 
-def make_request(api_name: str, data: Union[List, Dict] = None, validate=False, verbose=True) -> Response:
-    """Passthrough for HTTP request
-    If `data`, knows to do a POST. Otherwise does a GET.
-    Enclave docs:
-      https://www.palantir.com/docs/foundry/api/ontology-resources/objects/list-objects/
-      https://www.palantir.com/docs/foundry/api/ontology-resources/object-types/list-object-types/
+def delete_concept_set_version(version_id: int, validate_first=VALIDATE_FIRST) -> Response:
+    """Delete a concept set version
+
+    Cavaets:
+    1. Amin said `isMostRecentVersion` note in API definition here does not matter for our use case, or it is not a
+      correct warning.
+    2. We need to add `expression-items` because enclave isn't set up to clear orphan expression items when version
+      is deleted, so we need to ask to delete them manually.
+    3. If `version_id` is not available because we did not pre-assign before uploading new version, we don't at the
+      moment know how to get it. So best if we pre-assign. - Joe 2022/12/12
+    4. `omop-concept-set` is not for the container name, but the version ID.
+
     """
-    # temporarily!!!
-    headers = {
-        # todo: When/if @Amin et al allow enclave service token to write to the new API, change this back from.
-        "authorization": f"Bearer {get_auth_token()}",
-        "Content-type": "application/json",
-
+    api_name = 'delete-omop-concept-set-version'
+    expression_items: List[UUID] = get_concept_set_version_expression_items(version_id)
+    # todo?: Expression items not reliably showing up after version just created: I don't know if this will be reliable
+    #  100% of the time. at first... i was getting no expression items back after just creating it and trying to delete.
+    #  i checked the enclave, and I saw that the version did indeed have expression items. I take this to mean that
+    #  there is some delay before the API can fetch these items. So maybe if wea `wait`, that might fix the problem.
+    #  For now, immediately calling it again works. - Joe 2022/12/12
+    if not expression_items:
+        print('INFO: Could not find expression items while trying to delete concept set. '
+              'This probably means it was just uploaded. Trying again.')
+        expression_items: List[UUID] = get_concept_set_version_expression_items(version_id)
+    # Note: Ignore 'description' below. See 'cavaet 1' in this function's docstring.
+    d = {
+        # "apiName": api_name,
+        # "description": "Do not forget to the flag 'Is Most Recent Version' of the previous Concept Set Version",
+        # "rid": "ri.actions.main.action-type.93b82f88-bd55-4daf-a0f9-f6537bf2bce1",
+        "parameters": {
+            # - Required params
+            "omop-concept-set": version_id,
+            # "omop-concept-set": {
+            #     "description": "",
+            #     "baseType": "OntologyObject"
+            "expression-items": expression_items,
+            # "expression-items": {
+            #     "description": "",
+            #     "baseType": "Array<OntologyObject>"
+        }
     }
-    ontology_rid = config['ONTOLOGY_RID']
-    api_path = f'/api/v1/ontologies/{ontology_rid}/actions/{api_name}/'
-    api_path += 'validate' if validate else 'apply'
-    url = f'https://{config["HOSTNAME"]}{api_path}'
-    if verbose:
-        # TODO: add this to make_read_request also
-        # print(f'make_request: {api_path}\n{url}')
-        print(f"""\ncurl  -H "Content-type: application/json" \\
-            -H "Authorization: Bearer ${get_auth_token_key()}" \\
-            {url} \\
-            --data '{json.dumps(data)}'
-            """)
-
-    # try:
-    if data:
-        response = requests.post(url, headers=headers, json=data)
-    else:
-        response = requests.get(url, headers=headers)
-    try:
-        response.raise_for_status()
-    except Exception as err:
-        ttl = check_token_ttl(get_auth_token())
-        if ttl == 0:
-            raise RuntimeError(f'Error: Token expired: ' + get_auth_token_key())
-        raise err
-
+    # TODO: Solve: requests.exceptions.HTTPError: 400 Client Error: Bad Request for url: https://unite.nih.gov/api/v1/ontologies/ri.ontology.main.ontology.00000000-0000-0000-0000-000000000000/actions/delete-omop-concept-set-version/apply
+    #  - Joe: I sent Siggie the curl for this unit test request on 2022/12/12
+    response: Response = post(api_name, d, validate_first)
     return response
 
 
-def make_read_request(path: str, verbose=False) -> Response:
-    """Passthrough for HTTP request
-    If `data`, knows to do a POST. Otherwise does a GET.
-    Enclave docs:
-      https://www.palantir.com/docs/foundry/api/ontology-resources/objects/list-objects/
-      https://www.palantir.com/docs/foundry/api/ontology-resources/object-types/list-object-types/
-    """
-    headers = {
-        "authorization": f"Bearer {get_auth_token()}",
-        "Content-type": "application/json",
-
-    }
-    ontology_rid = config['ONTOLOGY_RID']
-    api_path = f'/api/v1/ontologies/{ontology_rid}/{path}'
-    url = f'https://{config["HOSTNAME"]}{api_path}'
-    if verbose:
-        print(f'make_request: {api_path}\n{url}')
-
-    response = requests.get(url, headers=headers)
-    response.raise_for_status()
-
-    return response
-
-# def check_token():
-# curl -XGET https://unite.nih.gov/multipass/api/me -H "Authorization: Bearer $PALANTIR_ENCLAVE_AUTHENTICATION_BEARER_TOKEN"
-
-def get(api_name: str, validate=False)-> Response:
-    """For GET request"""
-    return make_request(api_name, validate=validate)
-
-
-def post(api_name: str, data: Dict, validate_first=VALIDATE_FIRST)-> Response:
-    """For POST request"""
-    if validate_first:
-        response: Response = make_request(api_name, data, validate=True)
-        if not ('result' in response.json() and response.json()['result'] == 'VALID'):
-            print(f'Failure: {api_name}\n', response, file=sys.stderr)
-            return response
-    return make_request(api_name, data, validate=False)
+def get_concept_set_version_expression_items(version_id: Union[str, int]) -> List[UUID]:
+    """Get concept set version expression items"""
+    version_id = str(version_id)
+    client = EnclaveClient()
+    response: Response = client.get_object_links(
+        object_type='OMOPConceptSet',
+        object_id=version_id,
+        link_type='omopConceptSetVersionItem')
+    expression_items: List[UUID] = [x['properties']['itemId'] for x in response.json()['data']]
+    return expression_items

@@ -21,6 +21,8 @@ import shutil
 import time
 from backend.utils import commify, pdump
 
+import enclave_wrangler.utils
+
 try:
     from enclave_wrangler.config import config, TERMHUB_CSETS_DIR, FAVORITE_DATASETS, FAVORITE_DATASETS_RID_NAME_MAP
     from enclave_wrangler.utils import log_debug_info
@@ -30,7 +32,7 @@ except ModuleNotFoundError:
 
 
 HEADERS = {
-    "authorization": f"Bearer {config.get('OTHER_TOKEN', '')}",
+    "authorization": f"Bearer {enclave_wrangler.utils.get('OTHER_TOKEN', '')}",
     #"authorization": f"Bearer {config['PALANTIR_ENCLAVE_AUTHENTICATION_BEARER_TOKEN']}",
     #'content-type': 'application/json'
 }

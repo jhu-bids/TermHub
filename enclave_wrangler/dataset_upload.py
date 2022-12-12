@@ -12,12 +12,13 @@ from requests import Response
 # TODO: See if sys.path(0) thing works; doesn't require maintenance. Look at unit tests
 try:
     from enclave_wrangler.config import CSET_UPLOAD_REGISTRY_PATH, CSET_VERSION_MIN_ID, ENCLAVE_PROJECT_NAME, MOFFIT_PREFIX, \
-    MOFFIT_SOURCE_ID_TYPE, MOFFIT_SOURCE_URL, PALANTIR_ENCLAVE_USER_ID_1, UPLOADS_DIR, config, PROJECT_ROOT, \
+    MOFFIT_SOURCE_ID_TYPE, MOFFIT_SOURCE_URL, PALANTIR_ENCLAVE_USER_ID_1, UPLOADS_DIR, VALIDATE_FIRST, config, \
+    PROJECT_ROOT, \
     TERMHUB_CSETS_DIR
-    from enclave_wrangler.enclave_api import get_cs_container_data, get_cs_version_data, get_cs_version_expression_data, \
+    from enclave_wrangler.actions_old_palantir3file_api import get_cs_container_data, get_cs_version_data, get_cs_version_expression_data, \
     post_request_enclave_api_addExpressionItems, post_request_enclave_api_create_container, \
     post_request_enclave_api_create_version, update_cs_version_expression_data_with_codesetid
-    from enclave_wrangler.new_enclave_api import JSON_TYPE, add_concepts_to_cset, finalize_concept_set_version, \
+    from enclave_wrangler.actions_api import add_concepts_to_cset, finalize_concept_set_version, \
     upload_concept_set_container, \
     upload_concept_set_version
     from enclave_wrangler.utils import _datetime_palantir_format, log_debug_info
@@ -25,10 +26,10 @@ except ModuleNotFoundError:
     from config import CSET_UPLOAD_REGISTRY_PATH, ENCLAVE_PROJECT_NAME, MOFFIT_PREFIX, \
     MOFFIT_SOURCE_ID_TYPE, MOFFIT_SOURCE_URL, PALANTIR_ENCLAVE_USER_ID_1, UPLOADS_DIR, config, PROJECT_ROOT, \
     TERMHUB_CSETS_DIR, CSET_VERSION_MIN_ID
-    from enclave_api import get_cs_container_data, get_cs_version_data, get_cs_version_expression_data, \
+    from actions_old_palantir3file_api import get_cs_container_data, get_cs_version_data, get_cs_version_expression_data, \
         post_request_enclave_api_addExpressionItems, post_request_enclave_api_create_container, \
         post_request_enclave_api_create_version, update_cs_version_expression_data_with_codesetid
-    from new_enclave_api import JSON_TYPE, add_concepts_to_cset, upload_concept_set_container, \
+    from actions_api import add_concepts_to_cset, upload_concept_set_container, \
         upload_concept_set_version
     from utils import _datetime_palantir_format, log_debug_info
 
@@ -42,7 +43,8 @@ DEBUG = False
 def upload_new_cset_version_with_concepts(
     omop_concepts: List[Dict], provenance: str, concept_set_name: str, limitations: str, intention: str,
     annotation: str = None, intended_research_project: str = None, on_behalf_of: str = None, codeset_id: int = None,
-) -> Dict[str, Union[Response, List[Response]]]:
+    validate_first=VALIDATE_FIRST
+) -> Dict:
     """Upload a concept set version along with its concepts.
 
     # todo: Update this slightly now that this function accepts named params instead of a dict 
@@ -93,7 +95,7 @@ def upload_new_cset_version_with_concepts(
         intended_research_project = ENCLAVE_PROJECT_NAME
 
     # Upload
-    response_upload_draft_concept_set: JSON_TYPE = upload_concept_set_version(  # code_set
+    response_upload_draft_concept_set: Response = upload_concept_set_version(  # code_set
         provenance=provenance,
         concept_set=concept_set_name,  # == container_d['concept_set_name']
         annotation=annotation,
@@ -101,22 +103,30 @@ def upload_new_cset_version_with_concepts(
         intention=intention,
         intended_research_project=intended_research_project,
         version_id=codeset_id,
-        on_behalf_of=on_behalf_of)  # == code_sets.codeset_id
-    response_upload_concepts: JSON_TYPE = add_concepts_to_cset(
+        on_behalf_of=on_behalf_of,
+        validate_first=validate_first)  # == code_sets.codeset_id
+    response_upload_concepts: List[Response] = add_concepts_to_cset(
         omop_concepts=omop_concepts,
-        version__codeset_id=codeset_id) # == code_sets.codeset_id
-    response_finalize_concept_set_version: JSON_TYPE = finalize_concept_set_version(
+        version__codeset_id=codeset_id,
+        validate_first=validate_first) # == code_sets.codeset_id
+    response_finalize_concept_set_version: Response = finalize_concept_set_version(
         concept_set=concept_set_name,  # == container_d['concept_set_name']
-        version_id=codeset_id)
+        version_id=codeset_id,
+        validate_first=validate_first)
 
     return {
-        'upload_concept_set_version': response_upload_draft_concept_set,
-        'add_concepts_to_cset': response_upload_concepts,
-        'finalize_concept_set_version': response_finalize_concept_set_version}
+        'responses': {
+            'upload_concept_set_version': response_upload_draft_concept_set,
+            'add_concepts_to_cset': response_upload_concepts,
+            'finalize_concept_set_version': response_finalize_concept_set_version
+        },
+        'versionId': codeset_id
+    }
+
 
 
 # TODO: support concept params, e.g. exclude_children
-def upload_new_container_with_concepts(container: Dict, versions_with_concepts: List[Dict]) -> JSON_TYPE:
+def upload_new_container_with_concepts(container: Dict, versions_with_concepts: List[Dict]) -> Dict:
     """Upload a new concept set container, and 1+ concept set versions, along with their concepts.
 
     :param container (Dict): Has the following keys:
@@ -141,7 +151,7 @@ def upload_new_container_with_concepts(container: Dict, versions_with_concepts: 
       }
     ]
     """
-    response_upload_concept_set: JSON_TYPE = upload_concept_set_container(  # concept_set_container
+    response_upload_concept_set: Response = upload_concept_set_container(  # concept_set_container
         concept_set_id=container['concept_set_name'],
         intention=container['intention'],
         research_project=container.get('research_project', ENCLAVE_PROJECT_NAME),
@@ -150,7 +160,8 @@ def upload_new_container_with_concepts(container: Dict, versions_with_concepts: 
 
     response_upload_new_cset_version_with_concepts = []
     for version in versions_with_concepts:
-        response_versions_i: JSON_TYPE = upload_new_cset_version_with_concepts(version)
+        response_versions_i: Dict[str, Union[Response, List[Response]]] = \
+            upload_new_cset_version_with_concepts(**version)
         response_upload_new_cset_version_with_concepts.append(response_versions_i)
 
     return {
@@ -167,7 +178,7 @@ def upload_new_container_with_concepts(container: Dict, versions_with_concepts: 
 def post_to_enclave_from_3csv(
     input_csv_folder_path: str, enclave_api=['old_rid_based', 'default'][1], create_cset_container=True,
     create_cset_versions=True
-) -> JSON_TYPE:
+) -> Union[Dict, pd.DataFrame]:
     """Uploads data to enclave and updates the following column in the input's code_sets.csv:
     # todo: Siggie: updating these files is probably not worth / necessary right now. Joe: We might want to do at some point
     - enclave_codeset_id
@@ -198,8 +209,9 @@ def post_to_enclave_from_3csv(
         return {}
     # Routing
     if enclave_api == 'old_rid_based':
-        # todo: this doesn't return JSON_TYPE, so might want to change this functions return sig / val
-        return post_to_enclave_old_api(input_csv_folder_path)
+        # todo: this doesn't return Response, so might want to change this functions return sig / val
+        df: pd.DataFrame = post_to_enclave_old_api(input_csv_folder_path)
+        return df
 
     # Read data
     concept_set_container_edited_df = pd.read_csv(
@@ -230,27 +242,27 @@ def post_to_enclave_from_3csv(
 
     # Upload to enclave
     response_upload_new_container_with_concepts = {}
-    response_upload_concept_set = {}
+    response_upload_concept_set: Union[None, Response] = None
     response_upload_new_cset_version_with_concepts = {}
     for linked_cset in list(linked_csets.values()):
         container_d = linked_cset['container']
         if create_cset_container and create_cset_versions:
-            response_upload_new_container_with_concepts: JSON_TYPE = upload_new_container_with_concepts(
+            response_upload_new_container_with_concepts: Dict = upload_new_container_with_concepts(
                 container=container_d,
                 versions_with_concepts=linked_cset['versions'].values())
         elif create_cset_container:
-            response_upload_concept_set: JSON_TYPE = upload_concept_set_container(  # concept_set_container
+            response_upload_concept_set: Response = upload_concept_set_container(  # concept_set_container
                 concept_set_id=container_d['concept_set_name'],
                 intention=container_d['intention'],
                 research_project=ENCLAVE_PROJECT_NAME,
                 assigned_sme=PALANTIR_ENCLAVE_USER_ID_1,
                 assigned_informatician=PALANTIR_ENCLAVE_USER_ID_1)
         elif create_cset_versions:
-            response_upload_new_cset_version_with_concepts: JSON_TYPE = []
+            response_upload_new_cset_version_with_concepts = []
             for version in linked_cset['versions'].values():
                 version_d = version['version']
                 version_d['omop_concept_ids'] = version['omop_concept_ids']
-                response_i: JSON_TYPE = upload_new_cset_version_with_concepts(version_d)
+                response_i: Dict[str, Union[Response, List[Response]]] = upload_new_cset_version_with_concepts(**version_d)
                 response_upload_new_cset_version_with_concepts.append(response_i)
 
     return {

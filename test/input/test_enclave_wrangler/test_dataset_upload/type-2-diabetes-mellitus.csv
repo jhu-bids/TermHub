@@ -1,0 +1,273 @@
+concept_set_name,parent_version_codeset_id,concept_name,concept_id,includeDescendants,isExcluded,includeMapped,annotation,action,concept_code,domain,vocabulary_id,class_id
+,794639872,Hyperproinsulinemia,4034962,FALSE,FALSE,FALSE,,add/replace,237613005,,,
+,794639872,Pregnancy and type 2 diabetes mellitus,4129519,FALSE,FALSE,FALSE,,add/replace,237627000,,,
+,794639872,Insulin resistance - type A,4129524,FALSE,FALSE,FALSE,,add/replace,237651005,,,
+,794639872,Insulin resistance - type B,4129525,FALSE,FALSE,FALSE,,add/replace,237652003,,,
+,794639872,Pre-existing type 2 diabetes mellitus in pregnancy,43531010,FALSE,FALSE,FALSE,,add/replace,609567009,,,
+,794639872,Diabetes mellitus in remission,45766050,FALSE,TRUE,FALSE,,add/replace,703136005,Condition,SNOMED,Clinical Finding
+,794639872,Loss of hypoglycemic warning due to diabetes mellitus,4016047,FALSE,TRUE,FALSE,,add/replace,170766006,Condition,SNOMED,Clinical Finding
+,794639872,Somogyi phenomenon,4162239,FALSE,TRUE,FALSE,,add/replace,398140007,Condition,SNOMED,Clinical Finding
+,794639872,Microaneurysm of right retinal artery due to diabetes mellitus,36674752,FALSE,TRUE,FALSE,,add/replace,770581008,Condition,SNOMED,Clinical Finding
+,794639872,O/E - left eye proliferative diabetic retinopathy,4252356,FALSE,TRUE,FALSE,,add/replace,408414006,Condition,SNOMED,Clinical Finding
+,794639872,Nodular type diabetic glomerulosclerosis,4270049,FALSE,TRUE,FALSE,,add/replace,63510008,Condition,SNOMED,Clinical Finding
+,794639872,Neuropathy due to diabetes mellitus,4044391,FALSE,TRUE,FALSE,,add/replace,230572002,Condition,SNOMED,Clinical Finding
+,794639872,On subcutaneous insulin for diabetes mellitus,43022019,FALSE,TRUE,FALSE,,add/replace,473189005,Observation,SNOMED,Clinical Finding
+,794639872,Retinopathy due to diabetes mellitus,4174977,FALSE,TRUE,FALSE,,add/replace,4855003,Condition,SNOMED,Clinical Finding
+,794639872,Bilateral iritis due to diabetes mellitus,35625724,FALSE,TRUE,FALSE,,add/replace,768799003,Condition,SNOMED,Clinical Finding
+,794639872,Mild nonproliferative retinopathy of right eye due to diabetes mellitus,35626038,FALSE,TRUE,FALSE,,add/replace,769183005,Condition,SNOMED,Clinical Finding
+,794639872,Disorder of eye due to malnutrition related diabetes mellitus,4224419,FALSE,TRUE,FALSE,,add/replace,421256007,Condition,SNOMED,Clinical Finding
+,794639872,Wet gangrene of foot due to diabetes mellitus,4294429,FALSE,TRUE,FALSE,,add/replace,402864004,Condition,SNOMED,Clinical Finding
+,794639872,Very severe nonproliferative retinopathy without macular edema due to diabetes mellitus,4221962,FALSE,TRUE,FALSE,,add/replace,399863006,Condition,SNOMED,Clinical Finding
+,794639872,Mild nonproliferative retinopathy of left eye due to diabetes mellitus,35626039,FALSE,TRUE,FALSE,,add/replace,769184004,Condition,SNOMED,Clinical Finding
+,794639872,Malnutrition related diabetes mellitus,4327944,FALSE,TRUE,FALSE,,add/replace,75524006,Condition,SNOMED,Clinical Finding
+,794639872,Non-high-risk proliferative retinopathy with no macular edema due to diabetes mellitus,4161671,FALSE,TRUE,FALSE,,add/replace,399870006,Condition,SNOMED,Clinical Finding
+,794639872,Iritis due to diabetes mellitus,4102176,FALSE,TRUE,FALSE,,add/replace,193489006,Condition,SNOMED,Clinical Finding
+,794639872,Abnormal metabolic state due to diabetes mellitus,4034964,FALSE,TRUE,FALSE,,add/replace,237620003,Condition,SNOMED,Clinical Finding
+,794639872,Diabetes mellitus due to structurally abnormal insulin,4237068,FALSE,TRUE,FALSE,,add/replace,91352004,Condition,SNOMED,Clinical Finding
+,794639872,Diabetic ulcer of right wrist,3172958,FALSE,TRUE,FALSE,,add/replace,2.098E+16,Condition,Nebraska Lexicon,Clinical Finding
+,794639872,Complication due to diabetes mellitus,442793,FALSE,TRUE,FALSE,,add/replace,74627003,Condition,SNOMED,Clinical Finding
+,794639872,Chronic painful polyneuropathy due to diabetes mellitus,4044392,FALSE,TRUE,FALSE,,add/replace,230575000,Condition,SNOMED,Clinical Finding
+,794639872,Diabetes mellitus,44833365,FALSE,TRUE,FALSE,,add/replace,250,Condition,ICD9CM,3-dig nonbill code
+,794639872,Diabetes resolved,4201636,FALSE,TRUE,FALSE,,add/replace,315051004,Condition,SNOMED,Clinical Finding
+,794639872,Very severe nonproliferative retinopathy with clinically significant macular edema due to diabetes mellitus,4290823,FALSE,TRUE,FALSE,,add/replace,399877009,Condition,SNOMED,Clinical Finding
+,794639872,Hypoglycemic coma due to diabetes mellitus,4226798,FALSE,TRUE,FALSE,,add/replace,421725003,Condition,SNOMED,Clinical Finding
+,794639872,Ketoacidotic coma due to diabetes mellitus,4095288,FALSE,TRUE,FALSE,,add/replace,26298008,Condition,SNOMED,Clinical Finding
+,794639872,Neuropathic arthropathy due to diabetes mellitus,4114427,FALSE,TRUE,FALSE,,add/replace,201724008,Condition,SNOMED,Clinical Finding
+,794639872,Pre-existing diabetes mellitus,44793114,FALSE,TRUE,FALSE,,add/replace,3.85051E+14,Condition,SNOMED,Clinical Finding
+,794639872,Non-proliferative retinopathy due to secondary diabetes mellitus,37016357,FALSE,TRUE,FALSE,,add/replace,3.68721E+14,Condition,SNOMED,Clinical Finding
+,794639872,Diabetic foot ulcer,4159742,FALSE,TRUE,FALSE,,add/replace,371087003,Condition,SNOMED,Clinical Finding
+,794639872,Ischemic maculopathy due to diabetes mellitus,4210874,FALSE,TRUE,FALSE,,add/replace,314014002,Condition,SNOMED,Clinical Finding
+,794639872,Microalbuminuric diabetic nephropathy,4128221,FALSE,TRUE,FALSE,,add/replace,236499007,Condition,SNOMED,Clinical Finding
+,794639872,Asymmetric polyneuropathy due to diabetes mellitus,4044393,FALSE,TRUE,FALSE,,add/replace,230576004,Condition,SNOMED,Clinical Finding
+,794639872,Pretibial pigmental patches due to diabetes mellitus,4265913,FALSE,TRUE,FALSE,,add/replace,62260007,Condition,SNOMED,Clinical Finding
+,794639872,Skin ulcer due to diabetes mellitus,4227657,FALSE,TRUE,FALSE,,add/replace,422183001,Condition,SNOMED,Clinical Finding
+,794639872,Coma due to diabetes mellitus,443735,FALSE,TRUE,FALSE,,add/replace,420662003,Condition,SNOMED,Clinical Finding
+,794639872,Visually threatening diabetic retinopathy,4266041,FALSE,TRUE,FALSE,,add/replace,399871005,Condition,SNOMED,Clinical Finding
+,794639872,Severe nonproliferative retinopathy without macular edema due to diabetes mellitus,4266637,FALSE,TRUE,FALSE,,add/replace,399873008,Condition,SNOMED,Clinical Finding
+,794639872,Venous beading of left retina due to diabetes mellitus,36674766,FALSE,TRUE,FALSE,,add/replace,770600002,Condition,SNOMED,Clinical Finding
+,794639872,Diabetic dermopathy,4033942,FALSE,TRUE,FALSE,,add/replace,238982009,Condition,SNOMED,Clinical Finding
+,794639872,O/E - right eye proliferative diabetic retinopathy,4255401,FALSE,TRUE,FALSE,,add/replace,408413000,Condition,SNOMED,Clinical Finding
+,794639872,Cranial nerve palsy due to diabetes mellitus,35626762,FALSE,TRUE,FALSE,,add/replace,770095003,Condition,SNOMED,Clinical Finding
+,794639872,Proliferative retinopathy following surgery due to diabetes mellitus,45757065,FALSE,TRUE,FALSE,,add/replace,1.03981E+14,Condition,SNOMED,Clinical Finding
+,794639872,Diabetic ulcer of left great toe,3178971,FALSE,TRUE,FALSE,,add/replace,2.79E+16,Condition,Nebraska Lexicon,Clinical Finding
+,794639872,Sensory polyneuropathy due to diabetes mellitus,37312198,FALSE,TRUE,FALSE,,add/replace,789585000,Condition,SNOMED,Clinical Finding
+,794639872,Stable treated proliferative retinopathy of right eye due to diabetes mellitus,37311833,FALSE,TRUE,FALSE,,add/replace,816961009,Condition,SNOMED,Clinical Finding
+,794639872,Macroalbuminuric nephropathy due to diabetes mellitus,40482458,FALSE,TRUE,FALSE,,add/replace,445170001,Condition,SNOMED,Clinical Finding
+,794639872,Ulcer of heel due to diabetes mellitus,37312207,FALSE,TRUE,FALSE,,add/replace,789562001,Condition,SNOMED,Clinical Finding
+,794639872,"Primary microcephaly, mild intellectual disability, young-onset diabetes syndrome",37204232,FALSE,TRUE,FALSE,,add/replace,782755007,Condition,SNOMED,Clinical Finding
+,794639872,Diabetic - poor control,443238,FALSE,TRUE,FALSE,,add/replace,268519009,Condition,SNOMED,Clinical Finding
+,794639872,Disorder of nervous system due to diabetes mellitus,443730,FALSE,TRUE,FALSE,,add/replace,422088007,Condition,SNOMED,Clinical Finding
+,794639872,Nonproliferative retinopathy of right eye due to diabetes mellitus,37311253,FALSE,TRUE,FALSE,,add/replace,816178004,Condition,SNOMED,Clinical Finding
+,794639872,Diabetes mellitus with multiple complications,44793113,FALSE,TRUE,FALSE,,add/replace,3.85041E+14,Condition,SNOMED,Clinical Finding
+,794639872,Peripheral angiopathy due to diabetes mellitus,4131908,FALSE,TRUE,FALSE,,add/replace,127014009,Condition,SNOMED,Clinical Finding
+,794639872,Gangrene due to diabetes mellitus,4226354,FALSE,TRUE,FALSE,,add/replace,422275004,Condition,SNOMED,Clinical Finding
+,794639872,Coma due to malnutrition-related diabetes mellitus,4221933,FALSE,TRUE,FALSE,,add/replace,420996007,Condition,SNOMED,Clinical Finding
+,794639872,Glucose tolerance test indicates diabetes mellitus,4055679,FALSE,TRUE,FALSE,,add/replace,166928007,Condition,SNOMED,Clinical Finding
+,794639872,Motor polyneuropathy due to diabetes mellitus,4129225,FALSE,TRUE,FALSE,,add/replace,126535008,Condition,SNOMED,Clinical Finding
+,794639872,Diffuse exudative maculopathy due to diabetes mellitus,4199039,FALSE,TRUE,FALSE,,add/replace,314010006,Condition,SNOMED,Clinical Finding
+,794639872,Malnutrition-related diabetes mellitus without complications,4096042,FALSE,TRUE,FALSE,,add/replace,190412005,Condition,SNOMED,Clinical Finding
+,794639872,Absence of lower limb due to diabetes mellitus,42536400,FALSE,TRUE,FALSE,,add/replace,735200002,Condition,SNOMED,Clinical Finding
+,794639872,Diabetic glomerulonephritis,4137220,FALSE,TRUE,FALSE,,add/replace,425455002,Condition,SNOMED,Clinical Finding
+,794639872,Macular edema due to diabetes mellitus,380097,FALSE,TRUE,FALSE,,add/replace,312912001,Condition,SNOMED,Clinical Finding
+,794639872,O/E - left eye background diabetic retinopathy,4235260,FALSE,TRUE,FALSE,,add/replace,408410002,Condition,SNOMED,Clinical Finding
+,794639872,Proliferative retinopathy with neovascularization elsewhere than the optic disc due to diabetes mellitus,4336000,FALSE,TRUE,FALSE,,add/replace,232022001,Condition,SNOMED,Clinical Finding
+,794639872,Brittle diabetes mellitus,4019513,FALSE,TRUE,FALSE,,add/replace,11530004,Condition,SNOMED,Clinical Finding
+,794639872,Bullosis diabeticorum,4169240,FALSE,TRUE,FALSE,,add/replace,48951005,Condition,SNOMED,Clinical Finding
+,794639872,Retinal edema due to diabetes mellitus,35626904,FALSE,TRUE,FALSE,,add/replace,770323005,Condition,SNOMED,Clinical Finding
+,794639872,Renal papillary necrosis due to diabetes mellitus,36716853,FALSE,TRUE,FALSE,,add/replace,723074006,Condition,SNOMED,Clinical Finding
+,794639872,Diabetic cardiomyopathy,37312019,FALSE,TRUE,FALSE,,add/replace,788878000,Condition,SNOMED,Clinical Finding
+,794639872,Moderate nonproliferative diabetic retinopathy of left eye,35626042,FALSE,TRUE,FALSE,,add/replace,769186002,Condition,SNOMED,Clinical Finding
+,794639872,Cataract of right eye due to diabetes mellitus,35625717,FALSE,TRUE,FALSE,,add/replace,768792007,Condition,SNOMED,Clinical Finding
+,794639872,Chronic painful neuropathy due to diabetes mellitus,4105639,FALSE,TRUE,FALSE,,add/replace,193184006,Condition,SNOMED,Clinical Finding
+,794639872,Severe nonproliferative retinopathy due to diabetes mellitus,376114,FALSE,TRUE,FALSE,,add/replace,312905005,Condition,SNOMED,Clinical Finding
+,794639872,Mixed maculopathy due to diabetes mellitus,4195498,FALSE,TRUE,FALSE,,add/replace,314015001,Condition,SNOMED,Clinical Finding
+,794639872,Diarrhea due to diabetes mellitus,4242528,FALSE,TRUE,FALSE,,add/replace,38205001,Condition,SNOMED,Clinical Finding
+,794639872,Nonproliferative retinopathy due to diabetes mellitus,376683,FALSE,TRUE,FALSE,,add/replace,390834004,Condition,SNOMED,Clinical Finding
+,794639872,Lactic acidosis due to diabetes mellitus,42536604,FALSE,TRUE,FALSE,,add/replace,735538002,Condition,SNOMED,Clinical Finding
+,794639872,Infection of foot due to diabetes mellitus,4171406,FALSE,TRUE,FALSE,,add/replace,419100001,Condition,SNOMED,Clinical Finding
+,794639872,Glomerulosclerosis of kidney due to diabetes mellitus,45772914,FALSE,TRUE,FALSE,,add/replace,707221002,Condition,SNOMED,Clinical Finding
+,794639872,Sensory neuropathy due to diabetes mellitus,4131117,FALSE,TRUE,FALSE,,add/replace,127011001,Condition,SNOMED,Clinical Finding
+,794639872,Diabetic retinopathy detected by national screening programme,44805628,FALSE,TRUE,FALSE,,add/replace,7.75841E+14,Condition,SNOMED,Clinical Finding
+,794639872,Disorder of macula due to diabetes mellitus,4334884,FALSE,TRUE,FALSE,,add/replace,232020009,Condition,SNOMED,Clinical Finding
+,794639872,Clinically significant macular edema due to diabetes mellitus,35626764,FALSE,TRUE,FALSE,,add/replace,770097006,Condition,SNOMED,Clinical Finding
+,794639872,Severe hyperglycemia due to diabetes mellitus,4029420,FALSE,TRUE,FALSE,,add/replace,237621004,Condition,SNOMED,Clinical Finding
+,794639872,Moderate nonproliferative retinopathy due to diabetes mellitus,377552,FALSE,TRUE,FALSE,,add/replace,312904009,Condition,SNOMED,Clinical Finding
+,794639872,Patient on maximal tolerated therapy for diabetes,4236285,FALSE,TRUE,FALSE,,add/replace,407569005,Observation,SNOMED,Clinical Finding
+,794639872,Cataract due to diabetes mellitus,376979,FALSE,TRUE,FALSE,,add/replace,43959009,Condition,SNOMED,Clinical Finding
+,794639872,Very severe nonproliferative retinopathy due to diabetes mellitus,4269871,FALSE,TRUE,FALSE,,add/replace,399876000,Condition,SNOMED,Clinical Finding
+,794639872,Hyperglycemia due to diabetes mellitus,37311673,FALSE,TRUE,FALSE,,add/replace,822995009,Condition,SNOMED,Clinical Finding
+,794639872,Proliferative retinopathy of left eye due to diabetes mellitus,36674200,FALSE,TRUE,FALSE,,add/replace,770766000,Condition,SNOMED,Clinical Finding
+,794639872,Multiple complications due to malnutrition related diabetes,4099652,FALSE,TRUE,FALSE,,add/replace,190411003,Condition,SNOMED,Clinical Finding
+,794639872,Hyperosmolar coma due to diabetes mellitus,4226238,FALSE,TRUE,FALSE,,add/replace,422126006,Condition,SNOMED,Clinical Finding
+,794639872,O/E - left eye stable treated proliferative diabetic retinopathy,4215961,FALSE,TRUE,FALSE,,add/replace,414894003,Condition,SNOMED,Clinical Finding
+,794639872,Cataract of left eye due to diabetes mellitus,35625718,FALSE,TRUE,FALSE,,add/replace,768793002,Condition,SNOMED,Clinical Finding
+,794639872,Myasthenic syndrome due to diabetic amyotrophy,4147504,FALSE,TRUE,FALSE,,add/replace,267604001,Condition,SNOMED,Clinical Finding
+,794639872,Severe nonproliferative retinopathy of right eye due to diabetes mellitus,35626043,FALSE,TRUE,FALSE,,add/replace,769187006,Condition,SNOMED,Clinical Finding
+,794639872,O/E - right eye background diabetic retinopathy,4247107,FALSE,TRUE,FALSE,,add/replace,408409007,Condition,SNOMED,Clinical Finding
+,794639872,Nephrotic syndrome due to diabetes mellitus,4027121,FALSE,TRUE,FALSE,,add/replace,197605007,Condition,SNOMED,Clinical Finding
+,794639872,Proliferative retinopathy with optic disc neovascularization due to diabetes mellitus,4338900,FALSE,TRUE,FALSE,,add/replace,232021008,Condition,SNOMED,Clinical Finding
+,794639872,Malnutrition-related diabetes mellitus - fibrocalculous,4030061,FALSE,TRUE,FALSE,,add/replace,237600004,Condition,SNOMED,Clinical Finding
+,794639872,Disorder of soft tissue due to diabetes mellitus,4082346,FALSE,TRUE,FALSE,,add/replace,238981002,Condition,SNOMED,Clinical Finding
+,794639872,Glomerulopathy due to diabetes mellitus,4206115,FALSE,TRUE,FALSE,,add/replace,309426007,Condition,SNOMED,Clinical Finding
+,794639872,Diabetic foot,4087682,FALSE,TRUE,FALSE,,add/replace,280137006,Condition,SNOMED,Clinical Finding
+,794639872,Pseudotabes due to diabetes mellitus,4023792,FALSE,TRUE,FALSE,,add/replace,19378003,Condition,SNOMED,Clinical Finding
+,794639872,Diabetic ulcer right great toe,3183485,FALSE,TRUE,FALSE,,add/replace,2.257E+16,Condition,Nebraska Lexicon,Clinical Finding
+,794639872,Asymmetric proximal motor neuropathy due to diabetes mellitus,4194970,FALSE,TRUE,FALSE,,add/replace,79554005,Condition,SNOMED,Clinical Finding
+,794639872,Polyneuropathy due to diabetes mellitus,376112,FALSE,TRUE,FALSE,,add/replace,49455004,Condition,SNOMED,Clinical Finding
+,794639872,Asymptomatic neuropathy due to diabetes mellitus,4101892,FALSE,TRUE,FALSE,,add/replace,193185007,Condition,SNOMED,Clinical Finding
+,794639872,Peripheral vascular disorder due to diabetes mellitus,321822,FALSE,TRUE,FALSE,,add/replace,421895002,Condition,SNOMED,Clinical Finding
+,794639872,Gingival disease co-occurrent with diabetes mellitus,37396524,FALSE,TRUE,FALSE,,add/replace,716362006,Condition,SNOMED,Clinical Finding
+,794639872,Severe nonproliferative retinopathy with clinically significant macular edema due to diabetes mellitus,4290822,FALSE,TRUE,FALSE,,add/replace,399872003,Condition,SNOMED,Clinical Finding
+,794639872,Neuropathic ulcer of foot due to diabetes mellitus,4065354,FALSE,TRUE,FALSE,,add/replace,201251005,Condition,SNOMED,Clinical Finding
+,794639872,O/E - right eye stable treated proliferative diabetic retinopathy,4212441,FALSE,TRUE,FALSE,,add/replace,414910007,Condition,SNOMED,Clinical Finding
+,794639872,Symmetric proximal motor neuropathy due to diabetes mellitus,4307319,FALSE,TRUE,FALSE,,add/replace,39127005,Condition,SNOMED,Clinical Finding
+,794639872,Diabetes mellitus,201820,FALSE,TRUE,FALSE,,add/replace,73211009,Condition,SNOMED,Clinical Finding
+,794639872,Nocturnal hypoglycemia due to diabetes mellitus,4129520,FALSE,TRUE,FALSE,,add/replace,237635002,Condition,SNOMED,Clinical Finding
+,794639872,Intracapillary glomerulosclerosis of kidney due to diabetes mellitus,4147577,FALSE,TRUE,FALSE,,add/replace,310387003,Condition,SNOMED,Clinical Finding
+,794639872,Diabetic mastopathy,37110068,FALSE,TRUE,FALSE,,add/replace,724136006,Condition,SNOMED,Clinical Finding
+,794639872,Armanni-Ebstein kidney due to diabetes mellitus,37311453,FALSE,TRUE,FALSE,,add/replace,792926007,Condition,SNOMED,Clinical Finding
+,794639872,Disorder of right macula due to diabetes mellitus,35626087,FALSE,TRUE,FALSE,,add/replace,769244003,Condition,SNOMED,Clinical Finding
+,794639872,Preproliferative retinopathy of left eye due to diabetes mellitus,35626037,FALSE,TRUE,FALSE,,add/replace,769182000,Condition,SNOMED,Clinical Finding
+,794639872,Malnutrition-related diabetes mellitus with ketoacidosis,4096041,FALSE,TRUE,FALSE,,add/replace,190406000,Condition,SNOMED,Clinical Finding
+,794639872,History of Diabetes (regardless of treatment) [PhenX],40769338,FALSE,TRUE,FALSE,,add/replace,66678-4,Observation,LOINC,Clinical Observation
+,794639872,Diabetes mellitus without complication,4008576,FALSE,TRUE,FALSE,,add/replace,111552007,Condition,SNOMED,Clinical Finding
+,794639872,Anemia due to diabetes mellitus,4307799,FALSE,TRUE,FALSE,,add/replace,82980005,Condition,SNOMED,Clinical Finding
+,794639872,"Primary microcephaly, epilepsy, permanent neonatal diabetes syndrome",37204277,FALSE,TRUE,FALSE,,add/replace,782825008,Condition,SNOMED,Clinical Finding
+,794639872,Diabetic cataract of bilateral eyes,35625719,FALSE,TRUE,FALSE,,add/replace,768794008,Condition,SNOMED,Clinical Finding
+,794639872,Proliferative retinopathy due to diabetes mellitus,380096,FALSE,TRUE,FALSE,,add/replace,59276001,Condition,SNOMED,Clinical Finding
+,794639872,Clinically significant macular edema of right eye due to diabetes mellitus,35626071,FALSE,TRUE,FALSE,,add/replace,769221001,Condition,SNOMED,Clinical Finding
+,794639872,Diabetic peripheral neuropathy,4311708,FALSE,TRUE,FALSE,,add/replace,424736006,Condition,SNOMED,Clinical Finding
+,794639872,Venous beading of retina due to diabetes mellitus,4161670,FALSE,TRUE,FALSE,,add/replace,399866003,Condition,SNOMED,Clinical Finding
+,794639872,History of small vessel disease due to diabetes mellitus,46270562,FALSE,TRUE,FALSE,,add/replace,5.9801E+13,Observation,SNOMED,Context-dependent
+,794639872,Vitreous hemorrhage of right eye due to diabetes mellitus,36674651,FALSE,TRUE,FALSE,,add/replace,770361008,Condition,SNOMED,Clinical Finding
+,794639872,Poorly controlled diabetes mellitus,3198118,FALSE,TRUE,FALSE,,add/replace,2.977E+16,Condition,Nebraska Lexicon,Clinical Finding
+,794639872,Transient neonatal diabetes mellitus,4129378,FALSE,TRUE,FALSE,,add/replace,237603002,Condition,SNOMED,Clinical Finding
+,794639872,Mononeuropathy simplex due to diabetes mellitus,4304701,FALSE,TRUE,FALSE,,add/replace,81830002,Condition,SNOMED,Clinical Finding
+,794639872,Diabetic intraretinal microvascular anomaly,4164175,FALSE,TRUE,FALSE,,add/replace,399868002,Condition,SNOMED,Clinical Finding
+,794639872,Disorder associated with diabetes mellitus,3182725,FALSE,TRUE,FALSE,,add/replace,74627003,Condition,Nebraska Lexicon,Clinical Finding
+,794639872,Disorder of nervous system due to malnutrition related diabetes mellitus,4224879,FALSE,TRUE,FALSE,,add/replace,420683009,Condition,SNOMED,Clinical Finding
+,794639872,Ketosis-prone diabetes mellitus,36685758,FALSE,TRUE,FALSE,,add/replace,1.10235E+15,Condition,SNOMED,Clinical Finding
+,794639872,Advanced maculopathy due to diabetes mellitus,4105173,FALSE,TRUE,FALSE,,add/replace,193350004,Condition,SNOMED,Clinical Finding
+,794639872,Venous beading of right retina due to diabetes mellitus,36674765,FALSE,TRUE,FALSE,,add/replace,770599000,Condition,SNOMED,Clinical Finding
+,794639872,"Atherosclerosis, deafness, diabetes, epilepsy, nephropathy syndrome",36715051,FALSE,TRUE,FALSE,,add/replace,720519003,Condition,SNOMED,Clinical Finding
+,794639872,Cellulitis of foot due to diabetes mellitus,4061725,FALSE,TRUE,FALSE,,add/replace,200687002,Condition,SNOMED,Clinical Finding
+,794639872,Advanced retinal disease due to diabetes mellitus,4209538,FALSE,TRUE,FALSE,,add/replace,311782002,Condition,SNOMED,Clinical Finding
+,794639872,Non-high-risk proliferative retinopathy with clinically significant macular edema due to diabetes mellitus,4269870,FALSE,TRUE,FALSE,,add/replace,399875001,Condition,SNOMED,Clinical Finding
+,794639872,Multiple complications due to diabetes mellitus,40480000,FALSE,TRUE,FALSE,,add/replace,441628001,Condition,SNOMED,Clinical Finding
+,794639872,Diabetes-deafness syndrome maternally transmitted,4129516,FALSE,TRUE,FALSE,,add/replace,237619009,Condition,SNOMED,Clinical Finding
+,794639872,Macular edema of right eye due to diabetes mellitus,35626067,FALSE,TRUE,FALSE,,add/replace,769217008,Condition,SNOMED,Clinical Finding
+,794639872,Mixed sensorimotor polyneuropathy due to diabetes mellitus,4054812,FALSE,TRUE,FALSE,,add/replace,126534007,Condition,SNOMED,Clinical Finding
+,794639872,High risk proliferative retinopathy not amenable to photocoagulation due to diabetes mellitus,4164176,FALSE,TRUE,FALSE,,add/replace,399869005,Condition,SNOMED,Clinical Finding
+,794639872,Mononeuritis multiplex with diabetes mellitus,4101887,FALSE,TRUE,FALSE,,add/replace,193141005,Condition,SNOMED,Clinical Finding
+,794639872,Proliferative retinopathy of right eye with diabetes mellitus,36674199,FALSE,TRUE,FALSE,,add/replace,770765001,Condition,SNOMED,Clinical Finding
+,794639872,Very severe nonproliferative retinopathy of right eye due to diabetes mellitus,35626046,FALSE,TRUE,FALSE,,add/replace,769190000,Condition,SNOMED,Clinical Finding
+,794639872,Very severe proliferative retinopathy due to diabetes mellitus,4164632,FALSE,TRUE,FALSE,,add/replace,399865004,Condition,SNOMED,Clinical Finding
+,794639872,Clinically significant macular edema of left eye due to diabetes mellitus,35626072,FALSE,TRUE,FALSE,,add/replace,769222008,Condition,SNOMED,Clinical Finding
+,794639872,High risk proliferative retinopathy with clinically significant macula edema due to diabetes mellitus,4266042,FALSE,TRUE,FALSE,,add/replace,399874002,Condition,SNOMED,Clinical Finding
+,794639872,Gastroparesis due to diabetes mellitus,37017430,FALSE,TRUE,FALSE,,add/replace,713704004,Condition,SNOMED,Clinical Finding
+,794639872,Severe nonproliferative retinopathy of left eye due to diabetes mellitus,35626044,FALSE,TRUE,FALSE,,add/replace,769188001,Condition,SNOMED,Clinical Finding
+,794639872,Iritis of right eye due to diabetes mellitus,35625722,FALSE,TRUE,FALSE,,add/replace,768797001,Condition,SNOMED,Clinical Finding
+,794639872,History of diabetes related lower limb amputation,42539022,FALSE,TRUE,FALSE,,add/replace,735199000,Observation,SNOMED,Context-dependent
+,794639872,Autonomic neuropathy due to diabetes mellitus,4175440,FALSE,TRUE,FALSE,,add/replace,50620007,Condition,SNOMED,Clinical Finding
+,794639872,Microaneurysm of left retinal artery due to diabetes mellitus,36674753,FALSE,TRUE,FALSE,,add/replace,770582001,Condition,SNOMED,Clinical Finding
+,794639872,Diabetic acute painful polyneuropathy,4046332,FALSE,TRUE,FALSE,,add/replace,230574001,Condition,SNOMED,Clinical Finding
+,794639872,Hyperglycemic crisis due to diabetes mellitus,40480031,FALSE,TRUE,FALSE,,add/replace,441656006,Condition,SNOMED,Clinical Finding
+,794639872,Rubeosis faciei due to diabetes mellitus,4082348,FALSE,TRUE,FALSE,,add/replace,238984005,Condition,SNOMED,Clinical Finding
+,794639872,Malnutrition-related diabetes mellitus with peripheral circulatory complications,4096671,FALSE,TRUE,FALSE,,add/replace,190410002,Condition,SNOMED,Clinical Finding
+,794639872,Non-high-risk proliferative retinopathy due to diabetes mellitus,4210128,FALSE,TRUE,FALSE,,add/replace,312906006,Condition,SNOMED,Clinical Finding
+,794639872,Erectile dysfunction due to diabetes mellitus,44810261,FALSE,TRUE,FALSE,,add/replace,8.67891E+14,Condition,SNOMED,Clinical Finding
+,794639872,Dermatitis due to drug induced diabetes mellitus,37016350,FALSE,TRUE,FALSE,,add/replace,3.68171E+14,Condition,SNOMED,Clinical Finding
+,794639872,High risk proliferative retinopathy without macular edema due to diabetes mellitus,4164174,FALSE,TRUE,FALSE,,add/replace,399862001,Condition,SNOMED,Clinical Finding
+,794639872,Acute painful diabetic neuropathy,4105016,FALSE,TRUE,FALSE,,add/replace,193183000,Condition,SNOMED,Clinical Finding
+,794639872,Diabetic neuropathy with neurologic complication,4234742,FALSE,TRUE,FALSE,,add/replace,359611005,Condition,SNOMED,Clinical Finding
+,794639872,Ischemic ulcer of foot due to diabetes mellitus,4063569,FALSE,TRUE,FALSE,,add/replace,201250006,Condition,SNOMED,Clinical Finding
+,794639872,Vitreous hemorrhage due to diabetes mellitus,4195045,FALSE,TRUE,FALSE,,add/replace,312910009,Condition,SNOMED,Clinical Finding
+,794639872,Proliferative retinopathy with iris neovascularization due to diabetes mellitus,4195044,FALSE,TRUE,FALSE,,add/replace,312909004,Condition,SNOMED,Clinical Finding
+,794639872,Gingivitis co-occurrent with diabetes mellitus,46274096,FALSE,TRUE,FALSE,,add/replace,709147009,Condition,SNOMED,Clinical Finding
+,794639872,Hyperosmolar non-ketotic state due to diabetes mellitus,4147719,FALSE,TRUE,FALSE,,add/replace,310505005,Condition,SNOMED,Clinical Finding
+,794639872,Disorder of left macula due to diabetes mellitus,35626088,FALSE,TRUE,FALSE,,add/replace,769245002,Condition,SNOMED,Clinical Finding
+,794639872,Symptomatic diabetic peripheral neuropathy,44805212,FALSE,TRUE,FALSE,,add/replace,7.73001E+14,Condition,SNOMED,Clinical Finding
+,794639872,Preproliferative retinopathy of right eye due to diabetes mellitus,35626036,FALSE,TRUE,FALSE,,add/replace,769181007,Condition,SNOMED,Clinical Finding
+,794639872,Myopathy and diabetes mellitus,37204818,FALSE,TRUE,FALSE,,add/replace,783722008,Condition,SNOMED,Clinical Finding
+,794639872,Thoracic radiculopathy due to diabetes mellitus,4048029,FALSE,TRUE,FALSE,,add/replace,230579006,Condition,SNOMED,Clinical Finding
+,794639872,Diabetes mellitus uncontrolled,3469133,FALSE,TRUE,FALSE,,add/replace,268519009,Condition,Nebraska Lexicon,Clinical Finding
+,794639872,Diabetic ketoacidosis without coma,4009303,FALSE,TRUE,FALSE,,add/replace,111556005,Condition,SNOMED,Clinical Finding
+,794639872,Radiculoplexus neuropathy due to diabetes mellitus,4189418,FALSE,TRUE,FALSE,,add/replace,39181008,Condition,SNOMED,Clinical Finding
+,794639872,Neovascular glaucoma due to diabetes mellitus,37017221,FALSE,TRUE,FALSE,,add/replace,713457002,Condition,SNOMED,Clinical Finding
+,794639872,Diabetic optic papillopathy,4151453,FALSE,TRUE,FALSE,,add/replace,314537004,Condition,SNOMED,Clinical Finding
+,794639872,Macular edema not clinically significant due to diabetes mellitus,4162095,FALSE,TRUE,FALSE,,add/replace,399864000,Condition,SNOMED,Clinical Finding
+,794639872,Hyperosmolar coma due to secondary diabetes mellitus,37016355,FALSE,TRUE,FALSE,,add/replace,3.68601E+14,Condition,SNOMED,Clinical Finding
+,794639872,Ischemia of retina due to diabetes mellitus,35626905,FALSE,TRUE,FALSE,,add/replace,770324004,Condition,SNOMED,Clinical Finding
+,794639872,Hypoglycemia due to diabetes mellitus,4029423,FALSE,TRUE,FALSE,,add/replace,237633009,Condition,SNOMED,Clinical Finding
+,794639872,Diabetic hand syndrome,4114426,FALSE,TRUE,FALSE,,add/replace,201723002,Condition,SNOMED,Clinical Finding
+,794639872,Macular edema of left eye due to diabetes mellitus,35626068,FALSE,TRUE,FALSE,,add/replace,769218003,Condition,SNOMED,Clinical Finding
+,794639872,Very severe nonproliferative retinopathy of left eye due to diabetes mellitus,35626047,FALSE,TRUE,FALSE,,add/replace,769191001,Condition,SNOMED,Clinical Finding
+,794639872,Ulcer of midfoot due to diabetes mellitus,37312204,FALSE,TRUE,FALSE,,add/replace,789568002,Condition,SNOMED,Clinical Finding
+,794639872,Kimmelstiel-Wilson syndrome,4151946,FALSE,TRUE,FALSE,,add/replace,311366001,Condition,SNOMED,Clinical Finding
+,794639872,Proteinuric nephropathy due to diabetes mellitus,4030664,FALSE,TRUE,FALSE,,add/replace,236500003,Condition,SNOMED,Clinical Finding
+,794639872,Microaneurysm of retinal artery due to diabetes mellitus,4101478,FALSE,TRUE,FALSE,,add/replace,25412000,Condition,SNOMED,Clinical Finding
+,794639872,Malnutrition-related diabetes mellitus with renal complications,4096670,FALSE,TRUE,FALSE,,add/replace,190407009,Condition,SNOMED,Clinical Finding
+,794639872,Atypical diabetes mellitus,36713275,FALSE,TRUE,FALSE,,add/replace,5.30559E+17,Condition,SNOMED,Clinical Finding
+,794639872,Moderate nonproliferative diabetic retinopathy of right eye,35626041,FALSE,TRUE,FALSE,,add/replace,769185003,Condition,SNOMED,Clinical Finding
+,794639872,Disorder of eye due to diabetes mellitus,443767,FALSE,TRUE,FALSE,,add/replace,25093002,Condition,SNOMED,Clinical Finding
+,794639872,Lesion of skin due to diabetes mellitus,37110593,FALSE,TRUE,FALSE,,add/replace,724876003,Condition,SNOMED,Clinical Finding
+,794639872,Quiescent proliferative retinopathy due to diabetes mellitus,4210129,FALSE,TRUE,FALSE,,add/replace,312908007,Condition,SNOMED,Clinical Finding
+,794639872,Traction detachment of retina due to diabetes mellitus,4338901,FALSE,TRUE,FALSE,,add/replace,232023006,Condition,SNOMED,Clinical Finding
+,794639872,Acute complication due to diabetes mellitus,42538715,FALSE,TRUE,FALSE,,add/replace,762489000,Condition,SNOMED,Clinical Finding
+,794639872,Focal exudative maculopathy due to diabetes mellitus,4210872,FALSE,TRUE,FALSE,,add/replace,314011005,Condition,SNOMED,Clinical Finding
+,794639872,Diabetic hypoglycemia w anger outbursts,3169474,FALSE,TRUE,FALSE,,add/replace,1.658E+16,Condition,Nebraska Lexicon,Clinical Finding
+,794639872,Pre-existing malnutrition-related diabetes mellitus,4062687,FALSE,TRUE,FALSE,,add/replace,199231005,Condition,SNOMED,Clinical Finding
+,794639872,Ophthalmoplegia due to diabetes mellitus,4176925,FALSE,TRUE,FALSE,,add/replace,427943001,Condition,SNOMED,Clinical Finding
+,794639872,Stable treated proliferative retinopathy of left eye due to diabetes mellitus,37311832,FALSE,TRUE,FALSE,,add/replace,816962002,Condition,SNOMED,Clinical Finding
+,794639872,Metabolic acidosis due to diabetes mellitus,42536605,FALSE,TRUE,FALSE,,add/replace,735539005,Condition,SNOMED,Clinical Finding
+,794639872,O/E - sight threatening diabetic retinopathy,4218499,FALSE,TRUE,FALSE,,add/replace,417677008,Condition,SNOMED,Clinical Finding
+,794639872,Nonproliferative retinopathy of left eye due to diabetes mellitus,37311254,FALSE,TRUE,FALSE,,add/replace,816177009,Condition,SNOMED,Clinical Finding
+,794639872,Preproliferative retinopathy due to diabetes mellitus,4105172,FALSE,TRUE,FALSE,,add/replace,193349004,Condition,SNOMED,Clinical Finding
+,794639872,Diffuse glomerulosclerosis of kidney due to diabetes mellitus,4243625,FALSE,TRUE,FALSE,,add/replace,38046004,Condition,SNOMED,Clinical Finding
+,794639872,O/E - right eye preproliferative diabetic retinopathy,4255399,FALSE,TRUE,FALSE,,add/replace,408411003,Condition,SNOMED,Clinical Finding
+,794639872,Femoral mononeuropathy due to diabetes mellitus,4263090,FALSE,TRUE,FALSE,,add/replace,361216007,Condition,SNOMED,Clinical Finding
+,794639872,Diabetic thick skin syndrome,4082347,FALSE,TRUE,FALSE,,add/replace,238983004,Condition,SNOMED,Clinical Finding
+,794639872,Disorder of kidney due to diabetes mellitus,192279,FALSE,TRUE,FALSE,,add/replace,127013003,Condition,SNOMED,Clinical Finding
+,794639872,Mild nonproliferative retinopathy due to diabetes mellitus,378743,FALSE,TRUE,FALSE,,add/replace,312903003,Condition,SNOMED,Clinical Finding
+,794639872,Diabetes mellitus associated with receptor abnormality,4178790,FALSE,TRUE,FALSE,,add/replace,42954008,Condition,SNOMED,Clinical Finding
+,794639872,Lumbosacral radiculoplexus neuropathy due to diabetes mellitus,4191611,FALSE,TRUE,FALSE,,add/replace,39058009,Condition,SNOMED,Clinical Finding
+,794639872,Cervical radiculoplexus neuropathy due to diabetes mellitus,35626761,FALSE,TRUE,FALSE,,add/replace,770094004,Condition,SNOMED,Clinical Finding
+,794639872,Hypoglycemic event due to diabetes,4029422,FALSE,TRUE,FALSE,,add/replace,237632004,Condition,SNOMED,Clinical Finding
+,794639872,Protein-deficient diabetes mellitus,4212631,FALSE,TRUE,FALSE,,add/replace,57886004,Condition,SNOMED,Clinical Finding
+,794639872,O/E - left eye preproliferative diabetic retinopathy,4255400,FALSE,TRUE,FALSE,,add/replace,408412005,Condition,SNOMED,Clinical Finding
+,794639872,Diabetic mononeuropathy,4048028,FALSE,TRUE,FALSE,,add/replace,230577008,Condition,SNOMED,Clinical Finding
+,794639872,Diabetic mononeuropathy multiplex,4262282,FALSE,TRUE,FALSE,,add/replace,35777006,Condition,SNOMED,Clinical Finding
+,794639872,Iritis of left eye due to diabetes mellitus,35625723,FALSE,TRUE,FALSE,,add/replace,768798006,Condition,SNOMED,Clinical Finding
+,794639872,Erectile dysfunction due to diabetes mellitus,35626763,FALSE,TRUE,FALSE,,add/replace,770096002,Condition,SNOMED,Clinical Finding
+,794639872,Mild nonproliferative retinopathy due to secondary diabetes mellitus,37016356,FALSE,TRUE,FALSE,,add/replace,3.68711E+14,Condition,SNOMED,Clinical Finding
+,794639872,Steroid-induced diabetes mellitus without complication,4099653,FALSE,TRUE,FALSE,,add/replace,190416008,Condition,SNOMED,Clinical Finding
+,794639872,Polyneuropathy due to secondary diabetes mellitus,760979,FALSE,TRUE,FALSE,,add/replace,1.26571E+14,Condition,SNOMED,Clinical Finding
+,794639872,Diabetes mellitus induced by non-steroid drugs without complication,4136889,FALSE,TRUE,FALSE,,add/replace,413183008,Condition,SNOMED,Clinical Finding
+,794639872,Complication due to secondary diabetes mellitus,761051,FALSE,TRUE,FALSE,,add/replace,1.38811E+14,Condition,SNOMED,Clinical Finding
+,794639872,Steroid-induced diabetes,4099334,FALSE,TRUE,FALSE,,add/replace,190447002,Condition,SNOMED,Clinical Finding
+,794639872,Peripheral vascular disease due to secondary diabetes mellitus,760977,FALSE,TRUE,FALSE,,add/replace,1.26531E+14,Condition,SNOMED,Clinical Finding
+,794639872,Drug-induced diabetes mellitus,4202383,FALSE,TRUE,FALSE,,add/replace,5368009,Condition,SNOMED,Clinical Finding
+,794639872,Diabetes mellitus caused by drug without complication,765478,FALSE,TRUE,FALSE,,add/replace,3.67391E+14,Condition,SNOMED,Clinical Finding
+,794639872,Diabetes mellitus complicating Cystic fibrosis,3178281,FALSE,TRUE,FALSE,,add/replace,2.35E+15,Condition,Nebraska Lexicon,Clinical Finding
+,794639872,Hyperosmolarity due to drug induced diabetes mellitus,37109305,FALSE,TRUE,FALSE,,add/replace,3.67261E+14,Condition,SNOMED,Clinical Finding
+,794639872,Disorder of vision due to secondary diabetes mellitus,761048,FALSE,TRUE,FALSE,,add/replace,1.38591E+14,Condition,SNOMED,Clinical Finding
+,794639872,Diabetes mellitus associated with hormonal etiology,4240589,FALSE,TRUE,FALSE,,add/replace,59079001,Condition,SNOMED,Clinical Finding
+,794639872,Secondary endocrine diabetes mellitus,4034960,FALSE,TRUE,FALSE,,add/replace,237601000,Condition,SNOMED,Clinical Finding
+,794639872,Moderate nonproliferative retinopathy due to secondary diabetes mellitus,37016358,FALSE,TRUE,FALSE,,add/replace,3.68741E+14,Condition,SNOMED,Clinical Finding
+,794639872,Diabetes mellitus due to genetic defect in beta cell function,43531011,FALSE,TRUE,FALSE,,add/replace,609568004,Condition,SNOMED,Clinical Finding
+,794639872,Ketoacidosis due to secondary diabetes mellitus,761050,FALSE,TRUE,FALSE,,add/replace,1.38621E+14,Condition,SNOMED,Clinical Finding
+,794639872,Hyperosmolarity due to secondary diabetes mellitus,761049,FALSE,TRUE,FALSE,,add/replace,1.38611E+14,Condition,SNOMED,Clinical Finding
+,794639872,Diabetes mellitus induced by non-steroid drugs,4235410,FALSE,TRUE,FALSE,,add/replace,408540003,Condition,SNOMED,Clinical Finding
+,794639872,Diabetes mellitus caused by chemical,42537681,FALSE,TRUE,FALSE,,add/replace,737212004,Condition,SNOMED,Clinical Finding
+,794639872,Bronze diabetes,4220821,FALSE,TRUE,FALSE,,add/replace,399144008,Condition,SNOMED,Clinical Finding
+,794639872,Diabetes mellitus due to cystic fibrosis,4144583,FALSE,TRUE,FALSE,,add/replace,427089005,Condition,SNOMED,Clinical Finding
+,794639872,Diabetes mellitus associated with cystic fibrosis,4143529,FALSE,TRUE,FALSE,,add/replace,426705001,Condition,SNOMED,Clinical Finding
+,794639872,"Intellectual disability, craniofacial dysmorphism, hypogonadism, diabetes mellitus syndrome",36717215,FALSE,TRUE,FALSE,,add/replace,722454003,Condition,SNOMED,Clinical Finding
+,794639872,Wolfram-like syndrome,37116960,FALSE,TRUE,FALSE,,add/replace,734022008,Condition,SNOMED,Clinical Finding
+,794639872,"Pancreatic hypoplasia, diabetes mellitus, congenital heart disease syndrome",36716258,FALSE,TRUE,FALSE,,add/replace,722206009,Condition,SNOMED,Clinical Finding
+,794639872,Diabetes mellitus associated with pancreatic disease,4178452,FALSE,TRUE,FALSE,,add/replace,51002006,Condition,SNOMED,Clinical Finding
+,794639872,Diabetes mellitus due to pancreatic injury,45757077,FALSE,TRUE,FALSE,,add/replace,1.05401E+14,Condition,SNOMED,Clinical Finding
+,794639872,Secondary diabetes mellitus,195771,FALSE,TRUE,FALSE,,add/replace,8801005,Condition,SNOMED,Clinical Finding
+,794639872,Diabetes mellitus associated with genetic syndrome,4245270,FALSE,TRUE,FALSE,,add/replace,5969009,Condition,SNOMED,Clinical Finding
+,794639872,Diabetes mellitus due to genetic defect in insulin action,43531642,FALSE,TRUE,FALSE,,add/replace,609569007,Condition,SNOMED,Clinical Finding
+,794639872,Posttransplant diabetes mellitus,40482883,FALSE,TRUE,FALSE,,add/replace,445260006,Condition,SNOMED,Clinical Finding
