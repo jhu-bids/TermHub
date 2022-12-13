@@ -11,18 +11,47 @@ from http.client import HTTPConnection
 from requests import Response
 
 from enclave_wrangler.config import VALIDATE_FIRST, config
+from backend.utils import dump
 
-# TODO: fix all this -- we've been switching back and forth between service token and personal
-#       because some APIs are open to one, some to the other (and sometimes the service one has
-#       been expired. In the past we've switched by hard coding the api call header, but now
-#       we have to make api calls (temporarily, see https://cd2h.slack.com/archives/C034EG5ESU9/p1670337451241379?thread_ts=1667317248.546169&cid=C034EG5ESU9)
-#       using one and then the other
-#
-# "authorization": f"Bearer {config['PALANTIR_ENCLAVE_AUTHENTICATION_BEARER_TOKEN']}",
-# "authorization": f"Bearer {config['OTHER_TOKEN']}",
+
 SERVICE_TOKEN_KEY = 'PALANTIR_ENCLAVE_AUTHENTICATION_BEARER_TOKEN'
 PERSONAL_TOKEN_KEY = 'OTHER_TOKEN'
 TOKEN_KEY = SERVICE_TOKEN_KEY
+
+
+def get_headers(personal=False, content_type="application/json", for_curl=False):
+    # TODO: fix all this -- we've been switching back and forth between service token and personal
+    #       because some APIs are open to one, some to the other (and sometimes the service one has
+    #       been expired. In the past we've switched by hard coding the api call header, but now
+    #       we have to make api calls (temporarily, see https://cd2h.slack.com/archives/C034EG5ESU9/p1670337451241379?thread_ts=1667317248.546169&cid=C034EG5ESU9)
+    #       using one and then the other
+    current_key = get_auth_token_key()
+    set_auth_token_key(personal)
+    headers = {
+        "authorization": f"Bearer {get_auth_token()}",
+    }
+    if content_type:    # call get_headers with content_type=None if you don't want that in the headers
+        headers["Content-type"] = "application/json"
+
+    set_auth_token_key(current_key)
+    if for_curl:
+        headers["authorization"] = '$' + get_auth_token_key()
+        headers = '\\\n'.join([f' -H "{k}: {v}"' for k, v in headers.items()])
+    return headers
+
+#     #"authorization": f"Bearer {config['PALANTIR_ENCLAVE_AUTHENTICATION_BEARER_TOKEN']}",
+
+def set_auth_token_key(personal=False):
+    global TOKEN_KEY
+    TOKEN_KEY = PERSONAL_TOKEN_KEY if personal else SERVICE_TOKEN_KEY
+
+
+def get_auth_token_key():
+    return TOKEN_KEY
+
+
+def get_auth_token():
+    return config[TOKEN_KEY]
 
 
 def log_debug_info():
@@ -76,7 +105,7 @@ def check_token_ttl(token: str, warning_threshold=60 * 60 * 24 * 14):
     """
     #
     url = 'https://unite.nih.gov/multipass/api/token/ttl'
-    response = requests.get(url, headers={'Authorization': f"Bearer {token}"})
+    response = requests.get(url, headers=get_headers(content_type=None))
     if response.status_code == 401:
         #Example:  '{"errorCode":"UNAUTHORIZED","errorName":"Default:Unauthorized","errorInstanceId":
         # "f035ae89-85c4-49a8-ab39-48942e8264bf","parameters":{"error":"EXPIRED"}}'
@@ -89,37 +118,59 @@ def check_token_ttl(token: str, warning_threshold=60 * 60 * 24 * 14):
     return ttl
 
 
-def make_request(api_name: str, data: Union[List, Dict] = None, validate=False, verbose=True) -> Response:
+def make_objects_request(path: str, verbose=False) -> Response:
     """Passthrough for HTTP request
     If `data`, knows to do a POST. Otherwise does a GET.
     Enclave docs:
       https://www.palantir.com/docs/foundry/api/ontology-resources/objects/list-objects/
       https://www.palantir.com/docs/foundry/api/ontology-resources/object-types/list-object-types/
     """
-    # temporarily!!!
-    headers = {
-        # todo: When/if @Amin et al allow enclave service token to write to the new API, change this back from.
-        "authorization": f"Bearer {get_auth_token()}",
-        "Content-type": "application/json",
-
-    }
     ontology_rid = config['ONTOLOGY_RID']
-    api_path = f'/api/v1/ontologies/{ontology_rid}/actions/{api_name}/'
-    api_path += 'validate' if validate else 'apply'
+    path = path[1:] if path.startswith('/') else path
+    api_path = f'/api/v1/ontologies/{ontology_rid}/{path}'
     url = f'https://{config["HOSTNAME"]}{api_path}'
     if verbose:
-        # print(f'make_request: {api_path}\n{url}')
-        print(f"""\ncurl  -H "Content-type: application/json" \\
-            -H "Authorization: Bearer ${get_auth_token_key()}" \\
-            {url} \\
-            --data '{json.dumps(data)}'
-            """)
+        print(f'make_actions_request: {api_path}\n{url}')
 
-    # try:
-    if data:
-        response = requests.post(url, headers=headers, json=data)
-    else:
-        response = requests.get(url, headers=headers)
+    response = enclave_get(url)
+
+    return response
+
+
+def make_actions_request(api_name: str, data: Union[List, Dict] = None, validate_first=False, verbose=True) -> Response:
+    """Passthrough for HTTP request
+    If `data`, knows to do a POST. Otherwise does a GET.
+    Enclave docs:
+      https://www.palantir.com/docs/foundry/api/ontology-resources/objects/list-objects/
+      https://www.palantir.com/docs/foundry/api/ontology-resources/object-types/list-object-types/
+    """
+
+    ontology_rid = config['ONTOLOGY_RID']
+    api_path = f'/api/v1/ontologies/{ontology_rid}/actions/{api_name}/'
+    url = f'https://{config["HOSTNAME"]}{api_path}'
+
+    if validate_first:
+        response: Response = enclave_post(url + '/validate', data)
+        if not ('result' in response.json() and response.json()['result'] == 'VALID'):
+            print(f'Failure: {api_name}\n', response, file=sys.stderr)
+            return response
+
+    response: Response = enclave_post(url + '/apply', data)
+
+    return response
+
+
+def enclave_post(url: str, data: Union[List, Dict], validate_first=False, verbose=True, args:Dict={}) -> Response:
+    if verbose:
+        print_curl(url)
+
+    headers = get_headers()
+    response = requests.post(url, headers=headers, json=data)
+
+    if not ('result' in response.json() and response.json()['result'] == 'VALID'):
+        print(f'Failure: {api_name}\n', response, file=sys.stderr)
+        return response
+
     try:
         if 'errorCode' in response.text:
             print('Error: ' + response.text)
@@ -129,58 +180,48 @@ def make_request(api_name: str, data: Union[List, Dict] = None, validate=False, 
         if ttl == 0:
             raise RuntimeError(f'Error: Token expired: ' + get_auth_token_key())
         raise err
-
-    return response
-
-
-def make_read_request(path: str, verbose=False) -> Response:
-    """Passthrough for HTTP request
-    If `data`, knows to do a POST. Otherwise does a GET.
-    Enclave docs:
-      https://www.palantir.com/docs/foundry/api/ontology-resources/objects/list-objects/
-      https://www.palantir.com/docs/foundry/api/ontology-resources/object-types/list-object-types/
-    """
-    headers = {
-        "authorization": f"Bearer {get_auth_token()}",
-        "Content-type": "application/json",
-
-    }
-    ontology_rid = config['ONTOLOGY_RID']
-    path = path[1:] if path.startswith('/') else path
-    api_path = f'/api/v1/ontologies/{ontology_rid}/{path}'
-    url = f'https://{config["HOSTNAME"]}{api_path}'
+def enclave_get(url: str, verbose: bool=True, args: Dict={})-> Response:
     if verbose:
-        print(f'make_request: {api_path}\n{url}')
+        print_curl(url, args=args)
 
-    response = requests.get(url, headers=headers)
+    headers = get_headers()
+    response = requests.get(url, headers=headers, **args)
     response.raise_for_status()
-
     return response
 
 
-def get(api_name: str, validate=False)-> Response:
-    """For GET request"""
-    return make_request(api_name, validate=validate)
+def relevant_trace():
+    import traceback
+    import re
+    from enclave_wrangler.config import PROJECT_ROOT
+    stack = traceback.format_stack()
+    matches = [re.search(f'.*{PROJECT_ROOT}[^"]*", line \d+', c) for c in stack]
+    trace = [m[0] for m in matches if m]
+    trace = [t for t in trace if not re.search('/venv/', t)]
+    return '\n'.join(trace)
+
+def print_curl(url: str, data: Union[List, Dict]=None, args: Dict={}, trace:bool=True):
+    curl = f"""\ncurl {get_headers(for_curl=True)} \\
+            {url}\n"""
+    if data:
+        curl += f"--data '{json.dumps(data)}'\n"
+    if args:
+        curl += f"additional args:{dump(args)}\n\n"
+    if trace:
+        curl += relevant_trace()
+    print(curl)
 
 
-def post(api_name: str, data: Dict, validate_first=VALIDATE_FIRST)-> Response:
-    """For POST request"""
-    if validate_first:
-        response: Response = make_request(api_name, data, validate=True)
-        if not ('result' in response.json() and response.json()['result'] == 'VALID'):
-            print(f'Failure: {api_name}\n', response, file=sys.stderr)
-            return response
-    return make_request(api_name, data, validate=False)
-
-
-def set_auth_token_key(personal=False):
-    global TOKEN_KEY
-    TOKEN_KEY = PERSONAL_TOKEN_KEY if personal else SERVICE_TOKEN_KEY
-
-
-def get_auth_token_key():
-    return TOKEN_KEY
-
-
-def get_auth_token():
-    return config[TOKEN_KEY]
+# def old_get(api_name: str, validate=False)-> Response:
+#     """For GET request"""
+#     return make_actions_request(api_name, validate=validate)
+#
+#
+# def old_post(api_name: str, data: Dict, validate_first=VALIDATE_FIRST)-> Response:
+#     """For POST request"""
+#     if validate_first:
+#         response: Response = make_actions_request(api_name, data, validate=True)
+#         if not ('result' in response.json() and response.json()['result'] == 'VALID'):
+#             print(f'Failure: {api_name}\n', response, file=sys.stderr)
+#             return response
+#     return make_actions_request(api_name, data, validate=False)

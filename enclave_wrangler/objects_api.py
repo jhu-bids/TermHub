@@ -21,7 +21,7 @@ import requests
 # import asyncio
 
 from enclave_wrangler.config import FAVORITE_OBJECTS, OUTDIR_OBJECTS, config, TERMHUB_CSETS_DIR
-from enclave_wrangler.utils import make_read_request
+from enclave_wrangler.utils import make_objects_request
 
 # from enclave_wrangler.utils import log_debug_info
 
@@ -207,7 +207,7 @@ class EnclaveClient:
         Cavaets
         - If the `link_type` is not valid for a given `object_type`, you'll get a 404 not found.
         """
-        return make_read_request(f'objects/{object_type}/{object_id}/links/{link_type}')
+        return make_objects_request(f'objects/{object_type}/{object_id}/links/{link_type}')
 
 
 def run(request_types: List[str]) -> Dict[str, Dict]:

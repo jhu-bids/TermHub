@@ -25,7 +25,7 @@ PROJECT_ROOT = Path(TEST_DIR).parent
 sys.path.insert(0, str(PROJECT_ROOT))
 from enclave_wrangler.actions_api import delete_concept_set_version, upload_concept_set_container, \
     upload_concept_set_version
-from enclave_wrangler.utils import make_read_request, make_request
+from enclave_wrangler.utils import make_objects_request, make_actions_request
 from enclave_wrangler.dataset_upload import post_to_enclave_from_3csv, upload_new_cset_version_with_concepts
 from enclave_wrangler.config import PALANTIR_ENCLAVE_USER_ID_1
 

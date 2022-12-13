@@ -59,7 +59,7 @@ from requests import Response
 
 from enclave_wrangler.config import ENCLAVE_PROJECT_NAME, VALIDATE_FIRST
 from enclave_wrangler.objects_api import EnclaveClient
-from enclave_wrangler.utils import make_read_request, post, set_auth_token_key
+from enclave_wrangler.utils import make_objects_request, set_auth_token_key, make_actions_request
 
 
 UUID = str
@@ -158,7 +158,7 @@ def add_concepts_via_array(
     }
 
     set_auth_token_key(personal=True)
-    result = post(api_name, d, validate_first)
+    result = make_actions_request(api_name, d, validate_first)
     set_auth_token_key(personal=False)
     return result
 
@@ -214,7 +214,7 @@ def update_concept_version_item(        # TODO: delete? not being used currently
             #   "baseType": "Boolean"
         }
     }
-    return post(api_name, d, validate_first)
+    return make_actions_request(api_name, d, validate_first)
 
 
 # api_name = 'edit-omop-concept-set-version-item'
@@ -255,7 +255,7 @@ def add_concept_via_edit(
               # "baseType": "Boolean"
         }
     }
-    return post(api_name, d, validate_first)
+    return make_actions_request(api_name, d, validate_first)
 
 
 # code_set
@@ -395,7 +395,7 @@ def upload_concept_set_version(
     else:
         raise "expecting 'on-behalf-of'"
 
-    response: Response = post(api_name, d, validate_first)
+    response: Response = make_actions_request(api_name, d, validate_first)
     if 'errorCode' in response:
         print(response, file=sys.stderr)
         # todo: What can I add to help the user figure out what to do to fix, until API returns better responses?
@@ -450,7 +450,7 @@ def finalize_concept_set_version(
 
 
     set_auth_token_key(personal=True)
-    response: Response = post(api_name, d, validate_first)
+    response: Response = make_actions_request(api_name, d, validate_first)
     set_auth_token_key(personal=False)
 
     if 'errorCode' in response:
@@ -532,7 +532,7 @@ def upload_concept_set_container(
     if assigned_informatician:
         d['parameters']['assigned_informatician'] = assigned_informatician
 
-    response: Response = post(api_name, d, validate_first)
+    response: Response = make_actions_request(api_name, d, validate_first)
     if 'errorCode' in response:
         print(response, file=sys.stderr)
         print('If above error message does not say what is wrong, it is probably the case that the `concept_set_id` '
@@ -583,7 +583,7 @@ def delete_concept_set_version(version_id: int, validate_first=VALIDATE_FIRST) -
     }
     # TODO: Solve: requests.exceptions.HTTPError: 400 Client Error: Bad Request for url: https://unite.nih.gov/api/v1/ontologies/ri.ontology.main.ontology.00000000-0000-0000-0000-000000000000/actions/delete-omop-concept-set-version/apply
     #  - Joe: I sent Siggie the curl for this unit test request on 2022/12/12
-    response: Response = post(api_name, d, validate_first)
+    response: Response = make_actions_request(api_name, d, validate_first)
     return response
 
 

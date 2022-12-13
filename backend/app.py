@@ -16,7 +16,7 @@ from pydantic import BaseModel
 
 from enclave_wrangler.dataset_upload import upload_new_container_with_concepts, upload_new_cset_version_with_concepts
 from enclave_wrangler.datasets import run_favorites as update_termhub_csets
-from enclave_wrangler.utils import make_read_request
+from enclave_wrangler.utils import make_objects_request
 
 from backend.utils import cnt # , pdump
 from backend.db.utils import run_sql, get_db_connection, sql_query, get_concept_set_members, SCHEMA
@@ -126,7 +126,7 @@ def cset_download(codeset_id: int) -> Dict:
 def get_container(concept_set_name):
     """This is for getting the RID of a dataset. This is available via the ontology API, not the dataset API.
     TODO: This needs caching, but the @cache decorator is not working."""
-    return make_read_request(f'objects/OMOPConceptSetContainer/{urllib.parse.quote(concept_set_name)}')
+    return make_objects_request(f'objects/OMOPConceptSetContainer/{urllib.parse.quote(concept_set_name)}')
 
 # todo: Some redundancy. (i) should only need concept_set_name once
 # TODO: @Siggie: Do we want to add: annotation, intended_research_project, and on_behalf_of?

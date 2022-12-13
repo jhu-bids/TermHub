@@ -59,10 +59,12 @@ def initialize():
             # create schema isn't working, not sure why -- I had to create it manually
             # run_sql(con, f'CREATE SCHEMA IF NOT EXISTS {SCHEMA}')
             # run_sql(con, f'SET search_path TO {SCHEMA}, public')
-            run_sql(con, f'SET search_path TO {SCHEMA}')
+            # doesn't work:
+            # run_sql(con, f'SET search_path TO {SCHEMA}')
+            # being handled by get_db_connection
 
         for table in tables_to_load:
-            print(f'loading {SCHEMA}.{table} into {CONFIG["server"]}:{DB}')
+            print(f'\nloading {SCHEMA}.{table} into {CONFIG["server"]}:{DB}')
             load_csv(con, table)
 
         # with open(DDL_PATH, 'r') as file:
@@ -86,7 +88,7 @@ def load_csv(con: Connection, table: str, replace_rule='replace if diff row coun
     """
     existing_rows = 0
     try:
-        r = con.execute(f'select count(*) from {table}x')
+        r = con.execute(f'select count(*) from {table}')
         existing_rows = r.one()[0]
     except Exception as err:
         if isinstance(err.orig, UndefinedTable):
@@ -95,11 +97,13 @@ def load_csv(con: Connection, table: str, replace_rule='replace if diff row coun
             raise err
 
     if replace_rule == 'do not replace' and existing_rows > 0:
+        print(f'{SCHEMA}.{table} exists with {existing_rows}; leaving it')
         return
 
     df = pd.read_csv(os.path.join(DATASETS_PATH, f'{table}.csv'))
 
     if replace_rule == 'replace if diff row count' and existing_rows == len(df):
+        print(f'{SCHEMA}.{table} exists with same number of rows {existing_rows}; leaving it')
         return
 
     try:

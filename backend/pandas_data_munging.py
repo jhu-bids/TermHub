@@ -11,7 +11,7 @@ from enclave_wrangler.datasets import run_favorites as update_termhub_csets
 from typing import Any, Dict, List, Union, Set
 from backend.app import get_container
 # from enclave_wrangler.dataset_upload import upload_new_container_with_concepts, upload_new_cset_version_with_concepts
-# from enclave_wrangler.new_enclave_api import make_read_request
+# from enclave_wrangler.new_enclave_api import make_objects_request
 
 
 DEBUG = True

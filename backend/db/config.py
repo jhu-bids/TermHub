@@ -21,6 +21,37 @@ CONFIG = {
     'pass': os.getenv('TERMHUB_DB_PASS'),
     'port': os.getenv('TERMHUB_DB_PORT'),
 }
+
+def get_pg_connect_url():
+    return  f'{CONFIG["server"]}+{CONFIG["driver"]}://' \
+            f'{CONFIG["user"]}:{CONFIG["pass"]}@{CONFIG["host"]}:{CONFIG["port"]}' \
+            f'/{CONFIG["db"]}'
+
+
+# https://stackoverflow.com/a/49927846/1368860
+# def connect(conn_config_file = 'Commons/config/conn_commons.json'):
+#     with open(conn_config_file) as config_file:
+#         conn_config = json.load(config_file)
+#
+#     schema = conn_config['schema']
+#     conn = psycopg2.connect(
+#         dbname=conn_config['dbname'],
+#         user=conn_config['user'],
+#         host=conn_config['host'],
+#         password=conn_config['password'],
+#         port=conn_config['port'],
+#         options=f'-c search_path={schema}',
+#     )
+#     return conn
+# CONFIG['pgparams'] = {
+#     'dbname': CONFIG['dbname'],
+#     'user': CONFIG['user'],
+#     'host': CONFIG['host'],
+#     'password': CONFIG['password'],
+#     'port': CONFIG['port'],
+#     'options': f'-c search_path={schema}',
+# }
+
 BRAND_NEW_DB_URL = \
     f'{CONFIG["server"]}+{CONFIG["driver"]}://{CONFIG["user"]}:{CONFIG["pass"]}@{CONFIG["host"]}:{CONFIG["port"]}'
 # todo: @Siggie: can remove ?charset=utf8mb4 if we don't need. It was there when I pulled example from sqlalchemy. But

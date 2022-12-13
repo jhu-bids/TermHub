@@ -9,8 +9,12 @@ def commify(n):
   return f'{n:,}'
 
 
+def dump(o):
+  return json.dumps(o, indent=2)
+
+
 def pdump(o):
-  print(json.dumps(o, indent=2))
+  print(dump(o))
 
 
 class Bunch(object):    # dictionary to namespace, a la https://stackoverflow.com/a/2597440/1368860
