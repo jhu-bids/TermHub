@@ -12,32 +12,54 @@ from fastapi import FastAPI, Query
 from fastapi.middleware.cors import CORSMiddleware
 from fastapi.middleware.gzip import GZipMiddleware
 from pydantic import BaseModel
+from sqlalchemy.engine import LegacyRow
 
 from enclave_wrangler.dataset_upload import upload_new_container_with_concepts, upload_new_cset_version_with_concepts
 from enclave_wrangler.utils import make_objects_request
 
 from backend.db.utils import get_db_connection, sql_query, SCHEMA, sql_query_single_col
 
-
-CON = get_db_connection()  # using a global connection object is probably a terrible idea, but
-                              # shouldn't matter much until there are multiple users on the same server
+# CON: using a global connection object is probably a terrible idea, but shouldn't matter much until there are multiple
+# users on the same server
+CON = get_db_connection()
+APP = FastAPI()
+APP.add_middleware(
+    CORSMiddleware,
+    allow_origins=['*'],
+    allow_methods=['*'],
+    allow_headers=['*']
+)
+APP.add_middleware(GZipMiddleware, minimum_size=1000)
 
 
 # Utility functions ----------------------------------------------------------------------------------------------------
 @cache
-def parse_codeset_ids(qstring):
+def parse_codeset_ids(qstring) -> List[int]:
+    """Parse codeset_ids which are a | delimited string"""
     if not qstring:
         return []
     requested_codeset_ids = qstring.split('|')
     requested_codeset_ids = [int(x) for x in requested_codeset_ids]
     return requested_codeset_ids
 
+
+@cache
+def get_container(concept_set_name):
+    """This is for getting the RID of a dataset. This is available via the ontology API, not the dataset API.
+    TODO: This needs caching, but the @cache decorator is not working."""
+    return make_objects_request(f'objects/OMOPConceptSetContainer/{urllib.parse.quote(concept_set_name)}')
+
+
+def run(port: int = 8000):
+    """Run app"""
+    uvicorn.run(APP, host='0.0.0.0', port=port)
+
+
 # Database functions ---------------------------------------------------------------------------------------------------
-def get_concept_set_members(
-    con,
-    codeset_ids: List[int],
-    columns: Union[List[str], None] = None,
-    column: Union[str, None] = None):
+def get_concept_set_member_ids(
+    codeset_ids: List[int], columns: Union[List[str], None] = None, column: Union[str, None] = None, con=CON
+) -> List[int]:
+    """Get concept set members"""
     if column:
         columns = [column]
     if not columns:
@@ -55,17 +77,58 @@ def get_concept_set_members(
     return res
 
 
+# TODO
+#  i. Keys in our old `related_csets` that are not there anymore:
+#   ['precision', 'status_container', 'concept_set_id', 'rid', 'selected', 'created_at_container', 'created_at_version', 'intention_container', 'researchers', 'intention_version', 'created_by_container', 'intersecting_concepts', 'recall', 'status_version', 'created_by_version']
+#  ii. Keys in our new `related_csets` that were not there previously:
+#   ['created_at', 'container_intentionall_csets', 'created_by', 'container_created_at', 'status', 'intention', 'container_status', 'container_created_by']
+def selected_csets(codeset_ids: List[int], con=CON) -> List[Dict]:
+    """Get information about concept sets the user has selected"""
+    rows: List[LegacyRow] = sql_query(
+        con, """
+          SELECT *
+          FROM all_csets
+          WHERE codeset_id = ANY(:codeset_ids);""",
+        {'codeset_ids': codeset_ids})
+    # {'codeset_ids': ','.join([str(id) for id in requested_codeset_ids])})
+    return [dict(x) for x in rows]
+
+
+# TODO
+#  i. Keys in our old `related_csets` that are not there anymore:
+#   ['precision', 'status_container', 'concept_set_id', 'selected', 'created_at_container', 'created_at_version', 'intention_container', 'intention_version', 'created_by_container', 'intersecting_concepts', 'recall', 'status_version', 'created_by_version']
+#  ii. Keys in our new `related_csets` that were not there previously:
+#   ['created_at', 'container_intentionall_csets', 'created_by', 'container_created_at', 'status', 'intention', 'container_status', 'container_created_by']
+def related_csets(codeset_ids: List[int] = None, cset_member_ids: List[int] = None, con=CON) -> List[Dict]:
+    """Get information about concept sets related to those selected by user"""
+    if (not codeset_ids and not cset_member_ids) or (codeset_ids and cset_member_ids):
+        raise RuntimeError('related_csets: Requires 1 of `cset_member_ids` or `codeset_ids`.')
+    elif codeset_ids:
+        cset_member_ids = get_concept_set_member_ids(codeset_ids, column='concept_id')
+    query = """
+    SELECT DISTINCT codeset_id
+    FROM concept_set_members
+    WHERE concept_id = ANY(:concept_ids)
+    """
+    related_cids = sql_query_single_col(con, query, {'concept_ids': cset_member_ids})
+    return selected_csets(related_cids)
+
+
+def get_all_csets(con=CON) -> Union[Dict, List]:
+    """Get all concept sets"""
+    # this returns 4,327 rows. the old one below returned 3,127 rows
+    # TODO: figure out why and if all_csets query in ddl.sql needs to be fixed
+    return sql_query(
+        con, f""" 
+        SELECT codeset_id,
+              concept_set_version_title,
+              concepts
+        FROM {SCHEMA}.all_csets""")
+    # smaller = DS2.all_csets[['codeset_id', 'concept_set_version_title', 'concepts']]
+    # return smaller.to_dict(orient='records')
+
+
 # Routes ---------------------------------------------------------------------------------------------------------------
-APP = FastAPI()
-APP.add_middleware(
-    CORSMiddleware,
-    allow_origins=['*'],
-    allow_methods=['*'],
-    allow_headers=['*']
-)
-APP.add_middleware(GZipMiddleware, minimum_size=1000)
-
-
 @APP.get("/")
 def read_root():
     """Root route"""
@@ -75,18 +138,9 @@ def read_root():
 
 
 @APP.get("/get-all-csets")
-def get_all_csets() -> Union[Dict, List]:
-  # this returns 4,327 rows. the old one below returned 3,127 rows
-  # TODO: figure out why and if all_csets query in ddl.sql needs to be fixed
-
-  return sql_query(
-    CON, f""" 
-    SELECT codeset_id,
-          concept_set_version_title,
-          concepts
-    FROM {SCHEMA}.all_csets""")
-    # smaller = DS2.all_csets[['codeset_id', 'concept_set_version_title', 'concepts']]
-    # return smaller.to_dict(orient='records')
+def _get_all_csets() -> Union[Dict, List]:
+    """Route for: get_all_csets()"""
+    return get_all_csets()
 
 
 # TODO: the following is just based on concept_relationship
@@ -95,73 +149,69 @@ def get_all_csets() -> Union[Dict, List]:
 # TODO: Add concepts outside the list of codeset_ids?
 #       Or just make new issue for starting from one cset or concept
 #       and fanning out to other csets from there?
-# Example: http://127.0.0.1:8000/cr-hierarchy?codeset_id=818292046&codeset_id=484619125&codeset_id=400614256
 @APP.get("/selected-csets")
-def _selected_csets(codeset_id: Union[str, None] = Query(default=''), ) -> Dict:
-  requested_codeset_ids = parse_codeset_ids(codeset_id)
-  return selected_csets(requested_codeset_ids)
-
-
-def selected_csets(codeset_ids: List[int]) -> Dict:
-  return sql_query(CON, """
-      SELECT *
-      FROM all_csets
-      WHERE codeset_id = ANY(:codeset_ids);""",
-                   {'codeset_ids': codeset_ids})
-  # {'codeset_ids': ','.join([str(id) for id in requested_codeset_ids])})
+def _selected_csets(codeset_id: Union[str, None] = Query(default=''), ) -> List[Dict]:
+    """Route for: selected_csets()"""
+    requested_codeset_ids = parse_codeset_ids(codeset_id)
+    return selected_csets(requested_codeset_ids)
 
 
 @APP.get("/related-csets")
-def related_csets(codeset_id: Union[str, None] = Query(default=''), ) -> Dict:
-  requested_codeset_ids = parse_codeset_ids(codeset_id)
-  members = get_concept_set_members(CON, requested_codeset_ids, column='concept_id')
-  query = """
-    SELECT DISTINCT codeset_id
-    FROM concept_set_members
-    WHERE concept_id = ANY(:concept_ids)
-  """
-  related_cids = sql_query_single_col(CON, query, {'concept_ids': members})
-  return selected_csets(related_cids)
+def _related_csets(codeset_id: Union[str, None] = Query(default=''), ) -> List[Dict]:
+    """Route for: related_csets()"""
+    codeset_ids: List[int] = parse_codeset_ids(codeset_id)
+    return related_csets(codeset_ids)
 
 
-@APP.get("/cr-hierarchy")  # maybe junk, or maybe start of a refactor of above
-def cr_hierarchy(rec_format: str='default', codeset_id: Union[str, None] = Query(default=''), ) -> Dict:
+# TODO: get back to how we had it before RDBMS refactor
+@APP.get("/cr-hierarchy")
+def cr_hierarchy(rec_format: str = 'default', codeset_id: Union[str, None] = Query(default=''), ) -> Dict:
+    """Get concept relationship hierarchy
 
-    # print(ds) uncomment just to put ds in scope for looking at in debugger
-    requested_codeset_ids = parse_codeset_ids(codeset_id)
-    # A namespace (like `ds`) specifically for these codeset IDs.
-    dsi = get_concept_set_members(CON, requested_codeset_ids, column='concept_id')(requested_codeset_ids)
+    Example:
+    http://127.0.0.1:8000/cr-hierarchy?format=flat&codeset_id=400614256|87065556
+    """
+    codeset_ids: List[int] = parse_codeset_ids(codeset_id)
+    cset_member_ids: List[int] = get_concept_set_member_ids(codeset_ids, column='concept_id')
+
+    # Old LFS way, for reference
+    # dsi = cset_members(requested_codeset_ids)
+    # result = {
+    #           # 'all_csets': dsi.all_csets.to_dict(orient='records'),
+    #           'related_csets': dsi.related_csets.to_dict(orient='records'),
+    #           'selected_csets': dsi.selected_csets.to_dict(orient='records'),
+    #           # 'concept_set_members_i': dsi.concept_set_members_i.to_dict(orient='records'),
+    #           # 'concept_set_version_item_i': dsi.concept_set_version_item_i.to_dict(orient='records'),
+    #           'cset_members_items': dsi.cset_members_items.to_dict(orient='records'),
+    #           'hierarchy': dsi.hierarchy,
+    #           'concepts': dsi.concepts.to_dict(orient='records'),
+    #           'data_counts': log_counts(),
+    # }
 
     result = {
-              # 'all_csets': dsi.all_csets.to_dict(orient='records'),
-              'related_csets': dsi.related_csets.to_dict(orient='records'),
-              'selected_csets': dsi.selected_csets.to_dict(orient='records'),
-              # 'concept_set_members_i': dsi.concept_set_members_i.to_dict(orient='records'),
-              # 'concept_set_version_item_i': dsi.concept_set_version_item_i.to_dict(orient='records'),
-              'cset_members_items': dsi.cset_members_items.to_dict(orient='records'),
-              'hierarchy': dsi.hierarchy,
-              'concepts': dsi.concepts.to_dict(orient='records'),
-              'data_counts': log_counts(),
+        # todo: Check related_csets() to see its todo's
+        'related_csets': related_csets(cset_member_ids=cset_member_ids),
+        # todo: Check selected_csets() to see its todo's
+        'selected_csets': selected_csets(codeset_ids),
+        'cset_members_items': cset_member_ids,
+        'hierarchy': [],
+        'concepts': [],
+        'data_counts': [],
     }
     return result
 
 
 @APP.get("/cset-download")  # maybe junk, or maybe start of a refactor of above
 def cset_download(codeset_id: int) -> Dict:
-  dsi = data_stuff_for_codeset_ids([codeset_id])
+    """Download concept set"""
+    dsi = data_stuff_for_codeset_ids([codeset_id])
 
-  concepts = DS2.concept[DS2.concept.concept_id.isin(set(dsi.cset_members_items.concept_id))]
-  cset = DS2.all_csets[DS2.all_csets.codeset_id == codeset_id].to_dict(orient='records')[0]
-  cset['concept_count'] = cset['concepts']
-  cset['concepts'] = concepts.to_dict(orient='records')
-  return cset
+    concepts = DS2.concept[DS2.concept.concept_id.isin(set(dsi.cset_members_items.concept_id))]
+    cset = DS2.all_csets[DS2.all_csets.codeset_id == codeset_id].to_dict(orient='records')[0]
+    cset['concept_count'] = cset['concepts']
+    cset['concepts'] = concepts.to_dict(orient='records')
+    return cset
 
-
-@cache
-def get_container(concept_set_name):
-    """This is for getting the RID of a dataset. This is available via the ontology API, not the dataset API.
-    TODO: This needs caching, but the @cache decorator is not working."""
-    return make_objects_request(f'objects/OMOPConceptSetContainer/{urllib.parse.quote(concept_set_name)}')
 
 # todo: Some redundancy. (i) should only need concept_set_name once
 # TODO: @Siggie: Do we want to add: annotation, intended_research_project, and on_behalf_of?
@@ -307,13 +357,14 @@ def route_upload_new_container_with_concepts(d: UploadNewContainerWithConcepts) 
     # TODO: Persist
     #  - call the function i defined for updating local git stuff. persist these changes and patch etc
     #     dataset_path: File path. Relative to `/termhub-csets/datasets/`
-    #     row_index_data_map: Keys are integers of row indices in the dataset. Values are dictionaries, where keys are the
-    #       name of the fields to be updated, and values contain the values to update in that particular cell."""
+    #     row_index_data_map: Keys are integers of row indices in the dataset. Values are dictionaries, where keys are
+    #     the name of the fields to be updated, and values contain the values to update in that particular cell."""
     #  - csets_update() doesn't meet exact needs. not actually updating to an existing index. adding a new row.
     #    - soution: can set index to -1, perhaps, to indicate that it is a new row
-    #    - edge case: do i need to worry about multiple drafts at this point? delete if one exists? keep multiple? or at upload time
-    #    ...should we update latest and delete excess drafts if exist?
-    #  - git/patch changes (do this inside csets_update()): https://github.com/jhu-bids/TermHub/issues/165#issuecomment-1276557733
+    #    - edge case: do i need to worry about multiple drafts at this point? delete if one exists? keep multiple? or at
+    #    upload time should we update latest and delete excess drafts if exist?
+    #  - git/patch changes (do this inside csets_update()):
+    #  https://github.com/jhu-bids/TermHub/issues/165#issuecomment-1276557733
     # result = csets_update(dataset_path='', row_index_data_map={})
 
     response = upload_new_container_with_concepts(
@@ -345,11 +396,6 @@ def put_csets_update(d: CsetsGitUpdate = None) -> Dict:
 def vocab_update():
     """Update vocab dataset"""
     pass
-
-
-def run(port: int = 8000):
-    """Run app"""
-    uvicorn.run(APP, host='0.0.0.0', port=port)
 
 
 if __name__ == '__main__':

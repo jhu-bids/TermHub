@@ -5,7 +5,7 @@ from sqlalchemy.engine.base import Connection
 from sqlalchemy.exc import OperationalError, ProgrammingError
 from sqlalchemy.sql import text
 from sqlalchemy.sql.elements import TextClause
-from typing import Dict, Union, List
+from typing import Any, Dict, Union, List
 
 from backend.db.config import BRAND_NEW_DB_URL, DB_URL, CONFIG, get_pg_connect_url
 
@@ -62,7 +62,7 @@ def sql_query(
         raise RuntimeError(f'Got an error [{err}] executing the following statement:\n{query}, {json.dumps(params, indent=2)}')
 
 
-def run_sql(con: Connection, command: str):
+def run_sql(con: Connection, command: str) -> Any:
     """Run a sql command"""
     statement = text(command)
     try:
@@ -71,7 +71,8 @@ def run_sql(con: Connection, command: str):
         raise RuntimeError(f'Got an error executing the following statement:\n{command}')
 
 
-def sql_query_single_col(*argv):
+def sql_query_single_col(*argv) -> List:
+    """Run SQL query on single column"""
     results = sql_query(*argv)
     return [r[0] for r in results]
 

@@ -9,7 +9,7 @@ from sqlalchemy.sql import text
 # noinspection PyUnresolvedReferences
 from psycopg2.errors import UndefinedTable
 
-from backend.db.config import DATASETS_PATH, CONFIG
+from backend.db.config import DATASETS_PATH, CONFIG, DDL_PATH, OBJECTS_PATH
 from backend.db.utils import database_exists, run_sql, get_db_connection, DB, SCHEMA
 
 
@@ -22,7 +22,7 @@ def initialize():
 
     todo: (can do in ddl.sql): don't do anything if these tables exist & initialized
     """
-    tables_to_load = [
+    dataset_tables_to_load = [
         'code_sets',
         'concept',
         'concept_ancestor',
@@ -34,6 +34,9 @@ def initialize():
         'concept_set_version_item',
         'deidentified_term_usage_by_domain_clamped',
     ]
+    object_tables_to_load = [
+        'researcher'
+    ]
     # TODO: alter these columns as indicated:
     # datetime_cols = [
     #     ('code_sets', 'created_at'),
@@ -44,14 +47,11 @@ def initialize():
     #     ('concept_relationship', 'valid_end_date'),
     #     ('concept_relationship', 'valid_start_date')]
 
-    with get_db_connection(new_db=False) as con:
-        # postgres doesn't have create database if not exists
-        if CONFIG["server"] != 'postgresql':
+    with get_db_connection() as con:
+        if CONFIG["server"] != 'postgresql':  # postgres doesn't have create database if not exists
             run_sql(con, 'CREATE DATABASE IF NOT EXISTS ' + DB)
             run_sql(con, f'USE {DB}')
         else:
-            # @Siggie: set_isolation_level fixed this problem I had. When you see this, you can remove this comment.
-            # https://stackoverflow.com/questions/5402805/error-when-creating-a-postgresql-database-using-python-sqlalchemy-and-psycopg2
             if not database_exists(con, DB):
                 con.connection.connection.set_isolation_level(0)
                 run_sql(con, 'CREATE DATABASE ' + DB)
@@ -64,61 +64,78 @@ def initialize():
             # run_sql(con, f'SET search_path TO {SCHEMA}')
             # being handled by get_db_connection
 
-        for table in tables_to_load:
-            print(f'\nloading {SCHEMA}.{table} into {CONFIG["server"]}:{DB}')
+        for table in dataset_tables_to_load:
+            print(f'INFO: \nloading {SCHEMA}.{table} into {CONFIG["server"]}:{DB}')
             load_csv(con, table)
+        for table in object_tables_to_load:
+            print(f'INFO: \nloading {SCHEMA}.{table} into {CONFIG["server"]}:{DB}')
+            load_csv(con, table, table_type='object')
 
-        # with open(DDL_PATH, 'r') as file:
-        #     contents: str = file.read()
-        # commands: List[str] = [x + ';' for x in contents.split(';\n')]
+        # TODO: run ddl
+        #  a. use this delimiter thing. how delimit? ;\n\n? #--?
+        #  b. sql alchemy: run sql string
+        #  c. subprocess: psql termhub -i path/to/file
+        print('INFO: Creating derived tables (e.g. `all_csets`) and indexes.')
+        with open(DDL_PATH, 'r') as file:
+            contents: str = file.read()
+        run_sql(con, contents)
+        # commands: List[str] = [x + ';' for x in contents.split(';\n\n')]
         # for command in commands:
-        # Insert data
-        # except (ProgrammingError, OperationalError):
-        #     raise RuntimeError(f'Got an error executing the following statement:\n{command}')
+        #     try:
+        #         run_sql(con, command)
+        #     except (ProgrammingError, OperationalError):
+        #         raise RuntimeError(f'Got an error executing the following statement:\n{command}')
 
     return
 
 
-def load_csv(con: Connection, table: str, replace_rule='replace if diff row count'):
+def load_csv(
+    con: Connection, table: str, table_type: str = ['dataset', 'object'][0], replace_rule='replace if diff row count'):
     """Load CSV into table
-    replace_rule = 'replace if diff row count' or 'do not replace'
-    first will  replace table (that is, truncate and load records; will fail if table cols have changed, i think
-    'do not replace'  will create new table or load table if table exists but is empty
+    :param replace_rule: 'replace if diff row count' or 'do not replace'
+      First, will replace table (that is, truncate and load records; will fail if table cols have changed, i think
+     'do not replace'  will create new table or load table if table exists but is empty
 
     - Uses: https://pandas.pydata.org/docs/reference/api/pandas.DataFrame.to_sql.html
     """
+    # Load table
+    path = os.path.join(DATASETS_PATH, f'{table}.csv') if table_type == 'dataset' \
+        else os.path.join(OBJECTS_PATH, table, 'latest.csv')
+    df = pd.read_csv(path)
+
+    # Edge cases
     existing_rows = 0
     try:
         r = con.execute(f'select count(*) from {table}')
         existing_rows = r.one()[0]
     except Exception as err:
         if isinstance(err.orig, UndefinedTable):
-            print(f'{SCHEMA}.{table} does not not exist; will create it')
+            print(f'INFO: {SCHEMA}.{table} does not not exist; will create it')
         else:
             raise err
 
     if replace_rule == 'do not replace' and existing_rows > 0:
-        print(f'{SCHEMA}.{table} exists with {existing_rows}; leaving it')
+        print(f'INFO: {SCHEMA}.{table} exists with {existing_rows}; leaving it')
         return
-
-    df = pd.read_csv(os.path.join(DATASETS_PATH, f'{table}.csv'))
 
     if replace_rule == 'replace if diff row count' and existing_rows == len(df):
-        print(f'{SCHEMA}.{table} exists with same number of rows {existing_rows}; leaving it')
+        print(f'INFO: {SCHEMA}.{table} exists with same number of rows {existing_rows}; leaving it')
         return
 
+    # Clear data if exists
     try:
         con.execute(text(f'TRUNCATE {SCHEMA}.{table}'))
     except ProgrammingError:
         pass
+
+    # Load
     # `schema='termhub_n3c'`: Passed so Joe doesn't get OperationalError('(pymysql.err.OperationalError) (1050,
     #  "Table \'code_sets\' already exists")')
     #  https://stackoverflow.com/questions/69906698/pandas-to-sql-gives-table-already-exists-error-with-if-exists-append
     kwargs = {'if_exists': 'append', 'index': False, 'schema': SCHEMA}
-    if False:   # this was necessary for mysql, probably not for postgres
+    if CONFIG['server'] == 'mysql':   # this was necessary for mysql, probably not for postgres
         try:
-            if CONFIG['server'] == 'mysql':
-                kwargs['schema'] = DB
+            kwargs['schema'] = DB
             df.to_sql(table, con, **kwargs)
         except Exception as err:
             # if data too long error, change column to longtext and try again

@@ -66,7 +66,18 @@ User Interactions
 1. Clone this repository.
 2. Run: `pip install -r requirements.txt`
 3. Run `git submodule update`
-4. Set up MySQL  
-  4.1. install it  
-  4.2. create a user `root` and save the password,
-  4.3. setup config.. involves setting config file in GUI to backend/db/my.cnf 
+4. Set up PostgreSQL  
+5. Basic DB setup
+```shell
+$ psql
+# you're now connected to postgres. run these commands:
+CREATE DATABASE termhub;
+exit
+# reconnect to new db:
+$ psql termhub
+# connected again to postgres. run:
+CREATE SCHEMA n3c;
+SET search_path TO n3c;
+```
+6. Create DB structure and load data
+7. Run: `python backend/db/initialize.py`
