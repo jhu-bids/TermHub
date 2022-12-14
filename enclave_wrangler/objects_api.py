@@ -21,7 +21,7 @@ import requests
 # import asyncio
 
 from enclave_wrangler.config import FAVORITE_OBJECTS, OUTDIR_OBJECTS, config, TERMHUB_CSETS_DIR
-from enclave_wrangler.utils import make_objects_request
+from enclave_wrangler.utils import make_objects_request, enclave_post
 
 # from enclave_wrangler.utils import log_debug_info
 
@@ -194,6 +194,9 @@ class EnclaveClient:
             }
             url = f'{self.base_url}/ontology-metadata/api/ontology/linkTypesForObjectTypes'
             response = requests.post(url, headers=self.headers, data=data)
+            # TODO:
+            #   change to:
+            #   response = enclave_post(url, data=data)
             response_json: List[Dict] = response.json()
             return response_json
         except Exception as err:

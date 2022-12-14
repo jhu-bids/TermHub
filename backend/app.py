@@ -19,7 +19,7 @@ from enclave_wrangler.datasets import run_favorites as update_termhub_csets
 from enclave_wrangler.utils import make_objects_request
 
 from backend.utils import cnt # , pdump
-from backend.db.utils import run_sql, get_db_connection, sql_query, get_concept_set_members, SCHEMA
+from backend.db.utils import run_sql, get_db_connection, sql_query, get_concept_set_members, SCHEMA, sql_query_single_col
 
 CON = get_db_connection()  # using a global connection object is probably a terrible idea, but
                               # shouldn't matter much until there are multiple users on the same server
@@ -73,20 +73,31 @@ def get_all_csets() -> Union[Dict, List]:
 #       and fanning out to other csets from there?
 # Example: http://127.0.0.1:8000/cr-hierarchy?codeset_id=818292046&codeset_id=484619125&codeset_id=400614256
 @APP.get("/selected-csets")
-def selected_csets(codeset_id: Union[str, None] = Query(default=''), ) -> Dict:
+def _selected_csets(codeset_id: Union[str, None] = Query(default=''), ) -> Dict:
   requested_codeset_ids = parse_codeset_ids(codeset_id)
+  return selected_csets(requested_codeset_ids)
+
+
+def selected_csets(codeset_ids: List[int]) -> Dict:
   return sql_query(CON, """
       SELECT *
       FROM all_csets
       WHERE codeset_id = ANY(:codeset_ids);""",
-                   {'codeset_ids': requested_codeset_ids})
+                   {'codeset_ids': codeset_ids})
   # {'codeset_ids': ','.join([str(id) for id in requested_codeset_ids])})
 
 
 @APP.get("/related-csets")
 def related_csets(codeset_id: Union[str, None] = Query(default=''), ) -> Dict:
   requested_codeset_ids = parse_codeset_ids(codeset_id)
-  return get_concept_set_members(CON, requested_codeset_ids, column='concept_id')
+  members = get_concept_set_members(CON, requested_codeset_ids, column='concept_id')
+  query = """
+    SELECT DISTINCT codeset_id
+    FROM concept_set_members
+    WHERE concept_id = ANY(:concept_ids)
+  """
+  related_cids = sql_query_single_col(CON, query, {'concept_ids': members})
+  return selected_csets(related_cids)
 
 
 @APP.get("/cr-hierarchy")  # maybe junk, or maybe start of a refactor of above
@@ -95,7 +106,7 @@ def cr_hierarchy( rec_format: str='default', codeset_id: Union[str, None] = Quer
     # print(ds) uncomment just to put ds in scope for looking at in debugger
     requested_codeset_ids = parse_codeset_ids(codeset_id)
     # A namespace (like `ds`) specifically for these codeset IDs.
-    dsi = data_stuff_for_codeset_ids(requested_codeset_ids)
+    dsi = get_concept_set_members(CON, requested_codeset_ids, column='concept_id')(requested_codeset_ids)
 
     result = {
               # 'all_csets': dsi.all_csets.to_dict(orient='records'),

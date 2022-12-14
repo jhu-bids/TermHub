@@ -160,7 +160,7 @@ def make_actions_request(api_name: str, data: Union[List, Dict] = None, validate
     return response
 
 
-def enclave_post(url: str, data: Union[List, Dict], validate_first=False, verbose=True, args:Dict={}) -> Response:
+def enclave_post(url: str, data: Union[List, Dict], verbose=True) -> Response:
     if verbose:
         print_curl(url)
 
@@ -168,7 +168,7 @@ def enclave_post(url: str, data: Union[List, Dict], validate_first=False, verbos
     response = requests.post(url, headers=headers, json=data)
 
     if not ('result' in response.json() and response.json()['result'] == 'VALID'):
-        print(f'Failure: {api_name}\n', response, file=sys.stderr)
+        print(f'Failure: {url}\n', response, file=sys.stderr)
         return response
 
     try:

@@ -43,7 +43,8 @@ def database_exists(con: Connection, db_name: str) -> bool:
 def sql_query(
     con: Connection,
     query: Union[text, str],
-    params: Dict = {}):
+    params: Dict = {},
+    debug: bool = DEBUG):
     """Run a sql query with optional params, fetching records.
     https://stackoverflow.com/a/39414254/1368860:
     query = "SELECT * FROM my_table t WHERE t.id = ANY(:ids);"
@@ -54,7 +55,7 @@ def sql_query(
         query = text(query) if not isinstance(query, TextClause) else query
         q = con.execute(query, **params) if params else con.execute(query)
 
-        if DEBUG:
+        if debug:
             print(f'{query}\n{json.dumps(params, indent=2)}')
         return q.fetchall()
     except (ProgrammingError, OperationalError) as err:
@@ -68,6 +69,12 @@ def run_sql(con: Connection, command: str):
         return con.execute(statement)
     except (ProgrammingError, OperationalError):
         raise RuntimeError(f'Got an error executing the following statement:\n{command}')
+
+
+def sql_query_single_col(*argv):
+    results = sql_query(*argv)
+    return [r[0] for r in results]
+
 
 def get_concept_set_members(con,
                             codeset_ids: List[int],
@@ -84,7 +91,7 @@ def get_concept_set_members(con,
         FROM concept_set_members csm
         WHERE csm.codeset_id = ANY(:codeset_ids)
     """
-    res = sql_query(con, query, {'codeset_ids': codeset_ids})
+    res = sql_query(con, query, {'codeset_ids': codeset_ids}, debug=False)
     if column:  # with single column, don't return List[Dict] but just List(<column>)
         return [r[0] for r in res]
     return res

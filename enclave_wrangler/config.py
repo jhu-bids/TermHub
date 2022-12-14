@@ -6,8 +6,6 @@ from dotenv import load_dotenv
 
 
 APP_ROOT = os.path.dirname(os.path.realpath(__file__))
-# PROJECT_ROOT = os.path.join(APP_ROOT, '..')
-# @jflack4, this is better, isn't it?
 PROJECT_ROOT = os.path.realpath(os.path.join(APP_ROOT, '..'))
 ENV_DIR = os.path.join(PROJECT_ROOT, 'env')
 OUTPUT_DIR = os.path.join(PROJECT_ROOT, 'output')
