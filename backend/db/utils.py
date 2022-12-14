@@ -14,15 +14,16 @@ DB = CONFIG["db"]
 SCHEMA = CONFIG["schema"]
 
 
-def get_db_connection(new_db=False, isolation_level='AUTOCOMMIT'):
+def get_db_connection(isolation_level='AUTOCOMMIT'):
     """Connect to db"""
     engine = create_engine(get_pg_connect_url(), isolation_level=isolation_level)
 
     @event.listens_for(engine, "connect", insert=True)
     def set_search_path(dbapi_connection, connection_record):
-        # from https://docs.sqlalchemy.org/en/14/dialects/postgresql.html#setting-alternate-search-paths-on-connect
-        # HURRAY! finally figured out how to set search path, so don't need to
-        #           qualify table names with schema!
+        """This does "set search_path to n3c;" when you connect.
+        https://docs.sqlalchemy.org/en/14/dialects/postgresql.html#setting-alternate-search-paths-on-connect
+        :param connection_record: Part of the example but we're not using yet.
+        """
         existing_autocommit = dbapi_connection.autocommit
         dbapi_connection.autocommit = True
         cursor = dbapi_connection.cursor()
@@ -50,7 +51,6 @@ def sql_query(
     query = "SELECT * FROM my_table t WHERE t.id = ANY(:ids);"
     conn.execute(sqlalchemy.text(query), ids=some_ids)
     """
-    x = show_tables
     try:
         query = text(query) if not isinstance(query, TextClause) else query
         q = con.execute(query, **params) if params else con.execute(query)
@@ -74,27 +74,6 @@ def run_sql(con: Connection, command: str):
 def sql_query_single_col(*argv):
     results = sql_query(*argv)
     return [r[0] for r in results]
-
-
-def get_concept_set_members(con,
-                            codeset_ids: List[int],
-                            columns: Union[List[str], None] = None,
-                            column: Union[str, None] = None):
-    if column:
-        columns = [column]
-    if not columns:
-        columns = ['codeset_id', 'concept_id']
-
-    # should check that column names are valid columns in concept_set_members
-    query = f"""
-        SELECT DISTINCT {', '.join(columns)}
-        FROM concept_set_members csm
-        WHERE csm.codeset_id = ANY(:codeset_ids)
-    """
-    res = sql_query(con, query, {'codeset_ids': codeset_ids}, debug=False)
-    if column:  # with single column, don't return List[Dict] but just List(<column>)
-        return [r[0] for r in res]
-    return res
 
 
 def show_tables(con):

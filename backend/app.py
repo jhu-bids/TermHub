@@ -3,8 +3,7 @@
 Resources
 - https://github.com/tiangolo/fastapi
 """
-import json
-from typing import Any, Dict, List, Union, Set
+from typing import Any, Dict, List, Union
 from functools import cache
 
 import uvicorn
@@ -15,14 +14,16 @@ from fastapi.middleware.gzip import GZipMiddleware
 from pydantic import BaseModel
 
 from enclave_wrangler.dataset_upload import upload_new_container_with_concepts, upload_new_cset_version_with_concepts
-from enclave_wrangler.datasets import run_favorites as update_termhub_csets
 from enclave_wrangler.utils import make_objects_request
 
-from backend.utils import cnt # , pdump
-from backend.db.utils import run_sql, get_db_connection, sql_query, get_concept_set_members, SCHEMA, sql_query_single_col
+from backend.db.utils import get_db_connection, sql_query, SCHEMA, sql_query_single_col
+
 
 CON = get_db_connection()  # using a global connection object is probably a terrible idea, but
                               # shouldn't matter much until there are multiple users on the same server
+
+
+# Utility functions ----------------------------------------------------------------------------------------------------
 @cache
 def parse_codeset_ids(qstring):
     if not qstring:
@@ -30,6 +31,29 @@ def parse_codeset_ids(qstring):
     requested_codeset_ids = qstring.split('|')
     requested_codeset_ids = [int(x) for x in requested_codeset_ids]
     return requested_codeset_ids
+
+# Database functions ---------------------------------------------------------------------------------------------------
+def get_concept_set_members(
+    con,
+    codeset_ids: List[int],
+    columns: Union[List[str], None] = None,
+    column: Union[str, None] = None):
+    if column:
+        columns = [column]
+    if not columns:
+        columns = ['codeset_id', 'concept_id']
+
+    # should check that column names are valid columns in concept_set_members
+    query = f"""
+        SELECT DISTINCT {', '.join(columns)}
+        FROM concept_set_members csm
+        WHERE csm.codeset_id = ANY(:codeset_ids)
+    """
+    res = sql_query(con, query, {'codeset_ids': codeset_ids}, debug=False)
+    if column:  # with single column, don't return List[Dict] but just List(<column>)
+        return [r[0] for r in res]
+    return res
+
 
 # Routes ---------------------------------------------------------------------------------------------------------------
 APP = FastAPI()
@@ -101,7 +125,7 @@ def related_csets(codeset_id: Union[str, None] = Query(default=''), ) -> Dict:
 
 
 @APP.get("/cr-hierarchy")  # maybe junk, or maybe start of a refactor of above
-def cr_hierarchy( rec_format: str='default', codeset_id: Union[str, None] = Query(default=''), ) -> Dict:
+def cr_hierarchy(rec_format: str='default', codeset_id: Union[str, None] = Query(default=''), ) -> Dict:
 
     # print(ds) uncomment just to put ds in scope for looking at in debugger
     requested_codeset_ids = parse_codeset_ids(codeset_id)

@@ -6,6 +6,7 @@ import pandas as pd
 from sqlalchemy.engine import Connection
 from sqlalchemy.exc import ProgrammingError
 from sqlalchemy.sql import text
+# noinspection PyUnresolvedReferences
 from psycopg2.errors import UndefinedTable
 
 from backend.db.config import DATASETS_PATH, CONFIG
