@@ -4,21 +4,21 @@
     3. Run stuff in this file again (not doing that currently)
 */
 
-CREATE INDEX concept_idx ON concept(concept_id);
+CREATE INDEX IF NOT EXISTS concept_idx ON concept(concept_id);
 
-CREATE INDEX concept_idx2 ON concept(concept_code);
+CREATE INDEX IF NOT EXISTS concept_idx2 ON concept(concept_code);
 
-CREATE INDEX csm_idx1 ON concept_set_members(codeset_id);
+CREATE INDEX IF NOT EXISTS csm_idx1 ON concept_set_members(codeset_id);
 
-CREATE INDEX csm_idx2 ON concept_set_members(concept_id);
+CREATE INDEX IF NOT EXISTS csm_idx2 ON concept_set_members(concept_id);
 
-CREATE INDEX csm_idx3 ON concept_set_members(codeset_id, concept_id);
+CREATE INDEX IF NOT EXISTS csm_idx3 ON concept_set_members(codeset_id, concept_id);
 
-CREATE INDEX vi_idx1 ON concept_set_version_item(codeset_id);
+CREATE INDEX IF NOT EXISTS vi_idx1 ON concept_set_version_item(codeset_id);
 
-CREATE INDEX vi_idx2 ON concept_set_version_item(concept_id);
+CREATE INDEX IF NOT EXISTS vi_idx2 ON concept_set_version_item(concept_id);
 
-CREATE INDEX vi_idx3 ON concept_set_version_item(codeset_id, concept_id);
+CREATE INDEX IF NOT EXISTS vi_idx3 ON concept_set_version_item(codeset_id, concept_id);
 
 DROP TABLE IF EXISTS all_csets;
 
