@@ -78,11 +78,17 @@ def get_concept_set_member_ids(
 
 
 # TODO
-#  i. Keys in our old `related_csets` that are not there anymore:
+#  i. Keys in our old `selected_csets` that are not there anymore:
 #   ['precision', 'status_container', 'concept_set_id', 'rid', 'selected', 'created_at_container', 'created_at_version', 'intention_container', 'researchers', 'intention_version', 'created_by_container', 'intersecting_concepts', 'recall', 'status_version', 'created_by_version']
-#  ii. Keys in our new `related_csets` that were not there previously:
+#  ii. Keys in our new `selected_csets` that were not there previously:
 #   ['created_at', 'container_intentionall_csets', 'created_by', 'container_created_at', 'status', 'intention', 'container_status', 'container_created_by']
-def selected_csets(codeset_ids: List[int], con=CON) -> List[Dict]:
+#  fixes:
+#       probably don't need precision etc.
+#       switched _container suffix on duplicate col names to container_ prefix
+#       joined OMOPConceptSet in the all_csets ddl to get `rid`
+#  still need to fix:
+#       researchers
+def get_csets(codeset_ids: List[int], con=CON) -> List[Dict]:
     """Get information about concept sets the user has selected"""
     rows: List[LegacyRow] = sql_query(
         con, """
@@ -99,19 +105,32 @@ def selected_csets(codeset_ids: List[int], con=CON) -> List[Dict]:
 #   ['precision', 'status_container', 'concept_set_id', 'selected', 'created_at_container', 'created_at_version', 'intention_container', 'intention_version', 'created_by_container', 'intersecting_concepts', 'recall', 'status_version', 'created_by_version']
 #  ii. Keys in our new `related_csets` that were not there previously:
 #   ['created_at', 'container_intentionall_csets', 'created_by', 'container_created_at', 'status', 'intention', 'container_status', 'container_created_by']
-def related_csets(codeset_ids: List[int] = None, cset_member_ids: List[int] = None, con=CON) -> List[Dict]:
+#  see fixes above. i think everything here is fixed now
+def related_csets(codeset_ids: List[int] = None, selected_concept_ids: List[int] = None, con=CON) -> List[Dict]:
     """Get information about concept sets related to those selected by user"""
-    if (not codeset_ids and not cset_member_ids) or (codeset_ids and cset_member_ids):
-        raise RuntimeError('related_csets: Requires 1 of `cset_member_ids` or `codeset_ids`.')
+    if (not codeset_ids and not selected_concept_ids) or (codeset_ids and selected_concept_ids):
+        raise RuntimeError('related_csets: Requires 1 of `selected_concept_ids` or `codeset_ids`.')
     elif codeset_ids:
-        cset_member_ids = get_concept_set_member_ids(codeset_ids, column='concept_id')
+        selected_concept_ids = get_concept_set_member_ids(codeset_ids, column='concept_id')
     query = """
     SELECT DISTINCT codeset_id
     FROM concept_set_members
     WHERE concept_id = ANY(:concept_ids)
     """
-    related_cids = sql_query_single_col(con, query, {'concept_ids': cset_member_ids})
-    return selected_csets(related_cids)
+    related_codeset_ids = sql_query_single_col(con, query, {'concept_ids': selected_concept_ids}, )
+    related_csets = get_csets(related_codeset_ids)
+    selected_cids = set(selected_concept_ids)
+    selected_cid_cnt = len(selected_concept_ids)
+    for cset in related_csets:
+        cids = get_concept_set_member_ids([cset['codeset_id']], column='concept_id')
+        intersecting_concepts = set(cids).intersection(selected_cids)
+        cset['intersecting_concepts'] = len(intersecting_concepts)
+        cset['recall'] = cset['intersecting_concepts'] / selected_cid_cnt
+        cset['precision'] = cset['intersecting_concepts'] / len(cids)
+        cset['selected'] = cset['codeset_id'] in codeset_ids
+
+
+    return related_csets
 
 
 def get_all_csets(con=CON) -> Union[Dict, List]:
@@ -150,10 +169,10 @@ def _get_all_csets() -> Union[Dict, List]:
 #       Or just make new issue for starting from one cset or concept
 #       and fanning out to other csets from there?
 @APP.get("/selected-csets")
-def _selected_csets(codeset_id: Union[str, None] = Query(default=''), ) -> List[Dict]:
-    """Route for: selected_csets()"""
+def _get_csets(codeset_id: Union[str, None] = Query(default=''), ) -> List[Dict]:
+    """Route for: get_csets()"""
     requested_codeset_ids = parse_codeset_ids(codeset_id)
-    return selected_csets(requested_codeset_ids)
+    return get_csets(requested_codeset_ids)
 
 
 @APP.get("/related-csets")
@@ -191,8 +210,8 @@ def cr_hierarchy(rec_format: str = 'default', codeset_id: Union[str, None] = Que
     result = {
         # todo: Check related_csets() to see its todo's
         'related_csets': related_csets(cset_member_ids=cset_member_ids),
-        # todo: Check selected_csets() to see its todo's
-        'selected_csets': selected_csets(codeset_ids),
+        # todo: Check get_csets() to see its todo's
+        'selected_csets': get_csets(codeset_ids),
         'cset_members_items': cset_member_ids,
         'hierarchy': [],
         'concepts': [],

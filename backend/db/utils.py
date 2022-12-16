@@ -9,7 +9,7 @@ from typing import Any, Dict, Union, List
 
 from backend.db.config import BRAND_NEW_DB_URL, DB_URL, CONFIG, get_pg_connect_url
 
-DEBUG = True
+DEBUG = False
 DB = CONFIG["db"]
 SCHEMA = CONFIG["schema"]
 

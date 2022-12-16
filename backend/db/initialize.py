@@ -11,6 +11,7 @@ from psycopg2.errors import UndefinedTable
 
 from backend.db.config import DATASETS_PATH, CONFIG, DDL_PATH, OBJECTS_PATH
 from backend.db.utils import database_exists, run_sql, get_db_connection, DB, SCHEMA
+from backend.utils import commify
 
 
 def initialize():
@@ -35,7 +36,10 @@ def initialize():
         'deidentified_term_usage_by_domain_clamped',
     ]
     object_tables_to_load = [
-        'researcher'
+        'researcher',
+        'OMOPConceptSet',          # to include RID
+        'OMOPConceptSetContainer', # to include RID
+        # 'OMOPConceptSetVersionItem', only need this if we want the RID, but maybe don't need it
     ]
     # TODO: alter these columns as indicated:
     # datetime_cols = [
@@ -65,11 +69,11 @@ def initialize():
             # being handled by get_db_connection
 
         for table in dataset_tables_to_load:
-            print(f'INFO: \nloading {SCHEMA}.{table} into {CONFIG["server"]}:{DB}')
-            load_csv(con, table)
+            load_csv(con, table, replace_rule='do not replace')
         for table in object_tables_to_load:
-            print(f'INFO: \nloading {SCHEMA}.{table} into {CONFIG["server"]}:{DB}')
-            load_csv(con, table, table_type='object')
+            # use table.lower() because postgres won't recognize names with caps in them unless they
+            #   are "quoted". should probably do this with colnames also, but just using quotes in ddl
+            load_csv(con, table.lower(), table_type='object', replace_rule='do not replace')
 
         # TODO: run ddl
         #  a. use this delimiter thing. how delimit? ;\n\n? #--?
@@ -98,11 +102,6 @@ def load_csv(
 
     - Uses: https://pandas.pydata.org/docs/reference/api/pandas.DataFrame.to_sql.html
     """
-    # Load table
-    path = os.path.join(DATASETS_PATH, f'{table}.csv') if table_type == 'dataset' \
-        else os.path.join(OBJECTS_PATH, table, 'latest.csv')
-    df = pd.read_csv(path)
-
     # Edge cases
     existing_rows = 0
     try:
@@ -115,13 +114,19 @@ def load_csv(
             raise err
 
     if replace_rule == 'do not replace' and existing_rows > 0:
-        print(f'INFO: {SCHEMA}.{table} exists with {existing_rows}; leaving it')
+        print(f'INFO: {SCHEMA}.{table} exists with {commify(existing_rows)} rows; leaving it')
         return
+
+    # Load table
+    path = os.path.join(DATASETS_PATH, f'{table}.csv') if table_type == 'dataset' \
+        else os.path.join(OBJECTS_PATH, table, 'latest.csv')
+    df = pd.read_csv(path)
 
     if replace_rule == 'replace if diff row count' and existing_rows == len(df):
         print(f'INFO: {SCHEMA}.{table} exists with same number of rows {existing_rows}; leaving it')
         return
 
+    print(f'INFO: \nloading {SCHEMA}.{table} into {CONFIG["server"]}:{DB}')
     # Clear data if exists
     try:
         con.execute(text(f'TRUNCATE {SCHEMA}.{table}'))
