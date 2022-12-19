@@ -12,7 +12,7 @@ from fastapi import FastAPI, Query
 from fastapi.middleware.cors import CORSMiddleware
 from fastapi.middleware.gzip import GZipMiddleware
 from pydantic import BaseModel
-from sqlalchemy.engine import LegacyRow
+from sqlalchemy.engine import LegacyRow, RowMapping
 
 from enclave_wrangler.dataset_upload import upload_new_container_with_concepts, upload_new_cset_version_with_concepts
 from enclave_wrangler.utils import make_objects_request
@@ -58,7 +58,7 @@ def run(port: int = 8000):
 # Database functions ---------------------------------------------------------------------------------------------------
 def get_concept_set_member_ids(
     codeset_ids: List[int], columns: Union[List[str], None] = None, column: Union[str, None] = None, con=CON
-) -> List[int]:
+) -> Union[List[int], List[LegacyRow]]:
     """Get concept set members"""
     if column:
         columns = [column]
@@ -71,9 +71,9 @@ def get_concept_set_member_ids(
         FROM concept_set_members csm
         WHERE csm.codeset_id = ANY(:codeset_ids)
     """
-    res = sql_query(con, query, {'codeset_ids': codeset_ids}, debug=False)
+    res: List[LegacyRow] = sql_query(con, query, {'codeset_ids': codeset_ids}, debug=False)
     if column:  # with single column, don't return List[Dict] but just List(<column>)
-        return [r[0] for r in res]
+        res: List[int] = [r[0] for r in res]
     return res
 
 
@@ -86,8 +86,6 @@ def get_concept_set_member_ids(
 #       probably don't need precision etc.
 #       switched _container suffix on duplicate col names to container_ prefix
 #       joined OMOPConceptSet in the all_csets ddl to get `rid`
-#  still need to fix:
-#       researchers
 def get_csets(codeset_ids: List[int], con=CON) -> List[Dict]:
     """Get information about concept sets the user has selected"""
     rows: List[LegacyRow] = sql_query(
@@ -97,25 +95,34 @@ def get_csets(codeset_ids: List[int], con=CON) -> List[Dict]:
           WHERE codeset_id = ANY(:codeset_ids);""",
         {'codeset_ids': codeset_ids})
     # {'codeset_ids': ','.join([str(id) for id in requested_codeset_ids])})
-    return [dict(x) for x in rows]
+    rows2 = [dict(x) for x in rows]
+    rows3 = [populate_researchers(x) for x in rows2]
+    return rows3
 
 
-# TODO: implement
-def get_researcher_info(codeset_id: int):
-    researcher_cols = ['created_by_container', 'created_by_version', 'assigned_sme', 'reviewed_by', 'n3c_reviewer',
+def populate_researchers(codeset_row: Dict) -> Dict:
+    """Takes a codeset row (dictionary) and returns a dictionary with researcher info"""
+    researcher_cols = ['container_created_by', 'codeset_created_by', 'assigned_sme', 'reviewed_by', 'n3c_reviewer',
                        'assigned_informatician']
     researcher_ids = set()
-    for i, row in dsi.selected_csets.iterrows():
-        for _id in [row[col] for col in researcher_cols if hasattr(row, col) and row[col]]:
-            researcher_ids.add(_id)
-
-    get_researcher(researcher_ids)
-    # researchers: List[Dict] = DS2.researcher[DS2.researcher['multipassId'].isin(researcher_ids)].to_dict(orient='records')
-    # dsi.selected_csets['researchers'] = researchers
+    row = codeset_row
+    for _id in [row[col] for col in researcher_cols if col in row and row[col]]:
+        researcher_ids.add(_id)
+    row['researchers'] = [get_researcher(_id, fields=['name']) for _id in researcher_ids]
+    return row
 
 
-def get_researcher(researcher_ids: List[str]):
-    pass
+def get_researcher(_id: int, fields: List[str] = None) -> List[Dict]:
+    """Get researcher info"""
+    query = f"""
+        SELECT {', '.join([f'"{x}"' for x in fields])}
+        FROM researcher
+        WHERE "multipassId" = :id
+    """
+    res: List[RowMapping] = sql_query(CON, query, {'id': _id}, return_with_keys=True)
+    res2: List[Dict] = [{**{'id': _id}, **{k: v for k, v in dict(x).items()}} for x in res]
+
+    return res2
 
 
 # TODO
@@ -126,9 +133,7 @@ def get_researcher(researcher_ids: List[str]):
 #  see fixes above. i think everything here is fixed now
 def related_csets(codeset_ids: List[int] = None, selected_concept_ids: List[int] = None, con=CON) -> List[Dict]:
     """Get information about concept sets related to those selected by user"""
-    if (not codeset_ids and not selected_concept_ids) or (codeset_ids and selected_concept_ids):
-        raise RuntimeError('related_csets: Requires 1 of `selected_concept_ids` or `codeset_ids`.')
-    elif codeset_ids:
+    if codeset_ids and not selected_concept_ids:
         selected_concept_ids = get_concept_set_member_ids(codeset_ids, column='concept_id')
     query = """
     SELECT DISTINCT codeset_id
@@ -149,7 +154,7 @@ def related_csets(codeset_ids: List[int] = None, selected_concept_ids: List[int]
     return related_csets
 
 
-def cset_members_items(codeset_ids: List[int] = None, con=CON) -> List[Dict]:
+def cset_members_items(codeset_ids: List[int] = None, con=CON) -> List[LegacyRow]:
     return sql_query(
         con, f""" 
         SELECT *
@@ -159,7 +164,7 @@ def cset_members_items(codeset_ids: List[int] = None, con=CON) -> List[Dict]:
         {'codeset_ids': codeset_ids})
 
 
-def hierarchy(codeset_ids: List[int] = None, con=CON) -> List[Dict]:
+def hierarchy(codeset_ids: List[int] = None, con=CON) -> List[LegacyRow]:
     selected_concept_ids = get_concept_set_member_ids(codeset_ids)
     top_level_cids = sql_query_single_col(
         con, f""" 
@@ -235,7 +240,7 @@ def hierarchy(codeset_ids: List[int] = None, con=CON) -> List[Dict]:
 
 
 def child_cids(concept_id: int, con=CON) -> List[Dict]:
-    selected_concept_ids = get_concept_set_member_ids(concept_id)
+    selected_concept_ids = get_concept_set_member_ids([concept_id])
     top_level_cids = sql_query_single_col(
         con, f""" 
         SELECT DISTINCT concept_id_2
@@ -297,14 +302,14 @@ def _related_csets(codeset_id: Union[str, None] = Query(default=''), ) -> List[D
 
 
 @APP.get("/cset-members-items")
-def _cset_members_items(codeset_id: Union[str, None] = Query(default=''), ) -> List[Dict]:
+def _cset_members_items(codeset_id: Union[str, None] = Query(default=''), ) -> List[LegacyRow]:
     """Route for: related_csets()"""
     codeset_ids: List[int] = parse_codeset_ids(codeset_id)
     return cset_members_items(codeset_ids)
 
 
 @APP.get("/hierarchy")
-def _hierarchy(codeset_id: Union[str, None] = Query(default=''), ) -> List[Dict]:
+def _hierarchy(codeset_id: Union[str, None] = Query(default=''), ) -> List[LegacyRow]:
     """Route for: related_csets()"""
     codeset_ids: List[int] = parse_codeset_ids(codeset_id)
     return hierarchy(codeset_ids)
@@ -337,7 +342,7 @@ def cr_hierarchy(rec_format: str = 'default', codeset_id: Union[str, None] = Que
 
     result = {
         # todo: Check related_csets() to see its todo's
-        'related_csets': related_csets(cset_member_ids=cset_member_ids),
+        'related_csets': related_csets(codeset_ids=codeset_ids, selected_concept_ids=cset_member_ids),
         # todo: Check get_csets() to see its todo's
         'selected_csets': get_csets(codeset_ids),
         'cset_members_items': cset_members_items(codeset_ids),
