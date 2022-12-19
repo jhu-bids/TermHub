@@ -1,13 +1,14 @@
 """Utils for database usage"""
 import json
 from sqlalchemy import create_engine, event
+from sqlalchemy.engine import LegacyRow, Row, RowMapping
 from sqlalchemy.engine.base import Connection
 from sqlalchemy.exc import OperationalError, ProgrammingError
 from sqlalchemy.sql import text
 from sqlalchemy.sql.elements import TextClause
 from typing import Any, Dict, Union, List
 
-from backend.db.config import BRAND_NEW_DB_URL, DB_URL, CONFIG, get_pg_connect_url
+from backend.db.config import CONFIG, get_pg_connect_url
 
 DEBUG = False
 DB = CONFIG["db"]
@@ -45,7 +46,8 @@ def sql_query(
     con: Connection,
     query: Union[text, str],
     params: Dict = {},
-    debug: bool = DEBUG):
+    debug: bool = DEBUG,
+    return_with_keys=False) -> List[Union[RowMapping, LegacyRow]]:
     """Run a sql query with optional params, fetching records.
     https://stackoverflow.com/a/39414254/1368860:
     query = "SELECT * FROM my_table t WHERE t.id = ANY(:ids);"
@@ -57,7 +59,11 @@ def sql_query(
 
         if debug:
             print(f'{query}\n{json.dumps(params, indent=2)}')
-        return q.fetchall()
+        if return_with_keys:
+            results: List[RowMapping] = q.mappings().all()  # key value pairs
+        else:
+            results: List[Union[LegacyRow, Row]] = q.fetchall()  # Row/LegacyRow tuples, with additional properties
+        return results
     except (ProgrammingError, OperationalError) as err:
         raise RuntimeError(f'Got an error [{err}] executing the following statement:\n{query}, {json.dumps(params, indent=2)}')
 
