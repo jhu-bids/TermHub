@@ -97,25 +97,36 @@ def get_csets(codeset_ids: List[int], con=CON) -> List[Dict]:
           WHERE codeset_id = ANY(:codeset_ids);""",
         {'codeset_ids': codeset_ids})
     # {'codeset_ids': ','.join([str(id) for id in requested_codeset_ids])})
-    return [dict(x) for x in rows]
+    rows2 = [dict(x) for x in rows]
+    rows3 = [populate_researchers(x) for x in rows2]
+    return rows3
 
 
-# TODO: implement
-def get_researcher_info(codeset_id: int):
+# todo: alternate version accepts codeset_id and that does similar SQL query to get_csets(), but just fetches 1 cset
+def populate_researchers(codeset_row: Dict) -> Dict:
+    """Takes a codeset row (dictionary) and returns a dictionary with researcher info"""
     researcher_cols = ['created_by_container', 'created_by_version', 'assigned_sme', 'reviewed_by', 'n3c_reviewer',
                        'assigned_informatician']
     researcher_ids = set()
-    for i, row in dsi.selected_csets.iterrows():
-        for _id in [row[col] for col in researcher_cols if hasattr(row, col) and row[col]]:
-            researcher_ids.add(_id)
-
-    get_researcher(researcher_ids)
-    # researchers: List[Dict] = DS2.researcher[DS2.researcher['multipassId'].isin(researcher_ids)].to_dict(orient='records')
-    # dsi.selected_csets['researchers'] = researchers
+    row = codeset_row
+    for _id in [row[col] for col in researcher_cols if hasattr(row, col) and row[col]]:
+        researcher_ids.add(_id)
+    row['researchers'] = [get_researcher(_id) for _id in researcher_ids]
+    return row
 
 
-def get_researcher(researcher_ids: List[str]):
-    pass
+# TODO: gh
+def get_researcher(_id: int, fields: List[str] = None) -> Dict:
+    """Get researcher info"""
+    if not fields:
+        fields = ['_id', 'name', 'email', 'phone', 'affiliation']
+    query = f"""
+        SELECT {', '.join(fields)}
+        FROM researchers
+        WHERE _id = :_id
+    """
+    res = sql_query_single_col(CON, query, {'_id': _id})
+    return res
 
 
 # TODO
@@ -126,9 +137,7 @@ def get_researcher(researcher_ids: List[str]):
 #  see fixes above. i think everything here is fixed now
 def related_csets(codeset_ids: List[int] = None, selected_concept_ids: List[int] = None, con=CON) -> List[Dict]:
     """Get information about concept sets related to those selected by user"""
-    if (not codeset_ids and not selected_concept_ids) or (codeset_ids and selected_concept_ids):
-        raise RuntimeError('related_csets: Requires 1 of `selected_concept_ids` or `codeset_ids`.')
-    elif codeset_ids:
+    if codeset_ids and not selected_concept_ids:
         selected_concept_ids = get_concept_set_member_ids(codeset_ids, column='concept_id')
     query = """
     SELECT DISTINCT codeset_id
@@ -337,7 +346,7 @@ def cr_hierarchy(rec_format: str = 'default', codeset_id: Union[str, None] = Que
 
     result = {
         # todo: Check related_csets() to see its todo's
-        'related_csets': related_csets(cset_member_ids=cset_member_ids),
+        'related_csets': related_csets(codeset_ids=codeset_ids, selected_concept_ids=cset_member_ids),
         # todo: Check get_csets() to see its todo's
         'selected_csets': get_csets(codeset_ids),
         'cset_members_items': cset_members_items(codeset_ids),
