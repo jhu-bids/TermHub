@@ -26,6 +26,14 @@ CREATE INDEX IF NOT EXISTS cr_idx2 ON concept_relationship(concept_id_2);
 
 CREATE INDEX IF NOT EXISTS cr_idx3 ON concept_relationship(concept_id_1, concept_id_2);
 
+CREATE INDEX IF NOT EXISTS cs_idx1 ON code_sets(codeset_id);
+
+CREATE INDEX IF NOT EXISTS csc_idx1 ON concept_set_container(concept_set_id);
+
+CREATE INDEX IF NOT EXISTS csc_idx2 ON concept_set_container(concept_set_name);
+
+CREATE INDEX IF NOT EXISTS csc_idx3 ON concept_set_container(concept_set_id, created_at DESC);
+
 DROP TABLE IF EXISTS all_csets;
 
 CREATE TABLE all_csets AS           -- table instead of view for performance
@@ -107,47 +115,21 @@ WHERE csm.codeset_id IS NOT NULL
    OR item.codeset_id IS NOT NULL;
 
 
+-- concept_set_container has duplicate records except for the created_at col
+--  get rid of duplicates, keeping the most recent.
+--  code from https://stackoverflow.com/a/28085614/1368860
+--      which also has code that works for databases other than postgres, if we ever need that
 
-/* this is all happening directly in initialize.py now:
-CREATE DATABASE IF NOT EXISTS termhub_n3c;
-USE termhub_n3c;
-CREATE TABLE IF NOT EXISTS code_sets (
-    codeset_id INT NOT NULL PRIMARY KEY,
-    concept_set_version_title TEXT,
-    project TEXT,
-    concept_set_name TEXT,
-    source_application TEXT,
-    source_application_version NUMERIC(7,3),
-    created_at DATETIME,
-    atlas_json LONGTEXT,
-    is_most_recent_version BOOLEAN,
-    version INT,
-    comments TEXT,
-    intention TEXT,
-    limitations TEXT,
-    issues TEXT,
-    update_message TEXT,
-    status TEXT,
-    has_review BOOLEAN,
-    reviewed_by TEXT,
-    created_by TEXT,
-    provenance TEXT,
-    atlas_json_resource_url TEXT,
-    parent_version_id INT,
-    authoritative_source TEXT,
-    is_draft BOOLEAN
+WITH deduped AS (
+    SELECT DISTINCT ON (concept_set_id) concept_set_id, created_at
+    FROM concept_set_container
+    ORDER BY concept_set_id, created_at DESC
+)
+DELETE FROM concept_set_container csc
+WHERE  NOT EXISTS (
+   SELECT FROM deduped dd
+   WHERE csc.concept_set_id = dd.concept_set_id
+     AND csc.created_at = dd.created_at
 );
-# TRUNCATE code_sets;
-#
-# LOAD DATA INFILE '/Users/joeflack4/projects/TermHub/termhub-csets/datasets/prepped_files/code_sets.csv'
-# INTO TABLE code_sets
-# FIELDS TERMINATED BY ','
-# ENCLOSED BY '"'
-# LINES TERMINATED BY '\n'
-# IGNORE 1 ROWS;
-## IGNORE 1 ROWS: PyCharm says syntax err & got sqlalchemy.exc.ProgrammingError: (pymysql.err.ProgrammingError) (1064, "You have an error in your SQL syntax
-## Google: mysql LOAD DATA INFILE ignore header
-## https://stackoverflow.com/questions/13568707/mysql-infile-ignore-header-row
-## IGNORE 1 ROWS;
-## IGNORE 1 LINES;
- */
+
+
