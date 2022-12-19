@@ -20,6 +20,12 @@ CREATE INDEX IF NOT EXISTS vi_idx2 ON concept_set_version_item(concept_id);
 
 CREATE INDEX IF NOT EXISTS vi_idx3 ON concept_set_version_item(codeset_id, concept_id);
 
+CREATE INDEX IF NOT EXISTS cr_idx1 ON concept_relationship(concept_id_1);
+
+CREATE INDEX IF NOT EXISTS cr_idx2 ON concept_relationship(concept_id_2);
+
+CREATE INDEX IF NOT EXISTS cr_idx3 ON concept_relationship(concept_id_1, concept_id_2);
+
 DROP TABLE IF EXISTS all_csets;
 
 CREATE TABLE all_csets AS           -- table instead of view for performance
@@ -79,6 +85,28 @@ LEFT JOIN concept_set_counts_clamped cscc ON cs.codeset_id = cscc.codeset_id;
 CREATE INDEX  ac_idx1 ON all_csets(codeset_id);
 
 CREATE INDEX  ac_idx2 ON all_csets(concept_set_name);
+
+DROP TABLE IF EXISTS cset_members_items;
+
+CREATE TABLE cset_members_items AS
+SELECT
+        COALESCE(csm.codeset_id, item.codeset_id) AS codeset_id,
+        COALESCE(csm.concept_id, item.concept_id) AS concept_id,
+        csm.codeset_id IS NOT NULL AS csm,
+        item.codeset_id IS NOT NULL AS item,
+        array_to_string(array_remove(ARRAY[
+              CASE WHEN item."isExcluded" THEN 'isExcluded' ELSE NULL END,
+              CASE WHEN item."includeDescendants" THEN 'includeDescendants' ELSE NULL END,
+              CASE WHEN item."includeMapped" THEN 'includeMapped' ELSE NULL END ],
+            NULL), ',') AS item_flags
+FROM concept_set_members csm
+FULL OUTER JOIN concept_set_version_item item
+   ON csm.codeset_id = item.codeset_id
+  AND csm.concept_id = item.concept_id
+WHERE csm.codeset_id IS NOT NULL
+   OR item.codeset_id IS NOT NULL;
+
+
 
 /* this is all happening directly in initialize.py now:
 CREATE DATABASE IF NOT EXISTS termhub_n3c;
