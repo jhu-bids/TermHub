@@ -195,7 +195,7 @@ def hierarchy(codeset_ids: List[int] = None, con=CON) -> List[LegacyRow]:
 
     junk = """
     -- example used in http://127.0.0.1:8080/backend/old_cr-hierarchy_samples/cr-hierarchy-example1.json 
-    -- 411456218|40061425|484619125|419757429
+    -- 411456218|40061425|484619125|419757429       -- 40061425 doesn't seem to exist
     -- 411456218,40061425,484619125,419757429
     WITH RECURSIVE hier(concept_id_1, concept_id_2, path, depth) AS (
         SELECT concept_id_1,
