@@ -102,6 +102,17 @@ def get_csets(codeset_ids: List[int], con=CON) -> List[Dict]:
     return rows3
 
 
+def get_concepts(concept_ids: List[int], con=CON) -> List[Dict]:
+    """Get information about concept sets the user has selected"""
+    rows: List[LegacyRow] = sql_query(
+        con, """
+          SELECT *
+          FROM concepts_with_counts
+          WHERE concept_id = ANY(:concept_ids);""",
+        {'concept_ids': concept_ids})
+    return rows
+
+
 def populate_researchers(codeset_row: Dict) -> Dict:
     """Takes a codeset row (dictionary) and returns a dictionary with researcher info"""
     researcher_cols = ['container_created_by', 'codeset_created_by', 'assigned_sme', 'reviewed_by', 'n3c_reviewer',
@@ -329,6 +340,7 @@ def cr_hierarchy(rec_format: str = 'default', codeset_id: Union[str, None] = Que
         # todo: frontend not making use of data_counts yet but will need
         'data_counts': [],
     }
+    result['concepts'] = get_concepts([i.concept_id for i in result['cset_members_items']])
     return result
 
 

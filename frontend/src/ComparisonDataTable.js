@@ -104,7 +104,7 @@ function colConfig(codeset_ids, nested, selected_csets, rowData, collapsed, togg
                 if (!row.checkboxes) {
                     console.log('problem!!!!', {idx, row, rowData})
                 }
-                let checked = row.checkboxes[cset_col.codeset_id];
+                let checked = row.checkboxes && row.checkboxes[cset_col.codeset_id];
                 return checked ? '\u2713' : '';
                 /*
                 let checkbox_id = `${cset_col.codeset_id}:${row.concept_id}`;
@@ -114,7 +114,7 @@ function colConfig(codeset_ids, nested, selected_csets, rowData, collapsed, togg
                  */
             },
             conditionalCellStyles: [
-                { when: row => row.checkboxes[cset_col.codeset_id],
+                { when: row => row.checkboxes && row.checkboxes[cset_col.codeset_id],
                     style: row => {
                         let cb = row.checkboxes[cset_col.codeset_id];
                         let bg = 'purple';

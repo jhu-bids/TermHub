@@ -114,6 +114,11 @@ FULL OUTER JOIN concept_set_version_item item
 WHERE csm.codeset_id IS NOT NULL
    OR item.codeset_id IS NOT NULL;
 
+CREATE INDEX  csmi_idx1 ON cset_members_items(codeset_id);
+
+CREATE INDEX  csmi_idx2 ON cset_members_items(concept_id);
+
+CREATE INDEX  csmi_idx3 ON cset_members_items(codeset_id, concept_id);
 
 -- concept_set_container has duplicate records except for the created_at col
 --  get rid of duplicates, keeping the most recent.
@@ -132,4 +137,94 @@ WHERE  NOT EXISTS (
      AND csc.created_at = dd.created_at
 );
 
+-- DROP TABLE IF EXISTS concepts_with_counts_ungrouped;
 
+CREATE TABLE IF NOT EXISTS concepts_with_counts_ungrouped AS (
+SELECT c.concept_id,
+        c.concept_name,
+        COALESCE(tu.total_count, 0) AS total_count,
+        COALESCE(tu.distinct_person_count, 0) AS distinct_person_count,
+        tu.domain
+FROM concept c
+LEFT JOIN deidentified_term_usage_by_domain_clamped tu ON c.concept_id = tu.concept_id);
+
+CREATE INDEX ccu_idx1 ON concepts_with_counts_ungrouped(concept_id);
+--CREATE INDEX ccu_idx2 ON concepts_with_counts_ungrouped(concept_id);
+
+CREATE TABLE IF NOT EXISTS concepts_with_counts AS (
+    SELECT concept_id,
+            concept_name,
+            COUNT(*) AS domain_cnt,
+            array_to_string(array_agg(domain), ',') AS domain,
+            SUM(total_count) AS total_count,
+            array_to_string(array_agg(distinct_person_count), ',') AS distinct_person_cnt
+    FROM concepts_with_counts_ungrouped
+    GROUP BY 1,2
+    ORDER BY concept_id, domain );
+
+CREATE INDEX cc_idx1 ON concepts_with_counts(concept_id);
+-- concept_relationship_plus is a convenience table;
+-- it takes a long time to build, so, not dropping it by default;
+-- if it needs updating, uncomment following line
+-- DROP TABLE IF EXISTS concept_relationship_plus;
+
+CREATE TABLE IF NOT EXISTS concept_relationship_plus AS (
+  SELECT    c1.vocabulary_id AS vocabulary_id_1
+          , cr.concept_id_1
+          , c1.concept_name AS concept_name_1
+          , c1.concept_code
+          , cr.relationship_id
+          , c2.vocabulary_id AS vocabulary_id_2
+          , cr.concept_id_2
+          , c2.concept_name AS concept_name_2
+  FROM concept_relationship cr
+  JOIN concept c1 ON cr.concept_id_1 = c1.concept_id
+  JOIN concept c2 ON cr.concept_id_2 = c2.concept_id
+                AND c2.standard_concept IS NOT NULL
+);
+
+CREATE INDEX  crp_idx1 ON concept_relationship_plus(concept_id_1);
+
+CREATE INDEX  crp_idx2 ON concept_relationship_plus(concept_id_2);
+
+CREATE INDEX  crp_idx3 ON concept_relationship_plus(concept_id_1, concept_id_2);
+
+CREATE INDEX  crp_idx4 ON concept_relationship_plus(concept_code);
+
+CREATE INDEX  csmi_idx2 ON cset_members_items(concept_id);
+
+CREATE INDEX  csmi_idx3 ON cset_members_items(codeset_id, concept_id);
+
+-- concept_set_container has duplicate records except for the created_at col
+--  get rid of duplicates, keeping the most recent.
+--  code from https://stackoverflow.com/a/28085614/1368860
+--      which also has code that works for databases other than postgres, if we ever need that
+
+WITH deduped AS (
+    SELECT DISTINCT ON (concept_set_id) concept_set_id, created_at
+FROM concept_set_container
+ORDER BY concept_set_id, created_at DESC
+    )
+DELETE FROM concept_set_container csc
+WHERE  NOT EXISTS (
+        SELECT FROM deduped dd
+        WHERE csc.concept_set_id = dd.concept_set_id
+          AND csc.created_at = dd.created_at
+    );
+
+DROP TABLE IF EXISTS concept_relationship_plus;
+
+CREATE TABLE concept_relationship_plus AS (
+    SELECT    c1.vocabulary_id AS vocabulary_id_1
+         , cr.concept_id_1
+         , c1.concept_name AS concept_name_1
+         , c1.concept_code
+         , cr.relationship_id
+         , c2.vocabulary_id AS vocabulary_id_2
+         , cr.concept_id_2
+         , c2.concept_name AS concept_name_2
+    FROM concept_relationship cr
+             JOIN concept c1 ON cr.concept_id_1 = c1.concept_id
+             JOIN concept c2 ON cr.concept_id_2 = c2.concept_id
+        AND c2.standard_concept IS NOT NULL
+)
