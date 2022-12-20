@@ -171,7 +171,7 @@ def hierarchy(codeset_ids: List[int] = None, selected_concept_ids: List[int] = N
     if not codeset_ids and not selected_concept_ids:
         raise ValueError('Must provide either codeset_ids or selected_concept_ids')
     elif not selected_concept_ids:
-        selected_concept_ids = get_concept_set_member_ids(codeset_ids)
+        selected_concept_ids = get_concept_set_member_ids(codeset_ids, column='concept_id')
 
     # sql speed: 36-48sec concept_relationship (n=16,971,521). 1.8sec concept_relationship_subsumes_only (n=875,090)
     t0 = datetime.now()
