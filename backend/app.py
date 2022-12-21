@@ -16,6 +16,7 @@ from fastapi.middleware.gzip import GZipMiddleware
 from pydantic import BaseModel
 from sqlalchemy.engine import LegacyRow, RowMapping
 
+from backend.db.queries import get_all_parent_child_subsumes_tuples
 from backend.utils import hierarchify_list_of_parent_kids
 from enclave_wrangler.dataset_upload import upload_new_container_with_concepts, upload_new_cset_version_with_concepts
 from enclave_wrangler.utils import make_objects_request
@@ -24,7 +25,6 @@ from backend.db.utils import get_db_connection, sql_query, SCHEMA, sql_query_sin
 
 # CON: using a global connection object is probably a terrible idea, but shouldn't matter much until there are multiple
 # users on the same server
-CON = get_db_connection()
 APP = FastAPI()
 APP.add_middleware(
     CORSMiddleware,
@@ -33,6 +33,10 @@ APP.add_middleware(
     allow_headers=['*']
 )
 APP.add_middleware(GZipMiddleware, minimum_size=1000)
+CON = get_db_connection()
+CACHE = {
+    'all_parent_child_subsumes_tuples': get_all_parent_child_subsumes_tuples(CON)
+}
 
 
 # Utility functions ----------------------------------------------------------------------------------------------------
@@ -188,12 +192,12 @@ def hierarchy(codeset_ids: List[int] = None, selected_concept_ids: List[int] = N
 
     # sql speed: 36-48sec concept_relationship (n=16,971,521). 1.8sec concept_relationship_subsumes_only (n=875,090)
     t0 = datetime.now()
-    rows: List[LegacyRow] = sql_query(con, "SELECT concept_id_1, concept_id_2 FROM concept_relationship_subsumes_only;")
-    all_parent_child_list = [(x['concept_id_1'], x['concept_id_2']) for x in rows]
+    all_parent_child_list = CACHE['all_parent_child_subsumes_tuples']
     t1 = datetime.now()
     print(f"Time to get concept_relationship_subsumes_only: {t1 - t0}")
 
-    d = hierarchify_list_of_parent_kids(all_parent_child_list, selected_concept_ids)
+    selected_roots: List[int] = top_level_cids(selected_concept_ids)
+    d = hierarchify_list_of_parent_kids(all_parent_child_list, selected_roots)
 
     # todo: this may not be the most efficient way to do this
     d2 = json.dumps(d)
@@ -232,10 +236,28 @@ ORDER BY path;
 """
 
 
+def top_level_cids(concept_ids: List[int], con=CON) -> List[int]:
+    """Filter to concept ids with no parents"""
+    top_level_cids = sql_query_single_col(
+        con, f""" 
+        SELECT DISTINCT concept_id_1
+        FROM concept_relationship cr
+        WHERE cr.concept_id_1 = ANY(:concept_ids)
+          AND cr.relationship_id = 'Subsumes'
+          AND NOT EXISTS (
+            SELECT *
+            FROM concept_relationship
+            WHERE concept_id_2 = cr.concept_id_1
+          )
+        """,
+        {'concept_ids': concept_ids})
+    return top_level_cids
+
+
 def child_cids(concept_id: int, con=CON) -> List[Dict]:
     """Get child concept ids"""
     # selected_concept_ids = get_concept_set_member_ids([concept_id])
-    top_level_cids = sql_query_single_col(
+    child_cids = sql_query_single_col(
         con, f""" 
         SELECT DISTINCT concept_id_2
         FROM concept_relationship cr
@@ -243,7 +265,7 @@ def child_cids(concept_id: int, con=CON) -> List[Dict]:
           AND cr.relationship_id = 'Subsumes'
         """,
         {'concept_id': concept_id})
-    return top_level_cids
+    return child_cids
 
 
 def get_all_csets(con=CON) -> Union[Dict, List]:
