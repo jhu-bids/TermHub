@@ -92,6 +92,10 @@ function CsetComparisonPage(props) {
   const [nested, setNested] = useState(true);
   const [rowData, setRowData] = useState([]);
   const [squishTo, setSquishTo] = useState(1);
+
+  let checkboxes = [];
+  let allConcepts = [];
+
   const tsquish = throttle(
       val => {
         // console.log(`squish: ${squishTo} -> ${val}`);
@@ -113,12 +117,16 @@ function CsetComparisonPage(props) {
   if (!all_csets.length) {
     return <p>Downloading...</p>
   }
-  let checkboxes = Object.fromEntries(selected_csets.map(d => [d.codeset_id, false]));
+  // let checkboxes = Object.fromEntries(selected_csets.map(d => [d.codeset_id, false]));
   // let allConcepts = uniqWith(concept_set_members_i.map(d => pick(d, ['concept_id','concept_name'])), isEqual);
-  let allConcepts = Object.fromEntries(concepts.map(d => [d.concept_id, {...d, checkboxes: {...checkboxes}}]));
-  cset_members_items.forEach(d => allConcepts[d.concept_id].checkboxes[d.codeset_id] = d);
+  // let allConcepts = Object.fromEntries(concepts.map(d => [d.concept_id, {...d, checkboxes: {...checkboxes}}]));
+  // cset_members_items.forEach(d => allConcepts[d.concept_id].checkboxes[d.codeset_id] = d);
 
   function makeRowData(collapsed={}) {
+    checkboxes = Object.fromEntries(selected_csets.map(d => [d.codeset_id, false]));
+    allConcepts = Object.fromEntries(concepts.map(d => [d.concept_id, {...d, checkboxes: {...checkboxes}}]));
+    cset_members_items.forEach(d => allConcepts[d.concept_id].checkboxes[d.codeset_id] = d);
+
     if (isEmpty(allConcepts)) {
       return;
     }
