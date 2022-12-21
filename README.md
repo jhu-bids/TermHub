@@ -62,8 +62,8 @@ User Interactions
 [//]: # (3. Run: `git lfs install` if not installed already
 [//]: # (4. If any expected files are not showing up in `termhub-csets/`, run `git lfs pull`)
 
-### Setup
-1. Clone this repository.
+### Local setup
+1. Clone the repository.
 2. Run: `pip install -r requirements.txt`
 3. Run `git submodule update`
 4. Set up PostgreSQL  
@@ -81,3 +81,14 @@ SET search_path TO n3c;
 ```
 6. Create DB structure and load data
 7. Run: `python backend/db/initialize.py`
+
+### Deployment
+#### Deploying the backend
+1. Clone the repository.
+2. Run: `pip install -r requirements.txt`
+3. Run `git submodule update`
+4. Run: `uvicorn backend.app:APP --reload`
+
+#### Deploying the frontend
+1. `cd frontend; npm run build`
+2. When that process completes, you should now have an updated `frontend/build` directory. This can be deployed as a static site. The entry point is `index.html`.
