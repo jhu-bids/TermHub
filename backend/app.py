@@ -195,7 +195,12 @@ def hierarchy(codeset_ids: List[int] = None, selected_concept_ids: List[int] = N
 
     d = hierarchify_list_of_parent_kids(all_parent_child_list, selected_concept_ids)
 
-    return d
+    # todo: this may not be the most efficient way to do this
+    d2 = json.dumps(d)
+    d2 = d2.replace('{}', 'null')
+    d3 = json.loads(d2)
+
+    return d3
 
 junk = """  -- retaining hierarchical query (that's not working, for possible future reference)
 -- example used in http://127.0.0.1:8080/backend/old_cr-hierarchy_samples/cr-hierarchy-example1.json 
@@ -308,7 +313,7 @@ def _hierarchy(codeset_id: Union[str, None] = Query(default=''), ) -> Dict:
 @APP.get("/cr-hierarchy")
 def cr_hierarchy(rec_format: str = 'default', codeset_id: Union[str, None] = Query(default=''), ) -> Dict:
 
-    # TEMP FOR TESTING. #191 isn't a problem with the old json data
+    # TODO: TEMP FOR TESTING. #191 isn't a problem with the old json data
     # fp = open('./backend/old_cr-hierarchy_samples/cr-hierarchy-example1.json')
     # return json.load(fp)
 
@@ -348,6 +353,7 @@ def cr_hierarchy(rec_format: str = 'default', codeset_id: Union[str, None] = Que
         'data_counts': [],
     }
     result['concepts'] = get_concepts([i.concept_id for i in result['cset_members_items']])
+
     return result
 
 

@@ -158,7 +158,7 @@ function colConfig(codeset_ids, nested, selected_csets, rowData, collapsed, togg
                 return content;
             },
             sortable: !nested,
-            sortable: true,
+            // sortable: true,
             // maxWidth: '300px',
             //  table: style: maxWidth is 85% and selected_csets are 50px, so fill
             //      the rest of the space with this column

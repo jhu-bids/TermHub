@@ -48,6 +48,7 @@ def set_nested_in_dict(d: Dict, key_path: List, value: Any):
     get_nested_from_dict(d, key_path[:-1])[key_path[-1]] = value
 
 
+# todo: typically takes 2 seconds on several 100 selected_parent_ids. any way to speed up?
 def hierarchify_list_of_parent_kids(
     parent_child_list: List[Tuple[Union[str, int], Union[str, int]]],
     selected_parent_ids: List[Union[str, int]] = None
