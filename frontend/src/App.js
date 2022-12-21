@@ -9,20 +9,55 @@ referred to by https://stackoverflow.com/questions/63216730/can-you-use-material
 import React, {useState, useReducer, useEffect, useRef} from 'react';
 import './App.css';
 import { // Link, useHref, useParams, BrowserRouter,
-          Outlet, useNavigate, useSearchParams, useLocation,
-          createSearchParams, Routes, Route, } from "react-router-dom";
+          Outlet, Navigate, useSearchParams, useLocation,
+          createSearchParams, Routes, Route, redirect, } from "react-router-dom";
 import MuiAppBar from "./MuiAppBar";
 import { // useMutation, // useQueryClient,
-          useQuery, QueryClient, QueryClientProvider, } from '@tanstack/react-query'
+          QueryClient, useQuery, useQueries, QueryClientProvider, } from '@tanstack/react-query'
 import axios from "axios";
+import {isEqual} from "lodash";
+import { persistQueryClient, removeOldestQuery,} from '@tanstack/react-query-persist-client'
+import { createSyncStoragePersister } from '@tanstack/query-sync-storage-persister'
+import { ReactQueryDevtools } from '@tanstack/react-query-devtools'
 import {ConceptSetsPage, CsetComparisonPage} from "./Csets";
+import {AboutPage} from "./AboutPage";
+import {searchParamsToObj} from "./utils";
+
+
 const API_ROOT = 'http://127.0.0.1:8000'
 // const enclave_url = path => `${API_ROOT}/passthru?path=${path}`
 const backend_url = path => `${API_ROOT}/${path}`
 
-const queryClient = new QueryClient({   // fixes constant refetch
-    // https://tanstack.com/query/v4/docs/guides/window-focus-refetching
-    defaultOptions: { queries: { refetchOnWindowFocus: false, }, }, })
+const queryClient = new QueryClient({
+  defaultOptions: {
+    queries: {
+      cacheTime: 1000 * 60 * 60 * 24, // 24 hours
+      // https://tanstack.com/query/v4/docs/guides/window-focus-refetching
+      refetchOnWindowFocus: false,
+      refetchOnmount: false,
+      refetchOnReconnect: false,
+      retry: false,
+      staleTime: Infinity,
+    },
+  },
+})
+
+const localStoragePersister = createSyncStoragePersister({ storage: window.localStorage })
+// const sessionStoragePersister = createSyncStoragePersister({ storage: window.sessionStorage })
+
+persistQueryClient({
+  queryClient,
+  persister: localStoragePersister,
+  retry: removeOldestQuery,
+  maxAge: Infinity,
+})
+/*
+  TODO: I've got some bad state stuff going on. Maybe violating this principle:
+  For example, one rule is that you should not mutate an existing state object or ref object. Doing so
+  may lead to unexpected behavior such as not triggering re-renders, triggering too many re-renders, and
+  triggering partial re-renders (meaning some components re-render while others don't when they should).
+    -- Kato, Daishi. Micro State Management with React Hooks (p. 32). Packt Publishing. Kindle Edition.
+ */
 
 /* structure is:
     <BrowserRouter>                     // from index.js root.render
@@ -40,85 +75,99 @@ const queryClient = new QueryClient({   // fixes constant refetch
     </BrowserRouter>
 */
 function QCProvider() {
+  const location = useLocation();
   return (
-      <QueryClientProvider client={queryClient}>
-        <QueryStringStateMgr/>
-      </QueryClientProvider>
+      <React.StrictMode>
+        <QueryClientProvider client={queryClient}>
+          <QueryStringStateMgr location={location}/>
+          <ReactQueryDevtools initialIsOpen={false} />
+        </QueryClientProvider>
+      </React.StrictMode>
   );
 }
-function QueryStringStateMgr() {
+function QueryStringStateMgr(props) {
+  const {location} = props;
+  const [searchParams, setSearchParams ] = useSearchParams();
   // gets state (codeset_ids for now) from query string, passes down through props
-  const location = useLocation();
-  const navigate = useNavigate();
-
-  const [searchParams, setSearchParams] = useSearchParams();
-  const qsKeys = Array.from(new Set(searchParams.keys()));
-  let searchParamsAsObject = {};
-  qsKeys.forEach(key => {
-    let vals = searchParams.getAll(key);
-    searchParamsAsObject[key] = vals.map(v => parseInt(v) == v ? parseInt(v) : v).sort();
-  });
-
-  // const [codeset_ids, setCodeset_ids] = useState(searchParamsAsObject.codeset_id || []);
+  const sp = searchParamsToObj(searchParams);
+  const [codeset_ids, setCodeset_ids] = useState(sp.codeset_ids || []);
+  // console.log(props);
 
   useEffect(() => {
-    if (location.pathname == '/') {
-      navigate('/OMOPConceptSets');
-      return;
+    if (sp.codeset_ids && !isEqual(codeset_ids, sp.codeset_ids)) {
+      setCodeset_ids(sp.codeset_ids);
     }
-    if (location.pathname == '/testing') {
-      const test_codeset_ids = [400614256, 411456218, 419757429, 484619125, 818292046, 826535586];
-      let params = createSearchParams({codeset_id: test_codeset_ids});
-      navigate({
-                 pathname: '/cset-comparison',
-                 search: `?${params}`,
-               });
+  }, [searchParams]);
+
+  function changeCodesetIds(codeset_id, how) {
+    // how = add | remove | toggle
+    const included = codeset_ids.includes(codeset_id);
+    let action = how;
+    if (how == 'add' && included) return;
+    if (how == 'remove' && !included) return;
+    if (how == 'toggle') {
+      action = included ? 'remove' : 'add';
     }
+    let params;
+    if (action == 'add') {
+      params = createSearchParams({codeset_id: [...codeset_ids, codeset_id]});
+    } else if (action == 'remove') {
+      if (!included) return;
+      params = createSearchParams({codeset_id: codeset_ids.filter(d => d != codeset_id)});
+    } else {
+      throw 'unrecognized action in changeCodesetIds: ' + JSON.stringify({how, codeset_id});
+    }
+    setSearchParams(params);
+  }
 
-    // setCodeset_ids(searchParamsAsObject.codeset_id)
-
-  }, [location]);  // maybe not necessary to have location in dependencies
-  return (
-      <DataContainer codeset_ids={searchParamsAsObject.codeset_id}/>
-  );
-      // <DataContainer codeset_ids={codeset_ids}/>
-
+  if (location.pathname == '/') {
+    return <Navigate to='/OMOPConceptSets' />;
+    return;
+  }
+  if (location.pathname == '/testing') {
+    const test_codeset_ids = [400614256, 411456218, 419757429, 484619125, ];
+    let params = createSearchParams({codeset_id: test_codeset_ids});
+    // setSearchParams(params);
+    let url = '/cset-comparison?' + params;
+    // return redirect(url); not exported even though it's in the docs
+    return <Navigate to={url}
+                     replace={true} /* what does this do? */ />;
+  }
+  return <DataContainer /* searchParams={searchParams}*/
+                        codeset_ids={codeset_ids}
+                        changeCodesetIds={changeCodesetIds}
+                        />;
 }
-/* Contains data fetched via URL query params, providing data to any pages which we've set to use this. */
+function axiosGet(path, backend=true) {
+  let url = backend ? backend_url(path) : path;
+  console.log('axiosGet url: ', url);
+  return axios.get(url).then((res) => res.data);
+}
 function DataContainer(props) {
-  let {codeset_ids} = props;
-  codeset_ids = codeset_ids || [];
-  // Table Variations
-  // 1. this url is for simple X/O table with no hierarchy:
-  // 2. this url is for simple hierarchy using ancestor table and no direct relationshps:
-  // todo: 3. this url uses direct relationships:
-  // TODO: use cr hierarchy
-  let url = backend_url('cr-hierarchy?rec_format=flat&codeset_id=' + codeset_ids.join('|'))
-  // let url = backend_url('new-hierarchy-stuff?rec_format=flat&codeset_id=' + codeset_ids.join('|'))
-  console.log('url', url)
-  const { isLoading, error, data, isFetching } = useQuery([url], () => {
-    console.log('getting it');
-    const get = axios.get(url).then((res) => {
-      console.log('got something')
-      return res.data
-    })
-    // console.log(`getting ${url}`, get);
-    return get;
-  });
-  let msg =
-      (isLoading && <p>Loading from {url}...</p>) ||
-      (error && <p>An error has occurred with {url}: {error.stack}</p>) ||
-      (isFetching && <p>Updating from {url}...</p>);
+  let {codeset_ids, } = props;
+  const all_csets_url = 'get-all-csets';
+  const cset_data_url = 'cr-hierarchy?rec_format=flat&codeset_id=' + codeset_ids.join('|');
+  const { isLoading: all_csets_loading,
+          error: all_csets_error,
+          data: all_csets,
+          isFetching: all_csets_fetching
+          } = useQuery(["all_csets"], ()=>axiosGet(all_csets_url));
 
-  return (
-      <div>
-        <RoutesContainer cset_data={data} {...props} />
-        {msg}
-      </div>
-  );
+  const { isLoading: cset_data_loading,
+    error: cset_data_error,
+    data: cset_data,
+    isFetching: cset_data_fetching
+  } = useQuery([codeset_ids.join('|')],
+               ()=>axiosGet(cset_data_url));
+
+  // console.log({all_csets_fetching, all_csets_loading, all_csets_error, all_csets});
+  // console.log({cset_data_fetching, cset_data_loading, cset_data_error, cset_data, cset_data_url});
+  return  <RoutesContainer {...props} all_csets={all_csets} cset_data={cset_data}/>
 }
 function RoutesContainer(props) {
-  console.log(props)
+  // const {codeset_ids, all_csets=[], cset_data={}} = props;
+  // const {selected_csets} = cset_data;
+  // console.log({codeset_ids, selected_csets, all: all_csets.length});
   return (
       <Routes>
         <Route path="/" element={<App {...props} />}>
@@ -126,7 +175,7 @@ function RoutesContainer(props) {
           <Route path="cset-comparison" element={<CsetComparisonPage {...props} />} />
           {/* <Route path="cset-comparison/:conceptId" element={<ConceptSet />} /> */}
           <Route path="OMOPConceptSets" element={<ConceptSetsPage {...props}  />} />
-          <Route path="about" element={<AboutPage />} />
+          <Route path="about" element={<AboutPage {...props} />} />
           {/* <Route path="testing" element={<ConceptSetsPage codeset_ids={test_codeset_ids}/>} /> */}
           {/* <Route path="OMOPConceptSet/:conceptId" element={<OldConceptSet />} /> */}
           <Route path="*"  element={<ErrorPath/>} />
@@ -186,7 +235,7 @@ function objectTypesData(data) {
   const someObjTypePropertiesHaveDesc = data.some(d=>Object.entries(d.properties).some(d=>d.description))
   // console.log(data.map(d=>Object.entries(d.properties).map(p=>`${p[0]}(${p[1].baseType})`).join(', ')).join('\n\n'))
   if (someObjTypePropertiesHaveDesc) {
-    console.log('someObjTypePropertiesHaveDesc!!!!!')
+    // console.log('someObjTypePropertiesHaveDesc!!!!!')
   }
   let rows = data.map(d => ({
     apiName: d.apiName,
@@ -198,16 +247,7 @@ function objectTypesData(data) {
 }
 */
 
-function AboutPage() {
-  return (
-      <div>
-        <p>TermHub is terminology management heaven.</p>
-      </div>
-  );
-}
-
-
-export {QCProvider, AboutPage, backend_url};
+export {QCProvider, backend_url};
 
 // TODO: @Siggie: Can we remove this comment or we need this list of links for ref still?
 //       @Joe: we should move it to the individual concept set display component(s) as a

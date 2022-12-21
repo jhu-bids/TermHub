@@ -1,33 +1,55 @@
-import React, {useState, useEffect, /* useReducer, useRef, */} from 'react';
+import React, {useState, useEffect, useMemo, /* useReducer, useRef, */} from 'react';
 import DataTable, { createTheme } from 'react-data-table-component';
-import Checkbox from '@mui/material/Checkbox';
-import {createSearchParams} from "react-router-dom";
-import Button from "@mui/material/Button";
-import {omit, uniq, } from 'lodash';
-import axios from "axios";
-import {backend_url} from "./App";
+import AddCircle from '@mui/icons-material/AddCircle';
+import RemoveCircle from '@mui/icons-material/RemoveCircle';
+import {get, map, omit, pick, uniq, reduce, cloneDeepWith, isEqual, uniqWith, groupBy, } from 'lodash';
+import {fmt} from './utils';
 
+/*
+ */
 
 function ComparisonDataTable(props) {
-    const {codeset_ids=[], cset_data={}} = props;
-    const {flattened_concept_hierarchy=[], concept_set_members_i=[], all_csets=[], } = cset_data;
-    const [nested, setNested] = useState(true);
-    let nodups = flattened_concept_hierarchy.map(d => omit(d, ['level', ]))
-    nodups = uniq(nodups.map(d => JSON.stringify(d))).map(d => JSON.parse(d))
-    let rowData = nested ? flattened_concept_hierarchy : nodups;
+    const {codeset_ids=[], nested=true, makeRowData, rowData, selected_csets, squishTo} = props;
+    const [columns, setColumns] = useState();
+    const [collapsed, setCollapsed] = useState({});
+    // console.log(window.data = props);
 
-    const customStyles = styles();
-    const coldefs = useColConfig(codeset_ids, nested, all_csets, rowData, nodups);
+    function toggleCollapse(row) {
+        collapsed[row.pathToRoot] = !get(collapsed, row.pathToRoot.join(','));
+        setCollapsed({...collapsed});
+        makeRowData(collapsed);
+    }
 
-    // TODO: Datatable is getting cut off vertically, as if it's in an iframe, but it has no scroll bar.
+    useEffect(() => {
+        if (!selected_csets.length) {
+            return;
+        }
+        // console.log('makeRowData because', {selected_csets});
+        makeRowData({});
+    }, [selected_csets.length, ]);
+
+    let sizes = {
+        rowFontSize:  (13 * squishTo) + 'px',
+        rowPadding:   ( 2 * squishTo) + 'px',
+        collapseIcon: (13 * squishTo) + 'px',
+        linkHeight:   (20 * squishTo) + 'px',
+        atlasHeight:  (12 * squishTo) + 'px',
+        athenaHeight: (10 * squishTo) + 'px',
+    }
+    useEffect(() => {
+        // console.log('setColumns because', {rowData});
+        setColumns(colConfig(codeset_ids, nested, selected_csets, rowData, collapsed, toggleCollapse, sizes, ));
+    }, [rowData, squishTo]);
+    // console.log({squishTo});
+
+    const customStyles = styles(sizes);
     return (
         /* https://react-data-table-component.netlify.app/ */
         <DataTable
             className="comparison-data-table"
             theme="custom-theme"
             // theme="light"
-            columns={coldefs}
-            // data={props.nested ? flattened_concept_hierarchy : props.nodups}
+            columns={columns}
             data={rowData}
             customStyles={customStyles}
 
@@ -43,10 +65,13 @@ function ComparisonDataTable(props) {
             //selectableRowsComponent={Checkbox}
             //selectableRowsComponentProps={selectProps}
             //sortIcon={sortIcon}
+            // expandOnRowClicked
+            // expandableRows
             // {...props}
         />
     );
 }
+/*
 function getCbStates(csets, nodups) {
     let grid = {};
     csets.forEach(cset => {
@@ -58,84 +83,144 @@ function getCbStates(csets, nodups) {
     })
     return grid
 }
-function useColConfig(codeset_ids, nested, all_csets, rowData, nodups) {
-    // const {codeset_ids=[], cset_data={}, nested=true, nodups=[], } = props;
-    // const {flattened_concept_hierarchy=[], concept_set_members_i=[], all_csets=[], } = cset_data;
-    let selected_csets = all_csets.filter(d => codeset_ids.includes(d.codeset_id));
-
-    const [cbStates, setCbStates] = useState({});
-    const [coldefs, setColdefs] = useState([]);
-    const [stateChanges, setStateChanges] = useState(0);
-
-    useEffect(() => {
-        setCbStates(getCbStates(selected_csets, nodups));
-    }, [selected_csets.length])
-    console.log(cbStates);
-
+*/
+function colConfig(codeset_ids, nested, selected_csets, rowData, collapsed, toggleCollapse, sizes, ) {
+    // console.log('setting coldefs');
+    /*
     let checkboxChange = (codeset_id, concept_id) => (evt, state) => {
-        console.log({codeset_id, concept_id, state});
-        cbStates[codeset_id][concept_id] = state;
-        setCbStates(cbStates);
-        setStateChanges(stateChanges + 1);
+        // console.log({codeset_id, concept_id, state});
         let url = backend_url(`modify-cset?codeset_id=${codeset_id}&concept_id=${concept_id}&state=${state}`);
         axios.get(url).then((res) => {
-            console.log({url, res});
+            // console.log({url, res});
             return res.data
         })
     }
-    useEffect(() => {
-        if (! Object.keys(cbStates).length) {
-            return
-        }
-        let cset_cols = selected_csets.map(cset_col => {
-            let def = {
-                // id: ____?,
-                name: cset_col.concept_set_version_title,
-                // selector: row => row.selected ? '\u2713' : '',
-                selector: row => {
-                    // let checked = row.codeset_ids.includes(parseInt(cset_col.codeset_id));
-                    let checked = cbStates[cset_col.codeset_id][row.concept_id];
-                    // let toggle = <span
-                    // return checked ? '\u2713' : '';
-                    let checkbox_id = `${cset_col.codeset_id}:${row.concept_id}`;
-                    return <Checkbox checked={checked}
-                                     onChange={checkboxChange(cset_col.codeset_id, row.concept_id)}/>
-                },
-                // sortable: true,
-                compact: true,
-                width: '50px',
-                // maxWidth: 50,
-                center: true,
-            }
-            return def;
-        });
-        let coldefs = [
-            // { name: 'level', selector: row => row.level, },
-            {
-                name: 'Concept name',
-                selector: row => row.concept_name,
-                // sortable: true,
-                // maxWidth: '300px',
-                //  table: style: maxWidth is 85% and selected_csets are 50px, so fill
-                //      the rest of the space with this column
-                width: (window.innerWidth - selected_csets.length * 50) * .85,
-                wrap: true,
-                compact: true,
-                conditionalCellStyles: [
-                    { when: row => true,
-                        style: row => ({paddingLeft: 16 + row.level * 16 + 'px'})
-                    }
-                ],
-            },
-            ...cset_cols
-        ];
-        if (!nested) {
-            delete coldefs[0].conditionalCellStyles;
-        }
-        setColdefs(coldefs);
-    }, [cbStates, stateChanges])
+    */
 
+    let cset_cols = selected_csets.map((cset_col, col_idx) => {
+        let def = {
+            name: cset_col.concept_set_version_title,
+            selector: (row,idx) => {
+                if (!row.checkboxes) {
+                    console.log('problem!!!!', {idx, row, rowData})
+                }
+                let checked = row.checkboxes && row.checkboxes[cset_col.codeset_id];
+                return checked ? '\u2713' : '';
+                /*
+                let checkbox_id = `${cset_col.codeset_id}:${row.concept_id}`;
+                return <Checkbox checked={checked}
+                                 onChange={checkboxChange(cset_col.codeset_id, row.concept_id)}/>
+
+                 */
+            },
+            conditionalCellStyles: [
+                { when: row => row.checkboxes && row.checkboxes[cset_col.codeset_id],
+                    style: row => {
+                        let cb = row.checkboxes[cset_col.codeset_id];
+                        let bg = 'purple';
+                        if      (cb.csm && cb.item) { bg = 'orange' }
+                        else if (cb.csm)             { bg = 'pink' }
+                        else if (cb.item)            { bg = 'gray' }
+                        return { backgroundColor: bg, };
+                    }
+                },
+            ],
+            sortable: !nested,
+            compact: true,
+            width: '30px',
+            // maxWidth: 50,
+            center: true,
+        }
+        return def;
+    });
+    let coldefs = [
+        {
+            name: 'Concept name',
+            selector: row => row.concept_name,
+            format: (row, idx) => {
+                /*
+                if (!(idx % 100)) {
+                    console.log('showing row', idx);
+                }
+                */
+                if (!row.checkboxes) {
+                    console.log('problem!!!!', {idx, row, rowData})
+                } else {
+                    // console.log('not a problem', {idx, row, rowData})
+                }
+                let content = nested
+                    ? row.has_children
+                        ? collapsed[row.pathToRoot]
+                            ? <span className="toggle-collapse" onClick={() => toggleCollapse(row)}><AddCircle sx={{fontSize:sizes.collapseIcon}}/> {row.concept_name} {row.collapsed && 'collapsed'}</span>
+                            : <span className="toggle-collapse" onClick={() => toggleCollapse(row)}><RemoveCircle sx={{fontSize:sizes.collapseIcon}}/> {row.concept_name} {row.collapsed && 'collapsed'}</span>
+                        : <span><RemoveCircle sx={{fontSize:sizes.collapseIcon, visibility:'hidden'}}/> {row.concept_name}</span>
+                    : row.concept_name
+                return content;
+            },
+            sortable: !nested,
+            // sortable: true,
+            // maxWidth: '300px',
+            //  table: style: maxWidth is 85% and selected_csets are 50px, so fill
+            //      the rest of the space with this column
+            width: (window.innerWidth - selected_csets.length * 50) * .85,
+            wrap: true,
+            compact: true,
+            conditionalCellStyles: [
+                { when: row => true,
+                    style: row => ({paddingLeft: 16 + row.level * 16 + 'px'})
+                }
+            ],
+        },
+        {
+            name: 'Concept ID',
+            selector: row => row.concept_id,
+            sortable: !nested,
+            width: '80px',
+            style: { paddingRight: '8px', },
+        },
+        {
+            name: 'Concept links',
+            selector: row => row.concept_id,
+            format: row => (
+                <span style={{backgroundColor: 'lightgray', height: sizes.linkHeight}} >
+                    <a href={`https://atlas-demo.ohdsi.org/#/concept/${row.concept_id}`} target="_blank">
+                        <img height={sizes.atlasHeight} src="atlas.ico" />
+                    </a>&nbsp;
+                    <a href={`https://athena.ohdsi.org/search-terms/terms/${row.concept_id}`} target="_blank"
+                    >
+                        <img height={sizes.athenaHeight} src="athena.ico" />
+                    </a>
+                </span>),
+            sortable: !nested,
+            width: '29px',
+            style: { paddingRight: '0px', },
+        },
+        {
+            name: 'Patients',
+            selector: row => parseInt(row.distinct_person_count),
+            format: row => fmt(row.distinct_person_count),
+            sortable: !nested,
+            right: true,
+            width: '80px',
+            style: { paddingRight: '8px', },
+        },
+        {
+            name: 'Records',
+            selector: row => row.total_count,
+            format: row => fmt(row.total_count),
+            sortable: !nested,
+            right: true,
+            width: '80px',
+            style: { paddingRight: '8px', },
+        },
+        ...cset_cols
+    ];
+    if (!nested) {
+        delete coldefs[0].conditionalCellStyles;
+    }
     return coldefs;
+    // console.log('done setting coldefs');
+
 }
 // createTheme creates a new theme named solarized that overrides the build in dark theme
 // https://github.com/jbetancur/react-data-table-component/blob/master/src/DataTable/themes.ts
@@ -163,7 +248,7 @@ createTheme('custom-theme', {
     */
 }, 'light');
 
-function styles() {
+function styles(sizes) {
     return {
         /*
         	tableWrapper: {
@@ -171,9 +256,9 @@ function styles() {
               display: 'table',
             },
           },
-            denseStyle: {
-                minHeight: '32px',
-            },
+        denseStyle: {
+            minHeight: '2px',
+        },
         */
         table: {
             style: {
@@ -216,12 +301,18 @@ function styles() {
         rows: {
             style: {
                 color: 'black',
-                minHeight: 'auto', // override the row height
+                minHeight: '0px', // override the row height    -- doesn't work, can only seem to do it from css
+                padding: sizes.rowPadding,
+                fontSize: sizes.rowFontSize,
+                // height: '2px',
+                // fontSize: '2px',
+                // height: '3px',
                 borderLeft: '0.5px solid #BBB',
             },
         },
         cells: {
             style: {
+                minHeight: '0px', // override the row height
                 // paddingLeft: '8px', // override the cell padding for data cells
                 // paddingRight: '8px',
                 padding: 0, //'0px 5px 0px 5px',
@@ -232,6 +323,9 @@ function styles() {
         */
     };
 }
+// const expandIcon    = <svg fill="currentColor" height="20" viewBox="0 -6 24 24" width="24" xmlns="http://www.w3.org/2000/svg"><path d="M8.59 16.34l4.58-4.59-4.58-4.59L10 5.75l6 6-6 6z"></path><path d="M0-.25h24v24H0z" fill="none"></path></svg>
+// const collapseIcon  = <svg fill="currentColor" height="20" viewBox="0 -6 24 24" width="24" xmlns="http://www.w3.org/2000/svg"><path d="M7.41 7.84L12 12.42l4.59-4.58L18 9.25l-6 6-6-6z"></path><path d="M0-.75h24v24H0z" fill="none"></path></svg>
+// const blankIcon     = <svg fill="currentColor" height="20" viewBox="0 -6 24 24" width="24" xmlns="http://www.w3.org/2000/svg" />
 export {ComparisonDataTable};
 
 

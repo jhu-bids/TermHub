@@ -1,9 +1,16 @@
-"""TermHub backend
+"""Temporary routes for trying stuff out. will merge into backend.py
 
-Resources
-- https://github.com/tiangolo/fastapi
-- jq docs: https://stedolan.github.io/jq/manual/
-- jq python api docs: https://github.com/mwilliamson/jq.py
+TODO's
+  1. Joe will rewrite enclave_api.py, and then we can connect backend.py with that. At around that point, we should no
+  longer need 'reviving_ontology_api_stuff.py' when that is working correctly.
+
+# other api calls might be handy:
+#   concepts for concept set:
+#       http://127.0.0.1:8000/ontocall?path=objects/OMOPConceptSet/729489911/links/omopconcepts
+#   concepts for concept set:
+#       http://127.0.0.1:8000/ontocall?path=objects/OMOPConceptSet/729489911/links/omopconcepts
+#   linktypes:
+#       http://127.0.0.1:8000/linkTypesForObjectTypes
 """
 import json
 import os
@@ -23,24 +30,6 @@ from pydantic import BaseModel
 from enclave_wrangler.config import config, FAVORITE_DATASETS
 import jq
 
-# TODO:
-#   action types to look at (http://127.0.0.1:8000/passthru?path=actionTypes):
-#       "create-new-concept-set"
-#       "create-new-draft-omop-concept-set-version"
-#
-# TODO:
-#   get RIDs for concept sets -- not available in dataset download
-#       http://127.0.0.1:8000/passthru?path=objects/OMOPConceptSet
-#
-# other api calls might be handy:
-#   concepts for concept set:
-#       http://127.0.0.1:8000/ontocall?path=objects/OMOPConceptSet/729489911/links/omopconcepts
-#   concepts for concept set:
-#       http://127.0.0.1:8000/ontocall?path=objects/OMOPConceptSet/729489911/links/omopconcepts
-#   linktypes:
-#       http://127.0.0.1:8000/linkTypesForObjectTypes
-
-
 
 DEBUG = True
 PROJECT_DIR = Path(os.path.dirname(__file__)).parent
@@ -56,6 +45,32 @@ APP.add_middleware(
     allow_methods=['*'],
     allow_headers=['*']
 )
+
+
+@APP.get("/passthru-post")
+def passthruPost(path, data) -> [{}]:
+    """API documentation at
+    https://www.palantir.com/docs/foundry/api/ontology-resources/objects/list-objects/
+    https://www.palantir.com/docs/foundry/api/ontology-resources/object-types/list-object-types/
+    """
+    headers = {
+        "authorization": f"Bearer {config['PALANTIR_ENCLAVE_AUTHENTICATION_BEARER_TOKEN']}",
+        # "authorization": f"Bearer {config['OTHER_TOKEN']}",
+    }
+    ontology_rid = config['ONTOLOGY_RID']
+    api_path = f'/api/v1/ontologies/{ontology_rid}/{path}'
+    url = f'https://{config["HOSTNAME"]}{api_path}'
+    print(f'passthru: {api_path}\n{url}')
+
+    try:
+        response = requests.post(url, headers=headers, data=data)
+        response.raise_for_status()
+        response_json: Dict = response.json()
+        return response_json
+    except BaseException as err:
+        print(f"Unexpected {type(err)}: {str(err)}")
+        return {'ERROR': str(err)}
+
 
 # Utils
 def json_path(objtype: str) -> str:
@@ -222,9 +237,8 @@ def passthru(path) -> [{}]:
     https://www.palantir.com/docs/foundry/api/ontology-resources/object-types/list-object-types/
     """
     headers = {
-        # "authorization": f"Bearer {config['PALANTIR_ENCLAVE_AUTHENTICATION_BEARER_TOKEN']}",
-        "authorization": f"Bearer {config['OTHER_TOKEN']}",
-        # 'content-type': 'application/json'
+        "authorization": f"Bearer {config['PALANTIR_ENCLAVE_AUTHENTICATION_BEARER_TOKEN']}",
+        # "authorization": f"Bearer {config['OTHER_TOKEN']}",
     }
     ontology_rid = config['ONTOLOGY_RID']
     api_path = f'/api/v1/ontologies/{ontology_rid}/{path}'

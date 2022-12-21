@@ -1,69 +1,63 @@
-/*
-TODO's
-  1. todo: Page state refresh should not be 'on window focus', but on autocomplete widget selection
-  2. todo: later: associated concepts: show them the concepts associated with the concept sets they've selected
-  3. todo: later: intensionality: also show them concept version items (intensional). but once we've got more than one cset
-      selected, start doing comparison stuff
-
-*/
-import React, {useState, useEffect, /* useReducer, useRef, */} from 'react';
-import {useQuery} from "@tanstack/react-query";
-import axios from "axios";
-import {Table, ComparisonTable} from "./Table";
+import React, {useState, useEffect, useCallback, /* useReducer, useRef, */} from 'react';
 import {ComparisonDataTable} from "./ComparisonDataTable";
-import {CsetsDataTable} from "./CsetsDataTable";
-import ConceptSetCard from "./ConceptSetCard";
-import {ReactQueryDevtools} from "@tanstack/react-query-devtools";
+import {CsetsDataTable, } from "./CsetsDataTable";
+import {searchParamsToObj, StatsMessage} from "./utils";
+import ConceptSetCards from "./ConceptSetCard";
 import TextField from '@mui/material/TextField';
 import Autocomplete from '@mui/material/Autocomplete';
 import Button from '@mui/material/Button';
-import Chip from '@mui/material/Chip';
-import { Link, Outlet, useHref, useNavigate, useParams, useSearchParams, useLocation } from "react-router-dom";
-import {max, omit, uniq, } from 'lodash';
+// import Chip from '@mui/material/Chip';
+import { Link, Outlet, useHref, useParams, useSearchParams, useLocation } from "react-router-dom";
+import { every, get, isEmpty, throttle, } from 'lodash';
+// import {isEqual, pick, uniqWith, max, omit, uniq, } from 'lodash';
+import Box from '@mui/material/Box';
+import Slider from '@mui/material/Slider';
 
-import {backend_url} from './App';
-import Typography from "@mui/material/Typography";
-
-//TODO: How to get hierarchy data?
-// - It's likely in one of the datasets we haven't downloaded yet. When we get it, we can do indents.
-
-/* CsetSEarch: Grabs stuff from disk*/
-/* TODO: Solve:
+/* TODO: Solve
     react_devtools_backend.js:4026 MUI: The value provided to Autocomplete is invalid.
     None of the options match with `[{"label":"11-Beta Hydroxysteroid Dehydrogenase Inhibitor","codeset_id":584452082},{"label":"74235-3 (Blood type)","codeset_id":761463499}]`.
     You can use the `isOptionEqualToValue` prop to customize the equality test.
     @ SIggie: is this fixed?
 */
 function CsetSearch(props) {
-  const {codeset_ids=[], cset_data={}} = props;
-  const {flattened_concept_hierarchy=[], concept_set_members_i=[], all_csets=[], } = cset_data;
-  const [value, setValue] = useState('');
-  const [inputValue, setInputValue] = useState('');
-  const [searchParams, setSearchParams] = useSearchParams();
+  const {codeset_ids, changeCodesetIds, all_csets=[], cset_data={}} = props;
 
-  // need to include codeset_id in label because there are sometimes two csets with same name
-  //  and same version number, and label acts as key
+  const [keyForRefreshingAutocomplete, setKeyForRefreshingAutocomplete] = useState(0);
+  // necessary to change key for reset because of Autocomplete bug, according to https://stackoverflow.com/a/59845474/1368860
+
+  if (! all_csets.length) {
+    return <span/>;
+  }
   const opts = (
       all_csets
-          .filter(d => !d.selected)
+          .filter(d => !codeset_ids.includes(d.codeset_id))
           .map(d => ({
             label: `${d.codeset_id} - ${d.concept_set_version_title} ` +
-                   `${d.archived ? 'archived' : ''} (${d.concepts} concepts)`,
+                `${d.archived ? 'archived' : ''} (${d.concepts} concepts)`,
             id: d.codeset_id,
-  })));
-
+          })));
   const autocomplete = (
       // https://mui.com/material-ui/react-autocomplete/
       <Autocomplete
+          key={keyForRefreshingAutocomplete}
           disablePortal
           id="add-codeset-id"
           options={opts}
           blurOnSelect={true}
           clearOnBlur={true}
+          filterOptions={(options, state) => {
+            let strings = state.inputValue.split(' ').filter(s => s.length);
+            if (!strings.length) {
+              return options;
+            }
+            let match = strings.map(m => new RegExp(m, 'i'))
+            return options.filter(o => every(match.map(m => o.label.match(m))))
+          }}
           sx={{ width: '100%', }}
           renderInput={(params) => <TextField {...params} label="Add concept set" />}
           onChange={(event, newValue) => {
-            setSearchParams({codeset_id: [...codeset_ids, newValue.id]})
+            changeCodesetIds(newValue.id, 'add');
+            setKeyForRefreshingAutocomplete(k => k+1);
           }}
       />);
   return (
@@ -75,46 +69,15 @@ function CsetSearch(props) {
 }
 
 function ConceptSetsPage(props) {
-  const {codeset_ids=[], cset_data={}} = props;
-  const {flattened_concept_hierarchy=[], concept_set_members_i=[], all_csets=[], } = cset_data;
-  let navigate = useNavigate();
-
+  const noSelectedCsets = ! get(props, 'cset_data.selected_csets', []).length;
+  if (noSelectedCsets) {
+    return <div style={{}}><CsetSearch {...props} /></div>;
+  }
   return (
-      <div>
+      <div style={{}}>
         <CsetSearch {...props} />
-        {
-           props.cset_data && <CsetsDataTable {...props} />
-        }
-        {
-          // todo: Create component: <ConceptSetsPanels>
-          (codeset_ids.length > 0 && all_csets.length) && (
-            <div style={{ display: 'flex', flexWrap: 'wrap', flexDirection: 'row', margin: '20px',
-              /* height: '90vh', alignItems: 'stretch', border: '1px solid green', width: '100%', 'flex-shrink': 0, flex: '0 0 100%', */
-            }}>
-              {
-                (() => {
-                  let cards = all_csets.length ? codeset_ids.map(codeset_id => {
-                    let cset = all_csets.filter(d => d.codeset_id === codeset_id).pop();  // will replace cset and won't need concept-sets-with-concepts fetch
-                    let concepts = concept_set_members_i.filter(d => d.codeset_id === codeset_id);
-                    cset.concept_items = concepts;
-
-                    let widestConceptName = max(Object.values(cset.concepts).map(d => d.concept_name.length))
-                    let card = (all_csets.length && cset)
-                        ? <ConceptSetCard  {...props}
-                                           codeset_id={cset.codeset_id}
-                                           key={cset.codeset_id}
-                                           cset={cset}
-                                           widestConceptName={widestConceptName}
-                                           cols={Math.min(4, codeset_ids.length)}/>
-                        : <p key={codeset_id}>waiting for card data</p>
-                    return card;
-                  }) : '';
-                  return cards;
-                })()
-              }
-            </div>)
-        }
-        {/*<p>I am supposed to be the results of <a href={url}>{url}</a></p>*/}
+        { <CsetsDataTable {...props} /> }
+        { <ConceptSetCards {...props} /> }
       </div>)
 }
 
@@ -123,25 +86,129 @@ function ConceptSetsPage(props) {
 // TODO: Color table: I guess would need to see if could pass extra values/props and see if table widget can use that
 //  ...for coloration, since we want certain rows grouped together
 function CsetComparisonPage(props) {
-  const {codeset_ids=[], cset_data={}} = props;
-  let {flattened_concept_hierarchy=[], concept_set_members_i=[], all_csets=[], } = cset_data;
-  console.log(props);
+  const {codeset_ids=[], all_csets=[], cset_data={}} = props;
+  const {hierarchy={}, selected_csets=[], concepts=[], cset_members_items=[]} = cset_data;
+  // let selected_csets = all_csets.filter(d => codeset_ids.includes(d.codeset_id));
   const [nested, setNested] = useState(true);
-  let nodups = flattened_concept_hierarchy.map(d => omit(d, ['level', ]))
-  nodups = uniq(nodups.map(d => JSON.stringify(d))).map(d => JSON.parse(d))
-  // return <ComparisonDataTable {...props} />
+  const [rowData, setRowData] = useState([]);
+  const [squishTo, setSquishTo] = useState(1);
+
+  let checkboxes = [];
+  let allConcepts = [];
+
+  const tsquish = throttle(
+      val => {
+        // console.log(`squish: ${squishTo} -> ${val}`);
+        setSquishTo(val);
+      }, 200);
+  const squishChange = useCallback(tsquish);
+  /*
+  const squishChange = useCallback(val => {
+    // console.log(`squish: ${squish} -> ${val}`);
+    setSquish(val);
+  });
+   */
+
+  /* TODO: review function for appropriate state management */
+  useEffect(() => {
+    makeRowData();
+  }, [codeset_ids.length, concepts.length]);
+
+  if (!all_csets.length) {
+    return <p>Downloading...</p>
+  }
+  // let checkboxes = Object.fromEntries(selected_csets.map(d => [d.codeset_id, false]));
+  // let allConcepts = uniqWith(concept_set_members_i.map(d => pick(d, ['concept_id','concept_name'])), isEqual);
+  // let allConcepts = Object.fromEntries(concepts.map(d => [d.concept_id, {...d, checkboxes: {...checkboxes}}]));
+  // cset_members_items.forEach(d => allConcepts[d.concept_id].checkboxes[d.codeset_id] = d);
+
+  function makeRowData(collapsed={}) {
+    checkboxes = Object.fromEntries(selected_csets.map(d => [d.codeset_id, false]));
+    allConcepts = Object.fromEntries(concepts.map(d => [d.concept_id, {...d, checkboxes: {...checkboxes}}]));
+    cset_members_items.forEach(d => allConcepts[d.concept_id].checkboxes[d.codeset_id] = d);
+
+    if (isEmpty(allConcepts)) {
+      return;
+    }
+    if (!nested) {
+      setRowData(Object.values(allConcepts));
+    }
+    let _rowData = [];
+    let traverse = (o, pathToRoot=[], level=0) => {
+      Object.keys(o).forEach(k => {
+        k = parseInt(k);
+        let row = {...allConcepts[k], level, pathToRoot: [...pathToRoot, k]};
+        _rowData.push(row);
+        if (o[k] && typeof(o[k] === 'object')) {
+          row.has_children = true;
+          if (!collapsed[row.pathToRoot]) {
+            traverse(o[k], row.pathToRoot, level+1);
+          }
+        }
+      })
+    }
+    traverse(hierarchy)
+    // console.log('just after traverse', {_rowData});
+    setRowData(_rowData);
+  }
+  function toggleNested() {
+    setNested(!nested);
+    makeRowData({});
+  }
+  let moreProps = {...props, nested, makeRowData, rowData, selected_csets, squishTo};
+  // console.log({moreProps});
   return (
       <div>
         <h5 style={{margin:20, }}>
-          <Button variant={nested ? "contained" : "outlined" } onClick={() => setNested(true)}>
-            {flattened_concept_hierarchy.length} lines in nested list.
+          <Button variant={nested ? "contained" : "outlined" } onClick={toggleNested}>
+            {rowData.length} lines in nested list.
           </Button>
-          <Button  variant={nested ? "outlined" : "contained"} sx={{marginLeft: '20px'}} onClick={() => setNested(false)}>
-            {nodups.length} lines without nesting
+          <Button  variant={nested ? "outlined" : "contained"} sx={{marginLeft: '20px'}} onClick={toggleNested}>
+            {Object.keys(allConcepts).length} distinct concepts
           </Button>
         </h5>
-        <ComparisonDataTable nodups={nodups} nested={nested} {...props} />
+        {/* <StatsMessage {...props} /> */}
+        <ComparisonDataTable squishTo={squishTo} {...moreProps} />
+        <div style={{}} ><SquishSlider setSquish={squishChange}/> </div>
       </div>)
+}
+
+function SquishSlider({setSquish}) {
+  // not refreshing... work on later
+  function preventHorizontalKeyboardNavigation(event) {
+    if (event.key === 'ArrowLeft' || event.key === 'ArrowRight') {
+      event.preventDefault();
+    }
+  }
+  function onChange(e, val) {
+    // console.log('val: ', val);
+    setSquish(val);
+  }
+
+  return (
+      <Box sx={{ height: 300 }}>
+        <Slider
+            // key={`slider-${squish}`}
+            sx={{
+              width: '60%',
+              marginLeft: '15%',
+              marginTop: '15px',
+              // '& input[type="range"]': { WebkitAppearance: 'slider-vertical', },
+            }}
+            onChange={onChange}
+            // onChangeCommitted={onChange}
+            // orientation="vertical"
+            min={0.01}
+            max={2}
+            step={.1}
+            // value={squish}
+            defaultValue={1}
+            aria-label="Squish factor"
+            valueLabelDisplay="auto"
+            onKeyDown={preventHorizontalKeyboardNavigation}
+        />
+      </Box>
+  );
 }
 
 export {ConceptSetsPage, CsetComparisonPage, };

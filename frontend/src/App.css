@@ -1,11 +1,31 @@
-.App {
-  /* text-align: center; */
+.toggle-collapse {
+  cursor: pointer;
+}
+.Tooltip {
+  background: #222;
+  color: white;
+  pointer-events: none;
+  border-radius: 6px;
+  padding: 4px 6px;
+  /*
+  font-size: 24px;
+   */
+  width: 150px;
 }
 
 .MuiAutocomplete-option {
   padding: 0px;
   margin: 0px;
   line-height: 10px;
+}
+.comparison-data-table .rdt_TableRow,
+.comparison-data-table .rdt_TableCell {
+  /*
+    height: 3px;
+    max-height: 3px;
+  font-size: 2px;
+   */
+  min-height: 0px;
 }
 .comparison-data-table .rdt_TableHeadRow > div + div
 {

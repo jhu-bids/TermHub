@@ -10,6 +10,7 @@ from argparse import ArgumentParser
 from typing import Dict
 from typeguard import typechecked
 import os
+import re
 import requests
 import pandas as pd
 import tempfile
@@ -18,6 +19,10 @@ import pyarrow.parquet as pq
 # import asyncio
 import shutil
 import time
+from backend.utils import commify, pdump
+from enclave_wrangler.utils import enclave_post, enclave_get
+
+import enclave_wrangler.utils
 
 try:
     from enclave_wrangler.config import config, TERMHUB_CSETS_DIR, FAVORITE_DATASETS, FAVORITE_DATASETS_RID_NAME_MAP
@@ -26,12 +31,12 @@ except ModuleNotFoundError:
     from config import config, TERMHUB_CSETS_DIR, FAVORITE_DATASETS, FAVORITE_DATASETS_RID_NAME_MAP
     from utils import log_debug_info
 
-
-HEADERS = {
-    "authorization": f"Bearer {config['OTHER_TOKEN']}",
-    #"authorization": f"Bearer {config['PALANTIR_ENCLAVE_AUTHENTICATION_BEARER_TOKEN']}",
-    #'content-type': 'application/json'
-}
+# Don't use these headers any more. leave it to the stuff in enclave_wrangler.utils
+# HEADERS = {
+#     "authorization": f"Bearer {enclave_wrangler.utils.get('OTHER_TOKEN', '')}",
+#     #"authorization": f"Bearer {config['PALANTIR_ENCLAVE_AUTHENTICATION_BEARER_TOKEN']}",
+#     #'content-type': 'application/json'
+# }
 DEBUG = False
 # TODO: Once git LFS set up, dl directly to datasets folder, or put these in raw/ and move csvs_repaired to datasets/
 CSV_DOWNLOAD_DIR = os.path.join(TERMHUB_CSETS_DIR, 'datasets', 'downloads')
@@ -40,7 +45,7 @@ os.makedirs(CSV_TRANSFORM_DIR, exist_ok=True)
 
 
 @typechecked
-def getTransaction(datasetRid: str, ref: str = 'master') -> str:
+def getTransaction(dataset_rid: str, ref: str = 'master') -> str:
     """API documentation at
     https://unite.nih.gov/workspace/documentation/developer/api/catalog/services/CatalogService/endpoints/getTransaction
     tested with curl:
@@ -50,10 +55,11 @@ def getTransaction(datasetRid: str, ref: str = 'master') -> str:
         log_debug_info()
 
     endpoint = 'https://unite.nih.gov/foundry-catalog/api/catalog/datasets/'
-    template = '{url}{datasetRid}/transactions/{ref}'
-    url = template.format(url=endpoint, datasetRid=datasetRid, ref=ref)
+    template = '{url}{dataset_rid}/transactions/{ref}'
+    url = template.format(url=endpoint, dataset_rid=dataset_rid, ref=ref)
 
-    response = requests.get(url, headers=HEADERS,)
+    # response = requests.get(url, headers=HEADERS,)
+    response = enclave_get(url, verbose=False)
     response_json = response.json()
     if DEBUG:
         print(response_json)
@@ -61,7 +67,7 @@ def getTransaction(datasetRid: str, ref: str = 'master') -> str:
 
 
 @typechecked
-def views2(datasetRid: str, endRef: str) -> [str]:
+def views2(dataset_rid: str, endRef: str) -> [str]:
     """API documentation at
     https://unite.nih.gov/workspace/documentation/developer/api/catalog/services/CatalogService/endpoints/getDatasetViewFiles2
     tested with curl:
@@ -73,22 +79,25 @@ def views2(datasetRid: str, endRef: str) -> [str]:
         log_debug_info()
 
     endpoint = 'https://unite.nih.gov/foundry-catalog/api/catalog/datasets/'
-    template = '{endpoint}{datasetRid}/views2/{endRef}/files?pageSize=100'
-    url = template.format(endpoint=endpoint, datasetRid=datasetRid, endRef=endRef)
+    template = '{endpoint}{dataset_rid}/views2/{endRef}/files?pageSize=100'
+    url = template.format(endpoint=endpoint, dataset_rid=dataset_rid, endRef=endRef)
 
-    response = requests.get(url, headers=HEADERS,)
+    response = enclave_get(url, verbose=False)
     response_json = response.json()
     file_parts = [f['logicalPath'] for f in response_json['values']]
-    return file_parts[1:]
+    file_parts = [fp for fp in file_parts if re.match('.*part-\d\d\d\d\d', fp)]
+    return file_parts
 
 
 @typechecked
-def download_and_combine_dataset_parts(datasetRid: str, file_parts: [str], outpath: str) -> pd.DataFrame:
+def download_and_combine_dataset_parts(fav: dict, file_parts: [str], outpath: str) -> pd.DataFrame:
     """tested with cURL:
     wget https://unite.nih.gov/foundry-data-proxy/api/dataproxy/datasets/ri.foundry.main.dataset.5cb3c4a3-327a-47bf-a8bf-daf0cafe6772/views/master/spark%2Fpart-00000-c94edb9f-1221-4ae8-ba74-58848a4d79cb-c000.snappy.parquet --header "authorization: Bearer $PALANTIR_ENCLAVE_AUTHENTICATION_BEARER_TOKEN"
     """
+
+    dataset_rid: str = fav['rid']
     endpoint = 'https://unite.nih.gov/foundry-data-proxy/api/dataproxy/datasets'
-    template = '{endpoint}/{datasetRid}/views/master/{fp}'
+    template = '{endpoint}/{dataset_rid}/views/master/{fp}'
     # if DEBUG:
 
     # download parquet files
@@ -96,9 +105,9 @@ def download_and_combine_dataset_parts(datasetRid: str, file_parts: [str], outpa
         # if DEBUG:
         print(f'\nDownloading {outpath}; tempdir {parquet_dir}, filepart endpoints:')
         for fp in file_parts:
-            url = template.format(endpoint=endpoint, datasetRid=datasetRid, fp=fp)
+            url = template.format(endpoint=endpoint, dataset_rid=dataset_rid, fp=fp)
             print('\t' + url)
-            response = requests.get(url, headers=HEADERS, stream=True)
+            response = enclave_get(url, args={'stream':True}, verbose=False)
             if response.status_code == 200:
                 fname = parquet_dir + fp.replace('spark', '')
                 with open(fname, "wb") as f:
@@ -118,20 +127,34 @@ def download_and_combine_dataset_parts(datasetRid: str, file_parts: [str], outpa
             else:
                 raise f'failed opening {url} with {response.status_code}: {response.content}'
         combined_parquet_fname = parquet_dir + '/combined.parquet'
-        combine_parquet_files(parquet_dir, combined_parquet_fname)
-        df = pd.read_parquet(combined_parquet_fname)
+
+        files = []
+        for file_name in os.listdir(parquet_dir):
+            files.append(os.path.join(parquet_dir, file_name))
+
+        if files[0].endswith('.parquet'):
+            combine_parquet_files(files, combined_parquet_fname)
+            df = pd.read_parquet(combined_parquet_fname)
+        elif files[0].endswith('.csv'):
+            if len(files) != 1:
+                raise f"with csv, only expected one file; got: [{', '.join(files)}]"
+            df = pd.read_csv(files[0], names=fav['column_names'])
+        else:
+            raise f"unexpected file(s) downloaded: [{', '.join(files)}]"
+
         if outpath:
             os.makedirs(os.path.dirname(outpath), exist_ok=True)
             df.to_csv(outpath, index=False)
+        print(f'Downloaded {os.path.basename(outpath)}, {commify(len(df))} records\n')
         return df
 
 
-def combine_parquet_files(input_folder, target_path):
+def combine_parquet_files(input_files, target_path):
+    files = []
+    input_folder = os.path.dirname(target_path)
     try:
-        files = []
-        for file_name in os.listdir(input_folder):
-            files.append(pq.read_table(os.path.join(input_folder, file_name)))
-
+        for file_name in input_files:
+            files.append(pq.read_table(file_name))
         with pq.ParquetWriter(
             target_path,
             files[0].schema,
@@ -144,7 +167,7 @@ def combine_parquet_files(input_folder, target_path):
             for f in files:
                 writer.write_table(f)
     except Exception as e:
-        print(e)
+        print(e, file=sys.stderr)
 
 
 def transform_dataset__concept_relationship(dataset_name: str) -> pd.DataFrame:
@@ -299,28 +322,29 @@ def transform(fav: dict) -> pd.DataFrame:
     return df
 
 
-def run( fav,
-    dataset_name: str = None, dataset_rid: str = None, ref: str = 'master', outdir: str = None, outpath: str = None,
-    transforms_only=False
+def run(
+    dataset_name: str = None, dataset_rid: str = None, ref: str = 'master', output_dir: str = None, outpath: str = None,
+    transforms_only=False, fav: Dict = None
 ) -> pd.DataFrame:
     dataset_rid = FAVORITE_DATASETS[dataset_name]['rid'] if not dataset_rid else dataset_rid
     dataset_name = FAVORITE_DATASETS_RID_NAME_MAP[dataset_rid] if not dataset_name else dataset_name
+    fav = fav if fav else FAVORITE_DATASETS[dataset_name]
 
     # Download
     df = pd.DataFrame()
     if not transforms_only:
         # TODO: Temp: would be good to accept either 'outdir' or 'outpath'.
         if not outpath:
-            outpath = os.path.join(outdir, f'{dataset_rid}__{ref}.csv') if outdir else None
+            outpath = os.path.join(output_dir, f'{dataset_name}.csv') if output_dir else None
         if os.path.exists(outpath):
             t = time.ctime(os.path.getmtime(outpath))
             print(f'Skipping {outpath}: {t}, {os.path.getsize(outpath)} bytes.')
-            return pd.read_csv(outpath)
-        endRef = getTransaction(dataset_rid, ref)
-        args = {'datasetRid': dataset_rid, 'endRef': endRef}
-        file_parts = views2(**args)
-        # asyncio.run(download_and_combine_dataset_parts(datasetRid, file_parts))
-        df: pd.DataFrame = download_and_combine_dataset_parts(dataset_rid, file_parts, outpath=outpath)
+        else:
+            endRef = getTransaction(dataset_rid, ref)
+            args = {'dataset_rid': dataset_rid, 'endRef': endRef}
+            file_parts = views2(**args)
+            # asyncio.run(download_and_combine_dataset_parts(dataset_rid, file_parts))
+            df: pd.DataFrame = download_and_combine_dataset_parts(fav, file_parts, outpath=outpath)
 
     # Transform
     df2: pd.DataFrame = transform(fav)
@@ -333,7 +357,7 @@ def run_favorites(outdir: str = CSV_DOWNLOAD_DIR, transforms_only=False, specifi
     for fav in FAVORITE_DATASETS.values():
         if not specific or fav['name'] in specific:
             outpath = os.path.join(outdir, fav['name'] + '.csv')
-            run(fav=fav, dataset_name=fav['name'], outpath=outpath, transforms_only=transforms_only, )
+            run(fav=fav, dataset_name=fav['name'], outpath=outpath, transforms_only=transforms_only)
 
 
 def get_parser():
@@ -346,17 +370,15 @@ def get_parser():
           'This part is for downloading enclave datasets.'
     parser = ArgumentParser(description=package_description)
 
+    # parser.add_argument(
+    #     '-a', '--auth_token_env_var',
+    #     default='PALANTIR_ENCLAVE_AUTHENTICATION_BEARER_TOKEN',
+    #     help='Name of the environment variable holding the auth token you want to use')
     parser.add_argument(
-        '-a', '--auth_token_env_var',
-        default='PALANTIR_ENCLAVE_AUTHENTICATION_BEARER_TOKEN',
-        help='Name of the environment variable holding the auth token you want to use')
-
-    parser.add_argument(
-        '-n', '--datasetName',
+        '-n', '--dataset-name',
         help='Name of enclave dataset you want to download. CSV will be saved to ValueSet-Tools/data/datasets/<name>')
-
     parser.add_argument(
-        '-i', '--datasetRid',
+        '-i', '--dataset-rid',
         help='RID of enclave dataset you want to download.')
     parser.add_argument(
         '-r', '--ref',
@@ -388,14 +410,14 @@ def cli():
 
     # Run
     specific = []
-    if d['datasetName']:
-        specific.append(d['datasetName'])
+    if d['dataset_name']:
+        specific.append(d['dataset_name'])
 
     if d['favorites']:
         run_favorites(outdir=d['output_dir'], transforms_only=d['transforms_only'], specific=specific)
     else:
-        args = {key: d[key] for key in ['datasetRid', 'ref']}
-        run(**args)
+        del d['favorites']
+        run(**d)
 
 if __name__ == '__main__':
     cli()

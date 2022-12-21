@@ -3,6 +3,9 @@
 ## [Features under development / consideration](https://docs.google.com/spreadsheets/d/19_eBv0MIBWPcXMTw3JJdcfPoEFhns93F-TKdODW27B8/edit#gid=0)
 More info: [Requirements](https://github.com/jhu-bids/TermHub/issues/72)
 
+### Uploading CSVs to create/edit concept sets
+TermHub can take a CSV and create/edit concepts and concept sets. [Read more](./termhub-csets/n3c-upload-jobs/README.md)
+
 ### Vocabulary management (a single concept, subsets of or an entire vocabulary)
 The simple concept vocabulary mapping, SNOMED, etc.
 
@@ -55,6 +58,9 @@ User Interactions
 ## Developer docs
 - [Frontend](./frontend/README.md)  
 - [Backend](./backend/README.md)
+
+[//]: # (3. Run: `git lfs install` if not installed already
+[//]: # (4. If any expected files are not showing up in `termhub-csets/`, run `git lfs pull`)
 
 ### Local setup
 1. Clone the repository.

@@ -1,35 +1,8 @@
-import React from 'react';
-import {isEqual, orderBy, } from 'lodash';
+import React, {useState, useCallback, useEffect, useMemo, } from 'react';
+import {isEqual, orderBy, get, } from 'lodash';
 import DataTable, { createTheme } from 'react-data-table-component';
-import {useSearchParams} from "react-router-dom";
-
-// createTheme creates a new theme named solarized that overrides the build in dark theme
-// https://github.com/jbetancur/react-data-table-component/blob/master/src/DataTable/themes.ts
-createTheme('custom-theme', {
-    text: {
-      primary: '#268bd2',
-      secondary: '#2aa198',
-    },
-    context: {
-        background: '#cb4b16',
-        text: '#FFFFFF',
-    },
-    /*
-    divider: {
-        default: '#073642',
-    },
-    background: {
-        default: '#002b36',
-    },
-    action: {
-      button: 'rgba(0,0,0,.54)',
-      hover: 'rgba(0,0,0,.08)',
-      disabled: 'rgba(0,0,0,.12)',
-    },
-    */
-}, 'light');
-
-
+import {pct_fmt, StatsMessage,} from './utils';
+import {Tooltip} from './Tooltip';
 // import Checkbox from '@material-ui/core/Checkbox';
 // import ArrowDownward from '@material-ui/icons/ArrowDownward';
 // const sortIcon = <ArrowDownward />;
@@ -38,70 +11,40 @@ createTheme('custom-theme', {
 // https://react-data-table-component.netlify.app/?path=/docs/api-custom-styles--page
 //  Internally, customStyles will deep merges your customStyles with the default styling.
 
+/* TODO: review function for appropriate state management */
 function CsetsDataTable(props) {
-    const {codeset_ids=[], cset_data={}} = props;
-    const {flattened_concept_hierarchy=[], concept_set_members_i=[], all_csets=[], } = cset_data;
+    const {codeset_ids, changeCodesetIds, cset_data={}} = props;
+    const {selected_csets, } = cset_data;
 
-    let related_csets = all_csets.filter(d => d.related);
+    const [relatedCsets, setRelatedCsets] = useState(cset_data.related_csets);
 
-    console.log('CsetsDataTable props: ', props);
-    const [selectedRows, setSelectedRows] = React.useState(false);
-    const [searchParams, setSearchParams] = useSearchParams();
-    // const [toggledClearRows, setToggleClearRows] = React.useState(false);
-    /*  example row
-    {
-        "codeset_id": 826535586,
-        "concept_set_name": "UVA Equity Asthma",
-        "version": "1",
-        "concepts": 619,
-        "selected": true
-    }
-    */
+    useEffect(() => {
+        // props.csetData.relatedCsets.forEach(rc => rc.selected = codeset_ids.includes(rc.codeset_id))
+        const rcsets = orderBy(get(props, 'cset_data.related_csets', []), ['selected', 'precision'], ['desc', 'desc'])
+        // console.log({props, rcsets});
+        setRelatedCsets(rcsets);
+    }, [codeset_ids.join(','), selected_csets.length])
     let coldefs = getColdefs();
-    /*
-    const conditionalRowStyles = [{
-        when: row => row.selected,
-        style: {
-            backgroundColor: 'rgba(63, 195, 128, 0.9)',
-            color: 'white',
-            '&:hover': {
-                cursor: 'pointer',
-            },
-        }
-    }];
-    */
+    /* const conditionalRowStyles = [{ when: row => row.selected,
+        style: { backgroundColor: 'rgba(63, 195, 128, 0.9)', color: 'white',
+                '&:hover': { cursor: 'pointer', }, } }]; */
 
     let customStyles = getCustomStyles();
-    const handleSelectionChange = React.useCallback(state => {
+    const handleRowClick = useCallback(row => changeCodesetIds(row.codeset_id, 'toggle'));
+    /*
+    const handleSelectionChange = useCallback(state => {
         const {selectedRows} = state;
         let ids = selectedRows.map(d => d.codeset_id).sort()
-        if (!isEqual(codeset_ids, ids)) {
-            setSearchParams({codeset_id: ids});
+        if (!isEqual(props.codeset_ids, ids)) {
+            // console.log(`try to change qs[codeset_id] from ${codeset_ids} to ${ids}`)
+            setSearchParams({codeset_id: ids, });
         }
         // setSelectedRows(selectedRows);
-    }, [])
+    }, [codeset_ids]);
+     */
 
-    const related_ids = new Set(flattened_concept_hierarchy.map(d => d.concept_id));
-    const all_concept_ids = new Set(concept_set_members_i.map(d => d.concept_id));
-    let stats = {
-        csets_chosen: codeset_ids.length,
-        hierarchy_concepts: related_ids.size,
-        nested_list_lines: flattened_concept_hierarchy.length,
-        total_concepts: all_concept_ids.size,
-        related_csets: related_csets.length,
-    }
-    let not_in_list = [...concept_set_members_i].filter(d => !related_ids.has(d.concept_id))
-    console.log({stats, not_in_list, concept_set_members_i, related_ids, related_csets});
-
-    const subHeader = <div>
-        <p style={{margin:0, fontSize: 'small',}}>The <strong>{stats.csets_chosen} concept sets </strong>
-            selected contain a total of <strong>{stats.total_concepts} distinct concepts </strong>
-            of which <strong>only {stats.hierarchy_concepts}</strong> (why? not sure yet) appear
-            in the <strong>{stats.nested_list_lines} lines</strong> of the nested hierarchy on the
-            comparison page.</p>
-        <p> The following <strong>{stats.related_csets} concept sets</strong> have 1 or more concepts
-            in common with the selected sets. Select from below if you want to add to the above list.</p>
-    </div>;
+    // const related_ids = new Set(f lattened_concept_hierarchy.map(d => d.concept_id));
+    const subHeader = <StatsMessage {...props} />
 
     const rowSelectCritera = row => row.selected;
     // todo: p -> data table: data table has a property for showing some sort of paragraph text
@@ -109,6 +52,14 @@ function CsetsDataTable(props) {
     return (
         <div className="csets-data-table" >
             <DataTable
+                data={relatedCsets}
+                // selectableRows
+                selectableRowsHighlight
+                selectableRowSelected={rowSelectCritera}
+                // onSelectedRowsChange={handleSelectionChange}
+                onRowClicked={handleRowClick}
+
+                customStyles={customStyles}
                 noHeader={false}
                 title="Related concept sets"
                 subHeader
@@ -116,11 +67,9 @@ function CsetsDataTable(props) {
                 // theme="custom-theme"
                 // theme="light"
                 columns={coldefs}
-                defaultSortFieldId={4}
-                defaultSortAsc={false}
-                data={related_csets}
+                // defaultSortFieldId={4}
+                // defaultSortAsc={false}
 
-                //customStyles={customStyles}   PUT THIS BACK
 
                 // conditionalRowStyles={conditionalRowStyles}
                 height="300px"
@@ -140,10 +89,6 @@ function CsetsDataTable(props) {
                 highlightOnHover
                 pointerOnHover
                 responsive
-                selectableRows
-                selectableRowsHighlight
-                selectableRowSelected={rowSelectCritera}
-                onSelectedRowsChange={handleSelectionChange}
                 subHeaderAlign="left"
                 subHeaderWrap
                 // sortFunction={customSort}
@@ -152,12 +97,19 @@ function CsetsDataTable(props) {
     );
 }
 function getColdefs() {
-    const pct_fmt = num => Number(num/100).toLocaleString(undefined,{style: 'percent', minimumFractionDigits:2});
     const descending = (rows, selector, direction) => {
         return orderBy(rows, selector, ['desc']);
     };
     return [
         // { name: 'level', selector: row => row.level, },
+        {
+            name: 'Version ID',
+            // selector: row => `${row.concept_set_name} (v${row.version})`,
+            selector: row => row.codeset_id,
+            compact: true,
+            sortable: true,
+            width: '90px',
+        },
         {
             name: 'Concept set name',
             // selector: row => `${row.concept_set_name} (v${row.version})`,
@@ -167,7 +119,10 @@ function getColdefs() {
             sortable: true,
         },
         {
-            name: 'Concepts',
+            //name: 'Concepts',
+            name:   <Tooltip label="Number of concepts in this concept set.">
+                        <span>Concepts</span>
+                    </Tooltip>,
             selector: row => row.concepts,
             compact: true,
             width: '70px',
@@ -175,7 +130,10 @@ function getColdefs() {
             sortable: true,
         },
         {
-            name: 'Shared concepts',
+            // name: 'Shared concepts',
+            name:   <Tooltip label="Number of concepts in this set that also belong to the selected concept sets.">
+                        <span>Shared</span>
+                    </Tooltip>,
             selector: row => row.intersecting_concepts,
             compact: true,
             width: '70px',
@@ -183,7 +141,9 @@ function getColdefs() {
             sortable: true,
         },
         {
-            name: 'Precision',
+            name:   <Tooltip label="Portion of the concepts in this set shared with the selected concept sets.">
+                        <span>Precision</span>
+                    </Tooltip>,
             selector: row => row.precision,
             format: row => pct_fmt(row.precision),
             desc: true,
@@ -194,21 +154,50 @@ function getColdefs() {
             // sortFunction: descending,
         },
         {
-            name: 'Recall',
-            selector: row => pct_fmt(row.recall),
+            // name: 'Recall',
+            name:   <Tooltip label="Portion of concepts in the selected concept sets that belong to this set.">
+                        <span>Recall</span>
+                    </Tooltip>,
+            selector: row => row.recall,
+            format: row => pct_fmt(row.recall),
+            desc: true,
             compact: true,
             width: '70px',
             center: true,
             sortable: true,
         },
         {
-            name: 'Archived',
+            name:   <Tooltip label="Approximate distinct person count. Small counts rounded up to 20.">
+                        <span>Patients</span>
+                    </Tooltip>,
+            selector: row => row.approx_distinct_person_count.toLocaleString(),
+            compact: true,
+            width: '70px',
+            center: true,
+            sortable: true,
+        },
+        {
+            name:   <Tooltip label="Record count. Small counts rounded up to 20.">
+                        <span>Records</span>
+                    </Tooltip>,
+            selector: row => row.approx_total_record_count.toLocaleString(),
+            compact: true,
+            width: '78px',
+            center: true,
+            sortable: true,
+        },
+        /*
+        {
+            name:   <Tooltip label="Checked if this concept set is marked as archived in the enclave.">
+                <span>Archived</span>
+            </Tooltip>,
             selector: row => row.archived ? '\u2713' : '',
             compact: true,
             width: '70px',
             center: true,
             sortable: true,
         },
+         */
     ];
 }
 
@@ -217,7 +206,8 @@ function getCustomStyles() {
         table: {
             style: {
                 padding: '20px',
-                width: '100%',
+                margin: '1%',
+                width: '98%',
                 // margin: '20px',
                 // height: '20vh',
                 // maxWidth: '85%',
@@ -282,5 +272,30 @@ function getCustomStyles() {
     */
     };
 }
+// createTheme creates a new theme named solarized that overrides the build in dark theme
+// https://github.com/jbetancur/react-data-table-component/blob/master/src/DataTable/themes.ts
+createTheme('custom-theme', {
+    text: {
+        primary: '#268bd2',
+        secondary: '#2aa198',
+    },
+    context: {
+        background: '#cb4b16',
+        text: '#FFFFFF',
+    },
+    /*
+    divider: {
+        default: '#073642',
+    },
+    background: {
+        default: '#002b36',
+    },
+    action: {
+      button: 'rgba(0,0,0,.54)',
+      hover: 'rgba(0,0,0,.08)',
+      disabled: 'rgba(0,0,0,.12)',
+    },
+    */
+}, 'light');
 
-export {CsetsDataTable};
+export {CsetsDataTable, };

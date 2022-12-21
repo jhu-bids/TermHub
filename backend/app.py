@@ -4,251 +4,27 @@ Resources
 - https://github.com/tiangolo/fastapi
 """
 import json
-import os
-import errno
-from pathlib import Path
-from subprocess import call as sp_call
-from typing import Any, Dict, List, Union, Callable, Set
+from datetime import datetime
+from typing import Any, Dict, List, Union
+from functools import cache
 
-import numpy as np
-import pandas as pd
-import requests
 import uvicorn
+import urllib.parse
 from fastapi import FastAPI, Query
 from fastapi.middleware.cors import CORSMiddleware
-# from pandasql import sqldf
+from fastapi.middleware.gzip import GZipMiddleware
 from pydantic import BaseModel
+from sqlalchemy.engine import LegacyRow, RowMapping
 
-from enclave_wrangler.config import config, FAVORITE_DATASETS
+from backend.db.queries import get_all_parent_child_subsumes_tuples
+from backend.utils import hierarchify_list_of_parent_kids
+from enclave_wrangler.dataset_upload import upload_new_container_with_concepts, upload_new_cset_version_with_concepts
+from enclave_wrangler.utils import make_objects_request
 
-DEBUG = True
-PROJECT_DIR = Path(os.path.dirname(__file__)).parent
-CSV_PATH = f'{PROJECT_DIR}/termhub-csets/datasets/prepped_files/'
-DS = None  # Contains all the datasets as a dict
-ds = None  # Contains all datasets, transformed datasets, and a few functions as a nameespace
+from backend.db.utils import get_db_connection, sql_query, SCHEMA, sql_query_single_col
 
-def load_dataset(ds_name):
-    try:
-        path = os.path.join(CSV_PATH, ds_name + '.csv')
-        print(f'loading {path}')
-        ds = pd.read_csv(path, keep_default_na=False)
-        return ds
-    except Exception as err:
-        print(f'failed loading {path}')
-        raise err
-
-# todo: consider: run 2 backend servers, 1 to hold the data and 1 to service requests / logic? probably.
-# TODO: #2: remove try/except when git lfs fully set up
-try:
-    # todo: temp until we decide if this is the correct way
-
-    # dataset_names = list(FAVORITE_DATASETS.keys()) + ['concept_relationship_is_a']
-
-    dataset_names = ['concept_set_members',
-                     'concept',
-                     'concept_relationship_subsumes_only',
-                     'concept_set_container',
-                     'code_sets',
-                     'concept_set_version_item']
-
-    DS = {name: load_dataset(name) for name in dataset_names}
-    #  TODO: Fix this warning? (Joe: doing so will help load faster, actually)
-    #   DtypeWarning: Columns (4) have mixed types. Specify dtype option on import or set low_memory=False.
-    #   keep_default_na fixes some or all the warnings, but doesn't manage dtypes well.
-    #   did this in termhub-csets/datasets/fixing-and-paring-down-csv-files.ipynb:
-    #   csm = pd.read_csv('./concept_set_members.csv',
-    #                    # dtype={'archived': bool},    # doesn't work because of missing values
-    #                   converters={'archived': lambda x: x and True or False}, # this makes it a bool field
-    #                   keep_default_na=False)
-
-    #  TODO: try to fix.... not working yet:
-    # code_set.version got mangled into version numbers like 1.0, 2.0
-    #
-    # converters = {
-    #     'int': lambda v: v.astype(int)
-    # }
-    # def bool_converter(v):
-    #     return v and True or False
-    #
-    # csv_opts = {
-    #     # 'code_sets': {'dtype': {'version': int}}
-    #     'code_sets': {'converters': {'version': converters['int']}}
-    # }
-    #
-    # df = pd.read_csv(os.path.join(CSV_PATH, 'code_sets' + '.csv'), **(csv_opts['code_sets']))
-
-    print(f'Favorite datasets loaded: {list(DS.keys())}')
-    # todo: pandasql better?
-    # PYSQLDF = lambda q: sqldf(q, globals()) # I think you need to call this in the function you're using it in
-    # COUNTS = PYSQLDF("""
-    #     SELECT vocabulary_id, COUNT(*) AS cnt
-    #     FROM CONCEPT
-    #     GROUP BY 1""")
-except Exception as err:
-    print(f'failed loading datasets', err)
-
-
-class Bunch(object):    # dictionary to namespace, a la https://stackoverflow.com/a/2597440/1368860
-  def __init__(self, adict):
-    self.__dict__.update(adict)
-
-def make_data_stuff():
-    """
-    expose tables and other stuff in namespace for convenient reference
-        links                   # concept_relationship grouped by concept_id_1, subsumes only
-        child_cids()            # function returning all the concept_ids that are
-                                #   children (concept_id_1) of a concept_id
-        connect_children()      # function returning concept hierarchy. see #139
-                                #   (https://github.com/jhu-bids/TermHub/issues/139)
-                                #   currently doing lists of tuples, will probably
-                                #   switch to dict of dicts
-    """
-    ds = Bunch(DS)
-
-    # Filters out any concepts w/ no name
-    ds.concept_set_members = ds.concept_set_members[ds.concept_set_members.concept_set_name.str.len() > 0]
-    # TODO: try this later. will require filtering other stuff also? This will be useful for provenance
-    # ds.concept_set_members = ds.concept_set_members[~ds.concept_set_members.archived]
-    # ds.data_messages = [
-    #     'concept_set_members filtered to exclude concept sets with empty names'
-    #     'concept_set_members filtered to exclude archived concept set'
-    # ]
-
-    ds.concept.set_index('concept_id', inplace=True)
-
-    # Reassign; we only care about the subsumes_only
-    # ds.subsumes = ds.concept_relationship[ds.concept_relationship.relationship_id == 'Subsumes']
-    ds.concept_relationship = ds.concept_relationship_subsumes_only
-    ds.links = ds.concept_relationship.groupby('concept_id_1')
-    # ds.all_concept_relationship_cids = set(ds.concept_relationship.concept_id_1).union(set(ds.concept_relationship.concept_id_2))
-
-    def child_cids(cid):
-        """Return list of `concept_id_2` for each `concept_id_1` (aka all its children)"""
-        if cid in ds.links.groups.keys():
-            return [int(c) for c in ds.links.get_group(cid).concept_id_2.unique() if c != cid]
-    ds.child_cids = child_cids
-
-    # todo: Not being used yet. Will use when doing hierarchical stuff later.
-    def connect_children(pc): # how to declare this should be tuple of int or None and list of ints
-        pcid, cids = pc
-        pcid in cids and cids.remove(pcid)
-        expanded_cids = [ds.child_cids(cid) for cid in cids]
-        return (pcid, [connect_children(ec) if type(ec)==tuple else ec for ec in expanded_cids])
-    ds.connect_children = connect_children
-
-    # Take codesets, and merge on container. Add to each version.
-    # Some columns in codeset and container have the same name, hence suffix
-    # ...The merge on `concept_set_members` is used for concept counts for each codeset version.
-    ds.all_csets = ds.code_sets.merge(
-        ds.concept_set_container, suffixes=['_version', '_container'], on='concept_set_name').merge(
-        ds.concept_set_members.groupby('codeset_id')['concept_id'].nunique().reset_index().rename(
-            columns={'concept_id': 'concepts'}), on='codeset_id')
-
-    print('Done building global ds objects')
-    return ds
-
-ds = make_data_stuff()
-
-def data_stuff_for_codeset_ids(codeset_ids):
-    """
-    for specific codeset_ids:
-        subsets of tables:
-            df_code_set_i
-            df_concept_set_members_i
-            df_concept_relationship_i
-        and other stuff:
-            concept_ids             # union of all the concept_ids across the requested codesets
-            related                 # sorted list of related concept sets
-            codesets_by_concept_id  # lookup codeset_ids a concept_id belongs to (in dsi instead of ds because of possible performance impacts)
-            top_level_cids          # concepts in selected codesets that have no parent concepts in this group
-            cset_name_columns       #
-
-    """
-    dsi = Bunch({})
-
-    dsi.code_sets_i = ds.code_sets[ds.code_sets['codeset_id'].isin(codeset_ids)]
-
-    dsi.concept_set_members_i = ds.concept_set_members[ds.concept_set_members['codeset_id'].isin(codeset_ids)]
-
-    dsi.concept_relationship_i = ds.concept_relationship[
-        (ds.concept_relationship.concept_id_1.isin(dsi.concept_set_members_i.concept_id)) &
-        (ds.concept_relationship.concept_id_2.isin(dsi.concept_set_members_i.concept_id)) &
-        (ds.concept_relationship.concept_id_1 != ds.concept_relationship.concept_id_2)
-        # & (ds.concept_relationship.relationship_id == 'Subsumes')
-        ]
-
-    all_csets = ds.all_csets[[
-        'codeset_id', 'concept_set_version_title', 'is_most_recent_version', 'intention_version', 'intention_container',
-        'limitations', 'issues', 'update_message', 'has_review', 'provenance', 'authoritative_source', 'project_id',
-        'status_version', 'status_container', 'stage', 'archived', 'concepts']]
-
-    all_csets['selected'] = all_csets['codeset_id'].isin(codeset_ids)
-
-    # Get related codeset IDs
-    concept_ids: Set[int] = set(dsi.concept_set_members_i.concept_id.unique())
-    dsi.related_codeset_ids = ds.concept_set_members[
-        ds.concept_set_members.concept_id.isin(concept_ids)].codeset_id.unique()
-    all_csets['related'] = all_csets['codeset_id'].isin(dsi.related_codeset_ids)
-
-    # Drop duplicates & sort
-    all_csets = all_csets.drop_duplicates().sort_values(by=['selected', 'concepts'], ascending=False)
-
-    # Add columns for % overlap: 1) % of selected csets' concepts and 2) % of related cset's concepts
-    dsi.concept_set_members_r = ds.concept_set_members[
-        ds.concept_set_members['codeset_id'].isin(dsi.related_codeset_ids)
-        ].drop_duplicates()
-
-    # dsi.concept_set_members_i.merge(dsi.concept_set_members_r, how='right', on='codeset_id').drop_duplicates()
-    # dsi.csm_related_to_nothing = dsi.concept_set_members_i[
-    #    ~ dsi.concept_set_members_i.concept_id.isin(ds.all_concept_relationship_cids)]
-
-    g = dsi.concept_set_members_r.groupby('codeset_id')
-    r_with_intersecting_cids = g.apply(lambda r: set(r.concept_id).intersection(concept_ids))
-    if len(r_with_intersecting_cids):
-        x = pd.DataFrame(data={'intersecting_concept_ids': r_with_intersecting_cids,})
-        x['intersecting_concepts'] = x.intersecting_concept_ids.apply(lambda r: len(r))
-        x.drop('intersecting_concept_ids', axis=1, inplace=True)
-        all_csets = all_csets.merge(x, how='left', on='codeset_id')
-        all_csets = all_csets.convert_dtypes({'intersecting_concepts': 'int'})
-        all_csets['recall'] = all_csets.intersecting_concepts / len(concept_ids)
-        all_csets['precision'] = all_csets.intersecting_concepts / all_csets.concepts
-        # all_csets['csm_related_to_nothing'] = dsi.csm_related_to_nothing
-
-    dsi.all_csets = all_csets
-
-    # Get relationships for selected code sets
-    dsi.links = dsi.concept_relationship_i.groupby('concept_id_1')
-
-
-    # Get child `concept_id`
-    def child_cids(cid):
-        """Closure for geting child concept IDs"""
-        if cid in dsi.links.groups.keys():
-            return [int(c) for c in dsi.links.get_group(cid).concept_id_2.unique() if c != cid]
-    dsi.child_cids = child_cids
-
-    # For a given `concept_id`, get a list of `codeset_id` that it appears in
-    dsi.codesets_by_concept_id = dsi.concept_set_members_i[['concept_id', 'codeset_id']] \
-        .drop_duplicates() \
-        .set_index('codeset_id') \
-        .groupby('concept_id').groups
-    for cid, codeset_ids in dsi.codesets_by_concept_id.items():
-        dsi.codesets_by_concept_id[cid] = [int(codeset_id) for codeset_id in codeset_ids]
-
-    # Top level concept IDs for the root of our flattened hierarchy
-    dsi.top_level_cids = list(
-        dsi.concept_relationship_i[~dsi.concept_relationship_i.concept_id_1.isin(dsi.concept_relationship_i.concept_id_2)
-        ].concept_id_1.unique())
-
-    return dsi
-
-def parse_codeset_ids(qstring):
-    if not qstring:
-        return []
-    requested_codeset_ids = qstring.split('|')
-    requested_codeset_ids = [int(x) for x in requested_codeset_ids]
-    return requested_codeset_ids
-
+# CON: using a global connection object is probably a terrible idea, but shouldn't matter much until there are multiple
+# users on the same server
 APP = FastAPI()
 APP.add_middleware(
     CORSMiddleware,
@@ -256,8 +32,257 @@ APP.add_middleware(
     allow_methods=['*'],
     allow_headers=['*']
 )
+APP.add_middleware(GZipMiddleware, minimum_size=1000)
+CON = get_db_connection()
+CACHE = {
+    'all_parent_child_subsumes_tuples': get_all_parent_child_subsumes_tuples(CON)
+}
 
 
+# Utility functions ----------------------------------------------------------------------------------------------------
+@cache
+def parse_codeset_ids(qstring) -> List[int]:
+    """Parse codeset_ids which are a | delimited string"""
+    if not qstring:
+        return []
+    requested_codeset_ids = qstring.split('|')
+    requested_codeset_ids = [int(x) for x in requested_codeset_ids]
+    return requested_codeset_ids
+
+
+@cache
+def get_container(concept_set_name):
+    """This is for getting the RID of a dataset. This is available via the ontology API, not the dataset API.
+    TODO: This needs caching, but the @cache decorator is not working."""
+    return make_objects_request(f'objects/OMOPConceptSetContainer/{urllib.parse.quote(concept_set_name)}')
+
+
+def run(port: int = 8000):
+    """Run app"""
+    uvicorn.run(APP, host='0.0.0.0', port=port)
+
+
+# Database functions ---------------------------------------------------------------------------------------------------
+def get_concept_set_member_ids(
+    codeset_ids: List[int], columns: Union[List[str], None] = None, column: Union[str, None] = None, con=CON
+) -> Union[List[int], List[LegacyRow]]:
+    """Get concept set members"""
+    if column:
+        columns = [column]
+    if not columns:
+        columns = ['codeset_id', 'concept_id']
+
+    # should check that column names are valid columns in concept_set_members
+    query = f"""
+        SELECT DISTINCT {', '.join(columns)}
+        FROM concept_set_members csm
+        WHERE csm.codeset_id = ANY(:codeset_ids)
+    """
+    res: List[LegacyRow] = sql_query(con, query, {'codeset_ids': codeset_ids}, debug=False)
+    if column:  # with single column, don't return List[Dict] but just List(<column>)
+        res: List[int] = [r[0] for r in res]
+    return res
+
+
+# TODO
+#  i. Keys in our old `get_csets` that are not there anymore:
+#   ['precision', 'status_container', 'concept_set_id', 'rid', 'selected', 'created_at_container', 'created_at_version', 'intention_container', 'researchers', 'intention_version', 'created_by_container', 'intersecting_concepts', 'recall', 'status_version', 'created_by_version']
+#  ii. Keys in our new `get_csets` that were not there previously:
+#   ['created_at', 'container_intentionall_csets', 'created_by', 'container_created_at', 'status', 'intention', 'container_status', 'container_created_by']
+#  fixes:
+#       probably don't need precision etc.
+#       switched _container suffix on duplicate col names to container_ prefix
+#       joined OMOPConceptSet in the all_csets ddl to get `rid`
+def get_csets(codeset_ids: List[int], con=CON) -> List[Dict]:
+    """Get information about concept sets the user has selected"""
+    rows: List[LegacyRow] = sql_query(
+        con, """
+          SELECT *
+          FROM all_csets
+          WHERE codeset_id = ANY(:codeset_ids);""",
+        {'codeset_ids': codeset_ids})
+    # {'codeset_ids': ','.join([str(id) for id in requested_codeset_ids])})
+    rows2 = [dict(x) for x in rows]
+    rows3 = [populate_researchers(x) for x in rows2]
+    return rows3
+
+
+def get_concepts(concept_ids: List[int], con=CON) -> List[Dict]:
+    """Get information about concept sets the user has selected"""
+    rows: List[LegacyRow] = sql_query(
+        con, """
+          SELECT *
+          FROM concepts_with_counts
+          WHERE concept_id = ANY(:concept_ids);""",
+        {'concept_ids': concept_ids})
+    return rows
+
+
+def populate_researchers(codeset_row: Dict) -> Dict:
+    """Takes a codeset row (dictionary) and returns a dictionary with researcher info"""
+    researcher_cols = ['container_created_by', 'codeset_created_by', 'assigned_sme', 'reviewed_by', 'n3c_reviewer',
+                       'assigned_informatician']
+    researcher_ids = set()
+    row = codeset_row
+    for _id in [row[col] for col in researcher_cols if col in row and row[col]]:
+        researcher_ids.add(_id)
+    row['researchers'] = [get_researcher(_id, fields=['name']) for _id in researcher_ids]
+    return row
+
+
+def get_researcher(_id: int, fields: List[str] = None) -> List[Dict]:
+    """Get researcher info"""
+    query = f"""
+        SELECT {', '.join([f'"{x}"' for x in fields])}
+        FROM researcher
+        WHERE "multipassId" = :id
+    """
+    res: List[RowMapping] = sql_query(CON, query, {'id': _id}, return_with_keys=True)
+    res2: List[Dict] = [{**{'id': _id}, **{k: v for k, v in dict(x).items()}} for x in res]
+
+    return res2
+
+
+# TODO
+#  i. Keys in our old `related_csets` that are not there anymore:
+#   ['precision', 'status_container', 'concept_set_id', 'selected', 'created_at_container', 'created_at_version', 'intention_container', 'intention_version', 'created_by_container', 'intersecting_concepts', 'recall', 'status_version', 'created_by_version']
+#  ii. Keys in our new `related_csets` that were not there previously:
+#   ['created_at', 'container_intentionall_csets', 'created_by', 'container_created_at', 'status', 'intention', 'container_status', 'container_created_by']
+#  see fixes above. i think everything here is fixed now
+def related_csets(codeset_ids: List[int] = None, selected_concept_ids: List[int] = None, con=CON) -> List[Dict]:
+    """Get information about concept sets related to those selected by user"""
+    if codeset_ids and not selected_concept_ids:
+        selected_concept_ids = get_concept_set_member_ids(codeset_ids, column='concept_id')
+    query = """
+    SELECT DISTINCT codeset_id
+    FROM concept_set_members
+    WHERE concept_id = ANY(:concept_ids)
+    """
+    related_codeset_ids = sql_query_single_col(con, query, {'concept_ids': selected_concept_ids}, )
+    related_csets = get_csets(related_codeset_ids)
+    selected_cids = set(selected_concept_ids)
+    selected_cid_cnt = len(selected_concept_ids)
+    for cset in related_csets:
+        cids = get_concept_set_member_ids([cset['codeset_id']], column='concept_id')
+        intersecting_concepts = set(cids).intersection(selected_cids)
+        cset['intersecting_concepts'] = len(intersecting_concepts)
+        cset['recall'] = cset['intersecting_concepts'] / selected_cid_cnt
+        cset['precision'] = cset['intersecting_concepts'] / len(cids)
+        cset['selected'] = cset['codeset_id'] in codeset_ids
+    return related_csets
+
+
+def cset_members_items(codeset_ids: List[int] = None, con=CON) -> List[LegacyRow]:
+    return sql_query(
+        con, f""" 
+        SELECT *
+        FROM cset_members_items
+        WHERE codeset_id = ANY(:codeset_ids)
+        """,
+        {'codeset_ids': codeset_ids})
+
+
+def hierarchy(codeset_ids: List[int] = None, selected_concept_ids: List[int] = None, con=CON) -> Dict:
+    """Get hierarchy of concepts in selected concept sets"""
+    # it's ok to get an empty list
+    # if not codeset_ids and not selected_concept_ids:
+    #     raise ValueError('Must provide either codeset_ids or selected_concept_ids')
+    if not selected_concept_ids:
+        selected_concept_ids = get_concept_set_member_ids(codeset_ids, column='concept_id')
+
+    # sql speed: 36-48sec concept_relationship (n=16,971,521). 1.8sec concept_relationship_subsumes_only (n=875,090)
+    t0 = datetime.now()
+    all_parent_child_list = CACHE['all_parent_child_subsumes_tuples']
+    t1 = datetime.now()
+    print(f"Time to get concept_relationship_subsumes_only: {t1 - t0}")
+
+    selected_roots: List[int] = top_level_cids(selected_concept_ids)
+    d = hierarchify_list_of_parent_kids(all_parent_child_list, selected_roots)
+
+    # todo: this may not be the most efficient way to do this
+    d2 = json.dumps(d)
+    d2 = d2.replace('{}', 'null')
+    d3 = json.loads(d2)
+
+    return d3
+
+junk = """  -- retaining hierarchical query (that's not working, for possible future reference)
+-- example used in http://127.0.0.1:8080/backend/old_cr-hierarchy_samples/cr-hierarchy-example1.json 
+-- 411456218|40061425|484619125|419757429       -- 40061425 doesn't seem to exist
+-- 411456218,40061425,484619125,419757429
+WITH RECURSIVE hier(concept_id_1, concept_id_2, path, depth) AS (
+    SELECT concept_id_1,
+          concept_id_2,
+          CAST(concept_id_1 AS text) || '-->' || CAST(concept_id_2 AS text) AS path,
+          0 AS depth
+    FROM concept_relationship
+    WHERE concept_id_1 IN ( -- top level cids for 8 codeset_ids above
+        45946655, 3120383, 3124992, 40545247, 3091356, 3099596, 3124987, 40297860, 40345759, 45929656, 3115991, 40595784, 44808268, 3164757, 40545248, 45909769,
+        45936903, 40545669, 45921434, 45917166, 4110177, 3141624, 40316548, 44808238, 4169883, 45945309, 3124228, 40395876, 3151089, 40316547, 40563017, 44793048,
+        ...
+    )
+    UNION
+    SELECT cr.concept_id_1,
+            cr.concept_id_2,
+            hier.path || '-->' || CAST(cr.concept_id_2 AS text) AS path,
+            hier.depth + 1
+    FROM concept_relationship cr
+    JOIN hier ON cr.concept_id_1 = hier.concept_id_2
+    WHERE hier.depth < 2
+)
+SELECT DISTINCT path, depth
+FROM hier
+ORDER BY path;
+"""
+
+
+def top_level_cids(concept_ids: List[int], con=CON) -> List[int]:
+    """Filter to concept ids with no parents"""
+    top_level_cids = sql_query_single_col(
+        con, f""" 
+        SELECT DISTINCT concept_id_1
+        FROM concept_relationship cr
+        WHERE cr.concept_id_1 = ANY(:concept_ids)
+          AND cr.relationship_id = 'Subsumes'
+          AND NOT EXISTS (
+            SELECT *
+            FROM concept_relationship
+            WHERE concept_id_2 = cr.concept_id_1
+          )
+        """,
+        {'concept_ids': concept_ids})
+    return top_level_cids
+
+
+def child_cids(concept_id: int, con=CON) -> List[Dict]:
+    """Get child concept ids"""
+    # selected_concept_ids = get_concept_set_member_ids([concept_id])
+    child_cids = sql_query_single_col(
+        con, f""" 
+        SELECT DISTINCT concept_id_2
+        FROM concept_relationship cr
+        WHERE cr.concept_id_1 = ANY(:concept_ids)
+          AND cr.relationship_id = 'Subsumes'
+        """,
+        {'concept_id': concept_id})
+    return child_cids
+
+
+def get_all_csets(con=CON) -> Union[Dict, List]:
+    """Get all concept sets"""
+    # this returns 4,327 rows. the old one below returned 3,127 rows
+    # TODO: figure out why and if all_csets query in ddl.sql needs to be fixed
+    return sql_query(
+        con, f""" 
+        SELECT codeset_id,
+              concept_set_version_title,
+              concepts
+        FROM {SCHEMA}.all_csets""")
+    # smaller = DS2.all_csets[['codeset_id', 'concept_set_version_title', 'concepts']]
+    # return smaller.to_dict(orient='records')
+
+
+# Routes ---------------------------------------------------------------------------------------------------------------
 @APP.get("/")
 def read_root():
     """Root route"""
@@ -266,180 +291,270 @@ def read_root():
     return url_list
 
 
-@APP.get("/cset-versions")
-def csetVersions() -> Union[Dict, List]:
-    csm = DS['code_sets']
-    # todo: would be nicer to do this in a cleaner, shorter way, e.g.:
-    # g = csm[['concept_set_name', 'codeset_id', 'version']].groupby('concept_set_name').agg(dict)
-    g: Dict[List[Dict[str, int]]] = {}
-    concept_set_names = list(csm['concept_set_name'].unique())
-    for cs_name in concept_set_names:
-        csm_i = csm[csm['concept_set_name'] == cs_name]
-        for _index, row in csm_i.iterrows():
-            version: int = int(float(row['version'])) if row['version'] else None
-            codeset_id: int = row['codeset_id']
-            if not version:
-                continue
-            if cs_name not in g:
-                g[cs_name] = []
-            g[cs_name].append({'version': version, 'codeset_id': codeset_id})
-
-    return g
-
-
-# # Example: http://127.0.0.1:8000/codeset-info?codeset_id=400614256|411456218|484619125|818292046|826535586
-# @APP.get("/codeset-info")        # maybe junk, or maybe start of a refactor of above
-# def codeset_info(codeset_id: Union[str, None] = Query(default=[]), codeset_ids=[], dsi=None) -> List[Dict]:
-#     """
-#     join container info onto dsi.code_sets_i     # maybe just do this off the bat for all code sets?
-#     """
-#
-#     requested_codeset_ids = codeset_ids or parse_codeset_ids(codeset_id)
-#     dsi = dsi or data_stuff_for_codeset_ids(requested_codeset_ids)
-#
-#     df = dsi.code_sets_i.merge(ds.concept_set_container, on='concept_set_name')
-#     return json.loads(df.to_json(orient='records'))
-
-
-def cid_data(rec_format, dsi, cid, parent=-1, level=0):
-    """Concept ID data: DESCRIPTION"""
-    if rec_format == 'flat':
-        rec = {'concept_id': int(cid),
-               'concept_name': ds.concept.loc[cid].concept_name,
-               'level': int(level),
-               'codeset_ids': dsi.codesets_by_concept_id[cid] if cid in dsi.codesets_by_concept_id else None, }
-    else:
-        raise NotImplemented(f'No such format {rec_format}!')
-    return rec
-
-
-def nested_list_generator(lines: List, rec_format, dsi, child_cids_func: Callable):
-    """`lines` variable that it puts data into. Passes back `nested_list` func w/ copies of vars that you passed int.
-    `rec_format`: Record format"""
-    def nested_list(cids, parent=-1, level=0):
-        """Closure. Updates the `lines` variable from outer scope that was passed here during generation."""
-        cids = set(cids)
-        for cid in cids:
-            d = cid_data(rec_format, dsi, cid, parent, level)
-            lines.append(d)
-            children: List[int] = child_cids_func(cid)
-            if children:
-                nested_list(children, parent=cid, level=level+1)
-    return nested_list
-
-
-def experimental_nested_list_generator(lines, rec_format, dsi, child_cids_func):
-    # not working yet. trying to do recursion with return stuff, and memoizing stuff that repeats
-    memo = {}
-    def nested_list(cids, parent=-1, level=0):
-        return_lines = []
-        cids = set(cids)
-        for cid in cids:
-            cid = int(cid)
-            d = cid_data(rec_format, dsi, cid, parent, level)
-            return_lines.append(d)
-            lines.append(d)
-            children: List[int] = child_cids_func(cid)
-            if children:
-                params = json.dumps([children, cid, level+1])
-                val = memo.get(params)
-                if val:
-                    # print(f'already got children for {params}')
-                    # pass
-                    # temporarily:
-                    val = [{'included_above': 'yes'}]
-                else:
-                    #print(f'getting children for {params}')
-                    val = memo[params] = nested_list(children, parent=cid, level=level+1)
-                return_lines.extend(val)
-            return return_lines
-    return nested_list
+@APP.get("/get-all-csets")
+def _get_all_csets() -> Union[Dict, List]:
+    """Route for: get_all_csets()"""
+    return get_all_csets()
 
 
 # TODO: the following is just based on concept_relationship
-#       should also check whether relationships exist in concept_ancestor
+#       should also check whether relationships exis/{CONFIG["db"]}?charset=utf8mb4't in concept_ancestor
 #       that aren't captured here
 # TODO: Add concepts outside the list of codeset_ids?
 #       Or just make new issue for starting from one cset or concept
 #       and fanning out to other csets from there?
-# Example: http://127.0.0.1:8000/cr-hierarchy?codeset_id=818292046&codeset_id=484619125&codeset_id=400614256
-@APP.get("/cr-hierarchy")  # maybe junk, or maybe start of a refactor of above
-def cr_hierarchy(
-    rec_format: str='default',
-    codeset_id: Union[str, None] = Query(default=''),
-) -> Dict:
-
+@APP.get("/selected-csets")
+def _get_csets(codeset_id: Union[str, None] = Query(default=''), ) -> List[Dict]:
+    """Route for: get_csets()"""
     requested_codeset_ids = parse_codeset_ids(codeset_id)
-    # A namespace (like `ds`) specifically for these codeset IDs.
-    dsi = data_stuff_for_codeset_ids(requested_codeset_ids)
-
-    lines = []
-    nested_list_generator(lines, rec_format, dsi, dsi.child_cids)(dsi.top_level_cids)
-    # all_csets['csm_related_to_nothing'] = dsi.csm_related_to_nothing
-
-    csm_not_related = dsi.concept_set_members_i[
-        ~ dsi.concept_set_members_i.concept_id.isin([l['concept_id'] for l in lines])]
-    lines.extend( [ cid_data(rec_format, dsi, cid) for cid in list(csm_not_related.concept_id)] )
-
-    result = {'flattened_concept_hierarchy': lines,
-              # 'related_csets': dsi.related.to_dict(orient='records'),
-              'concept_set_members_i': json.loads(dsi.concept_set_members_i.to_json(orient='records')),
-              'all_csets': json.loads(dsi.all_csets.to_json(orient='records'))
-              }
-
-    return result
+    return get_csets(requested_codeset_ids)
 
 
-@APP.get("/new-hierarchy-stuff")  # maybe junk, or maybe start of a refactor of above
-def new_hierarchy_stuff(
-        rec_format: str='default',
-        codeset_id: Union[str, None] = Query(default=[]), ) -> List[Dict]:
+@APP.get("/related-csets")
+def _related_csets(codeset_id: Union[str, None] = Query(default=''), ) -> List[Dict]:
+    """Route for: related_csets()"""
+    codeset_ids: List[int] = parse_codeset_ids(codeset_id)
+    return related_csets(codeset_ids)
+
+
+@APP.get("/cset-members-items")
+def _cset_members_items(codeset_id: Union[str, None] = Query(default=''), ) -> List[LegacyRow]:
+    """Route for: related_csets()"""
+    codeset_ids: List[int] = parse_codeset_ids(codeset_id)
+    return cset_members_items(codeset_ids)
+
+
+@APP.get("/hierarchy")
+def _hierarchy(codeset_id: Union[str, None] = Query(default=''), ) -> Dict:
+    """Route for: related_csets()"""
+    codeset_ids: List[int] = parse_codeset_ids(codeset_id)
+    return hierarchy(codeset_ids=codeset_ids)
+
+
+# TODO: get back to how we had it before RDBMS refactor
+@APP.get("/cr-hierarchy")
+def cr_hierarchy(rec_format: str = 'default', codeset_id: Union[str, None] = Query(default=''), ) -> Dict:
+
+    # TODO: TEMP FOR TESTING. #191 isn't a problem with the old json data
+    # fp = open('./backend/old_cr-hierarchy_samples/cr-hierarchy-example1.json')
+    # return json.load(fp)
+
+    """Get concept relationship hierarchy
+
+    Example:
+    http://127.0.0.1:8000/cr-hierarchy?format=flat&codeset_id=400614256|87065556
     """
-    The only difference between cr_hierarchy and new_hierarchy_stuff is whether the
-    child_cids function is from ds or dsi -- that is, is it filtered to codeset_ids or not?
-    And the only difference in output appears to be a few records in flattened_concept_hierarchy (used to be `lines`)
+    codeset_ids: List[int] = parse_codeset_ids(codeset_id)
+    cset_member_ids: List[int] = get_concept_set_member_ids(codeset_ids, column='concept_id')
 
-           http://127.0.0.1:8000/cr-hierarchy?rec_format=flat&codeset_id=400614256|411456218|419757429|484619125|818292046|826535586
-    http://127.0.0.1:8000/new-hierarchy-stuff?rec_format=flat&codeset_id=400614256|411456218|419757429|484619125|818292046|826535586
-    {
-        "flattened_concept_hierarchy": [],  // 965 items in cr_hierarchy, 991 items in new_hierarchy_stuff
-        "related_csets": [],                // 208 items
-        "concept_set_members_i": []         // 1629 items
+    # Old LFS way, for reference
+    # dsi = cset_members(requested_codeset_ids)
+    # result = {
+    #           # 'all_csets': dsi.all_csets.to_dict(orient='records'),
+    #           'related_csets': dsi.related_csets.to_dict(orient='records'),
+    #           'selected_csets': dsi.selected_csets.to_dict(orient='records'),
+    #           # 'concept_set_members_i': dsi.concept_set_members_i.to_dict(orient='records'),
+    #           # 'concept_set_version_item_i': dsi.concept_set_version_item_i.to_dict(orient='records'),
+    #           'cset_members_items': dsi.cset_members_items.to_dict(orient='records'),
+    #           'hierarchy': dsi.hierarchy,
+    #           'concepts': dsi.concepts.to_dict(orient='records'),
+    #           'data_counts': log_counts(),
+    # }
+
+    # TODO: uncomment
+    result = {
+        # # todo: Check related_csets() to see its todo's
+        'related_csets': related_csets(codeset_ids=codeset_ids, selected_concept_ids=cset_member_ids),
+        # # todo: Check get_csets() to see its todo's
+        'selected_csets': get_csets(codeset_ids),
+        'cset_members_items': cset_members_items(codeset_ids),
+        'hierarchy': hierarchy(selected_concept_ids=cset_member_ids),
+        # todo: concepts
+        'concepts': [],
+        # todo: frontend not making use of data_counts yet but will need
+        'data_counts': [],
     }
-    I haven't figured out what the difference is yet and whether it matters.
-    TODO: come back and figure it out later and generally deal with how to filter in datasets.py and
-          which versions of datasets to load, and how hierarchy is generated -- does it include concepts
-          outside the selected concept sets or not?
-    """
-    requested_codeset_ids = parse_codeset_ids(codeset_id)
-    dsi = data_stuff_for_codeset_ids(requested_codeset_ids)
+    result['concepts'] = get_concepts([i.concept_id for i in result['cset_members_items']])
 
-    lines = []
-    nested_list_generator(lines, rec_format, dsi, ds.child_cids)(dsi.top_level_cids)
-
-    result = {'flattened_concept_hierarchy': lines,
-              # 'related_csets': dsi.related.to_dict(orient='records'),
-              'concept_set_members_i': json.loads(dsi.concept_set_members_i.to_json(orient='records')),
-              'all_csets': json.loads(dsi.all_csets.to_json(orient='records'))
-              }
     return result
 
 
-    # return json.loads(df.to_json(orient='records'))
+@APP.get("/cset-download")  # maybe junk, or maybe start of a refactor of above
+def cset_download(codeset_id: int) -> Dict:
+    """Download concept set"""
+    dsi = data_stuff_for_codeset_ids([codeset_id])
+
+    concepts = DS2.concept[DS2.concept.concept_id.isin(set(dsi.cset_members_items.concept_id))]
+    cset = DS2.all_csets[DS2.all_csets.codeset_id == codeset_id].to_dict(orient='records')[0]
+    cset['concept_count'] = cset['concepts']
+    cset['concepts'] = concepts.to_dict(orient='records')
+    return cset
 
 
-@APP.get("/modify-cset")  # maybe junk, or maybe start of a refactor of above
-def cr_hierarchy(
-        codeset_id: int, concept_id: int, state: bool
-) -> Dict:
-    modification = {'codeset_id': codeset_id, 'concept_id': concept_id, 'state': state}
-    print(f'modify-cset: {codeset_id}, {concept_id}, {state}')
-    return modification
+# todo: Some redundancy. (i) should only need concept_set_name once
+# TODO: @Siggie: Do we want to add: annotation, intended_research_project, and on_behalf_of?
+#  - These are params in upload_new_cset_version_with_concepts()  - Joe 2022/12/05
+class UploadNewCsetVersionWithConcepts(BaseModel):
+    """Schema for route: /upload-new-cset-version-with-concepts
+
+    Upload a concept set version along with its concepts.
+
+    This schema is for POSTing to a FastAPI route.
+
+    Schema:
+    :param version_with_concepts (Dict): Has the following schema: {
+        'omop_concepts': [
+          {
+            'concept_id' (int) (required):
+            'includeDescendants' (bool) (required):
+            'isExcluded' (bool) (required):
+            'includeMapped' (bool) (required):
+            'annotation' (str) (optional):
+          }
+        ],
+        'provenance' (str) (required):
+        'concept_set_name' (str) (required):
+        'annotation' (str) (optional): Default:`'Curated value set: ' + version['concept_set_name']`
+        'limitations' (str) (required):
+        'intention' (str) (required):
+        'intended_research_project' (str) (optional): Default:`ENCLAVE_PROJECT_NAME`
+        'codeset_id' (int) (required): Default:Will ge generated if not passed.
+    }
+
+    # TODO: verify that this example is correct
+    Example:
+    {
+        "omop_concepts": [
+            {
+              "concept_id": 45259000,
+              "includeDescendants": true,
+              "isExcluded": false,
+              "includeMapped": true,
+              "annotation": "This is my concept annotation."
+            }
+        ],
+        "provenance": "Created through TermHub.",
+        "concept_set_name": "My test concept set",
+        "limitations": "",
+        "intention": ""
+    }
+    """
+    omop_concepts: List[Dict]
+    provenance: str
+    concept_set_name: str
+    limitations: str
+    intention: str
+
+
+# TODO #123: add baseVersion: the version that the user starts off from in order to create their own new concept set
+#  ...version. I need to add the ability to get arbitrary args (*args) including baseVersion, here in these routes and
+#  ...in the other functions.
+@APP.post("/upload-new-cset-version-with-concepts")
+def route_upload_new_cset_version_with_concepts(d: UploadNewCsetVersionWithConcepts) -> Dict:
+    """Upload new version of existing container, with concepets"""
+    # TODO: Persist: see route_upload_new_container_with_concepts() for more info
+    # result = csets_update(dataset_path='', row_index_data_map={})
+    response = upload_new_cset_version_with_concepts(**d.__dict__)
+
+    return {}  # todo: return. should include: assigned codeset_id's
+
+
+# todo: Some redundancy. (i) should only need concept_set_name once
+class UploadNewContainerWithConcepts(BaseModel):
+    """Schema for route: /upload-new-container-with-concepts
+
+    Upload a concept set container, along with versions version which include concepts.
+
+    This schema is for POSTing to a FastAPI route.
+
+    Schema:
+    Should be JSON with top-level keys: container, versions_with_concepts
+
+    :param container (Dict): Has the following keys:
+        concept_set_name (str) (required):
+        intention (str) (required):
+        research_project (str) (required): Default:`ENCLAVE_PROJECT_NAME`
+        assigned_sme (str) (optional): Default:`PALANTIR_ENCLAVE_USER_ID_1`
+        assigned_informatician (str) (optional): Default:`PALANTIR_ENCLAVE_USER_ID_1`
+
+    :param versions_with_concepts (List[Dict]): Has the following schema: [
+      {
+        'omop_concepts': [
+          {
+            'concept_id' (int) (required):
+            'includeDescendants' (bool) (required):
+            'isExcluded' (bool) (required):
+            'includeMapped' (bool) (required):
+            'annotation' (str) (optional):
+          }
+        ],
+        'provenance' (str) (required):
+        'concept_set_name' (str) (required):
+        'annotation' (str) (optional): Default:`'Curated value set: ' + version['concept_set_name']`
+        'limitations' (str) (required):
+        'intention' (str) (required):
+        'intended_research_project' (str) (optional): Default:`ENCLAVE_PROJECT_NAME`
+        'codeset_id' (int) (required): Will be generated if not passed.
+      }
+    ]
+
+    Example:
+    {
+      "container": {
+        "concept_set_name": "My test concept set",
+        "intention": "",
+        "research_project": "",
+        "assigned_sme": "",
+        "assigned_informatician": ""
+      },
+      "versions_with_concepts": [{
+        "omop_concepts": [
+            {
+              "concept_id": 45259000,
+              "includeDescendants": true,
+              "isExcluded": false,
+              "includeMapped": true,
+              "annotation": "This is my concept annotation."
+            }
+        ],
+        "provenance": "Created through TermHub.",
+        "concept_set_name": "My test concept set",
+        "limitations": "",
+        "intention": ""
+      }]
+    }
+    """
+    container: Dict
+    versions_with_concepts: List[Dict]
+
+
+# TODO: see todo '#123'
+@APP.post("/upload-new-container-with-concepts")
+def route_upload_new_container_with_concepts(d: UploadNewContainerWithConcepts) -> Dict:
+    """Upload new container with concepts"""
+    # TODO: Persist
+    #  - call the function i defined for updating local git stuff. persist these changes and patch etc
+    #     dataset_path: File path. Relative to `/termhub-csets/datasets/`
+    #     row_index_data_map: Keys are integers of row indices in the dataset. Values are dictionaries, where keys are
+    #     the name of the fields to be updated, and values contain the values to update in that particular cell."""
+    #  - csets_update() doesn't meet exact needs. not actually updating to an existing index. adding a new row.
+    #    - soution: can set index to -1, perhaps, to indicate that it is a new row
+    #    - edge case: do i need to worry about multiple drafts at this point? delete if one exists? keep multiple? or at
+    #    upload time should we update latest and delete excess drafts if exist?
+    #  - git/patch changes (do this inside csets_update()):
+    #  https://github.com/jhu-bids/TermHub/issues/165#issuecomment-1276557733
+    # result = csets_update(dataset_path='', row_index_data_map={})
+
+    response = upload_new_container_with_concepts(
+        container=d.container,
+        versions_with_concepts=d.versions_with_concepts)
+
+    return {}  # todo: return. should include: assigned codeset_id's
 
 
 # TODO: figure out where we want to put this. models.py? Create route files and include class along w/ route func?
 # TODO: Maybe change to `id` instead of row index
-class CsetsUpdate(BaseModel):
+class CsetsGitUpdate(BaseModel):
     """Update concept sets.
     dataset_path: File path. Relative to `/termhub-csets/datasets/`
     row_index_data_map: Keys are integers of row indices in the dataset. Values are dictionaries, where keys are the
@@ -450,72 +565,15 @@ class CsetsUpdate(BaseModel):
 
 # TODO: Maybe change to `id` instead of row index
 @APP.put("/datasets/csets")
-def csets_update(d: CsetsUpdate = None) -> Dict:
-    """Update cset dataset. Works only on tabular files."""
-    # Vars
-    result = 'success'
-    details = ''
-    cset_dir = os.path.join(PROJECT_DIR, 'termhub-csets')
-    path_root = os.path.join(cset_dir, 'datasets')
-
-    # Update cset
-    # todo: dtypes need to be registered somewhere. perhaps a <CSV_NAME>_codebook.json()?, accessed based on filename,
-    #  and inserted here
-    # todo: check git status first to ensure clean? maybe doesn't matter since we can just add by filename
-    path = os.path.join(path_root, d.dataset_path)
-    # noinspection PyBroadException
-    try:
-        df = pd.read_csv(path, dtype={'id': np.int32, 'last_name': str, 'first_name': str}).fillna('')
-        for index, field_values in d.row_index_data_map.items():
-            for field, value in field_values.items():
-                df.at[index, field] = value
-        df.to_csv(path, index=False)
-    except BaseException as err:
-        result = 'failure'
-        details = str(err)
-
-    # Push commit
-    # todo?: Correct git status after change should show something like this near end: `modified: FILENAME`
-    relative_path = os.path.join('datasets', d.dataset_path)
-    # todo: Want to see result as string? only getting int: 1 / 0
-    #  ...answer: it's being printed to stderr and stdout. I remember there's some way to pipe and capture if needed
-    # TODO: What if the update resulted in no changes? e.g. changed values were same?
-    git_add_result = sp_call(f'git add {relative_path}'.split(), cwd=cset_dir)
-    if git_add_result != 0:
-        result = 'failure'
-        details = f'Error: Git add: {d.dataset_path}'
-    git_commit_result = sp_call(['git', 'commit', '-m', f'Updated by server: {relative_path}'], cwd=cset_dir)
-    if git_commit_result != 0:
-        result = 'failure'
-        details = f'Error: Git commit: {d.dataset_path}'
-    git_push_result = sp_call('git push origin HEAD:main'.split(), cwd=cset_dir)
-    if git_push_result != 0:
-        result = 'failure'
-        details = f'Error: Git push: {d.dataset_path}'
-
-    return {'result': result, 'details': details}
+def put_csets_update(d: CsetsGitUpdate = None) -> Dict:
+    """HTTP PUT wrapper for csets_update()"""
+    return csets_git_update(d.dataset_path, d.row_index_data_map)
 
 
 @APP.put("/datasets/vocab")
 def vocab_update():
     """Update vocab dataset"""
     pass
-
-
-# TODO: figure out where we want to put this. models.py? Create route files and include class along w/ route func?
-# TODO: Maybe change to `id` instead of row index
-class CsetsUpdate(BaseModel):
-    """Update concept sets.
-    dataset_path: File path. Relative to `/termhub-csets/datasets/`
-    row_index_data_map: Keys are integers of row indices in the dataset. Values are dictionaries, where keys are the
-      name of the fields to be updated, and values contain the values to update in that particular cell."""
-    dataset_path: str = ''
-    row_index_data_map: Dict[int, Dict[str, Any]] = {}
-
-
-def run(port: int = 8000):
-    """Run app"""
-    uvicorn.run(APP, host='0.0.0.0', port=port)
 
 
 if __name__ == '__main__':

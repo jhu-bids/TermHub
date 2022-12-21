@@ -3,10 +3,14 @@ fastapi
 pandas
 pandasql
 pyarrow
+PyMySQL[rsa]
 requests
+sqlalchemy
 typeguard
 uvicorn[standard]
 jq
+# psycopg2
+psycopg2-binary
 
 # dev dependencies
 virtualenvwrapper

@@ -1,51 +1,17 @@
 import * as React from 'react';
 import { styled } from '@mui/material/styles';
-import List from "@mui/material/List";
-import ListItem from "@mui/material/ListItem";
 import Card from '@mui/material/Card';
-import CardHeader from '@mui/material/CardHeader';
-import CardMedia from '@mui/material/CardMedia';
 import CardContent from '@mui/material/CardContent';
-import CardActions from '@mui/material/CardActions';
-import Collapse from '@mui/material/Collapse';
-import Avatar from '@mui/material/Avatar';
+// import CardActions from '@mui/material/CardActions';
 import IconButton from '@mui/material/IconButton';
 import Typography from '@mui/material/Typography';
-import { red } from '@mui/material/colors';
-import FavoriteIcon from '@mui/icons-material/Favorite';
-import ShareIcon from '@mui/icons-material/Share';
-import ExpandMoreIcon from '@mui/icons-material/ExpandMore';
-import MoreVertIcon from '@mui/icons-material/MoreVert';
-
 import Box from '@mui/material/Box';
-import Button from '@mui/material/Button';
+import {get, } from 'lodash';
+// import Button from '@mui/material/Button';
+import {backend_url} from './App';
 
 const bull = (
   <Box component="span" sx={{ display: 'inline-block', mx: '2px', transform: 'scale(0.8)' }} >•</Box>
-);
-
-const card = (
-  <React.Fragment>
-    <CardContent>
-      <Typography sx={{ fontSize: 14 }} color="text.secondary" gutterBottom>
-        Word of the Day
-      </Typography>
-      <Typography variant="h5" component="div">
-        be{bull}nev{bull}o{bull}lent
-      </Typography>
-      <Typography sx={{ mb: 1.5 }} color="text.secondary">
-        adjective
-      </Typography>
-      <Typography variant="body2">
-        well meaning and kindly.
-        <br />
-        {'"a benevolent smile"'}
-      </Typography>
-    </CardContent>
-    <CardActions>
-      <Button size="small">Learn More</Button>
-    </CardActions>
-  </React.Fragment>
 );
 
 const ExpandMore = styled((props) => {
@@ -59,7 +25,30 @@ const ExpandMore = styled((props) => {
   }),
 }));
 
-export default function ConceptSetCard(props) {
+export default function ConceptSetCards(props) {
+  const {codeset_ids=[], cset_data={}} = props;
+  const {selected_csets=[], } = cset_data;
+  if (!selected_csets.length) {
+    return <div></div>;
+  }
+  return <div style={{ display: 'flex', flexWrap: 'wrap', flexDirection: 'row', margin: '20px',
+                      /* height: '90vh', alignItems: 'stretch', border: '1px solid green', width:'100%',
+                        'flex-shrink': 0, flex: '0 0 100%', */ }}>
+        {
+          selected_csets.map(cset => {
+            // let widestConceptName = max(Object.values(cset.concepts).map(d => d.concept_name.length))
+            return <ConceptSetCard  {...props}
+                     codeset_id={cset.codeset_id}
+                     key={cset.codeset_id}
+                     cset={cset}
+                     // widestConceptName={widestConceptName}
+                     cols={Math.min(4, codeset_ids.length)}/>
+
+          })
+        }
+      </div>;
+}
+function ConceptSetCard(props) {
   const [expanded, setExpanded] = React.useState(false);
 
   const handleExpandClick = () => {
@@ -69,23 +58,24 @@ export default function ConceptSetCard(props) {
   let {codeset_id, cset, cols, widestConceptName,} = props;
   // switch to using data from cset_data -- passed down props:
   const {codeset_ids = [], cset_data = {}} = props;
-  const {flattened_concept_hierarchy = [], concept_set_members_i = [], all_csets = [],} = cset_data;
 
   let tags = [];
   let display_props = {}
   display_props['Code set ID'] = cset.codeset_id;
   display_props['Concepts'] = cset.concepts;
+  display_props['Patient count'] = '~ ' + cset.approx_distinct_person_count.toLocaleString();
+  display_props['Record count'] = '~ ' + cset.approx_total_record_count.toLocaleString();
 
   if (cset.is_most_recent_version) {
     tags.push('Most recent version');
   }
 
   let intention = [];
-  if (cset.intention_container) {
-    intention.push('Container: ' + cset.intention_container);
+  if (cset.container_intention) {
+    intention.push('Container: ' + cset.container_intention);
   }
-  if (cset.intention_version) {
-    intention.push('Version: ' + cset.intention_version);
+  if (cset.codeset_intention) {
+    intention.push('Version: ' + cset.codeset_intention);
   }
   if (intention.length) {
     display_props.Intention = intention.join('; ');
@@ -117,7 +107,25 @@ export default function ConceptSetCard(props) {
   if (cset.project_id) {
     display_props['Project ID'] = cset.project_id;
   }
-  // display_props['props not included yet'] = 'status_version, status_container, stage, concept count';
+  let researcherContent = '';
+  if ((cset.researchers||[]).length) {
+    const r = Object.entries(cset.researchers).map(e => {
+      const type = e[0];
+      const name = get(e[1], 'properties.name', 'huh?');
+      return (
+          <Typography variant="body2" color="text.secondary" key={type} sx={{overflow: 'clip',}}>
+            <strong>{type}</strong>: {name}
+          </Typography>
+      )
+    });
+    return  <div>
+              <Typography variant="h6" color="text.primary" gutterBottom>
+                Contributors
+              </Typography>
+              {r}
+            </div>
+  }
+  // display_props['props not included yet'] = 'codeset_status, container_status, stage, concept count';
   return (
       <Box sx={{ minWidth: 275, margin: '8px',  }}>
         <Card variant="outlined" sx={{maxWidth: 345}}>
@@ -139,14 +147,23 @@ export default function ConceptSetCard(props) {
             <Typography color="text.primary" gutterBottom>
               {tags.join(', ')}
             </Typography>
-                {
-                  Object.keys(display_props).map(pkey => (
-                      <Typography variant="body2" color="text.secondary" key={pkey} sx={{overflow: 'clip',}}>
-                        <strong>{pkey}</strong>: {display_props[pkey]}
-                      </Typography>
-                  ))
-                }
+            {
+              Object.keys(display_props).map(pkey => (
+                  <Typography variant="body2" color="text.secondary" key={pkey} sx={{overflow: 'clip',}}>
+                    <strong>{pkey}</strong>: {display_props[pkey]}
+                  </Typography>
+              ))
+            }
+            { researcherContent }
+
+            <Typography color="text.primary" gutterBottom>
+              <a href={`https://unite.nih.gov/workspace/hubble/objects/${cset.rid}`} target="_blank">Open in Enclave</a>
+            </Typography>
+            <Typography color="text.primary" gutterBottom>
+              <a href={backend_url(`cset-download?codeset_id=${cset.codeset_id}`)} target="_blank">Export JSON</a>
+            </Typography>
           </CardContent>
+          {/*
           <CardActions disableSpacing>
             <IconButton size="small" aria-label="add to favorites">
               <FavoriteIcon/>
@@ -183,6 +200,7 @@ export default function ConceptSetCard(props) {
               </List>
             </CardContent>
           </Collapse>
+          */}
         </Card>
       </Box>
   );
