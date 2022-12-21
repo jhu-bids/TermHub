@@ -145,6 +145,8 @@ function colConfig(codeset_ids, nested, selected_csets, rowData, collapsed, togg
                 */
                 if (!row.checkboxes) {
                     console.log('problem!!!!', {idx, row, rowData})
+                } else {
+                    // console.log('not a problem', {idx, row, rowData})
                 }
                 let content = nested
                     ? row.has_children

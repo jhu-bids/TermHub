@@ -3,6 +3,7 @@
 Resources
 - https://github.com/tiangolo/fastapi
 """
+import json
 from datetime import datetime
 from typing import Any, Dict, List, Union
 from functools import cache
@@ -179,9 +180,10 @@ def cset_members_items(codeset_ids: List[int] = None, con=CON) -> List[LegacyRow
 
 def hierarchy(codeset_ids: List[int] = None, selected_concept_ids: List[int] = None, con=CON) -> Dict:
     """Get hierarchy of concepts in selected concept sets"""
-    if not codeset_ids and not selected_concept_ids:
-        raise ValueError('Must provide either codeset_ids or selected_concept_ids')
-    elif not selected_concept_ids:
+    # it's ok to get an empty list
+    # if not codeset_ids and not selected_concept_ids:
+    #     raise ValueError('Must provide either codeset_ids or selected_concept_ids')
+    if not selected_concept_ids:
         selected_concept_ids = get_concept_set_member_ids(codeset_ids, column='concept_id')
 
     # sql speed: 36-48sec concept_relationship (n=16,971,521). 1.8sec concept_relationship_subsumes_only (n=875,090)
@@ -305,6 +307,11 @@ def _hierarchy(codeset_id: Union[str, None] = Query(default=''), ) -> Dict:
 # TODO: get back to how we had it before RDBMS refactor
 @APP.get("/cr-hierarchy")
 def cr_hierarchy(rec_format: str = 'default', codeset_id: Union[str, None] = Query(default=''), ) -> Dict:
+
+    # TEMP FOR TESTING. #191 isn't a problem with the old json data
+    # fp = open('./backend/old_cr-hierarchy_samples/cr-hierarchy-example1.json')
+    # return json.load(fp)
+
     """Get concept relationship hierarchy
 
     Example:

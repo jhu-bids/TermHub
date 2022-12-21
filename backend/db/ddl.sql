@@ -154,7 +154,7 @@ CREATE INDEX ccu_idx1 ON concepts_with_counts_ungrouped(concept_id);
 CREATE TABLE IF NOT EXISTS concepts_with_counts AS (
     SELECT concept_id,
             concept_name,
-            COUNT(*) AS domain_cnt,
+            COUNT(DISTINCT domain) AS domain_cnt,
             array_to_string(array_agg(domain), ',') AS domain,
             SUM(total_count) AS total_count,
             array_to_string(array_agg(distinct_person_count), ',') AS distinct_person_cnt
