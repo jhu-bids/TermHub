@@ -59,9 +59,6 @@ User Interactions
 - [Frontend](./frontend/README.md)  
 - [Backend](./backend/README.md)
 
-[//]: # (3. Run: `git lfs install` if not installed already
-[//]: # (4. If any expected files are not showing up in `termhub-csets/`, run `git lfs pull`)
-
 ### Local setup
 1. Clone the repository.
 2. Run: `pip install -r requirements.txt`

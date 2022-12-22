@@ -48,7 +48,7 @@ def set_nested_in_dict(d: Dict, key_path: List, value: Any):
     get_nested_from_dict(d, key_path[:-1])[key_path[-1]] = value
 
 
-# todo: typically takes 2 seconds on several 100 selected_parent_ids. any way to speed up?
+# todo: should this function be merged with hierarchy() in app.py?
 def hierarchify_list_of_parent_kids(
     all_parent_child_list: List[Tuple[Union[str, int], Union[str, int]]],
     selected_root_ids: List[Union[str, int]]
@@ -68,14 +68,13 @@ def hierarchify_list_of_parent_kids(
           }
     """
     # Initialize reusable map of parents and all their children
-    t1 = datetime.now()
     parent_children_map = {concept_id: set() for pair in all_parent_child_list for concept_id in pair}
     for parent, child in all_parent_child_list:
         parent_children_map[parent].add(child)
 
     # Build hierarchy
+    # TODO: Attempt 1: this is here for reference. delete if attempt 2 is works. it's already 200x faster
     # d = {}
-    # added = set()
     # https://stackoverflow.com/questions/14692690/access-nested-dictionary-items-via-a-list-of-keys
     # def traverse(path: List[Union[str, int]]):
     #     """Recursive function. Given 2 variables in outer scope, parent_children_map (dict of parents with values as
@@ -84,37 +83,22 @@ def hierarchify_list_of_parent_kids(
     #     subsumption hierarchy out of d."""
     #     current_node = path[-1]
     #     kids = parent_children_map.get(current_node, {})
-    #     # if current_node not in added:  # this was a bug
     #     set_nested_in_dict(d, path, {k: {} for k in kids})
     #     for kid in kids:
     #         traverse(path + [kid])
-    #     # added.add(current_node)
     #
     # for _id in selected_parent_ids:
     #     traverse([_id])
-    t2 = datetime.now()
-    # print(f"Time to traverse: {t2 - t1}")
 
-    # TODO: try counting how many times 'id' has been added. if more than once, remove it from top level
-    #  - then check: i. is result correct? (problem fixed on frontend, looks good),
-    #  ii. does it work even if i don't pass selected parent IDs?
-    # added_count = {}
+    # TODO: Attempt 2: when @Siggie finishes with top_level_cids(), results of that query are passed into here as
+    #  selected_root_ids. After that, there will hopefully be no issues left with this hierarchy. But should check and
+    #  remove this comment (as well as all of Attempt 1 commented out above) if all is good.
     def recurse(ids):
         x = {}
         for id in ids:
             children = parent_children_map.get(id, [])
             x[id] = recurse(children)
         return x
-    d2 = recurse(selected_root_ids)
-    # for id, count in added_count.items():
-    #     if count > 1:
-    #         # d2.pop(id)
-    #         del d2[id]
-    t3 = datetime.now()
-    print(f"Time to traverse: {t3 - t2}")
-    # print(d == d2)
+    d = recurse(selected_root_ids)
 
-    # Return
-    # t2 = datetime.now()
-    # print(f"Time to traverse: {t2 - t1}")
-    return d2
+    return d
