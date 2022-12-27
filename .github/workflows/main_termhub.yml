@@ -29,16 +29,18 @@ jobs:
       
       - name: Install dependencies
         run: pip install -r requirements.txt
-        
+
+        # todo: run tests
       # Optional: Add step to run tests here (PyTest, Django test suites, etc.)
-      
-      - name: Upload artifact for deployment jobs
-        uses: actions/upload-artifact@v2
-        with:
-          name: python-app
-          path: |
-            . 
-            !venv/
+
+# todo: what's this upload/download artifact bit? i don't think we need this, but curious
+#      - name: Upload artifact for deployment jobs
+#        uses: actions/upload-artifact@v2
+#        with:
+#          name: python-app
+#          path: |
+#            .
+#            !venv/
 
   deploy:
     runs-on: ubuntu-latest
@@ -47,13 +49,21 @@ jobs:
       name: 'Production'
       url: ${{ steps.deploy-to-webapp.outputs.webapp-url }}
 
+    # TODO: need `make serve-backend` or `uvicorn backend.app:APP --reload`. But how does it know which port? will it automatically detect something is up on any port?
     steps:
-      - name: Download artifact from build job
-        uses: actions/download-artifact@v2
-        with:
-          name: python-app
-          path: .
-          
+#      - name: Download artifact from build job
+#        uses: actions/download-artifact@v2
+#        with:
+#          name: python-app
+#          path: .
+
+      # TODO: create env. does this work? does this pull from environment or repo secrets? https://github.com/jhu-bids/TermHub/settings/secrets/actions
+      # https://stackoverflow.com/questions/60176044/how-do-i-use-an-env-file-with-github-actions
+      - name: 'Create env file'
+        run: |
+          mkdir env
+          echo "${{ secrets.ENV_FILE }}" > env/.env
+
       - name: 'Deploy to Azure Web App'
         uses: azure/webapps-deploy@v2
         id: deploy-to-webapp
