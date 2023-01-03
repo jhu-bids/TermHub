@@ -1,0 +1,2 @@
+pip install uvicorn
+uvicorn backend.app:APP --reload
