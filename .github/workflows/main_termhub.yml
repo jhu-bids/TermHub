@@ -4,7 +4,7 @@
 
 # TODO: Error: Couldn't detect a version for the platform 'python' in the repo.\n/bin/bash -c "oryx build /tmp/zipdeploy/extracted -o /home/site/wwwroot --platform python --platform-version 3.10 -p virtualenv_name=antenv --log-file /tmp/build-debug.log  -i /tmp/8dae86435a2e0d0 --compress-destination-dir | tee /tmp/oryx-build.log ; exit $PIPESTATUS "
 
-name: TermHub backend - build_and_deploy
+name: TermHub backend - build and deploy
 
 on:
   push:
