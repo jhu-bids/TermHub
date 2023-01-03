@@ -81,8 +81,10 @@ pypi: pypi-push
 pip: pypi-push
 
 # Serve
+# nvm allows to switch to a particular versio of npm/node. Useful for working w/ deployment
+# https://github.com/nvm-sh/nvm
 serve-frontend:
-	cd frontend; npm run start
+	nvm use 18.2.0; cd frontend; npm run start
 
 serve-backend:
 	uvicorn backend.app:APP --reload

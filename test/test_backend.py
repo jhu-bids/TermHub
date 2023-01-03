@@ -33,20 +33,20 @@ class TestBackend(unittest.TestCase):
     def test_hierarchify_list_of_parent_kids(self):
         """test hierarchify_list_of_parent_kids()"""
         # Case 1
-        # parent_child_list = [(3290077, 3219427), (3219427, 3429308), (3219427, 3458111), (3457827, 3465375)]
-        # expected = {
-        #     3290077: {
-        #         3219427: {
-        #             3429308: {},
-        #             3458111: {}
-        #         }
-        #     },
-        #     3457827: {
-        #         3465375: {},
-        #     }
-        # }
-        # actual = hierarchify_list_of_parent_kids(parent_child_list, [3290077, 3457827])
-        # self.assertEqual(actual, expected)
+        parent_child_list = [(3290077, 3219427), (3219427, 3429308), (3219427, 3458111), (3457827, 3465375)]
+        expected = {
+            3290077: {
+                3219427: {
+                    3429308: {},
+                    3458111: {}
+                }
+            },
+            3457827: {
+                3465375: {},
+            }
+        }
+        actual = hierarchify_list_of_parent_kids(parent_child_list, [3290077, 3457827])
+        self.assertEqual(actual, expected)
 
         # Case 2
         parent_child_list = [

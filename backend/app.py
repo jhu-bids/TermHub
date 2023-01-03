@@ -182,29 +182,22 @@ def cset_members_items(codeset_ids: List[int] = None, con=CON) -> List[LegacyRow
         {'codeset_ids': codeset_ids})
 
 
-def hierarchy(codeset_ids: List[int] = None, selected_concept_ids: List[int] = None, con=CON) -> Dict:
+def hierarchy(codeset_ids: List[int] = None, selected_concept_ids: List[int] = None) -> Dict:
     """Get hierarchy of concepts in selected concept sets"""
-    # it's ok to get an empty list
-    # if not codeset_ids and not selected_concept_ids:
-    #     raise ValueError('Must provide either codeset_ids or selected_concept_ids')
     if not selected_concept_ids:
         selected_concept_ids = get_concept_set_member_ids(codeset_ids, column='concept_id')
 
-    # sql speed: 36-48sec concept_relationship (n=16,971,521). 1.8sec concept_relationship_subsumes_only (n=875,090)
-    t0 = datetime.now()
     all_parent_child_list = CACHE['all_parent_child_subsumes_tuples']
-    t1 = datetime.now()
-    print(f"Time to get concept_relationship_subsumes_only: {t1 - t0}")
-
     selected_roots: List[int] = top_level_cids(selected_concept_ids)
     d = hierarchify_list_of_parent_kids(all_parent_child_list, selected_roots)
 
-    # todo: this may not be the most efficient way to do this
+    # todo: this reverts new way of indicating 'no children' back to null. any more seemly way to do?
     d2 = json.dumps(d)
     d2 = d2.replace('{}', 'null')
     d3 = json.loads(d2)
 
     return d3
+
 
 junk = """  -- retaining hierarchical query (that's not working, for possible future reference)
 -- example used in http://127.0.0.1:8080/backend/old_cr-hierarchy_samples/cr-hierarchy-example1.json 
@@ -236,6 +229,9 @@ ORDER BY path;
 """
 
 
+# TODO: @Siggie is working on this. When done, we will examine the results of hierarchy(). They may still be different
+#  ...from what we were seeing before the refactor, but that doesn't mean they're wrong, as there may have been issue(s)
+#  ...in the old format as well.
 def top_level_cids(concept_ids: List[int], con=CON) -> List[int]:
     """Filter to concept ids with no parents"""
     top_level_cids = sql_query_single_col(
