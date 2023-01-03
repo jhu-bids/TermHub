@@ -68,7 +68,7 @@ jobs:
           mkdir env
           echo "${{ secrets.ENV_FILE }}" > env/.env
 
-      # TODO: need to run DB initialize. i think manual steps for the DB may already be done.
+      # TODO: need to run DB initialize. i think manual steps for the DB may already be done.#
 
       - name: 'Deploy to Azure Web App'
         uses: azure/webapps-deploy@v2
