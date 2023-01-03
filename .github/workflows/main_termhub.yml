@@ -1,9 +1,8 @@
 # Docs for the Azure Web Apps Deploy action: https://github.com/Azure/webapps-deploy
 # More GitHub Actions for Azure: https://github.com/Azure/actions
 # More info on Python, GitHub Actions, and Azure App Service: https://aka.ms/python-webapps-actions
-
+# A good guide for Python Azure action: https://azure.github.io/AppService/2020/12/11/cicd-for-python-apps.html
 # TODO: Error: Couldn't detect a version for the platform 'python' in the repo.\n/bin/bash -c "oryx build /tmp/zipdeploy/extracted -o /home/site/wwwroot --platform python --platform-version 3.10 -p virtualenv_name=antenv --log-file /tmp/build-debug.log  -i /tmp/8dae86435a2e0d0 --compress-destination-dir | tee /tmp/oryx-build.log ; exit $PIPESTATUS "
-
 name: TermHub backend - build and deploy
 
 on:
@@ -19,35 +18,40 @@ jobs:
     steps:
       - uses: actions/checkout@v2
 
+      # todo: Any way to do 3.10?
+      # - attempt 1: '3.10'
+      #  Error: Couldn't detect a version for the platform 'python' in the repo.\n/bin/bash -c "oryx build /tmp/zipdeploy/extracted -o /home/site/wwwroot --platform python --platform-version 3.10 -p virtualenv_name=antenv --log-file /tmp/build-debug.log  -i /tmp/8dae86435a2e0d0 --compress-destination-dir | tee /tmp/oryx-build.log ; exit $PIPESTATUS "
+      # - attempt 2: 3.10
+      #  Version 3.1 was not found in the local cache
+      #  Error: ***[error]Version 3.1 with arch x64 not found
+      #  The list of all available versions can be found here: https://raw.githubusercontent.com/actions/python-versions/main/versions-manifest.json
       - name: Set up Python version
-        uses: actions/setup-python@v1
+        uses: actions/setup-python@v2
         with:
-          python-version: '3.10'
-          
-      - name: Install Custom Dependencies(fastapi)
-        run: pip install fastapi
-
-      - name: Install Custom Dependencies(uvloop)
-        run: pip install uvloop
-
-      - name: Install Custom Dependencies(httptools)
-        run: pip install httptools
-
-      - name: Install Custom Dependencies(uvicorn)
-        run: pip install uvicorn
+          python-version: 3.9
 
       - name: Create and start virtual environment
         run: |
-          python -m venv venv
+          python3 -m venv venv
           source venv/bin/activate
-      
+
       - name: Install dependencies
         run: pip install -r requirements.txt
 
-        # todo: run tests
-      # Optional: Add step to run tests here (PyTest, Django test suites, etc.)
+      # TODO: create env. does this work? does this pull from environment or repo secrets? https://github.com/jhu-bids/TermHub/settings/secrets/actions
+      # https://stackoverflow.com/questions/60176044/how-do-i-use-an-env-file-with-github-actions
+      - name: 'Create env file'
+        run: |
+          mkdir env
+          echo "${{ secrets.ENV_FILE }}" > env/.env
 
-# todo: what's this upload/download artifact bit? i don't think we need this, but curious
+    # TODO: remember `git submodule update`. needed in build or deploy?
+
+# todo: optional: run tests
+#      - name: Run tests
+#        run: python -m unittest discover -v
+
+      # About: https://azure.github.io/AppService/2020/12/11/cicd-for-python-apps.html
       - name: Upload artifact for deployment jobs
         uses: actions/upload-artifact@v2
         with:
@@ -63,24 +67,19 @@ jobs:
       name: 'Production'
       url: ${{ steps.deploy-to-webapp.outputs.webapp-url }}
 
-    # TODO: need `make serve-backend` or `uvicorn backend.app:APP --reload`. But how does it know which port? will it automatically detect something is up on any port?
     steps:
+      # About: https://azure.github.io/AppService/2020/12/11/cicd-for-python-apps.html
       - name: Download artifact from build job
         uses: actions/download-artifact@v2
         with:
           name: python-app
           path: .
 
-      # TODO: remember `git submodule update`
+      # TODO: remember `git submodule update`. needed in build or deploy?
 
-      # TODO: create env. does this work? does this pull from environment or repo secrets? https://github.com/jhu-bids/TermHub/settings/secrets/actions
-      # https://stackoverflow.com/questions/60176044/how-do-i-use-an-env-file-with-github-actions
-      - name: 'Create env file'
-        run: |
-          mkdir env
-          echo "${{ secrets.ENV_FILE }}" > env/.env
+      # TODO: need to run DB initialize. i think manual steps for the DB may already be done. or we could do this locally and it could push to the prod db?
 
-      # TODO: need to run DB initialize. i think manual steps for the DB may already be done.
+      # TODO: need `make serve-backend` or `uvicorn backend.app:APP --reload`. But how does it know which port? will it automatically detect something is up on any port?
 
       - name: 'Deploy to Azure Web App'
         uses: azure/webapps-deploy@v2
