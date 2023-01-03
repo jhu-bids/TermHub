@@ -250,6 +250,47 @@ def top_level_cids(concept_ids: List[int], con=CON) -> List[int]:
     return top_level_cids
 
 
+def top_level_cids(concept_ids: List[int], con=CON) -> List[int]:
+    """Filter to concept ids with no parents"""
+    top_level_cids = sql_query_single_col(
+        con, f""" 
+        WITH cids AS (
+            SELECT unnest(ARRAY[:concept_ids]) AS concept_id
+        ) -- , standalone AS (  -- these are cids with no parents or children, will be included as top level
+            SELECT DISTINCT concept_id
+            FROM cids
+            WHERE NOT EXISTS (
+                SELECT *
+                FROM concept_relationship cr
+                WHERE cr.relationship_id = 'Subsumes'
+                  AND cr.concept_id_2 = cids.concept_id
+                  AND cr.concept_id_1 IN (SELECT concept_id from cids)
+                   --OR  cr.concept_id_2 = cids.concept_id)
+            )
+        """,
+        {'concept_ids': concept_ids})
+        # ), no_parents AS (  -- these have no parents (in cids), so are top level
+        #     SELECT cids.concept_id
+        #     FROM cids
+        #     WHERE NOT EXISTS (
+        #         SELECT *
+        #         FROM concept_relationship cr
+        #         WHERE cr.relationship_id = 'Subsumes'
+        #           AND (cr.concept_id_1 = cids.concept_id
+        #            OR  cr.concept_id_2 = cids.concept_id)
+        #     )
+        #     FROM concept_relationship cr
+        #     WHERE cr.concept_id_1 = ANY(:concept_ids)
+        #       AND cr.relationship_id = 'Subsumes'
+        #       AND NOT EXISTS (
+        #         SELECT *
+        #         FROM concept_relationship
+        #         WHERE concept_id_2 = cr.concept_id_1
+        #       )
+        # )
+    return top_level_cids
+
+
 def child_cids(concept_id: int, con=CON) -> List[Dict]:
     """Get child concept ids"""
     # selected_concept_ids = get_concept_set_member_ids([concept_id])
