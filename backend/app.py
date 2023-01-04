@@ -16,8 +16,7 @@ from fastapi.middleware.gzip import GZipMiddleware
 from pydantic import BaseModel
 from sqlalchemy.engine import LegacyRow, RowMapping
 
-from backend.db.queries import get_all_parent_child_subsumes_tuples
-from backend.utils import hierarchify_list_of_parent_kids
+from backend.db.queries import get_all_parent_children_map
 from enclave_wrangler.dataset_upload import upload_new_container_with_concepts, upload_new_cset_version_with_concepts
 from enclave_wrangler.utils import make_objects_request
 
@@ -35,7 +34,7 @@ APP.add_middleware(
 APP.add_middleware(GZipMiddleware, minimum_size=1000)
 CON = get_db_connection()
 CACHE = {
-    'all_parent_child_subsumes_tuples': get_all_parent_child_subsumes_tuples(CON)
+    'all_parent_children_map': get_all_parent_children_map(CON)
 }
 
 
@@ -187,9 +186,8 @@ def hierarchy(codeset_ids: List[int] = None, selected_concept_ids: List[int] = N
     if not selected_concept_ids:
         selected_concept_ids = get_concept_set_member_ids(codeset_ids, column='concept_id')
 
-    all_parent_child_list = CACHE['all_parent_child_subsumes_tuples']
     selected_roots: List[int] = top_level_cids(selected_concept_ids)
-    d = hierarchify_list_of_parent_kids(all_parent_child_list, selected_roots)
+    d = hierarchify_list_of_parent_kids(selected_roots)
 
     # todo: this reverts new way of indicating 'no children' back to null. any more seemly way to do?
     d2 = json.dumps(d)
@@ -197,6 +195,41 @@ def hierarchy(codeset_ids: List[int] = None, selected_concept_ids: List[int] = N
     d3 = json.loads(d2)
 
     return d3
+
+
+# todo: should this function be merged with hierarchy() in app.py?
+def hierarchify_list_of_parent_kids(
+        selected_root_ids: List[Union[str, int]]
+) -> Dict:
+    """Convert a list of tuples of (parent, child) to a hierarchy, only for selected_root_ids and their descendants.
+
+    Example:
+        parent_child_list: [(3290077, 3219427), (3219427, 3429308), (3219427, 3458111), (3457827, 3465375)]
+        returns: {
+          3290077: {
+            3219427: {
+              3429308: {},
+              3458111: {}
+          },
+          3457827: {
+            3465375: {},
+          }
+    """
+    # Initialize reusable map of parents and all their children
+    parent_children_map = CACHE['all_parent_children_map']
+
+    # TODO: Attempt 2: when @Siggie finishes with top_level_cids(), results of that query are passed into here as
+    #  selected_root_ids. After that, there will hopefully be no issues left with this hierarchy. But should check and
+    #  remove this comment (as well as all of Attempt 1 commented out above) if all is good.
+    def recurse(ids):
+        x = {}
+        for id in ids:
+            children = parent_children_map.get(id, [])
+            x[id] = recurse(children)
+        return x
+    d = recurse(selected_root_ids)
+
+    return d
 
 
 junk = """  -- retaining hierarchical query (that's not working, for possible future reference)
@@ -414,10 +447,13 @@ def cr_hierarchy(rec_format: str = 'default', codeset_id: Union[str, None] = Que
     h = result['hierarchy']
     hh = json.dumps(h)
     import re
-    concepts_we_want = [int(x) for x in re.findall(r'\d+', hh)]
+    hierarchy_concept_ids = [int(x) for x in re.findall(r'\d+', hh)]
+
+    # concepts missing from hierarchy that shouldn't be:
+    #    set(cset_member_ids).difference(hierarchy_concept_ids)
 
     # result['concepts'] = get_concepts([i.concept_id for i in result['cset_members_items']])
-    result['concepts'] = get_concepts(concepts_we_want)
+    result['concepts'] = get_concepts(hierarchy_concept_ids)
 
     o = json.load(fp)['hierarchy']
     n = result['hierarchy']
