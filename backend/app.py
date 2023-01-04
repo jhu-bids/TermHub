@@ -186,8 +186,25 @@ def hierarchy(codeset_ids: List[int] = None, selected_concept_ids: List[int] = N
     if not selected_concept_ids:
         selected_concept_ids = get_concept_set_member_ids(codeset_ids, column='concept_id')
 
-    selected_roots: List[int] = top_level_cids(selected_concept_ids)
-    d = hierarchify_list_of_parent_kids(selected_roots)
+    # selected_roots: List[int] = top_level_cids(selected_concept_ids)
+    added_count: Dict[int, int] = {}
+    def recurse(ids):
+        x = {}
+        for id in ids:
+            children = CACHE['all_parent_children_map'].get(id, [])
+            x[id] = recurse(children)
+            added_count[id] = added_count.get(id, 0) + 1
+        return x
+    # d = recurse(selected_roots)
+    d = recurse(selected_concept_ids)
+
+    # remove duplicate trees at root
+    for _id, count in added_count.items():
+        if count > 1:
+            try:
+                del d[_id]
+            except KeyError:
+                pass
 
     # todo: this reverts new way of indicating 'no children' back to null. any more seemly way to do?
     d2 = json.dumps(d)
@@ -195,41 +212,6 @@ def hierarchy(codeset_ids: List[int] = None, selected_concept_ids: List[int] = N
     d3 = json.loads(d2)
 
     return d3
-
-
-# todo: should this function be merged with hierarchy() in app.py?
-def hierarchify_list_of_parent_kids(
-        selected_root_ids: List[Union[str, int]]
-) -> Dict:
-    """Convert a list of tuples of (parent, child) to a hierarchy, only for selected_root_ids and their descendants.
-
-    Example:
-        parent_child_list: [(3290077, 3219427), (3219427, 3429308), (3219427, 3458111), (3457827, 3465375)]
-        returns: {
-          3290077: {
-            3219427: {
-              3429308: {},
-              3458111: {}
-          },
-          3457827: {
-            3465375: {},
-          }
-    """
-    # Initialize reusable map of parents and all their children
-    parent_children_map = CACHE['all_parent_children_map']
-
-    # TODO: Attempt 2: when @Siggie finishes with top_level_cids(), results of that query are passed into here as
-    #  selected_root_ids. After that, there will hopefully be no issues left with this hierarchy. But should check and
-    #  remove this comment (as well as all of Attempt 1 commented out above) if all is good.
-    def recurse(ids):
-        x = {}
-        for id in ids:
-            children = parent_children_map.get(id, [])
-            x[id] = recurse(children)
-        return x
-    d = recurse(selected_root_ids)
-
-    return d
 
 
 junk = """  -- retaining hierarchical query (that's not working, for possible future reference)
@@ -292,12 +274,13 @@ def top_level_cids(concept_ids: List[int], con=CON) -> List[int]:
         ) -- , standalone AS (  -- these are cids with no parents or children, will be included as top level
             SELECT DISTINCT concept_id
             FROM cids
-            WHERE NOT EXISTS (
+            JOIN concept_relationship cr ON cr.concept_id_1 = cids.concept_id
+            WHERE cr.relationship_id = 'Subsumes'
+            AND NOT EXISTS (
                 SELECT *
                 FROM concept_relationship cr
                 WHERE cr.relationship_id = 'Subsumes'
-                  AND cr.concept_id_2 = cids.concept_id
-                  AND cr.concept_id_1 IN (SELECT concept_id from cids)
+                  AND cr.concept_id_2 IN (SELECT concept_id from cids)
                    --OR  cr.concept_id_2 = cids.concept_id)
             )
         """,
@@ -431,7 +414,6 @@ def cr_hierarchy(rec_format: str = 'default', codeset_id: Union[str, None] = Que
     #           'data_counts': log_counts(),
     # }
 
-    # TODO: uncomment
     result = {
         # # todo: Check related_csets() to see its todo's
         'related_csets': related_csets(codeset_ids=codeset_ids, selected_concept_ids=cset_member_ids),
@@ -444,16 +426,18 @@ def cr_hierarchy(rec_format: str = 'default', codeset_id: Union[str, None] = Que
         # todo: frontend not making use of data_counts yet but will need
         'data_counts': [],
     }
+
+    # TODO: Fix: concepts missing from hierarchy that shouldn't be:
     h = result['hierarchy']
     hh = json.dumps(h)
     import re
     hierarchy_concept_ids = [int(x) for x in re.findall(r'\d+', hh)]
+    # diff for: http://127.0.0.1:8000/cr-hierarchy?rec_format=flat&codeset_id=400614256|87065556
+    #  {4218499, 4198296, 4215961, 4255399, 4255400, 4255401, 4147509, 252341, 36685758, 4247107, 4252356, 42536648, 4212441, 761062, 259055, 4235260}
+    diff = set(cset_member_ids).difference(hierarchy_concept_ids)
 
-    # concepts missing from hierarchy that shouldn't be:
-    #    set(cset_member_ids).difference(hierarchy_concept_ids)
-
-    # result['concepts'] = get_concepts([i.concept_id for i in result['cset_members_items']])
-    result['concepts'] = get_concepts(hierarchy_concept_ids)
+    # TODO: siggie was working on something here
+    # result['concepts'] = get_concepts([i.concept_id for i in result['cset_members_items']]    result['concepts'] = get_concepts(hierarchy_concept_ids)
 
     o = json.load(fp)['hierarchy']
     n = result['hierarchy']
