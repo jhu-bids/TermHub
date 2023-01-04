@@ -171,7 +171,7 @@ def related_csets(codeset_ids: List[int] = None, selected_concept_ids: List[int]
     return related_csets
 
 
-def cset_members_items(codeset_ids: List[int] = None, con=CON) -> List[LegacyRow]:
+def get_cset_members_items(codeset_ids: List[int] = None, con=CON) -> List[LegacyRow]:
     return sql_query(
         con, f""" 
         SELECT *
@@ -374,7 +374,7 @@ def _related_csets(codeset_id: Union[str, None] = Query(default=''), ) -> List[D
 def _cset_members_items(codeset_id: Union[str, None] = Query(default=''), ) -> List[LegacyRow]:
     """Route for: related_csets()"""
     codeset_ids: List[int] = parse_codeset_ids(codeset_id)
-    return cset_members_items(codeset_ids)
+    return get_cset_members_items(codeset_ids)
 
 
 @APP.get("/hierarchy")
@@ -390,7 +390,7 @@ def cr_hierarchy(rec_format: str = 'default', codeset_id: Union[str, None] = Que
 
     # TODO: TEMP FOR TESTING. #191 isn't a problem with the old json data
     fp = open(r'./backend/old_cr-hierarchy_samples/cr-hierarchy - example1 - before refactor.json')
-    # return json.load(fp)
+    return json.load(fp)
 
     """Get concept relationship hierarchy
 
@@ -399,28 +399,16 @@ def cr_hierarchy(rec_format: str = 'default', codeset_id: Union[str, None] = Que
     """
     codeset_ids: List[int] = parse_codeset_ids(codeset_id)
     cset_member_ids: List[int] = get_concept_set_member_ids(codeset_ids, column='concept_id')
-
-    # Old LFS way, for reference
-    # dsi = cset_members(requested_codeset_ids)
-    # result = {
-    #           # 'all_csets': dsi.all_csets.to_dict(orient='records'),
-    #           'related_csets': dsi.related_csets.to_dict(orient='records'),
-    #           'selected_csets': dsi.selected_csets.to_dict(orient='records'),
-    #           # 'concept_set_members_i': dsi.concept_set_members_i.to_dict(orient='records'),
-    #           # 'concept_set_version_item_i': dsi.concept_set_version_item_i.to_dict(orient='records'),
-    #           'cset_members_items': dsi.cset_members_items.to_dict(orient='records'),
-    #           'hierarchy': dsi.hierarchy,
-    #           'concepts': dsi.concepts.to_dict(orient='records'),
-    #           'data_counts': log_counts(),
-    # }
+    cset_members_items = get_cset_members_items(codeset_ids)
+    concept_ids = list(set([i['concept_id'] for i in cset_members_items]))
 
     result = {
         # # todo: Check related_csets() to see its todo's
         'related_csets': related_csets(codeset_ids=codeset_ids, selected_concept_ids=cset_member_ids),
         # # todo: Check get_csets() to see its todo's
         'selected_csets': get_csets(codeset_ids),
-        'cset_members_items': cset_members_items(codeset_ids),
-        'hierarchy': hierarchy(selected_concept_ids=cset_member_ids),
+        'cset_members_items': cset_members_items,
+        'hierarchy': hierarchy(selected_concept_ids=concept_ids),
         # todo: concepts
         'concepts': [],
         # todo: frontend not making use of data_counts yet but will need
@@ -437,7 +425,7 @@ def cr_hierarchy(rec_format: str = 'default', codeset_id: Union[str, None] = Que
     diff = set(cset_member_ids).difference(hierarchy_concept_ids)
 
     # TODO: siggie was working on something here
-    # result['concepts'] = get_concepts([i.concept_id for i in result['cset_members_items']]    result['concepts'] = get_concepts(hierarchy_concept_ids)
+    result['concepts'] = get_concepts(hierarchy_concept_ids)
 
     o = json.load(fp)['hierarchy']
     n = result['hierarchy']
