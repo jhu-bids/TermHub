@@ -26,12 +26,12 @@ sys.path.insert(0, str(PROJECT_ROOT))
 from enclave_wrangler.actions_api import delete_concept_set_version, upload_concept_set_container, \
     upload_concept_set_version
 from enclave_wrangler.utils import make_objects_request, make_actions_request
-from enclave_wrangler.dataset_upload import post_to_enclave_from_3csv, upload_new_cset_version_with_concepts
+from enclave_wrangler.dataset_upload import post_to_enclave_from_3csv, upload_new_cset_version_with_concepts_from_csv
 from enclave_wrangler.config import PALANTIR_ENCLAVE_USER_ID_1
 
 
 TEST_INPUT_DIR = os.path.join(TEST_DIR, 'input', 'test_enclave_wrangler')
-
+CSV_DIR = os.path.join(TEST_INPUT_DIR, 'test_dataset_upload')
 
 # TODO use proper teardown() methods
 class TestEnclaveWrangler(unittest.TestCase):
@@ -46,25 +46,9 @@ class TestEnclaveWrangler(unittest.TestCase):
 
     def test_upload(self):
         """Test uploading a new cset version with concepts"""
-        csv_dir = os.path.join(TEST_INPUT_DIR, 'test_dataset_upload')
-        fname = os.path.join(csv_dir, 'type-2-diabetes-mellitus.csv')
-        df = pd.read_csv(fname).fillna('')
-        omop_concepts = df[[
-            'concept_id',
-            'includeDescendants',
-            'isExcluded',
-            'includeMapped',
-            'annotation']].to_dict(orient='records')
-        new_version = {
-            "omop_concepts": omop_concepts,
-            "provenance": "Created through TermHub.",
-            "concept_set_name": "[DM]Type2 Diabetes Mellitus",
-            "limitations": "",
-            "intention": "",
-            "on_behalf_of": os.getenv('ON_BEHALF_OF')
-        }
-
-        d: Dict = upload_new_cset_version_with_concepts(**new_version, validate_first=False)
+        path = os.path.join(CSV_DIR, 'type-2-diabetes-mellitus.csv')
+        # TODO: temp validate_first until fix all bugs
+        d: Dict = upload_new_cset_version_with_concepts_from_csv(path, validate_first=True)
         responses: Dict[str, Union[Response, List[Response]]] = d['responses']
         version_id: int = d['versionId']
         for response in responses.values():

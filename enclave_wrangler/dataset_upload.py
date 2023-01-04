@@ -36,6 +36,26 @@ except ModuleNotFoundError:
 
 DEBUG = False
 
+def upload_new_cset_version_with_concepts_from_csv(path: str, validate_first=False) -> Dict:
+    """Upload from CSV"""
+    df = pd.read_csv(path).fillna('')
+    omop_concepts = df[[
+        'concept_id',
+        'includeDescendants',
+        'isExcluded',
+        'includeMapped',
+        'annotation']].to_dict(orient='records')
+    new_version = {
+        "omop_concepts": omop_concepts,
+        "provenance": "Created through TermHub.",
+        "concept_set_name": "[DM]Type2 Diabetes Mellitus",
+        "limitations": "",
+        "intention": "",
+        "on_behalf_of": os.getenv('ON_BEHALF_OF')
+    }
+    d: Dict = upload_new_cset_version_with_concepts(**new_version, validate_first=validate_first)
+    return d
+
 
 # TODO: Need to do proper codeset_id assignment: (i) look up registry and get next available ID, (ii) assign it here,
 #  (iii) persist new ID / set to registry, (iv) persist new ID to any files passed through CLI, (v), return the new ID
