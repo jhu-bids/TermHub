@@ -168,6 +168,12 @@ CREATE INDEX cc_idx1 ON concepts_with_counts(concept_id);
 -- if it needs updating, uncomment following line
 -- DROP TABLE IF EXISTS concept_relationship_plus;
 
+-- using concept_relationship_plus not just for convenience in debugging now but also
+-- single source of truth for concept_relationship in termhub. quit using concept_relationship
+-- and concept_relationship_subsumes_only in queries.
+-- for now, because of bug (https://github.com/jhu-bids/TermHub/issues/191 and https://github.com/jhu-bids/TermHub/pull/190)
+-- filtering out cr records including invalid concepts. this is probably not the right thing to do
+-- in the long term, but should fix that bug and let us move forward with immediate need to get pilot started (2022-01-4)
 CREATE TABLE IF NOT EXISTS concept_relationship_plus AS (
   SELECT    c1.vocabulary_id AS vocabulary_id_1
           , cr.concept_id_1
@@ -178,9 +184,9 @@ CREATE TABLE IF NOT EXISTS concept_relationship_plus AS (
           , cr.concept_id_2
           , c2.concept_name AS concept_name_2
   FROM concept_relationship cr
-  JOIN concept c1 ON cr.concept_id_1 = c1.concept_id
-  JOIN concept c2 ON cr.concept_id_2 = c2.concept_id
-                AND c2.standard_concept IS NOT NULL
+  JOIN concept c1 ON cr.concept_id_1 = c1.concept_id AND c1.invalid_reason IS NULL
+  JOIN concept c2 ON cr.concept_id_2 = c2.concept_id AND c2.invalid_reason IS NULL
+                --AND c2.standard_concept IS NOT NULL
 );
 
 CREATE INDEX  crp_idx1 ON concept_relationship_plus(concept_id_1);
@@ -190,6 +196,8 @@ CREATE INDEX  crp_idx2 ON concept_relationship_plus(concept_id_2);
 CREATE INDEX  crp_idx3 ON concept_relationship_plus(concept_id_1, concept_id_2);
 
 CREATE INDEX  crp_idx4 ON concept_relationship_plus(concept_code);
+
+CREATE INDEX  crp_idx5 ON concept_relationship_plus(relationship_id);
 
 CREATE INDEX  csmi_idx2 ON cset_members_items(concept_id);
 

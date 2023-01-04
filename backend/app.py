@@ -232,22 +232,22 @@ ORDER BY path;
 # TODO: @Siggie is working on this. When done, we will examine the results of hierarchy(). They may still be different
 #  ...from what we were seeing before the refactor, but that doesn't mean they're wrong, as there may have been issue(s)
 #  ...in the old format as well.
-def top_level_cids(concept_ids: List[int], con=CON) -> List[int]:
-    """Filter to concept ids with no parents"""
-    top_level_cids = sql_query_single_col(
-        con, f""" 
-        SELECT DISTINCT concept_id_1
-        FROM concept_relationship cr
-        WHERE cr.concept_id_1 = ANY(:concept_ids)
-          AND cr.relationship_id = 'Subsumes'
-          AND NOT EXISTS (
-            SELECT *
-            FROM concept_relationship
-            WHERE concept_id_2 = cr.concept_id_1
-          )
-        """,
-        {'concept_ids': concept_ids})
-    return top_level_cids
+# def top_level_cids(concept_ids: List[int], con=CON) -> List[int]:
+#     """Filter to concept ids with no parents"""
+#     top_level_cids = sql_query_single_col(
+#         con, f"""
+#         SELECT DISTINCT concept_id_1
+#         FROM concept_relationship cr
+#         WHERE cr.concept_id_1 = ANY(:concept_ids)
+#           AND cr.relationship_id = 'Subsumes'
+#           AND NOT EXISTS (
+#             SELECT *
+#             FROM concept_relationship
+#             WHERE concept_id_2 = cr.concept_id_1
+#           )
+#         """,
+#         {'concept_ids': concept_ids})
+#     return top_level_cids
 
 
 def top_level_cids(concept_ids: List[int], con=CON) -> List[int]:
@@ -373,7 +373,7 @@ def _hierarchy(codeset_id: Union[str, None] = Query(default=''), ) -> Dict:
 def cr_hierarchy(rec_format: str = 'default', codeset_id: Union[str, None] = Query(default=''), ) -> Dict:
 
     # TODO: TEMP FOR TESTING. #191 isn't a problem with the old json data
-    # fp = open('./backend/old_cr-hierarchy_samples/cr-hierarchy-example1.json')
+    fp = open(r'./backend/old_cr-hierarchy_samples/cr-hierarchy - example1 - before refactor.json')
     # return json.load(fp)
 
     """Get concept relationship hierarchy
