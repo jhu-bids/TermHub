@@ -411,7 +411,20 @@ def cr_hierarchy(rec_format: str = 'default', codeset_id: Union[str, None] = Que
         # todo: frontend not making use of data_counts yet but will need
         'data_counts': [],
     }
-    result['concepts'] = get_concepts([i.concept_id for i in result['cset_members_items']])
+    h = result['hierarchy']
+    hh = json.dumps(h)
+    import re
+    concepts_we_want = [int(x) for x in re.findall(r'\d+', hh)]
+
+    # result['concepts'] = get_concepts([i.concept_id for i in result['cset_members_items']])
+    result['concepts'] = get_concepts(concepts_we_want)
+
+    o = json.load(fp)['hierarchy']
+    n = result['hierarchy']
+    print(f"o.keys() == n.keys(): {set(o.keys()) == set(n.keys())}")
+    for k,v in o.items():
+        if not v == n[k]:
+            print(k, o[k], n[k])
 
     return result
 
