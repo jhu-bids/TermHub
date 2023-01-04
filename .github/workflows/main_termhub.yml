@@ -85,4 +85,5 @@ jobs:
           app-name: 'termhub'
           slot-name: 'Production'
           publish-profile: ${{ secrets.AZUREAPPSERVICE_PUBLISHPROFILE_01B978E0A1074AF5B9757FB5907ED5D2 }}
-          package: /home/runner/work/TermHub/TermHub/python-app.zip
+          package: '.'
+         # package: /home/runner/work/TermHub/TermHub/python-app.zip
