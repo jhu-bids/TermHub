@@ -3,6 +3,7 @@ import json
 import logging
 import sys
 from typing import Dict, List, Union
+from urllib.parse import urljoin
 
 import requests
 from datetime import datetime, timezone, timedelta
@@ -10,7 +11,7 @@ from http.client import HTTPConnection
 
 from requests import Response
 
-from enclave_wrangler.config import VALIDATE_FIRST, config
+from enclave_wrangler.config import config
 from backend.utils import dump
 
 
@@ -150,12 +151,12 @@ def make_actions_request(api_name: str, data: Union[List, Dict] = None, validate
     url = f'https://{config["HOSTNAME"]}{api_path}'
 
     if validate_first:
-        response: Response = enclave_post(url + '/validate', data)
+        response: Response = enclave_post(urljoin(url + 'validate'), data)
         if not ('result' in response.json() and response.json()['result'] == 'VALID'):
             print(f'Failure: {api_name}\n', response, file=sys.stderr)
             return response
 
-    response: Response = enclave_post(url + '/apply', data)
+    response: Response = enclave_post(urljoin(url, 'apply'), data)
 
     return response
 
@@ -165,21 +166,23 @@ def enclave_post(url: str, data: Union[List, Dict], verbose=True) -> Response:
         print_curl(url)
 
     headers = get_headers()
-    response = requests.post(url, headers=headers, json=data)
-
-    if not ('result' in response.json() and response.json()['result'] == 'VALID'):
-        print(f'Failure: {url}\n', response, file=sys.stderr)
-        return response
-
     try:
-        if 'errorCode' in response.text:
-            print('Error: ' + response.text)
+        response = requests.post(url, headers=headers, json=data)
+        if response.status_code >= 400:
+            print(f'Failure: {url}\n', response, file=sys.stderr)
+        elif not ('result' in response.json() and response.json()['result'] == 'VALID'):
+            print(f'Failure: {url}\n', response, file=sys.stderr)
+        elif 'errorCode' in response.text:
+            print('Error: ' + response.text, file=sys.stderr)
         response.raise_for_status()
+        return response
     except Exception as err:
         ttl = check_token_ttl(get_auth_token())
         if ttl == 0:
             raise RuntimeError(f'Error: Token expired: ' + get_auth_token_key())
         raise err
+
+
 def enclave_get(url: str, verbose: bool=True, args: Dict={})-> Response:
     if verbose:
         print_curl(url, args=args)

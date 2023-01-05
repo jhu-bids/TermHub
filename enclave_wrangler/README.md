@@ -29,13 +29,30 @@ This can be done 1 of 2 ways: (a) by providing OMOP concept IDs in the `omop_con
 [//]: # (TODO: Add example tables here)
 
 #### Creating a new concept set container
+Given a CSV like the following...
 TODO
+
+...run: TODO
 
 #### Creating a new concept set version
+Given a CSV like the following...
 TODO
 
+...run: TODO
+
 #### Adding/updating concepts in a concept set version
+Given a CSV like the following...
+
 |concept_set_name|parent_version_codeset_id|action     |omop_concept_id|includeDescendants|isExcluded|includeMapped|annotation|vocabulary_concept_code|vocabulary_id|FIELD11|concept_name                  |domain   |class_id        |
 |----------------|-------------------------|-----------|---------------|------------------|----------|-------------|----------|-----------------------|-------------|-------|------------------------------|---------|----------------|
 |                |794639872                |add/replace|4034962        |FALSE             |FALSE     |FALSE        |          |237613005              |             |       |Hyperproinsulinemia           |         |                |
 |                |794639872                |add/replace|               |FALSE             |TRUE      |FALSE        |          |703136005              |SNOMED       |       |Diabetes mellitus in remission|Condition|Clinical Finding|
+
+...updates can be uploaded using the following Python code:
+```python
+from enclave_wrangler.dataset_upload import upload_new_cset_version_with_concepts_from_csv
+path = 'path/to/csv'  # replace with path to your CSV
+upload_new_cset_version_with_concepts_from_csv(path)
+```
+
+There is also a unit test that demonstrates this functionality in `tests/test_enclave_wrangler.py` called `TestEnclaveWrangler.test_upload()`.
