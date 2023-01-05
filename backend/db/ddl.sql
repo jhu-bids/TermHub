@@ -77,8 +77,8 @@ SELECT DISTINCT
         csc.created_at AS container_created_at,
         ocsc.rid AS container_rid,
 		COALESCE(cids.concepts, 0) AS concepts,
-        cscc.approx_distinct_person_count,
-        cscc.approx_total_record_count
+        COALESCE(cscc.approx_distinct_person_count, 0) AS distinct_person_cnt,
+        COALESCE(cscc.approx_total_record_count, 0) AS total_cnt
 FROM code_sets cs
 LEFT JOIN OMOPConceptSet ocs ON cs.codeset_id = ocs."codesetId" -- need quotes because of caps in colname
 JOIN concept_set_container csc ON cs.concept_set_name = csc.concept_set_name
@@ -137,13 +137,12 @@ WHERE  NOT EXISTS (
      AND csc.created_at = dd.created_at
 );
 
--- DROP TABLE IF EXISTS concepts_with_counts_ungrouped;
-
+DROP TABLE IF EXISTS concepts_with_counts_ungrouped;
 CREATE TABLE IF NOT EXISTS concepts_with_counts_ungrouped AS (
 SELECT c.concept_id,
         c.concept_name,
-        COALESCE(tu.total_count, 0) AS total_count,
-        COALESCE(tu.distinct_person_count, 0) AS distinct_person_count,
+        COALESCE(tu.total_count, 0) AS total_cnt,
+        COALESCE(tu.distinct_person_count, 0) AS distinct_person_cnt,
         tu.domain
 FROM concept c
 LEFT JOIN deidentified_term_usage_by_domain_clamped tu ON c.concept_id = tu.concept_id);
@@ -151,13 +150,14 @@ LEFT JOIN deidentified_term_usage_by_domain_clamped tu ON c.concept_id = tu.conc
 CREATE INDEX ccu_idx1 ON concepts_with_counts_ungrouped(concept_id);
 --CREATE INDEX ccu_idx2 ON concepts_with_counts_ungrouped(concept_id);
 
+DROP TABLE IF EXISTS concepts_with_counts;
 CREATE TABLE IF NOT EXISTS concepts_with_counts AS (
     SELECT concept_id,
             concept_name,
             COUNT(DISTINCT domain) AS domain_cnt,
             array_to_string(array_agg(domain), ',') AS domain,
-            SUM(total_count) AS total_count,
-            array_to_string(array_agg(distinct_person_count), ',') AS distinct_person_cnt
+            SUM(total_cnt) AS total_cnt,
+            array_to_string(array_agg(distinct_person_cnt), ',') AS distinct_person_cnt
     FROM concepts_with_counts_ungrouped
     GROUP BY 1,2
     ORDER BY concept_id, domain );

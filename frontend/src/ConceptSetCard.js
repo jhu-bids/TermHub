@@ -63,8 +63,10 @@ function ConceptSetCard(props) {
   let display_props = {}
   display_props['Code set ID'] = cset.codeset_id;
   display_props['Concepts'] = cset.concepts;
-  display_props['Patient count'] = '~ ' + cset.approx_distinct_person_count.toLocaleString();
-  display_props['Record count'] = '~ ' + cset.approx_total_record_count.toLocaleString();
+  // fix to:
+  // format: row => fmt(parseInt(row.distinct_person_cnt)),
+  display_props['Patient count'] = '~ ' + cset.distinct_person_cnt.toLocaleString();
+  display_props['Record count'] = '~ ' + cset.total_cnt.toLocaleString();
 
   if (cset.is_most_recent_version) {
     tags.push('Most recent version');

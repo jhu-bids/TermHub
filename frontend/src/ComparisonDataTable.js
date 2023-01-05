@@ -197,8 +197,8 @@ function colConfig(codeset_ids, nested, selected_csets, rowData, collapsed, togg
         },
         {
             name: 'Patients',
-            selector: row => parseInt(row.distinct_person_count),
-            format: row => fmt(row.distinct_person_count),
+            selector: row => parseInt(row.distinct_person_cnt),
+            format: row => fmt(row.distinct_person_cnt),
             sortable: !nested,
             right: true,
             width: '80px',
@@ -206,8 +206,8 @@ function colConfig(codeset_ids, nested, selected_csets, rowData, collapsed, togg
         },
         {
             name: 'Records',
-            selector: row => row.total_count,
-            format: row => fmt(row.total_count),
+            selector: row => row.total_cnt,
+            format: row => fmt(row.total_cnt),
             sortable: !nested,
             right: true,
             width: '80px',

@@ -390,7 +390,7 @@ def cr_hierarchy(rec_format: str = 'default', codeset_id: Union[str, None] = Que
 
     # TODO: TEMP FOR TESTING. #191 isn't a problem with the old json data
     fp = open(r'./backend/old_cr-hierarchy_samples/cr-hierarchy - example1 - before refactor.json')
-    return json.load(fp)
+    # return json.load(fp)
 
     """Get concept relationship hierarchy
 

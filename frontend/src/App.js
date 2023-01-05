@@ -42,7 +42,6 @@ const queryClient = new QueryClient({
   },
 })
 
-/*
 const localStoragePersister = createSyncStoragePersister({ storage: window.localStorage })
 // const sessionStoragePersister = createSyncStoragePersister({ storage: window.sessionStorage })
 
@@ -52,7 +51,6 @@ persistQueryClient({
   retry: removeOldestQuery,
   maxAge: Infinity,
 })
- */
 /*
   TODO: I've got some bad state stuff going on. Maybe violating this principle:
   For example, one rule is that you should not mutate an existing state object or ref object. Doing so
