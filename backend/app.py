@@ -389,7 +389,7 @@ def _hierarchy(codeset_id: Union[str, None] = Query(default=''), ) -> Dict:
 def cr_hierarchy(rec_format: str = 'default', codeset_id: Union[str, None] = Query(default=''), ) -> Dict:
 
     # TODO: TEMP FOR TESTING. #191 isn't a problem with the old json data
-    fp = open(r'./backend/old_cr-hierarchy_samples/cr-hierarchy - example1 - before refactor.json')
+    # fp = open(r'./backend/old_cr-hierarchy_samples/cr-hierarchy - example1 - before refactor.json')
     # return json.load(fp)
 
     """Get concept relationship hierarchy
@@ -427,12 +427,12 @@ def cr_hierarchy(rec_format: str = 'default', codeset_id: Union[str, None] = Que
     # TODO: siggie was working on something here
     result['concepts'] = get_concepts(hierarchy_concept_ids)
 
-    o = json.load(fp)['hierarchy']
-    n = result['hierarchy']
-    print(f"o.keys() == n.keys(): {set(o.keys()) == set(n.keys())}")
-    for k,v in o.items():
-        if not v == n[k]:
-            print(k, o[k], n[k])
+    # o = json.load(fp)['hierarchy']
+    # n = result['hierarchy']
+    # print(f"o.keys() == n.keys(): {set(o.keys()) == set(n.keys())}")
+    # for k,v in o.items():
+    #     if not v == n[k]:
+    #         print(k, o[k], n[k])
 
     return result
 
