@@ -1,5 +1,10 @@
 # TermHub
 
+TermHub is a user interface and collection of analytic tools for working with concept sets. Its goal is to ease the process of concept set authoring and to facilitate the creation of higher-quality concept sets by providing users with immediate information and viasualization capabilities to understand their concept set and take advantage of existing concept sets that can aid their use case.
+
+Allows comparison of overlapping concept sets, display of cset metadata, display of concept hierarchy, term usage and concept set patient counts, and modification and upload of concept sets to the N3C Enclave. Will interface with other code set repositories over time.
+
+
 ## [Features under development / consideration](https://docs.google.com/spreadsheets/d/19_eBv0MIBWPcXMTw3JJdcfPoEFhns93F-TKdODW27B8/edit#gid=0)
 More info: [Requirements](https://github.com/jhu-bids/TermHub/issues/72)
 
@@ -56,8 +61,33 @@ User Interactions
 - [Frontend](./frontend/README.md)  
 - [Backend](./backend/README.md)
 
-Setup
-1. Clone this repository.
-2. Run `git submodule update`
-3. Run: `git lfs install` if not installed already
-4. If any expected files are not showing up in `termhub-csets/`, run `git lfs pull`
+### Local setup
+1. Clone the repository.
+2. Run: `pip install -r requirements.txt`
+3. Run `git submodule update`
+4. Set up PostgreSQL  
+5. Basic DB setup
+```shell
+$ psql
+# you're now connected to postgres. run these commands:
+CREATE DATABASE termhub;
+exit
+# reconnect to new db:
+$ psql termhub
+# connected again to postgres. run:
+CREATE SCHEMA n3c;
+SET search_path TO n3c;
+```
+6. Create DB structure and load data
+7. Run: `python backend/db/initialize.py`
+
+### Deployment
+#### Deploying the backend
+1. Clone the repository.
+2. Run: `pip install -r requirements.txt`
+3. Run `git submodule update`
+4. Run: `uvicorn backend.app:APP --reload`
+
+#### Deploying the frontend
+1. `cd frontend; npm run build`
+2. When that process completes, you should now have an updated `frontend/build` directory. This can be deployed as a static site. The entry point is `index.html`.
