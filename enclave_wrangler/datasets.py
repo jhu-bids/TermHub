@@ -10,6 +10,7 @@ from argparse import ArgumentParser
 from typing import Dict
 from typeguard import typechecked
 import os
+import re
 import requests
 import pandas as pd
 import tempfile
@@ -18,6 +19,10 @@ import pyarrow.parquet as pq
 # import asyncio
 import shutil
 import time
+from backend.utils import commify, pdump
+from enclave_wrangler.utils import enclave_post, enclave_get
+
+import enclave_wrangler.utils
 
 try:
     from enclave_wrangler.config import config, TERMHUB_CSETS_DIR, FAVORITE_DATASETS, FAVORITE_DATASETS_RID_NAME_MAP
@@ -26,12 +31,12 @@ except ModuleNotFoundError:
     from config import config, TERMHUB_CSETS_DIR, FAVORITE_DATASETS, FAVORITE_DATASETS_RID_NAME_MAP
     from utils import log_debug_info
 
-
-HEADERS = {
-    "authorization": f"Bearer {config.get('OTHER_TOKEN', '')}",
-    #"authorization": f"Bearer {config['PALANTIR_ENCLAVE_AUTHENTICATION_BEARER_TOKEN']}",
-    #'content-type': 'application/json'
-}
+# Don't use these headers any more. leave it to the stuff in enclave_wrangler.utils
+# HEADERS = {
+#     "authorization": f"Bearer {enclave_wrangler.utils.get('OTHER_TOKEN', '')}",
+#     #"authorization": f"Bearer {config['PALANTIR_ENCLAVE_AUTHENTICATION_BEARER_TOKEN']}",
+#     #'content-type': 'application/json'
+# }
 DEBUG = False
 # TODO: Once git LFS set up, dl directly to datasets folder, or put these in raw/ and move csvs_repaired to datasets/
 CSV_DOWNLOAD_DIR = os.path.join(TERMHUB_CSETS_DIR, 'datasets', 'downloads')
@@ -53,7 +58,8 @@ def getTransaction(dataset_rid: str, ref: str = 'master') -> str:
     template = '{url}{dataset_rid}/transactions/{ref}'
     url = template.format(url=endpoint, dataset_rid=dataset_rid, ref=ref)
 
-    response = requests.get(url, headers=HEADERS,)
+    # response = requests.get(url, headers=HEADERS,)
+    response = enclave_get(url, verbose=False)
     response_json = response.json()
     if DEBUG:
         print(response_json)
@@ -76,10 +82,11 @@ def views2(dataset_rid: str, endRef: str) -> [str]:
     template = '{endpoint}{dataset_rid}/views2/{endRef}/files?pageSize=100'
     url = template.format(endpoint=endpoint, dataset_rid=dataset_rid, endRef=endRef)
 
-    response = requests.get(url, headers=HEADERS,)
+    response = enclave_get(url, verbose=False)
     response_json = response.json()
     file_parts = [f['logicalPath'] for f in response_json['values']]
-    return file_parts[1:]
+    file_parts = [fp for fp in file_parts if re.match('.*part-\d\d\d\d\d', fp)]
+    return file_parts
 
 
 @typechecked
@@ -100,7 +107,7 @@ def download_and_combine_dataset_parts(fav: dict, file_parts: [str], outpath: st
         for fp in file_parts:
             url = template.format(endpoint=endpoint, dataset_rid=dataset_rid, fp=fp)
             print('\t' + url)
-            response = requests.get(url, headers=HEADERS, stream=True)
+            response = enclave_get(url, args={'stream':True}, verbose=False)
             if response.status_code == 200:
                 fname = parquet_dir + fp.replace('spark', '')
                 with open(fname, "wb") as f:
@@ -138,15 +145,15 @@ def download_and_combine_dataset_parts(fav: dict, file_parts: [str], outpath: st
         if outpath:
             os.makedirs(os.path.dirname(outpath), exist_ok=True)
             df.to_csv(outpath, index=False)
+        print(f'Downloaded {os.path.basename(outpath)}, {commify(len(df))} records\n')
         return df
 
 
 def combine_parquet_files(input_files, target_path):
     files = []
-    input_folder = os.path.dirname(input_files)
+    input_folder = os.path.dirname(target_path)
     try:
         for file_name in input_files:
-            # was: files.append(pq.read_table(os.path.join(input_folder, file_name)))
             files.append(pq.read_table(file_name))
         with pq.ParquetWriter(
             target_path,

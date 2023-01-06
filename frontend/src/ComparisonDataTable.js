@@ -110,7 +110,7 @@ function colConfig(codeset_ids, nested, selected_csets, rowData, collapsed, togg
                 if (!row.checkboxes) {
                     console.log('problem!!!!', {idx, row, rowData})
                 }
-                let checked = row.checkboxes[cset_col.codeset_id];
+                let checked = row.checkboxes && row.checkboxes[cset_col.codeset_id];
                 return checked ? '\u2713' : '';
                 /*
                 let checkbox_id = `${cset_col.codeset_id}:${row.concept_id}`;
@@ -120,7 +120,7 @@ function colConfig(codeset_ids, nested, selected_csets, rowData, collapsed, togg
                  */
             },
             conditionalCellStyles: [
-                { when: row => row.checkboxes[cset_col.codeset_id],
+                { when: row => row.checkboxes && row.checkboxes[cset_col.codeset_id],
                     style: row => {
                         let cb = row.checkboxes[cset_col.codeset_id];
                         let bg = 'purple';
@@ -151,6 +151,8 @@ function colConfig(codeset_ids, nested, selected_csets, rowData, collapsed, togg
                 */
                 if (!row.checkboxes) {
                     console.log('problem!!!!', {idx, row, rowData})
+                } else {
+                    // console.log('not a problem', {idx, row, rowData})
                 }
                 let content = nested
                     ? row.has_children
@@ -162,7 +164,7 @@ function colConfig(codeset_ids, nested, selected_csets, rowData, collapsed, togg
                 return content;
             },
             sortable: !nested,
-            sortable: true,
+            // sortable: true,
             // maxWidth: '300px',
             //  table: style: maxWidth is 85% and selected_csets are 50px, so fill
             //      the rest of the space with this column
@@ -201,8 +203,8 @@ function colConfig(codeset_ids, nested, selected_csets, rowData, collapsed, togg
         },
         {
             name: 'Patients',
-            selector: row => parseInt(row.distinct_person_count),
-            format: row => fmt(row.distinct_person_count),
+            selector: row => parseInt(row.distinct_person_cnt),
+            format: row => fmt(row.distinct_person_cnt),
             sortable: !nested,
             right: true,
             width: '80px',
@@ -210,8 +212,8 @@ function colConfig(codeset_ids, nested, selected_csets, rowData, collapsed, togg
         },
         {
             name: 'Records',
-            selector: row => row.total_count,
-            format: row => fmt(row.total_count),
+            selector: row => row.total_cnt,
+            format: row => fmt(row.total_cnt),
             sortable: !nested,
             right: true,
             width: '80px',

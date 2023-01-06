@@ -63,19 +63,21 @@ function ConceptSetCard(props) {
   let display_props = {}
   display_props['Code set ID'] = cset.codeset_id;
   display_props['Concepts'] = cset.concepts;
-  display_props['Patient count'] = '~ ' + cset.approx_distinct_person_count.toLocaleString();
-  display_props['Record count'] = '~ ' + cset.approx_total_record_count.toLocaleString();
+  // fix to:
+  // format: row => fmt(parseInt(row.distinct_person_cnt)),
+  display_props['Patient count'] = '~ ' + cset.distinct_person_cnt.toLocaleString();
+  display_props['Record count'] = '~ ' + cset.total_cnt.toLocaleString();
 
   if (cset.is_most_recent_version) {
     tags.push('Most recent version');
   }
 
   let intention = [];
-  if (cset.intention_container) {
-    intention.push('Container: ' + cset.intention_container);
+  if (cset.container_intention) {
+    intention.push('Container: ' + cset.container_intention);
   }
-  if (cset.intention_version) {
-    intention.push('Version: ' + cset.intention_version);
+  if (cset.codeset_intention) {
+    intention.push('Version: ' + cset.codeset_intention);
   }
   if (intention.length) {
     display_props.Intention = intention.join('; ');
@@ -125,7 +127,7 @@ function ConceptSetCard(props) {
               {r}
             </div>
   }
-  // display_props['props not included yet'] = 'status_version, status_container, stage, concept count';
+  // display_props['props not included yet'] = 'codeset_status, container_status, stage, concept count';
   return (
       <Box sx={{ minWidth: 275, margin: '8px',  }}>
         <Card variant="outlined" sx={{maxWidth: 345}}>
