@@ -45,7 +45,10 @@ class TestEnclaveWrangler(unittest.TestCase):
         pass
 
     def test_upload(self):
-        """Test uploading a new cset version with concepts"""
+        """Test uploading a new cset version with concepts
+        using:
+        https://github.com/jhu-bids/TermHub/blob/develop/test/input/test_enclave_wrangler/test_dataset_upload/type-2-diabetes-mellitus.csv
+        """
         path = os.path.join(CSV_DIR, 'type-2-diabetes-mellitus.csv')
         # TODO: temp validate_first until fix all bugs
         d: Dict = upload_new_cset_version_with_concepts_from_csv(path, validate_first=True)
