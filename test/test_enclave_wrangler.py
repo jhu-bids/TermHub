@@ -48,6 +48,8 @@ class TestEnclaveWrangler(unittest.TestCase):
         """Test uploading a new cset version with concepts
         using:
         https://github.com/jhu-bids/TermHub/blob/develop/test/input/test_enclave_wrangler/test_dataset_upload/type-2-diabetes-mellitus.csv
+        file format docs:
+        https://github.com/jhu-bids/TermHub/tree/develop/enclave_wrangler
         """
         path = os.path.join(CSV_DIR, 'type-2-diabetes-mellitus.csv')
         # TODO: temp validate_first until fix all bugs

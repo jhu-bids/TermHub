@@ -151,12 +151,12 @@ def make_actions_request(api_name: str, data: Union[List, Dict] = None, validate
     url = f'https://{config["HOSTNAME"]}{api_path}'
 
     if validate_first:
-        response: Response = enclave_post(urljoin(url + 'validate'), data)
+        response: Response = enclave_post(url + 'validate', data)
         if not ('result' in response.json() and response.json()['result'] == 'VALID'):
             print(f'Failure: {api_name}\n', response, file=sys.stderr)
             return response
 
-    response: Response = enclave_post(urljoin(url, 'apply'), data)
+    response: Response = enclave_post(url + 'apply', data)
 
     return response
 

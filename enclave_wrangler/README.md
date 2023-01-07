@@ -65,3 +65,11 @@ upload_new_cset_version_with_concepts_from_csv(path)
 ```
 
 There is also a unit test that demonstrates this functionality in `tests/test_enclave_wrangler.py` called `TestEnclaveWrangler.test_upload()`.
+
+
+# For reference. Enclave API documentation links
+
+- https://unite.nih.gov/workspace/ontology/action-type/create-new-draft-omop-concept-set-version/security
+- https://unite.nih.gov/workspace/ontology/action-type/finalize-draft-omop-concept-set-version/security
+- https://unite.nih.gov/workspace/ontology/action-type/add-selected-concepts-as-omop-version-expressions/security
+- https://unite.nih.gov/workspace/ontology/action-type/create-new-concept-set/security
