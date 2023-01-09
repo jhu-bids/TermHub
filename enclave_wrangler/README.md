@@ -80,3 +80,7 @@ There is also a unit test that demonstrates this functionality in `tests/test_en
 - https://unite.nih.gov/workspace/ontology/action-type/finalize-draft-omop-concept-set-version/security
 - https://unite.nih.gov/workspace/ontology/action-type/add-selected-concepts-as-omop-version-expressions/security
 - https://unite.nih.gov/workspace/ontology/action-type/create-new-concept-set/security
+
+This [documentation can be found here](https://github.com/jhu-bids/TermHub/tree/develop/enclave_wrangler)
+
+And [sample CSV here](https://github.com/jhu-bids/TermHub/blob/develop/test/input/test_enclave_wrangler/test_dataset_upload/type-2-diabetes-mellitus.csv)

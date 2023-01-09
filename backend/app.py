@@ -8,7 +8,8 @@ from datetime import datetime
 from typing import Any, Dict, List, Union
 from functools import cache
 
-import uvicorn
+# import uvicorn
+import gunicorn
 import urllib.parse
 from fastapi import FastAPI, Query
 from fastapi.middleware.cors import CORSMiddleware
@@ -58,7 +59,8 @@ def get_container(concept_set_name):
 
 def run(port: int = 8000):
     """Run app"""
-    uvicorn.run(APP, host='0.0.0.0', port=port)
+    # uvicorn.run(APP, host='0.0.0.0', port=port)
+    gunicorn.run(APP, host='0.0.0.0', port=port)
 
 
 # Database functions ---------------------------------------------------------------------------------------------------
