@@ -80,12 +80,15 @@ def upload_new_cset_version_with_concepts_from_csv(path: str, validate_first=Fal
 
         if new_version['parent_version_codeset_id']:   # creating new version, setting parent to existing version
             d: Dict = upload_new_cset_version_with_concepts(**new_version, validate_first=validate_first)
+            print(d)
             # TODO: since test/test_enclave_wrangler.py:test_upload() is only expecting one
             #   result, just returning the first result. but csvs allow multiple, so FIX THIS!!!!
             return d
         else:
             d: Dict = upload_new_container_with_concepts(**new_version, validate_first=validate_first)
             return d
+
+
 
 
 # TODO: Need to do proper codeset_id assignment: (i) look up registry and get next available ID, (ii) assign it here,

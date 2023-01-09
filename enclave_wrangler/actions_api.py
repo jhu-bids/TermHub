@@ -455,9 +455,9 @@ def finalize_concept_set_version(
     }
 
 
-    set_auth_token_key(personal=True)
+    # set_auth_token_key(personal=True)
     response: Response = make_actions_request(api_name, d, validate_first)
-    set_auth_token_key(personal=False)
+    # set_auth_token_key(personal=False)
 
     if 'errorCode' in response:
         print(response, file=sys.stderr)

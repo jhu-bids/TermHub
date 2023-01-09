@@ -14,6 +14,15 @@ from requests import Response
 from enclave_wrangler.config import config, TERMHUB_VERSION
 from backend.utils import dump
 
+EXTRA_PARAMS = {
+    'create-new-draft-omop-concept-set-version': {
+        "sourceApplication": "TermHub",
+        "sourceApplicationVersion": TERMHUB_VERSION
+    },
+    'add-selected-concepts-as-omop-version-expressions': {
+        "sourceApplication": "TermHub",
+    },
+}
 
 SERVICE_TOKEN_KEY = 'PALANTIR_ENCLAVE_AUTHENTICATION_BEARER_TOKEN'
 PERSONAL_TOKEN_KEY = 'OTHER_TOKEN'
@@ -138,7 +147,7 @@ def make_objects_request(path: str, verbose=False) -> Response:
     return response
 
 
-def make_actions_request(api_name: str, data: Union[List, Dict] = None, validate_first=False, include_source_app=True, verbose=True) -> Response:
+def make_actions_request(api_name: str, data: Union[List, Dict] = None, validate_first=False, verbose=True) -> Response:
     """Passthrough for HTTP request
     If `data`, knows to do a POST. Otherwise does a GET.
     Enclave docs:
@@ -150,9 +159,10 @@ def make_actions_request(api_name: str, data: Union[List, Dict] = None, validate
     api_path = f'/api/v1/ontologies/{ontology_rid}/actions/{api_name}/'
     url = f'https://{config["HOSTNAME"]}{api_path}'
 
-    if include_source_app:
-        data["parameters"]["sourceApplication"] = "TermHub"
-        data["parameters"]["sourceApplicationVersion"] = TERMHUB_VERSION
+    if api_name not in EXTRA_PARAMS:
+        print(f"should {api_name} have any EXTRA_PARAMS? it doesn't")
+    else:
+        data["parameters"].update(EXTRA_PARAMS[api_name])
 
     if validate_first:
         response: Response = enclave_post(url + 'validate', data)
