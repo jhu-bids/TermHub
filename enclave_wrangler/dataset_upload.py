@@ -48,32 +48,29 @@ def upload_new_cset_version_with_concepts_from_csv(path: str, validate_first=Fal
     """
     df = pd.read_csv(path).fillna('')
 
-    cset_group_cols = ['multipassId', 'concept_set_name', 'parent_version_codeset_id']
+    cset_group_cols = ['concept_set_name', 'parent_version_codeset_id']
+    more_cset_cols = list(set(['multipassId', 'current_max_version', 'domain_team', 'provenance', 'limitations',
+                               'intention', 'intended_research_project', 'authority', ]).intersection(df.columns))
+    concept_cols = ['concept_id', 'includeDescendants', 'isExcluded', 'includeMapped', 'annotation']
+
     csets = df.groupby(cset_group_cols)
 
     for cset in csets:
         key, csetdf = cset
-        multipassId, concept_set_name, parent_version_codeset_id = key
-        parent_version_codeset_id = int(parent_version_codeset_id) # pandas turns it into int64 and causes errors
 
-        omop_concepts = csetdf[[
-            'concept_id',
-            'includeDescendants',
-            'isExcluded',
-            'includeMapped',
-            'annotation']].to_dict(orient='records')
+        new_version = {}
+        new_version['concept_set_name'] = key[0]
+        new_version['parent_version_codeset_id'] = int(key[1])
 
-        new_version = {
-            "on_behalf_of": multipassId,
-            "omop_concepts": omop_concepts,
-            # TODO: allow provenance, limitations, and intention in CSV
-            #   Oh, and whatever else might be missing. intended_research_project, anything else?
-            #   Yeah, actions_api.upload_concept_set_version has more parameters
-            #   @jflack4, how should we handle this?...various functions out of sync with each other
-            "provenance": "Created through TermHub.",
-            "limitations": "",
-            "intention": "",
-        }
+        first_row = csetdf[more_cset_cols].to_dict(orient='records')[0]
+        for c in more_cset_cols:
+            new_version[c] = first_row[c]
+
+        new_version['on_behalf_of'] = new_version['multipassId']
+        del new_version['multipassId']
+
+        new_version['omop_concepts'] = csetdf[concept_cols].to_dict(orient='records')
+
         # TODO: for now going to assume that if the concept set exists, they'll give us a parent_version_codeset_id
         #   but they might give us the name and not the parent id. if they do give us the name but the
         #   name already exists, two possibilities: 1) they just want to add a new version using the most
@@ -81,14 +78,12 @@ def upload_new_cset_version_with_concepts_from_csv(path: str, validate_first=Fal
         #   2) it's a mistaken duplicate name and they should get an error and have to change the name
         #   FIX SOMEHOW!!!
 
-        if parent_version_codeset_id:   # creating new version, setting parent to existing version
-            new_version['parent_version_codeset_id'] = parent_version_codeset_id
+        if new_version['parent_version_codeset_id']:   # creating new version, setting parent to existing version
             d: Dict = upload_new_cset_version_with_concepts(**new_version, validate_first=validate_first)
             # TODO: since test/test_enclave_wrangler.py:test_upload() is only expecting one
             #   result, just returning the first result. but csvs allow multiple, so FIX THIS!!!!
             return d
-        elif concept_set_name:
-            new_version['concept_set_name'] = concept_set_name
+        else:
             d: Dict = upload_new_container_with_concepts(**new_version, validate_first=validate_first)
             return d
 
@@ -97,7 +92,8 @@ def upload_new_cset_version_with_concepts_from_csv(path: str, validate_first=Fal
 #  (iii) persist new ID / set to registry, (iv) persist new ID to any files passed through CLI, (v), return the new ID
 # todo: @Siggie: Do we want to change this to accept named params instead of a dictionary? - Joe 2022/12/05
 def upload_new_cset_version_with_concepts(
-    parent_version_codeset_id: int, omop_concepts: List[Dict], provenance: str, limitations: str, intention: str,
+    concept_set_name: str, parent_version_codeset_id: int, current_max_version: float, omop_concepts: List[Dict],
+    provenance: str = "", limitations: str = "", intention: str = "",
     annotation: str = None, intended_research_project: str = None, on_behalf_of: str = None, codeset_id: int = None,
     validate_first=VALIDATE_FIRST
 ) -> Dict:
@@ -154,8 +150,9 @@ def upload_new_cset_version_with_concepts(
     # Upload
     response_upload_draft_concept_set: Response = upload_concept_set_version(  # code_set
         base_version=parent_version_codeset_id,
+        current_max_version=current_max_version,
         provenance=provenance,
-        # concept_set=concept_set_name,  # == container_d['concept_set_name']
+        concept_set=concept_set_name,  # == container_d['concept_set_name']
         annotation=annotation,
         limitations=limitations,
         intention=intention,

@@ -1,11 +1,3 @@
-# siggie local stuff
-
-# should we put dump in repo? it's a bit out of date and it's 6.4G
-termhub.pg_dump
-
-# these are code workbooks and code repositories from enclave in git repo form. haven't used for quite a while
-git-repos-from-enclave/
-
 # Boilerplate
 __pycache__/
 _archive/
@@ -49,13 +41,10 @@ backup/
 node_modules
 /.pnp
 .pnp.js
-
 # testing
 /coverage
-
 # production
 /build
-
 # misc
 .env.local
 .env.development.local
@@ -64,5 +53,3 @@ node_modules
 npm-debug.log*
 yarn-debug.log*
 yarn-error.log*
-
-

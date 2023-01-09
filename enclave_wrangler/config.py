@@ -4,6 +4,7 @@ from collections import OrderedDict
 
 from dotenv import load_dotenv
 
+TERMHUB_VERSION = "0.0.1"
 
 APP_ROOT = os.path.dirname(os.path.realpath(__file__))
 PROJECT_ROOT = os.path.realpath(os.path.join(APP_ROOT, '..'))

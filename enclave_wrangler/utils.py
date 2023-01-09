@@ -11,7 +11,7 @@ from http.client import HTTPConnection
 
 from requests import Response
 
-from enclave_wrangler.config import config
+from enclave_wrangler.config import config, TERMHUB_VERSION
 from backend.utils import dump
 
 
@@ -26,15 +26,15 @@ def get_headers(personal=False, content_type="application/json", for_curl=False)
     #       been expired. In the past we've switched by hard coding the api call header, but now
     #       we have to make api calls (temporarily, see https://cd2h.slack.com/archives/C034EG5ESU9/p1670337451241379?thread_ts=1667317248.546169&cid=C034EG5ESU9)
     #       using one and then the other
-    current_key = get_auth_token_key()
-    set_auth_token_key(personal)
+    # current_key = get_auth_token_key()
+    # set_auth_token_key(personal)
     headers = {
         "authorization": f"Bearer {get_auth_token()}",
     }
     if content_type:    # call get_headers with content_type=None if you don't want that in the headers
         headers["Content-type"] = "application/json"
 
-    set_auth_token_key(current_key)
+    # set_auth_token_key(current_key)
     if for_curl:
         headers["authorization"] = '$' + get_auth_token_key()
         headers = '\\\n'.join([f' -H "{k}: {v}"' for k, v in headers.items()])
@@ -138,7 +138,7 @@ def make_objects_request(path: str, verbose=False) -> Response:
     return response
 
 
-def make_actions_request(api_name: str, data: Union[List, Dict] = None, validate_first=False, verbose=True) -> Response:
+def make_actions_request(api_name: str, data: Union[List, Dict] = None, validate_first=False, include_source_app=True, verbose=True) -> Response:
     """Passthrough for HTTP request
     If `data`, knows to do a POST. Otherwise does a GET.
     Enclave docs:
@@ -149,6 +149,10 @@ def make_actions_request(api_name: str, data: Union[List, Dict] = None, validate
     ontology_rid = config['ONTOLOGY_RID']
     api_path = f'/api/v1/ontologies/{ontology_rid}/actions/{api_name}/'
     url = f'https://{config["HOSTNAME"]}{api_path}'
+
+    if include_source_app:
+        data["parameters"]["sourceApplication"] = "TermHub"
+        data["parameters"]["sourceApplicationVersion"] = TERMHUB_VERSION
 
     if validate_first:
         response: Response = enclave_post(url + 'validate', data)
@@ -163,7 +167,7 @@ def make_actions_request(api_name: str, data: Union[List, Dict] = None, validate
 
 def enclave_post(url: str, data: Union[List, Dict], verbose=True) -> Response:
     if verbose:
-        print_curl(url)
+        print_curl(url, data)
 
     headers = get_headers()
     try:
@@ -205,14 +209,14 @@ def relevant_trace():
 
 def print_curl(url: str, data: Union[List, Dict]=None, args: Dict={}, trace:bool=True):
     curl = f"""\ncurl {get_headers(for_curl=True)} \\
-            {url}\n"""
+            {url}"""
     if data:
-        curl += f"--data '{json.dumps(data)}'\n"
+        curl += f" \\\n--data '{json.dumps(data)}' | jq\n"
     if args:
-        curl += f"additional args:{dump(args)}\n\n"
+        curl += f" additional args:{dump(args)}\n\n"
     if trace:
         curl += relevant_trace()
-    print(curl)
+    print(curl) # printing to debugger during test doesn't work; have to do it manually
 
 
 # def old_get(api_name: str, validate=False)-> Response:
