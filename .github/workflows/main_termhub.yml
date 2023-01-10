@@ -6,9 +6,9 @@
 name: TermHub backend - build and deploy
 
 on:
-  #push:
-  #  branches:
-  #    - main
+  push:
+    branches:
+      - develop
   workflow_dispatch:
 
 jobs:
@@ -80,6 +80,6 @@ jobs:
         id: deploy-to-webapp
         with:
           app-name: 'termhub'
-          slot-name: 'Production'
-          publish-profile: ${{ secrets.AZUREAPPSERVICE_PUBLISHPROFILE_01B978E0A1074AF5B9757FB5907ED5D2 }}       
+          slot-name: 'dev'
+          publish-profile: ${{ secrets.AZUREAPPSERVICE_PUBLISHPROFILE_DEV }}       
          
