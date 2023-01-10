@@ -1,4 +1,4 @@
-name: TermHub frontend - build and deploy
+name: TermHub frontend dev - build and deploy
 
 on:
   push:
@@ -22,7 +22,7 @@ jobs:
           pwd
           ls -la
           ls -la frontend/src
-          cp ./frontend/src/env.prod.js ./frontend/src/env.js
+          cp ./frontend/src/env.dev.js ./frontend/src/env.js
           ls -la frontend/src
       - name: Build And Deploy
         id: builddeploy

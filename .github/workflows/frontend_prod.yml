@@ -1,4 +1,4 @@
-name: TermHub frontend - build and deploy
+name: TermHub frontend prod - build and deploy
 
 on:
   push:

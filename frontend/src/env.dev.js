@@ -1,3 +1,3 @@
-const API_ROOT = 'http://127.0.0.1:8000';
+const API_ROOT = 'https://termhub-dev.azurewebsites.net/';
 
 export {API_ROOT};
