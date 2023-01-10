@@ -4,7 +4,7 @@ import {cfmt} from "./utils";
 
 function AboutPage(props) {
   const {codeset_ids=[], all_csets=[], cset_data={}} = props;
-  const {data_counts=[], hierarchy={}, selected_csets=[], concepts=[], cset_members_items=[]} = cset_data;
+  const {data_counts=[], } = cset_data;
 
   const rowData = data_counts.map(
       line => {

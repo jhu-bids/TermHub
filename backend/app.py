@@ -112,7 +112,20 @@ def get_csets(codeset_ids: List[int], con=CON) -> List[Dict]:
 
 
 def get_row_researcher_ids_dict(row: Dict):
-    return {col: row[col] for col in RESEARCHER_COLS if row[col]}
+    """
+        dict of id: [roles]
+        was: {role1: id1, role2: id2, role3: id2} # return {col: row[col] for col in RESEARCHER_COLS if row[col]}
+        switched to {id1: [role1], id2: [role2, role3]}
+    """
+    roles = {}
+    for col in RESEARCHER_COLS:
+        role = row[col]
+        if not role:
+            continue
+        if not role in roles:
+            roles[row[col]] = []
+        roles[row[col]].append(col)
+    return roles
 
 
 def get_all_researcher_ids(rows: List[Dict]):
@@ -120,7 +133,8 @@ def get_all_researcher_ids(rows: List[Dict]):
 
 
 def get_researchers(ids: List[str], fields: List[str] = None) -> List[Dict]:
-    """Get researcher info for a codeset row. fields is the list of fields to check for researcher ids."""
+    """Get researcher info for list of multipassIds.
+    fields is the list of fields to return from researcher table; defaults to * if None."""
     if fields:
         fields = ', '.join([f'"{x}"' for x in fields])
     else:
@@ -132,8 +146,7 @@ def get_researchers(ids: List[str], fields: List[str] = None) -> List[Dict]:
         WHERE "multipassId" = ANY(:id)
     """
     res: List[RowMapping] = sql_query(CON, query, {'id': list(ids)}, return_with_keys=True)
-    res2 = [dict(r) for r in res]
-    # res2: List[Dict] = [{**{'id': _id}, **{k: v for k, v in dict(x).items()}} for x in res]
+    res2 = {r['multipassId']: dict(r) for r in res}
     return res2
 
 def get_concepts(concept_ids: List[int], con=CON) -> List[Dict]:
@@ -153,7 +166,7 @@ def get_concepts(concept_ids: List[int], con=CON) -> List[Dict]:
 #  ii. Keys in our new `related_csets` that were not there previously:
 #   ['created_at', 'container_intentionall_csets', 'created_by', 'container_created_at', 'status', 'intention', 'container_status', 'container_created_by']
 #  see fixes above. i think everything here is fixed now
-def related_csets(codeset_ids: List[int] = None, selected_concept_ids: List[int] = None, con=CON) -> List[Dict]:
+def get_related_csets(codeset_ids: List[int] = None, selected_concept_ids: List[int] = None, con=CON) -> List[Dict]:
     """Get information about concept sets related to those selected by user"""
     if codeset_ids and not selected_concept_ids:
         selected_concept_ids = get_concept_set_member_ids(codeset_ids, column='concept_id')
@@ -166,6 +179,7 @@ def related_csets(codeset_ids: List[int] = None, selected_concept_ids: List[int]
     related_csets = get_csets(related_codeset_ids)
     selected_cids = set(selected_concept_ids)
     selected_cid_cnt = len(selected_concept_ids)
+    # this loop takes some time
     for cset in related_csets:
         cids = get_concept_set_member_ids([cset['codeset_id']], column='concept_id')
         intersecting_concepts = set(cids).intersection(selected_cids)
@@ -369,22 +383,22 @@ def _get_csets(codeset_id: Union[str, None] = Query(default=''), ) -> List[Dict]
 
 
 @APP.get("/related-csets")
-def _related_csets(codeset_id: Union[str, None] = Query(default=''), ) -> List[Dict]:
-    """Route for: related_csets()"""
+def _get_related_csets(codeset_id: Union[str, None] = Query(default=''), ) -> List[Dict]:
+    """Route for: get_related_csets()"""
     codeset_ids: List[int] = parse_codeset_ids(codeset_id)
-    return related_csets(codeset_ids)
+    return get_related_csets(codeset_ids)
 
 
 @APP.get("/cset-members-items")
 def _cset_members_items(codeset_id: Union[str, None] = Query(default=''), ) -> List[LegacyRow]:
-    """Route for: related_csets()"""
+    """Route for: cset_memberss_items()"""
     codeset_ids: List[int] = parse_codeset_ids(codeset_id)
     return get_cset_members_items(codeset_ids)
 
 
 @APP.get("/hierarchy")
 def _hierarchy(codeset_id: Union[str, None] = Query(default=''), ) -> Dict:
-    """Route for: related_csets()"""
+    """Route for: hierarchy()"""
     codeset_ids: List[int] = parse_codeset_ids(codeset_id)
     return hierarchy(codeset_ids=codeset_ids)
 
@@ -407,11 +421,17 @@ def cr_hierarchy(rec_format: str = 'default', codeset_id: Union[str, None] = Que
     cset_members_items = get_cset_members_items(codeset_ids)
     concept_ids = list(set([i['concept_id'] for i in cset_members_items]))
 
+    related_csets = get_related_csets(codeset_ids=codeset_ids, selected_concept_ids=cset_member_ids)
+    selected_csets = [cset for cset in related_csets if cset['selected']]
+    researcher_ids = get_all_researcher_ids(related_csets)
+    researchers = get_researchers(researcher_ids)
+
     result = {
         # # todo: Check related_csets() to see its todo's
-        'related_csets': related_csets(codeset_ids=codeset_ids, selected_concept_ids=cset_member_ids),
+        'related_csets': related_csets,
         # # todo: Check get_csets() to see its todo's
-        'selected_csets': get_csets(codeset_ids),
+        'selected_csets': selected_csets,
+        'researchers': researchers,
         'cset_members_items': cset_members_items,
         'hierarchy': hierarchy(selected_concept_ids=concept_ids),
         # todo: concepts
@@ -419,8 +439,6 @@ def cr_hierarchy(rec_format: str = 'default', codeset_id: Union[str, None] = Que
         # todo: frontend not making use of data_counts yet but will need
         'data_counts': [],
     }
-    researcher_ids = get_all_researcher_ids(result['related_csets'])
-    result['researchers'] = get_researchers(researcher_ids)
 
     # TODO: Fix: concepts missing from hierarchy that shouldn't be:
     h = result['hierarchy']

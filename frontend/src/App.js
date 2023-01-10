@@ -165,18 +165,12 @@ function DataContainer(props) {
   return  <RoutesContainer {...props} all_csets={all_csets} cset_data={cset_data}/>
 }
 function RoutesContainer(props) {
-  // const {codeset_ids, all_csets=[], cset_data={}} = props;
-  // const {selected_csets} = cset_data;
-  // console.log({codeset_ids, selected_csets, all: all_csets.length});
   return (
       <Routes>
         <Route path="/" element={<App {...props} />}>
-          {/*<Route path="ontocall" element={<EnclaveOntoAPI />} />*/}
           <Route path="cset-comparison" element={<CsetComparisonPage {...props} />} />
-          {/* <Route path="cset-comparison/:conceptId" element={<ConceptSet />} /> */}
           <Route path="OMOPConceptSets" element={<ConceptSetsPage {...props}  />} />
           <Route path="about" element={<AboutPage {...props} />} />
-          {/* <Route path="testing" element={<ConceptSetsPage codeset_ids={test_codeset_ids}/>} /> */}
           {/* <Route path="OMOPConceptSet/:conceptId" element={<OldConceptSet />} /> */}
           <Route path="*"  element={<ErrorPath/>} />
         </Route>
