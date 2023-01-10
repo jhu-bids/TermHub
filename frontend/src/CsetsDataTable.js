@@ -183,7 +183,7 @@ function getColdefs() {
                         <span>Records</span>
                     </Tooltip>,
             selector: row => {
-                        return -1 //row.total_cnt.toLocaleString()
+                        return row.total_cnt.toLocaleString()
             },
             compact: true,
             width: '78px',
