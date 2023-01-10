@@ -2,8 +2,7 @@
 # More GitHub Actions for Azure: https://github.com/Azure/actions
 # More info on Python, GitHub Actions, and Azure App Service: https://aka.ms/python-webapps-actions
 # A good guide for Python Azure action: https://azure.github.io/AppService/2020/12/11/cicd-for-python-apps.html
-# TODO: Error: Couldn't detect a version for the platform 'python' in the repo.\n/bin/bash -c "oryx build /tmp/zipdeploy/extracted -o /home/site/wwwroot --platform python --platform-version 3.10 -p virtualenv_name=antenv --log-file /tmp/build-debug.log  -i /tmp/8dae86435a2e0d0 --compress-destination-dir | tee /tmp/oryx-build.log ; exit $PIPESTATUS "
-name: TermHub backend - build and deploy - PROD
+name: TermHub backend prod - build and deploy
 
 on:
   push:
@@ -32,8 +31,6 @@ jobs:
         run: |
           python3 -m venv venv
           source venv/bin/activate
-          
-# https://stackoverflow.com/questions/60176044/how-do-i-use-an-env-file-with-github-actions
 
 # todo: optional: run tests
 #      - name: Run tests
@@ -69,17 +66,10 @@ jobs:
           name: python-app
           path: .
 
-      # TODO: remember `git submodule update`. needed in build or deploy?
-
-      # TODO: need to run DB initialize. i think manual steps for the DB may already be done. or we could do this locally and it could push to the prod db?
-
-      # TODO: need `make serve-backend` or `uvicorn backend.app:APP --reload`. But how does it know which port? will it automatically detect something is up on any port?
-
       - name: 'Deploy to Azure Web App'
         uses: azure/webapps-deploy@v2
         id: deploy-to-webapp
         with:
           app-name: 'termhub'
-          slot-name: 'Production'
-          publish-profile: ${{ secrets.AZUREAPPSERVICE_PUBLISHPROFILE_01B978E0A1074AF5B9757FB5907ED5D2 }}       
-         
+          slot-name: 'production'
+          publish-profile: ${{ secrets.AZUREAPPSERVICE_PUBLISHPROFILE_01B978E0A1074AF5B9757FB5907ED5D2 }}
