@@ -3,7 +3,7 @@
 # More info on Python, GitHub Actions, and Azure App Service: https://aka.ms/python-webapps-actions
 # A good guide for Python Azure action: https://azure.github.io/AppService/2020/12/11/cicd-for-python-apps.html
 # TODO: Error: Couldn't detect a version for the platform 'python' in the repo.\n/bin/bash -c "oryx build /tmp/zipdeploy/extracted -o /home/site/wwwroot --platform python --platform-version 3.10 -p virtualenv_name=antenv --log-file /tmp/build-debug.log  -i /tmp/8dae86435a2e0d0 --compress-destination-dir | tee /tmp/oryx-build.log ; exit $PIPESTATUS "
-name: TermHub backend - build and deploy
+name: TermHub backend - build and deploy - PROD
 
 on:
   push:
