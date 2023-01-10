@@ -19,8 +19,11 @@ jobs:
         with:
           submodules: true
       - run: |
+          pwd
           ls -la
-          cp /frontend/env.prod.js /frontend/env.js
+          ls -la frontend
+          cp ./frontend/env.prod.js ./frontend/env.js
+          ls -la frontend          
       - name: Build And Deploy
         id: builddeploy
         uses: Azure/static-web-apps-deploy@v1
