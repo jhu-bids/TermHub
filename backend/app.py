@@ -20,6 +20,7 @@ from sqlalchemy.engine import LegacyRow, RowMapping
 from backend.db.queries import get_all_parent_children_map
 from enclave_wrangler.dataset_upload import upload_new_container_with_concepts, upload_new_cset_version_with_concepts
 from enclave_wrangler.utils import make_objects_request
+from enclave_wrangler.config import RESEARCHER_COLS
 
 from backend.db.utils import get_db_connection, sql_query, SCHEMA, sql_query_single_col
 
@@ -103,10 +104,37 @@ def get_csets(codeset_ids: List[int], con=CON) -> List[Dict]:
           WHERE codeset_id = ANY(:codeset_ids);""",
         {'codeset_ids': codeset_ids})
     # {'codeset_ids': ','.join([str(id) for id in requested_codeset_ids])})
-    rows2 = [dict(x) for x in rows]
-    rows3 = [populate_researchers(x) for x in rows2]
-    return rows3
+    row_dicts = [dict(x) for x in rows]
+    for row in row_dicts:
+        row['researchers'] = get_row_researcher_ids_dict(row)
 
+    return row_dicts
+
+
+def get_row_researcher_ids_dict(row: Dict):
+    return {col: row[col] for col in RESEARCHER_COLS if row[col]}
+
+
+def get_all_researcher_ids(rows: List[Dict]):
+    return set([r[c] for r in rows for c in RESEARCHER_COLS if r[c]])
+
+
+def get_researchers(ids: List[str], fields: List[str] = None) -> List[Dict]:
+    """Get researcher info for a codeset row. fields is the list of fields to check for researcher ids."""
+    if fields:
+        fields = ', '.join([f'"{x}"' for x in fields])
+    else:
+        fields = '*'
+
+    query = f"""
+        SELECT {fields}
+        FROM researcher
+        WHERE "multipassId" = ANY(:id)
+    """
+    res: List[RowMapping] = sql_query(CON, query, {'id': list(ids)}, return_with_keys=True)
+    res2 = [dict(r) for r in res]
+    # res2: List[Dict] = [{**{'id': _id}, **{k: v for k, v in dict(x).items()}} for x in res]
+    return res2
 
 def get_concepts(concept_ids: List[int], con=CON) -> List[Dict]:
     """Get information about concept sets the user has selected"""
@@ -117,31 +145,6 @@ def get_concepts(concept_ids: List[int], con=CON) -> List[Dict]:
           WHERE concept_id = ANY(:concept_ids);""",
         {'concept_ids': concept_ids})
     return rows
-
-
-def populate_researchers(codeset_row: Dict) -> Dict:
-    """Takes a codeset row (dictionary) and returns a dictionary with researcher info"""
-    researcher_cols = ['container_created_by', 'codeset_created_by', 'assigned_sme', 'reviewed_by', 'n3c_reviewer',
-                       'assigned_informatician']
-    researcher_ids = set()
-    row = codeset_row
-    for _id in [row[col] for col in researcher_cols if col in row and row[col]]:
-        researcher_ids.add(_id)
-    row['researchers'] = [get_researcher(_id, fields=['name']) for _id in researcher_ids]
-    return row
-
-
-def get_researcher(_id: int, fields: List[str] = None) -> List[Dict]:
-    """Get researcher info"""
-    query = f"""
-        SELECT {', '.join([f'"{x}"' for x in fields])}
-        FROM researcher
-        WHERE "multipassId" = :id
-    """
-    res: List[RowMapping] = sql_query(CON, query, {'id': _id}, return_with_keys=True)
-    res2: List[Dict] = [{**{'id': _id}, **{k: v for k, v in dict(x).items()}} for x in res]
-
-    return res2
 
 
 # TODO
@@ -416,6 +419,8 @@ def cr_hierarchy(rec_format: str = 'default', codeset_id: Union[str, None] = Que
         # todo: frontend not making use of data_counts yet but will need
         'data_counts': [],
     }
+    researcher_ids = get_all_researcher_ids(result['related_csets'])
+    result['researchers'] = get_researchers(researcher_ids)
 
     # TODO: Fix: concepts missing from hierarchy that shouldn't be:
     h = result['hierarchy']

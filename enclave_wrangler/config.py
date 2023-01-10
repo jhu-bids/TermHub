@@ -28,6 +28,8 @@ MOFFIT_SOURCE_URL = 'https://docs.google.com/spreadsheets/d/1tHHHeMtzX0SA85gbH8M
 MOFFIT_SOURCE_ID_TYPE = 'moffit'
 VALIDATE_FIRST = True  # if True, will /validate before doing /apply, and return validation error if any.
 
+RESEARCHER_COLS = ['container_created_by', 'codeset_created_by', 'assigned_sme', 'reviewed_by', 'n3c_reviewer',
+                   'assigned_informatician']
 
 load_dotenv(ENV_FILE)
 config = {

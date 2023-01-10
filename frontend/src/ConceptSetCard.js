@@ -120,12 +120,12 @@ function ConceptSetCard(props) {
           </Typography>
       )
     });
-    return  <div>
-              <Typography variant="h6" color="text.primary" gutterBottom>
-                Contributors
-              </Typography>
-              {r}
-            </div>
+    researcherContent = <div>
+                          <Typography variant="h6" color="text.primary" gutterBottom>
+                            Contributors
+                          </Typography>
+                          {r}
+                        </div>
   }
   // display_props['props not included yet'] = 'codeset_status, container_status, stage, concept count';
   return (
