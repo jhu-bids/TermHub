@@ -36,12 +36,67 @@ except ModuleNotFoundError:
 
 DEBUG = False
 
+def upload_new_cset_version_with_concepts_from_csv(path: str, validate_first=False) -> Dict:
+    """
+    Upload from CSV
+    file format docs:
+    https://github.com/jhu-bids/TermHub/tree/develop/enclave_wrangler
+
+    testing from test/test_enclave_wrangler.py
+    using:
+    https://github.com/jhu-bids/TermHub/blob/develop/test/input/test_enclave_wrangler/test_dataset_upload/type-2-diabetes-mellitus.csv
+    """
+    df = pd.read_csv(path).fillna('')
+
+    cset_group_cols = ['concept_set_name', 'parent_version_codeset_id']
+    more_cset_cols = list(set(['multipassId', 'current_max_version', 'domain_team', 'provenance', 'limitations',
+                               'intention', 'intended_research_project', 'authority', ]).intersection(df.columns))
+    concept_cols = ['concept_id', 'includeDescendants', 'isExcluded', 'includeMapped', 'annotation']
+
+    csets = df.groupby(cset_group_cols)
+
+    for cset in csets:
+        key, csetdf = cset
+
+        new_version = {}
+        new_version['concept_set_name'] = key[0]
+        new_version['parent_version_codeset_id'] = int(key[1])
+
+        first_row = csetdf[more_cset_cols].to_dict(orient='records')[0]
+        for c in more_cset_cols:
+            new_version[c] = first_row[c]
+
+        new_version['on_behalf_of'] = new_version['multipassId']
+        del new_version['multipassId']
+
+        new_version['omop_concepts'] = csetdf[concept_cols].to_dict(orient='records')
+
+        # TODO: for now going to assume that if the concept set exists, they'll give us a parent_version_codeset_id
+        #   but they might give us the name and not the parent id. if they do give us the name but the
+        #   name already exists, two possibilities: 1) they just want to add a new version using the most
+        #   recent version as the parent but didn't bother to find out what it was and include in csv, or
+        #   2) it's a mistaken duplicate name and they should get an error and have to change the name
+        #   FIX SOMEHOW!!!
+
+        if new_version['parent_version_codeset_id']:   # creating new version, setting parent to existing version
+            d: Dict = upload_new_cset_version_with_concepts(**new_version, validate_first=validate_first)
+            print(d)
+            # TODO: since test/test_enclave_wrangler.py:test_upload() is only expecting one
+            #   result, just returning the first result. but csvs allow multiple, so FIX THIS!!!!
+            return d
+        else:
+            d: Dict = upload_new_container_with_concepts(**new_version, validate_first=validate_first)
+            return d
+
+
+
 
 # TODO: Need to do proper codeset_id assignment: (i) look up registry and get next available ID, (ii) assign it here,
 #  (iii) persist new ID / set to registry, (iv) persist new ID to any files passed through CLI, (v), return the new ID
 # todo: @Siggie: Do we want to change this to accept named params instead of a dictionary? - Joe 2022/12/05
 def upload_new_cset_version_with_concepts(
-    omop_concepts: List[Dict], provenance: str, concept_set_name: str, limitations: str, intention: str,
+    concept_set_name: str, parent_version_codeset_id: int, current_max_version: float, omop_concepts: List[Dict],
+    provenance: str = "", limitations: str = "", intention: str = "",
     annotation: str = None, intended_research_project: str = None, on_behalf_of: str = None, codeset_id: int = None,
     validate_first=VALIDATE_FIRST
 ) -> Dict:
@@ -89,13 +144,16 @@ def upload_new_cset_version_with_concepts(
         # todo: this is temporary until I handle registry persistence
         arbitrary_range = 100000
         codeset_id = randint(CSET_VERSION_MIN_ID, CSET_VERSION_MIN_ID + arbitrary_range)
-    if not annotation:
-        annotation =  'Curated value set: ' + concept_set_name
+    # TODO: fix? no longer getting concept_set_name in this function
+    # if not annotation:
+    #     annotation =  'Curated value set: ' + concept_set_name
     if not intended_research_project:
         intended_research_project = ENCLAVE_PROJECT_NAME
 
     # Upload
     response_upload_draft_concept_set: Response = upload_concept_set_version(  # code_set
+        base_version=parent_version_codeset_id,
+        current_max_version=current_max_version,
         provenance=provenance,
         concept_set=concept_set_name,  # == container_d['concept_set_name']
         annotation=annotation,

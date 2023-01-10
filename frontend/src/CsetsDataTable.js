@@ -1,7 +1,7 @@
 import React, {useState, useCallback, useEffect, useMemo, } from 'react';
 import {isEqual, orderBy, get, } from 'lodash';
 import DataTable, { createTheme } from 'react-data-table-component';
-import {pct_fmt, StatsMessage,} from './utils';
+import {fmt, pct_fmt, StatsMessage,} from './utils';
 import {Tooltip} from './Tooltip';
 // import Checkbox from '@material-ui/core/Checkbox';
 // import ArrowDownward from '@material-ui/icons/ArrowDownward';
@@ -170,7 +170,9 @@ function getColdefs() {
             name:   <Tooltip label="Approximate distinct person count. Small counts rounded up to 20.">
                         <span>Patients</span>
                     </Tooltip>,
-            selector: row => row.approx_distinct_person_count.toLocaleString(),
+            // selector: row => row.approx_distinct_person_count.toLocaleString(),
+            selector: row => parseInt(row.distinct_person_cnt),
+            format: row => fmt(parseInt(row.distinct_person_cnt)),
             compact: true,
             width: '70px',
             center: true,
@@ -180,7 +182,9 @@ function getColdefs() {
             name:   <Tooltip label="Record count. Small counts rounded up to 20.">
                         <span>Records</span>
                     </Tooltip>,
-            selector: row => row.approx_total_record_count.toLocaleString(),
+            selector: row => {
+                        return row.total_cnt.toLocaleString()
+            },
             compact: true,
             width: '78px',
             center: true,

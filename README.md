@@ -1,10 +1,15 @@
 # TermHub
 
+TermHub is a user interface and collection of analytic tools for working with concept sets. Its goal is to ease the process of concept set authoring and to facilitate the creation of higher-quality concept sets by providing users with immediate information and viasualization capabilities to understand their concept set and take advantage of existing concept sets that can aid their use case.
+
+Allows comparison of overlapping concept sets, display of cset metadata, display of concept hierarchy, term usage and concept set patient counts, and modification and upload of concept sets to the N3C Enclave. Will interface with other code set repositories over time.
+
+
 ## [Features under development / consideration](https://docs.google.com/spreadsheets/d/19_eBv0MIBWPcXMTw3JJdcfPoEFhns93F-TKdODW27B8/edit#gid=0)
 More info: [Requirements](https://github.com/jhu-bids/TermHub/issues/72)
 
 ### Uploading CSVs to create/edit concept sets
-TermHub can take a CSV and create/edit concepts and concept sets. [Read more](./termhub-csets/n3c-upload-jobs/README.md)
+TermHub can take a CSV and create/edit concepts and concept sets. [Read more](./enclave_wrangler/README.md)
 
 ### Vocabulary management (a single concept, subsets of or an entire vocabulary)
 The simple concept vocabulary mapping, SNOMED, etc.
@@ -63,8 +68,16 @@ User Interactions
 1. Clone the repository.
 2. Run: `pip install -r requirements.txt`
 3. Run `git submodule update`
+
+@jflack4: which of these is correct?
+<<<<<<< HEAD
+4. Set up PostgreSQL  
+=======
 4. Set environmental variables. Run: `mkdir env; cp .env.example env/.env`. Then, edit `.env` and set any variables that haven't been filled out. You'll likely need to reach out to @joeflack4 or @Sigfried. 
 5. Install PostgreSQL and make sure it is running  
+>>>>>>> db
+
+
 5. Basic DB setup
 ```shell
 $ psql
@@ -90,3 +103,4 @@ SET search_path TO n3c;
 #### Deploying the frontend
 1. `cd frontend; npm run build`
 2. When that process completes, you should now have an updated `frontend/build` directory. This can be deployed as a static site. The entry point is `index.html`.
+

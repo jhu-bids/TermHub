@@ -63,8 +63,10 @@ function ConceptSetCard(props) {
   let display_props = {}
   display_props['Code set ID'] = cset.codeset_id;
   display_props['Concepts'] = cset.concepts;
-  display_props['Patient count'] = '~ ' + cset.approx_distinct_person_count.toLocaleString();
-  display_props['Record count'] = '~ ' + cset.approx_total_record_count.toLocaleString();
+  // fix to:
+  // format: row => fmt(parseInt(row.distinct_person_cnt)),
+  display_props['Patient count'] = '~ ' + cset.distinct_person_cnt.toLocaleString();
+  display_props['Record count'] = '~ ' + cset.total_cnt.toLocaleString();
 
   if (cset.is_most_recent_version) {
     tags.push('Most recent version');
@@ -107,24 +109,29 @@ function ConceptSetCard(props) {
   if (cset.project_id) {
     display_props['Project ID'] = cset.project_id;
   }
-  let researcherContent = '';
-  if ((cset.researchers||[]).length) {
-    const r = Object.entries(cset.researchers).map(e => {
-      const type = e[0];
-      const name = get(e[1], 'properties.name', 'huh?');
-      return (
-          <Typography variant="body2" color="text.secondary" key={type} sx={{overflow: 'clip',}}>
-            <strong>{type}</strong>: {name}
-          </Typography>
-      )
-    });
-    return  <div>
-              <Typography variant="h6" color="text.primary" gutterBottom>
-                Contributors
-              </Typography>
-              {r}
-            </div>
-  }
+
+
+  let researchers = Object.entries(cset.researchers).map(
+    ([id, roles]) => {
+      let r = props.cset_data.researchers[id];
+      r.roles = roles;
+      return r
+    })
+  const researcher_info = researchers.map(r => {
+    return (
+        <Typography variant="body2" color="text.secondary" key={r.emailAddress} sx={{overflow: 'clip',}} gutterBottom>
+          <strong>{r.roles.join(', ')}:</strong><br/>
+          <a href={`mailto:${r.emailAddress}`}>{r.name}</a>,
+          <a href={r.institutionsId} target="_blank">{r.institution}</a>,
+          <a href={`https://orcid.org/${r.orcidId}`} target="_blank">ORCID</a>.
+        </Typography>
+    )
+  });
+  let researcherContent = (
+    <div>
+      <Typography /*variant="h6"*/ color="text.primary" >Contributors</Typography>
+      {researcher_info}
+    </div>);
   // display_props['props not included yet'] = 'codeset_status, container_status, stage, concept count';
   return (
       <Box sx={{ minWidth: 275, margin: '8px',  }}>
@@ -144,7 +151,7 @@ function ConceptSetCard(props) {
             <Typography variant="h6" color="text.primary" gutterBottom>
               {cset.concept_set_version_title}
             </Typography>
-            <Typography color="text.primary" gutterBottom>
+            <Typography variant="body2" color="text.primary" gutterBottom>
               {tags.join(', ')}
             </Typography>
             {
@@ -154,14 +161,11 @@ function ConceptSetCard(props) {
                   </Typography>
               ))
             }
+            <Typography variant="body2" color="text.primary" >
+              <a href={`https://unite.nih.gov/workspace/hubble/objects/${cset.rid}`} target="_blank">Open in Enclave</a
+              >, <a href={backend_url(`cset-download?codeset_id=${cset.codeset_id}`)} target="_blank">Export JSON</a>
+            </Typography>
             { researcherContent }
-
-            <Typography color="text.primary" gutterBottom>
-              <a href={`https://unite.nih.gov/workspace/hubble/objects/${cset.rid}`} target="_blank">Open in Enclave</a>
-            </Typography>
-            <Typography color="text.primary" gutterBottom>
-              <a href={backend_url(`cset-download?codeset_id=${cset.codeset_id}`)} target="_blank">Export JSON</a>
-            </Typography>
           </CardContent>
           {/*
           <CardActions disableSpacing>

@@ -59,7 +59,7 @@ from requests import Response
 
 from enclave_wrangler.config import ENCLAVE_PROJECT_NAME, VALIDATE_FIRST
 from enclave_wrangler.objects_api import EnclaveClient
-from enclave_wrangler.utils import make_objects_request, set_auth_token_key, make_actions_request
+from enclave_wrangler.utils import make_objects_request, make_actions_request # , set_auth_token_key
 
 
 UUID = str
@@ -157,9 +157,9 @@ def add_concepts_via_array(
         }
     }
 
-    set_auth_token_key(personal=True)
+    # set_auth_token_key(personal=True)
     result = make_actions_request(api_name, d, validate_first)
-    set_auth_token_key(personal=False)
+    # set_auth_token_key(personal=False)
     return result
 
 
@@ -261,9 +261,10 @@ def add_concept_via_edit(
 # code_set
 # TODO: strange that new-parameter and new-parameter1 are required. I added arbitrary strings
 def upload_concept_set_version(
-    concept_set: str, intention: str, domain_team: str = None, provenance: str = None, current_max_version: float = None
-    , annotation: str = None, limitations: str = None, base_version: int = None, intended_research_project: str = None,
-    version_id: int = None, authority: str = None, on_behalf_of: str = None, validate_first=VALIDATE_FIRST
+    concept_set: str=None, base_version: int = None, current_max_version: float = None, version_id: int = None,
+    on_behalf_of: str = None, intention: str=None, domain_team: str = None, provenance: str = None,
+    annotation: str = None, limitations: str = None, intended_research_project: str = None, authority: str = None,
+    validate_first=VALIDATE_FIRST
 )-> Response:
     """Create a new draft concept set version.
 
@@ -303,6 +304,10 @@ def upload_concept_set_version(
     if base_version and not current_max_version:
         print(f'Warning: You passed a `base_version`, which is not required when there is no `current_max_version`.', file=sys.stderr)
 
+    # TODO: @jflack4...this needs to change but seems like it was left in the middle, not sure what to
+    #       do with it, but trying to accept base_version in place of conceptSet. see comments
+    #       in dataset_upload.py:upload_new_cset_version_with_concepts_from_csv()
+
     # Commented out portions are part of the api definition
     d = {
         # "apiName": api_name,
@@ -324,6 +329,7 @@ def upload_concept_set_version(
             #   "Broad (sensitive)", "Narrow (specific)", "Mixed"
         }
     }
+
     # - Optional params
     # "domain-team": {
     #   "description": "",
@@ -449,9 +455,9 @@ def finalize_concept_set_version(
     }
 
 
-    set_auth_token_key(personal=True)
+    # set_auth_token_key(personal=True)
     response: Response = make_actions_request(api_name, d, validate_first)
-    set_auth_token_key(personal=False)
+    # set_auth_token_key(personal=False)
 
     if 'errorCode' in response:
         print(response, file=sys.stderr)

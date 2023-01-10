@@ -9,6 +9,7 @@ from typing import Any, Dict, List, Union
 from functools import cache
 
 import uvicorn
+# import gunicorn
 import urllib.parse
 from fastapi import FastAPI, Query
 from fastapi.middleware.cors import CORSMiddleware
@@ -16,10 +17,10 @@ from fastapi.middleware.gzip import GZipMiddleware
 from pydantic import BaseModel
 from sqlalchemy.engine import LegacyRow, RowMapping
 
-from backend.db.queries import get_all_parent_child_subsumes_tuples
-from backend.utils import hierarchify_list_of_parent_kids
+from backend.db.queries import get_all_parent_children_map
 from enclave_wrangler.dataset_upload import upload_new_container_with_concepts, upload_new_cset_version_with_concepts
 from enclave_wrangler.utils import make_objects_request
+from enclave_wrangler.config import RESEARCHER_COLS
 
 from backend.db.utils import get_db_connection, sql_query, SCHEMA, sql_query_single_col
 
@@ -35,7 +36,7 @@ APP.add_middleware(
 APP.add_middleware(GZipMiddleware, minimum_size=1000)
 CON = get_db_connection()
 CACHE = {
-    'all_parent_child_subsumes_tuples': get_all_parent_child_subsumes_tuples(CON)
+    'all_parent_children_map': get_all_parent_children_map(CON)
 }
 
 
@@ -60,6 +61,7 @@ def get_container(concept_set_name):
 def run(port: int = 8000):
     """Run app"""
     uvicorn.run(APP, host='0.0.0.0', port=port)
+    # gunicorn.run(APP, host='0.0.0.0', port=port)
 
 
 # Database functions ---------------------------------------------------------------------------------------------------
@@ -102,10 +104,50 @@ def get_csets(codeset_ids: List[int], con=CON) -> List[Dict]:
           WHERE codeset_id = ANY(:codeset_ids);""",
         {'codeset_ids': codeset_ids})
     # {'codeset_ids': ','.join([str(id) for id in requested_codeset_ids])})
-    rows2 = [dict(x) for x in rows]
-    rows3 = [populate_researchers(x) for x in rows2]
-    return rows3
+    row_dicts = [dict(x) for x in rows]
+    for row in row_dicts:
+        row['researchers'] = get_row_researcher_ids_dict(row)
 
+    return row_dicts
+
+
+def get_row_researcher_ids_dict(row: Dict):
+    """
+        dict of id: [roles]
+        was: {role1: id1, role2: id2, role3: id2} # return {col: row[col] for col in RESEARCHER_COLS if row[col]}
+        switched to {id1: [role1], id2: [role2, role3]}
+    """
+    roles = {}
+    for col in RESEARCHER_COLS:
+        role = row[col]
+        if not role:
+            continue
+        if not role in roles:
+            roles[row[col]] = []
+        roles[row[col]].append(col)
+    return roles
+
+
+def get_all_researcher_ids(rows: List[Dict]):
+    return set([r[c] for r in rows for c in RESEARCHER_COLS if r[c]])
+
+
+def get_researchers(ids: List[str], fields: List[str] = None) -> List[Dict]:
+    """Get researcher info for list of multipassIds.
+    fields is the list of fields to return from researcher table; defaults to * if None."""
+    if fields:
+        fields = ', '.join([f'"{x}"' for x in fields])
+    else:
+        fields = '*'
+
+    query = f"""
+        SELECT {fields}
+        FROM researcher
+        WHERE "multipassId" = ANY(:id)
+    """
+    res: List[RowMapping] = sql_query(CON, query, {'id': list(ids)}, return_with_keys=True)
+    res2 = {r['multipassId']: dict(r) for r in res}
+    return res2
 
 def get_concepts(concept_ids: List[int], con=CON) -> List[Dict]:
     """Get information about concept sets the user has selected"""
@@ -118,38 +160,13 @@ def get_concepts(concept_ids: List[int], con=CON) -> List[Dict]:
     return rows
 
 
-def populate_researchers(codeset_row: Dict) -> Dict:
-    """Takes a codeset row (dictionary) and returns a dictionary with researcher info"""
-    researcher_cols = ['container_created_by', 'codeset_created_by', 'assigned_sme', 'reviewed_by', 'n3c_reviewer',
-                       'assigned_informatician']
-    researcher_ids = set()
-    row = codeset_row
-    for _id in [row[col] for col in researcher_cols if col in row and row[col]]:
-        researcher_ids.add(_id)
-    row['researchers'] = [get_researcher(_id, fields=['name']) for _id in researcher_ids]
-    return row
-
-
-def get_researcher(_id: int, fields: List[str] = None) -> List[Dict]:
-    """Get researcher info"""
-    query = f"""
-        SELECT {', '.join([f'"{x}"' for x in fields])}
-        FROM researcher
-        WHERE "multipassId" = :id
-    """
-    res: List[RowMapping] = sql_query(CON, query, {'id': _id}, return_with_keys=True)
-    res2: List[Dict] = [{**{'id': _id}, **{k: v for k, v in dict(x).items()}} for x in res]
-
-    return res2
-
-
 # TODO
 #  i. Keys in our old `related_csets` that are not there anymore:
 #   ['precision', 'status_container', 'concept_set_id', 'selected', 'created_at_container', 'created_at_version', 'intention_container', 'intention_version', 'created_by_container', 'intersecting_concepts', 'recall', 'status_version', 'created_by_version']
 #  ii. Keys in our new `related_csets` that were not there previously:
 #   ['created_at', 'container_intentionall_csets', 'created_by', 'container_created_at', 'status', 'intention', 'container_status', 'container_created_by']
 #  see fixes above. i think everything here is fixed now
-def related_csets(codeset_ids: List[int] = None, selected_concept_ids: List[int] = None, con=CON) -> List[Dict]:
+def get_related_csets(codeset_ids: List[int] = None, selected_concept_ids: List[int] = None, con=CON) -> List[Dict]:
     """Get information about concept sets related to those selected by user"""
     if codeset_ids and not selected_concept_ids:
         selected_concept_ids = get_concept_set_member_ids(codeset_ids, column='concept_id')
@@ -162,6 +179,7 @@ def related_csets(codeset_ids: List[int] = None, selected_concept_ids: List[int]
     related_csets = get_csets(related_codeset_ids)
     selected_cids = set(selected_concept_ids)
     selected_cid_cnt = len(selected_concept_ids)
+    # this loop takes some time
     for cset in related_csets:
         cids = get_concept_set_member_ids([cset['codeset_id']], column='concept_id')
         intersecting_concepts = set(cids).intersection(selected_cids)
@@ -172,7 +190,7 @@ def related_csets(codeset_ids: List[int] = None, selected_concept_ids: List[int]
     return related_csets
 
 
-def cset_members_items(codeset_ids: List[int] = None, con=CON) -> List[LegacyRow]:
+def get_cset_members_items(codeset_ids: List[int] = None, con=CON) -> List[LegacyRow]:
     return sql_query(
         con, f""" 
         SELECT *
@@ -187,9 +205,25 @@ def hierarchy(codeset_ids: List[int] = None, selected_concept_ids: List[int] = N
     if not selected_concept_ids:
         selected_concept_ids = get_concept_set_member_ids(codeset_ids, column='concept_id')
 
-    all_parent_child_list = CACHE['all_parent_child_subsumes_tuples']
-    selected_roots: List[int] = top_level_cids(selected_concept_ids)
-    d = hierarchify_list_of_parent_kids(all_parent_child_list, selected_roots)
+    # selected_roots: List[int] = top_level_cids(selected_concept_ids)
+    added_count: Dict[int, int] = {}
+    def recurse(ids):
+        x = {}
+        for id in ids:
+            children = CACHE['all_parent_children_map'].get(id, [])
+            x[id] = recurse(children)
+            added_count[id] = added_count.get(id, 0) + 1
+        return x
+    # d = recurse(selected_roots)
+    d = recurse(selected_concept_ids)
+
+    # remove duplicate trees at root
+    for _id, count in added_count.items():
+        if count > 1:
+            try:
+                del d[_id]
+            except KeyError:
+                pass
 
     # todo: this reverts new way of indicating 'no children' back to null. any more seemly way to do?
     d2 = json.dumps(d)
@@ -232,22 +266,22 @@ ORDER BY path;
 # TODO: @Siggie is working on this. When done, we will examine the results of hierarchy(). They may still be different
 #  ...from what we were seeing before the refactor, but that doesn't mean they're wrong, as there may have been issue(s)
 #  ...in the old format as well.
-def top_level_cids(concept_ids: List[int], con=CON) -> List[int]:
-    """Filter to concept ids with no parents"""
-    top_level_cids = sql_query_single_col(
-        con, f""" 
-        SELECT DISTINCT concept_id_1
-        FROM concept_relationship cr
-        WHERE cr.concept_id_1 = ANY(:concept_ids)
-          AND cr.relationship_id = 'Subsumes'
-          AND NOT EXISTS (
-            SELECT *
-            FROM concept_relationship
-            WHERE concept_id_2 = cr.concept_id_1
-          )
-        """,
-        {'concept_ids': concept_ids})
-    return top_level_cids
+# def top_level_cids(concept_ids: List[int], con=CON) -> List[int]:
+#     """Filter to concept ids with no parents"""
+#     top_level_cids = sql_query_single_col(
+#         con, f"""
+#         SELECT DISTINCT concept_id_1
+#         FROM concept_relationship cr
+#         WHERE cr.concept_id_1 = ANY(:concept_ids)
+#           AND cr.relationship_id = 'Subsumes'
+#           AND NOT EXISTS (
+#             SELECT *
+#             FROM concept_relationship
+#             WHERE concept_id_2 = cr.concept_id_1
+#           )
+#         """,
+#         {'concept_ids': concept_ids})
+#     return top_level_cids
 
 
 def top_level_cids(concept_ids: List[int], con=CON) -> List[int]:
@@ -259,12 +293,13 @@ def top_level_cids(concept_ids: List[int], con=CON) -> List[int]:
         ) -- , standalone AS (  -- these are cids with no parents or children, will be included as top level
             SELECT DISTINCT concept_id
             FROM cids
-            WHERE NOT EXISTS (
+            JOIN concept_relationship cr ON cr.concept_id_1 = cids.concept_id
+            WHERE cr.relationship_id = 'Subsumes'
+            AND NOT EXISTS (
                 SELECT *
                 FROM concept_relationship cr
                 WHERE cr.relationship_id = 'Subsumes'
-                  AND cr.concept_id_2 = cids.concept_id
-                  AND cr.concept_id_1 IN (SELECT concept_id from cids)
+                  AND cr.concept_id_2 IN (SELECT concept_id from cids)
                    --OR  cr.concept_id_2 = cids.concept_id)
             )
         """,
@@ -348,22 +383,22 @@ def _get_csets(codeset_id: Union[str, None] = Query(default=''), ) -> List[Dict]
 
 
 @APP.get("/related-csets")
-def _related_csets(codeset_id: Union[str, None] = Query(default=''), ) -> List[Dict]:
-    """Route for: related_csets()"""
+def _get_related_csets(codeset_id: Union[str, None] = Query(default=''), ) -> List[Dict]:
+    """Route for: get_related_csets()"""
     codeset_ids: List[int] = parse_codeset_ids(codeset_id)
-    return related_csets(codeset_ids)
+    return get_related_csets(codeset_ids)
 
 
 @APP.get("/cset-members-items")
 def _cset_members_items(codeset_id: Union[str, None] = Query(default=''), ) -> List[LegacyRow]:
-    """Route for: related_csets()"""
+    """Route for: cset_memberss_items()"""
     codeset_ids: List[int] = parse_codeset_ids(codeset_id)
-    return cset_members_items(codeset_ids)
+    return get_cset_members_items(codeset_ids)
 
 
 @APP.get("/hierarchy")
 def _hierarchy(codeset_id: Union[str, None] = Query(default=''), ) -> Dict:
-    """Route for: related_csets()"""
+    """Route for: hierarchy()"""
     codeset_ids: List[int] = parse_codeset_ids(codeset_id)
     return hierarchy(codeset_ids=codeset_ids)
 
@@ -373,7 +408,7 @@ def _hierarchy(codeset_id: Union[str, None] = Query(default=''), ) -> Dict:
 def cr_hierarchy(rec_format: str = 'default', codeset_id: Union[str, None] = Query(default=''), ) -> Dict:
 
     # TODO: TEMP FOR TESTING. #191 isn't a problem with the old json data
-    # fp = open('./backend/old_cr-hierarchy_samples/cr-hierarchy-example1.json')
+    # fp = open(r'./backend/old_cr-hierarchy_samples/cr-hierarchy - example1 - before refactor.json')
     # return json.load(fp)
 
     """Get concept relationship hierarchy
@@ -383,35 +418,46 @@ def cr_hierarchy(rec_format: str = 'default', codeset_id: Union[str, None] = Que
     """
     codeset_ids: List[int] = parse_codeset_ids(codeset_id)
     cset_member_ids: List[int] = get_concept_set_member_ids(codeset_ids, column='concept_id')
+    cset_members_items = get_cset_members_items(codeset_ids)
+    concept_ids = list(set([i['concept_id'] for i in cset_members_items]))
 
-    # Old LFS way, for reference
-    # dsi = cset_members(requested_codeset_ids)
-    # result = {
-    #           # 'all_csets': dsi.all_csets.to_dict(orient='records'),
-    #           'related_csets': dsi.related_csets.to_dict(orient='records'),
-    #           'selected_csets': dsi.selected_csets.to_dict(orient='records'),
-    #           # 'concept_set_members_i': dsi.concept_set_members_i.to_dict(orient='records'),
-    #           # 'concept_set_version_item_i': dsi.concept_set_version_item_i.to_dict(orient='records'),
-    #           'cset_members_items': dsi.cset_members_items.to_dict(orient='records'),
-    #           'hierarchy': dsi.hierarchy,
-    #           'concepts': dsi.concepts.to_dict(orient='records'),
-    #           'data_counts': log_counts(),
-    # }
+    related_csets = get_related_csets(codeset_ids=codeset_ids, selected_concept_ids=cset_member_ids)
+    selected_csets = [cset for cset in related_csets if cset['selected']]
+    researcher_ids = get_all_researcher_ids(related_csets)
+    researchers = get_researchers(researcher_ids)
 
-    # TODO: uncomment
     result = {
         # # todo: Check related_csets() to see its todo's
-        'related_csets': related_csets(codeset_ids=codeset_ids, selected_concept_ids=cset_member_ids),
+        'related_csets': related_csets,
         # # todo: Check get_csets() to see its todo's
-        'selected_csets': get_csets(codeset_ids),
-        'cset_members_items': cset_members_items(codeset_ids),
-        'hierarchy': hierarchy(selected_concept_ids=cset_member_ids),
+        'selected_csets': selected_csets,
+        'researchers': researchers,
+        'cset_members_items': cset_members_items,
+        'hierarchy': hierarchy(selected_concept_ids=concept_ids),
         # todo: concepts
         'concepts': [],
         # todo: frontend not making use of data_counts yet but will need
         'data_counts': [],
     }
-    result['concepts'] = get_concepts([i.concept_id for i in result['cset_members_items']])
+
+    # TODO: Fix: concepts missing from hierarchy that shouldn't be:
+    h = result['hierarchy']
+    hh = json.dumps(h)
+    import re
+    hierarchy_concept_ids = [int(x) for x in re.findall(r'\d+', hh)]
+    # diff for: http://127.0.0.1:8000/cr-hierarchy?rec_format=flat&codeset_id=400614256|87065556
+    #  {4218499, 4198296, 4215961, 4255399, 4255400, 4255401, 4147509, 252341, 36685758, 4247107, 4252356, 42536648, 4212441, 761062, 259055, 4235260}
+    diff = set(cset_member_ids).difference(hierarchy_concept_ids)
+
+    # TODO: siggie was working on something here
+    result['concepts'] = get_concepts(hierarchy_concept_ids)
+
+    # o = json.load(fp)['hierarchy']
+    # n = result['hierarchy']
+    # print(f"o.keys() == n.keys(): {set(o.keys()) == set(n.keys())}")
+    # for k,v in o.items():
+    #     if not v == n[k]:
+    #         print(k, o[k], n[k])
 
     return result
 

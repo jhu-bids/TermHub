@@ -22,9 +22,15 @@ import { ReactQueryDevtools } from '@tanstack/react-query-devtools'
 import {ConceptSetsPage, CsetComparisonPage} from "./Csets";
 import {AboutPage} from "./AboutPage";
 import {searchParamsToObj} from "./utils";
+import {API_ROOT} from "./env";
+// import dotenv from 'dotenv';
+// import * as dotenv from 'dotenv' // see https://github.com/motdotla/dotenv#how-do-i-use-dotenv-with-import
+// dotenv.config()
+// const buf = Buffer.from('API_ROOT=api_root')
+// const config = dotenv.parse(buf) // will return an object
+// console.log(config)
+// const API_ROOT = 'http://127.0.0.1:8000'
 
-
-const API_ROOT = 'http://127.0.0.1:8000'
 // const enclave_url = path => `${API_ROOT}/passthru?path=${path}`
 const backend_url = path => `${API_ROOT}/${path}`
 
@@ -165,18 +171,12 @@ function DataContainer(props) {
   return  <RoutesContainer {...props} all_csets={all_csets} cset_data={cset_data}/>
 }
 function RoutesContainer(props) {
-  // const {codeset_ids, all_csets=[], cset_data={}} = props;
-  // const {selected_csets} = cset_data;
-  // console.log({codeset_ids, selected_csets, all: all_csets.length});
   return (
       <Routes>
         <Route path="/" element={<App {...props} />}>
-          {/*<Route path="ontocall" element={<EnclaveOntoAPI />} />*/}
           <Route path="cset-comparison" element={<CsetComparisonPage {...props} />} />
-          {/* <Route path="cset-comparison/:conceptId" element={<ConceptSet />} /> */}
           <Route path="OMOPConceptSets" element={<ConceptSetsPage {...props}  />} />
           <Route path="about" element={<AboutPage {...props} />} />
-          {/* <Route path="testing" element={<ConceptSetsPage codeset_ids={test_codeset_ids}/>} /> */}
           {/* <Route path="OMOPConceptSet/:conceptId" element={<OldConceptSet />} /> */}
           <Route path="*"  element={<ErrorPath/>} />
         </Route>

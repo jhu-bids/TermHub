@@ -3,6 +3,7 @@ import json
 import logging
 import sys
 from typing import Dict, List, Union
+from urllib.parse import urljoin
 
 import requests
 from datetime import datetime, timezone, timedelta
@@ -10,9 +11,18 @@ from http.client import HTTPConnection
 
 from requests import Response
 
-from enclave_wrangler.config import VALIDATE_FIRST, config
+from enclave_wrangler.config import config, TERMHUB_VERSION
 from backend.utils import dump
 
+EXTRA_PARAMS = {
+    'create-new-draft-omop-concept-set-version': {
+        "sourceApplication": "TermHub",
+        "sourceApplicationVersion": TERMHUB_VERSION
+    },
+    'add-selected-concepts-as-omop-version-expressions': {
+        "sourceApplication": "TermHub",
+    },
+}
 
 SERVICE_TOKEN_KEY = 'PALANTIR_ENCLAVE_AUTHENTICATION_BEARER_TOKEN'
 PERSONAL_TOKEN_KEY = 'OTHER_TOKEN'
@@ -25,15 +35,15 @@ def get_headers(personal=False, content_type="application/json", for_curl=False)
     #       been expired. In the past we've switched by hard coding the api call header, but now
     #       we have to make api calls (temporarily, see https://cd2h.slack.com/archives/C034EG5ESU9/p1670337451241379?thread_ts=1667317248.546169&cid=C034EG5ESU9)
     #       using one and then the other
-    current_key = get_auth_token_key()
-    set_auth_token_key(personal)
+    # current_key = get_auth_token_key()
+    # set_auth_token_key(personal)
     headers = {
         "authorization": f"Bearer {get_auth_token()}",
     }
     if content_type:    # call get_headers with content_type=None if you don't want that in the headers
         headers["Content-type"] = "application/json"
 
-    set_auth_token_key(current_key)
+    # set_auth_token_key(current_key)
     if for_curl:
         headers["authorization"] = '$' + get_auth_token_key()
         headers = '\\\n'.join([f' -H "{k}: {v}"' for k, v in headers.items()])
@@ -149,37 +159,44 @@ def make_actions_request(api_name: str, data: Union[List, Dict] = None, validate
     api_path = f'/api/v1/ontologies/{ontology_rid}/actions/{api_name}/'
     url = f'https://{config["HOSTNAME"]}{api_path}'
 
+    if api_name not in EXTRA_PARAMS:
+        print(f"should {api_name} have any EXTRA_PARAMS? it doesn't")
+    else:
+        data["parameters"].update(EXTRA_PARAMS[api_name])
+
     if validate_first:
-        response: Response = enclave_post(url + '/validate', data)
+        response: Response = enclave_post(url + 'validate', data)
         if not ('result' in response.json() and response.json()['result'] == 'VALID'):
             print(f'Failure: {api_name}\n', response, file=sys.stderr)
             return response
 
-    response: Response = enclave_post(url + '/apply', data)
+    response: Response = enclave_post(url + 'apply', data)
 
     return response
 
 
 def enclave_post(url: str, data: Union[List, Dict], verbose=True) -> Response:
     if verbose:
-        print_curl(url)
+        print_curl(url, data)
 
     headers = get_headers()
-    response = requests.post(url, headers=headers, json=data)
-
-    if not ('result' in response.json() and response.json()['result'] == 'VALID'):
-        print(f'Failure: {url}\n', response, file=sys.stderr)
-        return response
-
     try:
-        if 'errorCode' in response.text:
-            print('Error: ' + response.text)
+        response = requests.post(url, headers=headers, json=data)
+        if response.status_code >= 400:
+            print(f'Failure: {url}\n', response, file=sys.stderr)
+        elif not ('result' in response.json() and response.json()['result'] == 'VALID'):
+            print(f'Failure: {url}\n', response, file=sys.stderr)
+        elif 'errorCode' in response.text:
+            print('Error: ' + response.text, file=sys.stderr)
         response.raise_for_status()
+        return response
     except Exception as err:
         ttl = check_token_ttl(get_auth_token())
         if ttl == 0:
             raise RuntimeError(f'Error: Token expired: ' + get_auth_token_key())
         raise err
+
+
 def enclave_get(url: str, verbose: bool=True, args: Dict={})-> Response:
     if verbose:
         print_curl(url, args=args)
@@ -202,14 +219,14 @@ def relevant_trace():
 
 def print_curl(url: str, data: Union[List, Dict]=None, args: Dict={}, trace:bool=True):
     curl = f"""\ncurl {get_headers(for_curl=True)} \\
-            {url}\n"""
+            {url}"""
     if data:
-        curl += f"--data '{json.dumps(data)}'\n"
+        curl += f" \\\n--data '{json.dumps(data)}' | jq\n"
     if args:
-        curl += f"additional args:{dump(args)}\n\n"
+        curl += f" additional args:{dump(args)}\n\n"
     if trace:
         curl += relevant_trace()
-    print(curl)
+    print(curl) # printing to debugger during test doesn't work; have to do it manually
 
 
 # def old_get(api_name: str, validate=False)-> Response:

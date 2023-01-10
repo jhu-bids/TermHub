@@ -77,8 +77,8 @@ SELECT DISTINCT
         csc.created_at AS container_created_at,
         ocsc.rid AS container_rid,
 		COALESCE(cids.concepts, 0) AS concepts,
-        cscc.approx_distinct_person_count,
-        cscc.approx_total_record_count
+        COALESCE(cscc.approx_distinct_person_count, 0) AS distinct_person_cnt,
+        COALESCE(cscc.approx_total_record_count, 0) AS total_cnt
 FROM code_sets cs
 LEFT JOIN OMOPConceptSet ocs ON cs.codeset_id = ocs."codesetId" -- need quotes because of caps in colname
 JOIN concept_set_container csc ON cs.concept_set_name = csc.concept_set_name
@@ -137,13 +137,12 @@ WHERE  NOT EXISTS (
      AND csc.created_at = dd.created_at
 );
 
--- DROP TABLE IF EXISTS concepts_with_counts_ungrouped;
-
+DROP TABLE IF EXISTS concepts_with_counts_ungrouped;
 CREATE TABLE IF NOT EXISTS concepts_with_counts_ungrouped AS (
 SELECT c.concept_id,
         c.concept_name,
-        COALESCE(tu.total_count, 0) AS total_count,
-        COALESCE(tu.distinct_person_count, 0) AS distinct_person_count,
+        COALESCE(tu.total_count, 0) AS total_cnt,
+        COALESCE(tu.distinct_person_count, 0) AS distinct_person_cnt,
         tu.domain
 FROM concept c
 LEFT JOIN deidentified_term_usage_by_domain_clamped tu ON c.concept_id = tu.concept_id);
@@ -151,22 +150,29 @@ LEFT JOIN deidentified_term_usage_by_domain_clamped tu ON c.concept_id = tu.conc
 CREATE INDEX ccu_idx1 ON concepts_with_counts_ungrouped(concept_id);
 --CREATE INDEX ccu_idx2 ON concepts_with_counts_ungrouped(concept_id);
 
+DROP TABLE IF EXISTS concepts_with_counts;
 CREATE TABLE IF NOT EXISTS concepts_with_counts AS (
     SELECT concept_id,
             concept_name,
             COUNT(DISTINCT domain) AS domain_cnt,
             array_to_string(array_agg(domain), ',') AS domain,
-            SUM(total_count) AS total_count,
-            array_to_string(array_agg(distinct_person_count), ',') AS distinct_person_cnt
+            SUM(total_cnt) AS total_cnt,
+            array_to_string(array_agg(distinct_person_cnt), ',') AS distinct_person_cnt
     FROM concepts_with_counts_ungrouped
     GROUP BY 1,2
     ORDER BY concept_id, domain );
 
 CREATE INDEX cc_idx1 ON concepts_with_counts(concept_id);
--- concept_relationship_plus is a convenience table;
--- it takes a long time to build, so, not dropping it by default;
--- if it needs updating, uncomment following line
--- DROP TABLE IF EXISTS concept_relationship_plus;
+
+
+-- concept_relationship_plus takes a long time to build
+DROP TABLE IF EXISTS concept_relationship_plus;
+-- using concept_relationship_plus not just for convenience in debugging now but also
+-- single source of truth for concept_relationship in termhub. quit using concept_relationship
+-- and concept_relationship_subsumes_only in queries.
+-- for now, because of bug (https://github.com/jhu-bids/TermHub/issues/191 and https://github.com/jhu-bids/TermHub/pull/190)
+-- filtering out cr records including invalid concepts. this is probably not the right thing to do
+-- in the long term, but should fix that bug and let us move forward with immediate need to get pilot started (2022-01-4)
 
 CREATE TABLE IF NOT EXISTS concept_relationship_plus AS (
   SELECT    c1.vocabulary_id AS vocabulary_id_1
@@ -178,9 +184,9 @@ CREATE TABLE IF NOT EXISTS concept_relationship_plus AS (
           , cr.concept_id_2
           , c2.concept_name AS concept_name_2
   FROM concept_relationship cr
-  JOIN concept c1 ON cr.concept_id_1 = c1.concept_id
-  JOIN concept c2 ON cr.concept_id_2 = c2.concept_id
-                AND c2.standard_concept IS NOT NULL
+  JOIN concept c1 ON cr.concept_id_1 = c1.concept_id -- AND c1.invalid_reason IS NULL
+  JOIN concept c2 ON cr.concept_id_2 = c2.concept_id -- AND c2.invalid_reason IS NULL
+                --AND c2.standard_concept IS NOT NULL
 );
 
 CREATE INDEX  crp_idx1 ON concept_relationship_plus(concept_id_1);
@@ -190,6 +196,8 @@ CREATE INDEX  crp_idx2 ON concept_relationship_plus(concept_id_2);
 CREATE INDEX  crp_idx3 ON concept_relationship_plus(concept_id_1, concept_id_2);
 
 CREATE INDEX  crp_idx4 ON concept_relationship_plus(concept_code);
+
+CREATE INDEX  crp_idx5 ON concept_relationship_plus(relationship_id);
 
 CREATE INDEX  csmi_idx2 ON cset_members_items(concept_id);
 
@@ -212,19 +220,3 @@ WHERE  NOT EXISTS (
           AND csc.created_at = dd.created_at
     );
 
-DROP TABLE IF EXISTS concept_relationship_plus;
-
-CREATE TABLE concept_relationship_plus AS (
-    SELECT    c1.vocabulary_id AS vocabulary_id_1
-         , cr.concept_id_1
-         , c1.concept_name AS concept_name_1
-         , c1.concept_code
-         , cr.relationship_id
-         , c2.vocabulary_id AS vocabulary_id_2
-         , cr.concept_id_2
-         , c2.concept_name AS concept_name_2
-    FROM concept_relationship cr
-             JOIN concept c1 ON cr.concept_id_1 = c1.concept_id
-             JOIN concept c2 ON cr.concept_id_2 = c2.concept_id
-        AND c2.standard_concept IS NOT NULL
-)
