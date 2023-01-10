@@ -54,8 +54,8 @@
   "devDependencies": {
     "@tanstack/react-query-devtools": "^4.0.10"
   },
-  "engines" : {
-    "npm" : ">=9.2.0 <10.0.0",
-    "node" : ">=19.3.0 <20.0.0"
+  "engines": {
+    "npm": ">=9.2.0 <10.0.0",
+    "node": ">=19.3.0 <20.0.0"
   }
 }
