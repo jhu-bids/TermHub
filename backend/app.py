@@ -546,17 +546,20 @@ def route_upload_new_cset_version_with_concepts(d: UploadNewCsetVersionWithConce
     return {}  # todo: return. should include: assigned codeset_id's
 
 
+class UploadCsvVersionWithConcepts(BaseModel):
+    csv: str
 # TODO: Upload CSV ---------------
 @APP.post("/upload-csv-new-cset-version-with-concepts")
 # def route_csv_upload_new_cset_version_with_concepts(file: UploadFile = File(...)) -> Dict:
 # def route_csv_upload_new_cset_version_with_concepts(filename: str = Form(...), filedata: str = Form(...)) -> Dict:
-def route_csv_upload_new_cset_version_with_concepts(filedata: str = Form(...)) -> Dict:
+# def route_csv_upload_new_cset_version_with_concepts(filedata: str = Form(...)) -> Dict:
+def route_csv_upload_new_cset_version_with_concepts(data: UploadCsvVersionWithConcepts) -> Dict:
     """Upload new version of existing container, with concepets"""
-    as_bytes = str.encode(filedata)  # convert string to bytes
-    recovered = base64.b64decode(as_bytes)  # decode base64string
-    # df = pd.read_csv(file.file).fillna('')
-    # print(df)
+    from io import StringIO
+    csv = data.dict()['csv']
+    df = pd.read_csv(StringIO(csv)).fillna('')
     response = upload_new_cset_version_with_concepts_from_csv(df=df)
+    print(response)
     outcome = 'success'
     return {'result': outcome}  # todo: return something
 

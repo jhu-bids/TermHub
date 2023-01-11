@@ -9,13 +9,15 @@ import {Link} from "@mui/material";
 function axiosPut(path, data, backend=true) {
   let url = backend ? backend_url(path) : path;
   console.log('axiosPut url: ', url);
-  var formData = new FormData();
-  formData.append("csv", data);
-  axios.post(url, formData, {
+  // var formData = new FormData();
+  // formData.append("csv", data);
+  axios.post(url, {csv: data}); /* formData, {
     headers: {
-      'Content-Type': 'multipart/form-data'
+      'Content-Type': 'text/plain'
+      //'Content-Type': 'multipart/form-data'
     }
   })
+  */
 }
 function UploadCsvPage(props) {
   // TODO: finish handler or whatever needs to be done to hit the backend route
@@ -26,18 +28,21 @@ function UploadCsvPage(props) {
 
   //  Needs to upload here: /upload-csv-new-cset-version-with-concepts
   const handleUploadVersion = ({ target }) => {
-      const fileReader = new FileReader();
-      // todo: not sure about 'name'. might not be important until we allow multiple CSV
-      // const name = target.accept.includes('image') ? 'images' : 'videos';
     const file = target.files[0]
-    fileReader.readAsDataURL(file);
-      fileReader.onload = (e) => {
-        console.log('filreader onload e:')
-        console.log(e)
-        axiosPut('upload-csv-new-cset-version-with-concepts', e.target.result);
-        // this.setState((prevState) => ({ [name]: [...prevState[name], e.target.result] }));
-        // TODO: Needs to upload to: /upload-csv-new-cset-version-with-concepts
-      };
+    const fileReader = new FileReader();
+    // fileReader.readAsDataURL(file);
+    fileReader.onload = (e) => {
+      console.log('filreader onload e:');
+      console.log(e);
+      let txt = fileReader.result;
+      // axiosPut('upload-csv-new-cset-version-with-concepts', e.target.result);
+      axiosPut('upload-csv-new-cset-version-with-concepts', txt);
+      // this.setState((prevState) => ({ [name]: [...prevState[name], e.target.result] }));
+      // TODO: Needs to upload to: /upload-csv-new-cset-version-with-concepts
+    };
+    if (file) {
+      fileReader.readAsText(file)
+    }
   };
   
     const handleUploadContainer = ({ target }) => {
