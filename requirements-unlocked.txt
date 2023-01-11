@@ -4,6 +4,7 @@ pandas
 pandasql
 pyarrow
 PyMySQL[rsa]
+python-multipart
 requests
 sqlalchemy
 typeguard

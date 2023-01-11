@@ -4,21 +4,22 @@ Resources
 - https://github.com/tiangolo/fastapi
 """
 import json
-from datetime import datetime
 from typing import Any, Dict, List, Union
 from functools import cache
 
+import pandas as pd
 import uvicorn
-# import gunicorn
 import urllib.parse
-from fastapi import FastAPI, Query
+from fastapi import FastAPI, Query, UploadFile
 from fastapi.middleware.cors import CORSMiddleware
 from fastapi.middleware.gzip import GZipMiddleware
 from pydantic import BaseModel
 from sqlalchemy.engine import LegacyRow, RowMapping
 
 from backend.db.queries import get_all_parent_children_map
-from enclave_wrangler.dataset_upload import upload_new_container_with_concepts, upload_new_cset_version_with_concepts
+from enclave_wrangler.dataset_upload import upload_new_container_with_concepts, \
+    upload_new_cset_container_with_concepts_from_csv, upload_new_cset_version_with_concepts, \
+    upload_new_cset_version_with_concepts_from_csv
 from enclave_wrangler.utils import make_objects_request
 from enclave_wrangler.config import RESEARCHER_COLS
 
@@ -61,7 +62,6 @@ def get_container(concept_set_name):
 def run(port: int = 8000):
     """Run app"""
     uvicorn.run(APP, host='0.0.0.0', port=port)
-    # gunicorn.run(APP, host='0.0.0.0', port=port)
 
 
 # Database functions ---------------------------------------------------------------------------------------------------
@@ -547,11 +547,14 @@ def route_upload_new_cset_version_with_concepts(d: UploadNewCsetVersionWithConce
 
 # TODO: Upload CSV ---------------
 @APP.post("/upload-csv-new-cset-version-with-concepts")
-def route_csv_upload_new_cset_version_with_concepts(file) -> Dict:
+def route_csv_upload_new_cset_version_with_concepts(file: UploadFile) -> Dict:
     """Upload new version of existing container, with concepets"""
-    # todo: link to enclave func
-    # response = upload_new_cset_version_with_concepts(**d.__dict__)
-    return {}  # todo return something
+    # todo: link to enclave func; might want to refactor func to accept DF
+    df = pd.read_csv(file.file)
+    print(df)
+    response = upload_new_cset_version_with_concepts_from_csv(df=df)
+    outcome = 'success'
+    return {'result': outcome}  # todo: return something
 
 
 # todo: Some redundancy. (i) should only need concept_set_name once
@@ -648,14 +651,17 @@ def route_upload_new_container_with_concepts(d: UploadNewContainerWithConcepts) 
 
 # TODO: Upload CSV ---------------
 @APP.post("/upload-csv-new-container-with-concepts")
-def route_csv_upload_new_container_with_concepts(file) -> Dict:
+def route_csv_upload_new_container_with_concepts(file: UploadFile) -> Dict:
     """Upload new container with concepts"""
-    # todo: link to enclave func
+    # todo: link to enclave func; might want to refactor func to accept DF
+    df = pd.read_csv(file.file)
+    print(df)
+    # response = upload_new_cset_container_with_concepts_from_csv(df=df)
     # response = upload_new_container_with_concepts(
     #     container=d.container,
     #     versions_with_concepts=d.versions_with_concepts)
-
-    return {}  # todo: return something
+    outcome = 'success'
+    return {'result': outcome}  # todo: return something
 
 
 # TODO: figure out where we want to put this. models.py? Create route files and include class along w/ route func?
