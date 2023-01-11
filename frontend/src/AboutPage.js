@@ -28,7 +28,7 @@ function AboutPage(props) {
           About TermHub
         </Typography>
         <Typography variant="body2" color="text.primary" gutterBottom>
-          <p>TermHub is a tool for creating and updating concept sets.</p>
+          <p>TermHub is a tool for creating and updating concept sets. <a href="https://youtu.be/EAwBZUiNUUk?t=2130">Demo video</a>.</p>
         </Typography>
         
         <Typography variant="h5" color="text.primary" gutterBottom>
