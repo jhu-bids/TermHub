@@ -54,14 +54,16 @@ if missing_env_vars:
         f'{cause_msg}')
 
 FAVORITE_OBJECTS = [
+    'researcher'
     # 'CodeSystemConceptSetVersionExpressionItem',
     # {'errorCode': 'INVALID_ARGUMENT', 'errorName': 'ObjectsExceededLimit', 'errorInstanceId':
     # '693c5f19-df1f-487e-afb9-ea6c6adb8996', 'parameters': {}}
-    'OMOPConcept',
-    'OMOPConceptSet',
-    'OMOPConceptSetContainer',
-    'OmopConceptSetVersionItem',
-    'researcher'
+
+    #     these are being downloaded as datasets, not sure why they're listed here. commenting out
+    #     'OMOPConcept',
+    #     'OMOPConceptSet',
+    #     'OMOPConceptSetContainer',
+    #     'OmopConceptSetVersionItem',
 ]
 # Ordered because of transformation dependencies
 FAVORITE_DATASETS = OrderedDict({
@@ -74,6 +76,7 @@ FAVORITE_DATASETS = OrderedDict({
         'rid': 'ri.foundry.main.dataset.c9932f52-8b27-4e7b-bdb1-eec79e142182',
         'sort_idx': ['concept_set_name'],
         'converters': {'archived': lambda x: True if x == 'True' else False},  # this makes it a bool field
+        'dataset_groups': ['cset']
     },
     # 'concept_set_container_edited': {
     #     'name': 'concept_set_container_edited',
@@ -85,26 +88,31 @@ FAVORITE_DATASETS = OrderedDict({
         'name': 'code_sets',
         'rid': 'ri.foundry.main.dataset.7104f18e-b37c-419b-9755-a732bfa33b03',
         'sort_idx': ['codeset_id'],
+        'dataset_groups': ['cset']
     },
     'concept_set_members': {
         'name': 'concept_set_members',
         'rid': 'ri.foundry.main.dataset.e670c5ad-42ca-46a2-ae55-e917e3e161b6',
         'sort_idx': ['codeset_id', 'concept_id'],
+        'dataset_groups': ['cset']
     },
     'concept': {  # transform depends on: concept_set_members transform
         'name': 'concept',
         'rid': 'ri.foundry.main.dataset.5cb3c4a3-327a-47bf-a8bf-daf0cafe6772',
         'sort_idx': ['concept_id'],
+        'dataset_groups': ['vocab']
     },
     'concept_ancestor': {  # transform depends on: concept_set_members transform
         'name': 'concept_ancestor',
         'rid': 'ri.foundry.main.dataset.c5e0521a-147e-4608-b71e-8f53bcdbe03c',
         'sort_idx': ['ancestor_concept_id', 'descendant_concept_id'],
+        'dataset_groups': ['vocab']
     },
     'concept_relationship': {  # transform depends on: concept_set_members transform
         'name': 'concept_relationship',
         'rid': 'ri.foundry.main.dataset.0469a283-692e-4654-bb2e-26922aff9d71',
         'sort_idx': ['concept_id_1', 'concept_id_2'],
+        'dataset_groups': ['vocab']
     },
     'concept_set_version_item': {
         # actually, this one is missing stuff. using concept_set_version_item_rv instead
@@ -113,18 +121,21 @@ FAVORITE_DATASETS = OrderedDict({
         'rid': 'ri.foundry.main.dataset.f2355e2f-51b6-4ae1-ae80-7e869c1933ac',
         # was: 'rid': 'ri.foundry.main.dataset.1323fff5-7c7b-4915-bcde-4d5ba882c993',
         'sort_idx': ['codeset_id', 'concept_id'],
+        'dataset_groups': ['cset']
     },
     'concept_set_counts_clamped': { # gets downloaded as csv without column names, not parquet
         'name': 'concept_set_counts_clamped',
         'rid': 'ri.foundry.main.dataset.f945409a-37f1-402f-a840-29b6bd675cb0',
         'column_names': ["codeset_id", "approx_distinct_person_count", "approx_total_record_count"],
         'sort_idx': ['codeset_id'],
+        'dataset_groups': ['cset']
     },
     'deidentified_term_usage_by_domain_clamped': { # gets downloaded as csv without column names, not parquet
         'name': 'deidentified_term_usage_by_domain_clamped',
         'rid': 'ri.foundry.main.dataset.e393f03a-00d0-4071-802c-ff20e543ce01',
         'column_names': ["concept_id", "domain", "total_count", "distinct_person_count"],
         'sort_idx': ['concept_id', 'domain'],
+        'dataset_groups': ['vocab']
     },
     # not downloadable -- yet
     # 'safe_harbor_term_usage': {
