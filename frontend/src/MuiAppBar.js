@@ -19,7 +19,7 @@ const pages = [
   {name: 'Cset search', href: '/OMOPConceptSets'},
   {name: 'Cset comparison', href: '/cset-comparison'},
   {name: 'Example comparison', href: '/testing'},
-  {name: 'Upload CSV', href: '/upload-csv'},
+  //{name: 'Upload CSV', href: '/upload-csv'},
   {name: 'About', href: '/about'}
 ];
 const settings = ['About'];
