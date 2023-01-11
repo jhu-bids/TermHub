@@ -73,7 +73,12 @@ upload_new_cset_version_with_concepts_from_csv(path)
 
 There is also a unit test that demonstrates this functionality in `tests/test_enclave_wrangler.py` called `TestEnclaveWrangler.test_upload()`.
 
-
+# To do:
+  - Add documentation here for how this can be run by users with Python skills
+  - Give [upload_new_cset_version_with_concepts_from_csv](https://github.com/jhu-bids/TermHub/blob/main/enclave_wrangler/dataset_upload.py#L39-L90) features to allow:
+    - Specifying user auth token so it can be run by people on their own behalf (who don't have the bulkimport user auth token)
+    - Specify whether version(s) should be finalized or left in draft state.
+  
 # For reference. Enclave API documentation links
 
 - https://unite.nih.gov/workspace/ontology/action-type/create-new-draft-omop-concept-set-version/security
