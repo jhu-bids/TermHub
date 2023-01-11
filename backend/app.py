@@ -532,7 +532,7 @@ class UploadNewCsetVersionWithConcepts(BaseModel):
     intention: str
 
 
-# TODO #123: add baseVersion: the version that the user starts off from in order to create their own new concept set
+# todo #123: add baseVersion: the version that the user starts off from in order to create their own new concept set
 #  ...version. I need to add the ability to get arbitrary args (*args) including baseVersion, here in these routes and
 #  ...in the other functions.
 @APP.post("/upload-new-cset-version-with-concepts")
@@ -543,6 +543,15 @@ def route_upload_new_cset_version_with_concepts(d: UploadNewCsetVersionWithConce
     response = upload_new_cset_version_with_concepts(**d.__dict__)
 
     return {}  # todo: return. should include: assigned codeset_id's
+
+
+# TODO: Upload CSV ---------------
+@APP.post("/upload-csv-new-cset-version-with-concepts")
+def route_csv_upload_new_cset_version_with_concepts(file) -> Dict:
+    """Upload new version of existing container, with concepets"""
+    # todo: link to enclave func
+    # response = upload_new_cset_version_with_concepts(**d.__dict__)
+    return {}  # todo return something
 
 
 # todo: Some redundancy. (i) should only need concept_set_name once
@@ -614,7 +623,7 @@ class UploadNewContainerWithConcepts(BaseModel):
     versions_with_concepts: List[Dict]
 
 
-# TODO: see todo '#123'
+# todo: see todo '#123'
 @APP.post("/upload-new-container-with-concepts")
 def route_upload_new_container_with_concepts(d: UploadNewContainerWithConcepts) -> Dict:
     """Upload new container with concepts"""
@@ -636,6 +645,17 @@ def route_upload_new_container_with_concepts(d: UploadNewContainerWithConcepts) 
         versions_with_concepts=d.versions_with_concepts)
 
     return {}  # todo: return. should include: assigned codeset_id's
+
+# TODO: Upload CSV ---------------
+@APP.post("/upload-csv-new-container-with-concepts")
+def route_csv_upload_new_container_with_concepts(file) -> Dict:
+    """Upload new container with concepts"""
+    # todo: link to enclave func
+    # response = upload_new_container_with_concepts(
+    #     container=d.container,
+    #     versions_with_concepts=d.versions_with_concepts)
+
+    return {}  # todo: return something
 
 
 # TODO: figure out where we want to put this. models.py? Create route files and include class along w/ route func?
