@@ -6,23 +6,76 @@ import {Link} from "@mui/material";
 
 
 function UploadCsvPage(props) {
+  // TODO: finish handler or whatever needs to be done to hit the backend route
+  //   https://stackoverflow.com/questions/40589302/how-to-enable-file-upload-on-reacts-material-ui-simple-input
+  //   state: {
+  //       csv: [],
+  //   };
 
+  //  Needs to upload here: /upload-csv-new-cset-version-with-concepts
+  const handleUploadVersion = ({ target }) => {
+      const fileReader = new FileReader();
+      // todo: not sure about 'name'. might not be important until we allow multiple CSV
+      // const name = target.accept.includes('image') ? 'images' : 'videos';
+      fileReader.readAsDataURL(target.files[0]);
+      fileReader.onload = (e) => {
+        // this.setState((prevState) => ({ [name]: [...prevState[name], e.target.result] }));
+        // TODO: Needs to upload to: /upload-csv-new-cset-version-with-concepts
+      };
+  };
+  
+    const handleUploadContainer = ({ target }) => {
+      const fileReader = new FileReader();
+      // todo: not sure about 'name'. might not be important until we allow multiple CSV
+      // const name = target.accept.includes('image') ? 'images' : 'videos';
+      fileReader.readAsDataURL(target.files[0]);
+      fileReader.onload = (e) => {
+        // this.setState((prevState) => ({ [name]: [...prevState[name], e.target.result] }));
+        // TODO: Needs to upload to: /upload-csv-new-container-with-concepts
+      };
+  };
+  
   return (
-      <div>
+      // todo: padding / margin doesn't seem to work
+      <div style={{padding: "10px, 10px, 10px, 10px", margin: "10px, 10px, 10px, 10px"}}>
         <Typography variant="h5" color="text.primary" gutterBottom>
           Upload CSV
         </Typography>
         <Typography variant="body2" color="text.primary" gutterBottom>
-          <p>You can : link to docs</p>
+          <p>With a single CSV, you can create (i) a new version to an existing concept set, e.g. to add/delete concepts
+            or change metadata, and (ii) coming soon: upload a completely new concept set ("concept set container").</p>
+          <p>CSV format and additional information can be found in: <a href="https://github.com/jhu-bids/TermHub/blob/develop/enclave_wrangler/README.md">the documentation</a></p>
         </Typography>
-        <Button variant={"contained"}>
-          {/*TODO: find out to link*/}
-          <Link href="/" color="inherit">New concept set version</Link>
-        </Button>
+        
+        <input
+          accept="image/*"
+          // className={classes.input}
+          style={{ display: 'none' }}
+          id="upload-version"
+          // multiple
+          onChange={handleUploadVersion}
+          type="file"
+        />
+        <label htmlFor="upload-version">
+          {/*  TODO: Needs to upload to: /upload-csv-new-cset-version-with-concepts */}
+          <Button variant="contained" component="span">New concept set version</Button>
+        </label>
+        
         <span> </span>
-        <Button variant={"contained"} disabled={true}>
-          <Link href="/" color="inherit">New concept set container (coming soon)</Link>
-        </Button>
+        
+        <input
+          accept="image/*"
+          // className={classes.input}
+          style={{ display: 'none' }}
+          id="upload-container"
+          // multiple
+          onChange={handleUploadContainer}
+          type="file"
+        />
+        <label htmlFor="upload-container">
+          {/*  TODO: Needs to upload to: /upload-csv-new-container-with-concepts */}
+          <Button variant="contained" component="span">New concept set container (coming soon)</Button>
+        </label>
       </div>
   );
 }
