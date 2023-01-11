@@ -23,6 +23,7 @@ import {ConceptSetsPage, CsetComparisonPage} from "./Csets";
 import {AboutPage} from "./AboutPage";
 import {searchParamsToObj} from "./utils";
 import {API_ROOT} from "./env";
+import {UploadCsvPage} from "./UploadCsv";
 // import dotenv from 'dotenv';
 // import * as dotenv from 'dotenv' // see https://github.com/motdotla/dotenv#how-do-i-use-dotenv-with-import
 // dotenv.config()
@@ -177,6 +178,7 @@ function RoutesContainer(props) {
           <Route path="cset-comparison" element={<CsetComparisonPage {...props} />} />
           <Route path="OMOPConceptSets" element={<ConceptSetsPage {...props}  />} />
           <Route path="about" element={<AboutPage {...props} />} />
+          <Route path="upload-csv" element={<UploadCsvPage {...props} />} />
           {/* <Route path="OMOPConceptSet/:conceptId" element={<OldConceptSet />} /> */}
           <Route path="*"  element={<ErrorPath/>} />
         </Route>

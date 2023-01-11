@@ -3,22 +3,24 @@
 Resources
 - https://github.com/tiangolo/fastapi
 """
+import base64
 import json
-from datetime import datetime
 from typing import Any, Dict, List, Union
 from functools import cache
 
+import pandas as pd
 import uvicorn
-# import gunicorn
 import urllib.parse
-from fastapi import FastAPI, Query
+from fastapi import FastAPI, File, Form, Query, UploadFile
 from fastapi.middleware.cors import CORSMiddleware
 from fastapi.middleware.gzip import GZipMiddleware
 from pydantic import BaseModel
 from sqlalchemy.engine import LegacyRow, RowMapping
 
 from backend.db.queries import get_all_parent_children_map
-from enclave_wrangler.dataset_upload import upload_new_container_with_concepts, upload_new_cset_version_with_concepts
+from enclave_wrangler.dataset_upload import upload_new_container_with_concepts, \
+    upload_new_cset_container_with_concepts_from_csv, upload_new_cset_version_with_concepts, \
+    upload_new_cset_version_with_concepts_from_csv
 from enclave_wrangler.utils import make_objects_request
 from enclave_wrangler.config import RESEARCHER_COLS
 
@@ -61,7 +63,6 @@ def get_container(concept_set_name):
 def run(port: int = 8000):
     """Run app"""
     uvicorn.run(APP, host='0.0.0.0', port=port)
-    # gunicorn.run(APP, host='0.0.0.0', port=port)
 
 
 # Database functions ---------------------------------------------------------------------------------------------------
@@ -532,7 +533,7 @@ class UploadNewCsetVersionWithConcepts(BaseModel):
     intention: str
 
 
-# TODO #123: add baseVersion: the version that the user starts off from in order to create their own new concept set
+# todo #123: add baseVersion: the version that the user starts off from in order to create their own new concept set
 #  ...version. I need to add the ability to get arbitrary args (*args) including baseVersion, here in these routes and
 #  ...in the other functions.
 @APP.post("/upload-new-cset-version-with-concepts")
@@ -543,6 +544,24 @@ def route_upload_new_cset_version_with_concepts(d: UploadNewCsetVersionWithConce
     response = upload_new_cset_version_with_concepts(**d.__dict__)
 
     return {}  # todo: return. should include: assigned codeset_id's
+
+
+class UploadCsvVersionWithConcepts(BaseModel):
+    csv: str
+# TODO: Upload CSV ---------------
+@APP.post("/upload-csv-new-cset-version-with-concepts")
+# def route_csv_upload_new_cset_version_with_concepts(file: UploadFile = File(...)) -> Dict:
+# def route_csv_upload_new_cset_version_with_concepts(filename: str = Form(...), filedata: str = Form(...)) -> Dict:
+# def route_csv_upload_new_cset_version_with_concepts(filedata: str = Form(...)) -> Dict:
+def route_csv_upload_new_cset_version_with_concepts(data: UploadCsvVersionWithConcepts) -> Dict:
+    """Upload new version of existing container, with concepets"""
+    from io import StringIO
+    csv = data.dict()['csv']
+    df = pd.read_csv(StringIO(csv)).fillna('')
+    response = upload_new_cset_version_with_concepts_from_csv(df=df)
+    print(response)
+    outcome = 'success'
+    return {'result': outcome}  # todo: return something
 
 
 # todo: Some redundancy. (i) should only need concept_set_name once
@@ -614,7 +633,7 @@ class UploadNewContainerWithConcepts(BaseModel):
     versions_with_concepts: List[Dict]
 
 
-# TODO: see todo '#123'
+# todo: see todo '#123'
 @APP.post("/upload-new-container-with-concepts")
 def route_upload_new_container_with_concepts(d: UploadNewContainerWithConcepts) -> Dict:
     """Upload new container with concepts"""
@@ -636,6 +655,19 @@ def route_upload_new_container_with_concepts(d: UploadNewContainerWithConcepts) 
         versions_with_concepts=d.versions_with_concepts)
 
     return {}  # todo: return. should include: assigned codeset_id's
+
+# TODO: Upload CSV ---------------
+@APP.post("/upload-csv-new-container-with-concepts")
+def route_csv_upload_new_container_with_concepts(file: UploadFile = File(...)) -> Dict:
+    """Upload new container with concepts"""
+    df = pd.read_csv(file.file).fillna('')
+    print(df)
+    # response = upload_new_cset_container_with_concepts_from_csv(df=df)
+    # response = upload_new_container_with_concepts(
+    #     container=d.container,
+    #     versions_with_concepts=d.versions_with_concepts)
+    outcome = 'success'
+    return {'result': outcome}  # todo: return something
 
 
 # TODO: figure out where we want to put this. models.py? Create route files and include class along w/ route func?

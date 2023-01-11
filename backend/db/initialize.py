@@ -13,8 +13,9 @@ from backend.db.config import DATASETS_PATH, CONFIG, DDL_PATH, OBJECTS_PATH
 from backend.db.utils import database_exists, run_sql, sql_query, show_tables, get_db_connection, DB, SCHEMA
 from backend.utils import commify
 
+SCHEMA = 'n3c_20220111'
 
-def initialize():
+def initialize(clobber=False):
     """Initialize set up of DB
 
     Resources
@@ -28,7 +29,7 @@ def initialize():
         'concept',
         'concept_ancestor',
         'concept_relationship',
-        'concept_relationship_subsumes_only',
+        # 'concept_relationship_subsumes_only',
         'concept_set_container',
         'concept_set_counts_clamped',
         'concept_set_members',
@@ -69,12 +70,16 @@ def initialize():
             # run_sql(con, f'SET search_path TO {SCHEMA}')
             # being handled by get_db_connection
 
+        replace_rule = 'do not replace'
+        if clobber:
+            replace_rule = None
+
         for table in dataset_tables_to_load:
-            load_csv(con, table, replace_rule='do not replace')
+            load_csv(con, table, replace_rule=replace_rule)
         for table in object_tables_to_load:
             # use table.lower() because postgres won't recognize names with caps in them unless they
             #   are "quoted". should probably do this with colnames also, but just using quotes in ddl
-            load_csv(con, table.lower(), table_type='object', replace_rule='do not replace')
+            load_csv(con, table.lower(), table_type='object', replace_rule=replace_rule)
 
         # TODO: run ddl
         #  a. use this delimiter thing. how delimit? ;\n\n? #--?
@@ -130,7 +135,7 @@ def load_csv(
     print(f'INFO: \nloading {SCHEMA}.{table} into {CONFIG["server"]}:{DB}')
     # Clear data if exists
     try:
-        con.execute(text(f'TRUNCATE {SCHEMA}.{table}'))
+        con.execute(text(f'TRUNCATE {table}'))
     except ProgrammingError:
         pass
 
