@@ -47,23 +47,28 @@ def upload_new_cset_version_with_concepts_from_csv(
     testing from test/test_enclave_wrangler.py
     using:
     https://github.com/jhu-bids/TermHub/blob/develop/test/input/test_enclave_wrangler/test_dataset_upload/type-2-diabetes-mellitus.csv
+
+    :return A dictionary of wth cset name as key, and values are the responses from each enclave API call to fulfill
+    the request.
     """
     if not path and not df:
         raise RuntimeError('upload_new_cset_version_with_concepts_from_csv: Must provide path or dataframe')
     df = df if df else pd.read_csv(path).fillna('')
 
     cset_group_cols = ['concept_set_name', 'parent_version_codeset_id']
-    more_cset_cols = list(set(['multipassId', 'current_max_version', 'domain_team', 'provenance', 'limitations',
-                               'intention', 'intended_research_project', 'authority', ]).intersection(df.columns))
+    more_cset_cols = list(
+        {'multipassId', 'current_max_version', 'domain_team', 'provenance', 'limitations', 'intention',
+         'intended_research_project', 'authority'}.intersection(df.columns))
     concept_cols = ['concept_id', 'includeDescendants', 'isExcluded', 'includeMapped', 'annotation']
 
+    responses = {}
     csets = df.groupby(cset_group_cols)
-
     for cset in csets:
         key, csetdf = cset
 
         new_version = {}
-        new_version['concept_set_name'] = key[0]
+        cset_name = key[0]
+        new_version['concept_set_name'] = cset_name
         new_version['parent_version_codeset_id'] = int(key[1])
 
         first_row = csetdf[more_cset_cols].to_dict(orient='records')[0]
@@ -83,14 +88,15 @@ def upload_new_cset_version_with_concepts_from_csv(
         #   FIX SOMEHOW!!!
 
         if new_version['parent_version_codeset_id']:   # creating new version, setting parent to existing version
-            d: Dict = upload_new_cset_version_with_concepts(**new_version, validate_first=validate_first)
-            print(d)
+            responses_i: Dict = upload_new_cset_version_with_concepts(**new_version, validate_first=validate_first)
             # TODO: since test/test_enclave_wrangler.py:test_upload() is only expecting one
             #   result, just returning the first result. but csvs allow multiple, so FIX THIS!!!!
-            return d
         else:
-            d: Dict = upload_new_container_with_concepts(**new_version, validate_first=validate_first)
-            return d
+            responses_i: Dict = upload_new_container_with_concepts(**new_version, validate_first=validate_first)
+        responses[cset_name] = responses_i
+        print('INFO: ' + cset_name + ': ', responses_i)
+    return responses
+
 
 
 
@@ -196,7 +202,9 @@ def upload_new_cset_version_with_concepts(
 
 
 # TODO: support concept params, e.g. exclude_children
-def upload_new_container_with_concepts(container: Dict, versions_with_concepts: List[Dict]) -> Dict:
+def upload_new_container_with_concepts(
+    container: Dict, versions_with_concepts: List[Dict], validate_first=VALIDATE_FIRST
+) -> Dict:
     """Upload a new concept set container, and 1+ concept set versions, along with their concepts.
 
     :param container (Dict): Has the following keys:
@@ -226,12 +234,13 @@ def upload_new_container_with_concepts(container: Dict, versions_with_concepts: 
         intention=container['intention'],
         research_project=container.get('research_project', ENCLAVE_PROJECT_NAME),
         assigned_sme=container.get('assigned_sme', PALANTIR_ENCLAVE_USER_ID_1),
-        assigned_informatician=container.get('assigned_informatician', PALANTIR_ENCLAVE_USER_ID_1))
+        assigned_informatician=container.get('assigned_informatician', PALANTIR_ENCLAVE_USER_ID_1),
+        validate_first=validate_first)
 
     response_upload_new_cset_version_with_concepts = []
     for version in versions_with_concepts:
         response_versions_i: Dict[str, Union[Response, List[Response]]] = \
-            upload_new_cset_version_with_concepts(**version)
+            upload_new_cset_version_with_concepts(**version, validate_first=validate_first)
         response_upload_new_cset_version_with_concepts.append(response_versions_i)
 
     return {
