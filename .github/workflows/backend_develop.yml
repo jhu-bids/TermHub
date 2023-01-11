@@ -5,7 +5,11 @@
 name: TermHub backend dev - build and deploy
 
 on:
-  push:
+#  push:
+#    branches:
+#      - develop
+  pull_request:
+    types: [opened, synchronize, reopened, closed]
     branches:
       - develop
   workflow_dispatch:

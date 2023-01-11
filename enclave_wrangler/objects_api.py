@@ -229,7 +229,7 @@ def run(request_types: List[str]) -> Dict[str, Dict]:
     return results
 
 
-def download_favorite_objects(fav_obj_names: List[str] = FAVORITE_OBJECTS, force_if_exists=True):
+def download_favorite_objects(fav_obj_names: List[str] = FAVORITE_OBJECTS, force_if_exists=False):
     """Download objects of interest"""
     client = EnclaveClient()
     for o in fav_obj_names:

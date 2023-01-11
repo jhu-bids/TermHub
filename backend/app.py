@@ -147,6 +147,9 @@ def get_researchers(ids: List[str], fields: List[str] = None) -> List[Dict]:
     """
     res: List[RowMapping] = sql_query(CON, query, {'id': list(ids)}, return_with_keys=True)
     res2 = {r['multipassId']: dict(r) for r in res}
+    for id in ids:
+        if id not in res2:
+            res2[id] = {"multipassId": id, "name": "unknown", "emailAddress": id}
     return res2
 
 def get_concepts(concept_ids: List[int], con=CON) -> List[Dict]:

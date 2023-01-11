@@ -324,7 +324,7 @@ def transform(fav: dict) -> pd.DataFrame:
 
 def run(
     dataset_name: str = None, dataset_rid: str = None, ref: str = 'master', output_dir: str = None, outpath: str = None,
-    transforms_only=False, fav: Dict = None
+    transforms_only=False, fav: Dict = None, force_if_exists=False
 ) -> pd.DataFrame:
     dataset_rid = FAVORITE_DATASETS[dataset_name]['rid'] if not dataset_rid else dataset_rid
     dataset_name = FAVORITE_DATASETS_RID_NAME_MAP[dataset_rid] if not dataset_name else dataset_name
@@ -336,10 +336,13 @@ def run(
         # TODO: Temp: would be good to accept either 'outdir' or 'outpath'.
         if not outpath:
             outpath = os.path.join(output_dir, f'{dataset_name}.csv') if output_dir else None
-        if os.path.exists(outpath):
+        if os.path.exists(outpath) and not force_if_exists:
             t = time.ctime(os.path.getmtime(outpath))
-            print(f'Skipping {outpath}: {t}, {os.path.getsize(outpath)} bytes.')
+            print(f'Skipping {os.path.basename(outpath)}: {t}, {os.path.getsize(outpath)} bytes.')
         else:
+            if os.path.exists(outpath):
+                t = time.ctime(os.path.getmtime(outpath))
+                print(f'Clobbering {os.path.basename(outpath)}: {t}, {os.path.getsize(outpath)} bytes.')
             endRef = getTransaction(dataset_rid, ref)
             args = {'dataset_rid': dataset_rid, 'endRef': endRef}
             file_parts = views2(**args)
@@ -352,12 +355,14 @@ def run(
     return df2 if len(df2) > 0 else df
 
 
-def run_favorites(outdir: str = CSV_DOWNLOAD_DIR, transforms_only=False, specific=[]):
+def run_favorites(outdir: str = CSV_DOWNLOAD_DIR, transforms_only=False, specific=[], force_if_exists=False, single_group=None):
     """Run on favorite datasets"""
     for fav in FAVORITE_DATASETS.values():
+        if single_group and single_group not in fav['dataset_groups']:
+            continue
         if not specific or fav['name'] in specific:
             outpath = os.path.join(outdir, fav['name'] + '.csv')
-            run(fav=fav, dataset_name=fav['name'], outpath=outpath, transforms_only=transforms_only)
+            run(fav=fav, dataset_name=fav['name'], outpath=outpath, transforms_only=transforms_only, force_if_exists=force_if_exists)
 
 
 def get_parser():

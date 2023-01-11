@@ -67,18 +67,10 @@ User Interactions
 ### Local setup
 1. Clone the repository.
 2. Run: `pip install -r requirements.txt`
-3. Run `git submodule update`
-
-@jflack4: which of these is correct?
-<<<<<<< HEAD
-4. Set up PostgreSQL  
-=======
-4. Set environmental variables. Run: `mkdir env; cp .env.example env/.env`. Then, edit `.env` and set any variables that haven't been filled out. You'll likely need to reach out to @joeflack4 or @Sigfried. 
-5. Install PostgreSQL and make sure it is running  
->>>>>>> db
-
-
+3. Set environmental variables. Run: `mkdir env; cp .env.example env/.env`. Then, edit `.env` and set any variables that haven't been filled out. You'll likely need to reach out to @joeflack4 or @Sigfried.
+4Install PostgreSQL and make sure it is running
 5. Basic DB setup
+
 ```shell
 $ psql
 # you're now connected to postgres. run these commands:
