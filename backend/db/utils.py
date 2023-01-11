@@ -9,6 +9,7 @@ from sqlalchemy.sql.elements import TextClause
 from typing import Any, Dict, Union, List
 
 from backend.db.config import CONFIG, get_pg_connect_url
+from backend.utils import pdump
 
 DEBUG = False
 DB = CONFIG["db"]
@@ -83,7 +84,7 @@ def sql_query_single_col(*argv) -> List:
     return [r[0] for r in results]
 
 
-def show_tables(con):
+def show_tables(con=get_db_connection(), print_dump=True):
     query = """
         SELECT n.nspname as "Schema", c.relname as "Name",
               CASE c.relkind WHEN 'r' THEN 'table' WHEN 'v' THEN 'view' WHEN 'm' THEN 'materialized view' WHEN 'i' THEN 'index' WHEN 'S' THEN 'sequence' WHEN 's' THEN 'special' WHEN 't' THEN 'TOAST table' WHEN 'f' THEN 'foreign table' WHEN 'p' THEN 'partitioned table' WHEN 'I' THEN 'partitioned index' END as "Type",
@@ -99,4 +100,9 @@ def show_tables(con):
         ORDER BY 1,2;
     """
     res = sql_query(con, query)
+    if print_dump:
+        import pandas as pd
+        print(pd.DataFrame(res))
+        # print('\n'.join([', '.join(r) for r in res])) ugly
+        # print(pdump(res)) doesn't work
     return res

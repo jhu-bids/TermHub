@@ -3,7 +3,7 @@ name: TermHub frontend dev - build and deploy
 on:
   push:
     branches:
-      - main
+      - develop
   pull_request:
     types: [opened, synchronize, reopened, closed]
     branches:

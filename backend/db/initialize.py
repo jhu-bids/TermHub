@@ -10,7 +10,7 @@ from sqlalchemy.sql import text
 from psycopg2.errors import UndefinedTable
 
 from backend.db.config import DATASETS_PATH, CONFIG, DDL_PATH, OBJECTS_PATH
-from backend.db.utils import database_exists, run_sql, get_db_connection, DB, SCHEMA
+from backend.db.utils import database_exists, run_sql, sql_query, show_tables, get_db_connection, DB, SCHEMA
 from backend.utils import commify
 
 
@@ -52,14 +52,15 @@ def initialize():
     #     ('concept_relationship', 'valid_start_date')]
 
     with get_db_connection() as con:
-        if CONFIG["server"] != 'postgresql':  # postgres doesn't have create database if not exists
-            run_sql(con, 'CREATE DATABASE IF NOT EXISTS ' + DB)
-            run_sql(con, f'USE {DB}')
-        else:
+        if CONFIG["server"] == 'postgresql':  # postgres doesn't have create database if not exists
+            show_tables(con)
             if not database_exists(con, DB):
                 con.connection.connection.set_isolation_level(0)
                 run_sql(con, 'CREATE DATABASE ' + DB)
                 con.connection.connection.set_isolation_level(1)
+        else:
+            run_sql(con, 'CREATE DATABASE IF NOT EXISTS ' + DB)
+            run_sql(con, f'USE {DB}')
 
             # create schema isn't working, not sure why -- I had to create it manually
             # run_sql(con, f'CREATE SCHEMA IF NOT EXISTS {SCHEMA}')
