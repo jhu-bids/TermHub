@@ -11,7 +11,7 @@ function axiosPut(path, data, backend=true) {
   console.log('axiosPut url: ', url);
   var formData = new FormData();
   formData.append("csv", data);
-  axios.post('upload-csv-new-cset-version-with-conceptsupload_file', formData, {
+  axios.post(url, formData, {
     headers: {
       'Content-Type': 'multipart/form-data'
     }
@@ -29,9 +29,12 @@ function UploadCsvPage(props) {
       const fileReader = new FileReader();
       // todo: not sure about 'name'. might not be important until we allow multiple CSV
       // const name = target.accept.includes('image') ? 'images' : 'videos';
-      fileReader.readAsDataURL(target.files[0]);
+    const file = target.files[0]
+    fileReader.readAsDataURL(file);
       fileReader.onload = (e) => {
+        console.log('filreader onload e:')
         console.log(e)
+        axiosPut('upload-csv-new-cset-version-with-concepts', e.target.result);
         // this.setState((prevState) => ({ [name]: [...prevState[name], e.target.result] }));
         // TODO: Needs to upload to: /upload-csv-new-cset-version-with-concepts
       };
@@ -44,6 +47,7 @@ function UploadCsvPage(props) {
       fileReader.readAsDataURL(target.files[0]);
       fileReader.onload = (e) => {
         // this.setState((prevState) => ({ [name]: [...prevState[name], e.target.result] }));
+        axiosPut('upload-csv-new-container-with-concepts', e.target.result);
         // TODO: Needs to upload to: /upload-csv-new-container-with-concepts
       };
   };

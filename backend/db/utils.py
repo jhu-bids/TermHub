@@ -15,7 +15,7 @@ DEBUG = False
 DB = CONFIG["db"]
 SCHEMA = CONFIG["schema"]
 
-SCHEMA = 'n3c_20220111'
+# SCHEMA = 'n3c_20220111'
 
 def get_db_connection(isolation_level='AUTOCOMMIT'):
     """Connect to db"""

@@ -3,6 +3,7 @@
 Resources
 - https://github.com/tiangolo/fastapi
 """
+import base64
 import json
 from typing import Any, Dict, List, Union
 from functools import cache
@@ -10,7 +11,7 @@ from functools import cache
 import pandas as pd
 import uvicorn
 import urllib.parse
-from fastapi import FastAPI, Query, UploadFile
+from fastapi import FastAPI, File, Form, Query, UploadFile
 from fastapi.middleware.cors import CORSMiddleware
 from fastapi.middleware.gzip import GZipMiddleware
 from pydantic import BaseModel
@@ -547,11 +548,14 @@ def route_upload_new_cset_version_with_concepts(d: UploadNewCsetVersionWithConce
 
 # TODO: Upload CSV ---------------
 @APP.post("/upload-csv-new-cset-version-with-concepts")
-def route_csv_upload_new_cset_version_with_concepts(file: UploadFile) -> Dict:
+# def route_csv_upload_new_cset_version_with_concepts(file: UploadFile = File(...)) -> Dict:
+# def route_csv_upload_new_cset_version_with_concepts(filename: str = Form(...), filedata: str = Form(...)) -> Dict:
+def route_csv_upload_new_cset_version_with_concepts(filedata: str = Form(...)) -> Dict:
     """Upload new version of existing container, with concepets"""
-    # todo: link to enclave func; might want to refactor func to accept DF
-    df = pd.read_csv(file.file)
-    print(df)
+    as_bytes = str.encode(filedata)  # convert string to bytes
+    recovered = base64.b64decode(as_bytes)  # decode base64string
+    # df = pd.read_csv(file.file).fillna('')
+    # print(df)
     response = upload_new_cset_version_with_concepts_from_csv(df=df)
     outcome = 'success'
     return {'result': outcome}  # todo: return something
@@ -651,10 +655,9 @@ def route_upload_new_container_with_concepts(d: UploadNewContainerWithConcepts) 
 
 # TODO: Upload CSV ---------------
 @APP.post("/upload-csv-new-container-with-concepts")
-def route_csv_upload_new_container_with_concepts(file: UploadFile) -> Dict:
+def route_csv_upload_new_container_with_concepts(file: UploadFile = File(...)) -> Dict:
     """Upload new container with concepts"""
-    # todo: link to enclave func; might want to refactor func to accept DF
-    df = pd.read_csv(file.file)
+    df = pd.read_csv(file.file).fillna('')
     print(df)
     # response = upload_new_cset_container_with_concepts_from_csv(df=df)
     # response = upload_new_container_with_concepts(

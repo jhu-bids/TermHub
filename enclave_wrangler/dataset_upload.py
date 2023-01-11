@@ -48,7 +48,9 @@ def upload_new_cset_version_with_concepts_from_csv(
     using:
     https://github.com/jhu-bids/TermHub/blob/develop/test/input/test_enclave_wrangler/test_dataset_upload/type-2-diabetes-mellitus.csv
     """
-    df = pd.read_csv(path).fillna('')
+    if not path and not df:
+        raise RuntimeError('upload_new_cset_version_with_concepts_from_csv: Must provide path or dataframe')
+    df = df if df else pd.read_csv(path).fillna('')
 
     cset_group_cols = ['concept_set_name', 'parent_version_codeset_id']
     more_cset_cols = list(set(['multipassId', 'current_max_version', 'domain_team', 'provenance', 'limitations',
