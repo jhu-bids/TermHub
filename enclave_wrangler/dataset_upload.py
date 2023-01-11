@@ -36,7 +36,9 @@ except ModuleNotFoundError:
 
 DEBUG = False
 
-def upload_new_cset_version_with_concepts_from_csv(path: str, validate_first=False) -> Dict:
+def upload_new_cset_version_with_concepts_from_csv(
+    path: str = None, df: pd.DataFrame = None, validate_first=False
+) -> Dict:
     """
     Upload from CSV
     file format docs:
@@ -88,6 +90,14 @@ def upload_new_cset_version_with_concepts_from_csv(path: str, validate_first=Fal
             d: Dict = upload_new_container_with_concepts(**new_version, validate_first=validate_first)
             return d
 
+
+
+# TODO
+def upload_new_cset_container_with_concepts_from_csv(
+    path: str = None, df: pd.DataFrame = None, validate_first=False
+) -> Dict:
+    """Upload new container from CSV"""
+    return {}
 
 
 
