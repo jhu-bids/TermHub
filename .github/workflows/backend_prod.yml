@@ -4,14 +4,15 @@
 # A good guide for Python Azure action: https://azure.github.io/AppService/2020/12/11/cicd-for-python-apps.html
 name: TermHub backend prod - build and deploy
 
+# I believe this will do the deploy when merged. We don't want it to deploy prod when PR opened
 on:
   push:
     branches:
       - main
-  pull_request:
-    types: [opened, synchronize, reopened, closed]
-    branches:
-      - main
+#  pull_request:
+#    types: [opened, synchronize, reopened, closed]
+#    branches:
+#      - main
   workflow_dispatch:
 
 jobs:
