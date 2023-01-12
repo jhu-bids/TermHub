@@ -17,7 +17,8 @@ import { // useMutation, // useQueryClient,
 import axios from "axios";
 import {isEqual} from "lodash";
 import { persistQueryClient, removeOldestQuery,} from '@tanstack/react-query-persist-client'
-import { createSyncStoragePersister } from '@tanstack/query-sync-storage-persister'
+// import { createSyncStoragePersister } from '@tanstack/query-sync-storage-persister'
+import { createWebStoragePersistor } from 'react-query/createWebStoragePersistor-experimental'
 import { ReactQueryDevtools } from '@tanstack/react-query-devtools'
 import {ConceptSetsPage, CsetComparisonPage} from "./Csets";
 import {AboutPage} from "./AboutPage";
@@ -49,8 +50,8 @@ const queryClient = new QueryClient({
   },
 })
 
-const localStoragePersister = createSyncStoragePersister({ storage: window.localStorage })
-// const sessionStoragePersister = createSyncStoragePersister({ storage: window.sessionStorage })
+// const localStoragePersister = createSyncStoragePersister({ storage: window.localStorage })
+const localStoragePersister = createWebStoragePersistor({ storage: window.localStorage })
 
 persistQueryClient({
   queryClient,
