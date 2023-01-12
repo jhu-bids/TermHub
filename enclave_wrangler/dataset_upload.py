@@ -20,8 +20,8 @@ try:
     post_request_enclave_api_create_version, update_cs_version_expression_data_with_codesetid
     from enclave_wrangler.actions_api import add_concepts_to_cset, finalize_concept_set_version, \
     upload_concept_set_container, \
-    upload_concept_set_version
-    from enclave_wrangler.utils import _datetime_palantir_format, log_debug_info
+    upload_concept_set_version, get_concept_set_version_expression_items
+    from enclave_wrangler.utils import _datetime_palantir_format, log_debug_info, make_actions_request
 except ModuleNotFoundError:
     from config import CSET_UPLOAD_REGISTRY_PATH, ENCLAVE_PROJECT_NAME, MOFFIT_PREFIX, \
     MOFFIT_SOURCE_ID_TYPE, MOFFIT_SOURCE_URL, PALANTIR_ENCLAVE_USER_ID_1, UPLOADS_DIR, config, PROJECT_ROOT, \
@@ -30,7 +30,7 @@ except ModuleNotFoundError:
         post_request_enclave_api_addExpressionItems, post_request_enclave_api_create_container, \
         post_request_enclave_api_create_version, update_cs_version_expression_data_with_codesetid
     from actions_api import add_concepts_to_cset, upload_concept_set_container, \
-        upload_concept_set_version
+        upload_concept_set_version, get_concept_set_version_expression_items
     from utils import _datetime_palantir_format, log_debug_info
 
 
@@ -190,6 +190,12 @@ def upload_new_cset_version_with_concepts(
         version_id=codeset_id,
         on_behalf_of=on_behalf_of,
         validate_first=validate_first)  # == code_sets.codeset_id
+
+    existing_items = get_concept_set_version_expression_items(codeset_id)
+    response_delete_items: Response = make_actions_request(
+        'delete-omop-concept-set-version-item', {"parameters":{
+            "concept-set-version-item": existing_items
+        }}, True)
     response_upload_concepts: List[Response] = add_concepts_to_cset(
         omop_concepts=omop_concepts,
         version__codeset_id=codeset_id,
@@ -202,6 +208,7 @@ def upload_new_cset_version_with_concepts(
     return {
         'responses': {
             'upload_concept_set_version': response_upload_draft_concept_set,
+            'delete_concept_set_version_items': response_delete_items,
             'add_concepts_to_cset': response_upload_concepts,
             'finalize_concept_set_version': response_finalize_concept_set_version
         },
