@@ -184,8 +184,6 @@ def enclave_post(url: str, data: Union[List, Dict], verbose=True) -> Response:
         response = requests.post(url, headers=headers, json=data)
         if response.status_code >= 400:
             print(f'Failure: {url}\n', response, file=sys.stderr)
-        elif not ('result' in response.json() and response.json()['result'] == 'VALID'):
-            print(f'Failure: {url}\n', response, file=sys.stderr)
         elif 'errorCode' in response.text:
             print('Error: ' + response.text, file=sys.stderr)
         response.raise_for_status()

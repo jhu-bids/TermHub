@@ -22,9 +22,9 @@ class TestBackend(unittest.TestCase):
 
     @staticmethod
     def _upload_file(file_path, url) -> Response:
-        with open(file_path, 'rb') as file:
+        with open(file_path, 'r') as file:
             file_data = file.read()
-            response: Response = requests.post(url, files={'file': file_data})
+            response: Response = requests.post(url, data={'csv': file_data})
         if response.status_code == 200:
             print('INFO: File successfully uploaded to ', url)
         else:
@@ -109,7 +109,9 @@ class TestBackend(unittest.TestCase):
         }).json()
         self.assertEqual(response['result'], 'success')
 
-    # TODO
+    # TODO: _upload_file has to be changed
+    #  a. to do something like the frontend: axios.post(url, {csv: data})
+    #  b. create instance of: class UploadCsvVersionWithConcepts
     def test_route_csv_upload_new_cset_version_with_concepts(self):
         """Test: Upload new cset version from CSV"""
         url = urljoin(BACKEND_URL_BASE, 'upload-csv-new-cset-version-with-concepts')

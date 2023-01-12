@@ -14,16 +14,16 @@ import { // Link, useHref, useParams, BrowserRouter,
 import MuiAppBar from "./MuiAppBar";
 import { // useMutation, // useQueryClient,
           QueryClient, useQuery, useQueries, QueryClientProvider, } from '@tanstack/react-query'
-import axios from "axios";
 import {isEqual} from "lodash";
 import { persistQueryClient, removeOldestQuery,} from '@tanstack/react-query-persist-client'
-import { createSyncStoragePersister } from '@tanstack/query-sync-storage-persister'
+// import { createSyncStoragePersister } from '@tanstack/query-sync-storage-persister'
+import { createWebStoragePersistor } from 'react-query/createWebStoragePersistor-experimental'
 import { ReactQueryDevtools } from '@tanstack/react-query-devtools'
 import {ConceptSetsPage, CsetComparisonPage} from "./Csets";
 import {AboutPage} from "./AboutPage";
-import {searchParamsToObj} from "./utils";
-import {API_ROOT} from "./env";
+import {searchParamsToObj, axiosGet, backend_url, useDataWidget} from "./utils";
 import {UploadCsvPage} from "./UploadCsv";
+// import logo from './logo.svg';
 // import dotenv from 'dotenv';
 // import * as dotenv from 'dotenv' // see https://github.com/motdotla/dotenv#how-do-i-use-dotenv-with-import
 // dotenv.config()
@@ -33,7 +33,6 @@ import {UploadCsvPage} from "./UploadCsv";
 // const API_ROOT = 'http://127.0.0.1:8000'
 
 // const enclave_url = path => `${API_ROOT}/passthru?path=${path}`
-const backend_url = path => `${API_ROOT}/${path}`
 
 const queryClient = new QueryClient({
   defaultOptions: {
@@ -49,8 +48,8 @@ const queryClient = new QueryClient({
   },
 })
 
-const localStoragePersister = createSyncStoragePersister({ storage: window.localStorage })
-// const sessionStoragePersister = createSyncStoragePersister({ storage: window.sessionStorage })
+// const localStoragePersister = createSyncStoragePersister({ storage: window.localStorage })
+const localStoragePersister = createWebStoragePersistor({ storage: window.localStorage })
 
 persistQueryClient({
   queryClient,
@@ -145,31 +144,29 @@ function QueryStringStateMgr(props) {
                         changeCodesetIds={changeCodesetIds}
                         />;
 }
-function axiosGet(path, backend=true) {
-  let url = backend ? backend_url(path) : path;
-  console.log('axiosGet url: ', url);
-  return axios.get(url).then((res) => res.data);
-}
 function DataContainer(props) {
   let {codeset_ids, } = props;
   const all_csets_url = 'get-all-csets';
   const cset_data_url = 'cr-hierarchy?rec_format=flat&codeset_id=' + codeset_ids.join('|');
-  const { isLoading: all_csets_loading,
-          error: all_csets_error,
-          data: all_csets,
-          isFetching: all_csets_fetching
-          } = useQuery(["all_csets"], ()=>axiosGet(all_csets_url));
+  const [all_csets_widget, all_csets] = useDataWidget("all_csets", all_csets_url);
+  const [cset_data_widget, cset_data] = useDataWidget(codeset_ids.join('|'), cset_data_url);
 
-  const { isLoading: cset_data_loading,
-    error: cset_data_error,
-    data: cset_data,
-    isFetching: cset_data_fetching
-  } = useQuery([codeset_ids.join('|')],
-               ()=>axiosGet(cset_data_url));
-
-  // console.log({all_csets_fetching, all_csets_loading, all_csets_error, all_csets});
-  // console.log({cset_data_fetching, cset_data_loading, cset_data_error, cset_data, cset_data_url});
-  return  <RoutesContainer {...props} all_csets={all_csets} cset_data={cset_data}/>
+  if (all_csets && cset_data) {
+    return  <RoutesContainer {...props} all_csets={all_csets} cset_data={cset_data}/>
+  }
+  return (
+      <Routes>
+        <Route path="/" element={<App {...props} />}>
+          <Route path="*"  element={
+            <div>
+              <h3>Waiting for data</h3>
+              {all_csets_widget}
+              {cset_data_widget}
+            </div>
+          } />
+        </Route>
+      </Routes>
+    );
 }
 function RoutesContainer(props) {
   return (
@@ -180,7 +177,6 @@ function RoutesContainer(props) {
           <Route path="about" element={<AboutPage {...props} />} />
           <Route path="upload-csv" element={<UploadCsvPage {...props} />} />
           {/* <Route path="OMOPConceptSet/:conceptId" element={<OldConceptSet />} /> */}
-          <Route path="*"  element={<ErrorPath/>} />
         </Route>
       </Routes>
   )
@@ -201,9 +197,6 @@ function ErrorPath() {
 }
 
 
-// console.log(axios)
-// import logo from './logo.svg';
-// import Box from '@mui/joy/Box';
 /*
 when in doubt: https://reactjs.org/docs/hooks-reference.html and https://reactrouter.com/docs/en/v6
 

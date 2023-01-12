@@ -3,8 +3,8 @@
 Resources
 - https://github.com/tiangolo/fastapi
 """
-import base64
 import json
+from io import StringIO
 from typing import Any, Dict, List, Union
 from functools import cache
 
@@ -546,24 +546,6 @@ def route_upload_new_cset_version_with_concepts(d: UploadNewCsetVersionWithConce
     return {}  # todo: return. should include: assigned codeset_id's
 
 
-class UploadCsvVersionWithConcepts(BaseModel):
-    csv: str
-# TODO: Upload CSV ---------------
-@APP.post("/upload-csv-new-cset-version-with-concepts")
-# def route_csv_upload_new_cset_version_with_concepts(file: UploadFile = File(...)) -> Dict:
-# def route_csv_upload_new_cset_version_with_concepts(filename: str = Form(...), filedata: str = Form(...)) -> Dict:
-# def route_csv_upload_new_cset_version_with_concepts(filedata: str = Form(...)) -> Dict:
-def route_csv_upload_new_cset_version_with_concepts(data: UploadCsvVersionWithConcepts) -> Dict:
-    """Upload new version of existing container, with concepets"""
-    from io import StringIO
-    csv = data.dict()['csv']
-    df = pd.read_csv(StringIO(csv)).fillna('')
-    response = upload_new_cset_version_with_concepts_from_csv(df=df)
-    print(response)
-    outcome = 'success'
-    return {'result': outcome}  # todo: return something
-
-
 # todo: Some redundancy. (i) should only need concept_set_name once
 class UploadNewContainerWithConcepts(BaseModel):
     """Schema for route: /upload-new-container-with-concepts
@@ -656,18 +638,32 @@ def route_upload_new_container_with_concepts(d: UploadNewContainerWithConcepts) 
 
     return {}  # todo: return. should include: assigned codeset_id's
 
-# TODO: Upload CSV ---------------
+
+class UploadCsvVersionWithConcepts(BaseModel):
+    csv: str
+
+
+@APP.post("/upload-csv-new-cset-version-with-concepts")
+def route_csv_upload_new_cset_version_with_concepts(data: UploadCsvVersionWithConcepts) -> Dict:
+    """Upload new version of existing container, with concepets"""
+    # noinspection PyTypeChecker
+    df = pd.read_csv(StringIO(data.dict()['csv'])).fillna('')
+    response: Dict = upload_new_cset_version_with_concepts_from_csv(df=df)
+    # print('CSV upload result: ')
+    # can't print it, it's all response objects
+    # print(json.dumps(response, indent=2))
+    return response
+
+
 @APP.post("/upload-csv-new-container-with-concepts")
-def route_csv_upload_new_container_with_concepts(file: UploadFile = File(...)) -> Dict:
+def route_csv_upload_new_container_with_concepts(data: UploadCsvVersionWithConcepts) -> Dict:
     """Upload new container with concepts"""
-    df = pd.read_csv(file.file).fillna('')
-    print(df)
-    # response = upload_new_cset_container_with_concepts_from_csv(df=df)
-    # response = upload_new_container_with_concepts(
-    #     container=d.container,
-    #     versions_with_concepts=d.versions_with_concepts)
-    outcome = 'success'
-    return {'result': outcome}  # todo: return something
+    # noinspection PyTypeChecker
+    df = pd.read_csv(StringIO(data.dict()['csv'])).fillna('')
+    response: Dict = upload_new_cset_container_with_concepts_from_csv(df=df)
+    # print('CSV upload result: ')
+    # print(json.dumps(response, indent=2))
+    return response
 
 
 # TODO: figure out where we want to put this. models.py? Create route files and include class along w/ route func?

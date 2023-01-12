@@ -36,6 +36,7 @@ except ModuleNotFoundError:
 
 DEBUG = False
 
+# TODO: return 'outcome': success / error for (i) all the csets, (ii) each cset baesd on all response.status_code
 def upload_new_cset_version_with_concepts_from_csv(
     path: str = None, df: pd.DataFrame = None, validate_first=False
 ) -> Dict:
@@ -51,9 +52,9 @@ def upload_new_cset_version_with_concepts_from_csv(
     :return A dictionary of wth cset name as key, and values are the responses from each enclave API call to fulfill
     the request.
     """
-    if not path and not df:
+    if not path and df is None:
         raise RuntimeError('upload_new_cset_version_with_concepts_from_csv: Must provide path or dataframe')
-    df = df if df else pd.read_csv(path).fillna('')
+    df = df if df is not None else pd.read_csv(path).fillna('')
 
     cset_group_cols = ['concept_set_name', 'parent_version_codeset_id']
     more_cset_cols = list(
@@ -64,6 +65,7 @@ def upload_new_cset_version_with_concepts_from_csv(
     responses = {}
     csets = df.groupby(cset_group_cols)
     for cset in csets:
+        key: tuple
         key, csetdf = cset
 
         new_version = {}
@@ -94,6 +96,7 @@ def upload_new_cset_version_with_concepts_from_csv(
         else:
             responses_i: Dict = upload_new_container_with_concepts(**new_version, validate_first=validate_first)
         responses[cset_name] = responses_i
+
         print('INFO: ' + cset_name + ': ', responses_i)
     return responses
 
@@ -105,6 +108,12 @@ def upload_new_cset_container_with_concepts_from_csv(
     path: str = None, df: pd.DataFrame = None, validate_first=False
 ) -> Dict:
     """Upload new container from CSV"""
+    if not path and df is None:
+        raise RuntimeError('upload_new_cset_version_with_concepts_from_csv: Must provide path or dataframe')
+    df = df if df is not None else pd.read_csv(path).fillna('')
+    # response = upload_new_container_with_concepts(
+    #     container=d.container,
+    #     versions_with_concepts=d.versions_with_concepts)
     return {}
 
 

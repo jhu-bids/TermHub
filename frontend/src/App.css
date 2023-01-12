@@ -29,6 +29,7 @@
 }
 .comparison-data-table .rdt_TableHeadRow > div + div
 {
+  white-space: nowrap;
   overflow: visible;
   text-overflow: unset;
   justify-content: left; /* fixes weird thing with rightmost col shifting left when rotated */

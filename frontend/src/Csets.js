@@ -92,9 +92,9 @@ function CsetComparisonPage(props) {
   const [nested, setNested] = useState(true);
   const [rowData, setRowData] = useState([]);
   const [squishTo, setSquishTo] = useState(1);
+  const [allConcepts, setAllConcepts] = useState(1);
 
   let checkboxes = [];
-  let allConcepts = [];
 
   const tsquish = throttle(
       val => {
@@ -124,20 +124,21 @@ function CsetComparisonPage(props) {
 
   function makeRowData(collapsed={}) {
     checkboxes = Object.fromEntries(selected_csets.map(d => [d.codeset_id, false]));
-    allConcepts = Object.fromEntries(concepts.map(d => [d.concept_id, {...d, checkboxes: {...checkboxes}}]));
-    cset_members_items.forEach(d => allConcepts[d.concept_id].checkboxes[d.codeset_id] = d);
+    const _allConcepts = Object.fromEntries(concepts.map(d => [d.concept_id, {...d, checkboxes: {...checkboxes}}]));
+    setAllConcepts(_allConcepts);
+    cset_members_items.forEach(d => _allConcepts[d.concept_id].checkboxes[d.codeset_id] = d);
 
-    if (isEmpty(allConcepts)) {
+    if (isEmpty(_allConcepts)) {
       return;
     }
     if (!nested) {
-      setRowData(Object.values(allConcepts));
+      setRowData(Object.values(_allConcepts));
     }
     let _rowData = [];
     let traverse = (o, pathToRoot=[], level=0) => {
       Object.keys(o).forEach(k => {
         k = parseInt(k);
-        let row = {...allConcepts[k], level, pathToRoot: [...pathToRoot, k]};
+        let row = {..._allConcepts[k], level, pathToRoot: [...pathToRoot, k]};
         _rowData.push(row);
         if (o[k] && typeof(o[k] === 'object')) {
           row.has_children = true;

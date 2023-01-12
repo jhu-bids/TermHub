@@ -1,4 +1,54 @@
 import React from 'react';
+import axios from "axios";
+import {API_ROOT} from "./env";
+import CircularProgress from '@mui/material/CircularProgress';
+import Box from '@mui/material/Box';
+import { useQuery } from '@tanstack/react-query'
+
+function Progress(props) {
+  return (
+    <Box sx={{ display: 'flex' }}>
+      <CircularProgress {...props} />
+    </Box>
+  );
+}
+function DataWidget(props) {
+  const {axVars} = props;
+  const { data, isLoading, error, isFetching } = axVars;
+  if (isLoading || isFetching) {
+    return <Progress/>;
+  }
+  if (error) {
+    return (
+        <Box sx={{ display: 'flex' }}>
+          <h2>Error</h2>
+          {error}
+        </Box>
+    );
+  }
+  return <Progress variant="determinate" value={100} />;
+}
+
+function useDataWidget(key, url, putData) {
+  const ax = putData ? ()=>axiosPut(url, putData) : ()=>axiosGet(url)
+  const axVars = useQuery([key], ax);
+  const dw = <DataWidget axVars={axVars} />;
+  return [dw, axVars.data];
+}
+
+const backend_url = path => `${API_ROOT}/${path}`
+
+function axiosGet(path, backend=true) {
+  let url = backend ? backend_url(path) : path;
+  console.log('axiosGet url: ', url);
+  return axios.get(url).then((res) => res.data);
+}
+
+function axiosPut(path, data, backend=true) {
+  let url = backend ? backend_url(path) : path;
+  console.log('axiosPut url: ', url);
+  return axios.post(url, data);
+}
 
 const pct_fmt = num => Number(num).toLocaleString(undefined,{style: 'percent', minimumFractionDigits:2});
 const fmt = num => Number(num).toLocaleString();
@@ -28,4 +78,4 @@ function searchParamsToObj(searchParams) {
   delete searchParamsAsObject.codeset_id;
   return searchParamsAsObject;
 }
-export {pct_fmt, fmt, cfmt, StatsMessage, searchParamsToObj, };
+export {pct_fmt, fmt, cfmt, StatsMessage, searchParamsToObj, backend_url, axiosGet, axiosPut, useDataWidget};
