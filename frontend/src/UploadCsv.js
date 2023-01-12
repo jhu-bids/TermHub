@@ -2,23 +2,8 @@
 import React from 'react';
 import Typography from "@mui/material/Typography";
 import Button from "@mui/material/Button";
-import axios from "axios";
-import {backend_url} from './App';
-import {Link} from "@mui/material";
+import {axiosPut, useDataWidget} from "./utils";
 
-function axiosPut(path, data, backend=true) {
-  let url = backend ? backend_url(path) : path;
-  console.log('axiosPut url: ', url);
-  // var formData = new FormData();
-  // formData.append("csv", data);
-  axios.post(url, {csv: data}); /* formData, {
-    headers: {
-      'Content-Type': 'text/plain'
-      //'Content-Type': 'multipart/form-data'
-    }
-  })
-  */
-}
 function UploadCsvPage(props) {
   // TODO: finish handler or whatever needs to be done to hit the backend route
   //   https://stackoverflow.com/questions/40589302/how-to-enable-file-upload-on-reacts-material-ui-simple-input
@@ -34,9 +19,11 @@ function UploadCsvPage(props) {
     fileReader.onload = (e) => {
       console.log('filreader onload e:');
       console.log(e);
+      const apiname = 'upload-csv-new-cset-version-with-concepts'
       let txt = fileReader.result;
       // axiosPut('upload-csv-new-cset-version-with-concepts', e.target.result);
-      axiosPut('upload-csv-new-cset-version-with-concepts', txt);
+      // const [all_csets_widget, all_csets] = useDataWidget("upload", apiname, {csv: txt});
+      axiosPut(apiname, {csv: txt});
       // this.setState((prevState) => ({ [name]: [...prevState[name], e.target.result] }));
       // TODO: Needs to upload to: /upload-csv-new-cset-version-with-concepts
     };

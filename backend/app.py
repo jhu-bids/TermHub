@@ -649,8 +649,9 @@ def route_csv_upload_new_cset_version_with_concepts(data: UploadCsvVersionWithCo
     # noinspection PyTypeChecker
     df = pd.read_csv(StringIO(data.dict()['csv'])).fillna('')
     response: Dict = upload_new_cset_version_with_concepts_from_csv(df=df)
-    print('CSV upload result: ')
-    print(json.dumps(response, indent=2))
+    # print('CSV upload result: ')
+    # can't print it, it's all response objects
+    # print(json.dumps(response, indent=2))
     return response
 
 
@@ -660,8 +661,8 @@ def route_csv_upload_new_container_with_concepts(data: UploadCsvVersionWithConce
     # noinspection PyTypeChecker
     df = pd.read_csv(StringIO(data.dict()['csv'])).fillna('')
     response: Dict = upload_new_cset_container_with_concepts_from_csv(df=df)
-    print('CSV upload result: ')
-    print(json.dumps(response, indent=2))
+    # print('CSV upload result: ')
+    # print(json.dumps(response, indent=2))
     return response
 
 
