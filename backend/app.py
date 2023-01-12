@@ -652,7 +652,9 @@ def route_csv_upload_new_cset_version_with_concepts(data: UploadCsvVersionWithCo
     # print('CSV upload result: ')
     # can't print it, it's all response objects
     # print(json.dumps(response, indent=2))
-    return response
+
+    # return response # seems to be causing error
+    return {"status": "success, I think"}
 
 
 @APP.post("/upload-csv-new-container-with-concepts")

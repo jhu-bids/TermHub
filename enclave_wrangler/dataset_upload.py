@@ -5,6 +5,7 @@ from argparse import ArgumentParser
 from random import randint
 from typing import Dict, List, Set, Union
 from uuid import uuid4
+from time import sleep
 
 import pandas as pd
 from requests import Response
@@ -190,16 +191,20 @@ def upload_new_cset_version_with_concepts(
         version_id=codeset_id,
         on_behalf_of=on_behalf_of,
         validate_first=validate_first)  # == code_sets.codeset_id
+    sleep(8)
 
     existing_items = get_concept_set_version_expression_items(codeset_id)
     response_delete_items: Response = make_actions_request(
         'delete-omop-concept-set-version-item', {"parameters":{
             "concept-set-version-item": existing_items
         }}, True)
+    sleep(8)
+
     response_upload_concepts: List[Response] = add_concepts_to_cset(
         omop_concepts=omop_concepts,
         version__codeset_id=codeset_id,
         validate_first=validate_first) # == code_sets.codeset_id
+
     response_finalize_concept_set_version: Response = finalize_concept_set_version(
         concept_set=concept_set_name,  # == container_d['concept_set_name']
         version_id=codeset_id,

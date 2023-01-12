@@ -160,7 +160,7 @@ def make_actions_request(api_name: str, data: Union[List, Dict] = None, validate
     url = f'https://{config["HOSTNAME"]}{api_path}'
 
     if api_name not in EXTRA_PARAMS:
-        print(f"should {api_name} have any EXTRA_PARAMS? it doesn't")
+        print(f"# should {api_name} have any EXTRA_PARAMS? it doesn't")
     else:
         data["parameters"].update(EXTRA_PARAMS[api_name])
 
@@ -215,7 +215,7 @@ def relevant_trace():
     trace = [t for t in trace if not re.search('/venv/', t)]
     return '\n'.join(trace)
 
-def print_curl(url: str, data: Union[List, Dict]=None, args: Dict={}, trace:bool=True):
+def print_curl(url: str, data: Union[List, Dict]=None, args: Dict={}, trace:bool=False):
     curl = f"""\ncurl {get_headers(for_curl=True)} \\
             {url}"""
     if data:
