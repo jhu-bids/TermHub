@@ -94,7 +94,6 @@ function CsetComparisonPage(props) {
   const [squishTo, setSquishTo] = useState(1);
   const [allConcepts, setAllConcepts] = useState(1);
 
-  let checkboxes = [];
 
   const tsquish = throttle(
       val => {
@@ -123,7 +122,7 @@ function CsetComparisonPage(props) {
   // cset_members_items.forEach(d => allConcepts[d.concept_id].checkboxes[d.codeset_id] = d);
 
   function makeRowData(collapsed={}) {
-    checkboxes = Object.fromEntries(selected_csets.map(d => [d.codeset_id, false]));
+    let checkboxes = Object.fromEntries(selected_csets.map(d => [d.codeset_id, false]));
     const _allConcepts = Object.fromEntries(concepts.map(d => [d.concept_id, {...d, checkboxes: {...checkboxes}}]));
     setAllConcepts(_allConcepts);
     cset_members_items.forEach(d => _allConcepts[d.concept_id].checkboxes[d.codeset_id] = d);

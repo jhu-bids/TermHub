@@ -82,6 +82,8 @@ def upload_new_cset_version_with_concepts_from_csv(
         del new_version['multipassId']
 
         new_version['omop_concepts'] = csetdf[concept_cols].to_dict(orient='records')
+        for x in new_version['omop_concepts']:
+            x['concept_id'] = int(x['concept_id'])
 
         # TODO: for now going to assume that if the concept set exists, they'll give us a parent_version_codeset_id
         #   but they might give us the name and not the parent id. if they do give us the name but the
@@ -98,7 +100,7 @@ def upload_new_cset_version_with_concepts_from_csv(
             responses_i: Dict = upload_new_container_with_concepts(**new_version, validate_first=validate_first)
         responses[cset_name] = responses_i
 
-        print('INFO: ' + cset_name + ': ', responses_i)
+        print('INFO: ' + cset_name + ': ', str(responses_i))
     return responses
 
 

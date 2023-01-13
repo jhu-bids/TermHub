@@ -14,7 +14,7 @@ import { // Link, useHref, useParams, BrowserRouter,
 import MuiAppBar from "./MuiAppBar";
 import { // useMutation, // useQueryClient,
           QueryClient, useQuery, useQueries, QueryClientProvider, } from '@tanstack/react-query'
-import {isEqual} from "lodash";
+import {isEqual, keyBy} from "lodash";
 import { persistQueryClient, removeOldestQuery,} from '@tanstack/react-query-persist-client'
 // import { createSyncStoragePersister } from '@tanstack/query-sync-storage-persister'
 import { createWebStoragePersistor } from 'react-query/createWebStoragePersistor-experimental'
@@ -152,6 +152,8 @@ function DataContainer(props) {
   const [cset_data_widget, cset_data] = useDataWidget(codeset_ids.join('|'), cset_data_url);
 
   if (all_csets && cset_data) {
+    console.log('does this get run often?');
+    cset_data.concepts_map = keyBy(cset_data.concepts, 'concept_id');
     return  <RoutesContainer {...props} all_csets={all_csets} cset_data={cset_data}/>
   }
   return (
