@@ -20,12 +20,16 @@
 }
 .comparison-data-table .rdt_TableRow,
 .comparison-data-table .rdt_TableCell {
-  /*
-    height: 3px;
-    max-height: 3px;
-  font-size: 2px;
-   */
   min-height: 0px;
+}
+.comparison-data-table .rdt_TableHeadRow {
+  height: 182px;
+  borderBottomStyle: solid;
+  padding: 0;
+  verticalAlign: bottom;
+  overflow: visible;
+  textOverflow: unset;
+  marginTop: auto;
 }
 .comparison-data-table .rdt_TableHeadRow > div + div
 {
@@ -36,18 +40,7 @@
   margin-right: auto;
   transform: translate(18px,0px) rotate(-45deg);
   transform-origin: bottom left;
-  /*
-  border-bottom: 0.5px solid #BBB;
-  margin-top: auto;
-  height: 150px;
-  .header-checkbox {
-      transform: rotate(-180deg) !important;
-  writing-mode: vertical-lr;
-  -ms-writing-mode: tb-lr;
-  overflow: visible;
-  */
 }
-
 .comparison-data-table .rdt_TableHeadRow > div + div div
 {
   overflow: visible;
@@ -60,6 +53,14 @@
 }
 .csets-data-table .rdt_Table {
     padding: 0px;
+}
+.cset-column {
+  cursor: pointer;
+}
+MuiCheckbox-root {
+}
+.css-12wnr2w-MuiButtonBase-root-MuiCheckbox-root {
+  padding: 0!important;
 }
 
 /*

@@ -27,7 +27,7 @@ const ExpandMore = styled((props) => {
 
 export default function ConceptSetCards(props) {
   const {codeset_ids=[], cset_data={}} = props;
-  const {selected_csets=[], } = cset_data;
+  const {selected_csets=[], researchers={}} = cset_data;
   if (!selected_csets.length) {
     return <div></div>;
   }
@@ -38,24 +38,25 @@ export default function ConceptSetCards(props) {
           selected_csets.map(cset => {
             // let widestConceptName = max(Object.values(cset.concepts).map(d => d.concept_name.length))
             return <ConceptSetCard  {...props}
-                     codeset_id={cset.codeset_id}
                      key={cset.codeset_id}
                      cset={cset}
-                     // widestConceptName={widestConceptName}
-                     cols={Math.min(4, codeset_ids.length)}/>
+                     researchers={researchers}
+                     // widestConceptName={widestConceptName} cols={Math.min(4, codeset_ids.length)}
+            />
 
           })
         }
       </div>;
 }
 function ConceptSetCard(props) {
+  let {cset, researchers={}, editing=false, width=345, } = props;
+
   const [expanded, setExpanded] = React.useState(false);
 
   const handleExpandClick = () => {
     setExpanded(!expanded);
   };
 
-  let {codeset_id, cset, cols, widestConceptName,} = props;
   // switch to using data from cset_data -- passed down props:
   const {codeset_ids = [], cset_data = {}} = props;
 
@@ -111,13 +112,13 @@ function ConceptSetCard(props) {
   }
 
 
-  let researchers = Object.entries(cset.researchers).map(
+  let _researchers = Object.entries(cset.researchers).map(
     ([id, roles]) => {
-      let r = props.cset_data.researchers[id];
+      let r = researchers[id];
       r.roles = roles;
       return r
     })
-  const researcher_info = researchers.map(r => {
+  const researcher_info = _researchers.map(r => {
     return (
         <Typography variant="body2" color="text.secondary" key={r.emailAddress} sx={{overflow: 'clip',}} gutterBottom>
           <strong>{r.roles.join(', ')}:</strong><br/>
@@ -135,7 +136,7 @@ function ConceptSetCard(props) {
   // display_props['props not included yet'] = 'codeset_status, container_status, stage, concept count';
   return (
       <Box sx={{ minWidth: 275, margin: '8px',  }}>
-        <Card variant="outlined" sx={{maxWidth: 345}}>
+        <Card variant="outlined" sx={{width: width}}>
           {/*
           <CardHeader
               action={
@@ -149,7 +150,7 @@ function ConceptSetCard(props) {
           */}
           <CardContent sx={{}}>
             <Typography variant="h6" color="text.primary" gutterBottom>
-              {cset.concept_set_version_title}
+              {editing ? 'Editing' : ''} {cset.concept_set_version_title}
             </Typography>
             <Typography variant="body2" color="text.primary" gutterBottom>
               {tags.join(', ')}
@@ -209,5 +210,7 @@ function ConceptSetCard(props) {
       </Box>
   );
 }
+
+export {ConceptSetCard};
 
 

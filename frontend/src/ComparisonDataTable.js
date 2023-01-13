@@ -2,20 +2,50 @@ import React, {useState, useEffect, useMemo, /* useReducer, useRef, */} from 're
 import DataTable, { createTheme } from 'react-data-table-component';
 import AddCircle from '@mui/icons-material/AddCircle';
 import RemoveCircle from '@mui/icons-material/RemoveCircle';
-import {get, map, omit, pick, uniq, reduce, cloneDeepWith, isEqual, uniqWith, groupBy, } from 'lodash';
+import {Checkbox} from "@mui/material";
+import Box from '@mui/material/Box';
+import Typography from '@mui/material/Typography';
+import {get, isEmpty, set, map, omit, pick, uniq, reduce, cloneDeepWith, isEqual, uniqWith, groupBy, } from 'lodash';
 import {fmt} from './utils';
+import {ConceptSetCard} from "./ConceptSetCard";
 import {Tooltip} from './Tooltip';
+// import {isEmpty} from "react-data-table-component/dist/src/DataTable/util"; // what was this for?
 // import Button from '@mui/material/Button';
 
 /*
  */
 
+function EditInfo(props) {
+    const {editInfo={}, concepts_map} = props;
+    return (
+        <Box sx={{ p: 2, border: '1px dashed grey' }}>
+            {Object.entries(editInfo).map(
+                ([concept_id, state]) => {
+                    return (
+                        <Typography key={concept_id} >
+                            { state ? 'Adding' : 'Removing' } {concepts_map[concept_id].concept_name}
+                        </Typography>
+                    )
+                }
+            )}
+        </Box>
+    );
+}
 function ComparisonDataTable(props) {
-    const {codeset_ids=[], nested=true, makeRowData, rowData, selected_csets, squishTo} = props;
+    const {codeset_ids=[], nested=true, makeRowData, rowData, selected_csets, squishTo, cset_data} = props;
+    const {researchers, concepts_map} = cset_data;
     const [columns, setColumns] = useState();
     const [collapsed, setCollapsed] = useState({});
+    const [editCol, setEditCol] = useState(null);
+    const [editInfo, setEditInfo] = useState({});
     // console.log(window.data = props);
 
+    function editAction(props) {
+        const {codeset_id, concept_id, state} = props;
+        setEditInfo(prev => {
+            return {...prev, [concept_id]: state};
+        });
+    }
     function toggleCollapse(row) {
         collapsed[row.pathToRoot] = !get(collapsed, row.pathToRoot.join(','));
         setCollapsed({...collapsed});
@@ -26,7 +56,6 @@ function ComparisonDataTable(props) {
         if (!selected_csets.length) {
             return;
         }
-        // console.log('makeRowData because', {selected_csets});
         makeRowData({});
     }, [selected_csets.length, ]);
 
@@ -38,39 +67,72 @@ function ComparisonDataTable(props) {
         atlasHeight:  (12 * squishTo) + 'px',
         athenaHeight: (10 * squishTo) + 'px',
     }
+    function setupEditCol(evt) {
+        let ec = parseInt(evt.target.getAttribute('colnum'));
+        if (editCol == ec) {
+            setEditCol(null);
+        } else {
+            setEditCol(ec);
+        }
+        console.log(`set editcol to ${ec}`)
+    }
     useEffect(() => {
         // console.log('setColumns because', {rowData});
-        setColumns(colConfig(codeset_ids, nested, selected_csets, rowData, collapsed, toggleCollapse, sizes, ));
-    }, [rowData, squishTo]);
-    // console.log({squishTo});
+        if (isEmpty(rowData)) {
+            return;
+        }
+        setColumns(colConfig({
+                                 codeset_ids, nested, selected_csets,
+                                 rowData, collapsed, toggleCollapse, sizes,
+                                 editCol, setupEditCol, editAction,
+                             }));
+    }, [rowData, squishTo, editCol]);
 
+    let card, eInfo;
+    if (typeof(editCol) == "number") {
+        card = <ConceptSetCard cset={columns[editCol].cset_col}
+                               researchers={researchers}
+                               editing={true}
+                               width={window.innerWidth * 0.5}
+                    />;
+    }
+    console.log({editInfo});
+    if (! isEmpty(editInfo)) {
+        eInfo = <EditInfo editInfo={editInfo} concepts_map={concepts_map}/>;
+    }
     const customStyles = styles(sizes);
     return (
         /* https://react-data-table-component.netlify.app/ */
-        <DataTable
-            className="comparison-data-table"
-            theme="custom-theme"
-            // theme="light"
-            columns={columns}
-            data={rowData}
-            customStyles={customStyles}
+        <div>
+            <div style={{ display: 'flex', flexWrap: 'wrap',
+                            flexDirection: 'row', margin: '20px', }}>
+                { card } {eInfo}
+            </div>
+            <DataTable
+                customStyles={customStyles}
+                className="comparison-data-table"
+                theme="custom-theme"
+                // theme="light"
+                columns={columns}
+                data={rowData}
 
-            dense
-            fixedHeader
-            fixedHeaderScrollHeight={(window.innerHeight - 275) + 'px'}
-            highlightOnHover
-            responsive
-            //striped
-            subHeaderAlign="right"
-            subHeaderWrap
-            //pagination
-            //selectableRowsComponent={Checkbox}
-            //selectableRowsComponentProps={selectProps}
-            //sortIcon={sortIcon}
-            // expandOnRowClicked
-            // expandableRows
-            // {...props}
-        />
+                dense
+                fixedHeader
+                fixedHeaderScrollHeight={(window.innerHeight - 275) + 'px'}
+                highlightOnHover
+                responsive
+                //striped
+                subHeaderAlign="right"
+                subHeaderWrap
+                //pagination
+                //selectableRowsComponent={Checkbox}
+                //selectableRowsComponentProps={selectProps}
+                //sortIcon={sortIcon}
+                // expandOnRowClicked
+                // expandableRows
+                // {...props}
+            />
+        </div>
     );
 }
 /*
@@ -86,74 +148,25 @@ function getCbStates(csets, nodups) {
     return grid
 }
 */
-function colConfig(codeset_ids, nested, selected_csets, rowData, collapsed, toggleCollapse, sizes, ) {
+function colConfig(props) {
+    let { codeset_ids, nested, selected_csets, rowData,
+          collapsed, toggleCollapse, sizes, editCol, setupEditCol,
+          editAction, } = props;
     // console.log('setting coldefs');
-    /*
     let checkboxChange = (codeset_id, concept_id) => (evt, state) => {
-        // console.log({codeset_id, concept_id, state});
-        let url = backend_url(`modify-cset?codeset_id=${codeset_id}&concept_id=${concept_id}&state=${state}`);
-        axios.get(url).then((res) => {
-            // console.log({url, res});
-            return res.data
-        })
+        console.log({codeset_id, concept_id, state});
+        editAction({codeset_id, concept_id, state});
+        /* let url = backend_url(`modify-cset?codeset_id=${codeset_id}&concept_id=${concept_id}&state=${state}`); */
     }
-    */
 
-    let cset_cols = selected_csets.map((cset_col, col_idx) => {
-        let def = {
-            // name: 'asdf asdf asdf asdf adsf' + cset_col.concept_set_version_title,
-            name: <span>{cset_col.concept_set_version_title}</span>,
-            // name:   <Tooltip label="Number of concepts in this concept set.">
-            //             <span>{cset_col.concept_set_version_title}</span>
-            //         </Tooltip>,
-            selector: (row,idx) => {
-                if (!row.checkboxes) {
-                    console.log('problem!!!!', {idx, row, rowData})
-                }
-                let checked = row.checkboxes && row.checkboxes[cset_col.codeset_id];
-                return checked ? '\u2713' : '';
-                /*
-                let checkbox_id = `${cset_col.codeset_id}:${row.concept_id}`;
-                return <Checkbox checked={checked}
-                                 onChange={checkboxChange(cset_col.codeset_id, row.concept_id)}/>
-
-                 */
-            },
-            conditionalCellStyles: [
-                { when: row => row.checkboxes && row.checkboxes[cset_col.codeset_id],
-                    style: row => {
-                        let cb = row.checkboxes[cset_col.codeset_id];
-                        let bg = 'purple';
-                        if      (cb.csm && cb.item) { bg = 'orange' }
-                        else if (cb.csm)             { bg = 'pink' }
-                        else if (cb.item)            { bg = 'gray' }
-                        return { backgroundColor: bg, };
-                    }
-                },
-            ],
-            sortable: !nested,
-            compact: true,
-            width: '30px',
-            // maxWidth: 50,
-            center: true,
-        }
-        return def;
-    });
     let coldefs = [
         {
             name: 'Concept name',
             selector: row => row.concept_name,
             format: (row, idx) => {
-                /*
-                if (!(idx % 100)) {
-                    console.log('showing row', idx);
-                }
-                */
                 if (!row.checkboxes) {
                     console.log('problem!!!!', {idx, row, rowData})
-                } else {
-                    // console.log('not a problem', {idx, row, rowData})
-                }
+                } // else { // console.log('not a problem', {idx, row, rowData}) }
                 let content = nested
                     ? row.has_children
                         ? collapsed[row.pathToRoot]
@@ -164,10 +177,6 @@ function colConfig(codeset_ids, nested, selected_csets, rowData, collapsed, togg
                 return content;
             },
             sortable: !nested,
-            // sortable: true,
-            // maxWidth: '300px',
-            //  table: style: maxWidth is 85% and selected_csets are 50px, so fill
-            //      the rest of the space with this column
             width: (window.innerWidth - selected_csets.length * 50) * .85,
             wrap: true,
             compact: true,
@@ -219,8 +228,57 @@ function colConfig(codeset_ids, nested, selected_csets, rowData, collapsed, togg
             width: '80px',
             style: { paddingRight: '8px', },
         },
-        ...cset_cols
     ];
+    let cset_cols = selected_csets.map((cset_col, col_idx) => {
+        const colnum = col_idx + coldefs.length - 1;
+        let def = {
+            cset_col,
+            name: <span className="cset-column"
+                        onClick={setupEditCol}
+                        colnum={colnum}
+            >{cset_col.concept_set_version_title}</span>,
+            //  name:   <Tooltip label="Click to edit." placement="bottom">
+            //              <span>{cset_col.concept_set_version_title}</span>
+            //          </Tooltip>,
+            selector: (row,idx) => {
+                if (!row.checkboxes) {
+                    console.log('problem!!!!', {idx, row, rowData})
+                }
+
+                // what's this for?
+                let checkbox_id = `${cset_col.codeset_id}:${row.concept_id}`;
+                let checked;
+
+                if (typeof(editCol) == "number" && colnum == editCol) {
+                    checked = !! (row.checkboxes && row.checkboxes[cset_col.codeset_id]);
+                    return <Checkbox checked={checked}
+                                     onChange={checkboxChange(cset_col.codeset_id, row.concept_id)}/>
+                } else {
+                    checked = row.checkboxes && row.checkboxes[cset_col.codeset_id];
+                    return checked ? '\u2713' : '';
+                }
+            },
+            conditionalCellStyles: [
+                { when: row => row.checkboxes && row.checkboxes[cset_col.codeset_id],
+                    style: row => {
+                        let cb = row.checkboxes[cset_col.codeset_id];
+                        let bg = 'purple';
+                        if      (cb.csm && cb.item) { bg = 'orange' }
+                        else if (cb.csm)             { bg = 'pink' }
+                        else if (cb.item)            { bg = 'gray' }
+                        return { backgroundColor: bg, };
+                    }
+                },
+            ],
+            sortable: !nested,
+            compact: true,
+            width: '30px',
+            // maxWidth: 50,
+            center: true,
+        }
+        return def;
+    });
+    coldefs = [...coldefs, ...cset_cols];
     if (!nested) {
         delete coldefs[0].conditionalCellStyles;
     }
@@ -239,19 +297,6 @@ createTheme('custom-theme', {
         background: '#cb4b16',
         text: '#FFFFFF',
     },
-    /*
-    divider: {
-        default: '#073642',
-    },
-    background: {
-        default: '#002b36',
-    },
-    action: {
-      button: 'rgba(0,0,0,.54)',
-      hover: 'rgba(0,0,0,.08)',
-      disabled: 'rgba(0,0,0,.12)',
-    },
-    */
 }, 'light');
 
 function styles(sizes) {
@@ -273,21 +318,6 @@ function styles(sizes) {
                 // maxWidth: '400px', doesn't work ?
             }
         },
-        headRow: {
-            style: {
-                // backgroundColor: theme.background.default,
-                height: '182px',
-                // borderBottomWidth: '1px',
-                // borderBottomColor: theme.divider.default,
-                borderBottomStyle: 'solid',
-                padding: 0,
-                verticalAlign: 'bottom',
-                // border: '3px solid red',
-                overflow: 'visible',
-                textOverflow: 'unset',
-                marginTop: 'auto',
-            },
-        },
         headCells: {
             style: {
                 // transform: 'translate(10px,-15px) rotate(-45deg)',
@@ -298,8 +328,8 @@ function styles(sizes) {
                 overflow: 'visible',
                 verticalAlign: 'bottom', // doesn't work
                 marginTop: 'auto',
-                // border: '3px solid green',
                 padding: 0,
+                // border: '3px solid green',
                 // paddingLeft: '8px', // override the cell padding for head cells
                 // paddingRight: '8px',
             },
@@ -325,8 +355,6 @@ function styles(sizes) {
                 borderRight: '0.5px solid #BBB',
             },
         },
-        /*
-        */
     };
 }
 // const expandIcon    = <svg fill="currentColor" height="20" viewBox="0 -6 24 24" width="24" xmlns="http://www.w3.org/2000/svg"><path d="M8.59 16.34l4.58-4.59-4.58-4.59L10 5.75l6 6-6 6z"></path><path d="M0-.25h24v24H0z" fill="none"></path></svg>
