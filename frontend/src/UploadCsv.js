@@ -12,8 +12,11 @@ function UploadCsvPage(props) {
   //   };
 
   //  Needs to upload here: /upload-csv-new-cset-version-with-concepts
-  const handleUploadVersion = ({ target }) => {
-    const file = target.files[0]
+  const handleUploadVersion = (e) => {
+    const {target} = e;
+    const file = target.files[0];
+    e.preventDefault();
+    target.value = '';
     const fileReader = new FileReader();
     // fileReader.readAsDataURL(file);
     fileReader.onload = (e) => {
