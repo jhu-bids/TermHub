@@ -43,7 +43,13 @@ function ComparisonDataTable(props) {
     function editAction(props) {
         const {codeset_id, concept_id, state} = props;
         setEditInfo(prev => {
-            return {...prev, [concept_id]: state};
+            let ei = {...prev};
+            if (concept_id in ei) {
+                delete ei[concept_id];
+            } else {
+                ei[concept_id] = state;
+            }
+            return ei;
         });
     }
     function toggleCollapse(row) {
@@ -84,9 +90,9 @@ function ComparisonDataTable(props) {
         setColumns(colConfig({
                                  codeset_ids, nested, selected_csets,
                                  rowData, collapsed, toggleCollapse, sizes,
-                                 editCol, setupEditCol, editAction,
+                                 editCol, editInfo, setupEditCol, editAction,
                              }));
-    }, [rowData, squishTo, editCol]);
+    }, [rowData, squishTo, editCol, editInfo]);
 
     let card, eInfo;
     if (typeof(editCol) == "number") {
@@ -96,11 +102,19 @@ function ComparisonDataTable(props) {
                                width={window.innerWidth * 0.5}
                     />;
     }
-    console.log({editInfo});
+    // console.log({editInfo});
     if (! isEmpty(editInfo)) {
         eInfo = <EditInfo editInfo={editInfo} concepts_map={concepts_map}/>;
     }
     const customStyles = styles(sizes);
+    const conditionalRowStyles = [
+        {
+            when: () => true,
+            style: row => ({
+                backgroundColor: row.concept_id in editInfo ? '#F662' : '#FFF',
+            }),
+        },
+    ]
     return (
         /* https://react-data-table-component.netlify.app/ */
         <div>
@@ -110,6 +124,7 @@ function ComparisonDataTable(props) {
             </div>
             <DataTable
                 customStyles={customStyles}
+                conditionalRowStyles={conditionalRowStyles}
                 className="comparison-data-table"
                 theme="custom-theme"
                 // theme="light"
@@ -150,7 +165,7 @@ function getCbStates(csets, nodups) {
 */
 function colConfig(props) {
     let { codeset_ids, nested, selected_csets, rowData,
-          collapsed, toggleCollapse, sizes, editCol, setupEditCol,
+          collapsed, toggleCollapse, sizes, editCol, editInfo, setupEditCol,
           editAction, } = props;
     // console.log('setting coldefs');
     let checkboxChange = (codeset_id, concept_id) => (evt, state) => {
@@ -230,33 +245,17 @@ function colConfig(props) {
         },
     ];
     let cset_cols = selected_csets.map((cset_col, col_idx) => {
-        const colnum = col_idx + coldefs.length - 1;
+        const colnum = col_idx + coldefs.length;
         let def = {
             cset_col,
             name: <span className="cset-column"
                         onClick={setupEditCol}
-                        colnum={colnum}
-            >{cset_col.concept_set_version_title}</span>,
+                        colnum={colnum} >{cset_col.concept_set_version_title}</span>,
             //  name:   <Tooltip label="Click to edit." placement="bottom">
             //              <span>{cset_col.concept_set_version_title}</span>
             //          </Tooltip>,
             selector: (row,idx) => {
-                if (!row.checkboxes) {
-                    console.log('problem!!!!', {idx, row, rowData})
-                }
-
-                // what's this for?
-                let checkbox_id = `${cset_col.codeset_id}:${row.concept_id}`;
-                let checked;
-
-                if (typeof(editCol) == "number" && colnum == editCol) {
-                    checked = !! (row.checkboxes && row.checkboxes[cset_col.codeset_id]);
-                    return <Checkbox checked={checked}
-                                     onChange={checkboxChange(cset_col.codeset_id, row.concept_id)}/>
-                } else {
-                    checked = row.checkboxes && row.checkboxes[cset_col.codeset_id];
-                    return checked ? '\u2713' : '';
-                }
+                return <CellCheckbox {...{row,idx, colnum, cset_col, rowData, editInfo, editCol, checkboxChange}} />;
             },
             conditionalCellStyles: [
                 { when: row => row.checkboxes && row.checkboxes[cset_col.codeset_id],
@@ -285,6 +284,29 @@ function colConfig(props) {
     return coldefs;
     // console.log('done setting coldefs');
 
+}
+function CellCheckbox(props) {
+    const {row, idx, colnum, cset_col, rowData, editInfo, editCol, checkboxChange} = props;
+    if (!row.checkboxes) {
+        console.log('problem!!!!', {idx, row, rowData})
+    }
+    let checked, contents;
+    let checkboxValue = row.checkboxes[cset_col.codeset_id];
+    checked = !! checkboxValue;
+
+    if (typeof(editCol) == "number" && colnum == editCol) {
+        if (row.concept_id in editInfo) {
+            checked = ! checked;
+        }
+        contents = <Checkbox checked={checked} onChange={checkboxChange(cset_col.codeset_id, row.concept_id)}/>
+    } else {
+        contents = <span>{checked ? '\u2713' : ''}</span>;
+    }
+    if (checkboxValue) {
+        return  <Tooltip label={<pre>{JSON.stringify(checkboxValue, null, 2)}</pre>} placement="bottom">{contents}</Tooltip>
+    } else {
+        return contents
+    }
 }
 // createTheme creates a new theme named solarized that overrides the build in dark theme
 // https://github.com/jbetancur/react-data-table-component/blob/master/src/DataTable/themes.ts
