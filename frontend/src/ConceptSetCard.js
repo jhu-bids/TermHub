@@ -6,6 +6,8 @@ import CardContent from '@mui/material/CardContent';
 import IconButton from '@mui/material/IconButton';
 import Typography from '@mui/material/Typography';
 import Box from '@mui/material/Box';
+import {NavLink, useLocation} from "react-router-dom";
+import Button from '@mui/material/Button';
 import {get, } from 'lodash';
 // import Button from '@mui/material/Button';
 import {backend_url} from './App';
@@ -134,6 +136,14 @@ function ConceptSetCard(props) {
       {researcher_info}
     </div>);
   // display_props['props not included yet'] = 'codeset_status, container_status, stage, concept count';
+  const {search, pathname} = useLocation();
+  const editSingleLink = (
+      <NavLink
+          // component={NavLink} // NavLink is supposed to show different if it's active; doesn't seem to be working
+          to={`/SingleCsetEdit?codeset_id=${cset.codeset_id}&prev=${encodeURIComponent(pathname)}${encodeURIComponent(search)}`}
+          sx={{ my: 2, color: 'white', display: 'block' }}
+      >Edit</NavLink>
+      )
   return (
       <Box sx={{ minWidth: 275, margin: '8px',  }}>
         <Card variant="outlined" sx={{width: width}}>
@@ -150,7 +160,7 @@ function ConceptSetCard(props) {
           */}
           <CardContent sx={{}}>
             <Typography variant="h6" color="text.primary" gutterBottom>
-              {editing ? 'Editing' : ''} {cset.concept_set_version_title}
+              {editing ? 'Editing' : ''} {cset.concept_set_version_title} {editSingleLink}
             </Typography>
             <Typography variant="body2" color="text.primary" gutterBottom>
               {tags.join(', ')}

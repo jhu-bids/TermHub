@@ -22,6 +22,7 @@ import { createWebStoragePersistor } from 'react-query/createWebStoragePersistor
 import { ReactQueryDevtools } from '@tanstack/react-query-devtools'
 import {ConceptSetsPage, CsetComparisonPage} from "./Csets";
 import {AboutPage} from "./AboutPage";
+import {SingleCsetEdit} from "./SingleCsetEdit";
 import {searchParamsToObj, axiosGet, backend_url, useDataWidget} from "./utils";
 import {UploadCsvPage} from "./UploadCsv";
 // import logo from './logo.svg';
@@ -143,6 +144,7 @@ function QueryStringStateMgr(props) {
   return <DataContainer /* searchParams={searchParams}*/
                         codeset_ids={codeset_ids}
                         changeCodesetIds={changeCodesetIds}
+                        {...sp}
                         />;
 }
 function DataContainer(props) {
@@ -177,6 +179,7 @@ function RoutesContainer(props) {
         <Route path="/" element={<App {...props} />}>
           <Route path="cset-comparison" element={<CsetComparisonPage {...props} />} />
           <Route path="OMOPConceptSets" element={<ConceptSetsPage {...props}  />} />
+          <Route path="SingleCsetEdit" element={<SingleCsetEdit {...props}  />} />
           <Route path="about" element={<AboutPage {...props} />} />
           <Route path="upload-csv" element={<UploadCsvPage {...props} />} />
           {/* <Route path="OMOPConceptSet/:conceptId" element={<OldConceptSet />} /> */}
