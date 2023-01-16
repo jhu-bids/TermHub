@@ -100,7 +100,9 @@ def upload_new_cset_version_with_concepts_from_csv(
             responses_i: Dict = upload_new_container_with_concepts(**new_version, validate_first=validate_first)
         responses[cset_name] = responses_i
 
-        print('INFO: ' + cset_name + ': ', str(responses_i))
+        # TODO: put something helpful back here but that doesn't cause errors
+        # print('INFO: ' + cset_name + ': ', str(responses_i))
+        print('INFO: ' + cset_name)
     return responses
 
 
