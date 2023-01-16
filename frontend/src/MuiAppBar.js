@@ -155,7 +155,9 @@ const MuiAppBar = () => {
         {pages.map((page) => (
             <Button
                 key={page.name}
+                // selected={page.href === window.location.pathname}
                 component={NavLink} // NavLink is supposed to show different if it's active; doesn't seem to be working
+                variant={page.href === window.location.pathname ? 'contained' : 'text'} // so, this instead
                 to={`${page.href}${search}`}
                 onClick={handleCloseNavMenu}
                 sx={{ my: 2, color: 'white', display: 'block' }}
@@ -167,7 +169,9 @@ const MuiAppBar = () => {
       </Box>
   )
   return (
-    <AppBar position="static">
+    <AppBar position="static"
+            sx={{backgroundColor: '#1986d2',}}
+    >
       <Container maxWidth="false" /* "xl" */ >
         <Toolbar disableGutters>
           <MenuBookIcon sx={{ display: { xs: 'none', md: 'flex' }, mr: 1 }} />
