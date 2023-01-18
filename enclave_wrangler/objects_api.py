@@ -2,6 +2,9 @@
 # -*- coding: utf-8 -*-
 """Dataset download.
 
+Resources
+- https://www.palantir.com/docs/foundry/api/ontology-resources/object-types/list-object-types/
+
 TODO's
  1. Consider refactor: Python -> Bash (curl + JQ)
  2. Are the tables in 'datasets' isomorphic w/ 'objects'? e.g. object OmopConceptSetVersionItem == table
