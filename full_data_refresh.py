@@ -1,4 +1,4 @@
-from enclave_wrangler.datasets import run_favorites
+from enclave_wrangler.datasets import download_favorite_datasets
 from enclave_wrangler.objects_api import download_favorite_objects
 from backend.db.initialize import initialize
 

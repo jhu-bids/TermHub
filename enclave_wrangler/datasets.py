@@ -374,8 +374,8 @@ def run(
     return df2 if len(df2) > 0 else df
 
 
-def run_favorites(outdir: str = CSV_DOWNLOAD_DIR, transforms_only=False, specific=[], force_if_exists=False, single_group=None):
-    """Run on favorite datasets"""
+def download_favorite_datasets(outdir: str = CSV_DOWNLOAD_DIR, transforms_only=False, specific=[], force_if_exists=False, single_group=None):
+    """Download favorite datasets"""
     for fav in FAVORITE_DATASETS.values():
         if single_group and single_group not in fav['dataset_groups']:
             continue
@@ -438,7 +438,7 @@ def cli():
         specific.append(d['dataset_name'])
 
     if d['favorites']:
-        run_favorites(outdir=d['output_dir'], transforms_only=d['transforms_only'], specific=specific)
+        download_favorite_datasets(outdir=d['output_dir'], transforms_only=d['transforms_only'], specific=specific)
     else:
         del d['favorites']
         run(**d)

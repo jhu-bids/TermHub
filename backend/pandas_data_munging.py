@@ -7,7 +7,7 @@ import os
 from enclave_wrangler.config import OUTDIR_DATASETS_TRANSFORMED, OUTDIR_OBJECTS
 from functools import cache
 from backend.utils import cnt, pdump
-from enclave_wrangler.datasets import run_favorites as update_termhub_csets
+from enclave_wrangler.datasets import download_favorite_datasets as update_termhub_csets
 from typing import Any, Dict, List, Union, Set
 from backend.app import get_container
 # from enclave_wrangler.dataset_upload import upload_new_container_with_concepts, upload_new_cset_version_with_concepts
