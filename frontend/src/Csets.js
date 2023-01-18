@@ -8,7 +8,7 @@ import Autocomplete from '@mui/material/Autocomplete';
 import Button from '@mui/material/Button';
 // import Chip from '@mui/material/Chip';
 import { Link, Outlet, useHref, useParams, useSearchParams, useLocation } from "react-router-dom";
-import { every, get, isEmpty, throttle, } from 'lodash';
+import { every, get, isEmpty, throttle, pullAt, } from 'lodash';
 // import {isEqual, pick, uniqWith, max, omit, uniq, } from 'lodash';
 import Box from '@mui/material/Box';
 import Slider from '@mui/material/Slider';
@@ -81,6 +81,29 @@ function ConceptSetsPage(props) {
       </div>)
 }
 
+function traverseHierarchy({hierarchy, concepts, collapsed, }) {
+  let rowData = [];
+  let blanks = [];
+  let traverse = (o, pathToRoot=[], level=0) => {
+    Object.keys(o).forEach(k => {
+      k = parseInt(k);
+      let row = {...concepts[k], level, pathToRoot: [...pathToRoot, k]};
+      if (!concepts[k]) {
+        blanks.push(rowData.length);
+      }
+      rowData.push(row);
+      if (o[k] && typeof(o[k] === 'object')) {
+        row.has_children = true;
+        if (!collapsed[row.pathToRoot]) {
+          traverse(o[k], row.pathToRoot, level+1);
+        }
+      }
+    })
+  }
+  traverse(hierarchy);
+  pullAt(rowData, blanks);
+  return rowData;
+}
 // TODO: Find concepts w/ good overlap and save a good URL for that
 // TODO: show table w/ hierarchical indent
 // TODO: Color table: I guess would need to see if could pass extra values/props and see if table widget can use that
@@ -89,11 +112,10 @@ function CsetComparisonPage(props) {
   const {codeset_ids=[], all_csets=[], cset_data={}} = props;
   const {hierarchy={}, selected_csets=[], concepts=[], cset_members_items=[]} = cset_data;
   // let selected_csets = all_csets.filter(d => codeset_ids.includes(d.codeset_id));
-  const [nested, setNested] = useState(true);
-  const [rowData, setRowData] = useState([]);
   const [squishTo, setSquishTo] = useState(1);
-  const [allConcepts, setAllConcepts] = useState(1);
-
+  const [displayOptions, setDisplayOptions] = useState({});
+  const [displayOption, setDisplayOption] = useState('fullHierarchy');
+  const [displayData, setDisplayData] = useState({});
 
   const tsquish = throttle(
       val => {
@@ -101,71 +123,70 @@ function CsetComparisonPage(props) {
         setSquishTo(val);
       }, 200);
   const squishChange = useCallback(tsquish);
-  /*
-  const squishChange = useCallback(val => {
-    // console.log(`squish: ${squish} -> ${val}`);
-    setSquish(val);
-  });
-   */
-
-  /* TODO: review function for appropriate state management */
-  useEffect(() => {
-    makeRowData();
-  }, [codeset_ids.length, concepts.length]);
 
   if (!all_csets.length) {
     return <p>Downloading...</p>
   }
-  // let checkboxes = Object.fromEntries(selected_csets.map(d => [d.codeset_id, false]));
-  // let allConcepts = uniqWith(concept_set_members_i.map(d => pick(d, ['concept_id','concept_name'])), isEqual);
-  // let allConcepts = Object.fromEntries(concepts.map(d => [d.concept_id, {...d, checkboxes: {...checkboxes}}]));
-  // cset_members_items.forEach(d => allConcepts[d.concept_id].checkboxes[d.codeset_id] = d);
-
   function makeRowData(collapsed={}) {
-    let checkboxes = Object.fromEntries(selected_csets.map(d => [d.codeset_id, false]));
-    const _allConcepts = Object.fromEntries(concepts.map(d => [d.concept_id, {...d, checkboxes: {...checkboxes}}]));
-    setAllConcepts(_allConcepts);
-    cset_members_items.forEach(d => _allConcepts[d.concept_id].checkboxes[d.codeset_id] = d);
-
-    if (isEmpty(_allConcepts)) {
+    if (isEmpty(concepts) || isEmpty(selected_csets) || isEmpty(cset_members_items)) {
       return;
     }
-    if (!nested) {
-      setRowData(Object.values(_allConcepts));
+
+    // make obj containing a checkbox for each cset, initialized to false, like:
+    //  {codeset_id_1: false, codeset_id_2: false, ...}
+    const checkboxes = Object.fromEntries(selected_csets.map(d => [d.codeset_id, false]));
+
+    // add copy of checkboxes to (copy of) every concept (and make obj of concepts keyed by concept_id)
+    const conceptsPlus = Object.fromEntries(concepts.map(d => [d.concept_id, {...d, checkboxes: {...checkboxes}}]));
+
+    /* for each cset_members_item (codeset has concept as expression item and/or member), replace false in checkbox
+    obj with cset_members_item. example: { "codeset_id": 400614256, "concept_id": 4191479, "csm": true,
+                                           "item": true, "item_flags": "includeDescendants,includeMapped" },
+    This modifies appropriate checkbox in every conceptsPlus record. Its return value (csetConcepts) also
+    excludes concepts that appear in hierarchy but don't appear in at least one of the selected csets. */
+    const csetConcepts = Object.fromEntries(
+        cset_members_items.map(d => {
+          conceptsPlus[d.concept_id].checkboxes[d.codeset_id] = d;
+          return conceptsPlus[d.concept_id];
+        }).map(d => [d.concept_id, d]));
+
+    let _displayOptions = {
+      fullHierarchy: {
+        rowData: traverseHierarchy({hierarchy, concepts:conceptsPlus, collapsed, }),
+        nested: true,
+        msg: ' lines in hierarchy',
+      },
+      csetConcepts: {
+        rowData: traverseHierarchy({hierarchy, concepts:csetConcepts, collapsed, }),
+        nested: true,
+        msg: ' concepts in selected csets',
+      },
     }
-    let _rowData = [];
-    let traverse = (o, pathToRoot=[], level=0) => {
-      Object.keys(o).forEach(k => {
-        k = parseInt(k);
-        let row = {..._allConcepts[k], level, pathToRoot: [...pathToRoot, k]};
-        _rowData.push(row);
-        if (o[k] && typeof(o[k] === 'object')) {
-          row.has_children = true;
-          if (!collapsed[row.pathToRoot]) {
-            traverse(o[k], row.pathToRoot, level+1);
-          }
-        }
-      })
+
+    for (let k in _displayOptions) {
+      let opt = _displayOptions[k];
+      opt.msg = opt.rowData.length + opt.msg;
     }
-    traverse(hierarchy)
-    // console.log('just after traverse', {_rowData});
-    setRowData(_rowData);
+    _displayOptions.flat = {..._displayOptions.csetConcepts};
+    _displayOptions.flat.nested = false;
+    _displayOptions.flat.msg = 'flat';
+    setDisplayOptions(_displayOptions);
+    window.dopts = _displayOptions;
   }
-  function toggleNested() {
-    setNested(!nested);
-    makeRowData({});
+  function changeDisplayOption(option) {
+    setDisplayOption(option);
   }
-  let moreProps = {...props, nested, makeRowData, rowData, selected_csets, squishTo};
+  let moreProps = {...props, makeRowData, displayData: displayOptions[displayOption], selected_csets, squishTo};
   // console.log({moreProps});
   return (
       <div>
         <h5 style={{margin:20, }}>
-          <Button variant={nested ? "contained" : "outlined" } onClick={toggleNested}>
-            {rowData.length} lines in nested list.
-          </Button>
-          <Button  variant={nested ? "outlined" : "contained"} sx={{marginLeft: '20px'}} onClick={toggleNested}>
-            {Object.keys(allConcepts).length} distinct concepts
-          </Button>
+          {
+            Object.entries(displayOptions).map(([name, opt]) =>
+              <Button key={name} variant={name === displayOption ? "contained" : "outlined" } onClick={()=>changeDisplayOption(name)}>
+                {opt.msg}
+              </Button>)
+          }
         </h5>
         {/* <StatsMessage {...props} /> */}
         <ComparisonDataTable squishTo={squishTo} {...moreProps} />

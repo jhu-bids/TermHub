@@ -85,12 +85,12 @@ persistQueryClient({
 function QCProvider() {
   const location = useLocation();
   return (
-      <React.StrictMode>
+      // <React.StrictMode>
         <QueryClientProvider client={queryClient}>
           <QueryStringStateMgr location={location}/>
           <ReactQueryDevtools initialIsOpen={false} />
         </QueryClientProvider>
-      </React.StrictMode>
+      // </React.StrictMode>
   );
 }
 function QueryStringStateMgr(props) {
