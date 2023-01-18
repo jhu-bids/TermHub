@@ -32,8 +32,8 @@ function EditInfo(props) {
     );
 }
 function ComparisonDataTable(props) {
-    const {codeset_ids=[], nested=true, makeRowData, rowData, selected_csets, squishTo, cset_data} = props;
-    const {researchers, concepts_map} = cset_data;
+    const {codeset_ids=[], makeRowData, displayData={}, selected_csets, squishTo, cset_data} = props;
+    const {researchers, concepts_map, concepts, } = cset_data;
     const [columns, setColumns] = useState();
     const [collapsed, setCollapsed] = useState({});
     const [editCol, setEditCol] = useState(null);
@@ -53,17 +53,17 @@ function ComparisonDataTable(props) {
         });
     }
     function toggleCollapse(row) {
-        collapsed[row.pathToRoot] = !get(collapsed, row.pathToRoot.join(','));
-        setCollapsed({...collapsed});
-        makeRowData(collapsed);
+        let _collapsed = {...collapsed, [row.pathToRoot]: !get(collapsed, row.pathToRoot.join(','))};
+        setCollapsed({_collapsed});
+        // makeRowData(_collapsed);
     }
 
     useEffect(() => {
         if (!selected_csets.length) {
             return;
         }
-        makeRowData({});
-    }, [selected_csets.length, ]);
+        makeRowData(collapsed);
+    }, [collapsed, selected_csets.length, codeset_ids.length, concepts.length]);
 
     let sizes = {
         rowFontSize:  (13 * squishTo) + 'px',
@@ -84,15 +84,15 @@ function ComparisonDataTable(props) {
     }
     useEffect(() => {
         // console.log('setColumns because', {rowData});
-        if (isEmpty(rowData)) {
+        if (isEmpty(displayData.rowData)) {
             return;
         }
         setColumns(colConfig({
-                                 codeset_ids, nested, selected_csets,
-                                 rowData, collapsed, toggleCollapse, sizes,
+                                 displayData, codeset_ids, selected_csets,
+                                 collapsed, toggleCollapse, sizes,
                                  editCol, editInfo, setupEditCol, editAction,
                              }));
-    }, [rowData, squishTo, editCol, editInfo]);
+    }, [displayData, squishTo, editCol, editInfo]);
 
     let card, eInfo;
     if (typeof(editCol) == "number") {
@@ -129,7 +129,7 @@ function ComparisonDataTable(props) {
                 theme="custom-theme"
                 // theme="light"
                 columns={columns}
-                data={rowData}
+                data={displayData.rowData}
 
                 dense
                 fixedHeader
@@ -164,7 +164,7 @@ function getCbStates(csets, nodups) {
 }
 */
 function colConfig(props) {
-    let { codeset_ids, nested, selected_csets, rowData,
+    let { displayData, codeset_ids, selected_csets, rowData,
           collapsed, toggleCollapse, sizes, editCol, editInfo, setupEditCol,
           editAction, } = props;
     // console.log('setting coldefs');
@@ -182,7 +182,7 @@ function colConfig(props) {
                 if (!row.checkboxes) {
                     console.log('problem!!!!', {idx, row, rowData})
                 } // else { // console.log('not a problem', {idx, row, rowData}) }
-                let content = nested
+                let content = displayData.nested
                     ? row.has_children
                         ? collapsed[row.pathToRoot]
                             ? <span className="toggle-collapse" onClick={() => toggleCollapse(row)}><AddCircle sx={{fontSize:sizes.collapseIcon}}/> {row.concept_name} {row.collapsed && 'collapsed'}</span>
@@ -191,7 +191,7 @@ function colConfig(props) {
                     : row.concept_name
                 return content;
             },
-            sortable: !nested,
+            sortable: !displayData.nested,
             width: (window.innerWidth - selected_csets.length * 50) * .85,
             wrap: true,
             compact: true,
@@ -204,7 +204,7 @@ function colConfig(props) {
         {
             name: 'Concept ID',
             selector: row => row.concept_id,
-            sortable: !nested,
+            sortable: !displayData.nested,
             width: '80px',
             style: { paddingRight: '8px', },
         },
@@ -221,7 +221,7 @@ function colConfig(props) {
                         <img height={sizes.athenaHeight} src="athena.ico" />
                     </a>
                 </span>),
-            sortable: !nested,
+            sortable: !displayData.nested,
             width: '29px',
             style: { paddingRight: '0px', },
         },
@@ -229,7 +229,7 @@ function colConfig(props) {
             name: 'Patients',
             selector: row => parseInt(row.distinct_person_cnt),
             format: row => fmt(row.distinct_person_cnt),
-            sortable: !nested,
+            sortable: !displayData.nested,
             right: true,
             width: '80px',
             style: { paddingRight: '8px', },
@@ -238,7 +238,7 @@ function colConfig(props) {
             name: 'Records',
             selector: row => row.total_cnt,
             format: row => fmt(row.total_cnt),
-            sortable: !nested,
+            sortable: !displayData.nested,
             right: true,
             width: '80px',
             style: { paddingRight: '8px', },
@@ -255,7 +255,7 @@ function colConfig(props) {
             //              <span>{cset_col.concept_set_version_title}</span>
             //          </Tooltip>,
             selector: (row,idx) => {
-                return <CellCheckbox {...{row,idx, colnum, cset_col, rowData, editInfo, editCol, checkboxChange}} />;
+                return <CellCheckbox {...{row,idx, colnum, cset_col, rowData: displayData.rowData, editInfo, editCol, checkboxChange}} />;
             },
             conditionalCellStyles: [
                 { when: row => row.checkboxes && row.checkboxes[cset_col.codeset_id],
@@ -269,7 +269,7 @@ function colConfig(props) {
                     }
                 },
             ],
-            sortable: !nested,
+            sortable: !displayData.nested,
             compact: true,
             width: '30px',
             // maxWidth: 50,
@@ -278,13 +278,17 @@ function colConfig(props) {
         return def;
     });
     coldefs = [...coldefs, ...cset_cols];
-    if (!nested) {
+    if (!displayData.nested) {
         delete coldefs[0].conditionalCellStyles;
     }
     return coldefs;
     // console.log('done setting coldefs');
 
 }
+/*
+trying to figure out what to display to convey relationships between expression items and descendants and other
+related concepts -- mapped and excluded
+ */
 function CellCheckbox(props) {
     const {row, idx, colnum, cset_col, rowData, editInfo, editCol, checkboxChange} = props;
     if (!row.checkboxes) {
