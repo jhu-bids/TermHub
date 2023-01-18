@@ -1,5 +1,11 @@
 """Utils for database usage"""
 import json
+import os
+import re
+
+import pandas as pd
+# noinspection PyUnresolvedReferences
+from psycopg2.errors import UndefinedTable
 from sqlalchemy import create_engine, event
 from sqlalchemy.engine import LegacyRow, Row, RowMapping
 from sqlalchemy.engine.base import Connection
@@ -8,12 +14,13 @@ from sqlalchemy.sql import text
 from sqlalchemy.sql.elements import TextClause
 from typing import Any, Dict, Union, List
 
-from backend.db.config import CONFIG, get_pg_connect_url
-from backend.utils import pdump
+from backend.db.config import CONFIG, DATASETS_PATH, OBJECTS_PATH, get_pg_connect_url
+from backend.utils import commify
 
 DEBUG = False
 DB = CONFIG["db"]
 SCHEMA = CONFIG["schema"]
+
 
 def get_db_connection(isolation_level='AUTOCOMMIT', schema: str = SCHEMA):
     """Connect to db"""
@@ -108,3 +115,67 @@ def show_tables(con=get_db_connection(), print_dump=True):
         # print('\n'.join([', '.join(r) for r in res])) ugly
         # print(pdump(res)) doesn't work
     return res
+
+
+def load_csv(
+    con: Connection, table: str, table_type: str = ['dataset', 'object'][0], replace_rule='replace if diff row count',
+    schema: str = SCHEMA
+):
+    """Load CSV into table
+    :param replace_rule: 'replace if diff row count' or 'do not replace'
+      First, will replace table (that is, truncate and load records; will fail if table cols have changed, i think
+     'do not replace'  will create new table or load table if table exists but is empty
+
+    - Uses: https://pandas.pydata.org/docs/reference/api/pandas.DataFrame.to_sql.html
+    """
+    # Edge cases
+    existing_rows = 0
+    try:
+        r = con.execute(f'select count(*) from {table}')
+        existing_rows = r.one()[0]
+    except Exception as err:
+        if isinstance(err.orig, UndefinedTable):
+            print(f'INFO: {schema}.{table} does not not exist; will create it')
+        else:
+            raise err
+
+    if replace_rule == 'do not replace' and existing_rows > 0:
+        print(f'INFO: {schema}.{table} exists with {commify(existing_rows)} rows; leaving it')
+        return
+
+    # Load table
+    path = os.path.join(DATASETS_PATH, f'{table}.csv') if table_type == 'dataset' \
+        else os.path.join(OBJECTS_PATH, table, 'latest.csv')
+    df = pd.read_csv(path)
+
+    if replace_rule == 'replace if diff row count' and existing_rows == len(df):
+        print(f'INFO: {schema}.{table} exists with same number of rows {existing_rows}; leaving it')
+        return
+
+    print(f'INFO: \nloading {schema}.{table} into {CONFIG["server"]}:{DB}')
+    # Clear data if exists
+    try:
+        con.execute(text(f'TRUNCATE {table}'))
+    except ProgrammingError:
+        pass
+
+    # Load
+    # `schema='termhub_n3c'`: Passed so Joe doesn't get OperationalError('(pymysql.err.OperationalError) (1050,
+    #  "Table \'code_sets\' already exists")')
+    #  https://stackoverflow.com/questions/69906698/pandas-to-sql-gives-table-already-exists-error-with-if-exists-append
+    kwargs = {'if_exists': 'append', 'index': False, 'schema': schema}
+    if CONFIG['server'] == 'mysql':   # this was necessary for mysql, probably not for postgres
+        try:
+            kwargs['schema'] = DB
+            df.to_sql(table, con, **kwargs)
+        except Exception as err:
+            # if data too long error, change column to longtext and try again
+            # noinspection PyUnresolvedReferences
+            m = re.match("Data too long for column '(.*)'.*", str(err.orig.args))
+            if m:
+                run_sql(con, f'ALTER TABLE {table} MODIFY {m[1]} LONGTEXT')
+                load_csv(con, table)
+            else:
+                raise err
+    else:
+        df.to_sql(table, con, **kwargs)
