@@ -1,4 +1,9 @@
-"""Initialize database"""
+"""Initialize database
+
+1. Initialize the database if it doesn't exist
+2. Download CSV files from the enclave
+3. Load the data from the CSV files into the database
+"""
 import os
 import re
 
