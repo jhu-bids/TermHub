@@ -15,9 +15,7 @@ DEBUG = False
 DB = CONFIG["db"]
 SCHEMA = CONFIG["schema"]
 
-# SCHEMA = 'n3c_20220111'
-
-def get_db_connection(isolation_level='AUTOCOMMIT'):
+def get_db_connection(isolation_level='AUTOCOMMIT', schema: str = SCHEMA):
     """Connect to db"""
     engine = create_engine(get_pg_connect_url(), isolation_level=isolation_level)
 
@@ -26,11 +24,14 @@ def get_db_connection(isolation_level='AUTOCOMMIT'):
         """This does "set search_path to n3c;" when you connect.
         https://docs.sqlalchemy.org/en/14/dialects/postgresql.html#setting-alternate-search-paths-on-connect
         :param connection_record: Part of the example but we're not using yet.
+
+        Ideally, we'd want to be able to call this whenever we want. But cannot be called outside of context of
+        initializing a connection.
         """
         existing_autocommit = dbapi_connection.autocommit
         dbapi_connection.autocommit = True
         cursor = dbapi_connection.cursor()
-        cursor.execute(f"SET SESSION search_path='{SCHEMA}'")
+        cursor.execute(f"SET SESSION search_path='{schema}'")
         cursor.close()
         dbapi_connection.autocommit = existing_autocommit
 
