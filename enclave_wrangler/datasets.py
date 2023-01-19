@@ -7,7 +7,7 @@
 import sys
 from argparse import ArgumentParser
 
-from typing import Dict
+from typing import Dict, Union
 from typeguard import typechecked
 import os
 import re
@@ -45,7 +45,7 @@ os.makedirs(CSV_TRANSFORM_DIR, exist_ok=True)
 
 
 @typechecked
-def getTransaction(dataset_rid: str, ref: str = 'master') -> str:
+def getTransaction(dataset_rid: str, ref: str = 'master', return_field='rid') -> Union[str, Dict]:
     """API documentation at
     https://unite.nih.gov/workspace/documentation/developer/api/catalog/services/CatalogService/endpoints/getTransaction
     tested with curl:
@@ -63,7 +63,10 @@ def getTransaction(dataset_rid: str, ref: str = 'master') -> str:
     response_json = response.json()
     if DEBUG:
         print(response_json)
-    return response_json['rid']
+    if return_field:
+        return response_json[return_field]
+    else:
+        return response_json
 
 
 @typechecked
@@ -321,6 +324,22 @@ def transform(fav: dict) -> pd.DataFrame:
     df.to_csv(opath, index=False)
     return df
 
+
+def get_last_vocab_update():
+    """
+    https://unite.nih.gov/workspace/documentation/developer/api/catalog/services/CatalogService/endpoints/getTransaction
+    https://unite.nih.gov/workspace/documentation/developer/api/catalog/objects/com.palantir.foundry.catalog.api.transactions.Transaction
+    """
+    dataset_rid = FAVORITE_DATASETS['concept']['rid']
+    ref = 'master'
+    transaction = getTransaction(dataset_rid, ref, return_field=None)
+    # pdump(transaction)
+    if transaction['status'] != 'COMMITTED':
+        pdump(transaction)
+        raise 'status of transaction not COMMITTED. not sure what this means'
+    return transaction['startTime']
+# print(get_last_vocab_update())
+# exit()
 
 def run(
     dataset_name: str = None, dataset_rid: str = None, ref: str = 'master', output_dir: str = None, outpath: str = None,
