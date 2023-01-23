@@ -3,7 +3,8 @@
 """Dataset download.
 
 Resources
-- https://www.palantir.com/docs/foundry/api/ontology-resources/object-types/list-object-types/
+  Search: https://www.palantir.com/docs/foundry/api/ontology-resources/objects/search/
+  List: https://www.palantir.com/docs/foundry/api/ontology-resources/objects/list-objects/
 
 TODO's
  1. Consider refactor: Python -> Bash (curl + JQ)
@@ -12,6 +13,7 @@ TODO's
 """
 import json
 import os
+import sys
 from argparse import ArgumentParser
 from typing import List, Dict, Callable, Union
 from urllib.parse import quote
@@ -20,18 +22,16 @@ from sanitize_filename import sanitize
 import pandas as pd
 from requests import Response
 from typeguard import typechecked
-
 # import requests
 # import pyarrow as pa
 # import asyncio
 
 from enclave_wrangler.config import FAVORITE_OBJECTS, OUTDIR_OBJECTS, OUTDIR_CSET_JSON, config, TERMHUB_CSETS_DIR
 from enclave_wrangler.utils import enclave_get, enclave_post, make_objects_request
+# from enclave_wrangler.utils import log_debug_info
 from backend.utils import INJECTED_STUFF
 from backend.db.utils import sql_query_single_col, run_sql, get_db_connection
 # from backend.utils import pdump
-
-# from enclave_wrangler.utils import log_debug_info
 
 
 HEADERS = {
@@ -43,6 +43,7 @@ HEADERS = {
 DEBUG = False
 
 
+# todo: refactor this class out. for most of our API calls, we're not using this class, i.e. datasets / action api
 class EnclaveClient:
     """REST client for N3C data enclave"""
 
@@ -74,12 +75,12 @@ class EnclaveClient:
         return response_json['data']
 
     @staticmethod
-    def _handle_paginated_request(first_page_url: str) -> (List[Dict], Response):
+    def _handle_paginated_request(first_page_url: str, verbose=False) -> (List[Dict], Response):
         """Handles a request that has a nextPageToken, automatically fetching all pages and combining the data"""
         url = first_page_url
         results: List[Dict] = []
         while True:
-            response = enclave_get(url)
+            response = enclave_get(url, verbose=verbose)
             response_json = response.json()
             if response.status_code >= 400:  # err
                 break
@@ -92,15 +93,53 @@ class EnclaveClient:
     # todo?: Need to find the right object_type, then write a wrapper func around this to get concept sets
     #  - To Try: CodeSystemConceptSetVersionExpressionItem, OMOPConcept, OMOPConceptSet, OMOPConceptSetContainer,
     #    OmopConceptSetVersionItem
+    # todo: connect to `manage` table and get since last datetime. for now, use below as example
+    # TODO: add since_datetime param
     def get_objects_by_type(
-        self, object_type: str, save_csv=True, save_json=True, outdir: str = None
-    ) -> pd.DataFrame:
+        self, object_type: str, save_csv=True, save_json=True, outdir: str = None, since_datetime: str = None,
+        return_type=['dataframe', 'list_dict'][0], query_params: str = None, verbose=False
+    ) -> Union[pd.DataFrame, List[Dict]]:
         """Get objects
-        Docs: https://www.palantir.com/docs/foundry/api/ontology-resources/objects/list-objects/
-        https://www.palantir.com/docs/foundry/api/ontology-resources/objects/object-basics/"""
+
+        :param since_datetime: Formatted like '2023-01-01T00:00:00.000Z'
+        :param query_params:
+            Example:
+           # query_params = ''.join([f'&properties.conceptSetId.eq={x}' for x in ids])
+           # '&properties.conceptSetId.eq=Rachel_Example &properties.conceptSetId.eq=Covid - 19 Related Diagnosis for Hospitalization'
+
+        Resources
+          https://www.palantir.com/docs/foundry/api/ontology-resources/objects/list-objects/
+          https://www.palantir.com/docs/foundry/api/ontology-resources/objects/object-basics/"""
         # Request
         first_page_url = f'{self.base_url}/api/v1/ontologies/{self.ontology_rid}/objects/{object_type}'
-        results, last_response = self._handle_paginated_request(first_page_url)
+        # todo: if accepting multiple query params, need & in between instead of subsequent ?
+        if since_datetime:
+            # a. search (needs JSON POST) https://www.palantir.com/docs/foundry/api/ontology-resources/objects/search/
+            # first_page_url += f'/search?previw=true'  # add JSON POST body
+            # b. https://www.palantir.com/docs/foundry/api/ontology-resources/objects/object-basics/#filtering-objects
+            first_page_url += f'?properties.createdAt.gt={since_datetime}'
+        if query_params:
+            query_params = query_params[1:] if any([query_params.startswith(x) for x in ['?', '&']]) else query_params
+            first_query_token = '&' if since_datetime else '?'
+            # examples: (1) expression items: ?itemId.eq=ID (2) containers: conceptSetId.eq=ID
+            first_page_url += f'{first_query_token}{query_params}'
+        results, last_response = self._handle_paginated_request(first_page_url, verbose=verbose)
+
+        # - error report
+        # todo: Would be good to have all enclave_wrangler requests basically wrap around python `requests` and also
+        #  ...utilize this error reporting, if they are saving to disk.
+        if last_response.status_code >= 400:
+            print(f'Error: get_objects_by_type(): {str(last_response.status_code)} {last_response.reason}', file=sys.stderr)
+            error_report: Dict = {'request': last_response.url, 'response': last_response.json()}
+            with open(os.path.join(outdir, f'latest - error {last_response.status_code}.json'), 'w') as file:
+                json.dump(error_report, file)
+            curl_str = f'curl -H "Content-type: application/json" ' \
+                       f'-H "Authorization: Bearer $OTHER_TOKEN" {last_response.url}'
+            with open(os.path.join(outdir, f'latest - error {last_response.status_code} - curl.sh'), 'w') as file:
+                file.write(curl_str)
+
+        if return_type == 'list_dict':
+            return results
 
         # Parse
         # Get rid of nested 'properties' key, and add 'rid' in with the other fields
@@ -121,17 +160,6 @@ class EnclaveClient:
         if save_json:
             with open(outpath.replace('.csv', '.json'), 'w') as f:
                 json.dump(results, f)
-        # - error report
-        # todo: Would be good to have all enclave_wrangler requests basically wrap around python `requests` and also
-        #  ...utilize this error reporting, if they are saving to disk.
-        if last_response.status_code >= 400:
-            error_report: Dict = {'request': last_response.url, 'response': last_response.json()}
-            with open(os.path.join(outdir, f'latest - error {last_response.status_code}.json'), 'w') as file:
-                json.dump(error_report, file)
-            curl_str = f'curl -H "Content-type: application/json" ' \
-                       f'-H "Authorization: Bearer $OTHER_TOKEN" {last_response.url}'
-            with open(os.path.join(outdir, f'latest - error {last_response.status_code} - curl.sh'), 'w') as file:
-                file.write(curl_str)
 
         return df
 
@@ -308,7 +336,7 @@ def get_bundle_codeset_ids(bundle_name):
     return codeset_ids
 
 
-def get_codeset_json(codeset_id, con=get_db_connection()):
+def get_codeset_json(codeset_id, con=get_db_connection()) -> Dict:
     jsn = sql_query_single_col(con, f"""
         SELECT json
         FROM concept_set_json
@@ -456,6 +484,35 @@ def enclave_api_call_caller(name:str, params) -> Dict:
     }
     func = lookup[name]
     return func(*params)
+
+
+# TODO: Download /refresh: tables using object ontology api (e.g. full concept set info from enclave) #189 -------------
+# TODO: func 1/3: Do this before refresh_tables_for_object() and refresh_favorite_objects()
+#   - EnclaveClient.get_objects_by_type() updates above
+
+#  Issue: https://github.com/jhu-bids/TermHub/issues/189 PR: https://github.com/jhu-bids/TermHub/pull/221
+# TODO: func 3/3: config.py needs updating for favorite datsets / objects
+def refresh_favorite_objects():
+    """Refresh objects of interest
+
+    todo's
+      - create github action that runs this hourly using CLI
+      - add this as a CLI param
+    """
+    pass
+
+
+# TODO: func 2/3: Before starting, define a graph / dict (in config.py?) of object types and their tables
+def refresh_tables_for_object():
+    """Get all latest objects and refresh tables related to object"""
+    # Get new objects
+    # new_objects = get_new_objects()
+    # Refresh tables
+    pass
+
+
+# </Download /refresh: tables using object ontology api (e.g. full concept set info from enclave) #189 -----------------
+
 
 def cli():
     """Command line interface for package."""
