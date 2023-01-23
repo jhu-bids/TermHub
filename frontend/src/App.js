@@ -141,6 +141,9 @@ function QueryStringStateMgr(props) {
     return <Navigate to={url}
                      replace={true} /* what does this do? */ />;
   }
+  if(!sp.codeset_ids) {
+    sp.codeset_ids = [];
+  }
   return <DataContainer /* searchParams={searchParams}*/
                         codeset_ids={codeset_ids}
                         changeCodesetIds={changeCodesetIds}
