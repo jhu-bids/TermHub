@@ -9,6 +9,7 @@ import {get, isEmpty, set, map, omit, pick, uniq, reduce, cloneDeepWith, isEqual
 import {fmt} from './utils';
 import {ConceptSetCard} from "./ConceptSetCard";
 import {Tooltip} from './Tooltip';
+import { ItemOptions, } from './EditCset';
 // import {isEmpty} from "react-data-table-component/dist/src/DataTable/util"; // what was this for?
 // import Button from '@mui/material/Button';
 
@@ -67,7 +68,9 @@ function ComparisonDataTable(props) {
 
     let sizes = {
         rowFontSize:  (13 * squishTo) + 'px',
-        rowPadding:   ( 2 * squishTo) + 'px',
+        // rowPadding:   ( 1 * squishTo) + 'px', // do these do anything?
+        // rowPaddingTop:   ( 4 * squishTo) + 'px',
+        // rowPaddingBottom:   ( 0 * squishTo) + 'px',
         collapseIcon: (13 * squishTo) + 'px',
         linkHeight:   (20 * squishTo) + 'px',
         atlasHeight:  (12 * squishTo) + 'px',
@@ -271,7 +274,7 @@ function colConfig(props) {
             ],
             sortable: !displayData.nested,
             compact: true,
-            width: '30px',
+            width: '50px',
             // maxWidth: 50,
             center: true,
         }
@@ -307,6 +310,7 @@ function CellCheckbox(props) {
         contents = <span>{checked ? '\u2713' : ''}</span>;
     }
     if (checkboxValue) {
+        //return <ItemOptions item={checkboxValue}/>;
         return  <Tooltip label={<pre>{JSON.stringify(checkboxValue, null, 2)}</pre>} placement="bottom">{contents}</Tooltip>
     } else {
         return contents
