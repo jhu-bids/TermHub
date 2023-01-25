@@ -61,7 +61,6 @@ def indexes_and_derived_tables(con: Connection):
 def load(schema: str = SCHEMA, clobber=False):
     """Load data into the database and create indexes and derived tables"""
     with get_db_connection() as con:
-        # TODO: comment out seed to test if indexes_and_derived_tables works
         seed(con, schema, clobber)
         indexes_and_derived_tables(con)
 

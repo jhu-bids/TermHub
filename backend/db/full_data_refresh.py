@@ -17,7 +17,7 @@ PROJECT_ROOT = os.path.join(BACKEND_DIR, '..')
 sys.path.insert(0, str(PROJECT_ROOT))
 from backend.db.config import CONFIG, DB_DIR
 from backend.db.load import load
-from backend.db.utils import get_db_connection, run_sql
+from backend.db.utils import current_datetime, get_db_connection, run_sql
 from enclave_wrangler.datasets import download_favorite_datasets
 from enclave_wrangler.objects_api import download_favorite_objects
 
@@ -33,7 +33,7 @@ def db_outdated(threshold_hours=24) -> bool:
             last_updated = dp.parse(data['last_updated'])
     except Exception:
         pass
-    hours_since_update = (dp.parse(datetime.now(timezone.utc).isoformat()) - last_updated).total_seconds() / 60 / 60 \
+    hours_since_update = (dp.parse(current_datetime()) - last_updated).total_seconds() / 60 / 60 \
         if last_updated else 25
     return not last_updated or hours_since_update >= threshold_hours
 
@@ -46,6 +46,7 @@ def refresh_db(
     schema_old_backup = schema + '_before_' + datetime.now().strftime('%Y%m%d')
     outdated: bool = db_outdated()
 
+    # todo: also add last updated functionality on a more granular basis based on which of these 3?
     if outdated and datasets_csets:
         download_favorite_datasets(force_if_exists=force_if_exists, single_group='cset')
     if outdated and objects:
@@ -58,7 +59,8 @@ def refresh_db(
     with get_db_connection() as con:
         run_sql(con, f'CREATE SCHEMA IF NOT EXISTS {schema_new_temp};')
     with get_db_connection(schema=schema_new_temp) as con:
-        # TODO: within load() func below comment out seed() to test if indexes_and_derived_tables() works
+        # TODO: within load() func below comment out seed() troubleshoot indexes_and_derived_tables()
+        # TODO: add 'last updated' for each table in (i) seed(), and (ii) indexes_and_derived_tables()s
         load(schema=schema_new_temp, clobber=True)
         run_sql(con, f'ALTER SCHEMA n3c RENAME TO {schema_old_backup};')
         run_sql(con, f'ALTER SCHEMA {schema_new_temp} RENAME TO n3c;')
