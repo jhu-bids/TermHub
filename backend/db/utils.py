@@ -2,6 +2,7 @@
 import json
 import os
 import re
+from datetime import datetime, timezone
 
 import pandas as pd
 # noinspection PyUnresolvedReferences
@@ -43,6 +44,11 @@ def get_db_connection(isolation_level='AUTOCOMMIT', schema: str = SCHEMA):
         dbapi_connection.autocommit = existing_autocommit
 
     return engine.connect()
+
+
+def current_datetime():
+    """Get current datetime"""
+    return datetime.now(timezone.utc).isoformat()
 
 
 def database_exists(con: Connection, db_name: str) -> bool:
@@ -129,6 +135,9 @@ def load_csv(
 
     - Uses: https://pandas.pydata.org/docs/reference/api/pandas.DataFrame.to_sql.html
     """
+    # TODO: read last updated and skip if updated recently
+    last_updated_key = f'last_updated_{table}'
+
     # Edge cases
     existing_rows = 0
     try:
@@ -180,3 +189,13 @@ def load_csv(
                 raise err
     else:
         df.to_sql(table, con, **kwargs)
+
+    # TODO: update w/ last updated
+    #  - fix: qlalchemy.exc.ProgrammingError: (psycopg2.errors.UndefinedTable) relation "manage" does not exist
+    #  LINE 1: INSERT INTO manage (key, value) VALUES
+    #  It worked at first but now, not sure why
+    with get_db_connection() as con2:
+        # todo change to insert overwrite or update
+        # https://www.enterprisedb.com/postgres-tutorials/how-modify-data-postgresql-using-insert-update-update-joins-delete-and-upsert
+        run_sql(con2, f'INSERT INTO manage (key, value) '
+                     f'VALUES ("{last_updated_key}", "{str(current_datetime())}");')
