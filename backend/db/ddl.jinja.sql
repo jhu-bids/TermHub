@@ -106,7 +106,10 @@ SELECT
               CASE WHEN item."isExcluded" THEN 'isExcluded' ELSE NULL END,
               CASE WHEN item."includeDescendants" THEN 'includeDescendants' ELSE NULL END,
               CASE WHEN item."includeMapped" THEN 'includeMapped' ELSE NULL END ],
-            NULL), ',') AS item_flags
+            NULL), ',') AS item_flags,
+        item."isExcluded",
+        item."includeDescendants",
+        item."includeMapped"
 FROM {{schema}}concept_set_members csm
 FULL OUTER JOIN {{schema}}concept_set_version_item item
    ON csm.codeset_id = item.codeset_id
@@ -119,6 +122,21 @@ CREATE INDEX csmi_idx1 ON {{schema}}cset_members_items(codeset_id);
 CREATE INDEX csmi_idx2 ON {{schema}}cset_members_items(concept_id);
 
 CREATE INDEX csmi_idx3 ON {{schema}}cset_members_items(codeset_id, concept_id);
+
+CREATE OR REPLACE VIEW {{schema}}cset_members_items_plus AS (
+SELECT    csmi.*
+        , c.vocabulary_id
+        , c.concept_name
+        , c.concept_code
+FROM n3c.cset_members_items csmi
+JOIN concept c ON csmi.concept_id = c.concept_id);
+
+CREATE INDEX csmip_idx1 ON {{schema}}cset_members_items_plus(codeset_id);
+
+CREATE INDEX csmip_idx2 ON {{schema}}cset_members_items_plus(concept_id);
+
+CREATE INDEX csmip_idx3 ON {{schema}}cset_members_items_plus(codeset_id, concept_id);
+
 
 -- concept_set_container has duplicate records except for the created_at col
 --  get rid of duplicates, keeping the most recent.
@@ -198,10 +216,6 @@ CREATE INDEX crp_idx3 ON {{schema}}concept_relationship_plus(concept_id_1, conce
 CREATE INDEX crp_idx4 ON {{schema}}concept_relationship_plus(concept_code);
 
 CREATE INDEX crp_idx5 ON {{schema}}concept_relationship_plus(relationship_id);
-
-CREATE INDEX csmi_idx2 ON {{schema}}cset_members_items(concept_id);
-
-CREATE INDEX csmi_idx3 ON {{schema}}cset_members_items(codeset_id, concept_id);
 
 -- concept_set_container has duplicate records except for the created_at col
 --  get rid of duplicates, keeping the most recent.
