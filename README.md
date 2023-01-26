@@ -85,7 +85,7 @@ $ git submodule update
     - PGPORT=5432
     - PGDATABASE=postgres
 4. Set environmental variables. Run: `mkdir env; cp .env.example env/.env`. Then, edit `.env` and set any variables that haven't been filled out. You'll likely need to reach out to @joeflack4 or @Sigfried.
-  1. In terms of Postgres variables: PGHOST, PGUSER, PGPASSWORD, PGPORT, and PGDATABASE, and despite using shell syntax for those variables, the values have to be constants, not shell variables
+  - In terms of Postgres variables: PGHOST, PGUSER, PGPASSWORD, PGPORT, and PGDATABASE, and despite using shell syntax for those variables, the values have to be constants, not shell variables
     - TERMHUB_DB_SERVER=postgresql
     - TERMHUB_DB_DRIVER=psycopg2
     - TERMHUB_DB_HOST=$PGHOST
