@@ -10,7 +10,6 @@ ENV_FILE = os.path.join(ENV_DIR, '.env')
 TERMHUB_CSETS_PATH = os.path.join(PROJECT_ROOT, 'termhub-csets')
 DATASETS_PATH = os.path.join(TERMHUB_CSETS_PATH, 'datasets', 'prepped_files')
 OBJECTS_PATH = os.path.join(TERMHUB_CSETS_PATH, 'objects')
-DDL_PATH = os.path.join(DB_DIR, 'ddl.sql')
 DDL_JINJA_PATH = os.path.join(DB_DIR, 'ddl.jinja.sql')
 load_dotenv(ENV_FILE)
 CONFIG = {
