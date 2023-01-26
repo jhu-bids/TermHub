@@ -7,8 +7,8 @@ from backend.db.initialize import initialize
     ./venv/bin/python enclave_wrangler/datasets.py -f -o termhub-csets/datasets/downloads
 """
 
-# run_favorites(force_if_exists=True, single_group='cset')
-# download_favorite_objects(force_if_exists=True)
+# run_favorites(force_download_if_exists=True, single_group='cset')
+# download_favorite_objects(force_download_if_exists=True)
 
 initialize(clobber=True)
 

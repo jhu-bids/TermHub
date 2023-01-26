@@ -84,7 +84,7 @@ LEFT JOIN {{schema}}OMOPConceptSet ocs ON cs.codeset_id = ocs."codesetId" -- nee
 JOIN {{schema}}concept_set_container csc ON cs.concept_set_name = csc.concept_set_name
 LEFT JOIN {{schema}}omopconceptsetcontainer ocsc ON csc.concept_set_id = ocsc."conceptSetId"
 LEFT JOIN (
-	SELECT codeset_id, COUNT(DISTINCT concept_id) {{schema}}concepts
+	SELECT codeset_id, COUNT(DISTINCT concept_id) concepts
 	FROM {{schema}}concept_set_members
     GROUP BY codeset_id
 ) cids ON cs.codeset_id = cids.codeset_id
@@ -152,7 +152,7 @@ CREATE INDEX ccu_idx1 ON {{schema}}concepts_with_counts_ungrouped(concept_id);
 
 DROP TABLE IF EXISTS {{schema}}concepts_with_counts;
 CREATE TABLE IF NOT EXISTS {{schema}}concepts_with_counts AS (
-    SELECT {{schema}}concept_id,
+    SELECT concept_id,
             concept_name,
             COUNT(DISTINCT domain) AS domain_cnt,
             array_to_string(array_agg(domain), ',') AS domain,
@@ -198,10 +198,6 @@ CREATE INDEX crp_idx3 ON {{schema}}concept_relationship_plus(concept_id_1, conce
 CREATE INDEX crp_idx4 ON {{schema}}concept_relationship_plus(concept_code);
 
 CREATE INDEX crp_idx5 ON {{schema}}concept_relationship_plus(relationship_id);
-
-CREATE INDEX csmi_idx2 ON {{schema}}cset_members_items(concept_id);
-
-CREATE INDEX csmi_idx3 ON {{schema}}cset_members_items(codeset_id, concept_id);
 
 -- concept_set_container has duplicate records except for the created_at col
 --  get rid of duplicates, keeping the most recent.

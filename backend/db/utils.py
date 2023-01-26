@@ -62,13 +62,28 @@ def is_up_to_date(last_updated: Union[datetime, str], threshold_hours=24) -> boo
         if last_updated else threshold_hours + 1
     return hours_since_update < threshold_hours
 
-def is_table_up_to_date(table_name: str, skip_if_updated_within_hours: int = None):
+
+def check_if_updated(key: str, skip_if_updated_within_hours: int = None) -> bool:
     """Check if table is up to date"""
-    last_updated_key = f'last_updated_{table_name}'
     with get_db_connection(schema='') as con2:
-        last_updated = run_sql(con2, f"SELECT value FROM manage WHERE key = '{last_updated_key}';").first()
+        last_updated = run_sql(con2, f"SELECT value FROM manage WHERE key = '{key}';").first()
     last_updated = last_updated[0] if last_updated else None
     return last_updated and is_up_to_date(last_updated, skip_if_updated_within_hours)
+
+
+def is_table_up_to_date(table_name: str, skip_if_updated_within_hours: int = None) -> bool:
+    """Check if table is up to date"""
+    last_updated_key = f'last_updated_{table_name}'
+    return check_if_updated(last_updated_key, skip_if_updated_within_hours)
+
+
+def update_db_status_var(key: str, val: str):
+    """Update the `manage` table with information for a given variable, e.g. when a table was last updated
+    todo: change to 1 line: INSERT OVERWRITE or UPDATE"""
+    with get_db_connection(schema='') as con2:
+        run_sql(con2, f"DELETE FROM manage WHERE key = '{key}';")
+        sql_str = f"INSERT INTO manage (key, value) VALUES ('{key}', '{val}');"
+        run_sql(con2, sql_str)
 
 
 def database_exists(con: Connection, db_name: str) -> bool:
@@ -120,7 +135,7 @@ def sql_query_single_col(*argv) -> List:
 
 
 def show_tables(con=get_db_connection(), print_dump=True):
-    """"""
+    """Show tables"""
     query = """
         SELECT n.nspname as "Schema", c.relname as "Name",
               CASE c.relkind WHEN 'r' THEN 'table' WHEN 'v' THEN 'view' WHEN 'm' THEN 'materialized view' WHEN 'i' THEN 'index' WHEN 'S' THEN 'sequence' WHEN 's' THEN 'special' WHEN 't' THEN 'TOAST table' WHEN 'f' THEN 'foreign table' WHEN 'p' THEN 'partitioned table' WHEN 'I' THEN 'partitioned index' END as "Type",
@@ -207,9 +222,4 @@ def load_csv(
     else:
         df.to_sql(table, con, **kwargs)
 
-    with get_db_connection(schema='') as con2:
-        # todo: change to 1 line: INSERT OVERWRITE or UPDATE
-        last_updated_key = f'last_updated_{table}'
-        run_sql(con2, f"DELETE FROM manage WHERE key = '{last_updated_key}';")
-        sql_str = f"INSERT INTO manage (key, value) VALUES ('{last_updated_key}', '{str(current_datetime())}');"
-        run_sql(con2, sql_str)
+    update_db_status_var(f'last_updated_{table}', str(current_datetime()))

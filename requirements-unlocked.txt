@@ -1,5 +1,6 @@
 # dependencies
 fastapi
+jinja2
 pandas
 pandasql
 pyarrow
