@@ -26,6 +26,8 @@ def create_db(con: Connection):
     else:
         run_sql(con, 'CREATE DATABASE IF NOT EXISTS ' + DB)
         run_sql(con, f'USE {DB}')
+    with get_db_connection(schema='') as con2:
+        run_sql(con2, "CREATE TABLE IF NOT EXISTS manage (key text not null, value text);")
 
 
 def initialize(clobber=False, schema: str = SCHEMA):
