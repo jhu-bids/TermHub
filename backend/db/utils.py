@@ -2,6 +2,7 @@
 import json
 import os
 import re
+import dateutil.parser as dp
 from datetime import datetime, timezone
 
 import pandas as pd
@@ -51,6 +52,23 @@ def get_db_connection(isolation_level='AUTOCOMMIT', schema: str = SCHEMA):
 def current_datetime():
     """Get current datetime"""
     return datetime.now(timezone.utc).isoformat()
+
+
+def is_up_to_date(last_updated: Union[datetime, str], threshold_hours=24) -> bool:
+    """Checks two datetimes and returns True if the first is less than threshold_hours old."""
+    if isinstance(last_updated, str):
+        last_updated = dp.parse(last_updated)
+    hours_since_update = (dp.parse(current_datetime()) - last_updated).total_seconds() / 60 / 60 \
+        if last_updated else threshold_hours + 1
+    return hours_since_update < threshold_hours
+
+def is_table_up_to_date(table_name: str, skip_if_updated_within_hours: int = None):
+    """Check if table is up to date"""
+    last_updated_key = f'last_updated_{table_name}'
+    with get_db_connection(schema='') as con2:
+        last_updated = run_sql(con2, f"SELECT value FROM manage WHERE key = '{last_updated_key}';").first()
+    last_updated = last_updated[0] if last_updated else None
+    return last_updated and is_up_to_date(last_updated, skip_if_updated_within_hours)
 
 
 def database_exists(con: Connection, db_name: str) -> bool:
@@ -137,9 +155,6 @@ def load_csv(
 
     - Uses: https://pandas.pydata.org/docs/reference/api/pandas.DataFrame.to_sql.html
     """
-    # TODO: read last updated and skip if updated recently
-    last_updated_key = f'last_updated_{table}'
-
     # Edge cases
     existing_rows = 0
     try:
@@ -192,12 +207,9 @@ def load_csv(
     else:
         df.to_sql(table, con, **kwargs)
 
-    # TODO: update w/ last updated
-    #  - fix: qlalchemy.exc.ProgrammingError: (psycopg2.errors.UndefinedTable) relation "manage" does not exist
-    #  LINE 1: INSERT INTO manage (key, value) VALUES
-    #  It worked at first but now, not sure why
-    with get_db_connection() as con2:
-        # todo change to insert overwrite or update
-        # https://www.enterprisedb.com/postgres-tutorials/how-modify-data-postgresql-using-insert-update-update-joins-delete-and-upsert
-        run_sql(con2, f'INSERT INTO manage (key, value) '
-                     f'VALUES ("{last_updated_key}", "{str(current_datetime())}");')
+    with get_db_connection(schema='') as con2:
+        # todo: change to 1 line: INSERT OVERWRITE or UPDATE
+        last_updated_key = f'last_updated_{table}'
+        run_sql(con2, f"DELETE FROM manage WHERE key = '{last_updated_key}';")
+        sql_str = f"INSERT INTO manage (key, value) VALUES ('{last_updated_key}', '{str(current_datetime())}');"
+        run_sql(con2, sql_str)
