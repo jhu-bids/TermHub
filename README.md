@@ -66,19 +66,41 @@ User Interactions
 
 ### Local setup
 1. Clone the repository.
-2. Run: `pip install -r requirements.txt`
-3. Set environmental variables. Run: `mkdir env; cp .env.example env/.env`. Then, edit `.env` and set any variables that haven't been filled out. You'll likely need to reach out to @joeflack4 or @Sigfried.
-4Install PostgreSQL and make sure it is running
-5. Basic DB setup
-
 ```shell
-$ psql
-# you're now connected to postgres. run these commands:
-CREATE DATABASE termhub;
-exit
-# reconnect to new db:
+$ git clone  git@github.com:jhu-bids/TermHub.git
+$ cd TermHub
+```
+2. Get Data
+```shell
+$ git submodule init
+$ git submodule update
+```
+2. Run: `pip install -r requirements.txt`
+3. Install PostgreSQL and make sure it is running
+  - Postgres.app makes this a breeze on macos: https://postgresapp.com/ 
+  - variables are initially set to the values below. Note that  PGDATABASE and TERMHUB_DB_DB will need to change to termhub in the steps below.
+    - PGHOST=localhost
+    - PGUSER=postgres
+    - PGPASSWORD=
+    - PGPORT=5432
+    - PGDATABASE=postgres
+4. Set environmental variables. Run: `mkdir env; cp .env.example env/.env`. Then, edit `.env` and set any variables that haven't been filled out. You'll likely need to reach out to @joeflack4 or @Sigfried.
+  1. In terms of Postgres variables: PGHOST, PGUSER, PGPASSWORD, PGPORT, and PGDATABASE, and despite using shell syntax for those variables, the values have to be constants, not shell variables
+    - TERMHUB_DB_SERVER=postgresql
+    - TERMHUB_DB_DRIVER=psycopg2
+    - TERMHUB_DB_HOST=$PGHOST
+    - TERMHUB_DB_USER=$PGUSER
+    - TERMHUB_DB_DB=$PGDATABASE
+    - TERMHUB_DB_SCHEMA=n3c
+    - TERMHUB_DB_PASS=$PGPASSWORD
+    - TERMHUB_DB_PORT=$PGPORT
+6. Basic DB setup (assuming PostgreSQL)
+```shell
+# create new db:
+$ createdb termhub
+# connect to new db:
 $ psql termhub
-# connected again to postgres. run:
+# connected to postgres. run:
 CREATE SCHEMA n3c;
 SET search_path TO n3c;
 ```
@@ -87,12 +109,20 @@ SET search_path TO n3c;
 
 ### Deployment
 #### Deploying the backend
-1. Clone the repository.
-2. Run: `pip install -r requirements.txt`
-3. Run `git submodule update`
-4. Run: `uvicorn backend.app:APP --reload`
+```shell
+# Clone the repository.
+$ git clone  git@github.com:jhu-bids/TermHub.git
+$ cd TermHub
+# get python dependencies
+$ pip install -r requirements.txt
+# get data
+$ git submodule init
+$ git submodule update
+# start backend
+$ uvicorn backend.app:APP --reload
+```
 
-#### Deploying the frontend
+#### Deploying the frontend, starting from the same repository
 1. `cd frontend; npm run build`
 2. When that process completes, you should now have an updated `frontend/build` directory. This can be deployed as a static site. The entry point is `index.html`.
 
