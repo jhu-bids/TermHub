@@ -36,6 +36,8 @@ def get_db_connection(isolation_level='AUTOCOMMIT', schema: str = SCHEMA):
         Ideally, we'd want to be able to call this whenever we want. But cannot be called outside of context of
         initializing a connection.
         """
+        if not schema:
+            return
         existing_autocommit = dbapi_connection.autocommit
         dbapi_connection.autocommit = True
         cursor = dbapi_connection.cursor()
