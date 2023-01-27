@@ -203,6 +203,18 @@ def get_cset_members_items(codeset_ids: List[int] = None, con=CON) -> List[Legac
         """,
         {'codeset_ids': codeset_ids})
 
+def new_hierarchy(root_cids: List[int], cids: List[int], con=CON) -> Dict:
+    q = sql_query(
+        con, f""" 
+        SELECT *
+        FROM concept_ancestor
+        WHERE ancestor_concept_id = ANY(:root_cids)
+          AND descendant_concept_id = ANY(:cids)
+          AND min_levels_of_separation > 0
+        ORDER BY ancestor_concept_id, min_levels_of_separation
+        """,
+        {'root_cids': root_cids, 'cids': cids})
+    return q
 
 def hierarchy(codeset_ids: List[int] = None, selected_concept_ids: List[int] = None) -> Dict:
     """Get hierarchy of concepts in selected concept sets"""
@@ -423,7 +435,14 @@ def cr_hierarchy(rec_format: str = 'default', codeset_id: Union[str, None] = Que
     codeset_ids: List[int] = parse_codeset_ids(codeset_id)
     cset_member_ids: List[int] = get_concept_set_member_ids(codeset_ids, column='concept_id')
     cset_members_items = get_cset_members_items(codeset_ids)
+
     concept_ids = list(set([i['concept_id'] for i in cset_members_items]))
+
+    items = [mi for mi in cset_members_items if mi['item']]
+    item_concept_ids = list(set([i['concept_id'] for i in items]))
+
+    # nh = new_hierarchy(root_cids=concept_ids, cids=concept_ids)
+    nh = new_hierarchy(root_cids=item_concept_ids, cids=concept_ids)
 
     related_csets = get_related_csets(codeset_ids=codeset_ids, selected_concept_ids=cset_member_ids)
     selected_csets = [cset for cset in related_csets if cset['selected']]

@@ -310,7 +310,7 @@ function CellCheckbox(props) {
         contents = <span>{checked ? '\u2713' : ''}</span>;
     }
     if (checkboxValue) {
-        //return <ItemOptions item={checkboxValue}/>;
+        return <ItemOptions item={checkboxValue}/>;
         return  <Tooltip label={<pre>{JSON.stringify(checkboxValue, null, 2)}</pre>} placement="bottom">{contents}</Tooltip>
     } else {
         return contents
