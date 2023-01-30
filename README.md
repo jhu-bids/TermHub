@@ -11,6 +11,9 @@ More info: [Requirements](https://github.com/jhu-bids/TermHub/issues/72)
 ### Uploading CSVs to create/edit concept sets
 TermHub can take a CSV and create/edit concepts and concept sets. [Read more](./enclave_wrangler/README.md)
 
+### Enclave API links and documentation
+[Read more](./enclave_wrangler/README.md)
+
 ### Vocabulary management (a single concept, subsets of or an entire vocabulary)
 The simple concept vocabulary mapping, SNOMED, etc.
 
