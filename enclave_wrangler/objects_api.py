@@ -84,12 +84,12 @@ class EnclaveClient:
             url = first_page_url + '?pageToken=' + response_json["nextPageToken"]
         return results, response
 
-
     # todo?: Need to find the right object_type, then write a wrapper func around this to get concept sets
     #  - To Try: CodeSystemConceptSetVersionExpressionItem, OMOPConcept, OMOPConceptSet, OMOPConceptSetContainer,
     #    OmopConceptSetVersionItem
     def get_objects_by_type(
-        self, object_type: str, save_csv=True, save_json=True, outdir: str = None) -> pd.DataFrame:
+        self, object_type: str, save_csv=True, save_json=True, outdir: str = None
+    ) -> pd.DataFrame:
         """Get objects
         Docs: https://www.palantir.com/docs/foundry/api/ontology-resources/objects/list-objects/
         https://www.palantir.com/docs/foundry/api/ontology-resources/objects/object-basics/"""
@@ -222,7 +222,7 @@ class EnclaveClient:
     def get_ontologies(self) -> Union[List, Dict]:
         """Get ontologies
         Docs: https://unite.nih.gov/workspace/documentation/product/api-gateway/list-ontologies"""
-        response = enclave_get(f'{self.base_url}/api/v1/ontologies/')
+        response = enclave_get(f'{self.base_url}/api/v1/ontologies')
         response_json = response.json()
         return response_json
 
@@ -308,7 +308,4 @@ def cli():
 
 
 if __name__ == '__main__':
-    # cli()
-    client = EnclaveClient()
-    types = client.get_ontologies()
-    print()
+    cli()
