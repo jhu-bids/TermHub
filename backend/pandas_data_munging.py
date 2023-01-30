@@ -1,3 +1,5 @@
+import urllib
+
 from backend.utils import Bunch, cnt
 import numpy as np
 import pandas as pd
@@ -8,8 +10,10 @@ from enclave_wrangler.config import OUTDIR_DATASETS_TRANSFORMED, OUTDIR_OBJECTS
 from functools import cache
 from backend.utils import cnt, pdump
 from enclave_wrangler.datasets import download_favorite_datasets as update_termhub_csets
-from typing import Any, Dict, List, Union, Set
-from backend.app import get_container
+from typing import Any, Dict, List, Set
+
+from enclave_wrangler.utils import make_objects_request
+
 # from enclave_wrangler.dataset_upload import upload_new_container_with_concepts, upload_new_cset_version_with_concepts
 # from enclave_wrangler.new_enclave_api import make_objects_request
 
@@ -218,6 +222,12 @@ def load_globals():
 
   ds.links = ds.concept_relationship.groupby('concept_id_1')
   # ds.all_concept_relationship_cids = set(ds.concept_relationship.concept_id_1).union(set(ds.concept_relationship.concept_id_2))
+
+  @cache
+  def get_container(concept_set_name):
+    """This is for getting the RID of a dataset. This is available via the ontology API, not the dataset API.
+    TODO: This needs caching, but the @cache decorator is not working."""
+    return make_objects_request(f'objects/OMOPConceptSetContainer/{urllib.parse.quote(concept_set_name)}')
 
   @cache
   def child_cids(cid):
