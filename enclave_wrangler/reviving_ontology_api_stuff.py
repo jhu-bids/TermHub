@@ -7,8 +7,6 @@ TODO's
 # other api calls might be handy:
 #   concepts for concept set:
 #       http://127.0.0.1:8000/ontocall?path=objects/OMOPConceptSet/729489911/links/omopconcepts
-#   concepts for concept set:
-#       http://127.0.0.1:8000/ontocall?path=objects/OMOPConceptSet/729489911/links/omopconcepts
 #   linktypes:
 #       http://127.0.0.1:8000/linkTypesForObjectTypes
 """

@@ -24,14 +24,14 @@ import requests
 # import asyncio
 
 from enclave_wrangler.config import FAVORITE_OBJECTS, OUTDIR_OBJECTS, config, TERMHUB_CSETS_DIR
-from enclave_wrangler.utils import make_objects_request, enclave_post
+from enclave_wrangler.utils import enclave_get, enclave_post, make_objects_request
 
 # from enclave_wrangler.utils import log_debug_info
 
 
 HEADERS = {
-    # "authorization": f"Bearer {config['PALANTIR_ENCLAVE_AUTHENTICATION_BEARER_TOKEN']}",
-    "authorization": f"Bearer {config['OTHER_TOKEN']}",
+    "authorization": f"Bearer {config['PALANTIR_ENCLAVE_AUTHENTICATION_BEARER_TOKEN']}",
+    # "authorization": f"Bearer {config['OTHER_TOKEN']}",
     "Content-type": "application/json",
     #'content-type': 'application/json'
 }
@@ -62,18 +62,19 @@ class EnclaveClient:
          OMOPConceptSetContainer, OMOPConceptSetReview, OmopConceptChange, OmopConceptDomain, OmopConceptSetVersionItem,
         """
         url = f'{self.base_url}/api/v1/ontologies/{self.ontology_rid}/objectTypes'
-        response = requests.get(url, headers=self.headers)
+        response = enclave_get(url)
         response_json = response.json()['data']  # always returns everything in nested 'data' key
         # types = pd.DataFrame(data=response_json)
         # types = sorted([x['apiName'] for x in response_json])
         return response_json['data']
 
-    def _handle_paginated_request(self, first_page_url: str) -> (List[Dict], Response):
+    @staticmethod
+    def _handle_paginated_request(first_page_url: str) -> (List[Dict], Response):
         """Handles a request that has a nextPageToken, automatically fetching all pages and combining the data"""
         url = first_page_url
         results: List[Dict] = []
         while True:
-            response = requests.get(url, headers=self.headers)
+            response = enclave_get(url)
             response_json = response.json()
             if response.status_code >= 400:  # err
                 break
@@ -83,12 +84,12 @@ class EnclaveClient:
             url = first_page_url + '?pageToken=' + response_json["nextPageToken"]
         return results, response
 
-
     # todo?: Need to find the right object_type, then write a wrapper func around this to get concept sets
     #  - To Try: CodeSystemConceptSetVersionExpressionItem, OMOPConcept, OMOPConceptSet, OMOPConceptSetContainer,
     #    OmopConceptSetVersionItem
     def get_objects_by_type(
-        self, object_type: str, save_csv=True, save_json=True, outdir: str = None) -> pd.DataFrame:
+        self, object_type: str, save_csv=True, save_json=True, outdir: str = None
+    ) -> pd.DataFrame:
         """Get objects
         Docs: https://www.palantir.com/docs/foundry/api/ontology-resources/objects/list-objects/
         https://www.palantir.com/docs/foundry/api/ontology-resources/objects/object-basics/"""
@@ -196,7 +197,7 @@ class EnclaveClient:
                 }
             }
             url = f'{self.base_url}/ontology-metadata/api/ontology/linkTypesForObjectTypes'
-            response = requests.post(url, headers=self.headers, data=data)
+            response = enclave_post(url, data=data)
             # TODO:
             #   change to:
             #   response = enclave_post(url, data=data)
@@ -207,13 +208,50 @@ class EnclaveClient:
                 return cached_types
             raise err
 
-    def get_object_links(self, object_type: str, object_id: str, link_type: str) -> Response:
+    @staticmethod
+    def get_object_links(object_type: str, object_id: str, link_type: str) -> Response:
         """Get links of a given type for a given object
 
         Cavaets
         - If the `link_type` is not valid for a given `object_type`, you'll get a 404 not found.
         """
         return make_objects_request(f'objects/{object_type}/{object_id}/links/{link_type}')
+
+    # TODO: Why does this not work for Joe, but works for Siggie?:
+    # {'errorCode': 'INVALID_ARGUMENT', 'errorName': 'Default:InvalidArgument', 'errorInstanceId': '96596b59-39cb-4b68-b86f-36089815a22e', 'parameters': {}}
+    def get_ontologies(self) -> Union[List, Dict]:
+        """Get ontologies
+        Docs: https://unite.nih.gov/workspace/documentation/product/api-gateway/list-ontologies"""
+        response = enclave_get(f'{self.base_url}/api/v1/ontologies')
+        response_json = response.json()
+        return response_json
+
+    @staticmethod
+    def link_types() -> List[Dict]:
+        """Get link types
+        curl -H "Content-type: application/json" -H "Authorization: Bearer $OTHER_TOKEN" \
+        "https://unite.nih.gov/ontology-metadata/api/ontology/linkTypesForObjectTypes" --data '{
+            "objectTypeVersions": {
+                "ri.ontology.main.object-type.a11d04a3-601a-45a9-9bc2-5d0e77dd512e": "00000001-9834-2acf-8327-ecb491e69b5c"
+            }
+        }' | jq '..|objects|.apiName//empty'
+        """
+        headers = {
+            # "authorization": f"Bearer {config['PALANTIR_ENCLAVE_AUTHENTICATION_BEARER_TOKEN']}",
+            "authorization": f"Bearer {config['OTHER_TOKEN']}",
+            'Content-type': 'application/json',
+        }
+        data = {
+            "objectTypeVersions": {
+                "ri.ontology.main.object-type.a11d04a3-601a-45a9-9bc2-5d0e77dd512e":  # what RID is this?
+                    "00000001-9834-2acf-8327-ecb491e69b5c"  # what UUID is this?
+            }
+        }
+        api_path = '/ontology-metadata/api/ontology/linkTypesForObjectTypes'
+        url = f'https://{config["HOSTNAME"]}{api_path}'
+        response = enclave_post(url, data=data)
+        response_json = response.json()
+        return response_json
 
 
 def run(request_types: List[str]) -> Dict[str, Dict]:
