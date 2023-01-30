@@ -84,7 +84,7 @@ LEFT JOIN {{schema}}OMOPConceptSet ocs ON cs.codeset_id = ocs."codesetId" -- nee
 JOIN {{schema}}concept_set_container csc ON cs.concept_set_name = csc.concept_set_name
 LEFT JOIN {{schema}}omopconceptsetcontainer ocsc ON csc.concept_set_id = ocsc."conceptSetId"
 LEFT JOIN (
-	SELECT codeset_id, COUNT(DISTINCT concept_id) {{schema}}concepts
+	SELECT codeset_id, COUNT(DISTINCT concept_id) concepts
 	FROM {{schema}}concept_set_members
     GROUP BY codeset_id
 ) cids ON cs.codeset_id = cids.codeset_id
