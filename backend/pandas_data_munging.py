@@ -1,16 +1,14 @@
 import urllib
 
-from backend.utils import Bunch, cnt
-import numpy as np
+from backend.utils import Bunch
 import pandas as pd
-from subprocess import call as sp_call
 from pathlib import Path
 import os
 from enclave_wrangler.config import OUTDIR_DATASETS_TRANSFORMED, OUTDIR_OBJECTS
 from functools import cache
 from backend.utils import cnt, pdump
 from enclave_wrangler.datasets import download_favorite_datasets as update_termhub_csets
-from typing import Any, Dict, List, Set
+from typing import Dict, List, Set
 
 from enclave_wrangler.utils import make_objects_request
 
@@ -484,55 +482,3 @@ def data_stuff_for_codeset_ids(codeset_ids):
   dsi.concepts = DS2.concept[DS2.concept.concept_id.isin(leaf_cids.union(set(dsi.cset_members_items.concept_id)))]
 
   return dsi
-
-
-# TODO: (i) move most of this functionality out of route into separate function (potentially keeping this route which
-#  simply calls that function as well), (ii) can then connect that function as step in the routes that coordinate
-#  enclave uploads
-# TODO: git/patch changes: https://github.com/jhu-bids/TermHub/issues/165#issuecomment-1276557733
-def csets_git_update(dataset_path: str, row_index_data_map: Dict[int, Dict[str, Any]]) -> Dict:
-  """Update cset dataset. Works only on tabular files."""
-  # Vars
-  result = 'success'
-  details = ''
-  cset_dir = os.path.join(PROJECT_DIR, 'termhub-csets')
-  path_root = os.path.join(cset_dir, 'datasets')
-
-  # Update cset
-  # todo: dtypes need to be registered somewhere. perhaps a <CSV_NAME>_codebook.json()?, accessed based on filename,
-  #  and inserted here
-  # todo: check git status first to ensure clean? maybe doesn't matter since we can just add by filename
-  path = os.path.join(path_root, dataset_path)
-  # noinspection PyBroadException
-  try:
-    df = pd.read_csv(path, dtype={'id': np.int32, 'last_name': str, 'first_name': str}).fillna('')
-    for index, field_values in row_index_data_map.items():
-      for field, value in field_values.items():
-        df.at[index, field] = value
-    df.to_csv(path, index=False)
-  except BaseException as err:
-    result = 'failure'
-    details = str(err)
-
-  # Push commit
-  # todo?: Correct git status after change should show something like this near end: `modified: FILENAME`
-  relative_path = os.path.join('datasets', dataset_path)
-  # todo: Want to see result as string? only getting int: 1 / 0
-  #  ...answer: it's being printed to stderr and stdout. I remember there's some way to pipe and capture if needed
-  # TODO: What if the update resulted in no changes? e.g. changed values were same?
-  git_add_result = sp_call(f'git add {relative_path}'.split(), cwd=cset_dir)
-  if git_add_result != 0:
-    result = 'failure'
-    details = f'Error: Git add: {dataset_path}'
-  git_commit_result = sp_call(['git', 'commit', '-m', f'Updated by server: {relative_path}'], cwd=cset_dir)
-  if git_commit_result != 0:
-    result = 'failure'
-    details = f'Error: Git commit: {dataset_path}'
-  git_push_result = sp_call('git push origin HEAD:main'.split(), cwd=cset_dir)
-  if git_push_result != 0:
-    result = 'failure'
-    details = f'Error: Git push: {dataset_path}'
-
-  return {'result': result, 'details': details}
-
-
