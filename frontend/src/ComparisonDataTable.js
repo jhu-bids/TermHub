@@ -121,35 +121,30 @@ function ComparisonDataTable(props) {
     return (
         /* https://react-data-table-component.netlify.app/ */
         <div>
-            <div style={{ display: 'flex', flexWrap: 'wrap',
-                            flexDirection: 'row', margin: '20px', }}>
-                { card } {eInfo}
+            <div style={{ display: 'flex', flexWrap: 'wrap', flexDirection: 'row', margin: '20px', }}>
+                {eInfo}
             </div>
             <DataTable
                 customStyles={customStyles}
                 conditionalRowStyles={conditionalRowStyles}
                 className="comparison-data-table"
-                theme="custom-theme"
-                // theme="light"
+                theme="custom-theme" // theme="light"
                 columns={columns}
                 data={displayData.rowData}
-
                 dense
                 fixedHeader
                 fixedHeaderScrollHeight={(window.innerHeight - 275) + 'px'}
                 highlightOnHover
                 responsive
-                //striped
                 subHeaderAlign="right"
                 subHeaderWrap
-                //pagination
-                //selectableRowsComponent={Checkbox}
-                //selectableRowsComponentProps={selectProps}
-                //sortIcon={sortIcon}
-                // expandOnRowClicked
-                // expandableRows
-                // {...props}
+                //striped //pagination //selectableRowsComponent={Checkbox}
+                //selectableRowsComponentProps={selectProps} //sortIcon={sortIcon}
+                // expandOnRowClicked // expandableRows // {...props}
             />
+            <div style={{ display: 'flex', flexWrap: 'wrap', flexDirection: 'row', margin: '20px', }}>
+                { card }
+            </div>
         </div>
     );
 }
