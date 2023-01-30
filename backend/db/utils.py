@@ -2,6 +2,8 @@
 import json
 import os
 import re
+import dateutil.parser as dp
+from datetime import datetime, timezone
 
 import pandas as pd
 # noinspection PyUnresolvedReferences
@@ -35,6 +37,8 @@ def get_db_connection(isolation_level='AUTOCOMMIT', schema: str = SCHEMA):
         Ideally, we'd want to be able to call this whenever we want. But cannot be called outside of context of
         initializing a connection.
         """
+        if not schema:
+            return
         existing_autocommit = dbapi_connection.autocommit
         dbapi_connection.autocommit = True
         cursor = dbapi_connection.cursor()
@@ -43,6 +47,43 @@ def get_db_connection(isolation_level='AUTOCOMMIT', schema: str = SCHEMA):
         dbapi_connection.autocommit = existing_autocommit
 
     return engine.connect()
+
+
+def current_datetime():
+    """Get current datetime"""
+    return datetime.now(timezone.utc).isoformat()
+
+
+def is_up_to_date(last_updated: Union[datetime, str], threshold_hours=24) -> bool:
+    """Checks two datetimes and returns True if the first is less than threshold_hours old."""
+    if isinstance(last_updated, str):
+        last_updated = dp.parse(last_updated)
+    hours_since_update = (dp.parse(current_datetime()) - last_updated).total_seconds() / 60 / 60 \
+        if last_updated else threshold_hours + 1
+    return hours_since_update < threshold_hours
+
+
+def check_if_updated(key: str, skip_if_updated_within_hours: int = None) -> bool:
+    """Check if table is up to date"""
+    with get_db_connection(schema='') as con2:
+        last_updated = run_sql(con2, f"SELECT value FROM manage WHERE key = '{key}';").first()
+    last_updated = last_updated[0] if last_updated else None
+    return last_updated and is_up_to_date(last_updated, skip_if_updated_within_hours)
+
+
+def is_table_up_to_date(table_name: str, skip_if_updated_within_hours: int = None) -> bool:
+    """Check if table is up to date"""
+    last_updated_key = f'last_updated_{table_name}'
+    return check_if_updated(last_updated_key, skip_if_updated_within_hours)
+
+
+def update_db_status_var(key: str, val: str):
+    """Update the `manage` table with information for a given variable, e.g. when a table was last updated
+    todo: change to 1 line: INSERT OVERWRITE or UPDATE"""
+    with get_db_connection(schema='') as con2:
+        run_sql(con2, f"DELETE FROM manage WHERE key = '{key}';")
+        sql_str = f"INSERT INTO manage (key, value) VALUES ('{key}', '{val}');"
+        run_sql(con2, sql_str)
 
 
 def database_exists(con: Connection, db_name: str) -> bool:
@@ -94,7 +135,7 @@ def sql_query_single_col(*argv) -> List:
 
 
 def show_tables(con=get_db_connection(), print_dump=True):
-    """"""
+    """Show tables"""
     query = """
         SELECT n.nspname as "Schema", c.relname as "Name",
               CASE c.relkind WHEN 'r' THEN 'table' WHEN 'v' THEN 'view' WHEN 'm' THEN 'materialized view' WHEN 'i' THEN 'index' WHEN 'S' THEN 'sequence' WHEN 's' THEN 'special' WHEN 't' THEN 'TOAST table' WHEN 'f' THEN 'foreign table' WHEN 'p' THEN 'partitioned table' WHEN 'I' THEN 'partitioned index' END as "Type",
@@ -180,3 +221,5 @@ def load_csv(
                 raise err
     else:
         df.to_sql(table, con, **kwargs)
+
+    update_db_status_var(f'last_updated_{table}', str(current_datetime()))
