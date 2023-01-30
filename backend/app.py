@@ -221,6 +221,7 @@ def hierarchy(codeset_ids: List[int] = None, selected_concept_ids: List[int] = N
     if not selected_concept_ids:
         selected_concept_ids = get_concept_set_member_ids(codeset_ids, column='concept_id')
 
+    # selected_roots: List[int] = top_level_cids(selected_concept_ids)
     added_count: Dict[int, int] = {}
     def recurse(ids):
         x = {}
@@ -229,6 +230,8 @@ def hierarchy(codeset_ids: List[int] = None, selected_concept_ids: List[int] = N
             x[id] = recurse(children)
             added_count[id] = added_count.get(id, 0) + 1
         return x
+
+    # d = recurse(selected_roots)
     d = recurse(selected_concept_ids)
 
     # remove duplicate trees at root
@@ -376,7 +379,7 @@ def cr_hierarchy(rec_format: str = 'default', codeset_id: Union[str, None] = Que
     items = [mi for mi in cset_members_items if mi['item']]
     item_concept_ids = list(set([i['concept_id'] for i in items]))
 
-    # nh = new_hierarchy(root_cids=concept_ids, cids=concept_ids)
+    h = hierarchy(root_cids=item_concept_ids, cids=concept_ids)
     # nh = new_hierarchy(root_cids=item_concept_ids, cids=concept_ids)
 
     related_csets = get_related_csets(codeset_ids=codeset_ids, selected_concept_ids=cset_member_ids)
