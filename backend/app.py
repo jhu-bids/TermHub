@@ -4,10 +4,13 @@ Resources
 - https://github.com/tiangolo/fastapi
 """
 import json
+import os
 from io import StringIO
+from pathlib import Path
 from typing import Any, Dict, List, Union
 from functools import cache
 
+import numpy as np
 import pandas as pd
 import uvicorn
 import urllib.parse
@@ -16,9 +19,9 @@ from fastapi.middleware.cors import CORSMiddleware
 from fastapi.middleware.gzip import GZipMiddleware
 from pydantic import BaseModel
 from sqlalchemy.engine import LegacyRow, RowMapping
+from subprocess import call as sp_call
 
 from backend.db.queries import get_all_parent_children_map
-from backend.pandas_data_munging import csets_git_update
 from backend.utils import JSON_TYPE
 from enclave_wrangler.dataset_upload import upload_new_container_with_concepts, \
     upload_new_cset_container_with_concepts_from_csv, upload_new_cset_version_with_concepts, \
@@ -28,6 +31,8 @@ from enclave_wrangler.config import RESEARCHER_COLS
 
 from backend.db.utils import get_db_connection, sql_query, SCHEMA, sql_query_single_col
 
+
+PROJECT_DIR = Path(os.path.dirname(__file__)).parent
 # CON: using a global connection object is probably a terrible idea, but shouldn't matter much until there are multiple
 # users on the same server
 APP = FastAPI()
@@ -680,6 +685,56 @@ def route_csv_upload_new_container_with_concepts(data: UploadCsvVersionWithConce
     # print('CSV upload result: ')
     # print(json.dumps(response, indent=2))
     return response
+
+
+# TODO: (i) move most of this functionality out of route into separate function (potentially keeping this route which
+#  simply calls that function as well), (ii) can then connect that function as step in the routes that coordinate
+#  enclave uploads
+# TODO: git/patch changes: https://github.com/jhu-bids/TermHub/issues/165#issuecomment-1276557733
+def csets_git_update(dataset_path: str, row_index_data_map: Dict[int, Dict[str, Any]]) -> Dict:
+  """Update cset dataset. Works only on tabular files."""
+  # Vars
+  result = 'success'
+  details = ''
+  cset_dir = os.path.join(PROJECT_DIR, 'termhub-csets')
+  path_root = os.path.join(cset_dir, 'datasets')
+
+  # Update cset
+  # todo: dtypes need to be registered somewhere. perhaps a <CSV_NAME>_codebook.json()?, accessed based on filename,
+  #  and inserted here
+  # todo: check git status first to ensure clean? maybe doesn't matter since we can just add by filename
+  path = os.path.join(path_root, dataset_path)
+  # noinspection PyBroadException
+  try:
+    df = pd.read_csv(path, dtype={'id': np.int32, 'last_name': str, 'first_name': str}).fillna('')
+    for index, field_values in row_index_data_map.items():
+      for field, value in field_values.items():
+        df.at[index, field] = value
+    df.to_csv(path, index=False)
+  except BaseException as err:
+    result = 'failure'
+    details = str(err)
+
+  # Push commit
+  # todo?: Correct git status after change should show something like this near end: `modified: FILENAME`
+  relative_path = os.path.join('datasets', dataset_path)
+  # todo: Want to see result as string? only getting int: 1 / 0
+  #  ...answer: it's being printed to stderr and stdout. I remember there's some way to pipe and capture if needed
+  # TODO: What if the update resulted in no changes? e.g. changed values were same?
+  git_add_result = sp_call(f'git add {relative_path}'.split(), cwd=cset_dir)
+  if git_add_result != 0:
+    result = 'failure'
+    details = f'Error: Git add: {dataset_path}'
+  git_commit_result = sp_call(['git', 'commit', '-m', f'Updated by server: {relative_path}'], cwd=cset_dir)
+  if git_commit_result != 0:
+    result = 'failure'
+    details = f'Error: Git commit: {dataset_path}'
+  git_push_result = sp_call('git push origin HEAD:main'.split(), cwd=cset_dir)
+  if git_push_result != 0:
+    result = 'failure'
+    details = f'Error: Git push: {dataset_path}'
+
+  return {'result': result, 'details': details}
 
 
 # TODO: figure out where we want to put this. models.py? Create route files and include class along w/ route func?
