@@ -11,13 +11,15 @@ from functools import cache
 import pandas as pd
 import uvicorn
 import urllib.parse
-from fastapi import FastAPI, File, Form, Query, UploadFile
+from fastapi import FastAPI, Query
 from fastapi.middleware.cors import CORSMiddleware
 from fastapi.middleware.gzip import GZipMiddleware
 from pydantic import BaseModel
 from sqlalchemy.engine import LegacyRow, RowMapping
 
 from backend.db.queries import get_all_parent_children_map
+from backend.pandas_data_munging import csets_git_update
+from backend.utils import JSON_TYPE
 from enclave_wrangler.dataset_upload import upload_new_container_with_concepts, \
     upload_new_cset_container_with_concepts_from_csv, upload_new_cset_version_with_concepts, \
     upload_new_cset_version_with_concepts_from_csv
@@ -89,9 +91,12 @@ def get_concept_set_member_ids(
 
 # TODO
 #  i. Keys in our old `get_csets` that are not there anymore:
-#   ['precision', 'status_container', 'concept_set_id', 'rid', 'selected', 'created_at_container', 'created_at_version', 'intention_container', 'researchers', 'intention_version', 'created_by_container', 'intersecting_concepts', 'recall', 'status_version', 'created_by_version']
+#   ['precision', 'status_container', 'concept_set_id', 'rid', 'selected', 'created_at_container', 'created_at_version'
+#   , 'intention_container', 'researchers', 'intention_version', 'created_by_container', 'intersecting_concepts',
+#   'recall', 'status_version', 'created_by_version']
 #  ii. Keys in our new `get_csets` that were not there previously:
-#   ['created_at', 'container_intentionall_csets', 'created_by', 'container_created_at', 'status', 'intention', 'container_status', 'container_created_by']
+#   ['created_at', 'container_intentionall_csets', 'created_by', 'container_created_at', 'status', 'intention',
+#   'container_status', 'container_created_by']
 #  fixes:
 #       probably don't need precision etc.
 #       switched _container suffix on duplicate col names to container_ prefix
@@ -133,7 +138,7 @@ def get_all_researcher_ids(rows: List[Dict]):
     return set([r[c] for r in rows for c in RESEARCHER_COLS if r[c]])
 
 
-def get_researchers(ids: List[str], fields: List[str] = None) -> List[Dict]:
+def get_researchers(ids: List[str], fields: List[str] = None) -> JSON_TYPE:
     """Get researcher info for list of multipassIds.
     fields is the list of fields to return from researcher table; defaults to * if None."""
     if fields:
@@ -152,6 +157,7 @@ def get_researchers(ids: List[str], fields: List[str] = None) -> List[Dict]:
         if id not in res2:
             res2[id] = {"multipassId": id, "name": "unknown", "emailAddress": id}
     return res2
+
 
 def get_concepts(concept_ids: List[int], con=CON) -> List[Dict]:
     """Get information about concept sets the user has selected"""
@@ -195,6 +201,12 @@ def get_related_csets(codeset_ids: List[int] = None, selected_concept_ids: List[
 
 
 def get_cset_members_items(codeset_ids: List[int] = None, con=CON) -> List[LegacyRow]:
+    """Get concept set members items for selected concept sets
+        returns:
+        ...
+        item: True if its an expression item, else false
+        csm: false if not in concept set members
+    """
     return sql_query(
         con, f""" 
         SELECT *
@@ -211,16 +223,18 @@ def hierarchy(codeset_ids: List[int] = None, selected_concept_ids: List[int] = N
 
     # selected_roots: List[int] = top_level_cids(selected_concept_ids)
     added_count: Dict[int, int] = {}
+
     def recurse(ids):
+        """Recurse"""
         x = {}
-        for id in ids:
-            children = CACHE['all_parent_children_map'].get(id, [])
-            x[id] = recurse(children)
-            added_count[id] = added_count.get(id, 0) + 1
+        for i in ids:
+            children = CACHE['all_parent_children_map'].get(i, [])
+            x[i] = recurse(children)
+            added_count[i] = added_count.get(i, 0) + 1
         return x
     # d = recurse(selected_roots)
     d = recurse(selected_concept_ids)
-
+    
     # remove duplicate trees at root
     for _id, count in added_count.items():
         if count > 1:
@@ -249,8 +263,8 @@ WITH RECURSIVE hier(concept_id_1, concept_id_2, path, depth) AS (
     FROM concept_relationship
     WHERE concept_id_1 IN ( -- top level cids for 8 codeset_ids above
         45946655, 3120383, 3124992, 40545247, 3091356, 3099596, 3124987, 40297860, 40345759, 45929656, 3115991, 40595784, 44808268, 3164757, 40545248, 45909769,
-        45936903, 40545669, 45921434, 45917166, 4110177, 3141624, 40316548, 44808238, 4169883, 45945309, 3124228, 40395876, 3151089, 40316547, 40563017, 44793048,
-        ...
+        45936903, 40545669, 45921434, 45917166, 4110177, 3141624, 40316548, 44808238, 4169883, 45945309, 3124228, 40395876, 3151089, 40316547, 40563017, 44793048
+        -- ...
     )
     UNION
     SELECT cr.concept_id_1,
@@ -466,16 +480,16 @@ def cr_hierarchy(rec_format: str = 'default', codeset_id: Union[str, None] = Que
     return result
 
 
-@APP.get("/cset-download")  # maybe junk, or maybe start of a refactor of above
-def cset_download(codeset_id: int) -> Dict:
-    """Download concept set"""
-    dsi = data_stuff_for_codeset_ids([codeset_id])
-
-    concepts = DS2.concept[DS2.concept.concept_id.isin(set(dsi.cset_members_items.concept_id))]
-    cset = DS2.all_csets[DS2.all_csets.codeset_id == codeset_id].to_dict(orient='records')[0]
-    cset['concept_count'] = cset['concepts']
-    cset['concepts'] = concepts.to_dict(orient='records')
-    return cset
+# @APP.get("/cset-download")  # maybe junk, or maybe start of a refactor of above
+# def cset_download(codeset_id: int) -> Dict:
+#     """Download concept set"""
+#     dsi = data_stuff_for_codeset_ids([codeset_id])
+#
+#     concepts = DS2.concept[DS2.concept.concept_id.isin(set(dsi.cset_members_items.concept_id))]
+#     cset = DS2.all_csets[DS2.all_csets.codeset_id == codeset_id].to_dict(orient='records')[0]
+#     cset['concept_count'] = cset['concepts']
+#     cset['concepts'] = concepts.to_dict(orient='records')
+#     return cset
 
 
 # todo: Some redundancy. (i) should only need concept_set_name once
