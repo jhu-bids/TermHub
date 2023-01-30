@@ -12,6 +12,7 @@ import { // Link, useHref, useParams, BrowserRouter,
           Outlet, Navigate, useSearchParams, useLocation,
           createSearchParams, Routes, Route, redirect, } from "react-router-dom";
 import MuiAppBar from "./MuiAppBar";
+import Box from '@mui/material/Box';
 // import {createTheme, ThemeProvider } from '@mui/material/styles';
 import { // useMutation, // useQueryClient,
           QueryClient, useQuery, useQueries, QueryClientProvider, } from '@tanstack/react-query'
@@ -26,6 +27,7 @@ import {SingleCsetEdit} from "./SingleCsetEdit";
 import {searchParamsToObj, axiosGet, backend_url, useDataWidget} from "./utils";
 import {UploadCsvPage} from "./UploadCsv";
 // import logo from './logo.svg';
+import { useIsFetching } from '@tanstack/react-query' // https://tanstack.com/query/v4/docs/react/guides/background-fetching-indicators
 // import dotenv from 'dotenv';
 // import * as dotenv from 'dotenv' // see https://github.com/motdotla/dotenv#how-do-i-use-dotenv-with-import
 // dotenv.config()
@@ -154,11 +156,35 @@ function DataContainer(props) {
   let {codeset_ids, } = props;
   const all_csets_url = 'get-all-csets';
   const cset_data_url = 'cr-hierarchy?rec_format=flat&codeset_id=' + codeset_ids.join('|');
-  const [all_csets_widget, all_csets] = useDataWidget("all_csets", all_csets_url);
-  const [cset_data_widget, cset_data] = useDataWidget(codeset_ids.join('|'), cset_data_url);
+
+  /* TODO: This is a total disaster. do something with it */
+  const [all_csets_widget, acprops] = useDataWidget("all_csets", all_csets_url);
+  const [cset_data_widget, csprops] = useDataWidget(codeset_ids.join('|'), cset_data_url);
+  const all_csets = acprops.data;
+  const cset_data = csprops.data;
+  /*
+  const [all_csets, setAll_csets] = useState([]);
+  const [cset_data, setCset_data] = useState({});
+  const acprops = useQuery(["all_csets"], () => axiosGet(all_csets_url));
+  const csprops = useQuery([codeset_ids.join('|')], () => axiosGet(cset_data_url));
+  // const csprops = useQuery(codeset_ids, () => axiosGet(cset_data_url));
+  useEffect(() => {
+    // console.log('ac', acprops.status);
+    console.log(acprops);
+    if (acprops.status === 'success') {
+      setAll_csets(acprops.data);
+    }
+  }, [acprops]);
+  */
+  useEffect(() => {
+    console.log(csprops);
+    // console.log('ac', csprops.status);
+    if (csprops.status === 'success') {
+      // setCset_data(csprops.data);
+    }
+  }, [csprops.status]);
 
   if (all_csets && cset_data) {
-    console.log('does this get run often?');
     cset_data.concepts_map = keyBy(cset_data.concepts, 'concept_id');
     return  <RoutesContainer {...props} all_csets={all_csets} cset_data={cset_data}/>
   }

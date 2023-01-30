@@ -5,9 +5,11 @@ Resources
 """
 import json
 import os
+import re
+from datetime import datetime
 from io import StringIO
 from pathlib import Path
-from typing import Any, Dict, List, Union
+from typing import Any, Dict, List, Set, Union
 from functools import cache
 
 import numpy as np
@@ -21,7 +23,6 @@ from pydantic import BaseModel
 from sqlalchemy.engine import LegacyRow, RowMapping
 from subprocess import call as sp_call
 
-from backend.db.queries import get_all_parent_children_map
 from backend.utils import JSON_TYPE
 from enclave_wrangler.dataset_upload import upload_new_container_with_concepts, \
     upload_new_cset_container_with_concepts_from_csv, upload_new_cset_version_with_concepts, \
@@ -44,9 +45,9 @@ APP.add_middleware(
 )
 APP.add_middleware(GZipMiddleware, minimum_size=1000)
 CON = get_db_connection()
-CACHE = {
-    'all_parent_children_map': get_all_parent_children_map(CON)
-}
+# CACHE = {  # this was for hierarchy()
+#     'all_parent_children_map': get_all_parent_children_map(CON)
+# }
 
 
 # Utility functions ----------------------------------------------------------------------------------------------------
@@ -133,17 +134,18 @@ def get_row_researcher_ids_dict(row: Dict):
         role = row[col]
         if not role:
             continue
-        if not role in roles:
+        if role not in roles:
             roles[row[col]] = []
         roles[row[col]].append(col)
     return roles
 
 
-def get_all_researcher_ids(rows: List[Dict]):
+def get_all_researcher_ids(rows: List[Dict]) -> Set[str]:
+    """Get researcher ids"""
     return set([r[c] for r in rows for c in RESEARCHER_COLS if r[c]])
 
 
-def get_researchers(ids: List[str], fields: List[str] = None) -> JSON_TYPE:
+def get_researchers(ids: Set[str], fields: List[str] = None) -> JSON_TYPE:
     """Get researcher info for list of multipassIds.
     fields is the list of fields to return from researcher table; defaults to * if None."""
     if fields:
@@ -158,13 +160,13 @@ def get_researchers(ids: List[str], fields: List[str] = None) -> JSON_TYPE:
     """
     res: List[RowMapping] = sql_query(CON, query, {'id': list(ids)}, return_with_keys=True)
     res2 = {r['multipassId']: dict(r) for r in res}
-    for id in ids:
-        if id not in res2:
-            res2[id] = {"multipassId": id, "name": "unknown", "emailAddress": id}
+    for _id in ids:
+        if _id not in res2:
+            res2[_id] = {"multipassId": _id, "name": "unknown", "emailAddress": _id}
     return res2
 
 
-def get_concepts(concept_ids: List[int], con=CON) -> List[Dict]:
+def get_concepts(concept_ids: List[int], con=CON) -> List:
     """Get information about concept sets the user has selected"""
     rows: List[LegacyRow] = sql_query(
         con, """
@@ -177,12 +179,19 @@ def get_concepts(concept_ids: List[int], con=CON) -> List[Dict]:
 
 # TODO
 #  i. Keys in our old `related_csets` that are not there anymore:
-#   ['precision', 'status_container', 'concept_set_id', 'selected', 'created_at_container', 'created_at_version', 'intention_container', 'intention_version', 'created_by_container', 'intersecting_concepts', 'recall', 'status_version', 'created_by_version']
+#   ['precision', 'status_container', 'concept_set_id', 'selected', 'created_at_container', 'created_at_version',
+#   'intention_container', 'intention_version', 'created_by_container', 'intersecting_concepts', 'recall',
+#   'status_version', 'created_by_version']
 #  ii. Keys in our new `related_csets` that were not there previously:
-#   ['created_at', 'container_intentionall_csets', 'created_by', 'container_created_at', 'status', 'intention', 'container_status', 'container_created_by']
+#   ['created_at', 'container_intentionall_csets', 'created_by', 'container_created_at', 'status', 'intention',
+#   'container_status', 'container_created_by']
 #  see fixes above. i think everything here is fixed now
-def get_related_csets(codeset_ids: List[int] = None, selected_concept_ids: List[int] = None, con=CON) -> List[Dict]:
+# TODO: Performance: takes ~75sec on http://127.0.0.1:8000/cr-hierarchy?format=flat&codeset_id=400614256|87065556
+def get_related_csets(
+    codeset_ids: List[int] = None, selected_concept_ids: List[int] = None, con=CON, verbose=True
+) -> List[Dict]:
     """Get information about concept sets related to those selected by user"""
+    t0 = datetime.now()
     if codeset_ids and not selected_concept_ids:
         selected_concept_ids = get_concept_set_member_ids(codeset_ids, column='concept_id')
     query = """
@@ -202,6 +211,9 @@ def get_related_csets(codeset_ids: List[int] = None, selected_concept_ids: List[
         cset['recall'] = cset['intersecting_concepts'] / selected_cid_cnt
         cset['precision'] = cset['intersecting_concepts'] / len(cids)
         cset['selected'] = cset['codeset_id'] in codeset_ids
+    t1 = datetime.now()
+    if verbose:
+        print('get_related_csets(): Completed in ', (t1 - t0).seconds, ' seconds')
     return related_csets
 
 
@@ -220,40 +232,54 @@ def get_cset_members_items(codeset_ids: List[int] = None, con=CON) -> List[Legac
         """,
         {'codeset_ids': codeset_ids})
 
-def new_hierarchy(root_cids: List[int], cids: List[int], con=CON) -> Dict:
-    q = sql_query(
-        con, f""" 
+
+def get_parent_children_map(root_cids: List[int], cids: List[int], con=CON) -> Dict[int, List[int]]:
+    """New hierarchy info from sql"""
+    # int(x): Prevents SQL injection by throwing error if not an integer
+    root_cids: List[int] = [int(x) for x in root_cids]
+    cids: List[int] = [int(x) for x in cids]
+    root_cids: str = ', '.join([str(x) for x in root_cids]) or 'NULL'
+    cids: str = ', '.join([str(x) for x in cids]) or 'NULL'
+    query = f""" 
         SELECT *
         FROM concept_ancestor
-        WHERE ancestor_concept_id = ANY(:root_cids)
-          AND descendant_concept_id = ANY(:cids)
+        WHERE ancestor_concept_id IN(:root_cids)
+          AND descendant_concept_id IN(:cids)
           AND min_levels_of_separation > 0
         ORDER BY ancestor_concept_id, min_levels_of_separation
-        """,
-        {'root_cids': root_cids, 'cids': cids})
-    return q
+        """
+    query = query.replace(':root_cids', root_cids).replace(':cids', cids)
+    relationships: List[Dict] = [dict(x) for x in sql_query(con, query, return_with_keys=True)]
+    direct_relationships: List[Dict] = [
+        x for x in relationships if x['min_levels_of_separation'] == 1 and x['max_levels_of_separation'] == 1]
+    parent_children_map: Dict[int, List[int]] = {}
+    for x in direct_relationships:
+        parent_children_map.setdefault(x['ancestor_concept_id'], []).append(x['descendant_concept_id'])
+    return parent_children_map
 
-def hierarchy(codeset_ids: List[int] = None, selected_concept_ids: List[int] = None) -> Dict:
-    """Get hierarchy of concepts in selected concept sets"""
-    if not selected_concept_ids:
-        selected_concept_ids = get_concept_set_member_ids(codeset_ids, column='concept_id')
 
-    # selected_roots: List[int] = top_level_cids(selected_concept_ids)
+def hierarchy(root_cids: List[int], selected_concept_ids: List[int]) -> (Dict[int, Union[Dict, None]], List[int]):
+    """Get hierarchy of concepts in selected concept sets
+    :returns: (i) Dict: Hierarchy, (ii) List: Orphans"""
+    parent_children_map: Dict[int, List[int]] = get_parent_children_map(root_cids, selected_concept_ids)
     added_count: Dict[int, int] = {}
 
-    def recurse(ids):
-        """Recurse"""
+    def recurse(ids: List[int]):
+        """Recursively build hierarchy
+        Requires variables in outer scope: (i) parent_children_map, (ii) added_count
+        Side effects: (i) updates added_count"""
+        if not ids:
+            return None
         x = {}
         for i in ids:
-            children = CACHE['all_parent_children_map'].get(i, [])
+            children = parent_children_map.get(i, [])
             x[i] = recurse(children)
             added_count[i] = added_count.get(i, 0) + 1
         return x
 
-    # d = recurse(selected_roots)
-    d = recurse(selected_concept_ids)
-    
-    # remove duplicate trees at root
+    d: Dict[int, Union[Dict, None]] = recurse(root_cids)
+
+    # Remove duplicate trees at root
     for _id, count in added_count.items():
         if count > 1:
             try:
@@ -261,12 +287,9 @@ def hierarchy(codeset_ids: List[int] = None, selected_concept_ids: List[int] = N
             except KeyError:
                 pass
 
-    # todo: this reverts new way of indicating 'no children' back to null. any more seemly way to do?
-    d2 = json.dumps(d)
-    d2 = d2.replace('{}', 'null')
-    d3 = json.loads(d2)
+    orphans: List[int] = list(set(selected_concept_ids) - set(added_count.keys()))
 
-    return d3
+    return d, orphans
 
 
 junk = """  -- retaining hierarchical query (that's not working, for possible future reference)
@@ -280,8 +303,10 @@ WITH RECURSIVE hier(concept_id_1, concept_id_2, path, depth) AS (
           0 AS depth
     FROM concept_relationship
     WHERE concept_id_1 IN ( -- top level cids for 8 codeset_ids above
-        45946655, 3120383, 3124992, 40545247, 3091356, 3099596, 3124987, 40297860, 40345759, 45929656, 3115991, 40595784, 44808268, 3164757, 40545248, 45909769,
-        45936903, 40545669, 45921434, 45917166, 4110177, 3141624, 40316548, 44808238, 4169883, 45945309, 3124228, 40395876, 3151089, 40316547, 40563017, 44793048
+        45946655, 3120383, 3124992, 40545247, 3091356, 3099596, 3124987, 40297860, 40345759, 45929656, 3115991, 
+        40595784, 44808268, 3164757, 40545248, 45909769,
+        45936903, 40545669, 45921434, 45917166, 4110177, 3141624, 40316548, 44808238, 4169883, 
+        45945309, 3124228, 40395876, 3151089, 40316547, 40563017, 44793048
         -- ...
     )
     UNION
@@ -302,7 +327,7 @@ ORDER BY path;
 def child_cids(concept_id: int, con=CON) -> List[Dict]:
     """Get child concept ids"""
     # selected_concept_ids = get_concept_set_member_ids([concept_id])
-    child_cids = sql_query_single_col(
+    cids = sql_query_single_col(
         con, f""" 
         SELECT DISTINCT concept_id_2
         FROM concept_relationship cr
@@ -310,7 +335,7 @@ def child_cids(concept_id: int, con=CON) -> List[Dict]:
           AND cr.relationship_id = 'Subsumes'
         """,
         {'concept_id': concept_id})
-    return child_cids
+    return cids
 
 
 def get_all_csets(con=CON) -> Union[Dict, List]:
@@ -370,25 +395,26 @@ def _cset_members_items(codeset_id: Union[str, None] = Query(default=''), ) -> L
 
 
 @APP.get("/hierarchy")
-def _hierarchy(codeset_id: Union[str, None] = Query(default=''), ) -> Dict:
+def _hierarchy(
+    root_cids: List[int], selected_concept_ids: List[int] = Query(default='')
+) -> Dict[int, Union[Dict, None]]:
     """Route for: hierarchy()"""
-    codeset_ids: List[int] = parse_codeset_ids(codeset_id)
-    return hierarchy(codeset_ids=codeset_ids)
+    h, orphans = hierarchy(root_cids, selected_concept_ids)
+    return h
 
 
 # TODO: get back to how we had it before RDBMS refactor
 @APP.get("/cr-hierarchy")
 def cr_hierarchy(rec_format: str = 'default', codeset_id: Union[str, None] = Query(default=''), ) -> Dict:
-
-    # TODO: TEMP FOR TESTING. #191 isn't a problem with the old json data
-    # fp = open(r'./backend/old_cr-hierarchy_samples/cr-hierarchy - example1 - before refactor.json')
-    # return json.load(fp)
-
     """Get concept relationship hierarchy
 
     Example:
     http://127.0.0.1:8000/cr-hierarchy?format=flat&codeset_id=400614256|87065556
     """
+    # TODO: TEMP FOR TESTING. #191 isn't a problem with the old json data
+    # fp = open(r'./backend/old_cr-hierarchy_samples/cr-hierarchy - example1 - before refactor.json')
+    # return json.load(fp)
+
     codeset_ids: List[int] = parse_codeset_ids(codeset_id)
     cset_member_ids: List[int] = get_concept_set_member_ids(codeset_ids, column='concept_id')
     cset_members_items = get_cset_members_items(codeset_ids)
@@ -398,8 +424,27 @@ def cr_hierarchy(rec_format: str = 'default', codeset_id: Union[str, None] = Que
     items = [mi for mi in cset_members_items if mi['item']]
     item_concept_ids = list(set([i['concept_id'] for i in items]))
 
-    h = hierarchy(root_cids=item_concept_ids, cids=concept_ids)
+    # hierarchy --------
+    h, orphans = hierarchy(item_concept_ids, concept_ids)
     # nh = new_hierarchy(root_cids=item_concept_ids, cids=concept_ids)
+    # h = hierarchy(selected_concept_ids=concept_ids)
+
+    # TODO: Fix: concepts missing from hierarchy that shouldn't be:
+    hh = json.dumps(h)
+    hierarchy_concept_ids = [int(x) for x in re.findall(r'\d+', hh)]
+    # # diff for: http://127.0.0.1:8000/cr-hierarchy?rec_format=flat&codeset_id=400614256|87065556
+    # #  {4218499, 4198296, 4215961, 4255399, 4255400, 4255401, 4147509, 252341, 36685758, 4247107, 4252356, 42536648,
+    # 4212441, 761062, 259055, 4235260}
+    # diff = set(cset_member_ids).difference(hierarchy_concept_ids)
+
+    # TODO: siggie was working on something here
+    # o = json.load(fp)['hierarchy']
+    # n = result['hierarchy']
+    # print(f"o.keys() == n.keys(): {set(o.keys()) == set(n.keys())}")
+    # for k,v in o.items():
+    #     if not v == n[k]:
+    #         print(k, o[k], n[k])
+    # --------- hierarchy
 
     related_csets = get_related_csets(codeset_ids=codeset_ids, selected_concept_ids=cset_member_ids)
     selected_csets = [cset for cset in related_csets if cset['selected']]
@@ -407,37 +452,19 @@ def cr_hierarchy(rec_format: str = 'default', codeset_id: Union[str, None] = Que
     researchers = get_researchers(researcher_ids)
 
     result = {
-        # # todo: Check related_csets() to see its todo's
+        # todo: Check related_csets() to see its todo's
         'related_csets': related_csets,
-        # # todo: Check get_csets() to see its todo's
+        # todo: Check get_csets() to see its todo's
         'selected_csets': selected_csets,
         'researchers': researchers,
         'cset_members_items': cset_members_items,
-        'hierarchy': hierarchy(selected_concept_ids=concept_ids),
+        'hierarchy': h,
         # todo: concepts
-        'concepts': [],
+        'concepts': get_concepts(concept_ids),
         # todo: frontend not making use of data_counts yet but will need
         'data_counts': [],
+        'orphans': orphans,
     }
-
-    # TODO: Fix: concepts missing from hierarchy that shouldn't be:
-    h = result['hierarchy']
-    hh = json.dumps(h)
-    import re
-    hierarchy_concept_ids = [int(x) for x in re.findall(r'\d+', hh)]
-    # diff for: http://127.0.0.1:8000/cr-hierarchy?rec_format=flat&codeset_id=400614256|87065556
-    #  {4218499, 4198296, 4215961, 4255399, 4255400, 4255401, 4147509, 252341, 36685758, 4247107, 4252356, 42536648, 4212441, 761062, 259055, 4235260}
-    diff = set(cset_member_ids).difference(hierarchy_concept_ids)
-
-    # TODO: siggie was working on something here
-    result['concepts'] = get_concepts(hierarchy_concept_ids)
-
-    # o = json.load(fp)['hierarchy']
-    # n = result['hierarchy']
-    # print(f"o.keys() == n.keys(): {set(o.keys()) == set(n.keys())}")
-    # for k,v in o.items():
-    #     if not v == n[k]:
-    #         print(k, o[k], n[k])
 
     return result
 
@@ -519,7 +546,7 @@ def route_upload_new_cset_version_with_concepts(d: UploadNewCsetVersionWithConce
     # result = csets_update(dataset_path='', row_index_data_map={})
     response = upload_new_cset_version_with_concepts(**d.__dict__)
 
-    return {}  # todo: return. should include: assigned codeset_id's
+    return response  # todo: return. should include: assigned codeset_id's
 
 
 # todo: Some redundancy. (i) should only need concept_set_name once
@@ -612,10 +639,11 @@ def route_upload_new_container_with_concepts(d: UploadNewContainerWithConcepts) 
         container=d.container,
         versions_with_concepts=d.versions_with_concepts)
 
-    return {}  # todo: return. should include: assigned codeset_id's
+    return response  # todo: return. should include: assigned codeset_id's
 
 
 class UploadCsvVersionWithConcepts(BaseModel):
+    """Base model for route: /upload-csv-new-cset-version-with-concepts"""
     csv: str
 
 
@@ -630,7 +658,7 @@ def route_csv_upload_new_cset_version_with_concepts(data: UploadCsvVersionWithCo
     # print(json.dumps(response, indent=2))
 
     # return response # seems to be causing error
-    return {"status": "success, I think"}
+    return {"status": "success, I think", "response": response}
 
 
 @APP.post("/upload-csv-new-container-with-concepts")
@@ -649,49 +677,49 @@ def route_csv_upload_new_container_with_concepts(data: UploadCsvVersionWithConce
 #  enclave uploads
 # TODO: git/patch changes: https://github.com/jhu-bids/TermHub/issues/165#issuecomment-1276557733
 def csets_git_update(dataset_path: str, row_index_data_map: Dict[int, Dict[str, Any]]) -> Dict:
-  """Update cset dataset. Works only on tabular files."""
-  # Vars
-  result = 'success'
-  details = ''
-  cset_dir = os.path.join(PROJECT_DIR, 'termhub-csets')
-  path_root = os.path.join(cset_dir, 'datasets')
+    """Update cset dataset. Works only on tabular files."""
+    # Vars
+    result = 'success'
+    details = ''
+    cset_dir = os.path.join(PROJECT_DIR, 'termhub-csets')
+    path_root = os.path.join(cset_dir, 'datasets')
 
-  # Update cset
-  # todo: dtypes need to be registered somewhere. perhaps a <CSV_NAME>_codebook.json()?, accessed based on filename,
-  #  and inserted here
-  # todo: check git status first to ensure clean? maybe doesn't matter since we can just add by filename
-  path = os.path.join(path_root, dataset_path)
-  # noinspection PyBroadException
-  try:
-    df = pd.read_csv(path, dtype={'id': np.int32, 'last_name': str, 'first_name': str}).fillna('')
-    for index, field_values in row_index_data_map.items():
-      for field, value in field_values.items():
-        df.at[index, field] = value
-    df.to_csv(path, index=False)
-  except BaseException as err:
-    result = 'failure'
-    details = str(err)
+    # Update cset
+    # todo: dtypes need to be registered somewhere. perhaps a <CSV_NAME>_codebook.json()?, accessed based on filename,
+    #  and inserted here
+    # todo: check git status first to ensure clean? maybe doesn't matter since we can just add by filename
+    path = os.path.join(path_root, dataset_path)
+    # noinspection PyBroadException
+    try:
+        df = pd.read_csv(path, dtype={'id': np.int32, 'last_name': str, 'first_name': str}).fillna('')
+        for index, field_values in row_index_data_map.items():
+            for field, value in field_values.items():
+                df.at[index, field] = value
+        df.to_csv(path, index=False)
+    except BaseException as err:
+        result = 'failure'
+        details = str(err)
 
-  # Push commit
-  # todo?: Correct git status after change should show something like this near end: `modified: FILENAME`
-  relative_path = os.path.join('datasets', dataset_path)
-  # todo: Want to see result as string? only getting int: 1 / 0
-  #  ...answer: it's being printed to stderr and stdout. I remember there's some way to pipe and capture if needed
-  # TODO: What if the update resulted in no changes? e.g. changed values were same?
-  git_add_result = sp_call(f'git add {relative_path}'.split(), cwd=cset_dir)
-  if git_add_result != 0:
-    result = 'failure'
-    details = f'Error: Git add: {dataset_path}'
-  git_commit_result = sp_call(['git', 'commit', '-m', f'Updated by server: {relative_path}'], cwd=cset_dir)
-  if git_commit_result != 0:
-    result = 'failure'
-    details = f'Error: Git commit: {dataset_path}'
-  git_push_result = sp_call('git push origin HEAD:main'.split(), cwd=cset_dir)
-  if git_push_result != 0:
-    result = 'failure'
-    details = f'Error: Git push: {dataset_path}'
+    # Push commit
+    # todo?: Correct git status after change should show something like this near end: `modified: FILENAME`
+    relative_path = os.path.join('datasets', dataset_path)
+    # todo: Want to see result as string? only getting int: 1 / 0
+    #  ...answer: it's being printed to stderr and stdout. I remember there's some way to pipe and capture if needed
+    # TODO: What if the update resulted in no changes? e.g. changed values were same?
+    git_add_result = sp_call(f'git add {relative_path}'.split(), cwd=cset_dir)
+    if git_add_result != 0:
+        result = 'failure'
+        details = f'Error: Git add: {dataset_path}'
+    git_commit_result = sp_call(['git', 'commit', '-m', f'Updated by server: {relative_path}'], cwd=cset_dir)
+    if git_commit_result != 0:
+        result = 'failure'
+        details = f'Error: Git commit: {dataset_path}'
+    git_push_result = sp_call('git push origin HEAD:main'.split(), cwd=cset_dir)
+    if git_push_result != 0:
+        result = 'failure'
+        details = f'Error: Git push: {dataset_path}'
 
-  return {'result': result, 'details': details}
+    return {'result': result, 'details': details}
 
 
 # TODO: figure out where we want to put this. models.py? Create route files and include class along w/ route func?

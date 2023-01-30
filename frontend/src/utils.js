@@ -1,4 +1,4 @@
-import React from 'react';
+import React, {useEffect} from 'react';
 import axios from "axios";
 import {API_ROOT} from "./env";
 import CircularProgress from '@mui/material/CircularProgress';
@@ -12,28 +12,44 @@ function Progress(props) {
     </Box>
   );
 }
+
+/* TODO: This is a total disaster. do something with it */
 function DataWidget(props) {
-  const {axVars} = props;
-  const { data, isLoading, error, isFetching } = axVars;
-  if (isLoading || isFetching) {
-    return <Progress/>;
+  const { data, isLoading, error, isFetching, ukey, url, putData, status } = props;
+  console.log(props);
+  const callType = putData ? 'Put' : 'Get';
+  let msg = {}
+  msg.call = <p><a href={url}>{ukey}</a> ({callType})</p>
+  msg.icon = <Progress variant="determinate" value={100} />;
+  if (isLoading) {
+    msg.status = 'Loading';
+    msg.icon = <Progress/>;
+  }
+  if (isFetching) {
+    msg.status = 'Fetching';
+    msg.icon = <Progress/>;
   }
   if (error) {
-    return (
-        <Box sx={{ display: 'flex' }}>
-          <h2>Error</h2>
-          {error}
-        </Box>
-    );
+    msg.status = `Error: ${error}`;
+    msg.icon = <p>(need error icon?)</p>;
   }
-  return <Progress variant="determinate" value={100} />;
+  return (
+      <Box //sx={{ display: 'flex' }}
+           >
+        <h2>{status}</h2>
+        {msg.status} <br/>
+        {msg.call} <br/>
+        {msg.icon}
+      </Box>
+  );
 }
 
-function useDataWidget(key, url, putData) {
+function useDataWidget(ukey, url, putData) {
   const ax = putData ? ()=>axiosPut(url, putData) : ()=>axiosGet(url)
-  const axVars = useQuery([key], ax);
-  const dw = <DataWidget axVars={axVars} />;
-  return [dw, axVars.data];
+  const axVars = useQuery([ukey], ax);
+  let dwProps = {...axVars, ukey, url, putData, };
+  const dw = <DataWidget {...dwProps} />;
+  return [dw, dwProps, ]; // axVars.data];
 }
 
 const backend_url = path => `${API_ROOT}/${path}`
