@@ -157,7 +157,8 @@ WHERE NOT EXISTS (
 
 DROP TABLE IF EXISTS {{schema}}concepts_with_counts_ungrouped;
 CREATE TABLE IF NOT EXISTS {{schema}}concepts_with_counts_ungrouped AS (
-SELECT c.concept_id,
+SELECT DISTINCT
+        c.concept_id,
         c.concept_name,
         COALESCE(tu.total_count, 0) AS total_cnt,
         COALESCE(tu.distinct_person_count, 0) AS distinct_person_cnt,
@@ -170,7 +171,7 @@ CREATE INDEX ccu_idx1 ON {{schema}}concepts_with_counts_ungrouped(concept_id);
 
 DROP TABLE IF EXISTS {{schema}}concepts_with_counts;
 CREATE TABLE IF NOT EXISTS {{schema}}concepts_with_counts AS (
-    SELECT {{schema}}concept_id,
+    SELECT  concept_id,
             concept_name,
             COUNT(DISTINCT domain) AS domain_cnt,
             array_to_string(array_agg(domain), ',') AS domain,
