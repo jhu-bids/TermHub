@@ -377,7 +377,7 @@ def cr_hierarchy(rec_format: str = 'default', codeset_id: Union[str, None] = Que
     item_concept_ids = list(set([i['concept_id'] for i in items]))
 
     # nh = new_hierarchy(root_cids=concept_ids, cids=concept_ids)
-    nh = new_hierarchy(root_cids=item_concept_ids, cids=concept_ids)
+    # nh = new_hierarchy(root_cids=item_concept_ids, cids=concept_ids)
 
     related_csets = get_related_csets(codeset_ids=codeset_ids, selected_concept_ids=cset_member_ids)
     selected_csets = [cset for cset in related_csets if cset['selected']]
