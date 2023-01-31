@@ -89,3 +89,9 @@ There is also a unit test that demonstrates this functionality in `tests/test_en
 This [documentation can be found here](https://github.com/jhu-bids/TermHub/tree/develop/enclave_wrangler)
 
 And [sample CSV here](https://github.com/jhu-bids/TermHub/blob/develop/test/input/test_enclave_wrangler/test_dataset_upload/type-2-diabetes-mellitus.csv)
+
+More links:
+
+- https://www.palantir.com/docs/foundry/api/
+- https://unite.nih.gov/workspace/documentation/product/api-gateway/types
+
