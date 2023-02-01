@@ -4,6 +4,7 @@ import {API_ROOT} from "./env";
 import CircularProgress from '@mui/material/CircularProgress';
 import Box from '@mui/material/Box';
 import { useQuery } from '@tanstack/react-query'
+import { QUERYSTRING_SCALARS, } from './App';
 
 function Progress(props) {
   return (
@@ -91,6 +92,12 @@ function searchParamsToObj(searchParams) {
   qsKeys.forEach(key => {
     let vals = searchParams.getAll(key);
     searchParamsAsObject[key] = vals.map(v => parseInt(v) == v ? parseInt(v) : v).sort();
+    if (QUERYSTRING_SCALARS.includes(key)) {
+      if (searchParamsAsObject[key].length != 1) {
+        throw "Didn't expect that!";
+      }
+      searchParamsAsObject[key] = searchParamsAsObject[key][0];
+    }
   });
   return searchParamsAsObject;
 }

@@ -1,4 +1,5 @@
 import React, {useState, useEffect, useMemo, /* useReducer, useRef, */} from 'react';
+import { createSearchParams, useSearchParams, } from "react-router-dom";
 import DataTable, { createTheme } from 'react-data-table-component';
 import AddCircle from '@mui/icons-material/AddCircle';
 import RemoveCircle from '@mui/icons-material/RemoveCircle';
@@ -6,7 +7,7 @@ import {Checkbox} from "@mui/material";
 import Box from '@mui/material/Box';
 import Typography from '@mui/material/Typography';
 import {get, isEmpty, set, map, omit, pick, uniq, reduce, cloneDeepWith, isEqual, uniqWith, groupBy, } from 'lodash';
-import {fmt} from './utils';
+import {searchParamsToObj, fmt} from "./utils";
 import {ConceptSetCard} from "./ConceptSetCard";
 import {Tooltip} from './Tooltip';
 import { ItemOptions, } from './EditCset';
@@ -33,12 +34,13 @@ function EditInfo(props) {
     );
 }
 function ComparisonDataTable(props) {
-    const {codeset_ids=[], makeRowData, displayData={}, selected_csets, squishTo, cset_data} = props;
+    const {codeset_ids=[], editCol, makeRowData, displayData={}, selected_csets, squishTo, cset_data} = props;
     const {researchers, concepts_map, concepts, } = cset_data;
     const [columns, setColumns] = useState();
     const [collapsed, setCollapsed] = useState({});
-    const [editCol, setEditCol] = useState(null);
+    // const [editCol, setEditCol] = useState(null);
     const [editInfo, setEditInfo] = useState({});
+    const [searchParams, setSearchParams ] = useSearchParams();
     // console.log(window.data = props);
 
     function editAction(props) {
@@ -78,12 +80,13 @@ function ComparisonDataTable(props) {
     }
     function setupEditCol(evt) {
         let ec = parseInt(evt.target.getAttribute('colnum'));
+        const sp = searchParamsToObj(searchParams);
         if (editCol == ec) {
-            setEditCol(null);
+            delete sp.editCol;
         } else {
-            setEditCol(ec);
+            sp.editCol = ec;
         }
-        console.log(`set editcol to ${ec}`)
+        return setSearchParams(createSearchParams(sp));
     }
     useEffect(() => {
         // console.log('setColumns because', {rowData});
@@ -98,7 +101,7 @@ function ComparisonDataTable(props) {
     }, [displayData, squishTo, editCol, editInfo]);
 
     let card, eInfo;
-    if (typeof(editCol) == "number") {
+    if (typeof(editCol) == "number" && columns) {
         card = <ConceptSetCard cset={columns[editCol].cset_col}
                                researchers={researchers}
                                editing={true}

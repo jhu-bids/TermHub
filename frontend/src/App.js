@@ -95,6 +95,7 @@ function QCProvider() {
       // </React.StrictMode>
   );
 }
+const QUERYSTRING_SCALARS = ['editCol', ];
 function QueryStringStateMgr(props) {
   const {location} = props;
   const [searchParams, setSearchParams ] = useSearchParams();
@@ -283,7 +284,7 @@ function objectTypesData(data) {
 }
 */
 
-export {QCProvider, backend_url};
+export {QCProvider, backend_url, QUERYSTRING_SCALARS};
 
 // TODO: @Siggie: Can we remove this comment or we need this list of links for ref still?
 //       @Joe: we should move it to the individual concept set display component(s) as a
