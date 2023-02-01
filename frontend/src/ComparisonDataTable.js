@@ -55,7 +55,7 @@ function ComparisonDataTable(props) {
     }
     function toggleCollapse(row) {
         let _collapsed = {...collapsed, [row.pathToRoot]: !get(collapsed, row.pathToRoot.join(','))};
-        setCollapsed({_collapsed});
+        setCollapsed(_collapsed);
         // makeRowData(_collapsed);
     }
 

@@ -194,8 +194,10 @@ function DataContainer(props) {
           <Route path="*"  element={
             <div>
               <h3>Waiting for data</h3>
-              {all_csets_widget}
-              {cset_data_widget}
+              <Box sx={{ display: 'flex' }}>
+                {all_csets_widget}
+                {cset_data_widget}
+              </Box>
             </div>
           } />
         </Route>

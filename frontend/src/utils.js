@@ -34,8 +34,10 @@ function DataWidget(props) {
     msg.icon = <p>(need error icon?)</p>;
   }
   return (
-      <Box //sx={{ display: 'flex' }}
-           >
+      <Box sx={{
+        border: '2px solid blue', margin: '20px', padding: '20px',
+        // display: 'flex',
+      }} >
         <h2>{status}</h2>
         {msg.status} <br/>
         {msg.call} <br/>
