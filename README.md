@@ -11,7 +11,8 @@ More info: [Requirements](https://github.com/jhu-bids/TermHub/issues/72)
 ### Uploading CSVs to create/edit concept sets
 TermHub can take a CSV and create/edit concepts and concept sets. [Read more](./enclave_wrangler/README.md)
 
-### Enclave API links and documentation
+### Enclave Wrangler: CLI for the enclave API
+Includes links to the API docs.
 [Read more](./enclave_wrangler/README.md)
 
 ### Vocabulary management (a single concept, subsets of or an entire vocabulary)
@@ -63,7 +64,8 @@ User Interactions
 
 ### Editing Concepts & Concept Sets
 
-## Developer docs
+## [Developer docs](./docs/developer.md)
+Some of the important parts of [developer documentation](./docs/developer.md) are below, but for more thorough information on development for frontend/backend, follow these 2 links.
 - [Frontend](./frontend/README.md)  
 - [Backend](./backend/README.md)
 
@@ -111,21 +113,8 @@ SET search_path TO n3c;
   -  Run: `python backend/db/initialize.py`
 
 ### Deployment
-#### Deploying the backend
-```shell
-# Clone the repository.
-$ git clone  git@github.com:jhu-bids/TermHub.git
-$ cd TermHub
-# get python dependencies
-$ pip install -r requirements.txt
-# get data
-$ git submodule init
-$ git submodule update
-# start backend
-$ uvicorn backend.app:APP --reload
-```
+- [Backend](./backend/README.md): `uvicorn backend.app:APP --reload`
+- [Frontend](./frontend/README.md): `cd frontend; npm run start`
 
-#### Deploying the frontend, starting from the same repository
-1. `cd frontend; npm run build`
-2. When that process completes, you should now have an updated `frontend/build` directory. This can be deployed as a static site. The entry point is `index.html`.
-
+### Database management
+Refer to the [developer docs](./docs/developer.md) for more information.

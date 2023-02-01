@@ -1,4 +1,5 @@
 ## Creating/Updating concept sets via CSV upload
+Example: [sample CSV](https://github.com/jhu-bids/TermHub/blob/develop/test/input/test_enclave_wrangler/test_dataset_upload/type-2-diabetes-mellitus.csv).
 
 ### CSV Schema
 At a minimum, all of these columns not marked 'Optional' in the description are necessary. Additional columns are allowable, but they will be ignored.
@@ -79,13 +80,35 @@ There is also a unit test that demonstrates this functionality in `tests/test_en
     - Specifying user auth token so it can be run by people on their own behalf (who don't have the bulkimport user auth token)
     - Specify whether version(s) should be finalized or left in draft state.
   
-# For reference. Enclave API documentation links
+# How to's
+Access your security authorization token for the Enclave API:
+  - Go to https://unite.nih.gov/workspace/slate/documents/dashboard
+  - Go to "account"
+  - Go to "settings"
+  - Go to "tokens"
 
+# Useful resources 
+## Enclave API documentation links
+- Foundry (the software that runs the Enclave) API documentation root: https://www.palantir.com/docs/foundry/api/
+- Foundry backend diagram/explanation: https://unite.nih.gov/workspace/documentation/product/foundry-backend/
+- Enclave API documentation root: https://unite.nih.gov/workspace/documentation/developer/api
+- Data types: https://unite.nih.gov/workspace/documentation/product/api-gateway/types
+- Action types (endpoints that allow creates/updates/deletes): https://unite.nih.gov/docs/foundry/action-types/overview/ / https://unite.nih.gov/workspace/ontology/home/action-type
+- List of action types: https://unite.nih.gov/documentation/static/foundry/api/ontology-resources/actions/list-action-types/
+- Object types: https://unite.nih.gov/docs/foundry/object-link-types/object-types-overview/
+- List of object types: https://www.palantir.com/docs/foundry/api/ontology-resources/object-types/list-object-types/
+- Object search: https://www.palantir.com/docs/foundry/api/ontology-resources/objects/search/
+- List objects: https://www.palantir.com/docs/foundry/api/ontology-resources/objects/list-objects/
+
+## More
+About the enclave: https://covid.cd2h.org/enclave
+Logging into the enclave: https://unite.nih.gov/workspace/slate/documents/dashboard
+Logic that runs to create dataset generation used by TermHub: https://unite.nih.gov/workspace/data-integration/code/repos/ri.stemma.main.repository.aea80f94-828b-4795-9603-c3228b153414/contents/refs%2Fheads%2Fmaster/
+- Expands expression items to concepts: https://unite.nih.gov/workspace/data-integration/code/repos/ri.stemma.main.repository.aea80f94-828b-4795-9603-c3228b153414/contents/refs%2Fheads%2Fmaster/transforms-python/src/myproject/datasets/concept_set_items_to_all_concept_ids.py
+Concept set browser: https://unite.nih.gov/workspace/module/view/latest/ri.workshop.main.module.5a6c64c0-e82b-4cf8-ba5b-645cd77a1dbf
+Security tokens: https://unite.nih.gov/workspace/documentation/product/foundry-backend/security-api
+Security settings to allow users to access endpoints specifically used by TermHub:
 - https://unite.nih.gov/workspace/ontology/action-type/create-new-draft-omop-concept-set-version/security
 - https://unite.nih.gov/workspace/ontology/action-type/finalize-draft-omop-concept-set-version/security
 - https://unite.nih.gov/workspace/ontology/action-type/add-selected-concepts-as-omop-version-expressions/security
 - https://unite.nih.gov/workspace/ontology/action-type/create-new-concept-set/security
-
-This [documentation can be found here](https://github.com/jhu-bids/TermHub/tree/develop/enclave_wrangler)
-
-And [sample CSV here](https://github.com/jhu-bids/TermHub/blob/develop/test/input/test_enclave_wrangler/test_dataset_upload/type-2-diabetes-mellitus.csv)
