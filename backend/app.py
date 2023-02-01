@@ -374,23 +374,23 @@ def _get_all_csets() -> Union[Dict, List]:
 #       Or just make new issue for starting from one cset or concept
 #       and fanning out to other csets from there?
 @APP.get("/selected-csets")
-def _get_csets(codeset_id: Union[str, None] = Query(default=''), ) -> List[Dict]:
+def _get_csets(codeset_ids: Union[str, None] = Query(default=''), ) -> List[Dict]:
     """Route for: get_csets()"""
-    requested_codeset_ids = parse_codeset_ids(codeset_id)
+    requested_codeset_ids = parse_codeset_ids(codeset_ids)
     return get_csets(requested_codeset_ids)
 
 
 @APP.get("/related-csets")
-def _get_related_csets(codeset_id: Union[str, None] = Query(default=''), ) -> List[Dict]:
+def _get_related_csets(codeset_ids: Union[str, None] = Query(default=''), ) -> List[Dict]:
     """Route for: get_related_csets()"""
-    codeset_ids: List[int] = parse_codeset_ids(codeset_id)
+    codeset_ids: List[int] = parse_codeset_ids(codeset_ids)
     return get_related_csets(codeset_ids)
 
 
 @APP.get("/cset-members-items")
-def _cset_members_items(codeset_id: Union[str, None] = Query(default=''), ) -> List[LegacyRow]:
+def _cset_members_items(codeset_ids: Union[str, None] = Query(default=''), ) -> List[LegacyRow]:
     """Route for: cset_memberss_items()"""
-    codeset_ids: List[int] = parse_codeset_ids(codeset_id)
+    codeset_ids: List[int] = parse_codeset_ids(codeset_ids)
     return get_cset_members_items(codeset_ids)
 
 
@@ -405,7 +405,7 @@ def _hierarchy(
 
 # TODO: get back to how we had it before RDBMS refactor
 @APP.get("/cr-hierarchy")
-def cr_hierarchy(rec_format: str = 'default', codeset_id: Union[str, None] = Query(default=''), ) -> Dict:
+def cr_hierarchy(rec_format: str = 'default', codeset_ids: Union[str, None] = Query(default=''), ) -> Dict:
     """Get concept relationship hierarchy
 
     Example:
@@ -415,7 +415,7 @@ def cr_hierarchy(rec_format: str = 'default', codeset_id: Union[str, None] = Que
     # fp = open(r'./backend/old_cr-hierarchy_samples/cr-hierarchy - example1 - before refactor.json')
     # return json.load(fp)
 
-    codeset_ids: List[int] = parse_codeset_ids(codeset_id)
+    codeset_ids: List[int] = parse_codeset_ids(codeset_ids)
     cset_member_ids: List[int] = get_concept_set_member_ids(codeset_ids, column='concept_id')
     cset_members_items = get_cset_members_items(codeset_ids)
 

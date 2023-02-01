@@ -109,6 +109,11 @@ function QueryStringStateMgr(props) {
     }
   }, [searchParams]);
 
+  function changeQueryParams(change={}) {
+    let params = createSearchParams({...sp, ...change});
+    setSearchParams(params);
+  }
+
   function changeCodesetIds(codeset_id, how) {
     // how = add | remove | toggle
     const included = codeset_ids.includes(codeset_id);
@@ -120,14 +125,13 @@ function QueryStringStateMgr(props) {
     }
     let params;
     if (action == 'add') {
-      params = createSearchParams({codeset_id: [...codeset_ids, codeset_id]});
+      changeQueryParams({codeset_ids: [...codeset_ids, codeset_id]});
     } else if (action == 'remove') {
       if (!included) return;
-      params = createSearchParams({codeset_id: codeset_ids.filter(d => d != codeset_id)});
+      changeQueryParams({codeset_ids: codeset_ids.filter(d => d != codeset_id)});
     } else {
       throw 'unrecognized action in changeCodesetIds: ' + JSON.stringify({how, codeset_id});
     }
-    setSearchParams(params);
   }
 
   if (location.pathname == '/') {
@@ -136,7 +140,7 @@ function QueryStringStateMgr(props) {
   }
   if (location.pathname == '/testing') {
     const test_codeset_ids = [400614256, 411456218, 419757429, 484619125, ];
-    let params = createSearchParams({codeset_id: test_codeset_ids});
+    let params = createSearchParams({codeset_ids: test_codeset_ids});
     // setSearchParams(params);
     let url = '/cset-comparison?' + params;
     // return redirect(url); not exported even though it's in the docs
@@ -147,7 +151,7 @@ function QueryStringStateMgr(props) {
     sp.codeset_ids = [];
   }
   return <DataContainer /* searchParams={searchParams}*/
-                        codeset_ids={codeset_ids}
+                        // codeset_ids={codeset_ids}
                         changeCodesetIds={changeCodesetIds}
                         {...sp}
                         />;
@@ -155,7 +159,7 @@ function QueryStringStateMgr(props) {
 function DataContainer(props) {
   let {codeset_ids, } = props;
   const all_csets_url = 'get-all-csets';
-  const cset_data_url = 'cr-hierarchy?rec_format=flat&codeset_id=' + codeset_ids.join('|');
+  const cset_data_url = 'cr-hierarchy?rec_format=flat&codeset_ids=' + codeset_ids.join('|');
 
   /* TODO: This is a total disaster. do something with it */
   const [all_csets_widget, acprops] = useDataWidget("all_csets", all_csets_url);

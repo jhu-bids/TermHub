@@ -169,7 +169,7 @@ function colConfig(props) {
     let checkboxChange = (codeset_id, concept_id) => (evt, state) => {
         console.log({codeset_id, concept_id, state});
         editAction({codeset_id, concept_id, state});
-        /* let url = backend_url(`modify-cset?codeset_id=${codeset_id}&concept_id=${concept_id}&state=${state}`); */
+        /* let url = backend_url(`modify-cset?codeset_ids=${codeset_id}&concept_id=${concept_id}&state=${state}`); */
     }
 
     let coldefs = [

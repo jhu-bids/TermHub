@@ -92,8 +92,6 @@ function searchParamsToObj(searchParams) {
     let vals = searchParams.getAll(key);
     searchParamsAsObject[key] = vals.map(v => parseInt(v) == v ? parseInt(v) : v).sort();
   });
-  searchParamsAsObject.codeset_ids = searchParamsAsObject.codeset_id;
-  delete searchParamsAsObject.codeset_id;
   return searchParamsAsObject;
 }
 export {pct_fmt, fmt, cfmt, StatsMessage, searchParamsToObj, backend_url, axiosGet, axiosPut, useDataWidget};
