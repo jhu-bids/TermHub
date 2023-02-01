@@ -30,11 +30,13 @@ TOKEN_KEY = SERVICE_TOKEN_KEY
 
 
 def get_headers(personal=False, content_type="application/json", for_curl=False):
-    # TODO: fix all this -- we've been switching back and forth between service token and personal
-    #       because some APIs are open to one, some to the other (and sometimes the service one has
-    #       been expired. In the past we've switched by hard coding the api call header, but now
-    #       we have to make api calls (temporarily, see https://cd2h.slack.com/archives/C034EG5ESU9/p1670337451241379?thread_ts=1667317248.546169&cid=C034EG5ESU9)
-    #       using one and then the other
+    """Format headers for enclave calls
+
+    TODO: fix all this -- we've been switching back and forth between service token and personal because some APIs are
+      open to one, some to the other (and sometimes the service one has been expired. In the past we've switched by hard
+      coding the api call header, but now we have to make api calls (temporarily, see
+      https://cd2h.slack.com/archives/C034EG5ESU9/p1670337451241379?thread_ts=1667317248.546169&cid=C034EG5ESU9)
+      using one and then the other."""
     # current_key = get_auth_token_key()
     # set_auth_token_key(personal)
     headers = {
@@ -176,6 +178,7 @@ def make_actions_request(api_name: str, data: Union[List, Dict] = None, validate
 
 
 def enclave_post(url: str, data: Union[List, Dict], verbose=True) -> Response:
+    """Post to the enclave and handle / report on some common issues"""
     if verbose:
         print_curl(url, data)
 
@@ -195,17 +198,19 @@ def enclave_post(url: str, data: Union[List, Dict], verbose=True) -> Response:
         raise err
 
 
-def enclave_get(url: str, verbose: bool=True, args: Dict={})-> Response:
+def enclave_get(url: str, verbose: bool = True, args: Dict = {}) -> Response:
+    """Get from the enclave and print curl"""
     if verbose:
         print_curl(url, args=args)
 
     headers = get_headers()
     response = requests.get(url, headers=headers, **args)
-    response.raise_for_status()
+    # response.raise_for_status()
     return response
 
 
 def relevant_trace():
+    """Get the relevant part of the stack trace"""
     import traceback
     import re
     from enclave_wrangler.config import PROJECT_ROOT
@@ -215,7 +220,8 @@ def relevant_trace():
     trace = [t for t in trace if not re.search('/venv/', t)]
     return '\n'.join(trace)
 
-def print_curl(url: str, data: Union[List, Dict]=None, args: Dict={}, trace:bool=False):
+def print_curl(url: str, data: Union[List, Dict]=None, args: Dict = {}, trace:bool=False):
+    """Print curl command for debugging"""
     curl = f"""\ncurl {get_headers(for_curl=True)} \\
             {url}"""
     if data:
@@ -224,7 +230,7 @@ def print_curl(url: str, data: Union[List, Dict]=None, args: Dict={}, trace:bool
         curl += f" additional args:{dump(args)}\n\n"
     if trace:
         curl += relevant_trace()
-    print(curl) # printing to debugger during test doesn't work; have to do it manually
+    print(curl)  # printing to debugger during test doesn't work; have to do it manually
 
 
 # def old_get(api_name: str, validate=False)-> Response:

@@ -7,7 +7,7 @@
 import sys
 from argparse import ArgumentParser
 
-from typing import Dict
+from typing import Dict, Union
 from typeguard import typechecked
 import os
 import re
@@ -45,7 +45,7 @@ os.makedirs(CSV_TRANSFORM_DIR, exist_ok=True)
 
 
 @typechecked
-def getTransaction(dataset_rid: str, ref: str = 'master') -> str:
+def getTransaction(dataset_rid: str, ref: str = 'master', return_field='rid') -> Union[str, Dict]:
     """API documentation at
     https://unite.nih.gov/workspace/documentation/developer/api/catalog/services/CatalogService/endpoints/getTransaction
     tested with curl:
@@ -63,7 +63,10 @@ def getTransaction(dataset_rid: str, ref: str = 'master') -> str:
     response_json = response.json()
     if DEBUG:
         print(response_json)
-    return response_json['rid']
+    if return_field:
+        return response_json[return_field]
+    else:
+        return response_json
 
 
 @typechecked
@@ -322,6 +325,22 @@ def transform(fav: dict) -> pd.DataFrame:
     return df
 
 
+def get_last_vocab_update():
+    """
+    https://unite.nih.gov/workspace/documentation/developer/api/catalog/services/CatalogService/endpoints/getTransaction
+    https://unite.nih.gov/workspace/documentation/developer/api/catalog/objects/com.palantir.foundry.catalog.api.transactions.Transaction
+    """
+    dataset_rid = FAVORITE_DATASETS['concept']['rid']
+    ref = 'master'
+    transaction = getTransaction(dataset_rid, ref, return_field=None)
+    # pdump(transaction)
+    if transaction['status'] != 'COMMITTED':
+        pdump(transaction)
+        raise 'status of transaction not COMMITTED. not sure what this means'
+    return transaction['startTime']
+# print(get_last_vocab_update())
+# exit()
+
 def run(
     dataset_name: str = None, dataset_rid: str = None, ref: str = 'master', output_dir: str = None, outpath: str = None,
     transforms_only=False, fav: Dict = None, force_if_exists=False
@@ -355,8 +374,8 @@ def run(
     return df2 if len(df2) > 0 else df
 
 
-def run_favorites(outdir: str = CSV_DOWNLOAD_DIR, transforms_only=False, specific=[], force_if_exists=False, single_group=None):
-    """Run on favorite datasets"""
+def download_favorite_datasets(outdir: str = CSV_DOWNLOAD_DIR, transforms_only=False, specific=[], force_if_exists=False, single_group=None):
+    """Download favorite datasets"""
     for fav in FAVORITE_DATASETS.values():
         if single_group and single_group not in fav['dataset_groups']:
             continue
@@ -419,7 +438,7 @@ def cli():
         specific.append(d['dataset_name'])
 
     if d['favorites']:
-        run_favorites(outdir=d['output_dir'], transforms_only=d['transforms_only'], specific=specific)
+        download_favorite_datasets(outdir=d['output_dir'], transforms_only=d['transforms_only'], specific=specific)
     else:
         del d['favorites']
         run(**d)
