@@ -140,7 +140,7 @@ function ConceptSetCard(props) {
   const editSingleLink = (
       <NavLink
           // component={NavLink} // NavLink is supposed to show different if it's active; doesn't seem to be working
-          to={`/SingleCsetEdit?codeset_id=${cset.codeset_id}&prev=${encodeURIComponent(pathname)}${encodeURIComponent(search)}`}
+          to={`/SingleCsetEdit?codeset_ids=${cset.codeset_id}&prev=${encodeURIComponent(pathname)}${encodeURIComponent(search)}`}
           sx={{ my: 2, color: 'white', display: 'block' }}
       >Edit</NavLink>
       )
@@ -174,7 +174,7 @@ function ConceptSetCard(props) {
             }
             <Typography variant="body2" color="text.primary" >
               <a href={`https://unite.nih.gov/workspace/hubble/objects/${cset.container_rid}`} target="_blank">Open in Enclave</a
-              >, <a href={backend_url(`cset-download?codeset_id=${cset.codeset_id}`)} target="_blank">Export JSON</a>
+              >, <a href={backend_url(`cset-download?codeset_ids=${cset.codeset_id}`)} target="_blank">Export JSON</a>
             </Typography>
             { researcherContent }
           </CardContent>

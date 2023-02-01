@@ -109,8 +109,9 @@ function traverseHierarchy({hierarchy, concepts, collapsed, }) {
 // TODO: Color table: I guess would need to see if could pass extra values/props and see if table widget can use that
 //  ...for coloration, since we want certain rows grouped together
 function CsetComparisonPage(props) {
+  window.pppp = props;
   const {codeset_ids=[], all_csets=[], cset_data={}} = props;
-  const {hierarchy={}, selected_csets=[], concepts=[], cset_members_items=[]} = cset_data;
+  const {hierarchy={}, selected_csets=[], concepts=[], cset_members_items=[], orphans=[]} = cset_data;
   // let selected_csets = all_csets.filter(d => codeset_ids.includes(d.codeset_id));
   const [squishTo, setSquishTo] = useState(1);
   const [displayOptions, setDisplayOptions] = useState({});
