@@ -9,7 +9,7 @@ import re
 from datetime import datetime
 from io import StringIO
 from pathlib import Path
-from typing import Any, Dict, List, Set, Union
+from typing import Any, Dict, List, Union, Set
 from functools import cache
 
 import numpy as np

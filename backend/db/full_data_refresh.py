@@ -20,6 +20,8 @@ from enclave_wrangler.datasets import download_favorite_datasets
 from enclave_wrangler.objects_api import download_favorite_objects
 
 
+# todo: low priority: track the time it takes for this process to run, and then update the `manage` table, 2 variables:
+#  total time for downloads, and total time for uploading to db (perhaps for each table as well)
 def refresh_db(
     datasets_csets=False, datasets_vocab=False, objects=False, force_download_if_exists=True,
     schema: str = CONFIG['schema'], hours_threshold_for_updates=24
