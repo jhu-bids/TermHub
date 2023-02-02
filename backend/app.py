@@ -45,9 +45,6 @@ APP.add_middleware(
 )
 APP.add_middleware(GZipMiddleware, minimum_size=1000)
 CON = get_db_connection()
-# CACHE = {  # this was for hierarchy()
-#     'all_parent_children_map': get_all_parent_children_map(CON)
-# }
 
 
 # Utility functions ----------------------------------------------------------------------------------------------------
@@ -186,7 +183,7 @@ def get_concepts(concept_ids: List[int], con=CON) -> List:
 #   ['created_at', 'container_intentionall_csets', 'created_by', 'container_created_at', 'status', 'intention',
 #   'container_status', 'container_created_by']
 #  see fixes above. i think everything here is fixed now
-# TODO: Performance: takes ~75sec on http://127.0.0.1:8000/cr-hierarchy?format=flat&codeset_id=400614256|87065556
+# TODO: Performance: takes ~75sec on http://127.0.0.1:8000/cr-hierarchy?format=flat&codeset_ids=400614256|87065556
 def get_related_csets(
     codeset_ids: List[int] = None, selected_concept_ids: List[int] = None, con=CON, verbose=True
 ) -> List[Dict]:
@@ -409,7 +406,7 @@ def cr_hierarchy(rec_format: str = 'default', codeset_ids: Union[str, None] = Qu
     """Get concept relationship hierarchy
 
     Example:
-    http://127.0.0.1:8000/cr-hierarchy?format=flat&codeset_id=400614256|87065556
+    http://127.0.0.1:8000/cr-hierarchy?format=flat&codeset_ids=400614256|87065556
     """
     # TODO: TEMP FOR TESTING. #191 isn't a problem with the old json data
     # fp = open(r'./backend/old_cr-hierarchy_samples/cr-hierarchy - example1 - before refactor.json')
@@ -432,7 +429,7 @@ def cr_hierarchy(rec_format: str = 'default', codeset_ids: Union[str, None] = Qu
     # TODO: Fix: concepts missing from hierarchy that shouldn't be:
     hh = json.dumps(h)
     hierarchy_concept_ids = [int(x) for x in re.findall(r'\d+', hh)]
-    # # diff for: http://127.0.0.1:8000/cr-hierarchy?rec_format=flat&codeset_id=400614256|87065556
+    # # diff for: http://127.0.0.1:8000/cr-hierarchy?rec_format=flat&codeset_ids=400614256|87065556
     # #  {4218499, 4198296, 4215961, 4255399, 4255400, 4255401, 4147509, 252341, 36685758, 4247107, 4252356, 42536648,
     # 4212441, 761062, 259055, 4235260}
     # diff = set(cset_member_ids).difference(hierarchy_concept_ids)
