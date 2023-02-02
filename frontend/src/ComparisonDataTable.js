@@ -261,10 +261,13 @@ function colConfig(props) {
                         editCodesetId, checkboxChange}} />;
             },
             conditionalCellStyles: [
-                { when: row => csmiLookup[cset_col.codeset_id][row.concept_id], //row.checkboxes && row.checkboxes[cset_col.codeset_id],
+                {
+                    // when: row => csmiLookup[cset_col.codeset_id][row.concept_id],
+                    when: row => row.checkboxes && row.checkboxes[cset_col.codeset_id],
                     style: row => {
                         // return { backgroundColor: 'red', };
-                        let mi = csmiLookup[cset_col.codeset_id][row.concept_id]; // row.checkboxes[cset_col.codeset_id];
+                        // let mi = csmiLookup[cset_col.codeset_id][row.concept_id];
+                        let mi = row.checkboxes[cset_col.codeset_id];
                         let bg = 'purple';
                         if      (mi.csm && mi.item) { bg = 'orange' }
                         else if (mi.csm)             { bg = 'pink' }
@@ -295,12 +298,13 @@ related concepts -- mapped and excluded
  */
 function CellCheckbox(props) {
     const {row, idx, cset_col, rowData, editInfo, editCodesetId, checkboxChange, csmiLookup, } = props;
-    let mi = csmiLookup[cset_col.codeset_id][row.concept_id]; // row.checkboxes[cset_col.codeset_id];
-    // if (!row.checkboxes) {
-    //     console.log('problem!!!!', {idx, row, rowData})
-    // }
-    let checked, contents;
+    if (!row.checkboxes) {
+        console.log('problem!!!!', {idx, row, rowData})
+    }
+    // let mi = csmiLookup[cset_col.codeset_id][row.concept_id];
+    let mi = row.checkboxes[cset_col.codeset_id];
     // let checkboxValue = row.checkboxes[cset_col.codeset_id];
+    let checked, contents;
     // checked = !! checkboxValue;
     checked = !! mi;
 

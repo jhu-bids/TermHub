@@ -191,9 +191,8 @@ function DataContainer(props) {
   if (all_csets && cset_data) {
     cset_data.conceptLookup = keyBy(cset_data.concepts, 'concept_id');
     const csmiLookup = {};
-    cset_data.cset_members_items.map(mi => set(csmiLookup, [mi.codeset_id, mi.concept_id], mi));
+    // cset_data.cset_members_items.map(mi => set(csmiLookup, [mi.codeset_id, mi.concept_id], mi));
     cset_data.csmiLookup = csmiLookup;
-    // cset_data.conceptLookup = Object.fromEntries(cset_data.concepts.map(d => [d.concept_id, d]));
     return  <RoutesContainer {...props} all_csets={all_csets} cset_data={cset_data}/>
   }
   return (

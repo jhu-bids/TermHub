@@ -81,14 +81,15 @@ function ConceptSetsPage(props) {
       </div>)
 }
 
-function traverseHierarchy({hierarchy, conceptLookup, collapsed, }) {
+function traverseHierarchy({hierarchy, concepts, collapsed, }) {
   let rowData = [];
   let blanks = [];
   let traverse = (o, pathToRoot=[], level=0) => {
+    console.log({o, pathToRoot, level});
     Object.keys(o).forEach(k => {
       k = parseInt(k);
-      let row = {...conceptLookup[k], level, pathToRoot: [...pathToRoot, k]};
-      if (!conceptLookup[k]) {
+      let row = {...concepts[k], level, pathToRoot: [...pathToRoot, k]};
+      if (!concepts[k]) {
         blanks.push(rowData.length);
       }
       rowData.push(row);
@@ -130,11 +131,10 @@ function CsetComparisonPage(props) {
     return <p>Downloading...</p>
   }
   function makeRowData(collapsed={}) {
-    if (isEmpty(conceptLookup) || isEmpty(selected_csets) || isEmpty(cset_members_items)) {
+    if (isEmpty(concepts) || isEmpty(selected_csets) || isEmpty(cset_members_items)) {
       return;
     }
 
-    /*
     // make obj containing a checkbox for each cset, initialized to false, like:
     //  {codeset_id_1: false, codeset_id_2: false, ...}
     const checkboxes = Object.fromEntries(selected_csets.map(d => [d.codeset_id, false]));
@@ -146,22 +146,21 @@ function CsetComparisonPage(props) {
     obj with cset_members_item. example: { "codeset_id": 400614256, "concept_id": 4191479, "csm": true,
                                            "item": true, "item_flags": "includeDescendants,includeMapped" },
     This modifies appropriate checkbox in every conceptsPlus record. Its return value (csetConcepts) also
-    excludes concepts that appear in hierarchy but don't appear in at least one of the selected csets. * /
+    excludes concepts that appear in hierarchy but don't appear in at least one of the selected csets. */
     const csetConcepts = Object.fromEntries(
         cset_members_items.map(d => {
           conceptsPlus[d.concept_id].checkboxes[d.codeset_id] = d;
           return conceptsPlus[d.concept_id];
         }).map(d => [d.concept_id, d]));
-    */
 
     let _displayOptions = {
       fullHierarchy: {
-        rowData: traverseHierarchy({hierarchy, conceptLookup, collapsed, }),
+        rowData: traverseHierarchy({hierarchy, concepts: conceptsPlus, collapsed, }),
         nested: true,
         msg: ' lines in hierarchy',
       },
       csetConcepts: {
-        rowData: traverseHierarchy({hierarchy, conceptLookup, collapsed, }),
+        rowData: traverseHierarchy({hierarchy, concepts: csetConcepts, collapsed, }),
         nested: true,
         msg: ' concepts in selected csets',
       },
