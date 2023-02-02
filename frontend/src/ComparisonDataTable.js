@@ -99,7 +99,7 @@ function ComparisonDataTable(props) {
     }, [displayData, squishTo, editCodesetId, editInfo]);
 
     let card, eInfo;
-    if (typeof(editCodesetId) == "number" && columns) {
+    if (editCodesetId && columns) {
         card = <ConceptSetCard cset={columns.find(d=>d.codeset_id===editCodesetId).cset_col}
                                researchers={researchers}
                                editing={true}
