@@ -182,7 +182,7 @@ function DataContainer(props) {
   }, [acprops]);
   */
   useEffect(() => {
-    console.log(csprops);
+    // console.log(csprops);
     // console.log('ac', csprops.status);
     if (csprops.status === 'success') {
       // setCset_data(csprops.data);
@@ -190,9 +190,11 @@ function DataContainer(props) {
   }, [csprops.status]);
 
   if (all_csets && cset_data) {
-    cset_data.concepts_map = keyBy(cset_data.concepts, 'concept_id');
+    cset_data.conceptLookup = keyBy(cset_data.concepts, 'concept_id');
     const csmiLookup = {};
     cset_data.cset_members_items.map(mi => set(csmiLookup, [mi.codeset_id, mi.concept_id], mi));
+    cset_data.csmiLookup = csmiLookup;
+    // cset_data.conceptLookup = Object.fromEntries(cset_data.concepts.map(d => [d.concept_id, d]));
     return  <RoutesContainer {...props} all_csets={all_csets} cset_data={cset_data}/>
   }
   return (
@@ -212,6 +214,7 @@ function DataContainer(props) {
     );
 }
 function RoutesContainer(props) {
+  console.log(window.props_w = props);
   return (
       <Routes>
         <Route path="/" element={<App {...props} />}>

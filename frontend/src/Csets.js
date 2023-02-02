@@ -81,14 +81,14 @@ function ConceptSetsPage(props) {
       </div>)
 }
 
-function traverseHierarchy({hierarchy, concepts, collapsed, }) {
+function traverseHierarchy({hierarchy, conceptLookup, collapsed, }) {
   let rowData = [];
   let blanks = [];
   let traverse = (o, pathToRoot=[], level=0) => {
     Object.keys(o).forEach(k => {
       k = parseInt(k);
-      let row = {...concepts[k], level, pathToRoot: [...pathToRoot, k]};
-      if (!concepts[k]) {
+      let row = {...conceptLookup[k], level, pathToRoot: [...pathToRoot, k]};
+      if (!conceptLookup[k]) {
         blanks.push(rowData.length);
       }
       rowData.push(row);
@@ -109,9 +109,10 @@ function traverseHierarchy({hierarchy, concepts, collapsed, }) {
 // TODO: Color table: I guess would need to see if could pass extra values/props and see if table widget can use that
 //  ...for coloration, since we want certain rows grouped together
 function CsetComparisonPage(props) {
-  window.pppp = props;
   const {codeset_ids=[], all_csets=[], cset_data={}} = props;
-  const {hierarchy={}, selected_csets=[], concepts=[], cset_members_items=[], orphans=[]} = cset_data;
+  const {hierarchy={}, selected_csets=[], concepts=[],
+          cset_members_items=[], orphans=[], conceptLookup={},
+    } = cset_data;
   // let selected_csets = all_csets.filter(d => codeset_ids.includes(d.codeset_id));
   const [squishTo, setSquishTo] = useState(1);
   const [displayOptions, setDisplayOptions] = useState({});
@@ -129,7 +130,7 @@ function CsetComparisonPage(props) {
     return <p>Downloading...</p>
   }
   function makeRowData(collapsed={}) {
-    if (isEmpty(concepts) || isEmpty(selected_csets) || isEmpty(cset_members_items)) {
+    if (isEmpty(conceptLookup) || isEmpty(selected_csets) || isEmpty(cset_members_items)) {
       return;
     }
 
@@ -155,12 +156,12 @@ function CsetComparisonPage(props) {
 
     let _displayOptions = {
       fullHierarchy: {
-        rowData: traverseHierarchy({hierarchy, concepts:conceptsPlus, collapsed, }),
+        rowData: traverseHierarchy({hierarchy, conceptLookup, collapsed, }),
         nested: true,
         msg: ' lines in hierarchy',
       },
       csetConcepts: {
-        rowData: traverseHierarchy({hierarchy, concepts:csetConcepts, collapsed, }),
+        rowData: traverseHierarchy({hierarchy, conceptLookup, collapsed, }),
         nested: true,
         msg: ' concepts in selected csets',
       },
@@ -174,13 +175,13 @@ function CsetComparisonPage(props) {
     _displayOptions.flat.nested = false;
     _displayOptions.flat.msg = 'flat';
     setDisplayOptions(_displayOptions);
-    window.dopts = _displayOptions;
+    // window.dopts = _displayOptions;
   }
   function changeDisplayOption(option) {
     setDisplayOption(option);
   }
   let moreProps = {...props, makeRowData, displayData: displayOptions[displayOption], selected_csets, squishTo};
-  // console.log({moreProps});
+  console.log({moreProps});
   return (
       <div>
         <h5 style={{margin:20, }}>

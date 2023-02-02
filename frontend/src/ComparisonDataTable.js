@@ -18,14 +18,14 @@ import { ItemOptions, } from './EditCset';
  */
 
 function EditInfo(props) {
-    const {editInfo={}, concepts_map} = props;
+    const {editInfo={}, conceptLookup} = props;
     return (
         <Box sx={{ p: 2, border: '1px dashed grey' }}>
             {Object.entries(editInfo).map(
                 ([concept_id, state]) => {
                     return (
                         <Typography key={concept_id} >
-                            { state ? 'Adding' : 'Removing' } {concepts_map[concept_id].concept_name}
+                            { state ? 'Adding' : 'Removing' } {conceptLookup[concept_id].concept_name}
                         </Typography>
                     )
                 }
@@ -35,12 +35,11 @@ function EditInfo(props) {
 }
 function ComparisonDataTable(props) {
     const {codeset_ids=[], editCodesetId, makeRowData, displayData={}, selected_csets, squishTo, cset_data} = props;
-    const {researchers, concepts_map, concepts, } = cset_data;
+    const {researchers, conceptLookup, csmiLookup, } = cset_data;
     const [columns, setColumns] = useState();
     const [collapsed, setCollapsed] = useState({});
     const [editInfo, setEditInfo] = useState({});
     const [searchParams, setSearchParams ] = useSearchParams();
-    // console.log(window.data = props);
 
     function editAction(props) {
         const {codeset_id, concept_id, state} = props;
@@ -65,7 +64,7 @@ function ComparisonDataTable(props) {
             return;
         }
         makeRowData(collapsed);
-    }, [collapsed, selected_csets.length, codeset_ids.length, concepts.length]);
+    }, [collapsed, selected_csets.length, codeset_ids.length, ]);
 
     let sizes = {
         rowFontSize:  (13 * squishTo) + 'px',
@@ -93,7 +92,7 @@ function ComparisonDataTable(props) {
             return;
         }
         setColumns(colConfig({
-                                 displayData, codeset_ids, selected_csets,
+                                 displayData, codeset_ids, selected_csets, conceptLookup, csmiLookup,
                                  collapsed, toggleCollapse, sizes,
                                  editCodesetId, editInfo, setupEditCodesetId, editAction,
                              }));
@@ -109,7 +108,7 @@ function ComparisonDataTable(props) {
     }
     // console.log({editInfo});
     if (! isEmpty(editInfo)) {
-        eInfo = <EditInfo editInfo={editInfo} concepts_map={concepts_map}/>;
+        eInfo = <EditInfo editInfo={editInfo} conceptLookup={conceptLookup}/>;
     }
     const customStyles = styles(sizes);
     const conditionalRowStyles = [
@@ -164,7 +163,7 @@ function getCbStates(csets, nodups) {
 }
 */
 function colConfig(props) {
-    let { displayData, codeset_ids, selected_csets, rowData,
+    let { displayData, codeset_ids, selected_csets, rowData, conceptLookup, csmiLookup,
           collapsed, toggleCollapse, sizes, editCodesetId, editInfo, setupEditCodesetId,
           editAction, } = props;
     // console.log('setting coldefs');
@@ -178,10 +177,8 @@ function colConfig(props) {
         {
             name: 'Concept name',
             selector: row => row.concept_name,
+            /*
             format: (row, idx) => {
-                if (!row.checkboxes) {
-                    console.log('problem!!!!', {idx, row, rowData})
-                } // else { // console.log('not a problem', {idx, row, rowData}) }
                 let content = displayData.nested
                     ? row.has_children
                         ? collapsed[row.pathToRoot]
@@ -191,6 +188,7 @@ function colConfig(props) {
                     : row.concept_name
                 return content;
             },
+             */
             sortable: !displayData.nested,
             width: (window.innerWidth - selected_csets.length * 50) * .85,
             wrap: true,
@@ -256,16 +254,21 @@ function colConfig(props) {
             //              <span>{cset_col.concept_set_version_title}</span>
             //          </Tooltip>,
             selector: (row,idx) => {
-                return <CellCheckbox {...{row,idx, cset_col, rowData: displayData.rowData, editInfo, editCodesetId, checkboxChange}} />;
+                // return 'x';
+                return <CellCheckbox {
+                    ...{row,idx, cset_col, csmiLookup,
+                        rowData: displayData.rowData, editInfo,
+                        editCodesetId, checkboxChange}} />;
             },
             conditionalCellStyles: [
-                { when: row => row.checkboxes && row.checkboxes[cset_col.codeset_id],
+                { when: row => csmiLookup[cset_col.codeset_id][row.concept_id], //row.checkboxes && row.checkboxes[cset_col.codeset_id],
                     style: row => {
-                        let cb = row.checkboxes[cset_col.codeset_id];
+                        // return { backgroundColor: 'red', };
+                        let mi = csmiLookup[cset_col.codeset_id][row.concept_id]; // row.checkboxes[cset_col.codeset_id];
                         let bg = 'purple';
-                        if      (cb.csm && cb.item) { bg = 'orange' }
-                        else if (cb.csm)             { bg = 'pink' }
-                        else if (cb.item)            { bg = 'gray' }
+                        if      (mi.csm && mi.item) { bg = 'orange' }
+                        else if (mi.csm)             { bg = 'pink' }
+                        else if (mi.item)            { bg = 'gray' }
                         return { backgroundColor: bg, };
                     }
                 },
@@ -291,13 +294,15 @@ trying to figure out what to display to convey relationships between expression 
 related concepts -- mapped and excluded
  */
 function CellCheckbox(props) {
-    const {row, idx, cset_col, rowData, editInfo, editCodesetId, checkboxChange} = props;
-    if (!row.checkboxes) {
-        console.log('problem!!!!', {idx, row, rowData})
-    }
+    const {row, idx, cset_col, rowData, editInfo, editCodesetId, checkboxChange, csmiLookup, } = props;
+    let mi = csmiLookup[cset_col.codeset_id][row.concept_id]; // row.checkboxes[cset_col.codeset_id];
+    // if (!row.checkboxes) {
+    //     console.log('problem!!!!', {idx, row, rowData})
+    // }
     let checked, contents;
-    let checkboxValue = row.checkboxes[cset_col.codeset_id];
-    checked = !! checkboxValue;
+    // let checkboxValue = row.checkboxes[cset_col.codeset_id];
+    // checked = !! checkboxValue;
+    checked = !! mi;
 
     if (editCodesetId && cset_col.codeset_id == editCodesetId) {
         if (row.concept_id in editInfo) {
@@ -307,9 +312,9 @@ function CellCheckbox(props) {
     } else {
         contents = <span>{checked ? '\u2713' : ''}</span>;
     }
-    if (checkboxValue) {
-        return <ItemOptions item={checkboxValue}/>;
-        return  <Tooltip label={<pre>{JSON.stringify(checkboxValue, null, 2)}</pre>} placement="bottom">{contents}</Tooltip>
+    if (mi) {
+        return <ItemOptions item={mi}/>;
+        // return  <Tooltip label={<pre>{JSON.stringify(mi, null, 2)}</pre>} placement="bottom">{contents}</Tooltip>
     } else {
         return contents
     }
