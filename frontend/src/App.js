@@ -16,7 +16,7 @@ import Box from '@mui/material/Box';
 // import {createTheme, ThemeProvider } from '@mui/material/styles';
 import { // useMutation, // useQueryClient,
           QueryClient, useQuery, useQueries, QueryClientProvider, } from '@tanstack/react-query'
-import {isEqual, keyBy} from "lodash";
+import {isEqual, keyBy, set, } from "lodash";
 import { persistQueryClient, removeOldestQuery,} from '@tanstack/react-query-persist-client'
 // import { createSyncStoragePersister } from '@tanstack/query-sync-storage-persister'
 import { createWebStoragePersistor } from 'react-query/createWebStoragePersistor-experimental'
@@ -95,7 +95,7 @@ function QCProvider() {
       // </React.StrictMode>
   );
 }
-const QUERYSTRING_SCALARS = ['editCol', ];
+const QUERYSTRING_SCALARS = ['editCodesetId', ];
 function QueryStringStateMgr(props) {
   const {location} = props;
   const [searchParams, setSearchParams ] = useSearchParams();
@@ -191,6 +191,8 @@ function DataContainer(props) {
 
   if (all_csets && cset_data) {
     cset_data.concepts_map = keyBy(cset_data.concepts, 'concept_id');
+    const csmiLookup = {};
+    cset_data.cset_members_items.map(mi => set(csmiLookup, [mi.codeset_id, mi.concept_id], mi));
     return  <RoutesContainer {...props} all_csets={all_csets} cset_data={cset_data}/>
   }
   return (

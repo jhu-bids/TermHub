@@ -34,11 +34,10 @@ function EditInfo(props) {
     );
 }
 function ComparisonDataTable(props) {
-    const {codeset_ids=[], editCol, makeRowData, displayData={}, selected_csets, squishTo, cset_data} = props;
+    const {codeset_ids=[], editCodesetId, makeRowData, displayData={}, selected_csets, squishTo, cset_data} = props;
     const {researchers, concepts_map, concepts, } = cset_data;
     const [columns, setColumns] = useState();
     const [collapsed, setCollapsed] = useState({});
-    // const [editCol, setEditCol] = useState(null);
     const [editInfo, setEditInfo] = useState({});
     const [searchParams, setSearchParams ] = useSearchParams();
     // console.log(window.data = props);
@@ -78,13 +77,13 @@ function ComparisonDataTable(props) {
         atlasHeight:  (12 * squishTo) + 'px',
         athenaHeight: (10 * squishTo) + 'px',
     }
-    function setupEditCol(evt) {
-        let ec = parseInt(evt.target.getAttribute('colnum'));
+    function setupEditCodesetId(evt) {
+        let ec = parseInt(evt.target.getAttribute('codeset_id'));
         const sp = searchParamsToObj(searchParams);
-        if (editCol == ec) {
-            delete sp.editCol;
+        if (editCodesetId == ec) {
+            delete sp.editCodeset_id;
         } else {
-            sp.editCol = ec;
+            sp.editCodeset_id = ec;
         }
         return setSearchParams(createSearchParams(sp));
     }
@@ -96,13 +95,13 @@ function ComparisonDataTable(props) {
         setColumns(colConfig({
                                  displayData, codeset_ids, selected_csets,
                                  collapsed, toggleCollapse, sizes,
-                                 editCol, editInfo, setupEditCol, editAction,
+                                 editCodesetId, editInfo, setupEditCodesetId, editAction,
                              }));
-    }, [displayData, squishTo, editCol, editInfo]);
+    }, [displayData, squishTo, editCodesetId, editInfo]);
 
     let card, eInfo;
-    if (typeof(editCol) == "number" && columns) {
-        card = <ConceptSetCard cset={columns[editCol].cset_col}
+    if (typeof(editCodesetId) == "number" && columns) {
+        card = <ConceptSetCard cset={columns.find(d=>d.codeset_id===editCodesetId).cset_col}
                                researchers={researchers}
                                editing={true}
                                width={window.innerWidth * 0.5}
@@ -166,7 +165,7 @@ function getCbStates(csets, nodups) {
 */
 function colConfig(props) {
     let { displayData, codeset_ids, selected_csets, rowData,
-          collapsed, toggleCollapse, sizes, editCol, editInfo, setupEditCol,
+          collapsed, toggleCollapse, sizes, editCodesetId, editInfo, setupEditCodesetId,
           editAction, } = props;
     // console.log('setting coldefs');
     let checkboxChange = (codeset_id, concept_id) => (evt, state) => {
@@ -246,17 +245,18 @@ function colConfig(props) {
         },
     ];
     let cset_cols = selected_csets.map((cset_col, col_idx) => {
-        const colnum = col_idx + coldefs.length;
         let def = {
             cset_col,
+            codeset_id: cset_col.codeset_id,
             name: <span className="cset-column"
-                        onClick={setupEditCol}
-                        colnum={colnum} >{cset_col.concept_set_version_title}</span>,
+                        onClick={setupEditCodesetId}
+                        codeset_id={cset_col.codeset_id}
+                    >{cset_col.concept_set_version_title}</span>,
             //  name:   <Tooltip label="Click to edit." placement="bottom">
             //              <span>{cset_col.concept_set_version_title}</span>
             //          </Tooltip>,
             selector: (row,idx) => {
-                return <CellCheckbox {...{row,idx, colnum, cset_col, rowData: displayData.rowData, editInfo, editCol, checkboxChange}} />;
+                return <CellCheckbox {...{row,idx, cset_col, rowData: displayData.rowData, editInfo, editCodesetId, checkboxChange}} />;
             },
             conditionalCellStyles: [
                 { when: row => row.checkboxes && row.checkboxes[cset_col.codeset_id],
@@ -291,7 +291,7 @@ trying to figure out what to display to convey relationships between expression 
 related concepts -- mapped and excluded
  */
 function CellCheckbox(props) {
-    const {row, idx, colnum, cset_col, rowData, editInfo, editCol, checkboxChange} = props;
+    const {row, idx, cset_col, rowData, editInfo, editCodesetId, checkboxChange} = props;
     if (!row.checkboxes) {
         console.log('problem!!!!', {idx, row, rowData})
     }
@@ -299,7 +299,7 @@ function CellCheckbox(props) {
     let checkboxValue = row.checkboxes[cset_col.codeset_id];
     checked = !! checkboxValue;
 
-    if (typeof(editCol) == "number" && colnum == editCol) {
+    if (editCodesetId && cset_col.codeset_id == editCodesetId) {
         if (row.concept_id in editInfo) {
             checked = ! checked;
         }

@@ -128,14 +128,14 @@ SELECT    csmi.*
         , c.vocabulary_id
         , c.concept_name
         , c.concept_code
-FROM n3c.cset_members_items csmi
+        , c.concept_class_id
+        , c.standard_concept
+FROM {{schema}}cset_members_items csmi
 JOIN concept c ON csmi.concept_id = c.concept_id);
 
-CREATE INDEX csmip_idx1 ON {{schema}}cset_members_items_plus(codeset_id);
-
-CREATE INDEX csmip_idx2 ON {{schema}}cset_members_items_plus(concept_id);
-
-CREATE INDEX csmip_idx3 ON {{schema}}cset_members_items_plus(codeset_id, concept_id);
+-- CREATE INDEX csmip_idx1 ON {{schema}}cset_members_items_plus(codeset_id);
+-- CREATE INDEX csmip_idx2 ON {{schema}}cset_members_items_plus(concept_id);
+-- CREATE INDEX csmip_idx3 ON {{schema}}cset_members_items_plus(codeset_id, concept_id);
 
 
 -- concept_set_container has duplicate records except for the created_at col
@@ -160,6 +160,10 @@ CREATE TABLE IF NOT EXISTS {{schema}}concepts_with_counts_ungrouped AS (
 SELECT DISTINCT
         c.concept_id,
         c.concept_name,
+        c.vocabulary_id,
+        c.concept_class_id,
+        c.standard_concept,
+        c.concept_code,
         COALESCE(tu.total_count, 0) AS total_cnt,
         COALESCE(tu.distinct_person_count, 0) AS distinct_person_cnt,
         tu.domain
@@ -173,12 +177,16 @@ DROP TABLE IF EXISTS {{schema}}concepts_with_counts;
 CREATE TABLE IF NOT EXISTS {{schema}}concepts_with_counts AS (
     SELECT  concept_id,
             concept_name,
+            vocabulary_id,
+            concept_class_id,
+            standard_concept,
+            concept_code,
             COUNT(DISTINCT domain) AS domain_cnt,
             array_to_string(array_agg(domain), ',') AS domain,
             SUM(total_cnt) AS total_cnt,
             array_to_string(array_agg(distinct_person_cnt), ',') AS distinct_person_cnt
     FROM {{schema}}concepts_with_counts_ungrouped
-    GROUP BY 1,2
+    GROUP BY 1,2,3,4,5,6
     ORDER BY concept_id, domain );
 
 CREATE INDEX cc_idx1 ON {{schema}}concepts_with_counts(concept_id);

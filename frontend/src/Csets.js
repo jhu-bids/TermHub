@@ -8,7 +8,7 @@ import Autocomplete from '@mui/material/Autocomplete';
 import Button from '@mui/material/Button';
 // import Chip from '@mui/material/Chip';
 import { Link, Outlet, useHref, useParams, useSearchParams, useLocation } from "react-router-dom";
-import { every, get, isEmpty, throttle, pullAt, } from 'lodash';
+import { every, get, set, isEmpty, throttle, pullAt, } from 'lodash';
 // import {isEqual, pick, uniqWith, max, omit, uniq, } from 'lodash';
 import Box from '@mui/material/Box';
 import Slider from '@mui/material/Slider';
@@ -133,6 +133,7 @@ function CsetComparisonPage(props) {
       return;
     }
 
+    /*
     // make obj containing a checkbox for each cset, initialized to false, like:
     //  {codeset_id_1: false, codeset_id_2: false, ...}
     const checkboxes = Object.fromEntries(selected_csets.map(d => [d.codeset_id, false]));
@@ -144,12 +145,13 @@ function CsetComparisonPage(props) {
     obj with cset_members_item. example: { "codeset_id": 400614256, "concept_id": 4191479, "csm": true,
                                            "item": true, "item_flags": "includeDescendants,includeMapped" },
     This modifies appropriate checkbox in every conceptsPlus record. Its return value (csetConcepts) also
-    excludes concepts that appear in hierarchy but don't appear in at least one of the selected csets. */
+    excludes concepts that appear in hierarchy but don't appear in at least one of the selected csets. * /
     const csetConcepts = Object.fromEntries(
         cset_members_items.map(d => {
           conceptsPlus[d.concept_id].checkboxes[d.codeset_id] = d;
           return conceptsPlus[d.concept_id];
         }).map(d => [d.concept_id, d]));
+    */
 
     let _displayOptions = {
       fullHierarchy: {
