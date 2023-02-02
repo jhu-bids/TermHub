@@ -1,9 +1,11 @@
 """Backend utilities"""
 import json
 import operator
-from datetime import datetime
 from functools import reduce
-from typing import Any, Dict, List, Tuple, Union
+from typing import Any, Dict, List, Union
+
+
+JSON_TYPE = Union[Dict, List]
 
 
 def cnt(vals):
@@ -46,5 +48,3 @@ def set_nested_in_dict(d: Dict, key_path: List, value: Any):
     """Set nested value in dictionary"""
     # noinspection PyUnresolvedReferences
     get_nested_from_dict(d, key_path[:-1])[key_path[-1]] = value
-
-
