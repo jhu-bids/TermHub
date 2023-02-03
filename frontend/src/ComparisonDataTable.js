@@ -1,21 +1,18 @@
 import React, {useState, useEffect, /* useMemo, useReducer, useRef, */} from 'react';
 import { createSearchParams, useSearchParams, } from "react-router-dom";
 import DataTable, { createTheme } from 'react-data-table-component';
-// import AddCircle from '@mui/icons-material/AddCircle';
-// import RemoveCircle from '@mui/icons-material/RemoveCircle';
+import AddCircle from '@mui/icons-material/AddCircle';
+import RemoveCircle from '@mui/icons-material/RemoveCircle';
 import {Checkbox} from "@mui/material";
 import Box from '@mui/material/Box';
 import Typography from '@mui/material/Typography';
-import {get, isEmpty, set, map, omit, pick, uniq, reduce, cloneDeepWith, isEqual, uniqWith, groupBy, } from 'lodash';
+import {get, isEmpty, } from 'lodash'; // set, map, omit, pick, uniq, reduce, cloneDeepWith, isEqual, uniqWith, groupBy,
 import {searchParamsToObj, fmt} from "./utils";
 import {ConceptSetCard} from "./ConceptSetCard";
 // import {Tooltip} from './Tooltip';
 import { ItemOptions, } from './EditCset';
 // import {isEmpty} from "react-data-table-component/dist/src/DataTable/util"; // what was this for?
 // import Button from '@mui/material/Button';
-
-/*
- */
 
 function EditInfo(props) {
     const {editInfo={}, conceptLookup} = props;
@@ -42,7 +39,7 @@ function ComparisonDataTable(props) {
     const [searchParams, setSearchParams ] = useSearchParams();
 
     function editAction(props) {
-        const {codeset_id, concept_id, state} = props;
+        const {/*codeset_id, */ concept_id, state} = props;
         setEditInfo(prev => {
             let ei = {...prev};
             if (concept_id in ei) {
@@ -64,7 +61,7 @@ function ComparisonDataTable(props) {
             return;
         }
         makeRowData(collapsed);
-    }, [collapsed, selected_csets.length, codeset_ids.length, ]);
+    }, [collapsed, selected_csets.length, codeset_ids.length, makeRowData, ]);
 
     let sizes = {
         rowFontSize:  (13 * squishTo) + 'px',
@@ -79,7 +76,7 @@ function ComparisonDataTable(props) {
     function setupEditCodesetId(evt) {
         let ec = parseInt(evt.target.getAttribute('codeset_id'));
         const sp = searchParamsToObj(searchParams);
-        if (editCodesetId == ec) {
+        if (editCodesetId === ec) {
             delete sp.editCodeset_id;
         } else {
             sp.editCodeset_id = ec;
@@ -96,7 +93,8 @@ function ComparisonDataTable(props) {
                                  collapsed, toggleCollapse, sizes,
                                  editCodesetId, editInfo, setupEditCodesetId, editAction,
                              }));
-    }, [displayData, squishTo, editCodesetId, editInfo]);
+    }, [displayData, squishTo, editCodesetId, editInfo, codeset_ids, selected_csets, conceptLookup, csmiLookup,
+                collapsed, toggleCollapse, sizes, setupEditCodesetId, editAction]);
 
     let card, eInfo;
     if (editCodesetId && columns) {
@@ -149,24 +147,11 @@ function ComparisonDataTable(props) {
         </div>
     );
 }
-/*
-function getCbStates(csets, nodups) {
-    let grid = {};
-    csets.forEach(cset => {
-        let cbRow = {};
-        nodups.forEach(row => {
-            cbRow[row.concept_id] = row.codeset_ids.includes(cset.codeset_id);
-        })
-        grid[cset.codeset_id] = cbRow;
-    })
-    return grid
-}
-*/
+
 function colConfig(props) {
     let { displayData, codeset_ids, selected_csets, rowData, conceptLookup, csmiLookup,
           collapsed, toggleCollapse, sizes, editCodesetId, editInfo, setupEditCodesetId,
           editAction, } = props;
-    // console.log('setting coldefs');
     let checkboxChange = (codeset_id, concept_id) => (evt, state) => {
         console.log({codeset_id, concept_id, state});
         editAction({codeset_id, concept_id, state});
@@ -177,7 +162,6 @@ function colConfig(props) {
         {
             name: 'Concept name',
             selector: row => row.concept_name,
-            /*
             format: (row, idx) => {
                 let content = displayData.nested
                     ? row.has_children
@@ -188,7 +172,6 @@ function colConfig(props) {
                     : row.concept_name
                 return content;
             },
-             */
             sortable: !displayData.nested,
             width: (window.innerWidth - selected_csets.length * 50) * .85,
             wrap: true,
@@ -301,8 +284,8 @@ function CellCheckbox(props) {
     if (!row.checkboxes) {
         console.log('problem!!!!', {idx, row, rowData})
     }
-    // let mi = csmiLookup[cset_col.codeset_id][row.concept_id];
-    let mi = row.checkboxes[cset_col.codeset_id];
+    let mi = csmiLookup[cset_col.codeset_id][row.concept_id];
+    // let mi = row.checkboxes[cset_col.codeset_id];
     // let checkboxValue = row.checkboxes[cset_col.codeset_id];
     let checked, contents;
     // checked = !! checkboxValue;
