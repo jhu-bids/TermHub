@@ -6,16 +6,16 @@ https://stackoverflow.com/questions/53219113/where-can-i-make-api-call-with-hook
 might be useful to look at https://mui.com/material-ui/guides/composition/#link
 referred to by https://stackoverflow.com/questions/63216730/can-you-use-material-ui-link-with-react-router-dom-link
 */
-import React, {useState, useReducer, useEffect, useRef} from 'react';
+import React, {useState, useEffect, } from 'react';
 import './App.css';
-import { // Link, useHref, useParams, BrowserRouter,
+import { // Link, useHref, useParams, BrowserRouter, redirect,
           Outlet, Navigate, useSearchParams, useLocation,
-          createSearchParams, Routes, Route, redirect, } from "react-router-dom";
+          createSearchParams, Routes, Route,} from "react-router-dom";
 import MuiAppBar from "./MuiAppBar";
 import Box from '@mui/material/Box';
-import { // useMutation, // useQueryClient,
-          QueryClient, useQuery, useQueries, QueryClientProvider, } from '@tanstack/react-query'
-import {isEqual, keyBy, set, } from "lodash";
+import { // useMutation, useQueryClient, useQuery, useQueries,
+          QueryClient,QueryClientProvider, } from '@tanstack/react-query'
+import {isEqual, keyBy, } from "lodash";
 import { persistQueryClient, removeOldestQuery,} from '@tanstack/react-query-persist-client'
 // import { createSyncStoragePersister } from '@tanstack/query-sync-storage-persister'
 import { createWebStoragePersistor } from 'react-query/createWebStoragePersistor-experimental'
@@ -23,10 +23,10 @@ import { ReactQueryDevtools } from '@tanstack/react-query-devtools'
 import {ConceptSetsPage, CsetComparisonPage} from "./Csets";
 import {AboutPage} from "./AboutPage";
 import {SingleCsetEdit} from "./SingleCsetEdit";
-import {searchParamsToObj, axiosGet, backend_url, useDataWidget} from "./utils";
+import {searchParamsToObj, backend_url, useDataWidget} from "./utils";
 import {UploadCsvPage} from "./UploadCsv";
 // import logo from './logo.svg';
-import { useIsFetching } from '@tanstack/react-query' // https://tanstack.com/query/v4/docs/react/guides/background-fetching-indicators
+// import { useIsFetching } from '@tanstack/react-query' // https://tanstack.com/query/v4/docs/react/guides/background-fetching-indicators
 // import dotenv from 'dotenv';
 // import * as dotenv from 'dotenv' // see https://github.com/motdotla/dotenv#how-do-i-use-dotenv-with-import
 // dotenv.config()
@@ -107,7 +107,7 @@ function QueryStringStateMgr(props) {
     if (sp.codeset_ids && !isEqual(codeset_ids, sp.codeset_ids)) {
       setCodeset_ids(sp.codeset_ids);
     }
-  }, [searchParams]);
+  }, [searchParams, codeset_ids, sp.codeset_ids]);
 
   function changeQueryParams(change={}) {
     let params = createSearchParams({...sp, ...change});
@@ -118,34 +118,31 @@ function QueryStringStateMgr(props) {
     // how = add | remove | toggle
     const included = codeset_ids.includes(codeset_id);
     let action = how;
-    if (how == 'add' && included) return;
-    if (how == 'remove' && !included) return;
-    if (how == 'toggle') {
+    if (how === 'add' && included) return;
+    if (how === 'remove' && !included) return;
+    if (how === 'toggle') {
       action = included ? 'remove' : 'add';
     }
-    let params;
-    if (action == 'add') {
+    if (action === 'add') {
       changeQueryParams({codeset_ids: [...codeset_ids, codeset_id]});
-    } else if (action == 'remove') {
+    } else if (action === 'remove') {
       if (!included) return;
-      changeQueryParams({codeset_ids: codeset_ids.filter(d => d != codeset_id)});
+      changeQueryParams({codeset_ids: codeset_ids.filter(d => d !== codeset_id)});
     } else {
-      throw 'unrecognized action in changeCodesetIds: ' + JSON.stringify({how, codeset_id});
+      throw new Error('unrecognized action in changeCodesetIds: ' + JSON.stringify({how, codeset_id}));
     }
   }
 
-  if (location.pathname == '/') {
+  if (location.pathname === '/') {
     return <Navigate to='/OMOPConceptSets' />;
-    return;
   }
-  if (location.pathname == '/testing') {
+  if (location.pathname === '/testing') {
     const test_codeset_ids = [400614256, 411456218, 419757429, 484619125, ];
     let params = createSearchParams({codeset_ids: test_codeset_ids});
     // setSearchParams(params);
     let url = '/cset-comparison?' + params;
     // return redirect(url); not exported even though it's in the docs
-    return <Navigate to={url}
-                     replace={true} /* what does this do? */ />;
+    return <Navigate to={url} replace={true} /* what does this do? */ />;
   }
   if(!sp.codeset_ids) {
     sp.codeset_ids = [];
@@ -192,6 +189,12 @@ function DataContainer(props) {
     cset_data.conceptLookup = keyBy(cset_data.concepts, 'concept_id');
     const csmiLookup = {};
     // cset_data.cset_members_items.map(mi => set(csmiLookup, [mi.codeset_id, mi.concept_id], mi));
+    // the line above created the most bizarre crashing behavior -- fixed by replacing the lodash set with simple loop below
+    cset_data.cset_members_items.forEach(mi => {
+      csmiLookup[mi.codeset_id] = csmiLookup[mi.codeset_id] || {};
+      csmiLookup[mi.codeset_id][mi.concept_id] = mi;
+    });
+    console.log(csmiLookup);
     cset_data.csmiLookup = csmiLookup;
     return  <RoutesContainer {...props} all_csets={all_csets} cset_data={cset_data}/>
   }
@@ -236,11 +239,6 @@ function App() {
       </div>
   );
 }
-
-function ErrorPath() {
-  return <h3>Unknown path</h3>
-}
-
 
 /*
 when in doubt: https://reactjs.org/docs/hooks-reference.html and https://reactrouter.com/docs/en/v6

@@ -1,15 +1,15 @@
-import React, {useState, useEffect, useMemo, /* useReducer, useRef, */} from 'react';
+import React, {useState, useEffect, /* useMemo, useReducer, useRef, */} from 'react';
 import { createSearchParams, useSearchParams, } from "react-router-dom";
 import DataTable, { createTheme } from 'react-data-table-component';
-import AddCircle from '@mui/icons-material/AddCircle';
-import RemoveCircle from '@mui/icons-material/RemoveCircle';
+// import AddCircle from '@mui/icons-material/AddCircle';
+// import RemoveCircle from '@mui/icons-material/RemoveCircle';
 import {Checkbox} from "@mui/material";
 import Box from '@mui/material/Box';
 import Typography from '@mui/material/Typography';
 import {get, isEmpty, set, map, omit, pick, uniq, reduce, cloneDeepWith, isEqual, uniqWith, groupBy, } from 'lodash';
 import {searchParamsToObj, fmt} from "./utils";
 import {ConceptSetCard} from "./ConceptSetCard";
-import {Tooltip} from './Tooltip';
+// import {Tooltip} from './Tooltip';
 import { ItemOptions, } from './EditCset';
 // import {isEmpty} from "react-data-table-component/dist/src/DataTable/util"; // what was this for?
 // import Button from '@mui/material/Button';
@@ -262,12 +262,12 @@ function colConfig(props) {
             },
             conditionalCellStyles: [
                 {
-                    // when: row => csmiLookup[cset_col.codeset_id][row.concept_id],
-                    when: row => row.checkboxes && row.checkboxes[cset_col.codeset_id],
+                    when: row => csmiLookup[cset_col.codeset_id][row.concept_id],
+                    // when: row => row.checkboxes && row.checkboxes[cset_col.codeset_id],
                     style: row => {
                         // return { backgroundColor: 'red', };
-                        // let mi = csmiLookup[cset_col.codeset_id][row.concept_id];
-                        let mi = row.checkboxes[cset_col.codeset_id];
+                        let mi = csmiLookup[cset_col.codeset_id][row.concept_id];
+                        // let mi = row.checkboxes[cset_col.codeset_id];
                         let bg = 'purple';
                         if      (mi.csm && mi.item) { bg = 'orange' }
                         else if (mi.csm)             { bg = 'pink' }

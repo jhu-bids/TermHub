@@ -85,7 +85,7 @@ function traverseHierarchy({hierarchy, concepts, collapsed, }) {
   let rowData = [];
   let blanks = [];
   let traverse = (o, pathToRoot=[], level=0) => {
-    console.log({o, pathToRoot, level});
+    // console.log({o, pathToRoot, level});
     Object.keys(o).forEach(k => {
       k = parseInt(k);
       let row = {...concepts[k], level, pathToRoot: [...pathToRoot, k]};
@@ -180,7 +180,7 @@ function CsetComparisonPage(props) {
     setDisplayOption(option);
   }
   let moreProps = {...props, makeRowData, displayData: displayOptions[displayOption], selected_csets, squishTo};
-  console.log({moreProps});
+  // console.log({moreProps});
   return (
       <div>
         <h5 style={{margin:20, }}>

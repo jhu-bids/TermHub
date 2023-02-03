@@ -42,7 +42,7 @@ function ItemOptions(props) {
   const flags = item.item_flags.split(',');
   return (
       <span>
-        {Object.keys(ICONS).map(key => {
+        {Object.keys(ICONS).filter(key=>item[key]).map(key => {
           return <OptionIcon opt={key} key={key} on={flags.includes(key)}/>
         })}
       </span>
