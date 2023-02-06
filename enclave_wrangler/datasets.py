@@ -295,6 +295,8 @@ def transforms_common(df: pd.DataFrame, dataset_name) -> pd.DataFrame:
 # TODO: currently overwrites if download is newer than prepped. should also overwrite if dependency
 #   prepped files are newer than this
 def transform(fav: dict) -> pd.DataFrame:
+    """Data transformations"""
+    print(f'INFO: Transforming: {fav["name"]}')
     dataset_name: str = fav['name']
     ipath = os.path.join(CSV_DOWNLOAD_DIR, dataset_name + '.csv')
     opath = os.path.join(CSV_TRANSFORM_DIR, dataset_name + '.csv')
@@ -302,7 +304,7 @@ def transform(fav: dict) -> pd.DataFrame:
         print(f'Skipping {dataset_name}: transformed file is newer than downloaded file. If you really want to transform again, delete {opath} and try again.')
         return pd.DataFrame()
 
-    """Data transformations"""
+
     dataset_funcs = {  # todo: using introspection, can remove need for this if function names are consistent w/ files
         # skip filtering for now
         # 'concept': transform_dataset__concept,
@@ -341,10 +343,13 @@ def get_last_vocab_update():
 # print(get_last_vocab_update())
 # exit()
 
-def run(
+
+def download_and_transform(
     dataset_name: str = None, dataset_rid: str = None, ref: str = 'master', output_dir: str = None, outpath: str = None,
     transforms_only=False, fav: Dict = None, force_if_exists=False
 ) -> pd.DataFrame:
+    """Download dataset & run transformations"""
+    print(f'INFO: Downloading: {dataset_name}')
     dataset_rid = FAVORITE_DATASETS[dataset_name]['rid'] if not dataset_rid else dataset_rid
     dataset_name = FAVORITE_DATASETS_RID_NAME_MAP[dataset_rid] if not dataset_name else dataset_name
     fav = fav if fav else FAVORITE_DATASETS[dataset_name]
@@ -374,14 +379,17 @@ def run(
     return df2 if len(df2) > 0 else df
 
 
-def download_favorite_datasets(outdir: str = CSV_DOWNLOAD_DIR, transforms_only=False, specific=[], force_if_exists=False, single_group=None):
+def download_favorite_datasets(
+    outdir: str = CSV_DOWNLOAD_DIR, transforms_only=False, specific=[], force_if_exists=False, single_group=None
+):
     """Download favorite datasets"""
     for fav in FAVORITE_DATASETS.values():
         if single_group and single_group not in fav['dataset_groups']:
             continue
         if not specific or fav['name'] in specific:
             outpath = os.path.join(outdir, fav['name'] + '.csv')
-            run(fav=fav, dataset_name=fav['name'], outpath=outpath, transforms_only=transforms_only, force_if_exists=force_if_exists)
+            download_and_transform(fav=fav, dataset_name=fav['name'], outpath=outpath, transforms_only=transforms_only,
+                                   force_if_exists=force_if_exists)
 
 
 def get_parser():
@@ -441,7 +449,7 @@ def cli():
         download_favorite_datasets(outdir=d['output_dir'], transforms_only=d['transforms_only'], specific=specific)
     else:
         del d['favorites']
-        run(**d)
+        download_and_transform(**d)
 
 if __name__ == '__main__':
     cli()
