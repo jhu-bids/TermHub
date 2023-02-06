@@ -133,11 +133,9 @@ SELECT    csmi.*
 FROM {{schema}}cset_members_items csmi
 JOIN concept c ON csmi.concept_id = c.concept_id);
 
-CREATE INDEX csmip_idx1 ON {{schema}}cset_members_items_plus(codeset_id);
+-- CREATE INDEX csmip_idx1 ON {{schema}}cset_members_items_plus(codeset_id);
 -- CREATE INDEX csmip_idx2 ON {{schema}}cset_members_items_plus(concept_id);
 -- CREATE INDEX csmip_idx3 ON {{schema}}cset_members_items_plus(codeset_id, concept_id);
-
-
 -- concept_set_container has duplicate records except for the created_at col
 --  get rid of duplicates, keeping the most recent.
 --  code from https://stackoverflow.com/a/28085614/1368860

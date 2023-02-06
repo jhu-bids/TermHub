@@ -82,9 +82,9 @@ def indexes_and_derived_tables(con: Connection, schema_name: str, skip_if_update
         print(f'INFO: indexes_and_derived_tables: Running command {step_num} of {len(commands)}')
         try:
             run_sql(con, command)
-        except (ProgrammingError, OperationalError):
+        except (ProgrammingError, OperationalError, RuntimeError) as err:
             update_db_status_var(last_successful_step_key, str(step_num - 1))
-            raise RuntimeError(f'Got an error executing the following statement:\n{command}')
+            raise err
 
     update_db_status_var(last_successful_step_key, '0')
     update_db_status_var(last_completed_key, str(current_datetime()))
