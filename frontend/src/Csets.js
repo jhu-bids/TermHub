@@ -174,7 +174,7 @@ function CsetComparisonPage(props) {
     _displayOptions.flat.nested = false;
     _displayOptions.flat.msg = 'flat';
     setDisplayOptions(_displayOptions);
-    // window.dopts = _displayOptions;
+    window.dopts = _displayOptions;
   }
   function changeDisplayOption(option) {
     setDisplayOption(option);

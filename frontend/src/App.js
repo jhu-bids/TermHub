@@ -25,6 +25,8 @@ import {AboutPage} from "./AboutPage";
 import {SingleCsetEdit} from "./SingleCsetEdit";
 import {searchParamsToObj, backend_url, useDataWidget} from "./utils";
 import {UploadCsvPage} from "./UploadCsv";
+import _ from "./supergroup/supergroup";
+
 // import logo from './logo.svg';
 // import { useIsFetching } from '@tanstack/react-query' // https://tanstack.com/query/v4/docs/react/guides/background-fetching-indicators
 // import dotenv from 'dotenv';
@@ -157,35 +159,17 @@ function DataContainer(props) {
   let {codeset_ids, } = props;
   const all_csets_url = 'get-all-csets';
   const cset_data_url = 'cr-hierarchy?rec_format=flat&codeset_ids=' + codeset_ids.join('|');
+  const cr_url = 'get-concept_relationships?codeset_ids=' + codeset_ids.join('|');
 
   /* TODO: This is a total disaster. do something with it */
   const [all_csets_widget, acprops] = useDataWidget("all_csets", all_csets_url);
   const [cset_data_widget, csprops] = useDataWidget(codeset_ids.join('|'), cset_data_url);
+  const [cr_widget, crprops] = useDataWidget('cr' + codeset_ids.join('|'), cr_url);
   const all_csets = acprops.data;
   const cset_data = csprops.data;
-  /*
-  const [all_csets, setAll_csets] = useState([]);
-  const [cset_data, setCset_data] = useState({});
-  const acprops = useQuery(["all_csets"], () => axiosGet(all_csets_url));
-  const csprops = useQuery([codeset_ids.join('|')], () => axiosGet(cset_data_url));
-  // const csprops = useQuery(codeset_ids, () => axiosGet(cset_data_url));
-  useEffect(() => {
-    // console.log('ac', acprops.status);
-    console.log(acprops);
-    if (acprops.status === 'success') {
-      setAll_csets(acprops.data);
-    }
-  }, [acprops]);
-  */
-  useEffect(() => {
-    // console.log(csprops);
-    // console.log('ac', csprops.status);
-    if (csprops.status === 'success') {
-      // setCset_data(csprops.data);
-    }
-  }, [csprops.status]);
+  const concept_relationships = crprops.data;
 
-  if (all_csets && cset_data) {
+  if (all_csets && cset_data && concept_relationships) {
     cset_data.conceptLookup = keyBy(cset_data.concepts, 'concept_id');
     const csmiLookup = {};
     // cset_data.cset_members_items.map(mi => set(csmiLookup, [mi.codeset_id, mi.concept_id], mi));
@@ -196,6 +180,8 @@ function DataContainer(props) {
     });
     console.log(csmiLookup);
     cset_data.csmiLookup = csmiLookup;
+    let cr = _.hierarchicalTableToTree(concept_relationships, 'concept_id_1', 'concept_id_2');
+    console.log(cr);
     return  <RoutesContainer {...props} all_csets={all_csets} cset_data={cset_data}/>
   }
   return (
@@ -207,6 +193,7 @@ function DataContainer(props) {
               <Box sx={{ display: 'flex' }}>
                 {all_csets_widget}
                 {cset_data_widget}
+                {cr_widget}
               </Box>
             </div>
           } />

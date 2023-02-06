@@ -8,3 +8,6 @@
 	url = git@github.com:jhu-bids/termhub-csets.git
 	branch = main
 	update = merge
+[submodule "frontend/src/supergroup"]
+	path = frontend/src/supergroup
+	url = git@github.com:Sigfried/supergroup.git
