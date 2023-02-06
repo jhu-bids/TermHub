@@ -603,3 +603,10 @@ def get_concept_set_version_expression_items(version_id: Union[str, int]) -> Lis
         link_type='omopConceptSetVersionItem')
     expression_items: List[UUID] = [x['properties']['itemId'] for x in response.json()['data']]
     return expression_items
+
+
+def get_action_types() -> Response:
+    """Get action types"""
+    client = EnclaveClient()
+    response: Response = client.get_action_types()
+    return response
