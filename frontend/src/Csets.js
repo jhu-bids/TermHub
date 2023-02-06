@@ -1,7 +1,7 @@
 import React, {useState, useEffect, useCallback, /* useReducer, useRef, */} from 'react';
 import {ComparisonDataTable} from "./ComparisonDataTable";
 import {CsetsDataTable, } from "./CsetsDataTable";
-import {searchParamsToObj, StatsMessage} from "./utils";
+// import {searchParamsToObj, StatsMessage} from "./utils";
 import ConceptSetCards from "./ConceptSetCard";
 import TextField from '@mui/material/TextField';
 import Autocomplete from '@mui/material/Autocomplete';
@@ -116,10 +116,25 @@ function CsetComparisonPage(props) {
     } = cset_data;
   // let selected_csets = all_csets.filter(d => codeset_ids.includes(d.codeset_id));
   const [squishTo, setSquishTo] = useState(1);
-  const [displayOptions, setDisplayOptions] = useState({});
+  // const [displayOptions, setDisplayOptions] = useState({});
   const [displayOption, setDisplayOption] = useState('fullHierarchy');
-  const [displayData, setDisplayData] = useState({});
+  const [collapsed, setCollapsed] = useState({});
+  // const [displayData, setDisplayData] = useState({});
 
+  /*
+  useEffect(() => {
+    if (!selected_csets.length) {
+      return;
+    }
+    makeRowData(collapsed);
+  }, [collapsed, selected_csets.length, codeset_ids.length, makeRowData, ]);
+   */
+
+  function toggleCollapse(row) {
+    let _collapsed = {...collapsed, [row.pathToRoot]: !get(collapsed, row.pathToRoot.join(','))};
+    setCollapsed(_collapsed);
+    // makeRowData(_collapsed);
+  }
   const tsquish = throttle(
       val => {
         // console.log(`squish: ${squishTo} -> ${val}`);
@@ -173,14 +188,18 @@ function CsetComparisonPage(props) {
     _displayOptions.flat = {..._displayOptions.csetConcepts};
     _displayOptions.flat.nested = false;
     _displayOptions.flat.msg = 'flat';
-    setDisplayOptions(_displayOptions);
+    // setDisplayOptions(_displayOptions);
     window.dopts = _displayOptions;
+    return _displayOptions;
   }
+
   function changeDisplayOption(option) {
     setDisplayOption(option);
   }
-  let moreProps = {...props, makeRowData, displayData: displayOptions[displayOption], selected_csets, squishTo};
-  // console.log({moreProps});
+  const displayOptions = makeRowData(collapsed);
+  let moreProps = {...props, makeRowData, displayData: displayOptions[displayOption], selected_csets, squishTo, collapsed, };
+  window.moreProps = moreProps;
+  console.log({moreProps});
   return (
       <div>
         <h5 style={{margin:20, }}>

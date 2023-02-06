@@ -4,6 +4,7 @@ import {API_ROOT} from "./env";
 import CircularProgress from '@mui/material/CircularProgress';
 import Box from '@mui/material/Box';
 import { useQuery } from '@tanstack/react-query'
+import { createSearchParams, } from "react-router-dom";
 import { QUERYSTRING_SCALARS, } from './App';
 
 function Progress(props) {
@@ -86,7 +87,7 @@ function StatsMessage(props) {
     below if you want to add to the above list.</p>
 }
 
-function searchParamsToObj(searchParams) {
+function searchParamsToObj(searchParams, setSearchParams) {
   const qsKeys = Array.from(new Set(searchParams.keys()));
   let searchParamsAsObject = {};
   console.log({QUERYSTRING_SCALARS});
@@ -100,7 +101,38 @@ function searchParamsToObj(searchParams) {
       searchParamsAsObject[key] = searchParamsAsObject[key][0];
     }
   });
+  searchParamsAsObject.searchParams = searchParams;
+  searchParamsAsObject.setSearchParams = setSearchParams;
   console.log({searchParamsAsObject});
   return searchParamsAsObject;
 }
-export {pct_fmt, fmt, cfmt, StatsMessage, searchParamsToObj, backend_url, axiosGet, axiosPut, useDataWidget};
+
+function getEditCodesetFunc(searchParams, setSearchParams) {
+  return (evt) => {
+    let ec = parseInt(evt.target.getAttribute('codeset_id'));
+    let sp = searchParamsToObj(searchParams);
+    if (sp.editCodesetId === ec) {
+      delete sp.editCodesetId;
+    } else {
+      sp.editCodesetId = ec;
+    }
+    return setSearchParams(createSearchParams(sp));
+  }
+}
+
+function getCodesetEditActionFunc(searchParams, setSearchParams) {
+  return (props) => {
+    const {/*codeset_id, */ concept_id, state} = props;
+    const sp = searchParamsToObj(searchParams);
+    let {csetEditState, } = sp;
+    if (concept_id in csetEditState) {
+      delete csetEditState[concept_id];
+    } else {
+      csetEditState[concept_id] = state;
+    }
+    return setSearchParams(createSearchParams({...sp, csetEditState}));
+  }
+}
+
+export {pct_fmt, fmt, cfmt, StatsMessage, searchParamsToObj, backend_url, axiosGet, axiosPut, useDataWidget,
+        getCodesetEditActionFunc, getEditCodesetFunc, };

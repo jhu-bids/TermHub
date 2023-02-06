@@ -25,7 +25,7 @@ import {AboutPage} from "./AboutPage";
 import {SingleCsetEdit} from "./SingleCsetEdit";
 import {searchParamsToObj, backend_url, useDataWidget} from "./utils";
 import {UploadCsvPage} from "./UploadCsv";
-import _ from "./supergroup/supergroup";
+// import _ from "./supergroup/supergroup";
 const QUERYSTRING_SCALARS = ['editCodesetId', ];
 
 // import logo from './logo.svg';
@@ -101,7 +101,7 @@ function QueryStringStateMgr(props) {
   const {location} = props;
   const [searchParams, setSearchParams ] = useSearchParams();
   // gets state (codeset_ids for now) from query string, passes down through props
-  const sp = searchParamsToObj(searchParams);
+  const sp = searchParamsToObj(searchParams, setSearchParams);
   const [codeset_ids, setCodeset_ids] = useState(sp.codeset_ids || []);
   // console.log(props);
 
@@ -178,10 +178,11 @@ function DataContainer(props) {
       csmiLookup[mi.codeset_id] = csmiLookup[mi.codeset_id] || {};
       csmiLookup[mi.codeset_id][mi.concept_id] = mi;
     });
-    console.log(csmiLookup);
     cset_data.csmiLookup = csmiLookup;
-    let cr = _.hierarchicalTableToTree(concept_relationships, 'concept_id_1', 'concept_id_2');
-    console.log(cr);
+    // let cr = _.hierarchicalTableToTree(concept_relationships, 'concept_id_1', 'concept_id_2');
+    // console.log(cr);
+
+    console.log({props, cset_data, });
     return  <RoutesContainer {...props} all_csets={all_csets} cset_data={cset_data}/>
   }
   return (
