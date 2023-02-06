@@ -90,9 +90,9 @@ def indexes_and_derived_tables(con: Connection, schema_name: str, skip_if_update
     update_db_status_var(last_completed_key, str(current_datetime()))
 
 
-def load(schema: str = SCHEMA, clobber=False, skip_if_updated_within_hours: int = None):
+def load(schema: str = SCHEMA, clobber=False, skip_if_updated_within_hours: int = None, use_local_database=False):
     """Load data into the database and create indexes and derived tables"""
-    with get_db_connection() as con:
+    with get_db_connection(use_local_database) as con:
         seed(con, schema, clobber, skip_if_updated_within_hours)
         indexes_and_derived_tables(con, schema, skip_if_updated_within_hours)
 

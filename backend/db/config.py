@@ -22,11 +22,23 @@ CONFIG = {
     'pass': os.getenv('TERMHUB_DB_PASS'),
     'port': os.getenv('TERMHUB_DB_PORT'),
 }
+CONFIG_LOCAL = {
+    'server': os.getenv('TERMHUB_DB_SERVER_LOCAL'),
+    'driver': os.getenv('TERMHUB_DB_DRIVER_LOCAL'),
+    'host': os.getenv('TERMHUB_DB_HOST_LOCAL'),
+    'user': os.getenv('TERMHUB_DB_USER_LOCAL'),
+    'db': os.getenv('TERMHUB_DB_DB_LOCAL'),
+    'schema': os.getenv('TERMHUB_DB_SCHEMA_LOCAL'),
+    'pass': os.getenv('TERMHUB_DB_PASS_LOCAL'),
+    'port': os.getenv('TERMHUB_DB_PORT_LOCAL'),
+}
 
-def get_pg_connect_url():
-    return  f'{CONFIG["server"]}+{CONFIG["driver"]}://' \
-            f'{CONFIG["user"]}:{CONFIG["pass"]}@{CONFIG["host"]}:{CONFIG["port"]}' \
-            f'/{CONFIG["db"]}'
+def get_pg_connect_url(local=False):
+    """Get URL to connect to the database server"""
+    config = CONFIG_LOCAL if local else CONFIG
+    return f'{config["server"]}+{config["driver"]}://' \
+           f'{config["user"]}:{config["pass"]}@{config["host"]}:{config["port"]}' \
+           f'/{config["db"]}'
 
 
 # https://stackoverflow.com/a/49927846/1368860

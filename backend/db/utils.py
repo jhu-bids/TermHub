@@ -24,9 +24,9 @@ DB = CONFIG["db"]
 SCHEMA = CONFIG["schema"]
 
 
-def get_db_connection(isolation_level='AUTOCOMMIT', schema: str = SCHEMA):
+def get_db_connection(isolation_level='AUTOCOMMIT', schema: str = SCHEMA, local=False):
     """Connect to db"""
-    engine = create_engine(get_pg_connect_url(), isolation_level=isolation_level)
+    engine = create_engine(get_pg_connect_url(local), isolation_level=isolation_level)
 
     @event.listens_for(engine, "connect", insert=True)
     def set_search_path(dbapi_connection, connection_record):
@@ -47,6 +47,12 @@ def get_db_connection(isolation_level='AUTOCOMMIT', schema: str = SCHEMA):
         dbapi_connection.autocommit = existing_autocommit
 
     return engine.connect()
+
+
+def chunk_list(input_list: List, chunk_size) -> List[List]:
+    """Split a list into chunks"""
+    for i in range(0, len(input_list), chunk_size):
+        yield input_list[i:i + chunk_size]
 
 
 def current_datetime():

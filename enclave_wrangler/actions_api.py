@@ -605,18 +605,13 @@ def get_concept_set_version_expression_items(version_id: Union[str, int]) -> Lis
     return expression_items
 
 
-# TODO: try this out
 def get_action_types() -> Response:
-    """Get action types"""
-    # curl \     -H "Authorization: Bearer $PALANTIR_ENCLAVE_AUTHENTICATION_BEARER_TOKEN " \
-    # "https://unite.nih.gov/api/v1/ontologies/ri.ontology.main.ontology.00000000-0000-0000-0000-000000000000/actionTypes"
+    """Get action types
+    curl -H "Authorization: Bearer $PALANTIR_ENCLAVE_AUTHENTICATION_BEARER_TOKEN " \
+    "https://unite.nih.gov/api/v1/ontologies/ri.ontology.main.ontology.00000000-0000-0000-0000-000000000000/actionTypes"
+    """
     ontology_rid = config['ONTOLOGY_RID']
-    api_path = f'/api/v1/ontologies/{ontology_rid}/actionTypes/'
+    api_path = f'/api/v1/ontologies/{ontology_rid}/actionTypes'
     url = f'https://{config["HOSTNAME"]}{api_path}'
     response: Response = enclave_get(url)
-    return response
-
-
-if __name__ == '__main__':
-    xxx = get_action_types()
-    print()
+    return response.json()['data']

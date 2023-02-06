@@ -2,7 +2,7 @@ name: TermHub DB Refresh
 
 on:
   schedule:
-    - cron: '0 0 * * *'  # every day at midnight
+    - cron: '0 5 * * *'  # every day 5am GMT (12-1am EST/EDT)
   workflow_dispatch:
 
 jobs:
@@ -20,7 +20,6 @@ jobs:
         with:
           # Consider '3.10' or 'v3.10.0': https://github.com/actions/setup-python/issues/160
           python-version: '3.9.7'
-
 
       - name: 'Create env file'
         run: |
