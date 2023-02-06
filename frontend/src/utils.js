@@ -1,4 +1,4 @@
-import React, {useEffect} from 'react';
+import React, {} from 'react';
 import axios from "axios";
 import {API_ROOT} from "./env";
 import CircularProgress from '@mui/material/CircularProgress';
@@ -17,7 +17,7 @@ function Progress(props) {
 
 /* TODO: This is a total disaster. do something with it */
 function DataWidget(props) {
-  const { data, isLoading, error, isFetching, ukey, url, putData, status } = props;
+  const { isLoading, error, isFetching, ukey, url, putData, status } = props;
   console.log(props);
   const callType = putData ? 'Put' : 'Get';
   let msg = {}
@@ -73,7 +73,7 @@ function axiosPut(path, data, backend=true) {
 const pct_fmt = num => Number(num).toLocaleString(undefined,{style: 'percent', minimumFractionDigits:2});
 const fmt = num => Number(num).toLocaleString();
 // cfmt = conditional format -- as number if number, otherwise no change
-const cfmt = v => (parseInt(v) == v || parseFloat(v) == v) ? Number(v).toLocaleString() : v;
+const cfmt = v => (parseInt(v) === v || parseFloat(v) === v) ? Number(v).toLocaleString() : v;
 
 function StatsMessage(props) {
   const {codeset_ids=[], all_csets=[], cset_data={}} = props;
@@ -93,10 +93,10 @@ function searchParamsToObj(searchParams, setSearchParams) {
   console.log({QUERYSTRING_SCALARS});
   qsKeys.forEach(key => {
     let vals = searchParams.getAll(key);
-    searchParamsAsObject[key] = vals.map(v => parseInt(v) == v ? parseInt(v) : v).sort();
+    searchParamsAsObject[key] = vals.map(v => parseInt(v) === v ? parseInt(v) : v).sort();
     if (QUERYSTRING_SCALARS.includes(key)) {
-      if (searchParamsAsObject[key].length != 1) {
-        throw "Didn't expect that!";
+      if (searchParamsAsObject[key].length !== 1) {
+        throw new Error("Didn't expect that!");
       }
       searchParamsAsObject[key] = searchParamsAsObject[key][0];
     }

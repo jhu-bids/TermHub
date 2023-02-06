@@ -1,4 +1,4 @@
-import React, {useState, useEffect, /* useMemo, useReducer, useRef, */} from 'react';
+import React, {/* useState, useEffect, useMemo, useReducer, useRef, */} from 'react';
 // import { createSearchParams, useSearchParams, } from "react-router-dom";
 import DataTable, { createTheme } from 'react-data-table-component';
 import AddCircle from '@mui/icons-material/AddCircle';
@@ -6,7 +6,7 @@ import RemoveCircle from '@mui/icons-material/RemoveCircle';
 import {Checkbox} from "@mui/material";
 import Box from '@mui/material/Box';
 import Typography from '@mui/material/Typography';
-import {get, isEmpty, } from 'lodash'; // set, map, omit, pick, uniq, reduce, cloneDeepWith, isEqual, uniqWith, groupBy,
+import {isEmpty, } from 'lodash'; // set, map, omit, pick, uniq, reduce, cloneDeepWith, isEqual, uniqWith, groupBy,
 import {fmt, getEditCodesetFunc, getCodesetEditActionFunc, } from "./utils";
 import {ConceptSetCard} from "./ConceptSetCard";
 // import {Tooltip} from './Tooltip';
@@ -32,8 +32,7 @@ function EditInfo(props) {
 }
 function ComparisonDataTable(props) {
     console.log(props);
-    const {codeset_ids=[], editCodesetId, makeRowData, displayData={}, selected_csets, squishTo, cset_data,
-            csetEditState={}, searchParams, setSearchParams, } = props;
+    const {editCodesetId, displayData={}, squishTo, cset_data, csetEditState={}, searchParams, setSearchParams, } = props;
     const {researchers, conceptLookup, } = cset_data;
     // const [columns, setColumns] = useState();
     // const [editInfo, setEditInfo] = useState({});

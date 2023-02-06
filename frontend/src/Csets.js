@@ -1,4 +1,4 @@
-import React, {useState, useEffect, useCallback, /* useReducer, useRef, */} from 'react';
+import React, {useState, useCallback, /* useReducer, useRef, */} from 'react';
 import {ComparisonDataTable} from "./ComparisonDataTable";
 import {CsetsDataTable, } from "./CsetsDataTable";
 // import {searchParamsToObj, StatsMessage} from "./utils";
@@ -7,8 +7,8 @@ import TextField from '@mui/material/TextField';
 import Autocomplete from '@mui/material/Autocomplete';
 import Button from '@mui/material/Button';
 // import Chip from '@mui/material/Chip';
-import { Link, Outlet, useHref, useParams, useSearchParams, useLocation } from "react-router-dom";
-import { every, get, set, isEmpty, throttle, pullAt, } from 'lodash';
+// import { Link, Outlet, useHref, useParams, useSearchParams, useLocation } from "react-router-dom";
+import { every, get, isEmpty, throttle, pullAt, } from 'lodash';
 // import {isEqual, pick, uniqWith, max, omit, uniq, } from 'lodash';
 import Box from '@mui/material/Box';
 import Slider from '@mui/material/Slider';
@@ -20,7 +20,7 @@ import Slider from '@mui/material/Slider';
     @ SIggie: is this fixed?
 */
 function CsetSearch(props) {
-  const {codeset_ids, changeCodesetIds, all_csets=[], cset_data={}} = props;
+  const {codeset_ids, changeCodesetIds, all_csets=[], } = props;
 
   const [keyForRefreshingAutocomplete, setKeyForRefreshingAutocomplete] = useState(0);
   // necessary to change key for reset because of Autocomplete bug, according to https://stackoverflow.com/a/59845474/1368860
@@ -110,10 +110,8 @@ function traverseHierarchy({hierarchy, concepts, collapsed, }) {
 // TODO: Color table: I guess would need to see if could pass extra values/props and see if table widget can use that
 //  ...for coloration, since we want certain rows grouped together
 function CsetComparisonPage(props) {
-  const {codeset_ids=[], all_csets=[], cset_data={}} = props;
-  const {hierarchy={}, selected_csets=[], concepts=[],
-          cset_members_items=[], orphans=[], conceptLookup={},
-    } = cset_data;
+  const {all_csets=[], cset_data={}} = props;
+  const {hierarchy={}, selected_csets=[], concepts=[], cset_members_items=[], } = cset_data;
   // let selected_csets = all_csets.filter(d => codeset_ids.includes(d.codeset_id));
   const [squishTo, setSquishTo] = useState(1);
   // const [displayOptions, setDisplayOptions] = useState({});
@@ -140,7 +138,7 @@ function CsetComparisonPage(props) {
         // console.log(`squish: ${squishTo} -> ${val}`);
         setSquishTo(val);
       }, 200);
-  const squishChange = useCallback(tsquish);
+  const squishChange = useCallback(tsquish, [squishTo, tsquish]);
 
   if (!all_csets.length) {
     return <p>Downloading...</p>
@@ -197,7 +195,7 @@ function CsetComparisonPage(props) {
     setDisplayOption(option);
   }
   const displayOptions = makeRowData(collapsed);
-  let moreProps = {...props, makeRowData, displayData: displayOptions[displayOption], selected_csets, squishTo, collapsed, };
+  let moreProps = {...props, makeRowData, displayData: displayOptions[displayOption], selected_csets, squishTo, collapsed, toggleCollapse, };
   window.moreProps = moreProps;
   console.log({moreProps});
   return (
