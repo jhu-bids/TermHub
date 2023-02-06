@@ -10,13 +10,17 @@ jobs:
     runs-on: ubuntu-18.04
 
     steps:
-      - uses: actions/checkout@v2
+      - name: Checkout repository and submodules
+        uses: actions/checkout@v2
+        with:
+          submodules: recursive
       
       - name: Set up Python version
         uses: actions/setup-python@v2
         with:
           # Consider '3.10' or 'v3.10.0': https://github.com/actions/setup-python/issues/160
           python-version: '3.9.7'
+
 
       - name: 'Create env file'
         run: |
@@ -34,6 +38,11 @@ jobs:
           pip install --upgrade wheel
           pip install --upgrade setuptools
           pip install -r requirements.txt
+
+      - name: Submodules
+        run: |
+          git submodule init
+          git submodule update
 
       - name: Refresh db
         run: |
