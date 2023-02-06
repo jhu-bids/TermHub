@@ -26,6 +26,7 @@ import {SingleCsetEdit} from "./SingleCsetEdit";
 import {searchParamsToObj, backend_url, useDataWidget} from "./utils";
 import {UploadCsvPage} from "./UploadCsv";
 import _ from "./supergroup/supergroup";
+const QUERYSTRING_SCALARS = ['editCodesetId', ];
 
 // import logo from './logo.svg';
 // import { useIsFetching } from '@tanstack/react-query' // https://tanstack.com/query/v4/docs/react/guides/background-fetching-indicators
@@ -96,7 +97,6 @@ function QCProvider() {
       // </React.StrictMode>
   );
 }
-const QUERYSTRING_SCALARS = ['editCodesetId', ];
 function QueryStringStateMgr(props) {
   const {location} = props;
   const [searchParams, setSearchParams ] = useSearchParams();

@@ -77,9 +77,9 @@ function ComparisonDataTable(props) {
         let ec = parseInt(evt.target.getAttribute('codeset_id'));
         const sp = searchParamsToObj(searchParams);
         if (editCodesetId === ec) {
-            delete sp.editCodeset_id;
+            delete sp.editCodesetId;
         } else {
-            sp.editCodeset_id = ec;
+            sp.editCodesetId = ec;
         }
         return setSearchParams(createSearchParams(sp));
     }

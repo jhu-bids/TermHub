@@ -89,6 +89,7 @@ function StatsMessage(props) {
 function searchParamsToObj(searchParams) {
   const qsKeys = Array.from(new Set(searchParams.keys()));
   let searchParamsAsObject = {};
+  console.log({QUERYSTRING_SCALARS});
   qsKeys.forEach(key => {
     let vals = searchParams.getAll(key);
     searchParamsAsObject[key] = vals.map(v => parseInt(v) == v ? parseInt(v) : v).sort();
@@ -99,6 +100,7 @@ function searchParamsToObj(searchParams) {
       searchParamsAsObject[key] = searchParamsAsObject[key][0];
     }
   });
+  console.log({searchParamsAsObject});
   return searchParamsAsObject;
 }
 export {pct_fmt, fmt, cfmt, StatsMessage, searchParamsToObj, backend_url, axiosGet, axiosPut, useDataWidget};
