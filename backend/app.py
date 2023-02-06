@@ -6,6 +6,7 @@ Resources
 import json
 import os
 import re
+import itertools
 from datetime import datetime
 from io import StringIO
 from pathlib import Path
@@ -30,7 +31,7 @@ from enclave_wrangler.dataset_upload import upload_new_container_with_concepts, 
 from enclave_wrangler.utils import make_objects_request
 from enclave_wrangler.config import RESEARCHER_COLS
 
-from backend.db.utils import get_db_connection, sql_query, SCHEMA, sql_query_single_col
+from backend.db.utils import get_db_connection, sql_query, SCHEMA, sql_query_single_col, sql_in
 
 
 PROJECT_DIR = Path(os.path.dirname(__file__)).parent
@@ -235,17 +236,17 @@ def get_parent_children_map(root_cids: List[int], cids: List[int], con=CON) -> D
     # int(x): Prevents SQL injection by throwing error if not an integer
     root_cids: List[int] = [int(x) for x in root_cids]
     cids: List[int] = [int(x) for x in cids]
-    root_cids: str = ', '.join([str(x) for x in root_cids]) or 'NULL'
-    cids: str = ', '.join([str(x) for x in cids]) or 'NULL'
+    # root_cids: str = ', '.join([str(x) for x in root_cids]) or 'NULL'
+    # cids: str = ', '.join([str(x) for x in cids]) or 'NULL'
     query = f""" 
         SELECT *
         FROM concept_ancestor
-        WHERE ancestor_concept_id IN(:root_cids)
-          AND descendant_concept_id IN(:cids)
+        WHERE ancestor_concept_id {sql_in(root_cids)}
+          AND descendant_concept_id {sql_in(cids)}
           AND min_levels_of_separation > 0
         ORDER BY ancestor_concept_id, min_levels_of_separation
         """
-    query = query.replace(':root_cids', root_cids).replace(':cids', cids)
+    # query = query.replace(':root_cids', root_cids).replace(':cids', cids)
     relationships: List[Dict] = [dict(x) for x in sql_query(con, query, return_with_keys=True)]
     direct_relationships: List[Dict] = [
         x for x in relationships if x['min_levels_of_separation'] == 1 and x['max_levels_of_separation'] == 1]
@@ -287,6 +288,17 @@ def hierarchy(root_cids: List[int], selected_concept_ids: List[int]) -> (Dict[in
     orphans: List[int] = list(set(selected_concept_ids) - set(added_count.keys()))
 
     return d, orphans
+
+def get_concept_relationships(cids: List[int], reltypes: List[str] = ['Subsumes'], con=CON) -> List[LegacyRow]:
+    """Get concept_relationship rows for cids
+    """
+    return sql_query(
+        con, f""" 
+        SELECT DISTINCT *
+        FROM concept_relationship_plus
+        WHERE (concept_id_1 {sql_in(cids)} OR concept_id_2 {sql_in(cids)})
+          AND relationship_id {sql_in(reltypes, quote_items=True)}
+        """, debug=True)
 
 
 junk = """  -- retaining hierarchical query (that's not working, for possible future reference)
@@ -400,6 +412,24 @@ def _hierarchy(
     return h
 
 
+@APP.get("/get-concept_relationships")
+def _get_concept_relationships(
+    codeset_ids: Union[str, None] = Query(default='')
+) -> Dict[int, Union[Dict, None]]:
+    """Route for: get_concept_relationships -- except that it takes codeset_ids instead of concept_ids"""
+    codeset_ids: List[int] = parse_codeset_ids(codeset_ids)
+    concept_ids: List[int] = get_concept_set_member_ids(codeset_ids, column='concept_id')
+    cr_rows = get_concept_relationships(concept_ids)
+
+    # just starting to try to make hierarchical list of these
+    #p2c = itertools.groupby(cr_rows, lambda r: r['concept_id_1'])
+    # pairs = [(r['concept_id_1'],r['concept_id_2']) for r in cr_rows]
+    # p2c = itertools.groupby(pairs, lambda r: r[0])
+    # d = {k:[x[1] for x in list(v)] for k,v in p2c}
+
+    return cr_rows
+
+
 # TODO: get back to how we had it before RDBMS refactor
 @APP.get("/cr-hierarchy")
 def cr_hierarchy(rec_format: str = 'default', codeset_ids: Union[str, None] = Query(default=''), ) -> Dict:
@@ -413,10 +443,11 @@ def cr_hierarchy(rec_format: str = 'default', codeset_ids: Union[str, None] = Qu
     # return json.load(fp)
 
     codeset_ids: List[int] = parse_codeset_ids(codeset_ids)
-    cset_member_ids: List[int] = get_concept_set_member_ids(codeset_ids, column='concept_id')
+    concept_ids: List[int] = get_concept_set_member_ids(codeset_ids, column='concept_id')
     cset_members_items = get_cset_members_items(codeset_ids)
 
-    concept_ids = list(set([i['concept_id'] for i in cset_members_items]))
+    # this was redundant
+    # concept_ids = list(set([i['concept_id'] for i in cset_members_items]))
 
     items = [mi for mi in cset_members_items if mi['item']]
     item_concept_ids = list(set([i['concept_id'] for i in items]))
@@ -443,13 +474,16 @@ def cr_hierarchy(rec_format: str = 'default', codeset_ids: Union[str, None] = Qu
     #         print(k, o[k], n[k])
     # --------- hierarchy
 
-    related_csets = get_related_csets(codeset_ids=codeset_ids, selected_concept_ids=cset_member_ids)
+    related_csets = get_related_csets(codeset_ids=codeset_ids, selected_concept_ids=concept_ids)
     selected_csets = [cset for cset in related_csets if cset['selected']]
     researcher_ids = get_all_researcher_ids(related_csets)
     researchers = get_researchers(researcher_ids)
+    concepts = get_concepts(concept_ids)
+    # concept_relationships = get_concept_relationships(concept_ids)
 
     result = {
         # todo: Check related_csets() to see its todo's
+        # 'concept_relationships': concept_relationships,
         'related_csets': related_csets,
         # todo: Check get_csets() to see its todo's
         'selected_csets': selected_csets,
@@ -457,7 +491,7 @@ def cr_hierarchy(rec_format: str = 'default', codeset_ids: Union[str, None] = Qu
         'cset_members_items': cset_members_items,
         'hierarchy': h,
         # todo: concepts
-        'concepts': get_concepts(concept_ids),
+        'concepts': concepts,
         # todo: frontend not making use of data_counts yet but will need
         'data_counts': [],
         'orphans': orphans,

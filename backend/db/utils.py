@@ -116,6 +116,13 @@ def sql_query(
         raise RuntimeError(f'Got an error [{err}] executing the following statement:\n{query}, {json.dumps(params, indent=2)}')
 
 
+def sql_in(lst: List, quote_items=False) -> str:
+    if quote_items:
+        s: str = ', '.join([f"'{x}'" for x in lst]) or 'NULL'
+    else:
+        s: str = ', '.join([str(x) for x in lst]) or 'NULL'
+    return f' IN ({s}) '
+
 def run_sql(con: Connection, command: str) -> Any:
     """Run a sql command"""
     statement = text(command)
