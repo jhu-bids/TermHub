@@ -69,45 +69,45 @@ FAVORITE_OBJECTS = [
 FAVORITE_DATASETS = OrderedDict({
     # apparently concept_set_container has a lot more rows than concept_set_container_edited. not sure
     #   why we were getting edited or why they're different
-    # 'concept_set_container': {
-    #     'name': 'concept_set_container',
-    #     #   https://unite.nih.gov/workspace/data-integration/dataset/preview/ri.foundry.main.dataset.c9932f52-8b27-4e7b-bdb1-eec79e142182/master
-    #     #   /N3C Export Area/Concept Set Ontology/Concept Set Ontology/hubble_base/concept_set_container
-    #     'rid': 'ri.foundry.main.dataset.c9932f52-8b27-4e7b-bdb1-eec79e142182',
+    'concept_set_container': {
+        'name': 'concept_set_container',
+        #   https://unite.nih.gov/workspace/data-integration/dataset/preview/ri.foundry.main.dataset.c9932f52-8b27-4e7b-bdb1-eec79e142182/master
+        #   /N3C Export Area/Concept Set Ontology/Concept Set Ontology/hubble_base/concept_set_container
+        'rid': 'ri.foundry.main.dataset.c9932f52-8b27-4e7b-bdb1-eec79e142182',
+        'sort_idx': ['concept_set_name'],
+        'converters': {'archived': lambda x: True if x == 'True' else False},  # this makes it a bool field
+        'dataset_groups': ['cset']
+    },
+    # 'concept_set_container_edited': {
+    #     'name': 'concept_set_container_edited',
+    #     'rid': 'ri.foundry.main.dataset.8cb458de-6937-4f50-8ef5-2b345382dbd4',
     #     'sort_idx': ['concept_set_name'],
     #     'converters': {'archived': lambda x: True if x == 'True' else False},  # this makes it a bool field
-    #     'dataset_groups': ['cset']
     # },
-    # # 'concept_set_container_edited': {
-    # #     'name': 'concept_set_container_edited',
-    # #     'rid': 'ri.foundry.main.dataset.8cb458de-6937-4f50-8ef5-2b345382dbd4',
-    # #     'sort_idx': ['concept_set_name'],
-    # #     'converters': {'archived': lambda x: True if x == 'True' else False},  # this makes it a bool field
-    # # },
-    # 'code_sets': {  # transform depends on: concept_set_container_edited untransformed
-    #     'name': 'code_sets',
-    #     'rid': 'ri.foundry.main.dataset.7104f18e-b37c-419b-9755-a732bfa33b03',
-    #     'sort_idx': ['codeset_id'],
-    #     'dataset_groups': ['cset']
-    # },
-    # 'concept_set_members': {
-    #     'name': 'concept_set_members',
-    #     'rid': 'ri.foundry.main.dataset.e670c5ad-42ca-46a2-ae55-e917e3e161b6',
-    #     'sort_idx': ['codeset_id', 'concept_id'],
-    #     'dataset_groups': ['cset']
-    # },
-    # 'concept': {  # transform depends on: concept_set_members transform
-    #     'name': 'concept',
-    #     'rid': 'ri.foundry.main.dataset.5cb3c4a3-327a-47bf-a8bf-daf0cafe6772',
-    #     'sort_idx': ['concept_id'],
-    #     'dataset_groups': ['vocab']
-    # },
-    # 'concept_ancestor': {  # transform depends on: concept_set_members transform
-    #     'name': 'concept_ancestor',
-    #     'rid': 'ri.foundry.main.dataset.c5e0521a-147e-4608-b71e-8f53bcdbe03c',
-    #     'sort_idx': ['ancestor_concept_id', 'descendant_concept_id'],
-    #     'dataset_groups': ['vocab']
-    # },
+    'code_sets': {  # transform depends on: concept_set_container_edited untransformed
+        'name': 'code_sets',
+        'rid': 'ri.foundry.main.dataset.7104f18e-b37c-419b-9755-a732bfa33b03',
+        'sort_idx': ['codeset_id'],
+        'dataset_groups': ['cset']
+    },
+    'concept_set_members': {
+        'name': 'concept_set_members',
+        'rid': 'ri.foundry.main.dataset.e670c5ad-42ca-46a2-ae55-e917e3e161b6',
+        'sort_idx': ['codeset_id', 'concept_id'],
+        'dataset_groups': ['cset']
+    },
+    'concept': {  # transform depends on: concept_set_members transform
+        'name': 'concept',
+        'rid': 'ri.foundry.main.dataset.5cb3c4a3-327a-47bf-a8bf-daf0cafe6772',
+        'sort_idx': ['concept_id'],
+        'dataset_groups': ['vocab']
+    },
+    'concept_ancestor': {  # transform depends on: concept_set_members transform
+        'name': 'concept_ancestor',
+        'rid': 'ri.foundry.main.dataset.c5e0521a-147e-4608-b71e-8f53bcdbe03c',
+        'sort_idx': ['ancestor_concept_id', 'descendant_concept_id'],
+        'dataset_groups': ['vocab']
+    },
     'concept_relationship': {  # transform depends on: concept_set_members transform
         'name': 'concept_relationship',
         'rid': 'ri.foundry.main.dataset.0469a283-692e-4654-bb2e-26922aff9d71',

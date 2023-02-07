@@ -38,16 +38,15 @@ def refresh_db(
     # Downloads
     # todo: Might be useful to add last_updated functionality on a more granular basis based on each of these 3.
     #  Maybe we want to do downloads even if the uploads have been complete?
-    # if not is_updated and not skip_download_datasets_csets:
-    #     print('INFO: Downloading datasets: csets.')
-    #     download_favorite_datasets(force_if_exists=force_download_if_exists, single_group='cset')
-    # if not is_updated and not skip_download_objects:
-    #     print('INFO: Downloading datasets: objects.')
-    #     download_favorite_objects(force_if_exists=force_download_if_exists)
+    if not is_updated and not skip_download_datasets_csets:
+        print('INFO: Downloading datasets: csets.')
+        download_favorite_datasets(force_if_exists=force_download_if_exists, single_group='cset')
+    if not is_updated and not skip_download_objects:
+        print('INFO: Downloading datasets: objects.')
+        download_favorite_objects(force_if_exists=force_download_if_exists)
     if not is_updated and not skip_download_datasets_vocab:
         print('INFO: Downloading datasets: vocab.')
         download_favorite_datasets(force_if_exists=force_download_if_exists, single_group='vocab')
-    raise Exception('stop')  # TODO: temp
     if is_updated:
         print('INFO: Skipping download of datasets and skip_download_objects as they are up to date.')
 
