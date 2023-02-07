@@ -7,7 +7,10 @@ on:
 
 jobs:
   refresh-db:
-    runs-on: ubuntu-18.04
+#    runs-on: ubuntu-18.04
+    # todo: macos-latest could help solve memory issue, but can't connect to db?
+    #  https://github.com/jhu-bids/TermHub/actions/runs/4125681721/jobs/7126569855
+    runs-on: macos-latest
 
     steps:
       - name: Checkout repository and submodules

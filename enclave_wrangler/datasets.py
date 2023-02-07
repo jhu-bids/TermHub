@@ -11,7 +11,6 @@ from typing import Dict, List, Union
 from typeguard import typechecked
 import os
 import re
-import requests
 import pandas as pd
 import tempfile
 # import pyarrow as pa
@@ -22,9 +21,7 @@ import time
 
 from backend.db.utils import chunk_list
 from backend.utils import commify, pdump
-from enclave_wrangler.utils import enclave_post, enclave_get
-
-import enclave_wrangler.utils
+from enclave_wrangler.utils import enclave_get
 
 try:
     from enclave_wrangler.config import config, TERMHUB_CSETS_DIR, FAVORITE_DATASETS, FAVORITE_DATASETS_RID_NAME_MAP
@@ -32,6 +29,7 @@ try:
 except ModuleNotFoundError:
     from config import config, TERMHUB_CSETS_DIR, FAVORITE_DATASETS, FAVORITE_DATASETS_RID_NAME_MAP
     from utils import log_debug_info
+
 
 # Don't use these headers any more. leave it to the stuff in enclave_wrangler.utils
 # HEADERS = {
@@ -423,7 +421,7 @@ def get_parser():
         '-r', '--ref',
         default='master',
         help='Should be the branch of the dataset -- I think. Refer to API documentation at '
-                'https://unite.nih.gov/workspace/documentation/developer/api/catalog/services/CatalogService/endpoints/getTransaction')
+             'https://unite.nih.gov/workspace/documentation/developer/api/catalog/services/CatalogService/endpoints/getTransaction')
     parser.add_argument(
         '-f', '--favorites',
         default=False, action='store_true',
