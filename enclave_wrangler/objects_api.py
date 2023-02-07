@@ -25,6 +25,7 @@ import requests
 
 from enclave_wrangler.config import FAVORITE_OBJECTS, OUTDIR_OBJECTS, config, TERMHUB_CSETS_DIR
 from enclave_wrangler.utils import enclave_get, enclave_post, make_objects_request
+from backend.utils import pdump
 
 # from enclave_wrangler.utils import log_debug_info
 
@@ -280,6 +281,17 @@ def download_favorite_objects(fav_obj_names: List[str] = FAVORITE_OBJECTS, force
             client.get_objects_by_type(o, outdir=outdir)
 
 
+
+def get_n3c_recommended_csets():
+    all_bundles = make_objects_request('objects/ConceptSetTag').json()
+    tagName = [b['properties']['tagName'] for b in all_bundles['data'] if b['properties']['displayName'] == 'N3C Recommended'][0]
+    bundle = make_objects_request(f'objects/ConceptSetTag/{tagName}/links/ConceptSetBundleItem').json()['data']
+    codeset_ids = [b['properties']['bestVersionId'] for b in bundle]
+    pdump(codeset_ids)
+    return tagName
+
+
+
 def cli():
     """Command line interface for package."""
     package_description = 'Tool for working w/ the Palantir Foundry enclave API. ' \
@@ -308,4 +320,5 @@ def cli():
 
 
 if __name__ == '__main__':
-    cli()
+    # cli()
+    get_n3c_recommended_csets()

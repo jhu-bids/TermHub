@@ -28,6 +28,7 @@ from backend.utils import JSON_TYPE
 from enclave_wrangler.dataset_upload import upload_new_container_with_concepts, \
     upload_new_cset_container_with_concepts_from_csv, upload_new_cset_version_with_concepts, \
     upload_new_cset_version_with_concepts_from_csv
+from enclave_wrangler.objects_api import get_n3c_recommended_csets
 from enclave_wrangler.utils import make_objects_request
 from enclave_wrangler.config import RESEARCHER_COLS
 
@@ -428,6 +429,11 @@ def _get_concept_relationships(
     # d = {k:[x[1] for x in list(v)] for k,v in p2c}
 
     return cr_rows
+
+
+@APP.get("/get-n3c-recommended-codeset_ids")
+def get_n3c_recommended_codeset_ids() -> Dict[int, Union[Dict, None]]:
+    codeset_ids = get_n3c_recommended_csets()
 
 
 # TODO: get back to how we had it before RDBMS refactor
