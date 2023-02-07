@@ -111,7 +111,7 @@ def download_and_combine_dataset_parts(fav: dict, file_parts: [str], outpath: st
         for index, fp in enumerate(file_parts):
             url = template.format(endpoint=endpoint, dataset_rid=dataset_rid, fp=fp)
             print('\t' + f'{index + 1} of {len(file_parts)}: {url}')
-            response = enclave_get(url, args={'stream':True}, verbose=False)
+            response = enclave_get(url, args={'stream': True}, verbose=False)
             if response.status_code == 200:
                 fname = parquet_dir + fp.replace('spark', '')
                 with open(fname, "wb") as f:
