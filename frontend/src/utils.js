@@ -93,7 +93,7 @@ function searchParamsToObj(searchParams, setSearchParams) {
   console.log({QUERYSTRING_SCALARS});
   qsKeys.forEach(key => {
     let vals = searchParams.getAll(key);
-    searchParamsAsObject[key] = vals.map(v => parseInt(v) === v ? parseInt(v) : v).sort();
+    searchParamsAsObject[key] = vals.map(v => parseInt(v) == v ? parseInt(v) : v).sort(); // eslint-disable-line
     if (QUERYSTRING_SCALARS.includes(key)) {
       if (searchParamsAsObject[key].length !== 1) {
         throw new Error("Didn't expect that!");

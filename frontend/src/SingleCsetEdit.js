@@ -1,12 +1,12 @@
 import * as React from 'react';
-import {NavLink, useLocation} from "react-router-dom";
+import {NavLink, } from "react-router-dom";
 import {ConceptSetCard} from "./ConceptSetCard";
 
 function SingleCsetEdit(props) {
   const {edit_codeset_id, cset_data={}, prev} = props;
   const {selected_csets=[], researchers={}} = cset_data;
   console.log(props);
-  if (selected_csets.length != 1) {
+  if (selected_csets.length !== 1) {
     return <h3>Error: expected 1 selected_cset, got {selected_csets.length}</h3>
   }
   const cset = selected_csets[0];

@@ -29,7 +29,7 @@ const MuiAppBar = () => {
   const {search} = useLocation();
 
   const [anchorElNav, setAnchorElNav] = React.useState(null);
-  const [anchorElCsets, setAnchorElCsets] = React.useState(null);
+  // const [anchorElCsets, setAnchorElCsets] = React.useState(null);
   const [anchorElUser, setAnchorElUser] = React.useState(null);
 
   const handleOpenNavMenu = (event) => {
@@ -40,18 +40,20 @@ const MuiAppBar = () => {
     setAnchorElUser(event.currentTarget);
     console.log(anchorElUser)
   };
+  /*
   const handleOpenCsetsMenu = (event) => {
     setAnchorElCsets(event.currentTarget);
     console.log(anchorElCsets)
   };
+  const handleCloseCsetsMenu = () => {
+    setAnchorElCsets(null);
+  };
+   */
   const handleCloseNavMenu = () => {
     setAnchorElNav(null);
   };
   const handleCloseUserMenu = () => {
     setAnchorElUser(null);
-  };
-  const handleCloseCsetsMenu = () => {
-    setAnchorElCsets(null);
   };
   let hamburgerMenu = (
       <Box sx={{ flexGrow: 1, display: { xs: 'flex', md: 'none' } }}>
@@ -96,59 +98,6 @@ const MuiAppBar = () => {
         </Menu>
       </Box>
   )
-  let junk = (<div id="JUNK">
-    <Button
-        key="testing0"
-        href="/about"
-        onClick={handleCloseNavMenu}
-        sx={{ my: 2, color: 'white', display: 'block' }}
-    >
-      Testing0
-    </Button>
-    {/*
-        tried to add menu items for individual csets that are or have been opened, gave up
-        if interested in trying again, learn more about menus (or some other component):
-          https://mui.com/material-ui/api/menu/
-          https://mui.com/material-ui/react-menu/
-    */}
-    <Button key="csets"
-            size="large"
-            aria-label="list of csets to revisit"
-            aria-controls="past-csets"
-            aria-haspopup="true"
-            onClick={handleOpenCsetsMenu}
-            color="inherit" >
-      Concept set
-    </Button>
-    <Menu
-        /* trying to add menu items for individual csets that are or have been opened */
-        id="past-csets"
-        anchorEl={anchorElCsets}
-        anchorOrigin={{
-          vertical: 'bottom',
-          horizontal: 'left',
-        }}
-        keepMounted
-        transformOrigin={{
-          vertical: 'top',
-          horizontal: 'left',
-        }}
-        open={Boolean(anchorElCsets)}
-        onClose={handleCloseCsetsMenu}
-        sx={{
-          display: { xs: 'block', md: 'none' },
-        }}
-    >
-      <MenuItem /*key={page.name} component={Link} to={page.href} onClick={handleCloseCsetsMenu} */>
-        <Typography textAlign="left">{/*page.name*/}
-          testing 1
-        </Typography>
-      </MenuItem>
-      <MenuItem>
-        <Typography textAlign="left">testing2</Typography>
-      </MenuItem>
-    </Menu>
-  </div>)
   let horizontalMenu = (
       <Box /* This is the main, horizontal menu */
           sx={{ flexGrow: 1, display: { xs: 'none', md: 'flex' } }} >

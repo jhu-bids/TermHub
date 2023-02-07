@@ -1,20 +1,20 @@
 import * as React from 'react';
-import { styled } from '@mui/material/styles';
 import Card from '@mui/material/Card';
 import CardContent from '@mui/material/CardContent';
-// import CardActions from '@mui/material/CardActions';
-import IconButton from '@mui/material/IconButton';
 import Typography from '@mui/material/Typography';
 import Box from '@mui/material/Box';
 import {NavLink, useLocation} from "react-router-dom";
-import Button from '@mui/material/Button';
-import {get, } from 'lodash';
-// import Button from '@mui/material/Button';
 import {backend_url} from './App';
 
-const bull = (
-  <Box component="span" sx={{ display: 'inline-block', mx: '2px', transform: 'scale(0.8)' }} >•</Box>
-);
+/*
+import { styled } from '@mui/material/styles';
+import CardActions from '@mui/material/CardActions';
+import IconButton from '@mui/material/IconButton';
+import Button from '@mui/material/Button';
+import {get, } from 'lodash';
+import Button from '@mui/material/Button';
+
+const bull = ( <Box component="span" sx={{ display: 'inline-block', mx: '2px', transform: 'scale(0.8)' }} >•</Box> );
 
 const ExpandMore = styled((props) => {
   const { expand, ...other } = props;
@@ -26,9 +26,10 @@ const ExpandMore = styled((props) => {
     duration: theme.transitions.duration.shortest,
   }),
 }));
+ */
 
 export default function ConceptSetCards(props) {
-  const {codeset_ids=[], cset_data={}} = props;
+  const {cset_data={}} = props;
   const {selected_csets=[], researchers={}} = cset_data;
   if (!selected_csets.length) {
     return <div></div>;
@@ -52,16 +53,14 @@ export default function ConceptSetCards(props) {
 }
 function ConceptSetCard(props) {
   let {cset, researchers={}, editing=false, width=345, } = props;
-
+  /*
   const [expanded, setExpanded] = React.useState(false);
-
   const handleExpandClick = () => {
     setExpanded(!expanded);
   };
-
   // switch to using data from cset_data -- passed down props:
   const {codeset_ids = [], cset_data = {}} = props;
-
+   */
   let tags = [];
   let display_props = {}
   display_props['Code set ID'] = cset.codeset_id;
@@ -125,8 +124,8 @@ function ConceptSetCard(props) {
         <Typography variant="body2" color="text.secondary" key={r.emailAddress} sx={{overflow: 'clip',}} gutterBottom>
           <strong>{r.roles.join(', ')}:</strong><br/>
           <a href={`mailto:${r.emailAddress}`}>{r.name}</a>,
-          <a href={r.institutionsId} target="_blank">{r.institution}</a>,
-          <a href={`https://orcid.org/${r.orcidId}`} target="_blank">ORCID</a>.
+          <a href={r.institutionsId} target="_blank" rel="noreferrer">{r.institution}</a>,
+          <a href={`https://orcid.org/${r.orcidId}`} target="_blank" rel="noreferrer">ORCID</a>.
         </Typography>
     )
   });
@@ -173,8 +172,8 @@ function ConceptSetCard(props) {
               ))
             }
             <Typography variant="body2" color="text.primary" >
-              <a href={`https://unite.nih.gov/workspace/hubble/objects/${cset.container_rid}`} target="_blank">Open in Enclave</a
-              >, <a href={backend_url(`cset-download?codeset_ids=${cset.codeset_id}`)} target="_blank">Export JSON</a>
+              <a href={`https://unite.nih.gov/workspace/hubble/objects/${cset.container_rid}`} target="_blank" rel="noreferrer">Open in Enclave</a
+              >, <a href={backend_url(`cset-download?codeset_ids=${cset.codeset_id}`)} target="_blank" rel="noreferrer">Export JSON</a>
             </Typography>
             { researcherContent }
           </CardContent>

@@ -1,7 +1,7 @@
 import TranslateIcon from '@mui/icons-material/Translate';
 import BlockIcon from '@mui/icons-material/Block';
 import {SvgIcon} from "@mui/material";
-import {ComparisonDataTable} from './ComparisonDataTable';
+// import {ComparisonDataTable} from './ComparisonDataTable';
 import {Tooltip} from './Tooltip';
 
 function TreeIcon(props) {
