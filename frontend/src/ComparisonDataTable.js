@@ -1,7 +1,7 @@
 import React, {/* useState, useEffect, useMemo, useReducer, useRef, */} from 'react';
 // import { createSearchParams, useSearchParams, } from "react-router-dom";
 import DataTable, { createTheme } from 'react-data-table-component';
-import { AddCircle, RemoveCircleOutline, } from '@mui/icons-material';
+import { AddCircle, RemoveCircleOutline, Add, } from '@mui/icons-material';
 import {Checkbox} from "@mui/material";
 import Box from '@mui/material/Box';
 import Typography from '@mui/material/Typography';
@@ -36,8 +36,8 @@ function ComparisonDataTable(props) {
     // const [columns, setColumns] = useState();
     // const [editInfo, setEditInfo] = useState({});
 
-    const editAction = getCodesetEditActionFunc(searchParams, setSearchParams);
-    const editCodesetFunc = getEditCodesetFunc(searchParams, setSearchParams);
+    const editAction = getCodesetEditActionFunc({searchParams, setSearchParams});
+    const editCodesetFunc = getEditCodesetFunc({searchParams, setSearchParams});
 
     let sizes = {
         rowFontSize:  (13 * squishTo) + 'px',
@@ -125,7 +125,7 @@ function colConfig(props) {
     if (!displayData) {
         return;
     }
-    let checkboxChange = (codeset_id, concept_id) => (evt, state) => {
+    let eAction = (codeset_id, concept_id) => (evt, state) => {
         console.log({codeset_id, concept_id, state});
         editAction({codeset_id, concept_id, state});
         /* let url = backend_url(`modify-cset?codeset_ids=${codeset_id}&concept_id=${concept_id}&state=${state}`); */
@@ -213,7 +213,7 @@ function colConfig(props) {
                 return <CellCheckbox { ...props}
                                      {...{row, cset_col,
                                         rowData: displayData.rowData,
-                                        checkboxChange}} />;
+                                        eAction}} />;
             },
             conditionalCellStyles: [
                 {
@@ -252,23 +252,26 @@ trying to figure out what to display to convey relationships between expression 
 related concepts -- mapped and excluded
  */
 function CellCheckbox(props) {
-    const {cset_data, row, cset_col, rowData, csetEditState={}, editCodesetId, checkboxChange, } = props;
+    const {cset_data, row, cset_col, rowData, csetEditState={}, editCodesetId, eAction, } = props;
     const { csmiLookup, } = cset_data;
-    if (!row.checkboxes) {
-        console.log('problem!!!!', {row, rowData})
-    }
     let mi = csmiLookup[cset_col.codeset_id][row.concept_id];
-    // let mi = row.checkboxes[cset_col.codeset_id];
-    // let checkboxValue = row.checkboxes[cset_col.codeset_id];
+    // should get from csetEditState and, if not there, then csmiLookup
+
     let checked, contents;
-    // checked = !! checkboxValue;
     checked = !! mi;
 
     if (editCodesetId && cset_col.codeset_id === editCodesetId) {
-        if (row.concept_id in csetEditState) {
+        if (!mi) {
+            contents = <Add onClick={eAction(cset_col.codeset_id, row.concept_id)}/>
+        } else {
+            return <ItemOptions item={mi} editing={true}/>;
+        }
+        /*
+        if (row.concept_id in csetEditState) { // should be keyed by codeset_id,concept_id, right?
             checked = ! checked;
         }
-        contents = <Checkbox checked={checked} onChange={checkboxChange(cset_col.codeset_id, row.concept_id)}/>
+        contents = <Checkbox checked={checked} onChange={eAction(cset_col.codeset_id, row.concept_id)}/>
+         */
     } else {
         contents = <span>{checked ? '\u2713' : ''}</span>;
     }

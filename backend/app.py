@@ -464,8 +464,8 @@ def cr_hierarchy(rec_format: str = 'default', codeset_ids: Union[str, None] = Qu
     # h = hierarchy(selected_concept_ids=concept_ids)
 
     # TODO: Fix: concepts missing from hierarchy that shouldn't be:
-    hh = json.dumps(h)
-    hierarchy_concept_ids = [int(x) for x in re.findall(r'\d+', hh)]
+    # hh = json.dumps(h)
+    # hierarchy_concept_ids = [int(x) for x in re.findall(r'\d+', hh)]
     # # diff for: http://127.0.0.1:8000/cr-hierarchy?rec_format=flat&codeset_ids=400614256|87065556
     # #  {4218499, 4198296, 4215961, 4255399, 4255400, 4255401, 4147509, 252341, 36685758, 4247107, 4252356, 42536648,
     # 4212441, 761062, 259055, 4235260}
@@ -484,7 +484,10 @@ def cr_hierarchy(rec_format: str = 'default', codeset_ids: Union[str, None] = Qu
     selected_csets = [cset for cset in related_csets if cset['selected']]
     researcher_ids = get_all_researcher_ids(related_csets)
     researchers = get_researchers(researcher_ids)
-    concepts = get_concepts(concept_ids)
+    concepts = [dict(c) for c in get_concepts(concept_ids)]
+    for c in concepts:
+        if c['concept_id'] in orphans:
+            c['is_orphan'] = True
     # concept_relationships = get_concept_relationships(concept_ids)
 
     result = {

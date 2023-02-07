@@ -23,10 +23,11 @@ import { ReactQueryDevtools } from '@tanstack/react-query-devtools'
 import {ConceptSetsPage, CsetComparisonPage} from "./Csets";
 import {AboutPage} from "./AboutPage";
 import {SingleCsetEdit} from "./SingleCsetEdit";
-import {searchParamsToObj, backend_url, useDataWidget} from "./utils";
+import {searchParamsToObj, updateSearchParams, backend_url, useDataWidget} from "./utils";
 import {UploadCsvPage} from "./UploadCsv";
 // import _ from "./supergroup/supergroup";
 const QUERYSTRING_SCALARS = ['editCodesetId', ];
+const INCLUDE_IN_GLOB_PROPS_BUT_NOT_QUERYSTRING = ['searchParams', 'setSearchParams'];
 
 // import logo from './logo.svg';
 // import { useIsFetching } from '@tanstack/react-query' // https://tanstack.com/query/v4/docs/react/guides/background-fetching-indicators
@@ -101,20 +102,20 @@ function QueryStringStateMgr(props) {
   const {location} = props;
   const [searchParams, setSearchParams ] = useSearchParams();
   // gets state (codeset_ids for now) from query string, passes down through props
+  // const [codeset_ids, setCodeset_ids] = useState(sp.codeset_ids || []);
   const sp = searchParamsToObj(searchParams, setSearchParams);
-  const [codeset_ids, setCodeset_ids] = useState(sp.codeset_ids || []);
+  const {codeset_ids, } = sp;
   // console.log(props);
 
+  let globalProps = {...sp, searchParams, setSearchParams, }
+
+  /*
   useEffect(() => {
     if (sp.codeset_ids && !isEqual(codeset_ids, sp.codeset_ids)) {
       setCodeset_ids(sp.codeset_ids);
     }
   }, [searchParams, codeset_ids, sp.codeset_ids]);
-
-  function changeQueryParams(change={}) {
-    let params = createSearchParams({...sp, ...change});
-    setSearchParams(params);
-  }
+   */
 
   function changeCodesetIds(codeset_id, how) {
     // how = add | remove | toggle
@@ -126,10 +127,10 @@ function QueryStringStateMgr(props) {
       action = included ? 'remove' : 'add';
     }
     if (action === 'add') {
-      changeQueryParams({codeset_ids: [...codeset_ids, codeset_id]});
+      updateSearchParams({...globalProps, addProps: {codeset_ids: [...codeset_ids, codeset_id]}});
     } else if (action === 'remove') {
       if (!included) return;
-      changeQueryParams({codeset_ids: codeset_ids.filter(d => d !== codeset_id)});
+      updateSearchParams({...globalProps, addProps: {codeset_ids: codeset_ids.filter(d => d !== codeset_id)}});
     } else {
       throw new Error('unrecognized action in changeCodesetIds: ' + JSON.stringify({how, codeset_id}));
     }
@@ -273,7 +274,7 @@ function objectTypesData(data) {
 }
 */
 
-export {QCProvider, backend_url, QUERYSTRING_SCALARS};
+export {QCProvider, backend_url, QUERYSTRING_SCALARS, INCLUDE_IN_GLOB_PROPS_BUT_NOT_QUERYSTRING, };
 
 // TODO: @Siggie: Can we remove this comment or we need this list of links for ref still?
 //       @Joe: we should move it to the individual concept set display component(s) as a

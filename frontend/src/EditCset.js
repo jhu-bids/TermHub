@@ -37,14 +37,17 @@ function OptionIcon(props) {
 }
 
 function ItemOptions(props) {
-  let {item, } = props;
+  let {item, editing, } = props;
   // console.log(item);
-  const flags = item.item_flags.split(',');
+  // const flags = item.item_flags.split(',');
   return (
       <span>
-        {Object.keys(ICONS).filter(key=>item[key]).map(key => {
-          return <OptionIcon opt={key} key={key} on={flags.includes(key)}/>
-        })}
+        {Object.keys(ICONS)
+            .filter(key => editing || item[key])
+            .map(flag => {
+              return <OptionIcon opt={flag} key={flag} on={item[flag]}/>
+            })
+        }
       </span>
   );
 }

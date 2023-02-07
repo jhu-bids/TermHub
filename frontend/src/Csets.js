@@ -1,14 +1,14 @@
 import React, {useState, useCallback, /* useReducer, useRef, */} from 'react';
 import {ComparisonDataTable} from "./ComparisonDataTable";
 import {CsetsDataTable, } from "./CsetsDataTable";
-// import {searchParamsToObj, StatsMessage} from "./utils";
+// import {difference, symmetricDifference} from "./utils";
 import ConceptSetCards from "./ConceptSetCard";
 import TextField from '@mui/material/TextField';
 import Autocomplete from '@mui/material/Autocomplete';
 import Button from '@mui/material/Button';
 // import Chip from '@mui/material/Chip';
 // import { Link, Outlet, useHref, useParams, useSearchParams, useLocation } from "react-router-dom";
-import { every, get, isEmpty, throttle, pullAt, } from 'lodash';
+import { every, get, isEmpty, throttle, pullAt, uniq, } from 'lodash';
 // import {isEqual, pick, uniqWith, max, omit, uniq, } from 'lodash';
 import Box from '@mui/material/Box';
 import Slider from '@mui/material/Slider';
@@ -81,6 +81,22 @@ function ConceptSetsPage(props) {
       </div>)
 }
 
+function hierarchyToFlatCids(h) {
+  function f(ac) {
+    ac.keys = [...ac.keys, ...Object.keys(ac.remaining)];
+    const r = Object.values(ac.remaining).filter(d => d);
+    ac.remaining = {};
+    r.forEach(o => ac.remaining = {...ac.remaining, ...o});
+    return ac;
+  }
+  let ac = {keys: [], remaining: h};
+  while(!isEmpty(ac.remaining)) {
+    console.log(ac);
+    ac = f(ac);
+  }
+  return uniq(ac.keys.map(k => parseInt(k)));
+}
+
 function traverseHierarchy({hierarchy, concepts, collapsed, }) {
   let rowData = [];
   let blanks = [];
@@ -120,6 +136,12 @@ function CsetComparisonPage(props) {
   // const [displayData, setDisplayData] = useState({});
 
   /*
+  const flatCids = new Set(hierarchyToFlatCids(hierarchy));
+  const cids = new Set(concepts.map(d => d.concept_id));
+  console.log(difference(cids, flatCids));
+  console.log(symmetricDifference(cids, flatCids));
+   */
+  /*
   useEffect(() => {
     if (!selected_csets.length) {
       return;
@@ -148,6 +170,7 @@ function CsetComparisonPage(props) {
       return;
     }
 
+    /*
     // make obj containing a checkbox for each cset, initialized to false, like:
     //  {codeset_id_1: false, codeset_id_2: false, ...}
     const checkboxes = Object.fromEntries(selected_csets.map(d => [d.codeset_id, false]));
@@ -159,33 +182,39 @@ function CsetComparisonPage(props) {
     obj with cset_members_item. example: { "codeset_id": 400614256, "concept_id": 4191479, "csm": true,
                                            "item": true, "item_flags": "includeDescendants,includeMapped" },
     This modifies appropriate checkbox in every conceptsPlus record. Its return value (csetConcepts) also
-    excludes concepts that appear in hierarchy but don't appear in at least one of the selected csets. */
+    excludes concepts that appear in hierarchy but don't appear in at least one of the selected csets. * /
     const csetConcepts = Object.fromEntries(
         cset_members_items.map(d => {
           conceptsPlus[d.concept_id].checkboxes[d.codeset_id] = d;
           return conceptsPlus[d.concept_id];
         }).map(d => [d.concept_id, d]));
+    */
 
+    const conceptsMap = Object.fromEntries(concepts.map(d => [d.concept_id, d]));
     let _displayOptions = {
       fullHierarchy: {
-        rowData: traverseHierarchy({hierarchy, concepts: conceptsPlus, collapsed, }),
+        rowData: traverseHierarchy({hierarchy, concepts: conceptsMap, collapsed, }),
         nested: true,
         msg: ' lines in hierarchy',
       },
+      flat: {
+        rowData: concepts,
+        nested: false,
+        msg: ' flat',
+      },
+      /*
       csetConcepts: {
         rowData: traverseHierarchy({hierarchy, concepts: csetConcepts, collapsed, }),
         nested: true,
         msg: ' concepts in selected csets',
       },
+       */
     }
 
     for (let k in _displayOptions) {
       let opt = _displayOptions[k];
       opt.msg = opt.rowData.length + opt.msg;
     }
-    _displayOptions.flat = {..._displayOptions.csetConcepts};
-    _displayOptions.flat.nested = false;
-    _displayOptions.flat.msg = 'flat';
     // setDisplayOptions(_displayOptions);
     window.dopts = _displayOptions;
     return _displayOptions;

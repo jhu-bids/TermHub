@@ -5,7 +5,7 @@ import CircularProgress from '@mui/material/CircularProgress';
 import Box from '@mui/material/Box';
 import { useQuery } from '@tanstack/react-query'
 import { createSearchParams, } from "react-router-dom";
-import { QUERYSTRING_SCALARS, } from './App';
+import { QUERYSTRING_SCALARS, INCLUDE_IN_GLOB_PROPS_BUT_NOT_QUERYSTRING, } from './App';
 
 function Progress(props) {
   return (
@@ -87,7 +87,7 @@ function StatsMessage(props) {
     below if you want to add to the above list.</p>
 }
 
-function searchParamsToObj(searchParams, setSearchParams) {
+function searchParamsToObj(searchParams) {
   const qsKeys = Array.from(new Set(searchParams.keys()));
   let searchParamsAsObject = {};
   console.log({QUERYSTRING_SCALARS});
@@ -101,30 +101,35 @@ function searchParamsToObj(searchParams, setSearchParams) {
       searchParamsAsObject[key] = searchParamsAsObject[key][0];
     }
   });
-  searchParamsAsObject.searchParams = searchParams;
-  searchParamsAsObject.setSearchParams = setSearchParams;
   console.log({searchParamsAsObject});
   return searchParamsAsObject;
 }
+function updateSearchParams(props) {
+    const {addProps={}, delProps=[], searchParams, setSearchParams, } = props;
+    let sp = searchParamsToObj(searchParams);
+    INCLUDE_IN_GLOB_PROPS_BUT_NOT_QUERYSTRING.forEach( p => { delete sp[p]; } );
+    delProps.forEach( p => { delete sp[p]; } );
+    sp = {...sp, ...addProps};
+    setSearchParams(createSearchParams(sp));
+}
 
-function getEditCodesetFunc(searchParams, setSearchParams) {
+function getEditCodesetFunc({searchParams, setSearchParams}) {
   return (evt) => {
     let ec = parseInt(evt.target.getAttribute('codeset_id'));
     let sp = searchParamsToObj(searchParams);
     if (sp.editCodesetId === ec) {
-      delete sp.editCodesetId;
+      updateSearchParams({delProps: ['editCodesetId']});
     } else {
-      sp.editCodesetId = ec;
+      updateSearchParams({addProps: {editCodesetId: ec}});
     }
-    return setSearchParams(createSearchParams(sp));
   }
 }
 
-function getCodesetEditActionFunc(searchParams, setSearchParams) {
+function getCodesetEditActionFunc({searchParams, setSearchParams}) {
   return (props) => {
     const {/*codeset_id, */ concept_id, state} = props;
     const sp = searchParamsToObj(searchParams);
-    let {csetEditState, } = sp;
+    let {csetEditState={}, } = sp;
     if (concept_id in csetEditState) {
       delete csetEditState[concept_id];
     } else {
@@ -134,5 +139,56 @@ function getCodesetEditActionFunc(searchParams, setSearchParams) {
   }
 }
 
-export {pct_fmt, fmt, cfmt, StatsMessage, searchParamsToObj, backend_url, axiosGet, axiosPut, useDataWidget,
-        getCodesetEditActionFunc, getEditCodesetFunc, };
+// from https://developer.mozilla.org/en-US/docs/Web/JavaScript/Reference/Global_Objects/Set#implementing_basic_set_operations
+function isSuperset(set, subset) {
+  for (const elem of subset) {
+    if (!set.has(elem)) {
+      return false;
+    }
+  }
+  return true;
+}
+
+function union(setA, setB) {
+  const _union = new Set(setA);
+  for (const elem of setB) {
+    _union.add(elem);
+  }
+  return _union;
+}
+
+function intersection(setA, setB) {
+  const _intersection = new Set();
+  for (const elem of setB) {
+    if (setA.has(elem)) {
+      _intersection.add(elem);
+    }
+  }
+  return _intersection;
+}
+
+function symmetricDifference(setA, setB) {
+  const _difference = new Set(setA);
+  for (const elem of setB) {
+    if (_difference.has(elem)) {
+      _difference.delete(elem);
+    } else {
+      _difference.add(elem);
+    }
+  }
+  return _difference;
+}
+
+function difference(setA, setB) {
+  const _difference = new Set(setA);
+  for (const elem of setB) {
+    _difference.delete(elem);
+  }
+  return _difference;
+}
+
+export {
+  pct_fmt, fmt, cfmt, StatsMessage, searchParamsToObj, backend_url, axiosGet, axiosPut, useDataWidget,
+  getCodesetEditActionFunc, getEditCodesetFunc, isSuperset, union, intersection, symmetricDifference, difference,
+  updateSearchParams,
+};
