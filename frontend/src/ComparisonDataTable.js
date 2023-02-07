@@ -1,8 +1,7 @@
 import React, {/* useState, useEffect, useMemo, useReducer, useRef, */} from 'react';
 // import { createSearchParams, useSearchParams, } from "react-router-dom";
 import DataTable, { createTheme } from 'react-data-table-component';
-import AddCircle from '@mui/icons-material/AddCircle';
-import RemoveCircle from '@mui/icons-material/RemoveCircle';
+import { AddCircle, RemoveCircleOutline, } from '@mui/icons-material';
 import {Checkbox} from "@mui/material";
 import Box from '@mui/material/Box';
 import Typography from '@mui/material/Typography';
@@ -136,13 +135,13 @@ function colConfig(props) {
         {
             name: 'Concept name',
             selector: row => row.concept_name,
-            format: (row, idx) => {
+            format: (row, ) => {
                 let content = displayData.nested
                     ? row.has_children
                         ? collapsed[row.pathToRoot]
                             ? <span className="toggle-collapse" onClick={() => toggleCollapse(row)}><AddCircle sx={{fontSize:sizes.collapseIcon}}/> {row.concept_name} {row.collapsed && 'collapsed'}</span>
-                            : <span className="toggle-collapse" onClick={() => toggleCollapse(row)}><RemoveCircle sx={{fontSize:sizes.collapseIcon}}/> {row.concept_name} {row.collapsed && 'collapsed'}</span>
-                        : <span><RemoveCircle sx={{fontSize:sizes.collapseIcon, visibility:'hidden'}}/> {row.concept_name}</span>
+                            : <span className="toggle-collapse" onClick={() => toggleCollapse(row)}><RemoveCircleOutline sx={{fontSize:sizes.collapseIcon}}/> {row.concept_name} {row.collapsed && 'collapsed'}</span>
+                        : <span><RemoveCircleOutline sx={{fontSize:sizes.collapseIcon, visibility:'hidden'}}/> {row.concept_name}</span>
                     : row.concept_name
                 return content;
             },
@@ -198,7 +197,7 @@ function colConfig(props) {
             style: { paddingRight: '8px', },
         },
     ];
-    let cset_cols = selected_csets.map((cset_col, col_idx) => {
+    let cset_cols = selected_csets.map((cset_col) => {
         let def = {
             cset_col,
             codeset_id: cset_col.codeset_id,
@@ -209,12 +208,12 @@ function colConfig(props) {
             //  name:   <Tooltip label="Click to edit." placement="bottom">
             //              <span>{cset_col.concept_set_version_title}</span>
             //          </Tooltip>,
-            selector: (row,idx) => {
+            selector: (row) => {
                 // return 'x';
-                return <CellCheckbox {
-                    ...{row,idx, cset_col, csmiLookup,
-                        rowData: displayData.rowData, csetEditState,
-                        editCodesetId, checkboxChange}} />;
+                return <CellCheckbox { ...props}
+                                     {...{row, cset_col,
+                                        rowData: displayData.rowData,
+                                        checkboxChange}} />;
             },
             conditionalCellStyles: [
                 {
@@ -253,9 +252,10 @@ trying to figure out what to display to convey relationships between expression 
 related concepts -- mapped and excluded
  */
 function CellCheckbox(props) {
-    const {row, idx, cset_col, rowData, csetEditState={}, editCodesetId, checkboxChange, csmiLookup, } = props;
+    const {cset_data, row, cset_col, rowData, csetEditState={}, editCodesetId, checkboxChange, } = props;
+    const { csmiLookup, } = cset_data;
     if (!row.checkboxes) {
-        console.log('problem!!!!', {idx, row, rowData})
+        console.log('problem!!!!', {row, rowData})
     }
     let mi = csmiLookup[cset_col.codeset_id][row.concept_id];
     // let mi = row.checkboxes[cset_col.codeset_id];
