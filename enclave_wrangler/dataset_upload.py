@@ -22,7 +22,7 @@ try:
     from enclave_wrangler.actions_api import add_concepts_to_cset, finalize_concept_set_version, \
     upload_concept_set_container, \
     upload_concept_set_version, get_concept_set_version_expression_items
-    from enclave_wrangler.utils import _datetime_palantir_format, log_debug_info, make_actions_request
+    from enclave_wrangler.utils import EnclaveWranglerErr, _datetime_palantir_format, log_debug_info, make_actions_request
 except ModuleNotFoundError:
     from config import CSET_UPLOAD_REGISTRY_PATH, ENCLAVE_PROJECT_NAME, MOFFIT_PREFIX, \
     MOFFIT_SOURCE_ID_TYPE, MOFFIT_SOURCE_URL, PALANTIR_ENCLAVE_USER_ID_1, UPLOADS_DIR, config, PROJECT_ROOT, \
@@ -56,12 +56,14 @@ def upload_new_cset_version_with_concepts_from_csv(
     if not path and df is None:
         raise RuntimeError('upload_new_cset_version_with_concepts_from_csv: Must provide path or dataframe')
     df = df if df is not None else pd.read_csv(path).fillna('')
+    df = df[~df.eq('').all(axis=1)]  # drop all empty rows
 
     cset_group_cols = ['concept_set_name', 'parent_version_codeset_id']
     more_cset_cols = list(
         {'multipassId', 'current_max_version', 'domain_team', 'provenance', 'limitations', 'intention',
          'intended_research_project', 'authority'}.intersection(df.columns))
-    concept_cols = ['concept_id', 'includeDescendants', 'isExcluded', 'includeMapped', 'annotation']
+    concept_cols_required = ['concept_id', 'includeDescendants', 'isExcluded', 'includeMapped']
+    concept_cols_optional = ['annotation']
 
     responses = {}
     csets = df.groupby(cset_group_cols)
@@ -81,7 +83,11 @@ def upload_new_cset_version_with_concepts_from_csv(
         new_version['on_behalf_of'] = new_version['multipassId']
         del new_version['multipassId']
 
-        new_version['omop_concepts'] = csetdf[concept_cols].to_dict(orient='records')
+        selectable_cols = concept_cols_required + [x for x in concept_cols_optional if x in list(csetdf.columns)]
+        try:
+            new_version['omop_concepts'] = csetdf[selectable_cols].to_dict(orient='records')
+        except KeyError as e:
+            raise EnclaveWranglerErr(str(e))
         for x in new_version['omop_concepts']:
             x['concept_id'] = int(x['concept_id'])
 
@@ -104,8 +110,6 @@ def upload_new_cset_version_with_concepts_from_csv(
         # print('INFO: ' + cset_name + ': ', str(responses_i))
         print('INFO: ' + cset_name)
     return responses
-
-
 
 
 # TODO

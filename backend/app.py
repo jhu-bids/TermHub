@@ -17,7 +17,7 @@ import numpy as np
 import pandas as pd
 import uvicorn
 import urllib.parse
-from fastapi import FastAPI, Query
+from fastapi import FastAPI, HTTPException, Query
 from fastapi.middleware.cors import CORSMiddleware
 from fastapi.middleware.gzip import GZipMiddleware
 from pydantic import BaseModel
@@ -29,7 +29,7 @@ from enclave_wrangler.dataset_upload import upload_new_container_with_concepts, 
     upload_new_cset_container_with_concepts_from_csv, upload_new_cset_version_with_concepts, \
     upload_new_cset_version_with_concepts_from_csv
 from enclave_wrangler.objects_api import get_n3c_recommended_csets, enclave_api_call_caller
-from enclave_wrangler.utils import make_objects_request
+from enclave_wrangler.utils import EnclaveWranglerErr, make_objects_request
 from enclave_wrangler.config import RESEARCHER_COLS
 
 from backend.db.utils import get_db_connection, sql_query, SCHEMA, sql_query_single_col, sql_in
@@ -593,7 +593,10 @@ def route_upload_new_cset_version_with_concepts(d: UploadNewCsetVersionWithConce
     """Upload new version of existing container, with concepets"""
     # TODO: Persist: see route_upload_new_container_with_concepts() for more info
     # result = csets_update(dataset_path='', row_index_data_map={})
-    response = upload_new_cset_version_with_concepts(**d.__dict__)
+    try:
+        response = upload_new_cset_version_with_concepts(**d.__dict__)
+    except EnclaveWranglerErr as e:
+        raise HTTPException(status_code=400, detail=str(e))
 
     return response  # todo: return. should include: assigned codeset_id's
 

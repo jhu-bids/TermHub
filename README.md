@@ -80,8 +80,9 @@ $ cd TermHub
 $ git submodule init
 $ git submodule update
 ```
-3. Run: `pip install -r requirements.txt`
-4. Install PostgreSQL and make sure it is running
+3. Install [virtual environment](https://docs.python.org/3/library/venv.html) and activate it: `venv venv; source venv/bin/activate`
+4. Run: `pip install -r requirements.txt`
+5. Install PostgreSQL and make sure it is running
   - Postgres.app makes this a breeze on macos: https://postgresapp.com/ 
   - variables are initially set to the values below. Note that  PGDATABASE and TERMHUB_DB_DB will need to change to termhub in the steps below.
     - PGHOST=localhost
@@ -89,7 +90,7 @@ $ git submodule update
     - PGPASSWORD=
     - PGPORT=5432
     - PGDATABASE=postgres
-5. Set environmental variables. Run: `mkdir env; cp .env.example env/.env`. Then, edit `.env` and set any variables that haven't been filled out. You'll likely need to reach out to @joeflack4 or @Sigfried.
+6. Set environmental variables. Run: `mkdir env; cp .env.example env/.env`. Then, edit `.env` and set any variables that haven't been filled out. You'll likely need to reach out to @joeflack4 or @Sigfried.
   - In terms of Postgres variables: PGHOST, PGUSER, PGPASSWORD, PGPORT, and PGDATABASE, and despite using shell syntax for those variables, the values have to be constants, not shell variables
     - TERMHUB_DB_SERVER=postgresql
     - TERMHUB_DB_DRIVER=psycopg2
@@ -99,7 +100,7 @@ $ git submodule update
     - TERMHUB_DB_SCHEMA=n3c
     - TERMHUB_DB_PASS=$PGPASSWORD
     - TERMHUB_DB_PORT=$PGPORT
-6. Basic DB setup (assuming PostgreSQL)
+7. Basic DB setup (assuming PostgreSQL)
 ```shell
 # create new db:
 $ createdb termhub
@@ -109,7 +110,7 @@ $ psql termhub
 CREATE SCHEMA n3c;
 SET search_path TO n3c;
 ```
-7. Create DB structure and load data
+8. Create DB structure and load data
   -  Run: `python backend/db/initialize.py`
 
 ### Deployment
