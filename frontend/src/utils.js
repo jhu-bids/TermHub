@@ -5,7 +5,7 @@ import CircularProgress from '@mui/material/CircularProgress';
 import Box from '@mui/material/Box';
 import { useQuery } from '@tanstack/react-query'
 import { createSearchParams, } from "react-router-dom";
-// import {get, isEmpty, } from 'lodash';
+import { isEmpty, } from 'lodash';
 import { SEARCH_PARAM_STATE_CONFIG, } from './App';
 // import {ICONS, } from './EditCset';
 
@@ -123,6 +123,13 @@ function updateSearchParams(props) {
     const csp = createSearchParams(sp);
     setSearchParams(csp);
 }
+function clearSearchParams(props) {
+  const {searchParams, setSearchParams, } = props;
+  const sp = searchParamsToObj(searchParams);
+  if (! isEmpty(sp)) {
+    setSearchParams(createSearchParams({}));
+  }
+}
 
 // from https://developer.mozilla.org/en-US/docs/Web/JavaScript/Reference/Global_Objects/Set#implementing_basic_set_operations
 function isSuperset(set, subset) {
@@ -174,5 +181,5 @@ function difference(setA, setB) {
 
 export {
   pct_fmt, fmt, cfmt, StatsMessage, searchParamsToObj, backend_url, axiosGet, axiosPut, useDataWidget,
-  isSuperset, union, intersection, symmetricDifference, difference, updateSearchParams,
+  isSuperset, union, intersection, symmetricDifference, difference, updateSearchParams, clearSearchParams,
 };

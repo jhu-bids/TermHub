@@ -28,7 +28,7 @@ from backend.utils import JSON_TYPE
 from enclave_wrangler.dataset_upload import upload_new_container_with_concepts, \
     upload_new_cset_container_with_concepts_from_csv, upload_new_cset_version_with_concepts, \
     upload_new_cset_version_with_concepts_from_csv
-from enclave_wrangler.objects_api import get_n3c_recommended_csets
+from enclave_wrangler.objects_api import get_n3c_recommended_csets, enclave_api_call_caller
 from enclave_wrangler.utils import make_objects_request
 from enclave_wrangler.config import RESEARCHER_COLS
 
@@ -434,7 +434,16 @@ def _get_concept_relationships(
 @APP.get("/get-n3c-recommended-codeset_ids")
 def get_n3c_recommended_codeset_ids() -> Dict[int, Union[Dict, None]]:
     codeset_ids = get_n3c_recommended_csets()
+    return codeset_ids
 
+
+@APP.get("/enclave-api-call/{name}/{params}")
+def enclave_api_call(name: str, params: Union[str, None]=None) -> Dict:
+    """
+    Convenience endpoint to avoid all the boilerplate of having lots of api call function
+    """
+    params = params.split('|') if params else []
+    return enclave_api_call_caller(name, params)
 
 # TODO: get back to how we had it before RDBMS refactor
 @APP.get("/cr-hierarchy")

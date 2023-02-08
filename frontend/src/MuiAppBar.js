@@ -19,8 +19,8 @@ const pages = [
   {name: 'Cset search', href: '/OMOPConceptSets'},
   {name: 'Cset comparison', href: '/cset-comparison'},
   {name: 'Example comparison', href: '/testing'},
-  {name: 'Upload CSV', href: '/upload-csv'},
-  {name: 'Download CSet JSON', href: 'download-json'},
+  {name: 'Upload CSV', href: '/upload-csv', noSearch: true, },
+  {name: 'Download CSet JSON', href: '/download-json', noSearch: true, },
   {name: 'About', href: '/about'}
 ];
 const settings = ['About'];
@@ -91,7 +91,7 @@ const MuiAppBar = () => {
           {pages.map((page) => (
               <MenuItem key={page.name}
                         component={NavLink}
-                        to={`${page.href}${search}`}
+                        to={`${page.href}${page.noSearch ? '' : search}`}
                         onClick={handleCloseNavMenu}>
                 <Typography textAlign="center">{page.name}</Typography>
               </MenuItem>
@@ -108,7 +108,7 @@ const MuiAppBar = () => {
                 // selected={page.href === window.location.pathname}
                 component={NavLink} // NavLink is supposed to show different if it's active; doesn't seem to be working
                 variant={page.href === window.location.pathname ? 'contained' : 'text'} // so, this instead
-                to={`${page.href}${search}`}
+                to={`${page.href}${page.noSearch ? '' : search}`}
                 onClick={handleCloseNavMenu}
                 sx={{ my: 2, color: 'white', display: 'block' }}
             >

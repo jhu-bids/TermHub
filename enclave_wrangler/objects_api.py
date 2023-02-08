@@ -281,16 +281,58 @@ def download_favorite_objects(fav_obj_names: List[str] = FAVORITE_OBJECTS, force
             client.get_objects_by_type(o, outdir=outdir)
 
 
+def get_all_bundles():
+    return make_objects_request('objects/ConceptSetTag')
+
+
+def get_bundle_names(prop: str='displayName'):
+    all_bundles = get_all_bundles().json()
+    return [b['properties'][prop] for b in all_bundles['data']]
+
+def get_bundle(bundle_name):
+    """
+    call this like: http://127.0.0.1:8000/enclave-api-call/get_bundle/Anticoagulants
+    """
+    all_bundles = get_all_bundles().json()
+    tagName = [b['properties']['tagName'] for b in all_bundles['data'] if b['properties']['displayName'] == bundle_name][0]
+    return make_objects_request(f'objects/ConceptSetTag/{tagName}/links/ConceptSetBundleItem').json()['data']
+
+
+def get_bundle_codeset_ids(bundle_name):
+    bundle = get_bundle(bundle_name)
+    codeset_ids = [b['properties']['bestVersionId'] for b in bundle]
+    return codeset_ids
+
+
+def get_codeset_json(codeset_id):
+    cset = make_objects_request(f'objects/OMOPConceptSet/{codeset_id}')
+    cset = cset.json()['properties']
+    container = make_objects_request(f'objects/OMOPConceptSetContainer/{cset["conceptSetNameOMOP"]}')
+    container = container.json()['properties']
+    items_url = make_objects_request(f'objects/OMOPConceptSet/{codeset_id}/links/omopConceptSetVersionItem', url_only=True)
+    client = EnclaveClient()
+    items = client._handle_paginated_request(items_url)
+    items = [i['properties'] for i in items[0]]
+    return {'concept_set_container': container,
+            'version': cset,
+            'items': items,
+            }
 
 def get_n3c_recommended_csets():
-    all_bundles = make_objects_request('objects/ConceptSetTag').json()
-    tagName = [b['properties']['tagName'] for b in all_bundles['data'] if b['properties']['displayName'] == 'N3C Recommended'][0]
-    bundle = make_objects_request(f'objects/ConceptSetTag/{tagName}/links/ConceptSetBundleItem').json()['data']
-    codeset_ids = [b['properties']['bestVersionId'] for b in bundle]
-    pdump(codeset_ids)
-    return tagName
+    return get_bundle_codeset_ids('N3C Recommended')
 
 
+def enclave_api_call_caller(name:str, params) -> Dict:
+    lookup = {
+        'get_all_bundles': get_all_bundles,
+        'get_bundle_names': get_bundle_names,
+        'get_bundle': get_bundle,
+        'get_bundle_codeset_ids': get_bundle_codeset_ids,
+        'get_n3c_recommended_csets': get_n3c_recommended_csets,
+        'get_codeset_json': get_codeset_json,
+    }
+    func = lookup[name]
+    return func(*params)
 
 def cli():
     """Command line interface for package."""

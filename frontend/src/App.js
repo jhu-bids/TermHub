@@ -22,7 +22,7 @@ import { createWebStoragePersistor } from 'react-query/createWebStoragePersistor
 import { ReactQueryDevtools } from '@tanstack/react-query-devtools'
 import {ConceptSetsPage, CsetComparisonPage} from "./Csets";
 import {AboutPage} from "./AboutPage";
-import {searchParamsToObj, updateSearchParams, backend_url, useDataWidget} from "./utils";
+import {searchParamsToObj, updateSearchParams, backend_url, useDataWidget, clearSearchParams, } from "./utils";
 import {UploadCsvPage} from "./UploadCsv";
 import {DownloadJSON} from "./DownloadJSON";
 // import _ from "./supergroup/supergroup";

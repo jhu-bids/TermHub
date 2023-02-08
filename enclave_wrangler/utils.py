@@ -130,7 +130,7 @@ def check_token_ttl(token: str, warning_threshold=60 * 60 * 24 * 14):
     return ttl
 
 
-def make_objects_request(path: str, verbose=False) -> Response:
+def make_objects_request(path: str, verbose=False, url_only=False) -> Response:
     """Passthrough for HTTP request
     If `data`, knows to do a POST. Otherwise does a GET.
     Enclave docs:
@@ -141,6 +141,8 @@ def make_objects_request(path: str, verbose=False) -> Response:
     path = path[1:] if path.startswith('/') else path
     api_path = f'/api/v1/ontologies/{ontology_rid}/{path}'
     url = f'https://{config["HOSTNAME"]}{api_path}'
+    if url_only:
+        return url
     if verbose:
         print(f'make_actions_request: {api_path}\n{url}')
 
