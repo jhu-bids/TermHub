@@ -126,14 +126,14 @@ def upload_new_cset_container_with_concepts_from_csv(
     return {}
 
 
-
+# TODO: What if this fails halfway through? Can we teardown any of the steps? (need to store random `codeset_id` too)
 # TODO: Need to do proper codeset_id assignment: (i) look up registry and get next available ID, (ii) assign it here,
 #  (iii) persist new ID / set to registry, (iv) persist new ID to any files passed through CLI, (v), return the new ID
 # todo: @Siggie: Do we want to change this to accept named params instead of a dictionary? - Joe 2022/12/05
 def upload_new_cset_version_with_concepts(
     concept_set_name: str, parent_version_codeset_id: int, current_max_version: float, omop_concepts: List[Dict],
-    provenance: str = "", limitations: str = "", intention: str = "",
-    annotation: str = None, intended_research_project: str = None, on_behalf_of: str = None, codeset_id: int = None,
+    provenance: str = "", limitations: str = "", intention: str = "", annotation: str = "",
+    intended_research_project: str = None, on_behalf_of: str = None, codeset_id: int = None,
     validate_first=VALIDATE_FIRST
 ) -> Dict:
     """Upload a concept set version along with its concepts.
@@ -180,9 +180,6 @@ def upload_new_cset_version_with_concepts(
         # todo: this is temporary until I handle registry persistence
         arbitrary_range = 100000
         codeset_id = randint(CSET_VERSION_MIN_ID, CSET_VERSION_MIN_ID + arbitrary_range)
-    # TODO: fix? no longer getting concept_set_name in this function
-    # if not annotation:
-    #     annotation =  'Curated value set: ' + concept_set_name
     if not intended_research_project:
         intended_research_project = ENCLAVE_PROJECT_NAME
 
@@ -201,27 +198,22 @@ def upload_new_cset_version_with_concepts(
         validate_first=validate_first)  # == code_sets.codeset_id
     sleep(8)
 
-    existing_items = get_concept_set_version_expression_items(codeset_id)
-    response_delete_items: Response = make_actions_request(
-        'delete-omop-concept-set-version-item', {"parameters":{
-            "concept-set-version-item": existing_items
-        }}, True)
-    sleep(8)
-
     response_upload_concepts: List[Response] = add_concepts_to_cset(
         omop_concepts=omop_concepts,
         version__codeset_id=codeset_id,
-        validate_first=validate_first) # == code_sets.codeset_id
+        validate_first=validate_first)  # == code_sets.codeset_id
 
     response_finalize_concept_set_version: Response = finalize_concept_set_version(
         concept_set=concept_set_name,  # == container_d['concept_set_name']
         version_id=codeset_id,
+        current_max_version=current_max_version,
+        provenance=provenance,
+        limitations=limitations,
         validate_first=validate_first)
 
     return {
         'responses': {
             'upload_concept_set_version': response_upload_draft_concept_set,
-            'delete_concept_set_version_items': response_delete_items,
             'add_concepts_to_cset': response_upload_concepts,
             'finalize_concept_set_version': response_finalize_concept_set_version
         },
