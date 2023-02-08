@@ -21,8 +21,9 @@ import { createWebStoragePersistor } from 'react-query/createWebStoragePersistor
 import { ReactQueryDevtools } from '@tanstack/react-query-devtools'
 import {ConceptSetsPage, CsetComparisonPage} from "./Csets";
 import {AboutPage} from "./AboutPage";
-import {searchParamsToObj, axiosGet, backend_url, useDataWidget} from "./utils";
+import {searchParamsToObj, backend_url, useDataWidget} from "./utils";
 import {UploadCsvPage} from "./UploadCsv";
+import {DownloadJSON} from "./DownloadJSON";
 // import logo from './logo.svg';
 // import dotenv from 'dotenv';
 // import * as dotenv from 'dotenv' // see https://github.com/motdotla/dotenv#how-do-i-use-dotenv-with-import
@@ -176,6 +177,7 @@ function RoutesContainer(props) {
           <Route path="OMOPConceptSets" element={<ConceptSetsPage {...props}  />} />
           <Route path="about" element={<AboutPage {...props} />} />
           <Route path="upload-csv" element={<UploadCsvPage {...props} />} />
+          <Route path="download-json" element={<DownloadJSON {...props} />} />
           {/* <Route path="OMOPConceptSet/:conceptId" element={<OldConceptSet />} /> */}
         </Route>
       </Routes>
