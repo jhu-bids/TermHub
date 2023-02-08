@@ -1,2 +1,15 @@
 ## TermHub Backend
-Running: `uvicorn backend.app:app --reload`
+### Running locally
+`uvicorn backend.app:app --reload`
+
+### Deployment
+#### Production
+Deploys to: [termhub.azurewebsites.net](https://termhub.azurewebsites.net)
+Is deployed via GitHub Action: [.github/workflows/backend_prod.yml](https://github.com/jhu-bids/TermHub/blob/main/.github/workflows/backend_prod.yml)
+- Can be deployed manually from GitHub: [run workflow](https://github.com/jhu-bids/TermHub/actions/workflows/backend_prod.yml)
+- Is deployed automatically whenever the `main` branch is updated.
+
+#### Development
+Deploys to: [termhub-dev.azurewebsites.net](https://termhub-dev.azurewebsites.net)
+Is deployed via GitHub Action: [.github/workflows/backend_dev.yml](https://github.com/jhu-bids/TermHub/blob/main/.github/workflows/backend_dev.yml)
+- Can be deployed manually from GitHub: [run workflow](https://github.com/jhu-bids/TermHub/actions/workflows/backend_dev.yml)

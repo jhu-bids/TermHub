@@ -22,9 +22,9 @@ import { createWebStoragePersistor } from 'react-query/createWebStoragePersistor
 import { ReactQueryDevtools } from '@tanstack/react-query-devtools'
 import {ConceptSetsPage, CsetComparisonPage} from "./Csets";
 import {AboutPage} from "./AboutPage";
-import {SingleCsetEdit} from "./SingleCsetEdit";
 import {searchParamsToObj, updateSearchParams, backend_url, useDataWidget} from "./utils";
 import {UploadCsvPage} from "./UploadCsv";
+import {DownloadJSON} from "./DownloadJSON";
 // import _ from "./supergroup/supergroup";
 const SEARCH_PARAM_STATE_CONFIG = {
   scalars: ['editCodesetId', ],
@@ -216,6 +216,7 @@ function RoutesContainer(props) {
           <Route path="SingleCsetEdit" element={<SingleCsetEdit {...props}  />} />
           <Route path="about" element={<AboutPage {...props} />} />
           <Route path="upload-csv" element={<UploadCsvPage {...props} />} />
+          <Route path="download-json" element={<DownloadJSON {...props} />} />
           {/* <Route path="OMOPConceptSet/:conceptId" element={<OldConceptSet />} /> */}
         </Route>
       </Routes>

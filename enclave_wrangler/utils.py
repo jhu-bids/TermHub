@@ -167,12 +167,12 @@ def make_actions_request(api_name: str, data: Union[List, Dict] = None, validate
         data["parameters"].update(EXTRA_PARAMS[api_name])
 
     if validate_first:
-        response: Response = enclave_post(url + 'validate', data)
+        response: Response = enclave_post(url + 'validate', data, verbose=verbose)
         if not ('result' in response.json() and response.json()['result'] == 'VALID'):
             print(f'Failure: {api_name}\n', response, file=sys.stderr)
             return response
 
-    response: Response = enclave_post(url + 'apply', data)
+    response: Response = enclave_post(url + 'apply', data, verbose=verbose)
 
     return response
 
@@ -219,6 +219,7 @@ def relevant_trace():
     trace = [m[0] for m in matches if m]
     trace = [t for t in trace if not re.search('/venv/', t)]
     return '\n'.join(trace)
+
 
 def print_curl(url: str, data: Union[List, Dict]=None, args: Dict = {}, trace:bool=False):
     """Print curl command for debugging"""

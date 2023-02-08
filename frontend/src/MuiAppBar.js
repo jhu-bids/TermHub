@@ -20,6 +20,7 @@ const pages = [
   {name: 'Cset comparison', href: '/cset-comparison'},
   {name: 'Example comparison', href: '/testing'},
   {name: 'Upload CSV', href: '/upload-csv'},
+  {name: 'Download CSet JSON', href: 'download-json'},
   {name: 'About', href: '/about'}
 ];
 const settings = ['About'];

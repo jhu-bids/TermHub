@@ -7,7 +7,7 @@
 import sys
 from argparse import ArgumentParser
 
-from typing import Dict, Union
+from typing import Dict, List, Union
 from typeguard import typechecked
 import os
 import re
@@ -19,6 +19,8 @@ import pyarrow.parquet as pq
 # import asyncio
 import shutil
 import time
+
+from backend.db.utils import chunk_list
 from backend.utils import commify, pdump
 from enclave_wrangler.utils import enclave_post, enclave_get
 
@@ -97,7 +99,6 @@ def download_and_combine_dataset_parts(fav: dict, file_parts: [str], outpath: st
     """tested with cURL:
     wget https://unite.nih.gov/foundry-data-proxy/api/dataproxy/datasets/ri.foundry.main.dataset.5cb3c4a3-327a-47bf-a8bf-daf0cafe6772/views/master/spark%2Fpart-00000-c94edb9f-1221-4ae8-ba74-58848a4d79cb-c000.snappy.parquet --header "authorization: Bearer $PALANTIR_ENCLAVE_AUTHENTICATION_BEARER_TOKEN"
     """
-
     dataset_rid: str = fav['rid']
     endpoint = 'https://unite.nih.gov/foundry-data-proxy/api/dataproxy/datasets'
     template = '{endpoint}/{dataset_rid}/views/master/{fp}'
@@ -105,56 +106,63 @@ def download_and_combine_dataset_parts(fav: dict, file_parts: [str], outpath: st
 
     # download parquet files
     with tempfile.TemporaryDirectory() as parquet_dir:
-        # if DEBUG:
-        print(f'\nDownloading {outpath}; tempdir {parquet_dir}, filepart endpoints:')
-        for fp in file_parts:
+        # flush: for gh action; otherwise does not always show in the log
+        print(f'\nINFO: Downloading {outpath}; tempdir {parquet_dir}, filepart endpoints:', flush=True)
+        for index, fp in enumerate(file_parts):
             url = template.format(endpoint=endpoint, dataset_rid=dataset_rid, fp=fp)
-            print('\t' + url)
+            print('\t' + f'{index + 1} of {len(file_parts)}: {url}')
             response = enclave_get(url, args={'stream':True}, verbose=False)
             if response.status_code == 200:
                 fname = parquet_dir + fp.replace('spark', '')
                 with open(fname, "wb") as f:
                     response.raw.decode_content = True
-                    # print(f'{fname} copying {time.strftime("%X")} ---> ', end='')
                     shutil.copyfileobj(response.raw, f)
-                # TODO: @Siggie: part_df unused. `parquet_parts` in 'except' block doesn't exist and comes after raise
-                #       @Joe: not sure why -- I'm trying commenting it out
-                # try:
-                #     print(f'reading {time.strftime("%X")} ---> ', end='')
-                #     part_df = pd.read_parquet(fname)
-                #     print(f'read {time.strftime("%X")}')
-                # except Exception as e:
-                #     print(f'errored {time.strftime("%X")} ----> {e}')
-                #     raise e
-                #     parquet_parts.append(fname)
             else:
-                raise f'failed opening {url} with {response.status_code}: {response.content}'
-        combined_parquet_fname = parquet_dir + '/combined.parquet'
+                raise RuntimeError(f'Failed opening {url} with {response.status_code}: {response.content}')
 
-        files = []
+        print('INFO: Combining parquet files: Saving chunks')
+        combined_parquet_fname = parquet_dir + '/combined.parquet'
+        files: List[str] = []
         for file_name in os.listdir(parquet_dir):
             files.append(os.path.join(parquet_dir, file_name))
 
-        if files[0].endswith('.parquet'):
-            combine_parquet_files(files, combined_parquet_fname)
-            df = pd.read_parquet(combined_parquet_fname)
-        elif files[0].endswith('.csv'):
-            if len(files) != 1:
-                raise f"with csv, only expected one file; got: [{', '.join(files)}]"
-            df = pd.read_csv(files[0], names=fav['column_names'])
-        else:
-            raise f"unexpected file(s) downloaded: [{', '.join(files)}]"
+        df = pd.DataFrame()
+        chunk_paths = []
+        # TODO: why don't we just convert parquet to csv one at a time?
+        # TODO: Changing this to see if helps
+        # chunks = chunk_list(files, 5)  # chunks size 5: arbitrary
+        chunks = chunk_list(files, len(files))
+        # Chunked to avoid memory issues w/ GitHub Action.
+        for chunk_n, chunk in enumerate(chunks):
+            if chunk[0].endswith('.parquet'):
+                combine_parquet_files(chunk, combined_parquet_fname)
+                df = pd.read_parquet(combined_parquet_fname)
+            elif chunk[0].endswith('.csv'):
+                if len(chunk) != 1:
+                    raise RuntimeError(f"with csv, only expected one file; got: [{', '.join(chunk)}]")
+                df = pd.read_csv(chunk[0], names=fav['column_names'])
+            else:
+                raise RuntimeError(f"unexpected file(s) downloaded: [{', '.join(chunk)}]")
+            if outpath:
+                os.makedirs(os.path.dirname(outpath), exist_ok=True)
+                outpath_i = outpath.replace('.csv', f'_{chunk_n}.csv')
+                chunk_paths.append(outpath_i)
+                df.to_csv(outpath_i, index=False)
 
+        print('INFO: Combining parquet files: Combining chunks')
         if outpath:
-            os.makedirs(os.path.dirname(outpath), exist_ok=True)
+            df = pd.concat([pd.read_csv(path) for path in chunk_paths])
             df.to_csv(outpath, index=False)
+            for path in chunk_paths:
+                os.remove(path)
+
         print(f'Downloaded {os.path.basename(outpath)}, {commify(len(df))} records\n')
         return df
 
 
 def combine_parquet_files(input_files, target_path):
+    """Combine parquet files"""
     files = []
-    input_folder = os.path.dirname(target_path)
     try:
         for file_name in input_files:
             files.append(pq.read_table(file_name))
@@ -295,14 +303,16 @@ def transforms_common(df: pd.DataFrame, dataset_name) -> pd.DataFrame:
 # TODO: currently overwrites if download is newer than prepped. should also overwrite if dependency
 #   prepped files are newer than this
 def transform(fav: dict) -> pd.DataFrame:
+    """Data transformations"""
     dataset_name: str = fav['name']
+    print(f'INFO: Transforming: {dataset_name}')
     ipath = os.path.join(CSV_DOWNLOAD_DIR, dataset_name + '.csv')
     opath = os.path.join(CSV_TRANSFORM_DIR, dataset_name + '.csv')
     if os.path.exists(opath) and os.path.getctime(ipath) < os.path.getctime(opath):
         print(f'Skipping {dataset_name}: transformed file is newer than downloaded file. If you really want to transform again, delete {opath} and try again.')
         return pd.DataFrame()
 
-    """Data transformations"""
+
     dataset_funcs = {  # todo: using introspection, can remove need for this if function names are consistent w/ files
         # skip filtering for now
         # 'concept': transform_dataset__concept,
@@ -313,7 +323,6 @@ def transform(fav: dict) -> pd.DataFrame:
     }
     func = dataset_funcs.get(dataset_name, '')
 
-    print(f'transforming {dataset_name}')
     if func:
         df = func(dataset_name)
     else:
@@ -341,10 +350,13 @@ def get_last_vocab_update():
 # print(get_last_vocab_update())
 # exit()
 
-def run(
+
+def download_and_transform(
     dataset_name: str = None, dataset_rid: str = None, ref: str = 'master', output_dir: str = None, outpath: str = None,
     transforms_only=False, fav: Dict = None, force_if_exists=False
 ) -> pd.DataFrame:
+    """Download dataset & run transformations"""
+    print(f'INFO: Downloading: {dataset_name}')
     dataset_rid = FAVORITE_DATASETS[dataset_name]['rid'] if not dataset_rid else dataset_rid
     dataset_name = FAVORITE_DATASETS_RID_NAME_MAP[dataset_rid] if not dataset_name else dataset_name
     fav = fav if fav else FAVORITE_DATASETS[dataset_name]
@@ -374,14 +386,17 @@ def run(
     return df2 if len(df2) > 0 else df
 
 
-def download_favorite_datasets(outdir: str = CSV_DOWNLOAD_DIR, transforms_only=False, specific=[], force_if_exists=False, single_group=None):
+def download_favorite_datasets(
+    outdir: str = CSV_DOWNLOAD_DIR, transforms_only=False, specific=[], force_if_exists=False, single_group=None
+):
     """Download favorite datasets"""
     for fav in FAVORITE_DATASETS.values():
         if single_group and single_group not in fav['dataset_groups']:
             continue
         if not specific or fav['name'] in specific:
             outpath = os.path.join(outdir, fav['name'] + '.csv')
-            run(fav=fav, dataset_name=fav['name'], outpath=outpath, transforms_only=transforms_only, force_if_exists=force_if_exists)
+            download_and_transform(fav=fav, dataset_name=fav['name'], outpath=outpath, transforms_only=transforms_only,
+                                   force_if_exists=force_if_exists)
 
 
 def get_parser():
@@ -441,7 +456,7 @@ def cli():
         download_favorite_datasets(outdir=d['output_dir'], transforms_only=d['transforms_only'], specific=specific)
     else:
         del d['favorites']
-        run(**d)
+        download_and_transform(**d)
 
 if __name__ == '__main__':
     cli()
