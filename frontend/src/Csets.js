@@ -8,7 +8,7 @@ import Autocomplete from '@mui/material/Autocomplete';
 import Button from '@mui/material/Button';
 // import Chip from '@mui/material/Chip';
 // import { Link, Outlet, useHref, useParams, useSearchParams, useLocation } from "react-router-dom";
-import { every, get, isEmpty, throttle, pullAt, uniq, } from 'lodash';
+import { every, get, isEmpty, throttle, pullAt, } from 'lodash';
 // import {isEqual, pick, uniqWith, max, omit, uniq, } from 'lodash';
 import Box from '@mui/material/Box';
 import Slider from '@mui/material/Slider';
@@ -81,6 +81,7 @@ function ConceptSetsPage(props) {
       </div>)
 }
 
+/*
 function hierarchyToFlatCids(h) {
   function f(ac) {
     ac.keys = [...ac.keys, ...Object.keys(ac.remaining)];
@@ -96,6 +97,7 @@ function hierarchyToFlatCids(h) {
   }
   return uniq(ac.keys.map(k => parseInt(k)));
 }
+ */
 
 function traverseHierarchy({hierarchy, concepts, collapsed, }) {
   let rowData = [];

@@ -2,33 +2,15 @@ import React, {/* useState, useEffect, useMemo, useReducer, useRef, */} from 're
 // import { createSearchParams, useSearchParams, } from "react-router-dom";
 import DataTable, { createTheme } from 'react-data-table-component';
 import { AddCircle, RemoveCircleOutline, Add, } from '@mui/icons-material';
-import {Checkbox} from "@mui/material";
-import Box from '@mui/material/Box';
-import Typography from '@mui/material/Typography';
+// import {Checkbox} from "@mui/material";
 import {isEmpty, } from 'lodash'; // set, map, omit, pick, uniq, reduce, cloneDeepWith, isEqual, uniqWith, groupBy,
-import {fmt, getEditCodesetFunc, getCodesetEditActionFunc, } from "./utils";
+import {fmt, } from "./utils";
 import {ConceptSetCard} from "./ConceptSetCard";
 // import {Tooltip} from './Tooltip';
-import { ItemOptions, } from './EditCset';
+import { getEditCodesetFunc, getCodesetEditActionFunc, ItemOptions, EditInfo, } from './EditCset';
 // import {isEmpty} from "react-data-table-component/dist/src/DataTable/util"; // what was this for?
 // import Button from '@mui/material/Button';
 
-function EditInfo(props) {
-    const {csetEditState={}, conceptLookup} = props;
-    return (
-        <Box sx={{ p: 2, border: '1px dashed grey' }}>
-            {Object.entries(csetEditState).map(
-                ([concept_id, state]) => {
-                    return (
-                        <Typography key={concept_id} >
-                            { state ? 'Adding' : 'Removing' } {conceptLookup[concept_id].concept_name}
-                        </Typography>
-                    )
-                }
-            )}
-        </Box>
-    );
-}
 function ComparisonDataTable(props) {
     console.log(props);
     const {editCodesetId, displayData={}, squishTo, cset_data, csetEditState={}, searchParams, setSearchParams, } = props;
@@ -75,7 +57,7 @@ function ComparisonDataTable(props) {
     }
     // console.log({editInfo});
     if (! isEmpty(csetEditState)) {
-        eInfo = <EditInfo csetEditState={csetEditState} conceptLookup={conceptLookup}/>;
+        eInfo = <EditInfo {...props} />;
     }
     const customStyles = styles(sizes);
     const conditionalRowStyles = [
@@ -119,16 +101,11 @@ function ComparisonDataTable(props) {
 
 function colConfig(props) {
     let { displayData, selected_csets, cset_data, collapsed, toggleCollapse, sizes,
-          editCodesetId, editAction, editCodesetFunc, csetEditState={}, } = props;
+          editAction, editCodesetFunc, } = props;
     const { csmiLookup, } = cset_data;
 
     if (!displayData) {
         return;
-    }
-    let eAction = (codeset_id, concept_id) => (evt, state) => {
-        console.log({codeset_id, concept_id, state});
-        editAction({codeset_id, concept_id, state});
-        /* let url = backend_url(`modify-cset?codeset_ids=${codeset_id}&concept_id=${concept_id}&state=${state}`); */
     }
 
     let coldefs = [
@@ -213,7 +190,7 @@ function colConfig(props) {
                 return <CellCheckbox { ...props}
                                      {...{row, cset_col,
                                         rowData: displayData.rowData,
-                                        eAction}} />;
+                                        editAction}} />;
             },
             conditionalCellStyles: [
                 {
@@ -252,7 +229,7 @@ trying to figure out what to display to convey relationships between expression 
 related concepts -- mapped and excluded
  */
 function CellCheckbox(props) {
-    const {cset_data, row, cset_col, rowData, csetEditState={}, editCodesetId, eAction, } = props;
+    const {cset_data, row, cset_col, editCodesetId, editAction, } = props;
     const { csmiLookup, } = cset_data;
     let mi = csmiLookup[cset_col.codeset_id][row.concept_id];
     // should get from csetEditState and, if not there, then csmiLookup
@@ -262,7 +239,7 @@ function CellCheckbox(props) {
 
     if (editCodesetId && cset_col.codeset_id === editCodesetId) {
         if (!mi) {
-            contents = <Add onClick={eAction(cset_col.codeset_id, row.concept_id)}/>
+            contents = <Add onClick={()=>editAction({...props, codeset_id: cset_col.codeset_id, concept_id: row.concept_id, action: 'Add'})}/>
         } else {
             return <ItemOptions item={mi} editing={true}/>;
         }
@@ -270,7 +247,7 @@ function CellCheckbox(props) {
         if (row.concept_id in csetEditState) { // should be keyed by codeset_id,concept_id, right?
             checked = ! checked;
         }
-        contents = <Checkbox checked={checked} onChange={eAction(cset_col.codeset_id, row.concept_id)}/>
+        contents = <Checkbox checked={checked} onChange={editAction(cset_col.codeset_id, row.concept_id)}/>
          */
     } else {
         contents = <span>{checked ? '\u2713' : ''}</span>;

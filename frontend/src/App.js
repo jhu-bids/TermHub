@@ -6,7 +6,7 @@ https://stackoverflow.com/questions/53219113/where-can-i-make-api-call-with-hook
 might be useful to look at https://mui.com/material-ui/guides/composition/#link
 referred to by https://stackoverflow.com/questions/63216730/can-you-use-material-ui-link-with-react-router-dom-link
 */
-import React, {useState, useEffect, } from 'react';
+import React, {} from 'react';
 import './App.css';
 import { // Link, useHref, useParams, BrowserRouter, redirect,
           Outlet, Navigate, useSearchParams, useLocation,
@@ -15,7 +15,7 @@ import MuiAppBar from "./MuiAppBar";
 import Box from '@mui/material/Box';
 import { // useMutation, useQueryClient, useQuery, useQueries,
           QueryClient,QueryClientProvider, } from '@tanstack/react-query'
-import {isEqual, keyBy, } from "lodash";
+import { keyBy, } from "lodash";
 import { persistQueryClient, removeOldestQuery,} from '@tanstack/react-query-persist-client'
 // import { createSyncStoragePersister } from '@tanstack/query-sync-storage-persister'
 import { createWebStoragePersistor } from 'react-query/createWebStoragePersistor-experimental'
@@ -26,8 +26,11 @@ import {SingleCsetEdit} from "./SingleCsetEdit";
 import {searchParamsToObj, updateSearchParams, backend_url, useDataWidget} from "./utils";
 import {UploadCsvPage} from "./UploadCsv";
 // import _ from "./supergroup/supergroup";
-const QUERYSTRING_SCALARS = ['editCodesetId', ];
-const INCLUDE_IN_GLOB_PROPS_BUT_NOT_QUERYSTRING = ['searchParams', 'setSearchParams'];
+const SEARCH_PARAM_STATE_CONFIG = {
+  scalars: ['editCodesetId', ],
+  global_props_but_not_search_params: ['searchParams', 'setSearchParams'],
+  serialize: ['csetEditState'],
+}
 
 // import logo from './logo.svg';
 // import { useIsFetching } from '@tanstack/react-query' // https://tanstack.com/query/v4/docs/react/guides/background-fetching-indicators
@@ -147,13 +150,13 @@ function QueryStringStateMgr(props) {
     // return redirect(url); not exported even though it's in the docs
     return <Navigate to={url} replace={true} /* what does this do? */ />;
   }
-  if(!sp.codeset_ids) {
-    sp.codeset_ids = [];
+  if(!globalProps.codeset_ids) {
+    globalProps.codeset_ids = [];
   }
   return <DataContainer /* searchParams={searchParams}*/
                         // codeset_ids={codeset_ids}
                         changeCodesetIds={changeCodesetIds}
-                        {...sp}
+                        {...globalProps}
                         />;
 }
 function DataContainer(props) {
@@ -274,7 +277,7 @@ function objectTypesData(data) {
 }
 */
 
-export {QCProvider, backend_url, QUERYSTRING_SCALARS, INCLUDE_IN_GLOB_PROPS_BUT_NOT_QUERYSTRING, };
+export {QCProvider, backend_url, SEARCH_PARAM_STATE_CONFIG, };
 
 // TODO: @Siggie: Can we remove this comment or we need this list of links for ref still?
 //       @Joe: we should move it to the individual concept set display component(s) as a

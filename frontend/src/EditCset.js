@@ -1,8 +1,77 @@
 import TranslateIcon from '@mui/icons-material/Translate';
 import BlockIcon from '@mui/icons-material/Block';
 import {SvgIcon} from "@mui/material";
+import Box from '@mui/material/Box';
+import Typography from '@mui/material/Typography';
+import {isEmpty, get, } from 'lodash'; // set, map, omit, pick, uniq, reduce, cloneDeepWith, isEqual, uniqWith, groupBy,
 // import {ComparisonDataTable} from './ComparisonDataTable';
 import {Tooltip} from './Tooltip';
+import {searchParamsToObj, updateSearchParams, } from "./utils";
+
+function getEditCodesetFunc(props) {
+  const {searchParams, } = props;
+  return (evt) => {
+    let ec = parseInt(evt.target.getAttribute('codeset_id'));
+    let sp = searchParamsToObj(searchParams);
+    if (sp.editCodesetId === ec) {
+      updateSearchParams({...props, delProps: ['editCodesetId']});
+    } else {
+      updateSearchParams({...props, addProps: {editCodesetId: ec}});
+    }
+  }
+}
+
+function getCodesetEditActionFunc({searchParams, setSearchParams}) {
+  return (props) => {
+    const {codeset_id, concept_id, action} = props;
+    let sp = searchParamsToObj(searchParams);
+    let {csetEditState={}, } = sp;
+    let csidState = csetEditState[codeset_id] || {
+      Add: [],
+      Remove: [],
+      Update: {}
+    };
+    if (get(csetEditState, [codeset_id, concept_id])) {
+      console.log("is this block getting called?")
+      delete csetEditState[codeset_id][concept_id];
+      if (isEmpty(csetEditState[codeset_id])) {
+        delete csetEditState[codeset_id];
+      }
+    } else {
+      if (action === 'Add') {
+        let mi = { codeset_id, concept_id, csm: false, item: true, };
+        Object.keys(ICONS).forEach(flag => {mi[flag] = false});
+        csidState[concept_id] = mi;
+        csetEditState[codeset_id] = csidState;
+        updateSearchParams({...props, addProps: {csetEditState}});
+        return;
+      }
+    }
+    throw new Error("what's happening here?")
+  }
+}
+
+function EditInfo(props) {
+  const {editCodesetId, csetEditState, conceptLookup} = props;
+  return (
+      <Box sx={{ p: 2, border: '1px dashed grey' }}>
+        <pre>{JSON.stringify(csetEditState[editCodesetId], null, 2)}</pre>
+        {
+          /*
+            Object.values(csetEditState[editCodesetId]).map(
+              (mi) => {
+                return (
+                    <Typography key={mi.concept_id} >
+                      { state ? 'Adding' : 'Removing' } {conceptLookup[concept_id].concept_name}
+                    </Typography>
+                )
+              }
+          )
+          */
+        }
+      </Box>
+  );
+}
 
 function TreeIcon(props) {
   return (
@@ -52,4 +121,4 @@ function ItemOptions(props) {
   );
 }
 
-export {ItemOptions, }
+export {EditInfo, getCodesetEditActionFunc, getEditCodesetFunc, ItemOptions, ICONS, }

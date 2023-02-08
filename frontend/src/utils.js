@@ -5,7 +5,9 @@ import CircularProgress from '@mui/material/CircularProgress';
 import Box from '@mui/material/Box';
 import { useQuery } from '@tanstack/react-query'
 import { createSearchParams, } from "react-router-dom";
-import { QUERYSTRING_SCALARS, INCLUDE_IN_GLOB_PROPS_BUT_NOT_QUERYSTRING, } from './App';
+import {get, isEmpty, } from 'lodash';
+import { SEARCH_PARAM_STATE_CONFIG, } from './App';
+import {ICONS, } from './EditCset';
 
 function Progress(props) {
   return (
@@ -89,54 +91,37 @@ function StatsMessage(props) {
 
 function searchParamsToObj(searchParams) {
   const qsKeys = Array.from(new Set(searchParams.keys()));
-  let searchParamsAsObject = {};
-  console.log({QUERYSTRING_SCALARS});
+  let sp = {};
   qsKeys.forEach(key => {
     let vals = searchParams.getAll(key);
-    searchParamsAsObject[key] = vals.map(v => parseInt(v) == v ? parseInt(v) : v).sort(); // eslint-disable-line
-    if (QUERYSTRING_SCALARS.includes(key)) {
-      if (searchParamsAsObject[key].length !== 1) {
+    sp[key] = vals.map(v => parseInt(v) == v ? parseInt(v) : v).sort(); // eslint-disable-line
+    if (SEARCH_PARAM_STATE_CONFIG.scalars.includes(key)) {
+      if (sp[key].length !== 1) {
         throw new Error("Didn't expect that!");
       }
-      searchParamsAsObject[key] = searchParamsAsObject[key][0];
+      sp[key] = sp[key][0];
+    }
+    if (SEARCH_PARAM_STATE_CONFIG.serialize.includes(key)) {
+      sp[key] = JSON.parse(sp[key]);
     }
   });
-  console.log({searchParamsAsObject});
-  return searchParamsAsObject;
+  console.log({sp});
+  return sp;
 }
 function updateSearchParams(props) {
     const {addProps={}, delProps=[], searchParams, setSearchParams, } = props;
     let sp = searchParamsToObj(searchParams);
-    INCLUDE_IN_GLOB_PROPS_BUT_NOT_QUERYSTRING.forEach( p => { delete sp[p]; } );
+    SEARCH_PARAM_STATE_CONFIG.global_props_but_not_search_params.forEach(
+      p => { delete sp[p]; } );
     delProps.forEach( p => { delete sp[p]; } );
     sp = {...sp, ...addProps};
+    SEARCH_PARAM_STATE_CONFIG.serialize.forEach( p => {
+      if (sp[p]) {
+        sp[p] = JSON.stringify(sp[p]);
+      }
+    })
+    const csp = createSearchParams(sp);
     setSearchParams(createSearchParams(sp));
-}
-
-function getEditCodesetFunc({searchParams, setSearchParams}) {
-  return (evt) => {
-    let ec = parseInt(evt.target.getAttribute('codeset_id'));
-    let sp = searchParamsToObj(searchParams);
-    if (sp.editCodesetId === ec) {
-      updateSearchParams({delProps: ['editCodesetId']});
-    } else {
-      updateSearchParams({addProps: {editCodesetId: ec}});
-    }
-  }
-}
-
-function getCodesetEditActionFunc({searchParams, setSearchParams}) {
-  return (props) => {
-    const {/*codeset_id, */ concept_id, state} = props;
-    const sp = searchParamsToObj(searchParams);
-    let {csetEditState={}, } = sp;
-    if (concept_id in csetEditState) {
-      delete csetEditState[concept_id];
-    } else {
-      csetEditState[concept_id] = state;
-    }
-    return setSearchParams(createSearchParams({...sp, csetEditState}));
-  }
 }
 
 // from https://developer.mozilla.org/en-US/docs/Web/JavaScript/Reference/Global_Objects/Set#implementing_basic_set_operations
@@ -189,6 +174,5 @@ function difference(setA, setB) {
 
 export {
   pct_fmt, fmt, cfmt, StatsMessage, searchParamsToObj, backend_url, axiosGet, axiosPut, useDataWidget,
-  getCodesetEditActionFunc, getEditCodesetFunc, isSuperset, union, intersection, symmetricDifference, difference,
-  updateSearchParams,
+  isSuperset, union, intersection, symmetricDifference, difference, updateSearchParams,
 };
