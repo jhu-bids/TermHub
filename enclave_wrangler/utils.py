@@ -29,6 +29,10 @@ PERSONAL_TOKEN_KEY = 'OTHER_TOKEN'
 TOKEN_KEY = SERVICE_TOKEN_KEY
 
 
+class EnclaveWranglerErr(RuntimeError):
+    """Wrapper just to handle errors from this module"""
+
+
 def get_headers(personal=False, content_type="application/json", for_curl=False):
     """Format headers for enclave calls
 
