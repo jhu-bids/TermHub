@@ -213,7 +213,6 @@ function RoutesContainer(props) {
         <Route path="/" element={<App {...props} />}>
           <Route path="cset-comparison" element={<CsetComparisonPage {...props} />} />
           <Route path="OMOPConceptSets" element={<ConceptSetsPage {...props}  />} />
-          <Route path="SingleCsetEdit" element={<SingleCsetEdit {...props}  />} />
           <Route path="about" element={<AboutPage {...props} />} />
           <Route path="upload-csv" element={<UploadCsvPage {...props} />} />
           <Route path="download-json" element={<DownloadJSON {...props} />} />

@@ -1,5 +1,5 @@
-import React, {useState, useCallback, useEffect, useMemo, } from 'react';
-import {isEqual, orderBy, get, } from 'lodash';
+import React, {useState, useCallback, useEffect, } from 'react';
+import {orderBy, get, } from 'lodash';
 import DataTable, { createTheme } from 'react-data-table-component';
 import {fmt, pct_fmt, StatsMessage,} from './utils';
 import {Tooltip} from './Tooltip';
@@ -97,9 +97,11 @@ function CsetsDataTable(props) {
     );
 }
 function getColdefs() {
+    /*
     const descending = (rows, selector, direction) => {
         return orderBy(rows, selector, ['desc']);
     };
+     */
     return [
         // { name: 'level', selector: row => row.level, },
         {

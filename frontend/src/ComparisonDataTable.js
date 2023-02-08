@@ -14,7 +14,7 @@ import { getEditCodesetFunc, getCodesetEditActionFunc, ItemOptions, EditInfo, } 
 function ComparisonDataTable(props) {
     console.log(props);
     const {editCodesetId, displayData={}, squishTo, cset_data, csetEditState={}, searchParams, setSearchParams, } = props;
-    const {researchers, conceptLookup, } = cset_data;
+    const {researchers, } = cset_data;
     // const [columns, setColumns] = useState();
     // const [editInfo, setEditInfo] = useState({});
 

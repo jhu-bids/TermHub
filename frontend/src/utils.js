@@ -5,9 +5,9 @@ import CircularProgress from '@mui/material/CircularProgress';
 import Box from '@mui/material/Box';
 import { useQuery } from '@tanstack/react-query'
 import { createSearchParams, } from "react-router-dom";
-import {get, isEmpty, } from 'lodash';
+// import {get, isEmpty, } from 'lodash';
 import { SEARCH_PARAM_STATE_CONFIG, } from './App';
-import {ICONS, } from './EditCset';
+// import {ICONS, } from './EditCset';
 
 function Progress(props) {
   return (
@@ -121,7 +121,7 @@ function updateSearchParams(props) {
       }
     })
     const csp = createSearchParams(sp);
-    setSearchParams(createSearchParams(sp));
+    setSearchParams(csp);
 }
 
 // from https://developer.mozilla.org/en-US/docs/Web/JavaScript/Reference/Global_Objects/Set#implementing_basic_set_operations

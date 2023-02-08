@@ -2,7 +2,7 @@ import TranslateIcon from '@mui/icons-material/Translate';
 import BlockIcon from '@mui/icons-material/Block';
 import {SvgIcon} from "@mui/material";
 import Box from '@mui/material/Box';
-import Typography from '@mui/material/Typography';
+// import Typography from '@mui/material/Typography';
 import {isEmpty, get, } from 'lodash'; // set, map, omit, pick, uniq, reduce, cloneDeepWith, isEqual, uniqWith, groupBy,
 // import {ComparisonDataTable} from './ComparisonDataTable';
 import {Tooltip} from './Tooltip';
@@ -52,7 +52,7 @@ function getCodesetEditActionFunc({searchParams, setSearchParams}) {
 }
 
 function EditInfo(props) {
-  const {editCodesetId, csetEditState, conceptLookup} = props;
+  const {editCodesetId, csetEditState, } = props;
   return (
       <Box sx={{ p: 2, border: '1px dashed grey' }}>
         <pre>{JSON.stringify(csetEditState[editCodesetId], null, 2)}</pre>
