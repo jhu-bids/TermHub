@@ -701,6 +701,7 @@ class UploadCsvVersionWithConcepts(BaseModel):
 @APP.post("/upload-csv-new-cset-version-with-concepts")
 def route_csv_upload_new_cset_version_with_concepts(data: UploadCsvVersionWithConcepts) -> Dict:
     """Upload new version of existing container, with concepets"""
+    result = {}
     try:
         # noinspection PyTypeChecker
         df = pd.read_csv(StringIO(data.dict()['csv'])).fillna('')
@@ -709,12 +710,27 @@ def route_csv_upload_new_cset_version_with_concepts(data: UploadCsvVersionWithCo
         # can't print it, it's all response objects
         # print(json.dumps(response, indent=2))
     except Exception as e:  # todo: this will be refactored so that every request returns err
-        return {"status": "error", "response": str(e)}
+        result['status'] = "error"
+        result['errors'] = str(e)
+        return result
 
-    # TODO: look at status code of all responses. return successes and errors.
-    # TODO: Return versionId
+    for cset_name, data in response.items():
+        results = data['responses'] if 'responses' in data else data
+        errors = {}
+        for k, v in results.items():
+            if v.status_code >= 400:
+                errors[k] = v.text
+        result[cset_name] = {
+            'versionId': data['versionId'],
+        }
+        if errors:
+            result[cset_name]['errors'] = errors
+            result[cset_name]['status'] = 'error'
+        else:
+            result[cset_name]['status'] = 'success'
 
-    return {"status": "success, I think", "response": response.json()}
+    result['status'] = 'error' if any([v['status'] == 'error' for v in result.values()]) else 'success'
+    return result
 
 
 @APP.post("/upload-csv-new-container-with-concepts")
