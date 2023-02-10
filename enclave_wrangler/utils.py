@@ -190,11 +190,17 @@ def enclave_post(url: str, data: Union[List, Dict], verbose=True) -> Response:
     headers = get_headers()
     try:
         response = requests.post(url, headers=headers, json=data)
+        err = False
         if response.status_code >= 400:
+            err = True
             print(f'Failure: {url}\n', response, file=sys.stderr)
-        elif 'errorCode' in response.text:
+        if any([x in response.text for x in ['errorCode', 'INVALID']]):
+            err = True
             print('Error: ' + response.text, file=sys.stderr)
-        response.raise_for_status()
+        # response.raise_for_status()
+        if err:
+            raise EnclaveWranglerErr(response.status_code, ': ', response.text)
+
         return response
     except Exception as err:
         ttl = check_token_ttl(get_auth_token())

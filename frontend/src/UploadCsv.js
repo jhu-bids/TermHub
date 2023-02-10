@@ -28,7 +28,7 @@ function UploadCsvPage(props) {
       // const [all_csets_widget, all_csets] = useDataWidget("upload", apiname, {csv: txt});
       axiosPut(apiname, {csv: txt});
       // this.setState((prevState) => ({ [name]: [...prevState[name], e.target.result] }));
-      // TODO: Needs to upload to: /upload-csv-new-cset-version-with-concepts
+      // TODO: how to print to console or display in screen the promise resolution?
     };
     if (file) {
       fileReader.readAsText(file)

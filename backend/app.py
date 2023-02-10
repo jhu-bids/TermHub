@@ -3,11 +3,9 @@
 Resources
 - https://github.com/tiangolo/fastapi
 """
-import json
 import os
-import re
-import itertools
 from datetime import datetime
+import sys
 from io import StringIO
 from pathlib import Path
 from typing import Any, Dict, List, Union, Set
@@ -17,7 +15,7 @@ import numpy as np
 import pandas as pd
 import uvicorn
 import urllib.parse
-from fastapi import FastAPI, HTTPException, Query
+from fastapi import FastAPI, Query
 from fastapi.middleware.cors import CORSMiddleware
 from fastapi.middleware.gzip import GZipMiddleware
 from pydantic import BaseModel
@@ -598,7 +596,8 @@ def route_upload_new_cset_version_with_concepts(d: UploadNewCsetVersionWithConce
     try:
         response = upload_new_cset_version_with_concepts(**d.__dict__)
     except EnclaveWranglerErr as e:
-        raise HTTPException(status_code=400, detail=str(e))
+        print(e, file=sys.stderr)
+        return {'error': str(e)}
 
     return response  # todo: return. should include: assigned codeset_id's
 
@@ -704,15 +703,36 @@ class UploadCsvVersionWithConcepts(BaseModel):
 @APP.post("/upload-csv-new-cset-version-with-concepts")
 def route_csv_upload_new_cset_version_with_concepts(data: UploadCsvVersionWithConcepts) -> Dict:
     """Upload new version of existing container, with concepets"""
-    # noinspection PyTypeChecker
-    df = pd.read_csv(StringIO(data.dict()['csv'])).fillna('')
-    response: Dict = upload_new_cset_version_with_concepts_from_csv(df=df)
-    # print('CSV upload result: ')
-    # can't print it, it's all response objects
-    # print(json.dumps(response, indent=2))
+    result = {}
+    try:
+        # noinspection PyTypeChecker
+        df = pd.read_csv(StringIO(data.dict()['csv'])).fillna('')
+        response: Dict = upload_new_cset_version_with_concepts_from_csv(df=df, validate_first=False)
+        # print('CSV upload result: ')
+        # can't print it, it's all response objects
+        # print(json.dumps(response, indent=2))
+    except Exception as e:  # todo: this will be refactored so that every request returns err
+        result['status'] = "error"
+        result['errors'] = str(e)
+        return result
 
-    # return response # seems to be causing error
-    return {"status": "success, I think", "response": response}
+    for cset_name, data in response.items():
+        results = data['responses'] if 'responses' in data else data
+        errors = {}
+        for k, v in results.items():
+            if v.status_code >= 400:
+                errors[k] = v.text
+        result[cset_name] = {
+            'versionId': data['versionId'],
+        }
+        if errors:
+            result[cset_name]['errors'] = errors
+            result[cset_name]['status'] = 'error'
+        else:
+            result[cset_name]['status'] = 'success'
+
+    result['status'] = 'error' if any([v['status'] == 'error' for v in result.values()]) else 'success'
+    return result
 
 
 @APP.post("/upload-csv-new-container-with-concepts")
