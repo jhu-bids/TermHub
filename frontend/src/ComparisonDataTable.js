@@ -7,7 +7,7 @@ import {isEmpty, } from 'lodash'; // set, map, omit, pick, uniq, reduce, cloneDe
 import {fmt, } from "./utils";
 import {ConceptSetCard} from "./ConceptSetCard";
 // import {Tooltip} from './Tooltip';
-import { getEditCodesetFunc, getCodesetEditActionFunc, ItemOptions, EditInfo, } from './EditCset';
+import { getEditCodesetFunc, getCodesetEditActionFunc, EditInfo, CellCheckbox, } from './EditCset';
 // import {isEmpty} from "react-data-table-component/dist/src/DataTable/util"; // what was this for?
 // import Button from '@mui/material/Button';
 
@@ -210,7 +210,7 @@ function colConfig(props) {
             ],
             sortable: !displayData.nested,
             compact: true,
-            width: '50px',
+            width: '70px',
             // maxWidth: 50,
             center: true,
         }
@@ -224,41 +224,7 @@ function colConfig(props) {
     // console.log('done setting coldefs');
 
 }
-/*
-trying to figure out what to display to convey relationships between expression items and descendants and other
-related concepts -- mapped and excluded
- */
-function CellCheckbox(props) {
-    const {cset_data, row, cset_col, editCodesetId, editAction, } = props;
-    const { csmiLookup, } = cset_data;
-    let mi = csmiLookup[cset_col.codeset_id][row.concept_id];
-    // should get from csetEditState and, if not there, then csmiLookup
 
-    let checked, contents;
-    checked = !! mi;
-
-    if (editCodesetId && cset_col.codeset_id === editCodesetId) {
-        if (!mi) {
-            contents = <Add onClick={()=>editAction({...props, codeset_id: cset_col.codeset_id, concept_id: row.concept_id, action: 'Add'})}/>
-        } else {
-            return <ItemOptions item={mi} editing={true}/>;
-        }
-        /*
-        if (row.concept_id in csetEditState) { // should be keyed by codeset_id,concept_id, right?
-            checked = ! checked;
-        }
-        contents = <Checkbox checked={checked} onChange={editAction(cset_col.codeset_id, row.concept_id)}/>
-         */
-    } else {
-        contents = <span>{checked ? '\u2713' : ''}</span>;
-    }
-    if (mi) {
-        return <ItemOptions item={mi}/>;
-        // return  <Tooltip label={<pre>{JSON.stringify(mi, null, 2)}</pre>} placement="bottom">{contents}</Tooltip>
-    } else {
-        return contents
-    }
-}
 // createTheme creates a new theme named solarized that overrides the build in dark theme
 // https://github.com/jbetancur/react-data-table-component/blob/master/src/DataTable/themes.ts
 createTheme('custom-theme', {
