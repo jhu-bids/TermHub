@@ -24,7 +24,7 @@ from pydantic import BaseModel
 from sqlalchemy.engine import LegacyRow, RowMapping
 from subprocess import call as sp_call
 
-from backend.utils import JSON_TYPE
+from backend.utils import JSON_TYPE, inject_to_avoid_circular_imports
 from enclave_wrangler.dataset_upload import upload_new_container_with_concepts, \
     upload_new_cset_container_with_concepts_from_csv, upload_new_cset_version_with_concepts, \
     upload_new_cset_version_with_concepts_from_csv
@@ -165,14 +165,13 @@ def get_researchers(ids: Set[str], fields: List[str] = None) -> JSON_TYPE:
     return res2
 
 
-def get_concepts(concept_ids: List[int], con=CON) -> List:
+def get_concepts(concept_ids: List[int], con=CON, table:str='concepts_with_counts') -> List:
     """Get information about concept sets the user has selected"""
     rows: List[LegacyRow] = sql_query(
-        con, """
+        con, f"""
           SELECT *
-          FROM concepts_with_counts
-          WHERE concept_id = ANY(:concept_ids);""",
-        {'concept_ids': concept_ids})
+          FROM {table}
+          WHERE concept_id {sql_in(concept_ids)};""")
     return rows
 
 
@@ -437,13 +436,16 @@ def get_n3c_recommended_codeset_ids() -> Dict[int, Union[Dict, None]]:
     return codeset_ids
 
 
+@APP.get("/enclave-api-call/{name}")
 @APP.get("/enclave-api-call/{name}/{params}")
 def enclave_api_call(name: str, params: Union[str, None]=None) -> Dict:
     """
     Convenience endpoint to avoid all the boilerplate of having lots of api call function
     """
+    inject_to_avoid_circular_imports('get_concepts', get_concepts)
+    inject_to_avoid_circular_imports('CON', CON)
     params = params.split('|') if params else []
-    return enclave_api_call_caller(name, params)
+    return enclave_api_call_caller(name, params) # .json() have the individual functions return the json
 
 # TODO: get back to how we had it before RDBMS refactor
 @APP.get("/cr-hierarchy")

@@ -108,8 +108,11 @@ def sql_query(
     conn.execute(sqlalchemy.text(query), ids=some_ids)
     """
     try:
-        query = text(query) if not isinstance(query, TextClause) else query
-        q = con.execute(query, **params) if params else con.execute(query)
+        if params:
+            query = text(query) if not isinstance(query, TextClause) else query
+            q = con.execute(query, **params) if params else con.execute(query)
+        else:
+            q = con.execute(query)
 
         if debug:
             print(f'{query}\n{json.dumps(params, indent=2)}')
@@ -129,13 +132,17 @@ def sql_in(lst: List, quote_items=False) -> str:
         s: str = ', '.join([str(x) for x in lst]) or 'NULL'
     return f' IN ({s}) '
 
-def run_sql(con: Connection, command: str) -> Any:
+def run_sql(con: Connection, command: str, params:Dict={}) -> Any:
     """Run a sql command"""
-    statement = text(command)
-    try:
-        return con.execute(statement)
-    except (ProgrammingError, OperationalError):
-        raise RuntimeError(f'Got an error executing the following statement:\n{command}')
+    if params:
+        command = text(command) if not isinstance(command, TextClause) else command
+        q = con.execute(command, **params) if params else con.execute(command)
+    else:
+        q = con.execute(command)
+    # try:
+    #     return con.execute(command)
+    # except (ProgrammingError, OperationalError):
+    #     raise RuntimeError(f'Got an error executing the following statement:\n{command}')
 
 
 def sql_query_single_col(*argv) -> List:

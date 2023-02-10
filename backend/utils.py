@@ -63,3 +63,8 @@ def set_nested_in_dict(d: Dict, key_path: List, value: Any):
     """Set nested value in dictionary"""
     # noinspection PyUnresolvedReferences
     get_nested_from_dict(d, key_path[:-1])[key_path[-1]] = value
+
+
+INJECTED_STUFF = {}
+def inject_to_avoid_circular_imports(name, obj):
+    INJECTED_STUFF[name] = obj

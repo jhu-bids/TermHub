@@ -14,18 +14,22 @@ import json
 import os
 from argparse import ArgumentParser
 from typing import List, Dict, Callable, Union
+from urllib.parse import quote
+from sanitize_filename import sanitize
 
 import pandas as pd
 from requests import Response
 from typeguard import typechecked
 
-import requests
+# import requests
 # import pyarrow as pa
 # import asyncio
 
-from enclave_wrangler.config import FAVORITE_OBJECTS, OUTDIR_OBJECTS, config, TERMHUB_CSETS_DIR
+from enclave_wrangler.config import FAVORITE_OBJECTS, OUTDIR_OBJECTS, OUTDIR_CSET_JSON, config, TERMHUB_CSETS_DIR
 from enclave_wrangler.utils import enclave_get, enclave_post, make_objects_request
-from backend.utils import pdump
+from backend.utils import INJECTED_STUFF
+from backend.db.utils import sql_query_single_col, run_sql, get_db_connection
+# from backend.utils import pdump
 
 # from enclave_wrangler.utils import log_debug_info
 
@@ -282,18 +286,18 @@ def download_favorite_objects(fav_obj_names: List[str] = FAVORITE_OBJECTS, force
 
 
 def get_all_bundles():
-    return make_objects_request('objects/ConceptSetTag')
+    return make_objects_request('objects/ConceptSetTag').json()
 
 
 def get_bundle_names(prop: str='displayName'):
-    all_bundles = get_all_bundles().json()
+    all_bundles = get_all_bundles()
     return [b['properties'][prop] for b in all_bundles['data']]
 
 def get_bundle(bundle_name):
     """
     call this like: http://127.0.0.1:8000/enclave-api-call/get_bundle/Anticoagulants
     """
-    all_bundles = get_all_bundles().json()
+    all_bundles = get_all_bundles()
     tagName = [b['properties']['tagName'] for b in all_bundles['data'] if b['properties']['displayName'] == bundle_name][0]
     return make_objects_request(f'objects/ConceptSetTag/{tagName}/links/ConceptSetBundleItem').json()['data']
 
@@ -304,22 +308,141 @@ def get_bundle_codeset_ids(bundle_name):
     return codeset_ids
 
 
-def get_codeset_json(codeset_id):
+def get_codeset_json(codeset_id, con=get_db_connection()):
+    jsn = sql_query_single_col(con, f"""
+        SELECT json
+        FROM concept_set_json
+        WHERE codeset_id = {int(codeset_id)}
+    """)
+    if jsn:
+        return jsn[0]
     cset = make_objects_request(f'objects/OMOPConceptSet/{codeset_id}')
     cset = cset.json()['properties']
-    container = make_objects_request(f'objects/OMOPConceptSetContainer/{cset["conceptSetNameOMOP"]}')
+    container = make_objects_request(f'objects/OMOPConceptSetContainer/{quote(cset["conceptSetNameOMOP"], safe="")}')
     container = container.json()['properties']
     items_url = make_objects_request(f'objects/OMOPConceptSet/{codeset_id}/links/omopConceptSetVersionItem', url_only=True)
     client = EnclaveClient()
     items = client._handle_paginated_request(items_url)
     items = [i['properties'] for i in items[0]]
-    return {'concept_set_container': container,
-            'version': cset,
-            'items': items,
-            }
 
-def get_n3c_recommended_csets():
-    return get_bundle_codeset_ids('N3C Recommended')
+    # just for testing:
+    # items = items[0:100]
+
+    junk = """ What an item should look like for ATLAS JSON import format:
+    {
+      "concept": {
+        "CONCEPT_CLASS_ID": "Prescription Drug",
+        "CONCEPT_CODE": "b76de34a-d473-4405-b12b-56ad7a577024",
+        "CONCEPT_ID": 835572,
+        "CONCEPT_NAME": "nirmatrelvir and ritonavir KIT [paxlovid]",
+        "DOMAIN_ID": "Drug",
+        "INVALID_REASON": "V",
+        "INVALID_REASON_CAPTION": "Valid",
+        "STANDARD_CONCEPT": "C",
+        "STANDARD_CONCEPT_CAPTION": "Classification",
+        "VOCABULARY_ID": "SPL",
+        "VALID_START_DATE": "2021-12-21",
+        "VALID_END_DATE": "2099-12-30"
+      },
+      "isExcluded": false,
+      "includeDescendants": true,
+      "includeMapped": true
+    },
+    what comes back from OMOPConcept call (objects/OMOPConcept/43791703):
+    {
+      "properties": {
+        "conceptId": 43791703,
+        "conceptName": "0.3 ML Dalteparin 227 MG/ML Injectable Solution [Fragmin] Box of 20",
+        "domainId": "Drug",
+        "standardConcept": "S",
+        "validEndDate": "2099-12-31",
+        "conceptClassId": "Quant Branded Box",
+        "vocabularyId": "RxNorm Extension",
+        "conceptCode": "OMOP715886",
+        "validStartDate": "2017-08-24"
+      },
+      "rid": "ri.phonograph2-objects.main.object.53325393-1ee9-4b25-9a1d-a7ed8db3a3b4"
+    }
+    items from above:
+    {
+        "itemId": "224241803-43777620",
+        "includeDescendants": false,
+        "conceptId": 43777620,
+        "isExcluded": false,
+        "codesetId": 224241803,
+        "includeMapped": false
+      },
+    """
+    flags = ['includeDescendants', 'includeMapped', 'isExcluded']
+    concept_ids = [i['conceptId'] for i in items]
+    # getting individual concepts from objects api is way too slow
+    concepts = INJECTED_STUFF['get_concepts'](concept_ids, table='concept')
+    concepts = {c['concept_id']: c for c in concepts}
+    items_jsn = []
+    for item in items:
+        j = { }
+        for flag in flags:
+            j[flag] = item[flag]
+        jc = {}
+        # c = make_objects_request(f'objects/OMOPConcept/{item["conceptId"]}').json()['properties']
+        # jc['CONCEPT_ID'] = c['conceptId']
+        # jc['CONCEPT_CLASS_ID'] = c['conceptClassId']
+        # jc['CONCEPT_CODE'] = c['conceptCode']
+        # jc['CONCEPT_NAME'] = c['conceptName']
+        # jc['DOMAIN_ID'] = c['domainId']
+        # # jc['INVALID_REASON'] = c['x']  # enclave api doesn't include this
+        # jc['STANDARD_CONCEPT'] = c['standardConcept']
+        # jc['VOCABULARY_ID'] = c['vocabularyId']
+        # jc['VALID_START_DATE'] = c['validStartDate']
+        # jc['VALID_END_DATE'] = c['validEndDate']
+        c = concepts[item['conceptId']]
+        jc['CONCEPT_ID'] = c['concept_id']
+        jc['CONCEPT_CLASS_ID'] = c['concept_class_id']
+        jc['CONCEPT_CODE'] = c['concept_code']
+        jc['CONCEPT_NAME'] = c['concept_name']
+        jc['DOMAIN_ID'] = c['domain_id']
+        jc['INVALID_REASON'] = c['invalid_reason']
+        jc['STANDARD_CONCEPT'] = c['standard_concept']
+        jc['VOCABULARY_ID'] = c['vocabulary_id']
+        jc['VALID_START_DATE'] = c['valid_start_date']
+        jc['VALID_END_DATE'] = c['valid_end_date']
+        j['concept'] = jc
+        items_jsn.append(j)
+
+    jsn = {'concept_set_container': container,
+            'version': cset,
+            'items': items_jsn,
+            }
+    sql_jsn = json.dumps(jsn)
+    # sql_jsn = str(sql_jsn).replace('\'', '"')
+
+    try:
+        run_sql(con, f"""
+            INSERT INTO concept_set_json VALUES (
+                {codeset_id},
+                (:jsn)::json
+            )
+        """, {'jsn': sql_jsn})
+    except Exception as err:
+        print('trying to insert\n')
+        print(sql_jsn)
+        raise err
+    return jsn
+
+def get_n3c_recommended_csets(save=False):
+    codeset_ids = get_bundle_codeset_ids('N3C Recommended')
+    if not save:
+        return codeset_ids
+    if not os.path.exists(OUTDIR_CSET_JSON):
+        os.mkdir(OUTDIR_CSET_JSON)
+    for codeset_id in codeset_ids:
+        jsn = get_codeset_json(codeset_id)
+        fname = f"{jsn['version']['conceptSetVersionTitle']}.{jsn['version']['codesetId']}.json"
+        fname = sanitize(fname)
+        print(f'saving {fname}')
+        outpath = os.path.join(OUTDIR_CSET_JSON, fname)
+        with open(outpath, 'w') as f:
+            json.dump(jsn, f)
 
 
 def enclave_api_call_caller(name:str, params) -> Dict:
@@ -363,4 +486,7 @@ def cli():
 
 if __name__ == '__main__':
     # cli()
-    get_n3c_recommended_csets()
+    from backend.app import get_concepts
+    from backend.utils import inject_to_avoid_circular_imports
+    inject_to_avoid_circular_imports('get_concepts', get_concepts)
+    get_n3c_recommended_csets(save=True)

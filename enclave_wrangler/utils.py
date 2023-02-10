@@ -3,7 +3,6 @@ import json
 import logging
 import sys
 from typing import Dict, List, Union
-from urllib.parse import urljoin
 
 import requests
 from datetime import datetime, timezone, timedelta

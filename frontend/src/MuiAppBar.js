@@ -20,7 +20,8 @@ const pages = [
   {name: 'Cset comparison', href: '/cset-comparison'},
   {name: 'Example comparison', href: '/testing'},
   {name: 'Upload CSV', href: '/upload-csv', noSearch: true, },
-  {name: 'Download CSet JSON', href: '/download-json', noSearch: true, },
+  // TODO: re-add Download (CSets, bundles, json...) at some point
+  //{name: 'Download CSet JSON', href: '/download-json', noSearch: true, },
   {name: 'About', href: '/about'}
 ];
 const settings = ['About'];

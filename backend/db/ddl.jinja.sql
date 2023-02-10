@@ -159,10 +159,12 @@ CREATE TABLE IF NOT EXISTS {{schema}}concepts_with_counts_ungrouped AS (
 SELECT DISTINCT
         c.concept_id,
         c.concept_name,
+        c.domain_id,
         c.vocabulary_id,
         c.concept_class_id,
         c.standard_concept,
         c.concept_code,
+        c.invalid_reason,
         COALESCE(tu.total_count, 0) AS total_cnt,
         COALESCE(tu.distinct_person_count, 0) AS distinct_person_cnt,
         tu.domain
@@ -176,16 +178,18 @@ DROP TABLE IF EXISTS {{schema}}concepts_with_counts;
 CREATE TABLE IF NOT EXISTS {{schema}}concepts_with_counts AS (
     SELECT  concept_id,
             concept_name,
+            domain_id,
             vocabulary_id,
             concept_class_id,
             standard_concept,
             concept_code,
+            invalid_reason,
             COUNT(DISTINCT domain) AS domain_cnt,
             array_to_string(array_agg(domain), ',') AS domain,
             SUM(total_cnt) AS total_cnt,
             array_to_string(array_agg(distinct_person_cnt), ',') AS distinct_person_cnt
     FROM {{schema}}concepts_with_counts_ungrouped
-    GROUP BY 1,2,3,4,5,6
+    GROUP BY 1,2,3,4,5,6,7,8
     ORDER BY concept_id, domain );
 
 CREATE INDEX cc_idx1 ON {{schema}}concepts_with_counts(concept_id);
@@ -241,3 +245,10 @@ WHERE NOT EXISTS (
         WHERE csc.concept_set_id = dd.concept_set_id
           AND csc.created_at = dd.created_at
 );
+
+CREATE TABLE IF NOT EXISTS {{schema}}concept_set_json (
+    codeset_id int,
+    json json
+);
+
+CREATE INDEX csj_idx ON {{schema}}concept_set_json(codeset_id);
