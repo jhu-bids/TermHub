@@ -22,7 +22,7 @@ from pydantic import BaseModel
 from sqlalchemy.engine import LegacyRow, RowMapping
 from subprocess import call as sp_call
 
-from backend.utils import JSON_TYPE, inject_to_avoid_circular_imports
+from backend.utils import JSON_TYPE, inject_to_avoid_circular_imports, get_timer
 from enclave_wrangler.dataset_upload import upload_new_container_with_concepts, \
     upload_new_cset_container_with_concepts_from_csv, upload_new_cset_version_with_concepts, \
     upload_new_cset_version_with_concepts_from_csv
@@ -84,9 +84,9 @@ def get_concept_set_member_ids(
     query = f"""
         SELECT DISTINCT {', '.join(columns)}
         FROM concept_set_members csm
-        WHERE csm.codeset_id = ANY(:codeset_ids)
+        WHERE csm.codeset_id {sql_in(codeset_ids)}
     """
-    res: List[LegacyRow] = sql_query(con, query, {'codeset_ids': codeset_ids}, debug=False)
+    res: List[LegacyRow] = sql_query(con, query, debug=False)
     if column:  # with single column, don't return List[Dict] but just List(<column>)
         res: List[int] = [r[0] for r in res]
     return res
@@ -187,19 +187,23 @@ def get_related_csets(
     codeset_ids: List[int] = None, selected_concept_ids: List[int] = None, con=CON, verbose=True
 ) -> List[Dict]:
     """Get information about concept sets related to those selected by user"""
-    t0 = datetime.now()
+    timer = get_timer('   get_related_csets')
+    verbose and timer('get_concept_set_member_ids')
     if codeset_ids and not selected_concept_ids:
         selected_concept_ids = get_concept_set_member_ids(codeset_ids, column='concept_id')
+    verbose and timer('query concept_set_members')
     query = """
     SELECT DISTINCT codeset_id
     FROM concept_set_members
     WHERE concept_id = ANY(:concept_ids)
     """
     related_codeset_ids = sql_query_single_col(con, query, {'concept_ids': selected_concept_ids}, )
+    verbose and timer('get_csets')
     related_csets = get_csets(related_codeset_ids)
     selected_cids = set(selected_concept_ids)
     selected_cid_cnt = len(selected_concept_ids)
     # this loop takes some time
+    verbose and timer(f"get_concept_set_member_ids {len(related_csets)} times")
     for cset in related_csets:
         cids = get_concept_set_member_ids([cset['codeset_id']], column='concept_id')
         intersecting_concepts = set(cids).intersection(selected_cids)
@@ -208,8 +212,7 @@ def get_related_csets(
         cset['precision'] = cset['intersecting_concepts'] / len(cids)
         cset['selected'] = cset['codeset_id'] in codeset_ids
     t1 = datetime.now()
-    if verbose:
-        print('get_related_csets(): Completed in ', (t1 - t0).seconds, ' seconds')
+    verbose and timer('done')
     return related_csets
 
 
@@ -453,10 +456,13 @@ def cr_hierarchy(rec_format: str = 'default', codeset_ids: Union[str, None] = Qu
     Example:
     http://127.0.0.1:8000/cr-hierarchy?format=flat&codeset_ids=400614256|87065556
     """
+    verbose = True
     # TODO: TEMP FOR TESTING. #191 isn't a problem with the old json data
     # fp = open(r'./backend/old_cr-hierarchy_samples/cr-hierarchy - example1 - before refactor.json')
     # return json.load(fp)
 
+    timer = get_timer('cr-hierarchy')
+    verbose and timer('members items')
     codeset_ids: List[int] = parse_codeset_ids(codeset_ids)
     concept_ids: List[int] = get_concept_set_member_ids(codeset_ids, column='concept_id')
     cset_members_items = get_cset_members_items(codeset_ids)
@@ -467,6 +473,7 @@ def cr_hierarchy(rec_format: str = 'default', codeset_ids: Union[str, None] = Qu
     items = [mi for mi in cset_members_items if mi['item']]
     item_concept_ids = list(set([i['concept_id'] for i in items]))
 
+    verbose and timer('hierarchy')
     # hierarchy --------
     h, orphans = hierarchy(item_concept_ids, concept_ids)
     # nh = new_hierarchy(root_cids=item_concept_ids, cids=concept_ids)
@@ -489,10 +496,14 @@ def cr_hierarchy(rec_format: str = 'default', codeset_ids: Union[str, None] = Qu
     #         print(k, o[k], n[k])
     # --------- hierarchy
 
+    verbose and timer('related csets')
     related_csets = get_related_csets(codeset_ids=codeset_ids, selected_concept_ids=concept_ids)
     selected_csets = [cset for cset in related_csets if cset['selected']]
+    verbose and timer('researcher ids')
     researcher_ids = get_all_researcher_ids(related_csets)
+    verbose and timer('researchers')
     researchers = get_researchers(researcher_ids)
+    verbose and timer('concepts')
     concepts = [dict(c) for c in get_concepts(concept_ids)]
     for c in concepts:
         if c['concept_id'] in orphans:
@@ -514,6 +525,7 @@ def cr_hierarchy(rec_format: str = 'default', codeset_ids: Union[str, None] = Qu
         'data_counts': [],
         'orphans': orphans,
     }
+    verbose and timer('done')
 
     return result
 

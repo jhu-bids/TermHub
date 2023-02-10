@@ -3,10 +3,28 @@ import json
 import operator
 from functools import reduce
 from typing import Any, Dict, List, Union
+from datetime import datetime
 
 
 JSON_TYPE = Union[Dict, List]
 
+
+def get_timer(name:str='Timer'):
+    steps = []
+    def step(msg:str=''):
+        done = msg == 'done'
+        msg = f'{name} step {len(steps)+1} {msg}'
+        t = datetime.now()
+        i = None
+        if len(steps):
+            last_step = steps[-1]
+            i = (t - last_step['t']).seconds
+        steps.append({'msg': msg, 't': t, 'i': i})
+        if len(steps) > 1:
+            print(f"{last_step['msg']} completed in {steps[-1]['i']} seconds")
+        if done:
+            print(f"{name} completed in {(t - steps[0]['t']).seconds} seconds")
+    return step
 
 def cnt(vals):
     """Count values"""
