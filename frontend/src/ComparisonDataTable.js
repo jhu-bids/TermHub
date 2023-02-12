@@ -4,16 +4,19 @@ import DataTable, { createTheme } from 'react-data-table-component';
 import { AddCircle, RemoveCircleOutline, Add, } from '@mui/icons-material';
 // import {Checkbox} from "@mui/material";
 import {isEmpty, } from 'lodash'; // set, map, omit, pick, uniq, reduce, cloneDeepWith, isEqual, uniqWith, groupBy,
-import {fmt, } from "./utils";
+import {fmt, searchParamsToObj,} from "./utils";
 import {ConceptSetCard} from "./ConceptSetCard";
 // import {Tooltip} from './Tooltip';
-import { getEditCodesetFunc, getCodesetEditActionFunc, EditInfo, CellCheckbox, } from './EditCset';
+import { getEditCodesetFunc, getCodesetEditActionFunc, EditInfo,
+            CellCheckbox, cellStyle, } from './EditCset';
 // import {isEmpty} from "react-data-table-component/dist/src/DataTable/util"; // what was this for?
 // import Button from '@mui/material/Button';
 
 function ComparisonDataTable(props) {
     console.log(props);
     const {editCodesetId, displayData={}, squishTo, cset_data, csetEditState={}, searchParams, setSearchParams, } = props;
+    console.log({editCodesetId}, searchParamsToObj(searchParams));
+
     const {researchers, } = cset_data;
     // const [columns, setColumns] = useState();
     // const [editInfo, setEditInfo] = useState({});
@@ -175,18 +178,18 @@ function colConfig(props) {
         },
     ];
     let cset_cols = selected_csets.map((cset_col) => {
+        const {codeset_id} = cset_col;
         let def = {
             cset_col,
-            codeset_id: cset_col.codeset_id,
+            codeset_id,
             name: <span className="cset-column"
                         onClick={editCodesetFunc}
-                        codeset_id={cset_col.codeset_id}
+                        codeset_id={codeset_id}
                     >{cset_col.concept_set_version_title}</span>,
             //  name:   <Tooltip label="Click to edit." placement="bottom">
             //              <span>{cset_col.concept_set_version_title}</span>
             //          </Tooltip>,
             selector: (row) => {
-                // return 'x';
                 return <CellCheckbox { ...props}
                                      {...{row, cset_col,
                                         rowData: displayData.rowData,
@@ -194,18 +197,9 @@ function colConfig(props) {
             },
             conditionalCellStyles: [
                 {
-                    when: row => csmiLookup[cset_col.codeset_id][row.concept_id],
-                    // when: row => row.checkboxes && row.checkboxes[cset_col.codeset_id],
-                    style: row => {
-                        // return { backgroundColor: 'red', };
-                        let mi = csmiLookup[cset_col.codeset_id][row.concept_id];
-                        // let mi = row.checkboxes[cset_col.codeset_id];
-                        let bg = 'purple';
-                        if      (mi.csm && mi.item) { bg = 'orange' }
-                        else if (mi.csm)             { bg = 'pink' }
-                        else if (mi.item)            { bg = 'gray' }
-                        return { backgroundColor: bg, };
-                    }
+                    when: row => true, //csmiLookup[codeset_id][row.concept_id],
+                    // when: row => row.checkboxes && row.checkboxes[codeset_id],
+                    style: row => cellStyle({...props, cset_col, row, }),
                 },
             ],
             sortable: !displayData.nested,
@@ -213,7 +207,7 @@ function colConfig(props) {
             width: '70px',
             // maxWidth: 50,
             center: true,
-        }
+        };
         return def;
     });
     coldefs = [...coldefs, ...cset_cols];

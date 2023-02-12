@@ -91,22 +91,22 @@ persistQueryClient({
     </BrowserRouter>
 */
 function QCProvider() {
-  const location = useLocation();
   return (
       // <React.StrictMode> // StrictMode helps assure code goodness by running everything twice, but it's annoying
         <QueryClientProvider client={queryClient}>
-          <QueryStringStateMgr location={location}/>
+          <QueryStringStateMgr />
           <ReactQueryDevtools initialIsOpen={false} />
         </QueryClientProvider>
       // </React.StrictMode>
   );
 }
 function QueryStringStateMgr(props) {
-  const {location} = props;
+  const location = useLocation();
   const [searchParams, setSearchParams ] = useSearchParams();
   // gets state (codeset_ids for now) from query string, passes down through props
   // const [codeset_ids, setCodeset_ids] = useState(sp.codeset_ids || []);
   const sp = searchParamsToObj(searchParams, setSearchParams);
+  console.log({location, sp});
   const {codeset_ids, } = sp;
   // console.log(props);
 

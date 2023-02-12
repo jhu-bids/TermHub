@@ -7,7 +7,6 @@ import { useQuery } from '@tanstack/react-query'
 import { createSearchParams, } from "react-router-dom";
 import { isEmpty, } from 'lodash';
 import { SEARCH_PARAM_STATE_CONFIG, } from './App';
-// import {ICONS, } from './EditCset';
 
 function Progress(props) {
   return (
