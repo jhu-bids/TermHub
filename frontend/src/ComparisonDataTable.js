@@ -8,7 +8,7 @@ import {fmt, searchParamsToObj,} from "./utils";
 import {ConceptSetCard} from "./ConceptSetCard";
 // import {Tooltip} from './Tooltip';
 import { getEditCodesetFunc, getCodesetEditActionFunc, EditInfo,
-            CellCheckbox, cellStyle, } from './EditCset';
+            CellContents, cellStyle, } from './EditCset';
 // import {isEmpty} from "react-data-table-component/dist/src/DataTable/util"; // what was this for?
 // import Button from '@mui/material/Button';
 
@@ -190,7 +190,7 @@ function colConfig(props) {
             //              <span>{cset_col.concept_set_version_title}</span>
             //          </Tooltip>,
             selector: (row) => {
-                return <CellCheckbox { ...props}
+                return <CellContents { ...props}
                                      {...{row, cset_col,
                                         rowData: displayData.rowData,
                                         editAction}} />;

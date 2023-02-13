@@ -23,52 +23,28 @@ function getEditCodesetFunc(props) {
   }
 }
 
-function getCodesetEditState({csetEditState, codeset_id}) {
-  return csetEditState[codeset_id] || {
-    Add: {},
-    Remove: [],
-    Update: {}
-  };
-}
 function getCodesetEditActionFunc({searchParams, setSearchParams}) {
-  return (props) => {
-    const {codeset_id, concept_id, action, item, flag, } = props;
+  return (props) => { // this function will be called editAction and passed around as needed
+    const {clickAction, flag, cset_col:{codeset_id}, row:{concept_id}, cset_data, } = props;
     let sp = searchParamsToObj(searchParams);
     let {csetEditState={}, } = sp;
-    let csidState = getCodesetEditState({csetEditState, codeset_id});
-    if (get(csetEditState, [codeset_id, concept_id])) {
-      // i don't know what this block of code is for
-      throw new Error("what's happening here?")
-      console.log("is this block getting called?")
-      delete csetEditState[codeset_id][concept_id];
-      if (isEmpty(csetEditState[codeset_id])) {
-        delete csetEditState[codeset_id];
-      }
-    }
-    if (action === 'Add') {
-      let item = { codeset_id, concept_id, csm: false, item: true, status: 'Addition'};
-      Object.keys(FLAGS).forEach(flag => {item[flag] = false});
-      csidState.Add[concept_id] = item;
-      csetEditState[codeset_id] = csidState;
-      updateSearchParams({...props, addProps: {csetEditState}});
-      return;
-    }
-    if (action === 'Remove') {
-      let removeList = new Set([...csidState[codeset_id].Remove, concept_id]); // don't allow dups
-      csidState.Remove = [...removeList];
-      csetEditState[codeset_id] = csidState;
-      updateSearchParams({...props, addProps: {csetEditState}});
-      return;
-    }
-    if (action === 'Update') {
-      throw new Error('not finished yet');
+    let csidState = csetEditState[codeset_id] || {};
+    let item = getItem({
+                        codeset_id, concept_id, cset_data, csetEditState, clickAction, });
+    if (clickAction === 'Update') {
       item[flag] = !item[flag];
-      csidState.Update[concept_id] = item;
-      csetEditState[codeset_id] = csidState;
-      updateSearchParams({...props, addProps: {csetEditState}});
-      return;
     }
-    throw new Error("what's happening here?")
+    if (clickAction.startsWith('Cancel')) {
+      delete csidState[concept_id];
+    } else {
+      csidState[concept_id] = item;
+    }
+    if (isEmpty(csidState)) {
+      delete csetEditState[codeset_id];
+    } else {
+      csetEditState[codeset_id] = csidState;
+    }
+    updateSearchParams({...props, addProps: {csetEditState}});
   }
 }
 
@@ -103,17 +79,18 @@ const FLAGS = {
   isExcluded:         {symbol: 'X', tt: 'Exclude'},
 }
 function OptionIcon(props) {
-  const {editAction, item, flag, } = props;
+  const {item, flag, editing, cset_col:{codeset_id}, row:{concept_id}, editCodesetId, editAction, } = props;
   const on = !!item[flag];
   const icon = FLAGS[flag];
   // const OptIcon = icon.component;
   return (
     <Tooltip label={icon.tt + ' =' + (on ? 'True' : 'False')}>
       <IconButton
-        onClick={()=>editAction({...props, item, flag, action: 'Update'})}
+        onClick={ editing ? ()=>editAction({...props, clickAction: 'Update'}) : null }
         size='9px'
         // color={on ? 'primary' : 'secondary'}
         sx={{ // width:icon.sz+'px', height:icon.sz+'px',
+          cursor: editing ? 'pointer': 'default',
           fontWeight: on ? 'bolder' : 'regular',
           fontSize: '.7rem',
           margin: '0px 2px 2px 2px',
@@ -130,15 +107,38 @@ function OptionIcon(props) {
     </Tooltip>
   );
 }
-function getItem({codeset_id, concept_id, cset_data: {csmiLookup}, csetEditState, }) {
-  const item = {...csmiLookup[codeset_id][concept_id]};
+function getItem({codeset_id, concept_id, cset_data: {csmiLookup}, csetEditState, clickAction}) {
+  /*  if no item for codeset_id,concept_id, return undefined;
+      otherwise, return copy of item,
+        1) from edit state if available there,
+        2) from csmiLookup (concept_set_members_items),
+        3) new if clickAction === 'Add'
+      set item.stagedAction if action parameter included   */
+  let item = get(csetEditState, [codeset_id, concept_id]);
   if (isEmpty(item)) {
-    const new_item = get(csetEditState, [codeset_id, 'Add', concept_id]);
-    return new_item;
+    item = get(csmiLookup, [codeset_id, concept_id]);
   }
-  const delete_item = get(csetEditState, [codeset_id, 'Add', concept_id]);
-  if (delete_item) {
-    return {...delete_item, status: 'Deletion'};
+  if (clickAction) {
+    item = {...item};
+    if (clickAction.startsWith('Cancel')) {
+      return item;
+    }
+    if (isEmpty(item)) {
+      if (clickAction === 'Add') {
+        item = { codeset_id, concept_id, csm: false, item: true, };
+        Object.keys(FLAGS).forEach(flag => {item[flag] = false});
+      } else {
+        throw new Error("wasn't expecting no item except on Add");
+      }
+    } else {
+      if (item.stagedAction === 'Add' && clickAction === 'Update') {
+        clickAction = 'Add';
+      }
+      if (item.stagedAction && item.stagedAction !== clickAction) {
+        throw new Error("wasn't expecting a different action");
+      }
+    }
+    if (item) { item.stagedAction = clickAction; }
   }
   return item;
 }
@@ -148,36 +148,11 @@ function cellStatus(props) {
   const item = getItem({
                          codeset_id, concept_id, cset_data, csetEditState, });
   const editing = editCodesetId === codeset_id;
-  let edit = (item||{}).status;
-  const editState = getCodesetEditState({csetEditState, codeset_id});
 
-  if (editing) {
-    if (editCodesetId in editState.Add) {
-      if (edit !== 'Addition') {
-        throw new Error('problem with item status');
-      }
-    }
-    if (editCodesetId in editState.Update) {
-      if (edit) {
-        throw new Error("concept should only have one edit at a time")
-      }
-      if (edit !== 'Update') {
-        throw new Error('problem with item status');
-      }
-    }
-    if (editState.Remove.includes(editCodesetId)) {
-      if (edit) {
-        throw new Error("concept should only have one edit at a time")
-      }
-      if (edit !== 'Deletion') {
-        throw new Error('problem with item status');
-      }
-    }
-  }
-  return {editing, edit, item, };
+  return {editing, item, };
 }
 function cellStyle(props) {
-  const {editing, edit, item} = cellStatus(props);
+  const {editing, item} = cellStatus(props);
   let style = {};
   if (!item) {
     return style;  // no styling
@@ -186,88 +161,107 @@ function cellStyle(props) {
   else if (item.csm ) { style.backgroundColor = 'lightgray' }
   else if (item.item ) { style.backgroundColor = 'plum' }
   if (editing) {
-    if (edit === 'Addition') { style.backgroundColor = 'lightgreen' }
-    else if (edit === 'Deletion') { style.backgroundColor = 'pink' }
-    else if (edit === 'Update') { style.backgroundColor = 'lightblue' }
+    if (item.stagedAction === 'Add') { style.backgroundColor = 'lightgreen' }
+    else if (item.stagedAction === 'Remove') { style.backgroundColor = 'pink' }
+    else if (item.stagedAction === 'Update') { style.backgroundColor = 'lightblue' }
   }
   return style;
 }
 
-function ItemOptions(props) {
-  let {item, editing, editAction, } = props;
-  let flags, removeItem, action;
-  if (editing) {
-    flags = Object.keys(FLAGS);
-    action = 'Remove';
-    if (item.status) {
-      action = `Cancel ${item.status}`;
-      if (item.status === 'Deletion') {
-        return <Tooltip label={action}>Deleted</Tooltip>;
+/*
+trying to figure out what to display to convey relationships between expression items and descendants and other
+related concepts -- mapped and excluded
+ */
+function CellContents(props) {
+  /*
+      Populates cell with appropriate icons.
+      If not editing, show (nothing is clickable):
+        - Blank if concept is neither an item nor a member
+        - Checkmark if item is member but not item
+        - Flags that are true if it is an item
+      If editing, show (everything is clickable):
+        - Add icon if concept is neither an item nor a member
+        - Add icon with lightgray background if member but not item (see cellStyle)
+        - Four icons if item is existing concept_set_version_item with no staged edits:
+          - Remove (to remove it as an item from the codeset)
+          - Three flags (D, M, X), bold if true, light if not; clicking toggles
+        - Four icons if staged for add or update:
+          - Cancel (to unstage edits)
+          - Three flags (D, M, X), bold if true, light if not; clicking toggles
+        - If staged for deletion:
+          - Just the word 'Deleted', clicking cancels deletion
+   */
+  const {cset_col:{codeset_id}, row:{concept_id}, editCodesetId, editAction, } = props;
+  const {item, editing} = cellStatus(props);
+  let removeIcon, clickAction, contents;
+  let flags = Object.keys(FLAGS);
+  const checkmark = <span>{'\u2713'}</span>;
+  if (! editing) {
+    if (item && item.item) {
+      flags = Object.keys(FLAGS).filter(key => item[key])
+      contents = flags.map((flag) => {
+                    return <OptionIcon {...props} {...{item, flag, editing}} key={flag} />
+                  });
+    } else if (item && item.csm) {
+      contents = checkmark;
+    } else if (item) {
+      throw new Error("Impossible: item has neither csm nor item set to true");
+    } else {
+      contents = '';
+    }
+  } else {  // editing
+    if (!item || !item.item) {
+      clickAction = 'Add';
+      contents = <Add style={{ cursor: 'pointer', }}
+                      onClick={()=>editAction({...props, clickAction, })}/>
+      // return contents;
+    } else {  // item is an item, either existing or staged for addition
+      if (item.stagedAction) { // staged edits
+        clickAction = `Cancel ${item.stagedAction}`;
+        if (item.stagedAction === 'Remove') {
+          contents = <Tooltip label={clickAction}>
+                      <span style={{ cursor: 'pointer', }}
+                          onClick={()=>editAction({...props, item, clickAction, })} >
+                        Deleted
+                      </span>
+                    </Tooltip>;
+          return contents;
+        }
+      } else {
+        clickAction = 'Remove'
       }
     }
-    removeItem =
-        <Tooltip label={action}>
-          <BlockIcon
-              onClick={()=>editAction({...props, item, action})}
-              sx={{
-                width:'12px',
-                height:'12px',
-                margin: '2px 2px 0px 2px',
-                padding: '0px',
-              }}
-          />
-        </Tooltip>;
-  } else {
-    flags = Object.keys(FLAGS).filter(key => item[key])
+    removeIcon =  // if any staged edit, this icon cancels, otherwise icon removes existing item
+        clickAction === 'Add' ? null :
+          <Tooltip label={clickAction}>
+            <BlockIcon
+                onClick={()=>editAction({...props, item, clickAction, })}
+                sx={{
+                  width:'12px',
+                  height:'12px',
+                  margin: '2px 2px 0px 2px',
+                  padding: '0px',
+                }}
+            />
+          </Tooltip>;
   }
   const cellStuff = (
       <span>
-        {removeItem}
-        { flags.map((flag,i) => {
-              return <OptionIcon {...props} item={item} flag={flag} key={flag} />
-            })
+        {removeIcon}
+        { contents || contents === '' ? contents : flags.map((flag) => {
+            if (!item) {
+              throw new Error("that's not expected")
+            }
+            // either contents already set, or ready to get flag icons
+            return <OptionIcon {...props} {...{item, flag, editing}} key={flag} />
+          })
         }
       </span>
   );
   return cellStuff;
 }
-/*
-trying to figure out what to display to convey relationships between expression items and descendants and other
-related concepts -- mapped and excluded
- */
-function CellCheckbox(props) {
-  const {cset_col:{codeset_id}, row:{concept_id}, editCodesetId, editAction, } = props;
-  const item = getItem({...props, codeset_id, concept_id,})
 
-  // should get from csetEditState and, if not there, then csmiLookup
-
-  let checked, contents;
-  checked = !! item;
-
-  if (editCodesetId && codeset_id === editCodesetId) {
-    if (!item || !item.item) {
-      contents = <Add onClick={()=>editAction({...props, codeset_id, concept_id, action: 'Add'})}/>
-    } else {
-      return <ItemOptions {...props} item={item} editing={true}/>;
-    }
-    /*
-    if (concept_id in csetEditState) { // should be keyed by codeset_id,concept_id, right?
-        checked = ! checked;
-    }
-    contents = <Checkbox checked={checked} onChange={editAction(codeset_id, concept_id)}/>
-     */
-  } else {
-    contents = <span>{checked ? '\u2713' : ''}</span>;
-  }
-  if (item) {
-    return <ItemOptions {...props} item={item}/>;
-    // return  <Tooltip label={<pre>{JSON.stringify(item, null, 2)}</pre>} placement="bottom">{contents}</Tooltip>
-  } else {
-    return contents
-  }
-}
-
-export {EditInfo, getCodesetEditActionFunc, getEditCodesetFunc, CellCheckbox, cellStyle, }
+export {EditInfo, getCodesetEditActionFunc, getEditCodesetFunc, CellContents, cellStyle, }
 
 /*
 function TreeIcon(props) {

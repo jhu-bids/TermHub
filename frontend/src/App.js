@@ -163,17 +163,17 @@ function DataContainer(props) {
   let {codeset_ids, } = props;
   const all_csets_url = 'get-all-csets';
   const cset_data_url = 'cr-hierarchy?rec_format=flat&codeset_ids=' + codeset_ids.join('|');
-  const cr_url = 'get-concept_relationships?codeset_ids=' + codeset_ids.join('|');
+  // /crconst cr_url = 'get-concept_relationships?codeset_ids=' + codeset_ids.join('|');
 
   /* TODO: This is a total disaster. do something with it */
   const [all_csets_widget, acprops] = useDataWidget("all_csets", all_csets_url);
   const [cset_data_widget, csprops] = useDataWidget(codeset_ids.join('|'), cset_data_url);
-  const [cr_widget, crprops] = useDataWidget('cr' + codeset_ids.join('|'), cr_url);
+  // const [cr_widget, crprops] = useDataWidget('cr' + codeset_ids.join('|'), cr_url);
   const all_csets = acprops.data;
   const cset_data = csprops.data;
-  const concept_relationships = crprops.data;
+  // const concept_relationships = crprops.data;
 
-  if (all_csets && cset_data && concept_relationships) {
+  if (all_csets && cset_data /*&& concept_relationships*/) {
     cset_data.conceptLookup = keyBy(cset_data.concepts, 'concept_id');
     const csmiLookup = {};
     // cset_data.cset_members_items.map(mi => set(csmiLookup, [mi.codeset_id, mi.concept_id], mi));
@@ -198,7 +198,7 @@ function DataContainer(props) {
               <Box sx={{ display: 'flex' }}>
                 {all_csets_widget}
                 {cset_data_widget}
-                {cr_widget}
+                {/*cr_widget*/}
               </Box>
             </div>
           } />
