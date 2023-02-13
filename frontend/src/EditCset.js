@@ -3,12 +3,14 @@ import BlockIcon from '@mui/icons-material/Block';
 import { Add, } from '@mui/icons-material';
 // import {SvgIcon} from "@mui/material";
 import Box from '@mui/material/Box';
-// import Typography from '@mui/material/Typography';
+import Typography from '@mui/material/Typography';
 import {isEmpty, get, } from 'lodash'; // set, map, omit, pick, uniq, reduce, cloneDeepWith, isEqual, uniqWith, groupBy,
 import IconButton from '@mui/material/IconButton';
+import Button from '@mui/material/Button';
 // import {ComparisonDataTable} from './ComparisonDataTable';
 import {Tooltip} from './Tooltip';
 import {searchParamsToObj, updateSearchParams, } from "./utils";
+import _ from "./supergroup/supergroup";
 
 function getEditCodesetFunc(props) {
   const {searchParams, } = props;
@@ -48,24 +50,40 @@ function getCodesetEditActionFunc({searchParams, setSearchParams}) {
   }
 }
 
+function summaryLine({item, action, concept}) {
+  const flags = action == 'Remove' ? '' :
+      Object.keys(FLAGS).filter(key => item[key]).join(', ');
+  return <Typography>
+          {concept.concept_name} ({concept.concept_id}) {flags}
+         </Typography>
+}
 function EditInfo(props) {
-  const {editCodesetId, csetEditState, } = props;
+  const {editCodesetId, csetEditState, cset_data: {selected_csets, conceptLookup}} = props;
+  const csidState = csetEditState[editCodesetId];
+  if (!csidState) {
+    return null;
+  }
+  const cset = selected_csets.find(d => d.codeset_id === editCodesetId);
+  const updates = _.supergroup(Object.values(csidState), 'stagedAction');
   return (
       <Box sx={{ p: 2, border: '1px dashed grey' }}>
-        <pre>{JSON.stringify(csetEditState/*[editCodesetId]*/, null, 2)}</pre>
-        {
-          /*
-            Object.values(csetEditState[editCodesetId]).map(
-              (item) => {
-                return (
-                    <Typography key={item.concept_id} >
-                      { state ? 'Adding' : 'Removing' } {conceptLookup[concept_id].concept_name}
-                    </Typography>
-                )
-              }
-          )
-          */
-        }
+        <h4>Staged changes to {cset.concept_set_version_title} ({editCodesetId})</h4>
+        <ul>{
+            updates.map(
+                grp => <li key={grp}>
+                  {grp} <ul>
+                        {grp.records.map(
+                            item => <li key={item.concept_id}>{
+                                      summaryLine({item, action: grp, concept: conceptLookup[item.concept_id]})
+                                    }</li>
+                        )}
+                        </ul>
+                </li>
+              )
+        }</ul>
+        { /* <pre>{JSON.stringify(csetEditState, null, 2)}</pre> */ }
+        <Button variant="contained">Upload to Enclave as new draft</Button>
+        <Button variant="contained">Upload to Enclave as new version</Button>
       </Box>
   );
 }

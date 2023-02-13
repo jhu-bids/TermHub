@@ -13,14 +13,9 @@ import { getEditCodesetFunc, getCodesetEditActionFunc, EditInfo,
 // import Button from '@mui/material/Button';
 
 function ComparisonDataTable(props) {
-    console.log(props);
     const {editCodesetId, displayData={}, squishTo, cset_data, csetEditState={}, searchParams, setSearchParams, } = props;
-    console.log({editCodesetId}, searchParamsToObj(searchParams));
-
     const {researchers, } = cset_data;
-    // const [columns, setColumns] = useState();
-    // const [editInfo, setEditInfo] = useState({});
-
+    // console.log(props); console.log({editCodesetId}, searchParamsToObj(searchParams));
     const editAction = getCodesetEditActionFunc({searchParams, setSearchParams});
     const editCodesetFunc = getEditCodesetFunc({searchParams, setSearchParams});
 
@@ -34,20 +29,6 @@ function ComparisonDataTable(props) {
         atlasHeight:  (12 * squishTo) + 'px',
         athenaHeight: (10 * squishTo) + 'px',
     }
-    /*
-    useEffect(() => {
-        // console.log('setColumns because', {rowData});
-        if (isEmpty(displayData.rowData)) {
-            return;
-        }
-        setColumns(colConfig({
-                                 displayData, codeset_ids, selected_csets, conceptLookup, csmiLookup,
-                                 collapsed, toggleCollapse, sizes,
-                                 editCodesetId,
-                             }));
-    }, [displayData, squishTo, editCodesetId, editInfo, codeset_ids, selected_csets, conceptLookup, csmiLookup,
-                collapsed, toggleCollapse, sizes, ]);
-     */
     let columns = colConfig({...props, editAction, editCodesetFunc, sizes, displayData, });
 
     let card, eInfo;
@@ -58,7 +39,6 @@ function ComparisonDataTable(props) {
                                width={window.innerWidth * 0.5}
                     />;
     }
-    // console.log({editInfo});
     if (! isEmpty(csetEditState)) {
         eInfo = <EditInfo {...props} />;
     }
