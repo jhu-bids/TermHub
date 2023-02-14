@@ -45,7 +45,7 @@ os.makedirs(CSV_TRANSFORM_DIR, exist_ok=True)
 
 
 @typechecked
-def getTransaction(dataset_rid: str, ref: str = 'master', return_field='rid') -> Union[str, Dict]:
+def getTransaction(dataset_rid: str, ref: str = 'master', return_field: Union[str, None] = 'rid') -> Union[str, Dict]:
     """API documentation at
     https://unite.nih.gov/workspace/documentation/developer/api/catalog/services/CatalogService/endpoints/getTransaction
     tested with curl:
