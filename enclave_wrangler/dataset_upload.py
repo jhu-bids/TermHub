@@ -70,6 +70,7 @@ def upload_new_cset_version_with_concepts_from_csv(
         key: tuple
         key, csetdf = cset
 
+        # TODO: From right about here, abstract this logic into new fun: cset_version_df_to_dict()
         new_version = {}
         cset_name = key[0]
         new_version['concept_set_name'] = cset_name
@@ -114,15 +115,48 @@ def upload_new_cset_version_with_concepts_from_csv(
 # TODO
 def upload_new_cset_container_with_concepts_from_csv(
     path: str = None, df: pd.DataFrame = None, validate_first=False
-) -> Dict:
-    """Upload new container from CSV"""
+) -> Dict[str, Dict[str, Union[Response, List[Response]]]]:
+    """Upload new container(s) from CSV
+
+    todo's:
+      - Validate / throw err if multiple `intention`, `research_project`, `assigned_sme`, `assigned_informatician`
+    """
     if not path and df is None:
         raise RuntimeError('upload_new_cset_version_with_concepts_from_csv: Must provide path or dataframe')
     df = df if df is not None else pd.read_csv(path).fillna('')
-    # response = upload_new_container_with_concepts(
-    #     container=d.container,
-    #     versions_with_concepts=d.versions_with_concepts)
-    return {}
+    df = df[~df.eq('').all(axis=1)]  # drop all empty rows
+    container_dfs = {
+        c: df[df['concept_set_name'] == c]
+        for c in df['concept_set_name'].unique()}
+    responses = {}
+    for c, df in container_dfs.items():
+        first_row = dict(df.iloc[0])
+        # TODO: Convert DF rows to List[Dict], properl formatted
+        #  todo: versions_with_concepts.omop_concepts: i say below i expect list[int] but that has changed to list[dict]
+        #  todo: are these fields really all required? prolly not if not in current csv. are they there?
+        #            'omop_concept_ids': (List[int]) (required),  <---- x
+        #           'provenance' (str) (required):
+        #           'concept_set_name' (str) (required):
+        #           'annotation' (str) (optional): Default:`'Curated value set: ' + version['concept_set_name']`
+        #           'limitations' (str) (required):
+        #           'intention' (str) (required):
+        #           'intended_research_project' (str) (optional): Default:`ENCLAVE_PROJECT_NAME`
+        #           'codeset_id' (int) (required):
+
+        # todo: just testing this logic
+        df['parent_version_codeset_id'] = ''
+        upload_new_cset_version_with_concepts_from_csv(df=df)
+
+        rows = df.to_dict(orient='records')
+        responses[c] = upload_new_container_with_concepts(
+            concept_set_name=c,
+            intention=first_row['intention'],
+            research_project=first_row['research_project'],
+            assigned_sme=first_row['assigned_sme'],
+            assigned_informatician=first_row['assigned_informatician'],
+            versions_with_concepts=[],  # TODOx
+            validate_first=validate_first)
+    return responses
 
 
 # TODO: What if this fails halfway through? Can we teardown any of the steps? (need to store random `codeset_id` too)
@@ -220,11 +254,12 @@ def upload_new_cset_version_with_concepts(
     }
 
 
-
 # TODO: support concept params, e.g. exclude_children
 def upload_new_container_with_concepts(
-    container: Dict, versions_with_concepts: List[Dict], validate_first=VALIDATE_FIRST
-) -> Dict:
+    concept_set_name: str, intention: str, versions_with_concepts: List[Dict],
+    research_project: str = ENCLAVE_PROJECT_NAME, assigned_sme: str = PALANTIR_ENCLAVE_USER_ID_1,
+    assigned_informatician: str = PALANTIR_ENCLAVE_USER_ID_1, validate_first=VALIDATE_FIRST
+) -> Dict[str, Union[Response, List[Response]]]:
     """Upload a new concept set container, and 1+ concept set versions, along with their concepts.
 
     :param container (Dict): Has the following keys:
@@ -235,9 +270,7 @@ def upload_new_container_with_concepts(
         assigned_informatician (str) (optional): Default:`PALANTIR_ENCLAVE_USER_ID_1`
     :param versions_with_concepts (List[Dict]): Has the following schema: [
       {
-        'version': {
           'omop_concept_ids': (List[int]) (required),
-
           'provenance' (str) (required):
           'concept_set_name' (str) (required):
           'annotation' (str) (optional): Default:`'Curated value set: ' + version['concept_set_name']`
@@ -245,18 +278,19 @@ def upload_new_container_with_concepts(
           'intention' (str) (required):
           'intended_research_project' (str) (optional): Default:`ENCLAVE_PROJECT_NAME`
           'codeset_id' (int) (required):
-        }
       }
     ]
     """
-    response_upload_concept_set: Response = upload_concept_set_container(  # concept_set_container
-        concept_set_id=container['concept_set_name'],
-        intention=container['intention'],
-        research_project=container.get('research_project', ENCLAVE_PROJECT_NAME),
-        assigned_sme=container.get('assigned_sme', PALANTIR_ENCLAVE_USER_ID_1),
-        assigned_informatician=container.get('assigned_informatician', PALANTIR_ENCLAVE_USER_ID_1),
+    # Upload container
+    response_upload_concept_set_container: Response = upload_concept_set_container(
+        concept_set_id=concept_set_name,
+        intention=intention,
+        research_project=research_project,
+        assigned_sme=assigned_sme,
+        assigned_informatician=assigned_informatician,
         validate_first=validate_first)
 
+    # Upload versions, if any
     response_upload_new_cset_version_with_concepts = []
     for version in versions_with_concepts:
         response_versions_i: Dict[str, Union[Response, List[Response]]] = \
@@ -264,7 +298,7 @@ def upload_new_container_with_concepts(
         response_upload_new_cset_version_with_concepts.append(response_versions_i)
 
     return {
-        'upload_concept_set_container': response_upload_concept_set,
+        'upload_concept_set_container': response_upload_concept_set_container,
         'upload_new_cset_version_with_concepts': response_upload_new_cset_version_with_concepts}
 
 

@@ -336,6 +336,7 @@ def get_bundle_codeset_ids(bundle_name):
     return codeset_ids
 
 
+# todo: split into get/update
 def get_codeset_json(codeset_id, con=get_db_connection()) -> Dict:
     jsn = sql_query_single_col(con, f"""
         SELECT json
@@ -408,7 +409,7 @@ def get_codeset_json(codeset_id, con=get_db_connection()) -> Dict:
     concepts = {c['concept_id']: c for c in concepts}
     items_jsn = []
     for item in items:
-        j = { }
+        j = {}
         for flag in flags:
             j[flag] = item[flag]
         jc = {}
@@ -437,10 +438,11 @@ def get_codeset_json(codeset_id, con=get_db_connection()) -> Dict:
         j['concept'] = jc
         items_jsn.append(j)
 
-    jsn = {'concept_set_container': container,
-            'version': cset,
-            'items': items_jsn,
-            }
+    jsn = {
+        'concept_set_container': container,
+        'version': cset,
+        'items': items_jsn,
+    }
     sql_jsn = json.dumps(jsn)
     # sql_jsn = str(sql_jsn).replace('\'', '"')
 
@@ -457,6 +459,8 @@ def get_codeset_json(codeset_id, con=get_db_connection()) -> Dict:
         raise err
     return jsn
 
+
+# todo: split into get/update
 def get_n3c_recommended_csets(save=False):
     codeset_ids = get_bundle_codeset_ids('N3C Recommended')
     if not save:
