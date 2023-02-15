@@ -15,6 +15,7 @@ import json
 import os
 import sys
 from argparse import ArgumentParser
+from datetime import datetime, timedelta
 from typing import List, Dict, Callable, Union
 from urllib.parse import quote
 from sanitize_filename import sanitize
@@ -22,6 +23,8 @@ from sanitize_filename import sanitize
 import pandas as pd
 from requests import Response
 from typeguard import typechecked
+
+from enclave_wrangler.actions_api import get_concept_set_version_expression_items, get_concept_set_version_members
 # import requests
 # import pyarrow as pa
 # import asyncio
@@ -111,6 +114,7 @@ class EnclaveClient:
           https://www.palantir.com/docs/foundry/api/ontology-resources/objects/list-objects/
           https://www.palantir.com/docs/foundry/api/ontology-resources/objects/object-basics/"""
         # Request
+        # TODO: construct url using this: make_objects_request()
         first_page_url = f'{self.base_url}/api/v1/ontologies/{self.ontology_rid}/objects/{object_type}'
         # todo: if accepting multiple query params, need & in between instead of subsequent ?
         if since_datetime:
@@ -334,6 +338,50 @@ def get_bundle_codeset_ids(bundle_name):
     bundle = get_bundle(bundle_name)
     codeset_ids = [b['properties']['bestVersionId'] for b in bundle]
     return codeset_ids
+
+
+# TODO:
+def update_db_with_new_objects(objects=None):
+    """Update db w/ new objects"""
+    objects = objects if objects else get_new_objects()
+    # 2. Database updates
+    # TODO: (i) What tables to update after this?, (ii) anything else to be done?. Iterate over:
+    #  - new_containers: * new containers, * delete & updates to existing containers
+    #  - new_csets2:
+    #    - the cset properties itself
+    #    - expression_items: we might want to delete its previous items as well, because of possible changes
+    #      does expression item ID change when you change one of its flags?
+    #    - members
+    pass
+
+
+def get_new_objects(since: datetime = None):
+    """Get new objects"""
+    client = EnclaveClient()
+    # https://www.palantir.com/docs/foundry/api/ontology-resources/objects/object-basics/#filtering-objects
+    # https://unite.nih.gov/workspace/data-integration/restricted-view/preview/ri.gps.main.view.af03f7d1-958a-4303-81ac-519cfdc1dfb3
+    yesterday = (datetime.now() - timedelta(
+        days=1)).isoformat() + 'Z'  # works: 2023-01-01T00:00:00.000Z
+    since = since if since else yesterday
+
+    # 1. Fetch data
+    # Concept set versions
+    new_csets: List[Dict] = client.get_objects_by_type(
+        'OmopConceptSet', since_datetime=yesterday, return_type='list_dict')
+
+    # Containers
+    containers_ids = [x['properties']['conceptSetNameOMOP'] for x in new_csets]
+    container_params = ''.join([f'&properties.conceptSetId.eq={x}' for x in containers_ids])
+    new_containers: List[Dict] = client.get_objects_by_type(
+        'OMOPConceptSetContainer', return_type='list_dict', query_params=container_params, verbose=True)
+
+    # Expression items & concept set members
+    new_csets2: List[Dict] = []
+    for cset in new_csets:
+        version: int = cset['properties']['codesetId']
+        cset['expression_items'] = get_concept_set_version_expression_items(version, return_detail='full')
+        cset['members'] = get_concept_set_version_members(version, return_detail='full')
+        new_csets2.append(cset)
 
 
 # todo: split into get/update

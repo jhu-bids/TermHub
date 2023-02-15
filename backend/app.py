@@ -28,6 +28,7 @@ PROJECT_DIR = Path(os.path.dirname(__file__)).parent
 # CON: using a global connection object is probably a terrible idea, but shouldn't matter much until there are multiple
 # users on the same server
 APP = FastAPI()
+APP.include_router(cset_crud.router)
 APP.add_middleware(
     CORSMiddleware,
     allow_origins=['*'],
@@ -35,7 +36,6 @@ APP.add_middleware(
     allow_headers=['*']
 )
 APP.add_middleware(GZipMiddleware, minimum_size=1000)
-APP.include_router(cset_crud.router)
 CON = get_db_connection()
 
 
