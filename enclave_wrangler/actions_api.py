@@ -59,7 +59,7 @@ from requests import Response
 
 from enclave_wrangler.config import ENCLAVE_PROJECT_NAME, TERMHUB_VERSION, VALIDATE_FIRST, config
 from enclave_wrangler.objects_api import EnclaveClient
-from enclave_wrangler.utils import enclave_get, make_actions_request  # , set_auth_token_key
+from enclave_wrangler.utils import enclave_get, make_actions_request, get_random_codeset_id  # , set_auth_token_key
 
 
 UUID = str
@@ -272,7 +272,7 @@ def upload_concept_set_version(
     concept_set: str = None, base_version: int = None, current_max_version: float = None, version_id: int = None,
     on_behalf_of: str = None, intention: str = None, domain_team: str = None, provenance: str = None,
     annotation: str = None, limitations: str = None, intended_research_project: str = None, authority: str = None,
-    validate_first=VALIDATE_FIRST
+    copyExpressionsFromBaseVersion: bool = False, validate_first=VALIDATE_FIRST
 )-> Response:
     """Create a new draft concept set version.
 
@@ -305,7 +305,7 @@ def upload_concept_set_version(
     current_max_version_shared_warning_msg = \
         f'Attempting to upload, though if there is an error, this may be the cause. Original documentation for ' \
         f'`current_max_version`\n: {current_max_version_docstring}'
-    if version_id <= 1 and current_max_version:
+    if version_id == 0 and current_max_version: # was version_id <= 1, which errored if version_id=None
         print(f'Warning: `version_id` {version_id} appears to be first version, in which case `current_max_version`'
               f' should be `null` (`None` in Python). You passed {current_max_version} for `current_max_version`.\n'
               f'{current_max_version_shared_warning_msg}', file=sys.stderr)
@@ -341,7 +341,7 @@ def upload_concept_set_version(
             #   "baseType": "String"
             # - validation info: Ideally one of the following, though other values are accepted:
             #   "Broad (sensitive)", "Narrow (specific)", "Mixed"
-            "copyExpressionsFromBaseVersion": False,
+            "copyExpressionsFromBaseVersion": copyExpressionsFromBaseVersion,
         }
     }
 
@@ -641,3 +641,48 @@ def get_concept_set_version_members(version_id: Union[str, int], return_detail=[
     if return_detail == 'id':
         return [x['properties']['conceptId'] for x in response.json()['data']]
     return [x for x in response.json()['data']]
+
+
+if __name__ == '__main__':
+    concept_set_name = 'ag - test'
+    parent_codeset_id = 147725421
+    current_max_version = 4.0
+    concept_id_to_delete = 2108681 # Patient receiving care in the intensive care unit (ICU) and receiving mechanical ventilation, 24 hours or less (CRIT)
+    test_draft_codeset_id = get_random_codeset_id()
+    result = upload_concept_set_version(  # upload_new_cset_version_with_concepts(  # upload_concept_set_version
+        concept_set=concept_set_name, base_version=parent_codeset_id, current_max_version=current_max_version,
+        version_id=test_draft_codeset_id, copyExpressionsFromBaseVersion=True,
+        on_behalf_of='5c560c3e-8e55-485c-9a66-f96285f273a0', intended_research_project='RP-4A9E27',
+        intention='Testing version upload', provenance='Nowhere', limitations='Total',
+        validate_first=True) # left out domain_team:str, annotation:str, authority:str
+    print(result)
+    from enclave_wrangler.utils import make_objects_request
+    item = make_objects_request(
+        f'objects/OMOPConceptSet/{test_draft_codeset_id}/links/omopConceptSetVersionItem?p.conceptId.eq={concept_id_to_delete}',
+        verbose=True).json()['data']
+    print(item)
+    itemId = item['properties']['itemId']
+    result = make_actions_request(api_name='discard-omop-concept-set-expression',
+                         data= {
+                             "parameters": {
+                                 "concept-set-version-item": [f"{itemId}"],
+                                 "version": test_draft_codeset_id
+                             }
+                         })
+    print(item)
+    print('delete draft now')
+    result = make_actions_request(api_name='delete-omop-concept-set-version',
+                                  data= {
+                                      "parameters": {
+                                          "omop-concept-set": test_draft_codeset_id
+                                      }
+                                  })
+    print(result)
+
+# concept_set_name: str, parent_version_codeset_id: int, current_max_version: float, omop_concepts: List[Dict],
+# provenance: str = "", limitations: str = "", intention: str = "", annotation: str = "",
+# intended_research_project: str = None, on_behalf_of: str = None, codeset_id: int = None, \
+# validate_first=VALIDATE_FIRST, finalize=True # maybe finalize should default to False?
+=======
+
+>>>>>>> b2365b321f68eb2b8169808e54ee717824a67e23

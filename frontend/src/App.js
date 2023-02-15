@@ -107,7 +107,7 @@ function QueryStringStateMgr(props) {
   // const [codeset_ids, setCodeset_ids] = useState(sp.codeset_ids || []);
   const sp = searchParamsToObj(searchParams, setSearchParams);
   console.log({location, sp});
-  const {codeset_ids, } = sp;
+  const {codeset_ids=[], } = sp;
   // console.log(props);
 
   let globalProps = {...sp, searchParams, setSearchParams, }
