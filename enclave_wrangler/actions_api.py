@@ -604,7 +604,7 @@ def delete_concept_set_version(version_id: int, validate_first=VALIDATE_FIRST) -
     return response
 
 
-def get_concept_set_version_expression_items(version_id: Union[str, int]) -> List[UUID]:
+def get_concept_set_version_expression_items(version_id: Union[str, int], return_detail=['id', 'full'][0]):
     """Get concept set version expression items"""
     version_id = str(version_id)
     client = EnclaveClient()
@@ -612,8 +612,9 @@ def get_concept_set_version_expression_items(version_id: Union[str, int]) -> Lis
         object_type='OMOPConceptSet',
         object_id=version_id,
         link_type='omopConceptSetVersionItem')
-    expression_items: List[UUID] = [x['properties']['itemId'] for x in response.json()['data']]
-    return expression_items
+    if return_detail == 'id':
+        return [x['properties']['itemId'] for x in response.json()['data']]
+    return [x for x in response.json()['data']]
 
 
 def get_action_types() -> Response:
@@ -626,6 +627,20 @@ def get_action_types() -> Response:
     url = f'https://{config["HOSTNAME"]}{api_path}'
     response: Response = enclave_get(url)
     return response.json()['data']
+
+
+def get_concept_set_version_members(version_id: Union[str, int], return_detail=['id', 'full'][0]):
+    """Get concept set members"""
+    version_id = str(version_id)
+    client = EnclaveClient()
+    response: Response = client.get_object_links(
+        object_type='OMOPConceptSet',
+        object_id=version_id,
+        link_type='omopconcepts')
+    if return_detail == 'id':
+        return [x['properties']['conceptId'] for x in response.json()['data']]
+    return [x for x in response.json()['data']]
+
 
 if __name__ == '__main__':
     concept_set_name = 'ag - test'
@@ -667,3 +682,6 @@ if __name__ == '__main__':
 # provenance: str = "", limitations: str = "", intention: str = "", annotation: str = "",
 # intended_research_project: str = None, on_behalf_of: str = None, codeset_id: int = None, \
 # validate_first=VALIDATE_FIRST, finalize=True # maybe finalize should default to False?
+=======
+
+>>>>>>> b2365b321f68eb2b8169808e54ee717824a67e23

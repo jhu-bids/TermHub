@@ -10,10 +10,10 @@ TODO's
 import os
 import sys
 import unittest
+from datetime import datetime, timedelta
 from pathlib import Path
 from typing import Dict, List, Union
 
-import pandas as pd
 from requests import Response
 
 from enclave_wrangler.objects_api import EnclaveClient
@@ -23,10 +23,10 @@ PROJECT_ROOT = Path(TEST_DIR).parent
 # todo: why is this necessary in this case and almost never otherwise?
 # https://stackoverflow.com/questions/33862963/python-cant-find-my-module
 sys.path.insert(0, str(PROJECT_ROOT))
-from enclave_wrangler.actions_api import delete_concept_set_version, upload_concept_set_container, \
+from enclave_wrangler.actions_api import get_concept_set_version_expression_items, get_concept_set_version_members, \
+    upload_concept_set_container, \
     upload_concept_set_version
-from enclave_wrangler.utils import make_objects_request, make_actions_request
-from enclave_wrangler.dataset_upload import post_to_enclave_from_3csv, upload_new_cset_version_with_concepts_from_csv
+from enclave_wrangler.dataset_upload import upload_new_cset_version_with_concepts_from_csv
 from enclave_wrangler.config import PALANTIR_ENCLAVE_USER_ID_1
 
 
@@ -66,10 +66,9 @@ class TestEnclaveWrangler(unittest.TestCase):
         # Teardown
         # TODO: After getting to work, turn validate_first=False
         # TODO: @jflack4, this delete doesn't work because the cset draft has been finalized
-        if False:   # just don't do this till it gets fixed
-            response: Response = delete_concept_set_version(version_id, validate_first=True)
-            self.assertLess(response.status_code, 400)
-
+        # if False:   # just don't do this till it gets fixed
+        #     response: Response = delete_concept_set_version(version_id, validate_first=True)
+        #     self.assertLess(response.status_code, 400)
 
     # TODO
     # noinspection PyUnusedLocal
@@ -115,6 +114,7 @@ class TestEnclaveWrangler(unittest.TestCase):
             concept_set_id='x', intention='x', research_project='x', assigned_sme=user_id,
             assigned_informatician=user_id)
         # self.assertTrue('result' in response and not response['result'] == 'VALID')
+        # noinspection PyUnresolvedReferences
         if not('result' in response and response['result'] == 'VALID'):
             print('Failure: test_upload_concept_set\n', response, file=sys.stderr)
 
@@ -160,6 +160,46 @@ class TestEnclaveWrangler(unittest.TestCase):
             intention='x', base_version=1, intended_research_project='x', version_id=1, authority='x')
         # self.assertTrue('result' in response and not response['result'] == 'VALID')
         self.assertLess(response.status_code, 400)
+
+    # todo: after completing this 'test', create func for it in backend/db and call/assert here
+    #  - what is the ultimate goal? how many tables are we refreshing?
+    def test_get_new_objects(self):
+        """Test get_new_objects()"""
+        client = EnclaveClient()
+        # https://www.palantir.com/docs/foundry/api/ontology-resources/objects/object-basics/#filtering-objects
+        # https://unite.nih.gov/workspace/data-integration/restricted-view/preview/ri.gps.main.view.af03f7d1-958a-4303-81ac-519cfdc1dfb3
+        example_datetime = (datetime.now() - timedelta(days=1)).isoformat() + 'Z'  # works: 2023-01-01T00:00:00.000Z
+
+        # 1. Fetch data
+        # Concept set versions
+        new_csets: List[Dict] = client.get_objects_by_type(
+            'OmopConceptSet', since_datetime=example_datetime, return_type='list_dict')
+
+        # Containers
+        containers_ids = [x['properties']['conceptSetNameOMOP'] for x in new_csets]
+        container_params = ''.join([f'&properties.conceptSetId.eq={x}' for x in containers_ids])
+        new_containers: List[Dict] = client.get_objects_by_type(
+            'OMOPConceptSetContainer', return_type='list_dict', query_params=container_params, verbose=True)
+
+        # Expression items & concept set members
+        new_csets2: List[Dict] = []
+        for cset in new_csets:
+            version: int = cset['properties']['codesetId']
+            cset['expression_items'] = get_concept_set_version_expression_items(version, return_detail='full')
+            cset['members'] = get_concept_set_version_members(version, return_detail='full')
+            new_csets2.append(cset)
+
+        # 2. Database updates
+        # TODO: (i) What tables to update after this?, (ii) anything else to be done?. Iterate over:
+        #  - new_containers: * new containers, * delete & updates to existing containers
+        #  - new_csets2:
+        #    - the cset properties itself
+        #    - expression_items: we might want to delete its previous items as well, because of possible changes
+        #      does expression item ID change when you change one of its flags?
+        #    - members
+        pass
+
+        print()
 
 
 if __name__ == '__main__':

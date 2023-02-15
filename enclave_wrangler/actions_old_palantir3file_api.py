@@ -557,8 +557,10 @@ cs_version_create_data = {
 # optional parameter, not need to send if research project is set
 # codeset_id is added as a variable which we can replace with actual codeset_id returned from the Enclave
 #
-def get_cs_version_expression_data(current_code_set_id: Union[str, int], cs_name: str, code_list: List[str],
-        bExclude: bool, bDescendents: bool, bMapped: bool, annotation: str) -> Dict[str, Any]:
+def get_cs_version_expression_data(
+    current_code_set_id: Union[str, int], code_list: List[str], bExclude: bool, bDescendents: bool, bMapped: bool,
+    annotation: str  # , cs_name: str
+) -> Dict[str, Any]:
     cs_version_expression_data = {
         "actionTypeRid": "ri.actions.main.action-type.e07f2503-c7c9-47b9-9418-225544b56b71",
         "parameters": {
@@ -575,7 +577,8 @@ def get_cs_version_expression_data(current_code_set_id: Union[str, int], cs_name
                             # and pass that number here
                             # "integer": 671112503 draftversion id from Amin
                             #"integer": 462280913  # id from create version api call
-                            "integer": "$codeset_id"
+                            # "integer": "$codeset_id"
+                            "integer": current_code_set_id
                         }
                     }
                 }
@@ -617,14 +620,14 @@ def get_cs_version_expression_data(current_code_set_id: Union[str, int], cs_name
             "ri.actions.main.parameter.c9a1b531-86ef-4f80-80a5-cc774d2e4c33": {
                 "type": "stringList",
                 "stringList": {
-                    "strings":
-                     code_list
-                    # TODO -following test code list worked, testcase, replace with code_list
-                    # ["SNOMEDCT:253811003", "ICD10CM:K76.5", "ICD10CM:K76.6"]
+                    # Ex: ["SNOMEDCT:253811003", "ICD10CM:K76.5", "ICD10CM:K76.6"]
+                    "strings": code_list
                 }
             }
         }
     }
+
+
     return cs_version_expression_data
 
 def update_cs_version_expression_data_with_codesetid(cs_version_id, cs_version_expression_items_dict):

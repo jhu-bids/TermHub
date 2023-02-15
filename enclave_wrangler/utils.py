@@ -134,7 +134,7 @@ def check_token_ttl(token: str, warning_threshold=60 * 60 * 24 * 14):
     return ttl
 
 
-def make_objects_request(path: str, verbose=False, url_only=False) -> Response:
+def make_objects_request(path: str, verbose=False, url_only=False) -> Union[Response, str]:
     """Passthrough for HTTP request
     If `data`, knows to do a POST. Otherwise does a GET.
     Enclave docs:
@@ -150,7 +150,7 @@ def make_objects_request(path: str, verbose=False, url_only=False) -> Response:
     if verbose:
         print(f'make_actions_request: {api_path}\n{url}')
 
-    response = enclave_get(url)
+    response = enclave_get(url, verbose=verbose)
 
     return response
 
@@ -214,10 +214,8 @@ def enclave_get(url: str, verbose: bool = True, args: Dict = {}) -> Response:
     """Get from the enclave and print curl"""
     if verbose:
         print_curl(url, args=args)
-
     headers = get_headers()
     response = requests.get(url, headers=headers, **args)
-    # response.raise_for_status()
     return response
 
 
