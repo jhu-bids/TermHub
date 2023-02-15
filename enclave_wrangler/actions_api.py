@@ -621,6 +621,7 @@ def get_action_types() -> Response:
     """Get action types / API action endpoint definitions
     curl -H "Authorization: Bearer $PALANTIR_ENCLAVE_AUTHENTICATION_BEARER_TOKEN " \
     "https://unite.nih.gov/api/v1/ontologies/ri.ontology.main.ontology.00000000-0000-0000-0000-000000000000/actionTypes"
+    https://unite.nih.gov/docs/foundry/api/ontology-resources/action-types/list-action-types/
     """
     ontology_rid = config['ONTOLOGY_RID']
     api_path = f'/api/v1/ontologies/{ontology_rid}/actionTypes'

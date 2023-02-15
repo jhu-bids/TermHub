@@ -97,7 +97,7 @@ Access your security authorization token for the Enclave API:
 - Enclave API documentation root: https://unite.nih.gov/workspace/documentation/developer/api
 - Data types: https://unite.nih.gov/workspace/documentation/product/api-gateway/types
 - Action types (endpoints that allow creates/updates/deletes): https://unite.nih.gov/docs/foundry/action-types/overview/ / https://unite.nih.gov/workspace/ontology/home/action-type
-- List of action types: https://unite.nih.gov/documentation/static/foundry/api/ontology-resources/actions/list-action-types/
+- List of action types: https://unite.nih.gov/docs/foundry/api/ontology-resources/action-types/list-action-types/ 
 - Object types: https://unite.nih.gov/docs/foundry/object-link-types/object-types-overview/
 - List of object types: https://www.palantir.com/docs/foundry/api/ontology-resources/object-types/list-object-types/
 - Object search: https://www.palantir.com/docs/foundry/api/ontology-resources/objects/search/
