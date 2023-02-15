@@ -36,6 +36,17 @@ except ModuleNotFoundError:
 
 DEBUG = False
 
+
+# todo: sep fnc for validate?
+def process_csv():
+    """Some logic to consider:
+    - imagine a csv with 1 container new and 3 new versions. we can give them info about versions that exist, link to
+    the enclave, and confirm that they want to create the new versions. then they can confirm or make changes and
+    revalidate
+    """
+    pass
+
+
 # TODO: return 'outcome': success / error for (i) all the csets, (ii) each cset baesd on all response.status_code
 def upload_new_cset_version_with_concepts_from_csv(
     path: str = None, df: pd.DataFrame = None, validate_first=False
