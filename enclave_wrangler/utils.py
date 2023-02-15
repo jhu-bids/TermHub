@@ -3,6 +3,7 @@ import json
 import logging
 import sys
 from typing import Dict, List, Union
+from random import randint
 
 import requests
 from datetime import datetime, timezone, timedelta
@@ -10,7 +11,7 @@ from http.client import HTTPConnection
 
 from requests import Response
 
-from enclave_wrangler.config import config, TERMHUB_VERSION
+from enclave_wrangler.config import config, TERMHUB_VERSION, CSET_VERSION_MIN_ID
 from backend.utils import dump
 
 EXTRA_PARAMS = {
@@ -243,6 +244,13 @@ def print_curl(url: str, data: Union[List, Dict]=None, args: Dict = {}, trace:bo
     if trace:
         curl += relevant_trace()
     print(curl)  # printing to debugger during test doesn't work; have to do it manually
+
+
+def get_random_codeset_id() -> int:
+    # todo: this is temporary until I handle registry persistence
+    arbitrary_range = 100000
+    codeset_id = randint(CSET_VERSION_MIN_ID, CSET_VERSION_MIN_ID + arbitrary_range)
+    return codeset_id
 
 
 # def old_get(api_name: str, validate=False)-> Response:

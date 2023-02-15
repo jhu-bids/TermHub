@@ -2,7 +2,6 @@
 import json
 import os
 from argparse import ArgumentParser
-from random import randint
 from typing import Dict, List, Set, Union
 from uuid import uuid4
 from time import sleep
@@ -22,7 +21,7 @@ try:
     from enclave_wrangler.actions_api import add_concepts_to_cset, finalize_concept_set_version, \
     upload_concept_set_container, \
     upload_concept_set_version, get_concept_set_version_expression_items
-    from enclave_wrangler.utils import EnclaveWranglerErr, _datetime_palantir_format, log_debug_info, make_actions_request
+    from enclave_wrangler.utils import EnclaveWranglerErr, _datetime_palantir_format, log_debug_info, make_actions_request, get_random_codeset_id
 except ModuleNotFoundError:
     from config import CSET_UPLOAD_REGISTRY_PATH, ENCLAVE_PROJECT_NAME, MOFFIT_PREFIX, \
     MOFFIT_SOURCE_ID_TYPE, MOFFIT_SOURCE_URL, PALANTIR_ENCLAVE_USER_ID_1, UPLOADS_DIR, config, PROJECT_ROOT, \
@@ -134,7 +133,7 @@ def upload_new_cset_version_with_concepts(
     concept_set_name: str, parent_version_codeset_id: int, current_max_version: float, omop_concepts: List[Dict],
     provenance: str = "", limitations: str = "", intention: str = "", annotation: str = "",
     intended_research_project: str = None, on_behalf_of: str = None, codeset_id: int = None,
-    validate_first=VALIDATE_FIRST
+    validate_first=VALIDATE_FIRST, finalize=True # maybe finalize should default to False?
 ) -> Dict:
     """Upload a concept set version along with its concepts.
 
@@ -178,8 +177,7 @@ def upload_new_cset_version_with_concepts(
     # Handle missing params
     if not codeset_id:
         # todo: this is temporary until I handle registry persistence
-        arbitrary_range = 100000
-        codeset_id = randint(CSET_VERSION_MIN_ID, CSET_VERSION_MIN_ID + arbitrary_range)
+        codeset_id = get_random_codeset_id()
     if not intended_research_project:
         intended_research_project = ENCLAVE_PROJECT_NAME
 
@@ -203,20 +201,21 @@ def upload_new_cset_version_with_concepts(
         version__codeset_id=codeset_id,
         validate_first=validate_first)  # == code_sets.codeset_id
 
-    response_finalize_concept_set_version: Response = finalize_concept_set_version(
-        concept_set=concept_set_name,  # == container_d['concept_set_name']
-        version_id=codeset_id,
-        current_max_version=current_max_version,
-        provenance=provenance,
-        limitations=limitations,
-        validate_first=validate_first)
-
+    responses = {
+        'upload_concept_set_version': response_upload_draft_concept_set,
+        'add_concepts_to_cset': response_upload_concepts,
+    }
+    if finalize:
+        response_finalize_concept_set_version: Response = finalize_concept_set_version(
+            concept_set=concept_set_name,  # == container_d['concept_set_name']
+            version_id=codeset_id,
+            current_max_version=current_max_version,
+            provenance=provenance,
+            limitations=limitations,
+            validate_first=validate_first)
+        responses['finalize_concept_set_version'] = response_finalize_concept_set_version
     return {
-        'responses': {
-            'upload_concept_set_version': response_upload_draft_concept_set,
-            'add_concepts_to_cset': response_upload_concepts,
-            'finalize_concept_set_version': response_finalize_concept_set_version
-        },
+        'responses': responses,
         'versionId': codeset_id
     }
 

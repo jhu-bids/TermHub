@@ -149,6 +149,10 @@ function getItem({codeset_id, concept_id, cset_data: {csmiLookup}, csetEditState
         throw new Error("wasn't expecting no item except on Add");
       }
     } else {
+      if (clickAction === 'Add') {
+        item.item = true;
+        Object.keys(FLAGS).forEach(flag => {item[flag] = false});
+      }
       if (item.stagedAction === 'Add' && clickAction === 'Update') {
         clickAction = 'Add';
       }

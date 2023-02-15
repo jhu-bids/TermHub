@@ -966,6 +966,46 @@
       "rid": "ri.ontology.main.object-type.370aeca4-ade0-4095-ad34-917809fab03b"
     },
     {
+      "apiName": "LogUnsubscribeConceptSet",
+      "description": "This object type was automatically created when logging was enabled for the Action type: Unsubscribe from Concept Set",
+      "primaryKey": [
+        "actionRid"
+      ],
+      "properties": {
+        "actionTriggererUserId": {
+          "baseType": "String"
+        },
+        "researcher": {
+          "baseType": "Array<String>"
+        },
+        "omopConceptSetContainer": {
+          "baseType": "Array<String>"
+        },
+        "actionRid": {
+          "baseType": "String"
+        },
+        "actionTypeRid": {
+          "baseType": "String"
+        },
+        "actionTypeVersion": {
+          "baseType": "String"
+        },
+        "vcmConceptSetNotificationSubscriptionEvent": {
+          "baseType": "Array<String>"
+        },
+        "userId_12": {
+          "baseType": "String"
+        },
+        "actionSummary": {
+          "baseType": "String"
+        },
+        "actionTimestamp": {
+          "baseType": "Timestamp"
+        }
+      },
+      "rid": "ri.ontology.main.object-type.3793d7c5-eb53-4604-843f-3dfbb3ebc196"
+    },
+    {
       "apiName": "ProtocolStep",
       "description": "Steps pertaining to Protocol Sections",
       "primaryKey": [
