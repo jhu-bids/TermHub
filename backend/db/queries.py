@@ -6,6 +6,16 @@ from sqlalchemy.engine import LegacyRow
 from backend.db.utils import sql_query
 
 
+def get_concepts(concept_ids: List[int], con=CON, table:str='concepts_with_counts') -> List:
+    """Get information about concept sets the user has selected"""
+    rows: List[LegacyRow] = sql_query(
+        con, f"""
+          SELECT *
+          FROM {table}
+          WHERE concept_id {sql_in(concept_ids)};""")
+    return rows
+
+
 def get_all_parent_children_map(connection):
     """Get a list of tuples of all subsumption relationships in the OMOP concept_relationship table."""
     rows: List[LegacyRow] = sql_query(connection, """

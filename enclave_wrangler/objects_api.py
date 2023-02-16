@@ -24,16 +24,16 @@ import pandas as pd
 from requests import Response
 from typeguard import typechecked
 
-from enclave_wrangler.actions_api import get_concept_set_version_expression_items, get_concept_set_version_members
 # import requests
 # import pyarrow as pa
 # import asyncio
 
 from enclave_wrangler.config import FAVORITE_OBJECTS, OUTDIR_OBJECTS, OUTDIR_CSET_JSON, config, TERMHUB_CSETS_DIR
-from enclave_wrangler.utils import enclave_get, enclave_post, make_objects_request
+from enclave_wrangler.utils import enclave_get, enclave_post, make_objects_request, handle_paginated_request
 # from enclave_wrangler.utils import log_debug_info
 from backend.utils import INJECTED_STUFF
 from backend.db.utils import sql_query_single_col, run_sql, get_db_connection
+from backend.db.queries import get_concepts
 # from backend.utils import pdump
 
 
@@ -46,258 +46,225 @@ HEADERS = {
 DEBUG = False
 
 
-# todo: refactor this class out. for most of our API calls, we're not using this class, i.e. datasets / action api
-class EnclaveClient:
-    """REST client for N3C data enclave"""
+@typechecked
+def get_obj_types() -> List[Dict]:
+    """Gets object types.
+    API docs: https://www.palantir.com/docs/foundry/api/ontology-resources/object-types/list-object-types/
+    curl -H "Content-type: application/json" -H "Authorization: Bearer $OTHER_TOKEN" "https://unite.nih.gov/api/v1/ontologies/ri.ontology.main.ontology.00000000-0000-0000-0000-000000000000/objectTypes" | jq
 
-    def __init__(self):
-        self.headers = HEADERS
-        self.debug = DEBUG
-        self.base_url = f'https://{config["HOSTNAME"]}'
-        self.ontology_rid = config['ONTOLOGY_RID']
-        self.outdir_root = TERMHUB_CSETS_DIR
+    TODO: @Siggie: Here's what I found that looked interesting:
+     ConceptRelationship, ConceptSetBundleItem, ConceptSetTag, ConceptSetVersionChangeAcknowledgement,
+     ConceptSuccessorRelationship, ConceptUsageCounts, CsetVersionInfo, CodeSystemConceptSetVersionExpressionItem,
+     OMOPConcept, OMOPConceptAncestorRelationship, OMOPConceptChangeConnectors, OMOPConceptSet,
+     OMOPConceptSetContainer, OMOPConceptSetReview, OmopConceptChange, OmopConceptDomain, OmopConceptSetVersionItem,
+    """
+    response = make_objects_request('objectTypes')
+    return response.json()['data']
 
-    @typechecked
-    def get_obj_types(self) -> List[Dict]:
-        """Gets object types.
-        API docs: https://www.palantir.com/docs/foundry/api/ontology-resources/object-types/list-object-types/
 
-        curl -H "Content-type: application/json" -H "Authorization: Bearer $OTHER_TOKEN" "https://unite.nih.gov/api/v1/ontologies/ri.ontology.main.ontology.00000000-0000-0000-0000-000000000000/objectTypes" | jq
+# todo?: Need to find the right object_type, then write a wrapper func around this to get concept sets
+#  - To Try: CodeSystemConceptSetVersionExpressionItem, OMOPConcept, OMOPConceptSet, OMOPConceptSetContainer,
+#    OmopConceptSetVersionItem
+# todo: connect to `manage` table and get since last datetime. for now, use below as example
+# TODO: add since_datetime param
+def get_objects_by_type(
+    object_type: str, save_csv=True, save_json=True, outdir: str = None, since_datetime: str = None,
+    return_type=['dataframe', 'list_dict'][0], query_params: str = None, verbose=False
+) -> Union[pd.DataFrame, List[Dict]]:
+    """Get objects
 
-        TODO: @Siggie: Here's what I found that looked interesting:
-         ConceptRelationship, ConceptSetBundleItem, ConceptSetTag, ConceptSetVersionChangeAcknowledgement,
-         ConceptSuccessorRelationship, ConceptUsageCounts, CsetVersionInfo, CodeSystemConceptSetVersionExpressionItem,
-         OMOPConcept, OMOPConceptAncestorRelationship, OMOPConceptChangeConnectors, OMOPConceptSet,
-         OMOPConceptSetContainer, OMOPConceptSetReview, OmopConceptChange, OmopConceptDomain, OmopConceptSetVersionItem,
-        """
-        url = f'{self.base_url}/api/v1/ontologies/{self.ontology_rid}/objectTypes'
-        response = enclave_get(url)
-        response_json = response.json()['data']  # always returns everything in nested 'data' key
-        # types = pd.DataFrame(data=response_json)
-        # types = sorted([x['apiName'] for x in response_json])
-        return response_json['data']
+    :param since_datetime: Formatted like '2023-01-01T00:00:00.000Z'
+    :param query_params:
+        Example:
+       # query_params = ''.join([f'&properties.conceptSetId.eq={x}' for x in ids])
+       # '&properties.conceptSetId.eq=Rachel_Example &properties.conceptSetId.eq=Covid - 19 Related Diagnosis for Hospitalization'
 
-    @staticmethod
-    def _handle_paginated_request(first_page_url: str, verbose=False) -> (List[Dict], Response):
-        """Handles a request that has a nextPageToken, automatically fetching all pages and combining the data"""
-        url = first_page_url
-        results: List[Dict] = []
-        while True:
-            response = enclave_get(url, verbose=verbose)
-            response_json = response.json()
-            if response.status_code >= 400:  # err
-                break
-            results += response_json['data']
-            if 'nextPageToken' not in response_json or not response_json['nextPageToken']:
-                break
-            url = first_page_url + '?pageToken=' + response_json["nextPageToken"]
-        return results, response
+    Resources
+      https://www.palantir.com/docs/foundry/api/ontology-resources/objects/list-objects/
+      https://www.palantir.com/docs/foundry/api/ontology-resources/objects/object-basics/"""
+    # Request
+    # TODO: construct url using this: make_objects_request()
+    first_page_url = f'{self.base_url}/api/v1/ontologies/{self.ontology_rid}/objects/{object_type}'
+    # todo: if accepting multiple query params, need & in between instead of subsequent ?
+    if since_datetime:
+        # a. search (needs JSON POST) https://www.palantir.com/docs/foundry/api/ontology-resources/objects/search/
+        # first_page_url += f'/search?previw=true'  # add JSON POST body
+        # b. https://www.palantir.com/docs/foundry/api/ontology-resources/objects/object-basics/#filtering-objects
+        first_page_url += f'?properties.createdAt.gt={since_datetime}'
+    if query_params:
+        query_params = query_params[1:] if any([query_params.startswith(x) for x in ['?', '&']]) else query_params
+        first_query_token = '&' if since_datetime else '?'
+        # examples: (1) expression items: ?itemId.eq=ID (2) containers: conceptSetId.eq=ID
+        first_page_url += f'{first_query_token}{query_params}'
+    results, last_response = handle_paginated_request(first_page_url, verbose=verbose)
 
-    # todo?: Need to find the right object_type, then write a wrapper func around this to get concept sets
-    #  - To Try: CodeSystemConceptSetVersionExpressionItem, OMOPConcept, OMOPConceptSet, OMOPConceptSetContainer,
-    #    OmopConceptSetVersionItem
-    # todo: connect to `manage` table and get since last datetime. for now, use below as example
-    # TODO: add since_datetime param
-    def get_objects_by_type(
-        self, object_type: str, save_csv=True, save_json=True, outdir: str = None, since_datetime: str = None,
-        return_type=['dataframe', 'list_dict'][0], query_params: str = None, verbose=False
-    ) -> Union[pd.DataFrame, List[Dict]]:
-        """Get objects
+    # - error report
+    # todo: Would be good to have all enclave_wrangler requests basically wrap around python `requests` and also
+    #  ...utilize this error reporting, if they are saving to disk.
+    if last_response.status_code >= 400:
+        print(f'Error: get_objects_by_type(): {str(last_response.status_code)} {last_response.reason}', file=sys.stderr)
+        error_report: Dict = {'request': last_response.url, 'response': last_response.json()}
+        with open(os.path.join(outdir, f'latest - error {last_response.status_code}.json'), 'w') as file:
+            json.dump(error_report, file)
+        curl_str = f'curl -H "Content-type: application/json" ' \
+                   f'-H "Authorization: Bearer $OTHER_TOKEN" {last_response.url}'
+        with open(os.path.join(outdir, f'latest - error {last_response.status_code} - curl.sh'), 'w') as file:
+            file.write(curl_str)
 
-        :param since_datetime: Formatted like '2023-01-01T00:00:00.000Z'
-        :param query_params:
-            Example:
-           # query_params = ''.join([f'&properties.conceptSetId.eq={x}' for x in ids])
-           # '&properties.conceptSetId.eq=Rachel_Example &properties.conceptSetId.eq=Covid - 19 Related Diagnosis for Hospitalization'
+    if return_type == 'list_dict':
+        return results
 
-        Resources
-          https://www.palantir.com/docs/foundry/api/ontology-resources/objects/list-objects/
-          https://www.palantir.com/docs/foundry/api/ontology-resources/objects/object-basics/"""
-        # Request
-        # TODO: construct url using this: make_objects_request()
-        first_page_url = f'{self.base_url}/api/v1/ontologies/{self.ontology_rid}/objects/{object_type}'
-        # todo: if accepting multiple query params, need & in between instead of subsequent ?
-        if since_datetime:
-            # a. search (needs JSON POST) https://www.palantir.com/docs/foundry/api/ontology-resources/objects/search/
-            # first_page_url += f'/search?previw=true'  # add JSON POST body
-            # b. https://www.palantir.com/docs/foundry/api/ontology-resources/objects/object-basics/#filtering-objects
-            first_page_url += f'?properties.createdAt.gt={since_datetime}'
-        if query_params:
-            query_params = query_params[1:] if any([query_params.startswith(x) for x in ['?', '&']]) else query_params
-            first_query_token = '&' if since_datetime else '?'
-            # examples: (1) expression items: ?itemId.eq=ID (2) containers: conceptSetId.eq=ID
-            first_page_url += f'{first_query_token}{query_params}'
-        results, last_response = self._handle_paginated_request(first_page_url, verbose=verbose)
+    # Parse
+    # Get rid of nested 'properties' key, and add 'rid' in with the other fields
+    df = pd.DataFrame()
+    if results:
+        results = [{**x['properties'], **{'rid': x['rid']}} for x in results]
+        df = pd.DataFrame(results).fillna('')
 
-        # - error report
-        # todo: Would be good to have all enclave_wrangler requests basically wrap around python `requests` and also
-        #  ...utilize this error reporting, if they are saving to disk.
-        if last_response.status_code >= 400:
-            print(f'Error: get_objects_by_type(): {str(last_response.status_code)} {last_response.reason}', file=sys.stderr)
-            error_report: Dict = {'request': last_response.url, 'response': last_response.json()}
-            with open(os.path.join(outdir, f'latest - error {last_response.status_code}.json'), 'w') as file:
-                json.dump(error_report, file)
-            curl_str = f'curl -H "Content-type: application/json" ' \
-                       f'-H "Authorization: Bearer $OTHER_TOKEN" {last_response.url}'
-            with open(os.path.join(outdir, f'latest - error {last_response.status_code} - curl.sh'), 'w') as file:
-                file.write(curl_str)
+    # Save
+    outdir = outdir if outdir else os.path.join(OUTDIR_OBJECTS, object_type)
+    outpath = os.path.join(outdir, 'latest.csv')
+    if not os.path.exists(outdir) and (save_json or save_csv):
+        os.mkdir(outdir)
+    # - csv
+    if save_csv:
+        df.to_csv(outpath, index=False)
+    # - json
+    if save_json:
+        with open(outpath.replace('.csv', '.json'), 'w') as f:
+            json.dump(results, f)
 
-        if return_type == 'list_dict':
-            return results
+    return df
 
-        # Parse
-        # Get rid of nested 'properties' key, and add 'rid' in with the other fields
-        df = pd.DataFrame()
-        if results:
-            results = [{**x['properties'], **{'rid': x['rid']}} for x in results]
-            df = pd.DataFrame(results).fillna('')
+def get_link_types(self, use_cache_if_failure=False) -> List[Union[Dict, str]]:
+    """Get link types
 
-        # Save
-        outdir = outdir if outdir else os.path.join(OUTDIR_OBJECTS, object_type)
-        outpath = os.path.join(outdir, 'latest.csv')
-        if not os.path.exists(outdir) and (save_json or save_csv):
-            os.mkdir(outdir)
-        # - csv
-        if save_csv:
-            df.to_csv(outpath, index=False)
-        # - json
-        if save_json:
-            with open(outpath.replace('.csv', '.json'), 'w') as f:
-                json.dump(results, f)
+    https://www.palantir.com/docs/foundry/api/ontology-resources/objects/list-linked-objects/
 
-        return df
+    todo: This doesn't work on Joe's machine, in PyCharm or shell. Works for Siggie. We both tried using
+      PALANTIR_ENCLAVE_AUTHENTICATION_BEARER_TOKEN (we use the same one) instead as well- 2022/12/12
+    todo: What is the UUID starting with 00000001?
+    todo: Do equivalent of `jq '..|objects|.apiName//empty'` here so that what's returned from response.json() is
+      the also a List[str], like what's 'cached' here.
 
-    def get_link_types(self, use_cache_if_failure=False) -> List[Union[Dict, str]]:
-        """Get link types
-
-        https://www.palantir.com/docs/foundry/api/ontology-resources/objects/list-linked-objects/
-
-        todo: This doesn't work on Joe's machine, in PyCharm or shell. Works for Siggie. We both tried using
-          PALANTIR_ENCLAVE_AUTHENTICATION_BEARER_TOKEN (we use the same one) instead as well- 2022/12/12
-        todo: What is the UUID starting with 00000001?
-        todo: Do equivalent of `jq '..|objects|.apiName//empty'` here so that what's returned from response.json() is
-          the also a List[str], like what's 'cached' here.
-
-        curl -H "Content-type: application/json" -H "Authorization: Bearer $OTHER_TOKEN" \
-        "https://unite.nih.gov/ontology-metadata/api/ontology/linkTypesForObjectTypes" --data '{
-            "objectTypeVersions": {
-                "ri.ontology.main.object-type.a11d04a3-601a-45a9-9bc2-5d0e77dd512e":
-                "00000001-9834-2acf-8327-ecb491e69b5c"
-            }
-        }' | jq '..|objects|.apiName//empty'
-        """
-        # cached: 2022/12/12
-        cached_types: List[str] = [
-            'cohortLinks',
-            'cohortVersions',
-            'conceptSetBundleItem',
-            'conceptSetTag',
-            'conceptSetVersionChangeAcknowledgement',
-            'conceptSetVersionInfo',
-            'conceptSetVersions',
-            'conceptSetVersionsCreatedForThisResearchProject',
-            'consumedConceptSetVersion',
-            'consumingProtocolSection',
-            'createdOmopConceptSetVersions',
-            'creator',
-            'documentationNodeRv',
-            'draftCohortLinks',
-            'intendedDomainTeam',
-            'intendedResearchProject',
-            'omopConceptChange',
-            'omopConceptDomains',
-            'omopConceptSetVersion',
-            'omopConceptSetVersionIntendedForDT',
-            'omopConceptSetVersionItem',
-            'omopConceptSetVersions',
-            'omopconceptSet',
-            'omopconceptSetChildVersion',
-            'omopconceptSetContainer',
-            'omopconceptSetParentVersion',
-            'omopconceptSetReview',
-            'omopconcepts',
-            'omopconceptsets',
-            'omopvocabularyVersion',
-            'producedConceptSetVersion',
-            'producingProtocolSection',
-            'researchProject',
-            'revisedconceptSetVersionChangeAcknowledgement',
-            'revisedomopconceptSet',
-        ]
-
-        # noinspection PyBroadException
-        try:
-            data = {
-                "objectTypeVersions": {
-                    "ri.ontology.main.object-type.a11d04a3-601a-45a9-9bc2-5d0e77dd512e":
-                        "00000001-9834-2acf-8327-ecb491e69b5c"
-                }
-            }
-            url = f'{self.base_url}/ontology-metadata/api/ontology/linkTypesForObjectTypes'
-            response = enclave_post(url, data=data)
-            # TODO:
-            #   change to:
-            #   response = enclave_post(url, data=data)
-            response_json: List[Dict] = response.json()
-            return response_json
-        except Exception as err:
-            if use_cache_if_failure:
-                return cached_types
-            raise err
-
-    @staticmethod
-    def get_object_links(object_type: str, object_id: str, link_type: str) -> Response:
-        """Get links of a given type for a given object
-
-        Cavaets
-        - If the `link_type` is not valid for a given `object_type`, you'll get a 404 not found.
-        """
-        return make_objects_request(f'objects/{object_type}/{object_id}/links/{link_type}')
-
-    # TODO: Why does this not work for Joe, but works for Siggie?:
-    # {'errorCode': 'INVALID_ARGUMENT', 'errorName': 'Default:InvalidArgument', 'errorInstanceId': '96596b59-39cb-4b68-b86f-36089815a22e', 'parameters': {}}
-    def get_ontologies(self) -> Union[List, Dict]:
-        """Get ontologies
-        Docs: https://unite.nih.gov/workspace/documentation/product/api-gateway/list-ontologies"""
-        response = enclave_get(f'{self.base_url}/api/v1/ontologies')
-        response_json = response.json()
-        return response_json
-
-    @staticmethod
-    def link_types() -> List[Dict]:
-        """Get link types
-        curl -H "Content-type: application/json" -H "Authorization: Bearer $OTHER_TOKEN" \
-        "https://unite.nih.gov/ontology-metadata/api/ontology/linkTypesForObjectTypes" --data '{
-            "objectTypeVersions": {
-                "ri.ontology.main.object-type.a11d04a3-601a-45a9-9bc2-5d0e77dd512e": "00000001-9834-2acf-8327-ecb491e69b5c"
-            }
-        }' | jq '..|objects|.apiName//empty'
-        """
-        headers = {
-            # "authorization": f"Bearer {config['PALANTIR_ENCLAVE_AUTHENTICATION_BEARER_TOKEN']}",
-            "authorization": f"Bearer {config['OTHER_TOKEN']}",
-            'Content-type': 'application/json',
+    curl -H "Content-type: application/json" -H "Authorization: Bearer $OTHER_TOKEN" \
+    "https://unite.nih.gov/ontology-metadata/api/ontology/linkTypesForObjectTypes" --data '{
+        "objectTypeVersions": {
+            "ri.ontology.main.object-type.a11d04a3-601a-45a9-9bc2-5d0e77dd512e":
+            "00000001-9834-2acf-8327-ecb491e69b5c"
         }
+    }' | jq '..|objects|.apiName//empty'
+    """
+    # cached: 2022/12/12
+    cached_types: List[str] = [
+        'cohortLinks',
+        'cohortVersions',
+        'conceptSetBundleItem',
+        'conceptSetTag',
+        'conceptSetVersionChangeAcknowledgement',
+        'conceptSetVersionInfo',
+        'conceptSetVersions',
+        'conceptSetVersionsCreatedForThisResearchProject',
+        'consumedConceptSetVersion',
+        'consumingProtocolSection',
+        'createdOmopConceptSetVersions',
+        'creator',
+        'documentationNodeRv',
+        'draftCohortLinks',
+        'intendedDomainTeam',
+        'intendedResearchProject',
+        'omopConceptChange',
+        'omopConceptDomains',
+        'omopConceptSetVersion',
+        'omopConceptSetVersionIntendedForDT',
+        'omopConceptSetVersionItem',
+        'omopConceptSetVersions',
+        'omopconceptSet',
+        'omopconceptSetChildVersion',
+        'omopconceptSetContainer',
+        'omopconceptSetParentVersion',
+        'omopconceptSetReview',
+        'omopconcepts',
+        'omopconceptsets',
+        'omopvocabularyVersion',
+        'producedConceptSetVersion',
+        'producingProtocolSection',
+        'researchProject',
+        'revisedconceptSetVersionChangeAcknowledgement',
+        'revisedomopconceptSet',
+    ]
+
+    # noinspection PyBroadException
+    try:
         data = {
             "objectTypeVersions": {
                 "ri.ontology.main.object-type.a11d04a3-601a-45a9-9bc2-5d0e77dd512e":  # what RID is this?
                     "00000001-9834-2acf-8327-ecb491e69b5c"  # what UUID is this?
             }
         }
-        api_path = '/ontology-metadata/api/ontology/linkTypesForObjectTypes'
-        url = f'https://{config["HOSTNAME"]}{api_path}'
+        url = f'{self.base_url}/ontology-metadata/api/ontology/linkTypesForObjectTypes'
         response = enclave_post(url, data=data)
-        response_json = response.json()
+        # TODO:
+        #   change to:
+        #   response = enclave_post(url, data=data)
+        response_json: List[Dict] = response.json()
         return response_json
+    except Exception as err:
+        if use_cache_if_failure:
+            return cached_types
+        raise err
+
+def get_object_links(object_type: str, object_id: str, link_type: str) -> Response:
+    """Get links of a given type for a given object
+
+    Cavaets
+    - If the `link_type` is not valid for a given `object_type`, you'll get a 404 not found.
+    """
+    return make_objects_request(f'objects/{object_type}/{object_id}/links/{link_type}')
+
+# TODO: Why does this not work for Joe, but works for Siggie?:
+# {'errorCode': 'INVALID_ARGUMENT', 'errorName': 'Default:InvalidArgument', 'errorInstanceId': '96596b59-39cb-4b68-b86f-36089815a22e', 'parameters': {}}
+def get_ontologies(self) -> Union[List, Dict]:
+    """Get ontologies
+    Docs: https://unite.nih.gov/workspace/documentation/product/api-gateway/list-ontologies"""
+    response = enclave_get(f'{self.base_url}/api/v1/ontologies')
+    response_json = response.json()
+    return response_json
+
+@staticmethod
+def link_types() -> List[Dict]:
+    """Get link types
+    curl -H "Content-type: application/json" -H "Authorization: Bearer $OTHER_TOKEN" \
+    "https://unite.nih.gov/ontology-metadata/api/ontology/linkTypesForObjectTypes" --data '{
+        "objectTypeVersions": {
+            "ri.ontology.main.object-type.a11d04a3-601a-45a9-9bc2-5d0e77dd512e": "00000001-9834-2acf-8327-ecb491e69b5c"
+        }
+    }' | jq '..|objects|.apiName//empty'
+    """
+    headers = {
+        # "authorization": f"Bearer {config['PALANTIR_ENCLAVE_AUTHENTICATION_BEARER_TOKEN']}",
+        "authorization": f"Bearer {config['OTHER_TOKEN']}",
+        'Content-type': 'application/json',
+    }
+    data = {
+        "objectTypeVersions": {
+            "ri.ontology.main.object-type.a11d04a3-601a-45a9-9bc2-5d0e77dd512e":  # what RID is this?
+                "00000001-9834-2acf-8327-ecb491e69b5c"  # what UUID is this?
+        }
+    }
+    api_path = '/ontology-metadata/api/ontology/linkTypesForObjectTypes'
+    url = f'https://{config["HOSTNAME"]}{api_path}'
+    response = enclave_post(url, data=data)
+    response_json = response.json()
+    return response_json
 
 
 def run(request_types: List[str]) -> Dict[str, Dict]:
     """Run"""
-    client = EnclaveClient()
     request_funcs: Dict[str, Callable] = {
-        'objects': client.get_objects_by_type,
-        'object_types': client.get_obj_types,
-        'link_types': client.get_link_types,
+        'objects': get_objects_by_type,
+        'object_types': get_obj_types,
+        'link_types': get_link_types,
     }
     results = {}
     for req in request_types:
@@ -309,12 +276,11 @@ def run(request_types: List[str]) -> Dict[str, Dict]:
 
 def download_favorite_objects(fav_obj_names: List[str] = FAVORITE_OBJECTS, force_if_exists=False):
     """Download objects of interest"""
-    client = EnclaveClient()
     for o in fav_obj_names:
         outdir = os.path.join(OUTDIR_OBJECTS, o)
         exists = os.path.exists(outdir)
         if not exists or (exists and force_if_exists):
-            client.get_objects_by_type(o, outdir=outdir)
+            get_objects_by_type(o, outdir=outdir)
 
 
 def get_all_bundles():
@@ -357,7 +323,6 @@ def update_db_with_new_objects(objects=None):
 
 def get_new_objects(since: datetime = None):
     """Get new objects"""
-    client = EnclaveClient()
     # https://www.palantir.com/docs/foundry/api/ontology-resources/objects/object-basics/#filtering-objects
     # https://unite.nih.gov/workspace/data-integration/restricted-view/preview/ri.gps.main.view.af03f7d1-958a-4303-81ac-519cfdc1dfb3
     yesterday = (datetime.now() - timedelta(
@@ -366,13 +331,13 @@ def get_new_objects(since: datetime = None):
 
     # 1. Fetch data
     # Concept set versions
-    new_csets: List[Dict] = client.get_objects_by_type(
+    new_csets: List[Dict] = get_objects_by_type(
         'OmopConceptSet', since_datetime=yesterday, return_type='list_dict')
 
     # Containers
     containers_ids = [x['properties']['conceptSetNameOMOP'] for x in new_csets]
     container_params = ''.join([f'&properties.conceptSetId.eq={x}' for x in containers_ids])
-    new_containers: List[Dict] = client.get_objects_by_type(
+    new_containers: List[Dict] = get_objects_by_type(
         'OMOPConceptSetContainer', return_type='list_dict', query_params=container_params, verbose=True)
 
     # Expression items & concept set members
@@ -398,8 +363,7 @@ def get_codeset_json(codeset_id, con=get_db_connection()) -> Dict:
     container = make_objects_request(f'objects/OMOPConceptSetContainer/{quote(cset["conceptSetNameOMOP"], safe="")}')
     container = container.json()['properties']
     items_url = make_objects_request(f'objects/OMOPConceptSet/{codeset_id}/links/omopConceptSetVersionItem', url_only=True)
-    client = EnclaveClient()
-    items = client._handle_paginated_request(items_url)
+    items = handle_paginated_request(items_url)
     items = [i['properties'] for i in items[0]]
 
     # just for testing:
@@ -453,7 +417,7 @@ def get_codeset_json(codeset_id, con=get_db_connection()) -> Dict:
     flags = ['includeDescendants', 'includeMapped', 'isExcluded']
     concept_ids = [i['conceptId'] for i in items]
     # getting individual concepts from objects api is way too slow
-    concepts = INJECTED_STUFF['get_concepts'](concept_ids, table='concept')
+    concepts = get_concepts(concept_ids, table='concept')
     concepts = {c['concept_id']: c for c in concepts}
     items_jsn = []
     for item in items:
@@ -540,7 +504,7 @@ def enclave_api_call_caller(name:str, params) -> Dict:
 
 # TODO: Download /refresh: tables using object ontology api (e.g. full concept set info from enclave) #189 -------------
 # TODO: func 1/3: Do this before refresh_tables_for_object() and refresh_favorite_objects()
-#   - EnclaveClient.get_objects_by_type() updates above
+#   - get_objects_by_type() updates above
 
 #  Issue: https://github.com/jhu-bids/TermHub/issues/189 PR: https://github.com/jhu-bids/TermHub/pull/221
 # TODO: func 3/3: config.py needs updating for favorite datsets / objects
@@ -593,8 +557,33 @@ def cli():
         run(**kwargs_dict)
 
 
+def get_concept_set_version_expression_items(version_id: Union[str, int], return_detail=['id', 'full'][0]):
+    """Get concept set version expression items"""
+    version_id = str(version_id)
+    response: Response = get_object_links(
+        object_type='OMOPConceptSet',
+        object_id=version_id,
+        link_type='omopConceptSetVersionItem')
+    if return_detail == 'id':
+        return [x['properties']['itemId'] for x in response.json()['data']]
+    return [x for x in response.json()['data']]
+
+
+def get_concept_set_version_members(version_id: Union[str, int], return_detail=['id', 'full'][0]):
+    """Get concept set members"""
+    version_id = str(version_id)
+    response: Response = get_object_links(
+        object_type='OMOPConceptSet',
+        object_id=version_id,
+        link_type='omopconcepts')
+    if return_detail == 'id':
+        return [x['properties']['conceptId'] for x in response.json()['data']]
+    return [x for x in response.json()['data']]
+
+
 if __name__ == '__main__':
     # cli()
+    ot = get_obj_types()
     from backend.app import get_concepts
     from backend.utils import inject_to_avoid_circular_imports
     inject_to_avoid_circular_imports('get_concepts', get_concepts)

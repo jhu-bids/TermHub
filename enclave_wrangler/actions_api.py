@@ -58,8 +58,8 @@ from typing import Dict, List, Union
 from requests import Response
 
 from enclave_wrangler.config import ENCLAVE_PROJECT_NAME, TERMHUB_VERSION, VALIDATE_FIRST, config
-from enclave_wrangler.objects_api import EnclaveClient
-from enclave_wrangler.utils import enclave_get, make_actions_request, get_random_codeset_id  # , set_auth_token_key
+from enclave_wrangler.objects_api import get_concept_set_version_expression_items
+from enclave_wrangler.utils import enclave_get, make_actions_request, get_random_codeset_id  # set_auth_token_key,
 
 
 UUID = str
@@ -604,19 +604,6 @@ def delete_concept_set_version(version_id: int, validate_first=VALIDATE_FIRST) -
     return response
 
 
-def get_concept_set_version_expression_items(version_id: Union[str, int], return_detail=['id', 'full'][0]):
-    """Get concept set version expression items"""
-    version_id = str(version_id)
-    client = EnclaveClient()
-    response: Response = client.get_object_links(
-        object_type='OMOPConceptSet',
-        object_id=version_id,
-        link_type='omopConceptSetVersionItem')
-    if return_detail == 'id':
-        return [x['properties']['itemId'] for x in response.json()['data']]
-    return [x for x in response.json()['data']]
-
-
 def get_action_types() -> Response:
     """Get action types / API action endpoint definitions
     curl -H "Authorization: Bearer $PALANTIR_ENCLAVE_AUTHENTICATION_BEARER_TOKEN " \
@@ -630,25 +617,13 @@ def get_action_types() -> Response:
     return response.json()['data']
 
 
-def get_concept_set_version_members(version_id: Union[str, int], return_detail=['id', 'full'][0]):
-    """Get concept set members"""
-    version_id = str(version_id)
-    client = EnclaveClient()
-    response: Response = client.get_object_links(
-        object_type='OMOPConceptSet',
-        object_id=version_id,
-        link_type='omopconcepts')
-    if return_detail == 'id':
-        return [x['properties']['conceptId'] for x in response.json()['data']]
-    return [x for x in response.json()['data']]
-
-
 if __name__ == '__main__':
     concept_set_name = 'ag - test'
     parent_codeset_id = 147725421
     current_max_version = 4.0
     concept_id_to_delete = 2108681 # Patient receiving care in the intensive care unit (ICU) and receiving mechanical ventilation, 24 hours or less (CRIT)
     test_draft_codeset_id = get_random_codeset_id()
+    print(f'creating test cset version: {test_draft_codeset_id}')
     result = upload_concept_set_version(  # upload_new_cset_version_with_concepts(  # upload_concept_set_version
         concept_set=concept_set_name, base_version=parent_codeset_id, current_max_version=current_max_version,
         version_id=test_draft_codeset_id, copyExpressionsFromBaseVersion=True,
@@ -671,13 +646,8 @@ if __name__ == '__main__':
                          })
     print(item)
     print('delete draft now')
-    result = make_actions_request(api_name='delete-omop-concept-set-version',
-                                  data= {
-                                      "parameters": {
-                                          "omop-concept-set": test_draft_codeset_id
-                                      }
-                                  })
-    print(result)
+    response = delete_concept_set_version(test_draft_codeset_id)
+    print(response)
 
 # concept_set_name: str, parent_version_codeset_id: int, current_max_version: float, omop_concepts: List[Dict],
 # provenance: str = "", limitations: str = "", intention: str = "", annotation: str = "",

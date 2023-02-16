@@ -136,7 +136,6 @@ def check_token_ttl(token: str, warning_threshold=60 * 60 * 24 * 14):
 
 def make_objects_request(path: str, verbose=False, url_only=False) -> Union[Response, str]:
     """Passthrough for HTTP request
-    If `data`, knows to do a POST. Otherwise does a GET.
     Enclave docs:
       https://www.palantir.com/docs/foundry/api/ontology-resources/objects/list-objects/
       https://www.palantir.com/docs/foundry/api/ontology-resources/object-types/list-object-types/
@@ -210,13 +209,33 @@ def enclave_post(url: str, data: Union[List, Dict], verbose=True) -> Response:
         raise err
 
 
-def enclave_get(url: str, verbose: bool = True, args: Dict = {}) -> Response:
+def enclave_get(url: str, verbose: bool = True, args: Dict = {},
+                handling_pagination: bool = False) -> Response:
     """Get from the enclave and print curl"""
     if verbose:
         print_curl(url, args=args)
     headers = get_headers()
     response = requests.get(url, headers=headers, **args)
+    response_json = response.json()
+    if 'nextPageToken' in response_json and response_json['nextPageToken']:
+        raise EnclaveWranglerErr(f"additional results being ignored by enclave_get({url})")
     return response
+
+
+def handle_paginated_request(first_page_url: str, verbose=False) -> (List[Dict], Response):
+    """Handles a request that has a nextPageToken, automatically fetching all pages and combining the data"""
+    url = first_page_url
+    results: List[Dict] = []
+    while True:
+        response = enclave_get(url, verbose=verbose, handling_pagination=True)
+        response_json = response.json()
+        if response.status_code >= 400:  # err
+            break
+        results += response_json['data']
+        if 'nextPageToken' not in response_json or not response_json['nextPageToken']:
+            break
+        url = first_page_url + '?pageToken=' + response_json["nextPageToken"]
+    return results, response
 
 
 def relevant_trace():

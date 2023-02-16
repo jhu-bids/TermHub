@@ -83,6 +83,13 @@ def set_nested_in_dict(d: Dict, key_path: List, value: Any):
     get_nested_from_dict(d, key_path[:-1])[key_path[-1]] = value
 
 
-INJECTED_STUFF = {}
-def inject_to_avoid_circular_imports(name, obj):
-    INJECTED_STUFF[name] = obj
+
+# No longer using this inject stuff. got rid of circular imports
+# But this was how it was used:
+#
+#     inject_to_avoid_circular_imports('get_concepts', get_concepts)
+#     inject_to_avoid_circular_imports('CON', CON)
+#
+# INJECTED_STUFF = {}
+# def inject_to_avoid_circular_imports(name, obj):
+#     INJECTED_STUFF[name] = obj
