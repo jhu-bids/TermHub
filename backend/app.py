@@ -16,7 +16,7 @@ from fastapi.middleware.cors import CORSMiddleware
 from fastapi.middleware.gzip import GZipMiddleware
 from sqlalchemy.engine import LegacyRow, RowMapping
 
-from backend.utils import JSON_TYPE, inject_to_avoid_circular_imports, get_timer
+from backend.utils import JSON_TYPE, get_timer
 from backend.routes import cset_crud
 from backend.db.utils import get_db_connection, sql_query, SCHEMA, sql_query_single_col, sql_in
 from backend.db.queries import get_concepts

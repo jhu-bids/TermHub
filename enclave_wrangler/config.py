@@ -36,7 +36,9 @@ load_dotenv(ENV_FILE)
 config = {
     'PALANTIR_ENCLAVE_AUTHENTICATION_BEARER_TOKEN': os.getenv('PALANTIR_ENCLAVE_AUTHENTICATION_BEARER_TOKEN', '').replace('\r', ''),
     'OTHER_TOKEN': os.getenv('OTHER_TOKEN', '').replace('\r', ''),
-    'HOSTNAME': os.getenv('HOSTNAME', 'unite.nih.gov').replace('\r', ''),
+    # this caused an error on the frontend. for some reason resolving to '7ccd429394d3' instead of 'unite.nih.gov'
+    # 'HOSTNAME': os.getenv('HOSTNAME', 'unite.nih.gov').replace('\r', ''),
+    'HOSTNAME': 'unite.nih.gov',
     'ONTOLOGY_RID': os.getenv('ONTOLOGY_RID', 'ri.ontology.main.ontology.00000000-0000-0000-0000-000000000000').replace('\r', ''),
 }
 # todo: as of 2022/10/20, it looks like some functionality/endpoints need PALANTIR_ENCLAVE_AUTHENTICATION_BEARER_TOKEN,

@@ -26,7 +26,19 @@ function UploadCsvPage(props) {
       let txt = fileReader.result;
       // axiosPut('upload-csv-new-cset-version-with-concepts', e.target.result);
       // const [all_csets_widget, all_csets] = useDataWidget("upload", apiname, {csv: txt});
-      axiosPut(apiname, {csv: txt});
+      axiosPut(apiname, {csv: txt}).then((res) => {
+        if (res.data.status === 'success') {
+          console.log('Successful upload of cset version.')
+          console.log('full response: ')
+          console.log(res)
+        } else if (res.data.status === 'error') {
+          console.log('Error: uploading cset version')
+          console.log('error messages: ')
+          console.log(res.data.errors)
+          console.log('full response: ')
+          console.log(res)
+        }
+      });
       // this.setState((prevState) => ({ [name]: [...prevState[name], e.target.result] }));
       // TODO: how to print to console or display in screen the promise resolution?
     };
