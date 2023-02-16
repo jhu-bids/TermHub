@@ -24,7 +24,6 @@ import pandas as pd
 from requests import Response
 from typeguard import typechecked
 
-from enclave_wrangler.actions_api import get_concept_set_version_expression_items, get_concept_set_version_members
 # import requests
 # import pyarrow as pa
 # import asyncio
@@ -32,7 +31,6 @@ from enclave_wrangler.actions_api import get_concept_set_version_expression_item
 from enclave_wrangler.config import FAVORITE_OBJECTS, OUTDIR_OBJECTS, OUTDIR_CSET_JSON, config, TERMHUB_CSETS_DIR
 from enclave_wrangler.utils import enclave_get, enclave_post, make_objects_request, handle_paginated_request
 # from enclave_wrangler.utils import log_debug_info
-from backend.utils import INJECTED_STUFF
 from backend.db.utils import sql_query_single_col, run_sql, get_db_connection
 from backend.db.queries import get_concepts
 # from backend.utils import pdump
@@ -46,6 +44,17 @@ HEADERS = {
 }
 DEBUG = False
 
+
+# got rid of EnclaveClient class. Replacing its init properties with globals:
+# was:
+#   self.headers = HEADERS                            # not used
+#   self.debug = DEBUG                                # not used
+#   self.base_url = f'https://{config["HOSTNAME"]}'
+#   self.ontology_rid = config['ONTOLOGY_RID']
+#   self.outdir_root = TERMHUB_CSETS_DIR              # not used
+
+BASE_URL = f'https://{config["HOSTNAME"]}'
+ONTOLOGY_RID = config['ONTOLOGY_RID']
 
 @typechecked
 def get_obj_types() -> List[Dict]:
@@ -85,7 +94,7 @@ def get_objects_by_type(
       https://www.palantir.com/docs/foundry/api/ontology-resources/objects/object-basics/"""
     # Request
     # TODO: construct url using this: make_objects_request()
-    first_page_url = f'{self.base_url}/api/v1/ontologies/{self.ontology_rid}/objects/{object_type}'
+    first_page_url = f'{BASE_URL}/api/v1/ontologies/{ONTOLOGY_RID}/objects/{object_type}'
     # todo: if accepting multiple query params, need & in between instead of subsequent ?
     if since_datetime:
         # a. search (needs JSON POST) https://www.palantir.com/docs/foundry/api/ontology-resources/objects/search/
@@ -137,7 +146,7 @@ def get_objects_by_type(
 
     return df
 
-def get_link_types(self, use_cache_if_failure=False) -> List[Union[Dict, str]]:
+def get_link_types(use_cache_if_failure=False) -> List[Union[Dict, str]]:
     """Get link types
 
     https://www.palantir.com/docs/foundry/api/ontology-resources/objects/list-linked-objects/
@@ -203,7 +212,7 @@ def get_link_types(self, use_cache_if_failure=False) -> List[Union[Dict, str]]:
                     "00000001-9834-2acf-8327-ecb491e69b5c"  # what UUID is this?
             }
         }
-        url = f'{self.base_url}/ontology-metadata/api/ontology/linkTypesForObjectTypes'
+        url = f'{BASE_URL}/ontology-metadata/api/ontology/linkTypesForObjectTypes'
         response = enclave_post(url, data=data)
         # TODO:
         #   change to:
@@ -225,10 +234,10 @@ def get_object_links(object_type: str, object_id: str, link_type: str) -> Respon
 
 # TODO: Why does this not work for Joe, but works for Siggie?:
 # {'errorCode': 'INVALID_ARGUMENT', 'errorName': 'Default:InvalidArgument', 'errorInstanceId': '96596b59-39cb-4b68-b86f-36089815a22e', 'parameters': {}}
-def get_ontologies(self) -> Union[List, Dict]:
+def get_ontologies() -> Union[List, Dict]:
     """Get ontologies
     Docs: https://unite.nih.gov/workspace/documentation/product/api-gateway/list-ontologies"""
-    response = enclave_get(f'{self.base_url}/api/v1/ontologies')
+    response = enclave_get(f'{BASE_URL}/api/v1/ontologies')
     response_json = response.json()
     return response_json
 
@@ -585,7 +594,4 @@ def get_concept_set_version_members(version_id: Union[str, int], return_detail=[
 if __name__ == '__main__':
     # cli()
     ot = get_obj_types()
-    from backend.app import get_concepts
-    from backend.utils import inject_to_avoid_circular_imports
-    inject_to_avoid_circular_imports('get_concepts', get_concepts)
     get_n3c_recommended_csets(save=True)
