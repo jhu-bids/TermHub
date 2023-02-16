@@ -10,4 +10,4 @@
 	update = merge
 [submodule "frontend/src/supergroup"]
 	path = frontend/src/supergroup
-	url = git@github.com:Sigfried/supergroup.git
+	url = https://github.com/jhu-bids/supergroup.git
