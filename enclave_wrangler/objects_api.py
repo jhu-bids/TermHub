@@ -77,7 +77,7 @@ def get_obj_types() -> List[Dict]:
 #    OmopConceptSetVersionItem
 # todo: connect to `manage` table and get since last datetime. for now, use below as example
 # TODO: add since_datetime param
-def get_objects_by_type(
+def get_and_save_objects_by_type(
     object_type: str, save_csv=True, save_json=True, outdir: str = None, since_datetime: str = None,
     return_type=['dataframe', 'list_dict'][0], query_params: str = None, verbose=False
 ) -> Union[pd.DataFrame, List[Dict]]:
@@ -112,7 +112,7 @@ def get_objects_by_type(
     # todo: Would be good to have all enclave_wrangler requests basically wrap around python `requests` and also
     #  ...utilize this error reporting, if they are saving to disk.
     if last_response.status_code >= 400:
-        print(f'Error: get_objects_by_type(): {str(last_response.status_code)} {last_response.reason}', file=sys.stderr)
+        print(f'Error: get_and_save_objects_by_type(): {str(last_response.status_code)} {last_response.reason}', file=sys.stderr)
         error_report: Dict = {'request': last_response.url, 'response': last_response.json()}
         with open(os.path.join(outdir, f'latest - error {last_response.status_code}.json'), 'w') as file:
             json.dump(error_report, file)
@@ -272,7 +272,7 @@ def link_types() -> List[Dict]:
 def run(request_types: List[str]) -> Dict[str, Dict]:
     """Run"""
     request_funcs: Dict[str, Callable] = {
-        'objects': get_objects_by_type,
+        'objects': get_and_save_objects_by_type,
         'object_types': get_obj_types,
         'link_types': get_link_types,
     }
@@ -290,7 +290,7 @@ def download_favorite_objects(fav_obj_names: List[str] = FAVORITE_OBJECTS, force
         outdir = os.path.join(OUTDIR_OBJECTS, o)
         exists = os.path.exists(outdir)
         if not exists or (exists and force_if_exists):
-            get_objects_by_type(o, outdir=outdir)
+            get_and_save_objects_by_type(o, outdir=outdir)
 
 
 def get_all_bundles():
@@ -341,13 +341,13 @@ def get_new_objects(since: datetime = None):
 
     # 1. Fetch data
     # Concept set versions
-    new_csets: List[Dict] = get_objects_by_type(
+    new_csets: List[Dict] = get_and_save_objects_by_type(
         'OmopConceptSet', since_datetime=yesterday, return_type='list_dict')
 
     # Containers
     containers_ids = [x['properties']['conceptSetNameOMOP'] for x in new_csets]
     container_params = ''.join([f'&properties.conceptSetId.eq={x}' for x in containers_ids])
-    new_containers: List[Dict] = get_objects_by_type(
+    new_containers: List[Dict] = get_and_save_objects_by_type(
         'OMOPConceptSetContainer', return_type='list_dict', query_params=container_params, verbose=True)
 
     # Expression items & concept set members
@@ -514,7 +514,7 @@ def enclave_api_call_caller(name:str, params) -> Dict:
 
 # TODO: Download /refresh: tables using object ontology api (e.g. full concept set info from enclave) #189 -------------
 # TODO: func 1/3: Do this before refresh_tables_for_object() and refresh_favorite_objects()
-#   - get_objects_by_type() updates above
+#   - get_and_save_objects_by_type() updates above
 
 #  Issue: https://github.com/jhu-bids/TermHub/issues/189 PR: https://github.com/jhu-bids/TermHub/pull/221
 # TODO: func 3/3: config.py needs updating for favorite datsets / objects
