@@ -2,16 +2,23 @@ name: TermHub DB Refresh
 
 on:
   schedule:
-    - cron: '0 0 * * *'  # every day at midnight
+    - cron: '0 5 * * *'  # every day 5am GMT (12-1am EST/EDT)
   workflow_dispatch:
 
 jobs:
   refresh-db:
-    runs-on: ubuntu-18.04
+#    runs-on: ubuntu-18.04
+    # todo: macos-latest could help solve memory issue, but can't connect to db?
+    #  https://github.com/jhu-bids/TermHub/actions/runs/4125681721/jobs/7126569855
+    runs-on: macos-latest
 
     steps:
-      - uses: actions/checkout@v2
-      
+      - name: Checkout repository and submodules
+        uses: actions/checkout@v2
+        with:
+          submodules: recursive
+          ref: main
+
       - name: Set up Python version
         uses: actions/setup-python@v2
         with:
@@ -34,6 +41,11 @@ jobs:
           pip install --upgrade wheel
           pip install --upgrade setuptools
           pip install -r requirements.txt
+
+      - name: Submodules
+        run: |
+          git submodule init
+          git submodule update
 
       - name: Refresh db
         run: |
