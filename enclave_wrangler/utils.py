@@ -1,9 +1,11 @@
 """Extra utilities"""
 import json
 import logging
+import os
 import sys
-from typing import Dict, List, Union
+from typing import Dict, List, Union, Callable
 from random import randint
+from time import sleep
 
 import requests
 from datetime import datetime, timezone, timedelta
@@ -134,8 +136,83 @@ def check_token_ttl(token: str, warning_threshold=60 * 60 * 24 * 14):
     return ttl
 
 
-def make_objects_request(path: str, verbose=False, url_only=False) -> Union[Response, str]:
+def response_failed(response: Response) -> bool:
+    return response.status_code >= 400  # check anything else ever?
+def handle_response_error(response: Response, error_dir: Union[str, None] = None,
+                          fail: bool = False, calling_func: str = 'response error'):
+    """
+        This code was taken out of objects_api:get_objects_by_type. Trying to use it
+        for all Response errors now. Not sure if it's entirely appropriate.
+    """
+    failed = response_failed(response)
+    if failed:
+        print(f'Error: {calling_func}: {str(response.status_code)} {response.reason}', file=sys.stderr)
+        error_report: Dict = {'request': response.url, 'response': response.json()}
+        print(error_report, file=sys.stderr)
+        curl_str = f'curl -H "Content-type: application/json" ' \
+                   f'-H "Authorization: Bearer $OTHER_TOKEN" {response.url}'
+        print(curl_str, file=sys.stderr)
+        if error_dir:
+            with open(os.path.join(error_dir, f'error {response.status_code}.json'), 'w') as file:
+                json.dump(error_report, file)
+            with open(os.path.join(error_dir, f'error {response.status_code} - curl.sh'), 'w') as file:
+                file.write(curl_str)
+
+        # TODO: what else could be in response?
+        raise EnclaveWranglerErr({
+            "status_code": response.status_code,
+            "text": response.text,
+            # ... ?
+        })
+
+
+def enclave_get(url: str, verbose: bool = True, args: Dict = {}, error_dir: str = None) -> Response:
+    """Get from the enclave and print curl"""
+    if verbose:
+        print_curl(url, args=args)
+    headers = get_headers()
+    response = requests.get(url, headers=headers, **args)
+    handle_response_error(response, error_dir)
+    return response
+
+
+def handle_paginated_request(first_page_url: str, verbose=False, called_by: str='',
+                             error_dir: str = None
+) -> (List[Dict], Response):
+    """Handles a request that has a nextPageToken, automatically fetching all pages and combining the data"""
+    # TODO: this returns the last response -- I (Siggie) think only for error handling.
+    #  But I'm pushing error handling down to enclave_get, so maybe can quit returning
+    #  last response; might simplify things a tad
+    if called_by != 'make_objects_request':
+        # TODO: fix handle_paginated_request calls so they all pass through make_objects_request
+        print('Warning: refactor calls to handle_paginated_request to use make_objects_request instead')
+    url = first_page_url
+    results: List[Dict] = []
+    while True:
+        try:
+            response = enclave_get(url, verbose=verbose, error_dir=error_dir)
+        except EnclaveWranglerErr as err:
+            if results:
+                err['results_prior_to_error'] = results
+                raise err
+
+        response_json = response.json()
+        results += response_json['data']
+        if 'nextPageToken' not in response_json or not response_json['nextPageToken']:
+            break
+        url = first_page_url + '?pageToken=' + response_json["nextPageToken"]
+    return results
+
+
+def make_objects_request(
+        path: str, verbose=False, url_only=False, return_type: str='Response',
+        handle_paginated=False,
+        expect_single_item=False,
+        retry_if_empty=False, retry_times=15, retry_pause=1,
+        error_report: bool = True, fail_on_error=False, **request_args
+) -> Union[Response, str]:
     """Passthrough for HTTP request
+    return_type should be Response, json, or data
     Enclave docs:
       https://www.palantir.com/docs/foundry/api/ontology-resources/objects/list-objects/
       https://www.palantir.com/docs/foundry/api/ontology-resources/object-types/list-object-types/
@@ -149,9 +226,33 @@ def make_objects_request(path: str, verbose=False, url_only=False) -> Union[Resp
     if verbose:
         print(f'make_actions_request: {api_path}\n{url}')
 
-    response = enclave_get(url, verbose=verbose)
+    if handle_paginated and return_type != 'data':
+        raise EnclaveWranglerErr("if handling paginated, data is the only allowable return_type")
 
-    return response
+    if not retry_if_empty:
+        retry_times = 1
+        retry_pause = 0
+    for i in range(retry_times):
+        if retry_if_empty:
+            print(f'make_objects_request, attempt #{i}')
+        if handle_paginated:
+            data = handle_paginated_request(url, verbose=verbose, **request_args)
+            if data:
+                return data
+        else:
+            response = enclave_get(url, verbose=verbose, error_report=False, **request_args)
+            response_json = response.json()
+            data = response_json if expect_single_item else response.json()['data']
+            if data:
+                break
+        sleep(retry_pause)
+
+    if return_type == 'Response':
+        return response
+    if return_type == 'json':        # do error checking/handling?
+        return response.json()
+    if return_type == 'data':
+        return response.json()['data']
 
 
 def make_actions_request(api_name: str, data: Union[List, Dict] = None, validate_first=False, verbose=True) -> Response:
@@ -207,35 +308,6 @@ def enclave_post(url: str, data: Union[List, Dict], verbose=True) -> Response:
         if ttl == 0:
             raise RuntimeError(f'Error: Token expired: ' + get_auth_token_key())
         raise err
-
-
-def enclave_get(url: str, verbose: bool = True, args: Dict = {},
-                handling_pagination: bool = False) -> Response:
-    """Get from the enclave and print curl"""
-    if verbose:
-        print_curl(url, args=args)
-    headers = get_headers()
-    response = requests.get(url, headers=headers, **args)
-    response_json = response.json()
-    if 'nextPageToken' in response_json and response_json['nextPageToken']:
-        raise EnclaveWranglerErr(f"additional results being ignored by enclave_get({url})")
-    return response
-
-
-def handle_paginated_request(first_page_url: str, verbose=False) -> (List[Dict], Response):
-    """Handles a request that has a nextPageToken, automatically fetching all pages and combining the data"""
-    url = first_page_url
-    results: List[Dict] = []
-    while True:
-        response = enclave_get(url, verbose=verbose, handling_pagination=True)
-        response_json = response.json()
-        if response.status_code >= 400:  # err
-            break
-        results += response_json['data']
-        if 'nextPageToken' not in response_json or not response_json['nextPageToken']:
-            break
-        url = first_page_url + '?pageToken=' + response_json["nextPageToken"]
-    return results, response
 
 
 def relevant_trace():

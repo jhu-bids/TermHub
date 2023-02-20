@@ -11,6 +11,7 @@ import './App.css';
 import { // Link, useHref, useParams, BrowserRouter, redirect,
           Outlet, Navigate, useSearchParams, useLocation,
           createSearchParams, Routes, Route,} from "react-router-dom";
+import { createTheme, ThemeProvider, styled } from '@mui/material/styles';
 import MuiAppBar from "./MuiAppBar";
 import Box from '@mui/material/Box';
 import { // useMutation, useQueryClient, useQuery, useQueries,
@@ -223,14 +224,34 @@ function RoutesContainer(props) {
 }
 function App() {
   return (
-      <div className="App">
-        {/* <ReactQueryDevtools initialIsOpen={false} /> */ }
-        <MuiAppBar/>
-        {/* Outlet: Will render the results of whatever nested route has been clicked/activated. */}
-        <Outlet/>
-      </div>
+      <ThemeProvider theme={theme}>
+        <div className="App">
+          {/* <ReactQueryDevtools initialIsOpen={false} /> */ }
+          <MuiAppBar/>
+          {/* Outlet: Will render the results of whatever nested route has been clicked/activated. */}
+          <Outlet/>
+        </div>
+      </ThemeProvider>
   );
 }
+const theme = createTheme({
+  // https://mui.com/material-ui/customization/theme-components/#global-style-overrides
+  // https://mui.com/material-ui/guides/interoperability/#global-css
+  // see example https://mui.com/material-ui/customization/theming/
+  // status: { danger: orange[500], },
+  components: {
+    MuiCard: {
+      defaultProps: {
+        margin: '6pt',
+      }
+    }
+  }
+});
+
+/* const CustomCheckbox = styled(Checkbox)(({ theme }) => ({
+  // more from example:
+  color: theme.status.danger, '&.Mui-checked': { color: theme.status.danger, },
+})); */
 
 /*
 when in doubt: https://reactjs.org/docs/hooks-reference.html and https://reactrouter.com/docs/en/v6

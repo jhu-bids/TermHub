@@ -58,7 +58,8 @@ from typing import Dict, List, Union
 from requests import Response
 
 from enclave_wrangler.config import ENCLAVE_PROJECT_NAME, TERMHUB_VERSION, VALIDATE_FIRST, config
-from enclave_wrangler.objects_api import get_concept_set_version_expression_items
+from enclave_wrangler.objects_api import get_concept_set_version_expression_items, \
+    get_codeset_json #, get_objects_by_type
 from enclave_wrangler.utils import enclave_get, make_actions_request, get_random_codeset_id  # set_auth_token_key,
 
 
@@ -631,19 +632,28 @@ if __name__ == '__main__':
         intention='Testing version upload', provenance='Nowhere', limitations='Total',
         validate_first=True) # left out domain_team:str, annotation:str, authority:str
     print(result)
-    from enclave_wrangler.utils import make_objects_request
+    from enclave_wrangler.utils import make_objects_request, EnclaveWranglerErr
     item = make_objects_request(
         f'objects/OMOPConceptSet/{test_draft_codeset_id}/links/omopConceptSetVersionItem?p.conceptId.eq={concept_id_to_delete}',
-        verbose=True).json()['data']
+        verbose=True, retry_if_empty=True, return_type='data')
+    if len(item) != 1:
+        raise EnclaveWranglerErr("unexpected return from make_objects_request")
+    item = item[0]
     print(item)
+    # csets = get_objects_by_type('OMOPConceptSet')
     itemId = item['properties']['itemId']
-    result = make_actions_request(api_name='discard-omop-concept-set-expression',
-                         data= {
-                             "parameters": {
-                                 "concept-set-version-item": [f"{itemId}"],
-                                 "version": test_draft_codeset_id
-                             }
-                         })
+
+    j = get_codeset_json(test_draft_codeset_id)
+
+    result = make_actions_request(
+        api_name='discard-omop-concept-set-expression',
+        data= {
+            "parameters": {
+                "concept-set-version-item": [f"{itemId}"],
+                "version": test_draft_codeset_id
+            }
+        },
+    )
     print(item)
     print('delete draft now')
     response = delete_concept_set_version(test_draft_codeset_id)

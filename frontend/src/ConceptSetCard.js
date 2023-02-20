@@ -52,7 +52,7 @@ export default function ConceptSetCards(props) {
       </div>;
 }
 function ConceptSetCard(props) {
-  let {cset, researchers={}, editing=false, width=345, } = props;
+  let {cset, researchers={}, editing=false, } = props;
   /*
   const [expanded, setExpanded] = React.useState(false);
   const handleExpandClick = () => {
@@ -144,79 +144,77 @@ function ConceptSetCard(props) {
       >Edit</NavLink>
       )
   return (
-      <Box sx={{ minWidth: 275, margin: '8px',  }}>
-        <Card variant="outlined" sx={{width: width}}>
-          {/*
-          <CardHeader
-              action={
-                <IconButton aria-label="settings">
-                  <MoreVertIcon/>
-                </IconButton>
-              }
-              // subheader={tags.join(bull)} doesn't work like this, but might be nice
-              sx={{paddingBottom: '5px',}}
-          />
-          */}
-          <CardContent sx={{}}>
-            <Typography variant="h6" color="text.primary" gutterBottom>
-              {editing ? 'Editing' : ''} {cset.concept_set_version_title} {editSingleLink}
-            </Typography>
-            <Typography variant="body2" color="text.primary" gutterBottom>
-              {tags.join(', ')}
-            </Typography>
-            {
-              Object.keys(display_props).map(pkey => (
-                  <Typography variant="body2" color="text.secondary" key={pkey} sx={{overflow: 'clip',}}>
-                    <strong>{pkey}</strong>: {display_props[pkey]}
-                  </Typography>
-              ))
+      <Card variant="outlined">
+        {/*
+        <CardHeader
+            action={
+              <IconButton aria-label="settings">
+                <MoreVertIcon/>
+              </IconButton>
             }
-            <Typography variant="body2" color="text.primary" >
-              <a href={`https://unite.nih.gov/workspace/hubble/external/object/v0/omop-concept-set?codeset_id=${cset.codeset_id}`} target="_blank" rel="noreferrer">Open in Enclave</a
-              >, <a href={backend_url(`cset-download?codeset_ids=${cset.codeset_id}`)} target="_blank" rel="noreferrer">Export JSON</a>
-            </Typography>
-            { researcherContent }
+            // subheader={tags.join(bull)} doesn't work like this, but might be nice
+            sx={{paddingBottom: '5px',}}
+        />
+        */}
+        <CardContent sx={{}}>
+          <Typography variant="h6" color="text.primary" gutterBottom>
+            {editing ? 'Editing' : ''} {cset.concept_set_version_title} {editSingleLink}
+          </Typography>
+          <Typography variant="body2" color="text.primary" gutterBottom>
+            {tags.join(', ')}
+          </Typography>
+          {
+            Object.keys(display_props).map(pkey => (
+                <Typography variant="body2" color="text.secondary" key={pkey} sx={{overflow: 'clip',}}>
+                  <strong>{pkey}</strong>: {display_props[pkey]}
+                </Typography>
+            ))
+          }
+          <Typography variant="body2" color="text.primary" >
+            <a href={`https://unite.nih.gov/workspace/hubble/external/object/v0/omop-concept-set?codeset_id=${cset.codeset_id}`} target="_blank" rel="noreferrer">Open in Enclave</a
+            >, <a href={backend_url(`cset-download?codeset_ids=${cset.codeset_id}`)} target="_blank" rel="noreferrer">Export JSON</a>
+          </Typography>
+          { researcherContent }
+        </CardContent>
+        {/*
+        <CardActions disableSpacing>
+          <IconButton size="small" aria-label="add to favorites">
+            <FavoriteIcon/>
+          </IconButton>
+          <IconButton size="small" aria-label="share">
+            <ShareIcon/>
+          </IconButton>
+          <Button size="small">View in Enclave</Button>
+          <ExpandMore
+              expand={expanded}
+              onClick={handleExpandClick}
+              aria-expanded={expanded}
+              aria-label="show more"
+          >
+            <ExpandMoreIcon/>
+          </ExpandMore>
+        </CardActions>
+        <Collapse in={expanded} timeout="auto" unmountOnExit>
+          <CardContent>
+            <List style={{height: '40%', overflowX: 'clip', overflowY: 'scroll'}}>
+              { // TODO: figure out height for list
+                cset.concept_items.map((concept, i) => {
+                  return <ListItem style={{
+                    margin: '3px 3px 3px 3px',
+                    background: '#dbdbdb',
+                    borderRadius: '5px',
+                    fontSize: '0.8em'
+                  }} key={i}>
+                    <Typography>
+                      {concept.concept_id}: {concept.concept_name}
+                    </Typography>
+                  </ListItem>
+                })}
+            </List>
           </CardContent>
-          {/*
-          <CardActions disableSpacing>
-            <IconButton size="small" aria-label="add to favorites">
-              <FavoriteIcon/>
-            </IconButton>
-            <IconButton size="small" aria-label="share">
-              <ShareIcon/>
-            </IconButton>
-            <Button size="small">View in Enclave</Button>
-            <ExpandMore
-                expand={expanded}
-                onClick={handleExpandClick}
-                aria-expanded={expanded}
-                aria-label="show more"
-            >
-              <ExpandMoreIcon/>
-            </ExpandMore>
-          </CardActions>
-          <Collapse in={expanded} timeout="auto" unmountOnExit>
-            <CardContent>
-              <List style={{height: '40%', overflowX: 'clip', overflowY: 'scroll'}}>
-                { // TODO: figure out height for list
-                  cset.concept_items.map((concept, i) => {
-                    return <ListItem style={{
-                      margin: '3px 3px 3px 3px',
-                      background: '#dbdbdb',
-                      borderRadius: '5px',
-                      fontSize: '0.8em'
-                    }} key={i}>
-                      <Typography>
-                        {concept.concept_id}: {concept.concept_name}
-                      </Typography>
-                    </ListItem>
-                  })}
-              </List>
-            </CardContent>
-          </Collapse>
-          */}
-        </Card>
-      </Box>
+        </Collapse>
+        */}
+      </Card>
   );
 }
 

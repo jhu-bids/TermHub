@@ -13,7 +13,6 @@ TODO's
 """
 import json
 import os
-import sys
 from argparse import ArgumentParser
 from datetime import datetime, timedelta
 from typing import List, Dict, Callable, Union
@@ -29,7 +28,8 @@ from typeguard import typechecked
 # import asyncio
 
 from enclave_wrangler.config import FAVORITE_OBJECTS, OUTDIR_OBJECTS, OUTDIR_CSET_JSON, config, TERMHUB_CSETS_DIR
-from enclave_wrangler.utils import enclave_get, enclave_post, make_objects_request, handle_paginated_request
+from enclave_wrangler.utils import enclave_get, enclave_post, make_objects_request, \
+    handle_paginated_request, handle_response_error
 # from enclave_wrangler.utils import log_debug_info
 from backend.db.utils import sql_query_single_col, run_sql, get_db_connection
 from backend.db.queries import get_concepts
@@ -77,9 +77,10 @@ def get_obj_types() -> List[Dict]:
 #    OmopConceptSetVersionItem
 # todo: connect to `manage` table and get since last datetime. for now, use below as example
 # TODO: add since_datetime param
-def get_and_save_objects_by_type(
-    object_type: str, save_csv=True, save_json=True, outdir: str = None, since_datetime: str = None,
-    return_type=['dataframe', 'list_dict'][0], query_params: str = None, verbose=False
+def get_objects_by_type(
+        object_type: str, save_csv=True, save_json=True, outdir: str = None, since_datetime: str = None,
+        return_type=['dataframe', 'list_dict'][0], query_params: str = None, verbose=False,
+        save_to_outdir: bool = True
 ) -> Union[pd.DataFrame, List[Dict]]:
     """Get objects
 
@@ -94,7 +95,7 @@ def get_and_save_objects_by_type(
       https://www.palantir.com/docs/foundry/api/ontology-resources/objects/object-basics/"""
     # Request
     # TODO: construct url using this: make_objects_request()
-    first_page_url = f'{BASE_URL}/api/v1/ontologies/{ONTOLOGY_RID}/objects/{object_type}'
+    first_page_url = make_objects_request(f'objects/{object_type}', url_only=True)
     # todo: if accepting multiple query params, need & in between instead of subsequent ?
     if since_datetime:
         # a. search (needs JSON POST) https://www.palantir.com/docs/foundry/api/ontology-resources/objects/search/
@@ -106,20 +107,8 @@ def get_and_save_objects_by_type(
         first_query_token = '&' if since_datetime else '?'
         # examples: (1) expression items: ?itemId.eq=ID (2) containers: conceptSetId.eq=ID
         first_page_url += f'{first_query_token}{query_params}'
-    results, last_response = handle_paginated_request(first_page_url, verbose=verbose)
-
-    # - error report
-    # todo: Would be good to have all enclave_wrangler requests basically wrap around python `requests` and also
-    #  ...utilize this error reporting, if they are saving to disk.
-    if last_response.status_code >= 400:
-        print(f'Error: get_and_save_objects_by_type(): {str(last_response.status_code)} {last_response.reason}', file=sys.stderr)
-        error_report: Dict = {'request': last_response.url, 'response': last_response.json()}
-        with open(os.path.join(outdir, f'latest - error {last_response.status_code}.json'), 'w') as file:
-            json.dump(error_report, file)
-        curl_str = f'curl -H "Content-type: application/json" ' \
-                   f'-H "Authorization: Bearer $OTHER_TOKEN" {last_response.url}'
-        with open(os.path.join(outdir, f'latest - error {last_response.status_code} - curl.sh'), 'w') as file:
-            file.write(curl_str)
+    results = handle_paginated_request(first_page_url, verbose=verbose, error_dir=outdir)
+    # if failure, EnclaveWranglerErr will be raised
 
     if return_type == 'list_dict':
         return results
@@ -132,19 +121,21 @@ def get_and_save_objects_by_type(
         df = pd.DataFrame(results).fillna('')
 
     # Save
-    outdir = outdir if outdir else os.path.join(OUTDIR_OBJECTS, object_type)
-    outpath = os.path.join(outdir, 'latest.csv')
-    if not os.path.exists(outdir) and (save_json or save_csv):
-        os.mkdir(outdir)
-    # - csv
-    if save_csv:
-        df.to_csv(outpath, index=False)
-    # - json
-    if save_json:
-        with open(outpath.replace('.csv', '.json'), 'w') as f:
-            json.dump(results, f)
+    if save_to_outdir:
+        outdir = outdir if outdir else os.path.join(OUTDIR_OBJECTS, object_type)
+        outpath = os.path.join(outdir, 'latest.csv')
+        if not os.path.exists(outdir) and (save_json or save_csv):
+            os.mkdir(outdir)
+        # - csv
+        if save_csv:
+            df.to_csv(outpath, index=False)
+        # - json
+        if save_json:
+            with open(outpath.replace('.csv', '.json'), 'w') as f:
+                json.dump(results, f)
 
     return df
+
 
 def get_link_types(use_cache_if_failure=False) -> List[Union[Dict, str]]:
     """Get link types
@@ -241,7 +232,7 @@ def get_ontologies() -> Union[List, Dict]:
     response_json = response.json()
     return response_json
 
-@staticmethod
+
 def link_types() -> List[Dict]:
     """Get link types
     curl -H "Content-type: application/json" -H "Authorization: Bearer $OTHER_TOKEN" \
@@ -269,19 +260,20 @@ def link_types() -> List[Dict]:
     return response_json
 
 
-def run(request_types: List[str]) -> Dict[str, Dict]:
-    """Run"""
-    request_funcs: Dict[str, Callable] = {
-        'objects': get_and_save_objects_by_type,
-        'object_types': get_obj_types,
-        'link_types': get_link_types,
-    }
-    results = {}
-    for req in request_types:
-        results[req] = request_funcs[req]()
-        # if req == 'object_types':
-        #     print('\n'.join([t['apiName'] for t in results[req]['types']]))
-    return results
+# def run(request_types: List[str]) -> Dict[str, Dict]:
+#       only being used by cli which is not being used right now
+#     """Run"""
+#     request_funcs: Dict[str, Callable] = {
+#         'objects': get_objects_by_type,
+#         'object_types': get_obj_types,
+#         'link_types': get_link_types,
+#     }
+#     results = {}
+#     for req in request_types:
+#         results[req] = request_funcs[req]()
+#         # if req == 'object_types':
+#         #     print('\n'.join([t['apiName'] for t in results[req]['types']]))
+#     return results
 
 
 def download_favorite_objects(fav_obj_names: List[str] = FAVORITE_OBJECTS, force_if_exists=False):
@@ -290,7 +282,7 @@ def download_favorite_objects(fav_obj_names: List[str] = FAVORITE_OBJECTS, force
         outdir = os.path.join(OUTDIR_OBJECTS, o)
         exists = os.path.exists(outdir)
         if not exists or (exists and force_if_exists):
-            get_and_save_objects_by_type(o, outdir=outdir)
+            get_objects_by_type(o, outdir=outdir)
 
 
 def get_all_bundles():
@@ -341,13 +333,13 @@ def get_new_objects(since: datetime = None):
 
     # 1. Fetch data
     # Concept set versions
-    new_csets: List[Dict] = get_and_save_objects_by_type(
+    new_csets: List[Dict] = get_objects_by_type(
         'OmopConceptSet', since_datetime=yesterday, return_type='list_dict')
 
     # Containers
     containers_ids = [x['properties']['conceptSetNameOMOP'] for x in new_csets]
     container_params = ''.join([f'&properties.conceptSetId.eq={x}' for x in containers_ids])
-    new_containers: List[Dict] = get_and_save_objects_by_type(
+    new_containers: List[Dict] = get_objects_by_type(
         'OMOPConceptSetContainer', return_type='list_dict', query_params=container_params, verbose=True)
 
     # Expression items & concept set members
@@ -372,7 +364,8 @@ def get_codeset_json(codeset_id, con=get_db_connection()) -> Dict:
     cset = cset.json()['properties']
     container = make_objects_request(f'objects/OMOPConceptSetContainer/{quote(cset["conceptSetNameOMOP"], safe="")}')
     container = container.json()['properties']
-    items_url = make_objects_request(f'objects/OMOPConceptSet/{codeset_id}/links/omopConceptSetVersionItem', url_only=True)
+    items_url = make_objects_request(f'objects/OMOPConceptSet/{codeset_id}/links/omopConceptSetVersionItem',
+                                     url_only=True)
     items = handle_paginated_request(items_url)
     items = [i['properties'] for i in items[0]]
 
@@ -514,7 +507,7 @@ def enclave_api_call_caller(name:str, params) -> Dict:
 
 # TODO: Download /refresh: tables using object ontology api (e.g. full concept set info from enclave) #189 -------------
 # TODO: func 1/3: Do this before refresh_tables_for_object() and refresh_favorite_objects()
-#   - get_and_save_objects_by_type() updates above
+#   - get_objects_by_type() updates above
 
 #  Issue: https://github.com/jhu-bids/TermHub/issues/189 PR: https://github.com/jhu-bids/TermHub/pull/221
 # TODO: func 3/3: config.py needs updating for favorite datsets / objects
@@ -542,29 +535,30 @@ def refresh_tables_for_object():
 
 def cli():
     """Command line interface for package."""
-    package_description = 'Tool for working w/ the Palantir Foundry enclave API. ' \
-                          'This part is for downloading enclave datasets.'
-    parser = ArgumentParser(description=package_description)
-
+    raise "We aren't using this as of 2023-02. Leaving in place in case we want to use again."
+    # package_description = 'Tool for working w/ the Palantir Foundry enclave API. ' \
+    #                       'This part is for downloading enclave datasets.'
+    # parser = ArgumentParser(description=package_description)
+    #
+    # # parser.add_argument(
+    # #     '-a', '--auth_token_env_var',
+    # #     default='PALANTIR_ENCLAVE_AUTHENTICATION_BEARER_TOKEN',
+    # #     help='Name of the environment variable holding the auth token you want to use')
+    # # todo: 'objects' alone doesn't make sense because requires param `object_type`
     # parser.add_argument(
-    #     '-a', '--auth_token_env_var',
-    #     default='PALANTIR_ENCLAVE_AUTHENTICATION_BEARER_TOKEN',
-    #     help='Name of the environment variable holding the auth token you want to use')
-    # todo: 'objects' alone doesn't make sense because requires param `object_type`
-    parser.add_argument(
-        '-r', '--request-types',
-        nargs='+', default=['object_types', 'objects', 'link_types'],
-        help='Types of requests to make to the API.')
-    parser.add_argument(
-        '-f', '--downoad-favorite-objects',
-        action='store_true', help='Download favorite objects as CSV and JSON.')
-    kwargs = parser.parse_args()
-    kwargs_dict: Dict = vars(kwargs)
-    if kwargs_dict['download_favorite_objects']:
-        download_favorite_objects()
-    else:
-        del kwargs_dict['download_favorite_objects']
-        run(**kwargs_dict)
+    #     '-r', '--request-types',
+    #     nargs='+', default=['object_types', 'objects', 'link_types'],
+    #     help='Types of requests to make to the API.')
+    # parser.add_argument(
+    #     '-f', '--downoad-favorite-objects',
+    #     action='store_true', help='Download favorite objects as CSV and JSON.')
+    # kwargs = parser.parse_args()
+    # kwargs_dict: Dict = vars(kwargs)
+    # if kwargs_dict['download_favorite_objects']:
+    #     download_favorite_objects()
+    # else:
+    #     del kwargs_dict['download_favorite_objects']
+    #     run(**kwargs_dict)
 
 
 def get_concept_set_version_expression_items(version_id: Union[str, int], return_detail=['id', 'full'][0]):

@@ -63,6 +63,10 @@ MuiCheckbox-root {
   padding: 0!important;
 }
 
+.MuiCard-root {
+  margin: 3px;
+}
+
 /*
 .ag-header-cell-label .ag-header-cell-text {
   /*Force the width corresponding at how much width

@@ -2,6 +2,7 @@ import React, {/* useState, useEffect, useMemo, useReducer, useRef, */} from 're
 // import { createSearchParams, useSearchParams, } from "react-router-dom";
 import DataTable, { createTheme } from 'react-data-table-component';
 import { AddCircle, RemoveCircleOutline, Add, } from '@mui/icons-material';
+import Box from '@mui/material/Box';
 // import {Checkbox} from "@mui/material";
 import {isEmpty, } from 'lodash'; // set, map, omit, pick, uniq, reduce, cloneDeepWith, isEqual, uniqWith, groupBy,
 import {fmt, searchParamsToObj,} from "./utils";
@@ -52,11 +53,11 @@ function ComparisonDataTable(props) {
         },
     ]
     return (
-        /* https://react-data-table-component.netlify.app/ */
-        <div>
-            <div style={{ display: 'flex', flexWrap: 'wrap', flexDirection: 'row', margin: '20px', }}>
+        <Box sx={{ width: '100%', }}>
+            <Box sx={{ width: '96%', margin: '4px', display: 'flex' }}>
+                { card }
                 {eInfo}
-            </div>
+            </Box>
             <DataTable
                 customStyles={customStyles}
                 conditionalRowStyles={conditionalRowStyles}
@@ -75,10 +76,7 @@ function ComparisonDataTable(props) {
                 //selectableRowsComponentProps={selectProps} //sortIcon={sortIcon}
                 // expandOnRowClicked // expandableRows // {...props}
             />
-            <div style={{ display: 'flex', flexWrap: 'wrap', flexDirection: 'row', margin: '20px', }}>
-                { card }
-            </div>
-        </div>
+        </Box>
     );
 }
 
