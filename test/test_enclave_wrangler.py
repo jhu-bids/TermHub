@@ -23,7 +23,7 @@ PROJECT_ROOT = Path(TEST_DIR).parent
 # todo: why is this necessary in this case and almost never otherwise?
 # https://stackoverflow.com/questions/33862963/python-cant-find-my-module
 sys.path.insert(0, str(PROJECT_ROOT))
-from enclave_wrangler.actions_api import upload_concept_set_version
+from enclave_wrangler.actions_api import upload_concept_set_version_draft
 from enclave_wrangler.dataset_upload import upload_new_cset_container_with_concepts_from_csv, \
     upload_new_cset_version_with_concepts_from_csv
 
@@ -53,7 +53,7 @@ class TestEnclaveWrangler(unittest.TestCase):
         update_db_with_new_objects()
 
     def test_upload_concept_set_version(self):
-        response: Response = upload_concept_set_version(
+        response: Response = upload_concept_set_version_draft(
             domain_team='x', provenance='x', current_max_version=2.1, concept_set='x', annotation='x', limitations='x',
             intention='x', base_version=1, intended_research_project='x', version_id=1, authority='x')
         # self.assertTrue('result' in response and not response['result'] == 'VALID')

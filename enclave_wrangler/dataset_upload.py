@@ -20,7 +20,7 @@ try:
     post_request_enclave_api_create_version, update_cs_version_expression_data_with_codesetid
     from enclave_wrangler.actions_api import add_concepts_to_cset, finalize_concept_set_version, \
     upload_concept_set_container, \
-    upload_concept_set_version, get_concept_set_version_expression_items
+    upload_concept_set_version_draft, get_concept_set_version_expression_items
     from enclave_wrangler.utils import EnclaveWranglerErr, _datetime_palantir_format, log_debug_info, make_actions_request, get_random_codeset_id
 except ModuleNotFoundError:
     from config import CSET_UPLOAD_REGISTRY_PATH, ENCLAVE_PROJECT_NAME, MOFFIT_PREFIX, \
@@ -30,7 +30,7 @@ except ModuleNotFoundError:
         post_request_enclave_api_addExpressionItems, post_request_enclave_api_create_container, \
         post_request_enclave_api_create_version, update_cs_version_expression_data_with_codesetid
     from actions_api import add_concepts_to_cset, upload_concept_set_container, \
-        upload_concept_set_version, get_concept_set_version_expression_items
+        upload_concept_set_version_draft, get_concept_set_version_expression_items
     from utils import _datetime_palantir_format, log_debug_info
 
 
@@ -227,7 +227,7 @@ def upload_new_cset_version_with_concepts(
         intended_research_project = ENCLAVE_PROJECT_NAME
 
     # Upload
-    response_upload_draft_concept_set: Response = upload_concept_set_version(  # code_set
+    response_upload_draft_concept_set: Response = upload_concept_set_version_draft(  # code_set
         base_version=parent_version_codeset_id,
         current_max_version=current_max_version,
         provenance=provenance,

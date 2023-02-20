@@ -280,6 +280,7 @@ def route_json_upload_new_container_with_concepts(d: UploadJsonNewContainerWithC
     return response  # todo: return. should include: assigned codeset_id's
 
 
+# TOOD: do the same try/except validate first false -> true fo all these upload routes
 @router.post("/upload-csv-new-cset-version-with-concepts")
 def route_csv_upload_new_cset_version_with_concepts(data: UploadCsvVersionWithConcepts) -> Dict:
     """Upload new version of existing container, with concepets"""
@@ -288,19 +289,25 @@ def route_csv_upload_new_cset_version_with_concepts(data: UploadCsvVersionWithCo
         # noinspection PyTypeChecker
         df = pd.read_csv(StringIO(data.dict()['csv'])).fillna('')
         response: Dict = upload_new_cset_version_with_concepts_from_csv(df=df, validate_first=False)
-        # print('CSV upload result: ')
-        # can't print it, it's all response objects
-        # print(json.dumps(response, indent=2))
     except Exception as e:  # todo: this will be refactored so that every request returns err
-        result['status'] = "error"
-        result['errors'] = str(e)
-        return result
+        try:
+            # noinspection PyTypeChecker
+            df = pd.read_csv(StringIO(data.dict()['csv'])).fillna('')
+            response: Dict = upload_new_cset_version_with_concepts_from_csv(df=df, validate_first=True)
+        except Exception as e:
+            result['status'] = 'error'
+            result['errors'] = str(e)
+            return result
 
     for cset_name, data in response.items():
         results = data['responses'] if 'responses' in data else data
         errors = {}
         for k, v in results.items():
-            if v.status_code >= 400:
+            if isinstance(v, list):
+                for i, vv in enumerate(v):
+                    if vv.status_code >= 400:
+                        errors[f'{k}[{i}]'] = vv.text
+            elif v.status_code >= 400:
                 errors[k] = v.text
         result[cset_name] = {
             'versionId': data['versionId'],

@@ -269,7 +269,7 @@ def add_concept_via_edit(
 
 # code_set
 # TODO: strange that new-parameter and new-parameter1 are required. I added arbitrary strings
-def upload_concept_set_version(
+def upload_concept_set_version_draft(
     concept_set: str = None, base_version: int = None, current_max_version: float = None, version_id: int = None,
     on_behalf_of: str = None, intention: str = None, domain_team: str = None, provenance: str = None,
     annotation: str = None, limitations: str = None, intended_research_project: str = None, authority: str = None,
@@ -306,7 +306,7 @@ def upload_concept_set_version(
     current_max_version_shared_warning_msg = \
         f'Attempting to upload, though if there is an error, this may be the cause. Original documentation for ' \
         f'`current_max_version`\n: {current_max_version_docstring}'
-    if version_id == 0 and current_max_version: # was version_id <= 1, which errored if version_id=None
+    if version_id == 0 and current_max_version:  # was version_id <= 1, which errored if version_id=None
         print(f'Warning: `version_id` {version_id} appears to be first version, in which case `current_max_version`'
               f' should be `null` (`None` in Python). You passed {current_max_version} for `current_max_version`.\n'
               f'{current_max_version_shared_warning_msg}', file=sys.stderr)
@@ -625,7 +625,7 @@ if __name__ == '__main__':
     concept_id_to_delete = 2108681 # Patient receiving care in the intensive care unit (ICU) and receiving mechanical ventilation, 24 hours or less (CRIT)
     test_draft_codeset_id = get_random_codeset_id()
     print(f'creating test cset version: {test_draft_codeset_id}')
-    result = upload_concept_set_version(  # upload_new_cset_version_with_concepts(  # upload_concept_set_version
+    result = upload_concept_set_version_draft(  # upload_new_cset_version_with_concepts(  # upload_concept_set_version
         concept_set=concept_set_name, base_version=parent_codeset_id, current_max_version=current_max_version,
         version_id=test_draft_codeset_id, copyExpressionsFromBaseVersion=True,
         on_behalf_of='5c560c3e-8e55-485c-9a66-f96285f273a0', intended_research_project='RP-4A9E27',
