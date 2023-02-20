@@ -7,7 +7,7 @@ import Box from '@mui/material/Box';
 import {isEmpty, } from 'lodash'; // set, map, omit, pick, uniq, reduce, cloneDeepWith, isEqual, uniqWith, groupBy,
 import {fmt, searchParamsToObj,} from "./utils";
 import {ConceptSetCard} from "./ConceptSetCard";
-// import {Tooltip} from './Tooltip';
+import {Tooltip} from './Tooltip';
 import { getEditCodesetFunc, getCodesetEditActionFunc, EditInfo,
             CellContents, cellStyle, } from './EditCset';
 // import {isEmpty} from "react-data-table-component/dist/src/DataTable/util"; // what was this for?
@@ -160,6 +160,9 @@ function colConfig(props) {
         let def = {
             cset_col,
             codeset_id,
+            name: <CsetColumnHeader editCodesetFunc={editCodesetFunc}
+                                    cset_col={cset_col} />,
+            /*
             name: <span className="cset-column"
                         onClick={editCodesetFunc}
                         codeset_id={codeset_id}
@@ -167,6 +170,7 @@ function colConfig(props) {
             //  name:   <Tooltip label="Click to edit." placement="bottom">
             //              <span>{cset_col.concept_set_version_title}</span>
             //          </Tooltip>,
+             */
             selector: (row) => {
                 return <CellContents { ...props}
                                      {...{row, cset_col,
@@ -193,8 +197,18 @@ function colConfig(props) {
         delete coldefs[0].conditionalCellStyles;
     }
     return coldefs;
-    // console.log('done setting coldefs');
+}
 
+function CsetColumnHeader(props) {
+    const {cset_col, editCodesetFunc, } = props;
+    return  <Tooltip placement="bottom"
+                label="Click to create and edit new draft of this concept set"
+            >
+                <span className="cset-column"
+                    onClick={editCodesetFunc}
+                    codeset_id={cset_col.codeset_id}
+                >{cset_col.concept_set_name}</span>
+            </Tooltip>
 }
 
 // createTheme creates a new theme named solarized that overrides the build in dark theme
