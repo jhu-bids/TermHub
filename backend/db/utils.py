@@ -72,8 +72,8 @@ def is_up_to_date(last_updated: Union[datetime, str], threshold_hours=24) -> boo
 def check_if_updated(key: str, skip_if_updated_within_hours: int = None) -> bool:
     """Check if table is up to date"""
     with get_db_connection(schema='') as con2:
-        last_updated = run_sql(con2, f"SELECT value FROM manage WHERE key = '{key}';").first()
-    last_updated = last_updated[0] if last_updated else None
+        results = sql_query(con2, f"SELECT value FROM manage WHERE key = '{key}';")
+    last_updated = results[0][0] if results else None
     return last_updated and is_up_to_date(last_updated, skip_if_updated_within_hours)
 
 
@@ -132,7 +132,7 @@ def sql_in(lst: List, quote_items=False) -> str:
         s: str = ', '.join([str(x) for x in lst]) or 'NULL'
     return f' IN ({s}) '
 
-def run_sql(con: Connection, command: str, params:Dict={}) -> Any:
+def run_sql(con: Connection, command: str, params: Dict = {}) -> Any:
     """Run a sql command"""
     if params:
         command = text(command) if not isinstance(command, TextClause) else command
