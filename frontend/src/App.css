@@ -31,8 +31,9 @@
   textOverflow: unset;
   marginTop: auto;
 }
-.comparison-data-table .rdt_TableHeadRow > div + div
-{
+/*  .comparison-data-table .rdt_TableHeadRow > div + div */
+.cset-column {
+  cursor: pointer;
   white-space: nowrap;
   overflow: visible;
   text-overflow: unset;
@@ -53,9 +54,6 @@
 }
 .csets-data-table .rdt_Table {
     padding: 0px;
-}
-.cset-column {
-  cursor: pointer;
 }
 MuiCheckbox-root {
 }
