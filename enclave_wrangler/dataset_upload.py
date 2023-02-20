@@ -9,6 +9,8 @@ from time import sleep
 import pandas as pd
 from requests import Response
 
+from enclave_wrangler.models import CsetContainer
+
 # TODO: See if sys.path(0) thing works; doesn't require maintenance. Look at unit tests
 try:
     from enclave_wrangler.config import CSET_UPLOAD_REGISTRY_PATH, CSET_VERSION_MIN_ID, ENCLAVE_PROJECT_NAME, MOFFIT_PREFIX, \
@@ -136,13 +138,23 @@ def upload_new_cset_container_with_concepts_from_csv(
         raise RuntimeError('upload_new_cset_version_with_concepts_from_csv: Must provide path or dataframe')
     df = df if df is not None else pd.read_csv(path).fillna('')
     df = df[~df.eq('').all(axis=1)]  # drop all empty rows
+
+    # TODO: how about creating a dict or class of containers and versions from this logic?
+    # implementation 2
+    cset_group_cols = ['concept_set_name', 'parent_version_codeset_id']
+    csets = df.groupby(cset_group_cols)
+    containers_with_versions: List[CsetContainer] = []
+    for cset in csets:
+        containers_with_versions.append(CsetContainer().from_dataframe(cset))
+
+    # implementation 1
     container_dfs = {
-        c: df[df['concept_set_name'] == c]
-        for c in df['concept_set_name'].unique()}
+        cset_name: df[df['concept_set_name'] == cset_name]
+        for cset_name in df['concept_set_name'].unique()}
     responses = {}
-    for c, df in container_dfs.items():
+    for cset_name, df in container_dfs.items():
         first_row = dict(df.iloc[0])
-        # TODO: Convert DF rows to List[Dict], properl formatted
+        # todo?: Convert DF rows to List[Dict], properly formatted
         #  todo: versions_with_concepts.omop_concepts: i say below i expect list[int] but that has changed to list[dict]
         #  todo: are these fields really all required? prolly not if not in current csv. are they there?
         #            'omop_concept_ids': (List[int]) (required),  <---- x
@@ -159,8 +171,8 @@ def upload_new_cset_container_with_concepts_from_csv(
         upload_new_cset_version_with_concepts_from_csv(df=df)
 
         rows = df.to_dict(orient='records')
-        responses[c] = upload_new_container_with_concepts(
-            concept_set_name=c,
+        responses[cset_name] = upload_new_container_with_concepts(
+            concept_set_name=cset_name,
             intention=first_row['intention'],
             research_project=first_row['research_project'],
             assigned_sme=first_row['assigned_sme'],
@@ -305,7 +317,7 @@ def upload_new_container_with_concepts(
     response_upload_new_cset_version_with_concepts = []
     for version in versions_with_concepts:
         response_versions_i: Dict[str, Union[Response, List[Response]]] = \
-            upload_new_cset_version_with_concepts(**version, validate_first=validate_first)
+            upload_new_cset_version_with_concepts(version, validate_first=validate_first)
         response_upload_new_cset_version_with_concepts.append(response_versions_i)
 
     return {
