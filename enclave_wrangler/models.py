@@ -13,8 +13,20 @@ import pandas as pd
 
 from enclave_wrangler.utils import EnclaveWranglerErr
 
+class ObjWithMetadata:
+    def __init__():
+        pass
 
-class CsetVersion:
+    csetVersionFields = {}
+    # load this from table https://docs.google.com/spreadsheets/d/1fB-klbxOvxYiSzx3PnibMZPO_n-PSGb8vSx6GuDfuyE/edit#gid=0
+    def populate_from_csv(self, df):
+        for field in CsetVersion.csetVersionFields:
+            first_row = {} # from df
+            setattr(self, first_row[field['classPropName']],
+                    first_row[field['csv_columns']])
+
+
+class CsetVersion(ObjWithMetadata):
     """Cset version"""
 
     # This is useful because they come as camel case from following locations: (i) xxxx, (ii) xxxx
@@ -29,6 +41,8 @@ class CsetVersion:
     param_spelling_variations = [
 
     ]
+
+
 
     # todo: are these fields actually used by a new version: domain_team, intention, authority
     def __init__(
