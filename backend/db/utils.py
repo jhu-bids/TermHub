@@ -139,6 +139,7 @@ def run_sql(con: Connection, command: str, params:Dict={}) -> Any:
         q = con.execute(command, **params) if params else con.execute(command)
     else:
         q = con.execute(command)
+    return q
     # try:
     #     return con.execute(command)
     # except (ProgrammingError, OperationalError):
