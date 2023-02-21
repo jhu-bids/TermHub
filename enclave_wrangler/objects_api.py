@@ -57,7 +57,7 @@ BASE_URL = f'https://{config["HOSTNAME"]}'
 ONTOLOGY_RID = config['ONTOLOGY_RID']
 
 @typechecked
-def get_obj_types() -> List[Dict]:
+def get_object_types() -> List[Dict]:
     """Gets object types.
     API docs: https://www.palantir.com/docs/foundry/api/ontology-resources/object-types/list-object-types/
     curl -H "Content-type: application/json" -H "Authorization: Bearer $OTHER_TOKEN" "https://unite.nih.gov/api/v1/ontologies/ri.ontology.main.ontology.00000000-0000-0000-0000-000000000000/objectTypes" | jq
@@ -587,5 +587,5 @@ def get_concept_set_version_members(version_id: Union[str, int], return_detail=[
 
 if __name__ == '__main__':
     # cli()
-    ot = get_obj_types()
+    ot = get_object_types()
     get_n3c_recommended_csets(save=True)

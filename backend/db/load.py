@@ -8,9 +8,21 @@ from sqlalchemy.engine.base import Connection
 from backend.db.config import CONFIG, DDL_JINJA_PATH
 from backend.db.utils import check_if_updated, current_datetime, is_table_up_to_date, load_csv, \
     run_sql, get_db_connection, update_db_status_var
+from enclave_wrangler.datasets import download_favorite_datasets
+from enclave_wrangler.objects_api import download_favorite_objects
 
 DB = CONFIG["db"]
 SCHEMA = CONFIG['schema']
+
+
+def download_artefacts(force_download_if_exists=False):
+    """Download essential DB artefacts to be uploaded"""
+    print('INFO: Downloading datasets: csets.')
+    download_favorite_datasets(force_if_exists=force_download_if_exists, single_group='cset')
+    print('INFO: Downloading datasets: objects.')
+    download_favorite_objects(force_if_exists=force_download_if_exists)
+    print('INFO: Downloading datasets: vocab.')
+    download_favorite_datasets(force_if_exists=force_download_if_exists, single_group='vocab')
 
 
 def seed(con: Connection, schema: str = SCHEMA, clobber=False, skip_if_updated_within_hours: int = None):
@@ -77,7 +89,7 @@ def indexes_and_derived_tables(con: Connection, schema_name: str, skip_if_update
     # Updates
     for index, command in enumerate(commands):
         step_num = index + 1
-        if last_successful_step >= step_num:
+        if last_successful_step and last_successful_step >= step_num:
             continue
         print(f'INFO: indexes_and_derived_tables: Running command {step_num} of {len(commands)}')
         try:
@@ -92,7 +104,8 @@ def indexes_and_derived_tables(con: Connection, schema_name: str, skip_if_update
 
 def load(schema: str = SCHEMA, clobber=False, skip_if_updated_within_hours: int = None, use_local_database=False):
     """Load data into the database and create indexes and derived tables"""
-    with get_db_connection(use_local_database) as con:
+    with get_db_connection(local=use_local_database) as con:
+        # download_artefacts(force_download_if_exists=False)
         seed(con, schema, clobber, skip_if_updated_within_hours)
         indexes_and_derived_tables(con, schema, skip_if_updated_within_hours)
 
