@@ -1,8 +1,8 @@
-name: TermHub DB Refresh
+name: TermHub DB Refresh via datasets API
 
 on:
-  schedule:
-    - cron: '0 5 * * *'  # every day 5am GMT (12-1am EST/EDT)
+#  schedule:
+#    - cron: '0 5 * * *'  # every day 5am GMT (12-1am EST/EDT)
   workflow_dispatch:
 
 jobs:
