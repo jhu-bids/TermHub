@@ -1,6 +1,25 @@
 {
   "data": [
     {
+      "apiName": "add-internal-backup-reviewer-comment-to-publication-intent-submission",
+      "description": "",
+      "parameters": {
+        "backup_reviewer_internal_comment": {
+          "description": "",
+          "baseType": "String"
+        },
+        "publication_intent_submission": {
+          "description": "",
+          "baseType": "OntologyObject"
+        },
+        "PublicationCommitteeInternalNote": {
+          "description": "",
+          "baseType": "OntologyObject"
+        }
+      },
+      "rid": "ri.actions.main.action-type.02aa052c-a006-427c-bf6f-9635ae27e02e"
+    },
+    {
       "apiName": "dur-update-project-abstract",
       "description": "",
       "parameters": {
@@ -212,6 +231,25 @@
       "rid": "ri.actions.main.action-type.0d3ebd04-4583-4eb7-a74a-52a2f04b0092"
     },
     {
+      "apiName": "add-internal-secondary-reviewer-comment-to-publication-intent-submission",
+      "description": "",
+      "parameters": {
+        "secondary_reviewer_internal_comment": {
+          "description": "",
+          "baseType": "String"
+        },
+        "publication_intent_submission": {
+          "description": "",
+          "baseType": "OntologyObject"
+        },
+        "PublicationCommitteeInternalNote": {
+          "description": "",
+          "baseType": "OntologyObject"
+        }
+      },
+      "rid": "ri.actions.main.action-type.0f483484-f7d5-4e51-b0b7-62687cb8aabc"
+    },
+    {
       "apiName": "delete-publication-committee-internal-review",
       "description": "",
       "parameters": {
@@ -386,6 +424,14 @@
           "baseType": "OntologyObject"
         },
         "downloadRequest": {
+          "description": "Add Download Requests for this Publication Intent",
+          "baseType": "Array<OntologyObject>"
+        },
+        "new-parameter2": {
+          "description": "",
+          "baseType": "Array<OntologyObject>"
+        },
+        "new-parameter1": {
           "description": "",
           "baseType": "Array<OntologyObject>"
         },
@@ -597,6 +643,37 @@
         }
       },
       "rid": "ri.actions.main.action-type.1982ce2f-26d4-4066-92fe-11096e339833"
+    },
+    {
+      "apiName": "modify-measurement-unit-conversion-formula",
+      "description": "Modify N3C Measurement Unit Formula",
+      "parameters": {
+        "mapping_function": {
+          "description": "",
+          "baseType": "String"
+        },
+        "measurement_omop_concept_name": {
+          "description": "",
+          "baseType": "String"
+        },
+        "original_unit_omop_concept_name": {
+          "description": "",
+          "baseType": "String"
+        },
+        "UnitConversionFormula": {
+          "description": "",
+          "baseType": "OntologyObject"
+        },
+        "conversion_equation": {
+          "description": "",
+          "baseType": "String"
+        },
+        "harmonized_unit_omop_concept_name": {
+          "description": "",
+          "baseType": "String"
+        }
+      },
+      "rid": "ri.actions.main.action-type.19a506b9-d921-4983-a1c2-f6a2639c59f2"
     },
     {
       "apiName": "edit-publication-committee-review-comment-backup-reviewer",
@@ -954,6 +1031,25 @@
       "rid": "ri.actions.main.action-type.213c744c-0c32-41fd-9551-ff3e6a8b36da"
     },
     {
+      "apiName": "set-measurement-unit-pipeline-addition-flag",
+      "description": "Unit harmonization admin flag for addition of measurement unit conversion to pipeline",
+      "parameters": {
+        "added_to_pipeline": {
+          "description": "",
+          "baseType": "String"
+        },
+        "date_added_to_pipeline": {
+          "description": "",
+          "baseType": "Timestamp"
+        },
+        "UnitConversionFormula": {
+          "description": "",
+          "baseType": "OntologyObject"
+        }
+      },
+      "rid": "ri.actions.main.action-type.214ed38f-8180-4886-a3b1-2842dad1a013"
+    },
+    {
       "apiName": "set-manuscript-title",
       "description": "",
       "parameters": {
@@ -987,17 +1083,6 @@
         }
       },
       "rid": "ri.actions.main.action-type.22eb643d-1d9b-4269-86e1-4b2afa2fc4c4"
-    },
-    {
-      "apiName": "delete-omop-concept-set-version-item",
-      "description": "",
-      "parameters": {
-        "concept-set-version-item": {
-          "description": "",
-          "baseType": "Array<OntologyObject>"
-        }
-      },
-      "rid": "ri.actions.main.action-type.231fc70d-a9c4-498e-bc5f-cf38046c9217"
     },
     {
       "apiName": "n3c-concept-set-validation",
@@ -1345,6 +1430,17 @@
       "rid": "ri.actions.main.action-type.334cf777-0f38-4bb7-87fe-38b8926a2109"
     },
     {
+      "apiName": "remove-measurement-unit-conversion-formula",
+      "description": "Delete an N3C measurement unit formula",
+      "parameters": {
+        "UnitConversionFormula": {
+          "description": "",
+          "baseType": "OntologyObject"
+        }
+      },
+      "rid": "ri.actions.main.action-type.34b9ce67-2fc7-4701-a9a2-56b96943711f"
+    },
+    {
       "apiName": "new-action-a42241e1-201d-2747-d1e9-331f6d2c024f",
       "description": "",
       "parameters": {
@@ -1403,6 +1499,21 @@
         }
       },
       "rid": "ri.actions.main.action-type.37242842-66c9-4c55-a5cf-a834d62cbd73"
+    },
+    {
+      "apiName": "set-conversion-formulae-editors",
+      "description": "",
+      "parameters": {
+        "UnitConversionFormula": {
+          "description": "",
+          "baseType": "Array<OntologyObject>"
+        },
+        "permitted_editors": {
+          "description": "",
+          "baseType": "Array<OntologyObject>"
+        }
+      },
+      "rid": "ri.actions.main.action-type.37b3a2ed-a51a-4ed9-ade4-98813bc3c798"
     },
     {
       "apiName": "add-review-to-ko-action",
@@ -3385,7 +3496,11 @@
           "description": "",
           "baseType": "OntologyObject"
         },
-        "omopconceptSet": {
+        "codes": {
+          "description": "Please enter a comma-separated list of Codeset ID below. Codeset ID are unique IDs for Concept Set Versions. Example of format required: 754731201, 656562966, 776390058..",
+          "baseType": "String"
+        },
+        "new-parameter": {
           "description": "",
           "baseType": "Array<OntologyObject>"
         }
@@ -3972,7 +4087,7 @@
         },
         "n3cknowledgeObjects": {
           "description": "",
-          "baseType": "OntologyObject"
+          "baseType": "Array<OntologyObject>"
         }
       },
       "rid": "ri.actions.main.action-type.a6a5ef82-347e-4e13-9a10-b5b202797ffd"
@@ -4681,8 +4796,16 @@
           "description": "",
           "baseType": "OntologyObject"
         },
-        "n3cknowledgeObjects": {
+        "new-parameter2": {
           "description": "",
+          "baseType": "Array<OntologyObject>"
+        },
+        "new-parameter1": {
+          "description": "",
+          "baseType": "Array<OntologyObject>"
+        },
+        "n3cknowledgeObjects": {
+          "description": "Add Knowledge Objects for this Publication Intent",
           "baseType": "Array<OntologyObject>"
         }
       },
@@ -4752,7 +4875,7 @@
     },
     {
       "apiName": "discard-omop-concept-set-expression",
-      "description": "",
+      "description": "Deletes the selected Concept Set Expression items and removes them from the associated Concept Set Version draft.",
       "parameters": {
         "concept-set-version-item": {
           "description": "",
@@ -5072,7 +5195,15 @@
           "description": "",
           "baseType": "OntologyObject"
         },
+        "new-parameter1": {
+          "description": "",
+          "baseType": "Array<OntologyObject>"
+        },
         "domainTeam": {
+          "description": "",
+          "baseType": "Array<OntologyObject>"
+        },
+        "new-parameter": {
           "description": "",
           "baseType": "Array<OntologyObject>"
         }
@@ -5138,6 +5269,37 @@
         }
       },
       "rid": "ri.actions.main.action-type.d10c9f2d-a590-4056-b1c0-47065eb3d2a6"
+    },
+    {
+      "apiName": "create-new-measurement-unit-conversion-formula",
+      "description": "Add a new conversion formula for measurement units",
+      "parameters": {
+        "mapping_function": {
+          "description": "",
+          "baseType": "String"
+        },
+        "measurement_omop_concept_name": {
+          "description": "",
+          "baseType": "String"
+        },
+        "original_unit_omop_concept_name": {
+          "description": "",
+          "baseType": "String"
+        },
+        "permitted_editors": {
+          "description": "",
+          "baseType": "Array<OntologyObject>"
+        },
+        "conversion_equation": {
+          "description": "",
+          "baseType": "String"
+        },
+        "harmonized_unit_omop_concept_name": {
+          "description": "",
+          "baseType": "String"
+        }
+      },
+      "rid": "ri.actions.main.action-type.d1879529-109d-41f4-a745-b8f836b25ae2"
     },
     {
       "apiName": "add-selected-concepts-as-omop-version-expressions",
@@ -5657,6 +5819,29 @@
         }
       },
       "rid": "ri.actions.main.action-type.e3c9843c-e75e-4e91-9a84-bdf7fcf7d335"
+    },
+    {
+      "apiName": "set-reviewer-approval-status-for-unit-conversion-formula",
+      "description": "ADMS, Logic Liaison or other general reviewer for conversion formula to maintain standards and quality of conversions ",
+      "parameters": {
+        "mapping_function": {
+          "description": "",
+          "baseType": "String"
+        },
+        "UnitConversionFormula": {
+          "description": "",
+          "baseType": "OntologyObject"
+        },
+        "adms_approval": {
+          "description": "",
+          "baseType": "String"
+        },
+        "conversion_equation": {
+          "description": "",
+          "baseType": "String"
+        }
+      },
+      "rid": "ri.actions.main.action-type.e41388bf-c415-4199-98bd-3e42b1c997f8"
     },
     {
       "apiName": "edit-omop-concept-set-expression-is-excluded",

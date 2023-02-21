@@ -38,7 +38,7 @@ def initialize(clobber=False, schema: str = SCHEMA):
     - https://docs.sqlalchemy.org/en/20/dialects/mysql.html
     """
     with get_db_connection() as con:
-        create_db(con)
+        # create_db(con) # causing error. don't need it at the moment anyway
         seed(con, schema, clobber)
         indexes_and_derived_tables(con)
 
