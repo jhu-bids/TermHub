@@ -1,4 +1,141 @@
 
+-- what i used to get table counts
+
+set search_path = n3c;
+select count(*) from code_sets;
+select count(*) from concept;
+select count(*) from concept_ancestor;
+select count(*) from concept_relationship;
+select count(*) from concept_relationship_plus;
+select count(*) from concept_set_container;
+select count(*) from concept_set_counts_clamped;
+select count(*) from concept_set_members;
+select count(*) from concept_set_version_item;
+select count(*) from concepts_with_counts;
+select count(*) from concepts_with_counts_ungrouped;
+select count(*) from cset_members_items;
+select count(*) from cset_members_items_plus;
+select count(*) from deidentified_term_usage_by_domain_clamped;
+select count(*) from omopconceptset;
+select count(*) from omopconceptsetcontainer;
+select count(*) from omopconceptsetversionitem;
+select count(*) from researcher;
+n3c.concept; 0
+n3c.concept_ancestor; 0
+n3c.concept_relationship; 0
+n3c.concept_relationship_plus; 16971521
+n3c.concept_set_container; 0
+n3c.concept_set_counts_clamped; 0
+n3c.concept_set_members; 0
+n3c.concept_set_version_item; 0
+n3c.concepts_with_counts; 6863475
+n3c.concepts_with_counts_ungrouped; 6864315
+n3c.cset_members_items; 7175324
+n3c.cset_members_items_plus; 0
+n3c.deidentified_term_usage_by_domain_clamped; 0
+n3c.omopconceptset; 0
+n3c.omopconceptsetcontainer; 0
+n3c.omopconceptsetversionitem; 10000
+n3c.researcher; 0
+
+
+
+set search_path = n3c_20230221;
+select count(*) from code_sets
+select count(*) from concept
+select count(*) from concept_ancestor
+select count(*) from concept_relationship
+select count(*) from concept_set_container
+select count(*) from concept_set_counts_clamped
+select count(*) from concept_set_members
+select count(*) from concept_set_version_item
+select count(*) from deidentified_term_usage_by_domain_clamped
+select count(*) from omopconceptset
+select count(*) from omopconceptsetcontainer
+select count(*) from researcher
+
+set search_path = n3c_before_20230206_1pm;
+select count(*) from code_sets;
+select count(*) from concept;
+select count(*) from concept_ancestor;
+select count(*) from concept_relationship;
+select count(*) from concept_relationship_plus;
+select count(*) from concept_set_container;
+select count(*) from concept_set_counts_clamped;
+select count(*) from concept_set_members;
+select count(*) from concept_set_version_item;
+select count(*) from concepts_with_counts;
+select count(*) from concepts_with_counts_fix;
+select count(*) from concepts_with_counts_ungrouped;
+select count(*) from cset_members_items;
+select count(*) from cset_members_items_plus;
+select count(*) from deidentified_term_usage_by_domain_clamped;
+select count(*) from omopconceptset;
+select count(*) from omopconceptsetcontainer;
+select count(*) from researcher;
+
+n3c_before_20230206_1pm.concept; 0
+n3c_before_20230206_1pm.concept_ancestor; 0
+n3c_before_20230206_1pm.concept_relationship; 0
+n3c_before_20230206_1pm.concept_relationship_plus; 67886084
+n3c_before_20230206_1pm.concept_set_container; 0
+n3c_before_20230206_1pm.concept_set_counts_clamped; 0
+n3c_before_20230206_1pm.concept_set_members; 0
+n3c_before_20230206_1pm.concept_set_version_item; 0
+n3c_before_20230206_1pm.concepts_with_counts; 6863475
+n3c_before_20230206_1pm.concepts_with_counts_fix; 6863475
+n3c_before_20230206_1pm.concepts_with_counts_ungrouped; 6864321
+n3c_before_20230206_1pm.cset_members_items; 8014666
+n3c_before_20230206_1pm.cset_members_items_plus; 0
+n3c_before_20230206_1pm.deidentified_term_usage_by_domain_clamped; 0
+n3c_before_20230206_1pm.omopconceptset; 0
+n3c_before_20230206_1pm.omopconceptsetcontainer; 0
+n3c_before_20230206_1pm.researcher; 0
+
+
+set search_path = n3c_messed_up_20230221;
+select count(*) from all_csets;
+select count(*) from code_sets;
+select count(*) from concept;
+select count(*) from concept_ancestor;
+select count(*) from concept_relationship;
+select count(*) from concept_relationship_plus;
+select count(*) from concept_set_container;
+select count(*) from concept_set_counts_clamped;
+select count(*) from concept_set_json;
+select count(*) from concept_set_members;
+select count(*) from concept_set_version_item;
+select count(*) from concepts_with_counts;
+select count(*) from concepts_with_counts_ungrouped;
+select count(*) from cset_members_items;
+select count(*) from cset_members_items_plus;
+select count(*) from deidentified_term_usage_by_domain_clamped;
+select count(*) from omopconceptset;
+select count(*) from omopconceptsetcontainer;
+select count(*) from researcher;
+
+
+
+n3c_messed_up_20230221.code_sets; 0
+n3c_messed_up_20230221.concept; 0
+n3c_messed_up_20230221.concept_ancestor; 0
+n3c_messed_up_20230221.concept_relationship; 0
+n3c_messed_up_20230221.concept_relationship_plus; 16971521
+n3c_messed_up_20230221.concept_set_container; 0
+n3c_messed_up_20230221.concept_set_counts_clamped; 0
+n3c_messed_up_20230221.concept_set_json; 52
+n3c_messed_up_20230221.concept_set_members; 0
+n3c_messed_up_20230221.concept_set_version_item; 0
+n3c_messed_up_20230221.concepts_with_counts; 6863475
+n3c_messed_up_20230221.concepts_with_counts_ungrouped; 6864315
+n3c_messed_up_20230221.cset_members_items; 7175324
+n3c_messed_up_20230221.cset_members_items_plus; 0
+n3c_messed_up_20230221.deidentified_term_usage_by_domain_clamped; 0
+n3c_messed_up_20230221.omopconceptset; 0
+n3c_messed_up_20230221.omopconceptsetcontainer; 0
+n3c_messed_up_20230221.researcher; 0
+
+
 THIS IS COMPLETE JUNK AT THE MOMENT
 
 -- from https://github.com/Sigfried/ohdsi-api/blob/master/sql-scripts/cols-and-counts.sql
