@@ -40,7 +40,7 @@ def initialize(clobber=False, schema: str = SCHEMA):
     with get_db_connection() as con:
         # create_db(con) # causing error. don't need it at the moment anyway
         seed(con, schema, clobber)
-        indexes_and_derived_tables(con)
+        indexes_and_derived_tables(con, schema) #, start_step=30)
 
 
 if __name__ == '__main__':

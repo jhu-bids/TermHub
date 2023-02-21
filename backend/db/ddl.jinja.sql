@@ -132,7 +132,6 @@ SELECT    csmi.*
         , c.standard_concept
 FROM {{schema}}cset_members_items csmi
 JOIN concept c ON csmi.concept_id = c.concept_id);
-
 -- CREATE INDEX csmip_idx1 ON {{schema}}cset_members_items_plus(codeset_id);
 -- CREATE INDEX csmip_idx2 ON {{schema}}cset_members_items_plus(concept_id);
 -- CREATE INDEX csmip_idx3 ON {{schema}}cset_members_items_plus(codeset_id, concept_id);
@@ -141,7 +140,6 @@ JOIN concept c ON csmi.concept_id = c.concept_id);
 --  get rid of duplicates, keeping the most recent.
 --  code from https://stackoverflow.com/a/28085614/1368860
 --      which also has code that works for databases other than postgres, if we ever need that
-
 WITH deduped AS (
     SELECT DISTINCT ON (concept_set_id) concept_set_id, created_at
     FROM {{schema}}concept_set_container
@@ -194,7 +192,6 @@ CREATE TABLE IF NOT EXISTS {{schema}}concepts_with_counts AS (
 
 CREATE INDEX cc_idx1 ON {{schema}}concepts_with_counts(concept_id);
 
-
 -- concept_relationship_plus takes a long time to build
 DROP TABLE IF EXISTS {{schema}}concept_relationship_plus;
 -- using concept_relationship_plus not just for convenience in debugging now but also
@@ -233,19 +230,6 @@ CREATE INDEX crp_idx5 ON {{schema}}concept_relationship_plus(relationship_id);
 --  get rid of duplicates, keeping the most recent.
 --  code from https://stackoverflow.com/a/28085614/1368860
 --      which also has code that works for databases other than postgres, if we ever need that
-
-WITH deduped AS (
-    SELECT DISTINCT ON (concept_set_id) concept_set_id, created_at
-FROM {{schema}}concept_set_container
-ORDER BY concept_set_id, created_at DESC
-    )
-DELETE FROM {{schema}}concept_set_container csc
-WHERE NOT EXISTS (
-        SELECT FROM deduped dd
-        WHERE csc.concept_set_id = dd.concept_set_id
-          AND csc.created_at = dd.created_at
-);
-
 CREATE TABLE IF NOT EXISTS {{schema}}concept_set_json (
     codeset_id int,
     json json

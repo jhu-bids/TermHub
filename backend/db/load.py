@@ -48,7 +48,9 @@ def seed(con: Connection, schema: str = SCHEMA, clobber=False, skip_if_updated_w
         load_csv(con, table, table_type='object', replace_rule=replace_rule, schema=schema)
 
 
-def indexes_and_derived_tables(con: Connection, schema_name: str, skip_if_updated_within_hours: int = None):
+def indexes_and_derived_tables(con: Connection, schema_name: str,
+                                skip_if_updated_within_hours: int = None,
+                                start_step: int = None):  # missing manage table, so adding this param
     """Create indexes and derived tables"""
     # Determine and set up progress tracking
     last_completed_key = 'last_updated_indexes_and_derived_tables'
@@ -66,18 +68,21 @@ def indexes_and_derived_tables(con: Connection, schema_name: str, skip_if_update
     commands: List[str] = [x + ';' for x in ddl.split(';\n\n')]
 
     # Determine which steps still needed
-    with get_db_connection(schema='') as con2:
-        last_successful_step = run_sql(
-            con2, f"SELECT value FROM manage WHERE key = '{last_successful_step_key}';").first()
-    last_successful_step = int(last_successful_step[0]) if last_successful_step else None
-    print('INFO: Creating derived tables (e.g. `all_csets`) and indexes.')
+    if start_step:
+        last_successful_step = start_step
+    else:
+        with get_db_connection(schema='') as con2:
+            last_successful_step = run_sql(
+                con2, f"SELECT value FROM manage WHERE key = '{last_successful_step_key}';").first()
+        last_successful_step = int(last_successful_step[0]) if last_successful_step else None
+        print('INFO: Creating derived tables (e.g. `all_csets`) and indexes.')
     if last_successful_step:
         print(f'INFO: Last successful command was {last_successful_step} of {len(commands)}. Continuing from there.')
 
     # Updates
     for index, command in enumerate(commands):
         step_num = index + 1
-        if last_successful_step >= step_num:
+        if last_successful_step and last_successful_step >= step_num:
             continue
         print(f'INFO: indexes_and_derived_tables: Running command {step_num} of {len(commands)}')
         try:
