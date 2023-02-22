@@ -10,7 +10,7 @@ In psql alter name of n3c to desired name of backup schema:
 
 Then create backup file \(from cmd line\):
 
-  pg_dump -d $psql_conn -n n3c_backup_$dt -f n3c_backup_$dt.dmp
+  pg_dump -d \$psql_conn -n n3c_backup_$dt -f n3c_backup_$dt.dmp
 
 Then rename back to n3c:
 
