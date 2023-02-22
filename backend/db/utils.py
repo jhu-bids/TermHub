@@ -73,7 +73,7 @@ def is_up_to_date(last_updated: Union[datetime, str], threshold_hours=24) -> boo
 def check_if_updated(key: str, skip_if_updated_within_hours: int = None) -> bool:
     """Check if table is up to date"""
     with get_db_connection(schema='') as con2:
-        results = sql_query(con2, f"SELECT value FROM manage WHERE key = '{key}';")
+        results = sql_query(con2, f"SELECT value FROM public.manage WHERE key = '{key}';")
     last_updated = results[0][0] if results else None
     return last_updated and is_up_to_date(last_updated, skip_if_updated_within_hours)
 
@@ -88,8 +88,8 @@ def update_db_status_var(key: str, val: str):
     """Update the `manage` table with information for a given variable, e.g. when a table was last updated
     todo: change to 1 line: INSERT OVERWRITE or UPDATE"""
     with get_db_connection(schema='') as con2:
-        run_sql(con2, f"DELETE FROM manage WHERE key = '{key}';")
-        sql_str = f"INSERT INTO manage (key, value) VALUES ('{key}', '{val}');"
+        run_sql(con2, f"DELETE FROM public.manage WHERE key = '{key}';")
+        sql_str = f"INSERT INTO public.manage (key, value) VALUES ('{key}', '{val}');"
         run_sql(con2, sql_str)
 
 

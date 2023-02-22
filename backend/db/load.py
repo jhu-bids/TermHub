@@ -85,7 +85,7 @@ def indexes_and_derived_tables(con: Connection, schema_name: str,
     else:
         with get_db_connection(schema='') as con2:
             last_successful_step = run_sql(
-                con2, f"SELECT value FROM manage WHERE key = '{last_successful_step_key}';").first()
+                con2, f"SELECT value FROM public.manage WHERE key = '{last_successful_step_key}';").first()
         last_successful_step = int(last_successful_step[0]) if last_successful_step else None
         print('INFO: Creating derived tables (e.g. `all_csets`) and indexes.')
     if last_successful_step:
