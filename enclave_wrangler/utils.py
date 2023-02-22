@@ -137,13 +137,15 @@ def check_token_ttl(token: str, warning_threshold=60 * 60 * 24 * 14):
 
 
 def response_failed(response: Response) -> bool:
+    """Return True if response failed, else False"""
     return response.status_code >= 400  # check anything else ever?
-def handle_response_error(response: Response, error_dir: Union[str, None] = None,
-                          fail: bool = False, calling_func: str = 'response error'):
-    """
-        This code was taken out of objects_api:get_objects_by_type. Trying to use it
-        for all Response errors now. Not sure if it's entirely appropriate.
-    """
+
+
+def handle_response_error(
+    response: Response, error_dir: Union[str, None] = None, fail: bool = False, calling_func: str = 'response error'
+):
+    """This code was taken out of objects_api:get_objects_by_type. Trying to use it
+    for all Response errors now. Not sure if it's entirely appropriate."""
     failed = response_failed(response)
     if failed:
         print(f'Error: {calling_func}: {str(response.status_code)} {response.reason}', file=sys.stderr)
@@ -210,7 +212,7 @@ def make_objects_request(
         expect_single_item=False,
         retry_if_empty=False, retry_times=15, retry_pause=1,
         error_report: bool = True, fail_on_error=False, **request_args
-) -> Union[Response, str]:
+) -> Union[Response, Dict, List[Dict], str]:
     """Passthrough for HTTP request
     return_type should be Response, json, or data
     Enclave docs:
@@ -240,7 +242,7 @@ def make_objects_request(
             if data:
                 return data
         else:
-            response = enclave_get(url, verbose=verbose, error_report=False, **request_args)
+            response = enclave_get(url, verbose=verbose, **request_args)
             response_json = response.json()
             data = response_json if expect_single_item else response.json()['data']
             if data:

@@ -25,7 +25,8 @@ SCHEMA = CONFIG["schema"]
 
 
 def get_db_connection(isolation_level='AUTOCOMMIT', schema: str = SCHEMA, local=False):
-    """Connect to db"""
+    """Connect to db
+    :param local: If True, connection is on local instead of production database."""
     engine = create_engine(get_pg_connect_url(local), isolation_level=isolation_level)
 
     @event.listens_for(engine, "connect", insert=True)
