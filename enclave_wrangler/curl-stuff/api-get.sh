@@ -12,10 +12,10 @@ while getopts ":hcd:a:u:" option; do
     c)      # echo curl command, don't run it
             echo_only="true"
             ;;
-    #d)       specify json data (for actions or queries)
+    d)      # specify json data (for actions or queries) -- only works with -c
+            data=\'${OPTARG}\'
+            ;;
             # [[ "$echo_only" == "false" ]] && { echo "can't get data to work; use -c option and copy/paste command"; exit 1; }
-            #data=\'${OPTARG}\'
-            #;;
     h | *)  # Display help
             ;;
   esac
@@ -32,11 +32,27 @@ curl  -s -H "Content-type: application/json" \\
       https://unite.nih.gov/api/v1/ontologies/ri.ontology.main.ontology.00000000-0000-0000-0000-000000000000/$api | jq
 EOF
 
+if [[ ! -z "$data" ]] ; then
+  read -r -d '' cmd <<EOF
+  curl  -s -H "Content-type: application/json" \\
+        -H "Authorization: Bearer \$TOKEN"  \\
+        --data $data \\
+        https://unite.nih.gov/api/v1/ontologies/ri.ontology.main.ontology.00000000-0000-0000-0000-000000000000/$api | jq
+EOF
+fi
+
 if [ "$echo_only" = true ] ; then
   echo "$cmd"
   exit;
 fi
 
-curl -s -H "Content-type: application/json" \
-     -H "Authorization: Bearer $TOKEN" \
-     https://unite.nih.gov/api/v1/ontologies/ri.ontology.main.ontology.00000000-0000-0000-0000-000000000000/$api  | jq
+if [[ -z "$data" ]] ; then
+  curl -s -H "Content-type: application/json" \
+      -H "Authorization: Bearer $TOKEN" \
+      https://unite.nih.gov/api/v1/ontologies/ri.ontology.main.ontology.00000000-0000-0000-0000-000000000000/$api  | jq
+else
+  curl -s -H "Content-type: application/json" \
+      -H "Authorization: Bearer $TOKEN" \
+      -d $data \
+      https://unite.nih.gov/api/v1/ontologies/ri.ontology.main.ontology.00000000-0000-0000-0000-000000000000/$api  | jq
+fi

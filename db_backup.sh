@@ -1,24 +1,21 @@
 #! /bin/sh
 
 dt=$(date +%Y%m%d)
+fname=n3c_backup_$dt
+
 cat <<-END
+ 
+
 How to make a backup of n3c schema
 ----------------------------------
-In psql alter name of n3c to desired name of backup schema:
 
-  alter SCHEMA n3c RENAME TO n3c_backup_$dt;
-
-Then create backup file \(from cmd line\):
-
-  pg_dump -d \$psql_conn -n n3c_backup_$dt -f n3c_backup_$dt.dmp
-
-Then rename back to n3c:
-
-  alter SCHEMA n3c_backup_$dt RENAME TO n3c;
+pg_dump -d \$psql_conn -n n3c | sed '/^[0-9][0-9]*\t/! s/[[:<:]]n3c[[:>:]]/$fname/' > $fname.dmp 
 
 Then restore backup schema:
 
-  psql -d \$psql_conn < n3c_backup_$dt.dmp
+psql -d \$psql_conn < $fname.dmp
+
+Make sure that the dump file is around 7.9G and that it restored appropriately.
 
 END
 

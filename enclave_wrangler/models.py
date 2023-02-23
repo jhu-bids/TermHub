@@ -12,6 +12,8 @@ from typing import Dict, List
 import pandas as pd
 
 from enclave_wrangler.utils import EnclaveWranglerErr
+from enclave_wrangler.actions_api import make_actions_request
+from enclave_wrangler.objects_api import make_objects_request
 
 class ObjWithMetadata:
     def __init__():
@@ -29,19 +31,37 @@ class ObjWithMetadata:
 class CsetVersion(ObjWithMetadata):
     """Cset version"""
 
+    def create_new_draft_minimal(self, validate_first: bool = True, **kwargs):
+        #concept_set_name: str, codeset_id: int, on_behalf_of):
+        # params = dict(kwargs)
+        data = {"parameters": kwargs}
+        response = make_actions_request('create-new-draft-omop-concept-set-version',
+                                        process_error=True,
+                                        data=data, validate_first=validate_first)
+        # if valid response
+        self.properties = make_objects_request('OMOPConceptSet', return_type='data',
+                                    expect_single_item=True, retry_if_empty=True,
+                                    retry_times=3)
+        return response # return whether succeeded or not
+
+    def create_from_csv(self, obj):
+        self.container = CsetContainer(concept_set_name=obj['concept_set_name'])
+
+        does_container_exist(obj)
+
     # This is useful because they come as camel case from following locations: (i) xxxx, (ii) xxxx
-    field_names_camel_case = [
-        'conceptSetName',
-        'parentVersionCodesetId',
-        'currentMaxVersion',
-        provenance,
-        limitations,
-        annotation
-    ]
-    param_spelling_variations = [
-
-    ]
-
+    # field_names_camel_case = [
+    #     'conceptSetName',
+    #     'parentVersionCodesetId',
+    #     'currentMaxVersion',
+    #     provenance,
+    #     limitations,
+    #     annotation
+    # ]
+    # param_spelling_variations = [
+    #
+    # ]
+    #
 
 
     # todo: are these fields actually used by a new version: domain_team, intention, authority

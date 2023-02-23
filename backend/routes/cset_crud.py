@@ -235,6 +235,21 @@ def vocab_update():
     pass
 
 
+@router.post("/create-new-draft-omop-concept-set-version")
+def route_create_new_draft_omop_concept_set_version(d: UploadJsonNewCsetVersionWithConcepts) -> Dict:
+    """Upload new version of existing container, with concepets"""
+    api_name = 'create-new-draft-omop-concept-set-version'
+    # TODO: Persist: see route_upload_new_container_with_concepts() for more info
+    # result = csets_update(dataset_path='', row_index_data_map={})
+    try:
+        response = upload_new_cset_version_with_concepts(**d.__dict__)
+    except EnclaveWranglerErr as e:
+        print(e, file=sys.stderr)
+        return {'error': str(e)}
+
+    return response  # todo: return. should include: assigned codeset_id's
+
+
 # todo #123: add baseVersion: the version that the user starts off from in order to create their own new concept set
 #  ...version. I need to add the ability to get arbitrary args (*args) including baseVersion, here in these routes and
 #  ...in the other functions.
@@ -331,3 +346,4 @@ def route_csv_upload_new_container_with_concepts(data: UploadCsvVersionWithConce
     # print('CSV upload result: ')
     # print(json.dumps(response, indent=2))
     return response
+

@@ -39,7 +39,7 @@
   text-overflow: unset;
   justify-content: left; /* fixes weird thing with rightmost col shifting left when rotated */
   margin-right: auto;
-  transform: translate(18px,0px) rotate(-45deg);
+  transform: translate(50%,0px) rotate(-45deg);
   transform-origin: bottom left;
 }
 .comparison-data-table .rdt_TableHeadRow > div + div div

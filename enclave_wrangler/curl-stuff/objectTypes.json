@@ -39,6 +39,46 @@
       "rid": "ri.ontology.main.object-type.0320db7e-c1d3-45ec-b8e5-9516d45d63a2"
     },
     {
+      "apiName": "PublicationCommitteeInternalNote",
+      "description": "Reviewer internal comments regarding Publication Intent Submissions",
+      "primaryKey": [
+        "commentId"
+      ],
+      "properties": {
+        "publicationIntentSubmission": {
+          "baseType": "String"
+        },
+        "backupReviewerDateOfCommentary": {
+          "baseType": "Timestamp"
+        },
+        "primaryReviewerInternalComment": {
+          "baseType": "String"
+        },
+        "commentId": {
+          "baseType": "String"
+        },
+        "secondaryReviewerDateOfCommentary": {
+          "baseType": "Timestamp"
+        },
+        "submissionId": {
+          "baseType": "String"
+        },
+        "submissionName": {
+          "baseType": "String"
+        },
+        "backupReviewerInternalComment": {
+          "baseType": "String"
+        },
+        "secondaryReviewerInternalComment": {
+          "baseType": "String"
+        },
+        "dateOfCommentary": {
+          "baseType": "Timestamp"
+        }
+      },
+      "rid": "ri.ontology.main.object-type.08d9c51b-4a7a-4bb9-8fd4-b0362db1625d"
+    },
+    {
       "apiName": "DrugExposureNotional",
       "description": "",
       "primaryKey": [
@@ -135,6 +175,40 @@
         }
       },
       "rid": "ri.ontology.main.object-type.0ab1fc2a-7709-45b4-914c-af48a4b4e962"
+    },
+    {
+      "apiName": "LogAddInternalBackupReviewerCommentToPublicationIntentSubmission",
+      "description": "This object type was automatically created when logging was enabled for the Action type: Add Internal Backup Reviewer Comment to Publication Intent Submission",
+      "primaryKey": [
+        "actionRid"
+      ],
+      "properties": {
+        "actionTriggererUserId": {
+          "baseType": "String"
+        },
+        "backupReviewerInternalComment_1": {
+          "baseType": "String"
+        },
+        "publicationCommitteeInternalNote": {
+          "baseType": "Array<String>"
+        },
+        "actionRid": {
+          "baseType": "String"
+        },
+        "actionTypeRid": {
+          "baseType": "String"
+        },
+        "actionTypeVersion": {
+          "baseType": "String"
+        },
+        "actionSummary": {
+          "baseType": "String"
+        },
+        "actionTimestamp": {
+          "baseType": "Timestamp"
+        }
+      },
+      "rid": "ri.ontology.main.object-type.0c66bdd5-e1fe-4de7-8a25-695b53f4804f"
     },
     {
       "apiName": "OmopConceptSetVersionItem",
@@ -347,6 +421,220 @@
       "rid": "ri.ontology.main.object-type.1a2ab3cc-ba65-4eb0-9fcd-5ea80fe04dbb"
     },
     {
+      "apiName": "PublicationIntentSubmission",
+      "description": "Manuscript submission to the N3C Publications Committee",
+      "primaryKey": [
+        "submissionId"
+      ],
+      "properties": {
+        "selfVerificationDataPartnerIdsHaveBeenMasked": {
+          "baseType": "Boolean"
+        },
+        "correspondingAuthorEmail": {
+          "baseType": "String"
+        },
+        "comments": {
+          "baseType": "String"
+        },
+        "selfVerificationDegreeOfGeneralizabilityIsDiscussed": {
+          "baseType": "Boolean"
+        },
+        "confirmationOfNoOverlap": {
+          "baseType": "Boolean"
+        },
+        "selfVerificationStudySampleCharacteristicsTableIsConsistentWithOtherN3cStudiesIfApplicable": {
+          "baseType": "Boolean"
+        },
+        "citingTheGrant": {
+          "baseType": "String"
+        },
+        "selfVerificationSourcesOfDataHeterogeneityAreDescribed": {
+          "baseType": "Boolean"
+        },
+        "pascOrN3c": {
+          "baseType": "String"
+        },
+        "secondaryReviewerNotes": {
+          "baseType": "String"
+        },
+        "lastLineOfAbstract": {
+          "baseType": "Boolean"
+        },
+        "lastAuthor": {
+          "baseType": "String"
+        },
+        "manuscriptId": {
+          "baseType": "String"
+        },
+        "explainHowWorkFitsIntoTheScopeOfTheDur": {
+          "baseType": "String"
+        },
+        "nameOfPublicationIntentSubmitter": {
+          "baseType": "String"
+        },
+        "selfVerificationIrbNumberHasBeenIncluded": {
+          "baseType": "Boolean"
+        },
+        "durDescription": {
+          "baseType": "String"
+        },
+        "nihFundingPeerReviewAcknowledgement": {
+          "baseType": "String"
+        },
+        "backupReviewerNotes": {
+          "baseType": "String"
+        },
+        "activeReviewers": {
+          "baseType": "Array<String>"
+        },
+        "lastAuthorIsFollowedByN3cConsortiumStatement": {
+          "baseType": "Boolean"
+        },
+        "rpGroupId": {
+          "baseType": "String"
+        },
+        "knowledgeStoreItemsUsed": {
+          "baseType": "String"
+        },
+        "secondaryReviewerCommentsToAuthors": {
+          "baseType": "String"
+        },
+        "primaryReviewerNotes": {
+          "baseType": "String"
+        },
+        "hasDownloadRequestBeenApproved": {
+          "baseType": "String"
+        },
+        "selfVerificationCannotBackCalculateToUnacceptableCellSizes_": {
+          "baseType": "Boolean"
+        },
+        "submissionId": {
+          "baseType": "String"
+        },
+        "acknowledgementToNotPresentOrSubmitBeforePublicationCommitteeApprovalHadBeenObtained": {
+          "baseType": "Boolean"
+        },
+        "targetVenue": {
+          "baseType": "String"
+        },
+        "backupReviewerDateOfReview": {
+          "baseType": "Timestamp"
+        },
+        "allGrantsSupportingTheAuthorsHaveBeenAcknowledged": {
+          "baseType": "Boolean"
+        },
+        "msReviewedAt": {
+          "baseType": "Timestamp"
+        },
+        "msBackupReviewer": {
+          "baseType": "String"
+        },
+        "firstAuthor": {
+          "baseType": "String"
+        },
+        "reviewId": {
+          "baseType": "String"
+        },
+        "backupReviewerCommentsToAuthors": {
+          "baseType": "String"
+        },
+        "selfVerificationFiguresAndSummaryDataApprovedForExport": {
+          "baseType": "Boolean"
+        },
+        "submissionDate": {
+          "baseType": "Timestamp"
+        },
+        "selfVerificationDurIdIncludedInPaper": {
+          "baseType": "Boolean"
+        },
+        "manuscriptTextDocumentLink": {
+          "baseType": "String"
+        },
+        "dataUseRequestProject": {
+          "baseType": "String"
+        },
+        "secondaryReviewerReviewId": {
+          "baseType": "String"
+        },
+        "msSecondaryReviewer": {
+          "baseType": "String"
+        },
+        "priorPresentationDetails": {
+          "baseType": "String"
+        },
+        "targetSubmissionDate": {
+          "baseType": "LocalDate"
+        },
+        "msPrimaryReviewer": {
+          "baseType": "String"
+        },
+        "primaryReviewerCommentsToAuthors": {
+          "baseType": "String"
+        },
+        "draftProgressNumber": {
+          "baseType": "Integer"
+        },
+        "authorshipWasDeterminedUsingIcmjeRecommendations": {
+          "baseType": "String"
+        },
+        "reviewStatus": {
+          "baseType": "String"
+        },
+        "manuscriptTitle": {
+          "baseType": "String"
+        },
+        "rp": {
+          "baseType": "String"
+        },
+        "willThisWorkBePresented": {
+          "baseType": "String"
+        },
+        "dataAccessTier": {
+          "baseType": "String"
+        },
+        "secondaryReviewerDateOfReview": {
+          "baseType": "Timestamp"
+        },
+        "postingPermission": {
+          "baseType": "String"
+        },
+        "backupReviewerReviewId": {
+          "baseType": "String"
+        },
+        "selfVerificationCellSizes": {
+          "baseType": "Boolean"
+        },
+        "correspondingAuthorName": {
+          "baseType": "String"
+        },
+        "submissionStatus": {
+          "baseType": "String"
+        },
+        "conceptSetsUsed": {
+          "baseType": "String"
+        },
+        "hasTheWorkAlreadyBeenPresented": {
+          "baseType": "String"
+        },
+        "selfVerificationLimitationsOfN3cSourcedDataAreDiscussed": {
+          "baseType": "Boolean"
+        },
+        "sdoHRelatedOrLongCovid": {
+          "baseType": "Array<String>"
+        },
+        "n3cConsortiumVsProjectBasedWork": {
+          "baseType": "String"
+        },
+        "plannedPresentationDetails": {
+          "baseType": "String"
+        },
+        "draftProgress": {
+          "baseType": "String"
+        }
+      },
+      "rid": "ri.ontology.main.object-type.1db14643-50fe-44e7-8905-8d7d856a8d66"
+    },
+    {
       "apiName": "OmopConceptChange",
       "description": "",
       "primaryKey": [
@@ -494,6 +782,52 @@
       "rid": "ri.ontology.main.object-type.22066526-9549-4c82-ba66-f6cb636bcfd3"
     },
     {
+      "apiName": "PublicationContribution",
+      "description": "",
+      "primaryKey": [
+        "contributionId"
+      ],
+      "properties": {
+        "researchProject": {
+          "baseType": "String"
+        },
+        "contributionNotes": {
+          "baseType": "String"
+        },
+        "rpGroupId": {
+          "baseType": "String"
+        },
+        "researcherName": {
+          "baseType": "String"
+        },
+        "contributorRoleSubclass": {
+          "baseType": "Array<String>"
+        },
+        "manuscriptName": {
+          "baseType": "String"
+        },
+        "publicationIntentSubmissionId": {
+          "baseType": "String"
+        },
+        "contributionEndDate": {
+          "baseType": "LocalDate"
+        },
+        "contributionStartDate": {
+          "baseType": "LocalDate"
+        },
+        "researcherOrcid": {
+          "baseType": "String"
+        },
+        "contributionId": {
+          "baseType": "String"
+        },
+        "proposedLevelOfContribution": {
+          "baseType": "Array<String>"
+        }
+      },
+      "rid": "ri.ontology.main.object-type.2320b956-38c2-49b7-9988-86166defcc19"
+    },
+    {
       "apiName": "NewObjectType",
       "description": "",
       "primaryKey": [
@@ -517,6 +851,46 @@
         }
       },
       "rid": "ri.ontology.main.object-type.26a0f2b1-340f-4395-9de2-32b6411b1b41"
+    },
+    {
+      "apiName": "LogSetReviewerApprovalStatusForUnitConversionFormula",
+      "description": "This object type was automatically created when logging was enabled for the Action type: Set Reviewer Approval Status for Unit Conversion Formula",
+      "primaryKey": [
+        "actionRid"
+      ],
+      "properties": {
+        "actionTriggererUserId": {
+          "baseType": "String"
+        },
+        "mappingFunction_1": {
+          "baseType": "String"
+        },
+        "admsApproval_1": {
+          "baseType": "String"
+        },
+        "unitConversionFormula": {
+          "baseType": "Array<String>"
+        },
+        "actionRid": {
+          "baseType": "String"
+        },
+        "actionTypeRid": {
+          "baseType": "String"
+        },
+        "actionTypeVersion": {
+          "baseType": "String"
+        },
+        "conversionEquation_1": {
+          "baseType": "String"
+        },
+        "actionSummary": {
+          "baseType": "String"
+        },
+        "actionTimestamp": {
+          "baseType": "Timestamp"
+        }
+      },
+      "rid": "ri.ontology.main.object-type.26a672f2-ca5b-4c63-99e7-df019473d145"
     },
     {
       "apiName": "ProtocolContribution",
@@ -871,6 +1245,52 @@
       "rid": "ri.ontology.main.object-type.2db0f7f4-c174-45f2-a42a-6885908b3aae"
     },
     {
+      "apiName": "Manuscript",
+      "description": "N3C Manuscript",
+      "primaryKey": [
+        "manuscriptId"
+      ],
+      "properties": {
+        "manuscriptPublicationStatus": {
+          "baseType": "Array<String>"
+        },
+        "rp": {
+          "baseType": "String"
+        },
+        "linksToMediaCoverage": {
+          "baseType": "Array<String>"
+        },
+        "rpGroupId": {
+          "baseType": "String"
+        },
+        "manuscriptCreationDatetime": {
+          "baseType": "Timestamp"
+        },
+        "linkToPrePrintPublication": {
+          "baseType": "String"
+        },
+        "linksToConferencesWhereThisManuscriptIsPresented": {
+          "baseType": "Array<String>"
+        },
+        "dummyVariable": {
+          "baseType": "Array<String>"
+        },
+        "linkToPeerReviewedPublication": {
+          "baseType": "String"
+        },
+        "manuscriptTitle": {
+          "baseType": "String"
+        },
+        "targetVenue": {
+          "baseType": "String"
+        },
+        "manuscriptId": {
+          "baseType": "String"
+        }
+      },
+      "rid": "ri.ontology.main.object-type.3337bb93-52c6-4374-9eb7-032e1efb2e57"
+    },
+    {
       "apiName": "DomainTeam",
       "primaryKey": [
         "domainTeamUid"
@@ -964,6 +1384,40 @@
         }
       },
       "rid": "ri.ontology.main.object-type.370aeca4-ade0-4095-ad34-917809fab03b"
+    },
+    {
+      "apiName": "LogSetKnowledgeObjectsForPublicationIntentSubmission",
+      "description": "This object type was automatically created when logging was enabled for the Action type: Set Knowledge Objects for Publication Intent Submission",
+      "primaryKey": [
+        "actionRid"
+      ],
+      "properties": {
+        "actionTriggererUserId": {
+          "baseType": "String"
+        },
+        "publicationIntentSubmission": {
+          "baseType": "Array<String>"
+        },
+        "n3CKnowledgeObjects": {
+          "baseType": "Array<String>"
+        },
+        "actionRid": {
+          "baseType": "String"
+        },
+        "actionTypeRid": {
+          "baseType": "String"
+        },
+        "actionTypeVersion": {
+          "baseType": "String"
+        },
+        "actionSummary": {
+          "baseType": "String"
+        },
+        "actionTimestamp": {
+          "baseType": "Timestamp"
+        }
+      },
+      "rid": "ri.ontology.main.object-type.376e594e-f5db-475b-9780-6616e2ae9dfd"
     },
     {
       "apiName": "LogUnsubscribeConceptSet",
@@ -1182,6 +1636,40 @@
       "rid": "ri.ontology.main.object-type.3e5cb6ec-9f34-418d-a517-9283949ddcd2"
     },
     {
+      "apiName": "LogRemoveDomainTeamsForPublicationIntent",
+      "description": "This object type was automatically created when logging was enabled for the Action type: Remove Domain Teams for Publication Intent Submission",
+      "primaryKey": [
+        "actionRid"
+      ],
+      "properties": {
+        "actionTriggererUserId": {
+          "baseType": "String"
+        },
+        "publicationIntentSubmission": {
+          "baseType": "Array<String>"
+        },
+        "actionRid": {
+          "baseType": "String"
+        },
+        "domainTeam": {
+          "baseType": "Array<String>"
+        },
+        "actionTypeRid": {
+          "baseType": "String"
+        },
+        "actionTypeVersion": {
+          "baseType": "String"
+        },
+        "actionSummary": {
+          "baseType": "String"
+        },
+        "actionTimestamp": {
+          "baseType": "Timestamp"
+        }
+      },
+      "rid": "ri.ontology.main.object-type.42e95d20-aa64-4a1a-8f6a-2e94ad7ef560"
+    },
+    {
       "apiName": "KnowledgeObjectUpdateRequest",
       "description": "",
       "primaryKey": [
@@ -1362,6 +1850,43 @@
       "rid": "ri.ontology.main.object-type.506aa12a-26ab-405a-a608-a40b862a672c"
     },
     {
+      "apiName": "LogSetConceptSetsForPublicationIntentSubmission",
+      "description": "This object type was automatically created when logging was enabled for the Action type: Set Concept Sets for Publication Intent Submission",
+      "primaryKey": [
+        "actionRid"
+      ],
+      "properties": {
+        "actionTriggererUserId": {
+          "baseType": "String"
+        },
+        "publicationIntentSubmission": {
+          "baseType": "Array<String>"
+        },
+        "actionRid": {
+          "baseType": "String"
+        },
+        "actionTypeRid": {
+          "baseType": "String"
+        },
+        "omopConceptSet": {
+          "baseType": "Array<Integer>"
+        },
+        "actionTypeVersion": {
+          "baseType": "String"
+        },
+        "codes_12": {
+          "baseType": "String"
+        },
+        "actionSummary": {
+          "baseType": "String"
+        },
+        "actionTimestamp": {
+          "baseType": "Timestamp"
+        }
+      },
+      "rid": "ri.ontology.main.object-type.56fda9e9-c8a5-4ab3-a6b5-770fd028cbc1"
+    },
+    {
       "apiName": "TrainingModuleResource",
       "description": "",
       "primaryKey": [
@@ -1385,6 +1910,37 @@
         }
       },
       "rid": "ri.ontology.main.object-type.5d21484c-f70a-4c39-9d60-82d646d07d23"
+    },
+    {
+      "apiName": "LogRemoveMeasurementUnitConversionFormula",
+      "description": "This object type was automatically created when logging was enabled for the Action type: Remove Unit Conversion Formula",
+      "primaryKey": [
+        "actionRid"
+      ],
+      "properties": {
+        "actionTriggererUserId": {
+          "baseType": "String"
+        },
+        "unitConversionFormula": {
+          "baseType": "Array<String>"
+        },
+        "actionRid": {
+          "baseType": "String"
+        },
+        "actionTypeRid": {
+          "baseType": "String"
+        },
+        "actionTypeVersion": {
+          "baseType": "String"
+        },
+        "actionSummary": {
+          "baseType": "String"
+        },
+        "actionTimestamp": {
+          "baseType": "Timestamp"
+        }
+      },
+      "rid": "ri.ontology.main.object-type.5d90f36b-e211-4d94-80c2-f6e5a65a4eef"
     },
     {
       "apiName": "KGCovid19UncategorizedNode",
@@ -1483,6 +2039,107 @@
         }
       },
       "rid": "ri.ontology.main.object-type.69ad3208-4fef-4f53-a99f-849833dc307d"
+    },
+    {
+      "apiName": "LogCreateNewMeasurementUnitConversionFormula",
+      "description": "This object type was automatically created when logging was enabled for the Action type: Create New Measurement Unit Conversion Formula",
+      "primaryKey": [
+        "actionRid"
+      ],
+      "properties": {
+        "originalUnitOmopConceptName_1": {
+          "baseType": "String"
+        },
+        "measurementOmopConceptName_1": {
+          "baseType": "String"
+        },
+        "addedToPipeline_1": {
+          "baseType": "String"
+        },
+        "unitConversionFormula": {
+          "baseType": "Array<String>"
+        },
+        "actionRid": {
+          "baseType": "String"
+        },
+        "actionTypeVersion": {
+          "baseType": "String"
+        },
+        "actionTypeRid": {
+          "baseType": "String"
+        },
+        "conversionEquation_1": {
+          "baseType": "String"
+        },
+        "permittedEditors_1": {
+          "baseType": "Array<String>"
+        },
+        "actionTriggererUserId": {
+          "baseType": "String"
+        },
+        "mappingFunction_1": {
+          "baseType": "String"
+        },
+        "admsApproval_1": {
+          "baseType": "String"
+        },
+        "harmonizedUnitOmopConceptName_1": {
+          "baseType": "String"
+        },
+        "actionSummary": {
+          "baseType": "String"
+        },
+        "actionTimestamp": {
+          "baseType": "Timestamp"
+        }
+      },
+      "rid": "ri.ontology.main.object-type.6c2e0fa2-7951-4f73-9b18-452f556ec4f0"
+    },
+    {
+      "apiName": "LogModifyMeasurementUnitConversionFormula",
+      "description": "This object type was automatically created when logging was enabled for the Action type: Modify Measurement Unit Conversion Formula",
+      "primaryKey": [
+        "actionRid"
+      ],
+      "properties": {
+        "actionTriggererUserId": {
+          "baseType": "String"
+        },
+        "originalUnitOmopConceptName_1": {
+          "baseType": "String"
+        },
+        "mappingFunction_1": {
+          "baseType": "String"
+        },
+        "measurementOmopConceptName_1": {
+          "baseType": "String"
+        },
+        "harmonizedUnitOmopConceptName_1": {
+          "baseType": "String"
+        },
+        "unitConversionFormula": {
+          "baseType": "Array<String>"
+        },
+        "actionRid": {
+          "baseType": "String"
+        },
+        "actionTypeRid": {
+          "baseType": "String"
+        },
+        "actionTypeVersion": {
+          "baseType": "String"
+        },
+        "conversionEquation_1": {
+          "baseType": "String"
+        },
+        "actionSummary": {
+          "baseType": "String"
+        },
+        "actionTimestamp": {
+          "baseType": "Timestamp"
+        }
+      },
+      "rid": "ri.ontology.main.object-type.6c6d4aca-8c49-49f5-ad1d-00ce7ffd9156"
     },
     {
       "apiName": "DraftOmopCohortVersionCodesetVersionLink",
@@ -2275,6 +2932,86 @@
       "rid": "ri.ontology.main.object-type.8a85206f-18b5-4718-b8bd-95ec8212c6b4"
     },
     {
+      "apiName": "LogRemoveConceptSetsForPublicationIntentSubmission",
+      "description": "This object type was automatically created when logging was enabled for the Action type: Remove Concept Sets for Publication Intent Submission",
+      "primaryKey": [
+        "actionRid"
+      ],
+      "properties": {
+        "actionTriggererUserId": {
+          "baseType": "String"
+        },
+        "publicationIntentSubmission": {
+          "baseType": "Array<String>"
+        },
+        "actionRid": {
+          "baseType": "String"
+        },
+        "actionTypeRid": {
+          "baseType": "String"
+        },
+        "omopConceptSet": {
+          "baseType": "Array<Integer>"
+        },
+        "actionTypeVersion": {
+          "baseType": "String"
+        },
+        "actionSummary": {
+          "baseType": "String"
+        },
+        "actionTimestamp": {
+          "baseType": "Timestamp"
+        }
+      },
+      "rid": "ri.ontology.main.object-type.90f97b42-b21d-470e-be03-82238ff65178"
+    },
+    {
+      "apiName": "LogAddInternalReviewCommentToPublicationIntentSubmission",
+      "description": "This object type was automatically created when logging was enabled for the Action type: Add New Internal Review Comment to Publication Intent Submission",
+      "primaryKey": [
+        "actionRid"
+      ],
+      "properties": {
+        "actionTriggererUserId": {
+          "baseType": "String"
+        },
+        "primaryReviewerInternalComment_4": {
+          "baseType": "String"
+        },
+        "backupReviewerInternalComment_4": {
+          "baseType": "String"
+        },
+        "publicationCommitteeInternalNote": {
+          "baseType": "Array<String>"
+        },
+        "actionRid": {
+          "baseType": "String"
+        },
+        "publicationIntentSubmissionManuscriptTitle_5": {
+          "baseType": "String"
+        },
+        "publicationIntentSubmissionSubmissionId_5": {
+          "baseType": "String"
+        },
+        "actionTypeRid": {
+          "baseType": "String"
+        },
+        "secondaryReviewerInternalComment_4": {
+          "baseType": "String"
+        },
+        "actionTypeVersion": {
+          "baseType": "String"
+        },
+        "actionSummary": {
+          "baseType": "String"
+        },
+        "actionTimestamp": {
+          "baseType": "Timestamp"
+        }
+      },
+      "rid": "ri.ontology.main.object-type.98bca8b9-297e-452d-95f0-1709c6e3de6f"
+    },
+    {
       "apiName": "KGCovid19PhenotypicFeature",
       "description": "",
       "primaryKey": [
@@ -2677,6 +3414,43 @@
       "rid": "ri.ontology.main.object-type.ab25ef06-00e5-4381-bda5-498005ebde19"
     },
     {
+      "apiName": "LogRemoveContributorToPublicationIntentSubmission",
+      "description": "This object type was automatically created when logging was enabled for the Action type: Remove Contributor to Publication Intent Submission",
+      "primaryKey": [
+        "actionRid"
+      ],
+      "properties": {
+        "actionTriggererUserId": {
+          "baseType": "String"
+        },
+        "publicationContributionContributionId_3": {
+          "baseType": "String"
+        },
+        "actionRid": {
+          "baseType": "String"
+        },
+        "actionTypeRid": {
+          "baseType": "String"
+        },
+        "actionTypeVersion": {
+          "baseType": "String"
+        },
+        "publicationIntentSubmissionSubmissionId_3": {
+          "baseType": "String"
+        },
+        "actionSummary": {
+          "baseType": "String"
+        },
+        "publicationContribution": {
+          "baseType": "Array<String>"
+        },
+        "actionTimestamp": {
+          "baseType": "Timestamp"
+        }
+      },
+      "rid": "ri.ontology.main.object-type.ab445583-718c-419e-a25d-07711da1ebf7"
+    },
+    {
       "apiName": "VisitOccurrenceNotional",
       "description": "",
       "primaryKey": [
@@ -2847,6 +3621,180 @@
         }
       },
       "rid": "ri.ontology.main.object-type.b84c32d4-4cd0-4f78-87cf-83ad4fa2e0d7"
+    },
+    {
+      "apiName": "LogSetDomainTeamsForPublicationIntent",
+      "description": "This object type was automatically created when logging was enabled for the Action type: Set Domain Teams for Publication Intent Submission",
+      "primaryKey": [
+        "actionRid"
+      ],
+      "properties": {
+        "actionTriggererUserId": {
+          "baseType": "String"
+        },
+        "publicationIntentSubmission": {
+          "baseType": "Array<String>"
+        },
+        "actionRid": {
+          "baseType": "String"
+        },
+        "domainTeam": {
+          "baseType": "Array<String>"
+        },
+        "actionTypeRid": {
+          "baseType": "String"
+        },
+        "actionTypeVersion": {
+          "baseType": "String"
+        },
+        "actionSummary": {
+          "baseType": "String"
+        },
+        "actionTimestamp": {
+          "baseType": "Timestamp"
+        }
+      },
+      "rid": "ri.ontology.main.object-type.bb4b81ef-4beb-454c-b63e-4300e13462e0"
+    },
+    {
+      "apiName": "LogEditPublicationCommitteeReviewComments",
+      "description": "This object type was automatically created when logging was enabled for the Action type: Edit Publication Committee Review Comments - Primary Reviewer",
+      "primaryKey": [
+        "actionRid"
+      ],
+      "properties": {
+        "actionTriggererUserId": {
+          "baseType": "String"
+        },
+        "publicationIntentSubmission": {
+          "baseType": "Array<String>"
+        },
+        "msPrimaryReviewer_10": {
+          "baseType": "String"
+        },
+        "actionRid": {
+          "baseType": "String"
+        },
+        "primaryReviewerCommentsToAuthors_10": {
+          "baseType": "String"
+        },
+        "actionTypeRid": {
+          "baseType": "String"
+        },
+        "actionTypeVersion": {
+          "baseType": "String"
+        },
+        "actionSummary": {
+          "baseType": "String"
+        },
+        "actionTimestamp": {
+          "baseType": "Timestamp"
+        }
+      },
+      "rid": "ri.ontology.main.object-type.bd90afac-02ea-4f1d-9d4c-5e0aa94cd510"
+    },
+    {
+      "apiName": "LogEditPublicationIntentSubmissionDetails",
+      "description": "This object type was automatically created when logging was enabled for the Action type: Edit Publication Intent Submission Details (Revisions Phase)",
+      "primaryKey": [
+        "actionRid"
+      ],
+      "properties": {
+        "publicationIntentSubmission": {
+          "baseType": "Array<String>"
+        },
+        "manuscriptTitle_22": {
+          "baseType": "String"
+        },
+        "explainHowWorkFitsIntoTheScopeOfTheDur_22": {
+          "baseType": "String"
+        },
+        "willThisWorkBePresented_22": {
+          "baseType": "String"
+        },
+        "nameOfPublicationIntentSubmitter_22": {
+          "baseType": "String"
+        },
+        "actionRid": {
+          "baseType": "String"
+        },
+        "hasDownloadRequestBeenApproved_22": {
+          "baseType": "String"
+        },
+        "actionTypeVersion": {
+          "baseType": "String"
+        },
+        "manuscriptId_22": {
+          "baseType": "String"
+        },
+        "actionTriggererUserId": {
+          "baseType": "String"
+        },
+        "n3CConsortiumVsProjectBasedWork_22": {
+          "baseType": "String"
+        },
+        "correspondingAuthorName_22": {
+          "baseType": "String"
+        },
+        "manuscriptTextDocumentLink_22": {
+          "baseType": "String"
+        },
+        "plannedPresentationDetails_22": {
+          "baseType": "String"
+        },
+        "citingTheGrant_22": {
+          "baseType": "String"
+        },
+        "correspondingAuthorEmail_22": {
+          "baseType": "String"
+        },
+        "authorshipWasDeterminedUsingIcmjeRecommendations_22": {
+          "baseType": "String"
+        },
+        "lastAuthor_22": {
+          "baseType": "String"
+        },
+        "comments_22": {
+          "baseType": "String"
+        },
+        "postingPermission_22": {
+          "baseType": "String"
+        },
+        "pascOrN3C_22": {
+          "baseType": "String"
+        },
+        "firstAuthor_22": {
+          "baseType": "String"
+        },
+        "actionTypeRid": {
+          "baseType": "String"
+        },
+        "targetSubmissionDate_22": {
+          "baseType": "LocalDate"
+        },
+        "priorPresentationDetails_22": {
+          "baseType": "String"
+        },
+        "hasTheWorkAlreadyBeenPresented_22": {
+          "baseType": "String"
+        },
+        "nihFundingPeerReviewAcknowledgement_22": {
+          "baseType": "String"
+        },
+        "targetVenue_22": {
+          "baseType": "String"
+        },
+        "sdoHRelatedOrLongCovid_22": {
+          "baseType": "Array<String>"
+        },
+        "actionSummary": {
+          "baseType": "String"
+        },
+        "actionTimestamp": {
+          "baseType": "Timestamp"
+        }
+      },
+      "rid": "ri.ontology.main.object-type.be0f6d22-29fb-4e39-ab5d-8da084b6fdef"
     },
     {
       "apiName": "KnowledgeObjectReview",
@@ -3052,6 +4000,40 @@
       "rid": "ri.ontology.main.object-type.c7917f82-3870-49ae-9f46-4eed15d4ac1e"
     },
     {
+      "apiName": "LogAddInternalSecondaryReviewerCommentToPublicationIntentSubmission",
+      "description": "This object type was automatically created when logging was enabled for the Action type: Add Internal Secondary Reviewer Comment to Publication Intent Submission ",
+      "primaryKey": [
+        "actionRid"
+      ],
+      "properties": {
+        "actionTriggererUserId": {
+          "baseType": "String"
+        },
+        "publicationCommitteeInternalNote": {
+          "baseType": "Array<String>"
+        },
+        "actionRid": {
+          "baseType": "String"
+        },
+        "secondaryReviewerInternalComment_1": {
+          "baseType": "String"
+        },
+        "actionTypeRid": {
+          "baseType": "String"
+        },
+        "actionTypeVersion": {
+          "baseType": "String"
+        },
+        "actionSummary": {
+          "baseType": "String"
+        },
+        "actionTimestamp": {
+          "baseType": "Timestamp"
+        }
+      },
+      "rid": "ri.ontology.main.object-type.cc5609f7-16b1-47d8-9b02-3471d82bcaab"
+    },
+    {
       "apiName": "OMOPVocabularyVersion",
       "description": "",
       "primaryKey": [
@@ -3160,6 +4142,272 @@
       "rid": "ri.ontology.main.object-type.dc308ec4-1c3c-46f6-b412-f6576b6839b5"
     },
     {
+      "apiName": "LogSetDownloadRequestForPublicationIntent",
+      "description": "This object type was automatically created when logging was enabled for the Action type: Set  Download Request for Publication Intent ",
+      "primaryKey": [
+        "actionRid"
+      ],
+      "properties": {
+        "actionTriggererUserId": {
+          "baseType": "String"
+        },
+        "downloadRequest": {
+          "baseType": "Array<String>"
+        },
+        "publicationIntentSubmission": {
+          "baseType": "Array<String>"
+        },
+        "newParameterCollaboratorMultipassGroupId_6": {
+          "baseType": "String"
+        },
+        "publicationIntentSubmissionSubmissionStatus_8": {
+          "baseType": "String"
+        },
+        "actionRid": {
+          "baseType": "String"
+        },
+        "actionTypeRid": {
+          "baseType": "String"
+        },
+        "actionTypeVersion": {
+          "baseType": "String"
+        },
+        "actionSummary": {
+          "baseType": "String"
+        },
+        "actionTimestamp": {
+          "baseType": "Timestamp"
+        }
+      },
+      "rid": "ri.ontology.main.object-type.de3d2c8e-3da1-4245-978e-80076b9e0d4b"
+    },
+    {
+      "apiName": "LogAddNewPublicationContributor",
+      "description": "This object type was automatically created when logging was enabled for the Action type: Add New Publication Contributor",
+      "primaryKey": [
+        "actionRid"
+      ],
+      "properties": {
+        "proposedLevelOfContribution_11": {
+          "baseType": "Array<String>"
+        },
+        "researcherOrcid_11": {
+          "baseType": "String"
+        },
+        "publicationIntentSubmission": {
+          "baseType": "Array<String>"
+        },
+        "publicationIntentSubmissionIdSubmissionId_12": {
+          "baseType": "String"
+        },
+        "actionRid": {
+          "baseType": "String"
+        },
+        "publicationIntentSubmissionIdSubmissionStatus_15": {
+          "baseType": "String"
+        },
+        "actionTypeVersion": {
+          "baseType": "String"
+        },
+        "actionTypeRid": {
+          "baseType": "String"
+        },
+        "contributionStartDate_11": {
+          "baseType": "LocalDate"
+        },
+        "publicationContributionResearcherName_12": {
+          "baseType": "String"
+        },
+        "contributorRoleSubclass_11": {
+          "baseType": "Array<String>"
+        },
+        "publicationContribution": {
+          "baseType": "Array<String>"
+        },
+        "actionTriggererUserId": {
+          "baseType": "String"
+        },
+        "publicationIntentSubmissionIdManuscriptTitle_12": {
+          "baseType": "String"
+        },
+        "researcherNameName_13": {
+          "baseType": "String"
+        },
+        "contributionEndDate_11": {
+          "baseType": "LocalDate"
+        },
+        "publicationContributionProposedLevelOfContribution_12": {
+          "baseType": "Array<String>"
+        },
+        "publicationContributionContributorRoleSubclass_12": {
+          "baseType": "Array<String>"
+        },
+        "contributionNotes_11": {
+          "baseType": "String"
+        },
+        "actionSummary": {
+          "baseType": "String"
+        },
+        "actionTimestamp": {
+          "baseType": "Timestamp"
+        }
+      },
+      "rid": "ri.ontology.main.object-type.e365e8fa-aa51-4e4c-b2ce-b2e068cf5ff5"
+    },
+    {
+      "apiName": "LogEditPublicationCommitteeReviewComments2AryReviewer",
+      "description": "This object type was automatically created when logging was enabled for the Action type: Edit Publication Committee Review Comments - Secondary Reviewer",
+      "primaryKey": [
+        "actionRid"
+      ],
+      "properties": {
+        "actionTriggererUserId": {
+          "baseType": "String"
+        },
+        "publicationIntentSubmission": {
+          "baseType": "Array<String>"
+        },
+        "msSecondaryReviewer_5": {
+          "baseType": "String"
+        },
+        "secondaryReviewerCommentsToAuthors_5": {
+          "baseType": "String"
+        },
+        "actionRid": {
+          "baseType": "String"
+        },
+        "actionTypeRid": {
+          "baseType": "String"
+        },
+        "actionTypeVersion": {
+          "baseType": "String"
+        },
+        "actionSummary": {
+          "baseType": "String"
+        },
+        "actionTimestamp": {
+          "baseType": "Timestamp"
+        }
+      },
+      "rid": "ri.ontology.main.object-type.e44606d1-268e-49ff-abb5-91affa9529b9"
+    },
+    {
+      "apiName": "UnitConversionFormula",
+      "description": "N3C measurement unit conversions",
+      "primaryKey": [
+        "conversionId"
+      ],
+      "properties": {
+        "dateOfReview": {
+          "baseType": "Timestamp"
+        },
+        "originalUnitOmopConceptName": {
+          "baseType": "String"
+        },
+        "measurementOmopConceptName": {
+          "baseType": "String"
+        },
+        "addedToPipeline_": {
+          "baseType": "String"
+        },
+        "conversionReadyForReview": {
+          "baseType": "String"
+        },
+        "permittedEditors": {
+          "baseType": "Array<String>"
+        },
+        "reviewerName": {
+          "baseType": "String"
+        },
+        "dateLastModified": {
+          "baseType": "Timestamp"
+        },
+        "dateCreated": {
+          "baseType": "Timestamp"
+        },
+        "dateAddedToPipeline": {
+          "baseType": "Timestamp"
+        },
+        "conversionEditor": {
+          "baseType": "String"
+        },
+        "harmonizedUnitOmopConceptName": {
+          "baseType": "String"
+        },
+        "conversionEquation": {
+          "baseType": "String"
+        },
+        "conversionId": {
+          "baseType": "String"
+        },
+        "admsApproval": {
+          "baseType": "String"
+        },
+        "mappingFunction": {
+          "baseType": "String"
+        }
+      },
+      "rid": "ri.ontology.main.object-type.e65bc94e-c465-4520-a633-3ce74b4ff91b"
+    },
+    {
+      "apiName": "LogEditPublicationContributor",
+      "description": "This object type was automatically created when logging was enabled for the Action type: Edit Publication Contributor",
+      "primaryKey": [
+        "actionRid"
+      ],
+      "properties": {
+        "manuscriptName_5": {
+          "baseType": "String"
+        },
+        "researcherOrcid_5": {
+          "baseType": "String"
+        },
+        "publicationContributionContributionId_9": {
+          "baseType": "String"
+        },
+        "actionRid": {
+          "baseType": "String"
+        },
+        "actionTypeVersion": {
+          "baseType": "String"
+        },
+        "actionTypeRid": {
+          "baseType": "String"
+        },
+        "contributorRoleSubclass_5": {
+          "baseType": "Array<String>"
+        },
+        "contributionStartDate_5": {
+          "baseType": "LocalDate"
+        },
+        "publicationContribution": {
+          "baseType": "Array<String>"
+        },
+        "actionTriggererUserId": {
+          "baseType": "String"
+        },
+        "contributionEndDate_5": {
+          "baseType": "LocalDate"
+        },
+        "publicationIntentSubmissionIdSubmissionId_8": {
+          "baseType": "String"
+        },
+        "actionSummary": {
+          "baseType": "String"
+        },
+        "proposedLevelOfContribution_5": {
+          "baseType": "Array<String>"
+        },
+        "actionTimestamp": {
+          "baseType": "Timestamp"
+        },
+        "contributionNotes_5": {
+          "baseType": "String"
+        }
+      },
+      "rid": "ri.ontology.main.object-type.e967b517-3e2d-4faa-9cb9-0015e27cd310"
+    },
+    {
       "apiName": "NotificationDev",
       "description": "",
       "primaryKey": [
@@ -3196,6 +4444,77 @@
         }
       },
       "rid": "ri.ontology.main.object-type.eb2f9f53-3b37-4904-a107-fb39f4dd0e62"
+    },
+    {
+      "apiName": "LogEditPublicationCommitteeReviewCommentBackupReviewer",
+      "description": "This object type was automatically created when logging was enabled for the Action type: Edit Publication Committee Review Comments - Backup Reviewer",
+      "primaryKey": [
+        "actionRid"
+      ],
+      "properties": {
+        "actionTriggererUserId": {
+          "baseType": "String"
+        },
+        "publicationIntentSubmission": {
+          "baseType": "Array<String>"
+        },
+        "actionRid": {
+          "baseType": "String"
+        },
+        "actionTypeRid": {
+          "baseType": "String"
+        },
+        "actionTypeVersion": {
+          "baseType": "String"
+        },
+        "actionSummary": {
+          "baseType": "String"
+        },
+        "msBackupReviewer_3": {
+          "baseType": "String"
+        },
+        "backupReviewerCommentsToAuthors_3": {
+          "baseType": "String"
+        },
+        "actionTimestamp": {
+          "baseType": "Timestamp"
+        }
+      },
+      "rid": "ri.ontology.main.object-type.ec7342a9-338f-4607-a835-5fcbd6bb49dd"
+    },
+    {
+      "apiName": "LogRemoveKnowledgeObjectForPublicationIntentSubmission",
+      "description": "This object type was automatically created when logging was enabled for the Action type: Remove Knowledge Object for Publication Intent Submission",
+      "primaryKey": [
+        "actionRid"
+      ],
+      "properties": {
+        "actionTriggererUserId": {
+          "baseType": "String"
+        },
+        "publicationIntentSubmission": {
+          "baseType": "Array<String>"
+        },
+        "n3CKnowledgeObjects": {
+          "baseType": "Array<String>"
+        },
+        "actionRid": {
+          "baseType": "String"
+        },
+        "actionTypeRid": {
+          "baseType": "String"
+        },
+        "actionTypeVersion": {
+          "baseType": "String"
+        },
+        "actionSummary": {
+          "baseType": "String"
+        },
+        "actionTimestamp": {
+          "baseType": "Timestamp"
+        }
+      },
+      "rid": "ri.ontology.main.object-type.f24a2e46-8753-4c76-836f-d9a2da85eb56"
     },
     {
       "apiName": "KGCovid19Disease",
@@ -3404,6 +4723,40 @@
         }
       },
       "rid": "ri.ontology.main.object-type.ff33f248-baaa-480a-8e72-301027fc71ca"
+    },
+    {
+      "apiName": "LogRemoveDownloadRequestForPublicationIntent",
+      "description": "This object type was automatically created when logging was enabled for the Action type: Remove Download Request for Publication Intent",
+      "primaryKey": [
+        "actionRid"
+      ],
+      "properties": {
+        "actionTriggererUserId": {
+          "baseType": "String"
+        },
+        "downloadRequest": {
+          "baseType": "Array<String>"
+        },
+        "publicationIntentSubmission": {
+          "baseType": "Array<String>"
+        },
+        "actionRid": {
+          "baseType": "String"
+        },
+        "actionTypeRid": {
+          "baseType": "String"
+        },
+        "actionTypeVersion": {
+          "baseType": "String"
+        },
+        "actionSummary": {
+          "baseType": "String"
+        },
+        "actionTimestamp": {
+          "baseType": "Timestamp"
+        }
+      },
+      "rid": "ri.ontology.main.object-type.ff427e5b-fb76-4f01-9a5b-e1d717f1bb14"
     }
   ]
 }
