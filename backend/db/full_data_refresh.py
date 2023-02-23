@@ -2,6 +2,9 @@
 Fully refresh the database with the latest data from the enclave API.
   here's what the run file is doing, i think, for datasets:
     ./venv/bin/python enclave_wrangler/datasets.py -f -o termhub-csets/datasets/downloads
+
+TODO: Replace this with objects API implementation
+TODO: Replace DB backup steps: replace renames at end of script w/ dump commands in `/db_backup.sh`
 """
 import os
 import sys
