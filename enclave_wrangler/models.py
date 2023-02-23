@@ -11,9 +11,10 @@ from typing import Dict, List
 
 import pandas as pd
 
-from enclave_wrangler.utils import EnclaveWranglerErr
+from enclave_wrangler.utils import EnclaveWranglerErr, ActionValidateError, get_random_codeset_id
 from enclave_wrangler.actions_api import make_actions_request
 from enclave_wrangler.objects_api import make_objects_request
+from backend.utils import dump
 
 class ObjWithMetadata:
     def __init__():
@@ -31,18 +32,27 @@ class ObjWithMetadata:
 class CsetVersion(ObjWithMetadata):
     """Cset version"""
 
-    def create_new_draft_minimal(self, validate_first: bool = True, **kwargs):
+    def create_new_draft_minimal(self, validate_first: bool = True, **kwargs) -> bool:
         #concept_set_name: str, codeset_id: int, on_behalf_of):
-        # params = dict(kwargs)
-        data = {"parameters": kwargs}
-        response = make_actions_request('create-new-draft-omop-concept-set-version',
-                                        process_error=True,
+        params = {k.replace('_', '-'): v for k,v in kwargs.items()}
+        if 'on-behalf-of' not in params:
+            raise EnclaveWranglerErr("on_behalf_of required")
+        versionId = get_random_codeset_id()
+        params['versionId'] = versionId
+        data = {"parameters": params}
+        try:
+            response = make_actions_request('create-new-draft-omop-concept-set-version',
+                                        raise_validate_error=True,
                                         data=data, validate_first=validate_first)
+        except ActionValidateError as err:
+            print(dump(err.args[0]))
+            return False
+
         # if valid response
-        self.properties = make_objects_request('OMOPConceptSet', return_type='data',
-                                    expect_single_item=True, retry_if_empty=True,
-                                    retry_times=3)
-        return response # return whether succeeded or not
+        self.properties = make_objects_request(
+            f'OMOPConceptSet/{versionId}', return_type='data',
+            expect_single_item=True, retry_if_empty=True, retry_times=3)
+        return True
 
     def create_from_csv(self, obj):
         self.container = CsetContainer(concept_set_name=obj['concept_set_name'])

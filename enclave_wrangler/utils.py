@@ -35,6 +35,10 @@ class EnclaveWranglerErr(RuntimeError):
     """Wrapper just to handle errors from this module"""
 
 
+class ActionValidateError(RuntimeError):
+    """Wrapper just to handle errors from this module"""
+
+
 def get_headers(personal=False, content_type="application/json", for_curl=False):
     """Format headers for enclave calls
 
@@ -221,6 +225,7 @@ def make_objects_request(
     """
     ontology_rid = config['ONTOLOGY_RID']
     path = path[1:] if path.startswith('/') else path
+    path = f'objects/{path}' if not path.startswith('objects') else path
     api_path = f'/api/v1/ontologies/{ontology_rid}/{path}'
     url = f'https://{config["HOSTNAME"]}{api_path}'
     if url_only:
@@ -252,14 +257,14 @@ def make_objects_request(
     if return_type == 'Response':
         return response
     if return_type == 'json':        # do error checking/handling?
-        return response.json()
+        return response_json
     if return_type == 'data':
-        return response.json()['data']
+        return data
 
 
 def make_actions_request(
         api_name: str, data: Union[List, Dict] = None,
-        validate_first=False, process_error=False, verbose=True) -> Response:
+        validate_first=False, raise_validate_error=False, verbose=True) -> Response:
     """Passthrough for HTTP request
     If `data`, knows to do a POST. Otherwise does a GET.
     Enclave docs:
@@ -277,7 +282,7 @@ def make_actions_request(
         data["parameters"].update(EXTRA_PARAMS[api_name])
 
     if validate_first:
-        response: Response = enclave_post(url + 'validate', data, process_error=process_error, verbose=verbose)
+        response: Response = enclave_post(url + 'validate', data, raise_validate_error=raise_validate_error, verbose=verbose)
         if not ('result' in response.json() and response.json()['result'] == 'VALID'):
             print(f'Failure: {api_name}\n', response, file=sys.stderr)
             return response
@@ -287,27 +292,39 @@ def make_actions_request(
     return response
 
 
-def process_validate_errors(errors: Dict):
-    if not errors['result'] == 'INVALID':
+def process_validate_errors(response: Response, errType: Exception=None, print_error=False):
+    if response.status_code >= 400:
+        if errType:
+            raise errType(response.json())
+        return response.json()
+    validate_errors = response.json()
+    if not validate_errors['result'] == 'INVALID':
         raise EnclaveWranglerErr("that's not what I expected")
-    out_errors = []
-    for x in errors['submissionCriteria']:
-        out_errors.append(x['configuredFailureMessage'])
+
+    out_errors = {}
+    for x in validate_errors['submissionCriteria']:
+        out_errors['submissionCriteria'] = out_errors['submissionCriteria'] or []
+        out_errors['submissionCriteria'].append(x['configuredFailureMessage'])
     invalid_params = {}
-    for k, v in errors['parameters'].items():
+    for k, v in validate_errors['parameters'].items():
         if v['result'] == 'INVALID':
             invalid_params[k] = v
     if invalid_params:
-        out_errors.append('invalid params:')
+        out_errors['invalid_params'] = invalid_params
+        # out_errors.append('invalid params:')
         for k, v in invalid_params.items():
-            out_errors.append(k)
+            # out_errors.append(k)
             if v['evaluatedConstraints']:
-                out_errors.append(v['evaluatedConstraints'])
-    print(out_errors.join('\n'), file=sys.stderr)
+                pass
+                # out_errors.append(v['evaluatedConstraints'])
+    if print_error:
+        print(dump(out_errors), file=sys.stderr)
+    if errType:
+        raise errType(out_errors)
     return out_errors
 
 
-def enclave_post(url: str, data: Union[List, Dict], process_error: bool=False, verbose=True) -> Response:
+def enclave_post(url: str, data: Union[List, Dict], raise_validate_error: bool=False, verbose=True) -> Response:
     """Post to the enclave and handle / report on some common issues"""
     if verbose:
         print_curl(url, data)
@@ -321,8 +338,8 @@ def enclave_post(url: str, data: Union[List, Dict], process_error: bool=False, v
             print(f'Failure: {url}\n', response, file=sys.stderr)
         if any([x in response.text for x in ['errorCode', 'INVALID']]):
             err = True
-            if process_error:
-                return process_validate_errors(response.json())
+            if raise_validate_error:
+                process_validate_errors(response, errType=ActionValidateError)
             print('Error: ' + response.text, file=sys.stderr)
         # response.raise_for_status()
         if err:
