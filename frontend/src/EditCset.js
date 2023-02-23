@@ -6,9 +6,11 @@ import { Add, } from '@mui/icons-material';
 import Card from '@mui/material/Card';
 // import CardContent from '@mui/material/CardContent';
 import Typography from '@mui/material/Typography';
+import { Link } from 'react-router-dom';
 import {isEmpty, get, } from 'lodash'; // set, map, omit, pick, uniq, reduce, cloneDeepWith, isEqual, uniqWith, groupBy,
 import IconButton from '@mui/material/IconButton';
 import Button from '@mui/material/Button';
+import {backend_url} from './App';
 // import {ComparisonDataTable} from './ComparisonDataTable';
 import {Tooltip} from './Tooltip';
 import {searchParamsToObj, updateSearchParams, } from "./utils";
@@ -83,12 +85,18 @@ function EditInfo(props) {
                 </li>
               )
         }</ul>
+
+        <a href={backend_url(
+            `cset-download?codeset_id=${cset.codeset_id}&csetEditState=${JSON.stringify(csetEditState)}`
+          )} target="_blank" rel="noreferrer">Export JSON</a>
+
         { /* <pre>{JSON.stringify(csetEditState, null, 2)}</pre> */ }
-        <Button variant="contained">Upload to Enclave as new draft</Button>
-        <Button variant="contained">Upload to Enclave as new version</Button>
+        {/*<button variant="contained">upload to enclave as new draft</button>*/}
+        {/*<button variant="contained">upload to enclave as new version</button>*/}
       </Card>
   );
 }
+
 
 const FLAGS = {
   // includeMapped: {component: TranslateIcon, sz:12, tt: 'Include Mapped'},

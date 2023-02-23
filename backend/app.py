@@ -3,6 +3,7 @@
 Resources
 - https://github.com/tiangolo/fastapi
 """
+import json
 import os
 from datetime import datetime
 from pathlib import Path
@@ -20,7 +21,7 @@ from backend.utils import JSON_TYPE, get_timer
 from backend.routes import cset_crud
 from backend.db.utils import get_db_connection, sql_query, SCHEMA, sql_query_single_col, sql_in
 from backend.db.queries import get_concepts
-from enclave_wrangler.objects_api import get_n3c_recommended_csets, enclave_api_call_caller
+from enclave_wrangler.objects_api import get_n3c_recommended_csets, enclave_api_call_caller, get_codeset_json
 from enclave_wrangler.utils import make_objects_request
 from enclave_wrangler.config import RESEARCHER_COLS
 
@@ -419,16 +420,14 @@ def get_n3c_recommended_codeset_ids() -> Dict[int, Union[Dict, None]]:
     codeset_ids = get_n3c_recommended_csets()
     return codeset_ids
 
-# @router.get("/cset-download")  # maybe junk, or maybe start of a refactor of above
-# def cset_download(codeset_id: int) -> Dict:
-#     """Download concept set"""
-#     dsi = data_stuff_for_codeset_ids([codeset_id])
-#
-#     concepts = DS2.concept[DS2.concept.concept_id.isin(set(dsi.cset_members_items.concept_id))]
-#     cset = DS2.all_csets[DS2.all_csets.codeset_id == codeset_id].to_dict(orient='records')[0]
-#     cset['concept_count'] = cset['concepts']
-#     cset['concepts'] = concepts.to_dict(orient='records')
-#     return cset
+@APP.get("/cset-download")  # maybe junk, or maybe start of a refactor of above
+def cset_download(codeset_id: int, csetEditState: str = None) -> Dict:
+    """Download concept set"""
+    jsn = get_codeset_json(codeset_id)
+    if csetEditState:
+        edits = json.loads(csetEditState)
+        print(edits)
+    return jsn
 
 
 @APP.get("/enclave-api-call/{name}")

@@ -360,17 +360,17 @@ def get_codeset_json(codeset_id, con=get_db_connection()) -> Dict:
     """)
     if jsn:
         return jsn[0]
-    cset = make_objects_request(f'objects/OMOPConceptSet/{codeset_id}')
+    cset = make_objects_request(f'objects/OMOPConceptSet/{codeset_id}',
+                                expect_single_item=True)
     cset = cset.json()['properties']
-    container = make_objects_request(f'objects/OMOPConceptSetContainer/{quote(cset["conceptSetNameOMOP"], safe="")}')
+    container = make_objects_request(f'objects/OMOPConceptSetContainer/{quote(cset["conceptSetNameOMOP"], safe="")}',
+                                     expect_single_item=True)
     container = container.json()['properties']
-    items_url = make_objects_request(f'objects/OMOPConceptSet/{codeset_id}/links/omopConceptSetVersionItem',
-                                     url_only=True)
-    items = handle_paginated_request(items_url)
-    items = [i['properties'] for i in items[0]]
-
-    # just for testing:
-    # items = items[0:100]
+    _items = make_objects_request(
+        f'objects/OMOPConceptSet/{codeset_id}/links/omopConceptSetVersionItem',
+        handle_paginated=True, return_type='data'
+    )
+    items = [i['properties'] for i in _items]
 
     junk = """ What an item should look like for ATLAS JSON import format:
     {
