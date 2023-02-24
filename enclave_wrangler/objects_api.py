@@ -352,6 +352,51 @@ def get_new_objects(since: datetime = None):
         new_csets2.append(cset)
 
 
+def get_expression_items(codeset_id) -> Dict:
+    _items = make_objects_request(
+        f'objects/OMOPConceptSet/{codeset_id}/links/omopConceptSetVersionItem',
+        handle_paginated=True, return_type='data'
+    )
+    items = [i['properties'] for i in _items]
+    return items
+
+
+def items_to_atlas_json_format(items):
+    flags = ['includeDescendants', 'includeMapped', 'isExcluded']
+    try:
+        concept_ids = [i['conceptId'] for i in items]
+    except Exception as err:
+        concept_ids = [i['concept_id'] for i in items]
+
+    # getting individual concepts from objects api is way too slow
+    concepts = get_concepts(concept_ids, table='concept')
+    concepts = {c['concept_id']: c for c in concepts}
+    items_jsn = []
+    mapped_atlasjson_fields = get_field_names('atlasjson')
+    for item in items:
+        j = {}
+        for flag in flags:
+            j[flag] = item[flag]
+        c = concepts[item['conceptId']]
+        jc = {}
+        for field in mapped_atlasjson_fields:
+            jc[field] = c[field_name_mapping('atlasjson', 'concept', field)]
+        # was:
+        # jc['CONCEPT_ID'] = c['concept_id']
+        # jc['CONCEPT_CLASS_ID'] = c['concept_class_id']
+        # jc['CONCEPT_CODE'] = c['concept_code']
+        # jc['CONCEPT_NAME'] = c['concept_name']
+        # jc['DOMAIN_ID'] = c['domain_id']
+        # jc['INVALID_REASON'] = c['invalid_reason']
+        # jc['STANDARD_CONCEPT'] = c['standard_concept']
+        # jc['VOCABULARY_ID'] = c['vocabulary_id']
+        # jc['VALID_START_DATE'] = c['valid_start_date']
+        # jc['VALID_END_DATE'] = c['valid_end_date']
+        j['concept'] = jc
+        items_jsn.append(j)
+    return items_jsn
+
+
 # todo: split into get/update
 def get_codeset_json(codeset_id, con=get_db_connection(), use_cache=True, set_cache=True) -> Dict:
     if use_cache:
@@ -367,11 +412,8 @@ def get_codeset_json(codeset_id, con=get_db_connection(), use_cache=True, set_ca
     container = make_objects_request(
         f'objects/OMOPConceptSetContainer/{quote(cset["conceptSetNameOMOP"], safe="")}',
         return_type='data', expect_single_item=True)
-    _items = make_objects_request(
-        f'objects/OMOPConceptSet/{codeset_id}/links/omopConceptSetVersionItem',
-        handle_paginated=True, return_type='data'
-    )
-    items = [i['properties'] for i in _items]
+    items = get_expression_items(codeset_id)
+    items_jsn = items_to_atlas_json_format(items)
 
     junk = """ What an item should look like for ATLAS JSON import format:
     {
@@ -418,34 +460,6 @@ def get_codeset_json(codeset_id, con=get_db_connection(), use_cache=True, set_ca
         "includeMapped": false
       },
     """
-    flags = ['includeDescendants', 'includeMapped', 'isExcluded']
-    concept_ids = [i['conceptId'] for i in items]
-    # getting individual concepts from objects api is way too slow
-    concepts = get_concepts(concept_ids, table='concept')
-    concepts = {c['concept_id']: c for c in concepts}
-    items_jsn = []
-    mapped_atlasjson_fields = get_field_names('atlasjson')
-    for item in items:
-        j = {}
-        for flag in flags:
-            j[flag] = item[flag]
-        c = concepts[item['conceptId']]
-        jc = {}
-        for field in mapped_atlasjson_fields:
-            jc[field] = c[field_name_mapping('atlasjson', 'concept', field)]
-        # was:
-        # jc['CONCEPT_ID'] = c['concept_id']
-        # jc['CONCEPT_CLASS_ID'] = c['concept_class_id']
-        # jc['CONCEPT_CODE'] = c['concept_code']
-        # jc['CONCEPT_NAME'] = c['concept_name']
-        # jc['DOMAIN_ID'] = c['domain_id']
-        # jc['INVALID_REASON'] = c['invalid_reason']
-        # jc['STANDARD_CONCEPT'] = c['standard_concept']
-        # jc['VOCABULARY_ID'] = c['vocabulary_id']
-        # jc['VALID_START_DATE'] = c['valid_start_date']
-        # jc['VALID_END_DATE'] = c['valid_end_date']
-        j['concept'] = jc
-        items_jsn.append(j)
 
     jsn = {
         'concept_set_container': container,

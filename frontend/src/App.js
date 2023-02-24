@@ -28,7 +28,7 @@ import {UploadCsvPage} from "./UploadCsv";
 import {DownloadJSON} from "./DownloadJSON";
 // import _ from "./supergroup/supergroup";
 const SEARCH_PARAM_STATE_CONFIG = {
-  scalars: ['editCodesetId', ],
+  scalars: ['editCodesetId', 'sort_json'],
   global_props_but_not_search_params: ['searchParams', 'setSearchParams'],
   serialize: ['csetEditState'],
 }

@@ -87,7 +87,7 @@ function EditInfo(props) {
         }</ul>
 
         <a href={backend_url(
-            `cset-download?codeset_id=${cset.codeset_id}&csetEditState=${JSON.stringify(csetEditState)}`
+            `cset-download?${props.sort_json ? 'sort_json=true&' : ''}codeset_id=${cset.codeset_id}&csetEditState=${JSON.stringify(csetEditState)}`
           )} target="_blank" rel="noreferrer">Export JSON</a>
 
         { /* <pre>{JSON.stringify(csetEditState, null, 2)}</pre> */ }

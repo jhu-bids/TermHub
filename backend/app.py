@@ -17,13 +17,15 @@ from fastapi.middleware.cors import CORSMiddleware
 from fastapi.middleware.gzip import GZipMiddleware
 from sqlalchemy.engine import LegacyRow, RowMapping
 
-from backend.utils import JSON_TYPE, get_timer
+from backend.utils import JSON_TYPE, get_timer, pdump
 from backend.routes import cset_crud
 from backend.db.utils import get_db_connection, sql_query, SCHEMA, sql_query_single_col, sql_in
 from backend.db.queries import get_concepts
-from enclave_wrangler.objects_api import get_n3c_recommended_csets, enclave_api_call_caller, get_codeset_json
+from enclave_wrangler.objects_api import get_n3c_recommended_csets, enclave_api_call_caller, get_codeset_json, \
+        get_expression_items, items_to_atlas_json_format
 from enclave_wrangler.utils import make_objects_request
 from enclave_wrangler.config import RESEARCHER_COLS
+from enclave_wrangler.models import convert_rows
 
 
 PROJECT_DIR = Path(os.path.dirname(__file__)).parent
@@ -421,13 +423,37 @@ def get_n3c_recommended_codeset_ids() -> Dict[int, Union[Dict, None]]:
     return codeset_ids
 
 @APP.get("/cset-download")  # maybe junk, or maybe start of a refactor of above
-def cset_download(codeset_id: int, csetEditState: str = None) -> Dict:
+def cset_download(codeset_id: int, csetEditState: str = None,
+                  atlas_items=True, atlas_items_only=False,
+                  sort_json: bool = False) -> Dict:
     """Download concept set"""
-    jsn = get_codeset_json(codeset_id) # , use_cache=False)
+    if False and not atlas_items_only:
+        jsn = get_codeset_json(codeset_id  , use_cache=False)
+        if sort_json:
+            jsn['items'].sort(key=lambda i: i['concept']['CONCEPT_ID'])
+        return jsn
+
+    items = get_expression_items(codeset_id)
     if csetEditState:
         edits = json.loads(csetEditState)
-        print(edits)
-    return jsn
+        edits = edits[str(codeset_id)]
+
+        deletes = [i['concept_id'] for i in edits.values() if i['stagedAction'] in ['Remove', 'Update']]
+        items = [i for i in items if i['conceptId'] not in deletes]
+        adds: List[Dict] = [i for i in edits.values() if i['stagedAction'] in ['Add', 'Update']]
+        adds = convert_rows('concept_set_version_item',
+                            'omopConceptSetVersionItem',
+                            adds)
+        items.extend(adds)
+    if sort_json:
+        items.sort(key=lambda i: i['conceptId'])
+    if atlas_items:
+        items_jsn = items_to_atlas_json_format(items)
+        return {'items': items_jsn}
+    else:
+        return items  #  when would we want this?
+    # pdump(items)
+    # pdump(items_jsn)
 
 
 @APP.get("/enclave-api-call/{name}")

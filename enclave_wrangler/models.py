@@ -156,44 +156,48 @@ class CsetContainer:
 New way to do field mappings:
   After setting up the mapping between two rowtypes as below,
   you can get the field name you want. For instance, to copy fields
-  from a concept record to an atlasjson record, you:
+  from a concept records to an atlasjson records:
   
-    1. Get the atlasjson fields you want to populate:
-          mapped_atlasjson_fields = get_field_names('atlasjson')
-    2. Use field_name_mapping to get the corresponding concept field
-       name:
-          for field in mapped_atlasjson_fields:
-              aj[field] = field_name_mapping('atlasjson', 'concept', field)
+    ajrecs = convert_rows('concept', 'atlasjson', crecs)
 
   So far it only works with this one pair of rowtypes. As need arises 
   (like csv upload to make-new-omop-... api call), we'll add more mappings.
 """
-@cache
-def get_field_mappings():
-    mapping_csv = \
-        """concept,          atlasjson
-        concept_id,          CONCEPT_ID
-        concept_class_id,    CONCEPT_CLASS_ID
-        concept_code,        CONCEPT_CODE
-        concept_name,        CONCEPT_NAME
-        domain_id,           DOMAIN_ID
-        invalid_reason,      INVALID_REASON
-        standard_concept,    STANDARD_CONCEPT
-        vocabulary_id,       VOCABULARY_ID
-        valid_start_date,    VALID_START_DATE
-        valid_end_date,      VALID_END_DATE"""
-    print("in get_field_mappings")
+FMAPS = []
+csv.register_dialect('trim', quotechar='"', skipinitialspace=True,
+                     quoting=csv.QUOTE_NONE, lineterminator='\n', strict=True)
 
-    csv.register_dialect('trim', quotechar='"', skipinitialspace=True,
-        quoting=csv.QUOTE_NONE, lineterminator='\n', strict=True)
 
-    reader = csv.DictReader(io.StringIO(mapping_csv), dialect='trim')
-    d = list(reader)
-    return d
-    mappings = {}
-    mappings['concept_atlasjson'] = d # mappings['atlasjson_concept'] = d
+def add_mappings(csv_str: str):
+    reader = csv.DictReader(io.StringIO(csv_str), dialect='trim')
+    maps = list(reader)
+    FMAPS.extend(maps)
 
-    return mappings
+
+add_mappings(
+    """concept,          atlasjson
+       concept_id,       CONCEPT_ID
+       concept_class_id, CONCEPT_CLASS_ID
+       concept_code,     CONCEPT_CODE
+       concept_name,     CONCEPT_NAME
+       domain_id,        DOMAIN_ID
+       invalid_reason,   INVALID_REASON
+       standard_concept, STANDARD_CONCEPT
+       vocabulary_id,    VOCABULARY_ID
+       valid_start_date, VALID_START_DATE
+       valid_end_date,   VALID_END_DATE""")
+
+add_mappings(
+    #  dataset                   objects_api
+    """concept_set_version_item, omopConceptSetVersionItem
+       item_id,                  itemId
+       codeset_id,               codesetId
+       concept_id,               conceptId
+       includeDescendants,       includeDescendants
+       includeMapped,            includeMapped
+       isExcluded,               isExcluded
+       created_by,               createdBy
+       created_at,               createdAt""")
 
 
 @cache
@@ -209,13 +213,10 @@ def get_field_mapping_lookup():
 
         this function makes that object
     """
-    mappings = get_field_mappings()
-    print('getting lookup')
-
     # for nested defaultdict: https://stackoverflow.com/questions/19189274/nested-defaultdict-of-defaultdict
     d = defaultdict(lambda: defaultdict(dict))
 
-    for m in mappings:
+    for m in FMAPS:
         rowtypes = list(m.keys())
         fields = list(m.values())
         # the mapping can go either direction
@@ -234,8 +235,26 @@ def field_name_mapping(source: str, target: str, field: str) -> str:
     return get_field_mapping_lookup()[source][field][target]
 
 
-    # (source: str, field: str, target: str) -> str:
-    # mapping = get_field_mappings[f'{source}_{target}']
+def convert_rows(source: str, target: str, rows:List[Dict]) -> List[Dict]:
+    out = []
+    for row in rows:
+        out.append(convert_row(source, target, row))
+    return out
+
+
+def convert_row(source: str, target: str, row: Dict,
+                skip_missing_fields=True) -> Dict:
+    out = {}
+    for field in get_field_names(target):
+        try:
+            out[field] = row[field_name_mapping(target, source, field)]
+        except KeyError as err:
+            if skip_missing_fields:
+                pass
+            else:
+                raise err
+    return out
+
 
 if __name__ == '__main__':
     # mappings = get_field_mappings()
