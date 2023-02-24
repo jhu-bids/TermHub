@@ -249,7 +249,8 @@ def make_objects_request(
         else:
             response = enclave_get(url, verbose=verbose, **request_args)
             response_json = response.json()
-            data = response_json if expect_single_item else response.json()['data']
+            # single items don't have 'data', just 'properties' at the top
+            data = response_json['properties'] if expect_single_item else response_json['data']
             if data:
                 break
         sleep(retry_pause)

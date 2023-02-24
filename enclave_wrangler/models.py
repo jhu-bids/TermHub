@@ -10,14 +10,16 @@ TODO: OO
 from typing import Dict, List
 
 import pandas as pd
+import csv, io, json
+from functools import cache
+from collections import defaultdict
 
-from enclave_wrangler.utils import EnclaveWranglerErr, ActionValidateError, get_random_codeset_id
-from enclave_wrangler.actions_api import make_actions_request
-from enclave_wrangler.objects_api import make_objects_request
-from backend.utils import dump
+from enclave_wrangler.utils import EnclaveWranglerErr, ActionValidateError, get_random_codeset_id, \
+    make_objects_request, make_actions_request
+from backend.utils import dump, pdump
 
 class ObjWithMetadata:
-    def __init__():
+    def __init__(self):
         pass
 
     csetVersionFields = {}
@@ -57,7 +59,7 @@ class CsetVersion(ObjWithMetadata):
     def create_from_csv(self, obj):
         self.container = CsetContainer(concept_set_name=obj['concept_set_name'])
 
-        does_container_exist(obj)
+        # does_container_exist(obj)
 
     # This is useful because they come as camel case from following locations: (i) xxxx, (ii) xxxx
     # field_names_camel_case = [
@@ -149,3 +151,97 @@ class CsetContainer:
     def from_dataframe(self, df):
         """From dataframe"""
         self.versions = CsetVersion(df)
+
+"""
+New way to do field mappings:
+  After setting up the mapping between two rowtypes as below,
+  you can get the field name you want. For instance, to copy fields
+  from a concept record to an atlasjson record, you:
+  
+    1. Get the atlasjson fields you want to populate:
+          mapped_atlasjson_fields = get_field_names('atlasjson')
+    2. Use field_name_mapping to get the corresponding concept field
+       name:
+          for field in mapped_atlasjson_fields:
+              aj[field] = field_name_mapping('atlasjson', 'concept', field)
+
+  So far it only works with this one pair of rowtypes. As need arises 
+  (like csv upload to make-new-omop-... api call), we'll add more mappings.
+"""
+@cache
+def get_field_mappings():
+    mapping_csv = \
+        """concept,          atlasjson
+        concept_id,          CONCEPT_ID
+        concept_class_id,    CONCEPT_CLASS_ID
+        concept_code,        CONCEPT_CODE
+        concept_name,        CONCEPT_NAME
+        domain_id,           DOMAIN_ID
+        invalid_reason,      INVALID_REASON
+        standard_concept,    STANDARD_CONCEPT
+        vocabulary_id,       VOCABULARY_ID
+        valid_start_date,    VALID_START_DATE
+        valid_end_date,      VALID_END_DATE"""
+    print("in get_field_mappings")
+
+    csv.register_dialect('trim', quotechar='"', skipinitialspace=True,
+        quoting=csv.QUOTE_NONE, lineterminator='\n', strict=True)
+
+    reader = csv.DictReader(io.StringIO(mapping_csv), dialect='trim')
+    d = list(reader)
+    return d
+    mappings = {}
+    mappings['concept_atlasjson'] = d # mappings['atlasjson_concept'] = d
+
+    return mappings
+
+
+@cache
+def get_field_mapping_lookup():
+    """
+        mappings are a list of rows that look like:
+            {'concept': 'concept_id', 'atlasjson': 'CONCEPT_ID'}
+
+        rather than searching through the list for the mapping i want,
+        it would be nice to have a quick lookup, to be able to do like:
+
+        target_field_name = lookup[source_rowtype][target_rowtype][source_field_name]
+
+        this function makes that object
+    """
+    mappings = get_field_mappings()
+    print('getting lookup')
+
+    # for nested defaultdict: https://stackoverflow.com/questions/19189274/nested-defaultdict-of-defaultdict
+    d = defaultdict(lambda: defaultdict(dict))
+
+    for m in mappings:
+        rowtypes = list(m.keys())
+        fields = list(m.values())
+        # the mapping can go either direction
+        d[rowtypes[0]][fields[0]][rowtypes[1]] = fields[1]
+        d[rowtypes[1]][fields[1]][rowtypes[0]] = fields[0]
+    return d
+
+
+@cache
+def get_field_names(rowtype: str):
+    return list(get_field_mapping_lookup()[rowtype].keys())
+
+
+@cache
+def field_name_mapping(source: str, target: str, field: str) -> str:
+    return get_field_mapping_lookup()[source][field][target]
+
+
+    # (source: str, field: str, target: str) -> str:
+    # mapping = get_field_mappings[f'{source}_{target}']
+
+if __name__ == '__main__':
+    # mappings = get_field_mappings()
+    # pdump(m)
+    t = field_name_mapping('concept', 'concept_id', 'atlasjson')
+    print(t)
+    t = field_name_mapping('concept', 'domain_id', 'atlasjson')
+    print(t)
+

@@ -30,6 +30,7 @@ from typeguard import typechecked
 from enclave_wrangler.config import FAVORITE_OBJECTS, OUTDIR_OBJECTS, OUTDIR_CSET_JSON, config, TERMHUB_CSETS_DIR
 from enclave_wrangler.utils import enclave_get, enclave_post, make_objects_request, \
     handle_paginated_request, handle_response_error
+from enclave_wrangler.models import get_field_names, field_name_mapping
 # from enclave_wrangler.utils import log_debug_info
 from backend.db.utils import sql_query_single_col, run_sql, get_db_connection
 from backend.db.queries import get_concepts
@@ -352,20 +353,20 @@ def get_new_objects(since: datetime = None):
 
 
 # todo: split into get/update
-def get_codeset_json(codeset_id, con=get_db_connection()) -> Dict:
-    jsn = sql_query_single_col(con, f"""
-        SELECT json
-        FROM concept_set_json
-        WHERE codeset_id = {int(codeset_id)}
-    """)
-    if jsn:
-        return jsn[0]
+def get_codeset_json(codeset_id, con=get_db_connection(), use_cache=True, set_cache=True) -> Dict:
+    if use_cache:
+        jsn = sql_query_single_col(con, f"""
+            SELECT json
+            FROM concept_set_json
+            WHERE codeset_id = {int(codeset_id)}
+        """)
+        if jsn:
+            return jsn[0]
     cset = make_objects_request(f'objects/OMOPConceptSet/{codeset_id}',
-                                expect_single_item=True)
-    cset = cset.json()['properties']
-    container = make_objects_request(f'objects/OMOPConceptSetContainer/{quote(cset["conceptSetNameOMOP"], safe="")}',
-                                     expect_single_item=True)
-    container = container.json()['properties']
+        return_type='data', expect_single_item=True)
+    container = make_objects_request(
+        f'objects/OMOPConceptSetContainer/{quote(cset["conceptSetNameOMOP"], safe="")}',
+        return_type='data', expect_single_item=True)
     _items = make_objects_request(
         f'objects/OMOPConceptSet/{codeset_id}/links/omopConceptSetVersionItem',
         handle_paginated=True, return_type='data'
@@ -423,33 +424,26 @@ def get_codeset_json(codeset_id, con=get_db_connection()) -> Dict:
     concepts = get_concepts(concept_ids, table='concept')
     concepts = {c['concept_id']: c for c in concepts}
     items_jsn = []
+    mapped_atlasjson_fields = get_field_names('atlasjson')
     for item in items:
         j = {}
         for flag in flags:
             j[flag] = item[flag]
-        jc = {}
-        # c = make_objects_request(f'objects/OMOPConcept/{item["conceptId"]}').json()['properties']
-        # jc['CONCEPT_ID'] = c['conceptId']
-        # jc['CONCEPT_CLASS_ID'] = c['conceptClassId']
-        # jc['CONCEPT_CODE'] = c['conceptCode']
-        # jc['CONCEPT_NAME'] = c['conceptName']
-        # jc['DOMAIN_ID'] = c['domainId']
-        # # jc['INVALID_REASON'] = c['x']  # enclave api doesn't include this
-        # jc['STANDARD_CONCEPT'] = c['standardConcept']
-        # jc['VOCABULARY_ID'] = c['vocabularyId']
-        # jc['VALID_START_DATE'] = c['validStartDate']
-        # jc['VALID_END_DATE'] = c['validEndDate']
         c = concepts[item['conceptId']]
-        jc['CONCEPT_ID'] = c['concept_id']
-        jc['CONCEPT_CLASS_ID'] = c['concept_class_id']
-        jc['CONCEPT_CODE'] = c['concept_code']
-        jc['CONCEPT_NAME'] = c['concept_name']
-        jc['DOMAIN_ID'] = c['domain_id']
-        jc['INVALID_REASON'] = c['invalid_reason']
-        jc['STANDARD_CONCEPT'] = c['standard_concept']
-        jc['VOCABULARY_ID'] = c['vocabulary_id']
-        jc['VALID_START_DATE'] = c['valid_start_date']
-        jc['VALID_END_DATE'] = c['valid_end_date']
+        jc = {}
+        for field in mapped_atlasjson_fields:
+            jc[field] = c[field_name_mapping('atlasjson', 'concept', field)]
+        # was:
+        # jc['CONCEPT_ID'] = c['concept_id']
+        # jc['CONCEPT_CLASS_ID'] = c['concept_class_id']
+        # jc['CONCEPT_CODE'] = c['concept_code']
+        # jc['CONCEPT_NAME'] = c['concept_name']
+        # jc['DOMAIN_ID'] = c['domain_id']
+        # jc['INVALID_REASON'] = c['invalid_reason']
+        # jc['STANDARD_CONCEPT'] = c['standard_concept']
+        # jc['VOCABULARY_ID'] = c['vocabulary_id']
+        # jc['VALID_START_DATE'] = c['valid_start_date']
+        # jc['VALID_END_DATE'] = c['valid_end_date']
         j['concept'] = jc
         items_jsn.append(j)
 
@@ -461,17 +455,18 @@ def get_codeset_json(codeset_id, con=get_db_connection()) -> Dict:
     sql_jsn = json.dumps(jsn)
     # sql_jsn = str(sql_jsn).replace('\'', '"')
 
-    try:
-        run_sql(con, f"""
-            INSERT INTO concept_set_json VALUES (
-                {codeset_id},
-                (:jsn)::json
-            )
-        """, {'jsn': sql_jsn})
-    except Exception as err:
-        print('trying to insert\n')
-        print(sql_jsn)
-        raise err
+    if set_cache:
+        try:
+            run_sql(con, f"""
+                INSERT INTO concept_set_json VALUES (
+                    {codeset_id},
+                    (:jsn)::json
+                )
+            """, {'jsn': sql_jsn})
+        except Exception as err:
+            print('trying to insert\n')
+            print(sql_jsn)
+            raise err
     return jsn
 
 

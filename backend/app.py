@@ -423,7 +423,7 @@ def get_n3c_recommended_codeset_ids() -> Dict[int, Union[Dict, None]]:
 @APP.get("/cset-download")  # maybe junk, or maybe start of a refactor of above
 def cset_download(codeset_id: int, csetEditState: str = None) -> Dict:
     """Download concept set"""
-    jsn = get_codeset_json(codeset_id)
+    jsn = get_codeset_json(codeset_id) # , use_cache=False)
     if csetEditState:
         edits = json.loads(csetEditState)
         print(edits)
