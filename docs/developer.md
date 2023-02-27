@@ -16,3 +16,12 @@ A refresh is done nightly via [GitHub action](https://github.com/jhu-bids/TermHu
 
 #### Allowing remote access
 To allow a new user to access the database remotely, their IP address must be added to Azure: (i) select [DB resource](https://portal.azure.com/#@live.johnshopkins.edu/resource/subscriptions/fe24df19-d251-4821-9a6f-f037c93d7e47/resourceGroups/JH-POSTGRES-RG/providers/Microsoft.DBforPostgreSQL/flexibleServers/termhub/overview), (ii) [select 'Networking'](https://portal.azure.com/#@live.johnshopkins.edu/resource/subscriptions/fe24df19-d251-4821-9a6f-f037c93d7e47/resourceGroups/JH-POSTGRES-RG/providers/Microsoft.DBforPostgreSQL/flexibleServers/termhub/networking), (iii) add IP address.
+
+### Deployment
+#### Deploying to Dev
+Use the GitHub actions. Click these links for [backend]([url](https://github.com/jhu-bids/TermHub/actions/workflows/backend_dev.yml)) and [frontend]([url](https://github.com/jhu-bids/TermHub/actions/workflows/frontend_dev.yml)) actions, and then click "Run Workflow".
+After both are deployed, test the app here: http://bit.ly/termhub-dev
+
+#### Deploying to production
+Use the GitHub actions. Click these links for [backend]([url](https://github.com/jhu-bids/TermHub/actions/workflows/backend_prod.yml)) and [frontend]([url](https://github.com/jhu-bids/TermHub/actions/workflows/frontend_dprod.yml)) actions, and then click "Run Workflow".
+After both are deployed, the app app will be usable here: http://bit.ly/termhub
