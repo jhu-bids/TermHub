@@ -19,9 +19,9 @@ To allow a new user to access the database remotely, their IP address must be ad
 
 ### Deployment
 #### Deploying to Dev
-Use the GitHub actions. Click these links for [backend]([url](https://github.com/jhu-bids/TermHub/actions/workflows/backend_dev.yml)) and [frontend]([url](https://github.com/jhu-bids/TermHub/actions/workflows/frontend_dev.yml)) actions, and then click "Run Workflow".
+Use the GitHub actions. Click these links for [backend](https://github.com/jhu-bids/TermHub/actions/workflows/backend_dev.yml) and [frontend](https://github.com/jhu-bids/TermHub/actions/workflows/frontend_dev.yml) actions, and then click "Run Workflow".
 After both are deployed, test the app here: http://bit.ly/termhub-dev
 
 #### Deploying to production
-Use the GitHub actions. Click these links for [backend]([url](https://github.com/jhu-bids/TermHub/actions/workflows/backend_prod.yml)) and [frontend]([url](https://github.com/jhu-bids/TermHub/actions/workflows/frontend_dprod.yml)) actions, and then click "Run Workflow".
+Use the GitHub actions. Click these links for [backend](https://github.com/jhu-bids/TermHub/actions/workflows/backend_prod.yml) and [frontend](https://github.com/jhu-bids/TermHub/actions/workflows/frontend_dprod.yml) actions, and then click "Run Workflow".
 After both are deployed, the app app will be usable here: http://bit.ly/termhub
