@@ -171,7 +171,10 @@ function ConceptSetCard(props) {
             ))
           }
           <Typography variant="body2" color="text.primary" >
-            <a href={`https://unite.nih.gov/workspace/hubble/external/object/v0/omop-concept-set?codeset_id=${cset.codeset_id}`} target="_blank" rel="noreferrer">Open in Enclave</a
+            {/*This link opens the version */}
+            {/*<a href={`https://unite.nih.gov/workspace/hubble/external/object/v0/omop-concept-set?codeset_id=${cset.codeset_id}`} target="_blank" rel="noreferrer">Open in Enclave</a*/}
+            {/*This link opens the container */}
+            <a href={`https://unite.nih.gov/workspace/hubble/objects/${cset.container_rid}`} target="_blank">Open in Enclave</a
             >, <a href={backend_url(`cset-download?codeset_id=${cset.codeset_id}`)} target="_blank" rel="noreferrer">Export JSON</a>
           </Typography>
           { researcherContent }
