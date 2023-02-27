@@ -2,15 +2,21 @@
   cursor: pointer;
 }
 .Tooltip {
-  background: #222;
+  position: absolute;
+  background: #333;
+  padding: 0.5rem;
+  color: white;
+  z-index: 100;
+
+  /*
+  background: gray;
   color: white;
   pointer-events: none;
   border-radius: 6px;
   padding: 4px 6px;
-  /*
   font-size: 24px;
-   */
   width: 150px;
+   */
 }
 
 .MuiAutocomplete-option {

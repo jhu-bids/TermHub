@@ -12,6 +12,7 @@ import { every, get, isEmpty, throttle, pullAt, } from 'lodash';
 // import {isEqual, pick, uniqWith, max, omit, uniq, } from 'lodash';
 import Box from '@mui/material/Box';
 import Slider from '@mui/material/Slider';
+import {Tooltip} from "./Tooltip";
 
 /* TODO: Solve
     react_devtools_backend.js:4026 MUI: The value provided to Autocomplete is invalid.
@@ -62,7 +63,9 @@ function CsetSearch(props) {
       />);
   return (
     <div style={{padding:'9px', }}>
-      {autocomplete}
+      <Tooltip label="Select concept sets to view, compare, and edit." >
+        {autocomplete}
+      </Tooltip>
     </div>)
   /* want to group by cset name and then list version. use https://mui.com/material-ui/react-autocomplete/ Grouped
      and also use Multiple Values */

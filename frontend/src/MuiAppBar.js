@@ -22,7 +22,7 @@ const pages = [
   {name: 'Upload CSV', href: '/upload-csv', noSearch: true, },
   // TODO: re-add Download (CSets, bundles, json...) at some point
   //{name: 'Download CSet JSON', href: '/download-json', noSearch: true, },
-  {name: 'About', href: '/about'}
+  {name: 'Help / About', href: '/about'}
 ];
 const settings = ['About'];
 

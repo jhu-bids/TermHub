@@ -28,7 +28,13 @@ function AboutPage(props) {
           About TermHub
         </Typography>
         <Typography variant="body2" color="text.primary" gutterBottom>
-          <p>TermHub is a tool for creating and updating concept sets. <a href="https://youtu.be/EAwBZUiNUUk?t=2130">Demo video</a>.</p>
+          <p>TermHub is a tool for comparing, analyzing, updating, and (soon) creating concept sets. At the current
+            time it only handles concept sets in the <a href="https://covid.cd2h.org/enclave">N3C Enclave</a>, but
+            is charted to expand beyond N3C (to work with FHIR, VSAC, OHDSI/ATLAS, and other sources of code sets
+            and targets for new code set development) in the near future.</p>
+          <p>This <a href="https://youtu.be/EAwBZUiNUUk?t=2130">demo video</a> from the October 31, 2022 N3C Forum
+             provides a brief introduction. (TermHub has evolved since the video was made. Use the create issue button
+             below to clamor for a new video and we will push that up on our priority list.</p>
         </Typography>
         
         <Typography variant="h5" color="text.primary" gutterBottom>
