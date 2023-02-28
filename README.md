@@ -119,3 +119,30 @@ SET search_path TO n3c;
 
 ### Database management
 Refer to the [developer docs](./docs/developer.md) for more information.
+
+## Using TermHub
+### How to make changes to a codeset (via Atlas JSON)
+1. Go to the "Cset Search" page.
+2. Search for the codeset.
+3. Select the codeset from the dropdown menu.
+4. Optional: Select any additional codesets that might also be helpful in the process, e.g. to compare to the one we are editing.
+5. Go to the "Cset Comparison" page.
+6. Click on the column header for codeset you want to change.
+  - Click <b>+</b> to add a concept
+  - Click the <b>cancel sign</b> to remove a concept
+  - Click <b>D</b> to toggle <code>inludeDescendants</code>
+  - Click <b>M</b> to toggle <code>includeMapped</code>
+  - Click <b>X</b> to toggle <code>isExcluded</code>
+7. You will see two boxes at the top. The left box has some metadata about the codeset. The right box shows your <em>staged changes</em>. Click the <b>Export JSON</b> link in that <em>staged changes</em> box.
+8. A new browser tab will up with just the JSON. Copy or save it.
+9. Go back to the "Cset Comparison" page, and click the "Open in Enclave" link.
+10. A new tab for the N3C data enclave will open. Log in if needed.
+11. Click the "Versions" tab at the top left.
+12. Click the blue "Create new version" button at the bottom left.
+13. Fill out the information in the "Create New Draft OMOP Concept Set Version" popup, and click "Submit".
+14. Your new draft version should appear on the left (may require a page refresh). Click it.
+15. On the right hand side, there is a blue button called "Add Concepts". Click the down arrow, then select "Import ATLAS Concept Set Expression JSON" from the menu.
+16. Copy/paste the JSON obtained from TermHub earlier into the box, and click "Import Atlas JSON".
+17. Click the version on the left again.
+18. On the right, click the green "Done" button.
+
