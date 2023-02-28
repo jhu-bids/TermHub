@@ -5,7 +5,7 @@ import { AddCircle, RemoveCircleOutline, Add, } from '@mui/icons-material';
 import Box from '@mui/material/Box';
 // import {Checkbox} from "@mui/material";
 import {isEmpty, } from 'lodash'; // set, map, omit, pick, uniq, reduce, cloneDeepWith, isEqual, uniqWith, groupBy,
-import {fmt, searchParamsToObj,} from "./utils";
+import {fmt, setColDefDimensions, useWindowSize, } from "./utils";
 import {ConceptSetCard} from "./ConceptSetCard";
 import {Tooltip} from './Tooltip';
 import { getEditCodesetFunc, getCodesetEditActionFunc, EditInfo,
@@ -19,6 +19,7 @@ function ComparisonDataTable(props) {
     // console.log(props); console.log({editCodesetId}, searchParamsToObj(searchParams));
     const editAction = getCodesetEditActionFunc({searchParams, setSearchParams});
     const editCodesetFunc = getEditCodesetFunc({searchParams, setSearchParams});
+    const windowSize = useWindowSize();
 
     let sizes = {
         rowFontSize:  (13 * squishTo) + 'px',
@@ -30,7 +31,7 @@ function ComparisonDataTable(props) {
         atlasHeight:  (12 * squishTo) + 'px',
         athenaHeight: (10 * squishTo) + 'px',
     }
-    let columns = colConfig({...props, editAction, editCodesetFunc, sizes, displayData, });
+    let columns = colConfig({...props, editAction, editCodesetFunc, sizes, displayData, windowSize, });
 
     let card, eInfo;
     if (editCodesetId && columns) {
@@ -82,7 +83,7 @@ function ComparisonDataTable(props) {
 
 function colConfig(props) {
     let { displayData, selected_csets, cset_data, collapsed, toggleCollapse, sizes,
-          editAction, editCodesetFunc, } = props;
+          editAction, editCodesetFunc, windowSize, } = props;
     const { csmiLookup, } = cset_data;
 
     if (!displayData) {
@@ -104,7 +105,9 @@ function colConfig(props) {
                 return content;
             },
             sortable: !displayData.nested,
-            width: (window.innerWidth - selected_csets.length * 50) * .85,
+            // minWidth: 100,
+            // remainingPct: .60,
+            width: (window.innerWidth - selected_csets.length * 50) * .65,
             wrap: true,
             compact: true,
             conditionalCellStyles: [
@@ -117,7 +120,7 @@ function colConfig(props) {
             name: 'Concept ID',
             selector: row => row.concept_id,
             sortable: !displayData.nested,
-            width: '80px',
+            width: 80,
             style: { paddingRight: '8px', },
         },
         {
@@ -133,25 +136,37 @@ function colConfig(props) {
                     </a>
                 </span>),
             sortable: !displayData.nested,
-            width: '29px',
+            width: 29,
             style: { paddingRight: '0px', },
         },
+        // ...cset_cols,
         {
             name: 'Patients',
+            headerProps: {
+                tooltipContent: "Approximate distinct person count. Small counts rounded up to 20.",
+            },
             selector: row => parseInt(row.distinct_person_cnt),
             format: row => fmt(row.distinct_person_cnt),
             sortable: !displayData.nested,
             right: true,
-            width: '80px',
+            minWidth: 80,
+            remainingPct: .10,
             style: { paddingRight: '8px', },
         },
         {
             name: 'Records',
+            headerProps: {
+                tooltipContent: "Record count. Small counts rounded up to 20.",
+            },
+            /* name:   <Tooltip label="Record count. Small counts rounded up to 20.">
+                <span>Records</span>
+            </Tooltip>, */
             selector: row => row.total_cnt,
             format: row => fmt(row.total_cnt),
             sortable: !displayData.nested,
             right: true,
-            width: '80px',
+            minWidth: 80,
+            remainingPct: .10,
             style: { paddingRight: '8px', },
         },
     ];
@@ -160,17 +175,14 @@ function colConfig(props) {
         let def = {
             cset_col,
             codeset_id,
-            name: <CsetColumnHeader editCodesetFunc={editCodesetFunc}
-                                    cset_col={cset_col} />,
-            /*
-            name: <span className="cset-column"
-                        onClick={editCodesetFunc}
-                        codeset_id={codeset_id}
-                    >{cset_col.concept_set_version_title}</span>,
-            //  name:   <Tooltip label="Click to edit." placement="bottom">
-            //              <span>{cset_col.concept_set_version_title}</span>
-            //          </Tooltip>,
-             */
+            headerProps: {
+                tooltipContent: "Click to create and edit new draft of this concept set",
+                headerContent: cset_col.concept_set_name,
+                headerContentProps: {
+                    onClick: editCodesetFunc,
+                    codeset_id: cset_col.codeset_id,
+                }
+            },
             selector: (row) => {
                 return <CellContents { ...props}
                                      {...{row, cset_col,
@@ -186,13 +198,14 @@ function colConfig(props) {
             ],
             sortable: !displayData.nested,
             compact: true,
-            width: '70px',
-            // maxWidth: 50,
+            width: 70,
             center: true,
         };
         return def;
     });
     coldefs = [...coldefs, ...cset_cols];
+    coldefs = setColDefDimensions({coldefs, windowSize});
+    console.log(coldefs);
     if (!displayData.nested) {
         delete coldefs[0].conditionalCellStyles;
     }
@@ -204,12 +217,14 @@ function CsetColumnHeader(props) {
     return  <Tooltip placement="bottom"
                 label="Click to create and edit new draft of this concept set"
             >
-                <span className="cset-column"
+                <span className="cset-column-header"
+                      // style={{...rotated_header_style}}
                     onClick={editCodesetFunc}
                     codeset_id={cset_col.codeset_id}
                 >{cset_col.concept_set_name}</span>
             </Tooltip>
 }
+
 
 // createTheme creates a new theme named solarized that overrides the build in dark theme
 // https://github.com/jbetancur/react-data-table-component/blob/master/src/DataTable/themes.ts
@@ -251,8 +266,19 @@ function styles(sizes) {
                 // position: 'absolute',
                 fontSize: '120%',
                 overflow: 'visible',
-                verticalAlign: 'bottom', // doesn't work
+                // verticalAlign: 'bottom !important', // doesn't work
                 marginTop: 'auto',
+                /*
+                zIndex: 200,
+                webkitAlignItems: 'end !important',
+                alignItems: 'end !important',
+                alignItemsFlexStart: 'end !important',
+                display: 'inline !important',
+                // textAlign: 'left',
+                 */
+                // setting height in .rdt_TableHeadRow works, but setting height here
+                //  makes the header content align vertically in the center which is terrible
+                // height: '180px',        // TODO: FIX!!!!
                 padding: 0,
                 // border: '3px solid green',
                 // paddingLeft: '8px', // override the cell padding for head cells

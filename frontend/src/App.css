@@ -24,12 +24,22 @@
   margin: 0px;
   line-height: 10px;
 }
+/*
+.rdt_TableCell {
+  text-align: center;
+  align-content: center;
+}
+ */
 .comparison-data-table .rdt_TableRow,
 .comparison-data-table .rdt_TableCell {
   min-height: 0px;
 }
-.comparison-data-table .rdt_TableHeadRow {
+
+.comparison-data-table .rdt_TableHeadRow,
+.csets-data-table .rdt_TableHeadRow
+{
   height: 182px;
+  /*height: auto;*/
   borderBottomStyle: solid;
   padding: 0;
   verticalAlign: bottom;
@@ -37,16 +47,17 @@
   textOverflow: unset;
   marginTop: auto;
 }
-/*  .comparison-data-table .rdt_TableHeadRow > div + div */
-.cset-column {
+.cset-column-header {
   cursor: pointer;
   white-space: nowrap;
   overflow: visible;
   text-overflow: unset;
   justify-content: left; /* fixes weird thing with rightmost col shifting left when rotated */
   margin-right: auto;
+  /*
   transform: translate(50%,0px) rotate(-45deg);
   transform-origin: bottom left;
+   */
 }
 .comparison-data-table .rdt_TableHeadRow > div + div div
 {
@@ -54,7 +65,14 @@
   text-overflow: unset;
   margin-top: auto;
 }
-
+/*
+.rdt_TableHeader {
+  align-content: baseline;
+  align-self: baseline;
+  alignment-baseline: bottom;
+  alignment: bottom;
+}
+ */
 .csets-data-table > .rdt_TableHeader {
     min-height: 0px;
 }
