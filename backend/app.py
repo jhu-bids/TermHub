@@ -422,13 +422,13 @@ def get_n3c_recommended_codeset_ids() -> Dict[int, Union[Dict, None]]:
     codeset_ids = get_n3c_recommended_csets()
     return codeset_ids
 
-@APP.get("/cset-download")  # maybe junk, or maybe start of a refactor of above
+@APP.get("/cset-download")
 def cset_download(codeset_id: int, csetEditState: str = None,
                   atlas_items=True, atlas_items_only=False,
                   sort_json: bool = False) -> Dict:
     """Download concept set"""
-    if False and not atlas_items_only:
-        jsn = get_codeset_json(codeset_id  , use_cache=False)
+    if not atlas_items_only: # and False  TODO: document this param and what it does (what does it do again?)
+        jsn = get_codeset_json(codeset_id) #  , use_cache=False)
         if sort_json:
             jsn['items'].sort(key=lambda i: i['concept']['CONCEPT_ID'])
         return jsn
@@ -441,6 +441,8 @@ def cset_download(codeset_id: int, csetEditState: str = None,
         deletes = [i['concept_id'] for i in edits.values() if i['stagedAction'] in ['Remove', 'Update']]
         items = [i for i in items if i['conceptId'] not in deletes]
         adds: List[Dict] = [i for i in edits.values() if i['stagedAction'] in ['Add', 'Update']]
+        # items is object api format but the edits from the UI are in dataset format
+        # so, convert the edits to object api format for consistency
         adds = convert_rows('concept_set_version_item',
                             'omopConceptSetVersionItem',
                             adds)
