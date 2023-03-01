@@ -422,6 +422,8 @@ def get_n3c_recommended_codeset_ids() -> Dict[int, Union[Dict, None]]:
     codeset_ids = get_n3c_recommended_csets()
     return codeset_ids
 
+
+FLAGS = ['includeDescendants','includeMapped','isExcluded']
 @APP.get("/cset-download")
 def cset_download(codeset_id: int, csetEditState: str = None,
                   atlas_items=True, atlas_items_only=False,
@@ -443,6 +445,10 @@ def cset_download(codeset_id: int, csetEditState: str = None,
         adds: List[Dict] = [i for i in edits.values() if i['stagedAction'] in ['Add', 'Update']]
         # items is object api format but the edits from the UI are in dataset format
         # so, convert the edits to object api format for consistency
+        for item in adds:
+            for flag in FLAGS:
+                if flag not in item:
+                    item[flag] = False;
         adds = convert_rows('concept_set_version_item',
                             'omopConceptSetVersionItem',
                             adds)
