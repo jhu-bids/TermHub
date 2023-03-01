@@ -20,6 +20,10 @@ jobs:
       - uses: actions/checkout@v2
         with:
           submodules: true
+      - name: Print commit hash & branch for rollbacks & troubleshooting
+        run: |
+          echo "Commit hash: ${{ github.sha }}"
+          echo "Branch: ${{ github.ref }}"
       - name: Set env
         run: cp ./frontend/src/env.prod.js ./frontend/src/env.js
       - name: Build And Deploy
