@@ -89,6 +89,9 @@ MuiCheckbox-root {
   margin: 3px;
 }
 
+.info-block {
+  font-family: "Roboto", sans-serif;
+}
 /*
 .ag-header-cell-label .ag-header-cell-text {
   /*Force the width corresponding at how much width

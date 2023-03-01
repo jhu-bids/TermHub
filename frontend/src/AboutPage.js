@@ -13,6 +13,7 @@ import {Link} from "@mui/material";
 let TextBody = (props) => (<Typography variant="body2" color="text.primary" gutterBottom>{props.children}</Typography>)
 let TextH1 = (props) => (<Typography variant="h5" color="text.primary" style={{marginTop: '22px'}} gutterBottom>{props.children}</Typography>)
 let TextH2 = (props) => (<Typography variant="h6" color="text.primary" style={{marginTop: '5px'}} gutterBottom>{props.children}</Typography>)
+let DOCS = {};
 
 function AboutPage(props) {
   // const {codeset_ids=[], all_csets=[], cset_data={}} = props;
@@ -86,5 +87,32 @@ function AboutPage(props) {
   );
 }
 
+DOCS.blank_search_intro = (<>
+  <h1>Welcome to TermHub! Beta version 0.1</h1>
+  <p style={{paddingLeft: '12px', paddingRight: '130px', }}>TermHub is a tool for comparing, analyzing, updating, and creating concept sets.
+    At the current time it only handles concept sets in the N3C Enclave, but is charted to
+    expand beyond N3C in the near future.</p>
+  <h2>Within TermHub you can:</h2>
 
-export {AboutPage, };
+  <div style={{paddingLeft: '12px', paddingRight: '130px', }}>
+    <p><strong>CSET SEARCH</strong>: perform existing concept set searches as found in the N3C Enclave</p>
+
+    <p><strong>CSET COMPARISON</strong>: compare to similar existing concept sets. Add and remove concepts by reviewing and selecting
+          concept mappings, descendants, exclusions, etc. to build a new concept set that meets your research needs. (should
+          we mention the metadata?)</p>
+
+    <p><strong>UPLOAD CSV</strong>: With a single CSV, you can create (i) a new version to an existing concept set, e.g. to
+          add/delete concepts or change metadata, and (ii) coming soon: upload a completely new concept set ("concept set
+          container").</p>
+
+    <p><strong>HELP/ABOUT</strong>: Learn more about TermHub and review the step by step “How To” section. Provide feedback by
+          creating an issue. Let us know of any bug or a poor user experience, or share a feature request.</p>
+
+    <p><strong>Bug reports & feature requests</strong>: This is a beta version and we value your feedback. If you encounter a
+          bug or a poor user experience issue, or have a feature request in mind, we would love to hear from you. Create an
+          issue in the HELP/ABOUT
+          section.</p>
+  </div>
+</>);
+
+        export {AboutPage, DOCS};

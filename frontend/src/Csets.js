@@ -13,6 +13,7 @@ import { every, get, isEmpty, throttle, pullAt, } from 'lodash';
 import Box from '@mui/material/Box';
 import Slider from '@mui/material/Slider';
 import {Tooltip} from "./Tooltip";
+import {DOCS} from "./AboutPage";
 
 /* TODO: Solve
     react_devtools_backend.js:4026 MUI: The value provided to Autocomplete is invalid.
@@ -74,7 +75,12 @@ function CsetSearch(props) {
 function ConceptSetsPage(props) {
   const noSelectedCsets = ! get(props, 'cset_data.selected_csets', []).length;
   if (noSelectedCsets) {
-    return <div style={{}}><CsetSearch {...props} /></div>;
+    return  <>
+              <CsetSearch {...props} />
+              <div className="info-block">
+                {DOCS.blank_search_intro}
+              </div>
+            </>
   }
   return (
       <div style={{}}>
