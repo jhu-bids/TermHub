@@ -1,4 +1,4 @@
-name: TermHub DB Refresh via datasets API
+name: DB Refresh via datasets API
 
 on:
 #  schedule:

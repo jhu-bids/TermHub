@@ -2,7 +2,7 @@
 # More GitHub Actions for Azure: https://github.com/Azure/actions
 # More info on Python, GitHub Actions, and Azure App Service: https://aka.ms/python-webapps-actions
 # A good guide for Python Azure action: https://azure.github.io/AppService/2020/12/11/cicd-for-python-apps.html
-name: TermHub backend dev - build and deploy
+name: Backend dev - build and deploy
 
 on:
 #  push:
@@ -59,7 +59,7 @@ jobs:
     runs-on: ubuntu-latest
     needs: build
     environment:
-      name: 'Production'
+      name: 'Backend: Development'
       url: ${{ steps.deploy-to-webapp.outputs.webapp-url }}
     steps:
       # About: https://azure.github.io/AppService/2020/12/11/cicd-for-python-apps.html
