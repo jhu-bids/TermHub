@@ -162,8 +162,8 @@ function QueryStringStateMgr(props) {
 }
 function DataContainer(props) {
   let {codeset_ids, } = props;
-  const all_csets_url = 'get-all-csets';
-  const cset_data_url = 'cr-hierarchy?rec_format=flat&codeset_ids=' + codeset_ids.join('|');
+  const all_csets_url = backend_url('get-all-csets');
+  const cset_data_url = backend_url('cr-hierarchy?rec_format=flat&codeset_ids=' + codeset_ids.join('|'));
   // /crconst cr_url = 'get-concept_relationships?codeset_ids=' + codeset_ids.join('|');
 
   /* TODO: This is a total disaster. do something with it */
