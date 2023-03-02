@@ -73,8 +73,8 @@ function CsetSearch(props) {
 }
 
 function ConceptSetsPage(props) {
-  const noSelectedCsets = ! get(props, 'cset_data.selected_csets', []).length;
-  if (noSelectedCsets) {
+  const {codeset_ids} = props;
+  if (!codeset_ids.length) {
     return  <>
               <CsetSearch {...props} />
               <div className="info-block">

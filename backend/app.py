@@ -184,6 +184,7 @@ def get_related_csets(
     WHERE concept_id = ANY(:concept_ids)
     """
     related_codeset_ids = sql_query_single_col(con, query, {'concept_ids': selected_concept_ids}, )
+    related_codeset_ids = list(set.union(set(codeset_ids), set(related_codeset_ids)))
     verbose and timer('get_csets')
     related_csets = get_csets(related_codeset_ids)
     selected_cids = set(selected_concept_ids)
@@ -191,12 +192,13 @@ def get_related_csets(
     # this loop takes some time
     verbose and timer(f"get_concept_set_member_ids {len(related_csets)} times")
     for cset in related_csets:
-        cids = get_concept_set_member_ids([cset['codeset_id']], column='concept_id')
-        intersecting_concepts = set(cids).intersection(selected_cids)
-        cset['intersecting_concepts'] = len(intersecting_concepts)
-        cset['recall'] = cset['intersecting_concepts'] / selected_cid_cnt
-        cset['precision'] = cset['intersecting_concepts'] / len(cids)
         cset['selected'] = cset['codeset_id'] in codeset_ids
+        cids = get_concept_set_member_ids([cset['codeset_id']], column='concept_id')
+        if selected_cid_cnt and len(cids):
+            intersecting_concepts = set(cids).intersection(selected_cids)
+            cset['intersecting_concepts'] = len(intersecting_concepts)
+            cset['recall'] = cset['intersecting_concepts'] / selected_cid_cnt
+            cset['precision'] = cset['intersecting_concepts'] / len(cids)
     t1 = datetime.now()
     verbose and timer('done')
     return related_csets
@@ -336,14 +338,15 @@ def child_cids(concept_id: int, con=CON) -> List[Dict]:
 
 def get_all_csets(con=CON) -> Union[Dict, List]:
     """Get all concept sets"""
-    # this returns 4,327 rows. the old one below returned 3,127 rows
-    # TODO: figure out why and if all_csets query in ddl.sql needs to be fixed
-    return sql_query(
+    results = sql_query(
         con, f""" 
         SELECT codeset_id,
               concept_set_version_title,
               concepts
         FROM {SCHEMA}.all_csets""")
+    if len(set(results)) != len(results):
+        raise "Duplicate records in all_csets. Please alert app admin: sigfried@sigfried.org"
+    return results
     # smaller = DS2.all_csets[['codeset_id', 'concept_set_version_title', 'concepts']]
     # return smaller.to_dict(orient='records')
 

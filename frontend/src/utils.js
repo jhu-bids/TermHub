@@ -60,7 +60,7 @@ function useDataWidget(ukey, url, putData) {
 
 const backend_url = path => `${API_ROOT}/${path}`
 
-function axiosGet(path, backend=true) {
+function axiosGet(path, backend=false) {
   let url = backend ? backend_url(path) : path;
   console.log('axiosGet url: ', url);
   return axios.get(url).then((res) => res.data);
