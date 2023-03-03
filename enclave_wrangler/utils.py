@@ -164,7 +164,8 @@ def handle_response_error(
             with open(os.path.join(error_dir, f'error {response.status_code} - curl.sh'), 'w') as file:
                 file.write(curl_str)
 
-        # TODO: what else could be in response?
+        # TODO: what else could be in response? (Joe: potentially, to this function, we could pass a custom err message
+        #  to display if it if fails
         raise EnclaveWranglerErr({
             "status_code": response.status_code,
             "text": response.text,

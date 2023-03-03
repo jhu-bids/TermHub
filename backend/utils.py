@@ -1,10 +1,13 @@
 """Backend utilities"""
+import functools
 import json
 import operator
+import traceback
 from functools import reduce
 from typing import Any, Dict, List, Union
 from datetime import datetime
 
+from starlette.responses import JSONResponse
 
 JSON_TYPE = Union[Dict, List]
 
@@ -82,6 +85,23 @@ def set_nested_in_dict(d: Dict, key_path: List, value: Any):
     # noinspection PyUnresolvedReferences
     get_nested_from_dict(d, key_path[:-1])[key_path[-1]] = value
 
+
+def return_err_with_trace(func):
+    """Handle exceptions"""
+    @functools.wraps(func)
+    def decorated_func(*args, **kwargs):
+        """Handle exceptions"""
+        try:
+            return func(*args, **kwargs)
+        except Exception as err:
+            stacktrace = "".join(traceback.format_exception(etype=type(err), value=err, tb=err.__traceback__))
+            return JSONResponse(
+              status_code=500,
+              content={
+                  "status": "error",
+                  "error": str(err),
+                  "stacktrace": stacktrace.split('\n')})
+    return decorated_func
 
 
 # No longer using this inject stuff. got rid of circular imports
