@@ -67,12 +67,12 @@ function ComparisonDataTable(props) {
                 columns={columns}
                 data={displayData.rowData}
                 dense
-                fixedHeader
-                fixedHeaderScrollHeight={(window.innerHeight - 275) + 'px'}
-                highlightOnHover
-                responsive
-                subHeaderAlign="right"
-                subHeaderWrap
+                // fixedHeader
+                // fixedHeaderScrollHeight={(window.innerHeight - 275) + 'px'}
+                // highlightOnHover
+                // responsive
+                // subHeaderAlign="right"
+                // subHeaderWrap
                 //striped //pagination //selectableRowsComponent={Checkbox}
                 //selectableRowsComponentProps={selectProps} //sortIcon={sortIcon}
                 // expandOnRowClicked // expandableRows // {...props}
@@ -204,7 +204,9 @@ function colConfig(props) {
         return def;
     });
     coldefs = [...coldefs, ...cset_cols];
-    coldefs = setColDefDimensions({coldefs, windowSize});
+    coldefs.forEach(d => {delete d.width; d.flexGrow=1;})
+    coldefs[0].flexGrow = 4;
+    // coldefs = setColDefDimensions({coldefs, windowSize});
     console.log(coldefs);
     if (!displayData.nested) {
         delete coldefs[0].conditionalCellStyles;
@@ -253,8 +255,8 @@ function styles(sizes) {
         */
         table: {
             style: {
-                maxWidth: '85%',
-                marginLeft: '20px',
+                // maxWidth: '85%',
+                // marginLeft: '20px',
                 // maxWidth: '400px', doesn't work ?
             }
         },

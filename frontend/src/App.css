@@ -38,8 +38,9 @@
 .comparison-data-table .rdt_TableHeadRow,
 .csets-data-table .rdt_TableHeadRow
 {
+  /*height: auto;
   height: 182px;
-  /*height: auto;*/
+  */
   borderBottomStyle: solid;
   padding: 0;
   verticalAlign: bottom;
@@ -48,13 +49,13 @@
   marginTop: auto;
 }
 .cset-column-header {
+  /* white-space: nowrap;
   cursor: pointer;
-  white-space: nowrap;
-  overflow: visible;
+  overflow: clip;
   text-overflow: unset;
-  justify-content: left; /* fixes weird thing with rightmost col shifting left when rotated */
+  justify-content: left; /* fixes weird thing with rightmost col shifting left when rotated * /
   margin-right: auto;
-  /*
+  height: fit-content;
   transform: translate(50%,0px) rotate(-45deg);
   transform-origin: bottom left;
    */

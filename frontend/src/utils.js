@@ -197,13 +197,15 @@ function ColumnHeader(props) {
   coldef.requiredWidth = headerDims.width;
 
   let header_style = {
-    cursor: 'pointer',
-    whiteSpace: 'nowrap',
+    padding: 2,
+    // cursor: 'pointer',
+    // whiteSpace: 'nowrap',
   }
+  /*
   const rotate_header_style = {
     overflow: 'visible',
     textOverflow: 'unset',
-    justifyContent: 'left', /* fixes weird thing with rightmost col shifting left when rotated */
+    justifyContent: 'left', /* fixes weird thing with rightmost col shifting left when rotated * /
     marginRight: 'auto',
     transform: 'translate(20%,0px) rotate(-35deg)',
     // transform: 'rotate(-35deg)',
@@ -212,7 +214,6 @@ function ColumnHeader(props) {
   if (allottedWidth < headerDims.width) {
     header_style = {...header_style, ...rotate_header_style};
   }
-  /*
       {
         height: 182px,
         //height: auto,

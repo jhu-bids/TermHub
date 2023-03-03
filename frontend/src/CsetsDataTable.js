@@ -282,25 +282,25 @@ function getCustomStyles() {
 // createTheme creates a new theme named solarized that overrides the build in dark theme
 // https://github.com/jbetancur/react-data-table-component/blob/master/src/DataTable/themes.ts
 createTheme('custom-theme', {
-text: {
-    primary: '#268bd2',
-    secondary: '#2aa198',
-},
-context: {
-    background: '#cb4b16',
-    text: '#FFFFFF',
-},
-divider: {
-    default: '#073642',
-},
-background: {
-    default: '#002b36',
-},
-action: {
-  button: 'rgba(0,0,0,.54)',
-  hover: 'rgba(0,0,0,.08)',
-  disabled: 'rgba(0,0,0,.12)',
-},
+    text: {
+        primary: '#268bd2',
+        secondary: '#2aa198',
+    },
+    context: {
+        background: '#cb4b16',
+        text: '#FFFFFF',
+    },
+    divider: {
+        default: '#073642',
+    },
+    background: {
+        default: '#002b36',
+    },
+    action: {
+      button: 'rgba(0,0,0,.54)',
+      hover: 'rgba(0,0,0,.08)',
+      disabled: 'rgba(0,0,0,.12)',
+    },
 }, 'light');
 */
 
