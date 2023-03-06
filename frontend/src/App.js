@@ -107,7 +107,7 @@ function QueryStringStateMgr(props) {
   // gets state (codeset_ids for now) from query string, passes down through props
   // const [codeset_ids, setCodeset_ids] = useState(sp.codeset_ids || []);
   const sp = searchParamsToObj(searchParams, setSearchParams);
-  console.log({location, sp});
+  // console.log({location, sp});
   const {codeset_ids=[], } = sp;
   // console.log(props);
 
@@ -187,7 +187,7 @@ function DataContainer(props) {
     // let cr = _.hierarchicalTableToTree(concept_relationships, 'concept_id_1', 'concept_id_2');
     // console.log(cr);
 
-    console.log({props, cset_data, });
+    // console.log({props, cset_data, });
     return  <RoutesContainer {...props} all_csets={all_csets} cset_data={cset_data}/>
   }
   return (

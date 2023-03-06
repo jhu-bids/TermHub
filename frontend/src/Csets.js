@@ -236,8 +236,8 @@ function CsetComparisonPage(props) {
   }
   const displayOptions = makeRowData(collapsed);
   let moreProps = {...props, makeRowData, displayData: displayOptions[displayOption], selected_csets, squishTo, collapsed, toggleCollapse, };
-  window.moreProps = moreProps;
-  console.log({moreProps});
+  // window.moreProps = moreProps;
+  // console.log({moreProps});
   return (
       <div>
         <h5 style={{margin:20, }}>
@@ -250,7 +250,7 @@ function CsetComparisonPage(props) {
         </h5>
         {/* <StatsMessage {...props} /> */}
         <ComparisonDataTable squishTo={squishTo} {...moreProps} />
-        <div style={{}} ><SquishSlider setSquish={squishChange}/> </div>
+        <SquishSlider setSquish={squishChange}/>
       </div>)
 }
 
@@ -267,7 +267,7 @@ function SquishSlider({setSquish}) {
   }
 
   return (
-      <Box sx={{ height: 300 }}>
+      <Box /* sx={{ height: 300 }} */>
         <Slider
             // key={`slider-${squish}`}
             sx={{

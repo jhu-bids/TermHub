@@ -105,7 +105,7 @@ function searchParamsToObj(searchParams) {
       sp[key] = JSON.parse(sp[key]);
     }
   });
-  console.log({sp});
+  // console.log({sp});
   return sp;
 }
 function updateSearchParams(props) {
@@ -254,13 +254,14 @@ function setColDefDimensions({coldefs, windowSize, margin=10, }) {
   let usedWidth = margin * 2 + fixedWidthSum;
   coldefs = coldefs.map(d => {
     if (d.remainingPct) {
-      d.width = Math.max(d.minWidth, remainingWidth * d.remainingPct)
+      // d.width = Math.max(d.minWidth, remainingWidth * d.remainingPct)
       usedWidth += d.width;
     }
+    d.grow = 1;
     let h = setColDefHeader(d);
     return h;
   });
-  console.log({windowSize, usedWidth, fixedWidthSum, remainingWidth, });
+  // console.log({windowSize, usedWidth, fixedWidthSum, remainingWidth, });
   return coldefs;
 }
 function setColDefHeader(coldef) {

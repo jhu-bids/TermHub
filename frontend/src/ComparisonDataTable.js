@@ -1,4 +1,4 @@
-import React, {/* useState, useEffect, useMemo, useReducer, useRef, */} from 'react';
+import React, {useRef, /* useState, useEffect, useMemo, useReducer, */} from 'react';
 // import { createSearchParams, useSearchParams, } from "react-router-dom";
 import DataTable, { createTheme } from 'react-data-table-component';
 import { AddCircle, RemoveCircleOutline, Add, } from '@mui/icons-material';
@@ -20,6 +20,7 @@ function ComparisonDataTable(props) {
     const editAction = getCodesetEditActionFunc({searchParams, setSearchParams});
     const editCodesetFunc = getEditCodesetFunc({searchParams, setSearchParams});
     const windowSize = useWindowSize();
+    const boxRef = useRef();
 
     let sizes = {
         rowFontSize:  (13 * squishTo) + 'px',
@@ -55,7 +56,7 @@ function ComparisonDataTable(props) {
     ]
     return (
         <Box sx={{ width: '100%', }}>
-            <Box sx={{ width: '96%', margin: '4px', display: 'flex' }}>
+            <Box sx={{ width: '96%', margin: '4px', display: 'flex' }} ref={boxRef}>
                 { card }
                 {eInfo}
             </Box>
@@ -67,8 +68,15 @@ function ComparisonDataTable(props) {
                 columns={columns}
                 data={displayData.rowData}
                 dense
-                // fixedHeader
-                // fixedHeaderScrollHeight={(window.innerHeight - 275) + 'px'}
+                fixedHeader
+                fixedHeaderScrollHeight={() => {
+                    // console.log(boxRef.current);
+                    const headerStuffHeight = 50; // maybe get a real number, but too hard for now
+                    const {offsetTop=0, offsetHeight=0} = boxRef.current ?? {};
+                    return (window.innerHeight - (headerStuffHeight +
+                                offsetTop + offsetHeight)) + 'px';
+                    // return "400px";
+                }}
                 // highlightOnHover
                 // responsive
                 // subHeaderAlign="right"
@@ -107,7 +115,8 @@ function colConfig(props) {
             sortable: !displayData.nested,
             // minWidth: 100,
             // remainingPct: .60,
-            width: (window.innerWidth - selected_csets.length * 50) * .65,
+            // width: (window.innerWidth - selected_csets.length * 50) * .65,
+            grow: 4,
             wrap: true,
             compact: true,
             conditionalCellStyles: [
@@ -149,8 +158,9 @@ function colConfig(props) {
             format: row => fmt(row.distinct_person_cnt),
             sortable: !displayData.nested,
             right: true,
-            minWidth: 80,
-            remainingPct: .10,
+            width: 80,
+            // minWidth: 80,
+            // remainingPct: .10,
             style: { paddingRight: '8px', },
         },
         {
@@ -165,8 +175,9 @@ function colConfig(props) {
             format: row => fmt(row.total_cnt),
             sortable: !displayData.nested,
             right: true,
-            minWidth: 80,
-            remainingPct: .10,
+            width: 80,
+            // minWidth: 80,
+            // remainingPct: .10,
             style: { paddingRight: '8px', },
         },
     ];
@@ -204,10 +215,11 @@ function colConfig(props) {
         return def;
     });
     coldefs = [...coldefs, ...cset_cols];
-    coldefs.forEach(d => {delete d.width; d.flexGrow=1;})
-    coldefs[0].flexGrow = 4;
-    // coldefs = setColDefDimensions({coldefs, windowSize});
-    console.log(coldefs);
+    // coldefs.forEach(d => {delete d.width; d.flexGrow=1;})
+    // coldefs[0].grow = 5;
+    // delete coldefs[0].width;
+    coldefs = setColDefDimensions({coldefs, windowSize});
+    // console.log(coldefs);
     if (!displayData.nested) {
         delete coldefs[0].conditionalCellStyles;
     }

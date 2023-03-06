@@ -1,3 +1,4 @@
+import { useState } from "react";
 import TranslateIcon from '@mui/icons-material/Translate';
 import BlockIcon from '@mui/icons-material/Block';
 import { Add, } from '@mui/icons-material';
@@ -7,10 +8,11 @@ import Card from '@mui/material/Card';
 // import CardContent from '@mui/material/CardContent';
 import Typography from '@mui/material/Typography';
 import { Link } from 'react-router-dom';
-import {isEmpty, get, } from 'lodash'; // set, map, omit, pick, uniq, reduce, cloneDeepWith, isEqual, uniqWith, groupBy,
+import {isEmpty, get, pick, } from 'lodash'; // set, map, omit, pick, uniq, reduce, cloneDeepWith, isEqual, uniqWith, groupBy,
 import IconButton from '@mui/material/IconButton';
 import Button from '@mui/material/Button';
 import {backend_url} from './App';
+import * as po from './Popover';
 // import {ComparisonDataTable} from './ComparisonDataTable';
 import {Tooltip} from './Tooltip';
 import {searchParamsToObj, updateSearchParams, } from "./utils";
@@ -29,9 +31,9 @@ function getEditCodesetFunc(props) {
   }
 }
 
-function getCodesetEditActionFunc({searchParams, setSearchParams}) {
+function getCodesetEditActionFunc({searchParams, }) {
   return (props) => { // this function will be called editAction and passed around as needed
-    const {clickAction, flag, cset_col:{codeset_id}, row:{concept_id}, cset_data, } = props;
+    const {clickAction, flag, cset_col:{codeset_id}, row:{concept_id}, cset_data, no_action=false, } = props;
     let sp = searchParamsToObj(searchParams);
     let {csetEditState={}, } = sp;
     let csidState = csetEditState[codeset_id] || {};
@@ -49,6 +51,9 @@ function getCodesetEditActionFunc({searchParams, setSearchParams}) {
       delete csetEditState[codeset_id];
     } else {
       csetEditState[codeset_id] = csidState;
+    }
+    if (no_action) {
+      return {item, csidState};
     }
     updateSearchParams({...props, addProps: {csetEditState}});
   }
@@ -174,7 +179,7 @@ function getItem({codeset_id, concept_id, cset_data: {csmiLookup}, csetEditState
   }
   return item;
 }
-function cellStatus(props) {
+function cellInfo(props) {
   const {cset_col:{codeset_id}, row:{concept_id},
           editCodesetId, cset_data, csetEditState, } = props;
   const item = getItem({
@@ -184,7 +189,10 @@ function cellStatus(props) {
   return {editing, item, };
 }
 function cellStyle(props) {
-  const {editing, item} = cellStatus(props);
+  const {editing, item} = cellInfo(props);
+  return _cellStyle(item, editing);
+}
+function _cellStyle(item, editing) {
   let style = {};
   if (!item) {
     return style;  // no styling
@@ -199,10 +207,57 @@ function cellStyle(props) {
   }
   return style;
 }
+function Legend() {
+  const itemTypes = {
+    "Not member or expression item": {
+      "stagedAction": "Add"
+    }
+  }
+  Object.entries((k,v) => {
+    const style = _cellStyle(v, true)
+    return [k, style];
+  })
+  return (
+    <div>
+
+
+    </div>);
+}
+const BACKGROUND_COLORS = {
+  isItemAndMember: 'orange',
+  isItemOnly: 'plum',
+  isMemberOnly: 'lightgray',
+  isNothing: 'white',
+};
+const CELL_STYLES = {
+  forEdit: {
+    isItem: {
+    },
+  },
+  forDisplay: {
+  }
+};
 
 /*
-trying to figure out what to display to convey relationships between expression items and descendants and other
-related concepts -- mapped and excluded
+This logic is too complex. Don't know what to do with it. Especially because now I need to be able to make
+fake cells for the legend, and what a cell looks like depends on having all this data available.
+Started this itemStatus function, but it's not helping
+function itemStatus(item, editing) {
+  let status = {};
+  if      (!isEmpty(item) && item.csm && item.item) { status.is_item = true; status.is_member = true; }
+  else if (!isEmpty(item) && item.csm )             { status.is_member = true; }
+  else if (!isEmpty(item) && item.item )            { status.is_item = true; }
+  else {  // either empty or neither item nor member
+    status.not_item_or_member = true;
+    if (editing) {
+      status.clickAction = 'Add';
+    }
+    return status
+  }
+  if (item.item) {
+    status.flags = pick(item, Object.keys(FLAGS));
+  }
+}
  */
 function CellContents(props) {
   /*
@@ -223,8 +278,8 @@ function CellContents(props) {
         - If staged for deletion:
           - Just the word 'Deleted', clicking cancels deletion
    */
-  const {cset_col:{codeset_id}, row:{concept_id}, editCodesetId, editAction, } = props;
-  const {item, editing} = cellStatus(props);
+  const {editAction, } = props;
+  const {item, editing} = cellInfo(props);
   let removeIcon, clickAction, contents;
   let flags = Object.keys(FLAGS);
   const checkmark = <span>{'\u2713'}</span>;
@@ -278,7 +333,14 @@ function CellContents(props) {
           </Tooltip>;
   }
   const cellStuff = (
-      <span>
+      <div onClick={()=>{console.log({
+          editState: props.csetEditState[props.editCodesetId][props.row.concept_id],
+          stuff: editAction({...props, clickAction, no_action: true}),
+          item,
+          editing
+        })}}
+        style={{width:'70px', textAlign: 'center', }}
+      >
         {removeIcon}
         { contents || contents === '' ? contents : flags.map((flag) => {
             if (!item) {
@@ -288,9 +350,36 @@ function CellContents(props) {
             return <OptionIcon {...props} {...{item, flag, editing}} key={flag} />
           })
         }
-      </span>
+      </div>
   );
   return cellStuff;
+}
+/*
+function legendOpener(setit) {
+  let setOpen = () => {};
+  let setOpener = (_setOpen) => {
+    setOpen = (open=true) => {
+      console.log(`setting legend ${open}`);
+      _setOpen(open);
+    }
+  };
+  return setOpener;
+}
+const editLegend = <EditLegendComponent startOpen={false} controlFunc={legendOpener} />;
+ */
+
+function EditLegendComponent({startOpen=false, controlFunc=()=>{}}) {
+  const [open, setOpen] = useState(startOpen);
+  controlFunc(setOpen)
+  return (
+        <po.Popover open={open} >
+          <po.PopoverContent className="Popover">
+            <po.PopoverHeading>My popover heading</po.PopoverHeading>
+            <po.PopoverDescription>My popover description</po.PopoverDescription>
+            <po.PopoverClose>Close</po.PopoverClose>
+          </po.PopoverContent>
+        </po.Popover>
+  );
 }
 
 export {EditInfo, getCodesetEditActionFunc, getEditCodesetFunc, CellContents, cellStyle, }

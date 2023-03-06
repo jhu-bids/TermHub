@@ -2,10 +2,11 @@
 * todo's
 *  todo: 1. Siggie was going to add some sort of Table here
 * */
-import React from 'react';
+import React, {useState, } from 'react';
 import Typography from "@mui/material/Typography";
 import Button from "@mui/material/Button";
 import {Link} from "@mui/material";
+import * as po from './Popover';
 // import React, {useState, useReducer, useEffect, useRef} from 'react';
 // import {Table} from './Table';
 // import {cfmt} from "./utils";
@@ -98,8 +99,7 @@ DOCS.blank_search_intro = (<>
     <p><strong>CSET SEARCH</strong>: perform existing concept set searches as found in the N3C Enclave</p>
 
     <p><strong>CSET COMPARISON</strong>: compare to similar existing concept sets. Add and remove concepts by reviewing and selecting
-          concept mappings, descendants, exclusions, etc. to build a new concept set that meets your research needs. (should
-          we mention the metadata?)</p>
+          concept mappings, descendants, exclusions, etc. to build a new concept set that meets your research needs. </p>
 
     <p><strong>UPLOAD CSV</strong>: With a single CSV, you can create (i) a new version to an existing concept set, e.g. to
           add/delete concepts or change metadata, and (ii) coming soon: upload a completely new concept set ("concept set
@@ -115,4 +115,23 @@ DOCS.blank_search_intro = (<>
   </div>
 </>);
 
-        export {AboutPage, DOCS};
+function TestPop(startOpen=false) {
+  const [open, setOpen] = useState(startOpen);
+  return (
+      <div className="App">
+        <h1>Floating UI — Popover</h1>
+        <po.Popover open={open} onOpenChange={setOpen}>
+          <po.PopoverTrigger onClick={() => setOpen((v) => !v)}>
+            My trigger
+          </po.PopoverTrigger>
+          <po.PopoverContent className="Popover">
+            <po.PopoverHeading>My popover heading</po.PopoverHeading>
+            <po.PopoverDescription>My popover description</po.PopoverDescription>
+            <po.PopoverClose>Close</po.PopoverClose>
+          </po.PopoverContent>
+        </po.Popover>
+      </div>
+  );
+}
+
+export {AboutPage, DOCS, TestPop, };

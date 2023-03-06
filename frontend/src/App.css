@@ -93,6 +93,22 @@ MuiCheckbox-root {
 .info-block {
   font-family: "Roboto", sans-serif;
 }
+
+
+/* from floating-ui popover sandbox:
+    https://codesandbox.io/s/distracted-swirles-jo1pvu?file=/src/styles.css:59-312
+ */
+.Popover {
+  background-color: white;
+  box-shadow: 0 2px 4px rgba(0, 10, 20, 0.1);
+  border: 1px solid #ddd;
+  font-size: 90%;
+  padding: 4px 8px;
+  border-radius: 4px;
+  box-sizing: border-box;
+  width: max-content;
+  max-width: calc(100vw - 10px);
+}
 /*
 .ag-header-cell-label .ag-header-cell-text {
   /*Force the width corresponding at how much width
