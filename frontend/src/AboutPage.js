@@ -11,9 +11,10 @@ import * as po from './Popover';
 // import {Table} from './Table';
 // import {cfmt} from "./utils";
 
-let TextBody = (props) => (<Typography variant="body2" color="text.primary" gutterBottom>{props.children}</Typography>)
-let TextH1 = (props) => (<Typography variant="h5" color="text.primary" style={{marginTop: '22px'}} gutterBottom>{props.children}</Typography>)
-let TextH2 = (props) => (<Typography variant="h6" color="text.primary" style={{marginTop: '5px'}} gutterBottom>{props.children}</Typography>)
+let TextBody = (props) => (<Typography variant="body2" color="text.primary" gutterBottom>{props.children}</Typography>);
+let TextH1 = (props) => (<Typography variant="h5" color="text.primary" style={{marginTop: '22px'}} gutterBottom>{props.children}</Typography>);
+let TextH2 = (props) => (<Typography variant="h6" color="text.primary" style={{marginTop: '5px'}} gutterBottom>{props.children}</Typography>);
+let LI = (props) => (<li><Typography variant="body2" color="text.primary" style={{marginTop: '5px'}} gutterBottom>{props.children}</Typography></li>);
 let DOCS = {};
 
 function AboutPage(props) {
@@ -37,7 +38,7 @@ function AboutPage(props) {
             and targets for new code set development) in the near future.</TextBody>
           <TextBody>This <a href="https://youtu.be/EAwBZUiNUUk?t=2130">demo video</a> from the October 31, 2022 N3C Forum
              provides a brief introduction. (TermHub has evolved since the video was made. Use the create issue button
-             below to clamor for a new video and we will push that up on our priority list.</TextBody>
+             below to clamor for a new video and we will push that up on our priority list.)</TextBody>
 
         <TextH1>Bug reports & feature requests</TextH1>
         <TextBody>
@@ -52,38 +53,34 @@ function AboutPage(props) {
         <TextH2>How to make changes to a codeset (via Atlas JSON)</TextH2>
         {/*todo: resolve console warnings: <ul>/<ol> cannot appear as a descendant of <p>.
             https://mui.com/material-ui/api/typography/*/}
-        <TextBody>
           <ol>
-            <li>Go to the "Cset Search" page.</li>
-            <li>Search for the codeset.</li>
-            <li>Select the codeset from the dropdown menu.</li>
-            <li>Optional: Select any additional codesets that might also be helpful in the process, e.g. to compare to the one we are editing.</li>
-            <li>Go to the "Cset Comparison" page.</li>
-            <li>Click on the column header for codeset you want to change.</li>
-              <ul>
-                <li>Click <b>+</b> to add a concept</li>
-                <li>Click the <b>cancel sign</b> to remove a concept</li>
-                <li>Click <b>D</b> to toggle <code>inludeDescendants</code></li>
-                <li>Click <b>M</b> to toggle <code>includeMapped</code></li>
-                <li>Click <b>X</b> to toggle <code>isExcluded</code></li>
-              </ul>
-            <li>You will see two boxes at the top. The left box has some metadata about the codeset. The right box shows your <em>staged changes</em>. Click the <b>Export JSON</b> link in that <em>staged changes</em> box.</li>
-            <li>A new browser tab will up with just the JSON. Copy or save it.</li>
-            <li>Go back to the "Cset Comparison" page, and click the "Open in Enclave" link.</li>
-            <li>A new tab for the N3C data enclave will open. Log in if needed.</li>
-            <li>Click the "Versions" tab at the top left.</li>
-            <li>Click the blue "Create new version" button at the bottom left.</li>
-            <li>Fill out the information in the "Create New Draft OMOP Concept Set Version" popup, and click "Submit".</li>
-            <li>Your new draft version should appear on the left (may require a page refresh). Click it.</li>
-            <li>On the right hand side, there is a blue button called "Add Concepts". Click the down arrow, then select "Import ATLAS Concept Set Expression JSON" from the menu.</li>
-            <li>Copy/paste the JSON obtained from TermHub earlier into the box, and click "Import Atlas JSON".</li>
-            <li>Click the version on the left again.</li>
-            <li>On the right, click the green "Done" button.</li>
+            <LI>Go to the "Cset Search" page.</LI>
+            <LI>Search for the codeset.</LI>
+            <LI>Select the codeset from the dropdown menu.</LI>
+            <LI>Optional: Select any additional codesets that might also be helpful in the process, e.g. to compare to the one we are editing.</LI>
+            <LI>Go to the "Cset Comparison" page.</LI>
+            <LI>Click on the column header for codeset you want to change.</LI>
+            <ul>
+              <LI>Click <b>+</b> to add a concept</LI>
+              <LI>Click the <b>cancel sign</b> to remove a concept</LI>
+              <LI>Click <b>D</b> to toggle <code>inludeDescendants</code></LI>
+              <LI>Click <b>M</b> to toggle <code>includeMapped</code></LI>
+              <LI>Click <b>X</b> to toggle <code>isExcluded</code></LI>
+            </ul>
+            <LI>You will see two boxes at the top. The left box has some metadata about the codeset. The right box shows your <em>staged changes</em>. Click the <b>Export JSON</b> link in that <em>staged changes</em> box.</LI>
+            <LI>A new browser tab will up with just the JSON. Copy or save it.</LI>
+            <LI>Go back to the "Cset Comparison" page, and click the "Open in Enclave" link.</LI>
+            <LI>A new tab for the N3C data enclave will open. Log in if needed.</LI>
+            <LI>Click the "Versions" tab at the top left.</LI>
+            <LI>Click the blue "Create new version" button at the bottom left.</LI>
+            <LI>Fill out the information in the "Create New Draft OMOP Concept Set Version" popup, and click "Submit".</LI>
+            <LI>Your new draft version should appear on the left (may require a page refresh). Click it.</LI>
+            <LI>On the right hand side, there is a blue button called "Add Concepts". Click the down arrow, then select "Import ATLAS Concept Set Expression JSON" from the menu.</LI>
+            <LI>Copy/paste the JSON obtained from TermHub earlier into the box, and click "Import Atlas JSON".</LI>
+            <LI>Click the version on the left again.</LI>
+            <LI>On the right, click the green "Done" button.</LI>
           </ol>
-        </TextBody>
-        
         {/* todo: Pages */}
-        
       </div>
   );
 }
