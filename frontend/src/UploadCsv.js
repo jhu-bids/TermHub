@@ -2,7 +2,7 @@
 import React from 'react';
 import Typography from "@mui/material/Typography";
 import Button from "@mui/material/Button";
-import {axiosPut, } from "./utils";
+import {axiosPut} from "./utils";
 
 function UploadCsvPage(props) {
   // TODO: finish handler or whatever needs to be done to hit the backend route
@@ -37,7 +37,15 @@ function UploadCsvPage(props) {
           console.log(res.data.errors)
           console.log('full response: ')
           console.log(res)
+        } else {
+          console.log('Unexpected *response* from server: ')
+          console.log(res)
         }
+      }).catch((err) => {
+        console.log('Unexpected *error* from server: ')
+        console.log(err.response.data)
+        // console.log(err)
+        return Promise.reject(err)
       });
       // this.setState((prevState) => ({ [name]: [...prevState[name], e.target.result] }));
       // TODO: how to print to console or display in screen the promise resolution?

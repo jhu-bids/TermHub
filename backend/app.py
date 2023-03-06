@@ -37,7 +37,7 @@ APP.add_middleware(
     CORSMiddleware,
     allow_origins=['*'],
     allow_methods=['*'],
-    allow_headers=['*']
+    allow_headers=['*'],
 )
 APP.add_middleware(GZipMiddleware, minimum_size=1000)
 CON = get_db_connection()
@@ -214,7 +214,7 @@ def get_cset_members_items(codeset_ids: List[int] = None, con=CON) -> List[Legac
         csm: false if not in concept set members
     """
     return sql_query(
-        con, f""" 
+        con, f"""
         SELECT *
         FROM cset_members_items
         WHERE codeset_id = ANY(:codeset_ids)
@@ -229,7 +229,7 @@ def get_parent_children_map(root_cids: List[int], cids: List[int], con=CON) -> D
     cids: List[int] = [int(x) for x in cids]
     # root_cids: str = ', '.join([str(x) for x in root_cids]) or 'NULL'
     # cids: str = ', '.join([str(x) for x in cids]) or 'NULL'
-    query = f""" 
+    query = f"""
         SELECT *
         FROM concept_ancestor
         WHERE ancestor_concept_id {sql_in(root_cids)}
@@ -284,7 +284,7 @@ def get_concept_relationships(cids: List[int], reltypes: List[str] = ['Subsumes'
     """Get concept_relationship rows for cids
     """
     return sql_query(
-        con, f""" 
+        con, f"""
         SELECT DISTINCT *
         FROM concept_relationship_plus
         WHERE (concept_id_1 {sql_in(cids)} OR concept_id_2 {sql_in(cids)})
@@ -293,7 +293,7 @@ def get_concept_relationships(cids: List[int], reltypes: List[str] = ['Subsumes'
 
 
 junk = """  -- retaining hierarchical query (that's not working, for possible future reference)
--- example used in http://127.0.0.1:8080/backend/old_cr-hierarchy_samples/cr-hierarchy-example1.json 
+-- example used in http://127.0.0.1:8080/backend/old_cr-hierarchy_samples/cr-hierarchy-example1.json
 -- 411456218|40061425|484619125|419757429       -- 40061425 doesn't seem to exist
 -- 411456218,40061425,484619125,419757429
 WITH RECURSIVE hier(concept_id_1, concept_id_2, path, depth) AS (
@@ -303,9 +303,9 @@ WITH RECURSIVE hier(concept_id_1, concept_id_2, path, depth) AS (
           0 AS depth
     FROM concept_relationship
     WHERE concept_id_1 IN ( -- top level cids for 8 codeset_ids above
-        45946655, 3120383, 3124992, 40545247, 3091356, 3099596, 3124987, 40297860, 40345759, 45929656, 3115991, 
+        45946655, 3120383, 3124992, 40545247, 3091356, 3099596, 3124987, 40297860, 40345759, 45929656, 3115991,
         40595784, 44808268, 3164757, 40545248, 45909769,
-        45936903, 40545669, 45921434, 45917166, 4110177, 3141624, 40316548, 44808238, 4169883, 
+        45936903, 40545669, 45921434, 45917166, 4110177, 3141624, 40316548, 44808238, 4169883,
         45945309, 3124228, 40395876, 3151089, 40316547, 40563017, 44793048
         -- ...
     )
@@ -328,7 +328,7 @@ def child_cids(concept_id: int, con=CON) -> List[Dict]:
     """Get child concept ids"""
     # selected_concept_ids = get_concept_set_member_ids([concept_id])
     cids = sql_query_single_col(
-        con, f""" 
+        con, f"""
         SELECT DISTINCT concept_id_2
         FROM concept_relationship cr
         WHERE cr.concept_id_1 = ANY(:concept_ids)
@@ -341,7 +341,11 @@ def child_cids(concept_id: int, con=CON) -> List[Dict]:
 def get_all_csets(con=CON) -> Union[Dict, List]:
     """Get all concept sets"""
     results = sql_query(
+<<<<<<< HEAD
         con, f""" 
+=======
+        con, f"""
+>>>>>>> a198f3d2ec70e0ec8f4a09dffdc8c18a6b32dbe9
         SELECT codeset_id,
               concept_set_version_title,
               concepts

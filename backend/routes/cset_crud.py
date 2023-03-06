@@ -17,6 +17,7 @@ from fastapi import APIRouter
 # from ..dependencies import get_token_header  # from FastAPI example
 from pydantic import BaseModel
 
+from backend.utils import return_err_with_trace
 from enclave_wrangler.dataset_upload import upload_new_container_with_concepts, \
     upload_new_cset_container_with_concepts_from_csv, upload_new_cset_version_with_concepts, \
     upload_new_cset_version_with_concepts_from_csv
@@ -295,8 +296,8 @@ def route_json_upload_new_container_with_concepts(d: UploadJsonNewContainerWithC
     return response  # todo: return. should include: assigned codeset_id's
 
 
-# TOOD: do the same try/except validate first false -> true fo all these upload routes
 @router.post("/upload-csv-new-cset-version-with-concepts")
+@return_err_with_trace
 def route_csv_upload_new_cset_version_with_concepts(data: UploadCsvVersionWithConcepts) -> Dict:
     """Upload new version of existing container, with concepets"""
     result = {}
