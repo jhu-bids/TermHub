@@ -341,11 +341,7 @@ def child_cids(concept_id: int, con=CON) -> List[Dict]:
 def get_all_csets(con=CON) -> Union[Dict, List]:
     """Get all concept sets"""
     results = sql_query(
-<<<<<<< HEAD
         con, f""" 
-=======
-        con, f"""
->>>>>>> a198f3d2ec70e0ec8f4a09dffdc8c18a6b32dbe9
         SELECT codeset_id,
               concept_set_version_title,
               concepts

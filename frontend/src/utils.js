@@ -85,8 +85,8 @@ function StatsMessage(props) {
     selected contain <strong>{(concepts||[]).length} distinct concepts</strong>.
     The following <strong>{related_csets.length} concept sets </strong>
     ({ pct_fmt(related_csets.length / all_csets.length) })
-    have 1 or more concepts in common with the selected sets. Select from
-    below if you want to add to the above list.</p>
+    have 1 or more concepts in common with the selected sets. Toggle rows below
+    to add or remove concept sets from those selected.</p>
 }
 
 function searchParamsToObj(searchParams) {

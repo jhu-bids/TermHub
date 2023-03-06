@@ -115,6 +115,10 @@ DOCS.blank_search_intro = (<>
   </div>
 </>);
 
+function HelpWidget(props) {
+
+}
+
 function TestPop(startOpen=false) {
   const [open, setOpen] = useState(startOpen);
   return (
@@ -134,4 +138,4 @@ function TestPop(startOpen=false) {
   );
 }
 
-export {AboutPage, DOCS, TestPop, };
+export {AboutPage, DOCS, TestPop, HelpWidget, };

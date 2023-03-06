@@ -13,6 +13,10 @@ import { every, get, isEmpty, throttle, pullAt, } from 'lodash';
 import Box from '@mui/material/Box';
 import Slider from '@mui/material/Slider';
 import {Tooltip} from "./Tooltip";
+import Card from '@mui/material/Card';
+import CardContent from '@mui/material/CardContent';
+import Typography from '@mui/material/Typography';
+import * as po from './Popover';
 import {DOCS} from "./AboutPage";
 
 /* TODO: Solve
@@ -62,12 +66,47 @@ function CsetSearch(props) {
             setKeyForRefreshingAutocomplete(k => k+1);
           }}
       />);
+  const tt = (
+      <Card variant="elevation">
+        <CardContent sx={{border: '3px solid gray'}}>
+          <Typography variant="h6" color="text.primary" gutterBottom>
+            Select concept sets to view, compare, and edit.
+          </Typography>
+          <Typography variant="body2" color="text.primary" gutterBottom>
+            Click to list all.
+          </Typography>
+          <Typography variant="body2" color="text.primary" gutterBottom>
+            Start typing characters in concept set name or digits in the version ID
+            to filter.
+          </Typography>
+          <Typography variant="body2" color="text.primary" >
+            Click to add concept set to those selected.
+          </Typography>
+        </CardContent>
+      </Card>
+  )
   return (
-    <div style={{padding:'9px', }}>
-      <Tooltip label="Select concept sets to view, compare, and edit." >
+      <Tooltip content={tt} classes="help-card" placement="top-end">
         {autocomplete}
       </Tooltip>
+  );
+  /*
+  return (
+    <div style={{padding:'9px', }}>
+      <po.Popover>
+        <po.PopoverTrigger>
+          {autocomplete}
+        </po.PopoverTrigger>
+        <po.PopoverContent className="Popover">
+          <po.PopoverHeading>
+            Select concept sets to view, compare, and edit.
+          </po.PopoverHeading>
+          <po.PopoverDescription>My popover description</po.PopoverDescription>
+          <po.PopoverClose>Close</po.PopoverClose>
+        </po.PopoverContent>
+      </po.Popover>
     </div>)
+   */
   /* want to group by cset name and then list version. use https://mui.com/material-ui/react-autocomplete/ Grouped
      and also use Multiple Values */
 }
