@@ -1,5 +1,5 @@
 // from https://mui.com/material-ui/react-app-bar/#ResponsiveAppBar.js
-import * as React from 'react';
+import React, {useState, useEffect} from 'react';
 import AppBar from '@mui/material/AppBar';
 import Box from '@mui/material/Box';
 import Toolbar from '@mui/material/Toolbar';
@@ -10,12 +10,14 @@ import MenuIcon from '@mui/icons-material/Menu';
 import Container from '@mui/material/Container';
 import Avatar from '@mui/material/Avatar';
 import Button from '@mui/material/Button';
+// import {Tooltip} from './Tooltip';
 import Tooltip from '@mui/material/Tooltip';
 import MenuItem from '@mui/material/MenuItem';
 import MenuBookIcon from '@mui/icons-material/MenuBook';
 import {NavLink, useLocation} from "react-router-dom";
+import { cloneDeep, } from "lodash";
 
-const pages = [
+const _pages = [
   {name: 'Cset search', href: '/OMOPConceptSets'},
   {name: 'Cset comparison', href: '/cset-comparison'},
   {name: 'Example comparison', href: '/testing'},
@@ -24,14 +26,24 @@ const pages = [
   //{name: 'Download CSet JSON', href: '/download-json', noSearch: true, },
   {name: 'Help / About', href: '/about'}
 ];
+function getPages(props) {
+  let pages = cloneDeep(_pages);
+  if (!props.codeset_ids.length) {
+    let page = pages.find(d=>d.href=='/cset-comparison');
+    page.disable = true;
+    page.tt = 'Select one or more concept sets in order to view, compare, or edit them.'
+  }
+  return pages;
+}
 const settings = ['About'];
 
 /* https://mui.com/material-ui/react-app-bar/ */
-const MuiAppBar = () => {
-  const {search} = useLocation();
+const MuiAppBar = (props) => {
+  const location = useLocation();
+  const {search} = location;
+  const pages = getPages(props);
 
   const [anchorElNav, setAnchorElNav] = React.useState(null);
-  // const [anchorElCsets, setAnchorElCsets] = React.useState(null);
   const [anchorElUser, setAnchorElUser] = React.useState(null);
 
   const handleOpenNavMenu = (event) => {
@@ -42,15 +54,6 @@ const MuiAppBar = () => {
     setAnchorElUser(event.currentTarget);
     console.log(anchorElUser)
   };
-  /*
-  const handleOpenCsetsMenu = (event) => {
-    setAnchorElCsets(event.currentTarget);
-    console.log(anchorElCsets)
-  };
-  const handleCloseCsetsMenu = () => {
-    setAnchorElCsets(null);
-  };
-   */
   const handleCloseNavMenu = () => {
     setAnchorElNav(null);
   };
@@ -103,20 +106,34 @@ const MuiAppBar = () => {
   let horizontalMenu = (
       <Box /* This is the main, horizontal menu */
           sx={{ flexGrow: 1, display: { xs: 'none', md: 'flex' } }} >
-        {pages.map((page) => (
-            <Button
-                key={page.name}
-                // selected={page.href === window.location.pathname}
-                component={NavLink} // NavLink is supposed to show different if it's active; doesn't seem to be working
-                variant={page.href === window.location.pathname ? 'contained' : 'text'} // so, this instead
-                to={`${page.href}${page.noSearch ? '' : search}`}
-                onClick={handleCloseNavMenu}
-                sx={{ my: 2, color: 'white', display: 'block' }}
-            >
-              {page.name}
-            </Button>
-        ))}
-        {/* junk */}
+        {pages.map((page) => {
+          let button = (
+              <Button
+                  disabled={page.disable}
+                  key={page.name}
+                  // selected={page.href === window.location.pathname}
+                  component={NavLink} // NavLink is supposed to show different if it's active; doesn't seem to be working
+                  variant={page.href === window.location.pathname ? 'contained' : 'text'} // so, this instead
+                  to={`${page.href}${page.noSearch ? '' : search}`}
+                  onClick={handleCloseNavMenu}
+                  sx={{ my: 2, color: 'white', display: 'block' }}
+              >
+                {
+                  page.name
+                }
+              </Button>
+          );
+          if (page.tt) {
+            button = (
+                <Tooltip title={page.tt} key={page.name}>
+                  <div>
+                    {button}
+                  </div>
+                </Tooltip>
+            );
+          }
+          return button;
+        })}
       </Box>
   )
   return (

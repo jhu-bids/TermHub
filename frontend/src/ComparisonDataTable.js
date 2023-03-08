@@ -134,8 +134,11 @@ function colConfig(props) {
             style: { paddingRight: '8px', },
         },
         {
-            name: 'Concept links',
+            name: 'Links',
             selector: row => row.concept_id,
+            headerProps: {
+                tooltipContent: <span>Click icons to open the concept in ATLAS or Athena</span>,
+            },
             format: row => (
                 <span style={{backgroundColor: 'lightgray', height: sizes.linkHeight}} >
                     <a href={`https://atlas-demo.ohdsi.org/#/concept/${row.concept_id}`} target="_blank" rel="noreferrer">
@@ -146,7 +149,7 @@ function colConfig(props) {
                     </a>
                 </span>),
             sortable: !displayData.nested,
-            width: 29,
+            width: 35,
             style: { paddingRight: '0px', },
         },
         // ...cset_cols,
@@ -188,7 +191,8 @@ function colConfig(props) {
             cset_col,
             codeset_id,
             headerProps: {
-                tooltipContent: "Click to create and edit new draft of this concept set",
+                //tooltipContent: "Click to create and edit new draft of this concept set",
+                tooltipContent: `${cset_col.concept_set_version_title}. Click to edit new version.`,
                 headerContent: cset_col.concept_set_name,
                 headerContentProps: {
                     onClick: editCodesetFunc,
@@ -212,9 +216,9 @@ function colConfig(props) {
                 },
             ],
             sortable: !displayData.nested,
-            compact: true,
+            // compact: true,
             width: 70,
-            center: true,
+            // center: true,
         };
         return def;
     });
@@ -230,10 +234,11 @@ function colConfig(props) {
     return coldefs;
 }
 
+/*
 function CsetColumnHeader(props) {
     const {cset_col, editCodesetFunc, } = props;
     return  <Tooltip placement="bottom"
-                label="Click to create and edit new draft of this concept set"
+                label={`${cset_col.concept_set_version_title}. Click to edit new version.`}
             >
                 <span className="cset-column-header"
                       // style={{...rotated_header_style}}
@@ -242,6 +247,7 @@ function CsetColumnHeader(props) {
                 >{cset_col.concept_set_name}</span>
             </Tooltip>
 }
+ */
 
 
 // createTheme creates a new theme named solarized that overrides the build in dark theme

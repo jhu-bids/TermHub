@@ -214,6 +214,8 @@ function ColumnHeader(props) {
   if (allottedWidth < headerDims.width) {
     header_style = {...header_style, ...rotate_header_style};
   }
+  */
+  /*
       {
         height: 182px,
         //height: auto,

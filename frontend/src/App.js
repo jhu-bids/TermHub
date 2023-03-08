@@ -222,12 +222,12 @@ function RoutesContainer(props) {
       </Routes>
   )
 }
-function App() {
+function App(props) {
   return (
       <ThemeProvider theme={theme}>
         <div className="App">
           {/* <ReactQueryDevtools initialIsOpen={false} /> */ }
-          <MuiAppBar/>
+          <MuiAppBar {...props} />
           {/* Outlet: Will render the results of whatever nested route has been clicked/activated. */}
           <Outlet/>
         </div>
