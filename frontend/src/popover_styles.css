@@ -9,3 +9,7 @@
   width: max-content;
   max-width: calc(100vw - 10px);
 }
+
+.legend {
+  transform: scale(0.7) translate(15px, -150px);
+}

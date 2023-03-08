@@ -3,6 +3,7 @@ import {ComparisonDataTable} from "./ComparisonDataTable";
 import {CsetsDataTable, } from "./CsetsDataTable";
 // import {difference, symmetricDifference} from "./utils";
 import ConceptSetCards from "./ConceptSetCard";
+import { LegendButton, } from './EditCset';
 import TextField from '@mui/material/TextField';
 import Autocomplete from '@mui/material/Autocomplete';
 import Button from '@mui/material/Button';
@@ -60,7 +61,7 @@ function CsetSearch(props) {
             return options.filter(o => every(match.map(m => o.label.match(m))))
           }}
           sx={{ width: '100%', }}
-          renderInput={(params) => <TextField {...params} label="Add concept set" />}
+          renderInput={(params) => <TextField {...params} label="Select concept set" />}
           onChange={(event, newValue) => {
             changeCodesetIds(newValue.id, 'add');
             setKeyForRefreshingAutocomplete(k => k+1);
@@ -73,14 +74,10 @@ function CsetSearch(props) {
             Select concept sets to view, compare, and edit.
           </Typography>
           <Typography variant="body2" color="text.primary" gutterBottom>
-            Click to list all.
+            Click to list all available and then to select.
           </Typography>
           <Typography variant="body2" color="text.primary" gutterBottom>
-            Start typing characters in concept set name or digits in the version ID
-            to filter.
-          </Typography>
-          <Typography variant="body2" color="text.primary" >
-            Click to add concept set to those selected.
+            Or, start typing concept set name or version ID to filter.
           </Typography>
         </CardContent>
       </Card>
@@ -286,6 +283,7 @@ function CsetComparisonPage(props) {
                 {opt.msg}
               </Button>)
           }
+          <LegendButton/>
         </h5>
         {/* <StatsMessage {...props} /> */}
         <ComparisonDataTable squishTo={squishTo} {...moreProps} />

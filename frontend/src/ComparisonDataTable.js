@@ -9,7 +9,7 @@ import {fmt, setColDefDimensions, useWindowSize, } from "./utils";
 import {ConceptSetCard} from "./ConceptSetCard";
 import {Tooltip} from './Tooltip';
 import { getEditCodesetFunc, getCodesetEditActionFunc, EditInfo,
-            CellContents, cellStyle, } from './EditCset';
+    cellContents, cellStyle, Legend, LegendButton, } from './EditCset';
 // import {isEmpty} from "react-data-table-component/dist/src/DataTable/util"; // what was this for?
 // import Button from '@mui/material/Button';
 
@@ -39,7 +39,7 @@ function ComparisonDataTable(props) {
         card = <ConceptSetCard cset={columns.find(d=>d.codeset_id===editCodesetId).cset_col}
                                researchers={researchers}
                                editing={true}
-                               width={window.innerWidth * 0.5}
+                               // width={window.innerWidth * 0.5}
                     />;
     }
     if (! isEmpty(csetEditState)) {
@@ -56,7 +56,8 @@ function ComparisonDataTable(props) {
     ]
     return (
         <Box sx={{ width: '100%', }}>
-            <Box sx={{ width: '96%', margin: '4px', display: 'flex' }} ref={boxRef}>
+            <Box ref={boxRef} sx={{ width: '96%', margin: '9px', alignItems: 'stretch',
+                display: 'flex', flexWrap: 'wrap', flexDirection: 'row', }}>
                 { card }
                 {eInfo}
             </Box>
@@ -195,10 +196,13 @@ function colConfig(props) {
                 }
             },
             selector: (row) => {
-                return <CellContents { ...props}
+                /*return <CellContents { ...props}
                                      {...{row, cset_col,
+                                         rowData: displayData.rowData,
+                                         editAction}} />; */
+                return cellContents({ ...props, row, cset_col,
                                         rowData: displayData.rowData,
-                                        editAction}} />;
+                                        editAction});
             },
             conditionalCellStyles: [
                 {

@@ -7,11 +7,13 @@ import Typography from "@mui/material/Typography";
 import Button from "@mui/material/Button";
 import {Link} from "@mui/material";
 import * as po from './Popover';
+
 // import React, {useState, useReducer, useEffect, useRef} from 'react';
 // import {Table} from './Table';
 // import {cfmt} from "./utils";
 
 let TextBody = (props) => (<Typography variant="body2" color="text.primary" gutterBottom>{props.children}</Typography>);
+let TextBold = (props) => (<Typography sx={{fontWeight:'bold'}} variant="body2" color="text.primary" gutterBottom>{props.children}</Typography>);
 let TextH1 = (props) => (<Typography variant="h5" color="text.primary" style={{marginTop: '22px'}} gutterBottom>{props.children}</Typography>);
 let TextH2 = (props) => (<Typography variant="h6" color="text.primary" style={{marginTop: '5px'}} gutterBottom>{props.children}</Typography>);
 let LI = (props) => (<li><Typography variant="body2" color="text.primary" style={{marginTop: '5px'}} gutterBottom>{props.children}</Typography></li>);
@@ -30,7 +32,7 @@ function AboutPage(props) {
   // )
 
   return (
-      <div>
+      <div style={{margin: '15px 30px 15px 40px'}}>
         <TextH1>About TermHub</TextH1>
           <TextBody>TermHub is a tool for comparing, analyzing, updating, and (soon) creating concept sets. At the current
             time it only handles concept sets in the <a href="https://covid.cd2h.org/enclave">N3C Enclave</a>, but
@@ -93,22 +95,50 @@ DOCS.blank_search_intro = (<>
   <h2>Within TermHub you can:</h2>
 
   <div style={{paddingLeft: '12px', paddingRight: '130px', }}>
-    <p><strong>CSET SEARCH</strong>: perform existing concept set searches as found in the N3C Enclave</p>
+    <p><strong>CSET SEARCH</strong>
+      <ul>
+        <LI>Perform searches for existing concept sets currently in the N3C Enclave.</LI>
+      </ul>
+    </p>
 
-    <p><strong>CSET COMPARISON</strong>: compare to similar existing concept sets. Add and remove concepts by reviewing and selecting
-          concept mappings, descendants, exclusions, etc. to build a new concept set that meets your research needs. </p>
+    <p><strong>CSET COMPARISON</strong>
+      <ul>
+        <LI>Compare selected concept sets.</LI>
+        <LI>Add and remove concepts by reviewing and selecting
+        concept mappings, descendants, exclusions.</LI>
+        <LI>Export JSON of modified concept set. (Required in order to put changes in Enclave, for now.)</LI>
+      </ul>
+    </p>
 
-    <p><strong>UPLOAD CSV</strong>: With a single CSV, you can create (i) a new version to an existing concept set, e.g. to
+    {/*
+    <p><strong>UPLOAD CSV</strong>
+      <ul>
+        <LI>
+          With a single CSV, you can create (i) a new version to an existing concept set, e.g. to
           add/delete concepts or change metadata, and (ii) coming soon: upload a completely new concept set ("concept set
-          container").</p>
+          container").
+        </LI>
+      </ul>
+    </p>
+    */}
 
-    <p><strong>HELP/ABOUT</strong>: Learn more about TermHub and review the step by step “How To” section. Provide feedback by
-          creating an issue. Let us know of any bug or a poor user experience, or share a feature request.</p>
-
-    <p><strong>Bug reports & feature requests</strong>: This is a beta version and we value your feedback. If you encounter a
-          bug or a poor user experience issue, or have a feature request in mind, we would love to hear from you. Create an
-          issue in the HELP/ABOUT
-          section.</p>
+    <p><strong>HELP/ABOUT</strong>
+      <ul>
+        <LI>
+          Learn more about TermHub and review the step by step “How To” section.
+        </LI>
+        <LI>
+          Provide feedback by creating a GitHub issue.
+        </LI>
+        <LI>
+          Let us know of any bug or a poor user experience, or share a feature request.
+        </LI>
+      </ul>
+    </p>
+  </div>
+  <div style={{position: 'absolute', top: (window.innerHeight - 40) + 'px'}}>
+    &#169; Johns Hopkins University 2023. Available open source on <a href="https://github.com/jhu-bids/TermHub">GitHub</a> under
+    a <a href="https://github.com/jhu-bids/TermHub/blob/develop/LICENSE">GPL 3 License</a>.
   </div>
 </>);
 
@@ -135,4 +165,4 @@ function TestPop(startOpen=false) {
   );
 }
 
-export {AboutPage, DOCS, TestPop, HelpWidget, };
+export {AboutPage, DOCS, TestPop, HelpWidget, TextBody, TextBold, TextH2, TextH1, };

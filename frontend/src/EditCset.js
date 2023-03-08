@@ -3,7 +3,7 @@ import TranslateIcon from '@mui/icons-material/Translate';
 import BlockIcon from '@mui/icons-material/Block';
 import { Add, } from '@mui/icons-material';
 // import {SvgIcon} from "@mui/material";
-// import Box from '@mui/material/Box';
+import Box from '@mui/material/Box';
 import Card from '@mui/material/Card';
 // import CardContent from '@mui/material/CardContent';
 import Typography from '@mui/material/Typography';
@@ -16,8 +16,11 @@ import * as po from './Popover';
 // import {ComparisonDataTable} from './ComparisonDataTable';
 import {Tooltip} from './Tooltip';
 import {searchParamsToObj, updateSearchParams, } from "./utils";
+import * as abt from './AboutPage';
 import _ from "./supergroup/supergroup";
+import {TextBold, TextBody} from "./AboutPage";
 
+const checkmark = <span>{'\u2713'}</span>;
 function getEditCodesetFunc(props) {
   const {searchParams, } = props;
   return (evt) => {
@@ -75,8 +78,14 @@ function EditInfo(props) {
   const cset = selected_csets.find(d => d.codeset_id === editCodesetId);
   const updates = _.supergroup(Object.values(csidState), 'stagedAction');
   return (
-      <Card variant="outlined">
+      <Card variant="outlined" sx={{/*width: '600px', */}}>
         <h4>Staged changes to {cset.concept_set_version_title} ({editCodesetId})</h4>
+        <p>To save your work, click
+          <Button onClick={() => {navigator.clipboard.writeText(window.location.toString())}} >
+            Copy URL
+          </Button><br/>
+          Best practice is to paste this URL in your lab notebook and annotate your work there as well.</p>
+
         <ul>{
             updates.map(
                 grp => <li key={grp}>
@@ -107,19 +116,36 @@ const FLAGS = {
   // includeMapped: {component: TranslateIcon, sz:12, tt: 'Include Mapped'},
   // includeDescendants: {component: TreeIcon, sz:12, tt: 'Include descendants'},
   // isExcluded: {component: BlockIcon, sz:12, tt: 'Exclude'},
-  includeMapped:      {symbol: 'M', tt: 'Include Mapped'},
   includeDescendants: {symbol: 'D', tt: 'Include descendants'},
+  includeMapped:      {symbol: 'M', tt: 'Include Mapped'},
   isExcluded:         {symbol: 'X', tt: 'Exclude'},
 }
+const ICONS = {
+  block: {
+    symbol: <BlockIcon sx={{ width:'12px', height:'12px', margin: '2px 2px 0px 2px',
+                padding: '0px', fontWeight: 'bolder', }} />,
+    tt: 'Cancel / Remove'
+  },
+  ...FLAGS,
+}
 function OptionIcon(props) {
-  const {item, flag, editing, cset_col:{codeset_id}, row:{concept_id}, editCodesetId, editAction, } = props;
-  const on = !!item[flag];
-  const icon = FLAGS[flag];
+  const {item, flag, editing, cset_col:{codeset_id}, row:{concept_id}, editCodesetId,
+          editAction, } = props;
+  const icon = ICONS[flag];
+  if (flag == 'block') {
+    return (
+        <Tooltip label={icon.tt}>
+          {icon.symbol}
+        </Tooltip>
+    );
+  }
+  const on = item[flag];
+  // const icon = FLAGS[flag];
   // const OptIcon = icon.component;
   return (
     <Tooltip label={icon.tt + ' =' + (on ? 'True' : 'False')}>
       <IconButton
-        onClick={ editing ? ()=>editAction({...props, clickAction: 'Update'}) : null }
+        onClick={ (editing && !item.fakeItem) ? ()=>editAction({...props, clickAction: 'Update'}) : null }
         size='9px'
         // color={on ? 'primary' : 'secondary'}
         sx={{ // width:icon.sz+'px', height:icon.sz+'px',
@@ -140,14 +166,14 @@ function OptionIcon(props) {
     </Tooltip>
   );
 }
-function getItem({codeset_id, concept_id, cset_data: {csmiLookup}, csetEditState, clickAction}) {
+function getItem({fakeItem, codeset_id, concept_id, cset_data: {csmiLookup}, csetEditState, clickAction}) {
   /*  if no item for codeset_id,concept_id, return undefined;
       otherwise, return copy of item,
         1) from edit state if available there,
         2) from csmiLookup (concept_set_members_items),
         3) new if clickAction === 'Add'
       set item.stagedAction if action parameter included   */
-  let item = get(csetEditState, [codeset_id, concept_id]);
+  let item = fakeItem ?? get(csetEditState, [codeset_id, concept_id]);
   if (isEmpty(item)) {
     item = get(csmiLookup, [codeset_id, concept_id]);
   }
@@ -180,6 +206,9 @@ function getItem({codeset_id, concept_id, cset_data: {csmiLookup}, csetEditState
   return item;
 }
 function cellInfo(props) {
+  if (props.fakeItem) {
+    return {editing: props.editing, item: props.fakeItem };
+  }
   const {cset_col:{codeset_id}, row:{concept_id},
           editCodesetId, cset_data, csetEditState, } = props;
   const item = getItem({
@@ -200,6 +229,7 @@ function _cellStyle(item, editing) {
   if (item.csm && item.item) { style.backgroundColor = 'orange' }
   else if (item.csm ) { style.backgroundColor = 'lightgray' }
   else if (item.item ) { style.backgroundColor = 'plum' }
+  editing = editing ?? item.editing;
   if (editing) {
     if (item.stagedAction === 'Add') { style.backgroundColor = 'lightgreen' }
     else if (item.stagedAction === 'Remove') { style.backgroundColor = 'pink' }
@@ -207,37 +237,97 @@ function _cellStyle(item, editing) {
   }
   return style;
 }
+const centered = { // https://stackoverflow.com/questions/19461521/how-to-center-an-element-horizontally-and-vertically
+  display: 'flex',
+  alignItems: 'center',
+  justifyContent: 'center',
+};
+
+function LegendItem({label, content=null, style, }) {
+  return  <Box sx={{width: '350px', border: content ? '1px solid gray' : '', display: 'flex',
+    margin: '4px', alignItems: 'stretch', flexDirection: 'row', }} key={label}>
+    <Box sx={{width: '250px', display: 'flex', alignItems: 'center', padding: '3px',
+                minHeight: '1.5rem', fontWeight: content ? 'normal' : 'bolder', }}>{label} </Box>
+    { content ? <Box sx={{width: '100px', border: '1px solid gray', ...centered, ...style}}>{content}</Box> : null }
+  </Box>
+}
+function iconset(subset) {
+  let icons = ICONS;
+  if (subset) {
+    icons = pick(icons, subset);
+  }
+  return Object.entries(icons).map(([k,v]) => {
+    return <OptionIcon key={k} {...fakeOptProps([], [k])} />;
+    // return <OptionIcon {...props} {...{item, flag, editing}} key={flag} />
+    return  <IconButton size='9px' key={k}
+                        sx={{ alignItems: 'stretch', fontSize: '.7rem',
+                          margin: '0px 2px 2px 2px', padding: '0px', }} >
+      {v.symbol}
+    </IconButton>
+  });
+}
+function fakeOptProps(itemProps=[], flag ) {
+  // so that we can use real (excessively complicated) logic to show different
+  //  kinds of items in the Legend
+  let item = {fakeItem: true,};
+  itemProps.forEach(f => item[f] = true);
+  let props = { item, cset_col:{}, row:{}, cset_data:{}, flag, };
+  return props;
+}
+const FLAG_ABBREV = {
+  D: 'includeDescendants',
+  M: 'includeMapped',
+  X: 'isExcluded',
+  c: 'csm',
+  i: 'item'
+}
+function flagAbbrev(letter) {
+  return FLAG_ABBREV[letter];
+}
+function fakeCell(props) {
+  let {editing, stagedAction, flags='DMX', } = props;
+  let item = {fakeItem: true, stagedAction, item: !!stagedAction, };
+  flags.split('').forEach(f => {
+    item[flagAbbrev(f)] = true;
+  })
+  if (!(item.csm || item.item)) {
+    item = null;
+  }
+  let cellProps = { editing, fakeItem: item, cset_col:{}, row:{}, cset_data:{}, };
+  // return <CellContents {...cellProps} />;
+  return cellContents({...cellProps});
+}
 function Legend() {
   const itemTypes = {
-    "Not member or expression item": {
-      "stagedAction": "Add"
-    }
+    "testing": {content: fakeCell({editing: true, flags: 'i', stagedAction: 'Add'})},
+    // "Newly added": { stagedAction: 'Add', editing: true, content: iconset() },
+    "Symbols": {},
+    // "Item flag: includeDescendants": {content: iconset(['includeDescendants'])},
+    "Item flag: includeDescendants": {content: <OptionIcon {...fakeOptProps(['includeDescendants'], ['includeDescendants'])} />},
+    "Item flag: includeMapped": {content: <OptionIcon {...fakeOptProps(['includeMapped'], ['includeMapped'])} />},
+    "Item flag: isExcluded": {content: <OptionIcon {...fakeOptProps(['isExcluded'], ['isExcluded'])} />},
+    "Add expression item": { content: <Add/>},
+    "Remove item from set or cancel edit": {content: <OptionIcon {...fakeOptProps(['isExcluded'], ['isExcluded'])} />},
+    "Concept set not being edited": {},
+    "Not member or expression item": { content: ' '},
+    "Member but not expression item": { csm: true, content: checkmark },
+    "Expression item but not member (only shows flags set to true)": { item: true, content: iconset(['includeDescendants', 'includeMapped', 'isExcluded']) },
+    "Both member and expression item": { csm: true, item: true, content: iconset(['includeDescendants', 'includeMapped', 'isExcluded']) },
+    "Concept set being edited": {},
+    "Add concept (as expression)": { content: <Add/> },
+    "Add member concept as expression": { csm: true, content: <Add/> },
+    "Addition": { stagedAction: 'Add', editing: true, content: iconset() },
   }
-  Object.entries((k,v) => {
+  const items = Object.entries(itemTypes).map(([k,v]) => {
     const style = _cellStyle(v, true)
-    return [k, style];
+    // const {content='\u00A0\u00A0\u00A0\u00A0'} = v;
+    return LegendItem({label: k, content: v.content, style: _cellStyle(v)});
   })
   return (
     <div>
-
-
+      {items}
     </div>);
 }
-const BACKGROUND_COLORS = {
-  isItemAndMember: 'orange',
-  isItemOnly: 'plum',
-  isMemberOnly: 'lightgray',
-  isNothing: 'white',
-};
-const CELL_STYLES = {
-  forEdit: {
-    isItem: {
-    },
-  },
-  forDisplay: {
-  }
-};
-
 /*
 This logic is too complex. Don't know what to do with it. Especially because now I need to be able to make
 fake cells for the legend, and what a cell looks like depends on having all this data available.
@@ -259,7 +349,7 @@ function itemStatus(item, editing) {
   }
 }
  */
-function CellContents(props) {
+function cellContents(props) {
   /*
       Populates cell with appropriate icons.
       If not editing, show (nothing is clickable):
@@ -282,7 +372,6 @@ function CellContents(props) {
   const {item, editing} = cellInfo(props);
   let removeIcon, clickAction, contents;
   let flags = Object.keys(FLAGS);
-  const checkmark = <span>{'\u2713'}</span>;
   if (! editing) {
     if (item && item.item) {
       flags = Object.keys(FLAGS).filter(key => item[key])
@@ -343,6 +432,7 @@ function CellContents(props) {
       >
         {removeIcon}
         { contents || contents === '' ? contents : flags.map((flag) => {
+                                                   //Object.keys(ICONS).map((flag) => {
             if (!item) {
               throw new Error("that's not expected")
             }
@@ -368,6 +458,18 @@ function legendOpener(setit) {
 const editLegend = <EditLegendComponent startOpen={false} controlFunc={legendOpener} />;
  */
 
+function LegendButton(props) {
+  return (
+      <po.Popover>
+        <po.PopoverTrigger sx={{float:'right'}}>Display legend</po.PopoverTrigger>
+        <po.PopoverContent className="Popover legend" >
+          <po.PopoverHeading>Legend</po.PopoverHeading>
+          <Legend/>
+          <po.PopoverClose>Close</po.PopoverClose>
+        </po.PopoverContent>
+      </po.Popover>
+  )
+}
 function EditLegendComponent({startOpen=false, controlFunc=()=>{}}) {
   const [open, setOpen] = useState(startOpen);
   controlFunc(setOpen)
@@ -382,7 +484,8 @@ function EditLegendComponent({startOpen=false, controlFunc=()=>{}}) {
   );
 }
 
-export {EditInfo, getCodesetEditActionFunc, getEditCodesetFunc, CellContents, cellStyle, }
+export {EditInfo, getCodesetEditActionFunc, getEditCodesetFunc, cellContents, cellStyle,
+        LegendButton, };
 
 /*
 function TreeIcon(props) {

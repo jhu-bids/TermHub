@@ -2,6 +2,7 @@
     https://codesandbox.io/s/distracted-swirles-jo1pvu?file=/src/styles.css:59-312
  */
 import * as React from "react";
+import Button from "@mui/material/Button";
 import { useState } from "react";
 import "./popover_styles.css";
 import {
@@ -149,7 +150,7 @@ export const PopoverTrigger = React.forwardRef(function PopoverTrigger({ childre
   }
 
   return (
-    <button
+    <Button
       ref={ref}
       type="button"
       // The user can style the trigger based on the state
@@ -157,7 +158,7 @@ export const PopoverTrigger = React.forwardRef(function PopoverTrigger({ childre
       {...context.getReferenceProps(props)}
     >
       {children}
-    </button>
+    </Button>
   );
 });
 
