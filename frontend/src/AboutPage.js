@@ -162,4 +162,4 @@ function TestPop(startOpen=false) {
   );
 }
 
-export {AboutPage, DOCS, TestPop, HelpWidget, TextBody, TextBold, TextH2, TextH1, };
+export {AboutPage, DOCS, TestPop, HelpWidget, TextBody, TextBold, TextH2, TextH1, LI, };

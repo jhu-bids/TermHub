@@ -136,6 +136,7 @@ function ConceptSetCard(props) {
     </div>);
   // display_props['props not included yet'] = 'codeset_status, container_status, stage, concept count';
   const {search, pathname} = useLocation();
+  /*
   const editSingleLink = (
       <NavLink
           // component={NavLink} // NavLink is supposed to show different if it's active; doesn't seem to be working
@@ -143,6 +144,7 @@ function ConceptSetCard(props) {
           sx={{ my: 2, color: 'white', display: 'block' }}
       >Edit</NavLink>
       )
+   */
   return (
       <Card variant="outlined">
         {/*
@@ -157,9 +159,9 @@ function ConceptSetCard(props) {
         />
         */}
         <CardContent sx={{}}>
-          <Typography variant="h6" color="text.primary" gutterBottom>
-            {editing ? 'Editing' : ''} {cset.concept_set_version_title} {editSingleLink}
-          </Typography>
+          {/*<Typography variant="h6" color="text.primary" gutterBottom>*/}
+          {/*  {editing ? 'Editing' : ''} {cset.concept_set_version_title} {editSingleLink}*/}
+          {/*</Typography>*/}
           <Typography variant="body2" color="text.primary" gutterBottom>
             {tags.join(', ')}
           </Typography>

@@ -79,17 +79,11 @@ function EditInfo(props) {
   const updates = _.supergroup(Object.values(csidState), 'stagedAction');
   return (
       <Card variant="outlined" sx={{/*width: '600px', */}}>
-        <h4>Staged changes to {cset.concept_set_version_title} ({editCodesetId})</h4>
-        <p>To save your work, click
-          <Button onClick={() => {navigator.clipboard.writeText(window.location.toString())}} >
-            Copy URL
-          </Button><br/>
-          Best practice is to paste this URL in your lab notebook and annotate your work there as well.</p>
-
+        <abt.TextH2>Staged changes {/*to {cset.concept_set_version_title} ({editCodesetId}) */}</abt.TextH2>
         <ul>{
             updates.map(
                 grp => <li key={grp}>
-                  {grp} <ul>
+                  <abt.TextBold>{grp}</abt.TextBold> <ul>
                         {grp.records.map(
                             item => <li key={item.concept_id}>{
                                       summaryLine({item, action: grp, concept: conceptLookup[item.concept_id]})
@@ -103,6 +97,12 @@ function EditInfo(props) {
         <a href={backend_url(
             `cset-download?atlas_items_only=true&${props.sort_json ? 'sort_json=true&' : ''}codeset_id=${cset.codeset_id}&csetEditState=${JSON.stringify(csetEditState)}`
           )} target="_blank" rel="noreferrer">Export JSON</a>
+        <p>To save your work, click
+          <Button onClick={() => {navigator.clipboard.writeText(window.location.toString())}} >
+            Copy URL
+          </Button><br/>
+          Best practice is to paste this URL in your lab notebook and annotate your work there as well.</p>
+
 
         { /* <pre>{JSON.stringify(csetEditState, null, 2)}</pre> */ }
         {/*<button variant="contained">upload to enclave as new draft</button>*/}
@@ -206,7 +206,7 @@ function getItem({fakeItem, codeset_id, concept_id, cset_data: {csmiLookup}, cse
   return item;
 }
 function cellInfo(props) {
-  if (props.fakeItem) {
+  if ('fakeItem' in props) {
     return {editing: props.editing, item: props.fakeItem };
   }
   const {cset_col:{codeset_id}, row:{concept_id},
@@ -243,14 +243,7 @@ const centered = { // https://stackoverflow.com/questions/19461521/how-to-center
   justifyContent: 'center',
 };
 
-function LegendItem({label, content=null, style, }) {
-  return  <Box sx={{width: '350px', border: content ? '1px solid gray' : '', display: 'flex',
-    margin: '4px', alignItems: 'stretch', flexDirection: 'row', }} key={label}>
-    <Box sx={{width: '250px', display: 'flex', alignItems: 'center', padding: '3px',
-                minHeight: '1.5rem', fontWeight: content ? 'normal' : 'bolder', }}>{label} </Box>
-    { content ? <Box sx={{width: '100px', border: '1px solid gray', ...centered, ...style}}>{content}</Box> : null }
-  </Box>
-}
+/*
 function iconset(subset) {
   let icons = ICONS;
   if (subset) {
@@ -266,6 +259,7 @@ function iconset(subset) {
     </IconButton>
   });
 }
+ */
 function fakeOptProps(itemProps=[], flag ) {
   // so that we can use real (excessively complicated) logic to show different
   //  kinds of items in the Legend
@@ -293,62 +287,51 @@ function fakeCell(props) {
   if (!(item.csm || item.item)) {
     item = null;
   }
+
+  const style = _cellStyle(item, editing);
   let cellProps = { editing, fakeItem: item, cset_col:{}, row:{}, cset_data:{}, };
   // return <CellContents {...cellProps} />;
-  return cellContents({...cellProps});
+  let content = cellContents({...cellProps});
+  return <Box sx={{width: '100px', height: '100%', border: '1px solid gray', ...centered, ...style}}>{content}</Box>
 }
 function Legend() {
   const itemTypes = {
-    "testing": {content: fakeCell({editing: true, flags: 'i', stagedAction: 'Add'})},
-    // "Newly added": { stagedAction: 'Add', editing: true, content: iconset() },
-    "Symbols": {},
-    // "Item flag: includeDescendants": {content: iconset(['includeDescendants'])},
-    "Item flag: includeDescendants": {content: <OptionIcon {...fakeOptProps(['includeDescendants'], ['includeDescendants'])} />},
-    "Item flag: includeMapped": {content: <OptionIcon {...fakeOptProps(['includeMapped'], ['includeMapped'])} />},
-    "Item flag: isExcluded": {content: <OptionIcon {...fakeOptProps(['isExcluded'], ['isExcluded'])} />},
-    "Add expression item": { content: <Add/>},
-    "Remove item from set or cancel edit": {content: <OptionIcon {...fakeOptProps(['isExcluded'], ['isExcluded'])} />},
     "Concept set not being edited": {},
-    "Not member or expression item": { content: ' '},
-    "Member but not expression item": { csm: true, content: checkmark },
-    "Expression item but not member (only shows flags set to true)": { item: true, content: iconset(['includeDescendants', 'includeMapped', 'isExcluded']) },
-    "Both member and expression item": { csm: true, item: true, content: iconset(['includeDescendants', 'includeMapped', 'isExcluded']) },
+    "Concept is not item or member": {content: fakeCell({editing: false, flags: '', })},
+    "Concept is item and not member": {content: fakeCell({editing: false, flags: 'i', })},
+    "Concept is member and not item": {content: fakeCell({editing: false, flags: 'c', })},
+    "Concept is item and member": {content: fakeCell({editing: false, flags: 'ci', })},
+    "Item flag: includeDescendants": {content: fakeCell({editing: false, flags: 'ciD', })},
+    "Item flag: includeMapped": {content: fakeCell({editing: false, flags: 'ciM', })},
+    "Item flag: isExcluded": {content: fakeCell({editing: false, flags: 'iX', })},
+    // "Expression item but not member (only shows flags set to true)": { item: true, content: iconset(['includeDescendants', 'includeMapped', 'isExcluded']) },
+    // "Both member and expression item": { csm: true, item: true, content: iconset(['includeDescendants', 'includeMapped', 'isExcluded']) },
     "Concept set being edited": {},
-    "Add concept (as expression)": { content: <Add/> },
-    "Add member concept as expression": { csm: true, content: <Add/> },
-    "Addition": { stagedAction: 'Add', editing: true, content: iconset() },
+    "Add non-member concept": {content: fakeCell({editing: true, flags: '', })},
+    "Explicitly add member concept": {content: fakeCell({editing: true, flags: 'c', })},
+    "Remove non-member concept or change flags": {content: fakeCell({editing: true, flags: 'i', })},
+    "Remove member concept or change flags": {content: fakeCell({editing: true, flags: 'ic', })},
+    "Concept added": {content: fakeCell({editing: true, flags: 'i', stagedAction: 'Add'})},
+    "Concept updated": {content: fakeCell({editing: true, flags: 'i', stagedAction: 'Update'})},
+    "Concept removed": {content: fakeCell({editing: true, flags: 'i', stagedAction: 'Remove'})},
   }
   const items = Object.entries(itemTypes).map(([k,v]) => {
-    const style = _cellStyle(v, true)
     // const {content='\u00A0\u00A0\u00A0\u00A0'} = v;
-    return LegendItem({label: k, content: v.content, style: _cellStyle(v)});
+    return LegendItem({label: k, content: v.content, });
   })
   return (
     <div>
       {items}
     </div>);
 }
-/*
-This logic is too complex. Don't know what to do with it. Especially because now I need to be able to make
-fake cells for the legend, and what a cell looks like depends on having all this data available.
-Started this itemStatus function, but it's not helping
-function itemStatus(item, editing) {
-  let status = {};
-  if      (!isEmpty(item) && item.csm && item.item) { status.is_item = true; status.is_member = true; }
-  else if (!isEmpty(item) && item.csm )             { status.is_member = true; }
-  else if (!isEmpty(item) && item.item )            { status.is_item = true; }
-  else {  // either empty or neither item nor member
-    status.not_item_or_member = true;
-    if (editing) {
-      status.clickAction = 'Add';
-    }
-    return status
-  }
-  if (item.item) {
-    status.flags = pick(item, Object.keys(FLAGS));
-  }
+function LegendItem({label, content=null, style, }) {
+  return  <Box sx={{width: '350px', border: content ? '1px solid gray' : '', display: 'flex',
+    margin: '4px', alignItems: 'stretch', flexDirection: 'row', }} key={label}>
+    <Box sx={{width: '250px', display: 'flex', alignItems: 'center', padding: '3px',
+      minHeight: '1.5rem', fontWeight: content ? 'normal' : 'bolder', }}>{label} </Box>
+    { content ? <Box sx={{width: '100px', border: '1px solid gray', ...centered, ...style}}>{content}</Box> : null }
+  </Box>
 }
- */
 function cellContents(props) {
   /*
       Populates cell with appropriate icons.
@@ -396,7 +379,7 @@ function cellContents(props) {
         clickAction = `Cancel ${item.stagedAction}`;
         if (item.stagedAction === 'Remove') {
           contents = <Tooltip label={clickAction}>
-                      <span style={{ cursor: 'pointer', }}
+                      <span style={{ cursor: 'pointer', width:'70px', ...centered}}
                           onClick={()=>editAction({...props, item, clickAction, })} >
                         Deleted
                       </span>
@@ -444,20 +427,6 @@ function cellContents(props) {
   );
   return cellStuff;
 }
-/*
-function legendOpener(setit) {
-  let setOpen = () => {};
-  let setOpener = (_setOpen) => {
-    setOpen = (open=true) => {
-      console.log(`setting legend ${open}`);
-      _setOpen(open);
-    }
-  };
-  return setOpener;
-}
-const editLegend = <EditLegendComponent startOpen={false} controlFunc={legendOpener} />;
- */
-
 function LegendButton(props) {
   return (
       <po.Popover>
@@ -470,31 +439,6 @@ function LegendButton(props) {
       </po.Popover>
   )
 }
-function EditLegendComponent({startOpen=false, controlFunc=()=>{}}) {
-  const [open, setOpen] = useState(startOpen);
-  controlFunc(setOpen)
-  return (
-        <po.Popover open={open} >
-          <po.PopoverContent className="Popover">
-            <po.PopoverHeading>My popover heading</po.PopoverHeading>
-            <po.PopoverDescription>My popover description</po.PopoverDescription>
-            <po.PopoverClose>Close</po.PopoverClose>
-          </po.PopoverContent>
-        </po.Popover>
-  );
-}
 
 export {EditInfo, getCodesetEditActionFunc, getEditCodesetFunc, cellContents, cellStyle,
         LegendButton, };
-
-/*
-function TreeIcon(props) {
-  return (
-      <SvgIcon {...props} /* viewBox="90 120 510 300" * / viewBox="0 0 24 24" >
-        <path xmlns="http://www.w3.org/2000/svg" d="m 20.8125 12.875 c -0.3164 0 -0.6156 0.0709 -0.8877 0.192 l -1.8901 -2.6461 c 0.3631 -0.39 0.5903 -0.9094 0.5903 -1.4834 c 0 -1.2063 -0.9813 -2.1875 -2.1875 -2.1875 c -0.3168 0 -0.6156 0.0709 -0.8877 0.1926 l -1.8901 -2.6461 c 0.3631 -0.3906 0.5903 -0.91 0.5903 -1.484 c 0 -1.2063 -0.9813 -2.1875 -2.1875 -2.1875 s -2.1875 0.9813 -2.1875 2.1875 c 0 0.574 0.2272 1.0934 0.5903 1.484 l -1.8901 2.6461 c -0.2721 -0.1217 -0.5709 -0.1926 -0.8877 -0.1926 c -1.2063 0 -2.1875 0.9813 -2.1875 2.1875 c 0 0.5744 0.2272 1.0938 0.591 1.485 l -1.8904 2.6451 c -0.2721 -0.1217 -0.5713 -0.1926 -0.8881 -0.1926 c -1.2063 0 -2.1875 0.9813 -2.1875 2.1875 s 0.9813 2.1875 2.1875 2.1875 s 2.1875 -0.9813 2.1875 -2.1875 c 0 -0.574 -0.2272 -1.093 -0.5899 -1.4836 l 1.8908 -2.6455 c 0.2715 0.1211 0.5701 0.1916 0.8865 0.1916 s 0.6156 -0.0709 0.8873 -0.192 l 1.8901 2.6461 c -0.3627 0.3904 -0.5899 0.9094 -0.5899 1.4834 s 0.2272 1.0934 0.5903 1.484 l -1.8901 2.6461 c -0.2721 -0.1217 -0.5709 -0.1926 -0.8877 -0.1926 c -1.2063 0 -2.1875 0.9813 -2.1875 2.1875 s 0.9813 2.1875 2.1875 2.1875 s 2.1875 -0.9813 2.1875 -2.1875 c 0 -0.574 -0.2272 -1.0934 -0.5903 -1.484 l 1.8901 -2.6461 c 0.2717 0.1217 0.5709 0.1926 0.8877 0.1926 c 0.3164 0 0.6156 -0.0709 0.8877 -0.192 l 1.8897 2.6465 c -0.3633 0.3906 -0.5899 0.9094 -0.5899 1.483 c 0 1.2063 0.9813 2.1875 2.1875 2.1875 s 2.1875 -0.9813 2.1875 -2.1875 s -0.9813 -2.1875 -2.1875 -2.1875 c -0.3168 0 -0.6164 0.0709 -0.8885 0.193 l -1.8891 -2.6465 c 0.3629 -0.3906 0.5901 -0.91 0.5901 -1.484 c 0 -1.2063 -0.9813 -2.1875 -2.1875 -2.1875 c -0.3168 0 -0.616 0.0709 -0.8881 0.1926 l -1.8897 -2.6461 c 0.3631 -0.3902 0.5903 -0.9095 0.5903 -1.484 c 0 -0.574 -0.2272 -1.0934 -0.5903 -1.484 l 1.8901 -2.6461 c 0.2717 0.1217 0.5709 0.1926 0.8877 0.1926 s 0.6156 -0.0709 0.8877 -0.1926 l 1.8901 2.6461 c -0.3631 0.3906 -0.5903 0.91 -0.5903 1.484 c 0 1.2063 0.9813 2.1875 2.1875 2.1875 c 0.3168 0 0.6156 -0.0709 0.8877 -0.1926 l 1.8901 2.6455 c -0.3631 0.3912 -0.5903 0.9105 -0.5903 1.4846 c 0 1.2063 0.9813 2.1875 2.1875 2.1875 s 2.1875 -0.9813 2.1875 -2.1875 s -0.9813 -2.1875 -2.1875 -2.1875 z m -17.5 3.5 c -0.7237 0 -1.3125 -0.5888 -1.3125 -1.3125 s 0.5888 -1.3125 1.3125 -1.3125 s 1.3125 0.5888 1.3125 1.3125 s -0.5888 1.3125 -1.3125 1.3125 z m 3.0625 -7.4375 c 0 -0.7237 0.5888 -1.3125 1.3125 -1.3125 s 1.3125 0.5888 1.3125 1.3125 s -0.5888 1.3125 -1.3125 1.3125 s -1.3125 -0.5888 -1.3125 -1.3125 z m 1.3125 13.5625 c -0.7237 0 -1.3125 -0.5888 -1.3125 -1.3125 s 0.5888 -1.3125 1.3125 -1.3125 s 1.3125 0.5888 1.3125 1.3125 s -0.5888 1.3125 -1.3125 1.3125 z m 10.0625 -1.3125 c 0 0.7237 -0.5888 1.3125 -1.3125 1.3125 s -1.3125 -0.5888 -1.3125 -1.3125 s 0.5888 -1.3125 1.3125 -1.3125 s 1.3125 0.5888 1.3125 1.3125 z m -4.375 -6.125 c 0 0.7237 -0.5888 1.3125 -1.3125 1.3125 s -1.3125 -0.5888 -1.3125 -1.3125 s 0.5888 -1.3125 1.3125 -1.3125 s 1.3125 0.5888 1.3125 1.3125 z m -2.625 -12.25 c 0 -0.7237 0.5888 -1.3125 1.3125 -1.3125 s 1.3125 0.5888 1.3125 1.3125 s -0.5888 1.3125 -1.3125 1.3125 s -1.3125 -0.5888 -1.3125 -1.3125 z m 4.375 6.125 c 0 -0.7237 0.5888 -1.3125 1.3125 -1.3125 s 1.3125 0.5888 1.3125 1.3125 s -0.5888 1.3125 -1.3125 1.3125 s -1.3125 -0.5888 -1.3125 -1.3125 z m 5.6875 7.4375 c -0.7237 0 -1.3125 -0.5888 -1.3125 -1.3125 s 0.5888 -1.3125 1.3125 -1.3125 s 1.3125 0.5888 1.3125 1.3125 s -0.5888 1.3125 -1.3125 1.3125 z" fill="#000000"/>
-        {/*<path xmlns="http://www.w3.org/2000/svg" d="m516.25 297.5c-6.3281 0-12.312 1.418-17.754 3.8398l-37.801-52.922c7.2617-7.8008 11.805-18.188 11.805-29.668 0-24.125-19.625-43.75-43.75-43.75-6.3359 0-12.312 1.418-17.754 3.8516l-37.801-52.922c7.2617-7.8125 11.805-18.199 11.805-29.68 0-24.125-19.625-43.75-43.75-43.75s-43.75 19.625-43.75 43.75c0 11.48 4.543 21.867 11.805 29.68l-37.801 52.922c-5.4414-2.4336-11.418-3.8516-17.754-3.8516-24.125 0-43.75 19.625-43.75 43.75 0 11.488 4.543 21.875 11.82 29.699l-37.809 52.902c-5.4414-2.4336-11.426-3.8516-17.762-3.8516-24.125 0-43.75 19.625-43.75 43.75s19.625 43.75 43.75 43.75 43.75-19.625 43.75-43.75c0-11.48-4.543-21.859-11.797-29.672l37.816-52.91c5.4297 2.4219 11.402 3.832 17.73 3.832s12.312-1.418 17.746-3.8398l37.801 52.922c-7.2539 7.8086-11.797 18.188-11.797 29.668s4.543 21.867 11.805 29.68l-37.801 52.922c-5.4414-2.4336-11.418-3.8516-17.754-3.8516-24.125 0-43.75 19.625-43.75 43.75s19.625 43.75 43.75 43.75 43.75-19.625 43.75-43.75c0-11.48-4.543-21.867-11.805-29.68l37.801-52.922c5.4336 2.4336 11.418 3.8516 17.754 3.8516 6.3281 0 12.312-1.418 17.754-3.8398l37.793 52.93c-7.2656 7.8125-11.797 18.188-11.797 29.66 0 24.125 19.625 43.75 43.75 43.75s43.75-19.625 43.75-43.75-19.625-43.75-43.75-43.75c-6.3359 0-12.328 1.418-17.77 3.8594l-37.781-52.93c7.2578-7.8125 11.801-18.199 11.801-29.68 0-24.125-19.625-43.75-43.75-43.75-6.3359 0-12.32 1.418-17.762 3.8516l-37.793-52.922c7.2617-7.8047 11.805-18.191 11.805-29.68 0-11.48-4.543-21.867-11.805-29.68l37.801-52.922c5.4336 2.4336 11.418 3.8516 17.754 3.8516s12.312-1.418 17.754-3.8516l37.801 52.922c-7.2617 7.8125-11.805 18.199-11.805 29.68 0 24.125 19.625 43.75 43.75 43.75 6.3359 0 12.312-1.418 17.754-3.8516l37.801 52.91c-7.2617 7.8242-11.805 18.211-11.805 29.691 0 24.125 19.625 43.75 43.75 43.75s43.75-19.625 43.75-43.75-19.625-43.75-43.75-43.75zm-350 70c-14.473 0-26.25-11.777-26.25-26.25s11.777-26.25 26.25-26.25 26.25 11.777 26.25 26.25-11.777 26.25-26.25 26.25zm61.25-148.75c0-14.473 11.777-26.25 26.25-26.25s26.25 11.777 26.25 26.25-11.777 26.25-26.25 26.25-26.25-11.777-26.25-26.25zm26.25 271.25c-14.473 0-26.25-11.777-26.25-26.25s11.777-26.25 26.25-26.25 26.25 11.777 26.25 26.25-11.777 26.25-26.25 26.25zm201.25-26.25c0 14.473-11.777 26.25-26.25 26.25s-26.25-11.777-26.25-26.25 11.777-26.25 26.25-26.25 26.25 11.777 26.25 26.25zm-87.5-122.5c0 14.473-11.777 26.25-26.25 26.25s-26.25-11.777-26.25-26.25 11.777-26.25 26.25-26.25 26.25 11.777 26.25 26.25zm-52.5-245c0-14.473 11.777-26.25 26.25-26.25s26.25 11.777 26.25 26.25-11.777 26.25-26.25 26.25-26.25-11.777-26.25-26.25zm87.5 122.5c0-14.473 11.777-26.25 26.25-26.25s26.25 11.777 26.25 26.25-11.777 26.25-26.25 26.25-26.25-11.777-26.25-26.25zm113.75 148.75c-14.473 0-26.25-11.777-26.25-26.25s11.777-26.25 26.25-26.25 26.25 11.777 26.25 26.25-11.777 26.25-26.25 26.25z"/>* /}
-        {/*<path xmlns="http://www.w3.org/2000/svg" d="m548.24 403.2v-43.121h-96.316v-22.961h43.68v-109.2h-43.68v-43.121h-95.762v-22.961h47.039v-109.2h-109.76v109.76h47.039v22.398h-95.762v43.121h-47.039v109.76h47.039v22.961l-95.758-0.003906v42.559h-37.52v109.76h109.76v-109.76h-57.121v-28h176.4v28h-45.359v109.76h109.76l-0.003906-109.76h-48.719v-28h176.4v28h-57.121v109.76h109.76v-109.76zm-192.08-43.121h-96.32v-22.961h47.039v-109.2h-47.039v-28h176.4v28h-50.398v109.76h50.398v22.961l-80.082-0.003906z" />* /}
-      </SvgIcon>
-  );
-}
-*/
