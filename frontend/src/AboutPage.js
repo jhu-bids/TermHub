@@ -95,20 +95,18 @@ DOCS.blank_search_intro = (<>
   <h2>Within TermHub you can:</h2>
 
   <div style={{paddingLeft: '12px', paddingRight: '130px', }}>
-    <p><strong>CSET SEARCH</strong>
+    <p><strong>CSET SEARCH</strong></p>
       <ul>
         <LI>Perform searches for existing concept sets currently in the N3C Enclave.</LI>
       </ul>
-    </p>
 
-    <p><strong>CSET COMPARISON</strong>
+    <p><strong>CSET COMPARISON</strong></p>
       <ul>
         <LI>Compare selected concept sets.</LI>
         <LI>Add and remove concepts by reviewing and selecting
         concept mappings, descendants, exclusions.</LI>
         <LI>Export JSON of modified concept set. (Required in order to put changes in Enclave, for now.)</LI>
       </ul>
-    </p>
 
     {/*
     <p><strong>UPLOAD CSV</strong>
@@ -122,7 +120,7 @@ DOCS.blank_search_intro = (<>
     </p>
     */}
 
-    <p><strong>HELP/ABOUT</strong>
+    <p><strong>HELP/ABOUT</strong></p>
       <ul>
         <LI>
           Learn more about TermHub and review the step by step “How To” section.
@@ -134,7 +132,6 @@ DOCS.blank_search_intro = (<>
           Let us know of any bug or a poor user experience, or share a feature request.
         </LI>
       </ul>
-    </p>
   </div>
   <div style={{position: 'absolute', top: (window.innerHeight - 40) + 'px'}}>
     &#169; Johns Hopkins University 2023. Available open source on <a href="https://github.com/jhu-bids/TermHub">GitHub</a> under
