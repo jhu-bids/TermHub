@@ -4,8 +4,17 @@
 2. Download CSV files from the enclave
 3. Load the data from the CSV files into the database
 """
+import os
+import sys
+from pathlib import Path
+
 from sqlalchemy.engine.base import Connection
 
+THIS_DIR = os.path.dirname(__file__)
+PROJECT_ROOT = Path(THIS_DIR).parent.parent
+# todo: why is this necessary in this case and almost never otherwise?
+# https://stackoverflow.com/questions/33862963/python-cant-find-my-module
+sys.path.insert(0, str(PROJECT_ROOT))
 from backend.db.config import CONFIG
 from backend.db.load import download_artefacts, indexes_and_derived_tables, seed
 from backend.db.utils import database_exists, run_sql, show_tables, get_db_connection, DB
