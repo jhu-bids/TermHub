@@ -36,8 +36,9 @@ CREATE INDEX IF NOT EXISTS csc_idx3 on {{schema}}concept_set_container(concept_s
 
 DROP TABLE IF EXISTS all_csets;
 
-CREATE TABLE {{schema}}all_csets AS           -- table instead of view for performance
-                                    -- (no materialized views in mySQL)
+CREATE TABLE {{schema}}all_csets AS
+-- table instead of view for performance (no materialized views in mySQL)
+-- TODO: but now we're on postgres should it be a materialized view?
 SELECT DISTINCT
 		cs.codeset_id,
 		cs.concept_set_version_title,
@@ -191,6 +192,8 @@ CREATE TABLE IF NOT EXISTS {{schema}}concepts_with_counts AS (
     ORDER BY concept_id, domain );
 
 CREATE INDEX cc_idx1 ON {{schema}}concepts_with_counts(concept_id);
+
+DROP TABLE concepts_with_counts_ungrouped CASCADE;
 
 -- concept_relationship_plus takes a long time to build
 DROP TABLE IF EXISTS {{schema}}concept_relationship_plus;
