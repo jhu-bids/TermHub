@@ -183,8 +183,8 @@ def enclave_get(url: str, verbose: bool = True, args: Dict = {}, error_dir: str 
     return response
 
 
-def handle_paginated_request(first_page_url: str, verbose=False, called_by: str='',
-                             error_dir: str = None
+def handle_paginated_request(
+    first_page_url: str, verbose=False, called_by: str = '', error_dir: str = None
 ) -> (List[Dict], Response):
     """Handles a request that has a nextPageToken, automatically fetching all pages and combining the data"""
     # TODO: this returns the last response -- I (Siggie) think only for error handling.
@@ -200,8 +200,8 @@ def handle_paginated_request(first_page_url: str, verbose=False, called_by: str=
             response = enclave_get(url, verbose=verbose, error_dir=error_dir)
         except EnclaveWranglerErr as err:
             if results:
-                err['results_prior_to_error'] = results
-                raise err
+                err.args[0]['results_prior_to_error'] = results
+            raise err
 
         response_json = response.json()
         results += response_json['data']
@@ -212,11 +212,9 @@ def handle_paginated_request(first_page_url: str, verbose=False, called_by: str=
 
 
 def make_objects_request(
-        path: str, verbose=False, url_only=False, return_type: str='Response',
-        handle_paginated=False,
-        expect_single_item=False,
-        retry_if_empty=False, retry_times=15, retry_pause=1,
-        error_report: bool = True, fail_on_error=False, **request_args
+    path: str, verbose=False, url_only=False, return_type: str = 'Response', handle_paginated=False,
+    expect_single_item=False, retry_if_empty=False, retry_times=15, retry_pause=1, error_report: bool = True,
+    fail_on_error=False, **request_args
 ) -> Union[Response, Dict, List[Dict], str]:
     """Passthrough for HTTP request
     return_type should be Response, json, or data

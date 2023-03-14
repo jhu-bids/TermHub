@@ -10,13 +10,14 @@ TODO's
 import os
 import sys
 import unittest
+from datetime import datetime, timedelta
 from pathlib import Path
 from typing import Dict, List, Union
 
 import pandas as pd
 from requests import Response
 
-from enclave_wrangler.objects_api import get_new_objects, update_db_with_new_objects
+from enclave_wrangler.objects_api import get_new_cset_and_member_objects, update_db_with_new_objects
 
 TEST_DIR = os.path.dirname(__file__)
 PROJECT_ROOT = Path(TEST_DIR).parent
@@ -30,6 +31,7 @@ from enclave_wrangler.dataset_upload import upload_new_cset_container_with_conce
 
 TEST_INPUT_DIR = os.path.join(TEST_DIR, 'input', 'test_enclave_wrangler')
 CSV_DIR = os.path.join(TEST_INPUT_DIR, 'test_dataset_upload')
+yesterday: str = (datetime.now() - timedelta(days=1)).isoformat() + 'Z'  # works: 2023-01-01T00:00:00.000Z
 
 
 class TestEnclaveWrangler(unittest.TestCase):
@@ -46,11 +48,21 @@ class TestEnclaveWrangler(unittest.TestCase):
     #  - what is the ultimate goal? how many tables are we refreshing?
     def test_get_new_objects(self):
         """Test get_new_objects()"""
-        new_objects = get_new_objects()
+        new_objects: Dict[str, List] = get_new_cset_and_member_objects(since=yesterday)
+        # todo: what kind of assert?
 
     def test_update_db_with_new_objects(self):
         """Test update_db_with_new_objects()"""
-        update_db_with_new_objects()
+        # todo: get latest rows from 4 tables
+        pass
+        new_objects: Dict[str, List] = get_new_cset_and_member_objects(since=yesterday)
+        update_db_with_new_objects(new_objects)
+        # todo: check that latest row is different? (assuming that there were actually any new objects
+        pass
+        # todo: teardown
+        #  (a) inserts: delete (can I get PK / index back from query that inserted?
+        #  (b) updates: I think I need to back them up before updating them
+        #  (c) any way I can do some sort of migrated versioning / rollback of DB instead? (e.g. Alembic)
 
     def test_upload_concept_set_version(self):
         response: Response = upload_concept_set_version_draft(

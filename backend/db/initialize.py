@@ -6,6 +6,7 @@
 """
 import os
 import sys
+from argparse import ArgumentParser
 from pathlib import Path
 
 from sqlalchemy.engine.base import Connection
@@ -22,26 +23,23 @@ from backend.db.utils import database_exists, run_sql, show_tables, get_db_conne
 SCHEMA = CONFIG['schema']
 
 
-def create_db(con: Connection):
+def create_database(con: Connection, schema: str):
     """Create the database"""
-    if CONFIG["server"] == 'postgresql':  # postgres doesn't have create database if not exists
-        show_tables(con)
-        if not database_exists(con, DB):
-            # noinspection PyUnresolvedReferences
-            con.connection.connection.set_isolation_level(0)
-            run_sql(con, 'CREATE DATABASE ' + DB)
-            # noinspection PyUnresolvedReferences
-            con.connection.connection.set_isolation_level(1)
-    else:
-        run_sql(con, 'CREATE DATABASE IF NOT EXISTS ' + DB)
-        run_sql(con, f'USE {DB}')
+    show_tables(con)
+    if not database_exists(con, DB):
+        # noinspection PyUnresolvedReferences
+        con.connection.connection.set_isolation_level(0)
+        run_sql(con, 'CREATE DATABASE ' + DB)
+        # noinspection PyUnresolvedReferences
+        con.connection.connection.set_isolation_level(1)
     with get_db_connection(schema='') as con2:
         run_sql(con2, "CREATE TABLE IF NOT EXISTS public.manage (key text not null, value text);")
+        run_sql(con, f'CREATE SCHEMA IF NOT EXISTS {schema};')
 
 
 def initialize(
-    clobber=False, schema: str = SCHEMA, local=False, _create_db=False, download=True,
-    download_force_if_exists=False
+    clobber=False, schema: str = SCHEMA, local=False, create_db=False, download=True,
+    download_force_if_exists=False, hours_threshold_for_updates=24
 ):
     """Initialize set up of DB
 
@@ -52,13 +50,42 @@ def initialize(
     - https://docs.sqlalchemy.org/en/20/dialects/mysql.html
     """
     with get_db_connection(local=local) as con:
-        if _create_db:
-            create_db(con)  # causing error. don't need it at the moment anyway
+        if create_db:
+            create_database(con, schema)  # causing error. don't need it at the moment anyway
         if download:
             download_artefacts(force_download_if_exists=download_force_if_exists)
-        seed(con, schema, clobber)
+        seed(con, schema, clobber, hours_threshold_for_updates)
         indexes_and_derived_tables(con, schema) #, start_step=30)
 
 
+def cli():
+    """Command line interface"""
+    parser = ArgumentParser(description='Initializes DB.')
+    parser.add_argument(
+        '-D', '--clobber', action='store_true', default=False, help='If table exists, delete rows before seeding?')
+    parser.add_argument(
+        '-s', '--schema', default=SCHEMA, help='Name of the PostgreSQL scheam to create to store tables.')
+    parser.add_argument(
+        '-l', '--local', action='store_true', default=False,
+        help='Use local database? If this is set, will use DB related environmental variables that end with _LOCAL.')
+    parser.add_argument(
+        '-c', '--create-db', action='store_true', default=False,
+        help='Create the database "termhub", the "manage" table, and schema?')
+    parser.add_argument(
+        '-d', '--download', action='store_true', default=False,
+        help='Download datasets necessary for seeding DB? Not needed if they\'ve already been downloaded.')
+    parser.add_argument(
+        '-f', '--download-force-if-exists', action='store_true', default=False,
+        help='Force overwrite of existing dataset files?')
+    parser.add_argument(
+        '-t', '--hours-threshold-for-updates', default=24,
+        help='Threshold for how many hours since last update before we require refreshes. If last update time was less '
+             'than this, nothing will happen. Will evaluate this separately for downloads of local artefacts as well '
+             'as uploading data to the DB.\n'
+             'This is useful if expecting errors to happen during table creation / seeding process, and you don\'t want'
+             ' to start over from the beginning.')
+    initialize(**vars(parser.parse_args()))
+
+
 if __name__ == '__main__':
-    initialize()
+    cli()
