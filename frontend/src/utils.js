@@ -105,6 +105,44 @@ function searchParamsToObj(searchParams) {
       sp[key] = JSON.parse(sp[key]);
     }
   });
+
+  /* if the editState has changes for a cset no longer selected, it will cause an
+      error. just get rid of those changes.
+   */
+  let fixSearchParams = {}; // don't need to do all this
+  if (sp.editCodesetId) {
+
+    if (!(sp.codeset_ids || []).includes(sp.editCodesetId)) {
+      delete sp.editCodesetId;
+      fixSearchParams.delProps = ['editCodesetId'];
+    }
+  }
+  if (sp.csetEditState) {
+    let editState = {...sp.csetEditState};
+    let update = false;
+    for (const cid in editState) {
+      if (!(sp.codeset_ids || []).includes(parseInt(cid))) {
+        delete editState[cid];
+        update = true;
+      }
+    }
+    if (update) {
+      if (isEmpty(editState)) {
+        delete sp.csetEditState;
+        fixSearchParams.delProps = [...(fixSearchParams.delProps||[]), 'csetEditState'];
+        // updateSearchParams({..._globalProps, delProps: ['csetEditState' ]});
+      } else {
+        sp.csetEditState = editState;
+        fixSearchParams.addProps = {csetEditState: editState};
+        // updateSearchParams({..._globalProps, addProps: {csetEditState: editState}});
+      }
+      //return;
+    }
+    if (!isEmpty(fixSearchParams)) {
+      // didn't need to set up fixSearchParams, just need to know if it's needed
+      sp.fixSearchParams = true;
+    }
+  }
   // console.log({sp});
   return sp;
 }

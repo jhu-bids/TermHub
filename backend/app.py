@@ -480,7 +480,7 @@ def enclave_api_call(name: str, params: Union[str, None]=None) -> Dict:
 
 # TODO: get back to how we had it before RDBMS refactor
 @APP.get("/cr-hierarchy")
-def cr_hierarchy(rec_format: str = 'default', codeset_ids: Union[str, None] = Query(default=''), ) -> Dict:
+def cr_hierarchy(include_atlas_json: bool = False, codeset_ids: Union[str, None] = Query(default=''), ) -> Dict:
     """Get concept relationship hierarchy
 
     Example:
@@ -528,6 +528,9 @@ def cr_hierarchy(rec_format: str = 'default', codeset_ids: Union[str, None] = Qu
 
     verbose and timer('related csets')
     related_csets = get_related_csets(codeset_ids=codeset_ids, selected_concept_ids=concept_ids)
+    if not include_atlas_json:
+        for cset in related_csets:
+            del cset['atlas_json']
     selected_csets = [cset for cset in related_csets if cset['selected']]
     verbose and timer('researcher ids')
     researcher_ids = get_all_researcher_ids(related_csets)

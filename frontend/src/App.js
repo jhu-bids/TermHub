@@ -16,13 +16,13 @@ import MuiAppBar from "./MuiAppBar";
 import Box from '@mui/material/Box';
 import { // useMutation, useQueryClient, useQuery, useQueries,
           QueryClient,QueryClientProvider, } from '@tanstack/react-query'
-import { keyBy, } from "lodash";
+import { keyBy, isEmpty, } from "lodash";
 import { persistQueryClient, removeOldestQuery,} from '@tanstack/react-query-persist-client'
 // import { createSyncStoragePersister } from '@tanstack/query-sync-storage-persister'
 import { createWebStoragePersistor } from 'react-query/createWebStoragePersistor-experimental'
 import { ReactQueryDevtools } from '@tanstack/react-query-devtools'
 import {ConceptSetsPage, CsetComparisonPage} from "./Csets";
-import {AboutPage, HelpWidget} from "./AboutPage";
+import {AboutPage, } from "./AboutPage";
 import {searchParamsToObj, updateSearchParams, backend_url, useDataWidget, clearSearchParams, } from "./utils";
 import {UploadCsvPage} from "./UploadCsv";
 import {DownloadJSON} from "./DownloadJSON";
@@ -96,7 +96,7 @@ function QCProvider() {
       // <React.StrictMode> // StrictMode helps assure code goodness by running everything twice, but it's annoying
         <QueryClientProvider client={queryClient}>
           <QueryStringStateMgr />
-          <ReactQueryDevtools initialIsOpen={false} />
+          {/*<ReactQueryDevtools initialIsOpen={false} />*/}
         </QueryClientProvider>
       // </React.StrictMode>
   );
@@ -111,8 +111,13 @@ function QueryStringStateMgr(props) {
   const {codeset_ids=[], } = sp;
   // console.log(props);
 
-  let globalProps = {...sp, searchParams, setSearchParams, }
+  let globalProps = {...sp, searchParams, setSearchParams, };
 
+  if (sp.fixSearchParams) {
+    delete sp.fixSearchParams;
+    const csp = createSearchParams(sp);
+    return <Navigate to={location.pathname + '?' + csp.toString()} />;
+  }
   /*
   useEffect(() => {
     if (sp.codeset_ids && !isEqual(codeset_ids, sp.codeset_ids)) {
@@ -141,6 +146,9 @@ function QueryStringStateMgr(props) {
   }
 
   if (location.pathname === '/') {
+    return <Navigate to='/OMOPConceptSets' />;
+  }
+  if (location.pathname === '/cset-comparison' && isEmpty(codeset_ids)) {
     return <Navigate to='/OMOPConceptSets' />;
   }
   if (location.pathname === '/testing') {
@@ -211,6 +219,7 @@ function RoutesContainer(props) {
   console.log(window.props_w = props);
   return (
       <Routes>
+        {/*<Route path="/help" element={<HelpWidget {...props} />} />*/}
         <Route path="/" element={<App {...props} />}>
           <Route path="cset-comparison" element={<CsetComparisonPage {...props} />} />
           <Route path="OMOPConceptSets" element={<ConceptSetsPage {...props}  />} />
