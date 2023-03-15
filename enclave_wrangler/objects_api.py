@@ -13,13 +13,11 @@ TODO's
 """
 import json
 import os
-from argparse import ArgumentParser
-from datetime import datetime, timedelta
-from typing import List, Dict, Callable, Union
+from datetime import datetime
+from typing import List, Dict, Union
 from urllib.parse import quote
 from sanitize_filename import sanitize
 
-import pandas as pd
 from requests import Response
 from typeguard import typechecked
 
@@ -28,7 +26,7 @@ from typeguard import typechecked
 # import asyncio
 
 from enclave_wrangler.config import FAVORITE_OBJECTS, OUTDIR_OBJECTS, OUTDIR_CSET_JSON, config, TERMHUB_CSETS_DIR
-from enclave_wrangler.utils import enclave_get, enclave_post, make_objects_request, \
+from enclave_wrangler.utils import enclave_get, enclave_post, get_objects_df, make_objects_request, \
     handle_paginated_request, handle_response_error
 from enclave_wrangler.models import get_field_names, field_name_mapping
 # from enclave_wrangler.utils import log_debug_info
@@ -71,71 +69,6 @@ def get_object_types(verbose=False) -> List[Dict]:
     """
     response = make_objects_request('objectTypes', verbose=verbose)
     return response.json()['data']
-
-
-# todo?: Need to find the right object_type, then write a wrapper func around this to get concept sets
-#  - To Try: CodeSystemConceptSetVersionExpressionItem, OMOPConcept, OMOPConceptSet, OMOPConceptSetContainer,
-#    OmopConceptSetVersionItem
-# todo: connect to `manage` table and get since last datetime. for now, use below as example
-# TODO: add since_datetime param
-def get_objects_by_type(
-        object_type: str, save_csv=True, save_json=True, outdir: str = None, since_datetime: str = None,
-        return_type=['dataframe', 'list_dict'][0], query_params: str = None, verbose=False,
-        save_to_outdir: bool = True
-) -> Union[pd.DataFrame, List[Dict]]:
-    """Get objects
-
-    :param since_datetime: Formatted like '2023-01-01T00:00:00.000Z'
-    :param query_params:
-        Example:
-       # query_params = ''.join([f'&properties.conceptSetId.eq={x}' for x in ids])
-       # '&properties.conceptSetId.eq=Rachel_Example &properties.conceptSetId.eq=Covid - 19 Related Diagnosis for Hospitalization'
-
-    Resources
-      https://www.palantir.com/docs/foundry/api/ontology-resources/objects/list-objects/
-      https://www.palantir.com/docs/foundry/api/ontology-resources/objects/object-basics/"""
-    # Request
-    # TODO: construct url using this: make_objects_request()
-    first_page_url = make_objects_request(f'objects/{object_type}', url_only=True)
-    # todo: if accepting multiple query params, need & in between instead of subsequent ?
-    if since_datetime:
-        # a. search (needs JSON POST) https://www.palantir.com/docs/foundry/api/ontology-resources/objects/search/
-        # first_page_url += f'/search?previw=true'  # add JSON POST body
-        # b. https://www.palantir.com/docs/foundry/api/ontology-resources/objects/object-basics/#filtering-objects
-        first_page_url += f'?properties.createdAt.gt={since_datetime}'
-    if query_params:
-        query_params = query_params[1:] if any([query_params.startswith(x) for x in ['?', '&']]) else query_params
-        first_query_token = '&' if since_datetime else '?'
-        # examples: (1) expression items: ?itemId.eq=ID (2) containers: conceptSetId.eq=ID
-        first_page_url += f'{first_query_token}{query_params}'
-    results = handle_paginated_request(first_page_url, verbose=verbose, error_dir=outdir)
-    # if failure, EnclaveWranglerErr will be raised
-
-    if return_type == 'list_dict':
-        return results
-
-    # Parse
-    # Get rid of nested 'properties' key, and add 'rid' in with the other fields
-    df = pd.DataFrame()
-    if results:
-        results = [{**x['properties'], **{'rid': x['rid']}} for x in results]
-        df = pd.DataFrame(results).fillna('')
-
-    # Save
-    if save_to_outdir:
-        outdir = outdir if outdir else os.path.join(OUTDIR_OBJECTS, object_type)
-        outpath = os.path.join(outdir, 'latest.csv')
-        if not os.path.exists(outdir) and (save_json or save_csv):
-            os.mkdir(outdir)
-        # - csv
-        if save_csv:
-            df.to_csv(outpath, index=False)
-        # - json
-        if save_json:
-            with open(outpath.replace('.csv', '.json'), 'w') as f:
-                json.dump(results, f)
-
-    return df
 
 
 def get_link_types(use_cache_if_failure=False) -> List[Union[Dict, str]]:
@@ -267,7 +200,7 @@ def link_types() -> List[Dict]:
 #       only being used by cli which is not being used right now
 #     """Run"""
 #     request_funcs: Dict[str, Callable] = {
-#         'objects': get_objects_by_type,
+#         'objects': get_objects_df,
 #         'object_types': get_obj_types,
 #         'link_types': get_link_types,
 #     }
@@ -285,7 +218,7 @@ def download_favorite_objects(fav_obj_names: List[str] = FAVORITE_OBJECTS, force
         outdir = os.path.join(OUTDIR_OBJECTS, o)
         exists = os.path.exists(outdir)
         if not exists or (exists and force_if_exists):
-            get_objects_by_type(o, outdir=outdir)
+            get_objects_df(o, outdir=outdir)
 
 
 def get_all_bundles():
@@ -374,13 +307,13 @@ def get_new_cset_and_member_objects(since: Union[datetime, str], return_type=['f
     since = str(since)
 
     # Concept set versions
-    cset_versions: List[Dict] = get_objects_by_type('OmopConceptSet', since_datetime=since, return_type='list_dict')
+    cset_versions: List[Dict] = make_objects_request('OmopConceptSet', since_datetime=since)
 
     # Containers
     containers_ids = [x['properties']['conceptSetNameOMOP'] for x in cset_versions]
     container_params = ''.join([f'&properties.conceptSetId.eq={x}' for x in containers_ids])
-    cset_containers: List[Dict] = get_objects_by_type(
-        'OMOPConceptSetContainer', return_type='list_dict', query_params=container_params, verbose=True)
+    cset_containers: List[Dict] = make_objects_request(
+        'OMOPConceptSetContainer', query_params=container_params, verbose=True)
 
     # Expression items & concept set members
     cset_versions_with_concepts: List[Dict] = []
@@ -556,7 +489,7 @@ def enclave_api_call_caller(name:str, params) -> Dict:
 
 # TODO: Download /refresh: tables using object ontology api (e.g. full concept set info from enclave) #189 -------------
 # TODO: func 1/3: Do this before refresh_tables_for_object() and refresh_favorite_objects()
-#   - get_objects_by_type() updates above
+#   - get_objects_df() updates above
 
 #  Issue: https://github.com/jhu-bids/TermHub/issues/189 PR: https://github.com/jhu-bids/TermHub/pull/221
 # TODO: func 3/3: config.py needs updating for favorite datsets / objects

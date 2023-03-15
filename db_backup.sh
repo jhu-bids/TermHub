@@ -16,7 +16,7 @@ Then, immediately upload the backup schema to the database:
 
 psql -d \$psql_conn < $fname.dmp
 
-Make sure that the dump file is around 7.9G and that it stored appropriately.
+Make sure that the dump file is around 7.9G and that it restored appropriately.
 
 END
 
