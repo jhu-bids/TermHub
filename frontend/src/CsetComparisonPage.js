@@ -1,27 +1,263 @@
-import React, {useRef, /* useState, useEffect, useMemo, useReducer, */} from 'react';
+import React, {useRef, useState, useCallback, /* useEffect, useMemo, useReducer, */} from 'react';
 // import { createSearchParams, useSearchParams, } from "react-router-dom";
 import DataTable, { createTheme } from 'react-data-table-component';
 import { AddCircle, RemoveCircleOutline, Add, } from '@mui/icons-material';
 import Box from '@mui/material/Box';
+import Slider from '@mui/material/Slider';
+import Button from '@mui/material/Button';
+import Draggable from 'react-draggable';
 // import {Checkbox} from "@mui/material";
-import {isEmpty, } from 'lodash'; // set, map, omit, pick, uniq, reduce, cloneDeepWith, isEqual, uniqWith, groupBy,
+import {isEmpty, get, throttle, pullAt } from 'lodash'; // set, map, omit, pick, uniq, reduce, cloneDeepWith, isEqual, uniqWith, groupBy,
 import {fmt, setColDefDimensions, useWindowSize, } from "./utils";
 import {ConceptSetCard} from "./ConceptSetCard";
 import {Tooltip} from './Tooltip';
 import { getEditCodesetFunc, getCodesetEditActionFunc, EditInfo,
-    cellContents, cellStyle, Legend, LegendButton, } from './EditCset';
+    cellContents, cellStyle, } from './EditCset';
+import FlexibleContainer, { accordionPanels, accordionPanel, } from "./FlexibleContainer";
+// import AllowOverlap from "./gridLayout";
+import {DOCS, howToSaveStagedChanges} from "./AboutPage";
 // import {isEmpty} from "react-data-table-component/dist/src/DataTable/util"; // what was this for?
 // import Button from '@mui/material/Button';
 
-function ComparisonDataTable(props) {
-    const {editCodesetId, displayData={}, squishTo, cset_data, csetEditState={}, searchParams, setSearchParams, } = props;
-    const {researchers, } = cset_data;
-    // console.log(props); console.log({editCodesetId}, searchParamsToObj(searchParams));
-    const editAction = getCodesetEditActionFunc({searchParams, setSearchParams});
-    const editCodesetFunc = getEditCodesetFunc({searchParams, setSearchParams});
+// TODO: Find concepts w/ good overlap and save a good URL for that
+// TODO: show table w/ hierarchical indent
+// TODO: Color table: I guess would need to see if could pass extra values/props and see if table widget can use that
+//  ...for coloration, since we want certain rows grouped together
+function CsetComparisonPage(props) {
+    const {all_csets=[], cset_data={}} = props;
+    const {hierarchy={}, selected_csets=[], concepts=[], cset_members_items=[], } = cset_data;
+    const [rowData, setRowData] = useComparisonTableRowData({});
+    const [collapsed, setCollapsed] = useState({});
+
+    function toggleCollapse(row) {
+        let _collapsed = {...collapsed, [row.pathToRoot]: !get(collapsed, row.pathToRoot.join(','))};
+        setCollapsed(_collapsed);
+    }
+
+    if (!all_csets.length) {
+        return <p>Downloading...</p>
+    }
+
+    let moreProps = {...props, selected_csets, collapsed, toggleCollapse, };
+    return (
+        <div>
+            <ControlsAndInfo {...moreProps} setDataTableProps={setDataTableProps} />
+            <ComparisonDataTable /*squishTo={squishTo}*/ {...moreProps} dataTableProps={dataTableProps} />
+        </div>)
+}
+function useComparisonTableRowData(props) {
+
+}
+
+function ControlsAndInfo(props) {
+    const {editCodesetId, squishTo=1, cset_data, csetEditState={}, searchParams, setSearchParams, setDataTableProps} = props;
+    const {hierarchy={}, selected_csets=[], concepts=[], cset_members_items=[], } = cset_data;
+    const [displayOption, setDisplayOption] = useState('fullHierarchy');
+    const [collapsed, setCollapsed] = useState({});
     const windowSize = useWindowSize();
     const boxRef = useRef();
+    const editAction = getCodesetEditActionFunc({searchParams, setSearchParams});
+    const editCodesetFunc = getEditCodesetFunc({searchParams, setSearchParams});
+    const {researchers, } = cset_data;
+    const sizes = getSizes(squishTo);
+    const customStyles = styles(sizes);
 
+    function changeDisplayOption(option) {
+        setDisplayOption(option);
+    }
+    const displayOptions = makeRowData(
+        {concepts, selected_csets, cset_members_items, hierarchy, collapsed});
+    const displayData = displayOptions[displayOption];
+    let columns = colConfig({...props, editAction, editCodesetFunc, sizes, displayData, windowSize, });
+    setDataTableProps({displayData, columns});
+
+    let card, eInfo;
+    if (editCodesetId && columns) {
+        card = (
+            <FlexibleContainer
+                title="Concept set being edited"
+                ComponentType={ConceptSetCard}
+                componentProps={{
+                    cset: columns.find(d => d.codeset_id === editCodesetId).cset_col,
+                    researchers: researchers,
+                    editing: true
+                }}
+
+            >
+            </FlexibleContainer>
+        );
+        /*
+        card = <ConceptSetCard cset={columns.find(d=>d.codeset_id===editCodesetId).cset_col}
+                               researchers={researchers}
+                               editing={true}
+                               // width={window.innerWidth * 0.5}
+                    />;
+         */
+    }
+    /*
+    const panelProps = [
+        {id: 'card-panel', title: 'Concept set being edited', content: card},
+        {id: 'changes-panel', title: 'Staged changes', content: eInfo},
+        {id: 'instructions-panel', title: 'How to save changes', content: howToSaveStagedChanges({})},
+    ];
+    // const panels = accordionPanels({panels});
+    // console.log(panels);
+     */
+    if (! isEmpty(csetEditState)) {
+        eInfo = <EditInfo {...props} />;
+    }
+
+    return (
+        <div>
+            {card}
+            {/*<AllowOverlap />*/}
+            <Box ref={boxRef} sx={{ width: '96%', margin: '9px', display: 'flex', flexDirection: 'row', }}>
+                {/*
+            {eInfo}
+            <Draggable defaultPosition={{x: 0, y: 0}} >
+                <div style={{padding:30, height: 70, border: '1px solid blue', cursor: 'move'}}>
+                    hello
+                </div>
+            </Draggable>
+            */}
+                {/*{panels}*/}
+                {/*<Box>*/}
+                {/*    <HelpButton doc="legend"/>*/}
+                {/*</Box>*/}
+            </Box>
+            <h5 style={{margin:20, }}>
+                {
+                    Object.entries(displayOptions).map(([name, opt]) =>
+                                                           <Button key={name} variant={name === displayOption ? "contained" : "outlined" } onClick={()=>changeDisplayOption(name)}>
+                                                               {opt.msg}
+                                                           </Button>)
+                }
+            </h5>
+            {/* <StatsMessage {...props} /> */}
+            {/*<SquishSlider setSquish={squishChange}/>*/}
+        </div>
+
+    )
+}
+
+function ComparisonDataTable(props) {
+    const {columns, displayData={}, squishTo=1, cset_data, csetEditState={}, customStyles, } = props;
+
+    const conditionalRowStyles = [
+        {
+            when: () => true,
+            style: row => ({
+                backgroundColor: row.concept_id in csetEditState ? '#F662' : '#FFF',
+            }),
+        },
+    ]
+    return (
+        <DataTable
+            customStyles={customStyles}
+            conditionalRowStyles={conditionalRowStyles}
+            className="comparison-data-table"
+            theme="custom-theme" // theme="light"
+            columns={columns}
+            data={displayData.rowData}
+            dense
+            /*
+            fixedHeader
+            fixedHeaderScrollHeight={() => {
+                // console.log(boxRef.current);
+                const headerStuffHeight = 50; // maybe get a real number, but too hard for now
+                const {offsetTop=0, offsetHeight=0} = boxRef.current ?? {};
+                return (window.innerHeight - (headerStuffHeight +
+                            offsetTop + offsetHeight)) + 'px';
+                // return "400px";
+            }}
+             */
+            // highlightOnHover
+            // responsive
+            // subHeaderAlign="right"
+            // subHeaderWrap
+            //striped //pagination //selectableRowsComponent={Checkbox}
+            //selectableRowsComponentProps={selectProps} //sortIcon={sortIcon}
+            // expandOnRowClicked // expandableRows // {...props}
+        />
+    );
+}
+function makeRowData({concepts, selected_csets, cset_members_items, hierarchy, collapsed={}}) {
+    if (isEmpty(concepts) || isEmpty(selected_csets) || isEmpty(cset_members_items)) {
+        return;
+    }
+
+    const conceptsMap = Object.fromEntries(concepts.map(d => [d.concept_id, d]));
+    let _displayOptions = {
+        fullHierarchy: {
+            rowData: traverseHierarchy({hierarchy, concepts: conceptsMap, collapsed, }),
+            nested: true,
+            msg: ' lines in hierarchy',
+        },
+        flat: {
+            rowData: concepts,
+            nested: false,
+            msg: ' flat',
+        },
+        /*
+        csetConcepts: {
+          rowData: traverseHierarchy({hierarchy, concepts: csetConcepts, collapsed, }),
+          nested: true,
+          msg: ' concepts in selected csets',
+        },
+         */
+    }
+
+    for (let k in _displayOptions) {
+        let opt = _displayOptions[k];
+        opt.msg = opt.rowData.length + opt.msg;
+    }
+    // setDisplayOptions(_displayOptions);
+    window.dopts = _displayOptions;
+    return _displayOptions;
+}
+/*
+function hierarchyToFlatCids(h) {
+  function f(ac) {
+    ac.keys = [...ac.keys, ...Object.keys(ac.remaining)];
+    const r = Object.values(ac.remaining).filter(d => d);
+    ac.remaining = {};
+    r.forEach(o => ac.remaining = {...ac.remaining, ...o});
+    return ac;
+  }
+  let ac = {keys: [], remaining: h};
+  while(!isEmpty(ac.remaining)) {
+    console.log(ac);
+    ac = f(ac);
+  }
+  return uniq(ac.keys.map(k => parseInt(k)));
+}
+ */
+
+function traverseHierarchy({hierarchy, concepts, collapsed, }) {
+    let rowData = [];
+    let blanks = [];
+    let traverse = (o, pathToRoot=[], level=0) => {
+        // console.log({o, pathToRoot, level});
+        Object.keys(o).forEach(k => {
+            k = parseInt(k);
+            let row = {...concepts[k], level, pathToRoot: [...pathToRoot, k]};
+            if (!concepts[k]) {
+                blanks.push(rowData.length);
+            }
+            rowData.push(row);
+            if (o[k] && typeof(o[k] === 'object')) {
+                row.has_children = true;
+                if (!collapsed[row.pathToRoot]) {
+                    traverse(o[k], row.pathToRoot, level+1);
+                }
+            }
+        })
+    }
+    traverse(hierarchy);
+    pullAt(rowData, blanks);
+    return rowData;
+}
+function getSizes(squishTo) {
     let sizes = {
         rowFontSize:  (13 * squishTo) + 'px',
         // rowPadding:   ( 1 * squishTo) + 'px', // do these do anything?
@@ -32,62 +268,7 @@ function ComparisonDataTable(props) {
         atlasHeight:  (12 * squishTo) + 'px',
         athenaHeight: (10 * squishTo) + 'px',
     }
-    let columns = colConfig({...props, editAction, editCodesetFunc, sizes, displayData, windowSize, });
-
-    let card, eInfo;
-    if (editCodesetId && columns) {
-        card = <ConceptSetCard cset={columns.find(d=>d.codeset_id===editCodesetId).cset_col}
-                               researchers={researchers}
-                               editing={true}
-                               // width={window.innerWidth * 0.5}
-                    />;
-    }
-    if (! isEmpty(csetEditState)) {
-        eInfo = <EditInfo {...props} />;
-    }
-    const customStyles = styles(sizes);
-    const conditionalRowStyles = [
-        {
-            when: () => true,
-            style: row => ({
-                backgroundColor: row.concept_id in csetEditState ? '#F662' : '#FFF',
-            }),
-        },
-    ]
-    return (
-        <Box sx={{ width: '100%', }}>
-            <Box ref={boxRef} sx={{ width: '96%', margin: '9px', alignItems: 'stretch',
-                display: 'flex', flexWrap: 'wrap', flexDirection: 'row', }}>
-                { card }
-                {eInfo}
-            </Box>
-            <DataTable
-                customStyles={customStyles}
-                conditionalRowStyles={conditionalRowStyles}
-                className="comparison-data-table"
-                theme="custom-theme" // theme="light"
-                columns={columns}
-                data={displayData.rowData}
-                dense
-                fixedHeader
-                fixedHeaderScrollHeight={() => {
-                    // console.log(boxRef.current);
-                    const headerStuffHeight = 50; // maybe get a real number, but too hard for now
-                    const {offsetTop=0, offsetHeight=0} = boxRef.current ?? {};
-                    return (window.innerHeight - (headerStuffHeight +
-                                offsetTop + offsetHeight)) + 'px';
-                    // return "400px";
-                }}
-                // highlightOnHover
-                // responsive
-                // subHeaderAlign="right"
-                // subHeaderWrap
-                //striped //pagination //selectableRowsComponent={Checkbox}
-                //selectableRowsComponentProps={selectProps} //sortIcon={sortIcon}
-                // expandOnRowClicked // expandableRows // {...props}
-            />
-        </Box>
-    );
+    return sizes;
 }
 
 function colConfig(props) {
@@ -234,22 +415,6 @@ function colConfig(props) {
     return coldefs;
 }
 
-/*
-function CsetColumnHeader(props) {
-    const {cset_col, editCodesetFunc, } = props;
-    return  <Tooltip placement="bottom"
-                label={`${cset_col.concept_set_version_title}. Click to edit new version.`}
-            >
-                <span className="cset-column-header"
-                      // style={{...rotated_header_style}}
-                    onClick={editCodesetFunc}
-                    codeset_id={cset_col.codeset_id}
-                >{cset_col.concept_set_name}</span>
-            </Tooltip>
-}
- */
-
-
 // createTheme creates a new theme named solarized that overrides the build in dark theme
 // https://github.com/jbetancur/react-data-table-component/blob/master/src/DataTable/themes.ts
 createTheme('custom-theme', {
@@ -335,20 +500,52 @@ function styles(sizes) {
 // const expandIcon    = <svg fill="currentColor" height="20" viewBox="0 -6 24 24" width="24" xmlns="http://www.w3.org/2000/svg"><path d="M8.59 16.34l4.58-4.59-4.58-4.59L10 5.75l6 6-6 6z"></path><path d="M0-.25h24v24H0z" fill="none"></path></svg>
 // const collapseIcon  = <svg fill="currentColor" height="20" viewBox="0 -6 24 24" width="24" xmlns="http://www.w3.org/2000/svg"><path d="M7.41 7.84L12 12.42l4.59-4.58L18 9.25l-6 6-6-6z"></path><path d="M0-.75h24v24H0z" fill="none"></path></svg>
 // const blankIcon     = <svg fill="currentColor" height="20" viewBox="0 -6 24 24" width="24" xmlns="http://www.w3.org/2000/svg" />
-export {ComparisonDataTable};
+function SquishStuff() {
+    // not using right now. wasn't fully working
+    const [squishTo, setSquishTo] = useState(1);
+    const tsquish = throttle(
+        val => {
+            // console.log(`squish: ${squishTo} -> ${val}`);
+            setSquishTo(val);
+        }, 200);
+    const squishChange = useCallback(tsquish, [squishTo, tsquish]);
+}
+function SquishSlider({setSquish}) {
+    // not refreshing... work on later
+    function preventHorizontalKeyboardNavigation(event) {
+        if (event.key === 'ArrowLeft' || event.key === 'ArrowRight') {
+            event.preventDefault();
+        }
+    }
+    function onChange(e, val) {
+        // console.log('val: ', val);
+        setSquish(val);
+    }
 
+    return (
+        <Box /* sx={{ height: 300 }} */>
+            <Slider
+                // key={`slider-${squish}`}
+                sx={{
+                    width: '60%',
+                    marginLeft: '15%',
+                    marginTop: '15px',
+                    // '& input[type="range"]': { WebkitAppearance: 'slider-vertical', },
+                }}
+                onChange={onChange}
+                // onChangeCommitted={onChange}
+                // orientation="vertical"
+                min={0.01}
+                max={2}
+                step={.1}
+                // value={squish}
+                defaultValue={1}
+                aria-label="Squish factor"
+                valueLabelDisplay="auto"
+                onKeyDown={preventHorizontalKeyboardNavigation}
+            />
+        </Box>
+    );
+}
 
-/*
-from https://react-data-table-component.netlify.app/?path=/docs/getting-started-kitchen-sink--kitchen-sink
-<KitchenSinkStory
-  dense
-  direction="auto"
-  fixedHeader
-  fixedHeaderScrollHeight="300px"
-  highlightOnHover
-  responsive
-  striped
-  subHeaderAlign="right"
-  subHeaderWrap
-/>
- */
+export {CsetComparisonPage};
