@@ -161,6 +161,13 @@ def sql_query(
         raise RuntimeError(f'Got an error [{err}] executing the following statement:\n{query}, {json.dumps(params, indent=2)}')
 
 
+def insert_from_dict(con: Connection, table: str, d: Dict):
+    insert = f"""
+    INSERT INTO {table} ({', '.join(d.keys())})
+    VALUES ({', '.join([':' + k for k in d.keys()])})
+    """
+    run_sql(con, insert, d)
+
 def sql_in(lst: List, quote_items=False) -> str:
     if quote_items:
         s: str = ', '.join([f"'{x}'" for x in lst]) or 'NULL'
