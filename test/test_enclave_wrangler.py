@@ -17,7 +17,8 @@ from typing import Dict, List, Union
 import pandas as pd
 from requests import Response
 
-from enclave_wrangler.objects_api import get_new_cset_and_member_objects, update_db_with_new_objects
+from enclave_wrangler.objects_api import codeset_version_enclave_to_db, get_new_cset_and_member_objects, \
+    update_db_with_new_objects
 
 TEST_DIR = os.path.dirname(__file__)
 PROJECT_ROOT = Path(TEST_DIR).parent
@@ -144,6 +145,11 @@ class TestEnclaveWrangler(unittest.TestCase):
         df = pd.read_csv(inpath).fillna('')
         response: Dict = upload_new_cset_container_with_concepts_from_csv(df=df)
         print()
+
+    def test_codeset_version_enclave_to_db(self):
+        """Test codeset_version_enclave_to_db()"""
+        object_id = 1049370
+        codeset_version_enclave_to_db(object_id)
 
 
 if __name__ == '__main__':

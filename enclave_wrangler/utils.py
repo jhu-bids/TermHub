@@ -162,7 +162,7 @@ def handle_response_error(
         error_report: Dict = {'request': response.url, 'response': response.json()}
         print(error_report, file=sys.stderr)
         curl_str = f'curl -H "Content-type: application/json" ' \
-                   f'-H "Authorization: Bearer $OTHER_TOKEN" {response.url}'
+                   f'-H "Authorization: Bearer ${get_auth_token_key()}" {response.url}'
         print(curl_str, file=sys.stderr)
         if error_dir:
             with open(os.path.join(error_dir, f'error {response.status_code}.json'), 'w') as file:
@@ -190,15 +190,9 @@ def enclave_get(url: str, verbose: bool = True, args: Dict = {}, error_dir: str 
 
 
 def handle_paginated_request(
-    first_page_url: str, verbose=False, called_by: str = '', error_dir: str = None
+    first_page_url: str, verbose=False, error_dir: str = None
 ) -> (List[Dict], Response):
     """Handles a request that has a nextPageToken, automatically fetching all pages and combining the data"""
-    # TODO: this returns the last response -- I (Siggie) think only for error handling.
-    #  But I'm pushing error handling down to enclave_get, so maybe can quit returning
-    #  last response; might simplify things a tad
-    if called_by != 'make_objects_request':
-        # TODO: fix handle_paginated_request calls so they all pass through make_objects_request
-        print('Warning: refactor calls to handle_paginated_request to use make_objects_request instead')
     url = first_page_url
     results: List[Dict] = []
     while True:
@@ -245,6 +239,20 @@ def get_objects_df(object_type, outdir: str = None, save_csv=True, save_json=Tru
     return df
 
 
+def get_url_from_api_path(path):
+    """Construct path for enclave API url"""
+    ontology_rid = config['ONTOLOGY_RID']
+    path = path[1:] if path.startswith('/') else path
+    api_path = f'/api/v1/ontologies/{ontology_rid}/{path}'
+    url = f'https://{config["HOSTNAME"]}{api_path}'
+    return url
+
+
+def get_query_param(field_name: str, filter_name: str, filter_value: str) -> str:
+    """Convert query param parts to a single query param key val pair with operator"""
+    return f'properties.{field_name}.{filter_name}={filter_value}'
+
+
 # todo's from b4 refactor combining make_objects_request() and get_objects_by_type() 2023/03/15
 #   1. Need to find the right object_type, then write a wrapper func around this to get concept sets
 #     - To Try: CodeSystemConceptSetVersionExpressionItem, OMOPConcept, OMOPConceptSet, OMOPConceptSetContainer,
@@ -252,18 +260,13 @@ def get_objects_df(object_type, outdir: str = None, save_csv=True, save_json=Tru
 #   2. connect to `manage` table and get since last datetime. for now, use below as example
 # noinspection PyUnboundLocalVariable
 def make_objects_request(
-    path: str, verbose=False, url_only=False, return_type: str = 'Response', handle_paginated=False,
-    expect_single_item=False, retry_if_empty=False, retry_times=15, retry_pause=1, outdir: str = None,
-    since_datetime: str = None, query_params: str = None, error_report: bool = True, fail_on_error=False, **request_args
+    path: str, verbose=False, url_only=False, return_type: str = ['Response', 'json', 'data'][0],
+    handle_paginated=False, expect_single_item=False, retry_if_empty=False, retry_times=15, retry_pause=1,
+    outdir: str = None, query_params: List[str] = None, error_report: bool = True, fail_on_error=False, **request_args
 ) -> Union[Response, JSON_TYPE, str]:
     """Fetch objects from enclave
 
     :param return_type： should be Response, json, or data
-    :param since_datetime: Formatted like '2023-01-01T00:00:00.000Z'
-    :param query_params:
-     Example:
-      constructing query params: ''.join([f'&properties.conceptSetId.eq={x}' for x in ids])
-      result: '&properties.conceptSetId.eq=Rachel_Example &properties.conceptSetId.eq=Covid - 19 Related Diagnosis'
 
     Enclave docs:
       https://www.palantir.com/docs/foundry/api/ontology-resources/objects/object-basics/
@@ -278,27 +281,9 @@ def make_objects_request(
     retry_times, retry_pause = (1, 0) if not retry_if_empty else (retry_times, retry_pause)
 
     # Construct URL
-    ontology_rid = config['ONTOLOGY_RID']
-    path = path[1:] if path.startswith('/') else path
-    path = f'objects/{path}' if not path.startswith('objects') else path
-    api_path = f'/api/v1/ontologies/{ontology_rid}/{path}'
-    url = f'https://{config["HOSTNAME"]}{api_path}'
-    # - Add query params
-    # todo: if accepting multiple query params, need & in between instead of subsequent ?
-    if since_datetime:
-        # a. search (needs JSON POST) https://www.palantir.com/docs/foundry/api/ontology-resources/objects/search/
-        # first_page_url += f'/search?previw=true'  # add JSON POST body
-        # b. https://www.palantir.com/docs/foundry/api/ontology-resources/objects/object-basics/#filtering-objects
-        url += f'?properties.createdAt.gt={since_datetime}'
-    if query_params:
-        query_params = query_params[1:] if any([query_params.startswith(x) for x in ['?', '&']]) else query_params
-        first_query_token = '&' if since_datetime else '?'
-        # examples: (1) expression items: ?itemId.eq=ID (2) containers: conceptSetId.eq=ID
-        url += f'{first_query_token}{query_params}'
+    url = get_url_from_api_path(f'objects/{path}')
+    url = url + '?' + '&'.join(query_params) if query_params else url
 
-    # Conditional actions
-    if verbose:
-        print(f'make_actions_request: {api_path}\n{url}')
     if url_only:
         return url
 

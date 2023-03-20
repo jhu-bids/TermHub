@@ -57,7 +57,10 @@ if missing_env_vars:
         f'{cause_msg}')
 
 FAVORITE_OBJECTS = [
-    'researcher'
+    'researcher',
+    # 'research-project',
+
+    # todo: 2023/03/20 Joe: Do we need this error message here? Are we looking to fetch CodeSystemConceptSetVersionExpressionItem?
     # 'CodeSystemConceptSetVersionExpressionItem',
     # {'errorCode': 'INVALID_ARGUMENT', 'errorName': 'ObjectsExceededLimit', 'errorInstanceId':
     # '693c5f19-df1f-487e-afb9-ea6c6adb8996', 'parameters': {}}

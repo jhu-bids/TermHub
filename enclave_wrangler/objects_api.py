@@ -8,7 +8,7 @@ Resources
 
 TODO's
  1. Consider refactor: Python -> Bash (curl + JQ)
- 2. Are the tables in 'datasets' isomorphic w/ 'objects'? e.g. object OmopConceptSetVersionItem == table
+ 2. Are the tables in 'datasets' isomorphic w/ 'objects'? e.g. object OMOPConceptSetVersionItem == table
  concept_set_version_item_rv_edited_mapped.
 """
 import json
@@ -26,9 +26,10 @@ from typeguard import typechecked
 # import asyncio
 
 from enclave_wrangler.config import FAVORITE_OBJECTS, OUTDIR_OBJECTS, OUTDIR_CSET_JSON, config, TERMHUB_CSETS_DIR
-from enclave_wrangler.utils import enclave_get, enclave_post, get_objects_df, make_objects_request, \
+from enclave_wrangler.utils import enclave_get, enclave_post, get_objects_df, get_query_param, get_url_from_api_path, \
+    make_objects_request, \
     handle_paginated_request, handle_response_error
-from enclave_wrangler.models import get_field_names, field_name_mapping
+from enclave_wrangler.models import convert_row, get_field_names, field_name_mapping
 # from enclave_wrangler.utils import log_debug_info
 from backend.db.utils import sql_query_single_col, run_sql, get_db_connection
 from backend.db.queries import get_concepts
@@ -67,7 +68,8 @@ def get_object_types(verbose=False) -> List[Dict]:
      OMOPConcept, OMOPConceptAncestorRelationship, OMOPConceptChangeConnectors, OMOPConceptSet,
      OMOPConceptSetContainer, OMOPConceptSetReview, OmopConceptChange, OmopConceptDomain, OmopConceptSetVersionItem,
     """
-    response = make_objects_request('objectTypes', verbose=verbose)
+    url = get_url_from_api_path('objectTypes')
+    response: Response = enclave_get(url, verbose=verbose)
     return response.json()['data']
 
 
@@ -231,6 +233,7 @@ def get_bundle_names(prop: str='displayName'):
     all_bundles = get_all_bundles()
     return [b['properties'][prop] for b in all_bundles['data']]
 
+
 def get_bundle(bundle_name):
     """
     call this like: http://127.0.0.1:8000/enclave-api-call/get_bundle/Anticoagulants
@@ -307,11 +310,12 @@ def get_new_cset_and_member_objects(since: Union[datetime, str], return_type=['f
     since = str(since)
 
     # Concept set versions
-    cset_versions: List[Dict] = make_objects_request('OmopConceptSet', since_datetime=since)
+    cset_versions: List[Dict] = make_objects_request(
+        'OMOPConceptSet', query_params=[get_query_param('createdAt', 'gt', since)])
 
     # Containers
     containers_ids = [x['properties']['conceptSetNameOMOP'] for x in cset_versions]
-    container_params = ''.join([f'&properties.conceptSetId.eq={x}' for x in containers_ids])
+    container_params = [get_query_param('conceptSetId', 'eq', x) for x in containers_ids]
     cset_containers: List[Dict] = make_objects_request(
         'OMOPConceptSetContainer', query_params=container_params, verbose=True)
 
@@ -335,7 +339,29 @@ def get_new_cset_and_member_objects(since: Union[datetime, str], return_type=['f
     return {'cset_containers': cset_containers, 'cset_versions': cset_versions_with_concepts}
 
 
+def codeset_version_enclave_to_db(object_id: int):
+    """Given ID to a version, get object's current state from the enclave, and add it the DB"""
+    # Fetch updates
+    # todo: DONE: 1st, get just the object itself without any of its 'dependencies'
+    # todo: 2nd, include dependencies: container, expression items, members
+    query_params = [get_query_param('codesetId', 'eq', str(object_id))]
+    matches: List[Dict] = make_objects_request('OMOPConceptSet', query_params=query_params, return_type='data')
+    obj: Dict = matches[0]['properties']
+    # Convert from object to dataset (DB) model
+    new_obj = convert_row('OMOPConceptSet', 'code_sets', obj)
+    # todo: Update db?
+    def insert_from_dict(table: str, obj: Dict):
+        """Insert new object into db"""
+        # INSERT INTO some_table (first_name, last_name)
+        # VALUES (:first_name, :last_name)
+
+    insert_from_dict('')
+    run_sql('INSERT ', new_obj)
+    return matches
+
+
 def items_to_atlas_json_format(items):
+    """Convert version items to atlas json format"""
     flags = ['includeDescendants', 'includeMapped', 'isExcluded']
     try:
         concept_ids = [i['conceptId'] for i in items]
@@ -585,9 +611,9 @@ def get_researchers(verbose=False) -> List[Dict]:
     Researcher exploration page:
     https://unite.nih.gov/workspace/hubble/exploration?objectTypeRid=ri.ontology.main.object-type.70d7defa-4914-422f-83da-f45c28befd5a
     """
-    object_name = 'researcher'
-    response: Response = make_objects_request(object_name, handle_paginated=True, return_type='data', verbose=verbose)
-    return [x for x in response.json()['data']]
+    object_name = 'Researcher'
+    data: List[Dict] = make_objects_request(object_name, handle_paginated=True, return_type='data', verbose=verbose)
+    return data
 
 
 def get_projects(verbose=False) -> List[Dict]:
@@ -595,11 +621,13 @@ def get_projects(verbose=False) -> List[Dict]:
     Projects exploration page:
     https://unite.nih.gov/workspace/hubble/exploration?objectTypeRid=ri.ontology.main.object-type.84d08d30-bbea-4e3d-a995-040057391a71
     """
-    object_name = 'research-project'
-    response: Response = make_objects_request(object_name, handle_paginated=True, return_type='data', verbose=verbose)
-    return [x for x in response.json()['data']]
+    object_name = 'ResearchProject'
+    data: List[Dict] = make_objects_request(object_name, handle_paginated=True, return_type='data', verbose=verbose)
+    return data
 
 
 if __name__ == '__main__':
-    ot = get_object_types()
-    get_n3c_recommended_csets(save=True)
+    # ot = get_object_types()
+    # get_n3c_recommended_csets(save=True)
+    types = get_link_types()
+    print()

@@ -163,14 +163,14 @@ New way to do field mappings:
   So far it only works with this one pair of rowtypes. As need arises 
   (like csv upload to make-new-omop-... api call), we'll add more mappings.
 """
-FMAPS = []
+FMAPS: List[Dict] = []
 csv.register_dialect('trim', quotechar='"', skipinitialspace=True,
                      quoting=csv.QUOTE_NONE, lineterminator='\n', strict=True)
 
 
 def add_mappings(csv_str: str):
     reader = csv.DictReader(io.StringIO(csv_str), dialect='trim')
-    maps = list(reader)
+    maps: List[Dict] = list(reader)
     FMAPS.extend(maps)
 
 
@@ -199,9 +199,28 @@ add_mappings(
        created_by,               createdBy
        created_at,               createdAt""")
 
+add_mappings(
+    #  objects_api            dataset
+    """OMOPConceptSet,            code_sets
+       codesetId,                 codeset_id
+       createdAt,                 created_at
+       conceptSetVersionTitle,    concept_set_version_title
+       isMostRecentVersion,       is_most_recent_version
+       version,                   version
+       createdBy,                 created_by
+       conceptSetNameOMOP,        concept_set_name
+       intention,                 intention
+       updateMessage,             update_message
+       atlasJsonResourceUrl,      atlas_json_resource_url
+       provenance,                provenance
+       sourceApplicationVersion,  source_application_version
+       isDraft,                   is_draft
+       sourceApplication,         source_application
+       limitations,               limitations""")
+
 
 @cache
-def get_field_mapping_lookup():
+def get_field_mapping_lookup() -> Dict[str, Dict]:
     """
         mappings are a list of rows that look like:
             {'concept': 'concept_id', 'atlasjson': 'CONCEPT_ID'}
@@ -209,9 +228,20 @@ def get_field_mapping_lookup():
         rather than searching through the list for the mapping i want,
         it would be nice to have a quick lookup, to be able to do like:
 
-        target_field_name = lookup[source_rowtype][target_rowtype][source_field_name]
+        target_field_name = lookup[source_rowtype][source_field_name][target_rowtype]
 
         this function makes that object
+
+        :returns like:
+        {
+            'atlasjson': {  # source model
+                'CONCEPT_CLASS_ID': {  # source model field name
+                    'concept':  # target model
+                    'concept_class_id'  # target model field name
+                }
+            }
+        }
+        What it returns goes both ways. So it won't just give us atlasjson -> concept, but also concept -> atlasjson
     """
     # for nested defaultdict: https://stackoverflow.com/questions/19189274/nested-defaultdict-of-defaultdict
     d = defaultdict(lambda: defaultdict(dict))
@@ -235,15 +265,14 @@ def field_name_mapping(source: str, target: str, field: str) -> str:
     return get_field_mapping_lookup()[source][field][target]
 
 
-def convert_rows(source: str, target: str, rows:List[Dict]) -> List[Dict]:
+def convert_rows(source: str, target: str, rows: List[Dict]) -> List[Dict]:
     out = []
     for row in rows:
         out.append(convert_row(source, target, row))
     return out
 
 
-def convert_row(source: str, target: str, row: Dict,
-                skip_missing_fields=True) -> Dict:
+def convert_row(source: str, target: str, row: Dict, skip_missing_fields=True) -> Dict:
     out = {}
     for field in get_field_names(target):
         try:
@@ -259,8 +288,8 @@ def convert_row(source: str, target: str, row: Dict,
 if __name__ == '__main__':
     # mappings = get_field_mappings()
     # pdump(m)
-    t = field_name_mapping('concept', 'concept_id', 'atlasjson')
-    print(t)
-    t = field_name_mapping('concept', 'domain_id', 'atlasjson')
-    print(t)
-
+    # t = field_name_mapping('concept', 'concept_id', 'atlasjson')
+    # print(t)
+    # t = field_name_mapping('concept', 'domain_id', 'atlasjson')
+    # print(t)
+    print()

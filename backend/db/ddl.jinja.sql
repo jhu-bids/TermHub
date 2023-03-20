@@ -28,6 +28,8 @@ CREATE INDEX IF NOT EXISTS cr_idx3 on {{schema}}concept_relationship(concept_id_
 
 CREATE INDEX IF NOT EXISTS cs_idx1 on {{schema}}code_sets(codeset_id);
 
+ALTER TABLE {{schema}}code_sets ADD PRIMARY KEY(codeset_id);
+
 CREATE INDEX IF NOT EXISTS csc_idx1 on {{schema}}concept_set_container(concept_set_id);
 
 CREATE INDEX IF NOT EXISTS csc_idx2 on {{schema}}concept_set_container(concept_set_name);
