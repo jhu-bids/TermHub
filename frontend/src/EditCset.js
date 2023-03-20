@@ -10,15 +10,11 @@ import Typography from '@mui/material/Typography';
 import { Link } from 'react-router-dom';
 import {isEmpty, get, pick, } from 'lodash'; // set, map, omit, pick, uniq, reduce, cloneDeepWith, isEqual, uniqWith, groupBy,
 import IconButton from '@mui/material/IconButton';
-import Button from '@mui/material/Button';
-import {backend_url} from './App';
-import * as po from './Popover';
-// import {ComparisonDataTable} from './ComparisonDataTable';
 import {Tooltip} from './Tooltip';
 import {searchParamsToObj, updateSearchParams, } from "./utils";
-import * as abt from './AboutPage';
+import {LI, TextH2, TextBold, howToSaveStagedChanges, } from "./AboutPage";
+import {backend_url} from './App';
 import _ from "./supergroup/supergroup";
-import {TextBold, TextBody} from "./AboutPage";
 
 const checkmark = <span>{'\u2713'}</span>;
 function getEditCodesetFunc(props) {
@@ -65,12 +61,16 @@ function getCodesetEditActionFunc({searchParams, }) {
 function summaryLine({item, action, concept}) {
   const flags = action == 'Remove' ? '' :
       Object.keys(FLAGS).filter(key => item[key]).join(', ');
+  if (!concept) {
+    console.log('why no concept?')
+  }
   return <Typography>
           {concept.concept_name} ({concept.concept_id}) {flags}
          </Typography>
 }
 function EditInfo(props) {
-  const {editCodesetId, csetEditState, cset_data: {selected_csets, conceptLookup}} = props;
+  const {editCodesetId, csetEditState, cset_data: {selected_csets, conceptLookup,
+          saveInstructions=false}} = props;
   const csidState = csetEditState[editCodesetId];
   if (!csidState) {
     return null;
@@ -79,11 +79,11 @@ function EditInfo(props) {
   const updates = _.supergroup(Object.values(csidState), 'stagedAction');
   return (
       <Card variant="outlined" sx={{/*width: '600px', */}}>
-        <abt.TextH2>Staged changes {/*to {cset.concept_set_version_title} ({editCodesetId}) */}</abt.TextH2>
+        <TextH2>Staged changes {/*to {cset.concept_set_version_title} ({editCodesetId}) */}</TextH2>
         <ul>{
             updates.map(
                 grp => <li key={grp}>
-                  <abt.TextBold>{grp}</abt.TextBold> <ul>
+                  <TextBold>{grp}</TextBold> <ul>
                         {grp.records.map(
                             item => <li key={item.concept_id}>{
                                       summaryLine({item, action: grp, concept: conceptLookup[item.concept_id]})
@@ -94,14 +94,6 @@ function EditInfo(props) {
               )
         }</ul>
 
-        <a href={backend_url(
-            `cset-download?atlas_items_only=true&${props.sort_json ? 'sort_json=true&' : ''}codeset_id=${cset.codeset_id}&csetEditState=${JSON.stringify(csetEditState)}`
-          )} target="_blank" rel="noreferrer">Export JSON</a>
-        <p>To save your work, click
-          <Button onClick={() => {navigator.clipboard.writeText(window.location.toString())}} >
-            Copy URL
-          </Button><br/>
-          Best practice is to paste this URL in your lab notebook and annotate your work there as well.</p>
 
 
         { /* <pre>{JSON.stringify(csetEditState, null, 2)}</pre> */ }
@@ -109,6 +101,29 @@ function EditInfo(props) {
         {/*<button variant="contained">upload to enclave as new version</button>*/}
       </Card>
   );
+}
+function saveChangesInstructions(props) {
+  const {
+    editCodesetId, csetEditState, cset_data: {
+      selected_csets, conceptLookup,
+      saveInstructions = false
+    }
+  } = props;
+  const csidState = csetEditState[editCodesetId];
+  const cset = selected_csets.find(d => d.codeset_id === editCodesetId);
+  if (!csidState) {
+    return null;
+  }
+  const params = {
+    exportJsonLink:
+        backend_url(
+            `cset-download?atlas_items_only=true&${
+                props.sort_json ? 'sort_json=true&' : ''
+            }codeset_id=${cset.codeset_id}&csetEditState=${JSON.stringify(csetEditState)}`
+        ),
+    openInEnclaveLink: `https://unite.nih.gov/workspace/hubble/objects/${cset.container_rid}`
+  }
+  return howToSaveStagedChanges(params);
 }
 
 
@@ -325,7 +340,7 @@ function Legend() {
     </div>);
 }
 function LegendItem({label, content=null, style, }) {
-  return  <Box sx={{width: '350px', border: content ? '1px solid gray' : '', display: 'flex',
+  return  <Box sx={{width: '350px', border: content ? '1px solid gray' : '', display: 'flex', zIndex: 5000,
     margin: '4px', alignItems: 'stretch', flexDirection: 'row', }} key={label}>
     <Box sx={{width: '250px', display: 'flex', alignItems: 'center', padding: '3px',
       minHeight: '1.5rem', fontWeight: content ? 'normal' : 'bolder', }}>{label} </Box>
@@ -427,18 +442,5 @@ function cellContents(props) {
   );
   return cellStuff;
 }
-function LegendButton(props) {
-  return (
-      <po.Popover>
-        <po.PopoverTrigger sx={{float:'right'}}>Display legend</po.PopoverTrigger>
-        <po.PopoverContent className="Popover legend" >
-          <po.PopoverHeading>Legend</po.PopoverHeading>
-          <Legend/>
-          <po.PopoverClose>Close</po.PopoverClose>
-        </po.PopoverContent>
-      </po.Popover>
-  )
-}
 
-export {EditInfo, getCodesetEditActionFunc, getEditCodesetFunc, cellContents, cellStyle,
-        LegendButton, };
+export {EditInfo, getCodesetEditActionFunc, getEditCodesetFunc, cellContents, cellStyle, Legend, };

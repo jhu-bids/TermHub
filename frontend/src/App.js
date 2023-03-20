@@ -11,22 +11,28 @@ import './App.css';
 import { // Link, useHref, useParams, BrowserRouter, redirect,
           Outlet, Navigate, useSearchParams, useLocation,
           createSearchParams, Routes, Route,} from "react-router-dom";
-import { createTheme, ThemeProvider, styled } from '@mui/material/styles';
-import MuiAppBar from "./MuiAppBar";
+import { createTheme, ThemeProvider, } from '@mui/material/styles';
 import Box from '@mui/material/Box';
 import { // useMutation, useQueryClient, useQuery, useQueries,
           QueryClient,QueryClientProvider, } from '@tanstack/react-query'
 import { keyBy, isEmpty, } from "lodash";
-import { persistQueryClient, removeOldestQuery,} from '@tanstack/react-query-persist-client'
-// import { createSyncStoragePersister } from '@tanstack/query-sync-storage-persister'
 import { createWebStoragePersistor } from 'react-query/createWebStoragePersistor-experimental'
-import { ReactQueryDevtools } from '@tanstack/react-query-devtools'
-import {ConceptSetsPage, CsetComparisonPage} from "./Csets";
+import { persistQueryClient, removeOldestQuery,} from '@tanstack/react-query-persist-client'
+// import { ReactQueryDevtools } from '@tanstack/react-query-devtools'
+// import { createSyncStoragePersister } from '@tanstack/query-sync-storage-persister'
+
+import useMeasure from 'react-use/lib/useMeasure';
+import Paper from '@mui/material/Paper';
+
+import {ConceptSetsPage, } from "./Csets";
+import {CsetComparisonPage} from "./CsetComparisonPage";
 import {AboutPage, } from "./AboutPage";
 import {searchParamsToObj, updateSearchParams, backend_url, useDataWidget, clearSearchParams, } from "./utils";
 import {UploadCsvPage} from "./UploadCsv";
 import {DownloadJSON} from "./DownloadJSON";
-// import _ from "./supergroup/supergroup";
+import MuiAppBar from "./MuiAppBar";
+// // import _ from "./supergroup/supergroup";
+
 const SEARCH_PARAM_STATE_CONFIG = {
   scalars: ['editCodesetId', 'sort_json'],
   global_props_but_not_search_params: ['searchParams', 'setSearchParams'],
@@ -93,12 +99,12 @@ persistQueryClient({
 */
 function QCProvider() {
   return (
-      // <React.StrictMode> // StrictMode helps assure code goodness by running everything twice, but it's annoying
+      <React.StrictMode> {/* StrictMode helps assure code goodness by running everything twice, but it's annoying*/}
         <QueryClientProvider client={queryClient}>
           <QueryStringStateMgr />
           {/*<ReactQueryDevtools initialIsOpen={false} />*/}
         </QueryClientProvider>
-      // </React.StrictMode>
+      </React.StrictMode>
   );
 }
 function QueryStringStateMgr(props) {
@@ -257,11 +263,6 @@ const theme = createTheme({
   }
 });
 
-/* const CustomCheckbox = styled(Checkbox)(({ theme }) => ({
-  // more from example:
-  color: theme.status.danger, '&.Mui-checked': { color: theme.status.danger, },
-})); */
-
 /*
 when in doubt: https://reactjs.org/docs/hooks-reference.html and https://reactrouter.com/docs/en/v6
 
@@ -305,43 +306,35 @@ function objectTypesData(data) {
   }))
   return rows
 }
-*/
 
-export {QCProvider, backend_url, SEARCH_PARAM_STATE_CONFIG, };
+function HookTestApp() {
+  const [ref, measures ] = useMeasure();
 
-// TODO: @Siggie: Can we remove this comment or we need this list of links for ref still?
-//       @Joe: we should move it to the individual concept set display component(s) as a
-//             list of all the data we could be including
-/*
-function getObjLinks() {
-  // https://www.palantir.com/docs/foundry/api/ontology-resources/objects/list-linked-objects
-  return <List>
-
-    omop-concept-set-to-omop-concept
-    omop-concept-set-version-item-to-omop-concept
-    omop-concept-set-version-to-cset-version-info
-    omop-concept-set-version-to-items
-    omop-vocabulary-version-set-container-link
-    vocab-version-set-version-link
-
-    concept-change-version-link
-    concept-set-bundle-item-omop-concept-set
-    concept-set-review-concept-set
-    concept-set-tag-to-concept-set-versions
-    concept-set-version-change-acknowledgement-omop-concept-set
-    concept-set-version-to-concept-set-container
-    documentation-node-to-concept-set-version
-
-    omop-concept-set-provenance
-    omop-concept-set-container-omop-concept-domains
-    omop-concept-set-to-omop-concept-domains
-    omop-concept-set-container-to-concept-set-tag
-    omop-concept-set-container-to-research-project
-    omop-concept-set-to-research-project
-
-    omop-concept-set-version-to-intended-domain-team
-    set-ack-link
-    concept-change-subscription
-  </List>
+  return (
+      <div className="App">
+        <header className="App-header">
+          <Paper ref={ref} sx={{ m: 1 }} elevation={4} /*measures={measures}* />
+<pre>
+{JSON.stringify(measures,null,2)}
+</pre>
+<p>
+  Edit <code>src/App.js</code> and save to reload.
+</p>
+<a
+    className="App-link"
+    href="https://reactjs.org"
+    target="_blank"
+    rel="noopener noreferrer"
+>
+  Learn React
+</a>
+</Paper>
+</header>
+</div>
+);
 }
+
 */
+
+export {/* HookTestApp, */ QCProvider, backend_url, SEARCH_PARAM_STATE_CONFIG, };
+// export { QCProvider, backend_url, SEARCH_PARAM_STATE_CONFIG, };

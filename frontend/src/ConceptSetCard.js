@@ -2,6 +2,8 @@ import * as React from 'react';
 import Card from '@mui/material/Card';
 import CardContent from '@mui/material/CardContent';
 import Typography from '@mui/material/Typography';
+import IconButton from '@mui/material/IconButton';
+import CloseIcon from '@mui/icons-material/Close';
 import Box from '@mui/material/Box';
 import {NavLink, useLocation} from "react-router-dom";
 import {backend_url} from './App';
@@ -52,7 +54,7 @@ export default function ConceptSetCards(props) {
       </div>;
 }
 function ConceptSetCard(props) {
-  let {cset, researchers={}, editing=false, } = props;
+  let {cset, researchers={}, editing=false, closeFunc} = props;
   /*
   const [expanded, setExpanded] = React.useState(false);
   const handleExpandClick = () => {
@@ -146,7 +148,7 @@ function ConceptSetCard(props) {
       )
    */
   return (
-      <Card variant="outlined">
+      <Card variant="outlined" sx={{display: 'inline-block', /*maxWidth: '400px'*/}}>
         {/*
         <CardHeader
             action={
@@ -159,9 +161,13 @@ function ConceptSetCard(props) {
         />
         */}
         <CardContent sx={{}}>
-          {/*<Typography variant="h6" color="text.primary" gutterBottom>*/}
-          {/*  {editing ? 'Editing' : ''} {cset.concept_set_version_title} {editSingleLink}*/}
-          {/*</Typography>*/}
+          <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center'}}>
+            <Typography variant="h6" color="text.primary" gutterBottom>
+              {editing ? 'Editing' : ''} {cset.concept_set_version_title}
+              {/*{editSingleLink}*/}
+            </Typography>
+            <IconButton onClick={closeFunc}><CloseIcon/></IconButton>
+          </div>
           <Typography variant="body2" color="text.primary" gutterBottom>
             {tags.join(', ')}
           </Typography>

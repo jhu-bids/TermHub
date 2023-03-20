@@ -173,9 +173,9 @@ export const PopoverContent = React.forwardRef(function PopoverContent(props, pr
           <div
             ref={ref}
             style={{
-              position: context.strategy,
-              top: context.y ?? 0,
-              left: context.x ?? 0,
+              position: 'relative', // context.strategy,
+              // top: context.y ?? 0,
+              // left: context.x ?? 0,
               width: "max-content",
               ...props.style
             }}

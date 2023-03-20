@@ -6,7 +6,7 @@ import React, {useState, } from 'react';
 import Typography from "@mui/material/Typography";
 import Button from "@mui/material/Button";
 import {Link} from "@mui/material";
-import * as po from './Popover';
+// import * as po from './Popover';
 
 // import React, {useState, useReducer, useEffect, useRef} from 'react';
 // import {Table} from './Table';
@@ -20,6 +20,7 @@ let LI = (props) => (<li><Typography variant="body2" color="text.primary" style=
 let DOCS = {};
 
 function AboutPage(props) {
+
   // const {codeset_ids=[], all_csets=[], cset_data={}} = props;
   // const {data_counts=[], } = cset_data;
   //
@@ -139,10 +140,89 @@ DOCS.blank_search_intro = (<>
   </div>
 </>);
 
-function HelpWidget(props) {
+/* was going to use tagged templates; see https://developer.mozilla.org/en-US/docs/Web/JavaScript/Reference/Template_literals
+  but these docs are react chunks, so, should be easier
+function processTemplate(strings, params={}) {
+  const keys = Object.keys(params);
+  if (strings.length !== keys.length + 1) {
+    throw new Error("not supposed to happen, wrong number of params");
+  }
 
 }
+function getDoc(docName, params={}) {
+  const tmpl = DOCS[docName];
+  return processTemplate(tmpl, params);
+}
+*/
+function howToSaveStagedChanges(params) {
+  return (
+      <>
+        <TextBold>In order to save your changes to the enclave:</TextBold>
+        <ol>
+          <LI><a href={params.exportJsonLink} target="_blank" rel="noreferrer">Click to export JSON</a>. A new browser tab will up with just the JSON. Copy or save it.</LI>
+          <LI>Come back to this tab, and <a href={params.openInEnclaveLink} target="_blank">click to open this concept set in the Enclave</a></LI>
+          <LI>A new tab for the N3C data enclave will open. Log in if needed.</LI>
+          <LI>Click the "Versions" tab at the top left.</LI>
+          <LI>Click the blue "Create new version" button at the bottom left.</LI>
+          <LI>Fill out the information in the "Create New Draft OMOP Concept Set Version" popup, and click "Submit".</LI>
+          <LI>Your new draft version should appear on the left (may require a page refresh). Click it.</LI>
+          <LI>On the right hand side, there is a blue button called "Add Concepts". Click the down arrow, then select "Import ATLAS Concept Set Expression JSON" from the menu.</LI>
+          <LI>Copy/paste the JSON obtained from TermHub earlier into the box, and click "Import Atlas JSON".</LI>
+          <LI>Click the version on the left again.</LI>
+          <LI>On the right, click the green "Done" button.</LI>
+        </ol>
+        <p>To save your work, click
+          <Button onClick={() => {navigator.clipboard.writeText(window.location.toString())}} >
+            Copy URL
+          </Button><br/>
+          Best practice is to paste this URL in your lab notebook and annotate your work there as well.
+        </p>
+      </>
+  );
+}
 
+/*
+function HelpWidget(props) {
+  const {doc} = props;
+  if (doc === 'legend') {
+    return <Legend />;
+  }
+
+}
+const WINDOW_OPEN_OPTIONS = {
+  spec: {
+    width: 100, /* window width * /
+    height: 900, /* window height * /
+  },
+  // transform: 'scale(0.8)',
+  top: 20,
+  left: window.innerWidth - 250,
+};
+function HelpButton(props) {
+  const {doc, windowOptions} = props;
+  // const options = windowOptions ?? WINDOW_OPEN_OPTIONS;
+  const options = WINDOW_OPEN_OPTIONS;
+  const url = `/help?doc=${doc}`;
+  const [handleWindowOpen, newWindowHandle] = useOpenInWindow(url, options);
+  console.log({newWindowHandle});
+  if (doc === 'legend') {
+    return <Button onClick={handleWindowOpen}>Show legend</Button>;
+  }
+}
+*/
+
+/*
+function LegendButton(props) {
+return (
+    <po.Popover>
+      <po.PopoverTrigger sx={{float:'right'}}>Display legend</po.PopoverTrigger>
+      <po.PopoverContent className="Popover legend" >
+        <po.PopoverHeading>Legend</po.PopoverHeading>
+        <Legend/>
+        <po.PopoverClose>Close</po.PopoverClose>
+      </po.PopoverContent>
+    </po.Popover>)
+}
 function TestPop(startOpen=false) {
   const [open, setOpen] = useState(startOpen);
   return (
@@ -161,5 +241,6 @@ function TestPop(startOpen=false) {
       </div>
   );
 }
+*/
 
-export {AboutPage, DOCS, TestPop, HelpWidget, TextBody, TextBold, TextH2, TextH1, LI, };
+export {AboutPage, DOCS, TextBody, TextBold, TextH2, TextH1, LI, howToSaveStagedChanges, /*HelpWidget, HelpButton,*/ };
