@@ -2,7 +2,7 @@
 ### [Frontend](../frontend/README.md)  
 ### [Backend](../backend/README.md)
 ### Database
-#### Refreshing the database
+#### Refreshing database contents from sources
 A refresh is done nightly via [GitHub action](https://github.com/jhu-bids/TermHub/actions/workflows/db_refresh.yml), but this can also be run manually, either by (a) using the [GitHub action](https://github.com/jhu-bids/TermHub/actions/workflows/db_refresh.yml), or (b) running the Python script manually via `python backend/db/full_data_refresh.py`, which supports the following CLI parameters.
 
 | Parameter | Default | Description |
@@ -16,6 +16,29 @@ A refresh is done nightly via [GitHub action](https://github.com/jhu-bids/TermHu
 
 #### Allowing remote access
 To allow a new user to access the database remotely, their IP address must be added to Azure: (i) select [DB resource](https://portal.azure.com/#@live.johnshopkins.edu/resource/subscriptions/fe24df19-d251-4821-9a6f-f037c93d7e47/resourceGroups/JH-POSTGRES-RG/providers/Microsoft.DBforPostgreSQL/flexibleServers/termhub/overview), (ii) [select 'Networking'](https://portal.azure.com/#@live.johnshopkins.edu/resource/subscriptions/fe24df19-d251-4821-9a6f-f037c93d7e47/resourceGroups/JH-POSTGRES-RG/providers/Microsoft.DBforPostgreSQL/flexibleServers/termhub/networking), (iii) add IP address.
+
+#### Backups
+**Prerequisites**  
+You should have an environmental variable called `psql_conn`, set as follows:
+`psql_conn="host=$TERMHUB_DB_HOST port=$TERMHUB_DB_PORT dbname=$TERMHUB_DB_DB user=$TERMHUB_DB_USER password=$TERMHUB_DB_PASS sslmode=require"`
+
+If you run `./db_backup.sh`, it will generate commands (1) and (2) below so that you can directly copy/paste into the terminal to (i) create the backup, and (ii) restore it. The commands will look like this, except will replace `YYYYMMDD` with the current date:
+**1. Create backup file**  
+`pg_dump -d $psql_conn -n n3c | sed '/^[0-9][0-9]*\t/! s/[[:<:]]n3c[[:>:]]/n3c_backup_YYYYMMDD/' > n3c_backup_YYYYMMDD.dmp`
+
+**2. Restore backup as schema `n3c_backup_YYYYMMDD`**  
+`psql -d $psql_conn < n3c_backup_YYYYMMDD.dmp`
+
+**3. Replace existing schema `n3c` with your restored backup**
+You likely will already have a schema called `n3c` which is corrupted in some way, hence why you want to restore from backup.
+3.1.a. Back up corrupted `n3c` schema: If you want to keep that schema for whateve reason, you can create a new backup for it as in step (1), or simply give it a new schema name:
+`ALTER SCHEMA n3c RENAME TO <new name>;`
+
+3.1.b. Drop up corrupted `n3c` schema: But there's a good chance you just want to drop it instead, like so:
+`DROP n3c WITH CASCADE;`
+
+3.2. Rename `n3c_backup_YYYYMMDD` as `n3c`:
+`ALTER SCHEMA <backup schema name> RENAME TO n3c;`
 
 ### Deployment
 #### Deploying to Dev
