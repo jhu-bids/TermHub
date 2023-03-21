@@ -11,7 +11,7 @@ import { Link } from 'react-router-dom';
 import {isEmpty, get, pick, } from 'lodash'; // set, map, omit, pick, uniq, reduce, cloneDeepWith, isEqual, uniqWith, groupBy,
 import IconButton from '@mui/material/IconButton';
 import {Tooltip} from './Tooltip';
-import {searchParamsToObj, updateSearchParams, } from "./utils";
+import {searchParamsToObj, updateSearchParams, } from "./State";
 import {LI, TextH2, TextBold, howToSaveStagedChanges, } from "./AboutPage";
 import {backend_url} from './App';
 import _ from "./supergroup/supergroup";
@@ -232,12 +232,18 @@ function cellInfo(props) {
 
   return {editing, item, };
 }
+const defaultCellStyle = { // https://stackoverflow.com/questions/19461521/how-to-center-an-element-horizontally-and-vertically
+  padding: 0,
+  display: 'flex',
+  alignItems: 'center',
+  justifyContent: 'center',
+};
 function cellStyle(props) {
   const {editing, item} = cellInfo(props);
   return _cellStyle(item, editing);
 }
 function _cellStyle(item, editing) {
-  let style = {};
+  let style = {...defaultCellStyle};
   if (!item) {
     return style;  // no styling
   }
@@ -252,11 +258,6 @@ function _cellStyle(item, editing) {
   }
   return style;
 }
-const centered = { // https://stackoverflow.com/questions/19461521/how-to-center-an-element-horizontally-and-vertically
-  display: 'flex',
-  alignItems: 'center',
-  justifyContent: 'center',
-};
 
 /*
 function iconset(subset) {
@@ -307,7 +308,7 @@ function fakeCell(props) {
   let cellProps = { editing, fakeItem: item, cset_col:{}, row:{}, cset_data:{}, };
   // return <CellContents {...cellProps} />;
   let content = cellContents({...cellProps});
-  return <Box sx={{width: '100px', height: '100%', border: '1px solid gray', ...centered, ...style}}>{content}</Box>
+  return <Box sx={{width: '100px', height: '100%', border: '1px solid gray', ...style}}>{content}</Box>
 }
 function Legend() {
   const itemTypes = {
@@ -344,7 +345,7 @@ function LegendItem({label, content=null, style, }) {
     margin: '4px', alignItems: 'stretch', flexDirection: 'row', }} key={label}>
     <Box sx={{width: '250px', display: 'flex', alignItems: 'center', padding: '3px',
       minHeight: '1.5rem', fontWeight: content ? 'normal' : 'bolder', }}>{label} </Box>
-    { content ? <Box sx={{width: '100px', border: '1px solid gray', ...centered, ...style}}>{content}</Box> : null }
+    { content ? <Box sx={{width: '100px', border: '1px solid gray', ...style}}>{content}</Box> : null }
   </Box>
 }
 function cellContents(props) {
@@ -394,7 +395,7 @@ function cellContents(props) {
         clickAction = `Cancel ${item.stagedAction}`;
         if (item.stagedAction === 'Remove') {
           contents = <Tooltip label={clickAction}>
-                      <span style={{ cursor: 'pointer', width:'70px', ...centered}}
+                      <span // style={{ cursor: 'pointer', width:'70px', ...centered}}
                           onClick={()=>editAction({...props, item, clickAction, })} >
                         Deleted
                       </span>
@@ -426,7 +427,7 @@ function cellContents(props) {
           item,
           editing
         })}}
-        style={{width:'70px', textAlign: 'center', }}
+        // style={{width:'70px', textAlign: 'center', }}
       >
         {removeIcon}
         { contents || contents === '' ? contents : flags.map((flag) => {

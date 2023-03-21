@@ -27,7 +27,7 @@ import Paper from '@mui/material/Paper';
 import {ConceptSetsPage, } from "./Csets";
 import {CsetComparisonPage} from "./CsetComparisonPage";
 import {AboutPage, } from "./AboutPage";
-import {searchParamsToObj, updateSearchParams, backend_url, useDataWidget, clearSearchParams, } from "./utils";
+import {searchParamsToObj, updateSearchParams, backend_url, useDataWidget, } from "./State";
 import {UploadCsvPage} from "./UploadCsv";
 import {DownloadJSON} from "./DownloadJSON";
 import MuiAppBar from "./MuiAppBar";

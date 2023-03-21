@@ -1,4 +1,4 @@
-import React, {useRef, useState, useCallback, /* useEffect, useMemo, useReducer, */} from 'react';
+import React, {useRef, useState, useCallback, useEffect, /* useMemo, useReducer, */} from 'react';
 // import { createSearchParams, useSearchParams, } from "react-router-dom";
 import DataTable, { createTheme } from 'react-data-table-component';
 import { AddCircle, RemoveCircleOutline, Add, } from '@mui/icons-material';
@@ -8,7 +8,8 @@ import Button from '@mui/material/Button';
 import Draggable from 'react-draggable';
 // import {Checkbox} from "@mui/material";
 import {isEmpty, get, throttle, pullAt } from 'lodash'; // set, map, omit, pick, uniq, reduce, cloneDeepWith, isEqual, uniqWith, groupBy,
-import {fmt, setColDefDimensions, useWindowSize, } from "./utils";
+import {fmt, useWindowSize, } from "./utils";
+import {setColDefDimensions, } from "./dataTableUtils";
 import {ConceptSetCard} from "./ConceptSetCard";
 import {Tooltip} from './Tooltip';
 import { getEditCodesetFunc, getCodesetEditActionFunc, EditInfo,
@@ -26,7 +27,6 @@ import {DOCS, howToSaveStagedChanges} from "./AboutPage";
 function CsetComparisonPage(props) {
     const {all_csets=[], cset_data={}} = props;
     const {hierarchy={}, selected_csets=[], concepts=[], cset_members_items=[], } = cset_data;
-    const [rowData, setRowData] = useComparisonTableRowData({});
     const [collapsed, setCollapsed] = useState({});
 
     function toggleCollapse(row) {
@@ -41,8 +41,8 @@ function CsetComparisonPage(props) {
     let moreProps = {...props, selected_csets, collapsed, toggleCollapse, };
     return (
         <div>
-            <ControlsAndInfo {...moreProps} setDataTableProps={setDataTableProps} />
-            <ComparisonDataTable /*squishTo={squishTo}*/ {...moreProps} dataTableProps={dataTableProps} />
+            <ControlsAndInfo {...moreProps} >
+            </ControlsAndInfo>
         </div>)
 }
 function useComparisonTableRowData(props) {
@@ -50,9 +50,13 @@ function useComparisonTableRowData(props) {
 }
 
 function ControlsAndInfo(props) {
-    const {editCodesetId, squishTo=1, cset_data, csetEditState={}, searchParams, setSearchParams, setDataTableProps} = props;
+    const {editCodesetId, squishTo=1, cset_data, csetEditState={}, searchParams, setSearchParams,
+            children, } = props;
     const {hierarchy={}, selected_csets=[], concepts=[], cset_members_items=[], } = cset_data;
+    const [displayOptions, setDisplayOptions] = useState({});
     const [displayOption, setDisplayOption] = useState('fullHierarchy');
+    const [columns, setColumns] = useState();
+    const [displayObj, setDisplayObj] = useState(); // useComparisonTableRowData({});
     const [collapsed, setCollapsed] = useState({});
     const windowSize = useWindowSize();
     const boxRef = useRef();
@@ -62,14 +66,21 @@ function ControlsAndInfo(props) {
     const sizes = getSizes(squishTo);
     const customStyles = styles(sizes);
 
+    // return <h4>Next step: context providers; then this component reads from QSState</h4>
     function changeDisplayOption(option) {
         setDisplayOption(option);
     }
-    const displayOptions = makeRowData(
-        {concepts, selected_csets, cset_members_items, hierarchy, collapsed});
-    const displayData = displayOptions[displayOption];
-    let columns = colConfig({...props, editAction, editCodesetFunc, sizes, displayData, windowSize, });
-    setDataTableProps({displayData, columns});
+    useEffect(() => {
+        const _displayOptions = makeRowData(
+            {concepts, selected_csets, cset_members_items, hierarchy, collapsed});
+        const _displayObj = _displayOptions[displayOption];
+        let _columns = colConfig({...props, editAction, editCodesetFunc, sizes, displayObj: _displayObj, windowSize, });
+        setDisplayOptions(_displayOptions);
+        setDisplayObj(_displayObj);
+        setColumns(_columns);
+    }, [displayOption, cset_data, collapsed]);
+    console.log({displayOption, displayOptions, displayObj, columns});
+    const moreProps = {...props, displayObj, columns};
 
     let card, eInfo;
     if (editCodesetId && columns) {
@@ -133,6 +144,8 @@ function ControlsAndInfo(props) {
                                                            </Button>)
                 }
             </h5>
+            {/*{children}*/}
+            <ComparisonDataTable /*squishTo={squishTo}*/ {...moreProps}  />
             {/* <StatsMessage {...props} /> */}
             {/*<SquishSlider setSquish={squishChange}/>*/}
         </div>
@@ -141,7 +154,7 @@ function ControlsAndInfo(props) {
 }
 
 function ComparisonDataTable(props) {
-    const {columns, displayData={}, squishTo=1, cset_data, csetEditState={}, customStyles, } = props;
+    const {columns, displayObj={}, squishTo=1, cset_data, csetEditState={}, customStyles, } = props;
 
     const conditionalRowStyles = [
         {
@@ -158,7 +171,7 @@ function ComparisonDataTable(props) {
             className="comparison-data-table"
             theme="custom-theme" // theme="light"
             columns={columns}
-            data={displayData.rowData}
+            data={displayObj.rowData}
             dense
             /*
             fixedHeader
@@ -272,11 +285,11 @@ function getSizes(squishTo) {
 }
 
 function colConfig(props) {
-    let { displayData, selected_csets, cset_data, collapsed, toggleCollapse, sizes,
+    let { displayObj, selected_csets, cset_data, collapsed, toggleCollapse, sizes,
           editAction, editCodesetFunc, windowSize, } = props;
     const { csmiLookup, } = cset_data;
 
-    if (!displayData) {
+    if (!displayObj) {
         return;
     }
 
@@ -285,7 +298,7 @@ function colConfig(props) {
             name: 'Concept name',
             selector: row => row.concept_name,
             format: (row, ) => {
-                let content = displayData.nested
+                let content = displayObj.nested
                     ? row.has_children
                         ? collapsed[row.pathToRoot]
                             ? <span className="toggle-collapse" onClick={() => toggleCollapse(row)}><AddCircle sx={{fontSize:sizes.collapseIcon}}/> {row.concept_name} {row.collapsed && 'collapsed'}</span>
@@ -294,7 +307,7 @@ function colConfig(props) {
                     : row.concept_name
                 return content;
             },
-            sortable: !displayData.nested,
+            sortable: !displayObj.nested,
             // minWidth: 100,
             // remainingPct: .60,
             // width: (window.innerWidth - selected_csets.length * 50) * .65,
@@ -310,7 +323,7 @@ function colConfig(props) {
         {
             name: 'Concept ID',
             selector: row => row.concept_id,
-            sortable: !displayData.nested,
+            sortable: !displayObj.nested,
             width: 80,
             style: { paddingRight: '8px', },
         },
@@ -329,7 +342,7 @@ function colConfig(props) {
                         <img height={sizes.athenaHeight} src="athena.ico" alt="Link to this concept in Athena"/>
                     </a>
                 </span>),
-            sortable: !displayData.nested,
+            sortable: !displayObj.nested,
             width: 35,
             style: { paddingRight: '0px', },
         },
@@ -341,7 +354,7 @@ function colConfig(props) {
             },
             selector: row => parseInt(row.distinct_person_cnt),
             format: row => fmt(row.distinct_person_cnt),
-            sortable: !displayData.nested,
+            sortable: !displayObj.nested,
             right: true,
             width: 80,
             // minWidth: 80,
@@ -358,7 +371,7 @@ function colConfig(props) {
             </Tooltip>, */
             selector: row => row.total_cnt,
             format: row => fmt(row.total_cnt),
-            sortable: !displayData.nested,
+            sortable: !displayObj.nested,
             right: true,
             width: 80,
             // minWidth: 80,
@@ -383,10 +396,10 @@ function colConfig(props) {
             selector: (row) => {
                 /*return <CellContents { ...props}
                                      {...{row, cset_col,
-                                         rowData: displayData.rowData,
+                                         rowData: displayObj.rowData,
                                          editAction}} />; */
                 return cellContents({ ...props, row, cset_col,
-                                        rowData: displayData.rowData,
+                                        rowData: displayObj.rowData,
                                         editAction});
             },
             conditionalCellStyles: [
@@ -396,7 +409,7 @@ function colConfig(props) {
                     style: row => cellStyle({...props, cset_col, row, }),
                 },
             ],
-            sortable: !displayData.nested,
+            sortable: !displayObj.nested,
             // compact: true,
             width: 70,
             // center: true,
@@ -409,7 +422,7 @@ function colConfig(props) {
     // delete coldefs[0].width;
     coldefs = setColDefDimensions({coldefs, windowSize});
     // console.log(coldefs);
-    if (!displayData.nested) {
+    if (!displayObj.nested) {
         delete coldefs[0].conditionalCellStyles;
     }
     return coldefs;

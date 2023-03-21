@@ -50,7 +50,7 @@ if [[ -z "$data" ]] ; then
   curl -s -H "Content-type: application/json" \
       -H "Authorization: Bearer $TOKEN" \
       https://unite.nih.gov/api/v1/ontologies/ri.ontology.main.ontology.00000000-0000-0000-0000-000000000000/$api  | jq
-else
+else  # doesn't work, don't know why
   curl -s -H "Content-type: application/json" \
       -H "Authorization: Bearer $TOKEN" \
       -d $data \

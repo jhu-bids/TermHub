@@ -3,7 +3,7 @@ import Box from '@mui/material/Box';
 import {Link, useLocation} from "react-router-dom";
 import Button from '@mui/material/Button';
 
-import {useDataWidget} from "./utils";
+import {useDataWidget} from "./State";
 
 function DownloadJSON(props) {
   const [bundles_widget, bundles_props] = useDataWidget('bundles', 'enclave-api-call/get_bundle_names');
