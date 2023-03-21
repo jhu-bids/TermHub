@@ -162,18 +162,21 @@ def sql_query(
 
 
 def insert_from_dict(con: Connection, table: str, d: Dict):
+    """Insert row into dictionary from a dictionary"""
     insert = f"""
     INSERT INTO {table} ({', '.join(d.keys())})
-    VALUES ({', '.join([':' + k for k in d.keys()])})
-    """
+    VALUES ({', '.join([':' + str(k) for k in d.keys()])})"""
     run_sql(con, insert, d)
 
+
 def sql_in(lst: List, quote_items=False) -> str:
+    """Construct SQL 'IN' statement."""
     if quote_items:
         s: str = ', '.join([f"'{x}'" for x in lst]) or 'NULL'
     else:
         s: str = ', '.join([str(x) for x in lst]) or 'NULL'
     return f' IN ({s}) '
+
 
 def run_sql(con: Connection, command: str, params: Dict = {}) -> Any:
     """Run a sql command"""
@@ -222,7 +225,7 @@ def show_tables(con=get_db_connection(), print_dump=True):
 
 def load_csv(
     con: Connection, table: str, table_type: str = ['dataset', 'object'][0], replace_rule='replace if diff row count',
-    schema: str = SCHEMA
+    schema: str = SCHEMA, is_test_table=False
 ):
     """Load CSV into table
     :param replace_rule: 'replace if diff row count' or 'do not replace'
@@ -251,6 +254,9 @@ def load_csv(
         else os.path.join(OBJECTS_PATH, table, 'latest.csv')
     df = pd.read_csv(path)
 
+    if is_test_table:
+        df = df.head(1)
+
     if replace_rule == 'replace if diff row count' and existing_rows == len(df):
         print(f'INFO: {schema}.{table} exists with same number of rows {existing_rows}; leaving it')
         return
@@ -270,6 +276,9 @@ def load_csv(
     df.to_sql(table, con, **kwargs)
 
     update_db_status_var(f'last_updated_{table}', str(current_datetime()))
+
+    if not is_test_table:
+        update_db_status_var(f'last_updated_{table}', str(current_datetime()))
 
 
 if __name__ == '__main__':

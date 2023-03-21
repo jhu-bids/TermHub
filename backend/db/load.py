@@ -13,6 +13,41 @@ from enclave_wrangler.objects_api import download_favorite_objects
 
 DB = CONFIG["db"]
 SCHEMA = CONFIG['schema']
+DATASET_TABLES = [
+    'code_sets',
+    'concept',
+    'concept_ancestor',
+    'concept_relationship',
+    # 'concept_relationship_subsumes_only',
+    'concept_set_container',
+    'concept_set_counts_clamped',
+    'concept_set_members',
+    'concept_set_version_item',
+    'deidentified_term_usage_by_domain_clamped',
+]
+# table.lower(): because postgres won't recognize names with caps in them unless they are "quoted". should probably
+#  do this with colnames also, but just using quotes in ddl
+OBJECT_TABLES = [x.lower() for x in [
+    'researcher',
+    'OMOPConceptSet',  # i to include RID
+    'OMOPConceptSetContainer',  # to include RID
+    # 'OMOPConceptSetVersionItem', only need this if we want the RID, but maybe don't need it
+]]
+OBJECT_TABLES_TEST = []
+DATASET_TABLES_TEST = {
+    'code_sets': {
+        'primary_key': 'codeset_id'
+    },
+    'concept_set_container': {
+        'primary_key': 'concept_set_id'
+    },
+    'concept_set_members': {
+        'primary_key': ['codeset_id', 'concept_id']
+    },
+    'concept_set_version_item': {
+        'primary_key': 'item_id'
+    },
+}
 
 
 def download_artefacts(force_download_if_exists=False):
@@ -25,44 +60,46 @@ def download_artefacts(force_download_if_exists=False):
     download_favorite_datasets(force_if_exists=force_download_if_exists, single_group='vocab')
 
 
-def seed(con: Connection, schema: str = SCHEMA, clobber=False, skip_if_updated_within_hours: int = None):
+def initialize_test_schema(con: Connection, schema: str = SCHEMA, local=False):
+    """Initialize test schema"""
+    schema = 'test_' + schema
+    run_sql(con, f'CREATE SCHEMA IF NOT EXISTS {schema};')
+    # todo: if seed()'s clobber=True param works correctly, I think dropping is not necessary - Joe 2023/03/21
+    with get_db_connection(schema=schema, local=local) as con2:
+        if schema == 'n3c':  # given the above lines, I don't see how it could ever be n3c, but this is a safeguard
+            raise RuntimeError('Incorrect schema. Should be dropping table from test_n3c.')
+        for table in DATASET_TABLES_TEST.keys():
+            run_sql(con2, f'DROP TABLE IF EXISTS {table};')
+    seed(con, schema, clobber=True, dataset_tables=list(DATASET_TABLES_TEST.keys()), object_tables=OBJECT_TABLES_TEST,
+         test_tables=True)
+    with get_db_connection(schema=schema, local=local) as con2:
+        for table, d in DATASET_TABLES_TEST.items():
+            pk = d['primary_key']
+            pk = pk if isinstance(pk, str) else ', '.join(pk)
+            run_sql(con2, f'ALTER TABLE {schema}.{table} ADD PRIMARY KEY({pk});')
+
+
+def seed(
+    con: Connection, schema: str = SCHEMA, clobber=False, skip_if_updated_within_hours: int = None,
+    dataset_tables: List[str] = DATASET_TABLES, object_tables: List[str] = OBJECT_TABLES, test_tables=False
+):
     """Seed the database with some data"""
     replace_rule = 'do not replace' if not clobber else None
-    dataset_tables_to_load = [
-        'code_sets',
-        'concept',
-        'concept_ancestor',
-        'concept_relationship',
-        # 'concept_relationship_subsumes_only',
-        'concept_set_container',
-        'concept_set_counts_clamped',
-        'concept_set_members',
-        'concept_set_version_item',
-        'deidentified_term_usage_by_domain_clamped',
-    ]
-    # table.lower(): because postgres won't recognize names with caps in them unless they are "quoted". should probably
-    # do this with colnames also, but just using quotes in ddl
-    object_tables_to_load = [x.lower() for x in [
-        'researcher',
-        'OMOPConceptSet',  # i to include RID
-        'OMOPConceptSetContainer',  # to include RID
-        # 'OMOPConceptSetVersionItem', only need this if we want the RID, but maybe don't need it
-    ]]
-    for table in dataset_tables_to_load:
+    for table in dataset_tables:
         if skip_if_updated_within_hours and is_table_up_to_date(table, skip_if_updated_within_hours):
             print(f'INFO: Skipping upload of table "{table}" because it is up to date.')
             continue
-        load_csv(con, table, replace_rule=replace_rule, schema=schema)
-    for table in object_tables_to_load:
+        load_csv(con, table, replace_rule=replace_rule, schema=schema, is_test_table=test_tables)
+    for table in object_tables:
         if skip_if_updated_within_hours and is_table_up_to_date(table, skip_if_updated_within_hours):
             print(f'INFO: Skipping upload of table "{table}" because it is up to date.')
             continue
-        load_csv(con, table, table_type='object', replace_rule=replace_rule, schema=schema)
+        load_csv(con, table, table_type='object', replace_rule=replace_rule, schema=schema, is_test_table=test_tables)
 
 
-def indexes_and_derived_tables(con: Connection, schema_name: str,
-                                skip_if_updated_within_hours: int = None,
-                                start_step: int = None):  # missing manage table, so adding this param
+def indexes_and_derived_tables(
+    con: Connection, schema_name: str, skip_if_updated_within_hours: int = None, start_step: int = None
+):
     """Create indexes and derived tables"""
     # Determine and set up progress tracking
     last_completed_key = 'last_updated_indexes_and_derived_tables'

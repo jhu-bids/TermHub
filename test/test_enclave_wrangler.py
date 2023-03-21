@@ -16,7 +16,9 @@ from typing import Dict, List, Union
 
 import pandas as pd
 from requests import Response
+from sqlalchemy.exc import IntegrityError
 
+from backend.db.utils import get_db_connection, run_sql
 from enclave_wrangler.objects_api import codeset_version_enclave_to_db, get_new_cset_and_member_objects, \
     update_db_with_new_objects
 
@@ -148,8 +150,18 @@ class TestEnclaveWrangler(unittest.TestCase):
 
     def test_codeset_version_enclave_to_db(self):
         """Test codeset_version_enclave_to_db()"""
-        object_id = 1049370
-        codeset_version_enclave_to_db(object_id)
+        with get_db_connection(schema='test_n3c') as con:
+            # Failure case
+            object_id = 1  # exists in test DB
+            self.assertRaises(IntegrityError, codeset_version_enclave_to_db, con, object_id)
+            # Success case
+            object_id = 1049370  # doesn't exist in test DB
+            rows1 = [x for x in run_sql(con, 'SELECT * from code_sets;')]
+            codeset_version_enclave_to_db(con, object_id)
+            rows2 = [x for x in run_sql(con, 'SELECT * from code_sets;')]
+            self.assertGreater(len(rows2), len(rows1))
+            # Teardown
+            run_sql(con, f"DELETE FROM code_sets WHERE codeset_id = '{object_id}';")
 
 
 if __name__ == '__main__':

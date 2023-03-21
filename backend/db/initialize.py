@@ -17,7 +17,7 @@ PROJECT_ROOT = Path(THIS_DIR).parent.parent
 # https://stackoverflow.com/questions/33862963/python-cant-find-my-module
 sys.path.insert(0, str(PROJECT_ROOT))
 from backend.db.config import CONFIG
-from backend.db.load import download_artefacts, indexes_and_derived_tables, seed
+from backend.db.load import download_artefacts, indexes_and_derived_tables, initialize_test_schema, seed
 from backend.db.utils import database_exists, run_sql, show_tables, get_db_connection, DB
 
 SCHEMA = CONFIG['schema']
@@ -55,7 +55,8 @@ def initialize(
         if download:
             download_artefacts(force_download_if_exists=download_force_if_exists)
         seed(con, schema, clobber, hours_threshold_for_updates)
-        indexes_and_derived_tables(con, schema) #, start_step=30)
+        indexes_and_derived_tables(con, schema)  # , start_step=30)
+        initialize_test_schema(con, schema, local=local)
 
 
 def cli():

@@ -19,6 +19,7 @@ from urllib.parse import quote
 from sanitize_filename import sanitize
 
 from requests import Response
+from sqlalchemy.engine.base import Connection
 from typeguard import typechecked
 
 # import requests
@@ -31,7 +32,7 @@ from enclave_wrangler.utils import enclave_get, enclave_post, get_objects_df, ge
     handle_paginated_request, handle_response_error
 from enclave_wrangler.models import convert_row, get_field_names, field_name_mapping
 # from enclave_wrangler.utils import log_debug_info
-from backend.db.utils import sql_query_single_col, run_sql, get_db_connection
+from backend.db.utils import insert_from_dict, sql_query_single_col, run_sql, get_db_connection
 from backend.db.queries import get_concepts
 # from backend.utils import pdump
 
@@ -339,25 +340,18 @@ def get_new_cset_and_member_objects(since: Union[datetime, str], return_type=['f
     return {'cset_containers': cset_containers, 'cset_versions': cset_versions_with_concepts}
 
 
-def codeset_version_enclave_to_db(object_id: int):
+def codeset_version_enclave_to_db(con: Connection, object_id: int) -> Dict:
     """Given ID to a version, get object's current state from the enclave, and add it the DB"""
     # Fetch updates
-    # todo: DONE: 1st, get just the object itself without any of its 'dependencies'
-    # todo: 2nd, include dependencies: container, expression items, members
+    table = 'code_sets'
     query_params = [get_query_param('codesetId', 'eq', str(object_id))]
     matches: List[Dict] = make_objects_request('OMOPConceptSet', query_params=query_params, return_type='data')
     obj: Dict = matches[0]['properties']
     # Convert from object to dataset (DB) model
-    new_obj = convert_row('OMOPConceptSet', 'code_sets', obj)
-    # todo: Update db?
-    def insert_from_dict(table: str, obj: Dict):
-        """Insert new object into db"""
-        # INSERT INTO some_table (first_name, last_name)
-        # VALUES (:first_name, :last_name)
-
-    insert_from_dict('')
-    run_sql('INSERT ', new_obj)
-    return matches
+    new_obj = convert_row('OMOPConceptSet', table, obj)
+    # Add to DB & return
+    insert_from_dict(con, table, new_obj)
+    return obj
 
 
 def items_to_atlas_json_format(items):
@@ -627,7 +621,5 @@ def get_projects(verbose=False) -> List[Dict]:
 
 
 if __name__ == '__main__':
-    # ot = get_object_types()
-    # get_n3c_recommended_csets(save=True)
-    types = get_link_types()
-    print()
+    ot = get_object_types()
+    get_n3c_recommended_csets(save=True)
