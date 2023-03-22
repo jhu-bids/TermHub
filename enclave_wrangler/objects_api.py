@@ -340,18 +340,59 @@ def get_new_cset_and_member_objects(since: Union[datetime, str], return_type=['f
     return {'cset_containers': cset_containers, 'cset_versions': cset_versions_with_concepts}
 
 
-def codeset_version_enclave_to_db(con: Connection, object_id: int) -> Dict:
-    """Given ID to a version, get object's current state from the enclave, and add it the DB"""
-    # Fetch updates
-    table = 'code_sets'
-    query_params = [get_query_param('codesetId', 'eq', str(object_id))]
-    matches: List[Dict] = make_objects_request('OMOPConceptSet', query_params=query_params, return_type='data')
+def fetch_object_by_id(object_name: str, id_field: str, object_id: int) -> Dict:
+    """Fetch object by its id"""
+    query_params = [get_query_param(id_field, 'eq', str(object_id))]
+    matches: List[Dict] = make_objects_request(object_name, query_params=query_params, return_type='data')
     obj: Dict = matches[0]['properties']
-    # Convert from object to dataset (DB) model
-    new_obj = convert_row('OMOPConceptSet', table, obj)
-    # Add to DB & return
-    insert_from_dict(con, table, new_obj)
     return obj
+
+
+def fetch_cset_version(object_id: int) -> Dict:
+    """Get object from enclave"""
+    return fetch_object_by_id('OMOPConceptSet', 'codesetId', object_id)
+
+
+def fetch_cset_container(object_id: int) -> Dict:
+    """Get object from enclave"""
+    return fetch_object_by_id('OMOPConceptSetContainer', 'conceptSetId', object_id)
+
+
+def fetch_cset_member_item(object_id: int) -> Dict:
+    """Get object from enclave"""
+    return fetch_object_by_id('OMOPConcept', 'conceptId', object_id)
+
+
+def fetch_cset_expression_item(object_id: int) -> Dict:
+    """Get object from enclave"""
+    return fetch_object_by_id('OmopConceptSetVersionItem', 'itemId', object_id)
+
+
+def fetch_object_and_add_to_db(con: Connection, table: str, object_name: str, object_id: int):
+    """Fetch object and add to db"""
+    obj = fetch_cset_version(object_id)
+    table_obj = convert_row(object_name, table, obj)
+    insert_from_dict(con, table, table_obj)
+
+
+def concept_expression_enclave_to_db(con: Connection, object_id: int):
+    """Given ID, get object's current state from the enclave, and add it the DB"""
+    fetch_object_and_add_to_db(con, 'concept_set_version_item', 'OmopConceptSetVersionItem', object_id)
+
+
+def concept_member_enclave_to_db(con: Connection, object_id: int):
+    """Given ID, get object's current state from the enclave, and add it the DB"""
+    fetch_object_and_add_to_db(con, 'concept_set_members', 'OMOPConcept', object_id)
+
+
+def cset_container_enclave_to_db(con: Connection, object_id: int):
+    """Given ID, get object's current state from the enclave, and add it the DB"""
+    fetch_object_and_add_to_db(con, 'concept_set_container', 'OMOPConceptSetContainer', object_id)
+
+
+def cset_version_enclave_to_db(con: Connection, object_id: int):
+    """Given ID, get object's current state from the enclave, and add it the DB"""
+    fetch_object_and_add_to_db(con, 'code_sets', 'OMOPConceptSet', object_id)
 
 
 def items_to_atlas_json_format(items):

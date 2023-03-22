@@ -54,6 +54,7 @@ def qc_check_db_counts(
     with get_db_connection(schema=schema, local=local) as con:
         result = run_sql(con, query)
         result = [x for x in result]
+
     if verbose:
         pprint(result)
     return result
@@ -283,3 +284,4 @@ def load_csv(
 
 if __name__ == '__main__':
     qc_check_db_counts('n3c_backup_20230414', fast_approx_method=False)
+

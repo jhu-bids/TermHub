@@ -2,7 +2,6 @@
 from typing import List
 
 from jinja2 import Template
-from psycopg2 import OperationalError, ProgrammingError
 from sqlalchemy.engine.base import Connection
 
 from backend.db.config import CONFIG, DDL_JINJA_PATH
@@ -65,11 +64,12 @@ def initialize_test_schema(con: Connection, schema: str = SCHEMA, local=False):
     schema = 'test_' + schema
     run_sql(con, f'CREATE SCHEMA IF NOT EXISTS {schema};')
     # todo: if seed()'s clobber=True param works correctly, I think dropping is not necessary - Joe 2023/03/21
+    #  ...in fact, clearing these tables shouldn't be necessary, assuming tests all have teardowns
     with get_db_connection(schema=schema, local=local) as con2:
         if schema == 'n3c':  # given the above lines, I don't see how it could ever be n3c, but this is a safeguard
             raise RuntimeError('Incorrect schema. Should be dropping table from test_n3c.')
         for table in DATASET_TABLES_TEST.keys():
-            run_sql(con2, f'DROP TABLE IF EXISTS {table};')
+            run_sql(con2, f'DROP TABLE IF EXISTS {schema}.{table};')
     seed(con, schema, clobber=True, dataset_tables=list(DATASET_TABLES_TEST.keys()), object_tables=OBJECT_TABLES_TEST,
          test_tables=True)
     with get_db_connection(schema=schema, local=local) as con2:
@@ -136,7 +136,8 @@ def indexes_and_derived_tables(
         print(f'INFO: indexes_and_derived_tables: Running command {step_num} of {len(commands)}')
         try:
             run_sql(con, command)
-        except (ProgrammingError, OperationalError, RuntimeError) as err:
+            update_db_status_var(last_successful_step_key, str(step_num))
+        except Exception as err:
             update_db_status_var(last_successful_step_key, str(step_num - 1))
             raise err
 
@@ -153,4 +154,6 @@ def load(schema: str = SCHEMA, clobber=False, skip_if_updated_within_hours: int 
 
 
 if __name__ == '__main__':
-    load()
+    # load()
+    with get_db_connection(local=True) as con:
+        initialize_test_schema(con, local=True)

@@ -106,7 +106,8 @@ FAVORITE_DATASETS = OrderedDict({
         'name': 'concept',
         'rid': 'ri.foundry.main.dataset.5cb3c4a3-327a-47bf-a8bf-daf0cafe6772',
         'sort_idx': ['concept_id'],
-        'dataset_groups': ['vocab']
+        'dataset_groups': ['vocab'],
+        'index_on': ['concept_id', 'concept_code']  # TODO: not currently used, but could do this instead of ddl.sql
     },
     'concept_ancestor': {  # transform depends on: concept_set_members transform
         'name': 'concept_ancestor',

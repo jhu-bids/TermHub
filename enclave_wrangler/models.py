@@ -173,7 +173,8 @@ def add_mappings(csv_str: str):
     maps: List[Dict] = list(reader)
     FMAPS.extend(maps)
 
-
+# OMOPConcept
+# concept: dataset <-> atlasjson
 add_mappings(
     """concept,          atlasjson
        concept_id,       CONCEPT_ID
@@ -186,7 +187,21 @@ add_mappings(
        vocabulary_id,    VOCABULARY_ID
        valid_start_date, VALID_START_DATE
        valid_end_date,   VALID_END_DATE""")
-
+# todo: this doesn't make sense. if we fetch concepts, want to update the concept table. but to update members, has different fields
+# OMOPConcept (concept_set_members): object <-> dataset
+add_mappings(
+    #  objects_api                   dataset
+    """OMOPConcept, concept_set_members
+    , codeset_id
+    conceptId, concept_id
+    , concept_set_name 
+    , is_most_recent_version 
+    , version
+    , concept_name 
+    , archived
+    """)
+# todo: flip to object first
+# omopConceptSetVersionItem: object <-> dataset
 add_mappings(
     #  dataset                   objects_api
     """concept_set_version_item, omopConceptSetVersionItem
@@ -198,7 +213,7 @@ add_mappings(
        isExcluded,               isExcluded
        created_by,               createdBy
        created_at,               createdAt""")
-
+# OMOPConceptSet (Version): object <-> dataset
 add_mappings(
     #  objects_api            dataset
     """OMOPConceptSet,            code_sets
@@ -217,6 +232,11 @@ add_mappings(
        isDraft,                   is_draft
        sourceApplication,         source_application
        limitations,               limitations""")
+# OMOPConceptSetContainer: object <-> dataset
+add_mappings(
+    #  objects_api                   dataset
+    """OMOPConceptSetContainer, concept_set_container
+    """)
 
 
 @cache
