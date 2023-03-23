@@ -40,6 +40,11 @@ You likely will already have a schema called `n3c` which is corrupted in some wa
 3.2. Rename `n3c_backup_YYYYMMDD` as `n3c`:
 `ALTER SCHEMA <backup schema name> RENAME TO n3c;`
 
+#### Restoring from backup
+1. Face check `n3c` schema
+2. Restart local backend/frontend, load frontend in browser, clear `localStorage` (from console: `localStorage.clear()`), and face check various application features. 
+3. Load [dev deployment](http://bit.ly/termhub-dev), clear `localStorage` in the same way, and face check various application features.
+
 ### Deployment
 #### Deploying to Dev
 Use the GitHub actions. Click these links for [backend](https://github.com/jhu-bids/TermHub/actions/workflows/backend_dev.yml) and [frontend](https://github.com/jhu-bids/TermHub/actions/workflows/frontend_dev.yml) actions, and then click "Run Workflow".

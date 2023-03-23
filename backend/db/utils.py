@@ -192,7 +192,7 @@ def load_csv(
     # Edge cases
     existing_rows = 0
     try:
-        r = con.execute(f'select count(*) from {table}')
+        r = con.execute(f'select count(*) from {schema}.{table}')
         existing_rows = r.one()[0]
     except Exception as err:
         if isinstance(err.orig, UndefinedTable):
@@ -216,7 +216,7 @@ def load_csv(
     print(f'INFO: \nloading {schema}.{table} into {CONFIG["server"]}:{DB}')
     # Clear data if exists
     try:
-        con.execute(text(f'TRUNCATE {table}'))
+        con.execute(text(f'TRUNCATE {schema}.{table}'))
     except ProgrammingError:
         pass
 
@@ -225,20 +225,6 @@ def load_csv(
     #  "Table \'code_sets\' already exists")')
     #  https://stackoverflow.com/questions/69906698/pandas-to-sql-gives-table-already-exists-error-with-if-exists-append
     kwargs = {'if_exists': 'append', 'index': False, 'schema': schema}
-    if CONFIG['server'] == 'mysql':   # this was necessary for mysql, probably not for postgres
-        try:
-            kwargs['schema'] = DB
-            df.to_sql(table, con, **kwargs)
-        except Exception as err:
-            # if data too long error, change column to longtext and try again
-            # noinspection PyUnresolvedReferences
-            m = re.match("Data too long for column '(.*)'.*", str(err.orig.args))
-            if m:
-                run_sql(con, f'ALTER TABLE {table} MODIFY {m[1]} LONGTEXT')
-                load_csv(con, table)
-            else:
-                raise err
-    else:
-        df.to_sql(table, con, **kwargs)
+    df.to_sql(table, con, **kwargs)
 
     update_db_status_var(f'last_updated_{table}', str(current_datetime()))
