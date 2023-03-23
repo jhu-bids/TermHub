@@ -8,6 +8,7 @@ import Button from '@mui/material/Button';
 import Draggable from 'react-draggable';
 // import {Checkbox} from "@mui/material";
 import {isEmpty, get, throttle, pullAt } from 'lodash'; // set, map, omit, pick, uniq, reduce, cloneDeepWith, isEqual, uniqWith, groupBy,
+import {useAppState, useDerivedState, } from "./State";
 import {fmt, useWindowSize, } from "./utils";
 import {setColDefDimensions, } from "./dataTableUtils";
 import {ConceptSetCard} from "./ConceptSetCard";
@@ -45,14 +46,48 @@ function CsetComparisonPage(props) {
             </ControlsAndInfo>
         </div>)
 }
-function useComparisonTableRowData(props) {
 
+function ContentItems(props) {
+    const appState = useAppState();
+    const [contentItems, dispatch] = appState.getSlice('contentItems');
+    const items = contentItems.filter(item => item.show).map(
+        item => {
+           const {name, content, Component, props} = item;
+           if (content) return content;
+           return <Component key={name} {...props} />;
+        }
+    );
+    const buttons = contentItems.filter(item => !item.show).map(
+        item => {
+            const {name, content, Component, props} = item;
+            return (
+                <Button key={name} onClick={() => dispatch({type: 'contentItems-show', name: 'dummy'})} >
+                    Show {name}
+                </Button>
+            );
+        }
+    );
+    return (
+        <>
+            {buttons}
+            {items}
+        </>
+    )
 }
 
+/*{
+    Object.entries(displayOptions).map(([name, opt]) =>
+                                           <Button key={name} variant={name === displayOption ? "contained" : "outlined" } onClick={()=>changeDisplayOption(name)}>
+                                               {opt.msg}
+                                           </Button>)
+}*/
 function ControlsAndInfo(props) {
     const {editCodesetId, squishTo=1, cset_data, csetEditState={}, searchParams, setSearchParams,
             children, } = props;
     const {hierarchy={}, selected_csets=[], concepts=[], cset_members_items=[], } = cset_data;
+    const appState = useAppState();
+    const derivedState = useDerivedState();
+
     const [displayOptions, setDisplayOptions] = useState({});
     const [displayOption, setDisplayOption] = useState('fullHierarchy');
     const [columns, setColumns] = useState();
@@ -65,6 +100,9 @@ function ControlsAndInfo(props) {
     const {researchers, } = cset_data;
     const sizes = getSizes(squishTo);
     const customStyles = styles(sizes);
+
+    // useEffect(() => contentItemsState.dispatch({type: 'contentItems-show', name: 'dummy'}));
+    console.log(appState.getState());
 
     // return <h4>Next step: context providers; then this component reads from QSState</h4>
     function changeDisplayOption(option) {
@@ -79,7 +117,7 @@ function ControlsAndInfo(props) {
         setDisplayObj(_displayObj);
         setColumns(_columns);
     }, [displayOption, cset_data, collapsed]);
-    console.log({displayOption, displayOptions, displayObj, columns});
+    // console.log({displayOption, displayOptions, displayObj, columns});
     const moreProps = {...props, displayObj, columns};
 
     let card, eInfo;
@@ -97,6 +135,12 @@ function ControlsAndInfo(props) {
             >
             </FlexibleContainer>
         );
+        const cardContentItem = {
+            name: 'editingCsetCard',
+            show: true,
+            content: card,
+        }
+        // contentItemsState.dispatch({type: 'contentItems-new', payload: cardContentItem});
         /*
         card = <ConceptSetCard cset={columns.find(d=>d.codeset_id===editCodesetId).cset_col}
                                researchers={researchers}
@@ -120,7 +164,11 @@ function ControlsAndInfo(props) {
 
     return (
         <div>
+            [<ContentItems />]
+            <pre>{JSON.stringify(appState.getState(), null, 2)}</pre>
+            {/*
             {card}
+            */}
             {/*<AllowOverlap />*/}
             <Box ref={boxRef} sx={{ width: '96%', margin: '9px', display: 'flex', flexDirection: 'row', }}>
                 {/*
@@ -136,14 +184,6 @@ function ControlsAndInfo(props) {
                 {/*    <HelpButton doc="legend"/>*/}
                 {/*</Box>*/}
             </Box>
-            <h5 style={{margin:20, }}>
-                {
-                    Object.entries(displayOptions).map(([name, opt]) =>
-                                                           <Button key={name} variant={name === displayOption ? "contained" : "outlined" } onClick={()=>changeDisplayOption(name)}>
-                                                               {opt.msg}
-                                                           </Button>)
-                }
-            </h5>
             {/*{children}*/}
             <ComparisonDataTable /*squishTo={squishTo}*/ {...moreProps}  />
             {/* <StatsMessage {...props} /> */}
