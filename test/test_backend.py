@@ -8,13 +8,17 @@ TODO's
 """
 import os
 import sys
+from typing import Dict, List
 from urllib.parse import urljoin
 import requests
 import unittest
 
+from oaklib import get_adapter
 from requests import Response
 
 TEST_DIR = os.path.dirname(__file__)
+PROJECT_DIR = os.path.join(TEST_DIR, '..')
+VOCABS_PATH = os.path.join(PROJECT_DIR, 'termhub-vocab')
 BACKEND_URL_BASE = 'http://127.0.0.1:8000/'
 
 
@@ -119,6 +123,21 @@ class TestBackend(unittest.TestCase):
             TEST_DIR, 'input', 'test_enclave_wrangler', 'test_dataset_upload', 'type-2-diabetes-mellitus.csv')
         response: Response = self._upload_file(csv_path, url)
         self.assertEqual(response.json()['result'], 'success')
+
+    # This 'test' is more of a playground right now - 2023/03/23
+    def test_oak(self):
+        """Test OAK
+        Docs: https://incatools.github.io/ontology-access-kit/"""
+        # oi: @Siggie: 'oak implementation' this is an OAK naming convention but you can rename
+        icd10cm_path = os.path.join(VOCABS_PATH, 'icd10cm.db')
+        oi = get_adapter(icd10cm_path)
+        example_terms = ['ICD10CM:A00-A09']
+        labels_example: List[tuple] = list(oi.labels(example_terms))  # [('ICD10CM:A00-A09', 'Intestinal infectious diseases (A00-A09)')]
+        # relationships: gets parents, but not children because they're not declared on the class itself
+        relat_example: List[tuple] = list(oi.relationships(example_terms))  # [('ICD10CM:A00-A09', 'rdfs:subClassOf', 'ICD10CM:A00-B99')]
+        # incoming_relationship_map: gets children
+        kids_example: Dict[str, List] = oi.incoming_relationship_map(example_terms[0])  # {'rdfs:subClassOf: [...]}
+        print()  # set breakpoint here
 
 
 if __name__ == '__main__':

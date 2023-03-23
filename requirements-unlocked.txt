@@ -1,6 +1,7 @@
 # dependencies
 fastapi
 jinja2
+oaklib
 pandas
 pandasql
 pyarrow
@@ -16,4 +17,4 @@ jq
 psycopg2-binary
 
 # dev dependencies
-virtualenvwrapper
+# virtualenvwrapper
