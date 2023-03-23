@@ -1,3 +1,16 @@
+/*
+  from state-management-refactor 9b5b92b2 commit:
+- in the middle of big refactor of state management and UI. not totally
+  broken at the moment.
+- eventually moving all the querystring state stuff to AppStateProvider
+  along with some other state not currently managed in querystring
+- after app state and data state are ready, have another provider for
+  DerivedState
+- ContentItems are going to be pieces of UI whose state will be managed
+  in AppState. The (very rough) idea is that there will be buttons or
+  something to let user show some piece of content, and then a close
+  icon will make it disappear and make the button reappear.
+ */
 import React, { createContext, useContext, useReducer, useState, /* useRef, useLayoutEffect, */ } from 'react';
 // import useCombinedReducers from 'use-combined-reducers';
 import axios from "axios";
@@ -20,11 +33,74 @@ export function DerivedStateProvider(props) {
   const editCsetState = appState.getSliceState('editCset');
   let derivedState = {};
 
+  const _displayOptions = makeRowData(
+      {concepts, selected_csets, cset_members_items, hierarchy, collapsed});
+  const _displayObj = _displayOptions[displayOption];
+  let _columns = colConfig({...props, editAction, editCodesetFunc, sizes, displayObj: _displayObj, windowSize, });
+  setDisplayOptions(_displayOptions);
+  setDisplayObj(_displayObj);
+  setColumns(_columns);
+  // console.log({displayOption, displayOptions, displayObj, columns});
+  const moreProps = {...props, displayObj, columns};
+
+  let card, eInfo;
+  if (editCodesetId && columns) {
+    card = (
+        <FlexibleContainer
+            title="Concept set being edited"
+            ComponentType={ConceptSetCard}
+            componentProps={{
+              cset: columns.find(d => d.codeset_id === editCodesetId).cset_col,
+              researchers: researchers,
+              editing: true
+            }}
+
+        >
+        </FlexibleContainer>
+    );
+    const cardContentItem = {
+      name: 'editingCsetCard',
+      show: true,
+      content: card,
+    }
+    // contentItemsState.dispatch({type: 'contentItems-new', payload: cardContentItem});
+    /*
+    card = <ConceptSetCard cset={columns.find(d=>d.codeset_id===editCodesetId).cset_col}
+                           researchers={researchers}
+                           editing={true}
+                           // width={window.innerWidth * 0.5}
+                />;
+     */
+  }
+  /*
+  const panelProps = [
+      {id: 'card-panel', title: 'Concept set being edited', content: card},
+      {id: 'changes-panel', title: 'Staged changes', content: eInfo},
+      {id: 'instructions-panel', title: 'How to save changes', content: howToSaveStagedChanges({})},
+  ];
+  // const panels = accordionPanels({panels});
+  // console.log(panels);
+   */
+  if (! isEmpty(csetEditState)) {
+    eInfo = <EditInfo {...props} />;
+  }
+
   return (
       <DerivedStateContext.Provider value={derivedState} >
         {children}
       </DerivedStateContext.Provider>
   );
+}
+function hierarchySettingsReducer(state, action) {
+  /*
+  const [collapsed, setCollapsed] = useState({});
+
+  function toggleCollapse(row) {
+    let _collapsed = {...collapsed, [row.pathToRoot]: !get(collapsed, row.pathToRoot.join(','))};
+    setCollapsed(_collapsed);
+  }
+   */
+  return state;
 }
 // going to try to refactor all the state stuff using reducers and context, but still save to url
 const CombinedReducersContext = createContext();
@@ -33,6 +109,11 @@ export function AppStateProvider({children}) {
     contentItems: useReducer(contentItemsReducer, defaultContentItems),
     codeset_ids:  useReducer(codeset_idsReducer, []),
     editCset:     useReducer(editCsetReducer),
+    // more stuff needed
+    hierarchySettings: useReducer(hierarchySettingsReducer, {
+      displayOption: 'fullHierarchy', // or 'flat'
+      collapsed: {},
+    })
   }
   const getters = {
     getSliceState : (slice) => reducers[slice][0],
@@ -317,3 +398,79 @@ export {
   StatsMessage, searchParamsToObj, backend_url, axiosGet, axiosPut, useDataWidget,
   updateSearchParams, clearSearchParams,
 };
+function makeRowData({concepts, selected_csets, cset_members_items, hierarchy, collapsed={}}) {
+  if (isEmpty(concepts) || isEmpty(selected_csets) || isEmpty(cset_members_items)) {
+    return;
+  }
+
+  const conceptsMap = Object.fromEntries(concepts.map(d => [d.concept_id, d]));
+  let _displayOptions = {
+    fullHierarchy: {
+      rowData: traverseHierarchy({hierarchy, concepts: conceptsMap, collapsed, }),
+      nested: true,
+      msg: ' lines in hierarchy',
+    },
+    flat: {
+      rowData: concepts,
+      nested: false,
+      msg: ' flat',
+    },
+    /*
+    csetConcepts: {
+      rowData: traverseHierarchy({hierarchy, concepts: csetConcepts, collapsed, }),
+      nested: true,
+      msg: ' concepts in selected csets',
+    },
+     */
+  }
+
+  for (let k in _displayOptions) {
+    let opt = _displayOptions[k];
+    opt.msg = opt.rowData.length + opt.msg;
+  }
+  // setDisplayOptions(_displayOptions);
+  window.dopts = _displayOptions;
+  return _displayOptions;
+}
+/*
+function hierarchyToFlatCids(h) {
+  function f(ac) {
+    ac.keys = [...ac.keys, ...Object.keys(ac.remaining)];
+    const r = Object.values(ac.remaining).filter(d => d);
+    ac.remaining = {};
+    r.forEach(o => ac.remaining = {...ac.remaining, ...o});
+    return ac;
+  }
+  let ac = {keys: [], remaining: h};
+  while(!isEmpty(ac.remaining)) {
+    console.log(ac);
+    ac = f(ac);
+  }
+  return uniq(ac.keys.map(k => parseInt(k)));
+}
+ */
+
+function traverseHierarchy({hierarchy, concepts, collapsed, }) {
+  let rowData = [];
+  let blanks = [];
+  let traverse = (o, pathToRoot=[], level=0) => {
+    // console.log({o, pathToRoot, level});
+    Object.keys(o).forEach(k => {
+      k = parseInt(k);
+      let row = {...concepts[k], level, pathToRoot: [...pathToRoot, k]};
+      if (!concepts[k]) {
+        blanks.push(rowData.length);
+      }
+      rowData.push(row);
+      if (o[k] && typeof(o[k] === 'object')) {
+        row.has_children = true;
+        if (!collapsed[row.pathToRoot]) {
+          traverse(o[k], row.pathToRoot, level+1);
+        }
+      }
+    })
+  }
+  traverse(hierarchy);
+  pullAt(rowData, blanks);
+  return rowData;
+}
