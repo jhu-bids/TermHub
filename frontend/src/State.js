@@ -1,17 +1,163 @@
-import React, { createContext, /* useRef, useLayoutEffect, useState */ } from 'react';
+import React, { createContext, useContext, useReducer, useState, /* useRef, useLayoutEffect, */ } from 'react';
+// import useCombinedReducers from 'use-combined-reducers';
 import axios from "axios";
 import {API_ROOT} from "./env";
 import CircularProgress from '@mui/material/CircularProgress';
 import Box from '@mui/material/Box';
 import { useQuery } from '@tanstack/react-query'
 import { createSearchParams, } from "react-router-dom";
-import { isEmpty, sum, } from 'lodash';
-import { SEARCH_PARAM_STATE_CONFIG, } from './App';
+import { isEmpty, memoize, } from 'lodash';
 import {pct_fmt, } from "./utils";
 
-const DataContext = createContext(null);
-const QSContext = createContext(null);
+const DerivedStateContext = createContext();
+export function useDerivedState() {
+  return useContext(DerivedStateContext);
+}
+export function DerivedStateProvider(props) {
+  const {children, cset_data} = props;
+  const {hierarchy={}, selected_csets=[], concepts=[], cset_members_items=[], } = cset_data;
+  const appState = useAppState();
+  const editCsetState = appState.getSliceState('editCset');
+  let derivedState = {};
 
+  return (
+      <DerivedStateContext.Provider value={derivedState} >
+        {children}
+      </DerivedStateContext.Provider>
+  );
+}
+// going to try to refactor all the state stuff using reducers and context, but still save to url
+const CombinedReducersContext = createContext();
+export function AppStateProvider({children}) {
+  const reducers = {
+    contentItems: useReducer(contentItemsReducer, defaultContentItems),
+    codeset_ids:  useReducer(codeset_idsReducer, []),
+    editCset:     useReducer(editCsetReducer),
+  }
+  const getters = {
+    getSliceState : (slice) => reducers[slice][0],
+    getSliceDispatch : (slice) => reducers[slice][1],
+    getSlice: (slice) => reducers[slice],
+    getSliceNames: () => Object.keys(reducers),
+    getReducers: () => reducers,
+    getState: () => Object.fromEntries(Object.entries(reducers).map(([k,v]) => [k, v[0]])),
+  }
+  return (
+      <CombinedReducersContext.Provider value={getters}>
+        {children}
+      </CombinedReducersContext.Provider>
+  );
+}
+export function useAppState() {
+  return useContext(CombinedReducersContext);
+}
+/*
+const StateContext = createContext();
+const DispatchContext = createContext();
+export function AppStateProvider({children}) {
+  const [state, dispatch] = useCombinedReducers({
+    contentItems: useReducer(contentItemsReducer, defaultContentItems),
+    codeset_ids: useReducer(codeset_idsReducer, []),
+    editCsetReducer: useReducer(editCsetReducer),
+  });
+
+  return (
+      <DispatchContext.Provider value={dispatch}>
+        <StateContext.Provider value={state}>
+          {children}
+        </StateContext.Provider>
+      </DispatchContext.Provider>
+  );
+}
+export function useAppState() {
+  return useContext(StateContext);
+}
+export function useAppStateDispatch() {
+  return useContext(DispatchContext);
+}
+*/
+const editCsetReducer = (state, action) => {
+  if (!(action && action.type)) return state;
+  const type = getTypeForSlice('editCset', action.type);
+  if (!type) return state;
+  if (state === action.payload) return null; // if already set to this codeset_id, turn off
+  return action.payload;
+};
+function DummyComponent({foo}) {
+  return <h3>dummy component: {foo}</h3>
+}
+const defaultContentItems = [ // see ContentItems
+  {
+    name: 'dummy',
+    show: false,
+    Component: DummyComponent,
+    props: {foo: 'bar'},
+  }
+];
+const getTypeForSlice = memoize((slice, actionType) => {
+  const [reducerSlice, type] = actionType.split(/-(.*)/s); // https://stackoverflow.com/questions/4607745/split-string-only-on-first-instance-of-specified-character
+  return (reducerSlice === slice) && type;
+});
+
+const contentItemsReducer = (state=[], action) => {
+  console.log({state,action});
+  if (!(action && action.type)) return state;
+  const type = getTypeForSlice('contentItems', action.type);
+  if (!type) return state;
+  if (['show','hide','toggle'].includes(type)) {
+    const idx = state.findIndex(o => o.name === action.name);
+    let option = {...state[idx]};
+    switch (type) {
+      case 'show': option.show = true; break;
+      case 'hide': option.show = false; break;
+      case 'toggle': option.show = !option.show;
+    }
+    state[idx] = option;
+    return [...state];
+  }
+  if (type === 'new') {
+    return [...state, action.payload];
+  }
+  throw new Error(`invalid action.type: ${action}`)
+};
+
+// actions
+const codeset_idsReducer = (state, action) => {
+  if (!(action && action.type)) return state;
+  const type = getTypeForSlice('contentItem', action.type);
+  switch (action.type) {
+    case 'add_codeset_id': {
+      return [...state, parseInt(action.payload)].sort();
+    }
+    case 'delete_codeset_id': {
+      return state.filter(d => d != action.payload);
+    }
+    default:
+      return state;
+  }
+};
+const csetEditsReducer = (csetEdits, action) => {
+};
+
+const combineReducers = (slices) => (state, action) =>
+    // from https://stackoverflow.com/questions/59200785/react-usereducer-how-to-combine-multiple-reducers
+  Object.keys(slices).reduce(
+    (acc, prop) => ({
+      ...acc,
+      [prop]: slices[prop](acc[prop], action),
+    }),
+    state
+  );
+
+// const DataContext = createContext(null);
+const SPContext = createContext(null);
+const SPDispatchContext = createContext(null);
+
+const SEARCH_PARAM_STATE_CONFIG = {
+  scalars: ['editCodesetId', 'sort_json'],
+  global_props_but_not_search_params: ['searchParams', 'setSearchParams'],
+  serialize: ['csetEditState'],
+}
 function searchParamsToObj(searchParams) {
   const qsKeys = Array.from(new Set(searchParams.keys()));
   let sp = {};

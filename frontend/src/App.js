@@ -27,17 +27,11 @@ import Paper from '@mui/material/Paper';
 import {ConceptSetsPage, } from "./Csets";
 import {CsetComparisonPage} from "./CsetComparisonPage";
 import {AboutPage, } from "./AboutPage";
-import {searchParamsToObj, updateSearchParams, backend_url, useDataWidget, } from "./State";
+import {AppStateProvider, DerivedStateProvider, searchParamsToObj, updateSearchParams, backend_url, useDataWidget, } from "./State";
 import {UploadCsvPage} from "./UploadCsv";
 import {DownloadJSON} from "./DownloadJSON";
 import MuiAppBar from "./MuiAppBar";
 // // import _ from "./supergroup/supergroup";
-
-const SEARCH_PARAM_STATE_CONFIG = {
-  scalars: ['editCodesetId', 'sort_json'],
-  global_props_but_not_search_params: ['searchParams', 'setSearchParams'],
-  serialize: ['csetEditState'],
-}
 
 // import logo from './logo.svg';
 // import { useIsFetching } from '@tanstack/react-query' // https://tanstack.com/query/v4/docs/react/guides/background-fetching-indicators
@@ -101,8 +95,10 @@ function QCProvider() {
   return (
       <React.StrictMode> {/* StrictMode helps assure code goodness by running everything twice, but it's annoying*/}
         <QueryClientProvider client={queryClient}>
-          <QueryStringStateMgr />
-          {/*<ReactQueryDevtools initialIsOpen={false} />*/}
+          <AppStateProvider>
+            <QueryStringStateMgr />
+            {/*<ReactQueryDevtools initialIsOpen={false} />*/}
+          </AppStateProvider>
         </QueryClientProvider>
       </React.StrictMode>
   );
@@ -242,7 +238,9 @@ function App(props) {
       <ThemeProvider theme={theme}>
         <div className="App">
           {/* <ReactQueryDevtools initialIsOpen={false} /> */ }
-          <MuiAppBar {...props} />
+          <DerivedStateProvider {...props}>
+            <MuiAppBar {...props} />
+          </DerivedStateProvider>
           {/* Outlet: Will render the results of whatever nested route has been clicked/activated. */}
           <Outlet/>
         </div>
@@ -336,5 +334,5 @@ function HookTestApp() {
 
 */
 
-export {/* HookTestApp, */ QCProvider, backend_url, SEARCH_PARAM_STATE_CONFIG, };
+export {/* HookTestApp, */ QCProvider, backend_url, };
 // export { QCProvider, backend_url, SEARCH_PARAM_STATE_CONFIG, };
