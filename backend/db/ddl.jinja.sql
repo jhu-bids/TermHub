@@ -34,6 +34,22 @@ CREATE INDEX IF NOT EXISTS csc_idx2 on {{schema}}concept_set_container(concept_s
 
 CREATE INDEX IF NOT EXISTS csc_idx3 on {{schema}}concept_set_container(concept_set_id, created_at DESC);
 
+-- concept_set_container has duplicate records except for the created_at col
+--  get rid of duplicates, keeping the most recent.
+--  code from https://stackoverflow.com/a/28085614/1368860
+--      which also has code that works for databases other than postgres, if we ever need that
+WITH deduped AS (
+    SELECT DISTINCT ON (concept_set_id) concept_set_id, created_at
+    FROM {{schema}}concept_set_container
+    ORDER BY concept_set_id, created_at DESC
+)
+DELETE FROM {{schema}}concept_set_container csc
+WHERE NOT EXISTS (
+    SELECT FROM deduped dd
+    WHERE csc.concept_set_id = dd.concept_set_id
+  AND csc.created_at = dd.created_at
+    );
+
 DROP TABLE IF EXISTS all_csets;
 
 CREATE TABLE {{schema}}all_csets AS
@@ -137,22 +153,6 @@ JOIN concept c ON csmi.concept_id = c.concept_id);
 -- CREATE INDEX csmip_idx2 ON {{schema}}cset_members_items_plus(concept_id);
 -- CREATE INDEX csmip_idx3 ON {{schema}}cset_members_items_plus(codeset_id, concept_id);
 
--- concept_set_container has duplicate records except for the created_at col
---  get rid of duplicates, keeping the most recent.
---  code from https://stackoverflow.com/a/28085614/1368860
---      which also has code that works for databases other than postgres, if we ever need that
-WITH deduped AS (
-    SELECT DISTINCT ON (concept_set_id) concept_set_id, created_at
-    FROM {{schema}}concept_set_container
-    ORDER BY concept_set_id, created_at DESC
-)
-DELETE FROM {{schema}}concept_set_container csc
-WHERE NOT EXISTS (
-   SELECT FROM deduped dd
-   WHERE csc.concept_set_id = dd.concept_set_id
-     AND csc.created_at = dd.created_at
-);
-
 DROP TABLE IF EXISTS {{schema}}concepts_with_counts_ungrouped;
 CREATE TABLE IF NOT EXISTS {{schema}}concepts_with_counts_ungrouped AS (
 SELECT DISTINCT
@@ -229,10 +229,6 @@ CREATE INDEX crp_idx4 ON {{schema}}concept_relationship_plus(concept_code);
 
 CREATE INDEX crp_idx5 ON {{schema}}concept_relationship_plus(relationship_id);
 
--- concept_set_container has duplicate records except for the created_at col
---  get rid of duplicates, keeping the most recent.
---  code from https://stackoverflow.com/a/28085614/1368860
---      which also has code that works for databases other than postgres, if we ever need that
 CREATE TABLE IF NOT EXISTS {{schema}}concept_set_json (
     codeset_id int,
     json json
