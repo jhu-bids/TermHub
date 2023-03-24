@@ -27,7 +27,7 @@ import Paper from '@mui/material/Paper';
 import {ConceptSetsPage, } from "./Csets";
 import {CsetComparisonPage} from "./CsetComparisonPage";
 import {AboutPage, } from "./AboutPage";
-import {AppStateProvider, DerivedStateProvider, searchParamsToObj, updateSearchParams, backend_url, useDataWidget, } from "./State";
+import {AppStateProvider, searchParamsToObj, updateSearchParams, backend_url, useDataWidget, } from "./State";
 import {UploadCsvPage} from "./UploadCsv";
 import {DownloadJSON} from "./DownloadJSON";
 import MuiAppBar from "./MuiAppBar";
@@ -238,9 +238,7 @@ function App(props) {
       <ThemeProvider theme={theme}>
         <div className="App">
           {/* <ReactQueryDevtools initialIsOpen={false} /> */ }
-          <DerivedStateProvider {...props}>
             <MuiAppBar {...props} />
-          </DerivedStateProvider>
           {/* Outlet: Will render the results of whatever nested route has been clicked/activated. */}
           <Outlet/>
         </div>
