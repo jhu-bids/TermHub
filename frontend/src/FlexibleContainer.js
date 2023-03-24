@@ -13,6 +13,43 @@ import FormControlLabel from '@mui/material/FormControlLabel';
 import useMeasure from 'react-use/lib/useMeasure';
 import Button from "@mui/material/Button";
 
+import {useAppState, DerivedStateProvider, useDerivedState, } from "./State";
+
+export function DummyComponent({foo}) {
+  return <h3>dummy component: {foo}</h3>
+}
+const contentComponents = {
+  'DummyComponent': DummyComponent,
+}
+export function ContentItems(props) {
+  const appState = useAppState();
+  const [contentItems, dispatch] = appState.getSlice('contentItems');
+  const items = contentItems.filter(item => item.show).map(
+      item => {
+        const {name, content, componentName, props} = item;
+        if (content) return content;
+        const Component = contentComponents[componentName];
+        return <Component key={name} {...props} />;
+      }
+  );
+  const buttons = contentItems.filter(item => !item.show).map(
+      item => {
+        const {name, content, Component, props} = item;
+        return (
+            <Button key={name} onClick={() => dispatch({type: 'contentItems-show', name: 'dummy'})} >
+              Show {name}
+            </Button>
+        );
+      }
+  );
+  return (
+      <>
+        {buttons}
+        {items}
+      </>
+  )
+}
+
 export default function FlexibleContainer(
     {id, title, ComponentType, componentProps}) {
   const [display, setCollapsed] = useState('collapsed');

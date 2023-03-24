@@ -8,14 +8,15 @@ import Button from '@mui/material/Button';
 import Draggable from 'react-draggable';
 // import {Checkbox} from "@mui/material";
 import {isEmpty, get, throttle, pullAt } from 'lodash'; // set, map, omit, pick, uniq, reduce, cloneDeepWith, isEqual, uniqWith, groupBy,
-import {useAppState, DerivedStateProvider, useDerivedState, } from "./State";
+import {useAppState, DerivedStateProvider, useDerivedState, DummyComponent} from "./State";
 import {fmt, useWindowSize, } from "./utils";
 import {setColDefDimensions, } from "./dataTableUtils";
 import {ConceptSetCard} from "./ConceptSetCard";
 import {Tooltip} from './Tooltip';
 import { getEditCodesetFunc, getCodesetEditActionFunc, EditInfo,
     cellContents, cellStyle, } from './EditCset';
-import FlexibleContainer, { accordionPanels, accordionPanel, } from "./FlexibleContainer";
+// import FlexibleContainer, { accordionPanels, accordionPanel, } from "./FlexibleContainer";
+import {ContentItems} from "./FlexibleContainer";
 // import AllowOverlap from "./gridLayout";
 import {DOCS, howToSaveStagedChanges} from "./AboutPage";
 // import {isEmpty} from "react-data-table-component/dist/src/DataTable/util"; // what was this for?
@@ -105,34 +106,6 @@ function CsetComparisonPage(props) {
                 <ComparisonDataTable /*squishTo={squishTo}*/ {...moreProps}  />
             </DerivedStateProvider>
         </div>)
-}
-
-function ContentItems(props) {
-    const appState = useAppState();
-    const [contentItems, dispatch] = appState.getSlice('contentItems');
-    const items = contentItems.filter(item => item.show).map(
-        item => {
-           const {name, content, Component, props} = item;
-           if (content) return content;
-           return <Component key={name} {...props} />;
-        }
-    );
-    const buttons = contentItems.filter(item => !item.show).map(
-        item => {
-            const {name, content, Component, props} = item;
-            return (
-                <Button key={name} onClick={() => dispatch({type: 'contentItems-show', name: 'dummy'})} >
-                    Show {name}
-                </Button>
-            );
-        }
-    );
-    return (
-        <>
-            {buttons}
-            {items}
-        </>
-    )
 }
 
 /*{
