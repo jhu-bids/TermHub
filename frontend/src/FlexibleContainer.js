@@ -59,12 +59,6 @@ function CollapsibleContainerWithSwitch({id, title, children}) {
   const handleChange = () => {
     setChecked((prev) => !prev);
   };
-  // const [contents, measures] = usePaperContainer({children});
-      /*
-      <PaperContainer>
-        {children}
-      </PaperContainer>
-       */
   console.log(measures, contents);
   const {width, height} = measures;
   return (

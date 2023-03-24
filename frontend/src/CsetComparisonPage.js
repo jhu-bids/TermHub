@@ -8,7 +8,7 @@ import Button from '@mui/material/Button';
 import Draggable from 'react-draggable';
 // import {Checkbox} from "@mui/material";
 import {isEmpty, get, throttle, pullAt } from 'lodash'; // set, map, omit, pick, uniq, reduce, cloneDeepWith, isEqual, uniqWith, groupBy,
-import {useAppState, useDerivedState, } from "./State";
+import {useAppState, DerivedStateProvider, useDerivedState, } from "./State";
 import {fmt, useWindowSize, } from "./utils";
 import {setColDefDimensions, } from "./dataTableUtils";
 import {ConceptSetCard} from "./ConceptSetCard";
@@ -26,24 +26,84 @@ import {DOCS, howToSaveStagedChanges} from "./AboutPage";
 // TODO: Color table: I guess would need to see if could pass extra values/props and see if table widget can use that
 //  ...for coloration, since we want certain rows grouped together
 function CsetComparisonPage(props) {
-    const {all_csets=[], cset_data={}} = props;
+    const {all_csets=[], cset_data={}, searchParams, setSearchParams, } = props;
     const {hierarchy={}, selected_csets=[], concepts=[], cset_members_items=[], } = cset_data;
     const [collapsed, setCollapsed] = useState({});
+    const windowSize = useWindowSize();
+    const sizes = getSizes(/*squishTo*/ 1);
+    const customStyles = styles(sizes);
+
+    const editAction = getCodesetEditActionFunc({searchParams, setSearchParams});
+    const editCodesetFunc = getEditCodesetFunc({searchParams, setSearchParams});
 
     function toggleCollapse(row) {
         let _collapsed = {...collapsed, [row.pathToRoot]: !get(collapsed, row.pathToRoot.join(','))};
         setCollapsed(_collapsed);
     }
 
-    if (!all_csets.length) {
+    if (!all_csets.length || isEmpty(selected_csets)) {
         return <p>Downloading...</p>
     }
+    let columns = colConfig({...props, selected_csets, editAction, editCodesetFunc, sizes, /* displayObj: _displayObj, */
+        collapsed, toggleCollapse, nested: true, windowSize, });
+    /*
+    const _displayObj = _displayOptions[displayOption];
+    setDisplayOptions(_displayOptions);
+    setDisplayObj(_displayObj);
+    setColumns(_columns);
+    // console.log({displayOption, displayOptions, displayObj, columns});
+    const moreProps = {...props, displayObj, columns};
 
-    let moreProps = {...props, selected_csets, collapsed, toggleCollapse, };
+    let card, eInfo;
+    if (editCodesetId && columns) {
+      card = (
+          <FlexibleContainer
+              title="Concept set being edited"
+              ComponentType={ConceptSetCard}
+              componentProps={{
+                cset: columns.find(d => d.codeset_id === editCodesetId).cset_col,
+                researchers: researchers,
+                editing: true
+              }}
+
+          >
+          </FlexibleContainer>
+      );
+      const cardContentItem = {
+        name: 'editingCsetCard',
+        show: true,
+        content: card,
+      }
+     */
+    // contentItemsState.dispatch({type: 'contentItems-new', payload: cardContentItem});
+    /*
+    card = <ConceptSetCard cset={columns.find(d=>d.codeset_id===editCodesetId).cset_col}
+                           researchers={researchers}
+                           editing={true}
+                           // width={window.innerWidth * 0.5}
+                />;
+  }
+  if (! isEmpty(csetEditState)) {
+    eInfo = <EditInfo {...props} />;
+  }
+     */
+    /*
+    const panelProps = [
+        {id: 'card-panel', title: 'Concept set being edited', content: card},
+        {id: 'changes-panel', title: 'Staged changes', content: eInfo},
+        {id: 'instructions-panel', title: 'How to save changes', content: howToSaveStagedChanges({})},
+    ];
+    // const panels = accordionPanels({panels});
+    // console.log(panels);
+     */
+
+    let moreProps = {...props, columns, selected_csets, customStyles, };
     return (
         <div>
-            <ControlsAndInfo {...moreProps} >
-            </ControlsAndInfo>
+            <DerivedStateProvider {...props}>
+                <ControlsAndInfo {...moreProps} />
+                <ComparisonDataTable /*squishTo={squishTo}*/ {...moreProps}  />
+            </DerivedStateProvider>
         </div>)
 }
 
@@ -82,24 +142,20 @@ function ContentItems(props) {
                                            </Button>)
 }*/
 function ControlsAndInfo(props) {
-    const {editCodesetId, squishTo=1, cset_data, csetEditState={}, searchParams, setSearchParams,
+    const {editCodesetId, cset_data, csetEditState={}, searchParams, setSearchParams,
             children, } = props;
     const {hierarchy={}, selected_csets=[], concepts=[], cset_members_items=[], } = cset_data;
     const appState = useAppState();
-    const derivedState = useDerivedState();
+    // const derivedState = useDerivedState();
+    // <pre>{JSON.stringify({derivedState}, null, 2)}</pre>
 
     const [displayOptions, setDisplayOptions] = useState({});
     const [displayOption, setDisplayOption] = useState('fullHierarchy');
     const [columns, setColumns] = useState();
     const [displayObj, setDisplayObj] = useState(); // useComparisonTableRowData({});
     const [collapsed, setCollapsed] = useState({});
-    const windowSize = useWindowSize();
     const boxRef = useRef();
-    const editAction = getCodesetEditActionFunc({searchParams, setSearchParams});
-    const editCodesetFunc = getEditCodesetFunc({searchParams, setSearchParams});
     const {researchers, } = cset_data;
-    const sizes = getSizes(squishTo);
-    const customStyles = styles(sizes);
 
     // useEffect(() => contentItemsState.dispatch({type: 'contentItems-show', name: 'dummy'}));
     console.log(appState.getState());
@@ -108,7 +164,7 @@ function ControlsAndInfo(props) {
     function changeDisplayOption(option) {
         setDisplayOption(option);
     }
-    const moreProps = {...props, displayObj, columns};
+    const moreProps = {...props, /* displayObj, */ columns};
 
     return (
         <div>
@@ -133,7 +189,6 @@ function ControlsAndInfo(props) {
                 {/*</Box>*/}
             </Box>
             {/*{children}*/}
-            <ComparisonDataTable /*squishTo={squishTo}*/ {...moreProps}  />
             {/* <StatsMessage {...props} /> */}
             {/*<SquishSlider setSquish={squishChange}/>*/}
         </div>
@@ -142,7 +197,13 @@ function ControlsAndInfo(props) {
 }
 
 function ComparisonDataTable(props) {
-    const {columns, displayObj={}, squishTo=1, cset_data, csetEditState={}, customStyles, } = props;
+    const {columns, squishTo=1, cset_data, csetEditState={}, customStyles, } = props;
+    const derivedState = useDerivedState();
+    console.log(derivedState);
+    let rowData;
+    if (derivedState) {
+        rowData = derivedState.comparisonRowData;
+    }
 
     const conditionalRowStyles = [
         {
@@ -159,7 +220,8 @@ function ComparisonDataTable(props) {
             className="comparison-data-table"
             theme="custom-theme" // theme="light"
             columns={columns}
-            data={displayObj.rowData}
+            // data={displayObj.rowData}
+            data={rowData}
             dense
             /*
             fixedHeader
@@ -197,20 +259,22 @@ function getSizes(squishTo) {
 }
 
 function colConfig(props) {
-    let { displayObj, selected_csets, cset_data, collapsed, toggleCollapse, sizes,
+    let { /* displayObj, */ nested, selected_csets, cset_data, collapsed, toggleCollapse, sizes,
           editAction, editCodesetFunc, windowSize, } = props;
     const { csmiLookup, } = cset_data;
 
+    /*
     if (!displayObj) {
         return;
     }
+     */
 
     let coldefs = [
         {
             name: 'Concept name',
             selector: row => row.concept_name,
             format: (row, ) => {
-                let content = displayObj.nested
+                let content = nested
                     ? row.has_children
                         ? collapsed[row.pathToRoot]
                             ? <span className="toggle-collapse" onClick={() => toggleCollapse(row)}><AddCircle sx={{fontSize:sizes.collapseIcon}}/> {row.concept_name} {row.collapsed && 'collapsed'}</span>
@@ -219,7 +283,7 @@ function colConfig(props) {
                     : row.concept_name
                 return content;
             },
-            sortable: !displayObj.nested,
+            sortable: !nested,
             // minWidth: 100,
             // remainingPct: .60,
             // width: (window.innerWidth - selected_csets.length * 50) * .65,
@@ -235,7 +299,7 @@ function colConfig(props) {
         {
             name: 'Concept ID',
             selector: row => row.concept_id,
-            sortable: !displayObj.nested,
+            sortable: !nested,
             width: 80,
             style: { paddingRight: '8px', },
         },
@@ -254,7 +318,7 @@ function colConfig(props) {
                         <img height={sizes.athenaHeight} src="athena.ico" alt="Link to this concept in Athena"/>
                     </a>
                 </span>),
-            sortable: !displayObj.nested,
+            sortable: !nested,
             width: 35,
             style: { paddingRight: '0px', },
         },
@@ -266,7 +330,7 @@ function colConfig(props) {
             },
             selector: row => parseInt(row.distinct_person_cnt),
             format: row => fmt(row.distinct_person_cnt),
-            sortable: !displayObj.nested,
+            sortable: !nested,
             right: true,
             width: 80,
             // minWidth: 80,
@@ -283,7 +347,7 @@ function colConfig(props) {
             </Tooltip>, */
             selector: row => row.total_cnt,
             format: row => fmt(row.total_cnt),
-            sortable: !displayObj.nested,
+            sortable: !nested,
             right: true,
             width: 80,
             // minWidth: 80,
@@ -311,7 +375,7 @@ function colConfig(props) {
                                          rowData: displayObj.rowData,
                                          editAction}} />; */
                 return cellContents({ ...props, row, cset_col,
-                                        rowData: displayObj.rowData,
+                                        // rowData: displayObj.rowData, // DON'T NEED THIS ANYMORE, RIGHT?
                                         editAction});
             },
             conditionalCellStyles: [
@@ -321,7 +385,7 @@ function colConfig(props) {
                     style: row => cellStyle({...props, cset_col, row, }),
                 },
             ],
-            sortable: !displayObj.nested,
+            sortable: !nested,
             // compact: true,
             width: 70,
             // center: true,
@@ -334,7 +398,7 @@ function colConfig(props) {
     // delete coldefs[0].width;
     coldefs = setColDefDimensions({coldefs, windowSize});
     // console.log(coldefs);
-    if (!displayObj.nested) {
+    if (!nested) {
         delete coldefs[0].conditionalCellStyles;
     }
     return coldefs;

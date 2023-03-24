@@ -19,71 +19,28 @@ import CircularProgress from '@mui/material/CircularProgress';
 import Box from '@mui/material/Box';
 import { useQuery } from '@tanstack/react-query'
 import { createSearchParams, } from "react-router-dom";
-import { isEmpty, memoize, } from 'lodash';
+import { isEmpty, memoize, pullAt} from 'lodash';
 import {pct_fmt, } from "./utils";
 
-const DerivedStateContext = createContext();
-export function useDerivedState() {
-  return useContext(DerivedStateContext);
-}
+const DerivedStateContext = createContext(null);
 export function DerivedStateProvider(props) {
+  // when I put this provider up at the App level, it didn't update
+  //    but at the CsetComparisonPage level it did. don't know why
   const {children, cset_data} = props;
   const {hierarchy={}, selected_csets=[], concepts=[], cset_members_items=[], } = cset_data;
   const appState = useAppState();
-  const editCsetState = appState.getSliceState('editCset');
-  let derivedState = {};
+  // const editCsetState = appState.getSliceState('editCset');
+  const hierarchySettings = appState.getSliceState('hierarchySettings');
+  const {collapsed, displayOption} = hierarchySettings;
 
-  const _displayOptions = makeRowData(
-      {concepts, selected_csets, cset_members_items, hierarchy, collapsed});
-  const _displayObj = _displayOptions[displayOption];
-  let _columns = colConfig({...props, editAction, editCodesetFunc, sizes, displayObj: _displayObj, windowSize, });
-  setDisplayOptions(_displayOptions);
-  setDisplayObj(_displayObj);
-  setColumns(_columns);
-  // console.log({displayOption, displayOptions, displayObj, columns});
-  const moreProps = {...props, displayObj, columns};
+  const rowData = makeHierarchyRows({
+    concepts, selected_csets, cset_members_items, hierarchy, collapsed});
 
-  let card, eInfo;
-  if (editCodesetId && columns) {
-    card = (
-        <FlexibleContainer
-            title="Concept set being edited"
-            ComponentType={ConceptSetCard}
-            componentProps={{
-              cset: columns.find(d => d.codeset_id === editCodesetId).cset_col,
-              researchers: researchers,
-              editing: true
-            }}
-
-        >
-        </FlexibleContainer>
-    );
-    const cardContentItem = {
-      name: 'editingCsetCard',
-      show: true,
-      content: card,
-    }
-    // contentItemsState.dispatch({type: 'contentItems-new', payload: cardContentItem});
-    /*
-    card = <ConceptSetCard cset={columns.find(d=>d.codeset_id===editCodesetId).cset_col}
-                           researchers={researchers}
-                           editing={true}
-                           // width={window.innerWidth * 0.5}
-                />;
-     */
-  }
-  /*
-  const panelProps = [
-      {id: 'card-panel', title: 'Concept set being edited', content: card},
-      {id: 'changes-panel', title: 'Staged changes', content: eInfo},
-      {id: 'instructions-panel', title: 'How to save changes', content: howToSaveStagedChanges({})},
-  ];
-  // const panels = accordionPanels({panels});
-  // console.log(panels);
-   */
-  if (! isEmpty(csetEditState)) {
-    eInfo = <EditInfo {...props} />;
-  }
+  let derivedState = {
+    foo: 'bar',
+    comparisonRowData: rowData,
+  };
+  console.log(derivedState);
 
   return (
       <DerivedStateContext.Provider value={derivedState} >
@@ -91,6 +48,10 @@ export function DerivedStateProvider(props) {
       </DerivedStateContext.Provider>
   );
 }
+export function useDerivedState() {
+  return useContext(DerivedStateContext);
+}
+
 function hierarchySettingsReducer(state, action) {
   /*
   const [collapsed, setCollapsed] = useState({});
@@ -103,7 +64,7 @@ function hierarchySettingsReducer(state, action) {
   return state;
 }
 // going to try to refactor all the state stuff using reducers and context, but still save to url
-const CombinedReducersContext = createContext();
+const CombinedReducersContext = createContext(null);
 export function AppStateProvider({children}) {
   const reducers = {
     contentItems: useReducer(contentItemsReducer, defaultContentItems),
@@ -398,7 +359,17 @@ export {
   StatsMessage, searchParamsToObj, backend_url, axiosGet, axiosPut, useDataWidget,
   updateSearchParams, clearSearchParams,
 };
+
+function makeHierarchyRows({concepts, selected_csets, cset_members_items, hierarchy, collapsed={}}) {
+  if (isEmpty(concepts) || isEmpty(selected_csets) || isEmpty(cset_members_items)) {
+    return;
+  }
+  const conceptsMap = Object.fromEntries(concepts.map(d => [d.concept_id, d]));
+  return traverseHierarchy({hierarchy, concepts: conceptsMap, collapsed, });
+}
+
 function makeRowData({concepts, selected_csets, cset_members_items, hierarchy, collapsed={}}) {
+  // replaced by makeHierarchyRows? --- this version helps with nested flag and row count message
   if (isEmpty(concepts) || isEmpty(selected_csets) || isEmpty(cset_members_items)) {
     return;
   }
