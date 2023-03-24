@@ -125,14 +125,11 @@ const editCsetReducer = (state, action) => {
   if (state === action.payload) return null; // if already set to this codeset_id, turn off
   return action.payload;
 };
-function DummyComponent({foo}) {
-  return <h3>dummy component: {foo}</h3>
-}
 const defaultContentItems = [ // see ContentItems
   {
     name: 'dummy',
     show: false,
-    Component: DummyComponent,
+    componentName: 'DummyComponent',
     props: {foo: 'bar'},
   }
 ];
@@ -180,16 +177,6 @@ const codeset_idsReducer = (state, action) => {
 };
 const csetEditsReducer = (csetEdits, action) => {
 };
-
-const combineReducers = (slices) => (state, action) =>
-    // from https://stackoverflow.com/questions/59200785/react-usereducer-how-to-combine-multiple-reducers
-  Object.keys(slices).reduce(
-    (acc, prop) => ({
-      ...acc,
-      [prop]: slices[prop](acc[prop], action),
-    }),
-    state
-  );
 
 // const DataContext = createContext(null);
 const SPContext = createContext(null);
