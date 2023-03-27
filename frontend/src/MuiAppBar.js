@@ -17,6 +17,202 @@ import MenuBookIcon from '@mui/icons-material/MenuBook';
 import {NavLink, useLocation} from "react-router-dom";
 import { cloneDeep, } from "lodash";
 
+
+import { styled, useTheme } from '@mui/material/styles';
+import Drawer from '@mui/material/Drawer';
+import CssBaseline from '@mui/material/CssBaseline';
+import List from '@mui/material/List';
+import Divider from '@mui/material/Divider';
+import ChevronLeftIcon from '@mui/icons-material/ChevronLeft';
+import ChevronRightIcon from '@mui/icons-material/ChevronRight';
+import ListItem from '@mui/material/ListItem';
+import ListItemButton from '@mui/material/ListItemButton';
+import ListItemIcon from '@mui/material/ListItemIcon';
+import ListItemText from '@mui/material/ListItemText';
+import InboxIcon from '@mui/icons-material/MoveToInbox';
+import MailIcon from '@mui/icons-material/Mail';
+
+const drawerWidth = 240;
+
+const Main = styled('main', { shouldForwardProp: (prop) => prop !== 'open' })(
+  ({ theme, open }) => ({
+    flexGrow: 1,
+    padding: theme.spacing(3),
+    transition: theme.transitions.create('margin', {
+      easing: theme.transitions.easing.sharp,
+      duration: theme.transitions.duration.leavingScreen,
+    }),
+    marginLeft: `-${drawerWidth}px`,
+    ...(open && {
+      transition: theme.transitions.create('margin', {
+        easing: theme.transitions.easing.easeOut,
+        duration: theme.transitions.duration.enteringScreen,
+      }),
+      marginLeft: 0,
+    }),
+  }),
+);
+
+const AppBarForDrawer = styled(AppBar, {
+  shouldForwardProp: (prop) => prop !== 'open',
+})(({ theme, open }) => ({
+  transition: theme.transitions.create(['margin', 'width'], {
+    easing: theme.transitions.easing.sharp,
+    duration: theme.transitions.duration.leavingScreen,
+  }),
+  ...(open && {
+    width: `calc(100% - ${drawerWidth}px)`,
+    marginLeft: `${drawerWidth}px`,
+    transition: theme.transitions.create(['margin', 'width'], {
+      easing: theme.transitions.easing.easeOut,
+      duration: theme.transitions.duration.enteringScreen,
+    }),
+  }),
+}));
+
+const DrawerHeader = styled('div')(({ theme }) => ({
+  display: 'flex',
+  alignItems: 'center',
+  padding: theme.spacing(0, 1),
+  // necessary for content to be below app bar
+  ...theme.mixins.toolbar,
+  justifyContent: 'flex-end',
+}));
+
+export default function PersistentDrawerLeft({children}) {
+  /*
+    thoughts about where this is going:
+    content = {
+      search: {
+        name: 'search', componentName: 'CsetSearch',
+        requiredProps: { appStateSlices: ['codeset_ids'], dataStateSlices: ['all_csets'], },
+        showInMenu: () => true // always
+        showAs: 'panel',
+        defaultShowProps: {
+          style: {position: 'absolute'},
+          place: { x: 20, y: 20, width: (windowSize) => windowSize.width * .9, height: 400 }
+          shown: true, // turn off when comparison is turned on (maybe other rules)
+          collapsed: false,
+          collapseProps: { width: ({name}) => (name.length + 2) + 'em', height: '2em', },
+        },
+        currentShowProps: { ... },
+      },
+      csetsDataTable: {
+        name: 'csetsDataTable', componentName: 'CsetsDataTable',
+        requiredProps: { appStateSlices: ['codeset_ids'], dataStateSlices: ['selected_csets', 'related_csets'], },
+        showInMenu: () => ({codeset_ids}) => codeset_ids > 0,
+        showAs: 'panel',
+        defaultShowProps: {
+          style: {position: 'absolute'}, // should be same size and below search
+          place: { x: 20, y: 20, width: (windowSize) => windowSize.width * .9, height: 400 }
+          shown: true, // after codeset_ids (or selected_csets) changes
+          collapsed: false,
+          collapseProps: { width: ({name}) => (name.length + 2) + 'em', height: '2em', },
+        },
+        currentShowProps: { ... },
+      },
+      conceptNavigation: { }, // doesn't exist yet (but may include search, tabular, graphical, ...)
+      comparison: {
+        name: 'csetComparison',
+        componentName: 'CsetComparisonPage' // OR:
+        subComponents: CsetComparisonTable + options and controls, legend
+      },
+      comparison: {
+        name: 'editCset', // does this remain an option on comparison, or become (optionally) independent
+      },
+    }
+   */
+  const theme = useTheme();
+  const [open, setOpen] = React.useState(false);
+
+  const handleDrawerOpen = () => {
+    setOpen(true);
+  };
+
+  const handleDrawerClose = () => {
+    setOpen(false);
+  };
+
+  return (
+    <Box sx={{ display: 'flex' }}>
+      <CssBaseline />
+      <AppBarForDrawer position="fixed" open={open}>
+        <Toolbar>
+          <IconButton
+            color="inherit"
+            aria-label="open drawer"
+            onClick={handleDrawerOpen}
+            edge="start"
+            sx={{ mr: 2, ...(open && { display: 'none' }) }}
+          >
+            <MenuIcon />
+          </IconButton>
+          <Typography variant="h6" noWrap component="div">
+            Persistent drawer
+          </Typography>
+        </Toolbar>
+      </AppBarForDrawer>
+      <Drawer
+        sx={{
+          width: drawerWidth,
+          flexShrink: 0,
+          '& .MuiDrawer-paper': {
+            width: drawerWidth,
+            boxSizing: 'border-box',
+          },
+        }}
+        variant="persistent"
+        anchor="left"
+        open={open}
+      >
+        <DrawerHeader>
+          <IconButton onClick={handleDrawerClose}>
+            {theme.direction === 'ltr' ? <ChevronLeftIcon /> : <ChevronRightIcon />}
+          </IconButton>
+        </DrawerHeader>
+        <Divider />
+        <List>
+          {['Inbox', 'Starred', 'Send email', 'Drafts'].map((text, index) => (
+            <ListItem key={text} disablePadding>
+              <ListItemButton>
+                <ListItemIcon>
+                  {index % 2 === 0 ? <InboxIcon /> : <MailIcon />}
+                </ListItemIcon>
+                <ListItemText primary={text} />
+              </ListItemButton>
+            </ListItem>
+          ))}
+        </List>
+        <Divider />
+        <List>
+          {['All mail', 'Trash', 'Spam'].map((text, index) => (
+            <ListItem key={text} disablePadding>
+              <ListItemButton>
+                <ListItemIcon>
+                  {index % 2 === 0 ? <InboxIcon /> : <MailIcon />}
+                </ListItemIcon>
+                <ListItemText primary={text} />
+              </ListItemButton>
+            </ListItem>
+          ))}
+        </List>
+      </Drawer>
+      <Main open={open}>
+        <DrawerHeader />
+        {children}
+      </Main>
+    </Box>
+  );
+}
+
+
+
+
+
+
+
+
+
 const _pages = [
   {name: 'Cset search', href: '/OMOPConceptSets'},
   {name: 'Cset comparison', href: '/cset-comparison'},
@@ -229,4 +425,4 @@ const MuiAppBar = (props) => {
     </AppBar>
   );
 };
-export default MuiAppBar;
+// export default MuiAppBar;
