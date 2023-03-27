@@ -239,7 +239,7 @@ function App(props) {
         <div className="App">
           {/* <ReactQueryDevtools initialIsOpen={false} /> */ }
           <MuiAppBar {...props}>
-            {/* Outlet: Will render the results of whatever nested route has been clicked/activated. */}
+            { /* Outlet: Will render the results of whatever nested route has been clicked/activated. */}
             <Outlet/>
           </MuiAppBar>
         </div>
