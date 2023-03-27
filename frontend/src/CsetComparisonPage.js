@@ -8,7 +8,7 @@ import Button from '@mui/material/Button';
 import Draggable from 'react-draggable';
 // import {Checkbox} from "@mui/material";
 import {isEmpty, get, throttle, pullAt } from 'lodash'; // set, map, omit, pick, uniq, reduce, cloneDeepWith, isEqual, uniqWith, groupBy,
-import {useAppState, DerivedStateProvider, useDerivedState, DummyComponent} from "./State";
+import {useAppState, DerivedStateProvider, useDerivedState, } from "./State";
 import {fmt, useWindowSize, } from "./utils";
 import {setColDefDimensions, } from "./dataTableUtils";
 import {ConceptSetCard} from "./ConceptSetCard";
@@ -47,6 +47,49 @@ function CsetComparisonPage(props) {
     }
     let columns = colConfig({...props, selected_csets, editAction, editCodesetFunc, sizes, /* displayObj: _displayObj, */
         collapsed, toggleCollapse, nested: true, windowSize, });
+
+    let moreProps = {...props, columns, selected_csets, customStyles, };
+    return (
+        <div>
+            <DerivedStateProvider {...props}>
+                <ControlsAndInfo {...moreProps} />
+                <ComparisonDataTable /*squishTo={squishTo}*/ {...moreProps}  />
+            </DerivedStateProvider>
+        </div>)
+}
+
+/*{
+    Object.entries(displayOptions).map(([name, opt]) =>
+                                           <Button key={name} variant={name === displayOption ? "contained" : "outlined" } onClick={()=>changeDisplayOption(name)}>
+                                               {opt.msg}
+                                           </Button>)
+}*/
+function ControlsAndInfo(props) {
+    const { cset_data, columns,
+        editCodesetId, csetEditState={}, searchParams, setSearchParams,
+            children, } = props;
+    // const {hierarchy={}, selected_csets=[], concepts=[], cset_members_items=[], researchers, } = cset_data;
+    const appState = useAppState();
+    // const derivedState = useDerivedState();
+    // <pre>{JSON.stringify({derivedState}, null, 2)}</pre>
+
+    // const [displayOptions, setDisplayOptions] = useState({});
+    // const [displayOption, setDisplayOption] = useState('fullHierarchy');
+    // const [displayObj, setDisplayObj] = useState(); // useComparisonTableRowData({});
+    // const [collapsed, setCollapsed] = useState({});
+    const boxRef = useRef();
+
+    // useEffect(() => contentItemsState.dispatch({type: 'contentItems-show', name: 'dummy'}));
+    console.log(appState.getState());
+
+    // return <h4>Next step: context providers; then this component reads from QSState</h4>
+    /*
+    function changeDisplayOption(option) {
+        setDisplayOption(option);
+    }
+     */
+    const moreProps = {...props, /* displayObj, */ columns};
+
     /*
     const _displayObj = _displayOptions[displayOption];
     setDisplayOptions(_displayOptions);
@@ -97,47 +140,6 @@ function CsetComparisonPage(props) {
     // const panels = accordionPanels({panels});
     // console.log(panels);
      */
-
-    let moreProps = {...props, columns, selected_csets, customStyles, };
-    return (
-        <div>
-            <DerivedStateProvider {...props}>
-                <ControlsAndInfo {...moreProps} />
-                <ComparisonDataTable /*squishTo={squishTo}*/ {...moreProps}  />
-            </DerivedStateProvider>
-        </div>)
-}
-
-/*{
-    Object.entries(displayOptions).map(([name, opt]) =>
-                                           <Button key={name} variant={name === displayOption ? "contained" : "outlined" } onClick={()=>changeDisplayOption(name)}>
-                                               {opt.msg}
-                                           </Button>)
-}*/
-function ControlsAndInfo(props) {
-    const {editCodesetId, cset_data, csetEditState={}, searchParams, setSearchParams,
-            children, } = props;
-    const {hierarchy={}, selected_csets=[], concepts=[], cset_members_items=[], } = cset_data;
-    const appState = useAppState();
-    // const derivedState = useDerivedState();
-    // <pre>{JSON.stringify({derivedState}, null, 2)}</pre>
-
-    const [displayOptions, setDisplayOptions] = useState({});
-    const [displayOption, setDisplayOption] = useState('fullHierarchy');
-    const [columns, setColumns] = useState();
-    const [displayObj, setDisplayObj] = useState(); // useComparisonTableRowData({});
-    const [collapsed, setCollapsed] = useState({});
-    const boxRef = useRef();
-    const {researchers, } = cset_data;
-
-    // useEffect(() => contentItemsState.dispatch({type: 'contentItems-show', name: 'dummy'}));
-    console.log(appState.getState());
-
-    // return <h4>Next step: context providers; then this component reads from QSState</h4>
-    function changeDisplayOption(option) {
-        setDisplayOption(option);
-    }
-    const moreProps = {...props, /* displayObj, */ columns};
 
     return (
         <div>

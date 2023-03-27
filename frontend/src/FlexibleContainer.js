@@ -23,7 +23,7 @@ const contentComponents = {
 }
 export function ContentItems(props) {
   const appState = useAppState();
-  const [contentItems, dispatch] = appState.getSlice('contentItems');
+  const [contentItems, contentItemsDispatch] = appState.getSlice('contentItems');
   const items = contentItems.filter(item => item.show).map(
       item => {
         const {name, content, componentName, props} = item;
@@ -36,7 +36,7 @@ export function ContentItems(props) {
       item => {
         const {name, content, Component, props} = item;
         return (
-            <Button key={name} onClick={() => dispatch({type: 'contentItems-show', name: 'dummy'})} >
+            <Button key={name} onClick={() => contentItemsDispatch({type: 'show', name: 'dummy'})} >
               Show {name}
             </Button>
         );

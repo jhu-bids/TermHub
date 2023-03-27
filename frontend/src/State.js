@@ -93,35 +93,9 @@ export function AppStateProvider({children}) {
 export function useAppState() {
   return useContext(CombinedReducersContext);
 }
-/*
-const StateContext = createContext();
-const DispatchContext = createContext();
-export function AppStateProvider({children}) {
-  const [state, dispatch] = useCombinedReducers({
-    contentItems: useReducer(contentItemsReducer, defaultContentItems),
-    codeset_ids: useReducer(codeset_idsReducer, []),
-    editCsetReducer: useReducer(editCsetReducer),
-  });
-
-  return (
-      <DispatchContext.Provider value={dispatch}>
-        <StateContext.Provider value={state}>
-          {children}
-        </StateContext.Provider>
-      </DispatchContext.Provider>
-  );
-}
-export function useAppState() {
-  return useContext(StateContext);
-}
-export function useAppStateDispatch() {
-  return useContext(DispatchContext);
-}
-*/
 const editCsetReducer = (state, action) => {
   if (!(action && action.type)) return state;
-  const type = getTypeForSlice('editCset', action.type);
-  if (!type) return state;
+  if (!action.type) return state;
   if (state === action.payload) return null; // if already set to this codeset_id, turn off
   return action.payload;
 };
@@ -133,20 +107,22 @@ const defaultContentItems = [ // see ContentItems
     props: {foo: 'bar'},
   }
 ];
+/*
 const getTypeForSlice = memoize((slice, actionType) => {
   const [reducerSlice, type] = actionType.split(/-(.*)/s); // https://stackoverflow.com/questions/4607745/split-string-only-on-first-instance-of-specified-character
   return (reducerSlice === slice) && type;
 });
+  if (!(action && action.type)) return state;
+  const type = getTypeForSlice('contentItems', action.type);
+ */
 
 const contentItemsReducer = (state=[], action) => {
   console.log({state,action});
-  if (!(action && action.type)) return state;
-  const type = getTypeForSlice('contentItems', action.type);
-  if (!type) return state;
-  if (['show','hide','toggle'].includes(type)) {
+  if (!action.type) return state;
+  if (['show','hide','toggle'].includes(action.type)) {
     const idx = state.findIndex(o => o.name === action.name);
     let option = {...state[idx]};
-    switch (type) {
+    switch (action.type) {
       case 'show': option.show = true; break;
       case 'hide': option.show = false; break;
       case 'toggle': option.show = !option.show;
@@ -154,7 +130,7 @@ const contentItemsReducer = (state=[], action) => {
     state[idx] = option;
     return [...state];
   }
-  if (type === 'new') {
+  if (action.type === 'new') {
     return [...state, action.payload];
   }
   throw new Error(`invalid action.type: ${action}`)
@@ -163,7 +139,6 @@ const contentItemsReducer = (state=[], action) => {
 // actions
 const codeset_idsReducer = (state, action) => {
   if (!(action && action.type)) return state;
-  const type = getTypeForSlice('contentItem', action.type);
   switch (action.type) {
     case 'add_codeset_id': {
       return [...state, parseInt(action.payload)].sort();

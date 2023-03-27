@@ -238,9 +238,10 @@ function App(props) {
       <ThemeProvider theme={theme}>
         <div className="App">
           {/* <ReactQueryDevtools initialIsOpen={false} /> */ }
-            <MuiAppBar {...props} />
-          {/* Outlet: Will render the results of whatever nested route has been clicked/activated. */}
-          <Outlet/>
+          <MuiAppBar {...props}>
+            {/* Outlet: Will render the results of whatever nested route has been clicked/activated. */}
+            <Outlet/>
+          </MuiAppBar>
         </div>
       </ThemeProvider>
   );
