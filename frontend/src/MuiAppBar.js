@@ -34,6 +34,26 @@ import MailIcon from '@mui/icons-material/Mail';
 
 const drawerWidth = 240;
 
+const _pages = [
+  {name: 'Cset search', href: '/OMOPConceptSets'},
+  {name: 'Cset comparison', href: '/cset-comparison'},
+  {name: 'Example comparison', href: '/testing'},
+  // {name: 'Upload CSV', href: '/upload-csv', noSearch: true, },
+  // TODO: re-add Download (CSets, bundles, json...) at some point
+  //{name: 'Download CSet JSON', href: '/download-json', noSearch: true, },
+  {name: 'Help / About', href: '/about'}
+];
+function getPages(props) {
+  let pages = cloneDeep(_pages);
+  if (!props.codeset_ids.length) {
+    let page = pages.find(d=>d.href=='/cset-comparison');
+    page.disable = true;
+    page.tt = 'Select one or more concept sets in order to view, compare, or edit them.'
+  }
+  return pages;
+}
+const settings = ['About'];
+
 const Main = styled('main', { shouldForwardProp: (prop) => prop !== 'open' })(
   ({ theme, open }) => ({
     flexGrow: 1,
@@ -79,7 +99,8 @@ const DrawerHeader = styled('div')(({ theme }) => ({
   justifyContent: 'flex-end',
 }));
 
-export default function PersistentDrawerLeft({children}) {
+export default function PersistentDrawerLeft(props) {
+  const {children} = props;
   /*
     thoughts about where this is going:
     content = {
@@ -124,6 +145,9 @@ export default function PersistentDrawerLeft({children}) {
    */
   const theme = useTheme();
   const [open, setOpen] = React.useState(false);
+  const location = useLocation();
+  const {search} = location;
+  const pages = getPages(props);
 
   const handleDrawerOpen = () => {
     setOpen(true);
@@ -172,16 +196,48 @@ export default function PersistentDrawerLeft({children}) {
         </DrawerHeader>
         <Divider />
         <List>
-          {['Inbox', 'Starred', 'Send email', 'Drafts'].map((text, index) => (
-            <ListItem key={text} disablePadding>
-              <ListItemButton>
-                <ListItemIcon>
-                  {index % 2 === 0 ? <InboxIcon /> : <MailIcon />}
-                </ListItemIcon>
-                <ListItemText primary={text} />
+          {pages.map((page) => {
+            let button = (
+                <ListItem key={page.name} disablePadding>
+                  <ListItemButton
+                      disabled={page.disable}
+                      component={NavLink} // NavLink is supposed to show different if it's active; doesn't seem to be working
+                      variant={page.href === window.location.pathname ? 'contained' : 'text'} // so, this instead
+                      to={`${page.href}${page.noSearch ? '' : search}`}
+                      // onClick={handleCloseNavMenu}
+                      // sx={{ my: 2, color: 'white', display: 'block' }}
+                  >
+                    <ListItemText primary={page.name} />
+                    {/*
+                    <Button
+                        disabled={page.disable}
+                        key={page.name}
+                        // selected={page.href === window.location.pathname}
+                        component={NavLink} // NavLink is supposed to show different if it's active; doesn't seem to be working
+                        variant={page.href === window.location.pathname ? 'contained' : 'text'} // so, this instead
+                        to={`${page.href}${page.noSearch ? '' : search}`}
+                        onClick={handleCloseNavMenu}
+                        sx={{ my: 2, color: 'white', display: 'block' }}
+                    >
+                      {
+                        page.name
+                      }
+                    </Button>
+                    */}
               </ListItemButton>
             </ListItem>
-          ))}
+            );
+            if (page.tt) {
+              button = (
+                  <Tooltip title={page.tt} key={page.name}>
+                    <div>
+                      {button}
+                    </div>
+                  </Tooltip>
+              );
+            }
+            return button;
+          })}
         </List>
         <Divider />
         <List>
@@ -212,26 +268,6 @@ export default function PersistentDrawerLeft({children}) {
 
 
 
-
-const _pages = [
-  {name: 'Cset search', href: '/OMOPConceptSets'},
-  {name: 'Cset comparison', href: '/cset-comparison'},
-  {name: 'Example comparison', href: '/testing'},
-  // {name: 'Upload CSV', href: '/upload-csv', noSearch: true, },
-  // TODO: re-add Download (CSets, bundles, json...) at some point
-  //{name: 'Download CSet JSON', href: '/download-json', noSearch: true, },
-  {name: 'Help / About', href: '/about'}
-];
-function getPages(props) {
-  let pages = cloneDeep(_pages);
-  if (!props.codeset_ids.length) {
-    let page = pages.find(d=>d.href=='/cset-comparison');
-    page.disable = true;
-    page.tt = 'Select one or more concept sets in order to view, compare, or edit them.'
-  }
-  return pages;
-}
-const settings = ['About'];
 
 /* https://mui.com/material-ui/react-app-bar/ */
 const MuiAppBar = (props) => {
