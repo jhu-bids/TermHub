@@ -84,9 +84,9 @@ $ git submodule update
 4. Run: `pip install -r requirements.txt`
 5. Install PostgreSQL and make sure it is running
   - Postgres.app makes this a breeze on macos: https://postgresapp.com/ 
-  - variables are initially set to the values below. Note that  PGDATABASE and TERMHUB_DB_DB will need to change to termhub in the steps below.
+  - variables are initially set to the values below. Note that `PGDATABASE` and `TERMHUB_DB_DB` will need to change to `termhub` in the steps below.
     - PGHOST=localhost
-    - PGUSER=postgres
+    - PGUSER=thadmin
     - PGPASSWORD=
     - PGPORT=5432
     - PGDATABASE=postgres
@@ -96,7 +96,7 @@ $ git submodule update
     - TERMHUB_DB_DRIVER=psycopg2
     - TERMHUB_DB_HOST=$PGHOST
     - TERMHUB_DB_USER=$PGUSER
-    - TERMHUB_DB_DB=$PGDATABASE
+    - TERMHUB_DB_DB=termhub
     - TERMHUB_DB_SCHEMA=n3c
     - TERMHUB_DB_PASS=$PGPASSWORD
     - TERMHUB_DB_PORT=$PGPORT
