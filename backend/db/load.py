@@ -5,8 +5,8 @@ from jinja2 import Template
 from sqlalchemy.engine.base import Connection
 
 from backend.db.config import CONFIG, DDL_JINJA_PATH
-from backend.db.utils import check_if_updated, current_datetime, is_table_up_to_date, load_csv, \
-    run_sql, get_db_connection, update_db_status_var
+from backend.db.utils import check_if_updated, current_datetime, insert_from_dict, is_table_up_to_date, load_csv, \
+    run_sql, get_db_connection, sql_in, sql_query, update_db_status_var
 from enclave_wrangler.datasets import download_favorite_datasets
 from enclave_wrangler.objects_api import download_favorite_objects
 
@@ -34,6 +34,9 @@ OBJECT_TABLES = [x.lower() for x in [
 ]]
 OBJECT_TABLES_TEST = []
 DATASET_TABLES_TEST = {
+    'concept': {
+        'primary_key': 'concept_id'
+    },
     'code_sets': {
         'primary_key': 'codeset_id'
     },
@@ -59,24 +62,39 @@ def download_artefacts(force_download_if_exists=False):
     download_favorite_datasets(force_if_exists=force_download_if_exists, single_group='vocab')
 
 
-def initialize_test_schema(con: Connection, schema: str = SCHEMA, local=False):
+def initialize_test_schema(con_initial: Connection, schema: str = SCHEMA, local=False):
     """Initialize test schema"""
-    schema = 'test_' + schema
-    run_sql(con, f'CREATE SCHEMA IF NOT EXISTS {schema};')
-    # todo: if seed()'s clobber=True param works correctly, I think dropping is not necessary - Joe 2023/03/21
-    #  ...in fact, clearing these tables shouldn't be necessary, assuming tests all have teardowns
-    with get_db_connection(schema=schema, local=local) as con2:
-        if schema == 'n3c':  # given the above lines, I don't see how it could ever be n3c, but this is a safeguard
+    # Set up
+    test_schema = 'test_' + schema
+    run_sql(con_initial, f'CREATE SCHEMA IF NOT EXISTS {test_schema};')
+    with get_db_connection(schema=test_schema, local=local) as con_test_schema:
+        if test_schema == 'n3c':  # given the above lines, I don't see how it could ever be n3c, but this is a safeguard
             raise RuntimeError('Incorrect schema. Should be dropping table from test_n3c.')
         for table in DATASET_TABLES_TEST.keys():
-            run_sql(con2, f'DROP TABLE IF EXISTS {schema}.{table};')
-    seed(con, schema, clobber=True, dataset_tables=list(DATASET_TABLES_TEST.keys()), object_tables=OBJECT_TABLES_TEST,
-         test_tables=True)
-    with get_db_connection(schema=schema, local=local) as con2:
+            run_sql(con_test_schema, f'DROP TABLE IF EXISTS {test_schema}.{table};')
+    # Seed data
+    seed(con_initial, test_schema, clobber=True, dataset_tables=list(DATASET_TABLES_TEST.keys()),
+         object_tables=OBJECT_TABLES_TEST, test_tables=True)
+    # - Data in `concept_set_members` table should exist in `concept` and `code_sets` tables
+    with get_db_connection(schema=test_schema, local=local) as con_test_schema:
+        cset_member_rows = [dict(x) for x in sql_query(con_test_schema, 'SELECT * FROM concept_set_members;')]
+        codeset_ids, concept_ids = [list(y) for y in zip(*[(x['codeset_id'], x['concept_id']) for x in cset_member_rows])]
+    with get_db_connection(schema=schema, local=local) as con_main_schema:
+        codeset_rows = [dict(x) for x in sql_query(
+            con_main_schema, f'SELECT * FROM code_sets WHERE codeset_id {sql_in(codeset_ids)};')]
+        concept_rows = [dict(x) for x in sql_query(
+            con_main_schema, f'SELECT * FROM concept WHERE concept_id {sql_in(concept_ids)};')]
+    with get_db_connection(schema=test_schema, local=local) as con_test_schema:
+        for row in codeset_rows:
+            insert_from_dict(con_test_schema, 'code_sets', row)
+        for row in concept_rows:
+            insert_from_dict(con_test_schema, 'concept', row)
+    # Set primary keys
+    with get_db_connection(schema=test_schema, local=local) as con_test_schema:
         for table, d in DATASET_TABLES_TEST.items():
             pk = d['primary_key']
             pk = pk if isinstance(pk, str) else ', '.join(pk)
-            run_sql(con2, f'ALTER TABLE {schema}.{table} ADD PRIMARY KEY({pk});')
+            run_sql(con_test_schema, f'ALTER TABLE {test_schema}.{table} ADD PRIMARY KEY({pk});')
 
 
 def seed(
@@ -154,6 +172,6 @@ def load(schema: str = SCHEMA, clobber=False, skip_if_updated_within_hours: int 
 
 
 if __name__ == '__main__':
-    # load()
-    with get_db_connection(local=True) as con:
-        initialize_test_schema(con, local=True)
+    load()
+    # with get_db_connection(local=True) as con:
+    #     initialize_test_schema(con, local=True)

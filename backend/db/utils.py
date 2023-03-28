@@ -1,7 +1,6 @@
 """Utils for database usage"""
 import json
 import os
-import re
 from pprint import pprint
 
 import dateutil.parser as dp
@@ -165,9 +164,15 @@ def sql_query(
 def insert_from_dict(con: Connection, table: str, d: Dict):
     """Insert row into dictionary from a dictionary"""
     insert = f"""
-    INSERT INTO {table} ({', '.join(d.keys())})
+    INSERT INTO {table} ({', '.join([f'"{x}"' for x in d.keys()])})
     VALUES ({', '.join([':' + str(k) for k in d.keys()])})"""
     run_sql(con, insert, d)
+
+
+def sql_count(con: Connection, table: str) -> int:
+    """Return the number of rows in a table. A simple count of rows, not ignoring NULLs or duplicates."""
+    query = f'SELECT COUNT(*) FROM {table};'
+    return sql_query(con, query)[0][0]
 
 
 def sql_in(lst: List, quote_items=False) -> str:

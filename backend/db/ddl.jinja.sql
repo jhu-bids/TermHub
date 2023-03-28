@@ -1,8 +1,23 @@
-/* TODO's
+/* TODO's (general)
     1. For each table: don't do anything if these tables exist & initialized
     2. Add alters to fix data types
-    3. Run stuff in this file again (not doing that currently)
+      Although, should really move this stuff to dtypes settings when creating dataframe that loads data into db.
 */
+-- Column data types ---------------------------------------------------------------------------------------------------
+-- TODO: See "TODO's (general)" #2 at top of this file.
+ALTER TABLE {{schema}}concept_set_container ALTER COLUMN project_id TYPE text;
+ALTER TABLE {{schema}}concept_set_container ALTER COLUMN assigned_informatician TYPE text;
+ALTER TABLE {{schema}}concept_set_container ALTER COLUMN assigned_sme TYPE text;
+ALTER TABLE {{schema}}concept_set_container ALTER COLUMN intention TYPE text;
+ALTER TABLE {{schema}}concept_set_container ALTER COLUMN n3c_reviewer TYPE text;
+ALTER TABLE IF EXISTS test_{{schema}}concept_set_container ALTER COLUMN project_id TYPE text;
+ALTER TABLE IF EXISTS test_{{schema}}concept_set_container ALTER COLUMN assigned_informatician TYPE text;
+ALTER TABLE IF EXISTS test_{{schema}}concept_set_container ALTER COLUMN assigned_sme TYPE text;
+ALTER TABLE IF EXISTS test_{{schema}}concept_set_container ALTER COLUMN intention TYPE text;
+ALTER TABLE IF EXISTS test_{{schema}}concept_set_container ALTER COLUMN n3c_reviewer TYPE text;
+
+-- Indexes and more ----------------------------------------------------------------------------------------------------
+ALTER TABLE {{schema}}concept ADD PRIMARY KEY(concept_id);
 
 CREATE INDEX IF NOT EXISTS concept_idx on {{schema}}concept(concept_id);
 
