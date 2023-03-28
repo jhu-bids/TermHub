@@ -1,6 +1,8 @@
 """Backend utilities"""
 import json
 import operator
+import sys
+from datetime import datetime
 from functools import reduce
 from typing import Any, Dict, List, Union
 
@@ -48,3 +50,8 @@ def set_nested_in_dict(d: Dict, key_path: List, value: Any):
     """Set nested value in dictionary"""
     # noinspection PyUnresolvedReferences
     get_nested_from_dict(d, key_path[:-1])[key_path[-1]] = value
+
+def raise_exc(string):
+    """Raises an error using the string param and prints it with datetime to stderr."""
+    print(datetime.now().strftime('%Y-%m-%d %H:%M:%S'), ': ', string, file=sys.stderr)
+    raise ValueError(string)
