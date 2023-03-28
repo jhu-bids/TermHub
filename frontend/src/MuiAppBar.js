@@ -15,7 +15,6 @@ import Tooltip from '@mui/material/Tooltip';
 import MenuItem from '@mui/material/MenuItem';
 import MenuBookIcon from '@mui/icons-material/MenuBook';
 import {NavLink, useLocation} from "react-router-dom";
-import { cloneDeep, } from "lodash";
 
 
 import { styled, useTheme } from '@mui/material/styles';
@@ -27,12 +26,13 @@ import ChevronLeftIcon from '@mui/icons-material/ChevronLeft';
 import ChevronRightIcon from '@mui/icons-material/ChevronRight';
 import ListItem from '@mui/material/ListItem';
 import ListItemButton from '@mui/material/ListItemButton';
-import ListItemIcon from '@mui/material/ListItemIcon';
+// import ListItemIcon from '@mui/material/ListItemIcon';
 import ListItemText from '@mui/material/ListItemText';
-import InboxIcon from '@mui/icons-material/MoveToInbox';
-import MailIcon from '@mui/icons-material/Mail';
+import {getPages, ContentMenuItems, ContentItem, } from './contentControl';
 
 const drawerWidth = 240;
+
+const settings = ['About'];
 
 const Main = styled('main', { shouldForwardProp: (prop) => prop !== 'open' })(
   ({ theme, open }) => ({
@@ -79,51 +79,13 @@ const DrawerHeader = styled('div')(({ theme }) => ({
   justifyContent: 'flex-end',
 }));
 
-export default function PersistentDrawerLeft({children}) {
-  /*
-    thoughts about where this is going:
-    content = {
-      search: {
-        name: 'search', componentName: 'CsetSearch',
-        requiredProps: { appStateSlices: ['codeset_ids'], dataStateSlices: ['all_csets'], },
-        showInMenu: () => true // always
-        showAs: 'panel',
-        defaultShowProps: {
-          style: {position: 'absolute'},
-          place: { x: 20, y: 20, width: (windowSize) => windowSize.width * .9, height: 400 }
-          shown: true, // turn off when comparison is turned on (maybe other rules)
-          collapsed: false,
-          collapseProps: { width: ({name}) => (name.length + 2) + 'em', height: '2em', },
-        },
-        currentShowProps: { ... },
-      },
-      csetsDataTable: {
-        name: 'csetsDataTable', componentName: 'CsetsDataTable',
-        requiredProps: { appStateSlices: ['codeset_ids'], dataStateSlices: ['selected_csets', 'related_csets'], },
-        showInMenu: () => ({codeset_ids}) => codeset_ids > 0,
-        showAs: 'panel',
-        defaultShowProps: {
-          style: {position: 'absolute'}, // should be same size and below search
-          place: { x: 20, y: 20, width: (windowSize) => windowSize.width * .9, height: 400 }
-          shown: true, // after codeset_ids (or selected_csets) changes
-          collapsed: false,
-          collapseProps: { width: ({name}) => (name.length + 2) + 'em', height: '2em', },
-        },
-        currentShowProps: { ... },
-      },
-      conceptNavigation: { }, // doesn't exist yet (but may include search, tabular, graphical, ...)
-      comparison: {
-        name: 'csetComparison',
-        componentName: 'CsetComparisonPage' // OR:
-        subComponents: CsetComparisonTable + options and controls, legend
-      },
-      comparison: {
-        name: 'editCset', // does this remain an option on comparison, or become (optionally) independent
-      },
-    }
-   */
+export default function PersistentDrawerLeft(props) {
+  const {children} = props;
   const theme = useTheme();
   const [open, setOpen] = React.useState(false);
+  const location = useLocation();
+  const {search} = location;
+  const pages = getPages(props);
 
   const handleDrawerOpen = () => {
     setOpen(true);
@@ -172,17 +134,52 @@ export default function PersistentDrawerLeft({children}) {
         </DrawerHeader>
         <Divider />
         <List>
-          {['Inbox', 'Starred', 'Send email', 'Drafts'].map((text, index) => (
-            <ListItem key={text} disablePadding>
-              <ListItemButton>
-                <ListItemIcon>
-                  {index % 2 === 0 ? <InboxIcon /> : <MailIcon />}
-                </ListItemIcon>
-                <ListItemText primary={text} />
+          {pages.map((page) => {
+            let button = (
+                <ListItem key={page.name} disablePadding>
+                  <ListItemButton
+                      disabled={page.disable}
+                      component={NavLink} // NavLink is supposed to show different if it's active; doesn't seem to be working
+                      variant={page.href === window.location.pathname ? 'contained' : 'text'} // so, this instead
+                      to={`${page.href}${page.noSearch ? '' : search}`}
+                      // onClick={handleCloseNavMenu}
+                      // sx={{ my: 2, color: 'white', display: 'block' }}
+                  >
+                    <ListItemText primary={page.name} />
+                    {/*
+                    <Button
+                        disabled={page.disable}
+                        key={page.name}
+                        // selected={page.href === window.location.pathname}
+                        component={NavLink} // NavLink is supposed to show different if it's active; doesn't seem to be working
+                        variant={page.href === window.location.pathname ? 'contained' : 'text'} // so, this instead
+                        to={`${page.href}${page.noSearch ? '' : search}`}
+                        onClick={handleCloseNavMenu}
+                        sx={{ my: 2, color: 'white', display: 'block' }}
+                    >
+                      {
+                        page.name
+                      }
+                    </Button>
+                    */}
               </ListItemButton>
             </ListItem>
-          ))}
+            );
+            if (page.tt) {
+              button = (
+                  <Tooltip title={page.tt} key={page.name}>
+                    <div>
+                      {button}
+                    </div>
+                  </Tooltip>
+              );
+            }
+            return button;
+          })}
         </List>
+        <Divider />
+        <ContentMenuItems/>
+        {/*
         <Divider />
         <List>
           {['All mail', 'Trash', 'Spam'].map((text, index) => (
@@ -196,6 +193,7 @@ export default function PersistentDrawerLeft({children}) {
             </ListItem>
           ))}
         </List>
+        */}
       </Drawer>
       <Main open={open}>
         <DrawerHeader />
@@ -212,26 +210,6 @@ export default function PersistentDrawerLeft({children}) {
 
 
 
-
-const _pages = [
-  {name: 'Cset search', href: '/OMOPConceptSets'},
-  {name: 'Cset comparison', href: '/cset-comparison'},
-  {name: 'Example comparison', href: '/testing'},
-  // {name: 'Upload CSV', href: '/upload-csv', noSearch: true, },
-  // TODO: re-add Download (CSets, bundles, json...) at some point
-  //{name: 'Download CSet JSON', href: '/download-json', noSearch: true, },
-  {name: 'Help / About', href: '/about'}
-];
-function getPages(props) {
-  let pages = cloneDeep(_pages);
-  if (!props.codeset_ids.length) {
-    let page = pages.find(d=>d.href=='/cset-comparison');
-    page.disable = true;
-    page.tt = 'Select one or more concept sets in order to view, compare, or edit them.'
-  }
-  return pages;
-}
-const settings = ['About'];
 
 /* https://mui.com/material-ui/react-app-bar/ */
 const MuiAppBar = (props) => {
