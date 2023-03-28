@@ -20,7 +20,8 @@ import Box from '@mui/material/Box';
 import { useQuery } from '@tanstack/react-query'
 import { createSearchParams, } from "react-router-dom";
 import { isEmpty, memoize, pullAt} from 'lodash';
-import {pct_fmt, } from "./utils";
+import {pct_fmt, } from "./utils"
+import {contentItemsReducer, defaultContentItems} from "./contentControl";
 
 const DerivedStateContext = createContext(null);
 export function DerivedStateProvider(props) {
@@ -40,7 +41,7 @@ export function DerivedStateProvider(props) {
     foo: 'bar',
     comparisonRowData: rowData,
   };
-  console.log(derivedState);
+  // console.log(derivedState);
 
   return (
       <DerivedStateContext.Provider value={derivedState} >
@@ -51,19 +52,13 @@ export function DerivedStateProvider(props) {
 export function useDerivedState() {
   return useContext(DerivedStateContext);
 }
-
-function hierarchySettingsReducer(state, action) {
-  /*
-  const [collapsed, setCollapsed] = useState({});
-
-  function toggleCollapse(row) {
-    let _collapsed = {...collapsed, [row.pathToRoot]: !get(collapsed, row.pathToRoot.join(','))};
-    setCollapsed(_collapsed);
-  }
-   */
-  return state;
-}
 // going to try to refactor all the state stuff using reducers and context, but still save to url
+
+export function useStateSlice(slice) {
+  const appState = useAppState();
+  const [state, dispatch] = appState.getSlice(slice);
+  return {state, dispatch};
+}
 const CombinedReducersContext = createContext(null);
 export function AppStateProvider({children}) {
   const reducers = {
@@ -84,6 +79,15 @@ export function AppStateProvider({children}) {
     getReducers: () => reducers,
     getState: () => Object.fromEntries(Object.entries(reducers).map(([k,v]) => [k, v[0]])),
   }
+  /*  before doing the getter stuff for the slices, i was having the slice name be a prefix on the action.type
+      probably won't return to this, but keeping around for a bit
+  const getTypeForSlice = memoize((slice, actionType) => {
+    const [reducerSlice, type] = actionType.split(/-(.*)/s); // https://stackoverflow.com/questions/4607745/split-string-only-on-first-instance-of-specified-character
+    return (reducerSlice === slice) && type;
+  });
+    if (!(action && action.type)) return state;
+    const type = getTypeForSlice('contentItems', action.type);
+   */
   return (
       <CombinedReducersContext.Provider value={getters}>
         {children}
@@ -98,42 +102,6 @@ const editCsetReducer = (state, action) => {
   if (!action.type) return state;
   if (state === action.payload) return null; // if already set to this codeset_id, turn off
   return action.payload;
-};
-const defaultContentItems = [ // see ContentItems
-  {
-    name: 'dummy',
-    show: false,
-    componentName: 'DummyComponent',
-    props: {foo: 'bar'},
-  }
-];
-/*
-const getTypeForSlice = memoize((slice, actionType) => {
-  const [reducerSlice, type] = actionType.split(/-(.*)/s); // https://stackoverflow.com/questions/4607745/split-string-only-on-first-instance-of-specified-character
-  return (reducerSlice === slice) && type;
-});
-  if (!(action && action.type)) return state;
-  const type = getTypeForSlice('contentItems', action.type);
- */
-
-const contentItemsReducer = (state=[], action) => {
-  console.log({state,action});
-  if (!action.type) return state;
-  if (['show','hide','toggle'].includes(action.type)) {
-    const idx = state.findIndex(o => o.name === action.name);
-    let option = {...state[idx]};
-    switch (action.type) {
-      case 'show': option.show = true; break;
-      case 'hide': option.show = false; break;
-      case 'toggle': option.show = !option.show;
-    }
-    state[idx] = option;
-    return [...state];
-  }
-  if (action.type === 'new') {
-    return [...state, action.payload];
-  }
-  throw new Error(`invalid action.type: ${action}`)
 };
 
 // actions
@@ -152,6 +120,18 @@ const codeset_idsReducer = (state, action) => {
 };
 const csetEditsReducer = (csetEdits, action) => {
 };
+
+function hierarchySettingsReducer(state, action) {
+  /*
+  const [collapsed, setCollapsed] = useState({});
+
+  function toggleCollapse(row) {
+    let _collapsed = {...collapsed, [row.pathToRoot]: !get(collapsed, row.pathToRoot.join(','))};
+    setCollapsed(_collapsed);
+  }
+   */
+  return state;
+}
 
 // const DataContext = createContext(null);
 const SPContext = createContext(null);

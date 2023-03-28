@@ -16,7 +16,6 @@ import {Tooltip} from './Tooltip';
 import { getEditCodesetFunc, getCodesetEditActionFunc, EditInfo,
     cellContents, cellStyle, } from './EditCset';
 // import FlexibleContainer, { accordionPanels, accordionPanel, } from "./FlexibleContainer";
-import {ContentItems} from "./FlexibleContainer";
 // import AllowOverlap from "./gridLayout";
 import {DOCS, howToSaveStagedChanges} from "./AboutPage";
 // import {isEmpty} from "react-data-table-component/dist/src/DataTable/util"; // what was this for?
@@ -80,7 +79,7 @@ function ControlsAndInfo(props) {
     const boxRef = useRef();
 
     // useEffect(() => contentItemsState.dispatch({type: 'contentItems-show', name: 'dummy'}));
-    console.log(appState.getState());
+    // console.log(appState.getState());
 
     // return <h4>Next step: context providers; then this component reads from QSState</h4>
     /*
@@ -143,9 +142,8 @@ function ControlsAndInfo(props) {
 
     return (
         <div>
-            [<ContentItems />]
-            <pre>{JSON.stringify(appState.getState(), null, 2)}</pre>
             {/*
+            <pre>{JSON.stringify(appState.getState(), null, 2)}</pre>
             {card}
             */}
             {/*<AllowOverlap />*/}
@@ -174,7 +172,7 @@ function ControlsAndInfo(props) {
 function ComparisonDataTable(props) {
     const {columns, squishTo=1, cset_data, csetEditState={}, customStyles, } = props;
     const derivedState = useDerivedState();
-    console.log(derivedState);
+    // console.log(derivedState);
     let rowData;
     if (derivedState) {
         rowData = derivedState.comparisonRowData;

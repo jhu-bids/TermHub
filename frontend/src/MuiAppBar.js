@@ -15,7 +15,6 @@ import Tooltip from '@mui/material/Tooltip';
 import MenuItem from '@mui/material/MenuItem';
 import MenuBookIcon from '@mui/icons-material/MenuBook';
 import {NavLink, useLocation} from "react-router-dom";
-import { cloneDeep, } from "lodash";
 
 
 import { styled, useTheme } from '@mui/material/styles';
@@ -27,31 +26,12 @@ import ChevronLeftIcon from '@mui/icons-material/ChevronLeft';
 import ChevronRightIcon from '@mui/icons-material/ChevronRight';
 import ListItem from '@mui/material/ListItem';
 import ListItemButton from '@mui/material/ListItemButton';
-import ListItemIcon from '@mui/material/ListItemIcon';
+// import ListItemIcon from '@mui/material/ListItemIcon';
 import ListItemText from '@mui/material/ListItemText';
-import InboxIcon from '@mui/icons-material/MoveToInbox';
-import MailIcon from '@mui/icons-material/Mail';
+import {getPages, ContentMenuItems, ContentItem, } from './contentControl';
 
 const drawerWidth = 240;
 
-const _pages = [
-  {name: 'Cset search', href: '/OMOPConceptSets'},
-  {name: 'Cset comparison', href: '/cset-comparison'},
-  {name: 'Example comparison', href: '/testing'},
-  // {name: 'Upload CSV', href: '/upload-csv', noSearch: true, },
-  // TODO: re-add Download (CSets, bundles, json...) at some point
-  //{name: 'Download CSet JSON', href: '/download-json', noSearch: true, },
-  {name: 'Help / About', href: '/about'}
-];
-function getPages(props) {
-  let pages = cloneDeep(_pages);
-  if (!props.codeset_ids.length) {
-    let page = pages.find(d=>d.href=='/cset-comparison');
-    page.disable = true;
-    page.tt = 'Select one or more concept sets in order to view, compare, or edit them.'
-  }
-  return pages;
-}
 const settings = ['About'];
 
 const Main = styled('main', { shouldForwardProp: (prop) => prop !== 'open' })(
@@ -101,48 +81,6 @@ const DrawerHeader = styled('div')(({ theme }) => ({
 
 export default function PersistentDrawerLeft(props) {
   const {children} = props;
-  /*
-    thoughts about where this is going:
-    content = {
-      search: {
-        name: 'search', componentName: 'CsetSearch',
-        requiredProps: { appStateSlices: ['codeset_ids'], dataStateSlices: ['all_csets'], },
-        showInMenu: () => true // always
-        showAs: 'panel',
-        defaultShowProps: {
-          style: {position: 'absolute'},
-          place: { x: 20, y: 20, width: (windowSize) => windowSize.width * .9, height: 400 }
-          shown: true, // turn off when comparison is turned on (maybe other rules)
-          collapsed: false,
-          collapseProps: { width: ({name}) => (name.length + 2) + 'em', height: '2em', },
-        },
-        currentShowProps: { ... },
-      },
-      csetsDataTable: {
-        name: 'csetsDataTable', componentName: 'CsetsDataTable',
-        requiredProps: { appStateSlices: ['codeset_ids'], dataStateSlices: ['selected_csets', 'related_csets'], },
-        showInMenu: () => ({codeset_ids}) => codeset_ids > 0,
-        showAs: 'panel',
-        defaultShowProps: {
-          style: {position: 'absolute'}, // should be same size and below search
-          place: { x: 20, y: 20, width: (windowSize) => windowSize.width * .9, height: 400 }
-          shown: true, // after codeset_ids (or selected_csets) changes
-          collapsed: false,
-          collapseProps: { width: ({name}) => (name.length + 2) + 'em', height: '2em', },
-        },
-        currentShowProps: { ... },
-      },
-      conceptNavigation: { }, // doesn't exist yet (but may include search, tabular, graphical, ...)
-      comparison: {
-        name: 'csetComparison',
-        componentName: 'CsetComparisonPage' // OR:
-        subComponents: CsetComparisonTable + options and controls, legend
-      },
-      comparison: {
-        name: 'editCset', // does this remain an option on comparison, or become (optionally) independent
-      },
-    }
-   */
   const theme = useTheme();
   const [open, setOpen] = React.useState(false);
   const location = useLocation();
@@ -240,6 +178,9 @@ export default function PersistentDrawerLeft(props) {
           })}
         </List>
         <Divider />
+        <ContentMenuItems/>
+        {/*
+        <Divider />
         <List>
           {['All mail', 'Trash', 'Spam'].map((text, index) => (
             <ListItem key={text} disablePadding>
@@ -252,6 +193,7 @@ export default function PersistentDrawerLeft(props) {
             </ListItem>
           ))}
         </List>
+        */}
       </Drawer>
       <Main open={open}>
         <DrawerHeader />

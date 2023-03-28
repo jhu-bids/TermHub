@@ -22,8 +22,9 @@ import {DOCS} from "./AboutPage";
     You can use the `isOptionEqualToValue` prop to customize the equality test.
     @ SIggie: is this fixed?
 */
-function CsetSearch(props) {
+export function CsetSearch(props) {
   const {codeset_ids, changeCodesetIds, all_csets=[], } = props;
+  console.log(props);
 
   const [keyForRefreshingAutocomplete, setKeyForRefreshingAutocomplete] = useState(0);
   // necessary to change key for reset because of Autocomplete bug, according to https://stackoverflow.com/a/59845474/1368860

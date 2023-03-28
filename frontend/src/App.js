@@ -31,6 +31,7 @@ import {AppStateProvider, searchParamsToObj, updateSearchParams, backend_url, us
 import {UploadCsvPage} from "./UploadCsv";
 import {DownloadJSON} from "./DownloadJSON";
 import MuiAppBar from "./MuiAppBar";
+import {PopupContentItem, ContentItems} from './contentControl';
 // // import _ from "./supergroup/supergroup";
 
 // import logo from './logo.svg';
@@ -222,6 +223,7 @@ function RoutesContainer(props) {
   return (
       <Routes>
         {/*<Route path="/help" element={<HelpWidget {...props} />} />*/}
+        <Route path="popupContentItem/:context/:contentItemName" element={<PopupContentItem {...props} />} />
         <Route path="/" element={<App {...props} />}>
           <Route path="cset-comparison" element={<CsetComparisonPage {...props} />} />
           <Route path="OMOPConceptSets" element={<ConceptSetsPage {...props}  />} />
@@ -243,6 +245,7 @@ function App(props) {
             <Outlet/>
           </MuiAppBar>
         </div>
+        <ContentItems/>
       </ThemeProvider>
   );
 }
