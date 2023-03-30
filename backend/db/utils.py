@@ -216,7 +216,7 @@ def load_csv(
     print(f'INFO: \nloading {schema}.{table} into {CONFIG["server"]}:{DB}')
     # Clear data if exists
     try:
-        con.execute(text(f'TRUNCATE {schema}.{table}'))
+        con.execute(text(f'DROP TABLE {schema}.{table} CASCADE'))
     except ProgrammingError:
         pass
 
