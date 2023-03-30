@@ -17,7 +17,7 @@ import {backend_url} from './App';
 import _ from "./supergroup/supergroup";
 
 const checkmark = <span>{'\u2713'}</span>;
-function getEditCodesetFunc(props) {
+export function getEditCodesetFunc(props) {
   const {searchParams, } = props;
   return (evt) => {
     let ec = parseInt(evt.target.getAttribute('codeset_id'));
@@ -30,7 +30,7 @@ function getEditCodesetFunc(props) {
   }
 }
 
-function getCodesetEditActionFunc({searchParams, }) {
+export function getCodesetEditActionFunc({searchParams, }) {
   return (props) => { // this function will be called editAction and passed around as needed
     const {clickAction, flag, cset_col:{codeset_id}, row:{concept_id}, cset_data, no_action=false, } = props;
     let sp = searchParamsToObj(searchParams);
@@ -68,10 +68,10 @@ function summaryLine({item, action, concept}) {
           {concept.concept_name} ({concept.concept_id}) {flags}
          </Typography>
 }
-function EditInfo(props) {
+export function EditInfo(props) {
   const {editCodesetId, csetEditState, cset_data: {selected_csets, conceptLookup,
           saveInstructions=false}} = props;
-  const csidState = csetEditState[editCodesetId];
+  const csidState = csetEditState && csetEditState[editCodesetId];
   if (!csidState) {
     return null;
   }
@@ -102,7 +102,7 @@ function EditInfo(props) {
       </Card>
   );
 }
-function saveChangesInstructions(props) {
+export function saveChangesInstructions(props) {
   const {
     editCodesetId, csetEditState, cset_data: {
       selected_csets, conceptLookup,
@@ -232,13 +232,13 @@ function cellInfo(props) {
 
   return {editing, item, };
 }
-const defaultCellStyle = { // https://stackoverflow.com/questions/19461521/how-to-center-an-element-horizontally-and-vertically
+export const defaultCellStyle = { // https://stackoverflow.com/questions/19461521/how-to-center-an-element-horizontally-and-vertically
   padding: 0,
   display: 'flex',
   alignItems: 'center',
   justifyContent: 'center',
 };
-function cellStyle(props) {
+export function cellStyle(props) {
   const {editing, item} = cellInfo(props);
   return _cellStyle(item, editing);
 }
@@ -310,7 +310,7 @@ function fakeCell(props) {
   let content = cellContents({...cellProps});
   return <Box sx={{width: '100px', height: '100%', border: '1px solid gray', ...style}}>{content}</Box>
 }
-function Legend() {
+export function Legend() {
   const itemTypes = {
     "Concept set not being edited": {},
     "Concept is not item or member": {content: fakeCell({editing: false, flags: '', })},
@@ -348,7 +348,7 @@ function LegendItem({label, content=null, style, }) {
     { content ? <Box sx={{width: '100px', border: '1px solid gray', ...style}}>{content}</Box> : null }
   </Box>
 }
-function cellContents(props) {
+export function cellContents(props) {
   /*
       Populates cell with appropriate icons.
       If not editing, show (nothing is clickable):
@@ -443,5 +443,3 @@ function cellContents(props) {
   );
   return cellStuff;
 }
-
-export {EditInfo, getCodesetEditActionFunc, getEditCodesetFunc, cellContents, cellStyle, Legend, };

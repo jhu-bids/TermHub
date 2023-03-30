@@ -31,7 +31,7 @@ import {AppStateProvider, searchParamsToObj, updateSearchParams, backend_url, us
 import {UploadCsvPage} from "./UploadCsv";
 import {DownloadJSON} from "./DownloadJSON";
 import MuiAppBar from "./MuiAppBar";
-import {PopupContentItem, ContentItems} from './contentControl';
+import {PopupContentItem, /*ContentItems*/} from './contentControl';
 // // import _ from "./supergroup/supergroup";
 
 // import logo from './logo.svg';
@@ -223,7 +223,7 @@ function RoutesContainer(props) {
   return (
       <Routes>
         {/*<Route path="/help" element={<HelpWidget {...props} />} />*/}
-        <Route path="popupContentItem/:context/:contentItemName" element={<PopupContentItem {...props} />} />
+        {/*<Route path="popupContentItem/:context/:contentItemName" element={<PopupContentItem {...props} />} />*/}
         <Route path="/" element={<App {...props} />}>
           <Route path="cset-comparison" element={<CsetComparisonPage {...props} />} />
           <Route path="OMOPConceptSets" element={<ConceptSetsPage {...props}  />} />
@@ -238,14 +238,18 @@ function RoutesContainer(props) {
 function App(props) {
   return (
       <ThemeProvider theme={theme}>
+        {/*
+        <Box sx={{backgroundColor: '#EEE', border: '2px solid green', minWidth: '200px', minHeight: '200px'}} >
+          // <ContentItems/>
+        </Box>
+        */}
         <div className="App">
           {/* <ReactQueryDevtools initialIsOpen={false} /> */ }
           <MuiAppBar {...props}>
             { /* Outlet: Will render the results of whatever nested route has been clicked/activated. */}
-            <Outlet/>
           </MuiAppBar>
+          <Outlet/>
         </div>
-        <ContentItems/>
       </ThemeProvider>
   );
 }

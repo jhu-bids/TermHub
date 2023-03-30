@@ -28,7 +28,7 @@ import ListItem from '@mui/material/ListItem';
 import ListItemButton from '@mui/material/ListItemButton';
 // import ListItemIcon from '@mui/material/ListItemIcon';
 import ListItemText from '@mui/material/ListItemText';
-import {getPages, ContentMenuItems, ContentItem, } from './contentControl';
+import {getPages, /*ContentMenuItems, ContentItem, */ } from './contentControl';
 
 const drawerWidth = 240;
 
@@ -79,7 +79,8 @@ const DrawerHeader = styled('div')(({ theme }) => ({
   justifyContent: 'flex-end',
 }));
 
-export default function PersistentDrawerLeft(props) {
+export function PersistentDrawerLeft(props) {
+  // may come back to this. going back to top navbar for now
   const {children} = props;
   const theme = useTheme();
   const [open, setOpen] = React.useState(false);
@@ -178,7 +179,7 @@ export default function PersistentDrawerLeft(props) {
           })}
         </List>
         <Divider />
-        <ContentMenuItems/>
+        {/*<ContentMenuItems/>*/}
         {/*
         <Divider />
         <List>
@@ -203,16 +204,8 @@ export default function PersistentDrawerLeft(props) {
   );
 }
 
-
-
-
-
-
-
-
-
 /* https://mui.com/material-ui/react-app-bar/ */
-const MuiAppBar = (props) => {
+export default function MuiAppBar(props) {
   const location = useLocation();
   const {search} = location;
   const pages = getPages(props);

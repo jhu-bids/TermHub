@@ -89,7 +89,9 @@ export function getPages(props) {
   }
   return pages;
 }
-export const contentItemsReducer = (state={}, action) => {
+export function contentItemsReducer(state={}, action) {
+  /* For use with ContentMenuItems and ContentItems, but not currently using it.
+   */
   console.log({state,action});
   if (!action.type) return state;
   if (['show','hide','toggle'].includes(action.type)) {
@@ -110,7 +112,7 @@ export const contentItemsReducer = (state={}, action) => {
     return {...state, [action.name]: action.payload};
   }
   throw new Error(`invalid action.type: ${action}`)
-};
+}
 export function DummyComponent({foo}) {
   return <h3>dummy component: {foo}</h3>
 }
@@ -124,6 +126,67 @@ function popupWindow(props) {
     throw new Error(`couldn't open popup ${windowName}`);
   }
 }
+export function AssembleComponent({id, title, Component, componentProps}) {
+  /* this takes an object or props with a componentName (or Component?)
+      and props. To be used with other containers, so the other containers
+      can focus on their containing features (drag, collapse, etc.) and
+      accept this as a child
+   */
+  <Component {...componentProps} />
+
+}
+export function FlexibleContainer({title, children}) {
+  /* TODO: dragging triggers click action; not great. solutions to try here:
+      https://github.com/react-grid-layout/react-draggable/issues/531
+      Also, I stretched the IconButton to 100% width because the x on the
+      right can end up off the screen, but it makes it a wide flat oval
+      on hover
+   */
+  const [display, setCollapsed] = useState('collapsed');
+  const draggableRef = useRef(null);
+  const setDisplay = (_display) => {
+    setCollapsed(() => _display);
+  };
+  // console.log({title, Component, componentProps})
+
+  const position = { x: 0, y: 0 };
+  let displayedContent;
+  let style = {
+    cursor: 'move', display: 'inline-block',
+  };
+  if (display === 'collapsed') {
+    displayedContent = (
+        <Button
+              sx={{...style, marginRight: '4px',}}
+              variant="contained" color="primary"
+              onClick={() => setDisplay('show')}>
+          Show {title}
+        </Button>);
+    return displayedContent;  // maybe better if the buttons aren't draggable
+  } else if (display === 'show') {
+    const closeFunc = () => setDisplay('collapsed');
+    style = {...style, zIndex: 10, position: 'absolute', backgroundColor: '#EEE', border: '2px solid green', minWidth: '200px', minHeight: '200px'};
+    displayedContent = (
+      <>
+        <IconButton onClick={closeFunc}
+          sx={{position: 'absolute', width: '100%', justifyContent: 'right', }}
+        >
+          <CloseIcon/>
+        </IconButton>
+        {children}
+      </>
+    );
+  }
+  return (
+      <Draggable nodeRef={draggableRef} defaultPosition={position}>
+        <Box ref={draggableRef} closeFunc={() => setDisplay('collapsed')} sx={style} >
+          {displayedContent}
+        </Box>
+      </Draggable>
+  );
+}
+
+/*
 export function PopupContentItem(props) {
   const params = useParams();
   const {contentItemName, context} = params;
@@ -143,6 +206,10 @@ export function PopupContentItem(props) {
   );
 }
 export function ContentMenuItems(props) {
+  /* Displays a (menu) list of currently closed but openable content items
+      as tracked in AppState.contentItems. Got it sort of working, but not
+      using at the moment. May return to it.
+   * /
   const location = useLocation();
   const {search: searchParams} = location;
   const appState = useAppState();
@@ -171,26 +238,27 @@ export function ContentMenuItems(props) {
                 <Component {...props} />
               </dialog>
           );
-           */
+           * /
         }
         return (
-          <ListItem key={name} disablePadding>
-            <ListItemButton {...buttonProps} >
-              Show {name}
-            </ListItemButton>
-          </ListItem>);
+            <ListItem key={name} disablePadding>
+              <ListItemButton {...buttonProps} >
+                Show {name}
+              </ListItemButton>
+            </ListItem>);
       }
   );
   return (
-      <>
-        <List>
-          {buttons}
-        </List>
-        <pre>{JSON.stringify({contentItems}, null, 2)}</pre>
-      </>
-  )
+      <List>
+        {buttons}
+      </List>
+  ) // <pre>{JSON.stringify({contentItems}, null, 2)}</pre>
 }
 export function ContentItems(props) {
+  /* Displays currently open items as tracked in AppState.contentItems.
+     Haven't gotten it working reasonably as yet. Putting on hold. May
+     return to it.
+   * /
   const location = useLocation();
   const {search: searchParams} = location;
   const appState = useAppState();
@@ -209,7 +277,7 @@ export function ContentItems(props) {
             props aren't being passed correctly -- but shouldn't fix that because
             CsetSearch should extract what it needs from Context instead of props
             (as should everything eventually)
-           */
+           * /
           // if (content) return content;
           const Component = contentComponents[componentName];
           return <FlexibleContainer key={name} title={name} Component={Component} componentProps={props} />;
@@ -222,43 +290,11 @@ export function ContentItems(props) {
       </>
   );
 }
-
-export function FlexibleContainer({id, title, Component, componentProps}) {
-  const [display, setCollapsed] = useState('show');
-  const draggableRef = useRef(null);
-  const setDisplay = (_display) => {
-    setCollapsed(() => _display);
-  };
-  console.log({title, Component, componentProps})
-
-  const position = { x: 0, y: 0 };
-  let out;
-  if (display === 'collapsed') {
-    out = <Button
-              variant="contained" color="primary"
-              onClick={() => setDisplay('show')}>Show {title}</Button>;
-  } else if (display === 'show') {
-    const closeFunc = () => setDisplay('collapsed');
-    out = (
-        <Draggable nodeRef={draggableRef} defaultPosition={position}>
-          <div ref={draggableRef} style={{ cursor: 'move', display: 'inline-block'}}>
-            <IconButton onClick={closeFunc}><CloseIcon/></IconButton>
-            <Component {...componentProps}
-               closeFunc={() => setDisplay('collapsed')} />
-            <Typography variant={"h3"} >
-              Try to drag me
-            </Typography>
-          </div>
-        </Draggable>
-    );
-  }
-  return out;
-}
 function usePaperContainer({children}) {
 // const [ref, { x, y, width, height, top, right, bottom, left }] = useMeasure();
 const [ref, measures ] = useMeasure();
 return { ref, measures, contents: (
-      <Paper ref={ref} sx={{ m: 1 }} elevation={4} /*measures={measures}*/>
+      <Paper ref={ref} sx={{ m: 1 }} elevation={4} /*measures={measures}* />
           {children}
         </Paper>
     )};
@@ -295,7 +331,7 @@ function CollapsibleContainerWithSwitch({id, title, children}) {
             <div style={{border: '4px solid purple', display: 'inline-block'}}>
               {contents}
             </div>
-          */}
+          * /}
         </Collapse>
           {/*
           <div>
@@ -316,12 +352,11 @@ function CollapsibleContainerWithSwitch({id, title, children}) {
               </Collapse>
             </Box>
           </div>
-          */}
+          * /}
         </Box>
       </Box>
   );
 }
-
 function accordionPanels({panels=[]}) {
   console.log(panels);
   const out = panels.map((p,i) => {
@@ -398,3 +433,4 @@ function SimpleAccordion() {
   );
 }
 // export {FlexibleContainer, accordionPanels, accordionPanel, SimpleAccordion};
+ */
