@@ -6,7 +6,9 @@
   along with some other state not currently managed in querystring
 - after app state and data state are ready, have another provider for
   DerivedState
-- ContentItems are going to be pieces of UI whose state will be managed
+- Not currently using contentItems. May come back to it after more immediate
+  requirements handled and after doing some more explicit design work.
+  ContentItems are going to be pieces of UI whose state will be managed
   in AppState. The (very rough) idea is that there will be buttons or
   something to let user show some piece of content, and then a close
   icon will make it disappear and make the button reappear.
@@ -21,7 +23,7 @@ import { useQuery } from '@tanstack/react-query'
 import { createSearchParams, } from "react-router-dom";
 import { isEmpty, memoize, pullAt} from 'lodash';
 import {pct_fmt, } from "./utils"
-import {contentItemsReducer, defaultContentItems} from "./contentControl";
+// import {contentItemsReducer, defaultContentItems} from "./contentControl";
 
 const DerivedStateContext = createContext(null);
 export function DerivedStateProvider(props) {
@@ -62,7 +64,7 @@ export function useStateSlice(slice) {
 const CombinedReducersContext = createContext(null);
 export function AppStateProvider({children}) {
   const reducers = {
-    contentItems: useReducer(contentItemsReducer, defaultContentItems),
+    // contentItems: useReducer(contentItemsReducer, defaultContentItems),
     codeset_ids:  useReducer(codeset_idsReducer, []),
     editCset:     useReducer(editCsetReducer),
     // more stuff needed
@@ -86,7 +88,7 @@ export function AppStateProvider({children}) {
     return (reducerSlice === slice) && type;
   });
     if (!(action && action.type)) return state;
-    const type = getTypeForSlice('contentItems', action.type);
+    const type = getTypeForSlice('c ontentItems', action.type);
    */
   return (
       <CombinedReducersContext.Provider value={getters}>

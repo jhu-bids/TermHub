@@ -13,11 +13,14 @@ import {fmt, useWindowSize, } from "./utils";
 import {setColDefDimensions, } from "./dataTableUtils";
 import {ConceptSetCard} from "./ConceptSetCard";
 import {Tooltip} from './Tooltip';
-import { getEditCodesetFunc, getCodesetEditActionFunc, EditInfo,
-    cellContents, cellStyle, } from './EditCset';
+import {
+    getEditCodesetFunc, getCodesetEditActionFunc, EditInfo,
+    cellContents, cellStyle, Legend, saveChangesInstructions,
+} from './EditCset';
 // import FlexibleContainer, { accordionPanels, accordionPanel, } from "./FlexibleContainer";
 // import AllowOverlap from "./gridLayout";
 import {DOCS, howToSaveStagedChanges} from "./AboutPage";
+import {FlexibleContainer} from "./contentControl";
 // import {isEmpty} from "react-data-table-component/dist/src/DataTable/util"; // what was this for?
 // import Button from '@mui/material/Button';
 
@@ -148,6 +151,15 @@ function ControlsAndInfo(props) {
             */}
             {/*<AllowOverlap />*/}
             <Box ref={boxRef} sx={{ width: '96%', margin: '9px', display: 'flex', flexDirection: 'row', }}>
+                <FlexibleContainer title='Staged changes'>
+                    <EditInfo {...props} />
+                </FlexibleContainer>
+                <FlexibleContainer title='Instructions to save changes'>
+                    {saveChangesInstructions(props)}
+                </FlexibleContainer>
+                <FlexibleContainer title='Legend'>
+                    <Legend/>
+                </FlexibleContainer>
                 {/*
             {eInfo}
             <Draggable defaultPosition={{x: 0, y: 0}} >
