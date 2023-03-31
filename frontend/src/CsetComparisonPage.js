@@ -1,7 +1,7 @@
 import React, {useRef, useState, useCallback, useEffect, /* useMemo, useReducer, */} from 'react';
 // import { createSearchParams, useSearchParams, } from "react-router-dom";
 import DataTable, { createTheme } from 'react-data-table-component';
-import { AddCircle, RemoveCircleOutline, Add, } from '@mui/icons-material';
+import { AddCircle, RemoveCircleOutline, } from '@mui/icons-material';
 import Box from '@mui/material/Box';
 import Slider from '@mui/material/Slider';
 import Button from '@mui/material/Button';
@@ -29,10 +29,11 @@ import {FlexibleContainer} from "./contentControl";
 // TODO: Color table: I guess would need to see if could pass extra values/props and see if table widget can use that
 //  ...for coloration, since we want certain rows grouped together
 function CsetComparisonPage(props) {
-    const {all_csets=[], cset_data={}, searchParams, setSearchParams, } = props;
-    const {hierarchy={}, selected_csets=[], concepts=[], cset_members_items=[], } = cset_data;
+    const {all_csets=[], cset_data={}, searchParams, setSearchParams, editCodesetId, csetEditState} = props;
+    const {selected_csets=[], researchers} = cset_data;
     const [collapsed, setCollapsed] = useState({});
     const windowSize = useWindowSize();
+    const boxRef = useRef();
     const sizes = getSizes(/*squishTo*/ 1);
     const customStyles = styles(sizes);
 
@@ -51,10 +52,32 @@ function CsetComparisonPage(props) {
         collapsed, toggleCollapse, nested: true, windowSize, });
 
     let moreProps = {...props, columns, selected_csets, customStyles, };
+    let infoPanels;
+    if (editCodesetId && csetEditState && csetEditState[editCodesetId]) {
+        const csidState = csetEditState[editCodesetId];
+        infoPanels = (
+            <Box ref={boxRef} sx={{ width: '96%', margin: '9px', display: 'flex', flexDirection: 'row', }}>
+                <FlexibleContainer title="Concept set being edited">
+                    <ConceptSetCard
+                        cset={columns.find(d => d.codeset_id === editCodesetId).cset_col}
+                        researchers={researchers}
+                        editing={true} />
+                </FlexibleContainer>
+                <FlexibleContainer title={`${Object.keys(csidState).length} Staged changes`}>
+                    <EditInfo {...props} />
+                </FlexibleContainer>
+                <FlexibleContainer title='Instructions to save changes'>
+                    {saveChangesInstructions(props)}
+                </FlexibleContainer>
+                <FlexibleContainer title='Legend'>
+                    <Legend/>
+                </FlexibleContainer>
+            </Box> );
+    }
     return (
         <div>
             <DerivedStateProvider {...props}>
-                <ControlsAndInfo {...moreProps} />
+                {infoPanels}
                 <ComparisonDataTable /*squishTo={squishTo}*/ {...moreProps}  />
             </DerivedStateProvider>
         </div>)
@@ -66,7 +89,7 @@ function CsetComparisonPage(props) {
                                                {opt.msg}
                                            </Button>)
 }*/
-function ControlsAndInfo(props) {
+function ControlsAndInfo__not_using_right_now(props) {
     const { cset_data, columns,
         editCodesetId, csetEditState={}, searchParams, setSearchParams,
             children, } = props;
@@ -184,6 +207,7 @@ function ControlsAndInfo(props) {
 function ComparisonDataTable(props) {
     const {columns, squishTo=1, cset_data, csetEditState={}, customStyles, } = props;
     const derivedState = useDerivedState();
+    const boxRef = useRef();
     // console.log(derivedState);
     let rowData;
     if (derivedState) {
@@ -208,7 +232,6 @@ function ComparisonDataTable(props) {
             // data={displayObj.rowData}
             data={rowData}
             dense
-            /*
             fixedHeader
             fixedHeaderScrollHeight={() => {
                 // console.log(boxRef.current);
@@ -218,6 +241,7 @@ function ComparisonDataTable(props) {
                             offsetTop + offsetHeight)) + 'px';
                 // return "400px";
             }}
+            /*
              */
             // highlightOnHover
             // responsive

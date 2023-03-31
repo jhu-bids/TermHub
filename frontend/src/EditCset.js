@@ -20,12 +20,22 @@ const checkmark = <span>{'\u2713'}</span>;
 export function getEditCodesetFunc(props) {
   const {searchParams, } = props;
   return (evt) => {
-    let ec = parseInt(evt.target.getAttribute('codeset_id'));
+    let codeset_id = parseInt(evt.target.getAttribute('codeset_id'));
     let sp = searchParamsToObj(searchParams);
-    if (sp.editCodesetId === ec) {
-      updateSearchParams({...props, delProps: ['editCodesetId']});
+    let {csetEditState={}, } = sp;
+    let addProps, delProps;
+    if (sp.editCodesetId === codeset_id) {
+      // clicked codeset is already being edited, so get rid of it
+      // delete csetEditState[codeset_id]; // have been keying editState on codeset_id so state
+      //  could be returned to when switching which codeset is being edited, but that's a bad idea.
+      //  should get rid of that, but don't have time at the moment
+      delProps = ['editCodesetId', 'csetEditState'];
+      updateSearchParams({...props, delProps});
     } else {
-      updateSearchParams({...props, addProps: {editCodesetId: ec}});
+      // clicked codeset is not already being edited, so set it to be edited
+      //  and clear editState
+      addProps = {editCodesetId: codeset_id, csetEditState: {}};
+      updateSearchParams({...props, addProps});
     }
   }
 }

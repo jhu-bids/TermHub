@@ -166,7 +166,9 @@ function ConceptSetCard(props) {
               {editing ? 'Editing' : ''} {cset.concept_set_version_title}
               {/*{editSingleLink}*/}
             </Typography>
-            <IconButton onClick={closeFunc}><CloseIcon/></IconButton>
+            {
+              closeFunc ? <IconButton onClick={closeFunc}><CloseIcon/></IconButton> : null
+            }
           </div>
           <Typography variant="body2" color="text.primary" gutterBottom>
             {tags.join(', ')}

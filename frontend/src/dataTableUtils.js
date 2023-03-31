@@ -1,6 +1,7 @@
 import React, { useRef, useLayoutEffect, useState } from 'react';
 import { sum, } from 'lodash';
 import {Tooltip} from './Tooltip';
+import { Info, } from '@mui/icons-material';
 
 function ColumnHeader(props) {
   let {tooltipContent, headerContent, headerContentProps, allottedWidth, coldef} = props;
@@ -50,6 +51,13 @@ function ColumnHeader(props) {
 
    */
   // console.log({headerContent, allottedWidth, contentWidth: headerDims.width})
+  if (tooltipContent) {
+    headerContent = (
+        <span>
+          {headerContent}
+          <Info sx={{fontSize: '80%'}}/>
+        </span>);
+  }
   let header = <span className="cset-column-header" ref={targetRef}
             style={{...header_style}}
             {...headerContentProps}
@@ -57,7 +65,7 @@ function ColumnHeader(props) {
   //: {allottedWidth}/{headerDims.width}</span>
   if (tooltipContent) {
     header =  <Tooltip content={tooltipContent}>
-                {header}
+                  {header}
               </Tooltip>
   }
   return header;

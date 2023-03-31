@@ -40,12 +40,15 @@
 .comparison-data-table .rdt_TableHeadRow,
 .csets-data-table .rdt_TableHeadRow
 {
+  background-color: #fff4c2;
+  border: 2px solid #999;
+  margin-top: 2px;
   /*height: auto;
   height: 182px;
   color: red;
-  */
   borderBottomStyle: solid;
-  padding: 0;
+  padding: 0 0px 0 3px;
+  */
   verticalAlign: bottom;
   overflow: visible;
   textOverflow: unset;
