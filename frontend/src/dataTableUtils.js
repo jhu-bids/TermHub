@@ -52,11 +52,11 @@ function ColumnHeader(props) {
    */
   // console.log({headerContent, allottedWidth, contentWidth: headerDims.width})
   if (tooltipContent) {
-    headerContent = (
-        <span>
-          {headerContent}
-          <Info sx={{fontSize: '80%'}}/>
-        </span>);
+    // headerContent = (
+    //     <span>
+    //       {headerContent}
+    //       <Info sx={{fontSize: '80%'}}/>
+    //     </span>);
   }
   let header = <span className="cset-column-header" ref={targetRef}
             style={{...header_style}}

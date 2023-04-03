@@ -431,8 +431,10 @@ export function cellContents(props) {
           </Tooltip>;
   }
   const cellStuff = (
-      <div onClick={()=>{console.log({
-          editState: props.csetEditState[props.editCodesetId][props.row.concept_id],
+      <div onClick={()=>{
+        console.log({   // why is this console.log here? was the onClick supposed to do something else?
+                        // should the editAction be called without the console.log around it?
+          // editState: props.csetEditState[props.editCodesetId][props.row.concept_id],
           stuff: editAction({...props, clickAction, no_action: true}),
           item,
           editing
