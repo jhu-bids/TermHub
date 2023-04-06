@@ -20,10 +20,10 @@ import {NavLink, useLocation} from "react-router-dom";
 import { styled, useTheme } from '@mui/material/styles';
 import Drawer from '@mui/material/Drawer';
 import CssBaseline from '@mui/material/CssBaseline';
-import List from '@mui/material/List';
 import Divider from '@mui/material/Divider';
 import ChevronLeftIcon from '@mui/icons-material/ChevronLeft';
 import ChevronRightIcon from '@mui/icons-material/ChevronRight';
+import List from '@mui/material/List';
 import ListItem from '@mui/material/ListItem';
 import ListItemButton from '@mui/material/ListItemButton';
 // import ListItemIcon from '@mui/material/ListItemIcon';
@@ -32,7 +32,7 @@ import {getPages, /*ContentMenuItems, ContentItem, */ } from './contentControl';
 
 const drawerWidth = 240;
 
-const settings = ['About'];
+// const settings = ['About'];
 
 const Main = styled('main', { shouldForwardProp: (prop) => prop !== 'open' })(
   ({ theme, open }) => ({
@@ -361,16 +361,16 @@ export default function MuiAppBar(props) {
 
           {horizontalMenu}
 
+          {/*
           <Box sx={{ flexGrow: 0 }}>
             <Tooltip title="Open settings">
               <IconButton onClick={handleOpenUserMenu} sx={{ p: 0 }}>
-                {/*<Avatar alt="Remy Sharp" src="/static/images/avatar/2.jpg" />*/}
                 <Avatar alt="TermHub" src="/static/images/termhubIcon.jpg" />
               </IconButton>
             </Tooltip>
             <Menu
               sx={{ mt: '45px' }}
-              id="menu-user" /*"menu-appbar"*/
+              id="menu-user" /*"menu-appbar"* /
               anchorEl={anchorElUser}
               anchorOrigin={{
                 vertical: 'top',
@@ -391,6 +391,7 @@ export default function MuiAppBar(props) {
               ))}
             </Menu>
           </Box>
+          */}
         </Toolbar>
       </Container>
     </AppBar>

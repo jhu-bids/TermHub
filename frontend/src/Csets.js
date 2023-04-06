@@ -70,12 +70,14 @@ export function CsetSearch(props) {
           <Typography variant="h6" color="text.primary" gutterBottom>
             Select concept sets to view, compare, and edit.
           </Typography>
-          <Typography variant="body2" color="text.primary" gutterBottom>
-            Click to list all available and then to select.
-          </Typography>
-          <Typography variant="body2" color="text.primary" gutterBottom>
-            Or, start typing concept set name or version ID to filter.
-          </Typography>
+          <ul>
+            <li>
+              Click dropdown for full list
+            </li>
+            <li>
+              Type concept set name or version ID to filter
+            </li>
+          </ul>
         </CardContent>
       </Card>
   )
