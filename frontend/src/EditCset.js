@@ -19,7 +19,10 @@ const checkmark = <span>{'\u2713'}</span>;
 export function getEditCodesetFunc(props) {
   const {searchParams, } = props;
   return (evt) => {
-    let codeset_id = parseInt(evt.target.getAttribute('codeset_id'));
+        // was: let codeset_id = parseInt(evt.target.getAttribute('codeset_id')); until adding wrapper around col for including icon
+    const colHeaderEl = evt.target.parentNode;
+    const codeset_id = parseInt(colHeaderEl.getAttribute('codeset_id'));
+    if (!codeset_id) throw new Error("error getting codeset_id during col header click");
     let sp = searchParamsToObj(searchParams);
     let {csetEditState={}, } = sp;
     let addProps, delProps;
