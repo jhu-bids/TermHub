@@ -34,10 +34,27 @@ CREATE INDEX IF NOT EXISTS csc_idx2 on {{schema}}concept_set_container(concept_s
 
 CREATE INDEX IF NOT EXISTS csc_idx3 on {{schema}}concept_set_container(concept_set_id, created_at DESC);
 
+-- concept_set_container has duplicate records except for the created_at col
+--  get rid of duplicates, keeping the most recent.
+--  code from https://stackoverflow.com/a/28085614/1368860
+--      which also has code that works for databases other than postgres, if we ever need that
+WITH deduped AS (
+    SELECT DISTINCT ON (concept_set_id) concept_set_id, created_at
+    FROM {{schema}}concept_set_container
+    ORDER BY concept_set_id, created_at DESC
+)
+DELETE FROM {{schema}}concept_set_container csc
+WHERE NOT EXISTS (
+    SELECT FROM deduped dd
+    WHERE csc.concept_set_id = dd.concept_set_id
+  AND csc.created_at = dd.created_at
+    );
+
 DROP TABLE IF EXISTS all_csets;
 
-CREATE TABLE {{schema}}all_csets AS           -- table instead of view for performance
-                                    -- (no materialized views in mySQL)
+CREATE TABLE {{schema}}all_csets AS
+-- table instead of view for performance (no materialized views in mySQL)
+-- TODO: but now we're on postgres should it be a materialized view?
 SELECT DISTINCT
 		cs.codeset_id,
 		cs.concept_set_version_title,
@@ -128,38 +145,25 @@ SELECT    csmi.*
         , c.vocabulary_id
         , c.concept_name
         , c.concept_code
-FROM n3c.cset_members_items csmi
+        , c.concept_class_id
+        , c.standard_concept
+FROM {{schema}}cset_members_items csmi
 JOIN concept c ON csmi.concept_id = c.concept_id);
-
-CREATE INDEX csmip_idx1 ON {{schema}}cset_members_items_plus(codeset_id);
-
-CREATE INDEX csmip_idx2 ON {{schema}}cset_members_items_plus(concept_id);
-
-CREATE INDEX csmip_idx3 ON {{schema}}cset_members_items_plus(codeset_id, concept_id);
-
-
--- concept_set_container has duplicate records except for the created_at col
---  get rid of duplicates, keeping the most recent.
---  code from https://stackoverflow.com/a/28085614/1368860
---      which also has code that works for databases other than postgres, if we ever need that
-
-WITH deduped AS (
-    SELECT DISTINCT ON (concept_set_id) concept_set_id, created_at
-    FROM {{schema}}concept_set_container
-    ORDER BY concept_set_id, created_at DESC
-)
-DELETE FROM {{schema}}concept_set_container csc
-WHERE NOT EXISTS (
-   SELECT FROM deduped dd
-   WHERE csc.concept_set_id = dd.concept_set_id
-     AND csc.created_at = dd.created_at
-);
+-- CREATE INDEX csmip_idx1 ON {{schema}}cset_members_items_plus(codeset_id);
+-- CREATE INDEX csmip_idx2 ON {{schema}}cset_members_items_plus(concept_id);
+-- CREATE INDEX csmip_idx3 ON {{schema}}cset_members_items_plus(codeset_id, concept_id);
 
 DROP TABLE IF EXISTS {{schema}}concepts_with_counts_ungrouped;
 CREATE TABLE IF NOT EXISTS {{schema}}concepts_with_counts_ungrouped AS (
 SELECT DISTINCT
         c.concept_id,
         c.concept_name,
+        c.domain_id,
+        c.vocabulary_id,
+        c.concept_class_id,
+        c.standard_concept,
+        c.concept_code,
+        c.invalid_reason,
         COALESCE(tu.total_count, 0) AS total_cnt,
         COALESCE(tu.distinct_person_count, 0) AS distinct_person_cnt,
         tu.domain
@@ -173,16 +177,23 @@ DROP TABLE IF EXISTS {{schema}}concepts_with_counts;
 CREATE TABLE IF NOT EXISTS {{schema}}concepts_with_counts AS (
     SELECT  concept_id,
             concept_name,
+            domain_id,
+            vocabulary_id,
+            concept_class_id,
+            standard_concept,
+            concept_code,
+            invalid_reason,
             COUNT(DISTINCT domain) AS domain_cnt,
             array_to_string(array_agg(domain), ',') AS domain,
             SUM(total_cnt) AS total_cnt,
             array_to_string(array_agg(distinct_person_cnt), ',') AS distinct_person_cnt
     FROM {{schema}}concepts_with_counts_ungrouped
-    GROUP BY 1,2
+    GROUP BY 1,2,3,4,5,6,7,8
     ORDER BY concept_id, domain );
 
 CREATE INDEX cc_idx1 ON {{schema}}concepts_with_counts(concept_id);
 
+DROP TABLE concepts_with_counts_ungrouped CASCADE;
 
 -- concept_relationship_plus takes a long time to build
 DROP TABLE IF EXISTS {{schema}}concept_relationship_plus;
@@ -218,19 +229,9 @@ CREATE INDEX crp_idx4 ON {{schema}}concept_relationship_plus(concept_code);
 
 CREATE INDEX crp_idx5 ON {{schema}}concept_relationship_plus(relationship_id);
 
--- concept_set_container has duplicate records except for the created_at col
---  get rid of duplicates, keeping the most recent.
---  code from https://stackoverflow.com/a/28085614/1368860
---      which also has code that works for databases other than postgres, if we ever need that
-
-WITH deduped AS (
-    SELECT DISTINCT ON (concept_set_id) concept_set_id, created_at
-FROM {{schema}}concept_set_container
-ORDER BY concept_set_id, created_at DESC
-    )
-DELETE FROM {{schema}}concept_set_container csc
-WHERE NOT EXISTS (
-        SELECT FROM deduped dd
-        WHERE csc.concept_set_id = dd.concept_set_id
-          AND csc.created_at = dd.created_at
+CREATE TABLE IF NOT EXISTS {{schema}}concept_set_json (
+    codeset_id int,
+    json json
 );
+
+CREATE INDEX csj_idx ON {{schema}}concept_set_json(codeset_id);

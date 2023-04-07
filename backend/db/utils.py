@@ -24,9 +24,10 @@ DB = CONFIG["db"]
 SCHEMA = CONFIG["schema"]
 
 
-def get_db_connection(isolation_level='AUTOCOMMIT', schema: str = SCHEMA):
-    """Connect to db"""
-    engine = create_engine(get_pg_connect_url(), isolation_level=isolation_level)
+def get_db_connection(isolation_level='AUTOCOMMIT', schema: str = SCHEMA, local=False):
+    """Connect to db
+    :param local: If True, connection is on local instead of production database."""
+    engine = create_engine(get_pg_connect_url(local), isolation_level=isolation_level)
 
     @event.listens_for(engine, "connect", insert=True)
     def set_search_path(dbapi_connection, connection_record):
@@ -49,6 +50,12 @@ def get_db_connection(isolation_level='AUTOCOMMIT', schema: str = SCHEMA):
     return engine.connect()
 
 
+def chunk_list(input_list: List, chunk_size) -> List[List]:
+    """Split a list into chunks"""
+    for i in range(0, len(input_list), chunk_size):
+        yield input_list[i:i + chunk_size]
+
+
 def current_datetime():
     """Get current datetime"""
     return datetime.now(timezone.utc).isoformat()
@@ -66,8 +73,8 @@ def is_up_to_date(last_updated: Union[datetime, str], threshold_hours=24) -> boo
 def check_if_updated(key: str, skip_if_updated_within_hours: int = None) -> bool:
     """Check if table is up to date"""
     with get_db_connection(schema='') as con2:
-        last_updated = run_sql(con2, f"SELECT value FROM manage WHERE key = '{key}';").first()
-    last_updated = last_updated[0] if last_updated else None
+        results = sql_query(con2, f"SELECT value FROM public.manage WHERE key = '{key}';")
+    last_updated = results[0][0] if results else None
     return last_updated and is_up_to_date(last_updated, skip_if_updated_within_hours)
 
 
@@ -81,8 +88,8 @@ def update_db_status_var(key: str, val: str):
     """Update the `manage` table with information for a given variable, e.g. when a table was last updated
     todo: change to 1 line: INSERT OVERWRITE or UPDATE"""
     with get_db_connection(schema='') as con2:
-        run_sql(con2, f"DELETE FROM manage WHERE key = '{key}';")
-        sql_str = f"INSERT INTO manage (key, value) VALUES ('{key}', '{val}');"
+        run_sql(con2, f"DELETE FROM public.manage WHERE key = '{key}';")
+        sql_str = f"INSERT INTO public.manage (key, value) VALUES ('{key}', '{val}');"
         run_sql(con2, sql_str)
 
 
@@ -94,19 +101,19 @@ def database_exists(con: Connection, db_name: str) -> bool:
 
 
 def sql_query(
-    con: Connection,
-    query: Union[text, str],
-    params: Dict = {},
-    debug: bool = DEBUG,
-    return_with_keys=False) -> List[Union[RowMapping, LegacyRow]]:
+    con: Connection, query: Union[text, str], params: Dict = {}, debug: bool = DEBUG, return_with_keys=False
+) -> List[Union[RowMapping, LegacyRow]]:
     """Run a sql query with optional params, fetching records.
     https://stackoverflow.com/a/39414254/1368860:
     query = "SELECT * FROM my_table t WHERE t.id = ANY(:ids);"
     conn.execute(sqlalchemy.text(query), ids=some_ids)
     """
     try:
-        query = text(query) if not isinstance(query, TextClause) else query
-        q = con.execute(query, **params) if params else con.execute(query)
+        if params:
+            query = text(query) if not isinstance(query, TextClause) else query
+            q = con.execute(query, **params) if params else con.execute(query)
+        else:
+            q = con.execute(query)
 
         if debug:
             print(f'{query}\n{json.dumps(params, indent=2)}')
@@ -119,13 +126,25 @@ def sql_query(
         raise RuntimeError(f'Got an error [{err}] executing the following statement:\n{query}, {json.dumps(params, indent=2)}')
 
 
-def run_sql(con: Connection, command: str) -> Any:
+def sql_in(lst: List, quote_items=False) -> str:
+    if quote_items:
+        s: str = ', '.join([f"'{x}'" for x in lst]) or 'NULL'
+    else:
+        s: str = ', '.join([str(x) for x in lst]) or 'NULL'
+    return f' IN ({s}) '
+
+def run_sql(con: Connection, command: str, params: Dict = {}) -> Any:
     """Run a sql command"""
-    statement = text(command)
-    try:
-        return con.execute(statement)
-    except (ProgrammingError, OperationalError):
-        raise RuntimeError(f'Got an error executing the following statement:\n{command}')
+    if params:
+        command = text(command) if not isinstance(command, TextClause) else command
+        q = con.execute(command, **params) if params else con.execute(command)
+    else:
+        q = con.execute(command)
+    return q
+    # try:
+    #     return con.execute(command)
+    # except (ProgrammingError, OperationalError):
+    #     raise RuntimeError(f'Got an error executing the following statement:\n{command}')
 
 
 def sql_query_single_col(*argv) -> List:
@@ -173,7 +192,7 @@ def load_csv(
     # Edge cases
     existing_rows = 0
     try:
-        r = con.execute(f'select count(*) from {table}')
+        r = con.execute(f'select count(*) from {schema}.{table}')
         existing_rows = r.one()[0]
     except Exception as err:
         if isinstance(err.orig, UndefinedTable):
@@ -197,7 +216,7 @@ def load_csv(
     print(f'INFO: \nloading {schema}.{table} into {CONFIG["server"]}:{DB}')
     # Clear data if exists
     try:
-        con.execute(text(f'TRUNCATE {table}'))
+        con.execute(text(f'DROP TABLE {schema}.{table} CASCADE'))
     except ProgrammingError:
         pass
 
@@ -206,20 +225,6 @@ def load_csv(
     #  "Table \'code_sets\' already exists")')
     #  https://stackoverflow.com/questions/69906698/pandas-to-sql-gives-table-already-exists-error-with-if-exists-append
     kwargs = {'if_exists': 'append', 'index': False, 'schema': schema}
-    if CONFIG['server'] == 'mysql':   # this was necessary for mysql, probably not for postgres
-        try:
-            kwargs['schema'] = DB
-            df.to_sql(table, con, **kwargs)
-        except Exception as err:
-            # if data too long error, change column to longtext and try again
-            # noinspection PyUnresolvedReferences
-            m = re.match("Data too long for column '(.*)'.*", str(err.orig.args))
-            if m:
-                run_sql(con, f'ALTER TABLE {table} MODIFY {m[1]} LONGTEXT')
-                load_csv(con, table)
-            else:
-                raise err
-    else:
-        df.to_sql(table, con, **kwargs)
+    df.to_sql(table, con, **kwargs)
 
     update_db_status_var(f'last_updated_{table}', str(current_datetime()))

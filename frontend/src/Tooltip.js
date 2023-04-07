@@ -1,6 +1,6 @@
 import { cloneElement, useMemo, useState } from "react";
 import {
-  Placement,
+  // Placement,
   offset,
   flip,
   shift,
@@ -14,7 +14,7 @@ import {
 } from "@floating-ui/react-dom-interactions";
 import { mergeRefs } from "react-merge-refs";
 
-const Tooltip = ({ children, label, placement = "top" }) => {
+const Tooltip = ({ children, content, label, placement, classes='Tooltip' }) => {
   const [open, setOpen] = useState(false);
 
   const { x, y, reference, floating, strategy, context } = useFloating({
@@ -44,7 +44,7 @@ const Tooltip = ({ children, label, placement = "top" }) => {
       {open && (
         <div
           ref={floating}
-          className="Tooltip"
+          className={classes}
           style={{
             position: strategy,
             top: y ?? 0,
@@ -52,7 +52,7 @@ const Tooltip = ({ children, label, placement = "top" }) => {
           }}
           {...getFloatingProps()}
         >
-          {label}
+          {content ?? label}
         </div>
       )}
     </>

@@ -1,17 +1,20 @@
-import React, {useState, useEffect, useCallback, /* useReducer, useRef, */} from 'react';
-import {ComparisonDataTable} from "./ComparisonDataTable";
+import React, {useState, /* useReducer, useRef, */} from 'react';
 import {CsetsDataTable, } from "./CsetsDataTable";
-import {searchParamsToObj, StatsMessage} from "./utils";
+// import {difference, symmetricDifference} from "./utils";
 import ConceptSetCards from "./ConceptSetCard";
 import TextField from '@mui/material/TextField';
 import Autocomplete from '@mui/material/Autocomplete';
-import Button from '@mui/material/Button';
 // import Chip from '@mui/material/Chip';
-import { Link, Outlet, useHref, useParams, useSearchParams, useLocation } from "react-router-dom";
-import { every, get, isEmpty, throttle, } from 'lodash';
+// import { Link, Outlet, useHref, useParams, useSearchParams, useLocation } from "react-router-dom";
+import { every, get, isEmpty, throttle, pullAt, } from 'lodash';
 // import {isEqual, pick, uniqWith, max, omit, uniq, } from 'lodash';
 import Box from '@mui/material/Box';
-import Slider from '@mui/material/Slider';
+import {Tooltip} from "./Tooltip";
+import Card from '@mui/material/Card';
+import CardContent from '@mui/material/CardContent';
+import Typography from '@mui/material/Typography';
+// import * as po from './Popover';
+import {DOCS} from "./AboutPage";
 
 /* TODO: Solve
     react_devtools_backend.js:4026 MUI: The value provided to Autocomplete is invalid.
@@ -19,8 +22,9 @@ import Slider from '@mui/material/Slider';
     You can use the `isOptionEqualToValue` prop to customize the equality test.
     @ SIggie: is this fixed?
 */
-function CsetSearch(props) {
-  const {codeset_ids, changeCodesetIds, all_csets=[], cset_data={}} = props;
+export function CsetSearch(props) {
+  const {codeset_ids, changeCodesetIds, all_csets=[], } = props;
+  console.log(props);
 
   const [keyForRefreshingAutocomplete, setKeyForRefreshingAutocomplete] = useState(0);
   // necessary to change key for reset because of Autocomplete bug, according to https://stackoverflow.com/a/59845474/1368860
@@ -54,24 +58,64 @@ function CsetSearch(props) {
             return options.filter(o => every(match.map(m => o.label.match(m))))
           }}
           sx={{ width: '100%', }}
-          renderInput={(params) => <TextField {...params} label="Add concept set" />}
+          renderInput={(params) => <TextField {...params} label="Select concept set" />}
           onChange={(event, newValue) => {
             changeCodesetIds(newValue.id, 'add');
             setKeyForRefreshingAutocomplete(k => k+1);
           }}
       />);
+  const tt = (
+      <Card variant="elevation">
+        <CardContent sx={{border: '3px solid gray'}}>
+          <Typography variant="h6" color="text.primary" gutterBottom>
+            Select concept sets to view, compare, and edit.
+          </Typography>
+          <ul>
+            <li>
+              Click dropdown for full list
+            </li>
+            <li>
+              Type concept set name or version ID to filter
+            </li>
+          </ul>
+        </CardContent>
+      </Card>
+  )
+  return (
+      <Tooltip content={tt} classes="help-card" placement="top-end">
+        {autocomplete}
+      </Tooltip>
+  );
+  /*
   return (
     <div style={{padding:'9px', }}>
-      {autocomplete}
+      <po.Popover>
+        <po.PopoverTrigger>
+          {autocomplete}
+        </po.PopoverTrigger>
+        <po.PopoverContent className="Popover">
+          <po.PopoverHeading>
+            Select concept sets to view, compare, and edit.
+          </po.PopoverHeading>
+          <po.PopoverDescription>My popover description</po.PopoverDescription>
+          <po.PopoverClose>Close</po.PopoverClose>
+        </po.PopoverContent>
+      </po.Popover>
     </div>)
+   */
   /* want to group by cset name and then list version. use https://mui.com/material-ui/react-autocomplete/ Grouped
      and also use Multiple Values */
 }
 
 function ConceptSetsPage(props) {
-  const noSelectedCsets = ! get(props, 'cset_data.selected_csets', []).length;
-  if (noSelectedCsets) {
-    return <div style={{}}><CsetSearch {...props} /></div>;
+  const {codeset_ids} = props;
+  if (!codeset_ids.length) {
+    return  <>
+              <CsetSearch {...props} />
+              <div className="info-block">
+                {DOCS.blank_search_intro}
+              </div>
+            </>
   }
   return (
       <div style={{}}>
@@ -81,135 +125,22 @@ function ConceptSetsPage(props) {
       </div>)
 }
 
-// TODO: Find concepts w/ good overlap and save a good URL for that
-// TODO: show table w/ hierarchical indent
-// TODO: Color table: I guess would need to see if could pass extra values/props and see if table widget can use that
-//  ...for coloration, since we want certain rows grouped together
-function CsetComparisonPage(props) {
-  const {codeset_ids=[], all_csets=[], cset_data={}} = props;
-  const {hierarchy={}, selected_csets=[], concepts=[], cset_members_items=[]} = cset_data;
-  // let selected_csets = all_csets.filter(d => codeset_ids.includes(d.codeset_id));
-  const [nested, setNested] = useState(true);
-  const [rowData, setRowData] = useState([]);
-  const [squishTo, setSquishTo] = useState(1);
-  const [allConcepts, setAllConcepts] = useState(1);
-
-  let checkboxes = [];
-
-  const tsquish = throttle(
-      val => {
-        // console.log(`squish: ${squishTo} -> ${val}`);
-        setSquishTo(val);
-      }, 200);
-  const squishChange = useCallback(tsquish);
-  /*
-  const squishChange = useCallback(val => {
-    // console.log(`squish: ${squish} -> ${val}`);
-    setSquish(val);
-  });
-   */
-
-  /* TODO: review function for appropriate state management */
-  useEffect(() => {
-    makeRowData();
-  }, [codeset_ids.length, concepts.length]);
-
-  if (!all_csets.length) {
-    return <p>Downloading...</p>
+/*
+function hierarchyToFlatCids(h) {
+  function f(ac) {
+    ac.keys = [...ac.keys, ...Object.keys(ac.remaining)];
+    const r = Object.values(ac.remaining).filter(d => d);
+    ac.remaining = {};
+    r.forEach(o => ac.remaining = {...ac.remaining, ...o});
+    return ac;
   }
-  // let checkboxes = Object.fromEntries(selected_csets.map(d => [d.codeset_id, false]));
-  // let allConcepts = uniqWith(concept_set_members_i.map(d => pick(d, ['concept_id','concept_name'])), isEqual);
-  // let allConcepts = Object.fromEntries(concepts.map(d => [d.concept_id, {...d, checkboxes: {...checkboxes}}]));
-  // cset_members_items.forEach(d => allConcepts[d.concept_id].checkboxes[d.codeset_id] = d);
-
-  function makeRowData(collapsed={}) {
-    checkboxes = Object.fromEntries(selected_csets.map(d => [d.codeset_id, false]));
-    const _allConcepts = Object.fromEntries(concepts.map(d => [d.concept_id, {...d, checkboxes: {...checkboxes}}]));
-    setAllConcepts(_allConcepts);
-    cset_members_items.forEach(d => _allConcepts[d.concept_id].checkboxes[d.codeset_id] = d);
-
-    if (isEmpty(_allConcepts)) {
-      return;
-    }
-    if (!nested) {
-      setRowData(Object.values(_allConcepts));
-    }
-    let _rowData = [];
-    let traverse = (o, pathToRoot=[], level=0) => {
-      Object.keys(o).forEach(k => {
-        k = parseInt(k);
-        let row = {..._allConcepts[k], level, pathToRoot: [...pathToRoot, k]};
-        _rowData.push(row);
-        if (o[k] && typeof(o[k] === 'object')) {
-          row.has_children = true;
-          if (!collapsed[row.pathToRoot]) {
-            traverse(o[k], row.pathToRoot, level+1);
-          }
-        }
-      })
-    }
-    traverse(hierarchy)
-    // console.log('just after traverse', {_rowData});
-    setRowData(_rowData);
+  let ac = {keys: [], remaining: h};
+  while(!isEmpty(ac.remaining)) {
+    console.log(ac);
+    ac = f(ac);
   }
-  function toggleNested() {
-    setNested(!nested);
-    makeRowData({});
-  }
-  let moreProps = {...props, nested, makeRowData, rowData, selected_csets, squishTo};
-  // console.log({moreProps});
-  return (
-      <div>
-        <h5 style={{margin:20, }}>
-          <Button variant={nested ? "contained" : "outlined" } onClick={toggleNested}>
-            {rowData.length} lines in nested list.
-          </Button>
-          <Button  variant={nested ? "outlined" : "contained"} sx={{marginLeft: '20px'}} onClick={toggleNested}>
-            {Object.keys(allConcepts).length} distinct concepts
-          </Button>
-        </h5>
-        {/* <StatsMessage {...props} /> */}
-        <ComparisonDataTable squishTo={squishTo} {...moreProps} />
-        <div style={{}} ><SquishSlider setSquish={squishChange}/> </div>
-      </div>)
+  return uniq(ac.keys.map(k => parseInt(k)));
 }
+ */
 
-function SquishSlider({setSquish}) {
-  // not refreshing... work on later
-  function preventHorizontalKeyboardNavigation(event) {
-    if (event.key === 'ArrowLeft' || event.key === 'ArrowRight') {
-      event.preventDefault();
-    }
-  }
-  function onChange(e, val) {
-    // console.log('val: ', val);
-    setSquish(val);
-  }
-
-  return (
-      <Box sx={{ height: 300 }}>
-        <Slider
-            // key={`slider-${squish}`}
-            sx={{
-              width: '60%',
-              marginLeft: '15%',
-              marginTop: '15px',
-              // '& input[type="range"]': { WebkitAppearance: 'slider-vertical', },
-            }}
-            onChange={onChange}
-            // onChangeCommitted={onChange}
-            // orientation="vertical"
-            min={0.01}
-            max={2}
-            step={.1}
-            // value={squish}
-            defaultValue={1}
-            aria-label="Squish factor"
-            valueLabelDisplay="auto"
-            onKeyDown={preventHorizontalKeyboardNavigation}
-        />
-      </Box>
-  );
-}
-
-export {ConceptSetsPage, CsetComparisonPage, };
+export {ConceptSetsPage, };

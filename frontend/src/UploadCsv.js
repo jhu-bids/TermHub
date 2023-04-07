@@ -2,7 +2,7 @@
 import React from 'react';
 import Typography from "@mui/material/Typography";
 import Button from "@mui/material/Button";
-import {axiosPut, useDataWidget} from "./utils";
+import {axiosPut} from "./State";
 
 function UploadCsvPage(props) {
   // TODO: finish handler or whatever needs to be done to hit the backend route
@@ -26,9 +26,29 @@ function UploadCsvPage(props) {
       let txt = fileReader.result;
       // axiosPut('upload-csv-new-cset-version-with-concepts', e.target.result);
       // const [all_csets_widget, all_csets] = useDataWidget("upload", apiname, {csv: txt});
-      axiosPut(apiname, {csv: txt});
+      axiosPut(apiname, {csv: txt}).then((res) => {
+        if (res.data.status === 'success') {
+          console.log('Successful upload of cset version.')
+          console.log('full response: ')
+          console.log(res)
+        } else if (res.data.status === 'error') {
+          console.log('Error: uploading cset version')
+          console.log('error messages: ')
+          console.log(res.data.errors)
+          console.log('full response: ')
+          console.log(res)
+        } else {
+          console.log('Unexpected *response* from server: ')
+          console.log(res)
+        }
+      }).catch((err) => {
+        console.log('Unexpected *error* from server: ')
+        console.log(err.response.data)
+        // console.log(err)
+        return Promise.reject(err)
+      });
       // this.setState((prevState) => ({ [name]: [...prevState[name], e.target.result] }));
-      // TODO: Needs to upload to: /upload-csv-new-cset-version-with-concepts
+      // TODO: how to print to console or display in screen the promise resolution?
     };
     if (file) {
       fileReader.readAsText(file)

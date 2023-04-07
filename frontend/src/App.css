@@ -2,15 +2,23 @@
   cursor: pointer;
 }
 .Tooltip {
-  background: #222;
+  position: absolute;
+  background: #333;
+  padding: 0.5rem;
+  color: white;
+  z-index: 100;
+  min-width: 150px;
+
+  /*
+  min-height: 2.5em;
+  background: gray;
   color: white;
   pointer-events: none;
   border-radius: 6px;
   padding: 4px 6px;
-  /*
   font-size: 24px;
-   */
   width: 150px;
+   */
 }
 
 .MuiAutocomplete-option {
@@ -18,200 +26,99 @@
   margin: 0px;
   line-height: 10px;
 }
+/*
+.rdt_TableCell {
+  text-align: center;
+  align-content: center;
+}
+ */
 .comparison-data-table .rdt_TableRow,
 .comparison-data-table .rdt_TableCell {
-  /*
-    height: 3px;
-    max-height: 3px;
-  font-size: 2px;
-   */
   min-height: 0px;
 }
-.comparison-data-table .rdt_TableHeadRow > div + div
-{
-  white-space: nowrap;
-  overflow: visible;
-  text-overflow: unset;
-  justify-content: left; /* fixes weird thing with rightmost col shifting left when rotated */
-  margin-right: auto;
-  transform: translate(18px,0px) rotate(-45deg);
-  transform-origin: bottom left;
-  /*
-  border-bottom: 0.5px solid #BBB;
-  margin-top: auto;
-  height: 150px;
-  .header-checkbox {
-      transform: rotate(-180deg) !important;
-  writing-mode: vertical-lr;
-  -ms-writing-mode: tb-lr;
-  overflow: visible;
-  */
-}
 
+.comparison-data-table .rdt_TableHeadRow,
+.csets-data-table .rdt_TableHeadRow
+{
+  background-color: #fff4c2;
+  border: 2px solid #999;
+  margin-top: 2px;
+  /*height: auto;
+  height: 182px;
+  color: red;
+  borderBottomStyle: solid;
+  padding: 0 0px 0 3px;
+  */
+  verticalAlign: bottom;
+  overflow: visible;
+  textOverflow: unset;
+  marginTop: auto;
+}
+.cset-column-header {
+  /* white-space: nowrap;
+  cursor: pointer;
+  overflow: clip;
+  text-overflow: unset;
+  justify-content: left; /* fixes weird thing with rightmost col shifting left when rotated * /
+  margin-right: auto;
+  height: fit-content;
+  transform: translate(50%,0px) rotate(-45deg);
+  transform-origin: bottom left;
+   */
+}
 .comparison-data-table .rdt_TableHeadRow > div + div div
 {
-  overflow: visible;
-  text-overflow: unset;
+  overflow: hidden;
+  text-overflow: ellipsis;
   margin-top: auto;
 }
-
+/*
+.rdt_TableHeader {
+  align-content: baseline;
+  align-self: baseline;
+  alignment-baseline: bottom;
+  alignment: bottom;
+}
+ */
 .csets-data-table > .rdt_TableHeader {
     min-height: 0px;
 }
 .csets-data-table .rdt_Table {
     padding: 0px;
 }
-
-/*
-.ag-header-cell-label .ag-header-cell-text {
-  /*Force the width corresponding at how much width
-    we need once the text is laid out vertically
-  transform: rotate(-135deg) !important;
-  transform: rotate(-45deg) !important;
-  margin-top: 60px;
-  line-height: 2em;
-  width: 55px;
-  overflow: visible !important;
-  * /
+MuiCheckbox-root {
+}
+.css-12wnr2w-MuiButtonBase-root-MuiCheckbox-root {
+  padding: 0!important;
 }
 
-.ag-pivot-off .ag-header-group-cell {
-    font-size: 50px;
+.MuiCard-root {
+  margin: 3px;
 }
 
-.ag-pivot-on .ag-header-group-cell {
-    font-size: 10px;
-    color: green;
+.info-block {
+  font-family: "Roboto", sans-serif;
 }
 
-.ag-pivot-off .ag-header-cell-label {
-    color: #8a6d3b;
+
+/* from floating-ui popover sandbox:
+    https://codesandbox.io/s/distracted-swirles-jo1pvu?file=/src/styles.css:59-312
+ */
+.Popover {
+  background-color: white;
+  box-shadow: 0 2px 4px rgba(0, 10, 20, 0.1);
+  border: 1px solid #ddd;
+  font-size: 90%;
+  padding: 4px 8px;
+  border-radius: 4px;
+  box-sizing: border-box;
+  width: max-content;
+  max-width: calc(100vw - 10px);
 }
 
-.ag-pivot-on .ag-header-cell-label {
-    font-size: 10px;
-    /*
-    height: 290px;
-    padding-top: 36px;
-    margin-left: 0px;
-    * /
-    color: #1b6d85;
-    font-weight: bold;
+.help-card {
+  opacity: 1;
+  position: relative;
+  padding: 5px;
+  z-index: 100;
 }
-
-.ag-pivot-on .ag-header-cell-label .ag-header-cell-text {
-    /*There is empty space left at the top from the menu and sort
-      icons not used*/
-    /*    not helping
-    margin-top: 25px;
-    overflow: visible !important;
-    padding: 0 !important;
-    margin: 0 !important;
-    * /
-}
-*/
-
-/*Floating filters
-.ag-floating-filter-body {
-  height: 50px;
-}
-
-.ag-floating-filter-body input {
-  height: 49px;
-}
-
-.ag-floating-filter-button {
-  margin-top: -49px;
-}
-
-.ag-floating-filter-button button {
-  height: 49px;
-}
-
-.ag-floating-filter-body input {
-  font-size: 15px;
-  font-weight: bold;
-}
-.App-logo {
-  height: 40vmin;
-  pointer-events: none;
-}
-
-@media (prefers-reduced-motion: no-preference) {
-  .App-logo {
-    animation: App-logo-spin infinite 20s linear;
-  }
-}
-
-.App-header {
-  background-color: #282c34;
-  min-height: 100vh;
-  display: flex;
-  flex-direction: column;
-  align-items: center;
-  justify-content: center;
-  font-size: calc(10px + 2vmin);
-  color: white;
-}
-
-.App-link {
-  color: #61dafb;
-}
-
-@keyframes App-logo-spin {
-  from {
-    transform: rotate(0deg);
-  }
-  to {
-    transform: rotate(360deg);
-  }
-}
-
-.ag-theme-alpine {
-  /*
-  --ag-background-color: #ddd !important;
-  * /
-}
-/*
-.ag-theme-comparison .ag-header-cell-text {
-  transform: rotate(-45deg) !important;
-  transform: rotate(-45deg) !important;
-}
-.ag-theme-comparison /*.ag-header-cell-label .ag-header-cell-text * /
-{
-  --ag-odd-row-background-color: #aaa;
-
-  /*
-    --ag-grid-size: 3px;
-    --ag-list-item-height: 20px;
-  * /
-}
-*/
-/*
-.ag-theme-comparison .ag-header {
-    height: 200px !important;
-    overflow: visible !important;
-}
-.ag-theme-comparison .ag-header-row {
-    height: 197px !important;
-    transform: translate(5px, -40px);
-    overflow: visible !important;
-}
-.ag-cell-label-container {
-    /*Necessary to allow for text to grow vertically* /
-    height: 100%;
-}
-
-.ag-header-cell-label {
-    /*Necessary to allow for text to grow vertically
-    height: 100%;
-    * /
-    height: 80px;
-    padding: 0 !important;
-    text-align: left;
-    vertical-align: text-bottom;
-}
-.checkbox {
-    width: 50px;
-}
-*/

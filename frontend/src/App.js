@@ -6,30 +6,41 @@ https://stackoverflow.com/questions/53219113/where-can-i-make-api-call-with-hook
 might be useful to look at https://mui.com/material-ui/guides/composition/#link
 referred to by https://stackoverflow.com/questions/63216730/can-you-use-material-ui-link-with-react-router-dom-link
 */
-import React, {useState, useReducer, useEffect, useRef} from 'react';
+import React, {} from 'react';
 import './App.css';
-import { // Link, useHref, useParams, BrowserRouter,
+import { // Link, useHref, useParams, BrowserRouter, redirect,
           Outlet, Navigate, useSearchParams, useLocation,
-          createSearchParams, Routes, Route, redirect, } from "react-router-dom";
-import MuiAppBar from "./MuiAppBar";
-import { // useMutation, // useQueryClient,
-          QueryClient, useQuery, useQueries, QueryClientProvider, } from '@tanstack/react-query'
-import {isEqual} from "lodash";
-import { persistQueryClient, removeOldestQuery,} from '@tanstack/react-query-persist-client'
-// import { createSyncStoragePersister } from '@tanstack/query-sync-storage-persister'
+          createSearchParams, Routes, Route,} from "react-router-dom";
+import { createTheme, ThemeProvider, } from '@mui/material/styles';
+import Box from '@mui/material/Box';
+import { // useMutation, useQueryClient, useQuery, useQueries,
+          QueryClient,QueryClientProvider, } from '@tanstack/react-query'
+import { keyBy, isEmpty, } from "lodash";
 import { createWebStoragePersistor } from 'react-query/createWebStoragePersistor-experimental'
-import { ReactQueryDevtools } from '@tanstack/react-query-devtools'
-import {ConceptSetsPage, CsetComparisonPage} from "./Csets";
-import {AboutPage} from "./AboutPage";
-import {searchParamsToObj, axiosGet, backend_url, useDataWidget} from "./utils";
+import { persistQueryClient, removeOldestQuery,} from '@tanstack/react-query-persist-client'
+// import { ReactQueryDevtools } from '@tanstack/react-query-devtools'
+// import { createSyncStoragePersister } from '@tanstack/query-sync-storage-persister'
+
+import useMeasure from 'react-use/lib/useMeasure';
+import Paper from '@mui/material/Paper';
+
+import {ConceptSetsPage, } from "./Csets";
+import {CsetComparisonPage} from "./CsetComparisonPage";
+import {AboutPage, } from "./AboutPage";
+import {AppStateProvider, searchParamsToObj, updateSearchParams, backend_url, useDataWidget, } from "./State";
 import {UploadCsvPage} from "./UploadCsv";
+import {DownloadJSON} from "./DownloadJSON";
+import MuiAppBar from "./MuiAppBar";
+import {PopupContentItem, /*ContentItems*/} from './contentControl';
+// // import _ from "./supergroup/supergroup";
+
 // import logo from './logo.svg';
+// import { useIsFetching } from '@tanstack/react-query' // https://tanstack.com/query/v4/docs/react/guides/background-fetching-indicators
 // import dotenv from 'dotenv';
 // import * as dotenv from 'dotenv' // see https://github.com/motdotla/dotenv#how-do-i-use-dotenv-with-import
 // dotenv.config()
 // const buf = Buffer.from('API_ROOT=api_root')
 // const config = dotenv.parse(buf) // will return an object
-// console.log(config)
 // const API_ROOT = 'http://127.0.0.1:8000'
 
 // const enclave_url = path => `${API_ROOT}/passthru?path=${path}`
@@ -81,77 +92,108 @@ persistQueryClient({
     </BrowserRouter>
 */
 function QCProvider() {
-  const location = useLocation();
   return (
-      <React.StrictMode>
+      <React.StrictMode> {/* StrictMode helps assure code goodness by running everything twice, but it's annoying*/}
         <QueryClientProvider client={queryClient}>
-          <QueryStringStateMgr location={location}/>
-          <ReactQueryDevtools initialIsOpen={false} />
+          <AppStateProvider>
+            <QueryStringStateMgr />
+            {/*<ReactQueryDevtools initialIsOpen={false} />*/}
+          </AppStateProvider>
         </QueryClientProvider>
       </React.StrictMode>
   );
 }
 function QueryStringStateMgr(props) {
-  const {location} = props;
+  const location = useLocation();
   const [searchParams, setSearchParams ] = useSearchParams();
   // gets state (codeset_ids for now) from query string, passes down through props
-  const sp = searchParamsToObj(searchParams);
-  const [codeset_ids, setCodeset_ids] = useState(sp.codeset_ids || []);
-  // console.log(props);
+  // const [codeset_ids, setCodeset_ids] = useState(sp.codeset_ids || []);
+  const sp = searchParamsToObj(searchParams, setSearchParams);
+  const {codeset_ids=[], } = sp;
 
+  let globalProps = {...sp, searchParams, setSearchParams, };
+
+  if (sp.fixSearchParams) {
+    delete sp.fixSearchParams;
+    const csp = createSearchParams(sp);
+    return <Navigate to={location.pathname + '?' + csp.toString()} />;
+  }
+  /*
   useEffect(() => {
     if (sp.codeset_ids && !isEqual(codeset_ids, sp.codeset_ids)) {
       setCodeset_ids(sp.codeset_ids);
     }
-  }, [searchParams]);
+  }, [searchParams, codeset_ids, sp.codeset_ids]);
+   */
 
   function changeCodesetIds(codeset_id, how) {
     // how = add | remove | toggle
     const included = codeset_ids.includes(codeset_id);
     let action = how;
-    if (how == 'add' && included) return;
-    if (how == 'remove' && !included) return;
-    if (how == 'toggle') {
+    if (how === 'add' && included) return;
+    if (how === 'remove' && !included) return;
+    if (how === 'toggle') {
       action = included ? 'remove' : 'add';
     }
-    let params;
-    if (action == 'add') {
-      params = createSearchParams({codeset_id: [...codeset_ids, codeset_id]});
-    } else if (action == 'remove') {
+    if (action === 'add') {
+      updateSearchParams({...globalProps, addProps: {codeset_ids: [...codeset_ids, codeset_id]}});
+    } else if (action === 'remove') {
       if (!included) return;
-      params = createSearchParams({codeset_id: codeset_ids.filter(d => d != codeset_id)});
+      updateSearchParams({...globalProps, addProps: {codeset_ids: codeset_ids.filter(d => d !== codeset_id)}});
     } else {
-      throw 'unrecognized action in changeCodesetIds: ' + JSON.stringify({how, codeset_id});
+      throw new Error('unrecognized action in changeCodesetIds: ' + JSON.stringify({how, codeset_id}));
     }
-    setSearchParams(params);
   }
 
-  if (location.pathname == '/') {
+  if (location.pathname === '/') {
     return <Navigate to='/OMOPConceptSets' />;
-    return;
   }
-  if (location.pathname == '/testing') {
+  if (location.pathname === '/cset-comparison' && isEmpty(codeset_ids)) {
+    return <Navigate to='/OMOPConceptSets' />;
+  }
+  if (location.pathname === '/testing') {
     const test_codeset_ids = [400614256, 411456218, 419757429, 484619125, ];
-    let params = createSearchParams({codeset_id: test_codeset_ids});
+    let params = createSearchParams({codeset_ids: test_codeset_ids});
     // setSearchParams(params);
     let url = '/cset-comparison?' + params;
     // return redirect(url); not exported even though it's in the docs
-    return <Navigate to={url}
-                     replace={true} /* what does this do? */ />;
+    return <Navigate to={url} replace={true} /* what does this do? */ />;
+  }
+  if(!globalProps.codeset_ids) {
+    globalProps.codeset_ids = [];
   }
   return <DataContainer /* searchParams={searchParams}*/
-                        codeset_ids={codeset_ids}
+                        // codeset_ids={codeset_ids}
                         changeCodesetIds={changeCodesetIds}
+                        {...globalProps}
                         />;
 }
 function DataContainer(props) {
   let {codeset_ids, } = props;
-  const all_csets_url = 'get-all-csets';
-  const cset_data_url = 'cr-hierarchy?rec_format=flat&codeset_id=' + codeset_ids.join('|');
-  const [all_csets_widget, all_csets] = useDataWidget("all_csets", all_csets_url);
-  const [cset_data_widget, cset_data] = useDataWidget(codeset_ids.join('|'), cset_data_url);
+  const all_csets_url = backend_url('get-all-csets');
+  const cset_data_url = backend_url('cr-hierarchy?rec_format=flat&codeset_ids=' + codeset_ids.join('|'));
+  // /crconst cr_url = 'get-concept_relationships?codeset_ids=' + codeset_ids.join('|');
 
-  if (all_csets && cset_data) {
+  /* TODO: This is a total disaster. do something with it */
+  const [all_csets_widget, acprops] = useDataWidget("all_csets", all_csets_url);
+  const [cset_data_widget, csprops] = useDataWidget(codeset_ids.join('|'), cset_data_url);
+  // const [cr_widget, crprops] = useDataWidget('cr' + codeset_ids.join('|'), cr_url);
+  const all_csets = acprops.data;
+  const cset_data = csprops.data;
+  // const concept_relationships = crprops.data;
+
+  if (all_csets && cset_data /*&& concept_relationships*/) {
+    cset_data.conceptLookup = keyBy(cset_data.concepts, 'concept_id');
+    const csmiLookup = {};
+    // cset_data.cset_members_items.map(mi => set(csmiLookup, [mi.codeset_id, mi.concept_id], mi));
+    // the line above created the most bizarre crashing behavior -- fixed by replacing the lodash set with simple loop below
+    cset_data.cset_members_items.forEach(mi => {
+      csmiLookup[mi.codeset_id] = csmiLookup[mi.codeset_id] || {};
+      csmiLookup[mi.codeset_id][mi.concept_id] = mi;
+    });
+    cset_data.csmiLookup = csmiLookup;
+    // let cr = _.hierarchicalTableToTree(concept_relationships, 'concept_id_1', 'concept_id_2');
+
     return  <RoutesContainer {...props} all_csets={all_csets} cset_data={cset_data}/>
   }
   return (
@@ -160,8 +202,11 @@ function DataContainer(props) {
           <Route path="*"  element={
             <div>
               <h3>Waiting for data</h3>
-              {all_csets_widget}
-              {cset_data_widget}
+              <Box sx={{ display: 'flex' }}>
+                {all_csets_widget}
+                {cset_data_widget}
+                {/*cr_widget*/}
+              </Box>
             </div>
           } />
         </Route>
@@ -169,33 +214,54 @@ function DataContainer(props) {
     );
 }
 function RoutesContainer(props) {
+  window.props_w = props;
+  // console.log(window.props_w = props);
   return (
       <Routes>
+        {/*<Route path="/help" element={<HelpWidget {...props} />} />*/}
+        {/*<Route path="popupContentItem/:context/:contentItemName" element={<PopupContentItem {...props} />} />*/}
         <Route path="/" element={<App {...props} />}>
           <Route path="cset-comparison" element={<CsetComparisonPage {...props} />} />
           <Route path="OMOPConceptSets" element={<ConceptSetsPage {...props}  />} />
           <Route path="about" element={<AboutPage {...props} />} />
           <Route path="upload-csv" element={<UploadCsvPage {...props} />} />
+          <Route path="download-json" element={<DownloadJSON {...props} />} />
           {/* <Route path="OMOPConceptSet/:conceptId" element={<OldConceptSet />} /> */}
         </Route>
       </Routes>
   )
 }
-function App() {
+function App(props) {
   return (
-      <div className="App">
-        {/* <ReactQueryDevtools initialIsOpen={false} /> */ }
-        <MuiAppBar/>
-        {/* Outlet: Will render the results of whatever nested route has been clicked/activated. */}
-        <Outlet/>
-      </div>
+      <ThemeProvider theme={theme}>
+        {/*
+        <Box sx={{backgroundColor: '#EEE', border: '2px solid green', minWidth: '200px', minHeight: '200px'}} >
+          // <ContentItems/>
+        </Box>
+        */}
+        <div className="App">
+          {/* <ReactQueryDevtools initialIsOpen={false} /> */ }
+          <MuiAppBar {...props}>
+            { /* Outlet: Will render the results of whatever nested route has been clicked/activated. */}
+          </MuiAppBar>
+          <Outlet/>
+        </div>
+      </ThemeProvider>
   );
 }
-
-function ErrorPath() {
-  return <h3>Unknown path</h3>
-}
-
+const theme = createTheme({
+  // https://mui.com/material-ui/customization/theme-components/#global-style-overrides
+  // https://mui.com/material-ui/guides/interoperability/#global-css
+  // see example https://mui.com/material-ui/customization/theming/
+  // status: { danger: orange[500], },
+  components: {
+    MuiCard: {
+      defaultProps: {
+        margin: '6pt',
+      }
+    }
+  }
+});
 
 /*
 when in doubt: https://reactjs.org/docs/hooks-reference.html and https://reactrouter.com/docs/en/v6
@@ -225,58 +291,5 @@ OH!! Does that mean: without a dependency list, the useEffects function will run
 
 */
 
-/*
-function objectTypesData(data) {
-  const someObjTypePropertiesHaveDesc = data.some(d=>Object.entries(d.properties).some(d=>d.description))
-  // console.log(data.map(d=>Object.entries(d.properties).map(p=>`${p[0]}(${p[1].baseType})`).join(', ')).join('\n\n'))
-  if (someObjTypePropertiesHaveDesc) {
-    // console.log('someObjTypePropertiesHaveDesc!!!!!')
-  }
-  let rows = data.map(d => ({
-    apiName: d.apiName,
-    description: d.description,
-    primaryKey: d.primaryKey.join(','),
-    properties: Object.keys(d.properties).join(', '),
-  }))
-  return rows
-}
-*/
 
-export {QCProvider, backend_url};
-
-// TODO: @Siggie: Can we remove this comment or we need this list of links for ref still?
-//       @Joe: we should move it to the individual concept set display component(s) as a
-//             list of all the data we could be including
-/*
-function getObjLinks() {
-  // https://www.palantir.com/docs/foundry/api/ontology-resources/objects/list-linked-objects
-  return <List>
-
-    omop-concept-set-to-omop-concept
-    omop-concept-set-version-item-to-omop-concept
-    omop-concept-set-version-to-cset-version-info
-    omop-concept-set-version-to-items
-    omop-vocabulary-version-set-container-link
-    vocab-version-set-version-link
-
-    concept-change-version-link
-    concept-set-bundle-item-omop-concept-set
-    concept-set-review-concept-set
-    concept-set-tag-to-concept-set-versions
-    concept-set-version-change-acknowledgement-omop-concept-set
-    concept-set-version-to-concept-set-container
-    documentation-node-to-concept-set-version
-
-    omop-concept-set-provenance
-    omop-concept-set-container-omop-concept-domains
-    omop-concept-set-to-omop-concept-domains
-    omop-concept-set-container-to-concept-set-tag
-    omop-concept-set-container-to-research-project
-    omop-concept-set-to-research-project
-
-    omop-concept-set-version-to-intended-domain-team
-    set-ack-link
-    concept-change-subscription
-  </List>
-}
-*/
+export { QCProvider, };

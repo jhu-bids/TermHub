@@ -57,9 +57,10 @@ from typing import Dict, List, Union
 
 from requests import Response
 
-from enclave_wrangler.config import ENCLAVE_PROJECT_NAME, VALIDATE_FIRST
-from enclave_wrangler.objects_api import EnclaveClient
-from enclave_wrangler.utils import make_objects_request, make_actions_request # , set_auth_token_key
+from enclave_wrangler.config import ENCLAVE_PROJECT_NAME, TERMHUB_VERSION, VALIDATE_FIRST, config
+from enclave_wrangler.objects_api import get_concept_set_version_expression_items, \
+    get_codeset_json #, get_objects_by_type
+from enclave_wrangler.utils import enclave_get, make_actions_request, get_random_codeset_id  # set_auth_token_key,
 
 
 UUID = str
@@ -87,14 +88,19 @@ def add_concepts_to_cset(omop_concepts: List[Dict], version__codeset_id: int, va
      ...endpoint: add-selected-concepts-as-omop-version-expressions
     """
     # Group together all concepts that have the same settings
-    relevant_keys = ['isExcluded', 'includeMapped', 'includeDescendants', 'annotation']
+    keys_required = ['isExcluded', 'includeMapped', 'includeDescendants']
+    keys_optional = ['annotation']
     omop_concept_groups: Dict[str, Dict] = {}
     for concept in omop_concepts:
-        group_key = '__'.join([f'{k}_{v}' for k, v in concept.items() if k in relevant_keys])
+        group_key_required = '__'.join([f'{k}_{v}' for k, v in concept.items() if k in keys_required])
+        keys_optional_present = [k for k in keys_optional if k in concept]
+        group_key_optional = '__'.join([f'{k}_{v}' for k, v in concept.items() if k in keys_optional_present])
+        group_key = group_key_required + '__' + group_key_optional if group_key_optional else group_key_required
+        keys = keys_required + keys_optional_present
         if group_key not in omop_concept_groups:
             omop_concept_groups[group_key] = {
                 key: concept[key]
-                for key in relevant_keys
+                for key in keys
             }
             omop_concept_groups[group_key]['omop_concept_ids'] = []
         omop_concept_groups[group_key]['omop_concept_ids'].append(concept)
@@ -108,7 +114,7 @@ def add_concepts_to_cset(omop_concepts: List[Dict], version__codeset_id: int, va
             is_excluded=group['isExcluded'],
             include_mapped=group['includeMapped'],
             include_descendants=group['includeDescendants'],
-            optional_annotation=group['annotation'] if group['annotation'] else "",
+            optional_annotation=group['annotation'] if 'annotation' in group and  group['annotation'] else '',
             validate_first=validate_first)
         responses.append(response_i)
 
@@ -119,7 +125,7 @@ def add_concepts_to_cset(omop_concepts: List[Dict], version__codeset_id: int, va
 def add_concepts_via_array(
     concepts: List[int], version: int, include_mapped: bool, include_descendants: bool, is_excluded: bool,
     optional_annotation: str = "", validate_first=VALIDATE_FIRST
-)-> Response:
+) -> Response:
     """Create new concepts within concept set, AKA concept_set_version_items / expressions
     Non-required params set to `None`.
 
@@ -135,6 +141,9 @@ def add_concepts_via_array(
         # "description": "",
         # "rid": "ri.actions.main.action-type.d1ad39f8-a303-4f46-8f46-bd48c5362915",
         "parameters": {
+            "sourceApplication": 'TermHub',
+              # "description": "",
+              # "baseType": "String"
             "concepts": concepts,
               # "description": "",
               # "baseType": "Array<OntologyObject>"
@@ -260,11 +269,11 @@ def add_concept_via_edit(
 
 # code_set
 # TODO: strange that new-parameter and new-parameter1 are required. I added arbitrary strings
-def upload_concept_set_version(
-    concept_set: str=None, base_version: int = None, current_max_version: float = None, version_id: int = None,
-    on_behalf_of: str = None, intention: str=None, domain_team: str = None, provenance: str = None,
+def upload_concept_set_version_draft(
+    concept_set: str = None, base_version: int = None, current_max_version: float = None, version_id: int = None,
+    on_behalf_of: str = None, intention: str = None, domain_team: str = None, provenance: str = None,
     annotation: str = None, limitations: str = None, intended_research_project: str = None, authority: str = None,
-    validate_first=VALIDATE_FIRST
+    copyExpressionsFromBaseVersion: bool = False, validate_first=VALIDATE_FIRST
 )-> Response:
     """Create a new draft concept set version.
 
@@ -297,7 +306,7 @@ def upload_concept_set_version(
     current_max_version_shared_warning_msg = \
         f'Attempting to upload, though if there is an error, this may be the cause. Original documentation for ' \
         f'`current_max_version`\n: {current_max_version_docstring}'
-    if version_id <= 1 and current_max_version:
+    if version_id == 0 and current_max_version:  # was version_id <= 1, which errored if version_id=None
         print(f'Warning: `version_id` {version_id} appears to be first version, in which case `current_max_version`'
               f' should be `null` (`None` in Python). You passed {current_max_version} for `current_max_version`.\n'
               f'{current_max_version_shared_warning_msg}', file=sys.stderr)
@@ -315,6 +324,12 @@ def upload_concept_set_version(
         # "rid": "ri.actions.main.action-type.fb260d04-b50e-4e29-9d39-6cce126fda7f",
         # - Required params
         "parameters": {
+            "sourceApplication": 'TermHub',
+            # "description": "",
+            # "baseType": "String"
+            "sourceApplicationVersion": TERMHUB_VERSION,
+            # "description": "",
+            # "baseType": "String"
             "conceptSet": concept_set,
             # "conceptSet": {
             #   "description": "",
@@ -327,6 +342,7 @@ def upload_concept_set_version(
             #   "baseType": "String"
             # - validation info: Ideally one of the following, though other values are accepted:
             #   "Broad (sensitive)", "Narrow (specific)", "Mixed"
+            "copyExpressionsFromBaseVersion": copyExpressionsFromBaseVersion,
         }
     }
 
@@ -410,7 +426,8 @@ def upload_concept_set_version(
 
 
 def finalize_concept_set_version(
-    concept_set: str, version_id: int = None, validate_first=VALIDATE_FIRST
+    concept_set: str, version_id: int, current_max_version: float, provenance: str = "", limitations: str = "",
+    validate_first=VALIDATE_FIRST
 )-> Response:
     """Finalize a concept set version
 
@@ -423,17 +440,16 @@ def finalize_concept_set_version(
     api_name = 'finalize-draft-omop-concept-set-version'
 
     # Commented out portions are part of the api definition
-    # TODO: Ask Amin to remove these strange required 'new-parameter's? I added arbitrary strings
     d = {
         # "apiName": api_name,
         # "description": "",
         # "rid": "ri.actions.main.action-type.fb260d04-b50e-4e29-9d39-6cce126fda7f",
         # - Required params
         "parameters": {
-            "new-parameter": 'hello new-parameter',  # required
+            "new-parameter": limitations,  # required
             #   "description": "",
             #   "baseType": "String"
-            "new-parameter1": 'hello new-parameter1',  # required
+            "new-parameter1": provenance,  # required
             #   "description": "",
             #   "baseType": "String"
 
@@ -448,17 +464,13 @@ def finalize_concept_set_version(
             "version": version_id,
             # "description": "",
             # "baseType": "OntologyObject"
-            # "currentMaxVersion": {
+            "currentMaxVersion": current_max_version,
             #   "description": "",
             #   "baseType": "Double"
         }
     }
 
-
-    # set_auth_token_key(personal=True)
     response: Response = make_actions_request(api_name, d, validate_first)
-    # set_auth_token_key(personal=False)
-
     if 'errorCode' in response:
         print(response, file=sys.stderr)
         # todo: What can I add to help the user figure out what to do to fix, until API returns better responses?
@@ -593,13 +605,61 @@ def delete_concept_set_version(version_id: int, validate_first=VALIDATE_FIRST) -
     return response
 
 
-def get_concept_set_version_expression_items(version_id: Union[str, int]) -> List[UUID]:
-    """Get concept set version expression items"""
-    version_id = str(version_id)
-    client = EnclaveClient()
-    response: Response = client.get_object_links(
-        object_type='OMOPConceptSet',
-        object_id=version_id,
-        link_type='omopConceptSetVersionItem')
-    expression_items: List[UUID] = [x['properties']['itemId'] for x in response.json()['data']]
-    return expression_items
+def get_action_types() -> Response:
+    """Get action types / API action endpoint definitions
+    curl -H "Authorization: Bearer $PALANTIR_ENCLAVE_AUTHENTICATION_BEARER_TOKEN " \
+    "https://unite.nih.gov/api/v1/ontologies/ri.ontology.main.ontology.00000000-0000-0000-0000-000000000000/actionTypes"
+    https://unite.nih.gov/docs/foundry/api/ontology-resources/action-types/list-action-types/
+    """
+    ontology_rid = config['ONTOLOGY_RID']
+    api_path = f'/api/v1/ontologies/{ontology_rid}/actionTypes'
+    url = f'https://{config["HOSTNAME"]}{api_path}'
+    response: Response = enclave_get(url)
+    return response.json()['data']
+
+
+if __name__ == '__main__':
+    concept_set_name = 'ag - test'
+    parent_codeset_id = 147725421
+    current_max_version = 4.0
+    concept_id_to_delete = 2108681 # Patient receiving care in the intensive care unit (ICU) and receiving mechanical ventilation, 24 hours or less (CRIT)
+    test_draft_codeset_id = get_random_codeset_id()
+    print(f'creating test cset version: {test_draft_codeset_id}')
+    result = upload_concept_set_version_draft(  # upload_new_cset_version_with_concepts(  # upload_concept_set_version
+        concept_set=concept_set_name, base_version=parent_codeset_id, current_max_version=current_max_version,
+        version_id=test_draft_codeset_id, copyExpressionsFromBaseVersion=True,
+        on_behalf_of='5c560c3e-8e55-485c-9a66-f96285f273a0', intended_research_project='RP-4A9E27',
+        intention='Testing version upload', provenance='Nowhere', limitations='Total',
+        validate_first=True) # left out domain_team:str, annotation:str, authority:str
+    print(result)
+    from enclave_wrangler.utils import make_objects_request, EnclaveWranglerErr
+    item = make_objects_request(
+        f'objects/OMOPConceptSet/{test_draft_codeset_id}/links/omopConceptSetVersionItem?p.conceptId.eq={concept_id_to_delete}',
+        verbose=True, retry_if_empty=True, return_type='data')
+    if len(item) != 1:
+        raise EnclaveWranglerErr("unexpected return from make_objects_request")
+    item = item[0]
+    print(item)
+    # csets = get_objects_by_type('OMOPConceptSet')
+    itemId = item['properties']['itemId']
+
+    j = get_codeset_json(test_draft_codeset_id)
+
+    result = make_actions_request(
+        api_name='discard-omop-concept-set-expression',
+        data= {
+            "parameters": {
+                "concept-set-version-item": [f"{itemId}"],
+                "version": test_draft_codeset_id
+            }
+        },
+    )
+    print(item)
+    print('delete draft now')
+    response = delete_concept_set_version(test_draft_codeset_id)
+    print(response)
+
+# concept_set_name: str, parent_version_codeset_id: int, current_max_version: float, omop_concepts: List[Dict],
+# provenance: str = "", limitations: str = "", intention: str = "", annotation: str = "",
+# intended_research_project: str = None, on_behalf_of: str = None, codeset_id: int = None, \
+# validate_first=VALIDATE_FIRST, finalize=True # maybe finalize should default to False?

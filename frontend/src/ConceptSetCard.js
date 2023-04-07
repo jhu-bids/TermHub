@@ -1,18 +1,22 @@
 import * as React from 'react';
-import { styled } from '@mui/material/styles';
 import Card from '@mui/material/Card';
 import CardContent from '@mui/material/CardContent';
-// import CardActions from '@mui/material/CardActions';
-import IconButton from '@mui/material/IconButton';
 import Typography from '@mui/material/Typography';
-import Box from '@mui/material/Box';
-import {get, } from 'lodash';
-// import Button from '@mui/material/Button';
-import {backend_url} from './App';
+import IconButton from '@mui/material/IconButton';
+import CloseIcon from '@mui/icons-material/Close';
+// import Box from '@mui/material/Box';
+import {useLocation} from "react-router-dom";
+import {backend_url} from './State';
 
-const bull = (
-  <Box component="span" sx={{ display: 'inline-block', mx: '2px', transform: 'scale(0.8)' }} >•</Box>
-);
+/*
+import { styled } from '@mui/material/styles';
+import CardActions from '@mui/material/CardActions';
+import IconButton from '@mui/material/IconButton';
+import Button from '@mui/material/Button';
+import {get, } from 'lodash';
+import Button from '@mui/material/Button';
+
+const bull = ( <Box component="span" sx={{ display: 'inline-block', mx: '2px', transform: 'scale(0.8)' }} >•</Box> );
 
 const ExpandMore = styled((props) => {
   const { expand, ...other } = props;
@@ -24,10 +28,11 @@ const ExpandMore = styled((props) => {
     duration: theme.transitions.duration.shortest,
   }),
 }));
+ */
 
 export default function ConceptSetCards(props) {
-  const {codeset_ids=[], cset_data={}} = props;
-  const {selected_csets=[], } = cset_data;
+  const {cset_data={}} = props;
+  const {selected_csets=[], researchers={}} = cset_data;
   if (!selected_csets.length) {
     return <div></div>;
   }
@@ -38,27 +43,26 @@ export default function ConceptSetCards(props) {
           selected_csets.map(cset => {
             // let widestConceptName = max(Object.values(cset.concepts).map(d => d.concept_name.length))
             return <ConceptSetCard  {...props}
-                     codeset_id={cset.codeset_id}
                      key={cset.codeset_id}
                      cset={cset}
-                     // widestConceptName={widestConceptName}
-                     cols={Math.min(4, codeset_ids.length)}/>
+                     researchers={researchers}
+                     // widestConceptName={widestConceptName} cols={Math.min(4, codeset_ids.length)}
+            />
 
           })
         }
       </div>;
 }
 function ConceptSetCard(props) {
+  let {cset, researchers={}, editing=false, closeFunc} = props;
+  /*
   const [expanded, setExpanded] = React.useState(false);
-
   const handleExpandClick = () => {
     setExpanded(!expanded);
   };
-
-  let {codeset_id, cset, cols, widestConceptName,} = props;
   // switch to using data from cset_data -- passed down props:
   const {codeset_ids = [], cset_data = {}} = props;
-
+   */
   let tags = [];
   let display_props = {}
   display_props['Code set ID'] = cset.codeset_id;
@@ -111,19 +115,19 @@ function ConceptSetCard(props) {
   }
 
 
-  let researchers = Object.entries(cset.researchers).map(
+  let _researchers = Object.entries(cset.researchers).map(
     ([id, roles]) => {
-      let r = props.cset_data.researchers[id];
+      let r = researchers[id];
       r.roles = roles;
       return r
     })
-  const researcher_info = researchers.map(r => {
+  const researcher_info = _researchers.map(r => {
     return (
         <Typography variant="body2" color="text.secondary" key={r.emailAddress} sx={{overflow: 'clip',}} gutterBottom>
           <strong>{r.roles.join(', ')}:</strong><br/>
           <a href={`mailto:${r.emailAddress}`}>{r.name}</a>,
-          <a href={r.institutionsId} target="_blank">{r.institution}</a>,
-          <a href={`https://orcid.org/${r.orcidId}`} target="_blank">ORCID</a>.
+          <a href={r.institutionsId} target="_blank" rel="noreferrer">{r.institution}</a>,
+          <a href={`https://orcid.org/${r.orcidId}`} target="_blank" rel="noreferrer">ORCID</a>.
         </Typography>
     )
   });
@@ -133,81 +137,100 @@ function ConceptSetCard(props) {
       {researcher_info}
     </div>);
   // display_props['props not included yet'] = 'codeset_status, container_status, stage, concept count';
+  const {search, pathname} = useLocation();
+  /*
+  const editSingleLink = (
+      <NavLink
+          // component={NavLink} // NavLink is supposed to show different if it's active; doesn't seem to be working
+          to={`/SingleCsetEdit?codeset_ids=${cset.codeset_id}&prev=${encodeURIComponent(pathname)}${encodeURIComponent(search)}`}
+          sx={{ my: 2, color: 'white', display: 'block' }}
+      >Edit</NavLink>
+      )
+   */
   return (
-      <Box sx={{ minWidth: 275, margin: '8px',  }}>
-        <Card variant="outlined" sx={{maxWidth: 345}}>
-          {/*
-          <CardHeader
-              action={
-                <IconButton aria-label="settings">
-                  <MoreVertIcon/>
-                </IconButton>
-              }
-              // subheader={tags.join(bull)} doesn't work like this, but might be nice
-              sx={{paddingBottom: '5px',}}
-          />
-          */}
-          <CardContent sx={{}}>
+      <Card variant="outlined" sx={{display: 'inline-block', /*maxWidth: '400px'*/}}>
+        {/*
+        <CardHeader
+            action={
+              <IconButton aria-label="settings">
+                <MoreVertIcon/>
+              </IconButton>
+            }
+            // subheader={tags.join(bull)} doesn't work like this, but might be nice
+            sx={{paddingBottom: '5px',}}
+        />
+        */}
+        <CardContent sx={{}}>
+          <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center'}}>
             <Typography variant="h6" color="text.primary" gutterBottom>
-              {cset.concept_set_version_title}
-            </Typography>
-            <Typography variant="body2" color="text.primary" gutterBottom>
-              {tags.join(', ')}
+              {editing ? 'Editing' : ''} {cset.concept_set_version_title}
+              {/*{editSingleLink}*/}
             </Typography>
             {
-              Object.keys(display_props).map(pkey => (
-                  <Typography variant="body2" color="text.secondary" key={pkey} sx={{overflow: 'clip',}}>
-                    <strong>{pkey}</strong>: {display_props[pkey]}
-                  </Typography>
-              ))
+              closeFunc ? <IconButton onClick={closeFunc}><CloseIcon/></IconButton> : null
             }
-            <Typography variant="body2" color="text.primary" >
-              <a href={`https://unite.nih.gov/workspace/hubble/objects/${cset.rid}`} target="_blank">Open in Enclave</a
-              >, <a href={backend_url(`cset-download?codeset_id=${cset.codeset_id}`)} target="_blank">Export JSON</a>
-            </Typography>
-            { researcherContent }
+          </div>
+          <Typography variant="body2" color="text.primary" gutterBottom>
+            {tags.join(', ')}
+          </Typography>
+          {
+            Object.keys(display_props).map(pkey => (
+                <Typography variant="body2" color="text.secondary" key={pkey} sx={{overflow: 'clip',}}>
+                  <strong>{pkey}</strong>: {display_props[pkey]}
+                </Typography>
+            ))
+          }
+          <Typography variant="body2" color="text.primary" >
+            {/*This link opens the version */}
+            {/*<a href={`https://unite.nih.gov/workspace/hubble/external/object/v0/omop-concept-set?codeset_id=${cset.codeset_id}`} target="_blank" rel="noreferrer">Open in Enclave</a*/}
+            {/*This link opens the container */}
+            <a href={`https://unite.nih.gov/workspace/hubble/objects/${cset.container_rid}`} target="_blank">Open in Enclave</a
+            >, <a href={backend_url(`cset-download?codeset_id=${cset.codeset_id}`)} target="_blank" rel="noreferrer">Export JSON</a>
+          </Typography>
+          { researcherContent }
+        </CardContent>
+        {/*
+        <CardActions disableSpacing>
+          <IconButton size="small" aria-label="add to favorites">
+            <FavoriteIcon/>
+          </IconButton>
+          <IconButton size="small" aria-label="share">
+            <ShareIcon/>
+          </IconButton>
+          <Button size="small">View in Enclave</Button>
+          <ExpandMore
+              expand={expanded}
+              onClick={handleExpandClick}
+              aria-expanded={expanded}
+              aria-label="show more"
+          >
+            <ExpandMoreIcon/>
+          </ExpandMore>
+        </CardActions>
+        <Collapse in={expanded} timeout="auto" unmountOnExit>
+          <CardContent>
+            <List style={{height: '40%', overflowX: 'clip', overflowY: 'scroll'}}>
+              { // TODO: figure out height for list
+                cset.concept_items.map((concept, i) => {
+                  return <ListItem style={{
+                    margin: '3px 3px 3px 3px',
+                    background: '#dbdbdb',
+                    borderRadius: '5px',
+                    fontSize: '0.8em'
+                  }} key={i}>
+                    <Typography>
+                      {concept.concept_id}: {concept.concept_name}
+                    </Typography>
+                  </ListItem>
+                })}
+            </List>
           </CardContent>
-          {/*
-          <CardActions disableSpacing>
-            <IconButton size="small" aria-label="add to favorites">
-              <FavoriteIcon/>
-            </IconButton>
-            <IconButton size="small" aria-label="share">
-              <ShareIcon/>
-            </IconButton>
-            <Button size="small">View in Enclave</Button>
-            <ExpandMore
-                expand={expanded}
-                onClick={handleExpandClick}
-                aria-expanded={expanded}
-                aria-label="show more"
-            >
-              <ExpandMoreIcon/>
-            </ExpandMore>
-          </CardActions>
-          <Collapse in={expanded} timeout="auto" unmountOnExit>
-            <CardContent>
-              <List style={{height: '40%', overflowX: 'clip', overflowY: 'scroll'}}>
-                { // TODO: figure out height for list
-                  cset.concept_items.map((concept, i) => {
-                    return <ListItem style={{
-                      margin: '3px 3px 3px 3px',
-                      background: '#dbdbdb',
-                      borderRadius: '5px',
-                      fontSize: '0.8em'
-                    }} key={i}>
-                      <Typography>
-                        {concept.concept_id}: {concept.concept_name}
-                      </Typography>
-                    </ListItem>
-                  })}
-              </List>
-            </CardContent>
-          </Collapse>
-          */}
-        </Card>
-      </Box>
+        </Collapse>
+        */}
+      </Card>
   );
 }
+
+export {ConceptSetCard};
 
 

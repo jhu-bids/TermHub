@@ -8,22 +8,26 @@ on:
 jobs:
   refresh-db:
 #    runs-on: ubuntu-18.04
+#    runs-on: ubuntu-latest   # not sure which is more current when resolving merge conflicts
     # todo: macos-latest could help solve memory issue, but can't connect to db?
     #  https://github.com/jhu-bids/TermHub/actions/runs/4125681721/jobs/7126569855
     runs-on: macos-latest
-
     steps:
       - name: Checkout repository and submodules
         uses: actions/checkout@v2
         with:
           submodules: recursive
           ref: main
-
       - name: Set up Python version
         uses: actions/setup-python@v2
         with:
           # Consider '3.10' or 'v3.10.0': https://github.com/actions/setup-python/issues/160
           python-version: '3.9.7'
+
+      - name: Print commit hash & branch for rollbacks & troubleshooting
+        run: |
+          echo "Commit hash: ${{ github.sha }}"
+          echo "Branch: ${{ github.ref }}"
 
       - name: 'Create env file'
         run: |

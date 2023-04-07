@@ -1,9 +1,17 @@
 """Queries"""
 from typing import List
-
 from sqlalchemy.engine import LegacyRow
+from backend.db.utils import sql_query, get_db_connection, sql_in
 
-from backend.db.utils import sql_query
+
+def get_concepts(concept_ids: List[int], con=get_db_connection(), table:str='concepts_with_counts') -> List:
+    """Get information about concept sets the user has selected"""
+    rows: List[LegacyRow] = sql_query(
+        con, f"""
+          SELECT *
+          FROM {table}
+          WHERE concept_id {sql_in(concept_ids)};""")
+    return rows
 
 
 def get_all_parent_children_map(connection):

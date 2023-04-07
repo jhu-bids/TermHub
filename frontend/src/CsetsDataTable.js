@@ -1,7 +1,8 @@
-import React, {useState, useCallback, useEffect, useMemo, } from 'react';
-import {isEqual, orderBy, get, } from 'lodash';
+import React, {useState, useCallback, useEffect, } from 'react';
+import {orderBy, get, } from 'lodash';
 import DataTable, { createTheme } from 'react-data-table-component';
-import {fmt, pct_fmt, StatsMessage,} from './utils';
+import {fmt, pct_fmt, } from './utils';
+import {StatsMessage,} from './State';
 import {Tooltip} from './Tooltip';
 // import Checkbox from '@material-ui/core/Checkbox';
 // import ArrowDownward from '@material-ui/icons/ArrowDownward';
@@ -97,9 +98,11 @@ function CsetsDataTable(props) {
     );
 }
 function getColdefs() {
+    /*
     const descending = (rows, selector, direction) => {
         return orderBy(rows, selector, ['desc']);
     };
+     */
     return [
         // { name: 'level', selector: row => row.level, },
         {
@@ -276,6 +279,7 @@ function getCustomStyles() {
     */
     };
 }
+/*
 // createTheme creates a new theme named solarized that overrides the build in dark theme
 // https://github.com/jbetancur/react-data-table-component/blob/master/src/DataTable/themes.ts
 createTheme('custom-theme', {
@@ -287,7 +291,6 @@ createTheme('custom-theme', {
         background: '#cb4b16',
         text: '#FFFFFF',
     },
-    /*
     divider: {
         default: '#073642',
     },
@@ -299,7 +302,7 @@ createTheme('custom-theme', {
       hover: 'rgba(0,0,0,.08)',
       disabled: 'rgba(0,0,0,.12)',
     },
-    */
 }, 'light');
+*/
 
 export {CsetsDataTable, };

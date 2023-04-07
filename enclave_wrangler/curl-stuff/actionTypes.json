@@ -1,6 +1,25 @@
 {
   "data": [
     {
+      "apiName": "add-internal-backup-reviewer-comment-to-publication-intent-submission",
+      "description": "",
+      "parameters": {
+        "backup_reviewer_internal_comment": {
+          "description": "",
+          "baseType": "String"
+        },
+        "publication_intent_submission": {
+          "description": "",
+          "baseType": "OntologyObject"
+        },
+        "PublicationCommitteeInternalNote": {
+          "description": "",
+          "baseType": "OntologyObject"
+        }
+      },
+      "rid": "ri.actions.main.action-type.02aa052c-a006-427c-bf6f-9635ae27e02e"
+    },
+    {
       "apiName": "dur-update-project-abstract",
       "description": "",
       "parameters": {
@@ -33,6 +52,21 @@
         }
       },
       "rid": "ri.actions.main.action-type.044fb5ba-5952-46d3-a34c-2063b36bd59e"
+    },
+    {
+      "apiName": "remove-parent-protocol-section-link",
+      "description": "",
+      "parameters": {
+        "ProtocolSection": {
+          "description": "",
+          "baseType": "OntologyObject"
+        },
+        "new-parameter": {
+          "description": "",
+          "baseType": "OntologyObject"
+        }
+      },
+      "rid": "ri.actions.main.action-type.06bfbc42-2187-4c97-be3d-f3a65f1393c6"
     },
     {
       "apiName": "update-draft-cohort-codeset-link",
@@ -163,6 +197,70 @@
       "rid": "ri.actions.main.action-type.0a1db954-fbbb-469b-b58f-14cc3e2fbec0"
     },
     {
+      "apiName": "remove-contributor-to-publication-intent-submission",
+      "description": "",
+      "parameters": {
+        "PublicationIntentSubmission": {
+          "description": "",
+          "baseType": "OntologyObject"
+        },
+        "PublicationContribution": {
+          "description": "",
+          "baseType": "OntologyObject"
+        }
+      },
+      "rid": "ri.actions.main.action-type.0ba8380c-56e4-4b38-8b8a-6411841c409f"
+    },
+    {
+      "apiName": "set-parent-protocol-step",
+      "description": "",
+      "parameters": {
+        "new-parameter1": {
+          "description": "",
+          "baseType": "OntologyObject"
+        },
+        "new-parameter": {
+          "description": "",
+          "baseType": "OntologyObject"
+        },
+        "ProtocolStep": {
+          "description": "",
+          "baseType": "OntologyObject"
+        }
+      },
+      "rid": "ri.actions.main.action-type.0d3ebd04-4583-4eb7-a74a-52a2f04b0092"
+    },
+    {
+      "apiName": "add-internal-secondary-reviewer-comment-to-publication-intent-submission",
+      "description": "",
+      "parameters": {
+        "secondary_reviewer_internal_comment": {
+          "description": "",
+          "baseType": "String"
+        },
+        "publication_intent_submission": {
+          "description": "",
+          "baseType": "OntologyObject"
+        },
+        "PublicationCommitteeInternalNote": {
+          "description": "",
+          "baseType": "OntologyObject"
+        }
+      },
+      "rid": "ri.actions.main.action-type.0f483484-f7d5-4e51-b0b7-62687cb8aabc"
+    },
+    {
+      "apiName": "delete-publication-committee-internal-review",
+      "description": "",
+      "parameters": {
+        "PublicationCommitteeInternalNote": {
+          "description": "",
+          "baseType": "OntologyObject"
+        }
+      },
+      "rid": "ri.actions.main.action-type.0feac243-75d5-40fa-a518-e386e1e6e87b"
+    },
+    {
       "apiName": "set-email",
       "description": "",
       "parameters": {
@@ -280,6 +378,29 @@
       "rid": "ri.actions.main.action-type.164c6b61-cffe-4108-95d8-e4495fefb93f"
     },
     {
+      "apiName": "set-publication-committee-reviewers",
+      "description": "",
+      "parameters": {
+        "PublicationIntentSubmission": {
+          "description": "",
+          "baseType": "OntologyObject"
+        },
+        "ms_backup_reviewer": {
+          "description": "",
+          "baseType": "String"
+        },
+        "ms_secondary_reviewer": {
+          "description": "",
+          "baseType": "String"
+        },
+        "ms_primary_reviewer": {
+          "description": "",
+          "baseType": "String"
+        }
+      },
+      "rid": "ri.actions.main.action-type.172f1413-57fd-4b39-940d-7de51e69deed"
+    },
+    {
       "apiName": "remove-dur-reviews",
       "description": "Clears the reviews by Reviewer 1 and Reviewer 2",
       "parameters": {
@@ -303,6 +424,14 @@
           "baseType": "OntologyObject"
         },
         "downloadRequest": {
+          "description": "Add Download Requests for this Publication Intent",
+          "baseType": "Array<OntologyObject>"
+        },
+        "new-parameter2": {
+          "description": "",
+          "baseType": "Array<OntologyObject>"
+        },
+        "new-parameter1": {
           "description": "",
           "baseType": "Array<OntologyObject>"
         },
@@ -314,6 +443,25 @@
       "rid": "ri.actions.main.action-type.17ae14ac-5fda-4c02-9f93-f97e97dd5449"
     },
     {
+      "apiName": "set-initial-protocol-section-link-to-step",
+      "description": "",
+      "parameters": {
+        "is_first_step_of_protocol_section": {
+          "description": "",
+          "baseType": "Boolean"
+        },
+        "protocol_section_id": {
+          "description": "",
+          "baseType": "OntologyObject"
+        },
+        "ProtocolStep": {
+          "description": "",
+          "baseType": "OntologyObject"
+        }
+      },
+      "rid": "ri.actions.main.action-type.17dd3936-8095-418d-9574-1cfb57d9467e"
+    },
+    {
       "apiName": "edit-publication-intent-submission-declarations",
       "description": "",
       "parameters": {
@@ -321,7 +469,87 @@
           "description": "",
           "baseType": "OntologyObject"
         },
+        "posting_permission": {
+          "description": "",
+          "baseType": "String"
+        },
+        "rp": {
+          "description": "",
+          "baseType": "OntologyObject"
+        },
+        "self_verification_dur_id_included_in_paper": {
+          "description": "",
+          "baseType": "Boolean"
+        },
+        "acknowledgement_to_not_present_or_submit_before_publication_committee_approval_had_been_obtained": {
+          "description": "All works about N3C or containing N3C data must not be presented or submitted (to journals / preprints / conferences) before the Publication Committee approval has been obtained. This form was changed March 7, 2022; be sure to read carefully",
+          "baseType": "Boolean"
+        },
+        "authorship_was_determined_using_icmje_recommendations": {
+          "description": "",
+          "baseType": "String"
+        },
+        "data_access_tier": {
+          "description": "",
+          "baseType": "String"
+        },
+        "confirmation_of_no_overlap": {
+          "description": "",
+          "baseType": "Boolean"
+        },
+        "data_use_request_project": {
+          "description": "",
+          "baseType": "OntologyObject"
+        },
+        "self_verification_cell_sizes": {
+          "description": "",
+          "baseType": "Boolean"
+        },
+        "self_verification_study_sample_characteristics_table_is_consistent_with_other_n3c_studies_if_applicable": {
+          "description": "",
+          "baseType": "Boolean"
+        },
+        "self_verification_data_partner_ids_have_been_masked": {
+          "description": "",
+          "baseType": "Boolean"
+        },
+        "self_verification_cannot_back_calculate_to_unacceptable_cell_sizes": {
+          "description": "",
+          "baseType": "Boolean"
+        },
+        "dur_description": {
+          "description": "",
+          "baseType": "String"
+        },
         "explain_how_work_fits_into_the_scope_of_the_dur": {
+          "description": "Enter N/A if not applicable",
+          "baseType": "String"
+        },
+        "self_verification_figures_and_summary_data_approved_for_export": {
+          "description": "",
+          "baseType": "Boolean"
+        },
+        "self_verification_limitations_of_n3c_sourced_data_are_discussed": {
+          "description": "",
+          "baseType": "Boolean"
+        },
+        "self_verification_degree_of_generalizability_is_discussed": {
+          "description": "",
+          "baseType": "Boolean"
+        },
+        "self_verification_irb_number_has_been_included": {
+          "description": "",
+          "baseType": "Boolean"
+        },
+        "self_verification_sources_of_data_heterogeneity_are_described": {
+          "description": "",
+          "baseType": "Boolean"
+        },
+        "citing_the_grant": {
+          "description": "",
+          "baseType": "String"
+        },
+        "nih_funding_peer_review_acknowledgement": {
           "description": "",
           "baseType": "String"
         }
@@ -363,6 +591,21 @@
       "rid": "ri.actions.main.action-type.18b7ea4c-acea-4ef3-9510-128360965398"
     },
     {
+      "apiName": "set-protocol-step-input-training-module",
+      "description": "",
+      "parameters": {
+        "consumedTrainingModules": {
+          "description": "",
+          "baseType": "Array<OntologyObject>"
+        },
+        "ProtocolStep": {
+          "description": "",
+          "baseType": "OntologyObject"
+        }
+      },
+      "rid": "ri.actions.main.action-type.1922f1ea-96e6-4295-9da0-0b7cde509907"
+    },
+    {
       "apiName": "collaborator-withdraw-from-dur-project",
       "description": "",
       "parameters": {
@@ -400,6 +643,56 @@
         }
       },
       "rid": "ri.actions.main.action-type.1982ce2f-26d4-4066-92fe-11096e339833"
+    },
+    {
+      "apiName": "modify-measurement-unit-conversion-formula",
+      "description": "Modify N3C Measurement Unit Formula",
+      "parameters": {
+        "mapping_function": {
+          "description": "",
+          "baseType": "String"
+        },
+        "measurement_omop_concept_name": {
+          "description": "",
+          "baseType": "String"
+        },
+        "original_unit_omop_concept_name": {
+          "description": "",
+          "baseType": "String"
+        },
+        "UnitConversionFormula": {
+          "description": "",
+          "baseType": "OntologyObject"
+        },
+        "conversion_equation": {
+          "description": "",
+          "baseType": "String"
+        },
+        "harmonized_unit_omop_concept_name": {
+          "description": "",
+          "baseType": "String"
+        }
+      },
+      "rid": "ri.actions.main.action-type.19a506b9-d921-4983-a1c2-f6a2639c59f2"
+    },
+    {
+      "apiName": "edit-publication-committee-review-comment-backup-reviewer",
+      "description": "",
+      "parameters": {
+        "PublicationIntentSubmission": {
+          "description": "",
+          "baseType": "OntologyObject"
+        },
+        "ms_backup_reviewer": {
+          "description": "",
+          "baseType": "String"
+        },
+        "backup_reviewer_comments_to_authors": {
+          "description": "",
+          "baseType": "String"
+        }
+      },
+      "rid": "ri.actions.main.action-type.1a57d573-98f2-468d-9c8a-8b22c220e62e"
     },
     {
       "apiName": "new-action-dfc9a937-5539-b9c4-e993-c3ddd66ca6d6",
@@ -726,7 +1019,7 @@
       "apiName": "new-action-35c6aa8e-e4a5-de8f-bf90-80f8068ca20c",
       "description": "",
       "parameters": {
-        "link_to_final_figures_enclave_document": {
+        "output_summary": {
           "description": "",
           "baseType": "String"
         },
@@ -738,15 +1031,58 @@
       "rid": "ri.actions.main.action-type.213c744c-0c32-41fd-9551-ff3e6a8b36da"
     },
     {
-      "apiName": "delete-omop-concept-set-version-item",
-      "description": "",
+      "apiName": "set-measurement-unit-pipeline-addition-flag",
+      "description": "Unit harmonization admin flag for addition of measurement unit conversion to pipeline",
       "parameters": {
-        "concept-set-version-item": {
+        "added_to_pipeline": {
           "description": "",
-          "baseType": "Array<OntologyObject>"
+          "baseType": "String"
+        },
+        "date_added_to_pipeline": {
+          "description": "",
+          "baseType": "Timestamp"
+        },
+        "UnitConversionFormula": {
+          "description": "",
+          "baseType": "OntologyObject"
         }
       },
-      "rid": "ri.actions.main.action-type.231fc70d-a9c4-498e-bc5f-cf38046c9217"
+      "rid": "ri.actions.main.action-type.214ed38f-8180-4886-a3b1-2842dad1a013"
+    },
+    {
+      "apiName": "set-manuscript-title",
+      "description": "",
+      "parameters": {
+        "PublicationIntentSubmission": {
+          "description": "",
+          "baseType": "OntologyObject"
+        },
+        "first_author": {
+          "description": "",
+          "baseType": "String"
+        },
+        "rp": {
+          "description": "",
+          "baseType": "String"
+        },
+        "corresponding_author_name": {
+          "description": "",
+          "baseType": "String"
+        },
+        "corresponding_author_email": {
+          "description": "",
+          "baseType": "String"
+        },
+        "last_author": {
+          "description": "",
+          "baseType": "String"
+        },
+        "manuscript_title": {
+          "description": "",
+          "baseType": "String"
+        }
+      },
+      "rid": "ri.actions.main.action-type.22eb643d-1d9b-4269-86e1-4b2afa2fc4c4"
     },
     {
       "apiName": "n3c-concept-set-validation",
@@ -916,6 +1252,21 @@
       "rid": "ri.actions.main.action-type.2bb67b5b-5e37-45ba-891a-a33d4a2fbfed"
     },
     {
+      "apiName": "set-download-requests-for-protocol",
+      "description": "",
+      "parameters": {
+        "Protocol": {
+          "description": "",
+          "baseType": "OntologyObject"
+        },
+        "producedDownloadRequest": {
+          "description": "",
+          "baseType": "Array<OntologyObject>"
+        }
+      },
+      "rid": "ri.actions.main.action-type.2bfcc5cd-2d21-4292-a1ed-c24a42d09b3e"
+    },
+    {
       "apiName": "new-code-set",
       "description": "Define a new Code Set",
       "parameters": {
@@ -954,6 +1305,21 @@
       "rid": "ri.actions.main.action-type.2cc8d934-7396-4315-9495-37ce8a90e875"
     },
     {
+      "apiName": "rem-rp-from-pub-intent-submission",
+      "description": "",
+      "parameters": {
+        "PublicationIntentSubmission": {
+          "description": "",
+          "baseType": "OntologyObject"
+        },
+        "researchProject": {
+          "description": "",
+          "baseType": "OntologyObject"
+        }
+      },
+      "rid": "ri.actions.main.action-type.2d63015c-c48b-4e23-a941-f3e6d13fe012"
+    },
+    {
       "apiName": "edit-omop-concept-set-expression-include-descendants",
       "description": "",
       "parameters": {
@@ -982,7 +1348,7 @@
         },
         "downloadRequest": {
           "description": "",
-          "baseType": "OntologyObject"
+          "baseType": "Array<OntologyObject>"
         }
       },
       "rid": "ri.actions.main.action-type.3050feb2-d51f-4a8e-9b08-f0cc748ecfa6"
@@ -1064,6 +1430,32 @@
       "rid": "ri.actions.main.action-type.334cf777-0f38-4bb7-87fe-38b8926a2109"
     },
     {
+      "apiName": "remove-measurement-unit-conversion-formula",
+      "description": "Delete an N3C measurement unit formula",
+      "parameters": {
+        "UnitConversionFormula": {
+          "description": "",
+          "baseType": "OntologyObject"
+        }
+      },
+      "rid": "ri.actions.main.action-type.34b9ce67-2fc7-4701-a9a2-56b96943711f"
+    },
+    {
+      "apiName": "new-action-a42241e1-201d-2747-d1e9-331f6d2c024f",
+      "description": "",
+      "parameters": {
+        "pprl_external_datasets": {
+          "description": "",
+          "baseType": "Array<String>"
+        },
+        "DataUseRequests": {
+          "description": "",
+          "baseType": "OntologyObject"
+        }
+      },
+      "rid": "ri.actions.main.action-type.3568a221-531b-4162-b82f-f4dfee8293c9"
+    },
+    {
       "apiName": "new-harmonization-campaign",
       "description": "Create a new Code Set Group",
       "parameters": {
@@ -1107,6 +1499,21 @@
         }
       },
       "rid": "ri.actions.main.action-type.37242842-66c9-4c55-a5cf-a834d62cbd73"
+    },
+    {
+      "apiName": "set-conversion-formulae-editors",
+      "description": "",
+      "parameters": {
+        "UnitConversionFormula": {
+          "description": "",
+          "baseType": "Array<OntologyObject>"
+        },
+        "permitted_editors": {
+          "description": "",
+          "baseType": "Array<OntologyObject>"
+        }
+      },
+      "rid": "ri.actions.main.action-type.37b3a2ed-a51a-4ed9-ade4-98813bc3c798"
     },
     {
       "apiName": "add-review-to-ko-action",
@@ -1353,15 +1760,15 @@
           "description": "",
           "baseType": "OntologyObject"
         },
-        "first_author": {
+        "pasc_or_n3c": {
           "description": "",
           "baseType": "String"
         },
-        "has_the_work_already_been_presented": {
+        "comments": {
           "description": "",
           "baseType": "String"
         },
-        "corresponding_author_name": {
+        "authorship_was_determined_using_icmje_recommendations": {
           "description": "",
           "baseType": "String"
         },
@@ -1369,23 +1776,23 @@
           "description": "",
           "baseType": "String"
         },
-        "corresponding_author_email": {
-          "description": "",
-          "baseType": "String"
-        },
-        "has_download_request_been_approved": {
-          "description": "",
-          "baseType": "String"
-        },
-        "manuscript_text_document_link": {
-          "description": "",
-          "baseType": "String"
-        },
         "last_author": {
           "description": "",
           "baseType": "String"
         },
-        "target_venue": {
+        "prior_presentation_details": {
+          "description": "",
+          "baseType": "String"
+        },
+        "explain_how_work_fits_into_the_scope_of_the_dur": {
+          "description": "",
+          "baseType": "String"
+        },
+        "citing_the_grant": {
+          "description": "",
+          "baseType": "String"
+        },
+        "has_download_request_been_approved": {
           "description": "",
           "baseType": "String"
         },
@@ -1394,6 +1801,66 @@
           "baseType": "LocalDate"
         },
         "manuscript_title": {
+          "description": "",
+          "baseType": "String"
+        },
+        "nih_funding_peer_review_acknowledgement": {
+          "description": "",
+          "baseType": "String"
+        },
+        "posting_permission": {
+          "description": "",
+          "baseType": "String"
+        },
+        "rp": {
+          "description": "",
+          "baseType": "OntologyObject"
+        },
+        "corresponding_author_name": {
+          "description": "",
+          "baseType": "String"
+        },
+        "sdo_h_related_or_long_covid": {
+          "description": "",
+          "baseType": "Array<String>"
+        },
+        "planned_presentation_details": {
+          "description": "",
+          "baseType": "String"
+        },
+        "name_of_publication_intent_submitter": {
+          "description": "",
+          "baseType": "String"
+        },
+        "n3c_consortium_vs_project_based_work": {
+          "description": "",
+          "baseType": "String"
+        },
+        "manuscript_id": {
+          "description": "",
+          "baseType": "String"
+        },
+        "first_author": {
+          "description": "",
+          "baseType": "String"
+        },
+        "has_the_work_already_been_presented": {
+          "description": "",
+          "baseType": "String"
+        },
+        "submission_date": {
+          "description": "",
+          "baseType": "Timestamp"
+        },
+        "corresponding_author_email": {
+          "description": "",
+          "baseType": "String"
+        },
+        "manuscript_text_document_link": {
+          "description": "",
+          "baseType": "String"
+        },
+        "target_venue": {
           "description": "",
           "baseType": "String"
         }
@@ -1436,7 +1903,7 @@
     },
     {
       "apiName": "new-action-2a43c6c6-297e-77ed-ea60-c7762e5ff610",
-      "description": "",
+      "description": "PHASTR Review by NCATS DAC",
       "parameters": {
         "PH_object": {
           "description": "",
@@ -1457,6 +1924,10 @@
         "app_status": {
           "description": "",
           "baseType": "String"
+        },
+        "new-parameter": {
+          "description": "",
+          "baseType": "OntologyObject"
         },
         "external_comments": {
           "description": "",
@@ -1479,25 +1950,6 @@
         }
       },
       "rid": "ri.actions.main.action-type.438e4f3a-6b8d-4061-bb02-01e22953b920"
-    },
-    {
-      "apiName": "submit-publication-intent",
-      "description": "",
-      "parameters": {
-        "PublicationIntentSubmission": {
-          "description": "",
-          "baseType": "OntologyObject"
-        },
-        "submission_status": {
-          "description": "",
-          "baseType": "String"
-        },
-        "manuscript_id": {
-          "description": "",
-          "baseType": "OntologyObject"
-        }
-      },
-      "rid": "ri.actions.main.action-type.440655a1-5cab-4a3b-ab35-a789ea83f810"
     },
     {
       "apiName": "mark-dur-irb-required-as-no",
@@ -1652,6 +2104,60 @@
       "rid": "ri.actions.main.action-type.4dd68779-41a9-4fd9-a59a-a6a505b5db3c"
     },
     {
+      "apiName": "set-protocol-step-knowledge-objects",
+      "description": "",
+      "parameters": {
+        "consumedN3CknowledgeObjects": {
+          "description": "",
+          "baseType": "Array<OntologyObject>"
+        },
+        "ProtocolStep": {
+          "description": "",
+          "baseType": "OntologyObject"
+        }
+      },
+      "rid": "ri.actions.main.action-type.4fe48580-92b5-417a-b1cd-d3f7d2a7d3bd"
+    },
+    {
+      "apiName": "edit-manuscript-metadata",
+      "description": "",
+      "parameters": {
+        "rp": {
+          "description": "",
+          "baseType": "OntologyObject"
+        },
+        "link_to_pre_print_publication": {
+          "description": "",
+          "baseType": "String"
+        },
+        "link_to_peer_reviewed_publication": {
+          "description": "",
+          "baseType": "String"
+        },
+        "manuscript_publication_status": {
+          "description": "",
+          "baseType": "Array<String>"
+        },
+        "links_to_conferences_where_this_manuscript_is_presented": {
+          "description": "",
+          "baseType": "Array<String>"
+        },
+        "Manuscript": {
+          "description": "",
+          "baseType": "OntologyObject"
+        },
+        "target_venue": {
+          "description": "",
+          "baseType": "String"
+        },
+        "links_to_media_coverage": {
+          "description": "",
+          "baseType": "Array<String>"
+        }
+      },
+      "rid": "ri.actions.main.action-type.50ad59f6-3532-4696-bfd9-454c5b1dd8b4"
+    },
+    {
       "apiName": "delete-entry",
       "description": "Delete a IRP project submission ",
       "parameters": {
@@ -1695,6 +2201,21 @@
         }
       },
       "rid": "ri.actions.main.action-type.53d3b7ce-0531-457b-844a-f72f20f94e61"
+    },
+    {
+      "apiName": "set-research-project-for-publication-intent-submission",
+      "description": "",
+      "parameters": {
+        "PublicationIntentSubmission": {
+          "description": "",
+          "baseType": "OntologyObject"
+        },
+        "rp": {
+          "description": "",
+          "baseType": "OntologyObject"
+        }
+      },
+      "rid": "ri.actions.main.action-type.5416075a-0c89-438b-8249-bc0cdedcf292"
     },
     {
       "apiName": "edit-omop-concept-set-expression-include-mapped",
@@ -1754,6 +2275,21 @@
       "rid": "ri.actions.main.action-type.56ce9a5b-c535-4413-be70-5526a8c152ed"
     },
     {
+      "apiName": "set-protocol-step-produced-knowledge-objects",
+      "description": "",
+      "parameters": {
+        "ProtocolStep": {
+          "description": "",
+          "baseType": "OntologyObject"
+        },
+        "producedN3CknowledgeObjects": {
+          "description": "",
+          "baseType": "Array<OntologyObject>"
+        }
+      },
+      "rid": "ri.actions.main.action-type.5774b55b-4a98-4d8f-b544-c3b742b3d39b"
+    },
+    {
       "apiName": "new-action-2bc4b219-7210-a094-450d-52c331adf2c6",
       "description": "",
       "parameters": {
@@ -1776,12 +2312,58 @@
           "description": "",
           "baseType": "OntologyObject"
         },
+        "prior_presentation_details": {
+          "description": "",
+          "baseType": "String"
+        },
+        "has_the_work_already_been_presented": {
+          "description": "",
+          "baseType": "String"
+        },
         "will_this_work_be_presented": {
+          "description": "",
+          "baseType": "String"
+        },
+        "planned_presentation_details": {
           "description": "",
           "baseType": "String"
         }
       },
       "rid": "ri.actions.main.action-type.597664e1-abe3-444f-9a33-5833578a1605"
+    },
+    {
+      "apiName": "edit-publication-committee-review-comments-2ary-reviewer",
+      "description": "",
+      "parameters": {
+        "PublicationIntentSubmission": {
+          "description": "",
+          "baseType": "OntologyObject"
+        },
+        "secondary_reviewer_comments_to_authors": {
+          "description": "",
+          "baseType": "String"
+        },
+        "ms_secondary_reviewer": {
+          "description": "",
+          "baseType": "String"
+        }
+      },
+      "rid": "ri.actions.main.action-type.5a97f8d4-5235-456f-81c4-63c3ef27fc56"
+    },
+    {
+      "apiName": "remove-protocol-step-produced-knowledge-objects",
+      "description": "",
+      "parameters": {
+        "ProtocolStep": {
+          "description": "",
+          "baseType": "OntologyObject"
+        },
+        "producedN3CknowledgeObjects": {
+          "description": "",
+          "baseType": "Array<OntologyObject>"
+        }
+      },
+      "rid": "ri.actions.main.action-type.5b67bc52-db66-4127-9c8e-04d70aa38f8d"
     },
     {
       "apiName": "removeconsumedconceptsetofprotocolsection",
@@ -1847,6 +2429,21 @@
       "rid": "ri.actions.main.action-type.5d0d7c13-fcfd-40b6-927d-da08020d6ab7"
     },
     {
+      "apiName": "remove-protocol-step-input-training-module",
+      "description": "",
+      "parameters": {
+        "consumedTrainingModules": {
+          "description": "",
+          "baseType": "Array<OntologyObject>"
+        },
+        "ProtocolStep": {
+          "description": "",
+          "baseType": "OntologyObject"
+        }
+      },
+      "rid": "ri.actions.main.action-type.5d938c7f-449e-4264-962d-a7e4bf392975"
+    },
+    {
       "apiName": "new-action-03968e97-4330-66cf-33f0-f27bbfc86dc6",
       "description": "",
       "parameters": {
@@ -1875,6 +2472,21 @@
         }
       },
       "rid": "ri.actions.main.action-type.5e8c2052-5d75-4503-9bf7-8729694c4ce7"
+    },
+    {
+      "apiName": "edit-publication-intent-submission-author-comments",
+      "description": "",
+      "parameters": {
+        "PublicationIntentSubmission": {
+          "description": "",
+          "baseType": "OntologyObject"
+        },
+        "comments": {
+          "description": "",
+          "baseType": "String"
+        }
+      },
+      "rid": "ri.actions.main.action-type.5ec17135-3efb-4048-8533-ab7f92278385"
     },
     {
       "apiName": "edit-publication-intent-submission-target-journal",
@@ -2066,6 +2678,25 @@
       "rid": "ri.actions.main.action-type.69e91401-86d2-4ee6-8253-eada592ff832"
     },
     {
+      "apiName": "edit-publication-committee-review-comments",
+      "description": "",
+      "parameters": {
+        "PublicationIntentSubmission": {
+          "description": "",
+          "baseType": "OntologyObject"
+        },
+        "primary_reviewer_comments_to_authors": {
+          "description": "",
+          "baseType": "String"
+        },
+        "ms_primary_reviewer": {
+          "description": "",
+          "baseType": "String"
+        }
+      },
+      "rid": "ri.actions.main.action-type.6c177c5e-6094-475c-b98c-ebc970434f20"
+    },
+    {
       "apiName": "new-action-540a170c-5958-25a9-e511-cd5fe3f609af",
       "description": "",
       "parameters": {
@@ -2155,10 +2786,6 @@
       "apiName": "new-action-531d0768-3ddd-7aef-4e1d-6763b164185c",
       "description": "",
       "parameters": {
-        "novel_algorithm_yn": {
-          "description": "",
-          "baseType": "Boolean"
-        },
         "manuscript_documents": {
           "description": "",
           "baseType": "String"
@@ -2166,6 +2793,10 @@
         "picot_time": {
           "description": "",
           "baseType": "String"
+        },
+        "omop_tables": {
+          "description": "",
+          "baseType": "Array<String>"
         },
         "analyses_folder": {
           "description": "",
@@ -2182,6 +2813,10 @@
         "describe_any_study_sample_or_population_characteristics_sanity_checks_performed": {
           "description": "",
           "baseType": "String"
+        },
+        "external_dataset_inputs": {
+          "description": "",
+          "baseType": "Array<String>"
         },
         "research_project": {
           "description": "",
@@ -2231,8 +2866,8 @@
           "description": "",
           "baseType": "String"
         },
-        "input_lookup_tables": {
-          "description": "",
+        "notes_on_missing_resourcing_requirements": {
+          "description": "Human and technical resources required for protocol progression.",
           "baseType": "String"
         },
         "notes_scope_of_generalizability": {
@@ -2251,6 +2886,14 @@
           "description": "",
           "baseType": "Timestamp"
         },
+        "type_of_observational_study": {
+          "description": "",
+          "baseType": "String"
+        },
+        "sme_comments_and_suggestions": {
+          "description": "",
+          "baseType": "Array<String>"
+        },
         "methodology_summary": {
           "description": "",
           "baseType": "String"
@@ -2263,13 +2906,25 @@
           "description": "",
           "baseType": "Array<String>"
         },
+        "protocol_editors": {
+          "description": "",
+          "baseType": "Array<String>"
+        },
         "rp_group_id": {
           "description": "",
           "baseType": "String"
         },
+        "informatician_comments_and_suggestions": {
+          "description": "",
+          "baseType": "Array<String>"
+        },
         "intended_steps_overview": {
           "description": "",
           "baseType": "String"
+        },
+        "lookup_tables": {
+          "description": "",
+          "baseType": "Array<String>"
         },
         "picot_comparisons": {
           "description": "",
@@ -2279,21 +2934,21 @@
           "description": "",
           "baseType": "String"
         },
-        "omop_datasets": {
+        "to_do_list_items": {
           "description": "",
-          "baseType": "String"
+          "baseType": "Array<String>"
         },
         "protocol_status_notes": {
           "description": "Add a reason for the status, if useful e.g. awaiting analyst resources, awaiting data improvements",
           "baseType": "String"
         },
+        "type_of_analytic_study": {
+          "description": "",
+          "baseType": "String"
+        },
         "Protocol": {
           "description": "",
           "baseType": "OntologyObject"
-        },
-        "to_do_list": {
-          "description": "",
-          "baseType": "String"
         }
       },
       "rid": "ri.actions.main.action-type.702f7707-d579-40e6-96b1-83f39ac07ec6"
@@ -2435,6 +3090,25 @@
       "rid": "ri.actions.main.action-type.763969af-3e74-476d-84ef-76a6945fc58e"
     },
     {
+      "apiName": "set-phastr-contractor-recommendation",
+      "description": "PHASTR Review by NCATS DAC",
+      "parameters": {
+        "internal_comments": {
+          "description": "Not shared with the applicant",
+          "baseType": "String"
+        },
+        "app_status": {
+          "description": "",
+          "baseType": "String"
+        },
+        "DACInternalReview": {
+          "description": "The proposal under review",
+          "baseType": "OntologyObject"
+        }
+      },
+      "rid": "ri.actions.main.action-type.76e7abce-7654-42b4-9512-c7a90a72e751"
+    },
+    {
       "apiName": "irp-covid-project-form-submission-set-pi",
       "description": "Associate this form submission with a PI's user account",
       "parameters": {
@@ -2452,6 +3126,21 @@
         }
       },
       "rid": "ri.actions.main.action-type.77aaf38c-10c0-4f0e-85ed-569b1f7524a7"
+    },
+    {
+      "apiName": "set-phastr-regulatory-compliance",
+      "description": "PHASTR Review by NCATS DAC",
+      "parameters": {
+        "regulatory_compliance": {
+          "description": "",
+          "baseType": "String"
+        },
+        "DACInternalReview": {
+          "description": "",
+          "baseType": "OntologyObject"
+        }
+      },
+      "rid": "ri.actions.main.action-type.7934fcd4-1faf-4f1c-b362-c7b33cf60c06"
     },
     {
       "apiName": "new-action-86c117e8-e02a-ca16-1be9-30358921ebf4",
@@ -2480,6 +3169,21 @@
       "rid": "ri.actions.main.action-type.7b4e5f8f-4697-4be1-b161-ddd7c649d7b8"
     },
     {
+      "apiName": "set-phastr-dac-review-create-workspace",
+      "description": "Updates the value of the \"Create Workspace\" field.",
+      "parameters": {
+        "should_provision_workspace_access_if_approved": {
+          "description": "",
+          "baseType": "Boolean"
+        },
+        "DACInternalReview": {
+          "description": "The proposal under review",
+          "baseType": "OntologyObject"
+        }
+      },
+      "rid": "ri.actions.main.action-type.7bb72a5c-9569-44d2-bbfa-fbb935ed8188"
+    },
+    {
       "apiName": "change-ko-update-request-status-action",
       "description": "",
       "parameters": {
@@ -2493,6 +3197,25 @@
         }
       },
       "rid": "ri.actions.main.action-type.7c2d265e-739a-4dc0-b4a9-4b43fad1d8b1"
+    },
+    {
+      "apiName": "add-internal-review-comment-to-publication-intent-submission",
+      "description": "",
+      "parameters": {
+        "primary_reviewer_internal_comment": {
+          "description": "",
+          "baseType": "String"
+        },
+        "publication_intent_submission": {
+          "description": "",
+          "baseType": "OntologyObject"
+        },
+        "PublicationCommitteeInternalNote": {
+          "description": "",
+          "baseType": "OntologyObject"
+        }
+      },
+      "rid": "ri.actions.main.action-type.7cab0707-9913-4e0c-ba95-f73ade586b75"
     },
     {
       "apiName": "new-action-60b1555d-bb94-aa09-f6d4-a0ae5c937333",
@@ -2553,6 +3276,40 @@
         }
       },
       "rid": "ri.actions.main.action-type.84251949-442c-45f4-9959-dadc65fcca83"
+    },
+    {
+      "apiName": "remove-protocol-step-parent-child-relationship",
+      "description": "",
+      "parameters": {
+        "new-parameter": {
+          "description": "",
+          "baseType": "OntologyObject"
+        },
+        "ProtocolStep": {
+          "description": "",
+          "baseType": "OntologyObject"
+        }
+      },
+      "rid": "ri.actions.main.action-type.843a9095-81aa-421d-8c59-df824aa9162a"
+    },
+    {
+      "apiName": "set-parent-protocol-section",
+      "description": "",
+      "parameters": {
+        "new-parameter1": {
+          "description": "",
+          "baseType": "OntologyObject"
+        },
+        "ProtocolSection": {
+          "description": "",
+          "baseType": "OntologyObject"
+        },
+        "new-parameter": {
+          "description": "",
+          "baseType": "OntologyObject"
+        }
+      },
+      "rid": "ri.actions.main.action-type.84a210f8-ed7a-45fa-96ec-9653d5b510af"
     },
     {
       "apiName": "migration-concept-set-version-set-source-application",
@@ -2721,6 +3478,17 @@
       "rid": "ri.actions.main.action-type.8a978ef8-ebe1-4db3-a0ec-219cb2258557"
     },
     {
+      "apiName": "delete-protocol-step",
+      "description": "",
+      "parameters": {
+        "ProtocolStep": {
+          "description": "",
+          "baseType": "OntologyObject"
+        }
+      },
+      "rid": "ri.actions.main.action-type.8c20083e-c7cc-4fff-b5fd-474453f7c560"
+    },
+    {
       "apiName": "set-concept-sets-for-publication-intent-submission",
       "description": "",
       "parameters": {
@@ -2728,7 +3496,11 @@
           "description": "",
           "baseType": "OntologyObject"
         },
-        "omopconceptSet": {
+        "codes": {
+          "description": "Please enter a comma-separated list of Codeset ID below. Codeset ID are unique IDs for Concept Set Versions. Example of format required: 754731201, 656562966, 776390058..",
+          "baseType": "String"
+        },
+        "new-parameter": {
           "description": "",
           "baseType": "Array<OntologyObject>"
         }
@@ -2745,6 +3517,21 @@
         }
       },
       "rid": "ri.actions.main.action-type.8e6c2322-cd19-4a62-9f61-53735de2f050"
+    },
+    {
+      "apiName": "set-publication-review-status",
+      "description": "",
+      "parameters": {
+        "PublicationIntentSubmission": {
+          "description": "",
+          "baseType": "OntologyObject"
+        },
+        "review_status": {
+          "description": "",
+          "baseType": "String"
+        }
+      },
+      "rid": "ri.actions.main.action-type.8f1c3f45-8585-426d-94be-e914f6eb7675"
     },
     {
       "apiName": "editprotocolcomment",
@@ -3001,6 +3788,25 @@
       "rid": "ri.actions.main.action-type.9e4b0fcf-2b3a-410c-9c1d-49be5a5c8cf5"
     },
     {
+      "apiName": "set-protocol-step-notepad-rid",
+      "description": "",
+      "parameters": {
+        "link_to_documentation": {
+          "description": "",
+          "baseType": "String"
+        },
+        "protocol_section_id": {
+          "description": "",
+          "baseType": "OntologyObject"
+        },
+        "ProtocolStep": {
+          "description": "",
+          "baseType": "OntologyObject"
+        }
+      },
+      "rid": "ri.actions.main.action-type.9ef726c7-6d3c-4c6c-9953-eb6ec10a15a6"
+    },
+    {
       "apiName": "setprotocolsectioninputknowledgestoreitems",
       "description": "",
       "parameters": {
@@ -3068,7 +3874,23 @@
           "description": "",
           "baseType": "OntologyObject"
         },
-        "rp": {
+        "first_author": {
+          "description": "",
+          "baseType": "String"
+        },
+        "new-parameter1": {
+          "description": "",
+          "baseType": "OntologyObject"
+        },
+        "corresponding_author_name": {
+          "description": "",
+          "baseType": "String"
+        },
+        "corresponding_author_email": {
+          "description": "",
+          "baseType": "String"
+        },
+        "last_author": {
           "description": "",
           "baseType": "String"
         },
@@ -3105,6 +3927,61 @@
         }
       },
       "rid": "ri.actions.main.action-type.a1825924-6546-4640-a49c-63a8807a48ff"
+    },
+    {
+      "apiName": "create-new-protocol-step",
+      "description": "",
+      "parameters": {
+        "informatician_comments_and_suggestions": {
+          "description": "",
+          "baseType": "Array<String>"
+        },
+        "limitations": {
+          "description": "",
+          "baseType": "String"
+        },
+        "link_to_dur": {
+          "description": "",
+          "baseType": "String"
+        },
+        "is_first_step_of_protocol_section": {
+          "description": "",
+          "baseType": "Boolean"
+        },
+        "performed_protocol_step_description": {
+          "description": "",
+          "baseType": "String"
+        },
+        "sme_comments_and_suggestions": {
+          "description": "",
+          "baseType": "Array<String>"
+        },
+        "link_to_documentation": {
+          "description": "",
+          "baseType": "String"
+        },
+        "protocol_step_name": {
+          "description": "",
+          "baseType": "String"
+        },
+        "ProtocolSection": {
+          "description": "",
+          "baseType": "OntologyObject"
+        },
+        "main_authors": {
+          "description": "",
+          "baseType": "Array<String>"
+        },
+        "new-parameter": {
+          "description": "",
+          "baseType": "OntologyObject"
+        },
+        "rp_group_id": {
+          "description": "",
+          "baseType": "String"
+        }
+      },
+      "rid": "ri.actions.main.action-type.a30d3415-bddd-443d-9219-24a6db32fe3c"
     },
     {
       "apiName": "delete-reagent-entry",
@@ -3210,10 +4087,25 @@
         },
         "n3cknowledgeObjects": {
           "description": "",
-          "baseType": "OntologyObject"
+          "baseType": "Array<OntologyObject>"
         }
       },
       "rid": "ri.actions.main.action-type.a6a5ef82-347e-4e13-9a10-b5b202797ffd"
+    },
+    {
+      "apiName": "edit-manuscript-publication-status",
+      "description": "",
+      "parameters": {
+        "manuscript_publication_status": {
+          "description": "",
+          "baseType": "Array<String>"
+        },
+        "Manuscript": {
+          "description": "",
+          "baseType": "OntologyObject"
+        }
+      },
+      "rid": "ri.actions.main.action-type.a6bbf8aa-5a75-4143-96df-98ea1d53d463"
     },
     {
       "apiName": "ko-set-sh-workbook",
@@ -3245,6 +4137,10 @@
         "detailed_steps": {
           "description": "",
           "baseType": "Array<String>"
+        },
+        "intended_protocol_section_description": {
+          "description": "",
+          "baseType": "String"
         },
         "ProtocolSection": {
           "description": "",
@@ -3310,8 +4206,24 @@
           "description": "",
           "baseType": "OntologyObject"
         },
-        "manuscript_text_document_link": {
+        "pasc_or_n3c": {
+          "description": "If your work receives funding to investigate PASC e.g. through RECOVER, please select ‘Yes’",
+          "baseType": "String"
+        },
+        "sdo_h_related_or_long_covid": {
           "description": "",
+          "baseType": "Array<String>"
+        },
+        "manuscript_text_document_link": {
+          "description": "Please provide either a link to your manuscript/presentation/abstract in a shared Google drive (give read access to n3c.pubs@gmail.com) or indicate that you are emailing a PDF/Word/pptx version to n3c.pubs@gmail.com. Your document cannot be reviewed until a draft is made available. PLEASE INCLUDE AUTHOR LIST IN YOUR DRAFT",
+          "baseType": "String"
+        },
+        "has_download_request_been_approved": {
+          "description": "",
+          "baseType": "String"
+        },
+        "n3c_consortium_vs_project_based_work": {
+          "description": "N3C Consortium manuscripts are about the creation of the N3C (e.g. N3C vision, methodology, data description, quality assurance, community development, infrastructure, harmonization, governance, administration). Project-based manuscripts are about discoveries that were enabled by the N3C and are associated with one or more approved Data Use Request (DURs)",
           "baseType": "String"
         }
       },
@@ -3548,6 +4460,21 @@
       "rid": "ri.actions.main.action-type.b60bc598-e308-4f3c-ad52-dc9d31681ba2"
     },
     {
+      "apiName": "remove-protocol-step-input-omop-concept-sets",
+      "description": "",
+      "parameters": {
+        "consumedOMOPconceptSet": {
+          "description": "",
+          "baseType": "Array<OntologyObject>"
+        },
+        "ProtocolStep": {
+          "description": "",
+          "baseType": "OntologyObject"
+        }
+      },
+      "rid": "ri.actions.main.action-type.b88dc9c3-234d-42ff-83d9-2b68cbba8d61"
+    },
+    {
       "apiName": "new-action-4777b80d-9d4e-3023-418f-b4ece6461938",
       "description": "",
       "parameters": {
@@ -3704,6 +4631,53 @@
       "rid": "ri.actions.main.action-type.be264050-8b7f-44fe-9082-5fb4b748049a"
     },
     {
+      "apiName": "edit-publication-contributor",
+      "description": "",
+      "parameters": {
+        "contribution_end_date": {
+          "description": "",
+          "baseType": "LocalDate"
+        },
+        "contribution_start_date": {
+          "description": "",
+          "baseType": "LocalDate"
+        },
+        "proposed_level_of_contribution": {
+          "description": "",
+          "baseType": "Array<String>"
+        },
+        "researcher_orcid": {
+          "description": "",
+          "baseType": "String"
+        },
+        "contribution_notes": {
+          "description": "",
+          "baseType": "String"
+        },
+        "research_project": {
+          "description": "",
+          "baseType": "OntologyObject"
+        },
+        "contributor_role_subclass": {
+          "description": "",
+          "baseType": "Array<String>"
+        },
+        "PublicationContribution": {
+          "description": "",
+          "baseType": "OntologyObject"
+        },
+        "manuscript_name": {
+          "description": "",
+          "baseType": "String"
+        },
+        "publication_intent_submission_id": {
+          "description": "",
+          "baseType": "OntologyObject"
+        }
+      },
+      "rid": "ri.actions.main.action-type.be8b2f82-b24b-467a-97bb-060ee517ee91"
+    },
+    {
       "apiName": "delete-cohort-object",
       "description": "Hard Delete OMOP Cohort Object [for housekeeping - Palantir only - exercise extreme caution!]",
       "parameters": {
@@ -3762,7 +4736,7 @@
         },
         "researcher_name": {
           "description": "",
-          "baseType": "String"
+          "baseType": "OntologyObject"
         },
         "proposed_level_of_contribution": {
           "description": "",
@@ -3773,6 +4747,10 @@
           "baseType": "String"
         },
         "contribution_notes": {
+          "description": "",
+          "baseType": "String"
+        },
+        "contribution_id": {
           "description": "",
           "baseType": "String"
         },
@@ -3818,8 +4796,16 @@
           "description": "",
           "baseType": "OntologyObject"
         },
-        "n3cknowledgeObjects": {
+        "new-parameter2": {
           "description": "",
+          "baseType": "Array<OntologyObject>"
+        },
+        "new-parameter1": {
+          "description": "",
+          "baseType": "Array<OntologyObject>"
+        },
+        "n3cknowledgeObjects": {
+          "description": "Add Knowledge Objects for this Publication Intent",
           "baseType": "Array<OntologyObject>"
         }
       },
@@ -3889,7 +4875,7 @@
     },
     {
       "apiName": "discard-omop-concept-set-expression",
-      "description": "",
+      "description": "Deletes the selected Concept Set Expression items and removes them from the associated Concept Set Version draft.",
       "parameters": {
         "concept-set-version-item": {
           "description": "",
@@ -3943,6 +4929,53 @@
         }
       },
       "rid": "ri.actions.main.action-type.c5075c1b-eba9-4aab-9448-4948809b997d"
+    },
+    {
+      "apiName": "phastr-proposal-attestations",
+      "description": "Submit required attestations and IRB Determination letter.",
+      "parameters": {
+        "dua-attestation": {
+          "description": "",
+          "baseType": "String"
+        },
+        "human-subjects-training-date": {
+          "description": "",
+          "baseType": "LocalDate"
+        },
+        "new-parameter3": {
+          "description": "",
+          "baseType": "LocalDate"
+        },
+        "irb-determination-letter": {
+          "description": "If not sure please consult your HRPP",
+          "baseType": "Attachment"
+        },
+        "DACDecision": {
+          "description": "",
+          "baseType": "OntologyObject"
+        },
+        "new-parameter2": {
+          "description": "",
+          "baseType": "String"
+        },
+        "new-parameter1": {
+          "description": "https://zenodo.org/record/4743249#.YQKjyY5KiUm",
+          "baseType": "String"
+        },
+        "infosec-attestation": {
+          "description": "",
+          "baseType": "String"
+        },
+        "new-parameter": {
+          "description": "",
+          "baseType": "String"
+        },
+        "human-subjects-training-attestation": {
+          "description": "NCATS does not specify which human subjects training course should be taken to allow flexibility for the resources individual organizations will have adopted for use in their local research programs. Please follow your home institutions requirements to meet this expectation.  Training must be completed within three years of the Data Use Request submission. ",
+          "baseType": "String"
+        }
+      },
+      "rid": "ri.actions.main.action-type.c61d24af-7020-4bf0-bdaf-6d81fe62ef21"
     },
     {
       "apiName": "rename-research-project",
@@ -4079,7 +5112,15 @@
           "description": "",
           "baseType": "OntologyObject"
         },
+        "last_line_of_abstract": {
+          "description": "",
+          "baseType": "Boolean"
+        },
         "all_grants_supporting_the_authors_have_been_acknowledged": {
+          "description": "",
+          "baseType": "Boolean"
+        },
+        "last_author_is_followed_by_n3c_consortium_statement": {
           "description": "",
           "baseType": "Boolean"
         }
@@ -4117,6 +5158,21 @@
       "rid": "ri.actions.main.action-type.cbc3643b-cca4-4772-ae2d-ae7036a6798b"
     },
     {
+      "apiName": "remove-protocol-step-produced-omop-concept-sets",
+      "description": "",
+      "parameters": {
+        "producedOMOPconceptSet": {
+          "description": "",
+          "baseType": "Array<OntologyObject>"
+        },
+        "ProtocolStep": {
+          "description": "",
+          "baseType": "OntologyObject"
+        }
+      },
+      "rid": "ri.actions.main.action-type.cbf34041-4f73-408e-b37e-5411dd61d16a"
+    },
+    {
       "apiName": "setprotocoldesigncommentsnotepad",
       "description": "",
       "parameters": {
@@ -4139,7 +5195,15 @@
           "description": "",
           "baseType": "OntologyObject"
         },
+        "new-parameter1": {
+          "description": "",
+          "baseType": "Array<OntologyObject>"
+        },
         "domainTeam": {
+          "description": "",
+          "baseType": "Array<OntologyObject>"
+        },
+        "new-parameter": {
           "description": "",
           "baseType": "Array<OntologyObject>"
         }
@@ -4147,28 +5211,35 @@
       "rid": "ri.actions.main.action-type.cee3d97e-de60-4b15-bea6-44a56400881e"
     },
     {
+      "apiName": "set-protocol-step-input-omop-concept-sets",
+      "description": "",
+      "parameters": {
+        "consumedOMOPconceptSet": {
+          "description": "",
+          "baseType": "Array<OntologyObject>"
+        },
+        "ProtocolStep": {
+          "description": "",
+          "baseType": "OntologyObject"
+        }
+      },
+      "rid": "ri.actions.main.action-type.cfb7e40a-46c0-4e90-a1b1-6aa66a9ef46f"
+    },
+    {
       "apiName": "unsubscribe-concept-set",
       "description": "",
       "parameters": {
-        "time_subscribed": {
-          "description": "",
-          "baseType": "Timestamp"
-        },
-        "subscription_id": {
+        "userId": {
           "description": "",
           "baseType": "String"
         },
-        "OMOPConceptSetContainer": {
+        "conceptSet": {
           "description": "",
           "baseType": "OntologyObject"
         },
-        "subscription_title": {
+        "conceptSets": {
           "description": "",
-          "baseType": "String"
-        },
-        "Researcher": {
-          "description": "",
-          "baseType": "OntologyObject"
+          "baseType": "Array<OntologyObject>"
         }
       },
       "rid": "ri.actions.main.action-type.cfde92c4-7323-4346-b030-d4da80d95c36"
@@ -4200,9 +5271,44 @@
       "rid": "ri.actions.main.action-type.d10c9f2d-a590-4056-b1c0-47065eb3d2a6"
     },
     {
+      "apiName": "create-new-measurement-unit-conversion-formula",
+      "description": "Add a new conversion formula for measurement units",
+      "parameters": {
+        "mapping_function": {
+          "description": "",
+          "baseType": "String"
+        },
+        "measurement_omop_concept_name": {
+          "description": "",
+          "baseType": "String"
+        },
+        "original_unit_omop_concept_name": {
+          "description": "",
+          "baseType": "String"
+        },
+        "permitted_editors": {
+          "description": "",
+          "baseType": "Array<OntologyObject>"
+        },
+        "conversion_equation": {
+          "description": "",
+          "baseType": "String"
+        },
+        "harmonized_unit_omop_concept_name": {
+          "description": "",
+          "baseType": "String"
+        }
+      },
+      "rid": "ri.actions.main.action-type.d1879529-109d-41f4-a745-b8f836b25ae2"
+    },
+    {
       "apiName": "add-selected-concepts-as-omop-version-expressions",
       "description": "",
       "parameters": {
+        "sourceApplication": {
+          "description": "",
+          "baseType": "String"
+        },
         "concepts": {
           "description": "List of OMOP Concepts.",
           "baseType": "Array<OntologyObject>"
@@ -4442,13 +5548,21 @@
       "parameters": {
         "rp": {
           "description": "",
-          "baseType": "String"
+          "baseType": "OntologyObject"
         },
-        "target_venue": {
+        "manuscriptPublicationStatus": {
+          "description": "",
+          "baseType": "Array<String>"
+        },
+        "publicationIntentSubmission": {
+          "description": "",
+          "baseType": "OntologyObject"
+        },
+        "manuscriptTitle": {
           "description": "",
           "baseType": "String"
         },
-        "manuscript_title": {
+        "targetVenue": {
           "description": "",
           "baseType": "String"
         }
@@ -4469,6 +5583,21 @@
         }
       },
       "rid": "ri.actions.main.action-type.da69f454-8012-4e0a-8316-092fc2e37c90"
+    },
+    {
+      "apiName": "remove-protocol-step-input-knowledge-objects",
+      "description": "",
+      "parameters": {
+        "consumedN3CknowledgeObjects": {
+          "description": "",
+          "baseType": "Array<OntologyObject>"
+        },
+        "ProtocolStep": {
+          "description": "",
+          "baseType": "OntologyObject"
+        }
+      },
+      "rid": "ri.actions.main.action-type.db5b71fe-371c-4a41-957d-4a330a18980d"
     },
     {
       "apiName": "removeprotocolsectioninputtrainingmodules",
@@ -4651,6 +5780,21 @@
       "rid": "ri.actions.main.action-type.e0b42d62-d547-4eb2-8b7b-42ca929074a0"
     },
     {
+      "apiName": "set-publication-intent-submission-review-status",
+      "description": "",
+      "parameters": {
+        "PublicationIntentSubmission": {
+          "description": "",
+          "baseType": "OntologyObject"
+        },
+        "review_status": {
+          "description": "",
+          "baseType": "String"
+        }
+      },
+      "rid": "ri.actions.main.action-type.e15e2720-848d-4c9f-bd66-80a3051502a6"
+    },
+    {
       "apiName": "assign-informatician",
       "description": "Change property of Assigned Informatician",
       "parameters": {
@@ -4675,6 +5819,29 @@
         }
       },
       "rid": "ri.actions.main.action-type.e3c9843c-e75e-4e91-9a84-bdf7fcf7d335"
+    },
+    {
+      "apiName": "set-reviewer-approval-status-for-unit-conversion-formula",
+      "description": "ADMS, Logic Liaison or other general reviewer for conversion formula to maintain standards and quality of conversions ",
+      "parameters": {
+        "mapping_function": {
+          "description": "",
+          "baseType": "String"
+        },
+        "UnitConversionFormula": {
+          "description": "",
+          "baseType": "OntologyObject"
+        },
+        "adms_approval": {
+          "description": "",
+          "baseType": "String"
+        },
+        "conversion_equation": {
+          "description": "",
+          "baseType": "String"
+        }
+      },
+      "rid": "ri.actions.main.action-type.e41388bf-c415-4199-98bd-3e42b1c997f8"
     },
     {
       "apiName": "edit-omop-concept-set-expression-is-excluded",
@@ -4705,6 +5872,21 @@
         }
       },
       "rid": "ri.actions.main.action-type.e662585c-2c21-4471-b327-f7b91d7030eb"
+    },
+    {
+      "apiName": "set-protocol-step-produced-omop-concept-sets",
+      "description": "",
+      "parameters": {
+        "producedOMOPconceptSet": {
+          "description": "",
+          "baseType": "Array<OntologyObject>"
+        },
+        "ProtocolStep": {
+          "description": "",
+          "baseType": "OntologyObject"
+        }
+      },
+      "rid": "ri.actions.main.action-type.e71110b6-7f46-463c-8892-67aaa08e0105"
     },
     {
       "apiName": "create-cohort",
@@ -4835,6 +6017,17 @@
         }
       },
       "rid": "ri.actions.main.action-type.eb6e9759-3902-4ce2-b947-241c911fbb11"
+    },
+    {
+      "apiName": "delete-publication-contribution",
+      "description": "",
+      "parameters": {
+        "PublicationContribution": {
+          "description": "",
+          "baseType": "OntologyObject"
+        }
+      },
+      "rid": "ri.actions.main.action-type.ee6ac2ac-1a9e-4737-b290-2ba338bc63f9"
     },
     {
       "apiName": "ko-set-release-status",
@@ -5325,6 +6518,30 @@
       "apiName": "create-new-draft-omop-concept-set-version",
       "description": "",
       "parameters": {
+        "sourceApplicationVersion": {
+          "description": "",
+          "baseType": "String"
+        },
+        "conceptSet": {
+          "description": "",
+          "baseType": "OntologyObject"
+        },
+        "annotation": {
+          "description": "",
+          "baseType": "String"
+        },
+        "baseVersion": {
+          "description": "",
+          "baseType": "OntologyObject"
+        },
+        "on-behalf-of": {
+          "description": "An optional parameter that should be provided if this action is being taken on behalf of a different user.",
+          "baseType": "String"
+        },
+        "sourceApplication": {
+          "description": "",
+          "baseType": "String"
+        },
         "domain-team": {
           "description": "Intended Domain Team. At least one of Intended Research Project or Intended Domain Team must be provided.",
           "baseType": "OntologyObject"
@@ -5337,28 +6554,12 @@
           "description": "This must be set to the current maximum version number assigned to a version of this concept set, or null if creating the first version of a concept set. If null, then baseVersion is not required",
           "baseType": "Double"
         },
-        "conceptSet": {
-          "description": "",
-          "baseType": "OntologyObject"
-        },
-        "annotation": {
-          "description": "",
-          "baseType": "String"
-        },
         "limitations": {
           "description": "This field is optional, you will have a chance to fill this in later.",
           "baseType": "String"
         },
         "intention": {
           "description": "",
-          "baseType": "String"
-        },
-        "baseVersion": {
-          "description": "",
-          "baseType": "OntologyObject"
-        },
-        "on-behalf-of": {
-          "description": "An optional parameter that should be provided if this action is being taken on behalf of a different user.",
           "baseType": "String"
         },
         "intended-research-project": {
@@ -5372,6 +6573,10 @@
         "authority": {
           "description": "",
           "baseType": "String"
+        },
+        "copyExpressionsFromBaseVersion": {
+          "description": "If true, Expressions (OMOP concept inclusion and exclusion rules) are copied from the Base Concept Set Version to this draft concept set. If false, this draft concept set is initialized as an empty concept set.",
+          "baseType": "Boolean"
         }
       },
       "rid": "ri.actions.main.action-type.fb260d04-b50e-4e29-9d39-6cce126fda7f"
@@ -5411,6 +6616,10 @@
       "apiName": "update-concept-set-version-from-json",
       "description": "",
       "parameters": {
+        "sourceApplication": {
+          "description": "",
+          "baseType": "String"
+        },
         "json": {
           "description": "",
           "baseType": "String"
@@ -5440,6 +6649,37 @@
         }
       },
       "rid": "ri.actions.main.action-type.fd06f77c-d230-41d6-bb38-f366510647f4"
+    },
+    {
+      "apiName": "edit-protocol-step-general-properties",
+      "description": "",
+      "parameters": {
+        "protocol_section_name": {
+          "description": "",
+          "baseType": "OntologyObject"
+        },
+        "limitations": {
+          "description": "",
+          "baseType": "String"
+        },
+        "performed_protocol_step_description": {
+          "description": "",
+          "baseType": "String"
+        },
+        "protocol_step_name": {
+          "description": "",
+          "baseType": "String"
+        },
+        "main_authors": {
+          "description": "",
+          "baseType": "Array<String>"
+        },
+        "ProtocolStep": {
+          "description": "",
+          "baseType": "OntologyObject"
+        }
+      },
+      "rid": "ri.actions.main.action-type.ff203007-2d95-478e-a69f-3e290dbf11df"
     }
   ]
 }
