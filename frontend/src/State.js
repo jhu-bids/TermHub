@@ -144,7 +144,7 @@ const SEARCH_PARAM_STATE_CONFIG = {
   global_props_but_not_search_params: ['searchParams', 'setSearchParams'],
   serialize: ['csetEditState'],
 }
-function searchParamsToObj(searchParams) {
+export function searchParamsToObj(searchParams) {
   const qsKeys = Array.from(new Set(searchParams.keys()));
   let sp = {};
   qsKeys.forEach(key => {
@@ -201,7 +201,7 @@ function searchParamsToObj(searchParams) {
   // console.log({sp});
   return sp;
 }
-function updateSearchParams(props) {
+export function updateSearchParams(props) {
   const {addProps={}, delProps=[], searchParams, setSearchParams, } = props;
   let sp = searchParamsToObj(searchParams);
   SEARCH_PARAM_STATE_CONFIG.global_props_but_not_search_params.forEach(
@@ -216,7 +216,7 @@ function updateSearchParams(props) {
   const csp = createSearchParams(sp);
   setSearchParams(csp);
 }
-function clearSearchParams(props) {
+export function clearSearchParams(props) {
   const {searchParams, setSearchParams, } = props;
   const sp = searchParamsToObj(searchParams);
   if (! isEmpty(sp)) {
@@ -264,7 +264,7 @@ function DataWidget(props) {
   );
 }
 
-function useDataWidget(ukey, url, putData) {
+export function useDataWidget(ukey, url, putData) {
   const ax = putData ? ()=>axiosPut(url, putData) : ()=>axiosGet(url)
   const axVars = useQuery([ukey], ax);
   let dwProps = {...axVars, ukey, url, putData, };
@@ -272,21 +272,21 @@ function useDataWidget(ukey, url, putData) {
   return [dw, dwProps, ]; // axVars.data];
 }
 
-const backend_url = path => `${API_ROOT}/${path}`
+export const backend_url = path => `${API_ROOT}/${path}`
 
-function axiosGet(path, backend=false) {
+export function axiosGet(path, backend=false) {
   let url = backend ? backend_url(path) : path;
   console.log('axiosGet url: ', url);
   return axios.get(url).then((res) => res.data);
 }
 
-function axiosPut(path, data, backend=true) {
+export function axiosPut(path, data, backend=true) {
   let url = backend ? backend_url(path) : path;
   console.log('axiosPut url: ', url);
   return axios.post(url, data);
 }
 
-function StatsMessage(props) {
+export function StatsMessage(props) {
   const {codeset_ids=[], all_csets=[], cset_data={}} = props;
   const {related_csets=[], concepts } = cset_data;
 
@@ -297,12 +297,6 @@ function StatsMessage(props) {
     have 1 or more concepts in common with the selected sets.
     Click rows below to select or deselect concept sets.</p>
 }
-
-
-export {
-  StatsMessage, searchParamsToObj, backend_url, axiosGet, axiosPut, useDataWidget,
-  updateSearchParams, clearSearchParams,
-};
 
 function makeHierarchyRows({concepts, selected_csets, cset_members_items, hierarchy, collapsed={}}) {
   if (isEmpty(concepts) || isEmpty(selected_csets) || isEmpty(cset_members_items)) {

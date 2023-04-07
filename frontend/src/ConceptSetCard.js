@@ -4,9 +4,9 @@ import CardContent from '@mui/material/CardContent';
 import Typography from '@mui/material/Typography';
 import IconButton from '@mui/material/IconButton';
 import CloseIcon from '@mui/icons-material/Close';
-import Box from '@mui/material/Box';
-import {NavLink, useLocation} from "react-router-dom";
-import {backend_url} from './App';
+// import Box from '@mui/material/Box';
+import {useLocation} from "react-router-dom";
+import {backend_url} from './State';
 
 /*
 import { styled } from '@mui/material/styles';

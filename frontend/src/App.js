@@ -41,7 +41,6 @@ import {PopupContentItem, /*ContentItems*/} from './contentControl';
 // dotenv.config()
 // const buf = Buffer.from('API_ROOT=api_root')
 // const config = dotenv.parse(buf) // will return an object
-// console.log(config)
 // const API_ROOT = 'http://127.0.0.1:8000'
 
 // const enclave_url = path => `${API_ROOT}/passthru?path=${path}`
@@ -110,9 +109,7 @@ function QueryStringStateMgr(props) {
   // gets state (codeset_ids for now) from query string, passes down through props
   // const [codeset_ids, setCodeset_ids] = useState(sp.codeset_ids || []);
   const sp = searchParamsToObj(searchParams, setSearchParams);
-  // console.log({location, sp});
   const {codeset_ids=[], } = sp;
-  // console.log(props);
 
   let globalProps = {...sp, searchParams, setSearchParams, };
 
@@ -196,9 +193,7 @@ function DataContainer(props) {
     });
     cset_data.csmiLookup = csmiLookup;
     // let cr = _.hierarchicalTableToTree(concept_relationships, 'concept_id_1', 'concept_id_2');
-    // console.log(cr);
 
-    // console.log({props, cset_data, });
     return  <RoutesContainer {...props} all_csets={all_csets} cset_data={cset_data}/>
   }
   return (
@@ -219,7 +214,8 @@ function DataContainer(props) {
     );
 }
 function RoutesContainer(props) {
-  console.log(window.props_w = props);
+  window.props_w = props;
+  // console.log(window.props_w = props);
   return (
       <Routes>
         {/*<Route path="/help" element={<HelpWidget {...props} />} />*/}
@@ -295,50 +291,5 @@ OH!! Does that mean: without a dependency list, the useEffects function will run
 
 */
 
-/*
-function objectTypesData(data) {
-  const someObjTypePropertiesHaveDesc = data.some(d=>Object.entries(d.properties).some(d=>d.description))
-  // console.log(data.map(d=>Object.entries(d.properties).map(p=>`${p[0]}(${p[1].baseType})`).join(', ')).join('\n\n'))
-  if (someObjTypePropertiesHaveDesc) {
-    // console.log('someObjTypePropertiesHaveDesc!!!!!')
-  }
-  let rows = data.map(d => ({
-    apiName: d.apiName,
-    description: d.description,
-    primaryKey: d.primaryKey.join(','),
-    properties: Object.keys(d.properties).join(', '),
-  }))
-  return rows
-}
 
-function HookTestApp() {
-  const [ref, measures ] = useMeasure();
-
-  return (
-      <div className="App">
-        <header className="App-header">
-          <Paper ref={ref} sx={{ m: 1 }} elevation={4} /*measures={measures}* />
-<pre>
-{JSON.stringify(measures,null,2)}
-</pre>
-<p>
-  Edit <code>src/App.js</code> and save to reload.
-</p>
-<a
-    className="App-link"
-    href="https://reactjs.org"
-    target="_blank"
-    rel="noopener noreferrer"
->
-  Learn React
-</a>
-</Paper>
-</header>
-</div>
-);
-}
-
-*/
-
-export {/* HookTestApp, */ QCProvider, backend_url, };
-// export { QCProvider, backend_url, SEARCH_PARAM_STATE_CONFIG, };
+export { QCProvider, };

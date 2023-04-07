@@ -11,9 +11,8 @@ import { Link } from 'react-router-dom';
 import {isEmpty, get, pick, } from 'lodash'; // set, map, omit, pick, uniq, reduce, cloneDeepWith, isEqual, uniqWith, groupBy,
 import IconButton from '@mui/material/IconButton';
 import {Tooltip} from './Tooltip';
-import {searchParamsToObj, updateSearchParams, } from "./State";
+import {searchParamsToObj, updateSearchParams, backend_url, } from "./State";
 import {LI, TextH2, TextBold, howToSaveStagedChanges, } from "./AboutPage";
-import {backend_url} from './App';
 import _ from "./supergroup/supergroup";
 
 const checkmark = <span>{'\u2713'}</span>;
@@ -432,14 +431,8 @@ export function cellContents(props) {
   }
   const cellStuff = (
       <div onClick={()=>{
-        console.log({   // why is this console.log here? was the onClick supposed to do something else?
-                        // should the editAction be called without the console.log around it?
-          // editState: props.csetEditState[props.editCodesetId][props.row.concept_id],
-          stuff: editAction({...props, clickAction, no_action: true}),
-          item,
-          editing
-        })}}
-        // style={{width:'70px', textAlign: 'center', }}
+          editAction({...props, clickAction, no_action: true}); // returns {cdsidState, item}
+        }} // style={{width:'70px', textAlign: 'center', }}
       >
         {removeIcon}
         { contents || contents === '' ? contents : flags.map((flag) => {
