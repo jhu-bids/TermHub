@@ -10,11 +10,17 @@ import {
   useHover,
   useFocus,
   useRole,
-  useDismiss
+  useDismiss,
 } from "@floating-ui/react-dom-interactions";
 import { mergeRefs } from "react-merge-refs";
 
-const Tooltip = ({ children, content, label, placement, classes='Tooltip' }) => {
+const Tooltip = ({
+  children,
+  content,
+  label,
+  placement,
+  classes = "Tooltip",
+}) => {
   const [open, setOpen] = useState(false);
 
   const { x, y, reference, floating, strategy, context } = useFloating({
@@ -22,21 +28,21 @@ const Tooltip = ({ children, content, label, placement, classes='Tooltip' }) => 
     open,
     onOpenChange: setOpen,
     middleware: [offset(5), flip(), shift({ padding: 8 })],
-    whileElementsMounted: autoUpdate
+    whileElementsMounted: autoUpdate,
   });
 
   const { getReferenceProps, getFloatingProps } = useInteractions([
     useHover(context),
     useFocus(context),
     useRole(context, { role: "tooltip" }),
-    useDismiss(context)
+    useDismiss(context),
   ]);
 
   // Preserve the consumer's ref
-  const ref = useMemo(() => mergeRefs([reference, children.ref]), [
-    reference,
-    children
-  ]);
+  const ref = useMemo(
+    () => mergeRefs([reference, children.ref]),
+    [reference, children]
+  );
 
   return (
     <>
@@ -48,7 +54,7 @@ const Tooltip = ({ children, content, label, placement, classes='Tooltip' }) => 
           style={{
             position: strategy,
             top: y ?? 0,
-            left: x ?? 0
+            left: x ?? 0,
           }}
           {...getFloatingProps()}
         >
@@ -59,4 +65,4 @@ const Tooltip = ({ children, content, label, placement, classes='Tooltip' }) => 
   );
 };
 
-export {Tooltip};
+export { Tooltip };

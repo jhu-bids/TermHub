@@ -1,9 +1,9 @@
-import React, {useState, useCallback, useEffect, } from 'react';
-import {orderBy, get, } from 'lodash';
-import DataTable, { createTheme } from 'react-data-table-component';
-import {fmt, pct_fmt, } from './utils';
-import {StatsMessage,} from './State';
-import {Tooltip} from './Tooltip';
+import React, { useState, useCallback, useEffect } from "react";
+import { orderBy, get } from "lodash";
+import DataTable, { createTheme } from "react-data-table-component";
+import { fmt, pct_fmt } from "./utils";
+import { StatsMessage } from "./State";
+import { Tooltip } from "./Tooltip";
 // import Checkbox from '@material-ui/core/Checkbox';
 // import ArrowDownward from '@material-ui/icons/ArrowDownward';
 // const sortIcon = <ArrowDownward />;
@@ -14,25 +14,31 @@ import {Tooltip} from './Tooltip';
 
 /* TODO: review function for appropriate state management */
 function CsetsDataTable(props) {
-    const {codeset_ids, changeCodesetIds, cset_data={}} = props;
-    const {selected_csets, } = cset_data;
+  const { codeset_ids, changeCodesetIds, cset_data = {} } = props;
+  const { selected_csets } = cset_data;
 
-    const [relatedCsets, setRelatedCsets] = useState(cset_data.related_csets);
+  const [relatedCsets, setRelatedCsets] = useState(cset_data.related_csets);
 
-    useEffect(() => {
-        // props.csetData.relatedCsets.forEach(rc => rc.selected = codeset_ids.includes(rc.codeset_id))
-        const rcsets = orderBy(get(props, 'cset_data.related_csets', []), ['selected', 'precision'], ['desc', 'desc'])
-        // console.log({props, rcsets});
-        setRelatedCsets(rcsets);
-    }, [codeset_ids.join(','), selected_csets.length])
-    let coldefs = getColdefs();
-    /* const conditionalRowStyles = [{ when: row => row.selected,
+  useEffect(() => {
+    // props.csetData.relatedCsets.forEach(rc => rc.selected = codeset_ids.includes(rc.codeset_id))
+    const rcsets = orderBy(
+      get(props, "cset_data.related_csets", []),
+      ["selected", "precision"],
+      ["desc", "desc"]
+    );
+    // console.log({props, rcsets});
+    setRelatedCsets(rcsets);
+  }, [codeset_ids.join(","), selected_csets.length]);
+  let coldefs = getColdefs();
+  /* const conditionalRowStyles = [{ when: row => row.selected,
         style: { backgroundColor: 'rgba(63, 195, 128, 0.9)', color: 'white',
                 '&:hover': { cursor: 'pointer', }, } }]; */
 
-    let customStyles = getCustomStyles();
-    const handleRowClick = useCallback(row => changeCodesetIds(row.codeset_id, 'toggle'));
-    /*
+  let customStyles = getCustomStyles();
+  const handleRowClick = useCallback((row) =>
+    changeCodesetIds(row.codeset_id, "toggle")
+  );
+  /*
     const handleSelectionChange = useCallback(state => {
         const {selectedRows} = state;
         let ids = selectedRows.map(d => d.codeset_id).sort()
@@ -44,156 +50,166 @@ function CsetsDataTable(props) {
     }, [codeset_ids]);
      */
 
-    // const related_ids = new Set(f lattened_concept_hierarchy.map(d => d.concept_id));
-    const subHeader = <StatsMessage {...props} />
+  // const related_ids = new Set(f lattened_concept_hierarchy.map(d => d.concept_id));
+  const subHeader = <StatsMessage {...props} />;
 
-    const rowSelectCritera = row => row.selected;
-    // todo: p -> data table: data table has a property for showing some sort of paragraph text
-    // TODO: y concepts -> get the number
-    return (
-        <div className="csets-data-table" >
-            <DataTable
-                data={relatedCsets}
-                // selectableRows
-                selectableRowsHighlight
-                selectableRowSelected={rowSelectCritera}
-                // onSelectedRowsChange={handleSelectionChange}
-                onRowClicked={handleRowClick}
+  const rowSelectCritera = (row) => row.selected;
+  // todo: p -> data table: data table has a property for showing some sort of paragraph text
+  // TODO: y concepts -> get the number
+  return (
+    <div className="csets-data-table">
+      <DataTable
+        data={relatedCsets}
+        // selectableRows
+        selectableRowsHighlight
+        selectableRowSelected={rowSelectCritera}
+        // onSelectedRowsChange={handleSelectionChange}
+        onRowClicked={handleRowClick}
+        customStyles={customStyles}
+        noHeader={false}
+        title="Related concept sets"
+        subHeader
+        subHeaderComponent={subHeader}
+        // theme="custom-theme"
+        // theme="light"
+        columns={coldefs}
+        // defaultSortFieldId={4}
+        // defaultSortAsc={false}
 
-                customStyles={customStyles}
-                noHeader={false}
-                title="Related concept sets"
-                subHeader
-                subHeaderComponent={subHeader}
-                // theme="custom-theme"
-                // theme="light"
-                columns={coldefs}
-                // defaultSortFieldId={4}
-                // defaultSortAsc={false}
+        // conditionalRowStyles={conditionalRowStyles}
+        height="300px"
+        //striped
+        //pagination
+        //selectableRowsComponent={Checkbox}
+        //selectableRowsComponentProps={selectProps}
+        //sortIcon={sortIcon}
+        // {...props}
 
-
-                // conditionalRowStyles={conditionalRowStyles}
-                height="300px"
-                //striped
-                //pagination
-                //selectableRowsComponent={Checkbox}
-                //selectableRowsComponentProps={selectProps}
-                //sortIcon={sortIcon}
-                // {...props}
-
-                dense
-                direction="auto"
-                // expandOnRowClicked
-                // expandableRows
-                fixedHeader
-                fixedHeaderScrollHeight="300px"
-                highlightOnHover
-                pointerOnHover
-                responsive
-                subHeaderAlign="left"
-                subHeaderWrap
-                // sortFunction={customSort}
-            />
-        </div>
-    );
+        dense
+        direction="auto"
+        // expandOnRowClicked
+        // expandableRows
+        fixedHeader
+        fixedHeaderScrollHeight="300px"
+        highlightOnHover
+        pointerOnHover
+        responsive
+        subHeaderAlign="left"
+        subHeaderWrap
+        // sortFunction={customSort}
+      />
+    </div>
+  );
 }
 function getColdefs() {
-    /*
+  /*
     const descending = (rows, selector, direction) => {
         return orderBy(rows, selector, ['desc']);
     };
      */
-    return [
-        // { name: 'level', selector: row => row.level, },
-        {
-            name: 'Version ID',
-            // selector: row => `${row.concept_set_name} (v${row.version})`,
-            selector: row => row.codeset_id,
-            compact: true,
-            sortable: true,
-            width: '90px',
-        },
-        {
-            name: 'Concept set name',
-            // selector: row => `${row.concept_set_name} (v${row.version})`,
-            selector: row => row.concept_set_version_title,
-            wrap: true,
-            compact: true,
-            sortable: true,
-        },
-        {
-            //name: 'Concepts',
-            name:   <Tooltip label="Number of concepts in this concept set.">
-                        <span>Concepts</span>
-                    </Tooltip>,
-            selector: row => row.concepts,
-            compact: true,
-            width: '70px',
-            center: true,
-            sortable: true,
-        },
-        {
-            // name: 'Shared concepts',
-            name:   <Tooltip label="Number of concepts in this set that also belong to the selected concept sets.">
-                        <span>Shared</span>
-                    </Tooltip>,
-            selector: row => row.intersecting_concepts,
-            compact: true,
-            width: '70px',
-            center: true,
-            sortable: true,
-        },
-        {
-            name:   <Tooltip label="Portion of the concepts in this set shared with the selected concept sets.">
-                        <span>Precision</span>
-                    </Tooltip>,
-            selector: row => row.precision,
-            format: row => pct_fmt(row.precision),
-            desc: true,
-            compact: true,
-            width: '70px',
-            center: true,
-            sortable: true,
-            // sortFunction: descending,
-        },
-        {
-            // name: 'Recall',
-            name:   <Tooltip label="Portion of concepts in the selected concept sets that belong to this set.">
-                        <span>Recall</span>
-                    </Tooltip>,
-            selector: row => row.recall,
-            format: row => pct_fmt(row.recall),
-            desc: true,
-            compact: true,
-            width: '70px',
-            center: true,
-            sortable: true,
-        },
-        {
-            name:   <Tooltip label="Approximate distinct person count. Small counts rounded up to 20.">
-                        <span>Patients</span>
-                    </Tooltip>,
-            // selector: row => row.approx_distinct_person_count.toLocaleString(),
-            selector: row => parseInt(row.distinct_person_cnt),
-            format: row => fmt(parseInt(row.distinct_person_cnt)),
-            compact: true,
-            width: '70px',
-            center: true,
-            sortable: true,
-        },
-        {
-            name:   <Tooltip label="Record count. Small counts rounded up to 20.">
-                        <span>Records</span>
-                    </Tooltip>,
-            selector: row => {
-                        return row.total_cnt.toLocaleString()
-            },
-            compact: true,
-            width: '78px',
-            center: true,
-            sortable: true,
-        },
-        /*
+  return [
+    // { name: 'level', selector: row => row.level, },
+    {
+      name: "Version ID",
+      // selector: row => `${row.concept_set_name} (v${row.version})`,
+      selector: (row) => row.codeset_id,
+      compact: true,
+      sortable: true,
+      width: "90px",
+    },
+    {
+      name: "Concept set name",
+      // selector: row => `${row.concept_set_name} (v${row.version})`,
+      selector: (row) => row.concept_set_version_title,
+      wrap: true,
+      compact: true,
+      sortable: true,
+    },
+    {
+      //name: 'Concepts',
+      name: (
+        <Tooltip label="Number of concepts in this concept set.">
+          <span>Concepts</span>
+        </Tooltip>
+      ),
+      selector: (row) => row.concepts,
+      compact: true,
+      width: "70px",
+      center: true,
+      sortable: true,
+    },
+    {
+      // name: 'Shared concepts',
+      name: (
+        <Tooltip label="Number of concepts in this set that also belong to the selected concept sets.">
+          <span>Shared</span>
+        </Tooltip>
+      ),
+      selector: (row) => row.intersecting_concepts,
+      compact: true,
+      width: "70px",
+      center: true,
+      sortable: true,
+    },
+    {
+      name: (
+        <Tooltip label="Portion of the concepts in this set shared with the selected concept sets.">
+          <span>Precision</span>
+        </Tooltip>
+      ),
+      selector: (row) => row.precision,
+      format: (row) => pct_fmt(row.precision),
+      desc: true,
+      compact: true,
+      width: "70px",
+      center: true,
+      sortable: true,
+      // sortFunction: descending,
+    },
+    {
+      // name: 'Recall',
+      name: (
+        <Tooltip label="Portion of concepts in the selected concept sets that belong to this set.">
+          <span>Recall</span>
+        </Tooltip>
+      ),
+      selector: (row) => row.recall,
+      format: (row) => pct_fmt(row.recall),
+      desc: true,
+      compact: true,
+      width: "70px",
+      center: true,
+      sortable: true,
+    },
+    {
+      name: (
+        <Tooltip label="Approximate distinct person count. Small counts rounded up to 20.">
+          <span>Patients</span>
+        </Tooltip>
+      ),
+      // selector: row => row.approx_distinct_person_count.toLocaleString(),
+      selector: (row) => parseInt(row.distinct_person_cnt),
+      format: (row) => fmt(parseInt(row.distinct_person_cnt)),
+      compact: true,
+      width: "70px",
+      center: true,
+      sortable: true,
+    },
+    {
+      name: (
+        <Tooltip label="Record count. Small counts rounded up to 20.">
+          <span>Records</span>
+        </Tooltip>
+      ),
+      selector: (row) => {
+        return row.total_cnt.toLocaleString();
+      },
+      compact: true,
+      width: "78px",
+      center: true,
+      sortable: true,
+    },
+    /*
         {
             name:   <Tooltip label="Checked if this concept set is marked as archived in the enclave.">
                 <span>Archived</span>
@@ -205,23 +221,23 @@ function getColdefs() {
             sortable: true,
         },
          */
-    ];
+  ];
 }
 
 function getCustomStyles() {
-    return {
-        table: {
-            style: {
-                padding: '20px',
-                margin: '1%',
-                width: '98%',
-                // margin: '20px',
-                // height: '20vh',
-                // maxWidth: '85%',
-                // maxWidth: '400px', doesn't work ?
-            }
-        },
-        /*
+  return {
+    table: {
+      style: {
+        padding: "20px",
+        margin: "1%",
+        width: "98%",
+        // margin: '20px',
+        // height: '20vh',
+        // maxWidth: '85%',
+        // maxWidth: '400px', doesn't work ?
+      },
+    },
+    /*
         tableWrapper: {
             style: {
                 display: 'table',
@@ -277,7 +293,7 @@ function getCustomStyles() {
             },
         },
     */
-    };
+  };
 }
 /*
 // createTheme creates a new theme named solarized that overrides the build in dark theme
@@ -305,4 +321,4 @@ createTheme('custom-theme', {
 }, 'light');
 */
 
-export {CsetsDataTable, };
+export { CsetsDataTable };

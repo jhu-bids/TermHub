@@ -1,123 +1,156 @@
-import React, {useState, useRef, } from 'react';
-import {NavLink, useParams, useLocation, } from "react-router-dom";
-import List from '@mui/material/List';
-import ListItem from '@mui/material/ListItem';
-import ListItemButton from '@mui/material/ListItemButton';
-import IconButton from '@mui/material/IconButton';
-import CloseIcon from '@mui/icons-material/Close';
-import Accordion from '@mui/material/Accordion';
-import AccordionSummary from '@mui/material/AccordionSummary';
-import AccordionDetails from '@mui/material/AccordionDetails';
-import Typography from '@mui/material/Typography';
-import ExpandMoreIcon from '@mui/icons-material/ExpandMore';
-import Draggable from 'react-draggable';
-import Box from '@mui/material/Box';
-import Switch from '@mui/material/Switch';
-import Paper from '@mui/material/Paper';
-import Collapse from '@mui/material/Collapse';
-import FormControlLabel from '@mui/material/FormControlLabel';
-import useMeasure from 'react-use/lib/useMeasure';
-import { cloneDeep, } from "lodash";
+import React, { useState, useRef } from "react";
+import { NavLink, useParams, useLocation } from "react-router-dom";
+import List from "@mui/material/List";
+import ListItem from "@mui/material/ListItem";
+import ListItemButton from "@mui/material/ListItemButton";
+import IconButton from "@mui/material/IconButton";
+import CloseIcon from "@mui/icons-material/Close";
+import Accordion from "@mui/material/Accordion";
+import AccordionSummary from "@mui/material/AccordionSummary";
+import AccordionDetails from "@mui/material/AccordionDetails";
+import Typography from "@mui/material/Typography";
+import ExpandMoreIcon from "@mui/icons-material/ExpandMore";
+import Draggable from "react-draggable";
+import Box from "@mui/material/Box";
+import Switch from "@mui/material/Switch";
+import Paper from "@mui/material/Paper";
+import Collapse from "@mui/material/Collapse";
+import FormControlLabel from "@mui/material/FormControlLabel";
+import useMeasure from "react-use/lib/useMeasure";
+import { cloneDeep } from "lodash";
 import Button from "@mui/material/Button";
 
-import {useAppState, useStateSlice, } from "./State";
-import {CsetSearch} from './Csets';
+import { useAppState, useStateSlice } from "./State";
+import { CsetSearch } from "./Csets";
 
 const contentComponents = {
-  'DummyComponent': DummyComponent,
-  'CsetSearch': CsetSearch,
-}
+  DummyComponent: DummyComponent,
+  CsetSearch: CsetSearch,
+};
 /* thoughts about where this is going: */
 export const defaultContentItems = {
   dummy: {
-    name: 'dummy',
+    name: "dummy",
     show: false,
-    componentName: 'DummyComponent',
-    props: {foo: 'bar'},
+    componentName: "DummyComponent",
+    props: { foo: "bar" },
   },
   search: {
-    name: 'search', componentName: 'CsetSearch',
-    requiredProps: { appStateSlices: ['codeset_ids'], dataStateSlices: ['all_csets'], },
+    name: "search",
+    componentName: "CsetSearch",
+    requiredProps: {
+      appStateSlices: ["codeset_ids"],
+      dataStateSlices: ["all_csets"],
+    },
     showInMenu: () => true, // always
-    showAs: 'flexible',
+    showAs: "flexible",
     defaultShowProps: {
-      style: {position: 'absolute'},
-      place: { x: 20, y: 20, width: (windowSize) => windowSize.width * .9, height: 400 },
+      style: { position: "absolute" },
+      place: {
+        x: 20,
+        y: 20,
+        width: (windowSize) => windowSize.width * 0.9,
+        height: 400,
+      },
       shown: true, // turn off when comparison is turned on (maybe other rules)
       collapsed: false,
-      collapseProps: { width: ({name}) => (name.length + 2) + 'em', height: '2em', },
+      collapseProps: {
+        width: ({ name }) => name.length + 2 + "em",
+        height: "2em",
+      },
     },
-    currentShowProps: { },
+    currentShowProps: {},
   },
   csetsDataTable: {
-    name: 'csetsDataTable', componentName: 'CsetsDataTable',
-    requiredProps: { appStateSlices: ['codeset_ids'], dataStateSlices: ['selected_csets', 'related_csets'], },
-    showInMenu: () => ({codeset_ids}) => codeset_ids > 0,
-    showAs: 'panel',
+    name: "csetsDataTable",
+    componentName: "CsetsDataTable",
+    requiredProps: {
+      appStateSlices: ["codeset_ids"],
+      dataStateSlices: ["selected_csets", "related_csets"],
+    },
+    showInMenu:
+      () =>
+      ({ codeset_ids }) =>
+        codeset_ids > 0,
+    showAs: "panel",
     defaultShowProps: {
-      style: {position: 'absolute'}, // should be same size and below search
-      place: { x: 20, y: 20, width: (windowSize) => windowSize.width * .9, height: 400 },
+      style: { position: "absolute" }, // should be same size and below search
+      place: {
+        x: 20,
+        y: 20,
+        width: (windowSize) => windowSize.width * 0.9,
+        height: 400,
+      },
       shown: true, // after codeset_ids (or selected_csets) changes
       collapsed: false,
-      collapseProps: { width: ({name}) => (name.length + 2) + 'em', height: '2em', },
+      collapseProps: {
+        width: ({ name }) => name.length + 2 + "em",
+        height: "2em",
+      },
     },
-    currentShowProps: { },
+    currentShowProps: {},
   },
   // conceptNavigation: { }, // doesn't exist yet (but may include search, tabular, graphical, ...)
   comparison: {
-    name: 'csetComparison',
-    componentName: 'CsetComparisonPage', // OR:
-    subComponents: '', // CsetComparisonTable + options and controls, legend
+    name: "csetComparison",
+    componentName: "CsetComparisonPage", // OR:
+    subComponents: "", // CsetComparisonTable + options and controls, legend
     // name: 'editCset', // does this remain an option on comparison, or become (optionally) independent
   },
-}
+};
 const _pages = [
-  {name: 'Cset search', href: '/OMOPConceptSets'},
-  {name: 'Cset comparison', href: '/cset-comparison'},
-  {name: 'Example comparison', href: '/testing'},
+  { name: "Cset search", href: "/OMOPConceptSets" },
+  { name: "Cset comparison", href: "/cset-comparison" },
+  { name: "Example comparison", href: "/testing" },
   // {name: 'Upload CSV', href: '/upload-csv', noSearch: true, },
   // TODO: re-add Download (CSets, bundles, json...) at some point
   //{name: 'Download CSet JSON', href: '/download-json', noSearch: true, },
-  {name: 'Help / About', href: '/about'}
+  { name: "Help / About", href: "/about" },
 ];
 export function getPages(props) {
   let pages = cloneDeep(_pages);
   if (!props.codeset_ids.length) {
-    let page = pages.find(d=>d.href=='/cset-comparison');
+    let page = pages.find((d) => d.href == "/cset-comparison");
     page.disable = true;
-    page.tt = 'Select one or more concept sets in order to view, compare, or edit them.'
+    page.tt =
+      "Select one or more concept sets in order to view, compare, or edit them.";
   }
   return pages;
 }
-export function contentItemsReducer(state={}, action) {
+export function contentItemsReducer(state = {}, action) {
   /* For use with ContentMenuItems and ContentItems, but not currently using it.
    */
-  console.log({state,action});
+  console.log({ state, action });
   if (!action.type) return state;
-  if (['show','hide','toggle'].includes(action.type)) {
+  if (["show", "hide", "toggle"].includes(action.type)) {
     // this is for state being an array; but it's an obj now:
     //    const idx = state.findIndex(o => o.name === action.name);
     //    let option = {...state[idx]};
-    let option = {...state[action.name]};
+    let option = { ...state[action.name] };
     switch (action.type) {
-      case 'show': option.show = true; break;
-      case 'hide': option.show = false; break;
-      case 'toggle': option.show = !option.show;
+      case "show":
+        option.show = true;
+        break;
+      case "hide":
+        option.show = false;
+        break;
+      case "toggle":
+        option.show = !option.show;
     }
     // state[idx] = option;
-    return {...state, [action.name]: option};
+    return { ...state, [action.name]: option };
   }
-  if (action.type === 'new') {
+  if (action.type === "new") {
     // return [...state, action.payload];
-    return {...state, [action.name]: action.payload};
+    return { ...state, [action.name]: action.payload };
   }
-  throw new Error(`invalid action.type: ${action}`)
+  throw new Error(`invalid action.type: ${action}`);
 }
-export function DummyComponent({foo}) {
-  return <h3>dummy component: {foo}</h3>
+export function DummyComponent({ foo }) {
+  return <h3>dummy component: {foo}</h3>;
 }
 function popupWindow(props) {
-  const {url, windowName} = props;
+  const { url, windowName } = props;
   const windowFeatures = "left=100,top=100,width=320,height=620";
   const handle = window.open(url, windowName, windowFeatures);
   if (!handle) {
@@ -126,23 +159,22 @@ function popupWindow(props) {
     throw new Error(`couldn't open popup ${windowName}`);
   }
 }
-export function AssembleComponent({id, title, Component, componentProps}) {
+export function AssembleComponent({ id, title, Component, componentProps }) {
   /* this takes an object or props with a componentName (or Component?)
       and props. To be used with other containers, so the other containers
       can focus on their containing features (drag, collapse, etc.) and
       accept this as a child
    */
-  <Component {...componentProps} />
-
+  <Component {...componentProps} />;
 }
-export function FlexibleContainer({title, children}) {
+export function FlexibleContainer({ title, children }) {
   /* TODO: dragging triggers click action; not great. solutions to try here:
       https://github.com/react-grid-layout/react-draggable/issues/531
       Also, I stretched the IconButton to 100% width because the x on the
       right can end up off the screen, but it makes it a wide flat oval
       on hover
    */
-  const [display, setCollapsed] = useState('collapsed');
+  const [display, setCollapsed] = useState("collapsed");
   const draggableRef = useRef(null);
   const setDisplay = (_display) => {
     setCollapsed(() => _display);
@@ -152,37 +184,54 @@ export function FlexibleContainer({title, children}) {
   const position = { x: 0, y: 0 };
   let displayedContent;
   let style = {
-    cursor: 'move', display: 'inline-block',
+    cursor: "move",
+    display: "inline-block",
   };
-  if (display === 'collapsed') {
+  if (display === "collapsed") {
     displayedContent = (
-        <Button
-              sx={{...style, marginRight: '4px',}}
-              variant="contained" color="primary"
-              onClick={() => setDisplay('show')}>
-          Show {title}
-        </Button>);
-    return displayedContent;  // maybe better if the buttons aren't draggable
-  } else if (display === 'show') {
-    const closeFunc = () => setDisplay('collapsed');
-    style = {...style, zIndex: 10, position: 'absolute', backgroundColor: '#EEE', border: '2px solid green', minWidth: '200px', minHeight: '200px'};
+      <Button
+        sx={{ ...style, marginRight: "4px" }}
+        variant="contained"
+        color="primary"
+        onClick={() => setDisplay("show")}
+      >
+        Show {title}
+      </Button>
+    );
+    return displayedContent; // maybe better if the buttons aren't draggable
+  } else if (display === "show") {
+    const closeFunc = () => setDisplay("collapsed");
+    style = {
+      ...style,
+      zIndex: 10,
+      position: "absolute",
+      backgroundColor: "#EEE",
+      border: "2px solid green",
+      minWidth: "200px",
+      minHeight: "200px",
+    };
     displayedContent = (
       <>
-        <IconButton onClick={closeFunc}
-          sx={{position: 'absolute', width: '100%', justifyContent: 'right', }}
+        <IconButton
+          onClick={closeFunc}
+          sx={{ position: "absolute", width: "100%", justifyContent: "right" }}
         >
-          <CloseIcon/>
+          <CloseIcon />
         </IconButton>
         {children}
       </>
     );
   }
   return (
-      <Draggable nodeRef={draggableRef} defaultPosition={position}>
-        <Box ref={draggableRef} closeFunc={() => setDisplay('collapsed')} sx={style} >
-          {displayedContent}
-        </Box>
-      </Draggable>
+    <Draggable nodeRef={draggableRef} defaultPosition={position}>
+      <Box
+        ref={draggableRef}
+        closeFunc={() => setDisplay("collapsed")}
+        sx={style}
+      >
+        {displayedContent}
+      </Box>
+    </Draggable>
   );
 }
 

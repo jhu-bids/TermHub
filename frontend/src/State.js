@@ -13,42 +13,57 @@
   something to let user show some piece of content, and then a close
   icon will make it disappear and make the button reappear.
  */
-import React, { createContext, useContext, useReducer, useState, /* useRef, useLayoutEffect, */ } from 'react';
+import React, {
+  createContext,
+  useContext,
+  useReducer,
+  useState /* useRef, useLayoutEffect, */,
+} from "react";
 // import useCombinedReducers from 'use-combined-reducers';
 import axios from "axios";
-import {API_ROOT} from "./env";
-import CircularProgress from '@mui/material/CircularProgress';
-import Box from '@mui/material/Box';
-import { useQuery } from '@tanstack/react-query'
-import { createSearchParams, } from "react-router-dom";
-import { isEmpty, memoize, pullAt} from 'lodash';
-import {pct_fmt, } from "./utils"
+import { API_ROOT } from "./env";
+import CircularProgress from "@mui/material/CircularProgress";
+import Box from "@mui/material/Box";
+import { useQuery } from "@tanstack/react-query";
+import { createSearchParams } from "react-router-dom";
+import { isEmpty, memoize, pullAt } from "lodash";
+import { pct_fmt } from "./utils";
 // import {contentItemsReducer, defaultContentItems} from "./contentControl";
 
 const DerivedStateContext = createContext(null);
 export function DerivedStateProvider(props) {
   // when I put this provider up at the App level, it didn't update
   //    but at the CsetComparisonPage level it did. don't know why
-  const {children, cset_data} = props;
-  const {hierarchy={}, selected_csets=[], concepts=[], cset_members_items=[], } = cset_data;
+  const { children, cset_data } = props;
+  const {
+    hierarchy = {},
+    selected_csets = [],
+    concepts = [],
+    cset_members_items = [],
+  } = cset_data;
   const appState = useAppState();
   // const editCsetState = appState.getSliceState('editCset');
-  const hierarchySettings = appState.getSliceState('hierarchySettings');
-  const {collapsed, displayOption} = hierarchySettings;
+  const hierarchySettings = appState.getSliceState("hierarchySettings");
+  const { collapsed, displayOption } = hierarchySettings;
 
   const rowData = makeHierarchyRows({
-    concepts, selected_csets, cset_members_items, hierarchy, collapsed});
+    concepts,
+    selected_csets,
+    cset_members_items,
+    hierarchy,
+    collapsed,
+  });
 
   let derivedState = {
-    foo: 'bar',
+    foo: "bar",
     comparisonRowData: rowData,
   };
   // console.log(derivedState);
 
   return (
-      <DerivedStateContext.Provider value={derivedState} >
-        {children}
-      </DerivedStateContext.Provider>
+    <DerivedStateContext.Provider value={derivedState}>
+      {children}
+    </DerivedStateContext.Provider>
   );
 }
 export function useDerivedState() {
@@ -59,28 +74,29 @@ export function useDerivedState() {
 export function useStateSlice(slice) {
   const appState = useAppState();
   const [state, dispatch] = appState.getSlice(slice);
-  return {state, dispatch};
+  return { state, dispatch };
 }
 const CombinedReducersContext = createContext(null);
-export function AppStateProvider({children}) {
+export function AppStateProvider({ children }) {
   const reducers = {
     // contentItems: useReducer(contentItemsReducer, defaultContentItems),
-    codeset_ids:  useReducer(codeset_idsReducer, []),
-    editCset:     useReducer(editCsetReducer),
+    codeset_ids: useReducer(codeset_idsReducer, []),
+    editCset: useReducer(editCsetReducer),
     // more stuff needed
     hierarchySettings: useReducer(hierarchySettingsReducer, {
-      displayOption: 'fullHierarchy', // or 'flat'
+      displayOption: "fullHierarchy", // or 'flat'
       collapsed: {},
-    })
-  }
+    }),
+  };
   const getters = {
-    getSliceState : (slice) => reducers[slice][0],
-    getSliceDispatch : (slice) => reducers[slice][1],
+    getSliceState: (slice) => reducers[slice][0],
+    getSliceDispatch: (slice) => reducers[slice][1],
     getSlice: (slice) => reducers[slice],
     getSliceNames: () => Object.keys(reducers),
     getReducers: () => reducers,
-    getState: () => Object.fromEntries(Object.entries(reducers).map(([k,v]) => [k, v[0]])),
-  }
+    getState: () =>
+      Object.fromEntries(Object.entries(reducers).map(([k, v]) => [k, v[0]])),
+  };
   /*  before doing the getter stuff for the slices, i was having the slice name be a prefix on the action.type
       probably won't return to this, but keeping around for a bit
   const getTypeForSlice = memoize((slice, actionType) => {
@@ -91,9 +107,9 @@ export function AppStateProvider({children}) {
     const type = getTypeForSlice('c ontentItems', action.type);
    */
   return (
-      <CombinedReducersContext.Provider value={getters}>
-        {children}
-      </CombinedReducersContext.Provider>
+    <CombinedReducersContext.Provider value={getters}>
+      {children}
+    </CombinedReducersContext.Provider>
   );
 }
 export function useAppState() {
@@ -110,18 +126,17 @@ const editCsetReducer = (state, action) => {
 const codeset_idsReducer = (state, action) => {
   if (!(action && action.type)) return state;
   switch (action.type) {
-    case 'add_codeset_id': {
+    case "add_codeset_id": {
       return [...state, parseInt(action.payload)].sort();
     }
-    case 'delete_codeset_id': {
-      return state.filter(d => d != action.payload);
+    case "delete_codeset_id": {
+      return state.filter((d) => d != action.payload);
     }
     default:
       return state;
   }
 };
-const csetEditsReducer = (csetEdits, action) => {
-};
+const csetEditsReducer = (csetEdits, action) => {};
 
 function hierarchySettingsReducer(state, action) {
   /*
@@ -140,16 +155,16 @@ const SPContext = createContext(null);
 const SPDispatchContext = createContext(null);
 
 const SEARCH_PARAM_STATE_CONFIG = {
-  scalars: ['editCodesetId', 'sort_json'],
-  global_props_but_not_search_params: ['searchParams', 'setSearchParams'],
-  serialize: ['csetEditState'],
-}
+  scalars: ["editCodesetId", "sort_json"],
+  global_props_but_not_search_params: ["searchParams", "setSearchParams"],
+  serialize: ["csetEditState"],
+};
 export function searchParamsToObj(searchParams) {
   const qsKeys = Array.from(new Set(searchParams.keys()));
   let sp = {};
-  qsKeys.forEach(key => {
+  qsKeys.forEach((key) => {
     let vals = searchParams.getAll(key);
-    sp[key] = vals.map(v => parseInt(v) == v ? parseInt(v) : v).sort(); // eslint-disable-line
+    sp[key] = vals.map((v) => (parseInt(v) == v ? parseInt(v) : v)).sort(); // eslint-disable-line
     if (SEARCH_PARAM_STATE_CONFIG.scalars.includes(key)) {
       if (sp[key].length !== 1) {
         throw new Error("Didn't expect that!");
@@ -166,14 +181,13 @@ export function searchParamsToObj(searchParams) {
    */
   let fixSearchParams = {}; // don't need to do all this
   if (sp.editCodesetId) {
-
     if (!(sp.codeset_ids || []).includes(sp.editCodesetId)) {
       delete sp.editCodesetId;
-      fixSearchParams.delProps = ['editCodesetId'];
+      fixSearchParams.delProps = ["editCodesetId"];
     }
   }
   if (sp.csetEditState) {
-    let editState = {...sp.csetEditState};
+    let editState = { ...sp.csetEditState };
     let update = false;
     for (const cid in editState) {
       if (!(sp.codeset_ids || []).includes(parseInt(cid))) {
@@ -184,11 +198,14 @@ export function searchParamsToObj(searchParams) {
     if (update) {
       if (isEmpty(editState)) {
         delete sp.csetEditState;
-        fixSearchParams.delProps = [...(fixSearchParams.delProps||[]), 'csetEditState'];
+        fixSearchParams.delProps = [
+          ...(fixSearchParams.delProps || []),
+          "csetEditState",
+        ];
         // updateSearchParams({..._globalProps, delProps: ['csetEditState' ]});
       } else {
         sp.csetEditState = editState;
-        fixSearchParams.addProps = {csetEditState: editState};
+        fixSearchParams.addProps = { csetEditState: editState };
         // updateSearchParams({..._globalProps, addProps: {csetEditState: editState}});
       }
       //return;
@@ -202,30 +219,33 @@ export function searchParamsToObj(searchParams) {
   return sp;
 }
 export function updateSearchParams(props) {
-  const {addProps={}, delProps=[], searchParams, setSearchParams, } = props;
+  const { addProps = {}, delProps = [], searchParams, setSearchParams } = props;
   let sp = searchParamsToObj(searchParams);
-  SEARCH_PARAM_STATE_CONFIG.global_props_but_not_search_params.forEach(
-      p => { delete sp[p]; } );
-  delProps.forEach( p => { delete sp[p]; } );
-  sp = {...sp, ...addProps};
-  SEARCH_PARAM_STATE_CONFIG.serialize.forEach( p => {
+  SEARCH_PARAM_STATE_CONFIG.global_props_but_not_search_params.forEach((p) => {
+    delete sp[p];
+  });
+  delProps.forEach((p) => {
+    delete sp[p];
+  });
+  sp = { ...sp, ...addProps };
+  SEARCH_PARAM_STATE_CONFIG.serialize.forEach((p) => {
     if (sp[p]) {
       sp[p] = JSON.stringify(sp[p]);
     }
-  })
+  });
   const csp = createSearchParams(sp);
   setSearchParams(csp);
 }
 export function clearSearchParams(props) {
-  const {searchParams, setSearchParams, } = props;
+  const { searchParams, setSearchParams } = props;
   const sp = searchParamsToObj(searchParams);
-  if (! isEmpty(sp)) {
+  if (!isEmpty(sp)) {
     setSearchParams(createSearchParams({}));
   }
 }
 function Progress(props) {
   return (
-    <Box sx={{ display: 'flex' }}>
+    <Box sx={{ display: "flex" }}>
       <CircularProgress {...props} />
     </Box>
   );
@@ -235,94 +255,135 @@ function Progress(props) {
 function DataWidget(props) {
   const { isLoading, error, isFetching, ukey, url, putData, status } = props;
   console.log(props);
-  const callType = putData ? 'Put' : 'Get';
-  let msg = {}
-  msg.call = <p><a href={url}>{ukey}</a> ({callType})</p>
+  const callType = putData ? "Put" : "Get";
+  let msg = {};
+  msg.call = (
+    <p>
+      <a href={url}>{ukey}</a> ({callType})
+    </p>
+  );
   msg.icon = <Progress variant="determinate" value={100} />;
   if (isLoading) {
-    msg.status = 'Loading';
-    msg.icon = <Progress/>;
+    msg.status = "Loading";
+    msg.icon = <Progress />;
   }
   if (isFetching) {
-    msg.status = 'Fetching';
-    msg.icon = <Progress/>;
+    msg.status = "Fetching";
+    msg.icon = <Progress />;
   }
   if (error) {
     msg.status = `Error: ${error}`;
     msg.icon = <p>(need error icon?)</p>;
   }
   return (
-      <Box sx={{
-        border: '2px solid blue', margin: '20px', padding: '20px',
+    <Box
+      sx={{
+        border: "2px solid blue",
+        margin: "20px",
+        padding: "20px",
         // display: 'flex',
-      }} >
-        <h2>{status}</h2>
-      {msg.status} <br/>
-        {msg.call} <br/>
-        {msg.icon}
-      </Box>
+      }}
+    >
+      <h2>{status}</h2>
+      {msg.status} <br />
+      {msg.call} <br />
+      {msg.icon}
+    </Box>
   );
 }
 
 export function useDataWidget(ukey, url, putData) {
-  const ax = putData ? ()=>axiosPut(url, putData) : ()=>axiosGet(url)
+  const ax = putData ? () => axiosPut(url, putData) : () => axiosGet(url);
   const axVars = useQuery([ukey], ax);
-  let dwProps = {...axVars, ukey, url, putData, };
+  let dwProps = { ...axVars, ukey, url, putData };
   const dw = <DataWidget {...dwProps} />;
-  return [dw, dwProps, ]; // axVars.data];
+  return [dw, dwProps]; // axVars.data];
 }
 
-export const backend_url = path => `${API_ROOT}/${path}`
+export const backend_url = (path) => `${API_ROOT}/${path}`;
 
-export function axiosGet(path, backend=false) {
+export function axiosGet(path, backend = false) {
   let url = backend ? backend_url(path) : path;
-  console.log('axiosGet url: ', url);
+  console.log("axiosGet url: ", url);
   return axios.get(url).then((res) => res.data);
 }
 
-export function axiosPut(path, data, backend=true) {
+export function axiosPut(path, data, backend = true) {
   let url = backend ? backend_url(path) : path;
-  console.log('axiosPut url: ', url);
+  console.log("axiosPut url: ", url);
   return axios.post(url, data);
 }
 
 export function StatsMessage(props) {
-  const {codeset_ids=[], all_csets=[], cset_data={}} = props;
-  const {related_csets=[], concepts } = cset_data;
+  const { codeset_ids = [], all_csets = [], cset_data = {} } = props;
+  const { related_csets = [], concepts } = cset_data;
 
-  return <p style={{margin:0, fontSize: 'small',}}>The <strong>{codeset_ids.length} concept sets </strong>
-    selected contain <strong>{(concepts||[]).length} distinct concepts</strong>.
-    The following <strong>{related_csets.length} concept sets </strong>
-    ({ pct_fmt(related_csets.length / all_csets.length) })
-    have 1 or more concepts in common with the selected sets.
-    Click rows below to select or deselect concept sets.</p>
+  return (
+    <p style={{ margin: 0, fontSize: "small" }}>
+      The <strong>{codeset_ids.length} concept sets </strong>
+      selected contain{" "}
+      <strong>{(concepts || []).length} distinct concepts</strong>. The
+      following <strong>{related_csets.length} concept sets </strong>(
+      {pct_fmt(related_csets.length / all_csets.length)}) have 1 or more
+      concepts in common with the selected sets. Click rows below to select or
+      deselect concept sets.
+    </p>
+  );
 }
 
-function makeHierarchyRows({concepts, selected_csets, cset_members_items, hierarchy, collapsed={}}) {
-  if (isEmpty(concepts) || isEmpty(selected_csets) || isEmpty(cset_members_items)) {
+function makeHierarchyRows({
+  concepts,
+  selected_csets,
+  cset_members_items,
+  hierarchy,
+  collapsed = {},
+}) {
+  if (
+    isEmpty(concepts) ||
+    isEmpty(selected_csets) ||
+    isEmpty(cset_members_items)
+  ) {
     return;
   }
-  const conceptsMap = Object.fromEntries(concepts.map(d => [d.concept_id, d]));
-  return traverseHierarchy({hierarchy, concepts: conceptsMap, collapsed, });
+  const conceptsMap = Object.fromEntries(
+    concepts.map((d) => [d.concept_id, d])
+  );
+  return traverseHierarchy({ hierarchy, concepts: conceptsMap, collapsed });
 }
 
-function makeRowData({concepts, selected_csets, cset_members_items, hierarchy, collapsed={}}) {
+function makeRowData({
+  concepts,
+  selected_csets,
+  cset_members_items,
+  hierarchy,
+  collapsed = {},
+}) {
   // replaced by makeHierarchyRows? --- this version helps with nested flag and row count message
-  if (isEmpty(concepts) || isEmpty(selected_csets) || isEmpty(cset_members_items)) {
+  if (
+    isEmpty(concepts) ||
+    isEmpty(selected_csets) ||
+    isEmpty(cset_members_items)
+  ) {
     return;
   }
 
-  const conceptsMap = Object.fromEntries(concepts.map(d => [d.concept_id, d]));
+  const conceptsMap = Object.fromEntries(
+    concepts.map((d) => [d.concept_id, d])
+  );
   let _displayOptions = {
     fullHierarchy: {
-      rowData: traverseHierarchy({hierarchy, concepts: conceptsMap, collapsed, }),
+      rowData: traverseHierarchy({
+        hierarchy,
+        concepts: conceptsMap,
+        collapsed,
+      }),
       nested: true,
-      msg: ' lines in hierarchy',
+      msg: " lines in hierarchy",
     },
     flat: {
       rowData: concepts,
       nested: false,
-      msg: ' flat',
+      msg: " flat",
     },
     /*
     csetConcepts: {
@@ -331,7 +392,7 @@ function makeRowData({concepts, selected_csets, cset_members_items, hierarchy, c
       msg: ' concepts in selected csets',
     },
      */
-  }
+  };
 
   for (let k in _displayOptions) {
     let opt = _displayOptions[k];
@@ -359,26 +420,26 @@ function hierarchyToFlatCids(h) {
 }
  */
 
-function traverseHierarchy({hierarchy, concepts, collapsed, }) {
+function traverseHierarchy({ hierarchy, concepts, collapsed }) {
   let rowData = [];
   let blanks = [];
-  let traverse = (o, pathToRoot=[], level=0) => {
+  let traverse = (o, pathToRoot = [], level = 0) => {
     // console.log({o, pathToRoot, level});
-    Object.keys(o).forEach(k => {
+    Object.keys(o).forEach((k) => {
       k = parseInt(k);
-      let row = {...concepts[k], level, pathToRoot: [...pathToRoot, k]};
+      let row = { ...concepts[k], level, pathToRoot: [...pathToRoot, k] };
       if (!concepts[k]) {
         blanks.push(rowData.length);
       }
       rowData.push(row);
-      if (o[k] && typeof(o[k] === 'object')) {
+      if (o[k] && typeof (o[k] === "object")) {
         row.has_children = true;
         if (!collapsed[row.pathToRoot]) {
-          traverse(o[k], row.pathToRoot, level+1);
+          traverse(o[k], row.pathToRoot, level + 1);
         }
       }
-    })
-  }
+    });
+  };
   traverse(hierarchy);
   pullAt(rowData, blanks);
   return rowData;

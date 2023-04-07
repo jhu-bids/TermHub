@@ -19,7 +19,7 @@ import {
   Placement,
   FloatingPortal,
   FloatingFocusManager,
-  useId
+  useId,
 } from "@floating-ui/react";
 
 /*
@@ -37,7 +37,7 @@ export function usePopover({
   placement = "bottom",
   modal,
   open: controlledOpen,
-  onOpenChange: setControlledOpen
+  onOpenChange: setControlledOpen,
 }) {
   const [uncontrolledOpen, setUncontrolledOpen] = React.useState(initialOpen);
   const [labelId, setLabelId] = React.useState();
@@ -54,16 +54,16 @@ export function usePopover({
     middleware: [
       offset(5),
       flip({
-        fallbackAxisSideDirection: "end"
+        fallbackAxisSideDirection: "end",
       }),
-      shift({ padding: 5 })
-    ]
+      shift({ padding: 5 }),
+    ],
   });
 
   const context = data.context;
 
   const click = useClick(context, {
-    enabled: controlledOpen == null
+    enabled: controlledOpen == null,
   });
   const dismiss = useDismiss(context);
   const role = useRole(context);
@@ -80,7 +80,7 @@ export function usePopover({
       labelId,
       descriptionId,
       setLabelId,
-      setDescriptionId
+      setDescriptionId,
     }),
     [open, setOpen, interactions, data, modal, labelId, descriptionId]
   );
@@ -108,13 +108,11 @@ export const usePopoverContext = () => {
   return context;
 };
 
-export function Popover({
-  children,
-  modal = false,
-  ...restOptions
-}/*: {
+export function Popover(
+  { children, modal = false, ...restOptions } /*: {
   children: React.ReactNode;
-} & PopoverOptions*/) {
+} & PopoverOptions*/
+) {
   // This can accept any props as options, e.g. `placement`,
   // or other positioning options.
   const popover = usePopover({ modal, ...restOptions });
@@ -131,9 +129,12 @@ interface PopoverTriggerProps {
 }
  */
 
-export const PopoverTrigger = React.forwardRef(function PopoverTrigger({ children, asChild = false, ...props }, propRef) {
+export const PopoverTrigger = React.forwardRef(function PopoverTrigger(
+  { children, asChild = false, ...props },
+  propRef
+) {
   const context = usePopoverContext();
-  const childrenRef = (children).ref;
+  const childrenRef = children.ref;
   const ref = useMergeRefs([context.refs.setReference, propRef, childrenRef]);
 
   // `asChild` allows the user to pass any element as the anchor
@@ -144,7 +145,7 @@ export const PopoverTrigger = React.forwardRef(function PopoverTrigger({ childre
         ref,
         ...props,
         ...children.props,
-        "data-state": context.open ? "open" : "closed"
+        "data-state": context.open ? "open" : "closed",
       })
     );
   }
@@ -162,7 +163,10 @@ export const PopoverTrigger = React.forwardRef(function PopoverTrigger({ childre
   );
 });
 
-export const PopoverContent = React.forwardRef(function PopoverContent(props, propRef) {
+export const PopoverContent = React.forwardRef(function PopoverContent(
+  props,
+  propRef
+) {
   const { context: floatingContext, ...context } = usePopoverContext();
   const ref = useMergeRefs([context.refs.setFloating, propRef]);
 
@@ -173,11 +177,11 @@ export const PopoverContent = React.forwardRef(function PopoverContent(props, pr
           <div
             ref={ref}
             style={{
-              position: 'relative', // context.strategy,
+              position: "relative", // context.strategy,
               // top: context.y ?? 0,
               // left: context.x ?? 0,
               width: "max-content",
-              ...props.style
+              ...props.style,
             }}
             aria-labelledby={context.labelId}
             aria-describedby={context.descriptionId}
@@ -191,7 +195,10 @@ export const PopoverContent = React.forwardRef(function PopoverContent(props, pr
   );
 });
 
-export const PopoverHeading = React.forwardRef(function PopoverHeading({ children, ...props }, ref) {
+export const PopoverHeading = React.forwardRef(function PopoverHeading(
+  { children, ...props },
+  ref
+) {
   const { setLabelId } = usePopoverContext();
   const id = useId();
 
@@ -209,7 +216,10 @@ export const PopoverHeading = React.forwardRef(function PopoverHeading({ childre
   );
 });
 
-export const PopoverDescription = React.forwardRef(function PopoverDescription({ children, ...props }, ref) {
+export const PopoverDescription = React.forwardRef(function PopoverDescription(
+  { children, ...props },
+  ref
+) {
   const { setDescriptionId } = usePopoverContext();
   const id = useId();
 
@@ -227,7 +237,10 @@ export const PopoverDescription = React.forwardRef(function PopoverDescription({
   );
 });
 
-export const PopoverClose = React.forwardRef(function PopoverClose({ children, ...props }, ref) {
+export const PopoverClose = React.forwardRef(function PopoverClose(
+  { children, ...props },
+  ref
+) {
   const { setOpen } = usePopoverContext();
   return (
     <button type="button" {...props} ref={ref} onClick={() => setOpen(false)}>
@@ -235,9 +248,6 @@ export const PopoverClose = React.forwardRef(function PopoverClose({ children, .
     </button>
   );
 });
-
-
-
 
 // from https://codesandbox.io/s/distracted-swirles-jo1pvu?file=/src/App.tsx:0-1293
 
@@ -268,7 +278,7 @@ function Uncontrolled() {
   );
 }
 
-function Controlled(startOpen=false) {
+function Controlled(startOpen = false) {
   const [open, setOpen] = useState(startOpen);
   return (
     <div className="App">

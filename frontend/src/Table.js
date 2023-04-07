@@ -1,18 +1,24 @@
-import React, { useState, useRef, useEffect, useMemo, useCallback} from 'react';
-import { render } from 'react-dom';
-import { AgGridReact } from 'ag-grid-react'; // the AG Grid React Component
-import { ConceptSetCard } from './Csets'
-import 'ag-grid-community/styles/ag-grid.css'; // Core grid CSS, always needed
-import 'ag-grid-community/styles/ag-theme-alpine.css';
+import React, {
+  useState,
+  useRef,
+  useEffect,
+  useMemo,
+  useCallback,
+} from "react";
+import { render } from "react-dom";
+import { AgGridReact } from "ag-grid-react"; // the AG Grid React Component
+import { ConceptSetCard } from "./Csets";
+import "ag-grid-community/styles/ag-grid.css"; // Core grid CSS, always needed
+import "ag-grid-community/styles/ag-theme-alpine.css";
 // import {useParams} from "react-router-dom"; // Optional theme CSS
 
 const Table = (props) => {
   const tableHeaderHeight = 100;
-  const {rowData, rowCallback} = props;
+  const { rowData, rowCallback } = props;
   // let params = useParams();
   const gridRef = useRef(); // Optional - for accessing Grid's API
   // const [rowData, setRowData] = useState(); // Set rowData to Array of Objects, one Object per Row
- // Each Column Definition results in one Column.
+  // Each Column Definition results in one Column.
   /*
    const [columnDefs, setColumnDefs] = useState([
      {field: 'make', filter: true},
@@ -20,32 +26,38 @@ const Table = (props) => {
      {field: 'price'}
    ]);
    */
-  const [columnDefs, _setColumnDefs] = useState()
+  const [columnDefs, _setColumnDefs] = useState();
   function setColumnDefs(colNames) {
-    let defs = colNames.map(n => ({
+    let defs = colNames.map((n) => ({
       field: n,
       // tooltipField: ''
       // headerTooltip: ''
-    }) )
-    _setColumnDefs(defs)
+    }));
+    _setColumnDefs(defs);
   }
   useEffect(() => {
     if (props.rowData && rowData.length) {
-      setColumnDefs(Object.keys(rowData[0]))
+      setColumnDefs(Object.keys(rowData[0]));
     }
   }, [rowData, props]);
   //     [
   // DefaultColDef sets props common to all Columns
-  const defaultColDef = useMemo( ()=> ({
-     sortable: true
-   }));
+  const defaultColDef = useMemo(() => ({
+    sortable: true,
+  }));
 
   // Example of consuming Grid Event
-  const cellClickedListener = useCallback( event => {
-    const callbackProps = {rowData: event.data, colClicked:event.colDef.field};
-    console.log('rowCallback with ' + JSON.stringify(callbackProps, null, 2))
-    rowCallback(callbackProps)
-  }, [rowCallback]);
+  const cellClickedListener = useCallback(
+    (event) => {
+      const callbackProps = {
+        rowData: event.data,
+        colClicked: event.colDef.field,
+      };
+      console.log("rowCallback with " + JSON.stringify(callbackProps, null, 2));
+      rowCallback(callbackProps);
+    },
+    [rowCallback]
+  );
 
   /*
   // Example load data from sever
@@ -66,37 +78,35 @@ const Table = (props) => {
   */
 
   // Example using Grid's API
-  const buttonListener = useCallback( e => {
+  const buttonListener = useCallback((e) => {
     gridRef.current.api.deselectAll();
   }, []);
 
   return (
     <div>
-
       {/* Example using Grid's API */}
       <button onClick={buttonListener}>Reset table</button>
 
       {/* On div wrapping Grid a) specify theme CSS Class and b) sets Grid size */}
-      <div className="ag-theme-alpine"
-            style={{
-              width: '95%',
-              height: rowData ? (tableHeaderHeight + rowData.length * 75) : tableHeaderHeight,
-              //height: window.innerHeight * .8
-            }}>
-
+      <div
+        className="ag-theme-alpine"
+        style={{
+          width: "95%",
+          height: rowData
+            ? tableHeaderHeight + rowData.length * 75
+            : tableHeaderHeight,
+          //height: window.innerHeight * .8
+        }}
+      >
         <AgGridReact
-            ref={gridRef} // Ref for accessing Grid's API
-
-            rowData={rowData} // Row Data for Rows
-
-            columnDefs={columnDefs} // Column Defs for Columns
-            defaultColDef={defaultColDef} // Default Column Properties
-
-            animateRows={true} // Optional - set to 'true' to have rows animate when sorted
-            rowSelection='multiple' // Options - allows click selection of rows
-
-            onCellClicked={cellClickedListener} // Optional - registering for Grid Event
-            />
+          ref={gridRef} // Ref for accessing Grid's API
+          rowData={rowData} // Row Data for Rows
+          columnDefs={columnDefs} // Column Defs for Columns
+          defaultColDef={defaultColDef} // Default Column Properties
+          animateRows={true} // Optional - set to 'true' to have rows animate when sorted
+          rowSelection="multiple" // Options - allows click selection of rows
+          onCellClicked={cellClickedListener} // Optional - registering for Grid Event
+        />
       </div>
     </div>
   );
@@ -109,12 +119,14 @@ const Table = (props) => {
 const tableTooltip = (props) => {
   // console.log(props)
   const isHeader = props.rowIndex === undefined;
-  const valueToDisplay = props.value.value ? props.value.value : '- Missing -';
+  const valueToDisplay = props.value.value ? props.value.value : "- Missing -";
 
   // TODO: pass real tooltips
   return isHeader ? (
     <div className="custom-tooltip">
-      <p><b>{props.value}</b></p>
+      <p>
+        <b>{props.value}</b>
+      </p>
       {/*<ConceptSetCard cset={{*/}
       {/*  concept_set_name: 'concept_set_name',*/}
       {/*  version: 'version',*/}
@@ -140,7 +152,6 @@ const tableTooltip = (props) => {
 
 const tooltipValueGetter = (params) => ({ value: params.value });
 
-
 // TODO's: (i) finish this implementation: "x"s -> checkmarks?, (ii) matrix widget too/instead? (header x side header)
 //  - version title
 //  - limitations
@@ -150,7 +161,7 @@ const tooltipValueGetter = (params) => ({ value: params.value });
 const ComparisonTable = (props) => {
   const rowHeight = 25;
   const headerHeight = rowHeight * 1.25;
-  const {rowData, firstColName} = props;
+  const { rowData, firstColName } = props;
   const gridRef = useRef(); // Optional - for accessing Grid's API
   const [columnDefs, setColumnDefs] = useState();
   // TODO: labels as tooltip
@@ -158,44 +169,45 @@ const ComparisonTable = (props) => {
     if (props.rowData && rowData.length) {
       // console.log(props)
 
-      const otherCols = Object.keys(rowData[0]).filter(function(item) {return item !== firstColName})
-      const cols = [].concat(...[firstColName], otherCols)
+      const otherCols = Object.keys(rowData[0]).filter(function (item) {
+        return item !== firstColName;
+      });
+      const cols = [].concat(...[firstColName], otherCols);
       let firstCol = {
         field: firstColName,
         //width: 200,
         minWidth: 400,
-        className: 'first-col',
+        className: "first-col",
         wrapText: true,
         autoHeight: true,
         headerTooltip: firstColName,
         tooltipComponent: tableTooltip,
         tooltipValueGetter: tooltipValueGetter,
         // tooltip: firstColName,  // row tooltips: not working
-      }
-      let others = otherCols.map(n => ({
+      };
+      let others = otherCols.map((n) => ({
         field: n,
-        type: 'checkboxCol',
-        headerClass: 'header-checkbox',
+        type: "checkboxCol",
+        headerClass: "header-checkbox",
         width: 50,
-        overflow: 'visible',
+        overflow: "visible",
         headerTooltip: n,
         tooltipComponent: tableTooltip,
         tooltipValueGetter: tooltipValueGetter,
         // tooltip: n,  // row tooltips: not working
         //minWidth: 400
-      }) )
-      setColumnDefs([firstCol, ...others])
+      }));
+      setColumnDefs([firstCol, ...others]);
     }
   }, [rowData, props]);
   //const defaultColDef = useMemo(() => ({ sortable: true}));
   const columnTypes = {
-      // nonEditableColumn: { editable: false },
-      checkboxCol: {
-        className: 'checkbox',
-        backgroundColor: 'purple',
-      }
+    // nonEditableColumn: { editable: false },
+    checkboxCol: {
+      className: "checkbox",
+      backgroundColor: "purple",
+    },
   };
-
 
   const gridOptions = {
     columnDefs: columnDefs,
@@ -214,11 +226,14 @@ const ComparisonTable = (props) => {
   };
 
   return (
-    <div className="ag-theme-alpine ag-theme-comparison" style={{
-      width: '95%',
-      height: window.innerHeight * .7,
-      //height: rowData ? (headerHeight + rowData.length * rowHeight) : headerHeight,
-    }}>
+    <div
+      className="ag-theme-alpine ag-theme-comparison"
+      style={{
+        width: "95%",
+        height: window.innerHeight * 0.7,
+        //height: rowData ? (headerHeight + rowData.length * rowHeight) : headerHeight,
+      }}
+    >
       <AgGridReact
         rowHeight={25}
         ref={gridRef} // Ref for accessing Grid's API
@@ -226,11 +241,11 @@ const ComparisonTable = (props) => {
         columnDefs={columnDefs} // Column Defs for Columns
         //defaultColDef={defaultColDef} // Default Column Properties
         animateRows={true} // Optional - set to 'true' to have rows animate when sorted
-        rowSelection='multiple' // Options - allows click selection of rows
+        rowSelection="multiple" // Options - allows click selection of rows
         tooltipShowDelay={0}
       />
     </div>
   );
 };
 
-export {Table, ComparisonTable};
+export { Table, ComparisonTable };

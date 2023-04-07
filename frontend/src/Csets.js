@@ -1,20 +1,20 @@
-import React, {useState, /* useReducer, useRef, */} from 'react';
-import {CsetsDataTable, } from "./CsetsDataTable";
+import React, { useState /* useReducer, useRef, */ } from "react";
+import { CsetsDataTable } from "./CsetsDataTable";
 // import {difference, symmetricDifference} from "./utils";
 import ConceptSetCards from "./ConceptSetCard";
-import TextField from '@mui/material/TextField';
-import Autocomplete from '@mui/material/Autocomplete';
+import TextField from "@mui/material/TextField";
+import Autocomplete from "@mui/material/Autocomplete";
 // import Chip from '@mui/material/Chip';
 // import { Link, Outlet, useHref, useParams, useSearchParams, useLocation } from "react-router-dom";
-import { every, get, isEmpty, throttle, pullAt, } from 'lodash';
+import { every, get, isEmpty, throttle, pullAt } from "lodash";
 // import {isEqual, pick, uniqWith, max, omit, uniq, } from 'lodash';
-import Box from '@mui/material/Box';
-import {Tooltip} from "./Tooltip";
-import Card from '@mui/material/Card';
-import CardContent from '@mui/material/CardContent';
-import Typography from '@mui/material/Typography';
+import Box from "@mui/material/Box";
+import { Tooltip } from "./Tooltip";
+import Card from "@mui/material/Card";
+import CardContent from "@mui/material/CardContent";
+import Typography from "@mui/material/Typography";
 // import * as po from './Popover';
-import {DOCS} from "./AboutPage";
+import { DOCS } from "./AboutPage";
 
 /* TODO: Solve
     react_devtools_backend.js:4026 MUI: The value provided to Autocomplete is invalid.
@@ -23,68 +23,68 @@ import {DOCS} from "./AboutPage";
     @ SIggie: is this fixed?
 */
 export function CsetSearch(props) {
-  const {codeset_ids, changeCodesetIds, all_csets=[], } = props;
+  const { codeset_ids, changeCodesetIds, all_csets = [] } = props;
   console.log(props);
 
-  const [keyForRefreshingAutocomplete, setKeyForRefreshingAutocomplete] = useState(0);
+  const [keyForRefreshingAutocomplete, setKeyForRefreshingAutocomplete] =
+    useState(0);
   // necessary to change key for reset because of Autocomplete bug, according to https://stackoverflow.com/a/59845474/1368860
 
-  if (! all_csets.length) {
-    return <span/>;
+  if (!all_csets.length) {
+    return <span />;
   }
-  const opts = (
-      all_csets
-          .filter(d => !codeset_ids.includes(d.codeset_id))
-          .map(d => ({
-            label: `${d.codeset_id} - ${d.concept_set_version_title} ` +
-                `${d.archived ? 'archived' : ''} (${d.concepts} concepts)`,
-            id: d.codeset_id,
-          })));
+  const opts = all_csets
+    .filter((d) => !codeset_ids.includes(d.codeset_id))
+    .map((d) => ({
+      label:
+        `${d.codeset_id} - ${d.concept_set_version_title} ` +
+        `${d.archived ? "archived" : ""} (${d.concepts} concepts)`,
+      id: d.codeset_id,
+    }));
   const autocomplete = (
-      // https://mui.com/material-ui/react-autocomplete/
-      <Autocomplete
-          key={keyForRefreshingAutocomplete}
-          disablePortal
-          id="add-codeset-id"
-          options={opts}
-          blurOnSelect={true}
-          clearOnBlur={true}
-          filterOptions={(options, state) => {
-            let strings = state.inputValue.split(' ').filter(s => s.length);
-            if (!strings.length) {
-              return options;
-            }
-            let match = strings.map(m => new RegExp(m, 'i'))
-            return options.filter(o => every(match.map(m => o.label.match(m))))
-          }}
-          sx={{ width: '100%', }}
-          renderInput={(params) => <TextField {...params} label="Select concept set" />}
-          onChange={(event, newValue) => {
-            changeCodesetIds(newValue.id, 'add');
-            setKeyForRefreshingAutocomplete(k => k+1);
-          }}
-      />);
+    // https://mui.com/material-ui/react-autocomplete/
+    <Autocomplete
+      key={keyForRefreshingAutocomplete}
+      disablePortal
+      id="add-codeset-id"
+      options={opts}
+      blurOnSelect={true}
+      clearOnBlur={true}
+      filterOptions={(options, state) => {
+        let strings = state.inputValue.split(" ").filter((s) => s.length);
+        if (!strings.length) {
+          return options;
+        }
+        let match = strings.map((m) => new RegExp(m, "i"));
+        return options.filter((o) => every(match.map((m) => o.label.match(m))));
+      }}
+      sx={{ width: "100%" }}
+      renderInput={(params) => (
+        <TextField {...params} label="Select concept set" />
+      )}
+      onChange={(event, newValue) => {
+        changeCodesetIds(newValue.id, "add");
+        setKeyForRefreshingAutocomplete((k) => k + 1);
+      }}
+    />
+  );
   const tt = (
-      <Card variant="elevation">
-        <CardContent sx={{border: '3px solid gray'}}>
-          <Typography variant="h6" color="text.primary" gutterBottom>
-            Select concept sets to view, compare, and edit.
-          </Typography>
-          <ul>
-            <li>
-              Click dropdown for full list
-            </li>
-            <li>
-              Type concept set name or version ID to filter
-            </li>
-          </ul>
-        </CardContent>
-      </Card>
-  )
+    <Card variant="elevation">
+      <CardContent sx={{ border: "3px solid gray" }}>
+        <Typography variant="h6" color="text.primary" gutterBottom>
+          Select concept sets to view, compare, and edit.
+        </Typography>
+        <ul>
+          <li>Click dropdown for full list</li>
+          <li>Type concept set name or version ID to filter</li>
+        </ul>
+      </CardContent>
+    </Card>
+  );
   return (
-      <Tooltip content={tt} classes="help-card" placement="top-end">
-        {autocomplete}
-      </Tooltip>
+    <Tooltip content={tt} classes="help-card" placement="top-end">
+      {autocomplete}
+    </Tooltip>
   );
   /*
   return (
@@ -108,21 +108,22 @@ export function CsetSearch(props) {
 }
 
 function ConceptSetsPage(props) {
-  const {codeset_ids} = props;
+  const { codeset_ids } = props;
   if (!codeset_ids.length) {
-    return  <>
-              <CsetSearch {...props} />
-              <div className="info-block">
-                {DOCS.blank_search_intro}
-              </div>
-            </>
+    return (
+      <>
+        <CsetSearch {...props} />
+        <div className="info-block">{DOCS.blank_search_intro}</div>
+      </>
+    );
   }
   return (
-      <div style={{}}>
-        <CsetSearch {...props} />
-        { <CsetsDataTable {...props} /> }
-        { <ConceptSetCards {...props} /> }
-      </div>)
+    <div style={{}}>
+      <CsetSearch {...props} />
+      {<CsetsDataTable {...props} />}
+      {<ConceptSetCards {...props} />}
+    </div>
+  );
 }
 
 /*
@@ -143,4 +144,4 @@ function hierarchyToFlatCids(h) {
 }
  */
 
-export {ConceptSetsPage, };
+export { ConceptSetsPage };

@@ -1,21 +1,19 @@
-import ReactDOM from 'react-dom/client';
-import {BrowserRouter, } from "react-router-dom";
-import {QCProvider, /* HookTestApp */} from './App';
+import ReactDOM from "react-dom/client";
+import { BrowserRouter } from "react-router-dom";
+import { QCProvider /* HookTestApp */ } from "./App";
 
-const root = ReactDOM.createRoot(document.getElementById('root'));
+const root = ReactDOM.createRoot(document.getElementById("root"));
 root.render(
-
-    <BrowserRouter>
-      {/*<HookTestApp />*/}
-      <QCProvider />
-    </BrowserRouter>
+  <BrowserRouter>
+    {/*<HookTestApp />*/}
+    <QCProvider />
+  </BrowserRouter>
 );
 
 // If you want to start measuring performance in your app, pass a function
 // to log results (for example: reportWebVitals(console.log))
 // or send to an analytics endpoint. Learn more: https://bit.ly/CRA-vitals
 // reportWebVitals();
-
 
 /*
 https://reactjs.org/docs/error-boundaries.html

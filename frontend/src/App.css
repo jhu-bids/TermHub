@@ -38,8 +38,7 @@
 }
 
 .comparison-data-table .rdt_TableHeadRow,
-.csets-data-table .rdt_TableHeadRow
-{
+.csets-data-table .rdt_TableHeadRow {
   background-color: #fff4c2;
   border: 2px solid #999;
   margin-top: 2px;
@@ -49,10 +48,10 @@
   borderBottomStyle: solid;
   padding: 0 0px 0 3px;
   */
-  verticalAlign: bottom;
+  verticalalign: bottom;
   overflow: visible;
-  textOverflow: unset;
-  marginTop: auto;
+  textoverflow: unset;
+  margintop: auto;
 }
 .cset-column-header {
   /* white-space: nowrap;
@@ -66,8 +65,7 @@
   transform-origin: bottom left;
    */
 }
-.comparison-data-table .rdt_TableHeadRow > div + div div
-{
+.comparison-data-table .rdt_TableHeadRow > div + div div {
   overflow: hidden;
   text-overflow: ellipsis;
   margin-top: auto;
@@ -81,15 +79,15 @@
 }
  */
 .csets-data-table > .rdt_TableHeader {
-    min-height: 0px;
+  min-height: 0px;
 }
 .csets-data-table .rdt_Table {
-    padding: 0px;
+  padding: 0px;
 }
 MuiCheckbox-root {
 }
 .css-12wnr2w-MuiButtonBase-root-MuiCheckbox-root {
-  padding: 0!important;
+  padding: 0 !important;
 }
 
 .MuiCard-root {
@@ -99,7 +97,6 @@ MuiCheckbox-root {
 .info-block {
   font-family: "Roboto", sans-serif;
 }
-
 
 /* from floating-ui popover sandbox:
     https://codesandbox.io/s/distracted-swirles-jo1pvu?file=/src/styles.css:59-312

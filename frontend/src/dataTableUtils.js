@@ -1,19 +1,25 @@
-import React, { useRef, useLayoutEffect, useState } from 'react';
-import { sum, } from 'lodash';
-import {Tooltip} from './Tooltip';
-import { Info, Edit, } from '@mui/icons-material';
+import React, { useRef, useLayoutEffect, useState } from "react";
+import { sum } from "lodash";
+import { Tooltip } from "./Tooltip";
+import { Info, Edit } from "@mui/icons-material";
 
 function ColumnHeader(props) {
-  let {tooltipContent, headerContent, headerContentProps, allottedWidth, coldef} = props;
+  let {
+    tooltipContent,
+    headerContent,
+    headerContentProps,
+    allottedWidth,
+    coldef,
+  } = props;
   const targetRef = useRef();
-  const [headerDims, setHeaderDims] = useState({ width:0, height: 0 });
+  const [headerDims, setHeaderDims] = useState({ width: 0, height: 0 });
 
   useLayoutEffect(() => {
     if (targetRef.current) {
       setHeaderDims({
-                      width: targetRef.current.offsetWidth,
-                      height: targetRef.current.offsetHeight
-                    });
+        width: targetRef.current.offsetWidth,
+        height: targetRef.current.offsetHeight,
+      });
     }
   }, []);
   coldef.requiredWidth = headerDims.width;
@@ -22,7 +28,7 @@ function ColumnHeader(props) {
     padding: 2,
     // cursor: 'pointer',
     // whiteSpace: 'nowrap',
-  }
+  };
   /*
   const rotate_header_style = {
     overflow: 'visible',
@@ -56,24 +62,29 @@ function ColumnHeader(props) {
     //                   the icon takes up all the vertical space below it. would be better if it just followed
     //                   the end of the text as if it were part of the text
     headerContent = (
-        <span style={{display: 'flex'}}>
-          {headerContent}
-          {
-            coldef.codeset_id
-                ? <Edit sx={{fontSize: '80%'}}/>
-                : <Info sx={{fontSize: '80%'}}/>
-          }
-        </span>);
+      <span style={{ display: "flex" }}>
+        {headerContent}
+        {coldef.codeset_id ? (
+          <Edit sx={{ fontSize: "80%" }} />
+        ) : (
+          <Info sx={{ fontSize: "80%" }} />
+        )}
+      </span>
+    );
   }
-  let header = <span className="cset-column-header" ref={targetRef}
-            style={{...header_style}}
-            {...headerContentProps}
-  >{headerContent}</span>
+  let header = (
+    <span
+      className="cset-column-header"
+      ref={targetRef}
+      style={{ ...header_style }}
+      {...headerContentProps}
+    >
+      {headerContent}
+    </span>
+  );
   //: {allottedWidth}/{headerDims.width}</span>
   if (tooltipContent) {
-    header =  <Tooltip content={tooltipContent}>
-                  {header}
-              </Tooltip>
+    header = <Tooltip content={tooltipContent}>{header}</Tooltip>;
   }
   return header;
 
@@ -84,13 +95,13 @@ function ColumnHeader(props) {
     </div>
   );
 }
-function setColDefDimensions({coldefs, windowSize, margin=10, }) {
+function setColDefDimensions({ coldefs, windowSize, margin = 10 }) {
   /* expecting width OR minWidth and remainingPct */
   const [windowWidth, windowHeight] = windowSize;
-  const fixedWidthSum = sum(coldefs.map(d => d.width || 0))
+  const fixedWidthSum = sum(coldefs.map((d) => d.width || 0));
   const remainingWidth = windowWidth - fixedWidthSum - 2 * margin;
   let usedWidth = margin * 2 + fixedWidthSum;
-  coldefs = coldefs.map(d => {
+  coldefs = coldefs.map((d) => {
     if (d.remainingPct) {
       // d.width = Math.max(d.minWidth, remainingWidth * d.remainingPct)
       usedWidth += d.width;
@@ -103,24 +114,34 @@ function setColDefDimensions({coldefs, windowSize, margin=10, }) {
   return coldefs;
 }
 function setColDefHeader(coldef) {
-  let {name, headerProps={}, width, } = coldef;
-  let {headerContent, headerContentProps, tooltipContent, } = headerProps;
+  let { name, headerProps = {}, width } = coldef;
+  let { headerContent, headerContentProps, tooltipContent } = headerProps;
   if (headerContent) {
     if (name) {
-      throw new Error("coldef included both name and headerContent; don't know which to use.")
+      throw new Error(
+        "coldef included both name and headerContent; don't know which to use."
+      );
     }
   } else {
     if (!name) {
-      throw new Error("coldef included neither name and headerContent; need one.")
+      throw new Error(
+        "coldef included neither name and headerContent; need one."
+      );
     }
     headerContent = name;
   }
 
-  coldef.name = <ColumnHeader headerContent={headerContent} headerContentProps={headerContentProps}
-                        tooltipContent={tooltipContent} allottedWidth={width}
-                        coldef={coldef}/>
-  coldef.width = coldef.width + 'px';
+  coldef.name = (
+    <ColumnHeader
+      headerContent={headerContent}
+      headerContentProps={headerContentProps}
+      tooltipContent={tooltipContent}
+      allottedWidth={width}
+      coldef={coldef}
+    />
+  );
+  coldef.width = coldef.width + "px";
   return coldef;
 }
 
-export { ColumnHeader, setColDefHeader, setColDefDimensions, };
+export { ColumnHeader, setColDefHeader, setColDefDimensions };

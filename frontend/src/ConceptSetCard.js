@@ -1,12 +1,12 @@
-import * as React from 'react';
-import Card from '@mui/material/Card';
-import CardContent from '@mui/material/CardContent';
-import Typography from '@mui/material/Typography';
-import IconButton from '@mui/material/IconButton';
-import CloseIcon from '@mui/icons-material/Close';
+import * as React from "react";
+import Card from "@mui/material/Card";
+import CardContent from "@mui/material/CardContent";
+import Typography from "@mui/material/Typography";
+import IconButton from "@mui/material/IconButton";
+import CloseIcon from "@mui/icons-material/Close";
 // import Box from '@mui/material/Box';
-import {useLocation} from "react-router-dom";
-import {backend_url} from './State';
+import { useLocation } from "react-router-dom";
+import { backend_url } from "./State";
 
 /*
 import { styled } from '@mui/material/styles';
@@ -31,30 +31,39 @@ const ExpandMore = styled((props) => {
  */
 
 export default function ConceptSetCards(props) {
-  const {cset_data={}} = props;
-  const {selected_csets=[], researchers={}} = cset_data;
+  const { cset_data = {} } = props;
+  const { selected_csets = [], researchers = {} } = cset_data;
   if (!selected_csets.length) {
     return <div></div>;
   }
-  return <div style={{ display: 'flex', flexWrap: 'wrap', flexDirection: 'row', margin: '20px',
-                      /* height: '90vh', alignItems: 'stretch', border: '1px solid green', width:'100%',
-                        'flex-shrink': 0, flex: '0 0 100%', */ }}>
-        {
-          selected_csets.map(cset => {
-            // let widestConceptName = max(Object.values(cset.concepts).map(d => d.concept_name.length))
-            return <ConceptSetCard  {...props}
-                     key={cset.codeset_id}
-                     cset={cset}
-                     researchers={researchers}
-                     // widestConceptName={widestConceptName} cols={Math.min(4, codeset_ids.length)}
-            />
-
-          })
-        }
-      </div>;
+  return (
+    <div
+      style={{
+        display: "flex",
+        flexWrap: "wrap",
+        flexDirection: "row",
+        margin: "20px",
+        /* height: '90vh', alignItems: 'stretch', border: '1px solid green', width:'100%',
+                        'flex-shrink': 0, flex: '0 0 100%', */
+      }}
+    >
+      {selected_csets.map((cset) => {
+        // let widestConceptName = max(Object.values(cset.concepts).map(d => d.concept_name.length))
+        return (
+          <ConceptSetCard
+            {...props}
+            key={cset.codeset_id}
+            cset={cset}
+            researchers={researchers}
+            // widestConceptName={widestConceptName} cols={Math.min(4, codeset_ids.length)}
+          />
+        );
+      })}
+    </div>
+  );
 }
 function ConceptSetCard(props) {
-  let {cset, researchers={}, editing=false, closeFunc} = props;
+  let { cset, researchers = {}, editing = false, closeFunc } = props;
   /*
   const [expanded, setExpanded] = React.useState(false);
   const handleExpandClick = () => {
@@ -64,80 +73,99 @@ function ConceptSetCard(props) {
   const {codeset_ids = [], cset_data = {}} = props;
    */
   let tags = [];
-  let display_props = {}
-  display_props['Code set ID'] = cset.codeset_id;
-  display_props['Concepts'] = cset.concepts;
+  let display_props = {};
+  display_props["Code set ID"] = cset.codeset_id;
+  display_props["Concepts"] = cset.concepts;
   // fix to:
   // format: row => fmt(parseInt(row.distinct_person_cnt)),
-  display_props['Patient count'] = '~ ' + cset.distinct_person_cnt.toLocaleString();
-  display_props['Record count'] = '~ ' + cset.total_cnt.toLocaleString();
+  display_props["Patient count"] =
+    "~ " + cset.distinct_person_cnt.toLocaleString();
+  display_props["Record count"] = "~ " + cset.total_cnt.toLocaleString();
 
   if (cset.is_most_recent_version) {
-    tags.push('Most recent version');
+    tags.push("Most recent version");
   }
 
   let intention = [];
   if (cset.container_intention) {
-    intention.push('Container: ' + cset.container_intention);
+    intention.push("Container: " + cset.container_intention);
   }
   if (cset.codeset_intention) {
-    intention.push('Version: ' + cset.codeset_intention);
+    intention.push("Version: " + cset.codeset_intention);
   }
   if (intention.length) {
-    display_props.Intention = intention.join('; ');
+    display_props.Intention = intention.join("; ");
   }
   if (cset.update_message) {
-    display_props['Update message'] = cset.update_message;
+    display_props["Update message"] = cset.update_message;
   }
   if (cset.archived) {
-    tags.push('Archived');
+    tags.push("Archived");
   }
   if (cset.has_review) {
-    tags.push('Has review');
+    tags.push("Has review");
   }
   if (cset.provenance) {
-    display_props['Provenance'] = cset.provenance;
+    display_props["Provenance"] = cset.provenance;
   }
   if (cset.limitations) {
-    display_props['Limitations'] = cset.limitations;
+    display_props["Limitations"] = cset.limitations;
   }
   if (cset.limitations) {
-    display_props['Limitations'] = cset.limitations;
+    display_props["Limitations"] = cset.limitations;
   }
   if (cset.issues) {
-    display_props['Issues'] = cset.issues;
+    display_props["Issues"] = cset.issues;
   }
   if (cset.authoritative_source) {
-    display_props['Authoritative source'] = cset.authoritative_source;
+    display_props["Authoritative source"] = cset.authoritative_source;
   }
   if (cset.project_id) {
-    display_props['Project ID'] = cset.project_id;
+    display_props["Project ID"] = cset.project_id;
   }
 
-
-  let _researchers = Object.entries(cset.researchers).map(
-    ([id, roles]) => {
-      let r = researchers[id];
-      r.roles = roles;
-      return r
-    })
-  const researcher_info = _researchers.map(r => {
+  let _researchers = Object.entries(cset.researchers).map(([id, roles]) => {
+    let r = researchers[id];
+    r.roles = roles;
+    return r;
+  });
+  const researcher_info = _researchers.map((r) => {
     return (
-        <Typography variant="body2" color="text.secondary" key={r.emailAddress} sx={{overflow: 'clip',}} gutterBottom>
-          <strong>{r.roles.join(', ')}:</strong><br/>
-          <a href={`mailto:${r.emailAddress}`}>{r.name}</a>,
-          <a href={r.institutionsId} target="_blank" rel="noreferrer">{r.institution}</a>,
-          <a href={`https://orcid.org/${r.orcidId}`} target="_blank" rel="noreferrer">ORCID</a>.
-        </Typography>
-    )
+      <Typography
+        variant="body2"
+        color="text.secondary"
+        key={r.emailAddress}
+        sx={{ overflow: "clip" }}
+        gutterBottom
+      >
+        <strong>{r.roles.join(", ")}:</strong>
+        <br />
+        <a href={`mailto:${r.emailAddress}`}>{r.name}</a>,
+        <a href={r.institutionsId} target="_blank" rel="noreferrer">
+          {r.institution}
+        </a>
+        ,
+        <a
+          href={`https://orcid.org/${r.orcidId}`}
+          target="_blank"
+          rel="noreferrer"
+        >
+          ORCID
+        </a>
+        .
+      </Typography>
+    );
   });
   let researcherContent = (
     <div>
-      <Typography /*variant="h6"*/ color="text.primary" >Contributors</Typography>
+      <Typography /*variant="h6"*/ color="text.primary">
+        Contributors
+      </Typography>
       {researcher_info}
-    </div>);
+    </div>
+  );
   // display_props['props not included yet'] = 'codeset_status, container_status, stage, concept count';
-  const {search, pathname} = useLocation();
+  const { search, pathname } = useLocation();
   /*
   const editSingleLink = (
       <NavLink
@@ -148,8 +176,11 @@ function ConceptSetCard(props) {
       )
    */
   return (
-      <Card variant="outlined" sx={{display: 'inline-block', /*maxWidth: '400px'*/}}>
-        {/*
+    <Card
+      variant="outlined"
+      sx={{ display: "inline-block" /*maxWidth: '400px'*/ }}
+    >
+      {/*
         <CardHeader
             action={
               <IconButton aria-label="settings">
@@ -160,36 +191,59 @@ function ConceptSetCard(props) {
             sx={{paddingBottom: '5px',}}
         />
         */}
-        <CardContent sx={{}}>
-          <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center'}}>
-            <Typography variant="h6" color="text.primary" gutterBottom>
-              {editing ? 'Editing' : ''} {cset.concept_set_version_title}
-              {/*{editSingleLink}*/}
-            </Typography>
-            {
-              closeFunc ? <IconButton onClick={closeFunc}><CloseIcon/></IconButton> : null
-            }
-          </div>
-          <Typography variant="body2" color="text.primary" gutterBottom>
-            {tags.join(', ')}
+      <CardContent sx={{}}>
+        <div
+          style={{
+            display: "flex",
+            justifyContent: "space-between",
+            alignItems: "center",
+          }}
+        >
+          <Typography variant="h6" color="text.primary" gutterBottom>
+            {editing ? "Editing" : ""} {cset.concept_set_version_title}
+            {/*{editSingleLink}*/}
           </Typography>
-          {
-            Object.keys(display_props).map(pkey => (
-                <Typography variant="body2" color="text.secondary" key={pkey} sx={{overflow: 'clip',}}>
-                  <strong>{pkey}</strong>: {display_props[pkey]}
-                </Typography>
-            ))
-          }
-          <Typography variant="body2" color="text.primary" >
-            {/*This link opens the version */}
-            {/*<a href={`https://unite.nih.gov/workspace/hubble/external/object/v0/omop-concept-set?codeset_id=${cset.codeset_id}`} target="_blank" rel="noreferrer">Open in Enclave</a*/}
-            {/*This link opens the container */}
-            <a href={`https://unite.nih.gov/workspace/hubble/objects/${cset.container_rid}`} target="_blank">Open in Enclave</a
-            >, <a href={backend_url(`cset-download?codeset_id=${cset.codeset_id}`)} target="_blank" rel="noreferrer">Export JSON</a>
+          {closeFunc ? (
+            <IconButton onClick={closeFunc}>
+              <CloseIcon />
+            </IconButton>
+          ) : null}
+        </div>
+        <Typography variant="body2" color="text.primary" gutterBottom>
+          {tags.join(", ")}
+        </Typography>
+        {Object.keys(display_props).map((pkey) => (
+          <Typography
+            variant="body2"
+            color="text.secondary"
+            key={pkey}
+            sx={{ overflow: "clip" }}
+          >
+            <strong>{pkey}</strong>: {display_props[pkey]}
           </Typography>
-          { researcherContent }
-        </CardContent>
-        {/*
+        ))}
+        <Typography variant="body2" color="text.primary">
+          {/*This link opens the version */}
+          {/*<a href={`https://unite.nih.gov/workspace/hubble/external/object/v0/omop-concept-set?codeset_id=${cset.codeset_id}`} target="_blank" rel="noreferrer">Open in Enclave</a*/}
+          {/*This link opens the container */}
+          <a
+            href={`https://unite.nih.gov/workspace/hubble/objects/${cset.container_rid}`}
+            target="_blank"
+          >
+            Open in Enclave
+          </a>
+          ,{" "}
+          <a
+            href={backend_url(`cset-download?codeset_id=${cset.codeset_id}`)}
+            target="_blank"
+            rel="noreferrer"
+          >
+            Export JSON
+          </a>
+        </Typography>
+        {researcherContent}
+      </CardContent>
+      {/*
         <CardActions disableSpacing>
           <IconButton size="small" aria-label="add to favorites">
             <FavoriteIcon/>
@@ -227,10 +281,8 @@ function ConceptSetCard(props) {
           </CardContent>
         </Collapse>
         */}
-      </Card>
+    </Card>
   );
 }
 
-export {ConceptSetCard};
-
-
+export { ConceptSetCard };

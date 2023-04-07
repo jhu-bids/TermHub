@@ -1,9 +1,14 @@
-import React, { useLayoutEffect, useState } from 'react';
+import React, { useLayoutEffect, useState } from "react";
 
-const pct_fmt = num => Number(num).toLocaleString(undefined,{style: 'percent', minimumFractionDigits:2});
-const fmt = num => Number(num).toLocaleString();
+const pct_fmt = (num) =>
+  Number(num).toLocaleString(undefined, {
+    style: "percent",
+    minimumFractionDigits: 2,
+  });
+const fmt = (num) => Number(num).toLocaleString();
 // cfmt = conditional format -- as number if number, otherwise no change
-const cfmt = v => (parseInt(v) === v || parseFloat(v) === v) ? Number(v).toLocaleString() : v;
+const cfmt = (v) =>
+  parseInt(v) === v || parseFloat(v) === v ? Number(v).toLocaleString() : v;
 
 // from https://developer.mozilla.org/en-US/docs/Web/JavaScript/Reference/Global_Objects/Set#implementing_basic_set_operations
 function isSuperset(set, subset) {
@@ -52,7 +57,7 @@ function difference(setA, setB) {
   }
   return _difference;
 }
-function toRadians (angle) {
+function toRadians(angle) {
   return angle * (Math.PI / 180);
 }
 
@@ -62,17 +67,30 @@ function useWindowSize() {
     function updateSize() {
       setSize([window.innerWidth, window.innerHeight]);
     }
-    window.addEventListener('resize', updateSize);
+    window.addEventListener("resize", updateSize);
     updateSize();
-    return () => window.removeEventListener('resize', updateSize);
+    return () => window.removeEventListener("resize", updateSize);
   }, []);
   return size;
 }
 
 function ShowWindowDimensions(props) {
   const [width, height] = useWindowSize();
-  return <span>Window size: {width} x {height}</span>;
+  return (
+    <span>
+      Window size: {width} x {height}
+    </span>
+  );
 }
 
-
-export { pct_fmt, fmt, cfmt, isSuperset, union, intersection, symmetricDifference, difference, useWindowSize, };
+export {
+  pct_fmt,
+  fmt,
+  cfmt,
+  isSuperset,
+  union,
+  intersection,
+  symmetricDifference,
+  difference,
+  useWindowSize,
+};

@@ -1,3 +1,3 @@
-const API_ROOT = 'https://termhub.azurewebsites.net/';
+const API_ROOT = "https://termhub.azurewebsites.net/";
 
-export {API_ROOT};
+export { API_ROOT };

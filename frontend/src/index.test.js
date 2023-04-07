@@ -1,7 +1,7 @@
-import { render, screen } from '@testing-library/react';
-import {BrowserRouter, } from "react-router-dom";
-import {QCProvider,} from './App';
-import './index.css';
+import { render, screen } from "@testing-library/react";
+import { BrowserRouter } from "react-router-dom";
+import { QCProvider } from "./App";
+import "./index.css";
 
 /* from App.test.js
 test('renders learn react link', () => {
@@ -11,11 +11,11 @@ test('renders learn react link', () => {
 });
 */
 
-test('renders the app starting with BrowserRouter and QCProvider', () => {
+test("renders the app starting with BrowserRouter and QCProvider", () => {
   render(
-      <BrowserRouter>
-        <QCProvider/>
-      </BrowserRouter>
+    <BrowserRouter>
+      <QCProvider />
+    </BrowserRouter>
   );
   // const linkElement = screen.getByText(/learn react/i);
   // I can't figure out this simple example... it's complaining for various reasons
