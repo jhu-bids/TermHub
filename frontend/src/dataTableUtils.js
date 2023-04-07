@@ -1,7 +1,7 @@
 import React, { useRef, useLayoutEffect, useState } from 'react';
 import { sum, } from 'lodash';
 import {Tooltip} from './Tooltip';
-import { Info, } from '@mui/icons-material';
+import { Info, Edit, } from '@mui/icons-material';
 
 function ColumnHeader(props) {
   let {tooltipContent, headerContent, headerContentProps, allottedWidth, coldef} = props;
@@ -52,11 +52,18 @@ function ColumnHeader(props) {
    */
   // console.log({headerContent, allottedWidth, contentWidth: headerDims.width})
   if (tooltipContent) {
-    // headerContent = (
-    //     <span>
-    //       {headerContent}
-    //       <Info sx={{fontSize: '80%'}}/>
-    //     </span>);
+    // TODO: @fabiofdez: flex was easiest way I (sg) could find to keep icon on same line as text, but then
+    //                   the icon takes up all the vertical space below it. would be better if it just followed
+    //                   the end of the text as if it were part of the text
+    headerContent = (
+        <span style={{display: 'flex'}}>
+          {headerContent}
+          {
+            coldef.codeset_id
+                ? <Edit sx={{fontSize: '80%'}}/>
+                : <Info sx={{fontSize: '80%'}}/>
+          }
+        </span>);
   }
   let header = <span className="cset-column-header" ref={targetRef}
             style={{...header_style}}

@@ -318,6 +318,7 @@ function colConfig(props) {
             headerProps: {
                 tooltipContent: <span>Click icons to open the concept in ATLAS or Athena</span>,
             },
+            // TODO: @fabiofdez: after widening this column so (i) icon would display, the cells should be centered. can you figure out how to do that?
             format: row => (
                 <span style={{backgroundColor: 'lightgray', height: sizes.linkHeight}} >
                     <a href={`https://atlas-demo.ohdsi.org/#/concept/${row.concept_id}`} target="_blank" rel="noreferrer">
@@ -328,7 +329,7 @@ function colConfig(props) {
                     </a>
                 </span>),
             sortable: !nested,
-            width: 35,
+            width: 45,
             style: { paddingRight: '0px', },
         },
         // ...cset_cols,
