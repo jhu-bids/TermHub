@@ -214,7 +214,7 @@ export function FlexibleContainer({ title, children }) {
       <>
         <IconButton
           onClick={closeFunc}
-          sx={{ position: "absolute", width: "100%", justifyContent: "right" }}
+          sx={{ position: "absolute", right: 0 }}
         >
           <CloseIcon />
         </IconButton>
