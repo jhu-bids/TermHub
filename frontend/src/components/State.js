@@ -21,7 +21,7 @@ import React, {
 } from "react";
 // import useCombinedReducers from 'use-combined-reducers';
 import axios from "axios";
-import { API_ROOT } from "./env";
+import { API_ROOT } from "../env";
 import CircularProgress from "@mui/material/CircularProgress";
 import Box from "@mui/material/Box";
 import { useQuery } from "@tanstack/react-query";

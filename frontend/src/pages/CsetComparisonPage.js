@@ -13,11 +13,11 @@ import Button from "@mui/material/Button";
 import Draggable from "react-draggable";
 // import {Checkbox} from "@mui/material";
 import { isEmpty, get, throttle, pullAt } from "lodash"; // set, map, omit, pick, uniq, reduce, cloneDeepWith, isEqual, uniqWith, groupBy,
-import { useAppState, DerivedStateProvider, useDerivedState } from "./State";
-import { fmt, useWindowSize } from "./utils";
-import { setColDefDimensions } from "./dataTableUtils";
-import { ConceptSetCard } from "./ConceptSetCard";
-import { Tooltip } from "./Tooltip";
+import { useAppState, DerivedStateProvider, useDerivedState } from "../components/State";
+import { fmt, useWindowSize } from "../components/utils";
+import { setColDefDimensions } from "../components/dataTableUtils";
+import { ConceptSetCard } from "../components/ConceptSetCard";
+import { Tooltip } from "../components/Tooltip";
 import {
   getEditCodesetFunc,
   getCodesetEditActionFunc,
@@ -26,11 +26,11 @@ import {
   cellStyle,
   Legend,
   saveChangesInstructions,
-} from "./EditCset";
+} from "../components/EditCset";
 // import FlexibleContainer, { accordionPanels, accordionPanel, } from "./FlexibleContainer";
 // import AllowOverlap from "./gridLayout";
-import { DOCS, howToSaveStagedChanges } from "./AboutPage";
-import { FlexibleContainer } from "./contentControl";
+import { DOCS, howToSaveStagedChanges } from "../pages/AboutPage";
+import { FlexibleContainer } from "../components/contentControl";
 // import {isEmpty} from "react-data-table-component/dist/src/DataTable/util"; // what was this for?
 // import Button from '@mui/material/Button';
 

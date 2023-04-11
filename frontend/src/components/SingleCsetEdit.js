@@ -1,6 +1,6 @@
 import * as React from "react";
 import { NavLink } from "react-router-dom";
-import { ConceptSetCard } from "./ConceptSetCard";
+import { ConceptSetCard } from "./components/ConceptSetCard";
 
 function SingleCsetEdit(props) {
   const { edit_codeset_id, cset_data = {}, prev } = props;

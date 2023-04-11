@@ -37,20 +37,20 @@ import {
 import useMeasure from "react-use/lib/useMeasure";
 import Paper from "@mui/material/Paper";
 
-import { ConceptSetsPage } from "./Csets";
-import { CsetComparisonPage } from "./CsetComparisonPage";
-import { AboutPage } from "./AboutPage";
+import { ConceptSetsPage } from "./components/Csets";
+import { CsetComparisonPage } from "./pages/CsetComparisonPage";
+import { AboutPage } from "./pages/AboutPage";
 import {
   AppStateProvider,
   searchParamsToObj,
   updateSearchParams,
   backend_url,
   useDataWidget,
-} from "./State";
-import { UploadCsvPage } from "./UploadCsv";
-import { DownloadJSON } from "./DownloadJSON";
-import MuiAppBar from "./MuiAppBar";
-import { PopupContentItem /*ContentItems*/ } from "./contentControl";
+} from "./components/State";
+import { UploadCsvPage } from "./components/UploadCsv";
+import { DownloadJSON } from "./components/DownloadJSON";
+import MuiAppBar from "./components/MuiAppBar";
+import { PopupContentItem /*ContentItems*/ } from "./components/contentControl";
 // // import _ from "./supergroup/supergroup";
 
 // import logo from './logo.svg';
