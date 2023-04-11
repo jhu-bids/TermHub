@@ -13,8 +13,8 @@ import { Tooltip } from "./Tooltip";
 import Card from "@mui/material/Card";
 import CardContent from "@mui/material/CardContent";
 import Typography from "@mui/material/Typography";
-// import * as po from './Popover';
-import { DOCS } from "./AboutPage";
+// import * as po from '../pages/Popover';
+import { DOCS } from "../pages/AboutPage";
 
 /* TODO: Solve
     react_devtools_backend.js:4026 MUI: The value provided to Autocomplete is invalid.
