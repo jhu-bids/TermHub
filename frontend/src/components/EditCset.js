@@ -12,7 +12,12 @@ import { isEmpty, get, pick } from "lodash"; // set, map, omit, pick, uniq, redu
 import IconButton from "@mui/material/IconButton";
 import { Tooltip } from "./Tooltip";
 import { searchParamsToObj, updateSearchParams, backend_url } from "./State";
-import { LI, TextH2, TextBold, howToSaveStagedChanges } from "../pages/AboutPage";
+import {
+  LI,
+  TextH2,
+  TextBold,
+  howToSaveStagedChanges,
+} from "../pages/AboutPage";
 import _ from "../supergroup/supergroup";
 
 const checkmark = <span>{"\u2713"}</span>;

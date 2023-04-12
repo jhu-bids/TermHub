@@ -13,7 +13,12 @@ import Button from "@mui/material/Button";
 import Draggable from "react-draggable";
 // import {Checkbox} from "@mui/material";
 import { isEmpty, get, throttle, pullAt } from "lodash"; // set, map, omit, pick, uniq, reduce, cloneDeepWith, isEqual, uniqWith, groupBy,
-import { useAppState, DerivedStateProvider, useDerivedState } from "../components/State";
+import {
+  useAppState,
+  useStateSlice,
+  DerivedStateProvider,
+  useDerivedState,
+} from "../components/State";
 import { fmt, useWindowSize } from "../components/utils";
 import { setColDefDimensions } from "../components/dataTableUtils";
 import { ConceptSetCard } from "../components/ConceptSetCard";
@@ -49,6 +54,7 @@ function CsetComparisonPage(props) {
   } = props;
   const { selected_csets = [], researchers } = cset_data;
   const [collapsed, setCollapsed] = useState({});
+  const { state, dispatch } = useStateSlice("hierarchySettings");
   const windowSize = useWindowSize();
   const boxRef = useRef();
   const sizes = getSizes(/*squishTo*/ 1);
@@ -66,6 +72,7 @@ function CsetComparisonPage(props) {
       [row.pathToRoot]: !get(collapsed, row.pathToRoot.join(",")),
     };
     setCollapsed(_collapsed);
+    dispatch({ type: "setCollapsed", collapsed: _collapsed });
   }
 
   if (!all_csets.length || isEmpty(selected_csets)) {
@@ -118,6 +125,7 @@ function CsetComparisonPage(props) {
       </Box>
     );
   }
+
   return (
     <div>
       <DerivedStateProvider {...props}>

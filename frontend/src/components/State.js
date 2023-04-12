@@ -28,6 +28,7 @@ import { useQuery } from "@tanstack/react-query";
 import { createSearchParams } from "react-router-dom";
 import { isEmpty, memoize, pullAt } from "lodash";
 import { pct_fmt } from "./utils";
+import { get } from "lodash";
 // import {contentItemsReducer, defaultContentItems} from "./contentControl";
 
 const DerivedStateContext = createContext(null);
@@ -88,6 +89,7 @@ export function AppStateProvider({ children }) {
       collapsed: {},
     }),
   };
+
   const getters = {
     getSliceState: (slice) => reducers[slice][0],
     getSliceDispatch: (slice) => reducers[slice][1],
@@ -139,15 +141,16 @@ const codeset_idsReducer = (state, action) => {
 const csetEditsReducer = (csetEdits, action) => {};
 
 function hierarchySettingsReducer(state, action) {
-  /*
-  const [collapsed, setCollapsed] = useState({});
-
-  function toggleCollapse(row) {
-    let _collapsed = {...collapsed, [row.pathToRoot]: !get(collapsed, row.pathToRoot.join(','))};
-    setCollapsed(_collapsed);
+  if (!(action && action.type)) return state;
+  if (!action.type) return state;
+  switch (action.type) {
+    case "setCollapsed": {
+      const collapsed = action.collapsed;
+      return { ...state, collapsed };
+    }
+    default:
+      return state;
   }
-   */
-  return state;
 }
 
 // const DataContext = createContext(null);
@@ -331,7 +334,7 @@ export function StatsMessage(props) {
   );
 }
 
-function makeHierarchyRows({
+export function makeHierarchyRows({
   concepts,
   selected_csets,
   cset_members_items,
