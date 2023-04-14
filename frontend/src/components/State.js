@@ -75,7 +75,7 @@ export function useDerivedState() {
 export function useStateSlice(slice) {
   const appState = useAppState();
   const [state, dispatch] = appState.getSlice(slice);
-  return { state, dispatch };
+  return { state, dispatch };  // should probably return array instead of object?
 }
 const CombinedReducersContext = createContext(null);
 export function AppStateProvider({ children }) {
@@ -85,7 +85,7 @@ export function AppStateProvider({ children }) {
     editCset: useReducer(editCsetReducer),
     // more stuff needed
     hierarchySettings: useReducer(hierarchySettingsReducer, {
-      displayOption: "fullHierarchy", // or 'flat'
+      displayOption: "fullHierarchy", // or 'flat'   not currently using?
       collapsed: {},
     }),
   };

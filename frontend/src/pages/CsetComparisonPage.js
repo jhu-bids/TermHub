@@ -53,8 +53,7 @@ function CsetComparisonPage(props) {
     csetEditState,
   } = props;
   const { selected_csets = [], researchers } = cset_data;
-  const [collapsed, setCollapsed] = useState({});
-  const { state, dispatch } = useStateSlice("hierarchySettings");
+  const { state: hierarchySettings, dispatch: hsDispatch } = useStateSlice("hierarchySettings");
   const windowSize = useWindowSize();
   const boxRef = useRef();
   const sizes = getSizes(/*squishTo*/ 1);
@@ -67,12 +66,17 @@ function CsetComparisonPage(props) {
   const editCodesetFunc = getEditCodesetFunc({ searchParams, setSearchParams });
 
   function toggleCollapse(row) {
-    let _collapsed = {
+    /* @amirmds:
+      Since toggleCollapse is now using appState instead of local useState, this logic
+      could be moved to the reducer and instead of passing this function and the collapsed
+      state down to colConfig, colConfig could pick those out of appState itself.
+     */
+    let collapsed = hierarchySettings.collapsed;
+    collapsed = {
       ...collapsed,
       [row.pathToRoot]: !get(collapsed, row.pathToRoot.join(",")),
     };
-    setCollapsed(_collapsed);
-    dispatch({ type: "setCollapsed", collapsed: _collapsed });
+    hsDispatch({ type: "setCollapsed", collapsed });
   }
 
   if (!all_csets.length || isEmpty(selected_csets)) {
@@ -84,7 +88,7 @@ function CsetComparisonPage(props) {
     editAction,
     editCodesetFunc,
     sizes /* displayObj: _displayObj, */,
-    collapsed,
+    collapsed: hierarchySettings.collapsed,
     toggleCollapse,
     nested: true,
     windowSize,
@@ -142,134 +146,6 @@ function CsetComparisonPage(props) {
                                                {opt.msg}
                                            </Button>)
 }*/
-function ControlsAndInfo__not_using_right_now(props) {
-  const {
-    cset_data,
-    columns,
-    editCodesetId,
-    csetEditState = {},
-    searchParams,
-    setSearchParams,
-    children,
-  } = props;
-  // const {hierarchy={}, selected_csets=[], concepts=[], cset_members_items=[], researchers, } = cset_data;
-  const appState = useAppState();
-  // const derivedState = useDerivedState();
-  // <pre>{JSON.stringify({derivedState}, null, 2)}</pre>
-
-  // const [displayOptions, setDisplayOptions] = useState({});
-  // const [displayOption, setDisplayOption] = useState('fullHierarchy');
-  // const [displayObj, setDisplayObj] = useState(); // useComparisonTableRowData({});
-  // const [collapsed, setCollapsed] = useState({});
-  const boxRef = useRef();
-
-  // useEffect(() => contentItemsState.dispatch({type: 'contentItems-show', name: 'dummy'}));
-  // console.log(appState.getState());
-
-  // return <h4>Next step: context providers; then this component reads from QSState</h4>
-  /*
-    function changeDisplayOption(option) {
-        setDisplayOption(option);
-    }
-     */
-  const moreProps = { ...props, /* displayObj, */ columns };
-
-  /*
-    const _displayObj = _displayOptions[displayOption];
-    setDisplayOptions(_displayOptions);
-    setDisplayObj(_displayObj);
-    setColumns(_columns);
-    // console.log({displayOption, displayOptions, displayObj, columns});
-    const moreProps = {...props, displayObj, columns};
-
-    let card, eInfo;
-    if (editCodesetId && columns) {
-      card = (
-          <FlexibleContainer
-              title="Concept set being edited"
-              ComponentType={ConceptSetCard}
-              componentProps={{
-                cset: columns.find(d => d.codeset_id === editCodesetId).cset_col,
-                researchers: researchers,
-                editing: true
-              }}
-
-          >
-          </FlexibleContainer>
-      );
-      const cardContentItem = {
-        name: 'editingCsetCard',
-        show: true,
-        content: card,
-      }
-     */
-  // contentItemsState.dispatch({type: 'contentItems-new', payload: cardContentItem});
-  /*
-    card = <ConceptSetCard cset={columns.find(d=>d.codeset_id===editCodesetId).cset_col}
-                           researchers={researchers}
-                           editing={true}
-                           // width={window.innerWidth * 0.5}
-                />;
-  }
-  if (! isEmpty(csetEditState)) {
-    eInfo = <EditInfo {...props} />;
-  }
-     */
-  /*
-    const panelProps = [
-        {id: 'card-panel', title: 'Concept set being edited', content: card},
-        {id: 'changes-panel', title: 'Staged changes', content: eInfo},
-        {id: 'instructions-panel', title: 'How to save changes', content: howToSaveStagedChanges({})},
-    ];
-    // const panels = accordionPanels({panels});
-    // console.log(panels);
-     */
-
-  return (
-    <div>
-      {/*
-            <pre>{JSON.stringify(appState.getState(), null, 2)}</pre>
-            {card}
-            */}
-      {/*<AllowOverlap />*/}
-      <Box
-        ref={boxRef}
-        sx={{
-          width: "96%",
-          margin: "9px",
-          display: "flex",
-          flexDirection: "row",
-        }}
-      >
-        <FlexibleContainer title="Staged changes">
-          <EditInfo {...props} />
-        </FlexibleContainer>
-        <FlexibleContainer title="Instructions to save changes">
-          {saveChangesInstructions(props)}
-        </FlexibleContainer>
-        <FlexibleContainer title="Legend">
-          <Legend />
-        </FlexibleContainer>
-        {/*
-            {eInfo}
-            <Draggable defaultPosition={{x: 0, y: 0}} >
-                <div style={{padding:30, height: 70, border: '1px solid blue', cursor: 'move'}}>
-                    hello
-                </div>
-            </Draggable>
-            */}
-        {/*{panels}*/}
-        {/*<Box>*/}
-        {/*    <HelpButton doc="legend"/>*/}
-        {/*</Box>*/}
-      </Box>
-      {/*{children}*/}
-      {/* <StatsMessage {...props} /> */}
-      {/*<SquishSlider setSquish={squishChange}/>*/}
-    </div>
-  );
-}
-
 function ComparisonDataTable(props) {
   const {
     columns,
