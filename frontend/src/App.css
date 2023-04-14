@@ -1,3 +1,7 @@
+body {
+  margin: 0;
+}
+
 .toggle-collapse {
   cursor: pointer;
 }
@@ -41,17 +45,16 @@
 .csets-data-table .rdt_TableHeadRow {
   background-color: #fff4c2;
   border: 2px solid #999;
-  margin-top: 2px;
   /*height: auto;
   height: 182px;
   color: red;
   borderBottomStyle: solid;
   padding: 0 0px 0 3px;
   */
-  verticalalign: bottom;
+  vertical-align: bottom;
   overflow: visible;
-  textoverflow: unset;
-  margintop: auto;
+  text-overflow: unset;
+  margin-top: auto;
 }
 .cset-column-header {
   /* white-space: nowrap;

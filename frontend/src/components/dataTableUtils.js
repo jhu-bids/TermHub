@@ -1,7 +1,7 @@
-import React, { useRef, useLayoutEffect, useState } from "react";
+import { Edit, Info } from "@mui/icons-material";
 import { sum } from "lodash";
+import { useLayoutEffect, useRef, useState } from "react";
 import { Tooltip } from "./Tooltip";
-import { Info, Edit } from "@mui/icons-material";
 
 function ColumnHeader(props) {
   let {
@@ -61,14 +61,15 @@ function ColumnHeader(props) {
     // TODO: @fabiofdez: flex was easiest way I (sg) could find to keep icon on same line as text, but then
     //                   the icon takes up all the vertical space below it. would be better if it just followed
     //                   the end of the text as if it were part of the text
+    const iconStyle = {
+      fontSize: "80%",
+      marginTop: "auto",
+      marginBottom: "2px",
+    };
     headerContent = (
-      <span style={{ display: "flex" }}>
+      <span style={{ display: "flex", alignItems: "center", gap: "3px" }}>
         {headerContent}
-        {coldef.codeset_id ? (
-          <Edit sx={{ fontSize: "80%" }} />
-        ) : (
-          <Info sx={{ fontSize: "80%" }} />
-        )}
+        {coldef.codeset_id ? <Edit sx={iconStyle} /> : <Info sx={iconStyle} />}
       </span>
     );
   }

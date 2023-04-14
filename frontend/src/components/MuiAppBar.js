@@ -1,30 +1,29 @@
 // from https://mui.com/material-ui/react-app-bar/#ResponsiveAppBar.js
-import React, { useState, useEffect } from "react";
+import MenuIcon from "@mui/icons-material/Menu";
 import AppBar from "@mui/material/AppBar";
 import Box from "@mui/material/Box";
-import Toolbar from "@mui/material/Toolbar";
-import IconButton from "@mui/material/IconButton";
-import Typography from "@mui/material/Typography";
-import Menu from "@mui/material/Menu";
-import MenuIcon from "@mui/icons-material/Menu";
-import Container from "@mui/material/Container";
-import Avatar from "@mui/material/Avatar";
 import Button from "@mui/material/Button";
+import Container from "@mui/material/Container";
+import IconButton from "@mui/material/IconButton";
+import Menu from "@mui/material/Menu";
+import Toolbar from "@mui/material/Toolbar";
+import Typography from "@mui/material/Typography";
+import React from "react";
 // import {Tooltip} from './Tooltip';
-import Tooltip from "@mui/material/Tooltip";
-import MenuItem from "@mui/material/MenuItem";
 import MenuBookIcon from "@mui/icons-material/MenuBook";
+import MenuItem from "@mui/material/MenuItem";
+import Tooltip from "@mui/material/Tooltip";
 import { NavLink, useLocation } from "react-router-dom";
 
-import { styled, useTheme } from "@mui/material/styles";
-import Drawer from "@mui/material/Drawer";
-import CssBaseline from "@mui/material/CssBaseline";
-import Divider from "@mui/material/Divider";
 import ChevronLeftIcon from "@mui/icons-material/ChevronLeft";
 import ChevronRightIcon from "@mui/icons-material/ChevronRight";
+import CssBaseline from "@mui/material/CssBaseline";
+import Divider from "@mui/material/Divider";
+import Drawer from "@mui/material/Drawer";
 import List from "@mui/material/List";
 import ListItem from "@mui/material/ListItem";
 import ListItemButton from "@mui/material/ListItemButton";
+import { styled, useTheme } from "@mui/material/styles";
 // import ListItemIcon from '@mui/material/ListItemIcon';
 import ListItemText from "@mui/material/ListItemText";
 import { getPages /*ContentMenuItems, ContentItem, */ } from "./contentControl";
@@ -310,7 +309,11 @@ export default function MuiAppBar(props) {
     </Box>
   );
   return (
-    <AppBar position="static" sx={{ backgroundColor: "#1986d2" }}>
+    <AppBar
+      className="Mui-app-bar"
+      position="static"
+      sx={{ backgroundColor: "#1986d2" }}
+    >
       <Container maxWidth="false" /* "xl" */>
         <Toolbar disableGutters>
           <MenuBookIcon sx={{ display: { xs: "none", md: "flex" }, mr: 1 }} />

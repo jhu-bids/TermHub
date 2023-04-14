@@ -307,11 +307,15 @@ function ComparisonDataTable(props) {
       fixedHeader
       fixedHeaderScrollHeight={() => {
         // console.log(boxRef.current);
-        const headerStuffHeight = 50; // maybe get a real number, but too hard for now
+        const MuiAppBar = document.querySelector(".Mui-app-bar");
+        let headerMenuHeight = 64;
+        if (MuiAppBar) {
+          headerMenuHeight = MuiAppBar.clientHeight;
+        }
         const { offsetTop = 0, offsetHeight = 0 } = boxRef.current ?? {};
         return (
           window.innerHeight -
-          (headerStuffHeight + offsetTop + offsetHeight) +
+          (headerMenuHeight + offsetTop + offsetHeight) +
           "px"
         );
         // return "400px";
@@ -336,8 +340,8 @@ function getSizes(squishTo) {
     // rowPaddingBottom:   ( 0 * squishTo) + 'px',
     collapseIcon: 13 * squishTo + "px",
     linkHeight: 20 * squishTo + "px",
-    atlasHeight: 12 * squishTo + "px",
-    athenaHeight: 10 * squishTo + "px",
+    atlasHeight: 14 * squishTo + "px",
+    athenaHeight: 12 * squishTo + "px",
   };
   return sizes;
 }
@@ -431,12 +435,21 @@ function colConfig(props) {
       // TODO: @fabiofdez: after widening this column so (i) icon would display, the cells should be centered. can you figure out how to do that?
       format: (row) => (
         <span
-          style={{ backgroundColor: "lightgray", height: sizes.linkHeight }}
+          style={{
+            height: sizes.linkHeight,
+            display: "flex",
+            flex: 1,
+            justifyContent: "space-between",
+            alignItems: "center",
+          }}
         >
           <a
             href={`https://atlas-demo.ohdsi.org/#/concept/${row.concept_id}`}
             target="_blank"
             rel="noreferrer"
+            style={{display: "flex", aspectRatio: 1,
+            alignItems: "center",
+            padding: "3px"}}
           >
             <img
               height={sizes.atlasHeight}
@@ -449,6 +462,9 @@ function colConfig(props) {
             href={`https://athena.ohdsi.org/search-terms/terms/${row.concept_id}`}
             target="_blank"
             rel="noreferrer"
+            style={{display: "flex", aspectRatio: 1,
+            alignItems: "center",
+            padding: "3px"}}
           >
             <img
               height={sizes.athenaHeight}
@@ -459,8 +475,14 @@ function colConfig(props) {
         </span>
       ),
       sortable: !nested,
-      width: 45,
-      style: { paddingRight: "0px" },
+      width: 50,
+      style: {
+        backgroundColor: "lightgray",
+        paddingRight: "0px",
+        display: "flex",
+        flex: 1,
+        justifyContent: "center",
+      },
     },
     // ...cset_cols,
     {
@@ -621,7 +643,7 @@ function styles(sizes) {
         // height: '2px',
         // fontSize: '2px',
         // height: '3px',
-        borderLeft: "0.5px solid #BBB",
+        borderBottom: "1px solid #BBB",
       },
     },
     cells: {
@@ -630,7 +652,7 @@ function styles(sizes) {
         // paddingLeft: '8px', // override the cell padding for data cells
         // paddingRight: '8px',
         padding: 0, //'0px 5px 0px 5px',
-        borderRight: "0.5px solid #BBB",
+        borderRight: "1px solid #BBB",
       },
     },
   };
