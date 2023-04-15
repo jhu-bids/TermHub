@@ -2,6 +2,8 @@
 import json
 import os
 import re
+from pprint import pprint
+
 import dateutil.parser as dp
 from datetime import datetime, timezone
 
@@ -22,6 +24,39 @@ from backend.utils import commify
 DEBUG = False
 DB = CONFIG["db"]
 SCHEMA = CONFIG["schema"]
+
+
+# TODO: automatically determine latest backup name rather than param
+# TODO: format this to return something better. Right now looks like:
+#  [('code_sets', 'test2_n3c', 1), ('code_sets', 'test_n3c', 1), ('concept_set_container', 'test2_n3c', 1), ('concept_set_container', 'test_n3c', 1), ('concept_set_members', 'test2_n3c', 1), ('concept_set_members', 'test_n3c', 1), ('concept_set_version_item', 'test2_n3c', 1), ('concept_set_version_item', 'test_n3c', 1)]
+# todo: pass params (not working right now for some reason) to run_sql() instead of string interpolating, e.g.: WHERE schemaname in (:schema_names)...
+def qc_check_db_counts(
+    compare_schema: str, schema: str = SCHEMA, local=False, fast_approx_method=False, verbose=True
+) -> List[tuple]:
+    """Checks counts of database tables for the current schema and its most recent backup.
+
+    :param compare_schema: The schema to check against. e.g. n3c_backup_20230322
+    """
+    # TODO: get this from the db instead of hardcoding
+    query = f"""
+    WITH tbl AS  (SELECT table_schema, TABLE_NAME
+    FROM information_schema.tables
+    WHERE TABLE_NAME not like 'pg_%' AND table_schema in ('{schema}', '{compare_schema}'))SELECT table_schema, TABLE_NAME, (xpath('/row/c/text()', query_to_xml(format('select count(*) as c from %I.%I', table_schema, TABLE_NAME), FALSE, TRUE, '')))[1]::text::int AS rows_n
+    FROM tbl
+    ORDER BY rows_n DESC
+    """
+    if fast_approx_method:
+        query = f"""
+        SELECT relname,schemaname,n_live_tup
+        FROM pg_stat_user_tables
+        WHERE schemaname in ('{schema}', '{compare_schema}')ORDER BY 1, 2, 3;"""
+
+    with get_db_connection(schema=schema, local=local) as con:
+        result = run_sql(con, query)
+        result = [x for x in result]
+    if verbose:
+        pprint(result)
+    return result
 
 
 def get_db_connection(isolation_level='AUTOCOMMIT', schema: str = SCHEMA, local=False):
@@ -228,3 +263,7 @@ def load_csv(
     df.to_sql(table, con, **kwargs)
 
     update_db_status_var(f'last_updated_{table}', str(current_datetime()))
+
+
+if __name__ == '__main__':
+    qc_check_db_counts('n3c_backup_20230414', fast_approx_method=False)

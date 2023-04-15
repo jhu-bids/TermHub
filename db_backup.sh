@@ -12,7 +12,7 @@ How to make a backup of n3c schema
 # sed: Changes all instances of 'n3c' in the pg_dump file to $fname, but only where 'n3c' appears as a schema name. It does this by looking at any line that isn't a line of data (all lines of data start with a number).
 pg_dump -d \$psql_conn -n n3c | sed '/^[0-9][0-9]*\t/! s/[[:<:]]n3c[[:>:]]/$fname/' > $fname.dmp 
 
-Then restore backup schema:
+Then, immediately upload the backup schema to the database:
 
 psql -d \$psql_conn < $fname.dmp
 
