@@ -1,6 +1,7 @@
 # dependencies
 fastapi
 jinja2
+mezmorize
 pandas
 pandasql
 pyarrow
