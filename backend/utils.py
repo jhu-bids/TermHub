@@ -94,7 +94,9 @@ def return_err_with_trace(func):
         try:
             return func(*args, **kwargs)
         except Exception as err:
-            stacktrace = "".join(traceback.format_exception(etype=type(err), value=err, tb=err.__traceback__))
+            # stacktrace = "".join(traceback.format_exception(etype=type(err), value=err, tb=err.__traceback__))
+            # getting error with above, @jflack4 fix this if my fix isn't what you wanted
+            stacktrace = "".join(traceback.format_exception(err, value=err, tb=err.__traceback__))
             return JSONResponse(
               status_code=500,
               content={

@@ -493,8 +493,6 @@ def cr_hierarchy(include_atlas_json: bool = False, codeset_ids: Union[str, None]
     # fp = open(r'./backend/old_cr-hierarchy_samples/cr-hierarchy - example1 - before refactor.json')
     # return json.load(fp)
 
-    raise Exception('err')
-
     timer = get_timer('cr-hierarchy')
     verbose and timer('members items')
     codeset_ids: List[int] = parse_codeset_ids(codeset_ids)
