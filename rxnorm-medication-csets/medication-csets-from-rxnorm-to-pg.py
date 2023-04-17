@@ -1,9 +1,12 @@
 import io, csv, json, os, time
+from typing import Dict, List, Union
 import requests
+from requests import Response
 from mezmorize import Cache
 
-from backend.db.utils import get_db_connection, sql_query_single_col, sql_in
+from backend.db.utils import get_db_connection, sql_query_single_col, sql_in, insert_from_dict, sql_query
 from backend.utils import pdump
+from enclave_wrangler.dataset_upload import upload_new_container_with_concepts
 
 BASE_RXNORM_URL = "https://rxnav.nlm.nih.gov"
 
@@ -54,17 +57,17 @@ def get_med_csets():
   # print(json.dumps(list(cr), indent=2))
   for cset in cr:
     rxcui = cset['RXCUI']
+    cset_name = cset['CSET NAME']
     if not rxcui.isdigit():
-      print(f"invalid rxcui [{rxcui}] for {cset['CSET NAME']}")
+      print(f"invalid rxcui [{rxcui}] for {cset_name}")
       continue
     print(f"getting related for {rxcui}:{cset['CSET NAME']}")
     data = rxnorm_get(rxcui)
     terms = [{k: term[k] for k in ('rxcui', 'tty', 'name')} for term in data]
     rxcuis = {t['rxcui'] for t in terms}
     cids = rxcuis_to_concept_ids(rxcuis)
-
-
-    compare_cids = cset['compare_n3c_codeset_ids']
+    create_rxnorm_cset(rxcui, f'RxNorm: {cset_name}', ','.join([str(c) for c in cids]))
+    # compare_cids = cset['compare_n3c_codeset_ids']
 
 
 @cache.memoize()
@@ -86,6 +89,18 @@ def rxnorm_get(rxcui):
   return data
 
 
+  # CREATE TABLE rxnorm_med_cset(
+  #   rxcui text,
+  #   cset_name text,
+  #   concept_ids text)
+def create_rxnorm_cset(rxcui, cset_name, concept_ids):
+  insert_from_dict(CON, 'rxnorm_med_cset', {
+    'rxcui': rxcui,
+    'cset_name': cset_name,
+    'concept_ids': concept_ids
+  })
+
+
 def rxcuis_to_concept_ids(rxcuis):
   q = f"""
     select concept_id
@@ -95,6 +110,29 @@ def rxcuis_to_concept_ids(rxcuis):
   """
   cids = sql_query_single_col(CON, q)
   return cids
+
+
+def test_rxnorm_csets(self):
+  """Test RxNorm Csets
+  todo: later?: check if already exists in termhub before uploading. where? code_sets.concept_set_version_title
+  """
+  # TODO: Upload any new concept sets to the enclave
+  #  (this will fail if the concept set name already exists)
+  #  - fetch this information from table
+  #  - then do the whole thing to upload to the enclave
+  with get_db_connection() as con:
+    csets: List[Dict] = [dict(x) for x in sql_query(con, 'SELECT * FROM rxnorm_med_cset;')]
+  responses: List[Dict[str, Union[Response, List[Response]]]] = []
+  for cset in csets:
+    response: Dict[str, Union[Response, List[Response]]] = upload_new_container_with_concepts(
+      concept_set_name=cset['cset_name'],
+      intention=d.container['intention'],
+      research_project=d.container['research_project'],
+      assigned_sme=d.container['assigned_sme'],
+      assigned_informatician=d.container['assigned_informatician'],
+      versions_with_concepts=d.versions_with_concepts)
+    responses.append(response)
+
 
 if __name__ == '__main__':
   get_med_csets()
