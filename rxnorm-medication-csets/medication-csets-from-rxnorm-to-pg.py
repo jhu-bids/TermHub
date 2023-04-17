@@ -7,6 +7,7 @@ from mezmorize import Cache
 from backend.db.utils import get_db_connection, sql_query_single_col, sql_in, insert_from_dict, sql_query
 from backend.utils import pdump
 from enclave_wrangler.dataset_upload import upload_new_container_with_concepts
+from enclave_wrangler.objects_api import cset_container_and_version_enclave_to_db
 
 BASE_RXNORM_URL = "https://rxnav.nlm.nih.gov"
 
@@ -66,7 +67,10 @@ def get_med_csets():
     terms = [{k: term[k] for k in ('rxcui', 'tty', 'name')} for term in data]
     rxcuis = {t['rxcui'] for t in terms}
     cids = rxcuis_to_concept_ids(rxcuis)
-    create_rxnorm_cset(rxcui, f'RxNorm: {cset_name}', ','.join([str(c) for c in cids]))
+    # create_rxnorm_cset: Puts it directly into Postgres
+    # create_rxnorm_cset(rxcui, f'RxNorm: {cset_name}', ','.join([str(c) for c in cids]))
+    upload_and_sync_rxnorm_cset(rxcui, f'RxNorm: {cset_name}', cids)
+
     # compare_cids = cset['compare_n3c_codeset_ids']
 
 
@@ -112,26 +116,40 @@ def rxcuis_to_concept_ids(rxcuis):
   return cids
 
 
-def test_rxnorm_csets(self):
-  """Test RxNorm Csets
-  todo: later?: check if already exists in termhub before uploading. where? code_sets.concept_set_version_title
-  """
-  # TODO: Upload any new concept sets to the enclave
-  #  (this will fail if the concept set name already exists)
-  #  - fetch this information from table
-  #  - then do the whole thing to upload to the enclave
-  with get_db_connection() as con:
-    csets: List[Dict] = [dict(x) for x in sql_query(con, 'SELECT * FROM rxnorm_med_cset;')]
-  responses: List[Dict[str, Union[Response, List[Response]]]] = []
-  for cset in csets:
+def upload_and_sync_rxnorm_cset(rxcui: int, cset_name: str, concept_ids: List[int]):
+    """Upload RxNorm concept sets to the enclave and then sync back to our database.
+    todo: later?: check if already exists in termhub before uploading. where? code_sets.concept_set_version_title
+    """
+    # TODO: Upload any new concept sets to the enclave
+    #  (this will fail if the concept set name already exists)
+    #  - fetch this information from table
+    #  - then do the whole thing to upload to the enclave
+
+    # with get_db_connection() as con:
+    #     csets: List[Dict] = [dict(x) for x in sql_query(con, 'SELECT * FROM rxnorm_med_cset;')]
+    #     for cset in csets:
     response: Dict[str, Union[Response, List[Response]]] = upload_new_container_with_concepts(
-      concept_set_name=cset['cset_name'],
-      intention=d.container['intention'],
-      research_project=d.container['research_project'],
-      assigned_sme=d.container['assigned_sme'],
-      assigned_informatician=d.container['assigned_informatician'],
-      versions_with_concepts=d.versions_with_concepts)
-    responses.append(response)
+      concept_set_name=cset_name,
+      intention='RxNorm medication concept sets from data liaisons.',
+      research_project='RP-4A9E27',
+      assigned_sme='4bf7076c-6723-49cc-b4e5-f6c6ada1bdae',
+      assigned_informatician='4bf7076c-6723-49cc-b4e5-f6c6ada1bdae',
+      versions_with_concepts=[{
+        'omop_concept_ids': concept_ids,
+        'provenance': f'RxNorm CUIs related to: {str(rxcui)}',
+        'concept_set_name': cset_name,
+        # todo: fill these fields out
+        'annotation': '',
+        'limitations': '',
+        'intention': '',
+        'intended_research_project': '',
+        'codeset_id': '',
+    }])
+    cset_id = 0  # TODO <--- get this back from the response. it's nested
+    # todo: do this next to upload?
+    #  # TODO: @Siggie will continue this to populate additional derived tables that need to be populated
+    with get_db_connection() as con:
+        cset_container_and_version_enclave_to_db(con, cset_name, cset_id)
 
 
 if __name__ == '__main__':

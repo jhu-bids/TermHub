@@ -408,6 +408,14 @@ def cset_version_enclave_to_db(con: Connection, object_id: int) -> Dict:
     return code_sets_enclave_to_db(con, object_id)
 
 
+# todo: Would this be better just to get the container and sync any non-uploaded versions to the DB?
+# TODO: @Siggie will continue this to populate additional derived tables that need to be populated
+def cset_container_and_version_enclave_to_db(con: Connection, container_name: str, version_id: int):
+    """pass"""
+    concept_set_container_enclave_to_db(con, container_name)
+    code_sets_enclave_to_db(con, version_id)
+
+
 def concept_set_version_item_enclave_to_db(con: Connection, object_id: str) -> Dict:
     """Given ID, get object's current state from the enclave, and add it the DB"""
     return fetch_object_and_add_to_db(con, 'concept_set_version_item', 'OmopConceptSetVersionItem', object_id)
