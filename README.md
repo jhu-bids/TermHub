@@ -117,6 +117,7 @@ SET search_path TO n3c;
 - [Backend](./backend/README.md): `uvicorn backend.app:APP --reload`
 - [Frontend](./frontend/README.md): `cd frontend; npm run start`
 
+
 ### Database management
 Refer to the [developer docs](./docs/developer.md) for more information.
 
@@ -146,3 +147,5 @@ Refer to the [developer docs](./docs/developer.md) for more information.
 17. Click the version on the left again.
 18. On the right, click the green "Done" button.
 
+### Database management
+Refer to the [developer docs](./docs/developer.md) for more information.

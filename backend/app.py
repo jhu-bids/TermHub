@@ -17,7 +17,7 @@ from fastapi.middleware.cors import CORSMiddleware
 from fastapi.middleware.gzip import GZipMiddleware
 from sqlalchemy.engine import LegacyRow, RowMapping
 
-from backend.utils import JSON_TYPE, get_timer, pdump
+from backend.utils import JSON_TYPE, get_timer, pdump, return_err_with_trace
 from backend.routes import cset_crud
 from backend.db.utils import get_db_connection, sql_query, SCHEMA, sql_query_single_col, sql_in
 from backend.db.queries import get_concepts
@@ -280,6 +280,7 @@ def hierarchy(root_cids: List[int], selected_concept_ids: List[int]) -> (Dict[in
 
     return d, orphans
 
+
 def get_concept_relationships(cids: List[int], reltypes: List[str] = ['Subsumes'], con=CON) -> List[LegacyRow]:
     """Get concept_relationship rows for cids
     """
@@ -480,6 +481,7 @@ def enclave_api_call(name: str, params: Union[str, None]=None) -> Dict:
 
 # TODO: get back to how we had it before RDBMS refactor
 @APP.get("/cr-hierarchy")
+@return_err_with_trace
 def cr_hierarchy(include_atlas_json: bool = False, codeset_ids: Union[str, None] = Query(default=''), ) -> Dict:
     """Get concept relationship hierarchy
 
@@ -490,6 +492,8 @@ def cr_hierarchy(include_atlas_json: bool = False, codeset_ids: Union[str, None]
     # TODO: TEMP FOR TESTING. #191 isn't a problem with the old json data
     # fp = open(r'./backend/old_cr-hierarchy_samples/cr-hierarchy - example1 - before refactor.json')
     # return json.load(fp)
+
+    raise Exception('err')
 
     timer = get_timer('cr-hierarchy')
     verbose and timer('members items')

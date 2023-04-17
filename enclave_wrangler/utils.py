@@ -3,18 +3,20 @@ import json
 import logging
 import os
 import sys
-from typing import Dict, List, Union, Callable
+from typing import Dict, List, Union
 from random import randint
 from time import sleep
 
+import pandas as pd
 import requests
 from datetime import datetime, timezone, timedelta
 from http.client import HTTPConnection
 
 from requests import Response
 
-from enclave_wrangler.config import config, TERMHUB_VERSION, CSET_VERSION_MIN_ID
+from enclave_wrangler.config import OUTDIR_OBJECTS, config, TERMHUB_VERSION, CSET_VERSION_MIN_ID
 from backend.utils import dump
+
 
 EXTRA_PARAMS = {
     'create-new-draft-omop-concept-set-version': {
@@ -25,7 +27,7 @@ EXTRA_PARAMS = {
         "sourceApplication": "TermHub",
     },
 }
-
+JSON_TYPE = Union[Dict, List]
 SERVICE_TOKEN_KEY = 'PALANTIR_ENCLAVE_AUTHENTICATION_BEARER_TOKEN'
 PERSONAL_TOKEN_KEY = 'OTHER_TOKEN'
 TOKEN_KEY = SERVICE_TOKEN_KEY
@@ -64,15 +66,18 @@ def get_headers(personal=False, content_type="application/json", for_curl=False)
 #     #"authorization": f"Bearer {config['PALANTIR_ENCLAVE_AUTHENTICATION_BEARER_TOKEN']}",
 
 def set_auth_token_key(personal=False):
+    """Sets the key to be looked up for the auth token for the N3C Palantir Foundry data enclave."""
     global TOKEN_KEY
     TOKEN_KEY = PERSONAL_TOKEN_KEY if personal else SERVICE_TOKEN_KEY
 
 
 def get_auth_token_key():
+    """Returns the key to be looked up for the auth token for the N3C Palantir Foundry data enclave."""
     return TOKEN_KEY
 
 
 def get_auth_token():
+    """Returns the auth token for the N3C Palantir Foundry data enclave."""
     return config[TOKEN_KEY]
 
 
@@ -97,6 +102,7 @@ def log_debug_info():
 
 
 def debug_requests_off():
+    """Set debug requests to off"""
     # ''' Switches off logging of the requests module, might be some side-effects '''
     HTTPConnection.debuglevel = 0
 
@@ -148,7 +154,7 @@ def response_failed(response: Response) -> bool:
 def handle_response_error(
     response: Response, error_dir: Union[str, None] = None, fail: bool = False, calling_func: str = 'response error'
 ):
-    """This code was taken out of objects_api:get_objects_by_type. Trying to use it
+    """This code was taken out of make_objects_request() (formerly get_objects_by_type()). Trying to use it
     for all Response errors now. Not sure if it's entirely appropriate."""
     failed = response_failed(response)
     if failed:
@@ -156,7 +162,7 @@ def handle_response_error(
         error_report: Dict = {'request': response.url, 'response': response.json()}
         print(error_report, file=sys.stderr)
         curl_str = f'curl -H "Content-type: application/json" ' \
-                   f'-H "Authorization: Bearer $OTHER_TOKEN" {response.url}'
+                   f'-H "Authorization: Bearer ${get_auth_token_key()}" {response.url}'
         print(curl_str, file=sys.stderr)
         if error_dir:
             with open(os.path.join(error_dir, f'error {response.status_code}.json'), 'w') as file:
@@ -183,16 +189,10 @@ def enclave_get(url: str, verbose: bool = True, args: Dict = {}, error_dir: str 
     return response
 
 
-def handle_paginated_request(first_page_url: str, verbose=False, called_by: str='',
-                             error_dir: str = None
+def handle_paginated_request(
+    first_page_url: str, verbose=False, error_dir: str = None
 ) -> (List[Dict], Response):
     """Handles a request that has a nextPageToken, automatically fetching all pages and combining the data"""
-    # TODO: this returns the last response -- I (Siggie) think only for error handling.
-    #  But I'm pushing error handling down to enclave_get, so maybe can quit returning
-    #  last response; might simplify things a tad
-    if called_by != 'make_objects_request':
-        # TODO: fix handle_paginated_request calls so they all pass through make_objects_request
-        print('Warning: refactor calls to handle_paginated_request to use make_objects_request instead')
     url = first_page_url
     results: List[Dict] = []
     while True:
@@ -200,8 +200,8 @@ def handle_paginated_request(first_page_url: str, verbose=False, called_by: str=
             response = enclave_get(url, verbose=verbose, error_dir=error_dir)
         except EnclaveWranglerErr as err:
             if results:
-                err['results_prior_to_error'] = results
-                raise err
+                err.args[0]['results_prior_to_error'] = results
+            raise err
 
         response_json = response.json()
         results += response_json['data']
@@ -211,51 +211,100 @@ def handle_paginated_request(first_page_url: str, verbose=False, called_by: str=
     return results
 
 
+def get_objects_df(object_type, outdir: str = None, save_csv=True, save_json=True):
+    """Get objects as dataframe"""
+    # Get objects
+    objects: List[Dict] = make_objects_request(object_type, return_type='data', outdir=outdir)
+
+    # Parse
+    # Get rid of nested 'properties' key, and add 'rid' in with the other fields
+    df = pd.DataFrame()
+    if objects:
+        results = [{**x['properties'], **{'rid': x['rid']}} for x in objects]
+        df = pd.DataFrame(results).fillna('')
+
+    # Save
+    if outdir:
+        outdir = outdir if outdir else os.path.join(OUTDIR_OBJECTS, object_type)
+        outpath = os.path.join(outdir, 'latest.csv')
+        if not os.path.exists(outdir) and (save_json or save_csv):
+            os.mkdir(outdir)
+        # - csv
+        if save_csv:
+            df.to_csv(outpath, index=False)
+        # - json
+        if save_json:
+            with open(outpath.replace('.csv', '.json'), 'w') as f:
+                json.dump(objects, f)
+    return df
+
+
+def get_url_from_api_path(path):
+    """Construct path for enclave API url"""
+    ontology_rid = config['ONTOLOGY_RID']
+    path = path[1:] if path.startswith('/') else path
+    api_path = f'/api/v1/ontologies/{ontology_rid}/{path}'
+    url = f'https://{config["HOSTNAME"]}{api_path}'
+    return url
+
+
+def get_query_param(field_name: str, filter_name: str, filter_value: str) -> str:
+    """Convert query param parts to a single query param key val pair with operator"""
+    return f'properties.{field_name}.{filter_name}={filter_value}'
+
+
+# todo's from b4 refactor combining make_objects_request() and get_objects_by_type() 2023/03/15
+#   1. Need to find the right object_type, then write a wrapper func around this to get concept sets
+#     - To Try: CodeSystemConceptSetVersionExpressionItem, OMOPConcept, OMOPConceptSet, OMOPConceptSetContainer,
+#     OmopConceptSetVersionItem
+#   2. connect to `manage` table and get since last datetime. for now, use below as example
+# noinspection PyUnboundLocalVariable
 def make_objects_request(
-        path: str, verbose=False, url_only=False, return_type: str='Response',
-        handle_paginated=False,
-        expect_single_item=False,
-        retry_if_empty=False, retry_times=15, retry_pause=1,
-        error_report: bool = True, fail_on_error=False, **request_args
-) -> Union[Response, Dict, List[Dict], str]:
-    """Passthrough for HTTP request
-    return_type should be Response, json, or data
+    path: str, verbose=False, url_only=False, return_type: str = ['Response', 'json', 'data'][0],
+    handle_paginated=False, expect_single_item=False, retry_if_empty=False, retry_times=15, retry_pause=1,
+    outdir: str = None, query_params: List[str] = None, error_report: bool = True, fail_on_error=False, **request_args
+) -> Union[Response, JSON_TYPE, str]:
+    """Fetch objects from enclave
+
+    :param return_type： should be Response, json, or data
+
     Enclave docs:
+      https://www.palantir.com/docs/foundry/api/ontology-resources/objects/object-basics/
       https://www.palantir.com/docs/foundry/api/ontology-resources/objects/list-objects/
       https://www.palantir.com/docs/foundry/api/ontology-resources/object-types/list-object-types/
     """
-    ontology_rid = config['ONTOLOGY_RID']
-    path = path[1:] if path.startswith('/') else path
-    path = f'objects/{path}' if not path.startswith('objects') else path
-    api_path = f'/api/v1/ontologies/{ontology_rid}/{path}'
-    url = f'https://{config["HOSTNAME"]}{api_path}'
-    if url_only:
-        return url
-    if verbose:
-        print(f'make_actions_request: {api_path}\n{url}')
-
+    # Validation
     if handle_paginated and return_type != 'data':
         raise EnclaveWranglerErr("if handling paginated, data is the only allowable return_type")
 
-    if not retry_if_empty:
-        retry_times = 1
-        retry_pause = 0
+    # Conditional params
+    retry_times, retry_pause = (1, 0) if not retry_if_empty else (retry_times, retry_pause)
+
+    # Construct URL
+    url = get_url_from_api_path(f'objects/{path}')
+    url = url + '?' + '&'.join(query_params) if query_params else url
+
+    if url_only:
+        return url
+
+    # Fetch data
     for i in range(retry_times):
         if retry_if_empty:
             print(f'make_objects_request, attempt #{i}')
         if handle_paginated:
-            data = handle_paginated_request(url, verbose=verbose, **request_args)
+            data: List[Dict] = handle_paginated_request(url, verbose=verbose, error_dir=outdir, **request_args)
             if data:
                 return data
         else:
-            response = enclave_get(url, verbose=verbose, **request_args)
-            response_json = response.json()
+            response: Response = enclave_get(url, verbose=verbose, error_dir=outdir, **request_args)
+            response_json: JSON_TYPE = response.json()
             # single items don't have 'data', just 'properties' at the top
-            data = response_json['properties'] if expect_single_item else response_json['data']
+            data: List[Dict] = response_json['properties'] if expect_single_item else response_json['data']
             if data:
                 break
         sleep(retry_pause)
 
+    # Return
     if return_type == 'Response':
         return response
     if return_type == 'json':        # do error checking/handling?
@@ -265,8 +314,8 @@ def make_objects_request(
 
 
 def make_actions_request(
-        api_name: str, data: Union[List, Dict] = None,
-        validate_first=False, raise_validate_error=False, verbose=True) -> Response:
+    api_name: str, data: Union[List, Dict] = None, validate_first=False, raise_validate_error=False, verbose=True
+) -> Response:
     """Passthrough for HTTP request
     If `data`, knows to do a POST. Otherwise does a GET.
     Enclave docs:
@@ -284,7 +333,8 @@ def make_actions_request(
         data["parameters"].update(EXTRA_PARAMS[api_name])
 
     if validate_first:
-        response: Response = enclave_post(url + 'validate', data, raise_validate_error=raise_validate_error, verbose=verbose)
+        response: Response = enclave_post(
+            url + 'validate', data, raise_validate_error=raise_validate_error, verbose=verbose)
         if not ('result' in response.json() and response.json()['result'] == 'VALID'):
             print(f'Failure: {api_name}\n', response, file=sys.stderr)
             return response
@@ -295,6 +345,7 @@ def make_actions_request(
 
 
 def process_validate_errors(response: Response, errType: Exception=None, print_error=False):
+    """Process validate errors"""
     if response.status_code >= 400:
         if errType:
             raise errType(response.json())
@@ -381,6 +432,7 @@ def print_curl(url: str, data: Union[List, Dict]=None, args: Dict = {}, trace:bo
 
 
 def get_random_codeset_id() -> int:
+    """Generage random Codeset ID"""
     # todo: this is temporary until I handle registry persistence
     arbitrary_range = 100000
     codeset_id = randint(CSET_VERSION_MIN_ID, CSET_VERSION_MIN_ID + arbitrary_range)

@@ -1,4 +1,4 @@
-name: DB Refresh via datasets API
+name: TermHub DB Refresh via datasets API
 
 on:
 #  schedule:
@@ -7,7 +7,8 @@ on:
 
 jobs:
   refresh-db:
-#    runs-on: ubuntu-latest
+#    runs-on: ubuntu-18.04
+#    runs-on: ubuntu-latest   # not sure which is more current when resolving merge conflicts
     # todo: macos-latest could help solve memory issue, but can't connect to db?
     #  https://github.com/jhu-bids/TermHub/actions/runs/4125681721/jobs/7126569855
     runs-on: macos-latest
@@ -17,7 +18,6 @@ jobs:
         with:
           submodules: recursive
           ref: main
-      
       - name: Set up Python version
         uses: actions/setup-python@v2
         with:

@@ -163,17 +163,19 @@ New way to do field mappings:
   So far it only works with this one pair of rowtypes. As need arises 
   (like csv upload to make-new-omop-... api call), we'll add more mappings.
 """
-FMAPS = []
+FMAPS: List[Dict] = []
 csv.register_dialect('trim', quotechar='"', skipinitialspace=True,
                      quoting=csv.QUOTE_NONE, lineterminator='\n', strict=True)
 
 
 def add_mappings(csv_str: str):
+    """Parse mappings from a CSV string and add to FMAPS."""
     reader = csv.DictReader(io.StringIO(csv_str), dialect='trim')
-    maps = list(reader)
+    maps: List[Dict] = list(reader)
     FMAPS.extend(maps)
 
 
+# OMOPConcept (concept): dataset <-> atlasjson
 add_mappings(
     """concept,          atlasjson
        concept_id,       CONCEPT_ID
@@ -187,21 +189,75 @@ add_mappings(
        valid_start_date, VALID_START_DATE
        valid_end_date,   VALID_END_DATE""")
 
+# OMOPConcept (concept): object <-> dataset
+#  Unmapped fields:
+#   OMOPConcept, concept
+#   n/a,           standard_concept
+#   b.a,           invalid_reason
 add_mappings(
-    #  dataset                   objects_api
-    """concept_set_version_item, omopConceptSetVersionItem
-       item_id,                  itemId
-       codeset_id,               codesetId
-       concept_id,               conceptId
-       includeDescendants,       includeDescendants
-       includeMapped,            includeMapped
-       isExcluded,               isExcluded
-       created_by,               createdBy
-       created_at,               createdAt""")
+    """OMOPConcept, concept
+    conceptClassId,    concept_class_id
+    conceptCode,       concept_code
+    conceptId,         concept_id
+    conceptName,       concept_name
+    domainId,          domain_id
+    validEndDate,      valid_end_date
+    validStartDate,    valid_start_date
+    vocabularyId,      vocabulary_id""")
+
+# OmopConceptSetVersionItem: object <-> dataset
+add_mappings(
+    """OmopConceptSetVersionItem, concept_set_version_item
+    itemId,                       item_id
+    codesetId,                    codeset_id
+    conceptId,                    concept_id
+    includeDescendants,           includeDescendants
+    includeMapped,                includeMapped
+    isExcluded,                   isExcluded
+    createdBy,                    created_by
+    createdAt,                    created_at""")
+
+# OMOPConceptSet (Version): object <-> dataset
+add_mappings(
+    """OMOPConceptSet,            code_sets
+       codesetId,                 codeset_id
+       createdAt,                 created_at
+       conceptSetVersionTitle,    concept_set_version_title
+       isMostRecentVersion,       is_most_recent_version
+       version,                   version
+       createdBy,                 created_by
+       conceptSetNameOMOP,        concept_set_name
+       intention,                 intention
+       updateMessage,             update_message
+       atlasJsonResourceUrl,      atlas_json_resource_url
+       provenance,                provenance
+       sourceApplicationVersion,  source_application_version
+       isDraft,                   is_draft
+       sourceApplication,         source_application
+       limitations,               limitations""")
+
+# OMOPConceptSetContainer: object <-> dataset
+#  Unmapped fields:
+#   OMOPConcept, concept_set_members
+#   n/a,                  assigned_informatician
+#   n/a,                  assigned_sme
+#   n/a,                  n3c_reviewer
+add_mappings(
+    """OMOPConceptSetContainer, concept_set_container
+    alias,            alias
+    archived,         archived
+    conceptSetId,     concept_set_id
+    conceptSetName,   concept_set_name
+    createdAt,        created_at
+    createdBy,        created_by
+    intention,        intention
+    project,          project_id
+    stage,            stage
+    status,           status""")
 
 
 @cache
-def get_field_mapping_lookup():
+def get_field_mapping_lookup() -> Dict[str, Dict]:
     """
         mappings are a list of rows that look like:
             {'concept': 'concept_id', 'atlasjson': 'CONCEPT_ID'}
@@ -209,9 +265,20 @@ def get_field_mapping_lookup():
         rather than searching through the list for the mapping i want,
         it would be nice to have a quick lookup, to be able to do like:
 
-        target_field_name = lookup[source_rowtype][target_rowtype][source_field_name]
+        target_field_name = lookup[source_rowtype][source_field_name][target_rowtype]
 
         this function makes that object
+
+        :returns like:
+        {
+            'atlasjson': {  # source model
+                'CONCEPT_CLASS_ID': {  # source model field name
+                    'concept':  # target model
+                    'concept_class_id'  # target model field name
+                }
+            }
+        }
+        What it returns goes both ways. So it won't just give us atlasjson -> concept, but also concept -> atlasjson
     """
     # for nested defaultdict: https://stackoverflow.com/questions/19189274/nested-defaultdict-of-defaultdict
     d = defaultdict(lambda: defaultdict(dict))
@@ -227,23 +294,26 @@ def get_field_mapping_lookup():
 
 @cache
 def get_field_names(rowtype: str):
+    """Get the field names for a given rowtype"""
     return list(get_field_mapping_lookup()[rowtype].keys())
 
 
 @cache
 def field_name_mapping(source: str, target: str, field: str) -> str:
+    """Get the field name mapping from source to target for a given field"""
     return get_field_mapping_lookup()[source][field][target]
 
 
-def convert_rows(source: str, target: str, rows:List[Dict]) -> List[Dict]:
+def convert_rows(source: str, target: str, rows: List[Dict]) -> List[Dict]:
+    """Convert rows from source to target"""
     out = []
     for row in rows:
         out.append(convert_row(source, target, row))
     return out
 
 
-def convert_row(source: str, target: str, row: Dict,
-                skip_missing_fields=True) -> Dict:
+def convert_row(source: str, target: str, row: Dict, skip_missing_fields=True) -> Dict:
+    """Convert row from source to target"""
     out = {}
     for field in get_field_names(target):
         try:
@@ -259,8 +329,8 @@ def convert_row(source: str, target: str, row: Dict,
 if __name__ == '__main__':
     # mappings = get_field_mappings()
     # pdump(m)
-    t = field_name_mapping('concept', 'concept_id', 'atlasjson')
-    print(t)
-    t = field_name_mapping('concept', 'domain_id', 'atlasjson')
-    print(t)
-
+    # t = field_name_mapping('concept', 'concept_id', 'atlasjson')
+    # print(t)
+    # t = field_name_mapping('concept', 'domain_id', 'atlasjson')
+    # print(t)
+    print()

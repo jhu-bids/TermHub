@@ -32,6 +32,6 @@ From [3bfa2d](https://github.com/jhu-bids/TermHub/commit/3bfa2d) commit msg
   Siggie/Joe 2023-02-16:
   - Joe: hmmm... maybe indeed. perhaps we should keep the name enclave_get and add pagination as needed built into it
   - Siggie: 
-    - That was my first thought, but handle_paginate returns a tuple of results and last response while enclave get just returns response. -- and there's error handling (that should maybe be centralized) in paginate as well as get_objects_by_type, and probably other places. and lots of scattered code for unwrapping response (response.json()['data'], and often extracting ['properties'] from each record.)
+    - That was my first thought, but handle_paginate returns a tuple of results and last response while enclave get just returns response. -- and there's error handling (that should maybe be centralized) in paginate as well as `make_objects_request()`, and probably other places. and lots of scattered code for unwrapping response (response.json()['data'], and often extracting ['properties'] from each record.)
     - So, I'm not sure how ambitious the refactor should be.
     - If we do want to refactor and centralize all this, it might be nice to prohibit any other part of the code from importing requests or touching a Response object. Is that feasible?

@@ -58,8 +58,7 @@ from typing import Dict, List, Union
 from requests import Response
 
 from enclave_wrangler.config import ENCLAVE_PROJECT_NAME, TERMHUB_VERSION, VALIDATE_FIRST, config
-from enclave_wrangler.objects_api import get_concept_set_version_expression_items, \
-    get_codeset_json #, get_objects_by_type
+from enclave_wrangler.objects_api import get_concept_set_version_expression_items, get_codeset_json
 from enclave_wrangler.utils import enclave_get, make_actions_request, get_random_codeset_id  # set_auth_token_key,
 
 
@@ -640,7 +639,7 @@ if __name__ == '__main__':
         raise EnclaveWranglerErr("unexpected return from make_objects_request")
     item = item[0]
     print(item)
-    # csets = get_objects_by_type('OMOPConceptSet')
+    # csets = get_objects_df('OMOPConceptSet')
     itemId = item['properties']['itemId']
 
     j = get_codeset_json(test_draft_codeset_id)

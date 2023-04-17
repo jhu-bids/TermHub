@@ -8,19 +8,18 @@ Resources
 
 TODO's
  1. Consider refactor: Python -> Bash (curl + JQ)
- 2. Are the tables in 'datasets' isomorphic w/ 'objects'? e.g. object OmopConceptSetVersionItem == table
+ 2. Are the tables in 'datasets' isomorphic w/ 'objects'? e.g. object OMOPConceptSetVersionItem == table
  concept_set_version_item_rv_edited_mapped.
 """
 import json
 import os
-from argparse import ArgumentParser
-from datetime import datetime, timedelta
-from typing import List, Dict, Callable, Union
+from datetime import datetime
+from typing import List, Dict, Union
 from urllib.parse import quote
 from sanitize_filename import sanitize
 
-import pandas as pd
 from requests import Response
+from sqlalchemy.engine.base import Connection
 from typeguard import typechecked
 
 # import requests
@@ -28,22 +27,29 @@ from typeguard import typechecked
 # import asyncio
 
 from enclave_wrangler.config import FAVORITE_OBJECTS, OUTDIR_OBJECTS, OUTDIR_CSET_JSON, config, TERMHUB_CSETS_DIR
-from enclave_wrangler.utils import enclave_get, enclave_post, make_objects_request, \
+from enclave_wrangler.utils import enclave_get, enclave_post, get_objects_df, get_query_param, get_url_from_api_path, \
+    make_objects_request, \
     handle_paginated_request, handle_response_error
-from enclave_wrangler.models import get_field_names, field_name_mapping
+from enclave_wrangler.models import convert_row, get_field_names, field_name_mapping
 # from enclave_wrangler.utils import log_debug_info
-from backend.db.utils import sql_query_single_col, run_sql, get_db_connection
+from backend.db.utils import insert_from_dict, sql_query_single_col, run_sql, get_db_connection
 from backend.db.queries import get_concepts
 # from backend.utils import pdump
 
 
+DEBUG = False
 HEADERS = {
     "authorization": f"Bearer {config['PALANTIR_ENCLAVE_AUTHENTICATION_BEARER_TOKEN']}",
     # "authorization": f"Bearer {config['OTHER_TOKEN']}",
     "Content-type": "application/json",
     #'content-type': 'application/json'
 }
-DEBUG = False
+OBJECT_TYPE_PK_MAP = {
+    'OMOPConceptSet': 'codesetId',
+    'OMOPConceptSetContainer': 'conceptSetId',
+    'OMOPConcept': 'conceptId',
+    'OmopConceptSetVersionItem': 'itemId',
+}
 
 
 # got rid of EnclaveClient class. Replacing its init properties with globals:
@@ -58,7 +64,7 @@ BASE_URL = f'https://{config["HOSTNAME"]}'
 ONTOLOGY_RID = config['ONTOLOGY_RID']
 
 @typechecked
-def get_object_types() -> List[Dict]:
+def get_object_types(verbose=False) -> List[Dict]:
     """Gets object types.
     API docs: https://www.palantir.com/docs/foundry/api/ontology-resources/object-types/list-object-types/
     curl -H "Content-type: application/json" -H "Authorization: Bearer $OTHER_TOKEN" "https://unite.nih.gov/api/v1/ontologies/ri.ontology.main.ontology.00000000-0000-0000-0000-000000000000/objectTypes" | jq
@@ -69,73 +75,9 @@ def get_object_types() -> List[Dict]:
      OMOPConcept, OMOPConceptAncestorRelationship, OMOPConceptChangeConnectors, OMOPConceptSet,
      OMOPConceptSetContainer, OMOPConceptSetReview, OmopConceptChange, OmopConceptDomain, OmopConceptSetVersionItem,
     """
-    response = make_objects_request('objectTypes')
+    url = get_url_from_api_path('objectTypes')
+    response: Response = enclave_get(url, verbose=verbose)
     return response.json()['data']
-
-
-# todo?: Need to find the right object_type, then write a wrapper func around this to get concept sets
-#  - To Try: CodeSystemConceptSetVersionExpressionItem, OMOPConcept, OMOPConceptSet, OMOPConceptSetContainer,
-#    OmopConceptSetVersionItem
-# todo: connect to `manage` table and get since last datetime. for now, use below as example
-# TODO: add since_datetime param
-def get_objects_by_type(
-        object_type: str, save_csv=True, save_json=True, outdir: str = None, since_datetime: str = None,
-        return_type=['dataframe', 'list_dict'][0], query_params: str = None, verbose=False,
-        save_to_outdir: bool = True
-) -> Union[pd.DataFrame, List[Dict]]:
-    """Get objects
-
-    :param since_datetime: Formatted like '2023-01-01T00:00:00.000Z'
-    :param query_params:
-        Example:
-       # query_params = ''.join([f'&properties.conceptSetId.eq={x}' for x in ids])
-       # '&properties.conceptSetId.eq=Rachel_Example &properties.conceptSetId.eq=Covid - 19 Related Diagnosis for Hospitalization'
-
-    Resources
-      https://www.palantir.com/docs/foundry/api/ontology-resources/objects/list-objects/
-      https://www.palantir.com/docs/foundry/api/ontology-resources/objects/object-basics/"""
-    # Request
-    # TODO: construct url using this: make_objects_request()
-    first_page_url = make_objects_request(f'objects/{object_type}', url_only=True)
-    # todo: if accepting multiple query params, need & in between instead of subsequent ?
-    if since_datetime:
-        # a. search (needs JSON POST) https://www.palantir.com/docs/foundry/api/ontology-resources/objects/search/
-        # first_page_url += f'/search?previw=true'  # add JSON POST body
-        # b. https://www.palantir.com/docs/foundry/api/ontology-resources/objects/object-basics/#filtering-objects
-        first_page_url += f'?properties.createdAt.gt={since_datetime}'
-    if query_params:
-        query_params = query_params[1:] if any([query_params.startswith(x) for x in ['?', '&']]) else query_params
-        first_query_token = '&' if since_datetime else '?'
-        # examples: (1) expression items: ?itemId.eq=ID (2) containers: conceptSetId.eq=ID
-        first_page_url += f'{first_query_token}{query_params}'
-    results = handle_paginated_request(first_page_url, verbose=verbose, error_dir=outdir)
-    # if failure, EnclaveWranglerErr will be raised
-
-    if return_type == 'list_dict':
-        return results
-
-    # Parse
-    # Get rid of nested 'properties' key, and add 'rid' in with the other fields
-    df = pd.DataFrame()
-    if results:
-        results = [{**x['properties'], **{'rid': x['rid']}} for x in results]
-        df = pd.DataFrame(results).fillna('')
-
-    # Save
-    if save_to_outdir:
-        outdir = outdir if outdir else os.path.join(OUTDIR_OBJECTS, object_type)
-        outpath = os.path.join(outdir, 'latest.csv')
-        if not os.path.exists(outdir) and (save_json or save_csv):
-            os.mkdir(outdir)
-        # - csv
-        if save_csv:
-            df.to_csv(outpath, index=False)
-        # - json
-        if save_json:
-            with open(outpath.replace('.csv', '.json'), 'w') as f:
-                json.dump(results, f)
-
-    return df
 
 
 def get_link_types(use_cache_if_failure=False) -> List[Union[Dict, str]]:
@@ -216,6 +158,7 @@ def get_link_types(use_cache_if_failure=False) -> List[Union[Dict, str]]:
             return cached_types
         raise err
 
+
 def get_object_links(object_type: str, object_id: str, link_type: str) -> Response:
     """Get links of a given type for a given object
 
@@ -223,6 +166,7 @@ def get_object_links(object_type: str, object_id: str, link_type: str) -> Respon
     - If the `link_type` is not valid for a given `object_type`, you'll get a 404 not found.
     """
     return make_objects_request(f'objects/{object_type}/{object_id}/links/{link_type}')
+
 
 # TODO: Why does this not work for Joe, but works for Siggie?:
 # {'errorCode': 'INVALID_ARGUMENT', 'errorName': 'Default:InvalidArgument', 'errorInstanceId': '96596b59-39cb-4b68-b86f-36089815a22e', 'parameters': {}}
@@ -265,7 +209,7 @@ def link_types() -> List[Dict]:
 #       only being used by cli which is not being used right now
 #     """Run"""
 #     request_funcs: Dict[str, Callable] = {
-#         'objects': get_objects_by_type,
+#         'objects': get_objects_df,
 #         'object_types': get_obj_types,
 #         'link_types': get_link_types,
 #     }
@@ -283,16 +227,19 @@ def download_favorite_objects(fav_obj_names: List[str] = FAVORITE_OBJECTS, force
         outdir = os.path.join(OUTDIR_OBJECTS, o)
         exists = os.path.exists(outdir)
         if not exists or (exists and force_if_exists):
-            get_objects_by_type(o, outdir=outdir)
+            get_objects_df(o, outdir=outdir)
 
 
 def get_all_bundles():
+    """Get all bundles"""
     return make_objects_request('objects/ConceptSetTag').json()
 
 
 def get_bundle_names(prop: str='displayName'):
+    """Get bundle names"""
     all_bundles = get_all_bundles()
     return [b['properties'][prop] for b in all_bundles['data']]
+
 
 def get_bundle(bundle_name):
     """
@@ -304,6 +251,7 @@ def get_bundle(bundle_name):
 
 
 def get_bundle_codeset_ids(bundle_name):
+    """Get bundle codeset IDs"""
     bundle = get_bundle(bundle_name)
     codeset_ids = [b['properties']['bestVersionId'] for b in bundle]
     return codeset_ids
@@ -312,7 +260,7 @@ def get_bundle_codeset_ids(bundle_name):
 # TODO:
 def update_db_with_new_objects(objects=None):
     """Update db w/ new objects"""
-    objects = objects if objects else get_new_objects()
+    objects: Dict[str, List] = objects if objects else get_new_cset_and_member_objects()
     # 2. Database updates
     # TODO: (i) What tables to update after this?, (ii) anything else to be done?. Iterate over:
     #  - new_containers: * new containers, * delete & updates to existing containers
@@ -324,44 +272,183 @@ def update_db_with_new_objects(objects=None):
     pass
 
 
-def get_new_objects(since: datetime = None):
-    """Get new objects"""
-    # https://www.palantir.com/docs/foundry/api/ontology-resources/objects/object-basics/#filtering-objects
-    # https://unite.nih.gov/workspace/data-integration/restricted-view/preview/ri.gps.main.view.af03f7d1-958a-4303-81ac-519cfdc1dfb3
-    yesterday = (datetime.now() - timedelta(
-        days=1)).isoformat() + 'Z'  # works: 2023-01-01T00:00:00.000Z
-    since = since if since else yesterday
+# TODO: finish this
+def get_all_new_objects(since: Union[datetime, str]) -> Dict[str, List]:
+    """Get new objects needed to update database.
 
-    # 1. Fetch data
+    Resources:
+    https://www.palantir.com/docs/foundry/api/ontology-resources/objects/object-basics/#filtering-objects
+    https://unite.nih.gov/workspace/data-integration/restricted-view/preview/ri.gps.main.view.af03f7d1-958a-4303-81ac-519cfdc1dfb3
+    """
+    since = str(since)
+    csets_and_members: Dict[str, List] = get_new_cset_and_member_objects(since, return_type='flat')
+    # TODO:
+    researchers = get_researchers()
+    # TODO:
+    projects = get_projects()
+    # TODO: what else?
+    pass
+    return dict(csets_and_members | {'researchers': researchers} | {'projects': projects})
+
+
+# TODO
+#  - future: updates: if someone made a change to something we already fetched, how do we know?
+#  - how to refresh when user creates something?: (a) have the user refresh the db immediately after creating something,
+#    and just download everything since list 'since' date? Or (b) fetch only what they updated (if so, we can't do
+#    inserts; we have to do updates on IDs)
+def get_new_cset_and_member_objects(since: Union[datetime, str], return_type=['flat', 'hierarchical'][0]) -> Dict[str, List]:
+    """Get new objects: cset container, cset version, expression items, and member items.
+
+    Resources:
+    https://www.palantir.com/docs/foundry/api/ontology-resources/objects/object-basics/#filtering-objects
+    https://unite.nih.gov/workspace/data-integration/restricted-view/preview/ri.gps.main.view.af03f7d1-958a-4303-81ac-519cfdc1dfb3
+
+    :return (return_type == 'flat' (default)):
+      - cset containers
+      - cset versions
+      - member items
+      - expression items
+    :return (return_type == 'hierarchical'):
+      - cset containers
+      - cset versions
+        - member items
+        - expression items
+    """
+    since = str(since)
+
     # Concept set versions
-    new_csets: List[Dict] = get_objects_by_type(
-        'OmopConceptSet', since_datetime=yesterday, return_type='list_dict')
+    cset_versions: List[Dict] = make_objects_request(
+        'OMOPConceptSet', query_params=[get_query_param('createdAt', 'gt', since)])
 
     # Containers
-    containers_ids = [x['properties']['conceptSetNameOMOP'] for x in new_csets]
-    container_params = ''.join([f'&properties.conceptSetId.eq={x}' for x in containers_ids])
-    new_containers: List[Dict] = get_objects_by_type(
-        'OMOPConceptSetContainer', return_type='list_dict', query_params=container_params, verbose=True)
+    containers_ids = [x['properties']['conceptSetNameOMOP'] for x in cset_versions]
+    container_params = [get_query_param('conceptSetId', 'eq', x) for x in containers_ids]
+    cset_containers: List[Dict] = make_objects_request(
+        'OMOPConceptSetContainer', query_params=container_params, verbose=True)
 
     # Expression items & concept set members
-    new_csets2: List[Dict] = []
-    for cset in new_csets:
+    cset_versions_with_concepts: List[Dict] = []
+    flat_expression_items = []
+    flat_member_items = []
+    for cset in cset_versions:
         version: int = cset['properties']['codesetId']
-        cset['expression_items'] = get_concept_set_version_expression_items(version, return_detail='full')
-        cset['members'] = get_concept_set_version_members(version, return_detail='full')
-        new_csets2.append(cset)
+        # Hierarchical
+        cset['expression_items']: List[Dict] = get_concept_set_version_expression_items(version, return_detail='full')
+        cset['member_items']: List[Dict] = get_concept_set_version_members(version, return_detail='full')
+        cset_versions_with_concepts.append(cset)
+        # Flat
+        flat_expression_items.extend(cset['expression_items'])
+        flat_member_items.extend(cset['member_items'])
+
+    if return_type == 'flat':
+        return {'cset_containers': cset_containers, 'cset_versions': cset_versions,
+                'expression_items': flat_expression_items, 'member_items': flat_member_items}
+    return {'cset_containers': cset_containers, 'cset_versions': cset_versions_with_concepts}
 
 
-def get_expression_items(codeset_id) -> Dict:
-    _items = make_objects_request(
-        f'objects/OMOPConceptSet/{codeset_id}/links/omopConceptSetVersionItem',
-        handle_paginated=True, return_type='data'
-    )
-    items = [i['properties'] for i in _items]
-    return items
+def fetch_object_by_id(object_type_name: str, object_id: Union[int, str], id_field: str = None) -> Dict:
+    """Fetch object by its id"""
+    err = f'fetch_object_by_id(): Did not pass optional param `id_field`, but also could not automatically resolve ' \
+          f'the primary key / ID field for {object_type_name}. Try passing the `id_field` manually, or adding it to' \
+          f' `OBJECT_TYPE_PK_MAP` in `objects_api.py`.'
+    id_field = id_field if id_field else OBJECT_TYPE_PK_MAP.get(object_type_name, None)
+    if not id_field:
+        raise RuntimeError(err)
+    query_params = [get_query_param(id_field, 'eq', str(object_id))]
+    matches: List[Dict] = make_objects_request(object_type_name, query_params=query_params, return_type='data')
+    obj: Dict = matches[0]['properties']
+    return obj
+
+
+def fetch_cset_version(object_id: int) -> Dict:
+    """Get object from enclave"""
+    return fetch_object_by_id('OMOPConceptSet', object_id, 'codesetId')
+
+
+def fetch_cset_container(object_id: int) -> Dict:
+    """Get object from enclave"""
+    return fetch_object_by_id('OMOPConceptSetContainer', object_id, 'conceptSetId')
+
+
+def fetch_cset_member_item(object_id: int) -> Dict:
+    """Get object from enclave"""
+    return fetch_object_by_id('OMOPConcept', object_id, 'conceptId')
+
+
+def fetch_concept(object_id: int) -> Dict:
+    """Get object from enclave"""
+    return fetch_cset_member_item(object_id)
+
+
+def fetch_cset_expression_item(object_id: int) -> Dict:
+    """Get object from enclave"""
+    return fetch_object_by_id('OmopConceptSetVersionItem', object_id, 'itemId')
+
+
+def fetch_object_and_add_to_db(con: Connection, table: str, object_type_name: str, object_id: Union[int, str]) -> Dict:
+    """Fetch object and add to db"""
+    obj: Dict = fetch_object_by_id(object_type_name, object_id)
+    table_obj: Dict = convert_row(object_type_name, table, obj)
+    insert_from_dict(con, table, table_obj)
+    return table_obj
+
+
+def concept_set_container_enclave_to_db(con: Connection, object_id: str) -> Dict:
+    """Given ID, get object's current state from the enclave, and add it the DB"""
+    return fetch_object_and_add_to_db(con, 'concept_set_container', 'OMOPConceptSetContainer', object_id)
+
+
+def code_sets_enclave_to_db(con: Connection, object_id: int) -> Dict:
+    """Given ID, get object's current state from the enclave, and add it the DB"""
+    return fetch_object_and_add_to_db(con, 'code_sets', 'OMOPConceptSet', object_id)
+
+
+def cset_version_enclave_to_db(con: Connection, object_id: int) -> Dict:
+    """Alias for: code_sets_enclave_to_db()"""
+    return code_sets_enclave_to_db(con, object_id)
+
+
+def concept_set_version_item_enclave_to_db(con: Connection, object_id: str) -> Dict:
+    """Given ID, get object's current state from the enclave, and add it the DB"""
+    return fetch_object_and_add_to_db(con, 'concept_set_version_item', 'OmopConceptSetVersionItem', object_id)
+
+
+def concept_expression_enclave_to_db(con: Connection, object_id: str) -> Dict:
+    """Alias for: concept_set_version_item_enclave_to_db()"""
+    return concept_set_version_item_enclave_to_db(con, object_id)
+
+
+def concept_enclave_to_db(con: Connection, object_id: int) -> Dict:
+    """Given ID, get object's current state from the enclave, and add it the DB"""
+    return fetch_object_and_add_to_db(con, 'concept', 'OMOPConcept', object_id)
+
+
+# TODO: @Sigfried: This function probably doesn't make sense there is no ConceptSetMembers Object API. Only a table.
+#  I think we need to update `concept_set_members` when we do a refresh, but I'm not fully understanding how to do it.
+def concept_set_members_enclave_to_db(con: Connection, codeset_id: int, concept_id: int, members_table_only=False):
+    """Given ID, get object's current state from the enclave, and add it the DB"""
+    if members_table_only:
+        code_set_enclave_obj: Dict = fetch_object_by_id('OMOPConceptSet', codeset_id)
+        code_set_table_obj: Dict = convert_row('OMOPConceptSet', 'code_sets', code_set_enclave_obj)
+        concept_enclave_obj: Dict = fetch_object_by_id('OMOPConcept', concept_id)
+        concept_table_obj: Dict = convert_row('OMOPConcept', 'concept', concept_enclave_obj)
+    else:
+        code_set_table_obj: Dict = cset_version_enclave_to_db(con, codeset_id)
+        concept_table_obj: Dict = concept_enclave_to_db(con, concept_id)
+    table_obj = {
+        'codeset_id': codeset_id,
+        'concept_id': concept_id,
+        'concept_set_name': code_set_table_obj['concept_set_name'],
+        'is_most_recent_version': None,  # there's a code_set_table_obj['is_most_recent_version'], but I"m not sure it's the same
+        'version': None,  # there's a code_set_table_obj['version'], but I"m not sure it's the same
+        'concept_name': concept_table_obj['concept_name'],
+        'archived': None,  # doesn't exist in either table
+    }
+    insert_from_dict(con, 'concept_set_members', table_obj)
 
 
 def items_to_atlas_json_format(items):
+    """Convert version items to atlas json format"""
     flags = ['includeDescendants', 'includeMapped', 'isExcluded']
     try:
         concept_ids = [i['conceptId'] for i in items]
@@ -407,8 +494,7 @@ def get_codeset_json(codeset_id, con=get_db_connection(), use_cache=True, set_ca
         """)
         if jsn:
             return jsn[0]
-    cset = make_objects_request(f'objects/OMOPConceptSet/{codeset_id}',
-        return_type='data', expect_single_item=True)
+    cset = make_objects_request(f'objects/OMOPConceptSet/{codeset_id}', return_type='data', expect_single_item=True)
     container = make_objects_request(
         f'objects/OMOPConceptSetContainer/{quote(cset["conceptSetNameOMOP"], safe="")}',
         return_type='data', expect_single_item=True)
@@ -516,7 +602,7 @@ def enclave_api_call_caller(name:str, params) -> Dict:
 
 # TODO: Download /refresh: tables using object ontology api (e.g. full concept set info from enclave) #189 -------------
 # TODO: func 1/3: Do this before refresh_tables_for_object() and refresh_favorite_objects()
-#   - get_objects_by_type() updates above
+#   - get_objects_df() updates above
 
 #  Issue: https://github.com/jhu-bids/TermHub/issues/189 PR: https://github.com/jhu-bids/TermHub/pull/221
 # TODO: func 3/3: config.py needs updating for favorite datsets / objects
@@ -570,7 +656,20 @@ def cli():
     #     run(**kwargs_dict)
 
 
-def get_concept_set_version_expression_items(version_id: Union[str, int], return_detail=['id', 'full'][0]):
+# todo: @Siggie: is this redundant with get_concept_set_version_expression_items() below?
+def get_expression_items(codeset_id) -> List[Dict]:
+    """Get expression items"""
+    _items = make_objects_request(
+        f'objects/OMOPConceptSet/{codeset_id}/links/omopConceptSetVersionItem',
+        handle_paginated=True, return_type='data'
+    )
+    items = [i['properties'] for i in _items]
+    return items
+
+
+def get_concept_set_version_expression_items(
+    version_id: Union[str, int], return_detail=['id', 'full'][0]
+) -> List[Dict]:
     """Get concept set version expression items"""
     version_id = str(version_id)
     response: Response = get_object_links(
@@ -582,7 +681,7 @@ def get_concept_set_version_expression_items(version_id: Union[str, int], return
     return [x for x in response.json()['data']]
 
 
-def get_concept_set_version_members(version_id: Union[str, int], return_detail=['id', 'full'][0]):
+def get_concept_set_version_members(version_id: Union[str, int], return_detail=['id', 'full'][0]) -> List[Dict]:
     """Get concept set members"""
     version_id = str(version_id)
     response: Response = get_object_links(
@@ -594,7 +693,26 @@ def get_concept_set_version_members(version_id: Union[str, int], return_detail=[
     return [x for x in response.json()['data']]
 
 
+def get_researchers(verbose=False) -> List[Dict]:
+    """Get researcher objects
+    Researcher exploration page:
+    https://unite.nih.gov/workspace/hubble/exploration?objectTypeRid=ri.ontology.main.object-type.70d7defa-4914-422f-83da-f45c28befd5a
+    """
+    object_name = 'Researcher'
+    data: List[Dict] = make_objects_request(object_name, handle_paginated=True, return_type='data', verbose=verbose)
+    return data
+
+
+def get_projects(verbose=False) -> List[Dict]:
+    """Get project objects
+    Projects exploration page:
+    https://unite.nih.gov/workspace/hubble/exploration?objectTypeRid=ri.ontology.main.object-type.84d08d30-bbea-4e3d-a995-040057391a71
+    """
+    object_name = 'ResearchProject'
+    data: List[Dict] = make_objects_request(object_name, handle_paginated=True, return_type='data', verbose=verbose)
+    return data
+
+
 if __name__ == '__main__':
-    # cli()
     ot = get_object_types()
     get_n3c_recommended_csets(save=True)

@@ -10,13 +10,21 @@ TODO's
 import os
 import sys
 import unittest
+from datetime import datetime, timedelta
 from pathlib import Path
 from typing import Dict, List, Union
 
 import pandas as pd
 from requests import Response
+from sqlalchemy.exc import IntegrityError
 
-from enclave_wrangler.objects_api import get_new_objects, update_db_with_new_objects
+from backend.db.utils import get_db_connection, run_sql, sql_count
+from enclave_wrangler.objects_api import concept_enclave_to_db, concept_expression_enclave_to_db, \
+    concept_set_members_enclave_to_db, \
+    concept_set_container_enclave_to_db, \
+    cset_version_enclave_to_db, \
+    get_new_cset_and_member_objects, \
+    update_db_with_new_objects
 
 TEST_DIR = os.path.dirname(__file__)
 PROJECT_ROOT = Path(TEST_DIR).parent
@@ -30,6 +38,7 @@ from enclave_wrangler.dataset_upload import upload_new_cset_container_with_conce
 
 TEST_INPUT_DIR = os.path.join(TEST_DIR, 'input', 'test_enclave_wrangler')
 CSV_DIR = os.path.join(TEST_INPUT_DIR, 'test_dataset_upload')
+yesterday: str = (datetime.now() - timedelta(days=1)).isoformat() + 'Z'  # works: 2023-01-01T00:00:00.000Z
 
 
 class TestEnclaveWrangler(unittest.TestCase):
@@ -46,11 +55,21 @@ class TestEnclaveWrangler(unittest.TestCase):
     #  - what is the ultimate goal? how many tables are we refreshing?
     def test_get_new_objects(self):
         """Test get_new_objects()"""
-        new_objects = get_new_objects()
+        new_objects: Dict[str, List] = get_new_cset_and_member_objects(since=yesterday)
+        # todo: what kind of assert?
 
     def test_update_db_with_new_objects(self):
         """Test update_db_with_new_objects()"""
-        update_db_with_new_objects()
+        # todo: get latest rows from 4 tables
+        pass
+        new_objects: Dict[str, List] = get_new_cset_and_member_objects(since=yesterday)
+        update_db_with_new_objects(new_objects)
+        # todo: check that latest row is different? (assuming that there were actually any new objects
+        pass
+        # todo: teardown
+        #  (a) inserts: delete (can I get PK / index back from query that inserted?
+        #  (b) updates: I think I need to back them up before updating them
+        #  (c) any way I can do some sort of migrated versioning / rollback of DB instead? (e.g. Alembic)
 
     def test_upload_concept_set_version(self):
         response: Response = upload_concept_set_version_draft(
@@ -132,6 +151,95 @@ class TestEnclaveWrangler(unittest.TestCase):
         df = pd.read_csv(inpath).fillna('')
         response: Dict = upload_new_cset_container_with_concepts_from_csv(df=df)
         print()
+
+    def test_cset_version_enclave_to_db(self):  # aka test_code_sets_enclave_to_db()
+        """Test codeset_version_enclave_to_db()"""
+        with get_db_connection(schema='test_n3c') as con:
+            # Failure case
+            codeset_id_fail = 1  # exists in test DB
+            self.assertRaises(IntegrityError, cset_version_enclave_to_db, con, codeset_id_fail)
+
+            # Success case
+            codeset_id_succeed = 1049370  # doesn't exist in test DB
+            n1: int = sql_count(con, 'code_sets')
+            cset_version_enclave_to_db(con, codeset_id_succeed)
+            n2: int = sql_count(con, 'code_sets')
+            self.assertGreater(n2, n1)
+            # Teardown
+            run_sql(con, f"DELETE FROM code_sets WHERE codeset_id = '{codeset_id_succeed}';")
+
+    def test_concept_set_container_enclave_to_db(self):
+        """Test cset_container_enclave_to_db()"""
+        with get_db_connection(schema='test_n3c') as con:
+            # Failure case: exists in test DB
+            concept_set_id_fail = ' Casirivimab Monotherapy (Injection route of admin, 120 MG/ML dose minimum)'
+            self.assertRaises(IntegrityError, concept_set_container_enclave_to_db, con, concept_set_id_fail)
+
+            # Success case:  doesn't exist in test DB
+            concept_set_id_succeed = 'abacavir'
+            n1: int = sql_count(con, 'concept_set_container')
+            concept_set_container_enclave_to_db(con, concept_set_id_succeed)
+            n2: int = sql_count(con, 'concept_set_container')
+            self.assertGreater(n2, n1)
+            # Teardown
+            run_sql(con, f"DELETE FROM concept_set_container WHERE concept_set_id = '{concept_set_id_succeed}';")
+
+    def test_concept_expression_enclave_to_db(self):  # aka test_concept_set_version_item_enclave_to_db()
+        """Test concept_expression_enclave_to_db()"""
+        with get_db_connection(schema='test_n3c') as con:
+            # Failure case: exists in test DB
+            item_id_fail = 'c129643b-0896-4fe3-9722-1191bb0c75ba'
+            self.assertRaises(IntegrityError, concept_expression_enclave_to_db, con, item_id_fail)
+
+            # Success case:  doesn't exist in test DB
+            item_id_succeed = '479356-3023361'
+            n1: int = sql_count(con, 'concept_set_version_item')
+            concept_expression_enclave_to_db(con, item_id_succeed)
+            n2: int = sql_count(con, 'concept_set_version_item')
+            self.assertGreater(n2, n1)
+            # Teardown
+            run_sql(con, f"DELETE FROM concept_set_version_item WHERE item_id = '{item_id_succeed}';")
+
+    def test_concept_enclave_to_db(self):
+        """Test concept_expression_enclave_to_db()"""
+        with get_db_connection(schema='test_n3c') as con:
+            # Failure case: exists in test DB
+            concept_id_fail = 3018737
+            self.assertRaises(IntegrityError, concept_enclave_to_db, con, concept_id_fail)
+
+            # Success case: doesn't exist in test DB
+            concept_id_succeed = 9472
+            n1: int = sql_count(con, 'concept')
+            concept_enclave_to_db(con, concept_id_succeed)
+            n2: int = sql_count(con, 'concept')
+            self.assertGreater(n2, n1)
+            # Teardown
+            run_sql(con, f"DELETE FROM concept WHERE concept_id = '{concept_id_succeed}';")
+
+    def test_concept_members_enclave_to_db(self):
+        """Test concept_set_members_enclave_to_db()"""
+        with get_db_connection(schema='test_n3c') as con:
+            # Failure case: exists in test DB
+            cset_members_fail = {
+                'codeset_id': 479356,
+                'concept_id': 3018737
+            }
+            self.assertRaises(IntegrityError, concept_set_members_enclave_to_db, con, cset_members_fail['codeset_id'],
+                              cset_members_fail['concept_id'])
+
+            # Success case:  doesn't exist in test DB
+            cset_members_succeed = {
+                'codeset_id': 573795,
+                'concept_id': 22557
+            }
+            n1: int = sql_count(con, 'concept_set_members')
+            concept_set_members_enclave_to_db(
+                con, cset_members_succeed['codeset_id'], cset_members_succeed['concept_id'], members_table_only=True)
+            n2: int = sql_count(con, 'concept_set_members')
+            self.assertGreater(n2, n1)
+            # Teardown
+            run_sql(con, f"DELETE FROM concept_set_members WHERE codeset_id = '{cset_members_succeed['codeset_id']}' "
+                         f"AND concept_id = '{cset_members_succeed['concept_id']}';")
 
 
 if __name__ == '__main__':

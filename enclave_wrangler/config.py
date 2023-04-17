@@ -57,7 +57,10 @@ if missing_env_vars:
         f'{cause_msg}')
 
 FAVORITE_OBJECTS = [
-    'researcher'
+    'researcher',
+    # 'research-project',
+
+    # todo: 2023/03/20 Joe: Do we need this error message here? Are we looking to fetch CodeSystemConceptSetVersionExpressionItem?
     # 'CodeSystemConceptSetVersionExpressionItem',
     # {'errorCode': 'INVALID_ARGUMENT', 'errorName': 'ObjectsExceededLimit', 'errorInstanceId':
     # '693c5f19-df1f-487e-afb9-ea6c6adb8996', 'parameters': {}}
@@ -103,7 +106,8 @@ FAVORITE_DATASETS = OrderedDict({
         'name': 'concept',
         'rid': 'ri.foundry.main.dataset.5cb3c4a3-327a-47bf-a8bf-daf0cafe6772',
         'sort_idx': ['concept_id'],
-        'dataset_groups': ['vocab']
+        'dataset_groups': ['vocab'],
+        'index_on': ['concept_id', 'concept_code']  # TODO: not currently used, but could do this instead of ddl.sql
     },
     'concept_ancestor': {  # transform depends on: concept_set_members transform
         'name': 'concept_ancestor',
