@@ -34,7 +34,7 @@ import {
 // import { ReactQueryDevtools } from '@tanstack/react-query-devtools'
 // import { createSyncStoragePersister } from '@tanstack/query-sync-storage-persister'
 
-import useMeasure from "react-use/lib/useMeasure";
+import useMeasure from "react-use/lib";
 import Paper from "@mui/material/Paper";
 
 import { ConceptSetsPage } from "./components/Csets";
