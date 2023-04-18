@@ -190,7 +190,7 @@ def upload_new_cset_version_with_concepts(
     concept_set_name: str, parent_version_codeset_id: int, current_max_version: float, omop_concepts: List[Dict],
     provenance: str = "", limitations: str = "", intention: str = "", annotation: str = "",
     intended_research_project: str = None, on_behalf_of: str = None, codeset_id: int = None,
-    validate_first=VALIDATE_FIRST, finalize=True # maybe finalize should default to False?
+    validate_first=VALIDATE_FIRST, finalize=True  # maybe finalize should default to False?
 ) -> Dict:
     """Upload a concept set version along with its concepts.
 
@@ -316,8 +316,9 @@ def upload_new_container_with_concepts(
     # Upload versions, if any
     response_upload_new_cset_version_with_concepts = []
     for version in versions_with_concepts:
+        # TODO: Is this call correct? Do all the flags get set correctly by **version?
         response_versions_i: Dict[str, Union[Response, List[Response]]] = \
-            upload_new_cset_version_with_concepts(version, validate_first=validate_first)
+            upload_new_cset_version_with_concepts(**version, validate_first=validate_first)
         response_upload_new_cset_version_with_concepts.append(response_versions_i)
 
     return {
