@@ -20,8 +20,10 @@ Immediately upload the backup schema to the database.
 psql -d \$psql_conn < $fname.dmp
 
 Step 3: Quality control checks
-3.1. Make sure that the dump file is around 7.6G and that it appears in the database.
-3.2. Run: `make counts-compare-schemas`. If there is a difference in row counts between 'n3c' and the new backup, this will require further analysis to determine why.
+3.1. Run: `make counts-update COMMENT`
+This helps us keep track of changes in row counts at critical moments. Example: `make counts-update Just performed a backup of n3c and uploaded new backup schema.`
+3.2. Run: `make counts-compare-schemas`
+If there is a difference in row counts between 'n3c' and the new backup, this will require further analysis to determine why.
 
 END
 

@@ -175,7 +175,7 @@ def add_mappings(csv_str: str):
     FMAPS.extend(maps)
 
 
-OBJ_PKEYS = {
+PKEYS = {
     'concept': 'concept_id',
     'atlasjson': 'CONCEPT_ID',
     'OMOPConcept': 'conceptId',
@@ -185,8 +185,9 @@ OBJ_PKEYS = {
     'OMOPConceptSetContainer': 'conceptSetId',
     'concept_set_container': 'concept_set_id',
 }
-def obj_pkey(obj):
-    return OBJ_PKEYS[obj]
+def pkey(obj):
+    """Get primary key for given object or  table."""
+    return PKEYS.get(obj, None)
 
 # OMOPConcept (concept): dataset <-> atlasjson
 add_mappings(

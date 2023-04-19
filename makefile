@@ -2,28 +2,41 @@ SRC=backend/
 
 .PHONY: lint tags ltags test all lintall codestyle docstyle lintsrc \
 linttest doctest doc docs code linters_all codesrc codetest docsrc \
-doctest
+doctest counts-compare-schemas counts-table deltas-table
 
 # Analysis
 ANALYSIS_SCRIPT = 'backend/db/analysis.py'
 
+# Checks counts of database tables for the current 'n3c' schema and its most recent backup.
 counts-compare-schemas:
 	@python3 $(ANALYSIS_SCRIPT) --counts-compare-schemas
 
+# View counts row counts over time for the 'n3c' schema.
 counts-table:
-	@python3 $(ANALYSIS_SCRIPT) --counts-over-time print_counts_table
+	@python3 $(ANALYSIS_SCRIPT) --counts-over-time
 
+# View row count detlas over time for the 'n3c' schema.
 deltas-table:
-	@python3 $(ANALYSIS_SCRIPT) --counts-over-time print_delta_table
+	@python3 $(ANALYSIS_SCRIPT) --deltas-over-time
 
-deltas-viz:
-	@python3 $(ANALYSIS_SCRIPT) --counts-over-time save_delta_viz
-
+# todo
+#deltas-viz:
+#	@python3 $(ANALYSIS_SCRIPT) --counts-over-time save_delta_viz
 #counts-viz:
 #	@python3 $(ANALYSIS_SCRIPT) --counts-over-time save_counts_viz
 
+# counts-update
+ifeq (counts-update,$(firstword $(MAKECMDGOALS)))
+  # use the rest as arguments for "counts-updates"
+  COUNTS_UPDATE_ARGS := $(wordlist 2,$(words $(MAKECMDGOALS)),$(MAKECMDGOALS))
+  # ...and turn them into do-nothing targets
+  $(eval $(COUNTS_UPDATE_ARGS):;@:)
+endif
 counts-update:
-	@python3 $(ANALYSIS_SCRIPT) --counts-updte
+	@python3 $(ANALYSIS_SCRIPT) --counts-update --note "$(COUNTS_UPDATE_ARGS)"
+
+counts-help:
+	@python3 $(ANALYSIS_SCRIPT) --help
 
 # Codestyle, linters, and testing
 # - Code & Style Linters
