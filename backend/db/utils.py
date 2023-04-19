@@ -1,8 +1,6 @@
 """Utils for database usage"""
 import json
 import os
-from pprint import pprint
-
 import dateutil.parser as dp
 from datetime import datetime, timezone
 
@@ -25,45 +23,12 @@ DB = CONFIG["db"]
 SCHEMA = CONFIG["schema"]
 
 
-# TODO: automatically determine latest backup name rather than param
-# TODO: format this to return something better. Right now looks like:
-#  [('code_sets', 'test2_n3c', 1), ('code_sets', 'test_n3c', 1), ('concept_set_container', 'test2_n3c', 1), ('concept_set_container', 'test_n3c', 1), ('concept_set_members', 'test2_n3c', 1), ('concept_set_members', 'test_n3c', 1), ('concept_set_version_item', 'test2_n3c', 1), ('concept_set_version_item', 'test_n3c', 1)]
-# todo: pass params (not working right now for some reason) to run_sql() instead of string interpolating, e.g.: WHERE schemaname in (:schema_names)...
-def qc_check_db_counts(
-    compare_schema: str, schema: str = SCHEMA, local=False, fast_approx_method=False, verbose=True
-) -> List[tuple]:
-    """Checks counts of database tables for the current schema and its most recent backup.
-
-    :param compare_schema: The schema to check against. e.g. n3c_backup_20230322
-    """
-    # TODO: get this from the db instead of hardcoding
-    query = f"""
-    WITH tbl AS  (SELECT table_schema, TABLE_NAME
-    FROM information_schema.tables
-    WHERE TABLE_NAME not like 'pg_%' AND table_schema in ('{schema}', '{compare_schema}'))SELECT table_schema, TABLE_NAME, (xpath('/row/c/text()', query_to_xml(format('select count(*) as c from %I.%I', table_schema, TABLE_NAME), FALSE, TRUE, '')))[1]::text::int AS rows_n
-    FROM tbl
-    ORDER BY rows_n DESC
-    """
-    if fast_approx_method:
-        query = f"""
-        SELECT relname,schemaname,n_live_tup
-        FROM pg_stat_user_tables
-        WHERE schemaname in ('{schema}', '{compare_schema}')ORDER BY 1, 2, 3;"""
-
-    with get_db_connection(schema=schema, local=local) as con:
-        result = run_sql(con, query)
-        result = [x for x in result]
-
-    if verbose:
-        pprint(result)
-    return result
-
-
 def get_db_connection(isolation_level='AUTOCOMMIT', schema: str = SCHEMA, local=False):
     """Connect to db
     :param local: If True, connection is on local instead of production database."""
     engine = create_engine(get_pg_connect_url(local), isolation_level=isolation_level)
 
+    # noinspection PyUnusedLocal
     @event.listens_for(engine, "connect", insert=True)
     def set_search_path(dbapi_connection, connection_record):
         """This does "set search_path to n3c;" when you connect.
@@ -222,7 +187,6 @@ def show_tables(con=get_db_connection(), print_dump=True):
     """
     res = sql_query(con, query)
     if print_dump:
-        import pandas as pd
         print(pd.DataFrame(res))
         # print('\n'.join([', '.join(r) for r in res])) ugly
         # print(pdump(res)) doesn't work
@@ -246,6 +210,7 @@ def load_csv(
         r = con.execute(f'select count(*) from {schema}.{table}')
         existing_rows = r.one()[0]
     except Exception as err:
+        # noinspection PyUnresolvedReferences
         if isinstance(err.orig, UndefinedTable):
             print(f'INFO: {schema}.{table} does not not exist; will create it')
         else:
@@ -287,6 +252,11 @@ def load_csv(
         update_db_status_var(f'last_updated_{table}', str(current_datetime()))
 
 
-if __name__ == '__main__':
-    qc_check_db_counts('n3c_backup_20230414', fast_approx_method=False)
-
+def list_tables(con: Connection, schema: str = SCHEMA) -> List[str]:
+    """List tables"""
+    query = f"""
+        SELECT relname
+        FROM pg_stat_user_tables
+        WHERE schemaname in ('{schema}') ORDER BY 1;"""
+    result = run_sql(con, query)
+    return [x[0] for x in result]

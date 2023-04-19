@@ -1,11 +1,31 @@
-SRC=termhub/
+SRC=backend/
 
 .PHONY: lint tags ltags test all lintall codestyle docstyle lintsrc \
 linttest doctest doc docs code linters_all codesrc codetest docsrc \
-doctest build dist pypi-push-test pypi-push pypi-test pip-test pypi \
-pip remove-previous-build upgrade upgrade-dependencies
+doctest
 
-# Batched Commands
+# Analysis
+ANALYSIS_SCRIPT = 'backend/db/analysis.py'
+
+counts-compare-schemas:
+	@python3 $(ANALYSIS_SCRIPT) --counts-compare-schemas
+
+counts-table:
+	@python3 $(ANALYSIS_SCRIPT) --counts-over-time print_counts_table
+
+deltas-table:
+	@python3 $(ANALYSIS_SCRIPT) --counts-over-time print_delta_table
+
+deltas-viz:
+	@python3 $(ANALYSIS_SCRIPT) --counts-over-time save_delta_viz
+
+#counts-viz:
+#	@python3 $(ANALYSIS_SCRIPT) --counts-over-time save_counts_viz
+
+counts-update:
+	@python3 $(ANALYSIS_SCRIPT) --counts-updte
+
+# Codestyle, linters, and testing
 # - Code & Style Linters
 all: linters_all testall
 lint: lintsrc codesrc docsrc
@@ -51,34 +71,6 @@ test:
 testdoc:
 	python3 -m test.test --doctests-only
 testall: test testdoc
-
-# Dependency management
-upgrade: upgrade-dependencies
-# todo: make sure 1 or both of these work
-upgrade-dependencies:
-	python3 -m pip install --no-cache-dir --upgrade -r requirements-unlocked.txt; \
-	pip freeze > requirements.txt
-upgrade-dependencies-specifically:
-	python3 -m pip install --upgrade \
-	https://github.com/jhu-bids/valueset-tools/zipball/master
-
-# Package management
-remove-previous-build:
-	rm -rf ./dist; 
-	rm -rf ./build; 
-	rm -rf ./*.egg-info
-build: remove-previous-build
-	python3 setup.py sdist bdist_wheel
-dist: build
-pypi-push-test: build
-	twine upload --repository-url https://test.pypi.org/legacy/ dist/*
-pypi-push:
-	twine upload --repository-url https://upload.pypi.org/legacy/ dist/*; \
-	make remove-previous-build
-pypi-test: pypi-push-test
-pip-test: pypi-push-test
-pypi: pypi-push
-pip: pypi-push
 
 # Serve
 # nvm allows to switch to a particular versio of npm/node. Useful for working w/ deployment
