@@ -192,7 +192,7 @@ def upload_new_cset_version_with_concepts(
     provenance: str = "", limitations: str = "", intention: str = "", annotation: str = "",
     parent_version_codeset_id: int = None, current_max_version: float = None,
     intended_research_project: str = None, on_behalf_of: str = None, codeset_id: int = None,
-    validate_first=VALIDATE_FIRST, finalize=True # maybe finalize should default to False?
+    validate_first=VALIDATE_FIRST, finalize=True  # maybe finalize should default to False?
 ) -> Dict:
     """Upload a concept set version along with its concepts.
 
