@@ -1,11 +1,11 @@
-## **Enclave Wrangler**
+## Enclave Wrangler
 This [documentation can be found here](https://github.com/jhu-bids/TermHub/tree/develop/enclave_wrangler)
 
-## **Creating/Updating Concept Sets via CSV Upload**
+## Creating/Updating Concept Sets via CSV Upload
 Example: [Sample CSV](https://github.com/jhu-bids/TermHub/blob/develop/test/input/test_enclave_wrangler/test_dataset_upload/type-2-diabetes-mellitus.csv).
 
-### **CSV Schema**
-At a minimum, all of these columns not marked 'False' in the description are necessary. Additional columns are allowable, but they will be ignored.
+### CSV Schema
+Non-required columns can can be included in the CSV, but will be ignored during processing.
 
 [//]: # (TODO's: i. 'example' column?, ii. 'nullable' column?)
 [//]: # (TODO: Finish docs for isExcluded and includeMapped)
@@ -33,7 +33,7 @@ At a minimum, all of these columns not marked 'False' in the description are nec
 
 
 
-## **Container-only fields** 
+## Container-only fields
 ### *Fields that only matter if you are making a new concept set container.*
 | CSV Column name | Data Type | Required | Description |
 | --- | --- | --- | --- |
@@ -42,7 +42,7 @@ At a minimum, all of these columns not marked 'False' in the description are nec
 | container_assigned_sme | String | True | The concept set's assigned subject matter expert. |
 | container_assigned_informatician | String | True | The concept set's assigned informatician. |
 
- ## **Not using**
+ ## Not using
  | CSV Column name | Data Type | Required | Description |
 | --- | --- | --- | --- |
 | domain | String | False | An ignored field. Feel free to include if it helps for readability / data management. |
