@@ -175,6 +175,19 @@ def add_mappings(csv_str: str):
     FMAPS.extend(maps)
 
 
+OBJ_PKEYS = {
+    'concept': 'concept_id',
+    'atlasjson': 'CONCEPT_ID',
+    'OMOPConcept': 'conceptId',
+    # version items, could be itemId or, preferably, codesetId + conceptId, but not sure how to handle that
+    'OMOPConceptSet': 'codesetId',
+    'code_sets': 'codeset_id',
+    'OMOPConceptSetContainer': 'conceptSetId',
+    'concept_set_container': 'concept_set_id',
+}
+def obj_pkey(obj):
+    return OBJ_PKEYS[obj]
+
 # OMOPConcept (concept): dataset <-> atlasjson
 add_mappings(
     """concept,          atlasjson
@@ -196,9 +209,9 @@ add_mappings(
 #   b.a,           invalid_reason
 add_mappings(
     """OMOPConcept, concept
+    conceptId,         concept_id
     conceptClassId,    concept_class_id
     conceptCode,       concept_code
-    conceptId,         concept_id
     conceptName,       concept_name
     domainId,          domain_id
     validEndDate,      valid_end_date
@@ -244,9 +257,9 @@ add_mappings(
 #   n/a,                  n3c_reviewer
 add_mappings(
     """OMOPConceptSetContainer, concept_set_container
+    conceptSetId,     concept_set_id
     alias,            alias
     archived,         archived
-    conceptSetId,     concept_set_id
     conceptSetName,   concept_set_name
     createdAt,        created_at
     createdBy,        created_by

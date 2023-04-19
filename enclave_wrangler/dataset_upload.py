@@ -24,6 +24,7 @@ try:
     upload_concept_set_container, \
     upload_concept_set_version_draft, get_concept_set_version_expression_items
     from enclave_wrangler.utils import EnclaveWranglerErr, _datetime_palantir_format, log_debug_info, make_actions_request, get_random_codeset_id
+    from enclave_wrangler.objects_api import fetch_object_by_id, get_object_links
 except ModuleNotFoundError:
     from config import CSET_UPLOAD_REGISTRY_PATH, ENCLAVE_PROJECT_NAME, MOFFIT_PREFIX, \
     MOFFIT_SOURCE_ID_TYPE, MOFFIT_SOURCE_URL, PALANTIR_ENCLAVE_USER_ID_1, UPLOADS_DIR, config, PROJECT_ROOT, \
@@ -187,8 +188,9 @@ def upload_new_cset_container_with_concepts_from_csv(
 #  (iii) persist new ID / set to registry, (iv) persist new ID to any files passed through CLI, (v), return the new ID
 # todo: @Siggie: Do we want to change this to accept named params instead of a dictionary? - Joe 2022/12/05
 def upload_new_cset_version_with_concepts(
-    concept_set_name: str, parent_version_codeset_id: int, current_max_version: float, omop_concepts: List[Dict],
+    concept_set_name: str, omop_concepts: List[Dict],
     provenance: str = "", limitations: str = "", intention: str = "", annotation: str = "",
+    parent_version_codeset_id: int = None, current_max_version: float = None,
     intended_research_project: str = None, on_behalf_of: str = None, codeset_id: int = None,
     validate_first=VALIDATE_FIRST, finalize=True # maybe finalize should default to False?
 ) -> Dict:
@@ -279,9 +281,10 @@ def upload_new_cset_version_with_concepts(
 
 # TODO: support concept params, e.g. exclude_children
 def upload_new_container_with_concepts(
-    concept_set_name: str, intention: str, versions_with_concepts: List[Dict],
+    on_behalf_of: str, concept_set_name: str, intention: str, versions_with_concepts: List[Dict],
     research_project: str = ENCLAVE_PROJECT_NAME, assigned_sme: str = PALANTIR_ENCLAVE_USER_ID_1,
-    assigned_informatician: str = PALANTIR_ENCLAVE_USER_ID_1, validate_first=VALIDATE_FIRST
+    assigned_informatician: str = PALANTIR_ENCLAVE_USER_ID_1, validate_first=VALIDATE_FIRST,
+    fail_if_exists = True,
 ) -> Dict[str, Union[Response, List[Response]]]:
     """Upload a new concept set container, and 1+ concept set versions, along with their concepts.
 
@@ -292,6 +295,8 @@ def upload_new_container_with_concepts(
         assigned_sme (str) (optional): Default:`PALANTIR_ENCLAVE_USER_ID_1`
         assigned_informatician (str) (optional): Default:`PALANTIR_ENCLAVE_USER_ID_1`
     :param versions_with_concepts (List[Dict]): Has the following schema: [
+        TODO: @jflack, this doesn't seem to be what upload_new_cset_version_with_concepts
+              is really expecting. I'm changing omop_concept_ids to omop_concepts in upload_and_sync_rxnorm_cset
       {
           'omop_concept_ids': (List[int]) (required),
           'provenance' (str) (required):
@@ -305,24 +310,45 @@ def upload_new_container_with_concepts(
     ]
     """
     # Upload container
-    response_upload_concept_set_container: Response = upload_concept_set_container(
-        concept_set_id=concept_set_name,
-        intention=intention,
-        research_project=research_project,
-        assigned_sme=assigned_sme,
-        assigned_informatician=assigned_informatician,
-        validate_first=validate_first)
+
+    existing_container = fetch_object_by_id('OMOPConceptSetContainer', concept_set_name)
+    if existing_container:
+        if fail_if_exists:
+            raise RuntimeError(f'Error attempting to upload container. Container [{concept_set_name}] already exists.')
+        else:
+            response_upload_concept_set_container = existing_container
+    else:
+        response_upload_concept_set_container: Response = upload_concept_set_container(
+            on_behalf_of=on_behalf_of,
+            concept_set_id=concept_set_name,
+            intention=intention,
+            research_project=research_project,
+            assigned_sme=assigned_sme,
+            assigned_informatician=assigned_informatician,
+            validate_first=validate_first)
 
     # Upload versions, if any
+    if len(versions_with_concepts) > 1:
+        raise ValueError("why are you creating more than one version of the same concept set at once?")
+
+    versions = get_object_links('OMOPConceptSetContainer', concept_set_name, 'OMOPConceptSet')
     response_upload_new_cset_version_with_concepts = []
-    for version in versions_with_concepts:
-        response_versions_i: Dict[str, Union[Response, List[Response]]] = \
-            upload_new_cset_version_with_concepts(version, validate_first=validate_first)
-        response_upload_new_cset_version_with_concepts.append(response_versions_i)
+    err = f'Error attempting to upload version for "new" concept set that already exists [{concept_set_name}]. Version also already exists.'
+    if versions:
+        if fail_if_exists:
+            raise RuntimeError(err)
+        else:
+            response_upload_new_cset_version_with_concepts = versions
+    else:
+        for version in versions_with_concepts:
+            # TODO: check if version already exists, but this
+            response_versions_i: Dict[str, Union[Response, List[Response]]] = \
+                upload_new_cset_version_with_concepts(**version, validate_first=validate_first)
+            response_upload_new_cset_version_with_concepts.append(response_versions_i)
 
     return {
         'upload_concept_set_container': response_upload_concept_set_container,
-        'upload_new_cset_version_with_concepts': response_upload_new_cset_version_with_concepts}
+        'upload_new_cset_version_with_concepts': response_upload_new_cset_version_with_concepts[-1]}
 
 
 

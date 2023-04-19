@@ -6,6 +6,7 @@ import sys
 from typing import Dict, List, Union
 from random import randint
 from time import sleep
+import urllib.parse
 
 import pandas as pd
 import requests
@@ -248,9 +249,14 @@ def get_url_from_api_path(path):
     return url
 
 
-def get_query_param(field_name: str, filter_name: str, filter_value: str) -> str:
-    """Convert query param parts to a single query param key val pair with operator"""
-    return f'properties.{field_name}.{filter_name}={filter_value}'
+# can't use query_params from here in curl commands if there are
+#   spaces or other weird characters in the params, switching to having
+#   query_params be a dict of keys and values, which can be processed
+#   by urllib
+# def get_query_param(field_name: str, filter_name: str, filter_value: str, as_dict: False) -> str:
+#     """Convert query param parts to a single query param key val pair with operator"""
+#     if as_dict:
+#     return f'properties.{field_name}.{filter_name}={filter_value}'
 
 
 # todo's from b4 refactor combining make_objects_request() and get_objects_by_type() 2023/03/15
@@ -262,7 +268,8 @@ def get_query_param(field_name: str, filter_name: str, filter_value: str) -> str
 def make_objects_request(
     path: str, verbose=False, url_only=False, return_type: str = ['Response', 'json', 'data'][0],
     handle_paginated=False, expect_single_item=False, retry_if_empty=False, retry_times=15, retry_pause=1,
-    outdir: str = None, query_params: List[str] = None, error_report: bool = True, fail_on_error=False, **request_args
+    outdir: str = None, query_params: Dict = None, error_report: bool = True, fail_on_error=True, **request_args
+        # why isn't fail_on_error implemented?
 ) -> Union[Response, JSON_TYPE, str]:
     """Fetch objects from enclave
 
@@ -273,36 +280,48 @@ def make_objects_request(
       https://www.palantir.com/docs/foundry/api/ontology-resources/objects/list-objects/
       https://www.palantir.com/docs/foundry/api/ontology-resources/object-types/list-object-types/
     """
-    # Validation
-    if handle_paginated and return_type != 'data':
-        raise EnclaveWranglerErr("if handling paginated, data is the only allowable return_type")
+    try:
+        # Validation
+        if handle_paginated and return_type != 'data':
+            raise EnclaveWranglerErr("if handling paginated, data is the only allowable return_type")
 
-    # Conditional params
-    retry_times, retry_pause = (1, 0) if not retry_if_empty else (retry_times, retry_pause)
+        # Conditional params
+        retry_times, retry_pause = (1, 0) if not retry_if_empty else (retry_times, retry_pause)
 
-    # Construct URL
-    url = get_url_from_api_path(f'objects/{path}')
-    url = url + '?' + '&'.join(query_params) if query_params else url
+        # Construct URL
+        url = get_url_from_api_path(f'objects/{path}')
+        if query_params:
+            # was: url = url + '?' + '&'.join(query_params) if query_params else url
+            # urllib.parse.quote turns spaces into + instead of %20, i got this
+            #   fix from https://stackoverflow.com/a/44829021
+            url = url + '?' + urllib.parse.urlencode(
+                query_params, quote_via=urllib.parse.quote)
 
-    if url_only:
-        return url
+        if url_only:
+            return url
 
-    # Fetch data
-    for i in range(retry_times):
-        if retry_if_empty:
-            print(f'make_objects_request, attempt #{i}')
-        if handle_paginated:
-            data: List[Dict] = handle_paginated_request(url, verbose=verbose, error_dir=outdir, **request_args)
-            if data:
-                return data
+        # Fetch data
+        for i in range(retry_times):
+            if retry_if_empty:
+                print(f'make_objects_request, attempt #{i}')
+            if handle_paginated:
+                data: List[Dict] = handle_paginated_request(url, verbose=verbose, error_dir=outdir, **request_args)
+                if data:
+                    return data
+            else:
+                response: Response = enclave_get(url, verbose=verbose, error_dir=outdir, **request_args)
+                response_json: JSON_TYPE = response.json()
+                # single items don't have 'data', just 'properties' at the top
+                data: List[Dict] = response_json['properties'] if expect_single_item else response_json['data']
+                if data:
+                    break
+            sleep(retry_pause)
+    except Exception as err:
+        if fail_on_error:
+            raise err
         else:
-            response: Response = enclave_get(url, verbose=verbose, error_dir=outdir, **request_args)
-            response_json: JSON_TYPE = response.json()
-            # single items don't have 'data', just 'properties' at the top
-            data: List[Dict] = response_json['properties'] if expect_single_item else response_json['data']
-            if data:
-                break
-        sleep(retry_pause)
+            print(err)
+            return
 
     # Return
     if return_type == 'Response':

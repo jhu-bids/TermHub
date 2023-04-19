@@ -414,7 +414,7 @@ def upload_concept_set_version_draft(
     if on_behalf_of:
         d['parameters']['on-behalf-of'] = on_behalf_of
     else:
-        raise "expecting 'on-behalf-of'"
+        raise "expecting 'on_behalf_of'"
 
     response: Response = make_actions_request(api_name, d, validate_first)
     if 'errorCode' in response:
@@ -479,8 +479,8 @@ def finalize_concept_set_version(
 
 # concept_set_container
 def upload_concept_set_container(
-    concept_set_id: str, intention: str, research_project: ENCLAVE_PROJECT_NAME, assigned_sme: str = None,
-    assigned_informatician: str = None, validate_first=VALIDATE_FIRST
+    on_behalf_of: str, concept_set_id: str, intention: str, research_project: ENCLAVE_PROJECT_NAME,
+    assigned_sme: str = None, assigned_informatician: str = None, validate_first=VALIDATE_FIRST,
 )-> Response:
     """Create a new concept set
     Non-required params set to `None`.
@@ -507,6 +507,7 @@ def upload_concept_set_container(
         # "rid": "ri.actions.main.action-type.ef6f89de-d5e3-450c-91ea-17132c8636ae",
         "parameters": {
             # - Required params
+            "on-behalf-of": on_behalf_of,
             "concept_set_id": concept_set_id,
             # "concept_set_id": {
             #     "description": "",
@@ -549,7 +550,10 @@ def upload_concept_set_container(
     if assigned_informatician:
         d['parameters']['assigned_informatician'] = assigned_informatician
 
+    # try:
     response: Response = make_actions_request(api_name, d, validate_first)
+    # except Exception as e:
+    #     print(e)
     if 'errorCode' in response:
         print(response, file=sys.stderr)
         print('If above error message does not say what is wrong, it is probably the case that the `concept_set_id` '

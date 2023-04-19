@@ -27,12 +27,12 @@ from typeguard import typechecked
 # import asyncio
 
 from enclave_wrangler.config import FAVORITE_OBJECTS, OUTDIR_OBJECTS, OUTDIR_CSET_JSON, config, TERMHUB_CSETS_DIR
-from enclave_wrangler.utils import enclave_get, enclave_post, get_objects_df, get_query_param, get_url_from_api_path, \
+from enclave_wrangler.utils import enclave_get, enclave_post, get_objects_df, get_url_from_api_path, \
     make_objects_request, \
     handle_paginated_request, handle_response_error
-from enclave_wrangler.models import convert_row, get_field_names, field_name_mapping
+from enclave_wrangler.models import convert_row, get_field_names, field_name_mapping, obj_pkey
 # from enclave_wrangler.utils import log_debug_info
-from backend.db.utils import insert_from_dict, sql_query_single_col, run_sql, get_db_connection
+from backend.db.utils import insert_from_dict, sql_query_single_col, run_sql, get_db_connection, get_obj_by_id
 from backend.db.queries import get_concepts
 # from backend.utils import pdump
 
@@ -159,13 +159,13 @@ def get_link_types(use_cache_if_failure=False) -> List[Union[Dict, str]]:
         raise err
 
 
-def get_object_links(object_type: str, object_id: str, link_type: str) -> Response:
+def get_object_links(object_type: str, object_id: str, link_type: str, fail_on_error = False) -> Response:
     """Get links of a given type for a given object
 
     Cavaets
     - If the `link_type` is not valid for a given `object_type`, you'll get a 404 not found.
     """
-    return make_objects_request(f'objects/{object_type}/{object_id}/links/{link_type}')
+    return make_objects_request(f'{object_type}/{object_id}/links/{link_type}', return_type='data', fail_on_error=fail_on_error)
 
 
 # TODO: Why does this not work for Joe, but works for Siggie?:
@@ -318,13 +318,15 @@ def get_new_cset_and_member_objects(since: Union[datetime, str], return_type=['f
 
     # Concept set versions
     cset_versions: List[Dict] = make_objects_request(
-        'OMOPConceptSet', query_params=[get_query_param('createdAt', 'gt', since)])
+        'OMOPConceptSet', query_params={'properties.createdAt.gt': since})
 
     # Containers
     containers_ids = [x['properties']['conceptSetNameOMOP'] for x in cset_versions]
-    container_params = [get_query_param('conceptSetId', 'eq', x) for x in containers_ids]
+    # container_params = [get_query_param('conceptSetId', 'eq', x) for x in containers_ids]
+    # changed query_params to accept dict instead of list of already composed
+    #   key=val strings. haven't tested that it works. TODO: @jflack4: can you confirm?
     cset_containers: List[Dict] = make_objects_request(
-        'OMOPConceptSetContainer', query_params=container_params, verbose=True)
+        'OMOPConceptSetContainer', query_params={'properties.conceptSetId.eq': containers_ids}, verbose=True)
 
     # Expression items & concept set members
     cset_versions_with_concepts: List[Dict] = []
@@ -354,8 +356,11 @@ def fetch_object_by_id(object_type_name: str, object_id: Union[int, str], id_fie
     id_field = id_field if id_field else OBJECT_TYPE_PK_MAP.get(object_type_name, None)
     if not id_field:
         raise RuntimeError(err)
-    query_params = [get_query_param(id_field, 'eq', str(object_id))]
-    matches: List[Dict] = make_objects_request(object_type_name, query_params=query_params, return_type='data')
+    # query_params = [get_query_param(id_field, 'eq', str(object_id))]
+    matches: List[Dict] = make_objects_request(
+        object_type_name,
+        query_params={f'properties.{id_field}.eq': str(object_id)},
+        return_type='data', verbose=True)
     obj: Dict = matches[0]['properties']
     return obj
 
@@ -387,6 +392,10 @@ def fetch_cset_expression_item(object_id: int) -> Dict:
 
 def fetch_object_and_add_to_db(con: Connection, table: str, object_type_name: str, object_id: Union[int, str]) -> Dict:
     """Fetch object and add to db"""
+    already_in_db = get_obj_by_id(con, table, obj_pkey(table), object_id)
+    if (already_in_db):
+        print(f'{table}:{object_id} is already in db')
+        return already_in_db
     obj: Dict = fetch_object_by_id(object_type_name, object_id)
     table_obj: Dict = convert_row(object_type_name, table, obj)
     insert_from_dict(con, table, table_obj)
@@ -410,6 +419,7 @@ def cset_version_enclave_to_db(con: Connection, object_id: int) -> Dict:
 
 # todo: Would this be better just to get the container and sync any non-uploaded versions to the DB?
 # TODO: @Siggie will continue this to populate additional derived tables that need to be populated
+#       is it actually adding the version items?
 def cset_container_and_version_enclave_to_db(con: Connection, container_name: str, version_id: int):
     """pass"""
     concept_set_container_enclave_to_db(con, container_name)

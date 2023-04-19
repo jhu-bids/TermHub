@@ -19,6 +19,7 @@ from typing import Any, Dict, Union, List
 
 from backend.db.config import CONFIG, DATASETS_PATH, OBJECTS_PATH, get_pg_connect_url
 from backend.utils import commify
+from enclave_wrangler.models import obj_pkey
 
 DEBUG = False
 DB = CONFIG["db"]
@@ -161,8 +162,23 @@ def sql_query(
         raise RuntimeError(f'Got an error [{err}] executing the following statement:\n{query}, {json.dumps(params, indent=2)}')
 
 
-def insert_from_dict(con: Connection, table: str, d: Dict):
+def get_obj_by_id(con, table: str, pkey: str, obj_id: Union[str, int]):
+    return sql_query(con, f'SELECT * FROM {table} WHERE {pkey} = (:obj_id)', {'obj_id': obj_id})
+
+def insert_from_dict(con: Connection, table: str, d: Dict, skip_if_already_exists=True):
     """Insert row into dictionary from a dictionary"""
+    # TODO: check whether already exists?
+    #   doing this already in fetch_object_and_add_to_db
+    #   like: already_in_db = get_obj_by_id(con, table, obj_pkey(table), object_id)
+    #   but other functions that call this should probably check or have this function check
+
+    if skip_if_already_exists:
+        pkey = obj_pkey(table)
+        if pkey:
+            already_in_db = get_obj_by_id(con, table, pkey, d[pkey])
+            if already_in_db:
+                return
+
     insert = f"""
     INSERT INTO {table} ({', '.join([f'"{x}"' for x in d.keys()])})
     VALUES ({', '.join([':' + str(k) for k in d.keys()])})"""
