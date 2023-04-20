@@ -1,77 +1,101 @@
 import os
+import sys
+# import logging
 from pathlib import Path
 from typing import Dict, List
-from oaklib import get_adapter
+from oaklib import get_adapter, BasicOntologyInterface
 from oaklib.datamodels.vocabulary import IS_A
 from backend.utils import pdump, get_timer
 from backend.db.utils import sql_query, get_db_connection
+from backend.app import cache
+import oaklib.interfaces.obograph_interface as OIpkg
+from oaklib.datamodels.vocabulary import IS_A, PART_OF
+from fastapi import APIRouter, Query
+
+router = APIRouter(
+  # prefix="/oak",
+  # tags=["cset-crud"],
+  # dependencies=[Depends(get_token_header)],  # from FastAPI example
+  responses={404: {"description": "Not found"}},
+)
 
 PROJECT_DIR = Path(os.path.dirname(__file__)).parent.parent
 VOCABS_PATH = os.path.join(PROJECT_DIR, 'termhub-vocab')
 
-def icdtest():
-  """Test OAK
-  Docs: https://incatools.github.io/ontology-access-kit/"""
-  # oi: @Siggie: 'oak implementation' this is an OAK naming convention but you can rename
-  icd10cm_path = os.path.join(VOCABS_PATH, 'icd10cm.db')
-  oi = get_adapter(icd10cm_path)
-  example_terms = ['ICD10CM:A00-A09']
-  labels_example: List[tuple] = list \
-    (oi.labels(example_terms))  # [('ICD10CM:A00-A09', 'Intestinal infectious diseases (A00-A09)')]
-  # relationships: gets parents, but not children because they're not declared on the class itself
-  relat_example: List[tuple] = list \
-    (oi.relationships(example_terms))  # [('ICD10CM:A00-A09', 'rdfs:subClassOf', 'ICD10CM:A00-B99')]
-  # incoming_relationship_map: gets children
-  kids_example: Dict[str, List] = oi.incoming_relationship_map(example_terms[0])  # {'rdfs:subClassOf: [...]}
-  print()  # set breakpoint here
+# logging.basicConfig(level=logging.INFO)
+# logger = logging.getLogger(__name__)
+# APIRouter.logger = logger
+
+snomed_path = os.path.join(VOCABS_PATH, 'n3c-SNOMED.db')
+OI = get_adapter(snomed_path)
+# OIpkg.logger = logger
 
 
-def oak_test(): # from Chris Mungall
+# @cache
+@router.get("/subgraph/")
+def subgraph(omop_ids: List[str] = Query(...), add_prefix = True):
+  """
+  from https://github.com/INCATools/ontology-access-kit/blob/4f215f71d4f814e1bd910710f68030b2976d845b/src/oaklib/interfaces/obograph_interface.py#L315
+  """
+  seeds = ['N3C:' + id for id in omop_ids]
+  # from oaklib.interfaces.obograph_interface import TraversalConfiguration, Distance
+  # use an adapter to talk to an endpoint (here, sqlite)
+  # adapter = get_adapter("tests/input/go-nucleus.db")
+  # get a subgraph centered around these nodes
+  # seeds = ["GO:0005634", "GO:0005773"]  # nucleus, vacuole
+  # walk up the graph to get ancestors, and also get direct children
+  traversal = OIpkg.TraversalConfiguration(up_distance=OIpkg.Distance.TRANSITIVE, down_distance=OIpkg.Distance.DIRECT)
+  graph = OI.subgraph_from_traversal(seeds, predicates=[IS_A, PART_OF], traversal=traversal)
+  return graph.edges
+  len(graph.nodes)
+  len(graph.edges)
+
+
+def oak_test(term, predicates): # from Chris Mungall
   # oi = get_adapter("/Users/cjm/repos/semantic-sql/local/snomed.db")
-  snomed_path = os.path.join(VOCABS_PATH, 'n3c-SNOMED.db')
-  oi = get_adapter(snomed_path)
 
   timer = get_timer('Oak speed test')
-  curie = list(oi.basic_search("Atrial dilatation"))[1]
-  timer('  basic search for term')
-  print(f'{curie} ! {oi.label(curie)}')
-  timer('  parents')
-  for _s, _p, o in oi.relationships([curie], predicates=[IS_A]):
-    print(f' * OUTGOING: {o} {oi.label(o)}')
-  timer('  children')
-  for s, _p, _o in oi.relationships(objects=[curie], predicates=[IS_A]):
-    print(f' * INCOMING: {o} {oi.label(o)}')
+  timer('basic search for term')
+  curies = get_curie(term, list_ok=True)
+  for curie in curies:
+    timer(f"\n   {curie} predicates={','.join(predicates)}")
+    label = OI.label(curie)
+    timer(f'     {label} parents')
+    for _s, _p, o in OI.relationships([curie], predicates=predicates):
+      print(f' * OUTGOING: {o} {OI.label(o)}')
+    timer(f'     {label} children')
+    for s, _p, _o in OI.relationships(objects=[curie], predicates=predicates):
+      print(f' * INCOMING: {s} {OI.label(s)}')
   timer('done')
 
 
-def snomed_test():
-  snomed_path = os.path.join(VOCABS_PATH, 'n3c-SNOMED.db')
-  oi = get_adapter(snomed_path)
-
-  # ad = list(oi.basic_search('Atrial dilatation'))
-  # pdump(list(oi.labels(list(oi.outgoing_relationship_map(ad[1]).items())[0][1])))
+def snomed_test(term, predicates):
+  # ad = list(OI.basic_search('Atrial dilatation'))
+  # pdump(list(OI.labels(list(OI.outgoing_relationship_map(ad[1]).items())[0][1])))
 
   timer = get_timer('Oak speed test')
   print()
   timer('  basic search for term')
-  print()
-  curie = list(oi.basic_search("Atrial dilatation"))[1]
-  print(f'\n{curie} ! {oi.label(curie)}')
-  # print(f'Definition: {oi.definition(curie)}')
-  timer('  parents')
-  print()
-  for rel, fillers in oi.outgoing_relationship_map(curie).items():
-    print(f'  {rel} ! {oi.label(rel)}')
-    for filler in fillers:
-      print(f'     * {filler} ! {oi.label(filler)}')
-  print()
-  timer('  children')
-  print()
-  for rel, fillers in oi.incoming_relationship_map(curie).items():
-    print(f'  {rel} ! {oi.label(rel)}')
-    for filler in fillers:
-      print(f'     * {filler} ! {oi.label(filler)}')
-  print()
+  curies = get_curie(term, list_ok=True)
+  # print(f'Definition: {OI.definition(curie)}')
+  for curie in curies:
+    timer(f'   {curie} predicates={",".join(predicates)}')
+    label = OI.label(curie)
+    timer(f'     {label} parents')
+    print()
+    for rel, fillers in OI.outgoing_relationship_map(curie, predicates=predicates).items():
+      print(f'  {rel} ! {OI.label(rel)}')
+      for filler in fillers:
+        print(f'        * {filler} ! {OI.label(filler)}')
+    print()
+    timer(f'     {label} children')
+    print()
+    # incoming doesn't accept predicates
+    for rel, fillers in OI.incoming_relationship_map(curie).items():
+      print(f'  {rel} ! {OI.label(rel)}')
+      for filler in fillers:
+        print(f'        * {filler} ! {OI.label(filler)}')
+    print()
   timer('done')
 
   print()
@@ -81,27 +105,27 @@ def snomed_test():
   with get_db_connection() as con:
     timer('done')
     timer = get_timer('Postgres speed test')
-    timer('  parents of 4221281 ! Atrial dilatation subsumes')
+    timer(f'  parents of {term}')
     print()
     q = """
       SELECT *
       FROM concept_relationship_plus
-      WHERE concept_name_2 = 'Atrial dilatation'
+      WHERE concept_name_1 = (:term)
         AND relationship_id = 'Subsumes'
     """
-    results = sql_query(con, q)
+    results = sql_query(con, q, {'term':term})
     for row in results:
       print(f"  * {row['relationship_id']} {row['concept_id_1']} ! {row['concept_name_1']}")
     print()
-    timer('  children of 4221281 ! Atrial dilatation subsumes')
+    timer(f'  children of {term}')
     print()
-    q = """
+    q = f"""
       SELECT *
       FROM concept_relationship_plus
-      WHERE concept_name_1 = 'Atrial dilatation'
+      WHERE concept_name_1 = (:term)
         AND relationship_id = 'Subsumes'
     """
-    results = sql_query(con, q)
+    results = sql_query(con, q, {'term':term})
     for row in results:
       print(f"  * {row['relationship_id']} {row['concept_id_2']} ! {row['concept_name_2']}")
     print()
@@ -109,9 +133,39 @@ def snomed_test():
   timer('done')
 
 
+def show_info(BasicOntologyInterface, term: str):
+  term_id = get_curie(term)
+  # from https://incatools.github.io/ontology-access-kit/intro/tutorial02.html#extending-the-example
+  print(f"ID: {term_id}")
+  print(f"Name: {OI.label(term_id)}")
+  print(f"Definition: {OI.definition(term_id)}")
+  for rel, parent in OI.outgoing_relationships(term_id):
+    print(f'  {rel} ({OI.label(rel)}) {parent} ({OI.label(parent)})')
+
+
+@cache
+def get_curie(label, list_ok=False):
+  curies = list(OI.basic_search(label))
+  if list_ok:
+    return curies
+  return curies[0]
+
+
+
+SEARCH_TERM = 'Renal failure'
+
 if __name__ == '__main__':
-  oak_test()
+  terms = ['Renal failure', 'Cyst of kidney']
+  curies = []
+  for term in terms:
+    curies.extend(get_curie(term, list_ok=True))
+  subgraph(curies)
+  sys.exit()
+  show_info(SEARCH_TERM)
+  sys.exit()
+  snomed_test(term=SEARCH_TERM, predicates=[IS_A])
+  oak_test(term=SEARCH_TERM, predicates=[IS_A])
+  print('\n\n\nDOING IT A SECOND TIME\n\n\n')
+  oak_test(term=SEARCH_TERM, predicates=[IS_A])
   # icdtest()
-  # snomed_test()
-  # print('\n\n\nDOING IT A SECOND TIME\n\n\n')
   # snomed_test()

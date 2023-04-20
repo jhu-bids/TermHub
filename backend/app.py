@@ -19,6 +19,7 @@ from sqlalchemy.engine import LegacyRow, RowMapping
 
 from backend.utils import JSON_TYPE, get_timer, pdump, return_err_with_trace
 from backend.routes import cset_crud
+from backend.oak import oak_stuff
 from backend.db.utils import get_db_connection, sql_query, SCHEMA, sql_query_single_col, sql_in
 from backend.db.queries import get_concepts
 from enclave_wrangler.objects_api import get_n3c_recommended_csets, enclave_api_call_caller, get_codeset_json, \
@@ -33,6 +34,7 @@ PROJECT_DIR = Path(os.path.dirname(__file__)).parent
 # users on the same server
 APP = FastAPI()
 APP.include_router(cset_crud.router)
+APP.include_router(oak_stuff.router)
 APP.add_middleware(
     CORSMiddleware,
     allow_origins=['*'],
