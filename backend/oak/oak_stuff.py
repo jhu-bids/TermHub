@@ -32,7 +32,7 @@ def oak_test(): # from Chris Mungall
   oi = get_adapter(snomed_path)
 
   timer = get_timer('Oak speed test')
-  curie = list(oi.basic_search("Atrial dilatation"))[0]
+  curie = list(oi.basic_search("Atrial dilatation"))[1]
   timer('  basic search for term')
   print(f'{curie} ! {oi.label(curie)}')
   timer('  parents')
