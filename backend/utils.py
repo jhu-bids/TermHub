@@ -12,7 +12,7 @@ from starlette.responses import JSONResponse
 JSON_TYPE = Union[Dict, List]
 
 
-def get_timer(name:str='Timer'):
+def get_timer(name:str='Timer', debug=False):
     steps = []
     def step(msg:str=''):
         done = msg == 'done'
@@ -21,12 +21,15 @@ def get_timer(name:str='Timer'):
         i = None
         if len(steps):
             last_step = steps[-1]
-            i = (t - last_step['t']).seconds
+            i = (t - last_step['t'])
         steps.append({'msg': msg, 't': t, 'i': i})
         if len(steps) > 1:
-            print(f"{last_step['msg']} completed in {steps[-1]['i']} seconds")
+            print(f"{last_step['msg']} completed in {steps[-1]['i']}")
         if done:
-            print(f"{name} completed in {(t - steps[0]['t']).seconds} seconds")
+            print(f"{name} completed in {(t - steps[0]['t'])}")
+        if debug:
+            for step in steps:
+                print(', '.join([str(x) for x in step.values()]))
     return step
 
 def cnt(vals):

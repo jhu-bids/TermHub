@@ -1,0 +1,81 @@
+N3C:4221281 ! Atrial dilatation
+Oak speed test step 1   basic search for term completed in 0:00:01.323899
+
+  rdfs:subClassOf ! None
+     * N3C:3655971 ! Atrial cardiopathy
+     * N3C:4027255 ! Structural disorder of heart
+
+Oak speed test step 2   parents completed in 0:00:02.924989
+
+  rdfs:subClassOf ! None
+     * N3C:4100135 ! Right atrial dilatation
+     * N3C:4101029 ! Left atrial dilatation
+     * N3C:4102851 ! Giant right atrium
+     * N3C:4102855 ! Giant left atrium
+     * N3C:4245347 ! Congenital dilatation of atrium
+     * N3C:4273462 ! Atrial aneurysm
+
+Oak speed test step 3   children completed in 0:00:03.211737
+Oak speed test completed in 0:00:07.460625
+
+
+  * Subsumes 3655971 ! Atrial cardiopathy
+  * Subsumes 4027255 ! Structural disorder of heart
+
+Postgres speed test step 1   parents of 4221281 ! Atrial dilatation subsumes completed in 0:00:00.037935
+
+  * Subsumes 4102851 ! Giant right atrium
+  * Subsumes 4100135 ! Right atrial dilatation
+  * Subsumes 4101029 ! Left atrial dilatation
+  * Subsumes 4273462 ! Atrial aneurysm
+  * Subsumes 4102855 ! Giant left atrium
+  * Subsumes 4245347 ! Congenital dilatation of atrium
+
+
+Postgres speed test step 2   children of 4221281 ! Atrial dilatation subsumes completed in 0:00:00.035383
+Postgres speed test completed in 0:00:00.073318
+
+
+
+DOING IT A SECOND TIME
+
+
+
+
+
+N3C:4221281 ! Atrial dilatation
+
+Oak speed test step 1   basic search for term completed in 0:00:00.471394
+
+  rdfs:subClassOf ! None
+     * N3C:3655971 ! Atrial cardiopathy
+     * N3C:4027255 ! Structural disorder of heart
+
+Oak speed test step 2   parents completed in 0:00:03.096586
+
+  rdfs:subClassOf ! None
+     * N3C:4100135 ! Right atrial dilatation
+     * N3C:4101029 ! Left atrial dilatation
+     * N3C:4102851 ! Giant right atrium
+     * N3C:4102855 ! Giant left atrium
+     * N3C:4245347 ! Congenital dilatation of atrium
+     * N3C:4273462 ! Atrial aneurysm
+
+Oak speed test step 3   children completed in 0:00:02.582342
+Oak speed test completed in 0:00:06.150322
+
+
+  * Subsumes 3655971 ! Atrial cardiopathy
+  * Subsumes 4027255 ! Structural disorder of heart
+
+Postgres speed test step 1   parents of 4221281 ! Atrial dilatation subsumes completed in 0:00:00.025544
+
+  * Subsumes 4102851 ! Giant right atrium
+  * Subsumes 4100135 ! Right atrial dilatation
+  * Subsumes 4101029 ! Left atrial dilatation
+  * Subsumes 4273462 ! Atrial aneurysm
+  * Subsumes 4102855 ! Giant left atrium
+  * Subsumes 4245347 ! Congenital dilatation of atrium
+
+Postgres speed test step 2   children of 4221281 ! Atrial dilatation subsumes completed in 0:00:00.032871
+Postgres speed test completed in 0:00:00.058415

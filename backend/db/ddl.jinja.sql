@@ -246,6 +246,10 @@ CREATE INDEX crp_idx4 ON {{schema}}concept_relationship_plus(concept_code);
 
 CREATE INDEX crp_idx5 ON {{schema}}concept_relationship_plus(relationship_id);
 
+CREATE INDEX crp_idx6 ON {{schema}}concept_relationship_plus(concept_name_1);
+
+CREATE INDEX crp_idx7 ON {{schema}}concept_relationship_plus(concept_name_2);
+
 CREATE TABLE IF NOT EXISTS {{schema}}concept_set_json (
     codeset_id int,
     json json
