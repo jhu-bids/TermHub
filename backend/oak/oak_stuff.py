@@ -2,6 +2,7 @@ import os
 from pathlib import Path
 from typing import Dict, List
 from oaklib import get_adapter
+from oaklib.datamodels.vocabulary import IS_A
 from backend.utils import pdump, get_timer
 from backend.db.utils import sql_query, get_db_connection
 
@@ -25,6 +26,24 @@ def icdtest():
   print()  # set breakpoint here
 
 
+def oak_test(): # from Chris Mungall
+  # oi = get_adapter("/Users/cjm/repos/semantic-sql/local/snomed.db")
+  snomed_path = os.path.join(VOCABS_PATH, 'n3c-SNOMED.db')
+  oi = get_adapter(snomed_path)
+
+  timer = get_timer('Oak speed test')
+  curie = list(oi.basic_search("Atrial dilatation"))[0]
+  timer('  basic search for term')
+  print(f'{curie} ! {oi.label(curie)}')
+  timer('  parents')
+  for _s, _p, o in oi.relationships([curie], predicates=[IS_A]):
+    print(f' * OUTGOING: {o} {oi.label(o)}')
+  timer('  children')
+  for s, _p, _o in oi.relationships(objects=[curie], predicates=[IS_A]):
+    print(f' * INCOMING: {o} {oi.label(o)}')
+  timer('done')
+
+
 def snomed_test():
   snomed_path = os.path.join(VOCABS_PATH, 'n3c-SNOMED.db')
   oi = get_adapter(snomed_path)
@@ -37,7 +56,7 @@ def snomed_test():
   timer('  basic search for term')
   print()
   curie = list(oi.basic_search("Atrial dilatation"))[1]
-  print(f'{curie} ! {oi.label(curie)}')
+  print(f'\n{curie} ! {oi.label(curie)}')
   # print(f'Definition: {oi.definition(curie)}')
   timer('  parents')
   print()
@@ -57,7 +76,10 @@ def snomed_test():
 
   print()
   # timer('  connect to db (query uses name so doesn\'t need term lookup)')
+  timer = get_timer('connect to postgres')
+  timer('connecting')
   with get_db_connection() as con:
+    timer('done')
     timer = get_timer('Postgres speed test')
     timer('  parents of 4221281 ! Atrial dilatation subsumes')
     print()
@@ -72,6 +94,7 @@ def snomed_test():
       print(f"  * {row['relationship_id']} {row['concept_id_1']} ! {row['concept_name_1']}")
     print()
     timer('  children of 4221281 ! Atrial dilatation subsumes')
+    print()
     q = """
       SELECT *
       FROM concept_relationship_plus
@@ -87,7 +110,8 @@ def snomed_test():
 
 
 if __name__ == '__main__':
+  oak_test()
   # icdtest()
-  snomed_test()
-  print('\n\n\nDOING IT A SECOND TIME\n\n\n')
-  snomed_test()
+  # snomed_test()
+  # print('\n\n\nDOING IT A SECOND TIME\n\n\n')
+  # snomed_test()
