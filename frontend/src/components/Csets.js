@@ -58,9 +58,23 @@ export function CsetSearch(props) {
         let match = strings.map((m) => new RegExp(m, "i"));
         return options.filter((o) => every(match.map((m) => o.label.match(m))));
       }}
-      sx={{ width: "100%" }}
+      sx={{ 
+        width: "80%",
+        minWidth: "300px",
+        maxWidth: "600px",
+        margin: "0 auto",
+        marginTop: "10px",
+        marginBottom: "10px",
+        }}
       renderInput={(params) => (
-        <TextField {...params} label="Select concept set" />
+        <TextField {...params}
+          label="Select concept set" 
+          variant="outlined"
+          style={{
+            width: "100%",
+            lineHeight: 50,
+          }}
+        />
       )}
       onChange={(event, newValue) => {
         changeCodesetIds(newValue.id, "add");
@@ -118,7 +132,11 @@ function ConceptSetsPage(props) {
     );
   }
   return (
-    <div style={{}}>
+    <div style={{
+      display: "flex",
+      flexDirection: "column",
+      alignItems: "center",
+    }}>
       <CsetSearch {...props} />
       {<CsetsDataTable {...props} />}
       {<ConceptSetCards {...props} />}
