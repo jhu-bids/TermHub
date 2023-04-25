@@ -611,5 +611,12 @@ def cr_hierarchy(include_atlas_json: bool = False, codeset_ids: Union[str, None]
     return result
 
 
+@APP.get("/get-concepts")
+@return_err_with_trace
+def get_concepts_route(id: List[int] = Query(...), table:str='concepts_with_counts') -> List:
+    return get_concepts(concept_ids=id, table=table)
+
+
+
 if __name__ == '__main__':
     run()

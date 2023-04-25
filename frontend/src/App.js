@@ -40,6 +40,7 @@ import Paper from "@mui/material/Paper";
 import { ConceptSetsPage } from "./components/Csets";
 import { CsetComparisonPage } from "./pages/CsetComparisonPage";
 import { AboutPage } from "./pages/AboutPage";
+import { currentConceptIds, ConceptGraph } from "./components/ConceptGraph";
 import {
   AppStateProvider,
   searchParamsToObj,
@@ -275,6 +276,7 @@ function RoutesContainer(props) {
         />
         <Route path="about" element={<AboutPage {...props} />} />
         <Route path="upload-csv" element={<UploadCsvPage {...props} />} />
+        <Route path="graph" element={<ConceptGraph concept_ids={currentConceptIds(props)} />} />
         <Route path="download-json" element={<DownloadJSON {...props} />} />
         {/* <Route path="OMOPConceptSet/:conceptId" element={<OldConceptSet />} /> */}
       </Route>
