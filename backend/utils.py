@@ -6,7 +6,6 @@ import traceback
 from functools import reduce
 from typing import Any, Dict, List, Union
 from datetime import datetime
-
 from starlette.responses import JSONResponse
 
 JSON_TYPE = Union[Dict, List]
