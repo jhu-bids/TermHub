@@ -8,7 +8,9 @@ import os
 from datetime import datetime
 from pathlib import Path
 from typing import Dict, List, Union, Set
-from functools import cache
+from functools import wraps, cache
+# from lru import LRU
+# import pickle
 
 import uvicorn
 import urllib.parse
@@ -19,6 +21,7 @@ from sqlalchemy.engine import LegacyRow, RowMapping
 
 from backend.utils import JSON_TYPE, get_timer, pdump, return_err_with_trace
 from backend.routes import cset_crud
+from backend.oak import oak_stuff
 from backend.db.utils import get_db_connection, sql_query, SCHEMA, sql_query_single_col, sql_in
 from backend.db.queries import get_concepts
 from enclave_wrangler.objects_api import get_n3c_recommended_csets, enclave_api_call_caller, get_codeset_json, \
@@ -27,12 +30,12 @@ from enclave_wrangler.utils import make_objects_request
 from enclave_wrangler.config import RESEARCHER_COLS
 from enclave_wrangler.models import convert_rows
 
-
 PROJECT_DIR = Path(os.path.dirname(__file__)).parent
 # CON: using a global connection object is probably a terrible idea, but shouldn't matter much until there are multiple
 # users on the same server
 APP = FastAPI()
 APP.include_router(cset_crud.router)
+APP.include_router(oak_stuff.router)
 APP.add_middleware(
     CORSMiddleware,
     allow_origins=['*'],
@@ -42,6 +45,49 @@ APP.add_middleware(
 APP.add_middleware(GZipMiddleware, minimum_size=1000)
 CON = get_db_connection()
 
+
+# CACHE_FILE = "cache.pickle"
+#
+#
+# def load_cache(maxsize):
+#     try:
+#         with open(CACHE_FILE, "rb") as f:
+#             return pickle.load(f)
+#     except (FileNotFoundError, pickle.UnpicklingError):
+#         return LRU(maxsize)
+#
+# def save_cache(cache):
+#     with open(CACHE_FILE, "wb") as f:
+#         pickle.dump(cache, f)
+#
+#
+# @APP.on_event("shutdown")
+# async def save_cache_on_shutdown():
+#     save_cache(cache)
+#
+#
+# def memoize(maxsize=1000):
+#     # TODO: allow passing in CACHE_FILE and maxsize
+#     cache = load_cache(maxsize)
+#
+#     def decorator(func):
+#         @wraps(func)
+#         def wrapper(*args, **kwargs):
+#
+#             # to prevent TypeError: unhashable type: 'list' :
+#             t = tuple('|'.join([str(x) for x in a]) if type(a) == list else a for a in args)
+#
+#             key = (t, tuple(sorted(kwargs.items())))
+#
+#             if key in cache:
+#                 return cache[key]
+#             result = func(*args, **kwargs)
+#             cache[key] = result
+#             return result
+#         return wrapper
+#     return decorator
+#
+# cache = memoize(maxsize=1000)
 
 # Utility functions ----------------------------------------------------------------------------------------------------
 @cache
