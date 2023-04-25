@@ -67,7 +67,7 @@ function ColumnHeader(props) {
       marginBottom: "2px",
     };
     headerContent = (
-      <span style={{ display: "flex", alignItems: "center", gap: "3px" }}>
+      <span style={{ display: "flex", alignItems: "center", gap: "3px", wordBreak: "break-word" }}>
         {headerContent}
         {coldef.codeset_id ? <Edit sx={iconStyle} /> : <Info sx={iconStyle} />}
       </span>

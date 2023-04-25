@@ -53,7 +53,8 @@ function CsetComparisonPage(props) {
     csetEditState,
   } = props;
   const { selected_csets = [], researchers } = cset_data;
-  const { state: hierarchySettings, dispatch: hsDispatch } = useStateSlice("hierarchySettings");
+  const { state: hierarchySettings, dispatch: hsDispatch } =
+    useStateSlice("hierarchySettings");
   const windowSize = useWindowSize();
   const boxRef = useRef();
   const sizes = getSizes(/*squishTo*/ 1);
@@ -254,7 +255,15 @@ function colConfig(props) {
                 className="toggle-collapse"
                 onClick={() => toggleCollapse(row)}
               >
-                <AddCircle sx={{ fontSize: sizes.collapseIcon }} />{" "}
+                <AddCircle
+                  sx={{
+                    fontSize: sizes.collapseIcon,
+                    display: "inline-flex",
+                    marginRight: "0.15rem",
+                    marginTop: "0.05rem",
+                    verticalAlign: "top",
+                  }}
+                />
                 {row.concept_name} {row.collapsed && "collapsed"}
               </span>
             ) : (
@@ -262,7 +271,15 @@ function colConfig(props) {
                 className="toggle-collapse"
                 onClick={() => toggleCollapse(row)}
               >
-                <RemoveCircleOutline sx={{ fontSize: sizes.collapseIcon }} />{" "}
+                <RemoveCircleOutline
+                  sx={{
+                    fontSize: sizes.collapseIcon,
+                    display: "inline-flex",
+                    marginRight: "0.15rem",
+                    marginTop: "0.05rem",
+                    verticalAlign: "top",
+                  }}
+                />
                 {row.concept_name} {row.collapsed && "collapsed"}
               </span>
             )
@@ -270,7 +287,7 @@ function colConfig(props) {
             <span>
               <RemoveCircleOutline
                 sx={{ fontSize: sizes.collapseIcon, visibility: "hidden" }}
-              />{" "}
+              />
               {row.concept_name}
             </span>
           )
@@ -298,7 +315,7 @@ function colConfig(props) {
       selector: (row) => row.concept_id,
       sortable: !nested,
       width: 80,
-      style: { paddingRight: "8px" },
+      style: { justifyContent: "center" },
     },
     {
       name: "Links",
@@ -323,9 +340,12 @@ function colConfig(props) {
             href={`https://atlas-demo.ohdsi.org/#/concept/${row.concept_id}`}
             target="_blank"
             rel="noreferrer"
-            style={{display: "flex", aspectRatio: 1,
-            alignItems: "center",
-            padding: "3px"}}
+            style={{
+              display: "flex",
+              aspectRatio: 1,
+              alignItems: "center",
+              padding: "3px",
+            }}
           >
             <img
               height={sizes.atlasHeight}
@@ -338,9 +358,12 @@ function colConfig(props) {
             href={`https://athena.ohdsi.org/search-terms/terms/${row.concept_id}`}
             target="_blank"
             rel="noreferrer"
-            style={{display: "flex", aspectRatio: 1,
-            alignItems: "center",
-            padding: "3px"}}
+            style={{
+              display: "flex",
+              aspectRatio: 1,
+              alignItems: "center",
+              padding: "3px",
+            }}
           >
             <img
               height={sizes.athenaHeight}
@@ -351,7 +374,7 @@ function colConfig(props) {
         </span>
       ),
       sortable: !nested,
-      width: 50,
+      width: 60,
       style: {
         backgroundColor: "lightgray",
         paddingRight: "0px",
@@ -374,7 +397,7 @@ function colConfig(props) {
       width: 80,
       // minWidth: 80,
       // remainingPct: .10,
-      style: { paddingRight: "8px" },
+      style: { justifyContent: "center" },
     },
     {
       name: "Records",
@@ -391,7 +414,7 @@ function colConfig(props) {
       width: 80,
       // minWidth: 80,
       // remainingPct: .10,
-      style: { paddingRight: "8px" },
+      style: { justifyContent: "center" },
     },
   ];
   let cset_cols = selected_csets.map((cset_col) => {
