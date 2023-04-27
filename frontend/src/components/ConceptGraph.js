@@ -1,5 +1,5 @@
-import * as React from "react";
-import {backend_url, useDataWidget} from "../components/State";
+import React, {useState, useEffect} from "react";
+import {dataAccessor} from "./State";
 
 export function currentConceptIds(props) {
   const concepts = props?.cset_data?.concepts ?? [];
@@ -7,15 +7,20 @@ export function currentConceptIds(props) {
 }
 export function ConceptGraph(props) {
   const {concept_ids, } = props;
-  console.log(concept_ids)
+  const [concepts, setConcepts] = useState([]);
 
-  const cidstr = 'get_concepts:' + concept_ids.join("|")
-  const url = backend_url(
-      "get_concepts?concept_ids=" + concept_ids.map(c=>`id=${c}`).join("&")
-  );
-  const [widget, cids] = useDataWidget(cidstr, url);
-  if (cids.data) {
-    return <pre>{JSON.stringify(cids)}</pre>
+  console.log({concept_ids, concepts});
+
+  useEffect(() => {
+    async function fetchData() {
+      const _concepts = await dataAccessor.getConcepts(concept_ids, 'array');
+      setConcepts(_concepts);
+    }
+    fetchData();
+  }, []);
+
+  if (concepts.length) {
+    return <pre>{JSON.stringify(concepts, null, 2)}</pre>;
   }
-  return <pre>{JSON.stringify(concept_ids)}</pre>
+  return <pre>{JSON.stringify(concept_ids)}</pre>;
 }

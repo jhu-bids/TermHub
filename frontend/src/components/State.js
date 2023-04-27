@@ -25,11 +25,107 @@ import { API_ROOT } from "../env";
 import CircularProgress from "@mui/material/CircularProgress";
 import Box from "@mui/material/Box";
 import { useQuery } from "@tanstack/react-query";
+import {queryClient} from "../App";
 import { createSearchParams } from "react-router-dom";
-import { isEmpty, memoize, pullAt } from "lodash";
+import { isEmpty, get, memoize, pullAt } from "lodash";
 import { pct_fmt } from "./utils";
-import { get } from "lodash";
 // import {contentItemsReducer, defaultContentItems} from "./contentControl";
+
+class DataAccess {
+  constructor() {
+    this.cache = this.loadCache() ?? {} // just a big js obj, add functionality to persist it
+  }
+  saveCache = () => {
+    localStorage.setItem('dataAccessor', JSON.stringify(this.cache));
+    return null;
+  }
+  loadCache = () => {
+    return JSON.parse(localStorage.getItem('dataAccessor'));
+  }
+  /* concept stuff as methods here. not sure if it would be worthwhile to do any
+      subclassing to handle specific data objects (codesets, concepts, subgraphs, etc.)
+    concepts will be a slice of the cache, looking like
+    cache: {
+      concepts: {
+        123: {
+          concept_id: 123,
+          concept_name: ...
+        }
+        456: {
+          concept_id: 456,
+          concept_name: ...
+        }
+      }
+   }
+   */
+  async getConcepts(concept_ids=[], shape='array' /* or obj */) {
+
+    let allCachedConcepts = get(this.cache, 'concepts', {});
+    let cachedConcepts = {};
+    let uncachedConceptIds = [];
+    let uncachedConcepts = {};
+    concept_ids.forEach(concept_id => {
+      if (allCachedConcepts[concept_id]) {
+        cachedConcepts[concept_id] = allCachedConcepts[concept_id];
+      } else {
+        uncachedConceptIds.push(concept_id);
+      }
+    })
+    if (uncachedConceptIds.length) {
+      const url = backend_url(
+          "get-concepts?" + uncachedConceptIds.map(c=>`id=${c}`).join("&")
+      );
+      const queryKey = ['concepts', ...concept_ids];
+      // https://tanstack.com/query/v4/docs/react/reference/QueryClient#queryclientfetchquery
+      const data = await this.fetch(
+          'concepts',
+          url,
+          queryKey,
+          this.store_concepts_to_cache);
+      data.forEach(c => uncachedConcepts[c.concept_id] = c);
+    }
+    const results = { ...cachedConcepts, ...uncachedConcepts };
+    const not_found = concept_ids.filter(
+        x => !Object.values(results).map(c=>c.concept_id).includes(x));
+    if (not_found.length) {
+      // TODO: let user see warning somehow
+      console.warn("Warning in DataAccess.getConcepts: couldn't find concepts for " +
+            not_found.join(', '))
+    }
+
+    if (shape === 'array') {
+      return Object.values(results);
+    }
+    return results;
+  }
+  store_concepts_to_cache = (concepts=[]) => {
+    concepts.forEach(c => {
+      this.cache.concepts = this.cache.concepts ?? {};
+      this.cache.concepts[c.concept_id] = c;
+    })
+  }
+  async fetch(path,
+              url,
+              queryKey /* can be array or str, i think */,
+              cacheSaveFunc) {
+    console.log("fetching", url);
+    const queryFn = () => axiosGet(url);
+    const data = await queryClient.fetchQuery({ queryKey, queryFn })
+    try {
+      cacheSaveFunc(data);
+      return data;
+    } catch (error) {
+      console.log(error);
+    }
+    return data;
+  }
+}
+export const dataAccessor = new DataAccess();
+window.addEventListener("beforeunload", dataAccessor.saveCache);
+// window.onload = dataAccessor.loadCache; happens at wrong time. moving this to constructor
+// for debugging
+window.dataAccessorW = dataAccessor;
+
 
 const DerivedStateContext = createContext(null);
 export function DerivedStateProvider(props) {
@@ -295,7 +391,7 @@ function DataWidget(props) {
   );
 }
 
-export function useDataWidget(ukey, url, putData) {
+export function useDataWidget(ukey, url, putData=false) {
   const ax = putData ? () => axiosPut(url, putData) : () => axiosGet(url);
   const axVars = useQuery([ukey], ax);
   let dwProps = { ...axVars, ukey, url, putData };

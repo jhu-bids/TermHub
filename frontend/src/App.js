@@ -65,7 +65,7 @@ import { PopupContentItem /*ContentItems*/ } from "./components/contentControl";
 
 // const enclave_url = path => `${API_ROOT}/passthru?path=${path}`
 
-const queryClient = new QueryClient({
+export const queryClient = new QueryClient({
   defaultOptions: {
     queries: {
       cacheTime: 1000 * 60 * 60 * 24, // 24 hours
@@ -115,16 +115,16 @@ persistQueryClient({
 */
 function QCProvider() {
   return (
-    <React.StrictMode>
-      {" "}
-      {/* StrictMode helps assure code goodness by running everything twice, but it's annoying*/}
+    // <React.StrictMode>
+    // {/* StrictMode helps assure code goodness by running everything twice, but it's annoying*/}
+    //   {" "}
       <QueryClientProvider client={queryClient}>
         <AppStateProvider>
           <QueryStringStateMgr />
           {/*<ReactQueryDevtools initialIsOpen={false} />*/}
         </AppStateProvider>
       </QueryClientProvider>
-    </React.StrictMode>
+    // </React.StrictMode>
   );
 }
 function QueryStringStateMgr(props) {

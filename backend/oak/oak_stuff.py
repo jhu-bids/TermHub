@@ -13,10 +13,10 @@ from oaklib.datamodels.vocabulary import IS_A, PART_OF
 from fastapi import APIRouter, Query
 
 router = APIRouter(
-  # prefix="/oak",
-  # tags=["cset-crud"],
-  # dependencies=[Depends(get_token_header)],  # from FastAPI example
-  responses={404: {"description": "Not found"}},
+    # prefix="/oak",
+    # tags=["cset-crud"],
+    # dependencies=[Depends(get_token_header)],  # from FastAPI example
+    responses={404: {"description": "Not found"}},
 )
 
 PROJECT_DIR = Path(os.path.dirname(__file__)).parent.parent
