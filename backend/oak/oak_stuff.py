@@ -33,11 +33,11 @@ OI = get_adapter(snomed_path)
 
 # @cache
 @router.get("/subgraph/")
-def subgraph(omop_ids: List[str] = Query(...), add_prefix = True):
+def subgraph(cid: List[str] = Query(...), add_prefix = True):
   """
   from https://github.com/INCATools/ontology-access-kit/blob/4f215f71d4f814e1bd910710f68030b2976d845b/src/oaklib/interfaces/obograph_interface.py#L315
   """
-  seeds = ['N3C:' + id for id in omop_ids]
+  seeds = ['N3C:' + id for id in cid]
   # from oaklib.interfaces.obograph_interface import TraversalConfiguration, Distance
   # use an adapter to talk to an endpoint (here, sqlite)
   # adapter = get_adapter("tests/input/go-nucleus.db")

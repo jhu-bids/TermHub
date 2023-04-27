@@ -8,6 +8,7 @@ export function currentConceptIds(props) {
 export function ConceptGraph(props) {
   const {concept_ids, } = props;
   const [concepts, setConcepts] = useState([]);
+  const [edges, setEdges] = useState([]);
 
   console.log({concept_ids, concepts});
 
@@ -18,7 +19,17 @@ export function ConceptGraph(props) {
     }
     fetchData();
   }, []);
+  useEffect(() => {
+    async function fetchData() {
+      const _edges = await dataAccessor.getSubgraphEdges(concept_ids, 'array');
+      setEdges(_edges);
+    }
+    fetchData();
+  }, []);
 
+  if (edges.length) {
+    return <pre>{JSON.stringify(edges, null, 2)}</pre>;
+  }
   if (concepts.length) {
     return <pre>{JSON.stringify(concepts, null, 2)}</pre>;
   }

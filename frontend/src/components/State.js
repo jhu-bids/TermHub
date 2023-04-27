@@ -104,6 +104,24 @@ class DataAccess {
       this.cache.concepts[c.concept_id] = c;
     })
   }
+  async getSubgraphEdges(concept_ids=[]) {
+    // edges are more complicated than concepts, not trying to cache individual
+    // edges like caching individual concepts above. for right now, cache will
+    // only hold most recent subgraph call, which is pretty useless (already
+    //   cached by queryClient/persistor anyway)
+
+    const url = backend_url(
+        "subgraph?" + concept_ids.map(c=>`cid=${c}`).join("&")
+    );
+    const queryKey = ['subgraph', ...concept_ids];
+    // https://tanstack.com/query/v4/docs/react/reference/QueryClient#queryclientfetchquery
+    const data = await this.fetch(
+        'subgraph',
+        url,
+        queryKey,
+       data => this.cache.subgraph = data);
+    return data;
+  }
   async fetch(path,
               url,
               queryKey /* can be array or str, i think */,
