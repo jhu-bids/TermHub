@@ -685,38 +685,38 @@
 683,Hydroxychloroquine,5521,370656,SCDF,hydroxychloroquine Oral Tablet,40051595,hydroxychloroquine Oral Tablet,Clinical Drug Form
 684,Hydroxychloroquine,5521,1164627,SCDG,hydroxychloroquine Oral Product,36220826,hydroxychloroquine Oral Product,Clinical Dose Group
 685,Hydroxychloroquine,5521,1164628,SCDG,hydroxychloroquine Pill,36220827,hydroxychloroquine Pill,Clinical Dose Group
-686,Casirivimab & Imdevimab,2557234,2557243,BN,Regen-Cov,1537108,Regen-Cov,Brand Name
-687,Casirivimab & Imdevimab,2557234,1649574,DF,Injection,46234469,Injection,Dose Form
-688,Casirivimab & Imdevimab,2557234,1151126,DFG,Injectable Product,36217210,Injectable Product,Dose Form Group
-689,Casirivimab & Imdevimab,2557234,2465242,IN,casirivimab,37003288,casirivimab,Ingredient
-690,Casirivimab & Imdevimab,2557234,2465249,IN,imdevimab,37003293,imdevimab,Ingredient
-691,Casirivimab & Imdevimab,2557234,2557234,MIN,casirivimab / imdevimab,779055,casirivimab / imdevimab,Multiple Ingredients
-692,Casirivimab & Imdevimab,2557234,2557244,SBD,10 ML casirivimab 60 MG/ML / imdevimab 60 MG/ML Injection [Regen-Cov],1537610,10 ML casirivimab 60 MG/ML / imdevimab 60 MG/ML Injection [Regen-Cov],Quant Branded Drug
-693,Casirivimab & Imdevimab,2557234,2557238,SBDC,casirivimab 60 MG/ML / imdevimab 60 MG/ML [Regen-Cov],1537103,casirivimab 60 MG/ML / imdevimab 60 MG/ML [Regen-Cov],Branded Drug Comp
-694,Casirivimab & Imdevimab,2557234,2557241,SBDF,casirivimab / imdevimab Injection [Regen-Cov],1537106,casirivimab / imdevimab Injection [Regen-Cov],Branded Drug Form
-695,Casirivimab & Imdevimab,2557234,2557236,SBDG,Regen-Cov Injectable Product,1537101,Regen-Cov Injectable Product,Branded Dose Group
-696,Casirivimab & Imdevimab,2557234,2557245,SCD,10 ML casirivimab 60 MG/ML / imdevimab 60 MG/ML Injection,1537611,10 ML casirivimab 60 MG/ML / imdevimab 60 MG/ML Injection,Quant Clinical Drug
-697,Casirivimab & Imdevimab,2557234,2557235,SCDC,casirivimab 60 MG/ML,1537100,casirivimab 60 MG/ML,Clinical Drug Comp
-698,Casirivimab & Imdevimab,2557234,2557239,SCDC,imdevimab 60 MG/ML,1537104,imdevimab 60 MG/ML,Clinical Drug Comp
-699,Casirivimab & Imdevimab,2557234,2557237,SCDF,casirivimab / imdevimab Injection,1537102,casirivimab / imdevimab Injection,Clinical Drug Form
-700,Casirivimab & Imdevimab,2557234,2556915,SCDG,casirivimab / imdevimab Injectable Product,1537071,casirivimab / imdevimab Injectable Product,Clinical Dose Group
-701,Nirmatrelvir/Ritonavir (Paxlovid),2599543,2599543,BPCK,{10 (nirmatrelvir 150 MG Oral Tablet) / 10 (ritonavir 100 MG Oral Tablet) } Pack [Paxlovid 150 MG /100 MG Dose Pack],780186,{10 (nirmatrelvir 150 MG Oral Tablet) / 10 (ritonavir 100 MG Oral Tablet) } Pack [Paxlovid 150 MG /100 MG Dose Pack],Branded Pack
-702,Nirmatrelvir/Ritonavir (Paxlovid),2599543,746839,DF,Pack,19127776,Pack,Dose Form
-703,Nirmatrelvir/Ritonavir (Paxlovid),2599543,1151131,DFG,Oral Product,36217214,Oral Product,Dose Form Group
-704,Nirmatrelvir/Ritonavir (Paxlovid),2599543,1151133,DFG,Pill,36217216,Pill,Dose Form Group
-705,Nirmatrelvir/Ritonavir (Paxlovid),2599543,2599542,GPCK,{10 (nirmatrelvir 150 MG Oral Tablet) / 10 (ritonavir 100 MG Oral Tablet) } Pack,780185,{10 (nirmatrelvir 150 MG Oral Tablet) / 10 (ritonavir 100 MG Oral Tablet) } Pack,Clinical Pack
-706,Nirmatrelvir/Ritonavir (Paxlovid),2599543,2587892,IN,nirmatrelvir,702530,nirmatrelvir,Ingredient
-707,Nirmatrelvir/Ritonavir (Paxlovid),2599543,85762,IN,ritonavir,1748921,ritonavir,Ingredient
-708,Nirmatrelvir/Ritonavir (Paxlovid),2599543,2587897,SCD,nirmatrelvir 150 MG Oral Tablet,702535,nirmatrelvir 150 MG Oral Tablet,Clinical Drug
-709,Nirmatrelvir/Ritonavir (Paxlovid),2599543,900575,SCD,ritonavir 100 MG Oral Tablet,40171778,ritonavir 100 MG Oral Tablet,Clinical Drug
-710,Nirmatrelvir/Ritonavir (Paxlovid),2599543,2587893,SCDC,nirmatrelvir 150 MG,702531,nirmatrelvir 150 MG,Clinical Drug Comp
-711,Nirmatrelvir/Ritonavir (Paxlovid),2599543,317488,SCDC,ritonavir 100 MG,1748959,ritonavir 100 MG,Clinical Drug Comp
-712,Nirmatrelvir/Ritonavir (Paxlovid),2599543,2587896,SCDF,nirmatrelvir Oral Tablet,702534,nirmatrelvir Oral Tablet,Clinical Drug Form
-713,Nirmatrelvir/Ritonavir (Paxlovid),2599543,900574,SCDF,ritonavir Oral Tablet,40171780,ritonavir Oral Tablet,Clinical Drug Form
-714,Nirmatrelvir/Ritonavir (Paxlovid),2599543,1165486,SCDG,ritonavir Oral Product,36219736,ritonavir Oral Product,Clinical Dose Group
-715,Nirmatrelvir/Ritonavir (Paxlovid),2599543,1165487,SCDG,ritonavir Pill,36219737,ritonavir Pill,Clinical Dose Group
-716,Nirmatrelvir/Ritonavir (Paxlovid),2599543,2587894,SCDG,nirmatrelvir Oral Product,702532,nirmatrelvir Oral Product,Clinical Dose Group
-717,Nirmatrelvir/Ritonavir (Paxlovid),2599543,2587895,SCDG,nirmatrelvir Pill,702533,nirmatrelvir Pill,Clinical Dose Group
+686,Casirivimab / Imdevimab,2557234,2557243,BN,Regen-Cov,1537108,Regen-Cov,Brand Name
+687,Casirivimab / Imdevimab,2557234,1649574,DF,Injection,46234469,Injection,Dose Form
+688,Casirivimab / Imdevimab,2557234,1151126,DFG,Injectable Product,36217210,Injectable Product,Dose Form Group
+689,Casirivimab / Imdevimab,2557234,2465242,IN,casirivimab,37003288,casirivimab,Ingredient
+690,Casirivimab / Imdevimab,2557234,2465249,IN,imdevimab,37003293,imdevimab,Ingredient
+691,Casirivimab / Imdevimab,2557234,2557234,MIN,casirivimab / imdevimab,779055,casirivimab / imdevimab,Multiple Ingredients
+692,Casirivimab / Imdevimab,2557234,2557244,SBD,10 ML casirivimab 60 MG/ML / imdevimab 60 MG/ML Injection [Regen-Cov],1537610,10 ML casirivimab 60 MG/ML / imdevimab 60 MG/ML Injection [Regen-Cov],Quant Branded Drug
+693,Casirivimab / Imdevimab,2557234,2557238,SBDC,casirivimab 60 MG/ML / imdevimab 60 MG/ML [Regen-Cov],1537103,casirivimab 60 MG/ML / imdevimab 60 MG/ML [Regen-Cov],Branded Drug Comp
+694,Casirivimab / Imdevimab,2557234,2557241,SBDF,casirivimab / imdevimab Injection [Regen-Cov],1537106,casirivimab / imdevimab Injection [Regen-Cov],Branded Drug Form
+695,Casirivimab / Imdevimab,2557234,2557236,SBDG,Regen-Cov Injectable Product,1537101,Regen-Cov Injectable Product,Branded Dose Group
+696,Casirivimab / Imdevimab,2557234,2557245,SCD,10 ML casirivimab 60 MG/ML / imdevimab 60 MG/ML Injection,1537611,10 ML casirivimab 60 MG/ML / imdevimab 60 MG/ML Injection,Quant Clinical Drug
+697,Casirivimab / Imdevimab,2557234,2557235,SCDC,casirivimab 60 MG/ML,1537100,casirivimab 60 MG/ML,Clinical Drug Comp
+698,Casirivimab / Imdevimab,2557234,2557239,SCDC,imdevimab 60 MG/ML,1537104,imdevimab 60 MG/ML,Clinical Drug Comp
+699,Casirivimab / Imdevimab,2557234,2557237,SCDF,casirivimab / imdevimab Injection,1537102,casirivimab / imdevimab Injection,Clinical Drug Form
+700,Casirivimab / Imdevimab,2557234,2556915,SCDG,casirivimab / imdevimab Injectable Product,1537071,casirivimab / imdevimab Injectable Product,Clinical Dose Group
+701,Nirmatrelvir / Ritonavir (Paxlovid),2599543,2599543,BPCK,{10 (nirmatrelvir 150 MG Oral Tablet) / 10 (ritonavir 100 MG Oral Tablet) } Pack [Paxlovid 150 MG /100 MG Dose Pack],780186,{10 (nirmatrelvir 150 MG Oral Tablet) / 10 (ritonavir 100 MG Oral Tablet) } Pack [Paxlovid 150 MG /100 MG Dose Pack],Branded Pack
+702,Nirmatrelvir / Ritonavir (Paxlovid),2599543,746839,DF,Pack,19127776,Pack,Dose Form
+703,Nirmatrelvir / Ritonavir (Paxlovid),2599543,1151131,DFG,Oral Product,36217214,Oral Product,Dose Form Group
+704,Nirmatrelvir / Ritonavir (Paxlovid),2599543,1151133,DFG,Pill,36217216,Pill,Dose Form Group
+705,Nirmatrelvir / Ritonavir (Paxlovid),2599543,2599542,GPCK,{10 (nirmatrelvir 150 MG Oral Tablet) / 10 (ritonavir 100 MG Oral Tablet) } Pack,780185,{10 (nirmatrelvir 150 MG Oral Tablet) / 10 (ritonavir 100 MG Oral Tablet) } Pack,Clinical Pack
+706,Nirmatrelvir / Ritonavir (Paxlovid),2599543,2587892,IN,nirmatrelvir,702530,nirmatrelvir,Ingredient
+707,Nirmatrelvir / Ritonavir (Paxlovid),2599543,85762,IN,ritonavir,1748921,ritonavir,Ingredient
+708,Nirmatrelvir / Ritonavir (Paxlovid),2599543,2587897,SCD,nirmatrelvir 150 MG Oral Tablet,702535,nirmatrelvir 150 MG Oral Tablet,Clinical Drug
+709,Nirmatrelvir / Ritonavir (Paxlovid),2599543,900575,SCD,ritonavir 100 MG Oral Tablet,40171778,ritonavir 100 MG Oral Tablet,Clinical Drug
+710,Nirmatrelvir / Ritonavir (Paxlovid),2599543,2587893,SCDC,nirmatrelvir 150 MG,702531,nirmatrelvir 150 MG,Clinical Drug Comp
+711,Nirmatrelvir / Ritonavir (Paxlovid),2599543,317488,SCDC,ritonavir 100 MG,1748959,ritonavir 100 MG,Clinical Drug Comp
+712,Nirmatrelvir / Ritonavir (Paxlovid),2599543,2587896,SCDF,nirmatrelvir Oral Tablet,702534,nirmatrelvir Oral Tablet,Clinical Drug Form
+713,Nirmatrelvir / Ritonavir (Paxlovid),2599543,900574,SCDF,ritonavir Oral Tablet,40171780,ritonavir Oral Tablet,Clinical Drug Form
+714,Nirmatrelvir / Ritonavir (Paxlovid),2599543,1165486,SCDG,ritonavir Oral Product,36219736,ritonavir Oral Product,Clinical Dose Group
+715,Nirmatrelvir / Ritonavir (Paxlovid),2599543,1165487,SCDG,ritonavir Pill,36219737,ritonavir Pill,Clinical Dose Group
+716,Nirmatrelvir / Ritonavir (Paxlovid),2599543,2587894,SCDG,nirmatrelvir Oral Product,702532,nirmatrelvir Oral Product,Clinical Dose Group
+717,Nirmatrelvir / Ritonavir (Paxlovid),2599543,2587895,SCDG,nirmatrelvir Pill,702533,nirmatrelvir Pill,Clinical Dose Group
 718,Colchicine,2683,1550941,BN,Mitigare,45776978,Mitigare,Brand Name
 719,Colchicine,2683,2180553,BN,Gloperba,1361344,Gloperba,Brand Name
 720,Colchicine,2683,858068,BN,Colcrys,40164495,Colcrys,Brand Name
@@ -1058,45 +1058,45 @@
 1056,Bamlanivimab,2463114,2463115,SCDC,bamlanivimab 35 MG/ML,37003202,bamlanivimab 35 MG/ML,Clinical Drug Comp
 1057,Bamlanivimab,2463114,2463117,SCDF,bamlanivimab Injection,37003204,bamlanivimab Injection,Clinical Drug Form
 1058,Bamlanivimab,2463114,2463116,SCDG,bamlanivimab Injectable Product,37003203,bamlanivimab Injectable Product,Clinical Dose Group
-1059,Lopinavir & Ritonavir,284640,284756,BN,Kaletra,19071596,Kaletra,Brand Name
-1060,Lopinavir & Ritonavir,284640,316965,DF,Oral Capsule,19082168,Oral Capsule,Dose Form
-1061,Lopinavir & Ritonavir,284640,316968,DF,Oral Solution,19082170,Oral Solution,Dose Form
-1062,Lopinavir & Ritonavir,284640,317541,DF,Oral Tablet,19082573,Oral Tablet,Dose Form
-1063,Lopinavir & Ritonavir,284640,1151131,DFG,Oral Product,36217214,Oral Product,Dose Form Group
-1064,Lopinavir & Ritonavir,284640,1151133,DFG,Pill,36217216,Pill,Dose Form Group
-1065,Lopinavir & Ritonavir,284640,1151137,DFG,Oral Liquid Product,36217220,Oral Liquid Product,Dose Form Group
-1066,Lopinavir & Ritonavir,284640,195088,IN,lopinavir,1738170,lopinavir,Ingredient
-1067,Lopinavir & Ritonavir,284640,85762,IN,ritonavir,1748921,ritonavir,Ingredient
-1068,Lopinavir & Ritonavir,284640,284640,MIN,lopinavir / ritonavir,36030114,lopinavir / ritonavir,Multiple Ingredients
-1069,Lopinavir & Ritonavir,284640,847741,SBD,lopinavir 200 MG / ritonavir 50 MG Oral Tablet [Kaletra],1748986,lopinavir 200 MG / ritonavir 50 MG Oral Tablet [Kaletra],Branded Drug
-1070,Lopinavir & Ritonavir,284640,847745,SBD,lopinavir 100 MG / ritonavir 25 MG Oral Tablet [Kaletra],1748987,lopinavir 100 MG / ritonavir 25 MG Oral Tablet [Kaletra],Branded Drug
-1071,Lopinavir & Ritonavir,284640,847749,SBD,lopinavir 80 MG/ML / ritonavir 20 MG/ML Oral Solution [Kaletra],1748988,lopinavir 80 MG/ML / ritonavir 20 MG/ML Oral Solution [Kaletra],Branded Drug
-1072,Lopinavir & Ritonavir,284640,847739,SBDC,lopinavir 200 MG / ritonavir 50 MG [Kaletra],19048071,lopinavir 200 MG / ritonavir 50 MG [Kaletra],Branded Drug Comp
-1073,Lopinavir & Ritonavir,284640,847743,SBDC,lopinavir 100 MG / ritonavir 25 MG [Kaletra],19048073,lopinavir 100 MG / ritonavir 25 MG [Kaletra],Branded Drug Comp
-1074,Lopinavir & Ritonavir,284640,847747,SBDC,lopinavir 80 MG/ML / ritonavir 20 MG/ML [Kaletra],19048075,lopinavir 80 MG/ML / ritonavir 20 MG/ML [Kaletra],Branded Drug Comp
-1075,Lopinavir & Ritonavir,284640,847740,SBDF,lopinavir / ritonavir Oral Tablet [Kaletra],40160004,lopinavir / ritonavir Oral Tablet [Kaletra],Branded Drug Form
-1076,Lopinavir & Ritonavir,284640,847748,SBDF,lopinavir / ritonavir Oral Solution [Kaletra],40160002,lopinavir / ritonavir Oral Solution [Kaletra],Branded Drug Form
-1077,Lopinavir & Ritonavir,284640,1168546,SBDG,Kaletra Oral Product,36233142,Kaletra Oral Product,Branded Dose Group
-1078,Lopinavir & Ritonavir,284640,1168549,SBDG,Kaletra Pill,36233143,Kaletra Pill,Branded Dose Group
-1079,Lopinavir & Ritonavir,284640,1168552,SBDG,Kaletra Oral Liquid Product,36233144,Kaletra Oral Liquid Product,Branded Dose Group
-1080,Lopinavir & Ritonavir,284640,311368,SCD,lopinavir 133 MG / ritonavir 33.3 MG Oral Capsule,1748955,lopinavir 133 MG / ritonavir 33.3 MG Oral Capsule,Clinical Drug
-1081,Lopinavir & Ritonavir,284640,311369,SCD,lopinavir 80 MG/ML / ritonavir 20 MG/ML Oral Solution,1748956,lopinavir 80 MG/ML / ritonavir 20 MG/ML Oral Solution,Clinical Drug
-1082,Lopinavir & Ritonavir,284640,597730,SCD,lopinavir 200 MG / ritonavir 50 MG Oral Tablet,19122186,lopinavir 200 MG / ritonavir 50 MG Oral Tablet,Clinical Drug
-1083,Lopinavir & Ritonavir,284640,746645,SCD,lopinavir 100 MG / ritonavir 25 MG Oral Tablet,1748985,lopinavir 100 MG / ritonavir 25 MG Oral Tablet,Clinical Drug
-1084,Lopinavir & Ritonavir,284640,331536,SCDC,lopinavir 133 MG,1738171,lopinavir 133 MG,Clinical Drug Comp
-1085,Lopinavir & Ritonavir,284640,331537,SCDC,ritonavir 33.3 MG,1748960,ritonavir 33.3 MG,Clinical Drug Comp
-1086,Lopinavir & Ritonavir,284640,331538,SCDC,lopinavir 80 MG/ML,1738202,lopinavir 80 MG/ML,Clinical Drug Comp
-1087,Lopinavir & Ritonavir,284640,332450,SCDC,ritonavir 20 MG/ML,19088562,ritonavir 20 MG/ML,Clinical Drug Comp
-1088,Lopinavir & Ritonavir,284640,597727,SCDC,lopinavir 200 MG,1738203,lopinavir 200 MG,Clinical Drug Comp
-1089,Lopinavir & Ritonavir,284640,597728,SCDC,ritonavir 50 MG,1748982,ritonavir 50 MG,Clinical Drug Comp
-1090,Lopinavir & Ritonavir,284640,746643,SCDC,lopinavir 100 MG,1738204,lopinavir 100 MG,Clinical Drug Comp
-1091,Lopinavir & Ritonavir,284640,746644,SCDC,ritonavir 25 MG,1748984,ritonavir 25 MG,Clinical Drug Comp
-1092,Lopinavir & Ritonavir,284640,374642,SCDF,lopinavir / ritonavir Oral Capsule,40059335,lopinavir / ritonavir Oral Capsule,Clinical Drug Form
-1093,Lopinavir & Ritonavir,284640,374643,SCDF,lopinavir / ritonavir Oral Solution,40059337,lopinavir / ritonavir Oral Solution,Clinical Drug Form
-1094,Lopinavir & Ritonavir,284640,597729,SCDF,lopinavir / ritonavir Oral Tablet,40128015,lopinavir / ritonavir Oral Tablet,Clinical Drug Form
-1095,Lopinavir & Ritonavir,284640,1163857,SCDG,lopinavir / ritonavir Oral Liquid Product,36222583,lopinavir / ritonavir Oral Liquid Product,Clinical Dose Group
-1096,Lopinavir & Ritonavir,284640,1163858,SCDG,lopinavir / ritonavir Oral Product,36222584,lopinavir / ritonavir Oral Product,Clinical Dose Group
-1097,Lopinavir & Ritonavir,284640,1163859,SCDG,lopinavir / ritonavir Pill,36222585,lopinavir / ritonavir Pill,Clinical Dose Group
+1059,Lopinavir / Ritonavir,284640,284756,BN,Kaletra,19071596,Kaletra,Brand Name
+1060,Lopinavir / Ritonavir,284640,316965,DF,Oral Capsule,19082168,Oral Capsule,Dose Form
+1061,Lopinavir / Ritonavir,284640,316968,DF,Oral Solution,19082170,Oral Solution,Dose Form
+1062,Lopinavir / Ritonavir,284640,317541,DF,Oral Tablet,19082573,Oral Tablet,Dose Form
+1063,Lopinavir / Ritonavir,284640,1151131,DFG,Oral Product,36217214,Oral Product,Dose Form Group
+1064,Lopinavir / Ritonavir,284640,1151133,DFG,Pill,36217216,Pill,Dose Form Group
+1065,Lopinavir / Ritonavir,284640,1151137,DFG,Oral Liquid Product,36217220,Oral Liquid Product,Dose Form Group
+1066,Lopinavir / Ritonavir,284640,195088,IN,lopinavir,1738170,lopinavir,Ingredient
+1067,Lopinavir / Ritonavir,284640,85762,IN,ritonavir,1748921,ritonavir,Ingredient
+1068,Lopinavir / Ritonavir,284640,284640,MIN,lopinavir / ritonavir,36030114,lopinavir / ritonavir,Multiple Ingredients
+1069,Lopinavir / Ritonavir,284640,847741,SBD,lopinavir 200 MG / ritonavir 50 MG Oral Tablet [Kaletra],1748986,lopinavir 200 MG / ritonavir 50 MG Oral Tablet [Kaletra],Branded Drug
+1070,Lopinavir / Ritonavir,284640,847745,SBD,lopinavir 100 MG / ritonavir 25 MG Oral Tablet [Kaletra],1748987,lopinavir 100 MG / ritonavir 25 MG Oral Tablet [Kaletra],Branded Drug
+1071,Lopinavir / Ritonavir,284640,847749,SBD,lopinavir 80 MG/ML / ritonavir 20 MG/ML Oral Solution [Kaletra],1748988,lopinavir 80 MG/ML / ritonavir 20 MG/ML Oral Solution [Kaletra],Branded Drug
+1072,Lopinavir / Ritonavir,284640,847739,SBDC,lopinavir 200 MG / ritonavir 50 MG [Kaletra],19048071,lopinavir 200 MG / ritonavir 50 MG [Kaletra],Branded Drug Comp
+1073,Lopinavir / Ritonavir,284640,847743,SBDC,lopinavir 100 MG / ritonavir 25 MG [Kaletra],19048073,lopinavir 100 MG / ritonavir 25 MG [Kaletra],Branded Drug Comp
+1074,Lopinavir / Ritonavir,284640,847747,SBDC,lopinavir 80 MG/ML / ritonavir 20 MG/ML [Kaletra],19048075,lopinavir 80 MG/ML / ritonavir 20 MG/ML [Kaletra],Branded Drug Comp
+1075,Lopinavir / Ritonavir,284640,847740,SBDF,lopinavir / ritonavir Oral Tablet [Kaletra],40160004,lopinavir / ritonavir Oral Tablet [Kaletra],Branded Drug Form
+1076,Lopinavir / Ritonavir,284640,847748,SBDF,lopinavir / ritonavir Oral Solution [Kaletra],40160002,lopinavir / ritonavir Oral Solution [Kaletra],Branded Drug Form
+1077,Lopinavir / Ritonavir,284640,1168546,SBDG,Kaletra Oral Product,36233142,Kaletra Oral Product,Branded Dose Group
+1078,Lopinavir / Ritonavir,284640,1168549,SBDG,Kaletra Pill,36233143,Kaletra Pill,Branded Dose Group
+1079,Lopinavir / Ritonavir,284640,1168552,SBDG,Kaletra Oral Liquid Product,36233144,Kaletra Oral Liquid Product,Branded Dose Group
+1080,Lopinavir / Ritonavir,284640,311368,SCD,lopinavir 133 MG / ritonavir 33.3 MG Oral Capsule,1748955,lopinavir 133 MG / ritonavir 33.3 MG Oral Capsule,Clinical Drug
+1081,Lopinavir / Ritonavir,284640,311369,SCD,lopinavir 80 MG/ML / ritonavir 20 MG/ML Oral Solution,1748956,lopinavir 80 MG/ML / ritonavir 20 MG/ML Oral Solution,Clinical Drug
+1082,Lopinavir / Ritonavir,284640,597730,SCD,lopinavir 200 MG / ritonavir 50 MG Oral Tablet,19122186,lopinavir 200 MG / ritonavir 50 MG Oral Tablet,Clinical Drug
+1083,Lopinavir / Ritonavir,284640,746645,SCD,lopinavir 100 MG / ritonavir 25 MG Oral Tablet,1748985,lopinavir 100 MG / ritonavir 25 MG Oral Tablet,Clinical Drug
+1084,Lopinavir / Ritonavir,284640,331536,SCDC,lopinavir 133 MG,1738171,lopinavir 133 MG,Clinical Drug Comp
+1085,Lopinavir / Ritonavir,284640,331537,SCDC,ritonavir 33.3 MG,1748960,ritonavir 33.3 MG,Clinical Drug Comp
+1086,Lopinavir / Ritonavir,284640,331538,SCDC,lopinavir 80 MG/ML,1738202,lopinavir 80 MG/ML,Clinical Drug Comp
+1087,Lopinavir / Ritonavir,284640,332450,SCDC,ritonavir 20 MG/ML,19088562,ritonavir 20 MG/ML,Clinical Drug Comp
+1088,Lopinavir / Ritonavir,284640,597727,SCDC,lopinavir 200 MG,1738203,lopinavir 200 MG,Clinical Drug Comp
+1089,Lopinavir / Ritonavir,284640,597728,SCDC,ritonavir 50 MG,1748982,ritonavir 50 MG,Clinical Drug Comp
+1090,Lopinavir / Ritonavir,284640,746643,SCDC,lopinavir 100 MG,1738204,lopinavir 100 MG,Clinical Drug Comp
+1091,Lopinavir / Ritonavir,284640,746644,SCDC,ritonavir 25 MG,1748984,ritonavir 25 MG,Clinical Drug Comp
+1092,Lopinavir / Ritonavir,284640,374642,SCDF,lopinavir / ritonavir Oral Capsule,40059335,lopinavir / ritonavir Oral Capsule,Clinical Drug Form
+1093,Lopinavir / Ritonavir,284640,374643,SCDF,lopinavir / ritonavir Oral Solution,40059337,lopinavir / ritonavir Oral Solution,Clinical Drug Form
+1094,Lopinavir / Ritonavir,284640,597729,SCDF,lopinavir / ritonavir Oral Tablet,40128015,lopinavir / ritonavir Oral Tablet,Clinical Drug Form
+1095,Lopinavir / Ritonavir,284640,1163857,SCDG,lopinavir / ritonavir Oral Liquid Product,36222583,lopinavir / ritonavir Oral Liquid Product,Clinical Dose Group
+1096,Lopinavir / Ritonavir,284640,1163858,SCDG,lopinavir / ritonavir Oral Product,36222584,lopinavir / ritonavir Oral Product,Clinical Dose Group
+1097,Lopinavir / Ritonavir,284640,1163859,SCDG,lopinavir / ritonavir Pill,36222585,lopinavir / ritonavir Pill,Clinical Dose Group
 1098,Ramipril,35296,262418,BN,Altace,19100827,Altace,Brand Name
 1099,Ramipril,35296,316965,DF,Oral Capsule,19082168,Oral Capsule,Dose Form
 1100,Ramipril,35296,317541,DF,Oral Tablet,19082573,Oral Tablet,Dose Form
@@ -1456,20 +1456,20 @@
 1454,Fosinopril,50166,1162675,SCDG,fosinopril / hydrochlorothiazide Pill,36224601,fosinopril / hydrochlorothiazide Pill,Clinical Dose Group
 1455,Fosinopril,50166,1162676,SCDG,fosinopril Oral Product,36224602,fosinopril Oral Product,Clinical Dose Group
 1456,Fosinopril,50166,1162677,SCDG,fosinopril Pill,36224603,fosinopril Pill,Clinical Dose Group
-1457,Tixagevimab/Cilgavimab,2587312,2587313,BPCK,{1 (1.5 ML cilgavimab 100 MG/ML Injection) / 1 (1.5 ML tixagevimab 100 MG/ML Injection) } Pack [Evusheld 2 vial carton],702576,{1 (1.5 ML cilgavimab 100 MG/ML Injection) / 1 (1.5 ML tixagevimab 100 MG/ML Injection) } Pack [Evusheld 2 vial carton],Branded Pack
-1458,Tixagevimab/Cilgavimab,2587312,746839,DF,Pack,19127776,Pack,Dose Form
-1459,Tixagevimab/Cilgavimab,2587312,1151126,DFG,Injectable Product,36217210,Injectable Product,Dose Form Group
-1460,Tixagevimab/Cilgavimab,2587312,2587312,GPCK,{1 (1.5 ML cilgavimab 100 MG/ML Injection) / 1 (1.5 ML tixagevimab 100 MG/ML Injection) } Pack,702575,{1 (1.5 ML cilgavimab 100 MG/ML Injection) / 1 (1.5 ML tixagevimab 100 MG/ML Injection) } Pack,Clinical Pack
-1461,Tixagevimab/Cilgavimab,2587312,2587300,IN,tixagevimab,702418,tixagevimab,Ingredient
-1462,Tixagevimab/Cilgavimab,2587312,2587306,IN,cilgavimab,702423,cilgavimab,Ingredient
-1463,Tixagevimab/Cilgavimab,2587312,2587304,SCD,1.5 ML tixagevimab 100 MG/ML Injection,702580,1.5 ML tixagevimab 100 MG/ML Injection,Quant Clinical Drug
-1464,Tixagevimab/Cilgavimab,2587312,2587310,SCD,1.5 ML cilgavimab 100 MG/ML Injection,702649,1.5 ML cilgavimab 100 MG/ML Injection,Quant Clinical Drug
-1465,Tixagevimab/Cilgavimab,2587312,2587301,SCDC,tixagevimab 100 MG/ML,702419,tixagevimab 100 MG/ML,Clinical Drug Comp
-1466,Tixagevimab/Cilgavimab,2587312,2587307,SCDC,cilgavimab 100 MG/ML,702424,cilgavimab 100 MG/ML,Clinical Drug Comp
-1467,Tixagevimab/Cilgavimab,2587312,2587303,SCDF,tixagevimab Injection,702421,tixagevimab Injection,Clinical Drug Form
-1468,Tixagevimab/Cilgavimab,2587312,2587309,SCDF,cilgavimab Injection,702426,cilgavimab Injection,Clinical Drug Form
-1469,Tixagevimab/Cilgavimab,2587312,2587302,SCDG,tixagevimab Injectable Product,702420,tixagevimab Injectable Product,Clinical Dose Group
-1470,Tixagevimab/Cilgavimab,2587312,2587308,SCDG,cilgavimab Injectable Product,702425,cilgavimab Injectable Product,Clinical Dose Group
+1457,Tixagevimab / Cilgavimab (Evusheld),2587312,2587313,BPCK,{1 (1.5 ML cilgavimab 100 MG/ML Injection) / 1 (1.5 ML tixagevimab 100 MG/ML Injection) } Pack [Evusheld 2 vial carton],702576,{1 (1.5 ML cilgavimab 100 MG/ML Injection) / 1 (1.5 ML tixagevimab 100 MG/ML Injection) } Pack [Evusheld 2 vial carton],Branded Pack
+1458,Tixagevimab / Cilgavimab (Evusheld),2587312,746839,DF,Pack,19127776,Pack,Dose Form
+1459,Tixagevimab / Cilgavimab (Evusheld),2587312,1151126,DFG,Injectable Product,36217210,Injectable Product,Dose Form Group
+1460,Tixagevimab / Cilgavimab (Evusheld),2587312,2587312,GPCK,{1 (1.5 ML cilgavimab 100 MG/ML Injection) / 1 (1.5 ML tixagevimab 100 MG/ML Injection) } Pack,702575,{1 (1.5 ML cilgavimab 100 MG/ML Injection) / 1 (1.5 ML tixagevimab 100 MG/ML Injection) } Pack,Clinical Pack
+1461,Tixagevimab / Cilgavimab (Evusheld),2587312,2587300,IN,tixagevimab,702418,tixagevimab,Ingredient
+1462,Tixagevimab / Cilgavimab (Evusheld),2587312,2587306,IN,cilgavimab,702423,cilgavimab,Ingredient
+1463,Tixagevimab / Cilgavimab (Evusheld),2587312,2587304,SCD,1.5 ML tixagevimab 100 MG/ML Injection,702580,1.5 ML tixagevimab 100 MG/ML Injection,Quant Clinical Drug
+1464,Tixagevimab / Cilgavimab (Evusheld),2587312,2587310,SCD,1.5 ML cilgavimab 100 MG/ML Injection,702649,1.5 ML cilgavimab 100 MG/ML Injection,Quant Clinical Drug
+1465,Tixagevimab / Cilgavimab (Evusheld),2587312,2587301,SCDC,tixagevimab 100 MG/ML,702419,tixagevimab 100 MG/ML,Clinical Drug Comp
+1466,Tixagevimab / Cilgavimab (Evusheld),2587312,2587307,SCDC,cilgavimab 100 MG/ML,702424,cilgavimab 100 MG/ML,Clinical Drug Comp
+1467,Tixagevimab / Cilgavimab (Evusheld),2587312,2587303,SCDF,tixagevimab Injection,702421,tixagevimab Injection,Clinical Drug Form
+1468,Tixagevimab / Cilgavimab (Evusheld),2587312,2587309,SCDF,cilgavimab Injection,702426,cilgavimab Injection,Clinical Drug Form
+1469,Tixagevimab / Cilgavimab (Evusheld),2587312,2587302,SCDG,tixagevimab Injectable Product,702420,tixagevimab Injectable Product,Clinical Dose Group
+1470,Tixagevimab / Cilgavimab (Evusheld),2587312,2587308,SCDG,cilgavimab Injectable Product,702425,cilgavimab Injectable Product,Clinical Dose Group
 1471,Azilsartan,1091643,1091647,BN,Edarbi,40236154,Edarbi,Brand Name
 1472,Azilsartan,1091643,1372759,BN,Edarbyclor,43525545,Edarbyclor,Brand Name
 1473,Azilsartan,1091643,317541,DF,Oral Tablet,19082573,Oral Tablet,Dose Form
@@ -1616,3 +1616,326 @@
 1614,Trandolapril,38454,1162757,SCDG,trandolapril / verapamil Pill,36225489,trandolapril / verapamil Pill,Clinical Dose Group
 1615,Trandolapril,38454,1162758,SCDG,trandolapril Oral Product,36225490,trandolapril Oral Product,Clinical Dose Group
 1616,Trandolapril,38454,1162759,SCDG,trandolapril Pill,36225491,trandolapril Pill,Clinical Dose Group
+1617,Moexipril,30131,317541,DF,Oral Tablet,19082573,Oral Tablet,Dose Form
+1618,Moexipril,30131,1151131,DFG,Oral Product,36217214,Oral Product,Dose Form Group
+1619,Moexipril,30131,1151133,DFG,Pill,36217216,Pill,Dose Form Group
+1620,Moexipril,30131,30131,IN,moexipril,1310756,moexipril,Ingredient
+1621,Moexipril,30131,214622,MIN,hydrochlorothiazide / moexipril,36030004,hydrochlorothiazide / moexipril,Multiple Ingredients
+1622,Moexipril,30131,236066,PIN,moexipril hydrochloride,19055723,moexipril hydrochloride,Precise Ingredient
+1623,Moexipril,30131,1299859,SCD,hydrochlorothiazide 12.5 MG / moexipril hydrochloride 15 MG Oral Tablet,42800842,hydrochlorothiazide 12.5 MG / moexipril hydrochloride 15 MG Oral Tablet,Clinical Drug
+1624,Moexipril,30131,1299871,SCD,hydrochlorothiazide 12.5 MG / moexipril hydrochloride 7.5 MG Oral Tablet,42800845,hydrochlorothiazide 12.5 MG / moexipril hydrochloride 7.5 MG Oral Tablet,Clinical Drug
+1625,Moexipril,30131,1299890,SCD,hydrochlorothiazide 25 MG / moexipril hydrochloride 15 MG Oral Tablet,42800850,hydrochlorothiazide 25 MG / moexipril hydrochloride 15 MG Oral Tablet,Clinical Drug
+1626,Moexipril,30131,1299896,SCD,moexipril hydrochloride 15 MG Oral Tablet,42801011,moexipril hydrochloride 15 MG Oral Tablet,Clinical Drug
+1627,Moexipril,30131,1299897,SCD,moexipril hydrochloride 7.5 MG Oral Tablet,42801015,moexipril hydrochloride 7.5 MG Oral Tablet,Clinical Drug
+1628,Moexipril,30131,1299858,SCDC,moexipril hydrochloride 15 MG,42801010,moexipril hydrochloride 15 MG,Clinical Drug Comp
+1629,Moexipril,30131,1299870,SCDC,moexipril hydrochloride 7.5 MG,42801014,moexipril hydrochloride 7.5 MG,Clinical Drug Comp
+1630,Moexipril,30131,372945,SCDF,moexipril Oral Tablet,40057031,moexipril Oral Tablet,Clinical Drug Form
+1631,Moexipril,30131,372946,SCDF,hydrochlorothiazide / moexipril Oral Tablet,40045122,hydrochlorothiazide / moexipril Oral Tablet,Clinical Drug Form
+1632,Moexipril,30131,1157288,SCDG,moexipril Oral Product,36215730,moexipril Oral Product,Clinical Dose Group
+1633,Moexipril,30131,1157289,SCDG,moexipril Pill,36215731,moexipril Pill,Clinical Dose Group
+1634,Moexipril,30131,1162775,SCDG,hydrochlorothiazide / moexipril Oral Product,36218312,hydrochlorothiazide / moexipril Oral Product,Clinical Dose Group
+1635,Moexipril,30131,1162776,SCDG,hydrochlorothiazide / moexipril Pill,36218313,hydrochlorothiazide / moexipril Pill,Clinical Dose Group
+1636,Perindopril,54552,1600717,BN,Prestalia,45892982,Prestalia,Brand Name
+1637,Perindopril,54552,261438,BN,Aceon,19099190,Aceon,Brand Name
+1638,Perindopril,54552,317541,DF,Oral Tablet,19082573,Oral Tablet,Dose Form
+1639,Perindopril,54552,1151131,DFG,Oral Product,36217214,Oral Product,Dose Form Group
+1640,Perindopril,54552,1151133,DFG,Pill,36217216,Pill,Dose Form Group
+1641,Perindopril,54552,54552,IN,perindopril,1373225,perindopril,Ingredient
+1642,Perindopril,54552,1033889,MIN,amlodipine / perindopril,36029221,amlodipine / perindopril,Multiple Ingredients
+1643,Perindopril,54552,388499,MIN,indapamide / perindopril,36030141,indapamide / perindopril,Multiple Ingredients
+1644,Perindopril,54552,1600711,PIN,perindopril arginine,46274934,perindopril arginine,Precise Ingredient
+1645,Perindopril,54552,72260,PIN,perindopril erbumine,19126939,perindopril erbumine,Precise Ingredient
+1646,Perindopril,54552,1600722,SBD,amlodipine 10 MG / perindopril arginine 14 MG Oral Tablet [Prestalia],45892985,amlodipine 10 MG / perindopril arginine 14 MG Oral Tablet [Prestalia],Branded Drug
+1647,Perindopril,54552,1600726,SBD,amlodipine 2.5 MG / perindopril arginine 3.5 MG Oral Tablet [Prestalia],45892989,amlodipine 2.5 MG / perindopril arginine 3.5 MG Oral Tablet [Prestalia],Branded Drug
+1648,Perindopril,54552,1600730,SBD,amlodipine 5 MG / perindopril arginine 7 MG Oral Tablet [Prestalia],45892993,amlodipine 5 MG / perindopril arginine 7 MG Oral Tablet [Prestalia],Branded Drug
+1649,Perindopril,54552,854927,SBD,perindopril erbumine 8 MG Oral Tablet [Aceon],40163276,perindopril erbumine 8 MG Oral Tablet [Aceon],Branded Drug
+1650,Perindopril,54552,854986,SBD,perindopril erbumine 2 MG Oral Tablet [Aceon],40163268,perindopril erbumine 2 MG Oral Tablet [Aceon],Branded Drug
+1651,Perindopril,54552,854990,SBD,perindopril erbumine 4 MG Oral Tablet [Aceon],40163272,perindopril erbumine 4 MG Oral Tablet [Aceon],Branded Drug
+1652,Perindopril,54552,1600718,SBDC,amlodipine 10 MG / perindopril arginine 14 MG [Prestalia],45892983,amlodipine 10 MG / perindopril arginine 14 MG [Prestalia],Branded Drug Comp
+1653,Perindopril,54552,1600725,SBDC,amlodipine 2.5 MG / perindopril arginine 3.5 MG [Prestalia],45892988,amlodipine 2.5 MG / perindopril arginine 3.5 MG [Prestalia],Branded Drug Comp
+1654,Perindopril,54552,1600729,SBDC,amlodipine 5 MG / perindopril arginine 7 MG [Prestalia],45892992,amlodipine 5 MG / perindopril arginine 7 MG [Prestalia],Branded Drug Comp
+1655,Perindopril,54552,854926,SBDC,perindopril erbumine 8 MG [Aceon],40163277,perindopril erbumine 8 MG [Aceon],Branded Drug Comp
+1656,Perindopril,54552,854985,SBDC,perindopril erbumine 2 MG [Aceon],40163269,perindopril erbumine 2 MG [Aceon],Branded Drug Comp
+1657,Perindopril,54552,854989,SBDC,perindopril erbumine 4 MG [Aceon],40163273,perindopril erbumine 4 MG [Aceon],Branded Drug Comp
+1658,Perindopril,54552,1600719,SBDF,amlodipine / perindopril Oral Tablet [Prestalia],45892984,amlodipine / perindopril Oral Tablet [Prestalia],Branded Drug Form
+1659,Perindopril,54552,368233,SBDF,perindopril Oral Tablet [Aceon],40068358,perindopril Oral Tablet [Aceon],Branded Drug Form
+1660,Perindopril,54552,1168400,SBDG,Aceon Oral Product,36232764,Aceon Oral Product,Branded Dose Group
+1661,Perindopril,54552,1168401,SBDG,Aceon Pill,36232765,Aceon Pill,Branded Dose Group
+1662,Perindopril,54552,1600720,SBDG,Prestalia Oral Product,36248705,Prestalia Oral Product,Branded Dose Group
+1663,Perindopril,54552,1600721,SBDG,Prestalia Pill,36248706,Prestalia Pill,Branded Dose Group
+1664,Perindopril,54552,1600716,SCD,amlodipine 10 MG / perindopril arginine 14 MG Oral Tablet,45892981,amlodipine 10 MG / perindopril arginine 14 MG Oral Tablet,Clinical Drug
+1665,Perindopril,54552,1600724,SCD,amlodipine 2.5 MG / perindopril arginine 3.5 MG Oral Tablet,45892987,amlodipine 2.5 MG / perindopril arginine 3.5 MG Oral Tablet,Clinical Drug
+1666,Perindopril,54552,1600728,SCD,amlodipine 5 MG / perindopril arginine 7 MG Oral Tablet,45892991,amlodipine 5 MG / perindopril arginine 7 MG Oral Tablet,Clinical Drug
+1667,Perindopril,54552,854925,SCD,perindopril erbumine 8 MG Oral Tablet,40163275,perindopril erbumine 8 MG Oral Tablet,Clinical Drug
+1668,Perindopril,54552,854984,SCD,perindopril erbumine 2 MG Oral Tablet,40163267,perindopril erbumine 2 MG Oral Tablet,Clinical Drug
+1669,Perindopril,54552,854988,SCD,perindopril erbumine 4 MG Oral Tablet,40163271,perindopril erbumine 4 MG Oral Tablet,Clinical Drug
+1670,Perindopril,54552,854993,SCD,indapamide 1.25 MG / perindopril erbumine 4 MG Oral Tablet,40163142,indapamide 1.25 MG / perindopril erbumine 4 MG Oral Tablet,Clinical Drug
+1671,Perindopril,54552,1600712,SCDC,perindopril arginine 14 MG,45892979,perindopril arginine 14 MG,Clinical Drug Comp
+1672,Perindopril,54552,1600723,SCDC,perindopril arginine 3.5 MG,45892986,perindopril arginine 3.5 MG,Clinical Drug Comp
+1673,Perindopril,54552,1600727,SCDC,perindopril arginine 7 MG,45892990,perindopril arginine 7 MG,Clinical Drug Comp
+1674,Perindopril,54552,854923,SCDC,perindopril erbumine 8 MG,40163274,perindopril erbumine 8 MG,Clinical Drug Comp
+1675,Perindopril,54552,854983,SCDC,perindopril erbumine 2 MG,40163266,perindopril erbumine 2 MG,Clinical Drug Comp
+1676,Perindopril,54552,854987,SCDC,perindopril erbumine 4 MG,40163270,perindopril erbumine 4 MG,Clinical Drug Comp
+1677,Perindopril,54552,1600715,SCDF,amlodipine / perindopril Oral Tablet,45892980,amlodipine / perindopril Oral Tablet,Clinical Drug Form
+1678,Perindopril,54552,373293,SCDF,perindopril Oral Tablet,40068357,perindopril Oral Tablet,Clinical Drug Form
+1679,Perindopril,54552,393357,SCDF,indapamide / perindopril Oral Tablet,40049453,indapamide / perindopril Oral Tablet,Clinical Drug Form
+1680,Perindopril,54552,1156300,SCDG,indapamide / perindopril Oral Product,36214315,indapamide / perindopril Oral Product,Clinical Dose Group
+1681,Perindopril,54552,1156301,SCDG,indapamide / perindopril Pill,36214316,indapamide / perindopril Pill,Clinical Dose Group
+1682,Perindopril,54552,1165430,SCDG,perindopril Oral Product,36219681,perindopril Oral Product,Clinical Dose Group
+1683,Perindopril,54552,1165431,SCDG,perindopril Pill,36219682,perindopril Pill,Clinical Dose Group
+1684,Perindopril,54552,1600713,SCDG,amlodipine / perindopril Oral Product,36248703,amlodipine / perindopril Oral Product,Clinical Dose Group
+1685,Perindopril,54552,1600714,SCDG,amlodipine / perindopril Pill,36248704,amlodipine / perindopril Pill,Clinical Dose Group
+1686,Interferon beta-1b,72257,82828,BN,Betaseron,19043989,Betaseron,Brand Name
+1687,Interferon beta-1b,72257,860241,BN,Extavia,40165739,Extavia,Brand Name
+1688,Interferon beta-1b,72257,1649574,DF,Injection,46234469,Injection,Dose Form
+1689,Interferon beta-1b,72257,1151126,DFG,Injectable Product,36217210,Injectable Product,Dose Form Group
+1690,Interferon beta-1b,72257,72257,IN,interferon beta-1b,713196,interferon beta-1b,Ingredient
+1691,Interferon beta-1b,72257,72258,PIN,recombinant interferon beta-1b,19126938,recombinant interferon beta-1b,Precise Ingredient
+1692,Interferon beta-1b,72257,207059,SBD,interferon beta-1b 0.3 MG Injection [Betaseron],19034358,interferon beta-1b 0.3 MG Injection [Betaseron],Branded Drug
+1693,Interferon beta-1b,72257,860244,SBD,interferon beta-1b 0.3 MG Injection [Extavia],40165659,interferon beta-1b 0.3 MG Injection [Extavia],Branded Drug
+1694,Interferon beta-1b,72257,1721325,SBDC,interferon beta-1b 0.3 MG [Betaseron],35605315,interferon beta-1b 0.3 MG [Betaseron],Branded Drug Comp
+1695,Interferon beta-1b,72257,1721328,SBDC,interferon beta-1b 0.3 MG [Extavia],35605317,interferon beta-1b 0.3 MG [Extavia],Branded Drug Comp
+1696,Interferon beta-1b,72257,1721326,SBDF,interferon beta-1b Injection [Betaseron],35605316,interferon beta-1b Injection [Betaseron],Branded Drug Form
+1697,Interferon beta-1b,72257,1721329,SBDF,interferon beta-1b Injection [Extavia],35605318,interferon beta-1b Injection [Extavia],Branded Drug Form
+1698,Interferon beta-1b,72257,1172925,SBDG,Betaseron Injectable Product,36236777,Betaseron Injectable Product,Branded Dose Group
+1699,Interferon beta-1b,72257,1173906,SBDG,Extavia Injectable Product,36235917,Extavia Injectable Product,Branded Dose Group
+1700,Interferon beta-1b,72257,198360,SCD,interferon beta-1b 0.3 MG Injection,19019936,interferon beta-1b 0.3 MG Injection,Clinical Drug
+1701,Interferon beta-1b,72257,1721322,SCDC,interferon beta-1b 0.3 MG,35605313,interferon beta-1b 0.3 MG,Clinical Drug Comp
+1702,Interferon beta-1b,72257,1721323,SCDF,interferon beta-1b Injection,35605314,interferon beta-1b Injection,Clinical Drug Form
+1703,Interferon beta-1b,72257,1160700,SCDG,interferon beta-1b Injectable Product,36224232,interferon beta-1b Injectable Product,Clinical Dose Group
+1704,Peginterferon beta-1a,1546168,1546173,BN,Plegridy,45775150,Plegridy,Brand Name
+1705,Peginterferon beta-1a,1546168,1546198,BPCK,{1 (0.5 ML peginterferon beta-1a 0.126 MG/ML Prefilled Syringe [Plegridy]) / 1 (0.5 ML peginterferon beta-1a 0.188 MG/ML Prefilled Syringe [Plegridy]) } Pack [Plegridy Starter Pack],45777047,{1 (0.5 ML peginterferon beta-1a 0.126 MG/ML Prefilled Syringe [Plegridy]) / 1 (0.5 ML peginterferon beta-1a 0.188 MG/ML Prefilled Syringe [Plegridy]) } Pack [Plegridy Starter Pack],Branded Pack
+1706,Peginterferon beta-1a,1546168,1649605,BPCK,{1 (0.5 ML peginterferon beta-1a 0.126 MG/ML Auto-Injector [Plegridy]) / 1 (0.5 ML peginterferon beta-1a 0.188 MG/ML Auto-Injector [Plegridy]) } Pack [Plegridy Pen Starter Pack],46234551,{1 (0.5 ML peginterferon beta-1a 0.126 MG/ML Auto-Injector [Plegridy]) / 1 (0.5 ML peginterferon beta-1a 0.188 MG/ML Auto-Injector [Plegridy]) } Pack [Plegridy Pen Starter Pack],Branded Pack
+1707,Peginterferon beta-1a,1546168,1649570,DF,Auto-Injector,46234466,Auto-Injector,Dose Form
+1708,Peginterferon beta-1a,1546168,721656,DF,Prefilled Syringe,19126920,Prefilled Syringe,Dose Form
+1709,Peginterferon beta-1a,1546168,1151126,DFG,Injectable Product,36217210,Injectable Product,Dose Form Group
+1710,Peginterferon beta-1a,1546168,1546197,GPCK,{1 (0.5 ML peginterferon beta-1a 0.126 MG/ML Prefilled Syringe) / 1 (0.5 ML peginterferon beta-1a 0.188 MG/ML Prefilled Syringe) } Pack,45777046,{1 (0.5 ML peginterferon beta-1a 0.126 MG/ML Prefilled Syringe) / 1 (0.5 ML peginterferon beta-1a 0.188 MG/ML Prefilled Syringe) } Pack,Clinical Pack
+1711,Peginterferon beta-1a,1546168,1649602,GPCK,{1 (0.5 ML peginterferon beta-1a 0.126 MG/ML Auto-Injector) / 1 (0.5 ML peginterferon beta-1a 0.188 MG/ML Auto-Injector) } Pack,46234542,{1 (0.5 ML peginterferon beta-1a 0.126 MG/ML Auto-Injector) / 1 (0.5 ML peginterferon beta-1a 0.188 MG/ML Auto-Injector) } Pack,Clinical Pack
+1712,Peginterferon beta-1a,1546168,1546168,IN,peginterferon beta-1a,45775146,peginterferon beta-1a,Ingredient
+1713,Peginterferon beta-1a,1546168,1546177,SBD,0.5 ML peginterferon beta-1a 0.188 MG/ML Prefilled Syringe [Plegridy],45775153,0.5 ML peginterferon beta-1a 0.188 MG/ML Prefilled Syringe [Plegridy],Quant Branded Drug
+1714,Peginterferon beta-1a,1546168,1546183,SBD,0.5 ML peginterferon beta-1a 0.126 MG/ML Prefilled Syringe [Plegridy],45775159,0.5 ML peginterferon beta-1a 0.126 MG/ML Prefilled Syringe [Plegridy],Quant Branded Drug
+1715,Peginterferon beta-1a,1546168,1546189,SBD,0.5 ML peginterferon beta-1a 0.25 MG/ML Prefilled Syringe [Plegridy],45775303,0.5 ML peginterferon beta-1a 0.25 MG/ML Prefilled Syringe [Plegridy],Quant Branded Drug
+1716,Peginterferon beta-1a,1546168,1649593,SBD,0.5 ML peginterferon beta-1a 0.25 MG/ML Auto-Injector [Plegridy],46234475,0.5 ML peginterferon beta-1a 0.25 MG/ML Auto-Injector [Plegridy],Quant Branded Drug
+1717,Peginterferon beta-1a,1546168,1649603,SBD,0.5 ML peginterferon beta-1a 0.126 MG/ML Auto-Injector [Plegridy],46234480,0.5 ML peginterferon beta-1a 0.126 MG/ML Auto-Injector [Plegridy],Quant Branded Drug
+1718,Peginterferon beta-1a,1546168,1649604,SBD,0.5 ML peginterferon beta-1a 0.188 MG/ML Auto-Injector [Plegridy],46234481,0.5 ML peginterferon beta-1a 0.188 MG/ML Auto-Injector [Plegridy],Quant Branded Drug
+1719,Peginterferon beta-1a,1546168,1546174,SBDC,peginterferon beta-1a 0.188 MG/ML [Plegridy],45775151,peginterferon beta-1a 0.188 MG/ML [Plegridy],Branded Drug Comp
+1720,Peginterferon beta-1a,1546168,1546182,SBDC,peginterferon beta-1a 0.126 MG/ML [Plegridy],45775158,peginterferon beta-1a 0.126 MG/ML [Plegridy],Branded Drug Comp
+1721,Peginterferon beta-1a,1546168,1546188,SBDC,peginterferon beta-1a 0.25 MG/ML [Plegridy],45775302,peginterferon beta-1a 0.25 MG/ML [Plegridy],Branded Drug Comp
+1722,Peginterferon beta-1a,1546168,1546175,SBDF,peginterferon beta-1a Prefilled Syringe [Plegridy],45775152,peginterferon beta-1a Prefilled Syringe [Plegridy],Branded Drug Form
+1723,Peginterferon beta-1a,1546168,1649592,SBDF,peginterferon beta-1a Auto-Injector [Plegridy],46234474,peginterferon beta-1a Auto-Injector [Plegridy],Branded Drug Form
+1724,Peginterferon beta-1a,1546168,1546176,SBDG,Plegridy Injectable Product,36247001,Plegridy Injectable Product,Branded Dose Group
+1725,Peginterferon beta-1a,1546168,1546172,SCD,0.5 ML peginterferon beta-1a 0.188 MG/ML Prefilled Syringe,45775149,0.5 ML peginterferon beta-1a 0.188 MG/ML Prefilled Syringe,Quant Clinical Drug
+1726,Peginterferon beta-1a,1546168,1546181,SCD,0.5 ML peginterferon beta-1a 0.126 MG/ML Prefilled Syringe,45775157,0.5 ML peginterferon beta-1a 0.126 MG/ML Prefilled Syringe,Quant Clinical Drug
+1727,Peginterferon beta-1a,1546168,1546187,SCD,0.5 ML peginterferon beta-1a 0.25 MG/ML Prefilled Syringe,45775163,0.5 ML peginterferon beta-1a 0.25 MG/ML Prefilled Syringe,Quant Clinical Drug
+1728,Peginterferon beta-1a,1546168,1649591,SCD,0.5 ML peginterferon beta-1a 0.25 MG/ML Auto-Injector,46234473,0.5 ML peginterferon beta-1a 0.25 MG/ML Auto-Injector,Quant Clinical Drug
+1729,Peginterferon beta-1a,1546168,1649600,SCD,0.5 ML peginterferon beta-1a 0.126 MG/ML Auto-Injector,46234478,0.5 ML peginterferon beta-1a 0.126 MG/ML Auto-Injector,Quant Clinical Drug
+1730,Peginterferon beta-1a,1546168,1649601,SCD,0.5 ML peginterferon beta-1a 0.188 MG/ML Auto-Injector,46234479,0.5 ML peginterferon beta-1a 0.188 MG/ML Auto-Injector,Quant Clinical Drug
+1731,Peginterferon beta-1a,1546168,1546169,SCDC,peginterferon beta-1a 0.188 MG/ML,45775147,peginterferon beta-1a 0.188 MG/ML,Clinical Drug Comp
+1732,Peginterferon beta-1a,1546168,1546180,SCDC,peginterferon beta-1a 0.126 MG/ML,45775156,peginterferon beta-1a 0.126 MG/ML,Clinical Drug Comp
+1733,Peginterferon beta-1a,1546168,1546186,SCDC,peginterferon beta-1a 0.25 MG/ML,45775162,peginterferon beta-1a 0.25 MG/ML,Clinical Drug Comp
+1734,Peginterferon beta-1a,1546168,1546171,SCDF,peginterferon beta-1a Prefilled Syringe,45775148,peginterferon beta-1a Prefilled Syringe,Clinical Drug Form
+1735,Peginterferon beta-1a,1546168,1649590,SCDF,peginterferon beta-1a Auto-Injector,46234472,peginterferon beta-1a Auto-Injector,Clinical Drug Form
+1736,Peginterferon beta-1a,1546168,1546170,SCDG,peginterferon beta-1a Injectable Product,36247000,peginterferon beta-1a Injectable Product,Clinical Dose Group
+1737,Sacubitril / Valsartan (Entresto),1656341,1656341,BN,Entresto,46275726,Entresto,Brand Name
+1738,Sacubitril / Valsartan (Entresto),1656341,317541,DF,Oral Tablet,19082573,Oral Tablet,Dose Form
+1739,Sacubitril / Valsartan (Entresto),1656341,1151131,DFG,Oral Product,36217214,Oral Product,Dose Form Group
+1740,Sacubitril / Valsartan (Entresto),1656341,1151133,DFG,Pill,36217216,Pill,Dose Form Group
+1741,Sacubitril / Valsartan (Entresto),1656341,1656328,IN,sacubitril,46275719,sacubitril,Ingredient
+1742,Sacubitril / Valsartan (Entresto),1656341,69749,IN,valsartan,1308842,valsartan,Ingredient
+1743,Sacubitril / Valsartan (Entresto),1656341,1656339,MIN,sacubitril / valsartan,778939,sacubitril / valsartan,Multiple Ingredients
+1744,Sacubitril / Valsartan (Entresto),1656341,1656346,SBD,sacubitril 24 MG / valsartan 26 MG Oral Tablet [Entresto],46275729,sacubitril 24 MG / valsartan 26 MG Oral Tablet [Entresto],Branded Drug
+1745,Sacubitril / Valsartan (Entresto),1656341,1656351,SBD,sacubitril 49 MG / valsartan 51 MG Oral Tablet [Entresto],46275734,sacubitril 49 MG / valsartan 51 MG Oral Tablet [Entresto],Branded Drug
+1746,Sacubitril / Valsartan (Entresto),1656341,1656356,SBD,sacubitril 97 MG / valsartan 103 MG Oral Tablet [Entresto],46275811,sacubitril 97 MG / valsartan 103 MG Oral Tablet [Entresto],Branded Drug
+1747,Sacubitril / Valsartan (Entresto),1656341,1656342,SBDC,sacubitril 24 MG / valsartan 26 MG [Entresto],46275727,sacubitril 24 MG / valsartan 26 MG [Entresto],Branded Drug Comp
+1748,Sacubitril / Valsartan (Entresto),1656341,1656350,SBDC,sacubitril 49 MG / valsartan 51 MG [Entresto],46275733,sacubitril 49 MG / valsartan 51 MG [Entresto],Branded Drug Comp
+1749,Sacubitril / Valsartan (Entresto),1656341,1656355,SBDC,sacubitril 97 MG / valsartan 103 MG [Entresto],46275810,sacubitril 97 MG / valsartan 103 MG [Entresto],Branded Drug Comp
+1750,Sacubitril / Valsartan (Entresto),1656341,1656343,SBDF,sacubitril / valsartan Oral Tablet [Entresto],46275728,sacubitril / valsartan Oral Tablet [Entresto],Branded Drug Form
+1751,Sacubitril / Valsartan (Entresto),1656341,1656344,SBDG,Entresto Oral Product,36248679,Entresto Oral Product,Branded Dose Group
+1752,Sacubitril / Valsartan (Entresto),1656341,1656345,SBDG,Entresto Pill,36248680,Entresto Pill,Branded Dose Group
+1753,Sacubitril / Valsartan (Entresto),1656341,1656340,SCD,sacubitril 24 MG / valsartan 26 MG Oral Tablet,46275725,sacubitril 24 MG / valsartan 26 MG Oral Tablet,Clinical Drug
+1754,Sacubitril / Valsartan (Entresto),1656341,1656349,SCD,sacubitril 49 MG / valsartan 51 MG Oral Tablet,46275732,sacubitril 49 MG / valsartan 51 MG Oral Tablet,Clinical Drug
+1755,Sacubitril / Valsartan (Entresto),1656341,1656354,SCD,sacubitril 97 MG / valsartan 103 MG Oral Tablet,46275809,sacubitril 97 MG / valsartan 103 MG Oral Tablet,Clinical Drug
+1756,Sacubitril / Valsartan (Entresto),1656341,1656334,SCDC,sacubitril 24 MG,46275722,sacubitril 24 MG,Clinical Drug Comp
+1757,Sacubitril / Valsartan (Entresto),1656341,1656335,SCDC,valsartan 26 MG,46275723,valsartan 26 MG,Clinical Drug Comp
+1758,Sacubitril / Valsartan (Entresto),1656341,1656347,SCDC,sacubitril 49 MG,46275730,sacubitril 49 MG,Clinical Drug Comp
+1759,Sacubitril / Valsartan (Entresto),1656341,1656348,SCDC,valsartan 51 MG,46275731,valsartan 51 MG,Clinical Drug Comp
+1760,Sacubitril / Valsartan (Entresto),1656341,1656352,SCDC,sacubitril 97 MG,46275735,sacubitril 97 MG,Clinical Drug Comp
+1761,Sacubitril / Valsartan (Entresto),1656341,1656353,SCDC,valsartan 103 MG,46275808,valsartan 103 MG,Clinical Drug Comp
+1762,Sacubitril / Valsartan (Entresto),1656341,1656338,SCDF,sacubitril / valsartan Oral Tablet,46275724,sacubitril / valsartan Oral Tablet,Clinical Drug Form
+1763,Sacubitril / Valsartan (Entresto),1656341,1656336,SCDG,sacubitril / valsartan Oral Product,36248677,sacubitril / valsartan Oral Product,Clinical Dose Group
+1764,Sacubitril / Valsartan (Entresto),1656341,1656337,SCDG,sacubitril / valsartan Pill,36248678,sacubitril / valsartan Pill,Clinical Dose Group
+1765,Casirivimab,2465242,2557243,BN,Regen-Cov,1537108,Regen-Cov,Brand Name
+1766,Casirivimab,2465242,2479150,BPCK,{1 (11.1 ML casirivimab 120 MG/ML Injection) / 1 (11.1 ML imdevimab 120 MG/ML Injection) } Pack [REGEN-COV 1/1],740220,{1 (11.1 ML casirivimab 120 MG/ML Injection) / 1 (11.1 ML imdevimab 120 MG/ML Injection) } Pack [REGEN-COV 1/1],Branded Pack
+1767,Casirivimab,2465242,2479154,BPCK,{4 (2.5 ML casirivimab 120 MG/ML Injection) / 4 (2.5 ML imdevimab 120 MG/ML Injection) } Pack [REGEN-COV 4/4],740222,{4 (2.5 ML casirivimab 120 MG/ML Injection) / 4 (2.5 ML imdevimab 120 MG/ML Injection) } Pack [REGEN-COV 4/4],Branded Pack
+1768,Casirivimab,2465242,2479156,BPCK,{1 (11.1 ML imdevimab 120 MG/ML Injection) / 4 (2.5 ML casirivimab 120 MG/ML Injection) } Pack [REGEN-COV 4/1],740224,{1 (11.1 ML imdevimab 120 MG/ML Injection) / 4 (2.5 ML casirivimab 120 MG/ML Injection) } Pack [REGEN-COV 4/1],Branded Pack
+1769,Casirivimab,2465242,2479159,BPCK,{1 (11.1 ML casirivimab 120 MG/ML Injection) / 4 (2.5 ML imdevimab 120 MG/ML Injection) } Pack [REGEN-COV 1/4],740226,{1 (11.1 ML casirivimab 120 MG/ML Injection) / 4 (2.5 ML imdevimab 120 MG/ML Injection) } Pack [REGEN-COV 1/4],Branded Pack
+1770,Casirivimab,2465242,1649574,DF,Injection,46234469,Injection,Dose Form
+1771,Casirivimab,2465242,1151126,DFG,Injectable Product,36217210,Injectable Product,Dose Form Group
+1772,Casirivimab,2465242,2479149,GPCK,{1 (11.1 ML casirivimab 120 MG/ML Injection) / 1 (11.1 ML imdevimab 120 MG/ML Injection) } Pack,740219,{1 (11.1 ML casirivimab 120 MG/ML Injection) / 1 (11.1 ML imdevimab 120 MG/ML Injection) } Pack,Clinical Pack
+1773,Casirivimab,2465242,2479153,GPCK,{4 (2.5 ML casirivimab 120 MG/ML Injection) / 4 (2.5 ML imdevimab 120 MG/ML Injection) } Pack,740221,{4 (2.5 ML casirivimab 120 MG/ML Injection) / 4 (2.5 ML imdevimab 120 MG/ML Injection) } Pack,Clinical Pack
+1774,Casirivimab,2465242,2479155,GPCK,{1 (11.1 ML imdevimab 120 MG/ML Injection) / 4 (2.5 ML casirivimab 120 MG/ML Injection) } Pack,740223,{1 (11.1 ML imdevimab 120 MG/ML Injection) / 4 (2.5 ML casirivimab 120 MG/ML Injection) } Pack,Clinical Pack
+1775,Casirivimab,2465242,2479158,GPCK,{1 (11.1 ML casirivimab 120 MG/ML Injection) / 4 (2.5 ML imdevimab 120 MG/ML Injection) } Pack,740225,{1 (11.1 ML casirivimab 120 MG/ML Injection) / 4 (2.5 ML imdevimab 120 MG/ML Injection) } Pack,Clinical Pack
+1776,Casirivimab,2465242,2571851,GPCK,{1 (2.5 ML casirivimab 120 MG/ML Injection) / 1 (2.5 ML imdevimab 120 MG/ML Injection) } Pack,702574,{1 (2.5 ML casirivimab 120 MG/ML Injection) / 1 (2.5 ML imdevimab 120 MG/ML Injection) } Pack,Clinical Pack
+1777,Casirivimab,2465242,2465242,IN,casirivimab,37003288,casirivimab,Ingredient
+1778,Casirivimab,2465242,2557234,MIN,casirivimab / imdevimab,779055,casirivimab / imdevimab,Multiple Ingredients
+1779,Casirivimab,2465242,2557244,SBD,10 ML casirivimab 60 MG/ML / imdevimab 60 MG/ML Injection [Regen-Cov],1537610,10 ML casirivimab 60 MG/ML / imdevimab 60 MG/ML Injection [Regen-Cov],Quant Branded Drug
+1780,Casirivimab,2465242,2557238,SBDC,casirivimab 60 MG/ML / imdevimab 60 MG/ML [Regen-Cov],1537103,casirivimab 60 MG/ML / imdevimab 60 MG/ML [Regen-Cov],Branded Drug Comp
+1781,Casirivimab,2465242,2557241,SBDF,casirivimab / imdevimab Injection [Regen-Cov],1537106,casirivimab / imdevimab Injection [Regen-Cov],Branded Drug Form
+1782,Casirivimab,2465242,2557236,SBDG,Regen-Cov Injectable Product,1537101,Regen-Cov Injectable Product,Branded Dose Group
+1783,Casirivimab,2465242,2465246,SCD,11.1 ML casirivimab 120 MG/ML Injection,37003640,11.1 ML casirivimab 120 MG/ML Injection,Quant Clinical Drug
+1784,Casirivimab,2465242,2465248,SCD,2.5 ML casirivimab 120 MG/ML Injection,37003641,2.5 ML casirivimab 120 MG/ML Injection,Quant Clinical Drug
+1785,Casirivimab,2465242,2557245,SCD,10 ML casirivimab 60 MG/ML / imdevimab 60 MG/ML Injection,1537611,10 ML casirivimab 60 MG/ML / imdevimab 60 MG/ML Injection,Quant Clinical Drug
+1786,Casirivimab,2465242,2465243,SCDC,casirivimab 120 MG/ML,37003289,casirivimab 120 MG/ML,Clinical Drug Comp
+1787,Casirivimab,2465242,2557235,SCDC,casirivimab 60 MG/ML,1537100,casirivimab 60 MG/ML,Clinical Drug Comp
+1788,Casirivimab,2465242,2465245,SCDF,casirivimab Injection,37003291,casirivimab Injection,Clinical Drug Form
+1789,Casirivimab,2465242,2557237,SCDF,casirivimab / imdevimab Injection,1537102,casirivimab / imdevimab Injection,Clinical Drug Form
+1790,Casirivimab,2465242,2465244,SCDG,casirivimab Injectable Product,37003290,casirivimab Injectable Product,Clinical Dose Group
+1791,Casirivimab,2465242,2556915,SCDG,casirivimab / imdevimab Injectable Product,1537071,casirivimab / imdevimab Injectable Product,Clinical Dose Group
+1792,Tocilizumab (Actemra),895761,895761,BN,Actemra,40169365,Actemra,Brand Name
+1793,Tocilizumab (Actemra),895761,1649570,DF,Auto-Injector,46234466,Auto-Injector,Dose Form
+1794,Tocilizumab (Actemra),895761,1649574,DF,Injection,46234469,Injection,Dose Form
+1795,Tocilizumab (Actemra),895761,721656,DF,Prefilled Syringe,19126920,Prefilled Syringe,Dose Form
+1796,Tocilizumab (Actemra),895761,1151126,DFG,Injectable Product,36217210,Injectable Product,Dose Form Group
+1797,Tocilizumab (Actemra),895761,612865,IN,tocilizumab,40171288,tocilizumab,Ingredient
+1798,Tocilizumab (Actemra),895761,1441530,SBD,0.9 ML tocilizumab 180 MG/ML Prefilled Syringe [Actemra],44507562,0.9 ML tocilizumab 180 MG/ML Prefilled Syringe [Actemra],Quant Branded Drug
+1799,Tocilizumab (Actemra),895761,1657976,SBD,4 ML tocilizumab 20 MG/ML Injection [Actemra],46275118,4 ML tocilizumab 20 MG/ML Injection [Actemra],Quant Branded Drug
+1800,Tocilizumab (Actemra),895761,1657980,SBD,10 ML tocilizumab 20 MG/ML Injection [Actemra],46275122,10 ML tocilizumab 20 MG/ML Injection [Actemra],Quant Branded Drug
+1801,Tocilizumab (Actemra),895761,1657982,SBD,20 ML tocilizumab 20 MG/ML Injection [Actemra],46275124,20 ML tocilizumab 20 MG/ML Injection [Actemra],Quant Branded Drug
+1802,Tocilizumab (Actemra),895761,2106075,SBD,0.9 ML tocilizumab 180 MG/ML Auto-Injector [Actemra],1356448,0.9 ML tocilizumab 180 MG/ML Auto-Injector [Actemra],Quant Branded Drug
+1803,Tocilizumab (Actemra),895761,1441528,SBDC,tocilizumab 180 MG/ML [Actemra],44507704,tocilizumab 180 MG/ML [Actemra],Branded Drug Comp
+1804,Tocilizumab (Actemra),895761,895762,SBDC,tocilizumab 20 MG/ML [Actemra],40171292,tocilizumab 20 MG/ML [Actemra],Branded Drug Comp
+1805,Tocilizumab (Actemra),895761,1441529,SBDF,tocilizumab Prefilled Syringe [Actemra],44507706,tocilizumab Prefilled Syringe [Actemra],Branded Drug Form
+1806,Tocilizumab (Actemra),895761,1657975,SBDF,tocilizumab Injection [Actemra],46275117,tocilizumab Injection [Actemra],Branded Drug Form
+1807,Tocilizumab (Actemra),895761,2106074,SBDF,tocilizumab Auto-Injector [Actemra],1355865,tocilizumab Auto-Injector [Actemra],Branded Drug Form
+1808,Tocilizumab (Actemra),895761,1169167,SBDG,Actemra Injectable Product,36234021,Actemra Injectable Product,Branded Dose Group
+1809,Tocilizumab (Actemra),895761,1441527,SCD,0.9 ML tocilizumab 180 MG/ML Prefilled Syringe,44507566,0.9 ML tocilizumab 180 MG/ML Prefilled Syringe,Quant Clinical Drug
+1810,Tocilizumab (Actemra),895761,1657974,SCD,4 ML tocilizumab 20 MG/ML Injection,46275116,4 ML tocilizumab 20 MG/ML Injection,Quant Clinical Drug
+1811,Tocilizumab (Actemra),895761,1657979,SCD,10 ML tocilizumab 20 MG/ML Injection,46275121,10 ML tocilizumab 20 MG/ML Injection,Quant Clinical Drug
+1812,Tocilizumab (Actemra),895761,1657981,SCD,20 ML tocilizumab 20 MG/ML Injection,46275123,20 ML tocilizumab 20 MG/ML Injection,Quant Clinical Drug
+1813,Tocilizumab (Actemra),895761,2106073,SCD,0.9 ML tocilizumab 180 MG/ML Auto-Injector,1356447,0.9 ML tocilizumab 180 MG/ML Auto-Injector,Quant Clinical Drug
+1814,Tocilizumab (Actemra),895761,1441525,SCDC,tocilizumab 180 MG/ML,44507701,tocilizumab 180 MG/ML,Clinical Drug Comp
+1815,Tocilizumab (Actemra),895761,895758,SCDC,tocilizumab 20 MG/ML,40171289,tocilizumab 20 MG/ML,Clinical Drug Comp
+1816,Tocilizumab (Actemra),895761,1441526,SCDF,tocilizumab Prefilled Syringe,44507705,tocilizumab Prefilled Syringe,Clinical Drug Form
+1817,Tocilizumab (Actemra),895761,1657973,SCDF,tocilizumab Injection,46275115,tocilizumab Injection,Clinical Drug Form
+1818,Tocilizumab (Actemra),895761,2106072,SCDF,tocilizumab Auto-Injector,1355864,tocilizumab Auto-Injector,Clinical Drug Form
+1819,Tocilizumab (Actemra),895761,1162729,SCDG,tocilizumab Injectable Product,36225461,tocilizumab Injectable Product,Clinical Dose Group
+1820,baricitinib (Olumiant),2047232,2047242,BN,Olumiant,1510633,Olumiant,Brand Name
+1821,baricitinib (Olumiant),2047232,317541,DF,Oral Tablet,19082573,Oral Tablet,Dose Form
+1822,baricitinib (Olumiant),2047232,1151131,DFG,Oral Product,36217214,Oral Product,Dose Form Group
+1823,baricitinib (Olumiant),2047232,1151133,DFG,Pill,36217216,Pill,Dose Form Group
+1824,baricitinib (Olumiant),2047232,2047232,IN,baricitinib,1510627,baricitinib,Ingredient
+1825,baricitinib (Olumiant),2047232,2047247,SBD,baricitinib 2 MG Oral Tablet [Olumiant],1510638,baricitinib 2 MG Oral Tablet [Olumiant],Branded Drug
+1826,baricitinib (Olumiant),2047232,2205474,SBD,baricitinib 1 MG Oral Tablet [Olumiant],37497355,baricitinib 1 MG Oral Tablet [Olumiant],Branded Drug
+1827,baricitinib (Olumiant),2047232,2601725,SBD,baricitinib 4 MG Oral Tablet [Olumiant],779707,baricitinib 4 MG Oral Tablet [Olumiant],Branded Drug
+1828,baricitinib (Olumiant),2047232,2047243,SBDC,baricitinib 2 MG [Olumiant],1510634,baricitinib 2 MG [Olumiant],Branded Drug Comp
+1829,baricitinib (Olumiant),2047232,2205473,SBDC,baricitinib 1 MG [Olumiant],37497354,baricitinib 1 MG [Olumiant],Branded Drug Comp
+1830,baricitinib (Olumiant),2047232,2601724,SBDC,baricitinib 4 MG [Olumiant],779706,baricitinib 4 MG [Olumiant],Branded Drug Comp
+1831,baricitinib (Olumiant),2047232,2047244,SBDF,baricitinib Oral Tablet [Olumiant],1510635,baricitinib Oral Tablet [Olumiant],Branded Drug Form
+1832,baricitinib (Olumiant),2047232,2047245,SBDG,Olumiant Oral Product,1510636,Olumiant Oral Product,Branded Dose Group
+1833,baricitinib (Olumiant),2047232,2047246,SBDG,Olumiant Pill,1510637,Olumiant Pill,Branded Dose Group
+1834,baricitinib (Olumiant),2047232,2047241,SCD,baricitinib 2 MG Oral Tablet,1510632,baricitinib 2 MG Oral Tablet,Clinical Drug
+1835,baricitinib (Olumiant),2047232,2205472,SCD,baricitinib 1 MG Oral Tablet,37497353,baricitinib 1 MG Oral Tablet,Clinical Drug
+1836,baricitinib (Olumiant),2047232,2588561,SCD,baricitinib 4 MG Oral Tablet,1758613,baricitinib 4 MG Oral Tablet,Clinical Drug
+1837,baricitinib (Olumiant),2047232,2047237,SCDC,baricitinib 2 MG,1510628,baricitinib 2 MG,Clinical Drug Comp
+1838,baricitinib (Olumiant),2047232,2205471,SCDC,baricitinib 1 MG,37497352,baricitinib 1 MG,Clinical Drug Comp
+1839,baricitinib (Olumiant),2047232,2588560,SCDC,baricitinib 4 MG,1758612,baricitinib 4 MG,Clinical Drug Comp
+1840,baricitinib (Olumiant),2047232,2047240,SCDF,baricitinib Oral Tablet,1510631,baricitinib Oral Tablet,Clinical Drug Form
+1841,baricitinib (Olumiant),2047232,2047238,SCDG,baricitinib Oral Product,1510629,baricitinib Oral Product,Clinical Dose Group
+1842,baricitinib (Olumiant),2047232,2047239,SCDG,baricitinib Pill,1510630,baricitinib Pill,Clinical Dose Group
+1843,[DM] Insulin,253182,1372723,BN,Novolin,43525509,Novolin,Brand Name
+1844,[DM] Insulin,253182,1372744,BN,Humulin,43525530,Humulin,Brand Name
+1845,[DM] Insulin,253182,1543203,BN,Afrezza,45776622,Afrezza,Brand Name
+1846,[DM] Insulin,253182,2179745,BN,Myxredlin,1361260,Myxredlin,Brand Name
+1847,[DM] Insulin,253182,92881,BN,Humulin R,19062457,Humulin R,Brand Name
+1848,[DM] Insulin,253182,93560,BN,Novolin R,19063034,Novolin R,Brand Name
+1849,[DM] Insulin,253182,1798388,BPCK,"{90 (insulin, regular, human 4 UNT Inhalation Powder [Afrezza]) / 90 (insulin, regular, human 8 UNT Inhalation Powder [Afrezza]) } Pack [Afrezza Titration Pack]",36249657,"{90 (insulin, regular, human 4 UNT Inhalation Powder [Afrezza]) / 90 (insulin, regular, human 8 UNT Inhalation Powder [Afrezza]) } Pack [Afrezza Titration Pack]",Branded Pack
+1850,[DM] Insulin,253182,1862102,BPCK,"{60 (insulin, regular, human 12 UNT Inhalation Powder [Afrezza]) / 60 (insulin, regular, human 4 UNT Inhalation Powder [Afrezza]) / 60 (insulin, regular, human 8 UNT Inhalation Powder [Afrezza]) } Pack [Afrezza 180 Titration Pack- 60 (4 UNT), 60 (8 UNT), 60 (12 UNT)]",1718889,"{60 (insulin, regular, human 12 UNT Inhalation Powder [Afrezza]) / 60 (insulin, regular, human 4 UNT Inhalation Powder [Afrezza]) / 60 (insulin, regular, human 8 UNT Inhalation Powder [Afrezza]) } Pack [Afrezza 180 Titration Pack- 60 (4 UNT), 60 (8 UNT...",Branded Pack
+1851,[DM] Insulin,253182,2100029,BPCK,"{90 (insulin, regular, human 12 UNT Inhalation Powder [Afrezza]) / 90 (insulin, regular, human 8 UNT Inhalation Powder [Afrezza]) } Pack [Afrezza 180 - 90 (8 UNT), 90 (12 UNT)]",35201904,"{90 (insulin, regular, human 12 UNT Inhalation Powder [Afrezza]) / 90 (insulin, regular, human 8 UNT Inhalation Powder [Afrezza]) } Pack [Afrezza 180 - 90 (8 UNT), 90 (12 UNT)]",Branded Pack
+1852,[DM] Insulin,253182,1649571,DF,Pen Injector,46234467,Pen Injector,Dose Form
+1853,[DM] Insulin,253182,1649574,DF,Injection,46234469,Injection,Dose Form
+1854,[DM] Insulin,253182,316949,DF,Injectable Solution,19082103,Injectable Solution,Dose Form
+1855,[DM] Insulin,253182,316950,DF,Injectable Suspension,19082104,Injectable Suspension,Dose Form
+1856,[DM] Insulin,253182,317000,DF,Inhalation Powder,19082259,Inhalation Powder,Dose Form
+1857,[DM] Insulin,253182,1151123,DFG,Inhalant Product,36217207,Inhalant Product,Dose Form Group
+1858,[DM] Insulin,253182,1151126,DFG,Injectable Product,36217210,Injectable Product,Dose Form Group
+1859,[DM] Insulin,253182,1798387,GPCK,"{90 (insulin, regular, human 4 UNT Inhalation Powder) / 90 (insulin, regular, human 8 UNT Inhalation Powder) } Pack",36249546,"{90 (insulin, regular, human 4 UNT Inhalation Powder) / 90 (insulin, regular, human 8 UNT Inhalation Powder) } Pack",Clinical Pack
+1860,[DM] Insulin,253182,1862101,GPCK,"{60 (insulin, regular, human 12 UNT Inhalation Powder) / 60 (insulin, regular, human 4 UNT Inhalation Powder) / 60 (insulin, regular, human 8 UNT Inhalation Powder) } Pack",1718876,"{60 (insulin, regular, human 12 UNT Inhalation Powder) / 60 (insulin, regular, human 4 UNT Inhalation Powder) / 60 (insulin, regular, human 8 UNT Inhalation Powder) } Pack",Clinical Pack
+1861,[DM] Insulin,253182,2100028,GPCK,"{90 (insulin, regular, human 12 UNT Inhalation Powder) / 90 (insulin, regular, human 8 UNT Inhalation Powder) } Pack",35201903,"{90 (insulin, regular, human 12 UNT Inhalation Powder) / 90 (insulin, regular, human 8 UNT Inhalation Powder) } Pack",Clinical Pack
+1862,[DM] Insulin,253182,253182,IN,"insulin, regular, human",1596977,"insulin, regular, human",Ingredient
+1863,[DM] Insulin,253182,1008501,MIN,"insulin isophane / insulin, regular, human",36028581,"insulin isophane / insulin, regular, human",Multiple Ingredients
+1864,[DM] Insulin,253182,106892,SBD,"insulin isophane, human 70 UNT/ML / insulin, regular, human 30 UNT/ML Injectable Suspension [Humulin]",19009384,"insulin isophane, human 70 UNT/ML / insulin, regular, human 30 UNT/ML Injectable Suspension [Humulin]",Branded Drug
+1865,[DM] Insulin,253182,1543207,SBD,"insulin, regular, human 4 UNT Inhalation Powder [Afrezza]",45776625,"insulin, regular, human 4 UNT Inhalation Powder [Afrezza]",Branded Drug
+1866,[DM] Insulin,253182,1544490,SBD,"insulin, regular, human 8 UNT Inhalation Powder [Afrezza]",45774400,"insulin, regular, human 8 UNT Inhalation Powder [Afrezza]",Branded Drug
+1867,[DM] Insulin,253182,1654912,SBD,"insulin, regular, human 12 UNT Inhalation Powder [Afrezza]",46234244,"insulin, regular, human 12 UNT Inhalation Powder [Afrezza]",Branded Drug
+1868,[DM] Insulin,253182,1731317,SBD,"3 ML insulin, regular, human 500 UNT/ML Pen Injector [Humulin R]",35605622,"3 ML insulin, regular, human 500 UNT/ML Pen Injector [Humulin R]",Quant Branded Drug
+1869,[DM] Insulin,253182,2049380,SBD,"3 ML insulin isophane, human 70 UNT/ML / insulin, regular, human 30 UNT/ML Pen Injector [Novolin]",1560168,"3 ML insulin isophane, human 70 UNT/ML / insulin, regular, human 30 UNT/ML Pen Injector [Novolin]",Quant Branded Drug
+1870,[DM] Insulin,253182,213442,SBD,"insulin isophane, human 70 UNT/ML / insulin, regular, human 30 UNT/ML Injectable Suspension [Novolin]",1596916,"insulin isophane, human 70 UNT/ML / insulin, regular, human 30 UNT/ML Injectable Suspension [Novolin]",Branded Drug
+1871,[DM] Insulin,253182,2179749,SBD,"100 ML insulin, regular, human 1 UNT/ML Injection [Myxredlin]",1361676,"100 ML insulin, regular, human 1 UNT/ML Injection [Myxredlin]",Quant Branded Drug
+1872,[DM] Insulin,253182,2206092,SBD,"3 ML insulin, regular, human 100 UNT/ML Pen Injector [Novolin R]",37499745,"3 ML insulin, regular, human 100 UNT/ML Pen Injector [Novolin R]",Quant Branded Drug
+1873,[DM] Insulin,253182,311033,SBD,"insulin, regular, human 100 UNT/ML Injectable Solution [Novolin R]",19078554,"insulin, regular, human 100 UNT/ML Injectable Solution [Novolin R]",Branded Drug
+1874,[DM] Insulin,253182,311036,SBD,"insulin, regular, human 100 UNT/ML Injectable Solution [Humulin R]",19078557,"insulin, regular, human 100 UNT/ML Injectable Solution [Humulin R]",Branded Drug
+1875,[DM] Insulin,253182,351859,SBD,"insulin, regular, human 500 UNT/ML Injectable Solution [Humulin R]",1596999,"insulin, regular, human 500 UNT/ML Injectable Solution [Humulin R]",Branded Drug
+1876,[DM] Insulin,253182,847189,SBD,"3 ML insulin isophane, human 70 UNT/ML / insulin, regular, human 30 UNT/ML Pen Injector [Humulin]",1596957,"3 ML insulin isophane, human 70 UNT/ML / insulin, regular, human 30 UNT/ML Pen Injector [Humulin]",Quant Branded Drug
+1877,[DM] Insulin,253182,1650260,SBDC,"insulin, regular, human 4 UNT [Afrezza]",46233729,"insulin, regular, human 4 UNT [Afrezza]",Branded Drug Comp
+1878,[DM] Insulin,253182,1650264,SBDC,"insulin, regular, human 8 UNT [Afrezza]",46233731,"insulin, regular, human 8 UNT [Afrezza]",Branded Drug Comp
+1879,[DM] Insulin,253182,1654911,SBDC,"insulin, regular, human 12 UNT [Afrezza]",46234243,"insulin, regular, human 12 UNT [Afrezza]",Branded Drug Comp
+1880,[DM] Insulin,253182,2179746,SBDC,"insulin, regular, human 1 UNT/ML [Myxredlin]",1361261,"insulin, regular, human 1 UNT/ML [Myxredlin]",Branded Drug Comp
+1881,[DM] Insulin,253182,573330,SBDC,"insulin isophane, human 70 UNT/ML / insulin, regular, human 30 UNT/ML [Humulin]",19120315,"insulin isophane, human 70 UNT/ML / insulin, regular, human 30 UNT/ML [Humulin]",Branded Drug Comp
+1882,[DM] Insulin,253182,573331,SBDC,"insulin isophane, human 70 UNT/ML / insulin, regular, human 30 UNT/ML [Novolin]",19062999,"insulin isophane, human 70 UNT/ML / insulin, regular, human 30 UNT/ML [Novolin]",Branded Drug Comp
+1883,[DM] Insulin,253182,575146,SBDC,"insulin, regular, human 100 UNT/ML [Novolin R]",19063035,"insulin, regular, human 100 UNT/ML [Novolin R]",Branded Drug Comp
+1884,[DM] Insulin,253182,575148,SBDC,"insulin, regular, human 100 UNT/ML [Humulin R]",19062458,"insulin, regular, human 100 UNT/ML [Humulin R]",Branded Drug Comp
+1885,[DM] Insulin,253182,575628,SBDC,"insulin, regular, human 500 UNT/ML [Humulin R]",19062459,"insulin, regular, human 500 UNT/ML [Humulin R]",Branded Drug Comp
+1886,[DM] Insulin,253182,1654855,SBDF,"insulin isophane / insulin, regular, human Pen Injector [Humulin]",46234233,"insulin isophane / insulin, regular, human Pen Injector [Humulin]",Branded Drug Form
+1887,[DM] Insulin,253182,1731316,SBDF,"insulin, regular, human Pen Injector [Humulin R]",35605621,"insulin, regular, human Pen Injector [Humulin R]",Branded Drug Form
+1888,[DM] Insulin,253182,2049379,SBDF,"insulin isophane / insulin, regular, human Pen Injector [Novolin]",1560004,"insulin isophane / insulin, regular, human Pen Injector [Novolin]",Branded Drug Form
+1889,[DM] Insulin,253182,2108527,SBDF,"insulin, regular, human Inhalation Powder [Afrezza]",1356242,"insulin, regular, human Inhalation Powder [Afrezza]",Branded Drug Form
+1890,[DM] Insulin,253182,2179747,SBDF,"insulin, regular, human Injection [Myxredlin]",1361262,"insulin, regular, human Injection [Myxredlin]",Branded Drug Form
+1891,[DM] Insulin,253182,2206091,SBDF,"insulin, regular, human Pen Injector [Novolin R]",37497419,"insulin, regular, human Pen Injector [Novolin R]",Branded Drug Form
+1892,[DM] Insulin,253182,362622,SBDF,"insulin, regular, human Injectable Solution [Humulin R]",40052771,"insulin, regular, human Injectable Solution [Humulin R]",Branded Drug Form
+1893,[DM] Insulin,253182,363221,SBDF,"insulin, regular, human Injectable Solution [Novolin R]",40052773,"insulin, regular, human Injectable Solution [Novolin R]",Branded Drug Form
+1894,[DM] Insulin,253182,365672,SBDF,"insulin isophane / insulin, regular, human Injectable Suspension [Novolin]",40051689,"insulin isophane / insulin, regular, human Injectable Suspension [Novolin]",Branded Drug Form
+1895,[DM] Insulin,253182,365679,SBDF,"insulin isophane / insulin, regular, human Injectable Suspension [Humulin]",40051382,"insulin isophane / insulin, regular, human Injectable Suspension [Humulin]",Branded Drug Form
+1896,[DM] Insulin,253182,1171997,SBDG,Humulin Injectable Product,36233552,Humulin Injectable Product,Branded Dose Group
+1897,[DM] Insulin,253182,1172692,SBDG,Humulin R Injectable Product,36235841,Humulin R Injectable Product,Branded Dose Group
+1898,[DM] Insulin,253182,1178125,SBDG,Novolin Injectable Product,36231456,Novolin Injectable Product,Branded Dose Group
+1899,[DM] Insulin,253182,1178128,SBDG,Novolin R Injectable Product,36231459,Novolin R Injectable Product,Branded Dose Group
+1900,[DM] Insulin,253182,1543206,SBDG,Afrezza Inhalant Product,36247261,Afrezza Inhalant Product,Branded Dose Group
+1901,[DM] Insulin,253182,2179748,SBDG,Myxredlin Injectable Product,1361263,Myxredlin Injectable Product,Branded Dose Group
+1902,[DM] Insulin,253182,1543202,SCD,"insulin, regular, human 4 UNT Inhalation Powder",45776621,"insulin, regular, human 4 UNT Inhalation Powder",Clinical Drug
+1903,[DM] Insulin,253182,1544488,SCD,"insulin, regular, human 8 UNT Inhalation Powder",45774398,"insulin, regular, human 8 UNT Inhalation Powder",Clinical Drug
+1904,[DM] Insulin,253182,1654910,SCD,"insulin, regular, human 12 UNT Inhalation Powder",46234242,"insulin, regular, human 12 UNT Inhalation Powder",Clinical Drug
+1905,[DM] Insulin,253182,1731315,SCD,"3 ML insulin, regular, human 500 UNT/ML Pen Injector",35605620,"3 ML insulin, regular, human 500 UNT/ML Pen Injector",Quant Clinical Drug
+1906,[DM] Insulin,253182,2179744,SCD,"100 ML insulin, regular, human 1 UNT/ML Injection",1361675,"100 ML insulin, regular, human 1 UNT/ML Injection",Quant Clinical Drug
+1907,[DM] Insulin,253182,2206090,SCD,"3 ML insulin, regular, human 100 UNT/ML Pen Injector",37499744,"3 ML insulin, regular, human 100 UNT/ML Pen Injector",Quant Clinical Drug
+1908,[DM] Insulin,253182,245264,SCD,"insulin isophane, human 85 UNT/ML / insulin, regular, human 15 UNT/ML Injectable Suspension",1596917,"insulin isophane, human 85 UNT/ML / insulin, regular, human 15 UNT/ML Injectable Suspension",Clinical Drug
+1909,[DM] Insulin,253182,245265,SCD,"insulin isophane, human 50 UNT/ML / insulin, regular, human 50 UNT/ML Injectable Suspension",1596918,"insulin isophane, human 50 UNT/ML / insulin, regular, human 50 UNT/ML Injectable Suspension",Clinical Drug
+1910,[DM] Insulin,253182,247511,SCD,"insulin isophane, human 90 UNT/ML / insulin, regular, human 10 UNT/ML Injectable Suspension",1596919,"insulin isophane, human 90 UNT/ML / insulin, regular, human 10 UNT/ML Injectable Suspension",Clinical Drug
+1911,[DM] Insulin,253182,247512,SCD,"insulin isophane, human 80 UNT/ML / insulin, regular, human 20 UNT/ML Injectable Suspension",1596920,"insulin isophane, human 80 UNT/ML / insulin, regular, human 20 UNT/ML Injectable Suspension",Clinical Drug
+1912,[DM] Insulin,253182,247513,SCD,"insulin isophane, human 60 UNT/ML / insulin, regular, human 40 UNT/ML Injectable Suspension",1596921,"insulin isophane, human 60 UNT/ML / insulin, regular, human 40 UNT/ML Injectable Suspension",Clinical Drug
+1913,[DM] Insulin,253182,249220,SCD,"insulin, regular, human 500 UNT/ML Injectable Solution",19061670,"insulin, regular, human 500 UNT/ML Injectable Solution",Clinical Drug
+1914,[DM] Insulin,253182,311034,SCD,"insulin, regular, human 100 UNT/ML Injectable Solution",19078555,"insulin, regular, human 100 UNT/ML Injectable Solution",Clinical Drug
+1915,[DM] Insulin,253182,311048,SCD,"insulin isophane, human 70 UNT/ML / insulin, regular, human 30 UNT/ML Injectable Suspension",19078603,"insulin isophane, human 70 UNT/ML / insulin, regular, human 30 UNT/ML Injectable Suspension",Clinical Drug
+1916,[DM] Insulin,253182,392660,SCD,"insulin isophane, human 75 UNT/ML / insulin, regular, human 25 UNT/ML Injectable Suspension",19101876,"insulin isophane, human 75 UNT/ML / insulin, regular, human 25 UNT/ML Injectable Suspension",Clinical Drug
+1917,[DM] Insulin,253182,847187,SCD,"3 ML insulin isophane, human 70 UNT/ML / insulin, regular, human 30 UNT/ML Pen Injector",1596956,"3 ML insulin isophane, human 70 UNT/ML / insulin, regular, human 30 UNT/ML Pen Injector",Quant Clinical Drug
+1918,[DM] Insulin,253182,1650256,SCDC,"insulin, regular, human 4 UNT",46233728,"insulin, regular, human 4 UNT",Clinical Drug Comp
+1919,[DM] Insulin,253182,1650262,SCDC,"insulin, regular, human 8 UNT",46233730,"insulin, regular, human 8 UNT",Clinical Drug Comp
+1920,[DM] Insulin,253182,1654909,SCDC,"insulin, regular, human 12 UNT",46234241,"insulin, regular, human 12 UNT",Clinical Drug Comp
+1921,[DM] Insulin,253182,2179742,SCDC,"insulin, regular, human 1 UNT/ML",1361258,"insulin, regular, human 1 UNT/ML",Clinical Drug Comp
+1922,[DM] Insulin,253182,340325,SCDC,"insulin, regular, human 100 UNT/ML",19094121,"insulin, regular, human 100 UNT/ML",Clinical Drug Comp
+1923,[DM] Insulin,253182,340326,SCDC,"insulin, regular, human 40 UNT/ML",19094122,"insulin, regular, human 40 UNT/ML",Clinical Drug Comp
+1924,[DM] Insulin,253182,340327,SCDC,"insulin, regular, human 500 UNT/ML",19094123,"insulin, regular, human 500 UNT/ML",Clinical Drug Comp
+1925,[DM] Insulin,253182,343083,SCDC,"insulin, regular, human 30 UNT/ML",19095218,"insulin, regular, human 30 UNT/ML",Clinical Drug Comp
+1926,[DM] Insulin,253182,343258,SCDC,"insulin, regular, human 50 UNT/ML",1596998,"insulin, regular, human 50 UNT/ML",Clinical Drug Comp
+1927,[DM] Insulin,253182,359125,SCDC,"insulin, regular, human 15 UNT/ML",1597000,"insulin, regular, human 15 UNT/ML",Clinical Drug Comp
+1928,[DM] Insulin,253182,359126,SCDC,"insulin, regular, human 10 UNT/ML",1597001,"insulin, regular, human 10 UNT/ML",Clinical Drug Comp
+1929,[DM] Insulin,253182,359127,SCDC,"insulin, regular, human 20 UNT/ML",1597012,"insulin, regular, human 20 UNT/ML",Clinical Drug Comp
+1930,[DM] Insulin,253182,360894,SCDC,"insulin, regular, human 25 UNT/ML",19100128,"insulin, regular, human 25 UNT/ML",Clinical Drug Comp
+1931,[DM] Insulin,253182,1654651,SCDF,"insulin isophane / insulin, regular, human Pen Injector",46234216,"insulin isophane / insulin, regular, human Pen Injector",Clinical Drug Form
+1932,[DM] Insulin,253182,1731314,SCDF,"insulin, regular, human Pen Injector",35605619,"insulin, regular, human Pen Injector",Clinical Drug Form
+1933,[DM] Insulin,253182,2108525,SCDF,"insulin, regular, human Inhalation Powder",1356241,"insulin, regular, human Inhalation Powder",Clinical Drug Form
+1934,[DM] Insulin,253182,2179743,SCDF,"insulin, regular, human Injection",1361259,"insulin, regular, human Injection",Clinical Drug Form
+1935,[DM] Insulin,253182,376915,SCDF,"insulin, regular, human Injectable Solution",40052768,"insulin, regular, human Injectable Solution",Clinical Drug Form
+1936,[DM] Insulin,253182,378857,SCDF,"insulin isophane / insulin, regular, human Injectable Suspension",40051377,"insulin isophane / insulin, regular, human Injectable Suspension",Clinical Drug Form
+1937,[DM] Insulin,253182,1164824,SCDG,"insulin, regular, human Injectable Product",36221713,"insulin, regular, human Injectable Product",Clinical Dose Group
+1938,[DM] Insulin,253182,1543200,SCDG,"insulin, regular, human Inhalant Product",36247260,"insulin, regular, human Inhalant Product",Clinical Dose Group
+1939,[DM] Insulin,253182,1653899,SCDG,"insulin isophane / insulin, regular, human Injectable Product",36249004,"insulin isophane / insulin, regular, human Injectable Product",Clinical Dose Group
