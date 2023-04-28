@@ -1,5 +1,6 @@
 body {
   margin: 0;
+  font-family: sans-serif;
 }
 
 .toggle-collapse {
@@ -57,6 +58,9 @@ body {
   margin-top: auto;
 }
 .cset-column-header {
+  width: 100%;
+  display: flex;
+  justify-content: center;
   /* white-space: nowrap;
   cursor: pointer;
   overflow: clip;

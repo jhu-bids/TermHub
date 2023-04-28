@@ -29,6 +29,7 @@ import {queryClient} from "../App";
 import { createSearchParams } from "react-router-dom";
 import { isEmpty, get, memoize, pullAt } from "lodash";
 import { pct_fmt } from "./utils";
+import WarningRoundedIcon from '@mui/icons-material/WarningRounded';
 // import {contentItemsReducer, defaultContentItems} from "./contentControl";
 
 class DataAccess {
@@ -389,22 +390,29 @@ function DataWidget(props) {
     msg.icon = <Progress />;
   }
   if (error) {
-    msg.status = `Error: ${error}`;
-    msg.icon = <p>(need error icon?)</p>;
+    msg.status = `${error}`;
+    msg.icon = <WarningRoundedIcon fontSize="large"/>;
   }
   return (
     <Box
       sx={{
-        border: "2px solid blue",
+        border: "2px solid",
+        borderRadius: "10px",
+        borderColor: error ? "lightcoral" : "dodgerblue",
+        background: error ? "mistyrose" : "aliceblue",
         margin: "20px",
         padding: "20px",
+        fontFamily: "sans-serif",
+        color: error ? "darkred" : "none",
         // display: 'flex',
       }}
     >
-      <h2>{status}</h2>
+      <h2 style={{display: "flex", alignItems: "center", gap: 10}}>
+        {msg.icon}
+        {status}
+      </h2>
       {msg.status} <br />
       {msg.call} <br />
-      {msg.icon}
     </Box>
   );
 }

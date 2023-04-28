@@ -10,7 +10,7 @@ import Toolbar from "@mui/material/Toolbar";
 import Typography from "@mui/material/Typography";
 import React from "react";
 // import {Tooltip} from './Tooltip';
-import MenuBookIcon from "@mui/icons-material/MenuBook";
+import MenuBookRounded from "@mui/icons-material/MenuBookRounded";
 import MenuItem from "@mui/material/MenuItem";
 import Tooltip from "@mui/material/Tooltip";
 import { NavLink, useLocation } from "react-router-dom";
@@ -316,7 +316,7 @@ export default function MuiAppBar(props) {
     >
       <Container maxWidth="false" /* "xl" */>
         <Toolbar disableGutters>
-          <MenuBookIcon sx={{ display: { xs: "none", md: "flex" }, mr: 1 }} />
+          <MenuBookRounded sx={{ display: { xs: "none", md: "flex" }, mr: 1 }} />
           <Typography
             variant="h6"
             noWrap
@@ -325,7 +325,6 @@ export default function MuiAppBar(props) {
             sx={{
               mr: 2,
               display: { xs: "none", md: "flex" },
-              fontFamily: "monospace",
               fontWeight: 700,
               letterSpacing: ".3rem",
               color: "inherit",
@@ -338,17 +337,16 @@ export default function MuiAppBar(props) {
           <Typography
             sx={{
               mr: 2,
-              fontFamily: "monospace",
               fontWeight: 700,
               color: "inherit",
             }}
           >
-            Version 0.1
+            v0.1
           </Typography>
 
           {hamburgerMenu}
 
-          <MenuBookIcon sx={{ display: { xs: "flex", md: "none" }, mr: 1 }} />
+          <MenuBookRounded sx={{ display: { xs: "flex", md: "none" }, mr: 1 }} />
           <Typography
             variant="h5"
             noWrap
