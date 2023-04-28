@@ -1,6 +1,6 @@
 ## TermHub Backend
 ### Running locally
-`uvicorn backend.app:app --reload`
+`uvicorn backend.app:APP --reload`
 
 ### Deployment
 #### Production
