@@ -30,7 +30,7 @@ from enclave_wrangler.config import FAVORITE_OBJECTS, OUTDIR_OBJECTS, OUTDIR_CSE
 from enclave_wrangler.utils import enclave_get, enclave_post, get_objects_df, get_url_from_api_path, \
     make_objects_request, \
     handle_paginated_request, handle_response_error
-from enclave_wrangler.models import convert_row, get_field_names, field_name_mapping, obj_pkey
+from enclave_wrangler.models import convert_row, get_field_names, field_name_mapping, pkey
 # from enclave_wrangler.utils import log_debug_info
 from backend.db.utils import insert_from_dict, sql_query_single_col, run_sql, get_db_connection, get_obj_by_id
 from backend.db.queries import get_concepts
@@ -392,7 +392,7 @@ def fetch_cset_expression_item(object_id: int) -> Dict:
 
 def fetch_object_and_add_to_db(con: Connection, table: str, object_type_name: str, object_id: Union[int, str]) -> Dict:
     """Fetch object and add to db"""
-    already_in_db = get_obj_by_id(con, table, obj_pkey(table), object_id)
+    already_in_db = get_obj_by_id(con, table, pkey(table), object_id)
     if (already_in_db):
         print(f'{table}:{object_id} is already in db')
         return already_in_db
