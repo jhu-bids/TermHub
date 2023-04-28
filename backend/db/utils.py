@@ -17,7 +17,7 @@ from typing import Any, Dict, Union, List
 
 from backend.db.config import CONFIG, DATASETS_PATH, OBJECTS_PATH, get_pg_connect_url
 from backend.utils import commify
-from enclave_wrangler.models import obj_pkey
+from enclave_wrangler.models import pkey
 
 DEBUG = False
 DB = CONFIG["db"]
@@ -128,6 +128,7 @@ def sql_query(
 
 
 def get_obj_by_id(con, table: str, pkey: str, obj_id: Union[str, int]):
+    """Get object by ID"""
     return sql_query(con, f'SELECT * FROM {table} WHERE {pkey} = (:obj_id)', {'obj_id': obj_id})
 
 def insert_from_dict(con: Connection, table: str, d: Dict, skip_if_already_exists=True):
@@ -138,9 +139,9 @@ def insert_from_dict(con: Connection, table: str, d: Dict, skip_if_already_exist
     #   but other functions that call this should probably check or have this function check
 
     if skip_if_already_exists:
-        pkey = obj_pkey(table)
-        if pkey:
-            already_in_db = get_obj_by_id(con, table, pkey, d[pkey])
+        pk = pkey(table)
+        if pk:
+            already_in_db = get_obj_by_id(con, table, pk, d[pk])
             if already_in_db:
                 return
 

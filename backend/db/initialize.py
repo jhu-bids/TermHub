@@ -33,7 +33,21 @@ def create_database(con: Connection, schema: str):
         # noinspection PyUnresolvedReferences
         con.connection.connection.set_isolation_level(1)
     with get_db_connection(schema='') as con2:
-        run_sql(con2, "CREATE TABLE IF NOT EXISTS public.manage (key text not null, value text);")
+        run_sql(con2, "CREATE TABLE IF NOT EXISTS public.manage ("
+                      "key text not null, "
+                      "value text);")
+        run_sql(con2, "CREATE TABLE IF NOT EXISTS public.counts ("
+                      "timestamp text not null, "
+                      "date text, "
+                      "schema text not null, "
+                      '"table" text not null, '
+                      "count integer not null, "
+                      "delta integer not null);")
+        run_sql(con2, "CREATE TABLE IF NOT EXISTS public.counts_runs ("
+                      "timestamp text not null, "
+                      "date text, "
+                      "schema text not null, "
+                      "note text);")
         run_sql(con, f'CREATE SCHEMA IF NOT EXISTS {schema};')
 
 
