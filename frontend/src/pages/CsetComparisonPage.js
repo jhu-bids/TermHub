@@ -252,7 +252,7 @@ function colConfig(props) {
           row.has_children ? (
             collapsed[row.pathToRoot] ? (
               <span
-                className="toggle-collapse"
+                className="toggle-collapse concept-name-row"
                 onClick={() => toggleCollapse(row)}
               >
                 <AddCircle
@@ -268,7 +268,7 @@ function colConfig(props) {
               </span>
             ) : (
               <span
-                className="toggle-collapse"
+                className="toggle-collapse concept-name-row"
                 onClick={() => toggleCollapse(row)}
               >
                 <RemoveCircleOutline
@@ -284,7 +284,7 @@ function colConfig(props) {
               </span>
             )
           ) : (
-            <span>
+            <span className="concept-name-row">
               <RemoveCircleOutline
                 sx={{ fontSize: sizes.collapseIcon, visibility: "hidden" }}
               />

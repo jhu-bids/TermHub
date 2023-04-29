@@ -6,6 +6,12 @@ body {
 .toggle-collapse {
   cursor: pointer;
 }
+
+.concept-name-row {
+  display: flex;
+  gap: 3px;
+}
+
 .Tooltip {
   position: absolute;
   background: #333;
