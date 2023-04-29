@@ -30,6 +30,7 @@ import { createSearchParams } from "react-router-dom";
 import { isEmpty, get, memoize, pullAt } from "lodash";
 import { pct_fmt } from "./utils";
 import WarningRoundedIcon from '@mui/icons-material/WarningRounded';
+import { CheckCircleRounded } from "@mui/icons-material";
 // import {contentItemsReducer, defaultContentItems} from "./contentControl";
 
 class DataAccess {
@@ -364,7 +365,7 @@ export function clearSearchParams(props) {
 function Progress(props) {
   return (
     <Box sx={{ display: "flex" }}>
-      <CircularProgress {...props} />
+      <CircularProgress {...props} size="35px" />
     </Box>
   );
 }
@@ -393,6 +394,9 @@ function DataWidget(props) {
     msg.status = `${error}`;
     msg.icon = <WarningRoundedIcon fontSize="large"/>;
   }
+  if (!(isFetching || isLoading || error)) {
+    msg.icon = <CheckCircleRounded fontSize="large"/>
+  }
   return (
     <Box
       sx={{
@@ -403,13 +407,13 @@ function DataWidget(props) {
         margin: "20px",
         padding: "20px",
         fontFamily: "sans-serif",
-        color: error ? "darkred" : "none",
+        color: error ? "darkred" : "unset",
         // display: 'flex',
       }}
     >
       <h2 style={{display: "flex", alignItems: "center", gap: 10}}>
         {msg.icon}
-        {status}
+        {`${status}`.charAt(0).toUpperCase() + `${status}`.slice(1)}
       </h2>
       {msg.status} <br />
       {msg.call} <br />
