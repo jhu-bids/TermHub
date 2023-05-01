@@ -33,9 +33,10 @@ body {
 }
 
 .MuiAutocomplete-option {
-  padding: 0px;
-  margin: 0px;
-  line-height: 10px;
+  line-height: 115% !important;
+  padding-left: 40px !important;
+  text-indent: -25px !important;
+  word-wrap: break-word !important;
 }
 /*
 .rdt_TableCell {
@@ -97,8 +98,7 @@ body {
 .csets-data-table .rdt_Table {
   padding: 0px;
 }
-MuiCheckbox-root {
-}
+
 .css-12wnr2w-MuiButtonBase-root-MuiCheckbox-root {
   padding: 0 !important;
 }
@@ -109,6 +109,7 @@ MuiCheckbox-root {
 
 .info-block {
   font-family: "Roboto", sans-serif;
+  padding: 0 20px;
 }
 
 /* from floating-ui popover sandbox:

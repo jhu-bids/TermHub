@@ -58,17 +58,25 @@ function ColumnHeader(props) {
    */
   // console.log({headerContent, allottedWidth, contentWidth: headerDims.width})
   if (tooltipContent) {
-    // TODO: @fabiofdez: flex was easiest way I (sg) could find to keep icon on same line as text, but then
-    //                   the icon takes up all the vertical space below it. would be better if it just followed
-    //                   the end of the text as if it were part of the text
     const iconStyle = {
       fontSize: "80%",
       marginTop: "auto",
       marginBottom: "2px",
     };
     headerContent = (
-      <span style={{ display: "flex", alignItems: "center", gap: "3px", wordBreak: "break-word" }}>
+      <span
+        style={{
+          display: "flex",
+          alignItems: "center",
+          wordBreak: "break-word",
+          maxWidth: "100%",
+          gap: "3px",
+        }}
+      >
         {headerContent}
+        {/* <span style={{whiteSpace: "nowrap", textOverflow: "ellipsis", overflow: "hidden"}}>
+          {headerContent}
+        </span> */}
         {coldef.codeset_id ? <Edit sx={iconStyle} /> : <Info sx={iconStyle} />}
       </span>
     );

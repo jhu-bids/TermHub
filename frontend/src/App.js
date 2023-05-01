@@ -118,12 +118,12 @@ function QCProvider() {
     // <React.StrictMode>
     // {/* StrictMode helps assure code goodness by running everything twice, but it's annoying*/}
     //   {" "}
-      <QueryClientProvider client={queryClient}>
-        <AppStateProvider>
-          <QueryStringStateMgr />
-          {/*<ReactQueryDevtools initialIsOpen={false} />*/}
-        </AppStateProvider>
-      </QueryClientProvider>
+    <QueryClientProvider client={queryClient}>
+      <AppStateProvider>
+        <QueryStringStateMgr />
+        {/*<ReactQueryDevtools initialIsOpen={false} />*/}
+      </AppStateProvider>
+    </QueryClientProvider>
     // </React.StrictMode>
   );
 }
@@ -244,7 +244,7 @@ function DataContainer(props) {
         <Route
           path="*"
           element={
-            <div>
+            <div style={{ padding: "0 20px" }}>
               <h3>Waiting for data</h3>
               <Box sx={{ display: "flex" }}>
                 {all_csets_widget}
@@ -276,7 +276,10 @@ function RoutesContainer(props) {
         />
         <Route path="about" element={<AboutPage {...props} />} />
         <Route path="upload-csv" element={<UploadCsvPage {...props} />} />
-        <Route path="graph" element={<ConceptGraph concept_ids={currentConceptIds(props)} />} />
+        <Route
+          path="graph"
+          element={<ConceptGraph concept_ids={currentConceptIds(props)} />}
+        />
         <Route path="download-json" element={<DownloadJSON {...props} />} />
         {/* <Route path="OMOPConceptSet/:conceptId" element={<OldConceptSet />} /> */}
       </Route>
