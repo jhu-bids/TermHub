@@ -5,6 +5,7 @@ from dotenv import load_dotenv
 DB_DIR = os.path.dirname(os.path.realpath(__file__))
 BACKEND_DIR = os.path.join(DB_DIR, '..')
 PROJECT_ROOT = os.path.join(BACKEND_DIR, '..')
+DOCS_DIR = os.path.join(PROJECT_ROOT, 'docs')
 ENV_DIR = os.path.join(PROJECT_ROOT, 'env')
 ENV_FILE = os.path.join(ENV_DIR, '.env')
 TERMHUB_CSETS_PATH = os.path.join(PROJECT_ROOT, 'termhub-csets')

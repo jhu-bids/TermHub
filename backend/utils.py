@@ -2,6 +2,8 @@
 import functools
 import json
 import operator
+import os
+import smtplib
 import traceback
 from functools import reduce
 from typing import Any, Dict, List, Union
@@ -9,6 +11,44 @@ from datetime import datetime
 from starlette.responses import JSONResponse
 
 JSON_TYPE = Union[Dict, List]
+
+def commify(n):
+    """Those dirty commies
+    ░░░░░░░░░░▀▀▀██████▄▄▄░░░░░░░░░░
+    ░░░░░░░░░░░░░░░░░▀▀▀████▄░░░░░░░
+    ░░░░░░░░░░▄███████▀░░░▀███▄░░░░░
+    ░░░░░░░░▄███████▀░░░░░░░▀███▄░░░
+    ░░░░░░▄████████░░░░░░░░░░░███▄░░
+    ░░░░░██████████▄░░░░░░░░░░░███▌░
+    ░░░░░▀█████▀░▀███▄░░░░░░░░░▐███░
+    ░░░░░░░▀█▀░░░░░▀███▄░░░░░░░▐███░
+    ░░░░░░░░░░░░░░░░░▀███▄░░░░░███▌░
+    ░░░░▄██▄░░░░░░░░░░░▀███▄░░▐███░░
+    ░░▄██████▄░░░░░░░░░░░▀███▄███░░░
+    ░█████▀▀████▄▄░░░░░░░░▄█████░░░░
+    ░████▀░░░▀▀█████▄▄▄▄█████████▄░░
+    ░░▀▀░░░░░░░░░▀▀██████▀▀░░░▀▀██░░
+    """
+    return f'{n:,}'
+
+
+def send_email(subject: str, body: str, to=['sigfried@sigfried.org', 'jflack@jhu.edu']):
+    """Send email
+    todo: Need alternative. Gmail doesn't work as of 2022/05:
+     https://support.google.com/accounts/answer/6010255
+     To help keep your account secure, from May 30, 2022,Google no longer supports the use of third-party apps or
+     devices which ask you to sign in to your Google Account using only your username and password.
+    """
+    termhub_email_user = os.getenv('TERMHUB_EMAIL_USER')
+    # create SMTP session
+    server = smtplib.SMTP('smtp.gmail.com', 587)
+    server.starttls()
+    # server = smtplib.SMTP_SSL('smtp.gmail.com', 465)
+    # login to SMTP server (not secure)
+    server.login(termhub_email_user, os.getenv('TERMHUB_EMAIL_PASS'))
+    # send email
+    server.sendmail(termhub_email_user, to, f"Subject: {subject}\n\n{body}")
+    server.quit()
 
 
 def get_timer(name:str='Timer', debug=False):
@@ -34,26 +74,6 @@ def get_timer(name:str='Timer', debug=False):
 def cnt(vals):
     """Count values"""
     return len(set(vals))
-
-
-def commify(n):
-    """Those dirty commies
-    ░░░░░░░░░░▀▀▀██████▄▄▄░░░░░░░░░░
-    ░░░░░░░░░░░░░░░░░▀▀▀████▄░░░░░░░
-    ░░░░░░░░░░▄███████▀░░░▀███▄░░░░░
-    ░░░░░░░░▄███████▀░░░░░░░▀███▄░░░
-    ░░░░░░▄████████░░░░░░░░░░░███▄░░
-    ░░░░░██████████▄░░░░░░░░░░░███▌░
-    ░░░░░▀█████▀░▀███▄░░░░░░░░░▐███░
-    ░░░░░░░▀█▀░░░░░▀███▄░░░░░░░▐███░
-    ░░░░░░░░░░░░░░░░░▀███▄░░░░░███▌░
-    ░░░░▄██▄░░░░░░░░░░░▀███▄░░▐███░░
-    ░░▄██████▄░░░░░░░░░░░▀███▄███░░░
-    ░█████▀▀████▄▄░░░░░░░░▄█████░░░░
-    ░████▀░░░▀▀█████▄▄▄▄█████████▄░░
-    ░░▀▀░░░░░░░░░▀▀██████▀▀░░░▀▀██░░
-    """
-    return f'{n:,}'
 
 
 def dump(o):
