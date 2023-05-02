@@ -7,17 +7,21 @@ doctest counts-compare-schemas counts-table deltas-table
 # Analysis
 ANALYSIS_SCRIPT = 'backend/db/analysis.py'
 
-# Checks counts of database tables for the current 'n3c' schema and its most recent backup.
+# counts-compare-schemas: Checks counts of database tables for the current 'n3c' schema and its most recent backup.
 counts-compare-schemas:
 	@python3 $(ANALYSIS_SCRIPT) --counts-compare-schemas
 
-# View counts row counts over time for the 'n3c' schema.
+# counts-table: View counts row counts over time for the 'n3c' schema.
 counts-table:
 	@python3 $(ANALYSIS_SCRIPT) --counts-over-time
 
-# View row count detlas over time for the 'n3c' schema.
+# deltas-table: View row count detlas over time for the 'n3c' schema.
 deltas-table:
 	@python3 $(ANALYSIS_SCRIPT) --deltas-over-time
+
+# counts-docs: Runs --counts-over-time and --deltas-over-time and puts in documentation: docs/backend/db/analysis.md.
+counts-docs:
+	@python3 $(ANALYSIS_SCRIPT) --counts-docs
 
 # todo
 #deltas-viz:
@@ -25,7 +29,7 @@ deltas-table:
 #counts-viz:
 #	@python3 $(ANALYSIS_SCRIPT) --counts-over-time save_counts_viz
 
-# counts-update
+# counts-update: Update 'counts' table with current row counts for the 'n3c' schema. Adds note to the 'counts-runs' table.
 ifeq (counts-update,$(firstword $(MAKECMDGOALS)))
   # use the rest as arguments for "counts-updates"
   COUNTS_UPDATE_ARGS := $(wordlist 2,$(words $(MAKECMDGOALS)),$(MAKECMDGOALS))

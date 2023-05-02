@@ -14,6 +14,9 @@ Deploys to: [termhub-dev.azurewebsites.net](https://termhub-dev.azurewebsites.ne
 Is deployed via GitHub Action: [.github/workflows/backend_dev.yml](https://github.com/jhu-bids/TermHub/blob/main/.github/workflows/backend_dev.yml)
 - Can be deployed manually from GitHub: [run workflow](https://github.com/jhu-bids/TermHub/actions/workflows/backend_dev.yml)
 
+### Analysis / DB counts
+Database counts are both over time and also when comparing schemas in as a QC measure, and can be viewed [here](../docs/backend/db/analysis.md).
+
 ### Developer notes
 From [3bfa2d](https://github.com/jhu-bids/TermHub/commit/3bfa2d) commit msg
 

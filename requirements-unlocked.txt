@@ -10,6 +10,7 @@ python-multipart
 requests
 sanitize-filename
 sqlalchemy
+tabulate
 typeguard
 uvicorn[standard]
 jq

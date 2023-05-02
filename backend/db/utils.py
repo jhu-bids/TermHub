@@ -174,10 +174,6 @@ def run_sql(con: Connection, command: str, params: Dict = {}) -> Any:
     else:
         q = con.execute(command)
     return q
-    # try:
-    #     return con.execute(command)
-    # except (ProgrammingError, OperationalError):
-    #     raise RuntimeError(f'Got an error executing the following statement:\n{command}')
 
 
 def sql_query_single_col(*argv) -> List:
