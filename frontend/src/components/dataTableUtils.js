@@ -72,6 +72,7 @@ function ColumnHeader(props) {
           maxWidth: "100%",
           gap: "3px",
         }}
+        codeset_id={coldef.codeset_id}
       >
         {headerContent}
         {/* <span style={{whiteSpace: "nowrap", textOverflow: "ellipsis", overflow: "hidden"}}>

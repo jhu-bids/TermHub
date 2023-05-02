@@ -6,9 +6,10 @@ import TextField from "@mui/material/TextField";
 import Autocomplete from "@mui/material/Autocomplete";
 // import Chip from '@mui/material/Chip';
 // import { Link, Outlet, useHref, useParams, useSearchParams, useLocation } from "react-router-dom";
-import { every, get, isEmpty, throttle, pullAt } from "lodash";
+import { every } from "lodash";
+// import { get, isEmpty, throttle, pullAt } from "lodash";
 // import {isEqual, pick, uniqWith, max, omit, uniq, } from 'lodash';
-import Box from "@mui/material/Box";
+// import Box from "@mui/material/Box";
 import { Tooltip } from "./Tooltip";
 import Card from "@mui/material/Card";
 import CardContent from "@mui/material/CardContent";
@@ -50,6 +51,7 @@ export function CsetSearch(props) {
       options={opts}
       blurOnSelect={true}
       clearOnBlur={true}
+      open={true}
       filterOptions={(options, state) => {
         let strings = state.inputValue.split(" ").filter((s) => s.length);
         if (!strings.length) {
@@ -84,8 +86,8 @@ export function CsetSearch(props) {
     />
   );
   const tt = (
-    <Card variant="elevation">
-      <CardContent sx={{ border: "3px solid gray" }}>
+    <Card variant="elevation" sx={{ border: "1px solid steelblue" }}>
+      <CardContent sx={{background: "aliceblue"}}>
         <Typography variant="h6" color="text.primary" gutterBottom>
           Select concept sets to view, compare, and edit.
         </Typography>

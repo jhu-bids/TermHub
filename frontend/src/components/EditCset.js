@@ -25,7 +25,10 @@ export function getEditCodesetFunc(props) {
   const { searchParams } = props;
   return (evt) => {
     // was: let codeset_id = parseInt(evt.target.getAttribute('codeset_id')); until adding wrapper around col for including icon
-    const colHeaderEl = evt.target.parentNode;
+    let colHeaderEl = evt.target.parentNode;
+    if (!colHeaderEl.getAttribute("codeset_id")) {
+      colHeaderEl = colHeaderEl.parentNode;
+    }
     const codeset_id = parseInt(colHeaderEl.getAttribute("codeset_id"));
     if (!codeset_id)
       throw new Error("error getting codeset_id during col header click");
@@ -194,8 +197,8 @@ const ICONS = {
         sx={{
           width: "12px",
           height: "12px",
-          margin: "2px 2px 0px 2px",
-          padding: "0px",
+          margin: 0,
+          padding: 0,
           fontWeight: "bolder",
         }}
       />
@@ -236,9 +239,8 @@ function OptionIcon(props) {
           cursor: editing ? "pointer" : "default",
           fontWeight: on ? "bolder" : "regular",
           fontSize: ".7rem",
-          margin: "0px 2px 2px 2px",
-          // margin: '0px',
-          padding: "0px",
+          margin: 0,
+          padding: 0,
           opacity: on ? 1 : 0.6,
           // backgroundColor: on ? 'lightblue' : '',
           // border: on ? '1px solid white' : '',
@@ -594,8 +596,8 @@ export function cellContents(props) {
             sx={{
               width: "12px",
               height: "12px",
-              margin: "2px 2px 0px 2px",
-              padding: "0px",
+              marginBottom: "1px",
+              padding: 0,
             }}
           />
         </Tooltip>
@@ -605,7 +607,8 @@ export function cellContents(props) {
     <div
       onClick={() => {
         editAction({ ...props, clickAction, no_action: true }); // returns {cdsidState, item}
-      }} // style={{width:'70px', textAlign: 'center', }}
+      }} 
+      style={{display: "flex", alignItems: "center", gap: "4px", marginTop: "1px"}}
     >
       {removeIcon}
       {contents || contents === ""
