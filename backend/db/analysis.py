@@ -99,6 +99,9 @@ def counts_update(note: str, schema: str = SCHEMA, local=False):
             insert_from_dict(con, 'counts', d)
 
 
+# TODO: rename current_counts where from_cache = True to counts_history or something. because the datastructure is
+#  different. either that, or have it re-use the from_cache code at the end if from_cache = False
+#  - then, counts_over_time() & docs(): add cache param set to false, and change how they call current_counts()
 def current_counts(
     schema: str = SCHEMA, local=False, from_cache=False, return_as=['dict', 'df'][0]
 ) -> Union[pd.DataFrame, Dict]:
@@ -149,7 +152,8 @@ def counts_over_time(
     """Checks counts of database and store what the results look like in a database over time"""
     if method not in COUNTS_OVER_TIME_OPTIONS:
         raise ValueError(f'counts_over_time(): Invalid method {method}. Must be one of {COUNTS_OVER_TIME_OPTIONS}')
-    current_counts_df = current_counts_df if len(current_counts_df) > 0 else current_counts(schema, local)
+    current_counts_df = current_counts_df if len(current_counts_df) > 0 else current_counts(
+        schema, local, from_cache=True)
 
     # Pivot
     values = 'count' if method == 'counts_table' else 'delta'
@@ -192,7 +196,7 @@ def counts_over_time(
 def docs(notify=True):
     """Runs --counts-over-time and --deltas-over-time and puts in documentation: docs/backend/db/analysis.md."""
     # Get data
-    current_counts_df = current_counts()
+    current_counts_df = current_counts(from_cache=True)
     counts_df: pd.DataFrame = counts_over_time(method='counts_table', current_counts_df=current_counts_df, _print=False)
     deltas_df: pd.DataFrame = counts_over_time(method='delta_table', current_counts_df=current_counts_df, _print=False)
     # Write docs
