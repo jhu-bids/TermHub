@@ -31,15 +31,14 @@ OI = get_adapter(snomed_path)
 
 # Routes ---------------------------------------------------------------------------------------------------------------
 # @cache
-# @router.get("/subgraph/")
+@router.get("/subgraph/")
 def subgraph(cid: List[str] = Query(...)):
     # def subgraph(cid: List[str] = Query(...), add_prefix=True):
     """ Get a subgraph / minimal subsumption tree between and including 2 nodes.
     https://github.com/INCATools/
     ontology-access-kit/blob/4f215f71d4f814e1bd910710f68030b2976d845b/src/oaklib/interfaces/obograph_interface.py#L315
     """
-    # seeds = ['N3C:' + _id for _id in cid]
-    seeds = ['N3C:24969', 'N3C:4043671']
+    seeds = ['N3C:' + _id for _id in cid]
     # from oaklib.interfaces.obograph_interface import TraversalConfiguration, Distance
     # use an adapter to talk to an endpoint (here, sqlite)
     # adapter = get_adapter("tests/input/go-nucleus.db")
@@ -179,5 +178,4 @@ def ad_hoc_test_1():
 
 
 if __name__ == '__main__':
-    # ad_hoc_test_1()
-    subgraph()
+    ad_hoc_test_1()
