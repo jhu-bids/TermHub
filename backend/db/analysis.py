@@ -95,7 +95,7 @@ def counts_update(note: str, schema: str = SCHEMA, local=False):
         })
         # Save counts
         # noinspection PyCallingNonCallable pycharm_doesnt_undestand_its_returning_dict
-        for d in current_counts(from_cache=False).values():
+        for d in current_counts(from_cache=False, dt=dt).values():
             insert_from_dict(con, 'counts', d)
 
 
@@ -103,7 +103,7 @@ def counts_update(note: str, schema: str = SCHEMA, local=False):
 #  different. either that, or have it re-use the from_cache code at the end if from_cache = False
 #  - then, counts_over_time() & docs(): add cache param set to false, and change how they call current_counts()
 def current_counts(
-    schema: str = SCHEMA, local=False, from_cache=False, return_as=['dict', 'df'][0]
+    schema: str = SCHEMA, local=False, from_cache=False, return_as=['dict', 'df'][0], dt=datetime.now()
 ) -> Union[pd.DataFrame, Dict]:
     """Gets current database counts"""
     if from_cache:
@@ -112,7 +112,6 @@ def current_counts(
             df = pd.DataFrame(counts)
             df = df[df['schema'] == schema]
             return df
-    dt = datetime.now()
     # Get tables
     with get_db_connection(schema=schema, local=local) as con:
         tables: List[str] = list_tables(con)
@@ -144,7 +143,6 @@ def current_counts(
 
 
 # TODO: support multiple schema
-# TODO: the _print feature is actually truncated when printed. not useful; maybe a way to print untruncated / else CSV?
 def counts_over_time(
     schema: str = SCHEMA, local=False, method=COUNTS_OVER_TIME_OPTIONS[0], _print=True,
     current_counts_df: pd.DataFrame = pd.DataFrame()
@@ -194,10 +192,10 @@ def counts_over_time(
     return df
 
 
-def docs(notify=True):
+def docs(use_cached_counts=True):
     """Runs --counts-over-time and --deltas-over-time and puts in documentation: docs/backend/db/analysis.md."""
     # Get data
-    current_counts_df = current_counts(from_cache=True)
+    current_counts_df = current_counts(from_cache=use_cached_counts)
     counts_df: pd.DataFrame = counts_over_time(method='counts_table', current_counts_df=current_counts_df, _print=False)
     deltas_df: pd.DataFrame = counts_over_time(method='delta_table', current_counts_df=current_counts_df, _print=False)
     # Write docs
@@ -207,13 +205,12 @@ def docs(notify=True):
     with open(DOCS_PATH, 'w') as f:
         f.write(instantiated_str)
     # Notify
-    if notify:
-        pass
-        # todo: need new method; Gmail doesn't work anymore. See: send_email() docstring
-        # send_email(
-        #     subject="TermHub DB counts docs updated",
-        #     body="When/if pushed to develop branch, will appear here: "
-        #          "https://github.com/jhu-bids/TermHub/blob/develop/docs/backend/db/analysis.md")
+    # todo: notify param: need new method; Gmail doesn't work anymore. See: send_email() docstring
+    # if notify:
+    #     send_email(
+    #         subject="TermHub DB counts docs updated",
+    #         body="When/if pushed to develop branch, will appear here: "
+    #              "https://github.com/jhu-bids/TermHub/blob/develop/docs/backend/db/analysis.md")
 
 
 def cli():

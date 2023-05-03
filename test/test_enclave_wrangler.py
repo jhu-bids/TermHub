@@ -54,9 +54,9 @@ class TestEnclaveWrangler(unittest.TestCase):
 
     # todo: after completing this 'test', create func for it in backend/db and call/assert here
     #  - what is the ultimate goal? how many tables are we refreshing?
-    def test_get_new_objects(self):
+    def test_get_new_csets_and_members(self):
         """Test get_new_objects()"""
-        new_objects: Dict[str, List] = get_new_cset_and_member_objects(since=yesterday)
+        csets_and_members: Dict[str, List] = get_new_cset_and_member_objects(since=yesterday)
         # todo: what kind of assert?
 
     def test_update_db_with_new_objects(self):
@@ -175,13 +175,15 @@ class TestEnclaveWrangler(unittest.TestCase):
     # TODO: See #1 above
     def test_concept_set_container_enclave_to_db(self):
         """Test cset_container_enclave_to_db()"""
-        with get_db_connection(schema=TEST_SCHEMA) as con:
+        # TODO: Switch back to test schema after
+        with get_db_connection(schema='n3c') as con:
             # Failure case: exists in test DB
-            concept_set_id_fail = ' Casirivimab Monotherapy (Injection route of admin, 120 MG/ML dose minimum)'
-            self.assertRaises(IntegrityError, concept_set_container_enclave_to_db, con, concept_set_id_fail)
+            # TODO: need new failure case. Why was this removed from the DB? I guess we need more dummy/archived cases.
+            # concept_set_id_fail = ' Casirivimab Monotherapy (Injection route of admin, 120 MG/ML dose minimum)'
+            # self.assertRaises(IntegrityError, concept_set_container_enclave_to_db, con, concept_set_id_fail)
 
             # Success case:  doesn't exist in test DB
-            concept_set_id_succeed = 'abacavir'
+            concept_set_id_succeed = 'HIV Zihao'
             n1: int = sql_count(con, 'concept_set_container')
             concept_set_container_enclave_to_db(con, concept_set_id_succeed)
             n2: int = sql_count(con, 'concept_set_container')
