@@ -616,6 +616,5 @@ def get_concepts_route(id: List[int] = Query(...), table:str='concepts_with_coun
     return get_concepts(concept_ids=id, table=table)
 
 
-
 if __name__ == '__main__':
     run()
