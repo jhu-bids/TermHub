@@ -1,6 +1,6 @@
 # DB row counts
 ## Counts over time
-|                                           | 2023-04-27   | 2023-04-27 2                                                         | 2023-05-02    |
+|                                           | 2023-04-18   | 2023-04-27                                                           | 2023-05-02    |
 |:------------------------------------------|:-------------|:---------------------------------------------------------------------|:--------------|
 | COMMENT                                   | Baseline.    | Testing new feature of adding note annotations to table counts runs. | Did a backup. |
 | all_csets                                 | 6314         | 6314                                                                 | 6314          |

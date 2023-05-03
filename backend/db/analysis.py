@@ -161,7 +161,8 @@ def counts_over_time(
 
     # Add note
     with get_db_connection(schema='', local=local) as con:
-        runs = [dict(x) for x in run_sql(con, f'SELECT timestamp, note from counts_runs;')]
+        runs = [dict(x) for x in run_sql(
+            con, f"SELECT timestamp, note FROM counts_runs WHERE schema = '{schema}';")]
     timestamps = [x['timestamp'] for x in runs]
     ts_dict = {}
     for ts in timestamps:

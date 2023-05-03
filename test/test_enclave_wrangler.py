@@ -38,6 +38,7 @@ from enclave_wrangler.dataset_upload import upload_new_cset_container_with_conce
 
 TEST_INPUT_DIR = os.path.join(TEST_DIR, 'input', 'test_enclave_wrangler')
 CSV_DIR = os.path.join(TEST_INPUT_DIR, 'test_dataset_upload')
+TEST_SCHEMA = 'test_n3c'
 yesterday: str = (datetime.now() - timedelta(days=1)).isoformat() + 'Z'  # works: 2023-01-01T00:00:00.000Z
 
 
@@ -152,9 +153,12 @@ class TestEnclaveWrangler(unittest.TestCase):
         response: Dict = upload_new_cset_container_with_concepts_from_csv(df=df)
         print()
 
+    # TODO #1: for "success case", these things that aren't in the DB yet will be, so will need to instead
+    #  (a) fetch recent objects, and just pick 1 if anything new exists, (b) (best) fetch junk concept set version etc
+    #  (c) We could pick an 'archived' concept set container. After we fetch it, turn the 'archived' flag off.
     def test_cset_version_enclave_to_db(self):  # aka test_code_sets_enclave_to_db()
         """Test codeset_version_enclave_to_db()"""
-        with get_db_connection(schema='test_n3c') as con:
+        with get_db_connection(schema=TEST_SCHEMA) as con:
             # Failure case
             codeset_id_fail = 1  # exists in test DB
             self.assertRaises(IntegrityError, cset_version_enclave_to_db, con, codeset_id_fail)
@@ -168,9 +172,10 @@ class TestEnclaveWrangler(unittest.TestCase):
             # Teardown
             run_sql(con, f"DELETE FROM code_sets WHERE codeset_id = '{codeset_id_succeed}';")
 
+    # TODO: See #1 above
     def test_concept_set_container_enclave_to_db(self):
         """Test cset_container_enclave_to_db()"""
-        with get_db_connection(schema='test_n3c') as con:
+        with get_db_connection(schema=TEST_SCHEMA) as con:
             # Failure case: exists in test DB
             concept_set_id_fail = ' Casirivimab Monotherapy (Injection route of admin, 120 MG/ML dose minimum)'
             self.assertRaises(IntegrityError, concept_set_container_enclave_to_db, con, concept_set_id_fail)
@@ -184,9 +189,10 @@ class TestEnclaveWrangler(unittest.TestCase):
             # Teardown
             run_sql(con, f"DELETE FROM concept_set_container WHERE concept_set_id = '{concept_set_id_succeed}';")
 
+    # TODO: See #1 above
     def test_concept_expression_enclave_to_db(self):  # aka test_concept_set_version_item_enclave_to_db()
         """Test concept_expression_enclave_to_db()"""
-        with get_db_connection(schema='test_n3c') as con:
+        with get_db_connection(schema=TEST_SCHEMA) as con:
             # Failure case: exists in test DB
             item_id_fail = 'c129643b-0896-4fe3-9722-1191bb0c75ba'
             self.assertRaises(IntegrityError, concept_expression_enclave_to_db, con, item_id_fail)
@@ -200,9 +206,10 @@ class TestEnclaveWrangler(unittest.TestCase):
             # Teardown
             run_sql(con, f"DELETE FROM concept_set_version_item WHERE item_id = '{item_id_succeed}';")
 
+    # TODO: See #1 above
     def test_concept_enclave_to_db(self):
         """Test concept_expression_enclave_to_db()"""
-        with get_db_connection(schema='test_n3c') as con:
+        with get_db_connection(schema=TEST_SCHEMA) as con:
             # Failure case: exists in test DB
             concept_id_fail = 3018737
             self.assertRaises(IntegrityError, concept_enclave_to_db, con, concept_id_fail)
@@ -216,9 +223,10 @@ class TestEnclaveWrangler(unittest.TestCase):
             # Teardown
             run_sql(con, f"DELETE FROM concept WHERE concept_id = '{concept_id_succeed}';")
 
+    # TODO: See #1 above
     def test_concept_members_enclave_to_db(self):
         """Test concept_set_members_enclave_to_db()"""
-        with get_db_connection(schema='test_n3c') as con:
+        with get_db_connection(schema=TEST_SCHEMA) as con:
             # Failure case: exists in test DB
             cset_members_fail = {
                 'codeset_id': 479356,
