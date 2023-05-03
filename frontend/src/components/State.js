@@ -274,7 +274,7 @@ const SPContext = createContext(null);
 const SPDispatchContext = createContext(null);
 
 const SEARCH_PARAM_STATE_CONFIG = {
-  scalars: ["editCodesetId", "sort_json"],
+  scalars: ["editCodesetId", "sort_json", "use_example"],
   global_props_but_not_search_params: ["searchParams", "setSearchParams"],
   serialize: ["csetEditState"],
 };

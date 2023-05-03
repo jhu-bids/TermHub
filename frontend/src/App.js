@@ -278,7 +278,7 @@ function RoutesContainer(props) {
         <Route path="upload-csv" element={<UploadCsvPage {...props} />} />
         <Route
           path="graph"
-          element={<ConceptGraph concept_ids={currentConceptIds(props)} />}
+          element={<ConceptGraph {...props} concept_ids={currentConceptIds(props)} />}
         />
         <Route path="download-json" element={<DownloadJSON {...props} />} />
         {/* <Route path="OMOPConceptSet/:conceptId" element={<OldConceptSet />} /> */}

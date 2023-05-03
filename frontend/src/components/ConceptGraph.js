@@ -11,13 +11,14 @@ export function currentConceptIds(props) {
   return concepts.map(c => c.concept_id);
 }
 export function ConceptGraph(props) {
-  const {concept_ids, } = props;
+  const {concept_ids, use_example=false} = props;
   const [concepts, setConcepts] = useState([]);
   const [edges, setEdges] = useState([]);
+  const [edgeProps, setEdgeProps] = useState({parentProp:'sub', childProp:'obj'});
   const [svgSize, setSvgSize] = useState({width: 500, height: 500});
   const svg = React.useRef();
 
-  console.log({concept_ids, concepts});
+  console.log({concept_ids, concepts, props});
   window.d3 = d3;
 
   useEffect(() => {
@@ -29,6 +30,18 @@ export function ConceptGraph(props) {
   }, []);
   useEffect(() => {
     async function fetchData() {
+      if (use_example) {
+        const ex = [{p:'a', c:'b'}, {p:'a', c:'c'}, {p:'a', c:'d'},
+          {p:'b', c:'e'}, {p:'b', c:'f'},
+          {p:'c', c:'f'},
+          {p:'d', c:'g'},
+          {p:'e', c:'h'},
+          {p:'f', c:'h'}
+        ]
+        setEdges(ex);
+        setEdgeProps({parentProp: 'p', childProp: 'c'});
+        return;
+      }
       const _edges = await dataAccessor.getSubgraphEdges(concept_ids, 'array');
       setEdges(_edges);
     }
@@ -38,7 +51,7 @@ export function ConceptGraph(props) {
     if (!edges.length) {
       return;
     }
-    const {width, height, dag } = drawGraph(svg, edges);
+    const {width, height, dag } = drawGraph(svg, edges, edgeProps.parentProp, edgeProps.childProp);
     setSvgSize({width, height});
     window.dag = dag;
     window.svgcur = svg.current;
@@ -66,23 +79,14 @@ export function ConceptGraph(props) {
   // }
   // return <pre>{JSON.stringify(concept_ids)}</pre>;
 }
-function drawGraph(svg, edges) {
+function drawGraph(svg, edges, parentProp='sub', childProp = 'obj') {
   // edge looks like {
   //     "sub": "N3C:46274124",       // child
   //     "pred": "rdfs:subClassOf",
   //     "obj": "N3C:36684328",       // parent
   //     "meta": null
   //   },
-
-  // const edgeList = edges.map(d => [d.sub, d.obj])
-  const ex = [{p:'a', c:'b'}, {p:'a', c:'c'}, {p:'a', c:'d'},
-    {p:'b', c:'e'}, {p:'b', c:'f'},
-    {p:'c', c:'f'},
-    {p:'d', c:'g'},
-    {p:'e', c:'h'},
-    {p:'f', c:'h'}
-  ]
-  const edgeList = ex.map(d => [d.p, d.c])
+  const edgeList = edges.map(d => [d[parentProp], d[childProp]])
   const connect = d3dag.dagConnect();
   const dag = connect(edgeList);
   /* from https://observablehq.com/@erikbrinkman/d3-dag-sugiyama */
@@ -109,6 +113,7 @@ function drawGraph(svg, edges) {
       // .layering(d3.layeringCoffmanGraham())
       // .decross(d3.decrossTwoLayer().order(d3.twolayerAgg()))
       // .coord(d3.coordSimplex())
+      .nodeSize(() => [2, 2])
       // .nodeSize((node) => {
       //   const size = node ? base : 5;
       //   return [1.2 * size, size];
@@ -159,7 +164,7 @@ function drawGraph(svg, edges) {
       .attr('transform', ({x, y}) => `translate(${x*width}, ${y*height})`);
 
   nodes.append('circle')
-      .attr('r',20)
+      .attr('r',3)
       .attr('fill','white')
       .attr('stroke','black')
   console.log(nodes);
