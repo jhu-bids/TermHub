@@ -51,7 +51,6 @@ export function CsetSearch(props) {
       options={opts}
       blurOnSelect={true}
       clearOnBlur={true}
-      open={true}
       filterOptions={(options, state) => {
         let strings = state.inputValue.split(" ").filter((s) => s.length);
         if (!strings.length) {
