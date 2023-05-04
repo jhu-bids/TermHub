@@ -37,7 +37,6 @@ from enclave_wrangler.dataset_upload import upload_new_cset_container_with_conce
 
 
 TEST_INPUT_DIR = os.path.join(TEST_DIR, 'input', 'test_enclave_wrangler')
-CSV_DIR = os.path.join(TEST_INPUT_DIR, 'test_dataset_upload')
 TEST_SCHEMA = 'test_n3c'
 yesterday: str = (datetime.now() - timedelta(days=1)).isoformat() + 'Z'  # works: 2023-01-01T00:00:00.000Z
 
@@ -109,23 +108,16 @@ class TestEnclaveWrangler(unittest.TestCase):
     #       }
     #     },
 
-    # todo: adit's recent case 2023/02
-    def test_upload_cset_version_from_csv_2(self):
-        """Test uploading a new cset version with concepts"""
-        pass
-
-    def test_upload_cset_version_from_csv_1(self):
+    def _test_upload_cset_version_from_csv(self, path: str):
         """Test uploading a new cset version with concepts
-        using:
-        https://github.com/jhu-bids/TermHub/blob/develop/test/input/test_enclave_wrangler/test_dataset_upload/type-2-diabetes-mellitus.csv
-        file format docs:
-        https://github.com/jhu-bids/TermHub/tree/develop/enclave_wrangler
-        """
-        path = os.path.join(CSV_DIR, 'type-2-diabetes-mellitus.csv')
+        file format docs: https://github.com/jhu-bids/TermHub/tree/develop/enclave_wrangler"""
         # TODO: temp validate_first until fix all bugs
+        # TODO: Will this work if UUID is different?
         d: Dict = upload_new_cset_version_with_concepts_from_csv(path, validate_first=True)
+        d = list(d.values())[0]
         responses: Dict[str, Union[Response, List[Response]]] = d['responses']
         version_id: int = d['versionId']
+        print(f'Uploaded new version with ID: {version_id}')
         for response in responses.values():
             if isinstance(response, list):  # List[Response] returned by concepts upload
                 for response_i in response:
@@ -139,6 +131,20 @@ class TestEnclaveWrangler(unittest.TestCase):
         # if False:   # just don't do this till it gets fixed
         #     response: Response = delete_concept_set_version(version_id, validate_first=True)
         #     self.assertLess(response.status_code, 400)
+
+    # todo?: adit's recent case 2023/02
+    def test_upload_cset_version_from_csv2(self):
+        """Case 2"""
+        path = os.path.join(TEST_INPUT_DIR, 'test_upload_cset_version_from_csv2', 'new_version.csv')
+        self._test_upload_cset_version_from_csv(path)
+
+    def test_upload_cset_version_from_csv(self):
+        """Case 1
+        using: https://github.com/jhu-bids/TermHub/blob/develop/test/input/test_enclave_wrangler/test_dataset_upload/type-2-diabetes-mellitus.csv
+        """
+        path = os.path.join(TEST_INPUT_DIR, 'test_upload_cset_version_from_csv', 'type-2-diabetes-mellitus.csv')
+        self._test_upload_cset_version_from_csv(path)
+
 
     # todo: this test contains concepts, so also uploads a new version. do a case with just container?
     def test_upload_cset_container_from_csv(self):

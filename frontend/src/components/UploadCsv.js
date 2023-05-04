@@ -106,25 +106,25 @@ function UploadCsvPage(props) {
       <label htmlFor="upload-version">
         {/*  TODO: Needs to upload to: /upload-csv-new-cset-version-with-concepts */}
         <Button variant="contained" component="span">
-          New concept set version
+          New concept set version(s)
         </Button>
       </label>
 
       <span> </span>
 
-      <input
-        accept="image/*"
-        // className={classes.input}
-        style={{ display: "none" }}
-        id="upload-container"
-        // multiple
-        onChange={handleUploadContainer}
-        type="file"
-      />
+      {/*<input*/}
+      {/*  accept="image/*"*/}
+      {/*  // className={classes.input}*/}
+      {/*  style={{ display: "none" }}*/}
+      {/*  id="upload-container"*/}
+      {/*  // multiple*/}
+      {/*  onChange={handleUploadContainer}*/}
+      {/*  type="file"*/}
+      {/*/>*/}
       <label htmlFor="upload-container">
         {/*  TODO: Needs to upload to: /upload-csv-new-container-with-concepts */}
-        <Button variant="contained" component="span">
-          New concept set container (coming soon)
+        <Button variant="contained" component="span" disabled>
+          New concept set container(s) (unavailable)
         </Button>
       </label>
     </div>
