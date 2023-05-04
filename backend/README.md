@@ -3,6 +3,8 @@
 `uvicorn backend.app:APP --reload`
 
 ### Deployment
+More information can be found in the [the developer docs](../docs/developer.md), but below are some quick references to the deployment actions.
+
 #### Production
 Deploys to: [termhub.azurewebsites.net](https://termhub.azurewebsites.net)
 Is deployed via GitHub Action: [.github/workflows/backend_prod.yml](https://github.com/jhu-bids/TermHub/blob/main/.github/workflows/backend_prod.yml)

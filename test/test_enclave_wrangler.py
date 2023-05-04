@@ -18,22 +18,23 @@ import pandas as pd
 from requests import Response
 from sqlalchemy.exc import IntegrityError
 
-from backend.db.utils import get_db_connection, run_sql, sql_count
-from enclave_wrangler.objects_api import concept_enclave_to_db, concept_expression_enclave_to_db, \
-    concept_set_members_enclave_to_db, \
-    concept_set_container_enclave_to_db, \
-    cset_version_enclave_to_db, \
-    get_new_cset_and_member_objects, \
-    update_db_with_new_objects
 
 TEST_DIR = os.path.dirname(__file__)
 PROJECT_ROOT = Path(TEST_DIR).parent
 # todo: why is this necessary in this case and almost never otherwise?
 # https://stackoverflow.com/questions/33862963/python-cant-find-my-module
 sys.path.insert(0, str(PROJECT_ROOT))
+from backend.db.utils import get_db_connection, run_sql, sql_count
 from enclave_wrangler.actions_api import upload_concept_set_version_draft
 from enclave_wrangler.dataset_upload import upload_new_cset_container_with_concepts_from_csv, \
     upload_new_cset_version_with_concepts_from_csv
+
+from enclave_wrangler.objects_api import concept_enclave_to_db, concept_expression_enclave_to_db, \
+    concept_set_members_enclave_to_db, \
+    concept_set_container_enclave_to_db, \
+    cset_version_enclave_to_db, \
+    get_new_cset_and_member_objects, \
+    update_db_with_new_objects
 
 
 TEST_INPUT_DIR = os.path.join(TEST_DIR, 'input', 'test_enclave_wrangler')

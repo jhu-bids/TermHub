@@ -1,11 +1,11 @@
 """OAK routes"""
 import os
+from functools import cache
 from pathlib import Path
 from typing import List
 from oaklib import BasicOntologyInterface, get_adapter
 from backend.utils import get_timer
 from backend.db.utils import sql_query, get_db_connection
-from backend.app import cache
 import oaklib.interfaces.obograph_interface as oi_pkg
 from oaklib.datamodels.vocabulary import IS_A, PART_OF
 from fastapi import APIRouter, Query

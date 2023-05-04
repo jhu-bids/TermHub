@@ -8,9 +8,7 @@ import os
 from datetime import datetime
 from pathlib import Path
 from typing import Dict, List, Union, Set
-from functools import wraps, cache
-# from lru import LRU
-# import pickle
+from functools import cache
 
 import uvicorn
 import urllib.parse
@@ -474,7 +472,7 @@ def get_n3c_recommended_codeset_ids() -> Dict[int, Union[Dict, None]]:
     return codeset_ids
 
 
-FLAGS = ['includeDescendants','includeMapped','isExcluded']
+FLAGS = ['includeDescendants', 'includeMapped', 'isExcluded']
 @APP.get("/cset-download")
 def cset_download(codeset_id: int, csetEditState: str = None,
                   atlas_items=True, atlas_items_only=False,
@@ -517,7 +515,7 @@ def cset_download(codeset_id: int, csetEditState: str = None,
 
 @APP.get("/enclave-api-call/{name}")
 @APP.get("/enclave-api-call/{name}/{params}")
-def enclave_api_call(name: str, params: Union[str, None]=None) -> Dict:
+def enclave_api_call(name: str, params: Union[str, None] = None) -> Dict:
     """
     Convenience endpoint to avoid all the boilerplate of having lots of api call function
     """
