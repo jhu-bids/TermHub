@@ -26,11 +26,11 @@ COUNTS_OVER_TIME_OPTIONS = [
 ]
 DOCS_PATH = os.path.join(DOCS_DIR, 'backend', 'db', 'analysis.md')
 DOCS_JINJA = """# DB row counts
-## Counts over time
-{{ counts_markdown_table }}
-
 ## Deltas over time
-{{ deltas_markdown_table }}"""
+{{ deltas_markdown_table }}
+
+## Counts over time
+{{ counts_markdown_table }}"""
 
 
 def counts_compare_schemas(
