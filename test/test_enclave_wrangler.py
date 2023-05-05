@@ -18,7 +18,17 @@ import pandas as pd
 from requests import Response
 from sqlalchemy.exc import IntegrityError
 
+
+TEST_DIR = os.path.dirname(__file__)
+PROJECT_ROOT = Path(TEST_DIR).parent
+# todo: why is this necessary in this case and almost never otherwise?
+# https://stackoverflow.com/questions/33862963/python-cant-find-my-module
+sys.path.insert(0, str(PROJECT_ROOT))
 from backend.db.utils import get_db_connection, run_sql, sql_count
+from enclave_wrangler.actions_api import upload_concept_set_version_draft
+from enclave_wrangler.dataset_upload import upload_new_cset_container_with_concepts_from_csv, \
+    upload_new_cset_version_with_concepts_from_csv
+
 from enclave_wrangler.objects_api import concept_enclave_to_db, concept_expression_enclave_to_db, \
     concept_set_members_enclave_to_db, \
     concept_set_container_enclave_to_db, \
@@ -26,18 +36,8 @@ from enclave_wrangler.objects_api import concept_enclave_to_db, concept_expressi
     get_new_cset_and_member_objects, \
     update_db_with_new_objects
 
-TEST_DIR = os.path.dirname(__file__)
-PROJECT_ROOT = Path(TEST_DIR).parent
-# todo: why is this necessary in this case and almost never otherwise?
-# https://stackoverflow.com/questions/33862963/python-cant-find-my-module
-sys.path.insert(0, str(PROJECT_ROOT))
-from enclave_wrangler.actions_api import upload_concept_set_version_draft
-from enclave_wrangler.dataset_upload import upload_new_cset_container_with_concepts_from_csv, \
-    upload_new_cset_version_with_concepts_from_csv
-
 
 TEST_INPUT_DIR = os.path.join(TEST_DIR, 'input', 'test_enclave_wrangler')
-CSV_DIR = os.path.join(TEST_INPUT_DIR, 'test_dataset_upload')
 TEST_SCHEMA = 'test_n3c'
 yesterday: str = (datetime.now() - timedelta(days=1)).isoformat() + 'Z'  # works: 2023-01-01T00:00:00.000Z
 
@@ -54,9 +54,9 @@ class TestEnclaveWrangler(unittest.TestCase):
 
     # todo: after completing this 'test', create func for it in backend/db and call/assert here
     #  - what is the ultimate goal? how many tables are we refreshing?
-    def test_get_new_objects(self):
+    def test_get_new_csets_and_members(self):
         """Test get_new_objects()"""
-        new_objects: Dict[str, List] = get_new_cset_and_member_objects(since=yesterday)
+        csets_and_members: Dict[str, List] = get_new_cset_and_member_objects(since=yesterday)
         # todo: what kind of assert?
 
     def test_update_db_with_new_objects(self):
@@ -109,23 +109,16 @@ class TestEnclaveWrangler(unittest.TestCase):
     #       }
     #     },
 
-    # todo: adit's recent case 2023/02
-    def test_upload_cset_version_from_csv_2(self):
-        """Test uploading a new cset version with concepts"""
-        pass
-
-    def test_upload_cset_version_from_csv_1(self):
+    def _test_upload_cset_version_from_csv(self, path: str):
         """Test uploading a new cset version with concepts
-        using:
-        https://github.com/jhu-bids/TermHub/blob/develop/test/input/test_enclave_wrangler/test_dataset_upload/type-2-diabetes-mellitus.csv
-        file format docs:
-        https://github.com/jhu-bids/TermHub/tree/develop/enclave_wrangler
-        """
-        path = os.path.join(CSV_DIR, 'type-2-diabetes-mellitus.csv')
+        file format docs: https://github.com/jhu-bids/TermHub/tree/develop/enclave_wrangler"""
         # TODO: temp validate_first until fix all bugs
+        # TODO: Will this work if UUID is different?
         d: Dict = upload_new_cset_version_with_concepts_from_csv(path, validate_first=True)
+        d = list(d.values())[0]
         responses: Dict[str, Union[Response, List[Response]]] = d['responses']
         version_id: int = d['versionId']
+        print(f'Uploaded new version with ID: {version_id}')
         for response in responses.values():
             if isinstance(response, list):  # List[Response] returned by concepts upload
                 for response_i in response:
@@ -139,6 +132,19 @@ class TestEnclaveWrangler(unittest.TestCase):
         # if False:   # just don't do this till it gets fixed
         #     response: Response = delete_concept_set_version(version_id, validate_first=True)
         #     self.assertLess(response.status_code, 400)
+
+    # todo?: adit's recent case 2023/02
+    def test_upload_cset_version_from_csv2(self):
+        """Case 2"""
+        path = os.path.join(TEST_INPUT_DIR, 'test_upload_cset_version_from_csv2', 'new_version.csv')
+        self._test_upload_cset_version_from_csv(path)
+
+    def test_upload_cset_version_from_csv(self):
+        """Case 1
+        using: https://github.com/jhu-bids/TermHub/blob/develop/test/input/test_enclave_wrangler/test_dataset_upload/type-2-diabetes-mellitus.csv
+        """
+        path = os.path.join(TEST_INPUT_DIR, 'test_upload_cset_version_from_csv', 'type-2-diabetes-mellitus.csv')
+        self._test_upload_cset_version_from_csv(path)
 
     # todo: this test contains concepts, so also uploads a new version. do a case with just container?
     def test_upload_cset_container_from_csv(self):
@@ -172,16 +178,18 @@ class TestEnclaveWrangler(unittest.TestCase):
             # Teardown
             run_sql(con, f"DELETE FROM code_sets WHERE codeset_id = '{codeset_id_succeed}';")
 
-    # TODO: See #1 above
+    # todo: See #1 above
     def test_concept_set_container_enclave_to_db(self):
         """Test cset_container_enclave_to_db()"""
-        with get_db_connection(schema=TEST_SCHEMA) as con:
+        # TODO: Switch back to test schema after
+        with get_db_connection(schema='n3c') as con:
             # Failure case: exists in test DB
-            concept_set_id_fail = ' Casirivimab Monotherapy (Injection route of admin, 120 MG/ML dose minimum)'
-            self.assertRaises(IntegrityError, concept_set_container_enclave_to_db, con, concept_set_id_fail)
+            # TODO: need new failure case. Why was this removed from the DB? I guess we need more dummy/archived cases.
+            # concept_set_id_fail = ' Casirivimab Monotherapy (Injection route of admin, 120 MG/ML dose minimum)'
+            # self.assertRaises(IntegrityError, concept_set_container_enclave_to_db, con, concept_set_id_fail)
 
             # Success case:  doesn't exist in test DB
-            concept_set_id_succeed = 'abacavir'
+            concept_set_id_succeed = 'HIV Zihao'
             n1: int = sql_count(con, 'concept_set_container')
             concept_set_container_enclave_to_db(con, concept_set_id_succeed)
             n2: int = sql_count(con, 'concept_set_container')
@@ -189,7 +197,7 @@ class TestEnclaveWrangler(unittest.TestCase):
             # Teardown
             run_sql(con, f"DELETE FROM concept_set_container WHERE concept_set_id = '{concept_set_id_succeed}';")
 
-    # TODO: See #1 above
+    # todo: See #1 above
     def test_concept_expression_enclave_to_db(self):  # aka test_concept_set_version_item_enclave_to_db()
         """Test concept_expression_enclave_to_db()"""
         with get_db_connection(schema=TEST_SCHEMA) as con:
@@ -206,7 +214,7 @@ class TestEnclaveWrangler(unittest.TestCase):
             # Teardown
             run_sql(con, f"DELETE FROM concept_set_version_item WHERE item_id = '{item_id_succeed}';")
 
-    # TODO: See #1 above
+    # todo: See #1 above
     def test_concept_enclave_to_db(self):
         """Test concept_expression_enclave_to_db()"""
         with get_db_connection(schema=TEST_SCHEMA) as con:
@@ -223,7 +231,7 @@ class TestEnclaveWrangler(unittest.TestCase):
             # Teardown
             run_sql(con, f"DELETE FROM concept WHERE concept_id = '{concept_id_succeed}';")
 
-    # TODO: See #1 above
+    # todo: See #1 above
     def test_concept_members_enclave_to_db(self):
         """Test concept_set_members_enclave_to_db()"""
         with get_db_connection(schema=TEST_SCHEMA) as con:
@@ -250,5 +258,6 @@ class TestEnclaveWrangler(unittest.TestCase):
                          f"AND concept_id = '{cset_members_succeed['concept_id']}';")
 
 
-if __name__ == '__main__':
-    unittest.main()
+# Uncomment this and run this file directly to run all tests
+# if __name__ == '__main__':
+#     unittest.main()

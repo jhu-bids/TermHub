@@ -8,9 +8,7 @@ import os
 from datetime import datetime
 from pathlib import Path
 from typing import Dict, List, Union, Set
-from functools import wraps, cache
-# from lru import LRU
-# import pickle
+from functools import cache
 
 import uvicorn
 import urllib.parse
@@ -24,7 +22,7 @@ from backend.routes import cset_crud, oak
 from backend.db.utils import get_db_connection, sql_query, SCHEMA, sql_query_single_col, sql_in
 from backend.db.queries import get_concepts
 from enclave_wrangler.objects_api import get_n3c_recommended_csets, enclave_api_call_caller, get_codeset_json, \
-        get_expression_items, items_to_atlas_json_format
+        get_concept_set_version_expression_items, items_to_atlas_json_format
 from enclave_wrangler.utils import make_objects_request
 from enclave_wrangler.config import RESEARCHER_COLS
 from enclave_wrangler.models import convert_rows
@@ -474,7 +472,7 @@ def get_n3c_recommended_codeset_ids() -> Dict[int, Union[Dict, None]]:
     return codeset_ids
 
 
-FLAGS = ['includeDescendants','includeMapped','isExcluded']
+FLAGS = ['includeDescendants', 'includeMapped', 'isExcluded']
 @APP.get("/cset-download")
 def cset_download(codeset_id: int, csetEditState: str = None,
                   atlas_items=True, atlas_items_only=False,
@@ -486,7 +484,7 @@ def cset_download(codeset_id: int, csetEditState: str = None,
             jsn['items'].sort(key=lambda i: i['concept']['CONCEPT_ID'])
         return jsn
 
-    items = get_expression_items(codeset_id)
+    items = get_concept_set_version_expression_items(codeset_id, handle_paginated=True)
     if csetEditState:
         edits = json.loads(csetEditState)
         edits = edits[str(codeset_id)]
@@ -517,7 +515,7 @@ def cset_download(codeset_id: int, csetEditState: str = None,
 
 @APP.get("/enclave-api-call/{name}")
 @APP.get("/enclave-api-call/{name}/{params}")
-def enclave_api_call(name: str, params: Union[str, None]=None) -> Dict:
+def enclave_api_call(name: str, params: Union[str, None] = None) -> Dict:
     """
     Convenience endpoint to avoid all the boilerplate of having lots of api call function
     """

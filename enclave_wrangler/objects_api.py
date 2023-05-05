@@ -22,19 +22,12 @@ from requests import Response
 from sqlalchemy.engine.base import Connection
 from typeguard import typechecked
 
-# import requests
-# import pyarrow as pa
-# import asyncio
-
 from enclave_wrangler.config import FAVORITE_OBJECTS, OUTDIR_OBJECTS, OUTDIR_CSET_JSON, config, TERMHUB_CSETS_DIR
 from enclave_wrangler.utils import enclave_get, enclave_post, get_objects_df, get_url_from_api_path, \
-    make_objects_request, \
-    handle_paginated_request, handle_response_error
+    make_objects_request
 from enclave_wrangler.models import convert_row, get_field_names, field_name_mapping, pkey
-# from enclave_wrangler.utils import log_debug_info
 from backend.db.utils import insert_from_dict, sql_query_single_col, run_sql, get_db_connection, get_obj_by_id
 from backend.db.queries import get_concepts
-# from backend.utils import pdump
 
 
 DEBUG = False
@@ -51,14 +44,6 @@ OBJECT_TYPE_PK_MAP = {
     'OmopConceptSetVersionItem': 'itemId',
 }
 
-
-# got rid of EnclaveClient class. Replacing its init properties with globals:
-# was:
-#   self.headers = HEADERS                            # not used
-#   self.debug = DEBUG                                # not used
-#   self.base_url = f'https://{config["HOSTNAME"]}'
-#   self.ontology_rid = config['ONTOLOGY_RID']
-#   self.outdir_root = TERMHUB_CSETS_DIR              # not used
 
 BASE_URL = f'https://{config["HOSTNAME"]}'
 ONTOLOGY_RID = config['ONTOLOGY_RID']
@@ -159,13 +144,18 @@ def get_link_types(use_cache_if_failure=False) -> List[Union[Dict, str]]:
         raise err
 
 
-def get_object_links(object_type: str, object_id: str, link_type: str, fail_on_error = False) -> Response:
+def get_object_links(
+    object_type: str, object_id: str, link_type: str, fail_on_error=False, handle_paginated=False,
+    return_type: str = ['Response', 'json', 'data'][2],
+) -> Union[Response, List[Dict]]:
     """Get links of a given type for a given object
 
     Cavaets
     - If the `link_type` is not valid for a given `object_type`, you'll get a 404 not found.
     """
-    return make_objects_request(f'{object_type}/{object_id}/links/{link_type}', return_type='data', fail_on_error=fail_on_error)
+    return make_objects_request(
+        f'{object_type}/{object_id}/links/{link_type}', return_type=return_type, fail_on_error=fail_on_error,
+        handle_paginated=handle_paginated)
 
 
 # TODO: Why does this not work for Joe, but works for Siggie?:
@@ -246,8 +236,8 @@ def get_bundle(bundle_name):
     call this like: http://127.0.0.1:8000/enclave-api-call/get_bundle/Anticoagulants
     """
     all_bundles = get_all_bundles()
-    tagName = [b['properties']['tagName'] for b in all_bundles['data'] if b['properties']['displayName'] == bundle_name][0]
-    return make_objects_request(f'objects/ConceptSetTag/{tagName}/links/ConceptSetBundleItem').json()['data']
+    tag_name = [b['properties']['tagName'] for b in all_bundles['data'] if b['properties']['displayName'] == bundle_name][0]
+    return make_objects_request(f'objects/ConceptSetTag/{tag_name}/links/ConceptSetBundleItem', return_type='data')
 
 
 def get_bundle_codeset_ids(bundle_name):
@@ -296,7 +286,9 @@ def get_all_new_objects(since: Union[datetime, str]) -> Dict[str, List]:
 #  - how to refresh when user creates something?: (a) have the user refresh the db immediately after creating something,
 #    and just download everything since list 'since' date? Or (b) fetch only what they updated (if so, we can't do
 #    inserts; we have to do updates on IDs)
-def get_new_cset_and_member_objects(since: Union[datetime, str], return_type=['flat', 'hierarchical'][0]) -> Dict[str, List]:
+def get_new_cset_and_member_objects(
+    since: Union[datetime, str], return_type=['flat', 'hierarchical'][0], verbose=False
+) -> Dict[str, List]:
     """Get new objects: cset container, cset version, expression items, and member items.
 
     Resources:
@@ -318,15 +310,19 @@ def get_new_cset_and_member_objects(since: Union[datetime, str], return_type=['f
 
     # Concept set versions
     cset_versions: List[Dict] = make_objects_request(
-        'OMOPConceptSet', query_params={'properties.createdAt.gt': since})
+        'OMOPConceptSet', query_params={'properties.createdAt.gt': since}, verbose=verbose, return_type='data')
 
     # Containers
     containers_ids = [x['properties']['conceptSetNameOMOP'] for x in cset_versions]
-    # container_params = [get_query_param('conceptSetId', 'eq', x) for x in containers_ids]
-    # changed query_params to accept dict instead of list of already composed
-    #   key=val strings. haven't tested that it works. TODO: @jflack4: can you confirm?
-    cset_containers: List[Dict] = make_objects_request(
-        'OMOPConceptSetContainer', query_params={'properties.conceptSetId.eq': containers_ids}, verbose=True)
+    cset_containers: List[Dict] = []
+    for _id in containers_ids:
+        container: List[Dict] = make_objects_request(
+            'OMOPConceptSetContainer', query_params={'properties.conceptSetId.eq': _id}, verbose=verbose,
+            return_type='data')
+        if not container:
+            raise ValueError(f'Enclave API returned cset version with container of id {_id}, but failed to call data '
+                             f'for that specific container.')
+        cset_containers.append(container[0]['properties'])
 
     # Expression items & concept set members
     cset_versions_with_concepts: List[Dict] = []
@@ -516,7 +512,7 @@ def get_codeset_json(codeset_id, con=get_db_connection(), use_cache=True, set_ca
     container = make_objects_request(
         f'objects/OMOPConceptSetContainer/{quote(cset["conceptSetNameOMOP"], safe="")}',
         return_type='data', expect_single_item=True)
-    items = get_expression_items(codeset_id)
+    items = get_concept_set_version_expression_items(codeset_id, handle_paginated=True)
     items_jsn = items_to_atlas_json_format(items)
 
     junk = """ What an item should look like for ATLAS JSON import format:
@@ -646,6 +642,56 @@ def refresh_tables_for_object():
 # </Download /refresh: tables using object ontology api (e.g. full concept set info from enclave) #189 -----------------
 
 
+def get_concept_set_version_expression_items(
+    version_id: Union[str, int], return_detail=['id', 'full'][0], handle_paginated=False
+) -> List[Dict]:
+    """Get concept set version expression items"""
+    version_id = str(version_id)
+    items: List[Dict] = get_object_links(
+        object_type='OMOPConceptSet',
+        object_id=version_id,
+        link_type='omopConceptSetVersionItem',
+        handle_paginated=handle_paginated)
+    if return_detail == 'id':
+        return [x['properties']['itemId'] for x in items]
+    return items
+
+
+def get_concept_set_version_members(
+    version_id: Union[str, int], return_detail=['id', 'full'][0], handle_paginated=False
+) -> List[Dict]:
+    """Get concept set members"""
+    version_id = str(version_id)
+    members: List[Dict] = get_object_links(
+        object_type='OMOPConceptSet',
+        object_id=version_id,
+        link_type='omopconcepts',
+        handle_paginated=handle_paginated)
+    if return_detail == 'id':
+        return [x['properties']['conceptId'] for x in members]
+    return members
+
+
+def get_researchers(verbose=False) -> List[Dict]:
+    """Get researcher objects
+    Researcher exploration page:
+    https://unite.nih.gov/workspace/hubble/exploration?objectTypeRid=ri.ontology.main.object-type.70d7defa-4914-422f-83da-f45c28befd5a
+    """
+    object_name = 'Researcher'
+    data: List[Dict] = make_objects_request(object_name, handle_paginated=True, return_type='data', verbose=verbose)
+    return data
+
+
+def get_projects(verbose=False) -> List[Dict]:
+    """Get project objects
+    Projects exploration page:
+    https://unite.nih.gov/workspace/hubble/exploration?objectTypeRid=ri.ontology.main.object-type.84d08d30-bbea-4e3d-a995-040057391a71
+    """
+    object_name = 'ResearchProject'
+    data: List[Dict] = make_objects_request(object_name, handle_paginated=True, return_type='data', verbose=verbose)
+    return data
+
+
 def cli():
     """Command line interface for package."""
     raise "We aren't using this as of 2023-02. Leaving in place in case we want to use again."
@@ -672,63 +718,6 @@ def cli():
     # else:
     #     del kwargs_dict['download_favorite_objects']
     #     run(**kwargs_dict)
-
-
-# todo: @Siggie: is this redundant with get_concept_set_version_expression_items() below?
-def get_expression_items(codeset_id) -> List[Dict]:
-    """Get expression items"""
-    _items = make_objects_request(
-        f'objects/OMOPConceptSet/{codeset_id}/links/omopConceptSetVersionItem',
-        handle_paginated=True, return_type='data'
-    )
-    items = [i['properties'] for i in _items]
-    return items
-
-
-def get_concept_set_version_expression_items(
-    version_id: Union[str, int], return_detail=['id', 'full'][0]
-) -> List[Dict]:
-    """Get concept set version expression items"""
-    version_id = str(version_id)
-    response: Response = get_object_links(
-        object_type='OMOPConceptSet',
-        object_id=version_id,
-        link_type='omopConceptSetVersionItem')
-    if return_detail == 'id':
-        return [x['properties']['itemId'] for x in response.json()['data']]
-    return [x for x in response.json()['data']]
-
-
-def get_concept_set_version_members(version_id: Union[str, int], return_detail=['id', 'full'][0]) -> List[Dict]:
-    """Get concept set members"""
-    version_id = str(version_id)
-    response: Response = get_object_links(
-        object_type='OMOPConceptSet',
-        object_id=version_id,
-        link_type='omopconcepts')
-    if return_detail == 'id':
-        return [x['properties']['conceptId'] for x in response.json()['data']]
-    return [x for x in response.json()['data']]
-
-
-def get_researchers(verbose=False) -> List[Dict]:
-    """Get researcher objects
-    Researcher exploration page:
-    https://unite.nih.gov/workspace/hubble/exploration?objectTypeRid=ri.ontology.main.object-type.70d7defa-4914-422f-83da-f45c28befd5a
-    """
-    object_name = 'Researcher'
-    data: List[Dict] = make_objects_request(object_name, handle_paginated=True, return_type='data', verbose=verbose)
-    return data
-
-
-def get_projects(verbose=False) -> List[Dict]:
-    """Get project objects
-    Projects exploration page:
-    https://unite.nih.gov/workspace/hubble/exploration?objectTypeRid=ri.ontology.main.object-type.84d08d30-bbea-4e3d-a995-040057391a71
-    """
-    object_name = 'ResearchProject'
-    data: List[Dict] = make_objects_request(object_name, handle_paginated=True, return_type='data', verbose=verbose)
-    return data
 
 
 if __name__ == '__main__':

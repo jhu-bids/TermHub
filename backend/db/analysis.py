@@ -26,11 +26,54 @@ COUNTS_OVER_TIME_OPTIONS = [
 ]
 DOCS_PATH = os.path.join(DOCS_DIR, 'backend', 'db', 'analysis.md')
 DOCS_JINJA = """# DB row counts
-## Counts over time
-{{ counts_markdown_table }}
-
 ## Deltas over time
-{{ deltas_markdown_table }}"""
+{{ deltas_markdown_table }}
+
+## Counts over time
+{{ counts_markdown_table }}"""
+
+
+# TODO: rename current_counts where from_cache = True to counts_history or something. because the datastructure is
+#  different. either that, or have it re-use the from_cache code at the end if from_cache = False
+#  - then, counts_over_time() & docs(): add cache param set to false, and change how they call current_counts()
+def _current_counts(
+    schema: str = SCHEMA, local=False, from_cache=False, return_as=['dict', 'df'][0], dt=datetime.now()
+) -> Union[pd.DataFrame, Dict]:
+    """Gets current database counts"""
+    if from_cache:
+        with get_db_connection(schema='', local=local) as con:
+            counts: List[Dict] = [dict(x) for x in run_sql(con, f'SELECT * from counts;')]
+            df = pd.DataFrame(counts)
+            df = df[df['schema'] == schema]
+            return df
+    # Get tables
+    with get_db_connection(schema=schema, local=local) as con:
+        tables: List[str] = list_tables(con)
+    with get_db_connection(schema='', local=local) as con:
+        # Get previous counts
+        timestamps: List[datetime] = [
+            dp.parse(x[0]) for x in run_sql(con, f'SELECT DISTINCT timestamp from counts;')]
+        most_recent_timestamp: str = str(max(timestamps))
+        prev_counts: List[Dict] = [dict(x) for x in run_sql(con, f'SELECT * from counts;')]
+        prev_counts_df = pd.DataFrame(prev_counts)
+        # Get counts
+        table_rows: Dict[str, Dict[str, Any]] = {}
+        for table in tables:
+            count: int = [x for x in run_sql(con, f'SELECT COUNT(*) from n3c.{table};')][0][0]
+            last_count_fetch: Series = prev_counts_df[
+                (prev_counts_df['timestamp'] == most_recent_timestamp) &
+                (prev_counts_df['table'] == table)]['count']
+            last_count_fetch2: List[int] = list(last_count_fetch.to_dict().values())
+            last_count: int = int(last_count_fetch2[0]) if prev_counts and last_count_fetch2 else 0
+            table_rows[table] = {
+                'date': dt.strftime('%Y-%m-%d'),
+                'timestamp': str(dt),
+                'schema': schema,
+                'table': table,
+                'count': count,
+                'delta': count - last_count,
+            }
+    return table_rows if return_as == 'dict' else pd.DataFrame(table_rows)
 
 
 def counts_compare_schemas(
@@ -58,8 +101,8 @@ def counts_compare_schemas(
                 compare_schema = schema_name
 
     # Get counts
-    main: Dict = current_counts(schema, from_cache=use_cached_counts)
-    compare: Dict = current_counts(compare_schema, from_cache=use_cached_counts)
+    main: Dict = _current_counts(schema, from_cache=use_cached_counts)
+    compare: Dict = _current_counts(compare_schema, from_cache=use_cached_counts)
     tables = set(main.keys()).union(set(compare.keys()))
     rows = []
     for table in tables:
@@ -95,56 +138,11 @@ def counts_update(note: str, schema: str = SCHEMA, local=False):
         })
         # Save counts
         # noinspection PyCallingNonCallable pycharm_doesnt_undestand_its_returning_dict
-        for d in current_counts(from_cache=False).values():
+        for d in _current_counts(from_cache=False, dt=dt).values():
             insert_from_dict(con, 'counts', d)
 
 
-# TODO: rename current_counts where from_cache = True to counts_history or something. because the datastructure is
-#  different. either that, or have it re-use the from_cache code at the end if from_cache = False
-#  - then, counts_over_time() & docs(): add cache param set to false, and change how they call current_counts()
-def current_counts(
-    schema: str = SCHEMA, local=False, from_cache=False, return_as=['dict', 'df'][0]
-) -> Union[pd.DataFrame, Dict]:
-    """Gets current database counts"""
-    if from_cache:
-        with get_db_connection(schema='', local=local) as con:
-            counts: List[Dict] = [dict(x) for x in run_sql(con, f'SELECT * from counts;')]
-            df = pd.DataFrame(counts)
-            df = df[df['schema'] == schema]
-            return df
-    dt = datetime.now()
-    # Get tables
-    with get_db_connection(schema=schema, local=local) as con:
-        tables: List[str] = list_tables(con)
-    with get_db_connection(schema='', local=local) as con:
-        # Get previous counts
-        timestamps: List[datetime] = [
-            dp.parse(x[0]) for x in run_sql(con, f'SELECT DISTINCT timestamp from counts;')]
-        most_recent_timestamp: str = str(max(timestamps))
-        prev_counts: List[Dict] = [dict(x) for x in run_sql(con, f'SELECT * from counts;')]
-        prev_counts_df = pd.DataFrame(prev_counts)
-        # Get counts
-        table_rows: Dict[str, Dict[str, Any]] = {}
-        for table in tables:
-            count: int = [x for x in run_sql(con, f'SELECT COUNT(*) from n3c.{table};')][0][0]
-            last_count_fetch: Series = prev_counts_df[
-                (prev_counts_df['timestamp'] == most_recent_timestamp) &
-                (prev_counts_df['table'] == table)]['count']
-            last_count_fetch2: List[int] = list(last_count_fetch.to_dict().values())
-            last_count: int = int(last_count_fetch2[0]) if prev_counts and last_count_fetch2 else 0
-            table_rows[table] = {
-                'date': dt.strftime('%Y-%m-%d'),
-                'timestamp': str(dt),
-                'schema': schema,
-                'table': table,
-                'count': count,
-                'delta': count - last_count,
-            }
-    return table_rows if return_as == 'dict' else pd.DataFrame(table_rows)
-
-
 # TODO: support multiple schema
-# TODO: the _print feature is actually truncated when printed. not useful; maybe a way to print untruncated / else CSV?
 def counts_over_time(
     schema: str = SCHEMA, local=False, method=COUNTS_OVER_TIME_OPTIONS[0], _print=True,
     current_counts_df: pd.DataFrame = pd.DataFrame()
@@ -152,7 +150,7 @@ def counts_over_time(
     """Checks counts of database and store what the results look like in a database over time"""
     if method not in COUNTS_OVER_TIME_OPTIONS:
         raise ValueError(f'counts_over_time(): Invalid method {method}. Must be one of {COUNTS_OVER_TIME_OPTIONS}')
-    current_counts_df = current_counts_df if len(current_counts_df) > 0 else current_counts(
+    current_counts_df = current_counts_df if len(current_counts_df) > 0 else _current_counts(
         schema, local, from_cache=True)
 
     # Pivot
@@ -194,10 +192,10 @@ def counts_over_time(
     return df
 
 
-def docs(notify=True):
+def docs(use_cached_counts=True):
     """Runs --counts-over-time and --deltas-over-time and puts in documentation: docs/backend/db/analysis.md."""
     # Get data
-    current_counts_df = current_counts(from_cache=True)
+    current_counts_df = _current_counts(from_cache=use_cached_counts)
     counts_df: pd.DataFrame = counts_over_time(method='counts_table', current_counts_df=current_counts_df, _print=False)
     deltas_df: pd.DataFrame = counts_over_time(method='delta_table', current_counts_df=current_counts_df, _print=False)
     # Write docs
@@ -207,13 +205,12 @@ def docs(notify=True):
     with open(DOCS_PATH, 'w') as f:
         f.write(instantiated_str)
     # Notify
-    if notify:
-        pass
-        # todo: need new method; Gmail doesn't work anymore. See: send_email() docstring
-        # send_email(
-        #     subject="TermHub DB counts docs updated",
-        #     body="When/if pushed to develop branch, will appear here: "
-        #          "https://github.com/jhu-bids/TermHub/blob/develop/docs/backend/db/analysis.md")
+    # todo: notify param: need new method; Gmail doesn't work anymore. See: send_email() docstring
+    # if notify:
+    #     send_email(
+    #         subject="TermHub DB counts docs updated",
+    #         body="When/if pushed to develop branch, will appear here: "
+    #              "https://github.com/jhu-bids/TermHub/blob/develop/docs/backend/db/analysis.md")
 
 
 def cli():

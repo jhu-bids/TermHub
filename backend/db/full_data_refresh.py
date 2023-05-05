@@ -27,7 +27,7 @@ from enclave_wrangler.objects_api import download_favorite_objects
 #  total time for downloads, and total time for uploading to db (perhaps for each table as well)
 def refresh_db(
     skip_download_datasets_csets=False, skip_download_datasets_vocab=False, skip_download_objects=False,
-    force_download_if_exists=True, schema: str = CONFIG['schema'], hours_threshold_for_updates=24,
+    skip_download_if_exists=True, schema: str = CONFIG['schema'], hours_threshold_for_updates=24,
     use_local_database=False
 ):
     """Refresh the database"""
@@ -38,43 +38,46 @@ def refresh_db(
     hours_threshold_for_updates = int(hours_threshold_for_updates)
     is_updated = check_if_updated(last_updated_db_key, hours_threshold_for_updates)
 
+    if is_updated:
+        print('INFO: Skipping download of datasets and skip_download_objects as they are up to date.')
+        print('INFO: Skipping upload of latest datasets to DB as it is up to date.')
+        return
+
     # Downloads
     # todo: Might be useful to add last_updated functionality on a more granular basis based on each of these 3.
     #  Maybe we want to do downloads even if the uploads have been complete?
-    if not is_updated and not skip_download_datasets_csets:
+    if not skip_download_datasets_csets:
         print('INFO: Downloading datasets: csets.')
-        download_favorite_datasets(force_if_exists=force_download_if_exists, single_group='cset')
-    if not is_updated and not skip_download_objects:
+        download_favorite_datasets(force_if_exists=not skip_download_if_exists, single_group='cset')
+    if not skip_download_objects:
         print('INFO: Downloading datasets: objects.')
-        download_favorite_objects(force_if_exists=force_download_if_exists)
-    if not is_updated and not skip_download_datasets_vocab:
+        download_favorite_objects(force_if_exists=not skip_download_if_exists)
+    if not skip_download_datasets_vocab:
         print('INFO: Downloading datasets: vocab.')
-        download_favorite_datasets(force_if_exists=force_download_if_exists, single_group='vocab')
-    if is_updated:
-        print('INFO: Skipping download of datasets and skip_download_objects as they are up to date.')
+        download_favorite_datasets(force_if_exists=not skip_download_if_exists, single_group='vocab')
 
     # Uploads
-    if not is_updated:
-        with get_db_connection(local=use_local_database) as con:
-            run_sql(con, f'CREATE SCHEMA IF NOT EXISTS {schema_new_temp};')
-        load(schema_new_temp, True, hours_threshold_for_updates, use_local_database)
-        with get_db_connection(schema=schema_new_temp, local=use_local_database) as con:
-            run_sql(con, f'ALTER SCHEMA n3c RENAME TO {schema_old_backup};')
-            run_sql(con, f'ALTER SCHEMA {schema_new_temp} RENAME TO n3c;')
-            update_db_status_var(last_updated_db_key, str(current_datetime()))
-    else:
-        print('INFO: Skipping upload of latest datasets to DB as it is up to date.')
+    with get_db_connection(local=use_local_database) as con:
+        run_sql(con, f'CREATE SCHEMA IF NOT EXISTS {schema_new_temp};')
+    load(schema_new_temp, True, hours_threshold_for_updates, use_local_database)
+    with get_db_connection(schema=schema_new_temp, local=use_local_database) as con:
+        run_sql(con, f'ALTER SCHEMA n3c RENAME TO {schema_old_backup};')
+        run_sql(con, f'ALTER SCHEMA {schema_new_temp} RENAME TO n3c;')
+        update_db_status_var(last_updated_db_key, str(current_datetime()))
     print('INFO: Database refresh complete.')
 
 
 def cli():
     """Command line interface"""
     parser = ArgumentParser(description='Refreshes the TermHub database w/ newest updates from the Enclave.')
+    # todo: downloads: rather than checking if full db refresh was done, should check files last_updated time
     parser.add_argument(
         '-t', '--hours-threshold-for-updates', default=24,
-        help='Threshold for how many hours since last update before we require refreshes. If last update time was less '
-             'than this, nothing will happen. Will evaluate this separately for downloads of local artefacts as well '
-             'as uploading data to the DB.')
+        help='Threshold for how many hours since last update before we require refreshes. If the last refresh was done '
+             'within that time, no downloads will occur and no new data will be uploaded to the DB. Otherwise, '
+             'downloads will occur. Then, for each database table needing to be updated, will check if that table was '
+             'last updated within that time, and update it if not. Thus, if the refresh errors or times out before '
+             'completion, it is able to pick up where it left off. Default is 24 hours.')
     parser.add_argument(
         '-o', '--skip-download-objects', action='store_true', default=False, help='Skip download of objects.')
     parser.add_argument(
@@ -84,9 +87,9 @@ def cli():
         '-v', '--skip-download-datasets-vocab', action='store_true', default=False,
         help='Skip download datasets from the "vocab" group.')
     parser.add_argument(
-        '-f', '--force-download-if-exists', action='store_true', default=True,
-        help='If the dataset/object already exists as a local file, force a re-download. This is moot if the last '
-             'update was done within --hours-threshold-for-updates.')
+        '-d', '--skip-download-if-exists', action='store_true', default=False,
+        help='If the dataset/object already exists as a local file, don\'t re-download. If this flag is not present, '
+             'the file will be re-downloaded unless it was last updated within --hours-threshold-for-updates.')
     parser.add_argument(
         '-l', '--use-local-database', action='store_true', default=False, help='Use local database instead of server.')
     refresh_db(**vars(parser.parse_args()))

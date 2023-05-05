@@ -81,6 +81,8 @@ def check_if_updated(key: str, skip_if_updated_within_hours: int = None) -> bool
 
 def is_table_up_to_date(table_name: str, skip_if_updated_within_hours: int = None) -> bool:
     """Check if table is up to date"""
+    if not skip_if_updated_within_hours:
+        return False
     last_updated_key = f'last_updated_{table_name}'
     return check_if_updated(last_updated_key, skip_if_updated_within_hours)
 

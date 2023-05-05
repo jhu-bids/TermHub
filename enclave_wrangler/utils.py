@@ -259,6 +259,7 @@ def get_url_from_api_path(path):
 #     return f'properties.{field_name}.{filter_name}={filter_value}'
 
 
+# TODO: Should we automatically handle_paginated?
 # todo's from b4 refactor combining make_objects_request() and get_objects_by_type() 2023/03/15
 #   1. Need to find the right object_type, then write a wrapper func around this to get concept sets
 #     - To Try: CodeSystemConceptSetVersionExpressionItem, OMOPConcept, OMOPConceptSet, OMOPConceptSetContainer,
@@ -289,7 +290,7 @@ def make_objects_request(
         retry_times, retry_pause = (1, 0) if not retry_if_empty else (retry_times, retry_pause)
 
         # Construct URL
-        url = get_url_from_api_path(f'objects/{path}')
+        url: str = get_url_from_api_path(f'objects/{path}')
         if query_params:
             # was: url = url + '?' + '&'.join(query_params) if query_params else url
             # urllib.parse.quote turns spaces into + instead of %20, i got this
@@ -305,7 +306,7 @@ def make_objects_request(
             if retry_if_empty:
                 print(f'make_objects_request, attempt #{i}')
             if handle_paginated:
-                data: List[Dict] = handle_paginated_request(url, verbose=verbose, error_dir=outdir, **request_args)
+                data: List[Dict] = handle_paginated_request(url, verbose=verbose, error_dir=outdir)
                 if data:
                     return data
             else:

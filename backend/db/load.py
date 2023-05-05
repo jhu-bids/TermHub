@@ -104,12 +104,12 @@ def seed(
     """Seed the database with some data"""
     replace_rule = 'do not replace' if not clobber else None
     for table in dataset_tables:
-        if skip_if_updated_within_hours and is_table_up_to_date(table, skip_if_updated_within_hours):
+        if is_table_up_to_date(table, skip_if_updated_within_hours):
             print(f'INFO: Skipping upload of table "{table}" because it is up to date.')
             continue
         load_csv(con, table, replace_rule=replace_rule, schema=schema, is_test_table=test_tables)
     for table in object_tables:
-        if skip_if_updated_within_hours and is_table_up_to_date(table, skip_if_updated_within_hours):
+        if is_table_up_to_date(table, skip_if_updated_within_hours):
             print(f'INFO: Skipping upload of table "{table}" because it is up to date.')
             continue
         load_csv(con, table, table_type='object', replace_rule=replace_rule, schema=schema, is_test_table=test_tables)
