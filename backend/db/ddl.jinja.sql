@@ -210,7 +210,7 @@ CREATE TABLE IF NOT EXISTS {{schema}}concepts_with_counts AS (
 
 CREATE INDEX cc_idx1 ON {{schema}}concepts_with_counts(concept_id);
 
-DROP TABLE concepts_with_counts_ungrouped CASCADE;
+DROP TABLE {{schema}}concepts_with_counts_ungrouped CASCADE;
 
 -- concept_relationship_plus takes a long time to build
 DROP TABLE IF EXISTS {{schema}}concept_relationship_plus;

@@ -26,10 +26,12 @@ VOCABS_PATH = os.path.join(PROJECT_DIR, 'termhub-vocab')
 # APIRouter.logger = logger
 
 snomed_path = os.path.join(VOCABS_PATH, 'n3c-SNOMED.db')
-OI_snomed = get_adapter(snomed_path)
+# OI_snomed = get_adapter(snomed_path)
+OI = get_adapter(snomed_path)
 
-all_n3c_path = os.path.join(VOCABS_PATH, 'n3c.db')
-OI = get_adapter(all_n3c_path)
+# all_n3c_path = os.path.join(VOCABS_PATH, 'n3c.db')
+# OI = get_adapter(all_n3c_path)
+
 # subsetter = ss.SubsetterInterface(snomed_path)
 # oi_pkg.logger = logger
 
