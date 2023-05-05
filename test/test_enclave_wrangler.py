@@ -146,7 +146,6 @@ class TestEnclaveWrangler(unittest.TestCase):
         path = os.path.join(TEST_INPUT_DIR, 'test_upload_cset_version_from_csv', 'type-2-diabetes-mellitus.csv')
         self._test_upload_cset_version_from_csv(path)
 
-
     # todo: this test contains concepts, so also uploads a new version. do a case with just container?
     def test_upload_cset_container_from_csv(self):
         """Test uploading a concept set container from CSV"""
@@ -179,7 +178,7 @@ class TestEnclaveWrangler(unittest.TestCase):
             # Teardown
             run_sql(con, f"DELETE FROM code_sets WHERE codeset_id = '{codeset_id_succeed}';")
 
-    # TODO: See #1 above
+    # todo: See #1 above
     def test_concept_set_container_enclave_to_db(self):
         """Test cset_container_enclave_to_db()"""
         # TODO: Switch back to test schema after
@@ -198,7 +197,7 @@ class TestEnclaveWrangler(unittest.TestCase):
             # Teardown
             run_sql(con, f"DELETE FROM concept_set_container WHERE concept_set_id = '{concept_set_id_succeed}';")
 
-    # TODO: See #1 above
+    # todo: See #1 above
     def test_concept_expression_enclave_to_db(self):  # aka test_concept_set_version_item_enclave_to_db()
         """Test concept_expression_enclave_to_db()"""
         with get_db_connection(schema=TEST_SCHEMA) as con:
@@ -215,7 +214,7 @@ class TestEnclaveWrangler(unittest.TestCase):
             # Teardown
             run_sql(con, f"DELETE FROM concept_set_version_item WHERE item_id = '{item_id_succeed}';")
 
-    # TODO: See #1 above
+    # todo: See #1 above
     def test_concept_enclave_to_db(self):
         """Test concept_expression_enclave_to_db()"""
         with get_db_connection(schema=TEST_SCHEMA) as con:
@@ -232,7 +231,7 @@ class TestEnclaveWrangler(unittest.TestCase):
             # Teardown
             run_sql(con, f"DELETE FROM concept WHERE concept_id = '{concept_id_succeed}';")
 
-    # TODO: See #1 above
+    # todo: See #1 above
     def test_concept_members_enclave_to_db(self):
         """Test concept_set_members_enclave_to_db()"""
         with get_db_connection(schema=TEST_SCHEMA) as con:
@@ -259,5 +258,6 @@ class TestEnclaveWrangler(unittest.TestCase):
                          f"AND concept_id = '{cset_members_succeed['concept_id']}';")
 
 
-if __name__ == '__main__':
-    unittest.main()
+# Uncomment this and run this file directly to run all tests
+# if __name__ == '__main__':
+#     unittest.main()

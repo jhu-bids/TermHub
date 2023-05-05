@@ -33,76 +33,10 @@ DOCS_JINJA = """# DB row counts
 {{ counts_markdown_table }}"""
 
 
-def counts_compare_schemas(
-    compare_schema: str = 'most_recent_backup', schema: str = SCHEMA, local=False, verbose=True, use_cached_counts=False
-) -> pd.DataFrame:
-    """Checks counts of database tables for the current schema and its most recent backup.
-
-    :param compare_schema: The schema to check against. e.g. ncurrent_counts3c_backup_20230322
-    :param use_cached_counts: If True, will use whatever is in the `counts` table, though it is less likely that counts
-    will exist for backups. Runs much faster though if using this option.
-    """
-    # Determine most recent schema if necessary
-    if compare_schema == 'most_recent_backup':
-        # 2nd % necessary for Python escaping
-        query = """SELECT schema_name
-        FROM information_schema.schemata
-        WHERE schema_name NOT LIKE 'pg_%%'
-        AND schema_name <> 'information_schema';
-        """
-        with get_db_connection(schema='', local=local) as con:
-            backup_schemas: List[str] = [x[0] for x in run_sql(con, query) if x[0].startswith(f'{schema}_backup_')]
-        dates: List[datetime] = [dp.parse(x.split('_')[2]) for x in backup_schemas]
-        for schema_name, date in zip(backup_schemas, dates):
-            if date == max(dates):
-                compare_schema = schema_name
-
-    # Get counts
-    main: Dict = current_counts(schema, from_cache=use_cached_counts)
-    compare: Dict = current_counts(compare_schema, from_cache=use_cached_counts)
-    tables = set(main.keys()).union(set(compare.keys()))
-    rows = []
-    for table in tables:
-        main_count = main[table]['count'] if table in main else 0
-        compare_count = compare[table]['count'] if table in compare else 0
-        rows.append({
-            'table': table,
-            'delta': main_count - compare_count,
-            schema: main_count,
-            compare_schema: compare_count,
-        })
-    df = pd.DataFrame(rows)
-
-    if verbose:
-        print(df)
-    return df
-
-
-def counts_update(note: str, schema: str = SCHEMA, local=False):
-    """Update 'counts' table with current row counts.
-
-    :param note: For context around what was going on around when / why the counts are updated, e.g. after a backup or
-    a data fetch from the enclave, or after editing a batch of concept sets.
-    """
-    dt = datetime.now()
-    with get_db_connection(schema='', local=local) as con:
-        # Save run metadata, e.g. a note about it
-        insert_from_dict(con, 'counts_runs', {
-            'timestamp': str(dt),
-            'date': dt.strftime('%Y-%m-%d'),
-            'schema': schema,
-            'note': note,
-        })
-        # Save counts
-        # noinspection PyCallingNonCallable pycharm_doesnt_undestand_its_returning_dict
-        for d in current_counts(from_cache=False, dt=dt).values():
-            insert_from_dict(con, 'counts', d)
-
-
 # TODO: rename current_counts where from_cache = True to counts_history or something. because the datastructure is
 #  different. either that, or have it re-use the from_cache code at the end if from_cache = False
 #  - then, counts_over_time() & docs(): add cache param set to false, and change how they call current_counts()
-def current_counts(
+def _current_counts(
     schema: str = SCHEMA, local=False, from_cache=False, return_as=['dict', 'df'][0], dt=datetime.now()
 ) -> Union[pd.DataFrame, Dict]:
     """Gets current database counts"""
@@ -142,6 +76,72 @@ def current_counts(
     return table_rows if return_as == 'dict' else pd.DataFrame(table_rows)
 
 
+def counts_compare_schemas(
+    compare_schema: str = 'most_recent_backup', schema: str = SCHEMA, local=False, verbose=True, use_cached_counts=False
+) -> pd.DataFrame:
+    """Checks counts of database tables for the current schema and its most recent backup.
+
+    :param compare_schema: The schema to check against. e.g. ncurrent_counts3c_backup_20230322
+    :param use_cached_counts: If True, will use whatever is in the `counts` table, though it is less likely that counts
+    will exist for backups. Runs much faster though if using this option.
+    """
+    # Determine most recent schema if necessary
+    if compare_schema == 'most_recent_backup':
+        # 2nd % necessary for Python escaping
+        query = """SELECT schema_name
+        FROM information_schema.schemata
+        WHERE schema_name NOT LIKE 'pg_%%'
+        AND schema_name <> 'information_schema';
+        """
+        with get_db_connection(schema='', local=local) as con:
+            backup_schemas: List[str] = [x[0] for x in run_sql(con, query) if x[0].startswith(f'{schema}_backup_')]
+        dates: List[datetime] = [dp.parse(x.split('_')[2]) for x in backup_schemas]
+        for schema_name, date in zip(backup_schemas, dates):
+            if date == max(dates):
+                compare_schema = schema_name
+
+    # Get counts
+    main: Dict = _current_counts(schema, from_cache=use_cached_counts)
+    compare: Dict = _current_counts(compare_schema, from_cache=use_cached_counts)
+    tables = set(main.keys()).union(set(compare.keys()))
+    rows = []
+    for table in tables:
+        main_count = main[table]['count'] if table in main else 0
+        compare_count = compare[table]['count'] if table in compare else 0
+        rows.append({
+            'table': table,
+            'delta': main_count - compare_count,
+            schema: main_count,
+            compare_schema: compare_count,
+        })
+    df = pd.DataFrame(rows)
+
+    if verbose:
+        print(df)
+    return df
+
+
+def counts_update(note: str, schema: str = SCHEMA, local=False):
+    """Update 'counts' table with current row counts.
+
+    :param note: For context around what was going on around when / why the counts are updated, e.g. after a backup or
+    a data fetch from the enclave, or after editing a batch of concept sets.
+    """
+    dt = datetime.now()
+    with get_db_connection(schema='', local=local) as con:
+        # Save run metadata, e.g. a note about it
+        insert_from_dict(con, 'counts_runs', {
+            'timestamp': str(dt),
+            'date': dt.strftime('%Y-%m-%d'),
+            'schema': schema,
+            'note': note,
+        })
+        # Save counts
+        # noinspection PyCallingNonCallable pycharm_doesnt_undestand_its_returning_dict
+        for d in _current_counts(from_cache=False, dt=dt).values():
+            insert_from_dict(con, 'counts', d)
+
+
 # TODO: support multiple schema
 def counts_over_time(
     schema: str = SCHEMA, local=False, method=COUNTS_OVER_TIME_OPTIONS[0], _print=True,
@@ -150,7 +150,7 @@ def counts_over_time(
     """Checks counts of database and store what the results look like in a database over time"""
     if method not in COUNTS_OVER_TIME_OPTIONS:
         raise ValueError(f'counts_over_time(): Invalid method {method}. Must be one of {COUNTS_OVER_TIME_OPTIONS}')
-    current_counts_df = current_counts_df if len(current_counts_df) > 0 else current_counts(
+    current_counts_df = current_counts_df if len(current_counts_df) > 0 else _current_counts(
         schema, local, from_cache=True)
 
     # Pivot
@@ -195,7 +195,7 @@ def counts_over_time(
 def docs(use_cached_counts=True):
     """Runs --counts-over-time and --deltas-over-time and puts in documentation: docs/backend/db/analysis.md."""
     # Get data
-    current_counts_df = current_counts(from_cache=use_cached_counts)
+    current_counts_df = _current_counts(from_cache=use_cached_counts)
     counts_df: pd.DataFrame = counts_over_time(method='counts_table', current_counts_df=current_counts_df, _print=False)
     deltas_df: pd.DataFrame = counts_over_time(method='delta_table', current_counts_df=current_counts_df, _print=False)
     # Write docs

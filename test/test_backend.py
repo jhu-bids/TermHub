@@ -8,11 +8,17 @@ TODO's
 """
 import os
 import sys
+from pathlib import Path
 from urllib.parse import urljoin
 import requests
 import unittest
 
 from requests import Response
+
+TEST_DIR = os.path.dirname(__file__)
+PROJECT_ROOT = Path(TEST_DIR).parent
+sys.path.insert(0, str(PROJECT_ROOT))
+from backend.db.analysis import counts_compare_schemas, counts_over_time
 
 TEST_DIR = os.path.dirname(__file__)
 BACKEND_URL_BASE = 'http://127.0.0.1:8000/'
@@ -120,6 +126,36 @@ class TestBackend(unittest.TestCase):
         response: Response = self._upload_file(csv_path, url)
         self.assertEqual(response.json()['result'], 'success')
 
+    # TODO: @Hope: We use PostgreSQL as a database. It has a concept called 'schema' which is basically a folder that
+    #  has a bunch of tables.
+    #  (Part 1) confirm that the param `compare_schema`, when set to 'most_recent_backup', is indeed more recent
+    #  than a known older backup. Steps: (i) done already: call compare_schema() twice, once with 'most_recent_backup'
+    #  and once with a known older one (e.g. 'n3c_backup_20230221'). (ii) accessing dataframe columns, you'll see that 1
+    #  of the columns in each dataframe has pattern 'n3c_backup_YYYYMMDD'. This column should be different in each
+    #  dataframe. You should extract the YYYYMMDD from each dataframe and compare them, e.g. with `dateutil.parser`, and
+    #  try to see if self.assertGreater(DATE1, DATE2) passes if DATE1 from 'most_recent_backup' is indeed more recent
+    #  than DATE2 from 'n3c_backup_20230221'.
+    #  (Part 2) Pick any one of the dataframes from "part 1" confirm that all of the row counts for all of the tables
+    #  for both of the 2 schema columns are greater than 0.
+    def test_counts_compare_schemas(self):
+        """test counts_compare_schemas()"""
+        # Part 1
+        df1 = counts_compare_schemas(compare_schema='most_recent_backup')
+        df2 = counts_compare_schemas(compare_schema='n3c_backup_20230221')
+        self.assertGreater(1, 0)  # placeholder
+        # Part 2
+        row_count = 0  # placeholder
+        self.assertGreater(row_count, 0)
 
-if __name__ == '__main__':
-    unittest.main()
+    # TODO: @Hope: (Part 1) assert that for every column in the dataframe, the value in the 'COMMENT' row is not empty.
+    #  (Part 2) confirm that all row counts in all of the cells (other than the 'COMMENT' row)  are greater than 0.
+    def test_counts_over_time(self):
+        """test counts_over_time()"""
+        # Parts 1 and 2
+        df = counts_over_time()
+        self.assertEqual(1, 0)  # placeholder
+
+
+# Uncomment this and run this file directly to run all tests
+# if __name__ == '__main__':
+#     unittest.main()
