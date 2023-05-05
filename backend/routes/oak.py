@@ -3,12 +3,13 @@ import os
 from pathlib import Path
 from typing import List
 from oaklib import BasicOntologyInterface, get_adapter
+import oaklib.interfaces.obograph_interface as oi_pkg
+import oaklib.interfaces.subsetter_interface as ss
+from oaklib.datamodels.vocabulary import IS_A, PART_OF
+from fastapi import APIRouter, Query
 from backend.utils import get_timer
 from backend.db.utils import sql_query, get_db_connection
 from backend.app import cache
-import oaklib.interfaces.obograph_interface as oi_pkg
-from oaklib.datamodels.vocabulary import IS_A, PART_OF
-from fastapi import APIRouter, Query
 
 router = APIRouter(
     # prefix="/oak",
@@ -25,7 +26,11 @@ VOCABS_PATH = os.path.join(PROJECT_DIR, 'termhub-vocab')
 # APIRouter.logger = logger
 
 snomed_path = os.path.join(VOCABS_PATH, 'n3c-SNOMED.db')
-OI = get_adapter(snomed_path)
+OI_snomed = get_adapter(snomed_path)
+
+all_n3c_path = os.path.join(VOCABS_PATH, 'n3c.db')
+OI = get_adapter(all_n3c_path)
+# subsetter = ss.SubsetterInterface(snomed_path)
 # oi_pkg.logger = logger
 
 
@@ -39,16 +44,11 @@ def subgraph(cid: List[str] = Query(...)):
     ontology-access-kit/blob/4f215f71d4f814e1bd910710f68030b2976d845b/src/oaklib/interfaces/obograph_interface.py#L315
     """
     seeds = ['N3C:' + _id for _id in cid]
-    # from oaklib.interfaces.obograph_interface import TraversalConfiguration, Distance
-    # use an adapter to talk to an endpoint (here, sqlite)
-    # adapter = get_adapter("tests/input/go-nucleus.db")
-    # get a subgraph centered around these nodes
-    # seeds = ["GO:0005634", "GO:0005773"]  # nucleus, vacuole
-    # walk up the graph to get ancestors, and also get direct children
-    traversal = oi_pkg.TraversalConfiguration(
-        up_distance=oi_pkg.Distance.TRANSITIVE, down_distance=oi_pkg.Distance.DIRECT)
-    # noinspection PyUnresolvedReferences
-    graph = OI.subgraph_from_traversal(seeds, predicates=[IS_A, PART_OF], traversal=traversal)
+    traversal = oi_pkg.TraversalConfiguration(up_distance=oi_pkg.Distance.TRANSITIVE,
+                                              down_distance=oi_pkg.Distance.DIRECT)
+    g = OI.subgraph_from_traversal(['N3C:201826', 'N3C:201254'], predicates=[IS_A])
+    return OI.subgraph_from_traversal(seeds, predicates=[IS_A, PART_OF], traversal=traversal).edges
+    # edges = subsetter.gap_fill_relationships(seed_curies=seeds, predicates=[IS_A])
     return graph.edges
 
 
