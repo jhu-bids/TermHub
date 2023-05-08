@@ -48,7 +48,11 @@ def subgraph(cid: List[str] = Query(...)):
     seeds = ['N3C:' + _id for _id in cid]
     traversal = oi_pkg.TraversalConfiguration(up_distance=oi_pkg.Distance.TRANSITIVE,
                                               down_distance=oi_pkg.Distance.DIRECT)
-    g = OI.subgraph_from_traversal(['N3C:201826', 'N3C:201254'], predicates=[IS_A])
+    edges = OI.gap_fill_relationships(seed_curies=seeds, predicates=[IS_A])
+    print(next(edges))
+
+    return edges
+    # g = OI.subgraph_from_traversal(['N3C:201826', 'N3C:201254'], predicates=[IS_A])
     return OI.subgraph_from_traversal(seeds, predicates=[IS_A, PART_OF], traversal=traversal).edges
     # edges = subsetter.gap_fill_relationships(seed_curies=seeds, predicates=[IS_A])
     return graph.edges
