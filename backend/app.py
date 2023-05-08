@@ -18,7 +18,7 @@ from fastapi.middleware.gzip import GZipMiddleware
 from sqlalchemy.engine import LegacyRow, RowMapping
 
 from backend.utils import JSON_TYPE, get_timer, pdump, return_err_with_trace
-from backend.routes import cset_crud, oak
+from backend.routes import cset_crud, oak, db
 from backend.db.utils import get_db_connection, sql_query, SCHEMA, sql_query_single_col, sql_in
 from backend.db.queries import get_concepts
 from enclave_wrangler.objects_api import get_n3c_recommended_csets, enclave_api_call_caller, get_codeset_json, \
@@ -33,6 +33,7 @@ PROJECT_DIR = Path(os.path.dirname(__file__)).parent
 APP = FastAPI()
 APP.include_router(cset_crud.router)
 APP.include_router(oak.router)
+APP.include_router(db.router)
 APP.add_middleware(
     CORSMiddleware,
     allow_origins=['*'],
@@ -606,12 +607,6 @@ def cr_hierarchy(include_atlas_json: bool = False, codeset_ids: Union[str, None]
     verbose and timer('done')
 
     return result
-
-
-@APP.get("/get-concepts")
-@return_err_with_trace
-def get_concepts_route(id: List[int] = Query(...), table:str='concepts_with_counts') -> List:
-    return get_concepts(concept_ids=id, table=table)
 
 
 if __name__ == '__main__':

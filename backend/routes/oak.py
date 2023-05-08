@@ -10,6 +10,7 @@ from oaklib.datamodels.vocabulary import IS_A, PART_OF
 from fastapi import APIRouter, Query
 from backend.utils import get_timer
 from backend.db.utils import sql_query, get_db_connection
+from backend.db.queries import get_vocab_of_concepts
 
 router = APIRouter(
     # prefix="/oak",
@@ -24,36 +25,48 @@ VOCABS_PATH = os.path.join(PROJECT_DIR, 'termhub-vocab')
 # logging.basicConfig(level=logging.INFO)
 # logger = logging.getLogger(__name__)
 # APIRouter.logger = logger
+# oi_pkg.logger = logger
 
 snomed_path = os.path.join(VOCABS_PATH, 'n3c-SNOMED.db')
-# OI_snomed = get_adapter(snomed_path)
-OI = get_adapter(snomed_path)
+rxnorm_path = os.path.join(VOCABS_PATH, 'n3c-RxNorm.db')
 
-# all_n3c_path = os.path.join(VOCABS_PATH, 'n3c.db')
-# OI = get_adapter(all_n3c_path)
+OIs = {
+    'SNOMED': get_adapter(snomed_path),
+    'RxNorm': get_adapter(rxnorm_path),
+}
 
-# subsetter = ss.SubsetterInterface(snomed_path)
-# oi_pkg.logger = logger
+def get_oi(vocab):
+    return OIs[vocab]
+
+
+@cache
+def get_curie(label, list_ok=False):
+    """Get term's CURIE by its label"""
+    # noinspection PyUnresolvedReferences doesnt_expect_basic_search_but_I_think_its_wrong
+    curies = list(OI.basic_search(label))
+    if list_ok:
+        return curies
+    return curies[0]
 
 
 # Routes ---------------------------------------------------------------------------------------------------------------
 # @cache
 @router.get("/subgraph/")
-def subgraph(cid: List[str] = Query(...)):
+def subgraph(id: List[int] = Query(...)):
     # def subgraph(cid: List[str] = Query(...), add_prefix=True):
     """ Get a subgraph / minimal subsumption tree between and including 2 nodes.
     https://github.com/INCATools/
     ontology-access-kit/blob/4f215f71d4f814e1bd910710f68030b2976d845b/src/oaklib/interfaces/obograph_interface.py#L315
     """
-    seeds = ['N3C:' + _id for _id in cid]
+    vocabulary_id = get_vocab_of_concepts(id)
+    seeds = ['N3C:' + str(_id) for _id in id]
     traversal = oi_pkg.TraversalConfiguration(up_distance=oi_pkg.Distance.TRANSITIVE,
                                               down_distance=oi_pkg.Distance.DIRECT)
-    edges = OI.gap_fill_relationships(seed_curies=seeds, predicates=[IS_A])
-    print(next(edges))
-
-    return edges
+    # edges = OI.gap_fill_relationships(seed_curies=seeds, predicates=[IS_A])
+    # print(next(edges))
+    # return edges
     # g = OI.subgraph_from_traversal(['N3C:201826', 'N3C:201254'], predicates=[IS_A])
-    return OI.subgraph_from_traversal(seeds, predicates=[IS_A, PART_OF], traversal=traversal).edges
+    return get_oi(vocabulary_id).subgraph_from_traversal(seeds, predicates=[IS_A, PART_OF], traversal=traversal).edges
     # edges = subsetter.gap_fill_relationships(seed_curies=seeds, predicates=[IS_A])
     return graph.edges
 
@@ -143,25 +156,15 @@ def snomed_test(term, predicates):
     timer('done')
 
 
-def show_info(term: str, oi: BasicOntologyInterface = OI):
-    """Show term's info"""
-    term_id = get_curie(term)
-    # from https://incatools.github.io/ontology-access-kit/intro/tutorial02.html#extending-the-example
-    print(f"ID: {term_id}")
-    print(f"Name: {oi.label(term_id)}")
-    print(f"Definition: {oi.definition(term_id)}")
-    for rel, parent in oi.outgoing_relationships(term_id):
-        print(f'  {rel} ({oi.label(rel)}) {parent} ({oi.label(parent)})')
-
-
-@cache
-def get_curie(label, list_ok=False):
-    """Get term's CURIE by its label"""
-    # noinspection PyUnresolvedReferences doesnt_expect_basic_search_but_I_think_its_wrong
-    curies = list(OI.basic_search(label))
-    if list_ok:
-        return curies
-    return curies[0]
+# def show_info(term: str, oi: BasicOntologyInterface = OI):
+#     """Show term's info"""
+#     term_id = get_curie(term)
+#     # from https://incatools.github.io/ontology-access-kit/intro/tutorial02.html#extending-the-example
+#     print(f"ID: {term_id}")
+#     print(f"Name: {oi.label(term_id)}")
+#     print(f"Definition: {oi.definition(term_id)}")
+#     for rel, parent in oi.outgoing_relationships(term_id):
+#         print(f'  {rel} ({oi.label(rel)}) {parent} ({oi.label(parent)})')
 
 
 def ad_hoc_test_1():
