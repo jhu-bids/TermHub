@@ -1,6 +1,7 @@
 import * as React from "react";
 import Card from "@mui/material/Card";
 import CardContent from "@mui/material/CardContent";
+import {List, ListItem} from "@mui/material";
 import Typography from "@mui/material/Typography";
 import IconButton from "@mui/material/IconButton";
 import CloseIcon from "@mui/icons-material/Close";
@@ -75,7 +76,17 @@ function ConceptSetCard(props) {
   let tags = [];
   let display_props = {};
   display_props["Code set ID"] = cset.codeset_id;
-  display_props["Concepts"] = cset.concepts;
+  let dontFormatValue = ['Concept counts'];
+  let counts = [{grp: 'Members', cnt: cset.concepts}, ...cset.summary]
+  display_props["Concept counts"] = (
+      <>
+        {
+          counts.map(d => <span style={{display: 'block', paddingLeft: '12px'}}
+                                key={d.grp}><strong>{d.grp}</strong>: {d.cnt.toLocaleString()}</span>)
+        }
+      </>
+  );
+
   // fix to:
   // format: row => fmt(parseInt(row.distinct_person_cnt)),
   display_props["Patient count"] =
@@ -213,14 +224,9 @@ function ConceptSetCard(props) {
           {tags.join(", ")}
         </Typography>
         {Object.keys(display_props).map((pkey) => (
-          <Typography
-            variant="body2"
-            color="text.secondary"
-            key={pkey}
-            sx={{ overflow: "clip" }}
-          >
-            <strong>{pkey}</strong>: {display_props[pkey]}
-          </Typography>
+            <Typography variant="body2" color="text.secondary" key={pkey} sx={{ overflow: "clip" }} >
+              <strong>{pkey}</strong>: {display_props[pkey]}
+            </Typography>
         ))}
         <Typography variant="body2" color="text.primary">
           {/*This link opens the version */}
