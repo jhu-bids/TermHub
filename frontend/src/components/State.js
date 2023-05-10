@@ -113,7 +113,7 @@ class DataAccess {
     //   cached by queryClient/persistor anyway)
 
     const url = backend_url(
-        "subgraph?" + concept_ids.map(c=>`cid=${c}`).join("&")
+        "subgraph?" + concept_ids.map(c=>`id=${c}`).join("&")
     );
     const queryKey = ['subgraph', ...concept_ids];
     // https://tanstack.com/query/v4/docs/react/reference/QueryClient#queryclientfetchquery

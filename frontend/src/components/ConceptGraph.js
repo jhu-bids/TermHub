@@ -10,6 +10,30 @@ export function currentConceptIds(props) {
   const concepts = props?.cset_data?.concepts ?? [];
   return concepts.map(c => c.concept_id);
 }
+function formatEdges(edges=[], setEdges, setEdgeProps) {
+  if (!edges.length) return [];
+  const etest = edges[0];
+  if (Array.isArray(etest)) {
+    if (etest.length === 3) {
+      setEdgeProps({parentProp: 'obj', childProp: 'sub'});
+      setEdges(edges.map(e => ({sub: e[0], pred: e[1], obj:e[2]})));
+    } else {
+      throw new Error('Unexpected array-type edge with != 3 elements', etest)
+    }
+  }
+  // assume edges are objects if not arrays
+  else if ('p' in etest) {
+    setEdgeProps({parentProp: 'p', childProp: 'c'});
+    setEdges(edges);
+  }
+  else if ('pred' in etest && etest.pred === 'rdfs:subClassOf') {
+    setEdgeProps({parentProp: 'obj', childProp: 'sub'});
+    setEdges(edges.map(e => ({sub: e.sub, pred: e.pred, obj:e.obj})));
+  }
+  else {
+    throw new Error('unkown edge type', etest);
+  }
+}
 export function ConceptGraph(props) {
   const {concept_ids, use_example=false} = props;
   const [concepts, setConcepts] = useState([]);
@@ -49,7 +73,7 @@ export function ConceptGraph(props) {
           {p:'e2', c:'h2'},
           {p:'f2', c:'h2'} */
         ]
-        setEdges(ex);
+        formatEdges(ex, setEdges, setEdgeProps);
         setEdgeProps({parentProp: 'p', childProp: 'c'});
         return;
       }
@@ -248,11 +272,11 @@ export function ConceptGraph(props) {
             "meta": null
           }
         ]
-        setEdges(ex);
+        formatEdges(ex, setEdges, setEdgeProps);
         return;
       }
       const _edges = await dataAccessor.getSubgraphEdges(concept_ids, 'array');
-      setEdges(_edges);
+      formatEdges(_edges, setEdges, setEdgeProps);
     }
     fetchData();
   }, []);
@@ -299,7 +323,7 @@ function graphWidth(dag) {
 function graphHeight(dag) {
   return _.max(dag.height().descendants().map(d => d.value));
 }
-function drawGraph(svg, edges, parentProp='sub', childProp = 'obj',
+function drawGraph(svg, edges, parentProp='obj', childProp = 'sub',
                    doc_height, doc_width) {
   // edge looks like {
   //     "sub": "N3C:46274124",       // child
