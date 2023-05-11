@@ -3,9 +3,11 @@
  *  todo: 1. Siggie was going to add some sort of Table here
  * */
 import React, { useState } from "react";
+import {queryClient} from "../App";
 import Typography from "@mui/material/Typography";
 import Button from "@mui/material/Button";
 import { Link } from "@mui/material";
+
 // import * as po from './Popover';
 
 // import React, {useState, useReducer, useEffect, useRef} from 'react';
@@ -109,6 +111,18 @@ function AboutPage(props) {
       </TextBody>
 
       <TextH1>How to's</TextH1>
+      <TextH2>Fix the app if it's acting weird</TextH2>
+        <ul>
+          <LI>Refresh the page</LI>
+          <LI>
+            <Button variant={"contained"}
+                    onClick={() => queryClient.removeQueries()}
+            >
+              Empty the data cache
+            </Button>
+          </LI>
+          <LI>Complain to <a href="mailto:sigfried@jhu.edu">Siggie</a></LI>
+        </ul>
       <TextH2>How to make changes to a codeset (via Atlas JSON)</TextH2>
       {/*todo: resolve console warnings: <ul>/<ol> cannot appear as a descendant of <p>.
             https://mui.com/material-ui/api/typography/*/}

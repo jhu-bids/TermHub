@@ -149,7 +149,7 @@ CREATE INDEX mis1 on {{schema}}members_items_summary(codeset_id);
 DROP TABLE IF EXISTS {{schema}}codeset_counts;
 
 CREATE TABLE {{schema}}codeset_counts AS
-SELECT codeset_id, JSON_OBJECT_AGG(grp, cnt) AS counts FROM {{schema}}members_items_summary group by codeset_id;
+SELECT codeset_id, JSON_OBJECT_AGG(grp, cnt) AS counts FROM {{schema}}members_items_summary GROUP BY codeset_id;
 
 CREATE INDEX csc1 on {{schema}}codeset_counts(codeset_id);
 

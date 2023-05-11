@@ -218,11 +218,11 @@ function DataContainer(props) {
     cset_data_url
   );
   // const [cr_widget, crprops] = useDataWidget('cr' + codeset_ids.join('|'), cr_url);
-  const _all_csets = acprops.data;
+  const all_csets = acprops.data;
   const cset_data = csprops.data;
   // const concept_relationships = crprops.data;
 
-  if (_all_csets && cset_data /*&& concept_relationships*/) {
+  if (all_csets && cset_data /*&& concept_relationships*/) {
     cset_data.conceptLookup = keyBy(cset_data.concepts, "concept_id");
     const csmiLookup = {};
     // cset_data.cset_members_items.map(mi => set(csmiLookup, [mi.codeset_id, mi.concept_id], mi));
@@ -232,12 +232,15 @@ function DataContainer(props) {
       csmiLookup[mi.codeset_id][mi.concept_id] = mi;
     });
     cset_data.csmiLookup = csmiLookup;
+    let orphans = {};
+    for (const o of cset_data.orphans) {
+      orphans[o] = null;
+    }
+    cset_data.hierarchy = {
+      ...cset_data.hierarchy,
+      ...orphans
+    }
     // let cr = _.hierarchicalTableToTree(concept_relationships, 'concept_id_1', 'concept_id_2');
-
-    const all_csets = _all_csets.map(cset => ({
-      ...cset,
-      counts: keyBy(cset.counts, 'grp')
-    }))
 
     return (
       <RoutesContainer {...props} all_csets={all_csets} cset_data={cset_data} />

@@ -311,6 +311,14 @@ function colConfig(props) {
       ],
     },
     {
+      name: "Vocabulary",
+      selector: (row) => row.vocabulary_id,
+      // format: (row) => <Tooltip label={row.vocabulary_id} content={row.vocabulary_id} />,
+      sortable: !nested,
+      width: 100,
+      style: { justifyContent: "center" },
+    },
+    {
       name: "Concept ID",
       selector: (row) => row.concept_id,
       sortable: !nested,
