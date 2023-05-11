@@ -16,6 +16,15 @@ ALTER TABLE IF EXISTS test_{{schema}}concept_set_container ALTER COLUMN assigned
 ALTER TABLE IF EXISTS test_{{schema}}concept_set_container ALTER COLUMN intention TYPE text;
 ALTER TABLE IF EXISTS test_{{schema}}concept_set_container ALTER COLUMN n3c_reviewer TYPE text;
 
+-- some rows in concept_set_members have been duplicates, so need to get rid of those
+--  might be with import/loading errors, but just fixing it here for now
+
+SELECT * INTO {{schema}}concept_set_members FROM {{schema}}concept_set_members_with_dups;
+
+SELECT DISTINCT * INTO {{schema}}concept_set_members FROM {{schema}}concept_set_members_with_dups;
+
+DROP TABLE concept_set_members_with_dups;
+
 -- Indexes and more ----------------------------------------------------------------------------------------------------
 ALTER TABLE {{schema}}concept ADD PRIMARY KEY(concept_id);
 
@@ -66,6 +75,7 @@ WHERE NOT EXISTS (
     WHERE csc.concept_set_id = dd.concept_set_id
   AND csc.created_at = dd.created_at
     );
+
 
 DROP TABLE IF EXISTS all_csets;
 
@@ -128,7 +138,7 @@ CREATE INDEX ac_idx1 ON {{schema}}all_csets(codeset_id);
 
 CREATE INDEX ac_idx2 ON {{schema}}all_csets(concept_set_name);
 
-DROP TABLE IF EXISTS {{schema}}cset_members_items;
+DROP TABLE IF EXISTS {{schema}}cset_members_items CASCADE;
 
 CREATE TABLE {{schema}}cset_members_items AS
 SELECT
@@ -156,6 +166,24 @@ CREATE INDEX csmi_idx1 ON {{schema}}cset_members_items(codeset_id);
 CREATE INDEX csmi_idx2 ON {{schema}}cset_members_items(concept_id);
 
 CREATE INDEX csmi_idx3 ON {{schema}}cset_members_items(codeset_id, concept_id);
+
+DROP TABLE IF EXISTS {{schema}}members_items_summary;
+
+CREATE TABLE {{schema}}members_items_summary AS
+SELECT
+      codeset_id,
+      csm,
+      item,
+      item_flags,
+      CASE WHEN item THEN 'Expression item -- '||
+        CASE WHEN LENGTH(item_flags) > 0 THEN item_flags ELSE 'no flags' END || '. '
+        ELSE '' END ||
+        CASE WHEN csm THEN 'Is a member' ELSE 'Is not a member' END AS grp,
+      COUNT(*) AS cnt
+FROM {{schema}}cset_members_items
+GROUP by 1,2,3,4,5;
+
+CREATE INDEX mis1 on {{schema}}members_items_summary(codeset_id);
 
 CREATE OR REPLACE VIEW {{schema}}cset_members_items_plus AS (
 SELECT    csmi.*
