@@ -389,10 +389,12 @@ def get_all_csets(con=CON) -> Union[Dict, List]:
         con, f""" 
         SELECT codeset_id,
               concept_set_version_title,
-              concepts
+              --concepts
+              counts
         FROM {SCHEMA}.all_csets""")
-    if len(set(results)) != len(results):
-        raise "Duplicate records in all_csets. Please alert app admin: sigfried@sigfried.org"
+    # can't check for dups with json object in the results
+    # if len(set(results)) != len(results):
+    #     raise "Duplicate records in all_csets. Please alert app admin: sigfried@sigfried.org"
     return results
     # smaller = DS2.all_csets[['codeset_id', 'concept_set_version_title', 'concepts']]
     # return smaller.to_dict(orient='records')

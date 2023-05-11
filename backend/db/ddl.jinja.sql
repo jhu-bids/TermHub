@@ -19,14 +19,30 @@ ALTER TABLE IF EXISTS test_{{schema}}concept_set_container ALTER COLUMN n3c_revi
 -- some rows in concept_set_members have been duplicates, so need to get rid of those
 --  might be with import/loading errors, but just fixing it here for now
 
-SELECT * INTO {{schema}}concept_set_members FROM {{schema}}concept_set_members_with_dups;
+SELECT * INTO {{schema}}concept_set_members_with_dups FROM {{schema}}concept_set_members;
+
+DROP TABLE {{schema}}concept_set_members;
 
 SELECT DISTINCT * INTO {{schema}}concept_set_members FROM {{schema}}concept_set_members_with_dups;
 
 DROP TABLE concept_set_members_with_dups;
 
 -- Indexes and more ----------------------------------------------------------------------------------------------------
-ALTER TABLE {{schema}}concept ADD PRIMARY KEY(concept_id);
+-- ALTER TABLE {{schema}}concept ADD PRIMARY KEY(concept_id); -- fixing in case primary key already exists
+DO $$
+    BEGIN
+        if NOT EXISTS (SELECT constraint_name FROM information_schema.table_constraints WHERE table_name = 'concept' AND constraint_type = 'PRIMARY KEY') then
+            ALTER TABLE concept ADD PRIMARY KEY (concept_id);
+        end if;
+    END $$;
+
+-- ALTER TABLE {{schema}}code_sets ADD PRIMARY KEY(codeset_id);
+DO $$
+    BEGIN
+        if NOT EXISTS (SELECT constraint_name FROM information_schema.table_constraints WHERE table_name = 'code_sets' AND constraint_type = 'PRIMARY KEY') then
+            ALTER TABLE code_sets ADD PRIMARY KEY (codeset_id);
+        end if;
+    END $$;
 
 CREATE INDEX IF NOT EXISTS concept_idx on {{schema}}concept(concept_id);
 
@@ -51,8 +67,6 @@ CREATE INDEX IF NOT EXISTS cr_idx2 on {{schema}}concept_relationship(concept_id_
 CREATE INDEX IF NOT EXISTS cr_idx3 on {{schema}}concept_relationship(concept_id_1, concept_id_2);
 
 CREATE INDEX IF NOT EXISTS cs_idx1 on {{schema}}code_sets(codeset_id);
-
-ALTER TABLE {{schema}}code_sets ADD PRIMARY KEY(codeset_id);
 
 CREATE INDEX IF NOT EXISTS csc_idx1 on {{schema}}concept_set_container(concept_set_id);
 
@@ -110,22 +124,32 @@ DROP TABLE IF EXISTS {{schema}}members_items_summary;
 CREATE TABLE {{schema}}members_items_summary AS
 SELECT
     codeset_id,
-    CASE WHEN item THEN 'Expression item -- '||
-                        CASE WHEN LENGTH(item_flags) > 0 THEN item_flags ELSE 'no flags' END || '. '
-         ELSE '' END ||
-    CASE WHEN csm THEN 'Is a member' ELSE 'Is not a member' END AS grp,
+    CASE
+        WHEN item AND csm THEN 'Expression item and member'
+        WHEN item THEN 'Expression item only'
+        WHEN csm THEN 'Member only'
+        ELSE 'WHAT IS THIS?' END
+    ||
+    CASE
+        WHEN item THEN ' -- '
+                        ||
+                        CASE WHEN LENGTH(item_flags) > 0 THEN item_flags ELSE 'no flags' END
+        ELSE '' END
+    AS grp,
     COUNT(*) AS cnt
 FROM {{schema}}cset_members_items
 GROUP by 1,2
 UNION
-SELECT codeset_id, 'Members' AS grp, COUNT(*) AS cnt FROM cset_members_items WHERE csm GROUP by 1,2
+SELECT codeset_id, 'Members' AS grp, SUM(CASE WHEN csm THEN 1 ELSE 0 END) AS cnt FROM {{schema}}cset_members_items GROUP by 1,2
 UNION
-SELECT codeset_id, 'Expression items' AS grp, COUNT(*) AS cnt FROM cset_members_items WHERE item GROUP by 1,2;
+SELECT codeset_id, 'Expression items' AS grp, SUM(CASE WHEN item THEN 1 ELSE 0 END) AS cnt FROM {{schema}}cset_members_items GROUP by 1,2;
 
 CREATE INDEX mis1 on {{schema}}members_items_summary(codeset_id);
 
+DROP TABLE IF EXISTS {{schema}}codeset_counts;
+
 CREATE TABLE {{schema}}codeset_counts AS
-SELECT codeset_id, JSON_AGG(JSON_BUILD_OBJECT('grp', grp, 'cnt', cnt)) AS counts FROM {{schema}}members_items_summary GROUP BY 1;
+SELECT codeset_id, JSON_OBJECT_AGG(grp, cnt) AS counts FROM {{schema}}members_items_summary group by codeset_id;
 
 CREATE INDEX csc1 on {{schema}}codeset_counts(codeset_id);
 
@@ -283,9 +307,6 @@ CREATE INDEX crp_idx6 ON {{schema}}concept_relationship_plus(concept_name_1);
 
 CREATE INDEX crp_idx7 ON {{schema}}concept_relationship_plus(concept_name_2);
 
-CREATE TABLE IF NOT EXISTS {{schema}}concept_set_json (
-    codeset_id int,
-    json json
-);
+-- CREATE TABLE IF NOT EXISTS {{schema}}concept_set_json ( codeset_id int, json json );
 
-CREATE INDEX csj_idx ON {{schema}}concept_set_json(codeset_id);
+-- CREATE INDEX csj_idx ON {{schema}}concept_set_json(codeset_id);

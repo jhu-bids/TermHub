@@ -77,12 +77,12 @@ function ConceptSetCard(props) {
   let display_props = {};
   display_props["Code set ID"] = cset.codeset_id;
   let dontFormatValue = ['Concept counts'];
-  let counts = [{grp: 'Members', cnt: cset.concepts}, ...cset.summary]
   display_props["Concept counts"] = (
       <>
         {
-          counts.map(d => <span style={{display: 'block', paddingLeft: '12px'}}
-                                key={d.grp}><strong>{d.grp}</strong>: {d.cnt.toLocaleString()}</span>)
+          Object.entries(cset.counts).map(([grp,cnt]) => (
+              <span style={{display: 'block', paddingLeft: '12px'}} key={grp}><strong>{grp}</strong>: {cnt.toLocaleString()}</span>
+          ))
         }
       </>
   );

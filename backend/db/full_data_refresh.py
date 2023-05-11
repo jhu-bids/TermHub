@@ -17,7 +17,7 @@ BACKEND_DIR = os.path.join(DB_DIR, '..')
 PROJECT_ROOT = os.path.join(BACKEND_DIR, '..')
 sys.path.insert(0, str(PROJECT_ROOT))
 from backend.db.config import CONFIG
-from backend.db.load import load
+from backend.db.load import load, indexes_and_derived_tables
 from backend.db.utils import check_if_updated, current_datetime, get_db_connection, run_sql, update_db_status_var
 from enclave_wrangler.datasets import download_favorite_datasets
 from enclave_wrangler.objects_api import download_favorite_objects
@@ -28,9 +28,14 @@ from enclave_wrangler.objects_api import download_favorite_objects
 def refresh_db(
     skip_download_datasets_csets=False, skip_download_datasets_vocab=False, skip_download_objects=False,
     skip_download_if_exists=True, schema: str = CONFIG['schema'], hours_threshold_for_updates=24,
-    use_local_database=False
+    use_local_database=False, run_final_ddl_only=False
 ):
     """Refresh the database"""
+    if run_final_ddl_only:
+        indexes_and_derived_tables(get_db_connection(), schema) # , start_step=6)
+        print('INFO: Indexes and derived tables complete.')
+        return
+
     print('INFO: Starting database refresh.', flush=True)  # flush: for gh action
     schema_new_temp = schema + '_' + datetime.now().strftime('%Y%m%d')
     schema_old_backup = schema + '_before_' + schema_new_temp.replace(schema + '_', '')
@@ -92,6 +97,8 @@ def cli():
              'the file will be re-downloaded unless it was last updated within --hours-threshold-for-updates.')
     parser.add_argument(
         '-l', '--use-local-database', action='store_true', default=False, help='Use local database instead of server.')
+    parser.add_argument(
+        '-z', '--run-final-ddl-only', action='store_true', default=False, help='Only run indexes_and_derived_tables (ddl.jinja.sql).')
     refresh_db(**vars(parser.parse_args()))
 
 

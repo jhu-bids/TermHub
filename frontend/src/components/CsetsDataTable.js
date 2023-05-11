@@ -126,13 +126,24 @@ function getColdefs() {
       sortable: true,
     },
     {
-      //name: 'Concepts',
       name: (
-        <Tooltip label="Number of concepts in this concept set.">
-          <span>Concepts</span>
+          <Tooltip label="Number of members in this concept set, that is, concepts included after expanding expression items.">
+            <span>Members</span>
+          </Tooltip>
+      ),
+      selector: (row) => row.counts['Members'],
+      compact: true,
+      width: "70px",
+      center: true,
+      sortable: true,
+    },
+    {
+      name: (
+        <Tooltip label="Number of expression items in this concept set.">
+          <span>Expression items</span>
         </Tooltip>
       ),
-      selector: (row) => row.concepts,
+      selector: (row) => row.counts['Expression items'],
       compact: true,
       width: "70px",
       center: true,
