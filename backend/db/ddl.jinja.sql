@@ -82,57 +82,56 @@ DROP TABLE IF EXISTS all_csets;
 CREATE TABLE {{schema}}all_csets AS
 -- table instead of view for performance (no materialized views in mySQL)
 -- TODO: but now we're on postgres should it be a materialized view?
-SELECT DISTINCT
-		cs.codeset_id,
-		cs.concept_set_version_title,
-		cs.project,
-		cs.concept_set_name,
-		cs.source_application,
-		cs.source_application_version,
-		cs.created_at AS codeset_created_at,
-		cs.atlas_json,
-		cs.is_most_recent_version,
-		cs.version,
-		cs.comments,
-		cs.intention AS codeset_intention,
-		cs.limitations,
-		cs.issues,
-		cs.update_message,
-		cs.status AS codeset_status,
-		cs.has_review,
-		cs.reviewed_by,
-		cs.created_by AS codeset_created_by,
-		cs.provenance,
-		cs.atlas_json_resource_url,
-		cs.parent_version_id,
-		cs.authoritative_source,
-		cs.is_draft,
-        ocs.rid AS codeset_rid,
-		csc.project_id,
-        csc.assigned_informatician,
-        csc.assigned_sme,
-        csc.status AS container_status,
-        csc.stage,
-        csc.intention AS container_intention,
-        csc.n3c_reviewer,
-        csc.alias,
-        csc.archived,
-        csc.created_by AS container_created_by,
-        csc.created_at AS container_created_at,
-        ocsc.rid AS container_rid,
-		COALESCE(cids.concepts, 0) AS concepts,
-        COALESCE(cscc.approx_distinct_person_count, 0) AS distinct_person_cnt,
-        COALESCE(cscc.approx_total_record_count, 0) AS total_cnt
-FROM {{schema}}code_sets cs
-LEFT JOIN {{schema}}OMOPConceptSet ocs ON cs.codeset_id = ocs."codesetId" -- need quotes because of caps in colname
-JOIN {{schema}}concept_set_container csc ON cs.concept_set_name = csc.concept_set_name
-LEFT JOIN {{schema}}omopconceptsetcontainer ocsc ON csc.concept_set_id = ocsc."conceptSetId"
-LEFT JOIN (
-	SELECT codeset_id, COUNT(DISTINCT concept_id) concepts
-	FROM {{schema}}concept_set_members
-    GROUP BY codeset_id
-) cids ON cs.codeset_id = cids.codeset_id
-LEFT JOIN {{schema}}concept_set_counts_clamped cscc ON cs.codeset_id = cscc.codeset_id;
+WITH ac AS (SELECT DISTINCT cs.codeset_id,
+                            cs.concept_set_version_title,
+                            cs.project,
+                            cs.concept_set_name,
+                            cs.source_application,
+                            cs.source_application_version,
+                            cs.created_at                                  AS codeset_created_at,
+                            cs.atlas_json,
+                            cs.is_most_recent_version,
+                            cs.version,
+                            cs.comments,
+                            cs.intention                                   AS codeset_intention,
+                            cs.limitations,
+                            cs.issues,
+                            cs.update_message,
+                            cs.status                                      AS codeset_status,
+                            cs.has_review,
+                            cs.reviewed_by,
+                            cs.created_by                                  AS codeset_created_by,
+                            cs.provenance,
+                            cs.atlas_json_resource_url,
+                            cs.parent_version_id,
+                            cs.authoritative_source,
+                            cs.is_draft,
+                            ocs.rid                                        AS codeset_rid,
+                            csc.project_id,
+                            csc.assigned_informatician,
+                            csc.assigned_sme,
+                            csc.status                                     AS container_status,
+                            csc.stage,
+                            csc.intention                                  AS container_intention,
+                            csc.n3c_reviewer,
+                            csc.alias,
+                            csc.archived,
+                            csc.created_by                                 AS container_created_by,
+                            csc.created_at                                 AS container_created_at,
+                            ocsc.rid                                       AS container_rid,
+                            -- COALESCE(members.concepts, 0) AS members,
+                            -- COALESCE(items.concepts, 0) AS items,
+                            COALESCE(cscc.approx_distinct_person_count, 0) AS distinct_person_cnt,
+                            COALESCE(cscc.approx_total_record_count, 0)    AS total_cnt
+            FROM code_sets cs
+                     LEFT JOIN {{schema}}OMOPConceptSet ocs
+                               ON cs.codeset_id = ocs."codesetId" -- need quotes because of caps in colname
+                     JOIN {{schema}}concept_set_container csc ON cs.concept_set_name = csc.concept_set_name
+                     LEFT JOIN {{schema}}omopconceptsetcontainer ocsc ON csc.concept_set_id = ocsc."conceptSetId"
+                     LEFT JOIN {{schema}}concept_set_counts_clamped cscc ON cs.codeset_id = cscc.codeset_id)
+SELECT ac.*, cscnt.counts
+FROM ac
+LEFT JOIN {{schema}}codeset_counts cscnt ON ac.codeset_id = cscnt.codeset_id;
 
 CREATE INDEX ac_idx1 ON {{schema}}all_csets(codeset_id);
 
@@ -172,18 +171,24 @@ DROP TABLE IF EXISTS {{schema}}members_items_summary;
 CREATE TABLE {{schema}}members_items_summary AS
 SELECT
       codeset_id,
-      csm,
-      item,
-      item_flags,
       CASE WHEN item THEN 'Expression item -- '||
         CASE WHEN LENGTH(item_flags) > 0 THEN item_flags ELSE 'no flags' END || '. '
         ELSE '' END ||
         CASE WHEN csm THEN 'Is a member' ELSE 'Is not a member' END AS grp,
       COUNT(*) AS cnt
 FROM {{schema}}cset_members_items
-GROUP by 1,2,3,4,5;
+GROUP by 1,2
+UNION
+SELECT codeset_id, 'Members' AS grp, COUNT(*) AS cnt FROM cset_members_items WHERE csm GROUP by 1,2
+UNION
+SELECT codeset_id, 'Expression items' AS grp, COUNT(*) AS cnt FROM cset_members_items WHERE item GROUP by 1,2;
 
 CREATE INDEX mis1 on {{schema}}members_items_summary(codeset_id);
+
+CREATE TABLE {{schema}}codeset_counts AS
+SELECT codeset_id, JSON_AGG(JSON_BUILD_OBJECT('grp', grp, 'cnt', cnt)) AS counts FROM {{schema}}members_items_summary GROUP BY 1;
+
+CREATE INDEX csc1 on {{schema}}codeset_counts(codeset_id);
 
 CREATE OR REPLACE VIEW {{schema}}cset_members_items_plus AS (
 SELECT    csmi.*

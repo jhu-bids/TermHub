@@ -39,7 +39,7 @@ export function CsetSearch(props) {
     .map((d) => ({
       label:
         `${d.codeset_id} - ${d.concept_set_version_title} ` +
-        `${d.archived ? "archived" : ""} (${d.concepts} concepts)`,
+        `${d.archived ? "archived" : ""} (${d.items} expression items, ${d.members} members)`,
       id: d.codeset_id,
     }));
   const autocomplete = (

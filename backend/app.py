@@ -245,23 +245,6 @@ def get_related_csets(
             cset['intersecting_concepts'] = len(intersecting_concepts)
             cset['recall'] = cset['intersecting_concepts'] / selected_cid_cnt
             cset['precision'] = cset['intersecting_concepts'] / len(cids)
-        if cset.get('selected'):
-            # csmi = get_cset_members_items(cset['codeset_id'])
-            q = f"""
-                select csm,
-                      item,
-                      item_flags,
-                      case when item then 'Expression item -- '||
-                        case when length(item_flags) > 0 then item_flags else 'no flags' end || '. '
-                        else '' end ||
-                        case when csm then 'Is a member' else 'Is not a member' end AS grp,
-                      count(*) as cnt
-                from cset_members_items
-                where codeset_id = (:codeset_id)
-                group by 1,2,3
-            """
-            cset['summary'] = sql_query(get_db_connection(), q, {'codeset_id': cset['codeset_id']})
-
     t1 = datetime.now()
     verbose and timer('done')
     return related_csets
