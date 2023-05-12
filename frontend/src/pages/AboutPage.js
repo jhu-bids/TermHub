@@ -6,7 +6,8 @@ import React, { useState } from "react";
 import {queryClient} from "../App";
 import Typography from "@mui/material/Typography";
 import Button from "@mui/material/Button";
-import { Link } from "@mui/material";
+import { TextField, } from "@mui/material";
+import { Link } from "react-router-dom";
 
 // import * as po from './Popover';
 
@@ -74,6 +75,7 @@ function AboutPage(props) {
   //       return {Message, ConceptSetNames, CodesetIds, Concepts};
   //     }
   // )
+  const [codeset_ids, setCodeset_ids] = useState([]);
 
   return (
     <div style={{ margin: "15px 30px 15px 40px" }}>
@@ -100,13 +102,11 @@ function AboutPage(props) {
         feature request in mind, we would love to hear from you.
         <br />
         {/*<p><Button variant={"outlined"}>*/}
-        <Button variant={"contained"}>
-          <Link
-            href="https://github.com/jhu-bids/TermHub/issues/new/choose"
-            color="inherit"
-          >
+        <Button variant={"contained"}
+                to="https://github.com/jhu-bids/TermHub/issues/new/choose"
+                component={Link}
+        >
             Create an issue
-          </Link>
         </Button>
       </TextBody>
 
@@ -123,6 +123,26 @@ function AboutPage(props) {
           </LI>
           <LI>Complain to <a href="mailto:sigfried@jhu.edu">Siggie</a></LI>
         </ul>
+      <TextH2>Load a set of concept sets</TextH2>
+        <TextBody>
+          Using the select list on the CSet Search page loads the concept
+          sets one at a time, which can be slow. Until we fix that, you
+          can enter a list of codeset_ids here.
+        </TextBody>
+        <TextField fullWidth multiline
+                   label="Enter codeset_ids separated by spaces, commas, or newlines and click link below"
+                   onChange={(evt) => {
+                     const val = evt.target.value;
+                     const cids = val.split(/[,\s]+/).filter(d=>d.length);
+                     setCodeset_ids(cids);
+                   }}
+        />
+        <Button to={`/OMOPConceptSets?${codeset_ids.map(d => `codeset_ids=${d}`).join("&")}`}
+                component={Link}
+                style={{margin: '7px', textTransform: 'none'}}
+        >
+          /OMOPConceptSets?{codeset_ids.map(d => `codeset_ids=${d}`).join("&")}
+        </Button>
       <TextH2>How to make changes to a codeset (via Atlas JSON)</TextH2>
       {/*todo: resolve console warnings: <ul>/<ol> cannot appear as a descendant of <p>.
             https://mui.com/material-ui/api/typography/*/}
