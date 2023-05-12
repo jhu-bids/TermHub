@@ -229,12 +229,11 @@ function ConceptSetCard(props) {
             </Typography>
         ))}
         <Typography variant="body2" color="text.primary">
-          {/*This link opens the version */}
-          {/*<a href={`https://unite.nih.gov/workspace/hubble/external/object/v0/omop-concept-set?codeset_id=${cset.codeset_id}`} target="_blank" rel="noreferrer">Open in Enclave</a*/}
-          {/*This link opens the container */}
           <a
-            href={`https://unite.nih.gov/workspace/hubble/objects/${cset.container_rid}`}
-            target="_blank"
+              // opens container: href={`https://unite.nih.gov/workspace/hubble/objects/${cset.container_rid}`}
+              // opens version:
+              href={`https://unite.nih.gov/workspace/hubble/external/object/v0/omop-concept-set?codeset_id=${cset.codeset_id}`}
+              target="_blank"
           >
             Open in Enclave
           </a>
