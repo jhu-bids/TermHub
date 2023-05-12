@@ -7,7 +7,7 @@ import Autocomplete from "@mui/material/Autocomplete";
 // import Chip from '@mui/material/Chip';
 // import { Link, Outlet, useHref, useParams, useSearchParams, useLocation } from "react-router-dom";
 import { every } from "lodash";
-// import { get, isEmpty, throttle, pullAt } from "lodash";
+import { get, isNumber, isEmpty, throttle, pullAt } from "lodash";
 // import {isEqual, pick, uniqWith, max, omit, uniq, } from 'lodash';
 // import Box from "@mui/material/Box";
 import { Tooltip } from "./Tooltip";
@@ -38,8 +38,14 @@ export function CsetSearch(props) {
     .filter((d) => !codeset_ids.includes(d.codeset_id))
     .map((d) => ({
       label:
-        `${d.codeset_id} - ${d.concept_set_version_title} ` +
-        `${d.archived ? "archived" : ""} (${d.items} expression items, ${d.members} members)`,
+        `${d.codeset_id} - ${d.alias}` +
+          (isNumber(d.version) ? ` (v${d.version})` : '') + ' ' +
+        `${d.archived ? "archived" : ""}` +
+          (d.counts ?
+              get(d, ['counts', 'Expression items']).toLocaleString() + ' expression items, ' +
+              get(d, ['counts', 'Members']).toLocaleString() + ' members'
+            //`(${d.counts['Expression items'].toLocaleString()} expression items, ${d.counts.Members.toLocaleString()} members)`
+                   : '(Empty)'),
       id: d.codeset_id,
     }));
   const autocomplete = (
@@ -62,7 +68,7 @@ export function CsetSearch(props) {
       sx={{
         width: "80%",
         minWidth: "300px",
-        maxWidth: "600px",
+        maxWidth: "1200px",
         margin: "0 auto",
         marginTop: "10px",
         marginBottom: "10px",

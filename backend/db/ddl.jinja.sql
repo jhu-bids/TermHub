@@ -154,7 +154,7 @@ SELECT codeset_id, JSON_OBJECT_AGG(grp, cnt) AS counts FROM {{schema}}members_it
 CREATE INDEX csc1 on {{schema}}codeset_counts(codeset_id);
 
 
-DROP TABLE IF EXISTS all_csets;
+DROP TABLE IF EXISTS {{schema}}all_csets;
 
 CREATE TABLE {{schema}}all_csets AS
 -- table instead of view for performance (no materialized views in mySQL)
@@ -163,6 +163,7 @@ WITH ac AS (SELECT DISTINCT cs.codeset_id,
                             cs.concept_set_version_title,
                             cs.project,
                             cs.concept_set_name,
+                            csc.alias,
                             cs.source_application,
                             cs.source_application_version,
                             cs.created_at                                  AS codeset_created_at,
@@ -191,7 +192,6 @@ WITH ac AS (SELECT DISTINCT cs.codeset_id,
                             csc.stage,
                             csc.intention                                  AS container_intention,
                             csc.n3c_reviewer,
-                            csc.alias,
                             csc.archived,
                             csc.created_by                                 AS container_created_by,
                             csc.created_at                                 AS container_created_at,

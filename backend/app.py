@@ -388,7 +388,9 @@ def get_all_csets(con=CON) -> Union[Dict, List]:
     results = sql_query(
         con, f""" 
         SELECT codeset_id,
-              concept_set_version_title,
+              --concept_set_version_title,
+              alias,
+              version,
               --concepts
               counts
         FROM {SCHEMA}.all_csets""")
