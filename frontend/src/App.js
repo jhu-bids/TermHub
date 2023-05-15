@@ -152,6 +152,13 @@ function QueryStringStateMgr(props) {
 
   function changeCodesetIds(codeset_id, how) {
     // how = add | remove | toggle
+    if (how === "set" && Array.isArray(codeset_id)) {
+      updateSearchParams({
+                           ...globalProps,
+                           addProps: { codeset_ids: codeset_id },
+                         });
+      return;
+    }
     const included = codeset_ids.includes(codeset_id);
     let action = how;
     if (how === "add" && included) return;
@@ -207,7 +214,7 @@ function DataContainer(props) {
   let { codeset_ids } = props;
   const all_csets_url = backend_url("get-all-csets");
   const cset_data_url = backend_url(
-    "cr-hierarchy?rec_format=flat&codeset_ids=" + codeset_ids.join("|")
+    "cr-hierarchy?codeset_ids=" + codeset_ids.join("|")
   );
   // /crconst cr_url = 'get-concept_relationships?codeset_ids=' + codeset_ids.join('|');
 

@@ -241,7 +241,7 @@ const editCsetReducer = (state, action) => {
 };
 
 // actions
-const codeset_idsReducer = (state, action) => {
+const codeset_idsReducer = (state, action) => { // not being used
   if (!(action && action.type)) return state;
   switch (action.type) {
     case "add_codeset_id": {

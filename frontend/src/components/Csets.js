@@ -1,9 +1,9 @@
-import React, { useState /* useReducer, useRef, */ } from "react";
+import React, {useState, useRef, useEffect /* useReducer, */} from "react";
 import { CsetsDataTable } from "./CsetsDataTable";
 // import {difference, symmetricDifference} from "./utils";
 import ConceptSetCards from "./ConceptSetCard";
-import TextField from "@mui/material/TextField";
-import Autocomplete from "@mui/material/Autocomplete";
+import { TextField, Autocomplete, Box, } from "@mui/material";
+import Button from "@mui/material/Button";
 // import Chip from '@mui/material/Chip';
 // import { Link, Outlet, useHref, useParams, useSearchParams, useLocation } from "react-router-dom";
 import { every } from "lodash";
@@ -23,40 +23,70 @@ import { DOCS } from "../pages/AboutPage";
     You can use the `isOptionEqualToValue` prop to customize the equality test.
     @ SIggie: is this fixed?
 */
+function initialOpts(all_csets, codesetIds) {
+  let opts = all_csets
+      // .filter((d) => !codeset_ids.includes(d.codeset_id))
+      .map((d) => ({
+        label:
+            `${d.codeset_id} - ${d.alias}` +
+            (isNumber(d.version) ? ` (v${d.version})` : '') + ' ' +
+            `${d.archived ? "archived" : ""}` +
+            (d.counts ?
+                get(d, ['counts', 'Expression items']).toLocaleString() + ' expression items, ' +
+                get(d, ['counts', 'Members']).toLocaleString() + ' members'
+                //`(${d.counts['Expression items'].toLocaleString()} expression items, ${d.counts.Members.toLocaleString()} members)`
+                : '(Empty)'),
+        value: d.codeset_id,
+        // selected: codesetIds.includes(d.codeset_id),
+      }));
+  return opts;
+}
 export function CsetSearch(props) {
-  const { codeset_ids, changeCodesetIds, all_csets = [] } = props;
-  console.log(props);
+  const { codeset_ids=[], changeCodesetIds, all_csets = [] } = props;
+  const [opts, setOpts] = useState([]);
+  const [value, setValue] = useState([]);
 
-  const [keyForRefreshingAutocomplete, setKeyForRefreshingAutocomplete] =
-    useState(0);
+  // const [keyForRefreshingAutocomplete, setKeyForRefreshingAutocomplete] = useState(0);
   // necessary to change key for reset because of Autocomplete bug, according to https://stackoverflow.com/a/59845474/1368860
+  useEffect(() => {
+    if (!all_csets.length) {
+      return;
+    }
+    const _opts = initialOpts(all_csets, codeset_ids);
+    setOpts(_opts);
+    // setValue(_opts.filter(d => codeset_ids.includes(d.value)));
+    setValue(codeset_ids);
+  }, [all_csets])
 
   if (!all_csets.length) {
     return <span />;
   }
-  const opts = all_csets
-    .filter((d) => !codeset_ids.includes(d.codeset_id))
-    .map((d) => ({
-      label:
-        `${d.codeset_id} - ${d.alias}` +
-          (isNumber(d.version) ? ` (v${d.version})` : '') + ' ' +
-        `${d.archived ? "archived" : ""}` +
-          (d.counts ?
-              get(d, ['counts', 'Expression items']).toLocaleString() + ' expression items, ' +
-              get(d, ['counts', 'Members']).toLocaleString() + ' members'
-            //`(${d.counts['Expression items'].toLocaleString()} expression items, ${d.counts.Members.toLocaleString()} members)`
-                   : '(Empty)'),
-      id: d.codeset_id,
-    }));
+  console.log(value);
   const autocomplete = (
     // https://mui.com/material-ui/react-autocomplete/
+    // https://stackoverflow.com/a/70193988/1368860
     <Autocomplete
-      key={keyForRefreshingAutocomplete}
+      multiple
+      // key={keyForRefreshingAutocomplete}
+      value={value}
+      onChange={(event, newValue) => {
+        setValue(newValue.map(option => option.value || option));
+      }}
+      isOptionEqualToValue={(opt, value) => {
+        return opt.value === value;
+      }}
+      getOptionLabel={(option) => {
+        if (typeof option === 'number') {
+          return opts.find(item => item.value === option)?.label;
+        } else {
+          return option.label;
+        }
+      }}
       disablePortal
       id="add-codeset-id"
       options={opts}
-      blurOnSelect={true}
-      clearOnBlur={true}
+      // blurOnSelect={true}
+      // clearOnBlur={true}
       filterOptions={(options, state) => {
         let strings = state.inputValue.split(" ").filter((s) => s.length);
         if (!strings.length) {
@@ -67,8 +97,8 @@ export function CsetSearch(props) {
       }}
       sx={{
         width: "80%",
-        minWidth: "300px",
-        maxWidth: "1200px",
+        minWidth: "70%",
+        maxWidth: "1000px",
         margin: "0 auto",
         marginTop: "10px",
         marginBottom: "10px",
@@ -84,10 +114,6 @@ export function CsetSearch(props) {
           }}
         />
       )}
-      onChange={(event, newValue) => {
-        changeCodesetIds(newValue.id, "add");
-        setKeyForRefreshingAutocomplete((k) => k + 1);
-      }}
     />
   );
   const tt = (
@@ -104,9 +130,18 @@ export function CsetSearch(props) {
     </Card>
   );
   return (
-    <Tooltip content={tt} classes="help-card" placement="top-end">
-      {autocomplete}
-    </Tooltip>
+      <Box sx={{display: 'flex', flexDirection: 'row', width: '95%'}}>
+        <Tooltip content={tt} classes="help-card" placement="top-end">
+          {autocomplete}
+        </Tooltip>
+        <Button onClick={() => {
+          changeCodesetIds(value, "set");
+          // setKeyForRefreshingAutocomplete((k) => k + 1);
+        }}
+        >
+          Load concept sets
+        </Button>
+      </Box>
   );
   /*
   return (
