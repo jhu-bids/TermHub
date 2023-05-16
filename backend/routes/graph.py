@@ -91,20 +91,20 @@ def save_relationship_graph():
         timer('make graph')
         G = nx.from_edgelist(rels, nx.DiGraph)
         timer(f'write pickle for G with {len(G.nodes)} nodes')
-        nx.write_gpickle(G, 'relationship_graph.pickle')
+        nx.write_gpickle(G, 'networkx/relationship_graph.pickle')
         timer('make undirected version')
         Gu = G.to_undirected()
         timer('write pickle for that')
-        nx.write_gpickle(Gu, 'relationship_graph_undirected.pickle')
+        nx.write_gpickle(Gu, 'networkx/relationship_graph_undirected.pickle')
         timer('done')
 
 
 def load_relationship_graph():
-    return nx.read_gpickle('./termhub-csets/networkx/relationship_graph.pickle')
+    return nx.read_gpickle('./networkx/relationship_graph.pickle')
 
 
 def load_relationship_graph_undirected():
-    return nx.read_gpickle('./termhub-csets/networkx/relationship_graph_undirected.pickle')
+    return nx.read_gpickle('./networkx/relationship_graph_undirected.pickle')
 
 
 if __name__ == '__main__':
