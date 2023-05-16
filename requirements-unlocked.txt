@@ -16,6 +16,7 @@ uvicorn[standard]
 jq
 # psycopg2
 psycopg2-binary
+networkx
 
 # dev dependencies
 virtualenvwrapper
