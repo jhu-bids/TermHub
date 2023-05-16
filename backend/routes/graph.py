@@ -73,6 +73,7 @@ def get_roots(G):
 
 
 def save_relationship_graph():
+    timer = get_timer('save_relationship_graph')
     with get_db_connection() as con:
         # load_csv(con, 'relationship', 'dataset', schema='n3c')
         # rels = sql_query(con, f"""
@@ -81,34 +82,41 @@ def save_relationship_graph():
         #     JOIN relationship r ON cr.relationship_id = r.relationship_id
         #     WHERE r.defines_ancestry=1 and r.is_hierarchical=1
         # """)
+        timer('get concept_ancestor records')
         rels = sql_query(con, f"""
             SELECT ancestor_concept_id, descendant_concept_id
             FROM n3c.concept_ancestor
             WHERE min_levels_of_separation = 1
         """)
+        timer('make graph')
         G = nx.from_edgelist(rels, nx.DiGraph)
+        timer(f'write pickle for G with {len(G.nodes)} nodes')
         nx.write_gpickle(G, 'relationship_graph.pickle')
-        nx.write_gpickle(G.to_undirected(), 'relationship_graph_undirected.pickle')
+        timer('make undirected version')
+        Gu = G.to_undirected()
+        timer('write pickle for that')
+        nx.write_gpickle(Gu, 'relationship_graph_undirected.pickle')
+        timer('done')
 
 
 def load_relationship_graph():
-    return nx.read_gpickle('relationship_graph.pickle')
+    return nx.read_gpickle('./termhub-csets/networkx/relationship_graph.pickle')
 
 
 def load_relationship_graph_undirected():
-    return nx.read_gpickle('relationship_graph_undirected.pickle')
+    return nx.read_gpickle('./termhub-csets/networkx/relationship_graph_undirected.pickle')
 
 
 if __name__ == '__main__':
     save_relationship_graph()
     # G = for_testing()
     # sg = G.subgraph(1,9)
-    G, components = disconnected_subgraphs()
-    sg = connected_subgraph_from_nodes(G, [3, 7, 12])
-    j = graph_to_json(sg)
-    pdump(j)
+    # G, components = disconnected_subgraphs()
+    # sg = connected_subgraph_from_nodes(G, [3, 7, 12])
+    # j = graph_to_json(sg)
+    # pdump(j)
 else:
-    timer = get_timer('load_relationship_graph')
+    timer = get_timer('./load_relationship_graph')
     timer('loading REL_GRAPH')
     REL_GRAPH = load_relationship_graph()
     timer(f'loaded {commify(len(REL_GRAPH.nodes))}; loading REL_GRAPH_UNDIRECTED')
