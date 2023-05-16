@@ -144,6 +144,14 @@ FAVORITE_DATASETS = OrderedDict({
         'sort_idx': ['concept_id', 'domain'],
         'dataset_groups': ['vocab']
     },
+    'relationship': { # gets downloaded as csv without column names, not parquet
+        'name': 'relationship',
+        'rid': 'ri.foundry.main.dataset.478c12f2-2410-4880-859e-c2267bc28779',
+        'column_names': ["relationship_id", "relationship_name", "is_hierarchical", "defines_ancestry",
+                            "reverse_relationship_id", "relationship_concept_id"],
+        'sort_idx': ['relationship_name'],
+        'dataset_groups': ['vocab']
+    },
     # not downloadable -- yet
     # 'safe_harbor_term_usage': {
     #     'name': 'safe_harbor_term_usage',

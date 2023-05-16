@@ -266,6 +266,8 @@ def get_url_from_api_path(path):
 #     OmopConceptSetVersionItem
 #   2. connect to `manage` table and get since last datetime. for now, use below as example
 # noinspection PyUnboundLocalVariable
+# TODO: make pagination automatic, but need to make sure that every call to make_objects_request is requesting
+#   return type data (and remove that parameter, or make data the default at least)
 def make_objects_request(
     path: str, verbose=False, url_only=False, return_type: str = ['Response', 'json', 'data'][0],
     handle_paginated=False, expect_single_item=False, retry_if_empty=False, retry_times=15, retry_pause=1,

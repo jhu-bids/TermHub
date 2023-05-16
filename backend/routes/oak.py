@@ -41,7 +41,7 @@ def omop_id_to_curie(id: int, vocab: str):
         return f'<https://athena.ohdsi.org/search-terms/terms/{id}>'
     if vocab == 'SNOMED':
         return f'SNOMED:{id}'
-    return f'N3C:{id}' # or should it be OMOP:id?
+    return f'OMOP:{id}'
 
 
 

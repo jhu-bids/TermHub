@@ -239,13 +239,13 @@ function DataContainer(props) {
       csmiLookup[mi.codeset_id][mi.concept_id] = mi;
     });
     cset_data.csmiLookup = csmiLookup;
-    let orphans = {};
-    for (const o of cset_data.orphans) {
-      orphans[o] = null;
-    }
+    // let orphans = {};
+    // for (const o of cset_data.orphans) {
+    //   orphans[o] = null;
+    // }
     cset_data.hierarchy = {
       ...cset_data.hierarchy,
-      ...orphans
+      // ...orphans
     }
     // let cr = _.hierarchicalTableToTree(concept_relationships, 'concept_id_1', 'concept_id_2');
 

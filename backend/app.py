@@ -18,7 +18,7 @@ from fastapi.middleware.gzip import GZipMiddleware
 from sqlalchemy.engine import LegacyRow, RowMapping
 
 from backend.utils import JSON_TYPE, get_timer, pdump, return_err_with_trace
-from backend.routes import cset_crud, oak, db
+from backend.routes import cset_crud, oak, db, graph
 from backend.db.utils import get_db_connection, sql_query, SCHEMA, sql_query_single_col, sql_in
 from backend.db.queries import get_concepts
 from enclave_wrangler.objects_api import get_n3c_recommended_csets, enclave_api_call_caller, get_codeset_json, \
@@ -285,16 +285,27 @@ def get_parent_children_map(root_cids: List[int], cids: List[int], con=CON) -> D
     relationships: List[Dict] = [dict(x) for x in sql_query(con, query, return_with_keys=True)]
     direct_relationships: List[Dict] = [
         x for x in relationships if x['min_levels_of_separation'] == 1 and x['max_levels_of_separation'] == 1]
+
     parent_children_map: Dict[int, List[int]] = {}
     for x in direct_relationships:
         parent_children_map.setdefault(x['ancestor_concept_id'], []).append(x['descendant_concept_id'])
-    return parent_children_map
+
+    ancestor_descendant_map: Dict[int, List[int]] = {}
+    for x in relationships:
+        ancestor_descendant_map.setdefault(x['ancestor_concept_id'], []).append(x['descendant_concept_id'])
+
+    return parent_children_map, ancestor_descendant_map
 
 
-def hierarchy(root_cids: List[int], selected_concept_ids: List[int]) -> (Dict[int, Union[Dict, None]], List[int]):
+def hierarchy_BROKEN(root_cids: List[int], selected_concept_ids: List[int]) -> (Dict[int, Union[Dict, None]], List[int]):
+    # doesn't connect components of disconnected graph
+    # switching to backend.routes.graph:hierarchy
+    # TODO: delete this and the parent_children_map
     """Get hierarchy of concepts in selected concept sets
     :returns: (i) Dict: Hierarchy, (ii) List: Orphans"""
-    parent_children_map: Dict[int, List[int]] = get_parent_children_map(root_cids, selected_concept_ids)
+    parent_children_map: Dict[int, List[int]]
+    ancestor_descendant_map: Dict[int, List[int]]
+    parent_children_map, ancestor_descendant_map = get_parent_children_map(root_cids, selected_concept_ids)
     added_count: Dict[int, int] = {}
 
     def recurse(ids: List[int]):
@@ -444,13 +455,14 @@ def _cset_members_items(codeset_ids: Union[str, None] = Query(default=''), ) -> 
     return get_cset_members_items(codeset_ids)
 
 
-@APP.get("/hierarchy")
-def _hierarchy(
-    root_cids: List[int], selected_concept_ids: List[int] = Query(default='')
-) -> Dict[int, Union[Dict, None]]:
-    """Route for: hierarchy()"""
-    h, orphans = hierarchy(root_cids, selected_concept_ids)
-    return h
+# TODO: if using this at all, fix it to use graph.hierarchy, which doesn't need root_cids
+# @APP.get("/hierarchy")
+# def _hierarchy(
+#     root_cids: List[int], selected_concept_ids: List[int] = Query(default='')
+# ) -> Dict[int, Union[Dict, None]]:
+#     """Route for: hierarchy()"""
+#     h, orphans = hierarchy(root_cids, selected_concept_ids)
+#     return h
 
 
 @APP.get("/get-concept_relationships")
@@ -555,9 +567,11 @@ def cr_hierarchy(include_atlas_json: bool = False, codeset_ids: Union[str, None]
 
     verbose and timer('hierarchy')
     # hierarchy --------
-    h, orphans = hierarchy(item_concept_ids, concept_ids)
+    # h, orphans = hierarchy(item_concept_ids, concept_ids)
     # nh = new_hierarchy(root_cids=item_concept_ids, cids=concept_ids)
     # h = hierarchy(selected_concept_ids=concept_ids)
+    h = graph.hierarchy(concept_ids)
+
 
     # TODO: Fix: concepts missing from hierarchy that shouldn't be:
     # hh = json.dumps(h)
@@ -588,9 +602,9 @@ def cr_hierarchy(include_atlas_json: bool = False, codeset_ids: Union[str, None]
     researchers = get_researchers(researcher_ids)
     verbose and timer('concepts')
     concepts = [dict(c) for c in get_concepts(concept_ids)]
-    for c in concepts:
-        if c['concept_id'] in orphans:
-            c['is_orphan'] = True
+    # for c in concepts:
+    #     if c['concept_id'] in orphans:
+    #         c['is_orphan'] = True
     # concept_relationships = get_concept_relationships(concept_ids)
 
     result = {
@@ -606,7 +620,7 @@ def cr_hierarchy(include_atlas_json: bool = False, codeset_ids: Union[str, None]
         'concepts': concepts,
         # todo: frontend not making use of data_counts yet but will need
         'data_counts': [],
-        'orphans': orphans,
+        # 'orphans': orphans,
     }
     verbose and timer('done')
 
