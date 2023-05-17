@@ -501,7 +501,8 @@ def cset_download(codeset_id: int, csetEditState: str = None,
             jsn['items'].sort(key=lambda i: i['concept']['CONCEPT_ID'])
         return jsn
 
-    items = get_concept_set_version_expression_items(codeset_id, handle_paginated=True)
+    items = get_concept_set_version_expression_items(codeset_id, return_detail='full', handle_paginated=True)
+    items = [i['properties'] for i in items]
     if csetEditState:
         edits = json.loads(csetEditState)
         edits = edits[str(codeset_id)]
@@ -512,11 +513,12 @@ def cset_download(codeset_id: int, csetEditState: str = None,
         # items is object api format but the edits from the UI are in dataset format
         # so, convert the edits to object api format for consistency
         for item in adds:
+            # set flags to false if they don't appear in item
             for flag in FLAGS:
                 if flag not in item:
                     item[flag] = False;
         adds = convert_rows('concept_set_version_item',
-                            'omopConceptSetVersionItem',
+                            'OmopConceptSetVersionItem',
                             adds)
         items.extend(adds)
     if sort_json:

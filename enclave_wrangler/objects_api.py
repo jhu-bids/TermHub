@@ -8,7 +8,7 @@ Resources
 
 TODO's
  1. Consider refactor: Python -> Bash (curl + JQ)
- 2. Are the tables in 'datasets' isomorphic w/ 'objects'? e.g. object OMOPConceptSetVersionItem == table
+ 2. Are the tables in 'datasets' isomorphic w/ 'objects'? e.g. object OmopConceptSetVersionItem == table
  concept_set_version_item_rv_edited_mapped.
 """
 import json
@@ -650,7 +650,7 @@ def get_concept_set_version_expression_items(
     items: List[Dict] = get_object_links(
         object_type='OMOPConceptSet',
         object_id=version_id,
-        link_type='omopConceptSetVersionItem',
+        link_type='OmopConceptSetVersionItem',
         handle_paginated=handle_paginated)
     if return_detail == 'id':
         return [x['properties']['itemId'] for x in items]

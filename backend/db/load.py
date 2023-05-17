@@ -30,7 +30,7 @@ OBJECT_TABLES = [x.lower() for x in [
     'researcher',
     'OMOPConceptSet',  # i to include RID
     'OMOPConceptSetContainer',  # to include RID
-    # 'OMOPConceptSetVersionItem', only need this if we want the RID, but maybe don't need it
+    # 'OmopConceptSetVersionItem', only need this if we want the RID, but maybe don't need it
 ]]
 OBJECT_TABLES_TEST = []
 DATASET_TABLES_TEST = {

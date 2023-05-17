@@ -637,7 +637,7 @@ if __name__ == '__main__':
     print(result)
     from enclave_wrangler.utils import make_objects_request, EnclaveWranglerErr
     item = make_objects_request(
-        f'objects/OMOPConceptSet/{test_draft_codeset_id}/links/omopConceptSetVersionItem?p.conceptId.eq={concept_id_to_delete}',
+        f'objects/OMOPConceptSet/{test_draft_codeset_id}/links/OmopConceptSetVersionItem?p.conceptId.eq={concept_id_to_delete}',
         verbose=True, retry_if_empty=True, return_type='data')
     if len(item) != 1:
         raise EnclaveWranglerErr("unexpected return from make_objects_request")
