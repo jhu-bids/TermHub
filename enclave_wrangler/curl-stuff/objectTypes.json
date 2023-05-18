@@ -1,41 +1,46 @@
 {
   "data": [
     {
-      "apiName": "UserAcknowledgment",
-      "description": "",
+      "apiName": "ProtocolComment",
+      "displayName": "Protocol Comment",
+      "description": "Object to capture comments made on the phases of N3C Protocols",
       "primaryKey": [
-        "userAckUid"
+        "commentId"
       ],
       "properties": {
-        "ackValue": {
+        "protocolPhase": {
           "baseType": "String"
         },
-        "ackId": {
+        "rpGrpId": {
           "baseType": "String"
         },
-        "ackTimestamp": {
+        "commentId": {
+          "baseType": "String"
+        },
+        "user": {
+          "baseType": "String"
+        },
+        "protocolProperty": {
+          "baseType": "String"
+        },
+        "protocolId": {
+          "baseType": "String"
+        },
+        "comment": {
+          "baseType": "String"
+        },
+        "commentDate": {
           "baseType": "Timestamp"
         },
-        "projectId": {
-          "baseType": "String"
-        },
-        "userId": {
-          "baseType": "String"
-        },
-        "resourceName": {
-          "baseType": "String"
-        },
-        "userAckUid": {
-          "baseType": "String"
-        },
-        "resourceRid": {
+        "resolutionStatus": {
           "baseType": "String"
         }
       },
-      "rid": "ri.ontology.main.object-type.014787a2-3f0c-4348-a693-e0e47640e3cd"
+      "rid": "ri.ontology.main.object-type.00d752a7-9c5a-4808-a955-609589720f90"
     },
     {
       "apiName": "ConceptRelationship",
+      "displayName": "OMOP Concept Relationship",
       "description": "",
       "primaryKey": [
         "relationshipObjectId"
@@ -74,6 +79,7 @@
     },
     {
       "apiName": "DrugExposureNotional",
+      "displayName": "Drug Exposure (NOTIONAL)",
       "description": "",
       "primaryKey": [
         "drugExposureId"
@@ -172,6 +178,7 @@
     },
     {
       "apiName": "OmopConceptSetVersionItem",
+      "displayName": "OMOP Concept Set Version Expression Item",
       "description": "Individual expression item in the JSON definition of a concept set version (concept_id + three boolean flags for inclusion/exclusion specifications of additional concepts). ",
       "primaryKey": [
         "itemId"
@@ -215,6 +222,7 @@
     },
     {
       "apiName": "N3CKnowledgeObjects",
+      "displayName": "N3C Knowledge Object",
       "description": "",
       "primaryKey": [
         "koUid"
@@ -317,6 +325,7 @@
     },
     {
       "apiName": "KGCovid19AnatomicalEntity",
+      "displayName": "(KG) Anatomical Entity",
       "description": "",
       "primaryKey": [
         "kgAnatomicalEntityId"
@@ -351,6 +360,7 @@
     },
     {
       "apiName": "VCMConceptSetNotificationSubscriptionEvent",
+      "displayName": "[Log] Notification Subscription Event",
       "description": "Logs events that represent the subscription or un-subscription of a user to notifications about concept set changes regarding the concept set.",
       "primaryKey": [
         "subscriptionId"
@@ -381,31 +391,8 @@
       "rid": "ri.ontology.main.object-type.1a2ab3cc-ba65-4eb0-9fcd-5ea80fe04dbb"
     },
     {
-      "apiName": "DownloadRequestDecision",
-      "description": "",
-      "primaryKey": [
-        "koUid"
-      ],
-      "properties": {
-        "decisionNotes": {
-          "description": "Notes obtained from the individual review objects",
-          "baseType": "String"
-        },
-        "koDecision": {
-          "description": "Requires one approval each from NCATS and N3C for the download request to be approved!",
-          "baseType": "String"
-        },
-        "koUid": {
-          "baseType": "String"
-        },
-        "requester": {
-          "baseType": "String"
-        }
-      },
-      "rid": "ri.ontology.main.object-type.1ec683d3-88cb-44d0-9059-417f703278c1"
-    },
-    {
       "apiName": "OmopConceptChange",
+      "displayName": "OMOP Concept Change",
       "description": "",
       "primaryKey": [
         "changeId"
@@ -452,6 +439,7 @@
     },
     {
       "apiName": "KGCovid19HumanPhenotype",
+      "displayName": "(KG) Human Phenotype",
       "description": "",
       "primaryKey": [
         "kgHumanPhenotypeId"
@@ -494,6 +482,7 @@
     },
     {
       "apiName": "DraftOMOPCohortVersion",
+      "displayName": "Draft OMOP Cohort Version",
       "description": "",
       "primaryKey": [
         "draftCohortId"
@@ -516,6 +505,7 @@
     },
     {
       "apiName": "OMOPCohortVersion",
+      "displayName": "OMOP Cohort Version",
       "description": "",
       "primaryKey": [
         "cohortVersionId"
@@ -553,6 +543,7 @@
     },
     {
       "apiName": "NewObjectType",
+      "displayName": "Data Release",
       "description": "",
       "primaryKey": [
         "branchName"
@@ -578,6 +569,7 @@
     },
     {
       "apiName": "ProtocolContribution",
+      "displayName": "Protocol Contribution",
       "description": "Researcher contributing to a protocol",
       "primaryKey": [
         "contributionId"
@@ -618,6 +610,7 @@
     },
     {
       "apiName": "OMOPConceptSetContainer",
+      "displayName": "OMOP Concept Set",
       "description": "A container for OMOP Concept Set Versions.",
       "primaryKey": [
         "conceptSetId"
@@ -669,6 +662,7 @@
     },
     {
       "apiName": "KGCovid19MolecularActivity",
+      "displayName": "(KG) Molecular Activity",
       "description": "",
       "primaryKey": [
         "kgMolecularActivityId"
@@ -711,6 +705,7 @@
     },
     {
       "apiName": "KGCovid19Association",
+      "displayName": "(KG) COVID-19 Association",
       "description": "Edge between two nodes in the KG-COVID-19 Knowledge Graph",
       "primaryKey": [
         "kgPrimaryKey"
@@ -929,7 +924,49 @@
       "rid": "ri.ontology.main.object-type.2db0f7f4-c174-45f2-a42a-6885908b3aae"
     },
     {
+      "apiName": "CdmConversionRequest",
+      "displayName": "Cdm Conversion Request",
+      "description": "Dataset containing Code Map User Services Requests",
+      "primaryKey": [
+        "requestId"
+      ],
+      "properties": {
+        "requestId": {
+          "baseType": "String"
+        },
+        "sourceCdm": {
+          "baseType": "String"
+        },
+        "inputFolderRid": {
+          "baseType": "String"
+        },
+        "userId": {
+          "baseType": "String"
+        },
+        "requestStatus": {
+          "baseType": "String"
+        },
+        "sourceVersion": {
+          "baseType": "String"
+        },
+        "destinationVersion": {
+          "baseType": "String"
+        },
+        "destinationFolderId": {
+          "baseType": "String"
+        },
+        "requestDate": {
+          "baseType": "Timestamp"
+        },
+        "destinationCdm": {
+          "baseType": "String"
+        }
+      },
+      "rid": "ri.ontology.main.object-type.2e1b8758-0fd5-41e9-9865-6fa8abef5086"
+    },
+    {
       "apiName": "DomainTeam",
+      "displayName": "N3C Domain Team",
       "primaryKey": [
         "domainTeamUid"
       ],
@@ -977,161 +1014,8 @@
       "rid": "ri.ontology.main.object-type.3445f9ff-96c2-4c8e-8680-6f78d3afa49c"
     },
     {
-      "apiName": "DURSupplement",
-      "description": "",
-      "primaryKey": [
-        "durSupplementUidDURSupplement"
-      ],
-      "properties": {
-        "timeSubmitted": {
-          "baseType": "Timestamp"
-        },
-        "isRenewal": {
-          "baseType": "Boolean"
-        },
-        "durSupplementUidDURSupplement": {
-          "description": "",
-          "baseType": "String"
-        },
-        "ackItTrainingDURSupplement": {
-          "description": "",
-          "baseType": "String"
-        },
-        "ackHumanSubjectTrainingDURSupplement": {
-          "description": "",
-          "baseType": "String"
-        },
-        "durSupplementDurResponseGroup": {
-          "description": "",
-          "baseType": "String"
-        },
-        "origDurResponseGroup": {
-          "baseType": "String"
-        },
-        "isListedProjectCollaborator": {
-          "baseType": "Boolean"
-        },
-        "durSupplementId": {
-          "description": "",
-          "baseType": "String"
-        },
-        "isHeadPi": {
-          "description": "",
-          "baseType": "String"
-        },
-        "irbExpirationDate": {
-          "baseType": "LocalDate"
-        },
-        "pprlExternalDatasets": {
-          "baseType": "Array<String>"
-        },
-        "nonconfidentialResearchStatementDURSupplement": {
-          "description": "",
-          "baseType": "String"
-        },
-        "completionDateHumanSubjectsTrainingDURSupplement": {
-          "description": "",
-          "baseType": "LocalDate"
-        },
-        "approvalEmailSentToHeadPi": {
-          "baseType": "Boolean"
-        },
-        "ackReadDownloadPolicy": {
-          "baseType": "String"
-        },
-        "superseded": {
-          "baseType": "Boolean"
-        },
-        "dataSecurityTierDURSupplement": {
-          "description": "",
-          "baseType": "String"
-        },
-        "isApprovedByHeadPi": {
-          "baseType": "Boolean"
-        },
-        "headPiInstitution": {
-          "baseType": "String"
-        },
-        "userIdDURSupplement": {
-          "description": "",
-          "baseType": "String"
-        },
-        "isOperational": {
-          "baseType": "Boolean"
-        },
-        "emailSentToDuaSignatory": {
-          "baseType": "String"
-        },
-        "institutionDeterminationLetterDURSupplement": {
-          "description": "",
-          "baseType": "Array<String>"
-        },
-        "doNotAllowJoinProjectDURSupplement": {
-          "description": "",
-          "baseType": "String"
-        },
-        "ackCodeOfConductDURSupplement": {
-          "description": "",
-          "baseType": "String"
-        },
-        "autogeneratedAppealDur": {
-          "baseType": "Boolean"
-        },
-        "publicHealthQuestionUid": {
-          "baseType": "String"
-        },
-        "researchProjectPlanDURSupplement": {
-          "description": "",
-          "baseType": "String"
-        },
-        "headPiId": {
-          "baseType": "String"
-        },
-        "emailDURSupplement": {
-          "description": "",
-          "baseType": "String"
-        },
-        "nameDURSupplement": {
-          "description": "",
-          "baseType": "String"
-        },
-        "ackReadDuaDURSupplement": {
-          "description": "",
-          "baseType": "String"
-        },
-        "thisCollaboratorDoesNotBelongToMyInstitution1DURSupplement": {
-          "description": "",
-          "baseType": "String"
-        },
-        "ackPubliclyAvailableDatasetUse": {
-          "baseType": "String"
-        },
-        "accessingInstitutionDURSupplement": {
-          "description": "",
-          "baseType": "String"
-        },
-        "durTitle": {
-          "description": "",
-          "baseType": "String"
-        },
-        "sourceDUROfThisAutogeneratedAppeal": {
-          "baseType": "String"
-        },
-        "irbDeterminationLetterRequiredForDeidentified": {
-          "baseType": "String"
-        },
-        "headPiDecisionEmailSentToCollaborator": {
-          "baseType": "String"
-        },
-        "projectTitleDURSupplement": {
-          "description": "",
-          "baseType": "String"
-        }
-      },
-      "rid": "ri.ontology.main.object-type.34dc5fb9-b2c0-4184-ab1b-78e5a304630e"
-    },
-    {
       "apiName": "TrainingModules",
+      "displayName": "Training Module",
       "description": "",
       "primaryKey": [
         "moduleId"
@@ -1179,6 +1063,7 @@
     },
     {
       "apiName": "LogUnsubscribeConceptSet",
+      "displayName": "[Log] Unsubscribe from Concept Set",
       "description": "This object type was automatically created when logging was enabled for the Action type: Unsubscribe from Concept Set",
       "primaryKey": [
         "actionRid"
@@ -1218,38 +1103,8 @@
       "rid": "ri.ontology.main.object-type.3793d7c5-eb53-4604-843f-3dfbb3ebc196"
     },
     {
-      "apiName": "DocumentationNodeRv",
-      "description": "These notes serve as a place to place short knowledge tidbits that may not warrant full documentation reports or knowledge objects.",
-      "primaryKey": [
-        "docNodeUid"
-      ],
-      "properties": {
-        "dateCreated": {
-          "baseType": "Timestamp"
-        },
-        "noteCodeSnippet": {
-          "baseType": "String"
-        },
-        "type": {
-          "baseType": "String"
-        },
-        "body": {
-          "baseType": "String"
-        },
-        "docNodeUid": {
-          "baseType": "String"
-        },
-        "createdBy": {
-          "baseType": "String"
-        },
-        "title": {
-          "baseType": "String"
-        }
-      },
-      "rid": "ri.ontology.main.object-type.3d5a14a1-d31c-45cd-a733-d86a63426328"
-    },
-    {
       "apiName": "ProtocolStep",
+      "displayName": "Protocol Step",
       "description": "Steps pertaining to Protocol Sections",
       "primaryKey": [
         "protocolStepId"
@@ -1258,10 +1113,46 @@
         "creator": {
           "baseType": "String"
         },
-        "performedProtocolStepDescription": {
+        "complexDecisionPoints": {
           "baseType": "String"
         },
         "linkToDur": {
+          "baseType": "String"
+        },
+        "protocolStepIndexNumber": {
+          "baseType": "Integer"
+        },
+        "isFirstStepOfProtocolSection": {
+          "baseType": "Boolean"
+        },
+        "informaticianCommentsAndSuggestions": {
+          "baseType": "Array<String>"
+        },
+        "mainAuthors": {
+          "baseType": "Array<String>"
+        },
+        "createdAt": {
+          "baseType": "Timestamp"
+        },
+        "smeCommentsAndSuggestions": {
+          "baseType": "Array<String>"
+        },
+        "discrepancyIntendedVsPerformed": {
+          "baseType": "String"
+        },
+        "protocolId": {
+          "baseType": "String"
+        },
+        "intendedStepDescription": {
+          "baseType": "String"
+        },
+        "protocolSectionId": {
+          "baseType": "String"
+        },
+        "linkToDocumentation": {
+          "baseType": "String"
+        },
+        "performedProtocolStepDescription": {
           "baseType": "String"
         },
         "protocolStepStatus": {
@@ -1270,14 +1161,8 @@
         "parentStepToCurrentStep": {
           "baseType": "String"
         },
-        "protocolStepIndexNumber": {
-          "baseType": "Integer"
-        },
-        "informaticianCommentsAndSuggestions": {
+        "protocolStepEditors": {
           "baseType": "Array<String>"
-        },
-        "isFirstStepOfProtocolSection": {
-          "baseType": "Boolean"
         },
         "protocolSectionName": {
           "baseType": "String"
@@ -1285,14 +1170,8 @@
         "protocolStepName": {
           "baseType": "String"
         },
-        "createdAt": {
-          "baseType": "Timestamp"
-        },
-        "mainAuthors": {
-          "baseType": "Array<String>"
-        },
-        "smeCommentsAndSuggestions": {
-          "baseType": "Array<String>"
+        "discussionOfMethodologicalApproach": {
+          "baseType": "String"
         },
         "rpGroupId": {
           "baseType": "String"
@@ -1311,21 +1190,13 @@
         },
         "isArchived": {
           "baseType": "Boolean"
-        },
-        "protocolId": {
-          "baseType": "String"
-        },
-        "protocolSectionId": {
-          "baseType": "String"
-        },
-        "linkToDocumentation": {
-          "baseType": "String"
         }
       },
       "rid": "ri.ontology.main.object-type.3e46107a-30ed-41d4-a64a-c032609defec"
     },
     {
       "apiName": "ProtocolSection",
+      "displayName": "Protocol Section",
       "description": "Similar to a methods section subheading in a journal article, this is meant to contain a high-level goal within the protocol",
       "primaryKey": [
         "protocolSectionId"
@@ -1406,6 +1277,9 @@
         "ancestorSectionsToCurrentSection": {
           "baseType": "Array<String>"
         },
+        "discrepanciesIntendedVsPerformed": {
+          "baseType": "String"
+        },
         "protocolName": {
           "baseType": "String"
         },
@@ -1414,6 +1288,9 @@
         },
         "detailedSteps": {
           "baseType": "Array<String>"
+        },
+        "discussionOfMethodologicalApproach": {
+          "baseType": "String"
         },
         "externalDatasets": {
           "baseType": "Array<String>"
@@ -1444,6 +1321,7 @@
     },
     {
       "apiName": "KnowledgeObjectUpdateRequest",
+      "displayName": "Knowledge Object Update Request",
       "description": "",
       "primaryKey": [
         "koUpdateId"
@@ -1487,6 +1365,7 @@
     },
     {
       "apiName": "OMOPConceptSetReview",
+      "displayName": "OMOP Concept Set Review",
       "description": "",
       "primaryKey": [
         "conceptSetReviewId"
@@ -1531,6 +1410,7 @@
     },
     {
       "apiName": "KGCovid19OntologyClass",
+      "displayName": "(KG) Ontology Class",
       "description": "",
       "primaryKey": [
         "kgOntologyClassId"
@@ -1569,6 +1449,7 @@
     },
     {
       "apiName": "OMOPConceptChangeConnectors",
+      "displayName": "OMOP Concept Set Change Summary",
       "description": "Tentative: One object summary per user per concept set that summarizes all of the changes that happen between two versions of a vocab that affect that concept set.",
       "primaryKey": [
         "acknowledgementId"
@@ -1609,6 +1490,7 @@
     },
     {
       "apiName": "ZenodoDataObject",
+      "displayName": "Zenodo Data Object",
       "primaryKey": [
         "zenodoDoi"
       ],
@@ -1623,7 +1505,52 @@
       "rid": "ri.ontology.main.object-type.506aa12a-26ab-405a-a608-a40b862a672c"
     },
     {
+      "apiName": "LogCreatenewprotocolsectionteamcommentreply",
+      "displayName": "[Log] Create New Reply to Protocol Section Comment",
+      "description": "This object type was automatically created when logging was enabled for the Action type: Create New Reply to Protocol Section Comment",
+      "primaryKey": [
+        "actionRid"
+      ],
+      "properties": {
+        "protocol": {
+          "baseType": "Array<String>"
+        },
+        "actionTriggererUserId": {
+          "baseType": "String"
+        },
+        "protocolSectionCommentReply": {
+          "baseType": "Array<String>"
+        },
+        "protocolComment": {
+          "baseType": "Array<String>"
+        },
+        "reply_9": {
+          "baseType": "String"
+        },
+        "actionRid": {
+          "baseType": "String"
+        },
+        "actionTypeRid": {
+          "baseType": "String"
+        },
+        "actionTypeVersion": {
+          "baseType": "String"
+        },
+        "pscRpGrpId_9": {
+          "baseType": "String"
+        },
+        "actionSummary": {
+          "baseType": "String"
+        },
+        "actionTimestamp": {
+          "baseType": "Timestamp"
+        }
+      },
+      "rid": "ri.ontology.main.object-type.545afa9e-0f5a-4ff4-830a-1987acf9bae8"
+    },
+    {
       "apiName": "TrainingModuleResource",
+      "displayName": "Training Module Resource",
       "description": "",
       "primaryKey": [
         "resourceId"
@@ -1649,6 +1576,7 @@
     },
     {
       "apiName": "KGCovid19UncategorizedNode",
+      "displayName": "(KG) Uncategorized Node",
       "description": "",
       "primaryKey": [
         "kgUncategorizedNodeId"
@@ -1663,6 +1591,7 @@
     },
     {
       "apiName": "KGCovid19OrganismalEntity",
+      "displayName": "(KG) Organismal Entity",
       "description": "",
       "primaryKey": [
         "kgOrganismalEntityId"
@@ -1684,7 +1613,67 @@
       "rid": "ri.ontology.main.object-type.5eaaed8b-0ad7-4af2-9ea1-b9286f52d34c"
     },
     {
+      "apiName": "LogAddprotocoldesigncomment",
+      "displayName": "[Log] Add Protocol Design Comment",
+      "description": "This object type was automatically created when logging was enabled for the Action type: Add Protocol Design Comment",
+      "primaryKey": [
+        "actionRid"
+      ],
+      "properties": {
+        "protocolComment": {
+          "baseType": "Array<String>"
+        },
+        "user_8": {
+          "baseType": "String"
+        },
+        "resolutionStatus_8": {
+          "baseType": "String"
+        },
+        "protocolPhase_8": {
+          "baseType": "String"
+        },
+        "protocolId_8": {
+          "baseType": "String"
+        },
+        "commentId_8": {
+          "baseType": "String"
+        },
+        "actionRid": {
+          "baseType": "String"
+        },
+        "actionTypeVersion": {
+          "baseType": "String"
+        },
+        "actionTypeRid": {
+          "baseType": "String"
+        },
+        "actionTriggererUserId": {
+          "baseType": "String"
+        },
+        "protocol": {
+          "baseType": "Array<String>"
+        },
+        "protocolProperty_8": {
+          "baseType": "String"
+        },
+        "protocolRpGroupId_8": {
+          "baseType": "String"
+        },
+        "comment_8": {
+          "baseType": "String"
+        },
+        "actionSummary": {
+          "baseType": "String"
+        },
+        "actionTimestamp": {
+          "baseType": "Timestamp"
+        }
+      },
+      "rid": "ri.ontology.main.object-type.62ae743f-0bdc-4b2b-99b0-10a6a3dec0c0"
+    },
+    {
       "apiName": "OMOPConcept",
+      "displayName": "OMOP Concept",
       "description": "",
       "primaryKey": [
         "conceptId"
@@ -1735,6 +1724,7 @@
     },
     {
       "apiName": "OmopConceptDomain",
+      "displayName": "OMOP Concept Domain",
       "primaryKey": [
         "domainId"
       ],
@@ -1747,6 +1737,7 @@
     },
     {
       "apiName": "Researcher",
+      "displayName": "N3C Researcher",
       "description": "",
       "primaryKey": [
         "multipassId"
@@ -1805,6 +1796,7 @@
     },
     {
       "apiName": "DraftOmopCohortVersionCodesetVersionLink",
+      "displayName": "Draft OMOP Cohort Codeset Link",
       "description": "",
       "primaryKey": [
         "id"
@@ -1830,6 +1822,7 @@
     },
     {
       "apiName": "TrainingModuleModality",
+      "displayName": "Training Module Modality",
       "description": "",
       "primaryKey": [
         "modalityId"
@@ -1845,65 +1838,8 @@
       "rid": "ri.ontology.main.object-type.745e4d4d-3047-4dd9-bbec-e3b8de79e052"
     },
     {
-      "apiName": "LogPhastrProposalAttestations",
-      "description": "This object type was automatically created when logging was enabled for the Action type: PHASTR Proposal Attestations",
-      "primaryKey": [
-        "actionRid"
-      ],
-      "properties": {
-        "actionRid": {
-          "baseType": "String"
-        },
-        "infosecAttestation_1": {
-          "baseType": "String"
-        },
-        "actionTypeVersion": {
-          "baseType": "String"
-        },
-        "duaAttestation_1": {
-          "baseType": "String"
-        },
-        "actionTypeRid": {
-          "baseType": "String"
-        },
-        "newParameter2_1": {
-          "baseType": "String"
-        },
-        "newParameter3_1": {
-          "baseType": "LocalDate"
-        },
-        "humanSubjectsTrainingDate_1": {
-          "baseType": "LocalDate"
-        },
-        "dacDecisionDacReviewUid_5": {
-          "baseType": "String"
-        },
-        "actionTriggererUserId": {
-          "baseType": "String"
-        },
-        "humanSubjectsTrainingAttestation_1": {
-          "baseType": "String"
-        },
-        "newParameter1_1": {
-          "baseType": "Array<String>"
-        },
-        "irbDeterminationLetter_1": {
-          "baseType": "Attachment"
-        },
-        "actionSummary": {
-          "baseType": "String"
-        },
-        "newParameter_1": {
-          "baseType": "String"
-        },
-        "actionTimestamp": {
-          "baseType": "Timestamp"
-        }
-      },
-      "rid": "ri.ontology.main.object-type.751d94e8-74a2-4c65-bea8-8e9481dbbec9"
-    },
-    {
       "apiName": "N3CInstitution",
+      "displayName": "N3C Institution",
       "description": "",
       "primaryKey": [
         "n3cInstitutionId"
@@ -1929,6 +1865,7 @@
     },
     {
       "apiName": "N3CKOCategory",
+      "displayName": "N3C Knowledge Object Category",
       "description": "",
       "primaryKey": [
         "koCategoryUid"
@@ -1942,6 +1879,7 @@
     },
     {
       "apiName": "KGCovid19MolecularEntity",
+      "displayName": "(KG) Molecular Entity",
       "description": "",
       "primaryKey": [
         "kgMolecularEntityId"
@@ -1968,6 +1906,7 @@
     },
     {
       "apiName": "KGCovid19ChemicalSubstance",
+      "displayName": "(KG) Chemical Substance",
       "description": "",
       "primaryKey": [
         "kgChemicalSubstanceId"
@@ -2026,6 +1965,7 @@
     },
     {
       "apiName": "EnclaveUserSurveyReponse",
+      "displayName": "Enclave User Survey Response",
       "description": "",
       "primaryKey": [
         "responseId"
@@ -2150,6 +2090,7 @@
     },
     {
       "apiName": "ConceptSetBundleItem",
+      "displayName": "Concept Set Bundle Item",
       "description": "",
       "primaryKey": [
         "bundleItemUid"
@@ -2171,25 +2112,49 @@
       "rid": "ri.ontology.main.object-type.7d44fbef-603c-4b3c-bca7-7da3f5b47637"
     },
     {
-      "apiName": "OutlineObjectRv",
+      "apiName": "ProtocolCommentReply",
+      "displayName": "Protocol Comment Reply",
+      "description": "Replies to a comment on protocol specifications.",
       "primaryKey": [
-        "outlineUid"
+        "commentReplyId"
       ],
       "properties": {
-        "outlineUid": {
+        "commentReply": {
           "baseType": "String"
         },
-        "description": {
+        "protocolPhase": {
           "baseType": "String"
         },
-        "title": {
+        "commentReplyId": {
+          "baseType": "String"
+        },
+        "rpGrpId": {
+          "baseType": "String"
+        },
+        "commentReplyDate": {
+          "baseType": "Timestamp"
+        },
+        "commentId": {
+          "baseType": "String"
+        },
+        "user": {
+          "baseType": "String"
+        },
+        "protocolProperty": {
+          "baseType": "String"
+        },
+        "comment": {
+          "baseType": "String"
+        },
+        "protocolId": {
           "baseType": "String"
         }
       },
-      "rid": "ri.ontology.main.object-type.80032a7b-b5cc-46f0-9abe-83aca8134bef"
+      "rid": "ri.ontology.main.object-type.7fb5b004-c128-45d4-9b20-e394cc68f528"
     },
     {
       "apiName": "ConceptSetTag",
+      "displayName": "Concept Set Bundle",
       "primaryKey": [
         "tagName"
       ],
@@ -2205,6 +2170,7 @@
     },
     {
       "apiName": "CodeSystemConceptSetVersionExpressionItem",
+      "displayName": "Code System Concept Set Version Expression Item",
       "description": "Individual expression item in the JSON definition of a concept set version (concept_id + three boolean flags for inclusion/exclusion specifications of additional concepts). ",
       "primaryKey": [
         "itemId"
@@ -2248,6 +2214,7 @@
     },
     {
       "apiName": "ConceptSuccessorRelationship",
+      "displayName": "OMOP Concept Successor Relationship",
       "description": "",
       "primaryKey": [
         "successorObjectId"
@@ -2273,11 +2240,15 @@
     },
     {
       "apiName": "Protocol",
+      "displayName": "Protocol",
       "description": "Stores research protocols. A protocol is defined as a research objective and its workflow that aims to answer a specific scientific question or create a specific output of value.",
       "primaryKey": [
         "protocolId"
       ],
       "properties": {
+        "linksToPressReleasesDerivedFromThisProtocol": {
+          "baseType": "Array<String>"
+        },
         "performedStepsOverview": {
           "baseType": "String"
         },
@@ -2498,7 +2469,13 @@
         "protocolName": {
           "baseType": "String"
         },
+        "pecotDefinitionApplicable": {
+          "baseType": "Boolean"
+        },
         "relatedProtocols": {
+          "baseType": "String"
+        },
+        "linkToCompletedProtocolDocument": {
           "baseType": "String"
         },
         "dataReleaseVersionUsed": {
@@ -2518,6 +2495,7 @@
     },
     {
       "apiName": "KGCovid19NamedThing",
+      "displayName": "(KG) Named Thing",
       "description": "",
       "primaryKey": [
         "kgNamedThingId"
@@ -2540,6 +2518,7 @@
     },
     {
       "apiName": "ResearchProject",
+      "displayName": "Research Project",
       "description": "",
       "primaryKey": [
         "projectUid"
@@ -2577,103 +2556,8 @@
       "rid": "ri.ontology.main.object-type.84d08d30-bbea-4e3d-a995-040057391a71"
     },
     {
-      "apiName": "DACDecision",
-      "description": "",
-      "primaryKey": [
-        "durSupplementId"
-      ],
-      "properties": {
-        "isRenewal": {
-          "baseType": "Boolean"
-        },
-        "labelRenewDur": {
-          "baseType": "String"
-        },
-        "userId": {
-          "description": "",
-          "baseType": "String"
-        },
-        "origDurResponseGroup": {
-          "baseType": "String"
-        },
-        "projectTitle": {
-          "baseType": "String"
-        },
-        "dacDecisionDate": {
-          "baseType": "LocalDate"
-        },
-        "durSupplementId": {
-          "baseType": "String"
-        },
-        "isHeadPi": {
-          "baseType": "String"
-        },
-        "dataSecurityTier": {
-          "baseType": "String"
-        },
-        "superseded": {
-          "baseType": "Boolean"
-        },
-        "isApprovedByHeadPi": {
-          "baseType": "String"
-        },
-        "labelUpdateOrAppealDur": {
-          "description": "Is this a DUR Revision request or a DUR Appeal request.",
-          "baseType": "String"
-        },
-        "dacDecisionComments": {
-          "baseType": "String"
-        },
-        "dacReviewUid": {
-          "baseType": "String"
-        },
-        "dacDecisionLevel": {
-          "baseType": "String"
-        },
-        "researchProjectRationale": {
-          "baseType": "String"
-        },
-        "publicHealthQuestionUid": {
-          "baseType": "String"
-        },
-        "urlUpdateOrAppealDur": {
-          "baseType": "String"
-        },
-        "durResponseGroup": {
-          "baseType": "String"
-        },
-        "urlRenewDur": {
-          "baseType": "String"
-        },
-        "workspaceProvisionEmailSent": {
-          "baseType": "String"
-        },
-        "durExpirationDate": {
-          "baseType": "LocalDate"
-        },
-        "durTimeSubmitted": {
-          "baseType": "Timestamp"
-        },
-        "headPiId": {
-          "baseType": "String"
-        },
-        "dacDecisionSentToUser": {
-          "baseType": "String"
-        },
-        "provisionedAt": {
-          "baseType": "Timestamp"
-        },
-        "researchProjectAbstract": {
-          "baseType": "String"
-        },
-        "durReviewStatus": {
-          "baseType": "String"
-        }
-      },
-      "rid": "ri.ontology.main.object-type.876edc08-e6e2-4dce-93b2-17ce8d1f9060"
-    },
-    {
       "apiName": "KGCovid19RNA",
+      "displayName": "(KG) RNA",
       "description": "",
       "primaryKey": [
         "kgRNAId"
@@ -2700,6 +2584,7 @@
     },
     {
       "apiName": "PersonNotional",
+      "displayName": "Person (NOTIONAL)",
       "description": "",
       "primaryKey": [
         "personId"
@@ -2781,7 +2666,46 @@
       "rid": "ri.ontology.main.object-type.8a85206f-18b5-4718-b8bd-95ec8212c6b4"
     },
     {
+      "apiName": "ProtocolSectionComment",
+      "displayName": "Protocol Section Comment",
+      "description": "Object to capture comments made on the phases of N3C Protocol Sections",
+      "primaryKey": [
+        "commentId"
+      ],
+      "properties": {
+        "protocolPhase": {
+          "baseType": "String"
+        },
+        "rpGrpId": {
+          "baseType": "String"
+        },
+        "commentId": {
+          "baseType": "String"
+        },
+        "user": {
+          "baseType": "String"
+        },
+        "comment": {
+          "baseType": "String"
+        },
+        "protocolSectionId": {
+          "baseType": "String"
+        },
+        "commentDate": {
+          "baseType": "Timestamp"
+        },
+        "protocolSectionProperty": {
+          "baseType": "String"
+        },
+        "resolutionStatus": {
+          "baseType": "String"
+        }
+      },
+      "rid": "ri.ontology.main.object-type.8e121249-7c52-4fcf-9c31-049b7427cbde"
+    },
+    {
       "apiName": "KGCovid19PhenotypicFeature",
+      "displayName": "(KG) Phenotypic Feature",
       "description": "",
       "primaryKey": [
         "id"
@@ -2824,6 +2748,7 @@
     },
     {
       "apiName": "KGCovid19Gene",
+      "displayName": "(KG) Gene",
       "description": "",
       "primaryKey": [
         "kgGeneId"
@@ -2866,6 +2791,7 @@
     },
     {
       "apiName": "KGCovid19OrganismTaxonomy",
+      "displayName": "(KG) Organism Taxonomy",
       "description": "",
       "primaryKey": [
         "id"
@@ -2900,6 +2826,7 @@
     },
     {
       "apiName": "KGCovid19Assay",
+      "displayName": "(KG) Assay",
       "description": "",
       "primaryKey": [
         "kgAssayId"
@@ -2946,11 +2873,50 @@
     },
     {
       "apiName": "OMOPConceptSet",
+      "displayName": "OMOP Concept Set Version",
       "description": "A Versioned OMOP Concept Set. It is defined by its included Concept Set Expression items, and includes metadata about this concept set version.",
       "primaryKey": [
         "codesetId"
       ],
       "properties": {
+        "comments": {
+          "baseType": "String"
+        },
+        "sourceApplicationVersion": {
+          "description": "Identifies the version of the software application in which this Concept Set Version was created.",
+          "baseType": "String"
+        },
+        "firstAuthor": {
+          "baseType": "String"
+        },
+        "status": {
+          "baseType": "String"
+        },
+        "lastModifiedBy": {
+          "baseType": "String"
+        },
+        "version": {
+          "baseType": "Integer"
+        },
+        "createdAt": {
+          "baseType": "Timestamp"
+        },
+        "reviewedBy": {
+          "baseType": "Array<String>"
+        },
+        "intention": {
+          "baseType": "String"
+        },
+        "isDraft": {
+          "baseType": "Boolean"
+        },
+        "codesetId": {
+          "description": "",
+          "baseType": "Integer"
+        },
+        "authority": {
+          "baseType": "String"
+        },
         "updateMessage": {
           "baseType": "String"
         },
@@ -2958,31 +2924,21 @@
           "description": "",
           "baseType": "String"
         },
-        "comments": {
-          "baseType": "String"
+        "lastModifiedAt": {
+          "baseType": "Timestamp"
         },
         "issues": {
           "baseType": "String"
         },
-        "sourceApplicationVersion": {
-          "description": "Identifies the version of the software application in which this Concept Set Version was created.",
-          "baseType": "String"
-        },
-        "status": {
-          "baseType": "String"
+        "dateSubmittedToZenodo": {
+          "baseType": "Timestamp"
         },
         "createdBy": {
           "baseType": "String"
         },
-        "version": {
-          "baseType": "Integer"
-        },
         "project": {
           "description": "",
           "baseType": "String"
-        },
-        "createdAt": {
-          "baseType": "Timestamp"
         },
         "sourceApplication": {
           "description": "Identifies the software application in which this Concept Set Version was created.",
@@ -3001,9 +2957,6 @@
         "parentVersionId": {
           "baseType": "Integer"
         },
-        "intention": {
-          "baseType": "String"
-        },
         "limitations": {
           "baseType": "String"
         },
@@ -3013,24 +2966,15 @@
         "conceptSetVersionTitle": {
           "baseType": "String"
         },
-        "isDraft": {
-          "baseType": "Boolean"
-        },
-        "codesetId": {
-          "description": "",
-          "baseType": "Integer"
-        },
         "isMostRecentVersion": {
           "baseType": "Boolean"
-        },
-        "authority": {
-          "baseType": "String"
         }
       },
       "rid": "ri.ontology.main.object-type.a11d04a3-601a-45a9-9bc2-5d0e77dd512e"
     },
     {
       "apiName": "KGCovid19CellularComponent",
+      "displayName": "(KG) Cellular Component",
       "description": "",
       "primaryKey": [
         "kgCellularComponentId"
@@ -3072,55 +3016,8 @@
       "rid": "ri.ontology.main.object-type.a30ec85f-71fa-42d7-92df-89e4a1a519ea"
     },
     {
-      "apiName": "DownloadRequest",
-      "description": "Download Request for reviewer to assess and approve/deny.",
-      "primaryKey": [
-        "koUid"
-      ],
-      "properties": {
-        "koTitle": {
-          "baseType": "String"
-        },
-        "koDeadline": {
-          "baseType": "Timestamp"
-        },
-        "koDescription": {
-          "baseType": "String"
-        },
-        "koCreatedAt": {
-          "baseType": "Timestamp"
-        },
-        "koRids": {
-          "description": "Datasets and/or Reports included in this Download Request",
-          "baseType": "Array<String>"
-        },
-        "koDeadlineJustification": {
-          "baseType": "String"
-        },
-        "koApprovedFolderRid": {
-          "baseType": "String"
-        },
-        "koSourceResearchProjectId": {
-          "baseType": "String"
-        },
-        "koUid": {
-          "baseType": "String"
-        },
-        "koStatus": {
-          "baseType": "String"
-        },
-        "koOldRequestId": {
-          "baseType": "String"
-        },
-        "koCreatedBy": {
-          "description": "The original author of this download request object.",
-          "baseType": "String"
-        }
-      },
-      "rid": "ri.ontology.main.object-type.a4ebd9d9-879c-4d05-9895-356872e63300"
-    },
-    {
       "apiName": "N3CKnowledgeObjectMetrics",
+      "displayName": "Knowledge Object Metrics",
       "description": "",
       "primaryKey": [
         "koUid"
@@ -3169,76 +3066,8 @@
       "rid": "ri.ontology.main.object-type.a6fc7f15-a45c-4053-97ea-82efa9125497"
     },
     {
-      "apiName": "PublicHealthQuestions",
-      "primaryKey": [
-        "phQuestionUid"
-      ],
-      "properties": {
-        "contractAims": {
-          "baseType": "String"
-        },
-        "applicationStartDate": {
-          "baseType": "LocalDate"
-        },
-        "deliverables": {
-          "baseType": "String"
-        },
-        "costOfAward": {
-          "baseType": "Double"
-        },
-        "phenotype": {
-          "baseType": "String"
-        },
-        "expectedResults": {
-          "baseType": "String"
-        },
-        "numberOfAwards": {
-          "baseType": "Integer"
-        },
-        "postDate": {
-          "baseType": "LocalDate"
-        },
-        "analysisPlanOrResearchMethod": {
-          "baseType": "String"
-        },
-        "title": {
-          "baseType": "String"
-        },
-        "pprlExternalDatasets": {
-          "baseType": "Array<String>"
-        },
-        "inclusion": {
-          "baseType": "String"
-        },
-        "phQuestionUid": {
-          "baseType": "String"
-        },
-        "dataSecurityLevel": {
-          "baseType": "Integer"
-        },
-        "timeframe": {
-          "baseType": "String"
-        },
-        "applicationStopDate": {
-          "baseType": "LocalDate"
-        },
-        "description": {
-          "baseType": "String"
-        },
-        "exclusion": {
-          "baseType": "String"
-        },
-        "contactEmail": {
-          "baseType": "String"
-        },
-        "contactName": {
-          "baseType": "String"
-        }
-      },
-      "rid": "ri.ontology.main.object-type.a813aac6-48e8-4554-8d67-0ff8a1016736"
-    },
-    {
       "apiName": "KGCovid19Drug",
+      "displayName": "(KG) Drug",
       "description": "",
       "primaryKey": [
         "kgDrugId"
@@ -3273,6 +3102,7 @@
     },
     {
       "apiName": "OMOPCohortVersionCodesetVersionLink",
+      "displayName": "OMOP Cohort-Codeset Link",
       "description": "",
       "primaryKey": [
         "id"
@@ -3301,6 +3131,7 @@
     },
     {
       "apiName": "VisitOccurrenceNotional",
+      "displayName": "Visit Occurrence (NOTIONAL)",
       "description": "",
       "primaryKey": [
         "visitOccurrenceId"
@@ -3378,7 +3209,49 @@
       "rid": "ri.ontology.main.object-type.b33f9344-290e-4e53-ade2-3a83b4c14c77"
     },
     {
+      "apiName": "ProtocolSectionCommentReply",
+      "displayName": "Protocol Section Comment Reply",
+      "description": "Holds replies to comments on protocol sections.",
+      "primaryKey": [
+        "commentReplyId"
+      ],
+      "properties": {
+        "commentReply": {
+          "baseType": "String"
+        },
+        "protocolPhase": {
+          "baseType": "String"
+        },
+        "commentReplyId": {
+          "baseType": "String"
+        },
+        "rpGrpId": {
+          "baseType": "String"
+        },
+        "commentReplyDate": {
+          "baseType": "Timestamp"
+        },
+        "commentId": {
+          "baseType": "String"
+        },
+        "user": {
+          "baseType": "String"
+        },
+        "comment": {
+          "baseType": "String"
+        },
+        "protocolSectionId": {
+          "baseType": "String"
+        },
+        "protocolSectionProperty": {
+          "baseType": "String"
+        }
+      },
+      "rid": "ri.ontology.main.object-type.b3f24d4f-3df4-4797-8b3c-4cfdf2ba3e49"
+    },
+    {
       "apiName": "KGCovid19SequenceFeature",
+      "displayName": "(KG) Sequence Feature",
       "description": "",
       "primaryKey": [
         "id"
@@ -3421,6 +3294,7 @@
     },
     {
       "apiName": "OMOPConceptAncestorRelationship",
+      "displayName": "OMOP Concept Ancestor/Descendant Relationship",
       "description": "",
       "primaryKey": [
         "ancestorObjectId"
@@ -3446,6 +3320,7 @@
     },
     {
       "apiName": "ConceptSetVersionChangeAcknowledgement",
+      "displayName": "Concept Set Version Change Acknowledgement",
       "primaryKey": [
         "conceptSetVersionChangeAckUid"
       ],
@@ -3472,71 +3347,55 @@
       "rid": "ri.ontology.main.object-type.b84c32d4-4cd0-4f78-87cf-83ad4fa2e0d7"
     },
     {
-      "apiName": "DocumentationNodeVersionRv",
+      "apiName": "LogCreatenewprotocolteamcommentreply",
+      "displayName": "[Log] Create New Reply to Protocol Comment",
+      "description": "This object type was automatically created when logging was enabled for the Action type: Create New Reply to Protocol Comment",
       "primaryKey": [
-        "docNodeVersionUid"
+        "actionRid"
       ],
       "properties": {
-        "codeSnippet": {
-          "baseType": "String"
-        },
-        "dateCreated": {
-          "baseType": "String"
-        },
-        "docNodeVersionUid": {
-          "baseType": "String"
-        },
-        "name": {
-          "baseType": "String"
-        },
-        "type": {
-          "baseType": "String"
-        },
-        "body": {
-          "baseType": "String"
-        },
-        "docNodeUid": {
-          "baseType": "String"
-        },
-        "description": {
-          "baseType": "String"
-        },
-        "title": {
-          "baseType": "String"
-        },
-        "author": {
-          "baseType": "String"
-        }
-      },
-      "rid": "ri.ontology.main.object-type.b981f5bb-242c-4cc1-98d2-c29744e91652"
-    },
-    {
-      "apiName": "DurCollaboratorWithdrawalRequest",
-      "description": "",
-      "primaryKey": [
-        "requestUid"
-      ],
-      "properties": {
-        "timestamp": {
-          "baseType": "Timestamp"
-        },
-        "durIds": {
+        "protocol": {
           "baseType": "Array<String>"
         },
-        "durResponseGroup": {
+        "actionTriggererUserId": {
           "baseType": "String"
         },
-        "userId": {
+        "protocolComment": {
+          "baseType": "Array<String>"
+        },
+        "protocolCommentReply": {
+          "baseType": "Array<String>"
+        },
+        "newParameter_7": {
           "baseType": "String"
         },
-        "requestUid": {
+        "actionRid": {
           "baseType": "String"
+        },
+        "reply_7": {
+          "baseType": "String"
+        },
+        "actionTypeRid": {
+          "baseType": "String"
+        },
+        "pcRpGrpId_7": {
+          "baseType": "String"
+        },
+        "actionTypeVersion": {
+          "baseType": "String"
+        },
+        "actionSummary": {
+          "baseType": "String"
+        },
+        "actionTimestamp": {
+          "baseType": "Timestamp"
         }
       },
-      "rid": "ri.ontology.main.object-type.b9d7653c-9118-488c-b728-127ca0ff975b"
+      "rid": "ri.ontology.main.object-type.b85e22e4-fb2b-4542-a82a-ec9c663c091c"
     },
     {
       "apiName": "KnowledgeObjectReview",
+      "displayName": "Knowledge Object Review",
       "description": "",
       "primaryKey": [
         "koReviewId"
@@ -3562,6 +3421,7 @@
     },
     {
       "apiName": "PprlExternalDataset",
+      "displayName": "PPRL External Dataset",
       "primaryKey": [
         "id"
       ],
@@ -3580,6 +3440,7 @@
     },
     {
       "apiName": "ProcedureOccurrenceNotional",
+      "displayName": "Procedure Occurrence (NOTIONAL)",
       "description": "",
       "primaryKey": [
         "procedureOccurrenceId"
@@ -3642,6 +3503,7 @@
     },
     {
       "apiName": "OMOPCohorts",
+      "displayName": "OMOP Cohort",
       "description": "",
       "primaryKey": [
         "cohortId"
@@ -3664,6 +3526,7 @@
     },
     {
       "apiName": "KGCovid19Sequence",
+      "displayName": "(KG) Sequence",
       "description": "",
       "primaryKey": [
         "kgSequenceId"
@@ -3706,6 +3569,7 @@
     },
     {
       "apiName": "KGCovid19Cell",
+      "displayName": "(KG) Cell",
       "description": "",
       "primaryKey": [
         "id"
@@ -3739,229 +3603,8 @@
       "rid": "ri.ontology.main.object-type.c7917f82-3870-49ae-9f46-4eed15d4ac1e"
     },
     {
-      "apiName": "MainDURObjects",
-      "description": "",
-      "primaryKey": [
-        "mainDURDurResponseGroup"
-      ],
-      "properties": {
-        "timeSubmitted": {
-          "baseType": "Timestamp"
-        },
-        "mainDURCitizenScientist": {
-          "description": "",
-          "baseType": "Array<String>"
-        },
-        "mainDURRequestType": {
-          "description": "",
-          "baseType": "String"
-        },
-        "origDurResponseGroup": {
-          "baseType": "String"
-        },
-        "publicHealthQuestionId": {
-          "baseType": "String"
-        },
-        "collaboratorEmails": {
-          "description": "",
-          "baseType": "Array<String>"
-        },
-        "mainDURDurUid": {
-          "description": "",
-          "baseType": "String"
-        },
-        "collaboratorInstitutions": {
-          "description": "",
-          "baseType": "Array<String>"
-        },
-        "mainDURDoNotAllowJoinProject": {
-          "description": "",
-          "baseType": "String"
-        },
-        "pprlExternalDatasets": {
-          "baseType": "Array<String>"
-        },
-        "mainDURAckHrppDetermination": {
-          "description": "",
-          "baseType": "Array<String>"
-        },
-        "mainDURAccessingInstitution": {
-          "description": "",
-          "baseType": "String"
-        },
-        "mainDUREmail": {
-          "description": "",
-          "baseType": "String"
-        },
-        "mainDURCaProjectDescription": {
-          "description": "",
-          "baseType": "String"
-        },
-        "collaboratorEmailSent": {
-          "baseType": "String"
-        },
-        "mainDURCaTest": {
-          "description": "",
-          "baseType": "String"
-        },
-        "isTaskTeamProject": {
-          "baseType": "String"
-        },
-        "mainDURUserId": {
-          "description": "",
-          "baseType": "String"
-        },
-        "mainDURProjectTitle": {
-          "description": "",
-          "baseType": "String"
-        },
-        "mainDURsFtpTest": {
-          "description": "",
-          "baseType": "String"
-        },
-        "researchProjectId": {
-          "baseType": "String"
-        },
-        "mainDURAckReadDua": {
-          "description": "",
-          "baseType": "String"
-        },
-        "mainDURDurResponseGroup": {
-          "description": "",
-          "baseType": "String"
-        },
-        "isArchived": {
-          "baseType": "Boolean"
-        },
-        "mainDURNonconfidentialResearchStatement": {
-          "description": "",
-          "baseType": "String"
-        },
-        "mainDURName": {
-          "description": "",
-          "baseType": "String"
-        },
-        "dacReviewer1": {
-          "baseType": "String"
-        },
-        "dacReviewer2": {
-          "baseType": "String"
-        },
-        "mainDURInstitution": {
-          "description": "",
-          "baseType": "String"
-        },
-        "mainDURResearchProjectPlan": {
-          "description": "",
-          "baseType": "String"
-        },
-        "mainDURUserName": {
-          "description": "",
-          "baseType": "String"
-        },
-        "mainDURCompletionDateHumanSubjectsTraining": {
-          "description": "",
-          "baseType": "LocalDate"
-        },
-        "irbExpirationDate": {
-          "baseType": "LocalDate"
-        },
-        "mainDURInstitutionDeterminationLetter": {
-          "description": "",
-          "baseType": "Array<String>"
-        },
-        "mainDURAckItTraining": {
-          "description": "",
-          "baseType": "String"
-        },
-        "superseded": {
-          "baseType": "Boolean"
-        },
-        "dacReviewer2Name": {
-          "baseType": "String"
-        },
-        "isOperational": {
-          "baseType": "Boolean"
-        },
-        "mainDURDataAccessJustification": {
-          "description": "",
-          "baseType": "String"
-        },
-        "appealDataSecurityTierChange": {
-          "baseType": "Integer"
-        },
-        "mainDURAckCodeOfConduct": {
-          "description": "",
-          "baseType": "String"
-        },
-        "mainDURsFtpProjectDescription": {
-          "description": "",
-          "baseType": "String"
-        },
-        "collaboratorNames": {
-          "description": "",
-          "baseType": "Array<String>"
-        },
-        "isTestProject": {
-          "baseType": "Boolean"
-        },
-        "mainDURUserEmail": {
-          "description": "",
-          "baseType": "String"
-        },
-        "dacReviewer1Name": {
-          "baseType": "String"
-        },
-        "mainDURCollaborativeAnalyticsUser": {
-          "description": "",
-          "baseType": "String"
-        },
-        "mainDURThisCollaboratorDoesNotBelongToMyInstitution1": {
-          "description": "",
-          "baseType": "String"
-        },
-        "mainDURSignedCitizenDua": {
-          "description": "",
-          "baseType": "String"
-        },
-        "mainDURAckHumanSubjectTraining": {
-          "description": "",
-          "baseType": "String"
-        },
-        "domainTeamIds": {
-          "baseType": "Array<String>"
-        },
-        "mainDURDataSecurityTier": {
-          "description": "",
-          "baseType": "String"
-        },
-        "primaryReviewId": {
-          "baseType": "String"
-        }
-      },
-      "rid": "ri.ontology.main.object-type.c97b1e81-5360-4164-af5c-ec898dd40dac"
-    },
-    {
-      "apiName": "CollaboratorInvitations",
-      "description": "",
-      "primaryKey": [
-        "invitationUid"
-      ],
-      "properties": {
-        "durResponseGroup": {
-          "baseType": "String"
-        },
-        "multipassId": {
-          "baseType": "String"
-        },
-        "invitationUid": {
-          "baseType": "String"
-        }
-      },
-      "rid": "ri.ontology.main.object-type.cc639949-d65f-46c8-8c05-4260efb31e31"
-    },
-    {
       "apiName": "OMOPVocabularyVersion",
+      "displayName": "OMOP Vocabulary Version",
       "description": "",
       "primaryKey": [
         "vocabularyVersion"
@@ -3977,139 +3620,8 @@
       "rid": "ri.ontology.main.object-type.d329054c-89a5-4b53-8719-e856ced5e1e8"
     },
     {
-      "apiName": "DURProjectPublic",
-      "description": "",
-      "primaryKey": [
-        "durResponseGroup"
-      ],
-      "properties": {
-        "isOperationalDur": {
-          "baseType": "Boolean"
-        },
-        "durResponseGroup": {
-          "baseType": "String"
-        },
-        "userId": {
-          "baseType": "String"
-        },
-        "userName": {
-          "baseType": "String"
-        },
-        "origDurResponseGroup": {
-          "baseType": "String"
-        },
-        "projectTitle": {
-          "baseType": "String"
-        },
-        "allowJoining": {
-          "baseType": "String"
-        },
-        "isTaskTeamProject": {
-          "baseType": "String"
-        },
-        "dataSecurityTier": {
-          "baseType": "String"
-        },
-        "nonconfidentialResearchStatement": {
-          "baseType": "String"
-        },
-        "hasExpired": {
-          "description": "Has the DUR Expiration date passed?",
-          "baseType": "Boolean"
-        },
-        "visibility": {
-          "baseType": "String"
-        },
-        "accessingInstitution": {
-          "baseType": "String"
-        },
-        "pprlExternalDatasets": {
-          "baseType": "Array<String>"
-        },
-        "domainTeamIds": {
-          "baseType": "Array<String>"
-        },
-        "isPublic": {
-          "baseType": "Boolean"
-        },
-        "researchProjectId": {
-          "baseType": "String"
-        },
-        "durUid": {
-          "baseType": "String"
-        },
-        "userEmail": {
-          "baseType": "String"
-        },
-        "reviewStatus": {
-          "baseType": "String"
-        },
-        "requestToJoin": {
-          "baseType": "String"
-        }
-      },
-      "rid": "ri.ontology.main.object-type.d6538096-eccd-4cff-b135-b5a1eb45542e"
-    },
-    {
-      "apiName": "DataPartnerSite",
-      "description": "Represents a participating medical center",
-      "primaryKey": [
-        "siteId"
-      ],
-      "properties": {
-        "runDate": {
-          "baseType": "LocalDate"
-        },
-        "n3cPhenotypeVersion": {
-          "baseType": "String"
-        },
-        "cdmVersion": {
-          "baseType": "String"
-        },
-        "released": {
-          "baseType": "Boolean"
-        },
-        "mappedVersion": {
-          "baseType": "String"
-        },
-        "parsedPayload": {
-          "baseType": "String"
-        },
-        "unreleasedPayload": {
-          "baseType": "String"
-        },
-        "n3cPhenotypeYn": {
-          "baseType": "String"
-        },
-        "datasetbuildversion": {
-          "baseType": "String"
-        },
-        "oldSiteId": {
-          "baseType": "String"
-        },
-        "monocleLink": {
-          "baseType": "String"
-        },
-        "releaseNotes": {
-          "baseType": "String"
-        },
-        "contributionDate": {
-          "baseType": "LocalDate"
-        },
-        "cdm": {
-          "baseType": "String"
-        },
-        "vocabularyVersion": {
-          "baseType": "String"
-        },
-        "siteId": {
-          "baseType": "String"
-        }
-      },
-      "rid": "ri.ontology.main.object-type.db3abf0c-4d96-4236-adee-b9dfe9650934"
-    },
-    {
       "apiName": "KGCovid19Protein",
+      "displayName": "(KG) Protein",
       "description": "",
       "primaryKey": [
         "kgProteinId"
@@ -4160,6 +3672,7 @@
     },
     {
       "apiName": "KGCovid19BiologicalProcess",
+      "displayName": "(KG) Biological Process",
       "description": "",
       "primaryKey": [
         "kgBiologicalProcessId"
@@ -4201,62 +3714,70 @@
       "rid": "ri.ontology.main.object-type.dc308ec4-1c3c-46f6-b412-f6576b6839b5"
     },
     {
-      "apiName": "OutlineSection",
-      "description": "",
+      "apiName": "LogAddprotocolsectioncomment",
+      "displayName": "[Log] Add Protocol Section Comment",
+      "description": "This object type was automatically created when logging was enabled for the Action type: Add Protocol Section Comment",
       "primaryKey": [
-        "outlineSectionUid"
+        "actionRid"
       ],
       "properties": {
-        "outlineSectionUid": {
+        "resolutionStatus_5": {
           "baseType": "String"
         },
-        "title": {
+        "protocolSection": {
+          "baseType": "Array<String>"
+        },
+        "actionRid": {
           "baseType": "String"
+        },
+        "actionTypeVersion": {
+          "baseType": "String"
+        },
+        "protocolSectionComment": {
+          "baseType": "Array<String>"
+        },
+        "actionTypeRid": {
+          "baseType": "String"
+        },
+        "commentId_5": {
+          "baseType": "String"
+        },
+        "user_5": {
+          "baseType": "String"
+        },
+        "actionTriggererUserId": {
+          "baseType": "String"
+        },
+        "protocol": {
+          "baseType": "Array<String>"
+        },
+        "protocolSectionId_5": {
+          "baseType": "String"
+        },
+        "protocolSectionRpGroupId_5": {
+          "baseType": "String"
+        },
+        "protocolSectionProperty_5": {
+          "baseType": "String"
+        },
+        "protocolPhase_5": {
+          "baseType": "String"
+        },
+        "comment_5": {
+          "baseType": "String"
+        },
+        "actionSummary": {
+          "baseType": "String"
+        },
+        "actionTimestamp": {
+          "baseType": "Timestamp"
         }
       },
-      "rid": "ri.ontology.main.object-type.ec3a3665-836a-4827-987c-41ac9627c2db"
-    },
-    {
-      "apiName": "DurEpic",
-      "primaryKey": [
-        "durEpicUid"
-      ],
-      "properties": {
-        "projectTitle": {
-          "baseType": "String"
-        },
-        "durEpicUid": {
-          "baseType": "String"
-        }
-      },
-      "rid": "ri.ontology.main.object-type.ef3a07da-046c-4017-9874-e939e09cbd0e"
-    },
-    {
-      "apiName": "CsetVersionInfo",
-      "primaryKey": [
-        "codesetId"
-      ],
-      "properties": {
-        "reviews": {
-          "baseType": "String"
-        },
-        "codesetVersionTitle": {
-          "baseType": "String"
-        },
-        "personRoles": {
-          "baseType": "String"
-        },
-        "verReviewCnt": {
-          "baseType": "Integer"
-        },
-        "codesetId": {
-          "baseType": "Integer"
-        }
-      },
-      "rid": "ri.ontology.main.object-type.f1799532-7092-4ef1-9862-8f2b43fa584c"
+      "rid": "ri.ontology.main.object-type.e6d8252a-51eb-4b05-9dd1-e94661918c0a"
     },
     {
       "apiName": "KGCovid19Disease",
+      "displayName": "(KG) Disease",
       "description": "",
       "primaryKey": [
         "kgDiseaseId"
@@ -4298,52 +3819,20 @@
       "rid": "ri.ontology.main.object-type.f3595232-1702-404a-9738-a523b74caf87"
     },
     {
-      "apiName": "Tag",
-      "primaryKey": [
-        "tagUid"
-      ],
-      "properties": {
-        "tagUid": {
-          "baseType": "String"
-        },
-        "tagCategory": {
-          "baseType": "String"
-        },
-        "dateCreated": {
-          "baseType": "Timestamp"
-        },
-        "name": {
-          "baseType": "String"
-        },
-        "description": {
-          "baseType": "String"
-        },
-        "sectionReference": {
-          "baseType": "String"
-        },
-        "docReference": {
-          "baseType": "String"
-        },
-        "author": {
-          "baseType": "String"
-        }
-      },
-      "rid": "ri.ontology.main.object-type.f599957b-7946-45de-a5fa-0b3d3ae6c0c7"
-    },
-    {
       "apiName": "ConceptUsageCounts",
+      "displayName": "Concept Usage Count",
       "primaryKey": [
         "conceptUsageCountUid"
       ],
       "properties": {
         "distinctPersonCount": {
-          "baseType": "Long"
+          "baseType": "Integer"
         },
         "conceptId": {
           "baseType": "Integer"
         },
         "totalCount": {
-          "baseType": "Long"
+          "baseType": "Integer"
         },
         "conceptUsageCountUid": {
           "baseType": "String"
@@ -4359,6 +3848,7 @@
     },
     {
       "apiName": "KGCovid19Publication",
+      "displayName": "(KG) Publication",
       "description": "",
       "primaryKey": [
         "kgPublicationId"
@@ -4393,6 +3883,7 @@
     },
     {
       "apiName": "TrainingModuleCategory",
+      "displayName": "Training Module Category",
       "description": "",
       "primaryKey": [
         "categoryId"
@@ -4409,6 +3900,7 @@
     },
     {
       "apiName": "ConditionOccurrenceNotional",
+      "displayName": "Condition Occurrence (NOTIONAL)",
       "description": "",
       "primaryKey": [
         "conditionOccurrenceId"
@@ -4479,6 +3971,7 @@
     },
     {
       "apiName": "CdmDomain",
+      "displayName": "CDM Domain",
       "description": "",
       "primaryKey": [
         "domainUid"
