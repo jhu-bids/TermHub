@@ -425,8 +425,8 @@ def upload_concept_set_version_draft(
 
 
 def finalize_concept_set_version(
-    concept_set: str, version_id: int, current_max_version: float, provenance: str = "", limitations: str = "",
-    validate_first=VALIDATE_FIRST
+    concept_set: str, version_id: int, on_behalf_of: str, current_max_version: float, provenance: str = "",
+    limitations: str = "", validate_first=VALIDATE_FIRST
 )-> Response:
     """Finalize a concept set version
 
@@ -468,6 +468,10 @@ def finalize_concept_set_version(
             #   "baseType": "Double"
         }
     }
+    if on_behalf_of:
+        d['parameters']['on-behalf-of'] = on_behalf_of
+    else:
+        raise "expecting 'on_behalf_of'"
 
     response: Response = make_actions_request(api_name, d, validate_first)
     if 'errorCode' in response:

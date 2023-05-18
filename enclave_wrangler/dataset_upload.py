@@ -271,7 +271,8 @@ def upload_new_cset_version_with_concepts(
             current_max_version=current_max_version,
             provenance=provenance,
             limitations=limitations,
-            validate_first=validate_first)
+            validate_first=validate_first,
+            on_behalf_of=on_behalf_of)
         responses['finalize_concept_set_version'] = response_finalize_concept_set_version
     return {
         'responses': responses,
