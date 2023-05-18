@@ -85,8 +85,8 @@ def get_roots(G):
     return [n for n in G.nodes if G.in_degree(n) == 0]
 
 
-def save_relationship_graph():
-    timer = get_timer('save_relationship_graph')
+def create_rel_graphs(save_to_pickle: bool):
+    timer = get_timer('create_rel_graphs')
     with get_db_connection() as con:
         # load_csv(con, 'relationship', 'dataset', schema='n3c')
         # rels = sql_query(con, f"""
@@ -103,13 +103,16 @@ def save_relationship_graph():
         """)
         timer('make graph')
         G = nx.from_edgelist(rels, nx.DiGraph)
-        timer(f'write pickle for G with {len(G.nodes)} nodes')
-        nx.write_gpickle(G, 'networkx/relationship_graph.pickle')
+        if save_to_pickle:
+            timer(f'write pickle for G with {len(G.nodes)} nodes')
+            nx.write_gpickle(G, 'networkx/relationship_graph.pickle')
         timer('make undirected version')
         Gu = G.to_undirected()
-        timer('write pickle for that')
-        nx.write_gpickle(Gu, 'networkx/relationship_graph_undirected.pickle')
+        if save_to_pickle:
+            timer('write pickle for that')
+            nx.write_gpickle(Gu, 'networkx/relationship_graph_undirected.pickle')
         timer('done')
+        return G, Gu
 
 
 def load_relationship_graph():
@@ -119,9 +122,11 @@ def load_relationship_graph():
 def load_relationship_graph_undirected():
     return nx.read_gpickle('./networkx/relationship_graph_undirected.pickle')
 
+LOAD_FROM_PICKLE = False
 
 if __name__ == '__main__':
-    save_relationship_graph()
+    pass
+    # create_rel_graph(save_to_pickle=True)
     # G = for_testing()
     # sg = G.subgraph(1,9)
     # G, components = disconnected_subgraphs()
@@ -129,14 +134,18 @@ if __name__ == '__main__':
     # j = graph_to_json(sg)
     # pdump(j)
 else:
-    timer = get_timer('./load_relationship_graph')
-    timer('loading REL_GRAPH')
-    REL_GRAPH = load_relationship_graph()
-    timer(f'loaded {commify(len(REL_GRAPH.nodes))}; loading REL_GRAPH_UNDIRECTED')
-    REL_GRAPH_UNDIRECTED = load_relationship_graph_undirected()
-    timer(f'loaded {commify(len(REL_GRAPH_UNDIRECTED.nodes))}')
-    timer('done')
+    if LOAD_FROM_PICKLE:
+        timer = get_timer('./load_relationship_graph')
+        timer('loading REL_GRAPH')
+        REL_GRAPH = load_relationship_graph()
+        timer(f'loaded {commify(len(REL_GRAPH.nodes))}; loading REL_GRAPH_UNDIRECTED')
+        REL_GRAPH_UNDIRECTED = load_relationship_graph_undirected()
+        timer(f'loaded {commify(len(REL_GRAPH_UNDIRECTED.nodes))}')
+        timer('done')
+    else:
+        REL_GRAPH, REL_GRAPH_UNDIRECTED = create_rel_graphs(save_to_pickle=False)
 
 
-    # sg = G.subgraph([7,3])
-        # roots = get_roots(sg)
+
+        # sg = G.subgraph([7,3])
+            # roots = get_roots(sg)
