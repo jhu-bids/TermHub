@@ -23,6 +23,29 @@ import Button from "@mui/material/Button";
 import { useAppState, useStateSlice } from "./State";
 import { CsetSearch } from "./Csets";
 
+let _pages = [
+  { name: "Cset search", href: "/OMOPConceptSets" },
+  { name: "Cset comparison", href: "/cset-comparison" },
+  { name: "Example comparison", href: "/testing" },
+  // { name: "Graph", href: "/graph" },
+  // {name: 'Upload CSV', href: '/upload-csv', noSearch: true, },
+  // TODO: re-add Download (CSets, bundles, json...) at some point
+  //{name: 'Download CSet JSON', href: '/download-json', noSearch: true, },
+  { name: "Help / About", href: "/about" },
+];
+if (window.location.host === 'localhost:3000') {
+  _pages.push({ name: "Graph", href: "/graph" });
+}
+export function getPages(props) {
+  let pages = cloneDeep(_pages);
+  if (!props.codeset_ids.length) {
+    let page = pages.find((d) => d.href == "/cset-comparison");
+    page.disable = true;
+    page.tt =
+        "Select one or more concept sets in order to view, compare, or edit them.";
+  }
+  return pages;
+}
 const contentComponents = {
   DummyComponent: DummyComponent,
   CsetSearch: CsetSearch,
@@ -98,26 +121,6 @@ export const defaultContentItems = {
     // name: 'editCset', // does this remain an option on comparison, or become (optionally) independent
   },
 };
-const _pages = [
-  { name: "Cset search", href: "/OMOPConceptSets" },
-  { name: "Cset comparison", href: "/cset-comparison" },
-  { name: "Example comparison", href: "/testing" },
-  // { name: "Graph", href: "/graph" },
-  // {name: 'Upload CSV', href: '/upload-csv', noSearch: true, },
-  // TODO: re-add Download (CSets, bundles, json...) at some point
-  //{name: 'Download CSet JSON', href: '/download-json', noSearch: true, },
-  { name: "Help / About", href: "/about" },
-];
-export function getPages(props) {
-  let pages = cloneDeep(_pages);
-  if (!props.codeset_ids.length) {
-    let page = pages.find((d) => d.href == "/cset-comparison");
-    page.disable = true;
-    page.tt =
-      "Select one or more concept sets in order to view, compare, or edit them.";
-  }
-  return pages;
-}
 export function contentItemsReducer(state = {}, action) {
   /* For use with ContentMenuItems and ContentItems, but not currently using it.
    */

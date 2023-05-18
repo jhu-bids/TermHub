@@ -32,7 +32,8 @@ PROJECT_DIR = Path(os.path.dirname(__file__)).parent
 # users on the same server
 APP = FastAPI()
 APP.include_router(cset_crud.router)
-APP.include_router(oak.router)
+# APP.include_router(oak.router)
+APP.include_router(graph.router)
 APP.include_router(db.router)
 APP.add_middleware(
     CORSMiddleware,

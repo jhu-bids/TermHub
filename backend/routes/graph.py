@@ -1,18 +1,31 @@
-from backend.db.utils import sql_query, get_db_connection
-import networkx as nx
-from backend.utils import pdump, get_timer, commify
 import warnings
+from typing import List # , Union, Dict, Set
+from fastapi import APIRouter, Query
+import networkx as nx
+from backend.db.utils import sql_query, get_db_connection
+from backend.utils import pdump, get_timer, commify
 
 VERBOSE = True
 
-def hierarchy(concept_ids):
-    sg = connected_subgraph_from_nodes(REL_GRAPH, concept_ids, REL_GRAPH_UNDIRECTED)
+router = APIRouter(
+    responses={404: {"description": "Not found"}},
+)
+
+@router.get("/subgraph/")
+def subgraph(id: List[int] = Query(...)):   # id is a list of concept ids
+    sg = connected_subgraph_from_nodes(id, REL_GRAPH, REL_GRAPH_UNDIRECTED)
+    return list(sg.edges)
+
+
+@router.get("/hierarchy/")
+def hierarchy(id: List[int] = Query(...)):   # id is a list of concept ids
+    sg = connected_subgraph_from_nodes(id, REL_GRAPH, REL_GRAPH_UNDIRECTED)
     j = graph_to_json(sg)
     return j
 
 
 
-def connected_subgraph_from_nodes(G, nodes, G_undirected=None):
+def connected_subgraph_from_nodes(nodes, G, G_undirected=None):
     timer = get_timer('  connected_subgraph_from_nodes')
     if not G_undirected:
         VERBOSE and timer(f'convert G to undirected')

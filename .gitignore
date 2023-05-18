@@ -29,6 +29,7 @@ old_bash_scripts
 *.parquet*
 /venv/
 junk
+*/junk.json
 *.ipynb
 scripts/old-vsac-api-scripts/tgt.txt
 .idea

@@ -10,35 +10,35 @@ export function currentConceptIds(props) {
   const concepts = props?.cset_data?.concepts ?? [];
   return concepts.map(c => c.concept_id);
 }
-function formatEdges(edges=[], setEdges, setEdgeProps) {
+function formatEdges(edges=[]) {
   if (!edges.length) return [];
-  const etest = edges[0];
+  let etest = edges[0];
+  let pairs;
   if (Array.isArray(etest)) {
     if (etest.length === 3) {
-      setEdgeProps({parentProp: 'obj', childProp: 'sub'});
-      setEdges(edges.map(e => ({sub: e[0], pred: e[1], obj:e[2]})));
+      pairs = edges.map(e => ([e[0], e[2]])); // middle item is predicate; not keeping (for now)
+    }else if (etest.length === 2) {
+      pairs = edges.map(e => ([e[0], e[1]]));
     } else {
       throw new Error('Unexpected array-type edge with != 3 elements', etest)
     }
   }
   // assume edges are objects if not arrays
   else if ('p' in etest) {
-    setEdgeProps({parentProp: 'p', childProp: 'c'});
-    setEdges(edges);
+    pairs = edges.map(e => ([e.p, e.c]));
   }
   else if ('pred' in etest && etest.pred === 'rdfs:subClassOf') {
-    setEdgeProps({parentProp: 'obj', childProp: 'sub'});
-    setEdges(edges.map(e => ({sub: e.sub, pred: e.pred, obj:e.obj})));
+    pairs = edges.map(e => ([e.obj, e.sub]));   // not keeping e.pred (for now)
   }
   else {
     throw new Error('unkown edge type', etest);
   }
+  return pairs.map(e => [e[0].toString(), e[1].toString()]);
 }
 export function ConceptGraph(props) {
   const {concept_ids, use_example=false} = props;
   const [concepts, setConcepts] = useState([]);
   const [edges, setEdges] = useState([]);
-  const [edgeProps, setEdgeProps] = useState({parentProp:'sub', childProp:'obj'});
   const [svgSize, setSvgSize] = useState({width: 500, height: 500});
   const svg = React.useRef();
 
@@ -73,8 +73,7 @@ export function ConceptGraph(props) {
           {p:'e2', c:'h2'},
           {p:'f2', c:'h2'} */
         ]
-        formatEdges(ex, setEdges, setEdgeProps);
-        setEdgeProps({parentProp: 'p', childProp: 'c'});
+        setEdges(formatEdges(ex));
         return;
       }
       if (use_example == 2) {
@@ -272,11 +271,11 @@ export function ConceptGraph(props) {
             "meta": null
           }
         ]
-        formatEdges(ex, setEdges, setEdgeProps);
+        setEdges(formatEdges(ex));
         return;
       }
       const _edges = await dataAccessor.getSubgraphEdges(concept_ids, 'array');
-      formatEdges(_edges, setEdges, setEdgeProps);
+      setEdges(formatEdges(_edges));
     }
     fetchData();
   }, []);
@@ -284,8 +283,7 @@ export function ConceptGraph(props) {
     if (!edges.length) {
       return;
     }
-    const {width, height, dag } = drawGraph(svg, edges, edgeProps.parentProp, edgeProps.childProp,
-                                            doc_height, doc_width);
+    const {width, height, dag } = drawGraph(svg, edges, doc_height, doc_width);
     setSvgSize({width, height});
     window.dag = dag;
     window.svgcur = svg.current;
@@ -323,17 +321,15 @@ function graphWidth(dag) {
 function graphHeight(dag) {
   return _.max(dag.height().descendants().map(d => d.value));
 }
-function drawGraph(svg, edges, parentProp='obj', childProp = 'sub',
-                   doc_height, doc_width) {
+function drawGraph(svg, edges, doc_height, doc_width) {
   // edge looks like {
   //     "sub": "N3C:46274124",       // child
   //     "pred": "rdfs:subClassOf",
   //     "obj": "N3C:36684328",       // parent
   //     "meta": null
   //   },
-  const edgeList = edges.map(d => [d[parentProp], d[childProp]])
   const connect = d3dag.dagConnect();
-  const dag = connect(edgeList);
+  const dag = connect(edges);
   const graphs = dag.split();
   const maxDims = {
     width: _.sum(graphs.map(g => graphWidth(g))),

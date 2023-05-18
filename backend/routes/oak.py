@@ -57,8 +57,8 @@ def get_curie(label, list_ok=False):
 
 # Routes ---------------------------------------------------------------------------------------------------------------
 # @cache
-@router.get("/subgraph/")
-def subgraph(id: List[int] = Query(...)):
+@router.get("/subgraph-oak/")
+def subgraph_oak(id: List[int] = Query(...)):
     # def subgraph(cid: List[str] = Query(...), add_prefix=True):
     """ Get a subgraph / minimal subsumption tree between and including 2 nodes.
     https://github.com/INCATools/
