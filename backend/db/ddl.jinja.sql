@@ -214,7 +214,7 @@ WITH ac AS (SELECT DISTINCT cs.codeset_id,
                      JOIN {{schema}}concept_set_container csc ON cs.concept_set_name = csc.concept_set_name
                      LEFT JOIN {{schema}}omopconceptsetcontainer ocsc ON csc.concept_set_id = ocsc."conceptSetId"
                      LEFT JOIN {{schema}}concept_set_counts_clamped cscc ON cs.codeset_id = cscc.codeset_id)
-SELECT ac.*, cscnt.counts
+SELECT ac.*, cscnt.counts, cscnt.counts->>'Members' as concepts
 FROM ac
 LEFT JOIN {{schema}}codeset_counts cscnt ON ac.codeset_id = cscnt.codeset_id;
 
