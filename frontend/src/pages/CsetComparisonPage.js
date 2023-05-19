@@ -35,7 +35,7 @@ import {
 // import FlexibleContainer, { accordionPanels, accordionPanel, } from "./FlexibleContainer";
 // import AllowOverlap from "./gridLayout";
 import { DOCS, howToSaveStagedChanges } from "../pages/AboutPage";
-import { FlexibleContainer } from "../components/contentControl";
+import { FlexibleContainer } from "../components/FlexibleContainer";
 // import {isEmpty} from "react-data-table-component/dist/src/DataTable/util"; // what was this for?
 // import Button from '@mui/material/Button';
 
@@ -77,7 +77,7 @@ function CsetComparisonPage(props) {
       ...collapsed,
       [row.pathToRoot]: !get(collapsed, row.pathToRoot.join(",")),
     };
-    hsDispatch({ type: "setCollapsed", collapsed });
+    hsDispatch({ type: "collapseDescendants", collapsed });
   }
 
   if (!all_csets.length || isEmpty(selected_csets)) {
@@ -95,46 +95,58 @@ function CsetComparisonPage(props) {
     windowSize,
   });
 
-  let moreProps = { ...props, columns, selected_csets, customStyles };
-  let infoPanels;
-  if (editCodesetId && csetEditState && csetEditState[editCodesetId]) {
-    const csidState = csetEditState[editCodesetId];
-    infoPanels = (
-      <Box
-        ref={boxRef}
-        sx={{
-          width: "96%",
-          margin: "9px",
-          display: "flex",
-          flexDirection: "row",
-        }}
-      >
-        <FlexibleContainer title="Concept set being edited">
+
+  let infoPanels = [
+    <FlexibleContainer key="legend" title="Legend">
+      <Legend />
+    </FlexibleContainer>
+  ];
+  if (editCodesetId) {
+    infoPanels.push(
+        <FlexibleContainer key="cset" title="Concept set being edited">
           <ConceptSetCard
-            cset={columns.find((d) => d.codeset_id === editCodesetId).cset_col}
-            researchers={researchers}
-            editing={true}
+              cset={columns.find((d) => d.codeset_id === editCodesetId).cset_col}
+              researchers={researchers}
+              editing={true}
           />
         </FlexibleContainer>
-        <FlexibleContainer
-          title={`${Object.keys(csidState).length} Staged changes`}
-        >
-          <EditInfo {...props} />
-        </FlexibleContainer>
-        <FlexibleContainer title="Instructions to save changes">
-          {saveChangesInstructions(props)}
-        </FlexibleContainer>
-        <FlexibleContainer title="Legend">
-          <Legend />
-        </FlexibleContainer>
-      </Box>
     );
+    if (csetEditState && csetEditState[editCodesetId]) {
+      const csidState = csetEditState[editCodesetId];
+      infoPanels.push(
+          <FlexibleContainer key="changes"
+              title={`${Object.keys(csidState).length} Staged changes`}
+          >
+            <EditInfo {...props} />
+          </FlexibleContainer>,
+
+          <FlexibleContainer key="instructions" title="Instructions to save changes">
+            {saveChangesInstructions(props)}
+          </FlexibleContainer>
+      );
+    }
   }
 
+  let moreProps = { ...props, columns, selected_csets, customStyles };
   return (
     <div>
       <DerivedStateProvider {...props}>
-        {infoPanels}
+        <Box
+            ref={boxRef}
+            sx={{
+              width: "96%",
+              margin: "9px",
+              display: "flex",
+              flexDirection: "row",
+            }}
+        >
+          {infoPanels}
+          <Button
+              sx={{ marginLeft: "auto" }}
+          >
+            Click on concept set column heading to edit
+          </Button>
+        </Box>
         <ComparisonDataTable /*squishTo={squishTo}*/ {...moreProps} />
       </DerivedStateProvider>
     </div>

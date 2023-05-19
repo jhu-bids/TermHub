@@ -27,11 +27,10 @@ import Box from "@mui/material/Box";
 import { useQuery } from "@tanstack/react-query";
 import {queryClient} from "../App";
 import { createSearchParams } from "react-router-dom";
-import { isEmpty, get, memoize, pullAt } from "lodash";
+import { isEmpty, get, uniq, pullAt } from "lodash";
 import { pct_fmt } from "./utils";
 import WarningRoundedIcon from '@mui/icons-material/WarningRounded';
 import { CheckCircleRounded } from "@mui/icons-material";
-// import {contentItemsReducer, defaultContentItems} from "./contentControl";
 
 class DataAccess {
   constructor() {
@@ -260,7 +259,7 @@ function hierarchySettingsReducer(state, action) {
   if (!(action && action.type)) return state;
   if (!action.type) return state;
   switch (action.type) {
-    case "setCollapsed": {
+    case "collapseDescendants": {
       const collapsed = action.collapsed;
       return { ...state, collapsed };
     }
@@ -378,7 +377,7 @@ function DataWidget(props) {
   let msg = {};
   msg.call = (
     <p>
-      <a href={url}>{ukey}</a> ({callType})
+      <a href={url}>{url}</a> ({callType})
     </p>
   );
   msg.icon = <Progress variant="determinate" value={100} />;
@@ -480,58 +479,6 @@ export function makeHierarchyRows({
   return traverseHierarchy({ hierarchy, concepts: conceptsMap, collapsed });
 }
 
-function makeRowData({
-  concepts,
-  selected_csets,
-  cset_members_items,
-  hierarchy,
-  collapsed = {},
-}) {
-  // replaced by makeHierarchyRows? --- this version helps with nested flag and row count message
-  if (
-    isEmpty(concepts) ||
-    isEmpty(selected_csets) ||
-    isEmpty(cset_members_items)
-  ) {
-    return;
-  }
-
-  const conceptsMap = Object.fromEntries(
-    concepts.map((d) => [d.concept_id, d])
-  );
-  let _displayOptions = {
-    fullHierarchy: {
-      rowData: traverseHierarchy({
-        hierarchy,
-        concepts: conceptsMap,
-        collapsed,
-      }),
-      nested: true,
-      msg: " lines in hierarchy",
-    },
-    flat: {
-      rowData: concepts,
-      nested: false,
-      msg: " flat",
-    },
-    /*
-    csetConcepts: {
-      rowData: traverseHierarchy({hierarchy, concepts: csetConcepts, collapsed, }),
-      nested: true,
-      msg: ' concepts in selected csets',
-    },
-     */
-  };
-
-  for (let k in _displayOptions) {
-    let opt = _displayOptions[k];
-    opt.msg = opt.rowData.length + opt.msg;
-  }
-  // setDisplayOptions(_displayOptions);
-  window.dopts = _displayOptions;
-  return _displayOptions;
-}
-/*
 function hierarchyToFlatCids(h) {
   function f(ac) {
     ac.keys = [...ac.keys, ...Object.keys(ac.remaining)];
@@ -547,7 +494,6 @@ function hierarchyToFlatCids(h) {
   }
   return uniq(ac.keys.map(k => parseInt(k)));
 }
- */
 
 function traverseHierarchy({ hierarchy, concepts, collapsed }) {
   let rowData = [];

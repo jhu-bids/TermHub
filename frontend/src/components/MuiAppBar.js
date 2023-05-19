@@ -9,12 +9,10 @@ import Menu from "@mui/material/Menu";
 import Toolbar from "@mui/material/Toolbar";
 import Typography from "@mui/material/Typography";
 import React from "react";
-// import {Tooltip} from './Tooltip';
 import MenuBookRounded from "@mui/icons-material/MenuBookRounded";
 import MenuItem from "@mui/material/MenuItem";
 import Tooltip from "@mui/material/Tooltip";
 import { NavLink, useLocation } from "react-router-dom";
-
 import ChevronLeftIcon from "@mui/icons-material/ChevronLeft";
 import ChevronRightIcon from "@mui/icons-material/ChevronRight";
 import CssBaseline from "@mui/material/CssBaseline";
@@ -24,12 +22,34 @@ import List from "@mui/material/List";
 import ListItem from "@mui/material/ListItem";
 import ListItemButton from "@mui/material/ListItemButton";
 import { styled, useTheme } from "@mui/material/styles";
-// import ListItemIcon from '@mui/material/ListItemIcon';
 import ListItemText from "@mui/material/ListItemText";
-import { getPages /*ContentMenuItems, ContentItem, */ } from "./contentControl";
+import { cloneDeep } from "lodash";
 
 const drawerWidth = 240;
 
+let _pages = [
+  { name: "Cset search", href: "/OMOPConceptSets" },
+  { name: "Cset comparison", href: "/cset-comparison" },
+  { name: "Example comparison", href: "/testing" },
+  // { name: "Graph", href: "/graph" },
+  // {name: 'Upload CSV', href: '/upload-csv', noSearch: true, },
+  // TODO: re-add Download (CSets, bundles, json...) at some point
+  //{name: 'Download CSet JSON', href: '/download-json', noSearch: true, },
+  { name: "Help / About", href: "/about" },
+];
+if (window.location.host === 'localhost:3000') {
+  _pages.push({ name: "Graph", href: "/graph" });
+}
+export function getPages(props) {
+  let pages = cloneDeep(_pages);
+  if (!props.codeset_ids.length) {
+    let page = pages.find((d) => d.href == "/cset-comparison");
+    page.disable = true;
+    page.tt =
+        "Select one or more concept sets in order to view, compare, or edit them.";
+  }
+  return pages;
+}
 // const settings = ['About'];
 
 const Main = styled("main", { shouldForwardProp: (prop) => prop !== "open" })(

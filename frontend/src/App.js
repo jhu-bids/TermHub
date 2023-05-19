@@ -51,7 +51,6 @@ import {
 import { UploadCsvPage } from "./components/UploadCsv";
 import { DownloadJSON } from "./components/DownloadJSON";
 import MuiAppBar from "./components/MuiAppBar";
-import { PopupContentItem /*ContentItems*/ } from "./components/contentControl";
 // // import _ from "./supergroup/supergroup";
 
 // import logo from './logo.svg';
@@ -279,7 +278,6 @@ function RoutesContainer(props) {
   return (
     <Routes>
       {/*<Route path="/help" element={<HelpWidget {...props} />} />*/}
-      {/*<Route path="popupContentItem/:context/:contentItemName" element={<PopupContentItem {...props} />} />*/}
       <Route path="/" element={<App {...props} />}>
         <Route
           path="cset-comparison"
