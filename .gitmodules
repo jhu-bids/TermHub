@@ -8,4 +8,6 @@
 	url = https://github.com/jhu-bids/supergroup.git
 [submodule "termhub-vocab"]
 	path = termhub-vocab
-	url = ./termhub-vocab
+	url = git@github.com:jhu-bids/termhub-vocab.git
+	branch = main
+	update = merge
