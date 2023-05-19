@@ -46,6 +46,10 @@ You likely will already have a schema called `n3c` which is corrupted in some wa
 3. Load [dev deployment](http://bit.ly/termhub-dev), clear `localStorage` in the same way, and face check various application features.
 
 ### Deployment
+#### Prerequisite steps
+**Update env**: Every once in a while, will need to update the [ENV_FILE GitHub Secret](https://github.com/jhu-bids/TermHub/settings/secrets/actions/ENV_FILE) 
+with a copy/paste of `env/.env`. This is only necessary whenever environmental variables have changed, such as `PALANTIR_ENCLAVE_AUTHENTICATION_BEARER_TOKEN` getting refreshed, which happens every few months. If you're confident that the environment is still up to date, this step can be skipped, but to be safe, it can be done every tie. 
+
 #### Deploying to Dev
 Use the GitHub actions. Click these links for [backend](https://github.com/jhu-bids/TermHub/actions/workflows/backend_dev.yml) and [frontend](https://github.com/jhu-bids/TermHub/actions/workflows/frontend_dev.yml) actions, and then click "Run Workflow".
 After both are deployed, test the app here: http://bit.ly/termhub-dev
