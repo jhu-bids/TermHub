@@ -14,10 +14,9 @@ import Draggable from "react-draggable";
 // import {Checkbox} from "@mui/material";
 import { isEmpty, get, throttle, pullAt } from "lodash"; // set, map, omit, pick, uniq, reduce, cloneDeepWith, isEqual, uniqWith, groupBy,
 import {
-  useAppState,
   useStateSlice,
-  DerivedStateProvider,
   useDerivedState,
+  hierarchyToFlatCids
 } from "../components/State";
 import { fmt, useWindowSize } from "../components/utils";
 import { setColDefDimensions } from "../components/dataTableUtils";
@@ -52,13 +51,24 @@ function CsetComparisonPage(props) {
     editCodesetId,
     csetEditState,
   } = props;
-  const { selected_csets = [], researchers } = cset_data;
-  const { state: hierarchySettings, dispatch: hsDispatch } =
-    useStateSlice("hierarchySettings");
+  const { selected_csets = [], researchers, hierarchy, conceptLookup } = cset_data;
+  const { state: hierarchySettings, dispatch: hsDispatch } = useStateSlice("hierarchySettings");
   const windowSize = useWindowSize();
   const boxRef = useRef();
   const sizes = getSizes(/*squishTo*/ 1);
   const customStyles = styles(sizes);
+  const derivedState = useDerivedState();
+  const {collapsed, nested} = hierarchySettings;
+
+  let rowData, nestedData;
+  if (derivedState) {
+    nestedData = derivedState.comparisonRowData;
+    if (nested) {
+      rowData = nestedData;
+    } else {
+      rowData = hierarchyToFlatCids(hierarchy).map(cid => conceptLookup[cid]);
+    }
+  }
 
   const editAction = getCodesetEditActionFunc({
     searchParams,
@@ -72,12 +82,12 @@ function CsetComparisonPage(props) {
       could be moved to the reducer and instead of passing this function and the collapsed
       state down to colConfig, colConfig could pick those out of appState itself.
      */
-    let collapsed = hierarchySettings.collapsed;
-    collapsed = {
-      ...collapsed,
-      [row.pathToRoot]: !get(collapsed, row.pathToRoot.join(",")),
+    let _collapsed = collapsed;
+    _collapsed = {
+      ..._collapsed,
+      [row.pathToRoot]: !get(_collapsed, row.pathToRoot.join(",")),
     };
-    hsDispatch({ type: "collapseDescendants", collapsed });
+    hsDispatch({ type: "collapseDescendants", _collapsed });
   }
 
   if (!all_csets.length || isEmpty(selected_csets)) {
@@ -88,15 +98,27 @@ function CsetComparisonPage(props) {
     selected_csets,
     editAction,
     editCodesetFunc,
-    sizes /* displayObj: _displayObj, */,
-    collapsed: hierarchySettings.collapsed,
+    sizes,
+    ...hierarchySettings, // collapsed and nested
     toggleCollapse,
-    nested: true,
     windowSize,
   });
 
-
   let infoPanels = [
+    <Button key="distinct"
+            disabled={!nested}
+            onClick={() => hsDispatch({type:'nested', nested: false})}
+            sx={{ marginRight: '4px' }}
+    >
+      {cset_data.concepts.length} distinct concepts
+    </Button>,
+    <Button key="nested"
+            disabled={nested}
+            onClick={() => hsDispatch({type:'nested', nested: true})}
+            sx={{ marginRight: '4px' }}
+    >
+      {nestedData.length} in hierarchy
+    </Button>,
     <FlexibleContainer key="legend" title="Legend">
       <Legend />
     </FlexibleContainer>
@@ -127,28 +149,26 @@ function CsetComparisonPage(props) {
     }
   }
 
-  let moreProps = { ...props, columns, selected_csets, customStyles };
+  let moreProps = { ...props, rowData, columns, selected_csets, customStyles };
   return (
     <div>
-      <DerivedStateProvider {...props}>
-        <Box
-            ref={boxRef}
-            sx={{
-              width: "96%",
-              margin: "9px",
-              display: "flex",
-              flexDirection: "row",
-            }}
+      <Box
+          ref={boxRef}
+          sx={{
+            width: "96%",
+            margin: "9px",
+            display: "flex",
+            flexDirection: "row",
+          }}
+      >
+        {infoPanels}
+        <Button
+            sx={{ marginLeft: "auto" }}
         >
-          {infoPanels}
-          <Button
-              sx={{ marginLeft: "auto" }}
-          >
-            Click on concept set column heading to edit
-          </Button>
-        </Box>
-        <ComparisonDataTable /*squishTo={squishTo}*/ {...moreProps} />
-      </DerivedStateProvider>
+          Click on concept set column heading to edit
+        </Button>
+      </Box>
+      <ComparisonDataTable /*squishTo={squishTo}*/ {...moreProps} />
     </div>
   );
 }
@@ -166,14 +186,10 @@ function ComparisonDataTable(props) {
     cset_data,
     csetEditState = {},
     customStyles,
+    rowData,
   } = props;
-  const derivedState = useDerivedState();
   const boxRef = useRef();
   // console.log(derivedState);
-  let rowData;
-  if (derivedState) {
-    rowData = derivedState.comparisonRowData;
-  }
 
   const conditionalRowStyles = [
     {
@@ -190,7 +206,6 @@ function ComparisonDataTable(props) {
       className="comparison-data-table"
       theme="custom-theme" // theme="light"
       columns={columns}
-      // data={displayObj.rowData}
       data={rowData}
       dense
       fixedHeader
@@ -237,7 +252,7 @@ function getSizes(squishTo) {
 
 function colConfig(props) {
   let {
-    /* displayObj, */ nested,
+    nested,
     selected_csets,
     cset_data,
     collapsed,
@@ -247,13 +262,6 @@ function colConfig(props) {
     editCodesetFunc,
     windowSize,
   } = props;
-  const { csmiLookup } = cset_data;
-
-  /*
-    if (!displayObj) {
-        return;
-    }
-     */
 
   let coldefs = [
     {
@@ -452,15 +460,10 @@ function colConfig(props) {
         },
       },
       selector: (row) => {
-        /*return <CellContents { ...props}
-                                     {...{row, cset_col,
-                                         rowData: displayObj.rowData,
-                                         editAction}} />; */
         return cellContents({
           ...props,
           row,
           cset_col,
-          // rowData: displayObj.rowData, // DON'T NEED THIS ANYMORE, RIGHT?
           editAction,
         });
       },
@@ -484,9 +487,11 @@ function colConfig(props) {
   // delete coldefs[0].width;
   coldefs = setColDefDimensions({ coldefs, windowSize });
   // console.log(coldefs);
+  /*
   if (!nested) {
     delete coldefs[0].conditionalCellStyles;
   }
+   */
   return coldefs;
 }
 

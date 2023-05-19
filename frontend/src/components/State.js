@@ -160,7 +160,7 @@ export function DerivedStateProvider(props) {
   const appState = useAppState();
   // const editCsetState = appState.getSliceState('editCset');
   const hierarchySettings = appState.getSliceState("hierarchySettings");
-  const { collapsed, displayOption } = hierarchySettings;
+  const { collapsed, nested } = hierarchySettings;
 
   const rowData = makeHierarchyRows({
     concepts,
@@ -200,7 +200,7 @@ export function AppStateProvider({ children }) {
     editCset: useReducer(editCsetReducer),
     // more stuff needed
     hierarchySettings: useReducer(hierarchySettingsReducer, {
-      displayOption: "fullHierarchy", // or 'flat'   not currently using?
+      nested: true,
       collapsed: {},
     }),
   };
@@ -262,6 +262,9 @@ function hierarchySettingsReducer(state, action) {
     case "collapseDescendants": {
       const collapsed = action.collapsed;
       return { ...state, collapsed };
+    }
+    case "nested": {
+      return { ...state, nested: action.nested}
     }
     default:
       return state;
@@ -479,7 +482,7 @@ export function makeHierarchyRows({
   return traverseHierarchy({ hierarchy, concepts: conceptsMap, collapsed });
 }
 
-function hierarchyToFlatCids(h) {
+export function hierarchyToFlatCids(h) {
   function f(ac) {
     ac.keys = [...ac.keys, ...Object.keys(ac.remaining)];
     const r = Object.values(ac.remaining).filter(d => d);
