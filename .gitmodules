@@ -6,3 +6,6 @@
 [submodule "frontend/src/supergroup"]
 	path = frontend/src/supergroup
 	url = https://github.com/jhu-bids/supergroup.git
+[submodule "termhub-vocab"]
+	path = termhub-vocab
+	url = ./termhub-vocab
