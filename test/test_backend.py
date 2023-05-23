@@ -39,14 +39,6 @@ class TestBackend(unittest.TestCase):
             print('ERROR: Failed to upload file: ', response.status_code, file=sys.stderr)
         return response
 
-    def setup(self):
-        """always runs first"""
-        pass
-
-    def tearDown(self):
-        """always runs last"""
-        pass
-
     # todo: this was refactored, so need a new test
     def test_hierarchify_list_of_parent_kids(self):
         """test hierarchify_list_of_parent_kids()"""

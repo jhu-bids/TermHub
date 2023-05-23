@@ -20,7 +20,7 @@ Immediately upload the backup schema to the database.
 psql -d \$psql_conn < $fname.dmp
 
 Step 3: Quality control checks
-3.1. Run: 'make counts-update COMMENT'
+3.1. Run: 'make counts-update'
 This helps us keep track of changes in row counts at critical moments. Example: 'make counts-update Just performed a backup of n3c and uploaded new backup schema.'
 3.2. Run: 'make counts-compare-schemas'
 If there is a difference in row counts between 'n3c' and the new backup, this will require further analysis to determine why.
