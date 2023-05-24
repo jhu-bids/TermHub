@@ -30,7 +30,7 @@ const drawerWidth = 240;
 let _pages = [
   { name: "Cset search", href: "/OMOPConceptSets" },
   { name: "Cset comparison", href: "/cset-comparison" },
-  { name: "Example comparison", href: "/testing" },
+  // { name: "Example comparison", href: "/testing" },
   // { name: "Graph", href: "/graph" },
   // {name: 'Upload CSV', href: '/upload-csv', noSearch: true, },
   // TODO: re-add Download (CSets, bundles, json...) at some point

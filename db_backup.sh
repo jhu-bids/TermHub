@@ -24,6 +24,7 @@ Step 3: Quality control checks
 This helps us keep track of changes in row counts at critical moments. Example: 'make counts-update Just performed a backup of n3c and uploaded new backup schema.'
 3.2. Run: 'make counts-compare-schemas'
 If there is a difference in row counts between 'n3c' and the new backup, this will require further analysis to determine why.
+3.3 Optional: Run: 'make counts-docs', commit the changes, and push to GitHub, and @ the dev team.
 
 END
 

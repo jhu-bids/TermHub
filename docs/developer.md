@@ -46,6 +46,8 @@ You likely will already have a schema called `n3c` which is corrupted in some wa
 3. Load [dev deployment](http://bit.ly/termhub-dev), clear `localStorage` in the same way, and face check various application features.
 
 ### Deployment
+Many of these steps are specific to the JHU BIDS team, which deploys on JHU's Azure infrastructure.
+
 #### Prerequisite steps
 **Update env**: Every once in a while, will need to update the [ENV_FILE GitHub Secret](https://github.com/jhu-bids/TermHub/settings/secrets/actions/ENV_FILE) 
 with a copy/paste of `env/.env`. This is only necessary whenever environmental variables have changed, such as `PALANTIR_ENCLAVE_AUTHENTICATION_BEARER_TOKEN` getting refreshed, which happens every few months. If you're confident that the environment is still up to date, this step can be skipped, but to be safe, it can be done every tie. 
@@ -57,6 +59,14 @@ After both are deployed, test the app here: http://bit.ly/termhub-dev
 #### Deploying to production
 Use the GitHub actions. Click these links for [backend](https://github.com/jhu-bids/TermHub/actions/workflows/backend_prod.yml) and [frontend](https://github.com/jhu-bids/TermHub/actions/workflows/frontend_dprod.yml) actions, and then click "Run Workflow".
 After both are deployed, the app app will be usable here: http://bit.ly/termhub
+
+#### Manual QA
+After deploying, do some manual quality assurance. Start by going to the help / about page and clearing the cache. Then,
+face-check the app. Some things ideas of things to try:
+1. Does the example comparison page load?
+2. Can you select some concept sets from the cset search page?
+3. After doing (2), can you go to the comparison page and see the concept sets you selected?
+4. Do the controls on the comparison page work correctly?
 
 #### Rollbacks
 If you notice something wrong with a deployment, follow these steps to roll back to the last stable deployment.
@@ -78,11 +88,43 @@ You will also want to separately figure out what went wrong and fix it separatel
 
 Note that for the _backend only_ instead of steps 2 - 4, you can also find the commit hash by going to the [deployments](https://github.com/jhu-bids/TermHub/deployments) page.
 
-#### Logs
+#### Troubleshooting
+##### _Logs_
 Logs for the backend can be opened via the following steps.
+Option A: Log stream
+Advantages of log stream vs granular: (i) easier to get to, (ii) combines multiple logs into 1. Disadvantages: (i) when 
+it refreshes, you will have to scroll back down to the bottom, (ii) can be harder to find what you're looking for.
+1. Log into https://portal.azure.com.
+2. From the list of _Resources_, select the deployment. For production, its "Name" is "termhub" and its "Type" is "App Service". For development, its "Name" is "dev / (termhub/dev)", and its "Type" is "App Service (Slot)".
+3. There is a "Log stream" option in the left sidebar. Click it.
+
+Option B: Granular logs
 1. Log into https://portal.azure.com.
 2. From the list of _Resources_, select the deployment. For production, its "Name" is "termhub" and its "Type" is "App Service". For development, its "Name" is "dev / (termhub/dev)", and its "Type" is "App Service (Slot)".
 3. From the left sidebar, select "Advanced Tools" (unfortunately, none of "Logs", "App Service Logs", or "Log stream" are what you want).
 4. Click "Go ->".
 5. Click "Current Docker logs".
-6. Find the log: A JSON list of log references will appear. Each log ref has an "href" field with a URL. It seems like there's always about a dozen or so refs. Unfortunately, there doesn't seem to be a way to tell which one is the one that we're usually going to want; that is, the one which will show things like stacktraces from server errors. You'll have to open each and scroll to the bottom until you find what you are looking for.   
+6. Find the log: A JSON list of log references will appear. Each log ref has an "href" field with a URL. It seems like there's always about a dozen or so refs. Unfortunately, there doesn't seem to be a way to tell which one is the one that we're usually going to want; that is, the one which will show things like stacktraces from server errors. You'll have to open each and scroll to the bottom until you find what you are looking for.
+
+Option C: Less recent logs
+1. Log into https://portal.azure.com.
+2. From the list of _Resources_, select the deployment. For production, its "Name" is "termhub" and its "Type" is "App Service". For development, its "Name" is "dev / (termhub/dev)", and its "Type" is "App Service (Slot)".
+3. From the left sidebar, select "Advanced Tools" (unfortunately, none of "Logs", "App Service Logs", or "Log stream" are what you want).
+4. Click "Go ->".
+5. Click "Bash" at the top.
+6. There will be a logs folder that you can `cd` into which has a history of logs which include dates in the names.
+
+##### SSH
+Note that if the app is not starting, SSH will not work.
+Also, it's helpful to know the difference between "Bash" and "SSH" in the "Advanced Tools" console. "Bash" is for 
+accessing the machine that manages deployments. "SSH" is for accessing the machine where the app source code is located.
+1. Log into https://portal.azure.com.
+2. From the list of _Resources_, select the deployment. For production, its "Name" is "termhub" and its "Type" is "App Service". For development, its "Name" is "dev / (termhub/dev)", and its "Type" is "App Service (Slot)".
+3. From the left sidebar, select "Advanced Tools" (unfortunately, none of "Logs", "App Service Logs", or "Log stream" are what you want).
+4. Click "Go ->".
+5. Click "SSH" at the top.
+
+##### Backend not working but logs not helpful?
+It may be that the app has run out of memory. In https://portal.azure.com there is a way to check memory usage. If it 
+looks like it's maxed and/or of the logs say something about no memory, try increasing the memory to see if that solves.
+ If the memory must be increased, let a BIDS administrator (e.g. Tricia) know.

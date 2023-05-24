@@ -1,3 +1,4 @@
+# Some things commented out because they don't work on Windows and are also not needed.
 aiohttp==3.8.4
 aiosignal==1.3.1
 airium==0.2.5
@@ -56,7 +57,7 @@ iniconfig==2.0.0
 isodate==0.6.1
 isoduration==20.11.0
 Jinja2==3.1.2
-jq==1.2.2
+# jq==1.2.2
 json-flattener==0.1.9
 jsonasobj==1.3.1
 jsonasobj2==1.0.4
@@ -173,7 +174,7 @@ typing_extensions==4.3.0
 uri-template==1.2.0
 urllib3==1.26.10
 uvicorn==0.18.2
-uvloop==0.16.0
+# uvloop==0.16.0
 validators==0.20.0
 virtualenv==20.15.1
 virtualenv-clone==0.5.7
