@@ -118,7 +118,7 @@ function getColdefs() {
       width: "90px",
     },
     {
-      name: "Concept set name",
+      name: "Names of concept sets",
       // selector: row => `${row.concept_set_name} (v${row.version})`,
       selector: (row) => row.concept_set_version_title,
       wrap: true,

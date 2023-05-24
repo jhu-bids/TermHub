@@ -38,6 +38,8 @@ import { FlexibleContainer } from "../components/FlexibleContainer";
 // import {isEmpty} from "react-data-table-component/dist/src/DataTable/util"; // what was this for?
 // import Button from '@mui/material/Button';
 
+import Typography from "@mui/material/Typography";
+
 // TODO: Find concepts w/ good overlap and save a good URL for that
 // TODO: show table w/ hierarchical indent
 // TODO: Color table: I guess would need to see if could pass extra values/props and see if table widget can use that
@@ -162,11 +164,12 @@ function CsetComparisonPage(props) {
           }}
       >
         {infoPanels}
-        <Button
+        <Typography
+            variant="h5"
             sx={{ marginLeft: "auto" }}
         >
           Click on concept set column heading to edit
-        </Button>
+        </Typography>
       </Box>
       <ComparisonDataTable /*squishTo={squishTo}*/ {...moreProps} />
     </div>
