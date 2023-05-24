@@ -49,6 +49,10 @@ body {
   min-height: 0px;
 }
 
+.comparison-data-table .rdt_TableRow:hover {
+  background-color: #aad4ff !important;
+}
+
 .comparison-data-table .rdt_TableHeadRow,
 .csets-data-table .rdt_TableHeadRow {
   background-color: #e6e5e5;
