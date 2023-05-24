@@ -1,3 +1,4 @@
+# jq commented out because doesn't work on Windows and are also not needed.
 # dependencies
 fastapi
 jinja2
@@ -13,7 +14,7 @@ sqlalchemy
 tabulate
 typeguard
 uvicorn[standard]
-jq
+# jq
 # psycopg2
 psycopg2-binary
 networkx
