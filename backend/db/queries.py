@@ -2,7 +2,6 @@
 from functools import cache
 from typing import List, Dict
 from fastapi import Query
-from sqlalchemy.engine import LegacyRow
 from backend.db.utils import sql_query, sql_query_single_col, get_db_connection, sql_in
 
 
@@ -12,7 +11,7 @@ def get_concepts(concept_ids: List[int], con=get_db_connection(), table:str='con
           SELECT *
           FROM {table}
           WHERE concept_id {sql_in(concept_ids)};"""
-    rows: List[LegacyRow] = sql_query(con, q)
+    rows: List = sql_query(con, q)
     return rows
 
 
@@ -22,7 +21,7 @@ def get_vocab_of_concepts(id: List[int] = Query(...), con=get_db_connection(), t
           SELECT DISTINCT vocabulary_id
           FROM {table}
           WHERE concept_id {sql_in(id)};"""
-    vocabs: List[LegacyRow] = sql_query_single_col(con, q)
+    vocabs: List = sql_query_single_col(con, q)
     if len(vocabs) > 1:
         raise RuntimeError(f"can only handle concepts from a single vocabulary at a time (for now). Got {', '.join(vocabs)}")
     return vocabs[0]
@@ -37,13 +36,13 @@ def get_vocabs_of_concepts(id: List[int] = Query(...), con=get_db_connection(),
           WHERE concept_id {sql_in(id)}
           GROUP BY 1 ORDER BY 1
           """
-    vocabs: List[LegacyRow] = sql_query(con, q)
+    vocabs: List = sql_query(con, q)
     return dict(vocabs)
 
 
 def get_all_parent_children_map(connection):
     """Get a list of tuples of all subsumption relationships in the OMOP concept_relationship table."""
-    rows: List[LegacyRow] = sql_query(connection, """
+    rows: List = sql_query(connection, """
         SELECT concept_id_1, concept_id_2 
         --FROM concept_relationship_subsumes_only
         FROM concept_relationship_plus

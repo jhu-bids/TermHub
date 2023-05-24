@@ -8,7 +8,7 @@ import pandas as pd
 # noinspection PyUnresolvedReferences
 from psycopg2.errors import UndefinedTable
 from sqlalchemy import create_engine, event
-from sqlalchemy.engine import LegacyRow, Row, RowMapping
+from sqlalchemy.engine import Row, RowMapping
 from sqlalchemy.engine.base import Connection
 from sqlalchemy.exc import OperationalError, ProgrammingError
 from sqlalchemy.sql import text
@@ -105,7 +105,7 @@ def database_exists(con: Connection, db_name: str) -> bool:
 
 def sql_query(
     con: Connection, query: Union[text, str], params: Dict = {}, debug: bool = DEBUG, return_with_keys=False
-) -> List[Union[RowMapping, LegacyRow]]:
+) -> List[Union[RowMapping, Any]]:
     """Run a sql query with optional params, fetching records.
     https://stackoverflow.com/a/39414254/1368860:
     query = "SELECT * FROM my_table t WHERE t.id = ANY(:ids);"
@@ -123,7 +123,7 @@ def sql_query(
         if return_with_keys:
             results: List[RowMapping] = q.mappings().all()  # key value pairs
         else:
-            results: List[Union[LegacyRow, Row]] = q.fetchall()  # Row/LegacyRow tuples, with additional properties
+            results: List[Row] = q.fetchall()  # Row tuples, with additional properties
         return results
     except (ProgrammingError, OperationalError) as err:
         raise RuntimeError(f'Got an error [{err}] executing the following statement:\n{query}, {json.dumps(params, indent=2)}')
