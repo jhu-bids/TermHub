@@ -126,7 +126,7 @@ class TestBackend(unittest.TestCase):
         response: Response = self._upload_file(csv_path, url)
         self.assertEqual(response.json()['result'], 'success')
 
-    # TODO: @Hope: We use PostgreSQL as a database. It has a concept called 'schema' which is basically a folder that
+    # TODO: @Hope @Katherine @Matthew: We use PostgreSQL as a database. It has a concept called 'schema' which is basically a folder that
     #  has a bunch of tables.
     #  (Part 1) confirm that the param `compare_schema`, when set to 'most_recent_backup', is indeed more recent
     #  than a known older backup. Steps: (i) done already: call compare_schema() twice, once with 'most_recent_backup'
@@ -147,7 +147,7 @@ class TestBackend(unittest.TestCase):
         row_count = 0  # placeholder
         self.assertGreater(row_count, 0)
 
-    # TODO: @Hope: (Part 1) assert that for every column in the dataframe, the value in the 'COMMENT' row is not empty.
+    # TODO: @Hope @Katherine @Matthew: (Part 1) assert that for every column in the dataframe, the value in the 'COMMENT' row is not empty.
     #  (Part 2) confirm that all row counts in all of the cells (other than the 'COMMENT' row)  are greater than 0.
     def test_counts_over_time(self):
         """test counts_over_time()"""
