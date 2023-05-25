@@ -111,9 +111,9 @@ def sql_query(
     query = "SELECT * FROM my_table t WHERE t.id = ANY(:ids);"
     conn.execute(sqlalchemy.text(query), ids=some_ids)
     """
+    query = text(query) if not isinstance(query, TextClause) else query
     try:
         if params:
-            query = text(query) if not isinstance(query, TextClause) else query
             q = con.execute(query, **params) if params else con.execute(query)
         else:
             q = con.execute(query)
