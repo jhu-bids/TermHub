@@ -171,8 +171,8 @@ def sql_in(lst: List, quote_items=False) -> str:
 
 def run_sql(con: Connection, command: str, params: Dict = {}) -> Any:
     """Run a sql command"""
+    command = text(command) if not isinstance(command, TextClause) else command
     if params:
-        command = text(command) if not isinstance(command, TextClause) else command
         q = con.execute(command, **params) if params else con.execute(command)
     else:
         q = con.execute(command)

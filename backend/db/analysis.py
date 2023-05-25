@@ -17,7 +17,7 @@ PROJECT_ROOT = Path(THIS_DIR).parent.parent
 sys.path.insert(0, str(PROJECT_ROOT))
 from backend.db.config import DOCS_DIR
 from backend.db.initialize import SCHEMA
-from backend.db.utils import get_db_connection, insert_from_dict, list_tables, run_sql, sql_in
+from backend.db.utils import get_db_connection, insert_from_dict, list_tables, run_sql, sql_in, sql_query
 
 COUNTS_OVER_TIME_OPTIONS = [
     'counts_table',
@@ -42,7 +42,7 @@ def _current_counts(
     """Gets current database counts"""
     if from_cache:
         with get_db_connection(schema='', local=local) as con:
-            counts: List[Dict] = [dict(x) for x in run_sql(con, f'SELECT * from counts;')]
+            counts: List[Dict] = [dict(x) for x in sql_query(con, f'SELECT * from counts;', return_with_keys=True)]
             df = pd.DataFrame(counts)
             df = df[df['schema'] == schema]
             return df
@@ -52,14 +52,14 @@ def _current_counts(
     with get_db_connection(schema='', local=local) as con:
         # Get previous counts
         timestamps: List[datetime] = [
-            dp.parse(x[0]) for x in run_sql(con, f'SELECT DISTINCT timestamp from counts;')]
+            dp.parse(x[0]) for x in sql_query(con, f'SELECT DISTINCT timestamp from counts;', return_with_keys=False)]
         most_recent_timestamp: str = str(max(timestamps))
-        prev_counts: List[Dict] = [dict(x) for x in run_sql(con, f'SELECT * from counts;')]
+        prev_counts: List[Dict] = [dict(x) for x in sql_query(con, f'SELECT * from counts;', return_with_keys=True)]
         prev_counts_df = pd.DataFrame(prev_counts)
         # Get counts
         table_rows: Dict[str, Dict[str, Any]] = {}
         for table in tables:
-            count: int = [x for x in run_sql(con, f'SELECT COUNT(*) from n3c.{table};')][0][0]
+            count: int = [x for x in sql_query(con, f'SELECT COUNT(*) from n3c.{table};', return_with_keys=False)][0][0]
             last_count_fetch: Series = prev_counts_df[
                 (prev_counts_df['timestamp'] == most_recent_timestamp) &
                 (prev_counts_df['table'] == table)]['count']
@@ -94,7 +94,7 @@ def counts_compare_schemas(
         AND schema_name <> 'information_schema';
         """
         with get_db_connection(schema='', local=local) as con:
-            backup_schemas: List[str] = [x[0] for x in run_sql(con, query) if x[0].startswith(f'{schema}_backup_')]
+            backup_schemas: List[str] = [x[0] for x in sql_query(con, query, return_with_keys=False) if x[0].startswith(f'{schema}_backup_')]
         dates: List[datetime] = [dp.parse(x.split('_')[2]) for x in backup_schemas]
         for schema_name, date in zip(backup_schemas, dates):
             if date == max(dates):
@@ -159,8 +159,8 @@ def counts_over_time(
 
     # Add note
     with get_db_connection(schema='', local=local) as con:
-        runs = [dict(x) for x in run_sql(
-            con, f"SELECT timestamp, note FROM counts_runs WHERE schema = '{schema}';")]
+        runs = [dict(x) for x in sql_query(
+            con, f"SELECT timestamp, note FROM counts_runs WHERE schema = '{schema}';", return_with_keys=True)]
     timestamps = [x['timestamp'] for x in runs]
     ts_dict = {}
     for ts in timestamps:
