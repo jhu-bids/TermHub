@@ -104,7 +104,7 @@ def database_exists(con: Connection, db_name: str) -> bool:
 
 
 def sql_query(
-    con: Connection, query: Union[text, str], params: Dict = {}, debug: bool = DEBUG, return_with_keys=False
+    con: Connection, query: Union[text, str], params: Dict = {}, debug: bool = DEBUG, return_with_keys=True
 ) -> List[Union[RowMapping, Any]]:
     """Run a sql query with optional params, fetching records.
     https://stackoverflow.com/a/39414254/1368860:
