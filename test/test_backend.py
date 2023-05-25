@@ -147,8 +147,12 @@ class TestBackend(unittest.TestCase):
         df2_date = parse(df2.columns[3][11:])
         self.assertGreater(df1_date, df2_date)
         # Part 2
-        row_count = 0  # placeholder
-        self.assertGreater(row_count, 0)
+        schema_column = df1.columns[2]
+        schema_backup_column = df1.columns[3]
+        row_schema = df1[schema_column]
+        row_compare = df1[schema_backup_column]
+        self.assertGreater(row_schema, 0)
+        self.assertGreater(row_compare, 0)
 
     # TODO: @Hope @Katherine @Matthew: (Part 1) assert that for every column in the dataframe, the value in the 'COMMENT' row is not empty.
     #  (Part 2) confirm that all row counts in all of the cells (other than the 'COMMENT' row)  are greater than 0.
