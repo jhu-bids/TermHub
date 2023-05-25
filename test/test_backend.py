@@ -10,6 +10,7 @@ import os
 import sys
 from pathlib import Path
 from urllib.parse import urljoin
+from dateutil.parser import parse
 import requests
 import unittest
 
@@ -142,7 +143,9 @@ class TestBackend(unittest.TestCase):
         # Part 1
         df1 = counts_compare_schemas(compare_schema='most_recent_backup')
         df2 = counts_compare_schemas(compare_schema='n3c_backup_20230221')
-        self.assertGreater(1, 0)  # placeholder
+        df1_date = parse(df1.columns[3][11:])
+        df2_date = parse(df2.columns[3][11:])
+        self.assertGreater(df1_date, df2_date)
         # Part 2
         row_count = 0  # placeholder
         self.assertGreater(row_count, 0)
