@@ -438,7 +438,9 @@ function colConfig(props) {
                 <span>Records</span>
             </Tooltip>, */
       selector: (row) => row.total_cnt,
-      format: (row) => fmt(row.total_cnt),
+      format: (row) => {
+        return fmt(row.total_cnt)
+      },
       sortable: !nested,
       right: true,
       width: 80,

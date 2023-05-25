@@ -243,11 +243,11 @@ function DataContainer(props) {
     // for (const o of cset_data.orphans) {
     //   orphans[o] = null;
     // }
-    cset_data.hierarchy = {
-      ...cset_data.hierarchy,
-      // ...orphans
+    if (typeof(cset_data.hierarchy) === 'string') {
+      cset_data.hierarchy = JSON.parse(cset_data.hierarchy);
+    } else {
+      cset_data.hierarchy = {};
     }
-    // let cr = _.hierarchicalTableToTree(concept_relationships, 'concept_id_1', 'concept_id_2');
 
     return (
       <RoutesContainer {...props} all_csets={all_csets} cset_data={cset_data} />

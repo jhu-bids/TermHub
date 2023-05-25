@@ -38,22 +38,3 @@ def get_vocabs_of_concepts(id: List[int] = Query(...), con=get_db_connection(),
           """
     vocabs: List = sql_query(con, q)
     return dict(vocabs)
-
-
-def get_all_parent_children_map(connection):
-    """Get a list of tuples of all subsumption relationships in the OMOP concept_relationship table."""
-    rows: List = sql_query(connection, """
-        SELECT concept_id_1, concept_id_2 
-        --FROM concept_relationship_subsumes_only
-        FROM concept_relationship_plus
-        WHERE relationship_id = 'Subsumes'
-        """)
-
-    all_parent_child_list = [(x['concept_id_1'], x['concept_id_2']) for x in rows]
-
-    parent_children_map = {concept_id: set() for pair in all_parent_child_list for concept_id in pair}
-    for parent, child in all_parent_child_list:
-        parent_children_map[parent].add(child)
-
-    return parent_children_map
-
