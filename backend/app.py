@@ -15,7 +15,7 @@ import urllib.parse
 from fastapi import FastAPI, Query
 from fastapi.middleware.cors import CORSMiddleware
 from fastapi.middleware.gzip import GZipMiddleware
-from sqlalchemy.engine import LegacyRow, RowMapping
+from sqlalchemy.engine import RowMapping
 
 from backend.utils import JSON_TYPE, get_timer, pdump, return_err_with_trace
 from backend.routes import cset_crud, oak, db, graph
@@ -114,7 +114,7 @@ def run(port: int = 8000):
 # Database functions ---------------------------------------------------------------------------------------------------
 def get_concept_set_member_ids(
     codeset_ids: List[int], columns: Union[List[str], None] = None, column: Union[str, None] = None, con=CON
-) -> Union[List[int], List[LegacyRow]]:
+) -> Union[List[int], List]:
     """Get concept set members"""
     if column:
         columns = [column]
@@ -127,7 +127,7 @@ def get_concept_set_member_ids(
         FROM concept_set_members csm
         WHERE csm.codeset_id {sql_in(codeset_ids)}
     """
-    res: List[LegacyRow] = sql_query(con, query, debug=False)
+    res: List = sql_query(con, query, debug=False)
     if column:  # with single column, don't return List[Dict] but just List(<column>)
         res: List[int] = [r[0] for r in res]
     return res
@@ -147,7 +147,7 @@ def get_concept_set_member_ids(
 #       joined OMOPConceptSet in the all_csets ddl to get `rid`
 def get_csets(codeset_ids: List[int], con=CON) -> List[Dict]:
     """Get information about concept sets the user has selected"""
-    rows: List[LegacyRow] = sql_query(
+    rows: List = sql_query(
         con, """
           SELECT *
           FROM all_csets
@@ -251,7 +251,7 @@ def get_related_csets(
     return related_csets
 
 
-def get_cset_members_items(codeset_ids: List[int] = None, con=CON) -> List[LegacyRow]:
+def get_cset_members_items(codeset_ids: List[int] = None, con=CON) -> List:
     """Get concept set members items for selected concept sets
         returns:
         ...
@@ -337,7 +337,7 @@ def hierarchy_BROKEN(root_cids: List[int], selected_concept_ids: List[int]) -> (
     return d, orphans
 
 
-def get_concept_relationships(cids: List[int], reltypes: List[str] = ['Subsumes'], con=CON) -> List[LegacyRow]:
+def get_concept_relationships(cids: List[int], reltypes: List[str] = ['Subsumes'], con=CON) -> List:
     """Get concept_relationship rows for cids
     """
     return sql_query(
@@ -450,7 +450,7 @@ def _get_related_csets(codeset_ids: Union[str, None] = Query(default=''), ) -> L
 
 
 @APP.get("/cset-members-items")
-def _cset_members_items(codeset_ids: Union[str, None] = Query(default=''), ) -> List[LegacyRow]:
+def _cset_members_items(codeset_ids: Union[str, None] = Query(default=''), ) -> List:
     """Route for: cset_memberss_items()"""
     codeset_ids: List[int] = parse_codeset_ids(codeset_ids)
     return get_cset_members_items(codeset_ids)
