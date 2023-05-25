@@ -246,6 +246,7 @@ function DataContainer(props) {
     if (typeof(cset_data.hierarchy) === 'string') {
       cset_data.hierarchy = JSON.parse(cset_data.hierarchy);
     } else {
+      console.warn("problem with hierarchy?")
       cset_data.hierarchy = {};
     }
 
