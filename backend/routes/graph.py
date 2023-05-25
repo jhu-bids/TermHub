@@ -1,15 +1,30 @@
-import warnings
+import os, warnings
+import json
+# from functools import cache
+from pathlib import Path
+
 from typing import List # , Union, Dict, Set
 from fastapi import APIRouter, Query
+# from fastapi.responses import JSONResponse
+# from fastapi.responses import Response
+# from fastapi.encoders import jsonable_encoder
+# from collections import OrderedDict
 import networkx as nx
 from backend.db.utils import sql_query, get_db_connection
 from backend.utils import pdump, get_timer, commify
 
 VERBOSE = True
+PROJECT_DIR = Path(os.path.dirname(__file__)).parent.parent
+VOCABS_PATH = os.path.join(PROJECT_DIR, 'termhub-vocab')
 
 router = APIRouter(
     responses={404: {"description": "Not found"}},
 )
+
+@router.get("/wholegraph/")
+def subgraph():
+    return list(REL_GRAPH.edges)
+
 
 @router.get("/subgraph/")
 def subgraph(id: List[int] = Query(...)):   # id is a list of concept ids
@@ -19,50 +34,64 @@ def subgraph(id: List[int] = Query(...)):   # id is a list of concept ids
 
 @router.get("/hierarchy/")
 def hierarchy(id: List[int] = Query(...)):   # id is a list of concept ids
+    """
+        couldn't figure out how to send the hierarchy in order of nodes with most
+        descendants first -- was able to sort it, but fastapi just resorted it in
+        key order before sending. going to try to do all the hierarchy stuff at the
+        front end instead. including the gap filling.
+    """
     sg = connected_subgraph_from_nodes(id, REL_GRAPH, REL_GRAPH_UNDIRECTED)
     j = graph_to_json(sg)
     return j
+    # return [json.dumps(j)]
+    # return Response(content=json.dumps(j), media_type='application/json')
+    # return JSONResponse(OrderedDict(j))
+    # return OrderedDict(j)
 
 
 
-def connected_subgraph_from_nodes(nodes, G, G_undirected=None):
+def connected_subgraph_from_nodes(nodes, G, G_undirected=None, verbose=False):
     timer = get_timer('  connected_subgraph_from_nodes')
     if not G_undirected:
-        VERBOSE and timer(f'convert G to undirected')
+        verbose and timer(f'convert G to undirected')
         G_undirected = G.to_undirected()
 
-    VERBOSE and timer(f'subgraph for {len(nodes)} nodes')
+    verbose and timer(f'subgraph for {len(nodes)} nodes')
     sg = G.subgraph(nodes)
-    VERBOSE and timer('get roots')
+    verbose and timer('get roots')
     roots = get_roots(sg)
     pairs = [(roots[i], roots[i+1]) for i in range(0, len(roots) - 1)]
     connected_nodes = set(nodes)
-    VERBOSE and timer(f'get shortest paths for {len(pairs)} pairs of root nodes')
+    verbose and timer(f'get shortest paths for {len(pairs)} pairs of root nodes')
     for p in pairs:
         try:
-            timer(f'   path between {p[0]} and {p[1]}')
+            verbose and timer(f'   path between {p[0]} and {p[1]}')
             path = nx.shortest_path(G_undirected, *p)
             connected_nodes.update(path)
         except Exception as err:
             warnings.warn(str(err))
-    VERBOSE and timer(f'subgraph for {len(connected_nodes)} connected nodes')
+    verbose and timer(f'subgraph for {len(connected_nodes)} connected nodes')
     sgc = G.subgraph(connected_nodes)
-    VERBOSE and timer('done')
+    verbose and timer('done')
     return sgc
 
 
+def sort_by_most_descendants(G, nodes):
+    key = lambda n: len(nx.descendants(G, n))
+    return sorted(nodes, key=key, reverse=True)
+
 def graph_to_json(G):
-    root_nodes = [node for node in G.nodes if G.in_degree(node) == 0]
+    root_nodes = sort_by_most_descendants(G, [node for node in G.nodes if G.in_degree(node) == 0])
     hierarchies = {root: create_hierarchy(G, root) for root in root_nodes}
     return hierarchies
 
 
-def create_hierarchy(graph, node):
-    successors = list(graph.successors(node))
+def create_hierarchy(G, node):
+    successors = sort_by_most_descendants(G, list(G.successors(node)))
     if len(successors) == 0:
         return None
     else:
-        return {successor: create_hierarchy(graph, successor) for successor in successors}
+        return {successor: create_hierarchy(G, successor) for successor in successors}
 
 def for_testing():
     G = nx.DiGraph()
@@ -115,12 +144,22 @@ def create_rel_graphs(save_to_pickle: bool):
         return G, Gu
 
 
-def load_relationship_graph():
-    return nx.read_gpickle('./networkx/relationship_graph.pickle')
+def load_relationship_graphs(save_if_not_exists=True):
+    timer = get_timer('./load_relationship_graph')
+    p = os.path.join(VOCABS_PATH, 'relationship_graph.pickle')
+    if os.path.isfile(p):
+        timer(f'loading {p}')
+        G = nx.read_gpickle(p)
+    p = os.path.join(VOCABS_PATH, 'relationship_graph_undirected.pickle')
+    if G and os.path.isfile(p):
+        timer(f'loaded {commify(len(G.nodes))}; loading {p}')
+        Gu = nx.read_gpickle(p)
+        timer(f'loaded {commify(len(Gu.nodes))}')
+    else:
+        G, Gu = create_rel_graphs(save_if_not_exists)
+    timer('done')
+    return G, Gu
 
-
-def load_relationship_graph_undirected():
-    return nx.read_gpickle('./networkx/relationship_graph_undirected.pickle')
 
 LOAD_FROM_PICKLE = False
 LOAD_RELGRAPH = True
@@ -135,19 +174,4 @@ if __name__ == '__main__':
     # j = graph_to_json(sg)
     # pdump(j)
 else:
-    if LOAD_RELGRAPH:
-        if LOAD_FROM_PICKLE:
-            timer = get_timer('./load_relationship_graph')
-            timer('loading REL_GRAPH')
-            REL_GRAPH = load_relationship_graph()
-            timer(f'loaded {commify(len(REL_GRAPH.nodes))}; loading REL_GRAPH_UNDIRECTED')
-            REL_GRAPH_UNDIRECTED = load_relationship_graph_undirected()
-            timer(f'loaded {commify(len(REL_GRAPH_UNDIRECTED.nodes))}')
-            timer('done')
-        else:
-            REL_GRAPH, REL_GRAPH_UNDIRECTED = create_rel_graphs(save_to_pickle=False)
-
-
-
-        # sg = G.subgraph([7,3])
-            # roots = get_roots(sg)
+    REL_GRAPH, REL_GRAPH_UNDIRECTED = load_relationship_graphs(save_if_not_exists=True)
