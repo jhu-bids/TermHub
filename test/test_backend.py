@@ -151,8 +151,10 @@ class TestBackend(unittest.TestCase):
         schema_backup_column = df1.columns[3]
         row_schema = df1[schema_column]
         row_compare = df1[schema_backup_column]
-        self.assertGreater(row_schema, 0)
-        self.assertGreater(row_compare, 0)
+        for n in row_schema:
+            self.assertGreater(n, 0)
+        for n in row_compare:
+            self.assertGreater(n, 0)
 
     # TODO: @Hope @Katherine @Matthew: (Part 1) assert that for every column in the dataframe, the value in the 'COMMENT' row is not empty.
     #  (Part 2) confirm that all row counts in all of the cells (other than the 'COMMENT' row)  are greater than 0.
