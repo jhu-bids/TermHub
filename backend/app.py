@@ -129,7 +129,7 @@ def get_concept_set_member_ids(
     """
     res: List = sql_query(con, query, debug=False)
     if column:  # with single column, don't return List[Dict] but just List(<column>)
-        res: List[int] = [r[0] for r in res]
+        res: List[int] = [r[column] for r in res]
     return res
 
 

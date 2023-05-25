@@ -114,7 +114,8 @@ def sql_query(
     query = text(query) if not isinstance(query, TextClause) else query
     try:
         if params:
-            q = con.execute(query, **params) if params else con.execute(query)
+            # after SQLAlchemy upgrade, send params as dict, not **params
+            q = con.execute(query, params) if params else con.execute(query)
         else:
             q = con.execute(query)
 
@@ -180,7 +181,7 @@ def run_sql(con: Connection, command: str, params: Dict = {}) -> Any:
 
 def sql_query_single_col(*argv) -> List:
     """Run SQL query on single column"""
-    results = sql_query(*argv)
+    results = sql_query(*argv, return_with_keys=False)
     return [r[0] for r in results]
 
 
