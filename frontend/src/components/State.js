@@ -106,11 +106,25 @@ class DataAccess {
     })
   }
   async getSubgraphEdges(concept_ids=[]) {
+
+    /*
+    // trying something new with wholegraph.json, so, won't need to get the subgraph edges like we were
+
+    let edges = get(this.cache, 'wholegraph');
+    if (isEmpty(edges)) {
+      edges = require('../../wholegraph.json');
+      this.cache.wholegraph = edges;
+    }
+    return edges;
+
+
+
     // edges are more complicated than concepts, not trying to cache individual
     // edges like caching individual concepts above. for right now, cache will
     // only hold most recent subgraph call, which is pretty useless (already
     //   cached by queryClient/persistor anyway)
 
+     */
     const url = backend_url(
         "subgraph?" + concept_ids.map(c=>`id=${c}`).join("&")
     );
@@ -166,12 +180,11 @@ export function DerivedStateProvider(props) {
     concepts,
     selected_csets,
     cset_members_items,
-    hierarchy,
+    hierarchy,            // want to make this derived, but not yet?
     collapsed,
   });
 
   let derivedState = {
-    foo: "bar",
     comparisonRowData: rowData,
   };
   // console.log(derivedState);
@@ -197,6 +210,7 @@ export function AppStateProvider({ children }) {
   const reducers = {
     // contentItems: useReducer(contentItemsReducer, defaultContentItems),
     codeset_ids: useReducer(codeset_idsReducer, []),
+    extraConceptIds: useReducer(extraConceptIdsReducer, []),
     editCset: useReducer(editCsetReducer),
     // more stuff needed
     hierarchySettings: useReducer(hierarchySettingsReducer, {
@@ -254,6 +268,10 @@ const codeset_idsReducer = (state, action) => { // not being used
   }
 };
 const csetEditsReducer = (csetEdits, action) => {};
+
+const extraConceptIdsReducer = (extraConceptIds, action) => {
+  return extraConceptIds;
+};
 
 function hierarchySettingsReducer(state, action) {
   if (!(action && action.type)) return state;

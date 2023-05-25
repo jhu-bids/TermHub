@@ -10,6 +10,7 @@ import { AddCircle, RemoveCircleOutline } from "@mui/icons-material";
 import Box from "@mui/material/Box";
 import Slider from "@mui/material/Slider";
 import Button from "@mui/material/Button";
+import Typography from "@mui/material/Typography";
 import Draggable from "react-draggable";
 // import {Checkbox} from "@mui/material";
 import { isEmpty, get, throttle, pullAt } from "lodash"; // set, map, omit, pick, uniq, reduce, cloneDeepWith, isEqual, uniqWith, groupBy,
@@ -31,14 +32,8 @@ import {
   Legend,
   saveChangesInstructions,
 } from "../components/EditCset";
-// import FlexibleContainer, { accordionPanels, accordionPanel, } from "./FlexibleContainer";
-// import AllowOverlap from "./gridLayout";
-import { DOCS, howToSaveStagedChanges } from "../pages/AboutPage";
+// import {EDGES} from '../components/ConceptGraph';
 import { FlexibleContainer } from "../components/FlexibleContainer";
-// import {isEmpty} from "react-data-table-component/dist/src/DataTable/util"; // what was this for?
-// import Button from '@mui/material/Button';
-
-import Typography from "@mui/material/Typography";
 
 // TODO: Find concepts w/ good overlap and save a good URL for that
 // TODO: show table w/ hierarchical indent
@@ -55,12 +50,15 @@ function CsetComparisonPage(props) {
   } = props;
   const { selected_csets = [], researchers, hierarchy, conceptLookup } = cset_data;
   const { state: hierarchySettings, dispatch: hsDispatch } = useStateSlice("hierarchySettings");
+  // const [concepts, setConcepts] = useState([]);
   const windowSize = useWindowSize();
   const boxRef = useRef();
   const sizes = getSizes(/*squishTo*/ 1);
   const customStyles = styles(sizes);
   const derivedState = useDerivedState();
   const {collapsed, nested} = hierarchySettings;
+
+  // console.log(EDGES);
 
   let rowData, nestedData;
   if (derivedState) {
@@ -89,7 +87,7 @@ function CsetComparisonPage(props) {
       ..._collapsed,
       [row.pathToRoot]: !get(_collapsed, row.pathToRoot.join(",")),
     };
-    hsDispatch({ type: "collapseDescendants", _collapsed });
+    hsDispatch({ type: "collapseDescendants", collapsed: _collapsed });
   }
 
   if (!all_csets.length || isEmpty(selected_csets)) {
@@ -152,6 +150,7 @@ function CsetComparisonPage(props) {
   }
 
   let moreProps = { ...props, rowData, columns, selected_csets, customStyles };
+  console.log(hierarchySettings);
   return (
     <div>
       <Box

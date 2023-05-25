@@ -123,6 +123,7 @@ def load_relationship_graph_undirected():
     return nx.read_gpickle('./networkx/relationship_graph_undirected.pickle')
 
 LOAD_FROM_PICKLE = False
+LOAD_RELGRAPH = True
 
 if __name__ == '__main__':
     pass
@@ -134,16 +135,17 @@ if __name__ == '__main__':
     # j = graph_to_json(sg)
     # pdump(j)
 else:
-    if LOAD_FROM_PICKLE:
-        timer = get_timer('./load_relationship_graph')
-        timer('loading REL_GRAPH')
-        REL_GRAPH = load_relationship_graph()
-        timer(f'loaded {commify(len(REL_GRAPH.nodes))}; loading REL_GRAPH_UNDIRECTED')
-        REL_GRAPH_UNDIRECTED = load_relationship_graph_undirected()
-        timer(f'loaded {commify(len(REL_GRAPH_UNDIRECTED.nodes))}')
-        timer('done')
-    else:
-        REL_GRAPH, REL_GRAPH_UNDIRECTED = create_rel_graphs(save_to_pickle=False)
+    if LOAD_RELGRAPH:
+        if LOAD_FROM_PICKLE:
+            timer = get_timer('./load_relationship_graph')
+            timer('loading REL_GRAPH')
+            REL_GRAPH = load_relationship_graph()
+            timer(f'loaded {commify(len(REL_GRAPH.nodes))}; loading REL_GRAPH_UNDIRECTED')
+            REL_GRAPH_UNDIRECTED = load_relationship_graph_undirected()
+            timer(f'loaded {commify(len(REL_GRAPH_UNDIRECTED.nodes))}')
+            timer('done')
+        else:
+            REL_GRAPH, REL_GRAPH_UNDIRECTED = create_rel_graphs(save_to_pickle=False)
 
 
 

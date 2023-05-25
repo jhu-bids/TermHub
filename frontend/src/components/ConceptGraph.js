@@ -3,6 +3,10 @@ import {dataAccessor} from "./State";
 import _ from "../supergroup/supergroup";
 import * as d3Base from "d3";
 import * as d3dag from "d3-dag";
+// import _EDGES from '../data/wholegraph.json';
+// export const EDGES = _EDGES;
+
+//const EDGES = require('../../wholegraph.json');
 
 const d3 = Object.assign({}, d3Base, d3dag);
 
@@ -49,6 +53,7 @@ export function ConceptGraph(props) {
 
   console.log({concept_ids, concepts, props});
   window.d3 = d3;
+  // console.log(EDGES);
 
   useEffect(() => {
     async function fetchData() {
