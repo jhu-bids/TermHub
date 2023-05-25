@@ -162,7 +162,14 @@ class TestBackend(unittest.TestCase):
         """test counts_over_time()"""
         # Parts 1 and 2
         df = counts_over_time()
-        self.assertEqual(1, 0)  # placeholder
+        for col in df.columns:
+            for row, cell in df[col].items():
+                if row == "COMMENT":
+                    # Part 1
+                    self.assertFalse(df[col][row].isspace())
+                else:
+                    # Part 2
+                    self.assertGreater(df[col][row], 0)
 
 
 # Uncomment this and run this file directly to run all tests
