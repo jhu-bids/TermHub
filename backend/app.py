@@ -267,79 +267,8 @@ def get_cset_members_items(codeset_ids: List[int] = None, con=CON) -> List:
         {'codeset_ids': codeset_ids})
 
 
-def get_parent_children_map(root_cids: List[int], cids: List[int], con=CON) -> Dict[int, List[int]]:
-    """New hierarchy info from sql"""
-    # int(x): Prevents SQL injection by throwing error if not an integer
-    root_cids: List[int] = [int(x) for x in root_cids]
-    cids: List[int] = [int(x) for x in cids]
-    # root_cids: str = ', '.join([str(x) for x in root_cids]) or 'NULL'
-    # cids: str = ', '.join([str(x) for x in cids]) or 'NULL'
-    query = f"""
-        SELECT *
-        FROM concept_ancestor
-        WHERE ancestor_concept_id {sql_in(root_cids)}
-          AND descendant_concept_id {sql_in(cids)}
-          AND min_levels_of_separation > 0
-        ORDER BY ancestor_concept_id, min_levels_of_separation
-        """
-    # query = query.replace(':root_cids', root_cids).replace(':cids', cids)
-    relationships: List[Dict] = [dict(x) for x in sql_query(con, query, return_with_keys=True)]
-    direct_relationships: List[Dict] = [
-        x for x in relationships if x['min_levels_of_separation'] == 1 and x['max_levels_of_separation'] == 1]
-
-    parent_children_map: Dict[int, List[int]] = {}
-    for x in direct_relationships:
-        parent_children_map.setdefault(x['ancestor_concept_id'], []).append(x['descendant_concept_id'])
-
-    ancestor_descendant_map: Dict[int, List[int]] = {}
-    for x in relationships:
-        ancestor_descendant_map.setdefault(x['ancestor_concept_id'], []).append(x['descendant_concept_id'])
-
-    return parent_children_map, ancestor_descendant_map
-
-
-def hierarchy_BROKEN(root_cids: List[int], selected_concept_ids: List[int]) -> (Dict[int, Union[Dict, None]], List[int]):
-    # doesn't connect components of disconnected graph
-    # switching to backend.routes.graph:hierarchy
-    # TODO: delete this and the parent_children_map
-    """Get hierarchy of concepts in selected concept sets
-    :returns: (i) Dict: Hierarchy, (ii) List: Orphans"""
-    parent_children_map: Dict[int, List[int]]
-    ancestor_descendant_map: Dict[int, List[int]]
-    parent_children_map, ancestor_descendant_map = get_parent_children_map(root_cids, selected_concept_ids)
-    added_count: Dict[int, int] = {}
-
-    def recurse(ids: List[int]):
-        """Recursively build hierarchy
-        Requires variables in outer scope: (i) parent_children_map, (ii) added_count
-        Side effects: (i) updates added_count"""
-        if not ids:
-            return None
-        x = {}
-        for i in ids:
-            children = parent_children_map.get(i, [])
-            x[i] = recurse(children)
-            added_count[i] = added_count.get(i, 0) + 1
-        return x
-
-    d: Dict[int, Union[Dict, None]] = recurse(root_cids)
-
-    # Remove duplicate trees at root
-    for _id, count in added_count.items():
-        if count > 1:
-            try:
-                del d[_id]
-            except KeyError:
-                pass
-
-    orphans: List[int] = list(set(selected_concept_ids) - set(added_count.keys()))
-
-    return d, orphans
-
-
 def get_concept_relationships(cids: List[int], reltypes: List[str] = ['Subsumes'], con=CON) -> List:
-    """Get concept_relationship rows for cids
-    """
+    """Get concept_relationship rows for cids """
     return sql_query(
         con, f"""
         SELECT DISTINCT *
