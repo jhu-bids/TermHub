@@ -274,7 +274,7 @@ export default function MuiAppBar(props) {
         }}
         keepMounted
         transformOrigin={{
-          vertical: "top",
+          vertisetal: "top",
           horizontal: "left",
         }}
         open={Boolean(anchorElNav)}
