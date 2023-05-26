@@ -4,6 +4,13 @@ TermHub is a user interface and collection of analytic tools for working with co
 
 Allows comparison of overlapping concept sets, display of cset metadata, display of concept hierarchy, term usage and concept set patient counts, and modification and upload of concept sets to the N3C Enclave. Will interface with other code set repositories over time.
 
+## Docs index
+- [TermHub home page](./README.md)
+- [Developer](./docs/developer.md)
+- [Backend](./backend/README.md)
+  - [DB counts](./docs/backend/db/analysis.md) 
+- [Frontend](./frontend/README.md)
+- [Enclave Wrangler](./enclave_wrangler/README.md)
 
 ## [Features under development / consideration](https://docs.google.com/spreadsheets/d/19_eBv0MIBWPcXMTw3JJdcfPoEFhns93F-TKdODW27B8/edit#gid=0)
 More info: [Requirements](https://github.com/jhu-bids/TermHub/issues/72)
@@ -70,37 +77,60 @@ Some of the important parts of [developer documentation](./docs/developer.md) ar
 - [Backend](./backend/README.md)
 
 ### Local setup
-1. Clone the repository.
+#### 1. Clone the repository.
 ```shell
 $ git clone  git@github.com:jhu-bids/TermHub.git
 $ cd TermHub
 ```
-2. Get Data
+
+#### 2. Get Data  
+If git lfs hasn't been installed yet on your system, first run: `git lfs install`  
+
+Then, update get the submodules:
 ```shell
 $ git submodule init
 $ git submodule update
 ```
-3. Install [virtual environment](https://docs.python.org/3/library/venv.html) and activate it: `venv venv; source venv/bin/activate`
-4. Run: `pip install -r requirements.txt`
-5. Install PostgreSQL and make sure it is running
-  - Postgres.app makes this a breeze on macos: https://postgresapp.com/ 
-  - variables are initially set to the values below. Note that  PGDATABASE and TERMHUB_DB_DB will need to change to termhub in the steps below.
-    - PGHOST=localhost
-    - PGUSER=postgres
-    - PGPASSWORD=
-    - PGPORT=5432
-    - PGDATABASE=postgres
-6. Set environmental variables. Run: `mkdir env; cp .env.example env/.env`. Then, edit `.env` and set any variables that haven't been filled out. You'll likely need to reach out to @joeflack4 or @Sigfried.
-  - In terms of Postgres variables: PGHOST, PGUSER, PGPASSWORD, PGPORT, and PGDATABASE, and despite using shell syntax for those variables, the values have to be constants, not shell variables
-    - TERMHUB_DB_SERVER=postgresql
-    - TERMHUB_DB_DRIVER=psycopg2
-    - TERMHUB_DB_HOST=$PGHOST
-    - TERMHUB_DB_USER=$PGUSER
-    - TERMHUB_DB_DB=$PGDATABASE
-    - TERMHUB_DB_SCHEMA=n3c
-    - TERMHUB_DB_PASS=$PGPASSWORD
-    - TERMHUB_DB_PORT=$PGPORT
-7. Basic DB setup (assuming PostgreSQL)
+
+At this point, check and see if files are there and have been pulled properly. For example, you can do 
+`less termhub-csets/datasets/prepped_files/concept_relationship.csv`. If all you see there are a few lines lines which 
+include text like `oid sha256:LONG_HASH` and `size SOME_NUMBER`, this means that `git submodule update` was unable to 
+fetch the files, and you should run the git LFS commands below and check again.
+
+```shell
+$ git lfs pull
+$ git submodule foreach git lfs pull
+```
+
+#### 3. Install [virtual environment](https://docs.python.org/3/library/venv.html) and activate it: `venv venv; source venv/bin/activate`
+
+#### 4. Run: `pip install -r requirements.txt`
+
+#### 5. Install PostgreSQL and make sure it is running
+Postgres.app makes this a breeze on macos: https://postgresapp.com/ 
+Variables are initially set to the values below. Note that `PGDATABASE` and `TERMHUB_DB_DB` will need to change to termhub in the steps below.
+```
+PGHOST=localhost
+PGUSER=postgres
+PGPASSWORD=
+PGPORT=5432
+PGDATABASE=postgres
+```
+
+#### 6. Set environmental variables. Run: `mkdir env; cp .env.example env/.env`. Then, edit `.env` and set any variables that haven't been filled out. You'll likely need to reach out to @joeflack4 or @Sigfried.
+In terms of Postgres variables: `PGHOST`, `PGUSER`, `PGPASSWORD`, `PGPORT`, and `PGDATABASE`, and despite using shell syntax for those variables, the values have to be constants, not shell variables
+```
+TERMHUB_DB_SERVER=postgresql
+TERMHUB_DB_DRIVER=psycopg2
+TERMHUB_DB_HOST=$PGHOST
+TERMHUB_DB_USER=$PGUSER
+TERMHUB_DB_DB=$PGDATABASE
+TERMHUB_DB_SCHEMA=n3c
+TERMHUB_DB_PASS=$PGPASSWORD
+TERMHUB_DB_PORT=$PGPORT
+```
+
+#### 7. Basic DB setup (assuming PostgreSQL)
 ```shell
 # create new db:
 $ createdb termhub
@@ -110,8 +140,9 @@ $ psql termhub
 CREATE SCHEMA n3c;
 SET search_path TO n3c;
 ```
-8. Create DB structure and load data
-  -  Run: `python backend/db/initialize.py`
+
+#### 8. Create DB structure and load data
+Run: `python backend/db/initialize.py`
 
 ### Deployment
 - [Backend](./backend/README.md): `uvicorn backend.app:APP --reload`

@@ -6,6 +6,7 @@
 """
 import sys
 from argparse import ArgumentParser
+from pathlib import Path
 
 from typing import Dict, List, Union
 from typeguard import typechecked
@@ -19,16 +20,14 @@ import pyarrow.parquet as pq
 import shutil
 import time
 
+ENCLAVE_WRANGLER_DIR = os.path.dirname(__file__)
+PROJECT_ROOT = Path(ENCLAVE_WRANGLER_DIR).parent
+sys.path.insert(0, str(PROJECT_ROOT))
+# TODO: backend implorts: Ideally we don't want to couple with TermHub code
 from backend.db.utils import chunk_list
 from backend.utils import commify, pdump
-from enclave_wrangler.utils import enclave_get
-
-try:
-    from enclave_wrangler.config import config, TERMHUB_CSETS_DIR, FAVORITE_DATASETS, FAVORITE_DATASETS_RID_NAME_MAP
-    from enclave_wrangler.utils import log_debug_info
-except ModuleNotFoundError:
-    from config import config, TERMHUB_CSETS_DIR, FAVORITE_DATASETS, FAVORITE_DATASETS_RID_NAME_MAP
-    from utils import log_debug_info
+from enclave_wrangler.config import TERMHUB_CSETS_DIR, FAVORITE_DATASETS, FAVORITE_DATASETS_RID_NAME_MAP
+from enclave_wrangler.utils import enclave_get, log_debug_info
 
 
 # Don't use these headers any more. leave it to the stuff in enclave_wrangler.utils
