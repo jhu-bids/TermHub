@@ -74,7 +74,7 @@ def is_up_to_date(last_updated: Union[datetime, str], threshold_hours=24) -> boo
 def check_if_updated(key: str, skip_if_updated_within_hours: int = None) -> bool:
     """Check if table is up to date"""
     with get_db_connection(schema='') as con2:
-        results = sql_query(con2, f"SELECT value FROM public.manage WHERE key = '{key}';")
+        results = sql_query(con2, f"SELECT value FROM public.manage WHERE key = '{key}';", return_with_keys=False)
     last_updated = results[0][0] if results else None
     return last_updated and is_up_to_date(last_updated, skip_if_updated_within_hours)
 
@@ -132,7 +132,7 @@ def sql_query(
 
 def get_obj_by_id(con, table: str, pkey: str, obj_id: Union[str, int]):
     """Get object by ID"""
-    return sql_query(con, f'SELECT * FROM {table} WHERE {pkey} = (:obj_id)', {'obj_id': obj_id})
+    return sql_query(con, f'SELECT * FROM {table} WHERE {pkey} = (:obj_id)', {'obj_id': obj_id}, return_with_keys=False)
 
 def insert_from_dict(con: Connection, table: str, d: Dict, skip_if_already_exists=True):
     """Insert row into dictionary from a dictionary"""
@@ -157,7 +157,7 @@ def insert_from_dict(con: Connection, table: str, d: Dict, skip_if_already_exist
 def sql_count(con: Connection, table: str) -> int:
     """Return the number of rows in a table. A simple count of rows, not ignoring NULLs or duplicates."""
     query = f'SELECT COUNT(*) FROM {table};'
-    return sql_query(con, query)[0][0]
+    return sql_query(con, query, return_with_keys=False)[0][0]
 
 
 def sql_in(lst: List, quote_items=False) -> str:
@@ -201,7 +201,7 @@ def show_tables(con=get_db_connection(), print_dump=True):
           AND pg_catalog.pg_table_is_visible(c.oid)
         ORDER BY 1,2;
     """
-    res = sql_query(con, query)
+    res = sql_query(con, query, return_with_keys=False)
     if print_dump:
         print(pd.DataFrame(res))
         # print('\n'.join([', '.join(r) for r in res])) ugly
