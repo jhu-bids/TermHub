@@ -342,9 +342,14 @@ function DataWidget(props) {
   console.log(props);
   const callType = putData ? "Put" : "Get";
   let msg = {};
+  // target="_blank" for opening in a new tab
+  // rel="noreferrer" for security
   msg.call = (
     <p>
-      <a href={url}>{url}</a> ({callType})
+      <a
+        href={url}
+        target="_blank"
+        rel="noreferrer">{url}</a> ({callType})
     </p>
   );
   msg.icon = <Progress variant="determinate" value={100} />;

@@ -1,5 +1,5 @@
 import React, {useState, useRef, useEffect /* useReducer, */} from "react";
-import { CsetsDataTable } from "./CsetsDataTable";
+import { CsetsDataTable, CsetsSelectedDataTable } from "./CsetsDataTable";
 // import {difference, symmetricDifference} from "./utils";
 import ConceptSetCards from "./ConceptSetCard";
 import { TextField, Autocomplete, Box, } from "@mui/material";
@@ -174,6 +174,8 @@ function ConceptSetsPage(props) {
       </>
     );
   }
+  // {<CsetsSelectedDataTable {...props} />} is added to separately show
+  // selected concept sets
   return (
     <div
       style={{
@@ -183,6 +185,7 @@ function ConceptSetsPage(props) {
       }}
     >
       <CsetSearch {...props} />
+      {<CsetsSelectedDataTable {...props} />}
       {<CsetsDataTable {...props} />}
       {<ConceptSetCards {...props} />}
     </div>
