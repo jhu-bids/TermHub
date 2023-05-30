@@ -191,8 +191,9 @@ export function getRowData(props) {
   dag.depth();
   const nodes = dag.descendants('depth');
   const rows = nodes.map(n => {
-    let row = conceptLookup(n.data.id);
+    let row = conceptLookup[n.data.id];
     row.level = n.value;
+    return row;
   })
   return rows;
 

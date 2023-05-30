@@ -533,6 +533,11 @@ def cr_hierarchy(include_atlas_json: bool = False, codeset_ids: Union[str, None]
     verbose and timer('researchers')
     researchers = get_researchers(researcher_ids)
     verbose and timer('concepts')
+    edges = graph.subgraph(concept_ids)
+    concept_ids = set(concept_ids)
+    concept_ids.update([e[0] for e in edges])
+    concept_ids.update([e[1] for e in edges])
+    concept_ids = list(concept_ids)
     concepts = [dict(c) for c in get_concepts(concept_ids)]
     # for c in concepts:
     #     if c['concept_id'] in orphans:
@@ -543,7 +548,7 @@ def cr_hierarchy(include_atlas_json: bool = False, codeset_ids: Union[str, None]
         # todo: Check related_csets() to see its todo's
         # 'concept_relationships': concept_relationships,
         'hierarchy': h,
-        'edges': graph.subgraph(concept_ids),
+        'edges': edges,
         'concepts': concepts,
         'related_csets': related_csets,
         # todo: Check get_csets() to see its todo's
