@@ -31,7 +31,8 @@ def subgraph():
 @router.get("/subgraph/")
 def subgraph(id: List[int] = Query(...)):   # id is a list of concept ids
     sg = connected_subgraph_from_nodes(id, REL_GRAPH, REL_GRAPH_UNDIRECTED)
-    return list(sg.edges)
+    edges = [(str(e[0]), str(e[1])) for e in sg.edges]
+    return edges
 
 
 @router.get("/hierarchy/")
@@ -82,18 +83,22 @@ def sort_by_most_descendants(G, nodes):
     key = lambda n: len(nx.descendants(G, n))
     return sorted(nodes, key=key, reverse=True)
 
-def graph_to_json(G):
-    root_nodes = sort_by_most_descendants(G, [node for node in G.nodes if G.in_degree(node) == 0])
-    hierarchies = {root: create_hierarchy(G, root) for root in root_nodes}
+def graph_to_json(G, sorted=False):
+    root_nodes = [node for node in G.nodes if G.in_degree(node) == 0]
+    if sorted:
+        root_nodes = sort_by_most_descendants(G, root_nodes)
+    hierarchies = {root: create_hierarchy(G, root, sorted) for root in root_nodes}
     return hierarchies
 
 
-def create_hierarchy(G, node):
-    successors = sort_by_most_descendants(G, list(G.successors(node)))
+def create_hierarchy(G, node, sorted=False):
+    successors = list(G.successors(node))
     if len(successors) == 0:
         return None
+    if sorted:
+        successors = sort_by_most_descendants(successors)
     else:
-        return {successor: create_hierarchy(G, successor) for successor in successors}
+        return {successor: create_hierarchy(G, successor, sorted) for successor in successors}
 
 def for_testing():
     G = nx.DiGraph()

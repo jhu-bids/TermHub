@@ -4,6 +4,7 @@ import React, {
   useCallback,
   useEffect /* useMemo, useReducer, */,
 } from "react";
+import * as d3dag from "d3-dag";
 // import { createSearchParams, useSearchParams, } from "react-router-dom";
 import DataTable, { createTheme } from "react-data-table-component";
 import { AddCircle, RemoveCircleOutline } from "@mui/icons-material";
@@ -178,10 +179,24 @@ export function getRowData(props) {
   const { cset_data, collapsed } = props;
   const {
     hierarchy = {},
+    edges = [],
     selected_csets = [],
     concepts = [],
+    conceptLookup = {},
     cset_members_items = [],
   } = cset_data;
+
+  const connect = d3dag.dagConnect();
+  const dag = connect(edges);
+  dag.depth();
+  const nodes = dag.descendants('depth');
+  const rows = nodes.map(n => {
+    let row = conceptLookup(n.data.id);
+    row.level = n.value;
+  })
+  return rows;
+
+  debugger;
 
   const rowData = makeHierarchyRows({
                                       concepts,

@@ -242,12 +242,6 @@ function DataContainer(props) {
     // for (const o of cset_data.orphans) {
     //   orphans[o] = null;
     // }
-    if (typeof(cset_data.hierarchy) === 'string') {
-      cset_data.hierarchy = JSON.parse(cset_data.hierarchy);
-    } else {
-      console.warn("problem with hierarchy?")
-      cset_data.hierarchy = {};
-    }
 
     return (
       <RoutesContainer {...props} all_csets={all_csets} cset_data={cset_data} />

@@ -502,7 +502,7 @@ def cr_hierarchy(include_atlas_json: bool = False, codeset_ids: Union[str, None]
     # h, orphans = hierarchy(item_concept_ids, concept_ids)
     # nh = new_hierarchy(root_cids=item_concept_ids, cids=concept_ids)
     # h = hierarchy(selected_concept_ids=concept_ids)
-    h = graph.hierarchy(concept_ids)[0]
+    h = graph.hierarchy(concept_ids)
 
 
     # TODO: Fix: concepts missing from hierarchy that shouldn't be:
@@ -542,14 +542,15 @@ def cr_hierarchy(include_atlas_json: bool = False, codeset_ids: Union[str, None]
     result = {
         # todo: Check related_csets() to see its todo's
         # 'concept_relationships': concept_relationships,
+        'hierarchy': h,
+        'edges': graph.subgraph(concept_ids),
+        'concepts': concepts,
         'related_csets': related_csets,
         # todo: Check get_csets() to see its todo's
         'selected_csets': selected_csets,
         'researchers': researchers,
         'cset_members_items': cset_members_items,
-        'hierarchy': h,
         # todo: concepts
-        'concepts': concepts,
         # todo: frontend not making use of data_counts yet but will need
         'data_counts': [],
         # 'orphans': orphans,
