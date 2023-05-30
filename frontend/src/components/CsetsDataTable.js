@@ -1,5 +1,5 @@
 import React, { useState, useCallback, useEffect } from "react";
-import { orderBy, get } from "lodash";
+import { orderBy, get, remove } from "lodash";
 import DataTable, { createTheme } from "react-data-table-component";
 import { fmt, pct_fmt } from "./utils";
 import { StatsMessage } from "./State";
@@ -26,6 +26,8 @@ function CsetsDataTable(props) {
       ["selected", "precision"],
       ["desc", "desc"]
     );
+    // Remove concept sets that are selected
+    remove(rcsets, cs => { return cs.selected })
     // console.log({props, rcsets});
     setRelatedCsets(rcsets);
   }, [codeset_ids.join(","), selected_csets.length]);
@@ -101,6 +103,71 @@ function CsetsDataTable(props) {
     </div>
   );
 }
+
+/* Copied from CsetsDataTable(). This table only shows the selected csets. */
+function CsetsSelectedDataTable(props) {
+  const { codeset_ids, changeCodesetIds, cset_data = {} } = props;
+  const { selected_csets } = cset_data;
+
+  let coldefs = getSelectedColdefs();
+  /* const conditionalRowStyles = [{ when: row => row.selected,
+        style: { backgroundColor: 'rgba(63, 195, 128, 0.9)', color: 'white',
+                '&:hover': { cursor: 'pointer', }, } }]; */
+
+  let customStyles = getCustomStyles();
+
+  const handleRowClick = useCallback((row) =>
+    changeCodesetIds(row.codeset_id, "toggle")
+  );
+
+  const rowSelectCritera = (row) => row.selected;
+
+  // todo: p -> data table: data table has a property for showing some sort of paragraph text
+  // TODO: y concepts -> get the number
+  return (
+    <div className="csets-data-table">
+      <DataTable
+        data={selected_csets}
+        // selectableRows
+        selectableRowsHighlight
+        selectableRowSelected={rowSelectCritera}
+        // onSelectedRowsChange={handleSelectionChange}
+        onRowClicked={handleRowClick}
+        customStyles={customStyles}
+        noHeader={false}
+        title="Selected concept sets"
+        // theme="custom-theme"
+        // theme="light"
+        columns={coldefs}
+        // defaultSortFieldId={4}
+        // defaultSortAsc={false}
+
+        // conditionalRowStyles={conditionalRowStyles}
+        height="300px"
+        //striped
+        //pagination
+        //selectableRowsComponent={Checkbox}
+        //selectableRowsComponentProps={selectProps}
+        //sortIcon={sortIcon}
+        // {...props}
+
+        dense
+        direction="auto"
+        // expandOnRowClicked
+        // expandableRows
+        fixedHeader
+        fixedHeaderScrollHeight="300px"
+        highlightOnHover
+        pointerOnHover
+        responsive
+        subHeaderAlign="left"
+        subHeaderWrap
+        // sortFunction={customSort}
+      />
+    </div>
+  );
+}
+
 function getColdefs() {
   /*
     const descending = (rows, selector, direction) => {
@@ -176,6 +243,113 @@ function getColdefs() {
       center: true,
       sortable: true,
       // sortFunction: descending,
+    },
+    {
+      // name: 'Recall',
+      name: (
+        <Tooltip label="Portion of concepts in the selected concept sets that belong to this set.">
+          <span>Recall</span>
+        </Tooltip>
+      ),
+      selector: (row) => row.recall,
+      format: (row) => pct_fmt(row.recall),
+      desc: true,
+      compact: true,
+      width: "70px",
+      center: true,
+      sortable: true,
+    },
+    {
+      name: (
+        <Tooltip label="Approximate distinct person count. Small counts rounded up to 20.">
+          <span>Patients</span>
+        </Tooltip>
+      ),
+      // selector: row => row.approx_distinct_person_count.toLocaleString(),
+      selector: (row) => parseInt(row.distinct_person_cnt),
+      format: (row) => fmt(parseInt(row.distinct_person_cnt)),
+      compact: true,
+      width: "70px",
+      center: true,
+      sortable: true,
+    },
+    {
+      name: (
+        <Tooltip label="Record count. Small counts rounded up to 20.">
+          <span>Records</span>
+        </Tooltip>
+      ),
+      selector: (row) => {
+        return row.total_cnt.toLocaleString();
+      },
+      compact: true,
+      width: "78px",
+      center: true,
+      sortable: true,
+    },
+    /*
+        {
+            name:   <Tooltip label="Checked if this concept set is marked as archived in the enclave.">
+                <span>Archived</span>
+            </Tooltip>,
+            selector: row => row.archived ? '\u2713' : '',
+            compact: true,
+            width: '70px',
+            center: true,
+            sortable: true,
+        },
+         */
+  ];
+}
+
+/* Copied from getColdefs(). This is a column definition for the selected csets. */
+function getSelectedColdefs() {
+  /*
+    const descending = (rows, selector, direction) => {
+        return orderBy(rows, selector, ['desc']);
+    };
+     */
+  return [
+    // { name: 'level', selector: row => row.level, },
+    {
+      name: "Version ID",
+      // selector: row => `${row.concept_set_name} (v${row.version})`,
+      selector: (row) => row.codeset_id,
+      compact: true,
+      sortable: true,
+      width: "90px",
+    },
+    {
+      name: "Names of concept sets",
+      // selector: row => `${row.concept_set_name} (v${row.version})`,
+      selector: (row) => row.concept_set_version_title,
+      wrap: true,
+      compact: true,
+      sortable: true,
+    },
+    {
+      name: (
+          <Tooltip label="Number of members in this concept set, that is, concepts included after expanding expression items.">
+            <span>Members</span>
+          </Tooltip>
+      ),
+      selector: (row) => row.counts['Members'],
+      compact: true,
+      width: "70px",
+      center: true,
+      sortable: true,
+    },
+    {
+      name: (
+        <Tooltip label="Number of expression items in this concept set.">
+          <span>Expression items</span>
+        </Tooltip>
+      ),
+      selector: (row) => row.counts['Expression items'],
+      compact: true,
+      width: "70px",
+      center: true,
+      sortable: true,
     },
     {
       // name: 'Recall',
@@ -332,4 +506,4 @@ createTheme('custom-theme', {
 }, 'light');
 */
 
-export { CsetsDataTable };
+export { CsetsDataTable, CsetsSelectedDataTable };

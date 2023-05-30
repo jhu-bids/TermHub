@@ -16,6 +16,8 @@ from backend.utils import pdump, get_timer, commify
 VERBOSE = True
 PROJECT_DIR = Path(os.path.dirname(__file__)).parent.parent
 VOCABS_PATH = os.path.join(PROJECT_DIR, 'termhub-vocab')
+GRAPH_PATH = os.path.join(VOCABS_PATH, 'relationship_graph.pickle')
+GRAPH_UNDIRECTED_PATH = os.path.join(VOCABS_PATH, 'relationship_graph_undirected.pickle')
 
 router = APIRouter(
     responses={404: {"description": "Not found"}},
@@ -42,7 +44,8 @@ def hierarchy(id: List[int] = Query(...)):   # id is a list of concept ids
     """
     sg = connected_subgraph_from_nodes(id, REL_GRAPH, REL_GRAPH_UNDIRECTED)
     j = graph_to_json(sg)
-    return [json.dumps(j)]
+    return j
+    # return [json.dumps(j)]
     # return Response(content=json.dumps(j), media_type='application/json')
     # return JSONResponse(OrderedDict(j))
     # return OrderedDict(j)
@@ -133,26 +136,24 @@ def create_rel_graphs(save_to_pickle: bool):
         G = nx.from_edgelist(rels, nx.DiGraph)
         if save_to_pickle:
             timer(f'write pickle for G with {len(G.nodes)} nodes')
-            nx.write_gpickle(G, 'networkx/relationship_graph.pickle')
+            nx.write_gpickle(G, GRAPH_PATH)
         timer('make undirected version')
         Gu = G.to_undirected()
         if save_to_pickle:
             timer('write pickle for that')
-            nx.write_gpickle(Gu, 'networkx/relationship_graph_undirected.pickle')
+            nx.write_gpickle(Gu, GRAPH_UNDIRECTED_PATH)
         timer('done')
         return G, Gu
 
 
 def load_relationship_graphs(save_if_not_exists=True):
     timer = get_timer('./load_relationship_graph')
-    p = os.path.join(VOCABS_PATH, 'relationship_graph.pickle')
-    if os.path.isfile(p):
-        timer(f'loading {p}')
-        G = nx.read_gpickle(p)
-    p = os.path.join(VOCABS_PATH, 'relationship_graph_undirected.pickle')
-    if G and os.path.isfile(p):
-        timer(f'loaded {commify(len(G.nodes))}; loading {p}')
-        Gu = nx.read_gpickle(p)
+    if os.path.isfile(GRAPH_PATH):
+        timer(f'loading {GRAPH_PATH}')
+        G = nx.read_gpickle(GRAPH_PATH)
+    if G and os.path.isfile(GRAPH_UNDIRECTED_PATH):
+        timer(f'loaded {commify(len(G.nodes))}; loading {GRAPH_UNDIRECTED_PATH}')
+        Gu = nx.read_gpickle(GRAPH_UNDIRECTED_PATH)
         timer(f'loaded {commify(len(Gu.nodes))}')
     else:
         G, Gu = create_rel_graphs(save_if_not_exists)

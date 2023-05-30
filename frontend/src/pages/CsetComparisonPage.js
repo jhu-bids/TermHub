@@ -16,8 +16,8 @@ import Draggable from "react-draggable";
 import { isEmpty, get, throttle, pullAt } from "lodash"; // set, map, omit, pick, uniq, reduce, cloneDeepWith, isEqual, uniqWith, groupBy,
 import {
   useStateSlice,
-  useDerivedState,
-  hierarchyToFlatCids
+  hierarchyToFlatCids,
+  makeHierarchyRows,
 } from "../components/State";
 import { fmt, useWindowSize } from "../components/utils";
 import { setColDefDimensions } from "../components/dataTableUtils";
@@ -55,19 +55,16 @@ function CsetComparisonPage(props) {
   const boxRef = useRef();
   const sizes = getSizes(/*squishTo*/ 1);
   const customStyles = styles(sizes);
-  const derivedState = useDerivedState();
   const {collapsed, nested} = hierarchySettings;
 
   // console.log(EDGES);
 
-  let rowData, nestedData;
-  if (derivedState) {
-    nestedData = derivedState.comparisonRowData;
-    if (nested) {
-      rowData = nestedData;
-    } else {
-      rowData = hierarchyToFlatCids(hierarchy).map(cid => conceptLookup[cid]);
-    }
+  let nestedData = getRowData({...props, ...hierarchySettings});
+  let rowData;
+  if (nested) {
+    rowData = nestedData;
+  } else {
+    rowData = hierarchyToFlatCids(hierarchy).map(cid => conceptLookup[cid]);
   }
 
   const editAction = getCodesetEditActionFunc({
@@ -175,12 +172,26 @@ function CsetComparisonPage(props) {
   );
 }
 
-/*{
-    Object.entries(displayOptions).map(([name, opt]) =>
-                                           <Button key={name} variant={name === displayOption ? "contained" : "outlined" } onClick={()=>changeDisplayOption(name)}>
-                                               {opt.msg}
-                                           </Button>)
-}*/
+export function getRowData(props) {
+  // when I put this provider up at the App level, it didn't update
+  //    but at the CsetComparisonPage level it did. don't know why
+  const { cset_data, collapsed } = props;
+  const {
+    hierarchy = {},
+    selected_csets = [],
+    concepts = [],
+    cset_members_items = [],
+  } = cset_data;
+
+  const rowData = makeHierarchyRows({
+                                      concepts,
+                                      selected_csets,
+                                      cset_members_items,
+                                      hierarchy,            // want to make this derived, but not yet?
+                                      collapsed,
+                                    });
+  return rowData;
+}
 function ComparisonDataTable(props) {
   const {
     columns,

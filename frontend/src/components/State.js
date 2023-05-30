@@ -1,18 +1,3 @@
-/*
-  from state-management-refactor 9b5b92b2 commit:
-- in the middle of big refactor of state management and UI. not totally
-  broken at the moment.
-- eventually moving all the querystring state stuff to AppStateProvider
-  along with some other state not currently managed in querystring
-- after app state and data state are ready, have another provider for
-  DerivedState
-- Not currently using contentItems. May come back to it after more immediate
-  requirements handled and after doing some more explicit design work.
-  ContentItems are going to be pieces of UI whose state will be managed
-  in AppState. The (very rough) idea is that there will be buttons or
-  something to let user show some piece of content, and then a close
-  icon will make it disappear and make the button reappear.
- */
 import React, {
   createContext,
   useContext,
@@ -160,45 +145,6 @@ window.addEventListener("beforeunload", dataAccessor.saveCache);
 window.dataAccessorW = dataAccessor;
 
 
-const DerivedStateContext = createContext(null);
-export function DerivedStateProvider(props) {
-  // when I put this provider up at the App level, it didn't update
-  //    but at the CsetComparisonPage level it did. don't know why
-  const { children, cset_data } = props;
-  const {
-    hierarchy = {},
-    selected_csets = [],
-    concepts = [],
-    cset_members_items = [],
-  } = cset_data;
-  const appState = useAppState();
-  // const editCsetState = appState.getSliceState('editCset');
-  const hierarchySettings = appState.getSliceState("hierarchySettings");
-  const { collapsed, nested } = hierarchySettings;
-
-  const rowData = makeHierarchyRows({
-    concepts,
-    selected_csets,
-    cset_members_items,
-    hierarchy,            // want to make this derived, but not yet?
-    collapsed,
-  });
-
-  let derivedState = {
-    comparisonRowData: rowData,
-  };
-  // console.log(derivedState);
-
-  return (
-    <DerivedStateContext.Provider value={derivedState}>
-      {children}
-    </DerivedStateContext.Provider>
-  );
-}
-export function useDerivedState() {
-  return useContext(DerivedStateContext);
-}
-// going to try to refactor all the state stuff using reducers and context, but still save to url
 
 export function useStateSlice(slice) {
   const appState = useAppState();
@@ -396,9 +342,14 @@ function DataWidget(props) {
   console.log(props);
   const callType = putData ? "Put" : "Get";
   let msg = {};
+  // target="_blank" for opening in a new tab
+  // rel="noreferrer" for security
   msg.call = (
     <p>
-      <a href={url}>{url}</a> ({callType})
+      <a
+        href={url}
+        target="_blank"
+        rel="noreferrer">{url}</a> ({callType})
     </p>
   );
   msg.icon = <Progress variant="determinate" value={100} />;

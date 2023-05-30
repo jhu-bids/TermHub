@@ -267,7 +267,6 @@ def get_cset_members_items(codeset_ids: List[int] = None, con=CON) -> List:
         {'codeset_ids': codeset_ids})
 
 
-
 def get_concept_relationships(cids: List[int], reltypes: List[str] = ['Subsumes'], con=CON) -> List:
     """Get concept_relationship rows for cids """
     return sql_query(

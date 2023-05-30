@@ -43,7 +43,6 @@ import { AboutPage } from "./pages/AboutPage";
 import { currentConceptIds, ConceptGraph } from "./components/ConceptGraph";
 import {
   AppStateProvider,
-  DerivedStateProvider,
   searchParamsToObj,
   updateSearchParams,
   backend_url,
@@ -278,29 +277,27 @@ function RoutesContainer(props) {
   window.props_w = props;
   // console.log(window.props_w = props);
   return (
-    <DerivedStateProvider {...props}>
-      <Routes>
-        {/*<Route path="/help" element={<HelpWidget {...props} />} />*/}
-        <Route path="/" element={<App {...props} />}>
-          <Route
-              path="cset-comparison"
-              element={<CsetComparisonPage {...props} />}
-          />
-          <Route
-              path="OMOPConceptSets"
-              element={<ConceptSetsPage {...props} />}
-          />
-          <Route path="about" element={<AboutPage {...props} />} />
-          <Route path="upload-csv" element={<UploadCsvPage {...props} />} />
-          <Route
-              path="graph"
-              element={<ConceptGraph {...props} concept_ids={currentConceptIds(props)} />}
-          />
-          <Route path="download-json" element={<DownloadJSON {...props} />} />
-          {/* <Route path="OMOPConceptSet/:conceptId" element={<OldConceptSet />} /> */}
-        </Route>
-      </Routes>
-    </DerivedStateProvider>
+    <Routes>
+      {/*<Route path="/help" element={<HelpWidget {...props} />} />*/}
+      <Route path="/" element={<App {...props} />}>
+        <Route
+            path="cset-comparison"
+            element={<CsetComparisonPage {...props} />}
+        />
+        <Route
+            path="OMOPConceptSets"
+            element={<ConceptSetsPage {...props} />}
+        />
+        <Route path="about" element={<AboutPage {...props} />} />
+        <Route path="upload-csv" element={<UploadCsvPage {...props} />} />
+        <Route
+            path="graph"
+            element={<ConceptGraph {...props} concept_ids={currentConceptIds(props)} />}
+        />
+        <Route path="download-json" element={<DownloadJSON {...props} />} />
+        {/* <Route path="OMOPConceptSet/:conceptId" element={<OldConceptSet />} /> */}
+      </Route>
+    </Routes>
   );
 }
 function App(props) {
