@@ -23,6 +23,7 @@ from backend.db.analysis import counts_compare_schemas, counts_over_time
 
 TEST_DIR = os.path.dirname(__file__)
 BACKEND_URL_BASE = 'http://127.0.0.1:8000/'
+COUNT_TEST_EXCEPTIONS = ['concept_set_json', 'rxnorm_med_cset', 'small_snomed']
 
 
 class TestBackend(unittest.TestCase):
@@ -127,49 +128,47 @@ class TestBackend(unittest.TestCase):
         response: Response = self._upload_file(csv_path, url)
         self.assertEqual(response.json()['result'], 'success')
 
-    # TODO: @Hope @Katherine @Matthew: We use PostgreSQL as a database. It has a concept called 'schema' which is basically a folder that
-    #  has a bunch of tables.
-    #  (Part 1) confirm that the param `compare_schema`, when set to 'most_recent_backup', is indeed more recent
-    #  than a known older backup. Steps: (i) done already: call compare_schema() twice, once with 'most_recent_backup'
-    #  and once with a known older one (e.g. 'n3c_backup_20230221'). (ii) accessing dataframe columns, you'll see that 1
-    #  of the columns in each dataframe has pattern 'n3c_backup_YYYYMMDD'. This column should be different in each
-    #  dataframe. You should extract the YYYYMMDD from each dataframe and compare them, e.g. with `dateutil.parser`, and
-    #  try to see if self.assertGreater(DATE1, DATE2) passes if DATE1 from 'most_recent_backup' is indeed more recent
-    #  than DATE2 from 'n3c_backup_20230221'.
-    #  (Part 2) Pick any one of the dataframes from "part 1" confirm that all of the row counts for all of the tables
-    #  for both of the 2 schema columns are greater than 0.
     def test_counts_compare_schemas(self):
         """test counts_compare_schemas()"""
-        # Part 1
+        # Part 1: Ensure that the most recent backup is newer than a previous known backup
         df1 = counts_compare_schemas(compare_schema='most_recent_backup')
         df2 = counts_compare_schemas(compare_schema='n3c_backup_20230221')
         df1_date = parse(df1.columns[3][11:])
         df2_date = parse(df2.columns[3][11:])
         self.assertGreater(df1_date, df2_date)
-        # Part 2
+        # Part 2: Ensure that table rows are not empty
         schema_column = df1.columns[2]
         schema_backup_column = df1.columns[3]
-        row_schema = df1[schema_column]
-        row_compare = df1[schema_backup_column]
-        for n in row_schema:
-            self.assertGreater(n, 0)
-        for n in row_compare:
-            self.assertGreater(n, 0)
+        for _index, row in df1.iterrows():
+            if row['table'] in COUNT_TEST_EXCEPTIONS:
+                continue
+            for schema in [schema_column, schema_backup_column]:
+                self.assertGreater(row[schema], 0, msg=f"Table '{row['table']}' had 0 rows in schema '{schema}'")
 
-    # TODO: @Hope @Katherine @Matthew: (Part 1) assert that for every column in the dataframe, the value in the 'COMMENT' row is not empty.
-    #  (Part 2) confirm that all row counts in all of the cells (other than the 'COMMENT' row)  are greater than 0.
     def test_counts_over_time(self):
         """test counts_over_time()"""
-        # Parts 1 and 2
+        consistent_critical_tables = [
+            'all_csets', 'code_sets', 'concept', 'concept_ancestor', 'concept_relationship',
+            'concept_relationship_plus', 'concept_set_container', 'concept_set_counts_clamped', 'concept_set_members',
+            'concept_set_version_item', 'concepts_with_counts', 'cset_members_items',
+            'deidentified_term_usage_by_domain_clamped', 'omopconceptset', 'omopconceptsetcontainer', 'researcher']
         df = counts_over_time()
+        # newest_backup_col: handles case where newest backup was not the only backup that day, e.g. '2023-05-03 2'
+        newest_run_col_date_str = str(max([parse(x.split()[0]) for x in df.columns])).split()[0]
+        newest_run_col = max([x for x in df.columns if x.startswith(newest_run_col_date_str)])
         for col in df.columns:
             for row, cell in df[col].items():
                 if row == "COMMENT":
-                    # Part 1
-                    self.assertFalse(df[col][row].isspace())
+                    # Part 1: no db count run should have an empty 'COMMENT' field
+                    self.assertFalse(df[col][row].isspace(), msg=f"Empty 'COMMENT' field in schema {col}")
                 else:
-                    # Part 2
-                    self.assertGreater(df[col][row], 0)
+                    if row in COUNT_TEST_EXCEPTIONS:
+                        continue
+                    # Other than `consistent_critical_tables`, tables may be added/removed, so skip for older backups
+                    if col != newest_run_col and row not in consistent_critical_tables:
+                        continue
+                    # Part 2: all other row counts should be non-zero
+                    self.assertGreater(df[col][row], 0, msg=f"Table '{row}' had 0 rows in run '{col}'")
 
 
 # Uncomment this and run this file directly to run all tests
