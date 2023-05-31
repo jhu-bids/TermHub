@@ -8,6 +8,7 @@ import Typography from "@mui/material/Typography";
 import Button from "@mui/material/Button";
 import { TextField, } from "@mui/material";
 import { Link } from "react-router-dom";
+import VERSION from "../version";
 
 // import * as po from './Popover';
 
@@ -213,7 +214,7 @@ function AboutPage(props) {
 
 DOCS.blank_search_intro = (
   <>
-    <h1>Welcome to TermHub! Beta version 0.1</h1>
+    <h1>Welcome to TermHub! Beta version { VERSION }</h1>
     <p style={{ paddingLeft: "12px", paddingRight: "130px" }}>
       TermHub is a tool for comparing, analyzing, updating, and creating concept
       sets. At the current time it only handles concept sets in the N3C Enclave,
