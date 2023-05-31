@@ -13,6 +13,7 @@ from urllib.parse import urljoin
 from dateutil.parser import parse
 import requests
 import unittest
+import json
 
 from requests import Response
 
@@ -20,6 +21,7 @@ TEST_DIR = os.path.dirname(__file__)
 PROJECT_ROOT = Path(TEST_DIR).parent
 sys.path.insert(0, str(PROJECT_ROOT))
 from backend.db.analysis import counts_compare_schemas, counts_over_time
+from backend.app import cr_hierarchy
 from backend.routes.graph import subgraph
 
 TEST_DIR = os.path.dirname(__file__)
@@ -85,7 +87,7 @@ class TestBackend(unittest.TestCase):
         # selected_roots: List[int] = top_level_cids(selected_parent_ids)
         # with open(os.path.join(os.path.dirname(__file__), 'all_subsumes_tuples_2022_12_21.pickle'), 'rb') as f:
         #     parent_child_list = pickle.load(f)
-        # result = hierarchify_list_of_parent_kids(parent_child_list, selected_roots)
+        # result = hierarchy_list_of_parent_kids(parent_child_list, selected_roots)
         # actual_subset = {}  # todo: result[...]
         # expected_subset = {}  # todo
         # self.assertEqual(1, 1)  # todo
@@ -163,6 +165,79 @@ class TestBackend(unittest.TestCase):
                     # Part 2: all other row counts should be non-zero
                     self.assertGreater(df[col][row], 0, msg=f"Table '{row}' had 0 rows in run '{col}'")
 
+    def test_get_concepts(self):
+        """ Tests get_related_csets in backend/routes/app.py."""
+        self.assertEqual(get_concepts([396155663, 643758668]),[])
+
+    """ This test is based on the cr_hierarchy function so it would need to be changed since that function may retire,
+    but is a data counts test still needed?
+    def test_cr_hierarchy_data_counts(self):
+    
+        '''Test backend: cr_hierarchy, defined in backend/app.py
+        Prereq: Server must be running'''
+        url = BACKEND_URL_BASE + 'cr-hierarchy'
+        response = requests.get(url=url, params={
+            'codeset_ids': '400614256|87065556'
+        }).json()
+        self.assertEqual(len(response['data_counts']), 0) 
+    """
+
+    def test_get_related_csets(self):
+        """ Test the related csets output of cr_hierarchy defined in backend/routes/app.py.
+        The related csets output is given by get_related_csets in backend/routes/app.py.
+        """
+        related_csets = get_related_csets([396155663,643758668])
+        related_cs_ids = [concept['codeset_id']for concept in related_csets]
+        self.assertEqual(related_cs_ids,[93330599, 128430450, 201986476, 396155663, 643758668])
+        self.assertEqual(related_csets[2],{'codeset_id': 201986476, 'concept_set_version_title': '[VSAC] Social Determinants of Health Goals (v2)',
+                          'project': 'RP-4A9E27', 'concept_set_name': '[VSAC] Social Determinants of Health Goals',
+                          'alias': '[VSAC] Social Determinants of Health Goals', 'source_application': 'UNITE',
+                          'source_application_version': '2.0', 'codeset_created_at': '2022-03-16 18:47:09.939000+00:00',
+                          'atlas_json': None, 'is_most_recent_version': True, 'version': 2.0, 'comments': None,
+                          'codeset_intention': 'Clinical Focus: The value sets in this group represent all of the individual domain goals identified by the Gravity Project; Data Element Scope: Supports the Gravity SDOH Clinical Care FHIR Implementation guide for the exchange of goal resource elements.; Inclusion Criteria: Includes SNOMED CT goals that have been identified through the Gravity Project community consensus voting process',
+                          'limitations': 'Exclusion Criteria: N/A', 'issues': None, 'update_message': 'Initial version.',
+                          'codeset_status': 'Finished', 'has_review': True, 'reviewed_by': None, 'codeset_created_by': '6387db50-9f12-48d2-b7dc-e8e88fdf51e3',
+                          'provenance': 'Steward: The Gravity Project; OID: 2.16.840.1.113762.1.4.1247.71; Code System(s): SNOMEDCT; Definition Type: Grouping; Definition Version: Latest; Accessed: 2022-02-23 15:28:52; dih_id:1000000232\n\nset include descendants = FALSE',
+                          'atlas_json_resource_url': None, 'parent_version_id': None, 'authoritative_source': 'The Gravity Project',
+                          'is_draft': False, 'codeset_rid': 'ri.phonograph2-objects.main.object.199e59df-b414-4742-9fde-564de4a885ce',
+                          'project_id': None, 'assigned_informatician': None, 'assigned_sme': None, 'container_status': 'Under Construction',
+                          'stage': 'Awaiting Editing', 'container_intention': None, 'n3c_reviewer': None, 'archived': False,
+                          'container_created_by': '6387db50-9f12-48d2-b7dc-e8e88fdf51e3', 'container_created_at': '2022-02-24 00:06:05.027000+00:00',
+                          'container_rid': 'ri.phonograph2-objects.main.object.f2a45883-78d4-4cd8-a994-0d5a0dcdeb45',
+                          'distinct_person_cnt': 4425, 'total_cnt': 8825, 'counts': {'Expression item and member -- no flags': 21, 'Expression item only -- includeDescendants': 1, 'Expression items': 22, 'Members': 21},
+                          'concepts': '21', 'researchers': {'6387db50-9f12-48d2-b7dc-e8e88fdf51e3': ['container_created_by', 'codeset_created_by']},
+                          'selected': False, 'intersecting_concepts': 2, 'recall': 1.0, 'precision': 0.09523809523809523})
+        selected_csets = [cset for cset in related_csets if cset['selected']]
+        self.assertEqual(selected_csets,[396155663,643758668])
+
+    def test_get_researchers(self):
+        related_csets = get_related_csets([396155663, 643758668])
+        researcher_ids = get_all_researcher_ids(related_csets)
+        self.assertEqual(get_researchers(researcher_ids),
+                         {'48fd3b68-84fc-47e7-bdf4-3de94554b986': {'multipassId': '48fd3b68-84fc-47e7-bdf4-3de94554b986',
+                                                                   'institutionsId': 'https://ror.org/00za53h95', 'name': 'Lisa Eskenazi',
+                                                                   'emailAddress': 'leskena2@jh.edu', 'unaPath': 'InCommon', 'signedDua': True,
+                                                                   'citizenScientist': False, 'internationalScientistWithDua': False,
+                                                                   'institution': 'Johns Hopkins University', 'orcidId': '0000-0001-8693-7838',
+                                                                   'rid': 'ri.phonograph2-objects.main.object.40351088-da7e-4be5-8562-b9085ab659c6'},
+                          '6387db50-9f12-48d2-b7dc-e8e88fdf51e3': {'multipassId': '6387db50-9f12-48d2-b7dc-e8e88fdf51e3',
+                                                                   'name': 'unknown', 'emailAddress': '6387db50-9f12-48d2-b7dc-e8e88fdf51e3'},
+                          '4bf7076c-6723-49cc-b4e5-f6c6ada1bdae': {'multipassId': '4bf7076c-6723-49cc-b4e5-f6c6ada1bdae',
+                                                                   'name': 'unknown', 'emailAddress': '4bf7076c-6723-49cc-b4e5-f6c6ada1bdae'}})
+
+    def test_get_cset_members_items(self):
+        self.assertEquals(get_cset_members_items([396155663, 643758668]),[
+            {'codeset_id': 643758668.0, 'concept_id': 4091006, 'csm': True,
+             'item': True, 'item_flags': 'includeDescendants', 'isExcluded': False,
+             'includeDescendants': True, 'includeMapped': False},
+            {'codeset_id': 396155663.0, 'concept_id': 4052321, 'csm': True, 'item': True,
+             'item_flags': '', 'isExcluded': False, 'includeDescendants': False, 'includeMapped': False},
+            {'codeset_id': 643758668.0, 'concept_id': 4052321, 'csm': True, 'item': True,
+             'item_flags': 'includeDescendants', 'isExcluded': False, 'includeDescendants': True,
+             'includeMapped': False},
+            {'codeset_id': 396155663.0, 'concept_id': 4091006, 'csm': True,
+             'item': True, 'item_flags': '', 'isExcluded': False, 'includeDescendants': False, 'includeMapped': False}])
+
     def test_subgraph(self):
         "tests subgraphs"
         #Basic unit test for a simple connected graph without a complex hierarchy
@@ -216,7 +291,7 @@ class TestBackend(unittest.TestCase):
         │    1738203 │ lopinavir 200 MG                               │ Drug      │ RxNorm        │ Clinical Drug Comp │ S                │ 597727       │ ∅              │          0 │               │         0 │ 0                   │
         │   19122186 │ lopinavir 200 MG / ritonavir 50 MG Oral Tablet │ Drug      │ RxNorm        │ Clinical Drug      │ S                │ 597730       │ ∅              │          1 │ drug_exposure │      5789 │ 833                 │
         └────────────┴────────────────────────────────────────────────┴───────────┴───────────────┴────────────────────┴──────────────────┴──────────────┴────────────────┴────────────┴───────────────┴───────────┴─────────────────────┘
-        
+
         No relationship appears for concept relationship table.
         """
 
@@ -239,7 +314,7 @@ class TestBackend(unittest.TestCase):
         │   43530961 │ Induced termination of pregnancy complicated by …│ Condition │ SNOMED        │ Clinical Finding │ S                │ 609507007    │ ∅              │          1 │ condition_occurrence               │        20 │ 20                  │
         │            │…cardiac failure                                  │           │               │                  │                  │              │                │            │                                    │           │                     │
         └────────────┴──────────────────────────────────────────────────┴───────────┴───────────────┴──────────────────┴──────────────────┴──────────────┴────────────────┴────────────┴────────────────────────────────────┴───────────┴─────────────────────┘
-        
+
         "vocabulary_id_1"|"concept_id_1"|"concept_name_1"                                               |"concept_code"|"relationship_id"|"vocabulary_id_2"|"concept_id_2"|"concept_name_2"
         SNOMED           |4024552       |Disorder of cardiac function                                   |105981003     |Is a             |SNOMED           |321588        |Heart disease
         SNOMED           |4027255       |Structural disorder of heart                                   |128599005     |Is a             |SNOMED           |321588        |Heart disease
@@ -272,7 +347,7 @@ class TestBackend(unittest.TestCase):
         │            │…cardiac failure                                  │           │               │                  │                  │              │                │            │                                    │           │                     │
         │   45766164 │ Heart failure with reduced ejection fraction     │ Condition │ SNOMED        │ Clinical Finding │ S                │ 703272007    │ ∅              │          1 │ condition_occurrence               │     10913 │ 3386                │
         └────────────┴──────────────────────────────────────────────────┴───────────┴───────────────┴──────────────────┴──────────────────┴──────────────┴────────────────┴────────────┴────────────────────────────────────┴───────────┴─────────────────────┘
-        
+
         "vocabulary_id_1"|"concept_id_1"|"concept_name_1"                                               |"concept_code"|"relationship_id"|"vocabulary_id_2"|"concept_id_2"|"concept_name_2"
         SNOMED           |316139        |Heart failure                                                  |84114007      |Is a             |SNOMED           |4024552       |Disorder of cardiac function
         SNOMED           |43530856      |High risk of heart failure, stage B                            |609389009     |Is a             |SNOMED           |4027255       |Structural disorder of heart
@@ -286,7 +361,7 @@ class TestBackend(unittest.TestCase):
         self.assertEqual(edges3,
                          [ ( "4024552", "316139" ), ( "316139", "43530961" ), ( "316139", "45766164" ),
                            ( "321588", "4024552" ), ( "321588", "4027255" ), ( "4027255", "43530856" ) ] )
-            
+
 # Uncomment this and run this file directly to run all tests
 #if __name__ == '__main__':
 #     unittest.main()
