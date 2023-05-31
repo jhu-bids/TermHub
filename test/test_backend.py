@@ -162,6 +162,76 @@ class TestBackend(unittest.TestCase):
                     # Part 2: all other row counts should be non-zero
                     self.assertGreater(df[col][row], 0, msg=f"Table '{row}' had 0 rows in run '{col}'")
 
+    def test_cr_hierarchy_related_csets(self):
+        """Copied from test_csets_update()
+        Test backend: cr_hierarchy, defined in backend/app.py
+        Prereq: Server must be running"""
+        url = BACKEND_URL_BASE + 'cr-hierarchy'
+        response = requests.get(url=url, params={
+            'codeset_ids': '400614256|87065556'
+        }).json()
+        # TODO: test response['related_csets']
+
+    def test_cr_hierarchy_selected_csets(self):
+        """Copied from test_csets_update()
+        Test backend: cr_hierarchy, defined in backend/app.py
+        Prereq: Server must be running"""
+        url = BACKEND_URL_BASE + 'cr-hierarchy'
+        response = requests.get(url=url, params={
+            'codeset_ids': '400614256|87065556'
+        }).json()
+        # TODO: test response['selected_csets']
+
+    def test_cr_hierarchy_researchers(self):
+        """Copied from test_csets_update()
+        Test backend: cr_hierarchy, defined in backend/app.py
+        Prereq: Server must be running"""
+        url = BACKEND_URL_BASE + 'cr-hierarchy'
+        response = requests.get(url=url, params={
+            'codeset_ids': '400614256|87065556'
+        }).json()
+        # TODO: test response['researchers']
+
+    def test_cr_hierarchy_cset_members_items(self):
+        """Copied from test_csets_update()
+        Test backend: cr_hierarchy, defined in backend/app.py
+        Prereq: Server must be running"""
+        url = BACKEND_URL_BASE + 'cr-hierarchy'
+        response = requests.get(url=url, params={
+            'codeset_ids': '400614256|87065556'
+        }).json()
+        # TODO: test response['cset_members_items']
+
+    def test_cr_hierarchy_hierarchy(self):
+        """Copied from test_csets_update()
+        Test backend: cr_hierarchy, defined in backend/app.py
+        Prereq: Server must be running"""
+        url = BACKEND_URL_BASE + 'cr-hierarchy'
+        response = requests.get(url=url, params={
+            'codeset_ids': '400614256|87065556'
+        }).json()
+        # TODO: test response['hierarchy']
+
+    def test_cr_hierarchy_concepts(self):
+        """Copied from test_csets_update()
+        Test backend: cr_hierarchy, defined in backend/app.py
+        Prereq: Server must be running"""
+        url = BACKEND_URL_BASE + 'cr-hierarchy'
+        response = requests.get(url=url, params={
+            'codeset_ids': '400614256|87065556'
+        }).json()
+        # TODO: test response['concepts']
+
+    def test_cr_hierarchy_data_counts(self):
+        """Copied from test_csets_update()
+        Test backend: cr_hierarchy, defined in backend/app.py
+        Prereq: Server must be running"""
+        url = BACKEND_URL_BASE + 'cr-hierarchy'
+        response = requests.get(url=url, params={
+            'codeset_ids': '400614256|87065556'
+        }).json()
+        self.assertEqual(len(response['data_counts']), 0)
+
 
 # Uncomment this and run this file directly to run all tests
 # if __name__ == '__main__':
