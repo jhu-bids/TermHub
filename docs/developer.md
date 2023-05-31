@@ -128,3 +128,19 @@ accessing the machine that manages deployments. "SSH" is for accessing the machi
 It may be that the app has run out of memory. In https://portal.azure.com there is a way to check memory usage. If it 
 looks like it's maxed and/or of the logs say something about no memory, try increasing the memory to see if that solves.
  If the memory must be increased, let a BIDS administrator (e.g. Tricia) know.
+
+### Versioning
+#### Semantic versioning
+TermHub uses [semver (semantic versioning)](https://semver.org/). That is, Given a version number `MAJOR.MINOR.PATCH`, 
+increment the:
+- `MAJOR` version when making incompatible API changes
+- `MINOR` version when adding functionality in a backward compatible manner
+- `PATCH` version when making backward compatible bug fixes
+
+For example, if we add a new feature or make an update to an existing UI / user facing feature, but don't change 
+anything that breaks functionality for users or systems that depend on TermHub, that would be a `MINOR` version update. 
+So if the version was 1.10.2 before, it would be 1.11.0 after.
+
+#### How to do a version update
+1. Update the version in `frontend/src/version.js`
+2. Tag the version in GitHub: `git tag VERSION; git push --tags`
