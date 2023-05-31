@@ -247,7 +247,7 @@ def cli():
 
     d: Dict = vars(parser.parse_args())
     if d['counts_update']:
-        note = d['note'].strip()
+        note = d['note'].strip() if d['note'] else None
         if not note:
             print('Error: Must provide a --note when using --counts-update.', file=sys.stderr)
         else:

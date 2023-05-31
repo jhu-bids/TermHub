@@ -9,32 +9,32 @@ ANALYSIS_SCRIPT = 'backend/db/analysis.py'
 
 # counts-compare-schemas: Checks counts of database tables for the current 'n3c' schema and its most recent backup.
 counts-compare-schemas:
-	@python3 $(ANALYSIS_SCRIPT) --counts-compare-schemas
+	@python $(ANALYSIS_SCRIPT) --counts-compare-schemas
 
 # counts-table: View counts row counts over time for the 'n3c' schema.
 counts-table:
-	@python3 $(ANALYSIS_SCRIPT) --counts-over-time
+	@python $(ANALYSIS_SCRIPT) --counts-over-time
 
 # deltas-table: View row count detlas over time for the 'n3c' schema.
 deltas-table:
-	@python3 $(ANALYSIS_SCRIPT) --deltas-over-time
+	@python $(ANALYSIS_SCRIPT) --deltas-over-time
 
 # counts-docs: Runs --counts-over-time and --deltas-over-time and puts in documentation: docs/backend/db/analysis.md.
 counts-docs:
-	@python3 $(ANALYSIS_SCRIPT) --counts-docs
+	@python $(ANALYSIS_SCRIPT) --counts-docs
 
 # todo
 #deltas-viz:
-#	@python3 $(ANALYSIS_SCRIPT) --counts-over-time save_delta_viz
+#	@python $(ANALYSIS_SCRIPT) --counts-over-time save_delta_viz
 #counts-viz:
-#	@python3 $(ANALYSIS_SCRIPT) --counts-over-time save_counts_viz
+#	@python $(ANALYSIS_SCRIPT) --counts-over-time save_counts_viz
 
 # counts-update: Update 'counts' table with current row counts for the 'n3c' schema. Adds note to the 'counts-runs' table.
 counts-update:
-	@python3 $(ANALYSIS_SCRIPT) --counts-update
+	@python $(ANALYSIS_SCRIPT) --counts-update
 
 counts-help:
-	@python3 $(ANALYSIS_SCRIPT) --help
+	@python $(ANALYSIS_SCRIPT) --help
 
 # Codestyle, linters, and testing
 # - Code & Style Linters
@@ -43,7 +43,7 @@ lint: lintsrc codesrc docsrc
 linters_all: doc code lintall
 
 # Pylint Only
-PYLINT_BASE =python3 -m pylint --output-format=colorized --reports=n
+PYLINT_BASE =python -m pylint --output-format=colorized --reports=n
 lintall: lintsrc linttest
 lintsrc:
 	${PYLINT_BASE} ${SRC}
@@ -51,7 +51,7 @@ linttest:
 	${PYLINT_BASE} test/
 
 # PyCodeStyle Only
-PYCODESTYLE_BASE=python3 -m pycodestyle
+PYCODESTYLE_BASE=python -m pycodestyle
 codestyle: codestylesrc codestyletest
 codesrc: codestylesrc
 codetest: codestyletest
@@ -62,7 +62,7 @@ codestyletest:
 	 ${PYCODESTYLE_BASE} test/
 
 # PyDocStyle Only
-PYDOCSTYLE_BASE=python3 -m pydocstyle
+PYDOCSTYLE_BASE=python -m pydocstyle
 docstyle: docstylesrc docstyletest
 docsrc: docstylesrc
 doctest: docstyletest
@@ -78,9 +78,9 @@ doc: docstyle
 
 # Testing
 test:
-	python3 -m unittest discover -v
+	python -m unittest discover -v
 testdoc:
-	python3 -m test.test --doctests-only
+	python -m test.test --doctests-only
 testall: test testdoc
 
 # Serve
