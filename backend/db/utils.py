@@ -161,8 +161,9 @@ def sql_count(con: Connection, table: str) -> int:
 
 
 def sql_in(lst: List, quote_items=False) -> str:
-    """Construct SQL 'IN' statement."""
+    """Construct SQL 'IN' expression."""
     if quote_items:
+        lst = [str(x).replace("'", "''") for x in lst]
         s: str = ', '.join([f"'{x}'" for x in lst]) or 'NULL'
     else:
         s: str = ', '.join([str(x) for x in lst]) or 'NULL'
