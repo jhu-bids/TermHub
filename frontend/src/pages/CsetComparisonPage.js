@@ -186,16 +186,23 @@ export function getRowData(props) {
     cset_members_items = [],
   } = cset_data;
 
+  // const groupedByTarget = supergroup(edges, 1);
+  // let stratEdges = groupedByTarget.map(g => ({id: g+'', parentIds: g.records.map(r => r[0]+'')}));
   const connect = d3dag.dagConnect();
   const dag = connect(edges);
   dag.depth();
   const nodes = dag.descendants('depth');
+  let nodeLookup = {};
+  for (let n of nodes) {
+    nodeLookup[n.data.id] = 1;
+  }
+  const missingConcepts = concepts.filter(c => nodeLookup[c.concept_id]);
   const rows = nodes.map(n => {
     let row = conceptLookup[n.data.id];
     row.level = n.value;
     return row;
   })
-  return rows;
+  return [...rows, ...missingConcepts];
 
   debugger;
 

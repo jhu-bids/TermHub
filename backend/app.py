@@ -112,27 +112,6 @@ def run(port: int = 8000):
 
 
 # Database functions ---------------------------------------------------------------------------------------------------
-def get_concept_set_member_ids(
-    codeset_ids: List[int], columns: Union[List[str], None] = None, column: Union[str, None] = None, con=CON
-) -> Union[List[int], List]:
-    """Get concept set members"""
-    if column:
-        columns = [column]
-    if not columns:
-        columns = ['codeset_id', 'concept_id']
-
-    # should check that column names are valid columns in concept_set_members
-    query = f"""
-        SELECT DISTINCT {', '.join(columns)}
-        FROM concept_set_members csm
-        WHERE csm.codeset_id {sql_in(codeset_ids)}
-    """
-    res: List = sql_query(con, query, debug=False)
-    if column:  # with single column, don't return List[Dict] but just List(<column>)
-        res: List[int] = [r[column] for r in res]
-    return res
-
-
 # TODO
 #  i. Keys in our old `get_csets` that are not there anymore:
 #   ['precision', 'status_container', 'concept_set_id', 'rid', 'selected', 'created_at_container', 'created_at_version'
@@ -221,12 +200,12 @@ def get_related_csets(
     timer = get_timer('   get_related_csets')
     verbose and timer('get_concept_set_member_ids')
     if codeset_ids and not selected_concept_ids:
-        selected_concept_ids = get_concept_set_member_ids(codeset_ids, column='concept_id')
+        selected_concept_ids = get_cset_members_items(codeset_ids, column='concept_id')
     verbose and timer('query concept_set_members')
-    query = """
+    query = f"""
     SELECT DISTINCT codeset_id
     FROM concept_set_members
-    WHERE concept_id = ANY(:concept_ids)
+    WHERE concept_id {sql_in(selected_concept_ids)}
     """
     related_codeset_ids = sql_query_single_col(con, query, {'concept_ids': selected_concept_ids}, )
     # if any selected codesets don't have concepts, they will be missing from query above
@@ -251,20 +230,51 @@ def get_related_csets(
     return related_csets
 
 
-def get_cset_members_items(codeset_ids: List[int] = None, con=CON) -> List:
+def get_cset_members_items(codeset_ids: List[int], columns: Union[List[str], None] = None,
+                           column: Union[str, None] = None, con=CON ) -> Union[List[int], List]:
     """Get concept set members items for selected concept sets
         returns:
         ...
         item: True if its an expression item, else false
         csm: false if not in concept set members
     """
-    return sql_query(
-        con, f"""
-        SELECT *
+    if column:
+        columns = [column]
+    if not columns:
+        columns = ['*']
+        # columns = ['codeset_id', 'concept_id']
+
+    # should check that column names are valid columns in concept_set_members
+    query = f"""
+        SELECT DISTINCT {', '.join(columns)}
         FROM cset_members_items
-        WHERE codeset_id = ANY(:codeset_ids)
-        """,
-        {'codeset_ids': codeset_ids})
+        WHERE codeset_id {sql_in(codeset_ids)}
+    """
+    res: List = sql_query(con, query, debug=False, return_with_keys=True)
+    if column:  # with single column, don't return List[Dict] but just List(<column>)
+        res: List[int] = [r[column] for r in res]
+    return res
+
+
+def get_concept_set_member_ids(
+    codeset_ids: List[int], columns: Union[List[str], None] = None, column: Union[str, None] = None, con=CON
+) -> Union[List[int], List]:
+    """Get concept set members"""
+    if column:
+        columns = [column]
+    if not columns:
+        columns = ['codeset_id', 'concept_id']
+
+    # should check that column names are valid columns in concept_set_members
+    query = f"""
+        SELECT DISTINCT {', '.join(columns)}
+        FROM concept_set_members csm
+        WHERE csm.codeset_id {sql_in(codeset_ids)}
+    """
+    res: List = sql_query(con, query, debug=False)
+    if column:  # with single column, don't return List[Dict] but just List(<column>)
+        res: List[int] = [r[column] for r in res]
+    return res
 
 
 def get_concept_relationships(cids: List[int], reltypes: List[str] = ['Subsumes'], con=CON) -> List:
@@ -488,14 +498,12 @@ def cr_hierarchy(include_atlas_json: bool = False, codeset_ids: Union[str, None]
     timer = get_timer('cr-hierarchy')
     verbose and timer('members items')
     codeset_ids: List[int] = parse_codeset_ids(codeset_ids)
-    concept_ids: List[int] = get_concept_set_member_ids(codeset_ids, column='concept_id')
+    # concept_ids: List[int] = get_concept_set_member_ids(codeset_ids, column='concept_id')
     cset_members_items = get_cset_members_items(codeset_ids)
+    concept_ids = set([i['concept_id'] for i in cset_members_items])
 
     # this was redundant
     # concept_ids = list(set([i['concept_id'] for i in cset_members_items]))
-
-    items = [mi for mi in cset_members_items if mi['item']]
-    item_concept_ids = list(set([i['concept_id'] for i in items]))
 
     verbose and timer('hierarchy')
     # hierarchy --------
@@ -503,24 +511,6 @@ def cr_hierarchy(include_atlas_json: bool = False, codeset_ids: Union[str, None]
     # nh = new_hierarchy(root_cids=item_concept_ids, cids=concept_ids)
     # h = hierarchy(selected_concept_ids=concept_ids)
     h = graph.hierarchy(concept_ids)
-
-
-    # TODO: Fix: concepts missing from hierarchy that shouldn't be:
-    # hh = json.dumps(h)
-    # hierarchy_concept_ids = [int(x) for x in re.findall(r'\d+', hh)]
-    # # diff for: http://127.0.0.1:8000/cr-hierarchy?rec_format=flat&codeset_ids=400614256|87065556
-    # #  {4218499, 4198296, 4215961, 4255399, 4255400, 4255401, 4147509, 252341, 36685758, 4247107, 4252356, 42536648,
-    # 4212441, 761062, 259055, 4235260}
-    # diff = set(cset_member_ids).difference(hierarchy_concept_ids)
-
-    # TODO: siggie was working on something here
-    # o = json.load(fp)['hierarchy']
-    # n = result['hierarchy']
-    # print(f"o.keys() == n.keys(): {set(o.keys()) == set(n.keys())}")
-    # for k,v in o.items():
-    #     if not v == n[k]:
-    #         print(k, o[k], n[k])
-    # --------- hierarchy
 
     verbose and timer('related csets')
     related_csets = get_related_csets(codeset_ids=codeset_ids, selected_concept_ids=concept_ids)
@@ -534,9 +524,9 @@ def cr_hierarchy(include_atlas_json: bool = False, codeset_ids: Union[str, None]
     researchers = get_researchers(researcher_ids)
     verbose and timer('concepts')
     edges = graph.subgraph(concept_ids)
-    concept_ids = set(concept_ids)
-    concept_ids.update([e[0] for e in edges])
-    concept_ids.update([e[1] for e in edges])
+
+    concept_ids.update([int(e[0]) for e in edges])
+    concept_ids.update([int(e[1]) for e in edges])
     concept_ids = list(concept_ids)
     concepts = [dict(c) for c in get_concepts(concept_ids)]
     # for c in concepts:
