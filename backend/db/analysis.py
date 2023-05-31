@@ -249,7 +249,7 @@ def cli():
     if d['counts_update']:
         note = d['note'].strip() if d['note'] else None
         if not note:
-            print('Error: Must provide a --note when using --counts-update.', file=sys.stderr)
+            note = input("Please provide a note: ")
         else:
             counts_update(note, d['schema'])
     elif d['counts_compare_schemas']:
