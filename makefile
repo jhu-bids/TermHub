@@ -30,14 +30,8 @@ counts-docs:
 #	@python3 $(ANALYSIS_SCRIPT) --counts-over-time save_counts_viz
 
 # counts-update: Update 'counts' table with current row counts for the 'n3c' schema. Adds note to the 'counts-runs' table.
-ifeq (counts-update,$(firstword $(MAKECMDGOALS)))
-  # use the rest as arguments for "counts-updates"
-  COUNTS_UPDATE_ARGS := $(wordlist 2,$(words $(MAKECMDGOALS)),$(MAKECMDGOALS))
-  # ...and turn them into do-nothing targets
-  $(eval $(COUNTS_UPDATE_ARGS):;@:)
-endif
 counts-update:
-	@python3 $(ANALYSIS_SCRIPT) --counts-update --note "$(COUNTS_UPDATE_ARGS)"
+	@python3 $(ANALYSIS_SCRIPT) --counts-update
 
 counts-help:
 	@python3 $(ANALYSIS_SCRIPT) --help

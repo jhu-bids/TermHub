@@ -24,6 +24,7 @@ import ListItemButton from "@mui/material/ListItemButton";
 import { styled, useTheme } from "@mui/material/styles";
 import ListItemText from "@mui/material/ListItemText";
 import { cloneDeep } from "lodash";
+import VERSION from "../version";
 
 const drawerWidth = 240;
 
@@ -361,7 +362,7 @@ export default function MuiAppBar(props) {
               color: "inherit",
             }}
           >
-            v0.1
+            v{ VERSION }
           </Typography>
 
           {hamburgerMenu}
