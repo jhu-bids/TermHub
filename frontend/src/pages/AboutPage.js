@@ -9,6 +9,7 @@ import Button from "@mui/material/Button";
 import { TextField, } from "@mui/material";
 import { Link } from "react-router-dom";
 import VERSION from "../version";
+import axios from 'axios'
 
 // import * as po from './Popover';
 
@@ -64,6 +65,19 @@ let LI = (props) => (
   </li>
 );
 let DOCS = {};
+
+const handleClick = async () => {
+  try {
+    await axiosPost('db-refresh');
+    console.log('Empty request sent');
+  } catch (error) {
+    console.error('Error:', error);
+  }
+};
+
+const axiosPost = (url) => {
+  return axios.post(url);
+};
 
 function AboutPage(props) {
   // const {codeset_ids=[], all_csets=[], cset_data={}} = props;
@@ -144,7 +158,16 @@ function AboutPage(props) {
         >
           /OMOPConceptSets?{codeset_ids.map(d => `codeset_ids=${d}`).join("&")}
         </Button>
-      <TextH2>How to make changes to a codeset (via Atlas JSON)</TextH2>
+      <TextH2>Database Refresh</TextH2>
+      <TextBody>
+      <Button variant={"contained"}
+              onClick={handleClick}
+            >
+              Refresh
+            </Button>
+      </TextBody>
+
+      <TextH1>How to make changes to a codeset (via Atlas JSON)</TextH1>
       {/*todo: resolve console warnings: <ul>/<ol> cannot appear as a descendant of <p>.
             https://mui.com/material-ui/api/typography/*/}
       <ol>
@@ -364,6 +387,8 @@ function howToSaveStagedChanges(params) {
   );
 }
 
+
+
 /*
 function HelpWidget(props) {
   const {doc} = props;
@@ -435,4 +460,6 @@ export {
   TextH1,
   LI,
   howToSaveStagedChanges /*HelpWidget, HelpButton,*/,
+  axiosPost,
+  handleClick
 };
