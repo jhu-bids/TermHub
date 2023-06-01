@@ -384,6 +384,11 @@ def _cset_members_items(codeset_ids: Union[str, None] = Query(default=''), ) -> 
     codeset_ids: List[int] = parse_codeset_ids(codeset_ids)
     return get_cset_members_items(codeset_ids)
 
+@APP.get("/db-refresh")
+def db_refresh_route():
+    print("to be implemented")
+
+
 
 # TODO: if using this at all, fix it to use graph.hierarchy, which doesn't need root_cids
 # @APP.get("/hierarchy")
