@@ -82,7 +82,7 @@ def dump(o):
 
 
 def pdump(o):
-    """Prent pretty printed json"""
+    """Print pretty printed json"""
     print(dump(o))
 
 

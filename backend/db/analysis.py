@@ -182,6 +182,7 @@ def counts_over_time(
         date_count[date] = count
         new_cols.append(date + " " + str(count) if count > 1 else date)
     df.columns = new_cols
+    df = df.iloc[:, ::-1]
 
     # Print / save
     if method == 'save_delta_viz':
