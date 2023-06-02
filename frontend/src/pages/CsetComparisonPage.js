@@ -56,7 +56,7 @@ function CsetComparisonPage(props) {
   const boxRef = useRef();
   const sizes = getSizes(/*squishTo*/ 1);
   const customStyles = styles(sizes);
-  const {collapsed, nested, hideRxNormExtension} = hierarchySettings;
+  const {collapsed, nested, hideRxNormExtension, hideZeroCounts} = hierarchySettings;
 
   // console.log(EDGES);
 
@@ -177,13 +177,8 @@ export function getRowData(props) {
   // when I put this provider up at the App level, it didn't update
   //    but at the CsetComparisonPage level it did. don't know why
   const { cset_data, collapsed } = props;
-  const {
-    hierarchy = {},
-    edges = [],
-    selected_csets = [],
-    concepts = [],
-    conceptLookup = {},
-    cset_members_items = [],
+  const { edges = [], concepts = [], conceptLookup = {},
+    // hierarchy = {}, selected_csets = [], cset_members_items = [],
   } = cset_data;
 
   // const groupedByTarget = supergroup(edges, 1);
@@ -196,16 +191,15 @@ export function getRowData(props) {
   for (let n of nodes) {
     nodeLookup[n.data.id] = 1;
   }
-  const missingConcepts = concepts.filter(c => nodeLookup[c.concept_id]);
+  const missingConcepts = concepts.filter(c => !nodeLookup[c.concept_id]);
   const rows = nodes.map(n => {
     let row = conceptLookup[n.data.id];
     row.level = n.value;
     return row;
   })
   return [...rows, ...missingConcepts];
-
+  /*
   debugger;
-
   const rowData = makeHierarchyRows({
                                       concepts,
                                       selected_csets,
@@ -214,6 +208,7 @@ export function getRowData(props) {
                                       collapsed,
                                     });
   return rowData;
+   */
 }
 function ComparisonDataTable(props) {
   const {

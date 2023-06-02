@@ -162,6 +162,8 @@ export function AppStateProvider({ children }) {
     hierarchySettings: useReducer(hierarchySettingsReducer, {
       nested: true,
       collapsed: {},
+      hideRxNormExtension: true,
+      hideZeroCounts: false,
     }),
   };
 
@@ -232,6 +234,9 @@ function hierarchySettingsReducer(state, action) {
     }
     case "hideRxNormExtension": {
       return { ...state, hideRxNormExtension: action.hideRxNormExtension}
+    }
+    case "zeroCounts": {
+      return { ...state, zeroCounts: action.zeroCounts}
     }
     default:
       return state;
