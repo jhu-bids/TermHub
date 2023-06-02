@@ -232,6 +232,36 @@ class TestBackend(unittest.TestCase):
                              )
                          ]
                          )
+        #Testing a relationship where a common ancestor is needed to connect the graph
+        edges3 = subgraph([4027255, 43530856, 4024552, 316139, 45766164, 43530961])
+        self.assertEqual(edges3,
+                         [
+                             (
+                                 "4024552",
+                                 "316139"
+                             ),
+                             (
+                                 "316139",
+                                 "43530961"
+                             ),
+                             (
+                                 "316139",
+                                 "45766164"
+                             ),
+                             (
+                                 "321588",
+                                 "4024552"
+                             ),
+                             (
+                                 "321588",
+                                 "4027255"
+                             ),
+                             (
+                                 "4027255",
+                                 "43530856"
+                             )
+                         ]
+                         )
             
 # Uncomment this and run this file directly to run all tests
 if __name__ == '__main__':
