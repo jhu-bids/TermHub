@@ -66,7 +66,7 @@ let LI = (props) => (
 );
 let DOCS = {};
 
-const handleClick = async () => {
+const handleRefresh = async () => {
   try {
     await axiosPost('db-refresh');
     console.log('Empty request sent');
@@ -161,7 +161,7 @@ function AboutPage(props) {
       <TextH2>Database Refresh</TextH2>
       <TextBody>
       <Button variant={"contained"}
-              onClick={handleClick}
+              onClick={handleRefresh}
             >
               Refresh
             </Button>
@@ -459,7 +459,5 @@ export {
   TextH2,
   TextH1,
   LI,
-  howToSaveStagedChanges /*HelpWidget, HelpButton,*/,
-  axiosPost,
-  handleClick
+  howToSaveStagedChanges /*HelpWidget, HelpButton,*/
 };
