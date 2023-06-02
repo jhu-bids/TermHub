@@ -14,7 +14,7 @@ import Button from "@mui/material/Button";
 import Typography from "@mui/material/Typography";
 import Draggable from "react-draggable";
 // import {Checkbox} from "@mui/material";
-import { isEmpty, get, throttle, pullAt } from "lodash"; // set, map, omit, pick, uniq, reduce, cloneDeepWith, isEqual, uniqWith, groupBy,
+import { isEmpty, get, throttle, max } from "lodash"; // set, map, omit, pick, uniq, reduce, cloneDeepWith, isEqual, uniqWith, groupBy,
 import {
   useStateSlice,
   hierarchyToFlatCids,
@@ -449,8 +449,15 @@ function colConfig(props) {
         tooltipContent:
           "Approximate distinct person count. Small counts rounded up to 20.",
       },
-      selector: (row) => parseInt(row.distinct_person_cnt),
-      format: (row) => fmt(row.distinct_person_cnt),
+      selector: (row) => {
+        // can be comma=separated list if pt cnts in more than one domain
+        const cnts = row.distinct_person_cnt.split(',').map(n => parseInt(n));
+        return max(cnts);
+      },
+      format: (row) => {
+        const cnts = row.distinct_person_cnt.split(',').map(n => parseInt(n));
+        return fmt(max(cnts));
+      },
       sortable: !nested,
       right: true,
       width: 80,
