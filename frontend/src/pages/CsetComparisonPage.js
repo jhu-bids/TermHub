@@ -4,6 +4,7 @@ import React, {
   useCallback,
   useEffect /* useMemo, useReducer, */,
 } from "react";
+import * as d3dag from "d3-dag";
 // import { createSearchParams, useSearchParams, } from "react-router-dom";
 import DataTable, { createTheme } from "react-data-table-component";
 import { AddCircle, RemoveCircleOutline } from "@mui/icons-material";
@@ -55,7 +56,7 @@ function CsetComparisonPage(props) {
   const boxRef = useRef();
   const sizes = getSizes(/*squishTo*/ 1);
   const customStyles = styles(sizes);
-  const {collapsed, nested} = hierarchySettings;
+  const {collapsed, nested, hideRxNormExtension} = hierarchySettings;
 
   // console.log(EDGES);
 
@@ -178,10 +179,32 @@ export function getRowData(props) {
   const { cset_data, collapsed } = props;
   const {
     hierarchy = {},
+    edges = [],
     selected_csets = [],
     concepts = [],
+    conceptLookup = {},
     cset_members_items = [],
   } = cset_data;
+
+  // const groupedByTarget = supergroup(edges, 1);
+  // let stratEdges = groupedByTarget.map(g => ({id: g+'', parentIds: g.records.map(r => r[0]+'')}));
+  const connect = d3dag.dagConnect();
+  const dag = connect(edges);
+  dag.depth();
+  const nodes = dag.descendants('depth');
+  let nodeLookup = {};
+  for (let n of nodes) {
+    nodeLookup[n.data.id] = 1;
+  }
+  const missingConcepts = concepts.filter(c => nodeLookup[c.concept_id]);
+  const rows = nodes.map(n => {
+    let row = conceptLookup[n.data.id];
+    row.level = n.value;
+    return row;
+  })
+  return [...rows, ...missingConcepts];
+
+  debugger;
 
   const rowData = makeHierarchyRows({
                                       concepts,
@@ -449,7 +472,9 @@ function colConfig(props) {
                 <span>Records</span>
             </Tooltip>, */
       selector: (row) => row.total_cnt,
-      format: (row) => fmt(row.total_cnt),
+      format: (row) => {
+        return fmt(row.total_cnt)
+      },
       sortable: !nested,
       right: true,
       width: 80,

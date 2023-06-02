@@ -3,10 +3,8 @@ import {dataAccessor} from "./State";
 import _ from "../supergroup/supergroup";
 import * as d3Base from "d3";
 import * as d3dag from "d3-dag";
-// import _EDGES from '../data/wholegraph.json';
-// export const EDGES = _EDGES;
-
-//const EDGES = require('../../wholegraph.json');
+import Graph from "graphology";
+import {uniq, flatten} from "lodash";
 
 const d3 = Object.assign({}, d3Base, d3dag);
 
@@ -318,9 +316,27 @@ export function ConceptGraph(props) {
   // }
   // return <pre>{JSON.stringify(concept_ids)}</pre>;
 }
-function graphWidth(dag) {
+
+
+const descendantsCnt = d => d.descendants().length;
+
+export function orderedHierarchy(edges) {
+  const connect = d3dag.dagConnect();
+  const dag = connect(edges);
+  const oh = orderedDescendants(dag.roots());
+  return oh;
+}
+function orderedDescendants(nodes) {
+  let od = {};
+  const nodeList = _.sortBy(nodes, descendantsCnt);
+  for (const node of nodeList) {
+    od[node.data.id] = orderedDescendants(node.children());
+  }
+  return od;
+}
+function graphWidth(dag) {  // this is not doing what I thought (i think -- i don't remember what I thought)
   return _.max(Object.values(
-      _.groupBy(dag.descendants('breadth').map(d => d.value))
+      _.groupBy(dag.descendants('breadth').map(d => d.value)) // this is all undefined
   ).map(d => d.length))
 }
 function graphHeight(dag) {
@@ -333,6 +349,19 @@ function drawGraph(svg, edges, doc_height, doc_width) {
   //     "obj": "N3C:36684328",       // parent
   //     "meta": null
   //   },
+  const N = uniq(flatten(edges));
+  const G = new Graph();
+  const Gu = new Graph();
+  for (const n of N) {
+    G.addNode(n);
+    Gu.addNode(n);
+  }
+  for (const e of edges) {
+    G.addEdge(...e);
+    Gu.addUndirectedEdge(...e);
+  }
+  debugger;
+
   const connect = d3dag.dagConnect();
   const dag = connect(edges);
   const graphs = dag.split();
