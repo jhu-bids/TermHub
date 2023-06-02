@@ -202,6 +202,36 @@ class TestBackend(unittest.TestCase):
                                  "19122186"
                              )
                          ])
+        #Test for a more complex hierarchial relationship
+        edges3 = subgraph([321588,4027255,43530856,4024552,316139,45766164,43530961])
+        self.assertEqual(edges3,
+                         [
+                             (
+                                 "4024552",
+                                 "316139"
+                             ),
+                             (
+                                 "316139",
+                                 "43530961"
+                             ),
+                             (
+                                 "316139",
+                                 "45766164"
+                             ),
+                             (
+                                 "321588",
+                                 "4024552"
+                             ),
+                             (
+                                 "321588",
+                                 "4027255"
+                             ),
+                             (
+                                 "4027255",
+                                 "43530856"
+                             )
+                         ]
+                         )
             
 # Uncomment this and run this file directly to run all tests
 if __name__ == '__main__':
