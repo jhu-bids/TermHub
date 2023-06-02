@@ -173,8 +173,9 @@ class TestBackend(unittest.TestCase):
 
     def test_subgraph(self):
         "tests subgraphs"
-        edges = subgraph([1738170, 1738171, 1738202, 1738203])
-        self.assertEqual(edges, [
+        #Basic unit test for a simple connected graph without a complex hierarchy
+        edges1 = subgraph([1738170, 1738171, 1738202, 1738203])
+        self.assertEqual(edges1, [
             (
                 "1738170",
                 "1738171"
@@ -188,6 +189,19 @@ class TestBackend(unittest.TestCase):
                 "1738203"
             )
         ])
+        #Test for a concept set that files in the gaps (i.e between child and grandparent)
+        edges2 = subgraph([1738170,19122186])
+        self.assertEqual(edges2,
+                         [
+                             (
+                                 "1738170",
+                                 "1738203"
+                             ),
+                             (
+                                 "1738203",
+                                 "19122186"
+                             )
+                         ])
             
 # Uncomment this and run this file directly to run all tests
 if __name__ == '__main__':
