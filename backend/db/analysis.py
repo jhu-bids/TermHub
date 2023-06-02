@@ -123,14 +123,13 @@ def counts_compare_schemas(
 
 def counts_update(note: str, schema: str = SCHEMA, local=False):
     """Update 'counts' table with current row counts.
-
     :param note: For context around what was going on around when / why the counts are updated, e.g. after a backup or
     a data fetch from the enclave, or after editing a batch of concept sets.
     """
     dt = datetime.now()
     with get_db_connection(schema='', local=local) as con:
         # Save run metadata, e.g. a note about it
-        insert_from_dict(con, 'counts_runs', {
+        insert_from_dict(con, 'public.counts_runs', {
             'timestamp': str(dt),
             'date': dt.strftime('%Y-%m-%d'),
             'schema': schema,
@@ -231,9 +230,6 @@ def cli():
         '-u', '--counts-update', action='store_true',
         help="Update 'counts' table with current row counts for the 'n3c' schema.")
     parser.add_argument(
-        '-n', '--note',
-        help="Only used with `--counts-update`. Add a note to the 'counts-runs' table.")
-    parser.add_argument(
         '-S', '--schema', default=SCHEMA,
         help="Only used with `--counts-update` and --counts-compare-schemas. Selects which schema's tables to count.")
     # --counts-compare-schemas and its args
@@ -248,11 +244,10 @@ def cli():
 
     d: Dict = vars(parser.parse_args())
     if d['counts_update']:
-        note = d['note'].strip() if d['note'] else None
+        note = input("Please provide a note: ").strip()
         if not note:
-            print('Error: Must provide a --note when using --counts-update.', file=sys.stderr)
-        else:
-            counts_update(note, d['schema'])
+            raise ValueError('Must provide a note when using --counts-update.')
+        counts_update(note, d['schema'])
     elif d['counts_compare_schemas']:
         counts_compare_schemas(d['schema_to_compare'], d['schema'])
     elif d['counts_over_time']:
