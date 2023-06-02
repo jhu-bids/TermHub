@@ -56,7 +56,7 @@ function CsetComparisonPage(props) {
   const boxRef = useRef();
   const sizes = getSizes(/*squishTo*/ 1);
   const customStyles = styles(sizes);
-  const {collapsed, nested} = hierarchySettings;
+  const {collapsed, nested, hideRxNormExtension} = hierarchySettings;
 
   // console.log(EDGES);
 
