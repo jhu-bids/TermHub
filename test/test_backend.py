@@ -170,7 +170,18 @@ class TestBackend(unittest.TestCase):
                     # Part 2: all other row counts should be non-zero
                     self.assertGreater(df[col][row], 0, msg=f"Table '{row}' had 0 rows in run '{col}'")
 
-
+    def test_subgraph(self):
+        "tests subgraphs"
+        ids = [1738170, 1738171, 1738202, 1738203]
+        edges = subgraph(ids)
+        #Part 1: Test that the edge list is the right size
+        self.assertEqual(len(ids)-1,len(edges))
+        #Part 2: Test the edges have the right valus
+        for i in range(len(ids)-1):
+            self.assertEqual(edges[i][0],ids[i])
+        for i in range(1,len(ids)):
+            self.assertEqual(edges[i-1][1],ids[i])
+            
 # Uncomment this and run this file directly to run all tests
-# if __name__ == '__main__':
+#if __name__ == '__main__':
 #     unittest.main()
