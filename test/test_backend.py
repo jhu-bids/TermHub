@@ -20,6 +20,7 @@ TEST_DIR = os.path.dirname(__file__)
 PROJECT_ROOT = Path(TEST_DIR).parent
 sys.path.insert(0, str(PROJECT_ROOT))
 from backend.db.analysis import counts_compare_schemas, counts_over_time
+from backend.routes.graph import subgraph
 
 TEST_DIR = os.path.dirname(__file__)
 BACKEND_URL_BASE = 'http://127.0.0.1:8000/'
@@ -172,16 +173,23 @@ class TestBackend(unittest.TestCase):
 
     def test_subgraph(self):
         "tests subgraphs"
-        ids = [1738170, 1738171, 1738202, 1738203]
-        edges = subgraph(ids)
-        #Part 1: Test that the edge list is the right size
-        self.assertEqual(len(ids)-1,len(edges))
-        #Part 2: Test the edges have the right valus
-        for i in range(len(ids)-1):
-            self.assertEqual(edges[i][0],ids[i])
-        for i in range(1,len(ids)):
-            self.assertEqual(edges[i-1][1],ids[i])
+        edges = subgraph([1738170, 1738171, 1738202, 1738203])
+        self.assertEqual(edges, [
+            (
+                "1738170",
+                "1738171"
+            ),
+            (
+                "1738170",
+                "1738202"
+            ),
+            (
+                "1738170",
+                "1738203"
+            )
+        ])
             
 # Uncomment this and run this file directly to run all tests
-#if __name__ == '__main__':
+if __name__ == '__main__':
+    test_subgraph()
 #     unittest.main()
