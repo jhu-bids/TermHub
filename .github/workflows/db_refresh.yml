@@ -40,16 +40,11 @@ jobs:
           source venv/bin/activate
 
       - name: Install dependencies
-        run: |
+        run: | 
           python -m pip install --upgrade pip
           pip install --upgrade wheel
           pip install --upgrade setuptools
           pip install -r requirements.txt
-
-      - name: Submodules
-        run: |
-          git submodule init
-          git submodule update
 
       - name: Refresh db
         run: |
