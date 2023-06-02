@@ -31,7 +31,7 @@ import {
   persistQueryClient,
   removeOldestQuery,
 } from "@tanstack/react-query-persist-client";
-// import { ReactQueryDevtools } from '@tanstack/react-query-devtools'
+import { ReactQueryDevtools } from '@tanstack/react-query-devtools'
 // import { createSyncStoragePersister } from '@tanstack/query-sync-storage-persister'
 
 import useMeasure from "react-use/lib";
@@ -120,7 +120,7 @@ function QCProvider() {
     <QueryClientProvider client={queryClient}>
       <AppStateProvider>
         <QueryStringStateMgr />
-        {/*<ReactQueryDevtools initialIsOpen={false} />*/}
+        <ReactQueryDevtools initialIsOpen={false} />
       </AppStateProvider>
     </QueryClientProvider>
     // </React.StrictMode>
