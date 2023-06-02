@@ -235,8 +235,8 @@ function hierarchySettingsReducer(state, action) {
     case "hideRxNormExtension": {
       return { ...state, hideRxNormExtension: action.hideRxNormExtension}
     }
-    case "zeroCounts": {
-      return { ...state, zeroCounts: action.zeroCounts}
+    case "hideZeroCounts": {
+      return { ...state, hideZeroCounts: action.hideZeroCounts}
     }
     default:
       return state;
