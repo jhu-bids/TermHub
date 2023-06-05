@@ -77,7 +77,8 @@ export const queryClient = new QueryClient({
       refetchOnmount: false,
       refetchOnReconnect: false,
       retry: false,
-      staleTime: Infinity,
+      // staleTime: Infinity,
+      staleTime: 1000 * 60 * 60 * 24, // 24 hours
     },
   },
 });
@@ -90,7 +91,8 @@ const persister = createSyncStoragePersister({
 persistQueryClient({
   queryClient,
   persister,
-  maxAge: Infinity,
+  // maxAge: Infinity,
+  maxAge: 1000 * 60 * 60 * 24, // 24 hours
   buster: '',
   hydrateOptions: undefined,
   dehydrateOptions: undefined,
@@ -127,7 +129,8 @@ function QCProvider() {
     <QueryClientProvider client={queryClient}
                          persistOptions={{
                            persister,
-                           maxAge: Infinity,
+                           // maxAge: Infinity,
+                           maxAge: 1000 * 60 * 60 * 24, // 24 hours
                            serialize: data => compress(JSON.stringify(data)),
                            deserialize: data => JSON.parse(decompress(data)),
                          }}
