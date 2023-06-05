@@ -26,9 +26,13 @@ import {
   QueryClientProvider,
 } from "@tanstack/react-query";
 import { keyBy, isEmpty } from "lodash";
-import { createWebStoragePersistor } from "react-query/createWebStoragePersistor-experimental";
+// import { createWebStoragePersistor } from "react-query/createWebStoragePersistor-experimental";
+import { persistQueryClient } from '@tanstack/react-query-persist-client'
+import { createSyncStoragePersister } from '@tanstack/query-sync-storage-persister'
+import { compress, decompress } from 'lz-string';
+
+
 import {
-  persistQueryClient,
   removeOldestQuery,
 } from "@tanstack/react-query-persist-client";
 import { ReactQueryDevtools } from '@tanstack/react-query-devtools'
@@ -78,17 +82,20 @@ export const queryClient = new QueryClient({
   },
 });
 
-// const localStoragePersister = createSyncStoragePersister({ storage: window.localStorage })
-const localStoragePersister = createWebStoragePersistor({
+const persister = createSyncStoragePersister({
   storage: window.localStorage,
+  serialize: data => compress(JSON.stringify(data)),
+  deserialize: data => JSON.parse(decompress(data)),
 });
-
 persistQueryClient({
   queryClient,
-  persister: localStoragePersister,
-  retry: removeOldestQuery,
+  persister,
   maxAge: Infinity,
+  buster: '',
+  hydrateOptions: undefined,
+  dehydrateOptions: undefined,
 });
+
 /*
   TODO: I've got some bad state stuff going on. Maybe violating this principle:
   For example, one rule is that you should not mutate an existing state object or ref object. Doing so
@@ -117,7 +124,14 @@ function QCProvider() {
     // <React.StrictMode>
     // {/* StrictMode helps assure code goodness by running everything twice, but it's annoying*/}
     //   {" "}
-    <QueryClientProvider client={queryClient}>
+    <QueryClientProvider client={queryClient}
+                         persistOptions={{
+                           persister,
+                           maxAge: Infinity,
+                           serialize: data => compress(JSON.stringify(data)),
+                           deserialize: data => JSON.parse(decompress(data)),
+                         }}
+    >
       <AppStateProvider>
         <QueryStringStateMgr />
         <ReactQueryDevtools initialIsOpen={false} />
