@@ -50,7 +50,7 @@ import {
   searchParamsToObj,
   updateSearchParams,
   backend_url,
-  useDataWidget,
+  useDataWidget, dataAccessor,
 } from "./components/State";
 import { UploadCsvPage } from "./components/UploadCsv";
 import { DownloadJSON } from "./components/DownloadJSON";
@@ -243,7 +243,13 @@ function DataContainer(props) {
   // const concept_relationships = crprops.data;
 
   if (all_csets && cset_data /*&& concept_relationships*/) {
+    dataAccessor.cache.edges = cset_data.edges
+    for (let i in cset_data.concepts) {
+      dataAccessor.cache.concepts[cset_data.concepts[i].concept_id] = cset_data.concepts[i];
+    }
+
     cset_data.conceptLookup = keyBy(cset_data.concepts, "concept_id");
+    dataAccessor.cache.conceptLookup = cset_data.conceptLookup;
     const csmiLookup = {};
     // cset_data.cset_members_items.map(mi => set(csmiLookup, [mi.codeset_id, mi.concept_id], mi));
     // the line above created the most bizarre crashing behavior -- fixed by replacing the lodash set with simple loop below

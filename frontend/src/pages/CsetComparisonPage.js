@@ -16,6 +16,7 @@ import {
   useStateSlice,
   hierarchyToFlatCids,
   makeHierarchyRows,
+  dataAccessor
 } from "../components/State";
 import { fmt, useWindowSize } from "../components/utils";
 import { setColDefDimensions } from "../components/dataTableUtils";
@@ -180,11 +181,17 @@ export function getRowData(props) {
   // when I put this provider up at the App level, it didn't update
   //    but at the CsetComparisonPage level it did. don't know why
   console.log("getting row data");
-  const { cset_data, hierarchySettings } = props;
+  const { /* cset_data, */ hierarchySettings } = props;
   const {collapsed, nested, hideZeroCounts, hideRxNormExtension} = hierarchySettings;
+  /*
   const { edges = [], concepts = [], conceptLookup = {},
     // hierarchy = {}, selected_csets = [], cset_members_items = [],
   } = cset_data;
+   */
+  const edges = dataAccessor.cache.edges;
+  const concepts = Object.keys(dataAccessor.cache.concepts).map(
+      k => dataAccessor.cache.concepts[k]);
+  const conceptLookup = dataAccessor.cache.conceptLookup;
 
   // const groupedByTarget = supergroup(edges, 1);
   // let stratEdges = groupedByTarget.map(g => ({id: g+'', parentIds: g.records.map(r => r[0]+'')}));
