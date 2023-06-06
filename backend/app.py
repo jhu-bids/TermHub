@@ -396,7 +396,19 @@ def _cset_members_items(codeset_ids: Union[str, None] = Query(default=''), ) -> 
 
 @APP.get("/db-refresh")
 def db_refresh_route():
-    """Triggers refresh of the database"""
+    """Triggers refresh of the database
+
+    Example working cURL:
+    (well, it works for @joeflack4 when actually putting in the token itself. With ${GH_LIMITED_PERSONAL_ACCESS_TOKEN},
+    it should work, but gives "curl: (16) Error in the HTTP2 framing layer"
+
+    curl -X POST \
+      -H "Authorization: Bearer ${GH_LIMITED_PERSONAL_ACCESS_TOKEN}" \
+      -H "Accept: application/vnd.github.v3+json" \
+      -H "Content-Type: application/json" \
+      -d '{"event_type": "refresh-db"}' \
+      https://api.github.com/repos/jhu-bids/TermHub/dispatches
+    """
     print("to be implemented")
 
 
