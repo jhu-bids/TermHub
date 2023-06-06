@@ -320,7 +320,7 @@ function App(props) {
         </Box>
         */}
       <div className="App">
-        {/* <ReactQueryDevtools initialIsOpen={false} /> */}
+        {/* <ReactQueryDevtools initialIsOpen={false} />*/}
         <MuiAppBar {...props}>
           {/* Outlet: Will render the results of whatever nested route has been clicked/activated. */}
         </MuiAppBar>

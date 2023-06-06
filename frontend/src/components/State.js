@@ -488,7 +488,7 @@ function traverseHierarchy({ hierarchy, concepts, collapsed }) {
       }
       rowData.push(row);
       if (o[k] && typeof (o[k] === "object")) {
-        row.has_children = true;
+        row.hasChildren = true;
         if (!collapsed[row.pathToRoot]) {
           traverse(o[k], row.pathToRoot, level + 1);
         }

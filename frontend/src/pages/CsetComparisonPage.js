@@ -32,6 +32,7 @@ import {
 } from "../components/EditCset";
 // import {EDGES} from '../components/ConceptGraph';
 import { FlexibleContainer } from "../components/FlexibleContainer";
+import _ from "../supergroup/supergroup";
 
 // TODO: Find concepts w/ good overlap and save a good URL for that
 // TODO: show table w/ hierarchical indent
@@ -197,9 +198,15 @@ export function getRowData(props) {
     nodeLookup[n.data.id] = 1;
   }
   const missingConcepts = concepts.filter(c => !nodeLookup[c.concept_id]);
+  debugger;
+  const h = _.hierarchicalTableToTree(edges, 0, 1);
+  const fakeRoot = h.asRootVal();
+  const sgNodes = fakeRoot.descendants();
+
   let rows = nodes.map(n => {
     let row = conceptLookup[n.data.id];
     row.level = n.value;
+    row.hasChildren = n.children().length > 0;
     return row;
   })
   rows = [...rows, ...missingConcepts];
@@ -315,7 +322,7 @@ function colConfig(props) {
       selector: (row) => row.concept_name,
       format: (row) => {
         let content = nested ? (
-          row.has_children ? (
+          row.hasChildren ? (
             collapsed[row.pathToRoot] ? (
               <span
                 className="toggle-collapse concept-name-row"
