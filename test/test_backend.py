@@ -13,7 +13,7 @@ from urllib.parse import urljoin
 from dateutil.parser import parse
 import requests
 import unittest
-import json
+from backend.routes.db import cr_hierarchy, get_concepts, get_related_csets, get_all_researcher_ids, get_researchers, get_cset_members_items
 
 from requests import Response
 
@@ -21,7 +21,6 @@ TEST_DIR = os.path.dirname(__file__)
 PROJECT_ROOT = Path(TEST_DIR).parent
 sys.path.insert(0, str(PROJECT_ROOT))
 from backend.db.analysis import counts_compare_schemas, counts_over_time
-from backend.app import cr_hierarchy
 from backend.routes.graph import subgraph
 
 TEST_DIR = os.path.dirname(__file__)
@@ -254,12 +253,14 @@ class TestBackend(unittest.TestCase):
         prefer concepts that do have counts
         """
         self.assertEqual(edges1, [ ( "1738170", "1738171" ), ( "1738170", "1738202" ), ( "1738170", "1738203" ) ])
-        """
+
+        """ x
         select * from concept_relationship_plus
         where concept_id_1 in (1738170, 1738171, 1738202, 1738203)
           and concept_id_2 in (1738170, 1738171, 1738202, 1738203)
           and concept_id_1 != concept_id_2
         order by 5;
+        
         ┌─────────────────┬──────────────┬────────────────────┬──────────────┬─────────────────┬─────────────────┬──────────────┬────────────────────┐
         │ vocabulary_id_1 │ concept_id_1 │   concept_name_1   │ concept_code │ relationship_id │ vocabulary_id_2 │ concept_id_2 │   concept_name_2   │
         ├─────────────────┼──────────────┼────────────────────┼──────────────┼─────────────────┼─────────────────┼──────────────┼────────────────────┤
