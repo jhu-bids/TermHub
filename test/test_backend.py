@@ -13,6 +13,7 @@ from urllib.parse import urljoin
 from dateutil.parser import parse
 import requests
 import unittest
+import json
 
 from requests import Response
 
@@ -20,6 +21,7 @@ TEST_DIR = os.path.dirname(__file__)
 PROJECT_ROOT = Path(TEST_DIR).parent
 sys.path.insert(0, str(PROJECT_ROOT))
 from backend.db.analysis import counts_compare_schemas, counts_over_time
+from backend.app import cr_hierarchy
 
 TEST_DIR = os.path.dirname(__file__)
 BACKEND_URL_BASE = 'http://127.0.0.1:8000/'
@@ -92,7 +94,7 @@ class TestBackend(unittest.TestCase):
         # selected_roots: List[int] = top_level_cids(selected_parent_ids)
         # with open(os.path.join(os.path.dirname(__file__), 'all_subsumes_tuples_2022_12_21.pickle'), 'rb') as f:
         #     parent_child_list = pickle.load(f)
-        # result = hierarchify_list_of_parent_kids(parent_child_list, selected_roots)
+        # result = hierarchy_list_of_parent_kids(parent_child_list, selected_roots)
         # actual_subset = {}  # todo: result[...]
         # expected_subset = {}  # todo
         # self.assertEqual(1, 1)  # todo
@@ -171,14 +173,15 @@ class TestBackend(unittest.TestCase):
                     self.assertGreater(df[col][row], 0, msg=f"Table '{row}' had 0 rows in run '{col}'")
 
     def test_cr_hierarchy_related_csets(self):
-        """Copied from test_csets_update()
-        Test backend: cr_hierarchy, defined in backend/app.py
-        Prereq: Server must be running"""
+        """ Test the related csets output of cr_hierarchy defined in backend/routes/app.py.
+        The related csets output is given by get_related_csets in backend/routes/app.py.
+        """
         url = BACKEND_URL_BASE + 'cr-hierarchy'
         response = requests.get(url=url, params={
             'codeset_ids': '400614256|87065556'
         }).json()
-        # TODO: test response['related_csets']
+        print(response['result'])
+        pass
 
     def test_cr_hierarchy_selected_csets(self):
         """Copied from test_csets_update()
@@ -189,7 +192,7 @@ class TestBackend(unittest.TestCase):
             'codeset_ids': '400614256|87065556'
         }).json()
         # TODO: test response['selected_csets']
-
+        pass
     def test_cr_hierarchy_researchers(self):
         """Copied from test_csets_update()
         Test backend: cr_hierarchy, defined in backend/app.py
@@ -199,6 +202,7 @@ class TestBackend(unittest.TestCase):
             'codeset_ids': '400614256|87065556'
         }).json()
         # TODO: test response['researchers']
+        pass
 
     def test_cr_hierarchy_cset_members_items(self):
         """Copied from test_csets_update()
@@ -209,6 +213,7 @@ class TestBackend(unittest.TestCase):
             'codeset_ids': '400614256|87065556'
         }).json()
         # TODO: test response['cset_members_items']
+        pass
 
     def test_cr_hierarchy_hierarchy(self):
         """Copied from test_csets_update()
@@ -219,20 +224,47 @@ class TestBackend(unittest.TestCase):
             'codeset_ids': '400614256|87065556'
         }).json()
         # TODO: test response['hierarchy']
+        pass
 
     def test_cr_hierarchy_concepts(self):
-        """Copied from test_csets_update()
-        Test backend: cr_hierarchy, defined in backend/app.py
-        Prereq: Server must be running"""
+        """ Test the related csets output of cr_hierarchy defined in backend/routes/app.py.
+            The related csets output is given by get_related_csets in backend/routes/app.py.
+            Copied from cr_hierarchy_data_counts
+            """
         url = BACKEND_URL_BASE + 'cr-hierarchy'
         response = requests.get(url=url, params={
-            'codeset_ids': '400614256|87065556'
+            'codeset_ids': '396155663|643758668'
         }).json()
-        # TODO: test response['concepts']
+        response_concepts = response['concepts']
+        self.assertEqual(len(response_concepts), 2)
+        self.assertEqual(response_concepts[0]['concept_id'], 4052321)
+        self.assertEqual(response_concepts[0]['concept_name'], 'Housing adequate')
+        self.assertEqual(response_concepts[0]['domain_id'], 'Observation')
+        self.assertEqual(response_concepts[0]['vocabulary_id'], 'SNOMED')
+        self.assertEqual(response_concepts[0]['concept_class_id'], 'Clinical Finding')
+        self.assertEqual(response_concepts[0]['standard_concept'], 'S')
+        self.assertEqual(response_concepts[0]['concept_code'], '161036002')
+        self.assertEqual(response_concepts[0]['invalid_reason'], None)
+        self.assertEqual(response_concepts[0]['domain_cnt'], 0)
+        self.assertEqual(response_concepts[0]['domain'], '')
+        self.assertEqual(response_concepts[0]['total_cnt'], 0)
+        self.assertEqual(response_concepts[0]['distinct_person_cnt'], '0')
+
+        self.assertEqual(response_concepts[1]['concept_id'], 4091006)
+        self.assertEqual(response_concepts[1]['concept_name'], 'Housing problem solved')
+        self.assertEqual(response_concepts[1]['domain_id'], 'Observation')
+        self.assertEqual(response_concepts[1]['vocabulary_id'], 'SNOMED')
+        self.assertEqual(response_concepts[1]['concept_class_id'], 'Clinical Finding')
+        self.assertEqual(response_concepts[1]['standard_concept'], 'S')
+        self.assertEqual(response_concepts[1]['concept_code'], '185960001')
+        self.assertEqual(response_concepts[1]['invalid_reason'], None)
+        self.assertEqual(response_concepts[1]['domain_cnt'], 0)
+        self.assertEqual(response_concepts[1]['domain'], '')
+        self.assertEqual(response_concepts[1]['total_cnt'], 0)
+        self.assertEqual(response_concepts[1]['distinct_person_cnt'], '0')
 
     def test_cr_hierarchy_data_counts(self):
-        """Copied from test_csets_update()
-        Test backend: cr_hierarchy, defined in backend/app.py
+        """Test backend: cr_hierarchy, defined in backend/app.py
         Prereq: Server must be running"""
         url = BACKEND_URL_BASE + 'cr-hierarchy'
         response = requests.get(url=url, params={
@@ -242,5 +274,5 @@ class TestBackend(unittest.TestCase):
 
 
 # Uncomment this and run this file directly to run all tests
-# if __name__ == '__main__':
+#if __name__ == '__main__':
 #     unittest.main()
