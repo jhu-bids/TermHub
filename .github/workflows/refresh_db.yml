@@ -1,0 +1,53 @@
+name: DB Refresh (Objects API)
+
+on:
+  schedule:
+    - cron: '0 5 * * *'  # every day 5am GMT (12-1am EST/EDT)
+  workflow_dispatch:
+  repository_dispatch:
+    types: [refresh-db]
+jobs:
+  refresh-db:
+#    runs-on: ubuntu-18.04
+#    runs-on: ubuntu-latest   # not sure which is more current when resolving merge conflicts
+    # todo: macos-latest could help solve memory issue, but can't connect to db?
+    #  https://github.com/jhu-bids/TermHub/actions/runs/4125681721/jobs/7126569855
+    runs-on: macos-latest
+    steps:
+      # TODO: remove these when confirming that they are indeed not needed for DB refresh via objects API
+#      - name: Checkout repository and submodules
+#        uses: actions/checkout@v2
+#        with:
+#          submodules: recursive
+#          ref: main
+      - name: Set up Python version
+        uses: actions/setup-python@v2
+        with:
+          # Consider '3.10' or 'v3.10.0': https://github.com/actions/setup-python/issues/160
+          python-version: '3.9.7'
+
+      - name: Print commit hash & branch for rollbacks & troubleshooting
+        run: |
+          echo "Commit hash: ${{ github.sha }}"
+          echo "Branch: ${{ github.ref }}"
+
+      - name: 'Create env file'
+        run: |
+          mkdir env
+          echo "${{ secrets.ENV_FILE }}" > env/.env
+
+      - name: Create and start virtual environment
+        run: |
+          python3 -m venv venv
+          source venv/bin/activate
+
+      - name: Install dependencies
+        run: | 
+          python -m pip install --upgrade pip
+          pip install --upgrade wheel
+          pip install --upgrade setuptools
+          pip install -r requirements.txt
+
+      - name: Refresh db
+        run: |
+          python backend/db/refresh.py

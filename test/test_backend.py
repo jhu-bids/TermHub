@@ -215,7 +215,7 @@ class TestBackend(unittest.TestCase):
         # TODO: test response['cset_members_items']
         pass
 
-    def test_cr_hierarchy_hierarchy(self):
+    def test_cr_hierarchy_edges(self):
         """Copied from test_csets_update()
         Test backend: cr_hierarchy, defined in backend/app.py
         Prereq: Server must be running"""
@@ -223,8 +223,8 @@ class TestBackend(unittest.TestCase):
         response = requests.get(url=url, params={
             'codeset_ids': '400614256|87065556'
         }).json()
-        # TODO: test response['hierarchy']
-        pass
+        # TODO: test response['edges']
+        # Use child_cids in app.py
 
     def test_cr_hierarchy_concepts(self):
         """ Test the related csets output of cr_hierarchy defined in backend/routes/app.py.
