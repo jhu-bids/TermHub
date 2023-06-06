@@ -49,6 +49,12 @@ function CsetComparisonPage(props) {
   } = props;
   console.log("starting CsetComparisonPage");
   const { selected_csets = [], researchers, hierarchy, conceptLookup } = cset_data;
+  /*
+  const selected_csets = [];
+  const researchers = [];
+  const hierarchy = [];
+  const conceptLookup = dataAccessor.cache.conceptLookup;
+  */
   const { state: hierarchySettings, dispatch} = useStateSlice("hierarchySettings");
   const hsDispatch = (...args) => {
     window.Pace.restart();
