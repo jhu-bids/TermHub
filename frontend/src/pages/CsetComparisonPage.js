@@ -84,6 +84,9 @@ function CsetComparisonPage(props) {
       state down to colConfig, colConfig could pick those out of appState itself.
      */
     let _collapsed = collapsed;
+    // Main problem: row.pathToRoot not defined
+    // What is the structure of row.pathToRoot? If it is an array, how is it a key in
+    // _collapsed object? Also, can the path string in _.get() include commas?
     _collapsed = {
       ..._collapsed,
       [row.pathToRoot]: !get(_collapsed, row.pathToRoot.join(",")),
