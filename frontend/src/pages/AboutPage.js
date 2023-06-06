@@ -9,7 +9,7 @@ import Button from "@mui/material/Button";
 import { TextField, } from "@mui/material";
 import { Link } from "react-router-dom";
 import VERSION from "../version";
-import axios from 'axios'
+import { axiosGet } from "../components/State";
 
 // import * as po from './Popover';
 
@@ -36,7 +36,7 @@ let TextH1 = (props) => (
   <Typography
     variant="h5"
     color="text.primary"
-    style={{ marginTop: "22px" }}
+    style={{ marginTop: "30px" }}
     gutterBottom
   >
     {props.children}
@@ -68,15 +68,11 @@ let DOCS = {};
 
 const handleRefresh = async () => {
   try {
-    await axiosPost('db-refresh');
-    console.log('Empty request sent');
+    await axiosGet('db-refresh', true);
+    console.log('Triggered: database refresh');
   } catch (error) {
     console.error('Error:', error);
   }
-};
-
-const axiosPost = (url) => {
-  return axios.post(url);
 };
 
 function AboutPage(props) {
@@ -115,7 +111,8 @@ function AboutPage(props) {
       <TextBody>
         If you encounter a bug or a poor user experience issue, or have a
         feature request in mind, we would love to hear from you.
-        <br />
+      </TextBody>
+      <TextBody>
         {/*<p><Button variant={"outlined"}>*/}
         <Button variant={"contained"}
                 to="https://github.com/jhu-bids/TermHub/issues/new/choose"
@@ -124,9 +121,17 @@ function AboutPage(props) {
             Create an issue
         </Button>
       </TextBody>
+      
+      <TextH1>Database Refresh</TextH1>
+      <TextBody>Will refresh the database with the latest data from the N3C Enclave.</TextBody>
+      <TextBody>
+        <Button variant={"contained"} onClick={handleRefresh}>
+          Refresh database
+        </Button>
+      </TextBody>
 
       <TextH1>How to's</TextH1>
-      <TextH2>Fix the app if it's acting weird</TextH2>
+      <TextH2>How to: Fix the app if it's acting weird</TextH2>
         <ul>
           <LI>Refresh the page</LI>
           <LI>
@@ -138,7 +143,7 @@ function AboutPage(props) {
           </LI>
           <LI>Complain to <a href="mailto:sigfried@jhu.edu">Siggie</a></LI>
         </ul>
-      <TextH2>Load a set of concept sets</TextH2>
+      <TextH2>How to: Load a set of concept sets</TextH2>
         <TextBody>
           Using the select list on the CSet Search page loads the concept
           sets one at a time, which can be slow. Until we fix that, you
@@ -158,16 +163,8 @@ function AboutPage(props) {
         >
           /OMOPConceptSets?{codeset_ids.map(d => `codeset_ids=${d}`).join("&")}
         </Button>
-      <TextH2>Database Refresh</TextH2>
-      <TextBody>
-      <Button variant={"contained"}
-              onClick={handleRefresh}
-            >
-              Refresh
-            </Button>
-      </TextBody>
 
-      <TextH1>How to make changes to a codeset (via Atlas JSON)</TextH1>
+      <TextH2>How to: Make changes to a codeset (via Atlas JSON)</TextH2>
       {/*todo: resolve console warnings: <ul>/<ol> cannot appear as a descendant of <p>.
             https://mui.com/material-ui/api/typography/*/}
       <ol>

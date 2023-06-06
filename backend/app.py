@@ -396,8 +396,8 @@ def _cset_members_items(codeset_ids: Union[str, None] = Query(default=''), ) -> 
 
 @APP.get("/db-refresh")
 def db_refresh_route():
+    """Triggers refresh of the database"""
     print("to be implemented")
-
 
 
 # TODO: if using this at all, fix it to use graph.hierarchy, which doesn't need root_cids
