@@ -48,13 +48,8 @@ function CsetComparisonPage(props) {
     csetEditState,
   } = props;
   console.log("starting CsetComparisonPage");
-  const { selected_csets = [], researchers, hierarchy, conceptLookup } = cset_data;
-  /*
-  const selected_csets = [];
-  const researchers = [];
-  const hierarchy = [];
-  const conceptLookup = dataAccessor.cache.conceptLookup;
-  */
+  // const { selected_csets = [], researchers, hierarchy, conceptLookup } = cset_data
+  const { selected_csets, researchers, hierarchy, conceptLookup } = dataAccessor.cache;
   const { state: hierarchySettings, dispatch} = useStateSlice("hierarchySettings");
   const hsDispatch = (...args) => {
     window.Pace.restart();
@@ -118,7 +113,7 @@ function CsetComparisonPage(props) {
             onClick={() => hsDispatch({type:'nested', nested: false})}
             sx={{ marginRight: '4px' }}
     >
-      {cset_data.concepts.length} distinct concepts
+      {Object.keys(dataAccessor.cache.concepts).length} distinct concepts
     </Button>,
     <Button key="nested"
             disabled={nested}

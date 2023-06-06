@@ -250,6 +250,16 @@ function DataContainer(props) {
 
     cset_data.conceptLookup = keyBy(cset_data.concepts, "concept_id");
     dataAccessor.cache.conceptLookup = cset_data.conceptLookup;
+
+    if ("selected_csets" in cset_data) {
+      dataAccessor.cache.selected_csets = cset_data.selected_csets;
+    } else {
+      dataAccessor.cache.selected_csets = [];
+    }
+
+    dataAccessor.cache.researchers = cset_data.researchers;
+    dataAccessor.cache.hierarchy = cset_data.hierarchy;
+
     const csmiLookup = {};
     // cset_data.cset_members_items.map(mi => set(csmiLookup, [mi.codeset_id, mi.concept_id], mi));
     // the line above created the most bizarre crashing behavior -- fixed by replacing the lodash set with simple loop below
