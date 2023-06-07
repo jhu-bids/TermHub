@@ -11,11 +11,12 @@ import { AddCircle, RemoveCircleOutline } from "@mui/icons-material";
 import { Box, Slider, Button, Typography, Switch } from "@mui/material";
 import Draggable from "react-draggable";
 // import {Checkbox} from "@mui/material";
-import { isEmpty, get, throttle, max } from "lodash"; // set, map, omit, pick, uniq, reduce, cloneDeepWith, isEqual, uniqWith, groupBy,
+import { isEmpty, get, throttle, max, uniqBy } from "lodash"; // set, map, omit, pick, uniq, reduce, cloneDeepWith, isEqual, uniqWith, groupBy,
 import {
   useStateSlice,
   hierarchyToFlatCids,
   makeHierarchyRows,
+  dataAccessor
 } from "../components/State";
 import { fmt, useWindowSize } from "../components/utils";
 import { setColDefDimensions } from "../components/dataTableUtils";
@@ -41,14 +42,15 @@ import _ from "../supergroup/supergroup";
 function CsetComparisonPage(props) {
   const {
     all_csets = [],
-    cset_data = {},
     searchParams,
     setSearchParams,
     editCodesetId,
     csetEditState,
+    concepts,
   } = props;
   console.log("starting CsetComparisonPage");
-  const { selected_csets = [], researchers, hierarchy, conceptLookup } = cset_data;
+  // const { selected_csets = [], researchers, hierarchy, conceptLookup } = cset_data
+  const { selected_csets, researchers, hierarchy, conceptLookup } = dataAccessor.cache;
   const { state: hierarchySettings, dispatch} = useStateSlice("hierarchySettings");
   const hsDispatch = (...args) => {
     window.Pace.restart();
@@ -63,12 +65,14 @@ function CsetComparisonPage(props) {
 
   // console.log(EDGES);
 
-  let nestedData = getRowData({...props, hierarchySettings});
+  // TODO: component is rendering twice. why? not necessary? fix?
+  let {rows, distinctRows, totalRowCnt, totalDistinctCnt} = getRowData({...props, hierarchySettings});
   let rowData;
   if (nested) {
-    rowData = nestedData;
+    rowData = rows;
   } else {
-    rowData = hierarchyToFlatCids(hierarchy).map(cid => conceptLookup[cid]);
+    // rowData = hierarchyToFlatCids(hierarchy).map(cid => conceptLookup[cid]);
+    rowData = distinctRows;
   }
 
   const editAction = getCodesetEditActionFunc({
@@ -86,7 +90,7 @@ function CsetComparisonPage(props) {
     let _collapsed = collapsed;
     _collapsed = {
       ..._collapsed,
-      [row.pathToRoot]: !get(_collapsed, row.pathToRoot.join(",")),
+      [row.pathToRoot]: !get(_collapsed, row.pathToRoot),
     };
     hsDispatch({ type: "collapseDescendants", collapsed: _collapsed });
   }
@@ -104,6 +108,8 @@ function CsetComparisonPage(props) {
     hsDispatch,
     toggleCollapse,
     windowSize,
+    totalRowCnt,
+    totalDistinctCnt,
   });
 
   let infoPanels = [
@@ -112,14 +118,14 @@ function CsetComparisonPage(props) {
             onClick={() => hsDispatch({type:'nested', nested: false})}
             sx={{ marginRight: '4px' }}
     >
-      {cset_data.concepts.length} distinct concepts
+      {distinctRows.length} distinct concepts
     </Button>,
     <Button key="nested"
             disabled={nested}
             onClick={() => hsDispatch({type:'nested', nested: true})}
             sx={{ marginRight: '4px' }}
     >
-      {nestedData.length} in hierarchy
+      {rows.length} in hierarchy
     </Button>,
     <FlexibleContainer key="legend" title="Legend">
       <Legend />
@@ -181,14 +187,10 @@ export function getRowData(props) {
   // when I put this provider up at the App level, it didn't update
   //    but at the CsetComparisonPage level it did. don't know why
   console.log("getting row data");
-  const { cset_data, hierarchySettings } = props;
+  const { conceptLookup, edges, hierarchySettings } = props;
   const {collapsed, nested, hideZeroCounts, hideRxNormExtension} = hierarchySettings;
-  const { edges = [], concepts = [], conceptLookup = {},
-    // hierarchy = {}, selected_csets = [], cset_members_items = [],
-  } = cset_data;
 
-  // const groupedByTarget = supergroup(edges, 1);
-  // let stratEdges = groupedByTarget.map(g => ({id: g+'', parentIds: g.records.map(r => r[0]+'')}));
+  /*
   const connect = d3dag.dagConnect();
   const dag = connect(edges);
   dag.depth();
@@ -198,36 +200,44 @@ export function getRowData(props) {
     nodeLookup[n.data.id] = 1;
   }
   const missingConcepts = concepts.filter(c => !nodeLookup[c.concept_id]);
-  debugger;
+   */
+
   const h = _.hierarchicalTableToTree(edges, 0, 1);
   const fakeRoot = h.asRootVal();
-  const sgNodes = fakeRoot.descendants();
+  const nodes = fakeRoot.descendants();
+  const totalRowCnt = nodes.length;
+  const totalDistinctCnt = uniqBy(nodes, n => n.valueOf());
 
-  let rows = nodes.map(n => {
-    let row = conceptLookup[n.data.id];
-    row.level = n.value;
-    row.hasChildren = n.children().length > 0;
+  let lastCollapsedRowSeen;
+  let allRows = nodes.map(n => {
+    let row = {...conceptLookup[n.valueOf()]};
+    row.hasChildren = n.children.length > 0;
+    row.level = n.depth;
+    row.pathToRoot = n.namePath()+'';
+    if (collapsed[row.pathToRoot]) {
+      lastCollapsedRowSeen = row.pathToRoot;
+    }
+    if (lastCollapsedRowSeen &&
+        row.pathToRoot.startsWith(lastCollapsedRowSeen &&
+        row.pathToRoot.length > lastCollapsedRowSeen.length)) {
+        // only set the descendants to row.collapsed = true
+        row.collapsed = true;
+    }
     return row;
-  })
-  rows = [...rows, ...missingConcepts];
+  });
+  let rows = allRows.filter(row => !row.collapsed);
+  const collapsedRows= totalRowCnt - rows.length;
+
+  const rxNormExtensionRows = rows.filter(r => r.vocabulary_id !== 'RxNorm Extension');
+  // TODO: finish working on the counts
   if (hideRxNormExtension) {
     rows = rows.filter(r => r.vocabulary_id !== 'RxNorm Extension');
   }
   if (hideZeroCounts) {
     rows = rows.filter(r => r.total_cnt > 0);
   }
-  return rows;
-  /*
-  debugger;
-  const rowData = makeHierarchyRows({
-                                      concepts,
-                                      selected_csets,
-                                      cset_members_items,
-                                      hierarchy,            // want to make this derived, but not yet?
-                                      collapsed,
-                                    });
-  return rowData;
-   */
+  const distinctRows = uniqBy(rows, row => row.concept_id);
+  return {rows, distinctRows, totalRowCnt, totalDistinctCnt};
 }
 function ComparisonDataTable(props) {
   const {
@@ -312,6 +322,8 @@ function colConfig(props) {
     editAction,
     editCodesetFunc,
     windowSize,
+    totalRowCnt,
+    totalDistinctCnt,
   } = props;
   const {collapsed, nested, hideZeroCounts, hideRxNormExtension} = hierarchySettings;
   const {concepts} = cset_data;
