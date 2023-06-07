@@ -33,6 +33,7 @@ import {
 } from "../components/EditCset";
 // import {EDGES} from '../components/ConceptGraph';
 import { FlexibleContainer } from "../components/FlexibleContainer";
+import _ from "../supergroup/supergroup";
 
 // TODO: Find concepts w/ good overlap and save a good URL for that
 // TODO: show table w/ hierarchical indent
@@ -41,11 +42,11 @@ import { FlexibleContainer } from "../components/FlexibleContainer";
 function CsetComparisonPage(props) {
   const {
     all_csets = [],
-    cset_data = {},
     searchParams,
     setSearchParams,
     editCodesetId,
     csetEditState,
+    concepts,
   } = props;
   console.log("starting CsetComparisonPage");
   // const { selected_csets = [], researchers, hierarchy, conceptLookup } = cset_data
@@ -64,6 +65,7 @@ function CsetComparisonPage(props) {
 
   // console.log(EDGES);
 
+  // TODO: component is rendering twice. why? not necessary? fix?
   let nestedData = getRowData({...props, hierarchySettings});
   let rowData;
   if (nested) {
@@ -113,7 +115,7 @@ function CsetComparisonPage(props) {
             onClick={() => hsDispatch({type:'nested', nested: false})}
             sx={{ marginRight: '4px' }}
     >
-      {Object.keys(dataAccessor.cache.concepts).length} distinct concepts
+      {Object.keys(concepts).length} distinct concepts
     </Button>,
     <Button key="nested"
             disabled={nested}
@@ -182,20 +184,10 @@ export function getRowData(props) {
   // when I put this provider up at the App level, it didn't update
   //    but at the CsetComparisonPage level it did. don't know why
   console.log("getting row data");
-  const { /* cset_data, */ hierarchySettings } = props;
+  const { conceptLookup, edges, hierarchySettings } = props;
   const {collapsed, nested, hideZeroCounts, hideRxNormExtension} = hierarchySettings;
-  /*
-  const { edges = [], concepts = [], conceptLookup = {},
-    // hierarchy = {}, selected_csets = [], cset_members_items = [],
-  } = cset_data;
-   */
-  const edges = dataAccessor.cache.edges;
-  const concepts = Object.keys(dataAccessor.cache.concepts).map(
-      k => dataAccessor.cache.concepts[k]);
-  const conceptLookup = dataAccessor.cache.conceptLookup;
 
-  // const groupedByTarget = supergroup(edges, 1);
-  // let stratEdges = groupedByTarget.map(g => ({id: g+'', parentIds: g.records.map(r => r[0]+'')}));
+  /*
   const connect = d3dag.dagConnect();
   const dag = connect(edges);
   dag.depth();
@@ -205,12 +197,18 @@ export function getRowData(props) {
     nodeLookup[n.data.id] = 1;
   }
   const missingConcepts = concepts.filter(c => !nodeLookup[c.concept_id]);
+   */
+
+  const h = _.hierarchicalTableToTree(edges, 0, 1);
+  const fakeRoot = h.asRootVal();
+  const nodes = fakeRoot.descendants();
+
   let rows = nodes.map(n => {
-    let row = conceptLookup[n.data.id];
+    let row = {...conceptLookup[n.valueOf()]};
     row.level = n.value;
+    row.hasChildren = n.children.length > 0;
     return row;
   })
-  rows = [...rows, ...missingConcepts];
   if (hideRxNormExtension) {
     rows = rows.filter(r => r.vocabulary_id !== 'RxNorm Extension');
   }
@@ -218,17 +216,6 @@ export function getRowData(props) {
     rows = rows.filter(r => r.total_cnt > 0);
   }
   return rows;
-  /*
-  debugger;
-  const rowData = makeHierarchyRows({
-                                      concepts,
-                                      selected_csets,
-                                      cset_members_items,
-                                      hierarchy,            // want to make this derived, but not yet?
-                                      collapsed,
-                                    });
-  return rowData;
-   */
 }
 function ComparisonDataTable(props) {
   const {
@@ -323,7 +310,7 @@ function colConfig(props) {
       selector: (row) => row.concept_name,
       format: (row) => {
         let content = nested ? (
-          row.has_children ? (
+          row.hasChildren ? (
             collapsed[row.pathToRoot] ? (
               <span
                 className="toggle-collapse concept-name-row"

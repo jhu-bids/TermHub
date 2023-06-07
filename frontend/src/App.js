@@ -77,7 +77,8 @@ export const queryClient = new QueryClient({
       refetchOnmount: false,
       refetchOnReconnect: false,
       retry: false,
-      staleTime: Infinity,
+      // staleTime: Infinity,
+      staleTime: 1000 * 60 * 60 * 24, // 24 hours
     },
   },
 });
@@ -90,7 +91,8 @@ const persister = createSyncStoragePersister({
 persistQueryClient({
   queryClient,
   persister,
-  maxAge: Infinity,
+  // maxAge: Infinity,
+  maxAge: 1000 * 60 * 60 * 24, // 24 hours
   buster: '',
   hydrateOptions: undefined,
   dehydrateOptions: undefined,
@@ -127,7 +129,8 @@ function QCProvider() {
     <QueryClientProvider client={queryClient}
                          persistOptions={{
                            persister,
-                           maxAge: Infinity,
+                           // maxAge: Infinity,
+                           maxAge: 1000 * 60 * 60 * 24, // 24 hours
                            serialize: data => compress(JSON.stringify(data)),
                            deserialize: data => JSON.parse(decompress(data)),
                          }}
@@ -243,13 +246,16 @@ function DataContainer(props) {
   // const concept_relationships = crprops.data;
 
   if (all_csets && cset_data /*&& concept_relationships*/) {
+    /*
     dataAccessor.cache.edges = cset_data.edges
+    if (!dataAccessor.cache.con)
     for (let i in cset_data.concepts) {
       dataAccessor.cache.concepts[cset_data.concepts[i].concept_id] = cset_data.concepts[i];
     }
+     */
 
     cset_data.conceptLookup = keyBy(cset_data.concepts, "concept_id");
-    dataAccessor.cache.conceptLookup = cset_data.conceptLookup;
+    // dataAccessor.cache.conceptLookup = cset_data.conceptLookup;
 
     if ("selected_csets" in cset_data) {
       dataAccessor.cache.selected_csets = cset_data.selected_csets;
@@ -268,10 +274,6 @@ function DataContainer(props) {
       csmiLookup[mi.codeset_id][mi.concept_id] = mi;
     });
     cset_data.csmiLookup = csmiLookup;
-    // let orphans = {};
-    // for (const o of cset_data.orphans) {
-    //   orphans[o] = null;
-    // }
 
     return (
       <RoutesContainer {...props} all_csets={all_csets} cset_data={cset_data} />
@@ -306,7 +308,10 @@ function RoutesContainer(props) {
       <Route path="/" element={<App {...props} />}>
         <Route
             path="cset-comparison"
-            element={<CsetComparisonPage {...props} />}
+            element={<CsetComparisonPage {...props}
+                       concepts={props.cset_data.concepts}
+                       conceptLookup={props.cset_data.conceptLookup}
+                       edges={props.cset_data.edges} />}
         />
         <Route
             path="OMOPConceptSets"
@@ -333,7 +338,7 @@ function App(props) {
         </Box>
         */}
       <div className="App">
-        {/* <ReactQueryDevtools initialIsOpen={false} /> */}
+        {/* <ReactQueryDevtools initialIsOpen={false} />*/}
         <MuiAppBar {...props}>
           {/* Outlet: Will render the results of whatever nested route has been clicked/activated. */}
         </MuiAppBar>

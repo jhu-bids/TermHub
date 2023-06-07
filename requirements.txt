@@ -96,7 +96,7 @@ ndex2==3.5.0
 networkx==2.8.8
 numpy==1.23.1
 nxontology==0.4.1
-oaklib==0.5.8
+oaklib==0.5.9
 ols-client==0.1.3
 ontoportal-client==0.0.3
 openpyxl==3.1.2
@@ -150,7 +150,7 @@ ruamel.yaml==0.17.21
 ruamel.yaml.clib==0.2.7
 sanitize-filename==1.2.0
 scipy==1.10.1
-semsimian==0.1.13
+semsimian==0.1.14
 semsql==0.3.2
 ShExJSG==0.8.2
 six==1.16.0
