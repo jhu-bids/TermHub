@@ -22,6 +22,7 @@ CONFIG = {
     'schema': os.getenv('TERMHUB_DB_SCHEMA'),
     'pass': os.getenv('TERMHUB_DB_PASS'),
     'port': os.getenv('TERMHUB_DB_PORT'),
+    'personal_access_token': os.getenv('GH_LIMITED_PERSONAL_ACCESS_TOKEN')
 }
 CONFIG_LOCAL = {
     'server': os.getenv('TERMHUB_DB_SERVER_LOCAL'),
@@ -32,6 +33,7 @@ CONFIG_LOCAL = {
     'schema': os.getenv('TERMHUB_DB_SCHEMA_LOCAL'),
     'pass': os.getenv('TERMHUB_DB_PASS_LOCAL'),
     'port': os.getenv('TERMHUB_DB_PORT_LOCAL'),
+    'personal_access_token': os.getenv('GH_LIMITED_PERSONAL_ACCESS_TOKEN')
 }
 
 def get_pg_connect_url(local=False):
