@@ -125,9 +125,11 @@ accessing the machine that manages deployments. "SSH" is for accessing the machi
 5. Click "SSH" at the top.
 
 ##### Backend not working but logs not helpful?
-It may be that the app has run out of memory. In https://portal.azure.com there is a way to check memory usage. If it 
-looks like it's maxed and/or of the logs say something about no memory, try increasing the memory to see if that solves.
- If the memory must be increased, let a BIDS administrator (e.g. Tricia) know.
+It may be that the app has run out of memory. In https://portal.azure.com there is a way to check memory usage. You can 
+find this by opening the "App Service" ([example: develop](https://portal.azure.com/#@live.johnshopkins.edu/resource/subscriptions/fe24df19-d251-4821-9a6f-f037c93d7e47/resourceGroups/jh-termhub-webapp-rg/providers/Microsoft.Web/sites/termhub/slots/dev/appServices)
+) and selecting "App Service Plan" ([example: develop](https://portal.azure.com/#@live.johnshopkins.edu/resource/subscriptions/fe24df19-d251-4821-9a6f-f037c93d7e47/resourceGroups/JH-TERMHUB-WEBAPP-RG/providers/Microsoft.Web/serverfarms/ASP-JHTERMHUBWEBAPPRG-8dbf/webHostingPlan)
+). If it looks like it's maxed and/or of the logs say something about no memory, try increasing the memory to see if 
+that solves. If the memory must be increased, let a BIDS administrator (e.g. Tricia) know.
 
 ### Versioning
 #### Semantic versioning
