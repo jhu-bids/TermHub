@@ -63,6 +63,7 @@ function CsetComparisonPage(props) {
 
   // console.log(EDGES);
 
+  // TODO: component is rendering twice. why? not necessary? fix?
   let nestedData = getRowData({...props, hierarchySettings});
   let rowData;
   if (nested) {
@@ -183,12 +184,9 @@ export function getRowData(props) {
   console.log("getting row data");
   const { cset_data, hierarchySettings } = props;
   const {collapsed, nested, hideZeroCounts, hideRxNormExtension} = hierarchySettings;
-  const { edges = [], concepts = [], conceptLookup = {},
-    // hierarchy = {}, selected_csets = [], cset_members_items = [],
-  } = cset_data;
+  const { edges = [], conceptLookup = {}, } = cset_data;
 
-  // const groupedByTarget = supergroup(edges, 1);
-  // let stratEdges = groupedByTarget.map(g => ({id: g+'', parentIds: g.records.map(r => r[0]+'')}));
+  /*
   const connect = d3dag.dagConnect();
   const dag = connect(edges);
   dag.depth();
@@ -198,18 +196,18 @@ export function getRowData(props) {
     nodeLookup[n.data.id] = 1;
   }
   const missingConcepts = concepts.filter(c => !nodeLookup[c.concept_id]);
-  debugger;
+   */
+
   const h = _.hierarchicalTableToTree(edges, 0, 1);
   const fakeRoot = h.asRootVal();
-  const sgNodes = fakeRoot.descendants();
+  const nodes = fakeRoot.descendants();
 
   let rows = nodes.map(n => {
-    let row = conceptLookup[n.data.id];
+    let row = {...conceptLookup[n.valueOf()]};
     row.level = n.value;
-    row.hasChildren = n.children().length > 0;
+    row.hasChildren = n.children.length > 0;
     return row;
   })
-  rows = [...rows, ...missingConcepts];
   if (hideRxNormExtension) {
     rows = rows.filter(r => r.vocabulary_id !== 'RxNorm Extension');
   }
@@ -217,17 +215,6 @@ export function getRowData(props) {
     rows = rows.filter(r => r.total_cnt > 0);
   }
   return rows;
-  /*
-  debugger;
-  const rowData = makeHierarchyRows({
-                                      concepts,
-                                      selected_csets,
-                                      cset_members_items,
-                                      hierarchy,            // want to make this derived, but not yet?
-                                      collapsed,
-                                    });
-  return rowData;
-   */
 }
 function ComparisonDataTable(props) {
   const {
