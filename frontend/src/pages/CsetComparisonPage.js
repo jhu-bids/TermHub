@@ -8,13 +8,10 @@ import * as d3dag from "d3-dag";
 // import { createSearchParams, useSearchParams, } from "react-router-dom";
 import DataTable, { createTheme } from "react-data-table-component";
 import { AddCircle, RemoveCircleOutline } from "@mui/icons-material";
-import Box from "@mui/material/Box";
-import Slider from "@mui/material/Slider";
-import Button from "@mui/material/Button";
-import Typography from "@mui/material/Typography";
+import { Box, Slider, Button, Typography, Switch } from "@mui/material";
 import Draggable from "react-draggable";
 // import {Checkbox} from "@mui/material";
-import { isEmpty, get, throttle, pullAt } from "lodash"; // set, map, omit, pick, uniq, reduce, cloneDeepWith, isEqual, uniqWith, groupBy,
+import { isEmpty, get, throttle, max } from "lodash"; // set, map, omit, pick, uniq, reduce, cloneDeepWith, isEqual, uniqWith, groupBy,
 import {
   useStateSlice,
   hierarchyToFlatCids,
@@ -35,6 +32,7 @@ import {
 } from "../components/EditCset";
 // import {EDGES} from '../components/ConceptGraph';
 import { FlexibleContainer } from "../components/FlexibleContainer";
+import _ from "../supergroup/supergroup";
 
 // TODO: Find concepts w/ good overlap and save a good URL for that
 // TODO: show table w/ hierarchical indent
@@ -49,8 +47,13 @@ function CsetComparisonPage(props) {
     editCodesetId,
     csetEditState,
   } = props;
+  console.log("starting CsetComparisonPage");
   const { selected_csets = [], researchers, hierarchy, conceptLookup } = cset_data;
-  const { state: hierarchySettings, dispatch: hsDispatch } = useStateSlice("hierarchySettings");
+  const { state: hierarchySettings, dispatch} = useStateSlice("hierarchySettings");
+  const hsDispatch = (...args) => {
+    window.Pace.restart();
+    setTimeout(() => dispatch(...args), 100);
+  }
   // const [concepts, setConcepts] = useState([]);
   const windowSize = useWindowSize();
   const boxRef = useRef();
@@ -60,7 +63,7 @@ function CsetComparisonPage(props) {
 
   // console.log(EDGES);
 
-  let nestedData = getRowData({...props, ...hierarchySettings});
+  let nestedData = getRowData({...props, hierarchySettings});
   let rowData;
   if (nested) {
     rowData = nestedData;
@@ -97,7 +100,8 @@ function CsetComparisonPage(props) {
     editAction,
     editCodesetFunc,
     sizes,
-    ...hierarchySettings, // collapsed and nested
+    hierarchySettings, // collapsed, nested, hideZeroCounts, hideRxNormExtension
+    hsDispatch,
     toggleCollapse,
     windowSize,
   });
@@ -176,7 +180,9 @@ function CsetComparisonPage(props) {
 export function getRowData(props) {
   // when I put this provider up at the App level, it didn't update
   //    but at the CsetComparisonPage level it did. don't know why
-  const { cset_data, collapsed } = props;
+  console.log("getting row data");
+  const { cset_data, hierarchySettings } = props;
+  const {collapsed, nested, hideZeroCounts, hideRxNormExtension} = hierarchySettings;
   const { edges = [], concepts = [], conceptLookup = {},
     // hierarchy = {}, selected_csets = [], cset_members_items = [],
   } = cset_data;
@@ -192,12 +198,25 @@ export function getRowData(props) {
     nodeLookup[n.data.id] = 1;
   }
   const missingConcepts = concepts.filter(c => !nodeLookup[c.concept_id]);
-  const rows = nodes.map(n => {
+  debugger;
+  const h = _.hierarchicalTableToTree(edges, 0, 1);
+  const fakeRoot = h.asRootVal();
+  const sgNodes = fakeRoot.descendants();
+
+  let rows = nodes.map(n => {
     let row = conceptLookup[n.data.id];
     row.level = n.value;
+    row.hasChildren = n.children().length > 0;
     return row;
   })
-  return [...rows, ...missingConcepts];
+  rows = [...rows, ...missingConcepts];
+  if (hideRxNormExtension) {
+    rows = rows.filter(r => r.vocabulary_id !== 'RxNorm Extension');
+  }
+  if (hideZeroCounts) {
+    rows = rows.filter(r => r.total_cnt > 0);
+  }
+  return rows;
   /*
   debugger;
   const rowData = makeHierarchyRows({
@@ -230,6 +249,7 @@ function ComparisonDataTable(props) {
       }),
     },
   ];
+  console.log("drawing comparisondatatable");
   return (
     <DataTable
       customStyles={customStyles}
@@ -283,16 +303,18 @@ function getSizes(squishTo) {
 
 function colConfig(props) {
   let {
-    nested,
+    hierarchySettings,
+    hsDispatch,
     selected_csets,
     cset_data,
-    collapsed,
     toggleCollapse,
     sizes,
     editAction,
     editCodesetFunc,
     windowSize,
   } = props;
+  const {collapsed, nested, hideZeroCounts, hideRxNormExtension} = hierarchySettings;
+  const {concepts} = cset_data;
 
   let coldefs = [
     {
@@ -300,7 +322,7 @@ function colConfig(props) {
       selector: (row) => row.concept_name,
       format: (row) => {
         let content = nested ? (
-          row.has_children ? (
+          row.hasChildren ? (
             collapsed[row.pathToRoot] ? (
               <span
                 className="toggle-collapse concept-name-row"
@@ -362,7 +384,22 @@ function colConfig(props) {
       ],
     },
     {
-      name: "Vocabulary",
+      // name: "Vocabulary",
+      headerProps: {
+        headerContent: (
+            concepts.some(d => d.vocabulary_id === 'RxNorm Extension')
+            ? <div style={{display: 'flex', flexDirection: 'column'}}>
+                <div>Vocabulary</div>
+                <Tooltip label="Toggle hiding of RxNorm Extension concepts">
+                  <Switch sx={{margin: '-8px 0px'}} checked={!hideRxNormExtension}
+                          onClick={() => hsDispatch({type:'hideRxNormExtension', hideRxNormExtension: !hideRxNormExtension})}
+                  />
+                </Tooltip>
+              </div>
+            : "Vocabulary"
+        )
+        // headerContentProps: { onClick: editCodesetFunc, codeset_id: cset_col.codeset_id, },
+      },
       selector: (row) => row.vocabulary_id,
       // format: (row) => <Tooltip label={row.vocabulary_id} content={row.vocabulary_id} />,
       sortable: !nested,
@@ -444,13 +481,29 @@ function colConfig(props) {
     },
     // ...cset_cols,
     {
-      name: "Patients",
+      // name: "Patients",
       headerProps: {
-        tooltipContent:
-          "Approximate distinct person count. Small counts rounded up to 20.",
+        headerContent: (
+            <div style={{display: 'flex', flexDirection: 'column'}}>
+              <Tooltip label="Approximate distinct person count. Small counts rounded up to 20."><div>Patients</div></Tooltip>
+              <Tooltip label="Toggle hiding of concepts with 0 patients">
+                <Switch sx={{margin: '-8px 0px'}} checked={!hideZeroCounts}
+                  onClick={() => hsDispatch({type:'hideZeroCounts', hideZeroCounts: !hideZeroCounts})}
+                />
+              </Tooltip>
+            </div>
+        )
+        // headerContentProps: { onClick: editCodesetFunc, codeset_id: cset_col.codeset_id, },
       },
-      selector: (row) => parseInt(row.distinct_person_cnt),
-      format: (row) => fmt(row.distinct_person_cnt),
+      selector: (row) => {
+        // can be comma=separated list if pt cnts in more than one domain
+        const cnts = row.distinct_person_cnt.split(',').map(n => parseInt(n));
+        return max(cnts);
+      },
+      format: (row) => {
+        const cnts = row.distinct_person_cnt.split(',').map(n => parseInt(n));
+        return fmt(max(cnts));
+      },
       sortable: !nested,
       right: true,
       width: 80,
