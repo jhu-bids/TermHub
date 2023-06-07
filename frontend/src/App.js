@@ -306,7 +306,8 @@ function RoutesContainer(props) {
       <Route path="/" element={<App {...props} />}>
         <Route
             path="cset-comparison"
-            element={<CsetComparisonPage {...props} />}
+            element={<CsetComparisonPage
+                {...props} concepts={props.cset_data.concepts} />}
         />
         <Route
             path="OMOPConceptSets"

@@ -41,7 +41,7 @@ import { FlexibleContainer } from "../components/FlexibleContainer";
 function CsetComparisonPage(props) {
   const {
     all_csets = [],
-    cset_data = {},
+    concepts = [],
     searchParams,
     setSearchParams,
     editCodesetId,
@@ -69,7 +69,8 @@ function CsetComparisonPage(props) {
   if (nested) {
     rowData = nestedData;
   } else {
-    rowData = hierarchyToFlatCids(hierarchy).map(cid => conceptLookup[cid]);
+    // rowData = hierarchyToFlatCids(hierarchy).map(cid => conceptLookup[cid]);
+    rowData = concepts;
   }
 
   const editAction = getCodesetEditActionFunc({
@@ -182,7 +183,7 @@ export function getRowData(props) {
   // when I put this provider up at the App level, it didn't update
   //    but at the CsetComparisonPage level it did. don't know why
   console.log("getting row data");
-  const { /* cset_data, */ hierarchySettings } = props;
+  const { concepts, hierarchySettings } = props;
   const {collapsed, nested, hideZeroCounts, hideRxNormExtension} = hierarchySettings;
   /*
   const { edges = [], concepts = [], conceptLookup = {},
@@ -190,8 +191,8 @@ export function getRowData(props) {
   } = cset_data;
    */
   const edges = dataAccessor.cache.edges;
-  const concepts = Object.keys(dataAccessor.cache.concepts).map(
-      k => dataAccessor.cache.concepts[k]);
+  /* const concepts = Object.keys(dataAccessor.cache.concepts).map(
+      k => dataAccessor.cache.concepts[k]); */
   const conceptLookup = dataAccessor.cache.conceptLookup;
 
   // const groupedByTarget = supergroup(edges, 1);
@@ -206,7 +207,7 @@ export function getRowData(props) {
   }
   const missingConcepts = concepts.filter(c => !nodeLookup[c.concept_id]);
   let rows = nodes.map(n => {
-    let row = conceptLookup[n.data.id];
+    let row = { ...conceptLookup[n.data.id] };
     row.level = n.value;
     return row;
   })
