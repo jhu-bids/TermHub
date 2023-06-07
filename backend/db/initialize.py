@@ -52,8 +52,8 @@ def create_database(con: Connection, schema: str):
 
 
 def initialize(
-    clobber=False, schema: str = SCHEMA, local=False, create_db=False, download=True,
-    download_force_if_exists=False, hours_threshold_for_updates=24
+    clobber=False, schema: str = SCHEMA, local=False, create_db=False, download=True, download_force_if_exists=False,
+    test_schema_only=False, hours_threshold_for_updates=24
 ):
     """Initialize set up of DB
 
@@ -64,6 +64,8 @@ def initialize(
     - https://docs.sqlalchemy.org/en/20/dialects/mysql.html
     """
     with get_db_connection(local=local) as con:
+        if test_schema_only:
+            return initialize_test_schema(con, schema, local=local)
         if create_db:
             create_database(con, schema)  # causing error. don't need it at the moment anyway
         if download:
@@ -92,6 +94,10 @@ def cli():
     parser.add_argument(
         '-f', '--download-force-if-exists', action='store_true', default=False,
         help='Force overwrite of existing dataset files?')
+    parser.add_argument(
+        '-T', '--test-schema-only', action='store_true', default=False,
+        help='Skip main downloads and main schema, and just initialize the test schema. Will fail if main schema has '
+             'never been initialized.')
     parser.add_argument(
         '-t', '--hours-threshold-for-updates', default=24,
         help='Threshold for how many hours since last update before we require refreshes. If last update time was less '
