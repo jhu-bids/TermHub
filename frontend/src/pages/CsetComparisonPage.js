@@ -11,7 +11,11 @@ import { AddCircle, RemoveCircleOutline } from "@mui/icons-material";
 import { Box, Slider, Button, Typography, Switch } from "@mui/material";
 import Draggable from "react-draggable";
 // import {Checkbox} from "@mui/material";
-import { isEmpty, get, throttle, max, uniqBy } from "lodash"; // set, map, omit, pick, uniq, reduce, cloneDeepWith, isEqual, uniqWith, groupBy,
+import {isEmpty, get, throttle, max, uniqBy, flatten, sortBy} from "lodash"; // set, map, omit, pick, uniq, reduce, cloneDeepWith, isEqual, uniqWith, groupBy,
+import Graph from 'graphology';
+import {allSimplePaths} from 'graphology-simple-path';
+import {dfs, dfsFromNode} from 'graphology-traversal/dfs';
+
 import {
   useStateSlice,
   hierarchyToFlatCids,
@@ -66,7 +70,7 @@ function CsetComparisonPage(props) {
   // console.log(EDGES);
 
   // TODO: component is rendering twice. why? not necessary? fix?
-  let {rows, distinctRows, totalRowCnt, totalDistinctCnt} = getRowData({...props, hierarchySettings});
+  let {rows, distinctRows, hidden} = getRowData({...props, hierarchySettings});
   let rowData;
   if (nested) {
     rowData = rows;
@@ -108,8 +112,7 @@ function CsetComparisonPage(props) {
     hsDispatch,
     toggleCollapse,
     windowSize,
-    totalRowCnt,
-    totalDistinctCnt,
+    hidden
   });
 
   let infoPanels = [
@@ -183,16 +186,105 @@ function CsetComparisonPage(props) {
   );
 }
 
+function nodeToTree(node) {
+  // a flat tree
+  const subTrees = node.children().map(n => nodeToTree(n));
+  return [node, ...subTrees];
+}
 export function getRowData(props) {
   // when I put this provider up at the App level, it didn't update
   //    but at the CsetComparisonPage level it did. don't know why
   console.log("getting row data");
-  const { conceptLookup, edges, hierarchySettings } = props;
+  const {conceptLookup, edges, hierarchySettings} = props;
   const {collapsed, nested, hideZeroCounts, hideRxNormExtension} = hierarchySettings;
 
+  const graph = new Graph({allowSelfLoops: false, multi: false, type: 'directed'});
+  edges.forEach(edge => graph.mergeEdge(...edge));
+
+  let allRows = [];
+  let lastCollapsedRowSeen;
+  let currentPath = [];
+  let nodes = graph.nodes();
+  let nodeDepths = [];
+  graph.nodes().map(n => {
+    let descendants = 0;
+    dfsFromNode(graph, n, (node, attr, depth) => {
+      if (n !== node) {
+        descendants++;
+      }
+    });
+    nodeDepths.push({node: n, descendants});
+  });
+  nodes = sortBy(nodeDepths, n => -n.descendants).map(n => n.node);
+  nodes.map((n,i) => {
+    console.log(i, n);
+    dfsFromNode(graph, n, (node, attr, depth) => {
+      if (depth === currentPath.length) {
+        currentPath.push(node);
+      }
+      else if (depth <= currentPath.length) {
+        currentPath.splice(depth);
+        currentPath.push(node);
+      } else {
+        throw new Error("shouldn't happen");
+      }
+      // console.log('   '.repeat(depth) + node);
+      let row = {...conceptLookup[node]};
+      row.hasChildren = graph.outboundDegree(node) > 0;
+      row.level = depth;
+      row.pathToRoot = currentPath.join('/');
+      if (collapsed[row.pathToRoot]) {
+        lastCollapsedRowSeen = row.pathToRoot;
+      }
+      if (lastCollapsedRowSeen &&
+          row.pathToRoot.startsWith(lastCollapsedRowSeen) &&
+          row.pathToRoot.length > lastCollapsedRowSeen.length) {
+        // only set the descendants to row.collapsed = true
+        row.collapsed = true;
+      }
+      // for debugging:
+      // row.concept_name += (' ' + row.pathToRoot + ' ' + (row.hasChildren ? 'parent' : 'leaf'));
+      allRows.push(row);
+    });
+  });
   /*
+  dfs(graph, function (node, attr, depth) {
+    nodes.push(node);
+    if (graph.inboundDegree(node) === 0) {
+      roots.push(node);
+    }
+    if (graph.outboundDegree(node) === 0) {
+      leafs.push(node);
+    }
+  });
+   */
+  const hidden = {
+    collapsed: allRows.filter(row => row.collapsed).length,
+    rxNormExtension: allRows.filter(row => row.vocabulary_id === 'RxNorm Extension').length,
+  }
+  // const collapsedRows= allRows.filter(row => row.collapsed);
+  let rows = allRows.filter(row => !row.collapsed);
+
+  // const rxNormExtensionRows = rows.filter(r => r.vocabulary_id == 'RxNorm Extension');
+  if (hideRxNormExtension) {
+    rows = rows.filter(r => r.vocabulary_id !== 'RxNorm Extension');
+  }
+  hidden.zeroCount = rows.filter(row => row.total_cnt === 0).length;
+  if (hideZeroCounts) {
+    rows = rows.filter(r => r.total_cnt > 0);
+  }
+  const distinctRows = uniqBy(rows, row => row.concept_id);
+  return {rows, distinctRows, hidden};
+}
+function junk() {
+  let roots, graph, nodes, leafs, edges, collapsed, hideZeroCounts, hideRxNormExtension, conceptLookup;
+  let paths = flatten(roots.map(r => flatten(leafs.map(l => allSimplePaths(graph, r, l).filter(p=>p.length).map(p=>p.join('/')))))).filter(p => p.length).sort();
+  debugger;
   const connect = d3dag.dagConnect();
   const dag = connect(edges);
+  const flatTree = flatten(dag.roots().map(r => nodeToTree(r)));
+  window.d3dag = d3dag;
+  /*
   dag.depth();
   const nodes = dag.descendants('depth');
   let nodeLookup = {};
@@ -202,14 +294,16 @@ export function getRowData(props) {
   const missingConcepts = concepts.filter(c => !nodeLookup[c.concept_id]);
    */
 
+  /*
   const h = _.hierarchicalTableToTree(edges, 0, 1);
   const fakeRoot = h.asRootVal();
   const nodes = fakeRoot.descendants();
-  const totalRowCnt = nodes.length;
-  const totalDistinctCnt = uniqBy(nodes, n => n.valueOf());
+   */
+  const totalRowCnt = flatTree.length;
+  const totalDistinctCnt = uniqBy(flatTree, n => n.valueOf());
 
   let lastCollapsedRowSeen;
-  let allRows = nodes.map(n => {
+  let allRows = flatTree.map(n => {
     let row = {...conceptLookup[n.valueOf()]};
     row.hasChildren = n.children.length > 0;
     row.level = n.depth;
@@ -218,26 +312,30 @@ export function getRowData(props) {
       lastCollapsedRowSeen = row.pathToRoot;
     }
     if (lastCollapsedRowSeen &&
-        row.pathToRoot.startsWith(lastCollapsedRowSeen &&
-        row.pathToRoot.length > lastCollapsedRowSeen.length)) {
+        row.pathToRoot.startsWith(lastCollapsedRowSeen) &&
+        row.pathToRoot.length > lastCollapsedRowSeen.length) {
         // only set the descendants to row.collapsed = true
         row.collapsed = true;
     }
     return row;
   });
+  const hidden = {
+    collapsed: allRows.filter(row => row.collapsed).length,
+    rxNormExtension: allRows.filter(row => row.vocabulary_id === 'RxNorm Extension').length,
+  }
+  // const collapsedRows= allRows.filter(row => row.collapsed);
   let rows = allRows.filter(row => !row.collapsed);
-  const collapsedRows= totalRowCnt - rows.length;
 
-  const rxNormExtensionRows = rows.filter(r => r.vocabulary_id !== 'RxNorm Extension');
-  // TODO: finish working on the counts
+  // const rxNormExtensionRows = rows.filter(r => r.vocabulary_id == 'RxNorm Extension');
   if (hideRxNormExtension) {
     rows = rows.filter(r => r.vocabulary_id !== 'RxNorm Extension');
   }
+  hidden.zeroCount = rows.filter(row => row.total_cnt === 0).length;
   if (hideZeroCounts) {
     rows = rows.filter(r => r.total_cnt > 0);
   }
   const distinctRows = uniqBy(rows, row => row.concept_id);
-  return {rows, distinctRows, totalRowCnt, totalDistinctCnt};
+  return {rows, distinctRows, hidden};
 }
 function ComparisonDataTable(props) {
   const {
@@ -322,8 +420,7 @@ function colConfig(props) {
     editAction,
     editCodesetFunc,
     windowSize,
-    totalRowCnt,
-    totalDistinctCnt,
+    hidden
   } = props;
   const {collapsed, nested, hideZeroCounts, hideRxNormExtension} = hierarchySettings;
   const {concepts} = cset_data;
@@ -402,6 +499,7 @@ function colConfig(props) {
             concepts.some(d => d.vocabulary_id === 'RxNorm Extension')
             ? <div style={{display: 'flex', flexDirection: 'column'}}>
                 <div>Vocabulary</div>
+                <div style={{fontSize: 'x-small'}}>({hidden.rxNormExtension} {hideRxNormExtension ? 'hidden' : ''} RxNorm Extension rows)</div>
                 <Tooltip label="Toggle hiding of RxNorm Extension concepts">
                   <Switch sx={{margin: '-8px 0px'}} checked={!hideRxNormExtension}
                           onClick={() => hsDispatch({type:'hideRxNormExtension', hideRxNormExtension: !hideRxNormExtension})}
@@ -497,8 +595,11 @@ function colConfig(props) {
       headerProps: {
         headerContent: (
             <div style={{display: 'flex', flexDirection: 'column'}}>
-              <Tooltip label="Approximate distinct person count. Small counts rounded up to 20."><div>Patients</div></Tooltip>
-              <Tooltip label="Toggle hiding of concepts with 0 patients">
+              <Tooltip label="Approximate distinct person count. Small counts rounded up to 20.">
+                <div>Patients</div>
+                {/*<div>{hideZeroCounts ? 'Unhide ' : 'Hide '} {hidden.zeroCount} rows</div>*/}
+              </Tooltip>
+              <Tooltip label={`Toggle hiding of ${hidden.zeroCount} concepts with 0 patients`}>
                 <Switch sx={{margin: '-8px 0px'}} checked={!hideZeroCounts}
                   onClick={() => hsDispatch({type:'hideZeroCounts', hideZeroCounts: !hideZeroCounts})}
                 />
