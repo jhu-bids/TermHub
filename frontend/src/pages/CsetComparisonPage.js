@@ -11,7 +11,7 @@ import { AddCircle, RemoveCircleOutline } from "@mui/icons-material";
 import { Box, Slider, Button, Typography, Switch } from "@mui/material";
 import Draggable from "react-draggable";
 // import {Checkbox} from "@mui/material";
-import { isEmpty, get, throttle, max } from "lodash"; // set, map, omit, pick, uniq, reduce, cloneDeepWith, isEqual, uniqWith, groupBy,
+import { isEmpty, get, throttle, max, uniqBy } from "lodash"; // set, map, omit, pick, uniq, reduce, cloneDeepWith, isEqual, uniqWith, groupBy,
 import {
   useStateSlice,
   hierarchyToFlatCids,
@@ -66,12 +66,13 @@ function CsetComparisonPage(props) {
   // console.log(EDGES);
 
   // TODO: component is rendering twice. why? not necessary? fix?
-  let nestedData = getRowData({...props, hierarchySettings});
+  let {rows, distinctRows, totalRowCnt, totalDistinctCnt} = getRowData({...props, hierarchySettings});
   let rowData;
   if (nested) {
-    rowData = nestedData;
+    rowData = rows;
   } else {
-    rowData = hierarchyToFlatCids(hierarchy).map(cid => conceptLookup[cid]);
+    // rowData = hierarchyToFlatCids(hierarchy).map(cid => conceptLookup[cid]);
+    rowData = distinctRows;
   }
 
   const editAction = getCodesetEditActionFunc({
@@ -89,7 +90,7 @@ function CsetComparisonPage(props) {
     let _collapsed = collapsed;
     _collapsed = {
       ..._collapsed,
-      [row.pathToRoot]: !get(_collapsed, row.pathToRoot.join(",")),
+      [row.pathToRoot]: !get(_collapsed, row.pathToRoot),
     };
     hsDispatch({ type: "collapseDescendants", collapsed: _collapsed });
   }
@@ -107,6 +108,8 @@ function CsetComparisonPage(props) {
     hsDispatch,
     toggleCollapse,
     windowSize,
+    totalRowCnt,
+    totalDistinctCnt,
   });
 
   let infoPanels = [
@@ -115,14 +118,14 @@ function CsetComparisonPage(props) {
             onClick={() => hsDispatch({type:'nested', nested: false})}
             sx={{ marginRight: '4px' }}
     >
-      {Object.keys(concepts).length} distinct concepts
+      {distinctRows.length} distinct concepts
     </Button>,
     <Button key="nested"
             disabled={nested}
             onClick={() => hsDispatch({type:'nested', nested: true})}
             sx={{ marginRight: '4px' }}
     >
-      {nestedData.length} in hierarchy
+      {rows.length} in hierarchy
     </Button>,
     <FlexibleContainer key="legend" title="Legend">
       <Legend />
@@ -202,20 +205,39 @@ export function getRowData(props) {
   const h = _.hierarchicalTableToTree(edges, 0, 1);
   const fakeRoot = h.asRootVal();
   const nodes = fakeRoot.descendants();
+  const totalRowCnt = nodes.length;
+  const totalDistinctCnt = uniqBy(nodes, n => n.valueOf());
 
-  let rows = nodes.map(n => {
+  let lastCollapsedRowSeen;
+  let allRows = nodes.map(n => {
     let row = {...conceptLookup[n.valueOf()]};
-    row.level = n.value;
     row.hasChildren = n.children.length > 0;
+    row.level = n.depth;
+    row.pathToRoot = n.namePath()+'';
+    if (collapsed[row.pathToRoot]) {
+      lastCollapsedRowSeen = row.pathToRoot;
+    }
+    if (lastCollapsedRowSeen &&
+        row.pathToRoot.startsWith(lastCollapsedRowSeen &&
+        row.pathToRoot.length > lastCollapsedRowSeen.length)) {
+        // only set the descendants to row.collapsed = true
+        row.collapsed = true;
+    }
     return row;
-  })
+  });
+  let rows = allRows.filter(row => !row.collapsed);
+  const collapsedRows= totalRowCnt - rows.length;
+
+  const rxNormExtensionRows = rows.filter(r => r.vocabulary_id !== 'RxNorm Extension');
+  // TODO: finish working on the counts
   if (hideRxNormExtension) {
     rows = rows.filter(r => r.vocabulary_id !== 'RxNorm Extension');
   }
   if (hideZeroCounts) {
     rows = rows.filter(r => r.total_cnt > 0);
   }
-  return rows;
+  const distinctRows = uniqBy(rows, row => row.concept_id);
+  return {rows, distinctRows, totalRowCnt, totalDistinctCnt};
 }
 function ComparisonDataTable(props) {
   const {
@@ -300,6 +322,8 @@ function colConfig(props) {
     editAction,
     editCodesetFunc,
     windowSize,
+    totalRowCnt,
+    totalDistinctCnt,
   } = props;
   const {collapsed, nested, hideZeroCounts, hideRxNormExtension} = hierarchySettings;
   const {concepts} = cset_data;
