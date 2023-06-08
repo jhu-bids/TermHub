@@ -10,13 +10,71 @@ TODO: OO
 from typing import Dict, List
 
 import pandas as pd
-import csv, io, json
+import csv, io
 from functools import cache
 from collections import defaultdict
 
 from enclave_wrangler.utils import EnclaveWranglerErr, ActionValidateError, get_random_codeset_id, \
     make_objects_request, make_actions_request
-from backend.utils import dump, pdump
+from backend.utils import dump
+
+OBJECT_TYPE_TABLE_MAP: Dict[str, List[str]] = {
+    'OMOPConceptSetContainer': [
+        'concept_set_container'
+    ],
+    'OMOPConceptSet': [
+        'code_sets'
+    ],
+    'OmopConceptSetVersionItem': [
+        'concept_set_version_item'
+    ],
+    'OMOPConcept': [
+        'concept'
+    ],
+}
+PKEYS = {
+    # Enclave Object API
+    'OMOPConcept': 'conceptId',
+    'OMOPConceptSet': 'codesetId',
+    'OMOPConceptSetContainer': 'conceptSetId',
+    'OmopConceptSetVersionItem': 'itemId',
+    # Non-TermHub tables
+    'atlasjson': 'CONCEPT_ID',
+    # TermHub tables
+    # - OMOP: concept set tables
+    'code_sets': 'codeset_id',
+    'concept': 'concept_id',
+    'concept_set_container': 'concept_set_id',
+    'concept_set_version_item': 'item_id',
+    'concept_set_members': ['codeset_id', 'concept_id'],
+    # TODO: Fill the rest of these out
+    # todo: not 100% sure I've sub-categorized these tables below correctly - joeflack4
+    #  - but I should be able to get the correct categories from: https://github.com/jhu-bids/TermHub/issues/259
+    # - OMOP: more tables
+    'concept_relationship': '',
+    'relationship': '',
+    'concept_ancestor': '',
+    # - Termhub: mirror tables from enclave
+    'concept_set_counts_clamped': '',
+    'researcher': '',
+    'omopconceptset': '',
+    'omopconceptsetcontainer': '',
+    # - Termhub: custom tables
+    'all_csets': '',
+    'codeset_counts': '',
+    'concept_relationship_plus': '',
+    'concept_set_json': '',
+    'concepts_with_counts': '',
+    'cset_members_items': '',
+    'deidentified_term_usage_by_domain_clamped': '',
+    'members_items_summary': '',
+    'rxnorm_med_cset': '',
+}
+
+def pkey(obj) -> str:
+    """Get primary key for given object or  table."""
+    return PKEYS.get(obj, None)
+
 
 class ObjWithMetadata:
     def __init__(self):
@@ -174,20 +232,6 @@ def add_mappings(csv_str: str):
     maps: List[Dict] = list(reader)
     FMAPS.extend(maps)
 
-
-PKEYS = {
-    'concept': 'concept_id',
-    'atlasjson': 'CONCEPT_ID',
-    'OMOPConcept': 'conceptId',
-    # version items, could be itemId or, preferably, codesetId + conceptId, but not sure how to handle that
-    'OMOPConceptSet': 'codesetId',
-    'code_sets': 'codeset_id',
-    'OMOPConceptSetContainer': 'conceptSetId',
-    'concept_set_container': 'concept_set_id',
-}
-def pkey(obj):
-    """Get primary key for given object or  table."""
-    return PKEYS.get(obj, None)
 
 # OMOPConcept (concept): dataset <-> atlasjson
 add_mappings(

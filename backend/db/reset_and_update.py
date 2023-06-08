@@ -12,6 +12,8 @@ from argparse import ArgumentParser
 
 from datetime import datetime
 
+from backend.db.analysis import counts_update
+
 DB_DIR = os.path.dirname(os.path.realpath(__file__))
 BACKEND_DIR = os.path.join(DB_DIR, '..')
 PROJECT_ROOT = os.path.join(BACKEND_DIR, '..')
@@ -22,10 +24,11 @@ from backend.db.utils import check_if_updated, current_datetime, get_db_connecti
 from enclave_wrangler.datasets import download_favorite_datasets
 from enclave_wrangler.objects_api import download_favorite_objects
 
+DESC = 'Full reset of the TermHub database w/ newest updates from the Enclave using the datasets API.'
 
 # todo: low priority: track the time it takes for this process to run, and then update the `manage` table, 2 variables:
 #  total time for downloads, and total time for uploading to db (perhaps for each table as well)
-def refresh_db(
+def reset_and_update_db(
     skip_download_datasets_csets=False, skip_download_datasets_vocab=False, skip_download_objects=False,
     skip_download_if_exists=True, schema: str = CONFIG['schema'], hours_threshold_for_updates=24,
     use_local_database=False, run_final_ddl_only=False
@@ -69,12 +72,13 @@ def refresh_db(
         run_sql(con, f'ALTER SCHEMA n3c RENAME TO {schema_old_backup};')
         run_sql(con, f'ALTER SCHEMA {schema_new_temp} RENAME TO n3c;')
         update_db_status_var(last_updated_db_key, str(current_datetime()))
-    print('INFO: Database refresh complete.')
+    counts_update('DB reset and update.', schema, use_local_database)
+    print('INFO: Database reset complete.')
 
 
 def cli():
     """Command line interface"""
-    parser = ArgumentParser(description='Refreshes the TermHub database w/ newest updates from the Enclave.')
+    parser = ArgumentParser(prog='DB Reset', description=DESC)
     # todo: downloads: rather than checking if full db refresh was done, should check files last_updated time
     parser.add_argument(
         '-t', '--hours-threshold-for-updates', default=24,
@@ -99,7 +103,7 @@ def cli():
         '-l', '--use-local-database', action='store_true', default=False, help='Use local database instead of server.')
     parser.add_argument(
         '-z', '--run-final-ddl-only', action='store_true', default=False, help='Only run indexes_and_derived_tables (ddl.jinja.sql).')
-    refresh_db(**vars(parser.parse_args()))
+    reset_and_update_db(**vars(parser.parse_args()))
 
 
 if __name__ == '__main__':
