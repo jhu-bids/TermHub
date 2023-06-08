@@ -5,6 +5,7 @@ Resources
 """
 import json
 import os
+import requests
 from datetime import datetime
 from pathlib import Path
 from typing import Dict, List, Union, Set
@@ -26,7 +27,7 @@ from enclave_wrangler.objects_api import get_n3c_recommended_csets, enclave_api_
 from enclave_wrangler.utils import make_objects_request
 from enclave_wrangler.config import RESEARCHER_COLS
 from enclave_wrangler.models import convert_rows
-
+from backend.db.config import CONFIG
 PROJECT_DIR = Path(os.path.dirname(__file__)).parent
 # CON: using a global connection object is probably a terrible idea, but shouldn't matter much until there are multiple
 # users on the same server
@@ -400,17 +401,20 @@ def db_refresh_route():
 
     Example working cURL:
     (well, it works for @joeflack4 when actually putting in the token itself. With ${GH_LIMITED_PERSONAL_ACCESS_TOKEN},
-    it should work, but gives "curl: (16) Error in the HTTP2 framing layer"
+    it should work, but gives "curl: (16) Error in the HTTP2 framing layer" """
 
-    curl -X POST \
-      -H "Authorization: Bearer ${GH_LIMITED_PERSONAL_ACCESS_TOKEN}" \
-      -H "Accept: application/vnd.github.v3+json" \
-      -H "Content-Type: application/json" \
-      -d '{"event_type": "refresh-db"}' \
-      https://api.github.com/repos/jhu-bids/TermHub/dispatches
-    """
-    print("to be implemented")
-
+    headers = {
+        "Authorization": f"Bearer {CONFIG['personal_access_token']}",
+        "Accept": "application/vnd.github.v3+json",
+        "Content-Type": "application/json"
+    }
+    args = {"event-type":"refresh-db"}
+    url = 'https://api.github.com/repos/jhu-bids/TermHub/dispatches'
+    payload = {
+        'event_type': 'refresh-db',
+    }
+    response = requests.post(url, headers = headers,data=json.dumps(payload))
+    return response
 
 # TODO: if using this at all, fix it to use graph.hierarchy, which doesn't need root_cids
 # @APP.get("/hierarchy")
@@ -573,4 +577,5 @@ def cr_hierarchy(include_atlas_json: bool = False, codeset_ids: Union[str, None]
 
 
 if __name__ == '__main__':
-    run()
+    #run()
+    db_refresh_route()
