@@ -88,6 +88,7 @@ function CsetComparisonPage(props) {
   let columns = colConfig({
     ...props,
     selected_csets,
+    concepts,
     editAction,
     editCodesetFunc,
     sizes,
@@ -174,20 +175,17 @@ function nodeToTree(node) {
   return [node, ...subTrees];
 }
 export function getRowData(props) {
-  // when I put this provider up at the App level, it didn't update
-  //    but at the CsetComparisonPage level it did. don't know why
   console.log("getting row data");
 
   const {concepts, conceptLookup, edges, hierarchySettings, } = props;
   const {collapsePaths, collapsedDescendantPaths, nested, hideZeroCounts, hideRxNormExtension} = hierarchySettings;
 
   const graph = new Graph({allowSelfLoops: false, multi: false, type: 'directed'});
+  // add each concept as a node in the graph, the concept properties become the node attributes
   concepts.forEach(c => graph.addNode(c.concept_id, c));
   edges.forEach(edge => graph.addEdge(...edge));
 
-  // const flatTree = flatten(dag.roots().map(r => nodeToTree(r)));
-  let allRows = [];
-  let nodes = graph.nodes();
+  // sort the nodes so the ones with the most descendants come first
   let nodeDepths = [];
   graph.nodes().map(n => {
     let descendants = 0;
@@ -198,10 +196,17 @@ export function getRowData(props) {
     });
     nodeDepths.push({node: n, descendants});
   });
-  nodes = sortBy(nodeDepths, n => -n.descendants).map(n => n.node);
+  let nodes = sortBy(nodeDepths, n => -n.descendants).map(n => n.node);
+
+  let allRows = [];
+  let nodeSeen = {};
   nodes.map((n,i) => {
     let currentPath = [];
+    if (nodeSeen[n]) {
+      return;
+    }
     dfsFromNode(graph, n, (node, attr, depth) => {
+      nodeSeen[node] = true;
       if (depth === currentPath.length) {
         currentPath.push(node);
       }
@@ -211,28 +216,40 @@ export function getRowData(props) {
       } else {
         throw new Error("shouldn't happen");
       }
-      // console.log('   '.repeat(depth) + node);
+
       let row = {...graph.getNodeAttributes(node)};
+      row.pathToRoot = currentPath.join('/');
+      if (collapsedDescendantPaths[row.pathToRoot]) {
+        // currentPath.pop();
+        return;
+      }
+      // console.log('   '.repeat(depth) + node);
       row.hasChildren = graph.outboundDegree(node) > 0;
       row.level = depth;
-      row.pathToRoot = currentPath.join('/');
+      let debugInfo = ` ${row.pathToRoot}`;
+      if (row.hasChildren) {
+        debugInfo += (collapsePaths[row.pathToRoot] ? '(+)' : '(-)');
+      }
       if (collapsePaths[row.pathToRoot]) {
-        row.collapseDescendants = true;
+        // row.collapseDescendants = true;
       }
       if (collapsedDescendantPaths[row.pathToRoot]) {
-        row.collapsed = true;
+        // row.collapsed = true;
+        debugInfo += ' hidden';
       }
       // for debugging:
-      // row.concept_name += (' ' + row.pathToRoot + ' ' + (row.hasChildren ? 'parent' : 'leaf'));
+      row.concept_name = <span>{row.level} {row.concept_name}<br/><strong>{debugInfo}</strong></span>;
       allRows.push(row);
     });
   });
+  console.log(`allRows: ${allRows.length}`);
   const hidden = {
     collapsed: collapsedDescendantPaths.length,
     rxNormExtension: allRows.filter(row => row.vocabulary_id === 'RxNorm Extension').length,
   }
   // const collapsedRows= allRows.filter(row => row.collapsed);
-  let rows = allRows.filter(row => !row.collapsed);
+  // let rows = allRows.filter(row => !row.collapsed);
+  let rows = allRows.filter(row => !collapsedDescendantPaths[row.pathToRoot]);
 
   // const rxNormExtensionRows = rows.filter(r => r.vocabulary_id == 'RxNorm Extension');
   if (hideRxNormExtension) {
@@ -315,12 +332,19 @@ function getSizes(squishTo) {
   };
   return sizes;
 }
-function getCollapseIcon(collapsePaths, row, rows, sizes, hsDispatch, ) {
-  const Component = collapsePaths[row.pathToRoot] ? AddCircle : RemoveCircleOutline;
+function getCollapseIconAndName(collapsePaths, row, rows, sizes, hsDispatch, ) {
+  let Component, collapseAction;
+  if (collapsePaths[row.pathToRoot]) {
+    Component = AddCircle;
+    collapseAction = 'expand';
+  } else {
+    Component = RemoveCircleOutline;
+    collapseAction = 'collapse';
+  }
   return (
       <span
           className="toggle-collapse concept-name-row"
-          onClick={() => hsDispatch({ type: "collapseDescendants", row, rows})}
+          onClick={() => hsDispatch({ type: "collapseDescendants", row, rows, collapseAction})}
       >
                 <Component
                     sx={{
@@ -331,14 +355,14 @@ function getCollapseIcon(collapsePaths, row, rows, sizes, hsDispatch, ) {
                       verticalAlign: "top",
                     }}
                 />
-        {row.concept_name} {row.collapsed && "collapsed"}
+        {row.concept_name}
       </span>
   );
 }
 function colConfig(props) {
   let {
     selected_csets,
-    cset_data,
+    concepts,
     sizes,
     editAction,
     editCodesetFunc,
@@ -349,14 +373,6 @@ function colConfig(props) {
     hsDispatch,
   } = props;
   const {collapsePaths, collapsedDescendantPaths, nested, hideRxNormExtension, hideZeroCounts} = hierarchySettings;
-  function toggleCollapse(row, rows) {
-    /* @amirmds:
-      Since toggleCollapse is now using appState instead of local useState, this logic
-      could be moved to the reducer and instead of passing this function and the collapsed
-      state down to colConfig, colConfig could pick those out of appState itself.
-     */
-  }
-  const {concepts} = cset_data;
 
   let coldefs = [
     {
@@ -365,7 +381,7 @@ function colConfig(props) {
       format: (row) => {
         let content = nested ? (
           row.hasChildren
-              ? getCollapseIcon(collapsePaths, row, rows, sizes, hsDispatch)
+              ? getCollapseIconAndName(collapsePaths, row, rows, sizes, hsDispatch)
               : (
                   <span className="concept-name-row">
                     <RemoveCircleOutline

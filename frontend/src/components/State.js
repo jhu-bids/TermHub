@@ -233,17 +233,20 @@ function hierarchySettingsReducer(state, action) {
   let {collapsePaths, collapsedDescendantPaths, nested, hideRxNormExtension, hideZeroCounts} = state;
   switch (action.type) {
     case "collapseDescendants": {
-      const {row, rows} = action;
+      const {row, rows, collapseAction} = action;
       // this toggles the collapse state of the given row
       const collapse = !get(collapsePaths, row.pathToRoot);
       // collapsePaths are the paths to all the rows the user collapsed
       //  these rows still appear in the table, but their descendants don't
-      collapsePaths = {
-        ...collapsePaths,
-        [row.pathToRoot]: collapse
-      };
+      if (collapseAction === 'collapse') {
+        collapsePaths = { ...collapsePaths, [row.pathToRoot]: true };
+      } else {
+        collapsePaths = { ...collapsePaths };
+        delete collapsePaths[row.pathToRoot];
+      }
       // collapsedDescendantPaths are all the paths that get hidden, the descendants of all the collapsePaths
-      collapsedDescendantPaths = rows.map(r => r.pathToRoot).filter(p => p.startsWith(row.pathToRoot));
+      collapsedDescendantPaths = rows.map(r => r.pathToRoot).filter(
+          p => p.length > row.pathToRoot.length && p.startsWith(row.pathToRoot));
       collapsedDescendantPaths = fromPairs(collapsedDescendantPaths.map(p => [p, true]));
       return { ...state, collapsePaths, collapsedDescendantPaths };
     }
