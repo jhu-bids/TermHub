@@ -103,6 +103,11 @@ body {
   padding: 0px;
 }
 
+.concept-name-text {
+  padding-left: 22px;
+  text-indent: -22px;
+}
+
 .css-12wnr2w-MuiButtonBase-root-MuiCheckbox-root {
   padding: 0 !important;
 }

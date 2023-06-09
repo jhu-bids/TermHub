@@ -447,7 +447,7 @@ function colConfig(props) {
                     verticalAlign: "top",
                   }}
                 />
-                {row.concept_name} {row.collapsed && "collapsed"}
+                <span className="concept-name-text">{row.concept_name} {row.collapsed && "collapsed"}</span>
               </span>
             ) : (
               <span
@@ -463,7 +463,7 @@ function colConfig(props) {
                     verticalAlign: "top",
                   }}
                 />
-                {row.concept_name} {row.collapsed && "collapsed"}
+                <span className="concept-name-text">{row.concept_name} {row.collapsed && "collapsed"}</span>
               </span>
             )
           ) : (
@@ -471,11 +471,11 @@ function colConfig(props) {
               <RemoveCircleOutline
                 sx={{ fontSize: sizes.collapseIcon, visibility: "hidden" }}
               />
-              {row.concept_name}
+              <span className="concept-name-text">{row.concept_name}</span>
             </span>
           )
         ) : (
-          row.concept_name
+            <span className="concept-name-text">{row.concept_name}</span>
         );
         return content;
       },
@@ -484,13 +484,15 @@ function colConfig(props) {
       // remainingPct: .60,
       // width: (window.innerWidth - selected_csets.length * 50) * .65,
       maxWidth: '50%',
-      grow: 4,
+      // grow: 4,
       wrap: true,
       compact: true,
       conditionalCellStyles: [
         {
           when: (row) => true,
-          style: (row) => ({ paddingLeft: 16 + row.level * 16 + "px" }),
+          style: (row) => ({
+            paddingLeft: 16 + row.level * 16 + "px"
+          }),
         },
       ],
     },
@@ -515,14 +517,16 @@ function colConfig(props) {
       selector: (row) => row.vocabulary_id,
       // format: (row) => <Tooltip label={row.vocabulary_id} content={row.vocabulary_id} />,
       sortable: !nested,
-      width: 100,
+      minWidth: 100,
+      maxWidth: '10%',
       style: { justifyContent: "center" },
     },
     {
       name: "Concept ID",
       selector: (row) => row.concept_id,
       sortable: !nested,
-      width: 80,
+      minWidth: 80,
+      maxWidth: '8%',
       style: { justifyContent: "center" },
     },
     {
@@ -582,7 +586,8 @@ function colConfig(props) {
         </span>
       ),
       sortable: !nested,
-      width: 60,
+      minWidth: 60,
+      maxWidth: '6%',
       style: {
         backgroundColor: "lightgray",
         paddingRight: "0px",
@@ -621,7 +626,8 @@ function colConfig(props) {
       },
       sortable: !nested,
       right: true,
-      width: 80,
+      minWidth: 80,
+      maxWidth: '8%',
       // minWidth: 80,
       // remainingPct: .10,
       style: { justifyContent: "center" },
@@ -640,7 +646,8 @@ function colConfig(props) {
       },
       sortable: !nested,
       right: true,
-      width: 80,
+      minWidth: 80,
+      maxWidth: '8%',
       // minWidth: 80,
       // remainingPct: .10,
       style: { justifyContent: "center" },
@@ -677,7 +684,8 @@ function colConfig(props) {
       ],
       sortable: !nested,
       // compact: true,
-      width: 70,
+      minWidth: 70,
+      maxWidth: '7%',
       // center: true,
     };
     return def;
