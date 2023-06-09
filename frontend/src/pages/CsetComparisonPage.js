@@ -216,13 +216,16 @@ export function getRowData(props) {
         currentPath.splice(depth);
         currentPath.push(node);
       } else {
+        console.log(currentPath.join('/'), node);
+        let paths = allSimplePaths(graph, currentPath[currentPath.length - 1], node);
+        console.log(paths);
         throw new Error("shouldn't happen");
       }
 
       let row = {...graph.getNodeAttributes(node)};
       row.pathToRoot = currentPath.join('/');
       if (collapsedDescendantPaths[row.pathToRoot]) {
-        currentPath.pop();
+        // currentPath.pop(); // don't do this, descendants will continue popping
         allRows.push(row);
         return;
       }
@@ -246,7 +249,7 @@ export function getRowData(props) {
       displayedRows.push(row);
     });
   });
-  console.log(`allRows: ${allRows.length}, displayedRows: ${displayedRows}`);
+  // console.log(`allRows: ${allRows.length}, displayedRows: ${displayedRows}`);
   const hidden = {
     collapsed: collapsedDescendantPaths.length,
     rxNormExtension: allRows.filter(row => row.vocabulary_id === 'RxNorm Extension').length,
