@@ -232,6 +232,7 @@ export function getRowData(props) {
       // console.log('   '.repeat(depth) + node);
       row.hasChildren = graph.outboundDegree(node) > 0;
       row.level = depth;
+      /*
       let debugInfo = ` ${row.pathToRoot}`;
       if (row.hasChildren) {
         debugInfo += (collapsePaths[row.pathToRoot] ? '(+)' : '(-)');
@@ -245,6 +246,7 @@ export function getRowData(props) {
       }
       // for debugging:
       row.concept_name = <span>{row.level} {row.concept_name}<br/><strong>{debugInfo}</strong></span>;
+       */
       allRows.push(row);
       displayedRows.push(row);
     });
