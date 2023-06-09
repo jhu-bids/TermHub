@@ -66,10 +66,10 @@ function CsetComparisonPage(props) {
   // console.log(EDGES);
 
   // TODO: component is rendering twice. why? not necessary? fix?
-  let {rows, distinctRows, hidden} = getRowData({...props, hierarchySettings});
+  let {allRows, displayedRows, distinctRows, hidden} = getRowData({...props, hierarchySettings});
   let rowData;
   if (nested) {
-    rowData = rows;
+    rowData = displayedRows;
   } else {
     // rowData = hierarchyToFlatCids(hierarchy).map(cid => conceptLookup[cid]);
     rowData = distinctRows;
@@ -94,7 +94,8 @@ function CsetComparisonPage(props) {
     sizes,
     windowSize,
     hidden,
-    rows,
+    allRows,
+    displayedRows,
     hierarchySettings,
     hsDispatch,
   });
@@ -112,7 +113,7 @@ function CsetComparisonPage(props) {
             onClick={() => hsDispatch({type:'nested', nested: true})}
             sx={{ marginRight: '4px' }}
     >
-      {rows.length} in hierarchy
+      {displayedRows.length} in hierarchy
     </Button>,
     <FlexibleContainer key="legend" title="Legend">
       <Legend />
@@ -199,6 +200,7 @@ export function getRowData(props) {
   let nodes = sortBy(nodeDepths, n => -n.descendants).map(n => n.node);
 
   let allRows = [];
+  let displayedRows = [];
   let nodeSeen = {};
   nodes.map((n,i) => {
     let currentPath = [];
@@ -220,7 +222,8 @@ export function getRowData(props) {
       let row = {...graph.getNodeAttributes(node)};
       row.pathToRoot = currentPath.join('/');
       if (collapsedDescendantPaths[row.pathToRoot]) {
-        // currentPath.pop();
+        currentPath.pop();
+        allRows.push(row);
         return;
       }
       // console.log('   '.repeat(depth) + node);
@@ -240,9 +243,10 @@ export function getRowData(props) {
       // for debugging:
       row.concept_name = <span>{row.level} {row.concept_name}<br/><strong>{debugInfo}</strong></span>;
       allRows.push(row);
+      displayedRows.push(row);
     });
   });
-  console.log(`allRows: ${allRows.length}`);
+  console.log(`allRows: ${allRows.length}, displayedRows: ${displayedRows}`);
   const hidden = {
     collapsed: collapsedDescendantPaths.length,
     rxNormExtension: allRows.filter(row => row.vocabulary_id === 'RxNorm Extension').length,
@@ -253,14 +257,14 @@ export function getRowData(props) {
 
   // const rxNormExtensionRows = rows.filter(r => r.vocabulary_id == 'RxNorm Extension');
   if (hideRxNormExtension) {
-    rows = rows.filter(r => r.vocabulary_id !== 'RxNorm Extension');
+    displayedRows = displayedRows.filter(r => r.vocabulary_id !== 'RxNorm Extension');
   }
-  hidden.zeroCount = rows.filter(row => row.total_cnt === 0).length;
+  hidden.zeroCount = displayedRows.filter(row => row.total_cnt === 0).length;
   if (hideZeroCounts) {
-    rows = rows.filter(r => r.total_cnt > 0);
+    displayedRows = displayedRows.filter(r => r.total_cnt > 0);
   }
-  const distinctRows = uniqBy(rows, row => row.concept_id);
-  return {rows, distinctRows, hidden};
+  const distinctRows = uniqBy(displayedRows, row => row.concept_id);
+  return {allRows, displayedRows, distinctRows, hidden};
 }
 function ComparisonDataTable(props) {
   const {
@@ -332,7 +336,7 @@ function getSizes(squishTo) {
   };
   return sizes;
 }
-function getCollapseIconAndName(collapsePaths, row, rows, sizes, hsDispatch, ) {
+function getCollapseIconAndName(collapsePaths, row, allRows, sizes, hsDispatch, ) {
   let Component, collapseAction;
   if (collapsePaths[row.pathToRoot]) {
     Component = AddCircle;
@@ -344,7 +348,7 @@ function getCollapseIconAndName(collapsePaths, row, rows, sizes, hsDispatch, ) {
   return (
       <span
           className="toggle-collapse concept-name-row"
-          onClick={() => hsDispatch({ type: "collapseDescendants", row, rows, collapseAction})}
+          onClick={() => hsDispatch({ type: "collapseDescendants", row, allRows, collapseAction})}
       >
                 <Component
                     sx={{
@@ -368,7 +372,8 @@ function colConfig(props) {
     editCodesetFunc,
     windowSize,
     hidden,
-    rows,
+    allRows,
+    displayedRows,
     hierarchySettings,
     hsDispatch,
   } = props;
@@ -381,7 +386,7 @@ function colConfig(props) {
       format: (row) => {
         let content = nested ? (
           row.hasChildren
-              ? getCollapseIconAndName(collapsePaths, row, rows, sizes, hsDispatch)
+              ? getCollapseIconAndName(collapsePaths, row, allRows, sizes, hsDispatch)
               : (
                   <span className="concept-name-row">
                     <RemoveCircleOutline

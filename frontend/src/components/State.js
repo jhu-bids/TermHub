@@ -12,7 +12,7 @@ import Box from "@mui/material/Box";
 import { useQuery } from "@tanstack/react-query";
 import {queryClient} from "../App";
 import { createSearchParams } from "react-router-dom";
-import { isEmpty, get, uniq, pullAt, fromPairs } from "lodash";
+import { isEmpty, get, uniq, pullAt, fromPairs, flatten } from "lodash";
 import { pct_fmt } from "./utils";
 import WarningRoundedIcon from '@mui/icons-material/WarningRounded';
 import { CheckCircleRounded } from "@mui/icons-material";
@@ -233,7 +233,7 @@ function hierarchySettingsReducer(state, action) {
   let {collapsePaths, collapsedDescendantPaths, nested, hideRxNormExtension, hideZeroCounts} = state;
   switch (action.type) {
     case "collapseDescendants": {
-      const {row, rows, collapseAction} = action;
+      const {row, allRows, collapseAction} = action;
       // this toggles the collapse state of the given row
       const collapse = !get(collapsePaths, row.pathToRoot);
       // collapsePaths are the paths to all the rows the user collapsed
@@ -245,9 +245,11 @@ function hierarchySettingsReducer(state, action) {
         delete collapsePaths[row.pathToRoot];
       }
       // collapsedDescendantPaths are all the paths that get hidden, the descendants of all the collapsePaths
-      collapsedDescendantPaths = rows.map(r => r.pathToRoot).filter(
-          p => p.length > row.pathToRoot.length && p.startsWith(row.pathToRoot));
-      collapsedDescendantPaths = fromPairs(collapsedDescendantPaths.map(p => [p, true]));
+      const hiddenRows = flatten(Object.keys(collapsePaths).map(collapsedPath => {
+        return allRows.map(r => r.pathToRoot).filter(
+            p => p.length > collapsedPath.length && p.startsWith(collapsedPath));
+      }));
+      collapsedDescendantPaths = fromPairs(hiddenRows.map(p => [p, true]));
       return { ...state, collapsePaths, collapsedDescendantPaths };
     }
     case "nested": {
