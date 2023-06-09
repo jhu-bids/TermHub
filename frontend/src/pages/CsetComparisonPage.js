@@ -55,6 +55,7 @@ function CsetComparisonPage(props) {
   console.log("starting CsetComparisonPage");
   // const { selected_csets = [], researchers, hierarchy, conceptLookup } = cset_data
   const { selected_csets, researchers, hierarchy, conceptLookup } = dataAccessor.cache;
+  console.log(selected_csets);
   const { state: hierarchySettings, dispatch} = useStateSlice("hierarchySettings");
   const hsDispatch = (...args) => {
     window.Pace.restart();
@@ -482,6 +483,7 @@ function colConfig(props) {
       // minWidth: 100,
       // remainingPct: .60,
       // width: (window.innerWidth - selected_csets.length * 50) * .65,
+      maxWidth: '50%',
       grow: 4,
       wrap: true,
       compact: true,
