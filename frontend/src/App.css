@@ -32,6 +32,10 @@ body {
    */
 }
 
+.cset-selection {
+  display: none;
+}
+
 .MuiAutocomplete-option {
   line-height: 115% !important;
   padding-left: 40px !important;
