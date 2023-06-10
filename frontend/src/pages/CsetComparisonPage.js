@@ -11,7 +11,7 @@ import { AddCircle, RemoveCircleOutline } from "@mui/icons-material";
 import { Box, Slider, Button, Typography, Switch } from "@mui/material";
 import Draggable from "react-draggable";
 // import {Checkbox} from "@mui/material";
-import {isEmpty, get, throttle, max, uniqBy, flatten, sortBy} from "lodash"; // set, map, omit, pick, uniq, reduce, cloneDeepWith, isEqual, uniqWith, groupBy,
+import {isEmpty, get, throttle, max, uniq, uniqBy, flatten, sortBy} from "lodash"; // set, map, omit, pick, uniq, reduce, cloneDeepWith, isEqual, uniqWith, groupBy,
 import Graph from 'graphology';
 import {allSimplePaths} from 'graphology-simple-path';
 import {dfs, dfsFromNode} from 'graphology-traversal/dfs';
@@ -52,29 +52,23 @@ function CsetComparisonPage(props) {
     csetEditState,
     concepts,
   } = props;
-  console.log("starting CsetComparisonPage");
   // const { selected_csets = [], researchers, hierarchy, conceptLookup } = cset_data
   const { selected_csets, researchers, hierarchy, conceptLookup } = dataAccessor.cache;
-  console.log(selected_csets);
-  const { state: hierarchySettings, dispatch} = useStateSlice("hierarchySettings");
-  const hsDispatch = (...args) => {
-    window.Pace.restart();
-    setTimeout(() => dispatch(...args), 100);
-  }
-  // const [concepts, setConcepts] = useState([]);
+  const { state: hierarchySettings, dispatch: hsDispatch} = useStateSlice("hierarchySettings");
+  const {collapsePaths, collapsedDescendantPaths, nested, hideRxNormExtension, hideZeroCounts} = hierarchySettings;
+  // window.hierarchySettingsW = hierarchySettings;
   const windowSize = useWindowSize();
   const boxRef = useRef();
   const sizes = getSizes(/*squishTo*/ 1);
   const customStyles = styles(sizes);
-  const {collapsed, nested, hideRxNormExtension, hideZeroCounts} = hierarchySettings;
 
   // console.log(EDGES);
 
   // TODO: component is rendering twice. why? not necessary? fix?
-  let {rows, distinctRows, hidden} = getRowData({...props, hierarchySettings});
+  let {allRows, displayedRows, distinctRows, hidden} = getRowData({...props, hierarchySettings});
   let rowData;
   if (nested) {
-    rowData = rows;
+    rowData = displayedRows;
   } else {
     // rowData = hierarchyToFlatCids(hierarchy).map(cid => conceptLookup[cid]);
     rowData = distinctRows;
@@ -86,19 +80,6 @@ function CsetComparisonPage(props) {
   });
   const editCodesetFunc = getEditCodesetFunc({ searchParams, setSearchParams });
 
-  function toggleCollapse(row) {
-    /* @amirmds:
-      Since toggleCollapse is now using appState instead of local useState, this logic
-      could be moved to the reducer and instead of passing this function and the collapsed
-      state down to colConfig, colConfig could pick those out of appState itself.
-     */
-    let _collapsed = collapsed;
-    _collapsed = {
-      ..._collapsed,
-      [row.pathToRoot]: !get(_collapsed, row.pathToRoot),
-    };
-    hsDispatch({ type: "collapseDescendants", collapsed: _collapsed });
-  }
 
   if (!all_csets.length || isEmpty(selected_csets)) {
     return <p>Downloading...</p>;
@@ -106,14 +87,16 @@ function CsetComparisonPage(props) {
   let columns = colConfig({
     ...props,
     selected_csets,
+    concepts,
     editAction,
     editCodesetFunc,
     sizes,
-    hierarchySettings, // collapsed, nested, hideZeroCounts, hideRxNormExtension
-    hsDispatch,
-    toggleCollapse,
     windowSize,
-    hidden
+    hidden,
+    allRows,
+    displayedRows,
+    hierarchySettings,
+    hsDispatch,
   });
 
   let infoPanels = [
@@ -129,7 +112,7 @@ function CsetComparisonPage(props) {
             onClick={() => hsDispatch({type:'nested', nested: true})}
             sx={{ marginRight: '4px' }}
     >
-      {rows.length} in hierarchy
+      {displayedRows.length} in hierarchy
     </Button>,
     <FlexibleContainer key="legend" title="Legend">
       <Legend />
@@ -162,7 +145,6 @@ function CsetComparisonPage(props) {
   }
 
   let moreProps = { ...props, rowData, columns, selected_csets, customStyles };
-  console.log(hierarchySettings);
   return (
     <div>
       <Box
@@ -193,19 +175,17 @@ function nodeToTree(node) {
   return [node, ...subTrees];
 }
 export function getRowData(props) {
-  // when I put this provider up at the App level, it didn't update
-  //    but at the CsetComparisonPage level it did. don't know why
   console.log("getting row data");
-  const {conceptLookup, edges, hierarchySettings} = props;
-  const {collapsed, nested, hideZeroCounts, hideRxNormExtension} = hierarchySettings;
+
+  const {concepts, conceptLookup, edges, hierarchySettings, } = props;
+  const {collapsePaths, collapsedDescendantPaths, nested, hideZeroCounts, hideRxNormExtension} = hierarchySettings;
 
   const graph = new Graph({allowSelfLoops: false, multi: false, type: 'directed'});
-  edges.forEach(edge => graph.mergeEdge(...edge));
+  // add each concept as a node in the graph, the concept properties become the node attributes
+  concepts.forEach(c => graph.addNode(c.concept_id, c));
+  edges.forEach(edge => graph.addEdge(...edge));
 
-  let allRows = [];
-  let lastCollapsedRowSeen;
-  let currentPath = [];
-  let nodes = graph.nodes();
+  // sort the nodes so the ones with the most descendants come first
   let nodeDepths = [];
   graph.nodes().map(n => {
     let descendants = 0;
@@ -216,10 +196,18 @@ export function getRowData(props) {
     });
     nodeDepths.push({node: n, descendants});
   });
-  nodes = sortBy(nodeDepths, n => -n.descendants).map(n => n.node);
+  let nodes = sortBy(nodeDepths, n => -n.descendants).map(n => n.node);
+
+  let allRows = [];
+  let displayedRows = [];
+  let nodeSeen = {};
   nodes.map((n,i) => {
-    console.log(i, n);
+    let currentPath = [];
+    if (nodeSeen[n]) {
+      return;
+    }
     dfsFromNode(graph, n, (node, attr, depth) => {
+      nodeSeen[node] = true;
       if (depth === currentPath.length) {
         currentPath.push(node);
       }
@@ -227,116 +215,60 @@ export function getRowData(props) {
         currentPath.splice(depth);
         currentPath.push(node);
       } else {
+        console.log(currentPath.join('/'), node);
+        let paths = allSimplePaths(graph, currentPath[currentPath.length - 1], node);
+        console.log(paths);
         throw new Error("shouldn't happen");
       }
+
+      let row = {...graph.getNodeAttributes(node)};
+      row.pathToRoot = currentPath.join('/');
+      if (collapsedDescendantPaths[row.pathToRoot]) {
+        // currentPath.pop(); // don't do this, descendants will continue popping
+        allRows.push(row);
+        return;
+      }
       // console.log('   '.repeat(depth) + node);
-      let row = {...conceptLookup[node]};
       row.hasChildren = graph.outboundDegree(node) > 0;
       row.level = depth;
-      row.pathToRoot = currentPath.join('/');
-      if (collapsed[row.pathToRoot]) {
-        lastCollapsedRowSeen = row.pathToRoot;
+      /*
+      let debugInfo = ` ${row.pathToRoot}`;
+      if (row.hasChildren) {
+        debugInfo += (collapsePaths[row.pathToRoot] ? '(+)' : '(-)');
       }
-      if (lastCollapsedRowSeen &&
-          row.pathToRoot.startsWith(lastCollapsedRowSeen) &&
-          row.pathToRoot.length > lastCollapsedRowSeen.length) {
-        // only set the descendants to row.collapsed = true
-        row.collapsed = true;
+      if (collapsePaths[row.pathToRoot]) {
+        // row.collapseDescendants = true;
+      }
+      if (collapsedDescendantPaths[row.pathToRoot]) {
+        // row.collapsed = true;
+        debugInfo += ' hidden';
       }
       // for debugging:
-      // row.concept_name += (' ' + row.pathToRoot + ' ' + (row.hasChildren ? 'parent' : 'leaf'));
+      row.concept_name = <span>{row.level} {row.concept_name}<br/><strong>{debugInfo}</strong></span>;
+       */
       allRows.push(row);
+      displayedRows.push(row);
     });
   });
-  /*
-  dfs(graph, function (node, attr, depth) {
-    nodes.push(node);
-    if (graph.inboundDegree(node) === 0) {
-      roots.push(node);
-    }
-    if (graph.outboundDegree(node) === 0) {
-      leafs.push(node);
-    }
-  });
-   */
+  // console.log(`allRows: ${allRows.length}, displayedRows: ${displayedRows}`);
   const hidden = {
-    collapsed: allRows.filter(row => row.collapsed).length,
+    collapsed: collapsedDescendantPaths.length,
     rxNormExtension: allRows.filter(row => row.vocabulary_id === 'RxNorm Extension').length,
   }
   // const collapsedRows= allRows.filter(row => row.collapsed);
-  let rows = allRows.filter(row => !row.collapsed);
+  // let rows = allRows.filter(row => !row.collapsed);
+  let rows = allRows.filter(row => !collapsedDescendantPaths[row.pathToRoot]);
 
   // const rxNormExtensionRows = rows.filter(r => r.vocabulary_id == 'RxNorm Extension');
   if (hideRxNormExtension) {
-    rows = rows.filter(r => r.vocabulary_id !== 'RxNorm Extension');
+    displayedRows = displayedRows.filter(r => r.vocabulary_id !== 'RxNorm Extension');
   }
-  hidden.zeroCount = rows.filter(row => row.total_cnt === 0).length;
+  hidden.zeroCount = displayedRows.filter(row => row.total_cnt === 0).length;
   if (hideZeroCounts) {
-    rows = rows.filter(r => r.total_cnt > 0);
+    displayedRows = displayedRows.filter(r => r.total_cnt > 0);
   }
-  const distinctRows = uniqBy(rows, row => row.concept_id);
-  return {rows, distinctRows, hidden};
-}
-function junk() {
-  let roots, graph, nodes, leafs, edges, collapsed, hideZeroCounts, hideRxNormExtension, conceptLookup;
-  let paths = flatten(roots.map(r => flatten(leafs.map(l => allSimplePaths(graph, r, l).filter(p=>p.length).map(p=>p.join('/')))))).filter(p => p.length).sort();
-  debugger;
-  const connect = d3dag.dagConnect();
-  const dag = connect(edges);
-  const flatTree = flatten(dag.roots().map(r => nodeToTree(r)));
-  window.d3dag = d3dag;
-  /*
-  dag.depth();
-  const nodes = dag.descendants('depth');
-  let nodeLookup = {};
-  for (let n of nodes) {
-    nodeLookup[n.data.id] = 1;
-  }
-  const missingConcepts = concepts.filter(c => !nodeLookup[c.concept_id]);
-   */
-
-  /*
-  const h = _.hierarchicalTableToTree(edges, 0, 1);
-  const fakeRoot = h.asRootVal();
-  const nodes = fakeRoot.descendants();
-   */
-  const totalRowCnt = flatTree.length;
-  const totalDistinctCnt = uniqBy(flatTree, n => n.valueOf());
-
-  let lastCollapsedRowSeen;
-  let allRows = flatTree.map(n => {
-    let row = {...conceptLookup[n.valueOf()]};
-    row.hasChildren = n.children.length > 0;
-    row.level = n.depth;
-    row.pathToRoot = n.namePath()+'';
-    if (collapsed[row.pathToRoot]) {
-      lastCollapsedRowSeen = row.pathToRoot;
-    }
-    if (lastCollapsedRowSeen &&
-        row.pathToRoot.startsWith(lastCollapsedRowSeen) &&
-        row.pathToRoot.length > lastCollapsedRowSeen.length) {
-        // only set the descendants to row.collapsed = true
-        row.collapsed = true;
-    }
-    return row;
-  });
-  const hidden = {
-    collapsed: allRows.filter(row => row.collapsed).length,
-    rxNormExtension: allRows.filter(row => row.vocabulary_id === 'RxNorm Extension').length,
-  }
-  // const collapsedRows= allRows.filter(row => row.collapsed);
-  let rows = allRows.filter(row => !row.collapsed);
-
-  // const rxNormExtensionRows = rows.filter(r => r.vocabulary_id == 'RxNorm Extension');
-  if (hideRxNormExtension) {
-    rows = rows.filter(r => r.vocabulary_id !== 'RxNorm Extension');
-  }
-  hidden.zeroCount = rows.filter(row => row.total_cnt === 0).length;
-  if (hideZeroCounts) {
-    rows = rows.filter(r => r.total_cnt > 0);
-  }
-  const distinctRows = uniqBy(rows, row => row.concept_id);
-  return {rows, distinctRows, hidden};
+  const distinctRows = uniqBy(displayedRows, row => row.concept_id);
+  return {allRows, displayedRows, distinctRows, hidden};
 }
 function ComparisonDataTable(props) {
   const {
@@ -358,7 +290,6 @@ function ComparisonDataTable(props) {
       }),
     },
   ];
-  console.log("drawing comparisondatatable");
   return (
     <DataTable
       customStyles={customStyles}
@@ -409,22 +340,49 @@ function getSizes(squishTo) {
   };
   return sizes;
 }
-
+function getCollapseIconAndName(collapsePaths, row, allRows, sizes, hsDispatch, ) {
+  let Component, collapseAction;
+  if (collapsePaths[row.pathToRoot]) {
+    Component = AddCircle;
+    collapseAction = 'expand';
+  } else {
+    Component = RemoveCircleOutline;
+    collapseAction = 'collapse';
+  }
+  return (
+      <span
+          className="toggle-collapse concept-name-row"
+          onClick={() => hsDispatch({ type: "collapseDescendants", row, allRows, collapseAction})}
+      >
+                <Component
+                    sx={{
+                      fontSize: sizes.collapseIcon,
+                      display: "inline-flex",
+                      marginRight: "0.15rem",
+                      marginTop: "0.05rem",
+                      verticalAlign: "top",
+                    }}
+                />
+        {row.concept_name}
+        <span className="concept-name-text">{row.concept_name}</span>
+      </span>
+  );
+}
 function colConfig(props) {
   let {
-    hierarchySettings,
-    hsDispatch,
     selected_csets,
-    cset_data,
-    toggleCollapse,
+    concepts,
     sizes,
     editAction,
     editCodesetFunc,
     windowSize,
-    hidden
+    hidden,
+    allRows,
+    displayedRows,
+    hierarchySettings,
+    hsDispatch,
   } = props;
-  const {collapsed, nested, hideZeroCounts, hideRxNormExtension} = hierarchySettings;
-  const {concepts} = cset_data;
+  const {collapsePaths, collapsedDescendantPaths, nested, hideRxNormExtension, hideZeroCounts} = hierarchySettings;
 
   let coldefs = [
     {
@@ -432,48 +390,17 @@ function colConfig(props) {
       selector: (row) => row.concept_name,
       format: (row) => {
         let content = nested ? (
-          row.hasChildren ? (
-            collapsed[row.pathToRoot] ? (
-              <span
-                className="toggle-collapse concept-name-row"
-                onClick={() => toggleCollapse(row)}
-              >
-                <AddCircle
-                  sx={{
-                    fontSize: sizes.collapseIcon,
-                    display: "inline-flex",
-                    marginRight: "0.15rem",
-                    marginTop: "0.05rem",
-                    verticalAlign: "top",
-                  }}
-                />
-                <span className="concept-name-text">{row.concept_name} {row.collapsed && "collapsed"}</span>
-              </span>
-            ) : (
-              <span
-                className="toggle-collapse concept-name-row"
-                onClick={() => toggleCollapse(row)}
-              >
-                <RemoveCircleOutline
-                  sx={{
-                    fontSize: sizes.collapseIcon,
-                    display: "inline-flex",
-                    marginRight: "0.15rem",
-                    marginTop: "0.05rem",
-                    verticalAlign: "top",
-                  }}
-                />
-                <span className="concept-name-text">{row.concept_name} {row.collapsed && "collapsed"}</span>
-              </span>
-            )
-          ) : (
-            <span className="concept-name-row">
-              <RemoveCircleOutline
-                sx={{ fontSize: sizes.collapseIcon, visibility: "hidden" }}
-              />
-              <span className="concept-name-text">{row.concept_name}</span>
-            </span>
-          )
+          row.hasChildren
+              ? getCollapseIconAndName(collapsePaths, row, allRows, sizes, hsDispatch)
+              : (
+                  <span className="concept-name-row">
+                    <RemoveCircleOutline
+                        // this is just here so it indents the same distance as the collapse icons
+                      sx={{ fontSize: sizes.collapseIcon, visibility: "hidden" }}
+                    />
+                    {row.concept_name}
+                    <span className="concept-name-text">{row.concept_name}</span>
+                  </span>)
         ) : (
             <span className="concept-name-text">{row.concept_name}</span>
         );

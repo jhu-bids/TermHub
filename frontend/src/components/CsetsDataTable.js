@@ -1,4 +1,5 @@
 import React, { useState, useCallback, useEffect } from "react";
+import ReactDOM from "react-dom/client";
 import { orderBy, get, remove } from "lodash";
 import DataTable, { createTheme } from "react-data-table-component";
 import { fmt, pct_fmt } from "./utils";
@@ -11,6 +12,22 @@ import { Tooltip } from "./Tooltip";
 
 // https://react-data-table-component.netlify.app/?path=/docs/api-custom-styles--page
 //  Internally, customStyles will deep merges your customStyles with the default styling.
+
+function getCsetSelectionHandler(tooltipId) {
+  const tt = document.getElementById(tooltipId);
+
+  function handleRowMouseEnter(row, event) {
+    tt.style.display = 'block';
+    tt.style.left = `${event.clientX}px`;
+    tt.style.top = `${event.clientY}px`;
+  }
+
+  function handleRowMouseLeave(row, event) {
+    tt.style.display = 'none';
+  }
+
+  return [handleRowMouseEnter, handleRowMouseLeave];
+}
 
 /* TODO: review function for appropriate state management */
 function CsetsDataTable(props) {
@@ -54,6 +71,8 @@ function CsetsDataTable(props) {
 
   // const related_ids = new Set(f lattened_concept_hierarchy.map(d => d.concept_id));
   const subHeader = <StatsMessage {...props} />;
+    const [handleRowMouseEnter, handleRowMouseLeave] =
+      getCsetSelectionHandler('select-to-add');
 
   const rowSelectCritera = (row) => row.selected;
   // todo: p -> data table: data table has a property for showing some sort of paragraph text
@@ -67,6 +86,8 @@ function CsetsDataTable(props) {
         selectableRowSelected={rowSelectCritera}
         // onSelectedRowsChange={handleSelectionChange}
         onRowClicked={handleRowClick}
+        onRowMouseEnter={handleRowMouseEnter}
+        onRowMouseLeave={handleRowMouseLeave}
         customStyles={customStyles}
         noHeader={false}
         title="Related concept sets"
@@ -121,6 +142,8 @@ function CsetsSelectedDataTable(props) {
   );
 
   const rowSelectCritera = (row) => row.selected;
+  const [handleRowMouseEnter, handleRowMouseLeave] =
+      getCsetSelectionHandler('select-to-remove');
 
   // todo: p -> data table: data table has a property for showing some sort of paragraph text
   // TODO: y concepts -> get the number
@@ -133,6 +156,8 @@ function CsetsSelectedDataTable(props) {
         selectableRowSelected={rowSelectCritera}
         // onSelectedRowsChange={handleSelectionChange}
         onRowClicked={handleRowClick}
+        onRowMouseEnter={handleRowMouseEnter}
+        onRowMouseLeave={handleRowMouseLeave}
         customStyles={customStyles}
         noHeader={false}
         title="Selected concept sets"
