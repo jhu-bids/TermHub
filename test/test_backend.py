@@ -164,69 +164,21 @@ class TestBackend(unittest.TestCase):
                     # Part 2: all other row counts should be non-zero
                     self.assertGreater(df[col][row], 0, msg=f"Table '{row}' had 0 rows in run '{col}'")
 
-    def test_cr_hierarchy_related_csets(self):
-        """ Test the related csets output of cr_hierarchy defined in backend/routes/app.py.
-        The related csets output is given by get_related_csets in backend/routes/app.py.
-        """
+class TestCrHierarchy(unittest.TestCase):
+    @classmethod
+    def setUpClass(cls,self = None):
+        """Always runs first
+        Serving must be running to perform any of the tests listed"""
         url = BACKEND_URL_BASE + 'cr-hierarchy'
-        response = requests.get(url=url, params={
+        cls.response = requests.get(url=url, params={
             'codeset_ids': '400614256|87065556'
         }).json()
-        print(response['result'])
-        pass
-
-    def test_cr_hierarchy_selected_csets(self):
-        """Copied from test_csets_update()
-        Test backend: cr_hierarchy, defined in backend/app.py
-        Prereq: Server must be running"""
-        url = BACKEND_URL_BASE + 'cr-hierarchy'
-        response = requests.get(url=url, params={
-            'codeset_ids': '400614256|87065556'
-        }).json()
-        # TODO: test response['selected_csets']
-        pass
-    def test_cr_hierarchy_researchers(self):
-        """Copied from test_csets_update()
-        Test backend: cr_hierarchy, defined in backend/app.py
-        Prereq: Server must be running"""
-        url = BACKEND_URL_BASE + 'cr-hierarchy'
-        response = requests.get(url=url, params={
-            'codeset_ids': '400614256|87065556'
-        }).json()
-        # TODO: test response['researchers']
-        pass
-
-    def test_cr_hierarchy_cset_members_items(self):
-        """Copied from test_csets_update()
-        Test backend: cr_hierarchy, defined in backend/app.py
-        Prereq: Server must be running"""
-        url = BACKEND_URL_BASE + 'cr-hierarchy'
-        response = requests.get(url=url, params={
-            'codeset_ids': '400614256|87065556'
-        }).json()
-        # TODO: test response['cset_members_items']
-        pass
-
-    def test_cr_hierarchy_edges(self):
-        """Copied from test_csets_update()
-        Test backend: cr_hierarchy, defined in backend/app.py
-        Prereq: Server must be running"""
-        url = BACKEND_URL_BASE + 'cr-hierarchy'
-        response = requests.get(url=url, params={
-            'codeset_ids': '400614256|87065556'
-        }).json()
-        # TODO: test response['edges']
-
     def test_cr_hierarchy_concepts(self):
         """ Test the related csets output of cr_hierarchy defined in backend/routes/app.py.
             The related csets output is given by get_related_csets in backend/routes/app.py.
             Copied from cr_hierarchy_data_counts
             """
-        url = BACKEND_URL_BASE + 'cr-hierarchy'
-        response = requests.get(url=url, params={
-            'codeset_ids': '396155663|643758668'
-        }).json()
-        response_concepts = response['concepts']
+        response_concepts = self.response['concepts']
         self.assertEqual(len(response_concepts), 2)
         self.assertEqual(response_concepts[0]['concept_id'], 4052321)
         self.assertEqual(response_concepts[0]['concept_name'], 'Housing adequate')
@@ -256,12 +208,37 @@ class TestBackend(unittest.TestCase):
 
     def test_cr_hierarchy_data_counts(self):
         """Test backend: cr_hierarchy, defined in backend/app.py
-        Prereq: Server must be running"""
-        url = BACKEND_URL_BASE + 'cr-hierarchy'
+        url = BACKEND_URL_BASE + 'cr-hierarchy'"""
         response = requests.get(url=url, params={
             'codeset_ids': '400614256|87065556'
         }).json()
         self.assertEqual(len(response['data_counts']), 0)
+
+    def test_cr_hierarchy_related_csets(self):
+        """ Test the related csets output of cr_hierarchy defined in backend/routes/app.py.
+        The related csets output is given by get_related_csets in backend/routes/app.py.
+        """
+        response_related_csets = self.response['related csets']
+    
+    
+    def test_cr_hierarchy_selected_csets(self):
+        """Copied from test_csets_update()
+        Test backend: cr_hierarchy, defined in backend/app.py"""
+        response_selected_csets = self.response['selected_csets']
+    def test_cr_hierarchy_researchers(self):
+        """Copied from test_csets_update()
+        Test backend: cr_hierarchy, defined in backend/app.py"""
+        response_researchers = self.response['researchers']
+
+    def test_cr_hierarchy_cset_members_items(self):
+        """Copied from test_csets_update()
+        Test backend: cr_hierarchy, defined in backend/app.py"""
+        response_cset_members_items = self.response['cset_members_items']
+
+    def test_cr_hierarchy_edges(self):
+        """Copied from test_csets_update()
+        Test backend: cr_hierarchy, defined in backend/app.py"""
+        response_edges = self.response['edges']
 
 
 # Uncomment this and run this file directly to run all tests
