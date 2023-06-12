@@ -363,7 +363,6 @@ function getCollapseIconAndName(collapsePaths, row, allRows, sizes, hsDispatch, 
                       verticalAlign: "top",
                     }}
                 />
-        {row.concept_name}
         <span className="concept-name-text">{row.concept_name}</span>
       </span>
   );
@@ -398,7 +397,6 @@ function colConfig(props) {
                         // this is just here so it indents the same distance as the collapse icons
                       sx={{ fontSize: sizes.collapseIcon, visibility: "hidden" }}
                     />
-                    {row.concept_name}
                     <span className="concept-name-text">{row.concept_name}</span>
                   </span>)
         ) : (
