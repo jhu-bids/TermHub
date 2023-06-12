@@ -52,9 +52,9 @@ function CsetComparisonPage(props) {
     editCodesetId,
     csetEditState,
     concepts,
+    cset_data, // TODO: get rid of this and use dataAccessor -- but more work to be done on that first
   } = props;
-  // const { selected_csets = [], researchers, hierarchy, conceptLookup } = cset_data
-  const { selected_csets, researchers, hierarchy, conceptLookup } = dataAccessor.cache;
+  const { selected_csets = [], researchers, } = cset_data;
   const { state: hierarchySettings, dispatch: hsDispatch} = useStateSlice("hierarchySettings");
   const {collapsePaths, collapsedDescendantPaths, nested, hideRxNormExtension, hideZeroCounts} = hierarchySettings;
   // window.hierarchySettingsW = hierarchySettings;
@@ -119,7 +119,10 @@ function CsetComparisonPage(props) {
       <Legend />
     </FlexibleContainer>
   ];
+
+  let edited_cset;
   if (editCodesetId) {
+    edited_cset = selected_csets.find(cset => cset.codeset_id === editCodesetId);
     infoPanels.push(
         <FlexibleContainer key="cset" title="Concept set being edited">
           <ConceptSetCard
@@ -127,6 +130,11 @@ function CsetComparisonPage(props) {
               researchers={researchers}
               editing={true}
           />
+        </FlexibleContainer>
+    );
+    infoPanels.push(
+        <FlexibleContainer key="compare" title={edited_cset.concept_set_name}>
+          <CsetsSelectedDataTable {...props} min_col={false} />
         </FlexibleContainer>
     );
     if (csetEditState && csetEditState[editCodesetId]) {
@@ -162,10 +170,11 @@ function CsetComparisonPage(props) {
             variant="h5"
             sx={{ marginLeft: "auto" }}
         >
-          Click on concept set column heading to edit
+          {
+            (edited_cset ? `Editing ${edited_cset.concept_set_name}` : 'Click on concept set column heading to edit')
+          }
         </Typography>
       </Box>
-      <CsetsSelectedDataTable {...props} min_col={false} />
       <ComparisonDataTable /*squishTo={squishTo}*/ {...moreProps} />
     </div>
   );
