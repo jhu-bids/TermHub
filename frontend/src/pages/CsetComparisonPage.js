@@ -267,6 +267,17 @@ export function getRowData(props) {
   if (hideZeroCounts) {
     displayedRows = displayedRows.filter(r => r.total_cnt > 0);
   }
+
+  // marking repeated concepts in displayedRows
+  let appeared_concept_ids = new Set();
+  for (let i = 0; i < displayedRows.length; i++) {
+    if (appeared_concept_ids.has(displayedRows[i].concept_id)) {
+      displayedRows[i].repeated = true;
+    } else {
+      displayedRows[i].repeated = false;
+      appeared_concept_ids.add(displayedRows[i].concept_id);
+    }
+  }
   const distinctRows = uniqBy(displayedRows, row => row.concept_id);
   return {allRows, displayedRows, distinctRows, hidden};
 }
@@ -288,6 +299,13 @@ function ComparisonDataTable(props) {
       style: (row) => ({
         backgroundColor: row.concept_id in csetEditState ? "#F662" : "#FFF",
       }),
+    },
+    {
+      when: row => row.repeated,
+      style: {
+        backgroundColor: 'lightgray',
+        color: 'gray',
+      },
     },
   ];
   return (
