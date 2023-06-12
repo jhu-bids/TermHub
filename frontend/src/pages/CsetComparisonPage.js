@@ -383,6 +383,7 @@ function colConfig(props) {
   } = props;
   const {collapsePaths, collapsedDescendantPaths, nested, hideRxNormExtension, hideZeroCounts} = hierarchySettings;
 
+  const maxNameLength = max(displayedRows.map(d => d.concept_name.length));
   let coldefs = [
     {
       name: "Concept name",
@@ -408,7 +409,8 @@ function colConfig(props) {
       // minWidth: 100,
       // remainingPct: .60,
       // width: (window.innerWidth - selected_csets.length * 50) * .65,
-      maxWidth: '50%',
+      // maxWidth: '50%',
+      maxWidth: maxNameLength * .6 + 'em',
       // grow: 4,
       wrap: true,
       compact: true,
@@ -442,16 +444,14 @@ function colConfig(props) {
       selector: (row) => row.vocabulary_id,
       // format: (row) => <Tooltip label={row.vocabulary_id} content={row.vocabulary_id} />,
       sortable: !nested,
-      minWidth: 100,
-      maxWidth: '10%',
+      width: 100,
       style: { justifyContent: "center" },
     },
     {
       name: "Concept ID",
       selector: (row) => row.concept_id,
       sortable: !nested,
-      minWidth: 80,
-      maxWidth: '8%',
+      width: 80,
       style: { justifyContent: "center" },
     },
     {
@@ -511,8 +511,7 @@ function colConfig(props) {
         </span>
       ),
       sortable: !nested,
-      minWidth: 60,
-      maxWidth: '6%',
+      width: 60,
       style: {
         backgroundColor: "lightgray",
         paddingRight: "0px",
@@ -551,8 +550,7 @@ function colConfig(props) {
       },
       sortable: !nested,
       right: true,
-      minWidth: 80,
-      maxWidth: '8%',
+      width: 80,
       // minWidth: 80,
       // remainingPct: .10,
       style: { justifyContent: "center" },
@@ -571,8 +569,7 @@ function colConfig(props) {
       },
       sortable: !nested,
       right: true,
-      minWidth: 80,
-      maxWidth: '8%',
+      width: 80,
       // minWidth: 80,
       // remainingPct: .10,
       style: { justifyContent: "center" },
@@ -609,8 +606,7 @@ function colConfig(props) {
       ],
       sortable: !nested,
       // compact: true,
-      minWidth: 70,
-      maxWidth: '7%',
+      width: 80,
       // center: true,
     };
     return def;
