@@ -35,6 +35,7 @@ import {
   Legend,
   saveChangesInstructions,
 } from "../components/EditCset";
+import { CsetsSelectedDataTable } from "../components/CsetsDataTable";
 // import {EDGES} from '../components/ConceptGraph';
 import { FlexibleContainer } from "../components/FlexibleContainer";
 import _ from "../supergroup/supergroup";
@@ -164,6 +165,7 @@ function CsetComparisonPage(props) {
           Click on concept set column heading to edit
         </Typography>
       </Box>
+      <CsetsSelectedDataTable {...props} min_col={false} />
       <ComparisonDataTable /*squishTo={squishTo}*/ {...moreProps} />
     </div>
   );

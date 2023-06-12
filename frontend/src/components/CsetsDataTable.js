@@ -129,8 +129,9 @@ function CsetsDataTable(props) {
 function CsetsSelectedDataTable(props) {
   const { codeset_ids, changeCodesetIds, cset_data = {} } = props;
   const { selected_csets } = cset_data;
+  const { min_col = true } = props;
 
-  let coldefs = getSelectedColdefs();
+  let coldefs = min_col ? getSelectedColdefs() : getColdefs();
   /* const conditionalRowStyles = [{ when: row => row.selected,
         style: { backgroundColor: 'rgba(63, 195, 128, 0.9)', color: 'white',
                 '&:hover': { cursor: 'pointer', }, } }]; */
@@ -219,11 +220,11 @@ function getColdefs() {
     },
     {
       name: (
-          <Tooltip label="Number of members in this concept set, that is, concepts included after expanding expression items.">
-            <span>Members</span>
-          </Tooltip>
+        <Tooltip label="Number of expression items in this concept set.">
+          <span>Expression items</span>
+        </Tooltip>
       ),
-      selector: (row) => row.counts['Members'],
+      selector: (row) => row.counts['Expression items'],
       compact: true,
       width: "70px",
       center: true,
@@ -231,11 +232,11 @@ function getColdefs() {
     },
     {
       name: (
-        <Tooltip label="Number of expression items in this concept set.">
-          <span>Expression items</span>
-        </Tooltip>
+          <Tooltip label="Number of members in this concept set, that is, concepts included after expanding expression items.">
+            <span>Members</span>
+          </Tooltip>
       ),
-      selector: (row) => row.counts['Expression items'],
+      selector: (row) => row.counts['Members'],
       compact: true,
       width: "70px",
       center: true,
@@ -354,11 +355,11 @@ function getSelectedColdefs() {
     },
     {
       name: (
-          <Tooltip label="Number of members in this concept set, that is, concepts included after expanding expression items.">
-            <span>Members</span>
-          </Tooltip>
+        <Tooltip label="Number of expression items in this concept set.">
+          <span>Expression items</span>
+        </Tooltip>
       ),
-      selector: (row) => row.counts['Members'],
+      selector: (row) => row.counts['Expression items'],
       compact: true,
       width: "70px",
       center: true,
@@ -366,11 +367,11 @@ function getSelectedColdefs() {
     },
     {
       name: (
-        <Tooltip label="Number of expression items in this concept set.">
-          <span>Expression items</span>
-        </Tooltip>
+          <Tooltip label="Number of members in this concept set, that is, concepts included after expanding expression items.">
+            <span>Members</span>
+          </Tooltip>
       ),
-      selector: (row) => row.counts['Expression items'],
+      selector: (row) => row.counts['Members'],
       compact: true,
       width: "70px",
       center: true,
