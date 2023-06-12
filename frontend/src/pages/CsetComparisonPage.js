@@ -56,8 +56,7 @@ function CsetComparisonPage(props) {
   const { selected_csets, researchers, hierarchy, conceptLookup } = dataAccessor.cache;
   const { state: hierarchySettings, dispatch: hsDispatch} = useStateSlice("hierarchySettings");
   const {collapsePaths, collapsedDescendantPaths, nested, hideRxNormExtension, hideZeroCounts} = hierarchySettings;
-  window.hierarchySettingsW = hierarchySettings;
-  // const [concepts, setConcepts] = useState([]);
+  // window.hierarchySettingsW = hierarchySettings;
   const windowSize = useWindowSize();
   const boxRef = useRef();
   const sizes = getSizes(/*squishTo*/ 1);
@@ -364,7 +363,7 @@ function getCollapseIconAndName(collapsePaths, row, allRows, sizes, hsDispatch, 
                       verticalAlign: "top",
                     }}
                 />
-        {row.concept_name}
+        <span className="concept-name-text">{row.concept_name}</span>
       </span>
   );
 }
@@ -384,6 +383,7 @@ function colConfig(props) {
   } = props;
   const {collapsePaths, collapsedDescendantPaths, nested, hideRxNormExtension, hideZeroCounts} = hierarchySettings;
 
+  const maxNameLength = max(displayedRows.map(d => d.concept_name.length));
   let coldefs = [
     {
       name: "Concept name",
@@ -398,10 +398,10 @@ function colConfig(props) {
                         // this is just here so it indents the same distance as the collapse icons
                       sx={{ fontSize: sizes.collapseIcon, visibility: "hidden" }}
                     />
-                    {row.concept_name}
+                    <span className="concept-name-text">{row.concept_name}</span>
                   </span>)
         ) : (
-          row.concept_name
+            <span className="concept-name-text">{row.concept_name}</span>
         );
         return content;
       },
@@ -409,13 +409,17 @@ function colConfig(props) {
       // minWidth: 100,
       // remainingPct: .60,
       // width: (window.innerWidth - selected_csets.length * 50) * .65,
-      grow: 4,
+      // maxWidth: '50%',
+      maxWidth: maxNameLength * .6 + 'em',
+      // grow: 4,
       wrap: true,
       compact: true,
       conditionalCellStyles: [
         {
           when: (row) => true,
-          style: (row) => ({ paddingLeft: 16 + row.level * 16 + "px" }),
+          style: (row) => ({
+            paddingLeft: 16 + row.level * 16 + "px"
+          }),
         },
       ],
     },
@@ -602,7 +606,7 @@ function colConfig(props) {
       ],
       sortable: !nested,
       // compact: true,
-      width: 70,
+      width: 80,
       // center: true,
     };
     return def;
