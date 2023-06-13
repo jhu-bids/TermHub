@@ -7,7 +7,7 @@ import React, {
 import * as d3dag from "d3-dag";
 // import { createSearchParams, useSearchParams, } from "react-router-dom";
 import DataTable, { createTheme } from "react-data-table-component";
-import { AddCircle, RemoveCircleOutline } from "@mui/icons-material";
+import { AddCircle, RemoveCircleOutline, Download } from "@mui/icons-material";
 import { Box, Slider, Button, Typography, Switch } from "@mui/material";
 import Draggable from "react-draggable";
 // import {Checkbox} from "@mui/material";
@@ -99,14 +99,34 @@ function CsetComparisonPage(props) {
     hsDispatch,
   });
 
+  function downloadTSV(rows) {
+    window.location.href = "data:text/tab-separated-values," + encodeURIComponent(tsv);
+
+  }
+  const downloadButton = (
+      <Download key="download-distinct"
+                onClick={ () => {
+                  let tab = window.open("data:text/json," + encodeURIComponent({a:2,b:3}),
+                                        "_blank");
+                  tab.focus();
+                }}
+                sx={{ cursor: 'pointer' }}
+      ></Download>
+  );
   let infoPanels = [
     <Button key="distinct"
             disabled={!nested}
             onClick={() => hsDispatch({type:'nested', nested: false})}
-            sx={{ marginRight: '4px' }}
+            sx={{
+              marginRight: '4px',
+              display: "flex",
+              flexDirection: "row",
+            }}
     >
       {distinctRows.length} distinct concepts
+      {downloadButton}
     </Button>,
+
     <Button key="nested"
             disabled={nested}
             onClick={() => hsDispatch({type:'nested', nested: true})}
