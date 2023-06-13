@@ -165,6 +165,22 @@ class TestBackend(unittest.TestCase):
                     self.assertGreater(df[col][row], 0, msg=f"Table '{row}' had 0 rows in run '{col}'")
 
 class TestCrHierarchy(unittest.TestCase):
+    '''
+    Below is the SQL code used to generate a list of small concept sets that overlap.
+    
+    with csets as (
+    select codeset_id, counts->>'Members' as concepts
+    from all_csets
+    )
+    select csm1.codeset_id as codeset_id_1, csets1.concepts,
+       csm2.codeset_id as codeset_id_2, csets2.concepts
+    from concept_set_members csm1
+    join csets as csets1 on csm1.codeset_id = csets1.codeset_id
+    join concept_set_members csm2 on csm1.concept_id = csm2.concept_id and csm1.codeset_id != csm2.codeset_id
+    join csets as csets2 on csm2.codeset_id = csets2.codeset_id
+    where cast(csets1.concepts as int) < 5
+    and cast(csets2.concepts as int) < 5
+    '''
     @classmethod
     def setUpClass(cls,self = None):
         """Always runs first
@@ -219,7 +235,7 @@ class TestCrHierarchy(unittest.TestCase):
         The related csets output is given by get_related_csets in backend/routes/app.py.
         """
         response_related_csets = self.response['related csets']
-    
+
     
     def test_cr_hierarchy_selected_csets(self):
         """Copied from test_csets_update()
