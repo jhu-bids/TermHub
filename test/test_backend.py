@@ -41,14 +41,6 @@ class TestBackend(unittest.TestCase):
             print('ERROR: Failed to upload file: ', response.status_code, file=sys.stderr)
         return response
 
-    def setup(self):
-        """always runs first"""
-        pass
-
-    def tearDown(self):
-        """always runs last"""
-        pass
-
     # todo: this was refactored, so need a new test
     def test_hierarchify_list_of_parent_kids(self):
         """test hierarchify_list_of_parent_kids()"""
@@ -172,6 +164,7 @@ class TestBackend(unittest.TestCase):
                     # Part 2: all other row counts should be non-zero
                     self.assertGreater(df[col][row], 0, msg=f"Table '{row}' had 0 rows in run '{col}'")
 
+<<<<<<< HEAD
     def test_cr_hierarchy_related_csets(self):
         """ Test the related csets output of cr_hierarchy defined in backend/routes/app.py.
         The related csets output is given by get_related_csets in backend/routes/app.py.
@@ -226,16 +219,43 @@ class TestBackend(unittest.TestCase):
         # TODO: test response['edges']
         # Use child_cids in app.py
 
+class TestCrHierarchy(unittest.TestCase):
+    '''
+    Below is the SQL code used to generate a list of small concept sets that overlap.
+    
+    with csets as (
+    select codeset_id, counts->>'Members' as concepts
+    from all_csets
+    )
+    select csm1.codeset_id as codeset_id_1, csets1.concepts,
+       csm2.codeset_id as codeset_id_2, csets2.concepts
+    from concept_set_members csm1
+    join csets as csets1 on csm1.codeset_id = csets1.codeset_id
+    join concept_set_members csm2 on csm1.concept_id = csm2.concept_id and csm1.codeset_id != csm2.codeset_id
+    join csets as csets2 on csm2.codeset_id = csets2.codeset_id
+    where cast(csets1.concepts as int) < 5
+    and cast(csets2.concepts as int) < 5
+    '''
+    @classmethod
+    def setUpClass(cls,self = None):
+        """Always runs first
+        Serving must be running to perform any of the tests listed"""
+        url = BACKEND_URL_BASE + 'cr-hierarchy'
+        cls.response = requests.get(url=url, params={
+            'codeset_ids': '400614256|87065556'
+        }).json()
     def test_cr_hierarchy_concepts(self):
         """ Test the related csets output of cr_hierarchy defined in backend/routes/app.py.
             The related csets output is given by get_related_csets in backend/routes/app.py.
             Copied from cr_hierarchy_data_counts
             """
+
         url = BACKEND_URL_BASE + 'cr-hierarchy'
         response = requests.get(url=url, params={
             'codeset_ids': '396155663|643758668'
         }).json()
         response_concepts = response['concepts']
+
         self.assertEqual(len(response_concepts), 2)
         self.assertEqual(response_concepts[0]['concept_id'], 4052321)
         self.assertEqual(response_concepts[0]['concept_name'], 'Housing adequate')
@@ -271,6 +291,32 @@ class TestBackend(unittest.TestCase):
             'codeset_ids': '400614256|87065556'
         }).json()
         self.assertEqual(len(response['data_counts']), 0)
+
+    def test_cr_hierarchy_related_csets(self):
+        """ Test the related csets output of cr_hierarchy defined in backend/routes/app.py.
+        The related csets output is given by get_related_csets in backend/routes/app.py.
+        """
+        response_related_csets = self.response['related csets']
+
+    
+    def test_cr_hierarchy_selected_csets(self):
+        """Copied from test_csets_update()
+        Test backend: cr_hierarchy, defined in backend/app.py"""
+        response_selected_csets = self.response['selected_csets']
+    def test_cr_hierarchy_researchers(self):
+        """Copied from test_csets_update()
+        Test backend: cr_hierarchy, defined in backend/app.py"""
+        response_researchers = self.response['researchers']
+
+    def test_cr_hierarchy_cset_members_items(self):
+        """Copied from test_csets_update()
+        Test backend: cr_hierarchy, defined in backend/app.py"""
+        response_cset_members_items = self.response['cset_members_items']
+
+    def test_cr_hierarchy_edges(self):
+        """Copied from test_csets_update()
+        Test backend: cr_hierarchy, defined in backend/app.py"""
+        response_edges = self.response['edges']
 
 
 # Uncomment this and run this file directly to run all tests

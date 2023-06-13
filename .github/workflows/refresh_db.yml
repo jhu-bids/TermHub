@@ -14,12 +14,11 @@ jobs:
     #  https://github.com/jhu-bids/TermHub/actions/runs/4125681721/jobs/7126569855
     runs-on: macos-latest
     steps:
-      # TODO: remove these when confirming that they are indeed not needed for DB refresh via objects API
-#      - name: Checkout repository and submodules
-#        uses: actions/checkout@v2
+      # TODO: remove submodules comment out when confirming that they are indeed not needed for DB refresh via objects API
+      - name: Checkout repository and submodules
+        uses: actions/checkout@v2
 #        with:
 #          submodules: recursive
-#          ref: main
       - name: Set up Python version
         uses: actions/setup-python@v2
         with:
@@ -42,7 +41,7 @@ jobs:
           source venv/bin/activate
 
       - name: Install dependencies
-        run: | 
+        run: |
           python -m pip install --upgrade pip
           pip install --upgrade wheel
           pip install --upgrade setuptools

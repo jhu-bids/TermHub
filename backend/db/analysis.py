@@ -1,10 +1,17 @@
-"""Utilities for database analysis, e.g. table counts"""
+"""Utilities for database analysis, e.g. table counts
+
+TODO's
+  - add option to remove tables that don't exist in the latest state of a DB schema from the counts/deltas tables
+  - manually remove some entries we don't need. perhaps write a function that deletes them by name/id. For id, we'd have
+  to add that functionality as no id's currenlty exist. for names, these don't exist in the counts-run table. those are
+  dynamically generated. could remove by timestamp, though, although that doesn't show in the counts/deltas tables, so
+  that wouldn't work nicely either.
+"""
 import os
 import sys
 from argparse import ArgumentParser
 from datetime import datetime
 from pathlib import Path
-from pprint import pprint
 from typing import Any, Dict, List, Union
 import dateutil.parser as dp
 import pandas as pd
@@ -17,7 +24,7 @@ PROJECT_ROOT = Path(THIS_DIR).parent.parent
 sys.path.insert(0, str(PROJECT_ROOT))
 from backend.db.config import DOCS_DIR
 from backend.db.initialize import SCHEMA
-from backend.db.utils import get_db_connection, insert_from_dict, list_tables, run_sql, sql_in, sql_query
+from backend.db.utils import get_db_connection, insert_from_dict, list_tables, sql_query
 
 COUNTS_OVER_TIME_OPTIONS = [
     'counts_table',
@@ -53,18 +60,20 @@ def _current_counts(
         # Get previous counts
         timestamps: List[datetime] = [
             dp.parse(x[0]) for x in sql_query(con, f'SELECT DISTINCT timestamp from counts;', return_with_keys=False)]
-        most_recent_timestamp: str = str(max(timestamps))
+        most_recent_timestamp: str = str(max(timestamps)) if timestamps else None
         prev_counts: List[Dict] = [dict(x) for x in sql_query(con, f'SELECT * from counts;', return_with_keys=True)]
         prev_counts_df = pd.DataFrame(prev_counts)
         # Get counts
         table_rows: Dict[str, Dict[str, Any]] = {}
         for table in tables:
             count: int = [x for x in sql_query(con, f'SELECT COUNT(*) from n3c.{table};', return_with_keys=False)][0][0]
-            last_count_fetch: Series = prev_counts_df[
-                (prev_counts_df['timestamp'] == most_recent_timestamp) &
-                (prev_counts_df['table'] == table)]['count']
-            last_count_fetch2: List[int] = list(last_count_fetch.to_dict().values())
-            last_count: int = int(last_count_fetch2[0]) if prev_counts and last_count_fetch2 else 0
+            last_count = 0
+            if most_recent_timestamp:
+                last_count_fetch: Series = prev_counts_df[
+                    (prev_counts_df['timestamp'] == most_recent_timestamp) &
+                    (prev_counts_df['table'] == table)]['count']
+                last_count_fetch2: List[int] = list(last_count_fetch.to_dict().values())
+                last_count: int = int(last_count_fetch2[0]) if prev_counts and last_count_fetch2 else 0
             table_rows[table] = {
                 'date': dt.strftime('%Y-%m-%d'),
                 'timestamp': str(dt),
@@ -101,8 +110,8 @@ def counts_compare_schemas(
                 compare_schema = schema_name
 
     # Get counts
-    main: Dict = _current_counts(schema, from_cache=use_cached_counts)
-    compare: Dict = _current_counts(compare_schema, from_cache=use_cached_counts)
+    main: Dict = _current_counts(schema, from_cache=use_cached_counts, local=local)
+    compare: Dict = _current_counts(compare_schema, from_cache=use_cached_counts, local=local)
     tables = set(main.keys()).union(set(compare.keys()))
     rows = []
     for table in tables:
@@ -137,7 +146,7 @@ def counts_update(note: str, schema: str = SCHEMA, local=False):
         })
         # Save counts
         # noinspection PyCallingNonCallable pycharm_doesnt_undestand_its_returning_dict
-        for d in _current_counts(from_cache=False, dt=dt).values():
+        for d in _current_counts(from_cache=False, dt=dt, local=local).values():
             insert_from_dict(con, 'counts', d)
 
 
@@ -230,6 +239,11 @@ def cli():
         '-u', '--counts-update', action='store_true',
         help="Update 'counts' table with current row counts for the 'n3c' schema.")
     parser.add_argument(
+        '-n', '--note',
+        help="Only used with `--counts-update`. Add a note to the 'counts-runs' table.")
+    parser.add_argument(
+        '-l', '--local', action='store_true', help="Use local database instead of production?")
+    parser.add_argument(
         '-S', '--schema', default=SCHEMA,
         help="Only used with `--counts-update` and --counts-compare-schemas. Selects which schema's tables to count.")
     # --counts-compare-schemas and its args
@@ -243,17 +257,18 @@ def cli():
              f"pattern of 'n3c_backup_YYYYMMDD'.")
 
     d: Dict = vars(parser.parse_args())
+    local = d['local'] if d['local'] else False
     if d['counts_update']:
-        note = input("Please provide a note: ").strip()
+        note = (input("Please provide a note: ") if not d['note'] else d['note']).strip()
         if not note:
             raise ValueError('Must provide a note when using --counts-update.')
         counts_update(note, d['schema'])
     elif d['counts_compare_schemas']:
-        counts_compare_schemas(d['schema_to_compare'], d['schema'])
+        counts_compare_schemas(d['schema_to_compare'], d['schema'], local=local)
     elif d['counts_over_time']:
-        counts_over_time(method='counts_table')
+        counts_over_time(method='counts_table', local=local)
     elif d['deltas_over_time']:
-        counts_over_time(method='delta_table')
+        counts_over_time(method='delta_table', local=local)
     elif d['counts_docs']:
         docs()
     else:

@@ -250,14 +250,17 @@ def get_url_from_api_path(path):
     return url
 
 
-# can't use query_params from here in curl commands if there are
-#   spaces or other weird characters in the params, switching to having
-#   query_params be a dict of keys and values, which can be processed
-#   by urllib
-# def get_query_param(field_name: str, filter_name: str, filter_value: str, as_dict: False) -> str:
-#     """Convert query param parts to a single query param key val pair with operator"""
-#     if as_dict:
-#     return f'properties.{field_name}.{filter_name}={filter_value}'
+def fetch_objects_since_datetime(object_type: str, since: Union[datetime, str], verbose=False) -> List[Dict]:
+    """Fetch objects since a specific datetime
+
+    :param: since: Must be in ISO 8601 format with timezone offset: YYYY-MM-DDTHH:MM:SS.SSSSSS+HH:MM"""
+    since = str(since)
+    try:
+        return make_objects_request(
+            object_type, query_params={'properties.createdAt.gt': since}, verbose=verbose, return_type='data')
+    except EnclaveWranglerErr as e:
+        raise ValueError(f'Invalid timestamp: {since}. Make sure it is in ISO 8601 format with timezone offset: '
+                         f'YYYY-MM-DDTHH:MM:SS.SSSSSS+HH:MM.') if 'timestamp' in str(e).lower() else e
 
 
 # TODO: Should we automatically handle_paginated?
@@ -272,7 +275,7 @@ def get_url_from_api_path(path):
 def make_objects_request(
     path: str, verbose=False, url_only=False, return_type: str = ['Response', 'json', 'data'][0],
     handle_paginated=False, expect_single_item=False, retry_if_empty=False, retry_times=15, retry_pause=1,
-    outdir: str = None, query_params: Dict = None, error_report: bool = True, fail_on_error=True, **request_args
+    outdir: str = None, query_params: Dict = None, fail_on_error=True, **request_args
         # why isn't fail_on_error implemented?
 ) -> Union[Response, JSON_TYPE, str]:
     """Fetch objects from enclave

@@ -1,12 +1,12 @@
 """Load data into the database and create indexes and derived tables"""
 from typing import List
 
-from jinja2 import Template
 from sqlalchemy.engine.base import Connection
 
-from backend.db.config import CONFIG, DDL_JINJA_PATH
-from backend.db.utils import check_if_updated, current_datetime, insert_from_dict, is_table_up_to_date, load_csv, \
-    run_sql, get_db_connection, sql_in, sql_query, update_db_status_var
+from backend.db.config import CONFIG
+from backend.db.utils import get_ddl_statements, check_if_updated, current_datetime, insert_from_dict, \
+    is_table_up_to_date, load_csv, \
+    refresh_termhub_core_cset_derived_tables, run_sql, get_db_connection, sql_in, sql_query, update_db_status_var
 from enclave_wrangler.datasets import download_favorite_datasets
 from enclave_wrangler.objects_api import download_favorite_objects
 
@@ -63,7 +63,9 @@ def download_artefacts(force_download_if_exists=False):
 
 
 def initialize_test_schema(con_initial: Connection, schema: str = SCHEMA, local=False):
-    """Initialize test schema"""
+    """Initialize test schema
+
+    :param: con_initial: Should be a connection to the DB itself and not any particular schema."""
     # Set up
     test_schema = 'test_' + schema
     run_sql(con_initial, f'CREATE SCHEMA IF NOT EXISTS {test_schema};')
@@ -72,6 +74,7 @@ def initialize_test_schema(con_initial: Connection, schema: str = SCHEMA, local=
             raise RuntimeError('Incorrect schema. Should be dropping table from test_n3c.')
         for table in DATASET_TABLES_TEST.keys():
             run_sql(con_test_schema, f'DROP TABLE IF EXISTS {test_schema}.{table};')
+
     # Seed data
     seed(con_initial, test_schema, clobber=True, dataset_tables=list(DATASET_TABLES_TEST.keys()),
          object_tables=OBJECT_TABLES_TEST, test_tables=True)
@@ -89,12 +92,24 @@ def initialize_test_schema(con_initial: Connection, schema: str = SCHEMA, local=
             insert_from_dict(con_test_schema, 'code_sets', row)
         for row in concept_rows:
             insert_from_dict(con_test_schema, 'concept', row)
+
     # Set primary keys
     with get_db_connection(schema=test_schema, local=local) as con_test_schema:
         for table, d in DATASET_TABLES_TEST.items():
             pk = d['primary_key']
             pk = pk if isinstance(pk, str) else ', '.join(pk)
             run_sql(con_test_schema, f'ALTER TABLE {test_schema}.{table} ADD PRIMARY KEY({pk});')
+
+    # Create derived tables
+    n_rows = str(10)  # arbitrary
+    other_dependency_tables = [  # these tables are referenced, e.g. selections/joins to create derived tables
+        'omopconceptset',
+        'omopconceptsetcontainer',
+        'concept_set_counts_clamped']
+    for table in other_dependency_tables:
+        run_sql(con_initial,
+                f'CREATE TABLE IF NOT EXISTS {test_schema}.{table} AS SELECT * FROM {schema}.{table} LIMIT {n_rows};')
+    refresh_termhub_core_cset_derived_tables(con_initial, test_schema)
 
 
 def seed(
@@ -129,10 +144,7 @@ def indexes_and_derived_tables(
 
     # Read DDL
     print('INFO: Creating derived tables (e.g. `all_csets`) and indexes.')
-    with open(DDL_JINJA_PATH, 'r') as file:
-        template_str = file.read()
-    ddl = Template(template_str).render(schema=schema_name + '.')
-    commands: List[str] = [x + ';' for x in ddl.split(';\n\n')]
+    statements = get_ddl_statements(schema=schema_name)
 
     # Determine which steps still needed
     if start_step:
@@ -144,16 +156,16 @@ def indexes_and_derived_tables(
         last_successful_step = int(last_successful_step[0]) if last_successful_step else None
         print('INFO: Creating derived tables (e.g. `all_csets`) and indexes.')
     if last_successful_step:
-        print(f'INFO: Last successful command was {last_successful_step} of {len(commands)}. Continuing from there.')
+        print(f'INFO: Last successful command was {last_successful_step} of {len(statements)}. Continuing from there.')
 
     # Updates
-    for index, command in enumerate(commands):
+    for index, statement in enumerate(statements):
         step_num = index + 1
         if last_successful_step and last_successful_step >= step_num:
             continue
-        print(f'INFO: indexes_and_derived_tables: Running command {step_num} of {len(commands)}')
+        print(f'INFO: indexes_and_derived_tables: Running command {step_num} of {len(statements)}')
         try:
-            run_sql(con, command)
+            run_sql(con, statement)
             update_db_status_var(last_successful_step_key, str(step_num))
         except Exception as err:
             update_db_status_var(last_successful_step_key, str(step_num - 1))
