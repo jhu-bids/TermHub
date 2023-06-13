@@ -15,6 +15,9 @@ import {isEmpty, get, throttle, max, uniq, uniqBy, flatten, sortBy} from "lodash
 import Graph from 'graphology';
 import {allSimplePaths} from 'graphology-simple-path';
 import {dfs, dfsFromNode} from 'graphology-traversal/dfs';
+import { saveAs } from 'file-saver';
+import Papa from 'papaparse';
+
 
 import {
   useStateSlice,
@@ -99,20 +102,32 @@ function CsetComparisonPage(props) {
     hsDispatch,
   });
 
-  function downloadTSV(rows) {
-    window.location.href = "data:text/tab-separated-values," + encodeURIComponent(tsv);
-
+  function downloadTSV(props) {
+    const {displayedRows, codeset_ids, } = props;
+    const filename = 'thdownload-' + codeset_ids.join('-') + '.tsv';
+    const maxLevel = max(displayedRows.map(r => r.level));
+    // let columns = ['concept_id']
+    const rows = displayedRows.map(r => {
+      let row = {};
+      for (let i = 0; i <= maxLevel; i++) {
+        row['cn' + i] = (r.level === i ? r.concept_name : '');
+      }
+      return {...row, ...r};
+    });
+    let config = {
+      delimiter: "\t",
+      newline: "\n",
+      // defaults
+      // quotes: false, //or array of booleans
+      // header: true,
+      // skipEmptyLines: false, //other option is 'greedy', meaning skip delimiters, quotes, and whitespace.
+      // columns: null //or array of strings
+    }
+    const dataString = Papa.unparse(rows, config);
+    // const blob = new Blob([dataString], { type: 'text/csv;charset=utf-8' });
+    const blob = new Blob([dataString], { type: 'text/tab-separated-values;charset=utf-8' });
+    saveAs(blob, filename);
   }
-  const downloadButton = (
-      <Download key="download-distinct"
-                onClick={ () => {
-                  let tab = window.open("data:text/json," + encodeURIComponent({a:2,b:3}),
-                                        "_blank");
-                  tab.focus();
-                }}
-                sx={{ cursor: 'pointer' }}
-      ></Download>
-  );
   let infoPanels = [
     <Button key="distinct"
             disabled={!nested}
@@ -124,7 +139,6 @@ function CsetComparisonPage(props) {
             }}
     >
       {distinctRows.length} distinct concepts
-      {downloadButton}
     </Button>,
 
     <Button key="nested"
@@ -134,6 +148,8 @@ function CsetComparisonPage(props) {
     >
       {displayedRows.length} in hierarchy
     </Button>,
+    <Download key="download-distinct" onClick={ () => downloadTSV({...props, displayedRows}) }
+              sx={{ cursor: 'pointer' }} ></Download>,
     <FlexibleContainer key="legend" title="Legend">
       <Legend />
     </FlexibleContainer>
