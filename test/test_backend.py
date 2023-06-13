@@ -20,6 +20,7 @@ TEST_DIR = os.path.dirname(__file__)
 PROJECT_ROOT = Path(TEST_DIR).parent
 sys.path.insert(0, str(PROJECT_ROOT))
 from backend.db.analysis import counts_compare_schemas, counts_over_time
+from backend.routes.graph import subgraph
 
 TEST_DIR = os.path.dirname(__file__)
 BACKEND_URL_BASE = 'http://127.0.0.1:8000/'
@@ -162,7 +163,99 @@ class TestBackend(unittest.TestCase):
                     # Part 2: all other row counts should be non-zero
                     self.assertGreater(df[col][row], 0, msg=f"Table '{row}' had 0 rows in run '{col}'")
 
-
+    def test_subgraph(self):
+        "tests subgraphs"
+        #Basic unit test for a simple connected graph without a complex hierarchy
+        edges1 = subgraph([1738170, 1738171, 1738202, 1738203])
+        self.assertEqual(edges1, [
+            (
+                "1738170",
+                "1738171"
+            ),
+            (
+                "1738170",
+                "1738202"
+            ),
+            (
+                "1738170",
+                "1738203"
+            )
+        ])
+        #Test for a concept set that files in the gaps (i.e between child and grandparent)
+        edges2 = subgraph([1738170,19122186])
+        self.assertEqual(edges2,
+                         [
+                             (
+                                 "1738170",
+                                 "1738203"
+                             ),
+                             (
+                                 "1738203",
+                                 "19122186"
+                             )
+                         ])
+        #Test for a more complex hierarchial relationship
+        edges3 = subgraph([321588,4027255,43530856,4024552,316139,45766164,43530961])
+        self.assertEqual(edges3,
+                         [
+                             (
+                                 "4024552",
+                                 "316139"
+                             ),
+                             (
+                                 "316139",
+                                 "43530961"
+                             ),
+                             (
+                                 "316139",
+                                 "45766164"
+                             ),
+                             (
+                                 "321588",
+                                 "4024552"
+                             ),
+                             (
+                                 "321588",
+                                 "4027255"
+                             ),
+                             (
+                                 "4027255",
+                                 "43530856"
+                             )
+                         ]
+                         )
+        #Testing a relationship where a common ancestor is needed to connect the graph
+        edges3 = subgraph([4027255, 43530856, 4024552, 316139, 45766164, 43530961])
+        self.assertEqual(edges3,
+                         [
+                             (
+                                 "4024552",
+                                 "316139"
+                             ),
+                             (
+                                 "316139",
+                                 "43530961"
+                             ),
+                             (
+                                 "316139",
+                                 "45766164"
+                             ),
+                             (
+                                 "321588",
+                                 "4024552"
+                             ),
+                             (
+                                 "321588",
+                                 "4027255"
+                             ),
+                             (
+                                 "4027255",
+                                 "43530856"
+                             )
+                         ]
+                         )
+            
 # Uncomment this and run this file directly to run all tests
-# if __name__ == '__main__':
+if __name__ == '__main__':
+    test_subgraph()
 #     unittest.main()
