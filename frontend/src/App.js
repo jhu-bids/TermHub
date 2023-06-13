@@ -26,12 +26,16 @@ import {
   QueryClientProvider,
 } from "@tanstack/react-query";
 import { keyBy, isEmpty } from "lodash";
-import { createWebStoragePersistor } from "react-query/createWebStoragePersistor-experimental";
+// import { createWebStoragePersistor } from "react-query/createWebStoragePersistor-experimental";
+import { persistQueryClient } from '@tanstack/react-query-persist-client'
+import { createSyncStoragePersister } from '@tanstack/query-sync-storage-persister'
+import { compress, decompress } from 'lz-string';
+
+
 import {
-  persistQueryClient,
   removeOldestQuery,
 } from "@tanstack/react-query-persist-client";
-// import { ReactQueryDevtools } from '@tanstack/react-query-devtools'
+import { ReactQueryDevtools } from '@tanstack/react-query-devtools'
 // import { createSyncStoragePersister } from '@tanstack/query-sync-storage-persister'
 
 import useMeasure from "react-use/lib";
@@ -46,7 +50,7 @@ import {
   searchParamsToObj,
   updateSearchParams,
   backend_url,
-  useDataWidget,
+  useDataWidget, dataAccessor,
 } from "./components/State";
 import { UploadCsvPage } from "./components/UploadCsv";
 import { DownloadJSON } from "./components/DownloadJSON";
@@ -73,22 +77,27 @@ export const queryClient = new QueryClient({
       refetchOnmount: false,
       refetchOnReconnect: false,
       retry: false,
-      staleTime: Infinity,
+      // staleTime: Infinity,
+      staleTime: 1000 * 60 * 60 * 24, // 24 hours
     },
   },
 });
 
-// const localStoragePersister = createSyncStoragePersister({ storage: window.localStorage })
-const localStoragePersister = createWebStoragePersistor({
+const persister = createSyncStoragePersister({
   storage: window.localStorage,
+  serialize: data => compress(JSON.stringify(data)),
+  deserialize: data => JSON.parse(decompress(data)),
 });
-
 persistQueryClient({
   queryClient,
-  persister: localStoragePersister,
-  retry: removeOldestQuery,
-  maxAge: Infinity,
+  persister,
+  // maxAge: Infinity,
+  maxAge: 1000 * 60 * 60 * 24, // 24 hours
+  buster: '',
+  hydrateOptions: undefined,
+  dehydrateOptions: undefined,
 });
+
 /*
   TODO: I've got some bad state stuff going on. Maybe violating this principle:
   For example, one rule is that you should not mutate an existing state object or ref object. Doing so
@@ -117,10 +126,18 @@ function QCProvider() {
     // <React.StrictMode>
     // {/* StrictMode helps assure code goodness by running everything twice, but it's annoying*/}
     //   {" "}
-    <QueryClientProvider client={queryClient}>
+    <QueryClientProvider client={queryClient}
+                         persistOptions={{
+                           persister,
+                           // maxAge: Infinity,
+                           maxAge: 1000 * 60 * 60 * 24, // 24 hours
+                           serialize: data => compress(JSON.stringify(data)),
+                           deserialize: data => JSON.parse(decompress(data)),
+                         }}
+    >
       <AppStateProvider>
         <QueryStringStateMgr />
-        {/*<ReactQueryDevtools initialIsOpen={false} />*/}
+        <ReactQueryDevtools initialIsOpen={false} />
       </AppStateProvider>
     </QueryClientProvider>
     // </React.StrictMode>
@@ -229,7 +246,26 @@ function DataContainer(props) {
   // const concept_relationships = crprops.data;
 
   if (all_csets && cset_data /*&& concept_relationships*/) {
+    /*
+    dataAccessor.cache.edges = cset_data.edges
+    if (!dataAccessor.cache.con)
+    for (let i in cset_data.concepts) {
+      dataAccessor.cache.concepts[cset_data.concepts[i].concept_id] = cset_data.concepts[i];
+    }
+     */
+
     cset_data.conceptLookup = keyBy(cset_data.concepts, "concept_id");
+    // dataAccessor.cache.conceptLookup = cset_data.conceptLookup;
+
+    if ("selected_csets" in cset_data) {
+      dataAccessor.cache.selected_csets = cset_data.selected_csets;
+    } else {
+      dataAccessor.cache.selected_csets = [];
+    }
+
+    dataAccessor.cache.researchers = cset_data.researchers;
+    dataAccessor.cache.hierarchy = cset_data.hierarchy;
+
     const csmiLookup = {};
     // cset_data.cset_members_items.map(mi => set(csmiLookup, [mi.codeset_id, mi.concept_id], mi));
     // the line above created the most bizarre crashing behavior -- fixed by replacing the lodash set with simple loop below
@@ -238,10 +274,6 @@ function DataContainer(props) {
       csmiLookup[mi.codeset_id][mi.concept_id] = mi;
     });
     cset_data.csmiLookup = csmiLookup;
-    // let orphans = {};
-    // for (const o of cset_data.orphans) {
-    //   orphans[o] = null;
-    // }
 
     return (
       <RoutesContainer {...props} all_csets={all_csets} cset_data={cset_data} />
@@ -276,7 +308,10 @@ function RoutesContainer(props) {
       <Route path="/" element={<App {...props} />}>
         <Route
             path="cset-comparison"
-            element={<CsetComparisonPage {...props} />}
+            element={<CsetComparisonPage {...props}
+                       concepts={props.cset_data.concepts}
+                       conceptLookup={props.cset_data.conceptLookup}
+                       edges={props.cset_data.edges} />}
         />
         <Route
             path="OMOPConceptSets"
@@ -303,7 +338,7 @@ function App(props) {
         </Box>
         */}
       <div className="App">
-        {/* <ReactQueryDevtools initialIsOpen={false} /> */}
+        {/* <ReactQueryDevtools initialIsOpen={false} />*/}
         <MuiAppBar {...props}>
           {/* Outlet: Will render the results of whatever nested route has been clicked/activated. */}
         </MuiAppBar>

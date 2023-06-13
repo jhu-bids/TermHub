@@ -12,7 +12,7 @@ import Box from "@mui/material/Box";
 import { useQuery } from "@tanstack/react-query";
 import {queryClient} from "../App";
 import { createSearchParams } from "react-router-dom";
-import { isEmpty, get, uniq, pullAt } from "lodash";
+import { isEmpty, get, uniq, pullAt, fromPairs, flatten } from "lodash";
 import { pct_fmt } from "./utils";
 import WarningRoundedIcon from '@mui/icons-material/WarningRounded';
 import { CheckCircleRounded } from "@mui/icons-material";
@@ -153,16 +153,24 @@ export function useStateSlice(slice) {
 }
 const CombinedReducersContext = createContext(null);
 export function AppStateProvider({ children }) {
+  const [hierarchySettings, dispatch] = useReducer(hierarchySettingsReducer, {
+    nested: true,
+    collapsePaths: {},
+    collapsedDescendantPaths: {},
+    hideRxNormExtension: true,
+    hideZeroCounts: false,
+  });
+  const hsDispatch = (...args) => {
+    window.Pace.restart();
+    setTimeout(() => dispatch(...args), 100);
+  }
   const reducers = {
     // contentItems: useReducer(contentItemsReducer, defaultContentItems),
     codeset_ids: useReducer(codeset_idsReducer, []),
     extraConceptIds: useReducer(extraConceptIdsReducer, []),
     editCset: useReducer(editCsetReducer),
     // more stuff needed
-    hierarchySettings: useReducer(hierarchySettingsReducer, {
-      nested: true,
-      collapsed: {},
-    }),
+    hierarchySettings: [hierarchySettings, hsDispatch],
   };
 
   const getters = {
@@ -222,16 +230,36 @@ const extraConceptIdsReducer = (extraConceptIds, action) => {
 function hierarchySettingsReducer(state, action) {
   if (!(action && action.type)) return state;
   if (!action.type) return state;
+  let {collapsePaths, collapsedDescendantPaths, nested, hideRxNormExtension, hideZeroCounts} = state;
   switch (action.type) {
     case "collapseDescendants": {
-      const collapsed = action.collapsed;
-      return { ...state, collapsed };
+      const {row, allRows, collapseAction} = action;
+      // this toggles the collapse state of the given row
+      const collapse = !get(collapsePaths, row.pathToRoot);
+      // collapsePaths are the paths to all the rows the user collapsed
+      //  these rows still appear in the table, but their descendants don't
+      if (collapseAction === 'collapse') {
+        collapsePaths = { ...collapsePaths, [row.pathToRoot]: true };
+      } else {
+        collapsePaths = { ...collapsePaths };
+        delete collapsePaths[row.pathToRoot];
+      }
+      // collapsedDescendantPaths are all the paths that get hidden, the descendants of all the collapsePaths
+      const hiddenRows = flatten(Object.keys(collapsePaths).map(collapsedPath => {
+        return allRows.map(r => r.pathToRoot).filter(
+            p => p.length > collapsedPath.length && p.startsWith(collapsedPath));
+      }));
+      collapsedDescendantPaths = fromPairs(hiddenRows.map(p => [p, true]));
+      return { ...state, collapsePaths, collapsedDescendantPaths };
     }
     case "nested": {
       return { ...state, nested: action.nested}
     }
     case "hideRxNormExtension": {
       return { ...state, hideRxNormExtension: action.hideRxNormExtension}
+    }
+    case "hideZeroCounts": {
+      return { ...state, hideZeroCounts: action.hideZeroCounts}
     }
     default:
       return state;
@@ -432,65 +460,4 @@ export function StatsMessage(props) {
       deselect concept sets.
     </p>
   );
-}
-
-export function makeHierarchyRows({
-  concepts,
-  selected_csets,
-  cset_members_items,
-  hierarchy,
-  collapsed = {},
-}) {
-  if (
-    isEmpty(concepts) ||
-    isEmpty(selected_csets) ||
-    isEmpty(cset_members_items)
-  ) {
-    return;
-  }
-  const conceptsMap = Object.fromEntries(
-    concepts.map((d) => [d.concept_id, d])
-  );
-  return traverseHierarchy({ hierarchy, concepts: conceptsMap, collapsed });
-}
-
-export function hierarchyToFlatCids(h) {
-  function f(ac) {
-    ac.keys = [...ac.keys, ...Object.keys(ac.remaining)];
-    const r = Object.values(ac.remaining).filter(d => d);
-    ac.remaining = {};
-    r.forEach(o => ac.remaining = {...ac.remaining, ...o});
-    return ac;
-  }
-  let ac = {keys: [], remaining: h};
-  while(!isEmpty(ac.remaining)) {
-    console.log(ac);
-    ac = f(ac);
-  }
-  return uniq(ac.keys.map(k => parseInt(k)));
-}
-
-function traverseHierarchy({ hierarchy, concepts, collapsed }) {
-  let rowData = [];
-  let blanks = [];
-  let traverse = (o, pathToRoot = [], level = 0) => {
-    // console.log({o, pathToRoot, level});
-    Object.keys(o).forEach((k) => {
-      k = parseInt(k);
-      let row = { ...concepts[k], level, pathToRoot: [...pathToRoot, k] };
-      if (!concepts[k]) {
-        blanks.push(rowData.length);
-      }
-      rowData.push(row);
-      if (o[k] && typeof (o[k] === "object")) {
-        row.has_children = true;
-        if (!collapsed[row.pathToRoot]) {
-          traverse(o[k], row.pathToRoot, level + 1);
-        }
-      }
-    });
-  };
-  traverse(hierarchy);
-  pullAt(rowData, blanks);
-  return rowData;
 }

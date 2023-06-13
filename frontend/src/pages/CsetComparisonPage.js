@@ -7,18 +7,20 @@ import React, {
 import * as d3dag from "d3-dag";
 // import { createSearchParams, useSearchParams, } from "react-router-dom";
 import DataTable, { createTheme } from "react-data-table-component";
-import { AddCircle, RemoveCircleOutline } from "@mui/icons-material";
-import Box from "@mui/material/Box";
-import Slider from "@mui/material/Slider";
-import Button from "@mui/material/Button";
-import Typography from "@mui/material/Typography";
+import { AddCircle, RemoveCircleOutline, Download } from "@mui/icons-material";
+import { Box, Slider, Button, Typography, Switch } from "@mui/material";
 import Draggable from "react-draggable";
 // import {Checkbox} from "@mui/material";
-import { isEmpty, get, throttle, pullAt } from "lodash"; // set, map, omit, pick, uniq, reduce, cloneDeepWith, isEqual, uniqWith, groupBy,
+import {isEmpty, get, throttle, max, uniq, uniqBy, flatten, sortBy} from "lodash"; // set, map, omit, pick, uniq, reduce, cloneDeepWith, isEqual, uniqWith, groupBy,
+import Graph from 'graphology';
+import {allSimplePaths} from 'graphology-simple-path';
+import {dfs, dfsFromNode} from 'graphology-traversal/dfs';
+
 import {
   useStateSlice,
   hierarchyToFlatCids,
   makeHierarchyRows,
+  dataAccessor
 } from "../components/State";
 import { fmt, useWindowSize } from "../components/utils";
 import { setColDefDimensions } from "../components/dataTableUtils";
@@ -35,6 +37,7 @@ import {
 } from "../components/EditCset";
 // import {EDGES} from '../components/ConceptGraph';
 import { FlexibleContainer } from "../components/FlexibleContainer";
+import _ from "../supergroup/supergroup";
 
 // TODO: Find concepts w/ good overlap and save a good URL for that
 // TODO: show table w/ hierarchical indent
@@ -43,29 +46,32 @@ import { FlexibleContainer } from "../components/FlexibleContainer";
 function CsetComparisonPage(props) {
   const {
     all_csets = [],
-    cset_data = {},
     searchParams,
     setSearchParams,
     editCodesetId,
     csetEditState,
+    concepts,
   } = props;
-  const { selected_csets = [], researchers, hierarchy, conceptLookup } = cset_data;
-  const { state: hierarchySettings, dispatch: hsDispatch } = useStateSlice("hierarchySettings");
-  // const [concepts, setConcepts] = useState([]);
+  // const { selected_csets = [], researchers, hierarchy, conceptLookup } = cset_data
+  const { selected_csets, researchers, hierarchy, conceptLookup } = dataAccessor.cache;
+  const { state: hierarchySettings, dispatch: hsDispatch} = useStateSlice("hierarchySettings");
+  const {collapsePaths, collapsedDescendantPaths, nested, hideRxNormExtension, hideZeroCounts} = hierarchySettings;
+  // window.hierarchySettingsW = hierarchySettings;
   const windowSize = useWindowSize();
   const boxRef = useRef();
   const sizes = getSizes(/*squishTo*/ 1);
   const customStyles = styles(sizes);
-  const {collapsed, nested, hideRxNormExtension} = hierarchySettings;
 
   // console.log(EDGES);
 
-  let nestedData = getRowData({...props, ...hierarchySettings});
+  // TODO: component is rendering twice. why? not necessary? fix?
+  let {allRows, displayedRows, distinctRows, hidden} = getRowData({...props, hierarchySettings});
   let rowData;
   if (nested) {
-    rowData = nestedData;
+    rowData = displayedRows;
   } else {
-    rowData = hierarchyToFlatCids(hierarchy).map(cid => conceptLookup[cid]);
+    // rowData = hierarchyToFlatCids(hierarchy).map(cid => conceptLookup[cid]);
+    rowData = distinctRows;
   }
 
   const editAction = getCodesetEditActionFunc({
@@ -74,19 +80,6 @@ function CsetComparisonPage(props) {
   });
   const editCodesetFunc = getEditCodesetFunc({ searchParams, setSearchParams });
 
-  function toggleCollapse(row) {
-    /* @amirmds:
-      Since toggleCollapse is now using appState instead of local useState, this logic
-      could be moved to the reducer and instead of passing this function and the collapsed
-      state down to colConfig, colConfig could pick those out of appState itself.
-     */
-    let _collapsed = collapsed;
-    _collapsed = {
-      ..._collapsed,
-      [row.pathToRoot]: !get(_collapsed, row.pathToRoot.join(",")),
-    };
-    hsDispatch({ type: "collapseDescendants", collapsed: _collapsed });
-  }
 
   if (!all_csets.length || isEmpty(selected_csets)) {
     return <p>Downloading...</p>;
@@ -94,28 +87,52 @@ function CsetComparisonPage(props) {
   let columns = colConfig({
     ...props,
     selected_csets,
+    concepts,
     editAction,
     editCodesetFunc,
     sizes,
-    ...hierarchySettings, // collapsed and nested
-    toggleCollapse,
     windowSize,
+    hidden,
+    allRows,
+    displayedRows,
+    hierarchySettings,
+    hsDispatch,
   });
 
+  function downloadTSV(rows) {
+    window.location.href = "data:text/tab-separated-values," + encodeURIComponent(tsv);
+
+  }
+  const downloadButton = (
+      <Download key="download-distinct"
+                onClick={ () => {
+                  let tab = window.open("data:text/json," + encodeURIComponent({a:2,b:3}),
+                                        "_blank");
+                  tab.focus();
+                }}
+                sx={{ cursor: 'pointer' }}
+      ></Download>
+  );
   let infoPanels = [
     <Button key="distinct"
             disabled={!nested}
             onClick={() => hsDispatch({type:'nested', nested: false})}
-            sx={{ marginRight: '4px' }}
+            sx={{
+              marginRight: '4px',
+              display: "flex",
+              flexDirection: "row",
+            }}
     >
-      {cset_data.concepts.length} distinct concepts
+      {distinctRows.length} distinct concepts
+      {downloadButton}
     </Button>,
+
     <Button key="nested"
             disabled={nested}
             onClick={() => hsDispatch({type:'nested', nested: true})}
             sx={{ marginRight: '4px' }}
     >
-      {nestedData.length} in hierarchy
+      {displayedRows.length} in hierarchy
     </Button>,
     <FlexibleContainer key="legend" title="Legend">
       <Legend />
@@ -148,7 +165,6 @@ function CsetComparisonPage(props) {
   }
 
   let moreProps = { ...props, rowData, columns, selected_csets, customStyles };
-  console.log(hierarchySettings);
   return (
     <div>
       <Box
@@ -173,47 +189,106 @@ function CsetComparisonPage(props) {
   );
 }
 
+function nodeToTree(node) {
+  // a flat tree
+  const subTrees = node.children().map(n => nodeToTree(n));
+  return [node, ...subTrees];
+}
 export function getRowData(props) {
-  // when I put this provider up at the App level, it didn't update
-  //    but at the CsetComparisonPage level it did. don't know why
-  const { cset_data, collapsed } = props;
-  const {
-    hierarchy = {},
-    edges = [],
-    selected_csets = [],
-    concepts = [],
-    conceptLookup = {},
-    cset_members_items = [],
-  } = cset_data;
+  console.log("getting row data");
 
-  // const groupedByTarget = supergroup(edges, 1);
-  // let stratEdges = groupedByTarget.map(g => ({id: g+'', parentIds: g.records.map(r => r[0]+'')}));
-  const connect = d3dag.dagConnect();
-  const dag = connect(edges);
-  dag.depth();
-  const nodes = dag.descendants('depth');
-  let nodeLookup = {};
-  for (let n of nodes) {
-    nodeLookup[n.data.id] = 1;
+  const {concepts, conceptLookup, edges, hierarchySettings, } = props;
+  const {collapsePaths, collapsedDescendantPaths, nested, hideZeroCounts, hideRxNormExtension} = hierarchySettings;
+
+  const graph = new Graph({allowSelfLoops: false, multi: false, type: 'directed'});
+  // add each concept as a node in the graph, the concept properties become the node attributes
+  concepts.forEach(c => graph.addNode(c.concept_id, c));
+  edges.forEach(edge => graph.addEdge(...edge));
+
+  // sort the nodes so the ones with the most descendants come first
+  let nodeDepths = [];
+  graph.nodes().map(n => {
+    let descendants = 0;
+    dfsFromNode(graph, n, (node, attr, depth) => {
+      if (n !== node) {
+        descendants++;
+      }
+    });
+    nodeDepths.push({node: n, descendants});
+  });
+  let nodes = sortBy(nodeDepths, n => -n.descendants).map(n => n.node);
+
+  let allRows = [];
+  let displayedRows = [];
+  let nodeSeen = {};
+  nodes.map((n,i) => {
+    let currentPath = [];
+    if (nodeSeen[n]) {
+      return;
+    }
+    dfsFromNode(graph, n, (node, attr, depth) => {
+      nodeSeen[node] = true;
+      if (depth === currentPath.length) {
+        currentPath.push(node);
+      }
+      else if (depth <= currentPath.length) {
+        currentPath.splice(depth);
+        currentPath.push(node);
+      } else {
+        console.log(currentPath.join('/'), node);
+        let paths = allSimplePaths(graph, currentPath[currentPath.length - 1], node);
+        console.log(paths);
+        throw new Error("shouldn't happen");
+      }
+
+      let row = {...graph.getNodeAttributes(node)};
+      row.pathToRoot = currentPath.join('/');
+      if (collapsedDescendantPaths[row.pathToRoot]) {
+        // currentPath.pop(); // don't do this, descendants will continue popping
+        allRows.push(row);
+        return;
+      }
+      // console.log('   '.repeat(depth) + node);
+      row.hasChildren = graph.outboundDegree(node) > 0;
+      row.level = depth;
+      /*
+      let debugInfo = ` ${row.pathToRoot}`;
+      if (row.hasChildren) {
+        debugInfo += (collapsePaths[row.pathToRoot] ? '(+)' : '(-)');
+      }
+      if (collapsePaths[row.pathToRoot]) {
+        // row.collapseDescendants = true;
+      }
+      if (collapsedDescendantPaths[row.pathToRoot]) {
+        // row.collapsed = true;
+        debugInfo += ' hidden';
+      }
+      // for debugging:
+      row.concept_name = <span>{row.level} {row.concept_name}<br/><strong>{debugInfo}</strong></span>;
+       */
+      allRows.push(row);
+      displayedRows.push(row);
+    });
+  });
+  // console.log(`allRows: ${allRows.length}, displayedRows: ${displayedRows}`);
+  const hidden = {
+    collapsed: collapsedDescendantPaths.length,
+    rxNormExtension: allRows.filter(row => row.vocabulary_id === 'RxNorm Extension').length,
   }
-  const missingConcepts = concepts.filter(c => nodeLookup[c.concept_id]);
-  const rows = nodes.map(n => {
-    let row = conceptLookup[n.data.id];
-    row.level = n.value;
-    return row;
-  })
-  return [...rows, ...missingConcepts];
+  // const collapsedRows= allRows.filter(row => row.collapsed);
+  // let rows = allRows.filter(row => !row.collapsed);
+  let rows = allRows.filter(row => !collapsedDescendantPaths[row.pathToRoot]);
 
-  debugger;
-
-  const rowData = makeHierarchyRows({
-                                      concepts,
-                                      selected_csets,
-                                      cset_members_items,
-                                      hierarchy,            // want to make this derived, but not yet?
-                                      collapsed,
-                                    });
-  return rowData;
+  // const rxNormExtensionRows = rows.filter(r => r.vocabulary_id == 'RxNorm Extension');
+  if (hideRxNormExtension) {
+    displayedRows = displayedRows.filter(r => r.vocabulary_id !== 'RxNorm Extension');
+  }
+  hidden.zeroCount = displayedRows.filter(row => row.total_cnt === 0).length;
+  if (hideZeroCounts) {
+    displayedRows = displayedRows.filter(r => r.total_cnt > 0);
+  }
+  const distinctRows = uniqBy(displayedRows, row => row.concept_id);
+  return {allRows, displayedRows, distinctRows, hidden};
 }
 function ComparisonDataTable(props) {
   const {
@@ -285,70 +360,68 @@ function getSizes(squishTo) {
   };
   return sizes;
 }
-
+function getCollapseIconAndName(collapsePaths, row, allRows, sizes, hsDispatch, ) {
+  let Component, collapseAction;
+  if (collapsePaths[row.pathToRoot]) {
+    Component = AddCircle;
+    collapseAction = 'expand';
+  } else {
+    Component = RemoveCircleOutline;
+    collapseAction = 'collapse';
+  }
+  return (
+      <span
+          className="toggle-collapse concept-name-row"
+          onClick={() => hsDispatch({ type: "collapseDescendants", row, allRows, collapseAction})}
+      >
+                <Component
+                    sx={{
+                      fontSize: sizes.collapseIcon,
+                      display: "inline-flex",
+                      marginRight: "0.15rem",
+                      marginTop: "0.05rem",
+                      verticalAlign: "top",
+                    }}
+                />
+        <span className="concept-name-text">{row.concept_name}</span>
+      </span>
+  );
+}
 function colConfig(props) {
   let {
-    nested,
     selected_csets,
-    cset_data,
-    collapsed,
-    toggleCollapse,
+    concepts,
     sizes,
     editAction,
     editCodesetFunc,
     windowSize,
+    hidden,
+    allRows,
+    displayedRows,
+    hierarchySettings,
+    hsDispatch,
   } = props;
+  const {collapsePaths, collapsedDescendantPaths, nested, hideRxNormExtension, hideZeroCounts} = hierarchySettings;
 
+  const maxNameLength = max(displayedRows.map(d => d.concept_name.length));
   let coldefs = [
     {
       name: "Concept name",
       selector: (row) => row.concept_name,
       format: (row) => {
         let content = nested ? (
-          row.has_children ? (
-            collapsed[row.pathToRoot] ? (
-              <span
-                className="toggle-collapse concept-name-row"
-                onClick={() => toggleCollapse(row)}
-              >
-                <AddCircle
-                  sx={{
-                    fontSize: sizes.collapseIcon,
-                    display: "inline-flex",
-                    marginRight: "0.15rem",
-                    marginTop: "0.05rem",
-                    verticalAlign: "top",
-                  }}
-                />
-                {row.concept_name} {row.collapsed && "collapsed"}
-              </span>
-            ) : (
-              <span
-                className="toggle-collapse concept-name-row"
-                onClick={() => toggleCollapse(row)}
-              >
-                <RemoveCircleOutline
-                  sx={{
-                    fontSize: sizes.collapseIcon,
-                    display: "inline-flex",
-                    marginRight: "0.15rem",
-                    marginTop: "0.05rem",
-                    verticalAlign: "top",
-                  }}
-                />
-                {row.concept_name} {row.collapsed && "collapsed"}
-              </span>
-            )
-          ) : (
-            <span className="concept-name-row">
-              <RemoveCircleOutline
-                sx={{ fontSize: sizes.collapseIcon, visibility: "hidden" }}
-              />
-              {row.concept_name}
-            </span>
-          )
+          row.hasChildren
+              ? getCollapseIconAndName(collapsePaths, row, allRows, sizes, hsDispatch)
+              : (
+                  <span className="concept-name-row">
+                    <RemoveCircleOutline
+                        // this is just here so it indents the same distance as the collapse icons
+                      sx={{ fontSize: sizes.collapseIcon, visibility: "hidden" }}
+                    />
+                    <span className="concept-name-text">{row.concept_name}</span>
+                  </span>)
         ) : (
-          row.concept_name
+            <span className="concept-name-text">{row.concept_name}</span>
         );
         return content;
       },
@@ -356,18 +429,38 @@ function colConfig(props) {
       // minWidth: 100,
       // remainingPct: .60,
       // width: (window.innerWidth - selected_csets.length * 50) * .65,
-      grow: 4,
+      // maxWidth: '50%',
+      maxWidth: maxNameLength * .6 + 'em',
+      // grow: 4,
       wrap: true,
       compact: true,
       conditionalCellStyles: [
         {
           when: (row) => true,
-          style: (row) => ({ paddingLeft: 16 + row.level * 16 + "px" }),
+          style: (row) => ({
+            paddingLeft: 16 + row.level * 16 + "px"
+          }),
         },
       ],
     },
     {
-      name: "Vocabulary",
+      // name: "Vocabulary",
+      headerProps: {
+        headerContent: (
+            concepts.some(d => d.vocabulary_id === 'RxNorm Extension')
+            ? <div style={{display: 'flex', flexDirection: 'column'}}>
+                <div>Vocabulary</div>
+                <div style={{fontSize: 'x-small'}}>({hidden.rxNormExtension} {hideRxNormExtension ? 'hidden' : ''} RxNorm Extension rows)</div>
+                <Tooltip label="Toggle hiding of RxNorm Extension concepts">
+                  <Switch sx={{margin: '-8px 0px'}} checked={!hideRxNormExtension}
+                          onClick={() => hsDispatch({type:'hideRxNormExtension', hideRxNormExtension: !hideRxNormExtension})}
+                  />
+                </Tooltip>
+              </div>
+            : "Vocabulary"
+        )
+        // headerContentProps: { onClick: editCodesetFunc, codeset_id: cset_col.codeset_id, },
+      },
       selector: (row) => row.vocabulary_id,
       // format: (row) => <Tooltip label={row.vocabulary_id} content={row.vocabulary_id} />,
       sortable: !nested,
@@ -449,13 +542,32 @@ function colConfig(props) {
     },
     // ...cset_cols,
     {
-      name: "Patients",
+      // name: "Patients",
       headerProps: {
-        tooltipContent:
-          "Approximate distinct person count. Small counts rounded up to 20.",
+        headerContent: (
+            <div style={{display: 'flex', flexDirection: 'column'}}>
+              <Tooltip label="Approximate distinct person count. Small counts rounded up to 20.">
+                <div>Patients</div>
+                {/*<div>{hideZeroCounts ? 'Unhide ' : 'Hide '} {hidden.zeroCount} rows</div>*/}
+              </Tooltip>
+              <Tooltip label={`Toggle hiding of ${hidden.zeroCount} concepts with 0 patients`}>
+                <Switch sx={{margin: '-8px 0px'}} checked={!hideZeroCounts}
+                  onClick={() => hsDispatch({type:'hideZeroCounts', hideZeroCounts: !hideZeroCounts})}
+                />
+              </Tooltip>
+            </div>
+        )
+        // headerContentProps: { onClick: editCodesetFunc, codeset_id: cset_col.codeset_id, },
       },
-      selector: (row) => parseInt(row.distinct_person_cnt),
-      format: (row) => fmt(row.distinct_person_cnt),
+      selector: (row) => {
+        // can be comma=separated list if pt cnts in more than one domain
+        const cnts = row.distinct_person_cnt.split(',').map(n => parseInt(n));
+        return max(cnts);
+      },
+      format: (row) => {
+        const cnts = row.distinct_person_cnt.split(',').map(n => parseInt(n));
+        return fmt(max(cnts));
+      },
       sortable: !nested,
       right: true,
       width: 80,
@@ -514,7 +626,7 @@ function colConfig(props) {
       ],
       sortable: !nested,
       // compact: true,
-      width: 70,
+      width: 80,
       // center: true,
     };
     return def;

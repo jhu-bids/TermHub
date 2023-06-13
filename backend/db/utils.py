@@ -1,10 +1,17 @@
-"""Utils for database usage"""
+"""Utils for database usage
+
+todo's
+  1. Some functions could be improved using `sql_query()` `params` arg to be less prone to sql injection.
+"""
 import json
 import os
+import pytz
 import dateutil.parser as dp
 from datetime import datetime, timezone
+from glob import glob
 
 import pandas as pd
+from jinja2 import Template
 # noinspection PyUnresolvedReferences
 from psycopg2.errors import UndefinedTable
 from sqlalchemy import create_engine, event
@@ -13,15 +20,48 @@ from sqlalchemy.engine.base import Connection
 from sqlalchemy.exc import OperationalError, ProgrammingError
 from sqlalchemy.sql import text
 from sqlalchemy.sql.elements import TextClause
-from typing import Any, Dict, Union, List
+from typing import Any, Dict, Tuple, Union, List
 
-from backend.db.config import CONFIG, DATASETS_PATH, OBJECTS_PATH, get_pg_connect_url
+from backend.db.config import CONFIG, DATASETS_PATH, DDL_JINJA_PATH_PATTERN, OBJECTS_PATH, get_pg_connect_url
 from backend.utils import commify
 from enclave_wrangler.models import pkey
 
 DEBUG = False
 DB = CONFIG["db"]
 SCHEMA = CONFIG["schema"]
+
+
+# todo: move this somewhere else, possibly load.py or db_refresh.py
+def refresh_termhub_core_cset_derived_tables(con: Connection, schema: str):
+    """Refresh TermHub core cset derived tables
+
+    This can also work to initially create the tables if they don't already exist."""
+    temp_table_suffix = '_new'
+    ddl_modules = [
+        'cset_members_items',
+        'members_items_summary',
+        'cset_members_items_plus',
+        'codeset_counts',
+        'all_csets']
+    views = ['cset_members_items_plus']
+    # Create new tables and backup old ones
+    t0 = datetime.now()
+    for module in ddl_modules:
+        print(f'Running SQL to recreate derived table: {module}...')
+        statements: List[str] = get_ddl_statements(schema, [module], temp_table_suffix)
+        for statement in statements:
+            run_sql(con, statement)
+        # todo: warn if counts in _new table not >= _old table (if it exists)?
+        run_sql(con, f'ALTER TABLE IF EXISTS {schema}.{module} RENAME TO {module}_old;')
+        run_sql(con, f'ALTER TABLE {schema}.{module}{temp_table_suffix} RENAME TO {module};')
+    # - Delete old tables. Because of view dependencies, order & commands are different
+    t1 = datetime.now()
+    print(f'Derived tables all created in {(t1 - t0).seconds} seconds. Removing older, temporarily backed up copies...')
+    for view in views:
+        ddl_modules.remove(view)
+        run_sql(con, f'DROP VIEW IF EXISTS {schema}.{view}_old;')
+    for module in ddl_modules:
+        run_sql(con, f'DROP TABLE IF EXISTS {schema}.{module}_old;')
 
 
 def get_db_connection(isolation_level='AUTOCOMMIT', schema: str = SCHEMA, local=False):
@@ -57,9 +97,21 @@ def chunk_list(input_list: List, chunk_size) -> List[List]:
         yield input_list[i:i + chunk_size]
 
 
-def current_datetime():
-    """Get current datetime"""
-    return datetime.now(timezone.utc).isoformat()
+def current_datetime(time_zone=['UTC/GMT', 'EST/EDT'][1]) -> str:
+    """Get current datetime in ISO format as a string."""
+    if time_zone == 'UTC/GMT':
+        stamp = datetime.now(timezone.utc).isoformat()
+    elif time_zone == 'EST/EDT':
+        stamp = datetime.now(pytz.timezone('America/New_York')).isoformat()
+    else:
+        raise ValueError(f'Unsupported time zone: {time_zone}')
+    return stamp
+
+
+def last_refresh_timestamp(con: Connection) -> str:
+    """Get the timestamp of the last database refresh"""
+    return sql_query(
+        con, f"SELECT value FROM public.manage WHERE key = 'last_refreshed_DB';", return_with_keys=False)[0][0]
 
 
 def is_up_to_date(last_updated: Union[datetime, str], threshold_hours=24) -> bool:
@@ -89,11 +141,11 @@ def is_table_up_to_date(table_name: str, skip_if_updated_within_hours: int = Non
 
 def update_db_status_var(key: str, val: str):
     """Update the `manage` table with information for a given variable, e.g. when a table was last updated
-    todo: change to 1 line: INSERT OVERWRITE or UPDATE"""
+    todo: change to a 1-liner UPDATE statement"""
     with get_db_connection(schema='') as con2:
         run_sql(con2, f"DELETE FROM public.manage WHERE key = '{key}';")
-        sql_str = f"INSERT INTO public.manage (key, value) VALUES ('{key}', '{val}');"
-        run_sql(con2, sql_str)
+        sql_str = f"INSERT INTO public.manage (key, value) VALUES (:key, :val);"
+        run_sql(con2, sql_str, {'key': key, 'val': val})
 
 
 def database_exists(con: Connection, db_name: str) -> bool:
@@ -130,21 +182,107 @@ def sql_query(
         raise RuntimeError(f'Got an error [{err}] executing the following statement:\n{query}, {json.dumps(params, indent=2)}')
 
 
-def get_obj_by_id(con, table: str, pkey: str, obj_id: Union[str, int]):
+def delete_obj_by_composite_key(con, table: str, key_ids: Dict[str, Union[str, int]]):
     """Get object by ID"""
-    return sql_query(con, f'SELECT * FROM {table} WHERE {pkey} = (:obj_id)', {'obj_id': obj_id}, return_with_keys=False)
+    keys_str = ' AND '.join([f'{key} = (:{key})' for key in key_ids.keys()])
+    return run_sql(
+        con, f'DELETE FROM {table} WHERE {keys_str}',
+        {f'{key}': _id for key, _id in key_ids.items()})
 
-def insert_from_dict(con: Connection, table: str, d: Dict, skip_if_already_exists=True):
-    """Insert row into dictionary from a dictionary"""
-    # TODO: check whether already exists?
-    #   doing this already in fetch_object_and_add_to_db
-    #   like: already_in_db = get_obj_by_id(con, table, obj_pkey(table), object_id)
-    #   but other functions that call this should probably check or have this function check
 
+def get_obj_by_composite_key(con, table: str, keys: List[str], obj: Dict) -> List[Dict]:
+    """Get object by ID
+    todo: could be made more consistent w/ get_obj_by_id(): accept obj_id instead?"""
+    keys_str = ' AND '.join([f'{key} = (:{key}_id)' for key in keys])
+    return sql_query(
+        con, f'SELECT * FROM {table} WHERE {keys_str}',
+        {f'{key}_id': obj[key] for key in keys})
+
+
+def get_obj_by_id(con, table: str, pk: str, obj_id: Union[str, int]) -> List[Dict]:
+    """Get object by ID"""
+    return sql_query(con, f'SELECT * FROM {table} WHERE {pk} = (:obj_id)', {'obj_id': obj_id}, return_with_keys=False)
+
+
+def get_objs_by_id(con, table: str, pk: str, obj_ids: List[Union[str, int]]) -> List[Dict]:
+    """Get database records by their IDs
+    todo: refactor: look to insert_from_dicts() more secure way to do this by passing `params` to run_sql()`
+    :return: dictionary with keys as the primary key and values as the row contents"""
+    results: List[RowMapping] = sql_query(
+        con, f'SELECT * FROM {table} WHERE {pk} {sql_in(obj_ids, True)}', return_with_keys=True)
+    return [dict(x) for x in results]
+
+
+def get_objs_by_composite_key(con, table: str, keys: List[str], objs: List[Dict]) -> List[Dict]:
+    """Get database records by their IDs
+    todo: could be made more consistent w/ get_objs_by_id(): accept objs_ids instead?
+    todo: refactor: look to insert_from_dicts() more secure way to do this by passing `params` to run_sql()`
+    :return: dictionary with keys as the primary key and values as the row contents"""
+    key_vals = {key: [str(obj[key]) for obj in objs] for key in keys}
+    results: List[RowMapping] = sql_query(
+        con, f"SELECT * FROM {table} WHERE {' AND '.join([f'{k} {sql_in(v, True)}' for k, v in key_vals.items()])};",
+        return_with_keys=True)
+    return [dict(x) for x in results]
+
+
+def get_concept_set_members_rows(
+    con: Connection, codeset_id__concept_id__pairs: List[Tuple[int, int]]
+) -> List[Dict]:
+    """Get rows from concept_set_members given IDs
+    todo: too specific to be in utils.py? move?"""
+    objs = [{'codeset_id': pair[0], 'concept_id': pair[1]} for pair in codeset_id__concept_id__pairs]
+    return get_objs_by_composite_key(con, 'concept_set_members',['codeset_id', 'concept_id'], objs)
+
+
+def get_cset_members_items_rows(
+    con: Connection, codeset_id__concept_id__pairs: List[Tuple[int, int]]
+) -> List[Dict]:
+    """Get rows from cset_members_items given IDs
+    todo: too specific to be in utils.py? move?"""
+    objs = [{'codeset_id': pair[0], 'concept_id': pair[1]} for pair in codeset_id__concept_id__pairs]
+    return get_objs_by_composite_key(con, 'cset_members_items', ['codeset_id', 'concept_id'], objs)
+
+
+def insert_from_dicts(con: Connection, table: str, rows: List[Dict], skip_if_already_exists=True):
+    """Insert rows into table from a list of dictionaries"""
+    pk: str = pkey(table)
     if skip_if_already_exists:
-        pk = pkey(table)
+        if pk and isinstance(pk, str):  # normal, single primary key
+            already_in_db: List[Dict] = get_objs_by_id(con, table, pk, [row[pk] for row in rows])
+            already_in_db_ids = [row[pk] for row in already_in_db]
+            rows = [row for row in rows if row[pk] not in already_in_db_ids]
+        elif pk and isinstance(pk, list):  # composite key
+            already_in_db: List[Dict] = get_objs_by_composite_key(con, table, pk, rows)
+            already_in_db_ids = [[row[pk_n] for pk_n in pk] for row in already_in_db]
+            rows = [row for row in rows if [row[pk_n] for pk_n in pk] not in already_in_db_ids]
+
+    if rows:
+        # Fix possible jaggedneess / missing fields in rows
+        fields = []
+        for row in rows:
+            fields.extend(row.keys())
+            for k in row.keys():
+                fields.append(k)
+        fields = set(fields)
+        rows = [{field: row.get(field, None) for field in fields} for row in rows]
+        key_vals = {f'{k}{i}': v for i, d in enumerate(rows) for k, v in d.items()}
+        values = ', '.join([f"({', '.join([':' + str(k) + str(i) for k in d.keys()])})" for i, d in enumerate(rows)])
+        statement = f"""INSERT INTO {table} ({', '.join([f'"{x}"' for x in rows[0].keys()])}) VALUES {values}"""
+        run_sql(con, statement, key_vals)
+
+
+def insert_from_dict(con: Connection, table: str, d: Union[Dict, List[Dict]], skip_if_already_exists=True):
+    """Insert row into table from a dictionary"""
+    if isinstance(d, list):
+        return insert_from_dicts(con, table, d, skip_if_already_exists)
+    if skip_if_already_exists:  # todo: simplify logic as in insert_from_dicts()
+        pk: str = pkey(table)
         if pk:
-            already_in_db = get_obj_by_id(con, table, pk, d[pk])
+            already_in_db = []
+            if isinstance(pk, str):  # normal, single primary key
+                already_in_db: List[Dict] = get_obj_by_id(con, table, pk, d[pk])
+            elif isinstance(pk, list):  # composite key
+                already_in_db: List[Dict] = get_obj_by_composite_key(con, table, pk, d)
             if already_in_db:
                 return
 
@@ -174,7 +312,7 @@ def run_sql(con: Connection, command: str, params: Dict = {}) -> Any:
     """Run a sql command"""
     command = text(command) if not isinstance(command, TextClause) else command
     if params:
-        q = con.execute(command, **params) if params else con.execute(command)
+        q = con.execute(command, params) if params else con.execute(command)
     else:
         q = con.execute(command)
     return q
@@ -277,3 +415,30 @@ def list_tables(con: Connection, schema: str = SCHEMA) -> List[str]:
         WHERE schemaname in ('{schema}') ORDER BY 1;"""
     result = run_sql(con, query)
     return [x[0] for x in result]
+
+
+def get_ddl_statements(schema: str = SCHEMA, modules: List[str] = None, table_suffix='') -> List[str]:
+    """From local SQL DDL Jinja2 templates, pa rse and get a list of SQL statements to run.
+
+    :param: modules: DDL files follow the naming schema `ddl-ORDER_NUMBER-MODULE_NAME.jinja.sql`. If `modules` is
+    provided, will only return statements for those modules. If not provided, will return all statements.
+    :param table_suffix: Used by DB refresh. This is used by a subset of the DDL modules. The use case here is that in
+    order to refresh the DB, rather than doing inserts on existing derived tables, we re-run the DDL to create new
+    tables with a suffix, then drop the original and rename the one we just created to remove the suffix.
+
+    todo's
+      1. For each table: don't do anything if these tables exist & initialized
+      2. Add alters to fix data types (although, should really move this stuff to dtypes settings when creating
+      dataframe that loads data into db."""
+    paths: List[str] = glob(DDL_JINJA_PATH_PATTERN)
+    if modules:
+        paths = [p for p in paths if any([m == os.path.basename(p).split('-')[2].split('.')[0] for m in modules])]
+    paths = sorted(paths, key=lambda x: int(os.path.basename(x).split('-')[1]))
+    statements: List[str] = []
+    for path in paths:
+        with open(path, 'r') as file:
+            template_str = file.read()
+        ddl_text = Template(template_str).render(schema=schema + '.', optional_suffix=table_suffix)
+        # Each DDL file should have 1 or more statements separated by an empty line (two line breaks).
+        statements.extend([x + ';' for x in ddl_text.split(';\n\n')])
+    return statements

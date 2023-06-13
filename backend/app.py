@@ -5,6 +5,7 @@ Resources
 """
 import json
 import os
+import requests
 from datetime import datetime
 from pathlib import Path
 from typing import Dict, List, Union, Set
@@ -17,8 +18,8 @@ from fastapi.middleware.cors import CORSMiddleware
 from fastapi.middleware.gzip import GZipMiddleware
 from sqlalchemy.engine import RowMapping
 
-from backend.utils import JSON_TYPE, get_timer, pdump, return_err_with_trace
-from backend.routes import cset_crud, oak, db, graph
+from backend.utils import JSON_TYPE, get_timer, return_err_with_trace
+from backend.routes import cset_crud, db, graph
 from backend.db.utils import get_db_connection, sql_query, SCHEMA, sql_query_single_col, sql_in
 from backend.db.queries import get_concepts
 from enclave_wrangler.objects_api import get_n3c_recommended_csets, enclave_api_call_caller, get_codeset_json, \
@@ -26,7 +27,7 @@ from enclave_wrangler.objects_api import get_n3c_recommended_csets, enclave_api_
 from enclave_wrangler.utils import make_objects_request
 from enclave_wrangler.config import RESEARCHER_COLS
 from enclave_wrangler.models import convert_rows
-
+from backend.db.config import CONFIG
 PROJECT_DIR = Path(os.path.dirname(__file__)).parent
 # CON: using a global connection object is probably a terrible idea, but shouldn't matter much until there are multiple
 # users on the same server
@@ -394,6 +395,26 @@ def _cset_members_items(codeset_ids: Union[str, None] = Query(default=''), ) -> 
     codeset_ids: List[int] = parse_codeset_ids(codeset_ids)
     return get_cset_members_items(codeset_ids)
 
+@APP.get("/db-refresh")
+def db_refresh_route():
+    """Triggers refresh of the database
+
+    Example working cURL:
+    (well, it works for @joeflack4 when actually putting in the token itself. With ${GH_LIMITED_PERSONAL_ACCESS_TOKEN},
+    it should work, but gives "curl: (16) Error in the HTTP2 framing layer" """
+
+    headers = {
+        "Authorization": f"Bearer {CONFIG['personal_access_token']}",
+        "Accept": "application/vnd.github.v3+json",
+        "Content-Type": "application/json"
+    }
+    args = {"event-type":"refresh-db"}
+    url = 'https://api.github.com/repos/jhu-bids/TermHub/dispatches'
+    payload = {
+        'event_type': 'refresh-db',
+    }
+    response = requests.post(url, headers = headers,data=json.dumps(payload))
+    return response
 
 # TODO: if using this at all, fix it to use graph.hierarchy, which doesn't need root_cids
 # @APP.get("/hierarchy")
@@ -510,7 +531,7 @@ def cr_hierarchy(include_atlas_json: bool = False, codeset_ids: Union[str, None]
     # h, orphans = hierarchy(item_concept_ids, concept_ids)
     # nh = new_hierarchy(root_cids=item_concept_ids, cids=concept_ids)
     # h = hierarchy(selected_concept_ids=concept_ids)
-    h = graph.hierarchy(concept_ids)
+    # h = graph.hierarchy(concept_ids)
 
     verbose and timer('related csets')
     related_csets = get_related_csets(codeset_ids=codeset_ids, selected_concept_ids=concept_ids)
@@ -537,7 +558,7 @@ def cr_hierarchy(include_atlas_json: bool = False, codeset_ids: Union[str, None]
     result = {
         # todo: Check related_csets() to see its todo's
         # 'concept_relationships': concept_relationships,
-        'hierarchy': h,
+        # 'hierarchy': h,
         'edges': edges,
         'concepts': concepts,
         'related_csets': related_csets,

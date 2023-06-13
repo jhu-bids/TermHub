@@ -10,23 +10,27 @@ TODO's
  1. Consider refactor: Python -> Bash (curl + JQ)
  2. Are the tables in 'datasets' isomorphic w/ 'objects'? e.g. object OmopConceptSetVersionItem == table
  concept_set_version_item_rv_edited_mapped.
+ 3. All _db funcs / funcs that act on the DB (and unit tests) should be in backend/, not enclave_wrangler.
 """
 import json
 import os
 from datetime import datetime
-from typing import List, Dict, Union
+from typing import List, Dict, Tuple, Union
 from urllib.parse import quote
+
 from sanitize_filename import sanitize
 
 from requests import Response
 from sqlalchemy.engine.base import Connection
 from typeguard import typechecked
 
-from enclave_wrangler.config import FAVORITE_OBJECTS, OUTDIR_OBJECTS, OUTDIR_CSET_JSON, config, TERMHUB_CSETS_DIR
-from enclave_wrangler.utils import enclave_get, enclave_post, get_objects_df, get_url_from_api_path, \
+from enclave_wrangler.config import FAVORITE_OBJECTS, OUTDIR_OBJECTS, OUTDIR_CSET_JSON, config
+from enclave_wrangler.utils import enclave_get, enclave_post, fetch_objects_since_datetime, \
+    get_objects_df, get_url_from_api_path, \
     make_objects_request
-from enclave_wrangler.models import convert_row, get_field_names, field_name_mapping, pkey
-from backend.db.utils import insert_from_dict, sql_query_single_col, run_sql, get_db_connection, get_obj_by_id
+from enclave_wrangler.models import OBJECT_TYPE_TABLE_MAP, convert_row, get_field_names, field_name_mapping, pkey
+from backend.db.utils import insert_from_dict, insert_from_dicts, refresh_termhub_core_cset_derived_tables, \
+    sql_query_single_col, run_sql, get_db_connection
 from backend.db.queries import get_concepts
 
 
@@ -36,12 +40,6 @@ HEADERS = {
     # "authorization": f"Bearer {config['OTHER_TOKEN']}",
     "Content-type": "application/json",
     #'content-type': 'application/json'
-}
-OBJECT_TYPE_PK_MAP = {
-    'OMOPConceptSet': 'codesetId',
-    'OMOPConceptSetContainer': 'conceptSetId',
-    'OMOPConcept': 'conceptId',
-    'OmopConceptSetVersionItem': 'itemId',
 }
 
 
@@ -247,11 +245,10 @@ def get_bundle_codeset_ids(bundle_name):
     return codeset_ids
 
 
-# TODO:
-def update_db_with_new_objects(objects=None):
+# TODO: do together: all_new_objects_to_db() fetch_all_new_objects() all_new_objects_enclave_to_db()
+def all_new_objects_to_db(objects: Dict):
     """Update db w/ new objects"""
-    objects: Dict[str, List] = objects if objects else get_new_cset_and_member_objects()
-    # 2. Database updates
+    # Database updates
     # TODO: (i) What tables to update after this?, (ii) anything else to be done?. Iterate over:
     #  - new_containers: * new containers, * delete & updates to existing containers
     #  - new_csets2:
@@ -262,8 +259,8 @@ def update_db_with_new_objects(objects=None):
     pass
 
 
-# TODO: finish this
-def get_all_new_objects(since: Union[datetime, str]) -> Dict[str, List]:
+# TODO: do together: all_new_objects_to_db() fetch_all_new_objects() all_new_objects_enclave_to_db()
+def fetch_all_new_objects(since: Union[datetime, str]) -> Dict[str, List]:
     """Get new objects needed to update database.
 
     Resources:
@@ -271,7 +268,7 @@ def get_all_new_objects(since: Union[datetime, str]) -> Dict[str, List]:
     https://unite.nih.gov/workspace/data-integration/restricted-view/preview/ri.gps.main.view.af03f7d1-958a-4303-81ac-519cfdc1dfb3
     """
     since = str(since)
-    csets_and_members: Dict[str, List] = get_new_cset_and_member_objects(since, return_type='flat')
+    csets_and_members: Dict[str, List] = fetch_cset_and_member_objects(since, return_type='flat')
     # TODO:
     researchers = get_researchers()
     # TODO:
@@ -281,19 +278,32 @@ def get_all_new_objects(since: Union[datetime, str]) -> Dict[str, List]:
     return dict(csets_and_members | {'researchers': researchers} | {'projects': projects})
 
 
-# TODO
-#  - future: updates: if someone made a change to something we already fetched, how do we know?
-#  - how to refresh when user creates something?: (a) have the user refresh the db immediately after creating something,
-#    and just download everything since list 'since' date? Or (b) fetch only what they updated (if so, we can't do
-#    inserts; we have to do updates on IDs)
-def get_new_cset_and_member_objects(
+# TODO: do together: all_new_objects_to_db() fetch_all_new_objects() all_new_objects_enclave_to_db()
+def all_new_objects_enclave_to_db(since: Union[datetime, str]) -> Dict[str, List]:
+    """Get all new objects and update database"""
+    objects = fetch_all_new_objects(since)
+    all_new_objects_to_db(objects)
+    return objects
+
+
+def fetch_cset_and_member_objects(
     since: Union[datetime, str], return_type=['flat', 'hierarchical'][0], verbose=False
-) -> Dict[str, List]:
+) -> Dict[str, List[Dict]] :
     """Get new objects: cset container, cset version, expression items, and member items.
 
     Resources:
     https://www.palantir.com/docs/foundry/api/ontology-resources/objects/object-basics/#filtering-objects
     https://unite.nih.gov/workspace/data-integration/restricted-view/preview/ri.gps.main.view.af03f7d1-958a-4303-81ac-519cfdc1dfb3
+
+    todo: enclave API returns jagged rows (different lengths). E.g. for OMOPConceptSet, if it fetches a cset that does
+     not have a value set for the field 'updateMessage', that field will not appear in the object/dictionary.
+    todo: refactor so that, (a) ideally for both flat and hierarchical, containers get returned with a 'csets' key, and
+     a 'properties' (b) key. Maybe I should just change this so that only hierarchical has these nested objects?, (c)
+     add a third option to return both (totally) flat and hierarchical, since both might be helpful?
+     The main thing prompting this is that csets_and_members_to_db() needs an 'archived' property from container, so
+     I needed to refactor that function to do a lookup to get the container, which is messy. Whenever I make this
+     change, it will be a breaking change at the very least for csets_and_members_to_db() both in terms of no longer
+     needing to do this lookup, and also dealing properly w/ how the data is returned from this func.
 
     :return (return_type == 'flat' (default)):
       - cset containers
@@ -306,11 +316,8 @@ def get_new_cset_and_member_objects(
         - member items
         - expression items
     """
-    since = str(since)
-
     # Concept set versions
-    cset_versions: List[Dict] = make_objects_request(
-        'OMOPConceptSet', query_params={'properties.createdAt.gt': since}, verbose=verbose, return_type='data')
+    cset_versions: List[Dict] = fetch_objects_since_datetime('OMOPConceptSet', since, verbose)
 
     # Containers
     containers_ids = [x['properties']['conceptSetNameOMOP'] for x in cset_versions]
@@ -339,24 +346,62 @@ def get_new_cset_and_member_objects(
         flat_member_items.extend(cset['member_items'])
 
     if return_type == 'flat':
-        return {'cset_containers': cset_containers, 'cset_versions': cset_versions,
-                'expression_items': flat_expression_items, 'member_items': flat_member_items}
+        return {'OMOPConceptSetContainer': cset_containers, 'OMOPConceptSet': cset_versions,
+                'OmopConceptSetVersionItem': flat_expression_items, 'OMOPConcept': flat_member_items}
     return {'cset_containers': cset_containers, 'cset_versions': cset_versions_with_concepts}
 
 
-def fetch_object_by_id(object_type_name: str, object_id: Union[int, str], id_field: str = None) -> Dict:
+def csets_and_members_to_db(con: Connection, schema: str, csets_and_members: Dict[str, List[Dict]] = None):
+    """Update database with csets and members.
+    todo: add_object_to_db(): support multiple objects with single insert
+    todo: @Sigfried I fetch new csets, and I add their concepts to this table if they're not there already. Potentially
+     useful if we don't update our vocab tables as soon as the Enclave's are updated, but perhaps this is an unnecessary
+     step I can remove. What do you think?"""
+    # Core cset tables: with normal, single primary keys
+    for object_type_name, objects in csets_and_members.items():
+        print(f'Running SQL inserts in core tables for: {object_type_name}...')
+        t0 = datetime.now()
+        objects = [obj['properties'] if 'properties' in obj else obj for obj in objects]
+        add_objects_to_db(con, object_type_name, objects)
+        t1 = datetime.now()
+        print(f'  - {object_type_name} inserts completed in {(t1 - t0).seconds} seconds')
+
+    # Core cset tables with: composite primary keys
+    print('Running SQL inserts in core tables for: concept_set_members...')
+    t2 = datetime.now()
+    container_lookup = {x['conceptSetId']: x for x in csets_and_members['OMOPConceptSetContainer']}
+    for cset in csets_and_members['OMOPConceptSet']:
+        container = container_lookup[cset['properties']['conceptSetNameOMOP']]
+        concept_set_members__cset_rows_to_db(con, cset, cset['member_items'], container)
+    print(f'  - concept_set_members completed in {(datetime.now() - t2).seconds} seconds')
+
+    # Derived tables
+    refresh_termhub_core_cset_derived_tables(con, schema)
+
+
+def csets_and_members_enclave_to_db(con: Connection, schema: str, since: Union[datetime, str]):
+    """Fetch new csets and members, if needed, and then update database with them."""
+    print('Fetching new data from the N3C data enclave...')
+    t0 = datetime.now()
+    csets_and_members: Dict[str, List[Dict]] = fetch_cset_and_member_objects(since)
+    print(f'  - Fetched new data in {(datetime.now() - t0).seconds} seconds:\n    OBJECT_TYPE: COUNT\n' +
+          "\n".join(['    ' + str(k) + ": " + str(len(v)) for k, v in csets_and_members.items()]))
+    return csets_and_members_to_db(con, schema, csets_and_members)
+
+
+def fetch_object_by_id(object_type_name: str, object_id: Union[int, str], id_field: str = None, verbose=False) -> Dict:
     """Fetch object by its id"""
     err = f'fetch_object_by_id(): Did not pass optional param `id_field`, but also could not automatically resolve ' \
           f'the primary key / ID field for {object_type_name}. Try passing the `id_field` manually, or adding it to' \
-          f' `OBJECT_TYPE_PK_MAP` in `objects_api.py`.'
-    id_field = id_field if id_field else OBJECT_TYPE_PK_MAP.get(object_type_name, None)
+          f' `PKEYS` in `objects_api.py`.'
+    id_field = id_field if id_field else pkey(object_type_name)
     if not id_field:
         raise RuntimeError(err)
     # query_params = [get_query_param(id_field, 'eq', str(object_id))]
     matches: List[Dict] = make_objects_request(
         object_type_name,
         query_params={f'properties.{id_field}.eq': str(object_id)},
-        return_type='data', verbose=True)
+        return_type='data', verbose=verbose)
     obj: Dict = matches[0]['properties']
     return obj
 
@@ -386,31 +431,49 @@ def fetch_cset_expression_item(object_id: int) -> Dict:
     return fetch_object_by_id('OmopConceptSetVersionItem', object_id, 'itemId')
 
 
-def fetch_object_and_add_to_db(con: Connection, table: str, object_type_name: str, object_id: Union[int, str]) -> Dict:
+def add_objects_to_db(
+    con: Connection, object_type_name: str, objects: List[Dict], tables: List[str] = None, skip_if_already_exists=True
+):
+    """Add object to db"""
+    tables = tables if tables else OBJECT_TYPE_TABLE_MAP[object_type_name]
+    for table in tables:
+        table_objects: List[Dict] = [convert_row(object_type_name, table, obj) for obj in objects]
+        insert_from_dicts(con, table, table_objects, skip_if_already_exists)
+
+
+def add_object_to_db(
+    con: Connection, object_type_name: str, obj: Dict, tables: List[str] = None, skip_if_already_exists=True
+):
+    """Add object to db"""
+    tables = tables if tables else OBJECT_TYPE_TABLE_MAP[object_type_name]
+    for table in tables:
+        table_obj: Dict = convert_row(object_type_name, table, obj)
+        insert_from_dict(con, table, table_obj, skip_if_already_exists)
+
+
+# todo: maybe: refactor to use object_type_name and not table, then use dict to figure which tables to update and how
+def fetch_object_and_add_to_db(
+    con: Connection, object_type_name: str, object_id: Union[int, str], tables: List[str] = None
+) -> Dict:
     """Fetch object and add to db"""
-    already_in_db = get_obj_by_id(con, table, pkey(table), object_id)
-    if (already_in_db):
-        print(f'{table}:{object_id} is already in db')
-        return already_in_db
     obj: Dict = fetch_object_by_id(object_type_name, object_id)
-    table_obj: Dict = convert_row(object_type_name, table, obj)
-    insert_from_dict(con, table, table_obj)
-    return table_obj
+    add_object_to_db(con, object_type_name, obj, tables)
+    return obj
 
 
-def concept_set_container_enclave_to_db(con: Connection, object_id: str) -> Dict:
+def concept_set_container_enclave_to_db(con: Connection, object_id: str, tables: List[str] = None) -> Dict:
     """Given ID, get object's current state from the enclave, and add it the DB"""
-    return fetch_object_and_add_to_db(con, 'concept_set_container', 'OMOPConceptSetContainer', object_id)
+    return fetch_object_and_add_to_db(con, 'OMOPConceptSetContainer', object_id, tables)
 
 
-def code_sets_enclave_to_db(con: Connection, object_id: int) -> Dict:
+def code_sets_enclave_to_db(con: Connection, object_id: int, tables: List[str] = None) -> Dict:
     """Given ID, get object's current state from the enclave, and add it the DB"""
-    return fetch_object_and_add_to_db(con, 'code_sets', 'OMOPConceptSet', object_id)
+    return fetch_object_and_add_to_db(con, 'OMOPConceptSet', object_id, tables)
 
 
-def cset_version_enclave_to_db(con: Connection, object_id: int) -> Dict:
+def cset_version_enclave_to_db(con: Connection, object_id: int, tables: List[str] = None) -> Dict:
     """Alias for: code_sets_enclave_to_db()"""
-    return code_sets_enclave_to_db(con, object_id)
+    return code_sets_enclave_to_db(con, object_id, tables)
 
 
 # todo: Would this be better just to get the container and sync any non-uploaded versions to the DB?
@@ -422,44 +485,73 @@ def cset_container_and_version_enclave_to_db(con: Connection, container_name: st
     code_sets_enclave_to_db(con, version_id)
 
 
-def concept_set_version_item_enclave_to_db(con: Connection, object_id: str) -> Dict:
+def concept_set_version_item_enclave_to_db(con: Connection, object_id: str, tables: List[str] = None) -> Dict:
     """Given ID, get object's current state from the enclave, and add it the DB"""
-    return fetch_object_and_add_to_db(con, 'concept_set_version_item', 'OmopConceptSetVersionItem', object_id)
+    return fetch_object_and_add_to_db(con, 'OmopConceptSetVersionItem', object_id, tables)
 
 
-def concept_expression_enclave_to_db(con: Connection, object_id: str) -> Dict:
+def concept_expression_enclave_to_db(con: Connection, object_id: str, tables: List[str] = None) -> Dict:
     """Alias for: concept_set_version_item_enclave_to_db()"""
-    return concept_set_version_item_enclave_to_db(con, object_id)
+    return concept_set_version_item_enclave_to_db(con, object_id, tables)
 
 
-def concept_enclave_to_db(con: Connection, object_id: int) -> Dict:
+def concept_enclave_to_db(con: Connection, object_id: int, tables: List[str] = None) -> Dict:
     """Given ID, get object's current state from the enclave, and add it the DB"""
-    return fetch_object_and_add_to_db(con, 'concept', 'OMOPConcept', object_id)
+    return fetch_object_and_add_to_db(con, 'OMOPConcept', object_id, tables)
 
 
-# TODO: @Sigfried: This function probably doesn't make sense there is no ConceptSetMembers Object API. Only a table.
-#  I think we need to update `concept_set_members` when we do a refresh, but I'm not fully understanding how to do it.
-def concept_set_members_enclave_to_db(con: Connection, codeset_id: int, concept_id: int, members_table_only=False):
-    """Given ID, get object's current state from the enclave, and add it the DB"""
-    if members_table_only:
-        code_set_enclave_obj: Dict = fetch_object_by_id('OMOPConceptSet', codeset_id)
-        code_set_table_obj: Dict = convert_row('OMOPConceptSet', 'code_sets', code_set_enclave_obj)
-        concept_enclave_obj: Dict = fetch_object_by_id('OMOPConcept', concept_id)
-        concept_table_obj: Dict = convert_row('OMOPConcept', 'concept', concept_enclave_obj)
-    else:
-        code_set_table_obj: Dict = cset_version_enclave_to_db(con, codeset_id)
-        concept_table_obj: Dict = concept_enclave_to_db(con, concept_id)
+# todo: New func for multiple csets in a single insert?
+# TODO: @Sigfried: I have some 'not sure' fields, I'm not sure if the field in concept_set_members should be taken from
+#  the cset or the member. I think the cset, but not 100% sure. And in one case, got from container. - joeflack4
+def concept_set_members__cset_rows_to_db(con: Connection, cset: Dict, members: List[Dict], container: Dict):
+    """Insert multiple rows into concept_set_members"""
+    cset: Dict = cset['properties'] if 'properties' in cset else cset
+    members: List[Dict] = [x['properties'] if 'properties' in x else x for x in members]
+    table_objs: List[Dict] = [{
+        'codeset_id': cset['codesetId'],
+        'concept_id': member['conceptId'],
+        'concept_set_name': cset['conceptSetNameOMOP'],
+        'is_most_recent_version': cset['isMostRecentVersion'], # not sure: is this correct?
+        'version': cset['version'], # not sure: is this correct?
+        'concept_name': member['conceptName'],
+        'archived': container['archived'], # not sure: is this correct?
+    } for member in members]
+    insert_from_dicts(con, 'concept_set_members', table_objs, skip_if_already_exists=True)
+
+
+# deprecated?: The only function that calls this, concept_set_members_enclave_to_db(), has been deprecated
+def concept_set_members__row_to_db(con: Connection, cset_enclave_obj: Dict, concept_enclave_obj: Dict, container: Dict):
+    """Insert row into concept_set_members
+    todo: Refactor this function (which may not even be needed / used now) to create table_obj the same way as done in
+     concept_set_members__cset_rows_to_db(). Maybe share code between the two funcs.
+    todo: 'not sure' fields: see comments for concept_set_members__cset_rows_to_db()"""
+    cset_enclave_obj = \
+        cset_enclave_obj['properties'] if 'properties' in cset_enclave_obj else cset_enclave_obj
+    concept_enclave_obj = \
+        concept_enclave_obj['properties'] if 'properties' in concept_enclave_obj else concept_enclave_obj
     table_obj = {
-        'codeset_id': codeset_id,
-        'concept_id': concept_id,
-        'concept_set_name': code_set_table_obj['concept_set_name'],
-        'is_most_recent_version': None,  # there's a code_set_table_obj['is_most_recent_version'], but I"m not sure it's the same
-        'version': None,  # there's a code_set_table_obj['version'], but I"m not sure it's the same
-        'concept_name': concept_table_obj['concept_name'],
-        'archived': None,  # doesn't exist in either table
+        'codeset_id': cset_enclave_obj['codesetId'],
+        'concept_id': concept_enclave_obj['conceptId'],
+        'concept_set_name': cset_enclave_obj['conceptSetNameOMOP'],
+        'is_most_recent_version': cset_enclave_obj['isMostRecentVersion'], # not sure: is this correct?
+        'version': cset_enclave_obj['version'], # not sure: is this correct?
+        'concept_name': concept_enclave_obj['conceptName'],
+        'archived': container['archived'], # not sure: is this correct?
     }
     insert_from_dict(con, 'concept_set_members', table_obj)
 
+
+# deprecated: do we really need it? Not used anywhere currently due to refactors
+def concept_set_members_enclave_to_db(con: Connection, codeset_id: int, concept_id: int, members_table_only=False):
+    """Given ID, get object's current state from the enclave, and add it the DB
+    # todo: allow to insert handle multiple objects at once"""
+    code_set_enclave_obj: Dict = fetch_object_by_id('OMOPConceptSet', codeset_id)
+    concept_enclave_obj: Dict = fetch_object_by_id('OMOPConcept', concept_id)
+    if not members_table_only:
+        add_object_to_db(
+            con, 'OMOPConceptSet', code_set_enclave_obj, OBJECT_TYPE_TABLE_MAP['OMOPConceptSet'])
+        add_object_to_db(con, 'OMOPConcept', concept_enclave_obj, OBJECT_TYPE_TABLE_MAP['OMOPConcept'])
+    concept_set_members__row_to_db(con, code_set_enclave_obj, concept_enclave_obj)
 
 def items_to_atlas_json_format(items):
     """Convert version items to atlas json format"""
@@ -500,6 +592,7 @@ def items_to_atlas_json_format(items):
 
 # todo: split into get/update
 def get_codeset_json(codeset_id, con=get_db_connection(), use_cache=True, set_cache=True) -> Dict:
+    """Get code_set jSON"""
     if use_cache:
         jsn = sql_query_single_col(con, f"""
             SELECT json
@@ -586,6 +679,7 @@ def get_codeset_json(codeset_id, con=get_db_connection(), use_cache=True, set_ca
 
 # todo: split into get/update
 def get_n3c_recommended_csets(save=False):
+    """Get N3C recommended concept sets"""
     codeset_ids = get_bundle_codeset_ids('N3C Recommended')
     if not save:
         return codeset_ids
@@ -602,6 +696,7 @@ def get_n3c_recommended_csets(save=False):
 
 
 def enclave_api_call_caller(name:str, params) -> Dict:
+    """Calls the appropriate enclave API function based on name and params"""
     lookup = {
         'get_all_bundles': get_all_bundles,
         'get_bundle_names': get_bundle_names,
