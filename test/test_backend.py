@@ -175,95 +175,76 @@ class TestBackend(unittest.TestCase):
         "tests subgraphs"
         #Basic unit test for a simple connected graph without a complex hierarchy
         edges1 = subgraph([1738170, 1738171, 1738202, 1738203])
-        self.assertEqual(edges1, [
-            (
-                "1738170",
-                "1738171"
-            ),
-            (
-                "1738170",
-                "1738202"
-            ),
-            (
-                "1738170",
-                "1738203"
-            )
-        ])
-        #Test for a concept set that files in the gaps (i.e between child and grandparent)
+        """
+        ┌────────────┬──────────────────────┬───────────┬───────────────┬────────────────────┬────┬──────────────┬─────┬────────────┬───────────────┬───────────┬─────────────────────┐
+        │ concept_id │ concept_name         │ domain_id │ vocabulary_id │  concept_class_id  │ sc │ concept_code │ inv │ domain_cnt │    domain     │ total_cnt │ distinct_person_cnt │
+        ├────────────┼──────────────────────┼───────────┼───────────────┼────────────────────┼────┼──────────────┼─────┼────────────┼───────────────┼───────────┼─────────────────────┤
+        │    1738170 │ lopinavir            │ Drug      │ RxNorm        │ Ingredient         │ S  │ 195088       │ ∅   │          1 │ drug_exposure │      2188 │ 142                 │
+        │    1738171 │ lopinavir 133 MG     │ Drug      │ RxNorm        │ Clinical Drug Comp │ S  │ 331536       │ ∅   │          0 │               │         0 │ 0                   │
+        │    1738202 │ lopinavir 80 MG / ML │ Drug      │ RxNorm        │ Clinical Drug Comp │ S  │ 331538       │ ∅   │          0 │               │         0 │ 0                   │
+        │    1738203 │ lopinavir 200 MG     │ Drug      │ RxNorm        │ Clinical Drug Comp │ S  │ 597727       │ ∅   │          0 │               │         0 │ 0                   │
+        └────────────┴──────────────────────┴───────────┴───────────────┴────────────────────┴────┴──────────────┴─────┴────────────┴───────────────┴───────────┴─────────────────────┘
+        prefer concepts that do have counts
+        """
+        self.assertEqual(edges1, [ ( "1738170", "1738171" ), ( "1738170", "1738202" ), ( "1738170", "1738203" ) ])
+
+        #Test for a concept set that fills in the gaps (i.e between child and grandparent)
         edges2 = subgraph([1738170,19122186])
-        self.assertEqual(edges2,
-                         [
-                             (
-                                 "1738170",
-                                 "1738203"
-                             ),
-                             (
-                                 "1738203",
-                                 "19122186"
-                             )
-                         ])
+        self.assertEqual(edges2, [ ( "1738170", "1738203" ), ( "1738203", "19122186" ) ])
+        """
+        ┌────────────┬────────────────────────────────────────────────┬───────────┬───────────────┬────────────────────┬──────────────────┬──────────────┬────────────────┬────────────┬───────────────┬───────────┬─────────────────────┐
+        │ concept_id │                  concept_name                  │ domain_id │ vocabulary_id │  concept_class_id  │ standard_concept │ concept_code │ invalid_reason │ domain_cnt │    domain     │ total_cnt │ distinct_person_cnt │
+        ├────────────┼────────────────────────────────────────────────┼───────────┼───────────────┼────────────────────┼──────────────────┼──────────────┼────────────────┼────────────┼───────────────┼───────────┼─────────────────────┤
+        │    1738170 │ lopinavir                                      │ Drug      │ RxNorm        │ Ingredient         │ S                │ 195088       │ ∅              │          1 │ drug_exposure │      2188 │ 142                 │
+        │    1738203 │ lopinavir 200 MG                               │ Drug      │ RxNorm        │ Clinical Drug Comp │ S                │ 597727       │ ∅              │          0 │               │         0 │ 0                   │
+        │   19122186 │ lopinavir 200 MG / ritonavir 50 MG Oral Tablet │ Drug      │ RxNorm        │ Clinical Drug      │ S                │ 597730       │ ∅              │          1 │ drug_exposure │      5789 │ 833                 │
+        └────────────┴────────────────────────────────────────────────┴───────────┴───────────────┴────────────────────┴──────────────────┴──────────────┴────────────────┴────────────┴───────────────┴───────────┴─────────────────────┘
+        """
+
         #Test for a more complex hierarchial relationship
-        edges3 = subgraph([321588,4027255,43530856,4024552,316139,45766164,43530961])
-        self.assertEqual(edges3,
-                         [
-                             (
-                                 "4024552",
-                                 "316139"
-                             ),
-                             (
-                                 "316139",
-                                 "43530961"
-                             ),
-                             (
-                                 "316139",
-                                 "45766164"
-                             ),
-                             (
-                                 "321588",
-                                 "4024552"
-                             ),
-                             (
-                                 "321588",
-                                 "4027255"
-                             ),
-                             (
-                                 "4027255",
-                                 "43530856"
-                             )
-                         ]
-                         )
+        edges3 = subgraph([321588,4027255,316139,43530856,
+                                                 45766164,
+                                  4024552,
+                                         # missing node 4027255,
+                                         43530961])
+        """
+        ┌────────────┬──────────────────────────────────────────────────┬───────────┬───────────────┬──────────────────┬──────────────────┬──────────────┬────────────────┬────────────┬────────────────────────────────────┬───────────┬─────────────────────┐
+        │ concept_id │                   concept_name                   │ domain_id │ vocabulary_id │ concept_class_id │ standard_concept │ concept_code │ invalid_reason │ domain_cnt │               domain               │ total_cnt │ distinct_person_cnt │
+        ├────────────┼──────────────────────────────────────────────────┼───────────┼───────────────┼──────────────────┼──────────────────┼──────────────┼────────────────┼────────────┼────────────────────────────────────┼───────────┼─────────────────────┤
+        │     321588 │ Heart disease                                    │ Condition │ SNOMED        │ Clinical Finding │ S                │ 56265001     │ ∅              │          1 │ condition_occurrence               │   1067160 │ 290357              │
+        │     316139 │ Heart failure                                    │ Condition │ SNOMED        │ Clinical Finding │ S                │ 84114007     │ ∅              │          2 │ drug_exposure,condition_occurrence │   4105468 │ 20,613310           │
+        │   43530856 │ High risk of heart failure, stage B              │ Condition │ SNOMED        │ Clinical Finding │ S                │ 609389009    │ ∅              │          1 │ condition_occurrence               │        20 │ 20                  │
+        │   45766164 │ Heart failure with reduced ejection fraction     │ Condition │ SNOMED        │ Clinical Finding │ S                │ 703272007    │ ∅              │          1 │ condition_occurrence               │     10913 │ 3386                │
+        │    4024552 │ Disorder of cardiac function                     │ Condition │ SNOMED        │ Clinical Finding │ S                │ 105981003    │ ∅              │          1 │ condition_occurrence               │      1192 │ 421                 │
+        │    4027255 │ Structural disorder of heart                     │ Condition │ SNOMED        │ Clinical Finding │ S                │ 128599005    │ ∅              │          1 │ condition_occurrence               │       613 │ 231                 │
+        │   43530961 │ Induced termination of pregnancy complicated by …│ Condition │ SNOMED        │ Clinical Finding │ S                │ 609507007    │ ∅              │          1 │ condition_occurrence               │        20 │ 20                  │
+        │            │…cardiac failure                                  │           │               │                  │                  │              │                │            │                                    │           │                     │
+        └────────────┴──────────────────────────────────────────────────┴───────────┴───────────────┴──────────────────┴──────────────────┴──────────────┴────────────────┴────────────┴────────────────────────────────────┴───────────┴─────────────────────┘
+        """
+        self.assertEqual(edges3, [ ( "4024552", "316139" ), ( "316139", "43530961" ), ( "316139", "45766164" ),
+                             ( "321588", "4024552" ), ( "321588", "4027255" ), ( "4027255", "43530856" ) ] )
+
         #Testing a relationship where a common ancestor is needed to connect the graph
         edges3 = subgraph([4027255, 43530856, 4024552, 316139, 45766164, 43530961])
+        """
+        ┌────────────┬──────────────────────────────────────────────────┬───────────┬───────────────┬──────────────────┬──────────────────┬──────────────┬────────────────┬────────────┬────────────────────────────────────┬───────────┬─────────────────────┐
+        │ concept_id │                   concept_name                   │ domain_id │ vocabulary_id │ concept_class_id │ standard_concept │ concept_code │ invalid_reason │ domain_cnt │               domain               │ total_cnt │ distinct_person_cnt │
+        ├────────────┼──────────────────────────────────────────────────┼───────────┼───────────────┼──────────────────┼──────────────────┼──────────────┼────────────────┼────────────┼────────────────────────────────────┼───────────┼─────────────────────┤
+        │     316139 │ Heart failure                                    │ Condition │ SNOMED        │ Clinical Finding │ S                │ 84114007     │ ∅              │          2 │ drug_exposure,condition_occurrence │   4105468 │ 20,613310           │
+        │     321588 │ Heart disease                                    │ Condition │ SNOMED        │ Clinical Finding │ S                │ 56265001     │ ∅              │          1 │ condition_occurrence               │   1067160 │ 290357              │
+        │    4024552 │ Disorder of cardiac function                     │ Condition │ SNOMED        │ Clinical Finding │ S                │ 105981003    │ ∅              │          1 │ condition_occurrence               │      1192 │ 421                 │
+        │    4027255 │ Structural disorder of heart                     │ Condition │ SNOMED        │ Clinical Finding │ S                │ 128599005    │ ∅              │          1 │ condition_occurrence               │       613 │ 231                 │
+        │   43530856 │ High risk of heart failure, stage B              │ Condition │ SNOMED        │ Clinical Finding │ S                │ 609389009    │ ∅              │          1 │ condition_occurrence               │        20 │ 20                  │
+        │   43530961 │ Induced termination of pregnancy complicated by …│ Condition │ SNOMED        │ Clinical Finding │ S                │ 609507007    │ ∅              │          1 │ condition_occurrence               │        20 │ 20                  │
+        │            │…cardiac failure                                  │           │               │                  │                  │              │                │            │                                    │           │                     │
+        │   45766164 │ Heart failure with reduced ejection fraction     │ Condition │ SNOMED        │ Clinical Finding │ S                │ 703272007    │ ∅              │          1 │ condition_occurrence               │     10913 │ 3386                │
+        └────────────┴──────────────────────────────────────────────────┴───────────┴───────────────┴──────────────────┴──────────────────┴──────────────┴────────────────┴────────────┴────────────────────────────────────┴───────────┴─────────────────────┘
+        """
         self.assertEqual(edges3,
-                         [
-                             (
-                                 "4024552",
-                                 "316139"
-                             ),
-                             (
-                                 "316139",
-                                 "43530961"
-                             ),
-                             (
-                                 "316139",
-                                 "45766164"
-                             ),
-                             (
-                                 "321588",
-                                 "4024552"
-                             ),
-                             (
-                                 "321588",
-                                 "4027255"
-                             ),
-                             (
-                                 "4027255",
-                                 "43530856"
-                             )
-                         ]
-                         )
+                         [ ( "4024552", "316139" ), ( "316139", "43530961" ), ( "316139", "45766164" ),
+                           ( "321588", "4024552" ), ( "321588", "4027255" ), ( "4027255", "43530856" ) ] )
             
 # Uncomment this and run this file directly to run all tests
 if __name__ == '__main__':
-    test_subgraph()
+    TestBackend.test_subgraph()
 #     unittest.main()
