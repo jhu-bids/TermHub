@@ -22,6 +22,7 @@ PROJECT_ROOT = Path(TEST_DIR).parent
 sys.path.insert(0, str(PROJECT_ROOT))
 from backend.db.analysis import counts_compare_schemas, counts_over_time
 from backend.app import cr_hierarchy
+from backend.routes.graph import subgraph
 
 TEST_DIR = os.path.dirname(__file__)
 BACKEND_URL_BASE = 'http://127.0.0.1:8000/'
@@ -164,7 +165,6 @@ class TestBackend(unittest.TestCase):
                     # Part 2: all other row counts should be non-zero
                     self.assertGreater(df[col][row], 0, msg=f"Table '{row}' had 0 rows in run '{col}'")
 
-<<<<<<< HEAD
     def test_cr_hierarchy_related_csets(self):
         """ Test the related csets output of cr_hierarchy defined in backend/routes/app.py.
         The related csets output is given by get_related_csets in backend/routes/app.py.
@@ -318,7 +318,105 @@ class TestCrHierarchy(unittest.TestCase):
         Test backend: cr_hierarchy, defined in backend/app.py"""
         response_edges = self.response['edges']
 
+    def test_subgraph(self):
+        "tests subgraphs"
+        #Basic unit test for a simple connected graph without a complex hierarchy
+        edges1 = subgraph([1738170, 1738171, 1738202, 1738203])
+        """
+        ┌────────────┬──────────────────────┬───────────┬───────────────┬────────────────────┬────┬──────────────┬─────┬────────────┬───────────────┬───────────┬─────────────────────┐
+        │ concept_id │ concept_name         │ domain_id │ vocabulary_id │  concept_class_id  │ sc │ concept_code │ inv │ domain_cnt │    domain     │ total_cnt │ distinct_person_cnt │
+        ├────────────┼──────────────────────┼───────────┼───────────────┼────────────────────┼────┼──────────────┼─────┼────────────┼───────────────┼───────────┼─────────────────────┤
+        │    1738170 │ lopinavir            │ Drug      │ RxNorm        │ Ingredient         │ S  │ 195088       │ ∅   │          1 │ drug_exposure │      2188 │ 142                 │
+        │    1738171 │ lopinavir 133 MG     │ Drug      │ RxNorm        │ Clinical Drug Comp │ S  │ 331536       │ ∅   │          0 │               │         0 │ 0                   │
+        │    1738202 │ lopinavir 80 MG / ML │ Drug      │ RxNorm        │ Clinical Drug Comp │ S  │ 331538       │ ∅   │          0 │               │         0 │ 0                   │
+        │    1738203 │ lopinavir 200 MG     │ Drug      │ RxNorm        │ Clinical Drug Comp │ S  │ 597727       │ ∅   │          0 │               │         0 │ 0                   │
+        └────────────┴──────────────────────┴───────────┴───────────────┴────────────────────┴────┴──────────────┴─────┴────────────┴───────────────┴───────────┴─────────────────────┘
+        prefer concepts that do have counts
+        """
+        self.assertEqual(edges1, [ ( "1738170", "1738171" ), ( "1738170", "1738202" ), ( "1738170", "1738203" ) ])
+        """
+        select * from concept_relationship_plus
+        where concept_id_1 in (1738170, 1738171, 1738202, 1738203)
+          and concept_id_2 in (1738170, 1738171, 1738202, 1738203)
+          and concept_id_1 != concept_id_2
+        order by 5;
+        ┌─────────────────┬──────────────┬────────────────────┬──────────────┬─────────────────┬─────────────────┬──────────────┬────────────────────┐
+        │ vocabulary_id_1 │ concept_id_1 │   concept_name_1   │ concept_code │ relationship_id │ vocabulary_id_2 │ concept_id_2 │   concept_name_2   │
+        ├─────────────────┼──────────────┼────────────────────┼──────────────┼─────────────────┼─────────────────┼──────────────┼────────────────────┤
+        │ RxNorm          │      1738171 │ lopinavir 133 MG   │ 331536       │ RxNorm has ing  │ RxNorm          │      1738170 │ lopinavir          │
+        │ RxNorm          │      1738202 │ lopinavir 80 MG/ML │ 331538       │ RxNorm has ing  │ RxNorm          │      1738170 │ lopinavir          │
+        │ RxNorm          │      1738203 │ lopinavir 200 MG   │ 597727       │ RxNorm has ing  │ RxNorm          │      1738170 │ lopinavir          │
+        │ RxNorm          │      1738170 │ lopinavir          │ 195088       │ RxNorm ing of   │ RxNorm          │      1738202 │ lopinavir 80 MG/ML │
+        │ RxNorm          │      1738170 │ lopinavir          │ 195088       │ RxNorm ing of   │ RxNorm          │      1738171 │ lopinavir 133 MG   │
+        │ RxNorm          │      1738170 │ lopinavir          │ 195088       │ RxNorm ing of   │ RxNorm          │      1738203 │ lopinavir 200 MG   │
+        └─────────────────┴──────────────┴────────────────────┴──────────────┴─────────────────┴─────────────────┴──────────────┴────────────────────┘
+        relationship between sources and targets:
+        ┌─────────────────┬────────────────────────┬─────────────────┬──────────────────┬─────────────────────────┬─────────────────────────┐
+        │ relationship_id │   relationship_name    │ is_hierarchical │ defines_ancestry │ reverse_relationship_id │ relationship_concept_id │
+        ├─────────────────┼────────────────────────┼─────────────────┼──────────────────┼─────────────────────────┼─────────────────────────┤
+        │ RxNorm ing of   │ Ingredient of (RxNorm) │               1 │                1 │ RxNorm has ing          │                44818817 │
+        └─────────────────┴────────────────────────┴─────────────────┴──────────────────┴─────────────────────────┴─────────────────────────┘
+        (code: select * from concept_relationship_plus where concept_id_1 = 1738170 and concept_id_2 = 1738171;
+               select * from relationship where relationship_id = 'RxNorm ing of';)
+        """
+>>>>>>> develop
 
+        #Test for a concept set that fills in the gaps (i.e between child and grandparent)
+        edges2 = subgraph([1738170,19122186])
+        self.assertEqual(edges2, [ ( "1738170", "1738203" ), ( "1738203", "19122186" ) ])
+        """
+        ┌────────────┬────────────────────────────────────────────────┬───────────┬───────────────┬────────────────────┬──────────────────┬──────────────┬────────────────┬────────────┬───────────────┬───────────┬─────────────────────┐
+        │ concept_id │                  concept_name                  │ domain_id │ vocabulary_id │  concept_class_id  │ standard_concept │ concept_code │ invalid_reason │ domain_cnt │    domain     │ total_cnt │ distinct_person_cnt │
+        ├────────────┼────────────────────────────────────────────────┼───────────┼───────────────┼────────────────────┼──────────────────┼──────────────┼────────────────┼────────────┼───────────────┼───────────┼─────────────────────┤
+        │    1738170 │ lopinavir                                      │ Drug      │ RxNorm        │ Ingredient         │ S                │ 195088       │ ∅              │          1 │ drug_exposure │      2188 │ 142                 │
+        │    1738203 │ lopinavir 200 MG                               │ Drug      │ RxNorm        │ Clinical Drug Comp │ S                │ 597727       │ ∅              │          0 │               │         0 │ 0                   │
+        │   19122186 │ lopinavir 200 MG / ritonavir 50 MG Oral Tablet │ Drug      │ RxNorm        │ Clinical Drug      │ S                │ 597730       │ ∅              │          1 │ drug_exposure │      5789 │ 833                 │
+        └────────────┴────────────────────────────────────────────────┴───────────┴───────────────┴────────────────────┴──────────────────┴──────────────┴────────────────┴────────────┴───────────────┴───────────┴─────────────────────┘
+        """
+
+        #Test for a more complex hierarchial relationship
+        edges3 = subgraph([321588,4027255,316139,43530856,
+                                                 45766164,
+                                  4024552,
+                                         # missing node 4027255,
+                                         43530961])
+        """
+        ┌────────────┬──────────────────────────────────────────────────┬───────────┬───────────────┬──────────────────┬──────────────────┬──────────────┬────────────────┬────────────┬────────────────────────────────────┬───────────┬─────────────────────┐
+        │ concept_id │                   concept_name                   │ domain_id │ vocabulary_id │ concept_class_id │ standard_concept │ concept_code │ invalid_reason │ domain_cnt │               domain               │ total_cnt │ distinct_person_cnt │
+        ├────────────┼──────────────────────────────────────────────────┼───────────┼───────────────┼──────────────────┼──────────────────┼──────────────┼────────────────┼────────────┼────────────────────────────────────┼───────────┼─────────────────────┤
+        │     321588 │ Heart disease                                    │ Condition │ SNOMED        │ Clinical Finding │ S                │ 56265001     │ ∅              │          1 │ condition_occurrence               │   1067160 │ 290357              │
+        │     316139 │ Heart failure                                    │ Condition │ SNOMED        │ Clinical Finding │ S                │ 84114007     │ ∅              │          2 │ drug_exposure,condition_occurrence │   4105468 │ 20,613310           │
+        │   43530856 │ High risk of heart failure, stage B              │ Condition │ SNOMED        │ Clinical Finding │ S                │ 609389009    │ ∅              │          1 │ condition_occurrence               │        20 │ 20                  │
+        │   45766164 │ Heart failure with reduced ejection fraction     │ Condition │ SNOMED        │ Clinical Finding │ S                │ 703272007    │ ∅              │          1 │ condition_occurrence               │     10913 │ 3386                │
+        │    4024552 │ Disorder of cardiac function                     │ Condition │ SNOMED        │ Clinical Finding │ S                │ 105981003    │ ∅              │          1 │ condition_occurrence               │      1192 │ 421                 │
+        │    4027255 │ Structural disorder of heart                     │ Condition │ SNOMED        │ Clinical Finding │ S                │ 128599005    │ ∅              │          1 │ condition_occurrence               │       613 │ 231                 │
+        │   43530961 │ Induced termination of pregnancy complicated by …│ Condition │ SNOMED        │ Clinical Finding │ S                │ 609507007    │ ∅              │          1 │ condition_occurrence               │        20 │ 20                  │
+        │            │…cardiac failure                                  │           │               │                  │                  │              │                │            │                                    │           │                     │
+        └────────────┴──────────────────────────────────────────────────┴───────────┴───────────────┴──────────────────┴──────────────────┴──────────────┴────────────────┴────────────┴────────────────────────────────────┴───────────┴─────────────────────┘
+        """
+        self.assertEqual(edges3, [ ( "4024552", "316139" ), ( "316139", "43530961" ), ( "316139", "45766164" ),
+                             ( "321588", "4024552" ), ( "321588", "4027255" ), ( "4027255", "43530856" ) ] )
+
+        #Testing a relationship where a common ancestor is needed to connect the graph
+        edges3 = subgraph([4027255, 43530856, 4024552, 316139, 45766164, 43530961])
+        """
+        ┌────────────┬──────────────────────────────────────────────────┬───────────┬───────────────┬──────────────────┬──────────────────┬──────────────┬────────────────┬────────────┬────────────────────────────────────┬───────────┬─────────────────────┐
+        │ concept_id │                   concept_name                   │ domain_id │ vocabulary_id │ concept_class_id │ standard_concept │ concept_code │ invalid_reason │ domain_cnt │               domain               │ total_cnt │ distinct_person_cnt │
+        ├────────────┼──────────────────────────────────────────────────┼───────────┼───────────────┼──────────────────┼──────────────────┼──────────────┼────────────────┼────────────┼────────────────────────────────────┼───────────┼─────────────────────┤
+        │     316139 │ Heart failure                                    │ Condition │ SNOMED        │ Clinical Finding │ S                │ 84114007     │ ∅              │          2 │ drug_exposure,condition_occurrence │   4105468 │ 20,613310           │
+        │     321588 │ Heart disease                                    │ Condition │ SNOMED        │ Clinical Finding │ S                │ 56265001     │ ∅              │          1 │ condition_occurrence               │   1067160 │ 290357              │
+        │    4024552 │ Disorder of cardiac function                     │ Condition │ SNOMED        │ Clinical Finding │ S                │ 105981003    │ ∅              │          1 │ condition_occurrence               │      1192 │ 421                 │
+        │    4027255 │ Structural disorder of heart                     │ Condition │ SNOMED        │ Clinical Finding │ S                │ 128599005    │ ∅              │          1 │ condition_occurrence               │       613 │ 231                 │
+        │   43530856 │ High risk of heart failure, stage B              │ Condition │ SNOMED        │ Clinical Finding │ S                │ 609389009    │ ∅              │          1 │ condition_occurrence               │        20 │ 20                  │
+        │   43530961 │ Induced termination of pregnancy complicated by …│ Condition │ SNOMED        │ Clinical Finding │ S                │ 609507007    │ ∅              │          1 │ condition_occurrence               │        20 │ 20                  │
+        │            │…cardiac failure                                  │           │               │                  │                  │              │                │            │                                    │           │                     │
+        │   45766164 │ Heart failure with reduced ejection fraction     │ Condition │ SNOMED        │ Clinical Finding │ S                │ 703272007    │ ∅              │          1 │ condition_occurrence               │     10913 │ 3386                │
+        └────────────┴──────────────────────────────────────────────────┴───────────┴───────────────┴──────────────────┴──────────────────┴──────────────┴────────────────┴────────────┴────────────────────────────────────┴───────────┴─────────────────────┘
+        """
+        self.assertEqual(edges3,
+                         [ ( "4024552", "316139" ), ( "316139", "43530961" ), ( "316139", "45766164" ),
+                           ( "321588", "4024552" ), ( "321588", "4027255" ), ( "4027255", "43530856" ) ] )
+            
 # Uncomment this and run this file directly to run all tests
 #if __name__ == '__main__':
 #     unittest.main()

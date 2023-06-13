@@ -32,6 +32,10 @@ body {
    */
 }
 
+.cset-selection {
+  display: none;
+}
+
 .MuiAutocomplete-option {
   line-height: 115% !important;
   padding-left: 40px !important;
@@ -101,6 +105,11 @@ body {
 }
 .csets-data-table .rdt_Table {
   padding: 0px;
+}
+
+.concept-name-text {
+  padding-left: 22px;
+  text-indent: -22px;
 }
 
 .css-12wnr2w-MuiButtonBase-root-MuiCheckbox-root {
