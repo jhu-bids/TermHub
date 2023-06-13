@@ -179,6 +179,31 @@ class TestBackend(unittest.TestCase):
         prefer concepts that do have counts
         """
         self.assertEqual(edges1, [ ( "1738170", "1738171" ), ( "1738170", "1738202" ), ( "1738170", "1738203" ) ])
+        """
+        select * from concept_relationship_plus
+        where concept_id_1 in (1738170, 1738171, 1738202, 1738203)
+          and concept_id_2 in (1738170, 1738171, 1738202, 1738203)
+          and concept_id_1 != concept_id_2
+        order by 5;
+        ┌─────────────────┬──────────────┬────────────────────┬──────────────┬─────────────────┬─────────────────┬──────────────┬────────────────────┐
+        │ vocabulary_id_1 │ concept_id_1 │   concept_name_1   │ concept_code │ relationship_id │ vocabulary_id_2 │ concept_id_2 │   concept_name_2   │
+        ├─────────────────┼──────────────┼────────────────────┼──────────────┼─────────────────┼─────────────────┼──────────────┼────────────────────┤
+        │ RxNorm          │      1738171 │ lopinavir 133 MG   │ 331536       │ RxNorm has ing  │ RxNorm          │      1738170 │ lopinavir          │
+        │ RxNorm          │      1738202 │ lopinavir 80 MG/ML │ 331538       │ RxNorm has ing  │ RxNorm          │      1738170 │ lopinavir          │
+        │ RxNorm          │      1738203 │ lopinavir 200 MG   │ 597727       │ RxNorm has ing  │ RxNorm          │      1738170 │ lopinavir          │
+        │ RxNorm          │      1738170 │ lopinavir          │ 195088       │ RxNorm ing of   │ RxNorm          │      1738202 │ lopinavir 80 MG/ML │
+        │ RxNorm          │      1738170 │ lopinavir          │ 195088       │ RxNorm ing of   │ RxNorm          │      1738171 │ lopinavir 133 MG   │
+        │ RxNorm          │      1738170 │ lopinavir          │ 195088       │ RxNorm ing of   │ RxNorm          │      1738203 │ lopinavir 200 MG   │
+        └─────────────────┴──────────────┴────────────────────┴──────────────┴─────────────────┴─────────────────┴──────────────┴────────────────────┘
+        relationship between sources and targets:
+        ┌─────────────────┬────────────────────────┬─────────────────┬──────────────────┬─────────────────────────┬─────────────────────────┐
+        │ relationship_id │   relationship_name    │ is_hierarchical │ defines_ancestry │ reverse_relationship_id │ relationship_concept_id │
+        ├─────────────────┼────────────────────────┼─────────────────┼──────────────────┼─────────────────────────┼─────────────────────────┤
+        │ RxNorm ing of   │ Ingredient of (RxNorm) │               1 │                1 │ RxNorm has ing          │                44818817 │
+        └─────────────────┴────────────────────────┴─────────────────┴──────────────────┴─────────────────────────┴─────────────────────────┘
+        (code: select * from concept_relationship_plus where concept_id_1 = 1738170 and concept_id_2 = 1738171;
+               select * from relationship where relationship_id = 'RxNorm ing of';)
+        """
 
         #Test for a concept set that fills in the gaps (i.e between child and grandparent)
         edges2 = subgraph([1738170,19122186])
