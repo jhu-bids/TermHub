@@ -38,7 +38,7 @@ import {
   Legend,
   saveChangesInstructions,
 } from "../components/EditCset";
-import { CsetsSelectedDataTable } from "../components/CsetsDataTable";
+import { CsetsDataTable } from "../components/CsetsDataTable";
 // import {EDGES} from '../components/ConceptGraph';
 import { FlexibleContainer } from "../components/FlexibleContainer";
 import _ from "../supergroup/supergroup";
@@ -170,7 +170,7 @@ function CsetComparisonPage(props) {
     );
     infoPanels.push(
         <FlexibleContainer key="compare" title={edited_cset.concept_set_name}>
-          <CsetsSelectedDataTable {...props} min_col={false} />
+          <CsetsDataTable {...props} show_selected={true} min_col={false} />
         </FlexibleContainer>
     );
     if (csetEditState && csetEditState[editCodesetId]) {
@@ -189,7 +189,9 @@ function CsetComparisonPage(props) {
     }
   }
 
-  let moreProps = { ...props, displayedRows, rowData, columns, selected_csets, customStyles };
+  let moreProps = {
+    ...props, displayedRows, rowData, columns, selected_csets, customStyles
+  };
   return (
     <div>
       <Box
@@ -332,14 +334,12 @@ function ComparisonDataTable(props) {
   // console.log(derivedState);
 
   useEffect(() => {
-    document.querySelector(
-      ".comparison-data-table .rdt_TableHeadRow > .rdt_TableCol[data-column-id=\"1\"]"
-    ).style.width = Math.min((400 + selected_csets.length * 80) * 1.5,
-        window.innerWidth - 400 - selected_csets.length * 80) + "px";
-    console.log("Style changed");
-    console.log(document.querySelector(
-      ".comparison-data-table .rdt_TableHeadRow > .rdt_TableCol[data-column-id=\"1\"]"
-    ).style["max-width"]);
+    for (let i = 0; i < columns.length; i++) {
+      document.querySelector(
+        ".comparison-data-table .rdt_TableHeadRow " +
+                `> .rdt_TableCol[data-column-id=\"${i+1}\"]`
+      ).style.width = columns[i].width + "px";
+    }
   });
 
   const conditionalRowStyles = [

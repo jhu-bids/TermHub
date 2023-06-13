@@ -31,29 +31,37 @@ function getCsetSelectionHandler(tooltipId) {
 
 /* TODO: review function for appropriate state management */
 function CsetsDataTable(props) {
-  const { codeset_ids, changeCodesetIds, cset_data = {} } = props;
+  const { show_selected, codeset_ids, changeCodesetIds, cset_data = {} } = props;
   const { selected_csets } = cset_data;
+  const min_col = show_selected ?
+      ("min_col" in props ? props.min_col : true) : false;
 
   const [relatedCsets, setRelatedCsets] = useState(cset_data.related_csets);
 
   useEffect(() => {
     // props.csetData.relatedCsets.forEach(rc => rc.selected = codeset_ids.includes(rc.codeset_id))
-    const rcsets = orderBy(
-      get(props, "cset_data.related_csets", []),
-      ["selected", "precision"],
-      ["desc", "desc"]
-    );
-    // Remove concept sets that are selected
-    remove(rcsets, cs => { return cs.selected })
-    // console.log({props, rcsets});
-    setRelatedCsets(rcsets);
+    if (!show_selected) {
+      const rcsets = orderBy(
+        get(props, "cset_data.related_csets", []),
+        ["selected", "precision"],
+        ["desc", "desc"]
+      );
+      // Remove concept sets that are selected
+      remove(rcsets, cs => {
+        return cs.selected
+      })
+      // console.log({props, rcsets});
+      setRelatedCsets(rcsets);
+    }
   }, [codeset_ids.join(","), selected_csets.length]);
-  let coldefs = getColdefs();
+
+  let coldefs = getColdefs(min_col);
   /* const conditionalRowStyles = [{ when: row => row.selected,
         style: { backgroundColor: 'rgba(63, 195, 128, 0.9)', color: 'white',
                 '&:hover': { cursor: 'pointer', }, } }]; */
 
   let customStyles = getCustomStyles();
+
   const handleRowClick = useCallback((row) =>
     changeCodesetIds(row.codeset_id, "toggle")
   );
@@ -71,87 +79,16 @@ function CsetsDataTable(props) {
 
   // const related_ids = new Set(f lattened_concept_hierarchy.map(d => d.concept_id));
   const subHeader = <StatsMessage {...props} />;
-    const [handleRowMouseEnter, handleRowMouseLeave] =
-      getCsetSelectionHandler('select-to-add');
-
-  const rowSelectCritera = (row) => row.selected;
-  // todo: p -> data table: data table has a property for showing some sort of paragraph text
-  // TODO: y concepts -> get the number
-  return (
-    <div className="csets-data-table">
-      <DataTable
-        data={relatedCsets}
-        // selectableRows
-        selectableRowsHighlight
-        selectableRowSelected={rowSelectCritera}
-        // onSelectedRowsChange={handleSelectionChange}
-        onRowClicked={handleRowClick}
-        onRowMouseEnter={handleRowMouseEnter}
-        onRowMouseLeave={handleRowMouseLeave}
-        customStyles={customStyles}
-        noHeader={false}
-        title="Related concept sets"
-        subHeader
-        subHeaderComponent={subHeader}
-        // theme="custom-theme"
-        // theme="light"
-        columns={coldefs}
-        // defaultSortFieldId={4}
-        // defaultSortAsc={false}
-
-        // conditionalRowStyles={conditionalRowStyles}
-        height="300px"
-        //striped
-        //pagination
-        //selectableRowsComponent={Checkbox}
-        //selectableRowsComponentProps={selectProps}
-        //sortIcon={sortIcon}
-        // {...props}
-
-        dense
-        direction="auto"
-        // expandOnRowClicked
-        // expandableRows
-        fixedHeader
-        fixedHeaderScrollHeight="300px"
-        highlightOnHover
-        pointerOnHover
-        responsive
-        subHeaderAlign="left"
-        subHeaderWrap
-        // sortFunction={customSort}
-      />
-    </div>
-  );
-}
-
-/* Copied from CsetsDataTable(). This table only shows the selected csets. */
-function CsetsSelectedDataTable(props) {
-  const { codeset_ids, changeCodesetIds, cset_data = {} } = props;
-  const { selected_csets } = cset_data;
-  const { min_col = true } = props;
-
-  let coldefs = min_col ? getSelectedColdefs() : getColdefs();
-  /* const conditionalRowStyles = [{ when: row => row.selected,
-        style: { backgroundColor: 'rgba(63, 195, 128, 0.9)', color: 'white',
-                '&:hover': { cursor: 'pointer', }, } }]; */
-
-  let customStyles = getCustomStyles();
-
-  const handleRowClick = useCallback((row) =>
-    changeCodesetIds(row.codeset_id, "toggle")
-  );
-
-  const rowSelectCritera = (row) => row.selected;
   const [handleRowMouseEnter, handleRowMouseLeave] =
-      getCsetSelectionHandler('select-to-remove');
+      getCsetSelectionHandler(show_selected ? 'select-to-remove' : 'select-to-add');
 
+  const rowSelectCritera = (row) => row.selected;
   // todo: p -> data table: data table has a property for showing some sort of paragraph text
   // TODO: y concepts -> get the number
   return (
     <div className="csets-data-table">
       <DataTable
-        data={selected_csets}
+        data={show_selected? selected_csets : relatedCsets}
         // selectableRows
         selectableRowsHighlight
         selectableRowSelected={rowSelectCritera}
@@ -161,7 +98,9 @@ function CsetsSelectedDataTable(props) {
         onRowMouseLeave={handleRowMouseLeave}
         customStyles={customStyles}
         noHeader={false}
-        title="Selected concept sets"
+        title={(show_selected ? "Selected" : "Related") + " concept sets"}
+        subHeader={!show_selected}
+        subHeaderComponent={show_selected ? null : subHeader}
         // theme="custom-theme"
         // theme="light"
         columns={coldefs}
@@ -194,13 +133,13 @@ function CsetsSelectedDataTable(props) {
   );
 }
 
-function getColdefs() {
+function getColdefs(min_col = false) {
   /*
     const descending = (rows, selector, direction) => {
         return orderBy(rows, selector, ['desc']);
     };
      */
-  return [
+  let coldefs_first_4 = [
     // { name: 'level', selector: row => row.level, },
     {
       name: "Version ID",
@@ -242,34 +181,8 @@ function getColdefs() {
       center: true,
       sortable: true,
     },
-    {
-      // name: 'Shared concepts',
-      name: (
-        <Tooltip label="Number of concepts in this set that also belong to the selected concept sets.">
-          <span>Shared</span>
-        </Tooltip>
-      ),
-      selector: (row) => row.intersecting_concepts,
-      compact: true,
-      width: "70px",
-      center: true,
-      sortable: true,
-    },
-    {
-      name: (
-        <Tooltip label="Portion of the concepts in this set shared with the selected concept sets.">
-          <span>Precision</span>
-        </Tooltip>
-      ),
-      selector: (row) => row.precision,
-      format: (row) => pct_fmt(row.precision),
-      desc: true,
-      compact: true,
-      width: "70px",
-      center: true,
-      sortable: true,
-      // sortFunction: descending,
-    },
+  ];
+  let coldefs_last_3 = [
     {
       // name: 'Recall',
       name: (
@@ -326,113 +239,43 @@ function getColdefs() {
         },
          */
   ];
-}
 
-/* Copied from getColdefs(). This is a column definition for the selected csets. */
-function getSelectedColdefs() {
-  /*
-    const descending = (rows, selector, direction) => {
-        return orderBy(rows, selector, ['desc']);
-    };
-     */
-  return [
-    // { name: 'level', selector: row => row.level, },
-    {
-      name: "Version ID",
-      // selector: row => `${row.concept_set_name} (v${row.version})`,
-      selector: (row) => row.codeset_id,
-      compact: true,
-      sortable: true,
-      width: "90px",
-    },
-    {
-      name: "Names of concept sets",
-      // selector: row => `${row.concept_set_name} (v${row.version})`,
-      selector: (row) => row.concept_set_version_title,
-      wrap: true,
-      compact: true,
-      sortable: true,
-    },
-    {
-      name: (
-        <Tooltip label="Number of expression items in this concept set.">
-          <span>Expression items</span>
-        </Tooltip>
-      ),
-      selector: (row) => row.counts['Expression items'],
-      compact: true,
-      width: "70px",
-      center: true,
-      sortable: true,
-    },
-    {
-      name: (
-          <Tooltip label="Number of members in this concept set, that is, concepts included after expanding expression items.">
-            <span>Members</span>
+  if (!min_col) {
+    let coldefs_extra = [
+      {
+        // name: 'Shared concepts',
+        name: (
+          <Tooltip label="Number of concepts in this set that also belong to the selected concept sets.">
+            <span>Shared</span>
           </Tooltip>
-      ),
-      selector: (row) => row.counts['Members'],
-      compact: true,
-      width: "70px",
-      center: true,
-      sortable: true,
-    },
-    {
-      // name: 'Recall',
-      name: (
-        <Tooltip label="Portion of concepts in the selected concept sets that belong to this set.">
-          <span>Recall</span>
-        </Tooltip>
-      ),
-      selector: (row) => row.recall,
-      format: (row) => pct_fmt(row.recall),
-      desc: true,
-      compact: true,
-      width: "70px",
-      center: true,
-      sortable: true,
-    },
-    {
-      name: (
-        <Tooltip label="Approximate distinct person count. Small counts rounded up to 20.">
-          <span>Patients</span>
-        </Tooltip>
-      ),
-      // selector: row => row.approx_distinct_person_count.toLocaleString(),
-      selector: (row) => parseInt(row.distinct_person_cnt),
-      format: (row) => fmt(parseInt(row.distinct_person_cnt)),
-      compact: true,
-      width: "70px",
-      center: true,
-      sortable: true,
-    },
-    {
-      name: (
-        <Tooltip label="Record count. Small counts rounded up to 20.">
-          <span>Records</span>
-        </Tooltip>
-      ),
-      selector: (row) => {
-        return row.total_cnt.toLocaleString();
+        ),
+        selector: (row) => row.intersecting_concepts,
+        compact: true,
+        width: "70px",
+        center: true,
+        sortable: true,
       },
-      compact: true,
-      width: "78px",
-      center: true,
-      sortable: true,
-    },
-    /*
-        {
-            name:   <Tooltip label="Checked if this concept set is marked as archived in the enclave.">
-                <span>Archived</span>
-            </Tooltip>,
-            selector: row => row.archived ? '\u2713' : '',
-            compact: true,
-            width: '70px',
-            center: true,
-            sortable: true,
-        },
-         */
-  ];
+      {
+        name: (
+          <Tooltip label="Portion of the concepts in this set shared with the selected concept sets.">
+            <span>Precision</span>
+          </Tooltip>
+        ),
+        selector: (row) => row.precision,
+        format: (row) => pct_fmt(row.precision),
+        desc: true,
+        compact: true,
+        width: "70px",
+        center: true,
+        sortable: true,
+        // sortFunction: descending,
+      },
+    ];
+
+    return [...coldefs_first_4, ...coldefs_extra, ...coldefs_last_3];
+  }
+
+  return [...coldefs_first_4, ...coldefs_last_3];
 }
 
 function getCustomStyles() {
@@ -532,4 +375,4 @@ createTheme('custom-theme', {
 }, 'light');
 */
 
-export { CsetsDataTable, CsetsSelectedDataTable };
+export { CsetsDataTable };
