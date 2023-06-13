@@ -57,6 +57,31 @@ body {
   background-color: #aad4ff !important;
 }
 
+/* data-column-id > 6 */
+.comparison-data-table .rdt_TableHeadRow > .rdt_TableCol {
+  width: 80px;
+}
+
+.comparison-data-table .rdt_TableHeadRow > .rdt_TableCol[data-column-id="2"] {
+  width: 100px;
+}
+
+.comparison-data-table .rdt_TableHeadRow > .rdt_TableCol[data-column-id="3"] {
+  width: 80px;
+}
+
+.comparison-data-table .rdt_TableHeadRow > .rdt_TableCol[data-column-id="4"] {
+  width: 60px;
+}
+
+.comparison-data-table .rdt_TableHeadRow > .rdt_TableCol[data-column-id="5"] {
+  width: 80px;
+}
+
+.comparison-data-table .rdt_TableHeadRow > .rdt_TableCol[data-column-id="6"] {
+  width: 80px;
+}
+
 .comparison-data-table .rdt_TableHeadRow,
 .csets-data-table .rdt_TableHeadRow {
   background-color: #e6e5e5;

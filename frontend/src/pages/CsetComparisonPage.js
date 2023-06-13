@@ -153,7 +153,7 @@ function CsetComparisonPage(props) {
     }
   }
 
-  let moreProps = { ...props, rowData, columns, selected_csets, customStyles };
+  let moreProps = { ...props, displayedRows, rowData, columns, selected_csets, customStyles };
   return (
     <div>
       <Box
@@ -289,9 +289,22 @@ function ComparisonDataTable(props) {
     csetEditState = {},
     customStyles,
     rowData,
+    displayedRows,
+    selected_csets
   } = props;
   const boxRef = useRef();
   // console.log(derivedState);
+
+  useEffect(() => {
+    document.querySelector(
+      ".comparison-data-table .rdt_TableHeadRow > .rdt_TableCol[data-column-id=\"1\"]"
+    ).style.width = Math.min((400 + selected_csets.length * 80) * 1.5,
+        window.innerWidth - 400 - selected_csets.length * 80) + "px";
+    console.log("Style changed");
+    console.log(document.querySelector(
+      ".comparison-data-table .rdt_TableHeadRow > .rdt_TableCol[data-column-id=\"1\"]"
+    ).style["max-width"]);
+  });
 
   const conditionalRowStyles = [
     {
@@ -419,9 +432,8 @@ function colConfig(props) {
       sortable: !nested,
       // minWidth: 100,
       // remainingPct: .60,
-      // width: (window.innerWidth - selected_csets.length * 50) * .65,
-      // maxWidth: '50%',
-      maxWidth: maxNameLength * .6 + 'em',
+      width: Math.min((400 + selected_csets.length * 80) * 1.5,
+          window.innerWidth - 400 - selected_csets.length * 80),
       // grow: 4,
       wrap: true,
       compact: true,
