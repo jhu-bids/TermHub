@@ -20,24 +20,19 @@ import {
 } from "react-router-dom";
 import { createTheme, ThemeProvider } from "@mui/material/styles";
 import Box from "@mui/material/Box";
-import {
-  // useMutation, useQueryClient, useQuery, useQueries,
-  QueryClient,
-  QueryClientProvider,
-} from "@tanstack/react-query";
-import { keyBy, isEmpty } from "lodash";
-// import { createWebStoragePersistor } from "react-query/createWebStoragePersistor-experimental";
+
+import { QueryClient, QueryClientProvider, } from "@tanstack/react-query"; // useMutation, useQueryClient, useQuery, useQueries,
+
 import { persistQueryClient } from '@tanstack/react-query-persist-client'
-import { createSyncStoragePersister } from '@tanstack/query-sync-storage-persister'
-import { compress, decompress } from 'lz-string';
-
-
-import {
-  removeOldestQuery,
-} from "@tanstack/react-query-persist-client";
-import { ReactQueryDevtools } from '@tanstack/react-query-devtools'
+// import { createWebStoragePersistor } from "react-query/createWebStoragePersistor-experimental";
+// import { removeOldestQuery, } from "@tanstack/react-query-persist-client";
 // import { createSyncStoragePersister } from '@tanstack/query-sync-storage-persister'
+// import { useIsFetching } from '@tanstack/react-query' // https://tanstack.com/query/v4/docs/react/guides/background-fetching-indicators
+import { createSyncStoragePersister } from '@tanstack/query-sync-storage-persister'
+import { ReactQueryDevtools } from '@tanstack/react-query-devtools'
+import { compress, decompress } from 'lz-string'; // using in persister to handle big result sets
 
+import { keyBy, isEmpty } from "lodash";
 import useMeasure from "react-use/lib";
 import Paper from "@mui/material/Paper";
 
@@ -51,22 +46,12 @@ import {
   updateSearchParams,
   backend_url,
   useDataWidget, dataAccessor,
+  ViewCurrentState,
 } from "./components/State";
 import { UploadCsvPage } from "./components/UploadCsv";
 import { DownloadJSON } from "./components/DownloadJSON";
 import MuiAppBar from "./components/MuiAppBar";
 // // import _ from "./supergroup/supergroup";
-
-// import logo from './logo.svg';
-// import { useIsFetching } from '@tanstack/react-query' // https://tanstack.com/query/v4/docs/react/guides/background-fetching-indicators
-// import dotenv from 'dotenv';
-// import * as dotenv from 'dotenv' // see https://github.com/motdotla/dotenv#how-do-i-use-dotenv-with-import
-// dotenv.config()
-// const buf = Buffer.from('API_ROOT=api_root')
-// const config = dotenv.parse(buf) // will return an object
-// const API_ROOT = 'http://127.0.0.1:8000'
-
-// const enclave_url = path => `${API_ROOT}/passthru?path=${path}`
 
 export const queryClient = new QueryClient({
   defaultOptions: {
@@ -246,14 +231,6 @@ function DataContainer(props) {
   // const concept_relationships = crprops.data;
 
   if (all_csets && cset_data /*&& concept_relationships*/) {
-    /*
-    dataAccessor.cache.edges = cset_data.edges
-    if (!dataAccessor.cache.con)
-    for (let i in cset_data.concepts) {
-      dataAccessor.cache.concepts[cset_data.concepts[i].concept_id] = cset_data.concepts[i];
-    }
-     */
-
     cset_data.conceptLookup = keyBy(cset_data.concepts, "concept_id");
     // dataAccessor.cache.conceptLookup = cset_data.conceptLookup;
 
@@ -324,6 +301,7 @@ function RoutesContainer(props) {
             element={<ConceptGraph {...props} concept_ids={currentConceptIds(props)} />}
         />
         <Route path="download-json" element={<DownloadJSON {...props} />} />
+        <Route path="view-state" element={<ViewCurrentState {...props} />} />
         {/* <Route path="OMOPConceptSet/:conceptId" element={<OldConceptSet />} /> */}
       </Route>
     </Routes>

@@ -7,7 +7,7 @@ import {queryClient} from "../App";
 import Typography from "@mui/material/Typography";
 import Button from "@mui/material/Button";
 import { TextField, } from "@mui/material";
-import { Link } from "react-router-dom";
+import { Link, useLocation } from "react-router-dom";
 import VERSION from "../version";
 import { axiosGet } from "../components/State";
 
@@ -87,6 +87,8 @@ function AboutPage(props) {
   //     }
   // )
   const [codeset_ids, setCodeset_ids] = useState([]);
+  const location = useLocation();
+  const { search } = location;
 
   return (
     <div style={{ margin: "15px 30px 15px 40px" }}>
@@ -227,7 +229,19 @@ function AboutPage(props) {
         <LI>Click the version on the left again.</LI>
         <LI>On the right, click the green "Done" button.</LI>
       </ol>
-      {/* todo: Pages */}
+
+      {/* todo: Pages (what's this about?) */}
+
+      <TextH1>
+        <Link to={`/view-state${search ? search : ''}`}
+              component={Link}
+              style={{margin: '7px', textTransform: 'none'}}
+        >
+          View current state
+        </Link>
+      </TextH1>
+
+
     </div>
   );
 }

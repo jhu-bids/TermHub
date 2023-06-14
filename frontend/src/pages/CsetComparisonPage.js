@@ -103,32 +103,6 @@ function CsetComparisonPage(props) {
     hsDispatch,
   });
 
-  function downloadTSV(props) {
-    const {displayedRows, codeset_ids, } = props;
-    const filename = 'thdownload-' + codeset_ids.join('-') + '.tsv';
-    const maxLevel = max(displayedRows.map(r => r.level));
-    // let columns = ['concept_id']
-    const rows = displayedRows.map(r => {
-      let row = {};
-      for (let i = 0; i <= maxLevel; i++) {
-        row['cn' + i] = (r.level === i ? r.concept_name : '');
-      }
-      return {...row, ...r};
-    });
-    let config = {
-      delimiter: "\t",
-      newline: "\n",
-      // defaults
-      // quotes: false, //or array of booleans
-      // header: true,
-      // skipEmptyLines: false, //other option is 'greedy', meaning skip delimiters, quotes, and whitespace.
-      // columns: null //or array of strings
-    }
-    const dataString = Papa.unparse(rows, config);
-    // const blob = new Blob([dataString], { type: 'text/csv;charset=utf-8' });
-    const blob = new Blob([dataString], { type: 'text/tab-separated-values;charset=utf-8' });
-    saveAs(blob, filename);
-  }
   let infoPanels = [
     <Button key="distinct"
             disabled={!nested}
@@ -216,6 +190,10 @@ function CsetComparisonPage(props) {
       <ComparisonDataTable /*squishTo={squishTo}*/ {...moreProps} />
     </div>
   );
+}
+
+function precisionRecall(props) {
+
 }
 
 function nodeToTree(node) {
@@ -682,6 +660,32 @@ function colConfig(props) {
   }
    */
   return coldefs;
+}
+function downloadTSV(props) {
+  const {displayedRows, codeset_ids, } = props;
+  const filename = 'thdownload-' + codeset_ids.join('-') + '.tsv';
+  const maxLevel = max(displayedRows.map(r => r.level));
+  // let columns = ['concept_id']
+  const rows = displayedRows.map(r => {
+    let row = {};
+    for (let i = 0; i <= maxLevel; i++) {
+      row['level' + i] = (r.level === i ? r.concept_name : '');
+    }
+    return {...row, ...r};
+  });
+  let config = {
+    delimiter: "\t",
+    newline: "\n",
+    // defaults
+    // quotes: false, //or array of booleans
+    // header: true,
+    // skipEmptyLines: false, //other option is 'greedy', meaning skip delimiters, quotes, and whitespace.
+    // columns: null //or array of strings
+  }
+  const dataString = Papa.unparse(rows, config);
+  // const blob = new Blob([dataString], { type: 'text/csv;charset=utf-8' });
+  const blob = new Blob([dataString], { type: 'text/tab-separated-values;charset=utf-8' });
+  saveAs(blob, filename);
 }
 
 // createTheme creates a new theme named solarized that overrides the build in dark theme
