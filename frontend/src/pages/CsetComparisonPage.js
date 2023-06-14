@@ -60,8 +60,24 @@ function CsetComparisonPage(props) {
   // window.hierarchySettingsW = hierarchySettings;
   const windowSize = useWindowSize();
   const boxRef = useRef();
+  const [panelPosition, setPanelPosition] = useState({ x: 0, y: 0 });
   const sizes = getSizes(/*squishTo*/ 1);
   const customStyles = styles(sizes);
+
+  useEffect(() => {
+    if (boxRef.current) {
+      let margin_text = window
+          .getComputedStyle(boxRef.current)
+          .getPropertyValue("margin-bottom");
+      margin_text = margin_text.substring(0, margin_text.length - 2);
+      const margin = parseInt(margin_text);
+
+      setPanelPosition({
+        x: 0,
+        y: boxRef.current.clientHeight + 2 * margin
+      });
+    }
+  }, []);
 
   // console.log(EDGES);
 
@@ -115,7 +131,7 @@ function CsetComparisonPage(props) {
     >
       {displayedRows.length} in hierarchy
     </Button>,
-    <FlexibleContainer key="legend" title="Legend">
+    <FlexibleContainer key="legend" title="Legend" position={panelPosition}>
       <Legend />
     </FlexibleContainer>
   ];
@@ -124,7 +140,7 @@ function CsetComparisonPage(props) {
   if (editCodesetId) {
     edited_cset = selected_csets.find(cset => cset.codeset_id === editCodesetId);
     infoPanels.push(
-        <FlexibleContainer key="cset" title="Concept set being edited">
+        <FlexibleContainer key="cset" title="Concept set being edited" position={panelPosition}>
           <ConceptSetCard
               cset={columns.find((d) => d.codeset_id === editCodesetId).cset_col}
               researchers={researchers}
@@ -141,12 +157,15 @@ function CsetComparisonPage(props) {
       const csidState = csetEditState[editCodesetId];
       infoPanels.push(
           <FlexibleContainer key="changes"
-              title={`${Object.keys(csidState).length} Staged changes`}
+                             title={`${Object.keys(csidState).length} Staged changes`}
+                             position={panelPosition}
           >
             <EditInfo {...props} />
           </FlexibleContainer>,
 
-          <FlexibleContainer key="instructions" title="Instructions to save changes">
+          <FlexibleContainer key="instructions"
+                             title="Instructions to save changes"
+                             position={panelPosition}>
             {saveChangesInstructions(props)}
           </FlexibleContainer>
       );
