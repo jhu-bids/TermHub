@@ -132,11 +132,11 @@ function CsetComparisonPage(props) {
           />
         </FlexibleContainer>
     );
-    infoPanels.push(
+    /* infoPanels.push(
         <FlexibleContainer key="compare" title={edited_cset.concept_set_name}>
           <CsetsDataTable {...props} show_selected={true} min_col={false} />
         </FlexibleContainer>
-    );
+    ); */
     if (csetEditState && csetEditState[editCodesetId]) {
       const csidState = csetEditState[editCodesetId];
       infoPanels.push(
