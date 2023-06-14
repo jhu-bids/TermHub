@@ -5,7 +5,7 @@ import Draggable from "react-draggable";
 import Box from "@mui/material/Box";
 import Button from "@mui/material/Button";
 
-export function FlexibleContainer({ title, children }) {
+export function FlexibleContainer({ key, title, children }) {
   const [display, setDisplay] = useState("hidden");
   const draggableRef = useRef(null);
 
@@ -48,7 +48,10 @@ export function FlexibleContainer({ title, children }) {
     );
   }
   return (
-    <Draggable nodeRef={draggableRef} defaultPosition={position}>
+    <Draggable
+        nodeRef={draggableRef}
+        defaultPosition={position}
+    >
       <Box
         ref={draggableRef}
         closeFunc={() => setDisplay("hidden")}
