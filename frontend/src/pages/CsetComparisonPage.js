@@ -39,9 +39,7 @@ import {
   saveChangesInstructions,
 } from "../components/EditCset";
 import { CsetsDataTable } from "../components/CsetsDataTable";
-// import {EDGES} from '../components/ConceptGraph';
 import { FlexibleContainer } from "../components/FlexibleContainer";
-import _ from "../supergroup/supergroup";
 
 // TODO: Find concepts w/ good overlap and save a good URL for that
 // TODO: show table w/ hierarchical indent
@@ -65,8 +63,6 @@ function CsetComparisonPage(props) {
   const boxRef = useRef();
   const sizes = getSizes(/*squishTo*/ 1);
   const customStyles = styles(sizes);
-
-  // console.log(EDGES);
 
   // TODO: component is rendering twice. why? not necessary? fix?
   let {allRows, displayedRows, distinctRows, hidden} = getRowData({...props, hierarchySettings});

@@ -1,10 +1,10 @@
 import React, {useState, useEffect} from "react";
 import {dataAccessor} from "./State";
-import _ from "../supergroup/supergroup";
+// import _ from "../supergroup/supergroup";
 import * as d3Base from "d3";
 import * as d3dag from "d3-dag";
 import Graph from "graphology";
-import {uniq, flatten} from "lodash";
+import {uniq, flatten, sortBy, max, groupBy, sum, } from "lodash";
 
 const d3 = Object.assign({}, d3Base, d3dag);
 
@@ -51,7 +51,6 @@ export function ConceptGraph(props) {
 
   console.log({concept_ids, concepts, props});
   window.d3 = d3;
-  // console.log(EDGES);
 
   useEffect(() => {
     async function fetchData() {
@@ -328,19 +327,19 @@ export function orderedHierarchy(edges) {
 }
 function orderedDescendants(nodes) {
   let od = {};
-  const nodeList = _.sortBy(nodes, descendantsCnt);
+  const nodeList = sortBy(nodes, descendantsCnt);
   for (const node of nodeList) {
     od[node.data.id] = orderedDescendants(node.children());
   }
   return od;
 }
 function graphWidth(dag) {  // this is not doing what I thought (i think -- i don't remember what I thought)
-  return _.max(Object.values(
-      _.groupBy(dag.descendants('breadth').map(d => d.value)) // this is all undefined
+  return max(Object.values(
+      groupBy(dag.descendants('breadth').map(d => d.value)) // this is all undefined
   ).map(d => d.length))
 }
 function graphHeight(dag) {
-  return _.max(dag.height().descendants().map(d => d.value));
+  return max(dag.height().descendants().map(d => d.value));
 }
 function drawGraph(svg, edges, doc_height, doc_width) {
   // edge looks like {
@@ -360,14 +359,13 @@ function drawGraph(svg, edges, doc_height, doc_width) {
     G.addEdge(...e);
     Gu.addUndirectedEdge(...e);
   }
-  debugger;
 
   const connect = d3dag.dagConnect();
   const dag = connect(edges);
   const graphs = dag.split();
   const maxDims = {
-    width: _.sum(graphs.map(g => graphWidth(g))),
-    height: _.max(graphs.map(g => graphHeight(g))),
+    width: sum(graphs.map(g => graphWidth(g))),
+    height: max(graphs.map(g => graphHeight(g))),
   };
   const nodeSizeWidth = 3 * doc_width / maxDims.width;
   const nodeSizeHeight = doc_height / (maxDims.height + 2) + 5;
