@@ -165,158 +165,78 @@ class TestBackend(unittest.TestCase):
                     # Part 2: all other row counts should be non-zero
                     self.assertGreater(df[col][row], 0, msg=f"Table '{row}' had 0 rows in run '{col}'")
 
-    def test_cr_hierarchy_related_csets(self):
-        """ Test the related csets output of cr_hierarchy defined in backend/routes/app.py.
-        The related csets output is given by get_related_csets in backend/routes/app.py.
-        """
-        url = BACKEND_URL_BASE + 'cr-hierarchy'
-        response = requests.get(url=url, params={
-            'codeset_ids': '400614256|87065556'
-        }).json()
-        print(response['result'])
-        pass
+    def test_get_concepts(self):
+        """ Tests get_related_csets in backend/routes/app.py."""
+        self.assertEqual(get_concepts([396155663, 643758668]),[])
 
-    def test_cr_hierarchy_selected_csets(self):
-        """Copied from test_csets_update()
-        Test backend: cr_hierarchy, defined in backend/app.py
-        Prereq: Server must be running"""
-        url = BACKEND_URL_BASE + 'cr-hierarchy'
-        response = requests.get(url=url, params={
-            'codeset_ids': '400614256|87065556'
-        }).json()
-        # TODO: test response['selected_csets']
-        pass
-    def test_cr_hierarchy_researchers(self):
-        """Copied from test_csets_update()
-        Test backend: cr_hierarchy, defined in backend/app.py
-        Prereq: Server must be running"""
-        url = BACKEND_URL_BASE + 'cr-hierarchy'
-        response = requests.get(url=url, params={
-            'codeset_ids': '400614256|87065556'
-        }).json()
-        # TODO: test response['researchers']
-        pass
-
-    def test_cr_hierarchy_cset_members_items(self):
-        """Copied from test_csets_update()
-        Test backend: cr_hierarchy, defined in backend/app.py
-        Prereq: Server must be running"""
-        url = BACKEND_URL_BASE + 'cr-hierarchy'
-        response = requests.get(url=url, params={
-            'codeset_ids': '400614256|87065556'
-        }).json()
-        # TODO: test response['cset_members_items']
-        pass
-
-    def test_cr_hierarchy_edges(self):
-        """Copied from test_csets_update()
-        Test backend: cr_hierarchy, defined in backend/app.py
-        Prereq: Server must be running"""
-        url = BACKEND_URL_BASE + 'cr-hierarchy'
-        response = requests.get(url=url, params={
-            'codeset_ids': '400614256|87065556'
-        }).json()
-        # TODO: test response['edges']
-        # Use child_cids in app.py
-
-class TestCrHierarchy(unittest.TestCase):
-    '''
-    Below is the SQL code used to generate a list of small concept sets that overlap.
-    
-    with csets as (
-    select codeset_id, counts->>'Members' as concepts
-    from all_csets
-    )
-    select csm1.codeset_id as codeset_id_1, csets1.concepts,
-       csm2.codeset_id as codeset_id_2, csets2.concepts
-    from concept_set_members csm1
-    join csets as csets1 on csm1.codeset_id = csets1.codeset_id
-    join concept_set_members csm2 on csm1.concept_id = csm2.concept_id and csm1.codeset_id != csm2.codeset_id
-    join csets as csets2 on csm2.codeset_id = csets2.codeset_id
-    where cast(csets1.concepts as int) < 5
-    and cast(csets2.concepts as int) < 5
-    '''
-    @classmethod
-    def setUpClass(cls,self = None):
-        """Always runs first
-        Serving must be running to perform any of the tests listed"""
-        url = BACKEND_URL_BASE + 'cr-hierarchy'
-        cls.response = requests.get(url=url, params={
-            'codeset_ids': '400614256|87065556'
-        }).json()
-    def test_cr_hierarchy_concepts(self):
-        """ Test the related csets output of cr_hierarchy defined in backend/routes/app.py.
-            The related csets output is given by get_related_csets in backend/routes/app.py.
-            Copied from cr_hierarchy_data_counts
-            """
-
-        url = BACKEND_URL_BASE + 'cr-hierarchy'
-        response = requests.get(url=url, params={
-            'codeset_ids': '396155663|643758668'
-        }).json()
-        response_concepts = response['concepts']
-
-        self.assertEqual(len(response_concepts), 2)
-        self.assertEqual(response_concepts[0]['concept_id'], 4052321)
-        self.assertEqual(response_concepts[0]['concept_name'], 'Housing adequate')
-        self.assertEqual(response_concepts[0]['domain_id'], 'Observation')
-        self.assertEqual(response_concepts[0]['vocabulary_id'], 'SNOMED')
-        self.assertEqual(response_concepts[0]['concept_class_id'], 'Clinical Finding')
-        self.assertEqual(response_concepts[0]['standard_concept'], 'S')
-        self.assertEqual(response_concepts[0]['concept_code'], '161036002')
-        self.assertEqual(response_concepts[0]['invalid_reason'], None)
-        self.assertEqual(response_concepts[0]['domain_cnt'], 0)
-        self.assertEqual(response_concepts[0]['domain'], '')
-        self.assertEqual(response_concepts[0]['total_cnt'], 0)
-        self.assertEqual(response_concepts[0]['distinct_person_cnt'], '0')
-
-        self.assertEqual(response_concepts[1]['concept_id'], 4091006)
-        self.assertEqual(response_concepts[1]['concept_name'], 'Housing problem solved')
-        self.assertEqual(response_concepts[1]['domain_id'], 'Observation')
-        self.assertEqual(response_concepts[1]['vocabulary_id'], 'SNOMED')
-        self.assertEqual(response_concepts[1]['concept_class_id'], 'Clinical Finding')
-        self.assertEqual(response_concepts[1]['standard_concept'], 'S')
-        self.assertEqual(response_concepts[1]['concept_code'], '185960001')
-        self.assertEqual(response_concepts[1]['invalid_reason'], None)
-        self.assertEqual(response_concepts[1]['domain_cnt'], 0)
-        self.assertEqual(response_concepts[1]['domain'], '')
-        self.assertEqual(response_concepts[1]['total_cnt'], 0)
-        self.assertEqual(response_concepts[1]['distinct_person_cnt'], '0')
-
+    """ This test is based on the cr_hierarchy function so it would need to be changed since that function may retire,
+    but is a data counts test still needed?
     def test_cr_hierarchy_data_counts(self):
-        """Test backend: cr_hierarchy, defined in backend/app.py
-        Prereq: Server must be running"""
+    
+        '''Test backend: cr_hierarchy, defined in backend/app.py
+        Prereq: Server must be running'''
         url = BACKEND_URL_BASE + 'cr-hierarchy'
         response = requests.get(url=url, params={
             'codeset_ids': '400614256|87065556'
         }).json()
-        self.assertEqual(len(response['data_counts']), 0)
+        self.assertEqual(len(response['data_counts']), 0) 
+    """
 
-    def test_cr_hierarchy_related_csets(self):
+    def test_get_related_csets(self):
         """ Test the related csets output of cr_hierarchy defined in backend/routes/app.py.
         The related csets output is given by get_related_csets in backend/routes/app.py.
         """
-        response_related_csets = self.response['related csets']
+        related_csets = get_related_csets([396155663,643758668])
+        related_cs_ids = [concept['codeset_id']for concept in related_csets]
+        self.assertEqual(related_cs_ids,[93330599, 128430450, 201986476, 396155663, 643758668])
+        self.assertEqual(related_csets[2],{'codeset_id': 201986476, 'concept_set_version_title': '[VSAC] Social Determinants of Health Goals (v2)',
+                          'project': 'RP-4A9E27', 'concept_set_name': '[VSAC] Social Determinants of Health Goals',
+                          'alias': '[VSAC] Social Determinants of Health Goals', 'source_application': 'UNITE',
+                          'source_application_version': '2.0', 'codeset_created_at': '2022-03-16 18:47:09.939000+00:00',
+                          'atlas_json': None, 'is_most_recent_version': True, 'version': 2.0, 'comments': None,
+                          'codeset_intention': 'Clinical Focus: The value sets in this group represent all of the individual domain goals identified by the Gravity Project; Data Element Scope: Supports the Gravity SDOH Clinical Care FHIR Implementation guide for the exchange of goal resource elements.; Inclusion Criteria: Includes SNOMED CT goals that have been identified through the Gravity Project community consensus voting process',
+                          'limitations': 'Exclusion Criteria: N/A', 'issues': None, 'update_message': 'Initial version.',
+                          'codeset_status': 'Finished', 'has_review': True, 'reviewed_by': None, 'codeset_created_by': '6387db50-9f12-48d2-b7dc-e8e88fdf51e3',
+                          'provenance': 'Steward: The Gravity Project; OID: 2.16.840.1.113762.1.4.1247.71; Code System(s): SNOMEDCT; Definition Type: Grouping; Definition Version: Latest; Accessed: 2022-02-23 15:28:52; dih_id:1000000232\n\nset include descendants = FALSE',
+                          'atlas_json_resource_url': None, 'parent_version_id': None, 'authoritative_source': 'The Gravity Project',
+                          'is_draft': False, 'codeset_rid': 'ri.phonograph2-objects.main.object.199e59df-b414-4742-9fde-564de4a885ce',
+                          'project_id': None, 'assigned_informatician': None, 'assigned_sme': None, 'container_status': 'Under Construction',
+                          'stage': 'Awaiting Editing', 'container_intention': None, 'n3c_reviewer': None, 'archived': False,
+                          'container_created_by': '6387db50-9f12-48d2-b7dc-e8e88fdf51e3', 'container_created_at': '2022-02-24 00:06:05.027000+00:00',
+                          'container_rid': 'ri.phonograph2-objects.main.object.f2a45883-78d4-4cd8-a994-0d5a0dcdeb45',
+                          'distinct_person_cnt': 4425, 'total_cnt': 8825, 'counts': {'Expression item and member -- no flags': 21, 'Expression item only -- includeDescendants': 1, 'Expression items': 22, 'Members': 21},
+                          'concepts': '21', 'researchers': {'6387db50-9f12-48d2-b7dc-e8e88fdf51e3': ['container_created_by', 'codeset_created_by']},
+                          'selected': False, 'intersecting_concepts': 2, 'recall': 1.0, 'precision': 0.09523809523809523})
+        selected_csets = [cset for cset in related_csets if cset['selected']]
+        self.assertEqual(selected_csets,[396155663,643758668])
 
-    
-    def test_cr_hierarchy_selected_csets(self):
-        """Copied from test_csets_update()
-        Test backend: cr_hierarchy, defined in backend/app.py"""
-        response_selected_csets = self.response['selected_csets']
-    def test_cr_hierarchy_researchers(self):
-        """Copied from test_csets_update()
-        Test backend: cr_hierarchy, defined in backend/app.py"""
-        response_researchers = self.response['researchers']
+    def test_get_researchers(self):
+        related_csets = get_related_csets([396155663, 643758668])
+        researcher_ids = get_all_researcher_ids(related_csets)
+        self.assertEqual(get_researchers(researcher_ids),
+                         {'48fd3b68-84fc-47e7-bdf4-3de94554b986': {'multipassId': '48fd3b68-84fc-47e7-bdf4-3de94554b986',
+                                                                   'institutionsId': 'https://ror.org/00za53h95', 'name': 'Lisa Eskenazi',
+                                                                   'emailAddress': 'leskena2@jh.edu', 'unaPath': 'InCommon', 'signedDua': True,
+                                                                   'citizenScientist': False, 'internationalScientistWithDua': False,
+                                                                   'institution': 'Johns Hopkins University', 'orcidId': '0000-0001-8693-7838',
+                                                                   'rid': 'ri.phonograph2-objects.main.object.40351088-da7e-4be5-8562-b9085ab659c6'},
+                          '6387db50-9f12-48d2-b7dc-e8e88fdf51e3': {'multipassId': '6387db50-9f12-48d2-b7dc-e8e88fdf51e3',
+                                                                   'name': 'unknown', 'emailAddress': '6387db50-9f12-48d2-b7dc-e8e88fdf51e3'},
+                          '4bf7076c-6723-49cc-b4e5-f6c6ada1bdae': {'multipassId': '4bf7076c-6723-49cc-b4e5-f6c6ada1bdae',
+                                                                   'name': 'unknown', 'emailAddress': '4bf7076c-6723-49cc-b4e5-f6c6ada1bdae'}})
 
-    def test_cr_hierarchy_cset_members_items(self):
-        """Copied from test_csets_update()
-        Test backend: cr_hierarchy, defined in backend/app.py"""
-        response_cset_members_items = self.response['cset_members_items']
-
-    def test_cr_hierarchy_edges(self):
-        """Copied from test_csets_update()
-        Test backend: cr_hierarchy, defined in backend/app.py"""
-        response_edges = self.response['edges']
+    def test_get_cset_members_items(self):
+        self.assertEquals(get_cset_members_items([396155663, 643758668]),[
+            {'codeset_id': 643758668.0, 'concept_id': 4091006, 'csm': True,
+             'item': True, 'item_flags': 'includeDescendants', 'isExcluded': False,
+             'includeDescendants': True, 'includeMapped': False},
+            {'codeset_id': 396155663.0, 'concept_id': 4052321, 'csm': True, 'item': True,
+             'item_flags': '', 'isExcluded': False, 'includeDescendants': False, 'includeMapped': False},
+            {'codeset_id': 643758668.0, 'concept_id': 4052321, 'csm': True, 'item': True,
+             'item_flags': 'includeDescendants', 'isExcluded': False, 'includeDescendants': True,
+             'includeMapped': False},
+            {'codeset_id': 396155663.0, 'concept_id': 4091006, 'csm': True,
+             'item': True, 'item_flags': '', 'isExcluded': False, 'includeDescendants': False, 'includeMapped': False}])
 
     def test_subgraph(self):
         "tests subgraphs"
@@ -359,7 +279,6 @@ class TestCrHierarchy(unittest.TestCase):
         (code: select * from concept_relationship_plus where concept_id_1 = 1738170 and concept_id_2 = 1738171;
                select * from relationship where relationship_id = 'RxNorm ing of';)
         """
->>>>>>> develop
 
         #Test for a concept set that fills in the gaps (i.e between child and grandparent)
         edges2 = subgraph([1738170,19122186])
