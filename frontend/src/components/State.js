@@ -11,12 +11,77 @@ import CircularProgress from "@mui/material/CircularProgress";
 import Box from "@mui/material/Box";
 import { useQuery } from "@tanstack/react-query";
 import {queryClient} from "../App";
-import { createSearchParams } from "react-router-dom";
+import { createSearchParams, useSearchParams } from "react-router-dom";
 import { isEmpty, get, uniq, pullAt, fromPairs, flatten } from "lodash";
 import { pct_fmt } from "./utils";
 import WarningRoundedIcon from '@mui/icons-material/WarningRounded';
 import { CheckCircleRounded } from "@mui/icons-material";
+import { Inspector } from 'react-inspector'; // https://github.com/storybookjs/react-inspector
 
+
+/*
+    different kinds of state:
+
+    URL query string
+    handled by QueryStringStateMgr updateSearchParams(props) and searchParamsToObj(searchParams)
+      codeset_ids
+      editCodesetId
+      csetEditState
+      sort_json
+      use_example
+
+    Fetch at top level and passing props down from there
+    handled by DataContainer, useDataWidget, react-query, etc.
+      from cr-hierarchy
+        all_csets
+        cset_data
+          edges
+          cset_members_items
+          selected_csets
+          researchers
+          related_csets
+          concepts
+
+    reducers and context
+    handled by useAppState, AppStateProvider, useStateSlice(slice)
+      really using:
+        hierarchySettings
+      WIP, not using:
+        codeset_ids
+        concept_ids
+        editCset
+
+    DataAccessor
+        getConcepts -- much more efficient than getting from cr-hierarchy, and it works, but
+          not really using it
+
+    local to components, useState, etc.
+
+    Goals:
+      Manage all/
+ */
+export function ViewCurrentState(props) {
+  const [searchParams, setSearchParams] = useSearchParams();
+  const sp = searchParamsToObj(searchParams, setSearchParams);
+  const appState = useAppState();
+  return (<div style={{margin: 30, }}>
+    <h1>Current state</h1>
+
+    <h2>query string parameters</h2>
+    <Inspector data={sp} />
+
+    <h2>props</h2>
+    <Inspector data={props} />
+
+    <h2>app state (reducers)</h2>
+    <Inspector data={appState.getState()} />
+
+    <h2>dataAccessor</h2>
+    <Inspector data={dataAccessor.cache} />
+
+  </div>);
+
+}
 class DataAccess {
   constructor() {
     this.cache = this.loadCache() ?? {} // just a big js obj, add functionality to persist it
@@ -167,7 +232,7 @@ export function AppStateProvider({ children }) {
   const reducers = {
     // contentItems: useReducer(contentItemsReducer, defaultContentItems),
     codeset_ids: useReducer(codeset_idsReducer, []),
-    extraConceptIds: useReducer(extraConceptIdsReducer, []),
+    concept_ids: useReducer(currentConceptIdsReducer, []),
     editCset: useReducer(editCsetReducer),
     // more stuff needed
     hierarchySettings: [hierarchySettings, hsDispatch],
@@ -221,11 +286,21 @@ const codeset_idsReducer = (state, action) => { // not being used
       return state;
   }
 };
-const csetEditsReducer = (csetEdits, action) => {};
 
-const extraConceptIdsReducer = (extraConceptIds, action) => {
-  return extraConceptIds;
+const currentConceptIdsReducer = (state, action) => { // not being used
+  if (!(action && action.type)) return state;
+  switch (action.type) {
+    case "add_codeset_id": {
+      return [...state, parseInt(action.payload)].sort();
+    }
+    case "delete_codeset_id": {
+      return state.filter((d) => d != action.payload);
+    }
+    default:
+      return state;
+  }
 };
+const csetEditsReducer = (csetEdits, action) => {};
 
 function hierarchySettingsReducer(state, action) {
   if (!(action && action.type)) return state;
@@ -265,10 +340,6 @@ function hierarchySettingsReducer(state, action) {
       return state;
   }
 }
-
-// const DataContext = createContext(null);
-const SPContext = createContext(null);
-const SPDispatchContext = createContext(null);
 
 const SEARCH_PARAM_STATE_CONFIG = {
   scalars: ["editCodesetId", "sort_json", "use_example"],
@@ -352,13 +423,6 @@ export function updateSearchParams(props) {
   const csp = createSearchParams(sp);
   setSearchParams(csp);
 }
-export function clearSearchParams(props) {
-  const { searchParams, setSearchParams } = props;
-  const sp = searchParamsToObj(searchParams);
-  if (!isEmpty(sp)) {
-    setSearchParams(createSearchParams({}));
-  }
-}
 function Progress(props) {
   return (
     <Box sx={{ display: "flex" }}>
@@ -370,7 +434,7 @@ function Progress(props) {
 /* TODO: This is a total disaster. do something with it */
 function DataWidget(props) {
   const { isLoading, error, isFetching, ukey, url, putData, status } = props;
-  console.log(props);
+  // console.log(props);
   const callType = putData ? "Put" : "Get";
   let msg = {};
   // target="_blank" for opening in a new tab
