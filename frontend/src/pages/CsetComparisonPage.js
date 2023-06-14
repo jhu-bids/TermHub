@@ -7,7 +7,7 @@ import React, {
 import * as d3dag from "d3-dag";
 // import { createSearchParams, useSearchParams, } from "react-router-dom";
 import DataTable, { createTheme } from "react-data-table-component";
-import { AddCircle, RemoveCircleOutline } from "@mui/icons-material";
+import { AddCircle, RemoveCircleOutline, Download } from "@mui/icons-material";
 import { Box, Slider, Button, Typography, Switch } from "@mui/material";
 import Draggable from "react-draggable";
 // import {Checkbox} from "@mui/material";
@@ -15,6 +15,9 @@ import {isEmpty, get, throttle, max, uniq, uniqBy, flatten, sortBy} from "lodash
 import Graph from 'graphology';
 import {allSimplePaths} from 'graphology-simple-path';
 import {dfs, dfsFromNode} from 'graphology-traversal/dfs';
+import { saveAs } from 'file-saver';
+import Papa from 'papaparse';
+
 
 import {
   useStateSlice,
@@ -120,10 +123,15 @@ function CsetComparisonPage(props) {
     <Button key="distinct"
             disabled={!nested}
             onClick={() => hsDispatch({type:'nested', nested: false})}
-            sx={{ marginRight: '4px' }}
+            sx={{
+              marginRight: '4px',
+              display: "flex",
+              flexDirection: "row",
+            }}
     >
       {distinctRows.length} distinct concepts
     </Button>,
+
     <Button key="nested"
             disabled={nested}
             onClick={() => hsDispatch({type:'nested', nested: true})}
@@ -131,6 +139,8 @@ function CsetComparisonPage(props) {
     >
       {displayedRows.length} in hierarchy
     </Button>,
+    <Download key="download-distinct" onClick={ () => downloadTSV({...props, displayedRows}) }
+              sx={{ cursor: 'pointer' }} ></Download>,
     <FlexibleContainer key="legend" title="Legend" position={panelPosition}>
       <Legend />
     </FlexibleContainer>
@@ -199,6 +209,10 @@ function CsetComparisonPage(props) {
       <ComparisonDataTable /*squishTo={squishTo}*/ {...moreProps} />
     </div>
   );
+}
+
+function precisionRecall(props) {
+
 }
 
 function nodeToTree(node) {
@@ -665,6 +679,32 @@ function colConfig(props) {
   }
    */
   return coldefs;
+}
+function downloadTSV(props) {
+  const {displayedRows, codeset_ids, } = props;
+  const filename = 'thdownload-' + codeset_ids.join('-') + '.tsv';
+  const maxLevel = max(displayedRows.map(r => r.level));
+  // let columns = ['concept_id']
+  const rows = displayedRows.map(r => {
+    let row = {};
+    for (let i = 0; i <= maxLevel; i++) {
+      row['level' + i] = (r.level === i ? r.concept_name : '');
+    }
+    return {...row, ...r};
+  });
+  let config = {
+    delimiter: "\t",
+    newline: "\n",
+    // defaults
+    // quotes: false, //or array of booleans
+    // header: true,
+    // skipEmptyLines: false, //other option is 'greedy', meaning skip delimiters, quotes, and whitespace.
+    // columns: null //or array of strings
+  }
+  const dataString = Papa.unparse(rows, config);
+  // const blob = new Blob([dataString], { type: 'text/csv;charset=utf-8' });
+  const blob = new Blob([dataString], { type: 'text/tab-separated-values;charset=utf-8' });
+  saveAs(blob, filename);
 }
 
 // createTheme creates a new theme named solarized that overrides the build in dark theme

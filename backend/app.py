@@ -556,20 +556,14 @@ def cr_hierarchy(include_atlas_json: bool = False, codeset_ids: Union[str, None]
     # concept_relationships = get_concept_relationships(concept_ids)
 
     result = {
-        # todo: Check related_csets() to see its todo's
-        # 'concept_relationships': concept_relationships,
-        # 'hierarchy': h,
         'edges': edges,
-        'concepts': concepts,
-        'related_csets': related_csets,
-        # todo: Check get_csets() to see its todo's
+        'cset_members_items': cset_members_items,
         'selected_csets': selected_csets,
         'researchers': researchers,
-        'cset_members_items': cset_members_items,
-        # todo: concepts
-        # todo: frontend not making use of data_counts yet but will need
-        'data_counts': [],
-        # 'orphans': orphans,
+        # todo: Check related_csets() to see its todo's
+        # todo: Check get_csets() to see its todo's
+        'related_csets': related_csets,
+        'concepts': concepts,
     }
     verbose and timer('done')
 
