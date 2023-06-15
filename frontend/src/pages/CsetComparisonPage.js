@@ -728,7 +728,7 @@ function downloadTSV(props) {
 // Temporary, will probably be combined with downloadTSV into single function
 function downloadCSV(props) {
   const {displayedRows, codeset_ids, } = props;
-  const filename = 'thdownload-' + codeset_ids.join('-') + '.tsv';
+  const filename = 'thdownload-' + codeset_ids.join('-') + '.csv';
   const maxLevel = max(displayedRows.map(r => r.level));
   // let columns = ['concept_id']
   const rows = displayedRows.map(r => {
@@ -739,7 +739,7 @@ function downloadCSV(props) {
     return {...row, ...r};
   });
   let config = {
-    delimiter: "\t",
+    delimiter: ",",
     newline: "\n",
     // defaults
     // quotes: false, //or array of booleans
@@ -749,7 +749,7 @@ function downloadCSV(props) {
   }
   const dataString = Papa.unparse(rows, config);
   // const blob = new Blob([dataString], { type: 'text/csv;charset=utf-8' });
-  const blob = new Blob([dataString], { type: 'text/tab-separated-values;charset=utf-8' });
+  const blob = new Blob([dataString], { type: 'text/comma-separated-values;charset=utf-8' });
   saveAs(blob, filename);
 }
 
