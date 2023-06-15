@@ -139,9 +139,9 @@ function CsetComparisonPage(props) {
     >
       {displayedRows.length} in hierarchy
     </Button>,
-    <Button key="download-distinct"
+    <Button key="download-distinct-tsv"
             variant="outlined"
-            onClick={ () => downloadTSV({...props, displayedRows}) }
+            onClick={ () => downloadCSV({...props, displayedRows}, true) }
             sx={{
               cursor: 'pointer',
               marginRight: '4px',
@@ -149,7 +149,7 @@ function CsetComparisonPage(props) {
     >
       TSV <Download></Download>
     </Button>,
-    <Button key="download-distinct"
+    <Button key="download-distinct-csv"
             variant="outlined"
             onClick={ () => downloadCSV({...props, displayedRows}) }
             sx={{
@@ -698,37 +698,10 @@ function colConfig(props) {
    */
   return coldefs;
 }
-function downloadTSV(props) {
-  const {displayedRows, codeset_ids, } = props;
-  const filename = 'thdownload-' + codeset_ids.join('-') + '.tsv';
-  const maxLevel = max(displayedRows.map(r => r.level));
-  // let columns = ['concept_id']
-  const rows = displayedRows.map(r => {
-    let row = {};
-    for (let i = 0; i <= maxLevel; i++) {
-      row['level' + i] = (r.level === i ? r.concept_name : '');
-    }
-    return {...row, ...r};
-  });
-  let config = {
-    delimiter: "\t",
-    newline: "\n",
-    // defaults
-    // quotes: false, //or array of booleans
-    // header: true,
-    // skipEmptyLines: false, //other option is 'greedy', meaning skip delimiters, quotes, and whitespace.
-    // columns: null //or array of strings
-  }
-  const dataString = Papa.unparse(rows, config);
-  // const blob = new Blob([dataString], { type: 'text/csv;charset=utf-8' });
-  const blob = new Blob([dataString], { type: 'text/tab-separated-values;charset=utf-8' });
-  saveAs(blob, filename);
-}
 
-// Temporary, will probably be combined with downloadTSV into single function
-function downloadCSV(props) {
+function downloadCSV(props, tsv=false) {
   const {displayedRows, codeset_ids, } = props;
-  const filename = 'thdownload-' + codeset_ids.join('-') + '.csv';
+  const filename = 'thdownload-' + codeset_ids.join('-') + (tsv ? '.tsv' : '.csv');
   const maxLevel = max(displayedRows.map(r => r.level));
   // let columns = ['concept_id']
   const rows = displayedRows.map(r => {
@@ -739,17 +712,22 @@ function downloadCSV(props) {
     return {...row, ...r};
   });
   let config = {
-    delimiter: ",",
+    delimiter: tsv ? "\t" : ",",
     newline: "\n",
     // defaults
-    // quotes: false, //or array of booleans
+    quotes: tsv ? false : (c => {
+      c = c.toString();
+      console.log(c);
+      return c.includes(",") || c.includes("\n");
+    }),
     // header: true,
     // skipEmptyLines: false, //other option is 'greedy', meaning skip delimiters, quotes, and whitespace.
-    // columns: null //or array of strings
+    // columns: null, //or array of strings
   }
   const dataString = Papa.unparse(rows, config);
-  // const blob = new Blob([dataString], { type: 'text/csv;charset=utf-8' });
-  const blob = new Blob([dataString], { type: 'text/comma-separated-values;charset=utf-8' });
+  const blob = new Blob([dataString], {
+    type: tsv ? 'text/tab-separated-values;charset=utf-8' : 'text/csv;charset=utf-8'
+  });
   saveAs(blob, filename);
 }
 
