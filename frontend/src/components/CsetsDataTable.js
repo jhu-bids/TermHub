@@ -17,13 +17,15 @@ function getCsetSelectionHandler(tooltipId) {
   const tt = document.getElementById(tooltipId);
 
   function handleRowMouseEnter(row, event) {
-    tt.style.display = 'block';
     tt.style.left = `${event.clientX}px`;
     tt.style.top = `${event.clientY}px`;
+    tt.style.display = 'block';
+    console.log("Enter");
   }
 
   function handleRowMouseLeave(row, event) {
     tt.style.display = 'none';
+    console.log("Leave");
   }
 
   return [handleRowMouseEnter, handleRowMouseLeave];
