@@ -63,12 +63,12 @@ export function ConceptGraph(props) {
         }),
         ( use_example === 1 && simpleGraphExample ||
           use_example === 2 && mediumGraphExample ||
-          fetchItems('edge', concept_ids, ()=>{})
+          fetchItems('edge', concept_ids)
         )
       ]);
       setData({concept_ids, edges: formatEdges(edges), concepts});
     })()
-  }, [])
+  }, []);
   useEffect(() => {
     if (!edges.length) {
       return;

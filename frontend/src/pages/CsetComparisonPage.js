@@ -11,7 +11,7 @@ import { AddCircle, RemoveCircleOutline, Download } from "@mui/icons-material";
 import { Box, Slider, Button, Typography, Switch } from "@mui/material";
 import Draggable from "react-draggable";
 // import {Checkbox} from "@mui/material";
-import {isEmpty, get, throttle, max, uniq, uniqBy, flatten, sortBy} from "lodash"; // set, map, omit, pick, uniq, reduce, cloneDeepWith, isEqual, uniqWith, groupBy,
+import {isEmpty, get, throttle, max, union, uniqBy, flatten, sortBy} from "lodash"; // set, map, omit, pick, uniq, reduce, cloneDeepWith, isEqual, uniqWith, groupBy,
 import Graph from 'graphology';
 import {allSimplePaths} from 'graphology-simple-path';
 import {dfs, dfsFromNode} from 'graphology-traversal/dfs';
@@ -55,7 +55,6 @@ function CsetComparisonPage(props) {
     setSearchParams,
     editCodesetId,
     csetEditState,
-    concepts,
     cset_data, // TODO: get rid of this and use dataAccessor -- but more work to be done on that first
   } = props;
   const { selected_csets = [], researchers, } = cset_data;
@@ -66,15 +65,35 @@ function CsetComparisonPage(props) {
   const boxRef = useRef();
   const sizes = getSizes(/*squishTo*/ 1);
   const customStyles = styles(sizes);
+  const [data, setData] =
+      useState({ concept_ids: [], edges: [], concepts: [], });
+  const { concept_ids, edges, concepts, } = data;
 
   useEffect(() => {
-    async function fetchData() {
-      const _concepts = await dataAccessor.getItemsByKey('concept', 'concept_id', concept_ids, 'array');
-      setConcepts(_concepts);
-    }
-    fetchData();
-  }, []);
-  // console.log(EDGES);
+    (async () => {
+      let promises = [
+          dataAccessor.getItemsByKey(
+            { itemType: 'cset_members_items', keys: codeset_ids, shape: 'obj',
+              returnFunc: results => union(...Object.values(results)) }),
+          ];
+      const concept_ids = await dataAccessor.getItemsByKey(
+          { itemType: 'concept_ids_from_codeset_ids',
+            keys: codeset_ids,
+            shape: 'obj',
+            returnFunc: results => union(...Object.values(results))
+          });
+      const [
+        concepts,
+        csmi,
+      ] = await Promise.all(
+          [
+              dataAccessor.getItemsByKey(
+                  { itemType: 'concept', keys: concept_ids, shape: 'array' }),
+              ...promises
+          ]);
+      setData({concept_ids, concepts, csmi});
+    })()
+  }, [])
 
   // TODO: component is rendering twice. why? not necessary? fix?
   let {allRows, displayedRows, distinctRows, hidden} = getRowData({...props, hierarchySettings});

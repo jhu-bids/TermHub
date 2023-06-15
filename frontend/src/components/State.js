@@ -82,13 +82,21 @@ export function ViewCurrentState(props) {
     <pre>{stateDoc}</pre>
   </div>);
 }
-export async function fetchItems(itemType, paramList, storeToCacheFunc) {
+export async function fetchItems(itemType, paramList, storeToCacheFunc,
+                                 strategy = '1-to-1') {
   let url;
-  if (itemType === 'concept') {
-    // expects paramList of concept_ids
+
+  // We expect a 1-to-1 relationship between paramList items (concept_ids) and retrieved items (concepts)
+  if (itemType === 'concept') { // expects paramList of concept_ids
     url = backend_url('get-concepts?' + paramList.map(key => `id=${key}`).join('&'));
-  } else if (itemType === 'concept_ids_from_codeset_ids') {
-    // expects paramList of codeset_ids
+
+  } else if (itemType === 'cset_members_items') { // expects paramList of codeset_ids
+    url = backend_url('get-cset-members-items?'+ paramList.map(key => `codeset_ids=${key}`).join('&'));
+
+  } else if (itemType === 'concept_ids_from_codeset_ids') { // expects paramList of codeset_ids
+    /* This one is weird. With concept and cset_members_items we expect a 1-to
+
+     */
     const concept_id_groups = await Promise.all(paramList.map(
       async codeset_id => {
         url = backend_url(`get-concept_ids-from-codeset_ids?codeset_ids=${codeset_id}`);
@@ -105,9 +113,10 @@ export async function fetchItems(itemType, paramList, storeToCacheFunc) {
     }
     // return union(Object.values(concept_ids_by_codeset_id));
     return concept_id_groups;
-  } else if (itemType === 'edge') {
-    // expects paramList of concept_ids
+
+  } else if (itemType === 'edge') { // expects paramList of concept_ids
     url = backend_url('subgraph?'+ paramList.map(key => `id=${key}`).join('&'));
+
   } else {
     throw new Error(`Don't know how to fetch ${itemType}`);
   }
@@ -116,13 +125,16 @@ export async function fetchItems(itemType, paramList, storeToCacheFunc) {
   const queryFn = () => axiosGet(url);
   console.log("fetching", url);
   const data = await queryClient.fetchQuery({ queryKey, queryFn })
-  try {
-    storeToCacheFunc(data);
-    return data;
-  } catch (error) {
-    console.log(error);
+  if (storeToCacheFunc) {
+    try {
+      storeToCacheFunc(data);
+    } catch (error) {
+      console.log(error);
+    }
   }
+  return data;
 }
+
 class DataAccess {
   #cache = {};
   constructor() {
@@ -140,15 +152,20 @@ class DataAccess {
   }
   async cacheCheck() {
     const url = 'http://127.0.0.1:8000/last-refreshed';
-    const ts = Date(await axiosGet(url));
-    const lr = this.lastRefreshed() || 'long ago';
-    if (lr == ts) {
-      console.log(`no change since last refresh at ${lr}`);
-      return lr;
-    } else {
-      console.log(`previous DB refresh: ${lr}; latest DB refresh: ${ts}. Clearing localStorage.`);
+    const tsStr = await axiosGet(url);
+    const ts = new Date(tsStr);
+    if (isNaN(ts.getDate())) {
+      throw new Error(`invalid date from ${url}: ${tsStr}`);
+    }
+    const lrStr = this.lastRefreshed();
+    const lr = new Date(lrStr);
+    if (isNaN(lr.getDate()) || ts > lr) {
+      console.log(`previous DB refresh: ${lrStr}; latest DB refresh: ${ts}. Clearing localStorage.`);
       localStorage.clear();
       return this.#cache.lastRefreshTimestamp = ts;
+    } else {
+      console.log(`no change since last refresh at ${lr}`);
+      return lr;
     }
   }
   lastRefreshed() {
