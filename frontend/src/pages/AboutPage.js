@@ -118,8 +118,8 @@ function AboutPage(props) {
       <TextBody>
         {/*<p><Button variant={"outlined"}>*/}
         <Button variant={"contained"}
-                to="https://github.com/jhu-bids/TermHub/issues/new/choose"
-                component={Link}
+                href="https://github.com/jhu-bids/TermHub/issues/new/choose"
+                target="_blank" rel="noreferrer"
         >
             Create an issue
         </Button>
@@ -360,7 +360,7 @@ function howToSaveStagedChanges(params) {
         </LI>
         <LI>
           Come back to this tab, and{" "}
-          <a href={params.openInEnclaveLink} target="_blank">
+          <a href={params.openInEnclaveLink} target="_blank" rel="noreferrer">
             click to open this concept set in the Enclave
           </a>
         </LI>
