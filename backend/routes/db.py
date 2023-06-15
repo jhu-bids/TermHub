@@ -6,7 +6,7 @@ from functools import cache
 from typing import List
 from fastapi import APIRouter, Query
 from backend.db.queries import get_concepts
-from backend.db.utils import sql_query, get_db_connection
+from backend.db.utils import sql_query, sql_query_single_col, get_db_connection
 from backend.utils import JSON_TYPE, get_timer, pdump, return_err_with_trace
 
 router = APIRouter(
@@ -16,6 +16,17 @@ router = APIRouter(
     responses={404: {"description": "Not found"}},
 )
 
+
+@router.get('/last-refreshed')
+def last_refreshed_DB():
+    with get_db_connection() as con:
+        q = """
+              SELECT value
+              FROM public.manage
+              WHERE key = 'last_refreshed_DB'
+            """
+        results = sql_query_single_col(con, q)
+        return results[0]
 
 @cache
 @router.get('/omop-id-from-concept-name/{name}')

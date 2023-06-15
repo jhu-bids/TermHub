@@ -6,7 +6,7 @@ https://stackoverflow.com/questions/53219113/where-can-i-make-api-call-with-hook
 might be useful to look at https://mui.com/material-ui/guides/composition/#link
 referred to by https://stackoverflow.com/questions/63216730/can-you-use-material-ui-link-with-react-router-dom-link
 */
-import React from "react";
+import React, {useState, useEffect} from "react";
 import "./App.css";
 import {
   // Link, useHref, useParams, BrowserRouter, redirect,
@@ -45,8 +45,9 @@ import {
   searchParamsToObj,
   updateSearchParams,
   backend_url,
-  useDataWidget, dataAccessor,
-  ViewCurrentState,
+  useDataWidget,
+  dataAccessor,
+  ViewCurrentState, useStateSlice,
 } from "./components/State";
 import { UploadCsvPage } from "./components/UploadCsv";
 import { DownloadJSON } from "./components/DownloadJSON";
@@ -130,11 +131,21 @@ function QCProvider() {
 }
 function QueryStringStateMgr(props) {
   const location = useLocation();
+  const [lastRefresh, setLastRefresh] = useState(dataAccessor.lastRefreshed());
   const [searchParams, setSearchParams] = useSearchParams();
   // gets state (codeset_ids for now) from query string, passes down through props
   // const [codeset_ids, setCodeset_ids] = useState(sp.codeset_ids || []);
   const sp = searchParamsToObj(searchParams, setSearchParams);
   const { codeset_ids = [] } = sp;
+
+  useEffect(() => {
+    (async () => {
+      const timestamp = await dataAccessor.cacheCheck();
+      if (timestamp > lastRefresh) {
+        setLastRefresh(timestamp);
+      }
+    })();
+  });
 
   let globalProps = { ...sp, searchParams, setSearchParams };
 

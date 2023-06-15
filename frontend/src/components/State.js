@@ -124,7 +124,7 @@ export async function fetchItems(itemType, paramList, storeToCacheFunc) {
   }
 }
 class DataAccess {
-  #cache;
+  #cache = {};
   constructor() {
     this.#cache = this.loadCache() ?? {};
   }
@@ -137,6 +137,24 @@ class DataAccess {
   }
   loadCache = () => {
     return JSON.parse(localStorage.getItem('dataAccessor'));
+  }
+  async cacheCheck() {
+    const url = 'http://127.0.0.1:8000/last-refreshed';
+    const ts = Date(await axiosGet(url));
+    const lr = this.lastRefreshed() || 'long ago';
+    if (lr == ts) {
+      console.log(`no change since last refresh at ${lr}`);
+      return lr;
+    } else {
+      console.log(`previous DB refresh: ${lr}; latest DB refresh: ${ts}. Clearing localStorage.`);
+      localStorage.clear();
+      return this.#cache.lastRefreshTimestamp = ts;
+    }
+  }
+  lastRefreshed() {
+    // console.log('dataAccessor cache', this.getCache());
+    const lr = get(this.#cache,'lastRefreshTimestamp');
+    return lr;
   }
   async getItemsByKey({ itemType,
                         keyName,
