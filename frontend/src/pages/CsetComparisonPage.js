@@ -49,6 +49,7 @@ import _ from "../supergroup/supergroup";
 //  ...for coloration, since we want certain rows grouped together
 function CsetComparisonPage(props) {
   const {
+    codeset_ids = [],
     all_csets = [],
     searchParams,
     setSearchParams,
@@ -66,6 +67,13 @@ function CsetComparisonPage(props) {
   const sizes = getSizes(/*squishTo*/ 1);
   const customStyles = styles(sizes);
 
+  useEffect(() => {
+    async function fetchData() {
+      const _concepts = await dataAccessor.getItemsByKey('concept', 'concept_id', concept_ids, 'array');
+      setConcepts(_concepts);
+    }
+    fetchData();
+  }, []);
   // console.log(EDGES);
 
   // TODO: component is rendering twice. why? not necessary? fix?

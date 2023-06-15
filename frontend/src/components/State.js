@@ -12,16 +12,13 @@ import Box from "@mui/material/Box";
 import { useQuery } from "@tanstack/react-query";
 import {queryClient} from "../App";
 import { createSearchParams, useSearchParams } from "react-router-dom";
-import { isEmpty, get, uniq, pullAt, fromPairs, flatten } from "lodash";
+import { isEmpty, get, uniq, pullAt, fromPairs, flatten, union } from "lodash";
 import { pct_fmt } from "./utils";
 import WarningRoundedIcon from '@mui/icons-material/WarningRounded';
 import { CheckCircleRounded } from "@mui/icons-material";
 import { Inspector } from 'react-inspector'; // https://github.com/storybookjs/react-inspector
 
-
-/*
-    different kinds of state:
-
+const stateDoc = `
     URL query string
     handled by QueryStringStateMgr updateSearchParams(props) and searchParamsToObj(searchParams)
       codeset_ids
@@ -59,7 +56,8 @@ import { Inspector } from 'react-inspector'; // https://github.com/storybookjs/r
 
     Goals:
       Manage all/
- */
+`;
+
 export function ViewCurrentState(props) {
   const [searchParams, setSearchParams] = useSearchParams();
   const sp = searchParamsToObj(searchParams, setSearchParams);
@@ -77,130 +75,124 @@ export function ViewCurrentState(props) {
     <Inspector data={appState.getState()} />
 
     <h2>dataAccessor</h2>
-    <Inspector data={dataAccessor.cache} />
+    <Inspector data={dataAccessor.getCache()} />
 
+
+    <h2>The different kinds of state</h2>
+    <pre>{stateDoc}</pre>
   </div>);
-
+}
+export async function fetchItems(itemType, paramList, storeToCacheFunc) {
+  let url;
+  if (itemType === 'concept') {
+    // expects paramList of concept_ids
+    url = backend_url('get-concepts?' + paramList.map(key => `id=${key}`).join('&'));
+  } else if (itemType === 'concept_ids_from_codeset_ids') {
+    // expects paramList of codeset_ids
+    const concept_id_groups = await Promise.all(paramList.map(
+      async codeset_id => {
+        url = backend_url(`get-concept_ids-from-codeset_ids?codeset_ids=${codeset_id}`);
+        const queryKey = [`concept_ids_for_${codeset_id}`];
+        const queryFn = () => axiosGet(url);
+        console.log("fetching", url);
+        const data = await queryClient.fetchQuery({ queryKey, queryFn })
+        return data;
+      }));
+    try {
+      storeToCacheFunc(concept_id_groups);
+    } catch (error) {
+      console.log(error);
+    }
+    // return union(Object.values(concept_ids_by_codeset_id));
+    return concept_id_groups;
+  } else if (itemType === 'edge') {
+    // expects paramList of concept_ids
+    url = backend_url('subgraph?'+ paramList.map(key => `id=${key}`).join('&'));
+  } else {
+    throw new Error(`Don't know how to fetch ${itemType}`);
+  }
+  const queryKey = [itemType, JSON.stringify(paramList)];
+  // https://tanstack.com/query/v4/docs/react/reference/QueryClient#queryclientfetchquery
+  const queryFn = () => axiosGet(url);
+  console.log("fetching", url);
+  const data = await queryClient.fetchQuery({ queryKey, queryFn })
+  try {
+    storeToCacheFunc(data);
+    return data;
+  } catch (error) {
+    console.log(error);
+  }
 }
 class DataAccess {
+  #cache;
   constructor() {
-    this.cache = this.loadCache() ?? {} // just a big js obj, add functionality to persist it
+    this.#cache = this.loadCache() ?? {};
+  }
+  getCache() {
+    return this.#cache;
   }
   saveCache = () => {
-    localStorage.setItem('dataAccessor', JSON.stringify(this.cache));
+    localStorage.setItem('dataAccessor', JSON.stringify(this.#cache));
     return null;
   }
   loadCache = () => {
     return JSON.parse(localStorage.getItem('dataAccessor'));
   }
-  /* concept stuff as methods here. not sure if it would be worthwhile to do any
-      subclassing to handle specific data objects (codesets, concepts, subgraphs, etc.)
-    concepts will be a slice of the cache, looking like
-    cache: {
-      concepts: {
-        123: {
-          concept_id: 123,
-          concept_name: ...
-        }
-        456: {
-          concept_id: 456,
-          concept_name: ...
-        }
-      }
-   }
-   */
-  async getConcepts(concept_ids=[], shape='array' /* or obj */) {
+  async getItemsByKey({ itemType,
+                        keyName,
+                        keys=[],
+                        shape='array', /* or obj */
+                        returnFunc
+  }) {
+    // use this for concepts and cset_members_items
+    let wholeCache = get(this.#cache, itemType, {});
+    let cachedItems = {};     // this will hold the requested items that are already cached
+    let uncachedKeys = []; // requested items that still need to be fetched
+    let uncachedItems = {};   // this will hold the newly fetched items
 
-    let allCachedConcepts = get(this.cache, 'concepts', {});
-    let cachedConcepts = {};
-    let uncachedConceptIds = [];
-    let uncachedConcepts = {};
-    concept_ids.forEach(concept_id => {
-      if (allCachedConcepts[concept_id]) {
-        cachedConcepts[concept_id] = allCachedConcepts[concept_id];
+    keys.forEach(key => {
+      if (wholeCache[key]) {
+        cachedItems[key] = wholeCache[key];
       } else {
-        uncachedConceptIds.push(concept_id);
+        uncachedKeys.push(key);
       }
     })
-    if (uncachedConceptIds.length) {
-      const url = backend_url(
-          "get-concepts?" + uncachedConceptIds.map(c=>`id=${c}`).join("&")
-      );
-      const queryKey = ['concepts', ...concept_ids];
-      // https://tanstack.com/query/v4/docs/react/reference/QueryClient#queryclientfetchquery
-      const data = await this.fetch(
-          'concepts',
-          url,
-          queryKey,
-          this.store_concepts_to_cache);
-      data.forEach(c => uncachedConcepts[c.concept_id] = c);
+    if (uncachedKeys.length) {
+      const data = await fetchItems(
+          itemType,
+          uncachedKeys,
+          this.storeItemsByKeys({itemType, keys:uncachedKeys}));
+      data.forEach((item, i) => uncachedItems[keys[i]] = item);
     }
-    const results = { ...cachedConcepts, ...uncachedConcepts };
-    const not_found = concept_ids.filter(
-        x => !Object.values(results).map(c=>c.concept_id).includes(x));
+    const results = { ...cachedItems, ...uncachedItems };
+    const not_found = uncachedKeys.filter(key => !(key in results));
     if (not_found.length) {
       // TODO: let user see warning somehow
-      console.warn("Warning in DataAccess.getConcepts: couldn't find concepts for " +
-            not_found.join(', '))
+      console.warn(`Warning in DataAccess.getItemsByKey: failed to fetch ${itemType}s for ${not_found.join(', ')}`);
     }
-
+    if (returnFunc) {
+      return returnFunc(results);
+    }
     if (shape === 'array') {
       return Object.values(results);
     }
     return results;
   }
-  store_concepts_to_cache = (concepts=[]) => {
-    concepts.forEach(c => {
-      this.cache.concepts = this.cache.concepts ?? {};
-      this.cache.concepts[c.concept_id] = c;
-    })
+  storeItemsByKeys = ({itemType, keyName, keys=[]}) => {
+    return items => {
+      if (!isEmpty(keys)) {
+        if (items.length !== keys.length) {
+          throw new Error("mismatching items and keys lengths");
+        }
+      }
+      items.forEach((item,i) => {
+        this.#cache[itemType] = this.#cache[itemType] ?? {};
+        const key = keyName ? item[keyName] : keys[i];
+        this.#cache[itemType][key] = item;
+      });
+    };
   }
-  async getSubgraphEdges(concept_ids=[]) {
-
-    /*
-    // trying something new with wholegraph.json, so, won't need to get the subgraph edges like we were
-
-    let edges = get(this.cache, 'wholegraph');
-    if (isEmpty(edges)) {
-      edges = require('../../wholegraph.json');
-      this.cache.wholegraph = edges;
-    }
-    return edges;
-
-
-
-    // edges are more complicated than concepts, not trying to cache individual
-    // edges like caching individual concepts above. for right now, cache will
-    // only hold most recent subgraph call, which is pretty useless (already
-    //   cached by queryClient/persistor anyway)
-
-     */
-    const url = backend_url(
-        "subgraph?" + concept_ids.map(c=>`id=${c}`).join("&")
-    );
-    const queryKey = ['subgraph', ...concept_ids];
-    // https://tanstack.com/query/v4/docs/react/reference/QueryClient#queryclientfetchquery
-    const data = await this.fetch(
-        'subgraph',
-        url,
-        queryKey,
-       data => this.cache.subgraph = data);
-    return data;
-  }
-  async fetch(path,
-              url,
-              queryKey /* can be array or str, i think */,
-              cacheSaveFunc) {
-    console.log("fetching", url);
-    const queryFn = () => axiosGet(url);
-    const data = await queryClient.fetchQuery({ queryKey, queryFn })
-    try {
-      cacheSaveFunc(data);
-      return data;
-    } catch (error) {
-      console.log(error);
-    }
-    return data;
+  getConceptIds(codeset_ids=[], ) {
   }
 }
 export const dataAccessor = new DataAccess();

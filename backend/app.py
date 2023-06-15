@@ -369,8 +369,23 @@ def _get_all_csets() -> Union[Dict, List]:
     return get_all_csets()
 
 
+@APP.get("/get-cset-members-items")
+def _get_cset_members_items(codeset_ids: str,
+                            columns: Union[List[str], None] = Query(default=None),
+                            column: Union[str, None] = Query(default=None)
+            ) -> Union[List[int], List]:
+    requested_codeset_ids = parse_codeset_ids(codeset_ids)
+    return get_cset_members_items(requested_codeset_ids, columns, column)
+
+
+@APP.get("/get-concept_ids-from-codeset_ids")
+def get_concept_ids_from_codeset_ids(codeset_ids: str) -> List[int]:
+    requested_codeset_ids = parse_codeset_ids(codeset_ids)
+    return get_cset_members_items(requested_codeset_ids, column='concept_id')
+
+
 # TODO: the following is just based on concept_relationship
-#       should also check whether relationships exis/{CONFIG["db"]}?charset=utf8mb4't in concept_ancestor
+#       should also check whether relationships exist in concept_ancestor
 #       that aren't captured here
 # TODO: Add concepts outside the list of codeset_ids?
 #       Or just make new issue for starting from one cset or concept

@@ -39,7 +39,7 @@ import Paper from "@mui/material/Paper";
 import { ConceptSetsPage } from "./components/Csets";
 import { CsetComparisonPage } from "./pages/CsetComparisonPage";
 import { AboutPage } from "./pages/AboutPage";
-import { currentConceptIds, ConceptGraph } from "./components/ConceptGraph";
+import { ConceptGraph } from "./components/ConceptGraph";
 import {
   AppStateProvider,
   searchParamsToObj,
@@ -234,6 +234,7 @@ function DataContainer(props) {
     cset_data.conceptLookup = keyBy(cset_data.concepts, "concept_id");
     // dataAccessor.cache.conceptLookup = cset_data.conceptLookup;
 
+    /*
     if ("selected_csets" in cset_data) {
       dataAccessor.cache.selected_csets = cset_data.selected_csets;
     } else {
@@ -242,6 +243,7 @@ function DataContainer(props) {
 
     dataAccessor.cache.researchers = cset_data.researchers;
     dataAccessor.cache.hierarchy = cset_data.hierarchy;
+     */
 
     const csmiLookup = {};
     // cset_data.cset_members_items.map(mi => set(csmiLookup, [mi.codeset_id, mi.concept_id], mi));
@@ -298,7 +300,7 @@ function RoutesContainer(props) {
         <Route path="upload-csv" element={<UploadCsvPage {...props} />} />
         <Route
             path="graph"
-            element={<ConceptGraph {...props} concept_ids={currentConceptIds(props)} />}
+            element={<ConceptGraph {...props} />}
         />
         <Route path="download-json" element={<DownloadJSON {...props} />} />
         <Route path="view-state" element={<ViewCurrentState {...props} />} />
