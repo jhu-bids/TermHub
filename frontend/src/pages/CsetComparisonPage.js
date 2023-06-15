@@ -704,28 +704,52 @@ function downloadCSV(props, tsv=false) {
   const filename = 'thdownload-' + codeset_ids.join('-') + (tsv ? '.tsv' : '.csv');
   const maxLevel = max(displayedRows.map(r => r.level));
   // let columns = ['concept_id']
+  const first_keys = ['Patients', 'Records', 'Vocabulary', 'Concept code'];
+  const last_keys = ['Include', 'Exclude', 'Notes'];
+  const excluded_keys = ['pathToRoot', 'hasChildren'];
+  const key_convert = {
+    'level': 'Level',
+    'concept_code': 'Concept code',
+    'concept_class_id': 'Concept class',
+    'domain_id': 'Concept domain',
+    'domain': 'Domain tables with concept',
+    'domain_cnt': 'Domain count',
+    'standard_concept': 'OMOP standard',
+    'invalid_reason': 'Invalid reason',
+    'distinct_person_cnt': 'Patients',
+    'total_cnt': 'Records',
+    'vocabulary_id': 'Vocabulary',
+    'concept_id': 'Concept ID',
+    'concept_name': 'Concept name',
+  };
+
   const rows = displayedRows.map(r => {
     let row = {};
     for (let i = 0; i <= maxLevel; i++) {
       row['level' + i] = (r.level === i ? r.concept_name : '');
     }
-    return {...row, ...r};
+    for (let k in r) {
+      if (!excluded_keys.includes(k)) {
+        row[key_convert[k]] = r[k];
+      }
+    }
+    return row;
   });
 
-  let columns = [];
+  let columns = ['Level'];
   for (let i = 0; i <= maxLevel; i++) {
     columns.push('level' + i);
   }
-  const first_keys = ['distinct_person_cnt', 'total_cnt', 'vocabulary_id'];
   columns.push(...first_keys);
   Object.keys(displayedRows[0]).forEach(k => {
-    if (!first_keys.includes(k)) {
-      columns.push(k);
+    if (excluded_keys.includes(k)) {
+      return;
+    }
+    if (!first_keys.includes(k) && k !== 'level') {
+      columns.push(key_convert[k]);
     }
   });
-  const last_keys = ['Include', 'Exclude', 'Notes'];
   columns.push(...last_keys);
-
   for (let i = 0; i < rows.length; i++) {
     for (let j = 0; j < last_keys.length; j++) {
       rows[i][last_keys[j]] = '';
