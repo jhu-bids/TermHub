@@ -711,18 +711,42 @@ function downloadCSV(props, tsv=false) {
     }
     return {...row, ...r};
   });
+
+  let columns = [];
+  for (let i = 0; i <= maxLevel; i++) {
+    columns.push('level' + i);
+  }
+  const first_keys = ['distinct_person_cnt', 'total_cnt', 'vocabulary_id'];
+  columns.push(...first_keys);
+  Object.keys(displayedRows[0]).forEach(k => {
+    if (!first_keys.includes(k)) {
+      columns.push(k);
+    }
+  });
+  const last_keys = ['Include', 'Exclude', 'Notes'];
+  columns.push(...last_keys);
+
+  for (let i = 0; i < rows.length; i++) {
+    for (let j = 0; j < last_keys.length; j++) {
+      rows[i][last_keys[j]] = '';
+    }
+  }
+
   let config = {
     delimiter: tsv ? "\t" : ",",
     newline: "\n",
     // defaults
     quotes: tsv ? false : (c => {
       c = c.toString();
-      console.log(c);
       return c.includes(",") || c.includes("\n");
     }),
+    error: (error, file) => {
+      console.error(error);
+      console.log(file);
+    },
     // header: true,
     // skipEmptyLines: false, //other option is 'greedy', meaning skip delimiters, quotes, and whitespace.
-    // columns: null, //or array of strings
+    columns: columns, //or array of strings
   }
   const dataString = Papa.unparse(rows, config);
   const blob = new Blob([dataString], {
