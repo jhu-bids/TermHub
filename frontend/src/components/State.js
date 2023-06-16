@@ -17,6 +17,7 @@ import { pct_fmt } from "./utils";
 import WarningRoundedIcon from '@mui/icons-material/WarningRounded';
 import { CheckCircleRounded } from "@mui/icons-material";
 import { Inspector } from 'react-inspector'; // https://github.com/storybookjs/react-inspector
+import {formatEdges} from '../components/ConceptGraph';
 
 const stateDoc = `
     URL query string
@@ -152,7 +153,7 @@ export async function fetchItems( itemType, paramList) {
     // return union(Object.values(concept_ids_by_codeset_id));
   }
 
-  else if (itemType === 'edge') { // expects paramList of concept_ids
+  else if (itemType === 'edges') { // expects paramList of concept_ids
     // each unique set of concept_ids gets a unique set of edges
     // check cache first (because this request won't come from getItemsByKey)
     const cacheKey = paramList.join('|');
@@ -160,9 +161,34 @@ export async function fetchItems( itemType, paramList) {
     if (isEmpty(data)) {
       url = backend_url('subgraph?'+ paramList.map(key => `id=${key}`).join('&'));
       data = await axiosGet(url);
+      data = formatEdges(data);
       dataAccessor.cachePut([itemType, cacheKey], data);
     }
   }
+
+  else if (itemType === 'related_csets') { // expects paramList of codeset_ids
+    // each unique set of codeset_ids gets a unique set of related_csets
+    // this is the same pattern as edges above. make a single function for
+    //  this pattern like oneToOneFetchAndCache --- oh, except the formatEdges part
+    const cacheKey = paramList.join('|');
+    data = dataAccessor.cacheGet([itemType, cacheKey]);
+    if (isEmpty(data)) {
+      const url = backend_url('related-csets?codeset_ids=' + paramList.join('|'));
+      data = await axiosGet(url);
+      // data = formatEdges(data);
+      dataAccessor.cachePut([itemType, cacheKey], data);
+    }
+  }
+
+  else if (itemType === 'all_csets') {
+    data = dataAccessor.cacheGet([itemType]);
+    if (isEmpty(data)) {
+      url = backend_url('get-all-csets');
+      data = await axiosGet(url);
+      dataAccessor.cachePut([itemType], data);
+    }
+  }
+
   else {
     throw new Error(`Don't know how to fetch ${itemType}`);
   }

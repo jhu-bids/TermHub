@@ -16,6 +16,7 @@ import CardContent from "@mui/material/CardContent";
 import Typography from "@mui/material/Typography";
 // import * as po from '../pages/Popover';
 import { DOCS } from "../pages/AboutPage";
+import {fetchItems} from "./State";
 
 /* TODO: Solve
     react_devtools_backend.js:4026 MUI: The value provided to Autocomplete is invalid.
@@ -42,21 +43,27 @@ function initialOpts(all_csets, codesetIds) {
   return opts;
 }
 export function CsetSearch(props) {
-  const { codeset_ids=[], changeCodesetIds, all_csets = [] } = props;
+  const { codeset_ids=[], changeCodesetIds, } = props;
   const [opts, setOpts] = useState([]);
   const [value, setValue] = useState([]);
+  const [data, setData] = useState({});
+  const { all_csets, selected_csets, relatedCsets,  } = data;
 
   // const [keyForRefreshingAutocomplete, setKeyForRefreshingAutocomplete] = useState(0);
   // necessary to change key for reset because of Autocomplete bug, according to https://stackoverflow.com/a/59845474/1368860
   useEffect(() => {
-    if (!all_csets.length) {
-      return;
-    }
-    const _opts = initialOpts(all_csets, codeset_ids);
-    setOpts(_opts);
-    // setValue(_opts.filter(d => codeset_ids.includes(d.value)));
-    setValue(codeset_ids);
-  }, [all_csets])
+    (async () => {
+      const all_csets = await fetchItems('all_csets', ['stub']);
+      setData({all_csets});
+      const _opts = initialOpts(all_csets, codeset_ids);
+      setOpts(_opts);
+      setValue(codeset_ids);
+    })()
+  }, []);
+
+  if (!codeset_ids.length || isEmpty(data)) {
+    return <p>Downloading...</p>;
+  }
 
   if (!all_csets.length) {
     return <span />;
@@ -68,7 +75,7 @@ export function CsetSearch(props) {
     <Autocomplete
       multiple
       // key={keyForRefreshingAutocomplete}
-      value={value}
+      value={codeset_ids}
       onChange={(event, newValue) => {
         setValue(newValue.map(option => option.value || option));
       }}
@@ -166,6 +173,22 @@ export function CsetSearch(props) {
 
 function ConceptSetsPage(props) {
   const { codeset_ids } = props;
+  const [data, setData] = useState({});
+  const { all_csets, selected_csets, allRelatedCsets,  } = data;
+
+  useEffect(() => {
+    (async () => {
+      let allRelatedCsets = await fetchItems('related_csets', codeset_ids, );
+      const selected_csets = allRelatedCsets.filter(cset => cset.selected);
+      setData({selected_csets, allRelatedCsets});
+    })()
+  }, [codeset_ids.join('|')]);
+  if (codeset_ids.length && isEmpty(allRelatedCsets)) {
+    return <p>Downloading...</p>;
+  }
+
+  props = {...props, allRelatedCsets, selected_csets };
+
   if (!codeset_ids.length) {
     return (
       <>

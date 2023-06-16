@@ -214,80 +214,7 @@ function QueryStringStateMgr(props) {
   if (!globalProps.codeset_ids) {
     globalProps.codeset_ids = [];
   }
-  return (
-    <DataContainer /* searchParams={searchParams}*/
-      // codeset_ids={codeset_ids}
-      changeCodesetIds={changeCodesetIds}
-      {...globalProps}
-    />
-  );
-}
-function DataContainer(props) {
-  let { codeset_ids } = props;
-  const all_csets_url = backend_url("get-all-csets");
-  const cset_data_url = backend_url(
-    "cr-hierarchy?codeset_ids=" + codeset_ids.join("|")
-  );
-  // /crconst cr_url = 'get-concept_relationships?codeset_ids=' + codeset_ids.join('|');
-
-  /* TODO: This is a total disaster. do something with it */
-  const [all_csets_widget, acprops] = useDataWidget("all_csets", all_csets_url);
-  const [cset_data_widget, csprops] = useDataWidget(
-    codeset_ids.join("|"),
-    cset_data_url
-  );
-  // const [cr_widget, crprops] = useDataWidget('cr' + codeset_ids.join('|'), cr_url);
-  const all_csets = acprops.data;
-  const cset_data = csprops.data;
-  // const concept_relationships = crprops.data;
-
-  if (all_csets && cset_data /*&& concept_relationships*/) {
-    cset_data.conceptLookup = keyBy(cset_data.concepts, "concept_id");
-    // dataAccessor.cache.conceptLookup = cset_data.conceptLookup;
-
-    /*
-    if ("selected_csets" in cset_data) {
-      dataAccessor.cache.selected_csets = cset_data.selected_csets;
-    } else {
-      dataAccessor.cache.selected_csets = [];
-    }
-
-    dataAccessor.cache.researchers = cset_data.researchers;
-    dataAccessor.cache.hierarchy = cset_data.hierarchy;
-     */
-
-    const csmiLookup = {};
-    // cset_data.cset_members_items.map(mi => set(csmiLookup, [mi.codeset_id, mi.concept_id], mi));
-    // the line above created the most bizarre crashing behavior -- fixed by replacing the lodash set with simple loop below
-    cset_data.cset_members_items.forEach((mi) => {
-      csmiLookup[mi.codeset_id] = csmiLookup[mi.codeset_id] || {};
-      csmiLookup[mi.codeset_id][mi.concept_id] = mi;
-    });
-    cset_data.csmiLookup = csmiLookup;
-
-    return (
-      <RoutesContainer {...props} all_csets={all_csets} cset_data={cset_data} />
-    );
-  }
-  return (
-    <Routes>
-      <Route path="/" element={<App {...props} />}>
-        <Route
-          path="*"
-          element={
-            <div style={{ padding: "0 20px" }}>
-              <h3>Waiting for data</h3>
-              <Box sx={{ display: "flex" }}>
-                {all_csets_widget}
-                {cset_data_widget}
-                {/*cr_widget*/}
-              </Box>
-            </div>
-          }
-        />
-      </Route>
-    </Routes>
-  );
+  return <RoutesContainer {...globalProps} changeCodesetIds={changeCodesetIds} />;
 }
 function RoutesContainer(props) {
   window.props_w = props;
@@ -299,9 +226,10 @@ function RoutesContainer(props) {
         <Route
             path="cset-comparison"
             element={<CsetComparisonPage {...props}
-                       concepts={props.cset_data.concepts}
-                       conceptLookup={props.cset_data.conceptLookup}
-                       edges={props.cset_data.edges} />}
+                       // concepts={props.cset_data.concepts}
+                       // conceptLookup={props.cset_data.conceptLookup}
+                       // edges={props.cset_data.edges}
+            />}
         />
         <Route
             path="OMOPConceptSets"

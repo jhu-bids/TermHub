@@ -19,12 +19,7 @@ import { saveAs } from 'file-saver';
 import Papa from 'papaparse';
 
 
-import {
-  useStateSlice,
-  hierarchyToFlatCids,
-  makeHierarchyRows,
-  dataAccessor
-} from "../components/State";
+import { useStateSlice, fetchItems, dataAccessor } from "../components/State";
 import { fmt, useWindowSize } from "../components/utils";
 import { setColDefDimensions } from "../components/dataTableUtils";
 import { ConceptSetCard } from "../components/ConceptSetCard";
@@ -40,9 +35,8 @@ import {
   textCellForItem,
 } from "../components/EditCset";
 import { CsetsDataTable } from "../components/CsetsDataTable";
-// import {EDGES} from '../components/ConceptGraph';
 import { FlexibleContainer } from "../components/FlexibleContainer";
-import _ from "../supergroup/supergroup";
+// import _ from "../supergroup/supergroup";
 
 // TODO: Find concepts w/ good overlap and save a good URL for that
 // TODO: show table w/ hierarchical indent
@@ -67,7 +61,7 @@ function CsetComparisonPage(props) {
   const customStyles = styles(sizes);
   const [data, setData] = useState({});
       // useState({ concept_ids: [], selected_csets: [], edges: [], concepts: [], });
-  const { concept_ids, edges, concepts, selected_csets, csmi } = data;
+  const { concept_ids, edges, concepts, conceptLookup, selected_csets, csmi } = data;
 
   useEffect(() => {
     if (boxRef.current) {
@@ -96,22 +90,26 @@ function CsetComparisonPage(props) {
             returnFunc: results => [...Object.values(results)]} ),
       ];
       // have to get concept_ids before fetching concepts
-      const concept_ids = await dataAccessor.getItemsByKey(
+      let concept_ids = await dataAccessor.getItemsByKey(
           { itemType: 'concept_ids_from_codeset_ids',
             keys: codeset_ids,
             shape: 'obj',
             returnFunc: results => union(...Object.values(results))
           });
+      // have to get edges, which might contain more concept_ids after filling gaps
+      const edges = await fetchItems('edges', concept_ids, );
+      concept_ids = union(concept_ids, flatten(edges));
       promises.push(
           dataAccessor.getItemsByKey(
-              { itemType: 'concept', keys: concept_ids, shape: 'array' }),
+              { itemType: 'concept', keys: concept_ids, shape: 'obj' }),
       );
       const [
         csmi,
         selected_csets,
-        concepts,
+        conceptLookup,
       ] = await Promise.all(promises);
-      setData({csmi, selected_csets, concept_ids, concepts});
+      const concepts = Object.values(conceptLookup);
+      setData({csmi, selected_csets, concept_ids, concepts, edges});
     })()
   }, []);
 
@@ -120,7 +118,8 @@ function CsetComparisonPage(props) {
   }
 
   // TODO: component is rendering twice. why? not necessary? fix?
-  let {allRows, displayedRows, distinctRows, hidden} = getRowData({...props, hierarchySettings});
+  let {allRows, displayedRows, distinctRows, hidden} = getRowData(
+      {...props, concepts, edges, hierarchySettings});
   let rowData;
   if (nested) {
     rowData = displayedRows;
@@ -132,12 +131,14 @@ function CsetComparisonPage(props) {
   const editAction = getCodesetEditActionFunc({
     searchParams,
     setSearchParams,
+    csmi,
   });
   const editCodesetFunc = getEditCodesetFunc({ searchParams, setSearchParams });
 
 
   let columns = colConfig({
     ...props,
+    csmi,
     selected_csets,
     concepts,
     editAction,
@@ -220,7 +221,7 @@ function CsetComparisonPage(props) {
                              title={`${Object.keys(csidState).length} Staged changes`}
                              position={panelPosition}
           >
-            <EditInfo {...props} />
+            <EditInfo {...props} selected_csets={selected_csets} conceptLookup={conceptLookup} />
           </FlexibleContainer>,
 
           <FlexibleContainer key="instructions"
@@ -478,6 +479,8 @@ function colConfig(props) {
   let {
     selected_csets,
     concepts,
+    conceptLookup,
+    csmi,
     sizes,
     editAction,
     editCodesetFunc,
