@@ -12,7 +12,7 @@ import Box from "@mui/material/Box";
 import { useQuery } from "@tanstack/react-query";
 import {queryClient} from "../App";
 import { createSearchParams, useSearchParams } from "react-router-dom";
-import { isEmpty, get, set, fromPairs, flatten, union } from "lodash";
+import { isEmpty, get, set, fromPairs, flatten, keyBy } from "lodash";
 import { pct_fmt } from "./utils";
 import WarningRoundedIcon from '@mui/icons-material/WarningRounded';
 import { CheckCircleRounded } from "@mui/icons-material";
@@ -128,7 +128,7 @@ export async function fetchItems( itemType, paramList) {
       debugger;
     }
     data.forEach((group,i) => {
-      dataAccessor.cachePut([itemType, paramList[i]], group);
+      dataAccessor.cachePut([itemType, paramList[i]], keyBy(group, 'concept_id'));
     })
   }
 
@@ -224,7 +224,7 @@ class DataAccess {
   loadCache = () => {
     return JSON.parse(localStorage.getItem('dataAccessor'));
   }
-  cacheGet(path, asArrayOfValues = false) {
+  cacheGet(path) {
     // uses lodash get, so path can be array of nested keys or a string with
     //  keys delimited by .
     // so dataAccessor.cacheGet('concept')
@@ -232,7 +232,8 @@ class DataAccess {
     // dataAccessor.cacheGet('concept.12345') or
     // dataAccessor.cacheGet(['concept', '12345'])
     //  gets the concept with concept_id 12345
-    return get(this.#cache, path);
+    path = pathToArray(path);
+    return isEmpty(path) ? this.getWholeCache() : get(this.#cache, path);
   }
   cachePut(path, value, storeAsArray=false) {
     let [parentPath , parentObj, ] = this.popLastPathKey(path);
@@ -247,7 +248,7 @@ class DataAccess {
     set(this.#cache, path, value);
   }
   popLastPathKey(path) {
-    path = pathToArray([...path]);
+    path = [...pathToArray(path)];
     const lastKey = path.pop();
     return [path, this.cacheGet(path), lastKey];
   }
@@ -612,7 +613,7 @@ export function StatsMessage(props) {
 }
 export function pathToArray(path) {
   if (isEmpty(path)) {
-    throw new Error(`Can't use empty paths`);
+    return [];
   }
   if (Array.isArray(path)) {
     return path;
