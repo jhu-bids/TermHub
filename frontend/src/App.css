@@ -103,6 +103,11 @@ body {
 .csets-data-table > .rdt_TableHeader {
   min-height: 0px;
 }
+
+#selected-csets-table > .rdt_TableHeader > div:nth-child(2) {
+  visibility: hidden;
+}
+
 .csets-data-table .rdt_Table {
   padding: 0px;
 }
