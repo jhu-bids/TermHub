@@ -54,6 +54,7 @@ def hierarchy(id: List[int] = Query(...)):   # id is a list of concept ids
 
 
 def connected_subgraph_from_nodes(nodes, G, G_undirected=None, verbose=False):
+    # what this fails to do is fill in gaps if the subgraph is already connected
     timer = get_timer('  connected_subgraph_from_nodes')
     if not G_undirected:
         verbose and timer(f'convert G to undirected')

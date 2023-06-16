@@ -1,17 +1,13 @@
 import React, {useState, useEffect} from "react";
-import {dataAccessor} from "./State";
+import {dataAccessor, fetchItems, } from "./State";
 import _ from "../supergroup/supergroup";
 import * as d3Base from "d3";
 import * as d3dag from "d3-dag";
 import Graph from "graphology";
-import {uniq, flatten} from "lodash";
+import {uniq, flatten, union} from "lodash";
 
 const d3 = Object.assign({}, d3Base, d3dag);
 
-export function currentConceptIds(props) {
-  const concepts = props?.cset_data?.concepts ?? [];
-  return concepts.map(c => c.concept_id);
-}
 function formatEdges(edges=[]) {
   if (!edges.length) return [];
   let etest = edges[0];
@@ -38,249 +34,40 @@ function formatEdges(edges=[]) {
   return pairs.map(e => [e[0].toString(), e[1].toString()]);
 }
 export function ConceptGraph(props) {
-  const {concept_ids, use_example=false} = props;
-  const [concepts, setConcepts] = useState([]);
-  const [edges, setEdges] = useState([]);
+  const {codeset_ids, use_example=false} = props;
+  const [data, setData] =
+      useState({ concept_ids: [], edges: [], concepts: [], });
+  const { concept_ids, edges, concepts, } = data;
   const [svgSize, setSvgSize] = useState({width: 500, height: 500});
   const svg = React.useRef();
-
-  var doc_height = window.innerHeight * .8;
-  var doc_width = window.innerWidth * .9;
-  // const doc_height = 500;
-  // const doc_width = 500;
-
-  console.log({concept_ids, concepts, props});
-  window.d3 = d3;
-  // console.log(EDGES);
+  const doc_height = window.innerHeight * .8;
+  const doc_width = window.innerWidth * .9;
+  // window.d3 = d3;
 
   useEffect(() => {
-    async function fetchData() {
-      const _concepts = await dataAccessor.getConcepts(concept_ids, 'array');
-      setConcepts(_concepts);
-    }
-    fetchData();
-  }, []);
-  useEffect(() => {
-    async function fetchData() {
-      if (use_example == 1) {
-        const ex = [{p:'a', c:'b'}, {p:'a', c:'c'}, {p:'a', c:'d'},
-          {p:'b', c:'e'}, {p:'b', c:'f'},
-          {p:'c', c:'f'},
-          {p:'d', c:'g'},
-          {p:'e', c:'h'},
-          {p:'f', c:'h'},
-            /*
-          {p:'b2', c:'e2'}, {p:'b2', c:'f2'},
-          {p:'c2', c:'f2'},
-          {p:'d2', c:'g2'},
-          {p:'e2', c:'h2'},
-          {p:'f2', c:'h2'} */
-        ]
-        setEdges(formatEdges(ex));
-        return;
-      }
-      if (use_example == 2) {
-        const ex = [
-          {
-            "sub": "N3C:4043671",
-            "pred": "rdfs:subClassOf",
-            "obj": "N3C:254068",
-            "meta": null
-          },
-          {
-            "sub": "N3C:4043671",
-            "pred": "rdfs:subClassOf",
-            "obj": "N3C:4180170",
-            "meta": null
-          },
-          {
-            "sub": "N3C:4180170",
-            "pred": "rdfs:subClassOf",
-            "obj": "N3C:4162282",
-            "meta": null
-          },
-          {
-            "sub": "N3C:4162282",
-            "pred": "rdfs:subClassOf",
-            "obj": "N3C:320136",
-            "meta": null
-          },
-          {
-            "sub": "N3C:4162282",
-            "pred": "rdfs:subClassOf",
-            "obj": "N3C:4178818",
-            "meta": null
-          },
-          {
-            "sub": "N3C:4178818",
-            "pred": "rdfs:subClassOf",
-            "obj": "N3C:4180169",
-            "meta": null
-          },
-          {
-            "sub": "N3C:4180169",
-            "pred": "rdfs:subClassOf",
-            "obj": "N3C:4027384",
-            "meta": null
-          },
-          {
-            "sub": "N3C:4027384",
-            "pred": "rdfs:subClassOf",
-            "obj": "N3C:4274025",
-            "meta": null
-          },
-          {
-            "sub": "N3C:4274025",
-            "pred": "rdfs:subClassOf",
-            "obj": "N3C:441840",
-            "meta": null
-          },
-          {
-            "sub": "N3C:320136",
-            "pred": "rdfs:subClassOf",
-            "obj": "N3C:4024567",
-            "meta": null
-          },
-          {
-            "sub": "N3C:4024567",
-            "pred": "rdfs:subClassOf",
-            "obj": "N3C:441840",
-            "meta": null
-          },
-          {
-            "sub": "N3C:254068",
-            "pred": "rdfs:subClassOf",
-            "obj": "N3C:320136",
-            "meta": null
-          },
-          {
-            "sub": "N3C:254068",
-            "pred": "rdfs:subClassOf",
-            "obj": "N3C:4103320",
-            "meta": null
-          },
-          {
-            "sub": "N3C:254068",
-            "pred": "rdfs:subClassOf",
-            "obj": "N3C:4339468",
-            "meta": null
-          },
-          {
-            "sub": "N3C:4339468",
-            "pred": "rdfs:subClassOf",
-            "obj": "N3C:4178545",
-            "meta": null
-          },
-          {
-            "sub": "N3C:4339468",
-            "pred": "rdfs:subClassOf",
-            "obj": "N3C:4274025",
-            "meta": null
-          },
-          {
-            "sub": "N3C:4178545",
-            "pred": "rdfs:subClassOf",
-            "obj": "N3C:255919",
-            "meta": null
-          },
-          {
-            "sub": "N3C:255919",
-            "pred": "rdfs:subClassOf",
-            "obj": "N3C:441840",
-            "meta": null
-          },
-          {
-            "sub": "N3C:4103320",
-            "pred": "rdfs:subClassOf",
-            "obj": "N3C:4024567",
-            "meta": null
-          },
-          {
-            "sub": "N3C:4103320",
-            "pred": "rdfs:subClassOf",
-            "obj": "N3C:4178545",
-            "meta": null
-          },
-          {
-            "sub": "N3C:24969",
-            "pred": "rdfs:subClassOf",
-            "obj": "N3C:31602",
-            "meta": null
-          },
-          {
-            "sub": "N3C:24969",
-            "pred": "rdfs:subClassOf",
-            "obj": "N3C:4043671",
-            "meta": null
-          },
-          {
-            "sub": "N3C:24969",
-            "pred": "rdfs:subClassOf",
-            "obj": "N3C:4181063",
-            "meta": null
-          },
-          {
-            "sub": "N3C:4181063",
-            "pred": "rdfs:subClassOf",
-            "obj": "N3C:4180169",
-            "meta": null
-          },
-          {
-            "sub": "N3C:31602",
-            "pred": "rdfs:subClassOf",
-            "obj": "N3C:254068",
-            "meta": null
-          },
-          {
-            "sub": "N3C:31602",
-            "pred": "rdfs:subClassOf",
-            "obj": "N3C:4042837",
-            "meta": null
-          },
-          {
-            "sub": "N3C:31602",
-            "pred": "rdfs:subClassOf",
-            "obj": "N3C:4155904",
-            "meta": null
-          },
-          {
-            "sub": "N3C:4155904",
-            "pred": "rdfs:subClassOf",
-            "obj": "N3C:4103320",
-            "meta": null
-          },
-          {
-            "sub": "N3C:4155904",
-            "pred": "rdfs:subClassOf",
-            "obj": "N3C:4184252",
-            "meta": null
-          },
-          {
-            "sub": "N3C:4184252",
-            "pred": "rdfs:subClassOf",
-            "obj": "N3C:255919",
-            "meta": null
-          },
-          {
-            "sub": "N3C:4042837",
-            "pred": "rdfs:subClassOf",
-            "obj": "N3C:4184252",
-            "meta": null
-          },
-          {
-            "sub": "N3C:4042837",
-            "pred": "rdfs:subClassOf",
-            "obj": "N3C:4274025",
-            "meta": null
-          }
-        ]
-        setEdges(formatEdges(ex));
-        return;
-      }
-      const _edges = await dataAccessor.getSubgraphEdges(concept_ids, 'array');
-      setEdges(formatEdges(_edges));
-    }
-    fetchData();
+    (async () => {
+      const concept_ids = await dataAccessor.getItemsByKey({
+          itemType: 'concept_ids_from_codeset_ids',
+          keys: codeset_ids,
+          shape: 'obj',
+          returnFunc: results => union(...Object.values(results))
+      });
+      const [
+          concepts,
+          edges,
+        ] = await Promise.all([
+        dataAccessor.getItemsByKey({
+          itemType: 'concept',
+          keys: concept_ids,
+          shape: 'array'
+        }),
+        ( use_example === 1 && simpleGraphExample ||
+          use_example === 2 && mediumGraphExample ||
+          fetchItems('edge', concept_ids)
+        )
+      ]);
+      setData({concept_ids, edges: formatEdges(edges), concepts});
+    })()
   }, []);
   useEffect(() => {
     if (!edges.length) {
@@ -360,7 +147,6 @@ function drawGraph(svg, edges, doc_height, doc_width) {
     G.addEdge(...e);
     Gu.addUndirectedEdge(...e);
   }
-  debugger;
 
   const connect = d3dag.dagConnect();
   const dag = connect(edges);
@@ -495,3 +281,45 @@ function _nodeSizes(nodeRadius) {
     ["Constant Separation", () => [base, base]]
   ]);
 }
+const simpleGraphExample = [
+  {p:'a', c:'b'}, {p:'a', c:'c'}, {p:'a', c:'d'},
+  {p:'b', c:'e'}, {p:'b', c:'f'},
+  {p:'c', c:'f'},
+  {p:'d', c:'g'},
+  {p:'e', c:'h'},
+  {p:'f', c:'h'}, ];
+
+const mediumGraphExample = [
+  { "sub": "N3C:4043671", "pred": "rdfs:subClassOf", "obj": "N3C:254068", "meta": null },
+  { "sub": "N3C:4043671", "pred": "rdfs:subClassOf", "obj": "N3C:4180170", "meta": null },
+  { "sub": "N3C:4180170", "pred": "rdfs:subClassOf", "obj": "N3C:4162282", "meta": null },
+  { "sub": "N3C:4162282", "pred": "rdfs:subClassOf", "obj": "N3C:320136", "meta": null },
+  { "sub": "N3C:4162282", "pred": "rdfs:subClassOf", "obj": "N3C:4178818", "meta": null },
+  { "sub": "N3C:4178818", "pred": "rdfs:subClassOf", "obj": "N3C:4180169", "meta": null },
+  { "sub": "N3C:4180169", "pred": "rdfs:subClassOf", "obj": "N3C:4027384", "meta": null },
+  { "sub": "N3C:4027384", "pred": "rdfs:subClassOf", "obj": "N3C:4274025", "meta": null },
+  { "sub": "N3C:4274025", "pred": "rdfs:subClassOf", "obj": "N3C:441840", "meta": null },
+  { "sub": "N3C:320136", "pred": "rdfs:subClassOf", "obj": "N3C:4024567", "meta": null },
+  { "sub": "N3C:4024567", "pred": "rdfs:subClassOf", "obj": "N3C:441840", "meta": null },
+  { "sub": "N3C:254068", "pred": "rdfs:subClassOf", "obj": "N3C:320136", "meta": null },
+  { "sub": "N3C:254068", "pred": "rdfs:subClassOf", "obj": "N3C:4103320", "meta": null },
+  { "sub": "N3C:254068", "pred": "rdfs:subClassOf", "obj": "N3C:4339468", "meta": null },
+  { "sub": "N3C:4339468", "pred": "rdfs:subClassOf", "obj": "N3C:4178545", "meta": null },
+  { "sub": "N3C:4339468", "pred": "rdfs:subClassOf", "obj": "N3C:4274025", "meta": null },
+  { "sub": "N3C:4178545", "pred": "rdfs:subClassOf", "obj": "N3C:255919", "meta": null },
+  { "sub": "N3C:255919", "pred": "rdfs:subClassOf", "obj": "N3C:441840", "meta": null },
+  { "sub": "N3C:4103320", "pred": "rdfs:subClassOf", "obj": "N3C:4024567", "meta": null },
+  { "sub": "N3C:4103320", "pred": "rdfs:subClassOf", "obj": "N3C:4178545", "meta": null },
+  { "sub": "N3C:24969", "pred": "rdfs:subClassOf", "obj": "N3C:31602", "meta": null },
+  { "sub": "N3C:24969", "pred": "rdfs:subClassOf", "obj": "N3C:4043671", "meta": null },
+  { "sub": "N3C:24969", "pred": "rdfs:subClassOf", "obj": "N3C:4181063", "meta": null },
+  { "sub": "N3C:4181063", "pred": "rdfs:subClassOf", "obj": "N3C:4180169", "meta": null },
+  { "sub": "N3C:31602", "pred": "rdfs:subClassOf", "obj": "N3C:254068", "meta": null },
+  { "sub": "N3C:31602", "pred": "rdfs:subClassOf", "obj": "N3C:4042837", "meta": null },
+  { "sub": "N3C:31602", "pred": "rdfs:subClassOf", "obj": "N3C:4155904", "meta": null },
+  { "sub": "N3C:4155904", "pred": "rdfs:subClassOf", "obj": "N3C:4103320", "meta": null },
+  { "sub": "N3C:4155904", "pred": "rdfs:subClassOf", "obj": "N3C:4184252", "meta": null },
+  { "sub": "N3C:4184252", "pred": "rdfs:subClassOf", "obj": "N3C:255919", "meta": null },
+  { "sub": "N3C:4042837", "pred": "rdfs:subClassOf", "obj": "N3C:4184252", "meta": null },
+  { "sub": "N3C:4042837", "pred": "rdfs:subClassOf", "obj": "N3C:4274025", "meta": null }
+];

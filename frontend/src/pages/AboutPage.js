@@ -9,7 +9,7 @@ import Button from "@mui/material/Button";
 import { TextField, } from "@mui/material";
 import { Link, useLocation } from "react-router-dom";
 import VERSION from "../version";
-import { axiosGet } from "../components/State";
+import {axiosGet, dataAccessor} from "../components/State";
 
 // import * as po from './Popover';
 
@@ -87,6 +87,7 @@ function AboutPage(props) {
   //     }
   // )
   const [codeset_ids, setCodeset_ids] = useState([]);
+  const [refreshButtonClicked, setRefreshButtonClicked] = useState();
   const location = useLocation();
   const { search } = location;
 
@@ -117,8 +118,8 @@ function AboutPage(props) {
       <TextBody>
         {/*<p><Button variant={"outlined"}>*/}
         <Button variant={"contained"}
-                to="https://github.com/jhu-bids/TermHub/issues/new/choose"
-                component={Link}
+                href="https://github.com/jhu-bids/TermHub/issues/new/choose"
+                target="_blank" rel="noreferrer"
         >
             Create an issue
         </Button>
@@ -126,8 +127,13 @@ function AboutPage(props) {
 
       <TextH1>Database Refresh</TextH1>
       <TextBody>Will refresh the database with the latest data from the N3C Enclave.</TextBody>
+      <TextBody>Last refresh: {dataAccessor.lastRefreshed()}</TextBody>
       <TextBody>
-        <Button variant={"contained"} onClick={handleRefresh}>
+        <Button variant={"contained"}
+                onClick={() => {
+                  setRefreshButtonClicked(Date());
+                  handleRefresh();
+                }}>
           Refresh database
         </Button>
       </TextBody>
@@ -354,7 +360,7 @@ function howToSaveStagedChanges(params) {
         </LI>
         <LI>
           Come back to this tab, and{" "}
-          <a href={params.openInEnclaveLink} target="_blank">
+          <a href={params.openInEnclaveLink} target="_blank" rel="noreferrer">
             click to open this concept set in the Enclave
           </a>
         </LI>

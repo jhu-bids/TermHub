@@ -65,6 +65,7 @@ export default function ConceptSetCards(props) {
 }
 function ConceptSetCard(props) {
   let { cset, researchers = {}, editing = false, closeFunc } = props;
+  console.warn('have to fix researchers!!!!');
   /*
   const [expanded, setExpanded] = React.useState(false);
   const handleExpandClick = () => {

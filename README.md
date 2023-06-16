@@ -77,13 +77,13 @@ Some of the important parts of [developer documentation](./docs/developer.md) ar
 - [Backend](./backend/README.md)
 
 ### Local setup
-#### 1. Clone the repository.
+#### 1. Clone repository
 ```shell
 $ git clone  git@github.com:jhu-bids/TermHub.git
 $ cd TermHub
 ```
 
-#### 2. Get Data  
+#### 2. Get data from submodules
 If git lfs hasn't been installed yet on your system, first run: `git lfs install`  
 
 Then, update get the submodules:
@@ -102,23 +102,33 @@ $ git lfs pull
 $ git submodule foreach git lfs pull
 ```
 
-#### 3. Install [virtual environment](https://docs.python.org/3/library/venv.html) and activate it: `venv venv; source venv/bin/activate`
-
-#### 4. Run: `pip install -r requirements.txt`
-
-#### 5. Install PostgreSQL and make sure it is running
-Postgres.app makes this a breeze on macos: https://postgresapp.com/ 
-Variables are initially set to the values below. Note that `PGDATABASE` and `TERMHUB_DB_DB` will need to change to termhub in the steps below.
-```
-PGHOST=localhost
-PGUSER=postgres
-PGPASSWORD=
-PGPORT=5432
-PGDATABASE=postgres
+#### 3. Create [virtual environment](https://docs.python.org/3/library/venv.html) and activate it 
+```shell
+$ venv venv
+$ source venv/bin/activate
 ```
 
-#### 6. Set environmental variables. Run: `mkdir env; cp .env.example env/.env`. Then, edit `.env` and set any variables that haven't been filled out. You'll likely need to reach out to @joeflack4 or @Sigfried.
-In terms of Postgres variables: `PGHOST`, `PGUSER`, `PGPASSWORD`, `PGPORT`, and `PGDATABASE`, and despite using shell syntax for those variables, the values have to be constants, not shell variables
+#### 4. Install backend dependencies 
+```shell
+$ pip install -r requirements.txt
+```
+
+#### 5. Install frontend dependencies
+```shell
+$ cd frontend
+$ npm install
+$ cd ..
+```
+
+#### 6. Set environmental variables 
+```shell
+$ mkdir env
+$ cp .env.example env/.env
+``` 
+
+Then, edit `.env` and set any variables that haven't been filled out. You'll likely need to reach out to @joeflack4 or 
+@Sigfried. In terms of Postgres variables: `PGHOST`, `PGUSER`, `PGPASSWORD`, `PGPORT`, and `PGDATABASE`, and despite 
+using shell syntax for those variables, the values have to be constants, not shell variables
 ```
 TERMHUB_DB_SERVER=postgresql
 TERMHUB_DB_DRIVER=psycopg2
@@ -130,7 +140,22 @@ TERMHUB_DB_PASS=$PGPASSWORD
 TERMHUB_DB_PORT=$PGPORT
 ```
 
-#### 7. Basic DB setup (assuming PostgreSQL)
+#### 7. Optional: Local database setup
+You should have everything you need at this point to use TermHub. At this point, it will be connected to the same 
+PostgreSQL database that is used in production. If you want to use a local database, follow the steps below.
+
+##### 7.1. Install and start PostgreSQL
+Postgres.app makes this a breeze on macos: https://postgresapp.com/ 
+Variables are initially set to the values below. Note that `PGDATABASE` and `TERMHUB_DB_DB` will need to change to termhub in the steps below.
+```
+PGHOST=localhost
+PGUSER=postgres
+PGPASSWORD=
+PGPORT=5432
+PGDATABASE=postgres
+```
+
+##### 7.2. Basic DB setup
 ```shell
 # create new db:
 $ createdb termhub
@@ -141,8 +166,10 @@ CREATE SCHEMA n3c;
 SET search_path TO n3c;
 ```
 
-#### 8. Create DB structure and load data
-Run: `python backend/db/initialize.py`
+##### 7.3. Create DB structure and load data
+```shell
+$ python backend/db/initialize.py
+```
 
 ### Deployment
 - [Backend](./backend/README.md): `uvicorn backend.app:APP --reload`
