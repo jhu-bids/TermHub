@@ -12,7 +12,7 @@ import Box from "@mui/material/Box";
 import { useQuery } from "@tanstack/react-query";
 import {queryClient} from "../App";
 import { createSearchParams, useSearchParams } from "react-router-dom";
-import { isEmpty, get, put, fromPairs, flatten, union } from "lodash";
+import { isEmpty, get, set, fromPairs, flatten, union } from "lodash";
 import { pct_fmt } from "./utils";
 import WarningRoundedIcon from '@mui/icons-material/WarningRounded';
 import { CheckCircleRounded } from "@mui/icons-material";
@@ -75,78 +75,98 @@ export function ViewCurrentState(props) {
     <Inspector data={appState.getState()} />
 
     <h2>dataAccessor</h2>
-    <Inspector data={dataAccessor.getCache()} />
+    <Inspector data={dataAccessor.getWholeCache()} />
 
 
     <h2>The different kinds of state</h2>
     <pre>{stateDoc}</pre>
   </div>);
 }
-export async function fetchItems( itemType, paramList, dataAccessor, ) {
+async function oneToOneFetchAndCache(itemType, paramList, url) {
+  const data = await axiosGet(url);
+  const strategy = '1-to-1';
+  if (data.length !== paramList.length) {
+    throw new Error(`${strategy} for ${itemType} requires matching result data and paramList lengths`);
+  }
+  data.forEach((item,i) => {
+    dataAccessor.cachePut([itemType, paramList[i]], item);
+  });
+  return data;
+}
+export async function fetchItems( itemType, paramList) {
   if (isEmpty(paramList)) {
     throw new Error(`fetchItems for ${itemType} requires paramList`);
   }
   let url,
+      data,
       strategy; // '1-to-1' or '1-to-many', or ... --- no two types require same strategy at present
 
   if (itemType === 'concept') { // expects paramList of concept_ids
     // We expect a 1-to-1 relationship between paramList items (concept_ids) and retrieved items (concepts)
-    strategy = '1-to-1';
-    url = backend_url('get-concepts?' + paramList.map(key => `id=${key}`).join('&'));
-    const data = await axiosGet(url);
-    if (data.length !== paramList.length) {
-      throw new Error(`${strategy} for ${itemType} requires matching result data and paramList lengths`);
-    }
-    data.forEach((item,i) => {
-      dataAccessor.put([itemType, paramList[i]], item);
-    });
+    const url = backend_url('get-concepts?' + paramList.map(key => `id=${key}`).join('&'));
+    data = await oneToOneFetchAndCache(itemType, paramList, url);
+  }
+
+  else if (itemType === 'selected_csets') { // expects paramList of concept_ids
+    const url = backend_url('selected-csets?codeset_ids=' + paramList.join('|'));
+    data = await oneToOneFetchAndCache(itemType, paramList, url);
   }
 
   else if (itemType === 'cset_members_items') { // expects paramList of codeset_ids
     strategy = '1-to-many';
-    const groups = await Promise.all(
+    data = await Promise.all(
       paramList.map(
         async codeset_id => {
           url = backend_url(`get-cset-members-items?codeset_ids=${codeset_id}`);
-          const data = await axiosGet(url);
+          data = await axiosGet(url);
+
           return data;
         }
       )
     );
-    groups.forEach((group,i) => {
-      dataAccessor.put([itemType, paramList[i]], group);
+    if (isEmpty(data)) {
+      debugger;
+    }
+    data.forEach((group,i) => {
+      dataAccessor.cachePut([itemType, paramList[i]], group);
     })
-    return groups;
   }
 
   else if (itemType === 'concept_ids_from_codeset_ids') { // expects paramList of codeset_ids
     strategy = '1-to-many';
-    const groups = await Promise.all(
+    data = await Promise.all(
         paramList.map(
             async codeset_id => {
               url = backend_url(`get-concept_ids-from-codeset_ids?codeset_ids=${codeset_id}`);
-              const data = await axiosGet(url);
+              data = await axiosGet(url);
               return data;
             }
         )
     );
-    groups.forEach((group,i) => {
-      dataAccessor.put([itemType, paramList[i]], group);
+    if (isEmpty(data)) {
+      debugger;
+    }
+    data.forEach((group,i) => {
+      dataAccessor.cachePut([itemType, paramList[i]], group);
     })
     // return union(Object.values(concept_ids_by_codeset_id));
-    return groups;
   }
 
   else if (itemType === 'edge') { // expects paramList of concept_ids
     // each unique set of concept_ids gets a unique set of edges
-    url = backend_url('subgraph?'+ paramList.map(key => `id=${key}`).join('&'));
-    const data = await axiosGet(url);
-    const cache
-    dataAccessor.put([itemType, paramList[i]], group);
+    // check cache first (because this request won't come from getItemsByKey)
+    const cacheKey = paramList.join('|');
+    data = dataAccessor.cacheGet([itemType, cacheKey]);
+    if (isEmpty(data)) {
+      url = backend_url('subgraph?'+ paramList.map(key => `id=${key}`).join('&'));
+      data = await axiosGet(url);
+      dataAccessor.cachePut([itemType, cacheKey], data);
+    }
   }
   else {
     throw new Error(`Don't know how to fetch ${itemType}`);
   }
+  return data;
 }
 
 class DataAccess {
@@ -174,8 +194,6 @@ class DataAccess {
       const data = await fetchItems(
           itemType,
           uncachedKeys,
-          this,
-          // this.storeItemsByKeys({itemType, keys:uncachedKeys})
       );
       data.forEach((item, i) => uncachedItems[keys[i]] = item);
     }
@@ -196,7 +214,7 @@ class DataAccess {
   constructor() {
     this.#cache = this.loadCache() ?? {};
   }
-  getCache() {
+  getWholeCache() {
     return this.#cache;
   }
   saveCache = () => {
@@ -216,8 +234,29 @@ class DataAccess {
     //  gets the concept with concept_id 12345
     return get(this.#cache, path);
   }
-  cachePut(path, value) {
-    put(this.#cache, path, value);
+  cachePut(path, value, storeAsArray=false) {
+    let [parentPath , parentObj, ] = this.popLastPathKey(path);
+    if (isEmpty(parentObj)) {
+      if (storeAsArray) {
+        set(this.#cache, parentPath, [])
+      } else {
+        // have to do this or numeric keys will force new obj to be an array
+        set(this.#cache, parentPath, {})
+      }
+    }
+    set(this.#cache, path, value);
+  }
+  popLastPathKey(path) {
+    path = pathToArray([...path]);
+    const lastKey = path.pop();
+    return [path, this.cacheGet(path), lastKey];
+  }
+  cacheDelete(path) {
+    let [ , parentObj, lastKey] = this.popLastPathKey(path);
+    delete parentObj[lastKey];
+  }
+  emptyCache() {
+    this.#cache = {};
   }
   async cacheCheck() {
     const url = 'http://127.0.0.1:8000/last-refreshed';
@@ -537,13 +576,19 @@ export function useDataWidget(ukey, url, putData=false) {
 
 export const backend_url = (path) => `${API_ROOT}/${path}`;
 
-export function axiosGet(path, backend = false) {
+export async function axiosGet(path, backend = false) {
   let url = backend ? backend_url(path) : path;
   console.log("axiosGet url: ", url);
-  return axios.get(url).then((res) => res.data);
+  const results = await axios.get(url)
+              .catch(function (error) {
+                console.log(error.toJSON());
+                throw error;
+              })
+              .then((res) => res.data);
+  return results;
 }
 
-export function axiosPut(path, data, backend = true) {
+export async function axiosPut(path, data, backend = true) {
   let url = backend ? backend_url(path) : path;
   console.log("axiosPut url: ", url);
   return axios.post(url, data);
@@ -564,4 +609,16 @@ export function StatsMessage(props) {
       deselect concept sets.
     </p>
   );
+}
+export function pathToArray(path) {
+  if (isEmpty(path)) {
+    throw new Error(`Can't use empty paths`);
+  }
+  if (Array.isArray(path)) {
+    return path;
+  }
+  if (typeof(path) === 'string') {
+    return path.split('.');
+  }
+  throw new Error(`pathToArray expects either array of keys or period-delimited string of keys, not ${path}`);
 }
