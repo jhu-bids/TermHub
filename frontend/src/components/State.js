@@ -12,7 +12,7 @@ import Box from "@mui/material/Box";
 import { useQuery } from "@tanstack/react-query";
 import {queryClient} from "../App";
 import { createSearchParams, useSearchParams } from "react-router-dom";
-import { isEmpty, get, uniq, pullAt, fromPairs, flatten, union } from "lodash";
+import { isEmpty, get, put, fromPairs, flatten, union } from "lodash";
 import { pct_fmt } from "./utils";
 import WarningRoundedIcon from '@mui/icons-material/WarningRounded';
 import { CheckCircleRounded } from "@mui/icons-material";
@@ -82,61 +82,117 @@ export function ViewCurrentState(props) {
     <pre>{stateDoc}</pre>
   </div>);
 }
-export async function fetchItems(itemType, paramList, storeToCacheFunc,
-                                 strategy = '1-to-1') {
-  let url;
+export async function fetchItems( itemType, paramList, dataAccessor, ) {
+  if (isEmpty(paramList)) {
+    throw new Error(`fetchItems for ${itemType} requires paramList`);
+  }
+  let url,
+      strategy; // '1-to-1' or '1-to-many', or ... --- no two types require same strategy at present
 
-  // We expect a 1-to-1 relationship between paramList items (concept_ids) and retrieved items (concepts)
   if (itemType === 'concept') { // expects paramList of concept_ids
+    // We expect a 1-to-1 relationship between paramList items (concept_ids) and retrieved items (concepts)
+    strategy = '1-to-1';
     url = backend_url('get-concepts?' + paramList.map(key => `id=${key}`).join('&'));
-
-  } else if (itemType === 'cset_members_items') { // expects paramList of codeset_ids
-    url = backend_url('get-cset-members-items?'+ paramList.map(key => `codeset_ids=${key}`).join('&'));
-
-  } else if (itemType === 'concept_ids_from_codeset_ids') { // expects paramList of codeset_ids
-    /* This one is weird. With concept and cset_members_items we expect a 1-to
-
-     */
-    const concept_id_groups = await Promise.all(paramList.map(
-      async codeset_id => {
-        url = backend_url(`get-concept_ids-from-codeset_ids?codeset_ids=${codeset_id}`);
-        const queryKey = [`concept_ids_for_${codeset_id}`];
-        const queryFn = () => axiosGet(url);
-        console.log("fetching", url);
-        const data = await queryClient.fetchQuery({ queryKey, queryFn })
-        return data;
-      }));
-    try {
-      storeToCacheFunc(concept_id_groups);
-    } catch (error) {
-      console.log(error);
+    const data = await axiosGet(url);
+    if (data.length !== paramList.length) {
+      throw new Error(`${strategy} for ${itemType} requires matching result data and paramList lengths`);
     }
+    data.forEach((item,i) => {
+      dataAccessor.put([itemType, paramList[i]], item);
+    });
+  }
+
+  else if (itemType === 'cset_members_items') { // expects paramList of codeset_ids
+    strategy = '1-to-many';
+    const groups = await Promise.all(
+      paramList.map(
+        async codeset_id => {
+          url = backend_url(`get-cset-members-items?codeset_ids=${codeset_id}`);
+          const data = await axiosGet(url);
+          return data;
+        }
+      )
+    );
+    groups.forEach((group,i) => {
+      dataAccessor.put([itemType, paramList[i]], group);
+    })
+    return groups;
+  }
+
+  else if (itemType === 'concept_ids_from_codeset_ids') { // expects paramList of codeset_ids
+    strategy = '1-to-many';
+    const groups = await Promise.all(
+        paramList.map(
+            async codeset_id => {
+              url = backend_url(`get-concept_ids-from-codeset_ids?codeset_ids=${codeset_id}`);
+              const data = await axiosGet(url);
+              return data;
+            }
+        )
+    );
+    groups.forEach((group,i) => {
+      dataAccessor.put([itemType, paramList[i]], group);
+    })
     // return union(Object.values(concept_ids_by_codeset_id));
-    return concept_id_groups;
+    return groups;
+  }
 
-  } else if (itemType === 'edge') { // expects paramList of concept_ids
+  else if (itemType === 'edge') { // expects paramList of concept_ids
+    // each unique set of concept_ids gets a unique set of edges
     url = backend_url('subgraph?'+ paramList.map(key => `id=${key}`).join('&'));
-
-  } else {
+    const data = await axiosGet(url);
+    const cache
+    dataAccessor.put([itemType, paramList[i]], group);
+  }
+  else {
     throw new Error(`Don't know how to fetch ${itemType}`);
   }
-  const queryKey = [itemType, JSON.stringify(paramList)];
-  // https://tanstack.com/query/v4/docs/react/reference/QueryClient#queryclientfetchquery
-  const queryFn = () => axiosGet(url);
-  console.log("fetching", url);
-  const data = await queryClient.fetchQuery({ queryKey, queryFn })
-  if (storeToCacheFunc) {
-    try {
-      storeToCacheFunc(data);
-    } catch (error) {
-      console.log(error);
-    }
-  }
-  return data;
 }
 
 class DataAccess {
   #cache = {};
+  async getItemsByKey({ itemType,
+                        keyName,
+                        keys=[],
+                        shape='array', /* or obj */
+                        returnFunc
+                      }) {
+    // use this for concepts and cset_members_items
+    let wholeCache = get(this.#cache, itemType, {});
+    let cachedItems = {};     // this will hold the requested items that are already cached
+    let uncachedKeys = []; // requested items that still need to be fetched
+    let uncachedItems = {};   // this will hold the newly fetched items
+
+    keys.forEach(key => {
+      if (wholeCache[key]) {
+        cachedItems[key] = wholeCache[key];
+      } else {
+        uncachedKeys.push(key);
+      }
+    })
+    if (uncachedKeys.length) {
+      const data = await fetchItems(
+          itemType,
+          uncachedKeys,
+          this,
+          // this.storeItemsByKeys({itemType, keys:uncachedKeys})
+      );
+      data.forEach((item, i) => uncachedItems[keys[i]] = item);
+    }
+    const results = { ...cachedItems, ...uncachedItems };
+    const not_found = uncachedKeys.filter(key => !(key in results));
+    if (not_found.length) {
+      // TODO: let user see warning somehow
+      console.warn(`Warning in DataAccess.getItemsByKey: failed to fetch ${itemType}s for ${not_found.join(', ')}`);
+    }
+    if (returnFunc) {
+      return returnFunc(results);
+    }
+    if (shape === 'array') {
+      return Object.values(results);
+    }
+    return results;
+  }
   constructor() {
     this.#cache = this.loadCache() ?? {};
   }
@@ -149,6 +205,19 @@ class DataAccess {
   }
   loadCache = () => {
     return JSON.parse(localStorage.getItem('dataAccessor'));
+  }
+  cacheGet(path, asArrayOfValues = false) {
+    // uses lodash get, so path can be array of nested keys or a string with
+    //  keys delimited by .
+    // so dataAccessor.cacheGet('concept')
+    //  gets an obj of all the concepts keyed by concept_id
+    // dataAccessor.cacheGet('concept.12345') or
+    // dataAccessor.cacheGet(['concept', '12345'])
+    //  gets the concept with concept_id 12345
+    return get(this.#cache, path);
+  }
+  cachePut(path, value) {
+    put(this.#cache, path, value);
   }
   async cacheCheck() {
     const url = 'http://127.0.0.1:8000/last-refreshed';
@@ -172,62 +241,6 @@ class DataAccess {
     // console.log('dataAccessor cache', this.getCache());
     const lr = get(this.#cache,'lastRefreshTimestamp');
     return lr;
-  }
-  async getItemsByKey({ itemType,
-                        keyName,
-                        keys=[],
-                        shape='array', /* or obj */
-                        returnFunc
-  }) {
-    // use this for concepts and cset_members_items
-    let wholeCache = get(this.#cache, itemType, {});
-    let cachedItems = {};     // this will hold the requested items that are already cached
-    let uncachedKeys = []; // requested items that still need to be fetched
-    let uncachedItems = {};   // this will hold the newly fetched items
-
-    keys.forEach(key => {
-      if (wholeCache[key]) {
-        cachedItems[key] = wholeCache[key];
-      } else {
-        uncachedKeys.push(key);
-      }
-    })
-    if (uncachedKeys.length) {
-      const data = await fetchItems(
-          itemType,
-          uncachedKeys,
-          this.storeItemsByKeys({itemType, keys:uncachedKeys}));
-      data.forEach((item, i) => uncachedItems[keys[i]] = item);
-    }
-    const results = { ...cachedItems, ...uncachedItems };
-    const not_found = uncachedKeys.filter(key => !(key in results));
-    if (not_found.length) {
-      // TODO: let user see warning somehow
-      console.warn(`Warning in DataAccess.getItemsByKey: failed to fetch ${itemType}s for ${not_found.join(', ')}`);
-    }
-    if (returnFunc) {
-      return returnFunc(results);
-    }
-    if (shape === 'array') {
-      return Object.values(results);
-    }
-    return results;
-  }
-  storeItemsByKeys = ({itemType, keyName, keys=[]}) => {
-    return items => {
-      if (!isEmpty(keys)) {
-        if (items.length !== keys.length) {
-          throw new Error("mismatching items and keys lengths");
-        }
-      }
-      items.forEach((item,i) => {
-        this.#cache[itemType] = this.#cache[itemType] ?? {};
-        const key = keyName ? item[keyName] : keys[i];
-        this.#cache[itemType][key] = item;
-      });
-    };
-  }
-  getConceptIds(codeset_ids=[], ) {
   }
 }
 export const dataAccessor = new DataAccess();
