@@ -37,6 +37,7 @@ import {
   cellStyle,
   Legend,
   saveChangesInstructions,
+  textCellForItem,
 } from "../components/EditCset";
 import { CsetsDataTable } from "../components/CsetsDataTable";
 // import {EDGES} from '../components/ConceptGraph';
@@ -57,7 +58,7 @@ function CsetComparisonPage(props) {
     concepts,
     cset_data, // TODO: get rid of this and use dataAccessor -- but more work to be done on that first
   } = props;
-  const { selected_csets = [], researchers, } = cset_data;
+  const { selected_csets = [], researchers, csmiLookup } = cset_data;
   const { state: hierarchySettings, dispatch: hsDispatch} = useStateSlice("hierarchySettings");
   const {collapsePaths, collapsedDescendantPaths, nested, hideRxNormExtension, hideZeroCounts} = hierarchySettings;
   // window.hierarchySettingsW = hierarchySettings;
@@ -141,7 +142,7 @@ function CsetComparisonPage(props) {
     </Button>,
     <Button key="download-distinct-tsv"
             variant="outlined"
-            onClick={ () => downloadCSV({...props, displayedRows}, true) }
+            onClick={ () => downloadCSV({...props, displayedRows, selected_csets, csmiLookup}, true) }
             sx={{
               cursor: 'pointer',
               marginRight: '4px',
@@ -151,7 +152,7 @@ function CsetComparisonPage(props) {
     </Button>,
     <Button key="download-distinct-csv"
             variant="outlined"
-            onClick={ () => downloadCSV({...props, displayedRows}) }
+            onClick={ () => downloadCSV({...props, displayedRows, selected_csets, csmiLookup}) }
             sx={{
               cursor: 'pointer',
               marginRight: '4px',
@@ -700,12 +701,22 @@ function colConfig(props) {
 }
 
 function downloadCSV(props, tsv=false) {
-  const {displayedRows, codeset_ids, } = props;
+  const {displayedRows, codeset_ids, selected_csets, csmiLookup, } = props;
   const filename = 'thdownload-' + codeset_ids.join('-') + (tsv ? '.tsv' : '.csv');
   const maxLevel = max(displayedRows.map(r => r.level));
-  // let columns = ['concept_id']
   const first_keys = ['Patients', 'Records', 'Vocabulary', 'Concept code'];
-  const last_keys = ['Include', 'Exclude', 'Notes'];
+  const addedEmptyColumns = ['Include', 'Exclude', 'Notes'];
+  const cset_keys = codeset_ids.map(id => selected_csets.find(cset => cset.codeset_id === id).concept_set_name);
+  /*
+      output columns will be:
+        level (of indentation)
+        level1, level2, ...   for indented concept names
+        ...first_keys
+        ...other keys (not first or last)
+        ...selected concept set keys
+        Concept name
+        ...addedEmptyColumns
+   */
   const excluded_keys = ['pathToRoot', 'hasChildren'];
   const key_convert = {
     'level': 'Level',
@@ -725,36 +736,41 @@ function downloadCSV(props, tsv=false) {
 
   const rows = displayedRows.map(r => {
     let row = {};
+    // adds indented concept names to rows
     for (let i = 0; i <= maxLevel; i++) {
       row['level' + i] = (r.level === i ? r.concept_name : '');
     }
+    // renames row properties to column names
     for (let k in r) {
       if (!excluded_keys.includes(k)) {
         row[key_convert[k]] = r[k];
       }
     }
+    for (let j = 0; j < addedEmptyColumns.length; j++) {
+      row[addedEmptyColumns[j]] = '';
+    }
+    codeset_ids.forEach((codeset_id, i) => {
+      const item = csmiLookup[codeset_id][r.concept_id];
+      row[cset_keys[i]] = item ? textCellForItem(item) : '';
+    });
     return row;
   });
 
+  // specify the order of columns in csv
   let columns = ['Level'];
   for (let i = 0; i <= maxLevel; i++) {
     columns.push('level' + i);
   }
   columns.push(...first_keys);
   Object.keys(displayedRows[0]).forEach(k => {
-    if (excluded_keys.includes(k)) {
+    if (excluded_keys.includes(k) || k === 'concept_name') {
       return;
     }
     if (!first_keys.includes(k) && k !== 'level') {
       columns.push(key_convert[k]);
     }
   });
-  columns.push(...last_keys);
-  for (let i = 0; i < rows.length; i++) {
-    for (let j = 0; j < last_keys.length; j++) {
-      rows[i][last_keys[j]] = '';
-    }
-  }
+  columns.push(...cset_keys, 'Concept name', ...addedEmptyColumns);
 
   let config = {
     delimiter: tsv ? "\t" : ",",
