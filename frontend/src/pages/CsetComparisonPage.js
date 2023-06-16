@@ -74,8 +74,8 @@ function CsetComparisonPage(props) {
       let promises = [
           dataAccessor.getItemsByKey(
             { itemType: 'cset_members_items', keys: codeset_ids, shape: 'obj',
-              returnFunc: results => union(...Object.values(results)) }),
-          ];
+              returnFunc: results => [...Object.values(results)]})
+      ];
       const concept_ids = await dataAccessor.getItemsByKey(
           { itemType: 'concept_ids_from_codeset_ids',
             keys: codeset_ids,
