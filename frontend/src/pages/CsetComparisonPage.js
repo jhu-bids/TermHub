@@ -50,50 +50,56 @@ import _ from "../supergroup/supergroup";
 function CsetComparisonPage(props) {
   const {
     codeset_ids = [],
-    all_csets = [],
     searchParams,
     setSearchParams,
     editCodesetId,
     csetEditState,
-    cset_data, // TODO: get rid of this and use dataAccessor -- but more work to be done on that first
+    // cset_data, // TODO: get rid of this and use dataAccessor -- but more work to be done on that first
   } = props;
-  const { selected_csets = [], researchers, } = cset_data;
+  // const { selected_csets = [], researchers, } = cset_data;
   const { state: hierarchySettings, dispatch: hsDispatch} = useStateSlice("hierarchySettings");
   const {collapsePaths, collapsedDescendantPaths, nested, hideRxNormExtension, hideZeroCounts} = hierarchySettings;
-  // window.hierarchySettingsW = hierarchySettings;
   const windowSize = useWindowSize();
   const boxRef = useRef();
   const sizes = getSizes(/*squishTo*/ 1);
   const customStyles = styles(sizes);
-  const [data, setData] =
-      useState({ concept_ids: [], edges: [], concepts: [], });
-  const { concept_ids, edges, concepts, } = data;
+  const [data, setData] = useState({});
+      // useState({ concept_ids: [], selected_csets: [], edges: [], concepts: [], });
+  const { concept_ids, edges, concepts, selected_csets, csmi } = data;
 
   useEffect(() => {
     (async () => {
-      let promises = [
-          dataAccessor.getItemsByKey(
+      let promises = [ // these can run immediately
+        dataAccessor.getItemsByKey( // csmi
             { itemType: 'cset_members_items', keys: codeset_ids, shape: 'obj',
-              returnFunc: results => [...Object.values(results)]})
+              returnFunc: results => [...Object.values(results)]}),
+          dataAccessor.getItemsByKey(
+            { itemType: 'selected_csets', keys: codeset_ids, shape: 'obj',
+              returnFunc: results => [...Object.values(results)]}),
       ];
+      // have to get concept_ids before fetching concepts
       const concept_ids = await dataAccessor.getItemsByKey(
           { itemType: 'concept_ids_from_codeset_ids',
             keys: codeset_ids,
             shape: 'obj',
             returnFunc: results => union(...Object.values(results))
           });
+      promises.push(
+          dataAccessor.getItemsByKey(
+              { itemType: 'concept', keys: concept_ids, shape: 'array' }),
+      );
       const [
-        concepts,
         csmi,
-      ] = await Promise.all(
-          [
-              dataAccessor.getItemsByKey(
-                  { itemType: 'concept', keys: concept_ids, shape: 'array' }),
-              ...promises
-          ]);
-      setData({concept_ids, concepts, csmi});
+        selected_csets,
+        concepts,
+      ] = await Promise.all(promises);
+      setData({csmi, selected_csets, concept_ids, concepts});
     })()
   }, [])
+
+  if (isEmpty(data)) {
+    return <p>Downloading...</p>;
+  }
 
   // TODO: component is rendering twice. why? not necessary? fix?
   let {allRows, displayedRows, distinctRows, hidden} = getRowData({...props, hierarchySettings});
@@ -112,9 +118,6 @@ function CsetComparisonPage(props) {
   const editCodesetFunc = getEditCodesetFunc({ searchParams, setSearchParams });
 
 
-  if (!all_csets.length || isEmpty(selected_csets)) {
-    return <p>Downloading...</p>;
-  }
   let columns = colConfig({
     ...props,
     selected_csets,
@@ -164,7 +167,7 @@ function CsetComparisonPage(props) {
         <FlexibleContainer key="cset" title="Concept set being edited">
           <ConceptSetCard
               cset={columns.find((d) => d.codeset_id === editCodesetId).cset_col}
-              researchers={researchers}
+              // researchers={researchers}
               editing={true}
           />
         </FlexibleContainer>

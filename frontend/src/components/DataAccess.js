@@ -1,4 +1,4 @@
-import { LRUCache } from 'lru-cache';
+import { LRUCache } from 'lru-cache'; // https://isaacs.github.io/node-lru-cache
 import { get } from 'lodash';
 import { backend_url, axiosGet } from './State';
 
