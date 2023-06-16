@@ -172,7 +172,7 @@ function CsetComparisonPage(props) {
     </Button>,
     <Button key="download-distinct-tsv"
             variant="outlined"
-            onClick={ () => downloadCSV({...props, displayedRows, selected_csets, csmiLookup}, true) }
+            onClick={ () => downloadCSV({...props, displayedRows, selected_csets, csmi}, true) }
             sx={{
               cursor: 'pointer',
               marginRight: '4px',
@@ -182,7 +182,7 @@ function CsetComparisonPage(props) {
     </Button>,
     <Button key="download-distinct-csv"
             variant="outlined"
-            onClick={ () => downloadCSV({...props, displayedRows, selected_csets, csmiLookup}) }
+            onClick={ () => downloadCSV({...props, displayedRows, selected_csets, csmi}) }
             sx={{
               cursor: 'pointer',
               marginRight: '4px',
@@ -731,7 +731,7 @@ function colConfig(props) {
 }
 
 function downloadCSV(props, tsv=false) {
-  const {displayedRows, codeset_ids, selected_csets, csmiLookup, } = props;
+  const {displayedRows, codeset_ids, selected_csets, csmi, } = props;
   const filename = 'thdownload-' + codeset_ids.join('-') + (tsv ? '.tsv' : '.csv');
   const maxLevel = max(displayedRows.map(r => r.level));
   const first_keys = ['Patients', 'Records', 'Vocabulary', 'Concept code'];
@@ -780,7 +780,7 @@ function downloadCSV(props, tsv=false) {
       row[addedEmptyColumns[j]] = '';
     }
     codeset_ids.forEach((codeset_id, i) => {
-      const item = csmiLookup[codeset_id][r.concept_id];
+      const item = csmi[codeset_id][r.concept_id];
       row[cset_keys[i]] = item ? textCellForItem(item) : '';
     });
     return row;
