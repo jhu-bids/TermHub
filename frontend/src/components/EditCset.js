@@ -189,6 +189,35 @@ const FLAGS = {
   includeMapped: { symbol: "M", tt: "Include Mapped" },
   isExcluded: { symbol: "X", tt: "Exclude" },
 };
+export function textCellForItem(item) {
+  // for use in csv download
+  let textPieces = [];
+  let text = '';
+  if (item.item) {
+    text = 'In definition';
+    textPieces.push('In definition')
+    if (!isEmpty(item.item_flags)) {
+      text += `: ${item.item_flags}`;
+      textPieces.push(': ');
+      textPieces.push(item.item_flags);
+    }
+  }
+  /*
+  for (let flag in FLAGS) {
+    if (item[flag]) {
+      textPieces.push(FLAGS[flag].symbol);
+    }
+  }
+   */
+  if (item.csm) {
+    text += (text.length ? '; ' : '');
+    text += 'In expansion';
+    textPieces.push('In expansion');
+    // textPieces.push("\u2713");
+  }
+  return text;
+  //return textPieces.join('');
+}
 const ICONS = {
   block: {
     symbol: (
