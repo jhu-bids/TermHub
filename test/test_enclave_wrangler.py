@@ -33,8 +33,7 @@ from enclave_wrangler.dataset_upload import upload_new_cset_container_with_conce
 
 from enclave_wrangler.objects_api import concept_enclave_to_db, \
     concept_expression_enclave_to_db, concept_set_container_enclave_to_db, cset_version_enclave_to_db, \
-    csets_and_members_to_db, fetch_cset_and_member_objects, all_new_objects_to_db
-
+    csets_and_members_to_db, fetch_cset_and_member_objects, all_new_objects_to_db, get_concept_set_version_members
 
 TEST_INPUT_DIR = os.path.join(TEST_DIR, 'input', 'test_enclave_wrangler')
 TEST_SCHEMA = 'test_n3c'
@@ -214,12 +213,12 @@ class TestEnclaveWrangler(unittest.TestCase):
         with get_db_connection(schema=TEST_SCHEMA) as con:
             # Failure case
             codeset_id_fail = 1  # exists in test DB
-            self.assertRaises(IntegrityError, cset_version_enclave_to_db, con, codeset_id_fail, [table])
+            self.assertRaises(IntegrityError, cset_version_enclave_to_db, con, codeset_id_fail, [table], False)
 
             # Success case
             codeset_id_succeed = 1049370  # doesn't exist in test DB
             n1: int = sql_count(con, table)
-            cset_version_enclave_to_db(con, codeset_id_succeed, [table])
+            cset_version_enclave_to_db(con, codeset_id_succeed, [table], )
             n2: int = sql_count(con, table)
             self.assertGreater(n2, n1)
             # Teardown
@@ -234,7 +233,8 @@ class TestEnclaveWrangler(unittest.TestCase):
             # Failure case: exists in test DB
             # TODO: need new failure case. Why was this removed from the DB? I guess we need more dummy/archived cases.
             # concept_set_id_fail = ' Casirivimab Monotherapy (Injection route of admin, 120 MG/ML dose minimum)'
-            # self.assertRaises(IntegrityError, concept_set_container_enclave_to_db, con, concept_set_id_fail, [table])
+            # self.assertRaises(
+            #     IntegrityError, concept_set_container_enclave_to_db, con, concept_set_id_fail, [table], False)
 
             # Success case:  doesn't exist in test DB
             concept_set_id_succeed = 'HIV Zihao'
@@ -252,7 +252,7 @@ class TestEnclaveWrangler(unittest.TestCase):
         with get_db_connection(schema=TEST_SCHEMA) as con:
             # Failure case: exists in test DB
             item_id_fail = 'c129643b-0896-4fe3-9722-1191bb0c75ba'
-            self.assertRaises(IntegrityError, concept_expression_enclave_to_db, con, item_id_fail, [table])
+            self.assertRaises(IntegrityError, concept_expression_enclave_to_db, con, item_id_fail, [table], False)
 
             # Success case:  doesn't exist in test DB
             item_id_succeed = '479356-3023361'
@@ -270,7 +270,7 @@ class TestEnclaveWrangler(unittest.TestCase):
             table = 'concept'
             # Failure case: exists in test DB
             concept_id_fail = 3018737
-            self.assertRaises(IntegrityError, concept_enclave_to_db, con, concept_id_fail, [table])
+            self.assertRaises(IntegrityError, concept_enclave_to_db, con, concept_id_fail, [table], False)
 
             # Success case: doesn't exist in test DB
             concept_id_succeed = 9472
@@ -294,7 +294,7 @@ class TestEnclaveWrangler(unittest.TestCase):
     #             'concept_id': 3018737
     #         }
     #         self.assertRaises(IntegrityError, concept_set_members_enclave_to_db, con, cset_members_fail['codeset_id'],
-    #                           cset_members_fail['concept_id'])
+    #                           cset_members_fail['concept_id'], False)
     #
     #         # Success case:  doesn't exist in test DB
     #         cset_members_succeed = {
@@ -309,6 +309,13 @@ class TestEnclaveWrangler(unittest.TestCase):
     #         # Teardown
     #         run_sql(con, f"DELETE FROM {table} WHERE codeset_id = '{cset_members_succeed['codeset_id']}' "
     #                      f"AND concept_id = '{cset_members_succeed['concept_id']}';")
+
+
+    def test_get_concept_set_version_members(self):
+        """test get_concept_set_version_members()"""
+        codeset_id = 563193300
+        data = get_concept_set_version_members(codeset_id, return_detail='full')
+        self.assertGreater(len(data), 0)
 
 
 # Uncomment this and run this file and run directly to run all tests

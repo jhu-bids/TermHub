@@ -453,51 +453,64 @@ def add_object_to_db(
 
 # todo: maybe: refactor to use object_type_name and not table, then use dict to figure which tables to update and how
 def fetch_object_and_add_to_db(
-    con: Connection, object_type_name: str, object_id: Union[int, str], tables: List[str] = None
+    con: Connection, object_type_name: str, object_id: Union[int, str], tables: List[str] = None,
+    skip_if_already_exists=True
 ) -> Dict:
     """Fetch object and add to db"""
     obj: Dict = fetch_object_by_id(object_type_name, object_id)
-    add_object_to_db(con, object_type_name, obj, tables)
+    add_object_to_db(con, object_type_name, obj, tables, skip_if_already_exists)
     return obj
 
 
-def concept_set_container_enclave_to_db(con: Connection, object_id: str, tables: List[str] = None) -> Dict:
+def concept_set_container_enclave_to_db(
+    con: Connection, object_id: str, tables: List[str] = None, skip_if_already_exists=True
+) -> Dict:
     """Given ID, get object's current state from the enclave, and add it the DB"""
-    return fetch_object_and_add_to_db(con, 'OMOPConceptSetContainer', object_id, tables)
+    return fetch_object_and_add_to_db(con, 'OMOPConceptSetContainer', object_id, tables, skip_if_already_exists)
 
 
-def code_sets_enclave_to_db(con: Connection, object_id: int, tables: List[str] = None) -> Dict:
+def code_sets_enclave_to_db(
+    con: Connection, object_id: int, tables: List[str] = None, skip_if_already_exists=True
+) -> Dict:
     """Given ID, get object's current state from the enclave, and add it the DB"""
-    return fetch_object_and_add_to_db(con, 'OMOPConceptSet', object_id, tables)
+    return fetch_object_and_add_to_db(con, 'OMOPConceptSet', object_id, tables, skip_if_already_exists)
 
 
-def cset_version_enclave_to_db(con: Connection, object_id: int, tables: List[str] = None) -> Dict:
+def cset_version_enclave_to_db(
+    con: Connection, object_id: int, tables: List[str] = None, skip_if_already_exists=True
+) -> Dict:
     """Alias for: code_sets_enclave_to_db()"""
-    return code_sets_enclave_to_db(con, object_id, tables)
+    return code_sets_enclave_to_db(con, object_id, tables, skip_if_already_exists)
 
 
 # todo: Would this be better just to get the container and sync any non-uploaded versions to the DB?
 # TODO: @Siggie will continue this to populate additional derived tables that need to be populated
 #       is it actually adding the version items?
-def cset_container_and_version_enclave_to_db(con: Connection, container_name: str, version_id: int):
+def cset_container_and_version_enclave_to_db(con: Connection, container_name: str, version_id: int, skip_if_already_exists=True):
     """pass"""
-    concept_set_container_enclave_to_db(con, container_name)
-    code_sets_enclave_to_db(con, version_id)
+    concept_set_container_enclave_to_db(con, container_name, None, skip_if_already_exists)
+    code_sets_enclave_to_db(con, version_id, None, skip_if_already_exists)
 
 
-def concept_set_version_item_enclave_to_db(con: Connection, object_id: str, tables: List[str] = None) -> Dict:
+def concept_set_version_item_enclave_to_db(
+    con: Connection, object_id: str, tables: List[str] = None, skip_if_already_exists=True
+) -> Dict:
     """Given ID, get object's current state from the enclave, and add it the DB"""
-    return fetch_object_and_add_to_db(con, 'OmopConceptSetVersionItem', object_id, tables)
+    return fetch_object_and_add_to_db(con, 'OmopConceptSetVersionItem', object_id, tables, skip_if_already_exists)
 
 
-def concept_expression_enclave_to_db(con: Connection, object_id: str, tables: List[str] = None) -> Dict:
+def concept_expression_enclave_to_db(
+    con: Connection, object_id: str, tables: List[str] = None, skip_if_already_exists=True
+) -> Dict:
     """Alias for: concept_set_version_item_enclave_to_db()"""
-    return concept_set_version_item_enclave_to_db(con, object_id, tables)
+    return concept_set_version_item_enclave_to_db(con, object_id, tables, skip_if_already_exists)
 
 
-def concept_enclave_to_db(con: Connection, object_id: int, tables: List[str] = None) -> Dict:
+def concept_enclave_to_db(
+    con: Connection, object_id: int, tables: List[str] = None, skip_if_already_exists=True
+) -> Dict:
     """Given ID, get object's current state from the enclave, and add it the DB"""
-    return fetch_object_and_add_to_db(con, 'OMOPConcept', object_id, tables)
+    return fetch_object_and_add_to_db(con, 'OMOPConcept', object_id, tables, skip_if_already_exists)
 
 
 # todo: New func for multiple csets in a single insert?
