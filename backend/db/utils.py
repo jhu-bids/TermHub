@@ -41,15 +41,17 @@ def refresh_termhub_core_cset_derived_tables(con: Connection, schema: str):
     # TODO: update when I have DDL for public.csets_to_ignore
     ddl_modules = [
         'cset_members_items',
+        'concept_ids_by_codeset_id',
+        'codeset_ids_by_concept_id',
         'members_items_summary',
         'cset_members_items_plus',
         'codeset_counts',
         'all_csets',
-        # 'csets_to_ignore',
+        'csets_to_ignore',
     ]
     views = [
         'cset_members_items_plus',
-        # 'csets_to_ignore',
+        'csets_to_ignore',
     ]
     # Create new tables and backup old ones
     t0 = datetime.now()

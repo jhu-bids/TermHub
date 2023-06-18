@@ -50,6 +50,7 @@ class TestEnclaveWrangler(unittest.TestCase):
     #     csets_and_members: Dict[str, List] = fetch_cset_and_member_objects(since=yesterday)
     #     # todo: what kind of assert?
 
+    # TODO: Seems to be failing now because using test_n3c instead of n3c even though con schema=TEST_SCHEMA
     def test_csets_and_members_to_db(self):
         """Test csets_and_members_enclave_to_db()
         todo: Change static counts/asserts to dynamic?

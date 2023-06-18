@@ -1,8 +1,9 @@
 name: DB Refresh (Objects API)
 
 on:
-#  schedule:
+  schedule:
 #    - cron: '0 5 * * *'  # every day 5am GMT (12-1am EST/EDT)
+    - cron: '0 * * * *'  # every hour on the hour
   workflow_dispatch:
   repository_dispatch:
     types: [refresh-db]
