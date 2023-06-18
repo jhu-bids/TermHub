@@ -1,6 +1,6 @@
 -- Table: cset_members_items -------------------------------------------------------------------------------------------
 
-CREATE OR REPLACE VIEW public.csets_to_ignore AS
+CREATE OR REPLACE VIEW {{schema}}csets_to_ignore AS
 SELECT all_csets.concept_set_name,
     all_csets.container_created_at,
     max(all_csets.codeset_created_at) AS latest,

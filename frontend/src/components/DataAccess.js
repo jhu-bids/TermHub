@@ -1,6 +1,6 @@
 import { LRUCache } from 'lru-cache'; // https://isaacs.github.io/node-lru-cache
 import { get } from 'lodash';
-import { backend_url, axiosGet } from './State';
+import { backend_url, axiosCall } from './State';
 
 class DataAccess {
 
@@ -81,7 +81,7 @@ class DataAccess {
 	}
 
 	async fetch(type, url) {
-		const response = await axiosGet(url);
+		const response = await axiosCall(url);
 		const data = get(response, 'data', []);
 		if (type === 'concepts') {
 			this.store_concepts_to_cache(data);
