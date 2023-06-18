@@ -19,22 +19,15 @@ import {
   Route,
 } from "react-router-dom";
 import { createTheme, ThemeProvider } from "@mui/material/styles";
-import Box from "@mui/material/Box";
 
 import { QueryClient, QueryClientProvider, } from "@tanstack/react-query"; // useMutation, useQueryClient, useQuery, useQueries,
 
 import { persistQueryClient } from '@tanstack/react-query-persist-client'
-// import { createWebStoragePersistor } from "react-query/createWebStoragePersistor-experimental";
-// import { removeOldestQuery, } from "@tanstack/react-query-persist-client";
-// import { createSyncStoragePersister } from '@tanstack/query-sync-storage-persister'
-// import { useIsFetching } from '@tanstack/react-query' // https://tanstack.com/query/v4/docs/react/guides/background-fetching-indicators
 import { createSyncStoragePersister } from '@tanstack/query-sync-storage-persister'
 import { ReactQueryDevtools } from '@tanstack/react-query-devtools'
 import { compress, decompress } from 'lz-string'; // using in persister to handle big result sets
 
-import { keyBy, isEmpty } from "lodash";
-import useMeasure from "react-use/lib";
-import Paper from "@mui/material/Paper";
+import { isEmpty } from "lodash";
 
 import { ConceptSetsPage } from "./components/Csets";
 import { CsetComparisonPage } from "./pages/CsetComparisonPage";
@@ -44,15 +37,12 @@ import {
   AppStateProvider,
   searchParamsToObj,
   updateSearchParams,
-  backend_url,
-  useDataWidget,
   dataAccessor,
-  ViewCurrentState, useStateSlice,
+  ViewCurrentState,
 } from "./components/State";
 import { UploadCsvPage } from "./components/UploadCsv";
 import { DownloadJSON } from "./components/DownloadJSON";
 import MuiAppBar from "./components/MuiAppBar";
-// // import _ from "./supergroup/supergroup";
 
 export const queryClient = new QueryClient({
   defaultOptions: {
@@ -93,16 +83,14 @@ persistQueryClient({
  */
 
 /* structure is:
-    <BrowserRouter>                     // from index.js root.render
-        <QCProvider>                    // all descendent components will be able to call useQuery
-            <QueryStringStateMgr>       // gets state (codeset_ids for now) from query string, passes down through props
-                <DataContainer>         // fetches data from cr-hierarchy
-                    <CsetsRoutes>       // where routes are defined (used to be directly in BrowserRouter in index.js
-                        <App>           // all routes start with App
-                            <Outlet/>   // this is where route content goes, all the other components
-                        </App>
-                    </CsetsRoutes>
-                </DataContainer>
+    <BrowserRouter>                 // from index.js root.render
+        <QCProvider>                // all descendent components will be able to call useQuery
+            <QueryStringStateMgr>   // gets state (codeset_ids for now) from query string, passes down through props
+                <CsetsRoutes>       // where routes are defined (used to be directly in BrowserRouter in index.js
+                    <App>           // all routes start with App
+                        <Outlet/>   // this is where route content goes, all the other components
+                    </App>
+                </CsetsRoutes>
             <QueryStringStateMgr>
         </QCProvider />
     </BrowserRouter>

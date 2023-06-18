@@ -9,7 +9,7 @@ import Button from "@mui/material/Button";
 import { TextField, } from "@mui/material";
 import { Link, useLocation } from "react-router-dom";
 import VERSION from "../version";
-import {axiosGet, dataAccessor} from "../components/State";
+import {axiosCall, dataAccessor} from "../components/State";
 
 // import * as po from './Popover';
 
@@ -68,7 +68,7 @@ let DOCS = {};
 
 const handleRefresh = async () => {
   try {
-    await axiosGet('db-refresh', true);
+    await axiosCall('db-refresh', {backend: true});
     console.log('Triggered: database refresh');
   } catch (error) {
     console.error('Error:', error);

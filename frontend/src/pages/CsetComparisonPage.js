@@ -87,18 +87,19 @@ function CsetComparisonPage(props) {
             }),
         dataAccessor.getItemsByKey(
           { itemType: 'selected_csets', keys: codeset_ids, shape: 'obj',
-            returnFunc: results => [...Object.values(results)]} ),
+            returnFunc: results => [...Object.values(results)]} ), // isn't this the same as shape: 'array'?
       ];
       // have to get concept_ids before fetching concepts
       let concept_ids = await dataAccessor.getItemsByKey(
-          { itemType: 'concept_ids_from_codeset_ids',
+          { itemType: 'concept_ids_from_codeset_id',
             keys: codeset_ids,
             shape: 'obj',
-            returnFunc: results => union(...Object.values(results))
+            returnFunc: results => union(flatten([...Object.values(results)])),
           });
+
       // have to get edges, which might contain more concept_ids after filling gaps
       const edges = await fetchItems('edges', concept_ids, );
-      concept_ids = union(concept_ids, flatten(edges));
+      concept_ids = union(concept_ids.map(String), flatten(edges));
       promises.push(
           dataAccessor.getItemsByKey(
               { itemType: 'concept', keys: concept_ids, shape: 'obj' }),
@@ -227,7 +228,9 @@ function CsetComparisonPage(props) {
           <FlexibleContainer key="instructions"
                              title="Instructions to save changes"
                              position={panelPosition}>
-            {saveChangesInstructions(props)}
+            {saveChangesInstructions({ editCodesetId,
+                                       csetEditState,
+                                       selected_csets, })}
           </FlexibleContainer>
       );
     }

@@ -1,4 +1,5 @@
 import React, { useLayoutEffect, useState } from "react";
+import {debounce} from "lodash";
 
 const pct_fmt = (num) =>
   Number(num).toLocaleString(undefined, {
@@ -64,9 +65,9 @@ function toRadians(angle) {
 function useWindowSize() {
   const [size, setSize] = useState([0, 0]);
   useLayoutEffect(() => {
-    function updateSize() {
+    const updateSize = debounce(function () {
       setSize([window.innerWidth, window.innerHeight]);
-    }
+    }, 300);
     window.addEventListener("resize", updateSize);
     updateSize();
     return () => window.removeEventListener("resize", updateSize);
