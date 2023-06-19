@@ -45,6 +45,18 @@ You likely will already have a schema called `n3c` which is corrupted in some wa
 2. Restart local backend/frontend, load frontend in browser, clear `localStorage` (from console: `localStorage.clear()`), and face check various application features. 
 3. Load [dev deployment](http://bit.ly/termhub-dev), clear `localStorage` in the same way, and face check various application features.
 
+#### Adding new tables / views
+If any new views or derived tables are added, there are some additional steps that need to be followed in order to avoid
+breaking the database refresh and ensuring that these tables stay up-to-date when refreshes happen. 
+1. **Create a DDL file**  
+This needs to be added to `backend/db/`. The standard file naming is `ddl-N-MODULE.jinja.sql`, where `N` is the position
+in which it should run relative to other such files, and `MODULE` is the module name, e.g. the name of the table(s) or 
+other operations done by the DDL. When choosing the position of the file (`N`), you should put it after any / all other 
+DDL which is used to create any of the tables/views that it is derived from.
+2. Update `refresh_termhub_core_cset_derived_tables()` in `backend/db/utils.py`
+There's a list variable called `ddl_modules`. Add any new `MODULE`s here. If any of those modules are views, add to the
+list variable called `views`.
+
 ### Deployment
 Many of these steps are specific to the JHU BIDS team, which deploys on JHU's Azure infrastructure.
 
