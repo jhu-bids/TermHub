@@ -6,7 +6,7 @@ https://stackoverflow.com/questions/53219113/where-can-i-make-api-call-with-hook
 might be useful to look at https://mui.com/material-ui/guides/composition/#link
 referred to by https://stackoverflow.com/questions/63216730/can-you-use-material-ui-link-with-react-router-dom-link
 */
-import React from "react";
+import React, {useState, useEffect} from "react";
 import "./App.css";
 import {
   // Link, useHref, useParams, BrowserRouter, redirect,
@@ -39,14 +39,15 @@ import Paper from "@mui/material/Paper";
 import { ConceptSetsPage } from "./components/Csets";
 import { CsetComparisonPage } from "./pages/CsetComparisonPage";
 import { AboutPage } from "./pages/AboutPage";
-import { currentConceptIds, ConceptGraph } from "./components/ConceptGraph";
+import { ConceptGraph } from "./components/ConceptGraph";
 import {
   AppStateProvider,
   searchParamsToObj,
   updateSearchParams,
   backend_url,
-  useDataWidget, dataAccessor,
-  ViewCurrentState,
+  useDataWidget,
+  dataAccessor,
+  ViewCurrentState, useStateSlice,
 } from "./components/State";
 import { UploadCsvPage } from "./components/UploadCsv";
 import { DownloadJSON } from "./components/DownloadJSON";
@@ -130,11 +131,21 @@ function QCProvider() {
 }
 function QueryStringStateMgr(props) {
   const location = useLocation();
+  const [lastRefresh, setLastRefresh] = useState(dataAccessor.lastRefreshed());
   const [searchParams, setSearchParams] = useSearchParams();
   // gets state (codeset_ids for now) from query string, passes down through props
   // const [codeset_ids, setCodeset_ids] = useState(sp.codeset_ids || []);
   const sp = searchParamsToObj(searchParams, setSearchParams);
   const { codeset_ids = [] } = sp;
+
+  useEffect(() => {
+    (async () => {
+      const timestamp = await dataAccessor.cacheCheck();
+      if (timestamp > lastRefresh) {
+        setLastRefresh(timestamp);
+      }
+    })();
+  });
 
   let globalProps = { ...sp, searchParams, setSearchParams };
 
@@ -234,6 +245,7 @@ function DataContainer(props) {
     cset_data.conceptLookup = keyBy(cset_data.concepts, "concept_id");
     // dataAccessor.cache.conceptLookup = cset_data.conceptLookup;
 
+    /*
     if ("selected_csets" in cset_data) {
       dataAccessor.cache.selected_csets = cset_data.selected_csets;
     } else {
@@ -242,6 +254,7 @@ function DataContainer(props) {
 
     dataAccessor.cache.researchers = cset_data.researchers;
     dataAccessor.cache.hierarchy = cset_data.hierarchy;
+     */
 
     const csmiLookup = {};
     // cset_data.cset_members_items.map(mi => set(csmiLookup, [mi.codeset_id, mi.concept_id], mi));
@@ -298,7 +311,7 @@ function RoutesContainer(props) {
         <Route path="upload-csv" element={<UploadCsvPage {...props} />} />
         <Route
             path="graph"
-            element={<ConceptGraph {...props} concept_ids={currentConceptIds(props)} />}
+            element={<ConceptGraph {...props} />}
         />
         <Route path="download-json" element={<DownloadJSON {...props} />} />
         <Route path="view-state" element={<ViewCurrentState {...props} />} />

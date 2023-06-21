@@ -12,16 +12,13 @@ import Box from "@mui/material/Box";
 import { useQuery } from "@tanstack/react-query";
 import {queryClient} from "../App";
 import { createSearchParams, useSearchParams } from "react-router-dom";
-import { isEmpty, get, uniq, pullAt, fromPairs, flatten } from "lodash";
+import { isEmpty, get, set, fromPairs, flatten, keyBy } from "lodash";
 import { pct_fmt } from "./utils";
 import WarningRoundedIcon from '@mui/icons-material/WarningRounded';
 import { CheckCircleRounded } from "@mui/icons-material";
 import { Inspector } from 'react-inspector'; // https://github.com/storybookjs/react-inspector
 
-
-/*
-    different kinds of state:
-
+const stateDoc = `
     URL query string
     handled by QueryStringStateMgr updateSearchParams(props) and searchParamsToObj(searchParams)
       codeset_ids
@@ -59,7 +56,8 @@ import { Inspector } from 'react-inspector'; // https://github.com/storybookjs/r
 
     Goals:
       Manage all/
- */
+`;
+
 export function ViewCurrentState(props) {
   const [searchParams, setSearchParams] = useSearchParams();
   const sp = searchParamsToObj(searchParams, setSearchParams);
@@ -77,130 +75,212 @@ export function ViewCurrentState(props) {
     <Inspector data={appState.getState()} />
 
     <h2>dataAccessor</h2>
-    <Inspector data={dataAccessor.cache} />
+    <Inspector data={dataAccessor.getWholeCache()} />
 
+
+    <h2>The different kinds of state</h2>
+    <pre>{stateDoc}</pre>
   </div>);
-
 }
-class DataAccess {
-  constructor() {
-    this.cache = this.loadCache() ?? {} // just a big js obj, add functionality to persist it
+async function oneToOneFetchAndCache(itemType, paramList, url) {
+  const data = await axiosGet(url);
+  const strategy = '1-to-1';
+  if (data.length !== paramList.length) {
+    throw new Error(`${strategy} for ${itemType} requires matching result data and paramList lengths`);
   }
-  saveCache = () => {
-    localStorage.setItem('dataAccessor', JSON.stringify(this.cache));
-    return null;
+  data.forEach((item,i) => {
+    dataAccessor.cachePut([itemType, paramList[i]], item);
+  });
+  return data;
+}
+export async function fetchItems( itemType, paramList) {
+  if (isEmpty(paramList)) {
+    throw new Error(`fetchItems for ${itemType} requires paramList`);
   }
-  loadCache = () => {
-    return JSON.parse(localStorage.getItem('dataAccessor'));
-  }
-  /* concept stuff as methods here. not sure if it would be worthwhile to do any
-      subclassing to handle specific data objects (codesets, concepts, subgraphs, etc.)
-    concepts will be a slice of the cache, looking like
-    cache: {
-      concepts: {
-        123: {
-          concept_id: 123,
-          concept_name: ...
-        }
-        456: {
-          concept_id: 456,
-          concept_name: ...
-        }
-      }
-   }
-   */
-  async getConcepts(concept_ids=[], shape='array' /* or obj */) {
+  let url,
+      data,
+      strategy; // '1-to-1' or '1-to-many', or ... --- no two types require same strategy at present
 
-    let allCachedConcepts = get(this.cache, 'concepts', {});
-    let cachedConcepts = {};
-    let uncachedConceptIds = [];
-    let uncachedConcepts = {};
-    concept_ids.forEach(concept_id => {
-      if (allCachedConcepts[concept_id]) {
-        cachedConcepts[concept_id] = allCachedConcepts[concept_id];
+  if (itemType === 'concept') { // expects paramList of concept_ids
+    // We expect a 1-to-1 relationship between paramList items (concept_ids) and retrieved items (concepts)
+    const url = backend_url('get-concepts?' + paramList.map(key => `id=${key}`).join('&'));
+    data = await oneToOneFetchAndCache(itemType, paramList, url);
+  }
+
+  else if (itemType === 'selected_csets') { // expects paramList of concept_ids
+    const url = backend_url('selected-csets?codeset_ids=' + paramList.join('|'));
+    data = await oneToOneFetchAndCache(itemType, paramList, url);
+  }
+
+  else if (itemType === 'cset_members_items') { // expects paramList of codeset_ids
+    strategy = '1-to-many';
+    data = await Promise.all(
+      paramList.map(
+        async codeset_id => {
+          url = backend_url(`get-cset-members-items?codeset_ids=${codeset_id}`);
+          data = await axiosGet(url);
+
+          return data;
+        }
+      )
+    );
+    if (isEmpty(data)) {
+      debugger;
+    }
+    data.forEach((group,i) => {
+      dataAccessor.cachePut([itemType, paramList[i]], keyBy(group, 'concept_id'));
+    })
+  }
+
+  else if (itemType === 'concept_ids_from_codeset_ids') { // expects paramList of codeset_ids
+    strategy = '1-to-many';
+    data = await Promise.all(
+        paramList.map(
+            async codeset_id => {
+              url = backend_url(`get-concept_ids-from-codeset_ids?codeset_ids=${codeset_id}`);
+              data = await axiosGet(url);
+              return data;
+            }
+        )
+    );
+    if (isEmpty(data)) {
+      debugger;
+    }
+    data.forEach((group,i) => {
+      dataAccessor.cachePut([itemType, paramList[i]], group);
+    })
+    // return union(Object.values(concept_ids_by_codeset_id));
+  }
+
+  else if (itemType === 'edge') { // expects paramList of concept_ids
+    // each unique set of concept_ids gets a unique set of edges
+    // check cache first (because this request won't come from getItemsByKey)
+    const cacheKey = paramList.join('|');
+    data = dataAccessor.cacheGet([itemType, cacheKey]);
+    if (isEmpty(data)) {
+      url = backend_url('subgraph?'+ paramList.map(key => `id=${key}`).join('&'));
+      data = await axiosGet(url);
+      dataAccessor.cachePut([itemType, cacheKey], data);
+    }
+  }
+  else {
+    throw new Error(`Don't know how to fetch ${itemType}`);
+  }
+  return data;
+}
+
+class DataAccess {
+  #cache = {};
+  async getItemsByKey({ itemType,
+                        keyName,
+                        keys=[],
+                        shape='array', /* or obj */
+                        returnFunc
+                      }) {
+    // use this for concepts and cset_members_items
+    let wholeCache = get(this.#cache, itemType, {});
+    let cachedItems = {};     // this will hold the requested items that are already cached
+    let uncachedKeys = []; // requested items that still need to be fetched
+    let uncachedItems = {};   // this will hold the newly fetched items
+
+    keys.forEach(key => {
+      if (wholeCache[key]) {
+        cachedItems[key] = wholeCache[key];
       } else {
-        uncachedConceptIds.push(concept_id);
+        uncachedKeys.push(key);
       }
     })
-    if (uncachedConceptIds.length) {
-      const url = backend_url(
-          "get-concepts?" + uncachedConceptIds.map(c=>`id=${c}`).join("&")
+    if (uncachedKeys.length) {
+      const data = await fetchItems(
+          itemType,
+          uncachedKeys,
       );
-      const queryKey = ['concepts', ...concept_ids];
-      // https://tanstack.com/query/v4/docs/react/reference/QueryClient#queryclientfetchquery
-      const data = await this.fetch(
-          'concepts',
-          url,
-          queryKey,
-          this.store_concepts_to_cache);
-      data.forEach(c => uncachedConcepts[c.concept_id] = c);
+      data.forEach((item, i) => uncachedItems[keys[i]] = item);
     }
-    const results = { ...cachedConcepts, ...uncachedConcepts };
-    const not_found = concept_ids.filter(
-        x => !Object.values(results).map(c=>c.concept_id).includes(x));
+    const results = { ...cachedItems, ...uncachedItems };
+    const not_found = uncachedKeys.filter(key => !(key in results));
     if (not_found.length) {
       // TODO: let user see warning somehow
-      console.warn("Warning in DataAccess.getConcepts: couldn't find concepts for " +
-            not_found.join(', '))
+      console.warn(`Warning in DataAccess.getItemsByKey: failed to fetch ${itemType}s for ${not_found.join(', ')}`);
     }
-
+    if (returnFunc) {
+      return returnFunc(results);
+    }
     if (shape === 'array') {
       return Object.values(results);
     }
     return results;
   }
-  store_concepts_to_cache = (concepts=[]) => {
-    concepts.forEach(c => {
-      this.cache.concepts = this.cache.concepts ?? {};
-      this.cache.concepts[c.concept_id] = c;
-    })
+  constructor() {
+    this.#cache = this.loadCache() ?? {};
   }
-  async getSubgraphEdges(concept_ids=[]) {
-
-    /*
-    // trying something new with wholegraph.json, so, won't need to get the subgraph edges like we were
-
-    let edges = get(this.cache, 'wholegraph');
-    if (isEmpty(edges)) {
-      edges = require('../../wholegraph.json');
-      this.cache.wholegraph = edges;
-    }
-    return edges;
-
-
-
-    // edges are more complicated than concepts, not trying to cache individual
-    // edges like caching individual concepts above. for right now, cache will
-    // only hold most recent subgraph call, which is pretty useless (already
-    //   cached by queryClient/persistor anyway)
-
-     */
-    const url = backend_url(
-        "subgraph?" + concept_ids.map(c=>`id=${c}`).join("&")
-    );
-    const queryKey = ['subgraph', ...concept_ids];
-    // https://tanstack.com/query/v4/docs/react/reference/QueryClient#queryclientfetchquery
-    const data = await this.fetch(
-        'subgraph',
-        url,
-        queryKey,
-       data => this.cache.subgraph = data);
-    return data;
+  getWholeCache() {
+    return this.#cache;
   }
-  async fetch(path,
-              url,
-              queryKey /* can be array or str, i think */,
-              cacheSaveFunc) {
-    console.log("fetching", url);
-    const queryFn = () => axiosGet(url);
-    const data = await queryClient.fetchQuery({ queryKey, queryFn })
-    try {
-      cacheSaveFunc(data);
-      return data;
-    } catch (error) {
-      console.log(error);
+  saveCache = () => {
+    localStorage.setItem('dataAccessor', JSON.stringify(this.#cache));
+    return null;
+  }
+  loadCache = () => {
+    return JSON.parse(localStorage.getItem('dataAccessor'));
+  }
+  cacheGet(path) {
+    // uses lodash get, so path can be array of nested keys or a string with
+    //  keys delimited by .
+    // so dataAccessor.cacheGet('concept')
+    //  gets an obj of all the concepts keyed by concept_id
+    // dataAccessor.cacheGet('concept.12345') or
+    // dataAccessor.cacheGet(['concept', '12345'])
+    //  gets the concept with concept_id 12345
+    path = pathToArray(path);
+    return isEmpty(path) ? this.getWholeCache() : get(this.#cache, path);
+  }
+  cachePut(path, value, storeAsArray=false) {
+    let [parentPath , parentObj, ] = this.popLastPathKey(path);
+    if (isEmpty(parentObj)) {
+      if (storeAsArray) {
+        set(this.#cache, parentPath, [])
+      } else {
+        // have to do this or numeric keys will force new obj to be an array
+        set(this.#cache, parentPath, {})
+      }
     }
-    return data;
+    set(this.#cache, path, value);
+  }
+  popLastPathKey(path) {
+    path = [...pathToArray(path)];
+    const lastKey = path.pop();
+    return [path, this.cacheGet(path), lastKey];
+  }
+  cacheDelete(path) {
+    let [ , parentObj, lastKey] = this.popLastPathKey(path);
+    delete parentObj[lastKey];
+  }
+  emptyCache() {
+    this.#cache = {};
+  }
+  async cacheCheck() {
+    const url = 'http://127.0.0.1:8000/last-refreshed';
+    const tsStr = await axiosGet(url);
+    const ts = new Date(tsStr);
+    if (isNaN(ts.getDate())) {
+      throw new Error(`invalid date from ${url}: ${tsStr}`);
+    }
+    const lrStr = this.lastRefreshed();
+    const lr = new Date(lrStr);
+    if (isNaN(lr.getDate()) || ts > lr) {
+      console.log(`previous DB refresh: ${lrStr}; latest DB refresh: ${ts}. Clearing localStorage.`);
+      localStorage.clear();
+      return this.#cache.lastRefreshTimestamp = ts;
+    } else {
+      console.log(`no change since last refresh at ${lr}`);
+      return lr;
+    }
+  }
+  lastRefreshed() {
+    // console.log('dataAccessor cache', this.getCache());
+    const lr = get(this.#cache,'lastRefreshTimestamp');
+    return lr;
   }
 }
 export const dataAccessor = new DataAccess();
@@ -497,13 +577,19 @@ export function useDataWidget(ukey, url, putData=false) {
 
 export const backend_url = (path) => `${API_ROOT}/${path}`;
 
-export function axiosGet(path, backend = false) {
+export async function axiosGet(path, backend = false) {
   let url = backend ? backend_url(path) : path;
   console.log("axiosGet url: ", url);
-  return axios.get(url).then((res) => res.data);
+  const results = await axios.get(url)
+              .catch(function (error) {
+                console.log(error.toJSON());
+                throw error;
+              })
+              .then((res) => res.data);
+  return results;
 }
 
-export function axiosPut(path, data, backend = true) {
+export async function axiosPut(path, data, backend = true) {
   let url = backend ? backend_url(path) : path;
   console.log("axiosPut url: ", url);
   return axios.post(url, data);
@@ -524,4 +610,16 @@ export function StatsMessage(props) {
       deselect concept sets.
     </p>
   );
+}
+export function pathToArray(path) {
+  if (isEmpty(path)) {
+    return [];
+  }
+  if (Array.isArray(path)) {
+    return path;
+  }
+  if (typeof(path) === 'string') {
+    return path.split('.');
+  }
+  throw new Error(`pathToArray expects either array of keys or period-delimited string of keys, not ${path}`);
 }

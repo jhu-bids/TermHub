@@ -5,8 +5,8 @@ from sqlalchemy.engine.base import Connection
 
 from backend.db.config import CONFIG
 from backend.db.utils import get_ddl_statements, check_if_updated, current_datetime, insert_from_dict, \
-    is_table_up_to_date, load_csv, \
-    refresh_termhub_core_cset_derived_tables, run_sql, get_db_connection, sql_in, sql_query, update_db_status_var
+    is_table_up_to_date, load_csv, refresh_termhub_core_cset_derived_tables, run_sql, get_db_connection, sql_in, \
+    sql_query, update_db_status_var
 from enclave_wrangler.datasets import download_favorite_datasets
 from enclave_wrangler.objects_api import download_favorite_objects
 

@@ -1,6 +1,6 @@
 import React, { useState, useCallback, useEffect } from "react";
 import ReactDOM from "react-dom/client";
-import { orderBy, get, remove } from "lodash";
+import { orderBy, get, remove, throttle } from "lodash";
 import DataTable, { createTheme } from "react-data-table-component";
 import { fmt, pct_fmt } from "./utils";
 import { StatsMessage } from "./State";
@@ -16,15 +16,20 @@ import { Tooltip } from "./Tooltip";
 function getCsetSelectionHandler(tooltipId) {
   const tt = document.getElementById(tooltipId);
 
-  function handleRowMouseEnter(row, event) {
-    tt.style.display = 'block';
+  const handleRowMouseEnter = throttle((row, event) => {
     tt.style.left = `${event.clientX}px`;
     tt.style.top = `${event.clientY}px`;
-  }
+    tt.style.display = 'block';
+    console.log("Enter");
+    setTimeout(() => {
+      tt.style.display = 'none';
+    }, 1500)
+  }, 100);
 
-  function handleRowMouseLeave(row, event) {
+  const handleRowMouseLeave = throttle((row, event) => {
     tt.style.display = 'none';
-  }
+    console.log("Leave");
+  }, 0);
 
   return [handleRowMouseEnter, handleRowMouseLeave];
 }
@@ -79,14 +84,17 @@ function CsetsDataTable(props) {
 
   // const related_ids = new Set(f lattened_concept_hierarchy.map(d => d.concept_id));
   const subHeader = <StatsMessage {...props} />;
-  const [handleRowMouseEnter, handleRowMouseLeave] =
-      getCsetSelectionHandler(show_selected ? 'select-to-remove' : 'select-to-add');
+  // const [handleRowMouseEnter, handleRowMouseLeave] =
+  //     getCsetSelectionHandler(show_selected ? 'select-to-remove' : 'select-to-add');
 
   const rowSelectCritera = (row) => row.selected;
   // todo: p -> data table: data table has a property for showing some sort of paragraph text
   // TODO: y concepts -> get the number
   return (
-    <div className="csets-data-table">
+    <div
+        className="csets-data-table"
+        id={show_selected ? "selected-csets-table" : "related-csets-table"}
+    >
       <DataTable
         data={show_selected? selected_csets : relatedCsets}
         // selectableRows
@@ -94,11 +102,12 @@ function CsetsDataTable(props) {
         selectableRowSelected={rowSelectCritera}
         // onSelectedRowsChange={handleSelectionChange}
         onRowClicked={handleRowClick}
-        onRowMouseEnter={handleRowMouseEnter}
-        onRowMouseLeave={handleRowMouseLeave}
+        // onRowMouseEnter={handleRowMouseEnter}
+        // onRowMouseLeave={handleRowMouseLeave}
         customStyles={customStyles}
         noHeader={false}
-        title={(show_selected ? "Selected" : "Related") + " concept sets"}
+        title={(show_selected ? "Selected" : "Related") +
+                ` concept sets. Click row to ${show_selected ? 'deselect' : 'add to selection'}`}
         subHeader={!show_selected}
         subHeaderComponent={show_selected ? null : subHeader}
         // theme="custom-theme"

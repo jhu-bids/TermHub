@@ -5,11 +5,10 @@ import Draggable from "react-draggable";
 import Box from "@mui/material/Box";
 import Button from "@mui/material/Button";
 
-export function FlexibleContainer({ title, children }) {
+export function FlexibleContainer({ title, position, children }) {
   const [display, setDisplay] = useState("hidden");
   const draggableRef = useRef(null);
 
-  const position = { x: 0, y: 0 };
   let displayedContent;
   let style = {
     cursor: "move",

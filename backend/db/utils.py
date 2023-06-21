@@ -32,18 +32,27 @@ SCHEMA = CONFIG["schema"]
 
 
 # todo: move this somewhere else, possibly load.py or db_refresh.py
+# todo: what to do if this process fails? any way to roll back? should we?
 def refresh_termhub_core_cset_derived_tables(con: Connection, schema: str):
     """Refresh TermHub core cset derived tables
 
     This can also work to initially create the tables if they don't already exist."""
     temp_table_suffix = '_new'
+    # TODO: update when I have DDL for public.csets_to_ignore
     ddl_modules = [
         'cset_members_items',
+        'concept_ids_by_codeset_id',
+        'codeset_ids_by_concept_id',
         'members_items_summary',
         'cset_members_items_plus',
         'codeset_counts',
-        'all_csets']
-    views = ['cset_members_items_plus']
+        'all_csets',
+        'csets_to_ignore',
+    ]
+    views = [
+        'cset_members_items_plus',
+        'csets_to_ignore',
+    ]
     # Create new tables and backup old ones
     t0 = datetime.now()
     for module in ddl_modules:
@@ -362,7 +371,7 @@ def load_csv(
     # Edge cases
     existing_rows = 0
     try:
-        r = con.execute(f'select count(*) from {schema}.{table}')
+        r = con.execute(text(f'select count(*) from {schema}.{table}'))
         existing_rows = r.one()[0]
     except Exception as err:
         # noinspection PyUnresolvedReferences

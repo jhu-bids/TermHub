@@ -11,7 +11,7 @@ import { AddCircle, RemoveCircleOutline, Download } from "@mui/icons-material";
 import { Box, Slider, Button, Typography, Switch } from "@mui/material";
 import Draggable from "react-draggable";
 // import {Checkbox} from "@mui/material";
-import {isEmpty, get, throttle, max, uniq, uniqBy, flatten, sortBy} from "lodash"; // set, map, omit, pick, uniq, reduce, cloneDeepWith, isEqual, uniqWith, groupBy,
+import {isEmpty, get, throttle, max, union, uniqBy, flatten, sortBy} from "lodash"; // set, map, omit, pick, uniq, reduce, cloneDeepWith, isEqual, uniqWith, groupBy,
 import Graph from 'graphology';
 import {allSimplePaths} from 'graphology-simple-path';
 import {dfs, dfsFromNode} from 'graphology-traversal/dfs';
@@ -37,6 +37,7 @@ import {
   cellStyle,
   Legend,
   saveChangesInstructions,
+  textCellForItem,
 } from "../components/EditCset";
 import { CsetsDataTable } from "../components/CsetsDataTable";
 import { FlexibleContainer } from "../components/FlexibleContainer";
@@ -47,22 +48,74 @@ import { FlexibleContainer } from "../components/FlexibleContainer";
 //  ...for coloration, since we want certain rows grouped together
 function CsetComparisonPage(props) {
   const {
-    all_csets = [],
+    codeset_ids = [],
     searchParams,
     setSearchParams,
     editCodesetId,
     csetEditState,
-    concepts,
-    cset_data, // TODO: get rid of this and use dataAccessor -- but more work to be done on that first
+    // cset_data, // TODO: get rid of this and use dataAccessor -- but more work to be done on that first
   } = props;
-  const { selected_csets = [], researchers, } = cset_data;
+  // const { selected_csets = [], researchers, } = cset_data;
   const { state: hierarchySettings, dispatch: hsDispatch} = useStateSlice("hierarchySettings");
   const {collapsePaths, collapsedDescendantPaths, nested, hideRxNormExtension, hideZeroCounts} = hierarchySettings;
-  // window.hierarchySettingsW = hierarchySettings;
   const windowSize = useWindowSize();
   const boxRef = useRef();
+  const [panelPosition, setPanelPosition] = useState({ x: 0, y: 0 });
   const sizes = getSizes(/*squishTo*/ 1);
   const customStyles = styles(sizes);
+  const [data, setData] = useState({});
+      // useState({ concept_ids: [], selected_csets: [], edges: [], concepts: [], });
+  const { concept_ids, edges, concepts, selected_csets, csmi } = data;
+
+  useEffect(() => {
+    if (boxRef.current) {
+      let margin_text = window
+          .getComputedStyle(boxRef.current)
+          .getPropertyValue("margin-bottom");
+      margin_text = margin_text.substring(0, margin_text.length - 2);
+      const margin = parseInt(margin_text);
+
+      setPanelPosition({
+        x: 0,
+        y: boxRef.current.clientHeight + 2 * margin
+      });
+    }
+  }, []);
+
+  useEffect(() => {
+    (async () => {
+      let promises = [ // these can run immediately
+        dataAccessor.getItemsByKey( // csmi
+            { itemType: 'cset_members_items', keys: codeset_ids, shape: 'obj',
+              // returnFunc: results => flatten([...Object.values(results)])
+            }),
+        dataAccessor.getItemsByKey(
+          { itemType: 'selected_csets', keys: codeset_ids, shape: 'obj',
+            returnFunc: results => [...Object.values(results)]} ),
+      ];
+      // have to get concept_ids before fetching concepts
+      const concept_ids = await dataAccessor.getItemsByKey(
+          { itemType: 'concept_ids_from_codeset_ids',
+            keys: codeset_ids,
+            shape: 'obj',
+            returnFunc: results => union(...Object.values(results))
+          });
+      promises.push(
+          dataAccessor.getItemsByKey(
+              { itemType: 'concept', keys: concept_ids, shape: 'array' }),
+      );
+      const [
+        csmi,
+        selected_csets,
+        concepts,
+      ] = await Promise.all(promises);
+      setData({csmi, selected_csets, concept_ids, concepts});
+    })()
+  }, []);
+
+  if (isEmpty(data)) {
+    return <p>Downloading...</p>;
+  }
 
   // TODO: component is rendering twice. why? not necessary? fix?
   let {allRows, displayedRows, distinctRows, hidden} = getRowData({...props, hierarchySettings});
@@ -81,9 +134,6 @@ function CsetComparisonPage(props) {
   const editCodesetFunc = getEditCodesetFunc({ searchParams, setSearchParams });
 
 
-  if (!all_csets.length || isEmpty(selected_csets)) {
-    return <p>Downloading...</p>;
-  }
   let columns = colConfig({
     ...props,
     selected_csets,
@@ -119,9 +169,27 @@ function CsetComparisonPage(props) {
     >
       {displayedRows.length} in hierarchy
     </Button>,
-    <Download key="download-distinct" onClick={ () => downloadTSV({...props, displayedRows}) }
-              sx={{ cursor: 'pointer' }} ></Download>,
-    <FlexibleContainer key="legend" title="Legend">
+    <Button key="download-distinct-tsv"
+            variant="outlined"
+            onClick={ () => downloadCSV({...props, displayedRows, selected_csets, csmi}, true) }
+            sx={{
+              cursor: 'pointer',
+              marginRight: '4px',
+            }}
+    >
+      TSV <Download></Download>
+    </Button>,
+    <Button key="download-distinct-csv"
+            variant="outlined"
+            onClick={ () => downloadCSV({...props, displayedRows, selected_csets, csmi}) }
+            sx={{
+              cursor: 'pointer',
+              marginRight: '4px',
+            }}
+    >
+      CSV <Download></Download>
+    </Button>,
+    <FlexibleContainer key="legend" title="Legend" position={panelPosition}>
       <Legend />
     </FlexibleContainer>
   ];
@@ -130,10 +198,10 @@ function CsetComparisonPage(props) {
   if (editCodesetId) {
     edited_cset = selected_csets.find(cset => cset.codeset_id === editCodesetId);
     infoPanels.push(
-        <FlexibleContainer key="cset" title="Concept set being edited">
+        <FlexibleContainer key="cset" title="Concept set being edited" position={panelPosition}>
           <ConceptSetCard
               cset={columns.find((d) => d.codeset_id === editCodesetId).cset_col}
-              researchers={researchers}
+              // researchers={researchers}
               editing={true}
           />
         </FlexibleContainer>
@@ -147,12 +215,15 @@ function CsetComparisonPage(props) {
       const csidState = csetEditState[editCodesetId];
       infoPanels.push(
           <FlexibleContainer key="changes"
-              title={`${Object.keys(csidState).length} Staged changes`}
+                             title={`${Object.keys(csidState).length} Staged changes`}
+                             position={panelPosition}
           >
             <EditInfo {...props} />
           </FlexibleContainer>,
 
-          <FlexibleContainer key="instructions" title="Instructions to save changes">
+          <FlexibleContainer key="instructions"
+                             title="Instructions to save changes"
+                             position={panelPosition}>
             {saveChangesInstructions(props)}
           </FlexibleContainer>
       );
@@ -657,30 +728,99 @@ function colConfig(props) {
    */
   return coldefs;
 }
-function downloadTSV(props) {
-  const {displayedRows, codeset_ids, } = props;
-  const filename = 'thdownload-' + codeset_ids.join('-') + '.tsv';
+
+function downloadCSV(props, tsv=false) {
+  const {displayedRows, codeset_ids, selected_csets, csmi, } = props;
+  const filename = 'thdownload-' + codeset_ids.join('-') + (tsv ? '.tsv' : '.csv');
   const maxLevel = max(displayedRows.map(r => r.level));
-  // let columns = ['concept_id']
+  const first_keys = ['Patients', 'Records', 'Vocabulary', 'Concept code'];
+  const addedEmptyColumns = ['Include', 'Exclude', 'Notes'];
+  const cset_keys = codeset_ids.map(id => selected_csets.find(cset => cset.codeset_id === id).concept_set_name);
+  /*
+      output columns will be:
+        level (of indentation)
+        level1, level2, ...   for indented concept names
+        ...first_keys
+        ...other keys (not first or last)
+        ...selected concept set keys
+        Concept name
+        ...addedEmptyColumns
+   */
+  const excluded_keys = ['pathToRoot', 'hasChildren'];
+  const key_convert = {
+    'level': 'Level',
+    'concept_code': 'Concept code',
+    'concept_class_id': 'Concept class',
+    'domain_id': 'Concept domain',
+    'domain': 'Domain tables with concept',
+    'domain_cnt': 'Domain count',
+    'standard_concept': 'OMOP standard',
+    'invalid_reason': 'Invalid reason',
+    'distinct_person_cnt': 'Patients',
+    'total_cnt': 'Records',
+    'vocabulary_id': 'Vocabulary',
+    'concept_id': 'Concept ID',
+    'concept_name': 'Concept name',
+  };
+
   const rows = displayedRows.map(r => {
     let row = {};
+    // adds indented concept names to rows
     for (let i = 0; i <= maxLevel; i++) {
       row['level' + i] = (r.level === i ? r.concept_name : '');
     }
-    return {...row, ...r};
+    // renames row properties to column names
+    for (let k in r) {
+      if (!excluded_keys.includes(k)) {
+        row[key_convert[k]] = r[k];
+      }
+    }
+    for (let j = 0; j < addedEmptyColumns.length; j++) {
+      row[addedEmptyColumns[j]] = '';
+    }
+    codeset_ids.forEach((codeset_id, i) => {
+      const item = csmi[codeset_id][r.concept_id];
+      row[cset_keys[i]] = item ? textCellForItem(item) : '';
+    });
+    return row;
   });
+
+  // specify the order of columns in csv
+  let columns = ['Level'];
+  for (let i = 0; i <= maxLevel; i++) {
+    columns.push('level' + i);
+  }
+  columns.push(...first_keys);
+  Object.keys(displayedRows[0]).forEach(k => {
+    if (excluded_keys.includes(k) || k === 'concept_name') {
+      return;
+    }
+    if (!first_keys.includes(k) && k !== 'level') {
+      columns.push(key_convert[k]);
+    }
+  });
+  columns.push(...cset_keys, 'Concept name', ...addedEmptyColumns);
+
   let config = {
-    delimiter: "\t",
+    delimiter: tsv ? "\t" : ",",
     newline: "\n",
     // defaults
-    // quotes: false, //or array of booleans
+    quotes: tsv ? false : (c => {
+      c = c.toString();
+      return c.includes(",") || c.includes("\n");
+    }),
+    error: (error, file) => {
+      console.error(error);
+      console.log(file);
+    },
     // header: true,
     // skipEmptyLines: false, //other option is 'greedy', meaning skip delimiters, quotes, and whitespace.
-    // columns: null //or array of strings
+    columns: columns, //or array of strings
   }
   const dataString = Papa.unparse(rows, config);
-  // const blob = new Blob([dataString], { type: 'text/csv;charset=utf-8' });
-  const blob = new Blob([dataString], { type: 'text/tab-separated-values;charset=utf-8' });
+  const blob = new Blob([dataString], {
+    type: tsv ? 'text/tab-separated-values;charset=utf-8' : 'text/csv;charset=utf-8'
+  });
   saveAs(blob, filename);
 }
 
