@@ -53,6 +53,7 @@ function CsetComparisonPage(props) {
   } = props;
   // const { selected_csets = [], researchers, } = cset_data;
   const { state: hierarchySettings, dispatch: hsDispatch} = useStateSlice("hierarchySettings");
+  const { state: editCset, dispatch: editCsetDispatch} = useStateSlice("editCset");
   const {collapsePaths, collapsedDescendantPaths, nested, hideRxNormExtension, hideZeroCounts} = hierarchySettings;
   const windowSize = useWindowSize();
   const boxRef = useRef();
@@ -102,11 +103,14 @@ function CsetComparisonPage(props) {
           dataAccessor.getItemsByKey(
               { itemType: 'concepts', keys: concept_ids, shape: 'obj' }),
       );
-      const [
+      let [
         csmi,
         selected_csets,
         conceptLookup,
       ] = await Promise.all(promises);
+      if (!isEmpty(editCset)) {
+        csmi = {...csmi, ...editCset.definitions};
+      }
       const concepts = Object.values(conceptLookup);
       setData({csmi, selected_csets, concept_ids, concepts, conceptLookup, edges});
     })()
@@ -133,7 +137,6 @@ function CsetComparisonPage(props) {
     csmi,
   });
   const editCodesetFunc = getEditCodesetFunc({ searchParams, setSearchParams });
-
 
   let columns = colConfig({
     ...props,
