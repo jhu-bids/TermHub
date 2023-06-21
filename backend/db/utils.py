@@ -120,7 +120,7 @@ def current_datetime(time_zone=['UTC/GMT', 'EST/EDT'][1]) -> str:
 def last_refresh_timestamp(con: Connection) -> str:
     """Get the timestamp of the last database refresh"""
     return sql_query(
-        con, f"SELECT value FROM public.manage WHERE key = 'last_refreshed_DB';", return_with_keys=False)[0][0]
+        con, f"SELECT value FROM public.manage WHERE key = 'last_refresh_success';", return_with_keys=False)[0][0]
 
 
 def is_up_to_date(last_updated: Union[datetime, str], threshold_hours=24) -> bool:
@@ -166,7 +166,7 @@ def database_exists(con: Connection, db_name: str) -> bool:
 
 def sql_query(
     con: Connection, query: Union[text, str], params: Dict = {}, debug: bool = DEBUG, return_with_keys=True
-) -> List[Union[RowMapping, Any]]:
+) -> Union[List[RowMapping], List[Row]]:
     """Run a sql query with optional params, fetching records.
     https://stackoverflow.com/a/39414254/1368860:
     query = "SELECT * FROM my_table t WHERE t.id = ANY(:ids);"
@@ -183,8 +183,10 @@ def sql_query(
         if debug:
             print(f'{query}\n{json.dumps(params, indent=2)}')
         if return_with_keys:
+            # noinspection PyTypeChecker
             results: List[RowMapping] = q.mappings().all()  # key value pairs
         else:
+            # noinspection PyTypeChecker
             results: List[Row] = q.fetchall()  # Row tuples, with additional properties
         return results
     except (ProgrammingError, OperationalError) as err:
@@ -199,7 +201,7 @@ def delete_obj_by_composite_key(con, table: str, key_ids: Dict[str, Union[str, i
         {f'{key}': _id for key, _id in key_ids.items()})
 
 
-def get_obj_by_composite_key(con, table: str, keys: List[str], obj: Dict) -> List[Dict]:
+def get_obj_by_composite_key(con, table: str, keys: List[str], obj: Dict) -> List[RowMapping]:
     """Get object by ID
     todo: could be made more consistent w/ get_obj_by_id(): accept obj_id instead?"""
     keys_str = ' AND '.join([f'{key} = (:{key}_id)' for key in keys])
@@ -208,7 +210,7 @@ def get_obj_by_composite_key(con, table: str, keys: List[str], obj: Dict) -> Lis
         {f'{key}_id': obj[key] for key in keys})
 
 
-def get_obj_by_id(con, table: str, pk: str, obj_id: Union[str, int]) -> List[Dict]:
+def get_obj_by_id(con, table: str, pk: str, obj_id: Union[str, int]) -> List[Row]:
     """Get object by ID"""
     return sql_query(con, f'SELECT * FROM {table} WHERE {pk} = (:obj_id)', {'obj_id': obj_id}, return_with_keys=False)
 

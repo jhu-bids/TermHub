@@ -37,7 +37,7 @@ def refresh_db(
     this is set to True."""
     print('INFO: Starting database refresh.', flush=True)  # flush: for gh action
     t0, t0_str = datetime.now(), current_datetime()
-    update_db_status_var('last_refreshed_request', t0_str)
+    update_db_status_var('last_refresh_request', t0_str)
     update_db_status_var('refresh_status', 'active')
     try:
         with get_db_connection(local=use_local_database) as con:
@@ -46,16 +46,17 @@ def refresh_db(
                 raise ValueError(SINCE_ERR)
             since = since if since else last_refresh
 
-            # Refresh DB
-        csets_and_members_enclave_to_db(con, schema, since)
+            # Refresh DB:
+            csets_and_members_enclave_to_db(con, schema, since)
 
         counts_update('DB refresh.', schema, use_local_database)
-        update_db_status_var('last_refreshed_success', current_datetime())
+        update_db_status_var('last_refresh_success', current_datetime())
         update_db_status_var('last_refresh_result', 'success')
         print(f'INFO: Database refresh complete in {(datetime.now() - t0).seconds} seconds.')
 
     except Exception as err:
         update_db_status_var('last_refresh_result', 'error')
+        counts_update('DB refresh error.', schema, use_local_database)
         print(f"Database refresh incomplete. An exception occurred: {err}")
     update_db_status_var('refresh_status', 'inactive')
 
