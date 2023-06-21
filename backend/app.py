@@ -389,10 +389,15 @@ def _get_cset_members_items(codeset_ids: str,
 #       Or just make new issue for starting from one cset or concept
 #       and fanning out to other csets from there?
 @APP.get("/selected-csets")
-def _get_csets(codeset_ids: Union[str, None] = Query(default=''), ) -> List[Dict]:
+def _get_csets(codeset_ids: Union[str, None] = Query(default=''),
+               include_atlas_json = False) -> List[Dict]:
     """Route for: get_csets()"""
     requested_codeset_ids = parse_codeset_ids(codeset_ids)
-    return get_csets(requested_codeset_ids)
+    csets = get_csets(requested_codeset_ids)
+    if not include_atlas_json:
+        for cset in csets:
+            del cset['atlas_json']
+    return csets
 
 
 @APP.get("/related-csets")

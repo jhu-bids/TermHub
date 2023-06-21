@@ -100,7 +100,7 @@ function CsetComparisonPage(props) {
       concept_ids = union(concept_ids.map(String), flatten(edges));
       promises.push(
           dataAccessor.getItemsByKey(
-              { itemType: 'concept', keys: concept_ids, shape: 'obj' }),
+              { itemType: 'concepts', keys: concept_ids, shape: 'obj' }),
       );
       const [
         csmi,
@@ -108,7 +108,7 @@ function CsetComparisonPage(props) {
         conceptLookup,
       ] = await Promise.all(promises);
       const concepts = Object.values(conceptLookup);
-      setData({csmi, selected_csets, concept_ids, concepts, edges});
+      setData({csmi, selected_csets, concept_ids, concepts, conceptLookup, edges});
     })()
   }, []);
 

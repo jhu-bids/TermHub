@@ -101,7 +101,7 @@ export async function fetchItems( itemType, paramList) {
       api;
 
   switch(itemType) {
-    case 'concept':
+    case 'concepts':
     case 'concept_ids_by_codeset_id':
     case 'codeset_ids_by_concept_id':
       api = itemType.replaceAll('_','-');
@@ -112,8 +112,8 @@ export async function fetchItems( itemType, paramList) {
       })
       return data;
     case 'selected_csets':
-      url = backend_url('selected-csets?codeset_ids=' + paramList.join('|'));
-      data = await oneToOneFetchAndCache(itemType, 'selected-csets', {codeset_ids:paramList}, paramList);
+      url = 'selected-csets?codeset_ids=' + paramList.join('|');
+      data = await oneToOneFetchAndCache(itemType, url, undefined, paramList);
       return data;
     case 'cset_members_items':
       data = await Promise.all(
