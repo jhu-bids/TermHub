@@ -136,6 +136,8 @@ function ConceptSetCard(props) {
     display_props["Project ID"] = cset.project_id;
   }
 
+  console.warn("fix the researcher stuff!!!!!");
+  /*
   let _researchers = Object.entries(cset.researchers).map(([id, roles]) => {
     let r = researchers[id];
     r.roles = roles;
@@ -170,12 +172,13 @@ function ConceptSetCard(props) {
   });
   let researcherContent = (
     <div>
-      <Typography /*variant="h6"*/ color="text.primary">
+      <Typography /*variant="h6"* / color="text.primary">
         Contributors
       </Typography>
       {researcher_info}
     </div>
   );
+   */
   // display_props['props not included yet'] = 'codeset_status, container_status, stage, concept count';
   const { search, pathname } = useLocation();
   /*
@@ -247,7 +250,7 @@ function ConceptSetCard(props) {
             Export JSON
           </a>
         </Typography>
-        {researcherContent}
+        {/*{researcherContent}*/}
       </CardContent>
       {/*
         <CardActions disableSpacing>
