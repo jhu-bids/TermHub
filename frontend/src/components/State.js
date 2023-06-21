@@ -260,8 +260,8 @@ class DataAccess {
     this.#cache = {};
   }
   async cacheCheck() {
-    const url = 'http://127.0.0.1:8000/last-refreshed';
-    const tsStr = await axiosGet(url);
+    const url = 'last-refreshed';
+    const tsStr = await axiosGet(url, true);
     const ts = new Date(tsStr);
     if (isNaN(ts.getDate())) {
       throw new Error(`invalid date from ${url}: ${tsStr}`);
