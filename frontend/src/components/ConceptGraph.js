@@ -1,10 +1,10 @@
 import React, {useState, useEffect} from "react";
 import {dataAccessor, fetchItems, } from "./State";
-import _ from "../supergroup/supergroup";
+// import _ from "../supergroup/supergroup";
 import * as d3Base from "d3";
 import * as d3dag from "d3-dag";
 import Graph from "graphology";
-import {uniq, flatten, union} from "lodash";
+import {uniq, flatten, union, sortBy, max, groupBy, sum, } from "lodash";
 
 const d3 = Object.assign({}, d3Base, d3dag);
 
