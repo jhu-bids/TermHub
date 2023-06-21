@@ -12,11 +12,15 @@ import Box from "@mui/material/Box";
 import { useQuery } from "@tanstack/react-query";
 import {queryClient} from "../App";
 import { createSearchParams, useSearchParams } from "react-router-dom";
-import { isEmpty, get, set, fromPairs, flatten, keyBy } from "lodash";
+import { isEmpty, get, set, fromPairs, flatten, keyBy, debounce, uniq } from "lodash";
 import { pct_fmt } from "./utils";
 import WarningRoundedIcon from '@mui/icons-material/WarningRounded';
 import { CheckCircleRounded } from "@mui/icons-material";
 import { Inspector } from 'react-inspector'; // https://github.com/storybookjs/react-inspector
+import { compress, decompress } from 'lz-string'; // using in persister to handle big result sets
+import {formatEdges} from '../components/ConceptGraph';
+
+window.axios = axios
 
 const stateDoc = `
     URL query string
@@ -27,18 +31,6 @@ const stateDoc = `
       sort_json
       use_example
 
-    Fetch at top level and passing props down from there
-    handled by DataContainer, useDataWidget, react-query, etc.
-      from cr-hierarchy
-        all_csets
-        cset_data
-          edges
-          cset_members_items
-          selected_csets
-          researchers
-          related_csets
-          concepts
-
     reducers and context
     handled by useAppState, AppStateProvider, useStateSlice(slice)
       really using:
@@ -48,9 +40,14 @@ const stateDoc = `
         concept_ids
         editCset
 
-    DataAccessor
-        getConcepts -- much more efficient than getting from cr-hierarchy, and it works, but
-          not really using it
+    DataAccessor  // replaces DataContainer
+        all_csets
+        edges
+        cset_members_items
+        selected_csets
+        researchers
+        related_csets
+        concepts
 
     local to components, useState, etc.
 
@@ -82,11 +79,12 @@ export function ViewCurrentState(props) {
     <pre>{stateDoc}</pre>
   </div>);
 }
-async function oneToOneFetchAndCache(itemType, paramList, url) {
-  const data = await axiosGet(url);
-  const strategy = '1-to-1';
+async function oneToOneFetchAndCache(itemType, api, postData, paramList) {
+  // We expect a 1-to-1 relationship between paramList items (e.g., concept_ids)
+  //  and retrieved items (e.g., concepts)
+  const data = await axiosCall(api, {backend:true, data: postData});
   if (data.length !== paramList.length) {
-    throw new Error(`${strategy} for ${itemType} requires matching result data and paramList lengths`);
+    throw new Error(`oneToOneFetchAndCache for ${itemType} requires matching result data and paramList lengths`);
   }
   data.forEach((item,i) => {
     dataAccessor.cachePut([itemType, paramList[i]], item);
@@ -99,74 +97,82 @@ export async function fetchItems( itemType, paramList) {
   }
   let url,
       data,
-      strategy; // '1-to-1' or '1-to-many', or ... --- no two types require same strategy at present
+      cacheKey,
+      api;
 
-  if (itemType === 'concept') { // expects paramList of concept_ids
-    // We expect a 1-to-1 relationship between paramList items (concept_ids) and retrieved items (concepts)
-    const url = backend_url('get-concepts?' + paramList.map(key => `id=${key}`).join('&'));
-    data = await oneToOneFetchAndCache(itemType, paramList, url);
-  }
+  switch(itemType) {
+    case 'concepts':
+    case 'concept_ids_by_codeset_id':
+    case 'codeset_ids_by_concept_id':
+      api = itemType.replaceAll('_','-');
+      url = backend_url('get-concepts')
+      data = await oneToOneFetchAndCache(itemType, api, paramList, paramList);
+      data.forEach((group,i) => {
+        dataAccessor.cachePut([itemType, paramList[i]], group);
+      })
+      return data;
+    case 'selected_csets':
+      url = 'selected-csets?codeset_ids=' + paramList.join('|');
+      data = await oneToOneFetchAndCache(itemType, url, undefined, paramList);
+      return data;
+    case 'cset_members_items':
+      data = await Promise.all(
+          paramList.map(
+              async codeset_id => {
+                url = backend_url(`get-cset-members-items?codeset_ids=${codeset_id}`);
+                data = await axiosCall(url);
 
-  else if (itemType === 'selected_csets') { // expects paramList of concept_ids
-    const url = backend_url('selected-csets?codeset_ids=' + paramList.join('|'));
-    data = await oneToOneFetchAndCache(itemType, paramList, url);
-  }
+                return data;
+              }
+          )
+      );
+      if (isEmpty(data)) {
+        debugger;
+      }
+      data.forEach((group,i) => {
+        dataAccessor.cachePut([itemType, paramList[i]], keyBy(group, 'concept_id'));
+      })
+      return data;
 
-  else if (itemType === 'cset_members_items') { // expects paramList of codeset_ids
-    strategy = '1-to-many';
-    data = await Promise.all(
-      paramList.map(
-        async codeset_id => {
-          url = backend_url(`get-cset-members-items?codeset_ids=${codeset_id}`);
-          data = await axiosGet(url);
+    case 'edges': // expects paramList of concept_ids
+      // each unique set of concept_ids gets a unique set of edges
+      // check cache first (because this request won't come from getItemsByKey)
+      cacheKey = paramList.join('|');
+      data = dataAccessor.cacheGet([itemType, cacheKey]);
+      if (isEmpty(data)) {
+        url = backend_url('subgraph?'+ paramList.map(key => `id=${key}`).join('&'));
+        data = await axiosCall(url);
+        data = formatEdges(data);
+        dataAccessor.cachePut([itemType, cacheKey], data);
+      }
+      return data;
 
-          return data;
-        }
-      )
-    );
-    if (isEmpty(data)) {
-      debugger;
-    }
-    data.forEach((group,i) => {
-      dataAccessor.cachePut([itemType, paramList[i]], keyBy(group, 'concept_id'));
-    })
-  }
+    case 'related_csets': // expects paramList of codeset_ids
+      // each unique set of codeset_ids gets a unique set of related_csets
+      // this is the same pattern as edges above. make a single function for
+      //  this pattern like oneToOneFetchAndCache --- oh, except the formatEdges part
+      cacheKey = paramList.join('|');
+      data = dataAccessor.cacheGet([itemType, cacheKey]);
+      if (isEmpty(data)) {
+        const url = backend_url('related-csets?codeset_ids=' + paramList.join('|'));
+        data = await axiosCall(url);
+        // data = formatEdges(data);
+        dataAccessor.cachePut([itemType, cacheKey], data);
+      }
+      return data;
 
-  else if (itemType === 'concept_ids_from_codeset_ids') { // expects paramList of codeset_ids
-    strategy = '1-to-many';
-    data = await Promise.all(
-        paramList.map(
-            async codeset_id => {
-              url = backend_url(`get-concept_ids-from-codeset_ids?codeset_ids=${codeset_id}`);
-              data = await axiosGet(url);
-              return data;
-            }
-        )
-    );
-    if (isEmpty(data)) {
-      debugger;
-    }
-    data.forEach((group,i) => {
-      dataAccessor.cachePut([itemType, paramList[i]], group);
-    })
-    // return union(Object.values(concept_ids_by_codeset_id));
-  }
+    case 'all_csets':
+      data = dataAccessor.cacheGet([itemType]);
+      if (isEmpty(data)) {
+        url = backend_url('get-all-csets');
+        data = await axiosCall(url);
+        dataAccessor.cachePut([itemType], data);
+      }
+      return data;
 
-  else if (itemType === 'edge') { // expects paramList of concept_ids
-    // each unique set of concept_ids gets a unique set of edges
-    // check cache first (because this request won't come from getItemsByKey)
-    const cacheKey = paramList.join('|');
-    data = dataAccessor.cacheGet([itemType, cacheKey]);
-    if (isEmpty(data)) {
-      url = backend_url('subgraph?'+ paramList.map(key => `id=${key}`).join('&'));
-      data = await axiosGet(url);
-      dataAccessor.cachePut([itemType, cacheKey], data);
-    }
+    default:
+      throw new Error(`Don't know how to fetch ${itemType}`);
   }
-  else {
-    throw new Error(`Don't know how to fetch ${itemType}`);
-  }
-  return data;
 }
 
 class DataAccess {
@@ -177,6 +183,10 @@ class DataAccess {
                         shape='array', /* or obj */
                         returnFunc
                       }) {
+    keys = keys.map(String);
+    if (keys.length !== uniq(keys).length) {
+      throw new Error(`Why are you sending duplicate keys?`);
+    }
     // use this for concepts and cset_members_items
     let wholeCache = get(this.#cache, itemType, {});
     let cachedItems = {};     // this will hold the requested items that are already cached
@@ -217,12 +227,24 @@ class DataAccess {
   getWholeCache() {
     return this.#cache;
   }
-  saveCache = () => {
-    localStorage.setItem('dataAccessor', JSON.stringify(this.#cache));
-    return null;
+  getKeys() {
+    return Object.keys(this.getWholeCache());
   }
+  saveCache = debounce(async () => {
+    const before = (localStorage.getItem('dataAccessor')||'').length;
+    const compressed = compress(JSON.stringify(this.#cache));
+    const after = compressed.length;
+    if ( before === after ) { // assume compressed cache after change will be different length
+      return null;
+    }
+    // rounding suggestion: https://stackoverflow.com/a/11832950/1368860
+    console.log(`compressed cache just grew by ${Math.round(10000 * (after / before + Number.EPSILON)) / 100}% to ${after.toLocaleString()} chars`)
+
+    localStorage.setItem('dataAccessor', compressed);
+    return null;
+  }, 400);
   loadCache = () => {
-    return JSON.parse(localStorage.getItem('dataAccessor'));
+    return JSON.parse(decompress(localStorage.getItem('dataAccessor')||''));
   }
   cacheGet(path) {
     // uses lodash get, so path can be array of nested keys or a string with
@@ -246,6 +268,7 @@ class DataAccess {
       }
     }
     set(this.#cache, path, value);
+    this.saveCache();
   }
   popLastPathKey(path) {
     path = [...pathToArray(path)];
@@ -261,7 +284,7 @@ class DataAccess {
   }
   async cacheCheck() {
     const url = 'last-refreshed';
-    const tsStr = await axiosGet(url, true);
+    const tsStr = await axiosCall(url, {backend: true});
     const ts = new Date(tsStr);
     if (isNaN(ts.getDate())) {
       throw new Error(`invalid date from ${url}: ${tsStr}`);
@@ -348,6 +371,32 @@ export function useAppState() {
 const editCsetReducer = (state, action) => {
   if (!(action && action.type)) return state;
   if (!action.type) return state;
+  switch (action.type) {
+    case "create_new_cset": {
+          let newCset = {
+  "codeset_id": 0,
+  "concept_set_version_title": "New Cset (Draft)",
+  "concept_set_name": "New Cset",
+  "alias": "New Cset",
+  "source_application": "UNITE",
+  // "source_application_version": "2.0",
+  // "codeset_created_at": "2022-07-28 16:14:13.085000+00:00",
+  "codeset_intention": "From TermHub",
+  "limitations": "From TermHub",
+  "update_message": "TermHub testing",
+  // "codeset_created_by": "e64b8f7b-7af8-4b44-a570-557b812c0eeb",
+  "provenance": "TermHub testing.",
+  "is_draft": true,
+          };
+
+          return {...state, newCset, definitions: {}};
+    }
+    case "add_definitions": {
+      let { definitions={} } = state;
+      definitions = {...definitions, ...action.payload};
+      return {...state, ...definitions};
+    }
+  }
   if (state === action.payload) return null; // if already set to this codeset_id, turn off
   return action.payload;
 };
@@ -567,32 +616,22 @@ function DataWidget(props) {
   );
 }
 
-export function useDataWidget(ukey, url, putData=false) {
-  const ax = putData ? () => axiosPut(url, putData) : () => axiosGet(url);
-  const axVars = useQuery([ukey], ax);
-  let dwProps = { ...axVars, ukey, url, putData };
-  const dw = <DataWidget {...dwProps} />;
-  return [dw, dwProps]; // axVars.data];
-}
-
 export const backend_url = (path) => `${API_ROOT}/${path}`;
 
-export async function axiosGet(path, backend = false) {
+export async function axiosCall(path, { backend = false, data, returnDataOnly=true }={}) {
   let url = backend ? backend_url(path) : path;
-  console.log("axiosGet url: ", url);
-  const results = await axios.get(url)
-              .catch(function (error) {
-                console.log(error.toJSON());
-                throw error;
-              })
-              .then((res) => res.data);
-  return results;
-}
-
-export async function axiosPut(path, data, backend = true) {
-  let url = backend ? backend_url(path) : path;
-  console.log("axiosPut url: ", url);
-  return axios.post(url, data);
+  console.log("axiosCall url: ", url);
+  try {
+    let results;
+    if (typeof(data) === 'undefined') {
+      results = await axios.get(url);
+    } else {
+      results = await axios.post(url, data);
+    }
+    return results.data;
+  } catch(error) {
+    console.log(error.toJSON());
+  }
 }
 
 export function StatsMessage(props) {
@@ -622,4 +661,12 @@ export function pathToArray(path) {
     return path.split('.');
   }
   throw new Error(`pathToArray expects either array of keys or period-delimited string of keys, not ${path}`);
+}
+
+export function useDataWidget(ukey, url, putData=false) {
+  const ax = putData ? () => axiosCall(url, {data:putData}) : () => axiosCall(url);
+  const axVars = useQuery([ukey], ax);
+  let dwProps = { ...axVars, ukey, url, putData };
+  const dw = <DataWidget {...dwProps} />;
+  return [dw, dwProps]; // axVars.data];
 }

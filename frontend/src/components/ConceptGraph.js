@@ -8,7 +8,7 @@ import {uniq, flatten, union, sortBy, max, groupBy, sum, } from "lodash";
 
 const d3 = Object.assign({}, d3Base, d3dag);
 
-function formatEdges(edges=[]) {
+export function formatEdges(edges=[]) {
   if (!edges.length) return [];
   let etest = edges[0];
   let pairs;

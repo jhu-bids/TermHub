@@ -6,8 +6,8 @@ import { TextField, Autocomplete, Box, } from "@mui/material";
 import Button from "@mui/material/Button";
 // import Chip from '@mui/material/Chip';
 // import { Link, Outlet, useHref, useParams, useSearchParams, useLocation } from "react-router-dom";
-import { every } from "lodash";
-import { get, isNumber, isEmpty, throttle, pullAt } from "lodash";
+import { every, union } from "lodash";
+import { get, isNumber, isEmpty, flatten, } from "lodash";
 // import {isEqual, pick, uniqWith, max, omit, uniq, } from 'lodash';
 // import Box from "@mui/material/Box";
 import { Tooltip } from "./Tooltip";
@@ -16,6 +16,7 @@ import CardContent from "@mui/material/CardContent";
 import Typography from "@mui/material/Typography";
 // import * as po from '../pages/Popover';
 import { DOCS } from "../pages/AboutPage";
+import {dataAccessor, fetchItems} from "./State";
 
 /* TODO: Solve
     react_devtools_backend.js:4026 MUI: The value provided to Autocomplete is invalid.
@@ -42,21 +43,27 @@ function initialOpts(all_csets, codesetIds) {
   return opts;
 }
 export function CsetSearch(props) {
-  const { codeset_ids=[], changeCodesetIds, all_csets = [] } = props;
+  const { codeset_ids=[], changeCodesetIds, } = props;
   const [opts, setOpts] = useState([]);
   const [value, setValue] = useState([]);
+  const [data, setData] = useState({});
+  const { all_csets, selected_csets, relatedCsets,  } = data;
 
   // const [keyForRefreshingAutocomplete, setKeyForRefreshingAutocomplete] = useState(0);
   // necessary to change key for reset because of Autocomplete bug, according to https://stackoverflow.com/a/59845474/1368860
   useEffect(() => {
-    if (!all_csets.length) {
-      return;
-    }
-    const _opts = initialOpts(all_csets, codeset_ids);
-    setOpts(_opts);
-    // setValue(_opts.filter(d => codeset_ids.includes(d.value)));
-    setValue(codeset_ids);
-  }, [all_csets])
+    (async () => {
+      const all_csets = await fetchItems('all_csets', ['stub']);
+      setData({all_csets});
+      const _opts = initialOpts(all_csets, codeset_ids);
+      setOpts(_opts);
+      setValue(codeset_ids);
+    })()
+  }, []);
+
+  if (!codeset_ids.length || isEmpty(data)) {
+    return <p>Downloading...</p>;
+  }
 
   if (!all_csets.length) {
     return <span />;
@@ -166,6 +173,32 @@ export function CsetSearch(props) {
 
 function ConceptSetsPage(props) {
   const { codeset_ids } = props;
+  const [data, setData] = useState({});
+  const { concept_ids, relatedCodesetIds, selected_csets, allRelatedCsets} = data;
+
+  useEffect(() => {
+    (async () => {
+      const concept_ids = await dataAccessor.getItemsByKey(
+        { itemType: 'concept_ids_by_codeset_id', keys: codeset_ids,
+          returnFunc: results => union(flatten(Object.values(results))),
+      });
+      const relatedCodesetIds = await dataAccessor.getItemsByKey(
+          { itemType: 'codeset_ids_by_concept_id', keys: concept_ids,
+            returnFunc: results => union(flatten(Object.values(results))),
+          });
+
+      const allRelatedCsets = await fetchItems('related_csets', codeset_ids, );
+      const selected_csets = allRelatedCsets.filter(cset => cset.selected);
+      setData({ concept_ids, relatedCodesetIds, selected_csets, allRelatedCsets});
+    })()
+  }, [codeset_ids.join('|')]);
+  if (codeset_ids.length && isEmpty(allRelatedCsets)) {
+    return <p>Downloading...</p>;
+  }
+  console.log(concept_ids, relatedCodesetIds);
+
+  props = {...props, allRelatedCsets, selected_csets };
+
   if (!codeset_ids.length) {
     return (
       <>
