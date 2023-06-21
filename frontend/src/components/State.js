@@ -93,6 +93,7 @@ async function oneToOneFetchAndCache(itemType, api, postData, paramList) {
 }
 export async function fetchItems( itemType, paramList) {
   if (isEmpty(paramList)) {
+    return [];
     throw new Error(`fetchItems for ${itemType} requires paramList`);
   }
   let url,

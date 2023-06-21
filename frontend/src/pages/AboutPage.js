@@ -127,7 +127,7 @@ function AboutPage(props) {
 
       <TextH1>Database Refresh</TextH1>
       <TextBody>Will refresh the database with the latest data from the N3C Enclave.</TextBody>
-      <TextBody>Last refresh: {dataAccessor.lastRefreshed()}</TextBody>
+      <TextBody>Last refresh: {dataAccessor.lastRefreshed().toLocaleString()}</TextBody>
       <TextBody>
         <Button variant={"contained"}
                 onClick={() => {
