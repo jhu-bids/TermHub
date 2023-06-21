@@ -112,7 +112,7 @@ function CsetComparisonPage(props) {
       }
       const concepts = Object.values(conceptLookup);
       setData({csmi, selected_csets, concept_ids, concepts, conceptLookup, edges});
-    })()
+    })();
   }, []);
 
   if (isEmpty(data)) {
@@ -165,7 +165,6 @@ function CsetComparisonPage(props) {
     >
       {distinctRows.length} distinct concepts
     </Button>,
-
     <Button key="nested"
             disabled={nested}
             onClick={() => hsDispatch({type:'nested', nested: true})}
@@ -195,7 +194,17 @@ function CsetComparisonPage(props) {
     </Button>,
     <FlexibleContainer key="legend" title="Legend" position={panelPosition}>
       <Legend />
-    </FlexibleContainer>
+    </FlexibleContainer>,
+    <Button key="add-cset"
+            variant="outlined"
+            onClick={() => editCsetDispatch(editCset, {type:'create_new_cset'})}
+            sx={{
+              cursor: 'pointer',
+              marginRight: '4px',
+            }}
+    >
+      add a new concept set
+    </Button>,
   ];
 
   let edited_cset;

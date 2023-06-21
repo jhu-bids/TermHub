@@ -337,7 +337,7 @@ export function AppStateProvider({ children }) {
     // contentItems: useReducer(contentItemsReducer, defaultContentItems),
     codeset_ids: useReducer(codeset_idsReducer, []),
     concept_ids: useReducer(currentConceptIdsReducer, []),
-    editCset: useReducer(editCsetReducer),
+    editCset: useReducer(editCsetReducer, {}),
     // more stuff needed
     hierarchySettings: [hierarchySettings, hsDispatch],
   };
@@ -374,23 +374,24 @@ const editCsetReducer = (state, action) => {
   if (!action.type) return state;
   switch (action.type) {
     case "create_new_cset": {
-          let newCset = {
-  "codeset_id": 0,
-  "concept_set_version_title": "New Cset (Draft)",
-  "concept_set_name": "New Cset",
-  "alias": "New Cset",
-  "source_application": "UNITE",
-  // "source_application_version": "2.0",
-  // "codeset_created_at": "2022-07-28 16:14:13.085000+00:00",
-  "codeset_intention": "From TermHub",
-  "limitations": "From TermHub",
-  "update_message": "TermHub testing",
-  // "codeset_created_by": "e64b8f7b-7af8-4b44-a570-557b812c0eeb",
-  "provenance": "TermHub testing.",
-  "is_draft": true,
-          };
+      let newCset = {
+        "codeset_id": 0,
+        "concept_set_version_title": "New Cset (Draft)",
+        "concept_set_name": "New Cset",
+        "alias": "New Cset",
+        "source_application": "UNITE",
+        // "source_application_version": "2.0",
+        // "codeset_created_at": "2022-07-28 16:14:13.085000+00:00",
+        "codeset_intention": "From TermHub",
+        "limitations": "From TermHub",
+        "update_message": "TermHub testing",
+        // "codeset_created_by": "e64b8f7b-7af8-4b44-a570-557b812c0eeb",
+        "provenance": "TermHub testing.",
+        "is_draft": true,
+      };
 
-          return {...state, newCset, definitions: {}};
+      console.log("editCsetReducer() called");
+      return {...state, newCset, definitions: {}};
     }
     case "add_definitions": {
       let { definitions={} } = state;
