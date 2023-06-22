@@ -48,9 +48,10 @@ def get_concepts_route(id: List[int] = Query(...), table:str='concepts_with_coun
     return get_concepts(concept_ids=id, table=table)
 
 
+@router.post("/concept-ids-by-codeset-id")
 @router.post("/concepts")
 @return_err_with_trace
-def get_concepts_post_route(concept_ids: List[str], table:str='concepts_with_counts') -> List:
+def get_concepts_post_route(concept_ids: Union[List[str], None] = None, table:str='concepts_with_counts') -> List:
     """expect list of codeset_ids. using 'id' for brevity"""
     return get_concepts(concept_ids=concept_ids, table=table)
 

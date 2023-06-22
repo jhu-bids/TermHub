@@ -79,10 +79,10 @@ export function ViewCurrentState(props) {
     <pre>{stateDoc}</pre>
   </div>);
 }
-async function oneToOneFetchAndCache(itemType, api, postData, paramList, useGetForSmallData ) {
+async function oneToOneFetchAndCache(itemType, api, postData, paramList, useGetForSmallData, apiGetParamName ) {
   // We expect a 1-to-1 relationship between paramList items (e.g., concept_ids)
   //  and retrieved items (e.g., concepts)
-  const data = await axiosCall(api, {backend:true, data: postData, useGetForSmallData });
+  const data = await axiosCall(api, {backend:true, data: postData, useGetForSmallData, apiGetParamName });
   if (data.length !== paramList.length) {
     throw new Error(`oneToOneFetchAndCache for ${itemType} requires matching result data and paramList lengths`);
   }
@@ -100,27 +100,28 @@ export async function fetchItems( itemType, paramList) {
       data,
       cacheKey,
       api,
+      apiGetParamName,
       useGetForSmallData;
 
   switch(itemType) {
-    case 'concept_ids_by_codeset_id':
-      useGetForSmallData = true;  // can use this for api endpoints that have both post and get versions
     case 'concepts':
     case 'codeset_ids_by_concept_id':
+      apiGetParamName = 'concept_ids';
+    case 'concept_ids_by_codeset_id':
+      apiGetParamName = apiGetParamName || 'concept_ids';
+      useGetForSmallData = true;  // can use this for api endpoints that have both post and get versions
       api = itemType.replaceAll('_','-');
-      url = backend_url('get-concepts')
-      data = await oneToOneFetchAndCache(itemType, api, paramList, paramList, useGetForSmallData);
+      url = backend_url(api);
+      data = await oneToOneFetchAndCache(itemType, api, paramList, paramList, useGetForSmallData, apiGetParamName);
       data.forEach((group,i) => {
         dataAccessor.cachePut([itemType, paramList[i]], group);
       })
       return data;
 
-    /*
-    case 'selected_csets':
-      url = 'selected-csets?codeset_ids=' + paramList.join('|');
+    case 'csets':
+      url = 'get-csets?codeset_ids=' + paramList.join('|');
       data = await oneToOneFetchAndCache(itemType, url, undefined, paramList);
       return data;
-     */
 
     case 'cset_members_items':
       data = await Promise.all(
@@ -645,7 +646,7 @@ function DataWidget(props) {
 export const backend_url = (path) => `${API_ROOT}/${path}`;
 
 export async function axiosCall(path, { backend = false, data,
-    returnDataOnly=true, useGetForSmallData = false }={}) {
+    returnDataOnly=true, useGetForSmallData = false, apiGetParamName }={}) {
   let url = backend ? backend_url(path) : path;
   console.log("axiosCall url: ", url);
   try {
@@ -653,10 +654,9 @@ export async function axiosCall(path, { backend = false, data,
     if (typeof(data) === 'undefined') {
       results = await axios.get(url);
     } else {
-      if (useGetForSmallData && typeof(data) === 'object' &&
-          !Array.isArray(data) && Object.values().length < 1000) {
-        let qs = createSearchParams(data);
-        results = await axios.get(url + qs);
+      if (useGetForSmallData && data.length <= 1000 ) {
+        let qs = createSearchParams({[apiGetParamName]: data});
+        results = await axios.get(url + '?' + qs);
       } else {
         results = await axios.post(url, data);
       }

@@ -86,7 +86,7 @@ function CsetComparisonPage(props) {
               // returnFunc: results => flatten([...Object.values(results)])
             }),
         dataAccessor.getItemsByKey(
-          { itemType: 'selected_csets', keys: codeset_ids, shape: 'obj',
+          { itemType: 'csets', keys: codeset_ids, shape: 'obj',
             returnFunc: results => [...Object.values(results)]} ), // isn't this the same as shape: 'array'?
       ];
       // have to get concept_ids before fetching concepts
@@ -395,10 +395,13 @@ function ComparisonDataTable(props) {
 
   useEffect(() => {
     for (let i = 0; i < columns.length; i++) {
-      document.querySelector(
+      const el = document.querySelector(
         ".comparison-data-table .rdt_TableHeadRow " +
                 `> .rdt_TableCol[data-column-id=\"${i+1}\"]`
-      ).style.width = columns[i].width + "px";
+      );
+      if (el) {
+        el.style.width = columns[i].width + "px";
+      }
     }
   });
 

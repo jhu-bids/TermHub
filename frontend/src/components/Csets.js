@@ -166,6 +166,9 @@ function ConceptSetsPage(props) {
   useEffect(() => {
     (async () => {
       let all_csets = fetchItems('all_csets', ['stub']);
+      let selected_csets = dataAccessor.getItemsByKey(
+          { itemType: 'csets', keys: codeset_ids, shape: 'obj',
+            returnFunc: results => [...Object.values(results)]} ); // isn't this the same as shape: 'array'?
       let concept_ids = dataAccessor.getItemsByKey({ // concept_ids
             itemType: 'concept_ids_by_codeset_id',
             keys: codeset_ids,
@@ -179,9 +182,8 @@ function ConceptSetsPage(props) {
       console.log(all_csets);
       [all_csets, relatedCodesetIds] = await Promise.all([all_csets, relatedCodesetIds]);
       console.log(all_csets);
-      const selected_csets = all_csets.filter(
-          cset => codeset_ids.includes(cset.codeset_id));
       const allRelatedCsets = all_csets.filter(cset => relatedCodesetIds.includes(cset.codeset_id));
+      selected_csets = await selected_csets;
 
       // const allRelatedCsets = await fetchItems('related_csets', codeset_ids, );
       // const selected_csets = allRelatedCsets.filter(cset => cset.selected);

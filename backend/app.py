@@ -382,13 +382,7 @@ def _get_cset_members_items(codeset_ids: str,
     return get_cset_members_items(requested_codeset_ids, columns, column)
 
 
-# TODO: the following is just based on concept_relationship
-#       should also check whether relationships exist in concept_ancestor
-#       that aren't captured here
-# TODO: Add concepts outside the list of codeset_ids?
-#       Or just make new issue for starting from one cset or concept
-#       and fanning out to other csets from there?
-@APP.get("/selected-csets")
+@APP.get("/get-csets")
 def _get_csets(codeset_ids: Union[str, None] = Query(default=''),
                include_atlas_json = False) -> List[Dict]:
     """Route for: get_csets()"""
