@@ -148,10 +148,10 @@ def is_table_up_to_date(table_name: str, skip_if_updated_within_hours: int = Non
     return check_if_updated(last_updated_key, skip_if_updated_within_hours)
 
 
-def update_db_status_var(key: str, val: str):
+def update_db_status_var(key: str, val: str, local=False):
     """Update the `manage` table with information for a given variable, e.g. when a table was last updated
     todo: change to a 1-liner UPDATE statement"""
-    with get_db_connection(schema='') as con2:
+    with get_db_connection(schema='', local=local) as con2:
         run_sql(con2, f"DELETE FROM public.manage WHERE key = '{key}';")
         sql_str = f"INSERT INTO public.manage (key, value) VALUES (:key, :val);"
         run_sql(con2, sql_str, {'key': key, 'val': val})
@@ -440,7 +440,8 @@ def get_ddl_statements(schema: str = SCHEMA, modules: List[str] = None, table_su
     todo's
       1. For each table: don't do anything if these tables exist & initialized
       2. Add alters to fix data types (although, should really move this stuff to dtypes settings when creating
-      dataframe that loads data into db."""
+      dataframe that loads data into db.
+      3. I think it's inserting a second ; at the end of the last statement of a given module"""
     paths: List[str] = glob(DDL_JINJA_PATH_PATTERN)
     if modules:
         paths = [p for p in paths if any([m == os.path.basename(p).split('-')[2].split('.')[0] for m in modules])]

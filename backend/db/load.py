@@ -1,4 +1,4 @@
-"""Load data into the database and create indexes and derived tables"""
+"""Load data into the database and CREATE INDEX IF NOT EXISTSes and derived tables"""
 from typing import List
 
 from sqlalchemy.engine.base import Connection
@@ -131,9 +131,9 @@ def seed(
 
 
 def indexes_and_derived_tables(
-    con: Connection, schema_name: str, skip_if_updated_within_hours: int = None, start_step: int = None
+    con: Connection, schema_name: str, skip_if_updated_within_hours: int = None, start_step: int = None, local=False
 ):
-    """Create indexes and derived tables"""
+    """CREATE INDEX IF NOT EXISTSes and derived tables"""
     # Determine and set up progress tracking
     last_completed_key = 'last_updated_indexes_and_derived_tables'
     last_successful_step_key = 'last_step_indexes_and_derived_tables'
@@ -144,13 +144,15 @@ def indexes_and_derived_tables(
 
     # Read DDL
     print('INFO: Creating derived tables (e.g. `all_csets`) and indexes.')
+    # todo: Improve so that it iterates over modules & statements, rather than reaading in all modules,
+    #  and concatenating into a list of statements.
     statements = get_ddl_statements(schema=schema_name)
 
     # Determine which steps still needed
     if start_step:
         last_successful_step = start_step
     else:
-        with get_db_connection(schema='') as con2:
+        with get_db_connection(schema='', local=local) as con2:
             last_successful_step = run_sql(
                 con2, f"SELECT value FROM public.manage WHERE key = '{last_successful_step_key}';").first()
         last_successful_step = int(last_successful_step[0]) if last_successful_step else None
@@ -158,7 +160,7 @@ def indexes_and_derived_tables(
     if last_successful_step:
         print(f'INFO: Last successful command was {last_successful_step} of {len(statements)}. Continuing from there.')
 
-    # Updates
+    # Updatesx
     for index, statement in enumerate(statements):
         step_num = index + 1
         if last_successful_step and last_successful_step >= step_num:
@@ -166,21 +168,23 @@ def indexes_and_derived_tables(
         print(f'INFO: indexes_and_derived_tables: Running command {step_num} of {len(statements)}')
         try:
             run_sql(con, statement)
-            update_db_status_var(last_successful_step_key, str(step_num))
+            update_db_status_var(last_successful_step_key, str(step_num), local)
         except Exception as err:
-            update_db_status_var(last_successful_step_key, str(step_num - 1))
+            update_db_status_var(last_successful_step_key, str(step_num - 1), local)
             raise err
 
-    update_db_status_var(last_successful_step_key, '0')
-    update_db_status_var(last_completed_key, str(current_datetime()))
+    update_db_status_var(last_successful_step_key, '0', local)
+    update_db_status_var(last_completed_key, str(current_datetime()), local)
 
 
-def load(schema: str = SCHEMA, clobber=False, skip_if_updated_within_hours: int = None, use_local_database=False):
-    """Load data into the database and create indexes and derived tables"""
+def load(
+    schema: str = SCHEMA, clobber=False, skip_if_updated_within_hours: int = None, use_local_database=False
+):
+    """Load data into the database and CREATE INDEX IF NOT EXISTSes and derived tables"""
     with get_db_connection(local=use_local_database) as con:
         # download_artefacts(force_download_if_exists=False)
         seed(con, schema, clobber, skip_if_updated_within_hours)
-        indexes_and_derived_tables(con, schema, skip_if_updated_within_hours)
+        indexes_and_derived_tables(con, schema, skip_if_updated_within_hours, local=use_local_database)
 
 
 if __name__ == '__main__':

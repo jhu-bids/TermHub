@@ -23,16 +23,16 @@ CREATE TABLE IF NOT EXISTS {{schema}}concept_relationship_plus AS (
                 --AND c2.standard_concept IS NOT NULL
 );
 
-CREATE INDEX crp_idx1 ON {{schema}}concept_relationship_plus(concept_id_1);
+CREATE INDEX IF NOT EXISTS crp_idx1 ON {{schema}}concept_relationship_plus(concept_id_1);
 
-CREATE INDEX crp_idx2 ON {{schema}}concept_relationship_plus(concept_id_2);
+CREATE INDEX IF NOT EXISTS crp_idx2 ON {{schema}}concept_relationship_plus(concept_id_2);
 
-CREATE INDEX crp_idx3 ON {{schema}}concept_relationship_plus(concept_id_1, concept_id_2);
+CREATE INDEX IF NOT EXISTS crp_idx3 ON {{schema}}concept_relationship_plus(concept_id_1, concept_id_2);
 
-CREATE INDEX crp_idx4 ON {{schema}}concept_relationship_plus(concept_code);
+CREATE INDEX IF NOT EXISTS crp_idx4 ON {{schema}}concept_relationship_plus(concept_code);
 
-CREATE INDEX crp_idx5 ON {{schema}}concept_relationship_plus(relationship_id);
+CREATE INDEX IF NOT EXISTS crp_idx5 ON {{schema}}concept_relationship_plus(relationship_id);
 
-CREATE INDEX crp_idx6 ON {{schema}}concept_relationship_plus(concept_name_1);
+CREATE INDEX IF NOT EXISTS crp_idx6 ON {{schema}}concept_relationship_plus(concept_name_1);
 
-CREATE INDEX crp_idx7 ON {{schema}}concept_relationship_plus(concept_name_2);
+CREATE INDEX IF NOT EXISTS crp_idx7 ON {{schema}}concept_relationship_plus(concept_name_2);
