@@ -94,7 +94,7 @@ multidict==6.0.4
 myst-parser==1.0.0
 ndex2==3.5.0
 networkx==2.8.8
-numpy==1.23.1
+numpy>=1.23.0
 nxontology==0.4.1
 oaklib==0.5.9
 ols-client==0.1.3
