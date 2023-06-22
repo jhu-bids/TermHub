@@ -2,7 +2,7 @@
 import React from "react";
 import Typography from "@mui/material/Typography";
 import Button from "@mui/material/Button";
-import { axiosPut } from "./State";
+import { axiosCall } from "./State";
 
 function UploadCsvPage(props) {
   // TODO: finish handler or whatever needs to be done to hit the backend route
@@ -24,9 +24,7 @@ function UploadCsvPage(props) {
       console.log(e);
       const apiname = "upload-csv-new-cset-version-with-concepts";
       let txt = fileReader.result;
-      // axiosPut('upload-csv-new-cset-version-with-concepts', e.target.result);
-      // const [all_csets_widget, all_csets] = useDataWidget("upload", apiname, {csv: txt});
-      axiosPut(apiname, { csv: txt })
+      axiosCall(apiname, {data: { csv: txt }, returnDataOnly: false})
         .then((res) => {
           if (res.data.status === "success") {
             console.log("Successful upload of cset version.");
@@ -64,7 +62,7 @@ function UploadCsvPage(props) {
     fileReader.readAsDataURL(target.files[0]);
     fileReader.onload = (e) => {
       // this.setState((prevState) => ({ [name]: [...prevState[name], e.target.result] }));
-      axiosPut("upload-csv-new-container-with-concepts", e.target.result);
+      axiosCall("upload-csv-new-container-with-concepts", {data: e.target.result});
       // TODO: Needs to upload to: /upload-csv-new-container-with-concepts
     };
   };

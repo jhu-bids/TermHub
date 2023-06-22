@@ -19,12 +19,7 @@ import { saveAs } from 'file-saver';
 import Papa from 'papaparse';
 
 
-import {
-  useStateSlice,
-  hierarchyToFlatCids,
-  makeHierarchyRows,
-  dataAccessor
-} from "../components/State";
+import { useStateSlice, fetchItems, dataAccessor } from "../components/State";
 import { fmt, useWindowSize } from "../components/utils";
 import { setColDefDimensions } from "../components/dataTableUtils";
 import { ConceptSetCard } from "../components/ConceptSetCard";
@@ -57,6 +52,7 @@ function CsetComparisonPage(props) {
   } = props;
   // const { selected_csets = [], researchers, } = cset_data;
   const { state: hierarchySettings, dispatch: hsDispatch} = useStateSlice("hierarchySettings");
+  const { state: editCset, dispatch: editCsetDispatch} = useStateSlice("editCset");
   const {collapsePaths, collapsedDescendantPaths, nested, hideRxNormExtension, hideZeroCounts} = hierarchySettings;
   const windowSize = useWindowSize();
   const boxRef = useRef();
@@ -65,7 +61,7 @@ function CsetComparisonPage(props) {
   const customStyles = styles(sizes);
   const [data, setData] = useState({});
       // useState({ concept_ids: [], selected_csets: [], edges: [], concepts: [], });
-  const { concept_ids, edges, concepts, selected_csets, csmi } = data;
+  const { concept_ids, edges, concepts, conceptLookup, selected_csets, csmi } = data;
 
   useEffect(() => {
     if (boxRef.current) {
@@ -91,26 +87,32 @@ function CsetComparisonPage(props) {
             }),
         dataAccessor.getItemsByKey(
           { itemType: 'selected_csets', keys: codeset_ids, shape: 'obj',
-            returnFunc: results => [...Object.values(results)]} ),
+            returnFunc: results => [...Object.values(results)]} ), // isn't this the same as shape: 'array'?
       ];
       // have to get concept_ids before fetching concepts
-      const concept_ids = await dataAccessor.getItemsByKey(
-          { itemType: 'concept_ids_from_codeset_ids',
-            keys: codeset_ids,
-            shape: 'obj',
-            returnFunc: results => union(...Object.values(results))
+      let concept_ids = await dataAccessor.getItemsByKey(
+          { itemType: 'concept_ids_by_codeset_id', keys: codeset_ids,
+            returnFunc: results => union(flatten(Object.values(results))),
           });
+
+      // have to get edges, which might contain more concept_ids after filling gaps
+      const edges = await fetchItems('edges', concept_ids, );
+      concept_ids = union(concept_ids.map(String), flatten(edges));
       promises.push(
           dataAccessor.getItemsByKey(
-              { itemType: 'concept', keys: concept_ids, shape: 'array' }),
+              { itemType: 'concepts', keys: concept_ids, shape: 'obj' }),
       );
-      const [
+      let [
         csmi,
         selected_csets,
-        concepts,
+        conceptLookup,
       ] = await Promise.all(promises);
-      setData({csmi, selected_csets, concept_ids, concepts});
-    })()
+      if (!isEmpty(editCset)) {
+        csmi = {...csmi, ...editCset.definitions};
+      }
+      const concepts = Object.values(conceptLookup);
+      setData({csmi, selected_csets, concept_ids, concepts, conceptLookup, edges});
+    })();
   }, []);
 
   if (isEmpty(data)) {
@@ -118,7 +120,8 @@ function CsetComparisonPage(props) {
   }
 
   // TODO: component is rendering twice. why? not necessary? fix?
-  let {allRows, displayedRows, distinctRows, hidden} = getRowData({...props, hierarchySettings});
+  let {allRows, displayedRows, distinctRows, hidden} = getRowData(
+      {...props, concepts, edges, hierarchySettings});
   let rowData;
   if (nested) {
     rowData = displayedRows;
@@ -130,12 +133,13 @@ function CsetComparisonPage(props) {
   const editAction = getCodesetEditActionFunc({
     searchParams,
     setSearchParams,
+    csmi,
   });
   const editCodesetFunc = getEditCodesetFunc({ searchParams, setSearchParams });
 
-
   let columns = colConfig({
     ...props,
+    csmi,
     selected_csets,
     concepts,
     editAction,
@@ -161,7 +165,6 @@ function CsetComparisonPage(props) {
     >
       {distinctRows.length} distinct concepts
     </Button>,
-
     <Button key="nested"
             disabled={nested}
             onClick={() => hsDispatch({type:'nested', nested: true})}
@@ -191,7 +194,17 @@ function CsetComparisonPage(props) {
     </Button>,
     <FlexibleContainer key="legend" title="Legend" position={panelPosition}>
       <Legend />
-    </FlexibleContainer>
+    </FlexibleContainer>,
+    <Button key="add-cset"
+            variant="outlined"
+            onClick={() => editCsetDispatch(editCset, {type:'create_new_cset'})}
+            sx={{
+              cursor: 'pointer',
+              marginRight: '4px',
+            }}
+    >
+      add a new concept set
+    </Button>,
   ];
 
   let edited_cset;
@@ -218,13 +231,15 @@ function CsetComparisonPage(props) {
                              title={`${Object.keys(csidState).length} Staged changes`}
                              position={panelPosition}
           >
-            <EditInfo {...props} />
+            <EditInfo {...props} selected_csets={selected_csets} conceptLookup={conceptLookup} />
           </FlexibleContainer>,
 
           <FlexibleContainer key="instructions"
                              title="Instructions to save changes"
                              position={panelPosition}>
-            {saveChangesInstructions(props)}
+            {saveChangesInstructions({ editCodesetId,
+                                       csetEditState,
+                                       selected_csets, })}
           </FlexibleContainer>
       );
     }
@@ -476,6 +491,8 @@ function colConfig(props) {
   let {
     selected_csets,
     concepts,
+    conceptLookup,
+    csmi,
     sizes,
     editAction,
     editCodesetFunc,

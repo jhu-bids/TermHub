@@ -6,8 +6,8 @@ import { TextField, Autocomplete, Box, } from "@mui/material";
 import Button from "@mui/material/Button";
 // import Chip from '@mui/material/Chip';
 // import { Link, Outlet, useHref, useParams, useSearchParams, useLocation } from "react-router-dom";
-import { every } from "lodash";
-import { get, isNumber, isEmpty, throttle, pullAt } from "lodash";
+import { every, union } from "lodash";
+import { get, isNumber, isEmpty, flatten, } from "lodash";
 // import {isEqual, pick, uniqWith, max, omit, uniq, } from 'lodash';
 // import Box from "@mui/material/Box";
 import { Tooltip } from "./Tooltip";
@@ -16,6 +16,7 @@ import CardContent from "@mui/material/CardContent";
 import Typography from "@mui/material/Typography";
 // import * as po from '../pages/Popover';
 import { DOCS } from "../pages/AboutPage";
+import {dataAccessor, fetchItems} from "./State";
 
 /* TODO: Solve
     react_devtools_backend.js:4026 MUI: The value provided to Autocomplete is invalid.
@@ -42,25 +43,18 @@ function initialOpts(all_csets, codesetIds) {
   return opts;
 }
 export function CsetSearch(props) {
-  const { codeset_ids=[], changeCodesetIds, all_csets = [] } = props;
+  const { codeset_ids=[], changeCodesetIds, all_csets, } = props;
   const [opts, setOpts] = useState([]);
   const [value, setValue] = useState([]);
 
   // const [keyForRefreshingAutocomplete, setKeyForRefreshingAutocomplete] = useState(0);
   // necessary to change key for reset because of Autocomplete bug, according to https://stackoverflow.com/a/59845474/1368860
-  useEffect(() => {
-    if (!all_csets.length) {
-      return;
-    }
-    const _opts = initialOpts(all_csets, codeset_ids);
-    setOpts(_opts);
-    // setValue(_opts.filter(d => codeset_ids.includes(d.value)));
-    setValue(codeset_ids);
-  }, [all_csets])
 
-  if (!all_csets.length) {
-    return <span />;
+  if (codeset_ids.length && isEmpty(all_csets)) {
+    return <p>Downloading...</p>;
   }
+  const _opts = initialOpts(all_csets, codeset_ids);
+
   console.log(value);
   const autocomplete = (
     // https://mui.com/material-ui/react-autocomplete/
@@ -166,6 +160,41 @@ export function CsetSearch(props) {
 
 function ConceptSetsPage(props) {
   const { codeset_ids } = props;
+  const [data, setData] = useState({});
+  const { all_csets, concept_ids, relatedCodesetIds, selected_csets, allRelatedCsets} = data;
+
+  useEffect(() => {
+    (async () => {
+      let all_csets = fetchItems('all_csets', ['stub']);
+      let concept_ids = dataAccessor.getItemsByKey({ // concept_ids
+            itemType: 'concept_ids_by_codeset_id',
+            keys: codeset_ids,
+            returnFunc: results => union(flatten(Object.values(results))),
+          });
+      concept_ids = await concept_ids;
+      let relatedCodesetIds = dataAccessor.getItemsByKey(
+          { itemType: 'codeset_ids_by_concept_id', keys: concept_ids,
+            returnFunc: results => union(flatten(Object.values(results))),
+          });
+      console.log(all_csets);
+      [all_csets, relatedCodesetIds] = await Promise.all([all_csets, relatedCodesetIds]);
+      console.log(all_csets);
+      const selected_csets = all_csets.filter(
+          cset => codeset_ids.includes(cset.codeset_id));
+      const allRelatedCsets = all_csets.filter(cset => relatedCodesetIds.includes(cset.codeset_id));
+
+      // const allRelatedCsets = await fetchItems('related_csets', codeset_ids, );
+      // const selected_csets = allRelatedCsets.filter(cset => cset.selected);
+      setData({ all_csets, concept_ids, relatedCodesetIds, selected_csets, allRelatedCsets});
+    })()
+  }, [codeset_ids.join('|')]);
+  if (codeset_ids.length && isEmpty(allRelatedCsets)) {
+    return <p>Downloading...</p>;
+  }
+  console.log(concept_ids, relatedCodesetIds);
+
+  props = {...props, all_csets, allRelatedCsets, selected_csets };
+
   if (!codeset_ids.length) {
     return (
       <>

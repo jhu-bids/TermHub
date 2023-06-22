@@ -3,7 +3,7 @@ import ReactDOM from "react-dom/client";
 import { orderBy, get, remove, throttle } from "lodash";
 import DataTable, { createTheme } from "react-data-table-component";
 import { fmt, pct_fmt } from "./utils";
-import { StatsMessage } from "./State";
+import { fetchItems, StatsMessage } from "./State";
 import { Tooltip } from "./Tooltip";
 // import Checkbox from '@material-ui/core/Checkbox';
 // import ArrowDownward from '@material-ui/icons/ArrowDownward';
@@ -36,29 +36,20 @@ function getCsetSelectionHandler(tooltipId) {
 
 /* TODO: review function for appropriate state management */
 function CsetsDataTable(props) {
-  const { show_selected, codeset_ids, changeCodesetIds, cset_data = {} } = props;
-  const { selected_csets } = cset_data;
+  const { show_selected, codeset_ids, changeCodesetIds,
+          allRelatedCsets, selected_csets, } = props;
+  const [data, setData] = useState({});
+  const { relatedCsets,  } = data;
   const min_col = show_selected ?
       ("min_col" in props ? props.min_col : true) : false;
 
-  const [relatedCsets, setRelatedCsets] = useState(cset_data.related_csets);
-
   useEffect(() => {
-    // props.csetData.relatedCsets.forEach(rc => rc.selected = codeset_ids.includes(rc.codeset_id))
-    if (!show_selected) {
-      const rcsets = orderBy(
-        get(props, "cset_data.related_csets", []),
-        ["selected", "precision"],
-        ["desc", "desc"]
-      );
-      // Remove concept sets that are selected
-      remove(rcsets, cs => {
-        return cs.selected
-      })
-      // console.log({props, rcsets});
-      setRelatedCsets(rcsets);
-    }
-  }, [codeset_ids.join(","), selected_csets.length]);
+      if (!show_selected) {
+        let relatedCsets = allRelatedCsets.filter(cset => !cset.selected);
+        relatedCsets = orderBy( relatedCsets, ["selected", "precision"], ["desc", "desc"] );
+        setData({relatedCsets});
+      }
+  }, [codeset_ids.join('|')]);
 
   let coldefs = getColdefs(min_col);
   /* const conditionalRowStyles = [{ when: row => row.selected,
@@ -172,7 +163,7 @@ function getColdefs(min_col = false) {
           <span>Expression items</span>
         </Tooltip>
       ),
-      selector: (row) => row.counts['Expression items'],
+      selector: (row) => (row.counts || {})['Expression items'] ?? 0,
       compact: true,
       width: "70px",
       center: true,
@@ -184,7 +175,7 @@ function getColdefs(min_col = false) {
             <span>Members</span>
           </Tooltip>
       ),
-      selector: (row) => row.counts['Members'],
+      selector: (row) => (row.counts || {})['Members'] ?? 0,
       compact: true,
       width: "70px",
       center: true,
@@ -228,7 +219,7 @@ function getColdefs(min_col = false) {
         </Tooltip>
       ),
       selector: (row) => {
-        return row.total_cnt.toLocaleString();
+        return (row.total_cnt ?? 0).toLocaleString();
       },
       compact: true,
       width: "78px",

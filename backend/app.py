@@ -195,7 +195,8 @@ def get_researchers(ids: Set[str], fields: List[str] = None) -> JSON_TYPE:
 #  see fixes above. i think everything here is fixed now
 # TODO: Performance: takes ~75sec on http://127.0.0.1:8000/cr-hierarchy?format=flat&codeset_ids=400614256|87065556
 def get_related_csets(
-    codeset_ids: List[int] = None, selected_concept_ids: List[int] = None, con=CON, verbose=True
+    codeset_ids: List[int] = None, selected_concept_ids: List[int] = None,
+    include_atlas_json=False, con=CON, verbose=True
 ) -> List[Dict]:
     """Get information about concept sets related to those selected by user"""
     timer = get_timer('   get_related_csets')
@@ -214,6 +215,9 @@ def get_related_csets(
     related_codeset_ids = list(set.union(set(codeset_ids), set(related_codeset_ids)))
     verbose and timer('get_csets')
     related_csets = get_csets(related_codeset_ids)
+    if not include_atlas_json:
+        for cset in related_csets:
+            del cset['atlas_json']
     selected_cids = set(selected_concept_ids)
     selected_cid_cnt = len(selected_concept_ids)
     # this loop takes some time
@@ -378,12 +382,6 @@ def _get_cset_members_items(codeset_ids: str,
     return get_cset_members_items(requested_codeset_ids, columns, column)
 
 
-@APP.get("/get-concept_ids-from-codeset_ids")
-def get_concept_ids_from_codeset_ids(codeset_ids: str) -> List[int]:
-    requested_codeset_ids = parse_codeset_ids(codeset_ids)
-    return get_cset_members_items(requested_codeset_ids, column='concept_id')
-
-
 # TODO: the following is just based on concept_relationship
 #       should also check whether relationships exist in concept_ancestor
 #       that aren't captured here
@@ -391,17 +389,23 @@ def get_concept_ids_from_codeset_ids(codeset_ids: str) -> List[int]:
 #       Or just make new issue for starting from one cset or concept
 #       and fanning out to other csets from there?
 @APP.get("/selected-csets")
-def _get_csets(codeset_ids: Union[str, None] = Query(default=''), ) -> List[Dict]:
+def _get_csets(codeset_ids: Union[str, None] = Query(default=''),
+               include_atlas_json = False) -> List[Dict]:
     """Route for: get_csets()"""
     requested_codeset_ids = parse_codeset_ids(codeset_ids)
-    return get_csets(requested_codeset_ids)
+    csets = get_csets(requested_codeset_ids)
+    if not include_atlas_json:
+        for cset in csets:
+            del cset['atlas_json']
+    return csets
 
 
 @APP.get("/related-csets")
-def _get_related_csets(codeset_ids: Union[str, None] = Query(default=''), ) -> List[Dict]:
+def _get_related_csets(codeset_ids: Union[str, None] = Query(default=''),
+                       include_atlas_json = False) -> List[Dict]:
     """Route for: get_related_csets()"""
     codeset_ids: List[int] = parse_codeset_ids(codeset_ids)
-    return get_related_csets(codeset_ids)
+    return get_related_csets(codeset_ids, include_atlas_json)
 
 
 @APP.get("/cset-members-items")
@@ -545,10 +549,8 @@ def cr_hierarchy(include_atlas_json: bool = False, codeset_ids: Union[str, None]
     # h = graph.hierarchy(concept_ids)
 
     verbose and timer('related csets')
-    related_csets = get_related_csets(codeset_ids=codeset_ids, selected_concept_ids=concept_ids)
-    if not include_atlas_json:
-        for cset in related_csets:
-            del cset['atlas_json']
+    related_csets = get_related_csets(codeset_ids=codeset_ids, selected_concept_ids=concept_ids,
+                                        include_atlas_json=include_atlas_json)
     selected_csets = [cset for cset in related_csets if cset['selected']]
     verbose and timer('researcher ids')
     researcher_ids = get_all_researcher_ids(related_csets)

@@ -54,11 +54,11 @@ export function getCodesetEditActionFunc({ searchParams }) {
   return (props) => {
     // this function will be called editAction and passed around as needed
     const {
+      csmi,
       clickAction,
       flag,
       cset_col: { codeset_id },
       row: { concept_id },
-      cset_data,
       no_action = false,
     } = props;
     let sp = searchParamsToObj(searchParams);
@@ -67,9 +67,9 @@ export function getCodesetEditActionFunc({ searchParams }) {
     let item = getItem({
       codeset_id,
       concept_id,
-      cset_data,
       csetEditState,
       clickAction,
+      csmi,
     });
     if (clickAction === "Update") {
       item[flag] = !item[flag];
@@ -111,8 +111,13 @@ export function EditInfo(props) {
   const {
     editCodesetId,
     csetEditState,
-    cset_data: { selected_csets, conceptLookup, saveInstructions = false },
+    selected_csets,
+    conceptLookup,
   } = props;
+  if (isEmpty(selected_csets) || isEmpty(conceptLookup)) {
+    debugger
+    throw new Error("wtf")
+  }
   const csidState = csetEditState && csetEditState[editCodesetId];
   if (!csidState) {
     return null;
@@ -161,8 +166,12 @@ export function saveChangesInstructions(props) {
   const {
     editCodesetId,
     csetEditState,
-    cset_data: { selected_csets, conceptLookup, saveInstructions = false },
+    selected_csets,
   } = props;
+  if (isEmpty(selected_csets)) {
+    debugger
+    throw new Error("wtf")
+  }
   const csidState = csetEditState[editCodesetId];
   const cset = selected_csets.find((d) => d.codeset_id === editCodesetId);
   if (!csidState) {
@@ -284,19 +293,19 @@ function getItem({
   fakeItem,
   codeset_id,
   concept_id,
-  cset_data: { csmiLookup },
+  csmi,
   csetEditState,
   clickAction,
 }) {
   /*  if no item for codeset_id,concept_id, return undefined;
       otherwise, return copy of item,
         1) from edit state if available there,
-        2) from csmiLookup (concept_set_members_items),
+        2) from csmi (concept_set_members_items),
         3) new if clickAction === 'Add'
       set item.stagedAction if action parameter included   */
   let item = fakeItem ?? get(csetEditState, [codeset_id, concept_id]);
   if (isEmpty(item)) {
-    item = get(csmiLookup, [codeset_id, concept_id]);
+    item = get(csmi, [codeset_id, concept_id]);
   }
   if (clickAction) {
     item = { ...item };
@@ -340,13 +349,13 @@ function cellInfo(props) {
     cset_col: { codeset_id },
     row: { concept_id },
     editCodesetId,
-    cset_data,
     csetEditState,
+    csmi,
   } = props;
   const item = getItem({
+    csmi,
     codeset_id,
     concept_id,
-    cset_data,
     csetEditState,
   });
   const editing = editCodesetId === codeset_id;
@@ -411,7 +420,7 @@ function fakeOptProps(itemProps = [], flag) {
   //  kinds of items in the Legend
   let item = { fakeItem: true };
   itemProps.forEach((f) => (item[f] = true));
-  let props = { item, cset_col: {}, row: {}, cset_data: {}, flag };
+  let props = { item, cset_col: {}, row: {}, flag };
   return props;
 }
 const FLAG_ABBREV = {
@@ -436,11 +445,11 @@ function fakeCell(props) {
 
   const style = _cellStyle(item, editing);
   let cellProps = {
+    csmi: {},
     editing,
     fakeItem: item,
     cset_col: {},
     row: {},
-    cset_data: {},
   };
   // return <CellContents {...cellProps} />;
   let content = cellContents({ ...cellProps });
