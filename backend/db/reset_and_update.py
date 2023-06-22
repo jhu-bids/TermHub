@@ -35,7 +35,8 @@ def reset_and_update_db(
 ):
     """Refresh the database"""
     if run_final_ddl_only:
-        indexes_and_derived_tables(get_db_connection(), schema) # , start_step=6)
+        with get_db_connection(local=use_local_database) as con:
+            indexes_and_derived_tables(con, schema, local=use_local_database)
         print('INFO: Indexes and derived tables complete.')
         return
 

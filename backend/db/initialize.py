@@ -25,6 +25,7 @@ SCHEMA = CONFIG['schema']
 
 def create_database(con: Connection, schema: str):
     """Create the database"""
+    print('Current tables: ')
     show_tables(con)
     if not database_exists(con, DB):
         # noinspection PyUnresolvedReferences
@@ -67,11 +68,12 @@ def initialize(
         if test_schema_only:
             return initialize_test_schema(con, schema, local=local)
         if create_db:
-            create_database(con, schema)  # causing error. don't need it at the moment anyway
+            # Apparently this caused an error the last time on a fresh DB, but didn't write down why.
+            create_database(con, schema)
         if download:
             download_artefacts(force_download_if_exists=download_force_if_exists)
         seed(con, schema, clobber, hours_threshold_for_updates)
-        indexes_and_derived_tables(con, schema)  # , start_step=30)
+        indexes_and_derived_tables(con, schema, local=local)  # , start_step=30)
         initialize_test_schema(con, schema, local=local)
 
 

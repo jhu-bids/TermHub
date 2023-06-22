@@ -1,4 +1,5 @@
 -- Column data types ---------------------------------------------------------------------------------------------------
+-- TODO: Add double line breaks between each per our convention for DDL file statements?
 ALTER TABLE {{schema}}concept_set_container ALTER COLUMN project_id TYPE text;
 ALTER TABLE {{schema}}concept_set_container ALTER COLUMN assigned_informatician TYPE text;
 ALTER TABLE {{schema}}concept_set_container ALTER COLUMN assigned_sme TYPE text;
