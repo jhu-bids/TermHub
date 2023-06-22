@@ -81,7 +81,7 @@ def cli():
     parser.add_argument(
         '-D', '--clobber', action='store_true', default=False, help='If table exists, delete rows before seeding?')
     parser.add_argument(
-        '-s', '--schema', default=SCHEMA, help='Name of the PostgreSQL scheam to create to store tables.')
+        '-s', '--schema', default=SCHEMA, help='Name of the PostgreSQL schema to create to store tables.')
     parser.add_argument(
         '-l', '--local', action='store_true', default=False,
         help='Use local database? If this is set, will use DB related environmental variables that end with _LOCAL.')

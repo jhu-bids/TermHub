@@ -412,11 +412,7 @@ def _cset_members_items(codeset_ids: Union[str, None] = Query(default=''), ) -> 
 
 @APP.get("/db-refresh")
 def db_refresh_route():
-    """Triggers refresh of the database
-
-    Example working cURL:
-    (well, it works for @joeflack4 when actually putting in the token itself. With ${GH_LIMITED_PERSONAL_ACCESS_TOKEN},
-    it should work, but gives "curl: (16) Error in the HTTP2 framing layer" """
+    """Triggers refresh of the database"""
 
     headers = {
         "Authorization": f"Bearer {CONFIG['personal_access_token']}",

@@ -19,11 +19,12 @@ router = APIRouter(
 
 @router.get('/last-refreshed')
 def last_refreshed_DB():
+    """Check when database was last refreshed."""
     with get_db_connection() as con:
         q = """
               SELECT value
               FROM public.manage
-              WHERE key = 'last_refreshed_DB'
+              WHERE key = 'last_refresh_success'
             """
         results = sql_query_single_col(con, q)
         return results[0]
