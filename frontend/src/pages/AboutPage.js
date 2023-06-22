@@ -127,30 +127,35 @@ function AboutPage(props) {
 
       <TextH1>Database Refresh</TextH1>
       <TextBody>Will refresh the database with the latest data from the N3C Enclave.</TextBody>
+      <TextBody><b>IMPORTANT:</b> Concept set members are currently slowly updated in the API. As a tentative solution,
+        to prevent bugs, new containers and code sets will not be imported into TermHub until those members are also
+        available for fetching. This unfortunately slows down fetching of new code sets from being otherwise
+        instantaneous to hours or days.</TextBody>
       <TextBody>Last refresh: {dataAccessor.lastRefreshed()}</TextBody>
       <TextBody>
-        <Button variant={"contained"}
-                onClick={() => {
-                  setRefreshButtonClicked(Date());
-                  handleRefresh();
-                }}>
+        <Button
+          variant={"contained"}
+          onClick={() => {
+            setRefreshButtonClicked(Date());
+            handleRefresh();
+        }}>
           Refresh database
         </Button>
       </TextBody>
 
       <TextH1>How to's</TextH1>
       <TextH2>How to: Fix the app if it's acting weird</TextH2>
-        <ul>
-          <LI>Refresh the page</LI>
+        <ol>
+          <LI>Try: Refreshing the page</LI>
           <LI>
-            <Button variant={"contained"}
-                    onClick={() => queryClient.removeQueries()}
+            Try clicking: <Button variant={"contained"}
+              onClick={() => queryClient.removeQueries()}
             >
               Empty the data cache
             </Button>
           </LI>
           <LI>Complain to <a href="mailto:sigfried@jhu.edu">Siggie</a></LI>
-        </ul>
+        </ol>
       <TextH2>How to: Load a set of concept sets</TextH2>
         <TextBody>
           Using the select list on the CSet Search page loads the concept

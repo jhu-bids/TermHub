@@ -361,7 +361,7 @@ def show_tables(con=get_db_connection(), print_dump=True):
 
 def load_csv(
     con: Connection, table: str, table_type: str = ['dataset', 'object'][0], replace_rule='replace if diff row count',
-    schema: str = SCHEMA, is_test_table=False
+    schema: str = SCHEMA, is_test_table=False, local=False
 ):
     """Load CSV into table
     :param replace_rule: 'replace if diff row count' or 'do not replace'
@@ -412,20 +412,23 @@ def load_csv(
     kwargs = {'if_exists': 'append', 'index': False, 'schema': schema}
     df.to_sql(table, con, **kwargs)
 
-    update_db_status_var(f'last_updated_{table}', str(current_datetime()))
+    update_db_status_var(f'last_updated_{table}', str(current_datetime()), local)
 
     if not is_test_table:
-        update_db_status_var(f'last_updated_{table}', str(current_datetime()))
+        update_db_status_var(f'last_updated_{table}', str(current_datetime()), local)
 
 
-def list_tables(con: Connection, schema: str = SCHEMA) -> List[str]:
+def list_tables(con: Connection, schema: str = SCHEMA, filter_temp_refresh_tables=False) -> List[str]:
     """List tables"""
     query = f"""
         SELECT relname
         FROM pg_stat_user_tables
         WHERE schemaname in ('{schema}') ORDER BY 1;"""
     result = run_sql(con, query)
-    return [x[0] for x in result]
+    tables = [x[0] for x in result]
+    if filter_temp_refresh_tables:
+        tables = [x for x in tables if not x.endswith('_new') and not x.endswith('_old')]
+    return tables
 
 
 def get_ddl_statements(schema: str = SCHEMA, modules: List[str] = None, table_suffix='') -> List[str]:

@@ -379,13 +379,51 @@ def csets_and_members_to_db(con: Connection, schema: str, csets_and_members: Dic
     refresh_termhub_core_cset_derived_tables(con, schema)
 
 
-def csets_and_members_enclave_to_db(con: Connection, schema: str, since: Union[datetime, str]):
+def filter_cset_and_member_objects(csets_and_members: Dict[str, List[Dict]]) -> Dict[str, List[Dict]]:
+    """Filter filter out containers and code sets that have no members."""
+    csets_and_members2 = {
+        'OMOPConcept': csets_and_members['OMOPConcept'],
+        'OmopConceptSetVersionItem': csets_and_members['OmopConceptSetVersionItem'],
+        'OMOPConceptSetContainer': [],
+        'OMOPConceptSet': []
+    }
+    containers_with_codesets_with_members = set()
+    filtered_csets = []
+    filtered_containers = set()
+    for cset in csets_and_members['OMOPConceptSet']:
+        if not cset['member_items']:
+            filtered_csets.append(f"{cset['properties']['codesetId']}: {cset['properties']['conceptSetVersionTitle']}")
+            continue
+        csets_and_members2['OMOPConceptSet'].append(cset)
+        containers_with_codesets_with_members.add(cset['properties']['conceptSetNameOMOP'])
+    for container in csets_and_members['OMOPConceptSetContainer']:
+        if container['conceptSetId'] in containers_with_codesets_with_members:
+            csets_and_members2['OMOPConceptSetContainer'].append(container)
+            continue
+        filtered_containers.add(container['conceptSetId'])
+
+    diff_containers = len(
+        csets_and_members['OMOPConceptSetContainer']) - len(csets_and_members2['OMOPConceptSetContainer'])
+    diff_csets = len(csets_and_members['OMOPConceptSet']) - len(csets_and_members2['OMOPConceptSet'])
+    print(f'  - Filtered out {diff_containers} containers and {diff_csets} code sets w/ 0 members. New total:\n    '
+          f'OBJECT_TYPE: COUNT\n' +
+          "\n".join(['    ' + str(k) + ": " + str(len(v)) for k, v in csets_and_members2.items()]))
+    print('  - Filtered containers: ' + ', '.join([x for x in filtered_containers]))
+    print('  - Filtered code sets: ' + ', '.join([x for x in filtered_csets]))
+    return csets_and_members2
+
+
+def csets_and_members_enclave_to_db(
+    con: Connection, schema: str, since: Union[datetime, str], filter_0_member_sets=True
+):
     """Fetch new csets and members, if needed, and then update database with them."""
     print('Fetching new data from the N3C data enclave...')
     t0 = datetime.now()
     csets_and_members: Dict[str, List[Dict]] = fetch_cset_and_member_objects(since)
+
     print(f'  - Fetched new data in {(datetime.now() - t0).seconds} seconds:\n    OBJECT_TYPE: COUNT\n' +
           "\n".join(['    ' + str(k) + ": " + str(len(v)) for k, v in csets_and_members.items()]))
+    csets_and_members = filter_cset_and_member_objects(csets_and_members)
     return csets_and_members_to_db(con, schema, csets_and_members)
 
 

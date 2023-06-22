@@ -35,12 +35,13 @@ def refresh_db(
     when the last refresh occurred, this will result in there being a gap in which any changes that occurred during that
     time will not be fetched, resulting in an incomplete database. Therefore by default this will raise an error unless
     this is set to True."""
+    local = use_local_database
     print('INFO: Starting database refresh.', flush=True)  # flush: for gh action
     t0, t0_str = datetime.now(), current_datetime()
-    update_db_status_var('last_refresh_request', t0_str)
-    update_db_status_var('refresh_status', 'active')
+    update_db_status_var('last_refresh_request', t0_str, local)
+    update_db_status_var('refresh_status', 'active', local)
     try:
-        with get_db_connection(local=use_local_database) as con:
+        with get_db_connection(local=local) as con:
             last_refresh = last_refresh_timestamp(con)
             if since and dp.parse(since) > dp.parse(last_refresh) and not force_non_contiguity:
                 raise ValueError(SINCE_ERR)
@@ -49,16 +50,16 @@ def refresh_db(
             # Refresh DB:
             csets_and_members_enclave_to_db(con, schema, since)
 
-        counts_update('DB refresh.', schema, use_local_database)
-        update_db_status_var('last_refresh_success', current_datetime())
-        update_db_status_var('last_refresh_result', 'success')
+        counts_update('DB refresh.', schema, local)
+        update_db_status_var('last_refresh_success', current_datetime(), local)
+        update_db_status_var('last_refresh_result', 'success', local)
         print(f'INFO: Database refresh complete in {(datetime.now() - t0).seconds} seconds.')
 
     except Exception as err:
-        update_db_status_var('last_refresh_result', 'error')
-        counts_update('DB refresh error.', schema, use_local_database)
+        update_db_status_var('last_refresh_result', 'error', local)
+        counts_update('DB refresh error.', schema, local, filter_temp_refresh_tables=True)
         print(f"Database refresh incomplete. An exception occurred: {err}")
-    update_db_status_var('refresh_status', 'inactive')
+    update_db_status_var('refresh_status', 'inactive', local)
 
 def cli():
     """Command line interface"""

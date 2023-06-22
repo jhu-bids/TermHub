@@ -34,9 +34,10 @@ def reset_and_update_db(
     use_local_database=False, run_final_ddl_only=False
 ):
     """Refresh the database"""
+    local = use_local_database
     if run_final_ddl_only:
-        with get_db_connection(local=use_local_database) as con:
-            indexes_and_derived_tables(con, schema, local=use_local_database)
+        with get_db_connection(local=local) as con:
+            indexes_and_derived_tables(con, schema, local=local)
         print('INFO: Indexes and derived tables complete.')
         return
 
@@ -66,14 +67,14 @@ def reset_and_update_db(
         download_favorite_datasets(force_if_exists=not skip_download_if_exists, single_group='vocab')
 
     # Uploads
-    with get_db_connection(local=use_local_database) as con:
+    with get_db_connection(local=local) as con:
         run_sql(con, f'CREATE SCHEMA IF NOT EXISTS {schema_new_temp};')
-    load(schema_new_temp, True, hours_threshold_for_updates, use_local_database)
-    with get_db_connection(schema=schema_new_temp, local=use_local_database) as con:
+    load(schema_new_temp, True, hours_threshold_for_updates, local)
+    with get_db_connection(schema=schema_new_temp, local=local) as con:
         run_sql(con, f'ALTER SCHEMA n3c RENAME TO {schema_old_backup};')
         run_sql(con, f'ALTER SCHEMA {schema_new_temp} RENAME TO n3c;')
-        update_db_status_var(last_updated_db_key, str(current_datetime()))
-    counts_update('DB reset and update.', schema, use_local_database)
+        update_db_status_var(last_updated_db_key, str(current_datetime()), local)
+    counts_update('DB reset and update.', schema, local)
     print('INFO: Database reset complete.')
 
 
