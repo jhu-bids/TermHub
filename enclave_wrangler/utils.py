@@ -161,8 +161,14 @@ def handle_response_error(
     failed = response_failed(response)
     if failed:
         print(f'Error: {calling_func}: {str(response.status_code)} {response.reason}', file=sys.stderr)
-        error_report: Dict = {'request': response.url, 'response': response.json()}
-        print(error_report, file=sys.stderr)
+        if response.headers.get('content-type'):
+            """This if statement is to check if there is JSON content in response, this is because
+            some error codes (such as 404) do not return JSON content meaning response.json() cannot be used."""
+            error_report: Dict = {'request': response.url, 'response': response.json()}
+            print(error_report, file=sys.stderr)
+        #else:
+            #I'm not sure if an error_report alternative is desired for non JSON responses'
+
         curl_str = f'curl -H "Content-type: application/json" ' \
                    f'-H "Authorization: Bearer ${get_auth_token_key()}" {response.url}'
         print(curl_str, file=sys.stderr)
