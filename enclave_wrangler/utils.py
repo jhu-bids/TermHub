@@ -193,7 +193,7 @@ def enclave_get(url: str, verbose: bool = True, args: Dict = {}, error_dir: str 
         print_curl(url, args=args)
     headers = get_headers()
     response = requests.get(url, headers=headers, **args)
-    handle_response_error(response, error_dir)
+    #handle_response_error(response, error_dir)
     return response
 
 
