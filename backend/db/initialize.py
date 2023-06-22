@@ -72,7 +72,7 @@ def initialize(
             create_database(con, schema)
         if download:
             download_artefacts(force_download_if_exists=download_force_if_exists)
-        seed(con, schema, clobber, hours_threshold_for_updates)
+        seed(con, schema, clobber, hours_threshold_for_updates, local=local)
         indexes_and_derived_tables(con, schema, local=local)  # , start_step=30)
         initialize_test_schema(con, schema, local=local)
 

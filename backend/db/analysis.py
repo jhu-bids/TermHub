@@ -44,7 +44,8 @@ DOCS_JINJA = """# DB row counts
 #  different. either that, or have it re-use the from_cache code at the end if from_cache = False
 #  - then, counts_over_time() & docs(): add cache param set to false, and change how they call current_counts()
 def _current_counts(
-    schema: str = SCHEMA, local=False, from_cache=False, return_as=['dict', 'df'][0], dt=datetime.now()
+    schema: str = SCHEMA, local=False, from_cache=False, return_as=['dict', 'df'][0], dt=datetime.now(),
+    filter_temp_refresh_tables=False
 ) -> Union[pd.DataFrame, Dict]:
     """Gets current database counts"""
     if from_cache:
@@ -55,7 +56,7 @@ def _current_counts(
             return df
     # Get tables
     with get_db_connection(schema=schema, local=local) as con:
-        tables: List[str] = list_tables(con)
+        tables: List[str] = list_tables(con, filter_temp_refresh_tables=filter_temp_refresh_tables)
     with get_db_connection(schema='', local=local) as con:
         # Get previous counts
         timestamps: List[datetime] = [
@@ -130,7 +131,7 @@ def counts_compare_schemas(
     return df
 
 
-def counts_update(note: str, schema: str = SCHEMA, local=False):
+def counts_update(note: str, schema: str = SCHEMA, local=False, filter_temp_refresh_tables=True):
     """Update 'counts' table with current row counts.
     :param note: For context around what was going on around when / why the counts are updated, e.g. after a backup or
     a data fetch from the enclave, or after editing a batch of concept sets.
@@ -146,7 +147,8 @@ def counts_update(note: str, schema: str = SCHEMA, local=False):
         })
         # Save counts
         # noinspection PyCallingNonCallable pycharm_doesnt_undestand_its_returning_dict
-        for d in _current_counts(from_cache=False, dt=dt, local=local).values():
+        for d in _current_counts(
+            from_cache=False, dt=dt, local=local, filter_temp_refresh_tables=filter_temp_refresh_tables).values():
             insert_from_dict(con, 'counts', d)
 
 

@@ -77,7 +77,7 @@ def initialize_test_schema(con_initial: Connection, schema: str = SCHEMA, local=
 
     # Seed data
     seed(con_initial, test_schema, clobber=True, dataset_tables=list(DATASET_TABLES_TEST.keys()),
-         object_tables=OBJECT_TABLES_TEST, test_tables=True)
+         object_tables=OBJECT_TABLES_TEST, test_tables=True, local=local)
     # - Data in `concept_set_members` table should exist in `concept` and `code_sets` tables
     with get_db_connection(schema=test_schema, local=local) as con_test_schema:
         cset_member_rows = [dict(x) for x in sql_query(con_test_schema, 'SELECT * FROM concept_set_members;')]
@@ -114,7 +114,7 @@ def initialize_test_schema(con_initial: Connection, schema: str = SCHEMA, local=
 
 def seed(
     con: Connection, schema: str = SCHEMA, clobber=False, skip_if_updated_within_hours: int = None,
-    dataset_tables: List[str] = DATASET_TABLES, object_tables: List[str] = OBJECT_TABLES, test_tables=False
+    dataset_tables: List[str] = DATASET_TABLES, object_tables: List[str] = OBJECT_TABLES, test_tables=False, local=False
 ):
     """Seed the database with some data"""
     replace_rule = 'do not replace' if not clobber else None
@@ -122,12 +122,14 @@ def seed(
         if is_table_up_to_date(table, skip_if_updated_within_hours):
             print(f'INFO: Skipping upload of table "{table}" because it is up to date.')
             continue
-        load_csv(con, table, replace_rule=replace_rule, schema=schema, is_test_table=test_tables)
+        load_csv(con, table, replace_rule=replace_rule, schema=schema, is_test_table=test_tables, local=local)
     for table in object_tables:
         if is_table_up_to_date(table, skip_if_updated_within_hours):
             print(f'INFO: Skipping upload of table "{table}" because it is up to date.')
             continue
-        load_csv(con, table, table_type='object', replace_rule=replace_rule, schema=schema, is_test_table=test_tables)
+        load_csv(
+            con, table, table_type='object', replace_rule=replace_rule, schema=schema, is_test_table=test_tables,
+            local=local)
 
 
 def indexes_and_derived_tables(
@@ -183,7 +185,7 @@ def load(
     """Load data into the database and CREATE INDEX IF NOT EXISTSes and derived tables"""
     with get_db_connection(local=use_local_database) as con:
         # download_artefacts(force_download_if_exists=False)
-        seed(con, schema, clobber, skip_if_updated_within_hours)
+        seed(con, schema, clobber, skip_if_updated_within_hours, local=use_local_database)
         indexes_and_derived_tables(con, schema, skip_if_updated_within_hours, local=use_local_database)
 
 
