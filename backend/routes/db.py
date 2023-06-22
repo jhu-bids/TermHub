@@ -3,7 +3,7 @@
     (2023-05-08)
 """
 from functools import cache
-from typing import List
+from typing import List, Union
 from fastapi import APIRouter, Query
 from backend.db.queries import get_concepts
 from backend.db.utils import sql_query, sql_query_single_col, get_db_connection, sql_in
@@ -55,13 +55,16 @@ def get_concepts_post_route(concept_ids: List[str], table:str='concepts_with_cou
 
 
 @router.post("/concept-ids-by-codeset-id")
+@router.get("/concept-ids-by-codeset-id")
 @return_err_with_trace
-def get_concept_ids_by_codeset_id(codeset_ids: List[str]) -> List:
+def get_concept_ids_by_codeset_id(codeset_ids: Union[List[str], None] = None) -> List:
+    if not codeset_ids:
+        return [[]]
     with get_db_connection() as con:
         q = f"""
-              SELECT *
-              FROM concept_ids_by_codeset_id
-              WHERE codeset_id {sql_in(codeset_ids)};"""
+              SELECT csids.codeset_id, COALESCE(cibc.concept_ids, ARRAY[]::integer[]) AS concept_ids
+              FROM (VALUES{",".join([f"({csid})" for csid in codeset_ids])}) AS csids(codeset_id)
+              LEFT JOIN concept_ids_by_codeset_id cibc ON csids.codeset_id = cibc.codeset_id"""
         rows: List = sql_query(con, q)
         # d = {r['codeset_id']:r['concept_ids'] for r in rows}
         return [r['concept_ids'] for r in rows]

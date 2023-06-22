@@ -163,7 +163,7 @@ function getColdefs(min_col = false) {
           <span>Expression items</span>
         </Tooltip>
       ),
-      selector: (row) => row.counts['Expression items'],
+      selector: (row) => (row.counts || {})['Expression items'] ?? 0,
       compact: true,
       width: "70px",
       center: true,
@@ -175,7 +175,7 @@ function getColdefs(min_col = false) {
             <span>Members</span>
           </Tooltip>
       ),
-      selector: (row) => row.counts['Members'],
+      selector: (row) => (row.counts || {})['Members'] ?? 0,
       compact: true,
       width: "70px",
       center: true,
@@ -219,7 +219,7 @@ function getColdefs(min_col = false) {
         </Tooltip>
       ),
       selector: (row) => {
-        return row.total_cnt.toLocaleString();
+        return (row.total_cnt ?? 0).toLocaleString();
       },
       compact: true,
       width: "78px",

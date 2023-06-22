@@ -43,31 +43,18 @@ function initialOpts(all_csets, codesetIds) {
   return opts;
 }
 export function CsetSearch(props) {
-  const { codeset_ids=[], changeCodesetIds, } = props;
+  const { codeset_ids=[], changeCodesetIds, all_csets, } = props;
   const [opts, setOpts] = useState([]);
   const [value, setValue] = useState([]);
-  const [data, setData] = useState({});
-  const { all_csets, selected_csets, relatedCsets,  } = data;
 
   // const [keyForRefreshingAutocomplete, setKeyForRefreshingAutocomplete] = useState(0);
   // necessary to change key for reset because of Autocomplete bug, according to https://stackoverflow.com/a/59845474/1368860
-  useEffect(() => {
-    (async () => {
-      const all_csets = await fetchItems('all_csets', ['stub']);
-      setData({all_csets});
-      const _opts = initialOpts(all_csets, codeset_ids);
-      setOpts(_opts);
-      setValue(codeset_ids);
-    })()
-  }, []);
 
-  if (!codeset_ids.length || isEmpty(data)) {
+  if (codeset_ids.length && isEmpty(all_csets)) {
     return <p>Downloading...</p>;
   }
+  const _opts = initialOpts(all_csets, codeset_ids);
 
-  if (!all_csets.length) {
-    return <span />;
-  }
   console.log(value);
   const autocomplete = (
     // https://mui.com/material-ui/react-autocomplete/
@@ -174,22 +161,31 @@ export function CsetSearch(props) {
 function ConceptSetsPage(props) {
   const { codeset_ids } = props;
   const [data, setData] = useState({});
-  const { concept_ids, relatedCodesetIds, selected_csets, allRelatedCsets} = data;
+  const { all_csets, concept_ids, relatedCodesetIds, selected_csets, allRelatedCsets} = data;
 
   useEffect(() => {
     (async () => {
-      const concept_ids = await dataAccessor.getItemsByKey(
-        { itemType: 'concept_ids_by_codeset_id', keys: codeset_ids,
-          returnFunc: results => union(flatten(Object.values(results))),
-      });
-      const relatedCodesetIds = await dataAccessor.getItemsByKey(
+      let all_csets = fetchItems('all_csets', ['stub']);
+      let concept_ids = dataAccessor.getItemsByKey({ // concept_ids
+            itemType: 'concept_ids_by_codeset_id',
+            keys: codeset_ids,
+            returnFunc: results => union(flatten(Object.values(results))),
+          });
+      concept_ids = await concept_ids;
+      let relatedCodesetIds = dataAccessor.getItemsByKey(
           { itemType: 'codeset_ids_by_concept_id', keys: concept_ids,
             returnFunc: results => union(flatten(Object.values(results))),
           });
+      console.log(all_csets);
+      [all_csets, relatedCodesetIds] = await Promise.all([all_csets, relatedCodesetIds]);
+      console.log(all_csets);
+      const selected_csets = all_csets.filter(
+          cset => codeset_ids.includes(cset.codeset_id));
+      const allRelatedCsets = all_csets.filter(cset => relatedCodesetIds.includes(cset.codeset_id));
 
-      const allRelatedCsets = await fetchItems('related_csets', codeset_ids, );
-      const selected_csets = allRelatedCsets.filter(cset => cset.selected);
-      setData({ concept_ids, relatedCodesetIds, selected_csets, allRelatedCsets});
+      // const allRelatedCsets = await fetchItems('related_csets', codeset_ids, );
+      // const selected_csets = allRelatedCsets.filter(cset => cset.selected);
+      setData({ all_csets, concept_ids, relatedCodesetIds, selected_csets, allRelatedCsets});
     })()
   }, [codeset_ids.join('|')]);
   if (codeset_ids.length && isEmpty(allRelatedCsets)) {
@@ -197,7 +193,7 @@ function ConceptSetsPage(props) {
   }
   console.log(concept_ids, relatedCodesetIds);
 
-  props = {...props, allRelatedCsets, selected_csets };
+  props = {...props, all_csets, allRelatedCsets, selected_csets };
 
   if (!codeset_ids.length) {
     return (

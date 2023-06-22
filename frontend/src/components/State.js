@@ -79,10 +79,10 @@ export function ViewCurrentState(props) {
     <pre>{stateDoc}</pre>
   </div>);
 }
-async function oneToOneFetchAndCache(itemType, api, postData, paramList) {
+async function oneToOneFetchAndCache(itemType, api, postData, paramList, useGetForSmallData ) {
   // We expect a 1-to-1 relationship between paramList items (e.g., concept_ids)
   //  and retrieved items (e.g., concepts)
-  const data = await axiosCall(api, {backend:true, data: postData});
+  const data = await axiosCall(api, {backend:true, data: postData, useGetForSmallData });
   if (data.length !== paramList.length) {
     throw new Error(`oneToOneFetchAndCache for ${itemType} requires matching result data and paramList lengths`);
   }
@@ -99,23 +99,29 @@ export async function fetchItems( itemType, paramList) {
   let url,
       data,
       cacheKey,
-      api;
+      api,
+      useGetForSmallData;
 
   switch(itemType) {
-    case 'concepts':
     case 'concept_ids_by_codeset_id':
+      useGetForSmallData = true;  // can use this for api endpoints that have both post and get versions
+    case 'concepts':
     case 'codeset_ids_by_concept_id':
       api = itemType.replaceAll('_','-');
       url = backend_url('get-concepts')
-      data = await oneToOneFetchAndCache(itemType, api, paramList, paramList);
+      data = await oneToOneFetchAndCache(itemType, api, paramList, paramList, useGetForSmallData);
       data.forEach((group,i) => {
         dataAccessor.cachePut([itemType, paramList[i]], group);
       })
       return data;
+
+    /*
     case 'selected_csets':
       url = 'selected-csets?codeset_ids=' + paramList.join('|');
       data = await oneToOneFetchAndCache(itemType, url, undefined, paramList);
       return data;
+     */
+
     case 'cset_members_items':
       data = await Promise.all(
           paramList.map(
@@ -161,6 +167,21 @@ export async function fetchItems( itemType, paramList) {
         dataAccessor.cachePut([itemType, cacheKey], data);
       }
       return data;
+    /*
+    case 'related_csets': // expects paramList of codeset_ids
+      // each unique set of codeset_ids gets a unique set of related_csets
+      // this is the same pattern as edges above. make a single function for
+      //  this pattern like oneToOneFetchAndCache --- oh, except the formatEdges part
+      cacheKey = paramList.join('|');
+      data = dataAccessor.cacheGet([itemType, cacheKey]);
+      if (isEmpty(data)) {
+        const url = backend_url('related-csets?codeset_ids=' + paramList.join('|'));
+        data = await axiosCall(url);
+        // data = formatEdges(data);
+        dataAccessor.cachePut([itemType, cacheKey], data);
+      }
+      return data;
+     */
 
     case 'all_csets':
       data = dataAccessor.cacheGet([itemType]);
@@ -184,6 +205,9 @@ class DataAccess {
                         shape='array', /* or obj */
                         returnFunc
                       }) {
+    if (isEmpty(keys)) {
+      return shape === 'array' ? [] : {};
+    }
     keys = keys.map(String);
     if (keys.length !== uniq(keys).length) {
       throw new Error(`Why are you sending duplicate keys?`);
@@ -619,7 +643,8 @@ function DataWidget(props) {
 
 export const backend_url = (path) => `${API_ROOT}/${path}`;
 
-export async function axiosCall(path, { backend = false, data, returnDataOnly=true }={}) {
+export async function axiosCall(path, { backend = false, data,
+    returnDataOnly=true, useGetForSmallData = false }={}) {
   let url = backend ? backend_url(path) : path;
   console.log("axiosCall url: ", url);
   try {
@@ -627,9 +652,15 @@ export async function axiosCall(path, { backend = false, data, returnDataOnly=tr
     if (typeof(data) === 'undefined') {
       results = await axios.get(url);
     } else {
-      results = await axios.post(url, data);
+      if (useGetForSmallData && typeof(data) === 'object' &&
+          !Array.isArray(data) && Object.values().length < 1000) {
+        let qs = createSearchParams(data);
+        results = await axios.get(url + qs);
+      } else {
+        results = await axios.post(url, data);
+      }
     }
-    return results.data;
+    return returnDataOnly ? results.data : results;
   } catch(error) {
     console.log(error.toJSON());
   }
