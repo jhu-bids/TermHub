@@ -789,7 +789,7 @@ def refresh_tables_for_object():
 
 
 def get_concept_set_version_expression_items(
-    version_id: Union[str, int], return_detail='full', handle_paginated=False
+    version_id: Union[str, int], return_detail=['id','full'][1], handle_paginated=False
 ) -> List[Dict]:
     """Get concept set version expression items"""
     version_id = str(version_id)

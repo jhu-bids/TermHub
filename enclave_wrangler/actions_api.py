@@ -588,7 +588,7 @@ def delete_concept_set_version(version_id: int, validate_first=VALIDATE_FIRST) -
     if not expression_items:
         print('INFO: Could not find expression items while trying to delete concept set. '
               'This probably means it was just uploaded. Trying again.')
-        expression_items: List[UUID] = get_concept_set_version_expression_items(version_id)
+        expression_items: List[UUID] = get_concept_set_version_expression_items(version_id,return_detail='id')
     # Note: Ignore 'description' below. See 'cavaet 1' in this function's docstring.
     d = {
         # "apiName": api_name,
