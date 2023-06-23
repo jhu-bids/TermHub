@@ -48,18 +48,21 @@ def get_concepts_route(id: List[int] = Query(...), table:str='concepts_with_coun
     return get_concepts(concept_ids=id, table=table)
 
 
-@router.post("/concept-ids-by-codeset-id")
 @router.post("/concepts")
-@return_err_with_trace
-def get_concepts_post_route(concept_ids: Union[List[str], None] = None, table:str='concepts_with_counts') -> List:
-    """expect list of codeset_ids. using 'id' for brevity"""
-    return get_concepts(concept_ids=concept_ids, table=table)
+def get_concepts_post_route(id: Union[List[str], None] = None,
+                            table: str = 'concepts_with_counts') -> List:
+    return get_concepts(concept_ids=id, table=table)
 
 
 @router.post("/concept-ids-by-codeset-id")
+def get_concept_ids_by_codeset_id_post(codeset_ids: Union[List[int], None] = None) -> List:
+    print(codeset_ids)
+    return get_concept_ids_by_codeset_id(codeset_ids)
+
+
 @router.get("/concept-ids-by-codeset-id")
 @return_err_with_trace
-def get_concept_ids_by_codeset_id(codeset_ids: Union[List[str], None] = None) -> List:
+def get_concept_ids_by_codeset_id(codeset_ids: Union[List[int], None] = Query(...)) -> List:
     if not codeset_ids:
         return [[]]
     with get_db_connection() as con:
@@ -73,15 +76,20 @@ def get_concept_ids_by_codeset_id(codeset_ids: Union[List[str], None] = None) ->
 
 
 @router.post("/codeset-ids-by-concept-id")
-@return_err_with_trace
-def get_codeset_ids_by_concept_id(concept_ids: List[str]) -> List:
+def get_codeset_ids_by_concept_id_post(id: Union[List[int], None] = None) -> List:
     with get_db_connection() as con:
         q = f"""
               SELECT *
               FROM codeset_ids_by_concept_id
-              WHERE concept_id {sql_in(concept_ids)};"""
+              WHERE concept_id {sql_in(id)};"""
         rows: List = sql_query(con, q)
         return [r['codeset_ids'] for r in rows]
+
+
+@router.get("/codeset-ids-by-concept-id")
+@return_err_with_trace
+def get_codeset_ids_by_concept_id(id: Union[List[int], None] = Query(...)) -> List:
+    return get_codeset_ids_by_concept_id_post(id)
 
 
 @router.get('/omop-id-from-concept-name/{name}')

@@ -106,9 +106,9 @@ export async function fetchItems( itemType, paramList) {
   switch(itemType) {
     case 'concepts':
     case 'codeset_ids_by_concept_id':
-      apiGetParamName = 'concept_ids';
+      apiGetParamName = 'id';
     case 'concept_ids_by_codeset_id':
-      apiGetParamName = apiGetParamName || 'concept_ids';
+      apiGetParamName = apiGetParamName || 'codeset_ids';
       useGetForSmallData = true;  // can use this for api endpoints that have both post and get versions
       api = itemType.replaceAll('_','-');
       url = backend_url(api);
@@ -189,6 +189,7 @@ export async function fetchItems( itemType, paramList) {
       if (isEmpty(data)) {
         url = backend_url('get-all-csets');
         data = await axiosCall(url);
+        // data = keyBy(data, 'codeset_id');
         dataAccessor.cachePut([itemType], data);
       }
       return data;
@@ -204,6 +205,7 @@ class DataAccess {
                         keyName,
                         keys=[],
                         shape='array', /* or obj */
+                        createFunc,
                         returnFunc
                       }) {
     if (isEmpty(keys)) {
@@ -270,7 +272,11 @@ class DataAccess {
     return null;
   }, 400);
   loadCache = () => {
-    return JSON.parse(decompress(localStorage.getItem('dataAccessor')||''));
+    try {
+      return JSON.parse(decompress(localStorage.getItem('dataAccessor')||''));
+    } catch(error) {
+      return {};
+    }
   }
   cacheGet(path) {
     // uses lodash get, so path can be array of nested keys or a string with
@@ -668,16 +674,17 @@ export async function axiosCall(path, { backend = false, data,
 }
 
 export function StatsMessage(props) {
-  const { codeset_ids = [], all_csets = [], cset_data = {} } = props;
-  const { related_csets = [], concepts } = cset_data;
+  const { codeset_ids = [], all_csets = [], allRelatedCsets,
+          concept_ids, selected_csets, } = props;
 
+  const relcsetsCnt = allRelatedCsets.length - selected_csets.length;
   return (
     <p style={{ margin: 0, fontSize: "small" }}>
       The <strong>{codeset_ids.length} concept sets </strong>
       selected contain{" "}
-      <strong>{(concepts || []).length} distinct concepts</strong>. The
-      following <strong>{related_csets.length} concept sets </strong>(
-      {pct_fmt(related_csets.length / all_csets.length)}) have 1 or more
+      <strong>{(concept_ids || []).length.toLocaleString()} distinct concepts</strong>. The
+      following <strong>{relcsetsCnt.toLocaleString()} concept sets </strong>(
+      {pct_fmt(relcsetsCnt / all_csets.length)}) have 1 or more
       concepts in common with the selected sets. Click rows below to select or
       deselect concept sets.
     </p>

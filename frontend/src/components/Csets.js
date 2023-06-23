@@ -6,7 +6,7 @@ import { TextField, Autocomplete, Box, } from "@mui/material";
 import Button from "@mui/material/Button";
 // import Chip from '@mui/material/Chip';
 // import { Link, Outlet, useHref, useParams, useSearchParams, useLocation } from "react-router-dom";
-import { every, union } from "lodash";
+import {every, keyBy, union} from "lodash";
 import { get, isNumber, isEmpty, flatten, } from "lodash";
 // import {isEqual, pick, uniqWith, max, omit, uniq, } from 'lodash';
 // import Box from "@mui/material/Box";
@@ -25,7 +25,7 @@ import {dataAccessor, fetchItems} from "./State";
     @ SIggie: is this fixed?
 */
 function initialOpts(all_csets, codesetIds) {
-  let opts = all_csets
+  let opts = Object.values(all_csets)
       // .filter((d) => !codeset_ids.includes(d.codeset_id))
       .map((d) => ({
         label:
@@ -44,7 +44,6 @@ function initialOpts(all_csets, codesetIds) {
 }
 export function CsetSearch(props) {
   const { codeset_ids=[], changeCodesetIds, all_csets, } = props;
-  const [opts, setOpts] = useState([]);
   const [value, setValue] = useState([]);
 
   // const [keyForRefreshingAutocomplete, setKeyForRefreshingAutocomplete] = useState(0);
@@ -53,9 +52,9 @@ export function CsetSearch(props) {
   if (codeset_ids.length && isEmpty(all_csets)) {
     return <p>Downloading...</p>;
   }
-  const _opts = initialOpts(all_csets, codeset_ids);
+  const opts = initialOpts(all_csets, codeset_ids);
 
-  console.log(value);
+  // console.log(value);
   const autocomplete = (
     // https://mui.com/material-ui/react-autocomplete/
     // https://stackoverflow.com/a/70193988/1368860
@@ -179,10 +178,17 @@ function ConceptSetsPage(props) {
           { itemType: 'codeset_ids_by_concept_id', keys: concept_ids,
             returnFunc: results => union(flatten(Object.values(results))),
           });
-      console.log(all_csets);
       [all_csets, relatedCodesetIds] = await Promise.all([all_csets, relatedCodesetIds]);
-      console.log(all_csets);
-      const allRelatedCsets = all_csets.filter(cset => relatedCodesetIds.includes(cset.codeset_id));
+      let allCsetsObj = keyBy(all_csets, 'codeset_id');
+      let allRelatedCsets = relatedCodesetIds.map(csid => allCsetsObj[csid]);
+
+      /*
+      let relatedCsetConcepts = dataAccessor.getItemsByKey({ // concept_ids
+                                                     itemType: 'concept_ids_by_codeset_id',
+                                                     keys: codeset_ids,
+                                                     returnFunc: results => union(flatten(Object.values(results))),
+                                                   });
+       */
       selected_csets = await selected_csets;
 
       // const allRelatedCsets = await fetchItems('related_csets', codeset_ids, );
@@ -193,9 +199,8 @@ function ConceptSetsPage(props) {
   if (codeset_ids.length && isEmpty(allRelatedCsets)) {
     return <p>Downloading...</p>;
   }
-  console.log(concept_ids, relatedCodesetIds);
 
-  props = {...props, all_csets, allRelatedCsets, selected_csets };
+  props = {...props, all_csets, allRelatedCsets, selected_csets, concept_ids };
 
   if (!codeset_ids.length) {
     return (

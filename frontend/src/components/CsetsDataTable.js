@@ -35,9 +35,9 @@ function getCsetSelectionHandler(tooltipId) {
 }
 
 /* TODO: review function for appropriate state management */
-function CsetsDataTable(props) {
+export function CsetsDataTable(props) {
   const { show_selected, codeset_ids, changeCodesetIds,
-          allRelatedCsets, selected_csets, } = props;
+          allRelatedCsets, selected_csets, all_csets, concept_ids } = props;
   const [data, setData] = useState({});
   const { relatedCsets,  } = data;
   const min_col = show_selected ?
@@ -74,7 +74,8 @@ function CsetsDataTable(props) {
      */
 
   // const related_ids = new Set(f lattened_concept_hierarchy.map(d => d.concept_id));
-  const subHeader = <StatsMessage {...props} />;
+  const subHeader = <StatsMessage {...{ codeset_ids, all_csets, allRelatedCsets,
+                                        concept_ids, selected_csets, } } />;
   // const [handleRowMouseEnter, handleRowMouseLeave] =
   //     getCsetSelectionHandler(show_selected ? 'select-to-remove' : 'select-to-add');
 
@@ -151,8 +152,7 @@ function getColdefs(min_col = false) {
     },
     {
       name: "Names of concept sets",
-      // selector: row => `${row.concept_set_name} (v${row.version})`,
-      selector: (row) => row.concept_set_version_title,
+      selector: (row) => row.concept_set_version_title || `${row.alias} (v${row.version})`,
       wrap: true,
       compact: true,
       sortable: true,
@@ -374,5 +374,3 @@ createTheme('custom-theme', {
     },
 }, 'light');
 */
-
-export { CsetsDataTable };
