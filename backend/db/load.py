@@ -1,4 +1,5 @@
 """Load data into the database and CREATE INDEXes and derived tables"""
+from datetime import datetime
 from typing import Dict, List
 
 from sqlalchemy.engine.base import Connection
@@ -170,6 +171,7 @@ def indexes_and_derived_tables(
         k = 0
         i += 1
         module_name = module_tag.split('-')[-1]
+        t0 = datetime.now()
         print(f' - Module {i} of {len(statements_by_module)}: {module_name} ({len(statements)} commands)')
         for statement in statements:
             j += 1
@@ -184,6 +186,8 @@ def indexes_and_derived_tables(
             except Exception as err:
                 update_db_status_var(last_successful_step_key, str(j - 1), local)
                 raise err
+        t1 = datetime.now()
+        print(f'  - completed in {(t1 - t0).seconds} seconds')
 
     update_db_status_var(last_successful_step_key, '0', local)
     update_db_status_var(last_completed_key, str(current_datetime()), local)
