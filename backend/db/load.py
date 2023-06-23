@@ -1,4 +1,4 @@
-"""Load data into the database and CREATE INDEX IF NOT EXISTSes and derived tables"""
+"""Load data into the database and CREATE INDEXes and derived tables"""
 from typing import List
 
 from sqlalchemy.engine.base import Connection
@@ -135,7 +135,7 @@ def seed(
 def indexes_and_derived_tables(
     con: Connection, schema_name: str, skip_if_updated_within_hours: int = None, start_step: int = None, local=False
 ):
-    """CREATE INDEX IF NOT EXISTSes and derived tables"""
+    """CREATE INDEXes and derived tables"""
     # Determine and set up progress tracking
     last_completed_key = 'last_updated_indexes_and_derived_tables'
     last_successful_step_key = 'last_step_indexes_and_derived_tables'
@@ -182,7 +182,7 @@ def indexes_and_derived_tables(
 def load(
     schema: str = SCHEMA, clobber=False, skip_if_updated_within_hours: int = None, use_local_database=False
 ):
-    """Load data into the database and CREATE INDEX IF NOT EXISTSes and derived tables"""
+    """Load data into the database and CREATE INDEXes and derived tables"""
     with get_db_connection(local=use_local_database) as con:
         # download_artefacts(force_download_if_exists=False)
         seed(con, schema, clobber, skip_if_updated_within_hours, local=use_local_database)
