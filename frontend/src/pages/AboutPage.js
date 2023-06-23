@@ -2,7 +2,7 @@
  * todo's
  *  todo: 1. Siggie was going to add some sort of Table here
  * */
-import React, { useState } from "react";
+import React, {useEffect, useState} from "react";
 import {queryClient} from "../App";
 import Typography from "@mui/material/Typography";
 import Button from "@mui/material/Button";
@@ -88,8 +88,20 @@ function AboutPage(props) {
   // )
   const [codeset_ids, setCodeset_ids] = useState([]);
   const [refreshButtonClicked, setRefreshButtonClicked] = useState();
+  const [lastRefreshed, setLastRefreshed] = useState();
   const location = useLocation();
   const { search } = location;
+
+  useEffect(() => {
+    (async () =>{
+      let lastRefreshed = dataAccessor.lastRefreshed();
+      if (!lastRefreshed) {
+        await dataAccessor.cacheCheck();
+        lastRefreshed = dataAccessor.lastRefreshed();
+        setLastRefreshed(lastRefreshed);
+      }
+    })()
+  });
 
   return (
     <div style={{ margin: "15px 30px 15px 40px" }}>
@@ -131,7 +143,7 @@ function AboutPage(props) {
         to prevent bugs, new containers and code sets will not be imported into TermHub until those members are also
         available for fetching. This unfortunately slows down fetching of new code sets from being otherwise
         instantaneous to hours or days.</TextBody>
-      <TextBody>Last refresh: {dataAccessor.lastRefreshed().toLocaleString()}</TextBody>
+      <TextBody>Last refresh: {lastRefreshed ? lastRefreshed.toLocaleString() : 'fetching it...'}</TextBody>
       <TextBody>
         <Button
           variant={"contained"}

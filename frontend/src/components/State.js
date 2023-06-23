@@ -365,12 +365,12 @@ export function AppStateProvider({ children }) {
     setTimeout(() => dispatch(...args), 100);
   }
   const reducers = {
-    // contentItems: useReducer(contentItemsReducer, defaultContentItems),
-    codeset_ids: useReducer(codeset_idsReducer, []),
-    concept_ids: useReducer(currentConceptIdsReducer, []),
-    editCset: useReducer(editCsetReducer, {}),
-    // more stuff needed
     hierarchySettings: [hierarchySettings, hsDispatch],
+    editCset: useReducer(editCsetReducer, {}),
+    // contentItems: useReducer(contentItemsReducer, defaultContentItems),
+    // codeset_ids: useReducer(codeset_idsReducer, []),
+    // concept_ids: useReducer(currentConceptIdsReducer, []),
+    // more stuff needed
   };
 
   const getters = {

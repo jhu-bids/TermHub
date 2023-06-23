@@ -3,7 +3,7 @@ import ReactDOM from "react-dom/client";
 import { orderBy, get, remove, throttle } from "lodash";
 import DataTable, { createTheme } from "react-data-table-component";
 import { fmt, pct_fmt } from "./utils";
-import { fetchItems, StatsMessage } from "./State";
+import { fetchItems, StatsMessage, useStateSlice, } from "./State";
 import { Tooltip } from "./Tooltip";
 // import Checkbox from '@material-ui/core/Checkbox';
 // import ArrowDownward from '@material-ui/icons/ArrowDownward';
@@ -36,12 +36,12 @@ function getCsetSelectionHandler(tooltipId) {
 
 /* TODO: review function for appropriate state management */
 export function CsetsDataTable(props) {
-  const { show_selected, codeset_ids, changeCodesetIds, intersectStats,
+  const { show_selected, codeset_ids, changeCodesetIds,
           relatedCsets, selected_csets, all_csets, concept_ids, } = props;
   const min_col = show_selected ?
       ("min_col" in props ? props.min_col : true) : false;
 
-  let coldefs = getColdefs(min_col, intersectStats);
+  let coldefs = getColdefs(min_col);
   /* const conditionalRowStyles = [{ when: row => row.selected,
         style: { backgroundColor: 'rgba(63, 195, 128, 0.9)', color: 'white',
                 '&:hover': { cursor: 'pointer', }, } }]; */
@@ -124,7 +124,7 @@ export function CsetsDataTable(props) {
   );
 }
 
-function getColdefs(min_col = false, intersectStats) {
+function getColdefs(min_col = false) {
   /*
     const descending = (rows, selector, direction) => {
         return orderBy(rows, selector, ['desc']);
@@ -180,8 +180,8 @@ function getColdefs(min_col = false, intersectStats) {
           <span>Recall</span>
         </Tooltip>
       ),
-      selector: (row) => intersectStats[row.codeset_id].recall,
-      format: (row) => pct_fmt(intersectStats[row.codeset_id].recall),
+      selector: (row) => row.recall,
+      format: (row) => pct_fmt(row.recall),
       desc: true,
       compact: true,
       width: "70px",
@@ -239,7 +239,7 @@ function getColdefs(min_col = false, intersectStats) {
             <span>Shared</span>
           </Tooltip>
         ),
-        selector: (row) => intersectStats[row.codeset_id].intersecting_concepts,
+        selector: (row) => row.intersecting_concepts,
         compact: true,
         width: "70px",
         center: true,
@@ -251,8 +251,8 @@ function getColdefs(min_col = false, intersectStats) {
             <span>Precision</span>
           </Tooltip>
         ),
-        selector: (row) => intersectStats[row.codeset_id].precision,
-        format: (row) => pct_fmt(intersectStats[row.codeset_id].precision),
+        selector: (row) => row.precision,
+        format: (row) => pct_fmt(row.precision),
         desc: true,
         compact: true,
         width: "70px",
