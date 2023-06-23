@@ -348,7 +348,9 @@ def get_all_csets(con=CON) -> Union[Dict, List]:
               alias,
               version,
               --concepts
-              counts
+              counts,
+              distinct_person_cnt,
+              total_cnt
         FROM {SCHEMA}.all_csets""")
     # can't check for dups with json object in the results
     # if len(set(results)) != len(results):

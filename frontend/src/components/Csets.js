@@ -6,7 +6,7 @@ import { TextField, Autocomplete, Box, } from "@mui/material";
 import Button from "@mui/material/Button";
 // import Chip from '@mui/material/Chip';
 // import { Link, Outlet, useHref, useParams, useSearchParams, useLocation } from "react-router-dom";
-import {every, keyBy, union} from "lodash";
+import {every, keyBy, union, orderBy, } from "lodash";
 import { get, isNumber, isEmpty, flatten, intersection, } from "lodash";
 // import {isEqual, pick, uniqWith, max, omit, uniq, } from 'lodash';
 // import Box from "@mui/material/Box";
@@ -161,7 +161,7 @@ function ConceptSetsPage(props) {
   const { codeset_ids } = props;
   const [data, setData] = useState({});
   const { all_csets, concept_ids, relatedCodesetIds, selected_csets,
-          allRelatedCsets, relatedCsetConceptIds, intersectStats,} = data;
+          allRelatedCsets, relatedCsets, relatedCsetConceptIds, intersectStats,} = data;
 
   useEffect(() => {
     (async () => {
@@ -182,6 +182,8 @@ function ConceptSetsPage(props) {
       [all_csets, relatedCodesetIds] = await Promise.all([all_csets, relatedCodesetIds]);
       let allCsetsObj = keyBy(all_csets, 'codeset_id');
       let allRelatedCsets = relatedCodesetIds.map(csid => ({...allCsetsObj[csid]}));
+      let relatedCsets = allRelatedCsets.filter(cset => !cset.selected);
+      relatedCsets = orderBy( relatedCsets, ["selected", "precision"], ["desc", "desc"] );
 
       let relatedCsetConceptIds = dataAccessor.getItemsByKey({ // concept_ids
         itemType: 'concept_ids_by_codeset_id',
@@ -205,14 +207,14 @@ function ConceptSetsPage(props) {
       // const allRelatedCsets = await fetchItems('related_csets', codeset_ids, );
       // const selected_csets = allRelatedCsets.filter(cset => cset.selected);
       setData({ all_csets, concept_ids, relatedCodesetIds, selected_csets,
-                allRelatedCsets, relatedCsetConceptIds, intersectStats,});
+                relatedCsets, allRelatedCsets, relatedCsetConceptIds, intersectStats,});
     })()
   }, [codeset_ids.join('|')]);
   if (codeset_ids.length && isEmpty(allRelatedCsets)) {
     return <p>Downloading...</p>;
   }
 
-  props = {...props, all_csets, allRelatedCsets, selected_csets, concept_ids, relatedCsetConceptIds, intersectStats, };
+  props = {...props, all_csets, relatedCsets, selected_csets, concept_ids, relatedCsetConceptIds, intersectStats, };
 
   if (!codeset_ids.length) {
     return (

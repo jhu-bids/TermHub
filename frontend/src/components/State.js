@@ -654,16 +654,19 @@ export const backend_url = (path) => `${API_ROOT}/${path}`;
 export async function axiosCall(path, { backend = false, data,
     returnDataOnly=true, useGetForSmallData = false, apiGetParamName }={}) {
   let url = backend ? backend_url(path) : path;
-  console.log("axiosCall url: ", url);
   try {
     let results;
     if (typeof(data) === 'undefined') {
+      console.log("axios.get url: ", url);
       results = await axios.get(url);
     } else {
       if (useGetForSmallData && data.length <= 1000 ) {
         let qs = createSearchParams({[apiGetParamName]: data});
+        url = url + '?' + qs;
+        console.log("axios.get url: ", url);
         results = await axios.get(url + '?' + qs);
       } else {
+        console.log("axios.post url: ", url, 'data', data);
         results = await axios.post(url, data);
       }
     }
@@ -674,10 +677,10 @@ export async function axiosCall(path, { backend = false, data,
 }
 
 export function StatsMessage(props) {
-  const { codeset_ids = [], all_csets = [], allRelatedCsets,
+  const { codeset_ids = [], all_csets = [], relatedCsets,
           concept_ids, selected_csets, } = props;
 
-  const relcsetsCnt = allRelatedCsets.length - selected_csets.length;
+  const relcsetsCnt = relatedCsets.length;
   return (
     <p style={{ margin: 0, fontSize: "small" }}>
       The <strong>{codeset_ids.length} concept sets </strong>

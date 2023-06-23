@@ -36,22 +36,12 @@ function getCsetSelectionHandler(tooltipId) {
 
 /* TODO: review function for appropriate state management */
 export function CsetsDataTable(props) {
-  const { show_selected, codeset_ids, changeCodesetIds,
-          allRelatedCsets, selected_csets, all_csets, concept_ids } = props;
-  const [data, setData] = useState({});
-  const { relatedCsets,  } = data;
+  const { show_selected, codeset_ids, changeCodesetIds, intersectStats,
+          relatedCsets, selected_csets, all_csets, concept_ids, } = props;
   const min_col = show_selected ?
       ("min_col" in props ? props.min_col : true) : false;
 
-  useEffect(() => {
-      if (!show_selected) {
-        let relatedCsets = allRelatedCsets.filter(cset => !cset.selected);
-        relatedCsets = orderBy( relatedCsets, ["selected", "precision"], ["desc", "desc"] );
-        setData({relatedCsets});
-      }
-  }, [codeset_ids.join('|')]);
-
-  let coldefs = getColdefs(min_col);
+  let coldefs = getColdefs(min_col, intersectStats);
   /* const conditionalRowStyles = [{ when: row => row.selected,
         style: { backgroundColor: 'rgba(63, 195, 128, 0.9)', color: 'white',
                 '&:hover': { cursor: 'pointer', }, } }]; */
@@ -74,7 +64,7 @@ export function CsetsDataTable(props) {
      */
 
   // const related_ids = new Set(f lattened_concept_hierarchy.map(d => d.concept_id));
-  const subHeader = <StatsMessage {...{ codeset_ids, all_csets, allRelatedCsets,
+  const subHeader = <StatsMessage {...{ codeset_ids, all_csets, relatedCsets,
                                         concept_ids, selected_csets, } } />;
   // const [handleRowMouseEnter, handleRowMouseLeave] =
   //     getCsetSelectionHandler(show_selected ? 'select-to-remove' : 'select-to-add');
@@ -134,7 +124,7 @@ export function CsetsDataTable(props) {
   );
 }
 
-function getColdefs(min_col = false) {
+function getColdefs(min_col = false, intersectStats) {
   /*
     const descending = (rows, selector, direction) => {
         return orderBy(rows, selector, ['desc']);
@@ -190,8 +180,8 @@ function getColdefs(min_col = false) {
           <span>Recall</span>
         </Tooltip>
       ),
-      selector: (row) => row.recall,
-      format: (row) => pct_fmt(row.recall),
+      selector: (row) => intersectStats[row.codeset_id].recall,
+      format: (row) => pct_fmt(intersectStats[row.codeset_id].recall),
       desc: true,
       compact: true,
       width: "70px",
@@ -249,7 +239,7 @@ function getColdefs(min_col = false) {
             <span>Shared</span>
           </Tooltip>
         ),
-        selector: (row) => row.intersecting_concepts,
+        selector: (row) => intersectStats[row.codeset_id].intersecting_concepts,
         compact: true,
         width: "70px",
         center: true,
@@ -261,8 +251,8 @@ function getColdefs(min_col = false) {
             <span>Precision</span>
           </Tooltip>
         ),
-        selector: (row) => row.precision,
-        format: (row) => pct_fmt(row.precision),
+        selector: (row) => intersectStats[row.codeset_id].precision,
+        format: (row) => pct_fmt(intersectStats[row.codeset_id].precision),
         desc: true,
         compact: true,
         width: "70px",

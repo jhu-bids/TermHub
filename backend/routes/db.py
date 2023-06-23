@@ -43,7 +43,7 @@ def omop_id_from_concept_name(name):
 
 @router.get("/concepts")
 @return_err_with_trace
-def get_concepts_route(id: List[int] = Query(...), table:str='concepts_with_counts') -> List:
+def get_concepts_route(id: List[str] = Query(...), table:str='concepts_with_counts') -> List:
     """expect list of concept_ids. using 'id' for brevity"""
     return get_concepts(concept_ids=id, table=table)
 
@@ -62,7 +62,7 @@ def get_concept_ids_by_codeset_id_post(codeset_ids: Union[List[int], None] = Non
 
 @router.get("/concept-ids-by-codeset-id")
 @return_err_with_trace
-def get_concept_ids_by_codeset_id(codeset_ids: Union[List[int], None] = Query(...)) -> List:
+def get_concept_ids_by_codeset_id(codeset_ids: Union[List[str], None] = Query(...)) -> List:
     if not codeset_ids:
         return [[]]
     with get_db_connection() as con:
@@ -88,7 +88,7 @@ def get_codeset_ids_by_concept_id_post(id: Union[List[int], None] = None) -> Lis
 
 @router.get("/codeset-ids-by-concept-id")
 @return_err_with_trace
-def get_codeset_ids_by_concept_id(id: Union[List[int], None] = Query(...)) -> List:
+def get_codeset_ids_by_concept_id(id: Union[List[str], None] = Query(...)) -> List:
     return get_codeset_ids_by_concept_id_post(id)
 
 
