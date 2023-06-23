@@ -233,7 +233,7 @@ class DataAccess {
           itemType,
           uncachedKeys,
       );
-      data.forEach((item, i) => uncachedItems[keys[i]] = item);
+      data.forEach((item, i) => uncachedItems[uncachedKeys[i]] = item);
     }
     const results = { ...cachedItems, ...uncachedItems };
     const not_found = uncachedKeys.filter(key => !(key in results));
@@ -664,7 +664,7 @@ export async function axiosCall(path, { backend = false, data,
         let qs = createSearchParams({[apiGetParamName]: data});
         url = url + '?' + qs;
         console.log("axios.get url: ", url);
-        results = await axios.get(url + '?' + qs);
+        results = await axios.get(url);
       } else {
         console.log("axios.post url: ", url, 'data', data);
         results = await axios.post(url, data);
