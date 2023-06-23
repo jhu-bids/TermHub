@@ -1,5 +1,5 @@
 """Load data into the database and CREATE INDEXes and derived tables"""
-from typing import List
+from typing import Dict, List
 
 from sqlalchemy.engine.base import Connection
 
@@ -148,7 +148,8 @@ def indexes_and_derived_tables(
     print('INFO: Creating derived tables (e.g. `all_csets`) and indexes.')
     # todo: Improve so that it iterates over modules & statements, rather than reaading in all modules,
     #  and concatenating into a list of statements.
-    statements = get_ddl_statements(schema=schema_name)
+    statements_by_module: Dict[str, List[str]] = get_ddl_statements(schema=schema_name)
+    steps = sum([len(x) for x in statements_by_module.values()])
 
     # Determine which steps still needed
     if start_step:
@@ -160,20 +161,29 @@ def indexes_and_derived_tables(
         last_successful_step = int(last_successful_step[0]) if last_successful_step else None
         print('INFO: Creating derived tables (e.g. `all_csets`) and indexes.')
     if last_successful_step:
-        print(f'INFO: Last successful command was {last_successful_step} of {len(statements)}. Continuing from there.')
+        print(f'INFO: Last successful command was {last_successful_step} of {steps}. Continuing from there.')
 
-    # Updatesx
-    for index, statement in enumerate(statements):
-        step_num = index + 1
-        if last_successful_step and last_successful_step >= step_num:
-            continue
-        print(f'INFO: indexes_and_derived_tables: Running command {step_num} of {len(statements)}')
-        try:
-            run_sql(con, statement)
-            update_db_status_var(last_successful_step_key, str(step_num), local)
-        except Exception as err:
-            update_db_status_var(last_successful_step_key, str(step_num - 1), local)
-            raise err
+    # Updates
+    i, j = 0, 0
+    print(f'INFO: indexes_and_derived_tables: Running SQL commands ({steps} steps total).')
+    for module_tag, statements in statements_by_module.items():
+        k = 0
+        i += 1
+        module_name = module_tag.split('-')[-1]
+        print(f' - Module {i} of {len(statements_by_module)}: {module_name} ({len(statements)} commands)')
+        for statement in statements:
+            j += 1
+            k += 1
+            if last_successful_step and last_successful_step >= j:
+                continue
+            print(f'  - {k} (step {j})')
+            try:
+                pass
+                run_sql(con, statement)
+                update_db_status_var(last_successful_step_key, str(j), local)
+            except Exception as err:
+                update_db_status_var(last_successful_step_key, str(j - 1), local)
+                raise err
 
     update_db_status_var(last_successful_step_key, '0', local)
     update_db_status_var(last_completed_key, str(current_datetime()), local)
@@ -190,6 +200,7 @@ def load(
 
 
 if __name__ == '__main__':
-    load()
-    # with get_db_connection(local=True) as con:
-    #     initialize_test_schema(con, local=True)
+    # load()
+    with get_db_connection(local=True) as con:
+        # initialize_test_schema(con, local=True)
+        indexes_and_derived_tables(con, 'n3c', local=True)
