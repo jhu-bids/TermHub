@@ -7,7 +7,7 @@ import Button from "@mui/material/Button";
 // import Chip from '@mui/material/Chip';
 // import { Link, Outlet, useHref, useParams, useSearchParams, useLocation } from "react-router-dom";
 import {every, keyBy, union} from "lodash";
-import { get, isNumber, isEmpty, flatten, } from "lodash";
+import { get, isNumber, isEmpty, flatten, intersection, } from "lodash";
 // import {isEqual, pick, uniqWith, max, omit, uniq, } from 'lodash';
 // import Box from "@mui/material/Box";
 import { Tooltip } from "./Tooltip";
@@ -43,7 +43,7 @@ function initialOpts(all_csets, codesetIds) {
   return opts;
 }
 export function CsetSearch(props) {
-  const { codeset_ids=[], changeCodesetIds, all_csets, } = props;
+  const { codeset_ids=[], changeCodesetIds, all_csets, relatedCsetConceptIds, intersectStats, } = props;
   const [value, setValue] = useState([]);
 
   // const [keyForRefreshingAutocomplete, setKeyForRefreshingAutocomplete] = useState(0);
@@ -160,7 +160,8 @@ export function CsetSearch(props) {
 function ConceptSetsPage(props) {
   const { codeset_ids } = props;
   const [data, setData] = useState({});
-  const { all_csets, concept_ids, relatedCodesetIds, selected_csets, allRelatedCsets} = data;
+  const { all_csets, concept_ids, relatedCodesetIds, selected_csets,
+          allRelatedCsets, relatedCsetConceptIds, intersectStats,} = data;
 
   useEffect(() => {
     (async () => {
@@ -180,27 +181,38 @@ function ConceptSetsPage(props) {
           });
       [all_csets, relatedCodesetIds] = await Promise.all([all_csets, relatedCodesetIds]);
       let allCsetsObj = keyBy(all_csets, 'codeset_id');
-      let allRelatedCsets = relatedCodesetIds.map(csid => allCsetsObj[csid]);
+      let allRelatedCsets = relatedCodesetIds.map(csid => ({...allCsetsObj[csid]}));
 
-      /*
-      let relatedCsetConcepts = dataAccessor.getItemsByKey({ // concept_ids
-                                                     itemType: 'concept_ids_by_codeset_id',
-                                                     keys: codeset_ids,
-                                                     returnFunc: results => union(flatten(Object.values(results))),
-                                                   });
-       */
+      let relatedCsetConceptIds = dataAccessor.getItemsByKey({ // concept_ids
+        itemType: 'concept_ids_by_codeset_id',
+        keys: relatedCodesetIds, shape: 'obj'
+      });
+
       selected_csets = await selected_csets;
+      relatedCsetConceptIds = await relatedCsetConceptIds;
+
+      let intersectStats = {};
+      for (let csid in relatedCsetConceptIds) {
+        let stats = {};
+        let rcids = relatedCsetConceptIds[csid];
+        let intersecting_concepts = intersection(concept_ids, rcids);
+        stats['intersecting_concepts'] = intersecting_concepts.length;
+        stats['recall'] = stats['intersecting_concepts'] / concept_ids.length;
+        stats['precision'] = stats['intersecting_concepts'] / rcids.length;
+        intersectStats[csid] = stats;
+      }
 
       // const allRelatedCsets = await fetchItems('related_csets', codeset_ids, );
       // const selected_csets = allRelatedCsets.filter(cset => cset.selected);
-      setData({ all_csets, concept_ids, relatedCodesetIds, selected_csets, allRelatedCsets});
+      setData({ all_csets, concept_ids, relatedCodesetIds, selected_csets,
+                allRelatedCsets, relatedCsetConceptIds, intersectStats,});
     })()
   }, [codeset_ids.join('|')]);
   if (codeset_ids.length && isEmpty(allRelatedCsets)) {
     return <p>Downloading...</p>;
   }
 
-  props = {...props, all_csets, allRelatedCsets, selected_csets, concept_ids };
+  props = {...props, all_csets, allRelatedCsets, selected_csets, concept_ids, relatedCsetConceptIds, intersectStats, };
 
   if (!codeset_ids.length) {
     return (
