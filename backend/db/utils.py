@@ -431,7 +431,9 @@ def list_tables(con: Connection, schema: str = SCHEMA, filter_temp_refresh_table
     return tables
 
 
-def get_ddl_statements(schema: str = SCHEMA, modules: List[str] = None, table_suffix='') -> List[str]:
+def get_ddl_statements(
+    schema: str = SCHEMA, modules: List[str] = None, table_suffix='', return_type=['flat', 'nested'][1]
+) -> Union[List[str], Dict[str, List[str]]]:
     """From local SQL DDL Jinja2 templates, pa rse and get a list of SQL statements to run.
 
     :param: modules: DDL files follow the naming schema `ddl-ORDER_NUMBER-MODULE_NAME.jinja.sql`. If `modules` is
@@ -450,10 +452,15 @@ def get_ddl_statements(schema: str = SCHEMA, modules: List[str] = None, table_su
         paths = [p for p in paths if any([m == os.path.basename(p).split('-')[2].split('.')[0] for m in modules])]
     paths = sorted(paths, key=lambda x: int(os.path.basename(x).split('-')[1]))
     statements: List[str] = []
-    for path in paths:
+    statements_by_module: Dict[str, List[str]] = {}
+    for i, path in enumerate(paths):
         with open(path, 'r') as file:
             template_str = file.read()
+        module = os.path.basename(path).split('-')[2].split('.')[0]
         ddl_text = Template(template_str).render(schema=schema + '.', optional_suffix=table_suffix)
         # Each DDL file should have 1 or more statements separated by an empty line (two line breaks).
-        statements.extend([x + ';' for x in ddl_text.split(';\n\n')])
-    return statements
+        if return_type == 'flat':
+            statements.extend([x + ';' for x in ddl_text.split(';\n\n')])
+        elif return_type == 'nested':
+            statements_by_module[f'{i+1}-{module}'] = [x + ';' for x in ddl_text.split(';\n\n')]
+    return statements if return_type == 'flat' else statements_by_module

@@ -8,6 +8,6 @@ SELECT    csmi.*
         , c.standard_concept
 FROM {{schema}}cset_members_items csmi
 JOIN concept c ON csmi.concept_id = c.concept_id);
--- CREATE INDEX IF NOT EXISTS csmip_idx1 ON {{schema}}cset_members_items_plus{{optional_suffix}}(codeset_id);
--- CREATE INDEX IF NOT EXISTS csmip_idx2 ON {{schema}}cset_members_items_plus{{optional_suffix}}(concept_id);
--- CREATE INDEX IF NOT EXISTS csmip_idx3 ON {{schema}}cset_members_items_plus{{optional_suffix}}(codeset_id, concept_id);
+-- CREATE INDEX csmip_idx1 ON {{schema}}cset_members_items_plus{{optional_suffix}}(codeset_id);
+-- CREATE INDEX csmip_idx2 ON {{schema}}cset_members_items_plus{{optional_suffix}}(concept_id);
+-- CREATE INDEX csmip_idx3 ON {{schema}}cset_members_items_plus{{optional_suffix}}(codeset_id, concept_id);
