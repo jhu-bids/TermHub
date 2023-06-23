@@ -165,23 +165,15 @@ def counts_over_time(
 
     # Pivot
     values = 'count' if method == 'counts_table' else 'delta'
-    data_df = current_counts_df.pivot(index='table', columns='timestamp', values=values).fillna(0).astype(int)
+    df = current_counts_df.pivot(index='table', columns='timestamp', values=values).fillna(0).astype(int)
 
     # Add note
     with get_db_connection(schema='', local=local) as con:
         runs = [dict(x) for x in sql_query(
             con, f"SELECT timestamp, note FROM counts_runs WHERE schema = '{schema}';", return_with_keys=True)]
     timestamps = [x['timestamp'] for x in runs]
-    ts_dict = {}
-    for ts in timestamps:
-        for run in runs:
-            if run['timestamp'] == ts:
-                ts_dict[ts] = run['note']
-    runs_df = pd.DataFrame([ts_dict])
-    runs_df = runs_df.reindex(sorted(runs_df.columns), axis=1)
-    runs_df.index = ['COMMENT']
-    df = pd.concat([runs_df, data_df])
-
+    runs_df = pd.DataFrame([timestamps])
+    df.columns = runs_df.iloc[0].tolist()
     # Simplify column headers: timestamps -> 'DATE (N)'
     new_cols = []
     date_count = {}
@@ -278,4 +270,5 @@ def cli():
 
 
 if __name__ == '__main__':
-    cli()
+    #cli()
+    counts_over_time(method='counts_table', local=False)
