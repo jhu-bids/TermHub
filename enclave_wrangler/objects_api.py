@@ -556,10 +556,16 @@ def concept_set_members_enclave_to_db(con: Connection, codeset_id: int, concept_
 def items_to_atlas_json_format(items):
     """Convert version items to atlas json format"""
     flags = ['includeDescendants', 'includeMapped', 'isExcluded']
+
+    _items = items
+    items = []
+    for item in _items:
+        items.append(item['properties'] if 'properties' in item else item)
+
     try:
-        concept_ids = [i['properties']['conceptId'] for i in items]
+        concept_ids = [i['conceptId'] for i in items]
     except Exception as err:
-        concept_ids = [i['properties']['conceptId'] for i in items]
+        concept_ids = [i['conceptId'] for i in items]
 
     # getting individual concepts from objects api is way too slow
     concepts = get_concepts(concept_ids, table='concept')
@@ -569,8 +575,8 @@ def items_to_atlas_json_format(items):
     for item in items:
         j = {}
         for flag in flags:
-            j[flag] = item['properties'][flag]
-        c = concepts[item['properties']['conceptId']]
+            j[flag] = item[flag]
+        c = concepts[item['conceptId']]
         jc = {}
         for field in mapped_atlasjson_fields:
             jc[field] = c[field_name_mapping('atlasjson', 'concept', field)]
