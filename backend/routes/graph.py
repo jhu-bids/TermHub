@@ -3,7 +3,7 @@ import json
 # from functools import cache
 from pathlib import Path
 
-from typing import List # , Union, Dict, Set
+from typing import List, Union #, Dict, Set
 from fastapi import APIRouter, Query
 # from fastapi.responses import JSONResponse
 # from fastapi.responses import Response
@@ -23,19 +23,24 @@ router = APIRouter(
     responses={404: {"description": "Not found"}},
 )
 
-@router.get("/wholegraph/")
+@router.get("/wholegraph")
 def subgraph():
     return list(REL_GRAPH.edges)
 
 
-@router.get("/subgraph/")
-def subgraph(id: List[int] = Query(...)):   # id is a list of concept ids
+@router.post("/subgraph")
+def subgraph_post(id: Union[List[int], None] = None) -> List:
     sg = connected_subgraph_from_nodes(id, REL_GRAPH, REL_GRAPH_UNDIRECTED)
     edges = [(str(e[0]), str(e[1])) for e in sg.edges]
     return edges
 
 
-@router.get("/hierarchy/")
+@router.get("/subgraph")
+def subgraph(id: List[int] = Query(...)):   # id is a list of concept ids
+    return subgraph_post(id)
+
+
+@router.get("/hierarchy")
 def hierarchy(id: List[int] = Query(...)):   # id is a list of concept ids
     """
         couldn't figure out how to send the hierarchy in order of nodes with most

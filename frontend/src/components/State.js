@@ -148,8 +148,7 @@ export async function fetchItems( itemType, paramList) {
       cacheKey = paramList.join('|');
       data = dataAccessor.cacheGet([itemType, cacheKey]);
       if (isEmpty(data)) {
-        url = backend_url('subgraph?'+ paramList.map(key => `id=${key}`).join('&'));
-        data = await axiosCall(url);
+        data = await axiosCall('subgraph', {backend:true, data: paramList, useGetForSmallData: true, apiGetParamName: 'id' });
         data = formatEdges(data);
         dataAccessor.cachePut([itemType, cacheKey], data);
       }
