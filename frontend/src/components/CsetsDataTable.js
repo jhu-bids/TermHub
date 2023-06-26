@@ -86,7 +86,9 @@ function CsetsDataTable(props) {
   // todo: p -> data table: data table has a property for showing some sort of paragraph text
   // TODO: y concepts -> get the number
   return (
-    <div className="csets-data-table">
+    <div className="csets-data-table"
+         id={show_selected ? "selected-csets-table" : "related-csets-table"}
+    >
       <DataTable
         data={show_selected? selected_csets : relatedCsets}
         // selectableRows
@@ -94,11 +96,12 @@ function CsetsDataTable(props) {
         selectableRowSelected={rowSelectCritera}
         // onSelectedRowsChange={handleSelectionChange}
         onRowClicked={handleRowClick}
-        onRowMouseEnter={handleRowMouseEnter}
-        onRowMouseLeave={handleRowMouseLeave}
+        // onRowMouseEnter={handleRowMouseEnter}
+        // onRowMouseLeave={handleRowMouseLeave}
         customStyles={customStyles}
         noHeader={false}
-        title={(show_selected ? "Selected" : "Related") + " concept sets"}
+        title={(show_selected ? "Selected" : "Related") +
+                ` concept sets. Click row to ${show_selected ? 'deselect' : 'add to selection'}`}
         subHeader={!show_selected}
         subHeaderComponent={show_selected ? null : subHeader}
         // theme="custom-theme"

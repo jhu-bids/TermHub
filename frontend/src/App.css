@@ -106,6 +106,9 @@ body {
 .csets-data-table .rdt_Table {
   padding: 0px;
 }
+#selected-csets-table > .rdt_TableHeader > div:nth-child(2) {
+  visibility: hidden;
+}
 
 .concept-name-text {
   padding-left: 22px;

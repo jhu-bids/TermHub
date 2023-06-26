@@ -185,7 +185,7 @@ function ConceptSetsPage(props) {
       }}
     >
       <CsetSearch {...props} />
-      {<CsetsDataTable {...props} show_selected={true} />}
+      {<CsetsDataTable {...props} show_selected={true}/>}
       {<CsetsDataTable {...props} show_selected={false} />}
       {<ConceptSetCards {...props} />}
     </div>
