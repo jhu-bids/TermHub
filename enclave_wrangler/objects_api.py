@@ -656,7 +656,7 @@ def get_codeset_json(codeset_id, con=get_db_connection(), use_cache=True, set_ca
     container = make_objects_request(
         f'OMOPConceptSetContainer/{quote(cset["conceptSetNameOMOP"], safe="")}',
         return_type='data', expect_single_item=True)
-    items = get_concept_set_version_expression_items(codeset_id, handle_paginated=True)
+    items = get_concept_set_version_expression_items(codeset_id, handle_paginated=True, return_detail='full')
     items_jsn = items_to_atlas_json_format(items)
 
     junk = """ What an item should look like for ATLAS JSON import format:
