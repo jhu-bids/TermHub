@@ -789,9 +789,10 @@ def refresh_tables_for_object():
 
 
 def get_concept_set_version_expression_items(
-    version_id: Union[str, int], return_detail=['id','full'][1], handle_paginated=False
+    version_id: Union[str, int], return_detail, handle_paginated=False
 ) -> List[Dict]:
-    """Get concept set version expression items"""
+    """Get concept set version expression items
+        return_detail required. can be 'id' or 'full' """
     version_id = str(version_id)
     items: List[Dict] = get_object_links(
         object_type='OMOPConceptSet',
