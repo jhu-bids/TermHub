@@ -32,7 +32,7 @@ import { createSyncStoragePersister } from '@tanstack/query-sync-storage-persist
 import { ReactQueryDevtools } from '@tanstack/react-query-devtools'
 import { compress, decompress } from 'lz-string'; // using in persister to handle big result sets
 
-import { keyBy, isEmpty } from "lodash";
+import { keyBy, isEmpty, get, sum } from "lodash";
 import useMeasure from "react-use/lib";
 import Paper from "@mui/material/Paper";
 
@@ -40,6 +40,7 @@ import { ConceptSetsPage } from "./components/Csets";
 import { CsetComparisonPage } from "./pages/CsetComparisonPage";
 import { AboutPage } from "./pages/AboutPage";
 import { currentConceptIds, ConceptGraph } from "./components/ConceptGraph";
+import { conceptCounts } from "./components/ConceptSetCard";
 import {
   AppStateProvider,
   searchParamsToObj,
@@ -256,6 +257,31 @@ function DataContainer(props) {
       <RoutesContainer {...props} all_csets={all_csets} cset_data={cset_data} />
     );
   }
+  let downloadMsg = '';
+  if (all_csets) {
+    let allCsetsObj = keyBy(all_csets, 'codeset_id');
+    let memberCounts = codeset_ids.map(csid => parseInt(get(allCsetsObj, [codeset_ids[0], 'counts', 'Members'])))
+    if (sum(memberCounts) >= 1000) {
+      downloadMsg = <div style={{display: 'flex', flexDirection: 'column'}}>
+        <h3>Download of large concept sets can take a few minutes</h3>
+        <ul>
+          {
+            codeset_ids.map(csid => {
+              let msg = '';
+              let cset = allCsetsObj[csid];
+              if (cset) {
+                msg = <><h3>{csid} {cset.alias}</h3><div>{conceptCounts(cset.counts)}</div></>;
+              } else {
+                console.warn(`Why is cset for ${csid} missing??????`);
+                msg = `codeset_id ${csid} missing from all_csets`;
+              }
+              return <li key={csid}>{msg}</li>;
+            })
+          }
+        </ul>
+      </div>;
+    }
+  }
   return (
     <Routes>
       <Route path="/" element={<App {...props} />}>
@@ -264,6 +290,8 @@ function DataContainer(props) {
           element={
             <div style={{ padding: "0 20px" }}>
               <h3>Waiting for data</h3>
+                {downloadMsg}
+                <br/>
               <Box sx={{ display: "flex" }}>
                 {all_csets_widget}
                 {cset_data_widget}

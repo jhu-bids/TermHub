@@ -63,6 +63,17 @@ export default function ConceptSetCards(props) {
     </div>
   );
 }
+export function conceptCounts(counts) {
+  return (
+      <>
+        {
+          Object.entries(counts || {}).map(([grp,cnt]) => (
+              <span style={{display: 'block', paddingLeft: '12px'}} key={grp}><strong>{grp}</strong>: {cnt.toLocaleString()}</span>
+          ))
+        }
+      </>
+  );
+}
 function ConceptSetCard(props) {
   let { cset, researchers = {}, editing = false, closeFunc } = props;
   /*
@@ -77,15 +88,7 @@ function ConceptSetCard(props) {
   let display_props = {};
   display_props["Code set ID"] = cset.codeset_id;
   let dontFormatValue = ['Concept counts'];
-  display_props["Concept counts"] = (
-      <>
-        {
-          Object.entries(cset.counts || {}).map(([grp,cnt]) => (
-              <span style={{display: 'block', paddingLeft: '12px'}} key={grp}><strong>{grp}</strong>: {cnt.toLocaleString()}</span>
-          ))
-        }
-      </>
-  );
+  display_props["Concept counts"] = conceptCounts(cset.counts);
 
   // fix to:
   // format: row => fmt(parseInt(row.distinct_person_cnt)),
