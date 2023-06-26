@@ -80,7 +80,7 @@ function ConceptSetCard(props) {
   display_props["Concept counts"] = (
       <>
         {
-          Object.entries(cset.counts).map(([grp,cnt]) => (
+          Object.entries(cset.counts || {}).map(([grp,cnt]) => (
               <span style={{display: 'block', paddingLeft: '12px'}} key={grp}><strong>{grp}</strong>: {cnt.toLocaleString()}</span>
           ))
         }
