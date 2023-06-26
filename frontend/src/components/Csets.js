@@ -205,6 +205,9 @@ function ConceptSetsPage(props) {
 
       for (let csid in relatedCsetConceptIds) {
         let cset = allRelatedCsets[csid];
+        if (!cset) {
+          debugger;
+        }
         let rcids = relatedCsetConceptIds[csid];
         let intersecting_concepts = intersection(concept_ids, rcids);
         cset['intersecting_concepts'] = intersecting_concepts.length;
