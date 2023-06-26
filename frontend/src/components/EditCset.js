@@ -428,54 +428,66 @@ function fakeCell(props) {
     </Box>
   );
 }
-export function Legend() {
-  const itemTypes = {
-    "Concept set not being edited": {},
-    "Concept is not item or member": {
-      content: fakeCell({ editing: false, flags: "" }),
+export function Legend({editing=false}) {
+  let itemTypes = {
+    "Color meanings": {},
+    "Concept is in the definition but not the expansion": {
+      content: fakeCell({editing: false, flags: "i"}),
     },
-    "Concept is item and not member": {
-      content: fakeCell({ editing: false, flags: "i" }),
+    "Concept is in the expansion but not the defintion": {
+      content: fakeCell({editing: false, flags: "c"}),
     },
-    "Concept is member and not item": {
-      content: fakeCell({ editing: false, flags: "c" }),
+    "Concept is in the definition and the expansion": {
+      content: fakeCell({editing: false, flags: "ci"}),
     },
-    "Concept is item and member": {
-      content: fakeCell({ editing: false, flags: "ci" }),
+    "Concept is not in this concept set at all": {
+      content: fakeCell({editing: false, flags: ""}),
     },
-    "Item flag: includeDescendants": {
-      content: fakeCell({ editing: false, flags: "ciD" }),
+    "Definition flags": {},
+    "includeDescendants": {
+      content: fakeCell({editing: false, flags: "ciD"}),
     },
-    "Item flag: includeMapped": {
-      content: fakeCell({ editing: false, flags: "ciM" }),
+    "includeMapped": {
+      content: fakeCell({editing: false, flags: "ciM"}),
     },
-    "Item flag: isExcluded": {
-      content: fakeCell({ editing: false, flags: "iX" }),
+    "isExcluded": {
+      content: fakeCell({editing: false, flags: "iX"}),
     },
-    // "Expression item but not member (only shows flags set to true)": { item: true, content: iconset(['includeDescendants', 'includeMapped', 'isExcluded']) },
-    // "Both member and expression item": { csm: true, item: true, content: iconset(['includeDescendants', 'includeMapped', 'isExcluded']) },
-    "Concept set being edited": {},
-    "Add non-member concept": {
-      content: fakeCell({ editing: true, flags: "" }),
-    },
-    "Explicitly add member concept": {
-      content: fakeCell({ editing: true, flags: "c" }),
-    },
-    "Remove non-member concept or change flags": {
-      content: fakeCell({ editing: true, flags: "i" }),
-    },
-    "Remove member concept or change flags": {
-      content: fakeCell({ editing: true, flags: "ic" }),
-    },
-    "Concept added": {
-      content: fakeCell({ editing: true, flags: "i", stagedAction: "Add" }),
-    },
-    "Concept updated": {
-      content: fakeCell({ editing: true, flags: "i", stagedAction: "Update" }),
-    },
-    "Concept removed": {
-      content: fakeCell({ editing: true, flags: "i", stagedAction: "Remove" }),
-    },
+  }
+  if (editing) {
+    itemTypes = {
+      ...itemTypes,
+      // "Expression item but not member (only shows flags set to true)": { item: true, content: iconset(['includeDescendants', 'includeMapped', 'isExcluded']) },
+      // "Both member and expression item": { csm: true, item: true, content: iconset(['includeDescendants', 'includeMapped', 'isExcluded']) },
+      "Concept set being edited": {},
+      "Click D, M, X to toggle definiton flags": {},
+      "Add concept to concept set definition": {
+        content: fakeCell({editing: true, flags: ""}),
+      },
+      "Add concept (already in expansion) to concept set definition": {
+        content: fakeCell({editing: true, flags: "c"}),
+      },
+      /*
+      "Click to toggle includeDescendants": {
+        content: <div style={{textAlign: 'center', paddingTop: '3px'}}>D</div>
+      },
+      "Click to toggle includeMapped": {
+        content: <div style={{textAlign: 'center', paddingTop: '3px'}}>M</div>
+      },
+      "Click to toggle isExcluded": {
+        content: <div style={{textAlign: 'center', paddingTop: '3px'}}>X</div>
+      },
+       */
+      "Concept added": {
+        content: fakeCell({editing: true, flags: "i", stagedAction: "Add"}),
+      },
+      "Concept updated": {
+        content: fakeCell({editing: true, flags: "i", stagedAction: "Update"}),
+      },
+      "Concept removed": {
+        content: fakeCell({editing: true, flags: "i", stagedAction: "Remove"}),
+      },
+    }
   };
   const items = Object.entries(itemTypes).map(([k, v]) => {
     // const {content='\u00A0\u00A0\u00A0\u00A0'} = v;
@@ -487,7 +499,7 @@ function LegendItem({ label, content = null, style }) {
   return (
     <Box
       sx={{
-        width: "350px",
+        width: "550px",
         border: content ? "1px solid gray" : "",
         display: "flex",
         zIndex: 5000,
@@ -499,7 +511,7 @@ function LegendItem({ label, content = null, style }) {
     >
       <Box
         sx={{
-          width: "250px",
+          width: "450px",
           display: "flex",
           alignItems: "center",
           padding: "3px",

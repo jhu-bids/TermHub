@@ -178,9 +178,11 @@ def get_researchers(ids: Set[str], fields: List[str] = None) -> JSON_TYPE:
     """
     res: List[RowMapping] = sql_query(CON, query, {'id': list(ids)}, return_with_keys=True)
     res2 = {r['multipassId']: dict(r) for r in res}
-    for _id in ids:
-        if _id not in res2:
-            res2[_id] = {"multipassId": _id, "name": "unknown", "emailAddress": _id}
+
+    # for _id in ids:
+    #     if _id not in res2:
+    #         res2[_id] = {"multipassId": _id, "name": "unknown", "emailAddress": _id}
+
     return res2
 
 

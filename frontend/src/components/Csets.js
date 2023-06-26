@@ -32,8 +32,8 @@ function initialOpts(all_csets, codesetIds) {
             (isNumber(d.version) ? ` (v${d.version})` : '') + ' ' +
             `${d.archived ? "archived" : ""}` +
             (d.counts ?
-                get(d, ['counts', 'Expression items']).toLocaleString() + ' expression items, ' +
-                get(d, ['counts', 'Members']).toLocaleString() + ' members'
+                get(d, ['counts', 'Expression items']).toLocaleString() + ' definitions (expression items), ' +
+                get(d, ['counts', 'Members']).toLocaleString() + ' expansion concepts (members)'
                 //`(${d.counts['Expression items'].toLocaleString()} expression items, ${d.counts.Members.toLocaleString()} members)`
                 : '(Empty)'),
         value: d.codeset_id,

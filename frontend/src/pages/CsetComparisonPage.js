@@ -122,7 +122,7 @@ function CsetComparisonPage(props) {
     <Download key="download-distinct" onClick={ () => downloadTSV({...props, displayedRows}) }
               sx={{ cursor: 'pointer' }} ></Download>,
     <FlexibleContainer key="legend" title="Legend">
-      <Legend />
+      <Legend editing={!!editCodesetId}/>
     </FlexibleContainer>
   ];
 

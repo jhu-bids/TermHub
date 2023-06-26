@@ -162,11 +162,11 @@ function getColdefs(min_col = false) {
     },
     {
       name: (
-        <Tooltip label="Number of expression items in this concept set.">
+        <Tooltip label="Number of definition items in this concept set.">
           <span>Expression items</span>
         </Tooltip>
       ),
-      selector: (row) => row.counts ? row.counts['Expression items'] : 0,
+      selector: (row) => row.counts ? row.counts['Definitions'] : 0,
       compact: true,
       width: "70px",
       center: true,
