@@ -149,7 +149,7 @@ function getColdefs(min_col = false) {
     },
     {
       name: (
-        <Tooltip label="Number of expression items in this concept set.">
+        <Tooltip label="Number of definition items in this concept set.">
           <span>Expression items</span>
         </Tooltip>
       ),

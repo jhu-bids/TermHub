@@ -184,6 +184,7 @@ function CsetComparisonPage(props) {
     >
       {displayedRows.length} in hierarchy
     </Button>,
+    /*
     <Button key="download-distinct-tsv"
             variant="outlined"
             onClick={ () => downloadCSV({...props, displayedRows, selected_csets, csmi}, true) }
@@ -194,6 +195,7 @@ function CsetComparisonPage(props) {
     >
       TSV <Download></Download>
     </Button>,
+    */
     <Button key="download-distinct-csv"
             variant="outlined"
             onClick={ () => downloadCSV({...props, displayedRows, selected_csets, csmi}) }
@@ -204,10 +206,10 @@ function CsetComparisonPage(props) {
     >
       CSV <Download></Download>
     </Button>,
-    <FlexibleContainer key="legend" title="Legend"
-                       position={panelPosition} countRef={countRef}>
-      <Legend />
+    <FlexibleContainer key="legend" title="Legend" position={panelPosition} countRef={countRef}>
+      <Legend editing={!!editCodesetId}/>
     </FlexibleContainer>,
+    /*
     <Button key="add-cset"
             variant="outlined"
             onClick={() => editCsetDispatch(editCset, {type:'create_new_cset'})}
@@ -218,6 +220,7 @@ function CsetComparisonPage(props) {
     >
       add a new concept set
     </Button>,
+     */
   ];
 
   let edited_cset;
