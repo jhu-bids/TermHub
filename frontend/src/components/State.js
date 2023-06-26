@@ -91,7 +91,11 @@ class DataAccess {
     return null;
   }
   loadCache = () => {
-    return JSON.parse(localStorage.getItem('dataAccessor'));
+    try {
+      return JSON.parse(localStorage.getItem('dataAccessor')||'');
+    } catch(error) {
+      return {};
+    }
   }
   /* concept stuff as methods here. not sure if it would be worthwhile to do any
       subclassing to handle specific data objects (codesets, concepts, subgraphs, etc.)
