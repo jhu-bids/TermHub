@@ -297,6 +297,7 @@ def make_objects_request(
 
         # Construct URL
         url: str = get_url_from_api_path(f'objects/{path}')
+        url = url.replace('/objects/objects', '/objects') # in case path already has 'objects' at the beginning
         if query_params:
             # was: url = url + '?' + '&'.join(query_params) if query_params else url
             # urllib.parse.quote turns spaces into + instead of %20, i got this

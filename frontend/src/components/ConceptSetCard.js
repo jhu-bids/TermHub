@@ -32,8 +32,7 @@ const ExpandMore = styled((props) => {
  */
 
 export default function ConceptSetCards(props) {
-  const { cset_data = {} } = props;
-  const { selected_csets = [], researchers = {} } = cset_data;
+  const { selected_csets = [], researchers = {} } = props;
   if (!selected_csets.length) {
     return <div></div>;
   }

@@ -607,6 +607,9 @@ def concept_set_members_enclave_to_db(con: Connection, codeset_id: int, concept_
 def items_to_atlas_json_format(items):
     """Convert version items to atlas json format"""
     flags = ['includeDescendants', 'includeMapped', 'isExcluded']
+
+    items = [item['properties'] if 'properties' in item else item for item in items]
+
     try:
         concept_ids = [i['conceptId'] for i in items]
     except Exception as err:
@@ -656,7 +659,7 @@ def get_codeset_json(codeset_id, con=get_db_connection(), use_cache=True, set_ca
     container = make_objects_request(
         f'objects/OMOPConceptSetContainer/{quote(cset["conceptSetNameOMOP"], safe="")}',
         return_type='data', expect_single_item=True)
-    items = get_concept_set_version_expression_items(codeset_id, handle_paginated=True)
+    items = get_concept_set_version_expression_items(codeset_id, handle_paginated=True, return_detail='full')
     items_jsn = items_to_atlas_json_format(items)
 
     junk = """ What an item should look like for ATLAS JSON import format:
@@ -789,7 +792,7 @@ def refresh_tables_for_object():
 
 
 def get_concept_set_version_expression_items(
-    version_id: Union[str, int], return_detail=['id', 'full'][0], handle_paginated=False
+    version_id: Union[str, int], return_detail, handle_paginated=False
 ) -> List[Dict]:
     """Get concept set version expression items"""
     version_id = str(version_id)
@@ -804,7 +807,7 @@ def get_concept_set_version_expression_items(
 
 
 def get_concept_set_version_members(
-    version_id: Union[str, int], return_detail=['id', 'full'][0], handle_paginated=False
+    version_id: Union[str, int], return_detail, handle_paginated=False
 ) -> List[Dict]:
     """Get concept set members"""
     version_id = str(version_id)
