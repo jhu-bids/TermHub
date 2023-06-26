@@ -49,7 +49,7 @@ export function CsetSearch(props) {
   // const [keyForRefreshingAutocomplete, setKeyForRefreshingAutocomplete] = useState(0);
   // necessary to change key for reset because of Autocomplete bug, according to https://stackoverflow.com/a/59845474/1368860
 
-  if (codeset_ids.length && isEmpty(all_csets)) {
+  if (isEmpty(all_csets)) {
     return <p>Downloading...</p>;
   }
   const opts = initialOpts(all_csets, codeset_ids);
@@ -207,6 +207,8 @@ function ConceptSetsPage(props) {
         let cset = allRelatedCsets[csid];
         if (!cset) {
           debugger;
+          console.warn(`WHY IS csid ${csid} MISSING???`);
+          continue;
         }
         let rcids = relatedCsetConceptIds[csid];
         let intersecting_concepts = intersection(concept_ids, rcids);
