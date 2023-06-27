@@ -153,7 +153,7 @@ function getColdefs(min_col = false) {
       width: "90px",
     },
     {
-      name: "Names of concept sets",
+      name: "Concept set name",
       // selector: row => `${row.concept_set_name} (v${row.version})`,
       selector: (row) => row.concept_set_version_title,
       wrap: true,
@@ -166,9 +166,9 @@ function getColdefs(min_col = false) {
           <span>Expression items</span>
         </Tooltip>
       ),
-      selector: (row) => row.counts ? row.counts['Definitions'] : 0,
+      selector: (row) => row.counts ? row.counts['Expression items'] : 0,
       compact: true,
-      width: "70px",
+      width: "73px",
       center: true,
       sortable: true,
     },
