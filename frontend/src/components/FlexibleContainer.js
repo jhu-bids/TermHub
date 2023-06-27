@@ -5,7 +5,7 @@ import Draggable from "react-draggable";
 import Box from "@mui/material/Box";
 import Button from "@mui/material/Button";
 
-export function FlexibleContainer({ title, position, children }) {
+export function FlexibleContainer({ title, position, children, onOpen }) {
   const [display, setDisplay] = useState("hidden");
   const draggableRef = useRef(null);
 
@@ -20,7 +20,10 @@ export function FlexibleContainer({ title, position, children }) {
         sx={{ ...style, marginRight: "4px" }}
         variant="contained"
         color="primary"
-        onClick={() => setDisplay("show")}
+        onClick={() => {
+          setDisplay("show");
+          onOpen(0, 100);
+        }}
       >
         Show {title}
       </Button>

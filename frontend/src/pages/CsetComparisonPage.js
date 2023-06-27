@@ -77,7 +77,7 @@ function CsetComparisonPage(props) {
     }
   }, [
     boxRef.current,
-    (boxRef.current ? boxRef.current.offsetHeight : 0)
+    (boxRef.current ? boxRef.current.offsetHeight : 0),
   ]);
 
   useEffect(() => {
@@ -155,6 +155,13 @@ function CsetComparisonPage(props) {
     hsDispatch,
   });
 
+  const popupOnOpen = (w, h) => {
+    setPanelPosition(p => ({
+      x: p.x + w,
+      y: p.y + h,
+    }));
+  };
+
   let infoPanels = [
     <Button key="distinct"
             disabled={!nested}
@@ -194,7 +201,8 @@ function CsetComparisonPage(props) {
     >
       CSV <Download></Download>
     </Button>,
-    <FlexibleContainer key="legend" title="Legend" position={panelPosition}>
+    <FlexibleContainer key="legend" title="Legend"
+                       position={panelPosition} onOpen={popupOnOpen}>
       <Legend />
     </FlexibleContainer>,
     <Button key="add-cset"
