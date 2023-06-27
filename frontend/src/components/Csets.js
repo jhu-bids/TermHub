@@ -190,8 +190,8 @@ function ConceptSetsPage(props) {
 
       let allCsetsObj = keyBy(all_csets, 'codeset_id');
 
-      let allRelatedCsetsArray = relatedCodesetIds.map(csid => ({...allCsetsObj[csid]}));
-      let allRelatedCsets = keyBy(allRelatedCsetsArray, 'codeset_id');
+      let _allRelatedCsetsArray = relatedCodesetIds.map(csid => ({...allCsetsObj[csid]}));
+      let allRelatedCsets = keyBy(_allRelatedCsetsArray, 'codeset_id');
 
       selected_csets = await selected_csets;
       selected_csets = selected_csets.map(cset => {
@@ -215,12 +215,12 @@ function ConceptSetsPage(props) {
         cset['intersecting_concepts'] = intersecting_concepts.length;
         cset['recall'] = cset['intersecting_concepts'] / concept_ids.length;
         cset['precision'] = cset['intersecting_concepts'] / rcids.length;
-        if (isNaN(cset['recall'])) {
+        if (isNaN(cset['recall']) || isNaN(cset['precision'])) {
           debugger
         }
       }
 
-      let relatedCsets = allRelatedCsetsArray.filter(cset => !cset.selected);
+      let relatedCsets = Object.values(allRelatedCsets).filter(cset => !cset.selected);
       relatedCsets = orderBy( relatedCsets, ["selected", "precision"], ["desc", "desc"] );
 
       // const allRelatedCsets = await fetchItems('related_csets', codeset_ids, );
