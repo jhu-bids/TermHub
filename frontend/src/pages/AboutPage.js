@@ -86,7 +86,7 @@ function AboutPage(props) {
   //       return {Message, ConceptSetNames, CodesetIds, Concepts};
   //     }
   // )
-  const [codeset_ids, setCodeset_ids] = useState([]);
+  const [codeset_ids, setCodeset_ids] = useState([props.codeset_ids]);
   const location = useLocation();
   const { search } = location;
 
@@ -158,7 +158,9 @@ function AboutPage(props) {
                      const cids = val.split(/[,\s]+/).filter(d=>d.length);
                      setCodeset_ids(cids);
                    }}
-        />
+                   defaultValue={codeset_ids.join(', ')}
+        >
+        </TextField>
         <Button to={`/OMOPConceptSets?${codeset_ids.map(d => `codeset_ids=${d}`).join("&")}`}
                 component={Link}
                 style={{margin: '7px', textTransform: 'none'}}
