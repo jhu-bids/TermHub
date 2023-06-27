@@ -870,5 +870,6 @@ def cli():
 
 
 if __name__ == '__main__':
-    ot = get_object_types()
-    get_n3c_recommended_csets(save=True)
+    # ot = get_object_types()
+    # get_n3c_recommended_csets(save=True)
+    download_favorite_objects(force_if_exists=True)

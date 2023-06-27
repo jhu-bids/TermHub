@@ -9,6 +9,7 @@ import pytz
 import dateutil.parser as dp
 from datetime import datetime, timezone
 from glob import glob
+import re
 
 import pandas as pd
 from jinja2 import Template
@@ -47,11 +48,11 @@ def refresh_termhub_core_cset_derived_tables(con: Connection, schema: str):
         'cset_members_items_plus',
         'codeset_counts',
         'all_csets',
-        'csets_to_ignore',
+        # 'csets_to_ignore',            not using for now
     ]
     views = [
         'cset_members_items_plus',
-        'csets_to_ignore',
+        # 'csets_to_ignore',            not using for now
     ]
     # Create new tables and backup old ones
     t0 = datetime.now()
@@ -462,5 +463,6 @@ def get_ddl_statements(
         if return_type == 'flat':
             statements.extend([x + ';' for x in ddl_text.split(';\n\n')])
         elif return_type == 'nested':
-            statements_by_module[f'{i+1}-{module}'] = [x + ';' for x in ddl_text.split(';\n\n')]
+            without_comments = re.sub(r'^\s*--.*\n*','', ddl_text, flags=re.MULTILINE)
+            statements_by_module[f'{i+1}-{module}'] = [x + ';' for x in without_comments.split(';\n\n')]
     return statements if return_type == 'flat' else statements_by_module

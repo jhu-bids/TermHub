@@ -1,4 +1,5 @@
 -- Table view: concepts_with_counts_ungrouped --------------------------------------------------------------------------
+
 DROP TABLE IF EXISTS {{schema}}concepts_with_counts_ungrouped;
 
 CREATE TABLE IF NOT EXISTS {{schema}}concepts_with_counts_ungrouped AS (

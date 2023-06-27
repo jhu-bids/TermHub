@@ -20,6 +20,6 @@ CREATE TABLE IF NOT EXISTS {{schema}}concepts_with_counts AS (
 
 CREATE INDEX cc_idx1 ON {{schema}}concepts_with_counts(concept_id);
 
--- this drop table is causing errors with the initialize script
+-- the following drop table is causing errors with the initialize script
 -- @joeflack4: this table isn't needed after creating concepts_with_counts
 -- DROP TABLE {{schema}}concepts_with_counts_ungrouped CASCADE;

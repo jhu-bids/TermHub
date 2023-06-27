@@ -205,6 +205,10 @@ def load(
 
 if __name__ == '__main__':
     # load()
-    with get_db_connection(local=True) as con:
+    # with get_db_connection(local=True) as con:
+    with get_db_connection(local=False) as con:
         # initialize_test_schema(con, local=True)
-        indexes_and_derived_tables(con, 'n3c', local=True)
+        seed(con, 'n3c', clobber=True, skip_if_updated_within_hours=False, local=False,
+             dataset_tables=[], object_tables=['researcher'])
+        indexes_and_derived_tables(con, 'n3c', local=False)
+        # indexes_and_derived_tables(con, 'n3c', local=True)

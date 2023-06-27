@@ -216,7 +216,7 @@ def handle_paginated_request(
 def get_objects_df(object_type, outdir: str = None, save_csv=True, save_json=True):
     """Get objects as dataframe"""
     # Get objects
-    objects: List[Dict] = make_objects_request(object_type, return_type='data', outdir=outdir)
+    objects: List[Dict] = make_objects_request(object_type, return_type='data', outdir=outdir, handle_paginated=True)
 
     # Parse
     # Get rid of nested 'properties' key, and add 'rid' in with the other fields
