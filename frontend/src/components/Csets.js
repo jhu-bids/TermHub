@@ -167,7 +167,7 @@ function ConceptSetsPage(props) {
     (async () => {
       let all_csets = fetchItems('all_csets', ['stub']);
       let selected_csets = dataAccessor.getItemsByKey(
-          { itemType: 'csets', keys: codeset_ids, shape: 'obj',
+          { itemType: 'csets', keys: codeset_ids, shape: 'array',
             returnFunc: results => [...Object.values(results)]} ); // isn't this the same as shape: 'array'?
       let concept_ids = dataAccessor.getItemsByKey({ // concept_ids
             itemType: 'concept_ids_by_codeset_id',
