@@ -75,7 +75,10 @@ function CsetComparisonPage(props) {
         y: boxRef.current.clientHeight + 2 * margin
       });
     }
-  }, []);
+  }, [
+    boxRef.current,
+    (boxRef.current ? boxRef.current.offsetHeight : 0)
+  ]);
 
   useEffect(() => {
     (async () => {
