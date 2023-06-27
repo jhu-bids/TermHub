@@ -16,7 +16,7 @@ import CardContent from "@mui/material/CardContent";
 import Typography from "@mui/material/Typography";
 // import * as po from '../pages/Popover';
 import { DOCS } from "../pages/AboutPage";
-import {dataAccessor, fetchItems, useStateSlice, } from "./State";
+import {dataAccessor, fetchItems, getResearcherIdsFromCsets, } from "./State";
 
 /* TODO: Solve
     react_devtools_backend.js:4026 MUI: The value provided to Autocomplete is invalid.
@@ -161,7 +161,7 @@ function ConceptSetsPage(props) {
   const { codeset_ids } = props;
   const [data, setData] = useState({});
   const { all_csets, concept_ids, relatedCodesetIds, selected_csets,
-          allRelatedCsets, relatedCsets, } = data;
+          allRelatedCsets, relatedCsets, researchers, } = data;
 
   useEffect(() => {
     (async () => {
@@ -174,6 +174,7 @@ function ConceptSetsPage(props) {
             keys: codeset_ids,
             returnFunc: results => union(flatten(Object.values(results))),
           });
+
       concept_ids = await concept_ids;
 
       let relatedCodesetIds = dataAccessor.getItemsByKey(
@@ -194,6 +195,10 @@ function ConceptSetsPage(props) {
       let allRelatedCsets = keyBy(_allRelatedCsetsArray, 'codeset_id');
 
       selected_csets = await selected_csets;
+
+      const researcherIds = getResearcherIdsFromCsets(selected_csets);
+      let researchers = dataAccessor.getItemsByKey({ itemType: 'researchers', keys: researcherIds, shape: 'obj' });
+
       selected_csets = selected_csets.map(cset => {
         cset = {...cset};
         cset.selected = true;
@@ -223,17 +228,18 @@ function ConceptSetsPage(props) {
       let relatedCsets = Object.values(allRelatedCsets).filter(cset => !cset.selected);
       relatedCsets = orderBy( relatedCsets, ["selected", "precision"], ["desc", "desc"] );
 
+      researchers = await researchers;
       // const allRelatedCsets = await fetchItems('related_csets', codeset_ids, );
       // const selected_csets = allRelatedCsets.filter(cset => cset.selected);
       setData({ all_csets, concept_ids, relatedCodesetIds, selected_csets,
-                relatedCsets, allRelatedCsets, });
+                relatedCsets, allRelatedCsets, researchers, });
     })()
   }, [codeset_ids.join('|')]);
   if (codeset_ids.length && isEmpty(allRelatedCsets)) {
     return <p>Downloading...</p>;
   }
 
-  props = {...props, all_csets, relatedCsets, selected_csets, concept_ids, };
+  props = {...props, all_csets, relatedCsets, selected_csets, concept_ids, researchers, };
 
   if (!codeset_ids.length) {
     return (

@@ -82,7 +82,11 @@ export function ViewCurrentState(props) {
 async function oneToOneFetchAndCache(itemType, api, postData, paramList, useGetForSmallData, apiGetParamName ) {
   // We expect a 1-to-1 relationship between paramList items (e.g., concept_ids)
   //  and retrieved items (e.g., concepts)
-  const data = await axiosCall(api, {backend:true, data: postData, useGetForSmallData, apiGetParamName });
+  let data = await axiosCall(api, {backend:true, data: postData, useGetForSmallData, apiGetParamName });
+
+  if (!Array.isArray(data)) {
+    data = Object.values(data);
+  }
   if (data.length !== paramList.length) {
     throw new Error(`oneToOneFetchAndCache for ${itemType} requires matching result data and paramList lengths`);
   }
@@ -106,6 +110,7 @@ export async function fetchItems( itemType, paramList) {
   switch(itemType) {
     case 'concepts':
     case 'codeset_ids_by_concept_id':
+    case 'researchers':
       apiGetParamName = 'id';
     case 'concept_ids_by_codeset_id':
       apiGetParamName = apiGetParamName || 'codeset_ids';
@@ -343,7 +348,9 @@ window.addEventListener("beforeunload", dataAccessor.saveCache);
 // for debugging
 window.dataAccessorW = dataAccessor;
 
-
+export function getResearcherIdsFromCsets(csets) {
+  return uniq(flatten(csets.map(cset => Object.keys(cset.researchers))));
+}
 
 export function useStateSlice(slice) {
   const appState = useAppState();

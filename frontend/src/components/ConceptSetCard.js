@@ -62,9 +62,8 @@ export default function ConceptSetCards(props) {
     </div>
   );
 }
-function ConceptSetCard(props) {
+export function ConceptSetCard(props) {
   let { cset, researchers = {}, editing = false, closeFunc } = props;
-  console.warn('have to fix researchers!!!!');
   /*
   const [expanded, setExpanded] = React.useState(false);
   const handleExpandClick = () => {
@@ -134,9 +133,9 @@ function ConceptSetCard(props) {
   if (cset.project_id) {
     display_props["Project ID"] = cset.project_id;
   }
+  display_props["Container created at"] = new Date(cset.container_created_at).toLocaleString();
+  display_props["Version created at"] = new Date(cset.codeset_created_at).toLocaleString();
 
-  console.warn("fix the researcher stuff!!!!!");
-  /*
   let _researchers = Object.entries(cset.researchers).map(([id, roles]) => {
     let r = researchers[id];
     r.roles = roles;
@@ -153,34 +152,24 @@ function ConceptSetCard(props) {
       >
         <strong>{r.roles.join(", ")}:</strong>
         <br />
-        <a href={`mailto:${r.emailAddress}`}>{r.name}</a>,
-        <a href={r.institutionsId} target="_blank" rel="noreferrer">
-          {r.institution}
-        </a>
-        ,
-        <a
-          href={`https://orcid.org/${r.orcidId}`}
-          target="_blank"
-          rel="noreferrer"
-        >
-          ORCID
-        </a>
-        .
+        <a href={`mailto:${r.emailAddress}`}>{r.name}</a>
+        , <a
+           href={r.institutionsId} target="_blank" rel="noreferrer">{r.institution} </a>
+        , <a href={`https://orcid.org/${r.orcidId}`} target="_blank" rel="noreferrer" >ORCID</a>.
       </Typography>
     );
   });
   let researcherContent = (
     <div>
-      <Typography /*variant="h6"* / color="text.primary">
+      <Typography /*variant="h6"*/ color="text.primary">
         Contributors
       </Typography>
       {researcher_info}
     </div>
   );
-   */
   // display_props['props not included yet'] = 'codeset_status, container_status, stage, concept count';
-  const { search, pathname } = useLocation();
   /*
+  const { search, pathname } = useLocation();
   const editSingleLink = (
       <NavLink
           // component={NavLink} // NavLink is supposed to show different if it's active; doesn't seem to be working
@@ -231,6 +220,7 @@ function ConceptSetCard(props) {
               <strong>{pkey}</strong>: {display_props[pkey]}
             </Typography>
         ))}
+        {researcherContent}
         <Typography variant="body2" color="text.primary">
           <a
               // opens container: href={`https://unite.nih.gov/workspace/hubble/objects/${cset.container_rid}`}
@@ -249,7 +239,6 @@ function ConceptSetCard(props) {
             Export JSON
           </a>
         </Typography>
-        {/*{researcherContent}*/}
       </CardContent>
       {/*
         <CardActions disableSpacing>
@@ -292,5 +281,3 @@ function ConceptSetCard(props) {
     </Card>
   );
 }
-
-export { ConceptSetCard };

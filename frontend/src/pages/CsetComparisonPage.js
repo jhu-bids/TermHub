@@ -19,7 +19,7 @@ import { saveAs } from 'file-saver';
 import Papa from 'papaparse';
 
 
-import { useStateSlice, fetchItems, dataAccessor } from "../components/State";
+import { useStateSlice, fetchItems, dataAccessor, getResearcherIdsFromCsets } from "../components/State";
 import { fmt, useWindowSize } from "../components/utils";
 import { setColDefDimensions } from "../components/dataTableUtils";
 import { ConceptSetCard } from "../components/ConceptSetCard";
@@ -60,7 +60,7 @@ function CsetComparisonPage(props) {
   const customStyles = styles(sizes);
   const [data, setData] = useState({});
       // useState({ concept_ids: [], selected_csets: [], edges: [], concepts: [], });
-  const { concept_ids, edges, concepts, conceptLookup, selected_csets, csmi } = data;
+  const { edges, concepts, conceptLookup, selected_csets, csmi, researchers } = data;
 
   useEffect(() => {
     if (boxRef.current) {
@@ -84,9 +84,7 @@ function CsetComparisonPage(props) {
             { itemType: 'cset_members_items', keys: codeset_ids, shape: 'obj',
               // returnFunc: results => flatten([...Object.values(results)])
             }),
-        dataAccessor.getItemsByKey(
-          { itemType: 'csets', keys: codeset_ids, shape: 'obj',
-            returnFunc: results => [...Object.values(results)]} ), // isn't this the same as shape: 'array'?
+        dataAccessor.getItemsByKey({ itemType: 'csets', keys: codeset_ids, }),
       ];
       // have to get concept_ids before fetching concepts
       let concept_ids = await dataAccessor.getItemsByKey(
@@ -106,11 +104,21 @@ function CsetComparisonPage(props) {
         selected_csets,
         conceptLookup,
       ] = await Promise.all(promises);
+
+      if (editCodesetId) {
+        const researcherIds = getResearcherIdsFromCsets(selected_csets.filter(d => d.codeset_id === editCodesetId));
+        let researchers = dataAccessor.getItemsByKey({ itemType: 'researchers', keys: researcherIds, shape: 'obj' });
+        promises = [ dataAccessor.getItemsByKey({ itemType: 'researchers', keys: researcherIds, shape: 'obj' })];
+      }
+      let [researchers] = await Promise.all(promises);
+
+
       if (!isEmpty(editCset)) {
         csmi = {...csmi, ...editCset.definitions};
       }
+
       const concepts = Object.values(conceptLookup);
-      setData({csmi, selected_csets, concept_ids, concepts, conceptLookup, edges});
+      setData({csmi, selected_csets, concepts, conceptLookup, edges, researchers, });
     })();
   }, []);
 
@@ -213,7 +221,7 @@ function CsetComparisonPage(props) {
         <FlexibleContainer key="cset" title="Concept set being edited" position={panelPosition}>
           <ConceptSetCard
               cset={columns.find((d) => d.codeset_id === editCodesetId).cset_col}
-              // researchers={researchers}
+              researchers={researchers}
               editing={true}
           />
         </FlexibleContainer>
