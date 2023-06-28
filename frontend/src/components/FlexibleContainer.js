@@ -5,7 +5,7 @@ import Draggable from "react-draggable";
 import Box from "@mui/material/Box";
 import Button from "@mui/material/Button";
 
-export function FlexibleContainer({ title, position, children, boxRef }) {
+export function FlexibleContainer({ title, position, children, countRef }) {
   const [display, setDisplay] = useState("hidden");
   const draggableRef = useRef(null);
 
@@ -21,11 +21,7 @@ export function FlexibleContainer({ title, position, children, boxRef }) {
         variant="contained"
         color="primary"
         onClick={() => {
-          if (boxRef.open) {
-            boxRef.open++;
-          } else {
-            boxRef.open = 1;
-          }
+          countRef.current++;
           setDisplay("show");
         }}
       >
@@ -35,7 +31,7 @@ export function FlexibleContainer({ title, position, children, boxRef }) {
     return displayedContent; // maybe better if the buttons aren't draggable
   } else if (display === "show") {
     const closeFunc = () => {
-      boxRef.open--;
+      countRef.current--;
       setDisplay("hidden");
     };
     style = {
@@ -60,8 +56,8 @@ export function FlexibleContainer({ title, position, children, boxRef }) {
     <Draggable
         nodeRef={draggableRef}
         defaultPosition={{
-          x: position.x + (boxRef.open - 1) * 50,
-          y: position.y + (boxRef.open - 1) * 50
+          x: position.x + (countRef.current - 1) * 50,
+          y: position.y + (countRef.current - 1) * 50
         }}
     >
       <Box
