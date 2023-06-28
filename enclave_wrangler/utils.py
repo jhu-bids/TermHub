@@ -37,6 +37,9 @@ TOKEN_KEY = SERVICE_TOKEN_KEY
 class EnclaveWranglerErr(RuntimeError):
     """Wrapper just to handle errors from this module"""
 
+class EnclavePaginationLimitErr(RuntimeError):
+    """Wrapper just to handle errors from this module"""
+    msg = "Enclave errored on paginated request on page {}, with status code {}, with {} items in results."
 
 class ActionValidateError(RuntimeError):
     """Wrapper just to handle errors from this module"""
@@ -197,13 +200,21 @@ def handle_paginated_request(
     """Handles a request that has a nextPageToken, automatically fetching all pages and combining the data"""
     url = first_page_url
     results: List[Dict] = []
+    i = 0
     while True:
+        i += 1
         try:
             response = enclave_get(url, verbose=verbose, error_dir=error_dir)
         except EnclaveWranglerErr as err:
             if results:
                 err.args[0]['results_prior_to_error'] = results
-            raise err
+            status_code = err.args[0]['status_code']
+            # TODO: better to check for 'errorName': 'ObjectsExceededLimit' in the response
+            if status_code == 400 and len(results) >= 10000:
+                raise EnclavePaginationLimitErr(
+                    EnclavePaginationLimitErr.msg.format(str(i), status_code, len(results)), err.args[0])
+            else:
+                raise err
 
         response_json = response.json()
         results += response_json['data']
@@ -265,6 +276,8 @@ def fetch_objects_since_datetime(object_type: str, since: Union[datetime, str], 
 
 
 # TODO: Should we automatically handle_paginated?
+#  - Siggie said that the issue is that when we do that, we don't return a response. Maybe like 3 instances of calls
+#  that need a response object instead of JSON data. But for those why don't explicitly pass return_type=Response?
 # todo's from b4 refactor combining make_objects_request() and get_objects_by_type() 2023/03/15
 #   1. Need to find the right object_type, then write a wrapper func around this to get concept sets
 #     - To Try: CodeSystemConceptSetVersionExpressionItem, OMOPConcept, OMOPConceptSet, OMOPConceptSetContainer,

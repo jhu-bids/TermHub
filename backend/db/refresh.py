@@ -54,13 +54,15 @@ def refresh_db(
         counts_update('DB refresh.', schema, local)
         update_db_status_var('last_refresh_success', current_datetime(), local)
         update_db_status_var('last_refresh_result', 'success', local)
+        update_db_status_var('refresh_status', 'inactive', local)
         print(f'INFO: Database refresh complete in {(datetime.now() - t0).seconds} seconds.')
 
     except Exception as err:
         update_db_status_var('last_refresh_result', 'error', local)
+        update_db_status_var('refresh_status', 'inactive', local)
         counts_update('DB refresh error.', schema, local, filter_temp_refresh_tables=True)
-        print(f"Database refresh incomplete. An exception occurred: {err}")
-    update_db_status_var('refresh_status', 'inactive', local)
+        print(f"Database refresh incomplete. An exception occurred.", file=sys.stderr)
+        raise err
 
 def cli():
     """Command line interface"""
