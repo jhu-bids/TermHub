@@ -25,6 +25,17 @@ APP.add_middleware(
 )
 APP.add_middleware(GZipMiddleware, minimum_size=1000)
 
+def run(port: int = 8000):
+    """Run app"""
+    uvicorn.run(APP, host='0.0.0.0', port=port)
+
+
+@APP.get("/")
+def read_root():
+    """Root route"""
+    # noinspection PyUnresolvedReferences
+    url_list = [{"path": route.path, "name": route.name} for route in APP.routes]
+    return url_list
 
 # CACHE_FILE = "cache.pickle"
 #
@@ -69,19 +80,6 @@ APP.add_middleware(GZipMiddleware, minimum_size=1000)
 #
 # cache = memoize(maxsize=1000)
 
-def run(port: int = 8000):
-    """Run app"""
-    uvicorn.run(APP, host='0.0.0.0', port=port)
-
-
-
-# Routes ---------------------------------------------------------------------------------------------------------------
-@APP.get("/")
-def read_root():
-    """Root route"""
-    # noinspection PyUnresolvedReferences
-    url_list = [{"path": route.path, "name": route.name} for route in APP.routes]
-    return url_list
 
 
 

@@ -286,6 +286,20 @@ def all_new_objects_enclave_to_db(since: Union[datetime, str]) -> Dict[str, List
     return objects
 
 
+def csets_and_members_enclave_to_db(
+    con: Connection, schema: str, since: Union[datetime, str], filter_0_member_sets=True
+):
+    """Fetch new csets and members, if needed, and then update database with them."""
+    print('Fetching new data from the N3C data enclave...')
+    t0 = datetime.now()
+    csets_and_members: Dict[str, List[Dict]] = fetch_cset_and_member_objects(since)
+
+    print(f'  - Fetched new data in {(datetime.now() - t0).seconds} seconds:\n    OBJECT_TYPE: COUNT\n' +
+          "\n".join(['    ' + str(k) + ": " + str(len(v)) for k, v in csets_and_members.items()]))
+    csets_and_members = filter_cset_and_member_objects(csets_and_members)
+    return csets_and_members_to_db(con, schema, csets_and_members)
+
+
 def fetch_cset_and_member_objects(
     since: Union[datetime, str], return_type=['flat', 'hierarchical'][0], verbose=False
 ) -> Dict[str, List[Dict]] :
@@ -411,20 +425,6 @@ def filter_cset_and_member_objects(csets_and_members: Dict[str, List[Dict]]) -> 
     print('  - Filtered containers: ' + ', '.join([x for x in filtered_containers]))
     print('  - Filtered code sets: ' + ', '.join([x for x in filtered_csets]))
     return csets_and_members2
-
-
-def csets_and_members_enclave_to_db(
-    con: Connection, schema: str, since: Union[datetime, str], filter_0_member_sets=True
-):
-    """Fetch new csets and members, if needed, and then update database with them."""
-    print('Fetching new data from the N3C data enclave...')
-    t0 = datetime.now()
-    csets_and_members: Dict[str, List[Dict]] = fetch_cset_and_member_objects(since)
-
-    print(f'  - Fetched new data in {(datetime.now() - t0).seconds} seconds:\n    OBJECT_TYPE: COUNT\n' +
-          "\n".join(['    ' + str(k) + ": " + str(len(v)) for k, v in csets_and_members.items()]))
-    csets_and_members = filter_cset_and_member_objects(csets_and_members)
-    return csets_and_members_to_db(con, schema, csets_and_members)
 
 
 def fetch_object_by_id(object_type_name: str, object_id: Union[int, str], id_field: str = None, verbose=False) -> Dict:
