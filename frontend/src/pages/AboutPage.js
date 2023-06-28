@@ -86,7 +86,7 @@ function AboutPage(props) {
   //       return {Message, ConceptSetNames, CodesetIds, Concepts};
   //     }
   // )
-  const [codeset_ids, setCodeset_ids] = useState([props.codeset_ids]);
+  const [codeset_ids, setCodeset_ids] = useState(props.codeset_ids);
   const [refreshButtonClicked, setRefreshButtonClicked] = useState();
   const [lastRefreshed, setLastRefreshed] = useState();
   const location = useLocation();
