@@ -135,7 +135,7 @@ FAVORITE_DATASETS = OrderedDict({
         'rid': 'ri.foundry.main.dataset.f945409a-37f1-402f-a840-29b6bd675cb0',
         'column_names': ["codeset_id", "approx_distinct_person_count", "approx_total_record_count"],
         'sort_idx': ['codeset_id'],
-        'dataset_groups': ['cset']
+        'dataset_groups': ['vocab']
     },
     'deidentified_term_usage_by_domain_clamped': { # gets downloaded as csv without column names, not parquet
         'name': 'deidentified_term_usage_by_domain_clamped',

@@ -880,6 +880,11 @@ if __name__ == '__main__':
     five_minutes_ago = (dt.datetime.now(dt.timezone.utc) - dt.timedelta(minutes=30)).isoformat()
 
     data = fetch_cset_and_member_objects(five_minutes_ago)
+
+    # TODO:
+    #   - put this stuff in the database core tables
+    #   - update derived tables to include the newly added stuff
+
     print(data)
     pdump(data)
     pass
