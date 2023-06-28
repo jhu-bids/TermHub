@@ -64,6 +64,7 @@ function CsetComparisonPage(props) {
 
   useEffect(() => {
     if (boxRef.current) {
+
       let margin_text = window
           .getComputedStyle(boxRef.current)
           .getPropertyValue("margin-bottom");
@@ -155,13 +156,6 @@ function CsetComparisonPage(props) {
     hsDispatch,
   });
 
-  const popupOnOpen = (w, h) => {
-    setPanelPosition(p => ({
-      x: p.x + w,
-      y: p.y + h,
-    }));
-  };
-
   let infoPanels = [
     <Button key="distinct"
             disabled={!nested}
@@ -202,7 +196,7 @@ function CsetComparisonPage(props) {
       CSV <Download></Download>
     </Button>,
     <FlexibleContainer key="legend" title="Legend"
-                       position={panelPosition} onOpen={popupOnOpen}>
+                       position={panelPosition} boxRef={boxRef}>
       <Legend />
     </FlexibleContainer>,
     <Button key="add-cset"
@@ -221,7 +215,8 @@ function CsetComparisonPage(props) {
   if (editCodesetId) {
     edited_cset = selected_csets.find(cset => cset.codeset_id === editCodesetId);
     infoPanels.push(
-        <FlexibleContainer key="cset" title="Concept set being edited" position={panelPosition}>
+        <FlexibleContainer key="cset" title="Concept set being edited"
+                           position={panelPosition} boxRef={boxRef}>
           <ConceptSetCard
               cset={columns.find((d) => d.codeset_id === editCodesetId).cset_col}
               // researchers={researchers}
@@ -239,14 +234,14 @@ function CsetComparisonPage(props) {
       infoPanels.push(
           <FlexibleContainer key="changes"
                              title={`${Object.keys(csidState).length} Staged changes`}
-                             position={panelPosition}
+                             position={panelPosition} boxRef={boxRef}
           >
             <EditInfo {...props} selected_csets={selected_csets} conceptLookup={conceptLookup} />
           </FlexibleContainer>,
 
           <FlexibleContainer key="instructions"
                              title="Instructions to save changes"
-                             position={panelPosition}>
+                             position={panelPosition} boxRef={boxRef}>
             {saveChangesInstructions({ editCodesetId,
                                        csetEditState,
                                        selected_csets, })}
