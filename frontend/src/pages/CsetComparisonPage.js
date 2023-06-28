@@ -55,6 +55,7 @@ function CsetComparisonPage(props) {
   const {collapsePaths, collapsedDescendantPaths, nested, hideRxNormExtension, hideZeroCounts} = hierarchySettings;
   const windowSize = useWindowSize();
   const boxRef = useRef();
+  const countRef = useRef(0);
   const [panelPosition, setPanelPosition] = useState({ x: 0, y: 0 });
   const sizes = getSizes(/*squishTo*/ 1);
   const customStyles = styles(sizes);
@@ -64,6 +65,7 @@ function CsetComparisonPage(props) {
 
   useEffect(() => {
     if (boxRef.current) {
+
       let margin_text = window
           .getComputedStyle(boxRef.current)
           .getPropertyValue("margin-bottom");
@@ -75,7 +77,10 @@ function CsetComparisonPage(props) {
         y: boxRef.current.clientHeight + 2 * margin
       });
     }
-  }, []);
+  }, [
+    boxRef.current,
+    (boxRef.current ? boxRef.current.offsetHeight : 0),
+  ]);
 
   useEffect(() => {
     (async () => {
@@ -199,7 +204,8 @@ function CsetComparisonPage(props) {
     >
       CSV <Download></Download>
     </Button>,
-    <FlexibleContainer key="legend" title="Legend" position={panelPosition}>
+    <FlexibleContainer key="legend" title="Legend"
+                       position={panelPosition} countRef={countRef}>
       <Legend />
     </FlexibleContainer>,
     <Button key="add-cset"
@@ -218,7 +224,8 @@ function CsetComparisonPage(props) {
   if (editCodesetId) {
     edited_cset = selected_csets.find(cset => cset.codeset_id === editCodesetId);
     infoPanels.push(
-        <FlexibleContainer key="cset" title="Concept set being edited" position={panelPosition}>
+        <FlexibleContainer key="cset" title="Concept set being edited"
+                           position={panelPosition} countRef={countRef}>
           <ConceptSetCard
               cset={columns.find((d) => d.codeset_id === editCodesetId).cset_col}
               researchers={researchers}
@@ -236,14 +243,14 @@ function CsetComparisonPage(props) {
       infoPanels.push(
           <FlexibleContainer key="changes"
                              title={`${Object.keys(csidState).length} Staged changes`}
-                             position={panelPosition}
+                             position={panelPosition} countRef={countRef}
           >
             <EditInfo {...props} selected_csets={selected_csets} conceptLookup={conceptLookup} />
           </FlexibleContainer>,
 
           <FlexibleContainer key="instructions"
                              title="Instructions to save changes"
-                             position={panelPosition}>
+                             position={panelPosition} countRef={countRef}>
             {saveChangesInstructions({ editCodesetId,
                                        csetEditState,
                                        selected_csets, })}
