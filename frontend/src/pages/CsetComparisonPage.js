@@ -55,7 +55,7 @@ function CsetComparisonPage(props) {
   const {collapsePaths, collapsedDescendantPaths, nested, hideRxNormExtension, hideZeroCounts} = hierarchySettings;
   const windowSize = useWindowSize();
   const boxRef = useRef();
-  const countRef = useRef(0);
+  const countRef = useRef({ n: 0, z: 10 });
   const [panelPosition, setPanelPosition] = useState({ x: 0, y: 0 });
   const sizes = getSizes(/*squishTo*/ 1);
   const customStyles = styles(sizes);
