@@ -257,7 +257,8 @@ def fetch_objects_since_datetime(object_type: str, since: Union[datetime, str], 
     since = str(since)
     try:
         return make_objects_request(
-            object_type, query_params={'properties.createdAt.gt': since}, verbose=verbose, return_type='data')
+            object_type, query_params={'properties.createdAt.gt': since}, verbose=verbose, return_type='data',
+            handle_paginated=True)
     except EnclaveWranglerErr as e:
         raise ValueError(f'Invalid timestamp: {since}. Make sure it is in ISO 8601 format with timezone offset: '
                          f'YYYY-MM-DDTHH:MM:SS.SSSSSS+HH:MM.') if 'timestamp' in str(e).lower() else e

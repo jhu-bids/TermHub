@@ -15,6 +15,7 @@ TODO's
 import json
 import os
 from datetime import datetime
+import pytz
 from typing import List, Dict, Tuple, Union
 from urllib.parse import quote
 
@@ -143,8 +144,8 @@ def get_link_types(use_cache_if_failure=False) -> List[Union[Dict, str]]:
 
 
 def get_object_links(
-    object_type: str, object_id: str, link_type: str, fail_on_error=False, handle_paginated=False,
-    return_type: str = ['Response', 'json', 'data'][2],
+    object_type: str, object_id: str, link_type: str, fail_on_error=False, handle_paginated=True,
+    return_type: str = ['Response', 'json', 'data'][2], verbose=False
 ) -> Union[Response, List[Dict]]:
     """Get links of a given type for a given object
 
@@ -153,7 +154,7 @@ def get_object_links(
     """
     return make_objects_request(
         f'{object_type}/{object_id}/links/{link_type}', return_type=return_type, fail_on_error=fail_on_error,
-        handle_paginated=handle_paginated)
+        handle_paginated=handle_paginated, verbose=verbose)
 
 
 # TODO: Why does this not work for Joe, but works for Siggie?:
@@ -220,7 +221,7 @@ def download_favorite_objects(fav_obj_names: List[str] = FAVORITE_OBJECTS, force
 
 def get_all_bundles():
     """Get all bundles"""
-    return make_objects_request('objects/ConceptSetTag').json()
+    return make_objects_request('objects/ConceptSetTag', ).json()
 
 
 def get_bundle_names(prop: str='displayName'):
@@ -235,7 +236,7 @@ def get_bundle(bundle_name):
     """
     all_bundles = get_all_bundles()
     tag_name = [b['properties']['tagName'] for b in all_bundles['data'] if b['properties']['displayName'] == bundle_name][0]
-    return make_objects_request(f'objects/ConceptSetTag/{tag_name}/links/ConceptSetBundleItem', return_type='data')
+    return make_objects_request(f'objects/ConceptSetTag/{tag_name}/links/ConceptSetBundleItem', return_type='data', handle_paginated=True)
 
 
 def get_bundle_codeset_ids(bundle_name):
@@ -339,7 +340,7 @@ def fetch_cset_and_member_objects(
     for _id in containers_ids:
         container: List[Dict] = make_objects_request(
             'OMOPConceptSetContainer', query_params={'properties.conceptSetId.eq': _id}, verbose=verbose,
-            return_type='data')
+            return_type='data', handle_paginated=True)
         if not container:
             raise ValueError(f'Enclave API returned cset version with container of id {_id}, but failed to call data '
                              f'for that specific container.')
@@ -439,7 +440,7 @@ def fetch_object_by_id(object_type_name: str, object_id: Union[int, str], id_fie
     matches: List[Dict] = make_objects_request(
         object_type_name,
         query_params={f'properties.{id_field}.eq': str(object_id)},
-        return_type='data', verbose=verbose)
+        return_type='data', verbose=verbose, handle_paginated=True)
     obj: Dict = matches[0]['properties']
     return obj
 
@@ -792,7 +793,7 @@ def refresh_tables_for_object():
 
 
 def get_concept_set_version_expression_items(
-    version_id: Union[str, int], return_detail, handle_paginated=False
+    version_id: Union[str, int], return_detail, handle_paginated=True
 ) -> List[Dict]:
     """Get concept set version expression items"""
     version_id = str(version_id)
@@ -807,7 +808,7 @@ def get_concept_set_version_expression_items(
 
 
 def get_concept_set_version_members(
-    version_id: Union[str, int], return_detail, handle_paginated=False
+    version_id: Union[str, int], return_detail, handle_paginated=True
 ) -> List[Dict]:
     """Get concept set members"""
     version_id = str(version_id)
@@ -815,7 +816,8 @@ def get_concept_set_version_members(
         object_type='OMOPConceptSet',
         object_id=version_id,
         link_type='omopconcepts',
-        handle_paginated=handle_paginated)
+        handle_paginated=handle_paginated,
+        verbose=True)
     if return_detail == 'id':
         return [x['properties']['conceptId'] for x in members]
     return members
@@ -872,4 +874,12 @@ def cli():
 if __name__ == '__main__':
     # ot = get_object_types()
     # get_n3c_recommended_csets(save=True)
-    download_favorite_objects(force_if_exists=True)
+    # download_favorite_objects(force_if_exists=True)
+    import datetime as dt
+    from backend.utils import pdump
+    five_minutes_ago = (dt.datetime.now(dt.timezone.utc) - dt.timedelta(minutes=30)).isoformat()
+
+    data = fetch_cset_and_member_objects(five_minutes_ago)
+    print(data)
+    pdump(data)
+    pass

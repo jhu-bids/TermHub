@@ -49,6 +49,7 @@ def refresh_db(
 
             # Refresh DB:
             csets_and_members_enclave_to_db(con, schema, since)
+            # will be calling this when it's ready: all_new_objects_enclave_to_db
 
         counts_update('DB refresh.', schema, local)
         update_db_status_var('last_refresh_success', current_datetime(), local)
