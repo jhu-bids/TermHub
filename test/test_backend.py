@@ -171,14 +171,14 @@ class TestBackend(unittest.TestCase):
     """ This test is based on the cr_hierarchy function so it would need to be changed since that function may retire,
     but is a data counts test still needed?
     def test_cr_hierarchy_data_counts(self):
-    
+
         '''Test backend: cr_hierarchy, defined in backend/app.py
         Prereq: Server must be running'''
         url = BACKEND_URL_BASE + 'cr-hierarchy'
         response = requests.get(url=url, params={
             'codeset_ids': '400614256|87065556'
         }).json()
-        self.assertEqual(len(response['data_counts']), 0) 
+        self.assertEqual(len(response['data_counts']), 0)
     """
 
     def test_get_related_csets(self):
@@ -260,7 +260,7 @@ class TestBackend(unittest.TestCase):
           and concept_id_2 in (1738170, 1738171, 1738202, 1738203)
           and concept_id_1 != concept_id_2
         order by 5;
-        
+
         ┌─────────────────┬──────────────┬────────────────────┬──────────────┬─────────────────┬─────────────────┬──────────────┬────────────────────┐
         │ vocabulary_id_1 │ concept_id_1 │   concept_name_1   │ concept_code │ relationship_id │ vocabulary_id_2 │ concept_id_2 │   concept_name_2   │
         ├─────────────────┼──────────────┼────────────────────┼──────────────┼─────────────────┼─────────────────┼──────────────┼────────────────────┤
