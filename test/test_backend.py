@@ -216,6 +216,8 @@ class TestBackend(unittest.TestCase):
         │    1738203 │ lopinavir 200 MG                               │ Drug      │ RxNorm        │ Clinical Drug Comp │ S                │ 597727       │ ∅              │          0 │               │         0 │ 0                   │
         │   19122186 │ lopinavir 200 MG / ritonavir 50 MG Oral Tablet │ Drug      │ RxNorm        │ Clinical Drug      │ S                │ 597730       │ ∅              │          1 │ drug_exposure │      5789 │ 833                 │
         └────────────┴────────────────────────────────────────────────┴───────────┴───────────────┴────────────────────┴──────────────────┴──────────────┴────────────────┴────────────┴───────────────┴───────────┴─────────────────────┘
+        
+        No relationship appears for concept relationship table.
         """
 
         #Test for a more complex hierarchial relationship
@@ -237,6 +239,20 @@ class TestBackend(unittest.TestCase):
         │   43530961 │ Induced termination of pregnancy complicated by …│ Condition │ SNOMED        │ Clinical Finding │ S                │ 609507007    │ ∅              │          1 │ condition_occurrence               │        20 │ 20                  │
         │            │…cardiac failure                                  │           │               │                  │                  │              │                │            │                                    │           │                     │
         └────────────┴──────────────────────────────────────────────────┴───────────┴───────────────┴──────────────────┴──────────────────┴──────────────┴────────────────┴────────────┴────────────────────────────────────┴───────────┴─────────────────────┘
+        
+"vocabulary_id_1"|"concept_id_1"|"concept_name_1"                                               |"concept_code"|"relationship_id"|"vocabulary_id_2"|"concept_id_2"|"concept_name_2"
+SNOMED           |4024552       |Disorder of cardiac function                                   |105981003     |Is a             |SNOMED           |321588        |Heart disease
+SNOMED           |4027255       |Structural disorder of heart                                   |128599005     |Is a             |SNOMED           |321588        |Heart disease
+SNOMED           |43530961      |Induced termination of pregnancy complicated by cardiac failure|609507007     |Is a             |SNOMED           |316139        |Heart failure
+SNOMED           |45766164      |Heart failure with reduced ejection fraction                   |703272007     |Is a             |SNOMED           |316139        |Heart failure
+SNOMED           |316139        |Heart failure                                                  |84114007      |Is a             |SNOMED           |4024552       |Disorder of cardiac function
+SNOMED           |43530856      |High risk of heart failure, stage B                            |609389009     |Is a             |SNOMED           |4027255       |Structural disorder of heart
+SNOMED           |316139        |Heart failure                                                  |84114007      |Subsumes         |SNOMED           |45766164      |Heart failure with reduced ejection fraction
+SNOMED           |321588        |Heart disease                                                  |56265001      |Subsumes         |SNOMED           |4024552       |Disorder of cardiac function
+SNOMED           |4024552       |Disorder of cardiac function                                   |105981003     |Subsumes         |SNOMED           |316139        |Heart failure
+SNOMED           |321588        |Heart disease                                                  |56265001      |Subsumes         |SNOMED           |4027255       |Structural disorder of heart
+SNOMED           |4027255       |Structural disorder of heart                                   |128599005     |Subsumes         |SNOMED           |43530856      |High risk of heart failure, stage B
+SNOMED           |316139        |Heart failure                                                  |84114007      |Subsumes         |SNOMED           |43530961      |Induced termination of pregnancy complicated by cardiac failure
         """
         self.assertEqual(edges3, [ ( "4024552", "316139" ), ( "316139", "43530961" ), ( "316139", "45766164" ),
                              ( "321588", "4024552" ), ( "321588", "4027255" ), ( "4027255", "43530856" ) ] )
@@ -256,12 +272,21 @@ class TestBackend(unittest.TestCase):
         │            │…cardiac failure                                  │           │               │                  │                  │              │                │            │                                    │           │                     │
         │   45766164 │ Heart failure with reduced ejection fraction     │ Condition │ SNOMED        │ Clinical Finding │ S                │ 703272007    │ ∅              │          1 │ condition_occurrence               │     10913 │ 3386                │
         └────────────┴──────────────────────────────────────────────────┴───────────┴───────────────┴──────────────────┴──────────────────┴──────────────┴────────────────┴────────────┴────────────────────────────────────┴───────────┴─────────────────────┘
+        
+"vocabulary_id_1"|"concept_id_1"|"concept_name_1"                                               |"concept_code"|"relationship_id"|"vocabulary_id_2"|"concept_id_2"|"concept_name_2"
+SNOMED           |316139        |Heart failure                                                  |84114007      |Is a             |SNOMED           |4024552       |Disorder of cardiac function
+SNOMED           |43530856      |High risk of heart failure, stage B                            |609389009     |Is a             |SNOMED           |4027255       |Structural disorder of heart
+SNOMED           |45766164      |Heart failure with reduced ejection fraction                   |703272007     |Is a             |SNOMED           |316139        |Heart failure
+SNOMED           |43530961      |Induced termination of pregnancy complicated by cardiac failure|609507007     |Is a             |SNOMED           |316139        |Heart failure
+SNOMED           |4027255       |Structural disorder of heart                                   |128599005     |Subsumes         |SNOMED           |43530856      |High risk of heart failure, stage B
+SNOMED           |316139        |Heart failure                                                  |84114007      |Subsumes         |SNOMED           |43530961      |Induced termination of pregnancy complicated by cardiac failure
+SNOMED           |316139        |Heart failure                                                  |84114007      |Subsumes         |SNOMED           |45766164      |Heart failure with reduced ejection fraction
+SNOMED           |4024552       |Disorder of cardiac function                                   |105981003     |Subsumes         |SNOMED           |316139        |Heart failure
         """
         self.assertEqual(edges3,
                          [ ( "4024552", "316139" ), ( "316139", "43530961" ), ( "316139", "45766164" ),
                            ( "321588", "4024552" ), ( "321588", "4027255" ), ( "4027255", "43530856" ) ] )
             
 # Uncomment this and run this file directly to run all tests
-if __name__ == '__main__':
-    TestBackend.test_subgraph()
+#if __name__ == '__main__':
 #     unittest.main()
