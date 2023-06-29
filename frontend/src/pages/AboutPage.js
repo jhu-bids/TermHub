@@ -375,7 +375,7 @@ function howToSaveStagedChanges(params) {
           <a href={params.exportJsonLink} target="_blank" rel="noreferrer">
             Click to export JSON
           </a>
-          . A new browser tab will up with just the JSON. Copy or save it.
+          . A new browser tab will open up with just the JSON. Copy or save it.
         </LI>
         <LI>
           Come back to this tab, and{" "}
