@@ -435,11 +435,14 @@ def filter_cset_and_member_objects(csets_and_members: Dict[str, List[Dict]]) -> 
     diff_containers = len(
         csets_and_members['OMOPConceptSetContainer']) - len(csets_and_members2['OMOPConceptSetContainer'])
     diff_csets = len(csets_and_members['OMOPConceptSet']) - len(csets_and_members2['OMOPConceptSet'])
-    print(f'  - Filtered out {diff_containers} containers and {diff_csets} code sets w/ 0 members. New total:\n    '
-          f'OBJECT_TYPE: COUNT\n' +
-          "\n".join(['    ' + str(k) + ": " + str(len(v)) for k, v in csets_and_members2.items()]))
-    print('  - Filtered containers: ' + ', '.join([x for x in filtered_containers]))
-    print('  - Filtered code sets: ' + ', '.join([x for x in filtered_csets]))
+    if diff_containers or diff_csets:
+        print(f'  - Filtered out {diff_containers} containers and {diff_csets} code sets w/ 0 members. New total:\n    '
+              f'OBJECT_TYPE: COUNT\n' +
+              "\n".join(['    ' + str(k) + ": " + str(len(v)) for k, v in csets_and_members2.items()]))
+    if filtered_containers:
+        print('  - Filtered containers: ' + ', '.join([x for x in filtered_containers]))
+    if filtered_csets:
+        print('  - Filtered code sets: ' + ', '.join([x for x in filtered_csets]))
     return csets_and_members2
 
 

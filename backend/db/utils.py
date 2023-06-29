@@ -48,30 +48,43 @@ def refresh_termhub_core_cset_derived_tables(con: Connection, schema: str):
         'cset_members_items_plus',
         'codeset_counts',
         'all_csets',
-        # 'csets_to_ignore',            not using for now
+        'csets_to_ignore',
     ]
     views = [
         'cset_members_items_plus',
-        # 'csets_to_ignore',            not using for now
+        'csets_to_ignore',
     ]
+
     # Create new tables and backup old ones
+    print('Derived tables')
     t0 = datetime.now()
     for module in ddl_modules:
-        print(f'Running SQL to recreate derived table: {module}...')
+        print(f' - creating new table/view: {module}...')
         statements: List[str] = get_ddl_statements(schema, [module], temp_table_suffix, 'flat')
-        for statement in statements:
+        main_statements = [s for s in statements if not s.startswith('CREATE INDEX')]
+        for statement in main_statements:
             run_sql(con, statement)
         # todo: warn if counts in _new table not >= _old table (if it exists)?
         run_sql(con, f'ALTER TABLE IF EXISTS {schema}.{module} RENAME TO {module}_old;')
         run_sql(con, f'ALTER TABLE {schema}.{module}{temp_table_suffix} RENAME TO {module};')
-    # - Delete old tables. Because of view dependencies, order & commands are different
-    t1 = datetime.now()
-    print(f'Derived tables all created in {(t1 - t0).seconds} seconds. Removing older, temporarily backed up copies...')
+
+    # Delete old tables/views. Because of view dependencies, order & commands are different
+    print(f' - Removing older, temporarily backed up tables/views...')
     for view in views:
         ddl_modules.remove(view)
         run_sql(con, f'DROP VIEW IF EXISTS {schema}.{view}_old;')
     for module in ddl_modules:
         run_sql(con, f'DROP TABLE IF EXISTS {schema}.{module}_old;')
+    t1 = datetime.now()
+
+    # Indexes
+    for module in ddl_modules:
+        print(f' - creating indexes for table/view: {module}...')
+        statements: List[str] = get_ddl_statements(schema, [module], return_type='flat')
+        index_statements = [s for s in statements if s.startswith('CREATE INDEX')]
+        for statement in index_statements:
+            run_sql(con, statement)
+    print(f'Derived tables: all created in {(t1 - t0).seconds} seconds.')
 
 
 def get_db_connection(isolation_level='AUTOCOMMIT', schema: str = SCHEMA, local=False):
