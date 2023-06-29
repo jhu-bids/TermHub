@@ -58,7 +58,7 @@ def refresh_termhub_core_cset_derived_tables(con: Connection, schema: str):
     t0 = datetime.now()
     for module in ddl_modules:
         print(f'Running SQL to recreate derived table: {module}...')
-        statements: List[str] = get_ddl_statements(schema, [module], temp_table_suffix)
+        statements: List[str] = get_ddl_statements(schema, [module], temp_table_suffix, 'flat')
         for statement in statements:
             run_sql(con, statement)
         # todo: warn if counts in _new table not >= _old table (if it exists)?
@@ -459,10 +459,11 @@ def get_ddl_statements(
             template_str = file.read()
         module = os.path.basename(path).split('-')[2].split('.')[0]
         ddl_text = Template(template_str).render(schema=schema + '.', optional_suffix=table_suffix)
+        without_comments = re.sub(r'^\s*--.*\n*', '', ddl_text, flags=re.MULTILINE)
         # Each DDL file should have 1 or more statements separated by an empty line (two line breaks).
+        module_statements = [x + ';' for x in without_comments.split(';\n\n')]
         if return_type == 'flat':
-            statements.extend([x + ';' for x in ddl_text.split(';\n\n')])
+            statements.extend(module_statements)
         elif return_type == 'nested':
-            without_comments = re.sub(r'^\s*--.*\n*','', ddl_text, flags=re.MULTILINE)
-            statements_by_module[f'{i+1}-{module}'] = [x + ';' for x in without_comments.split(';\n\n')]
+            statements_by_module[f'{i+1}-{module}'] = module_statements
     return statements if return_type == 'flat' else statements_by_module

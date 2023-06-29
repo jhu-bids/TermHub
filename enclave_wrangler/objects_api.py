@@ -14,6 +14,7 @@ TODO's
 """
 import json
 import os
+import sys
 from datetime import datetime
 import pytz
 from typing import List, Dict, Tuple, Union
@@ -26,7 +27,7 @@ from sqlalchemy.engine.base import Connection
 from typeguard import typechecked
 
 from enclave_wrangler.config import FAVORITE_OBJECTS, OUTDIR_OBJECTS, OUTDIR_CSET_JSON, config
-from enclave_wrangler.utils import enclave_get, enclave_post, fetch_objects_since_datetime, \
+from enclave_wrangler.utils import EnclavePaginationLimitErr, enclave_get, enclave_post, fetch_objects_since_datetime, \
     get_objects_df, get_url_from_api_path, \
     make_objects_request
 from enclave_wrangler.models import OBJECT_TYPE_TABLE_MAP, convert_row, get_field_names, field_name_mapping, pkey
@@ -331,6 +332,8 @@ def fetch_cset_and_member_objects(
         - member items
         - expression items
     """
+    pagination_err = 'WARNING: Handled error for cset {}. Enclave pagination limit reached. Going to import ' \
+                     'items, even though was not able to fetch all.'
     # Concept set versions
     cset_versions: List[Dict] = fetch_objects_since_datetime('OMOPConceptSet', since, verbose)
 
@@ -353,8 +356,17 @@ def fetch_cset_and_member_objects(
     for cset in cset_versions:
         version: int = cset['properties']['codesetId']
         # Hierarchical
-        cset['expression_items']: List[Dict] = get_concept_set_version_expression_items(version, return_detail='full')
-        cset['member_items']: List[Dict] = get_concept_set_version_members(version, return_detail='full')
+        # TODO: exc handling: Will need to handle differently or do more: https://github.com/jhu-bids/TermHub/issues/451
+        try:
+            cset['expression_items']: List[Dict] = get_concept_set_version_expression_items(version, return_detail='full')
+        except EnclavePaginationLimitErr as err:
+            cset['expression_items']: List[Dict] = err.args[1]['results_prior_to_error']
+            print(pagination_err.format(version), file=sys.stderr)
+        try:
+            cset['member_items']: List[Dict] = get_concept_set_version_members(version, return_detail='full')
+        except EnclavePaginationLimitErr as err:
+            cset['member_items']: List[Dict] = err.args[1]['results_prior_to_error']
+            print(pagination_err.format(version), file=sys.stderr)
         cset_versions_with_concepts.append(cset)
         # Flat
         flat_expression_items.extend(cset['expression_items'])
@@ -793,7 +805,7 @@ def refresh_tables_for_object():
 
 
 def get_concept_set_version_expression_items(
-    version_id: Union[str, int], return_detail, handle_paginated=True
+    version_id: Union[str, int], return_detail, handle_paginated=True, fail_on_error=True
 ) -> List[Dict]:
     """Get concept set version expression items"""
     version_id = str(version_id)
@@ -801,14 +813,15 @@ def get_concept_set_version_expression_items(
         object_type='OMOPConceptSet',
         object_id=version_id,
         link_type='OmopConceptSetVersionItem',
-        handle_paginated=handle_paginated)
+        handle_paginated=handle_paginated,
+        fail_on_error=fail_on_error)
     if return_detail == 'id':
         return [x['properties']['itemId'] for x in items]
     return items
 
 
 def get_concept_set_version_members(
-    version_id: Union[str, int], return_detail, handle_paginated=True
+    version_id: Union[str, int], return_detail, handle_paginated=True, verbose=False, fail_on_error=True
 ) -> List[Dict]:
     """Get concept set members"""
     version_id = str(version_id)
@@ -817,7 +830,8 @@ def get_concept_set_version_members(
         object_id=version_id,
         link_type='omopconcepts',
         handle_paginated=handle_paginated,
-        verbose=True)
+        verbose=verbose,
+        fail_on_error=fail_on_error)
     if return_detail == 'id':
         return [x['properties']['conceptId'] for x in members]
     return members
