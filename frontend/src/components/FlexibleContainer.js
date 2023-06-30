@@ -6,13 +6,13 @@ import Box from "@mui/material/Box";
 import Button from "@mui/material/Button";
 import zIndex from "@mui/material/styles/zIndex";
 
-export function FlexibleContainer({ title, position, children, countRef }) {
-  const [display, setDisplay] = useState("hidden");
+export function FlexibleContainer({ title, position, children, countRef,
+                                    startHidden=true,}) {
+  const [display, setDisplay] = useState(startHidden ? "hidden" : "shown");
   const draggableRef = useRef(null);
 
   let displayedContent;
   let style = {
-    cursor: "move",
     display: "inline-block",
   };
   if (display === "hidden") {
@@ -24,14 +24,14 @@ export function FlexibleContainer({ title, position, children, countRef }) {
         onClick={() => {
           countRef.current.n++;
           countRef.current.z++;
-          setDisplay("show");
+          setDisplay("shown");
         }}
       >
         Show {title}
       </Button>
     );
     return displayedContent; // maybe better if the buttons aren't draggable
-  } else if (display === "show") {
+  } else if (display === "shown") {
     const closeFunc = () => {
       countRef.current.n--;
       setDisplay("hidden");
@@ -44,31 +44,38 @@ export function FlexibleContainer({ title, position, children, countRef }) {
       border: "2px solid green",
       minWidth: "200px",
       minHeight: "200px",
+      display: "flex",
+      flexDirection: "column",
     };
     displayedContent = (
-      <>
-        <IconButton onClick={closeFunc} sx={{ position: "absolute", right: 0 }}>
-          <CloseIcon />
-        </IconButton>
-        {children}
-      </>
+        <Box
+            ref={draggableRef}
+            closeFunc={() => setDisplay("hidden")}
+            sx={style}
+        >
+          <div className="handle" style={{display: 'flex', flexDirection: 'row', cursor: "move", }}>
+            <span style={{padding: '10px 3px 3px 10px'}}><strong>{title}</strong></span>
+            <IconButton onClick={closeFunc} sx={{
+              marginLeft: 'auto',
+              // position: "absolute", right: 0
+            }}>
+              <CloseIcon />
+            </IconButton>
+          </div>
+          {children}
+        </Box>
     );
   }
   return (
     <Draggable
         nodeRef={draggableRef}
+        handle=".handle"
         defaultPosition={{
           x: position.x + (countRef.current.n - 1) * 50,
           y: position.y + (countRef.current.n - 1) * 50
         }}
     >
-      <Box
-        ref={draggableRef}
-        closeFunc={() => setDisplay("hidden")}
-        sx={style}
-      >
-        {displayedContent}
-      </Box>
+      {displayedContent}
     </Draggable>
   );
 }
