@@ -152,42 +152,20 @@ function CsetComparisonPage(props) {
   const editCodesetFunc = getEditCodesetFunc({ searchParams, setSearchParams });
 
   if (addCset) {
-    const dummy_cset_col = {
-      codeset_id: 0,
-    };
-
     selected_csets.push({
-      dummy_cset_col,
       codeset_id: 0,
-      headerProps: {
-        //tooltipContent: "Click to create and edit new draft of this concept set",
-        tooltipContent: "New Concept Set. Click to edit new version.",
-        headerContent: "New Concept Set",
-        headerContentProps: {
-          onClick: editCodesetFunc,
-          codeset_id: 0,
-        },
-      },
-      selector: (row) => {
-        return cellContents({
-          ...props,
-          row,
-          dummy_cset_col,
-          editAction,
-        });
-      },
-      conditionalCellStyles: [
-        {
-          when: (row) => true, //csmiLookup[codeset_id][row.concept_id],
-          // when: row => row.checkboxes && row.checkboxes[codeset_id],
-          style: (row) => cellStyle({ ...props, dummy_cset_col, row }),
-        },
-      ],
-      sortable: !nested,
-      // compact: true,
-      width: 80,
-      // center: true,
+      concept_set_name: "New Concept Set",
+      concept_set_version_title: "New Concept Set. Click to edit new version.",
     });
+  } else {
+    let i = 0;
+    while (i < selected_csets.length) {
+      if (selected_csets[i].codeset_id === 0) {
+        selected_csets.splice(i, 1);
+        continue;
+      }
+      i++;
+    }
   }
 
   let columns = colConfig({
