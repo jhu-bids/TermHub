@@ -19,6 +19,7 @@ import { CheckCircleRounded } from "@mui/icons-material";
 import { Inspector } from 'react-inspector'; // https://github.com/storybookjs/react-inspector
 import { compress, decompress } from 'lz-string'; // using in persister to handle big result sets
 import {formatEdges} from '../components/ConceptGraph';
+import { FlexibleContainer, ErrorAlert } from "../components/FlexibleContainer";
 
 window.axios = axios
 
@@ -56,7 +57,14 @@ const stateDoc = `
 `;
 
 export function prefetch(props) {
-  const {codeset_ids} = props;
+  const {itemType, codeset_ids} = props;
+  switch(itemType) {
+    case 'all_csets':
+      fetchItems(itemType);
+      break;
+    default:
+      throw new Error(`Don't know how to prefetch ${itemType}`);
+  }
 }
 export async function fetchItems( itemType, paramList) {
   if (isEmpty(paramList)) {
@@ -299,7 +307,7 @@ class DataAccess {
   }
   async cacheCheck() {
     const url = 'last-refreshed';
-    const tsStr = await axiosCall(url, {backend: true});
+    const tsStr = await axiosCall(url, {backend: true, verbose: false, });
     const ts = new Date(tsStr);
     if (isNaN(ts.getDate())) {
       throw new Error(`invalid date from ${url}: ${tsStr}`);
@@ -352,6 +360,7 @@ export function AppStateProvider({ children }) {
   const reducers = {
     hierarchySettings: [hierarchySettings, hsDispatch],
     editCset: useReducer(editCsetReducer, {}),
+    alerts: useReducer(alertsReducer, {}),
     // contentItems: useReducer(contentItemsReducer, defaultContentItems),
     // codeset_ids: useReducer(codeset_idsReducer, []),
     // concept_ids: useReducer(currentConceptIdsReducer, []),
@@ -385,9 +394,52 @@ export function AppStateProvider({ children }) {
 export function useAppState() {
   return useContext(CombinedReducersContext);
 }
+export function AlertMessages(props) {
+  const { state: alerts, dispatch: dispatch} = useStateSlice("alerts");
+
+  let alertsArray = Object.values(alerts);
+  if (alertsArray.length) {
+    return (
+        <FlexibleContainer title="Alerts"
+        >
+
+        </FlexibleContainer>);
+  }
+
+}
+const alertsReducer = (state, action) => {
+  /*
+      alerts for ongoing or failed api calls or other messages/warnings to display to users
+      {
+        id: 3, // or could be string with some meaning if desired
+        alertType: 'error', // or 'warning', 'apicall', ...
+        text: 'api call failed...' // ?
+        errObj: {} // from axios or whatever
+      }
+   */
+  if (!action || !action.type) return state;
+  let {type, id, payload} = action;
+  let alert;
+  if (typeof(id) !== 'undefined') {
+    alert = state[id];
+  }
+  switch (type) {
+    case "create":
+      if (alert) {
+        throw new Error(`alert with id ${id} already exists`, alert);
+      }
+      // let {alertType, text, errObj} = action.payload;
+      alert = {
+        ...action.payload,
+        id: id ?? Object.keys(state).length,
+        status: 'unread'
+      }
+      return {...state, alert};
+  }
+  throw new Error(`not sure what to do with action\n${JSON.stringify(action, null, 2)}`);
+}
 const editCsetReducer = (state, action) => {
-  if (!(action && action.type)) return state;
-  if (!action.type) return state;
+  if (!action || !action.type) return state;
   switch (action.type) {
     case "create_new_cset": {
       let newCset = {
@@ -636,22 +688,23 @@ function DataWidget(props) {
 
 export const backend_url = (path) => `${API_ROOT}/${path}`;
 
-export async function axiosCall(path, { backend = false, data,
-    returnDataOnly=true, useGetForSmallData = false, apiGetParamName }={}) {
+export async function axiosCall(path, {
+  backend = false, data, returnDataOnly=true, useGetForSmallData = false,
+  apiGetParamName, verbose = true,  }={}) {
   let url = backend ? backend_url(path) : path;
   try {
     let results;
     if (typeof(data) === 'undefined') {
-      console.log("axios.get url: ", url);
+      verbose && console.log("axios.get url: ", url);
       results = await axios.get(url);
     } else {
       if (useGetForSmallData && data.length <= 1000 ) {
         let qs = createSearchParams({[apiGetParamName]: data});
         url = url + '?' + qs;
-        console.log("axios.get url: ", url);
+        verbose && console.log("axios.get url: ", url);
         results = await axios.get(url);
       } else {
-        console.log("axios.post url: ", url, 'data', data);
+        verbose && console.log("axios.post url: ", url, 'data', data);
         results = await axios.post(url, data);
       }
     }
@@ -692,6 +745,8 @@ export function pathToArray(path) {
 }
 
 export function useDataWidget(ukey, url, putData=false) {
+  console.log("is this being used?")
+  debugger;
   const ax = putData ? () => axiosCall(url, {data:putData}) : () => axiosCall(url);
   const axVars = useQuery([ukey], ax);
   let dwProps = { ...axVars, ukey, url, putData };
