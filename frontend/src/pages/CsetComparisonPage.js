@@ -18,7 +18,6 @@ import {dfs, dfsFromNode} from 'graphology-traversal/dfs';
 import { saveAs } from 'file-saver';
 import Papa from 'papaparse';
 
-
 import { fmt, useWindowSize } from "../components/utils";
 import { setColDefDimensions } from "../components/dataTableUtils";
 import { ConceptSetCard } from "../components/ConceptSetCard";
@@ -151,12 +150,31 @@ function CsetComparisonPage(props) {
   });
   const editCodesetFunc = getEditCodesetFunc({ searchParams, setSearchParams });
 
-  if (addCset) {
-    selected_csets.push({
-      codeset_id: 0,
-      concept_set_name: "New Concept Set",
-      concept_set_version_title: "New Concept Set. Click to edit new version.",
-    });
+  if (true) {
+    if (selected_csets[selected_csets.length - 1].codeset_id !== 0) {
+      selected_csets.push({
+        codeset_id: 0,
+        concept_set_name: "New Concept Set",
+        concept_set_version_title: "New Concept Set. Click to edit new version.",
+      });
+    }
+
+    let sp = searchParamsToObj(searchParams);
+    let { csetEditState = {} } = sp;
+    let addProps, delProps;
+    if (sp.editCodesetId === 0) {
+      // clicked codeset is already being edited, so get rid of it
+      // delete csetEditState[codeset_id]; // have been keying editState on codeset_id so state
+      //  could be returned to when switching which codeset is being edited, but that's a bad idea.
+      //  should get rid of that, but don't have time at the moment
+      delProps = ["editCodesetId", "csetEditState"];
+      updateSearchParams({ ...props, delProps });
+    } else {
+      // clicked codeset is not already being edited, so set it to be edited
+      //  and clear editState
+      addProps = { editCodesetId: 0, csetEditState: {} };
+      updateSearchParams({ ...props, addProps });
+    }
   } else {
     let i = 0;
     while (i < selected_csets.length) {
