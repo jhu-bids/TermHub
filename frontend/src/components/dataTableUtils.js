@@ -78,7 +78,9 @@ function ColumnHeader(props) {
         {/* <span style={{whiteSpace: "nowrap", textOverflow: "ellipsis", overflow: "hidden"}}>
           {headerContent}
         </span> */}
-        {coldef.codeset_id ? <Edit sx={iconStyle} /> : <Info sx={iconStyle} />}
+        {
+          (coldef.codeset_id) ? <Edit sx={iconStyle} /> : <Info sx={iconStyle} />
+        }
       </span>
     );
   }
