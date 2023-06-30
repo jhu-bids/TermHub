@@ -33,13 +33,8 @@ import { ConceptSetsPage } from "./components/Csets";
 import { CsetComparisonPage } from "./pages/CsetComparisonPage";
 import { AboutPage } from "./pages/AboutPage";
 import { ConceptGraph } from "./components/ConceptGraph";
-import {
-  AppStateProvider,
-  searchParamsToObj,
-  updateSearchParams,
-  dataAccessor,
-  ViewCurrentState,
-} from "./components/State";
+import { AppStateProvider, searchParamsToObj, updateSearchParams,
+          dataAccessor, ViewCurrentState, prefetch, } from "./components/State";
 import { UploadCsvPage } from "./components/UploadCsv";
 import { DownloadJSON } from "./components/DownloadJSON";
 import MuiAppBar from "./components/MuiAppBar";
@@ -96,6 +91,7 @@ persistQueryClient({
     </BrowserRouter>
 */
 function QCProvider() {
+  // prefetch({itemType: 'all_csets'});
   return (
     // <React.StrictMode>
     // {/* StrictMode helps assure code goodness by running everything twice, but it's annoying*/}
