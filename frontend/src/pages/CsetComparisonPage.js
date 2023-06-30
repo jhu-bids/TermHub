@@ -56,6 +56,8 @@ function CsetComparisonPage(props) {
   const windowSize = useWindowSize();
   const boxRef = useRef();
   const countRef = useRef({ n: 0, z: 10 });
+  // panelPosition is the position of the top left point of the first pop-up panel to be opened.
+  // setPanelPosition is called when the height of the box containing the buttons change.
   const [panelPosition, setPanelPosition] = useState({ x: 0, y: 0 });
   const sizes = getSizes(/*squishTo*/ 1);
   const customStyles = styles(sizes);
