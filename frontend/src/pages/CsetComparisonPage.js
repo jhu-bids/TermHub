@@ -61,6 +61,7 @@ function CsetComparisonPage(props) {
   const countRef = useRef({ n: 0, z: 10 });
   // panelPosition is the position of the top left point of the first pop-up panel to be opened.
   // setPanelPosition is called when the height of the box containing the buttons change.
+  const [addCset, setAddCset] = useState(false);
   const [panelPosition, setPanelPosition] = useState({ x: 0, y: 0 });
   const sizes = getSizes(/*squishTo*/ 1);
   const customStyles = styles(sizes);
@@ -150,6 +151,45 @@ function CsetComparisonPage(props) {
   });
   const editCodesetFunc = getEditCodesetFunc({ searchParams, setSearchParams });
 
+  if (addCset) {
+    const dummy_cset_col = {
+      codeset_id: 0,
+    };
+
+    selected_csets.push({
+      dummy_cset_col,
+      codeset_id: 0,
+      headerProps: {
+        //tooltipContent: "Click to create and edit new draft of this concept set",
+        tooltipContent: "New Concept Set. Click to edit new version.",
+        headerContent: "New Concept Set",
+        headerContentProps: {
+          onClick: editCodesetFunc,
+          codeset_id: 0,
+        },
+      },
+      selector: (row) => {
+        return cellContents({
+          ...props,
+          row,
+          dummy_cset_col,
+          editAction,
+        });
+      },
+      conditionalCellStyles: [
+        {
+          when: (row) => true, //csmiLookup[codeset_id][row.concept_id],
+          // when: row => row.checkboxes && row.checkboxes[codeset_id],
+          style: (row) => cellStyle({ ...props, dummy_cset_col, row }),
+        },
+      ],
+      sortable: !nested,
+      // compact: true,
+      width: 80,
+      // center: true,
+    });
+  }
+
   let columns = colConfig({
     ...props,
     csmi,
@@ -210,10 +250,9 @@ function CsetComparisonPage(props) {
     <FlexibleContainer key="legend" title="Legend" position={panelPosition} countRef={countRef}>
       <Legend editing={!!editCodesetId}/>
     </FlexibleContainer>,
-    /*
     <Button key="add-cset"
             variant="outlined"
-            onClick={() => editCsetDispatch(editCset, {type:'create_new_cset'})}
+            onClick={() => setAddCset(x => !x)}
             sx={{
               cursor: 'pointer',
               marginRight: '4px',
@@ -221,7 +260,6 @@ function CsetComparisonPage(props) {
     >
       add a new concept set
     </Button>,
-     */
   ];
 
   let edited_cset;
@@ -753,6 +791,7 @@ function colConfig(props) {
     };
     return def;
   });
+
   coldefs = [...coldefs, ...cset_cols];
   // coldefs.forEach(d => {delete d.width; d.flexGrow=1;})
   // coldefs[0].grow = 5;
