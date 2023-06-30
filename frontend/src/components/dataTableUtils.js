@@ -135,7 +135,7 @@ function setColDefHeader(coldef) {
   } else {
     if (!name) {
       throw new Error(
-        "coldef included neither name and headerContent; need one."
+        "coldef included neither name nor headerContent; need one."
       );
     }
     headerContent = name;

@@ -30,7 +30,7 @@ export function getEditCodesetFunc(props) {
       colHeaderEl = colHeaderEl.parentNode;
     }
     const codeset_id = parseInt(colHeaderEl.getAttribute("codeset_id"));
-    if (!codeset_id)
+    if (typeof codeset_id !== "number")
       throw new Error("error getting codeset_id during col header click");
     let sp = searchParamsToObj(searchParams);
     let { csetEditState = {} } = sp;
