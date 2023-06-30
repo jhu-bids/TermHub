@@ -380,13 +380,7 @@ def fetch_cset_and_member_objects(
 
 def csets_and_members_to_db(con: Connection, schema: str, csets_and_members: Dict[str, List[Dict]] = None):
     """Update database with csets and members.
-    todo: add_object_to_db(): support multiple objects with single insert
-    todo: @Sigfried I fetch new csets, and I add their concepts to this table if they're not there already. Potentially
-     useful if we don't update our vocab tables as soon as the Enclave's are updated, but perhaps this is an unnecessary
-     step I can remove. What do you think?
-
-    todo: @joeflack4: I don't really understand this function. can you walk me through it so I can answer your question?
-     """
+    todo: add_object_to_db(): support multiple objects with single insert"""
     # Core cset tables: with normal, single primary keys
     for object_type_name, objects in csets_and_members.items():
         print(f'Running SQL inserts in core tables for: {object_type_name}...')
