@@ -6,6 +6,10 @@ import Box from "@mui/material/Box";
 import Button from "@mui/material/Button";
 import zIndex from "@mui/material/styles/zIndex";
 
+export function ErrorAlert(props) {
+  const {msg, err} = props;
+
+}
 export function FlexibleContainer({ title, position, children, countRef,
                                     startHidden=true,}) {
   const [display, setDisplay] = useState(startHidden ? "hidden" : "shown");

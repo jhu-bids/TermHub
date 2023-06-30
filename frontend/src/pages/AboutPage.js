@@ -68,7 +68,7 @@ let DOCS = {};
 
 const handleRefresh = async () => {
   try {
-    await axiosCall('db-refresh', {backend: true});
+    await axiosCall('db-refresh', {backend: true, verbose: false, });
     console.log('Triggered: database refresh');
   } catch (error) {
     console.error('Error:', error);
