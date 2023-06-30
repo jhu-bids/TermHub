@@ -55,45 +55,8 @@ const stateDoc = `
       Manage all/
 `;
 
-export function ViewCurrentState(props) {
-  const [searchParams, setSearchParams] = useSearchParams();
-  const sp = searchParamsToObj(searchParams, setSearchParams);
-  const appState = useAppState();
-  return (<div style={{margin: 30, }}>
-    <h1>Current state</h1>
-
-    <h2>query string parameters</h2>
-    <Inspector data={sp} />
-
-    <h2>props</h2>
-    <Inspector data={props} />
-
-    <h2>app state (reducers)</h2>
-    <Inspector data={appState.getState()} />
-
-    <h2>dataAccessor</h2>
-    <Inspector data={dataAccessor.getWholeCache()} />
-
-
-    <h2>The different kinds of state</h2>
-    <pre>{stateDoc}</pre>
-  </div>);
-}
-async function oneToOneFetchAndCache(itemType, api, postData, paramList, useGetForSmallData, apiGetParamName ) {
-  // We expect a 1-to-1 relationship between paramList items (e.g., concept_ids)
-  //  and retrieved items (e.g., concepts)
-  let data = await axiosCall(api, {backend:true, data: postData, useGetForSmallData, apiGetParamName });
-
-  if (!Array.isArray(data)) {
-    data = Object.values(data);
-  }
-  if (data.length !== paramList.length) {
-    throw new Error(`oneToOneFetchAndCache for ${itemType} requires matching result data and paramList lengths`);
-  }
-  data.forEach((item,i) => {
-    dataAccessor.cachePut([itemType, paramList[i]], item);
-  });
-  return data;
+export function prefetch(props) {
+  const {codeset_ids} = props;
 }
 export async function fetchItems( itemType, paramList) {
   if (isEmpty(paramList)) {
@@ -201,6 +164,22 @@ export async function fetchItems( itemType, paramList) {
     default:
       throw new Error(`Don't know how to fetch ${itemType}`);
   }
+}
+async function oneToOneFetchAndCache(itemType, api, postData, paramList, useGetForSmallData, apiGetParamName ) {
+  // We expect a 1-to-1 relationship between paramList items (e.g., concept_ids)
+  //  and retrieved items (e.g., concepts)
+  let data = await axiosCall(api, {backend:true, data: postData, useGetForSmallData, apiGetParamName });
+
+  if (!Array.isArray(data)) {
+    data = Object.values(data);
+  }
+  if (data.length !== paramList.length) {
+    throw new Error(`oneToOneFetchAndCache for ${itemType} requires matching result data and paramList lengths`);
+  }
+  data.forEach((item,i) => {
+    dataAccessor.cachePut([itemType, paramList[i]], item);
+  });
+  return data;
 }
 
 class DataAccess {
@@ -718,4 +697,28 @@ export function useDataWidget(ukey, url, putData=false) {
   let dwProps = { ...axVars, ukey, url, putData };
   const dw = <DataWidget {...dwProps} />;
   return [dw, dwProps]; // axVars.data];
+}
+export function ViewCurrentState(props) {
+  const [searchParams, setSearchParams] = useSearchParams();
+  const sp = searchParamsToObj(searchParams, setSearchParams);
+  const appState = useAppState();
+  return (<div style={{margin: 30, }}>
+    <h1>Current state</h1>
+
+    <h2>query string parameters</h2>
+    <Inspector data={sp} />
+
+    <h2>props</h2>
+    <Inspector data={props} />
+
+    <h2>app state (reducers)</h2>
+    <Inspector data={appState.getState()} />
+
+    <h2>dataAccessor</h2>
+    <Inspector data={dataAccessor.getWholeCache()} />
+
+
+    <h2>The different kinds of state</h2>
+    <pre>{stateDoc}</pre>
+  </div>);
 }

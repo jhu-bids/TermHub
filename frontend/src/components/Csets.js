@@ -16,7 +16,7 @@ import CardContent from "@mui/material/CardContent";
 import Typography from "@mui/material/Typography";
 // import * as po from '../pages/Popover';
 import { DOCS } from "../pages/AboutPage";
-import {dataAccessor, fetchItems, getResearcherIdsFromCsets, } from "./State";
+import {dataAccessor, fetchItems, getResearcherIdsFromCsets, prefetch, } from "./State";
 
 /* TODO: Solve
     react_devtools_backend.js:4026 MUI: The value provided to Autocomplete is invalid.
@@ -44,7 +44,7 @@ function initialOpts(all_csets, codesetIds) {
 }
 export function CsetSearch(props) {
   const { codeset_ids=[], changeCodesetIds, all_csets, } = props;
-  const [value, setValue] = useState([]);
+  const [value, setValue] = useState(codeset_ids);
 
   // const [keyForRefreshingAutocomplete, setKeyForRefreshingAutocomplete] = useState(0);
   // necessary to change key for reset because of Autocomplete bug, according to https://stackoverflow.com/a/59845474/1368860
@@ -64,6 +64,7 @@ export function CsetSearch(props) {
       value={value}
       onChange={(event, newValue) => {
         setValue(newValue.map(option => option.value || option));
+        prefetch({codeset_ids: newValue});
       }}
       isOptionEqualToValue={(opt, value) => {
         return opt.value === value;
