@@ -394,7 +394,7 @@ def csets_and_members_to_db(con: Connection, schema: str, csets_and_members: Dic
         objects = [obj['properties'] if 'properties' in obj else obj for obj in objects]
         add_objects_to_db(con, object_type_name, objects)
         t1 = datetime.now()
-        print(f'  - {object_type_name} inserts completed in {(t1 - t0).seconds} seconds')
+        print(f'  - completed in {(t1 - t0).seconds} seconds')
 
     # Core cset tables with: composite primary keys
     print('Running SQL inserts in core tables for: concept_set_members...')
