@@ -55,6 +55,6 @@ SELECT ac.*, cscnt.counts, cscnt.counts->>'Members' as concepts
 FROM ac
 LEFT JOIN {{schema}}codeset_counts cscnt ON ac.codeset_id = cscnt.codeset_id;
 
-CREATE INDEX ac_idx1 ON {{schema}}all_csets{{optional_suffix}}(codeset_id);
+CREATE INDEX ac_idx1{{optional_index_suffix}} ON {{schema}}all_csets{{optional_suffix}}(codeset_id);
 
-CREATE INDEX ac_idx2 ON {{schema}}all_csets{{optional_suffix}}(concept_set_name);
+CREATE INDEX ac_idx2{{optional_index_suffix}} ON {{schema}}all_csets{{optional_suffix}}(concept_set_name);

@@ -52,9 +52,9 @@ def refresh_db(
             # will be calling this when it's ready: all_new_objects_enclave_to_db
 
         counts_update('DB refresh.', schema, local)
+        update_db_status_var('refresh_status', 'inactive', local)
         update_db_status_var('last_refresh_success', current_datetime(), local)
         update_db_status_var('last_refresh_result', 'success', local)
-        update_db_status_var('refresh_status', 'inactive', local)
         print(f'INFO: Database refresh complete in {(datetime.now() - t0).seconds} seconds.')
 
     except Exception as err:

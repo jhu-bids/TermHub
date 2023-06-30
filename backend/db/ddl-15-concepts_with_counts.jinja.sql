@@ -18,7 +18,7 @@ CREATE TABLE IF NOT EXISTS {{schema}}concepts_with_counts AS (
     GROUP BY 1,2,3,4,5,6,7,8
     ORDER BY concept_id, domain );
 
-CREATE INDEX cc_idx1 ON {{schema}}concepts_with_counts(concept_id);
+CREATE INDEX cc_idx1{{optional_index_suffix}} ON {{schema}}concepts_with_counts(concept_id);
 
 -- the following drop table is causing errors with the initialize script
 -- @joeflack4: this table isn't needed after creating concepts_with_counts
