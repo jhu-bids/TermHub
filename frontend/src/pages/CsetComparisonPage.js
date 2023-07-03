@@ -9,6 +9,7 @@ import * as d3dag from "d3-dag";
 import DataTable, { createTheme } from "react-data-table-component";
 import { AddCircle, RemoveCircleOutline, Download } from "@mui/icons-material";
 import { Box, Slider, Button, Typography, Switch } from "@mui/material";
+import { IconButton } from "@mui/material";
 import Draggable from "react-draggable";
 // import {Checkbox} from "@mui/material";
 import {isEmpty, get, throttle, max, union, uniqBy, flatten, sortBy} from "lodash"; // set, map, omit, pick, uniq, reduce, cloneDeepWith, isEqual, uniqWith, groupBy,
@@ -36,6 +37,7 @@ import { FlexibleContainer } from "../components/FlexibleContainer";
 import {useStateSlice} from "../state/AppState";
 import {useDataCache} from "../state/DataCache";
 import {useDataGetter, getResearcherIdsFromCsets} from "../state/DataGetter";
+import CloseIcon from "@mui/icons-material/Close";
 
 // TODO: Find concepts w/ good overlap and save a good URL for that
 // TODO: show table w/ hierarchical indent
@@ -58,9 +60,7 @@ function CsetComparisonPage(props) {
   const windowSize = useWindowSize();
   const boxRef = useRef();
   const countRef = useRef({ n: 0, z: 10 });
-  // panelPosition is the position of the top left point of the first pop-up panel to be opened.
-  // setPanelPosition is called when the height of the box containing the buttons change.
-  const [addCset, setAddCset] = useState(false);
+  const [addNewCsetDisplay, setAddNewCsetDisplay] = useState(true);
   const [panelPosition, setPanelPosition] = useState({ x: 0, y: 0 });
   const sizes = getSizes(/*squishTo*/ 1);
   const customStyles = styles(sizes);
@@ -150,42 +150,6 @@ function CsetComparisonPage(props) {
   });
   const editCodesetFunc = getEditCodesetFunc({ searchParams, setSearchParams });
 
-  if (true) {
-    if (selected_csets[selected_csets.length - 1].codeset_id !== 0) {
-      selected_csets.push({
-        codeset_id: 0,
-        concept_set_name: "New Concept Set",
-        concept_set_version_title: "New Concept Set. Click to edit new version.",
-      });
-    }
-
-    let sp = searchParamsToObj(searchParams);
-    let { csetEditState = {} } = sp;
-    let addProps, delProps;
-    if (sp.editCodesetId === 0) {
-      // clicked codeset is already being edited, so get rid of it
-      // delete csetEditState[codeset_id]; // have been keying editState on codeset_id so state
-      //  could be returned to when switching which codeset is being edited, but that's a bad idea.
-      //  should get rid of that, but don't have time at the moment
-      delProps = ["editCodesetId", "csetEditState"];
-      updateSearchParams({ ...props, delProps });
-    } else {
-      // clicked codeset is not already being edited, so set it to be edited
-      //  and clear editState
-      addProps = { editCodesetId: 0, csetEditState: {} };
-      updateSearchParams({ ...props, addProps });
-    }
-  } else {
-    let i = 0;
-    while (i < selected_csets.length) {
-      if (selected_csets[i].codeset_id === 0) {
-        selected_csets.splice(i, 1);
-        continue;
-      }
-      i++;
-    }
-  }
-
   let columns = colConfig({
     ...props,
     csmi,
@@ -200,6 +164,7 @@ function CsetComparisonPage(props) {
     displayedRows,
     hierarchySettings,
     hsDispatch,
+    setAddNewCsetDisplay,
   });
 
   let infoPanels = [
@@ -248,10 +213,27 @@ function CsetComparisonPage(props) {
     </FlexibleContainer>,
     <Button key="add-cset"
             variant="outlined"
-            onClick={() => setAddCset(x => !x)}
+            onClick={() => {
+              setAddNewCsetDisplay(false);
+              if (selected_csets[selected_csets.length - 1].codeset_id !== 0) {
+                selected_csets.push({
+                  codeset_id: 0,
+                  concept_set_name: "New Concept Set",
+                  concept_set_version_title: "New Concept Set",
+                });
+              }
+
+              let sp = searchParamsToObj(searchParams);
+              let { csetEditState = {} } = sp;
+              // clicked codeset is not already being edited, so set it to be edited
+              //  and clear editState
+              const addProps = { editCodesetId: 0, csetEditState: {} };
+              updateSearchParams({ ...props, addProps });
+            }}
             sx={{
               cursor: 'pointer',
               marginRight: '4px',
+              display: addNewCsetDisplay ? "flex" : "none",
             }}
     >
       add a new concept set
@@ -557,6 +539,7 @@ function colConfig(props) {
     displayedRows,
     hierarchySettings,
     hsDispatch,
+    setAddNewCsetDisplay,
   } = props;
   const {collapsePaths, collapsedDescendantPaths, nested, hideRxNormExtension, hideZeroCounts} = hierarchySettings;
 
@@ -758,10 +741,9 @@ function colConfig(props) {
       codeset_id,
       headerProps: {
         //tooltipContent: "Click to create and edit new draft of this concept set",
-        tooltipContent: `${cset_col.concept_set_version_title}. Click to edit new version.`,
+        tooltipContent: `${cset_col.concept_set_version_title}. Click to sort.`,
         headerContent: cset_col.concept_set_name,
         headerContentProps: {
-          onClick: editCodesetFunc,
           codeset_id: cset_col.codeset_id,
         },
       },
@@ -785,6 +767,36 @@ function colConfig(props) {
       width: 80,
       // center: true,
     };
+
+    if (codeset_id === 0) {
+      def.headerProps.headerContent = <div style={{display: 'flex', flexDirection: 'column'}}>
+        <Tooltip label={def.headerProps.tooltipContent}>
+          <div>{def.headerProps.headerContent}</div>
+        </Tooltip>
+        <Tooltip label="Remove this column">
+          <IconButton
+              onClick={() => {
+                let i = 0;
+                while (i < selected_csets.length) {
+                  if (selected_csets[i].codeset_id === 0) {
+                    selected_csets.splice(i, 1);
+                    continue;
+                  }
+                  i++;
+                }
+                setAddNewCsetDisplay(true);
+
+                const delProps = ["editCodesetId", "csetEditState"];
+                updateSearchParams({ ...props, delProps });
+              }}
+          >
+            <CloseIcon />
+          </IconButton>
+        </Tooltip>
+      </div>;
+      delete def.headerProps.tooltipContent;
+    }
+
     return def;
   });
 
