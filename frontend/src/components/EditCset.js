@@ -10,7 +10,6 @@ import Typography from "@mui/material/Typography";
 import { isEmpty, get, pick } from "lodash"; // set, map, omit, pick, uniq, reduce, cloneDeepWith, isEqual, uniqWith, groupBy,
 import IconButton from "@mui/material/IconButton";
 import { Tooltip } from "./Tooltip";
-import { backend_url } from "../state/State";
 import {
   LI,
   TextH2,
@@ -18,7 +17,8 @@ import {
   howToSaveStagedChanges,
 } from "../pages/AboutPage";
 import _ from "../supergroup/supergroup";
-import {searchParamsToObj, updateSearchParams} from "../state/urlState";
+import {searchParamsToObj, updateSearchParams} from "../state/SearchParamsProvider";
+import {backend_url} from "../state/DataGetter";
 
 const checkmark = <span>{"\u2713"}</span>;
 export function getEditCodesetFunc(props) {

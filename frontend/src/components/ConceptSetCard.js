@@ -7,7 +7,8 @@ import IconButton from "@mui/material/IconButton";
 import CloseIcon from "@mui/icons-material/Close";
 // import Box from '@mui/material/Box';
 import { useLocation } from "react-router-dom";
-import { backend_url } from "../state/State";
+
+import {backend_url} from "../state/DataGetter";
 
 /*
 import { styled } from '@mui/material/styles';

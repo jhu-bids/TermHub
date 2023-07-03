@@ -1,8 +1,30 @@
+import {createContext, useContext, } from "react";
 import {LRUCache} from 'lru-cache'; // https://isaacs.github.io/node-lru-cache
 import {debounce, get, isEmpty, set, uniq} from 'lodash';
-import {axiosCall, backend_url, fetchItems, pathToArray} from './State';
 import {compress, decompress} from "lz-string";
+import {axiosCall, fetchItems, pathToArray} from "./DataGetter";
 
+/*
+		TODO: get LRU cache working, one cache for each itemType, probably
+ */
+
+const DataCacheContext = createContext(null);
+
+export function DataCacheProvider({children}) {
+	const dataCache = new DataCache();
+	window.addEventListener("beforeunload", dataCache.saveCache);
+	window.dataCacheW = dataCache; // for debugging
+
+	return (
+			<DataCacheContext.Provider value={dataCache}>
+				{children}
+			</DataCacheContext.Provider>
+	);
+}
+
+export function useDataCache() {
+	return useContext(DataCacheContext);
+}
 
 class DataCache {
 	#cache = {};
@@ -13,7 +35,7 @@ class DataCache {
 												keys = [],
 												shape = 'array', /* or obj */
 												createFunc,
-												returnFunc
+												returnFunc,
 											}) {
 		if (isEmpty(keys)) {
 			return shape === 'array' ? [] : {};
@@ -36,10 +58,7 @@ class DataCache {
 			}
 		})
 		if (uncachedKeys.length) {
-			const data = await fetchItems(
-					itemType,
-					uncachedKeys,
-			);
+			const data = await fetchItems( itemType, uncachedKeys, this);
 			data.forEach((item, i) => uncachedItems[uncachedKeys[i]] = item);
 		}
 		const results = {...cachedItems, ...uncachedItems};
@@ -156,10 +175,6 @@ class DataCache {
 		return lr;
 	}
 }
-export const dataCache = new DataCache();
-window.addEventListener("beforeunload", dataCache.saveCache);
-window.dataCacheW = dataCache; // for debugging
-
 
 class DataAccessWithLRU {
 	constructor() {

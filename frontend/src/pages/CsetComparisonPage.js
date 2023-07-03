@@ -19,7 +19,6 @@ import { saveAs } from 'file-saver';
 import Papa from 'papaparse';
 
 
-import { fetchItems, getResearcherIdsFromCsets } from "../state/State";
 import { fmt, useWindowSize } from "../components/utils";
 import { setColDefDimensions } from "../components/dataTableUtils";
 import { ConceptSetCard } from "../components/ConceptSetCard";
@@ -36,7 +35,8 @@ import {
 } from "../components/EditCset";
 import { FlexibleContainer } from "../components/FlexibleContainer";
 import {useStateSlice} from "../state/AppState";
-import {dataCache} from "../state/DataCache";
+import {useDataCache} from "../state/DataCache";
+import {fetchItems, getResearcherIdsFromCsets} from "../state/DataGetter";
 
 // TODO: Find concepts w/ good overlap and save a good URL for that
 // TODO: show table w/ hierarchical indent
@@ -52,6 +52,7 @@ function CsetComparisonPage(props) {
   } = props;
   // const { selected_csets = [], researchers, } = cset_data;
   const { state: hierarchySettings, dispatch: hsDispatch} = useStateSlice("hierarchySettings");
+  const dataCache = useDataCache();
   const { state: editCset, dispatch: editCsetDispatch} = useStateSlice("editCset");
   const {collapsePaths, collapsedDescendantPaths, nested, hideRxNormExtension, hideZeroCounts} = hierarchySettings;
   const windowSize = useWindowSize();
@@ -101,7 +102,7 @@ function CsetComparisonPage(props) {
           });
 
       // have to get edges, which might contain more concept_ids after filling gaps
-      const edges = await fetchItems('edges', concept_ids, );
+      const edges = await fetchItems('edges', concept_ids, dataCache, );
       concept_ids = union(concept_ids.map(String), flatten(edges));
       promises.push(
           dataCache.getItemsByKey(
