@@ -33,11 +33,13 @@ import { ConceptSetsPage } from "./components/Csets";
 import { CsetComparisonPage } from "./pages/CsetComparisonPage";
 import { AboutPage } from "./pages/AboutPage";
 import { ConceptGraph } from "./components/ConceptGraph";
-import { AppStateProvider, searchParamsToObj, updateSearchParams,
-          dataAccessor, ViewCurrentState, prefetch, } from "./components/State";
+import { ViewCurrentState, prefetch, AlertMessages, } from "./state/State";
 import { UploadCsvPage } from "./components/UploadCsv";
 import { DownloadJSON } from "./components/DownloadJSON";
 import MuiAppBar from "./components/MuiAppBar";
+import {searchParamsToObj, updateSearchParams} from "./state/urlState";
+import {AppStateProvider} from "./state/AppState";
+import {dataCache} from "./state/DataCache";
 
 export const queryClient = new QueryClient({
   defaultOptions: {
@@ -115,7 +117,7 @@ function QCProvider() {
 }
 function QueryStringStateMgr(props) {
   const location = useLocation();
-  const [lastRefresh, setLastRefresh] = useState(dataAccessor.lastRefreshed());
+  const [lastRefresh, setLastRefresh] = useState(dataCache.lastRefreshed());
   const [searchParams, setSearchParams] = useSearchParams();
   // gets state (codeset_ids for now) from query string, passes down through props
   // const [codeset_ids, setCodeset_ids] = useState(sp.codeset_ids || []);
@@ -124,7 +126,7 @@ function QueryStringStateMgr(props) {
 
   useEffect(() => {
     (async () => {
-      const timestamp = await dataAccessor.cacheCheck();
+      const timestamp = await dataCache.cacheCheck();
       if (timestamp > lastRefresh) {
         setLastRefresh(timestamp);
       }
@@ -245,6 +247,7 @@ function App(props) {
         <MuiAppBar {...props}>
           {/* Outlet: Will render the results of whatever nested route has been clicked/activated. */}
         </MuiAppBar>
+        <AlertMessages {...props} />
         <Outlet />
       </div>
     </ThemeProvider>

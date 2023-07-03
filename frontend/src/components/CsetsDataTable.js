@@ -1,9 +1,8 @@
 import React, { useState, useCallback, useEffect } from "react";
-import ReactDOM from "react-dom/client";
-import { orderBy, get, remove, throttle } from "lodash";
+import { throttle } from "lodash";
 import DataTable, { createTheme } from "react-data-table-component";
 import { fmt, pct_fmt } from "./utils";
-import { fetchItems, StatsMessage, useStateSlice, } from "./State";
+import { StatsMessage, } from "../state/State";
 import { Tooltip } from "./Tooltip";
 // import Checkbox from '@material-ui/core/Checkbox';
 // import ArrowDownward from '@material-ui/icons/ArrowDownward';
