@@ -9,7 +9,8 @@ import Button from "@mui/material/Button";
 import { TextField, } from "@mui/material";
 import { Link, useLocation } from "react-router-dom";
 import VERSION from "../version";
-import {axiosCall, dataAccessor} from "../components/State";
+import {axiosCall} from "../state/State";
+import {dataCache} from "../state/DataCache";
 
 // import * as po from './Popover';
 
@@ -94,10 +95,10 @@ function AboutPage(props) {
 
   useEffect(() => {
     (async () =>{
-      let lastRefreshed = dataAccessor.lastRefreshed();
+      let lastRefreshed = dataCache.lastRefreshed();
       if (!lastRefreshed) {
-        await dataAccessor.cacheCheck();
-        lastRefreshed = dataAccessor.lastRefreshed();
+        await dataCache.cacheCheck();
+        lastRefreshed = dataCache.lastRefreshed();
         setLastRefreshed(lastRefreshed);
       }
     })()

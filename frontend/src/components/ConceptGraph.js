@@ -1,10 +1,11 @@
 import React, {useState, useEffect} from "react";
-import {dataAccessor, fetchItems, } from "./State";
+import {fetchItems, } from "../state/State";
 // import _ from "../supergroup/supergroup";
 import * as d3Base from "d3";
 import * as d3dag from "d3-dag";
 import Graph from "graphology";
 import {uniq, flatten, union, sortBy, max, groupBy, sum, } from "lodash";
+import {dataCache} from "../state/DataCache";
 
 const d3 = Object.assign({}, d3Base, d3dag);
 
@@ -46,7 +47,7 @@ export function ConceptGraph(props) {
 
   useEffect(() => {
     (async () => {
-      const concept_ids = await dataAccessor.getItemsByKey({
+      const concept_ids = await dataCache.getItemsByKey({
           itemType: 'concept_ids_from_codeset_ids',
           keys: codeset_ids,
           shape: 'obj',
@@ -56,7 +57,7 @@ export function ConceptGraph(props) {
           concepts,
           edges,
         ] = await Promise.all([
-        dataAccessor.getItemsByKey({
+        dataCache.getItemsByKey({
           itemType: 'concept',
           keys: concept_ids,
           shape: 'array'
