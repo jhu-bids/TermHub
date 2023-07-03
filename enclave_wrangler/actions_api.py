@@ -566,7 +566,7 @@ def upload_concept_set_container(
 
 
 def delete_concept_set_version(version_id: int, validate_first=VALIDATE_FIRST) -> Response:
-    """Delete a concept set version
+    """Delete a concept set version --- DRAFTS only, can't delete completed versions
 
     Cavaets:
     1. Amin said `isMostRecentVersion` note in API definition here does not matter for our use case, or it is not a
