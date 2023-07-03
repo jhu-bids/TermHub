@@ -3,14 +3,14 @@
  *  todo: 1. Siggie was going to add some sort of Table here
  * */
 import React, {useEffect, useState} from "react";
-import {queryClient} from "../App";
+// import {queryClient} from "../App";
 import Typography from "@mui/material/Typography";
 import Button from "@mui/material/Button";
 import { TextField, } from "@mui/material";
 import { Link, useLocation } from "react-router-dom";
 import VERSION from "../version";
-import {axiosCall} from "../state/State";
-import {dataCache} from "../state/DataCache";
+import {useDataCache} from "../state/DataCache";
+import {axiosCall} from "../state/DataGetter";
 
 // import * as po from './Popover';
 
@@ -87,6 +87,7 @@ function AboutPage(props) {
   //       return {Message, ConceptSetNames, CodesetIds, Concepts};
   //     }
   // )
+  const dataCache = useDataCache();
   const [codeset_ids, setCodeset_ids] = useState(props.codeset_ids);
   const [refreshButtonClicked, setRefreshButtonClicked] = useState();
   const [lastRefreshed, setLastRefreshed] = useState();
@@ -161,8 +162,10 @@ function AboutPage(props) {
         <ol>
           <LI>Try: Refreshing the page</LI>
           <LI>
-            Try clicking: <Button variant={"contained"}
-              onClick={() => queryClient.removeQueries()}
+            Try purging localStorage (by clicking here, or if you can't get to this page, open chrome(or other browser
+            console, and enter `localStorage.clear()`): <Button variant={"contained"}
+              // onClick={() => queryClient.removeQueries()}
+              onClick={() => localStorage.clear()}
             >
               Empty the data cache
             </Button>

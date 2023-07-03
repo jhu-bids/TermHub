@@ -1,5 +1,5 @@
-import {flatten, fromPairs, get} from "lodash";
 import React, {createContext, useContext, useReducer} from "react";
+import {flatten, fromPairs, get} from "lodash";
 
 export function useStateSlice(slice) {
   const appState = useAppState();

@@ -1,11 +1,11 @@
 import React, {useState, useEffect} from "react";
-import {fetchItems, } from "../state/State";
 // import _ from "../supergroup/supergroup";
 import * as d3Base from "d3";
+import {useDataCache} from "../state/DataCache";
 import * as d3dag from "d3-dag";
 import Graph from "graphology";
 import {uniq, flatten, union, sortBy, max, groupBy, sum, } from "lodash";
-import {dataCache} from "../state/DataCache";
+import {fetchItems} from "../state/DataGetter";
 
 const d3 = Object.assign({}, d3Base, d3dag);
 
@@ -36,6 +36,7 @@ export function formatEdges(edges=[]) {
 }
 export function ConceptGraph(props) {
   const {codeset_ids, use_example=false} = props;
+  const dataCache = useDataCache();
   const [data, setData] =
       useState({ concept_ids: [], edges: [], concepts: [], });
   const { concept_ids, edges, concepts, } = data;
@@ -48,7 +49,7 @@ export function ConceptGraph(props) {
   useEffect(() => {
     (async () => {
       const concept_ids = await dataCache.getItemsByKey({
-          itemType: 'concept_ids_from_codeset_ids',
+          itemType: 'concept_ids_by_codeset_id',
           keys: codeset_ids,
           shape: 'obj',
           returnFunc: results => union(...Object.values(results))
@@ -58,13 +59,13 @@ export function ConceptGraph(props) {
           edges,
         ] = await Promise.all([
         dataCache.getItemsByKey({
-          itemType: 'concept',
+          itemType: 'concepts',
           keys: concept_ids,
           shape: 'array'
         }),
         ( use_example === 1 && simpleGraphExample ||
           use_example === 2 && mediumGraphExample ||
-          fetchItems('edge', concept_ids)
+          fetchItems('edges', concept_ids, dataCache)
         )
       ]);
       setData({concept_ids, edges: formatEdges(edges), concepts});

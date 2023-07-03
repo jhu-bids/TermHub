@@ -16,8 +16,8 @@ import CardContent from "@mui/material/CardContent";
 import Typography from "@mui/material/Typography";
 // import * as po from '../pages/Popover';
 import { DOCS } from "../pages/AboutPage";
-import {fetchItems, getResearcherIdsFromCsets, prefetch, } from "../state/State";
-import {dataCache} from "../state/DataCache";
+import {useDataCache} from "../state/DataCache";
+import {fetchItems, getResearcherIdsFromCsets, prefetch} from "../state/DataGetter";
 
 /* TODO: Solve
     react_devtools_backend.js:4026 MUI: The value provided to Autocomplete is invalid.
@@ -161,13 +161,14 @@ export function CsetSearch(props) {
 
 function ConceptSetsPage(props) {
   const { codeset_ids } = props;
+  const dataCache = useDataCache();
   const [data, setData] = useState({});
   const { all_csets, concept_ids, relatedCodesetIds, selected_csets,
           allRelatedCsets, relatedCsets, researchers, } = data;
 
   useEffect(() => {
     (async () => {
-      let all_csets = fetchItems('all_csets', ['stub']);
+      let all_csets = fetchItems('all_csets', ['stub'], dataCache);
       let selected_csets = dataCache.getItemsByKey(
           { itemType: 'csets', keys: codeset_ids, shape: 'array',
             returnFunc: results => [...Object.values(results)]} ); // isn't this the same as shape: 'array'?
@@ -231,8 +232,6 @@ function ConceptSetsPage(props) {
       relatedCsets = orderBy( relatedCsets, ["selected", "precision"], ["desc", "desc"] );
 
       researchers = await researchers;
-      // const allRelatedCsets = await fetchItems('related_csets', codeset_ids, );
-      // const selected_csets = allRelatedCsets.filter(cset => cset.selected);
       setData({ all_csets, concept_ids, relatedCodesetIds, selected_csets,
                 relatedCsets, allRelatedCsets, researchers, });
     })()

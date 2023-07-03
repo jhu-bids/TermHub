@@ -96,7 +96,7 @@ def get_all_researcher_ids(rows: List[Dict]) -> Set[str]:
 #   'container_status', 'container_created_by']
 #  see fixes above. i think everything here is fixed now
 # TODO: Performance: takes ~75sec on http://127.0.0.1:8000/cr-hierarchy?format=flat&codeset_ids=400614256|87065556
-def get_related_csets(
+def get_related_csetsOBSOLETE(  # not calling this from front end anymore. can remove tests
     codeset_ids: List[int] = None, selected_concept_ids: List[int] = None,
     include_atlas_json=False, con=CON, verbose=True
 ) -> List[Dict]:
@@ -316,14 +316,6 @@ def _get_csets(codeset_ids: Union[str, None] = Query(default=''),
         for cset in csets:
             del cset['atlas_json']
     return csets
-
-
-@router.get("/related-csets")
-def _get_related_csets(codeset_ids: Union[str, None] = Query(default=''),
-                       include_atlas_json = False) -> List[Dict]:
-    """Route for: get_related_csets()"""
-    codeset_ids: List[int] = parse_codeset_ids(codeset_ids)
-    return get_related_csets(codeset_ids, include_atlas_json)
 
 
 @router.get("/researchers")
