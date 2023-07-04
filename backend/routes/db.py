@@ -5,12 +5,13 @@
 from fastapi import APIRouter, Query
 import json
 import requests
-from datetime import datetime
 from typing import Dict, List, Union, Set
 from functools import cache
 import urllib.parse
+
+from requests import Response
 from sqlalchemy.engine import RowMapping
-from backend.utils import JSON_TYPE, get_timer, return_err_with_trace
+from backend.utils import JSON_TYPE, call_github_action, get_timer, return_err_with_trace
 from backend.db.utils import get_db_connection, sql_query, SCHEMA, sql_query_single_col, sql_in
 from backend.db.queries import get_concepts
 from enclave_wrangler.objects_api import get_n3c_recommended_csets, enclave_api_call_caller, get_codeset_json, \
@@ -353,21 +354,11 @@ def _cset_members_items(codeset_ids: Union[str, None] = Query(default=''), ) -> 
     codeset_ids: List[int] = parse_codeset_ids(codeset_ids)
     return get_cset_members_items(codeset_ids)
 
-@router.get("/db-refresh")
-def db_refresh_route():
-    """Triggers refresh of the database"""
 
-    headers = {
-        "Authorization": f"Bearer {CONFIG['personal_access_token']}",
-        "Accept": "application/vnd.github.v3+json",
-        "Content-Type": "application/json"
-    }
-    # args = {"event-type":"refresh-db"}
-    url = 'https://api.github.com/repos/jhu-bids/TermHub/dispatches'
-    payload = {
-        'event_type': 'refresh-db',
-    }
-    response = requests.post(url, headers = headers,data=json.dumps(payload))
+@router.get("/db-refresh")
+def db_refresh_route() -> Response:
+    """Triggers refresh of the database"""
+    response: Response = call_github_action('refresh-db')
     return response
 
 # TODO: if using this at all, fix it to use graph.hierarchy, which doesn't need root_cids

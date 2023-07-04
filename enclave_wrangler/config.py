@@ -71,6 +71,11 @@ FAVORITE_OBJECTS = [
     #     'OMOPConceptSetContainer',
     #     'OmopConceptSetVersionItem',
 ]
+# todo: refactor/rename: This is more than just favorite datasets now. This is a data model configuration. Ideally, all
+#  tables should have an entry here, and we should add a key 'favorited_dataset' (bool) under each.
+#  For example, models.py PKEYS still has some of this primary key info.
+# todo: All indexes should be listed here, and initialize/refresh refactored such that indexex get created by generating
+#  SQL from here, rather than reading from the DDL files.
 # Ordered because of transformation dependencies
 FAVORITE_DATASETS = OrderedDict({
     # apparently concept_set_container has a lot more rows than concept_set_container_edited. not sure
@@ -82,7 +87,8 @@ FAVORITE_DATASETS = OrderedDict({
         'rid': 'ri.foundry.main.dataset.c9932f52-8b27-4e7b-bdb1-eec79e142182',
         'sort_idx': ['concept_set_name'],
         'converters': {'archived': lambda x: True if x == 'True' else False},  # this makes it a bool field
-        'dataset_groups': ['cset']
+        'dataset_groups': ['cset'],
+        'primary_key': 'concept_set_id'
     },
     # 'concept_set_container_edited': {
     #     'name': 'concept_set_container_edited',
@@ -94,20 +100,23 @@ FAVORITE_DATASETS = OrderedDict({
         'name': 'code_sets',
         'rid': 'ri.foundry.main.dataset.7104f18e-b37c-419b-9755-a732bfa33b03',
         'sort_idx': ['codeset_id'],
-        'dataset_groups': ['cset']
+        'dataset_groups': ['cset'],
+        'primary_key': 'codeset_id'
     },
     'concept_set_members': {
         'name': 'concept_set_members',
         'rid': 'ri.foundry.main.dataset.e670c5ad-42ca-46a2-ae55-e917e3e161b6',
         'sort_idx': ['codeset_id', 'concept_id'],
-        'dataset_groups': ['cset']
+        'dataset_groups': ['cset'],
+        'primary_key': ['codeset_id', 'concept_id']
     },
     'concept': {  # transform depends on: concept_set_members transform
         'name': 'concept',
         'rid': 'ri.foundry.main.dataset.5cb3c4a3-327a-47bf-a8bf-daf0cafe6772',
         'sort_idx': ['concept_id'],
         'dataset_groups': ['vocab'],
-        'index_on': ['concept_id', 'concept_code']  # TODO: not currently used, but could do this instead of ddl.sql
+        'index_on': ['concept_id', 'concept_code'],  # todo: not currently used, but could do this instead of ddl.sql
+        'primary_key': 'concept_id'
     },
     'concept_ancestor': {  # transform depends on: concept_set_members transform
         'name': 'concept_ancestor',
@@ -128,7 +137,8 @@ FAVORITE_DATASETS = OrderedDict({
         'rid': 'ri.foundry.main.dataset.f2355e2f-51b6-4ae1-ae80-7e869c1933ac',
         # was: 'rid': 'ri.foundry.main.dataset.1323fff5-7c7b-4915-bcde-4d5ba882c993',
         'sort_idx': ['codeset_id', 'concept_id'],
-        'dataset_groups': ['cset']
+        'dataset_groups': ['cset'],
+        'primary_key': 'item_id'  # todo: change to codeset_id,concept_id?
     },
     'concept_set_counts_clamped': { # gets downloaded as csv without column names, not parquet
         'name': 'concept_set_counts_clamped',

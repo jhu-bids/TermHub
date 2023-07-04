@@ -5,7 +5,7 @@ import os
 import sys
 from typing import Dict, List, Union
 from random import randint
-from time import sleep
+from time import sleep, time
 import urllib.parse
 
 import pandas as pd
@@ -493,3 +493,9 @@ def get_random_codeset_id() -> int:
 #             print(f'Failure: {api_name}\n', response, file=sys.stderr)
 #             return response
 #     return make_actions_request(api_name, data, validate=False)
+
+
+def was_file_modified_within_threshold(path: str, threshold_hours: int) -> bool:
+    """Check if a file was modified within a certain threshold"""
+    diff_hours = (time() - os.path.getmtime(path)) / (60 * 60)
+    return diff_hours <= threshold_hours

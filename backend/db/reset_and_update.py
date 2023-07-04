@@ -21,7 +21,7 @@ sys.path.insert(0, str(PROJECT_ROOT))
 from backend.db.config import CONFIG
 from backend.db.load import load, indexes_and_derived_tables
 from backend.db.utils import check_if_updated, current_datetime, get_db_connection, run_sql, update_db_status_var
-from enclave_wrangler.datasets import download_favorite_datasets
+from enclave_wrangler.datasets import download_datasets
 from enclave_wrangler.objects_api import download_favorite_objects
 
 DESC = 'Full reset of the TermHub database w/ newest updates from the Enclave using the datasets API.'
@@ -31,10 +31,10 @@ DESC = 'Full reset of the TermHub database w/ newest updates from the Enclave us
 def reset_and_update_db(
     skip_download_datasets_csets=False, skip_download_datasets_vocab=False, skip_download_objects=False,
     skip_download_if_exists=True, schema: str = CONFIG['schema'], hours_threshold_for_updates=24,
-    use_local_database=False, run_final_ddl_only=False
+    use_local_db=False, run_final_ddl_only=False
 ):
     """Refresh the database"""
-    local = use_local_database
+    local = use_local_db
     if run_final_ddl_only:
         with get_db_connection(local=local) as con:
             indexes_and_derived_tables(con, schema, local=local)
@@ -58,13 +58,13 @@ def reset_and_update_db(
     #  Maybe we want to do downloads even if the uploads have been complete?
     if not skip_download_datasets_csets:
         print('INFO: Downloading datasets: csets.')
-        download_favorite_datasets(force_if_exists=not skip_download_if_exists, single_group='cset')
+        download_datasets(force_if_exists=not skip_download_if_exists, single_group='cset')
     if not skip_download_objects:
         print('INFO: Downloading datasets: objects.')
         download_favorite_objects(force_if_exists=not skip_download_if_exists)
     if not skip_download_datasets_vocab:
         print('INFO: Downloading datasets: vocab.')
-        download_favorite_datasets(force_if_exists=not skip_download_if_exists, single_group='vocab')
+        download_datasets(force_if_exists=not skip_download_if_exists, single_group='vocab')
 
     # Uploads
     with get_db_connection(local=local) as con:
@@ -102,7 +102,7 @@ def cli():
         help='If the dataset/object already exists as a local file, don\'t re-download. If this flag is not present, '
              'the file will be re-downloaded unless it was last updated within --hours-threshold-for-updates.')
     parser.add_argument(
-        '-l', '--use-local-database', action='store_true', default=False, help='Use local database instead of server.')
+        '-l', '--use-local-db', action='store_true', default=False, help='Use local database instead of server.')
     parser.add_argument(
         '-z', '--run-final-ddl-only', action='store_true', default=False, help='Only run indexes_and_derived_tables (ddl.jinja.sql).')
     reset_and_update_db(**vars(parser.parse_args()))
