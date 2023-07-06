@@ -24,7 +24,6 @@ import { setColDefDimensions } from "../components/dataTableUtils";
 import { ConceptSetCard } from "../components/ConceptSetCard";
 import { Tooltip } from "../components/Tooltip";
 import {
-  getEditCodesetFunc,
   getCodesetEditActionFunc,
   EditInfo,
   cellContents,
@@ -60,7 +59,7 @@ function CsetComparisonPage(props) {
   const windowSize = useWindowSize();
   const boxRef = useRef();
   const countRef = useRef({ n: 0, z: 10 });
-  const [addNewCsetDisplay, setAddNewCsetDisplay] = useState(true);
+  const [addNewCsetDisplay, setAddNewCsetDisplay] = useState(typeof (editCodesetId) === "undefined");
   const [panelPosition, setPanelPosition] = useState({ x: 0, y: 0 });
   const sizes = getSizes(/*squishTo*/ 1);
   const customStyles = styles(sizes);
@@ -111,10 +110,15 @@ function CsetComparisonPage(props) {
         conceptLookup,
       ] = await Promise.all(promises);
 
-      if (editCodesetId) {
+      if (typeof (editCodesetId) !== "undefined") {
         const researcherIds = getResearcherIdsFromCsets(selected_csets.filter(d => d.codeset_id === editCodesetId));
         let researchers = dataCache.getItemsByKey({ dataGetter, itemType: 'researchers', keys: researcherIds, shape: 'obj' });
         promises = [ dataCache.getItemsByKey({ dataGetter, itemType: 'researchers', keys: researcherIds, shape: 'obj' })];
+        selected_csets.push({
+          codeset_id: 0,
+          concept_set_name: "New Concept Set",
+          concept_set_version_title: "New Concept Set",
+        });
       }
       let [researchers] = await Promise.all(promises);
 
@@ -148,7 +152,6 @@ function CsetComparisonPage(props) {
     setSearchParams,
     csmi,
   });
-  const editCodesetFunc = getEditCodesetFunc({ searchParams, setSearchParams });
 
   let columns = colConfig({
     ...props,
@@ -156,7 +159,6 @@ function CsetComparisonPage(props) {
     selected_csets,
     concepts,
     editAction,
-    editCodesetFunc,
     sizes,
     windowSize,
     hidden,
@@ -215,13 +217,7 @@ function CsetComparisonPage(props) {
             variant="outlined"
             onClick={() => {
               setAddNewCsetDisplay(false);
-              if (selected_csets[selected_csets.length - 1].codeset_id !== 0) {
-                selected_csets.push({
-                  codeset_id: 0,
-                  concept_set_name: "New Concept Set",
-                  concept_set_version_title: "New Concept Set",
-                });
-              }
+
 
               let sp = searchParamsToObj(searchParams);
               let { csetEditState = {} } = sp;
@@ -532,7 +528,6 @@ function colConfig(props) {
     csmi,
     sizes,
     editAction,
-    editCodesetFunc,
     windowSize,
     hidden,
     allRows,
