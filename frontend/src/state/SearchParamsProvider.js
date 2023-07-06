@@ -114,9 +114,9 @@ export function searchParamsToObj(searchParams) {
   if (sp.csetEditState) {
     let editState = {...sp.csetEditState};
     let update = false;
-    for (const cid in editState) {
-      if (parseInt(cid) !== 0) {
-        delete editState[cid];
+    for (const csid in editState) {
+      if (parseInt(csid) !== 0) {
+        delete editState[csid];
         update = true;
       }
     }
