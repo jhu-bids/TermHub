@@ -111,12 +111,13 @@ export function searchParamsToObj(searchParams) {
       fixSearchParams.delProps = ["editCodesetId"];
     }
   }
+  /*
   if (sp.csetEditState) {
     let editState = {...sp.csetEditState};
     let update = false;
-    for (const csid in editState) {
-      if (parseInt(csid) !== 0) {
-        delete editState[csid];
+    for (const cid in editState) {
+      if (!(sp.codeset_ids || []).includes(parseInt(cid))) {
+        delete editState[cid];
         update = true;
       }
     }
@@ -140,6 +141,7 @@ export function searchParamsToObj(searchParams) {
       sp.fixSearchParams = true;
     }
   }
+   */
   // console.log({sp});
   return sp;
 }
