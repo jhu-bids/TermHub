@@ -42,6 +42,31 @@ class TestEnclaveWrangler(unittest.TestCase):
 
     # TODO: Seems to be failing now because using test_n3c instead of n3c even though con schema=TEST_SCHEMA
 
+    def _test_upload_cset_version_from_csv(self, path: str):
+        """Test uploading a new cset version with concepts
+        file format docs: https://github.com/jhu-bids/TermHub/tree/develop/enclave_wrangler"""
+        # TODO: temp validate_first until fix all bugs
+        # TODO: Will this work if UUID is different?
+        d: Dict = upload_new_cset_version_with_concepts_from_csv(path, validate_first=True)
+        d = list(d.values())[0]
+        responses: Dict[str, Union[Response, List[Response]]] = d['responses']
+        version_id: int = d['versionId']
+        print(f'Uploaded new version with ID: {version_id}')
+        for response in responses.values():
+            if isinstance(response, list):  # List[Response] returned by concepts upload
+                for response_i in response:
+                    self.assertLess(response_i.status_code, 400)
+            else:
+                self.assertLess(response.status_code, 400)
+
+        # Teardown
+        # TODO: After getting to work, turn validate_first=False
+        # TODO: @jflack4, this delete doesn't work because the cset draft has been finalized
+        # if False:   # just don't do this till it gets fixed
+        #     response: Response = delete_concept_set_version(version_id, validate_first=True)
+        #     self.assertLess(response.status_code, 400)
+
+    # todo?: adit's recent case 2023/02
     def test_upload_cset_version_from_csv2(self):
         """Case 2"""
         path = os.path.join(TEST_INPUT_DIR, 'test_upload_cset_version_from_csv2', 'new_version.csv')
