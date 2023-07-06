@@ -87,13 +87,14 @@ class DataGetter {
 				return data;
 
 			case 'edges': // expects paramList of concept_ids
+				// TODO: @sigfried -- fix to include additional concepts
 				// each unique set of concept_ids gets a unique set of edges
 				// check cache first (because this request won't come from getItemsByKey)
 				cacheKey = paramList.join('|');
 				data = dataCache.cacheGet([itemType, cacheKey]);
 				if (isEmpty(data)) {
-					data = await this.axiosCall('subgraph',
-																						{backend: true, data: paramList, useGetForSmallData: true, apiGetParamName: 'id'});
+					data = await this.axiosCall('subgraph', {title: 'Get edges for codeset_ids',
+						backend: true, data: paramList, useGetForSmallData: true, apiGetParamName: 'id'});
 					data = formatEdges(data);
 					dataCache.cachePut([itemType, cacheKey], data);
 				}
@@ -103,7 +104,7 @@ class DataGetter {
 				data = dataCache.cacheGet([itemType]);
 				if (isEmpty(data)) {
 					url = backend_url('get-all-csets');
-					data = await this.axiosCall(url);
+					data = await this.axiosCall(url, {title: 'Get all concept sets for select list'});
 					// data = keyBy(data, 'codeset_id');
 					dataCache.cachePut([itemType], data);
 				}
@@ -124,47 +125,60 @@ class DataGetter {
 		}
 	}
 	async axiosCall(path, { backend = false, data, returnDataOnly = true, useGetForSmallData = false,
-										apiGetParamName, verbose = true, sendAlert = true,
+										apiGetParamName, verbose = false, sendAlert = true, title,
 	} = {}) {
 		let url = backend ? backend_url(path) : path;
+		let request = { url };
 		let alertAction = {
+			request,
 			type: 'create',
-			payload: { type: 'axiosCall', path, data, },
+			eventType: 'axiosCall',
+			title: title || path,
 		};
-		let axPromise, dispReturn;
 		try {
 			if (typeof (data) === 'undefined') {
-				verbose && console.log("axios.get url: ", url);
-				axPromise = axios.get(url);
+				request.method = 'get';
 			} else {
 				if (useGetForSmallData && data.length <= 1000) {
+					request.method = 'get';
 					let qs = createSearchParams({[apiGetParamName]: data});
-					url = url + '?' + qs;
-					verbose && console.log("axios.get url: ", url);
-					axPromise = axios.get(url);
+					request.url = url + '?' + qs;
 				} else {
-					verbose && console.log("axios.post url: ", url, 'data', data);
-					axPromise = axios.post(url, data);
+					request.method = 'post';
+					request.data = data;
 				}
 			}
-			if (sendAlert) {
-				alertAction.payload.url = url;
-				alertAction.payload.axiosCall = axPromise;
-				dispReturn = this.alertsDispatch(alertAction);
-			}
-			let results = await axPromise;
-			console.log(alertAction, results, dispReturn);
-			// debugger;
-			return returnDataOnly ? results.data : results;
-		} catch (error) {
-			console.log(error.toJSON());
-		}
+			verbose && console.log("axios request", request);
 
+			let response = axios(request);
+
+			if (sendAlert) {
+				alertAction.axiosCall = response;
+				const alerts = this.alertsDispatch(alertAction);
+				console.log(alerts);
+				debugger;
+				response = await response;
+				alertAction = {...alertAction, response, type: 'resolve', };
+				delete alertAction.axiosCall;
+				this.alertsDispatch(alertAction);
+			}
+			response = await response;
+			return returnDataOnly ? response.data : response;
+			// debugger;
+		} catch (error) {
+			if (sendAlert) {
+				alertAction = {...alertAction, error, type: 'error', };
+				this.alertsDispatch(alertAction);
+			} else {
+				throw new Error(error);
+			}
+		}
 	}
 	async oneToOneFetchAndCache(itemType, api, postData, paramList, useGetForSmallData, apiGetParamName, dataCache) {
 		// We expect a 1-to-1 relationship between paramList items (e.g., concept_ids)
 		//  and retrieved items (e.g., concepts)
-		let data = await this.axiosCall(api, {backend: true, data: postData, useGetForSmallData, apiGetParamName});
+		let data = await this.axiosCall(api, {title: `Fetch and cache ${itemType}`, backend: true,
+			data: postData, useGetForSmallData, apiGetParamName});
 
 		if (!Array.isArray(data)) {
 			data = Object.values(data);

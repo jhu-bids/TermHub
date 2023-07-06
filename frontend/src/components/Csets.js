@@ -5,7 +5,6 @@ import ConceptSetCards from "./ConceptSetCard";
 import { TextField, Autocomplete, Box, } from "@mui/material";
 import Button from "@mui/material/Button";
 // import Chip from '@mui/material/Chip';
-// import { Link, Outlet, useHref, useParams, useSearchParams, useLocation } from "react-router-dom";
 import {every, keyBy, union, orderBy, } from "lodash";
 import { get, isNumber, isEmpty, flatten, intersection, } from "lodash";
 // import {isEqual, pick, uniqWith, max, omit, uniq, } from 'lodash';
@@ -18,6 +17,7 @@ import Typography from "@mui/material/Typography";
 import { DOCS } from "../pages/AboutPage";
 import {useDataCache} from "../state/DataCache";
 import {useDataGetter, getResearcherIdsFromCsets, } from "../state/DataGetter";
+import {useSearchParamsState} from "../state/SearchParamsProvider";
 
 /* TODO: Solve
     react_devtools_backend.js:4026 MUI: The value provided to Autocomplete is invalid.
@@ -44,9 +44,10 @@ function initialOpts(all_csets, codesetIds) {
   return opts;
 }
 export function CsetSearch(props) {
-  const { codeset_ids=[], changeCodesetIds, all_csets, } = props;
+  const { codeset_ids=[], all_csets, } = props;
   const dataGetter = useDataGetter();
   const [value, setValue] = useState(codeset_ids);
+  const {changeCodesetIds, } = useSearchParamsState();
 
   // const [keyForRefreshingAutocomplete, setKeyForRefreshingAutocomplete] = useState(0);
   // necessary to change key for reset because of Autocomplete bug, according to https://stackoverflow.com/a/59845474/1368860

@@ -3,6 +3,7 @@ import Alert from '@mui/material/Alert';
 import AlertTitle from '@mui/material/AlertTitle';
 import Stack from '@mui/material/Stack';
 import Button from '@mui/material/Button';
+import {Inspector} from "react-inspector";
 
 import {useStateSlice} from "../state/AppState";
 import {FlexibleContainer} from "./FlexibleContainer";
@@ -13,39 +14,20 @@ export function AlertMessages() {
   let alertsArray = Object.values(alerts);
   if (alertsArray.length) {
     return (
-        <FlexibleContainer title="Alerts" position={{x: window.innerWidth - 300, y: 300}}
+        <FlexibleContainer title="Alerts" position={{x: window.innerWidth * 0.35 , y: 300}}
+                           style={{width: '60%'}}
                            startHidden={false} countRef={countRef}>
           <Stack sx={{ width: '100%' }} spacing={2}>
             {alertsArray.map((alert, i) => (
                 <Alert severity={alert.severity}
                        key={i}
-                       action={ <Button color="inherit" size="small"> UNDO </Button> }
+                       onClose={() => {}}
+                       action={ <Button color="inherit" size="small">??</Button> }
                 >
-                  <AlertTitle>Error</AlertTitle>
+                  <AlertTitle>{alert.title}</AlertTitle>
+                  <Inspector data={alert} />
                 </Alert>
             ))}
-
-            <Alert
-            >
-              This is a success alert — check it out!
-            </Alert>
-
-            <Alert severity="error">
-              <AlertTitle>Error</AlertTitle>
-              This is an error alert — <strong>check it out!</strong>
-            </Alert>
-            <Alert severity="warning">
-              <AlertTitle>Warning</AlertTitle>
-              This is a warning alert — <strong>check it out!</strong>
-            </Alert>
-            <Alert severity="info">
-              <AlertTitle>Info</AlertTitle>
-              This is an info alert — <strong>check it out!</strong>
-            </Alert>
-            <Alert severity="success">
-              <AlertTitle>Success</AlertTitle>
-              This is a success alert — <strong>check it out!</strong>
-            </Alert>
           </Stack>
         </FlexibleContainer>);
   }
@@ -62,9 +44,10 @@ export const alertsReducer = (state, action) => {
       }
    */
   if (!action || !action.type) return state;
-  let {type, id, payload} = action;
+  let {type, id, } = action;
   let alert;
   if (typeof (id) !== 'undefined') {
+    debugger;
     alert = state[id];
   }
   switch (type) {
@@ -72,23 +55,21 @@ export const alertsReducer = (state, action) => {
       if (alert) {
         throw new Error(`alert with id ${id} already exists`, alert);
       }
-      // let {alertType, text, errObj} = action.payload;
       alert = {
-        ...action.payload,
+        ...action,
         id: id ?? Object.keys(state).length,
         status: 'unread',
         severity: 'info',
       }
       break;
     case "resolve":
-      alert = {...alert, status: 'complete', severity: 'success', payload: {...alert.payload, ...payload}};
+      alert = {...alert, ...action, status: 'complete', severity: 'success', };
       break;
     case "error":
-      alert = {...alert, status: 'error', severity: 'error', error: payload};
+      alert = {...alert, ...action, status: 'error', severity: 'error', };
       break;
     default:
       throw new Error(`bad alert type: ${type}`);
   }
-  return {...state, alert};
-  throw new Error(`not sure what to do with action\n${JSON.stringify(action, null, 2)}`);
+  return {...state, [alert.id]: alert};
 }
