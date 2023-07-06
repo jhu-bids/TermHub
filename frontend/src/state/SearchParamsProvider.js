@@ -71,7 +71,7 @@ export function SearchParamsProvider({children}) {
   if (!globalProps.codeset_ids) {
     globalProps.codeset_ids = [];
   }
-  const value = {sp: globalProps, updateSp: updateSearchParams, };
+  const value = {sp: globalProps, updateSp: updateSearchParams, changeCodesetIds, };
   return (
       <SearchParamsContext.Provider value={value} >
         {children}

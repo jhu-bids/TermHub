@@ -4,6 +4,7 @@ import DataTable, { createTheme } from "react-data-table-component";
 import { fmt, pct_fmt } from "./utils";
 import { StatsMessage, } from "../state/State";
 import { Tooltip } from "./Tooltip";
+import {useSearchParamsState} from "../state/SearchParamsProvider";
 // import Checkbox from '@material-ui/core/Checkbox';
 // import ArrowDownward from '@material-ui/icons/ArrowDownward';
 // const sortIcon = <ArrowDownward />;
@@ -35,8 +36,8 @@ function getCsetSelectionHandler(tooltipId) {
 
 /* TODO: review function for appropriate state management */
 export function CsetsDataTable(props) {
-  const { show_selected, codeset_ids, changeCodesetIds,
-          relatedCsets, selected_csets, all_csets, concept_ids, } = props;
+  const { show_selected, codeset_ids, relatedCsets, selected_csets, all_csets, concept_ids, } = props;
+  const {changeCodesetIds, } = useSearchParamsState();
   const min_col = show_selected ?
       ("min_col" in props ? props.min_col : true) : false;
 

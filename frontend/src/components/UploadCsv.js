@@ -27,7 +27,8 @@ function UploadCsvPage(props) {
       console.log(e);
       const apiname = "upload-csv-new-cset-version-with-concepts";
       let txt = fileReader.result;
-      dataGetter.axiosCall(apiname, {data: { csv: txt }, returnDataOnly: false, })
+      dataGetter.axiosCall(apiname, {title: 'Uploading CSV version and definition expressions',
+              data: { csv: txt }, returnDataOnly: false, })
         .then((res) => {
           if (res.data.status === "success") {
             console.log("Successful upload of cset version.");
@@ -59,15 +60,7 @@ function UploadCsvPage(props) {
   };
 
   const handleUploadContainer = ({ target }) => {
-    const fileReader = new FileReader();
-    // todo: not sure about 'name'. might not be important until we allow multiple CSV
-    // const name = target.accept.includes('image') ? 'images' : 'videos';
-    fileReader.readAsDataURL(target.files[0]);
-    fileReader.onload = (e) => {
-      // this.setState((prevState) => ({ [name]: [...prevState[name], e.target.result] }));
-      dataGetter.axiosCall("upload-csv-new-container-with-concepts", {data: e.target.result, });
-      // TODO: Needs to upload to: /upload-csv-new-container-with-concepts
-    };
+    // todo: write this and get it working
   };
 
   console.log("junk");

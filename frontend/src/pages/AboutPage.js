@@ -89,7 +89,7 @@ function AboutPage(props) {
 
   const handleRefresh = async () => {
     try {
-      await dataGetter.axiosCall('db-refresh', {backend: true, verbose: false, });
+      await dataGetter.axiosCall('db-refresh', {backend: true, verbose: false, title: 'Refreshing TermHub database from Enclave'});
       console.log('Triggered: database refresh');
     } catch (error) {
       console.error('Error:', error);
