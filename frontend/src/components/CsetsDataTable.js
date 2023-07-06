@@ -171,7 +171,7 @@ function getColdefs(min_col = false) {
       sortable: true,
     },
   ];
-  let coldefs_last_3 = [
+  let coldefs_last_4 = [
     {
       // name: 'Recall',
       name: (
@@ -215,18 +215,18 @@ function getColdefs(min_col = false) {
       center: true,
       sortable: true,
     },
-    /*
-        {
-            name:   <Tooltip label="Checked if this concept set is marked as archived in the enclave.">
-                <span>Archived</span>
-            </Tooltip>,
-            selector: row => row.archived ? '\u2713' : '',
-            compact: true,
-            width: '70px',
-            center: true,
-            sortable: true,
-        },
-         */
+    {
+      name: (
+          <Tooltip label="Number of members in this concept set that can be hidden in the CSET COMPARISON page.">
+            <span>Hidden Members</span>
+          </Tooltip>
+      ),
+      selector: 0,
+      compact: true,
+      width: "70px",
+      center: true,
+      sortable: true,
+    },
   ];
 
   if (!min_col) {
@@ -261,10 +261,10 @@ function getColdefs(min_col = false) {
       },
     ];
 
-    return [...coldefs_first_4, ...coldefs_extra, ...coldefs_last_3];
+    return [...coldefs_first_4, ...coldefs_extra, ...coldefs_last_4];
   }
 
-  return [...coldefs_first_4, ...coldefs_last_3];
+  return [...coldefs_first_4, ...coldefs_last_4];
 }
 
 function getCustomStyles() {
