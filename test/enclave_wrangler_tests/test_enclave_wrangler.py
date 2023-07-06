@@ -28,7 +28,7 @@ sys.path.insert(0, str(PROJECT_ROOT))
 TEST_INPUT_DIR = os.path.join(TEST_DIR, '../input', 'test_enclave_wrangler')
 TEST_SCHEMA = 'test_n3c'
 yesterday: str = (datetime.now() - timedelta(days=1)).isoformat() + 'Z'  # works: 2023-01-01T00:00:00.000Z
-
+from enclave_wrangler.dataset_upload import upload_new_cset_version_with_concepts_from_csv
 
 class TestEnclaveWrangler(unittest.TestCase):
 
