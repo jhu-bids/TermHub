@@ -1,6 +1,7 @@
 import React, {createContext, useContext, } from "react";
 import {createSearchParams, useSearchParams, useLocation, Navigate, } from "react-router-dom";
 import {isEmpty} from "lodash";
+import {NEW_CODESET_ID} from "../pages/CsetComparisonPage";
 
 const SEARCH_PARAM_STATE_CONFIG = {
   scalars: ["editCodesetId", "sort_json", "use_example"],
@@ -111,13 +112,12 @@ export function searchParamsToObj(searchParams) {
       fixSearchParams.delProps = ["editCodesetId"];
     }
   }
-  /*
   if (sp.csetEditState) {
     let editState = {...sp.csetEditState};
     let update = false;
-    for (const cid in editState) {
-      if (!(sp.codeset_ids || []).includes(parseInt(cid))) {
-        delete editState[cid];
+    for (const csid in editState) {
+      if (parseInt(csid) !== NEW_CODESET_ID) {
+        delete editState[csid];
         update = true;
       }
     }
@@ -141,7 +141,6 @@ export function searchParamsToObj(searchParams) {
       sp.fixSearchParams = true;
     }
   }
-   */
   // console.log({sp});
   return sp;
 }

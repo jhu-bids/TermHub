@@ -39,6 +39,8 @@ import {useDataGetter, getResearcherIdsFromCsets} from "../state/DataGetter";
 import {useSearchParamsState} from "../state/SearchParamsProvider";
 import CloseIcon from "@mui/icons-material/Close";
 
+const NEW_CODESET_ID = 0;
+
 // TODO: Find concepts w/ good overlap and save a good URL for that
 // TODO: show table w/ hierarchical indent
 // TODO: Color table: I guess would need to see if could pass extra values/props and see if table widget can use that
@@ -224,9 +226,10 @@ function CsetComparisonPage(props) {
               let { csetEditState = {} } = sp;
               // clicked codeset is not already being edited, so set it to be edited
               //  and clear editState
-              const addProps = { editCodesetId: 0, csetEditState: {} };
+              const addProps = {
+                editCodesetId: NEW_CODESET_ID, csetEditState: {}
+              };
               updateSp({ ...props, addProps });
-
             }}
             sx={{
               cursor: 'pointer',
@@ -766,7 +769,7 @@ function colConfig(props) {
       // center: true,
     };
 
-    if (codeset_id === 0) {
+    if (codeset_id === NEW_CODESET_ID) {
       def.headerProps.headerContent = <div style={{display: 'flex', flexDirection: 'column'}}>
         <Tooltip label={def.headerProps.tooltipContent}>
           <div>{def.headerProps.headerContent}</div>
@@ -776,7 +779,7 @@ function colConfig(props) {
               onClick={() => {
                 let i = 0;
                 while (i < selected_csets.length) {
-                  if (selected_csets[i].codeset_id === 0) {
+                  if (selected_csets[i].codeset_id === NEW_CODESET_ID) {
                     selected_csets.splice(i, 1);
                     continue;
                   }
@@ -1043,4 +1046,4 @@ function SquishSlider({ setSquish }) {
   );
 }
 
-export { CsetComparisonPage };
+export { CsetComparisonPage, NEW_CODESET_ID };
