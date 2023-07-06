@@ -3,7 +3,7 @@ import React from "react";
 import Typography from "@mui/material/Typography";
 import Button from "@mui/material/Button";
 
-import {axiosCall} from "../state/DataGetter";
+import {useDataGetter} from "../state/DataGetter";
 
 function UploadCsvPage(props) {
   // TODO: finish handler or whatever needs to be done to hit the backend route
@@ -11,8 +11,10 @@ function UploadCsvPage(props) {
   //   state: {
   //       csv: [],
   //   };
-
   //  Needs to upload here: /upload-csv-new-cset-version-with-concepts
+
+  const dataGetter = useDataGetter();
+
   const handleUploadVersion = (e) => {
     const { target } = e;
     const file = target.files[0];
@@ -25,7 +27,7 @@ function UploadCsvPage(props) {
       console.log(e);
       const apiname = "upload-csv-new-cset-version-with-concepts";
       let txt = fileReader.result;
-      axiosCall(apiname, {data: { csv: txt }, returnDataOnly: false})
+      dataGetter.axiosCall(apiname, {data: { csv: txt }, returnDataOnly: false, })
         .then((res) => {
           if (res.data.status === "success") {
             console.log("Successful upload of cset version.");
@@ -63,7 +65,7 @@ function UploadCsvPage(props) {
     fileReader.readAsDataURL(target.files[0]);
     fileReader.onload = (e) => {
       // this.setState((prevState) => ({ [name]: [...prevState[name], e.target.result] }));
-      axiosCall("upload-csv-new-container-with-concepts", {data: e.target.result});
+      dataGetter.axiosCall("upload-csv-new-container-with-concepts", {data: e.target.result, });
       // TODO: Needs to upload to: /upload-csv-new-container-with-concepts
     };
   };

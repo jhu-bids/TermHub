@@ -1,8 +1,7 @@
-import {createContext, useContext, } from "react";
+import {createContext, useContext,} from "react";
 import {LRUCache} from 'lru-cache'; // https://isaacs.github.io/node-lru-cache
 import {debounce, get, isEmpty, set, uniq} from 'lodash';
 import {compress, decompress} from "lz-string";
-import {axiosCall, fetchItems, pathToArray} from "./DataGetter";
 
 /*
 		TODO: get LRU cache working, one cache for each itemType, probably
@@ -29,14 +28,12 @@ export function useDataCache() {
 class DataCache {
 	#cache = {};
 
-	async getItemsByKey({
-												itemType,
-												keyName,
-												keys = [],
-												shape = 'array', /* or obj */
-												createFunc,
-												returnFunc,
-											}) {
+	constructor() {
+		this.#cache = this.loadCache() ?? {};
+	}
+
+	async getItemsByKey({ itemType, keyName, keys = [], shape = 'array', /* or obj */
+												createFunc, returnFunc, dataGetter, }) {
 		if (isEmpty(keys)) {
 			return shape === 'array' ? [] : {};
 		}
@@ -58,7 +55,7 @@ class DataCache {
 			}
 		})
 		if (uncachedKeys.length) {
-			const data = await fetchItems( itemType, uncachedKeys, this);
+			const data = await dataGetter.fetchItems( itemType, uncachedKeys, this);
 			data.forEach((item, i) => uncachedItems[uncachedKeys[i]] = item);
 		}
 		const results = {...cachedItems, ...uncachedItems};
@@ -74,10 +71,6 @@ class DataCache {
 			return Object.values(results);
 		}
 		return results;
-	}
-
-	constructor() {
-		this.#cache = this.loadCache() ?? {};
 	}
 
 	getWholeCache() {
@@ -151,9 +144,9 @@ class DataCache {
 		this.#cache = {};
 	}
 
-	async cacheCheck() {
+	async cacheCheck(dataGetter) {
 		const url = 'last-refreshed';
-		const tsStr = await axiosCall(url, {backend: true, verbose: false,});
+		const tsStr = await dataGetter.axiosCall(url, {backend: true, verbose: false, sendAlert: false});
 		const ts = new Date(tsStr);
 		if (isNaN(ts.getDate())) {
 			throw new Error(`invalid date from ${url}: ${tsStr}`);
@@ -175,6 +168,20 @@ class DataCache {
 		return lr;
 	}
 }
+
+export function pathToArray(path) {
+	if (isEmpty(path)) {
+		return [];
+	}
+	if (Array.isArray(path)) {
+		return path;
+	}
+	if (typeof (path) === 'string') {
+		return path.split('.');
+	}
+	throw new Error(`pathToArray expects either array of keys or period-delimited string of keys, not ${path}`);
+}
+
 
 class DataAccessWithLRU {
 	constructor() {
