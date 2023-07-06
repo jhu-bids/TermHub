@@ -36,6 +36,7 @@ import { FlexibleContainer } from "../components/FlexibleContainer";
 import {useStateSlice} from "../state/AppState";
 import {useDataCache} from "../state/DataCache";
 import {useDataGetter, getResearcherIdsFromCsets} from "../state/DataGetter";
+import {useSearchParamsState} from "../state/SearchParamsProvider";
 import CloseIcon from "@mui/icons-material/Close";
 
 // TODO: Find concepts w/ good overlap and save a good URL for that
@@ -63,6 +64,7 @@ function CsetComparisonPage(props) {
   const [panelPosition, setPanelPosition] = useState({ x: 0, y: 0 });
   const sizes = getSizes(/*squishTo*/ 1);
   const customStyles = styles(sizes);
+  const {sp, updateSp} = useSearchParamsState();
   const [data, setData] = useState({});
       // useState({ concept_ids: [], selected_csets: [], edges: [], concepts: [], });
   const { edges, concepts, conceptLookup, selected_csets, csmi, researchers } = data;
@@ -167,6 +169,7 @@ function CsetComparisonPage(props) {
     hierarchySettings,
     hsDispatch,
     setAddNewCsetDisplay,
+    updateSp,
   });
 
   let infoPanels = [
@@ -218,13 +221,12 @@ function CsetComparisonPage(props) {
             onClick={() => {
               setAddNewCsetDisplay(false);
 
-
-              let sp = searchParamsToObj(searchParams);
               let { csetEditState = {} } = sp;
               // clicked codeset is not already being edited, so set it to be edited
               //  and clear editState
               const addProps = { editCodesetId: 0, csetEditState: {} };
-              updateSearchParams({ ...props, addProps });
+              updateSp({ ...props, addProps });
+
             }}
             sx={{
               cursor: 'pointer',
@@ -535,6 +537,7 @@ function colConfig(props) {
     hierarchySettings,
     hsDispatch,
     setAddNewCsetDisplay,
+    updateSp,
   } = props;
   const {collapsePaths, collapsedDescendantPaths, nested, hideRxNormExtension, hideZeroCounts} = hierarchySettings;
 
@@ -782,7 +785,7 @@ function colConfig(props) {
                 setAddNewCsetDisplay(true);
 
                 const delProps = ["editCodesetId", "csetEditState"];
-                updateSearchParams({ ...props, delProps });
+                updateSp({ ...props, delProps });
               }}
           >
             <CloseIcon />

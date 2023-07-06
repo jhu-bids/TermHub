@@ -154,7 +154,7 @@ class DataGetter {
 			}
 			let results = await axPromise;
 			console.log(alertAction, results, dispReturn);
-			debugger;
+			// debugger;
 			return returnDataOnly ? results.data : results;
 		} catch (error) {
 			console.log(error.toJSON());
