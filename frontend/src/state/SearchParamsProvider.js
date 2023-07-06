@@ -111,12 +111,11 @@ export function searchParamsToObj(searchParams) {
       fixSearchParams.delProps = ["editCodesetId"];
     }
   }
-  /*
   if (sp.csetEditState) {
     let editState = {...sp.csetEditState};
     let update = false;
     for (const cid in editState) {
-      if (!(sp.codeset_ids || []).includes(parseInt(cid))) {
+      if (parseInt(cid) !== 0) {
         delete editState[cid];
         update = true;
       }
@@ -141,7 +140,6 @@ export function searchParamsToObj(searchParams) {
       sp.fixSearchParams = true;
     }
   }
-   */
   // console.log({sp});
   return sp;
 }
