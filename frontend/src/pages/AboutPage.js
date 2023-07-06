@@ -10,7 +10,7 @@ import { TextField, } from "@mui/material";
 import { Link, useLocation } from "react-router-dom";
 import VERSION from "../version";
 import {useDataCache} from "../state/DataCache";
-import {axiosCall} from "../state/DataGetter";
+import {useDataGetter} from "../state/DataGetter";
 
 // import * as po from './Popover';
 
@@ -67,14 +67,6 @@ let LI = (props) => (
 );
 let DOCS = {};
 
-const handleRefresh = async () => {
-  try {
-    await axiosCall('db-refresh', {backend: true, verbose: false, });
-    console.log('Triggered: database refresh');
-  } catch (error) {
-    console.error('Error:', error);
-  }
-};
 
 function AboutPage(props) {
   // const {codeset_ids=[], all_csets=[], cset_data={}} = props;
@@ -88,17 +80,27 @@ function AboutPage(props) {
   //     }
   // )
   const dataCache = useDataCache();
+  const dataGetter = useDataGetter();
   const [codeset_ids, setCodeset_ids] = useState(props.codeset_ids);
   const [refreshButtonClicked, setRefreshButtonClicked] = useState();
   const [lastRefreshed, setLastRefreshed] = useState();
   const location = useLocation();
   const { search } = location;
 
+  const handleRefresh = async () => {
+    try {
+      await dataGetter.axiosCall('db-refresh', {backend: true, verbose: false, });
+      console.log('Triggered: database refresh');
+    } catch (error) {
+      console.error('Error:', error);
+    }
+  };
+
   useEffect(() => {
     (async () =>{
       let lastRefreshed = dataCache.lastRefreshed();
       if (!lastRefreshed) {
-        await dataCache.cacheCheck();
+        await dataCache.cacheCheck(dataGetter);
         lastRefreshed = dataCache.lastRefreshed();
         setLastRefreshed(lastRefreshed);
       }

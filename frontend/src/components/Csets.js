@@ -17,7 +17,7 @@ import Typography from "@mui/material/Typography";
 // import * as po from '../pages/Popover';
 import { DOCS } from "../pages/AboutPage";
 import {useDataCache} from "../state/DataCache";
-import {fetchItems, getResearcherIdsFromCsets, prefetch} from "../state/DataGetter";
+import {useDataGetter, getResearcherIdsFromCsets, } from "../state/DataGetter";
 
 /* TODO: Solve
     react_devtools_backend.js:4026 MUI: The value provided to Autocomplete is invalid.
@@ -45,6 +45,7 @@ function initialOpts(all_csets, codesetIds) {
 }
 export function CsetSearch(props) {
   const { codeset_ids=[], changeCodesetIds, all_csets, } = props;
+  const dataGetter = useDataGetter();
   const [value, setValue] = useState(codeset_ids);
 
   // const [keyForRefreshingAutocomplete, setKeyForRefreshingAutocomplete] = useState(0);
@@ -65,7 +66,7 @@ export function CsetSearch(props) {
       value={value}
       onChange={(event, newValue) => {
         setValue(newValue.map(option => option.value || option));
-        prefetch({codeset_ids: newValue});
+        // dataGetter.prefetch({itemType: 'everything', codeset_ids: newValue});
       }}
       isOptionEqualToValue={(opt, value) => {
         return opt.value === value;
@@ -161,6 +162,7 @@ export function CsetSearch(props) {
 
 function ConceptSetsPage(props) {
   const { codeset_ids } = props;
+  const dataGetter = useDataGetter();
   const dataCache = useDataCache();
   const [data, setData] = useState({});
   const { all_csets, concept_ids, relatedCodesetIds, selected_csets,
@@ -168,29 +170,21 @@ function ConceptSetsPage(props) {
 
   useEffect(() => {
     (async () => {
-      let all_csets = fetchItems('all_csets', ['stub'], dataCache);
-      let selected_csets = dataCache.getItemsByKey(
-          { itemType: 'csets', keys: codeset_ids, shape: 'array',
+      let all_csets = dataGetter.fetchItems('all_csets', ['stub']);
+      let selected_csets = dataCache.getItemsByKey({ dataGetter, itemType: 'csets', keys: codeset_ids, shape: 'array',
             returnFunc: results => [...Object.values(results)]} ); // isn't this the same as shape: 'array'?
-      let concept_ids = dataCache.getItemsByKey({ // concept_ids
-            itemType: 'concept_ids_by_codeset_id',
-            keys: codeset_ids,
-            returnFunc: results => union(flatten(Object.values(results))),
-          });
+      let concept_ids = dataCache.getItemsByKey({ dataGetter, itemType: 'concept_ids_by_codeset_id',
+            keys: codeset_ids, returnFunc: results => union(flatten(Object.values(results))), });
 
       concept_ids = await concept_ids;
 
-      let relatedCodesetIds = dataCache.getItemsByKey(
-          { itemType: 'codeset_ids_by_concept_id', keys: concept_ids,
-            returnFunc: results => union(flatten(Object.values(results))),
-          });
+      let relatedCodesetIds = dataCache.getItemsByKey({ dataGetter, itemType: 'codeset_ids_by_concept_id',
+            keys: concept_ids, returnFunc: results => union(flatten(Object.values(results))), });
 
       [all_csets, relatedCodesetIds] = await Promise.all([all_csets, relatedCodesetIds]);
 
-      let relatedCsetConceptIds = dataCache.getItemsByKey({ // concept_ids
-                                                               itemType: 'concept_ids_by_codeset_id',
-                                                               keys: relatedCodesetIds, shape: 'obj'
-                                                             });
+      let relatedCsetConceptIds = dataCache.getItemsByKey({ dataGetter, itemType: 'concept_ids_by_codeset_id',
+                                                               keys: relatedCodesetIds, shape: 'obj' });
 
       let allCsetsObj = keyBy(all_csets, 'codeset_id');
 
@@ -200,7 +194,7 @@ function ConceptSetsPage(props) {
       selected_csets = await selected_csets;
 
       const researcherIds = getResearcherIdsFromCsets(selected_csets);
-      let researchers = dataCache.getItemsByKey({ itemType: 'researchers', keys: researcherIds, shape: 'obj' });
+      let researchers = dataCache.getItemsByKey({ dataGetter, itemType: 'researchers', keys: researcherIds, shape: 'obj' });
 
       selected_csets = selected_csets.map(cset => {
         cset = {...cset};

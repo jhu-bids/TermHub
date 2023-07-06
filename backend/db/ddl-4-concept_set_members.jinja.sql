@@ -3,7 +3,7 @@
 --  might be with import/loading errors, but just fixing it here for now
 SELECT * INTO {{schema}}concept_set_members_with_dups FROM {{schema}}concept_set_members;
 
-DROP TABLE {{schema}}concept_set_members;
+DROP TABLE {{schema}}concept_set_members;   -- does this need to have CASCADE?
 
 SELECT DISTINCT * INTO {{schema}}concept_set_members FROM {{schema}}concept_set_members_with_dups;
 

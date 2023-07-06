@@ -36,7 +36,7 @@ import {
 import { FlexibleContainer } from "../components/FlexibleContainer";
 import {useStateSlice} from "../state/AppState";
 import {useDataCache} from "../state/DataCache";
-import {fetchItems, getResearcherIdsFromCsets} from "../state/DataGetter";
+import {useDataGetter, getResearcherIdsFromCsets} from "../state/DataGetter";
 
 // TODO: Find concepts w/ good overlap and save a good URL for that
 // TODO: show table w/ hierarchical indent
@@ -51,9 +51,10 @@ function CsetComparisonPage(props) {
     csetEditState,
   } = props;
   // const { selected_csets = [], researchers, } = cset_data;
-  const { state: hierarchySettings, dispatch: hsDispatch} = useStateSlice("hierarchySettings");
+  const [hierarchySettings, hsDispatch] = useStateSlice("hierarchySettings");
+  const dataGetter = useDataGetter();
   const dataCache = useDataCache();
-  const { state: editCset, dispatch: editCsetDispatch} = useStateSlice("editCset");
+  const [editCset, ] = useStateSlice("editCset");
   const {collapsePaths, collapsedDescendantPaths, nested, hideRxNormExtension, hideZeroCounts} = hierarchySettings;
   const windowSize = useWindowSize();
   const boxRef = useRef();
@@ -89,25 +90,21 @@ function CsetComparisonPage(props) {
   useEffect(() => {
     (async () => {
       let promises = [ // these can run immediately
-        dataCache.getItemsByKey( // csmi
+        dataCache.getItemsByKey( dataGetter,          // csmi
                                  { itemType: 'cset_members_items', keys: codeset_ids, shape: 'obj',
               // returnFunc: results => flatten([...Object.values(results)])
             }),
-        dataCache.getItemsByKey({ itemType: 'csets', keys: codeset_ids, }),
+        dataCache.getItemsByKey({ dataGetter, itemType: 'csets', keys: codeset_ids, }),
       ];
       // have to get concept_ids before fetching concepts
-      let concept_ids = await dataCache.getItemsByKey(
-          { itemType: 'concept_ids_by_codeset_id', keys: codeset_ids,
-            returnFunc: results => union(flatten(Object.values(results))),
-          });
+      let concept_ids = await dataCache.getItemsByKey({ dataGetter, itemType: 'concept_ids_by_codeset_id',
+          keys: codeset_ids, returnFunc: results => union(flatten(Object.values(results))), });
 
       // have to get edges, which might contain more concept_ids after filling gaps
-      const edges = await fetchItems('edges', concept_ids, dataCache, );
+      const edges = await dataGetter.fetchItems('edges', concept_ids, );
       concept_ids = union(concept_ids.map(String), flatten(edges));
-      promises.push(
-          dataCache.getItemsByKey(
-              { itemType: 'concepts', keys: concept_ids, shape: 'obj' }),
-      );
+      promises.push(dataCache.getItemsByKey( { dataGetter, itemType: 'concepts', keys: concept_ids, shape: 'obj' }), );
+
       let [
         csmi,
         selected_csets,
@@ -116,8 +113,8 @@ function CsetComparisonPage(props) {
 
       if (editCodesetId) {
         const researcherIds = getResearcherIdsFromCsets(selected_csets.filter(d => d.codeset_id === editCodesetId));
-        let researchers = dataCache.getItemsByKey({ itemType: 'researchers', keys: researcherIds, shape: 'obj' });
-        promises = [ dataCache.getItemsByKey({ itemType: 'researchers', keys: researcherIds, shape: 'obj' })];
+        let researchers = dataCache.getItemsByKey({ dataGetter, itemType: 'researchers', keys: researcherIds, shape: 'obj' });
+        promises = [ dataCache.getItemsByKey({ dataGetter, itemType: 'researchers', keys: researcherIds, shape: 'obj' })];
       }
       let [researchers] = await Promise.all(promises);
 

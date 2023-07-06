@@ -25,23 +25,28 @@ import { ConceptSetsPage } from "./components/Csets";
 import { CsetComparisonPage } from "./pages/CsetComparisonPage";
 import { AboutPage } from "./pages/AboutPage";
 import { ConceptGraph } from "./components/ConceptGraph";
-import {ViewCurrentState, TotalStateProvider, AlertMessages, useTotalState,} from "./state/State";
+import {ViewCurrentState, TotalStateProvider, useTotalState,} from "./state/State";
 import {AppStateProvider} from "./state/AppState";
 import {SearchParamsProvider} from "./state/SearchParamsProvider";
+import {DataGetterProvider} from "./state/DataGetter";
 import { UploadCsvPage } from "./components/UploadCsv";
 // import { DownloadJSON } from "./components/DownloadJSON";
 import MuiAppBar from "./components/MuiAppBar";
 import {DataCacheProvider} from "./state/DataCache";
+import {AlertMessages} from "./components/AlertMessages";
 
 /* structure is:
     <BrowserRouter>                 // from index.js root.render
       <SearchParamsProvider>        // gets state from query string -- mainly codeset_ids
         <AppStateProvider>          // from reducers -- mainly hierarchySettings, cset editing stuff, and, soon, alerts/msgs
           <DataCacheProvider>       // ability to save to and retrieve from cache in localStorage
-            <TotalStateProvider>    // combines state and dispatcher/updaters from the other providers
-              <RoutesContainer/>    // sends total state (as props) to App and route components. for now, the components
+            <DataGetterProvider>    // utilities for fetching data. dataCache needs access to this a couple of times
+                                    //  so those method calls will have to pass in a dataGetter
+              <TotalStateProvider>  // combines state and dispatcher/updaters from the other providers
+                <RoutesContainer/>  // sends total state (as props) to App and route components. for now, the components
                                     //    ignore the props and just useTotalState() on their own
-            </TotalStateProvider>
+              </TotalStateProvider>
+            </DataGetterProvider>
           </DataCacheProvider>
         </AppStateProvider>
       </SearchParamsProvider>
@@ -54,9 +59,11 @@ function QCProvider() {
       <SearchParamsProvider>
         <AppStateProvider>
           <DataCacheProvider>
-            <TotalStateProvider>
-              <RoutesContainer/>
-            </TotalStateProvider>
+            <DataGetterProvider>
+              <TotalStateProvider>
+                <RoutesContainer/>
+              </TotalStateProvider>
+          </DataGetterProvider>
           </DataCacheProvider>
         </AppStateProvider>
       </SearchParamsProvider>

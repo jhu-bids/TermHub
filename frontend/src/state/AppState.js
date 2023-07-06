@@ -1,10 +1,13 @@
 import React, {createContext, useContext, useReducer} from "react";
 import {flatten, fromPairs, get} from "lodash";
 
+import {alertsReducer} from "../components/AlertMessages";
+
 export function useStateSlice(slice) {
   const appState = useAppState();
-  const [state, dispatch] = appState.getSlice(slice);
-  return {state, dispatch};  // should probably return array instead of object?
+  return appState.getSlice(slice);
+  // const [state, dispatch] = appState.getSlice(slice);
+  // return {state, dispatch};  // should probably return array instead of object?
 }
 
 const CombinedReducersContext = createContext(null);
@@ -60,37 +63,6 @@ export function useAppState() {
   return useContext(CombinedReducersContext);
 }
 
-const alertsReducer = (state, action) => {
-  /*
-      alerts for ongoing or failed api calls or other messages/warnings to display to users
-      {
-        id: 3, // or could be string with some meaning if desired
-        alertType: 'error', // or 'warning', 'apicall', ...
-        text: 'api call failed...' // ?
-        errObj: {} // from axios or whatever
-      }
-   */
-  if (!action || !action.type) return state;
-  let {type, id, payload} = action;
-  let alert;
-  if (typeof (id) !== 'undefined') {
-    alert = state[id];
-  }
-  switch (type) {
-    case "create":
-      if (alert) {
-        throw new Error(`alert with id ${id} already exists`, alert);
-      }
-      // let {alertType, text, errObj} = action.payload;
-      alert = {
-        ...action.payload,
-        id: id ?? Object.keys(state).length,
-        status: 'unread'
-      }
-      return {...state, alert};
-  }
-  throw new Error(`not sure what to do with action\n${JSON.stringify(action, null, 2)}`);
-}
 const editCsetReducer = (state, action) => {
   if (!action || !action.type) return state;
   switch (action.type) {
