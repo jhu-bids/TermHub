@@ -161,7 +161,10 @@ function AboutPage(props) {
           <LI>Try: Refreshing the page</LI>
           <LI>
             Try clicking: <Button variant={"contained"}
-              onClick={() => queryClient.removeQueries()}
+              onClick={() => {
+                queryClient.removeQueries();
+                alert("Emptied the data cache!");
+              }}
             >
               Empty the data cache
             </Button>
