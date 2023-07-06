@@ -6,7 +6,7 @@ import Button from '@mui/material/Button';
 
 import {useStateSlice} from "../state/AppState";
 import {FlexibleContainer} from "./FlexibleContainer";
-export default function AlertMessages() {
+export function AlertMessages() {
   const [alerts, alertsDispatch] = useStateSlice("alerts");
   const countRef = useRef({n: 0, z: 500});
 

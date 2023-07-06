@@ -4,7 +4,7 @@ import {isEmpty} from "lodash";
 
 const SEARCH_PARAM_STATE_CONFIG = {
   scalars: ["editCodesetId", "sort_json", "use_example"],
-  global_props_but_not_search_params: ["searchParams", "setSearchParams"],
+  global_props_but_not_search_params: [], // ["searchParams", "setSearchParams"],
   serialize: ["csetEditState"],
 };
 
@@ -111,6 +111,7 @@ export function searchParamsToObj(searchParams) {
       fixSearchParams.delProps = ["editCodesetId"];
     }
   }
+  /*
   if (sp.csetEditState) {
     let editState = {...sp.csetEditState};
     let update = false;
@@ -140,6 +141,7 @@ export function searchParamsToObj(searchParams) {
       sp.fixSearchParams = true;
     }
   }
+   */
   // console.log({sp});
   return sp;
 }
