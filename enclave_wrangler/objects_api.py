@@ -402,7 +402,6 @@ def fetch_cset_and_member_objects(
     return {'OMOPConceptSetContainer': cset_containers, 'OMOPConceptSet': cset_versions,
             'OmopConceptSetVersionItem': expression_items, 'OMOPConcept': member_items}
 
-
 def csets_and_members_to_db(con: Connection, schema: str, csets_and_members: Dict[str, List[Dict]] = None):
     """Update database with csets and members.
     todo: add_object_to_db(): support multiple objects with single insert"""

@@ -14,7 +14,7 @@ sys.path.insert(0, str(PROJECT_ROOT))
 from backend.db.analysis import counts_update,counts_docs
 from backend.db.config import CONFIG
 from backend.db.utils import current_datetime, get_db_connection, last_refresh_timestamp, update_db_status_var,check_db_status_var, delete_db_status_var
-from enclave_wrangler.objects_api import csets_and_members_enclave_to_db
+from enclave_wrangler.objects_api import csets_and_members_enclave_to_db,is_new_db_data
 
 DESC = 'Refresh TermHub database w/ newest updates from the Enclave using the objects API.'
 SINCE_ERR = '--since is more recent than the database\'s record of last refresh, which will result in missing data.'
@@ -40,42 +40,46 @@ def refresh_db(
     print('INFO: Starting database refresh.', flush=True)  # flush: for gh action
     t0, t0_str = datetime.now(), current_datetime()
 
-    if check_db_status_var('refresh_status') == 'active':
-        update_db_status_var('new_request_while_refreshing', t0_str, local)
-        return
+    with get_db_connection(local=local) as con:
+        last_refresh = last_refresh_timestamp(con)
+        if since and dp.parse(since) > dp.parse(last_refresh) and not force_non_contiguity:
+            raise ValueError(SINCE_ERR)
+        since = since if since else last_refresh
 
-    update_db_status_var('refresh_status', 'active', local)
-    update_db_status_var('last_refresh_request', current_datetime(), local)
-    try:
-        with get_db_connection(local=local) as con:
-            last_refresh = last_refresh_timestamp(con)
-            if since and dp.parse(since) > dp.parse(last_refresh) and not force_non_contiguity:
-                raise ValueError(SINCE_ERR)
-            since = since if since else last_refresh
+        #todo: new way of checking db is active
+        '''if not is_new_db_data(since):
+            'INFO: Database is up to date, no refresh necessary'
+            return'''
 
-            # Refresh DB
+        if check_db_status_var('refresh_status') == 'active':
+            update_db_status_var('new_request_while_refreshing', t0_str, local)
+            return
+
+        print('INFO: Starting database refresh.', flush=True)  # flush: for gh action
+        update_db_status_var('refresh_status', 'active', local)
+        update_db_status_var('last_refresh_request', current_datetime(), local)
+        try:
+            # Refresh DB:
             # todo: will use instead when ready: all_new_objects_enclave_to_db()
             csets_and_members_enclave_to_db(con, schema, since)
 
-        counts_update('DB refresh.', schema, local)
-        update_db_status_var('refresh_status', 'inactive', local)
-        update_db_status_var('last_refresh_success', current_datetime(), local)
-        update_db_status_var('last_refresh_result', 'success', local)
-        counts_docs()
-        print(f'INFO: Database refresh complete in {(datetime.now() - t0).seconds} seconds.')
+            counts_update('DB refresh.', schema, local)
+            update_db_status_var('refresh_status', 'inactive', local)
+            update_db_status_var('last_refresh_success', current_datetime(), local)
+            update_db_status_var('last_refresh_result', 'success', local)
+            print(f'INFO: Database refresh complete in {(datetime.now() - t0).seconds} seconds.')
 
-    except Exception as err:
-        update_db_status_var('last_refresh_result', 'error', local)
-        update_db_status_var('refresh_status', 'inactive', local)
-        counts_update('DB refresh error.', schema, local, filter_temp_refresh_tables=True)
-        print(f"Database refresh incomplete. An exception occurred.", file=sys.stderr)
-        raise err
+        except Exception as err:
+            update_db_status_var('last_refresh_result', 'error', local)
+            update_db_status_var('refresh_status', 'inactive', local)
+            counts_update('DB refresh error.', schema, local, filter_temp_refresh_tables=True)
+            print(f"Database refresh incomplete. An exception occurred.", file=sys.stderr)
+            raise err
 
     if check_db_status_var('new_request_while_refreshing'):
         # possibly look at the timestamp for sanity check
         delete_db_status_var('new_request_while_refreshing')
         refresh_db(use_local_database=use_local_database)
-
 
 
 def cli():

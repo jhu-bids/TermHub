@@ -163,7 +163,7 @@ def update_db_status_var(key: str, val: str, local=False):
     todo: change to a 1-liner UPDATE statement"""
     with get_db_connection(schema='', local=local) as con:
         run_sql(con, f"DELETE FROM public.manage WHERE key = '{key}';")
-        
+
 def delete_db_status_var(key: str, local=False):
     """Delete information from the `manage` table """
     with get_db_connection(schema='', local=local) as con2:
