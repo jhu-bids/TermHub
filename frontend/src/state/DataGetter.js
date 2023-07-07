@@ -14,7 +14,7 @@ const DataGetterContext = createContext(null);
 
 export function DataGetterProvider({children}) {
 	const dataCache = useDataCache();
-	const [, alertsDispatch] = useStateSlice('alerts');
+	const [alerts, alertsDispatch] = useStateSlice('alerts');
 	const dataGetter = new DataGetter(dataCache, alertsDispatch);
 
 	return (
@@ -32,6 +32,67 @@ class DataGetter {
 	constructor(dataCache, alertsDispatch) {
 		this.dataCache = dataCache;
 		this.alertsDispatch = alertsDispatch;
+	}
+	async axiosCall(path, { backend = false, data, returnDataOnly = true, useGetForSmallData = false,
+		apiGetParamName, verbose = false, sendAlert = true, title,
+	} = {}) {
+		let url = backend ? backend_url(path) : path;
+		let request = { url };
+		let alertAction = {
+			request,
+			type: 'create',
+			eventType: 'axiosCall',
+			title: title || path,
+		};
+		try {
+			if (typeof (data) === 'undefined') {
+				request.method = 'get';
+			} else {
+				if (useGetForSmallData && data.length <= 1000) {
+					request.method = 'get';
+					let qs = createSearchParams({[apiGetParamName]: data});
+					request.url = url + '?' + qs;
+				} else {
+					request.method = 'post';
+					request.data = data;
+				}
+			}
+			verbose && console.log("axios request", request);
+
+			let response = axios(request);
+
+			if (sendAlert) {
+				alertAction.axiosCall = response;
+				console.log(alerts);
+				const alerts = this.alertsDispatch(alertAction);
+				console.log(alerts);
+				debugger;
+				response = await response;
+				alertAction = {...alertAction, response, type: 'resolve', };
+				delete alertAction.axiosCall;
+				this.alertsDispatch(alertAction);
+			}
+			response = await response;
+			return returnDataOnly ? response.data : response;
+			// debugger;
+		} catch (error) {
+			if (sendAlert) {
+				alertAction = {...alertAction, error, type: 'error', };
+				this.alertsDispatch(alertAction);
+			} else {
+				throw new Error(error);
+			}
+		}
+	}
+	prefetch(props) {
+		const {itemType, codeset_ids} = props;
+		switch (itemType) {
+			case 'all_csets':
+				this.fetchItems(itemType);
+				break;
+			default:
+				throw new Error(`Don't know how to prefetch ${itemType}`);
+		}
 	}
 	async fetchItems(itemType, paramList, ) {
 		const dataCache = this.dataCache;
@@ -112,66 +173,6 @@ class DataGetter {
 
 			default:
 				throw new Error(`Don't know how to fetch ${itemType}`);
-		}
-	}
-	prefetch(props) {
-		const {itemType, codeset_ids} = props;
-		switch (itemType) {
-			case 'all_csets':
-				this.fetchItems(itemType);
-				break;
-			default:
-				throw new Error(`Don't know how to prefetch ${itemType}`);
-		}
-	}
-	async axiosCall(path, { backend = false, data, returnDataOnly = true, useGetForSmallData = false,
-										apiGetParamName, verbose = false, sendAlert = true, title,
-	} = {}) {
-		let url = backend ? backend_url(path) : path;
-		let request = { url };
-		let alertAction = {
-			request,
-			type: 'create',
-			eventType: 'axiosCall',
-			title: title || path,
-		};
-		try {
-			if (typeof (data) === 'undefined') {
-				request.method = 'get';
-			} else {
-				if (useGetForSmallData && data.length <= 1000) {
-					request.method = 'get';
-					let qs = createSearchParams({[apiGetParamName]: data});
-					request.url = url + '?' + qs;
-				} else {
-					request.method = 'post';
-					request.data = data;
-				}
-			}
-			verbose && console.log("axios request", request);
-
-			let response = axios(request);
-
-			if (sendAlert) {
-				alertAction.axiosCall = response;
-				const alerts = this.alertsDispatch(alertAction);
-				console.log(alerts);
-				debugger;
-				response = await response;
-				alertAction = {...alertAction, response, type: 'resolve', };
-				delete alertAction.axiosCall;
-				this.alertsDispatch(alertAction);
-			}
-			response = await response;
-			return returnDataOnly ? response.data : response;
-			// debugger;
-		} catch (error) {
-			if (sendAlert) {
-				alertAction = {...alertAction, error, type: 'error', };
-				this.alertsDispatch(alertAction);
-			} else {
-				throw new Error(error);
-			}
 		}
 	}
 	async oneToOneFetchAndCache(itemType, api, postData, paramList, useGetForSmallData, apiGetParamName, dataCache) {

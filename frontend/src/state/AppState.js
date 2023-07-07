@@ -25,6 +25,12 @@ export function AppStateProvider({children}) {
     setTimeout(() => dispatch(...args), 100);
   }
   const reducers = {
+    editCset: () => useReducer(editCsetReducer, {}),
+    alerts: useReducer(alertsReducer, {}),
+    hierarchySettings: [hierarchySettings, hsDispatch],
+  }
+  /*
+  const reducers = {
     hierarchySettings: [hierarchySettings, hsDispatch],
     editCset: useReducer(editCsetReducer, {}),
     alerts: useReducer(alertsReducer, {}),
@@ -33,6 +39,7 @@ export function AppStateProvider({children}) {
     // concept_ids: useReducer(currentConceptIdsReducer, []),
     // more stuff needed
   };
+   */
 
   const getters = {
     getSliceState: (slice) => reducers[slice][0],
