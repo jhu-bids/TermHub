@@ -389,7 +389,7 @@ def fetch_cset_and_member_objects(
             print(pagination_err.format(version), file=sys.stderr)
             auditMsg = f"failed after {len(cset['member_items'])} members"
 
-        if not cset['members_items']:
+        if not cset['member_items']:
             auditMsg = f"got no members as of {str(datetime.now())}, will continue trying until..."
             pass
             # TODO: do something so we keep trying for a couple hours. it's possible it really doesn't have members, but
