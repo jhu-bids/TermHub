@@ -14,10 +14,9 @@ TODO's
 """
 import json
 import os
-import sys
+
 from datetime import datetime
-import pytz
-from typing import List, Dict, Tuple, Union
+from typing import List, Dict, Union
 from urllib.parse import quote
 
 from sanitize_filename import sanitize
@@ -35,7 +34,7 @@ from backend.db.utils import insert_fetch_status, insert_from_dict, insert_from_
     refresh_termhub_core_cset_derived_tables, \
     sql_query_single_col, run_sql, get_db_connection
 from backend.db.queries import get_concepts
-
+from backend.utils import call_github_action, pdump
 
 DEBUG = False
 HEADERS = {
@@ -878,16 +877,11 @@ if __name__ == '__main__':
     # ot = get_object_types()
     # get_n3c_recommended_csets(save=True)
     # download_favorite_objects(force_if_exists=True)
-    import datetime as dt
-    from backend.utils import call_github_action, pdump
-    five_minutes_ago = (dt.datetime.now(dt.timezone.utc) - dt.timedelta(minutes=30)).isoformat()
-
-    data = fetch_cset_and_member_objects(five_minutes_ago)
-
-    # TODO:
-    #   - put this stuff in the database core tables
-    #   - update derived tables to include the newly added stuff
-
-    print(data)
-    pdump(data)
+    # import datetime as dt
+    # import sys
+    # import pytz
+    # five_minutes_ago = (dt.datetime.now(dt.timezone.utc) - dt.timedelta(minutes=30)).isoformat()
+    # data = fetch_cset_and_member_objects(five_minutes_ago)
+    # print(data)
+    # pdump(data)
     pass
