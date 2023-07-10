@@ -63,10 +63,9 @@ class DataGetter {
 
 			if (sendAlert) {
 				alertAction.axiosCall = response;
-				console.log(alerts);
 				const alerts = this.alertsDispatch(alertAction);
-				console.log(alerts);
-				debugger;
+				console.log(alerts, alertAction);
+				// debugger;
 				response = await response;
 				alertAction = {...alertAction, response, type: 'resolve', };
 				delete alertAction.axiosCall;

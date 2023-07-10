@@ -3,32 +3,35 @@ import {flatten, fromPairs, get} from "lodash";
 
 import {alertsReducer} from "../components/AlertMessages";
 
-export function useStateSlice(slice) {
+export function useStateSlice(slice, paceRestart = false) {
   const appState = useAppState();
-  return appState.getSlice(slice);
+  const { reducer, defaultVal } = appState.getReducer(slice);
+  let [state, dispatch] = useReducer(reducer, defaultVal);
   // const [state, dispatch] = appState.getSlice(slice);
   // return {state, dispatch};  // should probably return array instead of object?
+  if (paceRestart) {
+    dispatch = (...args) => {
+      window.Pace.restart();
+      setTimeout(() => dispatch(...args), 100);
+    };
+  }
+  return [state, dispatch];
 }
 
 const CombinedReducersContext = createContext(null);
 
 export function AppStateProvider({children}) {
-  const [hierarchySettings, dispatch] = useReducer(hierarchySettingsReducer, {
-    nested: true,
-    collapsePaths: {},
-    collapsedDescendantPaths: {},
-    hideRxNormExtension: true,
-    hideZeroCounts: false,
-  });
-  const hsDispatch = (...args) => {
-    window.Pace.restart();
-    setTimeout(() => dispatch(...args), 100);
-  }
   const reducers = {
-    editCset: () => useReducer(editCsetReducer, {}),
-    alerts: useReducer(alertsReducer, {}),
-    hierarchySettings: [hierarchySettings, hsDispatch],
-  }
+    hierarchySettings: {reducer: hierarchySettingsReducer, defaultVal: {
+        nested: true, collapsePaths: {}, collapsedDescendantPaths: {},
+        hideRxNormExtension: true, hideZeroCounts: false, } },
+    editCset: {reducer: editCsetReducer, defaultVal: {}},
+    alerts: {reducer: alertsReducer, defaultVal: {}},
+    // contentItems: useReducer(contentItemsReducer, defaultContentItems),
+    // codeset_ids: useReducer(codeset_idsReducer, []),
+    // concept_ids: useReducer(currentConceptIdsReducer, []),
+    // more stuff needed
+  };
   /*
   const reducers = {
     hierarchySettings: [hierarchySettings, hsDispatch],
@@ -44,7 +47,7 @@ export function AppStateProvider({children}) {
   const getters = {
     getSliceState: (slice) => reducers[slice][0],
     getSliceDispatch: (slice) => reducers[slice][1],
-    getSlice: (slice) => reducers[slice],
+    getReducer: (slice) => reducers[slice],
     getSliceNames: () => Object.keys(reducers),
     getReducers: () => reducers,
     getState: () =>
