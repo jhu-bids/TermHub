@@ -18,8 +18,6 @@ export function SearchParamsProvider({children}) {
   let sp = searchParamsToObj(searchParams, setSearchParams);
   const { codeset_ids = [] } = sp;
 
-  let globalProps = { ...sp, searchParams, setSearchParams };
-
   if (sp.fixSearchParams) {
     delete sp.fixSearchParams;
     const csp = createSearchParams(sp);
@@ -36,10 +34,7 @@ export function SearchParamsProvider({children}) {
   function changeCodesetIds(codeset_id, how) {
     // how = add | remove | toggle
     if (how === "set" && Array.isArray(codeset_id)) {
-      updateSearchParams({
-                           ...globalProps,
-                           addProps: { codeset_ids: codeset_id },
-                         });
+      updateSearchParams({ ...sp, addProps: { codeset_ids: codeset_id }, });
       return;
     }
     const included = codeset_ids.includes(codeset_id);
@@ -50,16 +45,10 @@ export function SearchParamsProvider({children}) {
       action = included ? "remove" : "add";
     }
     if (action === "add") {
-      updateSearchParams({
-                           ...globalProps,
-                           addProps: { codeset_ids: [...codeset_ids, codeset_id] },
-                         });
+      updateSearchParams({ ...sp, addProps: { codeset_ids: [...codeset_ids, codeset_id] }, });
     } else if (action === "remove") {
       if (!included) return;
-      updateSearchParams({
-                           ...globalProps,
-                           addProps: { codeset_ids: codeset_ids.filter((d) => d !== codeset_id) },
-                         });
+      updateSearchParams({ ...sp, addProps: { codeset_ids: codeset_ids.filter((d) => d !== codeset_id) }, });
     } else {
       throw new Error(
           "unrecognized action in changeCodesetIds: " +
@@ -68,10 +57,10 @@ export function SearchParamsProvider({children}) {
     }
   }
 
-  if (!globalProps.codeset_ids) {
-    globalProps.codeset_ids = [];
+  if (!sp.codeset_ids) {
+    sp.codeset_ids = [];
   }
-  const value = {sp: globalProps, updateSp: updateSearchParams, changeCodesetIds, };
+  const value = {sp, updateSp: updateSearchParams, changeCodesetIds, };
   return (
       <SearchParamsContext.Provider value={value} >
         {children}
@@ -149,9 +138,7 @@ export function searchParamsToObj(searchParams) {
 export function updateSearchParams(props) {
   const {addProps = {}, delProps = [], searchParams, setSearchParams} = props;
   let sp = searchParamsToObj(searchParams);
-  SEARCH_PARAM_STATE_CONFIG.global_props_but_not_search_params.forEach((p) => {
-    delete sp[p];
-  });
+  /* SEARCH_PARAM_STATE_CONFIG.global_props_but_not_search_params.forEach((p) => { delete sp[p]; }); */
   delProps.forEach((p) => {
     delete sp[p];
   });
