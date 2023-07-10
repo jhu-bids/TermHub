@@ -12,21 +12,16 @@ jobs:
   refresh-db:
 #    runs-on: ubuntu-18.04
 #    runs-on: ubuntu-latest   # not sure which is more current when resolving merge conflicts
-    # todo: macos-latest could help solve memory issue, but can't connect to db?
-    #  https://github.com/jhu-bids/TermHub/actions/runs/4125681721/jobs/7126569855
+    # todo: macos-latest: I think was just needed for datasets API because of high memory. should be able to switch back to ubuntu
     runs-on: macos-latest
     steps:
-      # TODO: remove submodules comment out when confirming that they are indeed not needed for DB refresh via objects API
       - name: Checkout repository and submodules
         uses: actions/checkout@v2
-#        with:
-#          submodules: recursive
       - name: Set up Python version
         uses: actions/setup-python@v2
         with:
           # Consider '3.10' or 'v3.10.0': https://github.com/actions/setup-python/issues/160
-          python-version: '3.9.7'
-
+          python-version: '3.9.7'  # Not sure why 3.9.7 here and 3.9 elsewhere. the .7 works on mac, but not on ubuntu
       - name: Print commit hash & branch for rollbacks & troubleshooting
         run: |
           echo "Commit hash: ${{ github.sha }}"

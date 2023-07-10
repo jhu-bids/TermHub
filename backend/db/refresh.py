@@ -26,7 +26,7 @@ SINCE_ERR = '--since is more recent than the database\'s record of last refresh,
 #  timestamp it fetched from.
 # todo: What if 'since' is passed, but it is not the same date or before 'last_updated' in db? should print warning
 def refresh_db(
-    since: Union[datetime, str] = None, use_local_database=False,  schema: str = CONFIG['schema'],
+    since: Union[datetime, str] = None, use_local_db=False,  schema: str = CONFIG['schema'],
     force_non_contiguity=False
 ):
     """Refresh the database
@@ -34,8 +34,9 @@ def refresh_db(
     :param force_non_contiguity: Used with `since`. If `since` timestamp is more recent than the database\'s record of
     when the last refresh occurred, this will result in there being a gap in which any changes that occurred during that
     time will not be fetched, resulting in an incomplete database. Therefore by default this will raise an error unless
-    this is set to True."""
-    local = use_local_database
+    this is set to True.
+    todo: Can update update_db_status_var() so that it can accept optional param 'con' to improve performance."""
+    local = use_local_db
     print('INFO: Starting database refresh.', flush=True)  # flush: for gh action
     t0, t0_str = datetime.now(), current_datetime()
     update_db_status_var('last_refresh_request', t0_str, local)
@@ -47,9 +48,9 @@ def refresh_db(
                 raise ValueError(SINCE_ERR)
             since = since if since else last_refresh
 
-            # Refresh DB:
+            # Refresh DB
+            # todo: will use instead when ready: all_new_objects_enclave_to_db()
             csets_and_members_enclave_to_db(con, schema, since)
-            # will be calling this when it's ready: all_new_objects_enclave_to_db
 
         counts_update('DB refresh.', schema, local)
         update_db_status_var('refresh_status', 'inactive', local)
@@ -68,7 +69,7 @@ def cli():
     """Command line interface"""
     parser = ArgumentParser(prog='DB Refresh', description=DESC)
     parser.add_argument(
-        '-l', '--use-local-database', action='store_true', default=False, required=False,
+        '-l', '--use-local-db', action='store_true', default=False, required=False,
         help='Use local database instead of server.')
     parser.add_argument(
         '-s', '--since', required=False,

@@ -81,7 +81,7 @@ def refresh_termhub_core_cset_derived_tables(con: Connection, schema: str):
     print(f' - completed in {(t1 - t0).seconds} seconds')
 
 
-def get_db_connection(isolation_level='AUTOCOMMIT', schema: str = SCHEMA, local=False):
+def get_db_connection(isolation_level='AUTOCOMMIT', schema: str = SCHEMA, local=False) -> Connection:
     """Connect to db
     :param local: If True, connection is on local instead of production database."""
     engine = create_engine(get_pg_connect_url(local), isolation_level=isolation_level)
@@ -156,19 +156,43 @@ def is_table_up_to_date(table_name: str, skip_if_updated_within_hours: int = Non
     return check_if_updated(last_updated_key, skip_if_updated_within_hours)
 
 
+# todo: Can update update_db_status_var() so that it can accept optional param 'con' to improve performance.
 def update_db_status_var(key: str, val: str, local=False):
     """Update the `manage` table with information for a given variable, e.g. when a table was last updated
     todo: change to a 1-liner UPDATE statement"""
-    with get_db_connection(schema='', local=local) as con2:
-        run_sql(con2, f"DELETE FROM public.manage WHERE key = '{key}';")
+    with get_db_connection(schema='', local=local) as con:
+        run_sql(con, f"DELETE FROM public.manage WHERE key = '{key}';")
         sql_str = f"INSERT INTO public.manage (key, value) VALUES (:key, :val);"
-        run_sql(con2, sql_str, {'key': key, 'val': val})
+        run_sql(con, sql_str, {'key': key, 'val': val})
+
+
+def insert_fetch_status(rows: List[Dict], local=False):
+    """Update fetch status of record"""
+    with get_db_connection(schema='', local=local) as con:
+        insert_from_dicts(con, 'fetch_audit', rows)
+
+def select_failed_fetches(use_local_db=False) -> List[Dict]:
+    """Collected data about unresolved fetches."""
+    with get_db_connection(schema='', local=use_local_db) as con:
+        return [dict(x) for x in sql_query(con, f"SELECT * FROM fetch_audit WHERE success_datetime IS NULL;")]
+
+
+def fetch_status_set_success(rows: List[Dict], local=False):
+    """Update fetch status of record
+    :param rows: Takes the same format of list of dictionaries that you would get from select_failed_fetches()"""
+    sql_str = """UPDATE fetch_audit
+    SET success_datetime = current_timestamp
+    WHERE "table" = :table
+      AND "primary_key" = :primary_key
+      AND status_initially = :status_initially;"""
+    with get_db_connection(schema='', local=local) as con:
+        for row in rows:
+            run_sql(con, sql_str, {k: v for k, v in row.items() if k in ['table', 'primary_key', 'status_initially']})
 
 
 def database_exists(con: Connection, db_name: str) -> bool:
     """Check if database exists"""
-    result = \
-        run_sql(con, f"SELECT datname FROM pg_catalog.pg_database WHERE datname = '{db_name}';").fetchall()
+    result = run_sql(con, f"SELECT datname FROM pg_catalog.pg_database WHERE datname = '{db_name}';").fetchall()
     return len(result) == 1
 
 

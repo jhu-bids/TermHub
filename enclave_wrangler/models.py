@@ -32,12 +32,13 @@ OBJECT_TYPE_TABLE_MAP: Dict[str, List[str]] = {
         'concept'
     ],
 }
+# todo: This is now partially duplicative with what's in config.py
 PKEYS = {
     # Enclave Object API
     'OMOPConcept': 'conceptId',
     'OMOPConceptSet': 'codesetId',
     'OMOPConceptSetContainer': 'conceptSetId',
-    'OmopConceptSetVersionItem': 'itemId',
+    'OmopConceptSetVersionItem': 'itemId',  # todo: change to codeset_id,concept_id?
     # Non-TermHub tables
     'atlasjson': 'CONCEPT_ID',
     # TermHub tables

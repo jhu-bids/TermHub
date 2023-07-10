@@ -33,7 +33,7 @@ from enclave_wrangler.dataset_upload import upload_new_cset_container_with_conce
 
 from enclave_wrangler.objects_api import concept_enclave_to_db, \
     concept_expression_enclave_to_db, concept_set_container_enclave_to_db, cset_version_enclave_to_db, \
-    filter_cset_and_member_objects, csets_and_members_to_db, fetch_cset_and_member_objects, all_new_objects_to_db, \
+    csets_and_members_to_db, fetch_cset_and_member_objects, all_new_objects_to_db, \
     get_concept_set_version_members
 
 TEST_INPUT_DIR = os.path.join(TEST_DIR, 'input', 'test_enclave_wrangler')

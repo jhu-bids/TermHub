@@ -12,7 +12,7 @@ A refresh is done nightly via [GitHub action](https://github.com/jhu-bids/TermHu
 | `-c` / `--datasets-csets` | False | Download datasets from the "cset" group. |
 | `-v` / `--datasets-vocab` | False | Download datasets from the "vocab" group |
 | `-f` / `--force-download-if-exists` | True | If the dataset/object already exists as a local file, force a re-download. This is moot if the last update was done within --hours-threshold-for-updates. |
-| `-l` / `--use-local-database` | False | Use local database instead of server. |
+| `-l` / `--use-local-db` | False | Use local database instead of server. |
 
 #### Allowing remote access
 To allow a new user to access the database remotely, their IP address must be added to Azure: (i) select [DB resource](https://portal.azure.com/#@live.johnshopkins.edu/resource/subscriptions/fe24df19-d251-4821-9a6f-f037c93d7e47/resourceGroups/JH-POSTGRES-RG/providers/Microsoft.DBforPostgreSQL/flexibleServers/termhub/overview), (ii) [select 'Networking'](https://portal.azure.com/#@live.johnshopkins.edu/resource/subscriptions/fe24df19-d251-4821-9a6f-f037c93d7e47/resourceGroups/JH-POSTGRES-RG/providers/Microsoft.DBforPostgreSQL/flexibleServers/termhub/networking), (iii) add IP address.

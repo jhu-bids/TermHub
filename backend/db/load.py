@@ -8,7 +8,8 @@ from backend.db.config import CONFIG
 from backend.db.utils import get_ddl_statements, check_if_updated, current_datetime, insert_from_dict, \
     is_table_up_to_date, load_csv, refresh_termhub_core_cset_derived_tables, run_sql, get_db_connection, sql_in, \
     sql_query, update_db_status_var
-from enclave_wrangler.datasets import download_favorite_datasets
+from enclave_wrangler.config import FAVORITE_DATASETS
+from enclave_wrangler.datasets import download_datasets
 from enclave_wrangler.objects_api import download_favorite_objects
 
 DB = CONFIG["db"]
@@ -34,33 +35,18 @@ OBJECT_TABLES = [x.lower() for x in [
     # 'OmopConceptSetVersionItem', only need this if we want the RID, but maybe don't need it
 ]]
 OBJECT_TABLES_TEST = []
-DATASET_TABLES_TEST = {
-    'concept': {
-        'primary_key': 'concept_id'
-    },
-    'code_sets': {
-        'primary_key': 'codeset_id'
-    },
-    'concept_set_container': {
-        'primary_key': 'concept_set_id'
-    },
-    'concept_set_members': {
-        'primary_key': ['codeset_id', 'concept_id']
-    },
-    'concept_set_version_item': {
-        'primary_key': 'item_id'
-    },
-}
-
+DATASET_TABLES_TEST = [
+    'concept', 'code_sets', 'concept_set_container', 'concept_set_members', 'concept_set_version_item']
+DATASET_TABLES_TEST_CONFIG = {k: v for k, v in FAVORITE_DATASETS.items() if k in DATASET_TABLES_TEST}
 
 def download_artefacts(force_download_if_exists=False):
     """Download essential DB artefacts to be uploaded"""
     print('INFO: Downloading datasets: csets.')
-    download_favorite_datasets(force_if_exists=force_download_if_exists, single_group='cset')
+    download_datasets(force_if_exists=force_download_if_exists, single_group='cset')
     print('INFO: Downloading datasets: objects.')
     download_favorite_objects(force_if_exists=force_download_if_exists)
     print('INFO: Downloading datasets: vocab.')
-    download_favorite_datasets(force_if_exists=force_download_if_exists, single_group='vocab')
+    download_datasets(force_if_exists=force_download_if_exists, single_group='vocab')
 
 
 def initialize_test_schema(con_initial: Connection, schema: str = SCHEMA, local=False):
@@ -73,11 +59,11 @@ def initialize_test_schema(con_initial: Connection, schema: str = SCHEMA, local=
     with get_db_connection(schema=test_schema, local=local) as con_test_schema:
         if test_schema == 'n3c':  # given the above lines, I don't see how it could ever be n3c, but this is a safeguard
             raise RuntimeError('Incorrect schema. Should be dropping table from test_n3c.')
-        for table in DATASET_TABLES_TEST.keys():
+        for table in DATASET_TABLES_TEST_CONFIG.keys():
             run_sql(con_test_schema, f'DROP TABLE IF EXISTS {test_schema}.{table};')
 
     # Seed data
-    seed(con_initial, test_schema, clobber=True, dataset_tables=list(DATASET_TABLES_TEST.keys()),
+    seed(con_initial, test_schema, clobber=True, dataset_tables=list(DATASET_TABLES_TEST_CONFIG.keys()),
          object_tables=OBJECT_TABLES_TEST, test_tables=True, local=local)
     # - Data in `concept_set_members` table should exist in `concept` and `code_sets` tables
     with get_db_connection(schema=test_schema, local=local) as con_test_schema:
@@ -96,7 +82,7 @@ def initialize_test_schema(con_initial: Connection, schema: str = SCHEMA, local=
 
     # Set primary keys
     with get_db_connection(schema=test_schema, local=local) as con_test_schema:
-        for table, d in DATASET_TABLES_TEST.items():
+        for table, d in DATASET_TABLES_TEST_CONFIG.items():
             pk = d['primary_key']
             pk = pk if isinstance(pk, str) else ', '.join(pk)
             run_sql(con_test_schema, f'ALTER TABLE {test_schema}.{table} ADD PRIMARY KEY({pk});')
@@ -194,21 +180,21 @@ def indexes_and_derived_tables(
 
 
 def load(
-    schema: str = SCHEMA, clobber=False, skip_if_updated_within_hours: int = None, use_local_database=False
+    schema: str = SCHEMA, clobber=False, skip_if_updated_within_hours: int = None, use_local_db=False
 ):
     """Load data into the database and CREATE INDEXes and derived tables"""
-    with get_db_connection(local=use_local_database) as con:
+    with get_db_connection(local=use_local_db) as con:
         # download_artefacts(force_download_if_exists=False)
-        seed(con, schema, clobber, skip_if_updated_within_hours, local=use_local_database)
-        indexes_and_derived_tables(con, schema, skip_if_updated_within_hours, local=use_local_database)
+        seed(con, schema, clobber, skip_if_updated_within_hours, local=use_local_db)
+        indexes_and_derived_tables(con, schema, skip_if_updated_within_hours, local=use_local_db)
 
 
+# Common operations
 if __name__ == '__main__':
     # load()
-    # with get_db_connection(local=True) as con:
-    with get_db_connection(local=False) as con:
-        # initialize_test_schema(con, local=True)
-        seed(con, 'n3c', clobber=True, skip_if_updated_within_hours=False, local=False,
-             dataset_tables=[], object_tables=['researcher'])
-        indexes_and_derived_tables(con, 'n3c', local=False)
-        # indexes_and_derived_tables(con, 'n3c', local=True)
+    with get_db_connection(local=True) as conn:
+        # initialize_test_schema(conn, local=True)
+        # seed(conn, 'n3c', clobber=True, skip_if_updated_within_hours=False, local=False,
+        #      dataset_tables=[], object_tables=['researcher'])
+        # indexes_and_derived_tables(conn, 'n3c', local=True)
+        pass

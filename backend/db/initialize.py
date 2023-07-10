@@ -22,6 +22,36 @@ from backend.db.utils import database_exists, run_sql, show_tables, get_db_conne
 
 SCHEMA = CONFIG['schema']
 
+DDL_MANAGE = """CREATE TABLE IF NOT EXISTS public.manage (
+key text not null, 
+value text);"""
+DDL_COUNTS = """CREATE TABLE IF NOT EXISTS public.counts (
+timestamp text not null, 
+date text, 
+schema text not null, 
+"table" text not null, 
+count integer not null, 
+delta integer not null);"""
+DDL_COUNTS_RUNS = """CREATE TABLE IF NOT EXISTS public.counts_runs (
+timestamp text not null, 
+date text, 
+schema text not null, 
+note text);"""
+# fetch_audit: table schema
+#   table: text; examples: code_sets | concept_set_container | concept_set_members | concept_set_version_item
+#   primary_key: text; comma-delimited: this should store the value of the keys, e.g. codeset_id 12345, concept_id 5678
+#     would be 12345,5678
+#   status_initially: text; factor: success | fail-excessive-members fail-excessive-items | fail-0-members |
+#   fail-unknown?
+#   success_datetime: timestamp; initially null, used by code that updates the derived tables.
+#   comment: text
+# todo: change comment to text[]?
+DDL_FETCH_AUDIT = """CREATE TABLE IF NOT EXISTS public.fetch_audit (
+"table" text not null,
+primary_key text not null,
+status_initially text not null,
+success_datetime timestamp with time zone,
+comment text);"""
 
 def create_database(con: Connection, schema: str):
     """Create the database"""
@@ -34,21 +64,10 @@ def create_database(con: Connection, schema: str):
         # noinspection PyUnresolvedReferences
         con.connection.connection.set_isolation_level(1)
     with get_db_connection(schema='') as con2:
-        run_sql(con2, "CREATE TABLE IF NOT EXISTS public.manage ("
-                      "key text not null, "
-                      "value text);")
-        run_sql(con2, "CREATE TABLE IF NOT EXISTS public.counts ("
-                      "timestamp text not null, "
-                      "date text, "
-                      "schema text not null, "
-                      '"table" text not null, '
-                      "count integer not null, "
-                      "delta integer not null);")
-        run_sql(con2, "CREATE TABLE IF NOT EXISTS public.counts_runs ("
-                      "timestamp text not null, "
-                      "date text, "
-                      "schema text not null, "
-                      "note text);")
+        run_sql(con2, DDL_MANAGE)
+        run_sql(con2, DDL_COUNTS)
+        run_sql(con2, DDL_COUNTS_RUNS)
+        run_sql(con2, DDL_FETCH_AUDIT)
         run_sql(con, f'CREATE SCHEMA IF NOT EXISTS {schema};')
 
 
@@ -58,17 +77,11 @@ def initialize(
 ):
     """Initialize set up of DB
 
-    :param local: If True, does this on local instead of production database.
-
-    Resources
-    - https://docs.sqlalchemy.org/en/20/core/engines.html
-    - https://docs.sqlalchemy.org/en/20/dialects/mysql.html
-    """
+    :param local: If True, does this on local instead of production database."""
     with get_db_connection(local=local) as con:
         if test_schema_only:
             return initialize_test_schema(con, schema, local=local)
         if create_db:
-            # Apparently this caused an error the last time on a fresh DB, but didn't write down why.
             create_database(con, schema)
         if download:
             download_artefacts(force_download_if_exists=download_force_if_exists)
@@ -89,7 +102,7 @@ def cli():
         help='Use local database? If this is set, will use DB related environmental variables that end with _LOCAL.')
     parser.add_argument(
         '-c', '--create-db', action='store_true', default=False,
-        help='Create the database "termhub", the "manage" table, and schema?')
+        help='Create the database "termhub", Postgres schemas (e.g. "n3c" and "test_n3c") and auxiliary tables?')
     parser.add_argument(
         '-d', '--download', action='store_true', default=False,
         help='Download datasets necessary for seeding DB? Not needed if they\'ve already been downloaded.')
