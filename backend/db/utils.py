@@ -178,7 +178,6 @@ def select_failed_fetches(use_local_db=False) -> List[Dict]:
     with get_db_connection(schema='', local=use_local_db) as con:
         return [dict(x) for x in sql_query(con, f"SELECT * FROM fetch_audit WHERE success_datetime IS NULL;")]
 
-
 def fetch_status_set_success(rows: List[Dict], local=False):
     """Update fetch status of record
     :param rows: Takes the same format of list of dictionaries that you would get from select_failed_fetches()"""
@@ -190,7 +189,6 @@ def fetch_status_set_success(rows: List[Dict], local=False):
     with get_db_connection(schema='', local=local) as con:
         for row in rows:
             run_sql(con, sql_str, {k: v for k, v in row.items() if k in ['table', 'primary_key', 'status_initially']})
-
 
 def database_exists(con: Connection, db_name: str) -> bool:
     """Check if database exists"""

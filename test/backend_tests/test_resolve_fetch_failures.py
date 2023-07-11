@@ -6,7 +6,6 @@ How to run:
 import os
 import sys
 from pathlib import Path
-
 from backend.db.resolve_fetch_failures import resolve_fetch_failures
 from backend.db.utils import run_sql, sql_query
 from enclave_wrangler.objects_api import fetch_cset_and_member_objects
@@ -60,6 +59,18 @@ class TestBackendResolveFetchFailures(FetchAuditTestRunner):
         resolve_fetch_failures()
         status2 = query()
         self.assertNotEqual(status1, status2)
+=======
+    """Inherits from the FetchAudit test class to get setup/teardown methods."""
+    # TODO: Need a better test. This one actually passes even though lots of members. i need one that has more than 10k
+    #  items
+    # Hope Termhub Test (v3) https://unite.nih.gov/workspace/module/view/latest/ri.workshop.main.module.5a6c64c0-e82b-4cf8-ba5b-645cd77a1dbf
+    mock_data = [{'table': 'code_sets', 'primary_key': 946809371, 'status_initially': 'fail-excessive-items',
+                  'comment': 'Unit testing.'}]
+
+    def test_resolve_fetch_failures(self):
+        """Test resolve_fetch_failures()"""
+        print()
+>>>>>>> 966c556e (DB Refresh)
 
 
 # Uncomment this and run this file and run directly to run all tests
