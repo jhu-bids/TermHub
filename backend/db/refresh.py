@@ -13,7 +13,7 @@ PROJECT_ROOT = os.path.join(BACKEND_DIR, '..')
 sys.path.insert(0, str(PROJECT_ROOT))
 from backend.db.analysis import counts_update,counts_docs
 from backend.db.config import CONFIG
-from backend.db.utils import current_datetime, get_db_connection, last_refresh_timestamp, update_db_status_var
+from backend.db.utils import current_datetime, get_db_connection, last_refresh_timestamp, update_db_status_var,check_db_status_var, delete_db_status_var
 from enclave_wrangler.objects_api import csets_and_members_enclave_to_db
 
 DESC = 'Refresh TermHub database w/ newest updates from the Enclave using the objects API.'
@@ -39,8 +39,13 @@ def refresh_db(
     local = use_local_db
     print('INFO: Starting database refresh.', flush=True)  # flush: for gh action
     t0, t0_str = datetime.now(), current_datetime()
-    update_db_status_var('last_refresh_request', t0_str, local)
+
+    if check_db_status_var('refresh_status') == 'active':
+        update_db_status_var('new_request_while_refreshing', t0_str, local)
+        return
+
     update_db_status_var('refresh_status', 'active', local)
+    update_db_status_var('last_refresh_request', current_datetime(), local)
     try:
         with get_db_connection(local=local) as con:
             last_refresh = last_refresh_timestamp(con)
@@ -66,6 +71,13 @@ def refresh_db(
         print(f"Database refresh incomplete. An exception occurred.", file=sys.stderr)
         raise err
 
+    if check_db_status_var('new_request_while_refreshing'):
+        # possibly look at the timestamp for sanity check
+        delete_db_status_var('new_request_while_refreshing')
+        refresh_db(use_local_database=use_local_database)
+
+
+
 def cli():
     """Command line interface"""
     parser = ArgumentParser(prog='DB Refresh', description=DESC)
@@ -77,8 +89,8 @@ def cli():
         help='A timestamp by which new data should be fetched. If not present, will look up the last time the DB was '
              'refreshed and fetch new data from that time. Format: ISO 8601, with timezone offset, formatted as '
              'YYYY-MM-DDTHH:MM:SS.SSSSSS+HH:MM, e.g. 2022-02-22T22:22:22.222222+00:00.')
-    refresh_db(**vars(parser.parse_args()))
 
+    refresh_db(**vars(parser.parse_args()))
 
 if __name__ == '__main__':
     cli()
