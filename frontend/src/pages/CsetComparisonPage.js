@@ -615,7 +615,7 @@ function colConfig(props) {
       codeset_id,
       headerProps: {
         //tooltipContent: "Click to create and edit new draft of this concept set",
-        tooltipContent: `${cset_col.concept_set_version_title}. Click to edit new version.`,
+        tooltipContent: `${cset_col.codeset_id} ${cset_col.concept_set_version_title}. Click to edit new version.`,
         headerContent: cset_col.concept_set_name,
         headerContentProps: {
           onClick: editCodesetFunc,

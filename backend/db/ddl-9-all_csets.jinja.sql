@@ -1,5 +1,5 @@
 -- Table: all_csets ----------------------------------------------------------------------------------------------------
-DROP TABLE IF EXISTS {{schema}}all_csets{{optional_suffix}};
+DROP TABLE IF EXISTS {{schema}}all_csets{{optional_suffix}} CASCADE;
 
 CREATE TABLE {{schema}}all_csets{{optional_suffix}} AS
 -- table instead of view for performance (no materialized views in mySQL)
