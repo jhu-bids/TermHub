@@ -3,13 +3,14 @@
  *  todo: 1. Siggie was going to add some sort of Table here
  * */
 import React, {useEffect, useState} from "react";
-import {queryClient} from "../App";
+// import {queryClient} from "../App";
 import Typography from "@mui/material/Typography";
 import Button from "@mui/material/Button";
 import { TextField, } from "@mui/material";
 import { Link, useLocation } from "react-router-dom";
 import VERSION from "../version";
-import {axiosCall, dataAccessor} from "../components/State";
+import {useDataCache} from "../state/DataCache";
+import {useDataGetter} from "../state/DataGetter";
 
 // import * as po from './Popover';
 
@@ -66,14 +67,6 @@ let LI = (props) => (
 );
 let DOCS = {};
 
-const handleRefresh = async () => {
-  try {
-    await axiosCall('db-refresh', {backend: true, verbose: false, });
-    console.log('Triggered: database refresh');
-  } catch (error) {
-    console.error('Error:', error);
-  }
-};
 
 function AboutPage(props) {
   // const {codeset_ids=[], all_csets=[], cset_data={}} = props;
@@ -86,18 +79,29 @@ function AboutPage(props) {
   //       return {Message, ConceptSetNames, CodesetIds, Concepts};
   //     }
   // )
+  const dataCache = useDataCache();
+  const dataGetter = useDataGetter();
   const [codeset_ids, setCodeset_ids] = useState(props.codeset_ids);
   const [refreshButtonClicked, setRefreshButtonClicked] = useState();
   const [lastRefreshed, setLastRefreshed] = useState();
   const location = useLocation();
   const { search } = location;
 
+  const handleRefresh = async () => {
+    try {
+      await dataGetter.axiosCall('db-refresh', {backend: true, verbose: false, title: 'Refreshing TermHub database from Enclave'});
+      console.log('Triggered: database refresh');
+    } catch (error) {
+      console.error('Error:', error);
+    }
+  };
+
   useEffect(() => {
     (async () =>{
-      let lastRefreshed = dataAccessor.lastRefreshed();
+      let lastRefreshed = dataCache.lastRefreshed();
       if (!lastRefreshed) {
-        await dataAccessor.cacheCheck();
-        lastRefreshed = dataAccessor.lastRefreshed();
+        await dataCache.cacheCheck(dataGetter);
+        lastRefreshed = dataCache.lastRefreshed();
         setLastRefreshed(lastRefreshed);
       }
     })()
@@ -160,8 +164,10 @@ function AboutPage(props) {
         <ol>
           <LI>Try: Refreshing the page</LI>
           <LI>
-            Try clicking: <Button variant={"contained"}
-              onClick={() => queryClient.removeQueries()}
+            Try purging localStorage (by clicking here, or if you can't get to this page, open chrome(or other browser
+            console, and enter `localStorage.clear()`): <Button variant={"contained"}
+              // onClick={() => queryClient.removeQueries()}
+              onClick={() => localStorage.clear()}
             >
               Empty the data cache
             </Button>

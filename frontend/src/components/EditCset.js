@@ -10,7 +10,6 @@ import Typography from "@mui/material/Typography";
 import { isEmpty, get, pick } from "lodash"; // set, map, omit, pick, uniq, reduce, cloneDeepWith, isEqual, uniqWith, groupBy,
 import IconButton from "@mui/material/IconButton";
 import { Tooltip } from "./Tooltip";
-import { searchParamsToObj, updateSearchParams, backend_url } from "./State";
 import {
   LI,
   TextH2,
@@ -18,37 +17,10 @@ import {
   howToSaveStagedChanges,
 } from "../pages/AboutPage";
 import _ from "../supergroup/supergroup";
+import {searchParamsToObj, updateSearchParams} from "../state/SearchParamsProvider";
+import {backend_url} from "../state/DataGetter";
 
 const checkmark = <span>{"\u2713"}</span>;
-export function getEditCodesetFunc(props) {
-  const { searchParams } = props;
-  return (evt) => {
-    // was: let codeset_id = parseInt(evt.target.getAttribute('codeset_id')); until adding wrapper around col for including icon
-    let colHeaderEl = evt.target.parentNode;
-    if (!colHeaderEl.getAttribute("codeset_id")) {
-      colHeaderEl = colHeaderEl.parentNode;
-    }
-    const codeset_id = parseInt(colHeaderEl.getAttribute("codeset_id"));
-    if (!codeset_id)
-      throw new Error("error getting codeset_id during col header click");
-    let sp = searchParamsToObj(searchParams);
-    let { csetEditState = {} } = sp;
-    let addProps, delProps;
-    if (sp.editCodesetId === codeset_id) {
-      // clicked codeset is already being edited, so get rid of it
-      // delete csetEditState[codeset_id]; // have been keying editState on codeset_id so state
-      //  could be returned to when switching which codeset is being edited, but that's a bad idea.
-      //  should get rid of that, but don't have time at the moment
-      delProps = ["editCodesetId", "csetEditState"];
-      updateSearchParams({ ...props, delProps });
-    } else {
-      // clicked codeset is not already being edited, so set it to be edited
-      //  and clear editState
-      addProps = { editCodesetId: codeset_id, csetEditState: {} };
-      updateSearchParams({ ...props, addProps });
-    }
-  };
-}
 
 export function getCodesetEditActionFunc({ searchParams }) {
   return (props) => {

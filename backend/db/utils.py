@@ -5,6 +5,8 @@ todo's
 """
 import json
 import os
+from random import randint
+
 import pytz
 import dateutil.parser as dp
 from datetime import datetime, timezone
@@ -48,30 +50,35 @@ def refresh_termhub_core_cset_derived_tables(con: Connection, schema: str):
         'cset_members_items_plus',
         'codeset_counts',
         'all_csets',
-        # 'csets_to_ignore',            not using for now
+        'csets_to_ignore',
     ]
     views = [
         'cset_members_items_plus',
-        # 'csets_to_ignore',            not using for now
+        'csets_to_ignore',
     ]
+
     # Create new tables and backup old ones
+    print('Derived tables')
     t0 = datetime.now()
+    hash_num = '_' + str(randint(10000000, 99999999))
     for module in ddl_modules:
-        print(f'Running SQL to recreate derived table: {module}...')
-        statements: List[str] = get_ddl_statements(schema, [module], temp_table_suffix, 'flat')
+        print(f' - creating new table/view: {module}...')
+        statements: List[str] = get_ddl_statements(schema, [module], temp_table_suffix, hash_num, 'flat')
         for statement in statements:
             run_sql(con, statement)
         # todo: warn if counts in _new table not >= _old table (if it exists)?
         run_sql(con, f'ALTER TABLE IF EXISTS {schema}.{module} RENAME TO {module}_old;')
         run_sql(con, f'ALTER TABLE {schema}.{module}{temp_table_suffix} RENAME TO {module};')
-    # - Delete old tables. Because of view dependencies, order & commands are different
-    t1 = datetime.now()
-    print(f'Derived tables all created in {(t1 - t0).seconds} seconds. Removing older, temporarily backed up copies...')
+
+    # Delete old tables/views. Because of view dependencies, order & commands are different
+    print(f' - Removing older, temporarily backed up tables/views...')
     for view in views:
         ddl_modules.remove(view)
         run_sql(con, f'DROP VIEW IF EXISTS {schema}.{view}_old;')
     for module in ddl_modules:
         run_sql(con, f'DROP TABLE IF EXISTS {schema}.{module}_old;')
+    t1 = datetime.now()
+    print(f' - completed in {(t1 - t0).seconds} seconds')
 
 
 def get_db_connection(isolation_level='AUTOCOMMIT', schema: str = SCHEMA, local=False):
@@ -433,7 +440,7 @@ def list_tables(con: Connection, schema: str = SCHEMA, filter_temp_refresh_table
 
 
 def get_ddl_statements(
-    schema: str = SCHEMA, modules: List[str] = None, table_suffix='', return_type=['flat', 'nested'][1]
+    schema: str = SCHEMA, modules: List[str] = None, table_suffix='', index_suffix='', return_type=['flat', 'nested'][1]
 ) -> Union[List[str], Dict[str, List[str]]]:
     """From local SQL DDL Jinja2 templates, pa rse and get a list of SQL statements to run.
 
@@ -458,7 +465,8 @@ def get_ddl_statements(
         with open(path, 'r') as file:
             template_str = file.read()
         module = os.path.basename(path).split('-')[2].split('.')[0]
-        ddl_text = Template(template_str).render(schema=schema + '.', optional_suffix=table_suffix)
+        ddl_text = Template(template_str).render(
+            schema=schema + '.', optional_suffix=table_suffix, optional_index_suffix=index_suffix)
         without_comments = re.sub(r'^\s*--.*\n*', '', ddl_text, flags=re.MULTILINE)
         # Each DDL file should have 1 or more statements separated by an empty line (two line breaks).
         module_statements = [x + ';' for x in without_comments.split(';\n\n')]

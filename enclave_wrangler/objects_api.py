@@ -270,7 +270,7 @@ def fetch_all_new_objects(since: Union[datetime, str]) -> Dict[str, List]:
     https://unite.nih.gov/workspace/data-integration/restricted-view/preview/ri.gps.main.view.af03f7d1-958a-4303-81ac-519cfdc1dfb3
     """
     since = str(since)
-    csets_and_members: Dict[str, List] = fetch_cset_and_member_objects(since, return_type='flat')
+    csets_and_members: Dict[str, List] = fetch_cset_and_member_objects(since)
     # TODO:
     researchers = get_researchers()
     # TODO:
@@ -298,12 +298,11 @@ def csets_and_members_enclave_to_db(
 
     print(f'  - Fetched new data in {(datetime.now() - t0).seconds} seconds:\n    OBJECT_TYPE: COUNT\n' +
           "\n".join(['    ' + str(k) + ": " + str(len(v)) for k, v in csets_and_members.items()]))
-    csets_and_members = filter_cset_and_member_objects(csets_and_members)
     return csets_and_members_to_db(con, schema, csets_and_members)
 
 
 def fetch_cset_and_member_objects(
-    since: Union[datetime, str], return_type=['flat', 'hierarchical'][0], verbose=False
+    since: Union[datetime, str], verbose=False
 ) -> Dict[str, List[Dict]] :
     """Get new objects: cset container, cset version, expression items, and member items.
 
@@ -321,21 +320,22 @@ def fetch_cset_and_member_objects(
      change, it will be a breaking change at the very least for csets_and_members_to_db() both in terms of no longer
      needing to do this lookup, and also dealing properly w/ how the data is returned from this func.
 
-    :return (return_type == 'flat' (default)):
+    :return
       - cset containers
       - cset versions
+          - member items
+          - expression items
       - member items
       - expression items
-    :return (return_type == 'hierarchical'):
-      - cset containers
-      - cset versions
-        - member items
-        - expression items
+
+    TODO: @joeflack4, if new container but it has no versions, should still fetch it. right now not doing that
+            and, when metadata updated on container or version, need to fetch (but not bother with members and items)
     """
     pagination_err = 'WARNING: Handled error for cset {}. Enclave pagination limit reached. Going to import ' \
                      'items, even though was not able to fetch all.'
     # Concept set versions
     cset_versions: List[Dict] = fetch_objects_since_datetime('OMOPConceptSet', since, verbose)
+
 
     # Containers
     containers_ids = [x['properties']['conceptSetNameOMOP'] for x in cset_versions]
@@ -354,6 +354,22 @@ def fetch_cset_and_member_objects(
     flat_expression_items = []
     flat_member_items = []
     for cset in cset_versions:
+
+        # TODO: @joeflack4, need an audit log of successful as well as failed fetches so that we can make a quicker
+        #   version of derived tables update
+        # cset['termhub-notes'] = {'fetched-on', str(datetime.now())}
+        # maybe log looks like
+        #   audit table columns:
+        #       table_name: code_sets | concept_set_container | concept_set_members | concept_set_version_item | researchers? etc.
+        #       primary_key: codeset_id, concept_set_name, [codeset_id, concept_id] | [codeset_id, concept_id] | ...
+        #       key_values:     ....
+        #       status:  success | failed from too many | 0 members, keep trying | failure other reason |
+        #           0 members after a couple hours = success
+        #           initial and final status?
+        #       comment text[]?
+        #       fixed_later: false (change to true later?)
+        #       processed: timestamp, initially null # used by code that updates the derived tables
+
         version: int = cset['properties']['codesetId']
         # Hierarchical
         # TODO: exc handling: Will need to handle differently or do more: https://github.com/jhu-bids/TermHub/issues/451
@@ -361,32 +377,39 @@ def fetch_cset_and_member_objects(
             cset['expression_items']: List[Dict] = get_concept_set_version_expression_items(version, return_detail='full')
         except EnclavePaginationLimitErr as err:
             cset['expression_items']: List[Dict] = err.args[1]['results_prior_to_error']
+            # TODO: flag in some table that we need to do datasets api download
+            # cset['termhub-notes']['expression_items_failed_after'] = len(cset['expression_items'])
             print(pagination_err.format(version), file=sys.stderr)
+
         try:
             cset['member_items']: List[Dict] = get_concept_set_version_members(version, return_detail='full')
+            auditMsg = f"found {len(cset['member_items'])} members"
         except EnclavePaginationLimitErr as err:
             cset['member_items']: List[Dict] = err.args[1]['results_prior_to_error']
             print(pagination_err.format(version), file=sys.stderr)
+            auditMsg = f"failed after {len(cset['member_items'])} members"
+
+        if not cset['members_items']:
+            auditMsg = f"got no members as of {str(datetime.now())}, will continue trying until..."
+            pass
+            # TODO: do something so we keep trying for a couple hours. it's possible it really doesn't have members, but
+            #   probably the members just aren't available yet
+
+
         cset_versions_with_concepts.append(cset)
         # Flat
         flat_expression_items.extend(cset['expression_items'])
         flat_member_items.extend(cset['member_items'])
 
-    if return_type == 'flat':
-        return {'OMOPConceptSetContainer': cset_containers, 'OMOPConceptSet': cset_versions,
-                'OmopConceptSetVersionItem': flat_expression_items, 'OMOPConcept': flat_member_items}
-    return {'cset_containers': cset_containers, 'cset_versions': cset_versions_with_concepts}
+        # update audit table here
+
+    return {'OMOPConceptSetContainer': cset_containers, 'OMOPConceptSet': cset_versions,
+            'OmopConceptSetVersionItem': flat_expression_items, 'OMOPConcept': flat_member_items}
 
 
 def csets_and_members_to_db(con: Connection, schema: str, csets_and_members: Dict[str, List[Dict]] = None):
     """Update database with csets and members.
-    todo: add_object_to_db(): support multiple objects with single insert
-    todo: @Sigfried I fetch new csets, and I add their concepts to this table if they're not there already. Potentially
-     useful if we don't update our vocab tables as soon as the Enclave's are updated, but perhaps this is an unnecessary
-     step I can remove. What do you think?
-
-    todo: @joeflack4: I don't really understand this function. can you walk me through it so I can answer your question?
-     """
+    todo: add_object_to_db(): support multiple objects with single insert"""
     # Core cset tables: with normal, single primary keys
     for object_type_name, objects in csets_and_members.items():
         print(f'Running SQL inserts in core tables for: {object_type_name}...')
@@ -394,7 +417,7 @@ def csets_and_members_to_db(con: Connection, schema: str, csets_and_members: Dic
         objects = [obj['properties'] if 'properties' in obj else obj for obj in objects]
         add_objects_to_db(con, object_type_name, objects)
         t1 = datetime.now()
-        print(f'  - {object_type_name} inserts completed in {(t1 - t0).seconds} seconds')
+        print(f'  - completed in {(t1 - t0).seconds} seconds')
 
     # Core cset tables with: composite primary keys
     print('Running SQL inserts in core tables for: concept_set_members...')
@@ -407,40 +430,6 @@ def csets_and_members_to_db(con: Connection, schema: str, csets_and_members: Dic
 
     # Derived tables
     refresh_termhub_core_cset_derived_tables(con, schema)
-
-
-def filter_cset_and_member_objects(csets_and_members: Dict[str, List[Dict]]) -> Dict[str, List[Dict]]:
-    """Filter filter out containers and code sets that have no members."""
-    csets_and_members2 = {
-        'OMOPConcept': csets_and_members['OMOPConcept'],
-        'OmopConceptSetVersionItem': csets_and_members['OmopConceptSetVersionItem'],
-        'OMOPConceptSetContainer': [],
-        'OMOPConceptSet': []
-    }
-    containers_with_codesets_with_members = set()
-    filtered_csets = []
-    filtered_containers = set()
-    for cset in csets_and_members['OMOPConceptSet']:
-        if not cset['member_items']:
-            filtered_csets.append(f"{cset['properties']['codesetId']}: {cset['properties']['conceptSetVersionTitle']}")
-            continue
-        csets_and_members2['OMOPConceptSet'].append(cset)
-        containers_with_codesets_with_members.add(cset['properties']['conceptSetNameOMOP'])
-    for container in csets_and_members['OMOPConceptSetContainer']:
-        if container['conceptSetId'] in containers_with_codesets_with_members:
-            csets_and_members2['OMOPConceptSetContainer'].append(container)
-            continue
-        filtered_containers.add(container['conceptSetId'])
-
-    diff_containers = len(
-        csets_and_members['OMOPConceptSetContainer']) - len(csets_and_members2['OMOPConceptSetContainer'])
-    diff_csets = len(csets_and_members['OMOPConceptSet']) - len(csets_and_members2['OMOPConceptSet'])
-    print(f'  - Filtered out {diff_containers} containers and {diff_csets} code sets w/ 0 members. New total:\n    '
-          f'OBJECT_TYPE: COUNT\n' +
-          "\n".join(['    ' + str(k) + ": " + str(len(v)) for k, v in csets_and_members2.items()]))
-    print('  - Filtered containers: ' + ', '.join([x for x in filtered_containers]))
-    print('  - Filtered code sets: ' + ', '.join([x for x in filtered_csets]))
-    return csets_and_members2
 
 
 def fetch_object_by_id(object_type_name: str, object_id: Union[int, str], id_field: str = None, verbose=False) -> Dict:
@@ -808,13 +797,13 @@ def refresh_tables_for_object():
 
 
 def get_concept_set_version_expression_items(
-    version_id: Union[str, int], return_detail, handle_paginated=True, fail_on_error=True
+    codeset_id: Union[str, int], return_detail, handle_paginated=True, fail_on_error=True
 ) -> List[Dict]:
     """Get concept set version expression items"""
-    version_id = str(version_id)
+    codeset_id = str(codeset_id)
     items: List[Dict] = get_object_links(
         object_type='OMOPConceptSet',
-        object_id=version_id,
+        object_id=codeset_id,
         link_type='OmopConceptSetVersionItem',
         handle_paginated=handle_paginated,
         fail_on_error=fail_on_error)
@@ -824,13 +813,13 @@ def get_concept_set_version_expression_items(
 
 
 def get_concept_set_version_members(
-    version_id: Union[str, int], return_detail, handle_paginated=True, verbose=False, fail_on_error=True
+    codeset_id: Union[str, int], return_detail, handle_paginated=True, verbose=False, fail_on_error=True
 ) -> List[Dict]:
     """Get concept set members"""
-    version_id = str(version_id)
+    codeset_id = str(codeset_id)
     members: List[Dict] = get_object_links(
         object_type='OMOPConceptSet',
-        object_id=version_id,
+        object_id=codeset_id,
         link_type='omopconcepts',
         handle_paginated=handle_paginated,
         verbose=verbose,

@@ -1,5 +1,4 @@
 -- Table: csets_to_ignore ----------------------------------------------------------------------------------------------
-
 CREATE OR REPLACE VIEW {{schema}}csets_to_ignore{{optional_suffix}} AS
 SELECT all_csets.concept_set_name,
     all_csets.container_created_at,

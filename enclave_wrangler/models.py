@@ -142,6 +142,8 @@ class CsetVersion(ObjWithMetadata):
         on_behalf_of: str = None, codeset_id: int = None, omop_concepts: List[Dict] = None
     ):
         """
+        TODO: @joeflack4 -- is this code used anywhere? is it obsolete or still planning to use? get rid of if not planning to use
+
         @param created_by (UUID): This is also called `on_behalf_of` when we pass it to the API. This is also
         multiPassId.
         """

@@ -51,22 +51,6 @@ class TestEnclaveWrangler(unittest.TestCase):
     #     csets_and_members: Dict[str, List] = fetch_cset_and_member_objects(since=yesterday)
     #     # todo: what kind of assert?
 
-    def test_filter_cset_and_member_objects(self):
-        """Test filter_cset_and_member_objects()"""
-        # pickle: based on 2023/05/23 run of: get_new_cset_and_member_objects(since=yesterday)
-        pickle_path = os.path.join(TEST_INPUT_DIR, 'test_csets_and_members_enclave_to_db', 'objects.pkl')
-        with open(pickle_path, 'rb') as file:
-            csets_and_members: Dict[str, List] = pickle.load(file)
-        # "Arthritis: Ankylosing spondylitis" has 2 entries
-        for cset in csets_and_members['OMOPConceptSet']:
-            if cset['properties']['conceptSetNameOMOP'] == 'Arthritis: Ankylosing spondylitis':
-                cset['member_items'] = []
-
-        result = filter_cset_and_member_objects(csets_and_members)
-        for obj_type in ['OMOPConceptSet', 'OMOPConceptSetContainer']:
-            self.assertLess(
-                len(result[obj_type]), len(csets_and_members[obj_type]), msg=f'Filtering did not work for {obj_type}')
-
     # TODO: Seems to be failing now because using test_n3c instead of n3c even though con schema=TEST_SCHEMA
     def test_csets_and_members_to_db(self):
         """Test csets_and_members_enclave_to_db()

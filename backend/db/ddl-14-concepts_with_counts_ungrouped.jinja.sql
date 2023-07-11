@@ -17,5 +17,5 @@ SELECT DISTINCT
 FROM {{schema}}concept c
 LEFT JOIN {{schema}}deidentified_term_usage_by_domain_clamped tu ON c.concept_id = tu.concept_id);
 
-CREATE INDEX ccu_idx1 ON {{schema}}concepts_with_counts_ungrouped(concept_id);
---CREATE INDEX ccu_idx2 ON concepts_with_counts_ungrouped(concept_id);
+CREATE INDEX ccu_idx1{{optional_index_suffix}} ON {{schema}}concepts_with_counts_ungrouped(concept_id);
+--CREATE INDEX ccu_idx2{{optional_index_suffix}} ON concepts_with_counts_ungrouped(concept_id);

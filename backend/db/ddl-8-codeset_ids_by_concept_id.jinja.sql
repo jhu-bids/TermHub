@@ -6,4 +6,4 @@ SELECT concept_id, array_agg(codeset_id ORDER BY codeset_id) codeset_ids
 FROM {{schema}}cset_members_items
 GROUP BY 1;
 
-CREATE INDEX cbc_idx2 ON {{schema}}codeset_ids_by_concept_id{{optional_suffix}}(concept_id);
+CREATE INDEX cbc_idx2{{optional_index_suffix}} ON {{schema}}codeset_ids_by_concept_id{{optional_suffix}}(concept_id);
