@@ -7,4 +7,4 @@ DROP TABLE {{schema}}concept_set_members;
 
 SELECT DISTINCT * INTO {{schema}}concept_set_members FROM {{schema}}concept_set_members_with_dups;
 
-DROP TABLE concept_set_members_with_dups;
+DROP TABLE {{schema}}concept_set_members_with_dups;

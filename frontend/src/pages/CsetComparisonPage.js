@@ -451,7 +451,7 @@ function colConfig(props) {
         {
           when: (row) => true,
           style: (row) => ({
-            paddingLeft: 16 + row.level * 16 + "px"
+            padding: '0px 3px 0px ' + (nested ? (16 + row.level * 16) : 16) + "px",
           }),
         },
       ],

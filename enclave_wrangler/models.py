@@ -56,9 +56,9 @@ PKEYS = {
     'concept_ancestor': '',
     # - Termhub: mirror tables from enclave
     'concept_set_counts_clamped': '',
-    'researcher': '',
-    'omopconceptset': '',
-    'omopconceptsetcontainer': '',
+    'researcher': 'rid',  # @joeflack4, i just added pkeys here and the two lines below. hope it doesn't break anything
+    'omopconceptset': 'codesetId',
+    'omopconceptsetcontainer': 'conceptSetId',
     # - Termhub: custom tables
     'all_csets': '',
     'codeset_counts': '',

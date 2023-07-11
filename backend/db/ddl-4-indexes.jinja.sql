@@ -36,3 +36,7 @@ CREATE INDEX IF NOT EXISTS csc_idx1 on {{schema}}concept_set_container(concept_s
 CREATE INDEX IF NOT EXISTS csc_idx2 on {{schema}}concept_set_container(concept_set_name);
 
 CREATE INDEX IF NOT EXISTS csc_idx3 on {{schema}}concept_set_container(concept_set_id, created_at DESC);
+
+CREATE INDEX IF NOT EXISTS cscc_idx on {{schema}}concept_set_counts_clamped(codeset_id);
+
+CREATE INDEX IF NOT EXISTS term_usage_idx on {{schema}}deidentified_term_usage_by_domain_clamped(concept_id, domain);
