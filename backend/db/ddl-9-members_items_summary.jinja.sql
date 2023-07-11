@@ -1,5 +1,5 @@
 -- Table: members_items_summary ----------------------------------------------------------------------------------------
-DROP TABLE IF EXISTS {{schema}}members_items_summary{{optional_suffix}};
+DROP TABLE IF EXISTS {{schema}}members_items_summary{{optional_suffix}} CASCADE;
 
 CREATE TABLE {{schema}}members_items_summary{{optional_suffix}} AS
 SELECT

@@ -575,7 +575,7 @@ function colConfig(props) {
         {
           when: (row) => true,
           style: (row) => ({
-            paddingLeft: 16 + row.level * 16 + "px"
+            padding: '0px 3px 0px ' + (nested ? (16 + row.level * 16) : 16) + "px",
           }),
         },
       ],
@@ -739,7 +739,8 @@ function colConfig(props) {
       codeset_id,
       headerProps: {
         //tooltipContent: "Click to create and edit new draft of this concept set",
-        tooltipContent: `${cset_col.concept_set_version_title}. Click to sort.`,
+        tooltipContent: `${cset_col.codeset_id} ${cset_col.concept_set_version_title}. Click to sort.`,
+        
         headerContent: cset_col.concept_set_name,
         headerContentProps: {
           codeset_id: cset_col.codeset_id,

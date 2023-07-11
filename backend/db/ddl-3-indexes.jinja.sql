@@ -36,3 +36,7 @@ CREATE INDEX csc_idx1{{optional_index_suffix}} ON {{schema}}concept_set_containe
 CREATE INDEX csc_idx2{{optional_index_suffix}} ON {{schema}}concept_set_container(concept_set_name);
 
 CREATE INDEX csc_idx3{{optional_index_suffix}} ON {{schema}}concept_set_container(concept_set_id, created_at DESC);
+
+CREATE INDEX IF cscc_idx on {{schema}}concept_set_counts_clamped(codeset_id);
+
+CREATE INDEX IF term_usage_idx on {{schema}}deidentified_term_usage_by_domain_clamped(concept_id, domain);
