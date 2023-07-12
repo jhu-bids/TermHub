@@ -226,7 +226,6 @@ function CsetComparisonPage(props) {
               //  and clear editState
               const addProps = { editCodesetId: 0, csetEditState: {} };
               updateSp({ ...props, addProps });
-
             }}
             sx={{
               cursor: 'pointer',
