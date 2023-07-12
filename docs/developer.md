@@ -40,6 +40,9 @@ You likely will already have a schema called `n3c` which is corrupted in some wa
 3.2. Rename `n3c_backup_YYYYMMDD` as `n3c`:
 `ALTER SCHEMA <backup schema name> RENAME TO n3c;`
 
+**Optional steps**
+Upload the backup as well to [google drive](https://drive.google.com/drive/folders/1Nc2ZVzjT62q__wrNRfKfFsstaMvrG3Rm)
+
 #### Restoring from backup
 1. Face check `n3c` schema
 2. Restart local backend/frontend, load frontend in browser, clear `localStorage` (from console: `localStorage.clear()`), and face check various application features. 
@@ -56,6 +59,18 @@ DDL which is used to create any of the tables/views that it is derived from.
 2. Update `refresh_termhub_core_cset_derived_tables()` in `backend/db/utils.py`
 There's a list variable called `ddl_modules`. Add any new `MODULE`s here. If any of those modules are views, add to the
 list variable called `views`.
+
+#### Troubleshooting specific issues
+##### `ERROR: cannot execute <COMMAND> in a read-only transaction`
+We're not sure why this happens, but you can run the following and try again:
+```sql
+BEGIN;
+SET transaction read write;
+ALTER DATABASE termhub SET transaction_read_only = off;
+ALTER DATABASE termhub SET default_transaction_read_only = off;
+COMMIT;
+```
+
 
 ### Deployment
 Many of these steps are specific to the JHU BIDS team, which deploys on JHU's Azure infrastructure.

@@ -26,6 +26,7 @@ from enclave_wrangler.objects_api import download_favorite_objects
 
 DESC = 'Full reset of the TermHub database w/ newest updates from the Enclave using the datasets API.'
 
+# TODO: implement hours threshold for downloads
 # todo: low priority: track the time it takes for this process to run, and then update the `manage` table, 2 variables:
 #  total time for downloads, and total time for uploading to db (perhaps for each table as well)
 def reset_and_update_db(

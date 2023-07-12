@@ -121,7 +121,7 @@ function AboutPage(props) {
       <TextBody>
         This <a href="https://youtu.be/EAwBZUiNUUk?t=2130">demo video</a> from
         the October 31, 2022 N3C Forum provides a brief introduction. (TermHub
-        has evolved since the video was made. Use the create issue button below
+        has evolved since the video was made. Use the <a href="https://github.com/jhu-bids/termhub/issues/new/choose" target="_blank" rel="noopener noreferrer">create issue</a> button below
         to clamor for a new video and we will push that up on our priority
         list.)
       </TextBody>
@@ -172,7 +172,7 @@ function AboutPage(props) {
               Empty the data cache
             </Button>
           </LI>
-          <LI>Complain to <a href="mailto:sigfried@jhu.edu">Siggie</a></LI>
+          <LI>File a report: via <a href="https://github.com/jhu-bids/termhub/issues/new/choose" target="_blank" rel="noopener noreferrer">GitHub issue</a> or <a href="mailto:termhub-support@jhu.edu">termhub-support@jhu.edu</a></LI>
         </ol>
       <TextH2>How to: Load a set of concept sets</TextH2>
         <TextBody>
@@ -340,7 +340,7 @@ DOCS.blank_search_intro = (
         <LI>
           Learn more about TermHub and review the step by step “How To” section.
         </LI>
-        <LI>Provide feedback by creating a GitHub issue.</LI>
+        <LI>Provide feedback by creating a <a href="https://github.com/jhu-bids/termhub/issues/new/choose" target="_blank" rel="noopener noreferrer">GitHub issue.</a></LI>
         <LI>
           Let us know of any bug or a poor user experience, or share a feature
           request.
