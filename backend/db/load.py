@@ -148,7 +148,8 @@ def indexes_and_derived_tables(
         last_successful_step = int(last_successful_step[0]) if last_successful_step else None
         print('INFO: Creating derived tables (e.g. `all_csets`) and indexes.')
     if last_successful_step:
-        print(f'INFO: Last successful command was {last_successful_step} of {steps}. Continuing from there.')
+        print(f'INFO: Last successful command was {last_successful_step} of {steps}. '
+              f'Continuing from the next step after.')
 
     # Updates
     i, j = 0, 0

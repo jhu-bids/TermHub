@@ -62,7 +62,8 @@ list variable called `views`.
 
 #### Troubleshooting specific issues
 ##### `ERROR: cannot execute <COMMAND> in a read-only transaction`
-We're not sure why this happens, but you can run the following and try again:
+Or, you may see: `WARNING:  transaction read-write mode must be set before any query`
+This seems to result from situations where we're running commands after the database recently ran out of memory. It seems like it goes into read only mode at that point and these commands need to be ran to reset it.
 ```sql
 BEGIN;
 SET transaction read write;

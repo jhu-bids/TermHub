@@ -17,6 +17,7 @@ PROJECT_ROOT = Path(TEST_DIR).parent.parent
 sys.path.insert(0, str(PROJECT_ROOT))
 
 
+# todo: could create some more test cases (i) too many expressions, (ii) >100k members, (iii) 0 members?
 class TestBackendResolveFetchFailures(FetchAuditTestRunner):
     """Inherits from the FetchAudit test class to get setup/teardown methods.
 

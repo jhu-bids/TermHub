@@ -42,6 +42,7 @@ def refresh_termhub_core_cset_derived_tables(con: Connection, schema: str):
     This can also work to initially create the tables if they don't already exist."""
     temp_table_suffix = '_new'
     # TODO: update when I have DDL for public.csets_to_ignore
+    # todo: move this config to somewhere so that it's easy to access
     ddl_modules = [
         'cset_members_items',
         'concept_ids_by_codeset_id',
@@ -52,6 +53,7 @@ def refresh_termhub_core_cset_derived_tables(con: Connection, schema: str):
         'all_csets',
         'csets_to_ignore',
     ]
+    # todo: try to auto detect what is a view
     views = [
         'cset_members_items_plus',
         'csets_to_ignore',

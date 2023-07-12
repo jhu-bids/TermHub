@@ -1,6 +1,6 @@
 -- Table view: cset_members_items_plus ---------------------------------------------------------------------------------
 CREATE OR REPLACE VIEW {{schema}}cset_members_items_plus{{optional_suffix}} AS (
-SELECT    csmi.*
+SELECT csmi.*
         , c.vocabulary_id
         , c.concept_name
         , c.concept_code

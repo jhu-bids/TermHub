@@ -321,10 +321,15 @@ def fetch_cset_and_member_objects(
     todo: return 'None' if no data
     TODO: @joeflack4, if new container but it has no versions, should still fetch it. right now not doing that
             and, when metadata updated on container or version, need to fetch (but not bother with members and items)
-
     :param since: datetime or str, e.g. '2023-07-09T01:08:23.547680-04:00'. If present, codeset_ids should be empty.
     :param codeset_ids: List of IDs. If present, since should be empty. Will fetch containers, versions, items, and
     members related to these code set IDs.
+
+    call_github_action('resolve-fetch-failures')
+    # todo; This does an insert at the end for all failures, but might as well have it insert as it goes.
+    - This happens at the end of the script. It will run an action to resolve any issues where we failed to fetch data
+    from the enclave.
+
     :return
       - cset containers
       - cset versions
