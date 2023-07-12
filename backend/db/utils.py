@@ -362,7 +362,7 @@ def load_csv(
     # Edge cases
     existing_rows = 0
     try:
-        r = con.execute(f'select count(*) from {schema}.{table}')
+        r = con.execute(text(f'select count(*) from {schema}.{table}'))
         existing_rows = r.one()[0]
     except Exception as err:
         # noinspection PyUnresolvedReferences

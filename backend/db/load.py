@@ -184,6 +184,9 @@ def load(schema: str = SCHEMA, clobber=False, skip_if_updated_within_hours: int 
 
 
 if __name__ == '__main__':
-    load()
+    # Joe says should start using reset_and_update.py instead
+    with get_db_connection(local=False) as con:
+        indexes_and_derived_tables(con, 'n3c')
+    # load(clobber=True, )
     # with get_db_connection(local=True) as con:
     #     initialize_test_schema(con, local=True)
