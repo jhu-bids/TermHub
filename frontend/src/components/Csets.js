@@ -1,8 +1,9 @@
-import React, {useState, useRef, useEffect /* useReducer, */} from "react";
+import React, {useState, useRef, useEffect, useCallback, /* useReducer, */} from "react";
 import { CsetsDataTable, CsetsSelectedDataTable } from "./CsetsDataTable";
 // import {difference, symmetricDifference} from "./utils";
 import ConceptSetCards from "./ConceptSetCard";
 import { TextField, Autocomplete, Box, } from "@mui/material";
+import { matchSorter } from 'match-sorter';
 import Button from "@mui/material/Button";
 // import Chip from '@mui/material/Chip';
 import {every, keyBy, union, orderBy, } from "lodash";
@@ -51,6 +52,24 @@ export function CsetSearch(props) {
 
   // const [keyForRefreshingAutocomplete, setKeyForRefreshingAutocomplete] = useState(0);
   // necessary to change key for reset because of Autocomplete bug, according to https://stackoverflow.com/a/59845474/1368860
+  /*
+  const filterOptions = (options, state) => {
+    let strings = state.inputValue.split(" ").filter((s) => s.length);
+    if (!strings.length) {
+      return options;
+    }
+    let match = strings.map((m) => new RegExp(m, "i"));
+    return options.filter((o) => every(match.map((m) => o.label.match(m))));
+  }
+   */
+
+  // from https://github.com/kentcdodds/match-sorter#keys-string
+  const filterOptions = (options, { inputValue }) => matchSorter(options, inputValue, { keys: [ 'label' ]});
+  /*    couldn't figure out how to intercept it and see how it works, but it seems to work fine out of the box
+  const filterOptions = (options, { inputValue }) => (options, inputValue) => {
+    const m = matchSorter(options, inputValue);
+    return m;
+  } */
 
   if (isEmpty(all_csets)) {
     return <p>Downloading...</p>;
@@ -84,14 +103,7 @@ export function CsetSearch(props) {
       options={opts}
       // blurOnSelect={true}
       // clearOnBlur={true}
-      filterOptions={(options, state) => {
-        let strings = state.inputValue.split(" ").filter((s) => s.length);
-        if (!strings.length) {
-          return options;
-        }
-        let match = strings.map((m) => new RegExp(m, "i"));
-        return options.filter((o) => every(match.map((m) => o.label.match(m))));
-      }}
+      filterOptions={filterOptions}
       sx={{
         width: "80%",
         minWidth: "70%",
