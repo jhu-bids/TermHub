@@ -29,7 +29,7 @@ class DataCache {
 	#cache = {};
 
 	constructor() {
-		this.#cache = this.loadCache() ?? {};
+		this.loadCache();
 	}
 
 	async fetchAndCacheItemsByKey({ itemType, keyName, keys = [], shape = 'array', /* or obj */
@@ -87,24 +87,71 @@ class DataCache {
 
 	saveCache = debounce(async () => {
 		const before = (localStorage.getItem('dataCache') || '').length;
-		const compressed = compress(JSON.stringify(this.#cache));
+		this.addCacheHistoryEvent(`saving cache`);
+		// TODO: use history to check if changed size *before* compressing
+		const uncompressed = JSON.stringify(this.#cache);
+		const compressed = compress(uncompressed);
 		const after = compressed.length;
 		if (before === after) { // assume compressed cache after change will be different length
 			return null;
 		}
 		// rounding suggestion: https://stackoverflow.com/a/11832950/1368860
-		console.log(`compressed cache just grew by ${Math.round(
-				10000 * (after / before + Number.EPSILON)) / 100}% to ${after.toLocaleString()} chars`)
+		let pctIncr = Math.round(10000 * (after / before + Number.EPSILON)) / 100;
+		let evtMsg = `saved cache: ${uncompressed.length.toLocaleString()} uncompressed, ${compressed.length.toLocaleString()} compressed, ${pctIncr}% incr`;
+		this.addCacheHistoryEvent(evtMsg);
 
 		localStorage.setItem('dataCache', compressed);
-		return null;
 	}, 400);
-	loadCache = () => {
-		try {
-			return JSON.parse(decompress(localStorage.getItem('dataCache') || ''));
-		} catch (error) {
-			return {};
+
+	addCacheHistoryEvent(evtMsg) {
+		let evt = {
+			ts: new Date(),
+			evtMsg,
+		};
+		let cacheHistory = this.cacheGet('cacheHistory');
+		if (!cacheHistory) {
+			throw new Error('expected to find cacheHistory');
 		}
+		cacheHistory.push(evt);
+		this.cachePut('cacheHistory', cacheHistory, false);
+		console.log(cacheHistory);
+	}
+	loadCache = () => {
+		let cache;
+		let evtMsg;
+		try {
+			let compressedCache = localStorage.getItem('dataCache');
+			let decompressed = decompress(compressedCache);
+			this.#cache = JSON.parse(decompressed);
+			evtMsg = `loaded cache: ${compressedCache.length.toLocaleString()} compressed, ${decompressed.length.toLocaleString()} decompressed`;
+		} catch (error) {
+			evtMsg = 'new cache';
+			this.#cache = {cacheHistory: []};
+		}
+		this.addCacheHistoryEvent(evtMsg);
+	}
+	async cacheCheck(dataGetter) {
+		const url = 'last-refreshed';
+		const dbRefreshTimestampStr = await dataGetter.axiosCall(url, {backend: true, verbose: false, sendAlert: false});
+		const dbRefreshTimestamp = new Date(dbRefreshTimestampStr);
+		if (isNaN(dbRefreshTimestamp.getDate())) {
+			throw new Error(`invalid date from ${url}: ${dbRefreshTimestampStr}`);
+		}
+		const cacheRefreshTimestampStr = this.lastRefreshed();
+		const cacheRefreshTimestamp = new Date(cacheRefreshTimestampStr);
+		if (isNaN(cacheRefreshTimestamp.getDate()) || dbRefreshTimestamp > cacheRefreshTimestamp) {
+			console.log(`previous DB refresh: ${cacheRefreshTimestampStr}; latest DB refresh: ${dbRefreshTimestamp}. Clearing localStorage.`);
+			localStorage.clear();
+			// return this.#cache.lastRefreshTimestamp = dbRefreshTimestamp;
+		} else {
+			console.log(`no change since last refresh at ${cacheRefreshTimestamp}`);
+			// return cacheRefreshTimestamp;
+		}
+	}
+
+	lastRefreshed() {
+		const cacheRefreshTimestampStr = get(this.#cache, 'lastRefreshTimestamp');
+		return cacheRefreshTimestampStr ;
 	}
 
 	cacheGet(path) {
@@ -119,18 +166,22 @@ class DataCache {
 		return isEmpty(path) ? this.getWholeCache() : get(this.#cache, path);
 	}
 
-	cachePut(path, value, storeAsArray = false) {
+	cachePut(path, value, save=true) {
 		let [parentPath, parentObj,] = this.popLastPathKey(path);
 		if (isEmpty(parentObj)) {
-			if (storeAsArray) {
-				set(this.#cache, parentPath, [])
-			} else {
-				// have to do this or numeric keys will force new obj to be an array
-				set(this.#cache, parentPath, {})
-			}
+			// have to do this or numeric keys will force new obj to be an array
+			set(this.#cache, parentPath, {})
 		}
 		set(this.#cache, path, value);
-		this.saveCache();
+		if (save) {
+			this.saveCache();
+		}
+	}
+	cacheArrayPut(path, value, storeAsArray = false, appendToArray = false) {
+
+		if (storeAsArray && appendToArray) {
+			let val = get(this.#cache, path);
+		}
 	}
 
 	popLastPathKey(path) {
@@ -148,29 +199,6 @@ class DataCache {
 		this.#cache = {};
 	}
 
-	async cacheCheck(dataGetter) {
-		const url = 'last-refreshed';
-		const tsStr = await dataGetter.axiosCall(url, {backend: true, verbose: false, sendAlert: false});
-		const ts = new Date(tsStr);
-		if (isNaN(ts.getDate())) {
-			throw new Error(`invalid date from ${url}: ${tsStr}`);
-		}
-		const lrStr = this.lastRefreshed();
-		const lr = new Date(lrStr);
-		if (isNaN(lr.getDate()) || ts > lr) {
-			console.log(`previous DB refresh: ${lrStr}; latest DB refresh: ${ts}. Clearing localStorage.`);
-			localStorage.clear();
-			return this.#cache.lastRefreshTimestamp = ts;
-		} else {
-			console.log(`no change since last refresh at ${lr}`);
-			return lr;
-		}
-	}
-
-	lastRefreshed() {
-		const lr = get(this.#cache, 'lastRefreshTimestamp');
-		return lr;
-	}
 }
 
 export function pathToArray(path) {
