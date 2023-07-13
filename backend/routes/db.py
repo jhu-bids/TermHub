@@ -4,7 +4,6 @@
 """
 from fastapi import APIRouter, Query
 import json
-import os
 import requests
 from typing import Dict, List, Union, Set
 from functools import cache
@@ -22,6 +21,7 @@ from enclave_wrangler.config import RESEARCHER_COLS
 from enclave_wrangler.models import convert_rows
 from backend.db.config import CONFIG
 from backend.routes import graph
+from backend.db.refresh import refresh_db
 
 
 router = APIRouter(
@@ -348,12 +348,7 @@ def _cset_members_items(codeset_ids: Union[str, None] = Query(default=''), ) -> 
 @router.get("/db-refresh")
 def db_refresh_route() -> Response:
     """Triggers refresh of the database"""
-<<<<<<< HEAD
-    response: Response = call_github_action('refresh-db')
-    return response
-=======
-    os.system('python backend/db/refresh.py')
->>>>>>> faacda05 (Running directly from the backend)
+    refresh_db()
 
 # TODO: if using this at all, fix it to use graph.hierarchy, which doesn't need root_cids
 # @router.get("/hierarchy")

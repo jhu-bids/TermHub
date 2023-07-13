@@ -271,6 +271,8 @@ def fetch_all_new_objects(since: Union[datetime, str]) -> Dict[str, List]:
     """
     since = str(since)
     csets_and_members: Dict[str, List] = fetch_cset_and_member_objects(since)
+    if not csets_and_members:
+        return None
     # TODO:
     researchers = get_researchers()
     # TODO:
@@ -291,10 +293,13 @@ def all_new_objects_enclave_to_db(since: Union[datetime, str]) -> Dict[str, List
 def csets_and_members_enclave_to_db(
     con: Connection, schema: str, since: Union[datetime, str], filter_0_member_sets=True
 ):
-    """Fetch new csets and members, if needed, and then update database with them."""
+    """Fetch new csets and members, if needed, and then update database with them, returns None is no updates needed"""
     print('Fetching new data from the N3C data enclave...')
     t0 = datetime.now()
     csets_and_members: Dict[str, List[Dict]] = fetch_cset_and_member_objects(since)
+    if not csets_and_members:
+        return None
+
     print(f'  - Fetched new data in {(datetime.now() - t0).seconds} seconds:\n    OBJECT_TYPE: COUNT\n' +
           "\n".join(['    ' + str(k) + ": " + str(len(v)) for k, v in csets_and_members.items()]))
     return csets_and_members_to_db(con, schema, csets_and_members)
@@ -318,7 +323,6 @@ def fetch_cset_and_member_objects(
      I needed to refactor that function to do a lookup to get the container, which is messy. Whenever I make this
      change, it will be a breaking change at the very least for csets_and_members_to_db() both in terms of no longer
      needing to do this lookup, and also dealing properly w/ how the data is returned from this func.
-    todo: return 'None' if no data
     TODO: @joeflack4, if new container but it has no versions, should still fetch it. right now not doing that
             and, when metadata updated on container or version, need to fetch (but not bother with members and items)
     :param since: datetime or str, e.g. '2023-07-09T01:08:23.547680-04:00'. If present, codeset_ids should be empty.
@@ -358,6 +362,10 @@ def fetch_cset_and_member_objects(
             raise ValueError(f'Enclave API returned cset version with container of id {_id}, but failed to call data '
                              f'for that specific container.')
         cset_containers.append(container[0]['properties'])
+
+    #Returning None if no data
+    if not cset_containers and not cset_versions:
+        return None
 
     # Expression items & concept set members
     cset_versions_with_concepts: List[Dict] = []

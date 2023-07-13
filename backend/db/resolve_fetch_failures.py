@@ -84,16 +84,6 @@ def resolve_fetch_failures(use_local_db=False, cached_dataset_threshold_hours=0)
 
 # todo: Ideally allow for output_dir for testing purposes etc, but datasets.py currently supports only 1 of 2 outdirs
 #  needed. See 'todo' above its cli() func.
-=======
-def resolve_fetch_failures(use_local_db=False, cached_dataset_threshold_hours=24):
-    """Resolve any failures resulting from fetching data from the Enclave's objects API."""
-    # Determine if any failures
-    failures: List[Dict] = select_failed_fetches(use_local_db)
-
-    # Download datasets
-    download_dataset(use_local_db)
-
->>>>>>> 966c556e (DB Refresh)
 def cli():
     """Command line interface"""
     parser = ArgumentParser(prog='Resolve fetch failures.', description=DESC)
