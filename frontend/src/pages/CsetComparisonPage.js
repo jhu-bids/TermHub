@@ -45,11 +45,8 @@ import CloseIcon from "@mui/icons-material/Close";
 // TODO: Color table: I guess would need to see if could pass extra values/props and see if table widget can use that
 //  ...for coloration, since we want certain rows grouped together
 function CsetComparisonPage() {
-  const {
-    codeset_ids = [],
-    editCodesetId,
-    csetEditState,
-  } = useSearchParamsState();
+  const {sp, updateSp} = useSearchParamsState();
+  const { codeset_ids = [], editCodesetId, csetEditState, } = sp;
   // const { selected_csets = [], researchers, } = cset_data;
   const [hierarchySettings, hsDispatch] = useStateSlice("hierarchySettings");
   const dataGetter = useDataGetter();
@@ -63,7 +60,6 @@ function CsetComparisonPage() {
   const [panelPosition, setPanelPosition] = useState({ x: 0, y: 0 });
   const sizes = getSizes(/*squishTo*/ 1);
   const customStyles = styles(sizes);
-  const {sp, updateSp} = useSearchParamsState();
   const [data, setData] = useState({});
       // useState({ concept_ids: [], selected_csets: [], edges: [], concepts: [], });
   const { edges, concepts, conceptLookup, selected_csets, csmi, researchers } = data;
