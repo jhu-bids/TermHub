@@ -149,7 +149,7 @@ class DataGetter {
 			case 'edges': // expects paramList of concept_ids
 				// TODO: @sigfried -- fix to include additional concepts
 				// each unique set of concept_ids gets a unique set of edges
-				// check cache first (because this request won't come from getItemsByKey)
+				// check cache first (because this request won't come from fetchAndCacheItemsByKey)
 				cacheKey = paramList.join('|');
 				data = dataCache.cacheGet([itemType, cacheKey]);
 				if (isEmpty(data)) {

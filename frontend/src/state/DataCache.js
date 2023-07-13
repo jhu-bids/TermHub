@@ -32,11 +32,12 @@ class DataCache {
 		this.#cache = this.loadCache() ?? {};
 	}
 
-	async getItemsByKey({ itemType, keyName, keys = [], shape = 'array', /* or obj */
+	async fetchAndCacheItemsByKey({ itemType, keyName, keys = [], shape = 'array', /* or obj */
 												createFunc, returnFunc, dataGetter, }) {
 		if (isEmpty(keys)) {
 			return shape === 'array' ? [] : {};
 		}
+		keys = keys.sort();
 		keys = keys.map(String);
 		if (keys.length !== uniq(keys).length) {
 			throw new Error(`Why are you sending duplicate keys?`);
@@ -62,7 +63,7 @@ class DataCache {
 		const not_found = uncachedKeys.filter(key => !(key in results));
 		if (not_found.length) {
 			// TODO: let user see warning somehow
-			console.warn(`Warning in DataCache.getItemsByKey: failed to fetch ${itemType}s for ${not_found.join(', ')}`);
+			console.warn(`Warning in DataCache.fetchAndCacheItemsByKey: failed to fetch ${itemType}s for ${not_found.join(', ')}`);
 		}
 		if (returnFunc) {
 			return returnFunc(results);
@@ -79,6 +80,9 @@ class DataCache {
 
 	getKeys() {
 		return Object.keys(this.getWholeCache());
+	}
+	getCacheForKey(key) {
+		return this.getWholeCache()[key];
 	}
 
 	saveCache = debounce(async () => {

@@ -5,7 +5,7 @@ import Button from "@mui/material/Button";
 
 import {useDataGetter} from "../state/DataGetter";
 
-function UploadCsvPage(props) {
+function UploadCsvPage() {
   // TODO: finish handler or whatever needs to be done to hit the backend route
   //   https://stackoverflow.com/questions/40589302/how-to-enable-file-upload-on-reacts-material-ui-simple-input
   //   state: {

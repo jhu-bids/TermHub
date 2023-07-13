@@ -23,9 +23,6 @@ from backend.db.config import CONFIG
 from backend.routes import graph
 
 
-# CON: using a global connection object is probably a terrible idea, but shouldn't matter much until there are multiple
-CON = get_db_connection()
-
 router = APIRouter(
     # prefix="/oak",
     # tags=["oak", "ontology-access-kit],
@@ -48,7 +45,7 @@ router = APIRouter(
 #       probably don't need precision etc.
 #       switched _container suffix on duplicate col names to container_ prefix
 #       joined OMOPConceptSet in the all_csets ddl to get `rid`
-def get_csets(codeset_ids: List[int], con=CON) -> List[Dict]:
+def get_csets(codeset_ids: List[int], con=get_db_connection()) -> List[Dict]:
     """Get information about concept sets the user has selected"""
     rows: List = sql_query(
         con, """
@@ -98,7 +95,7 @@ def get_all_researcher_ids(rows: List[Dict]) -> Set[str]:
 # TODO: Performance: takes ~75sec on http://127.0.0.1:8000/cr-hierarchy?format=flat&codeset_ids=400614256|87065556
 def get_related_csetsOBSOLETE(  # not calling this from front end anymore. can remove tests
     codeset_ids: List[int] = None, selected_concept_ids: List[int] = None,
-    include_atlas_json=False, con=CON, verbose=True
+    include_atlas_json=False, con=get_db_connection(), verbose=True
 ) -> List[Dict]:
     """Get information about concept sets related to those selected by user"""
     timer = get_timer('   get_related_csets')
@@ -137,7 +134,7 @@ def get_related_csetsOBSOLETE(  # not calling this from front end anymore. can r
 
 
 def get_cset_members_items(codeset_ids: List[int], columns: Union[List[str], None] = None,
-                           column: Union[str, None] = None, con=CON ) -> Union[List[int], List]:
+                           column: Union[str, None] = None, con=get_db_connection() ) -> Union[List[int], List]:
     """Get concept set members items for selected concept sets
         returns:
         ...
@@ -163,7 +160,7 @@ def get_cset_members_items(codeset_ids: List[int], columns: Union[List[str], Non
 
 
 def get_concept_set_member_ids(
-    codeset_ids: List[int], columns: Union[List[str], None] = None, column: Union[str, None] = None, con=CON
+    codeset_ids: List[int], columns: Union[List[str], None] = None, column: Union[str, None] = None, con=get_db_connection()
 ) -> Union[List[int], List]:
     """Get concept set members"""
     if column:
@@ -183,7 +180,7 @@ def get_concept_set_member_ids(
     return res
 
 
-def get_concept_relationships(cids: List[int], reltypes: List[str] = ['Subsumes'], con=CON) -> List:
+def get_concept_relationships(cids: List[int], reltypes: List[str] = ['Subsumes'], con=get_db_connection()) -> List:
     """Get concept_relationship rows for cids """
     return sql_query(
         con, f"""
@@ -194,7 +191,7 @@ def get_concept_relationships(cids: List[int], reltypes: List[str] = ['Subsumes'
         """, debug=True)
 
 
-def get_all_csets(con=CON) -> Union[Dict, List]:
+def get_all_csets(con=get_db_connection()) -> Union[Dict, List]:
     """Get all concept sets"""
     results = sql_query(
         con, f"""
@@ -332,7 +329,7 @@ def get_researchers(id: List[str] = Query(...), fields: Union[List[str], None] =
         FROM researcher
         WHERE "multipassId" = ANY(:id)
     """
-    res: List[RowMapping] = sql_query(CON, query, {'id': list(id)}, return_with_keys=True)
+    res: List[RowMapping] = sql_query(get_db_connection(), query, {'id': list(id)}, return_with_keys=True)
     res2 = {r['multipassId']: dict(r) for r in res}
     for _id in id:
         if _id not in res2:

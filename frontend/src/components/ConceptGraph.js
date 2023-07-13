@@ -6,6 +6,7 @@ import * as d3dag from "d3-dag";
 import Graph from "graphology";
 import {uniq, flatten, union, sortBy, max, groupBy, sum, } from "lodash";
 import {useDataGetter} from "../state/DataGetter";
+import {useSearchParamsState} from "../state/SearchParamsProvider";
 
 const d3 = Object.assign({}, d3Base, d3dag);
 
@@ -34,8 +35,9 @@ export function formatEdges(edges=[]) {
   }
   return pairs.map(e => [e[0].toString(), e[1].toString()]);
 }
-export function ConceptGraph(props) {
-  const {codeset_ids, use_example=false} = props;
+export function ConceptGraph() {
+  const {sp} = useSearchParamsState();
+  const {codeset_ids, use_example=false} = sp;
   const dataCache = useDataCache();
   const dataGetter = useDataGetter();
   const [data, setData] =
@@ -49,13 +51,13 @@ export function ConceptGraph(props) {
 
   useEffect(() => {
     (async () => {
-      const concept_ids = await dataCache.getItemsByKey({ dataGetter, itemType: 'concept_ids_by_codeset_id',
+      const concept_ids = await dataCache.fetchAndCacheItemsByKey({ dataGetter, itemType: 'concept_ids_by_codeset_id',
           keys: codeset_ids, shape: 'obj', returnFunc: results => union(...Object.values(results)), });
       const [
           concepts,
           edges,
         ] = await Promise.all([
-        dataCache.getItemsByKey({ dataGetter, itemType: 'concepts', keys: concept_ids, shape: 'array' }),
+        dataCache.fetchAndCacheItemsByKey({ dataGetter, itemType: 'concepts', keys: concept_ids, shape: 'array' }),
         ( use_example === 1 && simpleGraphExample ||
           use_example === 2 && mediumGraphExample ||
           dataGetter.fetchItems('edges', concept_ids)

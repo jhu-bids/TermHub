@@ -11,6 +11,7 @@ import { Link, useLocation } from "react-router-dom";
 import VERSION from "../version";
 import {useDataCache} from "../state/DataCache";
 import {useDataGetter} from "../state/DataGetter";
+import {useSearchParamsState} from "../state/SearchParamsProvider";
 
 // import * as po from './Popover';
 
@@ -68,7 +69,8 @@ let LI = (props) => (
 let DOCS = {};
 
 
-function AboutPage(props) {
+function AboutPage() {
+  const {sp} = useSearchParamsState();
   // const {codeset_ids=[], all_csets=[], cset_data={}} = props;
   // const {data_counts=[], } = cset_data;
   //
@@ -81,7 +83,7 @@ function AboutPage(props) {
   // )
   const dataCache = useDataCache();
   const dataGetter = useDataGetter();
-  const [codeset_ids, setCodeset_ids] = useState(props.codeset_ids);
+  const [codeset_ids, setCodeset_ids] = useState(sp.codeset_ids);
   const [refreshButtonClicked, setRefreshButtonClicked] = useState();
   const [lastRefreshed, setLastRefreshed] = useState();
   const location = useLocation();
@@ -102,8 +104,8 @@ function AboutPage(props) {
       if (!lastRefreshed) {
         await dataCache.cacheCheck(dataGetter);
         lastRefreshed = dataCache.lastRefreshed();
-        setLastRefreshed(lastRefreshed);
       }
+      setLastRefreshed(lastRefreshed);
     })()
   });
 

@@ -11,7 +11,6 @@ import {
   // Link, useHref, useParams, BrowserRouter, redirect,
   Outlet,
   Navigate,
-  useSearchParams,
   useLocation,
   createSearchParams,
   Routes,
@@ -25,9 +24,9 @@ import { ConceptSetsPage } from "./components/Csets";
 import { CsetComparisonPage } from "./pages/CsetComparisonPage";
 import { AboutPage } from "./pages/AboutPage";
 import { ConceptGraph } from "./components/ConceptGraph";
-import {ViewCurrentState, TotalStateProvider, useTotalState,} from "./state/State";
+import {ViewCurrentState, } from "./state/State";
 import {AppStateProvider} from "./state/AppState";
-import {SearchParamsProvider} from "./state/SearchParamsProvider";
+import {SearchParamsProvider, useSearchParamsState} from "./state/SearchParamsProvider";
 import {DataGetterProvider} from "./state/DataGetter";
 import { UploadCsvPage } from "./components/UploadCsv";
 // import { DownloadJSON } from "./components/DownloadJSON";
@@ -42,10 +41,7 @@ import {AlertMessages} from "./components/AlertMessages";
           <DataCacheProvider>       // ability to save to and retrieve from cache in localStorage
             <DataGetterProvider>    // utilities for fetching data. dataCache needs access to this a couple of times
                                     //  so those method calls will have to pass in a dataGetter
-              <TotalStateProvider>  // combines state and dispatcher/updaters from the other providers
-                <RoutesContainer/>  // sends total state (as props) to App and route components. for now, the components
-                                    //    ignore the props and just useTotalState() on their own
-              </TotalStateProvider>
+              <RoutesContainer/>
             </DataGetterProvider>
           </DataCacheProvider>
         </AppStateProvider>
@@ -60,9 +56,7 @@ function QCProvider() {
         <AppStateProvider>
           <DataCacheProvider>
             <DataGetterProvider>
-              <TotalStateProvider>
-                <RoutesContainer/>
-              </TotalStateProvider>
+              <RoutesContainer/>
           </DataGetterProvider>
           </DataCacheProvider>
         </AppStateProvider>
@@ -71,9 +65,8 @@ function QCProvider() {
   );
 }
 function RoutesContainer() {
-  const props = useTotalState();
-  window.props_w = props;
-  const {codeset_ids, } = props;
+  const {sp} = useSearchParamsState();
+  const {codeset_ids, } = sp;
   const location = useLocation();
 
   if (location.pathname === "/") {
@@ -94,28 +87,24 @@ function RoutesContainer() {
   // console.log(window.props_w = props);
   return (
     <Routes>
-      {/*<Route path="/help" element={<HelpWidget {...props} />} />*/}
-      <Route path="/" element={<App {...props} />}>
+      {/*<Route path="/help" element={<HelpWidget/>} />*/}
+      <Route path="/" element={<App/>}>
         <Route
             path="cset-comparison"
-            element={<CsetComparisonPage {...props}
-                       // concepts={props.cset_data.concepts}
-                       // conceptLookup={props.cset_data.conceptLookup}
-                       // edges={props.cset_data.edges}
-            />}
+            element={<CsetComparisonPage/>}
         />
         <Route
             path="OMOPConceptSets"
-            element={<ConceptSetsPage {...props} />}
+            element={<ConceptSetsPage/>}
         />
-        <Route path="about" element={<AboutPage {...props} />} />
-        <Route path="upload-csv" element={<UploadCsvPage {...props} />} />
+        <Route path="about" element={<AboutPage/>} />
+        <Route path="upload-csv" element={<UploadCsvPage/>} />
         <Route
             path="graph"
-            element={<ConceptGraph {...props} />}
+            element={<ConceptGraph/>}
         />
-        {/*<Route path="download-json" element={<DownloadJSON {...props} />} />*/}
-        <Route path="view-state" element={<ViewCurrentState {...props} />} />
+        {/*<Route path="download-json" element={<DownloadJSON/>} />*/}
+        <Route path="view-state" element={<ViewCurrentState/>} />
         {/* <Route path="OMOPConceptSet/:conceptId" element={<OldConceptSet />} /> */}
       </Route>
     </Routes>
@@ -131,10 +120,10 @@ function App(props) {
         */}
       <div className="App">
         {/* <ReactQueryDevtools initialIsOpen={false} />*/}
-        <MuiAppBar {...props}>
+        <MuiAppBar>
           {/* Outlet: Will render the results of whatever nested route has been clicked/activated. */}
         </MuiAppBar>
-        <AlertMessages {...props} />
+        <AlertMessages/>
         <Outlet />
       </div>
     </ThemeProvider>

@@ -174,7 +174,8 @@ export function CsetSearch(props) {
 }
 
 function ConceptSetsPage(props) {
-  const { codeset_ids } = props;
+  const {sp} = useSearchParamsState();
+  const {codeset_ids, } = sp;
   const dataGetter = useDataGetter();
   const dataCache = useDataCache();
   const [data, setData] = useState({});
@@ -184,19 +185,19 @@ function ConceptSetsPage(props) {
   useEffect(() => {
     (async () => {
       let all_csets = dataGetter.fetchItems('all_csets', ['stub']);
-      let selected_csets = dataCache.getItemsByKey({ dataGetter, itemType: 'csets', keys: codeset_ids, shape: 'array',
+      let selected_csets = dataCache.fetchAndCacheItemsByKey({ dataGetter, itemType: 'csets', keys: codeset_ids, shape: 'array',
             returnFunc: results => [...Object.values(results)]} ); // isn't this the same as shape: 'array'?
-      let concept_ids = dataCache.getItemsByKey({ dataGetter, itemType: 'concept_ids_by_codeset_id',
+      let concept_ids = dataCache.fetchAndCacheItemsByKey({ dataGetter, itemType: 'concept_ids_by_codeset_id',
             keys: codeset_ids, returnFunc: results => union(flatten(Object.values(results))), });
 
       concept_ids = await concept_ids;
 
-      let relatedCodesetIds = dataCache.getItemsByKey({ dataGetter, itemType: 'codeset_ids_by_concept_id',
+      let relatedCodesetIds = dataCache.fetchAndCacheItemsByKey({ dataGetter, itemType: 'codeset_ids_by_concept_id',
             keys: concept_ids, returnFunc: results => union(flatten(Object.values(results))), });
 
       [all_csets, relatedCodesetIds] = await Promise.all([all_csets, relatedCodesetIds]);
 
-      let relatedCsetConceptIds = dataCache.getItemsByKey({ dataGetter, itemType: 'concept_ids_by_codeset_id',
+      let relatedCsetConceptIds = dataCache.fetchAndCacheItemsByKey({ dataGetter, itemType: 'concept_ids_by_codeset_id',
                                                                keys: relatedCodesetIds, shape: 'obj' });
 
       let allCsetsObj = keyBy(all_csets, 'codeset_id');
@@ -207,7 +208,7 @@ function ConceptSetsPage(props) {
       selected_csets = await selected_csets;
 
       const researcherIds = getResearcherIdsFromCsets(selected_csets);
-      let researchers = dataCache.getItemsByKey({ dataGetter, itemType: 'researchers', keys: researcherIds, shape: 'obj' });
+      let researchers = dataCache.fetchAndCacheItemsByKey({ dataGetter, itemType: 'researchers', keys: researcherIds, shape: 'obj' });
 
       selected_csets = selected_csets.map(cset => {
         cset = {...cset};

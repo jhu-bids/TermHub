@@ -19,22 +19,33 @@ export function SearchParamsProvider({children}) {
   const { codeset_ids = [] } = sp;
 
   if (sp.fixSearchParams) {
+    debugger; // is this code still needed?
     delete sp.fixSearchParams;
     const csp = createSearchParams(sp);
     return <Navigate to={location.pathname + "?" + csp.toString()} />;
   }
-  /*
-  useEffect(() => {
-    if (sp.codeset_ids && !isEqual(codeset_ids, sp.codeset_ids)) {
-      setCodeset_ids(sp.codeset_ids);
-    }
-  }, [searchParams, codeset_ids, sp.codeset_ids]);
-   */
+
+  function updateSearchParams(props) {
+    const {addProps = {}, delProps = [], } = props;
+    let sp = searchParamsToObj(searchParams);
+    /* SEARCH_PARAM_STATE_CONFIG.global_props_but_not_search_params.forEach((p) => { delete sp[p]; }); */
+    delProps.forEach((p) => {
+      delete sp[p];
+    });
+    sp = {...sp, ...addProps};
+    SEARCH_PARAM_STATE_CONFIG.serialize.forEach((p) => {
+      if (sp[p]) {
+        sp[p] = JSON.stringify(sp[p]);
+      }
+    });
+    const csp = createSearchParams(sp);
+    setSearchParams(csp);
+  }
 
   function changeCodesetIds(codeset_id, how) {
     // how = add | remove | toggle
     if (how === "set" && Array.isArray(codeset_id)) {
-      updateSearchParams({ ...sp, addProps: { codeset_ids: codeset_id }, });
+      updateSearchParams({ ...sp, addProps: { codeset_ids: codeset_id }, searchParams, setSearchParams, });
       return;
     }
     const included = codeset_ids.includes(codeset_id);
@@ -45,10 +56,12 @@ export function SearchParamsProvider({children}) {
       action = included ? "remove" : "add";
     }
     if (action === "add") {
-      updateSearchParams({ ...sp, addProps: { codeset_ids: [...codeset_ids, codeset_id] }, });
+      updateSearchParams({ ...sp, addProps: { codeset_ids: [...codeset_ids, codeset_id] },
+                            searchParams, setSearchParams, });
     } else if (action === "remove") {
       if (!included) return;
-      updateSearchParams({ ...sp, addProps: { codeset_ids: codeset_ids.filter((d) => d !== codeset_id) }, });
+      updateSearchParams({ ...sp, addProps: { codeset_ids: codeset_ids.filter((d) => d !== codeset_id) },
+                            searchParams, setSearchParams, });
     } else {
       throw new Error(
           "unrecognized action in changeCodesetIds: " +
@@ -133,21 +146,4 @@ export function searchParamsToObj(searchParams) {
    */
   // console.log({sp});
   return sp;
-}
-
-export function updateSearchParams(props) {
-  const {addProps = {}, delProps = [], searchParams, setSearchParams} = props;
-  let sp = searchParamsToObj(searchParams);
-  /* SEARCH_PARAM_STATE_CONFIG.global_props_but_not_search_params.forEach((p) => { delete sp[p]; }); */
-  delProps.forEach((p) => {
-    delete sp[p];
-  });
-  sp = {...sp, ...addProps};
-  SEARCH_PARAM_STATE_CONFIG.serialize.forEach((p) => {
-    if (sp[p]) {
-      sp[p] = JSON.stringify(sp[p]);
-    }
-  });
-  const csp = createSearchParams(sp);
-  setSearchParams(csp);
 }

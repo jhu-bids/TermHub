@@ -11,7 +11,6 @@ import {useDataGetter} from "./DataGetter";
 
 const stateDoc = `
     URL query string: SearchParamsProvider, useSearchParams
-    handled by QueryStringStateMgr updateSearchParams(props) and searchParamsToObj(searchParams)
       codeset_ids
       editCodesetId
       csetEditState
@@ -42,37 +41,6 @@ const stateDoc = `
       Manage all/
 `;
 
-const TotalStateContext = createContext(null);
-
-export function TotalStateProvider({children}) {
-  const {sp, updateSp} = useSearchParamsState();
-  const appState = useAppState();
-  const dataCache = useDataCache();
-  const dataGetter = useDataGetter();
-
-  const [lastRefresh, setLastRefresh] = useState(dataCache.lastRefreshed());
-  useEffect(() => {
-    (async () => {
-      const timestamp = await dataCache.cacheCheck(dataGetter);
-      if (timestamp > lastRefresh) {
-        setLastRefresh(timestamp);
-      }
-    })();
-  });
-
-  let stateParts = {sp, updateSp, appState, dataCache};
-  let totalState = {...sp, ...appState.getState(), ...dataCache.getWholeCache(), stateParts, };
-  return (
-      <TotalStateContext.Provider value={totalState}>
-        {children}
-      </TotalStateContext.Provider>
-  );
-}
-
-export function useTotalState() {
-  return useContext(TotalStateContext);
-}
-
 function Progress(props) {
   return (
     <Box sx={{ display: "flex" }}>
@@ -99,7 +67,7 @@ export function StatsMessage(props) {
   );
 }
 
-export function ViewCurrentState(props) {
+export function ViewCurrentState() {
   const [sp, spDispatch] = useSearchParamsState();
   const appState = useAppState();
   const dataCache = useDataCache();
@@ -109,17 +77,43 @@ export function ViewCurrentState(props) {
     <h2>query string parameters</h2>
     <Inspector data={sp} />
 
-    <h2>props</h2>
-    <Inspector data={props} />
-
     <h2>app state (reducers)</h2>
     <Inspector data={appState.getState()} />
 
     <h2>dataCache</h2>
     <Inspector data={dataCache.getWholeCache()} />
 
-
     <h2>The different kinds of state</h2>
     <pre>{stateDoc}</pre>
   </div>);
 }
+
+// const TotalStateContext = createContext(null);
+// export function TotalStateProvider({children}) {
+//   const {sp, updateSp} = useSearchParamsState();
+//   const appState = useAppState();
+//   const dataCache = useDataCache();
+//   const dataGetter = useDataGetter();
+//
+//   const [lastRefresh, setLastRefresh] = useState(dataCache.lastRefreshed());
+//   useEffect(() => {
+//     (async () => {
+//       const timestamp = await dataCache.cacheCheck(dataGetter);
+//       if (timestamp > lastRefresh) {
+//         setLastRefresh(timestamp);
+//       }
+//     })();
+//   });
+//
+//   let stateParts = {sp, updateSp, appState, dataCache};
+//   let totalState = {...sp, ...appState.getState(), ...dataCache.getWholeCache(), stateParts, };
+//   return (
+//       <TotalStateContext.Provider value={totalState}>
+//         {children}
+//       </TotalStateContext.Provider>
+//   );
+// }
+//
+// export function useTotalState() {
+//   return useContext(TotalStateContext);
+// }

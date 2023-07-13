@@ -17,23 +17,22 @@ import {
   howToSaveStagedChanges,
 } from "../pages/AboutPage";
 import _ from "../supergroup/supergroup";
-import {searchParamsToObj, updateSearchParams} from "../state/SearchParamsProvider";
 import {backend_url} from "../state/DataGetter";
+import {useSearchParamsState} from "../state/SearchParamsProvider";
 
 const checkmark = <span>{"\u2713"}</span>;
 
-export function getCodesetEditActionFunc({ searchParams }) {
+export function getCodesetEditActionFunc({ sp, updateSp, csmi }) {
   return (props) => {
     // this function will be called editAction and passed around as needed
     const {
-      csmi,
+      // csmi,  // not sure if this should come from closure or props sent to the generated function
       clickAction,
       flag,
       cset_col: { codeset_id },
       row: { concept_id },
       no_action = false,
     } = props;
-    let sp = searchParamsToObj(searchParams);
     let { csetEditState = {} } = sp;
     let csidState = csetEditState[codeset_id] || {};
     let item = getItem({
@@ -59,7 +58,7 @@ export function getCodesetEditActionFunc({ searchParams }) {
     if (no_action) {
       return { item, csidState };
     }
-    updateSearchParams({ ...props, addProps: { csetEditState } });
+    updateSp({ addProps: { csetEditState } });
   };
 }
 
@@ -80,12 +79,9 @@ function summaryLine({ item, action, concept }) {
   );
 }
 export function EditInfo(props) {
-  const {
-    editCodesetId,
-    csetEditState,
-    selected_csets,
-    conceptLookup,
-  } = props;
+  const {sp} = useSearchParamsState();
+  const { editCodesetId, csetEditState, } = sp;
+  const { selected_csets, conceptLookup, } = props;
   if (isEmpty(selected_csets) || isEmpty(conceptLookup)) {
     debugger
     throw new Error("wtf")
