@@ -30,6 +30,8 @@ def resolve_fetch_failures(use_local_db=False, cached_dataset_threshold_hours=0)
     failure_dataset_map = {
         'fail-excessive-items': 'concept_set_version_item',
         'fail-excessive-members': 'concept_set_members',
+        # 0-members: Is handled elsewhere, as not typically solvable via how resolve_fetch_failures() is used. But
+        # ...leaving it here as a failsafe.
         'fail-0-members': 'concept_set_members',
     }
     dataset_path_map: Dict[str, str] = {ds: os.path.join(CSV_TRANSFORM_DIR, f'{ds}.csv') for ds in datasets}
@@ -62,18 +64,23 @@ def resolve_fetch_failures(use_local_db=False, cached_dataset_threshold_hours=0)
         print('Skipping dataset downloads. Cached datasets within newness threshold.')
 
     # Update DB
+    solved_failures = []
     with get_db_connection(local=use_local_db) as con:
         for dataset, failures in failures_by_dataset.items():
             print(f'Inserting data into core table: {dataset}')
             print(f'- This will address the following failures:\n{failures}')
             df = pd.read_csv(dataset_path_map[dataset])
             df['codeset_id'] = df['codeset_id'].apply(lambda x: str(x).split('.')[0] if x else '')  # couldn't int cuz nan's
-            rows = df[df['codeset_id'].isin([f['primary_key'] for f in failures])].to_dict('records')
-            insert_from_dicts(con, dataset, rows)
+            for failure in failures:
+                rows = df[df['codeset_id'] == failure['primary_key']].to_dict('records')
+                # todo: if not rows, update comment that tried to fix but couldn't find any data?
+                if rows:
+                    insert_from_dicts(con, dataset, rows)
+                    solved_failures.append(failure)
         refresh_termhub_core_cset_derived_tables(con, SCHEMA)
 
     # Update fetch_audit status
-    fetch_status_set_success(failures)
+    fetch_status_set_success(solved_failures)
 
 
 # todo: Ideally allow for output_dir for testing purposes etc, but datasets.py currently supports only 1 of 2 outdirs

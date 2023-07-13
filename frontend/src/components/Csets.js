@@ -182,21 +182,25 @@ function ConceptSetsPage(props) {
   const { all_csets, concept_ids, relatedCodesetIds, selected_csets,
           allRelatedCsets, relatedCsets, researchers, } = data;
 
+  // todo: Combine this with the useEffect in CsetComparisonPage.js
   useEffect(() => {
     (async () => {
       let all_csets = dataGetter.fetchItems('all_csets', ['stub']);
       let selected_csets = dataCache.fetchAndCacheItemsByKey({ dataGetter, itemType: 'csets', keys: codeset_ids, shape: 'array',
             returnFunc: results => [...Object.values(results)]} ); // isn't this the same as shape: 'array'?
+      // - since this data was fetched in CsetComparisonPage, this call should be fast because will get from cache.
       let concept_ids = dataCache.fetchAndCacheItemsByKey({ dataGetter, itemType: 'concept_ids_by_codeset_id',
             keys: codeset_ids, returnFunc: results => union(flatten(Object.values(results))), });
 
       concept_ids = await concept_ids;
 
+      // - for every concept id we get for selected codesets, get all codesets that contain that concept id
       let relatedCodesetIds = dataCache.fetchAndCacheItemsByKey({ dataGetter, itemType: 'codeset_ids_by_concept_id',
             keys: concept_ids, returnFunc: results => union(flatten(Object.values(results))), });
 
       [all_csets, relatedCodesetIds] = await Promise.all([all_csets, relatedCodesetIds]);
 
+      // - now, for all of the related codesets we found above, now get all of its concept ids
       let relatedCsetConceptIds = dataCache.fetchAndCacheItemsByKey({ dataGetter, itemType: 'concept_ids_by_codeset_id',
                                                                keys: relatedCodesetIds, shape: 'obj' });
 

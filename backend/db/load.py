@@ -122,7 +122,13 @@ def seed(
 def indexes_and_derived_tables(
     con: Connection, schema_name: str, skip_if_updated_within_hours: int = None, start_step: int = None, local=False
 ):
-    """CREATE INDEXes and derived tables"""
+    """Create table indexes and derived tables
+
+    todo: print updates: (i) when picking up where it left off, don't need to print "module n of n" if all steps in that
+     module have already been completed; pick up on the module it left off on (ii) for that module, put
+     "- n (step n) - previously completed" for all steps previously done.
+
+    """
     # Determine and set up progress tracking
     last_completed_key = 'last_updated_indexes_and_derived_tables'
     last_successful_step_key = 'last_step_indexes_and_derived_tables'
@@ -133,8 +139,6 @@ def indexes_and_derived_tables(
 
     # Read DDL
     print('INFO: Creating derived tables (e.g. `all_csets`) and indexes.')
-    # todo: Improve so that it iterates over modules & statements, rather than reaading in all modules,
-    #  and concatenating into a list of statements.
     statements_by_module: Dict[str, List[str]] = get_ddl_statements(schema=schema_name)
     steps = sum([len(x) for x in statements_by_module.values()])
 
