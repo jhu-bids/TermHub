@@ -344,7 +344,6 @@ def _cset_members_items(codeset_ids: Union[str, None] = Query(default=''), ) -> 
     codeset_ids: List[int] = parse_codeset_ids(codeset_ids)
     return get_cset_members_items(codeset_ids)
 
-
 @router.get("/db-refresh")
 def db_refresh_route() -> Response:
     """Triggers refresh of the database"""

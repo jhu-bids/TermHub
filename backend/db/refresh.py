@@ -13,8 +13,8 @@ PROJECT_ROOT = os.path.join(BACKEND_DIR, '..')
 sys.path.insert(0, str(PROJECT_ROOT))
 from backend.db.analysis import counts_update,counts_docs
 from backend.db.config import CONFIG
-from backend.db.utils import current_datetime, get_db_connection, last_refresh_timestamp, update_db_status_var,check_db_status_var, delete_db_status_var
-from enclave_wrangler.objects_api import csets_and_members_enclave_to_db,is_new_db_data
+from backend.db.utils import current_datetime, get_db_connection, last_refresh_timestamp, update_db_status_var, check_db_status_var, delete_db_status_var
+from enclave_wrangler.objects_api import csets_and_members_enclave_to_db
 
 DESC = 'Refresh TermHub database w/ newest updates from the Enclave using the objects API.'
 SINCE_ERR = '--since is more recent than the database\'s record of last refresh, which will result in missing data.'
@@ -43,7 +43,7 @@ def refresh_db(
     if check_db_status_var('refresh_status') == 'active':
         update_db_status_var('new_request_while_refreshing', t0_str, local)
         return
-    
+
     print('INFO: Starting database refresh.', flush=True)  # flush: for gh action
     update_db_status_var('refresh_status', 'active', local)
     update_db_status_var('last_refresh_request', current_datetime(), local)
