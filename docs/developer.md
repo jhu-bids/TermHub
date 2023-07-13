@@ -17,36 +17,15 @@ A refresh is done nightly via [GitHub action](https://github.com/jhu-bids/TermHu
 #### Allowing remote access
 To allow a new user to access the database remotely, their IP address must be added to Azure: (i) select [DB resource](https://portal.azure.com/#@live.johnshopkins.edu/resource/subscriptions/fe24df19-d251-4821-9a6f-f037c93d7e47/resourceGroups/JH-POSTGRES-RG/providers/Microsoft.DBforPostgreSQL/flexibleServers/termhub/overview), (ii) [select 'Networking'](https://portal.azure.com/#@live.johnshopkins.edu/resource/subscriptions/fe24df19-d251-4821-9a6f-f037c93d7e47/resourceGroups/JH-POSTGRES-RG/providers/Microsoft.DBforPostgreSQL/flexibleServers/termhub/networking), (iii) add IP address.
 
-#### Backups
+#### Creating backups
 **Prerequisites**  
 You should have an environmental variable called `psql_conn`, set as follows:
 `psql_conn="host=$TERMHUB_DB_HOST port=$TERMHUB_DB_PORT dbname=$TERMHUB_DB_DB user=$TERMHUB_DB_USER password=$TERMHUB_DB_PASS sslmode=require"`
 
-If you run `./db_backup.sh`, it will generate commands (1) and (2) below so that you can directly copy/paste into the terminal to (i) create the backup, and (ii) restore it. The commands will look like this, except will replace `YYYYMMDD` with the current date:
-**1. Create backup file**  
-`pg_dump -d $psql_conn -n n3c | sed '/^[0-9][0-9]*\t/! s/[[:<:]]n3c[[:>:]]/n3c_backup_YYYYMMDD/' > n3c_backup_YYYYMMDD.dmp`
-
-**2. Restore backup as schema `n3c_backup_YYYYMMDD`**  
-`psql -d $psql_conn < n3c_backup_YYYYMMDD.dmp`
-
-**3. Replace existing schema `n3c` with your restored backup**
-You likely will already have a schema called `n3c` which is corrupted in some way, hence why you want to restore from backup.
-3.1.a. Back up corrupted `n3c` schema: If you want to keep that schema for whateve reason, you can create a new backup for it as in step (1), or simply give it a new schema name:
-`ALTER SCHEMA n3c RENAME TO <new name>;`
-
-3.1.b. Drop up corrupted `n3c` schema: But there's a good chance you just want to drop it instead, like so:
-`DROP n3c WITH CASCADE;`
-
-3.2. Rename `n3c_backup_YYYYMMDD` as `n3c`:
-`ALTER SCHEMA <backup schema name> RENAME TO n3c;`
+If you run `./db_backup.sh`, it will generate commands that you can directly copy/paste into the terminal to (i) create the backup, and (ii) restore it.
 
 **Optional steps**
-Upload the backup as well to [google drive](https://drive.google.com/drive/folders/1Nc2ZVzjT62q__wrNRfKfFsstaMvrG3Rm)
-
-#### Restoring from backup
-1. Face check `n3c` schema
-2. Restart local backend/frontend, load frontend in browser, clear `localStorage` (from console: `localStorage.clear()`), and face check various application features. 
-3. Load [dev deployment](http://bit.ly/termhub-dev), clear `localStorage` in the same way, and face check various application features.
+- [Google Drive](https://drive.google.com/drive/folders/1Nc2ZVzjT62q__wrNRfKfFsstaMvrG3Rm): Uploading the backup there as well can be helpful because it has happened in the past that our backup schemas on PostgreSQL have gotten corrupted.
 
 #### Adding new tables / views
 If any new views or derived tables are added, there are some additional steps that need to be followed in order to avoid
@@ -72,6 +51,31 @@ ALTER DATABASE termhub SET default_transaction_read_only = off;
 COMMIT;
 ```
 
+#### Emergency handbook: Recovering from corrupted databases
+##### 1. Reinstate working database
+###### a. Restore from a backup  
+You likely will already have a schema called `n3c` which is corrupted in some way, hence why you want to restore from backup.
+Step 1: Remove/rename corrupted `n3c` scema  
+
+1.a. Back up corrupted `n3c` schema: If you want to keep that schema for whateve reason, you can create a new backup for it as in step (1), or simply give it a new schema name:
+`ALTER SCHEMA n3c RENAME TO <new name>;`
+
+1.b. Drop up corrupted `n3c` schema: But there's a good chance you just want to drop it instead, like so:
+`DROP n3c WITH CASCADE;`
+
+Step 2: Rename `n3c_backup_YYYYMMDD` as `n3c`
+`ALTER SCHEMA <backup schema name> RENAME TO n3c;`
+
+###### b. Run "DB Reset/Refresh (Datasets API)"
+This script/workflow will download datasets from the N3C data enclave and perform the necessary steps to remake all of the database tables.  
+It can be run via (a) [its GitHub Action](https://github.com/jhu-bids/TermHub/actions/workflows/refresh_from_datasets.yml), or (b) directly via `python backend/db/refresh_from_datasets.py`.
+
+##### 2. Quality control checks
+Some things you might want to try to make sure that the restoration worked.
+1. Run `make counts-update`. Then, run `make counts-table`, `make counts-compare-schemas`, or `make counts-docs`, depending on the situation, and check that the counts/deltas look good. 
+2. Restart local backend/frontend, load frontend in browser, clear `localStorage` (from console: `localStorage.clear()`), and face check various application features. 
+3. Load [dev deployment](http://bit.ly/termhub-dev), clear `localStorage` in the same way, and face check various application features.
+4. Face check `n3c` schema. Just look at the tables and make sure they don't look weird.
 
 ### Deployment
 Many of these steps are specific to the JHU BIDS team, which deploys on JHU's Azure infrastructure.
