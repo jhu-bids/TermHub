@@ -248,7 +248,8 @@ function ConceptSetsPage(props) {
     return <p>Downloading...</p>;
   }
 
-  props = {...props, all_csets, relatedCsets, selected_csets, concept_ids, researchers, };
+  props = {...props, all_csets, relatedCsets, selected_csets,
+      concept_ids, researchers, clickable: true, showTitle: true };
 
   if (!codeset_ids.length) {
     return (
