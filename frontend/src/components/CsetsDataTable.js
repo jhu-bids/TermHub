@@ -36,7 +36,11 @@ function getCsetSelectionHandler(tooltipId) {
 
 /* TODO: review function for appropriate state management */
 export function CsetsDataTable(props) {
-  const { show_selected, codeset_ids, relatedCsets, selected_csets, all_csets, concept_ids, } = props;
+  const { show_selected, selected_csets, clickable, showTitle, } = props;
+  const codeset_ids = show_selected ? null : props.codeset_ids;
+  const relatedCsets = show_selected ? null : props.relatedCsets;
+  const all_csets = show_selected ? null : props.all_csets;
+  const concept_ids = show_selected ? null : props.concept_ids;
   const {changeCodesetIds, } = useSearchParamsState();
   const min_col = show_selected ?
       ("min_col" in props ? props.min_col : true) : false;
@@ -64,8 +68,9 @@ export function CsetsDataTable(props) {
      */
 
   // const related_ids = new Set(f lattened_concept_hierarchy.map(d => d.concept_id));
-  const subHeader = <StatsMessage {...{ codeset_ids, all_csets, relatedCsets,
-                                        concept_ids, selected_csets, } } />;
+  const subHeader = show_selected ? null : <StatsMessage
+      {...{ codeset_ids, all_csets, relatedCsets,
+        concept_ids, selected_csets, } } />;
   // const [handleRowMouseEnter, handleRowMouseLeave] =
   //     getCsetSelectionHandler(show_selected ? 'select-to-remove' : 'select-to-add');
 
@@ -83,15 +88,16 @@ export function CsetsDataTable(props) {
         selectableRowsHighlight
         selectableRowSelected={rowSelectCritera}
         // onSelectedRowsChange={handleSelectionChange}
-        onRowClicked={handleRowClick}
+        onRowClicked={clickable ? handleRowClick : (() => {})}
         // onRowMouseEnter={handleRowMouseEnter}
         // onRowMouseLeave={handleRowMouseLeave}
         customStyles={customStyles}
         noHeader={false}
-        title={(show_selected ? "Selected" : "Related") +
-                ` concept sets. Click row to ${show_selected ? 'deselect' : 'add to selection'}`}
+        title={showTitle ? ((show_selected ? "Selected" : "Related") +
+          ` concept sets. Click row to ${show_selected ? 'deselect' : 'add to selection'}`)
+          : null}
         subHeader={!show_selected}
-        subHeaderComponent={show_selected ? null : subHeader}
+        subHeaderComponent={subHeader}
         // theme="custom-theme"
         // theme="light"
         columns={coldefs}

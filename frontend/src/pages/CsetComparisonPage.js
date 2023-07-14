@@ -39,6 +39,7 @@ import {useDataCache} from "../state/DataCache";
 import {useDataGetter, getResearcherIdsFromCsets} from "../state/DataGetter";
 import {useSearchParamsState} from "../state/SearchParamsProvider";
 import CloseIcon from "@mui/icons-material/Close";
+import {CsetsDataTable} from "../components/CsetsDataTable";
 
 // TODO: Find concepts w/ good overlap and save a good URL for that
 // TODO: show table w/ hierarchical indent
@@ -105,6 +106,14 @@ function CsetComparisonPage() {
         selected_csets,
         conceptLookup,
       ] = await Promise.all(promises);
+
+      selected_csets = selected_csets.map(cset => {
+        cset = {...cset};
+        cset.intersecting_concepts= 0;
+        cset.precision = 0;
+        cset.recall = 0;
+        return cset;
+      });
 
       const researcherIds = getResearcherIdsFromCsets(selected_csets.filter(d => d.codeset_id === editCodesetId));
       let researchers = dataCache.fetchAndCacheItemsByKey({ dataGetter, itemType: 'researchers', keys: researcherIds, shape: 'obj' });
@@ -231,6 +240,14 @@ function CsetComparisonPage() {
     >
       add a new concept set
     </Button>,
+    <FlexibleContainer key="cset-table" title="Table of concept set being edited"
+                       position={panelPosition} countRef={countRef}>
+      <CsetsDataTable show_selected={true}
+                      min_col={false}
+                      clickable={false}
+                      showTitle={false}
+                      selected_csets={selected_csets} />
+    </FlexibleContainer>,
   ];
 
   let edited_cset;
