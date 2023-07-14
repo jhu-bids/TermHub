@@ -39,8 +39,7 @@ import {AlertMessages} from "./components/AlertMessages";
       <SearchParamsProvider>        // gets state from query string -- mainly codeset_ids
         <AppStateProvider>          // from reducers -- mainly hierarchySettings, cset editing stuff, and, soon, alerts/msgs
           <DataCacheProvider>       // ability to save to and retrieve from cache in localStorage
-            <DataGetterProvider>    // utilities for fetching data. dataCache needs access to this a couple of times
-                                    //  so those method calls will have to pass in a dataGetter
+            <DataGetterProvider>    // utilities for fetching data
               <RoutesContainer/>
             </DataGetterProvider>
           </DataCacheProvider>

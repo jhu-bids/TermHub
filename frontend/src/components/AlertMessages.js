@@ -38,6 +38,7 @@ export const alertsReducer = (state, action) => {
       alerts for ongoing or failed api calls or other messages/warnings to display to users
       {
         id: 3, // or could be string with some meaning if desired
+              // for axiosCall's the id is a compressed serialization of the whole request (hash would be better)
         alertType: 'error', // or 'warning', 'apicall', ...
         text: 'api call failed...' // ?
         errObj: {} // from axios or whatever
@@ -45,31 +46,26 @@ export const alertsReducer = (state, action) => {
    */
   if (!action || !action.type) return state;
   let {type, id, } = action;
-  let alert;
-  if (typeof (id) !== 'undefined') {
-    debugger;
-    alert = state[id];
+  if (typeof (id) === 'undefined') {
+    throw new Error("expecting an id");
   }
-  switch (type) {
-    case "create":
-      if (alert) {
-        throw new Error(`alert with id ${id} already exists`, alert);
-      }
-      alert = {
-        ...action,
-        id: id ?? Object.keys(state).length,
-        status: 'unread',
-        severity: 'info',
-      }
-      break;
-    case "resolve":
-      alert = {...alert, ...action, status: 'complete', severity: 'success', };
-      break;
-    case "error":
-      alert = {...alert, ...action, status: 'error', severity: 'error', };
-      break;
-    default:
-      throw new Error(`bad alert type: ${type}`);
+  let alert = state[id];
+  if (type === 'create') {
+    if (alert) {
+      throw new Error(`alert with id ${id} already exists`, alert);
+    }
+    alert = {
+      ...action,
+      id: id ?? Object.keys(state).length,
+      status: 'unread',
+      severity: 'info',
+    };
+  } else if (type === 'resolve') {
+    alert = {...alert, ...action, status: 'complete', severity: 'success', };
+  } else if (type === 'error') {
+    alert = {...alert, ...action, status: 'error', severity: 'error', };
+  } else {
+    throw new Error(`bad alert type: ${type}`);
   }
   return {...state, [alert.id]: alert};
 }

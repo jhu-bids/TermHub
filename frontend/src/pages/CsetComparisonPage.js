@@ -86,26 +86,29 @@ function CsetComparisonPage() {
   useEffect(() => {
     (async () => {
       let promises = [ // these can run immediately
-        dataCache.fetchAndCacheItemsByKey({ dataGetter, itemType: 'cset_members_items', keys: codeset_ids, shape: 'obj', }),
-        dataCache.fetchAndCacheItemsByKey({ dataGetter, itemType: 'csets', keys: codeset_ids, }),
+        dataCache.fetchAndCacheItemsByKey({ itemType: 'cset_members_items', keys: codeset_ids, shape: 'obj', keyName: 'codeset_id.concept_id'}),
+        dataCache.fetchAndCacheItemsByKey({ itemType: 'csets', keys: codeset_ids, keyName: 'codeset_id'}),
       ];
       // have to get concept_ids before fetching concepts
-      let concept_ids = await dataCache.fetchAndCacheItemsByKey({ dataGetter, itemType: 'concept_ids_by_codeset_id',
+      let concept_ids = await dataCache.fetchAndCacheItemsByKey({ itemType: 'concept-ids-by-codeset-id', keyName: 'codeset_id',
           keys: codeset_ids, returnFunc: results => union(flatten(Object.values(results))), });
 
       // have to get edges, which might contain more concept_ids after filling gaps
-      const edges = await dataGetter.fetchItems('edges', concept_ids, );
-      concept_ids = union(concept_ids.map(String), flatten(edges));
-      promises.push(dataCache.fetchAndCacheItemsByKey( { dataGetter, itemType: 'concepts', keys: concept_ids, shape: 'obj' }), );
+      const edges = await dataGetter.fetchAndCacheItems('edges', concept_ids, );
+      concept_ids = union(concept_ids.map(String), flatten(edges)).sort();
+      setData(current => ({...current, concept_ids, edges}));
+
+      promises.push(dataCache.fetchAndCacheItemsByKey( { itemType: 'concepts', keys: concept_ids, shape: 'obj', keyName: 'concept_id' }), );
 
       let [
         csmi,
         selected_csets,
         conceptLookup,
       ] = await Promise.all(promises);
+      setData(current => ({...current, selected_csets, conceptLookup}));
 
       const researcherIds = getResearcherIdsFromCsets(selected_csets.filter(d => d.codeset_id === editCodesetId));
-      let researchers = dataCache.fetchAndCacheItemsByKey({ dataGetter, itemType: 'researchers', keys: researcherIds, shape: 'obj' });
+      let researchers = dataCache.fetchAndCacheItemsByKey({ itemType: 'researchers', keys: researcherIds, shape: 'obj', keyName: 'multipassId' });
 
       if (typeof (editCodesetId) !== "undefined") {
         selected_csets.push({
@@ -121,19 +124,28 @@ function CsetComparisonPage() {
 
       const concepts = Object.values(conceptLookup);
 
-      const edgeCids = uniq(flatten(edges));
-      const conceptsCids = concepts.map(d => d.concept_id + '');
+      setData(current => ({...current, csmi, concepts}));
 
-      console.assert(difference(edgeCids, concept_ids.map(String)).length === 0,
+      const edgeCids = uniq(flatten(edges)).sort();
+      const conceptsCids = concepts.map(d => d.concept_id + '').sort();
+
+      console.assert(intersection(conceptsCids, concept_ids).length === concept_ids.length,
+                     "%o", {concepts, conceptsCids, concept_ids});
+      console.assert(difference(edgeCids, concept_ids).length === 0,
                      "%o", {edges, edgeCids, concept_ids});
+      if (intersection(conceptsCids, concept_ids).length !== concept_ids.length) {
+        // try again
+        let c2 = await dataCache.fetchAndCacheItemsByKey( { itemType: 'concepts', keys: concept_ids, shape: 'obj' });
+        console.log(intersection(concept_ids, Object.values(c2).map(d=>d.concept_id).map(String)));
+        debugger;
+      }
 
       researchers = await researchers;
-
-      setData({csmi, selected_csets, concepts, conceptLookup, edges, researchers, });
+      setData(current => ({...current, researchers}));
     })();
   }, []);
 
-  if (isEmpty(data)) {
+  if (isEmpty(concepts) || isEmpty(edges)) {
     return <p>Downloading...</p>;
   }
 

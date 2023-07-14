@@ -7,6 +7,7 @@ import {useAppState, useStateSlice} from "./AppState";
 import {formatEdges} from "../components/ConceptGraph";
 import {API_ROOT} from "../env";
 import {useDataCache} from "./DataCache";
+import {compress} from "lz-string";
 
 export const backend_url = (path) => `${API_ROOT}/${path}`;
 
@@ -16,6 +17,7 @@ export function DataGetterProvider({children}) {
 	const dataCache = useDataCache();
 	const [alerts, alertsDispatch] = useStateSlice('alerts');
 	const dataGetter = new DataGetter(dataCache, alertsDispatch);
+	dataCache.setDataGetter(dataGetter);
 
 	return (
 			<DataGetterContext.Provider value={dataGetter}>
@@ -59,12 +61,14 @@ class DataGetter {
 			}
 			verbose && console.log("axios request", request);
 
+			alertAction.id = compress(JSON.stringify(request));
+
+			console.log(request);
 			let response = axios(request);
 
 			if (sendAlert) {
 				alertAction.axiosCall = response;
-				const alerts = this.alertsDispatch(alertAction);
-				console.log(alerts, alertAction);
+				this.alertsDispatch(alertAction);
 				// debugger;
 				response = await response;
 				alertAction = {...alertAction, response, type: 'resolve', };
@@ -84,21 +88,21 @@ class DataGetter {
 		}
 	}
 	prefetch(props) {
-		const {itemType, codeset_ids} = props;
+		const {itemType, codeset_ids, keyName} = props;
 		switch (itemType) {
 			case 'all_csets':
-				this.fetchItems(itemType);
+				this.fetchAndCacheItems(itemType, [], 'codeset_id');
 				break;
 			default:
 				throw new Error(`Don't know how to prefetch ${itemType}`);
 		}
 	}
-	async fetchItems(itemType, paramList, ) {
+	async fetchAndCacheItems(itemType, paramList, keyName) {
 		const dataCache = this.dataCache;
 		const alertsDispatch = this.alertsDispatch;
 		if (isEmpty(paramList)) {
 			return [];
-			throw new Error(`fetchItems for ${itemType} requires paramList`);
+			throw new Error(`fetchAndCacheItems for ${itemType} requires paramList`);
 		}
 		let url,
 				data,
@@ -109,23 +113,28 @@ class DataGetter {
 
 		switch (itemType) {
 			case 'concepts':
-			case 'codeset_ids_by_concept_id':
+			case 'codeset-ids-by-concept-id':
 			case 'researchers':
 				apiGetParamName = 'id';
-			case 'concept_ids_by_codeset_id':
+			case 'concept-ids-by-codeset-id':
 				apiGetParamName = apiGetParamName || 'codeset_ids';
 				useGetForSmallData = true;  // can use this for api endpoints that have both post and get versions
-				api = itemType.replaceAll('_', '-');
+				api = itemType;
 				url = backend_url(api);
-				data = await this.oneToOneFetchAndCache(itemType, api, paramList, paramList, useGetForSmallData, apiGetParamName, dataCache, alertsDispatch);
+				data = await this.oneToOneFetchAndCache({itemType, keyName, api, postData: paramList, paramList,
+																									useGetForSmallData, apiGetParamName, dataCache, alertsDispatch});
+				/*
+				oneToOneFetchAndCache already does the caching
 				data.forEach((group, i) => {
-					dataCache.cachePut([itemType, paramList[i]], group);
+					// dataCache.cachePut([itemType, paramList[i]], group);
+					dataCache.cachePut([itemType, keyName], group);
 				})
+				 */
 				return data;
 
 			case 'csets':
 				url = 'get-csets?codeset_ids=' + paramList.join('|');
-				data = await this.oneToOneFetchAndCache(itemType, url, undefined, paramList, null, null, dataCache, alertsDispatch);
+				data = await this.oneToOneFetchAndCache({api: url, itemType, paramList, dataCache, alertsDispatch, keyName});
 				return data;
 
 			case 'cset_members_items':
@@ -142,6 +151,8 @@ class DataGetter {
 					debugger;
 				}
 				data.forEach((group, i) => {
+					// this one is safe; groups will be in same order as paramList
+					// structure will be:    cache.cset_members_items[codeset_id][concept_id]
 					dataCache.cachePut([itemType, paramList[i]], keyBy(group, 'concept_id'));
 				})
 				return data;
@@ -150,6 +161,7 @@ class DataGetter {
 				// TODO: @sigfried -- fix to include additional concepts
 				// each unique set of concept_ids gets a unique set of edges
 				// check cache first (because this request won't come from fetchAndCacheItemsByKey)
+				// TODO: maybe don't have to key by entire concept_id list -- front end could check for possibly missing edges
 				cacheKey = paramList.join('|');
 				data = dataCache.cacheGet([itemType, cacheKey]);
 				if (isEmpty(data)) {
@@ -174,21 +186,27 @@ class DataGetter {
 				throw new Error(`Don't know how to fetch ${itemType}`);
 		}
 	}
-	async oneToOneFetchAndCache(itemType, api, postData, paramList, useGetForSmallData, apiGetParamName, dataCache) {
+	async oneToOneFetchAndCache({itemType, api, postData, paramList, useGetForSmallData,
+																apiGetParamName, dataCache, keyName}) {
 		// We expect a 1-to-1 relationship between paramList items (e.g., concept_ids)
 		//  and retrieved items (e.g., concepts)
+		console.warn('can we get rid of this function? too much indirection')
 		let data = await this.axiosCall(api, {title: `Fetch and cache ${itemType}`, backend: true,
 			data: postData, useGetForSmallData, apiGetParamName});
 
-		if (!Array.isArray(data)) {
-			data = Object.values(data);
+		if (Array.isArray(data)) {
+			if (keyName) {
+				data.forEach(item => {
+          dataCache.cachePut([itemType, item[keyName]], item);
+        });
+			} else {
+				throw new Error("don't be getting arrays back: get stuff back with keys...maybe?");
+			}
+		} else {
+			Object.entries(data).map(([key, val]) => {
+				dataCache.cachePut([itemType, key], val);
+			});
 		}
-		if (data.length !== paramList.length) {
-			throw new Error(`oneToOneFetchAndCache for ${itemType} requires matching result data and paramList lengths`);
-		}
-		data.forEach((item, i) => {
-			dataCache.cachePut([itemType, paramList[i]], item);
-		});
 		return data;
 	}
 }

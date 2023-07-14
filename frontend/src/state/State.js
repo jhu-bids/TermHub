@@ -7,7 +7,6 @@ import {pct_fmt} from "../components/utils";
 import {useSearchParamsState} from "./SearchParamsProvider";
 import {useAppState} from "./AppState";
 import {useDataCache} from "../state/DataCache";
-import {useDataGetter} from "./DataGetter";
 
 const stateDoc = `
     URL query string: SearchParamsProvider, useSearchParams

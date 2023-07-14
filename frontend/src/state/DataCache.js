@@ -1,6 +1,6 @@
 import {createContext, useContext,} from "react";
 import {LRUCache} from 'lru-cache'; // https://isaacs.github.io/node-lru-cache
-import {debounce, get, isEmpty, set, uniq} from 'lodash';
+import {debounce, get, isEmpty, set, uniq, sortBy, } from 'lodash';
 import {compress, decompress} from "lz-string";
 
 /*
@@ -30,10 +30,13 @@ class DataCache {
 
 	constructor() {
 		this.loadCache();
+		this.sessionData = {};
+	}
+	setDataGetter(dataGetter) {
+		this.dataGetter = dataGetter;
 	}
 
-	async fetchAndCacheItemsByKey({ itemType, keyName, keys = [], shape = 'array', /* or obj */
-												createFunc, returnFunc, dataGetter, }) {
+	async fetchAndCacheItemsByKey({ itemType, keyName, keys = [], shape = 'array', /* or obj */ returnFunc, }) {
 		if (isEmpty(keys)) {
 			return shape === 'array' ? [] : {};
 		}
@@ -56,8 +59,21 @@ class DataCache {
 			}
 		})
 		if (uncachedKeys.length) {
-			const data = await dataGetter.fetchItems( itemType, uncachedKeys, this);
-			data.forEach((item, i) => uncachedItems[uncachedKeys[i]] = item);
+			const data = await this.dataGetter.fetchAndCacheItems( itemType, uncachedKeys, keyName);
+			// if (Array.isArray(data)) {	get this code from oneToOneFetchAndCache
+			debugger;
+			if (keyName) {
+				if (keyName.split('.').length > 1) {
+					throw new Error("write code to handle this");
+				}
+				// this doesn't put stuff in the cache, just in uncachedItems (obviously, but I got confused about it at one point)
+				data.forEach(item => set(uncachedItems, item[keyName], item));
+			} else {
+				// was doing this for everything before but ending up with items assigned to the wrong keys sometimes
+				// 	going forward, the server should probably return everything in a keyed dict
+				debugger;
+				data.forEach((item, i) => uncachedItems[uncachedKeys[i]] = item);
+			}
 		}
 		const results = {...cachedItems, ...uncachedItems};
 		const not_found = uncachedKeys.filter(key => !(key in results));
@@ -69,7 +85,11 @@ class DataCache {
 			return returnFunc(results);
 		}
 		if (shape === 'array') {
-			return Object.values(results);
+			let vals = Object.values(results);
+			if (keyName) {	// this was an attempt to fix things assigned to wrong keys, not sure if it's needed
+				vals = sortBy(vals, d => d[keyName]);
+			}
+			return vals;
 		}
 		return results;
 	}
@@ -198,7 +218,6 @@ class DataCache {
 	emptyCache() {
 		this.#cache = {};
 	}
-
 }
 
 export function pathToArray(path) {

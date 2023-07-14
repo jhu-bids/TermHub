@@ -51,16 +51,16 @@ export function ConceptGraph() {
 
   useEffect(() => {
     (async () => {
-      const concept_ids = await dataCache.fetchAndCacheItemsByKey({ dataGetter, itemType: 'concept_ids_by_codeset_id',
+      const concept_ids = await dataCache.fetchAndCacheItemsByKey({ itemType: 'concept-ids-by-codeset-id',
           keys: codeset_ids, shape: 'obj', returnFunc: results => union(...Object.values(results)), });
       const [
           concepts,
           edges,
         ] = await Promise.all([
-        dataCache.fetchAndCacheItemsByKey({ dataGetter, itemType: 'concepts', keys: concept_ids, shape: 'array' }),
+        dataCache.fetchAndCacheItemsByKey({ itemType: 'concepts', keys: concept_ids, shape: 'array' }),
         ( use_example === 1 && simpleGraphExample ||
           use_example === 2 && mediumGraphExample ||
-          dataGetter.fetchItems('edges', concept_ids)
+          dataGetter.fetchAndCacheItems('edges', concept_ids)
         )
       ]);
       setData({concept_ids, edges: formatEdges(edges), concepts});

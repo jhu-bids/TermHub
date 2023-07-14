@@ -268,7 +268,7 @@ def get_concept_ids_by_codeset_id(codeset_ids: Union[List[str], None] = Query(..
               LEFT JOIN concept_ids_by_codeset_id cibc ON csids.codeset_id = cibc.codeset_id"""
         rows: List = sql_query(con, q)
         # d = {r['codeset_id']:r['concept_ids'] for r in rows}
-        return [r['concept_ids'] for r in rows]
+        return {r['codeset_id']: r['concept_ids'] for r in rows}
 
 
 @router.post("/codeset-ids-by-concept-id")
@@ -279,7 +279,7 @@ def get_codeset_ids_by_concept_id_post(id: Union[List[int], None] = None) -> Lis
               FROM codeset_ids_by_concept_id
               WHERE concept_id {sql_in(id)};"""
         rows: List = sql_query(con, q)
-        return [r['codeset_ids'] for r in rows]
+        return {r['concept_id']: r['codeset_ids']  for r in rows}
 
 
 @router.get("/codeset-ids-by-concept-id")

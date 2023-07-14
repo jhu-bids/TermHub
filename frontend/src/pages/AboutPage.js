@@ -102,7 +102,7 @@ function AboutPage() {
     (async () =>{
       let lastRefreshed = dataCache.lastRefreshed();
       if (!lastRefreshed) {
-        await dataCache.cacheCheck(dataGetter);
+        await dataCache.cacheCheck();
         lastRefreshed = dataCache.lastRefreshed();
       }
       setLastRefreshed(lastRefreshed);
