@@ -49,6 +49,6 @@ jobs:
           python backend/db/refresh.py
 
       - name: Commit changes to documentation
-      - uses: stefanzweifel/git-auto-commit-action@v4
+        uses: stefanzweifel/git-auto-commit-action@v4
         with:
         commit_message: Updating documentation in docs/backend/db/analysis.md
