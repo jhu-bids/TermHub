@@ -203,7 +203,7 @@ def counts_over_time(
     return df
 
 
-def docs(use_cached_counts=True):
+def counts_docs(use_cached_counts=True):
     """Runs --counts-over-time and --deltas-over-time and puts in documentation: docs/backend/db/analysis.md."""
     # Get data
     current_counts_df = _current_counts(from_cache=use_cached_counts)
