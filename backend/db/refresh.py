@@ -11,7 +11,7 @@ DB_DIR = os.path.dirname(os.path.realpath(__file__))
 BACKEND_DIR = os.path.join(DB_DIR, '..')
 PROJECT_ROOT = os.path.join(BACKEND_DIR, '..')
 sys.path.insert(0, str(PROJECT_ROOT))
-from backend.db.analysis import counts_update
+from backend.db.analysis import counts_update,counts_docs
 from backend.db.config import CONFIG
 from backend.db.utils import current_datetime, get_db_connection, last_refresh_timestamp, update_db_status_var
 from enclave_wrangler.objects_api import csets_and_members_enclave_to_db
@@ -56,6 +56,7 @@ def refresh_db(
         update_db_status_var('refresh_status', 'inactive', local)
         update_db_status_var('last_refresh_success', current_datetime(), local)
         update_db_status_var('last_refresh_result', 'success', local)
+        counts_docs()
         print(f'INFO: Database refresh complete in {(datetime.now() - t0).seconds} seconds.')
 
     except Exception as err:
