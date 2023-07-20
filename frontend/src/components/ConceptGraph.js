@@ -18,7 +18,7 @@ export function formatEdges(edges=[]) {
     if (etest.length === 3) {
       pairs = edges.map(e => ([e[0], e[2]])); // middle item is predicate; not keeping (for now)
     }else if (etest.length === 2) {
-      pairs = edges.map(e => ([e[0], e[1]]));
+      pairs = edges.map(e => ([e[0], e[1]])); // isn't this the same as pairs = edges?
     } else {
       throw new Error('Unexpected array-type edge with != 3 elements', etest)
     }

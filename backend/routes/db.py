@@ -39,7 +39,7 @@ router = APIRouter(
 #   , 'intention_container', 'researchers', 'intention_version', 'created_by_container', 'intersecting_concepts',
 #   'recall', 'status_version', 'created_by_version']
 #  ii. Keys in our new `get_csets` that were not there previously:
-#   ['created_at', 'container_intentionall_csets', 'created_by', 'container_created_at', 'status', 'intention',
+#   ['created_at', 'container_intention', 'all_csets', 'created_by', 'container_created_at', 'status', 'intention',
 #   'container_status', 'container_created_by']
 #  fixes:
 #       probably don't need precision etc.

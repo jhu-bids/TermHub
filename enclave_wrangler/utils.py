@@ -499,3 +499,19 @@ def was_file_modified_within_threshold(path: str, threshold_hours: int) -> bool:
     """Check if a file was modified within a certain threshold"""
     diff_hours = (time() - os.path.getmtime(path)) / (60 * 60)
     return diff_hours <= threshold_hours
+
+
+if __name__ == '__main__':
+    cset_name = 'Hope Termhub Test'
+    codeset_id = 27371375
+
+    x = make_actions_request('archive-concept-set',
+                             data={ 'omop-concept-set': codeset_id, }, validate_first=True)
+    print(x)
+    #
+    # x = make_actions_request('edit-concept-set-version-intention',
+    #                      data={
+    #                          'omop-concept-set': codeset_id,
+    #                          'intention': f'testing on july 19'
+    #                      }, validate_first=True)
+    # print(x)
