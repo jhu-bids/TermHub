@@ -173,12 +173,15 @@ def counts_over_time(
     finaldf = pd.DataFrame()
     for date in dates:
         count = dateslist.count(date)
+        #creates a temporary table with the columns of only one date.
         datedf = df[df.columns[df.columns.str.startswith(date)]]
         datedf = datedf.sort_index(axis=1)
         datedf.loc[f'{values} over time, 1x/day'] = count
         if values == 'counts':
+            #keeping only the most recent column from each day
             finaldf[date] = datedf.iloc[:, -1:]
         else:
+            #keeping the sum of columns from each day
             row_sums = datedf.sum(axis=1)
             finaldf[date] = row_sums
 
