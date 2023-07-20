@@ -271,8 +271,6 @@ def fetch_all_new_objects(since: Union[datetime, str]) -> Dict[str, List]:
     """
     since = str(since)
     csets_and_members: Dict[str, List] = fetch_cset_and_member_objects(since)
-    if not csets_and_members:
-        return None
     # TODO:
     researchers = get_researchers()
     # TODO:
@@ -290,24 +288,23 @@ def all_new_objects_enclave_to_db(since: Union[datetime, str]) -> Dict[str, List
     return objects
 
 
-def csets_and_members_enclave_to_db(
-    con: Connection, schema: str, since: Union[datetime, str], filter_0_member_sets=True
-):
+def csets_and_members_enclave_to_db(con: Connection, schema: str, since: Union[datetime, str]) -> bool:
     """Fetch new csets and members, if needed, and then update database with them, returns None is no updates needed"""
     print('Fetching new data from the N3C data enclave...')
     t0 = datetime.now()
     csets_and_members: Dict[str, List[Dict]] = fetch_cset_and_member_objects(since)
     if not csets_and_members:
-        return None
+        return False
 
     print(f'  - Fetched new data in {(datetime.now() - t0).seconds} seconds:\n    OBJECT_TYPE: COUNT\n' +
           "\n".join(['    ' + str(k) + ": " + str(len(v)) for k, v in csets_and_members.items()]))
-    return csets_and_members_to_db(con, schema, csets_and_members)
+    csets_and_members_to_db(con, schema, csets_and_members)
+    return True
 
 
 def fetch_cset_and_member_objects(
     since: Union[datetime, str] = '', codeset_ids: List[int] = [], verbose=False
-) -> Dict[str, List[Dict]]:
+) -> Union[Dict[str, List[Dict]], None]:
     """Get new objects: cset container, cset version, expression items, and member items.
 
     Resources:
@@ -363,9 +360,9 @@ def fetch_cset_and_member_objects(
                              f'for that specific container.')
         cset_containers.append(container[0]['properties'])
 
-    #Returning None if no data
+    # Returning None if no data
     if not cset_containers and not cset_versions:
-        return None
+        return
 
     # Expression items & concept set members
     cset_versions_with_concepts: List[Dict] = []

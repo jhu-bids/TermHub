@@ -406,8 +406,8 @@ def download_datasets(
             outpath = os.path.join(outdir, fav['name'] + '.csv')
             download_and_transform(fav=fav, dataset_name=fav['name'], outpath=outpath, transforms_only=transforms_only,
                                    force_if_exists=force_if_exists)
-# todo: ideally would allow user to select output dir that contains both CSV_DOWNLOAD_DIR and CSV_TRANSFORM_DIR
 
+# todo: ideally would allow user to select output dir that contains both CSV_DOWNLOAD_DIR and CSV_TRANSFORM_DIR
 def cli():
     """Command line interface for package.
 
