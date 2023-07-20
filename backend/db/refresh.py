@@ -35,18 +35,22 @@ def refresh_db(
     when the last refresh occurred, this will result in there being a gap in which any changes that occurred during that
     time will not be fetched, resulting in an incomplete database. Therefore by default this will raise an error unless
     this is set to True.
-    todo: Can update update_db_status_var() so that it can accept optional param 'con' to improve performance."""
+    todo: Can update update_db_status_var() so that it can accept optional param 'con' to improve performance.
+    todo: refactor `new_request_while_refreshing` usage for brevity in code and DB: Rather than checking a variable
+     new_request_while_refreshing , at the end of the refresh, if the last_refresh_request has changed / is newer than
+     what was set at the beginning of the script, it knows that a new request while refreshing has occurred, and use
+     that information to know to start new refresh. https://github.com/jhu-bids/TermHub/pull/469#discussion_r1253581138
+    """
     local = use_local_db
     print('INFO: Starting database refresh.', flush=True)  # flush: for gh action
     t0, t0_str = datetime.now(), current_datetime()
-
     if check_db_status_var('refresh_status') == 'active':
+        print('INFO: Refresh already in progress. When that process completes, it will restart again. Exiting.')
         update_db_status_var('new_request_while_refreshing', t0_str, local)
         return
-
-    print('INFO: Starting database refresh.', flush=True)  # flush: for gh action
     update_db_status_var('refresh_status', 'active', local)
     update_db_status_var('last_refresh_request', current_datetime(), local)
+
     try:
         with get_db_connection(local=local) as con:
             last_refresh = last_refresh_timestamp(con)
@@ -54,17 +58,18 @@ def refresh_db(
                 raise ValueError(SINCE_ERR)
             since = since if since else last_refresh
 
-            # Refresh DB:
-            # todo: will use instead when ready: all_new_objects_enclave_to_db()
-            if not csets_and_members_enclave_to_db(con, schema, since):
-                print('INFO: Database is up to date, no refresh necessary')
-                return
+            # Refresh DB
+            # todo: when ready, will use all_new_objects_enclave_to_db() instead of csets_and_members_enclave_to_db()
+            new_data: bool = csets_and_members_enclave_to_db(con, schema, since)
 
-        counts_update('DB refresh.', schema, local)
         update_db_status_var('refresh_status', 'inactive', local)
         update_db_status_var('last_refresh_success', current_datetime(), local)
         update_db_status_var('last_refresh_result', 'success', local)
-        print(f'INFO: Database refresh complete in {(datetime.now() - t0).seconds} seconds.')
+        if new_data:
+            counts_update('DB refresh.', schema, local)
+            print(f'INFO: Database refresh complete in {(datetime.now() - t0).seconds} seconds.')
+        else:
+            print('INFO: Database is up to date, no refresh necessary')
 
     except Exception as err:
         update_db_status_var('last_refresh_result', 'error', local)
@@ -74,9 +79,9 @@ def refresh_db(
         raise err
 
     if check_db_status_var('new_request_while_refreshing'):
-        # possibly look at the timestamp for sanity check
+        print('INFO: New refresh request detected while refresh was running. Starting a new refresh.')
         delete_db_status_var('new_request_while_refreshing')
-        refresh_db(use_local_database=use_local_database)
+        refresh_db(None, use_local_db, schema, force_non_contiguity)
 
 
 def cli():
