@@ -1,7 +1,7 @@
 import {createContext, useContext,} from "react";
 import {createSearchParams} from "react-router-dom";
 import axios from "axios";
-import {flatten, isEmpty, keyBy, uniq, get, set, sortBy, } from 'lodash';
+import {flatten, isEmpty, keyBy, uniq, set, sortBy, } from 'lodash';
 import {useAppState, useStateSlice} from "./AppState";
 // import {formatEdges} from "../components/ConceptGraph";
 import {API_ROOT} from "../env";
@@ -116,8 +116,8 @@ class DataGetter {
 			cacheSlice: 'all_csets',
 			key: undefined,
 			alertTitle: 'Get all concept sets (partial) to populate select list',
-			apiResultShape: 'array of obj',
-			cacheShape: 'array of obj',
+			apiResultShape: 'array of keyed obj',
+			// cacheShape: 'array of obj',
 			/* data = dataCache.cacheGet([itemType]);
           if (isEmpty(data)) {
             url = backend_url('get-all-csets');
@@ -135,9 +135,8 @@ class DataGetter {
 			cacheSlice: 'csets',
 			key: 'codeset_id',
 			alertTitle: 'Get concept sets (full) for selected codeset_ids',
-			cacheMethod: 'one obj XXXXXXCX',
-			apiResultShape: 'array of obj',
-			cacheShape: 'array of obj',
+			apiResultShape: 'array of keyed obj',
+			// cacheShape: 'array of obj',
 			/* url = 'get-csets?codeset_ids=' + paramList.join('|');
 				data = await this.oneToOneFetchAndCache({api: url, itemType, paramList, dataCache, alertsDispatch, keyName});
 				return data; */
@@ -149,14 +148,14 @@ class DataGetter {
 			makeQueryString: codeset_ids => 'codeset_ids=' + codeset_ids.join('|'),
 			protocols: ['get'],
 			cacheSlice: 'cset_members_items',
-			key: 'codeset_id.concept_id',
+			key: 'codeset_id.concept_id', //	lodash set will work with key path
 			cachePutFunc: csmi => {
 				// assuming if we ask for it, it's not cached already; still have to figure
 				//	out how to check the cache for these
 				this.dataCache.cachePut(['cset_members_items', csmi.codeset_id, csmi.concept_id], csmi);
 			},
 			alertTitle: 'Get definition and expansion concepts (concept_set_members_items) for selected codeset_ids',
-			apiResultShape: 'array of obj',	 //	[ {csmi}, {csmi}, ... ]
+			apiResultShape: 'array of keyed obj',	 //	[ {csmi}, {csmi}, ... ]
 			cacheShape: 'obj of obj of obj', // cache.cset_members_items[codeset_id][concept_id] = csmi obj
 			/* data = await Promise.all(
 						paramList.map(
@@ -184,10 +183,10 @@ class DataGetter {
 			expectedParams: [],	// concept_ids
 			api: 'subgraph',
 			apiGetParamName: 'id',
-			makeQueryString: concept_ids => 'id=' + concept_ids.join('|'),
+			makeQueryString: concept_ids => createSearchParams({id: concept_ids}),
 			protocols: ['get', 'post'],
 			cacheSlice: 'edges',
-			key: concept_ids => compress(concept_ids.join('|')),
+			singleKeyFunc: concept_ids => compress(concept_ids.join('|')),
 			alertTitle: 'Get subgraph for all listed concept_ids',
 			apiResultShape: 'array of array [src, tgt]',
 			cacheShape: 'obj of array of array', // cache.edges[key] = [[src,tgt], [src,tgt], ....]
@@ -226,37 +225,37 @@ class DataGetter {
 			expectedParams: [],	// concept_ids
 			api: 'concepts',
 			apiGetParamName: 'id',
-			makeQueryString: concept_ids => 'id=' + concept_ids.join('|'), // pipe-delimited list
+			makeQueryString: concept_ids => createSearchParams({id: concept_ids}),
 			protocols: ['get', 'post'],
 			cacheSlice: 'concepts',
 			key: 'concept_id',
 			alertTitle: 'Get concepts for selected concept_ids',
-			apiResultShape: 'array of obj',
-			cacheShape: 'array of obj',
+			apiResultShape: 'array of keyed obj',
+			// cacheShape: 'array of obj',
 		},
 		codeset_ids_by_concept_id: {
 			expectedParams: [],	// concept_ids
 			api: 'codeset-ids-by-concept-id',
 			apiGetParamName: 'concept_ids',
-			makeQueryString: concept_ids => 'concept_ids=' + createSearchParams({concept_ids}),
+			makeQueryString: concept_ids => createSearchParams({concept_ids}),
 			protocols: ['get', 'post'],
 			cacheSlice: 'codeset_ids_by_concept_id',
 			key: 'concept_id',
 			alertTitle: 'Get list of codeset_ids for each concept_id',
 			apiResultShape: 'obj of array',
-			cacheShape: 'obj of array',
+			// cacheShape: 'obj of array',
 		},
 		concept_ids_by_codeset_id: {
 			expectedParams: [],	// codeset_ids
 			api: 'concept-ids-by-codeset-id',
 			apiGetParamName: 'codeset_ids',
-			makeQueryString: codeset_ids => 'codeset_ids=' + createSearchParams({codeset_ids}),
+			makeQueryString: codeset_ids => createSearchParams({codeset_ids}),
 			protocols: ['get', 'post'],
 			cacheSlice: 'codeset_ids_by_concept_id',
 			key: 'codeset_id',
 			alertTitle: 'Get list of concept_ids for each codeset_id',
 			apiResultShape: 'obj of array',
-			cacheShape: 'obj of array',
+			// cacheShape: 'obj of array',
 		},
 		researchers: {
 			expectedParams: [],	// multipassIds
@@ -264,7 +263,7 @@ class DataGetter {
 			cacheSlice: 'researchers',
 			key: 'multipassId',
 			apiGetParamName: 'id',
-			makeQueryString: id => 'id=' + createSearchParams({id}),
+			makeQueryString: id => createSearchParams({id}),
 			shape: 'obj of obj',
 		},
 	}
@@ -284,6 +283,16 @@ class DataGetter {
 			if (isEmpty(data)) {
 				data = await this.axiosCall(apiDef.api, {...apiDef, data: params, backend: true, });
 				dataCache.cachePut([apiDef.cacheSlice], data);
+			}
+			return data;
+		}
+		if(apiDef.singleKeyFunc) {
+			// handle single key per result queries
+			let data = dataCache.cacheGet([apiDef.cacheSlice]);
+			if (isEmpty(data)) {
+				data = await this.axiosCall(apiDef.api, {...apiDef, data: params, backend: true, });
+				const cacheKey = apiDef.singleKeyFunc(params);
+				dataCache.cachePut([apiDef.cacheSlice, cacheKey], data);
 			}
 			return data;
 		}
@@ -309,6 +318,7 @@ class DataGetter {
 		let uncachedItems = {};   // this will hold the newly fetched items
 		let returnData;
 
+
 		params.forEach(key => {
 			if (wholeCache[key]) {
 				cachedItems[key] = wholeCache[key];
@@ -318,8 +328,15 @@ class DataGetter {
 		})
 		if (uncachedKeys.length) {
 			returnData = await this.axiosCall(apiDef.api, {...apiDef, data: uncachedKeys});
+			if (apiDef.apiResultShape === 'array of keyed obj') {
+				returnData.forEach(obj => set(uncachedItems, obj[apiDef.key], obj));
+			} else if (apiDef.apiResultShape === 'obj of array') {
+				Object.entries(returnData).forEach(([key, obj]) => set(uncachedItems, key, obj));
+
+			} else {
+				debugger;
+			}
 			// if (Array.isArray(data)) {}	get this code from oneToOneFetchAndCache
-			debugger;
 			/*
 			if (keyName) {
 				if (keyName.split('.').length > 1) {
