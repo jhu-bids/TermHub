@@ -157,30 +157,38 @@ def response_failed(response: Response) -> bool:
 
 
 def handle_response_error(
-    response: Response, error_dir: Union[str, None] = None, fail: bool = False, calling_func: str = 'response error'
+    response: Response, error_dir: Union[str, None] = None, calling_func: str = 'response error'
 ):
     """This code was taken out of make_objects_request() (formerly get_objects_by_type()). Trying to use it
-    for all Response errors now. Not sure if it's entirely appropriate."""
+    for all Response errors now. Not sure if it's entirely appropriate.
+
+    TODO: Test this! Siggie and Hope made changes in late June and we didn't test them. If this breaks, blame them
+    """
     failed = response_failed(response)
     if failed:
-        print(f'Error: {calling_func}: {str(response.status_code)} {response.reason}', file=sys.stderr)
-        error_report: Dict = {'request': response.url, 'response': response.json()}
-        print(error_report, file=sys.stderr)
+        msg = f'Error: {calling_func}: {str(response.status_code)} {response.reason}'
+        try:
+            error_report: Dict = {'request': response.url, 'response': response.json(),}
+        except Exception as err:
+            error_report: Dict = {'request': response.url, 'response': response.content(),}
+        error_report['msg'] = msg
+
         curl_str = f'curl -H "Content-type: application/json" ' \
                    f'-H "Authorization: Bearer ${get_auth_token_key()}" {response.url}'
-        print(curl_str, file=sys.stderr)
+        error_report['curl'] = curl_str
+
+        print(error_report, file=sys.stderr)
+
         if error_dir:
             with open(os.path.join(error_dir, f'error {response.status_code}.json'), 'w') as file:
                 json.dump(error_report, file)
             with open(os.path.join(error_dir, f'error {response.status_code} - curl.sh'), 'w') as file:
                 file.write(curl_str)
 
-        # TODO: what else could be in response? (Joe: potentially, to this function, we could pass a custom err message
-        #  to display if it if fails
         raise EnclaveWranglerErr({
             "status_code": response.status_code,
             "text": response.text,
-            # ... ?
+            "error_report": error_report
         })
 
 

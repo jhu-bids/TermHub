@@ -4,14 +4,13 @@
 """
 from fastapi import APIRouter, Query
 import json
-import requests
 from typing import Dict, List, Union, Set
 from functools import cache
 import urllib.parse
 
 from requests import Response
 from sqlalchemy.engine import RowMapping
-from backend.utils import JSON_TYPE, call_github_action, get_timer, return_err_with_trace
+from backend.utils import JSON_TYPE, get_timer, return_err_with_trace
 from backend.db.utils import get_db_connection, sql_query, SCHEMA, sql_query_single_col, sql_in
 from backend.db.queries import get_concepts
 from enclave_wrangler.objects_api import get_n3c_recommended_csets, enclave_api_call_caller, get_codeset_json, \
@@ -19,8 +18,8 @@ from enclave_wrangler.objects_api import get_n3c_recommended_csets, enclave_api_
 from enclave_wrangler.utils import make_objects_request
 from enclave_wrangler.config import RESEARCHER_COLS
 from enclave_wrangler.models import convert_rows
-from backend.db.config import CONFIG
 from backend.routes import graph
+from backend.db.refresh import refresh_db
 
 
 router = APIRouter(
@@ -343,12 +342,19 @@ def _cset_members_items(codeset_ids: Union[str, None] = Query(default=''), ) -> 
     codeset_ids: List[int] = parse_codeset_ids(codeset_ids)
     return get_cset_members_items(codeset_ids)
 
-
 @router.get("/db-refresh")
-def db_refresh_route() -> Response:
-    """Triggers refresh of the database"""
-    response: Response = call_github_action('refresh-db')
-    return response
+def db_refresh_route():
+    """Triggers refresh of the database
+    todo: May want to change this back to GH action for reasons: (1)  i anticipate i'll miss the convenience of
+     looking at refresh action logs. much easier to find. (2) increased speed doesn't matter: if someone creates a cset
+     and clicks the button, it doesn't matter that our backend is faster than a GH action starting up, since it will
+     take 20-45 minutes for that cset to be ready anyway. so effectively this is not faster, except for fetching csets
+     that are not brand new, which (i) is not the primary thing people are using the button for, and (ii) is unlikely to
+     happen w/ a fast refresh rate, (iii) if we want to make changes to the refresh, we have to redeploy the whole app
+     to make that work, rather than pushing to develop"""
+    # response: Response = call_github_action('refresh-db')
+    # return response
+    refresh_db()
 
 # TODO: if using this at all, fix it to use graph.hierarchy, which doesn't need root_cids
 # @router.get("/hierarchy")

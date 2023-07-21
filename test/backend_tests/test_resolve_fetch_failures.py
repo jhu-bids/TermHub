@@ -6,7 +6,6 @@ How to run:
 import os
 import sys
 from pathlib import Path
-
 from backend.db.resolve_fetch_failures import resolve_fetch_failures
 from backend.db.utils import run_sql, sql_query
 from enclave_wrangler.objects_api import fetch_cset_and_member_objects
@@ -60,7 +59,6 @@ class TestBackendResolveFetchFailures(FetchAuditTestRunner):
         resolve_fetch_failures()
         status2 = query()
         self.assertNotEqual(status1, status2)
-
 
 # Uncomment this and run this file and run directly to run all tests
 # if __name__ == '__main__':

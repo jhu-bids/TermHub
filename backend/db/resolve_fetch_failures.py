@@ -18,7 +18,6 @@ from enclave_wrangler.utils import was_file_modified_within_threshold
 
 DESC = 'Resolve any failures resulting from fetching data from the Enclave\'s objects API.'
 
-
 def resolve_fetch_failures(use_local_db=False, cached_dataset_threshold_hours=0):
     """Resolve any failures resulting from fetching data from the Enclave's objects API.
     cached_dataset_threshold_hours: default of 24 hours is good for failure cases fail-excessive*, but not for
