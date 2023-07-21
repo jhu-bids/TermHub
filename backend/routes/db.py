@@ -345,13 +345,17 @@ def _cset_members_items(codeset_ids: Union[str, None] = Query(default=''), ) -> 
 @router.get("/db-refresh")
 def db_refresh_route():
     """Triggers refresh of the database
-    todo: May want to change this back to GH action for reasons: (1)  i anticipate i'll miss the convenience of
-     looking at refresh action logs. much easier to find. (2) increased speed doesn't matter: if someone creates a cset
-     and clicks the button, it doesn't matter that our backend is faster than a GH action starting up, since it will
-     take 20-45 minutes for that cset to be ready anyway. so effectively this is not faster, except for fetching csets
-     that are not brand new, which (i) is not the primary thing people are using the button for, and (ii) is unlikely to
-     happen w/ a fast refresh rate, (iii) if we want to make changes to the refresh, we have to redeploy the whole app
-     to make that work, rather than pushing to develop"""
+    todo: May want to change this back to GH action for reasons:
+     1. Easier to check logs
+     If there's a problem, I can go to the actions tab and find easily. Finding on azure takes many more clicks, and then I have to scroll up to find where the refresh got logged, and it may be mixed with logs for other requests.
+     2. Almost always won't increase speed of refresh
+     This was supposed to be the only benefit of calling it directly.
+     If someone creates a cset and clicks the button, it doesn't matter that our backend is faster than a GH action starting up, since it will take 20-45 minutes for that cset to be ready anyway. so effectively this is not faster, except for fetching csets that are not brand new, which (i) is not the primary thing people are using the button for, and (ii) is unlikely to happen w/ a fast refresh rate.
+     3. Harder to make changes
+     If we want to make changes to the refresh, we have to redeploy the whole app to make that work, rather than pushing to develop.
+     4. Uses more server resources.
+     5. Possible server stability issues
+     I'm not sure, but I wonder if there is some edge case where an error that happens during the refresh, or other unanticipated side effects, could have an effect on performance or stability of the web server."""
     # response: Response = call_github_action('refresh-db')
     # return response
     refresh_db()
