@@ -83,6 +83,7 @@ function CsetComparisonPage() {
     (boxRef.current ? boxRef.current.offsetHeight : 0),
   ]);
 
+  // todo: Combine this with the useEffect in Csets.js
   useEffect(() => {
     (async () => {
       let promises = [ // these can run immediately
@@ -96,6 +97,7 @@ function CsetComparisonPage() {
       // have to get edges, which might contain more concept_ids after filling gaps
       const edges = await dataGetter.fetchItems('edges', concept_ids, );
       concept_ids = union(concept_ids.map(String), flatten(edges));
+      // - get information for each of these concepts
       promises.push(dataCache.fetchAndCacheItemsByKey( { dataGetter, itemType: 'concepts', keys: concept_ids, shape: 'obj' }), );
 
       let [

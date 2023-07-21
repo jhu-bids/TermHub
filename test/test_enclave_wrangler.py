@@ -113,6 +113,7 @@ class TestEnclaveWrangler(unittest.TestCase):
         new_objects: Dict[str, List] = fetch_cset_and_member_objects(since=yesterday)
         all_new_objects_to_db(new_objects)
         # todo: check that latest row is different? (assuming that there were actually any new objects
+        # todo: account for circumstances where none is returned, because there are no updates.
         pass
         # todo: teardown
         #  (a) inserts: delete (can I get PK / index back from query that inserted?
