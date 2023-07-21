@@ -11,14 +11,12 @@ export function ErrorAlert(props) {
 
 }
 export function FlexibleContainer({ title, position, children, countRef,
-                                    startHidden=true,}) {
+                                    startHidden=true, style}) {
   const [display, setDisplay] = useState(startHidden ? "hidden" : "shown");
   const draggableRef = useRef(null);
 
   let displayedContent;
-  let style = {
-    display: "inline-block",
-  };
+  style = { ...style, display: "inline-block", };
   if (display === "hidden") {
     displayedContent = (
       <Button

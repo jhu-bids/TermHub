@@ -14,8 +14,8 @@ export function AlertMessages({alerts}) {
   let alertsArray = Object.values(alerts);
   if (alertsArray.length) {
     return (
-        <FlexibleContainer title="Alerts" position={{x: window.innerWidth * 0.35 , y: 300}}
-                           style={{width: '60%'}}
+        <FlexibleContainer title="Alerts" position={{x: window.innerWidth * 0.30 , y: 300}}
+                           style={{width: window.innerWidth * 0.65}}
                            startHidden={false} countRef={countRef}>
           <Stack sx={{ width: '100%' }} spacing={2}>
             {alertsArray.map((alert, i) => (

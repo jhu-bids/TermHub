@@ -98,7 +98,8 @@ function CsetComparisonPage() {
 
       // have to get edges, which might contain more concept_ids after filling gaps
       const edges = await dataGetter.fetchItems('edges', concept_ids, );
-      concept_ids = union(concept_ids.map(String), flatten(edges));
+      const edgeCids = uniq(flatten(edges));
+      concept_ids = union(concept_ids.map(String), edgeCids);
       // - get information for each of these concepts
       promises.push(dataCache.fetchAndCacheItemsByKey( { dataGetter, itemType: 'concepts', keys: concept_ids, shape: 'obj' }), );
 
@@ -133,7 +134,6 @@ function CsetComparisonPage() {
 
       const concepts = Object.values(conceptLookup);
 
-      const edgeCids = uniq(flatten(edges));
       const conceptsCids = concepts.map(d => d.concept_id + '');
 
       console.assert(difference(edgeCids, concept_ids.map(String)).length === 0,
