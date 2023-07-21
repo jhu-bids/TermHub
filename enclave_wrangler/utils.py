@@ -372,6 +372,9 @@ def make_actions_request(
       https://www.palantir.com/docs/foundry/api/ontology-resources/object-types/list-object-types/
     """
 
+    if not "parameters" in data:
+        raise KeyError("expecting data to be wrapped in 'parameters' property")
+
     ontology_rid = config['ONTOLOGY_RID']
     api_path = f'/api/v1/ontologies/{ontology_rid}/actions/{api_name}/'
     url = f'https://{config["HOSTNAME"]}{api_path}'
@@ -507,3 +510,19 @@ def was_file_modified_within_threshold(path: str, threshold_hours: int) -> bool:
     """Check if a file was modified within a certain threshold"""
     diff_hours = (time() - os.path.getmtime(path)) / (60 * 60)
     return diff_hours <= threshold_hours
+
+
+if __name__ == '__main__':
+    cset_name = 'Hope Termhub Test'
+    codeset_id = 27371375
+
+    x = make_actions_request('edit-concept-set-version-intention',
+                         data={ 'parameters': {
+                             'omop-concept-set': codeset_id,
+                             'intention': f'testing on july 19'
+                         }}, validate_first=True)
+    print(x)
+
+    x = make_actions_request('archive-concept-set',
+                             data={'parameters': { 'concept-set': cset_name, }}, validate_first=True)
+    print(x)
