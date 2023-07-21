@@ -44,6 +44,7 @@ class DataGetter {
 			eventType: 'axiosCall',
 			title: title || path,
 		};
+		alertAction.id = alertAction.title + ':' + (new Date()).toISOString();
 		try {
 			if (typeof (data) === 'undefined') {
 				request.method = 'get';
@@ -63,8 +64,8 @@ class DataGetter {
 
 			if (sendAlert) {
 				alertAction.axiosCall = response;
-				const alerts = this.alertsDispatch(alertAction);
-				console.log(alerts, alertAction);
+				this.alertsDispatch(alertAction);
+				// console.log(alertAction);
 				// debugger;
 				response = await response;
 				alertAction = {...alertAction, response, type: 'resolve', };

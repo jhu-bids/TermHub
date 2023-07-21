@@ -248,6 +248,7 @@ function ConceptSetsPage(props) {
                 relatedCsets, allRelatedCsets, researchers, });
     })()
   }, [codeset_ids.join('|')]);
+
   if (codeset_ids.length && isEmpty(allRelatedCsets)) {
     return <p>Downloading...</p>;
   }

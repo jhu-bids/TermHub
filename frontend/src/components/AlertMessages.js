@@ -7,8 +7,8 @@ import {Inspector} from "react-inspector";
 
 import {useStateSlice} from "../state/AppState";
 import {FlexibleContainer} from "./FlexibleContainer";
-export function AlertMessages() {
-  const [alerts, alertsDispatch] = useStateSlice("alerts");
+export function AlertMessages({alerts}) {
+  // const [alerts, alertsDispatch] = useStateSlice("alerts");
   const countRef = useRef({n: 0, z: 500});
 
   let alertsArray = Object.values(alerts);
@@ -45,11 +45,12 @@ export const alertsReducer = (state, action) => {
    */
   if (!action || !action.type) return state;
   let {type, id, } = action;
-  let alert;
-  if (typeof (id) !== 'undefined') {
-    debugger;
-    alert = state[id];
+  if (!id) {
+    throw new Error(`alertAction requires an id`, alert);
   }
+
+  let alert = state[id];
+
   switch (type) {
     case "create":
       if (alert) {

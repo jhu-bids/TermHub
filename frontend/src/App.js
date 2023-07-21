@@ -25,7 +25,7 @@ import { CsetComparisonPage } from "./pages/CsetComparisonPage";
 import { AboutPage } from "./pages/AboutPage";
 import { ConceptGraph } from "./components/ConceptGraph";
 import {ViewCurrentState, } from "./state/State";
-import {AppStateProvider} from "./state/AppState";
+import {AppStateProvider, useStateSlice} from "./state/AppState";
 import {SearchParamsProvider, useSearchParamsState} from "./state/SearchParamsProvider";
 import {DataGetterProvider} from "./state/DataGetter";
 import { UploadCsvPage } from "./components/UploadCsv";
@@ -111,6 +111,9 @@ function RoutesContainer() {
   );
 }
 function App(props) {
+  const [alerts, alertsDispatch] = useStateSlice('alerts');
+  console.log(alerts);
+
   return (
     <ThemeProvider theme={theme}>
       {/*
@@ -123,7 +126,7 @@ function App(props) {
         <MuiAppBar>
           {/* Outlet: Will render the results of whatever nested route has been clicked/activated. */}
         </MuiAppBar>
-        <AlertMessages/>
+        <AlertMessages alerts={alerts}/>
         <Outlet />
       </div>
     </ThemeProvider>
