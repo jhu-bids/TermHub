@@ -364,6 +364,9 @@ def make_actions_request(
       https://www.palantir.com/docs/foundry/api/ontology-resources/object-types/list-object-types/
     """
 
+    if not "parameters" in data:
+        raise KeyError("expecting data to be wrapped in 'parameters' property")
+
     ontology_rid = config['ONTOLOGY_RID']
     api_path = f'/api/v1/ontologies/{ontology_rid}/actions/{api_name}/'
     url = f'https://{config["HOSTNAME"]}{api_path}'
@@ -505,13 +508,14 @@ if __name__ == '__main__':
     cset_name = 'Hope Termhub Test'
     codeset_id = 27371375
 
-    x = make_actions_request('archive-concept-set',
-                             data={ 'omop-concept-set': codeset_id, }, validate_first=True)
+    x = make_actions_request('edit-concept-set-version-intention',
+                         data={ 'parameters': {
+                             'omop-concept-set': codeset_id,
+                             'intention': f'testing on july 19'
+                         }}, validate_first=True)
     print(x)
-    #
-    # x = make_actions_request('edit-concept-set-version-intention',
-    #                      data={
-    #                          'omop-concept-set': codeset_id,
-    #                          'intention': f'testing on july 19'
-    #                      }, validate_first=True)
-    # print(x)
+
+    x = make_actions_request('archive-concept-set',
+                             data={'parameters': { 'concept-set': cset_name, }}, validate_first=True)
+    print(x)
+
