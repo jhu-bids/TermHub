@@ -34,7 +34,7 @@ import {
   textCellForItem,
 } from "../components/EditCset";
 import { FlexibleContainer } from "../components/FlexibleContainer";
-import {useStateSlice} from "../state/AppState";
+import {useEditCset, useHierarchySettings, useHierarchySettingsDispatch} from "../state/AppState";
 import {useDataCache} from "../state/DataCache";
 import {useDataGetter, getResearcherIdsFromCsets} from "../state/DataGetter";
 import {useSearchParamsState} from "../state/SearchParamsProvider";
@@ -49,10 +49,11 @@ function CsetComparisonPage() {
   const {sp, updateSp} = useSearchParamsState();
   const { codeset_ids = [], editCodesetId, csetEditState, } = sp;
   // const { selected_csets = [], researchers, } = cset_data;
-  const [hierarchySettings, hsDispatch] = useStateSlice("hierarchySettings");
   const dataGetter = useDataGetter();
   const dataCache = useDataCache();
-  const [editCset, ] = useStateSlice("editCset");
+  const hierarchySettings = useHierarchySettings();
+  const hsDispatch = useHierarchySettingsDispatch();
+  const editCset = useEditCset();
   const {collapsePaths, collapsedDescendantPaths, nested, hideRxNormExtension, hideZeroCounts} = hierarchySettings;
   const windowSize = useWindowSize();
   const boxRef = useRef();

@@ -3,7 +3,7 @@ import {createSearchParams} from "react-router-dom";
 import axios from "axios";
 import {flatten, isEmpty, keyBy, uniq} from 'lodash';
 
-import {useAppState, useStateSlice} from "./AppState";
+import {useAlertsDispatch} from "./AppState";
 import {formatEdges} from "../components/ConceptGraph";
 import {API_ROOT} from "../env";
 import {useDataCache} from "./DataCache";
@@ -14,7 +14,7 @@ const DataGetterContext = createContext(null);
 
 export function DataGetterProvider({children}) {
 	const dataCache = useDataCache();
-	const [alerts, alertsDispatch] = useStateSlice('alerts');
+	const alertsDispatch = useAlertsDispatch();
 	const dataGetter = new DataGetter(dataCache, alertsDispatch);
 
 	return (

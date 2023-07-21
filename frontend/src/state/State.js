@@ -5,7 +5,7 @@ import Box from "@mui/material/Box";
 import {Inspector} from 'react-inspector'; // https://github.com/storybookjs/react-inspector
 import {pct_fmt} from "../components/utils";
 import {useSearchParamsState} from "./SearchParamsProvider";
-import {useAppState} from "./AppState";
+import {useAlerts, useHierarchySettings, useEditCset} from "./AppState";
 import {useDataCache} from "../state/DataCache";
 import {useDataGetter} from "./DataGetter";
 
@@ -18,22 +18,16 @@ const stateDoc = `
       use_example
 
     reducers and context
-    handled by useAppState, AppStateProvider, useStateSlice(slice)
-      really using:
-        hierarchySettings
-      WIP, not using:
-        codeset_ids
-        concept_ids
-        editCset
+      alerts, hierarchySettings, editCset
 
     DataCache
-        all_csets
-        edges
-        cset_members_items
-        selected_csets
-        researchers
-        concepts
-        ????
+      all_csets
+      edges
+      cset_members_items
+      selected_csets
+      researchers
+      concepts
+      ????
 
     local to components, useState, etc.
 
@@ -69,7 +63,9 @@ export function StatsMessage(props) {
 
 export function ViewCurrentState() {
   const [sp, spDispatch] = useSearchParamsState();
-  const appState = useAppState();
+  const alerts = useAlerts();
+  const hierarchySettings = useHierarchySettings();
+  const editCset = useEditCset();
   const dataCache = useDataCache();
   return (<div style={{margin: 30, }}>
     <h1>Current state</h1>
@@ -78,7 +74,7 @@ export function ViewCurrentState() {
     <Inspector data={sp} />
 
     <h2>app state (reducers)</h2>
-    <Inspector data={appState.getState()} />
+    <Inspector data={{alerts, hierarchySettings, editCset}} />
 
     <h2>dataCache</h2>
     <Inspector data={dataCache.getWholeCache()} />
@@ -87,33 +83,3 @@ export function ViewCurrentState() {
     <pre>{stateDoc}</pre>
   </div>);
 }
-
-// const TotalStateContext = createContext(null);
-// export function TotalStateProvider({children}) {
-//   const {sp, updateSp} = useSearchParamsState();
-//   const appState = useAppState();
-//   const dataCache = useDataCache();
-//   const dataGetter = useDataGetter();
-//
-//   const [lastRefresh, setLastRefresh] = useState(dataCache.lastRefreshed());
-//   useEffect(() => {
-//     (async () => {
-//       const timestamp = await dataCache.cacheCheck(dataGetter);
-//       if (timestamp > lastRefresh) {
-//         setLastRefresh(timestamp);
-//       }
-//     })();
-//   });
-//
-//   let stateParts = {sp, updateSp, appState, dataCache};
-//   let totalState = {...sp, ...appState.getState(), ...dataCache.getWholeCache(), stateParts, };
-//   return (
-//       <TotalStateContext.Provider value={totalState}>
-//         {children}
-//       </TotalStateContext.Provider>
-//   );
-// }
-//
-// export function useTotalState() {
-//   return useContext(TotalStateContext);
-// }

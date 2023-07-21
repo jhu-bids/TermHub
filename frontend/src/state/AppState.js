@@ -3,75 +3,70 @@ import {flatten, fromPairs, get} from "lodash";
 
 import {alertsReducer} from "../components/AlertMessages";
 
-export function useStateSlice(slice, paceRestart = false) {
-  const appState = useAppState();
-  const { reducer, defaultVal } = appState.getReducer(slice);
-  let [state, dispatch] = useReducer(reducer, defaultVal);
-  // const [state, dispatch] = appState.getSlice(slice);
-  // return {state, dispatch};  // should probably return array instead of object?
-  if (paceRestart) {
-    dispatch = (...args) => {
-      window.Pace.restart();
-      setTimeout(() => dispatch(...args), 100);
-    };
-  }
-  return [state, dispatch];
-}
+const AlertsContext = createContext(null);
+const AlertsDispatchContext = createContext(null);
+export function AlertsProvider({ children }) {
+  const [alerts, dispatch] = useReducer(alertsReducer, {});
 
-const CombinedReducersContext = createContext(null);
-
-export function AppStateProvider({children}) {
-  const reducers = {
-    hierarchySettings: {reducer: hierarchySettingsReducer, defaultVal: {
-        nested: true, collapsePaths: {}, collapsedDescendantPaths: {},
-        hideRxNormExtension: true, hideZeroCounts: false, } },
-    editCset: {reducer: editCsetReducer, defaultVal: {}},
-    alerts: {reducer: alertsReducer, defaultVal: {}},
-    // contentItems: useReducer(contentItemsReducer, defaultContentItems),
-    // codeset_ids: useReducer(codeset_idsReducer, []),
-    // concept_ids: useReducer(currentConceptIdsReducer, []),
-    // more stuff needed
-  };
-  /*
-  const reducers = {
-    hierarchySettings: [hierarchySettings, hsDispatch],
-    editCset: useReducer(editCsetReducer, {}),
-    alerts: useReducer(alertsReducer, {}),
-    // contentItems: useReducer(contentItemsReducer, defaultContentItems),
-    // codeset_ids: useReducer(codeset_idsReducer, []),
-    // concept_ids: useReducer(currentConceptIdsReducer, []),
-    // more stuff needed
-  };
-   */
-
-  const getters = {
-    getSliceState: (slice) => reducers[slice][0],
-    getSliceDispatch: (slice) => reducers[slice][1],
-    getReducer: (slice) => reducers[slice],
-    getSliceNames: () => Object.keys(reducers),
-    getReducers: () => reducers,
-    getState: () =>
-        Object.fromEntries(Object.entries(reducers).map(([k, v]) => [k, v[0]])),
-  };
-  /*  before doing the getter stuff for the slices, i was having the slice name be a prefix on the action.type
-      probably won't return to this, but keeping around for a bit
-  const getTypeForSlice = memoize((slice, actionType) => {
-    const [reducerSlice, type] = actionType.split(/-(.*)/s); // https://stackoverflow.com/questions/4607745/split-string-only-on-first-instance-of-specified-character
-    return (reducerSlice === slice) && type;
-  });
-    if (!(action && action.type)) return state;
-    const type = getTypeForSlice('c ontentItems', action.type);
-   */
   return (
-      <CombinedReducersContext.Provider value={getters}>
-        {children}
-      </CombinedReducersContext.Provider>
+      <AlertsContext.Provider value={alerts}>
+        <AlertsDispatchContext.Provider value={dispatch}>
+          {children}
+        </AlertsDispatchContext.Provider>
+      </AlertsContext.Provider>
   );
 }
-
-export function useAppState() {
-  return useContext(CombinedReducersContext);
+export function useAlerts() {
+  return useContext(AlertsContext);
 }
+export function useAlertsDispatch() {
+  return useContext(AlertsDispatchContext);
+}
+
+
+
+const HierarchySettingsContext = createContext(null);
+const HierarchySettingsDispatchContext = createContext(null);
+export function HierarchySettingsProvider({ children }) {
+  const [state, dispatch] = useReducer(editCsetReducer, { nested: true, collapsePaths: {},
+    collapsedDescendantPaths: {}, hideRxNormExtension: true, hideZeroCounts: false, });
+
+  return (
+    <HierarchySettingsContext.Provider value={state}>
+      <HierarchySettingsDispatchContext.Provider value={dispatch}>
+        {children}
+      </HierarchySettingsDispatchContext.Provider>
+    </HierarchySettingsContext.Provider>
+  );
+}
+export function useHierarchySettings() {
+  return useContext(HierarchySettingsContext);
+}
+export function useHierarchySettingsDispatch() {
+  return useContext(HierarchySettingsDispatchContext);
+}
+
+
+const EditCsetContext = createContext(null);
+const EditCsetDispatchContext = createContext(null);
+export function EditCsetProvider({ children }) {
+  const [state, dispatch] = useReducer(hierarchySettingsReducer, {});
+
+  return (
+      <EditCsetContext.Provider value={state}>
+        <EditCsetDispatchContext.Provider value={dispatch}>
+          {children}
+        </EditCsetDispatchContext.Provider>
+      </EditCsetContext.Provider>
+  );
+}
+export function useEditCset() {
+  return useContext(EditCsetContext);
+}
+export function useEditCsetDispatch() {
+  return useContext(EditCsetDispatchContext);
+}
+
 
 const editCsetReducer = (state, action) => {
   if (!action || !action.type) return state;
