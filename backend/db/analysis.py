@@ -172,16 +172,17 @@ def counts_over_time(
 
     finaldf = pd.DataFrame()
     for date in dates:
-        count = dateslist.count(date)
-        #creates a temporary table with the columns of only one date.
+        # Create temporary table with the columns of only one date
         datedf = df[df.columns[df.columns.str.startswith(date)]]
         datedf = datedf.sort_index(axis=1)
-        datedf.loc[f'{values} over time, 1x/day'] = count
+        # todo: List number of times the refresh ran that day somewhere?
+        # count = dateslist.count(date)
+        # datedf.loc[f'Number of refreshes ran'] = count
         if values == 'counts':
-            #keeping only the most recent column from each day
+            # Keep only the most recent column from each day
             finaldf[date] = datedf.iloc[:, -1:]
-        else:
-            #keeping the sum of columns from each day
+        else:  # deltas
+            # Keep the sum of columns from each day
             row_sums = datedf.sum(axis=1)
             finaldf[date] = row_sums
 
@@ -265,7 +266,7 @@ def cli():
     elif d['deltas_over_time']:
         counts_over_time(method='delta_table', local=local)
     elif d['counts_docs']:
-        docs()
+        counts_docs()
     else:
         print('Error: Choose 1 and only 1 option. Can see available options by running with --help', file=sys.stderr)
 
