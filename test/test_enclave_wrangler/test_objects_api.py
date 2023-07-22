@@ -17,7 +17,7 @@ THIS_TEST_DIR = Path(os.path.dirname(__file__))
 TEST_DIR = THIS_TEST_DIR.parent
 PROJECT_ROOT = TEST_DIR.parent
 sys.path.insert(0, str(PROJECT_ROOT))
-TEST_INPUT_DIR = TEST_DIR / 'input'
+TEST_INPUT_DIR = THIS_TEST_DIR / 'input'
 TEST_SCHEMA = 'test_n3c'
 YESTERDAY: str = (datetime.now() - timedelta(days=1)).isoformat() + 'Z'  # works: 2023-01-01T00:00:00.000Z
 

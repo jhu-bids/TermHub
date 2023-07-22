@@ -16,7 +16,7 @@ THIS_TEST_DIR = Path(os.path.dirname(__file__))
 TEST_DIR = THIS_TEST_DIR.parent
 PROJECT_ROOT = TEST_DIR.parent
 sys.path.insert(0, str(PROJECT_ROOT))
-TEST_INPUT_DIR = TEST_DIR / 'input'
+TEST_INPUT_DIR = THIS_TEST_DIR / 'input'
 
 from enclave_wrangler.dataset_upload import upload_new_cset_container_with_concepts_from_csv, \
     upload_new_cset_version_with_concepts_from_csv

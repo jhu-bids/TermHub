@@ -17,15 +17,16 @@ from backend.routes.db import cr_hierarchy, get_concepts, get_related_csets, get
 
 from requests import Response
 
-TEST_DIR = os.path.dirname(__file__)
-PROJECT_ROOT = Path(TEST_DIR).parent
+THIS_TEST_DIR = Path(os.path.dirname(__file__))
+TEST_DIR = THIS_TEST_DIR.parent
+PROJECT_ROOT = TEST_DIR.parent
 sys.path.insert(0, str(PROJECT_ROOT))
-from backend.db.analysis import counts_compare_schemas, counts_over_time
-from backend.routes.graph import subgraph
-
 TEST_DIR = os.path.dirname(__file__)
 BACKEND_URL_BASE = 'http://127.0.0.1:8000/'
 COUNT_TEST_EXCEPTIONS = ['concept_set_json', 'rxnorm_med_cset', 'small_snomed']
+
+from backend.db.analysis import counts_compare_schemas, counts_over_time
+from backend.routes.graph import subgraph
 
 
 class TestBackend(unittest.TestCase):
