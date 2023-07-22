@@ -1,36 +1,26 @@
 """Tests
 
-How to run:
+Can run all tests in all files by running this from root of TermHub:
     python -m unittest discover
-
-TODO's
- - 1. Test framework: Current implementation is ad-hoc for purposes of development.
- - 2. Change from validate to apply, or do both
 """
 import os
-import pickle
 import sys
 import unittest
-from datetime import datetime, timedelta
 from pathlib import Path
 from typing import Dict, List, Union
 
 import pandas as pd
 from requests import Response
-from sqlalchemy.exc import IntegrityError
+
+THIS_TEST_DIR = Path(os.path.dirname(__file__))
+TEST_DIR = THIS_TEST_DIR.parent
+PROJECT_ROOT = TEST_DIR.parent
+sys.path.insert(0, str(PROJECT_ROOT))
+TEST_INPUT_DIR = TEST_DIR / 'input'
 
 from enclave_wrangler.dataset_upload import upload_new_cset_container_with_concepts_from_csv, \
     upload_new_cset_version_with_concepts_from_csv
 
-TEST_DIR = os.path.dirname(__file__)
-PROJECT_ROOT = Path(TEST_DIR).parent
-# todo: why is this necessary in this case and almost never otherwise?
-# https://stackoverflow.com/questions/33862963/python-cant-find-my-module
-sys.path.insert(0, str(PROJECT_ROOT))
-
-TEST_INPUT_DIR = os.path.join(TEST_DIR, '../input', 'test_enclave_wrangler')
-TEST_SCHEMA = 'test_n3c'
-yesterday: str = (datetime.now() - timedelta(days=1)).isoformat() + 'Z'  # works: 2023-01-01T00:00:00.000Z
 
 class TestDatasetUpload(unittest.TestCase):
     def test_upload_cset_container_from_csv(self):
@@ -75,3 +65,14 @@ class TestDatasetUpload(unittest.TestCase):
         #     self.assertLess(response.status_code, 400)
 
     # todo?: adit's recent case 2023/02
+    def test_upload_cset_version_from_csv2(self):
+        """Case 2"""
+        path = os.path.join(TEST_INPUT_DIR, 'test_upload_cset_version_from_csv2', 'new_version.csv')
+        self._test_upload_cset_version_from_csv(path)
+
+    def test_upload_cset_version_from_csv(self):
+        """Case 1
+        using: https://github.com/jhu-bids/TermHub/blob/develop/test/input/test_enclave_wrangler/test_dataset_upload/type-2-diabetes-mellitus.csv
+        """
+        path = os.path.join(TEST_INPUT_DIR, 'test_upload_cset_version_from_csv', 'type-2-diabetes-mellitus.csv')
+        self._test_upload_cset_version_from_csv(path)

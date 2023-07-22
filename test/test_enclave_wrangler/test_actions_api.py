@@ -1,35 +1,21 @@
 """Tests
 
-How to run:
+Can run all tests in all files by running this from root of TermHub:
     python -m unittest discover
-
-TODO's
- - 1. Test framework: Current implementation is ad-hoc for purposes of development.
- - 2. Change from validate to apply, or do both
 """
 import os
-import pickle
 import sys
 import unittest
-from datetime import datetime, timedelta
 from pathlib import Path
-from typing import Dict, List, Union
-
-import pandas as pd
 from requests import Response
-from sqlalchemy.exc import IntegrityError
 
-TEST_DIR = os.path.dirname(__file__)
-PROJECT_ROOT = Path(TEST_DIR).parent
-# todo: why is this necessary in this case and almost never otherwise?
-# https://stackoverflow.com/questions/33862963/python-cant-find-my-module
+THIS_TEST_DIR = Path(os.path.dirname(__file__))
+TEST_DIR = THIS_TEST_DIR.parent
+PROJECT_ROOT = TEST_DIR.parent
 sys.path.insert(0, str(PROJECT_ROOT))
 
-TEST_INPUT_DIR = os.path.join(TEST_DIR, '../input', 'test_enclave_wrangler')
-TEST_SCHEMA = 'test_n3c'
-yesterday: str = (datetime.now() - timedelta(days=1)).isoformat() + 'Z'  # works: 2023-01-01T00:00:00.000Z
-
 from enclave_wrangler.actions_api import upload_concept_set_version_draft
+
 
 class TestActionsApi(unittest.TestCase):
 

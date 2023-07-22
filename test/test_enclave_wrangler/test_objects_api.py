@@ -1,11 +1,7 @@
 """Tests
 
-How to run:
+Can run all tests in all files by running this from root of TermHub:
     python -m unittest discover
-
-TODO's
- - 1. Test framework: Current implementation is ad-hoc for purposes of development.
- - 2. Change from validate to apply, or do both
 """
 import os
 import pickle
@@ -13,31 +9,37 @@ import sys
 import unittest
 from datetime import datetime, timedelta
 from pathlib import Path
-from typing import Dict, List, Union
+from typing import Dict, List
 
-import pandas as pd
-from requests import Response
 from sqlalchemy.exc import IntegrityError
 
-TEST_INPUT_DIR = os.path.join(TEST_DIR, '../input', 'test_enclave_wrangler')
-TEST_SCHEMA = 'test_n3c'
-yesterday: str = (datetime.now() - timedelta(days=1)).isoformat() + 'Z'  # works: 2023-01-01T00:00:00.000Z
-
-TEST_DIR = os.path.dirname(__file__)
-PROJECT_ROOT = Path(TEST_DIR).parent
-# todo: why is this necessary in this case and almost never otherwise?
-# https://stackoverflow.com/questions/33862963/python-cant-find-my-module
+THIS_TEST_DIR = Path(os.path.dirname(__file__))
+TEST_DIR = THIS_TEST_DIR.parent
+PROJECT_ROOT = TEST_DIR.parent
 sys.path.insert(0, str(PROJECT_ROOT))
+TEST_INPUT_DIR = TEST_DIR / 'input'
+TEST_SCHEMA = 'test_n3c'
+YESTERDAY: str = (datetime.now() - timedelta(days=1)).isoformat() + 'Z'  # works: 2023-01-01T00:00:00.000Z
 
 from backend.db.utils import delete_obj_by_composite_key, get_db_connection, run_sql, sql_count
 from enclave_wrangler.models import OBJECT_TYPE_TABLE_MAP, field_name_mapping, pkey
 from enclave_wrangler.objects_api import concept_enclave_to_db, \
     concept_expression_enclave_to_db, concept_set_container_enclave_to_db, cset_version_enclave_to_db, \
-    filter_cset_and_member_objects, csets_and_members_to_db, fetch_cset_and_member_objects, all_new_objects_to_db, \
+    csets_and_members_to_db, fetch_cset_and_member_objects, all_new_objects_to_db, \
     get_concept_set_version_members
 
 
 class TestObjectsApi(unittest.TestCase):
+
+    # todo: after completing this 'test', create func for it in backend/db and call/assert here
+    #  - what is the ultimate goal? how many tables are we refreshing?
+    # todo: also add test for get_new_objects()
+    # def test_fetch_cset_and_member_objects(self):
+    #     """Test fetch_cset_and_member_objects()"""
+    #     csets_and_members: Dict[str, List] = fetch_cset_and_member_objects(since=yesterday)
+    #     # todo: what kind of assert?
+
+    # TODO: Seems to be failing now because using test_n3c instead of n3c even though con schema=TEST_SCHEMA
 
     def test_concept_expression_enclave_to_db(self):  # aka test_concept_set_version_item_enclave_to_db()
         """Test concept_expression_enclave_to_db()"""
@@ -168,7 +170,7 @@ class TestObjectsApi(unittest.TestCase):
     def test_update_db_with_new_objects(self):
         """Test update_db_with_new_objects()"""
         # todo: get latest rows from 4 tables
-        new_objects: Dict[str, List] = fetch_cset_and_member_objects(since=yesterday)
+        new_objects: Dict[str, List] = fetch_cset_and_member_objects(since=YESTERDAY)
         all_new_objects_to_db(new_objects)
         # todo: check that latest row is different? (assuming that there were actually any new objects
         pass
