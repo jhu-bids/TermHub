@@ -1,6 +1,6 @@
 """Tests
 
-How to run:
+Can run all tests in all files by running this from root of TermHub:
     python -m unittest discover
 
 TODO's
@@ -362,7 +362,3 @@ class TestBackend(unittest.TestCase):
         self.assertEqual(edges3,
                          [ ( "4024552", "316139" ), ( "316139", "43530961" ), ( "316139", "45766164" ),
                            ( "321588", "4024552" ), ( "321588", "4027255" ), ( "4027255", "43530856" ) ] )
-
-# Uncomment this and run this file directly to run all tests
-#if __name__ == '__main__':
-#     unittest.main()
