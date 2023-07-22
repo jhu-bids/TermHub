@@ -45,7 +45,7 @@ WITH ac AS (SELECT DISTINCT cs.codeset_id,
                             -- COALESCE(items.concepts, 0) AS items,
                             COALESCE(cscc.approx_distinct_person_count, 0) AS distinct_person_cnt,
                             COALESCE(cscc.approx_total_record_count, 0)    AS total_cnt
-            FROM code_sets cs
+            FROM {{schema}}code_sets cs
                      LEFT JOIN {{schema}}OMOPConceptSet ocs
                                ON cs.codeset_id = ocs."codesetId" -- need quotes because of caps in colname
                      JOIN {{schema}}concept_set_container csc ON cs.concept_set_name = csc.concept_set_name

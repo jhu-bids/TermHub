@@ -10,7 +10,6 @@ import Typography from "@mui/material/Typography";
 import { isEmpty, get, pick } from "lodash"; // set, map, omit, pick, uniq, reduce, cloneDeepWith, isEqual, uniqWith, groupBy,
 import IconButton from "@mui/material/IconButton";
 import { Tooltip } from "./Tooltip";
-import { searchParamsToObj, updateSearchParams, backend_url } from "./State";
 import {
   LI,
   TextH2,
@@ -18,50 +17,22 @@ import {
   howToSaveStagedChanges,
 } from "../pages/AboutPage";
 import _ from "../supergroup/supergroup";
+import {backend_url} from "../state/DataGetter";
+import {useSearchParamsState} from "../state/SearchParamsProvider";
 
 const checkmark = <span>{"\u2713"}</span>;
-export function getEditCodesetFunc(props) {
-  const { searchParams } = props;
-  return (evt) => {
-    // was: let codeset_id = parseInt(evt.target.getAttribute('codeset_id')); until adding wrapper around col for including icon
-    let colHeaderEl = evt.target.parentNode;
-    if (!colHeaderEl.getAttribute("codeset_id")) {
-      colHeaderEl = colHeaderEl.parentNode;
-    }
-    const codeset_id = parseInt(colHeaderEl.getAttribute("codeset_id"));
-    if (!codeset_id)
-      throw new Error("error getting codeset_id during col header click");
-    let sp = searchParamsToObj(searchParams);
-    let { csetEditState = {} } = sp;
-    let addProps, delProps;
-    if (sp.editCodesetId === codeset_id) {
-      // clicked codeset is already being edited, so get rid of it
-      // delete csetEditState[codeset_id]; // have been keying editState on codeset_id so state
-      //  could be returned to when switching which codeset is being edited, but that's a bad idea.
-      //  should get rid of that, but don't have time at the moment
-      delProps = ["editCodesetId", "csetEditState"];
-      updateSearchParams({ ...props, delProps });
-    } else {
-      // clicked codeset is not already being edited, so set it to be edited
-      //  and clear editState
-      addProps = { editCodesetId: codeset_id, csetEditState: {} };
-      updateSearchParams({ ...props, addProps });
-    }
-  };
-}
 
-export function getCodesetEditActionFunc({ searchParams }) {
+export function getCodesetEditActionFunc({ sp, updateSp, csmi }) {
   return (props) => {
     // this function will be called editAction and passed around as needed
     const {
-      csmi,
+      // csmi,  // not sure if this should come from closure or props sent to the generated function
       clickAction,
       flag,
       cset_col: { codeset_id },
       row: { concept_id },
       no_action = false,
     } = props;
-    let sp = searchParamsToObj(searchParams);
     let { csetEditState = {} } = sp;
     let csidState = csetEditState[codeset_id] || {};
     let item = getItem({
@@ -87,7 +58,7 @@ export function getCodesetEditActionFunc({ searchParams }) {
     if (no_action) {
       return { item, csidState };
     }
-    updateSearchParams({ ...props, addProps: { csetEditState } });
+    updateSp({ addProps: { csetEditState } });
   };
 }
 
@@ -108,12 +79,9 @@ function summaryLine({ item, action, concept }) {
   );
 }
 export function EditInfo(props) {
-  const {
-    editCodesetId,
-    csetEditState,
-    selected_csets,
-    conceptLookup,
-  } = props;
+  const {sp} = useSearchParamsState();
+  const { editCodesetId, csetEditState, } = sp;
+  const { selected_csets, conceptLookup, } = props;
   if (isEmpty(selected_csets) || isEmpty(conceptLookup)) {
     debugger
     throw new Error("wtf")

@@ -3,7 +3,10 @@ import Box from "@mui/material/Box";
 import { Link, useLocation } from "react-router-dom";
 import Button from "@mui/material/Button";
 
-import { useDataWidget } from "./State";
+/*
+    TODO: getting rid of useDataWidget, so this will have to change if/when we want it to work again
+ */
+import { useDataWidget } from "../state/State";
 
 function DownloadJSON(props) {
   const [bundles_widget, bundles_props] = useDataWidget(

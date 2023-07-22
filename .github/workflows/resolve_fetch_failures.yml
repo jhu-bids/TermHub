@@ -1,27 +1,24 @@
-name: DB Refresh (Objects API)
+name: Resolve fetch failures
 
 on:
-  schedule:
+#  schedule:
 #    - cron: '*/20 * * * *'  # every 20 minutes
-    - cron: '0 5 * * *'  # every day 5am GMT (12-1am EST/EDT)
-#    - cron: '0 * * * *'  # every hour on the hour
   workflow_dispatch:
   repository_dispatch:
-    types: [refresh-db]
+    types: [resolve-fetch-failures]
 jobs:
-  refresh-db:
-#    runs-on: ubuntu-18.04
-#    runs-on: ubuntu-latest   # not sure which is more current when resolving merge conflicts
-    # todo: macos-latest: I think was just needed for datasets API because of high memory. should be able to switch back to ubuntu
-    runs-on: macos-latest
+  resolve-fetch-failures:
+    runs-on: ubuntu-latest
     steps:
       - name: Checkout repository and submodules
         uses: actions/checkout@v2
+        with:
+          submodules: recursive
       - name: Set up Python version
         uses: actions/setup-python@v2
         with:
           # Consider '3.10' or 'v3.10.0': https://github.com/actions/setup-python/issues/160
-          python-version: '3.9.7'  # Not sure why 3.9.7 here and 3.9 elsewhere. the .7 works on mac, but not on ubuntu
+          python-version: '3.9'
       - name: Print commit hash & branch for rollbacks & troubleshooting
         run: |
           echo "Commit hash: ${{ github.sha }}"
@@ -44,11 +41,6 @@ jobs:
           pip install --upgrade setuptools
           pip install -r requirements.txt
 
-      - name: Refresh db
+      - name: Resolve fetch failures
         run: |
-          python backend/db/refresh.py
-
-      - name: Commit changes to documentation
-        uses: stefanzweifel/git-auto-commit-action@v4
-        with:
-          commit_message: Updating documentation in docs/backend/db/analysis.md
+          python backend/db/resolve_fetch_failures.py

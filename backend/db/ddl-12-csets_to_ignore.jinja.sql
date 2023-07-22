@@ -4,7 +4,7 @@ SELECT all_csets.concept_set_name,
     all_csets.container_created_at,
     max(all_csets.codeset_created_at) AS latest,
     count(*) AS cnt
-FROM all_csets
+FROM {{schema}}all_csets
 WHERE (
     lower(all_csets.concept_set_name) LIKE '%test%'::text OR
     lower(all_csets.concept_set_name) ~~ '%example%'::text
@@ -12,7 +12,7 @@ WHERE (
     all_csets.concept_set_name <> ALL(
         ARRAY[
             'COVID test'::text,
-            'SARS-CoV-2 test measurementSARS2 COVID2 Test from 655'::text,
+            'SARS-CoV-2 test measurementSARS2 COVID2 Test FROM {{schema}}655'::text,
             '75862-3 (HbA1C Tests)'::text])
     )
 GROUP BY all_csets.concept_set_name, all_csets.container_created_at

@@ -8,7 +8,12 @@ import traceback
 from functools import reduce
 from typing import Any, Dict, List, Union
 from datetime import datetime
+
+import requests
+from requests import Response
 from starlette.responses import JSONResponse
+
+from backend.db.config import CONFIG
 
 JSON_TYPE = Union[Dict, List]
 
@@ -32,12 +37,37 @@ def commify(n):
     return f'{n:,}'
 
 
+def call_github_action(event_type: str) -> Response:
+    """Call a GitHub action
+    :param event_type: the name of the event to trigger. Any .github/workflows/*.yml file with this EVENT_TYPE like so
+    will be triggered:
+    ```yml
+    on:
+      repository_dispatch:
+        types: [EVENT_TYPE]
+    ```"""
+    headers = {
+        "Authorization": f"Bearer {CONFIG['personal_access_token']}",
+        "Accept": "application/vnd.github.v3+json",
+        "Content-Type": "application/json"
+    }
+    # args = {"event-type":"refresh-db"}
+    url = 'https://api.github.com/repos/jhu-bids/TermHub/dispatches'
+    payload = {
+        'event_type': event_type,
+    }
+    response = requests.post(url, headers = headers,data=json.dumps(payload))
+    return response
+
+
 def send_email(subject: str, body: str, to=['sigfried@sigfried.org', 'jflack@jhu.edu']):
     """Send email
     todo: Need alternative. Gmail doesn't work as of 2022/05:
      https://support.google.com/accounts/answer/6010255
      To help keep your account secure, from May 30, 2022,Google no longer supports the use of third-party apps or
      devices which ask you to sign in to your Google Account using only your username and password.
+     - Alternative idea: Can populate a table and have a GitHub action read that table periodically and if it detects
+     an unsent message, end in failure. This will trigger a 'failed action' email to be sent. We can open and read.
     """
     termhub_email_user = os.getenv('TERMHUB_EMAIL_USER')
     # create SMTP session

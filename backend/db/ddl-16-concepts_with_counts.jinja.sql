@@ -1,5 +1,5 @@
 -- Table: concepts_with_counts  ----------------------------------------------------------------------------------------
-DROP TABLE IF EXISTS {{schema}}concepts_with_counts;
+DROP TABLE IF EXISTS {{schema}}concepts_with_counts CASCADE;
 
 CREATE TABLE IF NOT EXISTS {{schema}}concepts_with_counts AS (
     SELECT  concept_id,

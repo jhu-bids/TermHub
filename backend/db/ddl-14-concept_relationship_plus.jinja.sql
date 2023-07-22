@@ -1,5 +1,4 @@
 -- Table: cset_members_items -------------------------------------------------------------------------------------------
-
 DROP TABLE IF EXISTS {{schema}}concept_ids_by_codeset_id{{optional_suffix}} CASCADE;
 
 CREATE TABLE {{schema}}concept_ids_by_codeset_id{{optional_suffix}} AS

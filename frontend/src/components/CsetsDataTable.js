@@ -1,10 +1,10 @@
 import React, { useState, useCallback, useEffect } from "react";
-import ReactDOM from "react-dom/client";
-import { orderBy, get, remove, throttle } from "lodash";
+import { throttle } from "lodash";
 import DataTable, { createTheme } from "react-data-table-component";
 import { fmt, pct_fmt } from "./utils";
-import { fetchItems, StatsMessage, useStateSlice, } from "./State";
+import { StatsMessage, } from "../state/State";
 import { Tooltip } from "./Tooltip";
+import {useSearchParamsState} from "../state/SearchParamsProvider";
 // import Checkbox from '@material-ui/core/Checkbox';
 // import ArrowDownward from '@material-ui/icons/ArrowDownward';
 // const sortIcon = <ArrowDownward />;
@@ -36,8 +36,8 @@ function getCsetSelectionHandler(tooltipId) {
 
 /* TODO: review function for appropriate state management */
 export function CsetsDataTable(props) {
-  const { show_selected, codeset_ids, changeCodesetIds,
-          relatedCsets, selected_csets, all_csets, concept_ids, } = props;
+  const { show_selected, codeset_ids, relatedCsets, selected_csets, all_csets, concept_ids, } = props;
+  const {changeCodesetIds, } = useSearchParamsState();
   const min_col = show_selected ?
       ("min_col" in props ? props.min_col : true) : false;
 
@@ -172,7 +172,7 @@ function getColdefs(min_col = false) {
       sortable: true,
     },
   ];
-  let coldefs_last_3 = [
+  let coldefs_last_4 = [
     {
       // name: 'Recall',
       name: (
@@ -216,18 +216,18 @@ function getColdefs(min_col = false) {
       center: true,
       sortable: true,
     },
-    /*
-        {
-            name:   <Tooltip label="Checked if this concept set is marked as archived in the enclave.">
-                <span>Archived</span>
-            </Tooltip>,
-            selector: row => row.archived ? '\u2713' : '',
-            compact: true,
-            width: '70px',
-            center: true,
-            sortable: true,
-        },
-         */
+    {
+      name: (
+          <Tooltip label="Number of members in this concept set that can be hidden in the CSET COMPARISON page.">
+            <span>Hidden Members</span>
+          </Tooltip>
+      ),
+      selector: 0,
+      compact: true,
+      width: "70px",
+      center: true,
+      sortable: true,
+    },
   ];
 
   if (!min_col) {
@@ -262,10 +262,10 @@ function getColdefs(min_col = false) {
       },
     ];
 
-    return [...coldefs_first_4, ...coldefs_extra, ...coldefs_last_3];
+    return [...coldefs_first_4, ...coldefs_extra, ...coldefs_last_4];
   }
 
-  return [...coldefs_first_4, ...coldefs_last_3];
+  return [...coldefs_first_4, ...coldefs_last_4];
 }
 
 function getCustomStyles() {

@@ -1,11 +1,11 @@
-import React, {useState, useRef, useEffect /* useReducer, */} from "react";
+import React, {useState, useRef, useEffect, useCallback, /* useReducer, */} from "react";
 import { CsetsDataTable, CsetsSelectedDataTable } from "./CsetsDataTable";
 // import {difference, symmetricDifference} from "./utils";
 import ConceptSetCards from "./ConceptSetCard";
 import { TextField, Autocomplete, Box, } from "@mui/material";
+import { matchSorter } from 'match-sorter';
 import Button from "@mui/material/Button";
 // import Chip from '@mui/material/Chip';
-// import { Link, Outlet, useHref, useParams, useSearchParams, useLocation } from "react-router-dom";
 import {every, keyBy, union, orderBy, } from "lodash";
 import { get, isNumber, isEmpty, flatten, intersection, } from "lodash";
 // import {isEqual, pick, uniqWith, max, omit, uniq, } from 'lodash';
@@ -16,7 +16,9 @@ import CardContent from "@mui/material/CardContent";
 import Typography from "@mui/material/Typography";
 // import * as po from '../pages/Popover';
 import { DOCS } from "../pages/AboutPage";
-import {dataAccessor, fetchItems, getResearcherIdsFromCsets, prefetch, } from "./State";
+import {useDataCache} from "../state/DataCache";
+import {useDataGetter, getResearcherIdsFromCsets, } from "../state/DataGetter";
+import {useSearchParamsState} from "../state/SearchParamsProvider";
 
 /* TODO: Solve
     react_devtools_backend.js:4026 MUI: The value provided to Autocomplete is invalid.
@@ -43,11 +45,31 @@ function initialOpts(all_csets, codesetIds) {
   return opts;
 }
 export function CsetSearch(props) {
-  const { codeset_ids=[], changeCodesetIds, all_csets, } = props;
+  const { codeset_ids=[], all_csets, } = props;
+  const dataGetter = useDataGetter();
   const [value, setValue] = useState(codeset_ids);
+  const {changeCodesetIds, } = useSearchParamsState();
 
   // const [keyForRefreshingAutocomplete, setKeyForRefreshingAutocomplete] = useState(0);
   // necessary to change key for reset because of Autocomplete bug, according to https://stackoverflow.com/a/59845474/1368860
+  /*
+  const filterOptions = (options, state) => {
+    let strings = state.inputValue.split(" ").filter((s) => s.length);
+    if (!strings.length) {
+      return options;
+    }
+    let match = strings.map((m) => new RegExp(m, "i"));
+    return options.filter((o) => every(match.map((m) => o.label.match(m))));
+  }
+   */
+
+  // from https://github.com/kentcdodds/match-sorter#keys-string
+  const filterOptions = (options, { inputValue }) => matchSorter(options, inputValue, { keys: [ 'label' ]});
+  /*    couldn't figure out how to intercept it and see how it works, but it seems to work fine out of the box
+  const filterOptions = (options, { inputValue }) => (options, inputValue) => {
+    const m = matchSorter(options, inputValue);
+    return m;
+  } */
 
   if (isEmpty(all_csets)) {
     return <p>Downloading...</p>;
@@ -64,7 +86,7 @@ export function CsetSearch(props) {
       value={value}
       onChange={(event, newValue) => {
         setValue(newValue.map(option => option.value || option));
-        prefetch({codeset_ids: newValue});
+        // dataGetter.prefetch({itemType: 'everything', codeset_ids: newValue});
       }}
       isOptionEqualToValue={(opt, value) => {
         return opt.value === value;
@@ -81,14 +103,7 @@ export function CsetSearch(props) {
       options={opts}
       // blurOnSelect={true}
       // clearOnBlur={true}
-      filterOptions={(options, state) => {
-        let strings = state.inputValue.split(" ").filter((s) => s.length);
-        if (!strings.length) {
-          return options;
-        }
-        let match = strings.map((m) => new RegExp(m, "i"));
-        return options.filter((o) => every(match.map((m) => o.label.match(m))));
-      }}
+      filterOptions={filterOptions}
       sx={{
         width: "80%",
         minWidth: "70%",
@@ -159,36 +174,35 @@ export function CsetSearch(props) {
 }
 
 function ConceptSetsPage(props) {
-  const { codeset_ids } = props;
+  const {sp} = useSearchParamsState();
+  const {codeset_ids, } = sp;
+  const dataGetter = useDataGetter();
+  const dataCache = useDataCache();
   const [data, setData] = useState({});
   const { all_csets, concept_ids, relatedCodesetIds, selected_csets,
           allRelatedCsets, relatedCsets, researchers, } = data;
 
+  // todo: Combine this with the useEffect in CsetComparisonPage.js
   useEffect(() => {
     (async () => {
-      let all_csets = fetchItems('all_csets', ['stub']);
-      let selected_csets = dataAccessor.getItemsByKey(
-          { itemType: 'csets', keys: codeset_ids, shape: 'array',
+      let all_csets = dataGetter.fetchItems('all_csets', ['stub']);
+      let selected_csets = dataCache.fetchAndCacheItemsByKey({ dataGetter, itemType: 'csets', keys: codeset_ids, shape: 'array',
             returnFunc: results => [...Object.values(results)]} ); // isn't this the same as shape: 'array'?
-      let concept_ids = dataAccessor.getItemsByKey({ // concept_ids
-            itemType: 'concept_ids_by_codeset_id',
-            keys: codeset_ids,
-            returnFunc: results => union(flatten(Object.values(results))),
-          });
+      // - since this data was fetched in CsetComparisonPage, this call should be fast because will get from cache.
+      let concept_ids = dataCache.fetchAndCacheItemsByKey({ dataGetter, itemType: 'concept_ids_by_codeset_id',
+            keys: codeset_ids, returnFunc: results => union(flatten(Object.values(results))), });
 
       concept_ids = await concept_ids;
 
-      let relatedCodesetIds = dataAccessor.getItemsByKey(
-          { itemType: 'codeset_ids_by_concept_id', keys: concept_ids,
-            returnFunc: results => union(flatten(Object.values(results))),
-          });
+      // - for every concept id we get for selected codesets, get all codesets that contain that concept id
+      let relatedCodesetIds = dataCache.fetchAndCacheItemsByKey({ dataGetter, itemType: 'codeset_ids_by_concept_id',
+            keys: concept_ids, returnFunc: results => union(flatten(Object.values(results))), });
 
       [all_csets, relatedCodesetIds] = await Promise.all([all_csets, relatedCodesetIds]);
 
-      let relatedCsetConceptIds = dataAccessor.getItemsByKey({ // concept_ids
-                                                               itemType: 'concept_ids_by_codeset_id',
-                                                               keys: relatedCodesetIds, shape: 'obj'
-                                                             });
+      // - now, for all of the related codesets we found above, now get all of its concept ids
+      let relatedCsetConceptIds = dataCache.fetchAndCacheItemsByKey({ dataGetter, itemType: 'concept_ids_by_codeset_id',
+                                                               keys: relatedCodesetIds, shape: 'obj' });
 
       let allCsetsObj = keyBy(all_csets, 'codeset_id');
 
@@ -198,7 +212,7 @@ function ConceptSetsPage(props) {
       selected_csets = await selected_csets;
 
       const researcherIds = getResearcherIdsFromCsets(selected_csets);
-      let researchers = dataAccessor.getItemsByKey({ itemType: 'researchers', keys: researcherIds, shape: 'obj' });
+      let researchers = dataCache.fetchAndCacheItemsByKey({ dataGetter, itemType: 'researchers', keys: researcherIds, shape: 'obj' });
 
       selected_csets = selected_csets.map(cset => {
         cset = {...cset};
@@ -230,8 +244,6 @@ function ConceptSetsPage(props) {
       relatedCsets = orderBy( relatedCsets, ["selected", "precision"], ["desc", "desc"] );
 
       researchers = await researchers;
-      // const allRelatedCsets = await fetchItems('related_csets', codeset_ids, );
-      // const selected_csets = allRelatedCsets.filter(cset => cset.selected);
       setData({ all_csets, concept_ids, relatedCodesetIds, selected_csets,
                 relatedCsets, allRelatedCsets, researchers, });
     })()

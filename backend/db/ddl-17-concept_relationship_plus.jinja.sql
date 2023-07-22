@@ -6,7 +6,7 @@
 -- for now, due to bug (https://github.com/jhu-bids/TermHub/issues/191 and https://github.com/jhu-bids/TermHub/pull/190)
 -- filtering out cr records including invalid concepts. this is probably not the right thing to do
 -- in the long term, but should fix bug and let us move forward with immediate need to get pilot started (2022-01-4)
-DROP TABLE IF EXISTS {{schema}}concept_relationship_plus;
+DROP TABLE IF EXISTS {{schema}}concept_relationship_plus CASCADE;
 
 CREATE TABLE IF NOT EXISTS {{schema}}concept_relationship_plus AS (
   SELECT    c1.vocabulary_id AS vocabulary_id_1

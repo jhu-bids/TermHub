@@ -3,13 +3,15 @@
  *  todo: 1. Siggie was going to add some sort of Table here
  * */
 import React, {useEffect, useState} from "react";
-import {queryClient} from "../App";
+// import {queryClient} from "../App";
 import Typography from "@mui/material/Typography";
 import Button from "@mui/material/Button";
 import { TextField, } from "@mui/material";
 import { Link, useLocation } from "react-router-dom";
 import VERSION from "../version";
-import {axiosCall, dataAccessor} from "../components/State";
+import {useDataCache} from "../state/DataCache";
+import {useDataGetter} from "../state/DataGetter";
+import {useSearchParamsState} from "../state/SearchParamsProvider";
 
 // import * as po from './Popover';
 
@@ -66,16 +68,9 @@ let LI = (props) => (
 );
 let DOCS = {};
 
-const handleRefresh = async () => {
-  try {
-    await axiosCall('db-refresh', {backend: true});
-    console.log('Triggered: database refresh');
-  } catch (error) {
-    console.error('Error:', error);
-  }
-};
 
-function AboutPage(props) {
+function AboutPage() {
+  const {sp} = useSearchParamsState();
   // const {codeset_ids=[], all_csets=[], cset_data={}} = props;
   // const {data_counts=[], } = cset_data;
   //
@@ -86,20 +81,31 @@ function AboutPage(props) {
   //       return {Message, ConceptSetNames, CodesetIds, Concepts};
   //     }
   // )
-  const [codeset_ids, setCodeset_ids] = useState(props.codeset_ids);
+  const dataCache = useDataCache();
+  const dataGetter = useDataGetter();
+  const [codeset_ids, setCodeset_ids] = useState(sp.codeset_ids);
   const [refreshButtonClicked, setRefreshButtonClicked] = useState();
   const [lastRefreshed, setLastRefreshed] = useState();
   const location = useLocation();
   const { search } = location;
 
+  const handleRefresh = async () => {
+    try {
+      await dataGetter.axiosCall('db-refresh', {backend: true, verbose: false, title: 'Refreshing TermHub database from Enclave'});
+      console.log('Triggered: database refresh');
+    } catch (error) {
+      console.error('Error:', error);
+    }
+  };
+
   useEffect(() => {
     (async () =>{
-      let lastRefreshed = dataAccessor.lastRefreshed();
+      let lastRefreshed = dataCache.lastRefreshed();
       if (!lastRefreshed) {
-        await dataAccessor.cacheCheck();
-        lastRefreshed = dataAccessor.lastRefreshed();
-        setLastRefreshed(lastRefreshed);
+        await dataCache.cacheCheck(dataGetter);
+        lastRefreshed = dataCache.lastRefreshed();
       }
+      setLastRefreshed(lastRefreshed);
     })()
   });
 
@@ -117,7 +123,7 @@ function AboutPage(props) {
       <TextBody>
         This <a href="https://youtu.be/EAwBZUiNUUk?t=2130">demo video</a> from
         the October 31, 2022 N3C Forum provides a brief introduction. (TermHub
-        has evolved since the video was made. Use the create issue button below
+        has evolved since the video was made. Use the <a href="https://github.com/jhu-bids/termhub/issues/new/choose" target="_blank" rel="noopener noreferrer">create issue</a> button below
         to clamor for a new video and we will push that up on our priority
         list.)
       </TextBody>
@@ -160,13 +166,15 @@ function AboutPage(props) {
         <ol>
           <LI>Try: Refreshing the page</LI>
           <LI>
-            Try clicking: <Button variant={"contained"}
-              onClick={() => queryClient.removeQueries()}
+            Try purging localStorage (by clicking here, or if you can't get to this page, open chrome(or other browser
+            console, and enter `localStorage.clear()`): <Button variant={"contained"}
+              // onClick={() => queryClient.removeQueries()}
+              onClick={() => localStorage.clear()}
             >
               Empty the data cache
             </Button>
           </LI>
-          <LI>Complain to <a href="mailto:sigfried@jhu.edu">Siggie</a></LI>
+          <LI>File a report: via <a href="https://github.com/jhu-bids/termhub/issues/new/choose" target="_blank" rel="noopener noreferrer">GitHub issue</a> or <a href="mailto:termhub-support@jhu.edu">termhub-support@jhu.edu</a></LI>
         </ol>
       <TextH2>How to: Load a set of concept sets</TextH2>
         <TextBody>
@@ -334,7 +342,7 @@ DOCS.blank_search_intro = (
         <LI>
           Learn more about TermHub and review the step by step “How To” section.
         </LI>
-        <LI>Provide feedback by creating a GitHub issue.</LI>
+        <LI>Provide feedback by creating a <a href="https://github.com/jhu-bids/termhub/issues/new/choose" target="_blank" rel="noopener noreferrer">GitHub issue.</a></LI>
         <LI>
           Let us know of any bug or a poor user experience, or share a feature
           request.

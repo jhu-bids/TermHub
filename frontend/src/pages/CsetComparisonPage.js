@@ -9,23 +9,22 @@ import * as d3dag from "d3-dag";
 import DataTable, { createTheme } from "react-data-table-component";
 import { AddCircle, RemoveCircleOutline, Download } from "@mui/icons-material";
 import { Box, Slider, Button, Typography, Switch } from "@mui/material";
+import { IconButton } from "@mui/material";
 import Draggable from "react-draggable";
 // import {Checkbox} from "@mui/material";
-import {isEmpty, get, throttle, max, union, uniqBy, flatten, sortBy} from "lodash"; // set, map, omit, pick, uniq, reduce, cloneDeepWith, isEqual, uniqWith, groupBy,
+import {isEmpty, throttle, max, union, uniqBy, flatten, sortBy,
+        uniq, difference, intersection} from "lodash";
 import Graph from 'graphology';
 import {allSimplePaths} from 'graphology-simple-path';
 import {dfs, dfsFromNode} from 'graphology-traversal/dfs';
 import { saveAs } from 'file-saver';
 import Papa from 'papaparse';
 
-
-import { useStateSlice, fetchItems, dataAccessor, getResearcherIdsFromCsets } from "../components/State";
 import { fmt, useWindowSize } from "../components/utils";
 import { setColDefDimensions } from "../components/dataTableUtils";
 import { ConceptSetCard } from "../components/ConceptSetCard";
 import { Tooltip } from "../components/Tooltip";
 import {
-  getEditCodesetFunc,
   getCodesetEditActionFunc,
   EditInfo,
   cellContents,
@@ -35,27 +34,29 @@ import {
   textCellForItem,
 } from "../components/EditCset";
 import { FlexibleContainer } from "../components/FlexibleContainer";
+import {useStateSlice} from "../state/AppState";
+import {useDataCache} from "../state/DataCache";
+import {useDataGetter, getResearcherIdsFromCsets} from "../state/DataGetter";
+import {useSearchParamsState} from "../state/SearchParamsProvider";
+import CloseIcon from "@mui/icons-material/Close";
 
 // TODO: Find concepts w/ good overlap and save a good URL for that
 // TODO: show table w/ hierarchical indent
 // TODO: Color table: I guess would need to see if could pass extra values/props and see if table widget can use that
 //  ...for coloration, since we want certain rows grouped together
-function CsetComparisonPage(props) {
-  const {
-    codeset_ids = [],
-    searchParams,
-    setSearchParams,
-    editCodesetId,
-    csetEditState,
-    // cset_data, // TODO: get rid of this and use dataAccessor -- but more work to be done on that first
-  } = props;
+function CsetComparisonPage() {
+  const {sp, updateSp} = useSearchParamsState();
+  const { codeset_ids = [], editCodesetId, csetEditState, } = sp;
   // const { selected_csets = [], researchers, } = cset_data;
-  const { state: hierarchySettings, dispatch: hsDispatch} = useStateSlice("hierarchySettings");
-  const { state: editCset, dispatch: editCsetDispatch} = useStateSlice("editCset");
+  const [hierarchySettings, hsDispatch] = useStateSlice("hierarchySettings");
+  const dataGetter = useDataGetter();
+  const dataCache = useDataCache();
+  const [editCset, ] = useStateSlice("editCset");
   const {collapsePaths, collapsedDescendantPaths, nested, hideRxNormExtension, hideZeroCounts} = hierarchySettings;
   const windowSize = useWindowSize();
   const boxRef = useRef();
   const countRef = useRef({ n: 0, z: 10 });
+  const [addNewCsetDisplay, setAddNewCsetDisplay] = useState(typeof (editCodesetId) === "undefined");
   const [panelPosition, setPanelPosition] = useState({ x: 0, y: 0 });
   const sizes = getSizes(/*squishTo*/ 1);
   const customStyles = styles(sizes);
@@ -82,47 +83,54 @@ function CsetComparisonPage(props) {
     (boxRef.current ? boxRef.current.offsetHeight : 0),
   ]);
 
+  // todo: Combine this with the useEffect in Csets.js
   useEffect(() => {
     (async () => {
       let promises = [ // these can run immediately
-        dataAccessor.getItemsByKey( // csmi
-            { itemType: 'cset_members_items', keys: codeset_ids, shape: 'obj',
-              // returnFunc: results => flatten([...Object.values(results)])
-            }),
-        dataAccessor.getItemsByKey({ itemType: 'csets', keys: codeset_ids, }),
+        dataCache.fetchAndCacheItemsByKey({ dataGetter, itemType: 'cset_members_items', keys: codeset_ids, shape: 'obj', }),
+        dataCache.fetchAndCacheItemsByKey({ dataGetter, itemType: 'csets', keys: codeset_ids, }),
       ];
       // have to get concept_ids before fetching concepts
-      let concept_ids = await dataAccessor.getItemsByKey(
-          { itemType: 'concept_ids_by_codeset_id', keys: codeset_ids,
-            returnFunc: results => union(flatten(Object.values(results))),
-          });
+      let concept_ids = await dataCache.fetchAndCacheItemsByKey({ dataGetter, itemType: 'concept_ids_by_codeset_id',
+          keys: codeset_ids, returnFunc: results => union(flatten(Object.values(results))), });
 
       // have to get edges, which might contain more concept_ids after filling gaps
-      const edges = await fetchItems('edges', concept_ids, );
+      const edges = await dataGetter.fetchItems('edges', concept_ids, );
       concept_ids = union(concept_ids.map(String), flatten(edges));
-      promises.push(
-          dataAccessor.getItemsByKey(
-              { itemType: 'concepts', keys: concept_ids, shape: 'obj' }),
-      );
+      // - get information for each of these concepts
+      promises.push(dataCache.fetchAndCacheItemsByKey( { dataGetter, itemType: 'concepts', keys: concept_ids, shape: 'obj' }), );
+
       let [
         csmi,
         selected_csets,
         conceptLookup,
       ] = await Promise.all(promises);
 
-      if (editCodesetId) {
-        const researcherIds = getResearcherIdsFromCsets(selected_csets.filter(d => d.codeset_id === editCodesetId));
-        let researchers = dataAccessor.getItemsByKey({ itemType: 'researchers', keys: researcherIds, shape: 'obj' });
-        promises = [ dataAccessor.getItemsByKey({ itemType: 'researchers', keys: researcherIds, shape: 'obj' })];
-      }
-      let [researchers] = await Promise.all(promises);
+      const researcherIds = getResearcherIdsFromCsets(selected_csets.filter(d => d.codeset_id === editCodesetId));
+      let researchers = dataCache.fetchAndCacheItemsByKey({ dataGetter, itemType: 'researchers', keys: researcherIds, shape: 'obj' });
 
+      if (typeof (editCodesetId) !== "undefined") {
+        selected_csets.push({
+          codeset_id: 0,
+          concept_set_name: "New Concept Set",
+          concept_set_version_title: "New Concept Set",
+        });
+      }
 
       if (!isEmpty(editCset)) {
         csmi = {...csmi, ...editCset.definitions};
       }
 
       const concepts = Object.values(conceptLookup);
+
+      const edgeCids = uniq(flatten(edges));
+      const conceptsCids = concepts.map(d => d.concept_id + '');
+
+      console.assert(difference(edgeCids, concept_ids.map(String)).length === 0,
+                     "%o", {edges, edgeCids, concept_ids});
+
+      researchers = await researchers;
+
       setData({csmi, selected_csets, concepts, conceptLookup, edges, researchers, });
     })();
   }, []);
@@ -132,8 +140,7 @@ function CsetComparisonPage(props) {
   }
 
   // TODO: component is rendering twice. why? not necessary? fix?
-  let {allRows, displayedRows, distinctRows, hidden} = getRowData(
-      {...props, concepts, edges, hierarchySettings});
+  let {allRows, displayedRows, distinctRows, hidden} = getRowData({concepts, edges, hierarchySettings});
   let rowData;
   if (nested) {
     rowData = displayedRows;
@@ -142,20 +149,13 @@ function CsetComparisonPage(props) {
     rowData = distinctRows;
   }
 
-  const editAction = getCodesetEditActionFunc({
-    searchParams,
-    setSearchParams,
-    csmi,
-  });
-  const editCodesetFunc = getEditCodesetFunc({ searchParams, setSearchParams });
+  const editAction = getCodesetEditActionFunc({ csmi, sp, updateSp, });
 
   let columns = colConfig({
-    ...props,
     csmi,
     selected_csets,
     concepts,
     editAction,
-    editCodesetFunc,
     sizes,
     windowSize,
     hidden,
@@ -163,6 +163,8 @@ function CsetComparisonPage(props) {
     displayedRows,
     hierarchySettings,
     hsDispatch,
+    setAddNewCsetDisplay,
+    updateSp,
   });
 
   let infoPanels = [
@@ -187,7 +189,7 @@ function CsetComparisonPage(props) {
     /*
     <Button key="download-distinct-tsv"
             variant="outlined"
-            onClick={ () => downloadCSV({...props, displayedRows, selected_csets, csmi}, true) }
+            onClick={ () => downloadCSV({codeset_ids, displayedRows, selected_csets, csmi}, true) }
             sx={{
               cursor: 'pointer',
               marginRight: '4px',
@@ -198,7 +200,7 @@ function CsetComparisonPage(props) {
     */
     <Button key="download-distinct-csv"
             variant="outlined"
-            onClick={ () => downloadCSV({...props, displayedRows, selected_csets, csmi}) }
+            onClick={ () => downloadCSV({codeset_ids, displayedRows, selected_csets, csmi}) }
             sx={{
               cursor: 'pointer',
               marginRight: '4px',
@@ -209,18 +211,26 @@ function CsetComparisonPage(props) {
     <FlexibleContainer key="legend" title="Legend" position={panelPosition} countRef={countRef}>
       <Legend editing={!!editCodesetId}/>
     </FlexibleContainer>,
-    /*
     <Button key="add-cset"
             variant="outlined"
-            onClick={() => editCsetDispatch(editCset, {type:'create_new_cset'})}
+            onClick={() => {
+              setAddNewCsetDisplay(false);
+
+              let { csetEditState = {} } = sp;
+              // clicked codeset is not already being edited, so set it to be edited
+              //  and clear editState
+              const addProps = { editCodesetId: 0, csetEditState: {} };
+              updateSp({ addProps });
+
+            }}
             sx={{
               cursor: 'pointer',
               marginRight: '4px',
+              display: addNewCsetDisplay ? "flex" : "none",
             }}
     >
       add a new concept set
     </Button>,
-     */
   ];
 
   let edited_cset;
@@ -248,7 +258,7 @@ function CsetComparisonPage(props) {
                              title={`${Object.keys(csidState).length} Staged changes`}
                              position={panelPosition} countRef={countRef}
           >
-            <EditInfo {...props} selected_csets={selected_csets} conceptLookup={conceptLookup} />
+            <EditInfo selected_csets={selected_csets} conceptLookup={conceptLookup} />
           </FlexibleContainer>,
 
           <FlexibleContainer key="instructions"
@@ -262,8 +272,8 @@ function CsetComparisonPage(props) {
     }
   }
 
-  let moreProps = {
-    ...props, displayedRows, rowData, columns, selected_csets, customStyles
+  let sendProps = {
+    displayedRows, rowData, columns, selected_csets, customStyles
   };
   return (
     <div>
@@ -286,7 +296,7 @@ function CsetComparisonPage(props) {
           }
         </Typography>
       </Box>
-      <ComparisonDataTable /*squishTo={squishTo}*/ {...moreProps} />
+      <ComparisonDataTable /*squishTo={squishTo}*/ {...sendProps} />
     </div>
   );
 }
@@ -303,8 +313,8 @@ function nodeToTree(node) {
 export function getRowData(props) {
   console.log("getting row data");
 
-  const {concepts, conceptLookup, edges, hierarchySettings, } = props;
-  const {collapsePaths, collapsedDescendantPaths, nested, hideZeroCounts, hideRxNormExtension} = hierarchySettings;
+  const {concepts, edges, hierarchySettings, } = props;
+  const {collapsedDescendantPaths, hideZeroCounts, hideRxNormExtension} = hierarchySettings;
 
   const graph = new Graph({allowSelfLoops: false, multi: false, type: 'directed'});
   // add each concept as a node in the graph, the concept properties become the node attributes
@@ -399,13 +409,10 @@ export function getRowData(props) {
 function ComparisonDataTable(props) {
   const {
     columns,
-    squishTo = 1,
-    cset_data,
     csetEditState = {},
     customStyles,
     rowData,
-    displayedRows,
-    selected_csets
+    /* squishTo = 1, cset_data, displayedRows, selected_csets */
   } = props;
   const boxRef = useRef();
   // console.log(derivedState);
@@ -511,17 +518,17 @@ function colConfig(props) {
   let {
     selected_csets,
     concepts,
-    conceptLookup,
-    csmi,
     sizes,
     editAction,
-    editCodesetFunc,
     windowSize,
     hidden,
     allRows,
     displayedRows,
     hierarchySettings,
     hsDispatch,
+    setAddNewCsetDisplay,
+    updateSp,
+    //conceptLookup, csmi,
   } = props;
   const {collapsePaths, collapsedDescendantPaths, nested, hideRxNormExtension, hideZeroCounts} = hierarchySettings;
 
@@ -559,7 +566,7 @@ function colConfig(props) {
         {
           when: (row) => true,
           style: (row) => ({
-            paddingLeft: 16 + row.level * 16 + "px"
+            padding: '0px 3px 0px ' + (nested ? (16 + row.level * 16) : 16) + "px",
           }),
         },
       ],
@@ -723,10 +730,10 @@ function colConfig(props) {
       codeset_id,
       headerProps: {
         //tooltipContent: "Click to create and edit new draft of this concept set",
-        tooltipContent: `${cset_col.concept_set_version_title}. Click to edit new version.`,
+        tooltipContent: `${cset_col.codeset_id} ${cset_col.concept_set_version_title}. Click to sort.`,
+        
         headerContent: cset_col.concept_set_name,
         headerContentProps: {
-          onClick: editCodesetFunc,
           codeset_id: cset_col.codeset_id,
         },
       },
@@ -750,8 +757,39 @@ function colConfig(props) {
       width: 80,
       // center: true,
     };
+
+    if (codeset_id === 0) {
+      def.headerProps.headerContent = <div style={{display: 'flex', flexDirection: 'column'}}>
+        <Tooltip label={def.headerProps.tooltipContent}>
+          <div>{def.headerProps.headerContent}</div>
+        </Tooltip>
+        <Tooltip label="Remove this column">
+          <IconButton
+              onClick={() => {
+                let i = 0;
+                while (i < selected_csets.length) {
+                  if (selected_csets[i].codeset_id === 0) {
+                    selected_csets.splice(i, 1);
+                    continue;
+                  }
+                  i++;
+                }
+                setAddNewCsetDisplay(true);
+
+                const delProps = ["editCodesetId", "csetEditState"];
+                updateSp({ delProps });
+              }}
+          >
+            <CloseIcon />
+          </IconButton>
+        </Tooltip>
+      </div>;
+      delete def.headerProps.tooltipContent;
+    }
+
     return def;
   });
+
   coldefs = [...coldefs, ...cset_cols];
   // coldefs.forEach(d => {delete d.width; d.flexGrow=1;})
   // coldefs[0].grow = 5;

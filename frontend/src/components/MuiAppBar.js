@@ -25,6 +25,7 @@ import { styled, useTheme } from "@mui/material/styles";
 import ListItemText from "@mui/material/ListItemText";
 import { cloneDeep } from "lodash";
 import VERSION from "../version";
+import {useSearchParamsState} from "../state/SearchParamsProvider";
 
 const drawerWidth = 240;
 
@@ -41,9 +42,9 @@ let _pages = [
 if (window.location.host === 'localhost:3000') {
   _pages.push({ name: "Graph", href: "/graph" });
 }
-export function getPages(props) {
+export function getPages(codeset_ids) {
   let pages = cloneDeep(_pages);
-  if (!props.codeset_ids.length) {
+  if (!codeset_ids.length) {
     let page = pages.find((d) => d.href == "/cset-comparison");
     page.disable = true;
     page.tt =
@@ -100,12 +101,14 @@ const DrawerHeader = styled("div")(({ theme }) => ({
 
 export function PersistentDrawerLeft(props) {
   // may come back to this. going back to top navbar for now
+  const {sp} = useSearchParamsState();
+  const {codeset_ids, } = sp;
   const { children } = props;
   const theme = useTheme();
   const [open, setOpen] = React.useState(false);
   const location = useLocation();
   const { search } = location;
-  const pages = getPages(props);
+  const pages = getPages(codeset_ids);
 
   const handleDrawerOpen = () => {
     setOpen(true);
@@ -230,10 +233,12 @@ export function PersistentDrawerLeft(props) {
 }
 
 /* https://mui.com/material-ui/react-app-bar/ */
-export default function MuiAppBar(props) {
+export default function MuiAppBar() {
+  const {sp} = useSearchParamsState();
+  const {codeset_ids, } = sp;
   const location = useLocation();
   const { search } = location;
-  const pages = getPages(props);
+  const pages = getPages(codeset_ids);
 
   const [anchorElNav, setAnchorElNav] = React.useState(null);
   const [anchorElUser, setAnchorElUser] = React.useState(null);
