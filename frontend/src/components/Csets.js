@@ -179,40 +179,40 @@ function ConceptSetsPage(props) {
   const dataGetter = useDataGetter();
   const dataCache = useDataCache();
   const [data, setData] = useState({});
-  const { all_csets, concept_ids, relatedCodesetIds, selected_csets,
-          allRelatedCsets, relatedCsets, researchers, } = data;
+  const { all_csets=[], concept_ids=[], selected_csets=[],
+          allRelatedCsets={}, relatedCsets=[], researchers={}, } = data;
 
-  // todo: Combine this with the useEffect in CsetComparisonPage.js
   useEffect(() => {
     (async () => {
-      let all_csets = dataGetter.fetchItems('all_csets', ['stub']);
-      let selected_csets = dataCache.fetchAndCacheItemsByKey({ dataGetter, itemType: 'csets', keys: codeset_ids, shape: 'array',
-            returnFunc: results => [...Object.values(results)]} ); // isn't this the same as shape: 'array'?
-      // - since this data was fetched in CsetComparisonPage, this call should be fast because will get from cache.
-      let concept_ids = dataCache.fetchAndCacheItemsByKey({ dataGetter, itemType: 'concept_ids_by_codeset_id',
-            keys: codeset_ids, returnFunc: results => union(flatten(Object.values(results))), });
+      // dataCache.
+      let all_csets = dataGetter.fetchAndCacheItems(dataGetter.apiCalls.all_csets, undefined);
+      let selected_csets = dataGetter.fetchAndCacheItems(dataGetter.apiCalls.csets, codeset_ids);
+            // returnFunc: results => [...Object.values(results)]; // isn't this the same as shape: 'array'?
+      let concept_ids = dataGetter.fetchAndCacheItems(dataGetter.apiCalls.concept_ids_by_codeset_id, codeset_ids);
+            // returnFunc: results => union(flatten(Object.values(results)))
 
-      concept_ids = await concept_ids;
+      concept_ids = union(flatten(Object.values(await concept_ids)));
+      setData(current => ({...current, concept_ids}));
 
-      // - for every concept id we get for selected codesets, get all codesets that contain that concept id
-      let relatedCodesetIds = dataCache.fetchAndCacheItemsByKey({ dataGetter, itemType: 'codeset_ids_by_concept_id',
-            keys: concept_ids, returnFunc: results => union(flatten(Object.values(results))), });
+      let relatedCodesetIds = dataGetter.fetchAndCacheItems(dataGetter.apiCalls.codeset_ids_by_concept_id, concept_ids);
+            // returnFunc: results => union(flatten(Object.values(results)))
 
       [all_csets, relatedCodesetIds] = await Promise.all([all_csets, relatedCodesetIds]);
+      setData(current => ({...current, all_csets, }));
 
-      // - now, for all of the related codesets we found above, now get all of its concept ids
-      let relatedCsetConceptIds = dataCache.fetchAndCacheItemsByKey({ dataGetter, itemType: 'concept_ids_by_codeset_id',
-                                                               keys: relatedCodesetIds, shape: 'obj' });
+      let relatedCsetConceptIds = dataGetter.fetchAndCacheItems(dataGetter.apiCalls.concept_ids_by_codeset_id, relatedCodesetIds);
+           // shape: 'obj'
 
       let allCsetsObj = keyBy(all_csets, 'codeset_id');
 
-      let _allRelatedCsetsArray = relatedCodesetIds.map(csid => ({...allCsetsObj[csid]}));
+      let _allRelatedCsetsArray = Object.keys(relatedCodesetIds).map(csid => ({...allCsetsObj[csid]}));
       let allRelatedCsets = keyBy(_allRelatedCsetsArray, 'codeset_id');
 
-      selected_csets = await selected_csets;
+      selected_csets = Object.values(await selected_csets);
+      setData(current => ({...current, selected_csets}));
 
       const researcherIds = getResearcherIdsFromCsets(selected_csets);
-      let researchers = dataCache.fetchAndCacheItemsByKey({ dataGetter, itemType: 'researchers', keys: researcherIds, shape: 'obj' });
+      let researchers = dataGetter.fetchAndCacheItems(dataGetter.apiCalls.researchers, researcherIds);
 
       selected_csets = selected_csets.map(cset => {
         cset = {...cset};
@@ -220,8 +220,10 @@ function ConceptSetsPage(props) {
         allRelatedCsets[cset.codeset_id] = cset;
         return cset;
       });
+      setData(current => ({...current, allRelatedCsets}));
 
       relatedCsetConceptIds = await relatedCsetConceptIds;
+      setData(current => ({...current, relatedCsetConceptIds}));
 
       for (let csid in relatedCsetConceptIds) {
         let cset = allRelatedCsets[csid];
@@ -242,13 +244,12 @@ function ConceptSetsPage(props) {
 
       let relatedCsets = Object.values(allRelatedCsets).filter(cset => !cset.selected);
       relatedCsets = orderBy( relatedCsets, ["selected", "precision"], ["desc", "desc"] );
+      setData(current => ({...current, relatedCsets}));
 
       researchers = await researchers;
-      setData({ all_csets, concept_ids, relatedCodesetIds, selected_csets,
-                relatedCsets, allRelatedCsets, researchers, });
+      setData(current => ({...current, researchers}));
     })()
   }, [codeset_ids.join('|')]);
-
   if (codeset_ids.length && isEmpty(allRelatedCsets)) {
     return <p>Downloading...</p>;
   }

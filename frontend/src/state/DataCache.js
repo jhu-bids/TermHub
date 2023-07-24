@@ -1,6 +1,6 @@
 import {createContext, useContext,} from "react";
 import {LRUCache} from 'lru-cache'; // https://isaacs.github.io/node-lru-cache
-import {debounce, get, isEmpty, set, uniq} from 'lodash';
+import {debounce, get, isEmpty, set, uniq, sortBy, } from 'lodash';
 import {compress, decompress} from "lz-string";
 
 /*
@@ -31,47 +31,8 @@ class DataCache {
 	constructor() {
 		this.loadCache();
 	}
-
-	async fetchAndCacheItemsByKey({ itemType, keyName, keys = [], shape = 'array', /* or obj */
-												createFunc, returnFunc, dataGetter, }) {
-		if (isEmpty(keys)) {
-			return shape === 'array' ? [] : {};
-		}
-		keys = keys.sort();
-		keys = keys.map(String);
-		if (keys.length !== uniq(keys).length) {
-			throw new Error(`Why are you sending duplicate keys?`);
-		}
-		// use this for concepts and cset_members_items
-		let wholeCache = get(this.#cache, itemType, {});
-		let cachedItems = {};     // this will hold the requested items that are already cached
-		let uncachedKeys = []; // requested items that still need to be fetched
-		let uncachedItems = {};   // this will hold the newly fetched items
-
-		keys.forEach(key => {
-			if (wholeCache[key]) {
-				cachedItems[key] = wholeCache[key];
-			} else {
-				uncachedKeys.push(key);
-			}
-		})
-		if (uncachedKeys.length) {
-			const data = await dataGetter.fetchItems( itemType, uncachedKeys, this);
-			data.forEach((item, i) => uncachedItems[uncachedKeys[i]] = item);
-		}
-		const results = {...cachedItems, ...uncachedItems};
-		const not_found = uncachedKeys.filter(key => !(key in results));
-		if (not_found.length) {
-			// TODO: let user see warning somehow
-			console.warn(`Warning in DataCache.fetchAndCacheItemsByKey: failed to fetch ${itemType}s for ${not_found.join(', ')}`);
-		}
-		if (returnFunc) {
-			return returnFunc(results);
-		}
-		if (shape === 'array') {
-			return Object.values(results);
-		}
-		return results;
+	setDataGetter(dataGetter) {
+		this.dataGetter = dataGetter;
 	}
 
 	getWholeCache() {
@@ -130,9 +91,9 @@ class DataCache {
 		}
 		this.addCacheHistoryEvent(evtMsg);
 	}
-	async cacheCheck(dataGetter) {
+	async cacheCheck() {
 		const url = 'last-refreshed';
-		const dbRefreshTimestampStr = await dataGetter.axiosCall(url, {backend: true, verbose: false, sendAlert: false});
+		const dbRefreshTimestampStr = await this.dataGetter.axiosCall(url, {backend: true, verbose: false, sendAlert: false});
 		const dbRefreshTimestamp = new Date(dbRefreshTimestampStr);
 		if (isNaN(dbRefreshTimestamp.getDate())) {
 			throw new Error(`invalid date from ${url}: ${dbRefreshTimestampStr}`);
@@ -198,7 +159,6 @@ class DataCache {
 	emptyCache() {
 		this.#cache = {};
 	}
-
 }
 
 export function pathToArray(path) {

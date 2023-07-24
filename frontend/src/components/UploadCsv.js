@@ -28,7 +28,7 @@ function UploadCsvPage() {
       const apiname = "upload-csv-new-cset-version-with-concepts";
       let txt = fileReader.result;
       dataGetter.axiosCall(apiname, {title: 'Uploading CSV version and definition expressions',
-              data: { csv: txt }, returnDataOnly: false, })
+              data: { csv: txt }, returnDataOnly: false, verbose: true, })
         .then((res) => {
           if (res.data.status === "success") {
             console.log("Successful upload of cset version.");

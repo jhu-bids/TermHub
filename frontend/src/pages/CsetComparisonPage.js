@@ -85,29 +85,34 @@ function CsetComparisonPage() {
     (boxRef.current ? boxRef.current.offsetHeight : 0),
   ]);
 
-  // todo: Combine this with the useEffect in Csets.js
   useEffect(() => {
     (async () => {
+      /*
+        cset_members_items
+        csets => researchers
+        concept_ids_by_codeset_id ==> concept_ids => edges => concepts
+       */
       let promises = [ // these can run immediately
-        dataCache.fetchAndCacheItemsByKey({ dataGetter, itemType: 'cset_members_items', keys: codeset_ids, shape: 'obj', }),
-        dataCache.fetchAndCacheItemsByKey({ dataGetter, itemType: 'csets', keys: codeset_ids, }),
+        dataGetter.fetchAndCacheItems(dataGetter.apiCalls.cset_members_items, codeset_ids),
+        dataGetter.fetchAndCacheItems(dataGetter.apiCalls.csets, codeset_ids),
       ];
       // have to get concept_ids before fetching concepts
-      let concept_ids = await dataCache.fetchAndCacheItemsByKey({ dataGetter, itemType: 'concept_ids_by_codeset_id',
-          keys: codeset_ids, returnFunc: results => union(flatten(Object.values(results))), });
+      let concept_ids = await dataGetter.fetchAndCacheItems(dataGetter.apiCalls.concept_ids_by_codeset_id, codeset_ids);
+      concept_ids = union(flatten(Object.values(concept_ids)));
 
       // have to get edges, which might contain more concept_ids after filling gaps
-      const edges = await dataGetter.fetchItems('edges', concept_ids, );
-      const edgeCids = uniq(flatten(edges));
-      concept_ids = union(concept_ids.map(String), edgeCids);
-      // - get information for each of these concepts
-      promises.push(dataCache.fetchAndCacheItemsByKey( { dataGetter, itemType: 'concepts', keys: concept_ids, shape: 'obj' }), );
+      const edges = await dataGetter.fetchAndCacheItems(dataGetter.apiCalls.edges, concept_ids, );
+      concept_ids = union(concept_ids.map(String), flatten(edges)).sort();
+      setData(current => ({...current, concept_ids, edges}));
+
+      promises.push(dataGetter.fetchAndCacheItems(dataGetter.apiCalls.concepts, concept_ids));
 
       let [
         csmi,
         selected_csets,
         conceptLookup,
       ] = await Promise.all(promises);
+      setData(current => ({...current, selected_csets, conceptLookup}));
 
       selected_csets = selected_csets.map(cset => {
         cset = {...cset};
@@ -118,7 +123,7 @@ function CsetComparisonPage() {
       });
 
       const researcherIds = getResearcherIdsFromCsets(selected_csets.filter(d => d.codeset_id === editCodesetId));
-      let researchers = dataCache.fetchAndCacheItemsByKey({ dataGetter, itemType: 'researchers', keys: researcherIds, shape: 'obj' });
+      let researchers = dataGetter.fetchAndCacheItems(dataGetter.apiCalls.researchers, researcherIds);
 
       if (typeof (editCodesetId) !== "undefined") {
         selected_csets.push({
@@ -134,18 +139,30 @@ function CsetComparisonPage() {
 
       const concepts = Object.values(conceptLookup);
 
-      const conceptsCids = concepts.map(d => d.concept_id + '');
+      setData(current => ({...current, csmi, concepts}));
 
-      console.assert(difference(edgeCids, concept_ids.map(String)).length === 0,
+      const edgeCids = uniq(flatten(edges)).sort();
+      const conceptsCids = concepts.map(d => d.concept_id + '').sort();
+
+      console.assert(intersection(conceptsCids, concept_ids).length === concept_ids.length,
+                     "%o", {concepts, conceptsCids, concept_ids});
+      console.assert(difference(edgeCids, concept_ids).length === 0,
                      "%o", {edges, edgeCids, concept_ids});
+      /*
+      if (intersection(conceptsCids, concept_ids).length !== concept_ids.length) {
+        // try again
+        let c2 = await dataCache.fetchAndCacheItemsByKey( { itemType: 'concepts', keys: concept_ids, shape: 'obj' });
+        console.log(intersection(concept_ids, Object.values(c2).map(d=>d.concept_id).map(String)));
+        debugger;
+      }
+       */
 
       researchers = await researchers;
-
-      setData({csmi, selected_csets, concepts, conceptLookup, edges, researchers, });
+      setData(current => ({...current, researchers}));
     })();
   }, []);
 
-  if (isEmpty(data)) {
+  if (isEmpty(concepts) || isEmpty(edges)) {
     return <p>Downloading...</p>;
   }
 

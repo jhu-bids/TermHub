@@ -7,6 +7,9 @@ import {Inspector} from "react-inspector";
 
 import {useStateSlice} from "../state/AppState";
 import {FlexibleContainer} from "./FlexibleContainer";
+// see and update https://github.com/jhu-bids/TermHub/issues/397
+
+
 export function AlertMessages({alerts}) {
   // const [alerts, alertsDispatch] = useStateSlice("alerts");
   const countRef = useRef({n: 0, z: 500});
@@ -38,6 +41,7 @@ export const alertsReducer = (state, action) => {
       alerts for ongoing or failed api calls or other messages/warnings to display to users
       {
         id: 3, // or could be string with some meaning if desired
+              // for axiosCall's the id is a compressed serialization of the whole request (hash would be better)
         alertType: 'error', // or 'warning', 'apicall', ...
         text: 'api call failed...' // ?
         errObj: {} // from axios or whatever
