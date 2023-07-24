@@ -342,12 +342,12 @@ def transform(fav: dict) -> pd.DataFrame:
     return df
 
 
-def get_last_vocab_update():
+def get_last_vocab_update(table_name='concept'):
     """
     https://unite.nih.gov/workspace/documentation/developer/api/catalog/services/CatalogService/endpoints/getTransaction
     https://unite.nih.gov/workspace/documentation/developer/api/catalog/objects/com.palantir.foundry.catalog.api.transactions.Transaction
     """
-    dataset_rid = FAVORITE_DATASETS['concept']['rid']
+    dataset_rid = FAVORITE_DATASETS[table_name]['rid']
     ref = 'master'
     transaction = getTransaction(dataset_rid, ref, return_field=None)
     # pdump(transaction)
