@@ -1,12 +1,13 @@
 import {createContext, useContext,} from "react";
 import {createSearchParams} from "react-router-dom";
 import axios from "axios";
-import {flatten, isEmpty, keyBy, uniq} from 'lodash';
+import {flatten, isEmpty, set, uniq} from 'lodash';
 
 import {useAlertsDispatch} from "./AppState";
 import {formatEdges} from "../components/ConceptGraph";
 import {API_ROOT} from "../env";
 import {useDataCache} from "./DataCache";
+import {compress} from "lz-string";
 
 export const backend_url = (path) => `${API_ROOT}/${path}`;
 
@@ -33,7 +34,7 @@ class DataGetter {
 		this.dataCache = dataCache;
 		this.alertsDispatch = alertsDispatch;
 	}
-	async axiosCall(path, { backend = false, data, returnDataOnly = true, useGetForSmallData = false,
+	async axiosCall(path, { backend = true, data, returnDataOnly = true, useGetForSmallData = true,
 		apiGetParamName, verbose = false, sendAlert = true, title,
 	} = {}) {
 		let url = backend ? backend_url(path) : path;
@@ -111,7 +112,6 @@ class DataGetter {
 			key: undefined,
 			alertTitle: 'Get all concept sets (partial) to populate select list',
 			apiResultShape: 'array of keyed obj',
-			// cacheShape: 'array of obj',
 			/* data = dataCache.cacheGet([itemType]);
           if (isEmpty(data)) {
             url = backend_url('get-all-csets');
@@ -130,7 +130,6 @@ class DataGetter {
 			key: 'codeset_id',
 			alertTitle: 'Get concept sets (full) for selected codeset_ids',
 			apiResultShape: 'array of keyed obj',
-			// cacheShape: 'array of obj',
 			/* url = 'get-csets?codeset_ids=' + paramList.join('|');
 				data = await this.oneToOneFetchAndCache({api: url, itemType, paramList, dataCache, alertsDispatch, keyName});
 				return data; */
@@ -225,7 +224,6 @@ class DataGetter {
 			key: 'concept_id',
 			alertTitle: 'Get concepts for selected concept_ids',
 			apiResultShape: 'array of keyed obj',
-			// cacheShape: 'array of obj',
 		},
 		codeset_ids_by_concept_id: {
 			expectedParams: [],	// concept_ids
@@ -282,10 +280,10 @@ class DataGetter {
 		}
 		if(apiDef.singleKeyFunc) {
 			// handle single key per result queries
-			let data = dataCache.cacheGet([apiDef.cacheSlice]);
+			const cacheKey = apiDef.singleKeyFunc(params);
+			let data = dataCache.cacheGet([apiDef.cacheSlice, cacheKey]);
 			if (isEmpty(data)) {
 				data = await this.axiosCall(apiDef.api, {...apiDef, data: params, backend: true, });
-				const cacheKey = apiDef.singleKeyFunc(params);
 				dataCache.cachePut([apiDef.cacheSlice, cacheKey], data);
 			}
 			return data;

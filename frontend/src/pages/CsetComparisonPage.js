@@ -51,7 +51,7 @@ function CsetComparisonPage() {
   // const { selected_csets = [], researchers, } = cset_data;
   const dataGetter = useDataGetter();
   const dataCache = useDataCache();
-  const hierarchySettings = useHierarchySettings();
+  let hierarchySettings = useHierarchySettings();
   const hsDispatch = useHierarchySettingsDispatch();
   const editCset = useEditCset();
   const {collapsePaths, collapsedDescendantPaths, nested, hideRxNormExtension, hideZeroCounts} = hierarchySettings;
@@ -167,6 +167,9 @@ function CsetComparisonPage() {
   }
 
   // TODO: component is rendering twice. why? not necessary? fix?
+  if (!edges) {
+    hierarchySettings = {...hierarchySettings, nested: false};
+  }
   let {allRows, displayedRows, distinctRows, hidden} = getRowData({concepts, edges, hierarchySettings});
   let rowData;
   if (nested) {
@@ -349,7 +352,42 @@ export function getRowData(props) {
   console.log("getting row data");
 
   const {concepts, edges, hierarchySettings, } = props;
+  const {collapsedDescendantPaths, hideZeroCounts, hideRxNormExtension, nested } = hierarchySettings;
+
+  let allRows, displayedRows, rows;
+  if (edges) {
+    [allRows, displayedRows] = nestedConcepts(concepts, edges, hierarchySettings);
+  } else {
+    allRows = concepts;
+    displayedRows = concepts;
+  }
+
+  // console.log(`allRows: ${allRows.length}, displayedRows: ${displayedRows}`);
+  const hidden = {
+    rxNormExtension: allRows.filter(row => row.vocabulary_id === 'RxNorm Extension').length,
+  }
+  // const collapsedRows= allRows.filter(row => row.collapsed);
+  // let rows = allRows.filter(row => !row.collapsed);
+  if (nested) {
+    hidden.collapsed = nested ? collapsedDescendantPaths.length : 0;
+    rows = allRows.filter(row => !collapsedDescendantPaths[row.pathToRoot]);
+  }
+
+  // const rxNormExtensionRows = rows.filter(r => r.vocabulary_id == 'RxNorm Extension');
+  if (hideRxNormExtension) {
+    displayedRows = displayedRows.filter(r => r.vocabulary_id !== 'RxNorm Extension');
+  }
+  hidden.zeroCount = displayedRows.filter(row => row.total_cnt === 0).length;
+  if (hideZeroCounts) {
+    displayedRows = displayedRows.filter(r => r.total_cnt > 0);
+  }
+  const distinctRows = uniqBy(displayedRows, row => row.concept_id);
+  return {allRows, displayedRows, distinctRows, hidden};
+}
+function nestedConcepts(concepts, edges, hierarchySettings) {
   const {collapsedDescendantPaths, hideZeroCounts, hideRxNormExtension} = hierarchySettings;
+  let allRows = [];
+  let displayedRows = [];
 
   const graph = new Graph({allowSelfLoops: false, multi: false, type: 'directed'});
   // add each concept as a node in the graph, the concept properties become the node attributes
@@ -369,8 +407,6 @@ export function getRowData(props) {
   });
   let nodes = sortBy(nodeDepths, n => -n.descendants).map(n => n.node);
 
-  let allRows = [];
-  let displayedRows = [];
   let nodeSeen = {};
   nodes.map((n,i) => {
     let currentPath = [];
@@ -421,25 +457,7 @@ export function getRowData(props) {
       displayedRows.push(row);
     });
   });
-  // console.log(`allRows: ${allRows.length}, displayedRows: ${displayedRows}`);
-  const hidden = {
-    collapsed: collapsedDescendantPaths.length,
-    rxNormExtension: allRows.filter(row => row.vocabulary_id === 'RxNorm Extension').length,
-  }
-  // const collapsedRows= allRows.filter(row => row.collapsed);
-  // let rows = allRows.filter(row => !row.collapsed);
-  let rows = allRows.filter(row => !collapsedDescendantPaths[row.pathToRoot]);
-
-  // const rxNormExtensionRows = rows.filter(r => r.vocabulary_id == 'RxNorm Extension');
-  if (hideRxNormExtension) {
-    displayedRows = displayedRows.filter(r => r.vocabulary_id !== 'RxNorm Extension');
-  }
-  hidden.zeroCount = displayedRows.filter(row => row.total_cnt === 0).length;
-  if (hideZeroCounts) {
-    displayedRows = displayedRows.filter(r => r.total_cnt > 0);
-  }
-  const distinctRows = uniqBy(displayedRows, row => row.concept_id);
-  return {allRows, displayedRows, distinctRows, hidden};
+  return [allRows, displayedRows];
 }
 function ComparisonDataTable(props) {
   const {
