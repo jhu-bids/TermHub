@@ -10,8 +10,8 @@ import {FlexibleContainer} from "./FlexibleContainer";
 
 // see and update https://github.com/jhu-bids/TermHub/issues/397
 
-export function AlertMessages() {
-  const [alerts, alertsDispatch] = useStateSlice("alerts");
+export function AlertMessages(alerts) {
+  // const [alerts, alertsDispatch] = useStateSlice("alerts");
   const countRef = useRef({n: 0, z: 500});
 
   let alertsArray = Object.values(alerts);
@@ -49,9 +49,10 @@ export const alertsReducer = (state, action) => {
    */
   if (!action || !action.type) return state;
   let {type, id, } = action;
-  if (typeof (id) === 'undefined') {
-    throw new Error("expecting an id");
+  if (!id) {
+    throw new Error(`alertAction requires an id`, alert);
   }
+
   let alert = state[id];
   if (type === 'create') {
     if (alert) {

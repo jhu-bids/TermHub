@@ -1,9 +1,10 @@
 import {createContext, useContext,} from "react";
 import {createSearchParams} from "react-router-dom";
 import axios from "axios";
-import {flatten, isEmpty, keyBy, uniq, set, sortBy, } from 'lodash';
-import {useAppState, useStateSlice} from "./AppState";
-// import {formatEdges} from "../components/ConceptGraph";
+import {flatten, isEmpty, set, uniq} from 'lodash';
+
+import {useAlertsDispatch} from "./AppState";
+import {formatEdges} from "../components/ConceptGraph";
 import {API_ROOT} from "../env";
 import {useDataCache} from "./DataCache";
 import {compress} from "lz-string";
@@ -13,7 +14,7 @@ export const backend_url = (path) => `${API_ROOT}/${path}`;
 const DataGetterContext = createContext(null);
 
 export function DataGetterProvider({children}) {
-	const [alerts, alertsDispatch] = useStateSlice('alerts');
+	const alertsDispatch = useAlertsDispatch();
 
 	// dataGetter needs dataCache to cache data, DataCacheProvider is invoked
 	//	first so dataGetter can use it
