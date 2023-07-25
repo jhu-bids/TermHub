@@ -85,6 +85,7 @@ function CsetComparisonPage() {
     (boxRef.current ? boxRef.current.offsetHeight : 0),
   ]);
 
+  // todo: Combine this with the useEffect in Csets.js
   useEffect(() => {
     (async () => {
       /*

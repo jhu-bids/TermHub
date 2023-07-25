@@ -181,6 +181,7 @@ function ConceptSetsPage(props) {
   const { all_csets=[], concept_ids=[], selected_csets=[],
           allRelatedCsets={}, relatedCsets=[], researchers={}, } = data;
 
+  // todo: Combine this with the useEffect in CsetComparisonPage.js
   useEffect(() => {
     (async () => {
       // dataCache.

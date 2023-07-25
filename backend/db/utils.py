@@ -157,7 +157,6 @@ def is_table_up_to_date(table_name: str, skip_if_updated_within_hours: int = Non
     last_updated_key = f'last_updated_{table_name}'
     return check_if_updated(last_updated_key, skip_if_updated_within_hours)
 
-
 # todo: Can update update_db_status_var() so that it can accept optional param 'con' to improve performance.
 def update_db_status_var(key: str, val: str, local=False):
     """Update the `manage` table with information for a given variable, e.g. when a table was last updated
@@ -167,6 +166,16 @@ def update_db_status_var(key: str, val: str, local=False):
         sql_str = f"INSERT INTO public.manage (key, value) VALUES (:key, :val);"
         run_sql(con, sql_str, {'key': key, 'val': val})
 
+def check_db_status_var(key: str,  local=False):
+    """Check the value of a given variable the `manage`table """
+    with get_db_connection(schema='', local=local) as con2:
+        results: List = sql_query_single_col(con2, f"SELECT value FROM public.manage WHERE key = '{key}';")
+        return results[0] if results else None
+
+def delete_db_status_var(key: str, local=False):
+    """Delete information from the `manage` table """
+    with get_db_connection(schema='', local=local) as con2:
+        run_sql(con2, f"DELETE FROM public.manage WHERE key = '{key}';")
 
 def insert_fetch_status(rows: List[Dict], local=False):
     """Update fetch status of record"""
@@ -177,7 +186,6 @@ def select_failed_fetches(use_local_db=False) -> List[Dict]:
     """Collected data about unresolved fetches."""
     with get_db_connection(schema='', local=use_local_db) as con:
         return [dict(x) for x in sql_query(con, f"SELECT * FROM fetch_audit WHERE success_datetime IS NULL;")]
-
 
 def fetch_status_set_success(rows: List[Dict], local=False):
     """Update fetch status of record
@@ -190,7 +198,6 @@ def fetch_status_set_success(rows: List[Dict], local=False):
     with get_db_connection(schema='', local=local) as con:
         for row in rows:
             run_sql(con, sql_str, {k: v for k, v in row.items() if k in ['table', 'primary_key', 'status_initially']})
-
 
 def database_exists(con: Connection, db_name: str) -> bool:
     """Check if database exists"""
