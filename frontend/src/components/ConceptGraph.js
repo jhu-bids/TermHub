@@ -1,7 +1,6 @@
 import React, {useState, useEffect} from "react";
 // import _ from "../supergroup/supergroup";
 import * as d3Base from "d3";
-import {useDataCache} from "../state/DataCache";
 import * as d3dag from "d3-dag";
 import Graph from "graphology";
 import {uniq, flatten, union, sortBy, max, groupBy, sum, } from "lodash";
@@ -38,7 +37,6 @@ export function formatEdges(edges=[]) {
 export function ConceptGraph() {
   const {sp} = useSearchParamsState();
   const {codeset_ids, use_example=false} = sp;
-  const dataCache = useDataCache();
   const dataGetter = useDataGetter();
   const [data, setData] =
       useState({ concept_ids: [], edges: [], concepts: [], });
@@ -51,13 +49,13 @@ export function ConceptGraph() {
 
   useEffect(() => {
     (async () => {
-      const concept_ids = await dataCache.fetchAndCacheItemsByKey({ itemType: 'concept-ids-by-codeset-id',
+      const concept_ids = await dataGetter.fetchAndCacheItems({ itemType: 'concept-ids-by-codeset-id',
           keys: codeset_ids, shape: 'obj', returnFunc: results => union(...Object.values(results)), });
       const [
           concepts,
           edges,
         ] = await Promise.all([
-        dataCache.fetchAndCacheItemsByKey({ itemType: 'concepts', keys: concept_ids, shape: 'array' }),
+        dataGetter.fetchAndCacheItems({ itemType: 'concepts', keys: concept_ids, shape: 'array' }),
         ( use_example === 1 && simpleGraphExample ||
           use_example === 2 && mediumGraphExample ||
           dataGetter.fetchAndCacheItems('edges', concept_ids)
