@@ -194,18 +194,19 @@ function ConceptSetsPage(props) {
       concept_ids = union(flatten(Object.values(await concept_ids)));
       setData(current => ({...current, concept_ids}));
 
-      let relatedCodesetIds = dataGetter.fetchAndCacheItems(dataGetter.apiCalls.codeset_ids_by_concept_id, concept_ids);
-            // returnFunc: results => union(flatten(Object.values(results)))
+      let relatedCodesetIdsByConceptId = dataGetter.fetchAndCacheItems(dataGetter.apiCalls.codeset_ids_by_concept_id, concept_ids);
 
-      [all_csets, relatedCodesetIds] = await Promise.all([all_csets, relatedCodesetIds]);
+      all_csets = await all_csets;
       setData(current => ({...current, all_csets, }));
+
+      const relatedCodesetIds = union(flatten(Object.values(await relatedCodesetIdsByConceptId)));
 
       let relatedCsetConceptIds = dataGetter.fetchAndCacheItems(dataGetter.apiCalls.concept_ids_by_codeset_id, relatedCodesetIds);
            // shape: 'obj'
 
       let allCsetsObj = keyBy(all_csets, 'codeset_id');
 
-      let _allRelatedCsetsArray = Object.keys(relatedCodesetIds).map(csid => ({...allCsetsObj[csid]}));
+      let _allRelatedCsetsArray = relatedCodesetIds.map(csid => ({...allCsetsObj[csid]}));
       let allRelatedCsets = keyBy(_allRelatedCsetsArray, 'codeset_id');
 
       selected_csets = Object.values(await selected_csets);

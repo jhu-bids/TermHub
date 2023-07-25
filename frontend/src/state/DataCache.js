@@ -31,9 +31,6 @@ class DataCache {
 	constructor() {
 		this.loadCache();
 	}
-	setDataGetter(dataGetter) {
-		this.dataGetter = dataGetter;
-	}
 
 	getWholeCache() {
 		return this.#cache;
@@ -91,9 +88,9 @@ class DataCache {
 		}
 		this.addCacheHistoryEvent(evtMsg);
 	}
-	async cacheCheck() {
+	async cacheCheck(dataGetter) {
 		const url = 'last-refreshed';
-		const dbRefreshTimestampStr = await this.dataGetter.axiosCall(url, {backend: true, verbose: false, sendAlert: false});
+		const dbRefreshTimestampStr = await dataGetter.axiosCall(url, {backend: true, verbose: false, sendAlert: false});
 		const dbRefreshTimestamp = new Date(dbRefreshTimestampStr);
 		if (isNaN(dbRefreshTimestamp.getDate())) {
 			throw new Error(`invalid date from ${url}: ${dbRefreshTimestampStr}`);
