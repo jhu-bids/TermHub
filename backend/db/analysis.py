@@ -165,43 +165,37 @@ def counts_over_time(
 
     # Pivot
     values = 'count' if method == 'counts_table' else 'delta'
-    data_df = current_counts_df.pivot(index='table', columns='timestamp', values=values).fillna(0).astype(int)
+    df = current_counts_df.pivot(index='table', columns='timestamp', values=values).fillna(0).astype(int)
 
-    # Add note
-    with get_db_connection(schema='', local=local) as con:
-        runs = [dict(x) for x in sql_query(
-            con, f"SELECT timestamp, note FROM counts_runs WHERE schema = '{schema}';", return_with_keys=True)]
-    timestamps = [x['timestamp'] for x in runs]
-    ts_dict = {}
-    for ts in timestamps:
-        for run in runs:
-            if run['timestamp'] == ts:
-                ts_dict[ts] = run['note']
-    runs_df = pd.DataFrame([ts_dict])
-    runs_df = runs_df.reindex(sorted(runs_df.columns), axis=1)
-    runs_df.index = ['COMMENT']
-    df = pd.concat([runs_df, data_df])
+    dateslist = [column[:10] for column in df.columns]
+    dates = list(set(dateslist))
 
-    # Simplify column headers: timestamps -> 'DATE (N)'
-    new_cols = []
-    date_count = {}
-    for ts in df.columns:
-        # dt = datetime.strptime(ts, "%Y-%m-%d %H:%M:%S.%f")
-        # date = dt.date()
-        date = ts[:10]
-        count = date_count.get(date, 0) + 1
-        date_count[date] = count
-        new_cols.append(date + " " + str(count) if count > 1 else date)
-    df.columns = new_cols
-    df = df.iloc[:, ::-1]
+    finaldf = pd.DataFrame()
+    for date in dates:
+        # Create temporary table with the columns of only one date
+        datedf = df[df.columns[df.columns.str.startswith(date)]]
+        datedf = datedf.sort_index(axis=1)
+        # todo: List number of times the refresh ran that day somewhere?
+        # count = dateslist.count(date)
+        # datedf.loc[f'Number of refreshes ran'] = count
+        if values == 'counts':
+            # Keep only the most recent column from each day
+            finaldf[date] = datedf.iloc[:, -1:]
+        else:  # deltas
+            # Keep the sum of columns from each day
+            row_sums = datedf.sum(axis=1)
+            finaldf[date] = row_sums
+
+    finaldf.columns = [col[:10] for col in finaldf.columns]
+    finaldf = finaldf.sort_index(axis=1)
+    finaldf = finaldf.iloc[:, ::-1]
 
     # Print / save
     if method == 'save_delta_viz':
         raise NotImplementedError('Option save_delta_viz for counts_over_time() not yet implemented.')
     elif _print:
         print(df.to_markdown(index=False))
-    return df
-
+    return finaldf
 
 def counts_docs(use_cached_counts=True):
     """Runs --counts-over-time and --deltas-over-time and puts in documentation: docs/backend/db/analysis.md."""
@@ -272,7 +266,7 @@ def cli():
     elif d['deltas_over_time']:
         counts_over_time(method='delta_table', local=local)
     elif d['counts_docs']:
-        docs()
+        counts_docs()
     else:
         print('Error: Choose 1 and only 1 option. Can see available options by running with --help', file=sys.stderr)
 
