@@ -612,7 +612,7 @@ function colConfig(props) {
       // minWidth: 100,
       // remainingPct: .60,
       width: Math.min((400 + selected_csets.length * 80) * 1.5,
-          window.innerWidth - 400 - selected_csets.length * 80),
+          window.innerWidth - 400 - selected_csets.length * 80) - 36,
       // grow: 4,
       wrap: true,
       compact: true,

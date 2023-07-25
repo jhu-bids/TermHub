@@ -1,7 +1,7 @@
 import {createContext, useContext,} from "react";
 import {createSearchParams} from "react-router-dom";
 import axios from "axios";
-import {flatten, isEmpty, set, uniq} from 'lodash';
+import {flatten, isEmpty, setWith, set, uniq} from 'lodash';
 
 import {useAlertsDispatch} from "./AppState";
 import {formatEdges} from "../components/ConceptGraph";
@@ -142,12 +142,7 @@ class DataGetter {
 			makeQueryString: codeset_ids => 'codeset_ids=' + codeset_ids.join('|'),
 			protocols: ['get'],
 			cacheSlice: 'cset_members_items',
-			key: 'codeset_id.concept_id', //	lodash set will work with key path
-			cachePutFunc: csmi => {
-				// assuming if we ask for it, it's not cached already; still have to figure
-				//	out how to check the cache for these
-				this.dataCache.cachePut(['cset_members_items', csmi.codeset_id, csmi.concept_id], csmi);
-			},
+			key: 'codeset_id.concept_id', // multipart key, requires splitting
 			alertTitle: 'Get definition and expansion concepts (concept_set_members_items) for selected codeset_ids',
 			apiResultShape: 'array of keyed obj',	 //	[ {csmi}, {csmi}, ... ]
 			cacheShape: 'obj of obj of obj', // cache.cset_members_items[codeset_id][concept_id] = csmi obj
@@ -293,7 +288,7 @@ class DataGetter {
 		}
 		if (isEmpty(params)) {
 			// what to do if params empty? like no codeset_ids? return undefined for now
-			return;
+			return apiDef.expectedParams;
 		}
 
 		params = params.sort();
@@ -321,19 +316,14 @@ class DataGetter {
 			returnData = await this.axiosCall(apiDef.api, {...apiDef, data: uncachedKeys});
 			if (apiDef.apiResultShape === 'array of keyed obj') {
 				returnData.forEach(obj => {
-					set(uncachedItems, obj[apiDef.key], obj);
-					if (apiDef.cachePutFunc) {
-						apiDef.cachePutFunc(obj);
-					} else {
-						dataCache.cachePut([apiDef.cacheSlice, obj[apiDef.key]], obj);
-					}
+					let keys = apiDef.key.split('.').map(k => obj[k]);
+					setWith(uncachedItems, keys, obj, Object);
+					// setWith(..., Object) in order to create objects instead of arrays even with numeric keys
+					dataCache.cachePut([apiDef.cacheSlice, ...keys], obj);
 				});
 			} else if (apiDef.apiResultShape === 'obj of array' || apiDef.apiResultShape === 'obj of obj') {
 				Object.entries(returnData).forEach(([key, obj]) => {
-					set(uncachedItems, key, obj);
-					if (apiDef.cachePutFunc) {
-						throw new Error('not set up for cachePutFunc except for array results');
-					}
+					setWith(uncachedItems, key, obj, Object);
 					dataCache.cachePut([apiDef.cacheSlice, key], obj);
 				});
 			} else {

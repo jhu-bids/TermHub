@@ -271,20 +271,20 @@ def get_concept_ids_by_codeset_id(codeset_ids: Union[List[str], None] = Query(..
 
 
 @router.post("/codeset-ids-by-concept-id")
-def get_codeset_ids_by_concept_id_post(id: Union[List[int], None] = None) -> List:
+def get_codeset_ids_by_concept_id_post(concept_ids: Union[List[int], None] = None) -> List:
     with get_db_connection() as con:
         q = f"""
               SELECT *
               FROM codeset_ids_by_concept_id
-              WHERE concept_id {sql_in(id)};"""
+              WHERE concept_id {sql_in(concept_ids)};"""
         rows: List = sql_query(con, q)
         return {r['concept_id']: r['codeset_ids']  for r in rows}
 
 
 @router.get("/codeset-ids-by-concept-id")
 @return_err_with_trace
-def get_codeset_ids_by_concept_id(id: Union[List[str], None] = Query(...)) -> List:
-    return get_codeset_ids_by_concept_id_post(id)
+def get_codeset_ids_by_concept_id(concept_ids: Union[List[str], None] = Query(...)) -> List:
+    return get_codeset_ids_by_concept_id_post(concept_ids)
 
 
 @router.get("/get-all-csets")

@@ -191,6 +191,7 @@ function ConceptSetsPage(props) {
       let concept_ids = dataGetter.fetchAndCacheItems(dataGetter.apiCalls.concept_ids_by_codeset_id, codeset_ids);
             // returnFunc: results => union(flatten(Object.values(results)))
 
+      concept_ids = await concept_ids;
       concept_ids = union(flatten(Object.values(await concept_ids)));
       setData(current => ({...current, concept_ids}));
 
