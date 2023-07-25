@@ -1,6 +1,6 @@
 import {createContext, useContext,} from "react";
 import {LRUCache} from 'lru-cache'; // https://isaacs.github.io/node-lru-cache
-import {debounce, get, isEmpty, set, uniq, sortBy, } from 'lodash';
+import {debounce, get, isEmpty, setWith, } from 'lodash';
 import {compress, decompress} from "lz-string";
 
 /*
@@ -126,11 +126,13 @@ class DataCache {
 
 	cachePut(path, value, save=true) {
 		let [parentPath, parentObj,] = this.popLastPathKey(path);
+		/*
 		if (isEmpty(parentObj)) {
 			// have to do this or numeric keys will force new obj to be an array
 			set(this.#cache, parentPath, {})
 		}
-		set(this.#cache, path, value);
+		 */
+		setWith(this.#cache, path, value, Object);
 		if (save) {
 			this.saveCache();
 		}

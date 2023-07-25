@@ -112,6 +112,7 @@ function CsetComparisonPage() {
         selected_csets,
         conceptLookup,
       ] = await Promise.all(promises);
+      selected_csets = Object.values(selected_csets);
       setData(current => ({...current, selected_csets, conceptLookup}));
 
       selected_csets = selected_csets.map(cset => {

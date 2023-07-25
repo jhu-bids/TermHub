@@ -320,13 +320,28 @@ class DataGetter {
 		if (uncachedKeys.length) {
 			returnData = await this.axiosCall(apiDef.api, {...apiDef, data: uncachedKeys});
 			if (apiDef.apiResultShape === 'array of keyed obj') {
-				returnData.forEach(obj => set(uncachedItems, obj[apiDef.key], obj));
+				returnData.forEach(obj => {
+					set(uncachedItems, obj[apiDef.key], obj);
+					if (apiDef.cachePutFunc) {
+						apiDef.cachePutFunc(obj);
+					} else {
+						dataCache.cachePut([apiDef.cacheSlice, obj[apiDef.key]], obj);
+					}
+				});
 			} else if (apiDef.apiResultShape === 'obj of array' || apiDef.apiResultShape === 'obj of obj') {
-				Object.entries(returnData).forEach(([key, obj]) => set(uncachedItems, key, obj));
+				Object.entries(returnData).forEach(([key, obj]) => {
+					set(uncachedItems, key, obj);
+					if (apiDef.cachePutFunc) {
+						throw new Error('not set up for cachePutFunc except for array results');
+					}
+					dataCache.cachePut([apiDef.cacheSlice, key], obj);
+				});
 			} else {
 				debugger;
 			}
 		}
+		const results = {...cachedItems, ...uncachedItems};
+		return results;
 			// if (Array.isArray(data)) {}	get this code from oneToOneFetchAndCache
 			/*
 			if (keyName) {
@@ -362,8 +377,6 @@ class DataGetter {
 			});
 		}
 		*/
-		const results = {...cachedItems, ...uncachedItems};
-		return returnData;
 
 		/*
 		const not_found = uncachedKeys.filter(key => !(key in results));
