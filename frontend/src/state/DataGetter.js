@@ -51,6 +51,7 @@ class DataGetter {
 			eventType: 'axiosCall',
 			title: title || path,
 		};
+		alertAction.id = alertAction.title + ':' + (new Date()).toISOString();
 		try {
 			if (typeof (data) === 'undefined') {
 				request.method = 'get';
@@ -66,7 +67,7 @@ class DataGetter {
 			}
 			verbose && console.log("axios request", request);
 
-			alertAction.id = compress(JSON.stringify(request));
+			// alertAction.id = compress(JSON.stringify(request));
 
 			let response = axios(request);
 

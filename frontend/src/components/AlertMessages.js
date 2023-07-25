@@ -10,7 +10,7 @@ import {FlexibleContainer} from "./FlexibleContainer";
 
 // see and update https://github.com/jhu-bids/TermHub/issues/397
 
-export function AlertMessages(alerts) {
+export function AlertMessages({alerts}) {
   // const [alerts, alertsDispatch] = useStateSlice("alerts");
   const countRef = useRef({n: 0, z: 500});
 

@@ -250,6 +250,7 @@ function ConceptSetsPage(props) {
       setData(current => ({...current, researchers}));
     })()
   }, [codeset_ids.join('|')]);
+
   if (codeset_ids.length && isEmpty(allRelatedCsets)) {
     return <p>Downloading...</p>;
   }
