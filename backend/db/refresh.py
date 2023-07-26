@@ -51,32 +51,35 @@ def refresh_db(
     update_db_status_var('refresh_status', 'active', local)
     update_db_status_var('last_refresh_request', current_datetime(), local)
 
-    try:
-        with get_db_connection(local=local) as con:
-            last_refresh = last_refresh_timestamp(con)
-            if since and dp.parse(since) > dp.parse(last_refresh) and not force_non_contiguity:
-                raise ValueError(SINCE_ERR)
-            since = since if since else last_refresh
+    new_data = False
+    with get_db_connection(local=local) as con:
+        last_refresh = last_refresh_timestamp(con)
+        if since and dp.parse(since) > dp.parse(last_refresh) and not force_non_contiguity:
+            raise ValueError(SINCE_ERR)
+        since = since if since else last_refresh
 
-            # Refresh DB
+        # Refresh db
+        try:
             # todo: when ready, will use all_new_objects_enclave_to_db() instead of csets_and_members_enclave_to_db()
             new_data: bool = csets_and_members_enclave_to_db(con, schema, since)
+        except Exception as err:
+            pass
+            update_db_status_var('last_refresh_result', 'error', local)
+            update_db_status_var('refresh_status', 'inactive', local)
+            print(f"Database refresh incomplete; exception occurred. Tallying counts and exiting.", file=sys.stderr)
+            counts_update('DB refresh error.', schema, local, filter_temp_refresh_tables=True)
+            counts_docs()
+            raise err
 
-        update_db_status_var('refresh_status', 'inactive', local)
-        update_db_status_var('last_refresh_success', current_datetime(), local)
-        update_db_status_var('last_refresh_result', 'success', local)
-        if new_data:
-            counts_update('DB refresh.', schema, local)
-            print(f'INFO: Database refresh complete in {(datetime.now() - t0).seconds} seconds.')
-        else:
-            print('INFO: Database is up to date, no refresh necessary')
-
-    except Exception as err:
-        update_db_status_var('last_refresh_result', 'error', local)
-        update_db_status_var('refresh_status', 'inactive', local)
-        counts_update('DB refresh error.', schema, local, filter_temp_refresh_tables=True)
-        print(f"Database refresh incomplete. An exception occurred.", file=sys.stderr)
-        raise err
+    update_db_status_var('refresh_status', 'inactive', local)
+    update_db_status_var('last_refresh_success', current_datetime(), local)
+    update_db_status_var('last_refresh_result', 'success', local)
+    if new_data:
+        counts_update('DB refresh.', schema, local)
+        counts_docs()
+        print(f'INFO: Database refresh complete in {(datetime.now() - t0).seconds} seconds.')
+    else:
+        print('INFO: Database is up to date. No refresh necessary')
 
     if check_db_status_var('new_request_while_refreshing'):
         print('INFO: New refresh request detected while refresh was running. Starting a new refresh.')

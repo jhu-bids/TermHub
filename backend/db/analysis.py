@@ -47,7 +47,9 @@ def _current_counts(
     schema: str = SCHEMA, local=False, from_cache=False, return_as=['dict', 'df'][0], dt=datetime.now(),
     filter_temp_refresh_tables=False
 ) -> Union[pd.DataFrame, Dict]:
-    """Gets current database counts"""
+    """Gets current database counts
+    :param filter_temp_refresh_tables: Filters out any temporary tables that are created during the refresh, e.g. ones
+    that end w/ the suffix '_old'."""
     if from_cache:
         with get_db_connection(schema='', local=local) as con:
             counts: List[Dict] = [dict(x) for x in sql_query(con, f'SELECT * from counts;', return_with_keys=True)]
@@ -135,7 +137,8 @@ def counts_update(note: str, schema: str = SCHEMA, local=False, filter_temp_refr
     """Update 'counts' table with current row counts.
     :param note: For context around what was going on around when / why the counts are updated, e.g. after a backup or
     a data fetch from the enclave, or after editing a batch of concept sets.
-    """
+    :param filter_temp_refresh_tables: Filters out any temporary tables that are created during the refresh, e.g. ones
+    that end w/ the suffix '_old'."""
     dt = datetime.now()
     with get_db_connection(schema='', local=local) as con:
         # Save run metadata, e.g. a note about it

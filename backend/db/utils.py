@@ -460,7 +460,9 @@ def load_csv(
 
 
 def list_tables(con: Connection, schema: str = SCHEMA, filter_temp_refresh_tables=False) -> List[str]:
-    """List tables"""
+    """List tables
+    :param filter_temp_refresh_tables: Filters out any temporary tables that are created during the refresh, e.g. ones
+    that end w/ the suffix '_old'."""
     query = f"""
         SELECT relname
         FROM pg_stat_user_tables
