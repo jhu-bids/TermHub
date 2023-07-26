@@ -3,14 +3,16 @@ import { sum } from "lodash";
 import { useLayoutEffect, useRef, useState } from "react";
 import { Tooltip } from "./Tooltip";
 
-function ColumnHeader(props) {
+export function ColumnHeader(props) {
   let {
     tooltipContent,
     headerContent,
     headerContentProps,
     allottedWidth,
     coldef,
+    showInfoIcon,
   } = props;
+  showInfoIcon = showInfoIcon ?? true;
   const targetRef = useRef();
   const [headerDims, setHeaderDims] = useState({ width: 0, height: 0 });
 
@@ -22,7 +24,7 @@ function ColumnHeader(props) {
       });
     }
   }, []);
-  coldef.requiredWidth = headerDims.width;
+  // coldef.requiredWidth = headerDims.width;
 
   let header_style = {
     padding: 2,
@@ -75,12 +77,11 @@ function ColumnHeader(props) {
         codeset_id={coldef.codeset_id}
       >
         {headerContent}
+        { showInfoIcon && <Info sx={iconStyle} /> }
         {/* <span style={{whiteSpace: "nowrap", textOverflow: "ellipsis", overflow: "hidden"}}>
           {headerContent}
+          // (coldef.codeset_id) ? <Edit sx={iconStyle} /> : <Info sx={iconStyle} />
         </span> */}
-        {
-          (coldef.codeset_id) ? <Edit sx={iconStyle} /> : <Info sx={iconStyle} />
-        }
       </span>
     );
   }
@@ -107,7 +108,7 @@ function ColumnHeader(props) {
     </div>
   );
 }
-function setColDefDimensions({ coldefs, windowSize, margin = 10 }) {
+export function setColDefDimensions({ coldefs, windowSize, margin = 10 }) {
   /* expecting width OR minWidth and remainingPct */
   const [windowWidth, windowHeight] = windowSize;
   const fixedWidthSum = sum(coldefs.map((d) => d.width || 0));
@@ -125,9 +126,9 @@ function setColDefDimensions({ coldefs, windowSize, margin = 10 }) {
   // console.log({windowSize, usedWidth, fixedWidthSum, remainingWidth, });
   return coldefs;
 }
-function setColDefHeader(coldef) {
+export function setColDefHeader(coldef) {
   let { name, headerProps = {}, width } = coldef;
-  let { headerContent, headerContentProps, tooltipContent } = headerProps;
+  let { headerContent, headerContentProps, tooltipContent, showInfoIcon, } = headerProps;
   if (headerContent) {
     if (name) {
       throw new Error(
@@ -150,10 +151,9 @@ function setColDefHeader(coldef) {
       tooltipContent={tooltipContent}
       allottedWidth={width}
       coldef={coldef}
+      showInfoIcon={showInfoIcon}
     />
   );
   coldef.width = coldef.width + "px";
   return coldef;
 }
-
-export { ColumnHeader, setColDefHeader, setColDefDimensions };

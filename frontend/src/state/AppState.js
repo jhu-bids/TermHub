@@ -3,6 +3,8 @@ import {flatten, fromPairs, get} from "lodash";
 
 import {alertsReducer} from "../components/AlertMessages";
 
+export const NEW_CSET_ID = -1;
+
 const AlertsContext = createContext(null);
 const AlertsDispatchContext = createContext(null);
 export function AlertsProvider({ children }) {
@@ -28,7 +30,7 @@ export function useAlertsDispatch() {
 const HierarchySettingsContext = createContext(null);
 const HierarchySettingsDispatchContext = createContext(null);
 export function HierarchySettingsProvider({ children }) {
-  const [state, dispatch] = useReducer(editCsetReducer, { nested: true, collapsePaths: {},
+  const [state, dispatch] = useReducer(hierarchySettingsReducer, { nested: true, collapsePaths: {},
     collapsedDescendantPaths: {}, hideRxNormExtension: true, hideZeroCounts: false, });
 
   return (
@@ -50,7 +52,7 @@ export function useHierarchySettingsDispatch() {
 const EditCsetContext = createContext(null);
 const EditCsetDispatchContext = createContext(null);
 export function EditCsetProvider({ children }) {
-  const [state, dispatch] = useReducer(hierarchySettingsReducer, {});
+  const [state, dispatch] = useReducer(editCsetReducer, {});
 
   return (
       <EditCsetContext.Provider value={state}>
@@ -73,7 +75,7 @@ const editCsetReducer = (state, action) => {
   switch (action.type) {
     case "create_new_cset": {
       let newCset = {
-        "codeset_id": 0,
+        "codeset_id": NEW_CSET_ID,
         "concept_set_version_title": "New Cset (Draft)",
         "concept_set_name": "New Cset",
         "alias": "New Cset",

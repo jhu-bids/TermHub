@@ -31,7 +31,7 @@ import {
   cellStyle,
   Legend,
   saveChangesInstructions,
-  textCellForItem,
+  textCellForItem, getItem,
 } from "../components/EditCset";
 import { FlexibleContainer } from "../components/FlexibleContainer";
 import {useEditCset, useHierarchySettings, useHierarchySettingsDispatch} from "../state/AppState";
@@ -40,6 +40,7 @@ import {useDataGetter, getResearcherIdsFromCsets} from "../state/DataGetter";
 import {useSearchParamsState} from "../state/SearchParamsProvider";
 import CloseIcon from "@mui/icons-material/Close";
 import {CsetsDataTable} from "../components/CsetsDataTable";
+import {NEW_CSET_ID} from "../state/AppState";
 
 // TODO: Find concepts w/ good overlap and save a good URL for that
 // TODO: show table w/ hierarchical indent
@@ -58,7 +59,7 @@ function CsetComparisonPage() {
   const windowSize = useWindowSize();
   const boxRef = useRef();
   const countRef = useRef({ n: 0, z: 10 });
-  const [addNewCsetDisplay, setAddNewCsetDisplay] = useState(typeof (editCodesetId) === "undefined");
+  const [addNewCsetDisplay, setAddNewCsetDisplay] = useState(typeof(editCodesetId) === "undefined");
   const [panelPosition, setPanelPosition] = useState({ x: 0, y: 0 });
   const sizes = getSizes(/*squishTo*/ 1);
   const customStyles = styles(sizes);
@@ -196,6 +197,7 @@ function CsetComparisonPage() {
     hsDispatch,
     setAddNewCsetDisplay,
     updateSp,
+    csetEditState,
   });
 
   let infoPanels = [
@@ -239,20 +241,17 @@ function CsetComparisonPage() {
     >
       CSV <Download></Download>
     </Button>,
+
     <FlexibleContainer key="legend" title="Legend" position={panelPosition} countRef={countRef}>
-      <Legend editing={!!editCodesetId}/>
+      <Legend editing={editCodesetId == NEW_CSET_ID}/>
     </FlexibleContainer>,
+
     <Button key="add-cset"
             variant="outlined"
             onClick={() => {
               setAddNewCsetDisplay(false);
-
-              let { csetEditState = {} } = sp;
-              // clicked codeset is not already being edited, so set it to be edited
-              //  and clear editState
-              const addProps = { editCodesetId: 0, csetEditState: {} };
+              const addProps = { editCodesetId: NEW_CSET_ID, csetEditState: {} };
               updateSp({ addProps });
-
             }}
             sx={{
               cursor: 'pointer',
@@ -262,6 +261,7 @@ function CsetComparisonPage() {
     >
       add a new concept set
     </Button>,
+
     <FlexibleContainer key="cset-table" title="Table of concept set being edited"
                        position={panelPosition} countRef={countRef}>
       <CsetsDataTable show_selected={true}
@@ -582,7 +582,8 @@ function colConfig(props) {
     hsDispatch,
     setAddNewCsetDisplay,
     updateSp,
-    //conceptLookup, csmi,
+    csmi,
+    csetEditState,
   } = props;
   const {collapsePaths, collapsedDescendantPaths, nested, hideRxNormExtension, hideZeroCounts} = hierarchySettings;
 
@@ -783,15 +784,22 @@ function colConfig(props) {
       cset_col,
       codeset_id,
       headerProps: {
+        showInfoIcon: !!nested,
         //tooltipContent: "Click to create and edit new draft of this concept set",
-        tooltipContent: `${cset_col.codeset_id} ${cset_col.concept_set_version_title}. Click to sort.`,
+        tooltipContent: `${cset_col.codeset_id} ${cset_col.concept_set_version_title}.
+                            ${nested ? '' : 'Click to sort.'}`,
         
         headerContent: cset_col.concept_set_name,
         headerContentProps: {
           codeset_id: cset_col.codeset_id,
         },
       },
-      selector: (row) => {
+      selector: row => {
+        const item = getItem({ codeset_id: cset_col.codeset_id,
+          concept_id: row.concept_id, csmi, csetEditState, }) || {};
+        return !(item.item || item.csm);
+      },
+      format: (row) => {
         return cellContents({
           ...props,
           row,
@@ -812,32 +820,33 @@ function colConfig(props) {
       // center: true,
     };
 
-    if (codeset_id === 0) {
-      def.headerProps.headerContent = <div style={{display: 'flex', flexDirection: 'column'}}>
-        <Tooltip label={def.headerProps.tooltipContent}>
-          <div>{def.headerProps.headerContent}</div>
-        </Tooltip>
-        <Tooltip label="Remove this column">
-          <IconButton
-              onClick={() => {
-                let i = 0;
-                while (i < selected_csets.length) {
-                  if (selected_csets[i].codeset_id === 0) {
-                    selected_csets.splice(i, 1);
-                    continue;
+    if (codeset_id === NEW_CSET_ID) {
+      def.headerProps.headerContent = (
+        <div style={{display: 'flex', flexDirection: 'column'}}>
+          <Tooltip label={def.headerProps.tooltipContent}>
+            <div>{def.headerProps.headerContent}</div>
+          </Tooltip>
+          <Tooltip label="Remove this column">
+            <IconButton
+                onClick={() => {
+                  let i = 0;
+                  while (i < selected_csets.length) {
+                    if (selected_csets[i].codeset_id === NEW_CSET_ID) {
+                      selected_csets.splice(i, 1);
+                      continue;
+                    }
+                    i++;
                   }
-                  i++;
-                }
-                setAddNewCsetDisplay(true);
+                  setAddNewCsetDisplay(true);
 
-                const delProps = ["editCodesetId", "csetEditState"];
-                updateSp({ delProps });
-              }}
-          >
-            <CloseIcon />
-          </IconButton>
-        </Tooltip>
-      </div>;
+                  const delProps = ["editCodesetId", "csetEditState"];
+                  updateSp({ delProps });
+                }}
+            >
+              <CloseIcon />
+            </IconButton>
+          </Tooltip>
+        </div>);
       delete def.headerProps.tooltipContent;
     }
 
