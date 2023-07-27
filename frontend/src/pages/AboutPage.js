@@ -145,10 +145,10 @@ function AboutPage() {
 
       <TextH1>Database Refresh</TextH1>
       <TextBody>Will refresh the database with the latest data from the N3C Enclave.</TextBody>
-      <TextBody><b>IMPORTANT:</b> Concept set members are currently slowly updated in the API. As a tentative solution,
-        to prevent bugs, new containers and code sets will not be imported into TermHub until those members are also
-        available for fetching. This unfortunately slows down fetching of new code sets from being otherwise
-        instantaneous to hours or days.</TextBody>
+      <TextBody><b>IMPORTANT:</b> There is a delay in the Enclave where when a concept set draft is finalized, its
+        concept set members must be expanded. This can take between 20-45 minutes to complete. At that time, the members
+        will be visible in the UI and also the API for fetching by TermHub. TermHub will detect if this issue occurs and
+        will continue to check until the members are available and import them as soon as they are.</TextBody>
       <TextBody>Last refresh: {lastRefreshed ? lastRefreshed.toLocaleString() : 'fetching it...'}</TextBody>
       <TextBody>
         <Button

@@ -1,13 +1,13 @@
-name: Resolve fetch failures
+name: Resolve fetch failures for excess items or members
 
 on:
 #  schedule:
 #    - cron: '*/20 * * * *'  # every 20 minutes
   workflow_dispatch:
   repository_dispatch:
-    types: [resolve-fetch-failures]
+    types: [resolve-fetch-failures-excess-items]
 jobs:
-  resolve-fetch-failures:
+  resolve-fetch-failures-excess-items:
     runs-on: ubuntu-latest
     steps:
       - name: Checkout repository and submodules
@@ -43,4 +43,4 @@ jobs:
 
       - name: Resolve fetch failures
         run: |
-          python backend/db/resolve_fetch_failures.py
+          python backend/db/resolve_fetch_failures_excess_items.py

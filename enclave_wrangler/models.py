@@ -55,14 +55,14 @@ PKEYS = {
     'concept_relationship': '',
     'relationship': '',
     'concept_ancestor': '',
-    # - Termhub: mirror tables from enclave
+    # - Mirror tables from enclave
     'concept_set_counts_clamped': '',
 
     'researcher': 'rid',  # @joeflack4, i just added pkeys here and the two lines below. hope it doesn't break anything
     'omopconceptset': 'codesetId',
     'omopconceptsetcontainer': 'conceptSetId',
     
-    # - Termhub: custom tables
+    # - Custom tables
     'all_csets': '',
     'codeset_counts': '',
     'concept_relationship_plus': '',
@@ -72,6 +72,9 @@ PKEYS = {
     'deidentified_term_usage_by_domain_clamped': '',
     'members_items_summary': '',
     'rxnorm_med_cset': '',
+
+    # - Management tables:
+    'fetch_audit': ['table', 'primary_key', 'status_initially']
 }
 
 def pkey(obj) -> str:

@@ -14,7 +14,7 @@ from sqlalchemy.engine.base import Connection
 TEST_DIR = os.path.dirname(__file__)
 PROJECT_ROOT = Path(TEST_DIR).parent.parent.parent
 sys.path.insert(0, str(PROJECT_ROOT))
-from backend.db.utils import get_db_connection, insert_fetch_status, run_sql, select_failed_fetches, sql_query
+from backend.db.utils import get_db_connection, insert_fetch_statuses, run_sql, select_failed_fetches, sql_query
 
 
 class FetchAuditTestRunner(unittest.TestCase):
@@ -27,7 +27,7 @@ class FetchAuditTestRunner(unittest.TestCase):
         """setUp"""
         cls.con = get_db_connection(schema='')
         cls.n1 = sql_query(cls.con, 'SELECT COUNT(*) FROM fetch_audit;')[0]['count']
-        insert_fetch_status(cls.mock_data)
+        insert_fetch_statuses(cls.mock_data)
 
     @classmethod
     def tearDownClass(cls):
