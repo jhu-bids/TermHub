@@ -71,7 +71,7 @@ def call_github_action(
         url = 'https://api.github.com/repos/jhu-bids/TermHub/dispatches'  # repository_dispatch
         payload = {'event_type': repository_dispatch__event_type}
         if ref:
-            payload['client_payload']['ref'] = ref
+            payload['client_payload'] = {'ref': ref}
     else:  # workflow_dispatch
         url = f'https://api.github.com/repos/jhu-bids/TermHub/actions/workflows/{workflow_dispatch__filename}/dispatches'
         payload = {'ref': ref}
