@@ -37,27 +37,54 @@ def commify(n):
     return f'{n:,}'
 
 
-def call_github_action(event_type: str) -> Response:
+def call_github_action(
+    repository_dispatch__event_type: str = None, workflow_dispatch__filename: str = None,
+    workflow_dispatch__params: Dict[str, Any] = None, ref='develop'
+) -> Response:
     """Call a GitHub action
-    :param event_type: the name of the event to trigger. Any .github/workflows/*.yml file with this EVENT_TYPE like so
+
+    This will work 'on' types of 'repository_dispatch' or 'workflow_dispatch'. Could not figure out a way to get params
+    to work with 'repository_dispatch' (if it's even possible), so we use 'workflow_dispatch' for that.
+
+    :param repository_dispatch__event_type: the name of the event to trigger. Any .github/workflows/*.yml file with this
+     EVENT_TYPE like so.
     will be triggered:
     ```yml
     on:
       repository_dispatch:
         types: [EVENT_TYPE]
-    ```"""
+    ```
+    :param workflow_dispatch__filename: Called the 'workflow_id' in the documentation. This is the filename of the
+    worfklow yaml, including the file extension.
+    :param workflow_dispatch__params: Any action 'inputs' to pass into the script. To see valid inputs, look at the
+    workflow yaml.
+    :param ref: A reference, e.g. commit hash or branch, from which to run the action. For repository_dispatch, this
+    is optional."""
     headers = {
         "Authorization": f"Bearer {CONFIG['personal_access_token']}",
         "Accept": "application/vnd.github.v3+json",
         "Content-Type": "application/json"
     }
-    # args = {"event-type":"refresh-db"}
-    url = 'https://api.github.com/repos/jhu-bids/TermHub/dispatches'
-    payload = {
-        'event_type': event_type,
-    }
+    if repository_dispatch__event_type and workflow_dispatch__filename:
+        raise ValueError('Only one of repository_dispatch__* or workflow_dispatch__* params can be provided.')
+    elif repository_dispatch__event_type:  # repository_dispatch
+        url = 'https://api.github.com/repos/jhu-bids/TermHub/dispatches'  # repository_dispatch
+        payload = {'event_type': repository_dispatch__event_type}
+        if ref:
+            payload['client_payload']['ref'] = ref
+    else:  # workflow_dispatch
+        url = f'https://api.github.com/repos/jhu-bids/TermHub/actions/workflows/{workflow_dispatch__filename}/dispatches'
+        payload = {'ref': ref}
+        if workflow_dispatch__params:
+            payload['inputs'] = workflow_dispatch__params
+
     response = requests.post(url, headers = headers,data=json.dumps(payload))
     return response
+
+
+def call_github_action_with_params(filename: str, params: Dict[str, Any], ref='develop') -> Response:
+    """Call a GitHub action with params"""
+    return call_github_action(workflow_dispatch__filename=filename, workflow_dispatch__params=params, ref=ref)
 
 
 def send_email(subject: str, body: str, to=['sigfried@sigfried.org', 'jflack@jhu.edu']):
@@ -82,8 +109,11 @@ def send_email(subject: str, body: str, to=['sigfried@sigfried.org', 'jflack@jhu
 
 
 def get_timer(name:str='Timer', debug=False):
+    """Get timer"""
     steps = []
     def step(msg:str=''):
+        """Step"""
+        last_step = {}
         done = msg == 'done'
         msg = f'{name} step {len(steps)+1} {msg}'
         t = datetime.now()
@@ -97,8 +127,8 @@ def get_timer(name:str='Timer', debug=False):
         if done:
             print(f"{name} completed in {(t - steps[0]['t'])}")
         if debug:
-            for step in steps:
-                print(', '.join([str(x) for x in step.values()]))
+            for s in steps:
+                print(', '.join([str(x) for x in s.values()]))
     return step
 
 def cnt(vals):
@@ -148,6 +178,7 @@ def return_err_with_trace(func):
         except Exception as err:
             # stacktrace = "".join(traceback.format_exception(etype=type(err), value=err, tb=err.__traceback__))
             # getting error with above, @jflack4 fix this if my fix isn't what you wanted
+            # noinspection PyTypeChecker not_sure_what_this_needs
             stacktrace = "".join(traceback.format_exception(err, value=err, tb=err.__traceback__))
             return JSONResponse(
               status_code=500,
