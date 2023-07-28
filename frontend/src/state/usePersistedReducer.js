@@ -11,6 +11,7 @@ import {get} from 'lodash';
     from default state, but, when accessing state, see the default with
     the changes applied:  state = {...unpersistedDefaultState, ...state}
  */
+
 export const usePersistedReducer = (reducer, initialState, key, storage, unpersistedDefaultState) => {
   let [state, dispatch] = React.useReducer(reducer, storage.get(key, initialState));
 
