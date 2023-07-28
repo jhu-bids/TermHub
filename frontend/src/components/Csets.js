@@ -18,7 +18,7 @@ import Typography from "@mui/material/Typography";
 import { DOCS } from "../pages/AboutPage";
 import {useDataCache} from "../state/DataCache";
 import {useDataGetter, getResearcherIdsFromCsets, } from "../state/DataGetter";
-import {useSearchParamsState} from "../state/SearchParamsProvider";
+import {useCodesetIds} from "../state/AppState";
 
 /* TODO: Solve
     react_devtools_backend.js:4026 MUI: The value provided to Autocomplete is invalid.
@@ -47,7 +47,7 @@ function initialOpts(all_csets, codesetIds) {
 export function CsetSearch(props) {
   const { codeset_ids=[], all_csets, } = props;
   const [value, setValue] = useState(codeset_ids);
-  const {changeCodesetIds, } = useSearchParamsState();
+  const [codesetIds, codesetIdsDispatch] = useCodesetIds();
 
   // const [keyForRefreshingAutocomplete, setKeyForRefreshingAutocomplete] = useState(0);
   // necessary to change key for reset because of Autocomplete bug, according to https://stackoverflow.com/a/59845474/1368860
@@ -143,7 +143,8 @@ export function CsetSearch(props) {
           {autocomplete}
         </Tooltip>
         <Button onClick={() => {
-          changeCodesetIds(value, "set");
+          codesetIdsDispatch({type: "set_all", codeset_ids: value});
+          // changeCodesetIds(value, "set");
           // setKeyForRefreshingAutocomplete((k) => k + 1);
         }}
         >
@@ -173,8 +174,8 @@ export function CsetSearch(props) {
 }
 
 function ConceptSetsPage(props) {
-  const {sp} = useSearchParamsState();
-  const {codeset_ids, } = sp;
+  const [codeset_ids, codesetIdsDispatch] = useCodesetIds();
+  console.log('ConceptSetsPage', codeset_ids);
   const dataGetter = useDataGetter();
   const dataCache = useDataCache();
   const [data, setData] = useState({});

@@ -155,43 +155,36 @@ const editCsetReducer = (state, action) => {
 };
 
 
-const CodesetIdsContext = createContext(null);
-const CodesetIdsDispatchContext = createContext(null);
-export function CodesetIdsProvider({ children }) {
+export function useCodesetIds() {
   const storageProvider = useSearchParamsState();
-  const usePersistedReducer = createPersistedReducer('hierarchySettings', storageProvider);
+  const usePersistedReducer = createPersistedReducer('codeset_ids', storageProvider);
 
-  const codesetIdsReducer = (state, action) => { // not being used
+  const codesetIdsReducer = (state, action) => {
     if (!(action && action.type)) return state;
     switch (action.type) {
       case "add_codeset_id": {
-        return [...state, parseInt(action.payload)].sort();
+        return [...state, parseInt(action.codeset_id)].sort();
       }
       case "delete_codeset_id": {
-        return state.filter((d) => d != action.payload);
+        return state.filter((d) => d != action.codeset_id);
       }
+      case "set_all": {
+        return action.codesetIds;
+      }
+      /*  ends up toggling multiple times now that not using context provider
+      case "toggle": {
+        if (state.includes(action.codesetId)) {
+          return state.filter(d => d !== action.codesetId);
+        }
+        return [...state, parseInt(action.codesetId)].sort();
+      }
+       */
       default:
-        return state;
+        throw new Error(`unexpected action.type ${action.type}`);
     }
   };
-  const [state, dispatch] = usePersistedReducer(codesetIdsReducer);
-
-  return (
-      <CodesetIdsContext.Provider value={state}>
-        <CodesetIdsDispatchContext.Provider value={dispatch}>
-          {children}
-        </CodesetIdsDispatchContext.Provider>
-      </CodesetIdsContext.Provider>
-  );
+  return usePersistedReducer(codesetIdsReducer);
 }
-export function useCodesetIds() {
-  return useContext(CodesetIdsContext);
-}
-export function useCodesetIdsDispatch() {
-  return useContext(CodesetIdsDispatchContext);
-}
-
-
 
 const currentConceptIdsReducer = (state, action) => { // not being used
   if (!(action && action.type)) return state;

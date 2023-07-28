@@ -5,6 +5,7 @@ import { fmt, pct_fmt } from "./utils";
 import { StatsMessage, } from "../state/State";
 import { Tooltip } from "./Tooltip";
 import {useSearchParamsState} from "../state/SearchParamsProvider";
+import {useCodesetIds} from "../state/AppState";
 // import Checkbox from '@material-ui/core/Checkbox';
 // import ArrowDownward from '@material-ui/icons/ArrowDownward';
 // const sortIcon = <ArrowDownward />;
@@ -37,11 +38,11 @@ function getCsetSelectionHandler(tooltipId) {
 /* TODO: review function for appropriate state management */
 export function CsetsDataTable(props) {
   const { show_selected, selected_csets, clickable, showTitle, } = props;
-  const codeset_ids = show_selected ? null : props.codeset_ids;
+  const [codeset_ids, codesetIdsDispatch] = useCodesetIds();
+  // const codeset_ids = show_selected ? null : props.codeset_ids;
   const relatedCsets = show_selected ? null : props.relatedCsets;
   const all_csets = show_selected ? null : props.all_csets;
   const concept_ids = show_selected ? null : props.concept_ids;
-  const {changeCodesetIds, } = useSearchParamsState();
   const min_col = show_selected ?
       ("min_col" in props ? props.min_col : true) : false;
 
@@ -52,8 +53,8 @@ export function CsetsDataTable(props) {
 
   let customStyles = getCustomStyles();
 
-  const handleRowClick = useCallback((row) =>
-    changeCodesetIds(row.codeset_id, "toggle")
+  const handleRowClick = useCallback(
+    (row) => codesetIdsDispatch({type: show_selected ? 'delete_codeset_id' : 'add_codeset_id', codeset_id: row.codeset_id})
   );
   /*
     const handleSelectionChange = useCallback(state => {
