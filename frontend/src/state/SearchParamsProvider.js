@@ -61,7 +61,6 @@ export function SearchParamsProvider({children}) {
     });
     const csp = createSearchParams(sp);
     if (csp+'' !== searchParams+'') {
-      console.log('setting searchParams', csp+'');
       setSearchParams(csp);
     }
   }

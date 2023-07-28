@@ -329,14 +329,14 @@ function CsetComparisonPage() {
           }}
       >
         {infoPanels}
-        <Typography
+        {/*<Typography
             variant="h5"
             sx={{ marginLeft: "auto" }}
         >
           {
             (edited_cset ? `Editing ${edited_cset.concept_set_name}` : 'Click on concept set column heading to edit')
           }
-        </Typography>
+        </Typography> */}
       </Box>
       <ComparisonDataTable /*squishTo={squishTo}*/ {...sendProps} />
     </div>

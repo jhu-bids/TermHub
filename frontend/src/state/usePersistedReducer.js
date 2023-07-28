@@ -1,7 +1,8 @@
 // start with code from https://github.com/johnayeni/use-persisted-reducer
 
 import React, { useEffect, useReducer } from 'react';
-import {get} from 'lodash';
+import {get, isEmpty} from 'lodash';
+import {oneSidedObjectDifference} from "../components/utils";
 
 /*
   - Had to do weird thing by allowing default state instead of (or
@@ -10,6 +11,16 @@ import {get} from 'lodash';
     maybe causing problems. Instead only need to persist differences
     from default state, but, when accessing state, see the default with
     the changes applied:  state = {...unpersistedDefaultState, ...state}
+
+    unpersistedDefaultState is used:
+      - in usePersistedReducer to augment the persisted state with the default values
+      - in storage.get to return default value if key doesn't appear in the persisted state
+      - in storage.set to only save values that differ from what's in the default
+      - in the specific reducer being passed in to get any values it needs from
+        the default if they aren't in the persisted state. that is, the reducer state
+        is only the difference, but the reducer may need access the to the default values
+        anyway
+
  */
 
 export const usePersistedReducer = (reducer, initialState, key, storage, unpersistedDefaultState) => {
@@ -49,8 +60,11 @@ const createStorage = (provider, unpersistedDefaultState) => ({
     return ret ?? (unpersistedDefaultState || {})[key];
   },
   set(key, value) {
-    if (get(unpersistedDefaultState, key) == value) {
-      return;  // trying to set something already in the default
+    if (unpersistedDefaultState) {
+      value = oneSidedObjectDifference(unpersistedDefaultState, value);
+    }
+    if (isEmpty(value)) {
+      return;
     }
     if (!provider.dontStringifySetItem) {
       value = JSON.stringify(value);

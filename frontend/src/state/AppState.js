@@ -33,17 +33,17 @@ const HierarchySettingsDispatchContext = createContext(null);
 //  having problems because of saving the initial value to url,
 //  let's try to just save differences from the default to url
  */
-const defaultHierarchySettingsState = { nested: true, collapsePaths: {},
-  collapsedDescendantPaths: {}, hideRxNormExtension: true, hideZeroCounts: false, };
 export function HierarchySettingsProvider({ children }) {
+  const unpersistedDefaultState = { nested: true, collapsePaths: {},
+    collapsedDescendantPaths: {}, hideRxNormExtension: true, hideZeroCounts: false, };
   const storageProvider = useSearchParamsState();
   const usePersistedReducer = createPersistedReducer('hierarchySettings',
-    storageProvider, defaultHierarchySettingsState);
+    storageProvider, unpersistedDefaultState);
 
   function hierarchySettingsReducer(state, action) {
     if ( ! ( action || {} ).type ) return state;
     let {collapsePaths, collapsedDescendantPaths,
-      nested, hideRxNormExtension, hideZeroCounts} = {...defaultHierarchySettingsState, ...state};
+      nested, hideRxNormExtension, hideZeroCounts} = {...unpersistedDefaultState, ...state};
     switch (action.type) {
       case "collapseDescendants": {
         const {row, allRows, collapseAction} = action;
@@ -79,10 +79,6 @@ export function HierarchySettingsProvider({ children }) {
     }
   }
   const [state, dispatch] = usePersistedReducer(hierarchySettingsReducer);
-  /* const initialState = { nested: true, collapsePaths: {}, collapsedDescendantPaths: {},
-                          hideRxNormExtension: true, hideZeroCounts: false, };
-  const [state, dispatch] = usePersistedReducer(
-      hierarchySettingsReducer, () => storageProvider.hierarchySettings || initialState); */
 
   return (
     <HierarchySettingsContext.Provider value={state}>
@@ -120,7 +116,6 @@ export function useEditCsetDispatch() {
   return useContext(EditCsetDispatchContext);
 }
 
-
 const editCsetReducer = (state, action) => {
   if (!action || !action.type) return state;
   switch (action.type) {
@@ -153,20 +148,46 @@ const editCsetReducer = (state, action) => {
   if (state === action.payload) return null; // if already set to this codeset_id, turn off
   return action.payload;
 };
-// actions
-const codeset_idsReducer = (state, action) => { // not being used
-  if (!(action && action.type)) return state;
-  switch (action.type) {
-    case "add_codeset_id": {
-      return [...state, parseInt(action.payload)].sort();
+
+
+const CodesetIdsContext = createContext(null);
+const CodesetIdsDispatchContext = createContext(null);
+export function CodesetIdsProvider({ children }) {
+  const storageProvider = useSearchParamsState();
+  const usePersistedReducer = createPersistedReducer('hierarchySettings', storageProvider);
+
+  const codesetIdsReducer = (state, action) => { // not being used
+    if (!(action && action.type)) return state;
+    switch (action.type) {
+      case "add_codeset_id": {
+        return [...state, parseInt(action.payload)].sort();
+      }
+      case "delete_codeset_id": {
+        return state.filter((d) => d != action.payload);
+      }
+      default:
+        return state;
     }
-    case "delete_codeset_id": {
-      return state.filter((d) => d != action.payload);
-    }
-    default:
-      return state;
-  }
-};
+  };
+  const [state, dispatch] = usePersistedReducer(codesetIdsReducer);
+
+  return (
+      <CodesetIdsContext.Provider value={state}>
+        <CodesetIdsDispatchContext.Provider value={dispatch}>
+          {children}
+        </CodesetIdsDispatchContext.Provider>
+      </CodesetIdsContext.Provider>
+  );
+}
+export function useCodesetIds() {
+  return useContext(CodesetIdsContext);
+}
+export function useCodesetIdsDispatch() {
+  return useContext(CodesetIdsDispatchContext);
+}
+
+
+
 const currentConceptIdsReducer = (state, action) => { // not being used
   if (!(action && action.type)) return state;
   switch (action.type) {

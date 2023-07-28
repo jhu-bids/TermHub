@@ -1,5 +1,5 @@
 import React, { useLayoutEffect, useState, useRef, useEffect, } from "react";
-import {debounce} from "lodash";
+import {debounce, reduce, isEqual, } from "lodash";
 
 export const pct_fmt = (num) =>
   Number(num).toLocaleString(undefined, {
@@ -82,4 +82,13 @@ export function ShowWindowDimensions(props) {
       Window size: {width} x {height}
     </span>
   );
+}
+
+export function oneSidedObjectDifference(a ,b) {
+  return reduce(b, function(acc, val, key, col) {
+    if ( !isEqual(a[key], val )) {
+        acc[key] = val;
+    }
+    return acc;
+  }, {})
 }
