@@ -64,6 +64,7 @@ const createStorage = (provider, unpersistedDefaultState) => ({
       value = oneSidedObjectDifference(unpersistedDefaultState, value);
     }
     if (isEmpty(value)) {
+      provider.removeItem(key);
       return;
     }
     if (!provider.dontStringifySetItem) {
@@ -71,6 +72,9 @@ const createStorage = (provider, unpersistedDefaultState) => ({
     }
     provider.setItem(key, value);
   },
+  // not sure if these will be needed:
+  // remove(key) { provider.removeItem(key); }
+  // clear() { provider.clear(); }
 });
 
 export const createPersistedReducer = (key, provider, unpersistedDefaultState) => {

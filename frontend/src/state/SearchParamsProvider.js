@@ -72,13 +72,16 @@ export function SearchParamsProvider({children}) {
   }
 
   function setItem(key, value) {
-    /*
-    if (typeof(value) === 'string') {
-      value = JSON.stringify(value);
-    }
-     */
     updateSearchParams({addProps: {[key]: value}});
-  /**/}
+  }
+
+  function removeItem(key) {
+    updateSearchParams({delProps: [key]});
+  }
+  function clear() {
+    const csp = createSearchParams();
+    setSearchParams(csp);
+  }
 
   function changeCodesetIds(codeset_id, how) {
     let sp = searchParamsToObj(searchParams);
@@ -114,9 +117,7 @@ export function SearchParamsProvider({children}) {
   if (!sp.codeset_ids) {
     sp.codeset_ids = [];
   }
-  const value = {
-    sp, updateSp: updateSearchParams, changeCodesetIds,
-    getItem, setItem, dontStringifySetItem: true, };
+  const value = { sp, updateSp: updateSearchParams, changeCodesetIds, getItem, setItem, removeItem, clear, dontStringifySetItem: true, };
   return (
       <SearchParamsContext.Provider value={value} >
         {children}

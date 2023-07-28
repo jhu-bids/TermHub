@@ -34,7 +34,7 @@ import {
   textCellForItem, getItem,
 } from "../components/EditCset";
 import { FlexibleContainer } from "../components/FlexibleContainer";
-import {useEditCset, useHierarchySettings, useHierarchySettingsDispatch} from "../state/AppState";
+import {useEditCset, useHierarchySettings, } from "../state/AppState";
 import {useDataCache} from "../state/DataCache";
 import {useDataGetter, getResearcherIdsFromCsets} from "../state/DataGetter";
 import {useSearchParamsState} from "../state/SearchParamsProvider";
@@ -52,8 +52,7 @@ function CsetComparisonPage() {
   // const { selected_csets = [], researchers, } = cset_data;
   const dataGetter = useDataGetter();
   const dataCache = useDataCache();
-  let hierarchySettings = useHierarchySettings();
-  const hsDispatch = useHierarchySettingsDispatch();
+  let [hierarchySettings, hsDispatch] = useHierarchySettings();
   const editCset = useEditCset();
   const {collapsePaths, collapsedDescendantPaths, nested, hideRxNormExtension, hideZeroCounts} = hierarchySettings;
   const windowSize = useWindowSize();
@@ -172,7 +171,8 @@ function CsetComparisonPage() {
   }
 
   // TODO: component is rendering twice. why? not necessary? fix?
-  if (!edges) {
+  if (!edges) { // if no edges (yet), no information to nest with, so turn off nesting for this
+                //  invocation of getRowData (don't save to state)
     hierarchySettings = {...hierarchySettings, nested: false};
   }
   let {allRows, displayedRows, distinctRows, hidden} = getRowData({concepts, edges, hierarchySettings});

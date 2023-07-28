@@ -64,7 +64,7 @@ export function StatsMessage(props) {
 export function ViewCurrentState() {
   const [sp, spDispatch] = useSearchParamsState();
   const alerts = useAlerts();
-  const hierarchySettings = useHierarchySettings();
+  const [hierarchySettings, hsDispatch] = useHierarchySettings();
   const editCset = useEditCset();
   const dataCache = useDataCache();
   return (<div style={{margin: 30, }}>

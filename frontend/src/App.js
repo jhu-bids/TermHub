@@ -25,7 +25,7 @@ import { CsetComparisonPage } from "./pages/CsetComparisonPage";
 import { AboutPage } from "./pages/AboutPage";
 import { ConceptGraph } from "./components/ConceptGraph";
 import {ViewCurrentState, } from "./state/State";
-import {AlertsProvider, useAlerts, useAlertsDispatch, EditCsetProvider, HierarchySettingsProvider} from "./state/AppState";
+import {AlertsProvider, useAlerts, useAlertsDispatch, EditCsetProvider, } from "./state/AppState";
 import {SearchParamsProvider, useSearchParamsState} from "./state/SearchParamsProvider";
 import {DataGetterProvider} from "./state/DataGetter";
 import { UploadCsvPage } from "./components/UploadCsv";
@@ -38,16 +38,14 @@ import {AlertMessages} from "./components/AlertMessages";
     <BrowserRouter>                 // from index.js root.render
       <SearchParamsProvider>        // gets state from query string -- mainly codeset_ids
         <AlertsProvider>
-          <HierarchySettingsProvider>
-            <EditCsetProvider>
-              <DataCacheProvider>       // ability to save to and retrieve from cache in localStorage
-                <DataGetterProvider>    // utilities for fetching data. dataCache needs access to this a couple of times
-                                        //  so those method calls will have to pass in a dataGetter
-                  <RoutesContainer/>
-                </DataGetterProvider>
-              </DataCacheProvider>
-            </EditCsetProvider>
-          </HierarchySettingsProvider>
+          <EditCsetProvider>
+            <DataCacheProvider>       // ability to save to and retrieve from cache in localStorage
+              <DataGetterProvider>    // utilities for fetching data. dataCache needs access to this a couple of times
+                                      //  so those method calls will have to pass in a dataGetter
+                <RoutesContainer/>
+              </DataGetterProvider>
+            </DataCacheProvider>
+          </EditCsetProvider>
         </AlertsProvider>
       </SearchParamsProvider>
     </BrowserRouter>
@@ -58,15 +56,13 @@ function QCProvider() {
     // <React.StrictMode> // {/* StrictMode helps assure code goodness by running everything twice, but it's annoying*/}
       <SearchParamsProvider>
         <AlertsProvider>
-          <HierarchySettingsProvider>
-            <EditCsetProvider>
-              <DataCacheProvider>
-                <DataGetterProvider>
-                  <RoutesContainer/>
-                </DataGetterProvider>
-              </DataCacheProvider>
-            </EditCsetProvider>
-          </HierarchySettingsProvider>
+          <EditCsetProvider>
+            <DataCacheProvider>
+              <DataGetterProvider>
+                <RoutesContainer/>
+              </DataGetterProvider>
+            </DataCacheProvider>
+          </EditCsetProvider>
         </AlertsProvider>
       </SearchParamsProvider>
     // </React.StrictMode>
