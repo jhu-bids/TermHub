@@ -1,6 +1,24 @@
 {
   "data": [
     {
+      "apiName": "new-action-fa9c3c92-a727-65fe-0c39-16d5c06a63cb",
+      "description": "",
+      "status": "EXPERIMENTAL",
+      "parameters": {
+        "researcher_multipass_id": {
+          "description": "",
+          "baseType": "String",
+          "required": true
+        },
+        "Researcher": {
+          "description": "",
+          "baseType": "OntologyObject<Researcher>",
+          "required": true
+        }
+      },
+      "rid": "ri.actions.main.action-type.0227f4b5-fcdb-4c8f-9cbe-9695a7b4e275"
+    },
+    {
       "apiName": "dur-update-project-abstract",
       "description": "",
       "status": "ACTIVE",
