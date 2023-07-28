@@ -1,7 +1,8 @@
 import React, {createContext, useContext, useReducer} from "react";
-import {flatten, fromPairs, get} from "lodash";
-
+import {flatten, fromPairs, get, isEmpty} from "lodash";
+import {createPersistedReducer} from "./usePersistedReducer";
 import {alertsReducer} from "../components/AlertMessages";
+import {useSearchParamsState} from "./SearchParamsProvider";
 
 export const NEW_CSET_ID = -1;
 
@@ -25,13 +26,63 @@ export function useAlertsDispatch() {
   return useContext(AlertsDispatchContext);
 }
 
-
-
 const HierarchySettingsContext = createContext(null);
 const HierarchySettingsDispatchContext = createContext(null);
+/*
+// since hierarchySettings is getting saved to url and maybe
+//  having problems because of saving the initial value to url,
+//  let's try to just save differences from the default to url
+ */
+const defaultHierarchySettingsState = { nested: true, collapsePaths: {},
+  collapsedDescendantPaths: {}, hideRxNormExtension: true, hideZeroCounts: false, };
 export function HierarchySettingsProvider({ children }) {
-  const [state, dispatch] = useReducer(hierarchySettingsReducer, { nested: true, collapsePaths: {},
-    collapsedDescendantPaths: {}, hideRxNormExtension: true, hideZeroCounts: false, });
+  const storageProvider = useSearchParamsState();
+  const usePersistedReducer = createPersistedReducer('hierarchySettings',
+    storageProvider, defaultHierarchySettingsState);
+
+  function hierarchySettingsReducer(state, action) {
+    if ( ! ( action || {} ).type ) return state;
+    let {collapsePaths, collapsedDescendantPaths,
+      nested, hideRxNormExtension, hideZeroCounts} = {...defaultHierarchySettingsState, ...state};
+    switch (action.type) {
+      case "collapseDescendants": {
+        const {row, allRows, collapseAction} = action;
+        // this toggles the collapse state of the given row
+        const collapse = !get(collapsePaths, row.pathToRoot);
+        // collapsePaths are the paths to all the rows the user collapsed
+        //  these rows still appear in the table, but their descendants don't
+        if (collapseAction === 'collapse') {
+          collapsePaths = {...collapsePaths, [row.pathToRoot]: true};
+        } else {
+          collapsePaths = {...collapsePaths};
+          delete collapsePaths[row.pathToRoot];
+        }
+        // collapsedDescendantPaths are all the paths that get hidden, the descendants of all the collapsePaths
+        const hiddenRows = flatten(Object.keys(collapsePaths).map(collapsedPath => {
+          return allRows.map(r => r.pathToRoot).filter(
+              p => p.length > collapsedPath.length && p.startsWith(collapsedPath));
+        }));
+        collapsedDescendantPaths = fromPairs(hiddenRows.map(p => [p, true]));
+        return {...state, collapsePaths, collapsedDescendantPaths};
+      }
+      case "nested": {
+        return {...state, nested: action.nested}
+      }
+      case "hideRxNormExtension": {
+        return {...state, hideRxNormExtension: action.hideRxNormExtension}
+      }
+      case "hideZeroCounts": {
+        return {...state, hideZeroCounts: action.hideZeroCounts}
+      }
+      default:
+        return state;
+    }
+  }
+  const [state, dispatch] = usePersistedReducer(hierarchySettingsReducer);
+  /* const initialState = { nested: true, collapsePaths: {}, collapsedDescendantPaths: {},
+                          hideRxNormExtension: true, hideZeroCounts: false, };
+  const [state, dispatch] = usePersistedReducer(
+      hierarchySettingsReducer, () => storageProvider.hierarchySettings || initialState); */
 
   return (
     <HierarchySettingsContext.Provider value={state}>
@@ -131,42 +182,3 @@ const currentConceptIdsReducer = (state, action) => { // not being used
 };
 const csetEditsReducer = (csetEdits, action) => {
 };
-
-function hierarchySettingsReducer(state, action) {
-  if (!(action && action.type)) return state;
-  if (!action.type) return state;
-  let {collapsePaths, collapsedDescendantPaths, nested, hideRxNormExtension, hideZeroCounts} = state;
-  switch (action.type) {
-    case "collapseDescendants": {
-      const {row, allRows, collapseAction} = action;
-      // this toggles the collapse state of the given row
-      const collapse = !get(collapsePaths, row.pathToRoot);
-      // collapsePaths are the paths to all the rows the user collapsed
-      //  these rows still appear in the table, but their descendants don't
-      if (collapseAction === 'collapse') {
-        collapsePaths = {...collapsePaths, [row.pathToRoot]: true};
-      } else {
-        collapsePaths = {...collapsePaths};
-        delete collapsePaths[row.pathToRoot];
-      }
-      // collapsedDescendantPaths are all the paths that get hidden, the descendants of all the collapsePaths
-      const hiddenRows = flatten(Object.keys(collapsePaths).map(collapsedPath => {
-        return allRows.map(r => r.pathToRoot).filter(
-            p => p.length > collapsedPath.length && p.startsWith(collapsedPath));
-      }));
-      collapsedDescendantPaths = fromPairs(hiddenRows.map(p => [p, true]));
-      return {...state, collapsePaths, collapsedDescendantPaths};
-    }
-    case "nested": {
-      return {...state, nested: action.nested}
-    }
-    case "hideRxNormExtension": {
-      return {...state, hideRxNormExtension: action.hideRxNormExtension}
-    }
-    case "hideZeroCounts": {
-      return {...state, hideZeroCounts: action.hideZeroCounts}
-    }
-    default:
-      return state;
-  }
-}

@@ -105,6 +105,9 @@ function CsetComparisonPage() {
       const edges = await dataGetter.fetchAndCacheItems(dataGetter.apiCalls.edges, concept_ids, );
       concept_ids = union(concept_ids.map(String), flatten(edges)).sort();
       setData(current => ({...current, concept_ids, edges}));
+      // javascript sleep technique from https://stackoverflow.com/a/39914235/1368860, for testing what happens after setData
+      //  .... apparently nothing
+      // await new Promise(r => setTimeout(r, 7000));
 
       promises.push(dataGetter.fetchAndCacheItems(dataGetter.apiCalls.concepts, concept_ids));
 
@@ -129,7 +132,7 @@ function CsetComparisonPage() {
 
       if (typeof (editCodesetId) !== "undefined") {
         selected_csets.push({
-          codeset_id: 0,
+          codeset_id: NEW_CSET_ID,
           concept_set_name: "New Concept Set",
           concept_set_version_title: "New Concept Set",
         });
