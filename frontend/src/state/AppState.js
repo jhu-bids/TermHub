@@ -183,7 +183,7 @@ export function useCodesetIds() {
         throw new Error(`unexpected action.type ${action.type}`);
     }
   };
-  return usePersistedReducer(codesetIdsReducer);
+  return usePersistedReducer(codesetIdsReducer, []);
 }
 
 const currentConceptIdsReducer = (state, action) => { // not being used

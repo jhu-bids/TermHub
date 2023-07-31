@@ -10,6 +10,39 @@ import {useDataCache} from "../state/DataCache";
 import {useDataGetter} from "./DataGetter";
 
 const stateDoc = `
+    State management is pretty messed up at the moment. We need decent performance....
+    Here's what needs to be tracked in state and description of how it's all related.
+
+    codeset_ids, selected in a few different ways:
+      - with a list on the About page
+      - on search page by selecting from drop down and clicking load concept sets
+      - on search page after some are chosen by clicking a selected cset to deselect it
+        or clicking a related cset to add it to the selection
+
+    concept_ids and concept (metadata) for them:
+      - for all definition (expression) items and expansion members of selected codeset_ids
+        PLUS:
+          - Additional concepts from vocab hierarchies needed to connect the already selected concept_ids
+          - Concept_ids (but don't need all the metadata) for for all the related concept sets in order to
+            calculate share, precision, and recall
+          - Additional concepts of interest to users -- not implemented yet, but important (and these will
+            probably require the concept metadata, not just concept_ids)
+      - The way that all works (will work) is:
+        1. Call concept_ids_by_codeset_id for all selected codeset_ids
+        2. Call subgraph to get hierarchy for all resulting concept_ids (and any additionally requested concept_ids);
+           this will add a few more concept_ids for filling in gaps. Subgraph returns edges. Edge list is unique for
+           each unique set of input concept_ids. --- which makes this step horrible for caching and a possible performance
+           bottleneck.
+        3. Call codeset_ids_by_concept_id for all concept_ids from step 1 (or 2?)
+        4. Call concept_ids_by_codeset_id again for all codeset_ids from step 3. This is also a performance/caching
+           problem because it's a lot of data.
+
+        For steps 2 and 3, the union of all concept_ids is what we need. For step 4, we need the list of concept_ids
+        associated with each codeset_id in order to perform the calculations (shared/prec/recall.)
+
+
+
+
     URL query string: SearchParamsProvider, useSearchParams
       codeset_ids
       editCodesetId
