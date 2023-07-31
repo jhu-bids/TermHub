@@ -6,7 +6,7 @@ How to run:
 import os
 import sys
 from pathlib import Path
-from backend.db.resolve_fetch_failures import resolve_fetch_failures
+from backend.db.resolve_fetch_failures_excess_items import resolve_fetch_failures_excess_items
 from backend.db.utils import run_sql, sql_query
 from enclave_wrangler.objects_api import fetch_cset_and_member_objects
 from test.backend_tests.db.test_utils import FetchAuditTestRunner
@@ -47,8 +47,8 @@ class TestBackendResolveFetchFailures(FetchAuditTestRunner):
 
     # todo: A better test would be to actually run this in test_n3c, and check before/after that actual data is inserted
     #  but I don't think it'll run cuz it's still missing a few of the new tables; or maybe just 1: csets_to_ignore?
-    def test_resolve_fetch_failures(self):
-        """Test resolve_fetch_failures()"""
+    def test_resolve_fetch_failures_excess_items(self):
+        """Test resolve_fetch_failures_excess_items()"""
         pk = self.mock_data[0]['primary_key']
         query = lambda: sql_query(self.con, f"SELECT success_datetime FROM fetch_audit WHERE primary_key = '{pk}';")[-1]
         # mock_data: setUpClass will have inserted by now
@@ -56,7 +56,7 @@ class TestBackendResolveFetchFailures(FetchAuditTestRunner):
             run_sql(self.con, f"DELETE FROM fetch_audit WHERE primary_key = '{pk}' AND comment = 'Unit testing.';")
             fetch_cset_and_member_objects(codeset_ids=[pk])
         status1 = query()
-        resolve_fetch_failures()
+        resolve_fetch_failures_excess_items()
         status2 = query()
         self.assertNotEqual(status1, status2)
 

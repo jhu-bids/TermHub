@@ -1,4 +1,4 @@
-"""Resolve any failures resulting from fetching data from the Enclave's objects API."""
+"""Resolve failures due to too many expression items or members when fetching data from the Enclave's objects API."""
 import os
 import sys
 from argparse import ArgumentParser
@@ -16,22 +16,20 @@ from backend.db.utils import SCHEMA, fetch_status_set_success, get_db_connection
 from enclave_wrangler.datasets import CSV_TRANSFORM_DIR, download_datasets
 from enclave_wrangler.utils import was_file_modified_within_threshold
 
-DESC = 'Resolve any failures resulting from fetching data from the Enclave\'s objects API.'
+DESC = "Resolve failures due to too many expression items or members when fetching data from the Enclave's objects API."
 
-def resolve_fetch_failures(use_local_db=False, cached_dataset_threshold_hours=0):
-    """Resolve any failures resulting from fetching data from the Enclave's objects API.
-    cached_dataset_threshold_hours: default of 24 hours is good for failure cases fail-excessive*, but not for
-    fail-0-members. For that, need to set to 0.
+def resolve_fetch_failures_excess_items(use_local_db=False, cached_dataset_threshold_hours=0):
+    """Resolve failures due to too many expression items or members when fetching data from the Enclave's objects API.
+    cached_dataset_threshold_hours: Threshold, in hours, until cached datasets considered invalid and need to be
+    re-downloaded.
     """
-    print('Resolving failures for failed fetches from the Enclave\'s objects API by using datasets API instead.')
+    print('Resolve failures due to too many expression items or members when fetching data from the Enclave\'s '
+          'objects API by using datasets API instead.')
     # Vars
     datasets = ['concept_set_version_item', 'concept_set_members']
     failure_dataset_map = {
         'fail-excessive-items': 'concept_set_version_item',
         'fail-excessive-members': 'concept_set_members',
-        # 0-members: Is handled elsewhere, as not typically solvable via how resolve_fetch_failures() is used. But
-        # ...leaving it here as a failsafe.
-        'fail-0-members': 'concept_set_members',
     }
     dataset_path_map: Dict[str, str] = {ds: os.path.join(CSV_TRANSFORM_DIR, f'{ds}.csv') for ds in datasets}
 
@@ -94,7 +92,7 @@ def cli():
         '-c', '--cached-dataset-threshold-hours', required=False, default=0,
         help='Threshold, in hours, until cached datasets considered invalid and need to be re-downloaded.')
 
-    resolve_fetch_failures(**vars(parser.parse_args()))
+    resolve_fetch_failures_excess_items(**vars(parser.parse_args()))
 
 
 if __name__ == '__main__':

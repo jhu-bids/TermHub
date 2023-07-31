@@ -5,6 +5,7 @@ todo's
 """
 import json
 import os
+import time
 from random import randint
 
 import pytz
@@ -34,14 +35,11 @@ DB = CONFIG["db"]
 SCHEMA = CONFIG["schema"]
 
 
-# todo: move this somewhere else, possibly load.py or db_refresh.py
-# todo: what to do if this process fails? any way to roll back? should we?
-def refresh_termhub_core_cset_derived_tables(con: Connection, schema: str):
+def refresh_termhub_core_cset_derived_tables_exec(con: Connection, schema: str):
     """Refresh TermHub core cset derived tables
 
     This can also work to initially create the tables if they don't already exist."""
     temp_table_suffix = '_new'
-    # TODO: update when I have DDL for public.csets_to_ignore
     # todo: move this config to somewhere so that it's easy to access
     ddl_modules = [
         'cset_members_items',
@@ -83,6 +81,35 @@ def refresh_termhub_core_cset_derived_tables(con: Connection, schema: str):
     print(f' - completed in {(t1 - t0).seconds} seconds')
 
 
+# todo: move this somewhere else, possibly load.py or db_refresh.py
+# todo: what to do if this process fails? any way to roll back? should we?
+# todo: currently has no way of passing 'local' down to db status var funcs
+def refresh_termhub_core_cset_derived_tables(con: Connection, schema: str, polling_interval_seconds: int = 30):
+    """Refresh TermHub core cset derived tables: wrapper function
+
+    Handles simultaneous requests and try/except for worker function: refresh_termhub_core_cset_derived_tables_exec()"""
+    i = 0
+    t0 = datetime.now()
+    while True:
+        i += 1
+        if (datetime.now() - t0).total_seconds() >= 2 * 60 * 60:  # 2 hours
+            raise RuntimeError('Timed out after waiting 2 hours for other active derived table refresh to complete.')
+        elif check_db_status_var('derived_tables_refresh_status') == 'active':
+            msg = f'Another derived table refresh is active. Waiting {polling_interval_seconds} seconds to try again.' \
+                if i == 0 else '- trying again'
+            print(msg)
+            time.sleep(polling_interval_seconds)
+        else:
+            try:
+                update_db_status_var('derived_tables_refresh_status', 'active')
+                refresh_termhub_core_cset_derived_tables_exec(con, schema)
+            finally:
+                update_db_status_var('derived_tables_refresh_status', 'inactive')
+            break
+
+
+# todo: make 'isolation_level' the final param, since we never override it. this would it so we dont' have to pass the
+#  other params as named params.
 def get_db_connection(isolation_level='AUTOCOMMIT', schema: str = SCHEMA, local=False) -> Connection:
     """Connect to db
     :param local: If True, connection is on local instead of production database."""
@@ -166,10 +193,11 @@ def update_db_status_var(key: str, val: str, local=False):
         sql_str = f"INSERT INTO public.manage (key, value) VALUES (:key, :val);"
         run_sql(con, sql_str, {'key': key, 'val': val})
 
+
 def check_db_status_var(key: str,  local=False):
     """Check the value of a given variable the `manage`table """
-    with get_db_connection(schema='', local=local) as con2:
-        results: List = sql_query_single_col(con2, f"SELECT value FROM public.manage WHERE key = '{key}';")
+    with get_db_connection(schema='', local=local) as con:
+        results: List = sql_query_single_col(con, f"SELECT value FROM public.manage WHERE key = '{key}';")
         return results[0] if results else None
 
 def delete_db_status_var(key: str, local=False):
@@ -177,8 +205,10 @@ def delete_db_status_var(key: str, local=False):
     with get_db_connection(schema='', local=local) as con2:
         run_sql(con2, f"DELETE FROM public.manage WHERE key = '{key}';")
 
-def insert_fetch_status(rows: List[Dict], local=False):
-    """Update fetch status of record"""
+def insert_fetch_statuses(rows: List[Dict], local=False):
+    """Update fetch status of record
+    :param: rows: expects keys 'comment', 'primary_key', 'table', and 'status_initially'."""
+    rows = [{k: str(v) for k, v in x.items()} for x in rows]  # corrects codeset_id from int to str
     with get_db_connection(schema='', local=local) as con:
         insert_from_dicts(con, 'fetch_audit', rows)
 
@@ -191,13 +221,13 @@ def fetch_status_set_success(rows: List[Dict], local=False):
     """Update fetch status of record
     :param rows: Takes the same format of list of dictionaries that you would get from select_failed_fetches()"""
     sql_str = """UPDATE fetch_audit
-    SET success_datetime = current_timestamp
+    SET success_datetime = current_timestamp, comment = :comment
     WHERE "table" = :table
       AND "primary_key" = :primary_key
       AND status_initially = :status_initially;"""
     with get_db_connection(schema='', local=local) as con:
         for row in rows:
-            run_sql(con, sql_str, {k: v for k, v in row.items() if k in ['table', 'primary_key', 'status_initially']})
+            run_sql(con, sql_str, {k: v for k, v in row.items()})
 
 def database_exists(con: Connection, db_name: str) -> bool:
     """Check if database exists"""
@@ -245,7 +275,7 @@ def delete_obj_by_composite_key(con, table: str, key_ids: Dict[str, Union[str, i
 def get_obj_by_composite_key(con, table: str, keys: List[str], obj: Dict) -> List[RowMapping]:
     """Get object by ID
     todo: could be made more consistent w/ get_obj_by_id(): accept obj_id instead?"""
-    keys_str = ' AND '.join([f'{key} = (:{key}_id)' for key in keys])
+    keys_str = ' AND '.join([f'"{key}" = (:{key}_id)' for key in keys])
     return sql_query(
         con, f'SELECT * FROM {table} WHERE {keys_str}',
         {f'{key}_id': obj[key] for key in keys})
@@ -271,9 +301,9 @@ def get_objs_by_composite_key(con, table: str, keys: List[str], objs: List[Dict]
     todo: refactor: look to insert_from_dicts() more secure way to do this by passing `params` to run_sql()`
     :return: dictionary with keys as the primary key and values as the row contents"""
     key_vals = {key: [str(obj[key]) for obj in objs] for key in keys}
-    results: List[RowMapping] = sql_query(
-        con, f"SELECT * FROM {table} WHERE {' AND '.join([f'{k} {sql_in(v, True)}' for k, v in key_vals.items()])};",
-        return_with_keys=True)
+    conditions = ' AND '.join([f'"{k}" {sql_in(v, True)}' for k, v in key_vals.items()])
+    query = f"SELECT * FROM {table} WHERE {conditions};"
+    results: List[RowMapping] = sql_query(con, query, return_with_keys=True)
     return [dict(x) for x in results]
 
 
