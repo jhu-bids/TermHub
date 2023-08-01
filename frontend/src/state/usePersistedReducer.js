@@ -1,7 +1,7 @@
 // start with code from https://github.com/johnayeni/use-persisted-reducer
 
 import React, { useEffect, useReducer } from 'react';
-import {get, isEmpty} from 'lodash';
+import {get, isEmpty, } from 'lodash';
 import {oneSidedObjectDifference} from "../components/utils";
 
 /*
@@ -24,7 +24,8 @@ import {oneSidedObjectDifference} from "../components/utils";
  */
 
 export const usePersistedReducer = (reducer, initialState, key, storage, unpersistedDefaultState) => {
-  let [state, dispatch] = React.useReducer(reducer, storage.get(key, initialState));
+  const storageState = storage.get(key, initialState);
+  let [state, dispatch] = React.useReducer(reducer, storageState);
 
   useEffect(() => {
     storage.set(key, state);
@@ -44,11 +45,12 @@ const createStorage = (provider, unpersistedDefaultState) => ({
     let ret;
     const json = provider.getItem(key);
     try {
-      ret = json === null
-          ? typeof initialState === 'function'
-              ? initialState()
-              : initialState
-          : JSON.parse(json);
+      if (json === null) {
+        ret = typeof(initialState) === 'function' ? initialState() : initialState;
+      } else {
+        // if getItem give an object instead of a JSON string, don't parse it
+        ret = typeof(json) === 'string' ? JSON.parse(json) : json;
+      }
     } catch(err) {
       if (err.name === 'SyntaxError') {
         ret = json;

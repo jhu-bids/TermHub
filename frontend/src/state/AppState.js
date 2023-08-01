@@ -1,5 +1,5 @@
 import React, {createContext, useContext, useReducer} from "react";
-import {flatten, fromPairs, get, isEmpty} from "lodash";
+import {flatten, fromPairs, get, isEmpty, isEqual} from "lodash";
 import {createPersistedReducer} from "./usePersistedReducer";
 import {alertsReducer} from "../components/AlertMessages";
 import {useSearchParamsState} from "./SearchParamsProvider";
@@ -33,9 +33,20 @@ const codesetIdsReducer = (state, action) => {
 const CodesetIdsContext = createContext(null);
 export function CodesetIdsProvider({ children }) {
   const storageProvider = useSearchParamsState();
-  const usePersistedReducer = createPersistedReducer('codeset_ids', storageProvider);
-  const [state, dispatch] = usePersistedReducer(codesetIdsReducer, []);
+  // const usePersistedReducer = createPersistedReducer('codeset_ids', storageProvider);
+  // const [state, dispatch] = usePersistedReducer(codesetIdsReducer, []);
+  // const [state, dispatch] = useReducer(codesetIdsReducer, []);
 
+  let state = storageProvider.getItem('codeset_ids') || [];
+
+  const dispatch = action => {
+    let latestState = storageProvider.getItem('codeset_ids') || [];
+    const stateAfterDispatch = codesetIdsReducer(latestState, action);
+    if (!isEqual(latestState, stateAfterDispatch)) {
+      debugger;
+      storageProvider.setItem('codeset_ids', stateAfterDispatch);
+    }
+  }
   return (
       <CodesetIdsContext.Provider value={[state, dispatch]}>
         {children}
