@@ -21,11 +21,11 @@ import "./App.css";
 import { isEmpty } from "lodash";
 
 import { ConceptSetsPage } from "./components/Csets";
-import { CsetComparisonPage } from "./pages/CsetComparisonPage";
-import { AboutPage } from "./pages/AboutPage";
+import { CsetComparisonPage } from "./components/CsetComparisonPage";
+import { AboutPage } from "./components/AboutPage";
 import { ConceptGraph } from "./components/ConceptGraph";
 import {ViewCurrentState, } from "./state/State";
-import {AlertsProvider, useAlerts, useAlertsDispatch, EditCsetProvider, } from "./state/AppState";
+import {CodesetIdsProvider, AlertsProvider, useAlerts, useAlertsDispatch, EditCsetProvider, } from "./state/AppState";
 import {SearchParamsProvider, useSearchParamsState} from "./state/SearchParamsProvider";
 import {DataGetterProvider} from "./state/DataGetter";
 import { UploadCsvPage } from "./components/UploadCsv";
@@ -56,13 +56,15 @@ function QCProvider() {
     // <React.StrictMode> // {/* StrictMode helps assure code goodness by running everything twice, but it's annoying*/}
       <SearchParamsProvider>
         <AlertsProvider>
-          <EditCsetProvider>
-            <DataCacheProvider>
-              <DataGetterProvider>
-                <RoutesContainer/>
-              </DataGetterProvider>
-            </DataCacheProvider>
-          </EditCsetProvider>
+          <CodesetIdsProvider>
+            <EditCsetProvider>
+              <DataCacheProvider>
+                <DataGetterProvider>
+                  <RoutesContainer/>
+                </DataGetterProvider>
+              </DataCacheProvider>
+            </EditCsetProvider>
+          </CodesetIdsProvider>
         </AlertsProvider>
       </SearchParamsProvider>
     // </React.StrictMode>

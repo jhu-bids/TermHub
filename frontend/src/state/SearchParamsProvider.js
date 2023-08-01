@@ -29,12 +29,12 @@ export function SearchParamsProvider({children}) {
         sp[key] = JSON.parse(sp[key]);
       }
     });
-    console.log('returning sp', sp);
+    // console.log('returning sp', sp);
     return sp;
   }, [searchParams]);
 
   let sp = searchParamsToObj(searchParams);
-  console.log('got sp', sp);
+  // console.log('got sp', sp);
 
   // gets state (codeset_ids for now) from query string, passes down through props
   // const [codeset_ids, setCodeset_ids] = useState(sp.codeset_ids || []);

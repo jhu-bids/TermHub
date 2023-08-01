@@ -6,6 +6,48 @@ import {useSearchParamsState} from "./SearchParamsProvider";
 
 export const NEW_CSET_ID = -1;
 
+const codesetIdsReducer = (state, action) => {
+  if (!(action && action.type)) return state;
+  switch (action.type) {
+    case "add_codeset_id": {
+      return [...state, parseInt(action.codeset_id)].sort();
+    }
+    case "delete_codeset_id": {
+      return state.filter((d) => d != action.codeset_id);
+    }
+    case "set_all": {
+      return [...action.codeset_ids];
+    }
+      /*  ends up toggling multiple times now that not using context provider
+      case "toggle": {
+        if (state.includes(action.codesetId)) {
+          return state.filter(d => d !== action.codesetId);
+        }
+        return [...state, parseInt(action.codesetId)].sort();
+      }
+       */
+    default:
+      throw new Error(`unexpected action.type ${action.type}`);
+  }
+};
+const CodesetIdsContext = createContext(null);
+export function CodesetIdsProvider({ children }) {
+  const storageProvider = useSearchParamsState();
+  const usePersistedReducer = createPersistedReducer('codeset_ids', storageProvider);
+  const [state, dispatch] = usePersistedReducer(codesetIdsReducer, []);
+
+  return (
+      <CodesetIdsContext.Provider value={[state, dispatch]}>
+        {children}
+      </CodesetIdsContext.Provider>
+  );
+}
+export function useCodesetIds() {
+  return useContext(CodesetIdsContext);
+}
+
+
+
 const AlertsContext = createContext(null);
 const AlertsDispatchContext = createContext(null);
 export function AlertsProvider({ children }) {
@@ -154,37 +196,6 @@ const editCsetReducer = (state, action) => {
   return action.payload;
 };
 
-
-export function useCodesetIds() {
-  const storageProvider = useSearchParamsState();
-  const usePersistedReducer = createPersistedReducer('codeset_ids', storageProvider);
-
-  const codesetIdsReducer = (state, action) => {
-    if (!(action && action.type)) return state;
-    switch (action.type) {
-      case "add_codeset_id": {
-        return [...state, parseInt(action.codeset_id)].sort();
-      }
-      case "delete_codeset_id": {
-        return state.filter((d) => d != action.codeset_id);
-      }
-      case "set_all": {
-        return action.codesetIds;
-      }
-      /*  ends up toggling multiple times now that not using context provider
-      case "toggle": {
-        if (state.includes(action.codesetId)) {
-          return state.filter(d => d !== action.codesetId);
-        }
-        return [...state, parseInt(action.codesetId)].sort();
-      }
-       */
-      default:
-        throw new Error(`unexpected action.type ${action.type}`);
-    }
-  };
-  return usePersistedReducer(codesetIdsReducer, []);
-}
 
 const currentConceptIdsReducer = (state, action) => { // not being used
   if (!(action && action.type)) return state;

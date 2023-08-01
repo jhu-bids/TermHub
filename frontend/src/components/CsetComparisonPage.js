@@ -20,10 +20,10 @@ import {dfs, dfsFromNode} from 'graphology-traversal/dfs';
 import { saveAs } from 'file-saver';
 import Papa from 'papaparse';
 
-import { fmt, useWindowSize } from "../components/utils";
-import { setColDefDimensions } from "../components/dataTableUtils";
-import { ConceptSetCard } from "../components/ConceptSetCard";
-import { Tooltip } from "../components/Tooltip";
+import { fmt, useWindowSize } from "./utils";
+import { setColDefDimensions } from "./dataTableUtils";
+import { ConceptSetCard } from "./ConceptSetCard";
+import { Tooltip } from "./Tooltip";
 import {
   getCodesetEditActionFunc,
   EditInfo,
@@ -32,14 +32,14 @@ import {
   Legend,
   saveChangesInstructions,
   textCellForItem, getItem,
-} from "../components/EditCset";
-import { FlexibleContainer } from "../components/FlexibleContainer";
+} from "./EditCset";
+import { FlexibleContainer } from "./FlexibleContainer";
 import {useEditCset, useHierarchySettings, } from "../state/AppState";
 import {useDataCache} from "../state/DataCache";
 import {useDataGetter, getResearcherIdsFromCsets} from "../state/DataGetter";
 import {useSearchParamsState} from "../state/SearchParamsProvider";
 import CloseIcon from "@mui/icons-material/Close";
-import {CsetsDataTable} from "../components/CsetsDataTable";
+import {CsetsDataTable} from "./CsetsDataTable";
 import {NEW_CSET_ID} from "../state/AppState";
 
 // TODO: Find concepts w/ good overlap and save a good URL for that
@@ -791,7 +791,7 @@ function colConfig(props) {
         //tooltipContent: "Click to create and edit new draft of this concept set",
         tooltipContent: `${cset_col.codeset_id} ${cset_col.concept_set_version_title}.
                             ${nested ? '' : 'Click to sort.'}`,
-        
+
         headerContent: cset_col.concept_set_name,
         headerContentProps: {
           codeset_id: cset_col.codeset_id,
@@ -985,7 +985,7 @@ createTheme(
 function styles(sizes) {
   return {
     /*
-        	tableWrapper: {
+          tableWrapper: {
             style: {
               display: 'table',
             },

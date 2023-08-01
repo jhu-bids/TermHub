@@ -15,7 +15,7 @@ import Card from "@mui/material/Card";
 import CardContent from "@mui/material/CardContent";
 import Typography from "@mui/material/Typography";
 // import * as po from '../pages/Popover';
-import { DOCS } from "../pages/AboutPage";
+import { DOCS } from "./AboutPage";
 import {useDataCache} from "../state/DataCache";
 import {useDataGetter, getResearcherIdsFromCsets, } from "../state/DataGetter";
 import {useCodesetIds} from "../state/AppState";
@@ -45,22 +45,13 @@ function initialOpts(all_csets, codesetIds) {
   return opts;
 }
 export function CsetSearch(props) {
-  const { codeset_ids=[], all_csets, } = props;
+  const { all_csets, } = props;
+  const [codeset_ids, codesetIdsDispatch] = useCodesetIds();
   const [value, setValue] = useState(codeset_ids);
-  const [codesetIds, codesetIdsDispatch] = useCodesetIds();
 
-  // const [keyForRefreshingAutocomplete, setKeyForRefreshingAutocomplete] = useState(0);
-  // necessary to change key for reset because of Autocomplete bug, according to https://stackoverflow.com/a/59845474/1368860
-  /*
-  const filterOptions = (options, state) => {
-    let strings = state.inputValue.split(" ").filter((s) => s.length);
-    if (!strings.length) {
-      return options;
-    }
-    let match = strings.map((m) => new RegExp(m, "i"));
-    return options.filter((o) => every(match.map((m) => o.label.match(m))));
-  }
-   */
+  useEffect(() => {
+    setValue(codeset_ids);
+  }, [codeset_ids.join('|')]);
 
   // from https://github.com/kentcdodds/match-sorter#keys-string
   const filterOptions = (options, { inputValue }) => matchSorter(options, inputValue, { keys: [ 'label' ]});
@@ -194,12 +185,12 @@ function ConceptSetsPage(props) {
 
       concept_ids = await concept_ids;
       concept_ids = union(flatten(Object.values(await concept_ids)));
-      setData(current => ({...current, concept_ids}));
+      // setData(current => ({...current, concept_ids}));
 
       let relatedCodesetIdsByConceptId = dataGetter.fetchAndCacheItems(dataGetter.apiCalls.codeset_ids_by_concept_id, concept_ids);
 
       all_csets = await all_csets;
-      setData(current => ({...current, all_csets, }));
+      // setData(current => ({...current, all_csets, }));
 
       const relatedCodesetIds = union(flatten(Object.values(await relatedCodesetIdsByConceptId)));
 
@@ -212,7 +203,7 @@ function ConceptSetsPage(props) {
       let allRelatedCsets = keyBy(_allRelatedCsetsArray, 'codeset_id');
 
       selected_csets = Object.values(await selected_csets);
-      setData(current => ({...current, selected_csets}));
+      // setData(current => ({...current, selected_csets}));
 
       const researcherIds = getResearcherIdsFromCsets(selected_csets);
       let researchers = dataGetter.fetchAndCacheItems(dataGetter.apiCalls.researchers, researcherIds);
@@ -223,10 +214,10 @@ function ConceptSetsPage(props) {
         allRelatedCsets[cset.codeset_id] = cset;
         return cset;
       });
-      setData(current => ({...current, allRelatedCsets}));
+      // setData(current => ({...current, allRelatedCsets}));
 
       relatedCsetConceptIds = await relatedCsetConceptIds;
-      setData(current => ({...current, relatedCsetConceptIds}));
+      // setData(current => ({...current, relatedCsetConceptIds}));
 
       for (let csid in relatedCsetConceptIds) {
         let cset = allRelatedCsets[csid];
@@ -247,10 +238,12 @@ function ConceptSetsPage(props) {
 
       let relatedCsets = Object.values(allRelatedCsets).filter(cset => !cset.selected);
       relatedCsets = orderBy( relatedCsets, ["selected", "precision"], ["desc", "desc"] );
-      setData(current => ({...current, relatedCsets}));
+      // setData(current => ({...current, relatedCsets}));
 
       researchers = await researchers;
-      setData(current => ({...current, researchers}));
+      // setData(current => ({...current, researchers}));
+      setData(current => ({...current, concept_ids, all_csets, selected_csets,
+        allRelatedCsets, relatedCsets, researchers, }));
     })()
   }, [codeset_ids.join('|')]);
 
@@ -280,9 +273,9 @@ function ConceptSetsPage(props) {
       }}
     >
       <CsetSearch {...props} />
-      {<CsetsDataTable {...props} show_selected={true} />}
-      {<CsetsDataTable {...props} show_selected={false} />}
-      {<ConceptSetCards {...props} />}
+      <CsetsDataTable {...props} show_selected={true} />
+      <CsetsDataTable {...props} show_selected={false} />
+      <ConceptSetCards {...props} />
     </div>
   );
 }

@@ -10,6 +10,7 @@ import {useDataCache} from "../state/DataCache";
 import {useDataGetter} from "./DataGetter";
 
 const stateDoc = `
+    2023-08
     State management is pretty messed up at the moment. We need decent performance....
     Here's what needs to be tracked in state and description of how it's all related.
 
@@ -39,6 +40,11 @@ const stateDoc = `
 
         For steps 2 and 3, the union of all concept_ids is what we need. For step 4, we need the list of concept_ids
         associated with each codeset_id in order to perform the calculations (shared/prec/recall.)
+
+    Coming up with the right caching strategy that balances ease of use (programming-wise), data retrieval and
+    storage efficiency, and stability has been hard and I don't have a decent solution at the moment. Considering
+    trying to move (back) to something simpler.
+
 
 
 

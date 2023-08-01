@@ -15,7 +15,7 @@ import {
   TextH2,
   TextBold,
   howToSaveStagedChanges,
-} from "../pages/AboutPage";
+} from "./AboutPage";
 import _ from "../supergroup/supergroup";
 import {backend_url} from "../state/DataGetter";
 import {useSearchParamsState} from "../state/SearchParamsProvider";
