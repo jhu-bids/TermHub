@@ -34,7 +34,7 @@ import {
   textCellForItem, getItem,
 } from "./EditCset";
 import { FlexibleContainer } from "./FlexibleContainer";
-import {useEditCset, useHierarchySettings, } from "../state/AppState";
+import {useEditCset, useHierarchySettings, useCodesetIds, } from "../state/AppState";
 import {useDataCache} from "../state/DataCache";
 import {useDataGetter, getResearcherIdsFromCsets} from "../state/DataGetter";
 import {useSearchParamsState} from "../state/SearchParamsProvider";
@@ -47,13 +47,14 @@ import {NEW_CSET_ID} from "../state/AppState";
 // TODO: Color table: I guess would need to see if could pass extra values/props and see if table widget can use that
 //  ...for coloration, since we want certain rows grouped together
 function CsetComparisonPage() {
+  const [codeset_ids, codesetIdsDispatch] = useCodesetIds();
   const {sp, updateSp} = useSearchParamsState();
-  const { codeset_ids = [], editCodesetId, csetEditState, } = sp;
+  const { editCodesetId, csetEditState, } = sp;
+  const [editCset, editCsetDispatch] = useEditCset();
   // const { selected_csets = [], researchers, } = cset_data;
   const dataGetter = useDataGetter();
   const dataCache = useDataCache();
   let [hierarchySettings, hsDispatch] = useHierarchySettings();
-  const editCset = useEditCset();
   const {collapsePaths, collapsedDescendantPaths, nested, hideRxNormExtension, hideZeroCounts} = hierarchySettings;
   const windowSize = useWindowSize();
   const boxRef = useRef();
@@ -67,31 +68,14 @@ function CsetComparisonPage() {
   const { edges, concepts, conceptLookup, selected_csets, csmi, researchers } = data;
 
   useEffect(() => {
-    if (boxRef.current) {
-
-      let margin_text = window
-          .getComputedStyle(boxRef.current)
-          .getPropertyValue("margin-bottom");
-      margin_text = margin_text.substring(0, margin_text.length - 2);
-      const margin = parseInt(margin_text);
-
-      setPanelPosition({
-        x: 0,
-        y: boxRef.current.clientHeight + 2 * margin
-      });
-    }
-  }, [
-    boxRef.current,
-    (boxRef.current ? boxRef.current.offsetHeight : 0),
-  ]);
-
-  useEffect(() => {
     (async () => {
       /*
         cset_members_items
         csets => researchers
         concept_ids_by_codeset_id ==> concept_ids => edges => concepts
        */
+      let whoami = dataGetter.fetchAndCacheItems(dataGetter.apiCalls.whoami, undefined);
+
       let promises = [ // these can run immediately
         dataGetter.fetchAndCacheItems(dataGetter.apiCalls.cset_members_items, codeset_ids),
         dataGetter.fetchAndCacheItems(dataGetter.apiCalls.csets, codeset_ids),
@@ -103,7 +87,7 @@ function CsetComparisonPage() {
       // have to get edges, which might contain more concept_ids after filling gaps
       const edges = await dataGetter.fetchAndCacheItems(dataGetter.apiCalls.edges, concept_ids, );
       concept_ids = union(concept_ids.map(String), flatten(edges)).sort();
-      setData(current => ({...current, concept_ids, edges}));
+      // setData(current => ({...current, concept_ids, edges}));
       // javascript sleep technique from https://stackoverflow.com/a/39914235/1368860, for testing what happens after setData
       //  .... apparently nothing
       // await new Promise(r => setTimeout(r, 7000));
@@ -116,19 +100,29 @@ function CsetComparisonPage() {
         conceptLookup,
       ] = await Promise.all(promises);
       selected_csets = Object.values(selected_csets);
-      setData(current => ({...current, selected_csets, conceptLookup}));
+      // setData(current => ({...current, selected_csets, conceptLookup}));
 
-      selected_csets = selected_csets.map(cset => {
-        cset = {...cset};
-        cset.intersecting_concepts= 0;
-        cset.precision = 0;
-        cset.recall = 0;
-        return cset;
-      });
+      if ((editCset || {}).newCset) {
+        const currentUserId = (await whoami).id;
+        editCsetDispatch({type: 'currentUserId', currentUserId});
 
-      const researcherIds = getResearcherIdsFromCsets(selected_csets.filter(d => d.codeset_id === editCodesetId));
+        selected_csets.push(editCset.newCset);
+
+        selected_csets = selected_csets.map(cset => {
+          cset = {...cset};
+          cset.intersecting_concepts= 0;
+          cset.precision = 0;
+          cset.recall = 0;
+          return cset;
+        });
+
+        csmi = {...csmi, ...editCset.definitions};
+      }
+
+      const researcherIds = getResearcherIdsFromCsets(selected_csets); // .filter(d => d.codeset_id === editCodesetId);
       let researchers = dataGetter.fetchAndCacheItems(dataGetter.apiCalls.researchers, researcherIds);
 
+      /*
       if (typeof (editCodesetId) !== "undefined") {
         selected_csets.push({
           codeset_id: NEW_CSET_ID,
@@ -136,14 +130,11 @@ function CsetComparisonPage() {
           concept_set_version_title: "New Concept Set",
         });
       }
-
-      if (!isEmpty(editCset)) {
-        csmi = {...csmi, ...editCset.definitions};
-      }
+       */
 
       const concepts = Object.values(conceptLookup);
 
-      setData(current => ({...current, csmi, concepts}));
+      // setData(current => ({...current, csmi, concepts}));
 
       const edgeCids = uniq(flatten(edges)).sort();
       const conceptsCids = concepts.map(d => d.concept_id + '').sort();
@@ -162,9 +153,29 @@ function CsetComparisonPage() {
        */
 
       researchers = await researchers;
-      setData(current => ({...current, researchers}));
+      setData(current => ({...current, concept_ids, edges, selected_csets, conceptLookup, csmi, concepts, researchers}));
     })();
   }, []);
+
+  useEffect(() => {
+    if (boxRef.current) {
+
+      let margin_text = window
+          .getComputedStyle(boxRef.current)
+          .getPropertyValue("margin-bottom");
+      margin_text = margin_text.substring(0, margin_text.length - 2);
+      const margin = parseInt(margin_text);
+
+      setPanelPosition({
+                         x: 0,
+                         y: boxRef.current.clientHeight + 2 * margin
+                       });
+    }
+  }, [
+              boxRef.current,
+              (boxRef.current ? boxRef.current.offsetHeight : 0),
+            ]);
+
 
   if (isEmpty(concepts) || isEmpty(edges)) {
     return <p>Downloading...</p>;
@@ -252,9 +263,10 @@ function CsetComparisonPage() {
     <Button key="add-cset"
             variant="outlined"
             onClick={() => {
+              // const addProps = { editCodesetId: NEW_CSET_ID, csetEditState: {} };
+              // updateSp({ addProps });
+              editCsetDispatch({type: 'create_new_cset'});
               setAddNewCsetDisplay(false);
-              const addProps = { editCodesetId: NEW_CSET_ID, csetEditState: {} };
-              updateSp({ addProps });
             }}
             sx={{
               cursor: 'pointer',
@@ -278,39 +290,42 @@ function CsetComparisonPage() {
   let edited_cset;
   if (editCodesetId) {
     edited_cset = selected_csets.find(cset => cset.codeset_id === editCodesetId);
-    infoPanels.push(
-        <FlexibleContainer key="cset" title="Concept set being edited"
-                           position={panelPosition} countRef={countRef}>
-          <ConceptSetCard
-              cset={columns.find((d) => d.codeset_id === editCodesetId).cset_col}
-              researchers={researchers}
-              editing={true}
-          />
-        </FlexibleContainer>
-    );
-    /* infoPanels.push(
-        <FlexibleContainer key="compare" title={edited_cset.concept_set_name}>
-          <CsetsDataTable {...props} show_selected={true} min_col={false} />
-        </FlexibleContainer>
-    ); */
-    if (csetEditState && csetEditState[editCodesetId]) {
-      const csidState = csetEditState[editCodesetId];
+    const editedCsetCol = (columns.find((d) => d.codeset_id === editCodesetId) || {}).cset_col;
+    if (editedCsetCol) {
       infoPanels.push(
-          <FlexibleContainer key="changes"
-                             title={`${Object.keys(csidState).length} Staged changes`}
-                             position={panelPosition} countRef={countRef}
-          >
-            <EditInfo selected_csets={selected_csets} conceptLookup={conceptLookup} />
-          </FlexibleContainer>,
-
-          <FlexibleContainer key="instructions"
-                             title="Instructions to save changes"
+          <FlexibleContainer key="cset" title="Concept set being edited"
                              position={panelPosition} countRef={countRef}>
-            {saveChangesInstructions({ editCodesetId,
-                                       csetEditState,
-                                       selected_csets, })}
+            <ConceptSetCard
+                cset={columns.find((d) => d.codeset_id === editCodesetId).cset_col}
+                researchers={researchers}
+                editing={true}
+            />
           </FlexibleContainer>
       );
+      /* infoPanels.push(
+          <FlexibleContainer key="compare" title={edited_cset.concept_set_name}>
+            <CsetsDataTable {...props} show_selected={true} min_col={false} />
+          </FlexibleContainer>
+      ); */
+      if (csetEditState && csetEditState[editCodesetId]) {
+        const csidState = csetEditState[editCodesetId];
+        infoPanels.push(
+            <FlexibleContainer key="changes"
+                               title={`${Object.keys(csidState).length} Staged changes`}
+                               position={panelPosition} countRef={countRef}
+            >
+              <EditInfo selected_csets={selected_csets} conceptLookup={conceptLookup} />
+            </FlexibleContainer>,
+
+            <FlexibleContainer key="instructions"
+                               title="Instructions to save changes"
+                               position={panelPosition} countRef={countRef}>
+              {saveChangesInstructions({ editCodesetId,
+                                         csetEditState,
+                                         selected_csets, })}
+            </FlexibleContainer>
+        );
+      }
     }
   }
 

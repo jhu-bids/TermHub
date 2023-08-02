@@ -113,13 +113,15 @@ class DataGetter {
 			key: undefined,
 			alertTitle: 'Get all concept sets (partial) to populate select list',
 			apiResultShape: 'array of keyed obj',
-			/* data = dataCache.cacheGet([itemType]);
-          if (isEmpty(data)) {
-            url = backend_url('get-all-csets');
-            data = await this.axiosCall(url, {title: 'Get all concept sets for select list', verbose: true});
-            dataCache.cachePut([itemType], data);
-          }
-          return data; */
+		},
+		whoami: {
+			expectedParams: undefined,
+			api: 'whoami',
+			protocols: ['get'],
+			cacheSlice: 'whoami',
+			key: undefined,
+			alertTitle: 'Get all information about current user',
+			apiResultShape: 'obj',
 		},
 		csets: {
 			expectedParams: [],	// codeset_ids
@@ -264,7 +266,7 @@ class DataGetter {
 		const dataCache = this.dataCache;
 
 		if (typeof(apiDef.expectedParams) === 'undefined') {
-			// handle no-param calls (all_csets) here; get from cache or fetch and cache
+			// handle no-param calls (all_csets, whoami) here; get from cache or fetch and cache
 			let data = dataCache.cacheGet([apiDef.cacheSlice]);
 			if (isEmpty(data)) {
 				data = await this.axiosCall(apiDef.api, {...apiDef, data: params, backend: true, });

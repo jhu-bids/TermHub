@@ -5,7 +5,7 @@ import {createSearchParams, useSearchParams, /* useLocation, Navigate, */ } from
 const SEARCH_PARAM_STATE_CONFIG = {
   scalars: ["editCodesetId", "sort_json", "use_example"],
   global_props_but_not_search_params: [], // ["searchParams", "setSearchParams"],
-  serialize: ["csetEditState", "hierarchySettings"],
+  serialize: ["editCset", "hierarchySettings"],
 };
 
 const SearchParamsContext = createContext(null);

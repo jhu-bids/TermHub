@@ -32,19 +32,15 @@ const codesetIdsReducer = (state, action) => {
 };
 const CodesetIdsContext = createContext(null);
 export function CodesetIdsProvider({ children }) {
-  const storageProvider = useSearchParamsState();
-  // const usePersistedReducer = createPersistedReducer('codeset_ids', storageProvider);
-  // const [state, dispatch] = usePersistedReducer(codesetIdsReducer, []);
-  // const [state, dispatch] = useReducer(codesetIdsReducer, []);
-
-  let state = storageProvider.getItem('codeset_ids') || [];
+  const spStateInst = useSearchParamsState();
+  let state = spStateInst.getItem('codeset_ids') || [];
 
   const dispatch = action => {
-    let latestState = storageProvider.getItem('codeset_ids') || [];
+    let latestState = spStateInst.getItem('codeset_ids') || [];
     const stateAfterDispatch = codesetIdsReducer(latestState, action);
     if (!isEqual(latestState, stateAfterDispatch)) {
       debugger;
-      storageProvider.setItem('codeset_ids', stateAfterDispatch);
+      spStateInst.setItem('codeset_ids', stateAfterDispatch);
     }
   }
   return (
@@ -108,9 +104,9 @@ export function useHierarchySettingsDispatch() {
 export function useHierarchySettings() {
   const unpersistedDefaultState = { nested: true, collapsePaths: {},
     collapsedDescendantPaths: {}, hideRxNormExtension: true, hideZeroCounts: false, };
-  const storageProvider = useSearchParamsState();
+  const spStateInst = useSearchParamsState();
   const usePersistedReducer = createPersistedReducer('hierarchySettings',
-    storageProvider, unpersistedDefaultState);
+    spStateInst, unpersistedDefaultState);
 
   function hierarchySettingsReducer(state, action) {
     if ( ! ( action || {} ).type ) return state;
@@ -154,26 +150,6 @@ export function useHierarchySettings() {
   return [state, dispatch];
 }
 
-const EditCsetContext = createContext(null);
-const EditCsetDispatchContext = createContext(null);
-export function EditCsetProvider({ children }) {
-  const [state, dispatch] = useReducer(editCsetReducer, {});
-
-  return (
-      <EditCsetContext.Provider value={state}>
-        <EditCsetDispatchContext.Provider value={dispatch}>
-          {children}
-        </EditCsetDispatchContext.Provider>
-      </EditCsetContext.Provider>
-  );
-}
-export function useEditCset() {
-  return useContext(EditCsetContext);
-}
-export function useEditCsetDispatch() {
-  return useContext(EditCsetDispatchContext);
-}
-
 const editCsetReducer = (state, action) => {
   if (!action || !action.type) return state;
   switch (action.type) {
@@ -192,10 +168,31 @@ const editCsetReducer = (state, action) => {
         // "codeset_created_by": "e64b8f7b-7af8-4b44-a570-557b812c0eeb",
         "provenance": "TermHub testing.",
         "is_draft": true,
+        "researchers": [],
       };
-
-      console.log("editCsetReducer() called");
+      if (state.currentUserId) {
+        newCset['on-behalf-of'] = state.currentUserId;
+        newCset.researchers = [state.currentUserId];
+      }
       return {...state, newCset, definitions: {}};
+    }
+    case "currentUserId": {
+      if (state.newCset) {
+        if (state.newCset['on-behalf-of']) {
+          if (state.newCset['on-behalf-of'] === action.currentUserId) {
+            return state;
+          } else {
+            throw new Error("not expecting a different userId!");
+          }
+        } else {
+          state = {...state,
+                    newCset: {...state.newCset,
+                              ['on-behalf-of']: action.currentUserId,
+                              ['researchers']: [action.currentUserId], } };
+          return {...state, currentUserId: action.currentUserId};
+        }
+      }
+      return {...state, currentUserId: action.currentUserId};
     }
     case "add_definitions": {
       let {definitions = {}} = state;
@@ -203,10 +200,30 @@ const editCsetReducer = (state, action) => {
       return {...state, ...definitions};
     }
   }
-  if (state === action.payload) return null; // if already set to this codeset_id, turn off
+  // if (state === action.payload) return null; // if already set to this codeset_id, turn off
   return action.payload;
 };
+const EditCsetContext = createContext(null);
+export function EditCsetProvider({ children }) {
+  const spStateInst = useSearchParamsState();
+  let state = spStateInst.getItem('editCset') || {}
 
+  const dispatch = action => {
+    let latestState = spStateInst.getItem('editCset') || [];
+    const stateAfterDispatch = editCsetReducer(latestState, action);
+    if (!isEqual(latestState, stateAfterDispatch)) {
+      spStateInst.setItem('editCset', stateAfterDispatch);
+    }
+  }
+  return (
+      <EditCsetContext.Provider value={[state, dispatch]}>
+        {children}
+      </EditCsetContext.Provider>
+  );
+}
+export function useEditCset() {
+  return useContext(EditCsetContext);
+}
 
 const currentConceptIdsReducer = (state, action) => { // not being used
   if (!(action && action.type)) return state;

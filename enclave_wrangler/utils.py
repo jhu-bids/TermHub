@@ -269,6 +269,11 @@ def get_url_from_api_path(path):
     return url
 
 
+def whoami():
+    url = f'https://{config["HOSTNAME"]}/multipass/api/me'
+    return enclave_get(url).json()
+
+
 def fetch_objects_since_datetime(object_type: str, since: Union[datetime, str], verbose=False) -> List[Dict]:
     """Fetch objects since a specific datetime
 

@@ -15,7 +15,7 @@ from backend.db.utils import get_db_connection, sql_query, SCHEMA, sql_query_sin
 from backend.db.queries import get_concepts
 from enclave_wrangler.objects_api import get_n3c_recommended_csets, enclave_api_call_caller, get_codeset_json, \
     get_concept_set_version_expression_items, items_to_atlas_json_format
-from enclave_wrangler.utils import make_objects_request
+from enclave_wrangler.utils import make_objects_request, whoami
 from enclave_wrangler.config import RESEARCHER_COLS
 from enclave_wrangler.models import convert_rows
 from backend.routes import graph
@@ -539,6 +539,11 @@ def get_container(concept_set_name):
     """This is for getting the RID of a dataset. This is available via the ontology API, not the dataset API.
     TODO: This needs caching, but the @cache decorator is not working."""
     return make_objects_request(f'objects/OMOPConceptSetContainer/{urllib.parse.quote(concept_set_name)}')
+
+
+@router.get('/whoami')
+def _whoami():
+    return whoami()
 
 
 def ad_hoc_test_1():
