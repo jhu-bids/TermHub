@@ -166,7 +166,6 @@ export function CsetSearch(props) {
 
 function ConceptSetsPage(props) {
   const [codeset_ids, codesetIdsDispatch] = useCodesetIds();
-  console.log('ConceptSetsPage', codeset_ids);
   const dataGetter = useDataGetter();
   const dataCache = useDataCache();
   const [data, setData] = useState({});

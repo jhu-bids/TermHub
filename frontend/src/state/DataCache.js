@@ -44,6 +44,8 @@ class DataCache {
 	}
 
 	saveCache = debounce(async () => {
+		const startTime = performance.now();
+		const duration = performance.now() - startTime;
 		const before = (localStorage.getItem('dataCache') || '').length;
 		this.addCacheHistoryEvent(`saving cache`);
 		// TODO: use history to check if changed size *before* compressing
@@ -59,6 +61,7 @@ class DataCache {
 		this.addCacheHistoryEvent(evtMsg);
 
 		localStorage.setItem('dataCache', compressed);
+		console.log(`saveCache took ${duration}ms`);
 	}, 400);
 
 	addCacheHistoryEvent(evtMsg) {
@@ -75,6 +78,7 @@ class DataCache {
 		console.log(cacheHistory);
 	}
 	loadCache = () => {
+		const startTime = performance.now();
 		let cache;
 		let evtMsg;
 		try {
@@ -87,6 +91,8 @@ class DataCache {
 			this.#cache = {cacheHistory: []};
 		}
 		this.addCacheHistoryEvent(evtMsg);
+		const duration = performance.now() - startTime;
+		console.log(`loadCache took ${duration}ms`);
 	}
 	async cacheCheck(dataGetter) {
 		const url = 'last-refreshed';

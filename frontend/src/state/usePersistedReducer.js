@@ -1,3 +1,5 @@
+// TODO: get rid of this entirely (I think)...found a simpler way to do it
+//   in AppState CodesetIdsContext
 // start with code from https://github.com/johnayeni/use-persisted-reducer
 
 import React, { useEffect, useReducer } from 'react';

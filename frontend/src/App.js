@@ -119,7 +119,6 @@ function RoutesContainer() {
 function App(props) {
   const alerts = useAlerts();
   const alertsDispatch = useAlertsDispatch();
-  console.log(alerts);
 
   return (
     <ThemeProvider theme={theme}>
