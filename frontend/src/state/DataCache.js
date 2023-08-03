@@ -86,11 +86,12 @@ class DataCache {
 			let decompressed = decompress(compressedCache);
 			this.#cache = JSON.parse(decompressed);
 			evtMsg = `loaded cache: ${compressedCache.length.toLocaleString()} compressed, ${decompressed.length.toLocaleString()} decompressed`;
+			this.addCacheHistoryEvent(evtMsg);
 		} catch (error) {
 			evtMsg = 'new cache';
 			this.#cache = {cacheHistory: []};
+			this.addCacheHistoryEvent(evtMsg);
 		}
-		this.addCacheHistoryEvent(evtMsg);
 		const duration = performance.now() - startTime;
 		console.log(`loadCache took ${duration}ms`);
 	}
