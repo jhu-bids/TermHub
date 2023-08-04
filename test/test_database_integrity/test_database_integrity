@@ -1,0 +1,372 @@
+import os
+import sys
+import unittest
+from pathlib import Path
+import time
+from typing import Dict, List, Union
+
+THIS_TEST_DIR = Path(os.path.dirname(__file__))
+TEST_DIR = THIS_TEST_DIR.parent
+PROJECT_ROOT = TEST_DIR.parent
+sys.path.insert(0, str(PROJECT_ROOT))
+TEST_INPUT_DIR = THIS_TEST_DIR / 'input'
+
+from enclave_wrangler.utils import make_actions_request
+from backend.db import refresh
+from datetime import datetime
+from enclave_wrangler.dataset_upload import upload_new_cset_version_with_concepts
+from enclave_wrangler.objects_api import fetch_cset_and_member_objects
+
+cset_name = 'Termhub Test'
+omop_concepts = [
+        {
+            'concept_id': 45757363,
+            'includeDescendants': True,
+            'isExcluded': False,
+            'includeMapped': True
+        }
+
+
+class TestBackend(unittest.TestCase):
+    def setup_static_test(cset_name: str, omop_concepts: List[Dict]):
+        """This function allows the server to create a concept set that can later be used in testing, the concept set is
+        archived by default as the test starts by unarchiving the concept set"""
+
+        container = make_actions_request('create-new-concept-set',
+                                         data={'parameters': {
+                                             'concept_set_id': cset_name,
+                                             'intention': 'for use with termhub unit tests',
+                                             'research-project': 'RP-6EBE3C',
+                                             "status": "Under Construction",
+                                             'on-behalf-of': '6387db50-9f12-48d2-b7dc-e8e88fdf51e3',
+                                             'stage': 'Awaiting Editing'
+                                         }}, validate_first=True)
+        print(container)
+
+        upload_new_cset_version_with_concepts(cset_name, omop_concepts,
+                                              on_behalf_of='6387db50-9f12-48d2-b7dc-e8e88fdf51e3')
+
+        x = make_actions_request('archive-concept-set',
+                                 data={'parameters': {'concept-set': cset_name}}, validate_first=True)
+        print(x)
+
+    def setUp(self) -> None:
+        '''Unarchives the concept set, makes a change and refreshes the database with a wait time
+        that will allow other functions to run at the right time. '''
+
+        self.cset_name = 'Termhub Test'
+        self.concept_id = 45757363
+        self.omop_concepts = [
+            {
+                'concept_id': 45757363,
+                'includeDescendants': True,
+                'isExcluded': False,
+                'includeMapped': True
+            }
+        ]
+
+        #unarchive concept set
+        x = make_actions_request("unarchive-concept-set",
+                                 data={'parameters':{
+                                        "omop-concept-set-container": self.cset_name
+                                 }},validate_first=True)
+
+        date = datetime.now()
+        x = make_actions_request('edit-concept-set-version-intention',
+                                 data={ 'parameters': {
+                                     'omop-concept-set': self.omop_concepts,
+                                     'intention': f'testing on {date}'
+                                 }}, validate_first=True)
+        print(x)
+
+        refresh()
+        time.sleep(2400) #40 minutes to wait for changes to enter the Termhub database.
+
+        self.cset_and_members = fetch_cset_and_member_objects()
+
+    def test_concept_set_container(self):
+        self.assertEqual(self.cset_and_members['OMOPConceptSetContainer'],[{'conceptSetId': 'Termhub Test',
+                                                                            'archived': False, 'intention': 'for use with termhub unit tests',
+                                                                            'status': 'Under Construction', 'createdBy': '6387db50-9f12-48d2-b7dc-e8e88fdf51e3',
+                                                                            'alias': 'Termhub Test', 'conceptSetName': 'Termhub Test',
+                                                                            'createdAt': '2023-07-31T21:00:30.644Z', 'project': 'RP-6EBE3C', 'stage': 'Awaiting Editing'}]
+)
+
+    def test_code_sets(self):
+        self.assertEqual(self.cset_and_members['OMOPConceptSet'],[{'properties': {'lastModifiedAt': '2023-08-03T16:26:08.461Z',
+                                                                                  'sourceApplicationVersion': '0.0.1',
+                                                                                  'lastModifiedBy': '6387db50-9f12-48d2-b7dc-e8e88fdf51e3',
+                                                                                  'createdBy': '6387db50-9f12-48d2-b7dc-e8e88fdf51e3', 'version': 1,
+                                                                                  'createdAt': '2023-08-03T16:25:54.414Z', 'project': 'RP-4A9E27',
+                                                                                  'sourceApplication': 'TermHub', 'provenance': '',
+                                                                                  'conceptSetNameOMOP': 'Termhub Test', 'limitations': '',
+                                                                                  'intention': '', 'conceptSetVersionTitle': 'Termhub Test (v1)',
+                                                                                  'codesetId': 1000031299, 'isDraft': False,
+                                                                                  'isMostRecentVersion': False}, 'rid': 'ri.phonograph2-objects.main.object.a20e353c-19d7-4398-b8e1-3e101eb99d41',
+                                                                   'expression_items': [{'properties': {'sourceApplication': 'TermHub',
+                                                                                                        'itemId': 'ef88a6a1-c49b-40a2-ab1b-b565d3ca7b48',
+                                                                                                        'includeMapped': True,
+                                                                                                        'includeDescendants': True,
+                                                                                                        'conceptId': 45757363, 'annotation': '',
+                                                                                                        'createdBy': '6387db50-9f12-48d2-b7dc-e8e88fdf51e3',
+                                                                                                        'isExcluded': False, 'codesetId': 1000031299,
+                                                                                                        'createdAt': '2023-08-03T16:26:04.657Z'},
+                                                                                         'rid': 'ri.phonograph2-objects.main.object.d2a0946b-7b3e-4fad-a277-aa0054dfc096'}],
+                                                                   'member_items': [{'properties': {'domainId': 'Condition',
+                                                                                                    'vocabularyId': 'ICD10CM',
+                                                                                                    'conceptCode': 'E11.64', 'conceptId': 1567971,
+                                                                                                    'validEndDate': '2099-12-31',
+                                                                                                    'conceptClassId': '5-char nonbill code',
+                                                                                                    'validStartDate': '2012-01-01',
+                                                                                                    'conceptName': 'Type 2 diabetes mellitus with hypoglycemia'},
+                                                                                     'rid': 'ri.phonograph2-objects.main.object.3deebee2-05fa-41b8-b219-67e75e3eacd1'},
+                                                                                    {'properties': {'domainId': 'Condition', 'vocabularyId': 'Nebraska Lexicon',
+                                                                                                    'conceptCode': '190399004',
+                                                                                                    'conceptId': 3121817, 'validEndDate': '2008-07-31',
+                                                                                                    'invalidReason': 'U', 'conceptClassId': 'Clinical Finding',
+                                                                                                    'validStartDate': '2002-01-31',
+                                                                                                    'conceptName': 'Type II diabetes mellitus with hypoglycemic coma'},
+                                                                                     'rid': 'ri.phonograph2-objects.main.object.f770192c-7cc5-4178-ac26-8b89399e6fd8'},
+                                                                                    {'properties': {'domainId': 'Condition', 'vocabularyId': 'Nebraska Lexicon',
+                                                                                                    'conceptCode': '314772004', 'conceptId': 3147259,
+                                                                                                    'validEndDate': '2015-01-31', 'invalidReason': 'U',
+                                                                                                    'conceptClassId': 'Clinical Finding',
+                                                                                                    'validStartDate': '2015-01-30',
+                                                                                                    'conceptName': 'Type 2 diabetes mellitus with hypoglycaemic coma'},
+                                                                                     'rid': 'ri.phonograph2-objects.main.object.8b6d4900-126f-45d0-bcee-6caad1e28654'},
+                                                                                    {'properties': {'domainId': 'Condition',
+                                                                                                    'vocabularyId': 'Nebraska Lexicon',
+                                                                                                    'conceptCode': '421164006', 'conceptId': 3159022,
+                                                                                                    'validEndDate': '2017-07-31', 'invalidReason': 'U',
+                                                                                                    'conceptClassId': 'Clinical Finding',
+                                                                                                    'validStartDate': '2017-01-31',
+                                                                                                    'conceptName': 'Hypoglycaemic coma in type 2 diabetes mellitus'},
+                                                                                     'rid': 'ri.phonograph2-objects.main.object.120d681e-9de4-44af-b30e-cce19814c6f7'},
+                                                                                    {'properties': {'domainId': 'Condition',
+                                                                                                    'vocabularyId': 'Nebraska Lexicon',
+                                                                                                    'conceptCode': '84361000119102',
+                                                                                                    'conceptId': 3233084, 'validEndDate': '2099-12-31',
+                                                                                                    'conceptClassId': 'Clinical Finding',
+                                                                                                    'validStartDate': '2015-01-31',
+                                                                                                    'conceptName': 'Insulin reactive hypoglycaemia in type 2 diabetes mellitus'},
+                                                                                     'rid': 'ri.phonograph2-objects.main.object.9150efd4-cd4d-4a46-9da0-e92286003175'},
+                                                                                    {'properties': {'domainId': 'Condition',
+                                                                                                    'vocabularyId': 'Nebraska Lexicon',
+                                                                                                    'conceptCode': '119831000119106',
+                                                                                                    'conceptId': 3251756, 'validEndDate': '2099-12-31',
+                                                                                                    'conceptClassId': 'Clinical Finding',
+                                                                                                    'validStartDate': '2015-01-31',
+                                                                                                    'conceptName': 'Hypoglycaemia unawareness in type 2 diabetes mellitus'},
+                                                                                     'rid': 'ri.phonograph2-objects.main.object.3ee95a32-683b-4304-8895-54f01dd70bf5'},
+                                                                                    {'properties': {'domainId': 'Condition',
+                                                                                                    'vocabularyId': 'Nebraska Lexicon',
+                                                                                                    'conceptCode': '120731000119103',
+                                                                                                    'conceptId': 3359211, 'validEndDate': '2099-12-31',
+                                                                                                    'conceptClassId': 'Clinical Finding',
+                                                                                                    'validStartDate': '2015-01-31',
+                                                                                                    'conceptName': 'Hypoglycaemia due to type 2 diabetes mellitus'},
+                                                                                     'rid': 'ri.phonograph2-objects.main.object.b3d6db33-2748-464e-88e6-c608084e2601'},
+                                                                                    {'properties': {'domainId': 'Condition', 'vocabularyId': 'Nebraska Lexicon',
+                                                                                                    'conceptCode': '719216001', 'conceptId': 3423685,
+                                                                                                    'validEndDate': '2099-12-31',
+                                                                                                    'conceptClassId': 'Clinical Finding',
+                                                                                                    'validStartDate': '2017-01-31',
+                                                                                                    'conceptName': 'Hypoglycaemic coma co-occurrent and due to diabetes mellitus type II'},
+                                                                                     'rid': 'ri.phonograph2-objects.main.object.177dc78b-bba1-40cc-9df7-09c68475e4ed'},
+                                                                                    {'properties': {'domainId': 'Observation',
+                                                                                                    'vocabularyId': 'SNOMED', 'conceptCode': '83171000000100',
+                                                                                                    'conceptId': 3522936, 'validEndDate': '2004-01-31',
+                                                                                                    'invalidReason': 'U', 'conceptClassId': 'Undefined',
+                                                                                                    'validStartDate': '1970-01-01',
+                                                                                                    'conceptName': 'Type II diabetes mellitus with hypoglycaemic coma'},
+                                                                                     'rid': 'ri.phonograph2-objects.main.object.8fc2ad17-6ae5-437d-a5c5-825f57b7a68f'},
+                                                                                    {'properties': {'domainId': 'Condition', 'vocabularyId': 'SNOMED',
+                                                                                                    'conceptCode': '719216001',
+                                                                                                    'conceptId': 36714116, 'validEndDate': '2099-12-31',
+                                                                                                    'conceptClassId': 'Clinical Finding',
+                                                                                                    'validStartDate': '2017-01-31',
+                                                                                                    'conceptName': 'Hypoglycemic coma due to type 2 diabetes mellitus',
+                                                                                                    'standardConcept': 'S'},
+                                                                                     'rid': 'ri.phonograph2-objects.main.object.ffd33b07-1554-4d79-bde4-41721d394758'},
+                                                                                    {'properties': {'domainId': 'Condition', 'vocabularyId': 'SNOMED',
+                                                                                                    'conceptCode': '190399004', 'conceptId': 40386794,
+                                                                                                    'validEndDate': '2002-01-31', 'invalidReason': 'U',
+                                                                                                    'conceptClassId': 'Clinical Finding',
+                                                                                                    'validStartDate': '1970-01-01',
+                                                                                                    'conceptName': 'Type II diabetes mellitus with hypoglycemic coma'},
+                                                                                     'rid': 'ri.phonograph2-objects.main.object.60933d3f-fbc7-49ae-9a28-f34adb7f652d'},
+                                                                                    {'properties': {'domainId': 'Condition', 'vocabularyId': 'SNOMED',
+                                                                                                    'conceptCode': '314772004', 'conceptId': 4151282,
+                                                                                                    'validEndDate': '2017-01-31', 'invalidReason': 'D',
+                                                                                                    'conceptClassId': 'Clinical Finding',
+                                                                                                    'validStartDate': '2002-01-31',
+                                                                                                    'conceptName': 'Type 2 diabetes mellitus with hypoglycemic coma'},
+                                                                                     'rid': 'ri.phonograph2-objects.main.object.122880b8-43ad-4c4d-b0f1-8029b8803ea5'},
+                                                                                    {'properties': {'domainId': 'Condition', 'vocabularyId': 'SNOMED',
+                                                                                                    'conceptCode': '421164006', 'conceptId': 4227824,
+                                                                                                    'validEndDate': '2017-01-31',
+                                                                                                    'invalidReason': 'D', 'conceptClassId': 'Clinical Finding',
+                                                                                                    'validStartDate': '2006-07-31',
+                                                                                                    'conceptName': 'Hypoglycemic coma in type 2 diabetes mellitus'},
+                                                                                     'rid': 'ri.phonograph2-objects.main.object.f64b18c9-e269-4c13-a1ea-43f89b1d97bc'},
+                                                                                    {'properties': {'domainId': 'Condition',
+                                                                                                    'vocabularyId': 'ICD10CM', 'conceptCode': 'E11.641',
+                                                                                                    'conceptId': 45561949, 'validEndDate': '2099-12-31',
+                                                                                                    'conceptClassId': '6-char billing code',
+                                                                                                    'validStartDate': '1970-01-01', 'conceptName': 'Type 2 diabetes mellitus with hypoglycemia with coma'},
+                                                                                     'rid': 'ri.phonograph2-objects.main.object.246368a3-002e-4d97-a1bb-2ad7e95c961e'},
+                                                                                    {'properties': {'domainId': 'Condition', 'vocabularyId': 'ICD10CM',
+                                                                                                    'conceptCode': 'E11.649', 'conceptId': 45591031,
+                                                                                                    'validEndDate': '2099-12-31', 'conceptClassId': '6-char billing code',
+                                                                                                    'validStartDate': '1970-01-01',
+                                                                                                    'conceptName': 'Type 2 diabetes mellitus with hypoglycemia without coma'},
+                                                                                     'rid': 'ri.phonograph2-objects.main.object.01b22745-2add-425c-a41f-ac4baf21dac0'},
+                                                                                    {'properties': {'domainId': 'Condition', 'vocabularyId': 'SNOMED',
+                                                                                                    'conceptCode': '120731000119103', 'conceptId': 45757363,
+                                                                                                    'validEndDate': '2099-12-31', 'conceptClassId': 'Clinical Finding',
+                                                                                                    'validStartDate': '2015-01-31',
+                                                                                                    'conceptName': 'Hypoglycemia due to type 2 diabetes mellitus',
+                                                                                                    'standardConcept': 'S'},
+                                                                                     'rid': 'ri.phonograph2-objects.main.object.bc80dbb2-225d-49e6-a493-a5831c8a5e20'},
+                                                                                    {'properties': {'domainId': 'Condition', 'vocabularyId': 'SNOMED',
+                                                                                                    'conceptCode': '84361000119102', 'conceptId': 45769875,
+                                                                                                    'validEndDate': '2099-12-31', 'conceptClassId': 'Clinical Finding',
+                                                                                                    'validStartDate': '2015-01-31',
+                                                                                                    'conceptName': 'Insulin reactive hypoglycemia due to type 2 diabetes mellitus',
+                                                                                                    'standardConcept': 'S'},
+                                                                                     'rid': 'ri.phonograph2-objects.main.object.30fc9ab6-5d96-442d-8a9f-2e1b6e0c37cc'},
+                                                                                    {'properties': {'domainId': 'Condition', 'vocabularyId': 'SNOMED',
+                                                                                                    'conceptCode': '119831000119106', 'conceptId': 45772060,
+                                                                                                    'validEndDate': '2099-12-31',
+                                                                                                    'conceptClassId': 'Clinical Finding',
+                                                                                                    'validStartDate': '2015-01-31',
+                                                                                                    'conceptName': 'Hypoglycemia unawareness due to type 2 diabetes mellitus',
+                                                                                                    'standardConcept': 'S'}, 'rid': 'ri.phonograph2-objects.main.object.53440069-5e11-4faf-b880-a0021461b7d6'}]}]
+)
+    def test_concept_set_members(self):
+        self.assertEqual(self.cset_and_members['OmopConceptSetVersionItem'],[{'properties': {'sourceApplication': 'TermHub',
+                                                                                             'itemId': 'ef88a6a1-c49b-40a2-ab1b-b565d3ca7b48',
+                                                                                             'includeMapped': True, 'includeDescendants': True,
+                                                                                             'conceptId': 45757363, 'annotation': '',
+                                                                                             'createdBy': '6387db50-9f12-48d2-b7dc-e8e88fdf51e3',
+                                                                                             'isExcluded': False, 'codesetId': 1000031299, 'createdAt': '2023-08-03T16:26:04.657Z'},
+                                                                              'rid': 'ri.phonograph2-objects.main.object.d2a0946b-7b3e-4fad-a277-aa0054dfc096'}]
+)
+
+    def test_concept_set_members(self):
+        self.assertEqual(self.cset_and_members['OMOPConcept'], [{'properties': {'domainId': 'Condition', 'vocabularyId': 'ICD10CM',
+                                                                                'conceptCode': 'E11.64', 'conceptId': 1567971,
+                                                                                'validEndDate': '2099-12-31', 'conceptClassId': '5-char nonbill code',
+                                                                                'validStartDate': '2012-01-01', 'conceptName': 'Type 2 diabetes mellitus with hypoglycemia'},
+                                                                 'rid': 'ri.phonograph2-objects.main.object.3deebee2-05fa-41b8-b219-67e75e3eacd1'},
+                                                                {'properties': {'domainId': 'Condition', 'vocabularyId': 'Nebraska Lexicon',
+                                                                                'conceptCode': '190399004', 'conceptId': 3121817,
+                                                                                'validEndDate': '2008-07-31', 'invalidReason': 'U',
+                                                                                'conceptClassId': 'Clinical Finding', 'validStartDate': '2002-01-31',
+                                                                                'conceptName': 'Type II diabetes mellitus with hypoglycemic coma'},
+                                                                 'rid': 'ri.phonograph2-objects.main.object.f770192c-7cc5-4178-ac26-8b89399e6fd8'},
+                                                                {'properties': {'domainId': 'Condition', 'vocabularyId': 'Nebraska Lexicon',
+                                                                                'conceptCode': '314772004', 'conceptId': 3147259,
+                                                                                'validEndDate': '2015-01-31', 'invalidReason': 'U',
+                                                                                'conceptClassId': 'Clinical Finding', 'validStartDate': '2015-01-30',
+                                                                                'conceptName': 'Type 2 diabetes mellitus with hypoglycaemic coma'},
+                                                                 'rid': 'ri.phonograph2-objects.main.object.8b6d4900-126f-45d0-bcee-6caad1e28654'},
+                                                                {'properties': {'domainId': 'Condition', 'vocabularyId': 'Nebraska Lexicon',
+                                                                                'conceptCode': '421164006', 'conceptId': 3159022,
+                                                                                'validEndDate': '2017-07-31', 'invalidReason': 'U',
+                                                                                'conceptClassId': 'Clinical Finding', 'validStartDate': '2017-01-31',
+                                                                                'conceptName': 'Hypoglycaemic coma in type 2 diabetes mellitus'},
+                                                                 'rid': 'ri.phonograph2-objects.main.object.120d681e-9de4-44af-b30e-cce19814c6f7'},
+                                                                {'properties': {'domainId': 'Condition', 'vocabularyId': 'Nebraska Lexicon',
+                                                                                'conceptCode': '84361000119102', 'conceptId': 3233084,
+                                                                                'validEndDate': '2099-12-31', 'conceptClassId': 'Clinical Finding',
+                                                                                'validStartDate': '2015-01-31', 'conceptName': 'Insulin reactive hypoglycaemia in type 2 diabetes mellitus'},
+                                                                 'rid': 'ri.phonograph2-objects.main.object.9150efd4-cd4d-4a46-9da0-e92286003175'},
+                                                                {'properties': {'domainId': 'Condition', 'vocabularyId': 'Nebraska Lexicon',
+                                                                                'conceptCode': '119831000119106', 'conceptId': 3251756,
+                                                                                'validEndDate': '2099-12-31', 'conceptClassId': 'Clinical Finding',
+                                                                                'validStartDate': '2015-01-31', 'conceptName': 'Hypoglycaemia unawareness in type 2 diabetes mellitus'},
+                                                                 'rid': 'ri.phonograph2-objects.main.object.3ee95a32-683b-4304-8895-54f01dd70bf5'},
+                                                                {'properties': {'domainId': 'Condition', 'vocabularyId': 'Nebraska Lexicon',
+                                                                                'conceptCode': '120731000119103', 'conceptId': 3359211,
+                                                                                'validEndDate': '2099-12-31', 'conceptClassId': 'Clinical Finding',
+                                                                                'validStartDate': '2015-01-31', 'conceptName': 'Hypoglycaemia due to type 2 diabetes mellitus'},
+                                                                 'rid': 'ri.phonograph2-objects.main.object.b3d6db33-2748-464e-88e6-c608084e2601'},
+                                                                {'properties': {'domainId': 'Condition', 'vocabularyId': 'Nebraska Lexicon',
+                                                                                'conceptCode': '719216001', 'conceptId': 3423685,
+                                                                                'validEndDate': '2099-12-31', 'conceptClassId': 'Clinical Finding',
+                                                                                'validStartDate': '2017-01-31', 'conceptName': 'Hypoglycaemic coma co-occurrent and due to diabetes mellitus type II'},
+                                                                 'rid': 'ri.phonograph2-objects.main.object.177dc78b-bba1-40cc-9df7-09c68475e4ed'},
+                                                                {'properties': {'domainId': 'Observation', 'vocabularyId': 'SNOMED',
+                                                                                'conceptCode': '83171000000100', 'conceptId': 3522936,
+                                                                                'validEndDate': '2004-01-31', 'invalidReason': 'U',
+                                                                                'conceptClassId': 'Undefined', 'validStartDate': '1970-01-01',
+                                                                                'conceptName': 'Type II diabetes mellitus with hypoglycaemic coma'},
+                                                                 'rid': 'ri.phonograph2-objects.main.object.8fc2ad17-6ae5-437d-a5c5-825f57b7a68f'},
+                                                                {'properties': {'domainId': 'Condition', 'vocabularyId': 'SNOMED', 'conceptCode': '719216001',
+                                                                                'conceptId': 36714116, 'validEndDate': '2099-12-31', 'conceptClassId': 'Clinical Finding',
+                                                                                'validStartDate': '2017-01-31', 'conceptName': 'Hypoglycemic coma due to type 2 diabetes mellitus',
+                                                                                'standardConcept': 'S'}, 'rid': 'ri.phonograph2-objects.main.object.ffd33b07-1554-4d79-bde4-41721d394758'},
+                                                                {'properties': {'domainId': 'Condition', 'vocabularyId': 'SNOMED',
+                                                                                'conceptCode': '190399004', 'conceptId': 40386794,
+                                                                                'validEndDate': '2002-01-31', 'invalidReason': 'U',
+                                                                                'conceptClassId': 'Clinical Finding', 'validStartDate': '1970-01-01',
+                                                                                'conceptName': 'Type II diabetes mellitus with hypoglycemic coma'},
+                                                                 'rid': 'ri.phonograph2-objects.main.object.60933d3f-fbc7-49ae-9a28-f34adb7f652d'},
+                                                                {'properties': {'domainId': 'Condition', 'vocabularyId': 'SNOMED',
+                                                                                'conceptCode': '314772004', 'conceptId': 4151282,
+                                                                                'validEndDate': '2017-01-31', 'invalidReason': 'D',
+                                                                                'conceptClassId': 'Clinical Finding', 'validStartDate': '2002-01-31',
+                                                                                'conceptName': 'Type 2 diabetes mellitus with hypoglycemic coma'},
+                                                                 'rid': 'ri.phonograph2-objects.main.object.122880b8-43ad-4c4d-b0f1-8029b8803ea5'},
+                                                                {'properties': {'domainId': 'Condition', 'vocabularyId': 'SNOMED',
+                                                                                'conceptCode': '421164006', 'conceptId': 4227824,
+                                                                                'validEndDate': '2017-01-31', 'invalidReason': 'D',
+                                                                                'conceptClassId': 'Clinical Finding', 'validStartDate': '2006-07-31',
+                                                                                'conceptName': 'Hypoglycemic coma in type 2 diabetes mellitus'},
+                                                                 'rid': 'ri.phonograph2-objects.main.object.f64b18c9-e269-4c13-a1ea-43f89b1d97bc'},
+                                                                {'properties': {'domainId': 'Condition', 'vocabularyId': 'ICD10CM',
+                                                                                'conceptCode': 'E11.641', 'conceptId': 45561949,
+                                                                                'validEndDate': '2099-12-31', 'conceptClassId': '6-char billing code',
+                                                                                'validStartDate': '1970-01-01', 'conceptName': 'Type 2 diabetes mellitus with hypoglycemia with coma'},
+                                                                 'rid': 'ri.phonograph2-objects.main.object.246368a3-002e-4d97-a1bb-2ad7e95c961e'},
+                                                                {'properties': {'domainId': 'Condition', 'vocabularyId': 'ICD10CM',
+                                                                                'conceptCode': 'E11.649', 'conceptId': 45591031,
+                                                                                'validEndDate': '2099-12-31', 'conceptClassId': '6-char billing code',
+                                                                                'validStartDate': '1970-01-01', 'conceptName': 'Type 2 diabetes mellitus with hypoglycemia without coma'},
+                                                                 'rid': 'ri.phonograph2-objects.main.object.01b22745-2add-425c-a41f-ac4baf21dac0'},
+                                                                {'properties': {'domainId': 'Condition', 'vocabularyId': 'SNOMED',
+                                                                                'conceptCode': '120731000119103', 'conceptId': 45757363,
+                                                                                'validEndDate': '2099-12-31', 'conceptClassId': 'Clinical Finding',
+                                                                                'validStartDate': '2015-01-31', 'conceptName': 'Hypoglycemia due to type 2 diabetes mellitus',
+                                                                                'standardConcept': 'S'}, 'rid': 'ri.phonograph2-objects.main.object.bc80dbb2-225d-49e6-a493-a5831c8a5e20'},
+                                                                {'properties': {'domainId': 'Condition', 'vocabularyId': 'SNOMED',
+                                                                                'conceptCode': '84361000119102', 'conceptId': 45769875,
+                                                                                'validEndDate': '2099-12-31', 'conceptClassId': 'Clinical Finding',
+                                                                                'validStartDate': '2015-01-31', 'conceptName': 'Insulin reactive hypoglycemia due to type 2 diabetes mellitus',
+                                                                                'standardConcept': 'S'}, 'rid': 'ri.phonograph2-objects.main.object.30fc9ab6-5d96-442d-8a9f-2e1b6e0c37cc'},
+                                                                {'properties': {'domainId': 'Condition', 'vocabularyId': 'SNOMED',
+                                                                                'conceptCode': '119831000119106', 'conceptId': 45772060,
+                                                                                'validEndDate': '2099-12-31', 'conceptClassId': 'Clinical Finding',
+                                                                                'validStartDate': '2015-01-31', 'conceptName': 'Hypoglycemia unawareness due to type 2 diabetes mellitus',
+                                                                                'standardConcept': 'S'}, 'rid': 'ri.phonograph2-objects.main.object.53440069-5e11-4faf-b880-a0021461b7d6'}]
+)
+    def tearDown(self,local = False) -> None:
+
+        #archive concept set at the end of the test.
+         x = make_actions_request('archive-concept-set',
+                         data={'parameters': {'concept-set': cset_name, }}, validate_first=True)
+         print(x)
+
+        with get_db_connection(schema='', local=local) as con2:
+            run_sql(con2, f"DELETE * from n3c.concept_set_members where concept_set_name = 'Termhub Test';")
+            run_sql(con2, f"Delete * from n3c.concept_set_container where concept_set_id = 'Termhub Test';")
+            run_sql(con2, f"Delete * from n3c.code_sets where concept_set_name = 'Termhub Test';")
+            run_sql(con2, f"Delete * from n3c.concept_set_version_item where codeset_id = 1000031299;")
+
+        #Todo: Unsure about the last one because there are multiple versions and the codeset_id only deletes one.
+
+        refresh()
+
+if __name__ == "__main__":
+    unittest.main()
