@@ -25,12 +25,12 @@ from requests import Response
 from sqlalchemy.engine.base import Connection
 from typeguard import typechecked
 
-from enclave_wrangler.config import FAVORITE_OBJECTS, OUTDIR_OBJECTS, OUTDIR_CSET_JSON, config
+from enclave_wrangler.config import OBJECT_REGISTRY, OUTDIR_OBJECTS, OUTDIR_CSET_JSON, config
 from enclave_wrangler.utils import EnclavePaginationLimitErr, enclave_get, enclave_post, fetch_objects_since_datetime, \
     get_objects_df, get_url_from_api_path, \
     make_objects_request
 from enclave_wrangler.models import OBJECT_TYPE_TABLE_MAP, convert_row, get_field_names, field_name_mapping, pkey
-from backend.db.utils import insert_fetch_statuses, insert_from_dict, insert_from_dicts, \
+from backend.db.utils import SCHEMA, insert_fetch_statuses, insert_from_dict, insert_from_dicts, \
     refresh_termhub_core_cset_derived_tables, \
     sql_query_single_col, run_sql, get_db_connection
 from backend.db.queries import get_concepts
@@ -211,7 +211,7 @@ def link_types() -> List[Dict]:
 #     return results
 
 
-def download_favorite_objects(fav_obj_names: List[str] = FAVORITE_OBJECTS, force_if_exists=False):
+def download_favorite_objects(fav_obj_names: List[str] = OBJECT_REGISTRY, force_if_exists=False):
     """Download objects of interest"""
     for o in fav_obj_names:
         outdir = os.path.join(OUTDIR_OBJECTS, o)
@@ -288,7 +288,7 @@ def all_new_objects_enclave_to_db(since: Union[datetime, str]) -> Dict[str, List
     return objects
 
 
-def csets_and_members_enclave_to_db(con: Connection, schema: str, since: Union[datetime, str]) -> bool:
+def csets_and_members_enclave_to_db(con: Connection, since: Union[datetime, str], schema=SCHEMA) -> bool:
     """Fetch new csets and members, if needed, and then update database with them, returns None is no updates needed"""
     print('Fetching new data from the N3C data enclave...')
     t0 = datetime.now()
@@ -298,7 +298,7 @@ def csets_and_members_enclave_to_db(con: Connection, schema: str, since: Union[d
 
     print(f'  - Fetched new data in {(datetime.now() - t0).seconds} seconds:\n    OBJECT_TYPE: COUNT\n' +
           "\n".join(['    ' + str(k) + ": " + str(len(v)) for k, v in csets_and_members.items()]))
-    csets_and_members_to_db(con, schema, csets_and_members)
+    csets_and_members_to_db(con, csets_and_members, schema)
     return True
 
 
@@ -418,7 +418,7 @@ def concept_set_members__from_csets_and_members_to_db(con: Connection, csets_and
         container = container_lookup[cset['properties']['conceptSetNameOMOP']]
         concept_set_members__cset_rows_to_db(con, cset, cset['member_items'], container)
 
-def csets_and_members_to_db(con: Connection, schema: str, csets_and_members: Dict[str, List[Dict]]):
+def csets_and_members_to_db(con: Connection, csets_and_members: Dict[str, List[Dict]], schema=SCHEMA):
     """Update database with csets and members.
     todo: add_object_to_db(): support multiple objects with single insert"""
     # Core cset tables: with normal, single primary keys

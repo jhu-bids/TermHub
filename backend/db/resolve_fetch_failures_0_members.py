@@ -1,5 +1,7 @@
 """Resolve situations where we tried to fetch data from the Enclave, but failed due to the concept set being too new,
-resulting in initial fetch of concept set members being 0."""
+resulting in initial fetch of concept set members being 0.
+
+TODO: if every expression is set to `isExcluded=true`, we expect no members. Can add as a check rather than wait 2hrs"""
 import os
 import sys
 import time
@@ -76,7 +78,7 @@ def resolve_fetch_failures_0_members(
         if success_cases:
             with get_db_connection(schema=schema, local=use_local_db) as con:
                 concept_set_members__from_csets_and_members_to_db(con, csets_and_members)
-                refresh_termhub_core_cset_derived_tables(con, SCHEMA)
+                refresh_termhub_core_cset_derived_tables(con)
 
         # Report success
         if success_cases:

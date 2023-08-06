@@ -26,7 +26,7 @@ sys.path.insert(0, str(PROJECT_ROOT))
 # TODO: backend implorts: Ideally we don't want to couple with TermHub code
 from backend.db.utils import chunk_list
 from backend.utils import commify, pdump
-from enclave_wrangler.config import TERMHUB_CSETS_DIR, FAVORITE_DATASETS, FAVORITE_DATASETS_RID_NAME_MAP
+from enclave_wrangler.config import TERMHUB_CSETS_DIR, DATASET_REGISTRY, DATASET_REGISTRY_RID_NAME_MAP
 from enclave_wrangler.utils import enclave_get, log_debug_info
 
 
@@ -301,7 +301,7 @@ def transforms_common(df: pd.DataFrame, dataset_name) -> pd.DataFrame:
     # - Removed 'Unnamed' columns
     for col in [x for x in list(df.columns) if x.startswith('Unnamed')]:  # e.g. 'Unnamed: 0'
         df.drop(col, axis=1, inplace=True)
-    df.sort_values(FAVORITE_DATASETS[dataset_name]['sort_idx'], inplace=True)
+    df.sort_values(DATASET_REGISTRY[dataset_name]['sort_idx'], inplace=True)
 
     return df
 
@@ -342,21 +342,24 @@ def transform(fav: dict) -> pd.DataFrame:
     return df
 
 
-def get_last_vocab_update():
-    """
-    https://unite.nih.gov/workspace/documentation/developer/api/catalog/services/CatalogService/endpoints/getTransaction
-    https://unite.nih.gov/workspace/documentation/developer/api/catalog/objects/com.palantir.foundry.catalog.api.transactions.Transaction
-    """
-    dataset_rid = FAVORITE_DATASETS['concept']['rid']
+def get_last_update_of_dataset(dataset_name_or_rid: str) -> str:
+    """Get timestamp of when dataset whas last updated
+
+    :param dataset_name_or_rid: Either (a) an RID (Reference ID) or (b) the name of a dataset. If 'b', the name will be
+    looked up in FAVORITE_DATASETS to get its RID.
+
+    Resources:
+     https://unite.nih.gov/workspace/documentation/developer/api/catalog/services/CatalogService/endpoints/getTransaction
+     https://unite.nih.gov/workspace/documentation/developer/api/catalog/objects/com.palantir.foundry.catalog.api.transactions.Transaction"""
+    rid = dataset_name_or_rid if dataset_name_or_rid.startswith('ri.foundry.main.dataset.') \
+        else DATASET_REGISTRY[dataset_name_or_rid]['rid']
     ref = 'master'
-    transaction = getTransaction(dataset_rid, ref, return_field=None)
+    transaction = getTransaction(rid, ref, return_field=None)
     # pdump(transaction)
     if transaction['status'] != 'COMMITTED':
         pdump(transaction)
         raise 'status of transaction not COMMITTED. not sure what this means'
     return transaction['startTime']
-# print(get_last_vocab_update())
-# exit()
 
 
 def download_and_transform(
@@ -365,9 +368,9 @@ def download_and_transform(
 ) -> pd.DataFrame:
     """Download dataset & run transformations"""
     print(f'INFO: Downloading: {dataset_name}')
-    dataset_rid = FAVORITE_DATASETS[dataset_name]['rid'] if not dataset_rid else dataset_rid
-    dataset_name = FAVORITE_DATASETS_RID_NAME_MAP[dataset_rid] if not dataset_name else dataset_name
-    fav = fav if fav else FAVORITE_DATASETS[dataset_name]
+    dataset_rid = DATASET_REGISTRY[dataset_name]['rid'] if not dataset_rid else dataset_rid
+    dataset_name = DATASET_REGISTRY_RID_NAME_MAP[dataset_rid] if not dataset_name else dataset_name
+    fav = fav if fav else DATASET_REGISTRY[dataset_name]
 
     # Download
     df = pd.DataFrame()
@@ -398,14 +401,18 @@ def download_datasets(
     outdir: str = CSV_DOWNLOAD_DIR, transforms_only=False, specific=[], force_if_exists=True, single_group=None
 ):
     """Download datasets
-    :param specific: If not passed, will download all favorite datasets"""
-    for fav in FAVORITE_DATASETS.values():
-        if single_group and single_group not in fav['dataset_groups']:
-            continue
-        if not specific or fav['name'] in specific:
-            outpath = os.path.join(outdir, fav['name'] + '.csv')
-            download_and_transform(fav=fav, dataset_name=fav['name'], outpath=outpath, transforms_only=transforms_only,
-                                   force_if_exists=force_if_exists)
+    :param specific: If passed, will only download datasets whose names are in this list.
+    :param single_group: If passed, will only download datasets that are in this group."""
+    if specific and single_group:
+        raise ValueError('Cannot pass both "specific" and "single_group" arguments.')
+    configs = DATASET_REGISTRY.values()
+    datasets_configs: List[Dict] =  [x for x in configs if single_group in x['dataset_groups']] if single_group \
+        else [x for x in configs if x['name'] in specific] if specific \
+        else configs
+    for conf in datasets_configs:
+        download_and_transform(
+            fav=conf, dataset_name=conf['name'], outpath=os.path.join(outdir, conf['name'] + '.csv'),
+            transforms_only=transforms_only, force_if_exists=force_if_exists)
 
 # todo: ideally would allow user to select output dir that contains both CSV_DOWNLOAD_DIR and CSV_TRANSFORM_DIR
 def cli():
@@ -431,7 +438,7 @@ def cli():
     parser.add_argument(
         '-f', '--favorites', required=False,
         default=False, action='store_true',
-        help='Just download all the datasets that are currently hardcoded as "favorites".')
+        help='Just download all the datasets in the enclave_wrangler.config:DATASET_REGISTRY.')
     parser.add_argument(
         '-t', '--transforms-only', default=False, action='store_true', required=False,
         help='When present, will only apply data transformations to datasets. Will not download updates.')

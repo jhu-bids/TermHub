@@ -74,7 +74,7 @@ def resolve_fetch_failures_excess_items(use_local_db=False, cached_dataset_thres
                 if rows:
                     insert_from_dicts(con, dataset, rows)
                     solved_failures.append(failure)
-        refresh_termhub_core_cset_derived_tables(con, SCHEMA)
+        refresh_termhub_core_cset_derived_tables(con)
 
     # Update fetch_audit status
     fetch_status_set_success(solved_failures)

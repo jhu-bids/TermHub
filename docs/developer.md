@@ -35,9 +35,8 @@ This needs to be added to `backend/db/`. The standard file naming is `ddl-N-MODU
 in which it should run relative to other such files, and `MODULE` is the module name, e.g. the name of the table(s) or
 other operations done by the DDL. When choosing the position of the file (`N`), you should put it after any / all other
 DDL which is used to create any of the tables/views that it is derived from.
-2. Update `refresh_termhub_core_cset_derived_tables()` in `backend/db/utils.py`
-There's a list variable called `ddl_modules`. Add any new `MODULE`s here. If any of those modules are views, add to the
-list variable called `views`.
+2. Update `backend/db/config.py:DERIVED_TABLE_DEPENDENCY_MAP`.
+3. Update `backend/db/config.py:DERIVED_TABLE_DEPENDENCY_MAP` if it is a view.
 
 #### Troubleshooting specific issues
 ##### `ERROR: cannot execute <COMMAND> in a read-only transaction`

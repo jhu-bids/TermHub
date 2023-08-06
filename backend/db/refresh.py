@@ -64,7 +64,7 @@ def refresh_db(
         # Refresh db
         try:
             # todo: when ready, will use all_new_objects_enclave_to_db() instead of csets_and_members_enclave_to_db()
-            new_data: bool = csets_and_members_enclave_to_db(con, schema, since)
+            new_data: bool = csets_and_members_enclave_to_db(con, since, schema)
         except Exception as err:
             pass
             update_db_status_var('last_refresh_result', 'error', local)

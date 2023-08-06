@@ -6,24 +6,28 @@ from sqlalchemy.engine.base import Connection
 
 from backend.db.config import CONFIG
 from backend.db.utils import get_ddl_statements, check_if_updated, current_datetime, insert_from_dict, \
-    is_table_up_to_date, load_csv, refresh_termhub_core_cset_derived_tables, run_sql, get_db_connection, sql_in, \
+    is_table_up_to_date, load_csv, refresh_any_dependent_tables, run_sql, get_db_connection, sql_in, \
     sql_query, update_db_status_var
-from enclave_wrangler.config import FAVORITE_DATASETS
+from enclave_wrangler.config import DATASET_REGISTRY
 from enclave_wrangler.datasets import download_datasets
 from enclave_wrangler.objects_api import download_favorite_objects
 
 DB = CONFIG["db"]
 SCHEMA = CONFIG['schema']
 DATASET_TABLES = [
-    'code_sets',
+    # Vocab
     'concept',
     'concept_ancestor',
     'concept_relationship',
+    'relationship',
     # 'concept_relationship_subsumes_only',
+    # Core
+    'code_sets',
     'concept_set_container',
-    'concept_set_counts_clamped',
     'concept_set_members',
     'concept_set_version_item',
+    # Counts
+    'concept_set_counts_clamped',
     'deidentified_term_usage_by_domain_clamped',
 ]
 # table.lower(): because postgres won't recognize names with caps in them unless they are "quoted". should probably
@@ -37,7 +41,7 @@ OBJECT_TABLES = [x.lower() for x in [
 OBJECT_TABLES_TEST = []
 DATASET_TABLES_TEST = [
     'concept', 'code_sets', 'concept_set_container', 'concept_set_members', 'concept_set_version_item']
-DATASET_TABLES_TEST_CONFIG = {k: v for k, v in FAVORITE_DATASETS.items() if k in DATASET_TABLES_TEST}
+DATASET_TABLES_TEST_CONFIG = {k: v for k, v in DATASET_REGISTRY.items() if k in DATASET_TABLES_TEST}
 
 def download_artefacts(force_download_if_exists=False):
     """Download essential DB artefacts to be uploaded"""
@@ -96,7 +100,7 @@ def initialize_test_schema(con_initial: Connection, schema: str = SCHEMA, local=
     for table in other_dependency_tables:
         run_sql(con_initial,
                 f'CREATE TABLE IF NOT EXISTS {test_schema}.{table} AS SELECT * FROM {schema}.{table} LIMIT {n_rows};')
-    refresh_termhub_core_cset_derived_tables(con_initial, test_schema)
+    refresh_any_dependent_tables(con_initial, schema=test_schema)
 
 
 def seed(

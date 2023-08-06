@@ -26,7 +26,9 @@ from sqlalchemy.sql import text
 from sqlalchemy.sql.elements import TextClause
 from typing import Any, Dict, Tuple, Union, List
 
-from backend.db.config import CONFIG, DATASETS_PATH, DDL_JINJA_PATH_PATTERN, OBJECTS_PATH, get_pg_connect_url
+from backend.db.config import CONFIG, CORE_CSET_DEPENDENT_TABLES, CORE_CSET_TABLES, DATASETS_PATH, DDL_JINJA_PATH_PATTERN, \
+    OBJECTS_PATH, \
+    RECURSIVE_DEPENDENT_TABLE_MAP, VIEWS, get_pg_connect_url
 from backend.utils import commify
 from enclave_wrangler.models import pkey
 
@@ -35,33 +37,104 @@ DB = CONFIG["db"]
 SCHEMA = CONFIG["schema"]
 
 
-def refresh_termhub_core_cset_derived_tables_exec(con: Connection, schema: str):
+def extract_keys_from_nested_dict(d: Dict[str, Dict]) -> List[str]:
+    """Extract keys from a nested dictionary.
+
+    :return An ordered list in which the keys appear in the dictionary, walking
+    through from top to bottom. If a key appears in the list multiple times, it
+    will only appear once in the list, in the order in which it first appeared."""
+    ordered_unique_keys = []
+    def _extract_keys(d2):
+        for k, v in d2.items():
+            if k not in ordered_unique_keys:
+                ordered_unique_keys.append(k)
+            if isinstance(v, dict):
+                _extract_keys(v)
+    _extract_keys(d)
+    return ordered_unique_keys
+
+
+def get_dependent_tables_queue(independent_tables: List[str]) -> List[str]:
+    """From independent_tables, get a list of all tables that depend on those tables.
+
+    :param independent_tables:  The tables from which you are trying to get an ordered list of dependent tables from.
+    This can be used in a situation such as: You are updating 1+ database tables 'root_tables', and now want to find
+    which derived tables need to be updated in the correct order.
+    :return: A list in the correct order such that for every entry in the list, any tables that depend on that entry
+    will appear further down in the list.
+
+    todo: Replace heuristic w/ a correct algorithm.
+     I originally had no steps 2&3, and only 1&4 combined. But the result was out of order. This algorithm below is
+     based on a quick (but messy/long) heuristic. Basically, the longer dependency trees go first. This corrected the
+     problem that I had. But this is just a heuristic. I'm feel confident that there is some correct algorithm for this
+     solvable in polynomial time. When this is done, probably should delete CORE_CSET_DEPENDENT_TABLES & its usages."""
+    final_queue: List[str] = []
+    table_queues1: List[List[str]] = []
+    table_queues2: List[List[str]] = []
+    queues_by_len: Dict[int, List[List[str]]] = {}
+
+    # 1 & 4: Get a queue of dependent tables
+    # 1. Build up a list of queues; queue is dependent tables
+    for table in independent_tables:
+        dependent_tree: Dict = RECURSIVE_DEPENDENT_TABLE_MAP.get(table, {})
+        if not dependent_tree:
+            continue
+        q: List[str] = extract_keys_from_nested_dict(dependent_tree)
+        table_queues1.append(q)
+
+    # 2-3: Heuristic: Reorder the queue
+    # 2. Group by queue lengths
+    # - some dependency trees are the same for multiple tables; dedupe for simplicity
+    table_queues1 = [list(x) for x in set([tuple(x) for x in table_queues1])]
+    for q in table_queues1:
+        l = len(q)
+        if l not in queues_by_len:
+            queues_by_len[l] = []
+        queues_by_len[l].append(q)
+
+    # 3. Reorganize list of queues, sorted by longest queues first
+    queue_len_keys = list(queues_by_len.keys())
+    queue_len_keys.sort(reverse=True)
+    for k in queue_len_keys:
+        queues: List[List[str]] = queues_by_len[k]
+        for q in queues:
+            table_queues2.append(q)
+
+    # 4. Flatten to single list queue of dependent tables
+    for q in table_queues2:
+        for i in q:
+            if i not in final_queue:
+                final_queue.append(i)
+
+    return final_queue
+
+
+def refresh_any_dependent_tables(con: Connection, independent_tables: List[str] = CORE_CSET_TABLES, schema=SCHEMA):
+    """Refresh all derived tables that depend on independent_tables"""
+    derived_tables: List[str] = get_dependent_tables_queue(independent_tables)
+    if not derived_tables:
+        print(f'No derived tables found for: {", ".join(independent_tables)}')
+    refresh_derived_tables(con, derived_tables, schema)
+
+
+def refresh_derived_tables(
+    con: Connection, derived_tables_queue: List[str] = CORE_CSET_DEPENDENT_TABLES, schema=SCHEMA
+):
     """Refresh TermHub core cset derived tables
 
-    This can also work to initially create the tables if they don't already exist."""
+    This can also work to initially create the tables if they don't already exist.
+
+    :param derived_tables_queue: Should be ordered such that for every entry in the list, any tables that depend on that
+     entry will appear further down in the list."""
     temp_table_suffix = '_new'
-    # todo: move this config to somewhere so that it's easy to access
-    ddl_modules = [
-        'cset_members_items',
-        'concept_ids_by_codeset_id',
-        'codeset_ids_by_concept_id',
-        'members_items_summary',
-        'cset_members_items_plus',
-        'codeset_counts',
-        'all_csets',
-        'csets_to_ignore',
-    ]
-    # todo: try to auto detect what is a view
-    views = [
-        'cset_members_items_plus',
-        'csets_to_ignore',
-    ]
+    ddl_modules_queue = derived_tables_queue
+    views = [x for x in VIEWS if x in ddl_modules_queue]
 
     # Create new tables and backup old ones
     print('Derived tables')
     t0 = datetime.now()
     hash_num = '_' + str(randint(10000000, 99999999))
-    for module in ddl_modules:
+    for module in ddl_modules_queue:
         print(f' - creating new table/view: {module}...')
         statements: List[str] = get_ddl_statements(schema, [module], temp_table_suffix, hash_num, 'flat')
         for statement in statements:
@@ -73,9 +146,9 @@ def refresh_termhub_core_cset_derived_tables_exec(con: Connection, schema: str):
     # Delete old tables/views. Because of view dependencies, order & commands are different
     print(f' - Removing older, temporarily backed up tables/views...')
     for view in views:
-        ddl_modules.remove(view)
+        ddl_modules_queue.remove(view)
         run_sql(con, f'DROP VIEW IF EXISTS {schema}.{view}_old;')
-    for module in ddl_modules:
+    for module in ddl_modules_queue:
         run_sql(con, f'DROP TABLE IF EXISTS {schema}.{module}_old;')
     t1 = datetime.now()
     print(f' - completed in {(t1 - t0).seconds} seconds')
@@ -84,7 +157,7 @@ def refresh_termhub_core_cset_derived_tables_exec(con: Connection, schema: str):
 # todo: move this somewhere else, possibly load.py or db_refresh.py
 # todo: what to do if this process fails? any way to roll back? should we?
 # todo: currently has no way of passing 'local' down to db status var funcs
-def refresh_termhub_core_cset_derived_tables(con: Connection, schema: str, polling_interval_seconds: int = 30):
+def refresh_termhub_core_cset_derived_tables(con: Connection, schema=SCHEMA, polling_interval_seconds: int = 30):
     """Refresh TermHub core cset derived tables: wrapper function
 
     Handles simultaneous requests and try/except for worker function: refresh_termhub_core_cset_derived_tables_exec()"""
@@ -102,7 +175,11 @@ def refresh_termhub_core_cset_derived_tables(con: Connection, schema: str, polli
         else:
             try:
                 update_db_status_var('derived_tables_refresh_status', 'active')
-                refresh_termhub_core_cset_derived_tables_exec(con, schema)
+                # The following two calls yield equivalent results as of 2023/08/08. I've commented out
+                #  refresh_derived_tables() in case anything goes wrong with refresh_any_dependent_tables(), since that
+                #  is based on a heuristic currently, and if anything goes wrong, we may want to switch back. -joeflack4
+                # refresh_derived_tables(con, CORE_CSET_DEPENDENT_TABLES, schema)
+                refresh_any_dependent_tables(con, CORE_CSET_TABLES, schema)
             finally:
                 update_db_status_var('derived_tables_refresh_status', 'inactive')
             break
@@ -432,15 +509,20 @@ def show_tables(con=get_db_connection(), print_dump=True):
 
 def load_csv(
     con: Connection, table: str, table_type: str = ['dataset', 'object'][0], replace_rule='replace if diff row count',
-    schema: str = SCHEMA, is_test_table=False, local=False
+    schema: str = SCHEMA, is_test_table=False, local=False, optional_suffix=''
 ):
     """Load CSV into table
     :param replace_rule: 'replace if diff row count' or 'do not replace'
       First, will replace table (that is, truncate and load records; will fail if table cols have changed, i think
      'do not replace'  will create new table or load table if table exists but is empty
+    :param optional_suffix: Useful for when remaking tables when database is live. For example, you can upload a new
+    'concept' table using the suffix '_new', then after 'concept_new' is successfully loaded, you can delete the old
+    table and rename this table as just 'concept'.
 
     - Uses: https://pandas.pydata.org/docs/reference/api/pandas.DataFrame.to_sql.html
     """
+    table_name_no_suffix = table
+    table = table + optional_suffix
     # Edge cases
     existing_rows = 0
     try:
@@ -458,7 +540,7 @@ def load_csv(
         return
 
     # Load table
-    path = os.path.join(DATASETS_PATH, f'{table}.csv') if table_type == 'dataset' \
+    path = os.path.join(DATASETS_PATH, f'{table_name_no_suffix}.csv') if table_type == 'dataset' \
         else os.path.join(OBJECTS_PATH, table, 'latest.csv')
     df = pd.read_csv(path)
 
@@ -481,6 +563,7 @@ def load_csv(
     #  "Table \'code_sets\' already exists")')
     #  https://stackoverflow.com/questions/69906698/pandas-to-sql-gives-table-already-exists-error-with-if-exists-append
     kwargs = {'if_exists': 'append', 'index': False, 'schema': schema}
+    # TODO: add suffix
     df.to_sql(table, con, **kwargs)
 
     update_db_status_var(f'last_updated_{table}', str(current_datetime()), local)

@@ -56,7 +56,7 @@ if missing_env_vars:
         f'{", ".join(missing_env_vars)}\n'
         f'{cause_msg}')
 
-FAVORITE_OBJECTS = [
+OBJECT_REGISTRY = [
     'researcher',
     # 'research-project',
 
@@ -77,7 +77,7 @@ FAVORITE_OBJECTS = [
 # todo: All indexes should be listed here, and initialize/refresh refactored such that indexex get created by generating
 #  SQL from here, rather than reading from the DDL files.
 # Ordered because of transformation dependencies
-FAVORITE_DATASETS = OrderedDict({
+DATASET_REGISTRY = OrderedDict({
     # apparently concept_set_container has a lot more rows than concept_set_container_edited. not sure
     #   why we were getting edited or why they're different
     'concept_set_container': {
@@ -145,14 +145,14 @@ FAVORITE_DATASETS = OrderedDict({
         'rid': 'ri.foundry.main.dataset.f945409a-37f1-402f-a840-29b6bd675cb0',
         'column_names': ["codeset_id", "approx_distinct_person_count", "approx_total_record_count"],
         'sort_idx': ['codeset_id'],
-        'dataset_groups': ['vocab']
+        'dataset_groups': ['counts']
     },
     'deidentified_term_usage_by_domain_clamped': { # gets downloaded as csv without column names, not parquet
         'name': 'deidentified_term_usage_by_domain_clamped',
         'rid': 'ri.foundry.main.dataset.e393f03a-00d0-4071-802c-ff20e543ce01',
         'column_names': ["concept_id", "domain", "total_count", "distinct_person_count"],
         'sort_idx': ['concept_id', 'domain'],
-        'dataset_groups': ['vocab']
+        'dataset_groups': ['counts']
     },
     'relationship': { # gets downloaded as csv without column names, not parquet
         'name': 'relationship',
@@ -173,7 +173,21 @@ FAVORITE_DATASETS = OrderedDict({
     #     'rid': '',
     # },
 })
-FAVORITE_DATASETS_RID_NAME_MAP = {
+DATASET_REGISTRY_RID_NAME_MAP = {
     v['rid']: k
-    for k, v in FAVORITE_DATASETS.items()
+    for k, v in DATASET_REGISTRY.items()
+}
+DATASET_GROUPS_CONFIG = {
+    'vocab': {
+        'last_updated_termhub_var': 'last_refreshed_vocab_tables',
+        'last_updated_enclave_representative_table': 'concept',
+        'dataset_group': 'vocab',
+        'tables': [x['name'] for x in DATASET_REGISTRY.values() if 'vocab' in x['dataset_groups']]
+    },
+    'counts': {
+        'last_updated_termhub_var': 'last_refreshed_counts_tables',
+        'last_updated_enclave_representative_table': 'concept_set_counts_clamped',
+        'dataset_group': 'counts',
+        'tables': [x['name'] for x in DATASET_REGISTRY.values() if 'counts' in x['dataset_groups']]
+    }
 }
