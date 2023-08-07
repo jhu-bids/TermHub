@@ -5,9 +5,11 @@ import {List, ListItem} from "@mui/material";
 import Typography from "@mui/material/Typography";
 import IconButton from "@mui/material/IconButton";
 import CloseIcon from "@mui/icons-material/Close";
+import Button from "@mui/material/Button";
+import {NEW_CSET_ID, newCsetAtlasJson, } from "../state/AppState";
+import {newCsetAtlasWidget} from "./NewCset";
 // import Box from '@mui/material/Box';
 import { useLocation } from "react-router-dom";
-
 import {backend_url} from "../state/DataGetter";
 
 /*
@@ -15,7 +17,6 @@ import { styled } from '@mui/material/styles';
 import CardActions from '@mui/material/CardActions';
 import IconButton from '@mui/material/IconButton';
 import Button from '@mui/material/Button';
-import {get, } from 'lodash';
 import Button from '@mui/material/Button';
 
 const bull = ( <Box component="span" sx={{ display: 'inline-block', mx: '2px', transform: 'scale(0.8)' }} >•</Box> );
@@ -64,7 +65,8 @@ export default function ConceptSetCards(props) {
   );
 }
 export function ConceptSetCard(props) {
-  let { cset, researchers = {}, editing = false, closeFunc } = props;
+  let { cset, researchers = {}, editing = false, closeFunc, hideTitle, } = props;
+  let atlasWidget = null;
   /*
   const [expanded, setExpanded] = React.useState(false);
   const handleExpandClick = () => {
@@ -75,8 +77,76 @@ export function ConceptSetCard(props) {
    */
   let tags = [];
   let display_props = {};
-  display_props["Code set ID"] = cset.codeset_id;
-  let dontFormatValue = ['Concept counts'];
+  let enclaveLink;
+  if (cset.codeset_id === NEW_CSET_ID) {
+    atlasWidget = newCsetAtlasWidget(cset);
+  } else {
+    display_props["Code set ID"] = cset.codeset_id;
+
+    // fix to:
+    // format: row => fmt(parseInt(row.distinct_person_cnt)),
+    display_props["Patient count"] = typeof(cset.distinct_person_cnt) === 'number'
+        ? "~ " + cset.distinct_person_cnt.toLocaleString() : '';
+    display_props["Record count"] = typeof(cset.total_cnt) === 'number'
+        ? "~ " + cset.total_cnt.toLocaleString() : '';
+
+    if (cset.is_most_recent_version) {
+      tags.push("Most recent version");
+    }
+
+    let intention = [];
+    if (cset.container_intention) {
+      intention.push("Container: " + cset.container_intention);
+    }
+    if (cset.codeset_intention) {
+      intention.push("Version: " + cset.codeset_intention);
+    }
+    if (intention.length) {
+      display_props.Intention = intention.join("; ");
+    }
+    if (cset.update_message) {
+      display_props["Update message"] = cset.update_message;
+    }
+    if (cset.archived) {
+      tags.push("Archived");
+    }
+    if (cset.has_review) {
+      tags.push("Has review");
+    }
+    if (cset.provenance) {
+      display_props["Provenance"] = cset.provenance;
+    }
+    if (cset.limitations) {
+      display_props["Limitations"] = cset.limitations;
+    }
+    if (cset.limitations) {
+      display_props["Limitations"] = cset.limitations;
+    }
+    if (cset.issues) {
+      display_props["Issues"] = cset.issues;
+    }
+    if (cset.authoritative_source) {
+      display_props["Authoritative source"] = cset.authoritative_source;
+    }
+    if (cset.project_id) {
+      display_props["Project ID"] = cset.project_id;
+    }
+    display_props["Container created at"] = new Date(cset.container_created_at).toLocaleString();
+    display_props["Version created at"] = new Date(cset.codeset_created_at).toLocaleString();
+    enclaveLink = (
+        <Typography variant="body2" color="text.primary">
+          <a
+              // opens container: href={`https://unite.nih.gov/workspace/hubble/objects/${cset.container_rid}`}
+              // opens version:
+              href={`https://unite.nih.gov/workspace/hubble/external/object/v0/omop-concept-set?codeset_id=${cset.codeset_id}`}
+              target="_blank"
+          >
+            Open in Enclave
+          </a>
+          ,{" "}
+        </Typography>
+    );
+  }
   display_props["Concept counts"] = (
       <>
         {
@@ -86,57 +156,6 @@ export function ConceptSetCard(props) {
         }
       </>
   );
-
-  // fix to:
-  // format: row => fmt(parseInt(row.distinct_person_cnt)),
-  display_props["Patient count"] =
-    "~ " + cset.distinct_person_cnt.toLocaleString();
-  display_props["Record count"] = "~ " + cset.total_cnt.toLocaleString();
-
-  if (cset.is_most_recent_version) {
-    tags.push("Most recent version");
-  }
-
-  let intention = [];
-  if (cset.container_intention) {
-    intention.push("Container: " + cset.container_intention);
-  }
-  if (cset.codeset_intention) {
-    intention.push("Version: " + cset.codeset_intention);
-  }
-  if (intention.length) {
-    display_props.Intention = intention.join("; ");
-  }
-  if (cset.update_message) {
-    display_props["Update message"] = cset.update_message;
-  }
-  if (cset.archived) {
-    tags.push("Archived");
-  }
-  if (cset.has_review) {
-    tags.push("Has review");
-  }
-  if (cset.provenance) {
-    display_props["Provenance"] = cset.provenance;
-  }
-  if (cset.limitations) {
-    display_props["Limitations"] = cset.limitations;
-  }
-  if (cset.limitations) {
-    display_props["Limitations"] = cset.limitations;
-  }
-  if (cset.issues) {
-    display_props["Issues"] = cset.issues;
-  }
-  if (cset.authoritative_source) {
-    display_props["Authoritative source"] = cset.authoritative_source;
-  }
-  if (cset.project_id) {
-    display_props["Project ID"] = cset.project_id;
-  }
-  display_props["Container created at"] = new Date(cset.container_created_at).toLocaleString();
-  display_props["Version created at"] = new Date(cset.codeset_created_at).toLocaleString();
-
   let _researchers = Object.entries(cset.researchers).map(([id, roles]) => {
     let r = researchers[id];
     if (!r) {
@@ -147,41 +166,30 @@ export function ConceptSetCard(props) {
   }).filter(d => d);
   const researcher_info = _researchers.map((r) => {
     return (
-      <Typography
-        variant="body2"
-        color="text.secondary"
-        key={r.emailAddress}
-        sx={{ overflow: "clip" }}
-        gutterBottom
-      >
-        <strong>{r.roles.join(", ")}:</strong>
-        <br />
-        <a href={`mailto:${r.emailAddress}`}>{r.name}</a>
-        , <a
-           href={r.institutionsId} target="_blank" rel="noreferrer">{r.institution} </a>
-        , <a href={`https://orcid.org/${r.orcidId}`} target="_blank" rel="noreferrer" >ORCID</a>.
-      </Typography>
+        <Typography
+            variant="body2"
+            color="text.secondary"
+            key={r.emailAddress}
+            sx={{ overflow: "clip" }}
+            gutterBottom
+        >
+          <strong>{r.roles.join(", ")}:</strong>
+          <br />
+          <a href={`mailto:${r.emailAddress}`}>{r.name}</a>
+          , <a
+            href={r.institutionsId} target="_blank" rel="noreferrer">{r.institution} </a>
+          , <a href={`https://orcid.org/${r.orcidId}`} target="_blank" rel="noreferrer" >ORCID</a>.
+        </Typography>
     );
   });
   let researcherContent = researcher_info.length ?
       ( <div>
-          <Typography /*variant="h6"*/ color="text.primary">
-            Contributors
-          </Typography>
-          {researcher_info}
-        </div>
+            <Typography /*variant="h6"*/ color="text.primary">
+              Contributors
+            </Typography>
+            {researcher_info}
+          </div>
       ) : '';
-  // display_props['props not included yet'] = 'codeset_status, container_status, stage, concept count';
-  /*
-  const { search, pathname } = useLocation();
-  const editSingleLink = (
-      <NavLink
-          // component={NavLink} // NavLink is supposed to show different if it's active; doesn't seem to be working
-          to={`/SingleCsetEdit?codeset_ids=${cset.codeset_id}&prev=${encodeURIComponent(pathname)}${encodeURIComponent(search)}`}
-          sx={{ my: 2, color: 'white', display: 'block' }}
-      >Edit</NavLink>
-      )
-   */
   return (
     <Card
       variant="outlined"
@@ -199,23 +207,25 @@ export function ConceptSetCard(props) {
         />
         */}
       <CardContent sx={{}}>
-        <div
-          style={{
-            display: "flex",
-            justifyContent: "space-between",
-            alignItems: "center",
-          }}
-        >
-          <Typography variant="h6" color="text.primary" gutterBottom>
-            {editing ? "Editing" : ""} {cset.concept_set_version_title}
-            {/*{editSingleLink}*/}
-          </Typography>
-          {closeFunc ? (
-            <IconButton onClick={closeFunc}>
-              <CloseIcon />
-            </IconButton>
-          ) : null}
-        </div>
+        {
+          hideTitle ? null :
+              <div
+                  style={{
+                    display: "flex",
+                    justifyContent: "space-between",
+                    alignItems: "center",
+                  }}
+              >
+                <Typography variant="h6" color="text.primary" gutterBottom>
+                  {editing ? "Editing" : ""} {cset.concept_set_version_title}
+                </Typography>
+                {closeFunc ? (
+                    <IconButton onClick={closeFunc}>
+                      <CloseIcon />
+                    </IconButton>
+                ) : null}
+              </div>
+        }
         <Typography variant="body2" color="text.primary" gutterBottom>
           {tags.join(", ")}
         </Typography>
@@ -225,24 +235,8 @@ export function ConceptSetCard(props) {
             </Typography>
         ))}
         {researcherContent}
-        <Typography variant="body2" color="text.primary">
-          <a
-              // opens container: href={`https://unite.nih.gov/workspace/hubble/objects/${cset.container_rid}`}
-              // opens version:
-              href={`https://unite.nih.gov/workspace/hubble/external/object/v0/omop-concept-set?codeset_id=${cset.codeset_id}`}
-              target="_blank"
-          >
-            Open in Enclave
-          </a>
-          ,{" "}
-          <a
-            href={backend_url(`cset-download?codeset_id=${cset.codeset_id}`)}
-            target="_blank"
-            rel="noreferrer"
-          >
-            Export JSON
-          </a>
-        </Typography>
+        {enclaveLink}
+        {atlasWidget}
       </CardContent>
       {/*
         <CardActions disableSpacing>

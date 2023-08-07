@@ -1,46 +1,44 @@
-import React, {
-  useRef,
-  useState,
-  useCallback,
-  useEffect /* useMemo, useReducer, */,
-} from "react";
-import * as d3dag from "d3-dag";
+import React, {useCallback, useEffect, useRef, useState,} from "react";
 // import { createSearchParams, useSearchParams, } from "react-router-dom";
-import DataTable, { createTheme } from "react-data-table-component";
-import { AddCircle, RemoveCircleOutline, Download } from "@mui/icons-material";
-import { Box, Slider, Button, Typography, Switch } from "@mui/material";
-import { IconButton } from "@mui/material";
-import Draggable from "react-draggable";
+import DataTable, {createTheme} from "react-data-table-component";
+// import {AddCircle, Download, RemoveCircleOutline} from "@mui/icons-material";
+import AddCircle from "@mui/icons-material/AddCircle";
+import Download from "@mui/icons-material/Download";
+import RemoveCircleOutline from "@mui/icons-material/RemoveCircleOutline";
+// import {Box, IconButton, Slider, Switch} from "@mui/material";
+import Box from "@mui/material/Box";
+import IconButton from "@mui/material/IconButton";
+import Slider from "@mui/material/Slider";
+import Switch from "@mui/material/Switch";
+import CloseIcon from "@mui/icons-material/Close";
+import Button from "@mui/material/Button";
 // import {Checkbox} from "@mui/material";
-import {isEmpty, throttle, max, union, uniqBy, flatten, sortBy,
-        uniq, difference, intersection} from "lodash";
+import {difference, flatten, intersection, isEmpty, max, sortBy, throttle, union, uniq, uniqBy} from "lodash";
 import Graph from 'graphology';
 import {allSimplePaths} from 'graphology-simple-path';
-import {dfs, dfsFromNode} from 'graphology-traversal/dfs';
-import { saveAs } from 'file-saver';
+import {dfsFromNode} from 'graphology-traversal/dfs';
+import {saveAs} from 'file-saver';
 import Papa from 'papaparse';
 
-import { fmt, useWindowSize } from "./utils";
-import { setColDefDimensions } from "./dataTableUtils";
-import { ConceptSetCard } from "./ConceptSetCard";
-import { Tooltip } from "./Tooltip";
+import {fmt, useWindowSize} from "./utils";
+import {setColDefDimensions} from "./dataTableUtils";
+import {ConceptSetCard} from "./ConceptSetCard";
+import {Tooltip} from "./Tooltip";
 import {
-  getCodesetEditActionFunc,
-  EditInfo,
   cellContents,
   cellStyle,
+  getCodesetEditActionFunc,
+  getItem,
   Legend,
+  newCsetAtlasWidget,
   saveChangesInstructions,
-  textCellForItem, getItem,
-} from "./EditCset";
-import { FlexibleContainer } from "./FlexibleContainer";
-import {useEditCset, useHierarchySettings, useCodesetIds, } from "../state/AppState";
+  textCellForItem,
+} from "./NewCset";
+import {FlexibleContainer} from "./FlexibleContainer";
+import {NEW_CSET_ID, useCodesetIds, useHierarchySettings, useNewCset,} from "../state/AppState";
 import {useDataCache} from "../state/DataCache";
-import {useDataGetter, getResearcherIdsFromCsets} from "../state/DataGetter";
-import {useSearchParamsState} from "../state/SearchParamsProvider";
-import CloseIcon from "@mui/icons-material/Close";
-import {CsetsDataTable} from "./CsetsDataTable";
-import {NEW_CSET_ID} from "../state/AppState";
+import {getResearcherIdsFromCsets, useDataGetter} from "../state/DataGetter";
+import {LI} from "./AboutPage";
 
 // TODO: Find concepts w/ good overlap and save a good URL for that
 // TODO: show table w/ hierarchical indent
@@ -48,9 +46,9 @@ import {NEW_CSET_ID} from "../state/AppState";
 //  ...for coloration, since we want certain rows grouped together
 function CsetComparisonPage() {
   const [codeset_ids, codesetIdsDispatch] = useCodesetIds();
-  const {sp, updateSp} = useSearchParamsState();
-  const { editCodesetId, csetEditState, } = sp;
-  const [editCset, editCsetDispatch] = useEditCset();
+  // const {sp, updateSp} = useSearchParamsState();
+  const [newCset, newCsetDispatch] = useNewCset();
+  const editingCset = !isEmpty(newCset);
   // const { selected_csets = [], researchers, } = cset_data;
   const dataGetter = useDataGetter();
   const dataCache = useDataCache();
@@ -59,13 +57,12 @@ function CsetComparisonPage() {
   const windowSize = useWindowSize();
   const boxRef = useRef();
   const countRef = useRef({ n: 0, z: 10 });
-  const [addNewCsetDisplay, setAddNewCsetDisplay] = useState(typeof(editCodesetId) === "undefined");
   const [panelPosition, setPanelPosition] = useState({ x: 0, y: 0 });
   const sizes = getSizes(/*squishTo*/ 1);
   const customStyles = styles(sizes);
   const [data, setData] = useState({});
       // useState({ concept_ids: [], selected_csets: [], edges: [], concepts: [], });
-  const { edges, concepts, conceptLookup, selected_csets, csmi, researchers } = data;
+  const { edges, concepts, conceptLookup, selected_csets, csmi, researchers, currentUserId,  } = data;
 
   useEffect(() => {
     (async () => {
@@ -102,24 +99,24 @@ function CsetComparisonPage() {
       selected_csets = Object.values(selected_csets);
       // setData(current => ({...current, selected_csets, conceptLookup}));
 
-      if ((editCset || {}).newCset) {
-        const currentUserId = (await whoami).id;
-        editCsetDispatch({type: 'currentUserId', currentUserId});
+      if (!isEmpty(newCset)) {
+        // newCsetDispatch({type: 'currentUserId', currentUserId});
 
-        selected_csets.push(editCset.newCset);
+        selected_csets.push(newCset);
 
         selected_csets = selected_csets.map(cset => {
           cset = {...cset};
           cset.intersecting_concepts= 0;
           cset.precision = 0;
           cset.recall = 0;
+          cset.counts = {};
           return cset;
         });
 
-        csmi = {...csmi, ...editCset.definitions};
+        csmi = {...csmi, ...newCset.definitions};
       }
 
-      const researcherIds = getResearcherIdsFromCsets(selected_csets); // .filter(d => d.codeset_id === editCodesetId);
+      const researcherIds = getResearcherIdsFromCsets(selected_csets);
       let researchers = dataGetter.fetchAndCacheItems(dataGetter.apiCalls.researchers, researcherIds);
 
       /*
@@ -152,10 +149,12 @@ function CsetComparisonPage() {
       }
        */
 
+      const currentUserId = (await whoami).id;
       researchers = await researchers;
-      setData(current => ({...current, concept_ids, edges, selected_csets, conceptLookup, csmi, concepts, researchers}));
+      setData(current => ({...current, concept_ids, edges, selected_csets, conceptLookup, csmi,
+          concepts, researchers, currentUserId, }));
     })();
-  }, []);
+  }, [newCset]);
 
   useEffect(() => {
     if (boxRef.current) {
@@ -195,7 +194,7 @@ function CsetComparisonPage() {
     rowData = distinctRows;
   }
 
-  const editAction = getCodesetEditActionFunc({ csmi, sp, updateSp, });
+  const editAction = getCodesetEditActionFunc({ csmi, newCset, newCsetDispatch, });
 
   let columns = colConfig({
     csmi,
@@ -209,9 +208,8 @@ function CsetComparisonPage() {
     displayedRows,
     hierarchySettings,
     hsDispatch,
-    setAddNewCsetDisplay,
-    updateSp,
-    csetEditState,
+    newCset,
+    newCsetDispatch,
   });
 
   let infoPanels = [
@@ -257,26 +255,24 @@ function CsetComparisonPage() {
     </Button>,
 
     <FlexibleContainer key="legend" title="Legend" position={panelPosition} countRef={countRef}>
-      <Legend editing={editCodesetId == NEW_CSET_ID}/>
+      <Legend editing={editingCset}/>
     </FlexibleContainer>,
 
     <Button key="add-cset"
             variant="outlined"
             onClick={() => {
-              // const addProps = { editCodesetId: NEW_CSET_ID, csetEditState: {} };
-              // updateSp({ addProps });
-              editCsetDispatch({type: 'create_new_cset'});
-              setAddNewCsetDisplay(false);
+              newCsetDispatch({type: 'createNewCset'});
             }}
             sx={{
               cursor: 'pointer',
               marginRight: '4px',
-              display: addNewCsetDisplay ? "flex" : "none",
+              display: editingCset ? "none" : "flex",
             }}
     >
       add a new concept set
     </Button>,
 
+    /*
     <FlexibleContainer key="cset-table" title="Table of concept set being edited"
                        position={panelPosition} countRef={countRef}>
       <CsetsDataTable show_selected={true}
@@ -285,48 +281,36 @@ function CsetComparisonPage() {
                       showTitle={false}
                       selected_csets={selected_csets} />
     </FlexibleContainer>,
+    */
   ];
 
   let edited_cset;
-  if (editCodesetId) {
-    edited_cset = selected_csets.find(cset => cset.codeset_id === editCodesetId);
-    const editedCsetCol = (columns.find((d) => d.codeset_id === editCodesetId) || {}).cset_col;
-    if (editedCsetCol) {
-      infoPanels.push(
-          <FlexibleContainer key="cset" title="Concept set being edited"
-                             position={panelPosition} countRef={countRef}>
-            <ConceptSetCard
-                cset={columns.find((d) => d.codeset_id === editCodesetId).cset_col}
-                researchers={researchers}
-                editing={true}
-            />
-          </FlexibleContainer>
-      );
-      /* infoPanels.push(
-          <FlexibleContainer key="compare" title={edited_cset.concept_set_name}>
-            <CsetsDataTable {...props} show_selected={true} min_col={false} />
-          </FlexibleContainer>
-      ); */
-      if (csetEditState && csetEditState[editCodesetId]) {
-        const csidState = csetEditState[editCodesetId];
-        infoPanels.push(
-            <FlexibleContainer key="changes"
-                               title={`${Object.keys(csidState).length} Staged changes`}
-                               position={panelPosition} countRef={countRef}
-            >
-              <EditInfo selected_csets={selected_csets} conceptLookup={conceptLookup} />
-            </FlexibleContainer>,
-
-            <FlexibleContainer key="instructions"
-                               title="Instructions to save changes"
-                               position={panelPosition} countRef={countRef}>
-              {saveChangesInstructions({ editCodesetId,
-                                         csetEditState,
-                                         selected_csets, })}
-            </FlexibleContainer>
-        );
-      }
-    }
+  if (editingCset) {
+    infoPanels.push(
+        <FlexibleContainer key="cset" title="New concept set"
+                           position={panelPosition} countRef={countRef}>
+          <ConceptSetCard
+              cset={newCset}
+              researchers={researchers}
+              editing={true}
+              hideTitle
+              context="show new cset info"
+          />
+        </FlexibleContainer>
+    );
+    /* infoPanels.push(
+        <FlexibleContainer key="compare" title={edited_cset.concept_set_name}>
+          <CsetsDataTable {...props} show_selected={true} min_col={false} />
+        </FlexibleContainer>
+    ); */
+    infoPanels.push(
+        <FlexibleContainer key="instructions"
+                           title="Instructions to save new concept set"
+                           style={{maxWidth: 700, }}
+                           position={panelPosition} countRef={countRef}>
+          {saveChangesInstructions({ newCset })}
+        </FlexibleContainer>
+    );
   }
 
   let sendProps = {
@@ -481,11 +465,12 @@ function nestedConcepts(concepts, edges, hierarchySettings) {
 function ComparisonDataTable(props) {
   const {
     columns,
-    csetEditState = {},
+    newCset = {},
     customStyles,
     rowData,
     /* squishTo = 1, cset_data, displayedRows, selected_csets */
   } = props;
+  const { definitions = {}, members = {}, } = newCset;
   const boxRef = useRef();
   // console.log(derivedState);
 
@@ -505,7 +490,7 @@ function ComparisonDataTable(props) {
     {
       when: () => true,
       style: (row) => ({
-        backgroundColor: row.concept_id in csetEditState ? "#F662" : "#FFF",
+        backgroundColor: row.concept_id in definitions ? "#F662" : "#FFF",
       }),
     },
   ];
@@ -599,11 +584,11 @@ function colConfig(props) {
     hierarchySettings,
     hsDispatch,
     setAddNewCsetDisplay,
-    updateSp,
     csmi,
-    csetEditState,
+    newCset, newCsetDispatch
   } = props;
   const {collapsePaths, collapsedDescendantPaths, nested, hideRxNormExtension, hideZeroCounts} = hierarchySettings;
+  const { definitions = {}, } = newCset;
 
   const maxNameLength = max(displayedRows.map(d => d.concept_name.length));
   let coldefs = [
@@ -814,7 +799,7 @@ function colConfig(props) {
       },
       selector: row => {
         const item = getItem({ codeset_id: cset_col.codeset_id,
-          concept_id: row.concept_id, csmi, csetEditState, }) || {};
+          concept_id: row.concept_id, csmi, newCset, }) || {};
         return !(item.item || item.csm);
       },
       format: (row) => {
@@ -857,8 +842,7 @@ function colConfig(props) {
                   }
                   setAddNewCsetDisplay(true);
 
-                  const delProps = ["editCodesetId", "csetEditState"];
-                  updateSp({ delProps });
+                  newCsetDispatch({type: 'reset'});
                 }}
             >
               <CloseIcon />
@@ -1117,3 +1101,53 @@ function SquishSlider({ setSquish }) {
 }
 
 export { CsetComparisonPage };
+
+function howToSaveStagedChanges(params) {
+  const atlasWidget = newCsetAtlasWidget(params.newCset);
+  return (
+      <>
+        <ol>
+          <LI>
+            {atlasWidget}
+            {/*<PRE>{atlasJson}</PRE>*/}
+          </LI>
+          <LI>
+            Create a new concept set or new version of an existing concept in the{" "}
+            <a href="https://unite.nih.gov/workspace/module/view/latest/ri.workshop.main.module.5a6c64c0-e82b-4cf8-ba5b-645cd77a1dbf"
+               target="_blank" rel="noreferrer">
+              enclave concept set editor
+            </a>.
+          </LI>
+          <LI>
+            When you get to the screen for editing the new draft version, you will see
+            a blue button labelled "Add Concepts" on the upper right.
+            Click the down arrow, then select "Import ATLAS Concept Set Expression
+            JSON" from the menu.
+          </LI>
+          <LI>
+            Paste the JSON copied into your clipboard from TermHub earlier into the box, and
+            click "Import Atlas JSON".
+          </LI>
+          <LI>Click the version on the left again.</LI>
+          <LI>On the right, click the green "Done" button.</LI>
+        </ol>
+        {/*
+      <p>
+        To save your work, click
+        <Button
+          onClick={() => {
+            navigator.clipboard.writeText(window.location.toString());
+          }}
+        >
+          Copy URL
+        </Button>
+        <br />
+        Best practice is to paste this URL in your lab notebook and annotate
+        your work there as well.
+      </p>
+      */}
+      </>
+  );
+}
+
+export {howToSaveStagedChanges};

@@ -1,8 +1,9 @@
-import React, {createContext, useContext, useReducer} from "react";
-import {flatten, fromPairs, get, isEmpty, isEqual} from "lodash";
+import React, {createContext, useContext, useReducer, useState} from "react";
+import {flatten, fromPairs, get, pick, isEqual, isEmpty} from "lodash";
 import {createPersistedReducer} from "./usePersistedReducer";
 import {alertsReducer} from "../components/AlertMessages";
 import {useSearchParamsState} from "./SearchParamsProvider";
+import {SOURCE_APPLICATION, SOURCE_APPLICATION_VERSION} from "../env";
 
 export const NEW_CSET_ID = -1;
 
@@ -32,15 +33,15 @@ const codesetIdsReducer = (state, action) => {
 };
 const CodesetIdsContext = createContext(null);
 export function CodesetIdsProvider({ children }) {
-  const spStateInst = useSearchParamsState();
-  let state = spStateInst.getItem('codeset_ids') || [];
+  const storageProvider = useSearchParamsState();
+  let state = storageProvider.getItem('codeset_ids') || [];
 
   const dispatch = action => {
-    let latestState = spStateInst.getItem('codeset_ids') || [];
+    let latestState = storageProvider.getItem('codeset_ids') || [];
     const stateAfterDispatch = codesetIdsReducer(latestState, action);
     if (!isEqual(latestState, stateAfterDispatch)) {
       debugger;
-      spStateInst.setItem('codeset_ids', stateAfterDispatch);
+      storageProvider.setItem('codeset_ids', stateAfterDispatch);
     }
   }
   return (
@@ -104,9 +105,9 @@ export function useHierarchySettingsDispatch() {
 export function useHierarchySettings() {
   const unpersistedDefaultState = { nested: true, collapsePaths: {},
     collapsedDescendantPaths: {}, hideRxNormExtension: true, hideZeroCounts: false, };
-  const spStateInst = useSearchParamsState();
+  const storageProvider = useSearchParamsState();
   const usePersistedReducer = createPersistedReducer('hierarchySettings',
-    spStateInst, unpersistedDefaultState);
+    storageProvider, unpersistedDefaultState);
 
   function hierarchySettingsReducer(state, action) {
     if ( ! ( action || {} ).type ) return state;
@@ -150,32 +151,63 @@ export function useHierarchySettings() {
   return [state, dispatch];
 }
 
-const editCsetReducer = (state, action) => {
+const newCsetReducer = (state, action) => {
+  /*
+      state structure in storageProvider.newCset should look like:
+        {
+          codeset_id: 1234,
+          concept_set_name: 'New Cset',
+          ...
+          definitions: {
+            concept_id: 12345,
+            includeDescendants: true,
+            ...
+          },
+          members: {
+            // this won't work for a while
+          },
+        }
+   */
   if (!action || !action.type) return state;
   switch (action.type) {
-    case "create_new_cset": {
-      let newCset = {
-        "codeset_id": NEW_CSET_ID,
-        "concept_set_version_title": "New Cset (Draft)",
-        "concept_set_name": "New Cset",
-        "alias": "New Cset",
-        "source_application": "UNITE",
-        // "source_application_version": "2.0",
-        // "codeset_created_at": "2022-07-28 16:14:13.085000+00:00",
-        "codeset_intention": "From TermHub",
-        "limitations": "From TermHub",
-        "update_message": "TermHub testing",
-        // "codeset_created_by": "e64b8f7b-7af8-4b44-a570-557b812c0eeb",
-        "provenance": "TermHub testing.",
-        "is_draft": true,
-        "researchers": [],
+    case "createNewCset": {
+      let cset = {
+        codeset_id: NEW_CSET_ID,
+        concept_set_version_title: "New Cset (Draft)",
+        concept_set_name: "New Cset",
+        alias: "New Cset",
+        source_application: SOURCE_APPLICATION,
+        source_application_version: SOURCE_APPLICATION_VERSION,
+        codeset_intention: "From TermHub",
+        limitations: "From TermHub",
+        update_message: "TermHub testing",
+        // "codeset_created_at": "2022-07-28 16:14:13.085000+00:00", // will be set by enclave
+        // "codeset_created_by": "e64b8f7b-7af8-4b44-a570-557b812c0eeb", // will be set by enclave
+        provenance: `TermHub url: ${window.location.href}${window.location.search ? '&' : '?'}sstorage=${JSON.stringify(sessionStorage)}`,
+        is_draft: true,
+        researchers: [],
+        counts: {'Expression items': 0},
+        intersecting_concepts: 0,
+        precision: 0,
+        recall: 0,
       };
+      /*
       if (state.currentUserId) {
         newCset['on-behalf-of'] = state.currentUserId;
         newCset.researchers = [state.currentUserId];
       }
-      return {...state, newCset, definitions: {}};
+       */
+      return {...cset, definitions: {}};
     }
+    case "addDefinition": {
+      state = {...state, definitions: {...state.definitions, [action.definition.concept_id]: action.definition }}
+    }
+    case "deleteDefinition": {
+      let definitions = {...state.definitions};
+      delete definitions[action.concept_id];
+      state = {...state, definitions, };
+    }
+    /*
     case "currentUserId": {
       if (state.newCset) {
         if (state.newCset['on-behalf-of']) {
@@ -194,35 +226,52 @@ const editCsetReducer = (state, action) => {
       }
       return {...state, currentUserId: action.currentUserId};
     }
+     */
+    /*
     case "add_definitions": {
       let {definitions = {}} = state;
       definitions = {...definitions, ...action.payload};
       return {...state, ...definitions};
     }
+     */
   }
-  // if (state === action.payload) return null; // if already set to this codeset_id, turn off
-  return action.payload;
+  state = {...state, counts: {...state.counts, 'Expression items': Object.keys(state.definitions).length}};
+  return state
 };
-const EditCsetContext = createContext(null);
-export function EditCsetProvider({ children }) {
-  const spStateInst = useSearchParamsState();
-  let state = spStateInst.getItem('editCset') || {}
+const NewCsetContext = createContext(null);
+export function NewCsetProvider({ children }) {
+  const [stateUpdate, setStateUpdate] = useState(); // just to force consumers to rerender
+  // const storageProvider = useSearchParamsState();
+  const storageProvider = sessionStorage; // for now, for simplicity, just save to sessionStorage
+  let state = JSON.parse(storageProvider.getItem('newCset')) || {};
 
   const dispatch = action => {
-    let latestState = spStateInst.getItem('editCset') || [];
-    const stateAfterDispatch = editCsetReducer(latestState, action);
+    let latestState = JSON.parse(storageProvider.getItem('newCset'));
+    const stateAfterDispatch = newCsetReducer(latestState, action);
     if (!isEqual(latestState, stateAfterDispatch)) {
-      spStateInst.setItem('editCset', stateAfterDispatch);
+      storageProvider.setItem('newCset', JSON.stringify(stateAfterDispatch));
+      console.log(stateAfterDispatch);
+      setStateUpdate(stateAfterDispatch);
     }
   }
+  console.log(state);
   return (
-      <EditCsetContext.Provider value={[state, dispatch]}>
+      <NewCsetContext.Provider value={[state, dispatch]}>
         {children}
-      </EditCsetContext.Provider>
+      </NewCsetContext.Provider>
   );
 }
-export function useEditCset() {
-  return useContext(EditCsetContext);
+export function useNewCset() {
+  return useContext(NewCsetContext);
+}
+export function newCsetAtlasJson(cset) {
+  if (isEmpty(cset.definitions)) {
+    return;
+  }
+  const atlasDefs = Object.values(cset.definitions).map(d => pick(d, [
+    'concept_id', 'includeDescendants', 'includeMapped', 'isExcluded', 'annotation' ]));
+  const atlasJson = JSON.stringify(atlasDefs, null, 2);
+  return atlasJson;
 }
 
 const currentConceptIdsReducer = (state, action) => { // not being used
@@ -237,6 +286,4 @@ const currentConceptIdsReducer = (state, action) => { // not being used
     default:
       return state;
   }
-};
-const csetEditsReducer = (csetEdits, action) => {
 };

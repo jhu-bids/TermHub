@@ -25,7 +25,7 @@ import { CsetComparisonPage } from "./components/CsetComparisonPage";
 import { AboutPage } from "./components/AboutPage";
 import { ConceptGraph } from "./components/ConceptGraph";
 import {ViewCurrentState, } from "./state/State";
-import {CodesetIdsProvider, AlertsProvider, useAlerts, useAlertsDispatch, EditCsetProvider, } from "./state/AppState";
+import {CodesetIdsProvider, AlertsProvider, useAlerts, useAlertsDispatch, NewCsetProvider, } from "./state/AppState";
 import {SearchParamsProvider, useSearchParamsState} from "./state/SearchParamsProvider";
 import {DataGetterProvider} from "./state/DataGetter";
 import { UploadCsvPage } from "./components/UploadCsv";
@@ -38,14 +38,14 @@ import {AlertMessages} from "./components/AlertMessages";
     <BrowserRouter>                 // from index.js root.render
       <SearchParamsProvider>        // gets state from query string -- mainly codeset_ids
         <AlertsProvider>
-          <EditCsetProvider>
+          <NewCsetProvider>
             <DataCacheProvider>       // ability to save to and retrieve from cache in localStorage
               <DataGetterProvider>    // utilities for fetching data. dataCache needs access to this a couple of times
                                       //  so those method calls will have to pass in a dataGetter
                 <RoutesContainer/>
               </DataGetterProvider>
             </DataCacheProvider>
-          </EditCsetProvider>
+          </NewCsetProvider>
         </AlertsProvider>
       </SearchParamsProvider>
     </BrowserRouter>
@@ -57,13 +57,13 @@ function QCProvider() {
       <SearchParamsProvider>
         <AlertsProvider>
           <CodesetIdsProvider>
-            <EditCsetProvider>
+            <NewCsetProvider>
               <DataCacheProvider>
                 <DataGetterProvider>
                   <RoutesContainer/>
                 </DataGetterProvider>
               </DataCacheProvider>
-            </EditCsetProvider>
+            </NewCsetProvider>
           </CodesetIdsProvider>
         </AlertsProvider>
       </SearchParamsProvider>
@@ -71,10 +71,15 @@ function QCProvider() {
   );
 }
 function RoutesContainer() {
-  const {sp} = useSearchParamsState();
+  const spState = useSearchParamsState();
+  const {sp} = spState;
   const {codeset_ids, } = sp;
   const location = useLocation();
 
+  if (sp.sstorage) {
+    sessionStorage = JSON.parse(sp.sstorage);
+    spState.removeItem('sstorage');
+  }
   if (location.pathname === "/") {
     return <Navigate to="/OMOPConceptSets" />;
   }

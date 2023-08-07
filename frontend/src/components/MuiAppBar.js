@@ -24,7 +24,7 @@ import ListItemButton from "@mui/material/ListItemButton";
 import { styled, useTheme } from "@mui/material/styles";
 import ListItemText from "@mui/material/ListItemText";
 import { cloneDeep } from "lodash";
-import VERSION from "../version";
+import {VERSION} from "../env";
 import {useSearchParamsState} from "../state/SearchParamsProvider";
 
 const drawerWidth = 240;
