@@ -25,7 +25,6 @@ jobs:
           echo "Commit hash: ${{ github.sha }}"
           echo "Branch: ${{ github.ref }}"
       - name: Set env
-        # run: cp ./frontend/src/env.dev.js ./frontend/src/env.js ## tried to import env.js in env.dev.js, resulted in infinite loop. trying this instead
         run: cat ./frontend/src/env.dev.js >> ./frontend/src/env.js
       - name: Build And Deploy
         id: builddeploy
