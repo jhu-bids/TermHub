@@ -6,7 +6,7 @@ https://stackoverflow.com/questions/53219113/where-can-i-make-api-call-with-hook
 might be useful to look at https://mui.com/material-ui/guides/composition/#link
 referred to by https://stackoverflow.com/questions/63216730/can-you-use-material-ui-link-with-react-router-dom-link
 */
-import React from "react";
+import React, {useEffect} from "react";
 import {
   // Link, useHref, useParams, BrowserRouter, redirect,
   Outlet,
@@ -19,13 +19,21 @@ import {
 import { createTheme, ThemeProvider } from "@mui/material/styles";
 import "./App.css";
 import { isEmpty } from "lodash";
+import {compress, decompress} from "lz-string";
 
 import { ConceptSetsPage } from "./components/Csets";
 import { CsetComparisonPage } from "./components/CsetComparisonPage";
 import { AboutPage } from "./components/AboutPage";
 import { ConceptGraph } from "./components/ConceptGraph";
 import {ViewCurrentState, } from "./state/State";
-import {CodesetIdsProvider, AlertsProvider, useAlerts, useAlertsDispatch, NewCsetProvider, } from "./state/AppState";
+import {
+  CodesetIdsProvider,
+  AlertsProvider,
+  useAlerts,
+  useAlertsDispatch,
+  NewCsetProvider,
+  useNewCset,
+} from "./state/AppState";
 import {SearchParamsProvider, useSearchParamsState} from "./state/SearchParamsProvider";
 import {DataGetterProvider} from "./state/DataGetter";
 import { UploadCsvPage } from "./components/UploadCsv";
@@ -70,22 +78,43 @@ function QCProvider() {
     // </React.StrictMode>
   );
 }
+window.compress = compress;
+window.decompress = decompress;
 function RoutesContainer() {
   const spState = useSearchParamsState();
-  let {sp} = spState;
+  let {sp, updateSp, } = spState;
   const {codeset_ids, } = sp;
   const location = useLocation();
+  const [newCset, newCsetDispatch] = useNewCset();
 
-  if (sp.sstorage) {
-    sessionStorage.setItem('sstorage', sp.sstorage);
+  useEffect(() => {
+    if (sp.sstorage) {
+      // const sstorageString = decompress(sp.sstorage);
+      // const sstorage = JSON.parse(sstorageString);
+      const sstorage = JSON.parse(sp.sstorage);
+      Object.entries(sstorage).map(([k,v]) => {
+        if (k === 'newCset') {
+          newCsetDispatch({type: 'restore', newCset: v});
+        } else {
+          console.warn('was only expecting newCset in sstorage search param, got', {[k]: v},
+                       'adding to sessionStorage anyway');
+        }
+        sessionStorage.setItem(k, JSON.stringify(v));
+      });
 
-    sp = {...sp};
-    delete sp.sstorage;
-
-    let csp = createSearchParams(sp);
-    let url = location.pathname + '?' + csp;
-    return <Navigate to={url} replace={true} />;
-  }
+      updateSp({delProps: ['sstorage']});
+      // this updateSp generates a warning
+      //  You should call navigate() in a React.useEffect(), not when your component is first rendered.
+      //  but seems to work ok anyway. If if doesn't, try going back to something like the code below.
+      //  but the problem with code below is that you can't re-navigate by returning <Navigate...> from
+      //    useEffect. has to be returned by RoutesContainer.
+      // sp = {...sp};
+      // delete sp.sstorage;
+      // let csp = createSearchParams(sp);
+      // let url = location.pathname + '?' + csp;
+      // return <Navigate to={url} replace={true} />;
+    }
+  })
   if (location.pathname === "/") {
     return <Navigate to="/OMOPConceptSets" />;
   }

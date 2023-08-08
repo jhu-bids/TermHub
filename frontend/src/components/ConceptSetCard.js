@@ -6,8 +6,9 @@ import Typography from "@mui/material/Typography";
 import IconButton from "@mui/material/IconButton";
 import CloseIcon from "@mui/icons-material/Close";
 import Button from "@mui/material/Button";
-import {NEW_CSET_ID, newCsetAtlasJson, urlWithSessionStorage,} from "../state/AppState";
+import {NEW_CSET_ID, newCsetAtlasJson, urlWithSessionStorage, newCsetProvenance, } from "../state/AppState";
 import {newCsetAtlasWidget} from "./NewCset";
+import {SOURCE_APPLICATION, SOURCE_APPLICATION_VERSION} from "../env";
 // import Box from '@mui/material/Box';
 import { useLocation } from "react-router-dom";
 import {backend_url} from "../state/DataGetter";
@@ -78,10 +79,46 @@ export function ConceptSetCard(props) {
   let tags = [];
   let display_props = {};
   let enclaveLink;
+  display_props["Code set ID"] = cset.codeset_id;
+  let intention = [];
+  if (cset.container_intention) {
+    display_props["Container intention"] = cset.container_intention;
+  }
+  if (cset.codeset_intention) {
+    display_props["Version intention"] = cset.codeset_intention;
+  }
+  if (cset.update_message) {
+    display_props["Update message"] = cset.update_message;
+  }
+  if (cset.archived) {
+    tags.push("Archived");
+  }
+  if (cset.has_review) {
+    tags.push("Has review");
+  }
+  if (cset.limitations) {
+    display_props["Limitations"] = cset.limitations;
+  }
+  if (cset.limitations) {
+    display_props["Limitations"] = cset.limitations;
+  }
+  if (cset.issues) {
+    display_props["Issues"] = cset.issues;
+  }
+  if (cset.authoritative_source) {
+    display_props["Authoritative source"] = cset.authoritative_source;
+  }
+  if (cset.project_id) {
+    display_props["Project ID"] = cset.project_id;
+  }
   if (cset.codeset_id === NEW_CSET_ID) {
+    delete display_props["Code set ID"];
     atlasWidget = newCsetAtlasWidget(cset);
+    display_props["Provenance"] = newCsetProvenance();
   } else {
-    display_props["Code set ID"] = cset.codeset_id;
+    if (cset.provenance) {
+      display_props["Provenance"] = cset.provenance;
+    }
 
     // fix to:
     // format: row => fmt(parseInt(row.distinct_person_cnt)),
@@ -109,43 +146,6 @@ export function ConceptSetCard(props) {
           ,{" "}
         </Typography>
     );
-  }
-  let intention = [];
-  if (cset.container_intention) {
-    intention.push("Container: " + cset.container_intention);
-  }
-  if (cset.codeset_intention) {
-    intention.push("Version: " + cset.codeset_intention);
-  }
-  if (intention.length) {
-    display_props.Intention = intention.join("; ");
-  }
-  if (cset.update_message) {
-    display_props["Update message"] = cset.update_message;
-  }
-  if (cset.archived) {
-    tags.push("Archived");
-  }
-  if (cset.has_review) {
-    tags.push("Has review");
-  }
-  if (cset.provenance) {
-    display_props["Provenance"] = urlWithSessionStorage();
-  }
-  if (cset.limitations) {
-    display_props["Limitations"] = cset.limitations;
-  }
-  if (cset.limitations) {
-    display_props["Limitations"] = cset.limitations;
-  }
-  if (cset.issues) {
-    display_props["Issues"] = cset.issues;
-  }
-  if (cset.authoritative_source) {
-    display_props["Authoritative source"] = cset.authoritative_source;
-  }
-  if (cset.project_id) {
-    display_props["Project ID"] = cset.project_id;
   }
   display_props["Concept counts"] = (
       <>

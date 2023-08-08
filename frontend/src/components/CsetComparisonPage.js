@@ -1132,14 +1132,15 @@ function howToSaveStagedChanges(params) {
           <LI>On the right, click the green "Done" button.</LI>
         </ol>
         <p>
-          To save your work, click
+          Return to this work later by saving or bookmarking <a
+            href={urlWithSessionStorage()} target="_blank" rel="noreferrer">this link</a> (
           <Button
-            onClick={() => {
-              navigator.clipboard.writeText(urlWithSessionStorage());
-            }}
+              onClick={() => {
+                navigator.clipboard.writeText(urlWithSessionStorage());
+              }}
           >
-            Copy URL
-          </Button>
+            Copy to clipboard
+          </Button>.)
           <br />
           Best practice is to paste this URL in your lab notebook and annotate
           your work there as well.

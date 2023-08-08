@@ -1,5 +1,6 @@
 import React, {createContext, useContext, useReducer, useState} from "react";
 import {flatten, fromPairs, get, pick, isEqual, isEmpty} from "lodash";
+import {compress, decompress} from "lz-string";
 import {createPersistedReducer} from "./usePersistedReducer";
 import {alertsReducer} from "../components/AlertMessages";
 import {useSearchParamsState} from "./SearchParamsProvider";
@@ -183,7 +184,6 @@ const newCsetReducer = (state, action) => {
         update_message: "TermHub testing",
         // "codeset_created_at": "2022-07-28 16:14:13.085000+00:00", // will be set by enclave
         // "codeset_created_by": "e64b8f7b-7af8-4b44-a570-557b812c0eeb", // will be set by enclave
-        provenance: `TermHub url: ${urlWithSessionStorage()}`,
         is_draft: true,
         researchers: [],
         counts: {'Expression items': 0},
@@ -199,6 +199,10 @@ const newCsetReducer = (state, action) => {
        */
       return {...cset, definitions: {}};
     }
+    case "restore": {
+      return action.newCset;
+    }
+
     case "addDefinition": {
       state = {...state, definitions: {...state.definitions, [action.definition.concept_id]: action.definition }}
     }
@@ -207,42 +211,25 @@ const newCsetReducer = (state, action) => {
       delete definitions[action.concept_id];
       state = {...state, definitions, };
     }
-    /*
-    case "currentUserId": {
-      if (state.newCset) {
-        if (state.newCset['on-behalf-of']) {
-          if (state.newCset['on-behalf-of'] === action.currentUserId) {
-            return state;
-          } else {
-            throw new Error("not expecting a different userId!");
-          }
-        } else {
-          state = {...state,
-                    newCset: {...state.newCset,
-                              ['on-behalf-of']: action.currentUserId,
-                              ['researchers']: [action.currentUserId], } };
-          return {...state, currentUserId: action.currentUserId};
-        }
-      }
-      return {...state, currentUserId: action.currentUserId};
-    }
-     */
-    /*
-    case "add_definitions": {
-      let {definitions = {}} = state;
-      definitions = {...definitions, ...action.payload};
-      return {...state, ...definitions};
-    }
-     */
   }
-  state = {...state, counts: {...state.counts, 'Expression items': Object.keys(state.definitions).length}};
+
+  const restoreUrl = urlWithSessionStorage();
+  // provenance: `TermHub url: ${urlWithSessionStorage()}`,
+  state = {
+    ...state,
+    counts: {...state.counts, 'Expression items': Object.keys(state.definitions).length},
+    provenance: `TermHub url: ${restoreUrl}`, // not really needed currently. not displaying on newCset card because
+                                              //  it's too ugly, and no current way to save metadata to enclave
+  };
   return state
 };
+
 const NewCsetContext = createContext(null);
 export function NewCsetProvider({ children }) {
   const [stateUpdate, setStateUpdate] = useState(); // just to force consumers to rerender
   // const storageProvider = useSearchParamsState();
   const storageProvider = sessionStorage; // for now, for simplicity, just save to sessionStorage
+  // const storageProvider = CompressedSessionStorage; // for now, for simplicity, just save to sessionStorage
   let state = JSON.parse(storageProvider.getItem('newCset')) || {};
 
   const dispatch = action => {
@@ -263,8 +250,13 @@ export function NewCsetProvider({ children }) {
 }
 export function urlWithSessionStorage() {
   const sstorage = fromPairs(Object.entries(sessionStorage).map(([k,v]) => ([k, JSON.parse(v)])));
-  let sstorageString = JSON.stringify(sstorage)
+  delete sstorage.newCset.provenance; // this shouldn't be saved in the url. It gets updated as cset changes.
+  let sstorageString = JSON.stringify(sstorage);
+  // sstorageString = compress(sstorageString);
   return window.location.href + (window.location.search ? '&' : '?') + `sstorage=${sstorageString}`;
+}
+export function newCsetProvenance() {
+  return `${SOURCE_APPLICATION} (v${SOURCE_APPLICATION_VERSION}) link: ${urlWithSessionStorage()}`;
 }
 export function useNewCset() {
   return useContext(NewCsetContext);
@@ -277,6 +269,15 @@ export function newCsetAtlasJson(cset) {
     'concept_id', 'includeDescendants', 'includeMapped', 'isExcluded', 'annotation' ]));
   const atlasJson = JSON.stringify(atlasDefs, null, 2);
   return atlasJson;
+}
+
+export let CompressedSessionStorage = {
+  /* more complicated than I thought.... have to save (uncompressed probably) to this
+      as well as (compressed) to sessionStorage. and be able to load/decompress everything
+   */
+  store: sessionStorage,
+  setItem: (k, v) => this.store.setItem(k, compress(v)),
+  getItem: (k) => this.store.getItem(decompress(k)),
 }
 
 const currentConceptIdsReducer = (state, action) => { // not being used
