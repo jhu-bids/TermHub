@@ -72,13 +72,19 @@ function QCProvider() {
 }
 function RoutesContainer() {
   const spState = useSearchParamsState();
-  const {sp} = spState;
+  let {sp} = spState;
   const {codeset_ids, } = sp;
   const location = useLocation();
 
   if (sp.sstorage) {
-    sessionStorage = JSON.parse(sp.sstorage);
-    spState.removeItem('sstorage');
+    sessionStorage.setItem('sstorage', sp.sstorage);
+
+    sp = {...sp};
+    delete sp.sstorage;
+
+    let csp = createSearchParams(sp);
+    let url = location.pathname + '?' + csp;
+    return <Navigate to={url} replace={true} />;
   }
   if (location.pathname === "/") {
     return <Navigate to="/OMOPConceptSets" />;

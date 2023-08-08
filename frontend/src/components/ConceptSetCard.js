@@ -6,7 +6,7 @@ import Typography from "@mui/material/Typography";
 import IconButton from "@mui/material/IconButton";
 import CloseIcon from "@mui/icons-material/Close";
 import Button from "@mui/material/Button";
-import {NEW_CSET_ID, newCsetAtlasJson, } from "../state/AppState";
+import {NEW_CSET_ID, newCsetAtlasJson, urlWithSessionStorage,} from "../state/AppState";
 import {newCsetAtlasWidget} from "./NewCset";
 // import Box from '@mui/material/Box';
 import { useLocation } from "react-router-dom";
@@ -94,43 +94,6 @@ export function ConceptSetCard(props) {
       tags.push("Most recent version");
     }
 
-    let intention = [];
-    if (cset.container_intention) {
-      intention.push("Container: " + cset.container_intention);
-    }
-    if (cset.codeset_intention) {
-      intention.push("Version: " + cset.codeset_intention);
-    }
-    if (intention.length) {
-      display_props.Intention = intention.join("; ");
-    }
-    if (cset.update_message) {
-      display_props["Update message"] = cset.update_message;
-    }
-    if (cset.archived) {
-      tags.push("Archived");
-    }
-    if (cset.has_review) {
-      tags.push("Has review");
-    }
-    if (cset.provenance) {
-      display_props["Provenance"] = cset.provenance;
-    }
-    if (cset.limitations) {
-      display_props["Limitations"] = cset.limitations;
-    }
-    if (cset.limitations) {
-      display_props["Limitations"] = cset.limitations;
-    }
-    if (cset.issues) {
-      display_props["Issues"] = cset.issues;
-    }
-    if (cset.authoritative_source) {
-      display_props["Authoritative source"] = cset.authoritative_source;
-    }
-    if (cset.project_id) {
-      display_props["Project ID"] = cset.project_id;
-    }
     display_props["Container created at"] = new Date(cset.container_created_at).toLocaleString();
     display_props["Version created at"] = new Date(cset.codeset_created_at).toLocaleString();
     enclaveLink = (
@@ -146,6 +109,43 @@ export function ConceptSetCard(props) {
           ,{" "}
         </Typography>
     );
+  }
+  let intention = [];
+  if (cset.container_intention) {
+    intention.push("Container: " + cset.container_intention);
+  }
+  if (cset.codeset_intention) {
+    intention.push("Version: " + cset.codeset_intention);
+  }
+  if (intention.length) {
+    display_props.Intention = intention.join("; ");
+  }
+  if (cset.update_message) {
+    display_props["Update message"] = cset.update_message;
+  }
+  if (cset.archived) {
+    tags.push("Archived");
+  }
+  if (cset.has_review) {
+    tags.push("Has review");
+  }
+  if (cset.provenance) {
+    display_props["Provenance"] = urlWithSessionStorage();
+  }
+  if (cset.limitations) {
+    display_props["Limitations"] = cset.limitations;
+  }
+  if (cset.limitations) {
+    display_props["Limitations"] = cset.limitations;
+  }
+  if (cset.issues) {
+    display_props["Issues"] = cset.issues;
+  }
+  if (cset.authoritative_source) {
+    display_props["Authoritative source"] = cset.authoritative_source;
+  }
+  if (cset.project_id) {
+    display_props["Project ID"] = cset.project_id;
   }
   display_props["Concept counts"] = (
       <>

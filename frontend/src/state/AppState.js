@@ -183,7 +183,7 @@ const newCsetReducer = (state, action) => {
         update_message: "TermHub testing",
         // "codeset_created_at": "2022-07-28 16:14:13.085000+00:00", // will be set by enclave
         // "codeset_created_by": "e64b8f7b-7af8-4b44-a570-557b812c0eeb", // will be set by enclave
-        provenance: `TermHub url: ${window.location.href}${window.location.search ? '&' : '?'}sstorage=${JSON.stringify(sessionStorage)}`,
+        provenance: `TermHub url: ${urlWithSessionStorage()}`,
         is_draft: true,
         researchers: [],
         counts: {'Expression items': 0},
@@ -260,6 +260,11 @@ export function NewCsetProvider({ children }) {
         {children}
       </NewCsetContext.Provider>
   );
+}
+export function urlWithSessionStorage() {
+  const sstorage = fromPairs(Object.entries(sessionStorage).map(([k,v]) => ([k, JSON.parse(v)])));
+  let sstorageString = JSON.stringify(sstorage)
+  return window.location.href + (window.location.search ? '&' : '?') + `sstorage=${sstorageString}`;
 }
 export function useNewCset() {
   return useContext(NewCsetContext);

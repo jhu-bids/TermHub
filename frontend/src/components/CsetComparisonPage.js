@@ -35,7 +35,7 @@ import {
   textCellForItem,
 } from "./NewCset";
 import {FlexibleContainer} from "./FlexibleContainer";
-import {NEW_CSET_ID, useCodesetIds, useHierarchySettings, useNewCset,} from "../state/AppState";
+import {NEW_CSET_ID, urlWithSessionStorage, useCodesetIds, useHierarchySettings, useNewCset,} from "../state/AppState";
 import {useDataCache} from "../state/DataCache";
 import {getResearcherIdsFromCsets, useDataGetter} from "../state/DataGetter";
 import {LI} from "./AboutPage";
@@ -1131,21 +1131,19 @@ function howToSaveStagedChanges(params) {
           <LI>Click the version on the left again.</LI>
           <LI>On the right, click the green "Done" button.</LI>
         </ol>
-        {/*
-      <p>
-        To save your work, click
-        <Button
-          onClick={() => {
-            navigator.clipboard.writeText(window.location.toString());
-          }}
-        >
-          Copy URL
-        </Button>
-        <br />
-        Best practice is to paste this URL in your lab notebook and annotate
-        your work there as well.
-      </p>
-      */}
+        <p>
+          To save your work, click
+          <Button
+            onClick={() => {
+              navigator.clipboard.writeText(urlWithSessionStorage());
+            }}
+          >
+            Copy URL
+          </Button>
+          <br />
+          Best practice is to paste this URL in your lab notebook and annotate
+          your work there as well.
+        </p>
       </>
   );
 }

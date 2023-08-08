@@ -19,7 +19,7 @@ export function AlertMessages({alerts}) {
     return (
         <FlexibleContainer title="Alerts" position={{x: window.innerWidth * 0.35 , y: 300}}
                            style={{width: '60%'}}
-                           startHidden={false} countRef={countRef}>
+                           startHidden={true} countRef={countRef}>
           <Stack sx={{ width: '100%' }} spacing={2}>
             {alertsArray.map((alert, i) => (
                 <Alert severity={alert.severity}
@@ -71,5 +71,5 @@ export const alertsReducer = (state, action) => {
   } else {
     throw new Error(`bad alert type: ${type}`);
   }
-  return {...state, [alert.id]: alert};
+  return {[alert.id]: alert, ...state, };
 }

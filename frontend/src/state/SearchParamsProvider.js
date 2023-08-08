@@ -3,8 +3,9 @@ import {createSearchParams, useSearchParams, /* useLocation, Navigate, */ } from
 // import {isEmpty} from "lodash";
 
 const SEARCH_PARAM_STATE_CONFIG = {
-  scalars: ["editCodesetId", "sort_json", "use_example"],
+  scalars: ["editCodesetId", "sort_json", "use_example", "sstorage"],
   global_props_but_not_search_params: [], // ["searchParams", "setSearchParams"],
+  // ignore: ["sstorage"],
   serialize: ["newCset", "hierarchySettings"],
 };
 
@@ -17,6 +18,7 @@ export function SearchParamsProvider({children}) {
     const qsKeys = Array.from(new Set(searchParams.keys()));
     let sp = {};
     qsKeys.forEach((key) => {
+      // if (SEARCH_PARAM_STATE_CONFIG.ignore.includes(key)) { return; }
       let vals = searchParams.getAll(key);
       sp[key] = vals.map((v) => (parseInt(v) == v ? parseInt(v) : v)).sort(); // eslint-disable-line
       if (SEARCH_PARAM_STATE_CONFIG.scalars.includes(key)) {
