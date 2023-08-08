@@ -396,9 +396,11 @@ export function Legend({editing=false}) {
       "Concept updated": {
         content: fakeCell({editing: true, flags: "i", stagedAction: "Update"}),
       },
+      /*  no longer needed since starting from empty new cset
       "Concept removed": {
         content: fakeCell({editing: true, flags: "i", stagedAction: "Remove"}),
       },
+       */
     }
   };
   const items = Object.entries(itemTypes).map(([k, v]) => {

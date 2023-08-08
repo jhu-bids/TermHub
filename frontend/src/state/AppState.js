@@ -41,7 +41,6 @@ export function CodesetIdsProvider({ children }) {
     let latestState = storageProvider.getItem('codeset_ids') || [];
     const stateAfterDispatch = codesetIdsReducer(latestState, action);
     if (!isEqual(latestState, stateAfterDispatch)) {
-      debugger;
       storageProvider.setItem('codeset_ids', stateAfterDispatch);
     }
   }
