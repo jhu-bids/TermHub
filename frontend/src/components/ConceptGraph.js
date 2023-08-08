@@ -1,7 +1,6 @@
 import React, {useState, useEffect} from "react";
 // import _ from "../supergroup/supergroup";
 import * as d3Base from "d3";
-import {useDataCache} from "../state/DataCache";
 import * as d3dag from "d3-dag";
 import Graph from "graphology";
 import {uniq, flatten, union, sortBy, max, groupBy, sum, } from "lodash";
@@ -18,7 +17,7 @@ export function formatEdges(edges=[]) {
     if (etest.length === 3) {
       pairs = edges.map(e => ([e[0], e[2]])); // middle item is predicate; not keeping (for now)
     }else if (etest.length === 2) {
-      pairs = edges.map(e => ([e[0], e[1]]));
+      pairs = edges.map(e => ([e[0], e[1]])); // isn't this the same as pairs = edges?
     } else {
       throw new Error('Unexpected array-type edge with != 3 elements', etest)
     }
@@ -38,7 +37,6 @@ export function formatEdges(edges=[]) {
 export function ConceptGraph() {
   const {sp} = useSearchParamsState();
   const {codeset_ids, use_example=false} = sp;
-  const dataCache = useDataCache();
   const dataGetter = useDataGetter();
   const [data, setData] =
       useState({ concept_ids: [], edges: [], concepts: [], });
@@ -51,16 +49,16 @@ export function ConceptGraph() {
 
   useEffect(() => {
     (async () => {
-      const concept_ids = await dataCache.fetchAndCacheItemsByKey({ dataGetter, itemType: 'concept_ids_by_codeset_id',
+      const concept_ids = await dataGetter.fetchAndCacheItems({ itemType: 'concept-ids-by-codeset-id',
           keys: codeset_ids, shape: 'obj', returnFunc: results => union(...Object.values(results)), });
       const [
           concepts,
           edges,
         ] = await Promise.all([
-        dataCache.fetchAndCacheItemsByKey({ dataGetter, itemType: 'concepts', keys: concept_ids, shape: 'array' }),
+        dataGetter.fetchAndCacheItems({ itemType: 'concepts', keys: concept_ids, shape: 'array' }),
         ( use_example === 1 && simpleGraphExample ||
           use_example === 2 && mediumGraphExample ||
-          dataGetter.fetchItems('edges', concept_ids)
+          dataGetter.fetchAndCacheItems('edges', concept_ids)
         )
       ]);
       setData({concept_ids, edges: formatEdges(edges), concepts});

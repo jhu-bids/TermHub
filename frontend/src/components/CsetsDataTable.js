@@ -4,7 +4,7 @@ import DataTable, { createTheme } from "react-data-table-component";
 import { fmt, pct_fmt } from "./utils";
 import { StatsMessage, } from "../state/State";
 import { Tooltip } from "./Tooltip";
-import {useSearchParamsState} from "../state/SearchParamsProvider";
+import {useCodesetIds} from "../state/AppState";
 // import Checkbox from '@material-ui/core/Checkbox';
 // import ArrowDownward from '@material-ui/icons/ArrowDownward';
 // const sortIcon = <ArrowDownward />;
@@ -36,8 +36,12 @@ function getCsetSelectionHandler(tooltipId) {
 
 /* TODO: review function for appropriate state management */
 export function CsetsDataTable(props) {
-  const { show_selected, codeset_ids, relatedCsets, selected_csets, all_csets, concept_ids, } = props;
-  const {changeCodesetIds, } = useSearchParamsState();
+  const { show_selected, selected_csets, clickable, showTitle, } = props;
+  const [codeset_ids, codesetIdsDispatch] = useCodesetIds();
+  // const codeset_ids = show_selected ? null : props.codeset_ids;
+  const relatedCsets = show_selected ? null : props.relatedCsets;
+  const all_csets = show_selected ? null : props.all_csets;
+  const concept_ids = show_selected ? null : props.concept_ids;
   const min_col = show_selected ?
       ("min_col" in props ? props.min_col : true) : false;
 
@@ -48,8 +52,8 @@ export function CsetsDataTable(props) {
 
   let customStyles = getCustomStyles();
 
-  const handleRowClick = useCallback((row) =>
-    changeCodesetIds(row.codeset_id, "toggle")
+  const handleRowClick = useCallback(
+    (row) => codesetIdsDispatch({type: show_selected ? 'delete_codeset_id' : 'add_codeset_id', codeset_id: row.codeset_id})
   );
   /*
     const handleSelectionChange = useCallback(state => {
@@ -64,8 +68,9 @@ export function CsetsDataTable(props) {
      */
 
   // const related_ids = new Set(f lattened_concept_hierarchy.map(d => d.concept_id));
-  const subHeader = <StatsMessage {...{ codeset_ids, all_csets, relatedCsets,
-                                        concept_ids, selected_csets, } } />;
+  const subHeader = show_selected ? null : <StatsMessage
+      {...{ codeset_ids, all_csets, relatedCsets,
+        concept_ids, selected_csets, } } />;
   // const [handleRowMouseEnter, handleRowMouseLeave] =
   //     getCsetSelectionHandler(show_selected ? 'select-to-remove' : 'select-to-add');
 
@@ -83,15 +88,16 @@ export function CsetsDataTable(props) {
         selectableRowsHighlight
         selectableRowSelected={rowSelectCritera}
         // onSelectedRowsChange={handleSelectionChange}
-        onRowClicked={handleRowClick}
+        onRowClicked={clickable ? handleRowClick : (() => {})}
         // onRowMouseEnter={handleRowMouseEnter}
         // onRowMouseLeave={handleRowMouseLeave}
         customStyles={customStyles}
         noHeader={false}
-        title={(show_selected ? "Selected" : "Related") +
-                ` concept sets. Click row to ${show_selected ? 'deselect' : 'add to selection'}`}
+        title={showTitle ? ((show_selected ? "Selected" : "Related") +
+          ` concept sets. Click row to ${show_selected ? 'deselect' : 'add to selection'}`)
+          : null}
         subHeader={!show_selected}
-        subHeaderComponent={show_selected ? null : subHeader}
+        subHeaderComponent={subHeader}
         // theme="custom-theme"
         // theme="light"
         columns={coldefs}

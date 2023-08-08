@@ -1,5 +1,5 @@
 #!/bin/bash
-source /Users/sigfried/git-repos/TermHub/env/.env
+source $( cd -- "$( dirname -- "${BASH_SOURCE[0]}" )" &> /dev/null && pwd )/../../env/.env
 
 usage() { echo "$0 usage:" && grep " .)\ *#" $0; exit 0; }
 no_args="true"

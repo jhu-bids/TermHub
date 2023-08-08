@@ -6,9 +6,9 @@ import React, {useEffect, useState} from "react";
 // import {queryClient} from "../App";
 import Typography from "@mui/material/Typography";
 import Button from "@mui/material/Button";
-import { TextField, } from "@mui/material";
-import { Link, useLocation } from "react-router-dom";
-import VERSION from "../version";
+import {TextField,} from "@mui/material";
+import {Link, useLocation} from "react-router-dom";
+import {VERSION} from "../env";
 import {useDataCache} from "../state/DataCache";
 import {useDataGetter} from "../state/DataGetter";
 import {useSearchParamsState} from "../state/SearchParamsProvider";
@@ -65,6 +65,21 @@ let LI = (props) => (
       {props.children}
     </Typography>
   </li>
+);
+let PRE = (props) => (
+    <Typography
+        variant="pre"
+        color="text.primary"
+        style={{ marginTop: "5px",
+                display: "block",
+                unicodeBidi: "embed",
+                fontFamily: "monospace",
+                whiteSpace: "pre",
+        }}
+        gutterBottom
+    >
+      {props.children}
+    </Typography>
 );
 let DOCS = {};
 
@@ -360,77 +375,6 @@ DOCS.blank_search_intro = (
   </>
 );
 
-/* was going to use tagged templates; see https://developer.mozilla.org/en-US/docs/Web/JavaScript/Reference/Template_literals
-  but these docs are react chunks, so, should be easier
-function processTemplate(strings, params={}) {
-  const keys = Object.keys(params);
-  if (strings.length !== keys.length + 1) {
-    throw new Error("not supposed to happen, wrong number of params");
-  }
-
-}
-function getDoc(docName, params={}) {
-  const tmpl = DOCS[docName];
-  return processTemplate(tmpl, params);
-}
-*/
-function howToSaveStagedChanges(params) {
-  return (
-    <>
-      <TextBold>In order to save your changes to the enclave:</TextBold>
-      <ol>
-        <LI>
-          <a href={params.exportJsonLink} target="_blank" rel="noreferrer">
-            Click to export JSON
-          </a>
-          . A new browser tab will open up with just the JSON. Copy or save it.
-        </LI>
-        <LI>
-          Come back to this tab, and{" "}
-          <a href={params.openInEnclaveLink} target="_blank" rel="noreferrer">
-            click to open this concept set in the Enclave
-          </a>
-        </LI>
-        <LI>A new tab for the N3C data enclave will open. Log in if needed.</LI>
-        <LI>Click the "Versions" tab at the top left.</LI>
-        <LI>Click the blue "Create new version" button at the bottom left.</LI>
-        <LI>
-          Fill out the information in the "Create New Draft OMOP Concept Set
-          Version" popup, and click "Submit".
-        </LI>
-        <LI>
-          Your new draft version should appear on the left (may require a page
-          refresh). Click it.
-        </LI>
-        <LI>
-          On the right hand side, there is a blue button called "Add Concepts".
-          Click the down arrow, then select "Import ATLAS Concept Set Expression
-          JSON" from the menu.
-        </LI>
-        <LI>
-          Copy/paste the JSON obtained from TermHub earlier into the box, and
-          click "Import Atlas JSON".
-        </LI>
-        <LI>Click the version on the left again.</LI>
-        <LI>On the right, click the green "Done" button.</LI>
-      </ol>
-      <p>
-        To save your work, click
-        <Button
-          onClick={() => {
-            navigator.clipboard.writeText(window.location.toString());
-          }}
-        >
-          Copy URL
-        </Button>
-        <br />
-        Best practice is to paste this URL in your lab notebook and annotate
-        your work there as well.
-      </p>
-    </>
-  );
-}
-
 
 
 /*
@@ -502,6 +446,5 @@ export {
   TextBold,
   TextH2,
   TextH1,
-  LI,
-  howToSaveStagedChanges /*HelpWidget, HelpButton,*/
+  LI/*HelpWidget, HelpButton,*/
 };

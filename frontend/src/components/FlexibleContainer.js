@@ -11,14 +11,12 @@ export function ErrorAlert(props) {
 
 }
 export function FlexibleContainer({ title, position, children, countRef,
-                                    startHidden=true,}) {
+                                    startHidden=true, hideTitle, style}) {
   const [display, setDisplay] = useState(startHidden ? "hidden" : "shown");
   const draggableRef = useRef(null);
 
   let displayedContent;
-  let style = {
-    display: "inline-block",
-  };
+  style = { ...style, display: "inline-block", };
   if (display === "hidden") {
     displayedContent = (
       <Button
@@ -58,7 +56,9 @@ export function FlexibleContainer({ title, position, children, countRef,
             sx={style}
         >
           <div className="handle" style={{display: 'flex', flexDirection: 'row', cursor: "move", }}>
-            <span style={{padding: '10px 3px 3px 10px'}}><strong>{title}</strong></span>
+            {
+              hideTitle ? null : <span style={{padding: '10px 3px 3px 10px'}}><strong>{title}</strong></span>
+            }
             <IconButton onClick={closeFunc} sx={{
               marginLeft: 'auto',
               // position: "absolute", right: 0

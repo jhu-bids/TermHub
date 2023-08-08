@@ -15,10 +15,10 @@ import Card from "@mui/material/Card";
 import CardContent from "@mui/material/CardContent";
 import Typography from "@mui/material/Typography";
 // import * as po from '../pages/Popover';
-import { DOCS } from "../pages/AboutPage";
+import { DOCS } from "./AboutPage";
 import {useDataCache} from "../state/DataCache";
 import {useDataGetter, getResearcherIdsFromCsets, } from "../state/DataGetter";
-import {useSearchParamsState} from "../state/SearchParamsProvider";
+import {useCodesetIds} from "../state/AppState";
 
 /* TODO: Solve
     react_devtools_backend.js:4026 MUI: The value provided to Autocomplete is invalid.
@@ -45,23 +45,13 @@ function initialOpts(all_csets, codesetIds) {
   return opts;
 }
 export function CsetSearch(props) {
-  const { codeset_ids=[], all_csets, } = props;
-  const dataGetter = useDataGetter();
+  const { all_csets, } = props;
+  const [codeset_ids, codesetIdsDispatch] = useCodesetIds();
   const [value, setValue] = useState(codeset_ids);
-  const {changeCodesetIds, } = useSearchParamsState();
 
-  // const [keyForRefreshingAutocomplete, setKeyForRefreshingAutocomplete] = useState(0);
-  // necessary to change key for reset because of Autocomplete bug, according to https://stackoverflow.com/a/59845474/1368860
-  /*
-  const filterOptions = (options, state) => {
-    let strings = state.inputValue.split(" ").filter((s) => s.length);
-    if (!strings.length) {
-      return options;
-    }
-    let match = strings.map((m) => new RegExp(m, "i"));
-    return options.filter((o) => every(match.map((m) => o.label.match(m))));
-  }
-   */
+  useEffect(() => {
+    setValue(codeset_ids);
+  }, [codeset_ids.join('|')]);
 
   // from https://github.com/kentcdodds/match-sorter#keys-string
   const filterOptions = (options, { inputValue }) => matchSorter(options, inputValue, { keys: [ 'label' ]});
@@ -144,7 +134,8 @@ export function CsetSearch(props) {
           {autocomplete}
         </Tooltip>
         <Button onClick={() => {
-          changeCodesetIds(value, "set");
+          codesetIdsDispatch({type: "set_all", codeset_ids: value});
+          // changeCodesetIds(value, "set");
           // setKeyForRefreshingAutocomplete((k) => k + 1);
         }}
         >
@@ -174,45 +165,47 @@ export function CsetSearch(props) {
 }
 
 function ConceptSetsPage(props) {
-  const {sp} = useSearchParamsState();
-  const {codeset_ids, } = sp;
+  const [codeset_ids, codesetIdsDispatch] = useCodesetIds();
   const dataGetter = useDataGetter();
   const dataCache = useDataCache();
   const [data, setData] = useState({});
-  const { all_csets, concept_ids, relatedCodesetIds, selected_csets,
-          allRelatedCsets, relatedCsets, researchers, } = data;
+  const { all_csets=[], concept_ids=[], selected_csets=[],
+          allRelatedCsets={}, relatedCsets=[], researchers={}, } = data;
 
   // todo: Combine this with the useEffect in CsetComparisonPage.js
   useEffect(() => {
     (async () => {
-      let all_csets = dataGetter.fetchItems('all_csets', ['stub']);
-      let selected_csets = dataCache.fetchAndCacheItemsByKey({ dataGetter, itemType: 'csets', keys: codeset_ids, shape: 'array',
-            returnFunc: results => [...Object.values(results)]} ); // isn't this the same as shape: 'array'?
-      // - since this data was fetched in CsetComparisonPage, this call should be fast because will get from cache.
-      let concept_ids = dataCache.fetchAndCacheItemsByKey({ dataGetter, itemType: 'concept_ids_by_codeset_id',
-            keys: codeset_ids, returnFunc: results => union(flatten(Object.values(results))), });
+      // dataCache.
+      let all_csets = dataGetter.fetchAndCacheItems(dataGetter.apiCalls.all_csets, undefined);
+      let selected_csets = dataGetter.fetchAndCacheItems(dataGetter.apiCalls.csets, codeset_ids);
+            // returnFunc: results => [...Object.values(results)]; // isn't this the same as shape: 'array'?
+      let concept_ids = dataGetter.fetchAndCacheItems(dataGetter.apiCalls.concept_ids_by_codeset_id, codeset_ids);
+            // returnFunc: results => union(flatten(Object.values(results)))
 
       concept_ids = await concept_ids;
+      concept_ids = union(flatten(Object.values(await concept_ids)));
+      // setData(current => ({...current, concept_ids}));
 
-      // - for every concept id we get for selected codesets, get all codesets that contain that concept id
-      let relatedCodesetIds = dataCache.fetchAndCacheItemsByKey({ dataGetter, itemType: 'codeset_ids_by_concept_id',
-            keys: concept_ids, returnFunc: results => union(flatten(Object.values(results))), });
+      let relatedCodesetIdsByConceptId = dataGetter.fetchAndCacheItems(dataGetter.apiCalls.codeset_ids_by_concept_id, concept_ids);
 
-      [all_csets, relatedCodesetIds] = await Promise.all([all_csets, relatedCodesetIds]);
+      all_csets = await all_csets;
+      // setData(current => ({...current, all_csets, }));
 
-      // - now, for all of the related codesets we found above, now get all of its concept ids
-      let relatedCsetConceptIds = dataCache.fetchAndCacheItemsByKey({ dataGetter, itemType: 'concept_ids_by_codeset_id',
-                                                               keys: relatedCodesetIds, shape: 'obj' });
+      const relatedCodesetIds = union(flatten(Object.values(await relatedCodesetIdsByConceptId)));
+
+      let relatedCsetConceptIds = dataGetter.fetchAndCacheItems(dataGetter.apiCalls.concept_ids_by_codeset_id, relatedCodesetIds);
+           // shape: 'obj'
 
       let allCsetsObj = keyBy(all_csets, 'codeset_id');
 
       let _allRelatedCsetsArray = relatedCodesetIds.map(csid => ({...allCsetsObj[csid]}));
       let allRelatedCsets = keyBy(_allRelatedCsetsArray, 'codeset_id');
 
-      selected_csets = await selected_csets;
+      selected_csets = Object.values(await selected_csets);
+      // setData(current => ({...current, selected_csets}));
 
       const researcherIds = getResearcherIdsFromCsets(selected_csets);
-      let researchers = dataCache.fetchAndCacheItemsByKey({ dataGetter, itemType: 'researchers', keys: researcherIds, shape: 'obj' });
+      let researchers = dataGetter.fetchAndCacheItems(dataGetter.apiCalls.researchers, researcherIds);
 
       selected_csets = selected_csets.map(cset => {
         cset = {...cset};
@@ -220,8 +213,10 @@ function ConceptSetsPage(props) {
         allRelatedCsets[cset.codeset_id] = cset;
         return cset;
       });
+      // setData(current => ({...current, allRelatedCsets}));
 
       relatedCsetConceptIds = await relatedCsetConceptIds;
+      // setData(current => ({...current, relatedCsetConceptIds}));
 
       for (let csid in relatedCsetConceptIds) {
         let cset = allRelatedCsets[csid];
@@ -242,17 +237,21 @@ function ConceptSetsPage(props) {
 
       let relatedCsets = Object.values(allRelatedCsets).filter(cset => !cset.selected);
       relatedCsets = orderBy( relatedCsets, ["selected", "precision"], ["desc", "desc"] );
+      // setData(current => ({...current, relatedCsets}));
 
       researchers = await researchers;
-      setData({ all_csets, concept_ids, relatedCodesetIds, selected_csets,
-                relatedCsets, allRelatedCsets, researchers, });
+      // setData(current => ({...current, researchers}));
+      setData(current => ({...current, concept_ids, all_csets, selected_csets,
+        allRelatedCsets, relatedCsets, researchers, }));
     })()
   }, [codeset_ids.join('|')]);
+
   if (codeset_ids.length && isEmpty(allRelatedCsets)) {
     return <p>Downloading...</p>;
   }
 
-  props = {...props, all_csets, relatedCsets, selected_csets, concept_ids, researchers, };
+  props = {...props, all_csets, relatedCsets, selected_csets,
+      concept_ids, researchers, clickable: true, showTitle: true };
 
   if (!codeset_ids.length) {
     return (
@@ -273,9 +272,9 @@ function ConceptSetsPage(props) {
       }}
     >
       <CsetSearch {...props} />
-      {<CsetsDataTable {...props} show_selected={true} />}
-      {<CsetsDataTable {...props} show_selected={false} />}
-      {<ConceptSetCards {...props} />}
+      <CsetsDataTable {...props} show_selected={true} />
+      <CsetsDataTable {...props} show_selected={false} />
+      <ConceptSetCards {...props} />
     </div>
   );
 }

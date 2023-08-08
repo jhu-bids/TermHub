@@ -176,5 +176,5 @@ anything that breaks functionality for users or systems that depend on TermHub, 
 So if the version was 1.10.2 before, it would be 1.11.0 after.
 
 #### How to do a version update
-1. Update the version in `frontend/src/version.js`
+1. Update the version in `frontend/src/env.js`
 2. Tag the version in GitHub: `git tag VERSION; git push --tags`

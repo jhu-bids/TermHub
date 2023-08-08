@@ -6,7 +6,7 @@ https://stackoverflow.com/questions/53219113/where-can-i-make-api-call-with-hook
 might be useful to look at https://mui.com/material-ui/guides/composition/#link
 referred to by https://stackoverflow.com/questions/63216730/can-you-use-material-ui-link-with-react-router-dom-link
 */
-import React from "react";
+import React, {useEffect} from "react";
 import {
   // Link, useHref, useParams, BrowserRouter, redirect,
   Outlet,
@@ -19,13 +19,21 @@ import {
 import { createTheme, ThemeProvider } from "@mui/material/styles";
 import "./App.css";
 import { isEmpty } from "lodash";
+import {compress, decompress} from "lz-string";
 
 import { ConceptSetsPage } from "./components/Csets";
-import { CsetComparisonPage } from "./pages/CsetComparisonPage";
-import { AboutPage } from "./pages/AboutPage";
+import { CsetComparisonPage } from "./components/CsetComparisonPage";
+import { AboutPage } from "./components/AboutPage";
 import { ConceptGraph } from "./components/ConceptGraph";
 import {ViewCurrentState, } from "./state/State";
-import {AppStateProvider} from "./state/AppState";
+import {
+  CodesetIdsProvider,
+  AlertsProvider,
+  useAlerts,
+  useAlertsDispatch,
+  NewCsetProvider,
+  useNewCset,
+} from "./state/AppState";
 import {SearchParamsProvider, useSearchParamsState} from "./state/SearchParamsProvider";
 import {DataGetterProvider} from "./state/DataGetter";
 import { UploadCsvPage } from "./components/UploadCsv";
@@ -37,14 +45,16 @@ import {AlertMessages} from "./components/AlertMessages";
 /* structure is:
     <BrowserRouter>                 // from index.js root.render
       <SearchParamsProvider>        // gets state from query string -- mainly codeset_ids
-        <AppStateProvider>          // from reducers -- mainly hierarchySettings, cset editing stuff, and, soon, alerts/msgs
-          <DataCacheProvider>       // ability to save to and retrieve from cache in localStorage
-            <DataGetterProvider>    // utilities for fetching data. dataCache needs access to this a couple of times
-                                    //  so those method calls will have to pass in a dataGetter
-              <RoutesContainer/>
-            </DataGetterProvider>
-          </DataCacheProvider>
-        </AppStateProvider>
+        <AlertsProvider>
+          <NewCsetProvider>
+            <DataCacheProvider>       // ability to save to and retrieve from cache in localStorage
+              <DataGetterProvider>    // utilities for fetching data. dataCache needs access to this a couple of times
+                                      //  so those method calls will have to pass in a dataGetter
+                <RoutesContainer/>
+              </DataGetterProvider>
+            </DataCacheProvider>
+          </NewCsetProvider>
+        </AlertsProvider>
       </SearchParamsProvider>
     </BrowserRouter>
 */
@@ -53,22 +63,58 @@ function QCProvider() {
   return (
     // <React.StrictMode> // {/* StrictMode helps assure code goodness by running everything twice, but it's annoying*/}
       <SearchParamsProvider>
-        <AppStateProvider>
-          <DataCacheProvider>
-            <DataGetterProvider>
-              <RoutesContainer/>
-          </DataGetterProvider>
-          </DataCacheProvider>
-        </AppStateProvider>
+        <AlertsProvider>
+          <CodesetIdsProvider>
+            <NewCsetProvider>
+              <DataCacheProvider>
+                <DataGetterProvider>
+                  <RoutesContainer/>
+                </DataGetterProvider>
+              </DataCacheProvider>
+            </NewCsetProvider>
+          </CodesetIdsProvider>
+        </AlertsProvider>
       </SearchParamsProvider>
     // </React.StrictMode>
   );
 }
+window.compress = compress;
+window.decompress = decompress;
 function RoutesContainer() {
-  const {sp} = useSearchParamsState();
+  const spState = useSearchParamsState();
+  let {sp, updateSp, } = spState;
   const {codeset_ids, } = sp;
   const location = useLocation();
+  const [newCset, newCsetDispatch] = useNewCset();
 
+  useEffect(() => {
+    if (sp.sstorage) {
+      // const sstorageString = decompress(sp.sstorage);
+      // const sstorage = JSON.parse(sstorageString);
+      const sstorage = JSON.parse(sp.sstorage);
+      Object.entries(sstorage).map(([k,v]) => {
+        if (k === 'newCset') {
+          newCsetDispatch({type: 'restore', newCset: v});
+        } else {
+          console.warn('was only expecting newCset in sstorage search param, got', {[k]: v},
+                       'adding to sessionStorage anyway');
+        }
+        sessionStorage.setItem(k, JSON.stringify(v));
+      });
+
+      updateSp({delProps: ['sstorage']});
+      // this updateSp generates a warning
+      //  You should call navigate() in a React.useEffect(), not when your component is first rendered.
+      //  but seems to work ok anyway. If if doesn't, try going back to something like the code below.
+      //  but the problem with code below is that you can't re-navigate by returning <Navigate...> from
+      //    useEffect. has to be returned by RoutesContainer.
+      // sp = {...sp};
+      // delete sp.sstorage;
+      // let csp = createSearchParams(sp);
+      // let url = location.pathname + '?' + csp;
+      // return <Navigate to={url} replace={true} />;
+    }
+  })
   if (location.pathname === "/") {
     return <Navigate to="/OMOPConceptSets" />;
   }
@@ -111,6 +157,9 @@ function RoutesContainer() {
   );
 }
 function App(props) {
+  const alerts = useAlerts();
+  const alertsDispatch = useAlertsDispatch();
+
   return (
     <ThemeProvider theme={theme}>
       {/*
@@ -123,7 +172,7 @@ function App(props) {
         <MuiAppBar>
           {/* Outlet: Will render the results of whatever nested route has been clicked/activated. */}
         </MuiAppBar>
-        <AlertMessages/>
+        <AlertMessages alerts={alerts}/>
         <Outlet />
       </div>
     </ThemeProvider>

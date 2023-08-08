@@ -1,31 +1,29 @@
-import { useState } from "react";
-import TranslateIcon from "@mui/icons-material/Translate";
+// misnamed file (was misnamed when it was editCset.js also) because
+//  it includes a bunch of stuff used for cell contents when not editing
+//  new cset also
+
 import BlockIcon from "@mui/icons-material/Block";
-import { Add } from "@mui/icons-material";
+import {Add} from "@mui/icons-material";
 // import {SvgIcon} from "@mui/material";
 import Box from "@mui/material/Box";
-import Card from "@mui/material/Card";
+// import Paper from "@mui/material/Paper";
+// import TextareaAutosize from "@mui/base/TextareaAutosize";
 // import CardContent from '@mui/material/CardContent';
-import Typography from "@mui/material/Typography";
-import { isEmpty, get, pick } from "lodash"; // set, map, omit, pick, uniq, reduce, cloneDeepWith, isEqual, uniqWith, groupBy,
+import {get, isEmpty} from "lodash"; // set, map, omit, pick, uniq, reduce, cloneDeepWith, isEqual, uniqWith, groupBy,
 import IconButton from "@mui/material/IconButton";
-import { Tooltip } from "./Tooltip";
-import {
-  LI,
-  TextH2,
-  TextBold,
-  howToSaveStagedChanges,
-} from "../pages/AboutPage";
-import _ from "../supergroup/supergroup";
-import {backend_url} from "../state/DataGetter";
-import {useSearchParamsState} from "../state/SearchParamsProvider";
+import {Tooltip} from "./Tooltip";
+import {howToSaveStagedChanges} from "./CsetComparisonPage";
+import {newCsetAtlasJson} from "../state/AppState";
+import Button from "@mui/material/Button";
+import React from "react";
 
 const checkmark = <span>{"\u2713"}</span>;
 
-export function getCodesetEditActionFunc({ sp, updateSp, csmi }) {
+export function getCodesetEditActionFunc({ newCset, newCsetDispatch, csmi }) {
   return (props) => {
     // this function will be called editAction and passed around as needed
     const {
+      evt,
       // csmi,  // not sure if this should come from closure or props sent to the generated function
       clickAction,
       flag,
@@ -33,128 +31,31 @@ export function getCodesetEditActionFunc({ sp, updateSp, csmi }) {
       row: { concept_id },
       no_action = false,
     } = props;
-    let { csetEditState = {} } = sp;
-    let csidState = csetEditState[codeset_id] || {};
-    let item = getItem({
+    const { definitions = {}, } = newCset;
+    let definition = getItem({
       codeset_id,
       concept_id,
-      csetEditState,
+      newCset,
       clickAction,
       csmi,
     });
     if (clickAction === "Update") {
-      item[flag] = !item[flag];
+      definition[flag] = !definition[flag];
     }
     if (clickAction.startsWith("Cancel")) {
-      delete csidState[concept_id];
+      // delete csidState[concept_id];
+      newCsetDispatch({type: 'deleteDefinition', concept_id});
     } else {
-      csidState[concept_id] = item;
+      // csidState[concept_id] = definition;
+      newCsetDispatch({type: 'addDefinition', definition});
     }
-    if (isEmpty(csidState)) {
-      delete csetEditState[codeset_id];
-    } else {
-      csetEditState[codeset_id] = csidState;
-    }
-    if (no_action) {
-      return { item, csidState };
-    }
-    updateSp({ addProps: { csetEditState } });
+    evt.stopPropagation();
   };
 }
 
-function summaryLine({ item, action, concept }) {
-  const flags =
-    action == "Remove"
-      ? ""
-      : Object.keys(FLAGS)
-          .filter((key) => item[key])
-          .join(", ");
-  if (!concept) {
-    console.log("why no concept?");
-  }
-  return (
-    <Typography>
-      {concept.concept_name} ({concept.concept_id}) {flags}
-    </Typography>
-  );
-}
-export function EditInfo(props) {
-  const {sp} = useSearchParamsState();
-  const { editCodesetId, csetEditState, } = sp;
-  const { selected_csets, conceptLookup, } = props;
-  if (isEmpty(selected_csets) || isEmpty(conceptLookup)) {
-    debugger
-    throw new Error("wtf")
-  }
-  const csidState = csetEditState && csetEditState[editCodesetId];
-  if (!csidState) {
-    return null;
-  }
-  const cset = selected_csets.find((d) => d.codeset_id === editCodesetId);
-  const updates = _.supergroup(Object.values(csidState), "stagedAction");
-  return (
-    <Card
-      variant="outlined"
-      sx={
-        {
-          /*width: '600px', */
-        }
-      }
-    >
-      <TextH2>
-        Staged changes{" "}
-        {/*to {cset.concept_set_version_title} ({editCodesetId}) */}
-      </TextH2>
-      <ul>
-        {updates.map((grp) => (
-          <li key={grp}>
-            <TextBold>{grp}</TextBold>{" "}
-            <ul>
-              {grp.records.map((item) => (
-                <li key={item.concept_id}>
-                  {summaryLine({
-                    item,
-                    action: grp,
-                    concept: conceptLookup[item.concept_id],
-                  })}
-                </li>
-              ))}
-            </ul>
-          </li>
-        ))}
-      </ul>
-
-      {/* <pre>{JSON.stringify(csetEditState, null, 2)}</pre> */}
-      {/*<button variant="contained">upload to enclave as new draft</button>*/}
-      {/*<button variant="contained">upload to enclave as new version</button>*/}
-    </Card>
-  );
-}
 export function saveChangesInstructions(props) {
-  const {
-    editCodesetId,
-    csetEditState,
-    selected_csets,
-  } = props;
-  if (isEmpty(selected_csets)) {
-    debugger
-    throw new Error("wtf")
-  }
-  const csidState = csetEditState[editCodesetId];
-  const cset = selected_csets.find((d) => d.codeset_id === editCodesetId);
-  if (!csidState) {
-    return null;
-  }
-  const params = {
-    exportJsonLink: backend_url(
-      `cset-download?atlas_items_only=true&${
-        props.sort_json ? "sort_json=true&" : ""
-      }codeset_id=${cset.codeset_id}&csetEditState=${JSON.stringify(
-        csetEditState
-      )}`
-    ),
-    openInEnclaveLink: `https://unite.nih.gov/workspace/hubble/objects/${cset.container_rid}`,
-  };
+  const { newCset, } = props;
+  const params = { newCset, };
   return howToSaveStagedChanges(params);
 }
 
@@ -234,7 +135,9 @@ function OptionIcon(props) {
       <IconButton
         onClick={
           editing && !item.fakeItem
-            ? () => editAction({ ...props, clickAction: "Update" })
+            ? (evt) => {
+                editAction({evt, ...props, clickAction: "Update"})
+              }
             : null
         }
         size="9px"
@@ -257,12 +160,12 @@ function OptionIcon(props) {
     </Tooltip>
   );
 }
-function getItem({
+export function getItem({
   fakeItem,
   codeset_id,
   concept_id,
   csmi,
-  csetEditState,
+  newCset,
   clickAction,
 }) {
   /*  if no item for codeset_id,concept_id, return undefined;
@@ -271,9 +174,13 @@ function getItem({
         2) from csmi (concept_set_members_items),
         3) new if clickAction === 'Add'
       set item.stagedAction if action parameter included   */
-  let item = fakeItem ?? get(csetEditState, [codeset_id, concept_id]);
-  if (isEmpty(item)) {
-    item = get(csmi, [codeset_id, concept_id]);
+  let item = fakeItem;
+  if (!item) {
+    if (codeset_id === get(newCset, ['codeset_id'])) {
+      item = newCset.definitions[concept_id];
+    } else {
+      item = get(csmi, [codeset_id, concept_id]);
+    }
   }
   if (clickAction) {
     item = { ...item };
@@ -316,17 +223,16 @@ function cellInfo(props) {
   const {
     cset_col: { codeset_id },
     row: { concept_id },
-    editCodesetId,
-    csetEditState,
+    newCset,
     csmi,
   } = props;
   const item = getItem({
     csmi,
     codeset_id,
     concept_id,
-    csetEditState,
+    newCset,
   });
-  const editing = editCodesetId === codeset_id;
+  const editing = codeset_id === get(newCset, ['codeset_id']);
 
   return { editing, item };
 }
@@ -580,7 +486,7 @@ export function cellContents(props) {
       contents = (
         <Add
           style={{ cursor: "pointer" }}
-          onClick={() => editAction({ ...props, clickAction })}
+          onClick={(evt) => editAction({ evt, ...props, clickAction })}
         />
       );
       // return contents;
@@ -593,7 +499,7 @@ export function cellContents(props) {
           contents = (
             <Tooltip label={clickAction}>
               <span // style={{ cursor: 'pointer', width:'70px', ...centered}}
-                onClick={() => editAction({ ...props, item, clickAction })}
+                onClick={(evt) => editAction({ evt, ...props, item, clickAction })}
               >
                 Deleted
               </span>
@@ -609,7 +515,7 @@ export function cellContents(props) {
       clickAction === "Add" ? null : (
         <Tooltip label={clickAction}>
           <BlockIcon
-            onClick={() => editAction({ ...props, item, clickAction })}
+            onClick={(evt) => editAction({ evt, ...props, item, clickAction })}
             sx={{
               width: "12px",
               height: "12px",
@@ -621,17 +527,14 @@ export function cellContents(props) {
       );
   }
   const cellStuff = (
-    <div
-      onClick={() => {
-        editAction({ ...props, clickAction, no_action: true }); // returns {cdsidState, item}
-      }} 
+    <div onClick={(evt) => { editAction({ evt, ...props, clickAction, no_action: true });}}
       style={{display: "flex", alignItems: "center", gap: "4px", marginTop: "1px"}}
     >
       {removeIcon}
       {contents || contents === ""
         ? contents
         : flags.map((flag) => {
-            //Object.keys(ICONS).map((flag) => {
+            //Object.keys(ICONS).map((flag) => {}
             if (!item) {
               throw new Error("that's not expected");
             }
@@ -643,4 +546,30 @@ export function cellContents(props) {
     </div>
   );
   return cellStuff;
+} /* was going to use tagged templates; see https://developer.mozilla.org/en-US/docs/Web/JavaScript/Reference/Template_literals
+  but these docs are react chunks, so, should be easier
+function processTemplate(strings, params={}) {
+  const keys = Object.keys(params);
+  if (strings.length !== keys.length + 1) {
+    throw new Error("not supposed to happen, wrong number of params");
+  }
+
+}
+function getDoc(docName, params={}) {
+  const tmpl = DOCS[docName];
+  return processTemplate(tmpl, params);
+}
+*/
+export function newCsetAtlasWidget(newCset) {
+  const atlasJson = newCsetAtlasJson(newCset);
+  return <>
+    <Button
+        onClick={() => {
+          navigator.clipboard.writeText(atlasJson);
+        }}
+    >
+      Copy ATLAS JSON to clipboard
+    </Button><br/>
+    <textarea style={{width: 500, height:300, }} value={atlasJson} readOnly/>
+  </>;
 }
