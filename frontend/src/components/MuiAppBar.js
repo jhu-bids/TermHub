@@ -24,7 +24,7 @@ import ListItemButton from "@mui/material/ListItemButton";
 import { styled, useTheme } from "@mui/material/styles";
 import ListItemText from "@mui/material/ListItemText";
 import { cloneDeep } from "lodash";
-import {VERSION} from "../env";
+import {VERSION, DEPLOYMENT} from "../env";
 import {useSearchParamsState} from "../state/SearchParamsProvider";
 
 const drawerWidth = 240;
@@ -39,7 +39,7 @@ let _pages = [
   //{name: 'Download CSet JSON', href: '/download-json', noSearch: true, },
   { name: "Help / About", href: "/about" },
 ];
-if (window.location.host === 'localhost:3000') {
+if (DEPLOYMENT === 'local') {
   _pages.push({ name: "Graph", href: "/graph" });
 }
 export function getPages(codeset_ids) {

@@ -1,5 +1,5 @@
-import {API_ROOT} from "./env.local";
-export {API_ROOT};
+import {API_ROOT, DEPLOYMENT} from "./env.local";
+export {API_ROOT, DEPLOYMENT};
 
 export const SOURCE_APPLICATION = "TermHub";
 export const SOURCE_APPLICATION_VERSION = "0.3.1";

@@ -19,7 +19,7 @@ export function AlertMessages({alerts}) {
     return (
         <FlexibleContainer title="Alerts" position={{x: window.innerWidth * 0.35 , y: 300}}
                            style={{width: '60%'}}
-                           startHidden={true} countRef={countRef}>
+                           startHidden={false} countRef={countRef}>
           <Stack sx={{ width: '100%' }} spacing={2}>
             {alertsArray.map((alert, i) => (
                 <Alert severity={alert.severity}

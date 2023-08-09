@@ -41,6 +41,7 @@ import { UploadCsvPage } from "./components/UploadCsv";
 import MuiAppBar from "./components/MuiAppBar";
 import {DataCacheProvider} from "./state/DataCache";
 import {AlertMessages} from "./components/AlertMessages";
+import {DEPLOYMENT} from "./env";
 
 /* structure is:
     <BrowserRouter>                 // from index.js root.render
@@ -159,6 +160,12 @@ function RoutesContainer() {
 function App(props) {
   const alerts = useAlerts();
   const alertsDispatch = useAlertsDispatch();
+  const {sp} = useSearchParamsState();
+  let alertsComponent = null;
+  if (DEPLOYMENT === 'local' || sp.show_alerts) {
+    alertsComponent = <AlertMessages alerts={alerts}/>;
+  }
+  console.log(DEPLOYMENT);
 
   return (
     <ThemeProvider theme={theme}>
@@ -172,7 +179,7 @@ function App(props) {
         <MuiAppBar>
           {/* Outlet: Will render the results of whatever nested route has been clicked/activated. */}
         </MuiAppBar>
-        <AlertMessages alerts={alerts}/>
+        { alertsComponent }
         <Outlet />
       </div>
     </ThemeProvider>
