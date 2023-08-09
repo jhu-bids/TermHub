@@ -25,7 +25,7 @@ jobs:
           echo "Commit hash: ${{ github.sha }}"
           echo "Branch: ${{ github.ref }}"
       - name: Set env
-        run: cat ./frontend/src/env.dev.js >> ./frontend/src/env.js
+        run: cp ./frontend/src/env.dev.js ./frontend/src/env.local.js
       - name: Build And Deploy
         id: builddeploy
         uses: Azure/static-web-apps-deploy@v1
