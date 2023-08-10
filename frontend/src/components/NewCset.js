@@ -6,6 +6,7 @@ import BlockIcon from "@mui/icons-material/Block";
 import {Add} from "@mui/icons-material";
 // import {SvgIcon} from "@mui/material";
 import Box from "@mui/material/Box";
+import Typography from "@mui/material/Typography";
 // import Paper from "@mui/material/Paper";
 // import TextareaAutosize from "@mui/base/TextareaAutosize";
 // import CardContent from '@mui/material/CardContent';
@@ -500,7 +501,7 @@ export function cellContents(props) {
         if (item.stagedAction === "Remove") {
           contents = (
             <Tooltip label={clickAction}>
-              <span // style={{ cursor: 'pointer', width:'70px', ...centered}}
+              <span style={{ cursor: 'pointer' /*, width:'70px', ...centered */}}
                 onClick={(evt) => editAction({ evt, ...props, item, clickAction })}
               >
                 Deleted
@@ -562,8 +563,43 @@ function getDoc(docName, params={}) {
   return processTemplate(tmpl, params);
 }
 */
+export function copyConceptsFromWidget(cset, selected_csets, csmi, newCsetDispatch) {
+  console.log({cset, selected_csets, csmi});
+  selected_csets = [...selected_csets];
+  selected_csets.pop();
+  function addDefinitions(selcset) {
+    const definitions = csmi[selcset.codeset_id];
+    let newDefs = {};
+    Object.entries(definitions).forEach(([concept_id, def]) => {
+      if (!def.item) {
+        return;
+      }
+      let newDef = {...def};
+      newDef.codeset_id = cset.codeset_id;
+      newDef.stagedAction = 'Add';
+      newDefs[concept_id] = newDef;
+    });
+    newCsetDispatch({type: 'addDefinitions', definitions: newDefs})
+  }
+  return (
+      <div>
+        <Typography variant="body2" color="text.secondary" sx={{ overflow: "clip" }} >
+          <strong>Copy definition items from: </strong>
+          {selected_csets.map((selcset,i) => {
+            return (
+                <Button key={i} variant="outlined" onClick={() => addDefinitions(selcset)}>
+                  {selcset.concept_set_name}{' '}
+                </Button>);
+          })}
+        </Typography>
+      </div>
+  );
+}
 export function newCsetAtlasWidget(newCset) {
   const atlasJson = newCsetAtlasJson(newCset);
+  if (!atlasJson) {
+    return null;
+  }
   return <>
     <Button
         onClick={() => {

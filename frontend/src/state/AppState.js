@@ -199,11 +199,18 @@ const newCsetReducer = (state, action) => {
       return {...cset, definitions: {}};
     }
     case "restore": {
-      return action.newCset;
+      let definitions = unabbreviateDefinitions(action.newCset.definitions);
+      return {...action.newCset, definitions};
+    }
+    case "reset": {
+      return {};
     }
 
     case "addDefinition": {
       state = {...state, definitions: {...state.definitions, [action.definition.concept_id]: action.definition }}
+    }
+    case "addDefinitions": {
+      state = {...state, definitions: {...state.definitions, ...action.definitions }}
     }
     case "deleteDefinition": {
       let definitions = {...state.definitions};
@@ -239,6 +246,7 @@ export function NewCsetProvider({ children }) {
       console.log(stateAfterDispatch);
       setStateUpdate(stateAfterDispatch);
     }
+    return stateAfterDispatch;
   }
   return (
       <NewCsetContext.Provider value={[state, dispatch]}>
@@ -246,18 +254,47 @@ export function NewCsetProvider({ children }) {
       </NewCsetContext.Provider>
   );
 }
-export function urlWithSessionStorage() {
+export function useNewCset() {
+  return useContext(NewCsetContext);
+}
+export function abbreviateDefinitions(defs) {
+  let definitions = {};
+  for (let d in defs) {
+    let def = defs[d];
+    let flags = `${def.includeDescendants ? 'D' :''}` +
+        `${def.includeMapped ? 'M' :''}` +
+        `${def.isExcluded ? 'X' :''}`;
+    definitions[d] = flags;
+  }
+  return definitions;
+}
+export function unabbreviateDefinitions(defs) {
+  let definitions = {};
+  for (let d in defs) {
+    let def={item: true, codeset_id: NEW_CSET_ID, concept_id: d};
+    let flags = defs[d].split('');
+    for (let flag of flags) {
+      if (flag === 'D') def.includeDescendants = true;
+      if (flag === 'M') def.includeMapped = true;
+      if (flag === 'X') def.isExcluded = true;
+    }
+    definitions[d] = def;
+  }
+  return definitions;
+}
+export function urlWithSessionStorage(newCset) {
   const sstorage = fromPairs(Object.entries(sessionStorage).map(([k,v]) => ([k, JSON.parse(v)])));
-  delete sstorage.newCset.provenance; // this shouldn't be saved in the url. It gets updated as cset changes.
+  newCset = {...newCset};
+  delete newCset.provenance;
+
+  newCset.definitions = abbreviateDefinitions(newCset.definitions);
+  sstorage.newCset = newCset;
   let sstorageString = JSON.stringify(sstorage);
   // sstorageString = compress(sstorageString);
   return window.location.href + (window.location.search ? '&' : '?') + `sstorage=${sstorageString}`;
 }
-export function newCsetProvenance() {
-  return `${SOURCE_APPLICATION} (v${SOURCE_APPLICATION_VERSION}) link: ${urlWithSessionStorage()}`;
-}
-export function useNewCset() {
-  return useContext(NewCsetContext);
+export function newCsetProvenance(newCset) {
+  return `${SOURCE_APPLICATION} (v${SOURCE_APPLICATION_VERSION}) link: ${urlWithSessionStorage(newCset)}`;
 }
 export function newCsetAtlasJson(cset) {
   if (isEmpty(cset.definitions)) {

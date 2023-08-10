@@ -46,8 +46,10 @@ export function FlexibleContainer({ title, position, children, countRef,
       border: "2px solid green",
       minWidth: "200px",
       minHeight: "200px",
-      display: "flex",
-      flexDirection: "column",
+      maxWidth: "95%",
+      // display: "flex",
+      // flexDirection: "column",
+      overflow: "scroll!important",
     };
     displayedContent = (
         <Box

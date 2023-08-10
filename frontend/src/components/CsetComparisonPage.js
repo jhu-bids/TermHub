@@ -269,7 +269,7 @@ function CsetComparisonPage() {
               display: editingCset ? "none" : "flex",
             }}
     >
-      add a new concept set
+      Create new concept set or version
     </Button>,
 
     /*
@@ -288,9 +288,13 @@ function CsetComparisonPage() {
   if (editingCset) {
     infoPanels.push(
         <FlexibleContainer key="cset" title="New concept set"
+                           style={{overflow: "scroll", resize: "both", }}
                            position={panelPosition} countRef={countRef}>
           <ConceptSetCard
               cset={newCset}
+              selected_csets={selected_csets}
+              csmi={csmi}
+              newCsetDispatch={newCsetDispatch}
               researchers={researchers}
               editing={true}
               hideTitle
@@ -583,7 +587,6 @@ function colConfig(props) {
     displayedRows,
     hierarchySettings,
     hsDispatch,
-    setAddNewCsetDisplay,
     csmi,
     newCset, newCsetDispatch
   } = props;
@@ -829,19 +832,9 @@ function colConfig(props) {
           <Tooltip label={def.headerProps.tooltipContent}>
             <div>{def.headerProps.headerContent}</div>
           </Tooltip>
-          <Tooltip label="Remove this column">
+          <Tooltip label="Discard">
             <IconButton
                 onClick={() => {
-                  let i = 0;
-                  while (i < selected_csets.length) {
-                    if (selected_csets[i].codeset_id === NEW_CSET_ID) {
-                      selected_csets.splice(i, 1);
-                      continue;
-                    }
-                    i++;
-                  }
-                  setAddNewCsetDisplay(true);
-
                   newCsetDispatch({type: 'reset'});
                 }}
             >
@@ -1133,10 +1126,10 @@ function howToSaveStagedChanges(params) {
         </ol>
         <p>
           Return to this work later by saving or bookmarking <a
-            href={urlWithSessionStorage()} target="_blank" rel="noreferrer">this link</a> (
+            href={urlWithSessionStorage(params.newCset)} target="_blank" rel="noreferrer">this link</a> (
           <Button
               onClick={() => {
-                navigator.clipboard.writeText(urlWithSessionStorage());
+                navigator.clipboard.writeText(urlWithSessionStorage(params.newCset));
               }}
           >
             Copy to clipboard

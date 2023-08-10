@@ -7,7 +7,7 @@ import IconButton from "@mui/material/IconButton";
 import CloseIcon from "@mui/icons-material/Close";
 import Button from "@mui/material/Button";
 import {NEW_CSET_ID, newCsetAtlasJson, urlWithSessionStorage, newCsetProvenance, } from "../state/AppState";
-import {newCsetAtlasWidget} from "./NewCset";
+import {newCsetAtlasWidget, copyConceptsFromWidget} from "./NewCset";
 import {SOURCE_APPLICATION, SOURCE_APPLICATION_VERSION} from "../env";
 // import Box from '@mui/material/Box';
 import { useLocation } from "react-router-dom";
@@ -66,8 +66,10 @@ export default function ConceptSetCards(props) {
   );
 }
 export function ConceptSetCard(props) {
-  let { cset, researchers = {}, editing = false, closeFunc, hideTitle, } = props;
+  let { cset, researchers = {}, editing = false, closeFunc, hideTitle,
+        selected_csets, csmi, newCsetDispatch, } = props;
   let atlasWidget = null;
+  let copyConceptsWidget = null;
   /*
   const [expanded, setExpanded] = React.useState(false);
   const handleExpandClick = () => {
@@ -114,7 +116,8 @@ export function ConceptSetCard(props) {
   if (cset.codeset_id === NEW_CSET_ID) {
     delete display_props["Code set ID"];
     atlasWidget = newCsetAtlasWidget(cset);
-    display_props["Provenance"] = newCsetProvenance();
+    copyConceptsWidget = copyConceptsFromWidget(cset, selected_csets, csmi, newCsetDispatch);
+    display_props["Provenance"] = newCsetProvenance(cset);
   } else {
     if (cset.provenance) {
       display_props["Provenance"] = cset.provenance;
@@ -193,7 +196,9 @@ export function ConceptSetCard(props) {
   return (
     <Card
       variant="outlined"
-      sx={{ display: "inline-block" /*maxWidth: '400px'*/ }}
+      sx={{ display: "inline-block",
+            overflow: "scroll!important",
+        /*maxWidth: '400px'*/ }}
     >
       {/*
         <CardHeader
@@ -237,6 +242,7 @@ export function ConceptSetCard(props) {
         {researcherContent}
         {enclaveLink}
         {atlasWidget}
+        {copyConceptsWidget}
       </CardContent>
       {/*
         <CardActions disableSpacing>
