@@ -130,7 +130,7 @@ export function CsetSearch(props) {
     </Card>
   );
   return (
-      <Box sx={{display: 'flex', flexDirection: 'row', width: '95%'}}>
+      <Box data-testid="csetsearch" sx={{display: 'flex', flexDirection: 'row', width: '95%'}}>
         <Tooltip content={tt} classes="help-card" placement="top-end">
           {autocomplete}
         </Tooltip>
@@ -165,7 +165,7 @@ export function CsetSearch(props) {
      and also use Multiple Values */
 }
 
-function ConceptSetsPage(props) {
+export function ConceptSetsPage(props) {
   const [codeset_ids, codesetIdsDispatch] = useCodesetIds();
   const dataGetter = useDataGetter();
   const dataCache = useDataCache();
@@ -297,5 +297,3 @@ function hierarchyToFlatCids(h) {
   return uniq(ac.keys.map(k => parseInt(k)));
 }
  */
-
-export { ConceptSetsPage };

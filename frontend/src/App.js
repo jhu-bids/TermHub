@@ -95,7 +95,8 @@ function RoutesContainer() {
       const sstorage = JSON.parse(sp.sstorage);
       Object.entries(sstorage).map(([k,v]) => {
         if (k === 'newCset') {
-          newCsetDispatch({type: 'restore', newCset: v});
+          // restore alters newCset.definitions (unabbreviates)
+          v = newCsetDispatch({type: 'restore', newCset: v});
         } else {
           console.warn('was only expecting newCset in sstorage search param, got', {[k]: v},
                        'adding to sessionStorage anyway');

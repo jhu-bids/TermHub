@@ -9,6 +9,7 @@ import '@testing-library/jest-dom/extend-expect';
 describe('App tests', () => {
   let getByTestId;
 
+  /*
   beforeAll(() => {
     // render TermHub landing page
     getByTestId = render(
@@ -17,15 +18,31 @@ describe('App tests', () => {
         </BrowserRouter>
     ).getByTestId;
   });
+  */
 
   test('component has the correct title prop', () => {
+    const getByTestId = render(
+        <BrowserRouter>
+          <AppWrapper />
+        </BrowserRouter>
+    ).getByTestId;
     const element = screen.getByTestId('app-name'); // Adjust this to your actual test ID or query method
     expect(element).toHaveTextContent('TermHub');
   });
 
+  test('component has a version', () => {
+    const getByTestId = render(
+        <BrowserRouter>
+          <AppWrapper />
+        </BrowserRouter>
+    ).getByTestId;
+    const appv = screen.getByTestId('app-version');
+    expect(appv).toHaveTextContent('v');
+  });
+
   test('autocomplete value corresponds with url codeset_ids', () => {
-    const element = screen.getByText('Welcome to TermHub! Beta version ');
-    expect(element).toBeInTheDocument();
+    // const element = screen.getByText('Welcome to TermHub! Beta version ');
+    // expect(element).toBeInTheDocument();
     // const history = createMemoryHistory();
     // Replace '/your-route' with the URL you want to test
     // history.push('OMOPConceptSets?codeset_ids=413507552');

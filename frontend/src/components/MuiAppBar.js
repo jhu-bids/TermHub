@@ -362,6 +362,7 @@ export default function MuiAppBar() {
             TermHub
           </Typography>
           <Typography
+            data-testid="app-version"
             sx={{
               mr: 2,
               fontWeight: 700,
