@@ -344,6 +344,7 @@ export default function MuiAppBar() {
         <Toolbar disableGutters>
           <MenuBookRounded sx={{ display: { xs: "none", md: "flex" }, mr: 1 }} />
           <Typography
+            data-testid="app-name"
             variant="h6"
             noWrap
             component="a"

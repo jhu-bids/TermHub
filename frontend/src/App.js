@@ -59,7 +59,7 @@ import {DEPLOYMENT} from "./env";
       </SearchParamsProvider>
     </BrowserRouter>
 */
-function QCProvider() {
+function AppWrapper() {
   // prefetch({itemType: 'all_csets'});
   return (
     // <React.StrictMode> // {/* StrictMode helps assure code goodness by running everything twice, but it's annoying*/}
@@ -165,7 +165,7 @@ function App(props) {
   if (DEPLOYMENT === 'local' || sp.show_alerts) {
     alertsComponent = <AlertMessages alerts={alerts}/>;
   }
-  console.log(DEPLOYMENT);
+  // console.log(DEPLOYMENT);
 
   return (
     <ThemeProvider theme={theme}>
@@ -227,4 +227,4 @@ OH!! Does that mean: without a dependency list, the useEffects function will run
 
 */
 
-export { QCProvider };
+export { AppWrapper };

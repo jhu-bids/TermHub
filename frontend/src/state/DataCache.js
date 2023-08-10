@@ -68,7 +68,7 @@ class DataCache {
 			debugger;
 			throw err;
 		}
-		console.log(`saveCache took ${duration}ms`);
+		// console.log(`saveCache took ${duration}ms`);
 	}, 400);
 
 	addCacheHistoryEvent(evtMsg) {
@@ -82,7 +82,7 @@ class DataCache {
 		}
 		cacheHistory.push(evt);
 		this.cachePut('cacheHistory', cacheHistory, false);
-		console.log(cacheHistory);
+		// console.log(cacheHistory);
 	}
 	loadCache = () => {
 		const startTime = performance.now();
@@ -100,7 +100,7 @@ class DataCache {
 			this.addCacheHistoryEvent(evtMsg);
 		}
 		const duration = performance.now() - startTime;
-		console.log(`loadCache took ${duration}ms`);
+		// console.log(`loadCache took ${duration}ms`);
 	}
 	async cacheCheck(dataGetter) {
 		const url = 'last-refreshed';

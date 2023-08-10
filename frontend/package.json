@@ -38,7 +38,7 @@
   "scripts": {
     "start": "react-scripts start",
     "build": "CI=false && react-scripts build",
-    "test": "react-scripts test",
+    "test": "react-scripts test --transformIgnorePatterns \"node_modules/(?!your-module-name)/\"",
     "eject": "react-scripts eject"
   },
   "eslintConfig": {

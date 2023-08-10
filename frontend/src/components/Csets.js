@@ -71,6 +71,7 @@ export function CsetSearch(props) {
     // https://mui.com/material-ui/react-autocomplete/
     // https://stackoverflow.com/a/70193988/1368860
     <Autocomplete
+      data-testid="autocomplete"
       multiple
       // key={keyForRefreshingAutocomplete}
       value={value}

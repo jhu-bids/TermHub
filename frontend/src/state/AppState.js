@@ -240,7 +240,6 @@ export function NewCsetProvider({ children }) {
       setStateUpdate(stateAfterDispatch);
     }
   }
-  console.log(state);
   return (
       <NewCsetContext.Provider value={[state, dispatch]}>
         {children}

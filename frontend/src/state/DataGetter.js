@@ -35,7 +35,7 @@ class DataGetter {
 		this.alertsDispatch = alertsDispatch;
 	}
 	async axiosCall(path, { backend = true, data, returnDataOnly = true, useGetForSmallData = true,
-		apiGetParamName, verbose = true, sendAlert = true, title, makeQueryString,
+		apiGetParamName, verbose = false, sendAlert = true, title, makeQueryString,
 	} = {}) {
 		let url = backend ? backend_url(path) : path;
 		let request = { url };
