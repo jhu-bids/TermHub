@@ -59,7 +59,7 @@ def refresh_db(
         if since and dp.parse(since) > dp.parse(last_refresh) and not force_non_contiguity:
             raise ValueError(SINCE_ERR)
         since = since if since else last_refresh
-        since = dp.parse(since) - timedelta(hours=buffer_hours)
+        since = str(dp.parse(since) - timedelta(hours=buffer_hours)).replace(' ', 'T')
 
         # Refresh db
         try:
