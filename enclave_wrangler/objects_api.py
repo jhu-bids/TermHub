@@ -343,12 +343,15 @@ def fetch_cset_and_member_objects(
     # Concept set versions
     if not (since or codeset_ids) or (since and codeset_ids):
         raise RuntimeError('Must pass either: `since` or `codeset_ids`, but not both.')
-    elif codeset_ids and not since:
+    print(' - fetching cset versions')
+    if codeset_ids and not since:
         cset_versions: List[Dict] = [fetch_cset_version(_id, retain_properties_nesting=True) for _id in codeset_ids]
     else:
         cset_versions: List[Dict] = fetch_objects_since_datetime('OMOPConceptSet', since, verbose)
+    print(f'   - retrieved {len(cset_versions)} versions')
 
     # Containers
+    print(f' - fetching containers for {len(cset_versions)} versions')
     containers_ids = [x['properties']['conceptSetNameOMOP'] for x in cset_versions]
     cset_containers: List[Dict] = []
     for _id in containers_ids:
@@ -369,8 +372,12 @@ def fetch_cset_and_member_objects(
     cset_versions_with_concepts: List[Dict] = []
     expression_items = []
     member_items = []
+    print(f' - fetching expressions/members for  for {len(cset_versions)} versions:')
+    i = 0
     for cset in cset_versions:
+        i += 1
         version_id: int = cset['properties']['codesetId']
+        print(f'   - {i}: {version_id}')
         # todo: if failed to get expression items, should we not check for members? maybe ok because flagged
         try:
             cset['expression_items']: List[Dict] = \

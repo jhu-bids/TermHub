@@ -372,7 +372,7 @@ def download_and_transform(
     # Download
     df = pd.DataFrame()
     if not transforms_only:
-        # TODO: Temp: would be good to accept either 'outdir' or 'outpath'.
+        # todo: Temp: would be good to accept either 'outdir' or 'outpath'.
         if not outpath:
             outpath = os.path.join(output_dir, f'{dataset_name}.csv') if output_dir else None
         if os.path.exists(outpath) and not force_if_exists:

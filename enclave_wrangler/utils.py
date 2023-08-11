@@ -167,10 +167,11 @@ def handle_response_error(
     failed = response_failed(response)
     if failed:
         msg = f'Error: {calling_func}: {str(response.status_code)} {response.reason}'
+        # noinspection PyBroadException
         try:
             error_report: Dict = {'request': response.url, 'response': response.json(),}
         except Exception as err:
-            error_report: Dict = {'request': response.url, 'response': response.content(),}
+            error_report: Dict = {'request': response.url, 'response': response.content,}
         error_report['msg'] = msg
 
         curl_str = f'curl -H "Content-type: application/json" ' \

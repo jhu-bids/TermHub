@@ -3,7 +3,7 @@ import os
 import sys
 from argparse import ArgumentParser
 
-from datetime import datetime
+from datetime import datetime, timedelta
 from typing import Union
 import dateutil.parser as dp
 
@@ -27,10 +27,12 @@ SINCE_ERR = '--since is more recent than the database\'s record of last refresh,
 # todo: What if 'since' is passed, but it is not the same date or before 'last_updated' in db? should print warning
 def refresh_db(
     since: Union[datetime, str] = None, use_local_db=False,  schema: str = CONFIG['schema'],
-    force_non_contiguity=False
+    force_non_contiguity=False, buffer_hours=48
 ):
     """Refresh the database
 
+    :param: buffer_hours: An additional period of time before 'since' to fetch additional data, as a failsafe measure in
+     case of possible API unreliability.
     :param force_non_contiguity: Used with `since`. If `since` timestamp is more recent than the database\'s record of
     when the last refresh occurred, this will result in there being a gap in which any changes that occurred during that
     time will not be fetched, resulting in an incomplete database. Therefore by default this will raise an error unless
@@ -57,6 +59,7 @@ def refresh_db(
         if since and dp.parse(since) > dp.parse(last_refresh) and not force_non_contiguity:
             raise ValueError(SINCE_ERR)
         since = since if since else last_refresh
+        since = dp.parse(since) - timedelta(hours=buffer_hours)
 
         # Refresh db
         try:
@@ -79,7 +82,7 @@ def refresh_db(
         counts_docs()
         print(f'INFO: Database refresh complete in {(datetime.now() - t0).seconds} seconds.')
     else:
-        print('INFO: Database is up to date. No refresh necessary')
+        print('INFO: No new data was found in the Enclave. Exiting.')
 
     if check_db_status_var('new_request_while_refreshing'):
         print('INFO: New refresh request detected while refresh was running. Starting a new refresh.')
@@ -93,6 +96,10 @@ def cli():
     parser.add_argument(
         '-l', '--use-local-db', action='store_true', default=False, required=False,
         help='Use local database instead of server.')
+    parser.add_argument(
+        '-b', '--buffer-hours', default=48, required=False,
+        help='An additional period of time before "since" to fetch additional data, as a failsafe measure in case of '
+             'possible API unreliability')
     parser.add_argument(
         '-s', '--since', required=False,
         help='A timestamp by which new data should be fetched. If not present, will look up the last time the DB was '
