@@ -125,7 +125,7 @@ class TestObjectsApi(unittest.TestCase):
         with get_db_connection(schema=TEST_SCHEMA) as con:
             # Setup
             n1: int = sql_count(con, 'concept_set_container')
-            csets_and_members_to_db(con, TEST_SCHEMA, csets_and_members)
+            csets_and_members_to_db(con, csets_and_members, TEST_SCHEMA)
             t1 = datetime.now()  # temp
             n2: int = sql_count(con, 'concept_set_container')
             print('test_csets_and_members_to_db() setup completed in ', (t1 - t0).seconds, ' seconds')  # temp
