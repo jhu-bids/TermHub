@@ -32,8 +32,6 @@ def refresh_voc_and_counts(skip_downloads: bool = False, schema=SCHEMA):
     """Refresh vocabulary and counts tables."""
     print('Refreshing vocabulary and counts tables.')
     for group_name, config in DATASET_GROUPS_CONFIG.items():
-        if group_name == 'vocab':
-            continue
         print(f'\nRefreshing {group_name} tables...')
         # Check if tables are already up to date
         last_updated_us: str = check_db_status_var(config['last_updated_termhub_var'])
