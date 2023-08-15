@@ -1,7 +1,7 @@
 import {createContext, useContext,} from "react";
 import {createSearchParams} from "react-router-dom";
 import axios from "axios";
-import {flatten, isEmpty, setWith, set, uniq} from 'lodash';
+import {flatten, isEmpty, setWith, set, uniq, difference} from 'lodash';
 
 import {useAlertsDispatch} from "./AppState";
 import {formatEdges} from "../components/ConceptGraph";
@@ -222,6 +222,21 @@ class DataGetter {
 			key: 'concept_id',
 			alertTitle: 'Get concepts for selected concept_ids',
 			apiResultShape: 'array of keyed obj',
+			expectOneResultRowPerKey: true,
+			createStubForMissingKey: key => ({
+				concept_id: key,
+				concept_name: 'Missing concept',
+				domain_id: '',
+				vocabulary_id: '',
+				concept_class_id: '',
+				standard_concept: '',
+				concept_code: '',
+				invalid_reason: null,
+				domain_cnt: 0,
+				domain: '',
+				total_cnt: 0,
+				distinct_person_cnt: '0'
+			})
 		},
 		codeset_ids_by_concept_id: {
 			expectedParams: [],	// concept_ids
@@ -316,6 +331,19 @@ class DataGetter {
 		})
 		if (uncachedKeys.length) {
 			returnData = await this.axiosCall(apiDef.api, {...apiDef, data: uncachedKeys});
+
+			if (apiDef.expectOneResultRowPerKey) {
+				if (returnData.length < uncachedKeys.length) {
+					// if not getting rows for all keys, make stubs
+					const stubRecords = difference(uncachedKeys, returnData.map(d => d[apiDef.key]+'')).map(
+							key => apiDef.createStubForMissingKey(key)
+					);
+					returnData = returnData.concat(stubRecords);
+				} else if (returnData.length !== uncachedKeys.length) {
+					throw new Error("How can there be more return rows than keys?");
+				}
+			}
+
 			if (apiDef.apiResultShape === 'array of keyed obj') {
 				returnData.forEach(obj => {
 					let keys = apiDef.key.split('.').map(k => obj[k]);
