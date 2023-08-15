@@ -14,6 +14,7 @@ import os
 import sys
 from argparse import ArgumentParser
 from datetime import datetime
+from typing import List
 
 from dateutil import parser as dp
 
@@ -22,7 +23,8 @@ DB_DIR = os.path.dirname(os.path.realpath(__file__))
 BACKEND_DIR = os.path.join(DB_DIR, '..')
 PROJECT_ROOT = os.path.join(BACKEND_DIR, '..')
 sys.path.insert(0, str(PROJECT_ROOT))
-from backend.db.utils import SCHEMA, check_db_status_var, get_db_connection, load_csv, refresh_any_dependent_tables, \
+from backend.db.utils import SCHEMA, check_db_status_var, get_db_connection, get_ddl_statements, load_csv, \
+    refresh_any_dependent_tables, \
     run_sql
 from enclave_wrangler.config import DATASET_GROUPS_CONFIG
 from enclave_wrangler.datasets import download_datasets, get_last_update_of_dataset
@@ -32,8 +34,6 @@ def refresh_voc_and_counts(skip_downloads: bool = False, schema=SCHEMA):
     """Refresh vocabulary and counts tables."""
     print('Refreshing vocabulary and counts tables.')
     for group_name, config in DATASET_GROUPS_CONFIG.items():
-        if group_name == 'vocab':
-            continue
         print(f'\nRefreshing {group_name} tables...')
         # Check if tables are already up to date
         last_updated_us: str = check_db_status_var(config['last_updated_termhub_var'])
@@ -57,8 +57,12 @@ def refresh_voc_and_counts(skip_downloads: bool = False, schema=SCHEMA):
                 run_sql(con, f'DROP TABLE IF EXISTS {schema}.{table}_old;')
                 t1 = datetime.now()
                 print(f'   done in {(t1 - t0).seconds} seconds')
-            # todo: set variable for 'last updated' for each table (look at load())
-            #  - consider: check if table already updated sooner than last_updated_them. if so, skip. and add a param to CLI for this
+                # todo: set variable for 'last updated' for each table (look at load())
+                #  - consider: check if table already updated sooner than last_updated_them. if so, skip. and add a param to CLI for this
+            print('Creating indexes')
+            statements: List[str] = get_ddl_statements(schema, ['indexes'], 'flat')
+            for statement in statements:
+                run_sql(con, statement)
             # print('Recreating derived tables')  # printed w/in refresh_derived_tables()
             refresh_any_dependent_tables(con, config['tables'])
 
