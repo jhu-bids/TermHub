@@ -340,6 +340,8 @@ def fetch_cset_and_member_objects(
       - member items
       - expression items
     """
+
+    codeset_ids_to_ignore = [938394329] # Hope Termhub Test (v2), 53K concepts. taking forever
     # Concept set versions
     if not (since or codeset_ids) or (since and codeset_ids):
         raise RuntimeError('Must pass either: `since` or `codeset_ids`, but not both.')

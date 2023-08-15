@@ -393,6 +393,35 @@ def get_n3c_recommended_codeset_ids() -> Dict[int, Union[Dict, None]]:
     codeset_ids = get_n3c_recommended_csets()
     return codeset_ids
 
+@router.get("/n3c-recommended-report")
+def n3c_recommended_report() -> List[str]:
+
+    # just for this one function
+    from fastapi.responses import StreamingResponse
+    import io
+    import pandas as pd
+
+    codeset_ids = get_n3c_recommended_csets()
+    q = f"""
+            SELECT
+                  is_most_recent_version,
+                  codeset_id, concept_set_name, alias,
+                  CAST(codeset_created_at AS DATE) AS created_at,
+                  r.name AS created_by
+            FROM all_csets ac
+            JOIN researcher r ON ac.codeset_created_by = r."multipassId"
+            WHERE codeset_id {sql_in(codeset_ids)}
+            ORDER BY 1, 6, 5, 4
+    """
+    rows = sql_query(get_db_connection(), q)
+    df = pd.DataFrame(rows, columns=['is_most_recent_version', 'codeset_id',
+                                     'concept_set_name', 'alias', 'created_at', 'created_by'])
+    stream = io.StringIO()
+    df.to_csv(stream, index=False)
+    response = StreamingResponse(iter([stream.getvalue()]), media_type="text/csv" )
+    response.headers["Content-Disposition"] = "attachment; filename=n3c-recommended-report.csv"
+    return response
+
 
 FLAGS = ['includeDescendants', 'includeMapped', 'isExcluded']
 @router.get("/cset-download")

@@ -110,3 +110,4 @@ def cli():
 
 if __name__ == '__main__':
     cli()
+    # can add --since 2023-06-29T14:13:32.252310-04:00 to config
