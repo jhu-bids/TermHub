@@ -2,11 +2,13 @@ import React, {useState, useRef, useEffect, useCallback, /* useReducer, */} from
 import { CsetsDataTable, CsetsSelectedDataTable } from "./CsetsDataTable";
 // import {difference, symmetricDifference} from "./utils";
 import ConceptSetCards from "./ConceptSetCard";
+import Alert from '@mui/material/Alert';
+import AlertTitle from '@mui/material/AlertTitle';
 import { TextField, Autocomplete, Box, } from "@mui/material";
 import { matchSorter } from 'match-sorter';
 import Button from "@mui/material/Button";
 // import Chip from '@mui/material/Chip';
-import {every, keyBy, union, orderBy, } from "lodash";
+import {every, keyBy, union, orderBy, difference,} from "lodash";
 import { get, isNumber, isEmpty, flatten, intersection, } from "lodash";
 // import {isEqual, pick, uniqWith, max, omit, uniq, } from 'lodash';
 // import Box from "@mui/material/Box";
@@ -27,7 +29,7 @@ import {useCodesetIds} from "../state/AppState";
     @ SIggie: is this fixed?
 */
 function initialOpts(all_csets, codesetIds) {
-  let opts = Object.values(all_csets)
+  let opts = all_csets
       // .filter((d) => !codeset_ids.includes(d.codeset_id))
       .map((d) => ({
         label:
@@ -66,7 +68,19 @@ export function CsetSearch(props) {
   }
   const opts = initialOpts(all_csets, codeset_ids);
 
-  // console.log(value);
+  let largeCsets = [];
+  const unloadedCodesetIds = difference(value, codeset_ids);
+  if (unloadedCodesetIds.length) {
+    const unloadedCsets = all_csets.filter(cset => unloadedCodesetIds.includes(cset.codeset_id));
+    largeCsets = unloadedCsets.filter(cset => get(cset, ['counts', 'Members']) > 9999);
+    console.log(unloadedCsets, largeCsets);
+  }
+  const largeCsetWarning = largeCsets.length ? (
+      <Alert severity="error" >
+        <AlertTitle>TermHub can behave unreliably when loading large concept sets</AlertTitle>
+      </Alert>
+  ) : null;
+
   const autocomplete = (
     // https://mui.com/material-ui/react-autocomplete/
     // https://stackoverflow.com/a/70193988/1368860
@@ -134,6 +148,7 @@ export function CsetSearch(props) {
         <Tooltip content={tt} classes="help-card" placement="top-end">
           {autocomplete}
         </Tooltip>
+        {largeCsetWarning}
         <Button onClick={() => {
           codesetIdsDispatch({type: "set_all", codeset_ids: value});
           // changeCodesetIds(value, "set");
