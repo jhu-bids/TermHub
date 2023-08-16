@@ -6,7 +6,7 @@ import Typography from "@mui/material/Typography";
 import IconButton from "@mui/material/IconButton";
 import CloseIcon from "@mui/icons-material/Close";
 import Button from "@mui/material/Button";
-import {NEW_CSET_ID, newCsetAtlasJson, urlWithSessionStorage, newCsetProvenance, } from "../state/AppState";
+import {NEW_CSET_ID, newCsetProvenance, } from "../state/AppState";
 import {newCsetAtlasWidget, copyConceptsFromWidget} from "./NewCset";
 import {SOURCE_APPLICATION, SOURCE_APPLICATION_VERSION} from "../env";
 // import Box from '@mui/material/Box';
@@ -67,7 +67,7 @@ export default function ConceptSetCards(props) {
 }
 export function ConceptSetCard(props) {
   let { cset, researchers = {}, editing = false, closeFunc, hideTitle,
-        selected_csets, csmi, newCsetDispatch, } = props;
+        selected_csets, csmi, newCsetDispatch, conceptLookup, } = props;
   let atlasWidget = null;
   let copyConceptsWidget = null;
   /*
@@ -114,8 +114,9 @@ export function ConceptSetCard(props) {
     display_props["Project ID"] = cset.project_id;
   }
   if (cset.codeset_id === NEW_CSET_ID) {
+    // if new cset, concepts should be in props and available here.
     delete display_props["Code set ID"];
-    atlasWidget = newCsetAtlasWidget(cset);
+    atlasWidget = newCsetAtlasWidget(cset, conceptLookup);
     copyConceptsWidget = copyConceptsFromWidget(cset, selected_csets, csmi, newCsetDispatch);
     display_props["Provenance"] = newCsetProvenance(cset);
   } else {

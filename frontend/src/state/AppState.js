@@ -296,13 +296,24 @@ export function urlWithSessionStorage(newCset) {
 export function newCsetProvenance(newCset) {
   return `${SOURCE_APPLICATION} (v${SOURCE_APPLICATION_VERSION}) link: ${urlWithSessionStorage(newCset)}`;
 }
-export function newCsetAtlasJson(cset) {
+export function newCsetAtlasJson(cset, conceptLookup) {
   if (isEmpty(cset.definitions)) {
     return;
   }
-  const atlasDefs = Object.values(cset.definitions).map(d => pick(d, [
-    'concept_id', 'includeDescendants', 'includeMapped', 'isExcluded', 'annotation' ]));
-  const atlasJson = JSON.stringify(atlasDefs, null, 2);
+  let defs = Object.values(cset.definitions).map(
+      d => {
+        let item = pick(d, ['includeDescendants', 'includeMapped', 'isExcluded']);
+        let concept = conceptLookup[d.concept_id];
+        let atlasConcept = {};
+        Object.entries(concept).forEach(([k, v]) => {
+          atlasConcept[k.toUpperCase()] = v;
+        })
+        item.concept = atlasConcept;
+        return item;
+      }
+  );
+  const jsonObj = {items: defs};
+  const atlasJson = JSON.stringify(jsonObj, null, 2);
   return atlasJson;
 }
 

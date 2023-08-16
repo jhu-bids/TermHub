@@ -426,9 +426,12 @@ def n3c_recommended_report() -> List[str]:
 FLAGS = ['includeDescendants', 'includeMapped', 'isExcluded']
 @router.get("/cset-download")
 def cset_download(codeset_id: int, csetEditState: str = None,
-                  atlas_items=True, atlas_items_only=False,
+                  atlas_items=True, # atlas_items_only=False,
                   sort_json: bool = False) -> Dict:
-    """Download concept set"""
+    """Download concept set
+        NO LONGER USED BECAUSE WE DON'T EDIT EXISTING CODESETS BUT JUST CREATE NEW ONES FROM DEFINITIONS
+
+    """
     if not atlas_items_only: # and False  TODO: document this param and what it does (what does it do again?)
         jsn = get_codeset_json(codeset_id) #  , use_cache=False)
         if sort_json:
@@ -464,6 +467,25 @@ def cset_download(codeset_id: int, csetEditState: str = None,
         return items  #  when would we want this?
     # pdump(items)
     # pdump(items_jsn)
+
+
+# NOT USING THESE TWO ROUTES EITHER -- WAS EASIER JUST TO IMPLEMENT ON FRONTEND
+#   but might want them someday
+@router.post('/atlas-json-from-defs')
+def atlas_json_from_defs(defs: List[Dict]) -> Dict:
+
+    items = convert_rows('concept_set_version_item',
+                        'OmopConceptSetVersionItem',
+                        defs)
+
+    items_jsn = items_to_atlas_json_format(items)
+    return {'items': items_jsn}
+
+
+@router.get('/atlas-json-from-defs')
+def _atlas_json_from_defs(defStr: List[Dict]) -> Dict:
+    defs = json.loads(defStr)
+    return atlas_json_from_defs(defs)
 
 
 @router.get("/enclave-api-call/{name}")

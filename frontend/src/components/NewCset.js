@@ -54,12 +54,6 @@ export function getCodesetEditActionFunc({ newCset, newCsetDispatch, csmi }) {
   };
 }
 
-export function saveChangesInstructions(props) {
-  const { newCset, } = props;
-  const params = { newCset, };
-  return howToSaveStagedChanges(params);
-}
-
 const FLAGS = {
   // includeMapped: {component: TranslateIcon, sz:12, tt: 'Include Mapped'},
   // includeDescendants: {component: TreeIcon, sz:12, tt: 'Include descendants'},
@@ -595,8 +589,8 @@ export function copyConceptsFromWidget(cset, selected_csets, csmi, newCsetDispat
       </div>
   );
 }
-export function newCsetAtlasWidget(newCset) {
-  const atlasJson = newCsetAtlasJson(newCset);
+export function newCsetAtlasWidget(newCset, conceptLookup) {
+  const atlasJson = newCsetAtlasJson(newCset, conceptLookup);
   if (!atlasJson) {
     return null;
   }

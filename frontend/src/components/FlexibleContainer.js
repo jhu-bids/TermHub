@@ -10,13 +10,14 @@ export function ErrorAlert(props) {
   const {msg, err} = props;
 
 }
-export function FlexibleContainer({ title, position, children, countRef,
-                                    startHidden=true, hideTitle, style}) {
+export function FlexibleContainer(props) {
+  let { title, position, children, countRef, hideShowPrefix=false,
+        startHidden=true, hideTitle, style, buttonStyle, } = props;
   const [display, setDisplay] = useState(startHidden ? "hidden" : "shown");
   const draggableRef = useRef(null);
 
   let displayedContent;
-  style = { ...style, display: "inline-block", };
+  style = { ...buttonStyle, display: "inline-block", };
   if (display === "hidden") {
     displayedContent = (
       <Button
@@ -29,7 +30,7 @@ export function FlexibleContainer({ title, position, children, countRef,
           setDisplay("shown");
         }}
       >
-        Show {title}
+        {hideShowPrefix ? '' : 'Show '}{title}
       </Button>
     );
     return displayedContent; // maybe better if the buttons aren't draggable

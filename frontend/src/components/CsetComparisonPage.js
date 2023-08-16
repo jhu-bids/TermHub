@@ -56,7 +56,7 @@ function CsetComparisonPage() {
   const {collapsePaths, collapsedDescendantPaths, nested, hideRxNormExtension, hideZeroCounts} = hierarchySettings;
   const windowSize = useWindowSize();
   const boxRef = useRef();
-  const countRef = useRef({ n: 0, z: 10 });
+  const countRef = useRef({ n: 1, z: 10 });
   const [panelPosition, setPanelPosition] = useState({ x: 0, y: 0 });
   const sizes = getSizes(/*squishTo*/ 1);
   const customStyles = styles(sizes);
@@ -287,13 +287,15 @@ function CsetComparisonPage() {
   let edited_cset;
   if (editingCset) {
     infoPanels.push(
-        <FlexibleContainer key="cset" title="New concept set"
-                           style={{overflow: "scroll", resize: "both", }}
-                           position={panelPosition} countRef={countRef}>
+        <FlexibleContainer key="cset" title="New concept set" startHidden={false} hideShowPrefix={true}
+                           style={{width: '80%', overflow: "scroll", resize: "both", }}
+                           position={panelPosition}
+                           countRef={countRef}>
           <ConceptSetCard
               cset={newCset}
               selected_csets={selected_csets}
               csmi={csmi}
+              conceptLookup={conceptLookup}
               newCsetDispatch={newCsetDispatch}
               researchers={researchers}
               editing={true}
@@ -307,12 +309,15 @@ function CsetComparisonPage() {
           <CsetsDataTable {...props} show_selected={true} min_col={false} />
         </FlexibleContainer>
     ); */
+
+    const atlasWidget = newCsetAtlasWidget(newCset, conceptLookup);
+
     infoPanels.push(
         <FlexibleContainer key="instructions"
                            title="Instructions to save new concept set"
                            style={{maxWidth: 700, }}
                            position={panelPosition} countRef={countRef}>
-          {saveChangesInstructions({ newCset })}
+          {howToSaveStagedChanges({ newCset, atlasWidget })}
         </FlexibleContainer>
     );
   }
@@ -1095,13 +1100,12 @@ function SquishSlider({ setSquish }) {
 
 export { CsetComparisonPage };
 
-function howToSaveStagedChanges(params) {
-  const atlasWidget = newCsetAtlasWidget(params.newCset);
+export function howToSaveStagedChanges(params) {
   return (
       <>
         <ol>
           <LI>
-            {atlasWidget}
+            {params.atlasWidget}
             {/*<PRE>{atlasJson}</PRE>*/}
           </LI>
           <LI>
@@ -1141,5 +1145,3 @@ function howToSaveStagedChanges(params) {
       </>
   );
 }
-
-export {howToSaveStagedChanges};
