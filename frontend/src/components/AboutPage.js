@@ -19,12 +19,12 @@ import {useSearchParamsState} from "../state/SearchParamsProvider";
 // import {Table} from './Table';
 // import {cfmt} from "./utils";
 
-let TextBody = (props) => (
+export const TextBody = (props) => (
   <Typography variant="body2" color="text.primary" gutterBottom>
     {props.children}
   </Typography>
 );
-let TextBold = (props) => (
+export const TextBold = (props) => (
   <Typography
     sx={{ fontWeight: "bold" }}
     variant="body2"
@@ -34,7 +34,7 @@ let TextBold = (props) => (
     {props.children}
   </Typography>
 );
-let TextH1 = (props) => (
+export const TextH1 = (props) => (
   <Typography
     variant="h5"
     color="text.primary"
@@ -44,7 +44,7 @@ let TextH1 = (props) => (
     {props.children}
   </Typography>
 );
-let TextH2 = (props) => (
+export const TextH2 = (props) => (
   <Typography
     variant="h6"
     color="text.primary"
@@ -54,7 +54,7 @@ let TextH2 = (props) => (
     {props.children}
   </Typography>
 );
-let LI = (props) => (
+export const LI = (props) => (
   <li>
     <Typography
       variant="body2"
@@ -66,7 +66,7 @@ let LI = (props) => (
     </Typography>
   </li>
 );
-let PRE = (props) => (
+export const PRE = (props) => (
     <Typography
         variant="pre"
         color="text.primary"
@@ -81,10 +81,10 @@ let PRE = (props) => (
       {props.children}
     </Typography>
 );
-let DOCS = {};
+export let DOCS = {};
 
 
-function AboutPage() {
+export function AboutPage() {
   const {sp} = useSearchParamsState();
   // const {codeset_ids=[], all_csets=[], cset_data={}} = props;
   // const {data_counts=[], } = cset_data;
@@ -176,6 +176,18 @@ function AboutPage() {
         </Button>
       </TextBody>
 
+
+      <TextH1>View / download N3C recommended concept sets</TextH1>
+      <TextBody>
+        <Button to="/N3CRecommended"
+                variant={"contained"}
+                component={Link}
+                style={{margin: '7px', textTransform: 'none'}}
+        >
+          N3C Recommended
+        </Button>
+      </TextBody>
+
       <TextH1>How to's</TextH1>
       <TextH2>How to: Fix the app if it's acting weird</TextH2>
         <ol>
@@ -214,80 +226,17 @@ function AboutPage() {
           /OMOPConceptSets?{codeset_ids.map(d => `codeset_ids=${d}`).join("&")}
         </Button>
 
-      <TextH2>How to: Make changes to a codeset (via Atlas JSON)</TextH2>
-      {/*todo: resolve console warnings: <ul>/<ol> cannot appear as a descendant of <p>.
-            https://mui.com/material-ui/api/typography/*/}
-      <ol>
-        <LI>Go to the "Cset Search" page.</LI>
-        <LI>Search for the codeset.</LI>
-        <LI>Select the codeset from the dropdown menu.</LI>
-        <LI>
-          Optional: Select any additional codesets that might also be helpful in
-          the process, e.g. to compare to the one we are editing.
-        </LI>
-        <LI>Go to the "Cset Comparison" page.</LI>
-        <LI>Click on the column header for codeset you want to change.</LI>
-        <ul>
-          <LI>
-            Click <b>+</b> to add a concept
-          </LI>
-          <LI>
-            Click the <b>cancel sign</b> to remove a concept
-          </LI>
-          <LI>
-            Click <b>D</b> to toggle <code>inludeDescendants</code>
-          </LI>
-          <LI>
-            Click <b>M</b> to toggle <code>includeMapped</code>
-          </LI>
-          <LI>
-            Click <b>X</b> to toggle <code>isExcluded</code>
-          </LI>
-        </ul>
-        <LI>
-          You will see two boxes at the top. The left box has some metadata
-          about the codeset. The right box shows your <em>staged changes</em>.
-          Click the <b>Export JSON</b> link in that <em>staged changes</em> box.
-        </LI>
-        <LI>A new browser tab will up with just the JSON. Copy or save it.</LI>
-        <LI>
-          Go back to the "Cset Comparison" page, and click the "Open in Enclave"
-          link.
-        </LI>
-        <LI>A new tab for the N3C data enclave will open. Log in if needed.</LI>
-        <LI>Click the "Versions" tab at the top left.</LI>
-        <LI>Click the blue "Create new version" button at the bottom left.</LI>
-        <LI>
-          Fill out the information in the "Create New Draft OMOP Concept Set
-          Version" popup, and click "Submit".
-        </LI>
-        <LI>
-          Your new draft version should appear on the left (may require a page
-          refresh). Click it.
-        </LI>
-        <LI>
-          On the right hand side, there is a blue button called "Add Concepts".
-          Click the down arrow, then select "Import ATLAS Concept Set Expression
-          JSON" from the menu.
-        </LI>
-        <LI>
-          Copy/paste the JSON obtained from TermHub earlier into the box, and
-          click "Import Atlas JSON".
-        </LI>
-        <LI>Click the version on the left again.</LI>
-        <LI>On the right, click the green "Done" button.</LI>
-      </ol>
-
-      {/* todo: Pages (what's this about?) */}
-
-      <TextH1>
-        <Link to={`/view-state${search ? search : ''}`}
-              component={Link}
-              style={{margin: '7px', textTransform: 'none'}}
+      <TextH1>Debug / explore application data</TextH1>
+      <TextBody>
+        <Button
+                to={`/view-state${search ? search : ''}`}
+                variant={"contained"}
+                component={Link}
+                style={{margin: '7px', textTransform: 'none'}}
         >
-          View current state
-        </Link>
-      </TextH1>
+          View state
+        </Button>
+      </TextBody>
 
 
     </div>
@@ -438,13 +387,3 @@ function TestPop(startOpen=false) {
   );
 }
 */
-
-export {
-  AboutPage,
-  DOCS,
-  TextBody,
-  TextBold,
-  TextH2,
-  TextH1,
-  LI/*HelpWidget, HelpButton,*/
-};

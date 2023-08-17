@@ -17,10 +17,8 @@ import {difference, flatten, intersection, isEmpty, max, sortBy, throttle, union
 import Graph from 'graphology';
 import {allSimplePaths} from 'graphology-simple-path';
 import {dfsFromNode} from 'graphology-traversal/dfs';
-import {saveAs} from 'file-saver';
-import Papa from 'papaparse';
 
-import {fmt, useWindowSize} from "./utils";
+import {fmt, saveCsv, useWindowSize} from "./utils";
 import {setColDefDimensions} from "./dataTableUtils";
 import {ConceptSetCard} from "./ConceptSetCard";
 import {Tooltip} from "./Tooltip";
@@ -31,7 +29,6 @@ import {
   getItem,
   Legend,
   newCsetAtlasWidget,
-  saveChangesInstructions,
   textCellForItem,
 } from "./NewCset";
 import {FlexibleContainer} from "./FlexibleContainer";
@@ -939,27 +936,7 @@ function downloadCSV(props, tsv=false) {
   });
   columns.push(...cset_keys, 'Concept name', ...addedEmptyColumns);
 
-  let config = {
-    delimiter: tsv ? "\t" : ",",
-    newline: "\n",
-    // defaults
-    quotes: tsv ? false : (c => {
-      c = c.toString();
-      return c.includes(",") || c.includes("\n");
-    }),
-    error: (error, file) => {
-      console.error(error);
-      console.log(file);
-    },
-    // header: true,
-    // skipEmptyLines: false, //other option is 'greedy', meaning skip delimiters, quotes, and whitespace.
-    columns: columns, //or array of strings
-  }
-  const dataString = Papa.unparse(rows, config);
-  const blob = new Blob([dataString], {
-    type: tsv ? 'text/tab-separated-values;charset=utf-8' : 'text/csv;charset=utf-8'
-  });
-  saveAs(blob, filename);
+  saveCsv(rows, columns, filename);
 }
 
 // createTheme creates a new theme named solarized that overrides the build in dark theme

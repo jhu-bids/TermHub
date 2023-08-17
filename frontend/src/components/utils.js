@@ -1,5 +1,7 @@
-import React, { useLayoutEffect, useState, useRef, useEffect, } from "react";
-import {debounce, reduce, isEqual, } from "lodash";
+import React, {useLayoutEffect, useState,} from "react";
+import {debounce, isEqual, reduce,} from "lodash";
+import Papa from "papaparse";
+import {saveAs} from 'file-saver';
 
 export const pct_fmt = (num) =>
   Number(num).toLocaleString(undefined, {
@@ -91,4 +93,29 @@ export function oneSidedObjectDifference(a ,b) {
     }
     return acc;
   }, {})
+}
+
+export function saveCsv(rows, columns, filename, config, tsv = false) {
+
+  config = config || {
+    delimiter: tsv ? "\t" : ",",
+    newline: "\n",
+    // defaults
+    quotes: tsv ? false : (c => {
+      c = c.toString();
+      return c.includes(",") || c.includes("\n");
+    }),
+    error: (error, file) => {
+      console.error(error);
+      console.log(file);
+    },
+    // header: true,
+    // skipEmptyLines: false, //other option is 'greedy', meaning skip delimiters, quotes, and whitespace.
+    columns: columns, //or array of strings
+  }
+  const dataString = Papa.unparse(rows, config);
+  const blob = new Blob([dataString], {
+    type: tsv ? 'text/tab-separated-values;charset=utf-8' : 'text/csv;charset=utf-8'
+  });
+  saveAs(blob, filename);
 }

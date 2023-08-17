@@ -41,6 +41,7 @@ import { UploadCsvPage } from "./components/UploadCsv";
 import MuiAppBar from "./components/MuiAppBar";
 import {DataCacheProvider} from "./state/DataCache";
 import {AlertMessages} from "./components/AlertMessages";
+import {N3CRecommended} from "./components/N3CRecommended";
 import {DEPLOYMENT} from "./env";
 
 /* structure is:
@@ -153,6 +154,7 @@ function RoutesContainer() {
         />
         {/*<Route path="download-json" element={<DownloadJSON/>} />*/}
         <Route path="view-state" element={<ViewCurrentState/>} />
+        <Route path="N3CRecommended" element={<N3CRecommended/>} />
         {/* <Route path="OMOPConceptSet/:conceptId" element={<OldConceptSet />} /> */}
       </Route>
     </Routes>

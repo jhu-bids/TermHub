@@ -394,7 +394,7 @@ def get_n3c_recommended_codeset_ids() -> Dict[int, Union[Dict, None]]:
     return codeset_ids
 
 @router.get("/n3c-recommended-report")
-def n3c_recommended_report() -> List[str]:
+def n3c_recommended_report(as_json=False) -> Union[List[str], Dict]:
 
     # just for this one function
     from fastapi.responses import StreamingResponse
@@ -414,13 +414,16 @@ def n3c_recommended_report() -> List[str]:
             ORDER BY 1, 6, 5, 4
     """
     rows = sql_query(get_db_connection(), q)
-    df = pd.DataFrame(rows, columns=['is_most_recent_version', 'codeset_id',
-                                     'concept_set_name', 'alias', 'created_at', 'created_by'])
-    stream = io.StringIO()
-    df.to_csv(stream, index=False)
-    response = StreamingResponse(iter([stream.getvalue()]), media_type="text/csv" )
-    response.headers["Content-Disposition"] = "attachment; filename=n3c-recommended-report.csv"
-    return response
+    if (as_json):
+        return rows
+    else:
+        df = pd.DataFrame(rows, columns=['is_most_recent_version', 'codeset_id',
+                                         'concept_set_name', 'alias', 'created_at', 'created_by'])
+        stream = io.StringIO()
+        df.to_csv(stream, index=False)
+        response = StreamingResponse(iter([stream.getvalue()]), media_type="text/csv" )
+        response.headers["Content-Disposition"] = "attachment; filename=n3c-recommended-report.csv"
+        return response
 
 
 FLAGS = ['includeDescendants', 'includeMapped', 'isExcluded']
@@ -432,11 +435,11 @@ def cset_download(codeset_id: int, csetEditState: str = None,
         NO LONGER USED BECAUSE WE DON'T EDIT EXISTING CODESETS BUT JUST CREATE NEW ONES FROM DEFINITIONS
 
     """
-    if not atlas_items_only: # and False  TODO: document this param and what it does (what does it do again?)
-        jsn = get_codeset_json(codeset_id) #  , use_cache=False)
-        if sort_json:
-            jsn['items'].sort(key=lambda i: i['concept']['CONCEPT_ID'])
-        return jsn
+    # if not atlas_items_only: # and False  TODO: document this param and what it does (what does it do again?)
+    #     jsn = get_codeset_json(codeset_id) #  , use_cache=False)
+    #     if sort_json:
+    #         jsn['items'].sort(key=lambda i: i['concept']['CONCEPT_ID'])
+    #     return jsn
 
     items = get_concept_set_version_expression_items(codeset_id, return_detail='full', handle_paginated=True)
     items = [i['properties'] for i in items]
@@ -529,8 +532,7 @@ def cr_hierarchy(include_atlas_json: bool = False, codeset_ids: Union[str, None]
     # h = graph.hierarchy(concept_ids)
 
     verbose and timer('related csets')
-    related_csets = get_related_csets(codeset_ids=codeset_ids, selected_concept_ids=concept_ids,
-                                      include_atlas_json=include_atlas_json)
+    related_csets = 'BROKEN!!!!!' # get_related_csets(codeset_ids=codeset_ids, selected_concept_ids=concept_ids, include_atlas_json=include_atlas_json)
     selected_csets = [cset for cset in related_csets if cset['selected']]
     verbose and timer('researcher ids')
     researcher_ids = get_all_researcher_ids(related_csets)
