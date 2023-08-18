@@ -47,13 +47,32 @@ WITH ac AS (SELECT DISTINCT cs.codeset_id,
                             COALESCE(cscc.approx_total_record_count, 0)    AS total_cnt
             FROM {{schema}}code_sets cs
                      LEFT JOIN {{schema}}OMOPConceptSet ocs
-                               ON cs.codeset_id = ocs."codesetId" -- need quotes because of caps in colname
-                     JOIN {{schema}}concept_set_container csc ON cs.concept_set_name = csc.concept_set_name
-                     LEFT JOIN {{schema}}omopconceptsetcontainer ocsc ON csc.concept_set_id = ocsc."conceptSetId"
-                     LEFT JOIN {{schema}}concept_set_counts_clamped cscc ON cs.codeset_id = cscc.codeset_id)
-SELECT ac.*, cscnt.counts, CAST(cscnt.counts->>'Members' as int) as concepts
+            ON cs.codeset_id = ocs."codesetId" -- need quotes because of caps in colname
+                JOIN {{schema}}concept_set_container csc ON cs.concept_set_name = csc.concept_set_name
+                LEFT JOIN {{schema}}omopconceptsetcontainer ocsc ON csc.concept_set_id = ocsc."conceptSetId"
+                LEFT JOIN {{schema}}concept_set_counts_clamped cscc ON cs.codeset_id = cscc.codeset_id
+            )
+SELECT ac.*,
+       cscnt.counts,
+       CAST(cscnt.counts->>'Members' as int) as concepts /*,
+       rcon.name AS container_creator,
+       rver.name AS codeset_creator */
 FROM ac
-LEFT JOIN {{schema}}codeset_counts cscnt ON ac.codeset_id = cscnt.codeset_id;
+LEFT JOIN {{schema}}codeset_counts cscnt ON ac.codeset_id = cscnt.codeset_id
+-- LEFT JOIN {{schema}} researcher rcon ON ac.container_created_by = rcon."multipassId"
+-- LEFT JOIN {{schema}} researcher rver ON ac.codeset_created_by = rcon."multipassId"
+;
+
+/*
+want to add these two columns, but for some reason it takes forever to run and then runs out of memory
+SELECT ac.*,
+       rcon.name AS container_creator,
+       rver.name AS codeset_creator
+FROM all_csets ac
+LEFT JOIN {{schema}}researcher rcon ON ac.container_created_by = rcon."multipassId"
+LEFT JOIN {{schema}}researcher rver ON ac.codeset_created_by = rcon."multipassId";
+ */
+
 
 CREATE INDEX ac_idx1{{optional_index_suffix}} ON {{schema}}all_csets{{optional_suffix}}(codeset_id);
 

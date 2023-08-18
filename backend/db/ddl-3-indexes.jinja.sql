@@ -40,3 +40,7 @@ CREATE INDEX IF NOT EXISTS csc_idx3{{optional_index_suffix}} ON {{schema}}concep
 CREATE INDEX IF NOT EXISTS cscc_idx{{optional_index_suffix}} on {{schema}}concept_set_counts_clamped(codeset_id);
 
 CREATE INDEX IF NOT EXISTS term_usage_idx{{optional_index_suffix}} on {{schema}}deidentified_term_usage_by_domain_clamped(concept_id, domain);
+
+CREATE INDEX ocs_idx{{optional_index_suffix}} ON {{schema}}omopconceptset("codesetId");
+
+CREATE INDEX ocsc_idx{{optional_index_suffix}} ON {{schema}}omopconceptsetcontainer("conceptSetId");
