@@ -54,25 +54,13 @@ WITH ac AS (SELECT DISTINCT cs.codeset_id,
             )
 SELECT ac.*,
        cscnt.counts,
-       CAST(cscnt.counts->>'Members' as int) as concepts /*,
-       rcon.name AS container_creator,
-       rver.name AS codeset_creator */
-FROM ac
-LEFT JOIN {{schema}}codeset_counts cscnt ON ac.codeset_id = cscnt.codeset_id
--- LEFT JOIN {{schema}} researcher rcon ON ac.container_created_by = rcon."multipassId"
--- LEFT JOIN {{schema}} researcher rver ON ac.codeset_created_by = rcon."multipassId"
-;
-
-/*
-want to add these two columns, but for some reason it takes forever to run and then runs out of memory
-SELECT ac.*,
+       CAST(cscnt.counts->>'Members' as int) as concepts,
        rcon.name AS container_creator,
        rver.name AS codeset_creator
-FROM all_csets ac
+FROM ac
+LEFT JOIN {{schema}}codeset_counts cscnt ON ac.codeset_id = cscnt.codeset_id
 LEFT JOIN {{schema}}researcher rcon ON ac.container_created_by = rcon."multipassId"
-LEFT JOIN {{schema}}researcher rver ON ac.codeset_created_by = rcon."multipassId";
- */
-
+LEFT JOIN {{schema}}researcher rver ON ac.codeset_created_by = rver."multipassId" ;
 
 CREATE INDEX ac_idx1{{optional_index_suffix}} ON {{schema}}all_csets{{optional_suffix}}(codeset_id);
 
