@@ -86,6 +86,10 @@ function CsetComparisonPage() {
       //  .... apparently nothing
       // await new Promise(r => setTimeout(r, 7000));
 
+      if (!isEmpty(newCset)) {
+        concept_ids = union(concept_ids, Object.values(newCset.definitions).map(d => d.concept_id+''));
+      }
+
       promises.push(dataGetter.fetchAndCacheItems(dataGetter.apiCalls.concepts, concept_ids));
 
       let [
