@@ -52,9 +52,10 @@ function CsetComparisonPage() {
   let [hierarchySettings, hsDispatch] = useHierarchySettings();
   const {collapsePaths, collapsedDescendantPaths, nested, hideRxNormExtension, hideZeroCounts} = hierarchySettings;
   const windowSize = useWindowSize();
-  const boxRef = useRef();
+  const infoPanelRef = useRef();
   const countRef = useRef({ n: 1, z: 10 });
   const [panelPosition, setPanelPosition] = useState({ x: 0, y: 0 });
+  const [showCsetCodesetId, setShowCsetCodesetId] = useState();
   const sizes = getSizes(/*squishTo*/ 1);
   const customStyles = styles(sizes);
   const [data, setData] = useState({});
@@ -159,22 +160,22 @@ function CsetComparisonPage() {
   }, [newCset]);
 
   useEffect(() => {
-    if (boxRef.current) {
+    if (infoPanelRef.current) {
 
       let margin_text = window
-          .getComputedStyle(boxRef.current)
+          .getComputedStyle(infoPanelRef.current)
           .getPropertyValue("margin-bottom");
       margin_text = margin_text.substring(0, margin_text.length - 2);
       const margin = parseInt(margin_text);
 
       setPanelPosition({
                          x: 0,
-                         y: boxRef.current.clientHeight + 2 * margin
+                         y: infoPanelRef.current.clientHeight + 2 * margin
                        });
     }
   }, [
-              boxRef.current,
-              (boxRef.current ? boxRef.current.offsetHeight : 0),
+              infoPanelRef.current,
+              (infoPanelRef.current ? infoPanelRef.current.offsetHeight : 0),
             ]);
 
 
@@ -212,7 +213,25 @@ function CsetComparisonPage() {
     hsDispatch,
     newCset,
     newCsetDispatch,
+    setShowCsetCodesetId,
   });
+
+  let csetCard = null;
+  if (showCsetCodesetId) {
+    const cset = selected_csets.find(d => d.codeset_id == showCsetCodesetId);
+    csetCard = (
+        <FlexibleContainer key="csetCard" openOnly={true} title={cset.concept_set_version_title}
+                           position={panelPosition} countRef={countRef}
+                           closeAction={() => setShowCsetCodesetId(undefined)}>
+          <ConceptSetCard
+              cset={selected_csets.find(d => d.codeset_id == showCsetCodesetId)}
+              researchers={researchers}
+              hideTitle
+              // context="show new cset info"
+          />
+        </FlexibleContainer>
+    );
+  }
 
   let infoPanels = [
     <Button key="distinct"
@@ -303,6 +322,7 @@ function CsetComparisonPage() {
               editing={true}
               hideTitle
               context="show new cset info"
+              styles={{position: 'absolute', }}
           />
         </FlexibleContainer>
     );
@@ -329,8 +349,9 @@ function CsetComparisonPage() {
   };
   return (
     <div>
+      {csetCard}
       <Box
-          ref={boxRef}
+          ref={infoPanelRef}
           sx={{
             width: "96%",
             margin: "9px",
@@ -482,7 +503,7 @@ function ComparisonDataTable(props) {
     /* squishTo = 1, cset_data, displayedRows, selected_csets */
   } = props;
   const { definitions = {}, members = {}, } = newCset;
-  const boxRef = useRef();
+  const infoPanelRef = useRef();
   // console.log(derivedState);
 
   useEffect(() => {
@@ -516,13 +537,13 @@ function ComparisonDataTable(props) {
       dense
       fixedHeader
       fixedHeaderScrollHeight={() => {
-        // console.log(boxRef.current);
+        // console.log(infoPanelRef.current);
         const MuiAppBar = document.querySelector(".Mui-app-bar");
         let headerMenuHeight = 64;
         if (MuiAppBar) {
           headerMenuHeight = MuiAppBar.clientHeight;
         }
-        const { offsetTop = 0, offsetHeight = 0 } = boxRef.current ?? {};
+        const { offsetTop = 0, offsetHeight = 0 } = infoPanelRef.current ?? {};
         return (
           window.innerHeight -
           (headerMenuHeight + offsetTop + offsetHeight) +
@@ -595,7 +616,8 @@ function colConfig(props) {
     hierarchySettings,
     hsDispatch,
     csmi,
-    newCset, newCsetDispatch
+    newCset, newCsetDispatch,
+    setShowCsetCodesetId
   } = props;
   const {collapsePaths, collapsedDescendantPaths, nested, hideRxNormExtension, hideZeroCounts} = hierarchySettings;
   const { definitions = {}, } = newCset;
@@ -800,9 +822,15 @@ function colConfig(props) {
         showInfoIcon: !!nested,
         //tooltipContent: "Click to create and edit new draft of this concept set",
         tooltipContent: `${cset_col.codeset_id} ${cset_col.concept_set_version_title}.
-                            ${nested ? '' : 'Click to sort.'}`,
+                            ${nested ? 'Click for details' : 'Click to sort.'}`,
+        //style: { cursor: 'pointer', },
 
-        headerContent: cset_col.concept_set_name,
+        // headerContent: cset_col.concept_set_name,
+        headerContent: (
+            <span onClick={() => setShowCsetCodesetId(cset_col.codeset_id)}>
+              {cset_col.concept_set_name}
+            </span>
+        ),
         headerContentProps: {
           codeset_id: cset_col.codeset_id,
         },

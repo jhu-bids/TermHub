@@ -67,7 +67,7 @@ export default function ConceptSetCards(props) {
 }
 export function ConceptSetCard(props) {
   let { cset, researchers = {}, editing = false, closeFunc, hideTitle,
-        selected_csets, csmi, newCsetDispatch, conceptLookup, } = props;
+        selected_csets, csmi, newCsetDispatch, conceptLookup, styles = {}} = props;
   let atlasWidget = null;
   let copyConceptsWidget = null;
   /*
@@ -207,6 +207,7 @@ export function ConceptSetCard(props) {
       variant="outlined"
       sx={{ display: "inline-block",
             overflow: "scroll!important",
+            ...styles,
         /*maxWidth: '400px'*/ }}
     >
       {/*
