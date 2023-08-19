@@ -1,6 +1,12 @@
 ## Developer docs
 ### [Frontend](../frontend/README.md)  
 ### [Backend](../backend/README.md)
+
+### Testing
+#### Running tests
+Backend: `python -m unittest discover`
+Frontend: `npm test`
+
 ### Database
 #### Refreshing database contents from sources
 A refresh is done nightly via [GitHub action](https://github.com/jhu-bids/TermHub/actions/workflows/db_refresh.yml), but this can also be run manually, either by (a) using the [GitHub action](https://github.com/jhu-bids/TermHub/actions/workflows/db_refresh.yml), or (b) running the Python script manually via `python backend/db/full_data_refresh.py`, which supports the following CLI parameters.
