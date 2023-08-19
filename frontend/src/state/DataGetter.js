@@ -308,7 +308,7 @@ class DataGetter {
 			return apiDef.expectedParams;
 		}
 
-		params = params.sort();
+		// params = params.sort(); ok to get rid of sort? it's messing up codeset_id order
 		params = params.map(String);
 		if (params.length !== uniq(params).length) {
 			throw new Error(`Why are you sending duplicate param values?`);
@@ -331,6 +331,9 @@ class DataGetter {
 		})
 		if (uncachedKeys.length) {
 			returnData = await this.axiosCall(apiDef.api, {...apiDef, data: uncachedKeys});
+			if (!returnData) {
+				throw new Error(`Error fetching from ${apiDef.api}`, {apiDef, uncachedKeys});
+			}
 
 			if (apiDef.expectOneResultRowPerKey) {
 				if (returnData.length < uncachedKeys.length) {

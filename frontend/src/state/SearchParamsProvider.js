@@ -20,7 +20,7 @@ export function SearchParamsProvider({children}) {
     qsKeys.forEach((key) => {
       // if (SEARCH_PARAM_STATE_CONFIG.ignore.includes(key)) { return; }
       let vals = searchParams.getAll(key);
-      sp[key] = vals.map((v) => (parseInt(v) == v ? parseInt(v) : v)).sort(); // eslint-disable-line
+      sp[key] = vals.map((v) => (parseInt(v) == v ? parseInt(v) : v)); //   ok to disable sort? it's messing up codeset_id order; .sort(); // eslint-disable-line
       if (SEARCH_PARAM_STATE_CONFIG.scalars.includes(key)) {
         if (sp[key].length !== 1) {
           throw new Error("Didn't expect that!");

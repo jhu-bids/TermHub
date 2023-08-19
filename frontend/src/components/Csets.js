@@ -217,7 +217,8 @@ export function ConceptSetsPage(props) {
       let _allRelatedCsetsArray = relatedCodesetIds.map(csid => ({...allCsetsObj[csid]}));
       let allRelatedCsets = keyBy(_allRelatedCsetsArray, 'codeset_id');
 
-      selected_csets = Object.values(await selected_csets);
+      selected_csets = await selected_csets;
+      selected_csets = codeset_ids.map(d => selected_csets[d]);
       // setData(current => ({...current, selected_csets}));
 
       const researcherIds = getResearcherIdsFromCsets(selected_csets);

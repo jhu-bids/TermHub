@@ -140,14 +140,22 @@ export function ConceptSetCard(props) {
     enclaveLink = (
         <Typography variant="body2" color="text.primary">
           <a
-              // opens container: href={`https://unite.nih.gov/workspace/hubble/objects/${cset.container_rid}`}
-              // opens version:
-              href={`https://unite.nih.gov/workspace/hubble/external/object/v0/omop-concept-set?codeset_id=${cset.codeset_id}`}
-              target="_blank"
+            href={backend_url(`cset-download?codeset_id=${cset.codeset_id}`)}
+            target="_blank"
+            rel="noreferrer"
+            >
+            Export JSON
+          </a>; Open in Enclave: <a
+            href={`https://unite.nih.gov/workspace/hubble/objects/${cset.container_rid}`}
+            target="_blank"
           >
-            Open in Enclave
+            Container
+          </a>, <a
+            href={`https://unite.nih.gov/workspace/hubble/external/object/v0/omop-concept-set?codeset_id=${cset.codeset_id}`}
+            target="_blank"
+          >
+          Version
           </a>
-          ,{" "}
         </Typography>
     );
   }

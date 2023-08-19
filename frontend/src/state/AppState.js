@@ -12,7 +12,7 @@ const codesetIdsReducer = (state, action) => {
   if (!(action && action.type)) return state;
   switch (action.type) {
     case "add_codeset_id": {
-      return [...state, parseInt(action.codeset_id)].sort();
+      return [...state, parseInt(action.codeset_id)]; // .sort();
     }
     case "delete_codeset_id": {
       return state.filter((d) => d != action.codeset_id);
