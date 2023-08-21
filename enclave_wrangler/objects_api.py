@@ -403,7 +403,7 @@ def fetch_cset_and_member_objects(
             insert_fetch_statuses([{
                 'table': 'code_sets', 'primary_key': version_id, 'status_initially': 'fail-0-members',
                 'comment': f"Fetched 0 members after fetching {len(cset['expression_items'])} items."}])
-            call_github_action('resolve_fetch_failures_0_members.yml', {'version_id': version_id})
+            call_github_action('resolve_fetch_failures_0_members.yml', {'version_id': str(version_id)})
 
         cset_versions_with_concepts.append(cset)
         expression_items.extend(cset['expression_items'])
