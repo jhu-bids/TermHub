@@ -374,7 +374,7 @@ def fetch_cset_and_member_objects(
     cset_versions_with_concepts: List[Dict] = []
     expression_items = []
     member_items = []
-    print(f' - fetching expressions/members for  for {len(cset_versions)} versions:')
+    print(f' - fetching expressions/members for {len(cset_versions)} versions:')
     i = 0
     for cset in cset_versions:
         i += 1
