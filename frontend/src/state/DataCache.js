@@ -113,7 +113,10 @@ class DataCache {
 		const cacheRefreshTimestamp = new Date(cacheRefreshTimestampStr);
 		if (isNaN(cacheRefreshTimestamp.getDate()) || dbRefreshTimestamp > cacheRefreshTimestamp) {
 			console.log(`previous DB refresh: ${cacheRefreshTimestampStr}; latest DB refresh: ${dbRefreshTimestamp}. Clearing localStorage.`);
-			localStorage.clear();
+			this.emptyCache();
+			this.cachePut('lastRefreshTimestamp', dbRefreshTimestamp);
+			await this.saveCache();
+			const cacheRefreshTimestamp = this.lastRefreshed();
 			// return this.#cache.lastRefreshTimestamp = dbRefreshTimestamp;
 		} else {
 			console.log(`no change since last refresh at ${cacheRefreshTimestamp}`);
@@ -122,8 +125,8 @@ class DataCache {
 	}
 
 	lastRefreshed() {
-		const cacheRefreshTimestampStr = get(this.#cache, 'lastRefreshTimestamp');
-		return cacheRefreshTimestampStr ;
+		const cacheRefreshTimestamp = this.cacheGet('lastRefreshTimestamp');
+		return typeof(cacheRefreshTimestamp) === 'string' ? new Date(cacheRefreshTimestamp) : cacheRefreshTimestamp;
 	}
 
 	cacheGet(path) {
