@@ -106,8 +106,11 @@ export function AboutPage() {
 
   const handleRefresh = async () => {
     try {
+      console.log('Triggering database refresh and clearing cache so new data will be fetched when ready');
+      // empty cache immediately, and then again after the db-refresh call is done
+      dataCache.emptyCache();
       await dataGetter.axiosCall('db-refresh', {backend: true, verbose: false, title: 'Refreshing TermHub database from Enclave'});
-      console.log('Triggered: database refresh');
+      dataCache.emptyCache();
     } catch (error) {
       console.error('Error:', error);
     }
@@ -196,7 +199,7 @@ export function AboutPage() {
             Try purging localStorage (by clicking here, or if you can't get to this page, open chrome(or other browser
             console, and enter `localStorage.clear()`): <Button variant={"contained"}
               // onClick={() => queryClient.removeQueries()}
-              onClick={() => localStorage.clear()}
+              onClick={() => dataCache.emptyCache()}
             >
               Empty the data cache
             </Button>

@@ -170,7 +170,9 @@ class DataCache {
 	}
 
 	emptyCache() {
-		this.#cache = {};
+		// this.#cache = {};
+		localStorage.clear();
+		this.loadCache();
 	}
 }
 
