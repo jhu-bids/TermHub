@@ -162,13 +162,13 @@ export function ConceptSetCard(props) {
   display_props["Concept counts"] = (
       <>
         {
-          Object.entries(cset.counts).map(([grp,cnt]) => (
+          Object.entries(cset.counts || {}).map(([grp,cnt]) => (
               <span style={{display: 'block', paddingLeft: '12px'}} key={grp}><strong>{grp}</strong>: {cnt.toLocaleString()}</span>
           ))
         }
       </>
   );
-  let _researchers = Object.entries(cset.researchers).map(([id, roles]) => {
+  let _researchers = Object.entries(cset.researchers || {}).map(([id, roles]) => {
     let r = researchers[id];
     if (!r) {
       return;
