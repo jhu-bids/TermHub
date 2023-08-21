@@ -68,7 +68,7 @@ def call_github_action(
     }
     push_type = (
         "workflow_dispatch"
-        if action_name.endswith(".yaml") or action_name.endswith(".yaml")
+        if action_name.endswith(".yaml") or action_name.endswith(".yml")
         else "repository_dispatch"
     )
     if push_type == "repository_dispatch" and params:
