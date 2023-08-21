@@ -1,7 +1,7 @@
 # Built from:
 # https://docs.github.com/en/actions/guides/building-and-testing-python
 
-name: Tests and QC
+name: Test - Backend - E2E and unit tests and QC
 
 on:
   workflow_dispatch:

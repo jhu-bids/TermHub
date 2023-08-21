@@ -1,0 +1,13 @@
+name	status	duration	errors
+prod: Help / about - hyperlink & title	passed	0.996	""
+prod: Main page - has title & heading	passed	1.023	""
+dev: Main page - has title & heading	passed	1.493	""
+dev: Help / about - hyperlink & title	passed	1.544	""
+single-small_on_prod	passed	9.843	""
+many-small_on_prod	passed	10.205	""
+prod: Cset search - select, load, compare	passed	13.698	""
+single-small_on_dev	passed	17.402	""
+single-small-second-time_on_dev	passed	16.416	""
+many-small_on_dev	passed	16.546	""
+dev: Cset search - select, load, compare	passed	18.947	""
+single-small-second-time_on_prod	passed	8.272	""
