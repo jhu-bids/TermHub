@@ -113,6 +113,7 @@ def cli():
     parser.add_argument(
         "-v",
         "--version-id",
+        type=int,
         required=False,
         help="Optional concept set version ID to resolve. If not provided, will check database for flagged failures.")
     parser.add_argument(
