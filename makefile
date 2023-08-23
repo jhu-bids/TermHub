@@ -77,11 +77,23 @@ codeall: code codetest
 doc: docstyle
 
 # Testing
-test:
+test: test-backend test-frontend
+test-backend:
 	python -m unittest discover -v
 testdoc:
 	python -m test.test --doctests-only
 testall: test testdoc
+
+test-frontend:
+	(cd frontend; \
+	npx playwright test; \
+	npx playwright show-report)
+test-frontend-debug:
+	(cd frontend; \
+	npx playwright test --debug)
+test-frontend-ui:
+	(cd frontend; \
+	npx playwright test --ui)
 
 # Serve
 # nvm allows to switch to a particular versio of npm/node. Useful for working w/ deployment
