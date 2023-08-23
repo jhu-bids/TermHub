@@ -3,6 +3,12 @@
     (2023-05-08)
 """
 from fastapi import APIRouter, Query
+
+# for websocket example stuff
+from fastapi import WebSocket, HTTPException
+from typing import Optional
+import time
+
 import json
 from typing import Dict, List, Union, Set
 from functools import cache
@@ -367,6 +373,23 @@ def db_refresh_route():
     # response: Response = call_github_action('refresh-db')
     # return response
     refresh_db()
+
+@router.websocket("/ws")
+async def websocket_endpoint(websocket: WebSocket):
+    await websocket.accept() # Accept the WebSocket connection
+
+    try:
+        # Simulate a long-running process by using a loop
+        for i in range(1, 11):
+            await websocket.send_text(f"Status update {i}/10") # Send a status update to the client
+            time.sleep(1) # Simulate a long-running task
+
+        await websocket.send_text("Process completed") # Notify the client that the process is complete
+    except Exception as e:
+        await websocket.send_text(f"Error: {str(e)}") # Notify the client of any errors
+    finally:
+        await websocket.close() # Close the WebSocket connection
+
 
 # TODO: if using this at all, fix it to use graph.hierarchy, which doesn't need root_cids
 # @router.get("/hierarchy")
