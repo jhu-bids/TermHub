@@ -42,6 +42,7 @@ function initialOpts(all_csets, codesetIds) {
                 //`(${d.counts['Expression items'].toLocaleString()} expression items, ${d.counts.Members.toLocaleString()} members)`
                 : '(Empty)'),
         value: d.codeset_id,
+        id: `search-${d.codeset_id}`,
         // selected: codesetIds.includes(d.codeset_id),
       }));
   return opts;
@@ -149,7 +150,7 @@ export function CsetSearch(props) {
           {autocomplete}
         </Tooltip>
         {largeCsetWarning}
-        <Button onClick={() => {
+        <Button data-testid="load-concept-sets" onClick={() => {
           codesetIdsDispatch({type: "set_all", codeset_ids: value});
           // changeCodesetIds(value, "set");
           // setKeyForRefreshingAutocomplete((k) => k + 1);
