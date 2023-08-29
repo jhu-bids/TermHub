@@ -98,8 +98,14 @@ Use the GitHub actions. Click these links for [backend](https://github.com/jhu-b
 After both are deployed, the app app will be usable here: http://bit.ly/termhub
 
 #### Manual QA
-After deploying, do some manual quality assurance. Start by going to the help / about page and clearing the cache. Then,
-face-check the app. Some things ideas of things to try:
+After deploying, do some manual quality assurance. 
+**I. Clear cache**
+Start by clearing the cache. Right now the best way to do that is by opening the console and doing `localStorage.clear()`. 
+As of 2023/08, we're in the process of fixing the clear cache button in the  "Help / About" page. And we're also in the 
+process of automatically clearing the cache on version, code, and data changes.
+
+**II. Checks** 
+Face-check the app. Some ideas of things to try:
 1. Does the example comparison page load?
 2. Can you select some concept sets from the cset search page?
 3. After doing (2), can you go to the comparison page and see the concept sets you selected?
