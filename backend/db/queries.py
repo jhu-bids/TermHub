@@ -2,11 +2,14 @@
 from functools import cache
 from typing import List, Dict
 from fastapi import Query
+from sqlalchemy import Connection
+
 from backend.db.utils import sql_query, sql_query_single_col, get_db_connection, sql_in
 
 
-def get_concepts(concept_ids: List[int], con=get_db_connection(), table:str='concepts_with_counts') -> List:
+def get_concepts(concept_ids: List[int], con: Connection = None, table:str='concepts_with_counts') -> List:
     """Get information about concept sets the user has selected"""
+    con = con if con else get_db_connection()
     q = f"""
           SELECT *
           FROM {table}
@@ -15,8 +18,9 @@ def get_concepts(concept_ids: List[int], con=get_db_connection(), table:str='con
     return rows
 
 
-def get_vocab_of_concepts(id: List[int] = Query(...), con=get_db_connection(), table:str='concept') -> List:
+def get_vocab_of_concepts(id: List[int] = Query(...), con: Connection = None, table:str='concept') -> List:
     """Expecting only one vocab for the list of concepts"""
+    con = con if con else get_db_connection()
     q = f"""
           SELECT DISTINCT vocabulary_id
           FROM {table}
@@ -27,9 +31,9 @@ def get_vocab_of_concepts(id: List[int] = Query(...), con=get_db_connection(), t
     return vocabs[0]
 
 
-def get_vocabs_of_concepts(id: List[int] = Query(...), con=get_db_connection(),
-                           table:str='concept') -> Dict:
+def get_vocabs_of_concepts(id: List[int] = Query(...), con: Connection = None, table:str='concept') -> Dict:
     """Return dict of {vocab: concept_id list}"""
+    con = con if con else get_db_connection()
     q = f"""
           SELECT vocabulary_id, array_agg(concept_id) AS concept_ids
           FROM {table}

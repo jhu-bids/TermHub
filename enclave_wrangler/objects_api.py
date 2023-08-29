@@ -665,8 +665,9 @@ def items_to_atlas_json_format(items):
 
 
 # todo: split into get/update
-def get_codeset_json(codeset_id, con=get_db_connection(), use_cache=True, set_cache=True) -> Dict:
+def get_codeset_json(codeset_id, con: Connection = None, use_cache=True, set_cache=True) -> Dict:
     """Get code_set jSON"""
+    con = con if con else get_db_connection()
     if use_cache:
         jsn = sql_query_single_col(con, f"""
             SELECT json

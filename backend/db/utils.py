@@ -483,8 +483,9 @@ def sql_query_single_col(*argv) -> List:
     return [r[0] for r in results]
 
 
-def show_tables(con=get_db_connection(), print_dump=True):
+def show_tables(con: Connection = None, print_dump=True):
     """Show tables"""
+    con = con if con else get_db_connection()
     query = """
         SELECT n.nspname as "Schema", c.relname as "Name",
               CASE c.relkind WHEN 'r' THEN 'table' WHEN 'v' THEN 'view' WHEN 'm' THEN 'materialized view' WHEN 'i' THEN 'index' WHEN 'S' THEN 'sequence' WHEN 's' THEN 'special' WHEN 't' THEN 'TOAST table' WHEN 'f' THEN 'foreign table' WHEN 'p' THEN 'partitioned table' WHEN 'I' THEN 'partitioned index' END as "Type",
