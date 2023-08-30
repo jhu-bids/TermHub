@@ -9,6 +9,7 @@ from functools import cache
 import urllib.parse
 
 from requests import Response
+from sqlalchemy import Connection
 from sqlalchemy.engine import RowMapping
 from backend.utils import JSON_TYPE, get_timer, return_err_with_trace
 from backend.db.utils import get_db_connection, sql_query, SCHEMA, sql_query_single_col, sql_in
@@ -44,8 +45,9 @@ router = APIRouter(
 #       probably don't need precision etc.
 #       switched _container suffix on duplicate col names to container_ prefix
 #       joined OMOPConceptSet in the all_csets ddl to get `rid`
-def get_csets(codeset_ids: List[int], con=get_db_connection()) -> List[Dict]:
+def get_csets(codeset_ids: List[int], con: Connection = None) -> List[Dict]:
     """Get information about concept sets the user has selected"""
+    con = con if con else get_db_connection()
     rows: List = sql_query(
         con, """
           SELECT *
@@ -94,9 +96,10 @@ def get_all_researcher_ids(rows: List[Dict]) -> Set[str]:
 # TODO: Performance: takes ~75sec on http://127.0.0.1:8000/cr-hierarchy?format=flat&codeset_ids=400614256|87065556
 def get_related_csetsOBSOLETE(  # not calling this from front end anymore. can remove tests
     codeset_ids: List[int] = None, selected_concept_ids: List[int] = None,
-    include_atlas_json=False, con=get_db_connection(), verbose=True
+    include_atlas_json=False, con: Connection = None, verbose=True
 ) -> List[Dict]:
     """Get information about concept sets related to those selected by user"""
+    con = con if con else get_db_connection()
     timer = get_timer('   get_related_csets')
     verbose and timer('get_concept_set_member_ids')
     if codeset_ids and not selected_concept_ids:
@@ -132,14 +135,16 @@ def get_related_csetsOBSOLETE(  # not calling this from front end anymore. can r
     return related_csets
 
 
-def get_cset_members_items(codeset_ids: List[int], columns: Union[List[str], None] = None,
-                           column: Union[str, None] = None, con=get_db_connection() ) -> Union[List[int], List]:
+def get_cset_members_items(
+    codeset_ids: List[int], columns: Union[List[str], None] = None, column: Union[str, None] = None, con: Connection = None
+) -> Union[List[int], List]:
     """Get concept set members items for selected concept sets
         returns:
         ...
         item: True if its an expression item, else false
         csm: false if not in concept set members
     """
+    con = con if con else get_db_connection()
     if column:
         columns = [column]
     if not columns:
@@ -159,9 +164,10 @@ def get_cset_members_items(codeset_ids: List[int], columns: Union[List[str], Non
 
 
 def get_concept_set_member_ids(
-    codeset_ids: List[int], columns: Union[List[str], None] = None, column: Union[str, None] = None, con=get_db_connection()
+    codeset_ids: List[int], columns: Union[List[str], None] = None, column: Union[str, None] = None, con: Connection = None
 ) -> Union[List[int], List]:
     """Get concept set members"""
+    con = con if con else get_db_connection()
     if column:
         columns = [column]
     if not columns:
@@ -179,8 +185,9 @@ def get_concept_set_member_ids(
     return res
 
 
-def get_concept_relationships(cids: List[int], reltypes: List[str] = ['Subsumes'], con=get_db_connection()) -> List:
+def get_concept_relationships(cids: List[int], reltypes: List[str] = ['Subsumes'], con: Connection = None) -> List:
     """Get concept_relationship rows for cids """
+    con = con if con else get_db_connection()
     return sql_query(
         con, f"""
         SELECT DISTINCT *
@@ -190,8 +197,9 @@ def get_concept_relationships(cids: List[int], reltypes: List[str] = ['Subsumes'
         """, debug=True)
 
 
-def get_all_csets(con=get_db_connection()) -> Union[Dict, List]:
+def get_all_csets(con: Connection = None) -> Union[Dict, List]:
     """Get all concept sets"""
+    con = con if con else get_db_connection()
     results = sql_query(
         con, f"""
         SELECT codeset_id,
