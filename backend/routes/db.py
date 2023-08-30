@@ -438,7 +438,7 @@ FLAGS = ['includeDescendants', 'includeMapped', 'isExcluded']
 @router.get("/cset-download")
 def cset_download(codeset_id: int, csetEditState: str = None,
                   atlas_items=True, # atlas_items_only=False,
-                  sort_json: bool = False) -> Dict:
+                  sort_json: bool = False, include_metadata = False) -> Dict:
     """Download concept set
         NO LONGER USED BECAUSE WE DON'T EDIT EXISTING CODESETS BUT JUST CREATE NEW ONES FROM DEFINITIONS
 
@@ -471,6 +471,9 @@ def cset_download(codeset_id: int, csetEditState: str = None,
         items.extend(adds)
     if sort_json:
         items.sort(key=lambda i: i['conceptId'])
+
+    # if include_metadata:
+
     if atlas_items:
         items_jsn = items_to_atlas_json_format(items)
         return {'items': items_jsn}

@@ -18,6 +18,15 @@ from requests import Response
 from enclave_wrangler.config import OUTDIR_OBJECTS, config, TERMHUB_VERSION, CSET_VERSION_MIN_ID
 from backend.utils import dump
 
+# https://unite.nih.gov/workspace/developer-console/app/ri.third-party-applications.main.application.e2074643-b399-46ef-82bb-ae403a298a6a/sdk/install?packageType=pypi&language=Python
+# from termhub_sdk import FoundryClient # OntologyClient
+#
+# # client = OntologyClient(hostname="https://unite.nih.gov", token=os.environ["FOUNDRY_SDK_AUTH_TOKEN"])
+# client = FoundryClient(hostname="https://unite.nih.gov", token=os.environ["FOUNDRY_SDK_AUTH_TOKEN"])
+#
+# ResearcherObject = client.default.objects.Researcher
+# print(ResearcherObject.take(1))
+
 
 EXTRA_PARAMS = {
     'create-new-draft-omop-concept-set-version': {
