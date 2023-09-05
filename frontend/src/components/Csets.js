@@ -56,12 +56,12 @@ export function CsetSearch(props) {
   }, [codeset_ids.join('|')]);
 
   // from https://github.com/kentcdodds/match-sorter#keys-string
-  const filterOptions = (options, { inputValue }) => matchSorter(options, inputValue, { keys: [ 'label' ]});
-  /*    couldn't figure out how to intercept it and see how it works, but it seems to work fine out of the box
-  const filterOptions = (options, { inputValue }) => (options, inputValue) => {
-    const m = matchSorter(options, inputValue);
-    return m;
-  } */
+  const filterOptions = (options, { inputValue }) => {
+    // having lag problems. see #540 and https://github.com/kentcdodds/match-sorter/issues/131
+    let matches = matchSorter(options, inputValue, { keys: [ 'label' ] , /* threshold: matchSorter.rankings.EQUAL */ });
+    // console.log({options, inputValue, matches});
+    return matches;
+  }
 
   if (isEmpty(all_csets)) {
     return <p>Downloading...</p>;
@@ -90,19 +90,25 @@ export function CsetSearch(props) {
       // key={keyForRefreshingAutocomplete}
       value={value}
       onChange={(event, newValue) => {
-        setValue(newValue.map(option => option.value || option));
+        setValue(newValue);
+        // setValue(newValue.map(option => option.value));
+        // setValue(newValue.map(option => option.value || option));
         // dataGetter.prefetch({itemType: 'everything', codeset_ids: newValue});
       }}
       isOptionEqualToValue={(opt, value) => {
-        return opt.value === value;
+        // return opt.value === value;
+        return opt.value === value.value;
       }}
+      /*
       getOptionLabel={(option) => {
+        // return option.label;
         if (typeof option === 'number') {
           return opts.find(item => item.value === option)?.label;
         } else {
           return option.label;
         }
       }}
+       */
       disablePortal
       id="add-codeset-id"
       options={opts}
