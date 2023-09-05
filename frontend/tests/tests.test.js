@@ -13,8 +13,8 @@ const { test, expect } = require('@playwright/test');
 
 const deploymentConfigs = {
   local: 'http://127.0.0.1:3000',
-  // dev: 'https://icy-ground-0416a040f.2.azurestaticapps.net/',
-  // prod: 'https://purple-plant-0f4023d0f.2.azurestaticapps.net/OMOPConceptSets'
+  // dev: 'https://icy-ground-0416a040f.2.azurestaticapps.net
+  // prod: 'https://purple-plant-0f4023d0f.2.azurestaticapps.net'
 };
 
 for (const envName in deploymentConfigs) {
@@ -64,12 +64,20 @@ for (const envName in deploymentConfigs) {
     // Load cset
     // await page.getByRole('link', { name: 'Load concept sets' }).click();  // fail
     await page.getByTestId('load-concept-sets').click();
-    
+
+    // CsetsDataTable ids: "selected-csets-table" and "related-csets-table"
+    // await page.waitForNavigation({ visible: '#related-csets-table' });
+
+    const alertPanel = await page.getByTestId('flexcontainer-Alerts');
+    debugger;
+    // alertPanel.getAttributeI()
+
     // Select a related cset
     // TODO: problem: id "row-0" is shared by both (i) the first table on the page (selected csets), and (ii) the 2nd table (related csets)
     //  - solution: (a) set different IDs, (b) probably better, data-testid
     // todo: anything better to wait for than row-0?
-    const firstRow = await page.waitForSelector('#row-0');
+    // const firstRow = await page.waitForSelector('#row-0');
+    const firstRow = await page.waitForSelector('#related-csets-table #row-0');
     // todo @siggie: id of cset: If we want to select a row as well by its concept ID, i guess we can douse 'data-testid' instead
     // <div id="row-0" role="row" class="sc-jqUVSM eAvOwz rdt_TableRow">
     // const firstRow = await page.$('#row-0');
@@ -77,6 +85,7 @@ for (const envName in deploymentConfigs) {
     
     // Compare
     // TODO: not getting this far yet; need to finish above block first
+    await page.getByRole('link', { name: 'Cset comparison' }).click();
     await page.getByRole('link', { name: 'Cset comparison' }).click();
     // TODO: What to do from here?
   });
