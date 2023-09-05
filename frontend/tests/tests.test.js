@@ -34,8 +34,16 @@ for (const envName in deploymentConfigs) {
 
   // todo: rename this as I add onto it. I think I want to do the workflow from search -> comparison
   test(envName + ': ' + 'Cset search - select cset', async ({ page }) => {
+    const testCodesetId = '1000002363';
     // Load page and click menu
     await page.goto(appUrl);
+
+    // close alert panel if it appears
+    const alertPanelClose = await page.waitForSelector('[data-testid=flexcontainer-Alerts] button');
+    if (alertPanelClose) {
+      await alertPanelClose.click();
+    }
+
     // todo: alternative: data-testid="autocomplete"
     const searchWidget = await page.waitForSelector('#add-codeset-id');
     // const menuButton = await page.$('#add-codeset-id');  // ChatGPT's initial guess; but didn't work
@@ -43,10 +51,10 @@ for (const envName in deploymentConfigs) {
     // Select item
     // todo: select a 2nd item
     // Attempt 2: keyboard (https://playwright.dev/docs/api/class-keyboard)
-    await searchWidget.fill('1000002363');
+    await searchWidget.fill(testCodesetId);
     await searchWidget.press('ArrowDown');
     await searchWidget.press('Enter');
-    
+
     // Attempt 1: mouse
     // await searchWidget.click();
     // // Wait for the menu items to appear
@@ -69,7 +77,6 @@ for (const envName in deploymentConfigs) {
     // await page.waitForNavigation({ visible: '#related-csets-table' });
 
     const alertPanel = await page.getByTestId('flexcontainer-Alerts');
-    debugger;
     // alertPanel.getAttributeI()
 
     // Select a related cset
@@ -81,12 +88,17 @@ for (const envName in deploymentConfigs) {
     // todo @siggie: id of cset: If we want to select a row as well by its concept ID, i guess we can douse 'data-testid' instead
     // <div id="row-0" role="row" class="sc-jqUVSM eAvOwz rdt_TableRow">
     // const firstRow = await page.$('#row-0');
+    const cset = await firstRow.innerText();
+    const firstRelatedCodesetId = cset.match(/^\d+/)[0];
+    const codeset_ids = [testCodesetId, firstRelatedCodesetId];
+    console.log(codeset_ids);
     await firstRow.click();
     
     // Compare
     // TODO: not getting this far yet; need to finish above block first
     await page.getByRole('link', { name: 'Cset comparison' }).click();
-    await page.getByRole('link', { name: 'Cset comparison' }).click();
     // TODO: What to do from here?
+
+    await expect(page).toHaveURL(`${appUrl}/cset-comparison?${codeset_ids.map(d => 'codeset_ids='+d).join('&')}`);
   });
 }
