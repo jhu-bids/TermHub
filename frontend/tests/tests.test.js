@@ -33,7 +33,7 @@ for (const envName in deploymentConfigs) {
   });
 
   // todo: rename this as I add onto it. I think I want to do the workflow from search -> comparison
-  test(envName + ': ' + 'Cset search - select cset', async ({ page }) => {
+  test(envName + ': ' + 'Cset search - select, load, compare', async ({ page }) => {
     const testCodesetId = '1000002363';
     // Load page and click menu
     await page.goto(appUrl);
@@ -73,16 +73,12 @@ for (const envName in deploymentConfigs) {
     // await page.getByRole('link', { name: 'Load concept sets' }).click();  // fail
     await page.getByTestId('load-concept-sets').click();
 
-    // CsetsDataTable ids: "selected-csets-table" and "related-csets-table"
-    // await page.waitForNavigation({ visible: '#related-csets-table' });
-
-    const alertPanel = await page.getByTestId('flexcontainer-Alerts');
-    // alertPanel.getAttributeI()
 
     // Select a related cset
     // TODO: problem: id "row-0" is shared by both (i) the first table on the page (selected csets), and (ii) the 2nd table (related csets)
     //  - solution: (a) set different IDs, (b) probably better, data-testid
     // todo: anything better to wait for than row-0?
+
     // const firstRow = await page.waitForSelector('#row-0');
     const firstRow = await page.waitForSelector('#related-csets-table #row-0');
     // todo @siggie: id of cset: If we want to select a row as well by its concept ID, i guess we can douse 'data-testid' instead
@@ -91,7 +87,12 @@ for (const envName in deploymentConfigs) {
     const cset = await firstRow.innerText();
     const firstRelatedCodesetId = cset.match(/^\d+/)[0];
     const codeset_ids = [testCodesetId, firstRelatedCodesetId];
-    console.log(codeset_ids);
+    // console.log(codeset_ids);
+
+    // todo @siggie: id of cset: If we want to select a row as well by its concept ID, i guess we can douse 'data-testid' instead
+    // <div id="row-0" role="row" class="sc-jqUVSM eAvOwz rdt_TableRow">
+    // const firstRow = await page.$('#row-0');
+
     await firstRow.click();
     
     // Compare

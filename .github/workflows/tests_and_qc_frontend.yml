@@ -6,6 +6,9 @@ name: Tests and QC - Frontend
 #    branches: [ main, develop ]
 #  pull_request:
 #    branches: [ main, develop ]
+# TODO: at the very least, easier to test dev/prod every night. that's mostly what we want from 'schedule'. push / pr is for new code changes
+#  schedule:
+#   - cron: '0 0 * * *' # every day at midnight
 jobs:
   test:
     timeout-minutes: 60
