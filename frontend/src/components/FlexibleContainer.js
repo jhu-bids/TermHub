@@ -90,7 +90,7 @@ const itemContent = once(() => {
             // closeFunc={() => setDisplay("hidden")}
             sx={style}
         >
-          <div className="handle" style={{display: 'flex', flexDirection: 'row', cursor: "move", }}>
+          <div className="handle" data-testid={`flexcontainer-${title}`} style={{display: 'flex', flexDirection: 'row', cursor: "move", }}>
             {/*[{stack.join(', ')}][{stackPosition}]*/}
             {
               hideTitle ? null : <span style={{padding: '10px 3px 3px 10px'}}><strong>{title}</strong></span>

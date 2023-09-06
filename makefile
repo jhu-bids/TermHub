@@ -77,11 +77,27 @@ codeall: code codetest
 doc: docstyle
 
 # Testing
-test:
+test: test-backend test-frontend
+test-backend:
 	python -m unittest discover -v
 testdoc:
 	python -m test.test --doctests-only
 testall: test testdoc
+
+## Testing - Frontend
+## - ENVIRONMENTS: To run multiple, hyphen-delimit, e.g. ENVIRONMENTS=local-dev-prod
+ENVIRONMENTS=ENVIRONMENTS=local
+TEST_FRONTEND_CMD=npx playwright test
+test-frontend:
+	(cd frontend; \
+	${ENVIRONMENTS} ${TEST_FRONTEND_CMD}; \
+	npx playwright show-report)
+test-frontend-debug:
+	(cd frontend; \
+	${ENVIRONMENTS} ${TEST_FRONTEND_CMD} --debug)
+test-frontend-ui:
+	(cd frontend; \
+	${ENVIRONMENTS} ${TEST_FRONTEND_CMD} --ui)
 
 # Serve
 # nvm allows to switch to a particular versio of npm/node. Useful for working w/ deployment

@@ -42,6 +42,7 @@ function initialOpts(all_csets, codesetIds) {
                 //`(${d.counts['Expression items'].toLocaleString()} expression items, ${d.counts.Members.toLocaleString()} members)`
                 : '(Empty)'),
         value: d.codeset_id,
+        id: `search-${d.codeset_id}`,
         // selected: codesetIds.includes(d.codeset_id),
       }));
   return opts;
@@ -85,7 +86,6 @@ export function CsetSearch(props) {
     // https://mui.com/material-ui/react-autocomplete/
     // https://stackoverflow.com/a/70193988/1368860
     <Autocomplete
-      data-testid="autocomplete"
       multiple
       // key={keyForRefreshingAutocomplete}
       value={value}
@@ -111,6 +111,7 @@ export function CsetSearch(props) {
        */
       disablePortal
       id="add-codeset-id"
+      data-testid="add-codeset-id"
       options={opts}
       // blurOnSelect={true}
       // clearOnBlur={true}
@@ -155,7 +156,7 @@ export function CsetSearch(props) {
           {autocomplete}
         </Tooltip>
         {largeCsetWarning}
-        <Button onClick={() => {
+        <Button data-testid="load-concept-sets" onClick={() => {
           codesetIdsDispatch({type: "set_all", codeset_ids: value});
           // changeCodesetIds(value, "set");
           // setKeyForRefreshingAutocomplete((k) => k + 1);
