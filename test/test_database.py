@@ -3,11 +3,7 @@
 Can run all tests in all files by running this from root of TermHub:
     python -m unittest discover
 """
-import os
-import sys
 import unittest
-from datetime import datetime, timedelta
-from pathlib import Path
 from enclave_wrangler.objects_api import make_objects_request
 from backend.db.utils import get_db_connection, sql_query_single_col
 
