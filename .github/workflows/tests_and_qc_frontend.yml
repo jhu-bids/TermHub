@@ -1,14 +1,16 @@
 # TODO: get to run in GH action (right now times out), then reactivate "on"
 # TODO: (a) start backend within GH action, or (b) use dev's backend URL (won't always work)
+# TODO: expose params to workflow_dispatch
 name: Tests and QC - Frontend
-#on:
+on:
+  workflow_dispatch:
+  # TODO: at the very least, easier to test dev/prod every night. that's mostly what we want from 'schedule'. push / pr is for new code changes
+  schedule:
+   - cron: '0 0 * * *' # every day at midnight
 #  push:
 #    branches: [ main, develop ]
 #  pull_request:
 #    branches: [ main, develop ]
-# TODO: at the very least, easier to test dev/prod every night. that's mostly what we want from 'schedule'. push / pr is for new code changes
-#  schedule:
-#   - cron: '0 0 * * *' # every day at midnight
 jobs:
   test:
     timeout-minutes: 60
@@ -22,14 +24,15 @@ jobs:
 #    - name: cd
 #      run: cd frontend
     - name: Install dependencies
-      run: cd frontend && npm ci
-    - name: Install Playwright Browsers
+#      run: cd frontend && npm ci
+      run: cd frontend && npm install playwright
+    - name: Install Playwright browsers
       run: cd frontend && npx playwright install --with-deps
     - name: Run Playwright tests
-      run: cd frontend && npx playwright test
+      run: cd frontend && ENVIRONMENTS=dev-prod npx playwright test
     - uses: actions/upload-artifact@v3
       if: always()
       with:
         name: playwright-report
-        path: playwright-report/
+        path: frontend/playwright-report/
         retention-days: 30

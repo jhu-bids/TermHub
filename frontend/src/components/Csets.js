@@ -86,7 +86,6 @@ export function CsetSearch(props) {
     // https://mui.com/material-ui/react-autocomplete/
     // https://stackoverflow.com/a/70193988/1368860
     <Autocomplete
-      data-testid="autocomplete"
       multiple
       // key={keyForRefreshingAutocomplete}
       value={value}
@@ -106,6 +105,7 @@ export function CsetSearch(props) {
       }}
       disablePortal
       id="add-codeset-id"
+      data-testid="add-codeset-id"
       options={opts}
       // blurOnSelect={true}
       // clearOnBlur={true}

@@ -1,29 +1,52 @@
 /* eslint-disable */
-/* todo's: optimizations
+/* # TermHub frontend tests
+
+## Environments
+Environments are specific setups / deployments where we want to run our tests, e.g. local / dev / prod. This information
+is passed to the test script via a hyphen-delimited environmental variable, e.g. `ENVIRONMENTS=local-dev-prod npx
+playwright test`, where  dev is short for 'development' and prod is short for 'production'.
+
+## todo's: optimizations
     - Running on different deployments
     (a) diff file for each. maybe a commmon test file which is a function that takes appUrl, and all that local.test.js would do was set appUrl and then pass it to that func. Then could run via `npx playwright test FILENAME` and make a `make` command as shorthand
     (b) Loop: 1 file and loop over each deployment or pass a flag to select which one - (what's implemented here)
     (c) Command?: make a command that sets the URL in a file and then import that into the playwright test
     (d) playwright.config.js? - (didn't work; kinda makes sense since that url doesn't get passed)
- */
-/*
- */
+*/
 // @ts-check
 const { test, expect } = require('@playwright/test');
 
+// Config --------------------------------------------------------------------------------------------------------------
 const deploymentConfigs = {
   local: 'http://127.0.0.1:3000',
-  // dev: 'https://icy-ground-0416a040f.2.azurestaticapps.net
-  // prod: 'https://purple-plant-0f4023d0f.2.azurestaticapps.net'
+  dev: 'https://icy-ground-0416a040f.2.azurestaticapps.net',
+  prod: 'https://purple-plant-0f4023d0f.2.azurestaticapps.net',
 };
 
-for (const envName in deploymentConfigs) {
+// CLI --------------------------------------------------------------------------------------------------------------
+// https://playwright.dev/docs/test-parameterize
+const envsString = process.env.ENVIRONMENTS;
+const envs = envsString.split("-");
+let selectedConfigs = {};
+for (let key in deploymentConfigs) {
+  if (envs.includes(key)) {
+    selectedConfigs[key] = deploymentConfigs[key];
+  }
+}
+
+// setUp ---------------------------------------------------------------------------------------------------------------
+test.beforeAll(async () => {
+  test.setTimeout(10000);  // 10 seconds
+});
+
+// Tests ---------------------------------------------------------------------------------------------------------------
+for (const envName in selectedConfigs) {
   const appUrl = deploymentConfigs[envName];
   test(envName + ': ' + 'Main page - has title & heading', async ({ page }) => {
     await page.goto(appUrl);
     await expect(page).toHaveTitle(/TermHub/);  // Expect a title "to contain" a substring.
-    // todo: the version is going to change. need to account for that.
-    await expect(page.getByRole('heading', { name: 'Welcome to TermHub! Beta version 0.3.1' })).toBeVisible();
+    await expect(page.getByRole('heading', { name: 'Within TermHub you can:' })).toBeVisible();
+    // await expect(page.getByRole('heading', { name: 'Welcome to TermHub! Beta version 0.3.2' })).toBeVisible();
   });
 
   test(envName + ': ' + 'Help / about - hyperlink & title', async ({ page }) => {
@@ -39,15 +62,13 @@ for (const envName in deploymentConfigs) {
     await page.goto(appUrl);
 
     // close alert panel if it appears
-    const alertPanelClose = await page.waitForSelector('[data-testid=flexcontainer-Alerts] button');
-    if (alertPanelClose) {
+    if (envName === 'local') {
+      const alertPanelClose = await page.waitForSelector('[data-testid=flexcontainer-Alerts] button');
       await alertPanelClose.click();
     }
 
-    // todo: alternative: data-testid="autocomplete"
     const searchWidget = await page.waitForSelector('#add-codeset-id');
-    // const menuButton = await page.$('#add-codeset-id');  // ChatGPT's initial guess; but didn't work
-    
+
     // Select item
     // todo: select a 2nd item
     // Attempt 2: keyboard (https://playwright.dev/docs/api/class-keyboard)
@@ -68,10 +89,11 @@ for (const envName in deploymentConfigs) {
     // // const menuItem = await page.$('.menu-item');  // ChatGPT's wanted to select class?
     // const searchItem = await page.$('#search-1');
     // await searchItem.click();
-    
+
     // Load cset
-    // await page.getByRole('link', { name: 'Load concept sets' }).click();  // fail
-    await page.getByTestId('load-concept-sets').click();
+    // todo: Change this back soon after next deployment after 2023/09/05; will have id soon.
+    await page.locator('text="Load concept sets"').click();
+    // await page.getByTestId('load-concept-sets').click();
 
 
     // Select a related cset
@@ -94,7 +116,7 @@ for (const envName in deploymentConfigs) {
     // const firstRow = await page.$('#row-0');
 
     await firstRow.click();
-    
+
     // Compare
     // TODO: not getting this far yet; need to finish above block first
     await page.getByRole('link', { name: 'Cset comparison' }).click();
