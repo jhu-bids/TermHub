@@ -341,6 +341,12 @@ def sql_query(
         raise RuntimeError(f'Got an error [{err}] executing the following statement:\n{query}, {json.dumps(params, indent=2)}')
 
 
+def sql_query_single_col(*argv) -> List:
+    """Run SQL query on single column"""
+    results = sql_query(*argv, return_with_keys=False)
+    return [r[0] for r in results]
+
+
 def delete_obj_by_composite_key(con, table: str, key_ids: Dict[str, Union[str, int]]):
     """Get object by ID"""
     keys_str = ' AND '.join([f'{key} = (:{key})' for key in key_ids.keys()])
@@ -475,12 +481,6 @@ def run_sql(con: Connection, command: str, params: Dict = {}) -> Any:
     else:
         q = con.execute(command)
     return q
-
-
-def sql_query_single_col(*argv) -> List:
-    """Run SQL query on single column"""
-    results = sql_query(*argv, return_with_keys=False)
-    return [r[0] for r in results]
 
 
 def show_tables(con: Connection = None, print_dump=True):
