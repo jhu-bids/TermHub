@@ -25,7 +25,11 @@ const deploymentConfigs = {
 
 // CLI --------------------------------------------------------------------------------------------------------------
 // https://playwright.dev/docs/test-parameterize
-const envsString = process.env.ENVIRONMENTS;
+let envsString = 'local-dev-prod';
+if (process.env.ENVIRONMENTS) {
+  envsString = process.env.ENVIRONMENTS;
+}
+
 const envs = envsString.split("-");
 let selectedConfigs = {};
 for (let key in deploymentConfigs) {
