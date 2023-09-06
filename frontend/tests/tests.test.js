@@ -80,51 +80,24 @@ for (const envName in selectedConfigs) {
     await searchWidget.press('ArrowDown');
     await searchWidget.press('Enter');
 
-    // Attempt 1: mouse
-    // await searchWidget.click();
-    // // Wait for the menu items to appear
-    // todo: if want to go this route again instead of keyboard:
-    //   1: Csets.js: I set ID but can't seem to read it (https://mui.com/material-ui/react-autocomplete/)
-    //   - Also curious: siggie uses 'value' but i don't see that that's allowed in the docs
-    //  2: search-1 (termhub test): try replacing with something like 1000002363 [DM]Type2 Diabetes Mellitus (v1) when ready
-    //  3: failing on this line. item doesn't seem to appear
-    // await page.waitForSelector('#search-1');
-    // // Select an item from the menu
-    // // const menuItem = await page.$('.menu-item');  // ChatGPT's wanted to select class?
-    // const searchItem = await page.$('#search-1');
-    // await searchItem.click();
-
     // Load cset
     // todo: Change this back soon after next deployment after 2023/09/05; will have id soon.
     await page.locator('text="Load concept sets"').click();
-    // await page.getByTestId('load-concept-sets').click();
 
+    let codeset_ids = [testCodesetId];
 
-    // Select a related cset
-    // TODO: problem: id "row-0" is shared by both (i) the first table on the page (selected csets), and (ii) the 2nd table (related csets)
-    //  - solution: (a) set different IDs, (b) probably better, data-testid
-    // todo: anything better to wait for than row-0?
+    // could be simpler with only one codeset_id, but using same line below with more than one
+    await expect(page).toHaveURL(`${appUrl}/OMOPConceptSets?${codeset_ids.map(d => 'codeset_ids='+d).join('&')}`);
 
-    // const firstRow = await page.waitForSelector('#row-0');
     const firstRow = await page.waitForSelector('#related-csets-table #row-0');
-    // todo @siggie: id of cset: If we want to select a row as well by its concept ID, i guess we can douse 'data-testid' instead
-    // <div id="row-0" role="row" class="sc-jqUVSM eAvOwz rdt_TableRow">
-    // const firstRow = await page.$('#row-0');
     const cset = await firstRow.innerText();
-    const firstRelatedCodesetId = cset.match(/^\d+/)[0];
-    const codeset_ids = [testCodesetId, firstRelatedCodesetId];
-    // console.log(codeset_ids);
-
-    // todo @siggie: id of cset: If we want to select a row as well by its concept ID, i guess we can douse 'data-testid' instead
-    // <div id="row-0" role="row" class="sc-jqUVSM eAvOwz rdt_TableRow">
-    // const firstRow = await page.$('#row-0');
-
+    const firstRelatedCodesetId = (cset.match(/^\d+/) || [''])[0];
+    expect(parseInt(firstRelatedCodesetId)).not.toBeNaN();
+    codeset_ids.push(firstRelatedCodesetId);
     await firstRow.click();
 
     // Compare
-    // TODO: not getting this far yet; need to finish above block first
     await page.getByRole('link', { name: 'Cset comparison' }).click();
-    // TODO: What to do from here?
 
     await expect(page).toHaveURL(`${appUrl}/cset-comparison?${codeset_ids.map(d => 'codeset_ids='+d).join('&')}`);
   });

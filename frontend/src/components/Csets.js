@@ -56,8 +56,8 @@ export function CsetSearch(props) {
     setValue(codeset_ids);
   }, [codeset_ids.join('|')]);
 
-  // from https://github.com/kentcdodds/match-sorter#keys-string
   const filterOptions = (options, { inputValue }) => {
+    // from https://github.com/kentcdodds/match-sorter#keys-string
     // having lag problems. see #540 and https://github.com/kentcdodds/match-sorter/issues/131
     let matches = matchSorter(options, inputValue, { keys: [ 'label' ] , /* threshold: matchSorter.rankings.EQUAL */ });
     // console.log({options, inputValue, matches});
@@ -90,25 +90,19 @@ export function CsetSearch(props) {
       // key={keyForRefreshingAutocomplete}
       value={value}
       onChange={(event, newValue) => {
-        setValue(newValue);
-        // setValue(newValue.map(option => option.value));
-        // setValue(newValue.map(option => option.value || option));
+        setValue(newValue.map(option => option.value || option));
         // dataGetter.prefetch({itemType: 'everything', codeset_ids: newValue});
       }}
       isOptionEqualToValue={(opt, value) => {
-        // return opt.value === value;
-        return opt.value === value.value;
+        return opt.value === value;
       }}
-      /*
       getOptionLabel={(option) => {
-        // return option.label;
         if (typeof option === 'number') {
           return opts.find(item => item.value === option)?.label;
         } else {
           return option.label;
         }
       }}
-       */
       disablePortal
       id="add-codeset-id"
       data-testid="add-codeset-id"
