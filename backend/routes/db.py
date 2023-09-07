@@ -412,13 +412,20 @@ def n3c_recommended_report(as_json=False) -> Union[List[str], Dict]:
     codeset_ids = get_n3c_recommended_csets()
     q = f"""
             SELECT
-                  is_most_recent_version,
-                  codeset_id, concept_set_name, alias,
-                  CAST(codeset_created_at AS DATE) AS created_at,
-                  r.name AS created_by
+                  ac.is_most_recent_version,
+                  ac.codeset_id, ac.concept_set_name, ac.alias,
+                  CAST(ac.codeset_created_at AS DATE) AS created_at,
+                  r.name AS created_by,
+                  -- ac.counts::text AS counts,
+                  CAST(ac.counts->>'Expression items' AS INT) AS definition_concepts,
+                  CAST(ac.counts->>'Member only' AS INT) AS expansion_concepts,
+                  ac.distinct_person_cnt,
+                  COUNT(distinct cs.codeset_id) AS versions
             FROM all_csets ac
+            JOIN code_sets cs ON ac.concept_set_name = cs.concept_set_name
             JOIN researcher r ON ac.codeset_created_by = r."multipassId"
-            WHERE codeset_id {sql_in(codeset_ids)}
+            WHERE ac.codeset_id {sql_in(codeset_ids)}
+            GROUP BY 1, 2, 3, 4, 5, 6, 7, 8, 9
             ORDER BY 1, 6, 5, 4
     """
     rows = sql_query(get_db_connection(), q)

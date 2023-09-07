@@ -31,7 +31,7 @@ export const N3CRecommended = () => {
   if (data) {
     columns = Object.keys(data[0]).map(col => ({
       name: col,
-      selector: row => row[col].toString(),
+      selector: row => (row[col] ?? '').toString(),
     }));
   }
 
