@@ -20,10 +20,16 @@ class TestDatabaseCurrent(unittest.TestCase):
 
             db_codeset_ids = set(sql_query_single_col(con, 'SELECT codeset_id FROM code_sets'))
 
-            enclave_codesets = make_objects_request('OMOPConceptSet', return_type='data',
-                                                    verbose=True, handle_paginated=True)
+            enclave_codesets = make_objects_request('OMOPConceptSet', return_type='data', handle_paginated=True)
 
             enclave_codesets = [cset['properties'] for cset in enclave_codesets]
+
+            archivedContainers = make_objects_request(
+                'OMOPConceptSetContainer', query_params={'properties.archived.eq': True},
+                return_type='data', handle_paginated=True)
+            archivedContainerNames = [container['properties']['conceptSetName'] for container in archivedContainers]
+
+            enclave_codesets = [cset for cset in enclave_codesets if 'conceptSetNameOMOP' in cset.keys() and not cset['conceptSetNameOMOP'] in archivedContainerNames]
 
             enclave_codeset_ids = set([cset['codesetId'] for cset in enclave_codesets])
 
@@ -31,8 +37,8 @@ class TestDatabaseCurrent(unittest.TestCase):
 
             if missing_ids_from_db:
                 missing_from_db = [cset for cset in enclave_codesets if cset['codesetId'] in missing_ids_from_db]
-                len([cset['isDraft'] for cset in missing_from_db if not cset['isDraft']])   # 13
-                len([cset['isDraft'] for cset in missing_from_db if cset['isDraft']])       # 463
+                drafts = [cset for cset in missing_from_db if cset['isDraft']]
+                notdrafts = [cset for cset in missing_from_db if not cset['isDraft']]
 
             extra_in_db = db_codeset_ids.difference(enclave_codeset_ids)
             if extra_in_db:
