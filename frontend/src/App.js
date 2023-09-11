@@ -42,6 +42,7 @@ import MuiAppBar from "./components/MuiAppBar";
 import {DataCacheProvider} from "./state/DataCache";
 import {AlertMessages} from "./components/AlertMessages";
 import {N3CRecommended} from "./components/N3CRecommended";
+import {Concepts} from "./components/Concepts";
 import {EnclaveAuthTest} from "./components/utils";
 import {DEPLOYMENT} from "./env";
 
@@ -141,6 +142,7 @@ function RoutesContainer() {
       <Route path="/" element={<App/>}>
         <Route path="cset-comparison" element={<CsetComparisonPage/>} />
         <Route path="OMOPConceptSets" element={<ConceptSetsPage/>} />
+        <Route path="concepts" element={<Concepts/>} />
         <Route path="about" element={<AboutPage/>} />
         <Route path="upload-csv" element={<UploadCsvPage/>} />
         <Route
