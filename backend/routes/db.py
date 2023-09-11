@@ -16,7 +16,7 @@ from backend.db.utils import get_db_connection, sql_query, SCHEMA, sql_query_sin
 from backend.db.queries import get_concepts
 from enclave_wrangler.objects_api import get_n3c_recommended_csets, enclave_api_call_caller, get_codeset_json, \
     get_concept_set_version_expression_items, items_to_atlas_json_format
-from enclave_wrangler.utils import make_objects_request, whoami
+from enclave_wrangler.utils import make_objects_request, whoami, get_auth_token
 from enclave_wrangler.config import RESEARCHER_COLS
 from enclave_wrangler.models import convert_rows
 from backend.routes import graph
@@ -620,6 +620,29 @@ def _whoami():
 def ad_hoc_test_1():
     """Misc test"""
     terms = ['Renal failure', 'Cyst of kidney']
+
+@router.get('/test-auth')
+def test_auth():
+    # https://unite.nih.gov/workspace/developer-console/app/ri.third-party-applications.main.application.e2074643-b399-46ef-82bb-ae403a298a6a/sdk/install?packageType=pypi&language=Python
+    import os
+    from termhub_sdk import FoundryClient
+    from termhub_sdk.core.api import UserTokenAuth
+
+    # auth = UserTokenAuth(hostname="https://unite.nih.gov", token=os.environ["FOUNDRY_SDK_AUTH_TOKEN"])
+    auth = UserTokenAuth(hostname="https://unite.nih.gov", token=get_auth_token())
+
+    client = FoundryClient(auth=auth, hostname="https://unite.nih.gov")
+
+    ResearcherObject = client.default.objects.Researcher
+    obj = ResearcherObject.take(1)[0]
+    print(obj)
+    return {
+        'user': obj.name,
+        'email': obj.email_address,
+        'multipassId': obj.multipass_id,
+        'orcid_id': obj.orcid_id,
+        'institution': obj.institution,
+    }
 
 
 if __name__ == '__main__':

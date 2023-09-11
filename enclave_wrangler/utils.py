@@ -33,27 +33,6 @@ PERSONAL_TOKEN_KEY = 'OTHER_TOKEN'
 TOKEN_KEY = SERVICE_TOKEN_KEY
 
 
-# https://unite.nih.gov/workspace/developer-console/app/ri.third-party-applications.main.application.e2074643-b399-46ef-82bb-ae403a298a6a/sdk/install?packageType=pypi&language=Python
-# from termhub_sdk import FoundryClient # OntologyClient
-#
-# # client = OntologyClient(hostname="https://unite.nih.gov", token=os.environ["FOUNDRY_SDK_AUTH_TOKEN"])
-# client = FoundryClient(hostname="https://unite.nih.gov", token=os.environ["FOUNDRY_SDK_AUTH_TOKEN"])
-#
-# ResearcherObject = client.default.objects.Researcher
-# print(ResearcherObject.take(1))
-
-# import os
-# from termhub_sdk import FoundryClient
-# from termhub_sdk.core.api import UserTokenAuth
-#
-# # auth = UserTokenAuth(hostname="https://unite.nih.gov", token=os.environ["FOUNDRY_SDK_AUTH_TOKEN"])
-# auth = UserTokenAuth(hostname="https://unite.nih.gov", token=PERSONAL_TOKEN_KEY)
-#
-# client = FoundryClient(auth=auth, hostname="https://unite.nih.gov")
-#
-# ResearcherObject = client.default.objects.Researcher
-# print(ResearcherObject.take(1))
-
 class EnclaveWranglerErr(RuntimeError):
     """Wrapper just to handle errors from this module"""
 

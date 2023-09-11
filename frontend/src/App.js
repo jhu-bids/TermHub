@@ -42,6 +42,7 @@ import MuiAppBar from "./components/MuiAppBar";
 import {DataCacheProvider} from "./state/DataCache";
 import {AlertMessages} from "./components/AlertMessages";
 import {N3CRecommended} from "./components/N3CRecommended";
+import {EnclaveAuthTest} from "./components/utils";
 import {DEPLOYMENT} from "./env";
 
 /* structure is:
@@ -138,14 +139,8 @@ function RoutesContainer() {
     <Routes>
       {/*<Route path="/help" element={<HelpWidget/>} />*/}
       <Route path="/" element={<App/>}>
-        <Route
-            path="cset-comparison"
-            element={<CsetComparisonPage/>}
-        />
-        <Route
-            path="OMOPConceptSets"
-            element={<ConceptSetsPage/>}
-        />
+        <Route path="cset-comparison" element={<CsetComparisonPage/>} />
+        <Route path="OMOPConceptSets" element={<ConceptSetsPage/>} />
         <Route path="about" element={<AboutPage/>} />
         <Route path="upload-csv" element={<UploadCsvPage/>} />
         <Route
@@ -172,6 +167,7 @@ function App(props) {
 
   return (
     <ThemeProvider theme={theme}>
+      {/*<EnclaveAuthTest />*/}
       {/*
         <Box sx={{backgroundColor: '#EEE', border: '2px solid green', minWidth: '200px', minHeight: '200px'}} >
           // <ContentItems/>
