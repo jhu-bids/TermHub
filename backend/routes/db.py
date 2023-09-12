@@ -3,6 +3,7 @@
     (2023-05-08)
 """
 from fastapi import APIRouter, Query
+import asyncio
 
 # for websocket example stuff
 from fastapi import WebSocket, HTTPException
@@ -17,7 +18,7 @@ import urllib.parse
 from requests import Response
 from sqlalchemy import Connection
 from sqlalchemy.engine import RowMapping
-from backend.utils import JSON_TYPE, get_timer, return_err_with_trace
+from backend.utils import JSON_TYPE, get_timer, return_err_with_trace, cancel_on_disconnect
 from backend.db.utils import get_db_connection, sql_query, SCHEMA, sql_query_single_col, sql_in
 from backend.db.queries import get_concepts
 from enclave_wrangler.objects_api import get_n3c_recommended_csets, enclave_api_call_caller, get_codeset_json, \
@@ -374,21 +375,6 @@ def db_refresh_route():
     # return response
     refresh_db()
 
-@router.websocket("/ws")
-async def websocket_endpoint(websocket: WebSocket):
-    await websocket.accept() # Accept the WebSocket connection
-
-    try:
-        # Simulate a long-running process by using a loop
-        for i in range(1, 11):
-            await websocket.send_text(f"Status update {i}/10") # Send a status update to the client
-            time.sleep(1) # Simulate a long-running task
-
-        await websocket.send_text("Process completed") # Notify the client that the process is complete
-    except Exception as e:
-        await websocket.send_text(f"Error: {str(e)}") # Notify the client of any errors
-    finally:
-        await websocket.close() # Close the WebSocket connection
 
 
 # TODO: if using this at all, fix it to use graph.hierarchy, which doesn't need root_cids
@@ -666,6 +652,48 @@ def test_auth():
         'orcid_id': obj.orcid_id,
         'institution': obj.institution,
     }
+
+@router.websocket("/test-ws")
+async def websocket_endpoint(websocket: WebSocket):
+    await websocket.accept() # Accept the WebSocket connection
+
+    try:
+        # Simulate a long-running process by using a loop
+        for i in range(1, 11):
+            await websocket.send_text(f"Status update {i}/10") # Send a status update to the client
+            time.sleep(1) # Simulate a long-running task
+
+        await websocket.send_text("Process completed") # Notify the client that the process is complete
+    except Exception as e:
+        await websocket.send_text(f"Error: {str(e)}") # Notify the client of any errors
+    finally:
+        await websocket.close() # Close the WebSocket connection
+
+
+"""One solution: Use a decorator to poll for the disconnect"""
+
+from fastapi import Request, HTTPException
+
+
+@router.get("/test-hangup")
+@cancel_on_disconnect
+async def test_hangup(
+    request: Request,
+    wait: float = Query(..., description="Time to wait, in seconds"),
+):
+    """
+        test with http://localhost:8000/test-hangup?wait=5
+    """
+    try:
+        print(f"Sleeping for {wait:.2f}")
+
+        await asyncio.sleep(wait)
+
+        print("Sleep not cancelled")
+
+        return f"I waited for {wait:.2f}s and now this is the result"
+    except asyncio.CancelledError:
+        print("Exiting on cancellation")
 
 
 if __name__ == '__main__':

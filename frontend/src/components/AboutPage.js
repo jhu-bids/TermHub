@@ -104,31 +104,7 @@ export function AboutPage() {
   const location = useLocation();
   const { search } = location;
 
-  function callWebSocket() {
-    const ws = new WebSocket("ws://localhost:8000/ws");
-
-    ws.onopen = (event) => {
-      console.log("WebSocket connection opened:", event);
-    };
-
-    ws.onmessage = (event) => {
-      const msg = event.data;
-      console.log(msg);
-      const statusElem = document.getElementById("refresh-status");
-      statusElem.innerText = msg;
-    };
-
-    ws.onclose = (event) => {
-      console.log("WebSocket connection closed:", event);
-    };
-
-    ws.onerror = (error) => {
-      console.error("WebSocket error:", error);
-    };
-  }
   const handleRefresh = async () => {
-    callWebSocket();
-    return;
     try {
       console.log('Triggering database refresh and clearing cache so new data will be fetched when ready');
       // empty cache immediately, and then again after the db-refresh call is done
@@ -202,10 +178,6 @@ export function AboutPage() {
           Refresh database
         </Button>
       </TextBody>
-      <div style={{border: '3px solid pink', }} id="refresh-status">
-        Refresh status will appear here
-      </div>
-
 
       <TextH1>View / download N3C recommended concept sets</TextH1>
       <TextBody>
