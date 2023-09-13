@@ -86,18 +86,22 @@ testall: test testdoc
 
 ## Testing - Frontend
 ## - ENVIRONMENTS: To run multiple, hyphen-delimit, e.g. ENVIRONMENTS=local-dev-prod
-ENVIRONMENTS=ENVIRONMENTS=local
+TEST_ENV_LOCAL=ENVIRONMENTS=local
+TEST_ENV_DEPLOYED=ENVIRONMENTS=dev-prod
 TEST_FRONTEND_CMD=npx playwright test
 test-frontend:
 	(cd frontend; \
-	${ENVIRONMENTS} ${TEST_FRONTEND_CMD}; \
+	${TEST_ENV_LOCAL} ${TEST_FRONTEND_CMD}; \
 	npx playwright show-report)
 test-frontend-debug:
 	(cd frontend; \
-	${ENVIRONMENTS} ${TEST_FRONTEND_CMD} --debug)
+	${TEST_ENV_LOCAL} ${TEST_FRONTEND_CMD} --debug)
 test-frontend-ui:
 	(cd frontend; \
-	${ENVIRONMENTS} ${TEST_FRONTEND_CMD} --ui)
+	${TEST_ENV_LOCAL} ${TEST_FRONTEND_CMD} --ui)
+test-frontend-deployments:
+	(cd frontend; \
+	${TEST_ENV_DEPLOYED} ${TEST_FRONTEND_CMD})
 
 # Serve
 # nvm allows to switch to a particular versio of npm/node. Useful for working w/ deployment

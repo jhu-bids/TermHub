@@ -6,7 +6,7 @@ on:
   workflow_dispatch:
   # TODO: at the very least, easier to test dev/prod every night. that's mostly what we want from 'schedule'. push / pr is for new code changes
   schedule:
-   - cron: '0 0 * * *' # every day at midnight
+   - cron: '0 8 * * *'  # every day 8am GMT (3-4am EST/EDT)
 #  push:
 #    branches: [ main, develop ]
 #  pull_request:
@@ -29,7 +29,7 @@ jobs:
     - name: Install Playwright browsers
       run: cd frontend && npx playwright install --with-deps
     - name: Run Playwright tests
-      run: cd frontend && ENVIRONMENTS=dev-prod npx playwright test
+      run: make test-frontend-deployments
     - uses: actions/upload-artifact@v3
       if: always()
       with:
