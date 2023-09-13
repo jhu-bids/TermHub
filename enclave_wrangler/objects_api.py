@@ -14,9 +14,10 @@ TODO's
 """
 import json
 import os
+from argparse import ArgumentParser
 
 from datetime import datetime
-from typing import List, Dict, Union
+from typing import List, Dict, Set, Tuple, Union
 from urllib.parse import quote
 
 from sanitize_filename import sanitize
@@ -288,11 +289,17 @@ def all_new_objects_enclave_to_db(since: Union[datetime, str]) -> Dict[str, List
     return objects
 
 
-def csets_and_members_enclave_to_db(con: Connection, since: Union[datetime, str], schema=SCHEMA) -> bool:
+def csets_and_members_enclave_to_db(
+    con: Connection, since: Union[datetime, str] = None, cset_ids: List[int] = None, schema=SCHEMA
+) -> bool:
     """Fetch new csets and members, if needed, and then update database with them, returns None is no updates needed"""
-    print('Fetching new data from the N3C data enclave...')
+    if not (since or cset_ids) or (since and cset_ids):
+        raise ValueError('Must pass either: `since` or `cset_ids`, but not both.')
     t0 = datetime.now()
-    csets_and_members: Dict[str, List[Dict]] = fetch_cset_and_member_objects(since)
+    print('Fetching new data from the N3C data enclave...')
+
+    csets_and_members: Dict[str, List[Dict]] = fetch_cset_and_member_objects(since) if since \
+        else fetch_cset_and_member_objects(codeset_ids=cset_ids)
     if not csets_and_members:
         return False
 
@@ -300,6 +307,48 @@ def csets_and_members_enclave_to_db(con: Connection, since: Union[datetime, str]
           "\n".join(['    ' + str(k) + ": " + str(len(v)) for k, v in csets_and_members.items()]))
     csets_and_members_to_db(con, csets_and_members, schema)
     return True
+
+
+def find_termhub_missing_csets(con: Connection = None) -> Set[int]:
+    """Find csets that are missing from TermHub"""
+    con = con if con else get_db_connection(schema=SCHEMA)
+    db_codeset_ids, enclave_codeset_ids = get_bidirectional_csets_sets(con)
+    missing_ids_from_db: Set[int] = enclave_codeset_ids.difference(db_codeset_ids)
+    return missing_ids_from_db
+
+
+def get_bidirectional_csets_sets(con: Connection = None) -> Tuple[Set[int], Set[int]]:
+    """Find missing csets"""
+    # Set 1 of 2: In our database
+    con = con if con else get_db_connection(schema=SCHEMA)
+    db_codeset_ids: Set[int] = set(sql_query_single_col(con, 'SELECT codeset_id FROM code_sets'))
+
+    # Set 2 of 2: In the enclave
+    enclave_codesets: List[Dict] = make_objects_request('OMOPConceptSet', return_type='data', handle_paginated=True)
+    enclave_codesets = [cset['properties'] for cset in enclave_codesets]
+    archived_containers: List[Dict] = make_objects_request(
+        'OMOPConceptSetContainer', query_params={'properties.archived.eq': True}, return_type='data',
+        handle_paginated=True)
+    archived_container_names = [container['properties']['conceptSetName'] for container in archived_containers]
+    enclave_codesets = [
+        cset for cset in enclave_codesets
+        if 'conceptSetNameOMOP' in cset.keys()
+           and not cset['conceptSetNameOMOP'] in archived_container_names]
+    enclave_codeset_ids: Set[int] = set([cset['codesetId'] for cset in enclave_codesets])
+    return db_codeset_ids, enclave_codeset_ids
+
+
+def add_missing_csets_to_db(cset_ids: List[int], con: Connection = None, schema=SCHEMA):
+    """Add missing concept sets to the DB"""
+    con = con if con else get_db_connection(schema=schema)
+    csets_and_members_enclave_to_db(con, cset_ids=cset_ids, schema=schema)
+
+
+def find_and_add_missing_csets_to_db(con: Connection = None, schema=SCHEMA):
+    """Find and add missing concept sets to the DB"""
+    con = con if con else get_db_connection(schema=schema)
+    cset_ids: List[int] = list(find_termhub_missing_csets(con))
+    add_missing_csets_to_db(cset_ids, con, schema)
 
 
 def fetch_cset_and_member_objects(
@@ -341,7 +390,7 @@ def fetch_cset_and_member_objects(
       - expression items
     """
 
-    codeset_ids_to_ignore = [938394329] # Hope Termhub Test (v2), 53K concepts. taking forever
+    # codeset_ids_to_ignore = [938394329] # Hope Termhub Test (v2), 53K concepts. taking forever
     # Concept set versions
     if not (since or codeset_ids) or (since and codeset_ids):
         raise RuntimeError('Must pass either: `since` or `codeset_ids`, but not both.')
@@ -867,16 +916,16 @@ def get_projects(verbose=False) -> List[Dict]:
 
 def cli():
     """Command line interface for package."""
-    raise "We aren't using this as of 2023-02. Leaving in place in case we want to use again."
-    # package_description = 'Tool for working w/ the Palantir Foundry enclave API. ' \
-    #                       'This part is for downloading enclave datasets.'
-    # parser = ArgumentParser(description=package_description)
-    #
-    # # parser.add_argument(
-    # #     '-a', '--auth_token_env_var',
-    # #     default='PALANTIR_ENCLAVE_AUTHENTICATION_BEARER_TOKEN',
-    # #     help='Name of the environment variable holding the auth token you want to use')
-    # # todo: 'objects' alone doesn't make sense because requires param `object_type`
+    parser = ArgumentParser(
+        prog='Enclave wrangler objects API',
+        description='Tool for working w/ the Palantir Foundry enclave API.')
+
+    # Old args
+    # parser.add_argument(
+    #     '-a', '--auth_token_env_var',
+    #     default='PALANTIR_ENCLAVE_AUTHENTICATION_BEARER_TOKEN',
+    #     help='Name of the environment variable holding the auth token you want to use')
+    # todo: 'objects' alone doesn't make sense because requires param `object_type`
     # parser.add_argument(
     #     '-r', '--request-types',
     #     nargs='+', default=['object_types', 'objects', 'link_types'],
@@ -892,16 +941,20 @@ def cli():
     #     del kwargs_dict['download_favorite_objects']
     #     run(**kwargs_dict)
 
+    # New args added from 9/12/2023
+    parser.add_argument(
+        '-A', '--find-and-add-missing-csets-to-db', action='store_true',
+        help='Find and add missing csets to the DB.')
+    parser.add_argument(
+        '-f', '--find-missing-csets', action='store_true',
+        help='Find missing csets, either in enclave and not in TermHub, or vice versa.')
+    args: Dict = vars(parser.parse_args())
+    commands_to_run = [k for k, v in args.items() if v]
+    if 'find_missing_csets' in commands_to_run:
+        get_bidirectional_csets_sets()
+    if 'find_and_add_missing_csets_to_db' in commands_to_run:
+        find_and_add_missing_csets_to_db()
+
 
 if __name__ == '__main__':
-    # ot = get_object_types()
-    # get_n3c_recommended_csets(save=True)
-    # download_favorite_objects(force_if_exists=True)
-    # import datetime as dt
-    # import sys
-    # import pytz
-    # five_minutes_ago = (dt.datetime.now(dt.timezone.utc) - dt.timedelta(minutes=30)).isoformat()
-    # data = fetch_cset_and_member_objects(five_minutes_ago)
-    # print(data)
-    # pdump(data)
-    pass
+    cli()

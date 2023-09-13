@@ -1,5 +1,5 @@
 <component name="ProjectRunConfigurationManager">
-  <configuration default="false" name="datasets: objects" type="PythonConfigurationType" factoryName="Python" folderName="enclave_wrangler">
+  <configuration default="false" name="cli: objects api" type="PythonConfigurationType" factoryName="Python" folderName="enclave_wrangler">
     <module name="TermHub" />
     <option name="INTERPRETER_OPTIONS" value="" />
     <option name="PARENT_ENVS" value="true" />
@@ -23,7 +23,7 @@
       </ENTRIES>
     </EXTENSION>
     <option name="SCRIPT_NAME" value="$PROJECT_DIR$/enclave_wrangler/objects_api.py" />
-    <option name="PARAMETERS" value="-f" />
+    <option name="PARAMETERS" value="" />
     <option name="SHOW_COMMAND_LINE" value="false" />
     <option name="EMULATE_TERMINAL" value="false" />
     <option name="MODULE_MODE" value="false" />

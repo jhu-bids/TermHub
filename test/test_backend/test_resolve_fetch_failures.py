@@ -9,7 +9,7 @@ from pathlib import Path
 from backend.db.resolve_fetch_failures_excess_items import resolve_fetch_failures_excess_items
 from backend.db.utils import run_sql, sql_query
 from enclave_wrangler.objects_api import fetch_cset_and_member_objects
-from test.backend_tests.db.test_utils import FetchAuditTestRunner
+from test.test_backend.db.test_utils import FetchAuditTestRunner
 
 TEST_DIR = os.path.dirname(__file__)
 PROJECT_ROOT = Path(TEST_DIR).parent.parent
