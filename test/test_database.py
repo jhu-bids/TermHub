@@ -44,4 +44,3 @@ class TestDatabaseCurrent(unittest.TestCase):
         # todo: analyze: get these from database and figure out what's up with them
         # if extra_in_db:
         self.assertEqual(extra_in_db, set())
-
