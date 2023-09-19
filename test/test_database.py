@@ -26,6 +26,7 @@ class TestDatabaseCurrent(unittest.TestCase):
     def setUpClass(cls):
         """Fetch cset IDs to used by further tests"""
         cls.db_codeset_ids, cls.enclave_codeset_ids = get_bidirectional_csets_sets()
+        pass
 
     def test_all_enclave_csets_in_termhub(self):
         """Test that all Enclave concept sets are in TermHub"""
