@@ -10,7 +10,6 @@
     "@mui/icons-material": "^5.8.4",
     "@mui/joy": "^5.0.0-alpha.37",
     "@mui/material": "^5.9.1",
-    "@termhub/sdk": "^0.1.0",
     "ag-grid-community": "^28.0.2",
     "ag-grid-react": "^28.0.0",
     "axios": "^0.27.2",

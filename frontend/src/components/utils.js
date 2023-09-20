@@ -3,6 +3,7 @@ import {debounce, isEqual, reduce,} from "lodash";
 import Papa from "papaparse";
 import {saveAs} from 'file-saver';
 
+/*
 import { FoundryClient, PublicClientAuth } from "@termhub/sdk";
 import { Researcher } from "@termhub/sdk/ontology/objects";
 
@@ -18,7 +19,7 @@ const client = new FoundryClient({
 
 // from https://unite.nih.gov/workspace/developer-console/app/ri.third-party-applications.main.application.e2074643-b399-46ef-82bb-ae403a298a6a/sdk/install?packageType=pypi&language=TypeScript
 // and https://cd2h.slack.com/archives/C047FEPM05U/p1694122174366769?thread_ts=1691577394.464669&cid=C047FEPM05U
-export const EnclaveAuthTest/*: React.FC */ = () => {
+export const EnclaveAuthTest/*: React.FC * / = () => {
     const [token, setToken] = useState(client.auth.token);
     useEffect(() => {
         if (client.auth.token == null || client.auth.token.isExpired) {
@@ -41,6 +42,7 @@ export const EnclaveAuthTest/*: React.FC */ = () => {
         }
     }, [client]);
 };
+ */
 
 export const pct_fmt = (num) =>
   Number(num).toLocaleString(undefined, {

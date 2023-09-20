@@ -630,44 +630,47 @@ def ad_hoc_test_1():
     """Misc test"""
     terms = ['Renal failure', 'Cyst of kidney']
 
-@router.get('/test-auth')
-def test_auth():
-    # https://unite.nih.gov/workspace/developer-console/app/ri.third-party-applications.main.application.e2074643-b399-46ef-82bb-ae403a298a6a/sdk/install?packageType=pypi&language=Python
-    import os
-    from termhub_sdk import FoundryClient
-    from termhub_sdk.core.api import UserTokenAuth
-
-    # auth = UserTokenAuth(hostname="https://unite.nih.gov", token=os.environ["FOUNDRY_SDK_AUTH_TOKEN"])
-    auth = UserTokenAuth(hostname="https://unite.nih.gov", token=get_auth_token())
-
-    client = FoundryClient(auth=auth, hostname="https://unite.nih.gov")
-
-    ResearcherObject = client.default.objects.Researcher
-    obj = ResearcherObject.take(1)[0]
-    print(obj)
-    return {
-        'user': obj.name,
-        'email': obj.email_address,
-        'multipassId': obj.multipass_id,
-        'orcid_id': obj.orcid_id,
-        'institution': obj.institution,
-    }
-
-@router.websocket("/test-ws")
-async def websocket_endpoint(websocket: WebSocket):
-    await websocket.accept() # Accept the WebSocket connection
-
-    try:
-        # Simulate a long-running process by using a loop
-        for i in range(1, 11):
-            await websocket.send_text(f"Status update {i}/10") # Send a status update to the client
-            time.sleep(1) # Simulate a long-running task
-
-        await websocket.send_text("Process completed") # Notify the client that the process is complete
-    except Exception as e:
-        await websocket.send_text(f"Error: {str(e)}") # Notify the client of any errors
-    finally:
-        await websocket.close() # Close the WebSocket connection
+# @router.get('/test-auth')
+# def test_auth():
+#     # https://unite.nih.gov/workspace/developer-console/app/ri.third-party-applications.main.application.e2074643-b399-46ef-82bb-ae403a298a6a/sdk/install?packageType=pypi&language=Python
+#
+#     # in order to get this to work for deployment, we need to follow directions here
+#     #   https://unite.nih.gov/workspace/developer-console/app/ri.third-party-applications.main.application.e2074643-b399-46ef-82bb-ae403a298a6a/docs/guide/getting-started
+#     import os
+#     from termhub_sdk import FoundryClient
+#     from termhub_sdk.core.api import UserTokenAuth
+#
+#     # auth = UserTokenAuth(hostname="https://unite.nih.gov", token=os.environ["FOUNDRY_SDK_AUTH_TOKEN"])
+#     auth = UserTokenAuth(hostname="https://unite.nih.gov", token=get_auth_token())
+#
+#     client = FoundryClient(auth=auth, hostname="https://unite.nih.gov")
+#
+#     ResearcherObject = client.default.objects.Researcher
+#     obj = ResearcherObject.take(1)[0]
+#     print(obj)
+#     return {
+#         'user': obj.name,
+#         'email': obj.email_address,
+#         'multipassId': obj.multipass_id,
+#         'orcid_id': obj.orcid_id,
+#         'institution': obj.institution,
+#     }
+#
+# @router.websocket("/test-ws")
+# async def websocket_endpoint(websocket: WebSocket):
+#     await websocket.accept() # Accept the WebSocket connection
+#
+#     try:
+#         # Simulate a long-running process by using a loop
+#         for i in range(1, 11):
+#             await websocket.send_text(f"Status update {i}/10") # Send a status update to the client
+#             time.sleep(1) # Simulate a long-running task
+#
+#         await websocket.send_text("Process completed") # Notify the client that the process is complete
+#     except Exception as e:
+#         await websocket.send_text(f"Error: {str(e)}") # Notify the client of any errors
+#     finally:
+#         await websocket.close() # Close the WebSocket connection
 
 
 """One solution: Use a decorator to poll for the disconnect"""
