@@ -32,7 +32,6 @@ const drawerWidth = 240;
 let _pages = [
   { name: "Cset search", href: "/OMOPConceptSets" },
   { name: "Cset comparison", href: "/cset-comparison" },
-  { name: "Add concepts", href: "/concepts" },
   // { name: "Example comparison", href: "/testing" },
   // { name: "Graph", href: "/graph" },
   // {name: 'Upload CSV', href: '/upload-csv', noSearch: true, },
@@ -41,7 +40,9 @@ let _pages = [
   { name: "Help / About", href: "/about" },
 ];
 if (DEPLOYMENT === 'local') {
-  _pages.push({ name: "Graph", href: "/graph" });
+  _pages.push(
+      { name: "Graph", href: "/graph" },
+      { name: "Add concepts", href: "/concepts" }, );
 }
 export function getPages(codeset_ids) {
   let pages = cloneDeep(_pages);
