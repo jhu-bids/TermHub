@@ -8,7 +8,7 @@ import IconButton from "@mui/material/IconButton";
 import Menu from "@mui/material/Menu";
 import Toolbar from "@mui/material/Toolbar";
 import Typography from "@mui/material/Typography";
-import React from "react";
+import React, {useEffect, useState} from "react";
 import MenuBookRounded from "@mui/icons-material/MenuBookRounded";
 import MenuItem from "@mui/material/MenuItem";
 import Tooltip from "@mui/material/Tooltip";
@@ -26,6 +26,7 @@ import ListItemText from "@mui/material/ListItemText";
 import { cloneDeep } from "lodash";
 import {VERSION, DEPLOYMENT} from "../env";
 import {useSearchParamsState} from "../state/SearchParamsProvider";
+// import {client} from "./utils";
 
 const drawerWidth = 240;
 
@@ -46,6 +47,7 @@ if (DEPLOYMENT === 'local') {
 }
 export function getPages(codeset_ids) {
   let pages = cloneDeep(_pages);
+  // if there are no codesets, disable the comparison page
   if (!codeset_ids.length) {
     let page = pages.find((d) => d.href == "/cset-comparison");
     page.disable = true;
@@ -101,139 +103,6 @@ const DrawerHeader = styled("div")(({ theme }) => ({
   justifyContent: "flex-end",
 }));
 
-export function PersistentDrawerLeft(props) {
-  // may come back to this. going back to top navbar for now
-  const {sp} = useSearchParamsState();
-  const {codeset_ids, } = sp;
-  const { children } = props;
-  const theme = useTheme();
-  const [open, setOpen] = React.useState(false);
-  const location = useLocation();
-  const { search } = location;
-  const pages = getPages(codeset_ids);
-
-  const handleDrawerOpen = () => {
-    setOpen(true);
-  };
-
-  const handleDrawerClose = () => {
-    setOpen(false);
-  };
-
-  return (
-    <Box sx={{ display: "flex" }}>
-      <CssBaseline />
-      <AppBarForDrawer position="fixed" open={open}>
-        <Toolbar>
-          <IconButton
-            color="inherit"
-            aria-label="open drawer"
-            onClick={handleDrawerOpen}
-            edge="start"
-            sx={{ mr: 2, ...(open && { display: "none" }) }}
-          >
-            <MenuIcon />
-          </IconButton>
-          <Typography variant="h6" noWrap component="div">
-            Persistent drawer
-          </Typography>
-        </Toolbar>
-      </AppBarForDrawer>
-      <Drawer
-        sx={{
-          width: drawerWidth,
-          flexShrink: 0,
-          "& .MuiDrawer-paper": {
-            width: drawerWidth,
-            boxSizing: "border-box",
-          },
-        }}
-        variant="persistent"
-        anchor="left"
-        open={open}
-      >
-        <DrawerHeader>
-          <IconButton onClick={handleDrawerClose}>
-            {theme.direction === "ltr" ? (
-              <ChevronLeftIcon />
-            ) : (
-              <ChevronRightIcon />
-            )}
-          </IconButton>
-        </DrawerHeader>
-        <Divider />
-        <List>
-          {pages.map((page) => {
-            let button = (
-              <ListItem key={page.name} disablePadding>
-                <ListItemButton
-                  disabled={page.disable}
-                  component={NavLink} // NavLink is supposed to show different if it's active; doesn't seem to be working
-                  variant={
-                    page.href === window.location.pathname
-                      ? "contained"
-                      : "text"
-                  } // so, this instead
-                  to={`${page.href}${page.noSearch ? "" : search}`}
-                  // onClick={handleCloseNavMenu}
-                  // sx={{ my: 2, color: 'white', display: 'block' }}
-                >
-                  <ListItemText primary={page.name} />
-                  {/*
-                    <Button
-                        disabled={page.disable}
-                        key={page.name}
-                        // selected={page.href === window.location.pathname}
-                        component={NavLink} // NavLink is supposed to show different if it's active; doesn't seem to be working
-                        variant={page.href === window.location.pathname ? 'contained' : 'text'} // so, this instead
-                        to={`${page.href}${page.noSearch ? '' : search}`}
-                        onClick={handleCloseNavMenu}
-                        sx={{ my: 2, color: 'white', display: 'block' }}
-                    >
-                      {
-                        page.name
-                      }
-                    </Button>
-                    */}
-                </ListItemButton>
-              </ListItem>
-            );
-            if (page.tt) {
-              button = (
-                <Tooltip title={page.tt} key={page.name}>
-                  <div>{button}</div>
-                </Tooltip>
-              );
-            }
-            return button;
-          })}
-        </List>
-        <Divider />
-        {/*<ContentMenuItems/>*/}
-        {/*
-        <Divider />
-        <List>
-          {['All mail', 'Trash', 'Spam'].map((text, index) => (
-            <ListItem key={text} disablePadding>
-              <ListItemButton>
-                <ListItemIcon>
-                  {index % 2 === 0 ? <InboxIcon /> : <MailIcon />}
-                </ListItemIcon>
-                <ListItemText primary={text} />
-              </ListItemButton>
-            </ListItem>
-          ))}
-        </List>
-        */}
-      </Drawer>
-      <Main open={open}>
-        <DrawerHeader />
-        {children}
-      </Main>
-    </Box>
-  );
-}
-
 /* https://mui.com/material-ui/react-app-bar/ */
 export default function MuiAppBar() {
   const {sp} = useSearchParamsState();
@@ -244,6 +113,27 @@ export default function MuiAppBar() {
 
   const [anchorElNav, setAnchorElNav] = React.useState(null);
   const [anchorElUser, setAnchorElUser] = React.useState(null);
+
+  /*
+  const [pages, setPages] = useState(getPages(codeset_ids));
+  if (client && client.auth && client.auth.token) {
+    console.log(`logged in as ${client.auth.username}`);
+    setPages(pages => [...pages, { name: "Logout", href: "/logout", }]);
+  }
+  useEffect(() => {
+    (async () => {
+      console.log("client in appbar useeffect", client);
+      if (sp.login && client) {
+        await client.auth.signIn();
+        let token = await client.auth.getToken();
+        if (token) {
+          console.log(`logged in as ${client.auth.username}`);
+          setPages(pages => [...pages, { name: "Logout", href: "/logout", }]);
+        }
+      }
+    })();
+  }, []);
+  */
 
   const handleOpenNavMenu = (event) => {
     setAnchorElNav(event.currentTarget);

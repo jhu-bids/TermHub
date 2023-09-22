@@ -43,7 +43,7 @@ import {DataCacheProvider} from "./state/DataCache";
 import {AlertMessages} from "./components/AlertMessages";
 import {N3CRecommended} from "./components/N3CRecommended";
 import {Concepts} from "./components/Concepts";
-import {EnclaveAuthTest} from "./components/utils";
+// import {EnclaveAuthTest, AuthCallback, Logout, } from "./components/utils";
 import {DEPLOYMENT} from "./env";
 
 /* structure is:
@@ -120,13 +120,15 @@ function RoutesContainer() {
       // return <Navigate to={url} replace={true} />;
     }
   })
-  if (location.pathname === "/") {
-    return <Navigate to="/OMOPConceptSets" />;
+  let pathname = location.pathname;
+
+  if (pathname === "/cset-comparison" && isEmpty(codeset_ids)) {
+    pathname = '/';
   }
-  if (location.pathname === "/cset-comparison" && isEmpty(codeset_ids)) {
-    return <Navigate to="/OMOPConceptSets" />;
+  if (pathname === "/") {
+    return <Navigate to={`/OMOPConceptSets`} />;
   }
-  if (location.pathname === "/testing") {
+  if (pathname === "/testing") {
     const test_codeset_ids = [400614256, 411456218, 419757429, 484619125];
     let params = createSearchParams({ codeset_ids: test_codeset_ids });
     // setSearchParams(params);
@@ -135,7 +137,6 @@ function RoutesContainer() {
     return <Navigate to={url} replace={true} /* what does this do? */ />;
   }
 
-  // console.log(window.props_w = props);
   return (
     <Routes>
       {/*<Route path="/help" element={<HelpWidget/>} />*/}
@@ -145,6 +146,8 @@ function RoutesContainer() {
         <Route path="concepts" element={<Concepts/>} />
         <Route path="about" element={<AboutPage/>} />
         <Route path="upload-csv" element={<UploadCsvPage/>} />
+        {/*<Route path="auth/callback" element={<AuthCallback/>} />*/}
+        {/*<Route path="auth/logout" element={<Logout/>} />*/}
         <Route
             path="graph"
             element={<ConceptGraph/>}
@@ -169,7 +172,7 @@ function App(props) {
 
   return (
     <ThemeProvider theme={theme}>
-      {/*<EnclaveAuthTest />*/}
+      {/*{ sp.login ? <EnclaveAuthTest /> : null }*/}
       {/*
         <Box sx={{backgroundColor: '#EEE', border: '2px solid green', minWidth: '200px', minHeight: '200px'}} >
           // <ContentItems/>
