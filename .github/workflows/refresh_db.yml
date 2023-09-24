@@ -44,11 +44,21 @@ jobs:
           pip install --upgrade setuptools
           pip install -r requirements.txt
 
+      # Refresh
       - name: Refresh db
         run: |
           python backend/db/refresh.py
-
       - name: Commit changes to documentation
         uses: stefanzweifel/git-auto-commit-action@v4
         with:
           commit_message: Updating documentation in docs/backend/db/analysis.md
+      # todo: Temporarily leaving this commented out here until we verify that root cause  of missing csets(
+      #   https://github.com/jhu-bids/TermHub/issues/573) has been resolved (likely through
+      #   https://github.com/jhu-bids/TermHub/issues/574)
+#      - name: Fetch missing csets
+#        run: make fetch-missing-csets
+
+      # Test
+      # todo: add more tests, ideally
+      - name: Test missing csets
+        run: make test-missing-csets

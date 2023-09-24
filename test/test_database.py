@@ -12,12 +12,16 @@ from typing import Set
 TEST_DIR = Path(os.path.abspath(os.path.dirname(__file__)))
 PROJECT_ROOT = TEST_DIR.parent
 sys.path.insert(0, str(PROJECT_ROOT))
-from enclave_wrangler.objects_api import find_and_add_missing_csets_to_db, get_bidirectional_csets_sets
+from enclave_wrangler.objects_api import get_bidirectional_csets_sets
 
-# TODO: temp
-# Note: Ad hoc import: On 2023/09/12, we found 93 missing csets. The below code was used to import them.
-if __name__ == '__main__':
-    find_and_add_missing_csets_to_db()
+FAIL_MSG = (
+    "Found concept sets in the Enclave that were missing from TermHub.\n"
+    "Possible causes: (i) New csets were added recently (unlikely if this test was run via on schedule via "
+    "GitHub action, which runs a couple hours after the refresh. Could possibly indicate problem with refresh."
+    "\n(ii) Csets that were drafts before are now no longer drafts. This will be fixed when via "
+    "https://github.com/jhu-bids/TermHub/issues/398\n"
+    "For now, this can be fixed by running: make fetch-missing-csets\n"
+    "The following concept sets are missing from the database: ")
 
 class TestDatabaseCurrent(unittest.TestCase):
     """Tests for database"""
@@ -26,7 +30,6 @@ class TestDatabaseCurrent(unittest.TestCase):
     def setUpClass(cls):
         """Fetch cset IDs to used by further tests"""
         cls.db_codeset_ids, cls.enclave_codeset_ids = get_bidirectional_csets_sets()
-        pass
 
     def test_all_enclave_csets_in_termhub(self):
         """Test that all Enclave concept sets are in TermHub"""
@@ -36,7 +39,7 @@ class TestDatabaseCurrent(unittest.TestCase):
         #     missing_from_db = [cset for cset in enclave_codesets if cset['codesetId'] in missing_ids_from_db]
         #     drafts = [cset for cset in missing_from_db if cset['isDraft']]
         #     notdrafts = [cset for cset in missing_from_db if not cset['isDraft']]
-        self.assertEqual(missing_ids_from_db, set())
+        self.assertEqual(missing_ids_from_db, set(), msg=FAIL_MSG)
 
     def test_all_termhub_csets_in_enclave(self):
         """Test that TermHub concept sets are in the Enclave"""
