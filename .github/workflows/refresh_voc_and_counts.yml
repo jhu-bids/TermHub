@@ -7,7 +7,11 @@ on:
   workflow_dispatch:
 jobs:
   refresh-voc-and-counts:
-    runs-on: ubuntu-latest
+    runs-on: BIDS-Premium-Action-Runners
+#    runs-on: ubuntu-latest
+    # fail-fast: Can show why action unexpectedly stops: https://docs.github.com/en/actions/using-jobs/using-a-matrix-for-your-jobs#handling-failures
+    strategy:
+      fail-fast: false
     steps:
       - name: Checkout repository and submodules
         uses: actions/checkout@v2
@@ -22,17 +26,14 @@ jobs:
         run: |
           echo "Commit hash: ${{ github.sha }}"
           echo "Branch: ${{ github.ref }}"
-
       - name: 'Create env file'
         run: |
           mkdir env
           echo "${{ secrets.ENV_FILE }}" > env/.env
-
       - name: Create and start virtual environment
         run: |
           python3 -m venv venv
           source venv/bin/activate
-
       - name: Install dependencies
         run: |
           python -m pip install --upgrade pip
@@ -40,6 +41,9 @@ jobs:
           pip install --upgrade setuptools
           pip install -r requirements.txt
 
-      - name: Refresh voc and counts
+      - name: Refresh counts
         run: |
-          python backend/db/refresh_voc_and_counts.py
+          python backend/db/refresh_dataset_group_tables.py --dataset-group counts
+      - name: Refresh vocab
+        run: |
+          python backend/db/refresh_dataset_group_tables.py --dataset-group vocab

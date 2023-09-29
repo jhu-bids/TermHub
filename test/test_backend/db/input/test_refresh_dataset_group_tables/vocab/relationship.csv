@@ -1,0 +1,50 @@
+relationship_id,relationship_name,is_hierarchical,defines_ancestry,reverse_relationship_id,relationship_concept_id
+ARP of,ARP of (SNOMED),0,0,Has ARP,45905797
+ATC to NDFRT eq,ATC to NDFRT equivalent (NDF-RT),0,0,NDFRT to ATC eq,45754838
+ATC - RxNorm,ATC to RxNorm,0,0,RxNorm - ATC,44818810
+ATC - RxNorm name,ATC to RxNorm equivalent by concept_name (OMOP),0,0,RxNorm - ATC name,44818926
+ATC - RxNorm pr lat,ATC to RxNorm/Extension primary lateral (OMOP),0,0,RxNorm - ATC pr lat,32795
+ATC - RxNorm pr up,ATC to RxNorm/Extension primary upwards (OMOP),0,0,RxNorm - ATC pr up,32799
+ATC - RxNorm sec lat,ATC to RxNorm/Extension secondary lateral (OMOP),0,0,RxNorm - ATC sec lat,32797
+ATC - RxNorm sec up,ATC to RxNorm/Extension secondary upwards (OMOP),0,0,RxNorm - ATC sec up,32801
+ATC - SNOMED eq,ATC to SNOMED equivalent (RxNorm),0,0,SNOMED - ATC eq,45754850
+ATC to VA Class eq,ATC to VA Class equivalent (NDF-RT),0,0,VA Class to ATC eq,45754836
+Absorbability of,Absorbability of (SNOMED),0,0,Has absorbability,33055
+Accepted use of,Accepted use of (HemOnc),0,0,Has accepted use,32787
+Acc device used by,Access device used by (SNOMED),0,0,Using acc device,44818895
+Access of,Access of (SNOMED),0,0,Has access,44818847
+Concept alt_to from,Active alternative_to inactive (SNOMED),0,0,Concept alt_to to,44818961
+Active ing of,Active ingredient of (SNOMED),0,0,Has active ing,44818859
+Metabolite of,Active metabolite of (NDF-RT),1,0,Has metabolites,44818835
+Concept poss_eq from,Active possibly_equivalent_to inactive (SNOMED),0,0,Concept poss_eq to,44818963
+Concept same_as from,Active same_as inactive (SNOMED),0,0,Concept same_as to,44818959
+Concept was_a from,Active was_a inactive (SNOMED),0,0,Concept was_a to,44818965
+AMP of,Actual Medicinal Product of (SNOMED),0,0,Has AMP,45905757
+Answer of,Answer of,0,0,Has Answer,45754684
+Answer of (PPI),Answer of (PPI),0,0,Has answer (PPI),32443
+AB-drug cjgt of,Antibody-drug conjugate of (HemOnc),0,0,Has AB-drug cjgt,33016
+Antineoplastic of,Antineoplastic of (HemOnc),0,0,Has antineoplastic,32617
+Approach of,Approach of (SNOMED),0,0,Has approach,45754821
+Asso finding of,Associated finding of (SNOMED),0,0,Has asso finding,44818868
+Asso morph of,Associated morphology of (SNOMED),0,0,Has asso morph,44818867
+Asso proc of,Associated procedure of (SNOMED),0,0,Has asso proc,44818882
+Asso with finding,Associated with finding (SNOMED),0,0,Finding asso with,44818792
+Basic dose form of,Basic dose form of (SNOMED),0,0,Has basic dose form,581460
+Basis str subst of,Basis of strength substance of (SNOMED),0,0,Has basis str subst,45905750
+Biosimilar of,Biosimilar of,0,0,Has biosimilar,32978
+Brand name of,Brand name of (OMOP),1,0,Has brand name,222
+CAP parent item of,CAP parent item of,0,0,Has CAP parent item,32779
+CAP protocol of,CAP protocol of,0,0,Has CAP protocol,32781
+CAP-Nebraska cat,CAP to Nebraska Lexicon category,0,0,Nebraska-CAP cat,32782
+CAP-Nebraska eq,CAP to Nebraska Lexicon equivalent,0,0,Nebraska-CAP eq,32784
+CAP value of,CAP value of,0,0,Has CAP value,32776
+CMS Specialty - NUCC,CMS Specialty to NUCC (CMS),1,0,NUCC - CMS Specialty,44818935
+CPT4 - SNOMED cat,CPT-4 to SNOMED category (OMOP),1,0,SNOMED cat - CPT4,44818803
+CPT4 - SNOMED eq,CPT-4 to SNOMED equivalent (OMOP),0,0,SNOMED - CPT4 eq,44818804
+CPT4 - CVX eq,CPT4 to CVX equivalent (CVX),0,0,CVX - CPT4 eq,32611
+CPT4 - LOINC eq,CPT4 to LOINC equivalent (SNOMED),0,0,LOINC - CPT4 eq,45956698
+CVX - RxNorm,CVX - RxNorm (OMOP),1,1,RxNorm - CVX,581403
+CVX - CPT4 eq,CVX to CPT4 equivalent (CVX),0,0,CPT4 - CVX eq,32612
+Category in Chapter,Category in Chapter,0,0,Chapter has Category,32952
+Category of,Category of,1,1,Has Category,32975
+Causative agent of,Causative agent of (SNOMED),0,0,Has causative agent,44818866

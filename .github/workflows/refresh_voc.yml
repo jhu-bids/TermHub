@@ -7,7 +7,8 @@ on:
   workflow_dispatch:
 jobs:
   refresh-vocab-tables:
-    runs-on: ubuntu-latest
+    runs-on: BIDS-Premium-Action-Runners
+#    runs-on: ubuntu-latest
     # fail-fast: At least shows "Error: Process completed with exit code 143." instead of "exit code 1", for slightly more information about unexpected exits: https://docs.github.com/en/actions/using-jobs/using-a-matrix-for-your-jobs#handling-failures
     strategy:
       fail-fast: false
@@ -41,5 +42,4 @@ jobs:
           pip install -r requirements.txt
 
       - name: Refresh vocab
-        run: |
-          python backend/db/refresh_dataset_group_tables.py --dataset-group vocab
+        run: make refresh-vocab

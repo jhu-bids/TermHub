@@ -1,6 +1,7 @@
 -- Table: all_csets ----------------------------------------------------------------------------------------------------
 DROP TABLE IF EXISTS {{schema}}all_csets{{optional_suffix}} CASCADE;
 
+DROP TABLE IF EXISTS {{schema}}cset_term_usage_rec_counts;
 CREATE TABLE {{schema}}cset_term_usage_rec_counts AS
     SELECT csm.codeset_id, SUM(cwc.total_cnt) AS total_cnt
     FROM {{schema}}concept_set_members csm

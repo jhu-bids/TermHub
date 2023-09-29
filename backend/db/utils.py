@@ -9,6 +9,7 @@ import json
 import os
 import sys
 import time
+from pathlib import Path
 from random import randint
 
 import pytz
@@ -123,10 +124,10 @@ def refresh_any_dependent_tables(con: Connection, independent_tables: List[str] 
     if not derived_tables:
         print(f'No derived tables found for: {", ".join(independent_tables)}')
         return
-    refresh_derived_tables(con, derived_tables, schema)
+    refresh_derived_tables_exec(con, derived_tables, schema)
 
 
-def refresh_derived_tables(
+def refresh_derived_tables_exec(
     con: Connection, derived_tables_queue: List[str] = CORE_CSET_DEPENDENT_TABLES, schema=SCHEMA
 ):
     """Refresh TermHub core cset derived tables
@@ -169,12 +170,14 @@ def refresh_derived_tables(
 # todo: move this somewhere else, possibly load.py or db_refresh.py
 # todo: what to do if this process fails? any way to roll back? should we?
 # todo: currently has no way of passing 'local' down to db status var funcs
-def refresh_termhub_core_cset_derived_tables(
-    con: Connection, schema=SCHEMA, local=False, polling_interval_seconds: int = 30
+def refresh_derived_tables(
+    con: Connection, independent_tables: List[str] = CORE_CSET_TABLES, schema=SCHEMA, local=False,
+    polling_interval_seconds: int = 30
 ):
     """Refresh TermHub core cset derived tables: wrapper function
 
-    Handles simultaneous requests and try/except for worker function: refresh_termhub_core_cset_derived_tables_exec()"""
+    Handles simultaneous requests and try/except for worker function: refresh_any_dependent_tables() ->
+    refresh_derived_tables_exec()"""
     i = 0
     t0 = datetime.now()
     while True:
@@ -184,9 +187,8 @@ def refresh_termhub_core_cset_derived_tables(
         # As of 2024/01/21 this is now a redundancy. Concerning the main refresh (refresh.py), it won't even begin if
         # ...the derived refresh is active.
         elif is_derived_refresh_active(local):
-            msg = f'Another derived table refresh is active. Waiting {polling_interval_seconds} seconds to try again.' \
-                if i == 0 else '- trying again'
-            print(msg)
+            print(f'Another derived table refresh is active. Waiting {polling_interval_seconds} seconds to try again.' \
+                if i == 1 else '- trying again')
             time.sleep(polling_interval_seconds)
         else:
             try:
@@ -194,8 +196,8 @@ def refresh_termhub_core_cset_derived_tables(
                 # The following two calls yield equivalent results as of 2023/08/08. I've commented out
                 #  refresh_derived_tables() in case anything goes wrong with refresh_any_dependent_tables(), since that
                 #  is based on a heuristic currently, and if anything goes wrong, we may want to switch back. -joeflack4
-                # refresh_derived_tables(con, CORE_CSET_DEPENDENT_TABLES, schema)
-                refresh_any_dependent_tables(con, CORE_CSET_TABLES, schema)
+                # refresh_derived_tables_exec(con, CORE_CSET_DEPENDENT_TABLES, schema)
+                refresh_any_dependent_tables(con, independent_tables, schema)
             finally:
                 update_db_status_var('last_derived_refresh_exited', current_datetime(), local)
             break
@@ -578,7 +580,6 @@ def run_sql(con: Connection, command: str, params: Dict = {}) -> Any:
     return q
 
 
-# todo: should add a 'include_views' param because it is ambiguous as to whether or not this returns views. it does.
 def list_schema_objects(
     con: Connection = None, schema: str = None, filter_views=False, filter_sequences=False,
     filter_temp_refresh_objects=False, filter_tables=False, names_only=False, verbose=True
@@ -637,7 +638,7 @@ def list_views(con: Connection = None, schema: str = None, filter_temp_refresh_v
 
 def load_csv(
     con: Connection, table: str, table_type: str = ['dataset', 'object'][0], replace_rule='replace if diff row count',
-    schema: str = SCHEMA, is_test_table=False, local=False, optional_suffix=''
+    schema: str = SCHEMA, is_test_table=False, local=False, optional_suffix='', path_override: Union[Path, str] = None
 ):
     """Load CSV into table
     :param replace_rule:
@@ -672,51 +673,30 @@ def load_csv(
         return
 
     # Load table
-    path = os.path.join(DATASETS_PATH, f'{table_name_no_suffix}.csv') if table_type == 'dataset' \
-        else os.path.join(OBJECTS_PATH, table, 'latest.csv')
+    path = path_override if path_override else os.path.join(DATASETS_PATH, f'{table_name_no_suffix}.csv') \
+        if table_type == 'dataset' else os.path.join(OBJECTS_PATH, table, 'latest.csv')
     if not os.path.isfile(path):
         print(f'INFO: {path} does not exist; skipping')
         return
-
     df = pd.read_csv(path)
 
-    if is_test_table:
+    # todo: this could be replaced by using path_override and saving some static files with 1 line
+    if is_test_table and not path_override:
         df = df.head(1)
 
     print(f'INFO: loading {schema}.{table} ({len(df)} rows) into {CONFIG["server"]}:{DB}')
     if replace_rule == 'replace if diff row count' and existing_rows == len(df):
         print(f'INFO: {schema}.{table} exists with same number of rows {existing_rows}; leaving it')
         return
-
     if replace_rule == 'finish aborted upload' and existing_rows < len(df):
         print(f'INFO: {schema}.{table} exists with {commify(existing_rows)} rows; uploading remaining {commify(len(df)-existing_rows)} rows');
         df = df.iloc[existing_rows: len(df)]
     else:
-        # print(f'INFO: \nloading {schema}.{table} into {CONFIG["server"]}:{DB}')
-        # Clear data if exists
-        try:
-            con.execute(text(f'DROP TABLE {schema}.{table} CASCADE'))
-        except ProgrammingError:
-            pass
+        con.execute(text(f'DROP TABLE IF EXISTS {schema}.{table} CASCADE'))
 
-    # Load
-    # `schema='termhub_n3c'`: Passed so Joe doesn't get OperationalError('(pymysql.err.OperationalError) (1050,
-    #  "Table \'code_sets\' already exists")')
-    #  https://stackoverflow.com/questions/69906698/pandas-to-sql-gives-table-already-exists-error-with-if-exists-append
-    kwargs = {'if_exists': 'append', 'index': False, 'schema': schema, 'chunksize': 1000}
-    # TODO: add suffix
-
-    # TODO: fix update_db_status_var to add delete_key arg, and then:
-    # update_db_status_var(f'currently_updating_{table}', True, local) before df.to_sql
-    # up above, instead of using replace_rule == 'finish aborted upload', do
-    #   check_db_status_var(f'currently_updating_{table}', local)
-    # then
-    #   delete_db_status_var(f'currently_updating_{table}', local) after df.to_sql
-
-    df.to_sql(table, con, **kwargs)
-
-    update_db_status_var(f'last_updated_{table}', str(current_datetime()), local)
-
+    # - load
+    df.to_sql(table, con, **{'if_exists': 'append', 'index': False, 'schema': schema, 'chunksize': 1000})
+    # - update status
     if not is_test_table:
         update_db_status_var(f'last_updated_{table}', str(current_datetime()), local)
 

@@ -11,8 +11,8 @@ from backend.db.utils import run_sql, sql_query
 from enclave_wrangler.objects_api import fetch_cset_and_member_objects
 from test.test_backend.db.test_utils import FetchAuditTestRunner
 
-TEST_DIR = os.path.dirname(__file__)
-PROJECT_ROOT = Path(TEST_DIR).parent.parent
+THIS_DIR = os.path.dirname(__file__)
+PROJECT_ROOT = Path(THIS_DIR).parent.parent
 sys.path.insert(0, str(PROJECT_ROOT))
 
 
