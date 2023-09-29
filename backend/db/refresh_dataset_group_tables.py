@@ -24,16 +24,16 @@ BACKEND_DIR = os.path.join(DB_DIR, '..')
 PROJECT_ROOT = os.path.join(BACKEND_DIR, '..')
 sys.path.insert(0, str(PROJECT_ROOT))
 from backend.db.utils import SCHEMA, check_db_status_var, get_db_connection, get_ddl_statements, load_csv, \
-    refresh_any_dependent_tables, \
-    run_sql
+    refresh_derived_tables, run_sql
 from enclave_wrangler.config import DATASET_GROUPS_CONFIG
 from enclave_wrangler.datasets import download_datasets, get_last_update_of_dataset
 
 
-def refresh_voc_and_counts(skip_downloads: bool = False, schema=SCHEMA):
+def refresh_voc_and_counts(dataset_group: List[str], skip_downloads: bool = False, schema=SCHEMA):
     """Refresh vocabulary and counts tables."""
     print('Refreshing vocabulary and counts tables.')
-    for group_name, config in DATASET_GROUPS_CONFIG.items():
+    selected_configs = {k: v for k, v in DATASET_GROUPS_CONFIG.items() if k in dataset_group}
+    for group_name, config in selected_configs.items():
         print(f'\nRefreshing {group_name} tables...')
         # Check if tables are already up to date
         last_updated_us: str = check_db_status_var(config['last_updated_termhub_var'])
@@ -54,24 +54,30 @@ def refresh_voc_and_counts(skip_downloads: bool = False, schema=SCHEMA):
                 load_csv(con, table, replace_rule='do not replace', schema=SCHEMA, optional_suffix='_new')
                 run_sql(con, f'ALTER TABLE IF EXISTS {schema}.{table} RENAME TO {table}_old;')
                 run_sql(con, f'ALTER TABLE {schema}.{table}_new RENAME TO {table};')
-                run_sql(con, f'DROP TABLE IF EXISTS {schema}.{table}_old;')
+
                 t1 = datetime.now()
                 print(f'   done in {(t1 - t0).seconds} seconds')
                 # todo: set variable for 'last updated' for each table (look at load())
                 #  - consider: check if table already updated sooner than last_updated_them. if so, skip. and add a param to CLI for this
             print('Creating indexes')
-            statements: List[str] = get_ddl_statements(schema, ['indexes'], 'flat')
+            statements: List[str] = get_ddl_statements(schema, ['indexes'], return_type='flat')
             for statement in statements:
                 run_sql(con, statement)
-            # print('Recreating derived tables')  # printed w/in refresh_derived_tables()
-            refresh_any_dependent_tables(con, config['tables'])
-
+            print('Recreating derived tables')
+            refresh_derived_tables(con, config['tables'], schema)
+            print('Deleting old, temporarily backed up versions of tables')
+            for table in config['tables']:
+                run_sql(con, f'DROP TABLE IF EXISTS {schema}.{table}_old;')
     print('Done')
 
 
 def cli():
     """Command line interface"""
     parser = ArgumentParser(prog='Refresh vocabulary and counts tables.')
+    parser.add_argument(
+        '-d', '--dataset-group', nargs='+', choices=list(DATASET_GROUPS_CONFIG.keys()),
+        default=list(DATASET_GROUPS_CONFIG.keys()),
+        help='Names of dataset/table groups to refresh.')
     parser.add_argument(
         '-s', '--skip-downloads', action='store_true',
         help='Use if you have already downloaded updated files.')

@@ -122,10 +122,10 @@ def refresh_any_dependent_tables(con: Connection, independent_tables: List[str] 
     if not derived_tables:
         print(f'No derived tables found for: {", ".join(independent_tables)}')
         return
-    refresh_derived_tables(con, derived_tables, schema)
+    refresh_derived_tables_exec(con, derived_tables, schema)
 
 
-def refresh_derived_tables(
+def refresh_derived_tables_exec(
     con: Connection, derived_tables_queue: List[str] = CORE_CSET_DEPENDENT_TABLES, schema=SCHEMA
 ):
     """Refresh TermHub core cset derived tables
@@ -165,7 +165,10 @@ def refresh_derived_tables(
 # todo: move this somewhere else, possibly load.py or db_refresh.py
 # todo: what to do if this process fails? any way to roll back? should we?
 # todo: currently has no way of passing 'local' down to db status var funcs
-def refresh_termhub_core_cset_derived_tables(con: Connection, schema=SCHEMA, polling_interval_seconds: int = 30):
+def refresh_derived_tables(
+    con: Connection, independent_tables: List[str] = CORE_CSET_TABLES, schema=SCHEMA,
+    polling_interval_seconds: int = 30
+):
     """Refresh TermHub core cset derived tables: wrapper function
 
     Handles simultaneous requests and try/except for worker function: refresh_termhub_core_cset_derived_tables_exec()"""
@@ -176,9 +179,8 @@ def refresh_termhub_core_cset_derived_tables(con: Connection, schema=SCHEMA, pol
         if (datetime.now() - t0).total_seconds() >= 2 * 60 * 60:  # 2 hours
             raise RuntimeError('Timed out after waiting 2 hours for other active derived table refresh to complete.')
         elif check_db_status_var('derived_tables_refresh_status') == 'active':
-            msg = f'Another derived table refresh is active. Waiting {polling_interval_seconds} seconds to try again.' \
-                if i == 0 else '- trying again'
-            print(msg)
+            print(f'Another derived table refresh is active. Waiting {polling_interval_seconds} seconds to try again.' \
+                if i == 1 else '- trying again')
             time.sleep(polling_interval_seconds)
         else:
             try:
@@ -186,8 +188,8 @@ def refresh_termhub_core_cset_derived_tables(con: Connection, schema=SCHEMA, pol
                 # The following two calls yield equivalent results as of 2023/08/08. I've commented out
                 #  refresh_derived_tables() in case anything goes wrong with refresh_any_dependent_tables(), since that
                 #  is based on a heuristic currently, and if anything goes wrong, we may want to switch back. -joeflack4
-                # refresh_derived_tables(con, CORE_CSET_DEPENDENT_TABLES, schema)
-                refresh_any_dependent_tables(con, CORE_CSET_TABLES, schema)
+                # refresh_derived_tables_exec(con, CORE_CSET_DEPENDENT_TABLES, schema)
+                refresh_any_dependent_tables(con, independent_tables, schema)
             finally:
                 update_db_status_var('derived_tables_refresh_status', 'inactive')
             break
@@ -220,12 +222,6 @@ def get_db_connection(isolation_level='AUTOCOMMIT', schema: str = SCHEMA, local=
         dbapi_connection.autocommit = existing_autocommit
 
     return engine.connect()
-
-
-def chunk_list(input_list: List, chunk_size) -> List[List]:
-    """Split a list into chunks"""
-    for i in range(0, len(input_list), chunk_size):
-        yield input_list[i:i + chunk_size]
 
 
 def current_datetime(time_zone=['UTC/GMT', 'EST/EDT'][1]) -> str:

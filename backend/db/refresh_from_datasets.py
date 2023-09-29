@@ -105,7 +105,8 @@ def cli():
     parser.add_argument(
         '-l', '--use-local-db', action='store_true', default=False, help='Use local database instead of server.')
     parser.add_argument(
-        '-z', '--run-final-ddl-only', action='store_true', default=False, help='Only run indexes_and_derived_tables (ddl.jinja.sql).')
+        '-z', '--run-final-ddl-only', action='store_true', default=False,
+        help='Only run indexes_and_derived_tables (ddl.jinja.sql).')
     reset_and_update_db(**vars(parser.parse_args()))
 
 

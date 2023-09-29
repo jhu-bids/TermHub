@@ -17,7 +17,7 @@ sys.path.insert(0, str(PROJECT_ROOT))
 from enclave_wrangler.objects_api import concept_set_members__from_csets_and_members_to_db, \
     fetch_cset_and_member_objects
 from backend.db.utils import SCHEMA, fetch_status_set_success, get_db_connection, select_failed_fetches, \
-    refresh_termhub_core_cset_derived_tables
+    refresh_derived_tables
 
 DESC = "Resolve any failures resulting from fetching data from the Enclave's objects API."
 
@@ -78,7 +78,7 @@ def resolve_fetch_failures_0_members(
         if success_cases:
             with get_db_connection(schema=schema, local=use_local_db) as con:
                 concept_set_members__from_csets_and_members_to_db(con, csets_and_members)
-                refresh_termhub_core_cset_derived_tables(con)
+                refresh_derived_tables(con)
 
         # Report success
         if success_cases:
