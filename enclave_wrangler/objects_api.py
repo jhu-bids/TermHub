@@ -14,9 +14,11 @@ TODO's
 """
 import json
 import os
+import sys
 from argparse import ArgumentParser
 
 from datetime import datetime
+from pathlib import Path
 from typing import List, Dict, Set, Tuple, Union
 from urllib.parse import quote
 
@@ -26,6 +28,9 @@ from requests import Response
 from sqlalchemy.engine.base import Connection
 from typeguard import typechecked
 
+THIS_DIR = Path(os.path.abspath(os.path.dirname(__file__)))
+PROJECT_ROOT = THIS_DIR.parent
+sys.path.insert(0, str(PROJECT_ROOT))
 from enclave_wrangler.config import OBJECT_REGISTRY, OUTDIR_OBJECTS, OUTDIR_CSET_JSON, config
 from enclave_wrangler.utils import EnclavePaginationLimitErr, enclave_get, enclave_post, fetch_objects_since_datetime, \
     get_objects_df, get_url_from_api_path, \
@@ -348,7 +353,10 @@ def find_and_add_missing_csets_to_db(con: Connection = None, schema=SCHEMA):
     """Find and add missing concept sets to the DB"""
     con = con if con else get_db_connection(schema=schema)
     cset_ids: List[int] = list(find_termhub_missing_csets(con))
-    add_missing_csets_to_db(cset_ids, con, schema)
+    if cset_ids:
+        add_missing_csets_to_db(cset_ids, con, schema)
+    else:
+        print('No missing csets found.')
 
 
 def fetch_cset_and_member_objects(
