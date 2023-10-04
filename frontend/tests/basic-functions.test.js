@@ -1,10 +1,5 @@
 /* eslint-disable */
-/* # TermHub frontend tests
-
-## Environments
-Environments are specific setups / deployments where we want to run our tests, e.g. local / dev / prod. This information
-is passed to the test script via a hyphen-delimited environmental variable, e.g. `ENVIRONMENTS=local-dev-prod npx
-playwright test`, where  dev is short for 'development' and prod is short for 'production'.
+/* # TermHub basic frontend tests
 
 ## todo's: optimizations
     - Running on different deployments
@@ -14,38 +9,22 @@ playwright test`, where  dev is short for 'development' and prod is short for 'p
     (d) playwright.config.js? - (didn't work; kinda makes sense since that url doesn't get passed)
 */
 // @ts-check
+
+import {selectedConfigs, deploymentConfigs} from "./setup-test-environments";
+
 const { test, expect } = require('@playwright/test');
 
-// Config --------------------------------------------------------------------------------------------------------------
-const deploymentConfigs = {
-  local: 'http://127.0.0.1:3000',
-  dev: 'https://icy-ground-0416a040f.2.azurestaticapps.net',
-  prod: 'https://purple-plant-0f4023d0f.2.azurestaticapps.net',
-};
-
-// CLI --------------------------------------------------------------------------------------------------------------
-// https://playwright.dev/docs/test-parameterize
-let envsString = 'local-dev-prod';
-if (process.env.ENVIRONMENTS) {
-  envsString = process.env.ENVIRONMENTS;
-}
-
-const envs = envsString.split("-");
-let selectedConfigs = {};
-for (let key in deploymentConfigs) {
-  if (envs.includes(key)) {
-    selectedConfigs[key] = deploymentConfigs[key];
-  }
-}
-
 // setUp ---------------------------------------------------------------------------------------------------------------
+/* this doesn't do anything
 test.beforeAll(async () => {
   test.setTimeout(10000);  // 10 seconds
 });
+*/
 
 // Tests ---------------------------------------------------------------------------------------------------------------
 for (const envName in selectedConfigs) {
   const appUrl = deploymentConfigs[envName];
+  console.log('testing ' + appUrl);
   test(envName + ': ' + 'Main page - has title & heading', async ({ page }) => {
     await page.goto(appUrl);
     await expect(page).toHaveTitle(/TermHub/);  // Expect a title "to contain" a substring.
