@@ -624,3 +624,24 @@ def get_ddl_statements(
         elif return_type == 'nested':
             statements_by_module[f'{i+1}-{module}'] = module_statements
     return statements if return_type == 'flat' else statements_by_module
+
+
+def delete_codesets_from_db(codeset_ids):
+    """ Delete codesets from db
+        TODO: finish working on this. addresses #571 / #521
+              for each codeset_id will need to:
+                - get concept_set_name
+                - delete record from code_sets table
+                - delete associated concept_set_members and concept_set_version_item records
+                - determine whether container has any remaining code_sets (versions)
+                  attached to it, if not, delete container
+                - regenerate derived tables (all_csets, csets_members_items, etc.)
+    """
+    with get_db_connection() as con:
+        code_sets_to_be_deleted = sql_query(
+            con, f"""SELECT codeset_id, concept_set_name FROM code_sets WHERE id
+    """
+    with get_db_connection() as con:
+        code_sets_to_be_deleted = sql_query(
+            con, f"""SELECT codeset_id, concept_set_name FROM code_sets WHERE id IN ({codeset_ids.sql_format()})"""
+                                            )

@@ -173,18 +173,13 @@ function App(props) {
   return (
     <ThemeProvider theme={theme}>
       {/*{ sp.login ? <EnclaveAuthTest /> : null }*/}
-      {/*
-        <Box sx={{backgroundColor: '#EEE', border: '2px solid green', minWidth: '200px', minHeight: '200px'}} >
-          // <ContentItems/>
-        </Box>
-        */}
       <div className="App">
         {/* <ReactQueryDevtools initialIsOpen={false} />*/}
         <MuiAppBar>
-          {/* Outlet: Will render the results of whatever nested route has been clicked/activated. */}
         </MuiAppBar>
         { alertsComponent }
         <Outlet />
+        {/* Outlet will render the results of whatever nested route has been clicked/activated. */}
       </div>
     </ThemeProvider>
   );

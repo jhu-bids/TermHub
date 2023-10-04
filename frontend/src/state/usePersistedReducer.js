@@ -41,7 +41,7 @@ export const usePersistedReducer = (reducer, initialState, key, storage, unpersi
 
 // meant to be usable with localStorage or url query param storage, which needs
 //  to be small and acts weird when trying to throw initialState onto it, so
-//  allowing unpersistedDefaultState as an alternative
+//  allowing unpersistedDefaultState as an alternative to initialState
 const createStorage = (provider, unpersistedDefaultState) => ({
   get(key, initialState) {
     let ret;

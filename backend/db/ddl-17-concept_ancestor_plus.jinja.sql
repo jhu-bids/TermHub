@@ -6,12 +6,15 @@ CREATE TABLE IF NOT EXISTS {{schema}}concept_ancestor_plus{{optional_suffix}} AS
           c1.vocabulary_id AS vocabulary_id_a
         , ca.ancestor_concept_id
         , c1.concept_name AS concept_name_a
+        /*
         , c1.concept_class_id AS concept_class_id_a
         , c1.total_cnt AS total_cnt_a
         -- , ca.min_levels_of_separation
+        */
         , c2.vocabulary_id AS vocabulary_id_d
         , ca.descendant_concept_id
         , c2.concept_name AS concept_name_d
+        , c2.standard_concept AS standard_concept_b
         , c2.total_cnt AS total_cnt_d
         , c2.concept_class_id AS concept_class_id_d
     FROM {{schema}}concept_ancestor ca

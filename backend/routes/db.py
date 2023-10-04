@@ -630,7 +630,7 @@ def ad_hoc_test_1():
     """Misc test"""
     terms = ['Renal failure', 'Cyst of kidney']
 
-# @router.get('/test-auth')
+# @router.get('/test-auth')     # ended up using front end auth instead of this
 # def test_auth():
 #     # https://unite.nih.gov/workspace/developer-console/app/ri.third-party-applications.main.application.e2074643-b399-46ef-82bb-ae403a298a6a/sdk/install?packageType=pypi&language=Python
 #
