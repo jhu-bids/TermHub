@@ -639,9 +639,5 @@ def delete_codesets_from_db(codeset_ids):
     """
     with get_db_connection() as con:
         code_sets_to_be_deleted = sql_query(
-            con, f"""SELECT codeset_id, concept_set_name FROM code_sets WHERE id
-    """
-    with get_db_connection() as con:
-        code_sets_to_be_deleted = sql_query(
             con, f"""SELECT codeset_id, concept_set_name FROM code_sets WHERE id IN ({codeset_ids.sql_format()})"""
-                                            )
+        )
