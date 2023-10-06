@@ -201,6 +201,7 @@ export default function MuiAppBar() {
       {pages.map((page) => {
         let button = (
           <Button
+            data-testid={page.name}
             disabled={page.disable}
             key={page.name}
             // selected={page.href === window.location.pathname}

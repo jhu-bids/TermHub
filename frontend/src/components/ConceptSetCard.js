@@ -81,8 +81,9 @@ export function ConceptSetCard(props) {
   let tags = [];
   let display_props = {};
   let enclaveLink;
-  display_props["Code set ID"] = cset.codeset_id;
+  // display_props["Code set ID"] = cset.codeset_id;
   let intention = [];
+  // display_props["Code set ID"] = cset.codeset_id; // moved below in order to add data-testid
   if (cset.container_intention) {
     display_props["Container intention"] = cset.container_intention;
   }
@@ -243,6 +244,9 @@ export function ConceptSetCard(props) {
         }
         <Typography variant="body2" color="text.primary" gutterBottom>
           {tags.join(", ")}
+        </Typography>
+        <Typography variant="body2" color="text.secondary" sx={{ overflow: "clip" }} >
+          <strong>Codeset ID</strong>: <span data-testid={"codeset_id-" + cset.codeset_id }>{cset.codeset_id}</span>
         </Typography>
         {Object.keys(display_props).map((pkey) => (
             <Typography variant="body2" color="text.secondary" key={pkey} sx={{ overflow: "clip" }} >

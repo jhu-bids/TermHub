@@ -349,6 +349,7 @@ function CsetComparisonPage() {
   };
   return (
     <div>
+      <span data-testid="comp-page-loading"></span>
       {csetCard}
       <Box
           ref={infoPanelRef}
@@ -370,6 +371,7 @@ function CsetComparisonPage() {
         </Typography> */}
       </Box>
       <ComparisonDataTable /*squishTo={squishTo}*/ {...sendProps} />
+      <span data-testid="comp-page-loaded"></span>
     </div>
   );
 }

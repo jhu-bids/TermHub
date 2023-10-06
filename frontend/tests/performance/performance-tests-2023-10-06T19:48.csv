@@ -1,0 +1,19 @@
+name	status	duration	errors	testName	testType	codeset_ids	run_how	envName	page	startLimit	startTotal	startUsed	startcacheLength	startcacheHistory	searchLoaded	searchLoadedUsed	searchLoadedcacheLength	searchLoadedcacheHistory	searchLoadedcsets	searchLoadedcodeset_ids_by_concept_id	searchLoadedall_csets	searchLoadedresearchers	comparisonLoaded	comparisonLoadedUsed	comparisonLoadedcacheLength	comparisonLoadedcacheHistory	comparisonLoadedcsets	comparisonLoadedcodeset_ids_by_concept_id	comparisonLoadedall_csets	comparisonLoadedresearchers	comparisonLoadededges	comparisonLoadedcset_members_items	comparisonLoadedconcepts	comparisonLoadedwhoami
+single-small	passed	8,853		single-small	single small	1000002363	playwright	local	search	4,294,705,152	82,884,371	74,287,155	0	1	7,827.225	168,139,262	957,722	7	1	321	7,051	1	943.735	178,177,502	957,722	7	1	321	7,051	1	1	1	85	3
+many-small	passed	15,608		many-small	many small	1000002363, 1000002657, 1000007602, 1000013397, 1000010688, 1000015307, 1000031299	playwright	local	search	4,294,705,152	302,264,902	280,765,226	0	1	8,639.311	221,663,906	1,233,973	5	7	526	7,051	7	6,883.947	221,913,017	1,247,147	11	7	526	7,051	7	1	7	193	3
+Sulfonylureas	passed	37,428		Sulfonylureas	mixed 6000 to 21000	417730759, 423850600, 966671711, 577774492	playwright	local	search	4,294,705,152	268,190,366	252,764,854	0	1	14,035.715	281,229,965	1,632,269	9	4	21,502	7,051	1	23,276.393	554,017,782	2,511,664	15	4	21,502	7,051	1	1	4	21,378	3
+autoimmune 1	passed	31,780		autoimmune 1	single 2000	101398605	playwright	local	search	4,294,705,152	573,388,828	546,645,128	0	1	14,134.212	489,315,838	2,099,009	7	1	3,254	7,051	1	17,481.197	819,138,698	2,198,826	13	1	3,254	7,051	1	1	1	2,633	3
+autoimmune 2	failed	92,025	[31mTimed out 60000ms waiting for [39m[2mexpect([22m[31mreceived[39m[2m).[22mtoBeAttached[2m()[22m
+Call log:
+  [2m- expect.toBeAttached with timeout 60000ms[22m
+[2m  - waiting for locator('[data-testid=comp-page-loading]')[22m
+
+antibiotics 1	failed	144,079	[31mTimed out 60000ms waiting for [39m[2mexpect([22m[31mreceived[39m[2m).[22mtoBeAttached[2m()[22m
+Call log:
+  [2m- expect.toBeAttached with timeout 60000ms[22m
+[2m  - waiting for locator('[data-testid=comp-page-loading]')[22m
+
+single-small-second-time	failed	27,105	Page crashed
+=========================== logs ===========================
+navigating to "about:blank", waiting until "load"
+============================================================
