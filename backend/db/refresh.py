@@ -27,7 +27,7 @@ SINCE_ERR = '--since is more recent than the database\'s record of last refresh,
 # todo: What if 'since' is passed, but it is not the same date or before 'last_updated' in db? should print warning
 def refresh_db(
     since: Union[datetime, str] = None, use_local_db=False,  schema: str = CONFIG['schema'],
-    force_non_contiguity=False, buffer_hours=48
+    force_non_contiguity=False, buffer_hours=0
 ):
     """Refresh the database
 
