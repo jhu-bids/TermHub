@@ -97,7 +97,7 @@ def cli():
         '-l', '--use-local-db', action='store_true', default=False, required=False,
         help='Use local database instead of server.')
     parser.add_argument(
-        '-b', '--buffer-hours', default=48, required=False,
+        '-b', '--buffer-hours', default=0, required=False,  # we were defaulting to 48 for a while
         help='An additional period of time before "since" to fetch additional data, as a failsafe measure in case of '
              'possible API unreliability')
     parser.add_argument(
