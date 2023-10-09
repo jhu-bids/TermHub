@@ -38,24 +38,25 @@ const tests = parse(tests_csv, {columns: true, skip_empty_lines: true});
 const run_how = 'playwright';
 const code_being_tested = 'develop:ba7fc6e no performance optimizations';
 
-async function getMem(page, prefix) {
-  const mem = await page.evaluate(([prefix]) => {
+async function getMem(page, prefix, fields) {
+  const mem = await page.evaluate(([prefix, fields]) => {
     // @ts-ignore
     // @ts-ignore
     const {jsHeapSizeLimit, totalJSHeapSize, usedJSHeapSize} = window.performance.memory;
-    const stuff = {
-      [prefix+'Limit']: jsHeapSizeLimit,
-      [prefix+'Total']: totalJSHeapSize,
-      [prefix+'Used']: usedJSHeapSize,
-      [prefix+'cacheLength']: (localStorage.dataCache || '').length,
-    };
+    let stuff = {};
+    if (fields.includes('limit')) stuff[prefix+'Limit'] = jsHeapSizeLimit;
+    if (fields.includes('used')) stuff[prefix+'Used'] = usedJSHeapSize;
+      // [prefix+'Total']: totalJSHeapSize,
+      //[prefix+'cacheLength']: (localStorage.dataCache || '').length,
+    /*
     // @ts-ignore
     const wc = window.dataCacheW.getWholeCache();
     for (const prop in wc) {
       stuff[prefix+prop] = Object.keys(wc[prop]).length;
     }
+    */
     return stuff;
-  }, [prefix]);
+  }, [prefix, fields]);
   return mem;
 }
 
@@ -73,17 +74,22 @@ for (const csets_test of tests) {
        */
 
       let report = {
-        testName, testType, codeset_ids, run_how, envName,
-        page: 'search',
+        stepCompleted: 'start',
+        testType, codeset_ids, run_how, envName,
       }
+      testInfo.attach('report', {body: JSON.stringify(report), contentType: 'application/json'})
 
       performance.mark('start');
       await page.goto(appUrl);
+      report.stepCompleted = 'homepage';
+      testInfo.attach('report', {body: JSON.stringify(report), contentType: 'application/json'})
       // await page.evaluate(() => (window.performance.mark('start-async')))
+      performance.mark('homepage');
       let memStart = {};
-      memStart = await getMem(page, 'start');
+      memStart = await getMem(page, 'homepage', ['limit','used']);
       // const [startLimit, startTotal, startUsed] = memStuff;
       report = {...report, ...memStart };
+      testInfo.attach('report', {body: JSON.stringify(report), contentType: 'application/json'})
 
       let pageUrl = `${appUrl}/OMOPConceptSets?${codeset_ids.map(d => `codeset_ids=${d}`).join("&")}`
       await page.goto(pageUrl);
@@ -100,12 +106,14 @@ for (const csets_test of tests) {
       performance.mark('search page loaded');
       const searchLoaded = performance.measure("searchLoaded", "start", "search page loaded");
       report.searchLoaded = searchLoaded.duration;
-      memStart = await getMem(page, 'searchLoaded');
+      memStart = await getMem(page, 'searchLoaded', ['used']);
       delete memStart.searchLoadedLimit;
       delete memStart.searchLoadedTotal;
       report = {...report, ...memStart };
+      report.stepCompleted = 'searchLoaded';
+      testInfo.attach('report', {body: JSON.stringify(report), contentType: 'application/json'})
 
-      page.setDefaultTimeout(120000);
+      // page.setDefaultTimeout(120000); // already did this, but maybe it needs doing again? or not?
 
       const compPageLink = await page.waitForSelector('[data-testid="Cset comparison"]');
       await compPageLink.click();
@@ -117,13 +125,14 @@ for (const csets_test of tests) {
       performance.mark('comparison page loaded');
       const comparisonLoaded = performance.measure("comparisonLoaded", "search page loaded", "comparison page loaded");
       report.comparisonLoaded = comparisonLoaded.duration;
-      memStart = await getMem(page, 'comparisonLoaded');
+      memStart = await getMem(page, 'comparisonLoaded', ['used']);
       delete memStart.comparisonLoadedLimit;
       delete memStart.comparisonLoadedTotal;
       report = {...report, ...memStart };
+      report.stepCompleted = 'comparisonLoaded';
 
       // testInfo.attach('search loaded', {body: rptKeys + '\n' + rptVals, contentType: 'text/plain'});
-      testInfo.attach('search-loaded', {body: JSON.stringify(report), contentType: 'application/json'})
+      testInfo.attach('report', {body: JSON.stringify(report), contentType: 'application/json'})
 
       //Performance measure
       // await page.evaluate(() => (window.performance.measure("overall", "Perf:Started", "Perf:Ended")))

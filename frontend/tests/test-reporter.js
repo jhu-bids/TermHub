@@ -20,6 +20,12 @@ function writeToLog(fname, content) {
         console.log('appended result to test log');
     });
 }
+function stripAnsiCodes(text) { // Remove ANSI escape codes
+  // return text.replace(/\x1B[[(?);]*[0-9A-Za-z]/g, '');
+  // got that from chatgpt, doesn't work here...trying a variation
+  return text.replace(/\x1B\[[0-9]+m/g, '');
+}
+
 
 // /** @implements {import('@playwright/test/reporter').Reporter} */
 class MyReporter {
@@ -47,18 +53,18 @@ class MyReporter {
       if (status !== 'passed') {
         console.log(result);
       }
-      errors = errors.map(e => e.message).join('; ');
+      errors = '"' + errors.map(e => stripAnsiCodes(e.message)).join('; ') + '"';
       console.log(`Finished test ${test.title}: ${result.status}`);
       let reportLine = {name: test.title, status, duration, errors};
-      for (const a of result.attachments) {
-        reportLine = {...reportLine, ...JSON.parse(a.body.toString())};
+      // for (const a of result.attachments) { }
+      const a = result.attachments[result.attachments.length - 1];
+      reportLine = {...reportLine, ...JSON.parse(a.body.toString())};
 
-        if (!this.headerWritten) {
-            this.cols = Object.keys(reportLine);
-            let csvHeader = this.cols.join('\t') + '\n';
-            writeToLog(this.logName, csvHeader);
-            this.headerWritten = true;
-        }
+      if (!this.headerWritten) {
+          this.cols = Object.keys(reportLine);
+          let csvHeader = this.cols.join('\t') + '\n';
+          writeToLog(this.logName, csvHeader);
+          this.headerWritten = true;
       }
       let csvLine = '';
       csvLine += this.cols.map(c => reportLine[c]).filter(d => typeof(d) !== 'undefined').map(d => d.toLocaleString()).join('\t') + '\n';
