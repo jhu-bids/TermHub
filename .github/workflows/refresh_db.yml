@@ -52,12 +52,11 @@ jobs:
         uses: stefanzweifel/git-auto-commit-action@v4
         with:
           commit_message: Updating documentation in docs/backend/db/analysis.md
-      # todo: Temporarily leaving this commented out here until we verify that root cause  of missing csets(
-      #   https://github.com/jhu-bids/TermHub/issues/573) has been resolved (likely through
-      #   https://github.com/jhu-bids/TermHub/issues/574)
-#      - name: Fetch missing csets
-#        run: make fetch-missing-csets
-
+      # todo: This should not be necessary, but some csets still not being fetched. Some thoughts in related issues:
+      #   https://github.com/jhu-bids/TermHub/issues/573
+      #   https://github.com/jhu-bids/TermHub/issues/574
+      - name: Fetch missing csets
+        run: make fetch-missing-csets
       # Test
       # todo: add more tests, ideally
       - name: Test missing csets
