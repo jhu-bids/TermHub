@@ -337,8 +337,13 @@ def get_bidirectional_csets_sets(con: Connection = None) -> Tuple[Set[int], Set[
     archived_container_names = [container['properties']['conceptSetName'] for container in archived_containers]
     enclave_codesets = [
         cset for cset in enclave_codesets
-        if 'conceptSetNameOMOP' in cset.keys()
-           and not cset['conceptSetNameOMOP'] in archived_container_names]
+        if 'conceptSetNameOMOP' in cset.keys()  # why is it missing sometimes? old data model?
+        # - Filter any old drafts from sourceApplicationVersion 1.0. Old data model. No containers, etc. See also:
+        #  https://github.com/jhu-bids/TermHub/actions/runs/6489411749/job/17623626419
+        and cset['conceptSetNameOMOP']
+        and not cset['conceptSetNameOMOP'] in archived_container_names
+    ]
+
     enclave_codeset_ids: Set[int] = set([cset['codesetId'] for cset in enclave_codesets])
     return db_codeset_ids, enclave_codeset_ids
 
@@ -407,6 +412,9 @@ def fetch_cset_and_member_objects(
         cset_versions: List[Dict] = [fetch_cset_version(_id, retain_properties_nesting=True) for _id in codeset_ids]
     else:
         cset_versions: List[Dict] = fetch_objects_since_datetime('OMOPConceptSet', since, verbose)
+    # - Filter any old drafts from sourceApplicationVersion 1.0. Old data model. No containers, etc. See also:
+    #  https://github.com/jhu-bids/TermHub/actions/runs/6489411749/job/17623626419
+    cset_versions = [x for x in cset_versions if x['properties']['conceptSetNameOMOP']]
     print(f'   - retrieved {len(cset_versions)} versions')
 
     # Containers
