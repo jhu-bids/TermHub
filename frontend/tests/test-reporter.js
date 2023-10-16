@@ -1,6 +1,7 @@
 // @ts-check
 
 const fs = require('fs');
+const {isEmpty} = require('lodash');
 const LOGDIR = process.cwd() + '/tests/performance';
 
 /*
@@ -14,11 +15,14 @@ cols.concat([   // available in onTestEnd
 */
 
 function writeToLog(fname, content) {
+    fs.appendFileSync(fname, content);
+    /*
     fs.appendFile(fname, content,
         (err) => {
         if (err) throw err;
         console.log('appended result to test log');
     });
+    */
 }
 function stripAnsiCodes(text) { // Remove ANSI escape codes
   // return text.replace(/\x1B[[(?);]*[0-9A-Za-z]/g, '');
@@ -50,15 +54,27 @@ class MyReporter {
 
     onTestEnd(test, result) {
       let {status, duration, errors} = result;
+      duration = duration / 1000; // convert from milliseconds to seconds
       if (status !== 'passed') {
         console.log(result);
       }
-      errors = '"' + errors.map(e => stripAnsiCodes(e.message)).join('; ') + '"';
+      errors = errors.map(e => stripAnsiCodes(e.message)).join('; ');
+      errors.replaceAll('"', "'");
+      errors = `"${errors}"`;
       console.log(`Finished test ${test.title}: ${result.status}`);
       let reportLine = {name: test.title, status, duration, errors};
       // for (const a of result.attachments) { }
-      const a = result.attachments[result.attachments.length - 1];
-      reportLine = {...reportLine, ...JSON.parse(a.body.toString())};
+      let attachmentJson = '', attachmentObj = {};
+      if ( (result.attachments || []).length > 0) {
+        const a = result.attachments[result.attachments.length - 1];
+        attachmentJson = (a.body && a.body.toString());
+        attachmentObj = attachmentJson && JSON.parse(attachmentJson) || {};
+      }
+      if (isEmpty(attachmentObj)) {
+        console.log("why no attachments?");
+        // debugger;
+      }
+      reportLine = {...reportLine, ...attachmentObj};
 
       if (!this.headerWritten) {
           this.cols = Object.keys(reportLine);
@@ -67,7 +83,7 @@ class MyReporter {
           this.headerWritten = true;
       }
       let csvLine = '';
-      csvLine += this.cols.map(c => reportLine[c]).filter(d => typeof(d) !== 'undefined').map(d => d.toLocaleString()).join('\t') + '\n';
+      csvLine += this.cols.map(c => reportLine[c]).map(d => typeof(d) === 'undefined' ? '' : d.toLocaleString()).join('\t') + '\n';
       console.log(csvLine);
       writeToLog(this.logName, csvLine);
     }

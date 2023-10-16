@@ -2,6 +2,7 @@ import {createContext, useContext,} from "react";
 import {LRUCache} from 'lru-cache'; // https://isaacs.github.io/node-lru-cache
 import {debounce, get, isEmpty, setWith, } from 'lodash';
 import {compress, decompress} from "lz-string";
+import {useSearchParamsState} from "./SearchParamsProvider";
 
 /*
 		TODO: get LRU cache working, one cache for each itemType, probably
@@ -11,7 +12,9 @@ import {compress, decompress} from "lz-string";
 const DataCacheContext = createContext(null);
 
 export function DataCacheProvider({children}) {
-	const dataCache = new DataCache();
+	const {sp} = useSearchParamsState();
+	const {optimization_experiment} = sp;
+	const dataCache = new DataCache({optimization_experiment});
 	window.addEventListener("beforeunload", dataCache.saveCache);
 	window.dataCacheW = dataCache; // for debugging
 
@@ -29,7 +32,8 @@ export function useDataCache() {
 class DataCache {
 	#cache = {};
 
-	constructor() {
+	constructor(opts) {
+		this.optimization_experiment = opts.optimization_experiment;
 		this.loadCache();
 	}
 
@@ -142,6 +146,13 @@ class DataCache {
 	}
 
 	cachePut(path, value, save=true) {
+		// console.log(`ignoring cachePut ${path}`);
+		// console.log(`ignoring cachePut ${path.map(p => p.substring(0, 40)).join('/')}`);
+
+		if (this.optimization_experiment === 'no_cache') {
+			return;
+		}
+
 		let [parentPath, parentObj,] = this.popLastPathKey(path);
 		/*
 		if (isEmpty(parentObj)) {

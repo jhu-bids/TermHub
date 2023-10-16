@@ -40,6 +40,23 @@ for (let key in deploymentConfigs) {
   }
 }
 
+export class ReportStash {
+  data = {
+    firstCols: {},
+    durations: {},
+
+  }
+  constructor() { }
+  stash() {
+    this.firstCols = { stepCompleted: 'start', };
+    this.lastCols = { testType, run_how, envName, }
+    durations = {};
+    mem = {};
+    report = {...firstCols, ...lastCols};
+  }
+}
+
+/*
 export function logTestResult(result) {
   const resultLine = '|' + Object.values(result).join('|') + '|';
   fs.appendFile('../test-results/performance-test-log.md', resultLine,
@@ -48,3 +65,4 @@ export function logTestResult(result) {
           console.log('appended result to test log');
         });
 }
+*/
