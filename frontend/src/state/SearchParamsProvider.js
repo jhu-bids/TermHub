@@ -3,7 +3,7 @@ import {createSearchParams, useSearchParams, /* useLocation, Navigate, */ } from
 // import {isEmpty} from "lodash";
 
 const SEARCH_PARAM_STATE_CONFIG = {
-  scalars: ["editCodesetId", "sort_json", "use_example", "sstorage", "show_alerts"],
+  scalars: ["editCodesetId", "sort_json", "use_example", "sstorage", "show_alerts", "optimization_experiment"],
   global_props_but_not_search_params: [], // ["searchParams", "setSearchParams"],
   // ignore: ["sstorage"],
   serialize: ["newCset", "hierarchySettings"],
