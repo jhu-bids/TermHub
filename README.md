@@ -10,6 +10,7 @@ Allows comparison of overlapping concept sets, display of cset metadata, display
 - [Backend](./backend/README.md)
   - [DB counts](./docs/backend/db/analysis.md) 
 - [Frontend](./frontend/README.md)
+    - [Testing](./frontend/tests/README.md)
 - [Enclave Wrangler](./enclave_wrangler/README.md)
 
 ## [Features under development / consideration](https://docs.google.com/spreadsheets/d/19_eBv0MIBWPcXMTw3JJdcfPoEFhns93F-TKdODW27B8/edit#gid=0)

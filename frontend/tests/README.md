@@ -1,6 +1,7 @@
 # Frontend testing documentation
 
 ## Performance testing
+- Implements strategies described in issue #514
 
 ### "Experiments"
 Values that can be specified while running tests and can be passed to TermHub querystring to control
