@@ -1,0 +1,12 @@
+# Frontend testing documentation
+
+## Performance testing
+
+### "Experiments"
+Values that can be specified while running tests and can be passed to TermHub querystring to control
+what optimization is being performed and tested. Can take multiple values delimited by tilde (`~`).
+
+| experiment name     | description |
+|---------------------|-------------|
+| `as-is` or no value | Use code without attempting any special optimization |
+| `no-cache`          | Disables caching -- in DataCache.cachePut |
