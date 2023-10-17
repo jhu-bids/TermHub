@@ -136,11 +136,11 @@ function CsetComparisonPage() {
 
       // setData(current => ({...current, csmi, concepts}));
 
-      const edgeCids = uniq(flatten(edges)).sort();
       const conceptsCids = concepts.map(d => d.concept_id + '').sort();
-
       console.assert(intersection(conceptsCids, concept_ids).length === concept_ids.length,
                      "%o", {concepts, conceptsCids, concept_ids});
+
+      const edgeCids = uniq(flatten(edges)).sort();
       console.assert(difference(edgeCids, concept_ids).length === 0,
                      "%o", {edges, edgeCids, concept_ids});
       /*

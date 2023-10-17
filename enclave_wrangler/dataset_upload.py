@@ -24,8 +24,9 @@ try:
     upload_concept_set_container, \
     upload_concept_set_version_draft, get_concept_set_version_expression_items
     from enclave_wrangler.utils import EnclaveWranglerErr, _datetime_palantir_format, log_debug_info, make_actions_request, get_random_codeset_id
-    from enclave_wrangler.objects_api import fetch_object_by_id, get_object_links
+    from enclave_wrangler.objects_api import fetch_object_by_id, get_object_links, fetch_cset_version
 except ModuleNotFoundError:
+    # TODO: this isn't up-to-date, is it? (2023-10-16)
     from config import CSET_UPLOAD_REGISTRY_PATH, ENCLAVE_PROJECT_NAME, MOFFIT_PREFIX, \
     MOFFIT_SOURCE_ID_TYPE, MOFFIT_SOURCE_URL, PALANTIR_ENCLAVE_USER_ID_1, UPLOADS_DIR, config, PROJECT_ROOT, \
     TERMHUB_CSETS_DIR, CSET_VERSION_MIN_ID
@@ -182,6 +183,37 @@ def upload_new_cset_container_with_concepts_from_csv(
             validate_first=validate_first)
     return responses
 
+
+def upload_cset_as_new_version_of_itself(codeset_id: int) -> Dict:
+    v = fetch_cset_version(codeset_id, False)
+
+    vi = [i['properties'] for i in get_concept_set_version_expression_items(codeset_id, 'full')]
+    concepts = []
+    for item in vi:
+        c = {'concept_id': item['conceptId']}
+        for p in ['includeDescendants', 'isExcluded', 'includeMapped']:
+            c[p] = item[p]
+        concepts.append(c)
+
+    upload_args = {
+        # 'on_behalf_of': v['createdBy'],
+        'on_behalf_of': config['SERVICE_USER_ID'],
+        'concept_set_name': v['conceptSetNameOMOP'],
+        'provenance': v['provenance'],
+        'limitations': v['limitations'],
+        'intention': v['intention'],
+        'parent_version_codeset_id': v['codesetId'],
+        'current_max_version': v['version'],  # probably
+        # codeset_id': None, will be assigned
+        'validate_first': True,
+        'omop_concepts': concepts,
+        'finalize': True,
+        # annotation,
+        # intended_research_project,
+    }
+    # upload_new_cset_version_with_concepts( concept_set_name, omop_concepts, provenance, limitations, intention, annotation, parent_version_codeset_id, current_max_version, intended_research_project, on_behalf_of, codeset_id, validate_first, finalize )
+    pass_on_args = ['conceptSetNameOMOP']
+    return upload_new_cset_version_with_concepts(**upload_args)
 
 # TODO: What if this fails halfway through? Can we teardown any of the steps? (need to store random `codeset_id` too)
 # TODO: Need to do proper codeset_id assignment: (i) look up registry and get next available ID, (ii) assign it here,
@@ -1022,4 +1054,6 @@ def cli():
 
 
 if __name__ == '__main__':
+    # u = upload_cset_as_new_version_of_itself(834391873)
+    # exit(0)
     cli()

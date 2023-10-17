@@ -261,27 +261,27 @@ add_mappings(
 #   n/a,           standard_concept
 #   b.a,           invalid_reason
 add_mappings(
-    """OMOPConcept, concept
-    conceptId,         concept_id
-    conceptClassId,    concept_class_id
-    conceptCode,       concept_code
-    conceptName,       concept_name
-    domainId,          domain_id
-    validEndDate,      valid_end_date
-    validStartDate,    valid_start_date
-    vocabularyId,      vocabulary_id""")
+    """OMOPConcept,       concept
+       conceptId,         concept_id
+       conceptClassId,    concept_class_id
+       conceptCode,       concept_code
+       conceptName,       concept_name
+       domainId,          domain_id
+       validEndDate,      valid_end_date
+       validStartDate,    valid_start_date
+       vocabularyId,      vocabulary_id""")
 
 # OmopConceptSetVersionItem: object <-> dataset
 add_mappings(
-    """OmopConceptSetVersionItem, concept_set_version_item
-    itemId,                       item_id
-    codesetId,                    codeset_id
-    conceptId,                    concept_id
-    includeDescendants,           includeDescendants
-    includeMapped,                includeMapped
-    isExcluded,                   isExcluded
-    createdBy,                    created_by
-    createdAt,                    created_at""")
+    """OmopConceptSetVersionItem,    concept_set_version_item
+       itemId,                       item_id
+       codesetId,                    codeset_id
+       conceptId,                    concept_id
+       includeDescendants,           includeDescendants
+       includeMapped,                includeMapped
+       isExcluded,                   isExcluded
+       createdBy,                    created_by
+       createdAt,                    created_at""")
 
 # OMOPConceptSet (Version): object <-> dataset
 add_mappings(
