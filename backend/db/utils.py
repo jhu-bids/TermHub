@@ -513,7 +513,10 @@ def load_csv(
     schema: str = SCHEMA, is_test_table=False, local=False, optional_suffix=''
 ):
     """Load CSV into table
-    :param replace_rule: 'replace if diff row count' or 'do not replace'
+    :param replace_rule:
+        - 'replace if diff row count'
+        - 'do not replace'
+        - 'finish aborted upload'
       First, will replace table (that is, truncate and load records; will fail if table cols have changed, i think
      'do not replace'  will create new table or load table if table exists but is empty
     :param optional_suffix: Useful for when remaking tables when database is live. For example, you can upload a new
@@ -543,6 +546,10 @@ def load_csv(
     # Load table
     path = os.path.join(DATASETS_PATH, f'{table_name_no_suffix}.csv') if table_type == 'dataset' \
         else os.path.join(OBJECTS_PATH, table, 'latest.csv')
+    if not os.path.isfile(path):
+        print(f'INFO: {path} does not exist; skipping')
+        return
+
     df = pd.read_csv(path)
 
     if is_test_table:
@@ -552,18 +559,22 @@ def load_csv(
         print(f'INFO: {schema}.{table} exists with same number of rows {existing_rows}; leaving it')
         return
 
-    print(f'INFO: \nloading {schema}.{table} into {CONFIG["server"]}:{DB}')
-    # Clear data if exists
-    try:
-        con.execute(text(f'DROP TABLE {schema}.{table} CASCADE'))
-    except ProgrammingError:
-        pass
+    if replace_rule == 'finish aborted upload' and existing_rows < len(df):
+        print(f'INFO: {schema}.{table} exists with {commify(existing_rows)} rows; uploading remaining {commify(len(df)-existing_rows)} rows');
+        df = df.iloc[existing_rows: len(df)]
+    else:
+        print(f'INFO: \nloading {schema}.{table} into {CONFIG["server"]}:{DB}')
+        # Clear data if exists
+        try:
+            con.execute(text(f'DROP TABLE {schema}.{table} CASCADE'))
+        except ProgrammingError:
+            pass
 
     # Load
     # `schema='termhub_n3c'`: Passed so Joe doesn't get OperationalError('(pymysql.err.OperationalError) (1050,
     #  "Table \'code_sets\' already exists")')
     #  https://stackoverflow.com/questions/69906698/pandas-to-sql-gives-table-already-exists-error-with-if-exists-append
-    kwargs = {'if_exists': 'append', 'index': False, 'schema': schema}
+    kwargs = {'if_exists': 'append', 'index': False, 'schema': schema, 'chunksize': 1000}
     # TODO: add suffix
     df.to_sql(table, con, **kwargs)
 

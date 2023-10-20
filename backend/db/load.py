@@ -104,11 +104,13 @@ def initialize_test_schema(con_initial: Connection, schema: str = SCHEMA, local=
 
 
 def seed(
-    con: Connection, schema: str = SCHEMA, clobber=False, skip_if_updated_within_hours: int = None,
+    con: Connection, schema: str = SCHEMA, clobber=False, replace_rule=None, skip_if_updated_within_hours: int = None,
     dataset_tables: List[str] = DATASET_TABLES, object_tables: List[str] = OBJECT_TABLES, test_tables=False, local=False
 ):
     """Seed the database with some data"""
-    replace_rule = 'do not replace' if not clobber else None
+    if not replace_rule:
+        replace_rule = 'do not replace' if not clobber else None
+
     for table in dataset_tables:
         if is_table_up_to_date(table, skip_if_updated_within_hours):
             print(f'INFO: Skipping upload of table "{table}" because it is up to date.')

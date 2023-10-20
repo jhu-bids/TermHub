@@ -72,22 +72,53 @@ def create_database(con: Connection, schema: str):
 
 
 def initialize(
-    clobber=False, schema: str = SCHEMA, local=False, create_db=False, download=True, download_force_if_exists=False,
-    test_schema_only=False, hours_threshold_for_updates=24
+    clobber=False, replace_rule=None, schema: str = SCHEMA, local=False, create_db=False, download=True, download_force_if_exists=False,
+    test_schema=True, test_schema_only=False, hours_threshold_for_updates=24, optimization_experiment=None
 ):
     """Initialize set up of DB
 
     :param local: If True, does this on local instead of production database."""
-    with get_db_connection(local=local) as con:
+    with get_db_connection(local=local, schema=schema) as con:
         if test_schema_only:
             return initialize_test_schema(con, schema, local=local)
         if create_db:
             create_database(con, schema)
         if download:
             download_artefacts(force_download_if_exists=download_force_if_exists)
-        seed(con, schema, clobber, hours_threshold_for_updates, local=local)
+
+        run_sql(con, f"""CREATE SCHEMA IF NOT EXISTS {schema};""")
+
+        seed(con, schema, clobber, replace_rule, hours_threshold_for_updates, local=local)
+
+        if optimization_experiment == 'n3c_no_rxnorm':
+            delete_rxnorm_extension_records(con)
+
         indexes_and_derived_tables(con, schema, local=local)  # , start_step=30)
-        initialize_test_schema(con, schema, local=local)
+
+        if test_schema:
+            initialize_test_schema(con, schema, local=local)
+
+
+def delete_rxnorm_extension_records(con: Connection):
+    """Delete all concepts in the RxNorm Extension vocabulary
+        This is for issue #514 and
+        https://github.com/jhu-bids/TermHub/tree/perf-tests/frontend/tests#no-rxnorm-extension-codes"""
+    # run_sql(con, """
+    #            SELECT concept_id
+    #            INTO rxnorm_ext_concepts
+    #            FROM concept
+    #            WHERE vocabulary_id = 'RxNorm Extension'
+    #         """)
+    run_sql(con, """
+               DELETE FROM concept_set_members
+               WHERE concept_id IN (SELECT concept_id FROM rxnorm_ext_concepts)
+            """)
+    run_sql(con, """
+               DELETE FROM concept_set_version_item
+               WHERE concept_id IN (SELECT concept_id FROM rxnorm_ext_concepts)
+            """)
+
+
 
 
 def cli():
@@ -125,3 +156,9 @@ def cli():
 
 if __name__ == '__main__':
     cli()
+    # initialize(schema='n3c', replace_rule='finish aborted upload', download=False, test_schema=False) # download_force_if_exists=True
+    # schema = 'n3c'
+    # con = get_db_connection(schema='n3c')
+    # seed(con, schema, replace_rule='finish aborted upload', dataset_tables=['concept_relationship'])
+    # initialize(download=False, optimization_experiment='n3c_no_rxnorm', test_schema=False) # download_force_if_exists=True
+    # initialize(schema='n3c_no_rxnorm', download=False, optimization_experiment='n3c_no_rxnorm', test_schema=False) # download_force_if_exists=True
