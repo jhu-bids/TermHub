@@ -103,12 +103,12 @@ def delete_rxnorm_extension_records(con: Connection):
     """Delete all concepts in the RxNorm Extension vocabulary
         This is for issue #514 and
         https://github.com/jhu-bids/TermHub/tree/perf-tests/frontend/tests#no-rxnorm-extension-codes"""
-    # run_sql(con, """
-    #            SELECT concept_id
-    #            INTO rxnorm_ext_concepts
-    #            FROM concept
-    #            WHERE vocabulary_id = 'RxNorm Extension'
-    #         """)
+    run_sql(con, """
+               SELECT concept_id
+               INTO rxnorm_ext_concepts
+               FROM concept
+               WHERE vocabulary_id = 'RxNorm Extension'
+            """)
     run_sql(con, """
                DELETE FROM concept_set_members
                WHERE concept_id IN (SELECT concept_id FROM rxnorm_ext_concepts)
