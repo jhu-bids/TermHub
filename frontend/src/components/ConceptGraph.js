@@ -7,6 +7,31 @@ import {uniq, flatten, union, sortBy, max, groupBy, sum, } from "lodash";
 import {useDataGetter} from "../state/DataGetter";
 import {useSearchParamsState} from "../state/SearchParamsProvider";
 
+/*
+import { SigmaContainer, useLoadGraph } from "@react-sigma/core";
+import "@react-sigma/core/lib/react-sigma.min.css";
+
+export const LoadGraph = () => {
+  const loadGraph = useLoadGraph();
+
+  useEffect(() => {
+    const graph = new Graph();
+    graph.addNode("first", { x: 0, y: 0, size: 15, label: "My first node", color: "#FA4F40" });
+    loadGraph(graph);
+  }, [loadGraph]);
+
+  return null;
+};
+
+export const DisplayGraph = () => {
+  return (
+    <SigmaContainer style={{ height: "500px", width: "500px" }}>
+      <LoadGraph />
+    </SigmaContainer>
+  );
+};
+ */
+
 const d3 = Object.assign({}, d3Base, d3dag);
 
 export function formatEdges(edges=[]) {

@@ -516,7 +516,8 @@ def load_csv(
     :param replace_rule:
         - 'replace if diff row count'
         - 'do not replace'
-        - 'finish aborted upload'
+        - 'finish aborted upload'   # useful if load_csv crashes before uploading the whole dataframe
+
       First, will replace table (that is, truncate and load records; will fail if table cols have changed, i think
      'do not replace'  will create new table or load table if table exists but is empty
     :param optional_suffix: Useful for when remaking tables when database is live. For example, you can upload a new
