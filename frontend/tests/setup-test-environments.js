@@ -39,6 +39,23 @@ for (let key in deploymentConfigs) {
     selectedConfigs[key] = deploymentConfigs[key];
   }
 }
+/*
+if (process.env.ENVIRONMENTS) {
+  envsString = process.env.ENVIRONMENTS;
+}
+function getSelectedConfigs(estr) {
+  let selConfigs = {};
+  const estrs = envsString.split("-");
+  for (let key in deploymentConfigs) {
+    if (estrs.includes(key)) {
+      selConfigs[key] = deploymentConfigs[key];
+    }
+  }
+  return selConfigs;
+}
+export let selectedConfigs = {};
+envsString = 'local';
+ */
 
 export class ReportStash {
   data = {

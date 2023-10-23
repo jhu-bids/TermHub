@@ -18,6 +18,8 @@ const { PerformanceObserver, performance } = require('node:perf_hooks');
 
 const experiment = 'no_cache';
 
+selectedConfigs = 'local'; // only run these tests in local for now
+
 /* setUp ---------------------------------------------------------------------------------------------------------------
 test.beforeAll(async () => {
   test.setTimeout(10000);  // 10 seconds
