@@ -156,9 +156,9 @@ def cli():
 
 if __name__ == '__main__':
     cli()
-    # initialize(schema='n3c', replace_rule='finish aborted upload', download=False, test_schema=False) # download_force_if_exists=True
+    # initialize(clobber=True, schema='n3c', download=False, test_schema=False) #, download_force_if_exists=True,  replace_rule='finish aborted upload',
     # schema = 'n3c'
     # con = get_db_connection(schema='n3c')
-    # seed(con, schema, replace_rule='finish aborted upload', dataset_tables=['concept_relationship'])
+    # seed(con, schema, replace_rule='finish aborted upload', dataset_tables=['concept_ancestor'])
     # initialize(download=False, optimization_experiment='n3c_no_rxnorm', test_schema=False) # download_force_if_exists=True
     # initialize(schema='n3c_no_rxnorm', download=False, optimization_experiment='n3c_no_rxnorm', test_schema=False) # download_force_if_exists=True

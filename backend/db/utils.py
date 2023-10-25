@@ -263,8 +263,7 @@ def is_table_up_to_date(table_name: str, skip_if_updated_within_hours: int = Non
 
 # todo: Can update update_db_status_var() so that it can accept optional param 'con' to improve performance.
 def update_db_status_var(key: str, val: str, local=False):
-    """Update the `manage` table with information for a given variable, e.g. when a table was last updated
-    todo: change to a 1-liner UPDATE statement"""
+    """Update the `manage` table with information for a given variable, e.g. when a table was last updated"""
     with get_db_connection(schema='', local=local) as con:
         run_sql(con, f"DELETE FROM public.manage WHERE key = '{key}';")
         sql_str = f"INSERT INTO public.manage (key, value) VALUES (:key, :val);"
@@ -556,6 +555,7 @@ def load_csv(
     if is_test_table:
         df = df.head(1)
 
+    print(f'INFO: loading {schema}.{table} ({len(df)} rows) into {CONFIG["server"]}:{DB}')
     if replace_rule == 'replace if diff row count' and existing_rows == len(df):
         print(f'INFO: {schema}.{table} exists with same number of rows {existing_rows}; leaving it')
         return
@@ -564,7 +564,7 @@ def load_csv(
         print(f'INFO: {schema}.{table} exists with {commify(existing_rows)} rows; uploading remaining {commify(len(df)-existing_rows)} rows');
         df = df.iloc[existing_rows: len(df)]
     else:
-        print(f'INFO: \nloading {schema}.{table} into {CONFIG["server"]}:{DB}')
+        # print(f'INFO: \nloading {schema}.{table} into {CONFIG["server"]}:{DB}')
         # Clear data if exists
         try:
             con.execute(text(f'DROP TABLE {schema}.{table} CASCADE'))
@@ -577,6 +577,14 @@ def load_csv(
     #  https://stackoverflow.com/questions/69906698/pandas-to-sql-gives-table-already-exists-error-with-if-exists-append
     kwargs = {'if_exists': 'append', 'index': False, 'schema': schema, 'chunksize': 1000}
     # TODO: add suffix
+
+    # TODO: fix update_db_status_var to add delete_key arg, and then:
+    # update_db_status_var(f'currently_updating_{table}', True, local) before df.to_sql
+    # up above, instead of using replace_rule == 'finish aborted upload', do
+    #   check_db_status_var(f'currently_updating_{table}', local)
+    # then
+    #   delete_db_status_var(f'currently_updating_{table}', local) after df.to_sql
+
     df.to_sql(table, con, **kwargs)
 
     update_db_status_var(f'last_updated_{table}', str(current_datetime()), local)
