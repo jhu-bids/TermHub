@@ -451,7 +451,6 @@ def insert_from_dict(con: Connection, table: str, d: Union[Dict, List[Dict]], sk
             if already_in_db:
                 return
 
-    # TODO: use parameterized queries to prevent SQL injection
     insert = f"""
     INSERT INTO {table} ({', '.join([f'"{x}"' for x in d.keys()])})
     VALUES ({', '.join([':' + str(k) for k in d.keys()])})"""
