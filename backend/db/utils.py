@@ -431,6 +431,7 @@ def insert_from_dicts(con: Connection, table: str, rows: List[Dict], skip_if_alr
         rows = [{field: row.get(field, None) for field in fields} for row in rows]
         key_vals = {f'{k}{i}': v for i, d in enumerate(rows) for k, v in d.items()}
         values = ', '.join([f"({', '.join([':' + str(k) + str(i) for k in d.keys()])})" for i, d in enumerate(rows)])
+        # TODO: use parameterized queries to prevent SQL injection
         statement = f"""INSERT INTO {table} ({', '.join([f'"{x}"' for x in rows[0].keys()])}) VALUES {values}"""
         run_sql(con, statement, key_vals)
 
@@ -450,6 +451,7 @@ def insert_from_dict(con: Connection, table: str, d: Union[Dict, List[Dict]], sk
             if already_in_db:
                 return
 
+    # TODO: use parameterized queries to prevent SQL injection
     insert = f"""
     INSERT INTO {table} ({', '.join([f'"{x}"' for x in d.keys()])})
     VALUES ({', '.join([':' + str(k) for k in d.keys()])})"""

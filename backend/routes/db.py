@@ -6,29 +6,24 @@ from fastapi import APIRouter, Query
 import asyncio
 
 # for websocket example stuff
-from fastapi import WebSocket, HTTPException
-from typing import Optional
-import time
 
 import json
 from typing import Dict, List, Union, Set
 from functools import cache
 import urllib.parse
 
-from requests import Response
 from sqlalchemy import Connection
 from sqlalchemy.engine import RowMapping
 from backend.utils import JSON_TYPE, get_timer, return_err_with_trace, cancel_on_disconnect
 from backend.db.utils import get_db_connection, sql_query, SCHEMA, sql_query_single_col, sql_in
 from backend.db.queries import get_concepts
-from enclave_wrangler.objects_api import get_n3c_recommended_csets, enclave_api_call_caller, get_codeset_json, \
+from enclave_wrangler.objects_api import get_n3c_recommended_csets, enclave_api_call_caller, \
     get_concept_set_version_expression_items, items_to_atlas_json_format
-from enclave_wrangler.utils import make_objects_request, whoami, get_auth_token
+from enclave_wrangler.utils import make_objects_request, whoami
 from enclave_wrangler.config import RESEARCHER_COLS
 from enclave_wrangler.models import convert_rows
 from backend.routes import graph
 from backend.db.refresh import refresh_db
-
 
 router = APIRouter(
     # prefix="/oak",
@@ -40,6 +35,8 @@ router = APIRouter(
 
 
 # Database functions ---------------------------------------------------------------------------------------------------
+
+
 # TODO
 #  i. Keys in our old `get_csets` that are not there anymore:
 #   ['precision', 'status_container', 'concept_set_id', 'rid', 'selected', 'created_at_container', 'created_at_version'
@@ -675,7 +672,7 @@ def ad_hoc_test_1():
 
 """One solution: Use a decorator to poll for the disconnect"""
 
-from fastapi import Request, HTTPException
+from fastapi import Request
 
 
 @router.get("/test-hangup")

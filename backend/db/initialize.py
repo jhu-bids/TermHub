@@ -23,20 +23,23 @@ from backend.db.utils import database_exists, run_sql, show_tables, get_db_conne
 SCHEMA = CONFIG['schema']
 
 DDL_MANAGE = """CREATE TABLE IF NOT EXISTS public.manage (
-key text not null, 
-value text);"""
+                    key text not null,
+                    value text);"""
+
 DDL_COUNTS = """CREATE TABLE IF NOT EXISTS public.counts (
-timestamp text not null, 
-date text, 
-schema text not null, 
-"table" text not null, 
-count integer not null, 
-delta integer not null);"""
+                    timestamp text not null,
+                    date text,
+                    schema text not null,
+                    "table" text not null,
+                    count integer not null,
+                    delta integer not null);"""
+
 DDL_COUNTS_RUNS = """CREATE TABLE IF NOT EXISTS public.counts_runs (
-timestamp text not null, 
-date text, 
-schema text not null, 
-note text);"""
+                        timestamp text not null,
+                        date text,
+                        schema text not null,
+                        note text);"""
+
 # fetch_audit: table schema
 #   table: text; examples: code_sets | concept_set_container | concept_set_members | concept_set_version_item
 #   primary_key: text; comma-delimited: this should store the value of the keys, e.g. codeset_id 12345, concept_id 5678
@@ -47,11 +50,23 @@ note text);"""
 #   comment: text
 # todo: change comment to text[]?
 DDL_FETCH_AUDIT = """CREATE TABLE IF NOT EXISTS public.fetch_audit (
-"table" text not null,
-primary_key text not null,
-status_initially text not null,
-success_datetime timestamp with time zone,
-comment text);"""
+                        "table" text not null,
+                        primary_key text not null,
+                        status_initially text not null,
+                        success_datetime timestamp with time zone,
+                        comment text);"""
+
+DDL_API_LOG = """CREATE TABLE IF NOT EXISTS public.api_runs (
+                        host text,
+                        schema text not null,
+                        api_call text not null,
+                        codeset_ids integer[],
+                        related_codeset_ids integer,
+                        timestamp text not null,
+                        process_seconds float
+                        --date text,
+                        --note text
+                        );"""
 
 def create_database(con: Connection, schema: str):
     """Create the database"""

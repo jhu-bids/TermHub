@@ -38,6 +38,14 @@ CONFIG_LOCAL = {
     'personal_access_token': os.getenv('GH_LIMITED_PERSONAL_ACCESS_TOKEN')
 }
 
+def override_schema(schema: str):
+    CONFIG['schema'] = schema
+
+
+def get_schema_name():
+    return CONFIG['schema']
+
+
 def invert_list_dict(d1: Dict[str, List[str]]) -> Dict[str, List[str]]:
     """Invert a dictionary with lists as values"""
     d2 = {}
