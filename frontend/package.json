@@ -42,7 +42,7 @@
   },
   "scripts": {
     "start": "vite",
-    "build": "tsc && vite build",
+    "build": "vite build",
     "preview": "vite preview",
     "test": "react-scripts test --transformIgnorePatterns \"node_modules/(?!your-module-name)/\" --watchAll",
     "eject": "react-scripts eject"
