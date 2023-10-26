@@ -28,8 +28,11 @@ export const deploymentConfigs = {
 // https://playwright.dev/docs/test-parameterize
 // let envsString = 'local-dev-prod';
 let envsString = 'local';
-if (process.env.ENVIRONMENTS) {
-  envsString = process.env.ENVIRONMENTS;
+
+// replacing process.env with import.meta.env for vite migration; see https://www.freecodecamp.org/news/how-to-migrate-from-create-react-app-to-vite/
+
+if (import.meta.env.ENVIRONMENTS) {
+  envsString = import.meta.env.ENVIRONMENTS;
 }
 
 const envs = envsString.split("-");
@@ -40,8 +43,8 @@ for (let key in deploymentConfigs) {
   }
 }
 /*
-if (process.env.ENVIRONMENTS) {
-  envsString = process.env.ENVIRONMENTS;
+if (import.meta.env.ENVIRONMENTS) {
+  envsString = import.meta.env.ENVIRONMENTS;
 }
 function getSelectedConfigs(estr) {
   let selConfigs = {};
