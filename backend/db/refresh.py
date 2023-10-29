@@ -13,7 +13,8 @@ PROJECT_ROOT = os.path.join(BACKEND_DIR, '..')
 sys.path.insert(0, str(PROJECT_ROOT))
 from backend.db.analysis import counts_update,counts_docs
 from backend.db.config import CONFIG
-from backend.db.utils import current_datetime, get_db_connection, last_refresh_timestamp, update_db_status_var, check_db_status_var, delete_db_status_var
+from backend.db.utils import current_datetime, get_db_connection, is_refresh_active, last_refresh_timestamp, \
+    update_db_status_var, check_db_status_var, delete_db_status_var
 from enclave_wrangler.objects_api import csets_and_members_enclave_to_db
 
 DESC = 'Refresh TermHub database w/ newest updates from the Enclave using the objects API.'
@@ -46,7 +47,8 @@ def refresh_db(
     local = use_local_db
     print('INFO: Starting database refresh.', flush=True)  # flush: for gh action
     t0, t0_str = datetime.now(), current_datetime()
-    if check_db_status_var('refresh_status') == 'active':
+
+    if is_refresh_active():
         print('INFO: Refresh already in progress. When that process completes, it will restart again. Exiting.')
         update_db_status_var('new_request_while_refreshing', t0_str, local)
         return
@@ -67,14 +69,16 @@ def refresh_db(
             new_data: bool = csets_and_members_enclave_to_db(con, since, schema=schema)
         except Exception as err:
             update_db_status_var('last_refresh_result', 'error', local)
-            update_db_status_var('refresh_status', 'inactive', local)
             print(f"Database refresh incomplete; exception occurred. Tallying counts and exiting.", file=sys.stderr)
             counts_update('DB refresh error.', schema, local, filter_temp_refresh_tables=True)
             counts_docs()
             raise err
+        finally:
+            refresh_complete_dt = current_datetime()
+            update_db_status_var('last_refresh_exited', refresh_complete_dt, local)
+            update_db_status_var('refresh_status', 'inactive', local)
 
-    update_db_status_var('refresh_status', 'inactive', local)
-    update_db_status_var('last_refresh_success', current_datetime(), local)
+    update_db_status_var('last_refresh_success', refresh_complete_dt, local)
     update_db_status_var('last_refresh_result', 'success', local)
     if new_data:
         counts_update('DB refresh.', schema, local)
