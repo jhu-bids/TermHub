@@ -22,8 +22,8 @@ ON csm.codeset_id = item.codeset_id
 WHERE csm.codeset_id IS NOT NULL
    OR item.codeset_id IS NOT NULL;
 
-CREATE INDEX IF NOT EXISTS csmi_idx1 ON {{schema}}cset_members_items{{optional_suffix}}(codeset_id);
+CREATE INDEX csmi_idx1{{optional_index_suffix}} ON {{schema}}cset_members_items{{optional_suffix}}(codeset_id);
 
-CREATE INDEX IF NOT EXISTS csmi_idx2 ON {{schema}}cset_members_items{{optional_suffix}}(concept_id);
+CREATE INDEX csmi_idx2{{optional_index_suffix}} ON {{schema}}cset_members_items{{optional_suffix}}(concept_id);
 
-CREATE INDEX IF NOT EXISTS csmi_idx3 ON {{schema}}cset_members_items{{optional_suffix}}(codeset_id, concept_id);
+CREATE INDEX csmi_idx3{{optional_index_suffix}} ON {{schema}}cset_members_items{{optional_suffix}}(codeset_id, concept_id);

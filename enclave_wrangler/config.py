@@ -40,6 +40,7 @@ config = {
     # 'HOSTNAME': os.getenv('HOSTNAME', 'unite.nih.gov').replace('\r', ''),
     'HOSTNAME': 'unite.nih.gov',
     'ONTOLOGY_RID': os.getenv('ONTOLOGY_RID', 'ri.ontology.main.ontology.00000000-0000-0000-0000-000000000000').replace('\r', ''),
+    'SERVICE_USER_ID': os.getenv('SERVICE_USER_ID', '').replace('\r', ''),
 }
 # todo: as of 2022/10/20, it looks like some functionality/endpoints need PALANTIR_ENCLAVE_AUTHENTICATION_BEARER_TOKEN,
 #  and others need OTHER_TOKEN, but it's not entirely clear where each are required yet. when that's figured out, can
@@ -56,7 +57,7 @@ if missing_env_vars:
         f'{", ".join(missing_env_vars)}\n'
         f'{cause_msg}')
 
-FAVORITE_OBJECTS = [
+OBJECT_REGISTRY = [
     'researcher',
     # 'research-project',
 
@@ -71,8 +72,13 @@ FAVORITE_OBJECTS = [
     #     'OMOPConceptSetContainer',
     #     'OmopConceptSetVersionItem',
 ]
+# todo: refactor/rename: This is more than just favorite datasets now. This is a data model configuration. Ideally, all
+#  tables should have an entry here, and we should add a key 'favorited_dataset' (bool) under each.
+#  For example, models.py PKEYS still has some of this primary key info.
+# todo: All indexes should be listed here, and initialize/refresh refactored such that indexex get created by generating
+#  SQL from here, rather than reading from the DDL files.
 # Ordered because of transformation dependencies
-FAVORITE_DATASETS = OrderedDict({
+DATASET_REGISTRY = OrderedDict({
     # apparently concept_set_container has a lot more rows than concept_set_container_edited. not sure
     #   why we were getting edited or why they're different
     'concept_set_container': {
@@ -82,7 +88,8 @@ FAVORITE_DATASETS = OrderedDict({
         'rid': 'ri.foundry.main.dataset.c9932f52-8b27-4e7b-bdb1-eec79e142182',
         'sort_idx': ['concept_set_name'],
         'converters': {'archived': lambda x: True if x == 'True' else False},  # this makes it a bool field
-        'dataset_groups': ['cset']
+        'dataset_groups': ['cset'],
+        'primary_key': 'concept_set_id'
     },
     # 'concept_set_container_edited': {
     #     'name': 'concept_set_container_edited',
@@ -94,20 +101,23 @@ FAVORITE_DATASETS = OrderedDict({
         'name': 'code_sets',
         'rid': 'ri.foundry.main.dataset.7104f18e-b37c-419b-9755-a732bfa33b03',
         'sort_idx': ['codeset_id'],
-        'dataset_groups': ['cset']
+        'dataset_groups': ['cset'],
+        'primary_key': 'codeset_id'
     },
     'concept_set_members': {
         'name': 'concept_set_members',
         'rid': 'ri.foundry.main.dataset.e670c5ad-42ca-46a2-ae55-e917e3e161b6',
         'sort_idx': ['codeset_id', 'concept_id'],
-        'dataset_groups': ['cset']
+        'dataset_groups': ['cset'],
+        'primary_key': ['codeset_id', 'concept_id']
     },
     'concept': {  # transform depends on: concept_set_members transform
         'name': 'concept',
         'rid': 'ri.foundry.main.dataset.5cb3c4a3-327a-47bf-a8bf-daf0cafe6772',
         'sort_idx': ['concept_id'],
         'dataset_groups': ['vocab'],
-        'index_on': ['concept_id', 'concept_code']  # TODO: not currently used, but could do this instead of ddl.sql
+        'index_on': ['concept_id', 'concept_code'],  # todo: not currently used, but could do this instead of ddl.sql
+        'primary_key': 'concept_id'
     },
     'concept_ancestor': {  # transform depends on: concept_set_members transform
         'name': 'concept_ancestor',
@@ -128,21 +138,22 @@ FAVORITE_DATASETS = OrderedDict({
         'rid': 'ri.foundry.main.dataset.f2355e2f-51b6-4ae1-ae80-7e869c1933ac',
         # was: 'rid': 'ri.foundry.main.dataset.1323fff5-7c7b-4915-bcde-4d5ba882c993',
         'sort_idx': ['codeset_id', 'concept_id'],
-        'dataset_groups': ['cset']
+        'dataset_groups': ['cset'],
+        'primary_key': 'item_id'  # todo: change to codeset_id,concept_id?
     },
     'concept_set_counts_clamped': { # gets downloaded as csv without column names, not parquet
         'name': 'concept_set_counts_clamped',
         'rid': 'ri.foundry.main.dataset.f945409a-37f1-402f-a840-29b6bd675cb0',
         'column_names': ["codeset_id", "approx_distinct_person_count", "approx_total_record_count"],
         'sort_idx': ['codeset_id'],
-        'dataset_groups': ['cset']
+        'dataset_groups': ['counts']
     },
     'deidentified_term_usage_by_domain_clamped': { # gets downloaded as csv without column names, not parquet
         'name': 'deidentified_term_usage_by_domain_clamped',
         'rid': 'ri.foundry.main.dataset.e393f03a-00d0-4071-802c-ff20e543ce01',
         'column_names': ["concept_id", "domain", "total_count", "distinct_person_count"],
         'sort_idx': ['concept_id', 'domain'],
-        'dataset_groups': ['vocab']
+        'dataset_groups': ['counts']
     },
     'relationship': { # gets downloaded as csv without column names, not parquet
         'name': 'relationship',
@@ -163,7 +174,21 @@ FAVORITE_DATASETS = OrderedDict({
     #     'rid': '',
     # },
 })
-FAVORITE_DATASETS_RID_NAME_MAP = {
+DATASET_REGISTRY_RID_NAME_MAP = {
     v['rid']: k
-    for k, v in FAVORITE_DATASETS.items()
+    for k, v in DATASET_REGISTRY.items()
+}
+DATASET_GROUPS_CONFIG = {
+    'vocab': {
+        'last_updated_termhub_var': 'last_refreshed_vocab_tables',
+        'last_updated_enclave_representative_table': 'concept',
+        'dataset_group': 'vocab',
+        'tables': [x['name'] for x in DATASET_REGISTRY.values() if 'vocab' in x['dataset_groups']]
+    },
+    'counts': {
+        'last_updated_termhub_var': 'last_refreshed_counts_tables',
+        'last_updated_enclave_representative_table': 'concept_set_counts_clamped',
+        'dataset_group': 'counts',
+        'tables': [x['name'] for x in DATASET_REGISTRY.values() if 'counts' in x['dataset_groups']]
+    }
 }

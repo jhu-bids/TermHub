@@ -26,7 +26,7 @@ sys.path.insert(0, str(PROJECT_ROOT))
 # TODO: backend implorts: Ideally we don't want to couple with TermHub code
 from backend.db.utils import chunk_list
 from backend.utils import commify, pdump
-from enclave_wrangler.config import TERMHUB_CSETS_DIR, FAVORITE_DATASETS, FAVORITE_DATASETS_RID_NAME_MAP
+from enclave_wrangler.config import TERMHUB_CSETS_DIR, DATASET_REGISTRY, DATASET_REGISTRY_RID_NAME_MAP
 from enclave_wrangler.utils import enclave_get, log_debug_info
 
 
@@ -40,6 +40,7 @@ DEBUG = False
 # TODO: Once git LFS set up, dl directly to datasets folder, or put these in raw/ and move csvs_repaired to datasets/
 CSV_DOWNLOAD_DIR = os.path.join(TERMHUB_CSETS_DIR, 'datasets', 'downloads')
 CSV_TRANSFORM_DIR = os.path.join(TERMHUB_CSETS_DIR, 'datasets', 'prepped_files')
+DESC = 'Tool for working w/ the Palantir Foundry enclave API. This part is for downloading enclave datasets.'
 os.makedirs(CSV_TRANSFORM_DIR, exist_ok=True)
 
 
@@ -178,6 +179,14 @@ def combine_parquet_files(input_files, target_path):
         print(e, file=sys.stderr)
 
 
+# todo: for this and alltransform_* funcs. They have a common pattern, especially first couple lines. Can we refactor?
+def transform_dataset__concept_set_version_item(dataset_name: str) -> pd.DataFrame:
+    """Transformations to concept_set_version_item.csv"""
+    df = pd.read_csv(os.path.join(CSV_DOWNLOAD_DIR, dataset_name + '.csv'), keep_default_na=False).fillna('')
+    df['codeset_id'] = df['codeset_id'].apply(lambda x: str(x).split('.')[0] if x else '')
+    df = transforms_common(df, dataset_name)
+    return df
+
 def transform_dataset__concept_relationship(dataset_name: str) -> pd.DataFrame:
     """Transformations to concept_relationship.csv"""
     df = pd.read_csv(os.path.join(CSV_DOWNLOAD_DIR, dataset_name + '.csv'), keep_default_na=False).fillna('')
@@ -292,7 +301,7 @@ def transforms_common(df: pd.DataFrame, dataset_name) -> pd.DataFrame:
     # - Removed 'Unnamed' columns
     for col in [x for x in list(df.columns) if x.startswith('Unnamed')]:  # e.g. 'Unnamed: 0'
         df.drop(col, axis=1, inplace=True)
-    df.sort_values(FAVORITE_DATASETS[dataset_name]['sort_idx'], inplace=True)
+    df.sort_values(DATASET_REGISTRY[dataset_name]['sort_idx'], inplace=True)
 
     return df
 
@@ -303,11 +312,12 @@ def transform(fav: dict) -> pd.DataFrame:
     """Data transformations"""
     dataset_name: str = fav['name']
     print(f'INFO: Transforming: {dataset_name}')
-    ipath = os.path.join(CSV_DOWNLOAD_DIR, dataset_name + '.csv')
-    opath = os.path.join(CSV_TRANSFORM_DIR, dataset_name + '.csv')
-    if os.path.exists(opath) and os.path.getctime(ipath) < os.path.getctime(opath):
-        print(f'Skipping {dataset_name}: transformed file is newer than downloaded file. If you really want to transform again, delete {opath} and try again.')
+    inpath = os.path.join(CSV_DOWNLOAD_DIR, dataset_name + '.csv')
+    outpath = os.path.join(CSV_TRANSFORM_DIR, dataset_name + '.csv')
+    if os.path.exists(outpath) and os.path.getctime(inpath) < os.path.getctime(outpath):
+        print(f'Skipping {dataset_name}: transformed file is newer than downloaded file. If you really want to transform again, delete {outpath} and try again.')
         return pd.DataFrame()
+        pass
 
 
     dataset_funcs = {  # todo: using introspection, can remove need for this if function names are consistent w/ files
@@ -317,6 +327,7 @@ def transform(fav: dict) -> pd.DataFrame:
         'concept_relationship': transform_dataset__concept_relationship,
         'concept_ancestor': transform_dataset__concept_ancestor,
         'code_sets': transform_dataset__code_sets,
+        'concept_set_version_item': transform_dataset__concept_set_version_item,
     }
     func = dataset_funcs.get(dataset_name, '')
 
@@ -324,44 +335,47 @@ def transform(fav: dict) -> pd.DataFrame:
         df = func(dataset_name)
     else:
         converters = fav.get('converters') or {}
-        df = pd.read_csv(ipath, keep_default_na=False, converters=converters).fillna('')
+        df = pd.read_csv(inpath, keep_default_na=False, converters=converters).fillna('')
         df = transforms_common(df, dataset_name)
 
-    df.to_csv(opath, index=False)
+    df.to_csv(outpath, index=False)
     return df
 
 
-def get_last_vocab_update():
-    """
-    https://unite.nih.gov/workspace/documentation/developer/api/catalog/services/CatalogService/endpoints/getTransaction
-    https://unite.nih.gov/workspace/documentation/developer/api/catalog/objects/com.palantir.foundry.catalog.api.transactions.Transaction
-    """
-    dataset_rid = FAVORITE_DATASETS['concept']['rid']
+def get_last_update_of_dataset(dataset_name_or_rid: str) -> str:
+    """Get timestamp of when dataset whas last updated
+
+    :param dataset_name_or_rid: Either (a) an RID (Reference ID) or (b) the name of a dataset. If 'b', the name will be
+    looked up in FAVORITE_DATASETS to get its RID.
+
+    Resources:
+     https://unite.nih.gov/workspace/documentation/developer/api/catalog/services/CatalogService/endpoints/getTransaction
+     https://unite.nih.gov/workspace/documentation/developer/api/catalog/objects/com.palantir.foundry.catalog.api.transactions.Transaction"""
+    rid = dataset_name_or_rid if dataset_name_or_rid.startswith('ri.foundry.main.dataset.') \
+        else DATASET_REGISTRY[dataset_name_or_rid]['rid']
     ref = 'master'
-    transaction = getTransaction(dataset_rid, ref, return_field=None)
+    transaction = getTransaction(rid, ref, return_field=None)
     # pdump(transaction)
     if transaction['status'] != 'COMMITTED':
         pdump(transaction)
         raise 'status of transaction not COMMITTED. not sure what this means'
     return transaction['startTime']
-# print(get_last_vocab_update())
-# exit()
 
 
 def download_and_transform(
     dataset_name: str = None, dataset_rid: str = None, ref: str = 'master', output_dir: str = None, outpath: str = None,
-    transforms_only=False, fav: Dict = None, force_if_exists=False
+    transforms_only=False, fav: Dict = None, force_if_exists=True
 ) -> pd.DataFrame:
     """Download dataset & run transformations"""
     print(f'INFO: Downloading: {dataset_name}')
-    dataset_rid = FAVORITE_DATASETS[dataset_name]['rid'] if not dataset_rid else dataset_rid
-    dataset_name = FAVORITE_DATASETS_RID_NAME_MAP[dataset_rid] if not dataset_name else dataset_name
-    fav = fav if fav else FAVORITE_DATASETS[dataset_name]
+    dataset_rid = DATASET_REGISTRY[dataset_name]['rid'] if not dataset_rid else dataset_rid
+    dataset_name = DATASET_REGISTRY_RID_NAME_MAP[dataset_rid] if not dataset_name else dataset_name
+    fav = fav if fav else DATASET_REGISTRY[dataset_name]
 
     # Download
     df = pd.DataFrame()
     if not transforms_only:
-        # TODO: Temp: would be good to accept either 'outdir' or 'outpath'.
+        # todo: Temp: would be good to accept either 'outdir' or 'outpath'.
         if not outpath:
             outpath = os.path.join(output_dir, f'{dataset_name}.csv') if output_dir else None
         if os.path.exists(outpath) and not force_if_exists:
@@ -371,8 +385,8 @@ def download_and_transform(
             if os.path.exists(outpath):
                 t = time.ctime(os.path.getmtime(outpath))
                 print(f'Clobbering {os.path.basename(outpath)}: {t}, {os.path.getsize(outpath)} bytes.')
-            endRef = getTransaction(dataset_rid, ref)
-            args = {'dataset_rid': dataset_rid, 'endRef': endRef}
+            end_ref = getTransaction(dataset_rid, ref)
+            args = {'dataset_rid': dataset_rid, 'endRef': end_ref}
             file_parts = views2(**args)
             # asyncio.run(download_and_combine_dataset_parts(dataset_rid, file_parts))
             df: pd.DataFrame = download_and_combine_dataset_parts(fav, file_parts, outpath=outpath)
@@ -383,74 +397,59 @@ def download_and_transform(
     return df2 if len(df2) > 0 else df
 
 
-def download_favorite_datasets(
-    outdir: str = CSV_DOWNLOAD_DIR, transforms_only=False, specific=[], force_if_exists=False, single_group=None
+def download_datasets(
+    outdir: str = CSV_DOWNLOAD_DIR, transforms_only=False, specific=[], force_if_exists=True, single_group=None
 ):
-    """Download favorite datasets"""
-    for fav in FAVORITE_DATASETS.values():
-        if single_group and single_group not in fav['dataset_groups']:
-            continue
-        if not specific or fav['name'] in specific:
-            outpath = os.path.join(outdir, fav['name'] + '.csv')
-            download_and_transform(fav=fav, dataset_name=fav['name'], outpath=outpath, transforms_only=transforms_only,
-                                   force_if_exists=force_if_exists)
+    """Download datasets
+    :param specific: If passed, will only download datasets whose names are in this list.
+    :param single_group: If passed, will only download datasets that are in this group."""
+    if specific and single_group:
+        raise ValueError('Cannot pass both "specific" and "single_group" arguments.')
+    configs = DATASET_REGISTRY.values()
+    datasets_configs: List[Dict] =  [x for x in configs if single_group in x['dataset_groups']] if single_group \
+        else [x for x in configs if x['name'] in specific] if specific \
+        else configs
+    for conf in datasets_configs:
+        download_and_transform(
+            fav=conf, dataset_name=conf['name'], outpath=os.path.join(outdir, conf['name'] + '.csv'),
+            transforms_only=transforms_only, force_if_exists=force_if_exists)
 
+# todo: ideally would allow user to select output dir that contains both CSV_DOWNLOAD_DIR and CSV_TRANSFORM_DIR
+def cli():
+    """Command line interface for package.
 
-def get_parser():
-    """Add required fields to parser.
-
-    Returns:
-        ArgumentParser: Argeparse object.
-    """
-    package_description = 'Tool for working w/ the Palantir Foundry enclave API. ' \
-          'This part is for downloading enclave datasets.'
-    parser = ArgumentParser(description=package_description)
-
+    Side Effects: Executes program."""
+    parser = ArgumentParser(prog='Dataset downloader', description=DESC)
     # parser.add_argument(
     #     '-a', '--auth_token_env_var',
     #     default='PALANTIR_ENCLAVE_AUTHENTICATION_BEARER_TOKEN',
     #     help='Name of the environment variable holding the auth token you want to use')
     parser.add_argument(
-        '-n', '--dataset-name',
-        help='Name of enclave dataset you want to download. CSV will be saved to ValueSet-Tools/data/datasets/<name>')
+        '-n', '--dataset-name', nargs='+', default=[], required=False,
+        help='Name of enclave dataset you want to download. Saved to `termhub-csets/` by default. '
+             'Not needed if using --dataset-rid.')
     parser.add_argument(
-        '-i', '--dataset-rid',
-        help='RID of enclave dataset you want to download.')
+        '-i', '--dataset-rid', required=False,
+        help='RID of enclave dataset you want to download. Not needed if using --dataset-name.')
     parser.add_argument(
-        '-r', '--ref',
-        default='master',
+        '-r', '--ref', default='master', required=False,
         help='Should be the branch of the dataset -- I think. Refer to API documentation at '
              'https://unite.nih.gov/workspace/documentation/developer/api/catalog/services/CatalogService/endpoints/getTransaction')
     parser.add_argument(
-        '-f', '--favorites',
+        '-f', '--favorites', required=False,
         default=False, action='store_true',
-        help='Just download all the datasets that are currently hardcoded as "favorites".')
+        help='Just download all the datasets in the enclave_wrangler.config:DATASET_REGISTRY.')
     parser.add_argument(
-        '-t', '--transforms-only',
-        default=False, action='store_true',
+        '-t', '--transforms-only', default=False, action='store_true', required=False,
         help='When present, will only apply data transformations to datasets. Will not download updates.')
     parser.add_argument(
-        '-o', '--output_dir',
-        default=CSV_DOWNLOAD_DIR,
+        '-o', '--output_dir', default=CSV_DOWNLOAD_DIR, required=False,
         help='Path to folder where you want output files, if there are any')
-
-    return parser
-
-def cli():
-    """Command line interface for package.
-
-    Side Effects: Executes program."""
-    parser = get_parser()
     kwargs = parser.parse_args()
     d: Dict = vars(kwargs)
 
-    # Run
-    specific = []
-    if d['dataset_name']:
-        specific.append(d['dataset_name'])
-
     if d['favorites']:
-        download_favorite_datasets(outdir=d['output_dir'], transforms_only=d['transforms_only'], specific=specific)
+        download_datasets(outdir=d['output_dir'], transforms_only=d['transforms_only'], specific=d['dataset_name'])
     else:
         del d['favorites']
         download_and_transform(**d)

@@ -1,6 +1,6 @@
 -- Table: concept_set_container - dedupe -------------------------------------------------------------------------------
 -- has duplicate records except for the created_at col. get rid of duplicates, keeping the most recent.
---  code from https://stackoverflow.com/a/28085614/1368860
+--  code FROM {{schema}}https://stackoverflow.com/a/28085614/1368860
 --      which also has code that works for databases other than postgres, if we ever need that
 WITH deduped AS (
     SELECT DISTINCT ON (concept_set_id) concept_set_id, created_at

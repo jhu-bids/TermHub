@@ -3,6 +3,18 @@ body {
   font-family: sans-serif;
 }
 
+/*
+    top border of textarea not showing.
+ */
+textarea {
+    border-radius: 2px;
+    transition: all .2s ease-out;
+    -moz-border-left: 1px solid #CCCCCC;
+    -moz-border-top: 1px solid #CCCCCC;
+    -moz-border-right: 1px solid #CCCCCC;
+    -moz-border-bottom: 1px solid #CCCCCC;
+}
+
 .toggle-collapse {
   cursor: pointer;
 }
@@ -112,10 +124,12 @@ body {
   padding: 0px;
 }
 
+/*
 .concept-name-text {
   padding-left: 22px;
   text-indent: -22px;
 }
+*/
 
 .css-12wnr2w-MuiButtonBase-root-MuiCheckbox-root {
   padding: 0 !important;

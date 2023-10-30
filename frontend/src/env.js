@@ -1,9 +1,9 @@
+// imports from env.local;
+// workflow will overwrite env.local with dev or prod during deployment
+import {API_ROOT, DEPLOYMENT} from "./env.local";
+export {API_ROOT, DEPLOYMENT};
 
-// import dotenv from 'dotenv';
-// import * as dotenv from 'dotenv' // see https://github.com/motdotla/dotenv#how-do-i-use-dotenv-with-import
-// dotenv.config()
-// const config = dotenv.parse(buf) // will return an object
-// const buf = Buffer.from('API_ROOT=api_root')
-// const API_ROOT = 'http://127.0.0.1:8000'
-
-export const API_ROOT = "http://127.0.0.1:8000";
+export const SOURCE_APPLICATION = "TermHub";
+export const SOURCE_APPLICATION_VERSION = "0.3.2 (Beta)";
+export const VERSION = SOURCE_APPLICATION_VERSION;
+export const SERVICE_USER_ID = "6387db50-9f12-48d2-b7dc-e8e88fdf51e3";

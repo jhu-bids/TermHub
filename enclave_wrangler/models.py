@@ -32,12 +32,13 @@ OBJECT_TYPE_TABLE_MAP: Dict[str, List[str]] = {
         'concept'
     ],
 }
+# todo: This is now partially duplicative with what's in config.py
 PKEYS = {
     # Enclave Object API
     'OMOPConcept': 'conceptId',
     'OMOPConceptSet': 'codesetId',
     'OMOPConceptSetContainer': 'conceptSetId',
-    'OmopConceptSetVersionItem': 'itemId',
+    'OmopConceptSetVersionItem': 'itemId',  # todo: change to codeset_id,concept_id?
     # Non-TermHub tables
     'atlasjson': 'CONCEPT_ID',
     # TermHub tables
@@ -54,12 +55,14 @@ PKEYS = {
     'concept_relationship': '',
     'relationship': '',
     'concept_ancestor': '',
-    # - Termhub: mirror tables from enclave
+    # - Mirror tables from enclave
     'concept_set_counts_clamped': '',
-    'researcher': '',
-    'omopconceptset': '',
-    'omopconceptsetcontainer': '',
-    # - Termhub: custom tables
+
+    'researcher': 'rid',  # @joeflack4, i just added pkeys here and the two lines below. hope it doesn't break anything
+    'omopconceptset': 'codesetId',
+    'omopconceptsetcontainer': 'conceptSetId',
+
+    # - Custom tables
     'all_csets': '',
     'codeset_counts': '',
     'concept_relationship_plus': '',
@@ -69,6 +72,9 @@ PKEYS = {
     'deidentified_term_usage_by_domain_clamped': '',
     'members_items_summary': '',
     'rxnorm_med_cset': '',
+
+    # - Management tables:
+    'fetch_audit': ['table', 'primary_key', 'status_initially']
 }
 
 def pkey(obj) -> str:
@@ -142,6 +148,8 @@ class CsetVersion(ObjWithMetadata):
         on_behalf_of: str = None, codeset_id: int = None, omop_concepts: List[Dict] = None
     ):
         """
+        TODO: @joeflack4 -- is this code used anywhere? is it obsolete or still planning to use? get rid of if not planning to use
+
         @param created_by (UUID): This is also called `on_behalf_of` when we pass it to the API. This is also
         multiPassId.
         """
@@ -215,10 +223,10 @@ New way to do field mappings:
   After setting up the mapping between two rowtypes as below,
   you can get the field name you want. For instance, to copy fields
   from a concept records to an atlasjson records:
-  
+
     ajrecs = convert_rows('concept', 'atlasjson', crecs)
 
-  So far it only works with this one pair of rowtypes. As need arises 
+  So far it only works with this one pair of rowtypes. As need arises
   (like csv upload to make-new-omop-... api call), we'll add more mappings.
 """
 FMAPS: List[Dict] = []
@@ -253,27 +261,27 @@ add_mappings(
 #   n/a,           standard_concept
 #   b.a,           invalid_reason
 add_mappings(
-    """OMOPConcept, concept
-    conceptId,         concept_id
-    conceptClassId,    concept_class_id
-    conceptCode,       concept_code
-    conceptName,       concept_name
-    domainId,          domain_id
-    validEndDate,      valid_end_date
-    validStartDate,    valid_start_date
-    vocabularyId,      vocabulary_id""")
+    """OMOPConcept,       concept
+       conceptId,         concept_id
+       conceptClassId,    concept_class_id
+       conceptCode,       concept_code
+       conceptName,       concept_name
+       domainId,          domain_id
+       validEndDate,      valid_end_date
+       validStartDate,    valid_start_date
+       vocabularyId,      vocabulary_id""")
 
 # OmopConceptSetVersionItem: object <-> dataset
 add_mappings(
-    """OmopConceptSetVersionItem, concept_set_version_item
-    itemId,                       item_id
-    codesetId,                    codeset_id
-    conceptId,                    concept_id
-    includeDescendants,           includeDescendants
-    includeMapped,                includeMapped
-    isExcluded,                   isExcluded
-    createdBy,                    created_by
-    createdAt,                    created_at""")
+    """OmopConceptSetVersionItem,    concept_set_version_item
+       itemId,                       item_id
+       codesetId,                    codeset_id
+       conceptId,                    concept_id
+       includeDescendants,           includeDescendants
+       includeMapped,                includeMapped
+       isExcluded,                   isExcluded
+       createdBy,                    created_by
+       createdAt,                    created_at""")
 
 # OMOPConceptSet (Version): object <-> dataset
 add_mappings(

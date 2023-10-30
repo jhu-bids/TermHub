@@ -35,6 +35,7 @@ jobs:
         run: |
           mkdir env
           echo "${{ secrets.ENV_FILE }}" > env/.env
+          echo "HOSTENV=prod" >> env/.env
       - name: Create and start virtual environment
         run: |
           python3 -m venv venv

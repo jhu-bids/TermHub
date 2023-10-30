@@ -37,15 +37,20 @@ scripts/old-vsac-api-scripts/tgt.txt
 backup/
 .vscode/
 *.code-workspace
+*.dmp
 
-# JS: CreateReactApp
-# See https://help.github.com/articles/ignoring-files/ for more about ignoring files.
-# dependencies
+# Frontend
+# - JS: CreateReactApp
+#   See https://help.github.com/articles/ignoring-files/ for more about ignoring files.
+#   dependencies
 node_modules
 /.pnp
 .pnp.js
 # testing
 /coverage
+/frontend/test-results/
+/frontend/playwright-report/
+/frontend/playwright/.cache/
 # production
 /build
 # misc
@@ -56,3 +61,6 @@ node_modules
 npm-debug.log*
 yarn-debug.log*
 yarn-error.log*
+
+# Test
+frontend/playwright-report/index.html

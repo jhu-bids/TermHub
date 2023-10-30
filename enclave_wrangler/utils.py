@@ -5,7 +5,7 @@ import os
 import sys
 from typing import Dict, List, Union
 from random import randint
-from time import sleep
+from time import sleep, time
 import urllib.parse
 
 import pandas as pd
@@ -17,7 +17,6 @@ from requests import Response
 
 from enclave_wrangler.config import OUTDIR_OBJECTS, config, TERMHUB_VERSION, CSET_VERSION_MIN_ID
 from backend.utils import dump
-
 
 EXTRA_PARAMS = {
     'create-new-draft-omop-concept-set-version': {
@@ -37,6 +36,9 @@ TOKEN_KEY = SERVICE_TOKEN_KEY
 class EnclaveWranglerErr(RuntimeError):
     """Wrapper just to handle errors from this module"""
 
+class EnclavePaginationLimitErr(RuntimeError):
+    """Wrapper just to handle errors from this module"""
+    msg = "Enclave errored on paginated request on page {}, with status code {}, with {} items in results."
 
 class ActionValidateError(RuntimeError):
     """Wrapper just to handle errors from this module"""
@@ -154,30 +156,39 @@ def response_failed(response: Response) -> bool:
 
 
 def handle_response_error(
-    response: Response, error_dir: Union[str, None] = None, fail: bool = False, calling_func: str = 'response error'
+    response: Response, error_dir: Union[str, None] = None, calling_func: str = 'response error'
 ):
     """This code was taken out of make_objects_request() (formerly get_objects_by_type()). Trying to use it
-    for all Response errors now. Not sure if it's entirely appropriate."""
+    for all Response errors now. Not sure if it's entirely appropriate.
+
+    TODO: Test this! Siggie and Hope made changes in late June and we didn't test them. If this breaks, blame them
+    """
     failed = response_failed(response)
     if failed:
-        print(f'Error: {calling_func}: {str(response.status_code)} {response.reason}', file=sys.stderr)
-        error_report: Dict = {'request': response.url, 'response': response.json()}
-        print(error_report, file=sys.stderr)
+        msg = f'Error: {calling_func}: {str(response.status_code)} {response.reason}'
+        # noinspection PyBroadException
+        try:
+            error_report: Dict = {'request': response.url, 'response': response.json(),}
+        except Exception as err:
+            error_report: Dict = {'request': response.url, 'response': response.content,}
+        error_report['msg'] = msg
+
         curl_str = f'curl -H "Content-type: application/json" ' \
                    f'-H "Authorization: Bearer ${get_auth_token_key()}" {response.url}'
-        print(curl_str, file=sys.stderr)
+        error_report['curl'] = curl_str
+
+        print(error_report, file=sys.stderr)
+
         if error_dir:
             with open(os.path.join(error_dir, f'error {response.status_code}.json'), 'w') as file:
                 json.dump(error_report, file)
             with open(os.path.join(error_dir, f'error {response.status_code} - curl.sh'), 'w') as file:
                 file.write(curl_str)
 
-        # TODO: what else could be in response? (Joe: potentially, to this function, we could pass a custom err message
-        #  to display if it if fails
         raise EnclaveWranglerErr({
             "status_code": response.status_code,
             "text": response.text,
-            # ... ?
+            "error_report": error_report
         })
 
 
@@ -197,13 +208,21 @@ def handle_paginated_request(
     """Handles a request that has a nextPageToken, automatically fetching all pages and combining the data"""
     url = first_page_url
     results: List[Dict] = []
+    i = 0
     while True:
+        i += 1
         try:
             response = enclave_get(url, verbose=verbose, error_dir=error_dir)
         except EnclaveWranglerErr as err:
             if results:
                 err.args[0]['results_prior_to_error'] = results
-            raise err
+            status_code = err.args[0]['status_code']
+            # TODO: better to check for 'errorName': 'ObjectsExceededLimit' in the response
+            if status_code == 400 and len(results) >= 10000:
+                raise EnclavePaginationLimitErr(
+                    EnclavePaginationLimitErr.msg.format(str(i), status_code, len(results)), err.args[0])
+            else:
+                raise err
 
         response_json = response.json()
         results += response_json['data']
@@ -216,7 +235,7 @@ def handle_paginated_request(
 def get_objects_df(object_type, outdir: str = None, save_csv=True, save_json=True):
     """Get objects as dataframe"""
     # Get objects
-    objects: List[Dict] = make_objects_request(object_type, return_type='data', outdir=outdir)
+    objects: List[Dict] = make_objects_request(object_type, return_type='data', outdir=outdir, handle_paginated=True)
 
     # Parse
     # Get rid of nested 'properties' key, and add 'rid' in with the other fields
@@ -250,6 +269,12 @@ def get_url_from_api_path(path):
     return url
 
 
+def whoami():
+    url = f'https://{config["HOSTNAME"]}/multipass/api/me'
+    return enclave_get(url).json()
+# other api calls to get user info: https://unite.nih.gov/workspace/documentation/product/foundry-backend/security-api
+
+
 def fetch_objects_since_datetime(object_type: str, since: Union[datetime, str], verbose=False) -> List[Dict]:
     """Fetch objects since a specific datetime
 
@@ -257,13 +282,16 @@ def fetch_objects_since_datetime(object_type: str, since: Union[datetime, str], 
     since = str(since)
     try:
         return make_objects_request(
-            object_type, query_params={'properties.createdAt.gt': since}, verbose=verbose, return_type='data')
+            object_type, query_params={'properties.createdAt.gt': since}, verbose=verbose, return_type='data',
+            handle_paginated=True)
     except EnclaveWranglerErr as e:
         raise ValueError(f'Invalid timestamp: {since}. Make sure it is in ISO 8601 format with timezone offset: '
                          f'YYYY-MM-DDTHH:MM:SS.SSSSSS+HH:MM.') if 'timestamp' in str(e).lower() else e
 
 
 # TODO: Should we automatically handle_paginated?
+#  - Siggie said that the issue is that when we do that, we don't return a response. Maybe like 3 instances of calls
+#  that need a response object instead of JSON data. But for those why don't explicitly pass return_type=Response?
 # todo's from b4 refactor combining make_objects_request() and get_objects_by_type() 2023/03/15
 #   1. Need to find the right object_type, then write a wrapper func around this to get concept sets
 #     - To Try: CodeSystemConceptSetVersionExpressionItem, OMOPConcept, OMOPConceptSet, OMOPConceptSetContainer,
@@ -297,6 +325,7 @@ def make_objects_request(
 
         # Construct URL
         url: str = get_url_from_api_path(f'objects/{path}')
+        url = url.replace('/objects/objects', '/objects') # in case path already has 'objects' at the beginning
         if query_params:
             # was: url = url + '?' + '&'.join(query_params) if query_params else url
             # urllib.parse.quote turns spaces into + instead of %20, i got this
@@ -348,6 +377,9 @@ def make_actions_request(
       https://www.palantir.com/docs/foundry/api/ontology-resources/objects/list-objects/
       https://www.palantir.com/docs/foundry/api/ontology-resources/object-types/list-object-types/
     """
+
+    if not "parameters" in data:
+        raise KeyError("expecting data to be wrapped in 'parameters' property")
 
     ontology_rid = config['ONTOLOGY_RID']
     api_path = f'/api/v1/ontologies/{ontology_rid}/actions/{api_name}/'
@@ -478,3 +510,25 @@ def get_random_codeset_id() -> int:
 #             print(f'Failure: {api_name}\n', response, file=sys.stderr)
 #             return response
 #     return make_actions_request(api_name, data, validate=False)
+
+
+def was_file_modified_within_threshold(path: str, threshold_hours: int) -> bool:
+    """Check if a file was modified within a certain threshold"""
+    diff_hours = (time() - os.path.getmtime(path)) / (60 * 60)
+    return diff_hours <= threshold_hours
+
+
+if __name__ == '__main__':
+    cset_name = 'Hope Termhub Test'
+    codeset_id = 27371375
+
+    x = make_actions_request('edit-concept-set-version-intention',
+                         data={ 'parameters': {
+                             'omop-concept-set': codeset_id,
+                             'intention': f'testing on july 19'
+                         }}, validate_first=True)
+    print(x)
+
+    x = make_actions_request('archive-concept-set',
+                             data={'parameters': { 'concept-set': cset_name, }}, validate_first=True)
+    print(x)

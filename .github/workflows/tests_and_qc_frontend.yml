@@ -1,0 +1,36 @@
+# TODO: 1. run local: (i) start backend (a) local backend in GH action, or (b) use dev's backend URL (won't always work), (ii) set to on:pr&push
+# TODO: 2. after '1': expose params to workflow_dispatch: so can choose which env we want to test, in case we don't want to run all 3 at once
+name: Tests and QC - Frontend
+on:
+  workflow_dispatch:
+  schedule:
+   - cron: '0 8 * * *'  # every day 8am GMT (3-4am EST/EDT)
+#  push:
+#    branches: [ main, develop ]
+#  pull_request:
+#    branches: [ main, develop ]
+jobs:
+  test:
+    timeout-minutes: 60
+    runs-on: ubuntu-latest
+    steps:
+    - uses: actions/checkout@v3
+    - uses: actions/setup-node@v3
+      with:
+        node-version: 18
+    - name: Install dependencies
+#      run: cd frontend && npm ci  # only playwright is necessary to install
+      run: cd frontend && npm install playwright
+    - name: Install Playwright browsers
+      run: cd frontend && npx playwright install --with-deps
+    - name: Re-configure for non-local web server
+      run: |
+        cd frontend && sed -n '/webServer: \[/,/\]/!p' playwright.config.js > tmp && mv tmp playwright.config.js
+    - name: Run Playwright tests
+      run: make test-frontend-deployments
+    - uses: actions/upload-artifact@v3
+      if: always()
+      with:
+        name: playwright-report
+        path: frontend/playwright-report/
+        retention-days: 30

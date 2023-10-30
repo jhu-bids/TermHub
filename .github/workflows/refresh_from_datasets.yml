@@ -1,0 +1,53 @@
+name: DB Reset/Refresh (Datasets API)
+
+on:
+  workflow_dispatch:
+
+jobs:
+  refresh-db:
+    runs-on: macos-latest
+    steps:
+      - name: Checkout repository and submodules
+        uses: actions/checkout@v2
+        with:
+          submodules: recursive
+          ref: main
+      - name: Set up Python version
+        uses: actions/setup-python@v2
+        with:
+          # Consider '3.10' or 'v3.10.0': https://github.com/actions/setup-python/issues/160
+          python-version: '3.9.7'
+
+      - name: Print commit hash & branch for rollbacks & troubleshooting
+        run: |
+          echo "Commit hash: ${{ github.sha }}"
+          echo "Branch: ${{ github.ref }}"
+
+      - name: 'Create env file'
+        run: |
+          mkdir env
+          echo "${{ secrets.ENV_FILE }}" > env/.env
+
+      - name: Create and start virtual environment
+        run: |
+          python3 -m venv venv
+          source venv/bin/activate
+
+      - name: Install dependencies
+        run: |
+          python -m pip install --upgrade pip
+          pip install --upgrade wheel
+          pip install --upgrade setuptools
+          pip install -r requirements.txt
+
+      # todo: Do we actually need this here?
+      #  i. termhub-vocab: Not needed for this i think
+      #  ii. termhub-csets: we at least need to be able to work in that directory, but we'll be downloading fresh files anyway
+      - name: Submodules
+        run: |
+          git submodule init
+          git submodule update
+
+      - name: Refresh db
+        run: |
+          python backend/db/full_data_refresh.py

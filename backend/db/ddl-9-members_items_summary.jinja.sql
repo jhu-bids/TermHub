@@ -1,5 +1,5 @@
 -- Table: members_items_summary ----------------------------------------------------------------------------------------
-DROP TABLE IF EXISTS {{schema}}members_items_summary{{optional_suffix}};
+DROP TABLE IF EXISTS {{schema}}members_items_summary{{optional_suffix}} CASCADE;
 
 CREATE TABLE {{schema}}members_items_summary{{optional_suffix}} AS
 SELECT
@@ -24,4 +24,4 @@ SELECT codeset_id, 'Members' AS grp, SUM(CASE WHEN csm THEN 1 ELSE 0 END) AS cnt
 UNION
 SELECT codeset_id, 'Expression items' AS grp, SUM(CASE WHEN item THEN 1 ELSE 0 END) AS cnt FROM {{schema}}cset_members_items GROUP by 1,2;
 
-CREATE INDEX IF NOT EXISTS mis1 on {{schema}}members_items_summary{{optional_suffix}}(codeset_id);
+CREATE INDEX mis1{{optional_index_suffix}} ON {{schema}}members_items_summary{{optional_suffix}}(codeset_id);

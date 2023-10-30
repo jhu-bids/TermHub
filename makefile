@@ -1,8 +1,7 @@
 SRC=backend/
 
-.PHONY: lint tags ltags test all lintall codestyle docstyle lintsrc \
-linttest doctest doc docs code linters_all codesrc codetest docsrc \
-doctest counts-compare-schemas counts-table deltas-table
+.PHONY: lint tags ltags test all lintall codestyle docstyle lintsrc linttest doctest doc docs code linters_all codesrc \
+codetest docsrc doctest counts-compare-schemas counts-table deltas-table test-missing-csets fetch-missing-csets
 
 # Analysis
 ANALYSIS_SCRIPT = 'backend/db/analysis.py'
@@ -38,7 +37,7 @@ counts-help:
 
 # Codestyle, linters, and testing
 # - Code & Style Linters
-all: linters_all testall
+all: linters_all test
 lint: lintsrc codesrc docsrc
 linters_all: doc code lintall
 
@@ -77,11 +76,36 @@ codeall: code codetest
 doc: docstyle
 
 # Testing
-test:
+test: test-backend test-frontend
+
+## Testing - Backend
+test-backend:
 	python -m unittest discover -v
-testdoc:
-	python -m test.test --doctests-only
-testall: test testdoc
+test-missing-csets:
+	python -m unittest test.test_database.TestDatabaseCurrent.test_all_enclave_csets_in_termhub
+
+## Testing - Frontend
+## - ENVIRONMENTS: To run multiple, hyphen-delimit, e.g. ENVIRONMENTS=local-dev-prod
+TEST_ENV_LOCAL=ENVIRONMENTS=local
+TEST_ENV_DEPLOYED=ENVIRONMENTS=dev-prod
+TEST_FRONTEND_CMD=npx playwright test
+test-frontend:
+	(cd frontend; \
+	${TEST_ENV_LOCAL} ${TEST_FRONTEND_CMD}; \
+	npx playwright show-report)
+test-frontend-debug:
+	(cd frontend; \
+	${TEST_ENV_LOCAL} ${TEST_FRONTEND_CMD} --debug)
+test-frontend-ui:
+	(cd frontend; \
+	${TEST_ENV_LOCAL} ${TEST_FRONTEND_CMD} --ui)
+test-frontend-deployments:
+	(cd frontend; \
+	${TEST_ENV_DEPLOYED} ${TEST_FRONTEND_CMD})
+
+# QC
+fetch-missing-csets:
+	python enclave_wrangler/objects_api.py --find-and-add-missing-csets-to-db
 
 # Serve
 # nvm allows to switch to a particular versio of npm/node. Useful for working w/ deployment

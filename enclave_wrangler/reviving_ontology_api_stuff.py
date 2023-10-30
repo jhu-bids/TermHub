@@ -25,7 +25,7 @@ from fastapi import FastAPI, Query, Request
 from fastapi.middleware.cors import CORSMiddleware
 # from pandasql import sqldf
 from pydantic import BaseModel
-from enclave_wrangler.config import config, FAVORITE_DATASETS
+from enclave_wrangler.config import config, DATASET_REGISTRY
 import jq
 
 

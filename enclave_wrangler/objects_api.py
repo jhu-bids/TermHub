@@ -14,8 +14,12 @@ TODO's
 """
 import json
 import os
+import sys
+from argparse import ArgumentParser
+
 from datetime import datetime
-from typing import List, Dict, Tuple, Union
+from pathlib import Path
+from typing import List, Dict, Set, Tuple, Union
 from urllib.parse import quote
 
 from sanitize_filename import sanitize
@@ -24,15 +28,19 @@ from requests import Response
 from sqlalchemy.engine.base import Connection
 from typeguard import typechecked
 
-from enclave_wrangler.config import FAVORITE_OBJECTS, OUTDIR_OBJECTS, OUTDIR_CSET_JSON, config
-from enclave_wrangler.utils import enclave_get, enclave_post, fetch_objects_since_datetime, \
+THIS_DIR = Path(os.path.abspath(os.path.dirname(__file__)))
+PROJECT_ROOT = THIS_DIR.parent
+sys.path.insert(0, str(PROJECT_ROOT))
+from enclave_wrangler.config import OBJECT_REGISTRY, OUTDIR_OBJECTS, OUTDIR_CSET_JSON, config
+from enclave_wrangler.utils import EnclavePaginationLimitErr, enclave_get, enclave_post, fetch_objects_since_datetime, \
     get_objects_df, get_url_from_api_path, \
     make_objects_request
 from enclave_wrangler.models import OBJECT_TYPE_TABLE_MAP, convert_row, get_field_names, field_name_mapping, pkey
-from backend.db.utils import insert_from_dict, insert_from_dicts, refresh_termhub_core_cset_derived_tables, \
+from backend.db.utils import SCHEMA, insert_fetch_statuses, insert_from_dict, insert_from_dicts, \
+    refresh_termhub_core_cset_derived_tables, \
     sql_query_single_col, run_sql, get_db_connection
 from backend.db.queries import get_concepts
-
+from backend.utils import call_github_action, pdump
 
 DEBUG = False
 HEADERS = {
@@ -143,8 +151,8 @@ def get_link_types(use_cache_if_failure=False) -> List[Union[Dict, str]]:
 
 
 def get_object_links(
-    object_type: str, object_id: str, link_type: str, fail_on_error=False, handle_paginated=False,
-    return_type: str = ['Response', 'json', 'data'][2],
+    object_type: str, object_id: str, link_type: str, fail_on_error=False, handle_paginated=True,
+    return_type: str = ['Response', 'json', 'data'][2], verbose=False
 ) -> Union[Response, List[Dict]]:
     """Get links of a given type for a given object
 
@@ -153,7 +161,7 @@ def get_object_links(
     """
     return make_objects_request(
         f'{object_type}/{object_id}/links/{link_type}', return_type=return_type, fail_on_error=fail_on_error,
-        handle_paginated=handle_paginated)
+        handle_paginated=handle_paginated, verbose=verbose)
 
 
 # TODO: Why does this not work for Joe, but works for Siggie?:
@@ -209,7 +217,7 @@ def link_types() -> List[Dict]:
 #     return results
 
 
-def download_favorite_objects(fav_obj_names: List[str] = FAVORITE_OBJECTS, force_if_exists=False):
+def download_favorite_objects(fav_obj_names: List[str] = OBJECT_REGISTRY, force_if_exists=False):
     """Download objects of interest"""
     for o in fav_obj_names:
         outdir = os.path.join(OUTDIR_OBJECTS, o)
@@ -220,7 +228,7 @@ def download_favorite_objects(fav_obj_names: List[str] = FAVORITE_OBJECTS, force
 
 def get_all_bundles():
     """Get all bundles"""
-    return make_objects_request('objects/ConceptSetTag').json()
+    return make_objects_request('objects/ConceptSetTag', ).json()
 
 
 def get_bundle_names(prop: str='displayName'):
@@ -235,7 +243,7 @@ def get_bundle(bundle_name):
     """
     all_bundles = get_all_bundles()
     tag_name = [b['properties']['tagName'] for b in all_bundles['data'] if b['properties']['displayName'] == bundle_name][0]
-    return make_objects_request(f'objects/ConceptSetTag/{tag_name}/links/ConceptSetBundleItem', return_type='data')
+    return make_objects_request(f'objects/ConceptSetTag/{tag_name}/links/ConceptSetBundleItem', return_type='data', handle_paginated=True)
 
 
 def get_bundle_codeset_ids(bundle_name):
@@ -268,7 +276,7 @@ def fetch_all_new_objects(since: Union[datetime, str]) -> Dict[str, List]:
     https://unite.nih.gov/workspace/data-integration/restricted-view/preview/ri.gps.main.view.af03f7d1-958a-4303-81ac-519cfdc1dfb3
     """
     since = str(since)
-    csets_and_members: Dict[str, List] = fetch_cset_and_member_objects(since, return_type='flat')
+    csets_and_members: Dict[str, List] = fetch_cset_and_member_objects(since)
     # TODO:
     researchers = get_researchers()
     # TODO:
@@ -286,14 +294,85 @@ def all_new_objects_enclave_to_db(since: Union[datetime, str]) -> Dict[str, List
     return objects
 
 
+def csets_and_members_enclave_to_db(
+    con: Connection, since: Union[datetime, str] = None, cset_ids: List[int] = None, schema=SCHEMA
+) -> bool:
+    """Fetch new csets and members, if needed, and then update database with them, returns None is no updates needed"""
+    if not (since or cset_ids) or (since and cset_ids):
+        raise ValueError('Must pass either: `since` or `cset_ids`, but not both.')
+    t0 = datetime.now()
+    print('Fetching new data from the N3C data enclave...')
+
+    csets_and_members: Dict[str, List[Dict]] = fetch_cset_and_member_objects(since) if since \
+        else fetch_cset_and_member_objects(codeset_ids=cset_ids)
+    if not csets_and_members:
+        return False
+
+    print(f'  - Fetched new data in {(datetime.now() - t0).seconds} seconds:\n    OBJECT_TYPE: COUNT\n' +
+          "\n".join(['    ' + str(k) + ": " + str(len(v)) for k, v in csets_and_members.items()]))
+    csets_and_members_to_db(con, csets_and_members, schema)
+    return True
+
+
+def find_termhub_missing_csets(con: Connection = None) -> Set[int]:
+    """Find csets that are missing from TermHub"""
+    con = con if con else get_db_connection(schema=SCHEMA)
+    db_codeset_ids, enclave_codeset_ids = get_bidirectional_csets_sets(con)
+    missing_ids_from_db: Set[int] = enclave_codeset_ids.difference(db_codeset_ids)
+    return missing_ids_from_db
+
+
+def get_bidirectional_csets_sets(con: Connection = None) -> Tuple[Set[int], Set[int]]:
+    """Find missing csets"""
+    # Set 1 of 2: In our database
+    con = con if con else get_db_connection(schema=SCHEMA)
+    db_codeset_ids: Set[int] = set(sql_query_single_col(con, 'SELECT codeset_id FROM code_sets'))
+
+    # Set 2 of 2: In the enclave
+    enclave_codesets: List[Dict] = make_objects_request('OMOPConceptSet', return_type='data', handle_paginated=True)
+    enclave_codesets = [cset['properties'] for cset in enclave_codesets]
+    archived_containers: List[Dict] = make_objects_request(
+        'OMOPConceptSetContainer', query_params={'properties.archived.eq': True}, return_type='data',
+        handle_paginated=True)
+    archived_container_names = [container['properties']['conceptSetName'] for container in archived_containers]
+    enclave_codesets = [
+        cset for cset in enclave_codesets
+        if 'conceptSetNameOMOP' in cset.keys()  # why is it missing sometimes? old data model?
+        # - Filter any old drafts from sourceApplicationVersion 1.0. Old data model. No containers, etc. See also:
+        #  https://github.com/jhu-bids/TermHub/actions/runs/6489411749/job/17623626419
+        and cset['conceptSetNameOMOP']
+        and not cset['conceptSetNameOMOP'] in archived_container_names
+    ]
+
+    enclave_codeset_ids: Set[int] = set([cset['codesetId'] for cset in enclave_codesets])
+    return db_codeset_ids, enclave_codeset_ids
+
+
+def add_missing_csets_to_db(cset_ids: List[int], con: Connection = None, schema=SCHEMA):
+    """Add missing concept sets to the DB"""
+    con = con if con else get_db_connection(schema=schema)
+    csets_and_members_enclave_to_db(con, cset_ids=cset_ids, schema=schema)
+
+
+def find_and_add_missing_csets_to_db(con: Connection = None, schema=SCHEMA):
+    """Find and add missing concept sets to the DB"""
+    con = con if con else get_db_connection(schema=schema)
+    cset_ids: List[int] = list(find_termhub_missing_csets(con))
+    if cset_ids:
+        add_missing_csets_to_db(cset_ids, con, schema)
+    else:
+        print('No missing csets found.')
+
+
 def fetch_cset_and_member_objects(
-    since: Union[datetime, str], return_type=['flat', 'hierarchical'][0], verbose=False
-) -> Dict[str, List[Dict]] :
+    since: Union[datetime, str] = '', codeset_ids: List[int] = [], handle_issues=True, verbose=False
+) -> Union[Dict[str, List[Dict]], None]:
     """Get new objects: cset container, cset version, expression items, and member items.
 
-    Resources:
-    https://www.palantir.com/docs/foundry/api/ontology-resources/objects/object-basics/#filtering-objects
-    https://unite.nih.gov/workspace/data-integration/restricted-view/preview/ri.gps.main.view.af03f7d1-958a-4303-81ac-519cfdc1dfb3
+    :param since: datetime or str, e.g. '2023-07-09T01:08:23.547680-04:00'. If present, codeset_ids should be empty.
+    :param codeset_ids: List of IDs. If present, since should be empty. Will fetch containers, versions, items, and
+    members related to these code set IDs.
+    :param handle_issues: If True, will flag issues for cset members/items unable to fetch to the fetch audit/status table
 
     todo: enclave API returns jagged rows (different lengths). E.g. for OMOPConceptSet, if it fetches a cset that does
      not have a value set for the field 'updateMessage', that field will not appear in the object/dictionary.
@@ -304,59 +383,111 @@ def fetch_cset_and_member_objects(
      I needed to refactor that function to do a lookup to get the container, which is messy. Whenever I make this
      change, it will be a breaking change at the very least for csets_and_members_to_db() both in terms of no longer
      needing to do this lookup, and also dealing properly w/ how the data is returned from this func.
+    TODO: @joeflack4, if new container but it has no versions, should still fetch it. right now not doing that
+            and, when metadata updated on container or version, need to fetch (but not bother with members and items)
 
-    :return (return_type == 'flat' (default)):
+    Resources:
+    https://www.palantir.com/docs/foundry/api/ontology-resources/objects/object-basics/#filtering-objects
+    https://unite.nih.gov/workspace/data-integration/restricted-view/preview/ri.gps.main.view.af03f7d1-958a-4303-81ac-519cfdc1dfb3
+
+    About: call_github_action() usage
+    - This happens at the end of the script. It will run an action to resolve any issues where we failed to fetch data
+    from the enclave.
+
+    :return
       - cset containers
       - cset versions
+          - member items
+          - expression items
       - member items
       - expression items
-    :return (return_type == 'hierarchical'):
-      - cset containers
-      - cset versions
-        - member items
-        - expression items
     """
+
+    # codeset_ids_to_ignore = [938394329] # Hope Termhub Test (v2), 53K concepts. taking forever
     # Concept set versions
-    cset_versions: List[Dict] = fetch_objects_since_datetime('OMOPConceptSet', since, verbose)
+    if not (since or codeset_ids) or (since and codeset_ids):
+        raise RuntimeError('Must pass either: `since` or `codeset_ids`, but not both.')
+    print(' - fetching cset versions')
+    if codeset_ids and not since:
+        cset_versions: List[Dict] = [fetch_cset_version(_id, retain_properties_nesting=True) for _id in codeset_ids]
+    else:
+        cset_versions: List[Dict] = fetch_objects_since_datetime('OMOPConceptSet', since, verbose)
+    # - Filter any old drafts from sourceApplicationVersion 1.0. Old data model. No containers, etc. See also:
+    #  https://github.com/jhu-bids/TermHub/actions/runs/6489411749/job/17623626419
+    cset_versions = [x for x in cset_versions if x['properties']['conceptSetNameOMOP']]
+    print(f'   - retrieved {len(cset_versions)} versions')
 
     # Containers
+    print(f' - fetching containers for {len(cset_versions)} versions')
     containers_ids = [x['properties']['conceptSetNameOMOP'] for x in cset_versions]
     cset_containers: List[Dict] = []
     for _id in containers_ids:
+        # todo: will a container ever be paginated? can drop this param, though shouldn't matter
         container: List[Dict] = make_objects_request(
             'OMOPConceptSetContainer', query_params={'properties.conceptSetId.eq': _id}, verbose=verbose,
-            return_type='data')
+            return_type='data', handle_paginated=True)
         if not container:
             raise ValueError(f'Enclave API returned cset version with container of id {_id}, but failed to call data '
                              f'for that specific container.')
         cset_containers.append(container[0]['properties'])
 
+    # Returning None if no data
+    if not cset_containers and not cset_versions:
+        return
+
     # Expression items & concept set members
     cset_versions_with_concepts: List[Dict] = []
-    flat_expression_items = []
-    flat_member_items = []
+    expression_items = []
+    member_items = []
+    print(f' - fetching expressions/members for {len(cset_versions)} versions:')
+    i = 0
     for cset in cset_versions:
-        version: int = cset['properties']['codesetId']
-        # Hierarchical
-        cset['expression_items']: List[Dict] = get_concept_set_version_expression_items(version, return_detail='full')
-        cset['member_items']: List[Dict] = get_concept_set_version_members(version, return_detail='full')
+        i += 1
+        version_id: int = cset['properties']['codesetId']
+        print(f'   - {i}: {version_id}')
+        # todo: if failed to get expression items, should we not check for members? maybe ok because flagged
+        try:
+            cset['expression_items']: List[Dict] = \
+                get_concept_set_version_expression_items(version_id, return_detail='full')
+        except EnclavePaginationLimitErr as err:
+            cset['expression_items']: List[Dict] = err.args[1]['results_prior_to_error']
+            if handle_issues:
+                insert_fetch_statuses([{'table': 'code_sets', 'primary_key': version_id, 'status_initially':
+                    'fail-excessive-items', 'comment':
+                    f"Failed after {len(cset['expression_items'])} expression_items."}])
+                call_github_action('resolve-fetch-failures-excess-items')
+        try:
+            cset['member_items']: List[Dict] = get_concept_set_version_members(version_id, return_detail='full')
+        except EnclavePaginationLimitErr as err:
+            cset['member_items']: List[Dict] = err.args[1]['results_prior_to_error']
+            if handle_issues:
+                insert_fetch_statuses([{'table': 'code_sets', 'primary_key': version_id, 'status_initially':
+                    'fail-excessive-members', 'comment': f"Failed after {len(cset['member_items'])} members."}])
+                call_github_action('resolve-fetch-failures-excess-items')
+        if not cset['member_items'] and cset['expression_items'] and not cset['properties']['isDraft'] and handle_issues:
+            insert_fetch_statuses([{
+                'table': 'code_sets', 'primary_key': version_id, 'status_initially': 'fail-0-members',
+                'comment': f"Fetched 0 members after fetching {len(cset['expression_items'])} items."}])
+            call_github_action('resolve_fetch_failures_0_members.yml', {'version_id': str(version_id)})
+
         cset_versions_with_concepts.append(cset)
-        # Flat
-        flat_expression_items.extend(cset['expression_items'])
-        flat_member_items.extend(cset['member_items'])
+        expression_items.extend(cset['expression_items'])
+        member_items.extend(cset['member_items'])
 
-    if return_type == 'flat':
-        return {'OMOPConceptSetContainer': cset_containers, 'OMOPConceptSet': cset_versions,
-                'OmopConceptSetVersionItem': flat_expression_items, 'OMOPConcept': flat_member_items}
-    return {'cset_containers': cset_containers, 'cset_versions': cset_versions_with_concepts}
+    return {'OMOPConceptSetContainer': cset_containers, 'OMOPConceptSet': cset_versions,
+            'OmopConceptSetVersionItem': expression_items, 'OMOPConcept': member_items}
 
 
-def csets_and_members_to_db(con: Connection, schema: str, csets_and_members: Dict[str, List[Dict]] = None):
+def concept_set_members__from_csets_and_members_to_db(con: Connection, csets_and_members: Dict[str, List[Dict]]):
+    """Take a 'csets_and_members' object and take what is needed to insert data into concept_set_members table."""
+    container_lookup = {x['conceptSetId']: x for x in csets_and_members['OMOPConceptSetContainer']}
+    for cset in csets_and_members['OMOPConceptSet']:
+        container = container_lookup[cset['properties']['conceptSetNameOMOP']]
+        concept_set_members__cset_rows_to_db(con, cset, cset['member_items'], container)
+
+def csets_and_members_to_db(con: Connection, csets_and_members: Dict[str, List[Dict]], schema=SCHEMA):
     """Update database with csets and members.
-    todo: add_object_to_db(): support multiple objects with single insert
-    todo: @Sigfried I fetch new csets, and I add their concepts to this table if they're not there already. Potentially
-     useful if we don't update our vocab tables as soon as the Enclave's are updated, but perhaps this is an unnecessary
-     step I can remove. What do you think?"""
+    todo: add_object_to_db(): support multiple objects with single insert"""
     # Core cset tables: with normal, single primary keys
     for object_type_name, objects in csets_and_members.items():
         print(f'Running SQL inserts in core tables for: {object_type_name}...')
@@ -364,33 +495,25 @@ def csets_and_members_to_db(con: Connection, schema: str, csets_and_members: Dic
         objects = [obj['properties'] if 'properties' in obj else obj for obj in objects]
         add_objects_to_db(con, object_type_name, objects)
         t1 = datetime.now()
-        print(f'  - {object_type_name} inserts completed in {(t1 - t0).seconds} seconds')
+        print(f'  - completed in {(t1 - t0).seconds} seconds')
 
     # Core cset tables with: composite primary keys
     print('Running SQL inserts in core tables for: concept_set_members...')
     t2 = datetime.now()
-    container_lookup = {x['conceptSetId']: x for x in csets_and_members['OMOPConceptSetContainer']}
-    for cset in csets_and_members['OMOPConceptSet']:
-        container = container_lookup[cset['properties']['conceptSetNameOMOP']]
-        concept_set_members__cset_rows_to_db(con, cset, cset['member_items'], container)
+    concept_set_members__from_csets_and_members_to_db(con, csets_and_members)
     print(f'  - concept_set_members completed in {(datetime.now() - t2).seconds} seconds')
 
     # Derived tables
     refresh_termhub_core_cset_derived_tables(con, schema)
 
 
-def csets_and_members_enclave_to_db(con: Connection, schema: str, since: Union[datetime, str]):
-    """Fetch new csets and members, if needed, and then update database with them."""
-    print('Fetching new data from the N3C data enclave...')
-    t0 = datetime.now()
-    csets_and_members: Dict[str, List[Dict]] = fetch_cset_and_member_objects(since)
-    print(f'  - Fetched new data in {(datetime.now() - t0).seconds} seconds:\n    OBJECT_TYPE: COUNT\n' +
-          "\n".join(['    ' + str(k) + ": " + str(len(v)) for k, v in csets_and_members.items()]))
-    return csets_and_members_to_db(con, schema, csets_and_members)
-
-
-def fetch_object_by_id(object_type_name: str, object_id: Union[int, str], id_field: str = None, verbose=False) -> Dict:
-    """Fetch object by its id"""
+def fetch_object_by_id(
+    object_type_name: str, object_id: Union[int, str], id_field: str = None, retain_properties_nesting=False,
+    verbose=False,
+) -> Dict:
+    """Fetch object by its id
+    :param retain_properties_nesting: If False, returns x['properties'] instead of x for any x returned from
+    make_objects_request(). When this is done, x['rid'] is also lost, but we have yet to find a use case for that."""
     err = f'fetch_object_by_id(): Did not pass optional param `id_field`, but also could not automatically resolve ' \
           f'the primary key / ID field for {object_type_name}. Try passing the `id_field` manually, or adding it to' \
           f' `PKEYS` in `objects_api.py`.'
@@ -401,34 +524,34 @@ def fetch_object_by_id(object_type_name: str, object_id: Union[int, str], id_fie
     matches: List[Dict] = make_objects_request(
         object_type_name,
         query_params={f'properties.{id_field}.eq': str(object_id)},
-        return_type='data', verbose=verbose)
-    obj: Dict = matches[0]['properties']
+        return_type='data', verbose=verbose, handle_paginated=True)
+    obj: Dict = matches[0] if retain_properties_nesting else matches[0]['properties']
     return obj
 
 
-def fetch_cset_version(object_id: int) -> Dict:
+def fetch_cset_version(object_id: int, retain_properties_nesting=False) -> Dict:
     """Get object from enclave"""
-    return fetch_object_by_id('OMOPConceptSet', object_id, 'codesetId')
+    return fetch_object_by_id('OMOPConceptSet', object_id, 'codesetId', retain_properties_nesting)
 
 
-def fetch_cset_container(object_id: int) -> Dict:
+def fetch_cset_container(object_id: int, retain_properties_nesting=False) -> Dict:
     """Get object from enclave"""
-    return fetch_object_by_id('OMOPConceptSetContainer', object_id, 'conceptSetId')
+    return fetch_object_by_id('OMOPConceptSetContainer', object_id, 'conceptSetId', retain_properties_nesting)
 
 
-def fetch_cset_member_item(object_id: int) -> Dict:
+def fetch_cset_member_item(object_id: int, retain_properties_nesting=False) -> Dict:
     """Get object from enclave"""
-    return fetch_object_by_id('OMOPConcept', object_id, 'conceptId')
+    return fetch_object_by_id('OMOPConcept', object_id, 'conceptId', retain_properties_nesting)
 
 
-def fetch_concept(object_id: int) -> Dict:
+def fetch_concept(object_id: int, retain_properties_nesting=False) -> Dict:
     """Get object from enclave"""
-    return fetch_cset_member_item(object_id)
+    return fetch_cset_member_item(object_id, retain_properties_nesting)
 
 
-def fetch_cset_expression_item(object_id: int) -> Dict:
+def fetch_cset_expression_item(object_id: int, retain_properties_nesting=False) -> Dict:
     """Get object from enclave"""
-    return fetch_object_by_id('OmopConceptSetVersionItem', object_id, 'itemId')
+    return fetch_object_by_id('OmopConceptSetVersionItem', object_id, 'itemId', retain_properties_nesting)
 
 
 def add_objects_to_db(
@@ -569,6 +692,9 @@ def concept_set_members_enclave_to_db(con: Connection, codeset_id: int, concept_
 def items_to_atlas_json_format(items):
     """Convert version items to atlas json format"""
     flags = ['includeDescendants', 'includeMapped', 'isExcluded']
+
+    items = [item['properties'] if 'properties' in item else item for item in items]
+
     try:
         concept_ids = [i['conceptId'] for i in items]
     except Exception as err:
@@ -604,8 +730,9 @@ def items_to_atlas_json_format(items):
 
 
 # todo: split into get/update
-def get_codeset_json(codeset_id, con=get_db_connection(), use_cache=True, set_cache=True) -> Dict:
+def get_codeset_json(codeset_id, con: Connection = None, use_cache=True, set_cache=True) -> Dict:
     """Get code_set jSON"""
+    con = con if con else get_db_connection()
     if use_cache:
         jsn = sql_query_single_col(con, f"""
             SELECT json
@@ -618,7 +745,7 @@ def get_codeset_json(codeset_id, con=get_db_connection(), use_cache=True, set_ca
     container = make_objects_request(
         f'objects/OMOPConceptSetContainer/{quote(cset["conceptSetNameOMOP"], safe="")}',
         return_type='data', expect_single_item=True)
-    items = get_concept_set_version_expression_items(codeset_id, handle_paginated=True)
+    items = get_concept_set_version_expression_items(codeset_id, handle_paginated=True, return_detail='full')
     items_jsn = items_to_atlas_json_format(items)
 
     junk = """ What an item should look like for ATLAS JSON import format:
@@ -751,30 +878,33 @@ def refresh_tables_for_object():
 
 
 def get_concept_set_version_expression_items(
-    version_id: Union[str, int], return_detail=['id', 'full'][0], handle_paginated=False
+    codeset_id: Union[str, int], return_detail, handle_paginated=True, fail_on_error=True
 ) -> List[Dict]:
     """Get concept set version expression items"""
-    version_id = str(version_id)
+    codeset_id = str(codeset_id)
     items: List[Dict] = get_object_links(
         object_type='OMOPConceptSet',
-        object_id=version_id,
+        object_id=codeset_id,
         link_type='OmopConceptSetVersionItem',
-        handle_paginated=handle_paginated)
+        handle_paginated=handle_paginated,
+        fail_on_error=fail_on_error)
     if return_detail == 'id':
         return [x['properties']['itemId'] for x in items]
     return items
 
 
 def get_concept_set_version_members(
-    version_id: Union[str, int], return_detail=['id', 'full'][0], handle_paginated=False
+    codeset_id: Union[str, int], return_detail, handle_paginated=True, verbose=False, fail_on_error=True
 ) -> List[Dict]:
     """Get concept set members"""
-    version_id = str(version_id)
+    codeset_id = str(codeset_id)
     members: List[Dict] = get_object_links(
         object_type='OMOPConceptSet',
-        object_id=version_id,
+        object_id=codeset_id,
         link_type='omopconcepts',
-        handle_paginated=handle_paginated)
+        handle_paginated=handle_paginated,
+        verbose=verbose,
+        fail_on_error=fail_on_error)
     if return_detail == 'id':
         return [x['properties']['conceptId'] for x in members]
     return members
@@ -802,16 +932,16 @@ def get_projects(verbose=False) -> List[Dict]:
 
 def cli():
     """Command line interface for package."""
-    raise "We aren't using this as of 2023-02. Leaving in place in case we want to use again."
-    # package_description = 'Tool for working w/ the Palantir Foundry enclave API. ' \
-    #                       'This part is for downloading enclave datasets.'
-    # parser = ArgumentParser(description=package_description)
-    #
-    # # parser.add_argument(
-    # #     '-a', '--auth_token_env_var',
-    # #     default='PALANTIR_ENCLAVE_AUTHENTICATION_BEARER_TOKEN',
-    # #     help='Name of the environment variable holding the auth token you want to use')
-    # # todo: 'objects' alone doesn't make sense because requires param `object_type`
+    parser = ArgumentParser(
+        prog='Enclave wrangler objects API',
+        description='Tool for working w/ the Palantir Foundry enclave API.')
+
+    # Old args
+    # parser.add_argument(
+    #     '-a', '--auth_token_env_var',
+    #     default='PALANTIR_ENCLAVE_AUTHENTICATION_BEARER_TOKEN',
+    #     help='Name of the environment variable holding the auth token you want to use')
+    # todo: 'objects' alone doesn't make sense because requires param `object_type`
     # parser.add_argument(
     #     '-r', '--request-types',
     #     nargs='+', default=['object_types', 'objects', 'link_types'],
@@ -827,7 +957,20 @@ def cli():
     #     del kwargs_dict['download_favorite_objects']
     #     run(**kwargs_dict)
 
+    # New args added from 9/12/2023
+    parser.add_argument(
+        '-A', '--find-and-add-missing-csets-to-db', action='store_true',
+        help='Find and add missing csets to the DB.')
+    parser.add_argument(
+        '-f', '--find-missing-csets', action='store_true',
+        help='Find missing csets, either in enclave and not in TermHub, or vice versa.')
+    args: Dict = vars(parser.parse_args())
+    commands_to_run = [k for k, v in args.items() if v]
+    if 'find_missing_csets' in commands_to_run:
+        get_bidirectional_csets_sets()
+    if 'find_and_add_missing_csets_to_db' in commands_to_run:
+        find_and_add_missing_csets_to_db()
+
 
 if __name__ == '__main__':
-    ot = get_object_types()
-    get_n3c_recommended_csets(save=True)
+    cli()
