@@ -261,6 +261,21 @@ def is_table_up_to_date(table_name: str, skip_if_updated_within_hours: int = Non
     last_updated_key = f'last_updated_{table_name}'
     return check_if_updated(last_updated_key, skip_if_updated_within_hours)
 
+def is_refresh_active(local=False) -> bool:
+    """Checks if the database refresh is currently running
+
+    As of 2023/10/28, there is still a variable called 'refresh_status' with values active/inactive. However, this was
+    problematic, because sometimes (e.g. when debugging), the process would exit abnormally and this variable wouldn't
+    get set to 'inactive'. To circumvent that, this variable is ignored and 'last_start' and 'last_end' times are used
+    instead. There is a 6 hour threshold to where if these variables show that the process is reported to have been
+    running for that time, it is determined that this is in error and the refresh is considered inactive. 6 hours was
+    chosen because this is the default maximum amount of time that a GitHub action can run, but it is also well over the
+    normal amount of time that the refresh takes."""
+    last_start = dp.parse(check_db_status_var('last_refresh_request', local))
+    last_end = dp.parse(check_db_status_var('last_refresh_exited', local))
+    hours_since_last_refresh: float = (last_start - last_end).total_seconds() / 60 / 60
+    return 6 > hours_since_last_refresh > 0
+
 # todo: Can update update_db_status_var() so that it can accept optional param 'con' to improve performance.
 def update_db_status_var(key: str, val: str, local=False):
     """Update the `manage` table with information for a given variable, e.g. when a table was last updated"""
@@ -268,7 +283,6 @@ def update_db_status_var(key: str, val: str, local=False):
         run_sql(con, f"DELETE FROM public.manage WHERE key = '{key}';")
         sql_str = f"INSERT INTO public.manage (key, value) VALUES (:key, :val);"
         run_sql(con, sql_str, {'key': key, 'val': val})
-
 
 def check_db_status_var(key: str,  local=False):
     """Check the value of a given variable the `manage`table """

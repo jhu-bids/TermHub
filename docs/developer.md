@@ -3,9 +3,12 @@
 ### [Backend](../backend/README.md)
 
 ### Testing
-#### Running tests
-Backend: `python -m unittest discover`
-Frontend: `npm test`
+#### Backend tests
+Can be run locally via `python -m unittest discover`. There is also a GitHub action to run them.
+#### Frontend tests
+We currently don't have a unit test suite.
+We do have some end-to-end test workflows. Can run them locally via `make test-frontend`, but if you check the makefile,
+you can see alternative commands (e.g. debugging). There is also a GitHub action for this.
 
 ### Database
 #### Refreshing database contents from sources
