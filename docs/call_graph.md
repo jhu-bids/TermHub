@@ -21,7 +21,7 @@ Most of the links don't work in pycharm but they work when used in GitHub.
     - [`run_sql(con_initial, f'CREATE SCHEMA IF NOT EXISTS {test_schema};')`](../backend/db/load.py#72)
     - ... creating a schema with concepts and code_sets
     - ends the function
-  - ``` 
+  - ```
     if create_db:
       # Apparently this caused an error the last time on a fresh DB, but didn't write down why.
       create_database(con, schema)
@@ -39,12 +39,11 @@ Most of the links don't work in pycharm but they work when used in GitHub.
         [FAVORITE_DATASETS](../enclave_wrangler/config.py#75-165)
     - downloads csets, objects, vocab
   - [indexes_and_derived_tables()](../backend/db/load.py#L136-193)
-    - uses SQL querys to create indices and derived tables :) 
+    - uses SQL querys to create indices and derived tables :)
   - [initialize_test_schema()](../backend/db/load.py#L66-113)
     - [`run_sql(con_initial, f'CREATE SCHEMA IF NOT EXISTS {test_schema};')`](../backend/db/load.py#72)
     - ... creating a schema with concepts and code_sets
 
-      
+
 
 ### [dataset.py](../enclave_wrangler/datasets.py)
-

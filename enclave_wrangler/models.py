@@ -61,7 +61,7 @@ PKEYS = {
     'researcher': 'rid',  # @joeflack4, i just added pkeys here and the two lines below. hope it doesn't break anything
     'omopconceptset': 'codesetId',
     'omopconceptsetcontainer': 'conceptSetId',
-    
+
     # - Custom tables
     'all_csets': '',
     'codeset_counts': '',
@@ -223,10 +223,10 @@ New way to do field mappings:
   After setting up the mapping between two rowtypes as below,
   you can get the field name you want. For instance, to copy fields
   from a concept records to an atlasjson records:
-  
+
     ajrecs = convert_rows('concept', 'atlasjson', crecs)
 
-  So far it only works with this one pair of rowtypes. As need arises 
+  So far it only works with this one pair of rowtypes. As need arises
   (like csv upload to make-new-omop-... api call), we'll add more mappings.
 """
 FMAPS: List[Dict] = []
