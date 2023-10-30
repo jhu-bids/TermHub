@@ -5,6 +5,7 @@ from argparse import ArgumentParser
 from typing import Dict, List, Set, Union
 from uuid import uuid4
 from time import sleep
+from datetime import date
 
 import pandas as pd
 from requests import Response
@@ -184,7 +185,10 @@ def upload_new_cset_container_with_concepts_from_csv(
     return responses
 
 
-def upload_cset_as_new_version_of_itself(codeset_id: int) -> Dict:
+def upload_cset_as_new_version_of_itself(
+    codeset_id: int,
+    add_to_field: Dict = {'intention': f'Version for comparison to N3C-Rec on {datetime.date.today().isoformat()}'}
+                                         ) -> Dict:
     v = fetch_cset_version(codeset_id, False)
 
     vi = [i['properties'] for i in get_concept_set_version_expression_items(codeset_id, 'full')]
@@ -211,9 +215,16 @@ def upload_cset_as_new_version_of_itself(codeset_id: int) -> Dict:
         # annotation,
         # intended_research_project,
     }
+
+    for key, value in add_to_field.items():
+        val = '. ' + v[key] if v[key] else ''
+        val = value + val
+        upload_args[key] = val
+
     # upload_new_cset_version_with_concepts( concept_set_name, omop_concepts, provenance, limitations, intention, annotation, parent_version_codeset_id, current_max_version, intended_research_project, on_behalf_of, codeset_id, validate_first, finalize )
-    pass_on_args = ['conceptSetNameOMOP']
+    # pass_on_args = ['conceptSetNameOMOP'] not sure what this was for
     return upload_new_cset_version_with_concepts(**upload_args)
+    # returns {'responses': [...], 'codeset_id': 123}
 
 # TODO: What if this fails halfway through? Can we teardown any of the steps? (need to store random `codeset_id` too)
 # TODO: Need to do proper codeset_id assignment: (i) look up registry and get next available ID, (ii) assign it here,
