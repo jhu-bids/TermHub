@@ -58,6 +58,7 @@ DDL_FETCH_AUDIT = """CREATE TABLE IF NOT EXISTS public.fetch_audit (
 
 DDL_API_LOG = """CREATE TABLE IF NOT EXISTS public.api_runs (
                         host text,
+                        client text,
                         schema text not null,
                         api_call text not null,
                         codeset_ids integer[],
