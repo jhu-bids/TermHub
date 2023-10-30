@@ -5,7 +5,7 @@ Resources
 """
 import os
 from pathlib import Path
-from typing import List
+from typing import List, Optional
 
 import uvicorn
 from fastapi import FastAPI, Request
@@ -61,7 +61,14 @@ async def set_schema_globally_and_log_calls(request: Request, call_next):
 
     rpt['host'] = os.getenv('HOSTENV', gethostname())
 
-    rpt['client'] = request.client.host
+    # rpt['client'] = request.client.host -- this gives a local (169.154) IP on azure
+    #   chatgpt recommends:
+    forwarded_for: Optional[str] = request.headers.get('X-Forwarded-For')
+    if forwarded_for:
+        # The header can contain multiple IP addresses, so take the first one
+        rpt['client'] = forwarded_for.split(',')[0]
+    else:
+        rpt['client'] = request.client.host
 
     schema = query_params.get("schema")
     if schema:
