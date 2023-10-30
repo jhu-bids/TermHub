@@ -51,8 +51,8 @@ async def set_schema_globally_and_log_calls(request: Request, call_next):
     if not codeset_ids:
         print(f"No codeset_ids provided, not sure what monitoring to do, if any for {url}")
         return await call_next(request)
-    if type(codeset_ids) == str:
-        codeset_ids = codeset_ids.split('|')
+    if len(codeset_ids) == 1 and type(codeset_ids[0]) == str:
+        codeset_ids = codeset_ids[0].split('|')
     codeset_ids = [int(x) for x in codeset_ids]
 
     start_time = time.time()
