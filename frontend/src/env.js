@@ -1,3 +1,5 @@
+// imports from env.local;
+// workflow will overwrite env.local with dev or prod during deployment
 import {API_ROOT, DEPLOYMENT} from "./env.local";
 export {API_ROOT, DEPLOYMENT};
 
