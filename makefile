@@ -111,10 +111,7 @@ fetch-missing-csets:
 # nvm allows to switch to a particular versio of npm/node. Useful for working w/ deployment
 # https://github.com/nvm-sh/nvm
 serve-frontend:
-	nvm use 18.2.0; cd frontend; npm run start
+	nvm use 18.2.0; cd frontend; yarn start
 
 serve-backend:
 	uvicorn backend.app:APP --reload
-
-# TODO: does this work?
-serve: serve-backend serve-frontend
