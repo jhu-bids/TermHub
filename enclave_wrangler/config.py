@@ -1,16 +1,11 @@
 """Config"""
 import os
 from collections import OrderedDict
-
-from dotenv import load_dotenv
+from backend.config import PROJECT_ROOT
 
 TERMHUB_VERSION = "0.0.1"
 
-APP_ROOT = os.path.dirname(os.path.realpath(__file__))
-PROJECT_ROOT = os.path.realpath(os.path.join(APP_ROOT, '..'))
-ENV_DIR = os.path.join(PROJECT_ROOT, 'env')
-OUTPUT_DIR = os.path.join(PROJECT_ROOT, 'output')
-ENV_FILE = os.path.join(ENV_DIR, '.env')
+
 TERMHUB_CSETS_DIR = os.path.join(PROJECT_ROOT, 'termhub-csets')
 UPLOADS_DIR = os.path.join(TERMHUB_CSETS_DIR, 'datasets', 'uploads')
 OUTDIR_OBJECTS = os.path.join(TERMHUB_CSETS_DIR, 'objects')
@@ -32,7 +27,6 @@ VALIDATE_FIRST = False  # if True, will /validate before doing /apply, and retur
 RESEARCHER_COLS = ['container_created_by', 'codeset_created_by', 'assigned_sme', 'reviewed_by', 'n3c_reviewer',
                    'assigned_informatician']
 
-load_dotenv(ENV_FILE)
 config = {
     'PALANTIR_ENCLAVE_AUTHENTICATION_BEARER_TOKEN': os.getenv('PALANTIR_ENCLAVE_AUTHENTICATION_BEARER_TOKEN', '').replace('\r', ''),
     'OTHER_TOKEN': os.getenv('OTHER_TOKEN', '').replace('\r', ''),

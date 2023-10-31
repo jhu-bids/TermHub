@@ -4,23 +4,24 @@ Resources
 - https://github.com/tiangolo/fastapi
 """
 import os
-from pathlib import Path
 from typing import List, Optional
+import re
 
 import uvicorn
 from fastapi import FastAPI, Request
 from fastapi.middleware.cors import CORSMiddleware
 from fastapi.middleware.gzip import GZipMiddleware
+import httpx
 # from starlette.requests import Request
 import time
 import datetime
 from socket import gethostname
 
+import backend.config
 from backend.routes import cset_crud, db, graph
 from backend.db.config import override_schema, get_schema_name
 from backend.db.utils import insert_from_dict, get_db_connection
 
-PROJECT_DIR = Path(os.path.dirname(__file__)).parent
 # users on the same server
 APP = FastAPI()
 APP.include_router(cset_crud.router)
@@ -34,6 +35,69 @@ APP.add_middleware(
     allow_headers=['*'],
 )
 APP.add_middleware(GZipMiddleware, minimum_size=1000)
+
+
+async def client_location(request: Request) -> str:
+    # rpt['client'] = request.client.host -- this gives a local (169.154) IP on azure
+    #   chatgpt recommends:
+    forwarded_for: Optional[str] = request.headers.get('X-Forwarded-For')
+    if forwarded_for:
+        # The header can contain multiple IP addresses, so take the first one
+        ip = forwarded_for.split(',')[0]
+    else:
+        ip = request.client.host
+
+    ip = re.sub(':.*', '', ip)
+
+    ipstack_key = os.getenv('API_STACK_KEY', None)
+
+    if ip != '127.0.0.1' and ipstack_key:
+        """
+        http://api.ipstack.com/134.201.250.155?access_key=7a6f9d6d72d68a1452b643eb58cd8ee7&format=1
+        {
+            "ip": "134.201.250.155",
+            "type": "ipv4",
+            "continent_code": "NA",
+            "continent_name": "North America",
+            "country_code": "US",
+            "country_name": "United States",
+            "region_code": "CA",
+            "region_name": "California",
+            "city": "San Fernando",
+            "zip": "91344",
+            "latitude": 34.293949127197266,
+            "longitude": -118.50763702392578,
+            "location": {
+                "geoname_id": 5391945,
+                "capital": "Washington D.C.",
+                "languages": [
+                    {
+                        "code": "en",
+                        "name": "English",
+                        "native": "English"
+                    }
+                ],
+                "country_flag": "https://assets.ipstack.com/flags/us.svg",
+                "country_flag_emoji": "🇺🇸",
+                "country_flag_emoji_unicode": "U+1F1FA U+1F1F8",
+                "calling_code": "1",
+                "is_eu": false
+            }
+        }
+        """
+
+        loc_url = f"http://api.ipstack.com/{ip}?access_key={ipstack_key}"
+
+        async with httpx.AsyncClient() as client:
+            response = await client.get(loc_url)
+            if response and response.json:
+                loc_obj = response.json()
+                location = f"{ip}: {loc_obj['city']}, {loc_obj['region_name']}"
+                return location
+
+    return ip
+
+
 
 @APP.middleware("http")
 async def set_schema_globally_and_log_calls(request: Request, call_next):
@@ -61,14 +125,7 @@ async def set_schema_globally_and_log_calls(request: Request, call_next):
 
     rpt['host'] = os.getenv('HOSTENV', gethostname())
 
-    # rpt['client'] = request.client.host -- this gives a local (169.154) IP on azure
-    #   chatgpt recommends:
-    forwarded_for: Optional[str] = request.headers.get('X-Forwarded-For')
-    if forwarded_for:
-        # The header can contain multiple IP addresses, so take the first one
-        rpt['client'] = forwarded_for.split(',')[0]
-    else:
-        rpt['client'] = request.client.host
+    rpt['client'] = await client_location(request)
 
     schema = query_params.get("schema")
     if schema:

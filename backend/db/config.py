@@ -2,19 +2,16 @@
 import os
 from typing import Dict, List
 
-from dotenv import load_dotenv
+from backend.config import PROJECT_ROOT
 
 DB_DIR = os.path.dirname(os.path.realpath(__file__))
 BACKEND_DIR = os.path.join(DB_DIR, '..')
-PROJECT_ROOT = os.path.join(BACKEND_DIR, '..')
 DOCS_DIR = os.path.join(PROJECT_ROOT, 'docs')
-ENV_DIR = os.path.join(PROJECT_ROOT, 'env')
-ENV_FILE = os.path.join(ENV_DIR, '.env')
 TERMHUB_CSETS_PATH = os.path.join(PROJECT_ROOT, 'termhub-csets')
 DATASETS_PATH = os.path.join(TERMHUB_CSETS_PATH, 'datasets', 'prepped_files')
 OBJECTS_PATH = os.path.join(TERMHUB_CSETS_PATH, 'objects')
 DDL_JINJA_PATH_PATTERN = os.path.join(DB_DIR, 'ddl-*.jinja.sql')
-load_dotenv(ENV_FILE)
+
 CONFIG = {
     'server': os.getenv('TERMHUB_DB_SERVER'),
     'driver': os.getenv('TERMHUB_DB_DRIVER'),
