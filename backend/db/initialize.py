@@ -64,6 +64,7 @@ DDL_API_LOG = """CREATE TABLE IF NOT EXISTS public.api_runs (
                         codeset_ids integer[],
                         related_codeset_ids integer,
                         timestamp text not null,
+                        result text,
                         process_seconds float
                         --date text,
                         --note text

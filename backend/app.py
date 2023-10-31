@@ -20,7 +20,7 @@ from socket import gethostname
 import backend.config
 from backend.routes import cset_crud, db, graph
 from backend.db.config import override_schema, get_schema_name
-from backend.db.utils import insert_from_dict, get_db_connection
+from backend.db.utils import insert_from_dict, get_db_connection, run_sql
 
 # users on the same server
 APP = FastAPI()
@@ -122,6 +122,7 @@ async def set_schema_globally_and_log_calls(request: Request, call_next):
     start_time = time.time()
 
     rpt = {}
+    rpt['timestamp'] = datetime.datetime.now().isoformat()
 
     rpt['host'] = os.getenv('HOSTENV', gethostname())
 
@@ -145,16 +146,25 @@ async def set_schema_globally_and_log_calls(request: Request, call_next):
 
     print(f"Request: {request.url} {request.method} {schema} {codeset_ids}")
 
-    response = await call_next(request) # Proceed with the request
+    con = get_db_connection()
+    insert_from_dict(con, 'public.api_runs', rpt, skip_if_already_exists=False)
+
+    try:
+        response = await call_next(request) # Proceed with the request
+        rpt['result'] = 'Success'
+    except Exception as e:
+        rpt['result'] = f'Error: {e}'
 
     end_time = time.time()
     process_seconds = end_time - start_time
-
-    rpt['timestamp'] = datetime.datetime.now().isoformat()
     rpt['process_seconds'] = process_seconds
 
-    with get_db_connection() as con:
-        insert_from_dict(con, 'public.api_runs', rpt, skip_if_already_exists=False)
+    run_sql(con, """
+                    UPDATE public.api_runs
+                    SET process_seconds = :process_seconds, result = :result
+                    WHERE timestamp = :timestamp""", rpt)
+    # using timestamp as a primary key. not the best practice, I know, but with microsecond granularity
+    #   (e.g., 2023-10-31T13:32:23.934211), it seems like it should be safe
 
     response.headers["X-Process-Time"] = str(process_seconds)
     return response
