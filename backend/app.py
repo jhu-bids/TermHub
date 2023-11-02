@@ -3,27 +3,18 @@
 Resources
 - https://github.com/tiangolo/fastapi
 """
-import os
-from typing import List, Optional
-import re
 
 import uvicorn
 from fastapi import FastAPI, Request
 from fastapi.middleware.cors import CORSMiddleware
 from fastapi.middleware.gzip import GZipMiddleware
-import httpx
-# from starlette.requests import Request
-import time
-import datetime
-from socket import gethostname
 
-import backend.config
 from backend.routes import cset_crud, db, graph
-from backend.db.config import override_schema, get_schema_name
-from backend.db.utils import insert_from_dict, get_db_connection, run_sql
+from backend.config import override_schema
 
 # users on the same server
-APP = FastAPI()
+# APP = FastAPI()
+APP = FastAPI(client_max_size=100_000_000) # trying this, but it shouldn't be necessary
 APP.include_router(cset_crud.router)
 # APP.include_router(oak.router)
 APP.include_router(graph.router)
@@ -37,136 +28,15 @@ APP.add_middleware(
 APP.add_middleware(GZipMiddleware, minimum_size=1000)
 
 
-async def client_location(request: Request) -> str:
-    # rpt['client'] = request.client.host -- this gives a local (169.154) IP on azure
-    #   chatgpt recommends:
-    forwarded_for: Optional[str] = request.headers.get('X-Forwarded-For')
-    if forwarded_for:
-        # The header can contain multiple IP addresses, so take the first one
-        ip = forwarded_for.split(',')[0]
-    else:
-        ip = request.client.host
-
-    ip = re.sub(':.*', '', ip)
-
-    ipstack_key = os.getenv('API_STACK_KEY', None)
-
-    if ip != '127.0.0.1' and ipstack_key:
-        """
-        http://api.ipstack.com/134.201.250.155?access_key=7a6f9d6d72d68a1452b643eb58cd8ee7&format=1
-        {
-            "ip": "134.201.250.155",
-            "type": "ipv4",
-            "continent_code": "NA",
-            "continent_name": "North America",
-            "country_code": "US",
-            "country_name": "United States",
-            "region_code": "CA",
-            "region_name": "California",
-            "city": "San Fernando",
-            "zip": "91344",
-            "latitude": 34.293949127197266,
-            "longitude": -118.50763702392578,
-            "location": {
-                "geoname_id": 5391945,
-                "capital": "Washington D.C.",
-                "languages": [
-                    {
-                        "code": "en",
-                        "name": "English",
-                        "native": "English"
-                    }
-                ],
-                "country_flag": "https://assets.ipstack.com/flags/us.svg",
-                "country_flag_emoji": "🇺🇸",
-                "country_flag_emoji_unicode": "U+1F1FA U+1F1F8",
-                "calling_code": "1",
-                "is_eu": false
-            }
-        }
-        """
-
-        loc_url = f"http://api.ipstack.com/{ip}?access_key={ipstack_key}"
-
-        async with httpx.AsyncClient() as client:
-            response = await client.get(loc_url)
-            if response and response.json:
-                loc_obj = response.json()
-                location = f"{ip}: {loc_obj['city']}, {loc_obj['region_name']}"
-                return location
-
-    return ip
-
-
-
 @APP.middleware("http")
-async def set_schema_globally_and_log_calls(request: Request, call_next):
-    """
-    This is middleware and will be EXECUTED ON EVERY API CALL
-    Its purpose is to log TermHub usage to help us prioritize performance improvements
+async def set_schema_globally(request: Request, call_next):
+    print(request.url)
 
-    Also, if a schema is provided, it will be used to override CONFIG['schema']
-    """
-
-    url = request.url
-    query_params = request.query_params # Extracting query params as a dict
-
-    codeset_ids = query_params.getlist("codeset_ids")
-    if not codeset_ids:
-        print(f"No codeset_ids provided, not sure what monitoring to do, if any for {url}")
-        return await call_next(request)
-    if len(codeset_ids) == 1 and type(codeset_ids[0]) == str:
-        codeset_ids = codeset_ids[0].split('|')
-    codeset_ids = [int(x) for x in codeset_ids]
-
-    start_time = time.time()
-
-    rpt = {}
-    rpt['timestamp'] = datetime.datetime.now().isoformat()
-
-    rpt['host'] = os.getenv('HOSTENV', gethostname())
-
-    rpt['client'] = await client_location(request)
-
-    schema = query_params.get("schema")
+    schema = request.query_params.get("schema")
     if schema:
         override_schema(schema)
 
-    schema = get_schema_name()
-    rpt['schema'] = schema
-
-    api_call = url.components[2][1:] # string leading /
-    rpt['api_call'] = api_call
-
-
-    if api_call == 'concept-ids-by-codeset-id':
-        rpt['related_codeset_ids'] = len(codeset_ids)
-    else:
-        rpt['codeset_ids'] = codeset_ids
-
-    print(f"Request: {request.url} {request.method} {schema} {codeset_ids}")
-
-    con = get_db_connection()
-    insert_from_dict(con, 'public.api_runs', rpt, skip_if_already_exists=False)
-
-    try:
-        response = await call_next(request) # Proceed with the request
-        rpt['result'] = 'Success'
-    except Exception as e:
-        rpt['result'] = f'Error: {e}'
-
-    end_time = time.time()
-    process_seconds = end_time - start_time
-    rpt['process_seconds'] = process_seconds
-
-    run_sql(con, """
-                    UPDATE public.api_runs
-                    SET process_seconds = :process_seconds, result = :result
-                    WHERE timestamp = :timestamp""", rpt)
-    # using timestamp as a primary key. not the best practice, I know, but with microsecond granularity
-    #   (e.g., 2023-10-31T13:32:23.934211), it seems like it should be safe
-
-    response.headers["X-Process-Time"] = str(process_seconds)
+    response = await call_next(request)
     return response
 
 
@@ -181,6 +51,7 @@ def read_root():
     # noinspection PyUnresolvedReferences
     url_list = [{"path": route.path, "name": route.name} for route in APP.routes]
     return url_list
+
 
 # CACHE_FILE = "cache.pickle"
 #
@@ -228,8 +99,3 @@ def read_root():
 
 if __name__ == '__main__':
     run()
-
-
-def monitor_request(request: Request, codeset_ids: List[int]) -> None:
-
-    pass

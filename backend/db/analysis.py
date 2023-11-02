@@ -22,7 +22,7 @@ from pandas import Series
 THIS_DIR = os.path.dirname(__file__)
 PROJECT_ROOT = Path(THIS_DIR).parent.parent
 sys.path.insert(0, str(PROJECT_ROOT))
-from backend.db.config import DOCS_DIR
+from backend.config import DOCS_DIR
 from backend.db.initialize import SCHEMA
 from backend.db.utils import get_db_connection, insert_from_dict, list_tables, sql_query
 

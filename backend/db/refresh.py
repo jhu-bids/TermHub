@@ -114,3 +114,5 @@ def cli():
 if __name__ == '__main__':
     cli()
     # can add --since 2023-06-29T14:13:32.252310-04:00 to config
+    # con = get_db_connection()
+    # csets_and_members_enclave_to_db(con, cset_ids=[1000037888])
