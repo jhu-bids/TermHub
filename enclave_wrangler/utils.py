@@ -470,7 +470,7 @@ def relevant_trace():
     import re
     from enclave_wrangler.config import PROJECT_ROOT
     stack = traceback.format_stack()
-    matches = [re.search(f'.*{PROJECT_ROOT}[^"]*", line \d+', c) for c in stack]
+    matches = [re.search(rf'.*{PROJECT_ROOT}[^"]*", line \d+', c) for c in stack]
     trace = [m[0] for m in matches if m]
     trace = [t for t in trace if not re.search('/venv/', t)]
     return '\n'.join(trace)

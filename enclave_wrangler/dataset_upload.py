@@ -5,12 +5,14 @@ from argparse import ArgumentParser
 from typing import Dict, List, Set, Union
 from uuid import uuid4
 from time import sleep
-from datetime import date
+from datetime import date, datetime
+import pytz
 
 import pandas as pd
 from requests import Response
 
 from enclave_wrangler.models import CsetContainer
+from backend.db.utils import insert_from_dict, get_db_connection
 
 # TODO: See if sys.path(0) thing works; doesn't require maintenance. Look at unit tests
 try:
@@ -1044,7 +1046,7 @@ def upload_cset_as_new_version_of_itself(
         'provenance': ov['provenance'],
         'limitations': ov['limitations'],
         'intention': ov['intention'],
-        'parent_version_id': ov['codesetId'],
+        'parent_version_codeset_id': ov['codesetId'],
         'current_max_version': ov['version'],  # probably
         # codeset_id': None, will be assigned
         'validate_first': True,
@@ -1062,21 +1064,29 @@ def upload_cset_as_new_version_of_itself(
     # upload_new_cset_version_with_concepts( concept_set_name, omop_concepts, provenance, limitations, intention, annotation, parent_version_codeset_id, current_max_version, intended_research_project, on_behalf_of, codeset_id, validate_first, finalize )
     # pass_on_args = ['conceptSetNameOMOP'] not sure what this was for
     d = upload_new_cset_version_with_concepts(**upload_args) # {'responses': [...], 'codeset_id': 123}
-    return d['codeset_id']
+    return d['versionId']
 
 
 def make_new_versions_of_csets(codeset_ids: List[int]):
+    eastern = pytz.timezone('US/Eastern')
     new_codeset_ids = []
-    for codeset_id in codeset_ids:
-        print(f'Making new version of {codeset_id}')
-        new_version_codeset_id = upload_cset_as_new_version_of_itself(codeset_id)
-        print(f'{codeset_id}, {new_version_codeset_id}')
-        new_codeset_ids.append(new_version_codeset_id)
-
+    with get_db_connection() as con:
+        for codeset_id in codeset_ids:
+            print(f'Making new version of {codeset_id}')
+            new_version_codeset_id = upload_cset_as_new_version_of_itself(codeset_id)
+            print(f'{codeset_id}, {new_version_codeset_id}')
+            new_codeset_ids.append(new_version_codeset_id)
+            row = {
+                'fetch_time': datetime.now(eastern).isoformat(),
+                'original_codeset_id': codeset_id,
+                'new_codeset_id': new_version_codeset_id
+            }
+            insert_from_dict(con, 'public.codeset_comparison', row)
     pass
 
 if __name__ == '__main__':
-    # test_new_version_compare_codeset_ids = [27371375, 523378440, 490947789]
-    # make_new_versions_of_csets(codeset_ids=test_new_version_compare_codeset_ids)
-    # pass
-    cli()
+    test_new_version_compare_codeset_ids = [27371375, 523378440, 490947789]
+    # test_new_version_compare_codeset_ids = [523378440]
+    make_new_versions_of_csets(codeset_ids=test_new_version_compare_codeset_ids)
+    pass
+    # cli()

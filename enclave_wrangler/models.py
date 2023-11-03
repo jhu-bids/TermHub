@@ -286,21 +286,26 @@ add_mappings(
 # OMOPConceptSet (Version): object <-> dataset
 add_mappings(
     """OMOPConceptSet,            code_sets
-       codesetId,                 codeset_id
-       createdAt,                 created_at
-       conceptSetVersionTitle,    concept_set_version_title
-       isMostRecentVersion,       is_most_recent_version
-       version,                   version
-       createdBy,                 created_by
        conceptSetNameOMOP,        concept_set_name
+       codesetId,                 codeset_id
+       parentVersionId,           parent_version_id
+       isDraft,                   is_draft
+       version,                   version
+       isMostRecentVersion,       is_most_recent_version
+       createdAt,                 created_at
+       createdBy,                 created_by
+       conceptSetVersionTitle,    concept_set_version_title
        intention,                 intention
        updateMessage,             update_message
        atlasJsonResourceUrl,      atlas_json_resource_url
        provenance,                provenance
        sourceApplicationVersion,  source_application_version
-       isDraft,                   is_draft
        sourceApplication,         source_application
-       limitations,               limitations""")
+       limitations,               limitations
+       lastModifiedAt,            last_modified_at
+       lastModifiedBy,            last_modified_by
+       project,                   project
+       omopVocabVersion,          omop_vocab_version""")
 
 # OMOPConceptSetContainer: object <-> dataset
 #  Unmapped fields:

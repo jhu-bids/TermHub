@@ -50,7 +50,7 @@ function CsetComparisonPage() {
   const dataGetter = useDataGetter();
   const dataCache = useDataCache();
   let [hierarchySettings, hsDispatch] = useHierarchySettings();
-  const {collapsePaths, collapsedDescendantPaths, nested, hideRxNormExtension, hideZeroCounts} = hierarchySettings;
+  const { nested } = hierarchySettings;
   const windowSize = useWindowSize();
   const infoPanelRef = useRef();
   const countRef = useRef({ n: 1, z: 10 });

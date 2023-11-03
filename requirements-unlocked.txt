@@ -22,3 +22,5 @@ networkx
 
 # dev dependencies
 virtualenvwrapper
+
+setuptools
