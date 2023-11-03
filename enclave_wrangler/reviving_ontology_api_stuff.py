@@ -17,7 +17,6 @@ from pathlib import Path
 from subprocess import call as sp_call
 from typing import Any, Dict, List, Union
 
-import numpy as np
 import pandas as pd
 import requests
 import uvicorn

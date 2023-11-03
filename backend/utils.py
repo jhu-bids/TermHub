@@ -1,87 +1,19 @@
 """Backend utilities"""
-import functools
+import datetime
+from functools import wraps, reduce
 import json
 import operator
 import os
 import smtplib
 import traceback
-from functools import reduce
-from typing import Any, Dict, List, Union
-JSON_TYPE = Union[Dict, List]
-
+from typing import Dict, List, Any
 from datetime import datetime
-import requests
-from requests import Response
+
+from requests import Response, post
 from starlette.responses import JSONResponse
-
-from backend.db.config import CONFIG
-
 # for cancel on disconnect, from https://github.com/RedRoserade/fastapi-disconnect-example/blob/main/app.py
-import asyncio
-from functools import wraps
-from typing import Any, Awaitable, Callable
-from fastapi import Request, HTTPException
 
-async def disconnect_poller(request: Request, result: Any):
-    """
-    Poll for a disconnect.
-    If the request disconnects, stop polling and return.
-    """
-    try:
-        while not await request.is_disconnected():
-            await asyncio.sleep(0.01)
-
-        print(f"Request disconnected: {request.url}")
-
-        return result
-    except asyncio.CancelledError:
-        print("Stopping polling loop")
-
-
-def cancel_on_disconnect(handler: Callable[[Request], Awaitable[Any]]):
-    """
-    Decorator that will check if the client disconnects,
-    and cancel the task if required.
-    """
-
-    @wraps(handler)
-    async def cancel_on_disconnect_decorator(request: Request, *args, **kwargs):
-        sentinel = object()
-
-        # Create two tasks, one to poll the request and check if the
-        # client disconnected, and another which is the request handler
-        poller_task = asyncio.ensure_future(disconnect_poller(request, sentinel))
-        handler_task = asyncio.ensure_future(handler(request, *args, **kwargs))
-
-        done, pending = await asyncio.wait(
-            [poller_task, handler_task], return_when=asyncio.FIRST_COMPLETED
-        )
-
-        # Cancel any outstanding tasks
-        for t in pending:
-            t.cancel()
-
-            try:
-                await t
-            except asyncio.CancelledError:
-                print(f"{t} was cancelled")
-            except Exception as exc:
-                print(f"{t} raised {exc} when being cancelled")
-
-        # Return the result if the handler finished first
-        if handler_task in done:
-            return await handler_task
-
-        # Otherwise, raise an exception
-        # This is not exactly needed, but it will prevent
-        # validation errors if your request handler is supposed
-        # to return something.
-        print("Raising an HTTP error because I was disconnected!!")
-
-        raise HTTPException(503)
-
-    return cancel_on_disconnect_decorator
-
+from backend.config import CONFIG
 
 
 def commify(n):
@@ -152,7 +84,7 @@ def call_github_action(
         if params:
             payload["inputs"] = params
 
-    response = requests.post(url, headers=headers, data=json.dumps(payload))
+    response = post(url, headers=headers, data=json.dumps(payload))
     return response
 
 
@@ -243,12 +175,14 @@ def set_nested_in_dict(d: Dict, key_path: List, value: Any):
 
 def return_err_with_trace(func):
     """Handle exceptions"""
+    # @joeflack4: is this helping us? it's used for four routes. it took me a while to track down
+    #   that it needed to be async and have `await func(..)`
 
-    @functools.wraps(func)
-    def decorated_func(*args, **kwargs):
+    @wraps(func)
+    async def decorated_func(*args, **kwargs):
         """Handle exceptions"""
         try:
-            return func(*args, **kwargs)
+            return await func(*args, **kwargs)
         except Exception as err:
             # stacktrace = "".join(traceback.format_exception(etype=type(err), value=err, tb=err.__traceback__))
             # getting error with above, @jflack4 fix this if my fix isn't what you wanted
@@ -277,3 +211,88 @@ def return_err_with_trace(func):
 # INJECTED_STUFF = {}
 # def inject_to_avoid_circular_imports(name, obj):
 #     INJECTED_STUFF[name] = obj
+
+
+# async def disconnect_poller(request: Request, result: Any):
+#     """
+#     Poll for a disconnect.
+#     If the request disconnects, stop polling and return.
+#     """
+#     try:
+#         print("polling for disconnect")
+#         while not await request.is_disconnected():
+#             await asyncio.sleep(0.01)
+#
+#         print(f"Request disconnected: {request.url}")
+#
+#         return result
+#     except asyncio.CancelledError as e:
+#         print("Stopping polling loop")
+#         raise e
+#
+#
+# def cancel_on_disconnect(handler: Callable[[Request], Awaitable[Any]]):
+#     """
+#     Decorator that will check if the client disconnects,
+#     and cancel the task if required.
+#     """
+#
+#     @wraps(handler)
+#     async def cancel_on_disconnect_decorator(request: Request, *args, **kwargs):
+#         sentinel = object()
+#
+#         # Create two tasks, one to poll the request and check if the
+#         # client disconnected, and another which is the request handler
+#         poller_task = asyncio.ensure_future(disconnect_poller(request, sentinel))
+#         handler_task = asyncio.ensure_future(handler(request, *args, **kwargs))
+#
+#         done, pending = await asyncio.wait(
+#             [poller_task, handler_task], return_when=asyncio.FIRST_COMPLETED
+#         )
+#
+#         # Cancel any outstanding tasks
+#         for t in pending:
+#             t.cancel()
+#
+#             try:
+#                 await t
+#             except asyncio.CancelledError:
+#                 print(f"{t} was cancelled")
+#             except Exception as exc:
+#                 print(f"{t} raised {exc} when being cancelled")
+#
+#         # Return the result if the handler finished first
+#         if handler_task in done:
+#             return await handler_task
+#
+#         # Otherwise, raise an exception
+#         # This is not exactly needed, but it will prevent
+#         # validation errors if your request handler is supposed
+#         # to return something.
+#         print("Raising an HTTP error because I was disconnected!!")
+#
+#         raise HTTPException(503)
+#
+#     return cancel_on_disconnect_decorator
+#
+#
+# @APP.get("/test-hangup")
+# @cancel_on_disconnect
+# async def test_hangup(
+#     request: Request,
+#     wait: float = Query(..., description="Time to wait, in seconds"),
+# ):
+#     """
+#         test with http://localhost:8000/test-hangup?wait=5
+#     """
+#     try:
+#         print(f"Sleeping for {wait:.2f}")
+#
+#         await asyncio.sleep(wait)
+#
+#         print("Sleep not cancelled")
+#
+#         return f"I waited for {wait:.2f}s and now this is the result"
+#     except asyncio.CancelledError:
+#         print("Exiting on cancellation")
+#         return "I was cancelled"

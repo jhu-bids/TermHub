@@ -2,19 +2,20 @@
     A bunch are elsewhere, but just starting this file for a couple new ones
     (2023-05-08)
 """
-from fastapi import APIRouter, Query
-import asyncio
+from fastapi import APIRouter, Query, Request
 
 # for websocket example stuff
 
 import json
-from typing import Dict, List, Union, Set
+from typing import Dict, List, Union, Set, Optional
 from functools import cache
 import urllib.parse
 
 from sqlalchemy import Connection
 from sqlalchemy.engine import RowMapping
-from backend.utils import JSON_TYPE, get_timer, return_err_with_trace, cancel_on_disconnect
+
+from backend.api_logger import Api_logger
+from backend.utils import get_timer, return_err_with_trace
 from backend.db.utils import get_db_connection, sql_query, SCHEMA, sql_query_single_col, sql_in
 from backend.db.queries import get_concepts
 from enclave_wrangler.objects_api import get_n3c_recommended_csets, enclave_api_call_caller, \
@@ -24,6 +25,8 @@ from enclave_wrangler.config import RESEARCHER_COLS
 from enclave_wrangler.models import convert_rows
 from backend.routes import graph
 from backend.db.refresh import refresh_db
+
+JSON_TYPE = Union[Dict, List]
 
 router = APIRouter(
     # prefix="/oak",
@@ -49,7 +52,7 @@ router = APIRouter(
 #       probably don't need precision etc.
 #       switched _container suffix on duplicate col names to container_ prefix
 #       joined OMOPConceptSet in the all_csets ddl to get `rid`
-def get_csets(codeset_ids: List[int], con: Connection = None) -> List[Dict]:
+async def get_csets(codeset_ids: List[int], con: Connection = None) -> List[Dict]:
     """Get information about concept sets the user has selected"""
     con = con if con else get_db_connection()
     rows: List = sql_query(
@@ -139,8 +142,8 @@ def get_related_csetsOBSOLETE(  # not calling this from front end anymore. can r
     return related_csets
 
 
-def get_cset_members_items(
-    codeset_ids: List[int], columns: Union[List[str], None] = None, column: Union[str, None] = None, con: Connection = None
+async def get_cset_members_items(request: Request, codeset_ids: List[int], columns: Union[List[str], None] = None,
+                           column: Union[str, None] = None, con: Connection = None
 ) -> Union[List[int], List]:
     """Get concept set members items for selected concept sets
         returns:
@@ -155,16 +158,28 @@ def get_cset_members_items(
         columns = ['*']
         # columns = ['codeset_id', 'concept_id']
 
+    rpt = Api_logger()
+    await rpt.start_rpt(request=request, params={'codeset_ids': codeset_ids})
+
+    with get_db_connection() as con:
+        try:
+            query = f"""
+                SELECT DISTINCT {', '.join(columns)}
+                FROM cset_members_items
+                WHERE codeset_id {sql_in(codeset_ids)}
+            """
+            rows: List = sql_query(con, query, debug=False, return_with_keys=True)
+            if column:  # with single column, don't return List[Dict] but just List(<column>)
+                rows: List[int] = [r[column] for r in rows]
+
+            rows: List = sql_query(con, query)
+            await rpt.finish(rows=len(rows))
+        except Exception as e:
+            await rpt.log_error(e)
+            raise e
+
     # should check that column names are valid columns in concept_set_members
-    query = f"""
-        SELECT DISTINCT {', '.join(columns)}
-        FROM cset_members_items
-        WHERE codeset_id {sql_in(codeset_ids)}
-    """
-    res: List = sql_query(con, query, debug=False, return_with_keys=True)
-    if column:  # with single column, don't return List[Dict] but just List(<column>)
-        res: List[int] = [r[column] for r in res]
-    return res
+    return rows
 
 
 def get_concept_set_member_ids(
@@ -250,53 +265,78 @@ def omop_id_from_concept_name(name):
 
 @router.get("/concepts")
 @return_err_with_trace
-def get_concepts_route(id: List[str] = Query(...), table:str='concepts_with_counts') -> List:
+async def get_concepts_route(request: Request, id: List[str] = Query(...), table:str='concepts_with_counts') -> List:
     """expect list of concept_ids. using 'id' for brevity"""
-    return get_concepts(concept_ids=id, table=table)
+    rpt = Api_logger()
+    await rpt.start_rpt(request, params={'concept_ids': id})
+
+    try:
+        rows = get_concepts(concept_ids=id, table=table)
+        await rpt.finish(rows=len(rows))
+    except Exception as e:
+        await rpt.log_error(e)
+        raise e
+    return rows
 
 
 @router.post("/concepts")
-def get_concepts_post_route(id: Union[List[str], None] = None,
+async def get_concepts_post_route(request: Request, id: Union[List[str], None] = None,
                             table: str = 'concepts_with_counts') -> List:
-    return get_concepts(concept_ids=id, table=table)
+    return await get_concepts_route(request, id=id, table=table)
 
 
 @router.post("/concept-ids-by-codeset-id")
-def get_concept_ids_by_codeset_id_post(codeset_ids: Union[List[int], None] = None) -> List:
+async def get_concept_ids_by_codeset_id_post(request: Request, codeset_ids: Union[List[int], None] = None) -> Dict:
     print(codeset_ids)
-    return get_concept_ids_by_codeset_id(codeset_ids)
+    return await get_concept_ids_by_codeset_id(request, codeset_ids)
 
 
 @router.get("/concept-ids-by-codeset-id")
 @return_err_with_trace
-def get_concept_ids_by_codeset_id(codeset_ids: Union[List[str], None] = Query(...)) -> List:
+async def get_concept_ids_by_codeset_id(request: Request, codeset_ids: Union[List[str], None] = Query(...)) -> Dict:
     if not codeset_ids:
         return [[]]
+
+    rpt = Api_logger()
+    await rpt.start_rpt(request, params={'codeset_ids': codeset_ids})
+
     with get_db_connection() as con:
-        q = f"""
-              SELECT csids.codeset_id, COALESCE(cibc.concept_ids, ARRAY[]::integer[]) AS concept_ids
-              FROM (VALUES{",".join([f"({csid})" for csid in codeset_ids])}) AS csids(codeset_id)
-              LEFT JOIN concept_ids_by_codeset_id cibc ON csids.codeset_id = cibc.codeset_id"""
-        rows: List = sql_query(con, q)
-        # d = {r['codeset_id']:r['concept_ids'] for r in rows}
-        return {r['codeset_id']: r['concept_ids'] for r in rows}
+        try:
+            q = f"""
+                  SELECT csids.codeset_id, COALESCE(cibc.concept_ids, ARRAY[]::integer[]) AS concept_ids
+                  FROM (VALUES{",".join([f"({csid})" for csid in codeset_ids])}) AS csids(codeset_id)
+                  LEFT JOIN concept_ids_by_codeset_id cibc ON csids.codeset_id = cibc.codeset_id"""
+            rows: List = sql_query(con, q)
+            await rpt.finish(rows=len(rows))
+        except Exception as e:
+            await rpt.log_error(e)
+            raise e
+    return {r['codeset_id']: r['concept_ids'] for r in rows}
 
 
 @router.post("/codeset-ids-by-concept-id")
-def get_codeset_ids_by_concept_id_post(concept_ids: Union[List[int], None] = None) -> List:
+@return_err_with_trace
+async def get_codeset_ids_by_concept_id_post(request: Request, concept_ids: Union[List[int], None] = None) -> Dict:
+    rpt = Api_logger()
+    await rpt.start_rpt(request, params={'concept_ids': concept_ids})
     with get_db_connection() as con:
-        q = f"""
-              SELECT *
-              FROM codeset_ids_by_concept_id
-              WHERE concept_id {sql_in(concept_ids)};"""
-        rows: List = sql_query(con, q)
-        return {r['concept_id']: r['codeset_ids']  for r in rows}
+        try:
+            q = f"""
+                  SELECT *
+                  FROM codeset_ids_by_concept_id
+                  WHERE concept_id {sql_in(concept_ids)};"""
+            rows: List = sql_query(con, q)
+            await rpt.finish(rows=len(rows))
+        except Exception as e:
+            await rpt.log_error(e)
+            raise e
+
+    return {r['concept_id']: r['codeset_ids']  for r in rows}
 
 
 @router.get("/codeset-ids-by-concept-id")
-@return_err_with_trace
-def get_codeset_ids_by_concept_id(concept_ids: Union[List[str], None] = Query(...)) -> List:
-    return get_codeset_ids_by_concept_id_post(concept_ids)
+async def get_codeset_ids_by_concept_id(request: Request, concept_ids: Union[List[str], None] = Query(...)) -> Dict:
+    return await get_codeset_ids_by_concept_id_post(request, concept_ids)
 
 
 @router.get("/get-all-csets")
@@ -306,20 +346,39 @@ def _get_all_csets() -> Union[Dict, List]:
 
 
 @router.get("/get-cset-members-items")
-def _get_cset_members_items(codeset_ids: str,
+async def _get_cset_members_items(request: Request,
+                            codeset_ids: str,
                             columns: Union[List[str], None] = Query(default=None),
                             column: Union[str, None] = Query(default=None)
                             ) -> Union[List[int], List]:
     requested_codeset_ids = parse_codeset_ids(codeset_ids)
-    return get_cset_members_items(requested_codeset_ids, columns, column)
+    rpt = Api_logger()
+    await rpt.start_rpt(request, params={'codeset_ids': requested_codeset_ids})
+
+    try:
+        rows = await get_cset_members_items(request, requested_codeset_ids, columns, column)
+        await rpt.finish(rows=len(rows))
+    except Exception as e:
+        await rpt.log_error(e)
+        raise e
+    return rows
 
 
 @router.get("/get-csets")
-def _get_csets(codeset_ids: Union[str, None] = Query(default=''),
+async def _get_csets(request: Request, codeset_ids: Union[str, None] = Query(default=''),
                include_atlas_json = False) -> List[Dict]:
     """Route for: get_csets()"""
     requested_codeset_ids = parse_codeset_ids(codeset_ids)
-    csets = get_csets(requested_codeset_ids)
+    rpt = Api_logger()
+    await rpt.start_rpt(request, params={'codeset_ids': requested_codeset_ids})
+
+    try:
+        csets = await get_csets(requested_codeset_ids)
+        await rpt.finish(rows=len(csets))
+    except Exception as e:
+        await rpt.log_error(e)
+        raise e
+
     if not include_atlas_json:
         for cset in csets:
             del cset['atlas_json']
@@ -671,30 +730,6 @@ def ad_hoc_test_1():
 
 
 """One solution: Use a decorator to poll for the disconnect"""
-
-from fastapi import Request
-
-
-@router.get("/test-hangup")
-@cancel_on_disconnect
-async def test_hangup(
-    request: Request,
-    wait: float = Query(..., description="Time to wait, in seconds"),
-):
-    """
-        test with http://localhost:8000/test-hangup?wait=5
-    """
-    try:
-        print(f"Sleeping for {wait:.2f}")
-
-        await asyncio.sleep(wait)
-
-        print("Sleep not cancelled")
-
-        return f"I waited for {wait:.2f}s and now this is the result"
-    except asyncio.CancelledError:
-        print("Exiting on cancellation")
-
 
 if __name__ == '__main__':
     ad_hoc_test_1()

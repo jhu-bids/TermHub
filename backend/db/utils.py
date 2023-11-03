@@ -26,9 +26,9 @@ from sqlalchemy.sql import text
 from sqlalchemy.sql.elements import TextClause
 from typing import Any, Dict, Tuple, Union, List
 
-from backend.db.config import CONFIG, CORE_CSET_DEPENDENT_TABLES, CORE_CSET_TABLES, DATASETS_PATH, DDL_JINJA_PATH_PATTERN, \
-    OBJECTS_PATH, \
-    RECURSIVE_DEPENDENT_TABLE_MAP, VIEWS, get_pg_connect_url
+from backend.db.config import CORE_CSET_DEPENDENT_TABLES, CORE_CSET_TABLES, \
+        RECURSIVE_DEPENDENT_TABLE_MAP, VIEWS, get_pg_connect_url
+from backend.config import CONFIG, DATASETS_PATH, DDL_JINJA_PATH_PATTERN, OBJECTS_PATH
 from backend.utils import commify
 from enclave_wrangler.models import pkey
 

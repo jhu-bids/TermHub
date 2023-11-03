@@ -4,13 +4,14 @@ import json
 from pathlib import Path
 
 from typing import List, Union #, Dict, Set
-from fastapi import APIRouter, Query
+from fastapi import APIRouter, Query, Request
 # from fastapi.responses import JSONResponse
 # from fastapi.responses import Response
 # from fastapi.encoders import jsonable_encoder
 # from collections import OrderedDict
 import networkx as nx
 from backend.db.utils import sql_query, get_db_connection
+from backend.api_logger import Api_logger
 from backend.utils import pdump, get_timer, commify
 
 VERBOSE = True
@@ -29,9 +30,17 @@ def subgraph():
 
 
 @router.post("/subgraph")
-def subgraph_post(id: Union[List[int], None] = None) -> List:
-    sg = connected_subgraph_from_nodes(id, REL_GRAPH, REL_GRAPH_UNDIRECTED)
-    edges = [(str(e[0]), str(e[1])) for e in sg.edges]
+async def subgraph_post(request: Request, id: Union[List[int], None] = None) -> List:
+    rpt = Api_logger()
+    await rpt.start_rpt(request, params={'concept_ids': id})
+
+    try:
+        sg = connected_subgraph_from_nodes(id, REL_GRAPH, REL_GRAPH_UNDIRECTED)
+        edges = [(str(e[0]), str(e[1])) for e in sg.edges]
+        await rpt.finish(rows=len(edges))
+    except Exception as e:
+        await rpt.log_error(e)
+        raise e
     return edges
 
 

@@ -10,7 +10,6 @@ from pathlib import Path
 from typing import Any, Dict, List
 from subprocess import call as sp_call
 
-import numpy as np
 import pandas as pd
 from fastapi import APIRouter
 # from fastapi import APIRouter, Depends, HTTPException

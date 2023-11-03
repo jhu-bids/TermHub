@@ -1,6 +1,7 @@
 # jq commented out because doesn't work on Windows and are also not needed.
 # dependencies
 fastapi
+httpx
 jinja2
 mezmorize
 pandas

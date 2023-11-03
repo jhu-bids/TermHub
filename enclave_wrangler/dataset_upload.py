@@ -5,6 +5,7 @@ from argparse import ArgumentParser
 from typing import Dict, List, Set, Union
 from uuid import uuid4
 from time import sleep
+from datetime import date
 
 import pandas as pd
 from requests import Response
@@ -183,37 +184,6 @@ def upload_new_cset_container_with_concepts_from_csv(
             validate_first=validate_first)
     return responses
 
-
-def upload_cset_as_new_version_of_itself(codeset_id: int) -> Dict:
-    v = fetch_cset_version(codeset_id, False)
-
-    vi = [i['properties'] for i in get_concept_set_version_expression_items(codeset_id, 'full')]
-    concepts = []
-    for item in vi:
-        c = {'concept_id': item['conceptId']}
-        for p in ['includeDescendants', 'isExcluded', 'includeMapped']:
-            c[p] = item[p]
-        concepts.append(c)
-
-    upload_args = {
-        # 'on_behalf_of': v['createdBy'],
-        'on_behalf_of': config['SERVICE_USER_ID'],
-        'concept_set_name': v['conceptSetNameOMOP'],
-        'provenance': v['provenance'],
-        'limitations': v['limitations'],
-        'intention': v['intention'],
-        'parent_version_codeset_id': v['codesetId'],
-        'current_max_version': v['version'],  # probably
-        # codeset_id': None, will be assigned
-        'validate_first': True,
-        'omop_concepts': concepts,
-        'finalize': True,
-        # annotation,
-        # intended_research_project,
-    }
-    # upload_new_cset_version_with_concepts( concept_set_name, omop_concepts, provenance, limitations, intention, annotation, parent_version_codeset_id, current_max_version, intended_research_project, on_behalf_of, codeset_id, validate_first, finalize )
-    pass_on_args = ['conceptSetNameOMOP']
-    return upload_new_cset_version_with_concepts(**upload_args)
 
 # TODO: What if this fails halfway through? Can we teardown any of the steps? (need to store random `codeset_id` too)
 # TODO: Need to do proper codeset_id assignment: (i) look up registry and get next available ID, (ii) assign it here,
@@ -1053,7 +1023,60 @@ def cli():
     upload_dataset(**kwargs_dict)
 
 
+def upload_cset_as_new_version_of_itself(
+    codeset_id: int,
+    add_to_field: Dict = {'intention': f'Version for comparison to N3C-Rec on {date.today().isoformat()}'}
+) -> Dict:
+    ov = fetch_cset_version(codeset_id, False)
+
+    vi = [i['properties'] for i in get_concept_set_version_expression_items(codeset_id, 'full')]
+    concepts = []
+    for item in vi:
+        c = {'concept_id': item['conceptId']}
+        for p in ['includeDescendants', 'isExcluded', 'includeMapped']:
+            c[p] = item[p]
+        concepts.append(c)
+
+    upload_args = {
+        # 'on_behalf_of': ov['createdBy'],
+        'on_behalf_of': config['SERVICE_USER_ID'],
+        'concept_set_name': ov['conceptSetNameOMOP'],
+        'provenance': ov['provenance'],
+        'limitations': ov['limitations'],
+        'intention': ov['intention'],
+        'parent_version_id': ov['codesetId'],
+        'current_max_version': ov['version'],  # probably
+        # codeset_id': None, will be assigned
+        'validate_first': True,
+        'omop_concepts': concepts,
+        'finalize': True,
+        # annotation,
+        # intended_research_project,
+    }
+
+    for key, value in add_to_field.items():
+        val = '. ' + ov[key] if ov[key] else ''
+        val = value + val
+        upload_args[key] = val
+
+    # upload_new_cset_version_with_concepts( concept_set_name, omop_concepts, provenance, limitations, intention, annotation, parent_version_codeset_id, current_max_version, intended_research_project, on_behalf_of, codeset_id, validate_first, finalize )
+    # pass_on_args = ['conceptSetNameOMOP'] not sure what this was for
+    d = upload_new_cset_version_with_concepts(**upload_args) # {'responses': [...], 'codeset_id': 123}
+    return d['codeset_id']
+
+
+def make_new_versions_of_csets(codeset_ids: List[int]):
+    new_codeset_ids = []
+    for codeset_id in codeset_ids:
+        print(f'Making new version of {codeset_id}')
+        new_version_codeset_id = upload_cset_as_new_version_of_itself(codeset_id)
+        print(f'{codeset_id}, {new_version_codeset_id}')
+        new_codeset_ids.append(new_version_codeset_id)
+
+    pass
+
 if __name__ == '__main__':
-    # u = upload_cset_as_new_version_of_itself(834391873)
-    # exit(0)
+    # test_new_version_compare_codeset_ids = [27371375, 523378440, 490947789]
+    # make_new_versions_of_csets(codeset_ids=test_new_version_compare_codeset_ids)
+    # pass
     cli()
