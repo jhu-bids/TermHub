@@ -335,8 +335,8 @@ async def get_codeset_ids_by_concept_id_post(request: Request, concept_ids: Unio
 
 @router.get("/codeset-ids-by-concept-id")
 @return_err_with_trace
-async def get_codeset_ids_by_concept_id(concept_ids: Union[List[str], None] = Query(...), request=Request) -> List:
-    return await get_codeset_ids_by_concept_id_post(concept_ids, request)
+async def get_codeset_ids_by_concept_id(request=Request, concept_ids: Union[List[str], None] = Query(...)) -> List:
+    return await get_codeset_ids_by_concept_id_post(request, concept_ids)
 
 
 @router.get("/get-all-csets")
