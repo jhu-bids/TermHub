@@ -315,6 +315,7 @@ async def get_concept_ids_by_codeset_id(request: Request, codeset_ids: Union[Lis
 
 
 @router.post("/codeset-ids-by-concept-id")
+@return_err_with_trace
 async def get_codeset_ids_by_concept_id_post(request: Request, concept_ids: Union[List[int], None] = None) -> Dict:
     rpt = Api_logger()
     await rpt.start_rpt(request, params={'concept_ids': concept_ids})
@@ -334,7 +335,6 @@ async def get_codeset_ids_by_concept_id_post(request: Request, concept_ids: Unio
 
 
 @router.get("/codeset-ids-by-concept-id")
-@return_err_with_trace
 async def get_codeset_ids_by_concept_id(request: Request, concept_ids: Union[List[str], None] = Query(...)) -> Dict:
     return await get_codeset_ids_by_concept_id_post(request, concept_ids)
 
