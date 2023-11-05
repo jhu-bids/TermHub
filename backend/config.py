@@ -25,7 +25,8 @@ CONFIG = {
     'schema': os.getenv('TERMHUB_DB_SCHEMA'),
     'pass': os.getenv('TERMHUB_DB_PASS'),
     'port': os.getenv('TERMHUB_DB_PORT'),
-    'personal_access_token': os.getenv('GH_LIMITED_PERSONAL_ACCESS_TOKEN')
+    'personal_access_token': os.getenv('GH_LIMITED_PERSONAL_ACCESS_TOKEN'),
+    'importer': 'unknown',
 }
 CONFIG_LOCAL = {
     'server': os.getenv('TERMHUB_DB_SERVER_LOCAL'),

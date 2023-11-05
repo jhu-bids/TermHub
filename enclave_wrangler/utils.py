@@ -493,8 +493,15 @@ def get_random_codeset_id() -> int:
     """Generage random Codeset ID"""
     # todo: this is temporary until I handle registry persistence
     arbitrary_range = 100000
-    codeset_id = randint(CSET_VERSION_MIN_ID, CSET_VERSION_MIN_ID + arbitrary_range)
-    return codeset_id
+
+    while True: # prevent clashes with existing codesets
+        try:
+            codeset_id = randint(CSET_VERSION_MIN_ID, CSET_VERSION_MIN_ID + arbitrary_range)
+            existing = make_objects_request(f'objects/OMOPConceptSet/{codeset_id}', return_type='data', expect_single_item=True)
+            if existing:
+                continue
+        except EnclaveWranglerErr as err:
+            return codeset_id
 
 
 # def old_get(api_name: str, validate=False)-> Response:

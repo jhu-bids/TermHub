@@ -1002,6 +1002,9 @@ def cli():
     parser = ArgumentParser(description=package_description)
 
     parser.add_argument(
+        '-n', '--n3c', default=False, action='store_true', required=False,
+        help='Create new versions of N3C Recommended for comparison after vocab updates')
+    parser.add_argument(
         '-p', '--input-path',
         help='Path to file or folder to be parsed and uploaded.')
     parser.add_argument(
@@ -1022,7 +1025,11 @@ def cli():
     #          '(`data/cset.csv` as of 2022/03/18).'),
     kwargs = parser.parse_args()
     kwargs_dict: Dict = vars(kwargs)
-    upload_dataset(**kwargs_dict)
+
+    if kwargs.n3c:
+        make_new_versions_of_csets()
+    else:
+        upload_dataset(**kwargs_dict)
 
 
 def upload_cset_as_new_version_of_itself(
@@ -1040,14 +1047,14 @@ def upload_cset_as_new_version_of_itself(
         concepts.append(c)
 
     upload_args = {
-        # 'on_behalf_of': ov['createdBy'],
+        # 'on_behalf_of': ov.get('createdBy', ''),
         'on_behalf_of': config['SERVICE_USER_ID'],
-        'concept_set_name': ov['conceptSetNameOMOP'],
-        'provenance': ov['provenance'],
-        'limitations': ov['limitations'],
-        'intention': ov['intention'],
-        'parent_version_codeset_id': ov['codesetId'],
-        'current_max_version': ov['version'],  # probably
+        'concept_set_name': ov.get('conceptSetNameOMOP', ''),
+        'provenance': ov.get('provenance', ''),
+        'limitations': ov.get('limitations', ''),
+        'intention': ov.get('intention', ''),
+        'parent_version_codeset_id': ov.get('codesetId', ''),
+        'current_max_version': ov.get('version', ''),  # probably
         # codeset_id': None, will be assigned
         'validate_first': True,
         'omop_concepts': concepts,
@@ -1057,7 +1064,7 @@ def upload_cset_as_new_version_of_itself(
     }
 
     for key, value in add_to_field.items():
-        val = '. ' + ov[key] if ov[key] else ''
+        val = '. ' + ov.get(key, '')
         val = value + val
         upload_args[key] = val
 
@@ -1067,11 +1074,21 @@ def upload_cset_as_new_version_of_itself(
     return d['versionId']
 
 
-def make_new_versions_of_csets(codeset_ids: List[int]):
+def make_new_versions_of_csets():
+    from backend.db.utils import sql_query_single_col, get_db_connection
+    from backend.routes.db import get_n3c_recommended_codeset_ids
+    with get_db_connection() as con:
+        comparisons_already_done = sql_query_single_col(con, 'select original_codeset_id from public.codeset_comparison')
+
+    n3c_codeset_ids = get_n3c_recommended_codeset_ids()
+
     eastern = pytz.timezone('US/Eastern')
     new_codeset_ids = []
     with get_db_connection() as con:
-        for codeset_id in codeset_ids:
+        for codeset_id in n3c_codeset_ids:
+            if codeset_id in comparisons_already_done:
+                print(f'Skipping {codeset_id} because new version for comparison already exists')
+                continue
             print(f'Making new version of {codeset_id}')
             new_version_codeset_id = upload_cset_as_new_version_of_itself(codeset_id)
             print(f'{codeset_id}, {new_version_codeset_id}')
@@ -1085,8 +1102,8 @@ def make_new_versions_of_csets(codeset_ids: List[int]):
     pass
 
 if __name__ == '__main__':
-    test_new_version_compare_codeset_ids = [27371375, 523378440, 490947789]
+    # test_new_version_compare_codeset_ids = [27371375, 523378440, 490947789]
     # test_new_version_compare_codeset_ids = [523378440]
-    make_new_versions_of_csets(codeset_ids=test_new_version_compare_codeset_ids)
-    pass
-    # cli()
+    # make_new_versions_of_csets(codeset_ids=test_new_version_compare_codeset_ids)
+    # pass
+    cli()

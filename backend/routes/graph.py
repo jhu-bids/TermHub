@@ -9,6 +9,7 @@ from fastapi import APIRouter, Query, Request
 # from collections import OrderedDict
 import networkx as nx
 import pickle
+from backend.config import CONFIG
 from backend.db.utils import sql_query, get_db_connection
 from backend.api_logger import Api_logger
 from backend.utils import pdump, get_timer, commify
@@ -203,4 +204,7 @@ if __name__ == '__main__':
     # j = graph_to_json(sg)
     # pdump(j)
 else:
-    REL_GRAPH, REL_GRAPH_UNDIRECTED = load_relationship_graphs(save_if_not_exists=True)
+    if CONFIG['importer'] == 'app.py':
+        REL_GRAPH, REL_GRAPH_UNDIRECTED = load_relationship_graphs(save_if_not_exists=True)
+    else:
+        print(f"Imported from {CONFIG['importer']}, not loading relationship graphs")

@@ -8,9 +8,9 @@ import uvicorn
 from fastapi import FastAPI, Request
 from fastapi.middleware.cors import CORSMiddleware
 from fastapi.middleware.gzip import GZipMiddleware
-
+from backend.config import CONFIG, override_schema
+CONFIG['importer'] = 'app.py'
 from backend.routes import cset_crud, db, graph
-from backend.config import override_schema
 
 # users on the same server
 # APP = FastAPI()
