@@ -16,11 +16,11 @@ from enclave_wrangler.objects_api import get_bidirectional_csets_sets
 
 FAIL_MSG = (
     "\n\nFound concept sets in the Enclave that were missing from TermHub.\n"
-    "Possible causes: (i) New csets were added recently (unlikely if this test was run via on schedule via "
-    "GitHub action, which runs a couple hours after the refresh. Could possibly indicate problem with refresh."
+    "Some possible causes: (i) New csets were added very recently, possibly ass the refresh was running."
     "\n(ii) Csets that were drafts before are now no longer drafts. This will be fixed when via "
     "https://github.com/jhu-bids/TermHub/issues/398\n"
-    "For now, this can be fixed by running: make fetch-missing-csets\n"
+    "Likely this will be fixed when the next refresh runs. If that doesn't happen, or to fix immeediately, you can run:"
+    " make fetch-missing-csets\n"
     "The following concept sets are missing from the database: {}")
 
 class TestDatabaseCurrent(unittest.TestCase):
