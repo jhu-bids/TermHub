@@ -489,16 +489,21 @@ def print_curl(url: str, data: Union[List, Dict]=None, args: Dict = {}, trace:bo
     print(curl)  # printing to debugger during test doesn't work; have to do it manually
 
 
-def get_random_codeset_id() -> int:
+def get_random_codeset_id(related_codeset_id: Union[int, None]) -> int:
     """Generage random Codeset ID"""
     # todo: this is temporary until I handle registry persistence
     arbitrary_range = 100000
+    multiplier = 100
 
     while True: # prevent clashes with existing codesets
         try:
-            codeset_id = randint(CSET_VERSION_MIN_ID, CSET_VERSION_MIN_ID + arbitrary_range)
+            if related_codeset_id is not None:
+                codeset_id = related_codeset_id * multiplier # haven't tested this
+            else:
+                codeset_id = randint(CSET_VERSION_MIN_ID, CSET_VERSION_MIN_ID + arbitrary_range)
             existing = make_objects_request(f'objects/OMOPConceptSet/{codeset_id}', return_type='data', expect_single_item=True)
             if existing:
+                multiplier = multiplier * 10
                 continue
         except EnclaveWranglerErr as err:
             return codeset_id
