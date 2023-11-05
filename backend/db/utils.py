@@ -20,6 +20,7 @@ from jinja2 import Template
 from psycopg2.errors import UndefinedTable
 from sqlalchemy import create_engine, event
 from sqlalchemy.engine import Row, RowMapping
+
 from sqlalchemy.engine.base import Connection
 from sqlalchemy.exc import OperationalError, ProgrammingError
 from sqlalchemy.sql import text
@@ -346,9 +347,13 @@ def sql_query(
         if return_with_keys:
             # noinspection PyTypeChecker
             results: List[RowMapping] = q.mappings().all()  # key value pairs
+            # after upgrading some packages, fastapi can no longer serialize RowMapping objects
+            return [dict(x) for x in results]
         else:
             # noinspection PyTypeChecker
             results: List[Row] = q.fetchall()  # Row tuples, with additional properties
+            # after upgrading some packages, fastapi can no longer serialize Row objects
+            return [list(x) for x in results]
         return results
     except (ProgrammingError, OperationalError) as err:
         raise RuntimeError(f'Got an error [{err}] executing the following statement:\n{query}, {json.dumps(params, indent=2)}')

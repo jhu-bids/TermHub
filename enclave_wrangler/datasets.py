@@ -88,7 +88,7 @@ def views2(dataset_rid: str, endRef: str) -> [str]:
     response = enclave_get(url, verbose=False)
     response_json = response.json()
     file_parts = [f['logicalPath'] for f in response_json['values']]
-    file_parts = [fp for fp in file_parts if re.match('.*part-\d\d\d\d\d', fp)]
+    file_parts = [fp for fp in file_parts if re.match(r'.*part-\d\d\d\d\d', fp)]
     return file_parts
 
 

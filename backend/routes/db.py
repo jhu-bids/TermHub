@@ -286,14 +286,14 @@ async def get_concepts_post_route(request: Request, id: Union[List[str], None] =
 
 
 @router.post("/concept-ids-by-codeset-id")
-async def get_concept_ids_by_codeset_id_post(request: Request, codeset_ids: Union[List[int], None] = None) -> List:
+async def get_concept_ids_by_codeset_id_post(request: Request, codeset_ids: Union[List[int], None] = None) -> Dict:
     print(codeset_ids)
     return await get_concept_ids_by_codeset_id(request, codeset_ids)
 
 
 @router.get("/concept-ids-by-codeset-id")
 @return_err_with_trace
-async def get_concept_ids_by_codeset_id(request: Request, codeset_ids: Union[List[str], None] = Query(...)) -> List:
+async def get_concept_ids_by_codeset_id(request: Request, codeset_ids: Union[List[str], None] = Query(...)) -> Dict:
     if not codeset_ids:
         return [[]]
 
@@ -315,7 +315,7 @@ async def get_concept_ids_by_codeset_id(request: Request, codeset_ids: Union[Lis
 
 
 @router.post("/codeset-ids-by-concept-id")
-async def get_codeset_ids_by_concept_id_post(request: Request, concept_ids: Union[List[int], None] = None) -> List:
+async def get_codeset_ids_by_concept_id_post(request: Request, concept_ids: Union[List[int], None] = None) -> Dict:
     rpt = Api_logger()
     await rpt.start_rpt(request, params={'concept_ids': concept_ids})
     with get_db_connection() as con:
@@ -335,8 +335,8 @@ async def get_codeset_ids_by_concept_id_post(request: Request, concept_ids: Unio
 
 @router.get("/codeset-ids-by-concept-id")
 @return_err_with_trace
-async def get_codeset_ids_by_concept_id(concept_ids: Union[List[str], None] = Query(...), request=Request) -> List:
-    return await get_codeset_ids_by_concept_id_post(concept_ids, request)
+async def get_codeset_ids_by_concept_id(request: Request, concept_ids: Union[List[str], None] = Query(...)) -> Dict:
+    return await get_codeset_ids_by_concept_id_post(request, concept_ids)
 
 
 @router.get("/get-all-csets")

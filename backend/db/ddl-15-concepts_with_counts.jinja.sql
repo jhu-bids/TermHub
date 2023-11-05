@@ -12,7 +12,7 @@ CREATE TABLE IF NOT EXISTS {{schema}}concepts_with_counts{{optional_suffix}} AS 
             invalid_reason,
             COUNT(DISTINCT domain) AS domain_cnt,
             array_to_string(array_agg(domain), ',') AS domain,
-            SUM(total_cnt) AS total_cnt,
+            SUM(total_cnt)::bigint AS total_cnt,
             array_to_string(array_agg(distinct_person_cnt), ',') AS distinct_person_cnt
     FROM {{schema}}concepts_with_counts_ungrouped
     GROUP BY 1,2,3,4,5,6,7,8

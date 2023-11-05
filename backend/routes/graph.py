@@ -1,6 +1,4 @@
 import os, warnings
-import json
-# from functools import cache
 from pathlib import Path
 
 from typing import List, Union #, Dict, Set
@@ -10,6 +8,7 @@ from fastapi import APIRouter, Query, Request
 # from fastapi.encoders import jsonable_encoder
 # from collections import OrderedDict
 import networkx as nx
+import pickle
 from backend.db.utils import sql_query, get_db_connection
 from backend.api_logger import Api_logger
 from backend.utils import pdump, get_timer, commify
@@ -45,8 +44,8 @@ async def subgraph_post(request: Request, id: Union[List[int], None] = None) -> 
 
 
 @router.get("/subgraph")
-def subgraph(id: List[int] = Query(...)):   # id is a list of concept ids
-    return subgraph_post(id)
+async def subgraph(request: Request, id: List[int] = Query(...)):   # id is a list of concept ids
+    return await subgraph_post(request=request, id=id)
 
 
 @router.get("/hierarchy")
@@ -153,27 +152,37 @@ def create_rel_graphs(save_to_pickle: bool):
             WHERE min_levels_of_separation = 1
         """)
         timer('make graph')
-        G = nx.from_edgelist(rels, nx.DiGraph)
+        edges = [tuple(e.values()) for e in rels]
+        G = nx.from_edgelist(edges, nx.DiGraph)
         if save_to_pickle:
             timer(f'write pickle for G with {len(G.nodes)} nodes')
-            nx.write_gpickle(G, GRAPH_PATH)
+            # nx.write_gpickle(G, GRAPH_PATH)   # networkx 4 doesn't have its own pickle
+            with open(GRAPH_PATH, 'wb') as f:
+                pickle.dump(G, f, pickle.HIGHEST_PROTOCOL)
         timer('make undirected version')
         Gu = G.to_undirected()
         if save_to_pickle:
             timer('write pickle for that')
-            nx.write_gpickle(Gu, GRAPH_UNDIRECTED_PATH)
+            # nx.write_gpickle(Gu, GRAPH_UNDIRECTED_PATH)
+            with open(GRAPH_UNDIRECTED_PATH, 'wb') as f:
+                pickle.dump(Gu, f, pickle.HIGHEST_PROTOCOL)
         timer('done')
         return G, Gu
 
 
 def load_relationship_graphs(save_if_not_exists=True):
     timer = get_timer('./load_relationship_graph')
+    G = None
     if os.path.isfile(GRAPH_PATH):
         timer(f'loading {GRAPH_PATH}')
-        G = nx.read_gpickle(GRAPH_PATH)
+        # G = nx.read_gpickle(GRAPH_PATH)
+        with open(GRAPH_PATH, 'rb') as f:
+            G = pickle.load(f)
     if G and os.path.isfile(GRAPH_UNDIRECTED_PATH):
         timer(f'loaded {commify(len(G.nodes))}; loading {GRAPH_UNDIRECTED_PATH}')
-        Gu = nx.read_gpickle(GRAPH_UNDIRECTED_PATH)
+        # Gu = nx.read_gpickle(GRAPH_UNDIRECTED_PATH)
+        with open(GRAPH_UNDIRECTED_PATH, 'rb') as f:
+            Gu = pickle.load(f)
         timer(f'loaded {commify(len(Gu.nodes))}')
     else:
         G, Gu = create_rel_graphs(save_if_not_exists)
@@ -186,7 +195,7 @@ LOAD_RELGRAPH = True
 
 if __name__ == '__main__':
     pass
-    # create_rel_graph(save_to_pickle=True)
+    # create_rel_graphs(save_to_pickle=True)
     # G = for_testing()
     # sg = G.subgraph(1,9)
     # G, components = disconnected_subgraphs()

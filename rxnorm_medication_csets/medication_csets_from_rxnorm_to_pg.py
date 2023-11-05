@@ -2,7 +2,7 @@ import io, csv, json, os, time
 from typing import Dict, List, Union
 import requests
 from requests import Response
-from mezmorize import Cache
+# from mezmorize import Cache
 import pandas as pd
 
 from backend.db.utils import get_db_connection, sql_query_single_col, sql_in, insert_from_dict, sql_query
@@ -15,12 +15,12 @@ BASE_RXNORM_URL = "https://rxnav.nlm.nih.gov"
 CON = get_db_connection()
 
 
-config = {
-  'DEBUG': True,
-  'CACHE_TYPE': 'filesystem',
-  'CACHE_DIR': 'cached_calls',
-}
-cache = Cache(**config)
+# config = {
+#   'DEBUG': True,
+#   'CACHE_TYPE': 'filesystem',
+#   'CACHE_DIR': 'cached_calls',
+# }
+# cache = Cache(**config)
 
 
 def get_med_csets():
@@ -104,7 +104,7 @@ def get_med_csets():
     # compare_cids = cset['compare_n3c_codeset_ids']
 
 
-@cache.memoize(timeout=60*60*24*365)
+# @cache.memoize(timeout=60*60*24*365)
 def rxnorm_get(rxcui):
   call = f"{BASE_RXNORM_URL}/REST/rxcui/{rxcui}/allrelated.json" # ?tty=SCDF"  # tty=MIN+DFG+DF" # +SBD
   print(f"calling {call}")
