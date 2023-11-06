@@ -15,15 +15,11 @@ module.exports = defineConfig({
   /* Run tests in files in parallel */
   fullyParallel: true,
   /* Fail the build on CI if you accidentally left test.only in the source code. */
-  // forbidOnly: !!process.env.CI,
-  // replacing process.env with import.meta.env for vite migration; see https://www.freecodecamp.org/news/how-to-migrate-from-create-react-app-to-vite/
-  forbidOnly: !!import.meta.env.CI,
+  forbidOnly: !!process.env.CI,
   /* Retry on CI only */
-  // retries: process.env.CI ? 2 : 0,
-  retries: import.meta.env.CI ? 2 : 0,
+  retries: process.env.CI ? 2 : 0,
   /* Opt out of parallel tests on CI. */
-  // workers: process.env.CI ? 1 : undefined,
-  workers: import.meta.env.CI ? 1 : undefined,
+  workers: process.env.CI ? 1 : undefined,
   /* Reporter to use. See https://playwright.dev/docs/test-reporters */
   // reporter: 'html',
   reporter: './tests/test-reporter.js',
@@ -80,10 +76,9 @@ module.exports = defineConfig({
   /* Run your local dev server before starting the tests */
   webServer: [
     {
-      command: 'npm run start',
+      command: 'yarn start',
       url: 'http://127.0.0.1:3000',
-      // reuseExistingServer: !process.env.CI,
-      reuseExistingServer: !import.meta.env.CI,
+      reuseExistingServer: !process.env.CI,
       stdout: 'ignore',
       stderr: 'pipe',
     },

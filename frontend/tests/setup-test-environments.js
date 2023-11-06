@@ -31,8 +31,8 @@ let envsString = 'local';
 
 // replacing process.env with import.meta.env for vite migration; see https://www.freecodecamp.org/news/how-to-migrate-from-create-react-app-to-vite/
 
-if (import.meta.env.ENVIRONMENTS) {
-  envsString = import.meta.env.ENVIRONMENTS;
+if (process.env.ENVIRONMENTS) {
+  envsString = process.env.ENVIRONMENTS;
 }
 
 const envs = envsString.split("-");
