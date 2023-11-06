@@ -348,12 +348,12 @@ def sql_query(
             # noinspection PyTypeChecker
             results: List[RowMapping] = q.mappings().all()  # key value pairs
             # after upgrading some packages, fastapi can no longer serialize RowMapping objects
-            return [dict(x) for x in results]
+            # return [dict(x) for x in results]
         else:
             # noinspection PyTypeChecker
             results: List[Row] = q.fetchall()  # Row tuples, with additional properties
             # after upgrading some packages, fastapi can no longer serialize Row objects
-            return [list(x) for x in results]
+            # return [list(x) for x in results]
         return results
     except (ProgrammingError, OperationalError) as err:
         raise RuntimeError(f'Got an error [{err}] executing the following statement:\n{query}, {json.dumps(params, indent=2)}')
