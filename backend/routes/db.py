@@ -52,7 +52,7 @@ router = APIRouter(
 #       probably don't need precision etc.
 #       switched _container suffix on duplicate col names to container_ prefix
 #       joined OMOPConceptSet in the all_csets ddl to get `rid`
-async def get_csets(codeset_ids: List[int], con: Connection = None) -> List[Dict]:
+def get_csets(codeset_ids: List[int], con: Connection = None) -> List[Dict]:
     """Get information about concept sets the user has selected"""
     con = con if con else get_db_connection()
     rows: List = sql_query(
@@ -373,7 +373,7 @@ async def _get_csets(request: Request, codeset_ids: Union[str, None] = Query(def
     await rpt.start_rpt(request, params={'codeset_ids': requested_codeset_ids})
 
     try:
-        csets = await get_csets(requested_codeset_ids)
+        csets = get_csets(requested_codeset_ids)
         await rpt.finish(rows=len(csets))
     except Exception as e:
         await rpt.log_error(e)
@@ -629,10 +629,6 @@ def _whoami():
     return whoami()
 
 
-def ad_hoc_test_1():
-    """Misc test"""
-    terms = ['Renal failure', 'Cyst of kidney']
-
 # @router.get('/test-auth')     # ended up using front end auth instead of this
 # def test_auth():
 #     # https://unite.nih.gov/workspace/developer-console/app/ri.third-party-applications.main.application.e2074643-b399-46ef-82bb-ae403a298a6a/sdk/install?packageType=pypi&language=Python
@@ -722,5 +718,49 @@ def n3c_recommended_report(as_json=False) -> Union[List[str], Dict]:
         return response
 
 
+def n3c_comparison_rpt():
+    with get_db_connection() as con:
+        pairs = sql_query(con, "SELECT original_codeset_id, new_codeset_id FROM public.codeset_comparison")
+        for pair in pairs:
+            pair = list(dict(pair).values())
+            csets = get_csets(pair)
+            orig_only = sql_query(con, """
+                SELECT concept_id, concept_name FROM (
+                    SELECT concept_id, concept_name FROM concept_set_members WHERE codeset_id = :orig_codeset_id
+                    EXCEPT
+                    SELECT concept_id, concept_name FROM concept_set_members WHERE codeset_id = :new_codeset_id
+                ) x
+            """, {'orig_codeset_id': pair[0], 'new_codeset_id': pair[1]})
+            orig_only = list(dict(orig_only).values())
+
+            new_only = sql_query(con, """
+                SELECT concept_id, concept_name FROM (
+                    SELECT concept_id, concept_name FROM concept_set_members WHERE codeset_id = :new_codeset_id
+                    EXCEPT
+                    SELECT concept_id, concept_name FROM concept_set_members WHERE codeset_id = :orig_codeset_id
+                ) x
+            """, {'orig_codeset_id': pair[0], 'new_codeset_id': pair[1]})
+            new_only = list(dict(new_only).values())
+
+            rpt = {
+                'name': csets[0]['concept_set_name'],
+                'author': csets[0]['codeset_creator'],
+                'original_codeset_id': pair[0],
+                'original_version': csets[0]['version'],
+                'new_codeset_id': pair[1],
+                'new_version': csets[1]['version'],
+                # 'orig_only': orig_only,
+                # 'new_only': new_only,
+            }
+            pdump(rpt)
+
+            if pair[0] == 718894835:
+                pdump(csets)
+                pdump(rpt)
+                pass
+            pass
+
+from backend.utils import pdump
 if __name__ == '__main__':
-    ad_hoc_test_1()
+    n3c_comparison_rpt()
+    pass
