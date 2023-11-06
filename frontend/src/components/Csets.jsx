@@ -1,5 +1,5 @@
 import React, {useState, useRef, useEffect, useCallback, /* useReducer, */} from "react";
-import { CsetsDataTable, CsetsSelectedDataTable } from "./CsetsDataTable";
+import { CsetsDataTable, } from "./CsetsDataTable";
 // import {difference, symmetricDifference} from "./utils";
 import ConceptSetCards from "./ConceptSetCard";
 import Alert from '@mui/material/Alert';

@@ -5,7 +5,7 @@ import Stack from '@mui/material/Stack';
 import Button from '@mui/material/Button';
 import {Inspector} from "react-inspector";
 
-import {useStateSlice} from "../state/AppState";
+// import {useStateSlice} from "../state/AppState";
 import {FlexibleContainer} from "./FlexibleContainer";
 
 // see and update https://github.com/jhu-bids/TermHub/issues/397

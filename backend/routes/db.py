@@ -461,50 +461,6 @@ def _get_concept_relationships(
     return cr_rows
 
 
-@router.get("/get-n3c-recommended-codeset_ids")
-def get_n3c_recommended_codeset_ids() -> Dict[int, Union[Dict, None]]:
-    codeset_ids = get_n3c_recommended_csets()
-    return codeset_ids
-
-@router.get("/n3c-recommended-report")
-def n3c_recommended_report(as_json=False) -> Union[List[str], Dict]:
-
-    # just for this one function
-    from fastapi.responses import StreamingResponse
-    import io
-    import pandas as pd
-
-    codeset_ids = get_n3c_recommended_csets()
-    q = f"""
-            SELECT
-                  ac.is_most_recent_version,
-                  ac.codeset_id, ac.concept_set_name, ac.alias,
-                  CAST(ac.codeset_created_at AS DATE) AS created_at,
-                  r.name AS created_by,
-                  -- ac.counts::text AS counts,
-                  CAST(ac.counts->>'Expression items' AS INT) AS definition_concepts,
-                  CAST(ac.counts->>'Member only' AS INT) AS expansion_concepts,
-                  ac.distinct_person_cnt,
-                  COUNT(distinct cs.codeset_id) AS versions
-            FROM all_csets ac
-            JOIN code_sets cs ON ac.concept_set_name = cs.concept_set_name
-            JOIN researcher r ON ac.codeset_created_by = r."multipassId"
-            WHERE ac.codeset_id {sql_in(codeset_ids)}
-            GROUP BY 1, 2, 3, 4, 5, 6, 7, 8, 9
-            ORDER BY 1, 6, 5, 4
-    """
-    rows = sql_query(get_db_connection(), q)
-    if (as_json):
-        return rows
-    else:
-        df = pd.DataFrame(rows, columns=['is_most_recent_version', 'codeset_id',
-                                         'concept_set_name', 'alias', 'created_at', 'created_by'])
-        stream = io.StringIO()
-        df.to_csv(stream, index=False)
-        response = StreamingResponse(iter([stream.getvalue()]), media_type="text/csv" )
-        response.headers["Content-Disposition"] = "attachment; filename=n3c-recommended-report.csv"
-        return response
-
 
 FLAGS = ['includeDescendants', 'includeMapped', 'isExcluded']
 @router.get("/cset-download")
@@ -573,15 +529,6 @@ def _atlas_json_from_defs(defStr: List[Dict]) -> Dict:
     defs = json.loads(defStr)
     return atlas_json_from_defs(defs)
 
-
-@router.get("/enclave-api-call/{name}")
-@router.get("/enclave-api-call/{name}/{params}")
-def enclave_api_call(name: str, params: Union[str, None] = None) -> Dict:
-    """
-    Convenience endpoint to avoid all the boilerplate of having lots of api call function
-    """
-    params = params.split('|') if params else []
-    return enclave_api_call_caller(name, params) # .json() have the individual functions return the json
 
 # TODO: get back to how we had it before RDBMS refactor
 @router.get("/cr-hierarchy")
@@ -727,9 +674,53 @@ def ad_hoc_test_1():
 #         await websocket.send_text(f"Error: {str(e)}") # Notify the client of any errors
 #     finally:
 #         await websocket.close() # Close the WebSocket connection
+# """One solution: Use a decorator to poll for the disconnect"""
 
 
-"""One solution: Use a decorator to poll for the disconnect"""
+@router.get("/get-n3c-recommended-codeset_ids")
+def get_n3c_recommended_codeset_ids() -> Dict[int, Union[Dict, None]]:
+    codeset_ids = get_n3c_recommended_csets()
+    return codeset_ids
+
+@router.get("/n3c-recommended-report")
+def n3c_recommended_report(as_json=False) -> Union[List[str], Dict]:
+
+    # just for this one function
+    from fastapi.responses import StreamingResponse
+    import io
+    import pandas as pd
+
+    codeset_ids = get_n3c_recommended_csets()
+    q = f"""
+            SELECT
+                  ac.is_most_recent_version,
+                  ac.codeset_id, ac.concept_set_name, ac.alias,
+                  CAST(ac.codeset_created_at AS DATE) AS created_at,
+                  r.name AS created_by,
+                  -- ac.counts::text AS counts,
+                  CAST(ac.counts->>'Expression items' AS INT) AS definition_concepts,
+                  CAST(ac.counts->>'Member only' AS INT) AS expansion_concepts,
+                  ac.distinct_person_cnt,
+                  COUNT(distinct cs.codeset_id) AS versions
+            FROM all_csets ac
+            JOIN code_sets cs ON ac.concept_set_name = cs.concept_set_name
+            JOIN researcher r ON ac.codeset_created_by = r."multipassId"
+            WHERE ac.codeset_id {sql_in(codeset_ids)}
+            GROUP BY 1, 2, 3, 4, 5, 6, 7, 8, 9
+            ORDER BY 1, 6, 5, 4
+    """
+    rows = sql_query(get_db_connection(), q)
+    if (as_json):
+        return rows
+    else:
+        df = pd.DataFrame(rows, columns=['is_most_recent_version', 'codeset_id',
+                                         'concept_set_name', 'alias', 'created_at', 'created_by'])
+        stream = io.StringIO()
+        df.to_csv(stream, index=False)
+        response = StreamingResponse(iter([stream.getvalue()]), media_type="text/csv" )
+        response.headers["Content-Disposition"] = "attachment; filename=n3c-recommended-report.csv"
+        return response
+
 
 if __name__ == '__main__':
     ad_hoc_test_1()
