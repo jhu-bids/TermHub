@@ -964,12 +964,18 @@ def cli():
     parser.add_argument(
         '-f', '--find-missing-csets', action='store_true',
         help='Find missing csets, either in enclave and not in TermHub, or vice versa.')
+    parser.add_argument(
+        '-d', '--refresh-derived', action='store_true',
+        help='Just refresh the derived tables.')
     args: Dict = vars(parser.parse_args())
     commands_to_run = [k for k, v in args.items() if v]
     if 'find_missing_csets' in commands_to_run:
         get_bidirectional_csets_sets()
     if 'find_and_add_missing_csets_to_db' in commands_to_run:
         find_and_add_missing_csets_to_db()
+    if'refresh_derived' in commands_to_run:
+        with get_db_connection() as con:
+            refresh_termhub_core_cset_derived_tables(con)
 
 
 if __name__ == '__main__':

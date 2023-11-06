@@ -29,9 +29,13 @@ from typing import Any, Dict, Tuple, Union, List
 
 from backend.db.config import CORE_CSET_DEPENDENT_TABLES, CORE_CSET_TABLES, \
         RECURSIVE_DEPENDENT_TABLE_MAP, VIEWS, get_pg_connect_url
-from backend.config import CONFIG, DATASETS_PATH, DDL_JINJA_PATH_PATTERN, OBJECTS_PATH
+from backend.config import CONFIG, DATASETS_PATH, OBJECTS_PATH
 from backend.utils import commify
 from enclave_wrangler.models import pkey
+
+DB_DIR = os.path.dirname(os.path.realpath(__file__))
+DDL_JINJA_PATH_PATTERN = os.path.join(DB_DIR, 'ddl-*.jinja.sql')
+
 
 DEBUG = False
 DB = CONFIG["db"]

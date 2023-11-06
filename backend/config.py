@@ -8,13 +8,13 @@ OUTPUT_DIR = os.path.join(PROJECT_ROOT, 'output')
 ENV_FILE = os.path.join(ENV_DIR, '.env')
 load_dotenv(ENV_FILE)
 
-DB_DIR = os.path.dirname(os.path.realpath(__file__))
-BACKEND_DIR = os.path.join(DB_DIR, '..')
+# moved these from db/config.py, so not working now, but only need them in db/utils.py, i think
+# BACKEND_DIR = os.path.join(DB_DIR, '..')
+# DB_DIR = os.path.dirname(os.path.realpath(__file__))
 DOCS_DIR = os.path.join(PROJECT_ROOT, 'docs')
 TERMHUB_CSETS_PATH = os.path.join(PROJECT_ROOT, 'termhub-csets')
 DATASETS_PATH = os.path.join(TERMHUB_CSETS_PATH, 'datasets', 'prepped_files')
 OBJECTS_PATH = os.path.join(TERMHUB_CSETS_PATH, 'objects')
-DDL_JINJA_PATH_PATTERN = os.path.join(DB_DIR, 'ddl-*.jinja.sql')
 
 CONFIG = {
     'server': os.getenv('TERMHUB_DB_SERVER'),
