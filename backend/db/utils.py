@@ -2,6 +2,8 @@
 
 todo's
   1. Some functions could be improved using `sql_query()` `params` arg to be less prone to sql injection.
+  2. Making 'Connection' optional: Can write a wrapper function and decorate all functions that need, where all it does
+  is `con = con if con else get_db_connection()` and then pass that to inner function.
 """
 import json
 import os
@@ -119,6 +121,7 @@ def refresh_any_dependent_tables(con: Connection, independent_tables: List[str] 
     derived_tables: List[str] = get_dependent_tables_queue(independent_tables)
     if not derived_tables:
         print(f'No derived tables found for: {", ".join(independent_tables)}')
+        return
     refresh_derived_tables(con, derived_tables, schema)
 
 
@@ -647,7 +650,8 @@ def get_ddl_statements(
       1. For each table: don't do anything if these tables exist & initialized
       2. Add alters to fix data types (although, should really move this stuff to dtypes settings when creating
       dataframe that loads data into db.
-      3. I think it's inserting a second ; at the end of the last statement of a given module"""
+      3. I think it's inserting a second ; at the end of the last statement of a given module
+      4. consider throwing an error if no statements found, either here, or where func is called"""
     paths: List[str] = glob(DDL_JINJA_PATH_PATTERN)
     if modules:
         paths = [p for p in paths if any([m == os.path.basename(p).split('-')[2].split('.')[0] for m in modules])]

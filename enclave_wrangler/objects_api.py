@@ -322,28 +322,37 @@ def find_termhub_missing_csets(con: Connection = None) -> Set[int]:
     return missing_ids_from_db
 
 
+def fetch_all_csets(filter_results=True) -> List[Dict]:
+    """Fetch all concept sets from the enclave
+
+    :param filter_results (bool): If True, will filter out any old draftts from an old, incompatible data model (
+    sourceApplicationVersion 1.0), as well as archived csets."""
+    csets: List[Dict] = make_objects_request('OMOPConceptSet', return_type='data', handle_paginated=True)
+    csets = [cset['properties'] for cset in csets]
+    if filter_results:
+        archived_containers: List[Dict] = make_objects_request(
+            'OMOPConceptSetContainer', query_params={'properties.archived.eq': True}, return_type='data',
+            handle_paginated=True)
+        archived_container_names = [container['properties']['conceptSetName'] for container in archived_containers]
+        csets = [
+            cset for cset in csets
+            if 'conceptSetNameOMOP' in cset.keys()  # why is it missing sometimes? old data model?
+               # - Filter any old drafts from sourceApplicationVersion 1.0. Old data model. No containers, etc. See also:
+               #  https://github.com/jhu-bids/TermHub/actions/runs/6489411749/job/17623626419
+               and cset['conceptSetNameOMOP']
+               and not cset['conceptSetNameOMOP'] in archived_container_names
+        ]
+    return csets
+
+
 def get_bidirectional_csets_sets(con: Connection = None) -> Tuple[Set[int], Set[int]]:
     """Find missing csets"""
     # Set 1 of 2: In our database
     con = con if con else get_db_connection(schema=SCHEMA)
     db_codeset_ids: Set[int] = set(sql_query_single_col(con, 'SELECT codeset_id FROM code_sets'))
-
     # Set 2 of 2: In the enclave
-    enclave_codesets: List[Dict] = make_objects_request('OMOPConceptSet', return_type='data', handle_paginated=True)
-    enclave_codesets = [cset['properties'] for cset in enclave_codesets]
-    archived_containers: List[Dict] = make_objects_request(
-        'OMOPConceptSetContainer', query_params={'properties.archived.eq': True}, return_type='data',
-        handle_paginated=True)
-    archived_container_names = [container['properties']['conceptSetName'] for container in archived_containers]
-    enclave_codesets = [
-        cset for cset in enclave_codesets
-        if 'conceptSetNameOMOP' in cset.keys()  # why is it missing sometimes? old data model?
-        # - Filter any old drafts from sourceApplicationVersion 1.0. Old data model. No containers, etc. See also:
-        #  https://github.com/jhu-bids/TermHub/actions/runs/6489411749/job/17623626419
-        and cset['conceptSetNameOMOP']
-        and not cset['conceptSetNameOMOP'] in archived_container_names
-    ]
-
+    enclave_codesets = fetch_all_csets()
+    # Set difference & return
     enclave_codeset_ids: Set[int] = set([cset['codesetId'] for cset in enclave_codesets])
     return db_codeset_ids, enclave_codeset_ids
 
