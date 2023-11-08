@@ -160,7 +160,7 @@ export function oneSidedObjectDifference(a ,b) {
   }, {})
 }
 
-export function saveCsv(rows, columns, filename, config, tsv = false) {
+export function saveCsv(rows, columns, filename, config=null, tsv = false) {
 
   config = config || {
     delimiter: tsv ? "\t" : ",",

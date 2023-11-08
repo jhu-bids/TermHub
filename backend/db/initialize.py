@@ -72,8 +72,9 @@ DDL_API_LOG = """CREATE TABLE IF NOT EXISTS public.api_runs (
 
 DDL_CSET_COMPARE = """CREATE TABLE IF NOT EXISTS public.codeset_comparison (
                         fetch_time text,
-                        original_codeset_id integer,
-                        new_codeset_id integer
+                        orig_codeset_id integer,
+                        new_codeset_id integer,
+                        rpt json
                         );"""
 
 def create_database(con: Connection, schema: str):

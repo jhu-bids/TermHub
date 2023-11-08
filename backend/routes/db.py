@@ -16,7 +16,7 @@ from sqlalchemy.engine import RowMapping
 
 from backend.api_logger import Api_logger
 from backend.utils import get_timer, return_err_with_trace
-from backend.db.utils import get_db_connection, sql_query, SCHEMA, sql_query_single_col, sql_in
+from backend.db.utils import get_db_connection, sql_query, SCHEMA, sql_query_single_col, sql_in, run_sql
 from backend.db.queries import get_concepts
 from enclave_wrangler.objects_api import get_n3c_recommended_csets, enclave_api_call_caller, \
     get_concept_set_version_expression_items, items_to_atlas_json_format
@@ -718,49 +718,67 @@ def n3c_recommended_report(as_json=False) -> Union[List[str], Dict]:
         return response
 
 
+@router.get("/n3c-comparison-rpt")
 def n3c_comparison_rpt():
     with get_db_connection() as con:
-        pairs = sql_query(con, "SELECT original_codeset_id, new_codeset_id FROM public.codeset_comparison")
+        rpt = sql_query_single_col(con, "SELECT rpt FROM public.codeset_comparison")
+        return rpt
+
+
+def generate_n3c_comparison_rpt():
+    with get_db_connection() as con:
+        pairs = sql_query(con, "SELECT orig_codeset_id, new_codeset_id FROM public.codeset_comparison")
         for pair in pairs:
             pair = list(dict(pair).values())
             csets = get_csets(pair)
+
             orig_only = sql_query(con, """
-                SELECT concept_id, concept_name FROM (
+                SELECT 'removed ' || concept_id || ' ' || concept_name AS diff FROM (
                     SELECT concept_id, concept_name FROM concept_set_members WHERE codeset_id = :orig_codeset_id
                     EXCEPT
                     SELECT concept_id, concept_name FROM concept_set_members WHERE codeset_id = :new_codeset_id
                 ) x
             """, {'orig_codeset_id': pair[0], 'new_codeset_id': pair[1]})
-            orig_only = list(dict(orig_only).values())
+            # orig_only = [dict(r) for r in orig_only]
+            orig_only = [dict(r)['diff'] for r in orig_only]
 
             new_only = sql_query(con, """
-                SELECT concept_id, concept_name FROM (
+                SELECT 'added ' || concept_id || ' ' || concept_name AS diff FROM (
                     SELECT concept_id, concept_name FROM concept_set_members WHERE codeset_id = :new_codeset_id
                     EXCEPT
                     SELECT concept_id, concept_name FROM concept_set_members WHERE codeset_id = :orig_codeset_id
                 ) x
             """, {'orig_codeset_id': pair[0], 'new_codeset_id': pair[1]})
-            new_only = list(dict(new_only).values())
+            # new_only = [dict(r) for r in new_only]
+            new_only = [dict(r)['diff'] for r in new_only]
+
+            diffs = orig_only + new_only
 
             rpt = {
                 'name': csets[0]['concept_set_name'],
+                'orig': f"{csets[0]['codeset_id']} v{csets[0]['version']}, vocab {csets[0]['omop_vocab_version']}",
+                'new': f"{csets[1]['codeset_id']} v{csets[1]['version']}, vocab {csets[1]['omop_vocab_version']}",
                 'author': csets[0]['codeset_creator'],
-                'original_codeset_id': pair[0],
-                'original_version': csets[0]['version'],
+                'orig_codeset_id': pair[0],
+                # 'orig_version': csets[0]['version'],
                 'new_codeset_id': pair[1],
-                'new_version': csets[1]['version'],
+                # 'new_version': csets[1]['version'],
                 # 'orig_only': orig_only,
                 # 'new_only': new_only,
+                'diffs': diffs,
             }
-            pdump(rpt)
+            run_sql(con, """
+                    UPDATE public.codeset_comparison
+                    SET rpt = :rpt
+                    WHERE orig_codeset_id = :orig_codeset_id
+                      AND new_codeset_id = :new_codeset_id
+                    """, {'orig_codeset_id': pair[0],
+                          'new_codeset_id': pair[1],
+                          'rpt': json.dumps(rpt)})
 
-            if pair[0] == 718894835:
-                pdump(csets)
-                pdump(rpt)
-                pass
-            pass
 
 from backend.utils import pdump
 if __name__ == '__main__':
-    n3c_comparison_rpt()
+    # n3c_comparison_rpt()
+    generate_n3c_comparison_rpt()
     pass

@@ -188,6 +188,13 @@ export function AboutPage() {
         >
           N3C Recommended
         </Button>
+        <Button to="/N3CRecommended?comparison=true"
+                variant={"contained"}
+                component={Link}
+                style={{margin: '7px', textTransform: 'none'}}
+        >
+          N3C Recommended comparison after vocab changes
+        </Button>
       </TextBody>
 
       <TextH1>How to's</TextH1>
