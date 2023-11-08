@@ -153,7 +153,7 @@ export const N3CComparisonRpt = () => {
             // noHeader={false}
             dense
             direction="auto"
-            // fixedHeader
+            fixedHeader
             // fixedHeaderScrollHeight="300px"
             responsive
             // sortFunction={customSort}
