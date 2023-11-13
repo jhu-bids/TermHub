@@ -85,7 +85,7 @@ export function useHierarchySettings() {
 
   function hierarchySettingsReducer(state, action) {
     if ( ! ( action || {} ).type ) return state;
-    let {collapsePaths, collapsedDescendantPaths,
+    let {collapsePaths, // collapsedDescendantPaths,
       nested, hideRxNormExtension, hideZeroCounts} = {...unpersistedDefaultState, ...state};
     switch (action.type) {
       case "collapseDescendants": {
@@ -101,13 +101,7 @@ export function useHierarchySettings() {
           collapsePaths = {...collapsePaths};
           delete collapsePaths[row.pathToRoot];
         }
-        // collapsedDescendantPaths are all the paths that get hidden, the descendants of all the collapsePaths
-        const hiddenRows = flatten(Object.keys(collapsePaths).map(collapsedPath => {
-          return allRows.map(r => r.pathToRoot).filter(
-              p => p.length > collapsedPath.length && p.startsWith(collapsedPath));
-        }));
-        collapsedDescendantPaths = fromPairs(hiddenRows.map(p => [p, true]));
-        return {...state, collapsePaths, collapsedDescendantPaths};
+        return {...state, collapsePaths /*, collapsedDescendantPaths */};
       }
       case "nested": {
         return {...state, nested: action.nested}

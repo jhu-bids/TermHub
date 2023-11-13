@@ -1,36 +1,21 @@
 import React, {useCallback, useEffect, useRef, useState,} from "react";
-// import { createSearchParams, useSearchParams, } from "react-router-dom";
 import DataTable, {createTheme} from "react-data-table-component";
-// import {AddCircle, Download, RemoveCircleOutline} from "@mui/icons-material";
 import AddCircle from "@mui/icons-material/AddCircle";
 import Download from "@mui/icons-material/Download";
 import RemoveCircleOutline from "@mui/icons-material/RemoveCircleOutline";
-// import {Box, IconButton, Slider, Switch} from "@mui/material";
 import Box from "@mui/material/Box";
 import IconButton from "@mui/material/IconButton";
 import Slider from "@mui/material/Slider";
 import Switch from "@mui/material/Switch";
 import CloseIcon from "@mui/icons-material/Close";
 import Button from "@mui/material/Button";
-// import {Checkbox} from "@mui/material";
-import {difference, flatten, intersection, isEmpty, max, sortBy, throttle, union, uniq, uniqBy} from "lodash";
-import Graph from 'graphology';
-import {allSimplePaths} from 'graphology-simple-path';
-import {dfsFromNode} from 'graphology-traversal/dfs';
+import { flatten, fromPairs, intersection, isEmpty, max, throttle, union, uniqBy } from "lodash";
 
 import {fmt, saveCsv, useWindowSize} from "./utils";
 import {setColDefDimensions} from "./dataTableUtils";
 import {ConceptSetCard} from "./ConceptSetCard";
 import {Tooltip} from "./Tooltip";
-import {
-  cellContents,
-  cellStyle,
-  getCodesetEditActionFunc,
-  getItem,
-  Legend,
-  newCsetAtlasWidget,
-  textCellForItem,
-} from "./NewCset";
+import { cellContents, cellStyle, getCodesetEditActionFunc, getItem, Legend, newCsetAtlasWidget, textCellForItem, } from "./NewCset";
 import {FlexibleContainer} from "./FlexibleContainer";
 import {NEW_CSET_ID, urlWithSessionStorage, useCodesetIds, useHierarchySettings, useNewCset,} from "../state/AppState";
 import {useDataCache} from "../state/DataCache";
@@ -382,9 +367,9 @@ export function getRowData(props) {
   console.log("getting row data");
 
   const {conceptLookup, indentedCids, hierarchySettings, } = props;
-  const {collapsedDescendantPaths, hideZeroCounts, hideRxNormExtension, nested } = hierarchySettings;
+  const {/*collapsedDescendantPaths, */ collapsePaths, hideZeroCounts, hideRxNormExtension, nested } = hierarchySettings;
 
-  let allRows, displayedRows, rows;
+  let allRows, displayedRows;
   if (indentedCids) {   // not sure why they wouldn't be here...maybe not ready yet?
     [allRows, displayedRows] = nestedConcepts(conceptLookup, indentedCids, hierarchySettings);
   } else {
@@ -399,8 +384,14 @@ export function getRowData(props) {
   // const collapsedRows= allRows.filter(row => row.collapsed);
   // let rows = allRows.filter(row => !row.collapsed);
   if (nested) {
+    // collapsedDescendantPaths are all the paths that get hidden, the descendants of all the collapsePaths
+    const hiddenRows = flatten(Object.keys(collapsePaths).map(collapsedPath => {
+      return allRows.map(r => r.pathToRoot).filter(
+          p => p.length > collapsedPath.length && p.startsWith(collapsedPath));
+    }));
+    const collapsedDescendantPaths = fromPairs(hiddenRows.map(p => [p, true]));
     hidden.collapsed = nested ? collapsedDescendantPaths.length : 0;
-    rows = allRows.filter(row => !collapsedDescendantPaths[row.pathToRoot]);
+    displayedRows = allRows.filter(row => !collapsedDescendantPaths[row.pathToRoot]);
   }
 
   // const rxNormExtensionRows = rows.filter(r => r.vocabulary_id == 'RxNorm Extension');
