@@ -1,7 +1,7 @@
 import {createContext, useContext,} from "react";
 import {createSearchParams} from "react-router-dom";
 import axios from "axios";
-import {flatten, isEmpty, setWith, set, uniq, difference} from 'lodash';
+import {flatten, isEmpty, setWith, once, uniq, difference} from 'lodash';
 
 import {useAlertsDispatch} from "./AppState";
 import {formatEdges} from "../components/ConceptGraph";
@@ -34,6 +34,14 @@ class DataGetter {
 		this.dataCache = dataCache;
 		this.alertsDispatch = alertsDispatch;
 	}
+	async getApiCallGroupId() {
+		const getid = once(() => {
+			return this.axiosCall('next-api-call-group-id', {sendAlert: false});
+		});
+		this.api_call_group_id = await getid();
+		console.log('api_call_group_id', this.api_call_group_id);
+		return this.api_call_group_id;
+	}
 	async axiosCall(path, { backend = true, data, returnDataOnly = true, useGetForSmallData = true,
 		apiGetParamName, verbose = false, sendAlert = true, title, makeQueryString,
 	} = {}) {
@@ -46,19 +54,26 @@ class DataGetter {
 			title: title || path,
 		};
 		alertAction.id = alertAction.title + ':' + (new Date()).toISOString();
+		let qsData = {};
+		let qs = '';
+		if (this.api_call_group_id) {
+			qsData.api_call_group_id = this.api_call_group_id;
+		}
 		try {
 			if (typeof (data) === 'undefined') {
 				request.method = 'get';
 			} else {
 				if (useGetForSmallData && data.length <= 1000) {
 					request.method = 'get';
-					let qs = makeQueryString(data);
-					request.url = url + '?' + qs;
+					qs = makeQueryString(data);
 				} else {
 					request.method = 'post';
 					request.data = data;
 				}
 			}
+			qs = qs.length ? qs : qs + '&api_call_group_id=' + this.api_call_group_id
+			request.url = url + '?' + qs;
+
 			verbose && console.log("axios request", request);
 
 			// alertAction.id = compress(JSON.stringify(request));
@@ -196,6 +211,19 @@ class DataGetter {
 				}
 				return data; */
 		},
+		indented_concept_list: { // expects paramList of concept_ids
+			expectedParams: [],	// concept_ids
+			api: 'indented-concept-list',
+			apiGetParamName: 'id',
+			makeQueryString: concept_ids => createSearchParams({id: concept_ids}),
+			protocols: ['get', 'post'],
+			cacheSlice: 'edges',
+			singleKeyFunc: concept_ids => compress(concept_ids.join('|')),
+			alertTitle: 'Get subgraph for all listed concept_ids',
+			apiResultShape: 'array of array [level, concept_id]',
+			cacheShape: 'obj of array of array', // cache.edges[key] = [[src,tgt], [src,tgt], ....]
+			// formatResultsFunc: edges => edges.map(edge => edge.map(String)), // might need this!!
+		},
 		/* everything else
 
 			case 'concepts':
@@ -277,6 +305,8 @@ class DataGetter {
 			// objects or strings
 			throw new Error("passed wrong type");
 		}
+
+		apiDef = {...apiDef, api_call_group_id: this.api_call_group_id};
 
 		const dataCache = this.dataCache;
 

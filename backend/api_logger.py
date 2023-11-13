@@ -34,6 +34,8 @@ class Api_logger:
 
         rpt['schema'] = get_schema_name()
 
+        rpt['api_call_group_id'] = int(request.query_params.get('api_call_group_id'))
+
         rpt_params = {}
         for k,v in params.items():
             if type(v) == list:

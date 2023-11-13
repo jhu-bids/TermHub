@@ -56,20 +56,6 @@ DDL_FETCH_AUDIT = """CREATE TABLE IF NOT EXISTS public.fetch_audit (
                         success_datetime timestamp with time zone,
                         comment text);"""
 
-DDL_API_LOG = """CREATE TABLE IF NOT EXISTS public.api_runs (
-                        host text,
-                        client text,
-                        schema text not null,
-                        api_call text not null,
-                        codeset_ids integer[],
-                        params text,
-                        timestamp text not null,
-                        result text,
-                        process_seconds float
-                        --date text,
-                        --note text
-                        );"""
-
 DDL_CSET_COMPARE = """CREATE TABLE IF NOT EXISTS public.codeset_comparison (
                         fetch_time text,
                         orig_codeset_id integer,
@@ -92,6 +78,7 @@ def create_database(con: Connection, schema: str):
         run_sql(con2, DDL_COUNTS)
         run_sql(con2, DDL_COUNTS_RUNS)
         run_sql(con2, DDL_FETCH_AUDIT)
+        run_sql(con2, DDL_CSET_COMPARE)
         run_sql(con, f'CREATE SCHEMA IF NOT EXISTS {schema};')
 
 

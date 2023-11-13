@@ -777,8 +777,15 @@ def generate_n3c_comparison_rpt():
                           'rpt': json.dumps(rpt)})
 
 
+@router.get("/next-api-call-group-id")
+def next_api_call_group_id() -> int:
+    with get_db_connection():
+        id = sql_query_single_col(get_db_connection(), "SELECT nextval('api_call_group_id_seq')")[0]
+        return id
+
+
 from backend.utils import pdump
 if __name__ == '__main__':
     # n3c_comparison_rpt()
-    generate_n3c_comparison_rpt()
+    # generate_n3c_comparison_rpt()
     pass
