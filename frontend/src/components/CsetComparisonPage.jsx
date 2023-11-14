@@ -1,36 +1,21 @@
 import React, {useCallback, useEffect, useRef, useState,} from "react";
-// import { createSearchParams, useSearchParams, } from "react-router-dom";
 import DataTable, {createTheme} from "react-data-table-component";
-// import {AddCircle, Download, RemoveCircleOutline} from "@mui/icons-material";
 import AddCircle from "@mui/icons-material/AddCircle";
 import Download from "@mui/icons-material/Download";
 import RemoveCircleOutline from "@mui/icons-material/RemoveCircleOutline";
-// import {Box, IconButton, Slider, Switch} from "@mui/material";
 import Box from "@mui/material/Box";
 import IconButton from "@mui/material/IconButton";
 import Slider from "@mui/material/Slider";
 import Switch from "@mui/material/Switch";
 import CloseIcon from "@mui/icons-material/Close";
 import Button from "@mui/material/Button";
-// import {Checkbox} from "@mui/material";
-import {difference, flatten, intersection, isEmpty, max, sortBy, throttle, union, uniq, uniqBy} from "lodash";
-import Graph from 'graphology';
-import {allSimplePaths} from 'graphology-simple-path';
-import {dfsFromNode} from 'graphology-traversal/dfs';
+import { flatten, fromPairs, intersection, isEmpty, max, throttle, union, uniqBy } from "lodash";
 
 import {fmt, saveCsv, useWindowSize} from "./utils";
 import {setColDefDimensions} from "./dataTableUtils";
 import {ConceptSetCard} from "./ConceptSetCard";
 import {Tooltip} from "./Tooltip";
-import {
-  cellContents,
-  cellStyle,
-  getCodesetEditActionFunc,
-  getItem,
-  Legend,
-  newCsetAtlasWidget,
-  textCellForItem,
-} from "./NewCset";
+import { cellContents, cellStyle, getCodesetEditActionFunc, getItem, Legend, newCsetAtlasWidget, textCellForItem, } from "./NewCset";
 import {FlexibleContainer} from "./FlexibleContainer";
 import {NEW_CSET_ID, urlWithSessionStorage, useCodesetIds, useHierarchySettings, useNewCset,} from "../state/AppState";
 import {useDataCache} from "../state/DataCache";
@@ -59,33 +44,26 @@ function CsetComparisonPage() {
   const sizes = getSizes(/*squishTo*/ 1);
   const customStyles = styles(sizes);
   const [data, setData] = useState({});
-      // useState({ concept_ids: [], selected_csets: [], edges: [], concepts: [], });
-  const { edges, concepts, conceptLookup, selected_csets, csmi, researchers, currentUserId,  } = data;
+  const { indentedCids, concepts, conceptLookup, selected_csets, csmi, researchers, currentUserId,  } = data;
 
   useEffect(() => {
     (async () => {
-      /*
-        cset_members_items
-        csets => researchers
-        concept_ids_by_codeset_id ==> concept_ids => edges => concepts
-       */
       let whoami = dataGetter.fetchAndCacheItems(dataGetter.apiCalls.whoami, undefined);
+
+      await dataGetter.getApiCallGroupId();
 
       let promises = [ // these can run immediately
         dataGetter.fetchAndCacheItems(dataGetter.apiCalls.cset_members_items, codeset_ids),
         dataGetter.fetchAndCacheItems(dataGetter.apiCalls.csets, codeset_ids),
       ];
       // have to get concept_ids before fetching concepts
-      let concept_ids = await dataGetter.fetchAndCacheItems(dataGetter.apiCalls.concept_ids_by_codeset_id, codeset_ids);
-      concept_ids = union(flatten(Object.values(concept_ids)));
+      const concept_ids_by_codeset_id = await dataGetter.fetchAndCacheItems(dataGetter.apiCalls.concept_ids_by_codeset_id, codeset_ids);
+      let concept_ids = union(flatten(Object.values(concept_ids_by_codeset_id)));
 
-      // have to get edges, which might contain more concept_ids after filling gaps
-      const edges = await dataGetter.fetchAndCacheItems(dataGetter.apiCalls.edges, concept_ids, );
-      concept_ids = union(concept_ids.map(String), flatten(edges)).sort();
-      // setData(current => ({...current, concept_ids, edges}));
-      // javascript sleep technique from https://stackoverflow.com/a/39914235/1368860, for testing what happens after setData
-      //  .... apparently nothing
-      // await new Promise(r => setTimeout(r, 7000));
+      // have to get indentedCids, which might contain more concept_ids after filling gaps
+      const indentedCids = await dataGetter.fetchAndCacheItems(dataGetter.apiCalls.indented_concept_list, concept_ids, );
+      // indentedCids = [[<level>, <concept_id>], ...]
+      concept_ids = union(concept_ids/*.map(String)*/, indentedCids.map(d => d[1])).sort();
 
       if (!isEmpty(newCset)) {
         concept_ids = union(concept_ids, Object.values(newCset.definitions).map(d => d.concept_id+''));
@@ -137,13 +115,13 @@ function CsetComparisonPage() {
       // setData(current => ({...current, csmi, concepts}));
 
       const conceptsCids = concepts.map(d => d.concept_id + '').sort();
-      console.assert(intersection(conceptsCids, concept_ids).length === concept_ids.length,
+      console.assert(intersection(conceptsCids, concept_ids.map(String)).length === concept_ids.length,
                      "%o", {concepts, conceptsCids, concept_ids});
 
+      /*
       const edgeCids = uniq(flatten(edges)).sort();
       console.assert(difference(edgeCids, concept_ids).length === 0,
                      "%o", {edges, edgeCids, concept_ids});
-      /*
       if (intersection(conceptsCids, concept_ids).length !== concept_ids.length) {
         // try again
         let c2 = await dataCache.fetchAndCacheItemsByKey( { itemType: 'concepts', keys: concept_ids, shape: 'obj' });
@@ -154,7 +132,7 @@ function CsetComparisonPage() {
 
       const currentUserId = (await whoami).id;
       researchers = await researchers;
-      setData(current => ({...current, concept_ids, edges, selected_csets, conceptLookup, csmi,
+      setData(current => ({...current, concept_ids, indentedCids, selected_csets, conceptLookup, csmi,
           concepts, researchers, currentUserId, }));
     })();
   }, [newCset]);
@@ -179,16 +157,16 @@ function CsetComparisonPage() {
             ]);
 
 
-  if (isEmpty(concepts) || isEmpty(edges)) {
+  if (isEmpty(concepts) || isEmpty(indentedCids)) {
     return <p>Downloading...</p>;
   }
 
   // TODO: component is rendering twice. why? not necessary? fix?
-  if (!edges) { // if no edges (yet), no information to nest with, so turn off nesting for this
+  if (!indentedCids) { // if no indentedCids (yet), no information to nest with, so turn off nesting for this
                 //  invocation of getRowData (don't save to state)
     hierarchySettings = {...hierarchySettings, nested: false};
   }
-  let {allRows, displayedRows, distinctRows, hidden} = getRowData({concepts, edges, hierarchySettings});
+  let {allRows, displayedRows, distinctRows, hidden} = getRowData({conceptLookup, indentedCids, hierarchySettings});
   let rowData;
   if (nested) {
     rowData = displayedRows;
@@ -388,12 +366,12 @@ function nodeToTree(node) {
 export function getRowData(props) {
   console.log("getting row data");
 
-  const {concepts, edges, hierarchySettings, } = props;
-  const {collapsedDescendantPaths, hideZeroCounts, hideRxNormExtension, nested } = hierarchySettings;
+  const {conceptLookup, indentedCids, hierarchySettings, } = props;
+  const {/*collapsedDescendantPaths, */ collapsePaths, hideZeroCounts, hideRxNormExtension, nested } = hierarchySettings;
 
-  let allRows, displayedRows, rows;
-  if (edges) {
-    [allRows, displayedRows] = nestedConcepts(concepts, edges, hierarchySettings);
+  let allRows, displayedRows;
+  if (indentedCids) {   // not sure why they wouldn't be here...maybe not ready yet?
+    [allRows, displayedRows] = nestedConcepts(conceptLookup, indentedCids, hierarchySettings);
   } else {
     allRows = concepts;
     displayedRows = concepts;
@@ -406,8 +384,14 @@ export function getRowData(props) {
   // const collapsedRows= allRows.filter(row => row.collapsed);
   // let rows = allRows.filter(row => !row.collapsed);
   if (nested) {
+    // collapsedDescendantPaths are all the paths that get hidden, the descendants of all the collapsePaths
+    const hiddenRows = flatten(Object.keys(collapsePaths).map(collapsedPath => {
+      return allRows.map(r => r.pathToRoot).filter(
+          p => p.length > collapsedPath.length && p.startsWith(collapsedPath));
+    }));
+    const collapsedDescendantPaths = fromPairs(hiddenRows.map(p => [p, true]));
     hidden.collapsed = nested ? collapsedDescendantPaths.length : 0;
-    rows = allRows.filter(row => !collapsedDescendantPaths[row.pathToRoot]);
+    displayedRows = allRows.filter(row => !collapsedDescendantPaths[row.pathToRoot]);
   }
 
   // const rxNormExtensionRows = rows.filter(r => r.vocabulary_id == 'RxNorm Extension');
@@ -421,11 +405,39 @@ export function getRowData(props) {
   const distinctRows = uniqBy(displayedRows, row => row.concept_id);
   return {allRows, displayedRows, distinctRows, hidden};
 }
-function nestedConcepts(concepts, edges, hierarchySettings) {
+function nestedConcepts(conceptLookup, indentedCids, hierarchySettings) {
   const {collapsedDescendantPaths, hideZeroCounts, hideRxNormExtension} = hierarchySettings;
-  let allRows = [];
-  let displayedRows = [];
 
+  let allRows = indentedCids.map(r => ({level: r[0], concept_id: r[1], ...conceptLookup[r[1]]}));
+  let displayedRows = [];
+  let currentPath = [];
+
+  for (let i = 0; i < allRows.length; i++) {
+    let row = allRows[i];
+
+    if (collapsedDescendantPaths[row.pathToRoot]) {
+      continue;
+    }
+
+    if (row.level === currentPath.length) {
+      currentPath.push(row.concept_id);
+    }
+    else if (row.level <= currentPath.length) {
+      currentPath.splice(row.level);
+      currentPath.push(row.concept_id);
+    } else {
+      throw new Error("shouldn't happen");
+    }
+
+    row.pathToRoot = currentPath.join('/');
+
+    if (i < allRows.length - 1 && allRows[i + 1].level > row.level) {
+      row.hasChildren = true;
+    }
+    displayedRows.push(row);
+  }
+  return [allRows, displayedRows];
+  /*
   const graph = new Graph({allowSelfLoops: false, multi: false, type: 'directed'});
   // add each concept as a node in the graph, the concept properties become the node attributes
   concepts.forEach(c => graph.addNode(c.concept_id, c));
@@ -475,26 +487,12 @@ function nestedConcepts(concepts, edges, hierarchySettings) {
       // console.log('   '.repeat(depth) + node);
       row.hasChildren = graph.outboundDegree(node) > 0;
       row.level = depth;
-      /*
-      let debugInfo = ` ${row.pathToRoot}`;
-      if (row.hasChildren) {
-        debugInfo += (collapsePaths[row.pathToRoot] ? '(+)' : '(-)');
-      }
-      if (collapsePaths[row.pathToRoot]) {
-        // row.collapseDescendants = true;
-      }
-      if (collapsedDescendantPaths[row.pathToRoot]) {
-        // row.collapsed = true;
-        debugInfo += ' hidden';
-      }
-      // for debugging:
-      row.concept_name = <span>{row.level} {row.concept_name}<br/><strong>{debugInfo}</strong></span>;
-       */
       allRows.push(row);
       displayedRows.push(row);
     });
   });
   return [allRows, displayedRows];
+  */
 }
 function ComparisonDataTable(props) {
   const {

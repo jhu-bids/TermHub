@@ -194,6 +194,9 @@ export function ConceptSetsPage(props) {
     (async () => {
       // dataCache.
       let all_csets = dataGetter.fetchAndCacheItems(dataGetter.apiCalls.all_csets, undefined);
+
+      await dataGetter.getApiCallGroupId();
+
       let selected_csets = dataGetter.fetchAndCacheItems(dataGetter.apiCalls.csets, codeset_ids);
             // returnFunc: results => [...Object.values(results)]; // isn't this the same as shape: 'array'?
       let concept_ids = dataGetter.fetchAndCacheItems(dataGetter.apiCalls.concept_ids_by_codeset_id, codeset_ids);
