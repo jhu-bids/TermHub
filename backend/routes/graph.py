@@ -106,7 +106,7 @@ def paths_as_indented_tree(paths: List[List[int]]) -> List[Tuple[int, int]]:
         root.insert(path)
 
     tree = []
-    for line in generate_csv_lines(root):
+    for line in generate_indented_nodes(root):
         # tree.append({'level': line[0], 'concept_id': line[1]})
         tree.append((line[0], line[1]))
 
@@ -145,11 +145,11 @@ def expand_super_node(G, subgraph_nodes, super_node):
     sg = G.subgraph(subgraph_nodes)
 
 
-def generate_csv_lines(node, level=-1):
+def generate_indented_nodes(node, level=-1):
     if node.value is not None:  # Skip the root node
         yield level, node.value
     for child in node.children.values():
-        yield from generate_csv_lines(child, level + 1)
+        yield from generate_indented_nodes(child, level + 1)
 
 
 # @router.post("/subgraph")
@@ -199,7 +199,7 @@ def generate_csv_lines(node, level=-1):
 #     output = io.StringIO()
 #     writer = csv.writer(output)
 #     writer.writerow(['level', 'node'])  # Writing header
-#     for line in generate_csv_lines(root):
+#     for line in generate_indented_nodes(root):
 #         writer.writerow(line)
 #
 #     # Get the CSV string from StringIO
