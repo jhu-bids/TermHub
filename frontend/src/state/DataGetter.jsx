@@ -65,13 +65,14 @@ class DataGetter {
 			} else {
 				if (useGetForSmallData && data.length <= 1000) {
 					request.method = 'get';
-					qs = makeQueryString(data);
+					qs = makeQueryString(data).toString();
 				} else {
 					request.method = 'post';
 					request.data = data;
 				}
 			}
-			qs = qs.length ? qs : qs + '&api_call_group_id=' + this.api_call_group_id
+			qs = qs.length ? qs + '&' : qs;
+			qs = qs + 'api_call_group_id=' + this.api_call_group_id
 			request.url = url + '?' + qs;
 
 			verbose && console.log("axios request", request);
@@ -270,7 +271,7 @@ class DataGetter {
 			expectedParams: [],	// concept_ids
 			api: 'codeset-ids-by-concept-id',
 			apiGetParamName: 'concept_ids',
-			makeQueryString: concept_ids => createSearchParams({concept_ids}),
+			makeQueryString: concept_ids => createSearchParams({concept_ids: concept_ids}),
 			protocols: ['get', 'post'],
 			cacheSlice: 'codeset_ids_by_concept_id',
 			key: 'concept_id',
@@ -281,7 +282,7 @@ class DataGetter {
 			expectedParams: [],	// codeset_ids
 			api: 'concept-ids-by-codeset-id',
 			apiGetParamName: 'codeset_ids',
-			makeQueryString: codeset_ids => createSearchParams({codeset_ids}),
+			makeQueryString: codeset_ids => createSearchParams({codeset_ids: codeset_ids}),
 			protocols: ['get', 'post'],
 			cacheSlice: 'codeset_ids_by_concept_id',
 			key: 'codeset_id',
