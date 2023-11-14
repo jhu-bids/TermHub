@@ -12,6 +12,7 @@ Allows comparison of overlapping concept sets, display of cset metadata, display
 - [Frontend](./frontend/README.md)
     - [Testing](./frontend/tests/README.md)
 - [Enclave Wrangler](./enclave_wrangler/README.md)
+- [Stuff about graph algorithms](./docs/graph.md)
 
 ## [Features under development / consideration](https://docs.google.com/spreadsheets/d/19_eBv0MIBWPcXMTw3JJdcfPoEFhns93F-TKdODW27B8/edit#gid=0)
 More info: [Requirements](https://github.com/jhu-bids/TermHub/issues/72)
