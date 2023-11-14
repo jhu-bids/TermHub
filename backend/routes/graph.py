@@ -46,7 +46,6 @@ async def indented_concept_list_post(request: Request, id: Union[List[int], None
     await rpt.start_rpt(request, params={'concept_ids': id})
 
     try:
-        # new way to do this
         paths = all_paths(REL_GRAPH, id)
         tree = paths_as_indented_tree(paths)
         await rpt.finish(rows=len(tree))
@@ -54,6 +53,27 @@ async def indented_concept_list_post(request: Request, id: Union[List[int], None
         await rpt.log_error(e)
         raise e
     return tree
+
+
+@router.get("/concept-graph")
+async def concept_graph(request: Request, id: List[int] = Query(...)):   # id is a list of concept ids
+    return await concept_graph_post(request=request, id=id)
+
+
+@router.post("/concept-graph")
+async def concept_graph_post(request: Request, id: Union[List[int], None] = None) -> List:
+    rpt = Api_logger()
+    await rpt.start_rpt(request, params={'concept_ids': id})
+
+    try:
+        sg, filled_gaps = fill_in_gaps(REL_GRAPH, id, return_missing=True)
+        layout = nx.kamada_kawai_layout(sg)
+        layout = {k: list(v) for k, v in layout.items()}
+        await rpt.finish(rows=len(sg))
+    except Exception as e:
+        await rpt.log_error(e)
+        raise e
+    return {'edges': list(sg.edges), 'layout': layout, 'filled_gaps': filled_gaps}
 
 
 def all_paths(g: networkx.DiGraph, nodes: List[int]) -> List[List[int]]:
@@ -76,19 +96,21 @@ def all_paths(g: networkx.DiGraph, nodes: List[int]) -> List[List[int]]:
     return paths
 
 
-def fill_in_gaps(G, nodes):
+def fill_in_gaps(G, nodes, return_missing=False):
     sg = G.subgraph(nodes)
     roots = [node for node, degree in sg.in_degree() if degree == 0]
     leaves = [node for node, degree in sg.out_degree() if degree == 0]
-    missing_nodes = []  # nodes needed to traverse all paths but not present in nodes list
+    missing_nodes = set()  # nodes needed to traverse all paths but not present in nodes list
     for root in roots:
         for leaf in leaves:
             _paths = list(nx.all_simple_paths(G, root, leaf))
             for path in _paths:
                 for node in path:
                     if node not in nodes:
-                        missing_nodes.append(node)
-    sgc = G.subgraph(nodes + missing_nodes)
+                        missing_nodes.add(node)
+    sgc = G.subgraph(nodes + list(missing_nodes))
+    if return_missing:
+        return sgc, missing_nodes
     return sgc
 
 

@@ -212,6 +212,19 @@ class DataGetter {
 				}
 				return data; */
 		},
+		concept_graph: { // expects paramList of concept_ids
+			expectedParams: [],	// concept_ids
+			api: 'concept-graph',
+			apiGetParamName: 'id',
+			makeQueryString: concept_ids => createSearchParams({id: concept_ids}),
+			protocols: ['get', 'post'],
+			cacheSlice: 'graph-and-layout',
+			singleKeyFunc: concept_ids => compress(concept_ids.join('|')),
+			alertTitle: 'Get subgraph and layout for all listed concept_ids',
+			// apiResultShape: 'array of array [level, concept_id]',
+			// cacheShape: 'obj of array of array', // cache.edges[key] = [[src,tgt], [src,tgt], ....]
+			// formatResultsFunc: edges => edges.map(edge => edge.map(String)), // might need this!!
+		},
 		indented_concept_list: { // expects paramList of concept_ids
 			expectedParams: [],	// concept_ids
 			api: 'indented-concept-list',

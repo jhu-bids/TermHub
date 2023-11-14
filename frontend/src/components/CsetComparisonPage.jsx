@@ -71,20 +71,12 @@ function CsetComparisonPage() {
 
       promises.push(dataGetter.fetchAndCacheItems(dataGetter.apiCalls.concepts, concept_ids));
 
-      let [
-        csmi,
-        selected_csets,
-        conceptLookup,
-      ] = await Promise.all(promises);
+      let [ csmi, selected_csets, conceptLookup, ] = await Promise.all(promises);
 
       selected_csets = codeset_ids.map(d => selected_csets[d]);
-      // setData(current => ({...current, selected_csets, conceptLookup}));
 
       if (!isEmpty(newCset)) {
-        // newCsetDispatch({type: 'currentUserId', currentUserId});
-
         selected_csets.push(newCset);
-
         selected_csets = selected_csets.map(cset => {
           cset = {...cset};
           cset.intersecting_concepts= 0;
@@ -100,35 +92,11 @@ function CsetComparisonPage() {
       const researcherIds = getResearcherIdsFromCsets(selected_csets);
       let researchers = dataGetter.fetchAndCacheItems(dataGetter.apiCalls.researchers, researcherIds);
 
-      /*
-      if (typeof (editCodesetId) !== "undefined") {
-        selected_csets.push({
-          codeset_id: NEW_CSET_ID,
-          concept_set_name: "New Concept Set",
-          concept_set_version_title: "New Concept Set",
-        });
-      }
-       */
-
       const concepts = Object.values(conceptLookup);
-
-      // setData(current => ({...current, csmi, concepts}));
 
       const conceptsCids = concepts.map(d => d.concept_id + '').sort();
       console.assert(intersection(conceptsCids, concept_ids.map(String)).length === concept_ids.length,
                      "%o", {concepts, conceptsCids, concept_ids});
-
-      /*
-      const edgeCids = uniq(flatten(edges)).sort();
-      console.assert(difference(edgeCids, concept_ids).length === 0,
-                     "%o", {edges, edgeCids, concept_ids});
-      if (intersection(conceptsCids, concept_ids).length !== concept_ids.length) {
-        // try again
-        let c2 = await dataCache.fetchAndCacheItemsByKey( { itemType: 'concepts', keys: concept_ids, shape: 'obj' });
-        console.log(intersection(concept_ids, Object.values(c2).map(d=>d.concept_id).map(String)));
-        debugger;
-      }
-       */
 
       const currentUserId = (await whoami).id;
       researchers = await researchers;
