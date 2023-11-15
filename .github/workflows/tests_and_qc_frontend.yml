@@ -19,8 +19,7 @@ jobs:
     - uses: actions/setup-node@v3
       with:
         node-version: 18
-        cache: 'yarn' # Enable yarn cache
-
+        cache: cd frontend && 'yarn' # Enable yarn cache
     - name: Install dependencies
 #      run: cd frontend && npm ci  # only playwright is necessary to install
       run: cd frontend && yarn install --frozen-lockfile # Equivalent to npm ci
