@@ -18,7 +18,8 @@ const { PerformanceObserver, performance } = require('node:perf_hooks');
 
 const experiment = 'no_cache';
 
-selectedConfigs = 'local'; // only run these tests in local for now
+const configsToRun = ''; // 'local'; // only run these tests in local for now
+// const configsToRun = selectedConfigs; // uncomment to run on dev or prod
 
 /* setUp ---------------------------------------------------------------------------------------------------------------
 test.beforeAll(async () => {
@@ -67,7 +68,7 @@ async function getMem(page, prefix, fields) {
 for (const csets_test of tests) {
   let {testType, testName, codeset_ids} = csets_test;
   codeset_ids = codeset_ids.split(',');
-  for (const envName in selectedConfigs) {
+  for (const envName in configsToRun) {
     const appUrl = deploymentConfigs[envName];
     test(testName, async({page, browser, context}, testInfo) => {
       console.log(`running ${testName} on ${envName}`);
@@ -151,7 +152,7 @@ for (const csets_test of tests) {
 /*
 
 // Tests ---------------------------------------------------------------------------------------------------------------
-for (const envName in selectedConfigs) {
+for (const envName in configsToRun) {
   const appUrl = deploymentConfigs[envName];
   console.log('testing ' + appUrl);
   /*
