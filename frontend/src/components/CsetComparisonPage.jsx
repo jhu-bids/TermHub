@@ -66,7 +66,7 @@ function CsetComparisonPage() {
       concept_ids = union(concept_ids/*.map(String)*/, indentedCids.map(d => d[1])).sort();
 
       if (!isEmpty(newCset)) {
-        concept_ids = union(concept_ids, Object.values(newCset.definitions).map(d => d.concept_id+''));
+        concept_ids = union(concept_ids, Object.values(newCset.definitions).map(d => d.concept_id));
       }
 
       promises.push(dataGetter.fetchAndCacheItems(dataGetter.apiCalls.concepts, concept_ids));
@@ -255,7 +255,7 @@ function CsetComparisonPage() {
   if (editingCset) {
     infoPanels.push(
         <FlexibleContainer key="cset" title="New concept set" startHidden={false} hideShowPrefix={true}
-                           style={{width: '80%', overflow: "scroll", resize: "both", }}
+                           style={{width: '80%', resize: "both", }}
                            position={panelPosition}
                            countRef={countRef}>
           <ConceptSetCard

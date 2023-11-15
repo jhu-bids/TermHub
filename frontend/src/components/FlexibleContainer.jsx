@@ -78,7 +78,7 @@ const itemContent = once(() => {
       backgroundColor: "#EEE",
       border: "2px solid green",
       minWidth: "200px",
-      minHeight: "200px",
+      minHeight: "400px",
       maxWidth: "95%",
       // display: "flex",
       // flexDirection: "column",

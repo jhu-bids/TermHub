@@ -110,10 +110,10 @@ export const N3CComparisonRpt = () => {
   }
   */
   columns = [
-    {grow: 4, name: "Name", selector: row => row.name},
-    {grow: 2, name: "Author", selector: row => row.author},
-    {grow: 3, name: "Orig", selector: row => row.orig},
-    {grow: 3, name: "New", selector: row => row.new},
+    {grow: 4, sortable: true, name: "Name", selector: row => row.name},
+    {grow: 2, sortable: true, name: "Author", selector: row => row.author},
+    {grow: 3, sortable: true, name: "Orig", selector: row => row.orig},
+    {grow: 3, sortable: true, name: "New", selector: row => row.new},
     {grow: 2, name: "Compare", selector: row => (
           <Button
               to={`/cset-comparison?codeset_ids=${row.orig_codeset_id}&codeset_ids=${row.new_codeset_id}`}
@@ -149,6 +149,7 @@ export const N3CComparisonRpt = () => {
             columns={columns}
             expandableRows
             expandableRowsComponent={DiffList}
+            defaultSortFieldId={1}
 
             // noHeader={false}
             dense
