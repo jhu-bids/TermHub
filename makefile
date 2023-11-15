@@ -88,7 +88,7 @@ test-missing-csets:
 ## - ENVIRONMENTS: To run multiple, hyphen-delimit, e.g. ENVIRONMENTS=local-dev-prod
 TEST_ENV_LOCAL=ENVIRONMENTS=local
 TEST_ENV_DEPLOYED=ENVIRONMENTS=dev-prod
-TEST_FRONTEND_CMD=npx playwright test
+TEST_FRONTEND_CMD=yarn playwright test
 test-frontend:
 	(cd frontend; \
 	${TEST_ENV_LOCAL} ${TEST_FRONTEND_CMD}; \
