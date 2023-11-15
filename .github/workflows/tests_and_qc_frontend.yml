@@ -19,15 +19,18 @@ jobs:
     - uses: actions/setup-node@v3
       with:
         node-version: 18
-        cache: cd frontend && 'yarn' # Enable yarn cache
+        cache: 'yarn' # Enable yarn cache
     - name: Install dependencies
 #      run: cd frontend && npm ci  # only playwright is necessary to install
-      run: cd frontend && yarn install --frozen-lockfile # Equivalent to npm ci
+      run: yarn install --frozen-lockfile # Equivalent to npm ci
+      working-directory: frontend
     - name: Install Playwright browsers
-      run: cd frontend && yarn playwright install --with-deps # Use yarn to run playwright install
+      run: yarn playwright install --with-deps # Use yarn to run playwright install
+      working-directory: frontend
     - name: Re-configure for non-local web server
       run: |
-        cd frontend && sed -n '/webServer: \[/,/\]/!p' playwright.config.js > tmp && mv tmp playwright.config.js
+        sed -n '/webServer: \[/,/\]/!p' playwright.config.js > tmp && mv tmp playwright.config.js
+      working-directory: frontend
     - name: Run Playwright tests
       run: make test-frontend-deployments
     - uses: actions/upload-artifact@v3
