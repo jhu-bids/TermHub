@@ -1034,7 +1034,7 @@ def cli():
 
 def upload_cset_as_new_version_of_itself(
     codeset_id: int,
-    add_to_field: Dict = {'intention': f'Version for comparison to N3C-Rec on {date.today().isoformat()}'}
+    add_to_field: Dict = {'provenance': f'Version for comparison to N3C-Rec on {date.today().isoformat()}'}
 ) -> Dict:
     ov = fetch_cset_version(codeset_id, False)
 

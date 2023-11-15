@@ -832,9 +832,10 @@ function colConfig(props) {
     if (codeset_id === NEW_CSET_ID) {
       def.headerProps.headerContent = (
         <div style={{display: 'flex', flexDirection: 'column'}}>
-          <Tooltip label={def.headerProps.tooltipContent}>
-            <div>{def.headerProps.headerContent}</div>
-          </Tooltip>
+          {/*<Tooltip label={def.headerProps.tooltipContent}>*/}
+          {/*  <div>{def.headerProps.headerContent}</div>*/}
+          {/*</Tooltip>*/}
+          New concept set
           <Tooltip label="Discard">
             <IconButton
                 onClick={() => {
