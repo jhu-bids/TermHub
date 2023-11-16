@@ -1,9 +1,11 @@
 import os, warnings
-import csv
-import io
+# import csv
+# import io
 from pathlib import Path
 
 from typing import List, Union, Tuple #, Dict, Set
+from collections import defaultdict
+
 
 import networkx
 from fastapi import APIRouter, Query, Request
@@ -87,12 +89,49 @@ def all_paths(g: networkx.DiGraph, nodes: List[int]) -> List[List[int]]:
     roots = [node for node, degree in sg.in_degree() if degree == 0]
     leaves = [node for node, degree in sg.out_degree() if degree == 0]
     paths = []
+    missing_nodes = set()  # nodes needed to traverse all paths but not present in nodes list
+    paths_with_missing_nodes = []
+    descendants_of_missing = set()
+    paths_node_is_in = defaultdict(list)
     for root in roots:
         for leaf in leaves:
             _paths = list(nx.all_simple_paths(g, root, leaf))
             for path in _paths:
-                if len(path) > 1:
-                    paths.append(path)
+                # if len(path) > 1: # do i need this? don't think so; it might hide solitary nodes
+                paths.append(path)
+                for node in path:
+                    if path not in paths_node_is_in[node]:
+                        paths_node_is_in[node].append(path)
+                    if node not in nodes:
+                        missing_nodes.add(node)
+                        if not path in paths_with_missing_nodes:
+                            paths_with_missing_nodes.append(path)
+                            for d in path[path.index(node) + 1:]:
+                                descendants_of_missing.add(d)
+
+    # if a path contains a missing node and all its descendants
+    #   show up in other paths, the path is not needed
+    # especially because we're now including stuff from concept_relationship
+    #   that wouldn't appear in the expansion, ....
+    #   TODO: figure out if the concept_relationship edges are really needed
+
+    # TODO: test that this code is doing what it should (and code above too, while you're at it)
+    descendants_of_missing = descendants_of_missing.difference(missing_nodes)   # in case missing have missing descendants
+
+    for path_with_missing in paths_with_missing_nodes:
+        # for each path with missing nodes, check if their descendants show up in other paths
+        nodes_to_check = set(path_with_missing).intersection(descendants_of_missing)
+        # we have to make sure that every descendant node in this path appears in other paths
+        nodes_not_elsewhere = []
+        for node in nodes_to_check:
+            if not [p for p in paths_node_is_in[node] if p not in paths_with_missing_nodes]:
+                # this node does not appear in any non-missing-node paths
+                nodes_not_elsewhere.append(node)
+                break;
+        if not nodes_not_elsewhere:
+            # every node appears elsewhere; safe to remove
+            paths.remove(path_with_missing)
+
     return paths
 
 

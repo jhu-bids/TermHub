@@ -18,7 +18,7 @@ const { PerformanceObserver, performance } = require('node:perf_hooks');
 
 const experiment = 'no_cache';
 
-const configsToRun = ''; // 'local'; // only run these tests in local for now
+const configsToRun = 'local'; // only run these tests in local for now
 // const configsToRun = selectedConfigs; // uncomment to run on dev or prod
 
 /* setUp ---------------------------------------------------------------------------------------------------------------
