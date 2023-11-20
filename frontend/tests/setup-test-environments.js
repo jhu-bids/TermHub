@@ -14,8 +14,11 @@ playwright test`, where  dev is short for 'development' and prod is short for 'p
     (d) playwright.config.js? - (didn't work; kinda makes sense since that url doesn't get passed)
 */
 // @ts-check
+import {DEPLOYMENT} from "../src/env";
+
 const { test, expect } = require('@playwright/test');
 const fs = require('fs');
+
 
 // Config --------------------------------------------------------------------------------------------------------------
 export const deploymentConfigs = {
@@ -27,7 +30,8 @@ export const deploymentConfigs = {
 // CLI --------------------------------------------------------------------------------------------------------------
 // https://playwright.dev/docs/test-parameterize
 // let envsString = 'local-dev-prod';
-let envsString = 'local';
+// let envsString = 'local';
+let envsString = DEPLOYMENT;
 
 // replacing process.env with import.meta.env for vite migration; see https://www.freecodecamp.org/news/how-to-migrate-from-create-react-app-to-vite/
 
