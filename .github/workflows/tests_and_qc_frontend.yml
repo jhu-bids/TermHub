@@ -4,8 +4,8 @@
 name: Tests and QC - Frontend
 on:
   workflow_dispatch:
-  schedule:
-   - cron: '0 8 * * *'  # every day 8am GMT (3-4am EST/EDT)
+#  schedule:
+#   - cron: '0 8 * * *'  # every day 8am GMT (3-4am EST/EDT)
 #  push:
 #    branches: [ main, develop ]
 #  pull_request:
