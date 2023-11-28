@@ -1,5 +1,6 @@
 """Backend utilities"""
 import datetime
+from itertools import chain, combinations
 from functools import wraps, reduce
 import json
 import operator
@@ -14,6 +15,12 @@ from starlette.responses import JSONResponse
 # for cancel on disconnect, from https://github.com/RedRoserade/fastapi-disconnect-example/blob/main/app.py
 
 from backend.config import CONFIG
+
+
+def powerset(iterable):
+    """powerset([1,2,3]) --> () (1,) (2,) (3,) (1,2) (1,3) (2,3) (1,2,3)"""
+    s = list(iterable)
+    return chain.from_iterable(combinations(s, r) for r in range(len(s)+1))
 
 
 def commify(n):

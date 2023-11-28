@@ -226,7 +226,7 @@ class DataGetter {
 			// formatResultsFunc: edges => edges.map(edge => edge.map(String)), // might need this!!
 		},
 		indented_concept_list: { // expects paramList of concept_ids
-			expectedParams: [],	// concept_ids
+			expectedParams: {},	// codeset_ids plus extra concept_ids if any requested
 			api: 'indented-concept-list',
 			apiGetParamName: 'id',
 			makeQueryString: concept_ids => createSearchParams({id: concept_ids}),
@@ -315,8 +315,8 @@ class DataGetter {
 	async fetchAndCacheItems(apiDef, params) {
 		if (typeof(apiDef.expectedParams) !== typeof(params)) {
 			// apiDef.expectedParams, for now, can be undefined (all_csets) or
-			// array (everything else). In future might have occasion to handle
-			// objects or strings
+			// array (everything else).
+			// for indented_concept_list: { codeset_ids: [], additional_concept_ids: [] }
 			throw new Error("passed wrong type");
 		}
 
@@ -324,6 +324,18 @@ class DataGetter {
 
 		const dataCache = this.dataCache;
 
+		if (apiDef.api === 'indented-concept-list') { // indented_concept_list: { codeset_ids: [], additional_concept_ids: [] }
+			const {codeset_ids, extra_concept_ids} = params;
+			let cacheKey = codeset_ids.join(',') + ';' + extra_concept_ids.join(',');
+
+			let data = dataCache.cacheGet([apiDef.cacheSlice, cacheKey]);
+			if (isEmpty(data)) {
+				data = await this.axiosCall(apiDef.api, {...apiDef, data: params, backend: true, });
+				dataCache.cachePut([apiDef.cacheSlice, cacheKey], data);
+			}
+			return data;
+
+		}
 		if (typeof(apiDef.expectedParams) === 'undefined') {
 			// handle no-param calls (all_csets, whoami) here; get from cache or fetch and cache
 			let data = dataCache.cacheGet([apiDef.cacheSlice]);

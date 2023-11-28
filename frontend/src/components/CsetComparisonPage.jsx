@@ -60,14 +60,16 @@ function CsetComparisonPage() {
       const concept_ids_by_codeset_id = await dataGetter.fetchAndCacheItems(dataGetter.apiCalls.concept_ids_by_codeset_id, codeset_ids);
       let concept_ids = union(flatten(Object.values(concept_ids_by_codeset_id)));
 
-      // have to get indentedCids, which might contain more concept_ids after filling gaps
-      const indentedCids = await dataGetter.fetchAndCacheItems(dataGetter.apiCalls.indented_concept_list, concept_ids, );
-      // indentedCids = [[<level>, <concept_id>], ...]
-      concept_ids = union(concept_ids/*.map(String)*/, indentedCids.map(d => d[1])).sort();
-
       if (!isEmpty(newCset)) {
         concept_ids = union(concept_ids, Object.values(newCset.definitions).map(d => d.concept_id));
       }
+
+      // have to get indentedCids, which might contain more concept_ids after filling gaps
+      const extra_concept_ids = []; // not collecting these yet
+      const indentedCids = await dataGetter.fetchAndCacheItems(
+          dataGetter.apiCalls.indented_concept_list, { codeset_ids, extra_concept_ids });
+      // indentedCids = [[<level>, <concept_id>], ...]
+      concept_ids = union(concept_ids/*.map(String)*/, indentedCids.map(d => d[1])).sort();
 
       promises.push(dataGetter.fetchAndCacheItems(dataGetter.apiCalls.concepts, concept_ids));
 
@@ -94,8 +96,8 @@ function CsetComparisonPage() {
 
       const concepts = Object.values(conceptLookup);
 
-      const conceptsCids = concepts.map(d => d.concept_id + '').sort();
-      console.assert(intersection(conceptsCids, concept_ids.map(String)).length === concept_ids.length,
+      const conceptsCids = concepts.map(d => d.concept_id).sort();
+      console.assert(intersection(conceptsCids, concept_ids).length === concept_ids.length,
                      "%o", {concepts, conceptsCids, concept_ids});
 
       const currentUserId = (await whoami).id;
