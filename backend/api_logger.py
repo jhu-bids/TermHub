@@ -42,7 +42,7 @@ class Api_logger:
                 if len(v) > 20:
                     # change any params with len > 20 to just log the len
                     rpt_params[k + '_len'] = len(v)
-                elif k == 'codeset_ids' or k == 'id':
+                elif k in ['codeset_ids', 'id', ]:
                     # put codeset_ids in a separate column (is this going to be helpful?)
                     codeset_ids = v
 

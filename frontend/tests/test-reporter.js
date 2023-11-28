@@ -102,11 +102,12 @@ class MyReporter {
     onStdOut(chunk, test, result) {
         console.log(`${test} output: ${chunk}`);
     }
-    */
     onStdErr(chunk, test, result) {
+        let c = typeof(chunk) === 'string' ? chunk : JSON.stringify(chunk);
         console.log(`${test} error: ${chunk}`);
-        debugger;
+        // debugger;
     }
+    */
   }
 
   module.exports = MyReporter;

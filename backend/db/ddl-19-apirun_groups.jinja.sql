@@ -25,8 +25,8 @@ WITH RankedGroups AS (
         SELECT
             *,
             ROW_NUMBER() OVER (PARTITION BY api_call_group_id ORDER BY timestamp::timestamp DESC) AS rn
-        FROM
-            public.api_runs
+        FROM public.api_runs
+        WHERE api_call_group_id IS NOT NULL
     )
 SELECT
     host,

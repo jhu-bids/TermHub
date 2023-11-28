@@ -8,7 +8,6 @@
     (c) Command?: make a command that sets the URL in a file and then import that into the playwright test
     (d) playwright.config.js? - (didn't work; kinda makes sense since that url doesn't get passed)
 */
-// @ts-check
 
 import {selectedConfigs, deploymentConfigs} from "./setup-test-environments";
 import {parse} from 'csv-parse/sync';
@@ -18,14 +17,25 @@ const { PerformanceObserver, performance } = require('node:perf_hooks');
 
 const experiment = 'no_cache';
 
-const configsToRun = 'local'; // only run these tests in local for now
-// const configsToRun = selectedConfigs; // uncomment to run on dev or prod
+// const configsToRun = 'local'; // only run these tests in local for now
+const configsToRun = selectedConfigs; // uncomment to run on dev or prod
 
 /* setUp ---------------------------------------------------------------------------------------------------------------
 test.beforeAll(async () => {
   test.setTimeout(10000);  // 10 seconds
 }); */
 
+/*
+| test_type           | test_name              | expected result | codeset_ids                                                      |
+|---------------------|------------------------|-----------------|------------------------------------------------------------------|
+| many small          | neurological           | fast            | 1000002657, 241882304, 464777695, 488007883, 1000087163          |
+| single 2000         | autoimmune 1           | not bad         | 101398605,                                                       |
+| mixed 6000 to 21000 | Sulfonylureas          |                 | 417730759, 423850600, 966671711, 577774492                       |
+| mixed 30 to 3000    | autoimmune 2           |                 | 101398605, 947369784, 287650725, 283328624, 115052941            |
+| single 30000        | antibiotics 1          |                 | 909552172                                                        |
+| many 5000           | many-5000-what-is-this |                 | 295817643, 613313946, 613313946, 781483910, 986994148, 671755133 |
+| single small        | single-small-again     |                 | 1000002363                                                       |
+ */
 const tests_csv = `
 testType,testName,codeset_ids
 single small,single-small,1000002363
@@ -65,12 +75,13 @@ async function getMem(page, prefix, fields) {
   return mem;
 }
 
-for (const csets_test of tests) {
-  let {testType, testName, codeset_ids} = csets_test;
-  codeset_ids = codeset_ids.split(',');
-  for (const envName in configsToRun) {
-    const appUrl = deploymentConfigs[envName];
+for (const envName in configsToRun) {
+  const appUrl = deploymentConfigs[envName];
+  for (const csets_test of tests) {
+    let {testType, testName, codeset_ids} = csets_test;
+    codeset_ids = codeset_ids.split(',');
     test(testName, async({page, browser, context}, testInfo) => {
+      testInfo.attach('started', {body: `${testName} on ${envName}`})
       console.log(`running ${testName} on ${envName}`);
       page.setDefaultTimeout(120000);
       /* if (testName === 'single-small-second-time') {
