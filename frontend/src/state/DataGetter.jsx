@@ -43,7 +43,7 @@ class DataGetter {
 		return this.api_call_group_id;
 	}
 	async axiosCall(path, { backend = true, data, returnDataOnly = true, useGetForSmallData = true,
-		apiGetParamName, verbose = false, sendAlert = true, title, makeQueryString,
+		verbose = false, sendAlert = true, title, makeQueryString, dataLengthFunc,
 	} = {}) {
 		let url = backend ? backend_url(path) : path;
 		let request = { url };
@@ -55,26 +55,32 @@ class DataGetter {
 		};
 		alertAction.id = alertAction.title + ':' + (new Date()).toISOString();
 		let qsData = {};
-		let qs = '';
-		if (this.api_call_group_id) {
-			qsData.api_call_group_id = this.api_call_group_id;
+		let qs = '?';
+		if (path !== 'next-api-call-group-id' && this.api_call_group_id ) {
+			qs = qs + 'api_call_group_id=' + this.api_call_group_id + '&';
 		}
 		try {
 			if (typeof (data) === 'undefined') {
 				request.method = 'get';
 			} else {
-				if (useGetForSmallData && data.length <= 1000) {
+				let dataLength = 0;
+				if (dataLengthFunc) {
+					dataLength = dataLengthFunc(data);
+				} else if (Array.isArray(data)) {
+					dataLength = data.length;
+				} else {
+					throw new Error("dataLengthFunc or data.length is required");
+				}
+
+				if (useGetForSmallData && dataLength <= 1000) {
 					request.method = 'get';
-					qs = makeQueryString(data).toString();
+					qs += makeQueryString(data).toString();
 				} else {
 					request.method = 'post';
 					request.data = data;
 				}
 			}
-			qs = qs.length ? qs + '&' : qs;
-			qs = qs + 'api_call_group_id=' + this.api_call_group_id
-			request.url = url + '?' + qs;
-
+			request.url = url + qs;
 			verbose && console.log("axios request", request);
 
 			// alertAction.id = compress(JSON.stringify(request));
@@ -142,7 +148,6 @@ class DataGetter {
 		csets: {
 			expectedParams: [],	// codeset_ids
 			api: 'get-csets',
-			apiGetParamName: 'codeset_ids',
 			makeQueryString: codeset_ids => 'codeset_ids=' + codeset_ids.join('|'), // pipe-delimited list
 			protocols: ['get'],
 			cacheSlice: 'csets',
@@ -156,7 +161,6 @@ class DataGetter {
 		cset_members_items: {
 			expectedParams: [],	// codeset_ids
 			api: 'get-cset-members-items',
-			apiGetParamName: 'codeset_ids',
 			makeQueryString: codeset_ids => 'codeset_ids=' + codeset_ids.join('|'),
 			protocols: ['get'],
 			cacheSlice: 'cset_members_items',
@@ -183,13 +187,13 @@ class DataGetter {
 				})
 				return data; */
 		},
+		/*
 		edges: { // expects paramList of concept_ids
 			// TODO: break up cache so each slice gets its own LRU cache -- especially
 			//			 because every unique set of concept_ids gets its own subgraph
 			//			 and the keys and vals can be big, so old items should go away
 			expectedParams: [],	// concept_ids
 			api: 'subgraph',
-			apiGetParamName: 'id',
 			makeQueryString: concept_ids => createSearchParams({id: concept_ids}),
 			protocols: ['get', 'post'],
 			cacheSlice: 'edges',
@@ -198,7 +202,7 @@ class DataGetter {
 			apiResultShape: 'array of array [src, tgt]',
 			cacheShape: 'obj of array of array', // cache.edges[key] = [[src,tgt], [src,tgt], ....]
 			formatResultsFunc: edges => edges.map(edge => edge.map(String)),
-			/*// TODO: @sigfried -- fix to include additional concepts
+			/* // TODO: @sigfried -- fix to include additional concepts
 				// each unique set of concept_ids gets a unique set of edges
 				// check cache first (because this request won't come from fetchAndCacheItemsByKey)
 				// TODO: maybe don't have to key by entire concept_id list -- front end could check for possibly missing edges
@@ -210,12 +214,11 @@ class DataGetter {
 					data = formatEdges(data);
 					dataCache.cachePut([itemType, cacheKey], data);
 				}
-				return data; */
-		},
+				return data; * /
+		}, */
 		concept_graph: { // expects paramList of concept_ids
 			expectedParams: [],	// concept_ids
 			api: 'concept-graph',
-			apiGetParamName: 'id',
 			makeQueryString: concept_ids => createSearchParams({id: concept_ids}),
 			protocols: ['get', 'post'],
 			cacheSlice: 'graph-and-layout',
@@ -225,13 +228,13 @@ class DataGetter {
 			// cacheShape: 'obj of array of array', // cache.edges[key] = [[src,tgt], [src,tgt], ....]
 			// formatResultsFunc: edges => edges.map(edge => edge.map(String)), // might need this!!
 		},
-		indented_concept_list: { // expects paramList of concept_ids
-			expectedParams: {},	// codeset_ids plus extra concept_ids if any requested
+		indented_concept_list: {	// expects codeset_ids plus extra concept_ids if any requested
+			expectedParams: {},
+			dataLengthFunc: params => params.codeset_ids.length + params.extra_concept_ids.length,
 			api: 'indented-concept-list',
-			apiGetParamName: 'id',
-			makeQueryString: concept_ids => createSearchParams({id: concept_ids}),
+			makeQueryString: params => createSearchParams(params),
 			protocols: ['get', 'post'],
-			cacheSlice: 'edges',
+			cacheSlice: 'indented-concept-list',
 			singleKeyFunc: concept_ids => compress(concept_ids.join('|')),
 			alertTitle: 'Get subgraph for all listed concept_ids',
 			apiResultShape: 'array of array [level, concept_id]',
@@ -257,7 +260,6 @@ class DataGetter {
 		concepts: {
 			expectedParams: [],	// concept_ids
 			api: 'concepts',
-			apiGetParamName: 'id',
 			makeQueryString: concept_ids => createSearchParams({id: concept_ids}),
 			protocols: ['get', 'post'],
 			cacheSlice: 'concepts',
@@ -283,7 +285,6 @@ class DataGetter {
 		codeset_ids_by_concept_id: {
 			expectedParams: [],	// concept_ids
 			api: 'codeset-ids-by-concept-id',
-			apiGetParamName: 'concept_ids',
 			makeQueryString: concept_ids => createSearchParams({concept_ids: concept_ids}),
 			protocols: ['get', 'post'],
 			cacheSlice: 'codeset_ids_by_concept_id',
@@ -294,7 +295,6 @@ class DataGetter {
 		concept_ids_by_codeset_id: {
 			expectedParams: [],	// codeset_ids
 			api: 'concept-ids-by-codeset-id',
-			apiGetParamName: 'codeset_ids',
 			makeQueryString: codeset_ids => createSearchParams({codeset_ids: codeset_ids}),
 			protocols: ['get', 'post'],
 			cacheSlice: 'codeset_ids_by_concept_id',
@@ -307,7 +307,6 @@ class DataGetter {
 			api: 'researchers',
 			cacheSlice: 'researchers',
 			key: 'multipassId',
-			apiGetParamName: 'id',
 			makeQueryString: id => createSearchParams({id}),
 			apiResultShape: 'obj of obj',
 		},
@@ -334,7 +333,6 @@ class DataGetter {
 				dataCache.cachePut([apiDef.cacheSlice, cacheKey], data);
 			}
 			return data;
-
 		}
 		if (typeof(apiDef.expectedParams) === 'undefined') {
 			// handle no-param calls (all_csets, whoami) here; get from cache or fetch and cache
