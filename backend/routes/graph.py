@@ -9,8 +9,8 @@ from itertools import combinations
 
 import networkx
 # from igraph import Graph
-import pydot
-from networkx.drawing.nx_pydot import to_pydot, from_pydot
+# import pydot
+# from networkx.drawing.nx_pydot import to_pydot, from_pydot
 
 from fastapi import APIRouter, Query, Request
 # from fastapi.responses import JSONResponse
@@ -103,8 +103,9 @@ async def concept_graph_post(request: Request, id: Union[List[int], None] = None
 
     try:
         sg, filled_gaps = fill_in_gaps(REL_GRAPH, id, return_missing=True)
-        P = to_pydot(sg)
-        layout = from_pydot(P)
+        raise Exception("Not implemented")
+        # P = to_pydot(sg)
+        # layout = from_pydot(P)
         # layout = {k: list(v) for k, v in _layout.items()}     # networkx doesn't seem to have sugiyama
         # g = Graph.from_networkx(sg)
         # _layout = g.layout_sugiyama()
