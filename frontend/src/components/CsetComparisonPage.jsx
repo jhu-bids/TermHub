@@ -66,10 +66,29 @@ function CsetComparisonPage() {
 
       // have to get indentedCids, which might contain more concept_ids after filling gaps
       const extra_concept_ids = []; // not collecting these yet
-      const indentedCids = await dataGetter.fetchAndCacheItems(
+      let indentedTreeRows = await dataGetter.fetchAndCacheItems(
           dataGetter.apiCalls.indented_concept_list, { codeset_ids, extra_concept_ids });
-      // indentedCids = [[<level>, <concept_id>], ...]
-      concept_ids = union(concept_ids/*.map(String)*/, indentedCids.map(d => d[1])).sort();
+      // indentedCids = [[<level>, <concept_id>], ...], or, if summarized: [<level>, [<concept_id>, <concept_id>,...]]
+
+      // summarized rows have a list of the parent's child concept_ids in place of the parent's descendants
+      let summarizedRows = [];
+      let indentedCids = [];
+
+      indentedTreeRows.forEach((d,i) => {
+        if (typeof(d[1]) === 'number') {
+          indentedCids[i] = d;
+        } else {
+          summarizedRows[i] = d;
+        }
+      });
+      concept_ids = union(
+          concept_ids,
+          indentedCids.map(d => d[1])
+      ).filter(d=>d).sort();
+
+      summarizedRows.forEach((d,i) => {
+          indentedCids[i] = d;
+      });
 
       promises.push(dataGetter.fetchAndCacheItems(dataGetter.apiCalls.concepts, concept_ids));
 
@@ -97,8 +116,10 @@ function CsetComparisonPage() {
       const concepts = Object.values(conceptLookup);
 
       const conceptsCids = concepts.map(d => d.concept_id).sort();
+      /* this has been a valuable check, but it no longer works
       console.assert(intersection(conceptsCids, concept_ids).length === concept_ids.length,
                      "%o", {concepts, conceptsCids, concept_ids});
+      */
 
       const currentUserId = (await whoami).id;
       researchers = await researchers;
@@ -378,7 +399,24 @@ export function getRowData(props) {
 function nestedConcepts(conceptLookup, indentedCids, hierarchySettings) {
   const {collapsedDescendantPaths, hideZeroCounts, hideRxNormExtension} = hierarchySettings;
 
-  let allRows = indentedCids.map(r => ({level: r[0], concept_id: r[1], ...conceptLookup[r[1]]}));
+  // let allRows = indentedCids.map(r => ({level: r[0], concept_id: r[1], ...conceptLookup[r[1]]}));
+  let allRows = [];
+  let summaryRowNum = -1;
+  for (let i = 0; i < indentedCids.length; i++) {
+    const r = indentedCids[i];
+    let row = {};
+    if (typeof(r[1]) === 'number') {
+      row = { level: r[0], ...conceptLookup[r[1]]};
+    } else {
+      row = {
+        level: r[0],
+        concept_id: summaryRowNum,
+        concept_name: `${r[1].length} ${ r[0] ? 'children' : 'orphans'} not shown`, // if level==0, these are orphans
+      }
+      summaryRowNum--;
+    }
+    allRows.push(row);
+  }
   let displayedRows = [];
   let currentPath = [];
 
@@ -657,7 +695,7 @@ function colConfig(props) {
     },
     {
       name: "Concept ID",
-      selector: (row) => row.concept_id,
+      selector: (row) => row.concept_id < 0 ? '' : row.concept_id,
       sortable: !nested,
       width: 80,
       style: { justifyContent: "center" },
@@ -753,6 +791,9 @@ function colConfig(props) {
         return max(cnts);
       },
       format: (row) => {
+        if (typeof(row.distinct_person_cnt) === 'undefined') {
+          return '';
+        }
         const cnts = row.distinct_person_cnt.split(',').map(n => parseInt(n));
         return fmt(max(cnts));
       },
@@ -773,6 +814,9 @@ function colConfig(props) {
             </Tooltip>, */
       selector: (row) => row.total_cnt,
       format: (row) => {
+        if (typeof(row.distinct_person_cnt) === 'undefined') {
+            return '';
+        }
         return fmt(row.total_cnt)
       },
       sortable: !nested,
