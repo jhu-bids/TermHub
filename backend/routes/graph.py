@@ -51,24 +51,36 @@ async def indented_concept_list(request: Request, codeset_ids: List[int] = Query
 
 @router.post("/indented-concept-list")
 async def indented_concept_list_post(request: Request, codeset_ids: List[int],
-                                     extra_concept_ids: Union[List[int], None] = []) -> List:
+                                     extra_concept_ids: Union[List[int], None] = [],
+                                     hide_vocabs = ['RxNorm Extension'],
+                                     verbose = False) -> List:
     rpt = Api_logger()
     await rpt.start_rpt(request, params={
         'codeset_ids': codeset_ids, 'extra_concept_ids': extra_concept_ids})
 
+    timer = get_timer('')
+    VERBOSE and timer('get csmi')
     try:
         with get_db_connection() as con:
+            sql_j = ''
+            sql_w = ''
+            if hide_vocabs:
+                sql_j = f"\nJOIN {SCHEMA}.concept c ON csmi.concept_id = c.concept_id"
+                sql_w = f" AND c.vocabulary_id NOT {sql_in(hide_vocabs, True)}"
+            query = f"""
+                SELECT csmi.*
+                FROM {SCHEMA}.cset_members_items csmi{sql_j}
+                WHERE codeset_id {sql_in(codeset_ids)}{sql_w}
+            """
             csmi = sql_query(
-                con,
-                f"""
-                    SELECT *
-                    FROM {SCHEMA}.cset_members_items
-                    WHERE codeset_id {sql_in(codeset_ids)}
-                """
+                con, query
             )
+        VERBOSE and timer('organize cids')
         concept_ids = set([c['concept_id'] for c in csmi])
         concept_ids.update(extra_concept_ids)
 
+        # orphans, here, are just nodes that don't appear in graph
+        #   they'll get appended to the end of the tree at level 0
         nodes_in_graph = set()
         orphans = set()
         for cid in concept_ids:
@@ -81,108 +93,83 @@ async def indented_concept_list_post(request: Request, codeset_ids: List[int],
                                      for c in csmi
                                      if c['item'] and not c['concept_id'] in orphans])
 
+        VERBOSE and timer('connect_nodes')
         sg = connect_nodes(REL_GRAPH, nodes_in_graph, preferred_concept_ids).copy()
-        # sg.add_nodes_from(orphans)
-        tree = get_indented_tree_nodes(sg, preferred_concept_ids)
-        # for o in orphans:
+
+        VERBOSE and timer('get roots')
+        # timer('get paths')
+        # testsg = REL_GRAPH.subgraph(nodes_in_graph)
+        # roots = [node for node, degree in testsg.in_degree() if degree == 0]
+        roots = [node for node, degree in sg.in_degree() if degree == 0]
+        # leaves = [node for node, degree in testsg.out_degree() if degree == 0]
+        preferred_concept_ids.update(roots)
+
+        # paths = all_paths(sg, roots, leaves)
+        # timer('testing stuff')
+        #
+        # nodes_in_paths = set()
+        # for path in paths:
+        #     nodes_in_paths.update(path)
+        # sg_nodes = set(sg.nodes)
+        # print(f"sg \u2229 paths {len(sg_nodes.intersection(nodes_in_paths))}")
+        # print(f"sg - paths {len(sg_nodes.difference(nodes_in_paths))}")
+        # print(f"paths - sg {len(nodes_in_paths.difference(sg_nodes))}")
+
+        VERBOSE and timer('get tree')
+        tree = get_indented_tree_nodes(sg, preferred_concept_ids)  # TODO: just testing below, put this line back
+        # tree = get_indented_tree_nodes(sg, nodes_in_paths)
         tree.append((0, list(orphans)))
 
+        # timer('get testtree')
+        # testtree = paths_as_indented_tree(paths)
+        # testtree.append((0, list(orphans)))
+        VERBOSE and timer('done')
+        # return testtree
+
         await rpt.finish(rows=len(tree))
+        return tree
     except Exception as e:
         await rpt.log_error(e)
         raise e
     return tree
 
-@router.get("/concept-graph")
-async def concept_graph(request: Request, id: List[int] = Query(...)):   # id is a list of concept ids
-    return await concept_graph_post(request=request, id=id)
-
-
-@router.post("/concept-graph")
-async def concept_graph_post(request: Request, id: Union[List[int], None] = None) -> List:
-    rpt = Api_logger()
-    await rpt.start_rpt(request, params={'concept_ids': id})
-
-    try:
-        sg, filled_gaps = fill_in_gaps(REL_GRAPH, id, return_missing=True)
-        raise Exception("Not implemented")
-        # P = to_pydot(sg)
-        # layout = from_pydot(P)
-        # layout = {k: list(v) for k, v in _layout.items()}     # networkx doesn't seem to have sugiyama
-        # g = Graph.from_networkx(sg)
-        # _layout = g.layout_sugiyama()
-        # layout = {v["_nx_name"]: _layout[idx] for idx, v in enumerate(g.vs)}
-        await rpt.finish(rows=len(sg))
-    except Exception as e:
-        await rpt.log_error(e)
-        raise e
-    return {'edges': list(sg.edges), 'layout': layout, 'filled_gaps': filled_gaps}
-
-
-def from_pydot_layout(g):
-    pass
-# def find_nearest_common_ancestor(G, nodes):
-#     all_ancestors = [set(nx.ancestors(G, node)) for node in nodes]
-#     common_ancestors = set.intersection(*all_ancestors)
-#
-#     # Find the lowest common ancestor
-#     lowest_common_ancestor = None
-#     for ancestor in common_ancestors:
-#         if all(ancestor in ancestors or ancestor == node for node, ancestors in zip(nodes, all_ancestors)):
-#             if lowest_common_ancestor is None or not ancestor in nx.ancestors(G, lowest_common_ancestor):
-#                 lowest_common_ancestor = ancestor
-#
-#     return lowest_common_ancestor
-#
-#
-# def connect_roots(G, target_nodes):
-#     # Find the nearest common ancestor
-#     nca = find_nearest_common_ancestor(G, target_nodes)
-#
-#     # Create a subgraph including the paths from the nearest common ancestor to the target nodes
-#     edges_to_include = set()
-#     for node in target_nodes:
-#         path = nx.shortest_path(G, nca, node)
-#         edges_to_include.update([tuple(l) for l in zip(path, path[1:])])
-#
-#     SG = G.edge_subgraph(edges_to_include).copy()
-#     return SG
-
-
 def connect_nodes(G, target_nodes, preferred_nodes=[]):
     """
         Connects all nodes in target_nodes to the nearest common ancestor.
-        preferred nodes are the version item nodes with includeDescendants checked.
+        preferred nodes are the version item nodes
         They should be a subset of target_nodes
         Besides those, only item members not descended from one of those needs
-        to be connected, but there shouldn't be any (unless their connected was
+        to be connected, but there shouldn't be any (unless their connection was
         lost in vocabulary updates.)
-
+        TODO: tell users when version is based on old vocab because connections might not be
+              there anymore, or might require paths that weren't there when it was created
     """
 
+    timer = get_timer('   ')
     nodes_to_connect = set(preferred_nodes)  # gets smaller as nodes are connected by ancestors
     target_nodes = set(target_nodes)
     if nodes_to_connect.difference(target_nodes):
         raise Exception(f"preferred_nodes should be a subset of target_nodes")
-    nodes_connected = set()         # eventually should include all target_nodes
-    ancestors_to_add = set()        # ancestor and path to them nodes that will be included in the final subgraph
-    weird = []
+
+    VERBOSE and timer('getting already connected nodes')
     nodes_already_connected = set()
     for a, b in combinations(nodes_to_connect, 2):
         if a == b:
             continue
         try:
             if nx.has_path(G, a, b):
-                weird.append((a, b))
                 nodes_to_connect.discard(b)
                 nodes_already_connected.add(b)
             elif nx.has_path(G, b, a):
-                weird.append((b, a))
                 nodes_to_connect.discard(a)
                 nodes_already_connected.add(a)
         except nx.NetworkXNoPath:
             continue
 
+    # nodes_connected = set()         #
+    additional_nodes = set()  # nodes that will be added in order to connect nodes_to_connect
+
+    VERBOSE and timer('getting unrooted children')
     unrooted_children = get_unrooted_children(
         G, nodes_to_connect, target_nodes.difference(nodes_to_connect))
     if (unrooted_children):
@@ -191,39 +178,53 @@ def connect_nodes(G, target_nodes, preferred_nodes=[]):
 
     combo_sizes = list(range(len(nodes_to_connect), 1, -1))
     if not combo_sizes: # one node is ancestor to all the others
-        return G.subgraph(target_nodes)
+        VERBOSE and timer(f'only one ancestor for {len(target_nodes)} nodes')
+        sg = G.subgraph(target_nodes)
+        VERBOSE and timer('done')
+        return sg
 
     everything_is_connected = False
     for set_size in combo_sizes:
+        VERBOSE and timer(f'getting common ancestor for {set_size} node combos')
         for combo in combinations(nodes_to_connect, set_size):
             common_ancestor, path_nodes = get_best_common_ancestor(G, combo)
             if not common_ancestor:
                 continue
 
-            nodes_connected.update(combo)
-            ancestors_to_add.add(common_ancestor)
-            ancestors_to_add.update(path_nodes)
+            # nodes_connected.update(combo)
+            additional_nodes.add(common_ancestor)
+            additional_nodes.update(path_nodes)
+
+            # was broken (commit b0dce49c), getting unneeded ancestors
+            # with http://127.0.0.1:8000/indented-concept-list?codeset_ids=1000062292
+            # it should have stopped at the following node, but kept going higher
+            # if 4239975 in additional_nodes:
+            #     pass
+            # try http://127.0.0.1:3000/cset-comparison?codeset_ids=1000062292&hierarchySettings=%7B%22collapsePaths%22%3A%7B%224180628%2F134057%2F321588%2F4239975%2F4124706%22%3Atrue%2C%224180628%2F440142%2F321588%2F4239975%2F4124706%22%3Atrue%2C%224023995%2F134057%2F321588%2F4239975%2F4124706%22%3Atrue%2C%224023995%2F4103183%2F321588%2F4239975%2F4124706%22%3Atrue%2C%2243531057%2F43531056%2F4043346%2F440142%2F321588%2F4239975%2F4124706%22%3Atrue%2C%2243531057%2F43531056%2F4043346%2F440142%2F321588%2F4239975%2F321319%22%3Atrue%2C%2243531057%2F4185503%2F4043346%2F440142%2F321588%2F4239975%2F4124706%22%3Atrue%2C%2243531057%2F4185503%2F4043346%2F440142%2F321588%2F4239975%2F321319%22%3Atrue%2C%224180628%2F134057%2F321588%2F4239975%2F321319%22%3Atrue%2C%224180628%2F440142%2F321588%2F4239975%2F321319%22%3Atrue%2C%224023995%2F134057%2F321588%2F4239975%2F321319%22%3Atrue%2C%224023995%2F4103183%2F321588%2F4239975%2F321319%22%3Atrue%7D%2C%22hideZeroCounts%22%3Atrue%7D
+            #   to see how it's doing now
             nodes_to_connect -= set(combo)
             nodes_to_connect -= path_nodes
 
-            if nodes_to_connect.difference(unrooted_children):
-                # not done yet
-                if preferred_nodes.difference(nodes_connected):    # sanity check
-                    continue
-                else:
-                    raise Exception("wasn't expecting that!")
-            else:
-                if preferred_nodes.difference(nodes_already_connected).difference(nodes_connected):
-                    # sanity check
-                    raise Exception("wasn't expecting that!")
-                else:
-                    everything_is_connected = True
+            # if nodes_to_connect.difference(unrooted_children):
+            #     # not done yet
+            #     if preferred_nodes.difference(nodes_connected):    # sanity check
+            #         continue
+            #     else:
+            #         raise Exception("wasn't expecting that!")
+            # else:
+            #     if preferred_nodes.difference(nodes_already_connected).difference(nodes_connected):
+            #         # sanity check
+            #         raise Exception("wasn't expecting that!")
+            #     else:
+            #         everything_is_connected = True
             # raise Exception("something went wrong in connect_nodes")
         if everything_is_connected:
             break
 
-    all_nodes = target_nodes.union(ancestors_to_add)
+    all_nodes = target_nodes.union(additional_nodes)
+    VERBOSE and timer(f'getting subgraph for {len(all_nodes)} nodes')
     sg = G.subgraph(all_nodes)
+    VERBOSE and timer('done')
     return sg
 
 
@@ -234,32 +235,37 @@ def get_best_common_ancestor(G, nodes):
     if not common_ancestors:
         return None, None
 
-    path_nodes = set()
+    # path_nodes = set()
+    paths = {}
 
     if len(common_ancestors) == 1:
         common_ancestor = common_ancestors.pop()
         for node in nodes:
             path = nx.shortest_path(G, common_ancestor, node)
-            path_nodes.update(path[1: -1])
+            return common_ancestor, set(path[1: -1])
+            # path_nodes.update(path[1: -1])
 
     elif len(common_ancestors) > 1:
         max_distances = {}
         for ca in common_ancestors:
             for node in nodes:
                 path = nx.shortest_path(G, ca, node)
-                path_nodes.update(path[1: -1])
+                paths[ca] = path
+                # path_nodes.update(path[1: -1])
                 max_distances[ca] = max([len(path) - 1 for tn in nodes])
 
         min_distance = min(max_distances.values())
         min_distance_ancestors = [node for node, dist in max_distances.items() if dist == min_distance]
         if len(min_distance_ancestors) == 1:
             common_ancestor = min_distance_ancestors[0]
+            path = paths[common_ancestor]
+            return common_ancestor, set(path[1: -1])
         else:
             raise Exception(f"can't choose best ancestor from {str(min_distance_ancestors)} for {str(nodes)}")
-    else:
-        raise Exception(f"get_best_ancestor broken for {str(nodes)}")
-
-    return common_ancestor, path_nodes
+    # else:
+    #     raise Exception(f"get_best_ancestor broken for {str(nodes)}")
+    # return common_ancestor, path_nodes
+    raise Exception(f"get_best_ancestor broken for {str(nodes)}")
 
 
 def get_paths_to_roots(G, node):
@@ -278,7 +284,7 @@ def get_unrooted_children(G, roots, children):
         rooted = False
         for root in roots:
             try:
-                if nx.shortest_path(G, root, child):
+                if nx.has_path(G, root, child):
                     rooted = True
                     break
             except nx.NetworkXNoPath:
@@ -314,35 +320,38 @@ def get_unrooted_children(G, roots, children):
 
 def get_indented_tree_nodes(sg, preferred_concept_ids=[], max_depth=3, max_children=20, small_graph_threshold=2000):
     def dfs(node, depth):
-        try:
-            tree.append((depth, node))
+        tree.append((depth, node))
 
-            children = set(sg.successors(node))
+        children = set(sg.successors(node))
 
-            if len(sg.nodes) <= small_graph_threshold:
-                for child in children:
-                    dfs(child, depth + 1)
-                return
+        if len(sg.nodes) <= small_graph_threshold:
+            for child in children:
+                dfs(child, depth + 1)
+            return
 
+        if len(children) <= max_children and len(children) and depth <= max_depth: # ok to show
+            for child in children:
+                preferred_but_unshown.discard(child)
+                dfs(child, depth + 1)
+        else: # summarize (except always_show)
             always_show = children.intersection(preferred_concept_ids)
-
             children_to_hide = children.difference(always_show)
-
-            if len(children) <= max_children and len(children) and depth <= max_depth or always_show:
-                for child in children:
-                    if not always_show or child in always_show:
-                        dfs(child, depth + 1)
-
+            for child in always_show:
+                children_to_hide.discard(child)
+                preferred_but_unshown.discard(child)
+                dfs(child, depth + 1)
             if children_to_hide:
-                tree.append((depth + 1, children_to_hide))
-
-        except Exception as e:
-            pass
+                tree.append((depth + 1, list(children_to_hide)))
 
     roots = [n for n in sg.nodes if sg.in_degree(n) == 0]
     tree = []
+    preferred_but_unshown = set(preferred_concept_ids)
     for root in roots:
         dfs(root, 0)
+
+    for node in preferred_but_unshown:
+        tree.append((0, node))
+
     return tree
 
 
@@ -351,6 +360,62 @@ def print_tree_paths(paths):
         indent = "    " * depth
         print(f"{indent}{node}")
 
+def all_paths(g: networkx.DiGraph, roots: List[int], leaves: List[int]) -> List[List[int]]:
+    """
+    TODO:   something. this is working better than new technique, but much slower I think
+            i need to compare it with current method to see what went wrong, or if i need
+            this again
+    Creates a subgraph from g using nodes.
+    Identifies root and leaf nodes in this subgraph.
+    Generates all simple paths from each root to each leaf in the original graph g.
+    Returns the list of all such paths.
+    """
+    nodes = set(roots + leaves)
+    paths = []
+    missing_nodes = set()  # nodes needed to traverse all paths but not present in nodes list
+    paths_with_missing_nodes = []
+    descendants_of_missing = set()
+    paths_node_is_in = defaultdict(list)
+    for root in roots:
+        for leaf in leaves:
+            _paths = list(nx.all_simple_paths(g, root, leaf))
+            for path in _paths:
+                # if len(path) > 1: # do i need this? don't think so; it might hide solitary nodes
+                paths.append(path)
+                for node in path:
+                    if path not in paths_node_is_in[node]:
+                        paths_node_is_in[node].append(path)
+                    if node not in nodes:
+                        missing_nodes.add(node)
+                        if not path in paths_with_missing_nodes:
+                            paths_with_missing_nodes.append(path)
+                            for d in path[path.index(node) + 1:]:
+                                descendants_of_missing.add(d)
+
+    # if a path contains a missing node and all its descendants
+    #   show up in other paths, the path is not needed
+    # especially because we're now including stuff from concept_relationship
+    #   that wouldn't appear in the expansion, ....
+    #   TODO: figure out if the concept_relationship edges are really needed
+
+    # TODO: test that this code is doing what it should (and code above too, while you're at it)
+    descendants_of_missing = descendants_of_missing.difference(missing_nodes)   # in case missing have missing descendants
+
+    for path_with_missing in paths_with_missing_nodes:
+        # for each path with missing nodes, check if their descendants show up in other paths
+        nodes_to_check = set(path_with_missing).intersection(descendants_of_missing)
+        # we have to make sure that every descendant node in this path appears in other paths
+        nodes_not_elsewhere = []
+        for node in nodes_to_check:
+            if not [p for p in paths_node_is_in[node] if p not in paths_with_missing_nodes]:
+                # this node does not appear in any non-missing-node paths
+                nodes_not_elsewhere.append(node)
+                break;
+        if not nodes_not_elsewhere:
+            # every node appears elsewhere; safe to remove
+            paths.discard(path_with_missing)
+
+    return paths
 # def all_paths(g: networkx.DiGraph, nodes: set, preferred_nodes: set = set()) -> List[List[int]]:
 #     """
 #     Creates a subgraph from g using nodes.
@@ -480,10 +545,66 @@ def generate_indented_nodes(node, level=-1):
 def condense_super_nodes(sg, threshhold=10):
     super_nodes = [node for node, degree in sg.out_degree() if degree > threshhold]
     # for node in super_nodes:
-    # sg.remove_node(node) -- n
+    # sg.discard(node) -- n
 
 def expand_super_node(G, subgraph_nodes, super_node):
     sg = G.subgraph(subgraph_nodes)
+
+
+@router.get("/concept-graph")
+async def concept_graph(request: Request, id: List[int] = Query(...)):   # id is a list of concept ids
+    return await concept_graph_post(request=request, id=id)
+
+
+@router.post("/concept-graph")
+async def concept_graph_post(request: Request, id: Union[List[int], None] = None) -> List:
+    rpt = Api_logger()
+    await rpt.start_rpt(request, params={'concept_ids': id})
+
+    try:
+        sg, filled_gaps = fill_in_gaps(REL_GRAPH, id, return_missing=True)
+        raise Exception("Not implemented")
+        # P = to_pydot(sg)
+        # layout = from_pydot(P)
+        # layout = {k: list(v) for k, v in _layout.items()}     # networkx doesn't seem to have sugiyama
+        # g = Graph.from_networkx(sg)
+        # _layout = g.layout_sugiyama()
+        # layout = {v["_nx_name"]: _layout[idx] for idx, v in enumerate(g.vs)}
+        await rpt.finish(rows=len(sg))
+    except Exception as e:
+        await rpt.log_error(e)
+        raise e
+    return {'edges': list(sg.edges), 'layout': layout, 'filled_gaps': filled_gaps}
+
+
+def from_pydot_layout(g):
+    pass
+# def find_nearest_common_ancestor(G, nodes):
+#     all_ancestors = [set(nx.ancestors(G, node)) for node in nodes]
+#     common_ancestors = set.intersection(*all_ancestors)
+#
+#     # Find the lowest common ancestor
+#     lowest_common_ancestor = None
+#     for ancestor in common_ancestors:
+#         if all(ancestor in ancestors or ancestor == node for node, ancestors in zip(nodes, all_ancestors)):
+#             if lowest_common_ancestor is None or not ancestor in nx.ancestors(G, lowest_common_ancestor):
+#                 lowest_common_ancestor = ancestor
+#
+#     return lowest_common_ancestor
+#
+#
+# def connect_roots(G, target_nodes):
+#     # Find the nearest common ancestor
+#     nca = find_nearest_common_ancestor(G, target_nodes)
+#
+#     # Create a subgraph including the paths from the nearest common ancestor to the target nodes
+#     edges_to_include = set()
+#     for node in target_nodes:
+#         path = nx.shortest_path(G, nca, node)
+#         edges_to_include.update([tuple(l) for l in zip(path, path[1:])])
+#
+#     SG = G.edge_subgraph(edges_to_include).copy()
+#     return SG
 
 
 def generate_graph_edges():
