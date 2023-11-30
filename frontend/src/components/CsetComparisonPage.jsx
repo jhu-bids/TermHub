@@ -413,6 +413,9 @@ function nestedConcepts(conceptLookup, indentedCids, hierarchySettings) {
         concept_id: summaryRowNum,
         concept_name: `${r[1].length} ${ r[0] ? 'children' : 'orphans'} not shown`, // if level==0, these are orphans
       }
+      if (typeof(r[1]) ==='string') {
+        row.concept_name = r[1];
+      }
       summaryRowNum--;
     }
     allRows.push(row);

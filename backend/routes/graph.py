@@ -79,19 +79,21 @@ async def indented_concept_list_post(request: Request, codeset_ids: List[int],
         concept_ids = set([c['concept_id'] for c in csmi])
         concept_ids.update(extra_concept_ids)
 
-        # orphans, here, are just nodes that don't appear in graph
+        # orphans_not_in_graph, here, are just nodes that don't appear in graph
         #   they'll get appended to the end of the tree at level 0
         nodes_in_graph = set()
-        orphans = set()
+        orphans_not_in_graph = set()
+        # TODO: deal with two kinds of orphan: not in the graph (handled here)
+        #   and in the graph but having no parents or children
         for cid in concept_ids:
             if cid in REL_GRAPH:
                 nodes_in_graph.add(cid)
             else:
-                orphans.add(cid)
+                orphans_not_in_graph.add(cid)
 
         preferred_concept_ids = set([c['concept_id']
                                      for c in csmi
-                                     if c['item'] and not c['concept_id'] in orphans])
+                                     if c['item'] and not c['concept_id'] in orphans_not_in_graph])
 
         VERBOSE and timer('connect_nodes')
         sg = connect_nodes(REL_GRAPH, nodes_in_graph, preferred_concept_ids).copy()
@@ -101,7 +103,12 @@ async def indented_concept_list_post(request: Request, codeset_ids: List[int],
         # testsg = REL_GRAPH.subgraph(nodes_in_graph)
         # roots = [node for node, degree in testsg.in_degree() if degree == 0]
         roots = [node for node, degree in sg.in_degree() if degree == 0]
-        # leaves = [node for node, degree in testsg.out_degree() if degree == 0]
+        leaves = [node for node, degree in sg.out_degree() if degree == 0]
+
+        orphans_unlinked = set(roots).intersection(leaves)
+        for o in orphans_unlinked:
+            roots.remove(o)
+
         preferred_concept_ids.update(roots)
 
         # paths = all_paths(sg, roots, leaves)
@@ -118,11 +125,21 @@ async def indented_concept_list_post(request: Request, codeset_ids: List[int],
         VERBOSE and timer('get tree')
         tree = get_indented_tree_nodes(sg, preferred_concept_ids)  # TODO: just testing below, put this line back
         # tree = get_indented_tree_nodes(sg, nodes_in_paths)
-        tree.append((0, list(orphans)))
+        if orphans_not_in_graph:
+            tree.append((0, f'{len(orphans_not_in_graph)} nodes in concept set but in our graph'))
+            if len(orphans_not_in_graph) <= 50:
+                for orphan in orphans_not_in_graph:
+                    tree.append((1, orphan))
+
+        if orphans_unlinked:
+            tree.append((0, f'{len(orphans_unlinked)} nodes unconnected to others in the concept set'))
+            if len(orphans_unlinked) <= 50:
+                for orphan in orphans_unlinked:
+                    tree.append((1, orphan))
 
         # timer('get testtree')
         # testtree = paths_as_indented_tree(paths)
-        # testtree.append((0, list(orphans)))
+        # testtree.append((0, list(orphans_not_in_graph)))
         VERBOSE and timer('done')
         # return testtree
 
@@ -321,6 +338,7 @@ def get_unrooted_children(G, roots, children):
 def get_indented_tree_nodes(sg, preferred_concept_ids=[], max_depth=3, max_children=20, small_graph_threshold=2000):
     def dfs(node, depth):
         tree.append((depth, node))
+        preferred_but_unshown.discard(node)
 
         children = set(sg.successors(node))
 
@@ -331,14 +349,12 @@ def get_indented_tree_nodes(sg, preferred_concept_ids=[], max_depth=3, max_child
 
         if len(children) <= max_children and len(children) and depth <= max_depth: # ok to show
             for child in children:
-                preferred_but_unshown.discard(child)
                 dfs(child, depth + 1)
         else: # summarize (except always_show)
             always_show = children.intersection(preferred_concept_ids)
             children_to_hide = children.difference(always_show)
             for child in always_show:
                 children_to_hide.discard(child)
-                preferred_but_unshown.discard(child)
                 dfs(child, depth + 1)
             if children_to_hide:
                 tree.append((depth + 1, list(children_to_hide)))
