@@ -112,11 +112,11 @@ export const N3CComparisonRpt = () => {
   columns = [
     {grow: 4, sortable: true, name: "Name", selector: row => row.name},
     {grow: 2, sortable: true, name: "Author", selector: row => row.author},
-    {grow: 3, sortable: true, name: "Orig", selector: row => row.orig},
-    {grow: 3, sortable: true, name: "New", selector: row => row.new},
+    {grow: 3, sortable: true, name: "Orig", selector: row => row.cset_1, wrap: true},
+    {grow: 3, sortable: true, name: "New", selector: row => row.cset_2, wrap: true},
     {grow: 2, name: "Compare", selector: row => (
           <Button
-              to={`/cset-comparison?codeset_ids=${row.orig_codeset_id}&codeset_ids=${row.new_codeset_id}`}
+              to={`/cset-comparison?codeset_ids=${row.cset_1_codeset_id}&codeset_ids=${row.cset_2_codeset_id}`}
               component={Link}
               style={{margin: '7px', textTransform: 'none'}}
           >

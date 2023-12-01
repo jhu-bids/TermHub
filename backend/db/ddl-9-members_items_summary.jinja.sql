@@ -16,12 +16,13 @@ SELECT
                         CASE WHEN LENGTH(item_flags) > 0 THEN item_flags ELSE 'no flags' END
         ELSE '' END
     AS grp,
+    flags,
     COUNT(*) AS cnt
 FROM {{schema}}cset_members_items
-GROUP by 1,2
+GROUP by 1,2,3
 UNION
-SELECT codeset_id, 'Members' AS grp, SUM(CASE WHEN csm THEN 1 ELSE 0 END) AS cnt FROM {{schema}}cset_members_items GROUP by 1,2
+SELECT codeset_id, 'Members' AS grp, NULL, SUM(CASE WHEN csm THEN 1 ELSE 0 END) AS cnt FROM {{schema}}cset_members_items GROUP by 1,2
 UNION
-SELECT codeset_id, 'Expression items' AS grp, SUM(CASE WHEN item THEN 1 ELSE 0 END) AS cnt FROM {{schema}}cset_members_items GROUP by 1,2;
+SELECT codeset_id, 'Expression items' AS grp, NULL, SUM(CASE WHEN item THEN 1 ELSE 0 END) AS cnt FROM {{schema}}cset_members_items GROUP by 1,2;
 
 CREATE INDEX mis1{{optional_index_suffix}} ON {{schema}}members_items_summary{{optional_suffix}}(codeset_id);
