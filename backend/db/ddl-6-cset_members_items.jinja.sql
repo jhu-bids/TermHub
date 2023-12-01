@@ -7,6 +7,7 @@ SELECT
     COALESCE(csm.concept_id, item.concept_id) AS concept_id,
     csm.codeset_id IS NOT NULL AS csm,
     item.codeset_id IS NOT NULL AS item,
+    item.flags,
     array_to_string(array_remove(ARRAY[
                                      CASE WHEN item."isExcluded" THEN 'isExcluded' ELSE NULL END,
                                      CASE WHEN item."includeDescendants" THEN 'includeDescendants' ELSE NULL END,
@@ -15,15 +16,30 @@ SELECT
     item."isExcluded",
     item."includeDescendants",
     item."includeMapped"
-FROM {{schema}}concept_set_members csm
-FULL OUTER JOIN {{schema}}concept_set_version_item item
-ON csm.codeset_id = item.codeset_id
-    AND csm.concept_id = item.concept_id
+FROM {{schema}}concept_set_members{{optional_suffix}} csm,
+FULL OUTER JOIN (
+    SELECT
+        codeset_id,
+        concept_id,
+        "isExcluded",
+        "includeDescendants",
+        "includeMapped",
+        array_to_string(
+                ARRAY[
+                    CASE WHEN bool_or("includeDescendants") THEN 'D' END,
+                    CASE WHEN bool_or("includeMapped") THEN 'M' END,
+                    CASE WHEN bool_or("isExcluded") THEN 'X' END
+                    ]::text[], ''
+        ) AS flags
+    FROM {{schema}}concept_set_version_item{{optional_suffix}}
+    GROUP BY 1,2,3,4,5
+) AS item ON csm.codeset_id = item.codeset_id
+         AND csm.concept_id = item.concept_id
 WHERE csm.codeset_id IS NOT NULL
    OR item.codeset_id IS NOT NULL;
 
-CREATE INDEX csmi_idx1{{optional_index_suffix}} ON {{schema}}cset_members_items{{optional_suffix}}(codeset_id);
+CREATE INDEX {{optional_index_suffix}}csmi_idx1 ON {{schema}}cset_members_items{{optional_suffix}}(codeset_id);
 
-CREATE INDEX csmi_idx2{{optional_index_suffix}} ON {{schema}}cset_members_items{{optional_suffix}}(concept_id);
+CREATE INDEX {{optional_index_suffix}}csmi_idx2 ON {{schema}}cset_members_items{{optional_suffix}}(concept_id);
 
-CREATE INDEX csmi_idx3{{optional_index_suffix}} ON {{schema}}cset_members_items{{optional_suffix}}(codeset_id, concept_id);
+CREATE INDEX {{optional_index_suffix}}csmi_idx3 ON {{schema}}cset_members_items{{optional_suffix}}(codeset_id, concept_id);

@@ -55,6 +55,7 @@ WITH ac AS (SELECT DISTINCT cs.codeset_id,
             )
 SELECT ac.*,
        cscnt.counts,
+       cscnt.flag_cnts,
        CAST(cscnt.counts->>'Members' as int) as concepts,
        rcon.name AS container_creator,
        rver.name AS codeset_creator

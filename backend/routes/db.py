@@ -725,48 +725,62 @@ def n3c_comparison_rpt():
         return rpt
 
 
+def get_comparison_rpt(con, codeset_id_1: int, codeset_id_2: int) -> Dict[str, Union[str, None]]:
+    cset_1 = get_csets([codeset_id_1])[0]
+    cset_2 = get_csets([codeset_id_2])[0]
+
+    cset_1_only = sql_query(con, """
+        SELECT 'removed ' || concept_id || ' ' || concept_name AS diff FROM (
+            SELECT concept_id, concept_name FROM concept_set_members WHERE codeset_id = :codeset_id_1
+            EXCEPT
+            SELECT concept_id, concept_name FROM concept_set_members WHERE codeset_id = :cset_2_codeset_id
+        ) x
+    """, {'codeset_id_1': codeset_id_1, 'cset_2_codeset_id': codeset_id_2})
+    # orig_only = [dict(r) for r in orig_only]
+    cset_1_only = [dict(r)['diff'] for r in cset_1_only]
+
+    cset_2_only = sql_query(con, """
+        SELECT 'added ' || concept_id || ' ' || concept_name AS diff FROM (
+            SELECT concept_id, concept_name FROM concept_set_members WHERE codeset_id = :cset_2_codeset_id
+            EXCEPT
+            SELECT concept_id, concept_name FROM concept_set_members WHERE codeset_id = :codeset_id_1
+        ) x
+    """, {'codeset_id_1': codeset_id_1, 'cset_2_codeset_id': codeset_id_2})
+    # cset_2_only = [dict(r) for r in cset_2_only]
+    cset_2_only = [dict(r)['diff'] for r in cset_2_only]
+
+    diffs = cset_1_only + cset_2_only
+
+    flag_cnts_1 = ', flags: ' + ', '.join([f'{k}: {v}' for k, v in cset_1['flag_cnts'].items()]) if  cset_1['flag_cnts'] else ''
+    flag_cnts_2 = ', flags: ' + ', '.join([f'{k}: {v}' for k, v in cset_2['flag_cnts'].items()]) if  cset_2['flag_cnts'] else ''
+
+    rpt = {
+        'name': cset_1['concept_set_name'],
+        'cset_1': f"{cset_1['codeset_id']} v{cset_1['version']}, vocab {cset_1['omop_vocab_version']}; {cset_1['distinct_person_cnt']} pts, {cset_1['concepts']} concepts{flag_cnts_1}",
+        'cset_2': f"{cset_2['codeset_id']} v{cset_2['version']}, vocab {cset_2['omop_vocab_version']}; {cset_2['distinct_person_cnt']} pts, {cset_2['concepts']} concepts{flag_cnts_2}",
+        'author': cset_1['codeset_creator'],
+        'cset_1_codeset_id': codeset_id_1,
+        # 'cset_1_version': cset_1['version'],
+        'cset_2_codeset_id': codeset_id_2,
+        # 'cset_2_version': cset_2['version'],
+        # 'cset_1_only': cset_1_only,
+        # 'cset_2_only': cset_2_only,
+        'diffs': diffs,
+    }
+    return rpt
+
+
 def generate_n3c_comparison_rpt():
     with get_db_connection() as con:
         pairs = sql_query(con, "SELECT orig_codeset_id, new_codeset_id FROM public.codeset_comparison")
+        i = 1
         for pair in pairs:
             pair = list(dict(pair).values())
-            csets = get_csets(pair)
+            print(f"Processing {str(pair)} {i} of {len(pairs)}")
+            i += 1
 
-            orig_only = sql_query(con, """
-                SELECT 'removed ' || concept_id || ' ' || concept_name AS diff FROM (
-                    SELECT concept_id, concept_name FROM concept_set_members WHERE codeset_id = :orig_codeset_id
-                    EXCEPT
-                    SELECT concept_id, concept_name FROM concept_set_members WHERE codeset_id = :new_codeset_id
-                ) x
-            """, {'orig_codeset_id': pair[0], 'new_codeset_id': pair[1]})
-            # orig_only = [dict(r) for r in orig_only]
-            orig_only = [dict(r)['diff'] for r in orig_only]
+            rpt = get_comparison_rpt(con, *pair)
 
-            new_only = sql_query(con, """
-                SELECT 'added ' || concept_id || ' ' || concept_name AS diff FROM (
-                    SELECT concept_id, concept_name FROM concept_set_members WHERE codeset_id = :new_codeset_id
-                    EXCEPT
-                    SELECT concept_id, concept_name FROM concept_set_members WHERE codeset_id = :orig_codeset_id
-                ) x
-            """, {'orig_codeset_id': pair[0], 'new_codeset_id': pair[1]})
-            # new_only = [dict(r) for r in new_only]
-            new_only = [dict(r)['diff'] for r in new_only]
-
-            diffs = orig_only + new_only
-
-            rpt = {
-                'name': csets[0]['concept_set_name'],
-                'orig': f"{csets[0]['codeset_id']} v{csets[0]['version']}, vocab {csets[0]['omop_vocab_version']}",
-                'new': f"{csets[1]['codeset_id']} v{csets[1]['version']}, vocab {csets[1]['omop_vocab_version']}",
-                'author': csets[0]['codeset_creator'],
-                'orig_codeset_id': pair[0],
-                # 'orig_version': csets[0]['version'],
-                'new_codeset_id': pair[1],
-                # 'new_version': csets[1]['version'],
-                # 'orig_only': orig_only,
-                # 'new_only': new_only,
-                'diffs': diffs,
-            }
             run_sql(con, """
                     UPDATE public.codeset_comparison
                     SET rpt = :rpt
