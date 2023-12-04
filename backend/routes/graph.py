@@ -184,10 +184,12 @@ def connect_nodes(G, target_nodes, preferred_nodes=[]):
     # nodes_connected = set()         #
     additional_nodes = set()  # nodes that will be added in order to connect nodes_to_connect
 
+    # TODO: is this actually needed anymore? try removing?
     VERBOSE and timer('getting unrooted children')
     unrooted_children = get_unrooted_children(
         G, nodes_to_connect, target_nodes.difference(nodes_to_connect))
     if (unrooted_children):
+        raise Exception("is this ever happening?")
         # print("wasn't expecting to find unrooted children") # except if vocab changes disconnected them from any other nodes
         nodes_to_connect.update(unrooted_children)
 
