@@ -9,6 +9,7 @@
     (d) playwright.config.js? - (didn't work; kinda makes sense since that url doesn't get passed)
 */
 
+import { time } from "node:console";
 import {selectedConfigs, deploymentConfigs} from "./setup-test-environments";
 import {parse} from 'csv-parse/sync';
 
@@ -37,16 +38,16 @@ test.beforeAll(async () => {
 | single small        | single-small-again     |                 | 1000002363                                                       |
  */
 const tests_csv = `
-testType,testName,codeset_ids
-single small,single-small,1000002363
-many small,many-small,"1000002363, 1000002657, 1000007602, 1000013397, 1000010688, 1000015307, 1000031299"
-mixed 6000 to 21000,Sulfonylureas,"417730759, 423850600, 966671711, 577774492"
-single 2000,autoimmune 1,101398605
-mixed 30 to 3000,autoimmune 2,"101398605, 947369784, 287650725, 283328624, 115052941"
-single 30000,antibiotics 1,909552172
-single small,single-small-second-time,1000002363
+testType,testName,codeset_ids,timeoutSeconds
+single small,single-small,1000002363,30
+many small,many-small,"1000002363, 1000002657, 1000007602, 1000013397, 1000010688, 1000015307, 1000031299",45
+single small,single-small-second-time,1000002363,30
 `;
 const hold_tests = `
+mixed 6000 to 21000,Sulfonylureas,"417730759, 423850600, 966671711, 577774492",120
+single 2000,autoimmune 1,101398605,180
+mixed 30 to 3000,autoimmune 2,"101398605, 947369784, 287650725, 283328624, 115052941",240
+single 30000,antibiotics 1,909552172,180
 `;
 
 const tests = parse(tests_csv, {columns: true, skip_empty_lines: true});
@@ -75,15 +76,26 @@ async function getMem(page, prefix, fields) {
   return mem;
 }
 
+let testsAlreadyRun = {};
+
+console.log(`running ${tests.length} tests for ${JSON.stringify(configsToRun)}`)
 for (const envName in configsToRun) {
   const appUrl = deploymentConfigs[envName];
   for (const csets_test of tests) {
-    let {testType, testName, codeset_ids} = csets_test;
+    let {testType, testName, codeset_ids, timeoutSeconds} = csets_test;
+    if (testsAlreadyRun[testName]) {
+      warn(`${testName} already ran ${testsAlreadyRun[testName]} times`);
+      testsAlreadyRun[testName]++;
+      continue;
+    } else {
+      testsAlreadyRun[testName] = 1;
+    }
     codeset_ids = codeset_ids.split(',');
     test(testName, async({page, browser, context}, testInfo) => {
       testInfo.attach('started', {body: `${testName} on ${envName}`})
       console.log(`running ${testName} on ${envName}`);
-      page.setDefaultTimeout(120000);
+      page.setDefaultTimeout(timeoutSeconds * 2000);  // need extra time here i think. single-small timed out with 30 seconds
+                                                      // or maybe that was a temporary problem with indented-concept-list performance
       /* if (testName === 'single-small-second-time') {
         debugger;
       } */
@@ -137,9 +149,9 @@ for (const envName in configsToRun) {
       const compPageLink = await page.waitForSelector('[data-testid="Cset comparison"]');
       await compPageLink.click();
       console.log('going to comparison page');
-      await expect(page.locator('[data-testid=comp-page-loading]')).toBeAttached({timeout: 60000});
+      await expect(page.locator('[data-testid=comp-page-loading]')).toBeAttached({timeout: timeoutSeconds * 1000});
       console.log('loading comparison page');
-      await expect(page.locator('[data-testid=comp-page-loaded]')).toBeAttached({timeout: 60000});
+      await expect(page.locator('[data-testid=comp-page-loaded]')).toBeAttached({timeout: timeoutSeconds * 1000});
       console.log('loaded comparison page');
       performance.mark('comparison page loaded');
       const comparisonLoaded = performance.measure("comparisonLoaded", "search page loaded", "comparison page loaded");

@@ -15,8 +15,10 @@ SELECT
                                  NULL), ',') AS item_flags,
     item."isExcluded",
     item."includeDescendants",
-    item."includeMapped"
-FROM {{schema}}concept_set_members{{optional_suffix}} csm,
+    item."includeMapped",
+    c.vocabulary_id,
+    c.standard_concept
+FROM {{schema}}concept_set_members{{optional_suffix}} csm
 FULL OUTER JOIN (
     SELECT
         codeset_id,
@@ -35,6 +37,7 @@ FULL OUTER JOIN (
     GROUP BY 1,2,3,4,5
 ) AS item ON csm.codeset_id = item.codeset_id
          AND csm.concept_id = item.concept_id
+JOIN {{schema}}concept{{optional_suffix}} c ON COALESCE(csm.concept_id, item.concept_id) = c.concept_id
 WHERE csm.codeset_id IS NOT NULL
    OR item.codeset_id IS NOT NULL;
 
