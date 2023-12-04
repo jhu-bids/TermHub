@@ -62,14 +62,12 @@ async def indented_concept_list_post(request: Request, codeset_ids: List[int],
     VERBOSE and timer('get csmi')
     try:
         with get_db_connection() as con:
-            sql_j = ''
             sql_w = ''
             if hide_vocabs:
-                sql_j = f"\nJOIN {SCHEMA}.concept c ON csmi.concept_id = c.concept_id"
-                sql_w = f" AND c.vocabulary_id NOT {sql_in(hide_vocabs, True)}"
+                sql_w = f" AND csmi.vocabulary_id NOT {sql_in(hide_vocabs, True)}"
             query = f"""
                 SELECT csmi.*
-                FROM {SCHEMA}.cset_members_items csmi{sql_j}
+                FROM {SCHEMA}.cset_members_items csmi
                 WHERE codeset_id {sql_in(codeset_ids)}{sql_w}
             """
             csmi = sql_query(
