@@ -114,6 +114,7 @@ DERIVED_TABLE_DEPENDENCY_MAP = {
     # - views
     'csets_to_ignore': ['all_csets'],
     'cset_members_items_plus': ['cset_members_items', 'concept'],
+    'concept_graph': ['concept_ancestor'],
 
     # Unfinished / unsure
     # - unsure what to do with these. they probably aren't derived either

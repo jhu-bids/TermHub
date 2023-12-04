@@ -76,22 +76,14 @@ async function getMem(page, prefix, fields) {
   return mem;
 }
 
-let testsAlreadyRun = {};
-
 console.log(`running ${tests.length} tests for ${JSON.stringify(configsToRun)}`)
 for (const envName in configsToRun) {
   const appUrl = deploymentConfigs[envName];
   for (const csets_test of tests) {
     let {testType, testName, codeset_ids, timeoutSeconds} = csets_test;
-    if (testsAlreadyRun[testName]) {
-      warn(`${testName} already ran ${testsAlreadyRun[testName]} times`);
-      testsAlreadyRun[testName]++;
-      continue;
-    } else {
-      testsAlreadyRun[testName] = 1;
-    }
     codeset_ids = codeset_ids.split(',');
-    test(testName, async({page, browser, context}, testInfo) => {
+    const testTitle = `${testName}_on_${envName}`;
+    test(testTitle, async({page, browser, context}, testInfo) => {
       testInfo.attach('started', {body: `${testName} on ${envName}`})
       console.log(`running ${testName} on ${envName}`);
       page.setDefaultTimeout(timeoutSeconds * 2000);  // need extra time here i think. single-small timed out with 30 seconds
