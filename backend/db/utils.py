@@ -7,6 +7,7 @@ todo's
 """
 import json
 import os
+import sys
 import time
 from random import randint
 
@@ -138,7 +139,7 @@ def refresh_derived_tables(
     ddl_modules_queue = derived_tables_queue
     views = [x for x in VIEWS if x in ddl_modules_queue]
 
-    # Create new tables and backup old ones
+    # Create new tables/views and backup old ones
     print('Derived tables')
     t0 = datetime.now()
     hash_num = '_' + str(randint(10000000, 99999999))
@@ -689,3 +690,25 @@ def delete_codesets_from_db(codeset_ids):
         code_sets_to_be_deleted = sql_query(
             con, f"""SELECT codeset_id, concept_set_name FROM code_sets WHERE id IN ({codeset_ids.sql_format()})"""
         )
+
+
+def reset_temp_refresh_tables(schema: str = SCHEMA):
+    """This is run if an error occurs while refreshing tables, and resets to their state before the refresh."""
+    print('Error occurred during table refresh. Resetting tables to pre-refresh state; restoring backups.',
+          file=sys.stderr)
+    with get_db_connection(schema=schema) as con:
+        tables: List[str] = list_tables(con, schema)
+
+        backed_up_tables = [t for t in tables if t.endswith('_old')]
+        for table in backed_up_tables:
+            table = table.replace('_old', '')
+            run_sql(con, f'DROP TABLE IF EXISTS {schema}.{table};')
+            run_sql(con, f'ALTER TABLE {schema}.{table}_old RENAME TO {table};')
+
+        dangling_new_tables = [t for t in tables if t.endswith('_new')]
+        for table in dangling_new_tables:
+            table = table.replace('_new', '')
+            if table in tables:
+                run_sql(con, f'DROP TABLE {schema}.{table}_new;')
+            else:
+                run_sql(con, f'ALTER TABLE {schema}.{table}_new RENAME TO {table};')

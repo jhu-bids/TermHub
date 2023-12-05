@@ -44,9 +44,6 @@ def populate_omop_vocab_version(update_code_sets=False, update_derived_tables=Fa
         t2 = datetime.now()
         print(f' - completed in {(t2 - t1).seconds} seconds')
     if update_derived_tables:
-        # Even though 'csets_to_ignore' is a depdendent derived table which will not actually include this field and
-        # thus does not need updating, I'm going to refresh all dependent tables to future-proof this in case we need to
-        # repurpose / reuse.
         print('Updating derived tables')  # 1 seconds
         t0 = datetime.now()
         with get_db_connection() as con:

@@ -14,7 +14,7 @@ sys.path.insert(0, str(PROJECT_ROOT))
 from backend.db.analysis import counts_update,counts_docs
 from backend.db.config import CONFIG
 from backend.db.utils import current_datetime, get_db_connection, is_refresh_active, last_refresh_timestamp, \
-    update_db_status_var, check_db_status_var, delete_db_status_var
+    reset_temp_refresh_tables, update_db_status_var, check_db_status_var, delete_db_status_var
 from enclave_wrangler.objects_api import csets_and_members_enclave_to_db
 
 DESC = 'Refresh TermHub database w/ newest updates from the Enclave using the objects API.'
@@ -68,8 +68,9 @@ def refresh_db(
             # todo: when ready, will use all_new_objects_enclave_to_db() instead of csets_and_members_enclave_to_db()
             new_data: bool = csets_and_members_enclave_to_db(con, since, schema=schema)
         except Exception as err:
-            update_db_status_var('last_refresh_result', 'error', local)
             print(f"Database refresh incomplete; exception occurred. Tallying counts and exiting.", file=sys.stderr)
+            update_db_status_var('last_refresh_result', 'error', local)
+            reset_temp_refresh_tables(schema)
             counts_update('DB refresh error.', schema, local, filter_temp_refresh_tables=True)
             counts_docs()
             raise err

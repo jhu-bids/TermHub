@@ -46,7 +46,6 @@ class TestBackendResolveFetchFailures(FetchAuditTestRunner):
                   'comment': 'Unit testing.'}]
 
     # todo: A better test would be to actually run this in test_n3c, and check before/after that actual data is inserted
-    #  but I don't think it'll run cuz it's still missing a few of the new tables; or maybe just 1: csets_to_ignore?
     def test_resolve_fetch_failures_excess_items(self):
         """Test resolve_fetch_failures_excess_items()"""
         pk = self.mock_data[0]['primary_key']
