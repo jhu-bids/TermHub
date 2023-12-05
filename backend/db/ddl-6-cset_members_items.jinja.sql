@@ -18,7 +18,7 @@ SELECT
     item."includeMapped",
     c.vocabulary_id,
     c.standard_concept
-FROM {{schema}}concept_set_members{{optional_suffix}} csm
+FROM {{schema}}concept_set_members csm
 FULL OUTER JOIN (
     SELECT
         codeset_id,
@@ -33,11 +33,11 @@ FULL OUTER JOIN (
                     CASE WHEN bool_or("isExcluded") THEN 'X' END
                     ]::text[], ''
         ) AS flags
-    FROM {{schema}}concept_set_version_item{{optional_suffix}}
+    FROM {{schema}}concept_set_version_item
     GROUP BY 1,2,3,4,5
 ) AS item ON csm.codeset_id = item.codeset_id
          AND csm.concept_id = item.concept_id
-JOIN {{schema}}concept{{optional_suffix}} c ON COALESCE(csm.concept_id, item.concept_id) = c.concept_id
+JOIN {{schema}}concept c ON COALESCE(csm.concept_id, item.concept_id) = c.concept_id
 WHERE csm.codeset_id IS NOT NULL
    OR item.codeset_id IS NOT NULL;
 

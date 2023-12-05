@@ -84,13 +84,13 @@ CORE_CSET_DEPENDENT_TABLES = [
     'members_items_summary',
     'codeset_counts',
     'all_csets',
-    'csets_to_ignore',
+    # 'csets_to_ignore',
     'cset_members_items_plus',
 ]
 # todo: try to auto detect what is a view
 VIEWS = [
     'cset_members_items_plus',
-    'csets_to_ignore',
+    # 'csets_to_ignore',
 ]
 # DERIVED_TABLE_DEPENDENCY_MAP: Shows which tables are needed to create a derived table. Generally the idea is that when
 #  the dependency tables are updated, the dependent table also needs to be updated. But some tables in here have
@@ -112,7 +112,7 @@ DERIVED_TABLE_DEPENDENCY_MAP = {
     'cset_members_items': ['concept_set_members', 'concept_set_version_item'],
     'members_items_summary': ['cset_members_items'],
     # - views
-    'csets_to_ignore': ['all_csets'],
+    # 'csets_to_ignore': ['all_csets'],
     'cset_members_items_plus': ['cset_members_items', 'concept'],
     'concept_graph': ['concept_ancestor'],
 
