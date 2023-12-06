@@ -4,7 +4,7 @@ import json
 # import io
 from pathlib import Path
 
-from typing import List, Union, Tuple #, Dict, Set
+from typing import Iterable, List, Union, Tuple  # , Dict, Set
 from collections import defaultdict
 from itertools import combinations
 
@@ -20,6 +20,8 @@ from fastapi import APIRouter, Query, Request
 # from collections import OrderedDict
 import networkx as nx
 import pickle
+
+from sqlalchemy import RowMapping
 from sqlalchemy.sql import text
 
 from backend.config import CONFIG
@@ -42,124 +44,133 @@ def subgraph():
     return list(REL_GRAPH.edges)
 
 
+async def indented_concept_list(
+    codeset_ids: List[int], extra_concept_ids: Union[List[int], None] = [], hide_vocabs = ['RxNorm Extension']
+) -> List:
+    timer = get_timer('')
+
+    # Get Concept Set Members Items
+    VERBOSE and timer('get csmi')
+    with get_db_connection() as con:
+        sql_w = ''
+        # - ide vocabs: add query logic
+        if hide_vocabs:
+            sql_w = f" AND csmi.vocabulary_id NOT {sql_in(hide_vocabs, True)}"
+        query = f"""
+            SELECT csmi.*
+            FROM {SCHEMA}.cset_members_items csmi
+            WHERE codeset_id {sql_in(codeset_ids)}{sql_w}"""
+        csmi: List[RowMapping] = sql_query(con, query)
+
+    # Organize Concept IDs
+    VERBOSE and timer('organize cids')
+    concept_ids = set([c['concept_id'] for c in csmi])
+    concept_ids.update(extra_concept_ids)
+
+    # Orphans
+    # orphans_not_in_graph, here, are just nodes that don't appear in graph
+    #   they'll get appended to the end of the tree at level 0
+    # The graph, which comes from the concept_ancestor table, doesn't contain edges for every concept.
+    nodes_in_graph = set()
+    orphans_not_in_graph = set()
+    # TODO: deal with two kinds of orphan: not in the graph (handled here)
+    #   and in the graph but having no parents or children
+    for cid in concept_ids:
+        if cid in REL_GRAPH:
+            nodes_in_graph.add(cid)
+        else:
+            orphans_not_in_graph.add(cid)
+
+    # Preferred concept IDs are things we're trying to link in the graph; non-orphan items
+    #  - We don't want to accidentally hide them.
+    preferred_concept_ids = set([
+        c['concept_id'] for c in csmi
+        if c['item'] and not c['concept_id'] in orphans_not_in_graph])
+
+    VERBOSE and timer('connect_nodes')
+    sg = connect_nodes(REL_GRAPH, nodes_in_graph, preferred_concept_ids).copy()
+
+    VERBOSE and timer('get roots')
+    # timer('get paths')
+    # testsg = REL_GRAPH.subgraph(nodes_in_graph)
+    # roots = [node for node, degree in testsg.in_degree() if degree == 0]
+    roots = [node for node, degree in sg.in_degree() if degree == 0]
+    leaves = [node for node, degree in sg.out_degree() if degree == 0]
+
+    orphans_unlinked = set(roots).intersection(leaves)
+    for o in orphans_unlinked:
+        roots.remove(o)
+
+    preferred_concept_ids.update(roots)
+
+    # paths = all_paths(sg, roots, leaves)
+    # timer('testing stuff')
+    #
+    # nodes_in_paths = set()
+    # for path in paths:
+    #     nodes_in_paths.update(path)
+    # sg_nodes = set(sg.nodes)
+    # print(f"sg \u2229 paths {len(sg_nodes.intersection(nodes_in_paths))}")
+    # print(f"sg - paths {len(sg_nodes.difference(nodes_in_paths))}")
+    # print(f"paths - sg {len(nodes_in_paths.difference(sg_nodes))}")
+
+    VERBOSE and timer('get tree')
+    tree = get_indented_tree_nodes(sg, preferred_concept_ids)  # TODO: just testing below, put this line back
+    # tree = get_indented_tree_nodes(sg, nodes_in_paths)
+    if orphans_not_in_graph:
+        tree.append((0, f'{len(orphans_not_in_graph)} nodes in concept set but in our graph'))
+        if len(orphans_not_in_graph) <= 50:
+            for orphan in orphans_not_in_graph:
+                tree.append((1, orphan))
+
+    if orphans_unlinked:
+        tree.append((0, f'{len(orphans_unlinked)} nodes unconnected to others in the concept set'))
+        if len(orphans_unlinked) <= 50:
+            for orphan in orphans_unlinked:
+                tree.append((1, orphan))
+
+    # timer('get testtree')
+    # testtree = paths_as_indented_tree(paths)
+    # testtree.append((0, list(orphans_not_in_graph)))
+    VERBOSE and timer('done')
+    # return testtree
+    return tree
+
+
 @router.get("/indented-concept-list")
-async def indented_concept_list(request: Request, codeset_ids: List[int] = Query(...),
+async def indented_concept_list_get(request: Request, codeset_ids: List[int] = Query(...),
                                 extra_concept_ids: Union[List[int], None] = []) -> List:
     return await indented_concept_list_post(
         request=request, codeset_ids=codeset_ids, extra_concept_ids=extra_concept_ids)
 
 
 @router.post("/indented-concept-list")
-async def indented_concept_list_post(request: Request, codeset_ids: List[int],
-                                     extra_concept_ids: Union[List[int], None] = [],
-                                     hide_vocabs = ['RxNorm Extension'],
-                                     verbose = False) -> List:
+async def indented_concept_list_post(
+    request: Request, codeset_ids: List[int], extra_concept_ids: Union[List[int], None] = [],
+    hide_vocabs = ['RxNorm Extension'], verbose = False
+) -> List:
     rpt = Api_logger()
     await rpt.start_rpt(request, params={
         'codeset_ids': codeset_ids, 'extra_concept_ids': extra_concept_ids})
-
-    timer = get_timer('')
-    VERBOSE and timer('get csmi')
     try:
-        with get_db_connection() as con:
-            sql_w = ''
-            if hide_vocabs:
-                sql_w = f" AND csmi.vocabulary_id NOT {sql_in(hide_vocabs, True)}"
-            query = f"""
-                SELECT csmi.*
-                FROM {SCHEMA}.cset_members_items csmi
-                WHERE codeset_id {sql_in(codeset_ids)}{sql_w}
-            """
-            csmi = sql_query(
-                con, query
-            )
-        VERBOSE and timer('organize cids')
-        concept_ids = set([c['concept_id'] for c in csmi])
-        concept_ids.update(extra_concept_ids)
-
-        # orphans_not_in_graph, here, are just nodes that don't appear in graph
-        #   they'll get appended to the end of the tree at level 0
-        nodes_in_graph = set()
-        orphans_not_in_graph = set()
-        # TODO: deal with two kinds of orphan: not in the graph (handled here)
-        #   and in the graph but having no parents or children
-        for cid in concept_ids:
-            if cid in REL_GRAPH:
-                nodes_in_graph.add(cid)
-            else:
-                orphans_not_in_graph.add(cid)
-
-        preferred_concept_ids = set([c['concept_id']
-                                     for c in csmi
-                                     if c['item'] and not c['concept_id'] in orphans_not_in_graph])
-
-        VERBOSE and timer('connect_nodes')
-        sg = connect_nodes(REL_GRAPH, nodes_in_graph, preferred_concept_ids).copy()
-
-        VERBOSE and timer('get roots')
-        # timer('get paths')
-        # testsg = REL_GRAPH.subgraph(nodes_in_graph)
-        # roots = [node for node, degree in testsg.in_degree() if degree == 0]
-        roots = [node for node, degree in sg.in_degree() if degree == 0]
-        leaves = [node for node, degree in sg.out_degree() if degree == 0]
-
-        orphans_unlinked = set(roots).intersection(leaves)
-        for o in orphans_unlinked:
-            roots.remove(o)
-
-        preferred_concept_ids.update(roots)
-
-        # paths = all_paths(sg, roots, leaves)
-        # timer('testing stuff')
-        #
-        # nodes_in_paths = set()
-        # for path in paths:
-        #     nodes_in_paths.update(path)
-        # sg_nodes = set(sg.nodes)
-        # print(f"sg \u2229 paths {len(sg_nodes.intersection(nodes_in_paths))}")
-        # print(f"sg - paths {len(sg_nodes.difference(nodes_in_paths))}")
-        # print(f"paths - sg {len(nodes_in_paths.difference(sg_nodes))}")
-
-        VERBOSE and timer('get tree')
-        tree = get_indented_tree_nodes(sg, preferred_concept_ids)  # TODO: just testing below, put this line back
-        # tree = get_indented_tree_nodes(sg, nodes_in_paths)
-        if orphans_not_in_graph:
-            tree.append((0, f'{len(orphans_not_in_graph)} nodes in concept set but in our graph'))
-            if len(orphans_not_in_graph) <= 50:
-                for orphan in orphans_not_in_graph:
-                    tree.append((1, orphan))
-
-        if orphans_unlinked:
-            tree.append((0, f'{len(orphans_unlinked)} nodes unconnected to others in the concept set'))
-            if len(orphans_unlinked) <= 50:
-                for orphan in orphans_unlinked:
-                    tree.append((1, orphan))
-
-        # timer('get testtree')
-        # testtree = paths_as_indented_tree(paths)
-        # testtree.append((0, list(orphans_not_in_graph)))
-        VERBOSE and timer('done')
-        # return testtree
-
+        tree = indented_concept_list(request, codeset_ids, extra_concept_ids, hide_vocabs, verbose)
         await rpt.finish(rows=len(tree))
         return tree
     except Exception as e:
         await rpt.log_error(e)
         raise e
-    return tree
 
-def connect_nodes(G, target_nodes, preferred_nodes=[]):
-    """
-        Connects all nodes in target_nodes to the nearest common ancestor.
-        preferred nodes are the version item nodes
-        They should be a subset of target_nodes
-        Besides those, only item members not descended from one of those needs
-        to be connected, but there shouldn't be any (unless their connection was
-        lost in vocabulary updates.)
-        TODO: tell users when version is based on old vocab because connections might not be
-              there anymore, or might require paths that weren't there when it was created
-    """
+def connect_nodes(G, target_nodes, preferred_nodes: Iterable[int] = None):
+    """Connects all nodes in target_nodes to the nearest common ancestor.
 
+    preferred nodes are the version item nodes
+    They should be a subset of target_nodes
+    Besides those, only item members not descended from one of those needs
+    to be connected, but there shouldn't be any (unless their connection was
+    lost in vocabulary updates.)
+    TODO: tell users when version is based on old vocab because connections might not be
+          there anymore, or might require paths that weren't there when it was created
+    """
     timer = get_timer('   ')
     nodes_to_connect = set(preferred_nodes)  # gets smaller as nodes are connected by ancestors
     target_nodes = set(target_nodes)
@@ -708,8 +719,12 @@ if __name__ == '__main__':
     # j = graph_to_json(sg)
     # pdump(j)
 else:
-    if CONFIG['importer'] == 'app.py':
-        # REL_GRAPH, REL_GRAPH_UNDIRECTED = load_relationship_graph(save_if_not_exists=True)
-        REL_GRAPH = load_relationship_graph(save_if_not_exists=True)
-    else:
-        print(f"Imported from {CONFIG['importer']}, not loading relationship graphs")
+    REL_GRAPH = load_relationship_graph(save_if_not_exists=True)
+
+    # The resason this exists below is because we were not sure if, when a variable is imported by multiple files, the
+    # code gets run multiple times.
+    # if CONFIG['importer'] == 'app.py':
+    #     # REL_GRAPH, REL_GRAPH_UNDIRECTED = load_relationship_graph(save_if_not_exists=True)
+    #     REL_GRAPH = load_relationship_graph(save_if_not_exists=True)
+    # else:
+    #     print(f"Imported from {CONFIG['importer']}, not loading relationship graphs")
