@@ -298,16 +298,6 @@ def get_best_common_ancestor(G, nodes):
     raise Exception(f"get_best_ancestor broken for {str(nodes)}")
 
 
-def get_paths_to_roots(G, node):
-    # find all paths from a node to all its root nodes
-    paths = []
-    for parent in G.predecessors(node):
-        paths.append(nx.shortest_path(G, parent, node))
-
-    shortest_path = min(paths, key=len)
-    return shortest_path
-
-
 def get_unrooted_children(G, roots, children):
     unrooted = []
     for child in children:
@@ -323,30 +313,6 @@ def get_unrooted_children(G, roots, children):
             unrooted.append(child)
     return unrooted
 
-
-# test code for the above:
-# G = nx.DiGraph([('a','b'), ('a','c'), ('b','d'), ('b','e'), ('c','f'), ('2', 'c'), ('1', '2'), ('1', 'a')])
-# target_nodes = ['d', 'e', 'f']
-# assert connect_roots(G, target_nodes).edges == nx.DiGraph([('a','b'), ('a','c'), ('b','d'), ('b','e'), ('c','f')]).edges
-# print(list(connect_roots(G, target_nodes).edges))
-
-# test tree paths:
-# G = nx.DiGraph([('a','b'), ('a','c'), ('b','d'), ('b','e'), ('c','f'), ('2', 'c'), ('1', '2'), ('1', 'a')])
-# sg = G.subgraph(['a', 'b', 'c', 'd', 'e', 'f', '1', '2'])
-# assert set(sg.edges) == set([('a','b'), ('a','c'), ('b','d'), ('b','e'), ('c','f'), ('2', 'c'), ('1', '2'), ('1', 'a')])
-# assert tree_paths = get_indented_tree_nodes(sg) == [ (0, '1'), (1, '2'), (2, 'c'), (3, 'f'), (1, 'a'), (2, 'b'), (3, 'd'), (3, 'e'), (2, 'c'), (3, 'f'), (3, 'c') ]
-# assert print_tree_paths(tree_paths) == """
-# 1
-#     2
-#         c
-#             f
-#     a
-#         b
-#             d
-#             e
-#         c
-#             f
-# """
 
 def get_indented_tree_nodes(sg, preferred_concept_ids=[], max_depth=3, max_children=20, small_graph_threshold=2000):
     def dfs(node, depth):
@@ -384,191 +350,29 @@ def get_indented_tree_nodes(sg, preferred_concept_ids=[], max_depth=3, max_child
     return tree
 
 
-def print_tree_paths(paths):
-    for depth, node in paths:
-        indent = "    " * depth
-        print(f"{indent}{node}")
+# test code for the above:
+# G = nx.DiGraph([('a','b'), ('a','c'), ('b','d'), ('b','e'), ('c','f'), ('2', 'c'), ('1', '2'), ('1', 'a')])
+# target_nodes = ['d', 'e', 'f']
+# assert connect_roots(G, target_nodes).edges == nx.DiGraph([('a','b'), ('a','c'), ('b','d'), ('b','e'), ('c','f')]).edges
+# print(list(connect_roots(G, target_nodes).edges))
 
-def all_paths(g: networkx.DiGraph, roots: List[int], leaves: List[int]) -> List[List[int]]:
-    """
-    TODO:   something. this is working better than new technique, but much slower I think
-            i need to compare it with current method to see what went wrong, or if i need
-            this again
-    Creates a subgraph from g using nodes.
-    Identifies root and leaf nodes in this subgraph.
-    Generates all simple paths from each root to each leaf in the original graph g.
-    Returns the list of all such paths.
-    """
-    nodes = set(roots + leaves)
-    paths = []
-    missing_nodes = set()  # nodes needed to traverse all paths but not present in nodes list
-    paths_with_missing_nodes = []
-    descendants_of_missing = set()
-    paths_node_is_in = defaultdict(list)
-    for root in roots:
-        for leaf in leaves:
-            _paths = list(nx.all_simple_paths(g, root, leaf))
-            for path in _paths:
-                # if len(path) > 1: # do i need this? don't think so; it might hide solitary nodes
-                paths.append(path)
-                for node in path:
-                    if path not in paths_node_is_in[node]:
-                        paths_node_is_in[node].append(path)
-                    if node not in nodes:
-                        missing_nodes.add(node)
-                        if not path in paths_with_missing_nodes:
-                            paths_with_missing_nodes.append(path)
-                            for d in path[path.index(node) + 1:]:
-                                descendants_of_missing.add(d)
-
-    # if a path contains a missing node and all its descendants
-    #   show up in other paths, the path is not needed
-    # especially because we're now including stuff from concept_relationship
-    #   that wouldn't appear in the expansion, ....
-    #   TODO: figure out if the concept_relationship edges are really needed
-
-    # TODO: test that this code is doing what it should (and code above too, while you're at it)
-    descendants_of_missing = descendants_of_missing.difference(missing_nodes)   # in case missing have missing descendants
-
-    for path_with_missing in paths_with_missing_nodes:
-        # for each path with missing nodes, check if their descendants show up in other paths
-        nodes_to_check = set(path_with_missing).intersection(descendants_of_missing)
-        # we have to make sure that every descendant node in this path appears in other paths
-        nodes_not_elsewhere = []
-        for node in nodes_to_check:
-            if not [p for p in paths_node_is_in[node] if p not in paths_with_missing_nodes]:
-                # this node does not appear in any non-missing-node paths
-                nodes_not_elsewhere.append(node)
-                break;
-        if not nodes_not_elsewhere:
-            # every node appears elsewhere; safe to remove
-            paths.discard(path_with_missing)
-
-    return paths
-# def all_paths(g: networkx.DiGraph, nodes: set, preferred_nodes: set = set()) -> List[List[int]]:
-#     """
-#     Creates a subgraph from g using nodes.
-#     Fills in gaps (connect_nodes)
-#     Identifies root and leaf nodes in this subgraph.
-#     Generates all simple paths from each root to each leaf in the original graph g.
-#     Returns the list of all such paths.
-#     """
-#     # sg = g.subgraph(nodes)    # this way give a view of g, which is frozen
-#     # sg = nx.DiGraph(g.subgraph(nodes)) #.copy())  # Creates an independent copy of the subgraph
-#     sg = g.subgraph(nodes).copy()  # Creates an independent copy of the subgraph
-#
-#     nodes = set(nodes)
-#     sg = connect_nodes(g, nodes, preferred_nodes)
-#     paths = get_indented_tree_nodes(sg)
-#     return paths
-#     pass
-#     r = json.dumps(paths)
-#     return r
-#     # roots = [node for node, degree in sg.in_degree() if degree == 0]
-#     # leaves = [node for node, degree in sg.out_degree() if degree == 0]
-#     #
-#     # paths = []
-#     # paths_node_is_in = defaultdict(list)
-#     # # already filling in missing in connect_nodes, so no need to do it here anymore
-#     # # missing_nodes = set()  # nodes needed to traverse all paths but not present in nodes list
-#     # # all_nodes = set(nodes)
-#     # # paths_with_missing_nodes = []
-#     # # descendants_of_missing = set()
-#     # for root in roots:
-#     #     for leaf in leaves:
-#     #         # TODO: fix here, it can get really slow, like with http://127.0.0.1:8000/indented-concept-list?codeset_ids=417730759&codeset_ids=423850600&codeset_ids=966671711&codeset_ids=577774492
-#     #         _paths = list(nx.all_simple_paths(sg, root, leaf))
-#     #         for path in _paths:
-#     #             # if len(path) > 1: # do i need this? don't think so; it might hide solitary nodes
-#     #             paths.append(path)
-#     #             for node in path:
-#     #                 if path not in paths_node_is_in[node]:
-#     #                     paths_node_is_in[node].append(path)
-#     #                 # if node not in nodes:
-#     #                 #     missing_nodes.add(node)
-#     #                 #     all_nodes.add(node)
-#     #                 #     if not path in paths_with_missing_nodes:
-#     #                 #         paths_with_missing_nodes.append(path)
-#     #                 #         for d in path[path.index(node) + 1:]:
-#     #                 #             descendants_of_missing.add(d)
-#     # return paths
-
-
-def fill_in_gaps(G, nodes, return_missing=False):
-    raise Exception("fix this. it's going to be too slow, i think")
-    sg = G.subgraph(nodes)
-    roots = [node for node, degree in sg.in_degree() if degree == 0]
-    leaves = [node for node, degree in sg.out_degree() if degree == 0]
-    missing_nodes = set()  # nodes needed to traverse all paths but not present in nodes list
-    for root in roots:
-        for leaf in leaves:
-            _paths = list(nx.all_simple_paths(G, root, leaf))
-            for path in _paths:
-                for node in path:
-                    if node not in nodes:
-                        missing_nodes.add(node)
-    sgc = G.subgraph(nodes + list(missing_nodes))
-    if return_missing:
-        return sgc, missing_nodes
-    return sgc
-
-
-def paths_as_indented_tree(paths: List[List[int]]) -> List[Tuple[int, int]]:
-    """
-    paths: A list of paths (each path is a list of node identifiers).
-    Initializes a root TreeNode with None value.
-    Inserts each path into this tree.
-    Generates a list of lines where each line represents a level and a node identifier in the indented tree.
-    """
-    # Initialize tree and insert paths
-    root = TreeNode(None)  # Root node doesn't hold any data
-    # paths = [("A", "B", "C"), ("A", "B", "D"), ("E", "B", "C"), ("E", "B", "D")]
-    for path in paths:
-        root.insert(path)
-
-    tree = []
-    for line in generate_indented_nodes(root):
-        # tree.append({'level': line[0], 'concept_id': line[1]})
-        tree.append((line[0], line[1]))
-
-    return tree
-
-
-class TreeNode:
-    """TODO: document how this works, what it's for (got it from chatgpt)"""
-    """
-    Purpose: Represents a node in the tree, used to construct the indented tree structure.
-    Attributes:
-    value: The value (or identifier) of the node.
-    children: A dictionary of child nodes.
-    Methods:
-    __init__(self, value): Constructor to initialize the node with a value.
-    insert(self, path): Inserts a path into the tree, starting from this node.
-    """
-    def __init__(self, value):
-        self.value = value
-        self.children = {}
-
-    # this was working until i tried having lists for values (so when the tree got too deep
-    #   or the parent node had too many children, it would just give a list of the children
-    #   instead of recursing down into them)
-    def insert(self, path):
-        if path:
-            head, *tail = path
-            if head not in self.children:
-                self.children[head] = TreeNode(head)
-            self.children[head].insert(tail)
-    # but, also, although this code was working, the variable names are wrong. it assumes
-    #   the path will have a "head" -- which for us is just the indent depth -- and further
-    #   values in the tails, but we only have one value remaining, the node (or, now list of
-    #   nodes) appearing at that spot in the tree
-
-
-def generate_indented_nodes(node, level=-1):
-    if node.value is not None:  # Skip the root node
-        yield level, node.value
-    for child in node.children.values():
-        yield from generate_indented_nodes(child, level + 1)
+# test tree paths:
+# G = nx.DiGraph([('a','b'), ('a','c'), ('b','d'), ('b','e'), ('c','f'), ('2', 'c'), ('1', '2'), ('1', 'a')])
+# sg = G.subgraph(['a', 'b', 'c', 'd', 'e', 'f', '1', '2'])
+# assert set(sg.edges) == set([('a','b'), ('a','c'), ('b','d'), ('b','e'), ('c','f'), ('2', 'c'), ('1', '2'), ('1', 'a')])
+# assert tree_paths = get_indented_tree_nodes(sg) == [ (0, '1'), (1, '2'), (2, 'c'), (3, 'f'), (1, 'a'), (2, 'b'), (3, 'd'), (3, 'e'), (2, 'c'), (3, 'f'), (3, 'c') ]
+# assert print_tree_paths(tree_paths) == """
+# 1
+#     2
+#         c
+#             f
+#     a
+#         b
+#             d
+#             e
+#         c
+#             f
+# """
 
 
 def condense_super_nodes(sg, threshhold=10):
@@ -606,6 +410,25 @@ async def concept_graph_post(request: Request, id: Union[List[int], None] = None
     return {'edges': list(sg.edges), 'layout': layout, 'filled_gaps': filled_gaps}
 
 
+def fill_in_gaps(G, nodes, return_missing=False):
+    raise Exception("fix this. it's going to be too slow, i think")
+    sg = G.subgraph(nodes)
+    roots = [node for node, degree in sg.in_degree() if degree == 0]
+    leaves = [node for node, degree in sg.out_degree() if degree == 0]
+    missing_nodes = set()  # nodes needed to traverse all paths but not present in nodes list
+    for root in roots:
+        for leaf in leaves:
+            _paths = list(nx.all_simple_paths(G, root, leaf))
+            for path in _paths:
+                for node in path:
+                    if node not in nodes:
+                        missing_nodes.add(node)
+    sgc = G.subgraph(nodes + list(missing_nodes))
+    if return_missing:
+        return sgc, missing_nodes
+    return sgc
+
+
 def from_pydot_layout(g):
     pass
 # def find_nearest_common_ancestor(G, nodes):
@@ -635,6 +458,185 @@ def from_pydot_layout(g):
 #     SG = G.edge_subgraph(edges_to_include).copy()
 #     return SG
 
+
+
+# def get_paths_to_roots(G, node):
+#     # find all paths from a node to all its root nodes
+#     paths = []
+#     for parent in G.predecessors(node):
+#         paths.append(nx.shortest_path(G, parent, node))
+#
+#     shortest_path = min(paths, key=len)
+#     return shortest_path
+#
+#
+# def print_tree_paths(paths):
+#     for depth, node in paths:
+#         indent = "    " * depth
+#         print(f"{indent}{node}")
+#
+# def all_paths(g: networkx.DiGraph, roots: List[int], leaves: List[int]) -> List[List[int]]:
+#     """
+#     TODO:   something. this is working better than new technique, but much slower I think
+#             i need to compare it with current method to see what went wrong, or if i need
+#             this again
+#     Creates a subgraph from g using nodes.
+#     Identifies root and leaf nodes in this subgraph.
+#     Generates all simple paths from each root to each leaf in the original graph g.
+#     Returns the list of all such paths.
+#     """
+#     nodes = set(roots + leaves)
+#     paths = []
+#     missing_nodes = set()  # nodes needed to traverse all paths but not present in nodes list
+#     paths_with_missing_nodes = []
+#     descendants_of_missing = set()
+#     paths_node_is_in = defaultdict(list)
+#     for root in roots:
+#         for leaf in leaves:
+#             _paths = list(nx.all_simple_paths(g, root, leaf))
+#             for path in _paths:
+#                 # if len(path) > 1: # do i need this? don't think so; it might hide solitary nodes
+#                 paths.append(path)
+#                 for node in path:
+#                     if path not in paths_node_is_in[node]:
+#                         paths_node_is_in[node].append(path)
+#                     if node not in nodes:
+#                         missing_nodes.add(node)
+#                         if not path in paths_with_missing_nodes:
+#                             paths_with_missing_nodes.append(path)
+#                             for d in path[path.index(node) + 1:]:
+#                                 descendants_of_missing.add(d)
+#
+#     # if a path contains a missing node and all its descendants
+#     #   show up in other paths, the path is not needed
+#     # especially because we're now including stuff from concept_relationship
+#     #   that wouldn't appear in the expansion, ....
+#     #   TODO: figure out if the concept_relationship edges are really needed
+#
+#     # TODO: test that this code is doing what it should (and code above too, while you're at it)
+#     descendants_of_missing = descendants_of_missing.difference(missing_nodes)   # in case missing have missing descendants
+#
+#     for path_with_missing in paths_with_missing_nodes:
+#         # for each path with missing nodes, check if their descendants show up in other paths
+#         nodes_to_check = set(path_with_missing).intersection(descendants_of_missing)
+#         # we have to make sure that every descendant node in this path appears in other paths
+#         nodes_not_elsewhere = []
+#         for node in nodes_to_check:
+#             if not [p for p in paths_node_is_in[node] if p not in paths_with_missing_nodes]:
+#                 # this node does not appear in any non-missing-node paths
+#                 nodes_not_elsewhere.append(node)
+#                 break;
+#         if not nodes_not_elsewhere:
+#             # every node appears elsewhere; safe to remove
+#             paths.discard(path_with_missing)
+#
+#     return paths
+# # def all_paths(g: networkx.DiGraph, nodes: set, preferred_nodes: set = set()) -> List[List[int]]:
+# #     """
+# #     Creates a subgraph from g using nodes.
+# #     Fills in gaps (connect_nodes)
+# #     Identifies root and leaf nodes in this subgraph.
+# #     Generates all simple paths from each root to each leaf in the original graph g.
+# #     Returns the list of all such paths.
+# #     """
+# #     # sg = g.subgraph(nodes)    # this way give a view of g, which is frozen
+# #     # sg = nx.DiGraph(g.subgraph(nodes)) #.copy())  # Creates an independent copy of the subgraph
+# #     sg = g.subgraph(nodes).copy()  # Creates an independent copy of the subgraph
+# #
+# #     nodes = set(nodes)
+# #     sg = connect_nodes(g, nodes, preferred_nodes)
+# #     paths = get_indented_tree_nodes(sg)
+# #     return paths
+# #     pass
+# #     r = json.dumps(paths)
+# #     return r
+# #     # roots = [node for node, degree in sg.in_degree() if degree == 0]
+# #     # leaves = [node for node, degree in sg.out_degree() if degree == 0]
+# #     #
+# #     # paths = []
+# #     # paths_node_is_in = defaultdict(list)
+# #     # # already filling in missing in connect_nodes, so no need to do it here anymore
+# #     # # missing_nodes = set()  # nodes needed to traverse all paths but not present in nodes list
+# #     # # all_nodes = set(nodes)
+# #     # # paths_with_missing_nodes = []
+# #     # # descendants_of_missing = set()
+# #     # for root in roots:
+# #     #     for leaf in leaves:
+# #     #         # TODO: fix here, it can get really slow, like with http://127.0.0.1:8000/indented-concept-list?codeset_ids=417730759&codeset_ids=423850600&codeset_ids=966671711&codeset_ids=577774492
+# #     #         _paths = list(nx.all_simple_paths(sg, root, leaf))
+# #     #         for path in _paths:
+# #     #             # if len(path) > 1: # do i need this? don't think so; it might hide solitary nodes
+# #     #             paths.append(path)
+# #     #             for node in path:
+# #     #                 if path not in paths_node_is_in[node]:
+# #     #                     paths_node_is_in[node].append(path)
+# #     #                 # if node not in nodes:
+# #     #                 #     missing_nodes.add(node)
+# #     #                 #     all_nodes.add(node)
+# #     #                 #     if not path in paths_with_missing_nodes:
+# #     #                 #         paths_with_missing_nodes.append(path)
+# #     #                 #         for d in path[path.index(node) + 1:]:
+# #     #                 #             descendants_of_missing.add(d)
+# #     # return paths
+#
+#
+# def paths_as_indented_tree(paths: List[List[int]]) -> List[Tuple[int, int]]:
+#     """
+#     paths: A list of paths (each path is a list of node identifiers).
+#     Initializes a root TreeNode with None value.
+#     Inserts each path into this tree.
+#     Generates a list of lines where each line represents a level and a node identifier in the indented tree.
+#     """
+#     # Initialize tree and insert paths
+#     root = TreeNode(None)  # Root node doesn't hold any data
+#     # paths = [("A", "B", "C"), ("A", "B", "D"), ("E", "B", "C"), ("E", "B", "D")]
+#     for path in paths:
+#         root.insert(path)
+#
+#     tree = []
+#     for line in generate_indented_nodes(root):
+#         # tree.append({'level': line[0], 'concept_id': line[1]})
+#         tree.append((line[0], line[1]))
+#
+#     return tree
+#
+#
+# def generate_indented_nodes(node, level=-1):
+#     if node.value is not None:  # Skip the root node
+#         yield level, node.value
+#     for child in node.children.values():
+#         yield from generate_indented_nodes(child, level + 1)
+#
+#
+# class TreeNode:
+#     """TODO: document how this works, what it's for (got it from chatgpt)"""
+#     """
+#     Purpose: Represents a node in the tree, used to construct the indented tree structure.
+#     Attributes:
+#     value: The value (or identifier) of the node.
+#     children: A dictionary of child nodes.
+#     Methods:
+#     __init__(self, value): Constructor to initialize the node with a value.
+#     insert(self, path): Inserts a path into the tree, starting from this node.
+#     """
+#     def __init__(self, value):
+#         self.value = value
+#         self.children = {}
+#
+#     # this was working until i tried having lists for values (so when the tree got too deep
+#     #   or the parent node had too many children, it would just give a list of the children
+#     #   instead of recursing down into them)
+#     def insert(self, path):
+#         if path:
+#             head, *tail = path
+#             if head not in self.children:
+#                 self.children[head] = TreeNode(head)
+#             self.children[head].insert(tail)
+#     # but, also, although this code was working, the variable names are wrong. it assumes
+#     #   the path will have a "head" -- which for us is just the indent depth -- and further
+#     #   values in the tails, but we only have one value remaining, the node (or, now list of
+#     #   nodes) appearing at that spot in the tree
+#
 
 def generate_graph_edges():
     with get_db_connection() as con:
