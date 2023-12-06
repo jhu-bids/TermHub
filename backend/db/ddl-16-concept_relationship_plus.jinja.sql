@@ -10,11 +10,13 @@ DROP TABLE IF EXISTS {{schema}}concept_relationship_plus{{optional_suffix}} CASC
 
 CREATE TABLE IF NOT EXISTS {{schema}}concept_relationship_plus{{optional_suffix}} AS (
   SELECT    c1.vocabulary_id AS vocabulary_id_1
+          , c1.standard_concept AS sc1
           , cr.concept_id_1
           , c1.concept_name AS concept_name_1
           , c1.concept_code
           , cr.relationship_id
           , c2.vocabulary_id AS vocabulary_id_2
+          , c2.standard_concept AS sc2
           , cr.concept_id_2
           , c2.concept_name AS concept_name_2
           , c1.total_cnt AS total_cnt_1

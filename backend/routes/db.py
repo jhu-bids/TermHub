@@ -772,7 +772,13 @@ def get_comparison_rpt(con, codeset_id_1: int, codeset_id_2: int) -> Dict[str, U
 
 def generate_n3c_comparison_rpt():
     with get_db_connection() as con:
-        pairs = sql_query(con, "SELECT orig_codeset_id, new_codeset_id FROM public.codeset_comparison")
+        pairs = sql_query(
+            con,
+            """
+                SELECT orig_codeset_id, new_codeset_id
+                FROM public.codeset_comparison
+                WHERE rpt IS NULL
+                """)
         i = 1
         for pair in pairs:
             pair = list(dict(pair).values())

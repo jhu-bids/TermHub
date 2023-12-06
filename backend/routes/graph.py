@@ -124,7 +124,7 @@ async def indented_concept_list_post(request: Request, codeset_ids: List[int],
         tree = get_indented_tree_nodes(sg, preferred_concept_ids)  # TODO: just testing below, put this line back
         # tree = get_indented_tree_nodes(sg, nodes_in_paths)
         if orphans_not_in_graph:
-            tree.append((0, f'{len(orphans_not_in_graph)} nodes in concept set but in our graph'))
+            tree.append((0, f'{len(orphans_not_in_graph)} nodes in concept set but not in our graph'))
             if len(orphans_not_in_graph) <= 50:
                 for orphan in orphans_not_in_graph:
                     tree.append((1, orphan))
@@ -184,7 +184,8 @@ def connect_nodes(G, target_nodes, preferred_nodes=[]):
     # nodes_connected = set()         #
     additional_nodes = set()  # nodes that will be added in order to connect nodes_to_connect
 
-    # TODO: is this actually needed anymore? try removing?
+    # Find nodes that are not connected any nodes_to_connect and add them.
+    #   The rest will already be connected when we create the subgraph.
     VERBOSE and timer('getting unrooted children')
     unrooted_children = get_unrooted_children(
         G, nodes_to_connect, target_nodes.difference(nodes_to_connect))
