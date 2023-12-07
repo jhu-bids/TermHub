@@ -153,7 +153,7 @@ async def indented_concept_list_post(
     await rpt.start_rpt(request, params={
         'codeset_ids': codeset_ids, 'extra_concept_ids': extra_concept_ids})
     try:
-        tree = indented_concept_list(request, codeset_ids, extra_concept_ids, hide_vocabs, verbose)
+        tree = await indented_concept_list(codeset_ids, extra_concept_ids, hide_vocabs)
 
         await rpt.finish(rows=len(tree))
         return tree
@@ -286,12 +286,13 @@ def get_best_common_ancestor(G, nodes):
 
         min_distance = min(max_distances.values())
         min_distance_ancestors = [node for node, dist in max_distances.items() if dist == min_distance]
-        if len(min_distance_ancestors) == 1:
-            common_ancestor = min_distance_ancestors[0]
-            path = paths[common_ancestor]
-            return common_ancestor, set(path[1: -1])
-        else:
-            raise Exception(f"can't choose best ancestor from {str(min_distance_ancestors)} for {str(nodes)}")
+        if len(min_distance_ancestors) != 1:
+            warnings.warn(f"can't choose best ancestor from {str(min_distance_ancestors)} for {str(nodes)}")
+
+        common_ancestor = min_distance_ancestors[0]
+        path = paths[common_ancestor]
+        return common_ancestor, set(path[1: -1])
+
     # else:
     #     raise Exception(f"get_best_ancestor broken for {str(nodes)}")
     # return common_ancestor, path_nodes
