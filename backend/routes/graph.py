@@ -724,7 +724,16 @@ if __name__ == '__main__':
     # j = graph_to_json(sg)
     # pdump(j)
 else:
-    REL_GRAPH = load_relationship_graph(save_if_not_exists=True)
+
+    # if you don't want graph loaded, then somewhere up in the import tree, do this
+    #   import builtins
+    #   builtins.DONT_LOAD_GRAPH = True
+    import builtins
+
+    if hasattr(builtins, 'DONT_LOAD_GRAPH') and DONT_LOAD_GRAPH:
+        warnings.warn('not loading relationship graph')
+    else:
+        REL_GRAPH = load_relationship_graph(save_if_not_exists=True)
 
     # The resason this exists below is because we were not sure if, when a variable is imported by multiple files, the
     # code gets run multiple times.

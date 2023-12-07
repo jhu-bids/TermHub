@@ -99,6 +99,9 @@ export const N3CComparisonRpt = () => {
     })();
   });
 
+  if (!data) {
+    return <div>Loading...</div>;
+  }
   let columns;
   /*
   if (data) {

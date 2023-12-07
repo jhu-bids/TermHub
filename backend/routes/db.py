@@ -3,9 +3,6 @@
     (2023-05-08)
 """
 from fastapi import APIRouter, Query, Request
-
-# for websocket example stuff
-
 import json
 from typing import Dict, List, Union, Set, Optional
 from functools import cache
@@ -25,6 +22,7 @@ from enclave_wrangler.config import RESEARCHER_COLS
 from enclave_wrangler.models import convert_rows
 from backend.routes import graph
 from backend.db.refresh import refresh_db
+
 
 JSON_TYPE = Union[Dict, List]
 
@@ -721,7 +719,7 @@ def n3c_recommended_report(as_json=False) -> Union[List[str], Dict]:
 @router.get("/n3c-comparison-rpt")
 def n3c_comparison_rpt():
     with get_db_connection() as con:
-        rpt = sql_query_single_col(con, "SELECT rpt FROM public.codeset_comparison")
+        rpt = sql_query_single_col(con, "SELECT rpt FROM public.codeset_comparison WHERE rpt IS NOT NULL")
         return rpt
 
 
