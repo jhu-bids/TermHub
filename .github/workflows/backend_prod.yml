@@ -2,6 +2,9 @@
 # More GitHub Actions for Azure: https://github.com/Azure/actions
 # More info on Python, GitHub Actions, and Azure App Service: https://aka.ms/python-webapps-actions
 # A good guide for Python Azure action: https://azure.github.io/AppService/2020/12/11/cicd-for-python-apps.html
+# The actual command that runs to initiate our servers on dev/prod isn't shown in the GH action. Instead, go to the following URL, and then click the "General Settings" tab:
+# Dev: https://portal.azure.com/#@live.johnshopkins.edu/resource/subscriptions/fe24df19-d251-4821-9a6f-f037c93d7e47/resourceGroups/jh-termhub-webapp-rg/providers/Microsoft.Web/sites/termhub/slots/dev/configuration
+# Prod: https://portal.azure.com/#@live.johnshopkins.edu/resource/subscriptions/fe24df19-d251-4821-9a6f-f037c93d7e47/resourceGroups/JH-TERMHUB-WEBAPP-RG/providers/Microsoft.Web/sites/termhub/configuration
 name: Backend prod - build and deploy
 
 # I believe this will do the deploy when merged. We don't want it to deploy prod when PR opened
