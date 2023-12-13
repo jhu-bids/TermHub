@@ -96,6 +96,23 @@ def read_root():
 #
 # cache = memoize(maxsize=1000)
 
+# TODO: Get timeout to work
+import asyncio
+from fastapi import HTTPException
+async def simulate_long_running_task():
+    """Simulate"""
+    await asyncio.sleep(10)
+    return "Computation complete"
+
+@APP.get("/test-timeout")
+async def test_timeout(timeout=3):
+    """Test timeout"""
+    try:
+        result = await asyncio.wait_for(simulate_long_running_task(), timeout=timeout)
+        return {"result": result}
+    except asyncio.TimeoutError:
+        raise HTTPException(status_code=500, detail="Request timed out")
+
 
 if __name__ == '__main__':
     run()
