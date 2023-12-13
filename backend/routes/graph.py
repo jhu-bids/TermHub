@@ -52,7 +52,8 @@ async def indented_concept_list(
     # Get Concept Set Members Items
     VERBOSE and timer('get_connected_subgraph')
 
-    sg, nodes_in_graph, preferred_concept_ids, orphans_not_in_graph = get_connected_subgraph(REL_GRAPH, codeset_ids, extra_concept_ids, hide_vocabs)
+    sg, nodes_in_graph, preferred_concept_ids, orphans_not_in_graph, hidden = (
+        get_connected_subgraph(REL_GRAPH, codeset_ids, extra_concept_ids, hide_vocabs))
 
     VERBOSE and timer('get roots')
     # timer('get paths')
@@ -80,18 +81,29 @@ async def indented_concept_list(
 
     VERBOSE and timer('get tree')
     tree = get_indented_tree_nodes(sg, preferred_concept_ids)  # TODO: just testing below, put this line back
-    # tree = get_indented_tree_nodes(sg, nodes_in_paths)
+
+    hide_if_over = 50
     if orphans_not_in_graph:
-        tree.append((0, f'{len(orphans_not_in_graph)} nodes in concept set but not in our graph'))
-        if len(orphans_not_in_graph) <= 50:
+        cnt = len(orphans_not_in_graph)
+        tree.append((0, f'Concept set also includes {cnt} {'hidden ' if cnt > hide_if_over else ''}nodes in concept set but not in our graph'))
+        if cnt <= hide_if_over:
             for orphan in orphans_not_in_graph:
                 tree.append((1, orphan))
 
     if orphans_unlinked:
-        tree.append((0, f'{len(orphans_unlinked)} nodes unconnected to others in the concept set'))
-        if len(orphans_unlinked) <= 50:
+        cnt = len(orphans_unlinked)
+        tree.append((0, f'Concept set also includes {cnt} {'hidden ' if cnt > hide_if_over else ''}nodes unconnected to others in the concept set'))
+        if cnt <= hide_if_over:
             for orphan in orphans_unlinked:
                 tree.append((1, orphan))
+
+    for vocab in hidden.keys():
+        hidden_concept_ids = hidden[vocab]
+        cnt = len(hidden_concept_ids)
+        tree.append((0, f'Concept set also includes {cnt} {vocab} concepts not shown above'))
+        if cnt <= hide_if_over:
+            for h in hidden_concept_ids:
+                tree.append((1, h))
 
     # timer('get testtree')
     # testtree = paths_as_indented_tree(paths)
@@ -111,6 +123,11 @@ def get_connected_subgraph(
     csmi = get_cset_members_items(codeset_ids=codeset_ids)
     # concepts = get_concepts(extra_concept_ids)
     # give hidden rxnorm ext count
+    hidden = {}
+    for vocab in hide_vocabs:
+        hidden[vocab] = set([c['concept_id'] for c in csmi if c['vocabulary_id'] != 'RxNorm Extension'])
+
+    csmi = [c for c in csmi if c['vocabulary_id'] == 'RxNorm Extension']
 
     # Organize Concept IDs
     timer = get_timer('')
@@ -140,7 +157,7 @@ def get_connected_subgraph(
         if c['item'] and not c['concept_id'] in orphans_not_in_graph])
 
     sg = connect_nodes(REL_GRAPH, nodes_in_graph, preferred_concept_ids).copy()
-    return sg, nodes_in_graph, preferred_concept_ids, orphans_not_in_graph
+    return sg, nodes_in_graph, preferred_concept_ids, orphans_not_in_graph, hidden
 
 
 @router.get("/indented-concept-list")
@@ -414,7 +431,7 @@ async def concept_graph_post(
     try:
         # sg, filled_gaps = fill_in_gaps(REL_GRAPH, id, return_missing=True)
         (sg, nodes_in_graph, preferred_concept_ids,
-         orphans_not_in_graph) = get_connected_subgraph(
+         orphans_not_in_graph, hidden) = get_connected_subgraph(
             REL_GRAPH, codeset_ids, concept_ids, hide_vocabs=['RxNorm Extension'])
         filled_gaps = set(sg.nodes).difference(codeset_ids)
         layout = 'not implemented'
