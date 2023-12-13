@@ -426,7 +426,7 @@ def fetch_cset_and_member_objects(
     if codeset_ids and not since:
         cset_versions: List[Dict] = [fetch_cset_version(_id, retain_properties_nesting=True) for _id in codeset_ids]
     else:
-        cset_versions: List[Dict] = fetch_objects_since_datetime('OMOPConceptSet', since, verbose)
+        cset_versions: List[Dict] = fetch_objects_since_datetime('OMOPConceptSet', since, verbose) or []
     # - Filter any old drafts from sourceApplicationVersion 1.0. Old data model. No containers, etc. See also:
     #  https://github.com/jhu-bids/TermHub/actions/runs/6489411749/job/17623626419
     cset_versions = [x for x in cset_versions if x['properties']['conceptSetNameOMOP']]
@@ -440,10 +440,10 @@ def fetch_cset_and_member_objects(
         # todo: will a container ever be paginated? can drop this param, though shouldn't matter
         container: List[Dict] = make_objects_request(
             # @joeflack4 -- concept set names sent to the api need to be urllib quoted
-            'OMOPConceptSetContainer', query_params={'properties.conceptSetId.eq': uquote(_id)}, verbose=verbose,
+            'OMOPConceptSetContainer', query_params={'properties.conceptSetId.eq': _id}, verbose=verbose,
             return_type='data', handle_paginated=True)
         if not container:
-            raise ValueError(f'Enclave API returned cset version with container of id {uquote(_id)}, but failed to call data '
+            raise ValueError(f'Enclave API returned cset version with container of id {_id}, but failed to call data '
                              f'for that specific container.')
         cset_containers.append(container[0]['properties'])
 

@@ -344,6 +344,11 @@ def make_objects_request(
                 data: List[Dict] = handle_paginated_request(url, verbose=verbose, error_dir=outdir)
                 if data:
                     return data
+                if retry_if_empty:
+                    sleep(retry_pause)
+                    continue
+                print(f'no data returned in make_objects_request for {url}')
+                return
             else:
                 response: Response = enclave_get(url, verbose=verbose, error_dir=outdir, **request_args)
                 if return_type == 'Response':

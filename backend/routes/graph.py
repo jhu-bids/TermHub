@@ -85,14 +85,14 @@ async def indented_concept_list(
     hide_if_over = 50
     if orphans_not_in_graph:
         cnt = len(orphans_not_in_graph)
-        tree.append((0, f'Concept set also includes {cnt} {'hidden ' if cnt > hide_if_over else ''}nodes in concept set but not in our graph'))
+        tree.append((0, f"Concept set also includes {cnt} {'hidden ' if cnt > hide_if_over else ''}nodes in concept set but not in our graph"))
         if cnt <= hide_if_over:
             for orphan in orphans_not_in_graph:
                 tree.append((1, orphan))
 
     if orphans_unlinked:
         cnt = len(orphans_unlinked)
-        tree.append((0, f'Concept set also includes {cnt} {'hidden ' if cnt > hide_if_over else ''}nodes unconnected to others in the concept set'))
+        tree.append((0, f"Concept set also includes {cnt} {'hidden ' if cnt > hide_if_over else ''}nodes unconnected to others in the concept set"))
         if cnt <= hide_if_over:
             for orphan in orphans_unlinked:
                 tree.append((1, orphan))
@@ -125,7 +125,7 @@ def get_connected_subgraph(
     # give hidden rxnorm ext count
     hidden = {}
     for vocab in hide_vocabs:
-        hidden[vocab] = set([c['concept_id'] for c in csmi if c['vocabulary_id'] != 'RxNorm Extension'])
+        hidden[vocab] = set([c['concept_id'] for c in csmi if c['vocabulary_id'] == vocab])
 
     csmi = [c for c in csmi if c['vocabulary_id'] == 'RxNorm Extension']
 
@@ -322,6 +322,10 @@ def get_best_common_ancestor(G, nodes):
     #     raise Exception(f"get_best_ancestor broken for {str(nodes)}")
     # return common_ancestor, path_nodes
     raise Exception(f"get_best_ancestor broken for {str(nodes)}")
+
+
+def distance_to_root(G, node):
+    pass
 
 
 def get_unrooted_children(G, roots, children):
