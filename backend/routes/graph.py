@@ -210,6 +210,7 @@ def connect_nodes(G, target_nodes, preferred_nodes: Iterable[int] = None):
         G, nodes_to_connect, target_nodes.difference(nodes_to_connect))
     if (unrooted_children):
         # raise Exception("is this ever happening?")
+        # TODO: this does actually happen; add comment here about why
         print(f"wasn't expecting to find unrooted children {str(unrooted_children)}") # except if vocab changes disconnected them from any other nodes
         nodes_to_connect.update(unrooted_children)
 

@@ -290,7 +290,7 @@ def upload_new_container_with_concepts(
     on_behalf_of: str, concept_set_name: str, intention: str, versions_with_concepts: List[Dict],
     research_project: str = ENCLAVE_PROJECT_NAME, assigned_sme: str = PALANTIR_ENCLAVE_USER_ID_1,
     assigned_informatician: str = PALANTIR_ENCLAVE_USER_ID_1, validate_first=VALIDATE_FIRST,
-    fail_if_exists = True, skip_if_exists = False
+    fail_if_exists = True
 ) -> Dict[str, Union[Response, List[Response]]]:
     """Upload a new concept set container, and 1+ concept set versions, along with their concepts.
 
@@ -333,6 +333,7 @@ def upload_new_container_with_concepts(
             expect_single_item=True,
             handle_paginated=False,
             retry_if_empty=False)
+        # TODO: check that already existing version matches what was to be uploaded...?
         if not version: # if container was already uploaded but not version, upload version now
             version: Dict[str, Union[Response, List[Response]]] = \
                 upload_new_cset_version_with_concepts(**(versions_with_concepts[0]),
@@ -1151,7 +1152,7 @@ def upload_cset_copy_in_new_container(
 
     d = upload_new_container_with_concepts(
         **container_args, versions_with_concepts=[version_args],
-        fail_if_exists=False, skip_if_exists=True, validate_first=True)
+        fail_if_exists=False, validate_first=True)
 
     container: Dict = d['upload_concept_set_container']
     if not container:
