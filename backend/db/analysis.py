@@ -181,6 +181,10 @@ def counts_over_time(
         # todo: List number of times the refresh ran that day somewhere?
         # count = dateslist.count(date)
         # datedf.loc[f'Number of refreshes ran'] = count
+        # todo: improve performance. This msg is showing up many times:
+        #  PerformanceWarning: DataFrame is highly fragmented.  This is usually the result of calling `frame.insert`
+        #  many times, which has poor performance.  Consider joining all columns at once using pd.concat(axis=1)
+        #  instead. To get a de-fragmented frame, use `newframe = frame.copy()`
         if values == 'counts':
             # Keep only the most recent column from each day
             finaldf[date] = datedf.iloc[:, -1:]
