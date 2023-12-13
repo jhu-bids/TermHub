@@ -301,9 +301,9 @@ def fetch_objects_since_datetime(object_type: str, since: Union[datetime, str], 
 # TODO: make pagination automatic, but need to make sure that every call to make_objects_request is requesting
 #   return type data (and remove that parameter, or make data the default at least)
 def make_objects_request(
-    path: str, verbose=False, url_only=False, return_type: str = ['Response', 'json', 'data'][0],
+    path: str, url_only=False, return_type: str = ['Response', 'json', 'data'][0],
     handle_paginated=False, expect_single_item=False, retry_if_empty=False, retry_times=15, retry_pause=1,
-    outdir: str = None, query_params: Dict = None, fail_on_error=True, **request_args
+    outdir: str = None, query_params: Dict = None, fail_on_error=True, verbose=False, **request_args
         # why isn't fail_on_error implemented?
 ) -> Union[Response, JSON_TYPE, str]:
     """Fetch objects from enclave
@@ -337,7 +337,7 @@ def make_objects_request(
             return url
 
         # Fetch data
-        for i in range(retry_times):
+        for i in range(retry_times):    # are we still using retry feature?
             if retry_if_empty:
                 print(f'make_objects_request, attempt #{i}')
             if handle_paginated:
@@ -346,12 +346,34 @@ def make_objects_request(
                     return data
             else:
                 response: Response = enclave_get(url, verbose=verbose, error_dir=outdir, **request_args)
+                if return_type == 'Response':
+                    if retry_if_empty:
+                        raise EnclaveWranglerErr("Don't ask for retry_if_empty and return_type=Response")
+                    return response
                 response_json: JSON_TYPE = response.json()
-                # single items don't have 'data', just 'properties' at the top
-                data: List[Dict] = response_json['properties'] if expect_single_item else response_json['data']
-                if data:
-                    break
-            sleep(retry_pause)
+                if retry_if_empty:
+                    if not response_json or not response_json['data']:
+                        sleep(retry_pause)
+                        continue
+                if return_type == 'json':  # do error checking/handling?
+                    return response_json
+                if return_type == 'data':
+                    data = response_json
+                    if 'data' in response_json:
+                        data = response_json['data']
+                    # single items don't have 'data', just 'properties' at the top
+                    #   except if coming from object links, which are always a list
+                    #   even if expecting only one
+                    if expect_single_item:
+                        if type(data) == list:
+                            if len(data) == 1:
+                                return data[0]['properties']
+                            raise EnclaveWranglerErr(f"expected 1 item, got {len(data)}")
+                        else:
+                            return data['properties']
+                    return data
+                else:
+                    raise EnclaveWranglerErr(f"unknown return_type {return_type}")
     except Exception as err:
         if fail_on_error:
             raise err
@@ -359,13 +381,8 @@ def make_objects_request(
             print(err)
             return
 
+    raise EnclaveWranglerErr(f"didn't expect to get here")
     # Return
-    if return_type == 'Response':
-        return response
-    if return_type == 'json':        # do error checking/handling?
-        return response_json
-    if return_type == 'data':
-        return data
 
 
 def make_actions_request(
@@ -476,10 +493,15 @@ def relevant_trace():
     return '\n'.join(trace)
 
 
-def print_curl(url: str, data: Union[List, Dict]=None, args: Dict = {}, trace:bool=False):
+def print_curl(
+    url: str, data: Union[List, Dict]=None, args: Dict = {},
+    trace:bool=False, url_encode=True):
     """Print curl command for debugging"""
+    if url_encode:
+        url = urllib.parse.quote(url, safe=';:/')
+
     curl = f"""\ncurl {get_headers(for_curl=True)} \\
-            {url}"""
+            '{url}'"""
     if data:
         curl += f" \\\n--data '{json.dumps(data)}' | jq\n"
     if args:
@@ -489,7 +511,7 @@ def print_curl(url: str, data: Union[List, Dict]=None, args: Dict = {}, trace:bo
     print(curl)  # printing to debugger during test doesn't work; have to do it manually
 
 
-def get_random_codeset_id(related_codeset_id: Union[int, None]) -> int:
+def get_random_codeset_id(related_codeset_id: Union[int, None] = None) -> int:
     """Generage random Codeset ID"""
     # todo: this is temporary until I handle registry persistence
     arbitrary_range = 100000

@@ -20,7 +20,9 @@ from argparse import ArgumentParser
 from datetime import datetime
 from pathlib import Path
 from typing import List, Dict, Set, Tuple, Union
-from urllib.parse import quote
+from urllib.parse import quote, unquote
+
+uquote = lambda s: quote(unquote(s), safe='')   # in case it was already quoted
 
 from sanitize_filename import sanitize
 
@@ -152,7 +154,10 @@ def get_link_types(use_cache_if_failure=False) -> List[Union[Dict, str]]:
 
 def get_object_links(
     object_type: str, object_id: str, link_type: str, fail_on_error=False, handle_paginated=True,
-    return_type: str = ['Response', 'json', 'data'][2], verbose=False
+    return_type: str = ['Response', 'json', 'data'][2], retry_if_empty=False,
+    expect_single_item=False,
+    verbose = False,
+
 ) -> Union[Response, List[Dict]]:
     """Get links of a given type for a given object
 
@@ -161,7 +166,8 @@ def get_object_links(
     """
     return make_objects_request(
         f'{object_type}/{object_id}/links/{link_type}', return_type=return_type, fail_on_error=fail_on_error,
-        handle_paginated=handle_paginated, verbose=verbose)
+        handle_paginated=handle_paginated, expect_single_item=expect_single_item,
+        retry_if_empty=retry_if_empty, verbose=verbose)
 
 
 # TODO: Why does this not work for Joe, but works for Siggie?:
@@ -250,7 +256,7 @@ def get_bundle_codeset_ids(bundle_name):
     """Get bundle codeset IDs"""
     bundle = get_bundle(bundle_name)
     codeset_ids = [b['properties']['bestVersionId'] for b in bundle]
-    return codeset_ids
+    return list(set(codeset_ids))
 
 
 # TODO: do together: all_new_objects_to_db() fetch_all_new_objects() all_new_objects_enclave_to_db()
@@ -278,7 +284,7 @@ def fetch_all_new_objects(since: Union[datetime, str]) -> Dict[str, List]:
     since = str(since)
     csets_and_members: Dict[str, List] = fetch_cset_and_member_objects(since)
     # TODO:
-    researchers = get_researchers()
+    researchers = download_all_researchers()
     # TODO:
     projects = get_projects()
     # TODO: what else?
@@ -433,10 +439,11 @@ def fetch_cset_and_member_objects(
     for _id in containers_ids:
         # todo: will a container ever be paginated? can drop this param, though shouldn't matter
         container: List[Dict] = make_objects_request(
-            'OMOPConceptSetContainer', query_params={'properties.conceptSetId.eq': _id}, verbose=verbose,
+            # @joeflack4 -- concept set names sent to the api need to be urllib quoted
+            'OMOPConceptSetContainer', query_params={'properties.conceptSetId.eq': uquote(_id)}, verbose=verbose,
             return_type='data', handle_paginated=True)
         if not container:
-            raise ValueError(f'Enclave API returned cset version with container of id {_id}, but failed to call data '
+            raise ValueError(f'Enclave API returned cset version with container of id {uquote(_id)}, but failed to call data '
                              f'for that specific container.')
         cset_containers.append(container[0]['properties'])
 
@@ -534,6 +541,8 @@ def fetch_object_by_id(
         object_type_name,
         query_params={f'properties.{id_field}.eq': str(object_id)},
         return_type='data', verbose=verbose, handle_paginated=True)
+    if not matches:
+        return {}
     obj: Dict = matches[0] if retain_properties_nesting else matches[0]['properties']
     return obj
 
@@ -543,9 +552,11 @@ def fetch_cset_version(object_id: int, retain_properties_nesting=False) -> Dict:
     return fetch_object_by_id('OMOPConceptSet', object_id, 'codesetId', retain_properties_nesting)
 
 
-def fetch_cset_container(object_id: int, retain_properties_nesting=False) -> Dict:
+def fetch_cset_container(object_id: str, fail_on_error=False, retain_properties_nesting=False, verbose=False) -> Dict:
     """Get object from enclave"""
-    return fetch_object_by_id('OMOPConceptSetContainer', object_id, 'conceptSetId', retain_properties_nesting)
+    return make_objects_request(
+        f'OMOPConceptSetContainer/{object_id}', fail_on_error=fail_on_error,
+        verbose=verbose, return_type='data', expect_single_item=True)
 
 
 def fetch_cset_member_item(object_id: int, retain_properties_nesting=False) -> Dict:
@@ -752,7 +763,7 @@ def get_codeset_json(codeset_id, con: Connection = None, use_cache=True, set_cac
             return jsn[0]
     cset = make_objects_request(f'objects/OMOPConceptSet/{codeset_id}', return_type='data', expect_single_item=True)
     container = make_objects_request(
-        f'objects/OMOPConceptSetContainer/{quote(cset["conceptSetNameOMOP"], safe="")}',
+        f'objects/OMOPConceptSetContainer/{uquote(cset["conceptSetNameOMOP"], safe="")}',
         return_type='data', expect_single_item=True)
     items = get_concept_set_version_expression_items(codeset_id, handle_paginated=True, return_detail='full')
     items_jsn = items_to_atlas_json_format(items)
@@ -919,13 +930,23 @@ def get_concept_set_version_members(
     return members
 
 
-def get_researchers(verbose=False) -> List[Dict]:
+def download_all_researchers(verbose=False) -> List[Dict]:
     """Get researcher objects
     Researcher exploration page:
     https://unite.nih.gov/workspace/hubble/exploration?objectTypeRid=ri.ontology.main.object-type.70d7defa-4914-422f-83da-f45c28befd5a
     """
     object_name = 'Researcher'
     data: List[Dict] = make_objects_request(object_name, handle_paginated=True, return_type='data', verbose=verbose)
+    return data
+
+
+def get_researcher(multipass_id: str, verbose=False) -> Dict:
+    """Get researcher objects
+    Researcher exploration page:
+    https://unite.nih.gov/workspace/hubble/exploration?objectTypeRid=ri.ontology.main.object-type.70d7defa-4914-422f-83da-f45c28befd5a
+    """
+    object_name = 'Researcher'
+    data: List[Dict] = make_objects_request(object_name + '/' + multipass_id, expect_single_item=True, return_type='data', verbose=verbose)
     return data
 
 

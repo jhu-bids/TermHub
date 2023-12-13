@@ -20,7 +20,7 @@ from enclave_wrangler.objects_api import get_n3c_recommended_csets, enclave_api_
 from enclave_wrangler.utils import make_objects_request, whoami
 from enclave_wrangler.config import RESEARCHER_COLS
 from enclave_wrangler.models import convert_rows
-from backend.routes import graph
+# from backend.routes import graph
 from backend.db.refresh import refresh_db
 
 
@@ -140,8 +140,10 @@ def get_related_csetsOBSOLETE(  # not calling this from front end anymore. can r
     return related_csets
 
 
-async def get_cset_members_items(request: Request, codeset_ids: List[int], columns: Union[List[str], None] = None,
-                           column: Union[str, None] = None, con: Connection = None
+def get_cset_members_items(
+    codeset_ids: List[int] = [],
+    columns: Union[List[str], None] = None,
+    column: Union[str, None] = None,
 ) -> Union[List[int], List]:
     """Get concept set members items for selected concept sets
         returns:
@@ -149,39 +151,60 @@ async def get_cset_members_items(request: Request, codeset_ids: List[int], colum
         item: True if its an expression item, else false
         csm: false if not in concept set members
     """
-    con = con if con else get_db_connection()
     if column:
+        # should check that column names are valid columns in concept_set_members
+        # but probably never use this option anyway
         columns = [column]
     if not columns:
         columns = ['*']
         # columns = ['codeset_id', 'concept_id']
 
-    rpt = Api_logger()
-    await rpt.start_rpt(request=request, params={'codeset_ids': codeset_ids})
-
     with get_db_connection() as con:
-        try:
-            query = f"""
-                SELECT DISTINCT {', '.join(columns)}
-                FROM cset_members_items
-                WHERE codeset_id {sql_in(codeset_ids)}
-            """
-            rows: List = sql_query(con, query, debug=False, return_with_keys=True)
-            if column:  # with single column, don't return List[Dict] but just List(<column>)
-                rows: List[int] = [r[column] for r in rows]
+        query = f"""
+            SELECT DISTINCT {', '.join(columns)}
+            FROM cset_members_items
+            WHERE codeset_id {sql_in(codeset_ids)}
+        """
+        rows: List = sql_query(con, query, debug=False, return_with_keys=True)
+        if column:  # with single column, don't return List[Dict] but just List(<column>)
+            rows: List[int] = [r[column] for r in rows]
 
-            rows: List = sql_query(con, query)
-            await rpt.finish(rows=len(rows))
-        except Exception as e:
-            await rpt.log_error(e)
-            raise e
+        rows: List = sql_query(con, query)
+        return rows
 
-    # should check that column names are valid columns in concept_set_members
+
+# TODO: don't keep both these routes; redundant
+@router.get("/cset-members-items")
+def _cset_members_items(codeset_ids: Union[str, None] = Query(default=''), ) -> List:
+    """Route for: cset_memberss_items()"""
+    codeset_ids: List[int] = parse_codeset_ids(codeset_ids)
+    return get_cset_members_items(codeset_ids)
+
+
+@router.get("/get-cset-members-items")
+async def _get_cset_members_items(request: Request,
+                                  codeset_ids: str,
+                                  columns: Union[List[str], None] = Query(default=None),
+                                  column: Union[str, None] = Query(default=None),
+                                  # extra_concept_ids: Union[int, None] = Query(default=None)
+                                  ) -> Union[List[int], List]:
+    requested_codeset_ids = parse_codeset_ids(codeset_ids)
+    rpt = Api_logger()
+    await rpt.start_rpt(request, params={'codeset_ids': requested_codeset_ids})
+
+    try:
+        rows = get_cset_members_items(requested_codeset_ids, columns, column)
+        await rpt.finish(rows=len(rows))
+    except Exception as e:
+        await rpt.log_error(e)
+        raise e
     return rows
 
-
 def get_concept_set_member_ids(
-    codeset_ids: List[int], columns: Union[List[str], None] = None, column: Union[str, None] = None, con: Connection = None
+    codeset_ids: List[int],
+    columns: Union[List[str], None] = None,
+    column: Union[str, None] = None,
+    con: Connection = None
 ) -> Union[List[int], List]:
     """Get concept set members"""
     con = con if con else get_db_connection()
@@ -343,24 +366,6 @@ def _get_all_csets() -> Union[Dict, List]:
     return get_all_csets()
 
 
-@router.get("/get-cset-members-items")
-async def _get_cset_members_items(request: Request,
-                            codeset_ids: str,
-                            columns: Union[List[str], None] = Query(default=None),
-                            column: Union[str, None] = Query(default=None)
-                            ) -> Union[List[int], List]:
-    requested_codeset_ids = parse_codeset_ids(codeset_ids)
-    rpt = Api_logger()
-    await rpt.start_rpt(request, params={'codeset_ids': requested_codeset_ids})
-
-    try:
-        rows = await get_cset_members_items(request, requested_codeset_ids, columns, column)
-        await rpt.finish(rows=len(rows))
-    except Exception as e:
-        await rpt.log_error(e)
-        raise e
-    return rows
-
 
 @router.get("/get-csets")
 async def _get_csets(request: Request, codeset_ids: Union[str, None] = Query(default=''),
@@ -405,12 +410,6 @@ def get_researchers(id: List[str] = Query(...), fields: Union[List[str], None] =
     return res2
 
 
-@router.get("/cset-members-items")
-def _cset_members_items(codeset_ids: Union[str, None] = Query(default=''), ) -> List:
-    """Route for: cset_memberss_items()"""
-    codeset_ids: List[int] = parse_codeset_ids(codeset_ids)
-    return get_cset_members_items(codeset_ids)
-
 @router.get("/db-refresh")
 def db_refresh_route():
     """Triggers refresh of the database
@@ -428,36 +427,6 @@ def db_refresh_route():
     # response: Response = call_github_action('refresh-db')
     # return response
     refresh_db()
-
-
-
-# TODO: if using this at all, fix it to use graph.hierarchy, which doesn't need root_cids
-# @router.get("/hierarchy")
-# def _hierarchy(
-#     root_cids: List[int], selected_concept_ids: List[int] = Query(default='')
-# ) -> Dict[int, Union[Dict, None]]:
-#     """Route for: hierarchy()"""
-#     h, orphans = hierarchy(root_cids, selected_concept_ids)
-#     return h
-
-
-@router.get("/get-concept_relationships")
-def _get_concept_relationships(
-    codeset_ids: Union[str, None] = Query(default='')
-) -> Dict[int, Union[Dict, None]]:
-    """Route for: get_concept_relationships -- except that it takes codeset_ids instead of concept_ids"""
-    codeset_ids: List[int] = parse_codeset_ids(codeset_ids)
-    concept_ids: List[int] = get_concept_set_member_ids(codeset_ids, column='concept_id')
-    cr_rows = get_concept_relationships(concept_ids)
-
-    # just starting to try to make hierarchical list of these
-    #p2c = itertools.groupby(cr_rows, lambda r: r['concept_id_1'])
-    # pairs = [(r['concept_id_1'],r['concept_id_2']) for r in cr_rows]
-    # p2c = itertools.groupby(pairs, lambda r: r[0])
-    # d = {k:[x[1] for x in list(v)] for k,v in p2c}
-
-    return cr_rows
-
 
 
 FLAGS = ['includeDescendants', 'includeMapped', 'isExcluded']
@@ -527,70 +496,6 @@ def _atlas_json_from_defs(defStr: List[Dict]) -> Dict:
     defs = json.loads(defStr)
     return atlas_json_from_defs(defs)
 
-
-# TODO: get back to how we had it before RDBMS refactor
-@router.get("/cr-hierarchy")
-@return_err_with_trace
-def cr_hierarchy(include_atlas_json: bool = False, codeset_ids: Union[str, None] = Query(default=''), ) -> Dict:
-    """Get concept relationship hierarchy
-
-    Example:
-    http://127.0.0.1:8000/cr-hierarchy?format=flat&codeset_ids=400614256|87065556
-    """
-    verbose = True
-    # TODO: TEMP FOR TESTING. #191 isn't a problem with the old json data
-    # fp = open(r'./backend/old_cr-hierarchy_samples/cr-hierarchy - example1 - before refactor.json')
-    # return json.load(fp)
-
-    timer = get_timer('cr-hierarchy')
-    verbose and timer('members items')
-    codeset_ids: List[int] = parse_codeset_ids(codeset_ids)
-    # concept_ids: List[int] = get_concept_set_member_ids(codeset_ids, column='concept_id')
-    cset_members_items = get_cset_members_items(codeset_ids)
-    concept_ids = set([item['concept_id'] for item in cset_members_items])
-
-    # this was redundant
-    # concept_ids = list(set([i['concept_id'] for i in cset_members_items]))
-
-    verbose and timer('hierarchy')
-    # hierarchy --------
-    # h, orphans = hierarchy(item_concept_ids, concept_ids)
-    # nh = new_hierarchy(root_cids=item_concept_ids, cids=concept_ids)
-    # h = hierarchy(selected_concept_ids=concept_ids)
-    # h = graph.hierarchy(concept_ids)
-
-    verbose and timer('related csets')
-    related_csets = 'BROKEN!!!!!' # get_related_csets(codeset_ids=codeset_ids, selected_concept_ids=concept_ids, include_atlas_json=include_atlas_json)
-    selected_csets = [cset for cset in related_csets if cset['selected']]
-    verbose and timer('researcher ids')
-    researcher_ids = get_all_researcher_ids(related_csets)
-    verbose and timer('researchers')
-    researchers = get_researchers(researcher_ids)
-    verbose and timer('concepts')
-    edges = graph.subgraph(concept_ids)
-
-    concept_ids.update([int(e[0]) for e in edges])
-    concept_ids.update([int(e[1]) for e in edges])
-    concept_ids = list(concept_ids)
-    concepts = [dict(c) for c in get_concepts(concept_ids)]
-    # for c in concepts:
-    #     if c['concept_id'] in orphans:
-    #         c['is_orphan'] = True
-    # concept_relationships = get_concept_relationships(concept_ids)
-
-    result = {
-        'edges': edges,
-        'cset_members_items': cset_members_items,
-        'selected_csets': selected_csets,
-        'researchers': researchers,
-        # todo: Check related_csets() to see its todo's
-        # todo: Check get_csets() to see its todo's
-        'related_csets': related_csets,
-        'concepts': concepts,
-    }
-    verbose and timer('done')
-
-    return result
 
 @router.get('/omop-id-from-concept-name/{name}')
 def omop_id_from_concept_name(name):

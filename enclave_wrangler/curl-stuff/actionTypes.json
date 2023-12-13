@@ -2,44 +2,51 @@
   "data": [
     {
       "apiName": "new-action-fa9c3c92-a727-65fe-0c39-16d5c06a63cb",
-      "description": "",
       "status": "EXPERIMENTAL",
       "parameters": {
         "researcher_multipass_id": {
-          "description": "",
           "baseType": "String",
           "required": true
         },
         "Researcher": {
-          "description": "",
           "baseType": "OntologyObject<Researcher>",
           "required": true
         }
       },
-      "rid": "ri.actions.main.action-type.0227f4b5-fcdb-4c8f-9cbe-9695a7b4e275"
+      "rid": "ri.actions.main.action-type.0227f4b5-fcdb-4c8f-9cbe-9695a7b4e275",
+      "operations": [
+        {
+          "type": "modifyObject",
+          "objectTypeApiName": "Researcher"
+        }
+      ]
     },
     {
       "apiName": "dur-update-project-abstract",
-      "description": "",
       "status": "ACTIVE",
       "parameters": {
         "original_value": {
-          "description": "",
           "baseType": "String",
           "required": true
         },
         "new_value": {
-          "description": "",
           "baseType": "String",
           "required": true
         },
         "DUR_response_group": {
-          "description": "",
           "baseType": "String",
           "required": true
         }
       },
-      "rid": "ri.actions.main.action-type.0321f64a-eb87-4e61-ab09-656d47c68701"
+      "rid": "ri.actions.main.action-type.0321f64a-eb87-4e61-ab09-656d47c68701",
+      "operations": []
+    },
+    {
+      "apiName": "reset-show-survey-popup-flag",
+      "status": "EXPERIMENTAL",
+      "parameters": {},
+      "rid": "ri.actions.main.action-type.06cbff36-b601-4f43-a53b-656974259a4b",
+      "operations": []
     },
     {
       "apiName": "update-draft-cohort-codeset-link",
@@ -47,17 +54,21 @@
       "status": "ACTIVE",
       "parameters": {
         "conceptSets": {
-          "description": "",
           "baseType": "Array<OntologyObject<OMOPConceptSet>>",
           "required": true
         },
         "link": {
-          "description": "",
           "baseType": "OntologyObject<DraftOmopCohortVersionCodesetVersionLink>",
           "required": true
         }
       },
-      "rid": "ri.actions.main.action-type.06e73406-7cef-4ead-8c5a-dac3c254f468"
+      "rid": "ri.actions.main.action-type.06e73406-7cef-4ead-8c5a-dac3c254f468",
+      "operations": [
+        {
+          "type": "modifyObject",
+          "objectTypeApiName": "DraftOmopCohortVersionCodesetVersionLink"
+        }
+      ]
     },
     {
       "apiName": "mark-dur-allow-joining",
@@ -65,17 +76,16 @@
       "status": "ACTIVE",
       "parameters": {
         "joining_property": {
-          "description": "",
           "baseType": "String",
           "required": true
         },
         "DUR_response_group": {
-          "description": "",
           "baseType": "String",
           "required": true
         }
       },
-      "rid": "ri.actions.main.action-type.0940802f-0d71-4ffa-a9a8-dec27bd1ddd1"
+      "rid": "ri.actions.main.action-type.0940802f-0d71-4ffa-a9a8-dec27bd1ddd1",
+      "operations": []
     },
     {
       "apiName": "ack-concept-set-version-change",
@@ -93,35 +103,67 @@
           "required": true
         },
         "createdBy": {
-          "description": "",
           "baseType": "OntologyObject<Researcher>",
           "required": true
         },
         "version": {
-          "description": "",
           "baseType": "OntologyObject<OMOPConceptSet>",
           "required": true
         },
         "createdAt": {
-          "description": "",
           "baseType": "Timestamp",
           "required": true
         }
       },
-      "rid": "ri.actions.main.action-type.0978f4b3-32b0-44e6-882d-ed20d5a769a4"
+      "rid": "ri.actions.main.action-type.0978f4b3-32b0-44e6-882d-ed20d5a769a4",
+      "operations": [
+        {
+          "type": "createObject",
+          "objectTypeApiName": "ConceptSetVersionChangeAcknowledgement"
+        },
+        {
+          "type": "modifyObject",
+          "objectTypeApiName": "ConceptSetVersionChangeAcknowledgement"
+        }
+      ]
+    },
+    {
+      "apiName": "new-action-e8ed63ff-1135-2cff-232b-ce424f35378c",
+      "status": "EXPERIMENTAL",
+      "parameters": {
+        "N3CKnowledgeObjects": {
+          "baseType": "OntologyObject<N3CKnowledgeObjects>",
+          "required": true
+        },
+        "source_research_project_id": {
+          "baseType": "String",
+          "required": true
+        }
+      },
+      "rid": "ri.actions.main.action-type.0d1b740f-a493-4ee3-a940-7c2cfcb41c89",
+      "operations": [
+        {
+          "type": "modifyObject",
+          "objectTypeApiName": "N3CKnowledgeObjects"
+        }
+      ]
     },
     {
       "apiName": "delete-ko",
-      "description": "",
       "status": "ACTIVE",
       "parameters": {
         "ko": {
-          "description": "",
           "baseType": "OntologyObject<N3CKnowledgeObjects>",
           "required": true
         }
       },
-      "rid": "ri.actions.main.action-type.10e900db-8594-47ef-8e78-fec90f792bc0"
+      "rid": "ri.actions.main.action-type.10e900db-8594-47ef-8e78-fec90f792bc0",
+      "operations": [
+        {
+          "type": "deleteObject",
+          "objectTypeApiName": "N3CKnowledgeObjects"
+        }
+      ]
     },
     {
       "apiName": "ko-set-synthetic-workbook",
@@ -129,30 +171,38 @@
       "status": "ACTIVE",
       "parameters": {
         "ko_synthetic_workbook": {
-          "description": "",
           "baseType": "String",
           "required": true
         },
         "N3CKnowledgeObjects": {
-          "description": "",
           "baseType": "OntologyObject<N3CKnowledgeObjects>",
           "required": true
         }
       },
-      "rid": "ri.actions.main.action-type.151af82d-27b1-4b33-9867-a2e7be902467"
+      "rid": "ri.actions.main.action-type.151af82d-27b1-4b33-9867-a2e7be902467",
+      "operations": [
+        {
+          "type": "modifyObject",
+          "objectTypeApiName": "N3CKnowledgeObjects"
+        }
+      ]
     },
     {
       "apiName": "unarchive-concept-set",
-      "description": "",
       "status": "ACTIVE",
       "parameters": {
         "omop-concept-set-container": {
-          "description": "",
           "baseType": "OntologyObject<OMOPConceptSetContainer>",
           "required": true
         }
       },
-      "rid": "ri.actions.main.action-type.164c6b61-cffe-4108-95d8-e4495fefb93f"
+      "rid": "ri.actions.main.action-type.164c6b61-cffe-4108-95d8-e4495fefb93f",
+      "operations": [
+        {
+          "type": "modifyObject",
+          "objectTypeApiName": "OMOPConceptSetContainer"
+        }
+      ]
     },
     {
       "apiName": "add-rp-collaborator",
@@ -160,75 +210,92 @@
       "status": "ACTIVE",
       "parameters": {
         "researcher": {
-          "description": "",
           "baseType": "OntologyObject<Researcher>",
           "required": true
         },
         "research-project": {
-          "description": "",
           "baseType": "OntologyObject<ResearchProject>",
           "required": true
         }
       },
-      "rid": "ri.actions.main.action-type.18b7ea4c-acea-4ef3-9510-128360965398"
+      "rid": "ri.actions.main.action-type.18b7ea4c-acea-4ef3-9510-128360965398",
+      "operations": [
+        {
+          "type": "createLink",
+          "linkTypeApiNameAtoB": "researchProjects",
+          "linkTypeApiNameBtoA": "researchers",
+          "aSideObjectTypeApiName": "Researcher",
+          "bSideObjectTypeApiName": "ResearchProject"
+        }
+      ]
     },
     {
       "apiName": "subscribe-concept-set",
-      "description": "",
       "status": "EXPERIMENTAL",
       "parameters": {
         "time_subscribed": {
-          "description": "",
           "baseType": "Timestamp",
           "required": true
         },
         "subscription_id": {
-          "description": "",
           "baseType": "String",
           "required": true
         },
         "OMOPConceptSetContainer": {
-          "description": "",
           "baseType": "OntologyObject<OMOPConceptSetContainer>",
           "required": true
         },
         "subscription_title": {
-          "description": "",
           "baseType": "String",
           "required": false
         },
         "Researcher": {
-          "description": "",
           "baseType": "OntologyObject<Researcher>",
           "required": true
         },
         "new-parameter": {
-          "description": "",
           "baseType": "OntologyObject<ResearchProject>",
           "required": false
         }
       },
-      "rid": "ri.actions.main.action-type.1e41fb19-571d-47a7-a0a3-6856c92abe94"
+      "rid": "ri.actions.main.action-type.1e41fb19-571d-47a7-a0a3-6856c92abe94",
+      "operations": [
+        {
+          "type": "createLink",
+          "linkTypeApiNameAtoB": "subscribedOmopConceptSetContainers",
+          "linkTypeApiNameBtoA": "subscribedResearchers",
+          "aSideObjectTypeApiName": "Researcher",
+          "bSideObjectTypeApiName": "OMOPConceptSetContainer"
+        },
+        {
+          "type": "createObject",
+          "objectTypeApiName": "VCMConceptSetNotificationSubscriptionEvent"
+        }
+      ]
     },
     {
       "apiName": "migration-manually-set-concept-set-version-object-title",
-      "description": "",
       "status": "EXPERIMENTAL",
       "parameters": {
         "versions": {
-          "description": "",
           "baseType": "Array<OntologyObject<OMOPConceptSet>>",
           "required": true
         }
       },
-      "rid": "ri.actions.main.action-type.1ea369c8-a152-4098-9b95-d92d4939b0a1"
+      "rid": "ri.actions.main.action-type.1ea369c8-a152-4098-9b95-d92d4939b0a1",
+      "operations": [
+        {
+          "type": "modifyObject",
+          "objectTypeApiName": "OMOPConceptSet"
+        }
+      ]
     },
     {
       "apiName": "test-notification-action",
-      "description": "",
       "status": "ACTIVE",
       "parameters": {},
-      "rid": "ri.actions.main.action-type.1f269b95-5169-4306-ba56-5f010f99a99d"
+      "rid": "ri.actions.main.action-type.1f269b95-5169-4306-ba56-5f010f99a99d",
+      "operations": []
     },
     {
       "apiName": "delete-ks-object",
@@ -236,30 +303,42 @@
       "status": "ACTIVE",
       "parameters": {
         "n3c-knowledge-object": {
-          "description": "",
           "baseType": "OntologyObject<N3CKnowledgeObjects>",
           "required": true
         }
       },
-      "rid": "ri.actions.main.action-type.1f640318-6c0d-4753-a896-596cb593a5e9"
+      "rid": "ri.actions.main.action-type.1f640318-6c0d-4753-a896-596cb593a5e9",
+      "operations": [
+        {
+          "type": "deleteObject",
+          "objectTypeApiName": "N3CKnowledgeObjects"
+        }
+      ]
     },
     {
       "apiName": "discard-draft-omop-concept-set-version",
-      "description": "",
       "status": "EXPERIMENTAL",
       "parameters": {
         "omop-concept-set": {
-          "description": "",
           "baseType": "OntologyObject<OMOPConceptSet>",
           "required": true
         },
         "expression-items": {
-          "description": "",
           "baseType": "Array<OntologyObject<OmopConceptSetVersionItem>>",
           "required": false
         }
       },
-      "rid": "ri.actions.main.action-type.1fcd46d0-2256-46f4-a3f8-ee7ebab5711c"
+      "rid": "ri.actions.main.action-type.1fcd46d0-2256-46f4-a3f8-ee7ebab5711c",
+      "operations": [
+        {
+          "type": "deleteObject",
+          "objectTypeApiName": "OMOPConceptSet"
+        },
+        {
+          "type": "deleteObject",
+          "objectTypeApiName": "OmopConceptSetVersionItem"
+        }
+      ]
     },
     {
       "apiName": "set-researcher-institution",
@@ -267,17 +346,21 @@
       "status": "ACTIVE",
       "parameters": {
         "institution": {
-          "description": "",
           "baseType": "OntologyObject<N3CInstitution>",
           "required": true
         },
         "researcher": {
-          "description": "",
           "baseType": "OntologyObject<Researcher>",
           "required": true
         }
       },
-      "rid": "ri.actions.main.action-type.1ff4818f-38a3-4c56-9bc2-53512f246520"
+      "rid": "ri.actions.main.action-type.1ff4818f-38a3-4c56-9bc2-53512f246520",
+      "operations": [
+        {
+          "type": "modifyObject",
+          "objectTypeApiName": "Researcher"
+        }
+      ]
     },
     {
       "apiName": "n3c-concept-set-validation",
@@ -285,17 +368,21 @@
       "status": "ACTIVE",
       "parameters": {
         "concept-set": {
-          "description": "",
           "baseType": "OntologyObject<OMOPConceptSetContainer>",
           "required": true
         },
         "n3c_reviewer": {
-          "description": "",
           "baseType": "String",
           "required": true
         }
       },
-      "rid": "ri.actions.main.action-type.233ab00a-bd73-4363-9283-7bc0aca95330"
+      "rid": "ri.actions.main.action-type.233ab00a-bd73-4363-9283-7bc0aca95330",
+      "operations": [
+        {
+          "type": "modifyObject",
+          "objectTypeApiName": "OMOPConceptSetContainer"
+        }
+      ]
     },
     {
       "apiName": "approve-download-request-review",
@@ -303,88 +390,91 @@
       "status": "ACTIVE",
       "parameters": {
         "ko_review_uid": {
-          "description": "",
           "baseType": "String",
           "required": true
         },
         "request_status": {
-          "description": "",
           "baseType": "String",
           "required": true
         },
         "download-request-status": {
-          "description": "",
           "baseType": "String",
           "required": true
         },
         "reviewer-notes": {
-          "description": "",
           "baseType": "String",
           "required": false
         },
         "reviewer-internal-notes": {
-          "description": "",
           "baseType": "String",
           "required": false
         },
         "ko_reviewed_by": {
-          "description": "",
           "baseType": "String",
           "required": true
         },
         "ko_uid": {
-          "description": "",
           "baseType": "String",
           "required": true
         },
         "review-org": {
-          "description": "",
           "baseType": "String",
           "required": true
         },
         "ko_reviewed_at": {
-          "description": "",
           "baseType": "Timestamp",
           "required": true
         }
       },
-      "rid": "ri.actions.main.action-type.269d4cae-ebe5-4c18-9267-7866e8b765b3"
+      "rid": "ri.actions.main.action-type.269d4cae-ebe5-4c18-9267-7866e8b765b3",
+      "operations": [
+        {
+          "type": "createObject",
+          "objectTypeApiName": "DownloadRequestReviewObject"
+        }
+      ]
     },
     {
       "apiName": "update-concept-set-version-json-url",
-      "description": "",
       "status": "ACTIVE",
       "parameters": {
         "atlas_json_resource_url": {
-          "description": "",
           "baseType": "String",
           "required": true
         },
         "omop-concept-set": {
-          "description": "",
           "baseType": "OntologyObject<OMOPConceptSet>",
           "required": true
         }
       },
-      "rid": "ri.actions.main.action-type.2abf7e29-23df-4de9-8369-97c4b3e3e981"
+      "rid": "ri.actions.main.action-type.2abf7e29-23df-4de9-8369-97c4b3e3e981",
+      "operations": [
+        {
+          "type": "modifyObject",
+          "objectTypeApiName": "OMOPConceptSet"
+        }
+      ]
     },
     {
       "apiName": "edit-concept-set-version-provenance",
-      "description": "",
       "status": "ACTIVE",
       "parameters": {
         "provenance": {
-          "description": "",
           "baseType": "String",
           "required": true
         },
         "omop-concept-set": {
-          "description": "",
           "baseType": "OntologyObject<OMOPConceptSet>",
           "required": true
         }
       },
-      "rid": "ri.actions.main.action-type.2bb67b5b-5e37-45ba-891a-a33d4a2fbfed"
+      "rid": "ri.actions.main.action-type.2bb67b5b-5e37-45ba-891a-a33d4a2fbfed",
+      "operations": [
+        {
+          "type": "modifyObject",
+          "objectTypeApiName": "OMOPConceptSet"
+        }
+      ]
     },
     {
       "apiName": "new-code-set",
@@ -412,30 +502,33 @@
           "required": true
         }
       },
-      "rid": "ri.actions.main.action-type.2c96aed0-ef5d-43fa-87f7-c97e31fa8719"
+      "rid": "ri.actions.main.action-type.2c96aed0-ef5d-43fa-87f7-c97e31fa8719",
+      "operations": []
     },
     {
       "apiName": "edit-omop-concept-set-expression-include-descendants",
-      "description": "",
       "status": "EXPERIMENTAL",
       "parameters": {
         "include_descendants": {
-          "description": "",
           "baseType": "Boolean",
           "required": true
         },
         "OmopConceptSetVersionItem": {
-          "description": "",
           "baseType": "Array<OntologyObject<OmopConceptSetVersionItem>>",
           "required": true
         },
         "version": {
-          "description": "",
           "baseType": "OntologyObject<OMOPConceptSet>",
           "required": true
         }
       },
-      "rid": "ri.actions.main.action-type.2ea1cc08-82f7-46a6-9311-4cdb76c70d44"
+      "rid": "ri.actions.main.action-type.2ea1cc08-82f7-46a6-9311-4cdb76c70d44",
+      "operations": [
+        {
+          "type": "modifyObject",
+          "objectTypeApiName": "OmopConceptSetVersionItem"
+        }
+      ]
     },
     {
       "apiName": "new-harmonization-campaign",
@@ -453,48 +546,58 @@
           "required": true
         }
       },
-      "rid": "ri.actions.main.action-type.356fb99b-c67e-47b5-a416-235ca41b58c4"
+      "rid": "ri.actions.main.action-type.356fb99b-c67e-47b5-a416-235ca41b58c4",
+      "operations": []
     },
     {
       "apiName": "edit-concept-set-version-limitations",
-      "description": "",
       "status": "ACTIVE",
       "parameters": {
         "omop-concept-set": {
-          "description": "",
           "baseType": "OntologyObject<OMOPConceptSet>",
           "required": true
         },
         "limitations": {
-          "description": "",
           "baseType": "String",
           "required": true
         }
       },
-      "rid": "ri.actions.main.action-type.36b37459-f2a4-4483-b1a4-03ffb47cfc9c"
+      "rid": "ri.actions.main.action-type.36b37459-f2a4-4483-b1a4-03ffb47cfc9c",
+      "operations": [
+        {
+          "type": "modifyObject",
+          "objectTypeApiName": "OMOPConceptSet"
+        }
+      ]
     },
     {
       "apiName": "add-review-to-ko-action",
-      "description": "",
       "status": "EXPERIMENTAL",
       "parameters": {
         "review_comments": {
-          "description": "",
           "baseType": "String",
           "required": true
         },
         "N3CKnowledgeObjects": {
-          "description": "",
           "baseType": "OntologyObject<N3CKnowledgeObjects>",
           "required": true
         },
         "ko-review-id-action-param": {
-          "description": "",
           "baseType": "String",
           "required": true
         }
       },
-      "rid": "ri.actions.main.action-type.37c4a98e-f803-4588-bfda-afae99c12cfb"
+      "rid": "ri.actions.main.action-type.37c4a98e-f803-4588-bfda-afae99c12cfb",
+      "operations": [
+        {
+          "type": "createObject",
+          "objectTypeApiName": "KnowledgeObjectReview"
+        },
+        {
+          "type": "modifyObject",
+          "objectTypeApiName": "N3CKnowledgeObjects"
+        }
+      ]
     },
     {
       "apiName": "ko-set-lds-rid",
@@ -502,17 +605,21 @@
       "status": "ACTIVE",
       "parameters": {
         "ko_lds_rid": {
-          "description": "",
           "baseType": "String",
           "required": true
         },
         "N3CKnowledgeObjects": {
-          "description": "",
           "baseType": "OntologyObject<N3CKnowledgeObjects>",
           "required": true
         }
       },
-      "rid": "ri.actions.main.action-type.388e0281-75da-448a-b1e8-485725c4b4eb"
+      "rid": "ri.actions.main.action-type.388e0281-75da-448a-b1e8-485725c4b4eb",
+      "operations": [
+        {
+          "type": "modifyObject",
+          "objectTypeApiName": "N3CKnowledgeObjects"
+        }
+      ]
     },
     {
       "apiName": "remove-project-collaborator",
@@ -520,17 +627,24 @@
       "status": "ACTIVE",
       "parameters": {
         "researcher": {
-          "description": "",
           "baseType": "OntologyObject<Researcher>",
           "required": true
         },
         "research-project": {
-          "description": "",
           "baseType": "OntologyObject<ResearchProject>",
           "required": true
         }
       },
-      "rid": "ri.actions.main.action-type.399cfae2-fec4-4804-b2a8-04ccbfdc221f"
+      "rid": "ri.actions.main.action-type.399cfae2-fec4-4804-b2a8-04ccbfdc221f",
+      "operations": [
+        {
+          "type": "deleteLink",
+          "linkTypeApiNameAtoB": "researchProjects",
+          "linkTypeApiNameBtoA": "researchers",
+          "aSideObjectTypeApiName": "Researcher",
+          "bSideObjectTypeApiName": "ResearchProject"
+        }
+      ]
     },
     {
       "apiName": "change-concept-set-container-status",
@@ -538,76 +652,88 @@
       "status": "ACTIVE",
       "parameters": {
         "concept-set": {
-          "description": "",
           "baseType": "OntologyObject<OMOPConceptSetContainer>",
           "required": true
         },
         "status": {
-          "description": "",
           "baseType": "String",
           "required": true
         }
       },
-      "rid": "ri.actions.main.action-type.3d3e41d2-b9ef-408a-8da8-ce83386a6129"
+      "rid": "ri.actions.main.action-type.3d3e41d2-b9ef-408a-8da8-ce83386a6129",
+      "operations": [
+        {
+          "type": "modifyObject",
+          "objectTypeApiName": "OMOPConceptSetContainer"
+        }
+      ]
     },
     {
       "apiName": "concept-set-version-set-authority",
-      "description": "",
       "status": "EXPERIMENTAL",
       "parameters": {
         "OMOPConceptSet": {
-          "description": "",
           "baseType": "OntologyObject<OMOPConceptSet>",
           "required": true
         },
         "authority": {
-          "description": "",
           "baseType": "String",
           "required": true
         }
       },
-      "rid": "ri.actions.main.action-type.3dfc549b-4db6-4296-882a-085801c32635"
+      "rid": "ri.actions.main.action-type.3dfc549b-4db6-4296-882a-085801c32635",
+      "operations": [
+        {
+          "type": "modifyObject",
+          "objectTypeApiName": "OMOPConceptSet"
+        }
+      ]
     },
     {
       "apiName": "new-action-27de09b9-96bf-1140-6d22-ea1917d46763",
-      "description": "",
       "status": "EXPERIMENTAL",
       "parameters": {
         "N3CKnowledgeObjects": {
-          "description": "",
           "baseType": "OntologyObject<N3CKnowledgeObjects>",
           "required": true
         },
         "ko_category_id": {
-          "description": "",
           "baseType": "String",
           "required": true
         }
       },
-      "rid": "ri.actions.main.action-type.407a8551-b197-4f39-860a-44983011266c"
+      "rid": "ri.actions.main.action-type.407a8551-b197-4f39-860a-44983011266c",
+      "operations": [
+        {
+          "type": "modifyObject",
+          "objectTypeApiName": "N3CKnowledgeObjects"
+        }
+      ]
     },
     {
       "apiName": "new-action-b0487ced-19f7-c784-be45-151b6199e754",
-      "description": "",
       "status": "EXPERIMENTAL",
       "parameters": {
         "OMOPConceptSet": {
-          "description": "",
           "baseType": "Array<OntologyObject<OMOPConceptSet>>",
           "required": true
         },
         "created_by": {
-          "description": "",
           "baseType": "String",
           "required": true
         },
         "created_at": {
-          "description": "",
           "baseType": "Timestamp",
           "required": true
         }
       },
-      "rid": "ri.actions.main.action-type.40bd00ca-ce05-48f9-bba9-2649a3dad966"
+      "rid": "ri.actions.main.action-type.40bd00ca-ce05-48f9-bba9-2649a3dad966",
+      "operations": [
+        {
+          "type": "modifyObject",
+          "objectTypeApiName": "OMOPConceptSet"
+        }
+      ]
     },
     {
       "apiName": "set-concept-set-container-creator-info",
@@ -615,22 +741,25 @@
       "status": "EXPERIMENTAL",
       "parameters": {
         "created_by": {
-          "description": "",
           "baseType": "String",
           "required": true
         },
         "OMOPConceptSetContainer": {
-          "description": "",
           "baseType": "OntologyObject<OMOPConceptSetContainer>",
           "required": true
         },
         "created_at": {
-          "description": "",
           "baseType": "Timestamp",
           "required": true
         }
       },
-      "rid": "ri.actions.main.action-type.469844f7-5e9f-412f-aeaf-490fcdb96c5f"
+      "rid": "ri.actions.main.action-type.469844f7-5e9f-412f-aeaf-490fcdb96c5f",
+      "operations": [
+        {
+          "type": "modifyObject",
+          "objectTypeApiName": "OMOPConceptSetContainer"
+        }
+      ]
     },
     {
       "apiName": "add-cohort-to-knowledge-store",
@@ -638,55 +767,66 @@
       "status": "ACTIVE",
       "parameters": {
         "researchProject": {
-          "description": "",
           "baseType": "OntologyObject<ResearchProject>",
           "required": false
         },
         "maintainer": {
-          "description": "",
           "baseType": "String",
           "required": true
         },
         "cohort": {
-          "description": "",
           "baseType": "OntologyObject<OMOPCohorts>",
           "required": true
         },
         "userId": {
-          "description": "",
           "baseType": "String",
           "required": true
         },
         "description": {
-          "description": "",
           "baseType": "String",
           "required": true
         }
       },
-      "rid": "ri.actions.main.action-type.476839cb-0100-49b8-a020-ca702a8ff36e"
+      "rid": "ri.actions.main.action-type.476839cb-0100-49b8-a020-ca702a8ff36e",
+      "operations": [
+        {
+          "type": "createObject",
+          "objectTypeApiName": "N3CKnowledgeObjects"
+        },
+        {
+          "type": "modifyObject",
+          "objectTypeApiName": "N3CKnowledgeObjects"
+        },
+        {
+          "type": "modifyObject",
+          "objectTypeApiName": "OMOPCohorts"
+        }
+      ]
     },
     {
       "apiName": "edit-omop-concept-set-expression-include-mapped",
-      "description": "",
       "status": "EXPERIMENTAL",
       "parameters": {
         "OmopConceptSetVersionItem": {
-          "description": "",
           "baseType": "Array<OntologyObject<OmopConceptSetVersionItem>>",
           "required": true
         },
         "version": {
-          "description": "",
           "baseType": "OntologyObject<OMOPConceptSet>",
           "required": true
         },
         "include_mapped": {
-          "description": "",
           "baseType": "Boolean",
           "required": true
         }
       },
-      "rid": "ri.actions.main.action-type.541e1ccd-cf7a-47c4-87da-4d42c91a74b7"
+      "rid": "ri.actions.main.action-type.541e1ccd-cf7a-47c4-87da-4d42c91a74b7",
+      "operations": [
+        {
+          "type": "modifyObject",
+          "objectTypeApiName": "OmopConceptSetVersionItem"
+        }
+      ]
     },
     {
       "apiName": "edit-concept-set-version-intention",
@@ -694,45 +834,67 @@
       "status": "ACTIVE",
       "parameters": {
         "omop-concept-set": {
-          "description": "",
           "baseType": "OntologyObject<OMOPConceptSet>",
           "required": true
         },
         "intention": {
-          "description": "",
           "baseType": "String",
           "required": true
         }
       },
-      "rid": "ri.actions.main.action-type.5518685a-7708-4172-906a-f91046214e7e"
+      "rid": "ri.actions.main.action-type.5518685a-7708-4172-906a-f91046214e7e",
+      "operations": [
+        {
+          "type": "modifyObject",
+          "objectTypeApiName": "OMOPConceptSet"
+        }
+      ]
+    },
+    {
+      "apiName": "delete-n3c-feedback",
+      "status": "EXPERIMENTAL",
+      "parameters": {
+        "N3cAssistFeedback": {
+          "baseType": "OntologyObject<N3cAssistFeedback>",
+          "required": true
+        }
+      },
+      "rid": "ri.actions.main.action-type.55d66a67-bf53-434a-ba0f-4fb2be195dea",
+      "operations": [
+        {
+          "type": "deleteObject",
+          "objectTypeApiName": "N3cAssistFeedback"
+        }
+      ]
     },
     {
       "apiName": "set-omop-concept-set-version-item",
-      "description": "",
       "status": "ACTIVE",
       "parameters": {
         "include_descendants": {
-          "description": "",
           "baseType": "Boolean",
           "required": true
         },
         "concept-set-version-item": {
-          "description": "",
           "baseType": "OntologyObject<OmopConceptSetVersionItem>",
           "required": true
         },
         "is_excluded": {
-          "description": "",
           "baseType": "Boolean",
           "required": true
         },
         "include_mapped": {
-          "description": "",
           "baseType": "Boolean",
           "required": true
         }
       },
-      "rid": "ri.actions.main.action-type.56ce9a5b-c535-4413-be70-5526a8c152ed"
+      "rid": "ri.actions.main.action-type.56ce9a5b-c535-4413-be70-5526a8c152ed",
+      "operations": [
+        {
+          "type": "modifyObject",
+          "objectTypeApiName": "OmopConceptSetVersionItem"
+        }
+      ]
     },
     {
       "apiName": "submit-concept-set-n3c-validation",
@@ -740,12 +902,17 @@
       "status": "DEPRECATED",
       "parameters": {
         "concept-set": {
-          "description": "",
           "baseType": "OntologyObject<OMOPConceptSetContainer>",
           "required": true
         }
       },
-      "rid": "ri.actions.main.action-type.5c4e63f4-8d23-4522-95a0-4aa710f25726"
+      "rid": "ri.actions.main.action-type.5c4e63f4-8d23-4522-95a0-4aa710f25726",
+      "operations": [
+        {
+          "type": "modifyObject",
+          "objectTypeApiName": "OMOPConceptSetContainer"
+        }
+      ]
     },
     {
       "apiName": "ko-set-sh-monocle-rid",
@@ -753,45 +920,50 @@
       "status": "ACTIVE",
       "parameters": {
         "ko_sh_monocle_rid": {
-          "description": "",
           "baseType": "String",
           "required": true
         },
         "ko": {
-          "description": "",
           "baseType": "OntologyObject<N3CKnowledgeObjects>",
           "required": true
         }
       },
-      "rid": "ri.actions.main.action-type.5cdb580e-3c5d-43ae-a856-e51d557fb8f3"
+      "rid": "ri.actions.main.action-type.5cdb580e-3c5d-43ae-a856-e51d557fb8f3",
+      "operations": [
+        {
+          "type": "modifyObject",
+          "objectTypeApiName": "N3CKnowledgeObjects"
+        }
+      ]
     },
     {
       "apiName": "change-ko-review-action",
-      "description": "",
       "status": "EXPERIMENTAL",
       "parameters": {
         "KnowledgeObjectReview": {
-          "description": "",
           "baseType": "OntologyObject<KnowledgeObjectReview>",
           "required": true
         },
         "review_comments": {
-          "description": "",
           "baseType": "String",
           "required": true
         },
         "reviewed_by": {
-          "description": "",
           "baseType": "String",
           "required": true
         },
         "reviewed_at": {
-          "description": "",
           "baseType": "Timestamp",
           "required": true
         }
       },
-      "rid": "ri.actions.main.action-type.63e08769-76bf-4a37-85cf-55654801008a"
+      "rid": "ri.actions.main.action-type.63e08769-76bf-4a37-85cf-55654801008a",
+      "operations": [
+        {
+          "type": "modifyObject",
+          "objectTypeApiName": "KnowledgeObjectReview"
+        }
+      ]
     },
     {
       "apiName": "link-concept-set-research-project",
@@ -809,20 +981,58 @@
           "required": true
         }
       },
-      "rid": "ri.actions.main.action-type.69dbdd19-9b78-42fd-9ba4-a2861cc6ba3c"
+      "rid": "ri.actions.main.action-type.69dbdd19-9b78-42fd-9ba4-a2861cc6ba3c",
+      "operations": [
+        {
+          "type": "createLink",
+          "linkTypeApiNameAtoB": "researchProject",
+          "linkTypeApiNameBtoA": "omopconceptSet",
+          "aSideObjectTypeApiName": "OMOPConceptSet",
+          "bSideObjectTypeApiName": "ResearchProject"
+        }
+      ]
+    },
+    {
+      "apiName": "record-n3c-assist-question",
+      "status": "EXPERIMENTAL",
+      "parameters": {
+        "objects_returned_str": {
+          "baseType": "String",
+          "required": true
+        },
+        "question": {
+          "baseType": "String",
+          "required": false
+        },
+        "answer": {
+          "baseType": "String",
+          "required": true
+        }
+      },
+      "rid": "ri.actions.main.action-type.6ab2d01d-fd1b-469f-9e9e-86d36efa4683",
+      "operations": [
+        {
+          "type": "createObject",
+          "objectTypeApiName": "N3cAssistFeedback"
+        }
+      ]
     },
     {
       "apiName": "new-action-540a170c-5958-25a9-e511-cd5fe3f609af",
-      "description": "",
       "status": "EXPERIMENTAL",
       "parameters": {
         "ConceptSetBundleItem": {
-          "description": "",
           "baseType": "OntologyObject<ConceptSetBundleItem>",
           "required": true
         }
       },
-      "rid": "ri.actions.main.action-type.6c2bbc6c-5119-48c8-ae2e-e10702471e5e"
+      "rid": "ri.actions.main.action-type.6c2bbc6c-5119-48c8-ae2e-e10702471e5e",
+      "operations": [
+        {
+          "type": "deleteObject",
+          "objectTypeApiName": "ConceptSetBundleItem"
+        }
+      ]
     },
     {
       "apiName": "ko-set-sh-rid",
@@ -830,17 +1040,21 @@
       "status": "ACTIVE",
       "parameters": {
         "ko_sh_rid": {
-          "description": "",
           "baseType": "String",
           "required": true
         },
         "ko": {
-          "description": "",
           "baseType": "OntologyObject<N3CKnowledgeObjects>",
           "required": true
         }
       },
-      "rid": "ri.actions.main.action-type.6d6e5da1-0388-4b34-930f-d8842b99f6a8"
+      "rid": "ri.actions.main.action-type.6d6e5da1-0388-4b34-930f-d8842b99f6a8",
+      "operations": [
+        {
+          "type": "modifyObject",
+          "objectTypeApiName": "N3CKnowledgeObjects"
+        }
+      ]
     },
     {
       "apiName": "change-concept-set-stage",
@@ -858,7 +1072,13 @@
           "required": true
         }
       },
-      "rid": "ri.actions.main.action-type.6e6ecc07-a91c-4e2e-925b-f45fe3bbd9f7"
+      "rid": "ri.actions.main.action-type.6e6ecc07-a91c-4e2e-925b-f45fe3bbd9f7",
+      "operations": [
+        {
+          "type": "modifyObject",
+          "objectTypeApiName": "OMOPConceptSetContainer"
+        }
+      ]
     },
     {
       "apiName": "change-concept-set-status",
@@ -866,53 +1086,66 @@
       "status": "ACTIVE",
       "parameters": {
         "target-object": {
-          "description": "",
           "baseType": "OntologyObject<OMOPConceptSet>",
           "required": true
         },
         "status": {
-          "description": "",
           "baseType": "String",
           "required": true
         }
       },
-      "rid": "ri.actions.main.action-type.6ef19156-2650-415a-89a6-6c0066a21157"
+      "rid": "ri.actions.main.action-type.6ef19156-2650-415a-89a6-6c0066a21157",
+      "operations": [
+        {
+          "type": "modifyObject",
+          "objectTypeApiName": "OMOPConceptSet"
+        }
+      ]
     },
     {
       "apiName": "ko-link-to-consuming-rp",
-      "description": "",
       "status": "ACTIVE",
       "parameters": {
         "consumingResearchProjects": {
-          "description": "",
           "baseType": "OntologyObject<ResearchProject>",
           "required": true
         },
         "consumedN3cknowledgeObjects": {
-          "description": "",
           "baseType": "OntologyObject<N3CKnowledgeObjects>",
           "required": true
         }
       },
-      "rid": "ri.actions.main.action-type.71fdc213-d32a-4225-b400-84c3e0810242"
+      "rid": "ri.actions.main.action-type.71fdc213-d32a-4225-b400-84c3e0810242",
+      "operations": [
+        {
+          "type": "createLink",
+          "linkTypeApiNameAtoB": "consumedN3cknowledgeObjects",
+          "linkTypeApiNameBtoA": "consumingResearchProjects",
+          "aSideObjectTypeApiName": "ResearchProject",
+          "bSideObjectTypeApiName": "N3CKnowledgeObjects"
+        }
+      ]
     },
     {
       "apiName": "edit-concept-set-version-issues",
-      "description": "",
       "status": "ACTIVE",
       "parameters": {
         "omop-concept-set": {
-          "description": "",
           "baseType": "OntologyObject<OMOPConceptSet>",
           "required": true
         },
         "issues": {
-          "description": "",
           "baseType": "String",
           "required": true
         }
       },
-      "rid": "ri.actions.main.action-type.72f391c1-3f6d-4fe5-83f6-861321e3125e"
+      "rid": "ri.actions.main.action-type.72f391c1-3f6d-4fe5-83f6-861321e3125e",
+      "operations": [
+        {
+          "type": "modifyObject",
+          "objectTypeApiName": "OMOPConceptSet"
+        }
+      ]
     },
     {
       "apiName": "add-link-to-documentation",
@@ -920,7 +1153,6 @@
       "status": "ACTIVE",
       "parameters": {
         "ko_documentation_type": {
-          "description": "",
           "baseType": "String",
           "required": true
         },
@@ -935,25 +1167,38 @@
           "required": true
         }
       },
-      "rid": "ri.actions.main.action-type.735ab724-4c5b-45e4-b53c-6fff39ff4c6a"
+      "rid": "ri.actions.main.action-type.735ab724-4c5b-45e4-b53c-6fff39ff4c6a",
+      "operations": [
+        {
+          "type": "modifyObject",
+          "objectTypeApiName": "N3CKnowledgeObjects"
+        }
+      ]
     },
     {
       "apiName": "delete-concept-set-bundle",
-      "description": "",
       "status": "EXPERIMENTAL",
       "parameters": {
         "concept-set-bundle": {
-          "description": "",
           "baseType": "OntologyObject<ConceptSetTag>",
           "required": true
         },
         "concept-set-bundle-name": {
-          "description": "",
           "baseType": "String",
           "required": true
         }
       },
-      "rid": "ri.actions.main.action-type.750a9003-d4e4-4b85-b99a-93d78db661d0"
+      "rid": "ri.actions.main.action-type.750a9003-d4e4-4b85-b99a-93d78db661d0",
+      "operations": [
+        {
+          "type": "deleteObject",
+          "objectTypeApiName": "ConceptSetBundleItem"
+        },
+        {
+          "type": "deleteObject",
+          "objectTypeApiName": "ConceptSetTag"
+        }
+      ]
     },
     {
       "apiName": "rename-dur-project-title",
@@ -971,66 +1216,75 @@
           "required": true
         },
         "original-project-title": {
-          "description": "",
           "baseType": "String",
           "required": true
         },
         "research_proj_id": {
-          "description": "",
           "baseType": "String",
           "required": false
         }
       },
-      "rid": "ri.actions.main.action-type.75839bd4-06da-45b9-9416-61fe84326ad1"
+      "rid": "ri.actions.main.action-type.75839bd4-06da-45b9-9416-61fe84326ad1",
+      "operations": []
     },
     {
       "apiName": "set-tenant-prop-knowledge-object",
-      "description": "",
       "status": "EXPERIMENTAL",
       "parameters": {
         "N3CKnowledgeObjects": {
-          "description": "",
           "baseType": "OntologyObject<N3CKnowledgeObjects>",
           "required": true
         },
         "tenant": {
-          "description": "",
           "baseType": "String",
           "required": true
         }
       },
-      "rid": "ri.actions.main.action-type.76f5b854-e5c7-4105-9d25-ce23a44728e3"
+      "rid": "ri.actions.main.action-type.76f5b854-e5c7-4105-9d25-ce23a44728e3",
+      "operations": [
+        {
+          "type": "modifyObject",
+          "objectTypeApiName": "N3CKnowledgeObjects"
+        }
+      ]
     },
     {
       "apiName": "new-action-e4c7dfd1-a772-460e-e084-25d761337f46",
-      "description": "",
       "status": "EXPERIMENTAL",
       "parameters": {
         "EnclaveUserSurveyReponse": {
-          "description": "",
           "baseType": "OntologyObject<EnclaveUserSurveyReponse>",
           "required": true
         }
       },
-      "rid": "ri.actions.main.action-type.7b4e5f8f-4697-4be1-b161-ddd7c649d7b8"
+      "rid": "ri.actions.main.action-type.7b4e5f8f-4697-4be1-b161-ddd7c649d7b8",
+      "operations": [
+        {
+          "type": "deleteObject",
+          "objectTypeApiName": "EnclaveUserSurveyReponse"
+        }
+      ]
     },
     {
       "apiName": "change-ko-update-request-status-action",
-      "description": "",
       "status": "EXPERIMENTAL",
       "parameters": {
         "KnowledgeObjectUpdateRequest": {
-          "description": "",
           "baseType": "OntologyObject<KnowledgeObjectUpdateRequest>",
           "required": true
         },
         "status": {
-          "description": "",
           "baseType": "String",
           "required": true
         }
       },
-      "rid": "ri.actions.main.action-type.7c2d265e-739a-4dc0-b4a9-4b43fad1d8b1"
+      "rid": "ri.actions.main.action-type.7c2d265e-739a-4dc0-b4a9-4b43fad1d8b1",
+      "operations": [
+        {
+          "type": "modifyObject",
+          "objectTypeApiName": "KnowledgeObjectUpdateRequest"
+        }
+      ]
     },
     {
       "apiName": "assign-sme",
@@ -1038,17 +1292,21 @@
       "status": "ACTIVE",
       "parameters": {
         "assigned_sme": {
-          "description": "",
           "baseType": "String",
           "required": true
         },
         "concept-set": {
-          "description": "",
           "baseType": "OntologyObject<OMOPConceptSetContainer>",
           "required": true
         }
       },
-      "rid": "ri.actions.main.action-type.8375baab-02ba-4f43-af5e-a1798b4e4cd6"
+      "rid": "ri.actions.main.action-type.8375baab-02ba-4f43-af5e-a1798b4e4cd6",
+      "operations": [
+        {
+          "type": "modifyObject",
+          "objectTypeApiName": "OMOPConceptSetContainer"
+        }
+      ]
     },
     {
       "apiName": "delete-cohort-knowledge-store",
@@ -1056,35 +1314,95 @@
       "status": "ACTIVE",
       "parameters": {
         "cohort": {
-          "description": "",
           "baseType": "OntologyObject<OMOPCohorts>",
           "required": true
         }
       },
-      "rid": "ri.actions.main.action-type.837efbe0-e957-4409-8088-2c30b4c47a9e"
+      "rid": "ri.actions.main.action-type.837efbe0-e957-4409-8088-2c30b4c47a9e",
+      "operations": [
+        {
+          "type": "deleteObject",
+          "objectTypeApiName": "N3CKnowledgeObjects"
+        },
+        {
+          "type": "modifyObject",
+          "objectTypeApiName": "OMOPCohorts"
+        }
+      ]
     },
     {
       "apiName": "migration-concept-set-version-set-source-application",
-      "description": "",
       "status": "EXPERIMENTAL",
       "parameters": {
         "OMOPConceptSet": {
-          "description": "",
           "baseType": "Array<OntologyObject<OMOPConceptSet>>",
           "required": true
         },
         "source_application": {
-          "description": "",
           "baseType": "String",
           "required": true
         },
         "source_application_version": {
-          "description": "",
           "baseType": "String",
           "required": true
         }
       },
-      "rid": "ri.actions.main.action-type.84bf8b5d-531a-43a4-8081-ef97c7a0844d"
+      "rid": "ri.actions.main.action-type.84bf8b5d-531a-43a4-8081-ef97c7a0844d",
+      "operations": [
+        {
+          "type": "modifyObject",
+          "objectTypeApiName": "OMOPConceptSet"
+        }
+      ]
+    },
+    {
+      "apiName": "add-review-week",
+      "status": "EXPERIMENTAL",
+      "parameters": {
+        "new-parameter4": {
+          "baseType": "String",
+          "required": true
+        },
+        "new-parameter3": {
+          "baseType": "String",
+          "required": true
+        },
+        "new-parameter2": {
+          "baseType": "String",
+          "required": true
+        },
+        "new-parameter1": {
+          "baseType": "String",
+          "required": true
+        },
+        "puck_name": {
+          "baseType": "String",
+          "required": true
+        },
+        "new-parameter": {
+          "baseType": "String",
+          "required": true
+        },
+        "duration": {
+          "baseType": "Integer",
+          "required": true
+        }
+      },
+      "rid": "ri.actions.main.action-type.880a78b3-72b2-4552-b75d-879d932ac373",
+      "operations": [
+        {
+          "type": "createObject",
+          "objectTypeApiName": "PubCommitteeSchedulingPuckForSubmissionReview"
+        },
+        {
+          "type": "createObject",
+          "objectTypeApiName": "PubCommitteeSchedulingPuckForSubmissionReview"
+        },
+        {
+          "type": "createObject",
+          "objectTypeApiName": "PubCommitteeSchedulingPuckForSubmissionReview"
+        }
+      ]
     },
     {
       "apiName": "rename-omop-concept-set-version",
@@ -1092,104 +1410,100 @@
       "status": "EXPERIMENTAL",
       "parameters": {
         "concept_set_name": {
-          "description": "",
           "baseType": "String",
           "required": true
         },
         "OMOPConceptSet": {
-          "description": "",
           "baseType": "OntologyObject<OMOPConceptSet>",
           "required": true
         }
       },
-      "rid": "ri.actions.main.action-type.8a978ef8-ebe1-4db3-a0ec-219cb2258557"
+      "rid": "ri.actions.main.action-type.8a978ef8-ebe1-4db3-a0ec-219cb2258557",
+      "operations": [
+        {
+          "type": "modifyObject",
+          "objectTypeApiName": "OMOPConceptSet"
+        }
+      ]
     },
     {
       "apiName": "set-ko-doc-type-action",
-      "description": "",
       "status": "EXPERIMENTAL",
       "parameters": {
         "knowledgeObjects": {
-          "description": "",
           "baseType": "Array<OntologyObject<N3CKnowledgeObjects>>",
           "required": true
         }
       },
-      "rid": "ri.actions.main.action-type.8e6c2322-cd19-4a62-9f61-53735de2f050"
+      "rid": "ri.actions.main.action-type.8e6c2322-cd19-4a62-9f61-53735de2f050",
+      "operations": [
+        {
+          "type": "modifyObject",
+          "objectTypeApiName": "N3CKnowledgeObjects"
+        }
+      ]
     },
     {
       "apiName": "create-cdm-conversion-request",
-      "description": "",
       "status": "EXPERIMENTAL",
       "parameters": {
         "request_status": {
-          "description": "",
           "baseType": "String",
           "required": true
         },
         "source_cdm": {
-          "description": "",
           "baseType": "String",
           "required": true
         },
         "destination_folder_id": {
-          "description": "",
           "baseType": "String",
           "required": true
         },
         "destination_cdm": {
-          "description": "",
           "baseType": "String",
           "required": true
         },
         "input_folder_rid": {
-          "description": "",
           "baseType": "String",
           "required": true
         },
         "destination_version": {
-          "description": "",
           "baseType": "String",
           "required": true
         },
         "source_version": {
-          "description": "",
           "baseType": "String",
           "required": true
         }
       },
-      "rid": "ri.actions.main.action-type.8fff5814-53d5-443f-8dc3-13ef34c8f12c"
+      "rid": "ri.actions.main.action-type.8fff5814-53d5-443f-8dc3-13ef34c8f12c",
+      "operations": []
     },
     {
       "apiName": "new-action-37b1c6b2-369b-8236-522b-680bdb7fc0a6",
-      "description": "",
       "status": "EXPERIMENTAL",
       "parameters": {
         "RP": {
-          "description": "",
           "baseType": "OntologyObject<ResearchProject>",
           "required": true
         },
         "new-parameter": {
-          "description": "",
           "baseType": "String",
           "required": true
         },
         "msTitle": {
-          "description": "",
           "baseType": "String",
           "required": true
         }
       },
-      "rid": "ri.actions.main.action-type.90a61220-5ba7-4c26-b104-ee970410b42a"
+      "rid": "ri.actions.main.action-type.90a61220-5ba7-4c26-b104-ee970410b42a",
+      "operations": []
     },
     {
       "apiName": "new-action-8056911a-5a13-c92c-6b84-0c34fd892cd9",
-      "description": "",
       "status": "EXPERIMENTAL",
       "parameters": {
         "concept-set-bundle-item-id": {
-          "description": "",
           "baseType": "String",
           "required": true
         },
@@ -1199,12 +1513,17 @@
           "required": true
         },
         "new-parameter": {
-          "description": "",
           "baseType": "OntologyObject<ConceptSetTag>",
           "required": true
         }
       },
-      "rid": "ri.actions.main.action-type.90d4f4b0-681c-47e8-8169-3e119cbffd1d"
+      "rid": "ri.actions.main.action-type.90d4f4b0-681c-47e8-8169-3e119cbffd1d",
+      "operations": [
+        {
+          "type": "createObject",
+          "objectTypeApiName": "ConceptSetBundleItem"
+        }
+      ]
     },
     {
       "apiName": "new-action",
@@ -1257,7 +1576,17 @@
           "required": true
         }
       },
-      "rid": "ri.actions.main.action-type.910aafb1-e4db-4b11-80f1-0c191ea7a0da"
+      "rid": "ri.actions.main.action-type.910aafb1-e4db-4b11-80f1-0c191ea7a0da",
+      "operations": [
+        {
+          "type": "createObject",
+          "objectTypeApiName": "OMOPConceptSetReview"
+        },
+        {
+          "type": "modifyObject",
+          "objectTypeApiName": "OMOPConceptSet"
+        }
+      ]
     },
     {
       "apiName": "delete-omop-concept-set-version",
@@ -1265,24 +1594,37 @@
       "status": "ACTIVE",
       "parameters": {
         "omop-concept-set": {
-          "description": "",
           "baseType": "OntologyObject<OMOPConceptSet>",
           "required": true
         },
         "expression-items": {
-          "description": "",
           "baseType": "Array<OntologyObject<OmopConceptSetVersionItem>>",
           "required": false
         }
       },
-      "rid": "ri.actions.main.action-type.93b82f88-bd55-4daf-a0f9-f6537bf2bce1"
+      "rid": "ri.actions.main.action-type.93b82f88-bd55-4daf-a0f9-f6537bf2bce1",
+      "operations": [
+        {
+          "type": "deleteObject",
+          "objectTypeApiName": "OMOPConceptSet"
+        },
+        {
+          "type": "deleteObject",
+          "objectTypeApiName": "OmopConceptSetVersionItem"
+        }
+      ]
     },
     {
       "apiName": "trigger-pi-scorecard",
-      "description": "",
       "status": "EXPERIMENTAL",
       "parameters": {},
-      "rid": "ri.actions.main.action-type.99b54074-2bac-41bd-8e16-3667c3bdd408"
+      "rid": "ri.actions.main.action-type.99b54074-2bac-41bd-8e16-3667c3bdd408",
+      "operations": [
+        {
+          "type": "createObject",
+          "objectTypeApiName": "PiScorecardTrigger"
+        }
+      ]
     },
     {
       "apiName": "ko-set-maintainer",
@@ -1290,17 +1632,21 @@
       "status": "ACTIVE",
       "parameters": {
         "ko_maintainer": {
-          "description": "",
           "baseType": "String",
           "required": true
         },
         "ko": {
-          "description": "",
           "baseType": "OntologyObject<N3CKnowledgeObjects>",
           "required": true
         }
       },
-      "rid": "ri.actions.main.action-type.9d793413-ed8c-409a-a093-34d2ef4f07cd"
+      "rid": "ri.actions.main.action-type.9d793413-ed8c-409a-a093-34d2ef4f07cd",
+      "operations": [
+        {
+          "type": "modifyObject",
+          "objectTypeApiName": "N3CKnowledgeObjects"
+        }
+      ]
     },
     {
       "apiName": "ko-set-title",
@@ -1308,17 +1654,21 @@
       "status": "ACTIVE",
       "parameters": {
         "ko_title": {
-          "description": "",
           "baseType": "String",
           "required": true
         },
         "ko": {
-          "description": "",
           "baseType": "OntologyObject<N3CKnowledgeObjects>",
           "required": true
         }
       },
-      "rid": "ri.actions.main.action-type.9e4b0fcf-2b3a-410c-9c1d-49be5a5c8cf5"
+      "rid": "ri.actions.main.action-type.9e4b0fcf-2b3a-410c-9c1d-49be5a5c8cf5",
+      "operations": [
+        {
+          "type": "modifyObject",
+          "objectTypeApiName": "N3CKnowledgeObjects"
+        }
+      ]
     },
     {
       "apiName": "mark-dur-as-operational",
@@ -1336,7 +1686,8 @@
           "required": true
         }
       },
-      "rid": "ri.actions.main.action-type.9f68899f-b627-426a-9c24-83447bc1eb92"
+      "rid": "ri.actions.main.action-type.9f68899f-b627-426a-9c24-83447bc1eb92",
+      "operations": []
     },
     {
       "apiName": "ko-set-path",
@@ -1344,17 +1695,21 @@
       "status": "ACTIVE",
       "parameters": {
         "ko_rid": {
-          "description": "",
           "baseType": "String",
           "required": false
         },
         "ko": {
-          "description": "",
           "baseType": "OntologyObject<N3CKnowledgeObjects>",
           "required": true
         }
       },
-      "rid": "ri.actions.main.action-type.9f736116-adb2-4fe0-9956-9ef855c2d118"
+      "rid": "ri.actions.main.action-type.9f736116-adb2-4fe0-9956-9ef855c2d118",
+      "operations": [
+        {
+          "type": "modifyObject",
+          "objectTypeApiName": "N3CKnowledgeObjects"
+        }
+      ]
     },
     {
       "apiName": "edit-concept-set-version-number",
@@ -1362,35 +1717,71 @@
       "status": "ACTIVE",
       "parameters": {
         "omop-concept-set": {
-          "description": "",
           "baseType": "OntologyObject<OMOPConceptSet>",
           "required": true
         },
         "version": {
-          "description": "",
           "baseType": "Integer",
           "required": true
         }
       },
-      "rid": "ri.actions.main.action-type.a0957d01-5f70-4bff-b86d-42ba2a45ca02"
+      "rid": "ri.actions.main.action-type.a0957d01-5f70-4bff-b86d-42ba2a45ca02",
+      "operations": [
+        {
+          "type": "modifyObject",
+          "objectTypeApiName": "OMOPConceptSet"
+        }
+      ]
+    },
+    {
+      "apiName": "register-and-respond-to-n3c-assist-question",
+      "status": "EXPERIMENTAL",
+      "parameters": {
+        "prompt": {
+          "baseType": "String",
+          "required": true
+        },
+        "user_id": {
+          "baseType": "String",
+          "required": true
+        },
+        "time": {
+          "baseType": "Timestamp",
+          "required": true
+        }
+      },
+      "rid": "ri.actions.main.action-type.a123f06a-1ffb-4b76-8916-e3f68f500b3e",
+      "operations": [
+        {
+          "type": "createObject",
+          "objectTypeApiName": "N3cAssistFeedback"
+        },
+        {
+          "type": "modifyObject",
+          "objectTypeApiName": "N3cAssistFeedback"
+        }
+      ]
     },
     {
       "apiName": "set-ko-timestamp",
-      "description": "",
       "status": "ACTIVE",
       "parameters": {
         "ko_created_at": {
-          "description": "",
           "baseType": "Timestamp",
           "required": true
         },
         "ko": {
-          "description": "",
           "baseType": "Array<OntologyObject<N3CKnowledgeObjects>>",
           "required": true
         }
       },
-      "rid": "ri.actions.main.action-type.a49e7685-06bb-459b-ae1c-8356edd583d9"
+      "rid": "ri.actions.main.action-type.a49e7685-06bb-459b-ae1c-8356edd583d9",
+      "operations": [
+        {
+          "type": "modifyObject",
+          "objectTypeApiName": "N3CKnowledgeObjects"
+        }
+      ]
     },
     {
       "apiName": "ko-set-sh-workbook",
@@ -1398,75 +1789,215 @@
       "status": "ACTIVE",
       "parameters": {
         "ko": {
-          "description": "",
           "baseType": "OntologyObject<N3CKnowledgeObjects>",
           "required": true
         },
         "ko_sh_workbook": {
-          "description": "",
           "baseType": "String",
           "required": true
         }
       },
-      "rid": "ri.actions.main.action-type.a72ff0fd-2f27-4e6f-88f6-9cb5c445b14f"
+      "rid": "ri.actions.main.action-type.a72ff0fd-2f27-4e6f-88f6-9cb5c445b14f",
+      "operations": [
+        {
+          "type": "modifyObject",
+          "objectTypeApiName": "N3CKnowledgeObjects"
+        }
+      ]
+    },
+    {
+      "apiName": "clone-concept-set",
+      "description": "Create concept set container based on another existing concept set version, in order to take a concept set in another direction",
+      "status": "EXPERIMENTAL",
+      "parameters": {
+        "sourceApplication": {
+          "baseType": "String",
+          "required": true
+        },
+        "researchProject": {
+          "baseType": "OntologyObject<ResearchProject>",
+          "required": false
+        },
+        "assignedSME": {
+          "baseType": "String",
+          "required": false
+        },
+        "sourceApplicationVersion": {
+          "baseType": "String",
+          "required": true
+        },
+        "intention": {
+          "baseType": "String",
+          "required": false
+        },
+        "domainTeam": {
+          "baseType": "OntologyObject<DomainTeam>",
+          "required": false
+        },
+        "baseVersion": {
+          "baseType": "OntologyObject<OMOPConceptSet>",
+          "required": true
+        },
+        "new_concept_name": {
+          "baseType": "String",
+          "required": true
+        },
+        "assignedInformatician": {
+          "baseType": "String",
+          "required": false
+        },
+        "new-parameter": {
+          "baseType": "String",
+          "required": true
+        }
+      },
+      "rid": "ri.actions.main.action-type.a98aca1a-6fba-4e20-83dc-be8ef2d07d4c",
+      "operations": [
+        {
+          "type": "createObject",
+          "objectTypeApiName": "OMOPConceptSetContainer"
+        },
+        {
+          "type": "createObject",
+          "objectTypeApiName": "OMOPConceptSet"
+        },
+        {
+          "type": "createObject",
+          "objectTypeApiName": "OmopConceptSetVersionItem"
+        },
+        {
+          "type": "modifyObject",
+          "objectTypeApiName": "OMOPConceptSetContainer"
+        },
+        {
+          "type": "modifyObject",
+          "objectTypeApiName": "OMOPConceptSet"
+        },
+        {
+          "type": "modifyObject",
+          "objectTypeApiName": "DomainTeam"
+        },
+        {
+          "type": "modifyObject",
+          "objectTypeApiName": "OmopConceptSetVersionItem"
+        },
+        {
+          "type": "modifyObject",
+          "objectTypeApiName": "Researcher"
+        }
+      ]
+    },
+    {
+      "apiName": "create-unit-maintenance-task",
+      "description": "Create a new task for the measurement unit maintenance team",
+      "status": "EXPERIMENTAL",
+      "parameters": {
+        "task_name": {
+          "baseType": "String",
+          "required": true
+        },
+        "priority": {
+          "baseType": "String",
+          "required": true
+        },
+        "links_to_prs": {
+          "baseType": "Array<String>",
+          "required": false
+        },
+        "category": {
+          "baseType": "Array<String>",
+          "required": true
+        },
+        "status": {
+          "baseType": "String",
+          "required": true
+        },
+        "clinician_assignee": {
+          "baseType": "String",
+          "required": true
+        },
+        "task_creator_notes": {
+          "baseType": "String",
+          "required": false
+        },
+        "informatician_assignee": {
+          "baseType": "String",
+          "required": true
+        }
+      },
+      "rid": "ri.actions.main.action-type.af5a44a0-53cf-489d-80c9-fea343932ae5",
+      "operations": [
+        {
+          "type": "createObject",
+          "objectTypeApiName": "UnitMaintenanceTask"
+        }
+      ]
     },
     {
       "apiName": "create-concept-set-bundle",
-      "description": "",
       "status": "EXPERIMENTAL",
       "parameters": {
         "bundle-uid": {
-          "description": "",
           "baseType": "String",
           "required": true
         },
         "bundle_uid": {
-          "description": "",
           "baseType": "String",
           "required": true
         }
       },
-      "rid": "ri.actions.main.action-type.b487080a-1252-434c-a23a-6397ede67a7f"
+      "rid": "ri.actions.main.action-type.b487080a-1252-434c-a23a-6397ede67a7f",
+      "operations": [
+        {
+          "type": "createObject",
+          "objectTypeApiName": "ConceptSetTag"
+        }
+      ]
     },
     {
       "apiName": "update-ko-review-property-action",
-      "description": "",
       "status": "EXPERIMENTAL",
       "parameters": {
         "N3CKnowledgeObjects": {
-          "description": "",
           "baseType": "Array<OntologyObject<N3CKnowledgeObjects>>",
           "required": true
         },
         "ko_peer_reviewed": {
-          "description": "",
           "baseType": "Boolean",
           "required": true
         }
       },
-      "rid": "ri.actions.main.action-type.b4a7c2c4-e131-4edb-9129-43ff14314934"
+      "rid": "ri.actions.main.action-type.b4a7c2c4-e131-4edb-9129-43ff14314934",
+      "operations": [
+        {
+          "type": "modifyObject",
+          "objectTypeApiName": "N3CKnowledgeObjects"
+        }
+      ]
     },
     {
       "apiName": "migration-manually-set-concept-set-version-is-draft",
-      "description": "",
       "status": "EXPERIMENTAL",
       "parameters": {
         "OMOPConceptSet": {
-          "description": "",
           "baseType": "Array<OntologyObject<OMOPConceptSet>>",
           "required": true
         },
         "is_draft": {
-          "description": "",
           "baseType": "Boolean",
           "required": true
         }
       },
-      "rid": "ri.actions.main.action-type.b60bc598-e308-4f3c-ad52-dc9d31681ba2"
+      "rid": "ri.actions.main.action-type.b60bc598-e308-4f3c-ad52-dc9d31681ba2",
+      "operations": [
+        {
+          "type": "modifyObject",
+          "objectTypeApiName": "OMOPConceptSet"
+        }
+      ]
     },
     {
       "apiName": "edit-omop-concept-set-version-item",
-      "description": "",
       "status": "EXPERIMENTAL",
       "parameters": {
         "include_descendants": {
@@ -1480,12 +2011,10 @@
           "required": true
         },
         "OmopConceptSetVersionItem": {
-          "description": "",
           "baseType": "OntologyObject<OmopConceptSetVersionItem>",
           "required": true
         },
         "version": {
-          "description": "",
           "baseType": "OntologyObject<OMOPConceptSet>",
           "required": true
         },
@@ -1495,45 +2024,54 @@
           "required": true
         }
       },
-      "rid": "ri.actions.main.action-type.be264050-8b7f-44fe-9082-5fb4b748049a"
+      "rid": "ri.actions.main.action-type.be264050-8b7f-44fe-9082-5fb4b748049a",
+      "operations": [
+        {
+          "type": "modifyObject",
+          "objectTypeApiName": "OmopConceptSetVersionItem"
+        }
+      ]
     },
     {
       "apiName": "new-action-73e4c2d2-8fe3-2a71-ebf8-a21b9223ea21",
-      "description": "",
       "status": "EXPERIMENTAL",
       "parameters": {
         "input_cdm_type": {
-          "description": "",
           "baseType": "String",
           "required": true
         },
         "output_cdm_type": {
-          "description": "",
           "baseType": "String",
           "required": true
         },
         "input_version": {
-          "description": "",
           "baseType": "String",
           "required": true
         },
         "output_version": {
-          "description": "",
           "baseType": "String",
           "required": true
         },
         "new-property3": {
-          "description": "",
           "baseType": "String",
           "required": false
         },
+        "new-parameter": {
+          "baseType": "String",
+          "required": true
+        },
         "new-property2": {
-          "description": "",
           "baseType": "String",
           "required": true
         }
       },
-      "rid": "ri.actions.main.action-type.beaa3aee-2299-4a26-a1ac-553d16a11ed0"
+      "rid": "ri.actions.main.action-type.beaa3aee-2299-4a26-a1ac-553d16a11ed0",
+      "operations": [
+        {
+          "type": "createObject",
+          "objectTypeApiName": "DataConversionRequestObject"
+        }
+      ]
     },
     {
       "apiName": "delete-cohort-object",
@@ -1546,7 +2084,13 @@
           "required": true
         }
       },
-      "rid": "ri.actions.main.action-type.beef239a-dc23-47dc-a354-933948397e1b"
+      "rid": "ri.actions.main.action-type.beef239a-dc23-47dc-a354-933948397e1b",
+      "operations": [
+        {
+          "type": "deleteObject",
+          "objectTypeApiName": "OMOPCohorts"
+        }
+      ]
     },
     {
       "apiName": "ko-set-author",
@@ -1554,17 +2098,21 @@
       "status": "ACTIVE",
       "parameters": {
         "ko_created_by": {
-          "description": "",
           "baseType": "String",
           "required": true
         },
         "ko": {
-          "description": "",
           "baseType": "OntologyObject<N3CKnowledgeObjects>",
           "required": true
         }
       },
-      "rid": "ri.actions.main.action-type.c0437690-65dc-41a6-9d22-6c1f37e16277"
+      "rid": "ri.actions.main.action-type.c0437690-65dc-41a6-9d22-6c1f37e16277",
+      "operations": [
+        {
+          "type": "modifyObject",
+          "objectTypeApiName": "N3CKnowledgeObjects"
+        }
+      ]
     },
     {
       "apiName": "create-pprl-external-datasource",
@@ -1572,17 +2120,21 @@
       "status": "ACTIVE",
       "parameters": {
         "id": {
-          "description": "",
           "baseType": "String",
           "required": true
         },
         "name": {
-          "description": "",
           "baseType": "String",
           "required": true
         }
       },
-      "rid": "ri.actions.main.action-type.c06a88d8-01c8-4154-b754-0dfd2665d78e"
+      "rid": "ri.actions.main.action-type.c06a88d8-01c8-4154-b754-0dfd2665d78e",
+      "operations": [
+        {
+          "type": "createObject",
+          "objectTypeApiName": "PprlExternalDataset"
+        }
+      ]
     },
     {
       "apiName": "discard-omop-concept-set-expression",
@@ -1590,40 +2142,39 @@
       "status": "EXPERIMENTAL",
       "parameters": {
         "concept-set-version-item": {
-          "description": "",
           "baseType": "Array<OntologyObject<OmopConceptSetVersionItem>>",
           "required": true
         },
         "version": {
-          "description": "",
           "baseType": "OntologyObject<OMOPConceptSet>",
           "required": true
         }
       },
-      "rid": "ri.actions.main.action-type.c3335ea7-3e07-4ca3-a130-6ac4bda4ad13"
+      "rid": "ri.actions.main.action-type.c3335ea7-3e07-4ca3-a130-6ac4bda4ad13",
+      "operations": [
+        {
+          "type": "deleteObject",
+          "objectTypeApiName": "OmopConceptSetVersionItem"
+        }
+      ]
     },
     {
       "apiName": "request-add-resource-to-ko-action",
-      "description": "",
       "status": "EXPERIMENTAL",
       "parameters": {
         "notes": {
-          "description": "",
           "baseType": "String",
           "required": false
         },
         "ko_update_id": {
-          "description": "",
           "baseType": "String",
           "required": true
         },
         "N3CKnowledgeObjects": {
-          "description": "",
           "baseType": "OntologyObject<N3CKnowledgeObjects>",
           "required": true
         },
         "resource_type": {
-          "description": "",
           "baseType": "String",
           "required": true
         },
@@ -1638,58 +2189,71 @@
           "required": true
         }
       },
-      "rid": "ri.actions.main.action-type.c5075c1b-eba9-4aab-9448-4948809b997d"
+      "rid": "ri.actions.main.action-type.c5075c1b-eba9-4aab-9448-4948809b997d",
+      "operations": [
+        {
+          "type": "createObject",
+          "objectTypeApiName": "KnowledgeObjectUpdateRequest"
+        },
+        {
+          "type": "modifyObject",
+          "objectTypeApiName": "N3CKnowledgeObjects"
+        }
+      ]
     },
     {
       "apiName": "rename-research-project",
-      "description": "",
       "status": "EXPERIMENTAL",
       "parameters": {
         "ResearchProject": {
-          "description": "",
           "baseType": "OntologyObject<ResearchProject>",
           "required": true
         },
         "title": {
-          "description": "",
           "baseType": "String",
           "required": true
         }
       },
-      "rid": "ri.actions.main.action-type.c6f649b6-0074-447a-8022-9fdd06e1579e"
+      "rid": "ri.actions.main.action-type.c6f649b6-0074-447a-8022-9fdd06e1579e",
+      "operations": [
+        {
+          "type": "modifyObject",
+          "objectTypeApiName": "ResearchProject"
+        }
+      ]
     },
     {
       "apiName": "create-research-project",
-      "description": "",
       "status": "EXPERIMENTAL",
       "parameters": {
         "collaborator-group-id": {
-          "description": "",
           "baseType": "String",
           "required": true
         },
         "project-id": {
-          "description": "",
           "baseType": "String",
           "required": true
         },
         "project-rid": {
-          "description": "",
           "baseType": "String",
           "required": true
         },
         "description": {
-          "description": "",
           "baseType": "String",
           "required": true
         },
         "title": {
-          "description": "",
           "baseType": "String",
           "required": true
         }
       },
-      "rid": "ri.actions.main.action-type.c6ffe204-48e9-4a04-b71d-6b80e3f90761"
+      "rid": "ri.actions.main.action-type.c6ffe204-48e9-4a04-b71d-6b80e3f90761",
+      "operations": [
+        {
+          "type": "createObject",
+          "objectTypeApiName": "ResearchProject"
+        }
+      ]
     },
     {
       "apiName": "concept-set-container-research-project-link",
@@ -1697,17 +2261,24 @@
       "status": "ACTIVE",
       "parameters": {
         "concept-set": {
-          "description": "",
           "baseType": "OntologyObject<OMOPConceptSetContainer>",
           "required": true
         },
         "research-project": {
-          "description": "",
           "baseType": "OntologyObject<ResearchProject>",
           "required": true
         }
       },
-      "rid": "ri.actions.main.action-type.c77bfa56-8a48-41db-a03f-5300aa97480c"
+      "rid": "ri.actions.main.action-type.c77bfa56-8a48-41db-a03f-5300aa97480c",
+      "operations": [
+        {
+          "type": "createLink",
+          "linkTypeApiNameAtoB": "researchProject",
+          "linkTypeApiNameBtoA": "omopconceptSetContainer",
+          "aSideObjectTypeApiName": "OMOPConceptSetContainer",
+          "bSideObjectTypeApiName": "ResearchProject"
+        }
+      ]
     },
     {
       "apiName": "submit-user-ack",
@@ -1715,37 +2286,37 @@
       "status": "ACTIVE",
       "parameters": {
         "user_ack_uid": {
-          "description": "",
           "baseType": "String",
           "required": true
         },
         "acknowledgement": {
-          "description": "",
           "baseType": "String",
           "required": true
         },
         "user_id": {
-          "description": "",
           "baseType": "String",
           "required": true
         },
         "ko": {
-          "description": "",
           "baseType": "OntologyObject<N3CKnowledgeObjects>",
           "required": true
         },
         "project": {
-          "description": "",
           "baseType": "OntologyObject<ResearchProject>",
           "required": true
         },
         "ack_timestamp": {
-          "description": "",
           "baseType": "Timestamp",
           "required": true
         }
       },
-      "rid": "ri.actions.main.action-type.c9ac6df3-a266-47bf-bcb8-367975484583"
+      "rid": "ri.actions.main.action-type.c9ac6df3-a266-47bf-bcb8-367975484583",
+      "operations": [
+        {
+          "type": "createObject",
+          "objectTypeApiName": "UserAcknowledgment"
+        }
+      ]
     },
     {
       "apiName": "archive-concept-set",
@@ -1753,66 +2324,109 @@
       "status": "ACTIVE",
       "parameters": {
         "concept-set": {
-          "description": "",
           "baseType": "OntologyObject<OMOPConceptSetContainer>",
           "required": true
         }
       },
-      "rid": "ri.actions.main.action-type.cbc3643b-cca4-4772-ae2d-ae7036a6798b"
+      "rid": "ri.actions.main.action-type.cbc3643b-cca4-4772-ae2d-ae7036a6798b",
+      "operations": [
+        {
+          "type": "modifyObject",
+          "objectTypeApiName": "OMOPConceptSetContainer"
+        }
+      ]
     },
     {
       "apiName": "unsubscribe-concept-set",
-      "description": "",
       "status": "EXPERIMENTAL",
       "parameters": {
         "userId": {
-          "description": "",
           "baseType": "String",
           "required": true
         },
         "conceptSet": {
-          "description": "",
           "baseType": "OntologyObject<OMOPConceptSetContainer>",
           "required": true
         },
         "conceptSets": {
-          "description": "",
           "baseType": "Array<OntologyObject<OMOPConceptSetContainer>>",
           "required": true
         }
       },
-      "rid": "ri.actions.main.action-type.cfde92c4-7323-4346-b030-d4da80d95c36"
+      "rid": "ri.actions.main.action-type.cfde92c4-7323-4346-b030-d4da80d95c36",
+      "operations": [
+        {
+          "type": "createObject",
+          "objectTypeApiName": "VCMConceptSetNotificationSubscriptionEvent"
+        },
+        {
+          "type": "modifyObject",
+          "objectTypeApiName": "Researcher"
+        },
+        {
+          "type": "modifyObject",
+          "objectTypeApiName": "OMOPConceptSetContainer"
+        },
+        {
+          "type": "modifyObject",
+          "objectTypeApiName": "VCMConceptSetNotificationSubscriptionEvent"
+        }
+      ]
     },
     {
       "apiName": "new-action-5083a828-9195-bdb0-09f6-e2723dec94ad",
-      "description": "",
       "status": "EXPERIMENTAL",
       "parameters": {
         "version": {
-          "description": "",
           "baseType": "Array<OntologyObject<OMOPConceptSet>>",
           "required": true
         }
       },
-      "rid": "ri.actions.main.action-type.d082dae5-eb39-4d90-89e4-15e8b0cf4553"
+      "rid": "ri.actions.main.action-type.d082dae5-eb39-4d90-89e4-15e8b0cf4553",
+      "operations": [
+        {
+          "type": "modifyObject",
+          "objectTypeApiName": "OMOPConceptSet"
+        }
+      ]
+    },
+    {
+      "apiName": "create-2023-enclave-user-survey-response",
+      "status": "EXPERIMENTAL",
+      "parameters": {
+        "new-parameter": {
+          "baseType": "String",
+          "required": false
+        }
+      },
+      "rid": "ri.actions.main.action-type.d08389a2-41f4-4a45-a2ce-4fbaa5bd857b",
+      "operations": [
+        {
+          "type": "createObject",
+          "objectTypeApiName": "EnclaveUser2023SurveyResponse"
+        }
+      ]
     },
     {
       "apiName": "ko-set-deidentified-dataset-rid",
-      "description": "",
       "status": "ACTIVE",
       "parameters": {
         "ko": {
-          "description": "",
           "baseType": "OntologyObject<N3CKnowledgeObjects>",
           "required": true
         },
         "ko_sh_dataset_preview_rid": {
-          "description": "",
           "baseType": "String",
           "required": true
         }
       },
-      "rid": "ri.actions.main.action-type.d10c9f2d-a590-4056-b1c0-47065eb3d2a6"
+      "rid": "ri.actions.main.action-type.d10c9f2d-a590-4056-b1c0-47065eb3d2a6",
+      "operations": [
+        {
+          "type": "modifyObject",
+          "objectTypeApiName": "N3CKnowledgeObjects"
+        }
+      ]
     },
     {
       "apiName": "create-new-measurement-unit-conversion-formula",
@@ -1820,45 +2434,43 @@
       "status": "EXPERIMENTAL",
       "parameters": {
         "mapping_function": {
-          "description": "",
           "baseType": "String",
           "required": true
         },
         "measurement_omop_concept_name": {
-          "description": "",
           "baseType": "String",
           "required": true
         },
         "original_unit_omop_concept_name": {
-          "description": "",
           "baseType": "OntologyObject<OMOPConcept>",
           "required": true
         },
         "permitted_editors": {
-          "description": "",
           "baseType": "Array<OntologyObject<Researcher>>",
           "required": true
         },
         "conversion_equation": {
-          "description": "",
           "baseType": "String",
           "required": true
         },
         "harmonized_unit_omop_concept_name": {
-          "description": "",
           "baseType": "String",
           "required": true
         }
       },
-      "rid": "ri.actions.main.action-type.d1879529-109d-41f4-a745-b8f836b25ae2"
+      "rid": "ri.actions.main.action-type.d1879529-109d-41f4-a745-b8f836b25ae2",
+      "operations": [
+        {
+          "type": "createObject",
+          "objectTypeApiName": "UnitConversionFormula"
+        }
+      ]
     },
     {
       "apiName": "add-selected-concepts-as-omop-version-expressions",
-      "description": "",
       "status": "EXPERIMENTAL",
       "parameters": {
         "sourceApplication": {
-          "description": "",
           "baseType": "String",
           "required": true
         },
@@ -1893,7 +2505,21 @@
           "required": false
         }
       },
-      "rid": "ri.actions.main.action-type.d1ad39f8-a303-4f46-8f46-bd48c5362915"
+      "rid": "ri.actions.main.action-type.d1ad39f8-a303-4f46-8f46-bd48c5362915",
+      "operations": [
+        {
+          "type": "createObject",
+          "objectTypeApiName": "OmopConceptSetVersionItem"
+        },
+        {
+          "type": "modifyObject",
+          "objectTypeApiName": "OmopConceptSetVersionItem"
+        },
+        {
+          "type": "modifyObject",
+          "objectTypeApiName": "OMOPConceptSet"
+        }
+      ]
     },
     {
       "apiName": "new-action-03c05f3f-b221-396a-569e-95d52c8f566b",
@@ -1901,12 +2527,17 @@
       "status": "EXPERIMENTAL",
       "parameters": {
         "csversion": {
-          "description": "",
           "baseType": "OntologyObject<OMOPConceptSet>",
           "required": true
         }
       },
-      "rid": "ri.actions.main.action-type.d1f96c36-188d-4580-a5e9-a65c42be26be"
+      "rid": "ri.actions.main.action-type.d1f96c36-188d-4580-a5e9-a65c42be26be",
+      "operations": [
+        {
+          "type": "modifyObject",
+          "objectTypeApiName": "OMOPConceptSet"
+        }
+      ]
     },
     {
       "apiName": "delete-research-project",
@@ -1914,12 +2545,17 @@
       "status": "EXPERIMENTAL",
       "parameters": {
         "new-parameter": {
-          "description": "",
           "baseType": "OntologyObject<ResearchProject>",
           "required": true
         }
       },
-      "rid": "ri.actions.main.action-type.d204a0b9-20ef-4997-82d6-c42399575850"
+      "rid": "ri.actions.main.action-type.d204a0b9-20ef-4997-82d6-c42399575850",
+      "operations": [
+        {
+          "type": "deleteObject",
+          "objectTypeApiName": "ResearchProject"
+        }
+      ]
     },
     {
       "apiName": "ko-set-lds-dataset-rid",
@@ -1927,35 +2563,35 @@
       "status": "ACTIVE",
       "parameters": {
         "ko": {
-          "description": "",
           "baseType": "OntologyObject<N3CKnowledgeObjects>",
           "required": true
         },
         "ko_lds_dataset_preview_rid": {
-          "description": "",
           "baseType": "String",
           "required": true
         }
       },
-      "rid": "ri.actions.main.action-type.d2280b24-f06e-48c9-94f9-e7246e6681b2"
+      "rid": "ri.actions.main.action-type.d2280b24-f06e-48c9-94f9-e7246e6681b2",
+      "operations": [
+        {
+          "type": "modifyObject",
+          "objectTypeApiName": "N3CKnowledgeObjects"
+        }
+      ]
     },
     {
       "apiName": "finalize-draft-omop-concept-set-version",
-      "description": "",
       "status": "EXPERIMENTAL",
       "parameters": {
         "new-parameter1": {
-          "description": "",
           "baseType": "String",
           "required": true
         },
         "concept-set-containe": {
-          "description": "",
           "baseType": "OntologyObject<OMOPConceptSetContainer>",
           "required": false
         },
         "version": {
-          "description": "",
           "baseType": "OntologyObject<OMOPConceptSet>",
           "required": true
         },
@@ -1965,22 +2601,25 @@
           "required": false
         },
         "on-behalf-of": {
-          "description": "",
           "baseType": "String",
           "required": true
         },
         "currentMaxVersion": {
-          "description": "",
           "baseType": "Double",
           "required": false
         },
         "new-parameter": {
-          "description": "",
           "baseType": "String",
           "required": true
         }
       },
-      "rid": "ri.actions.main.action-type.d53c0a2b-db9d-4a72-b10b-ad5f467f3f9c"
+      "rid": "ri.actions.main.action-type.d53c0a2b-db9d-4a72-b10b-ad5f467f3f9c",
+      "operations": [
+        {
+          "type": "modifyObject",
+          "objectTypeApiName": "OMOPConceptSet"
+        }
+      ]
     },
     {
       "apiName": "create-draft-cohort-and-links",
@@ -1988,37 +2627,49 @@
       "status": "ACTIVE",
       "parameters": {
         "createNewCohortJson": {
-          "description": "",
           "baseType": "String",
           "required": false
         },
         "cohortDraftId": {
-          "description": "",
           "baseType": "String",
           "required": true
         },
         "isNewCohort": {
-          "description": "",
           "baseType": "Boolean",
           "required": true
         },
         "userId": {
-          "description": "",
           "baseType": "String",
           "required": true
         },
         "existingCohortToEdit": {
-          "description": "",
           "baseType": "OntologyObject<OMOPCohorts>",
           "required": true
         },
         "editExistingCohortJson": {
-          "description": "",
           "baseType": "String",
           "required": false
         }
       },
-      "rid": "ri.actions.main.action-type.d5cc88a8-8ba8-4250-9b61-c521a691583a"
+      "rid": "ri.actions.main.action-type.d5cc88a8-8ba8-4250-9b61-c521a691583a",
+      "operations": [
+        {
+          "type": "createObject",
+          "objectTypeApiName": "DraftOMOPCohortVersion"
+        },
+        {
+          "type": "createObject",
+          "objectTypeApiName": "DraftOmopCohortVersionCodesetVersionLink"
+        },
+        {
+          "type": "modifyObject",
+          "objectTypeApiName": "DraftOMOPCohortVersion"
+        },
+        {
+          "type": "modifyObject",
+          "objectTypeApiName": "DraftOmopCohortVersionCodesetVersionLink"
+        }
+      ]
     },
     {
       "apiName": "ko-set-description",
@@ -2026,17 +2677,21 @@
       "status": "ACTIVE",
       "parameters": {
         "ko_description": {
-          "description": "",
           "baseType": "String",
           "required": true
         },
         "ko": {
-          "description": "",
           "baseType": "OntologyObject<N3CKnowledgeObjects>",
           "required": true
         }
       },
-      "rid": "ri.actions.main.action-type.da69f454-8012-4e0a-8316-092fc2e37c90"
+      "rid": "ri.actions.main.action-type.da69f454-8012-4e0a-8316-092fc2e37c90",
+      "operations": [
+        {
+          "type": "modifyObject",
+          "objectTypeApiName": "N3CKnowledgeObjects"
+        }
+      ]
     },
     {
       "apiName": "rename-omop-concept-set",
@@ -2044,17 +2699,21 @@
       "status": "EXPERIMENTAL",
       "parameters": {
         "concept_set_name": {
-          "description": "",
           "baseType": "String",
           "required": true
         },
         "OMOPConceptSetContainer": {
-          "description": "",
           "baseType": "OntologyObject<OMOPConceptSetContainer>",
           "required": true
         }
       },
-      "rid": "ri.actions.main.action-type.dd1379ac-a8bd-4801-b398-586cc52a6f95"
+      "rid": "ri.actions.main.action-type.dd1379ac-a8bd-4801-b398-586cc52a6f95",
+      "operations": [
+        {
+          "type": "modifyObject",
+          "objectTypeApiName": "OMOPConceptSetContainer"
+        }
+      ]
     },
     {
       "apiName": "add-code-system-codes-as-omop-version-expressions",
@@ -2077,7 +2736,6 @@
           "required": true
         },
         "version": {
-          "description": "",
           "baseType": "OntologyObject<OMOPConceptSet>",
           "required": true
         },
@@ -2092,7 +2750,21 @@
           "required": false
         }
       },
-      "rid": "ri.actions.main.action-type.e07f2503-c7c9-47b9-9418-225544b56b71"
+      "rid": "ri.actions.main.action-type.e07f2503-c7c9-47b9-9418-225544b56b71",
+      "operations": [
+        {
+          "type": "createObject",
+          "objectTypeApiName": "CodeSystemConceptSetVersionExpressionItem"
+        },
+        {
+          "type": "modifyObject",
+          "objectTypeApiName": "CodeSystemConceptSetVersionExpressionItem"
+        },
+        {
+          "type": "modifyObject",
+          "objectTypeApiName": "OMOPConceptSet"
+        }
+      ]
     },
     {
       "apiName": "delete-cohort-version-object",
@@ -2105,7 +2777,13 @@
           "required": true
         }
       },
-      "rid": "ri.actions.main.action-type.e09a89e6-7ba1-4083-bfd5-37f13d761ce4"
+      "rid": "ri.actions.main.action-type.e09a89e6-7ba1-4083-bfd5-37f13d761ce4",
+      "operations": [
+        {
+          "type": "deleteObject",
+          "objectTypeApiName": "OMOPCohortVersion"
+        }
+      ]
     },
     {
       "apiName": "assign-informatician",
@@ -2113,40 +2791,66 @@
       "status": "ACTIVE",
       "parameters": {
         "assigned_informatician": {
-          "description": "",
           "baseType": "String",
           "required": true
         },
         "concept-set": {
-          "description": "",
           "baseType": "OntologyObject<OMOPConceptSetContainer>",
           "required": true
         }
       },
-      "rid": "ri.actions.main.action-type.e2a98ba6-c0c8-4cf9-878b-dd2299b5adec"
+      "rid": "ri.actions.main.action-type.e2a98ba6-c0c8-4cf9-878b-dd2299b5adec",
+      "operations": [
+        {
+          "type": "modifyObject",
+          "objectTypeApiName": "OMOPConceptSetContainer"
+        }
+      ]
+    },
+    {
+      "apiName": "set-proj-admins-view-status",
+      "status": "EXPERIMENTAL",
+      "parameters": {
+        "canView": {
+          "baseType": "Boolean",
+          "required": true
+        },
+        "dur_response_group": {
+          "baseType": "String",
+          "required": true
+        },
+        "new-parameter": {
+          "baseType": "String",
+          "required": true
+        }
+      },
+      "rid": "ri.actions.main.action-type.e5c03ee5-17a0-4bf3-a22a-4255b900e28a",
+      "operations": []
     },
     {
       "apiName": "edit-omop-concept-set-expression-is-excluded",
-      "description": "",
       "status": "EXPERIMENTAL",
       "parameters": {
         "OmopConceptSetVersionItem": {
-          "description": "",
           "baseType": "Array<OntologyObject<OmopConceptSetVersionItem>>",
           "required": true
         },
         "is_excluded": {
-          "description": "",
           "baseType": "Boolean",
           "required": true
         },
         "version": {
-          "description": "",
           "baseType": "OntologyObject<OMOPConceptSet>",
           "required": true
         }
       },
-      "rid": "ri.actions.main.action-type.e60e3fa4-22a5-4224-afaf-9a0f9e11ddb8"
+      "rid": "ri.actions.main.action-type.e60e3fa4-22a5-4224-afaf-9a0f9e11ddb8",
+      "operations": [
+        {
+          "type": "modifyObject",
+          "objectTypeApiName": "OmopConceptSetVersionItem"
+        }
+      ]
     },
     {
       "apiName": "create-cohort",
@@ -2154,42 +2858,65 @@
       "status": "ACTIVE",
       "parameters": {
         "createNewCohortJson": {
-          "description": "",
           "baseType": "String",
           "required": false
         },
         "isNewCohort": {
-          "description": "",
           "baseType": "Boolean",
           "required": true
         },
         "cohortName": {
-          "description": "",
           "baseType": "String",
           "required": false
         },
         "cohort-draft-id": {
-          "description": "",
           "baseType": "String",
           "required": true
         },
         "existingCohortToEdit": {
-          "description": "",
           "baseType": "OntologyObject<OMOPCohorts>",
           "required": true
         },
         "user-id": {
-          "description": "",
           "baseType": "String",
           "required": true
         },
         "editExistingCohortJson": {
-          "description": "",
           "baseType": "String",
           "required": false
         }
       },
-      "rid": "ri.actions.main.action-type.e712ae7e-e9cf-44d0-b9aa-2b5885f40610"
+      "rid": "ri.actions.main.action-type.e712ae7e-e9cf-44d0-b9aa-2b5885f40610",
+      "operations": [
+        {
+          "type": "createObject",
+          "objectTypeApiName": "OMOPCohorts"
+        },
+        {
+          "type": "createObject",
+          "objectTypeApiName": "OMOPCohortVersion"
+        },
+        {
+          "type": "createObject",
+          "objectTypeApiName": "OMOPCohortVersionCodesetVersionLink"
+        },
+        {
+          "type": "modifyObject",
+          "objectTypeApiName": "OMOPCohorts"
+        },
+        {
+          "type": "modifyObject",
+          "objectTypeApiName": "OMOPCohortVersion"
+        },
+        {
+          "type": "modifyObject",
+          "objectTypeApiName": "DraftOMOPCohortVersion"
+        },
+        {
+          "type": "modifyObject",
+          "objectTypeApiName": "OMOPCohortVersionCodesetVersionLink"
+        }
+      ]
     },
     {
       "apiName": "ko-set-parent-id",
@@ -2197,25 +2924,27 @@
       "status": "ACTIVE",
       "parameters": {
         "ko": {
-          "description": "",
           "baseType": "OntologyObject<N3CKnowledgeObjects>",
           "required": true
         },
         "ko_parent_id": {
-          "description": "",
           "baseType": "String",
           "required": true
         }
       },
-      "rid": "ri.actions.main.action-type.eb1b8668-4905-4af8-9cf1-2adbe0e6eba9"
+      "rid": "ri.actions.main.action-type.eb1b8668-4905-4af8-9cf1-2adbe0e6eba9",
+      "operations": [
+        {
+          "type": "modifyObject",
+          "objectTypeApiName": "N3CKnowledgeObjects"
+        }
+      ]
     },
     {
       "apiName": "delete-concept-set-bundle-item-from-bundle",
-      "description": "",
       "status": "EXPERIMENTAL",
       "parameters": {
         "bundle": {
-          "description": "",
           "baseType": "OntologyObject<ConceptSetTag>",
           "required": true
         },
@@ -2225,7 +2954,13 @@
           "required": true
         }
       },
-      "rid": "ri.actions.main.action-type.eb6d3019-5fed-4cb8-8838-b986baaa25b3"
+      "rid": "ri.actions.main.action-type.eb6d3019-5fed-4cb8-8838-b986baaa25b3",
+      "operations": [
+        {
+          "type": "deleteObject",
+          "objectTypeApiName": "ConceptSetBundleItem"
+        }
+      ]
     },
     {
       "apiName": "ko-set-release-status",
@@ -2233,17 +2968,58 @@
       "status": "ACTIVE",
       "parameters": {
         "ko": {
-          "description": "",
           "baseType": "Array<OntologyObject<N3CKnowledgeObjects>>",
           "required": true
         },
         "ko_release_status": {
-          "description": "",
           "baseType": "String",
           "required": true
         }
       },
-      "rid": "ri.actions.main.action-type.eec7d2b3-6207-4083-95c2-35a2ba40ffc4"
+      "rid": "ri.actions.main.action-type.eec7d2b3-6207-4083-95c2-35a2ba40ffc4",
+      "operations": [
+        {
+          "type": "modifyObject",
+          "objectTypeApiName": "N3CKnowledgeObjects"
+        }
+      ]
+    },
+    {
+      "apiName": "provide-n3c-assist-feedback",
+      "status": "EXPERIMENTAL",
+      "parameters": {
+        "vote": {
+          "baseType": "Integer",
+          "required": true
+        },
+        "comment": {
+          "baseType": "String",
+          "required": false
+        },
+        "objects_returned": {
+          "baseType": "Array<String>",
+          "required": true
+        },
+        "new-parameter": {
+          "baseType": "String",
+          "required": true
+        },
+        "question": {
+          "baseType": "String",
+          "required": true
+        },
+        "answer": {
+          "baseType": "String",
+          "required": true
+        }
+      },
+      "rid": "ri.actions.main.action-type.eedd8ecc-7c8f-47c6-930a-2790e434c8d2",
+      "operations": [
+        {
+          "type": "createObject",
+          "objectTypeApiName": "N3cAssistFeedback"
+        }
+      ]
     },
     {
       "apiName": "create-new-concept-set",
@@ -2251,27 +3027,22 @@
       "status": "ACTIVE",
       "parameters": {
         "assigned_sme": {
-          "description": "",
           "baseType": "String",
           "required": false
         },
         "assigned_informatician": {
-          "description": "",
           "baseType": "String",
           "required": false
         },
         "concept_set_id": {
-          "description": "",
           "baseType": "String",
           "required": true
         },
         "status": {
-          "description": "",
           "baseType": "String",
           "required": true
         },
         "intention": {
-          "description": "",
           "baseType": "String",
           "required": true
         },
@@ -2286,45 +3057,50 @@
           "required": true
         },
         "stage": {
-          "description": "",
           "baseType": "String",
           "required": true
         }
       },
-      "rid": "ri.actions.main.action-type.ef6f89de-d5e3-450c-91ea-17132c8636ae"
+      "rid": "ri.actions.main.action-type.ef6f89de-d5e3-450c-91ea-17132c8636ae",
+      "operations": [
+        {
+          "type": "createObject",
+          "objectTypeApiName": "OMOPConceptSetContainer"
+        }
+      ]
     },
     {
       "apiName": "create-tag",
-      "description": "",
       "status": "ACTIVE",
       "parameters": {
         "tag_uid": {
-          "description": "",
           "baseType": "String",
           "required": true
         },
         "name": {
-          "description": "",
           "baseType": "String",
           "required": true
         },
         "tag-category": {
-          "description": "",
           "baseType": "String",
           "required": true
         },
         "description": {
-          "description": "",
           "baseType": "String",
           "required": false
         },
         "author": {
-          "description": "",
           "baseType": "String",
           "required": true
         }
       },
-      "rid": "ri.actions.main.action-type.ef7d120a-d552-4ab7-9adf-4cfab0f119b7"
+      "rid": "ri.actions.main.action-type.ef7d120a-d552-4ab7-9adf-4cfab0f119b7",
+      "operations": [
+        {
+          "type": "createObject",
+          "objectTypeApiName": "Tag"
+        }
+      ]
     },
     {
       "apiName": "omop-concept-set-container-set-alias",
@@ -2332,30 +3108,45 @@
       "status": "EXPERIMENTAL",
       "parameters": {
         "concept-set": {
-          "description": "",
           "baseType": "OntologyObject<OMOPConceptSetContainer>",
           "required": true
         },
         "alias": {
-          "description": "",
           "baseType": "String",
           "required": true
         }
       },
-      "rid": "ri.actions.main.action-type.f0338553-5f76-4df7-b0c8-fd0be85a0581"
+      "rid": "ri.actions.main.action-type.f0338553-5f76-4df7-b0c8-fd0be85a0581",
+      "operations": [
+        {
+          "type": "modifyObject",
+          "objectTypeApiName": "OMOPConceptSetContainer"
+        }
+      ]
+    },
+    {
+      "apiName": "record-user-survey-popup",
+      "status": "EXPERIMENTAL",
+      "parameters": {
+        "userId": {
+          "baseType": "String",
+          "required": true
+        }
+      },
+      "rid": "ri.actions.main.action-type.f074bfbd-3778-4e9b-a2ea-481159df02b3",
+      "operations": []
     },
     {
       "apiName": "concept-update",
-      "description": "",
       "status": "EXPERIMENTAL",
       "parameters": {
         "OmopConceptChange": {
-          "description": "",
           "baseType": "OntologyObject<OmopConceptChange>",
           "required": true
         }
       },
-      "rid": "ri.actions.main.action-type.f07593ef-0bf4-4ecc-80bc-6939b1a434d8"
+      "rid": "ri.actions.main.action-type.f07593ef-0bf4-4ecc-80bc-6939b1a434d8",
+      "operations": []
     },
     {
       "apiName": "ko-set-lds-workbook",
@@ -2363,272 +3154,251 @@
       "status": "ACTIVE",
       "parameters": {
         "ko_lds_workbook": {
-          "description": "",
           "baseType": "String",
           "required": true
         },
         "ko": {
-          "description": "",
           "baseType": "OntologyObject<N3CKnowledgeObjects>",
           "required": true
         }
       },
-      "rid": "ri.actions.main.action-type.f179de4b-3249-4f19-8534-51a0570fa394"
+      "rid": "ri.actions.main.action-type.f179de4b-3249-4f19-8534-51a0570fa394",
+      "operations": [
+        {
+          "type": "modifyObject",
+          "objectTypeApiName": "N3CKnowledgeObjects"
+        }
+      ]
     },
     {
       "apiName": "set-ko-type",
-      "description": "",
       "status": "ACTIVE",
       "parameters": {
         "ko": {
-          "description": "",
           "baseType": "Array<OntologyObject<N3CKnowledgeObjects>>",
           "required": true
         },
         "ko_type_id": {
-          "description": "",
           "baseType": "String",
           "required": true
         }
       },
-      "rid": "ri.actions.main.action-type.f1ba3f78-20f4-4dc7-8689-852eaf6175b0"
+      "rid": "ri.actions.main.action-type.f1ba3f78-20f4-4dc7-8689-852eaf6175b0",
+      "operations": [
+        {
+          "type": "modifyObject",
+          "objectTypeApiName": "N3CKnowledgeObjects"
+        }
+      ]
     },
     {
       "apiName": "respond-to-survey",
-      "description": "",
       "status": "ACTIVE",
       "parameters": {
         "when_conducting_data_analysis_in_the_n3c_enclave_which_language_do_you_use": {
-          "description": "",
           "baseType": "Array<String>",
           "required": false
         },
         "what_is_the_nature_of_your_work_in_the_n3c_enclave": {
-          "description": "",
           "baseType": "Array<String>",
           "required": false
         },
         "xn__On_a_scale_of_1_to_5__how_would_you_evaluate_Code_Workbooks_ease_of_use_5q98b": {
-          "description": "",
           "baseType": "Array<String>",
           "required": false
         },
         "i_have_the_following_familiarity_with_the_n3c_training_portal": {
-          "description": "",
           "baseType": "Array<String>",
           "required": false
         },
         "xn__On_a_scale_of_1_to_5__how_would_you_evaluate_Contours_ease_of_use_b494b": {
-          "description": "",
           "baseType": "Array<String>",
           "required": false
         },
         "do_you_have_any_feedback_or_suggestions_to_improve_the_n3c_community_notes": {
-          "description": "",
           "baseType": "String",
           "required": false
         },
         "on_a_scale_of_1_to_5_how_would_you_evaluate_your_overall_experience_in_the_n3c_enclave": {
-          "description": "",
           "baseType": "Integer",
           "required": false
         },
         "xn__On_a_scale_of_1_to_5__how_would_you_evaluate_Training_Portals_content_zj67b": {
-          "description": "",
           "baseType": "Integer",
           "required": false
         },
         "xn__On_a_scale_of_1_to_5__how_would_you_evaluate_Training_Portals_ease_of_use_gy20c": {
-          "description": "",
           "baseType": "Integer",
           "required": false
         },
         "do_you_have_any_feedback_or_comments_about_the_experience_of_sharing_code_or_logic_in_the_n3c_enclave": {
-          "description": "",
           "baseType": "String",
           "required": false
         },
         "do_you_have_any_feedback_or_comments_about_the_knowledge_store": {
-          "description": "",
           "baseType": "String",
           "required": false
         },
         "how_would_you_describe_yourself": {
-          "description": "",
           "baseType": "Array<String>",
           "required": false
         },
         "i_have_the_following_familiarity_with_the_n3c_community_notes": {
-          "description": "",
           "baseType": "Array<String>",
           "required": false
         },
         "response_id": {
-          "description": "",
           "baseType": "String",
           "required": true
         },
         "have_you_used_any_of_these_training_materials": {
-          "description": "",
           "baseType": "Array<String>",
           "required": false
         },
         "if_you_consumed_one_or_more_training_module_from_the_training_portal_how_helpful_were_they": {
-          "description": "",
           "baseType": "Array<String>",
           "required": false
         },
         "how_often_do_you_use_the_n3c_enclave": {
-          "description": "",
           "baseType": "Array<String>",
           "required": false
         },
         "the_code_logic_i_shared_was_in_the_form_of": {
-          "description": "",
           "baseType": "Array<String>",
           "required": false
         },
         "do_you_have_any_feedback_or_comments_about_the_experience_of_consuming_or_producing_code_workbook_templates": {
-          "description": "",
           "baseType": "String",
           "required": false
         },
         "do_you_have_any_feedback_or_suggestions_to_improve_the_training_portal_in_terms_of_content_or_usability": {
-          "description": "",
           "baseType": "String",
           "required": false
         },
         "are_there_any_missing_features_or_capabilities_that_you_would_love_to_have_in_code_repository": {
-          "description": "",
           "baseType": "String",
           "required": false
         },
         "have_you_used_any_of_these_support_channels": {
-          "description": "",
           "baseType": "Array<String>",
           "required": false
         },
         "xn__On_a_scale_of_1_to_5__how_would_you_evaluate_Code_Repositorys_ease_of_use_gy20c": {
-          "description": "",
           "baseType": "Array<String>",
           "required": false
         },
         "what_training_module_topics_would_you_like_to_see_developed_next": {
-          "description": "",
           "baseType": "String",
           "required": false
         },
         "are_there_any_missing_features_or_capabilities_that_you_would_love_to_have_in_code_workbook": {
-          "description": "",
           "baseType": "String",
           "required": false
         },
         "any_general_feedback_comments_requests_or_suggestions": {
-          "description": "",
           "baseType": "String",
           "required": false
         },
         "i_have_the_following_familiarity_with_code_repository": {
-          "description": "",
           "baseType": "Array<String>",
           "required": false
         },
         "if_you_have_used_one_of_more_entry_from_the_knowledge_store_which_type_was_it": {
-          "description": "",
           "baseType": "Array<String>",
           "required": false
         },
         "i_have_the_following_familiarity_with_code_workbook": {
-          "description": "",
           "baseType": "Array<String>",
           "required": false
         },
         "do_you_have_any_feedback_or_suggestions_to_improve_the_training_materials_above": {
-          "description": "",
           "baseType": "String",
           "required": false
         },
         "which_of_the_following_applies_to_you2": {
-          "description": "",
           "baseType": "Array<String>",
           "required": false
         },
         "which_of_the_following_applies_to_you1": {
-          "description": "",
           "baseType": "Array<String>",
           "required": false
         },
         "new-parameter": {
-          "description": "",
           "baseType": "Array<String>",
           "required": false
         },
         "do_you_have_any_feedback_or_suggestions_to_improve_these_support_channels": {
-          "description": "",
           "baseType": "String",
           "required": false
         },
         "are_there_any_missing_features_or_capabilities_that_you_would_love_to_have_in_contour": {
-          "description": "",
           "baseType": "String",
           "required": false
         },
         "i_have_the_following_familiarity_with_contour": {
-          "description": "",
           "baseType": "Array<String>",
           "required": false
         }
       },
-      "rid": "ri.actions.main.action-type.f4a3e500-a593-4d18-aa1e-b006bb46722a"
+      "rid": "ri.actions.main.action-type.f4a3e500-a593-4d18-aa1e-b006bb46722a",
+      "operations": [
+        {
+          "type": "createObject",
+          "objectTypeApiName": "EnclaveUserSurveyReponse"
+        }
+      ]
     },
     {
       "apiName": "add-contributor-role-subclass",
-      "description": "",
       "status": "EXPERIMENTAL",
       "parameters": {
         "ContributorRole": {
-          "description": "",
           "baseType": "String",
           "required": true
         }
       },
-      "rid": "ri.actions.main.action-type.f4ee8a30-b8b7-471d-9ce8-6e9974acd1f2"
+      "rid": "ri.actions.main.action-type.f4ee8a30-b8b7-471d-9ce8-6e9974acd1f2",
+      "operations": [
+        {
+          "type": "createObject",
+          "objectTypeApiName": "ContributorRole"
+        }
+      ]
     },
     {
       "apiName": "new-action-cee08370-1336-d55f-5d8c-8716a2729b8c",
-      "description": "",
       "status": "EXPERIMENTAL",
       "parameters": {
         "ConceptSetTag": {
-          "description": "",
           "baseType": "OntologyObject<ConceptSetTag>",
           "required": true
         }
       },
-      "rid": "ri.actions.main.action-type.f5fb1e1d-2ff9-4cb7-813c-1d12717cf960"
+      "rid": "ri.actions.main.action-type.f5fb1e1d-2ff9-4cb7-813c-1d12717cf960",
+      "operations": [
+        {
+          "type": "modifyObject",
+          "objectTypeApiName": "ConceptSetTag"
+        }
+      ]
     },
     {
       "apiName": "create-new-draft-omop-concept-set-version",
-      "description": "",
       "status": "EXPERIMENTAL",
       "parameters": {
         "sourceApplicationVersion": {
-          "description": "",
           "baseType": "String",
           "required": true
         },
         "conceptSet": {
-          "description": "",
           "baseType": "OntologyObject<OMOPConceptSetContainer>",
           "required": true
         },
         "annotation": {
-          "description": "",
           "baseType": "String",
           "required": false
         },
         "baseVersion": {
-          "description": "",
           "baseType": "OntologyObject<OMOPConceptSet>",
           "required": true
         },
@@ -2638,7 +3408,6 @@
           "required": true
         },
         "sourceApplication": {
-          "description": "",
           "baseType": "String",
           "required": true
         },
@@ -2663,7 +3432,6 @@
           "required": false
         },
         "intention": {
-          "description": "",
           "baseType": "String",
           "required": true
         },
@@ -2678,7 +3446,6 @@
           "required": false
         },
         "authority": {
-          "description": "",
           "baseType": "String",
           "required": false
         },
@@ -2688,35 +3455,66 @@
           "required": true
         }
       },
-      "rid": "ri.actions.main.action-type.fb260d04-b50e-4e29-9d39-6cce126fda7f"
+      "rid": "ri.actions.main.action-type.fb260d04-b50e-4e29-9d39-6cce126fda7f",
+      "operations": [
+        {
+          "type": "createObject",
+          "objectTypeApiName": "OMOPConceptSet"
+        },
+        {
+          "type": "createObject",
+          "objectTypeApiName": "OmopConceptSetVersionItem"
+        },
+        {
+          "type": "modifyObject",
+          "objectTypeApiName": "OMOPConceptSet"
+        },
+        {
+          "type": "modifyObject",
+          "objectTypeApiName": "DomainTeam"
+        },
+        {
+          "type": "modifyObject",
+          "objectTypeApiName": "OmopConceptSetVersionItem"
+        }
+      ]
     },
     {
       "apiName": "update-concept-set-version-from-json",
-      "description": "",
       "status": "EXPERIMENTAL",
       "parameters": {
         "sourceApplication": {
-          "description": "",
           "baseType": "String",
           "required": true
         },
         "json": {
-          "description": "",
           "baseType": "String",
           "required": true
         },
         "version": {
-          "description": "",
           "baseType": "OntologyObject<OMOPConceptSet>",
           "required": true
         },
         "new-parameter": {
-          "description": "",
           "baseType": "Integer",
           "required": true
         }
       },
-      "rid": "ri.actions.main.action-type.fc594fb1-1b65-480c-813b-e55d13b3a7a9"
+      "rid": "ri.actions.main.action-type.fc594fb1-1b65-480c-813b-e55d13b3a7a9",
+      "operations": [
+        {
+          "type": "createObject",
+          "objectTypeApiName": "OmopConceptSetVersionItem"
+        },
+        {
+          "type": "deleteObject",
+          "objectTypeApiName": "OmopConceptSetVersionItem"
+        },
+        {
+          "type": "modifyObject",
+          "objectTypeApiName": "OmopConceptSetVersionItem"
+        }
+      ]
     }
   ]
 }

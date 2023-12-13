@@ -35,6 +35,7 @@ config = {
     'HOSTNAME': 'unite.nih.gov',
     'ONTOLOGY_RID': os.getenv('ONTOLOGY_RID', 'ri.ontology.main.ontology.00000000-0000-0000-0000-000000000000').replace('\r', ''),
     'SERVICE_USER_ID': os.getenv('SERVICE_USER_ID', '').replace('\r', ''),
+    'DIH_PROJ_ID': os.getenv('DIH_PROJ_ID', '').replace('\r', ''),
 }
 # todo: as of 2022/10/20, it looks like some functionality/endpoints need PALANTIR_ENCLAVE_AUTHENTICATION_BEARER_TOKEN,
 #  and others need OTHER_TOKEN, but it's not entirely clear where each are required yet. when that's figured out, can

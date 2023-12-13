@@ -4,7 +4,7 @@ import os, warnings
 # import io
 from pathlib import Path
 
-from typing import Iterable, List, Union, Tuple  # , Dict, Set
+from typing import Iterable, List, Union, Dict
 from collections import defaultdict
 from itertools import combinations
 
@@ -24,7 +24,7 @@ import pickle
 from sqlalchemy import RowMapping
 from sqlalchemy.sql import text
 
-from backend.config import CONFIG
+from backend.routes.db import get_cset_members_items, get_concepts
 from backend.db.utils import sql_query, get_db_connection, SCHEMA, sql_in
 from backend.api_logger import Api_logger
 from backend.utils import pdump, get_timer, commify, powerset
@@ -50,45 +50,9 @@ async def indented_concept_list(
     timer = get_timer('')
 
     # Get Concept Set Members Items
-    VERBOSE and timer('get csmi')
-    with get_db_connection() as con:
-        sql_w = ''
-        # - ide vocabs: add query logic
-        if hide_vocabs:
-            sql_w = f" AND csmi.vocabulary_id NOT {sql_in(hide_vocabs, True)}"
-        query = f"""
-            SELECT csmi.*
-            FROM {SCHEMA}.cset_members_items csmi
-            WHERE codeset_id {sql_in(codeset_ids)}{sql_w}"""
-        csmi: List[RowMapping] = sql_query(con, query)
+    VERBOSE and timer('get_connected_subgraph')
 
-    # Organize Concept IDs
-    VERBOSE and timer('organize cids')
-    concept_ids = set([c['concept_id'] for c in csmi])
-    concept_ids.update(extra_concept_ids)
-
-    # Orphans
-    # orphans_not_in_graph, here, are just nodes that don't appear in graph
-    #   they'll get appended to the end of the tree at level 0
-    # The graph, which comes from the concept_ancestor table, doesn't contain edges for every concept.
-    nodes_in_graph = set()
-    orphans_not_in_graph = set()
-    # TODO: deal with two kinds of orphan: not in the graph (handled here)
-    #   and in the graph but having no parents or children
-    for cid in concept_ids:
-        if cid in REL_GRAPH:
-            nodes_in_graph.add(cid)
-        else:
-            orphans_not_in_graph.add(cid)
-
-    # Preferred concept IDs are things we're trying to link in the graph; non-orphan items
-    #  - We don't want to accidentally hide them.
-    preferred_concept_ids = set([
-        c['concept_id'] for c in csmi
-        if c['item'] and not c['concept_id'] in orphans_not_in_graph])
-
-    VERBOSE and timer('connect_nodes')
-    sg = connect_nodes(REL_GRAPH, nodes_in_graph, preferred_concept_ids).copy()
+    sg, nodes_in_graph, preferred_concept_ids, orphans_not_in_graph = get_connected_subgraph(REL_GRAPH, codeset_ids, extra_concept_ids, hide_vocabs)
 
     VERBOSE and timer('get roots')
     # timer('get paths')
@@ -118,7 +82,7 @@ async def indented_concept_list(
     tree = get_indented_tree_nodes(sg, preferred_concept_ids)  # TODO: just testing below, put this line back
     # tree = get_indented_tree_nodes(sg, nodes_in_paths)
     if orphans_not_in_graph:
-        tree.append((0, f'{len(orphans_not_in_graph)} nodes in concept set but in our graph'))
+        tree.append((0, f'{len(orphans_not_in_graph)} nodes in concept set but not in our graph'))
         if len(orphans_not_in_graph) <= 50:
             for orphan in orphans_not_in_graph:
                 tree.append((1, orphan))
@@ -135,6 +99,48 @@ async def indented_concept_list(
     VERBOSE and timer('done')
     # return testtree
     return tree
+
+
+def get_connected_subgraph(
+    REL_GRAPH: nx.Graph,
+    codeset_ids: List[int],
+    extra_concept_ids: Union[List[int], None] = [],
+    hide_vocabs: Union[List[int], None] = []
+) -> nx.Graph:
+
+    csmi = get_cset_members_items(codeset_ids=codeset_ids)
+    # concepts = get_concepts(extra_concept_ids)
+    # give hidden rxnorm ext count
+
+    # Organize Concept IDs
+    timer = get_timer('')
+    VERBOSE and timer('organize cids')
+
+    concept_ids = set([c['concept_id'] for c in csmi])
+    concept_ids.update(extra_concept_ids)
+
+    # Orphans
+    # orphans_not_in_graph, here, are just nodes that don't appear in graph
+    #   they'll get appended to the end of the tree at level 0
+    # The graph, which comes from the concept_ancestor table, doesn't contain edges for every concept.
+    nodes_in_graph = set()
+    orphans_not_in_graph = set()
+    # TODO: deal with two kinds of orphan: not in the graph (handled here)
+    #   and in the graph but having no parents or children
+    for cid in concept_ids:
+        if cid in REL_GRAPH:
+            nodes_in_graph.add(cid)
+        else:
+            orphans_not_in_graph.add(cid)
+
+    # Preferred concept IDs are things we're trying to link in the graph; non-orphan items
+    #  - We don't want to accidentally hide them.
+    preferred_concept_ids = set([
+        c['concept_id'] for c in csmi
+        if c['item'] and not c['concept_id'] in orphans_not_in_graph])
+
+    sg = connect_nodes(REL_GRAPH, nodes_in_graph, preferred_concept_ids).copy()
+    return sg, nodes_in_graph, preferred_concept_ids, orphans_not_in_graph
 
 
 @router.get("/indented-concept-list")
@@ -160,6 +166,7 @@ async def indented_concept_list_post(
     except Exception as e:
         await rpt.log_error(e)
         raise e
+
 
 def connect_nodes(G, target_nodes, preferred_nodes: Iterable[int] = None):
     """Connects all nodes in target_nodes to the nearest common ancestor.
@@ -202,8 +209,8 @@ def connect_nodes(G, target_nodes, preferred_nodes: Iterable[int] = None):
     unrooted_children = get_unrooted_children(
         G, nodes_to_connect, target_nodes.difference(nodes_to_connect))
     if (unrooted_children):
-        raise Exception("is this ever happening?")
-        # print("wasn't expecting to find unrooted children") # except if vocab changes disconnected them from any other nodes
+        # raise Exception("is this ever happening?")
+        print(f"wasn't expecting to find unrooted children {str(unrooted_children)}") # except if vocab changes disconnected them from any other nodes
         nodes_to_connect.update(unrooted_children)
 
     combo_sizes = list(range(len(nodes_to_connect), 1, -1))
@@ -386,18 +393,31 @@ def expand_super_node(G, subgraph_nodes, super_node):
 
 
 @router.get("/concept-graph")
-async def concept_graph(request: Request, id: List[int] = Query(...)):   # id is a list of concept ids
-    return await concept_graph_post(request=request, id=id)
+async def concept_graph(
+    request: Request,
+    codeset_ids: List[int] = [],
+    id: List[int] = Query(...)   # id is a list of concept ids
+):
+    return await concept_graph_post(request=request, codeset_ids=codeset_ids, concept_ids=id)
 
 
 @router.post("/concept-graph")
-async def concept_graph_post(request: Request, id: Union[List[int], None] = None) -> List:
+async def concept_graph_post(
+    request: Request,
+    codeset_ids: List[int] = [],
+    concept_ids: List[int] = [],
+) -> Dict:
     rpt = Api_logger()
-    await rpt.start_rpt(request, params={'concept_ids': id})
+    await rpt.start_rpt(request, params={'concept_ids': codeset_ids})
 
     try:
-        sg, filled_gaps = fill_in_gaps(REL_GRAPH, id, return_missing=True)
-        raise Exception("Not implemented")
+        # sg, filled_gaps = fill_in_gaps(REL_GRAPH, id, return_missing=True)
+        (sg, nodes_in_graph, preferred_concept_ids,
+         orphans_not_in_graph) = get_connected_subgraph(
+            REL_GRAPH, codeset_ids, concept_ids, hide_vocabs=['RxNorm Extension'])
+        filled_gaps = set(sg.nodes).difference(codeset_ids)
+        layout = 'not implemented'
+        # raise Exception("Not implemented")
         # P = to_pydot(sg)
         # layout = from_pydot(P)
         # layout = {k: list(v) for k, v in _layout.items()}     # networkx doesn't seem to have sugiyama
@@ -411,23 +431,27 @@ async def concept_graph_post(request: Request, id: Union[List[int], None] = None
     return {'edges': list(sg.edges), 'layout': layout, 'filled_gaps': filled_gaps}
 
 
-def fill_in_gaps(G, nodes, return_missing=False):
-    raise Exception("fix this. it's going to be too slow, i think")
-    sg = G.subgraph(nodes)
-    roots = [node for node, degree in sg.in_degree() if degree == 0]
-    leaves = [node for node, degree in sg.out_degree() if degree == 0]
-    missing_nodes = set()  # nodes needed to traverse all paths but not present in nodes list
-    for root in roots:
-        for leaf in leaves:
-            _paths = list(nx.all_simple_paths(G, root, leaf))
-            for path in _paths:
-                for node in path:
-                    if node not in nodes:
-                        missing_nodes.add(node)
-    sgc = G.subgraph(nodes + list(missing_nodes))
-    if return_missing:
-        return sgc, missing_nodes
-    return sgc
+# def fill_in_gaps(G, codeset_ids, return_missing=False):
+#     (sg, nodes_in_graph, preferred_concept_ids,
+#      orphans_not_in_graph) = get_connected_subgraph(
+#         REL_GRAPH, codeset_ids, hide_vocabs=['RxNorm Extension'])
+#     return sg, set(sg.nodes).difference(codeset_ids)
+#             #nodes_in_graph, preferred_concept_ids, orphans_not)
+#     # sg = G.subgraph(nodes)
+#     # roots = [node for node, degree in sg.in_degree() if degree == 0]
+#     # leaves = [node for node, degree in sg.out_degree() if degree == 0]
+#     # missing_nodes = set()  # nodes needed to traverse all paths but not present in nodes list
+#     # for root in roots:
+#     #     for leaf in leaves:
+#     #         _paths = list(nx.all_simple_paths(G, root, leaf))
+#     #         for path in _paths:
+#     #             for node in path:
+#     #                 if node not in nodes:
+#     #                     missing_nodes.add(node)
+#     # sgc = G.subgraph(nodes + list(missing_nodes))
+#     # if return_missing:
+#     #     return sgc, missing_nodes
+#     # return sgc
 
 
 def from_pydot_layout(g):
@@ -730,7 +754,7 @@ else:
     #   builtins.DONT_LOAD_GRAPH = True
     import builtins
 
-    if hasattr(builtins, 'DONT_LOAD_GRAPH') and DONT_LOAD_GRAPH:
+    if hasattr(builtins, 'DONT_LOAD_GRAPH') and builtins.DONT_LOAD_GRAPH:
         warnings.warn('not loading relationship graph')
     else:
         REL_GRAPH = load_relationship_graph(save_if_not_exists=True)

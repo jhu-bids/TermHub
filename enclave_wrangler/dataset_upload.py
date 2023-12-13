@@ -1,6 +1,7 @@
 """Upload datasets to Foundry"""
 import json
 import os
+import urllib.parse
 from argparse import ArgumentParser
 from typing import Dict, List, Set, Union
 from uuid import uuid4
@@ -27,7 +28,7 @@ try:
     upload_concept_set_container, \
     upload_concept_set_version_draft, get_concept_set_version_expression_items
     from enclave_wrangler.utils import EnclaveWranglerErr, _datetime_palantir_format, log_debug_info, make_actions_request, get_random_codeset_id
-    from enclave_wrangler.objects_api import fetch_object_by_id, get_object_links, fetch_cset_version
+    from enclave_wrangler.objects_api import fetch_object_by_id, get_object_links, fetch_cset_version, fetch_cset_container, make_objects_request, get_researcher
 except ModuleNotFoundError:
     # TODO: this isn't up-to-date, is it? (2023-10-16)
     from config import CSET_UPLOAD_REGISTRY_PATH, ENCLAVE_PROJECT_NAME, MOFFIT_PREFIX, \
@@ -289,7 +290,7 @@ def upload_new_container_with_concepts(
     on_behalf_of: str, concept_set_name: str, intention: str, versions_with_concepts: List[Dict],
     research_project: str = ENCLAVE_PROJECT_NAME, assigned_sme: str = PALANTIR_ENCLAVE_USER_ID_1,
     assigned_informatician: str = PALANTIR_ENCLAVE_USER_ID_1, validate_first=VALIDATE_FIRST,
-    fail_if_exists = True,
+    fail_if_exists = True, skip_if_exists = False
 ) -> Dict[str, Union[Response, List[Response]]]:
     """Upload a new concept set container, and 1+ concept set versions, along with their concepts.
 
@@ -314,46 +315,49 @@ def upload_new_container_with_concepts(
       }
     ]
     """
-    # Upload container
+    if len(versions_with_concepts) != 1:
+        # code was written to allow multiple versions, but there's no good reason
+        #   for that. So, just raising error if not exactly one.
+        raise ValueError("expecting a single version to upload with container")
 
-    existing_container = fetch_object_by_id('OMOPConceptSetContainer', concept_set_name)
+    # Upload container
+    existing_container = fetch_cset_container(concept_set_name, fail_on_error=False)
     if existing_container:
         if fail_if_exists:
             raise RuntimeError(f'Error attempting to upload container. Container [{concept_set_name}] already exists.')
-        else:
-            response_upload_concept_set_container = existing_container
-    else:
-        response_upload_concept_set_container: Response = upload_concept_set_container(
-            on_behalf_of=on_behalf_of,
-            concept_set_id=concept_set_name,
-            intention=intention,
-            research_project=research_project,
-            assigned_sme=assigned_sme,
-            assigned_informatician=assigned_informatician,
-            validate_first=validate_first)
+        version = get_object_links(
+            object_type='OMOPConceptSetContainer',
+            object_id=concept_set_name,
+            link_type='OMOPConceptSet',
+            return_type='data',
+            expect_single_item=True,
+            handle_paginated=False,
+            retry_if_empty=False)
+        if not version: # if container was already uploaded but not version, upload version now
+            version: Dict[str, Union[Response, List[Response]]] = \
+                upload_new_cset_version_with_concepts(**(versions_with_concepts[0]),
+                                                      validate_first=validate_first)
+        return {'already_exists': True,
+                'upload_concept_set_container': existing_container,
+                'upload_new_cset_version_with_concepts': version}
 
-    # Upload versions, if any
-    if len(versions_with_concepts) > 1:
-        raise ValueError("why are you creating more than one version of the same concept set at once?")
+    response_upload_concept_set_container: Response = upload_concept_set_container(
+        on_behalf_of=on_behalf_of,
+        concept_set_id=concept_set_name,
+        intention=intention,
+        research_project=research_project,
+        assigned_sme=assigned_sme,
+        assigned_informatician=assigned_informatician,
+        validate_first=validate_first)
 
-    versions = get_object_links('OMOPConceptSetContainer', concept_set_name, 'OMOPConceptSet')
-    response_upload_new_cset_version_with_concepts = []
-    err = f'Error attempting to upload version for "new" concept set that already exists [{concept_set_name}]. Version also already exists.'
-    if versions:
-        if fail_if_exists:
-            raise RuntimeError(err)
-        else:
-            response_upload_new_cset_version_with_concepts = versions
-    else:
-        for version in versions_with_concepts:
-            # TODO: check if version already exists, but this
-            response_versions_i: Dict[str, Union[Response, List[Response]]] = \
-                upload_new_cset_version_with_concepts(**version, validate_first=validate_first)
-            response_upload_new_cset_version_with_concepts.append(response_versions_i)
+    # Upload version
+    version_response: Dict[str, Union[Response, List[Response]]] = \
+        upload_new_cset_version_with_concepts(**(versions_with_concepts[0]),
+                                              validate_first=validate_first)
 
     return {
         'upload_concept_set_container': response_upload_concept_set_container,
-        'upload_new_cset_version_with_concepts': response_upload_new_cset_version_with_concepts[-1]}
+        'upload_new_cset_version_with_concepts': version_response}
 
 
 
@@ -1029,14 +1033,62 @@ def cli():
     if kwargs.n3c:
         make_new_versions_of_csets()
     else:
+        # TODO: @joeflack4, can we get rid of this and the things it calls?
         upload_dataset(**kwargs_dict)
 
 
-def upload_cset_as_new_version_of_itself(
+# going to do new container instead. just keeping this code for a bit in case
+#   we want to revert to just new version
+# def upload_cset_as_new_version_of_itself(
+#     codeset_id: int,
+#     add_to_field: Dict = {'provenance': f'Version for comparison to N3C-Rec on {date.today().isoformat()}'}
+# ) -> Dict:
+#     ov = fetch_cset_version(codeset_id, False)
+#
+#     vi = [i['properties'] for i in get_concept_set_version_expression_items(codeset_id, 'full')]
+#     concepts = []
+#     for item in vi:
+#         c = {'concept_id': item['conceptId']}
+#         for p in ['includeDescendants', 'isExcluded', 'includeMapped']:
+#             c[p] = item[p]
+#         concepts.append(c)
+#
+#     upload_args = {
+#         'on_behalf_of': ov.get('createdBy', ''),  # not allowing this for some csets
+#         # 'on_behalf_of': config['SERVICE_USER_ID'],
+#         'concept_set_name': ov.get('conceptSetNameOMOP', ''),
+#         'provenance': ov.get('provenance', ''),
+#         'limitations': ov.get('limitations', ''),
+#         'intention': ov.get('intention', ''),
+#         'parent_version_codeset_id': ov.get('codesetId', ''),
+#         'current_max_version': ov.get('version', ''),  # probably
+#         # codeset_id': None, will be assigned
+#         'validate_first': True,
+#         'omop_concepts': concepts,
+#         'finalize': True,
+#         # annotation,
+#         # intended_research_project,
+#     }
+#
+#     for key, value in add_to_field.items():
+#         val = '. ' + ov.get(key, '')
+#         val = value + val
+#         upload_args[key] = val
+#
+#     # upload_new_cset_version_with_concepts( concept_set_name, omop_concepts, provenance, limitations, intention, annotation, parent_version_codeset_id, current_max_version, intended_research_project, on_behalf_of, codeset_id, validate_first, finalize )
+#     # pass_on_args = ['conceptSetNameOMOP'] not sure what this was for
+#     d = upload_new_cset_version_with_concepts(**upload_args)  # {'responses': [...], 'codeset_id': 123}
+#
+#     return d['versionId']
+
+
+def upload_cset_copy_in_new_container(
     codeset_id: int,
-    add_to_field: Dict = {'provenance': f'Version for comparison to N3C-Rec on {date.today().isoformat()}'}
 ) -> Dict:
     ov = fetch_cset_version(codeset_id, False)
+
+    concept_set_name = ov.get('conceptSetNameOMOP')
+    oc = fetch_cset_container(concept_set_name)
 
     vi = [i['properties'] for i in get_concept_set_version_expression_items(codeset_id, 'full')]
     concepts = []
@@ -1046,56 +1098,96 @@ def upload_cset_as_new_version_of_itself(
             c[p] = item[p]
         concepts.append(c)
 
-    upload_args = {
-        # 'on_behalf_of': ov.get('createdBy', ''),
+    concept_set_name = ov.get('conceptSetNameOMOP', '')
+    concept_set_name = f'{concept_set_name} -- Copy of {codeset_id} for comparison {date.today().isoformat()}'
+
+    try:
+        c_creator = 'unknown'
+        c_created_by = oc.get('createdBy')
+        if c_created_by == config['SERVICE_USER_ID']:
+            c_creator = 'UNITEConceptSetBulk@nih.gov'
+        elif c_created_by:
+            c_creator = get_researcher(c_created_by).get('name', 'unknown')
+    except Exception as e:
+        raise e
+
+    try:
+        v_creator = 'unknown'
+        v_created_by = ov.get('createdBy')
+        if v_created_by == config['SERVICE_USER_ID']:
+            v_creator = 'UNITEConceptSetBulk@nih.gov'
+        elif v_created_by:
+            v_creator = get_researcher(v_created_by).get('name', 'unknown')
+    except Exception as e:
+        raise e
+
+
+    container_args = {
         'on_behalf_of': config['SERVICE_USER_ID'],
-        'concept_set_name': ov.get('conceptSetNameOMOP', ''),
-        'provenance': ov.get('provenance', ''),
+        # 'on_behalf_of': c_created_by,
+        'concept_set_name': concept_set_name,
+        'intention': f"Copy for comparison of container created by {c_creator} on {oc.get('createdAt', '**missing**')}. Orig intention: {oc.get('intention', '')}",
+        'research_project': oc.get('project', config['DIH_PROJ_ID']),
+        'assigned_sme': oc.get('assigned_sme', ''),
+        'assigned_informatician': oc.get('assigned_informatician', ''),
+    }
+    version_args = {
+        'on_behalf_of': config['SERVICE_USER_ID'],
+        # 'on_behalf_of': v_created_by,
+        'concept_set_name': concept_set_name,
+        'provenance': f"Copy for comparison of container created by {v_creator} on {ov.get('createdAt', '**missing**')}. Orig provenance: {ov.get('provenance', '')}",
         'limitations': ov.get('limitations', ''),
         'intention': ov.get('intention', ''),
-        'parent_version_codeset_id': ov.get('codesetId', ''),
-        'current_max_version': ov.get('version', ''),  # probably
-        # codeset_id': None, will be assigned
-        'validate_first': True,
+        # 'parent_version_codeset_id': ov.get('codesetId', ''),
+        # 'current_max_version': ov.get('version', ''),  # probably
+        'current_max_version': None,
+        'codeset_id': None, # will be assigned
+        # 'codeset_id': codeset_id * 100, # to make it easy to see they're related -- was too big for api rules
         'omop_concepts': concepts,
         'finalize': True,
         # annotation,
         # intended_research_project,
     }
 
-    for key, value in add_to_field.items():
-        val = '. ' + ov.get(key, '')
-        val = value + val
-        upload_args[key] = val
+    d = upload_new_container_with_concepts(
+        **container_args, versions_with_concepts=[version_args],
+        fail_if_exists=False, skip_if_exists=True, validate_first=True)
 
-    # upload_new_cset_version_with_concepts( concept_set_name, omop_concepts, provenance, limitations, intention, annotation, parent_version_codeset_id, current_max_version, intended_research_project, on_behalf_of, codeset_id, validate_first, finalize )
-    # pass_on_args = ['conceptSetNameOMOP'] not sure what this was for
-    d = upload_new_cset_version_with_concepts(**upload_args) # {'responses': [...], 'codeset_id': 123}
-    return d['versionId']
+    container: Dict = d['upload_concept_set_container']
+    if not container:
+        raise Exception(f'Error uploading or fetching new container copy of {codeset_id}')
+    version: Dict = d['upload_new_cset_version_with_concepts']
+    if not version:
+        raise Exception(f'Error uploading or fetching new version copy of {codeset_id}')
+    if 'versionId' in version:
+        return version['versionId']
+    if 'codesetId' in version:
+        return version['codesetId']
+
+    raise Exception(f'Failed to find codeset_id of newly uploaded version of {codeset_id}')
 
 
 def make_new_versions_of_csets():
     from backend.db.utils import sql_query_single_col, get_db_connection
     from backend.routes.db import get_n3c_recommended_codeset_ids
     with get_db_connection() as con:
-        comparisons_already_done = sql_query_single_col(con, 'select original_codeset_id from public.codeset_comparison')
+        comparisons_already_done = sql_query_single_col(con, 'select orig_codeset_id from public.codeset_comparison')
 
-    n3c_codeset_ids = get_n3c_recommended_codeset_ids()
+    n3c_codeset_ids = set(get_n3c_recommended_codeset_ids()).difference(comparisons_already_done)
 
     eastern = pytz.timezone('US/Eastern')
     new_codeset_ids = []
     with get_db_connection() as con:
         for codeset_id in n3c_codeset_ids:
-            if codeset_id in comparisons_already_done:
-                print(f'Skipping {codeset_id} because new version for comparison already exists')
-                continue
             print(f'Making new version of {codeset_id}')
-            new_version_codeset_id = upload_cset_as_new_version_of_itself(codeset_id)
+            new_version_codeset_id = upload_cset_copy_in_new_container(codeset_id)
+            if not new_version_codeset_id:
+                continue
             print(f'{codeset_id}, {new_version_codeset_id}')
             new_codeset_ids.append(new_version_codeset_id)
             row = {
                 'fetch_time': datetime.now(eastern).isoformat(),
-                'original_codeset_id': codeset_id,
+                'orig_codeset_id': codeset_id,
                 'new_codeset_id': new_version_codeset_id
             }
             insert_from_dict(con, 'public.codeset_comparison', row)
