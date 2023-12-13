@@ -293,6 +293,8 @@ def get_best_common_ancestor(G, nodes):
     # path_nodes = set()
     paths = {}
 
+    # if len(nodes) * len(common_ancestors) < 10000:  # 10000 is arbitrary, but this can get very slow for large csets
+
     if len(common_ancestors) == 1:
         common_ancestor = common_ancestors.pop()
         for node in nodes:
@@ -325,7 +327,14 @@ def get_best_common_ancestor(G, nodes):
 
 
 def distance_to_root(G, node):
-    pass
+    n = node
+    d = 0
+    for p in G.predecessors(node):
+        if n in G_ROOTS:
+            return d
+        d += 1
+        n = p
+    raise Exception(f"can't find root for {node}")
 
 
 def get_unrooted_children(G, roots, children):
@@ -780,6 +789,7 @@ else:
         warnings.warn('not loading relationship graph')
     else:
         REL_GRAPH = load_relationship_graph(save_if_not_exists=True)
+        G_ROOTS = set([n for n in REL_GRAPH.nodes if REL_GRAPH.in_degree(n) == 0])
 
     # The resason this exists below is because we were not sure if, when a variable is imported by multiple files, the
     # code gets run multiple times.

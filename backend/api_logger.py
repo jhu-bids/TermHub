@@ -149,7 +149,9 @@ async def client_location(request: Request) -> str:
             response = await client.get(loc_url)
             if response and response.json:
                 loc_obj = response.json()
-                location = f"{ip}: {loc_obj['city']}, {loc_obj['region_name']}"
+                city = loc_obj['city'] if 'city' in loc_obj else 'no city'
+                region = loc_obj['region'] if 'region' in loc_obj else 'no region'
+                location = f"{ip}: {city}, {region}"
                 return location
 
     return ip
