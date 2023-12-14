@@ -628,6 +628,7 @@ def n3c_comparison_rpt():
         return rpt
 
 
+@cache
 def get_comparison_rpt(con, codeset_id_1: int, codeset_id_2: int) -> Dict[str, Union[str, None]]:
     cset_1 = get_csets([codeset_id_1])[0]
     cset_2 = get_csets([codeset_id_2])[0]

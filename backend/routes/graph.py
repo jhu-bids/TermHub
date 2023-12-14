@@ -4,7 +4,7 @@ import os, warnings
 # import io
 from pathlib import Path
 
-from typing import Iterable, List, Union, Dict
+from typing import Iterable, List, Union, Dict, Optional
 from collections import defaultdict
 from itertools import combinations
 
@@ -164,7 +164,9 @@ def get_connected_subgraph(
 
 @router.get("/indented-concept-list")
 async def indented_concept_list_get(request: Request, codeset_ids: List[int] = Query(...),
-                                extra_concept_ids: Union[List[int], None] = []) -> List:
+                                extra_concept_ids: Optional[List[int]] = Query(None)) -> List:
+
+    extra_concept_ids = extra_concept_ids if extra_concept_ids else []
     return await indented_concept_list_post(
         request=request, codeset_ids=codeset_ids, extra_concept_ids=extra_concept_ids)
 
@@ -233,20 +235,24 @@ def connect_nodes(G, target_nodes, preferred_nodes: Iterable[int] = None):
         print(f"wasn't expecting to find unrooted children {str(unrooted_children)}") # except if vocab changes disconnected them from any other nodes
         nodes_to_connect.update(unrooted_children)
 
-    combo_sizes = list(range(len(nodes_to_connect), 1, -1))
-    if not combo_sizes: # one node is ancestor to all the others
+    if len(nodes_to_connect) < 2:
         VERBOSE and timer(f'only one ancestor for {len(target_nodes)} nodes')
         sg = G.subgraph(target_nodes)
         VERBOSE and timer('done')
         return sg
 
-    everything_is_connected = False
-    for set_size in combo_sizes:
+    # maybe will go faster from smaller to larger. With 50 nodes, it's taking -- probably hours
+    # combo_sizes = list(range(len(nodes_to_connect), 1, -1))
+    combo_sizes = list(range(len(nodes_to_connect), 2))
+    for i, set_size in enumerate(combo_sizes):
+        found_ancestors = False # if we don't find common ancestors for all 3-node combos
+                                #   we don't need to bother with 4-node combos
         VERBOSE and timer(f'getting common ancestor for {set_size} node combos')
-        for combo in combinations(nodes_to_connect, set_size):
+        for j, combo in enumerate(combinations(nodes_to_connect, set_size)):
             common_ancestor, path_nodes = get_best_common_ancestor(G, combo)
             if not common_ancestor:
                 continue
+            found_ancestors = True
 
             # nodes_connected.update(combo)
             additional_nodes.add(common_ancestor)
@@ -275,7 +281,7 @@ def connect_nodes(G, target_nodes, preferred_nodes: Iterable[int] = None):
             #     else:
             #         everything_is_connected = True
             # raise Exception("something went wrong in connect_nodes")
-        if everything_is_connected:
+        if not found_ancestors:
             break
 
     all_nodes = target_nodes.union(additional_nodes)

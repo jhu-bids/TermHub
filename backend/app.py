@@ -8,6 +8,8 @@ import uvicorn
 from fastapi import FastAPI, Request
 from fastapi.middleware.cors import CORSMiddleware
 from fastapi.middleware.gzip import GZipMiddleware
+import time
+
 from backend.config import CONFIG, override_schema
 CONFIG['importer'] = 'app.py'
 from backend.routes import cset_crud, db, graph
@@ -51,6 +53,26 @@ def read_root():
     # noinspection PyUnresolvedReferences
     url_list = [{"path": route.path, "name": route.name} for route in APP.routes]
     return url_list
+
+
+# from fastapi import HTTPException
+# import asyncio
+# from starlette.responses import JSONResponse
+# from starlette.status import HTTP_504_GATEWAY_TIMEOUT
+# REQUEST_TIMEOUT_ERROR = 10
+# # from https://github.com/tiangolo/fastapi/issues/1752
+# # Adding a middleware returning a 504 error if the request processing time is above a certain threshold
+# @APP.middleware("http")
+# async def timeout_middleware(request: Request, call_next):
+#     try:
+#         start_time = time.time()
+#         return await asyncio.wait_for(call_next(request), timeout=REQUEST_TIMEOUT_ERROR)
+#
+#     except asyncio.TimeoutError:
+#         process_time = time.time() - start_time
+#         return JSONResponse({'detail': 'Request processing time excedeed limit',
+#                              'processing_time': process_time},
+#                             status_code=HTTP_504_GATEWAY_TIMEOUT)
 
 
 # CACHE_FILE = "cache.pickle"
