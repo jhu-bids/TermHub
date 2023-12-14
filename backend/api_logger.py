@@ -33,7 +33,7 @@ class Api_logger:
         rpt['host'] = os.getenv('HOSTENV', gethostname())
 
         ip = await get_ip_from_request(request)
-        rpt['client'] = client_location(ip)
+        rpt['client'] = await client_location(ip)
 
         rpt['schema'] = get_schema_name()
 
