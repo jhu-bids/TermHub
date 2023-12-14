@@ -1,16 +1,18 @@
 import datetime
+import warnings
 import os
 import re
 import httpx
 import time
 from _socket import gethostname
 from typing import Dict, List, Optional
+import json
 
 import pytz
 from starlette.requests import Request
 
 from backend.config import get_schema_name
-from backend.db.utils import get_db_connection, insert_from_dict, run_sql, sql_query
+from backend.db.utils import get_db_connection, insert_from_dict, run_sql, sql_query, sql_query_single_col
 from backend.utils import dump
 
 
@@ -30,7 +32,8 @@ class Api_logger:
 
         rpt['host'] = os.getenv('HOSTENV', gethostname())
 
-        rpt['client'] = await client_location(request)
+        ip = await get_ip_from_request(request)
+        rpt['client'] = client_location(ip)
 
         rpt['schema'] = get_schema_name()
 
@@ -94,9 +97,8 @@ class Api_logger:
         self.rpt['result'] = f'Error: {e}'
         await self.complete_log_record()
 
-async def client_location(request: Request) -> str:
-    # rpt['client'] = request.client.host -- this gives a local (169.154) IP on azure
-    #   chatgpt recommends:
+
+async def get_ip_from_request(request: Request) -> str:
     forwarded_for: Optional[str] = request.headers.get('X-Forwarded-For')
     if forwarded_for:
         # The header can contain multiple IP addresses, so take the first one
@@ -105,12 +107,19 @@ async def client_location(request: Request) -> str:
         ip = request.client.host
 
     ip = re.sub(':.*', '', ip)
+    return ip
+
+async def client_location(ip: str) -> str:
 
     with get_db_connection() as con:
-        ip_info = sql_query(con, 'SELECT * FROM public.ip_info WHERE ip = :ip', {'ip': ip})
+        ip_info = sql_query_single_col(con, 'SELECT info FROM public.ip_info WHERE ip = :ip', {'ip': ip})
         if ip_info:
+            if len(ip_info) > 1:
+                warnings.warn(f"more than one ip_info for {ip}; just using first)")
+
+            ip_info = ip_info[0]
             city = ip_info.get('city', 'no city')
-            region = ip_info.get('region', 'no region')
+            region = ip_info.get('region_name', 'no region_name')
             location = f"{ip}: {city}, {region}"
             return location
 
@@ -163,11 +172,12 @@ async def client_location(request: Request) -> str:
                 if 'error' in loc:
                     return f'{ip} (no loc, err {loc.get("error", {}).get("code", "")})'
                 city = loc.get('city', 'no city')
-                region = loc.get('region', 'no region')
+                region = loc.get('region_name', 'no region_name')
                 location = f"{ip}: {city}, {region}"
 
+                # del loc['location'] # this is nested json, won't work in insert_from_dict
                 with get_db_connection() as con:
-                    insert_from_dict(con, 'public.ip_info', loc)
+                    insert_from_dict(con, 'public.ip_info', {'ip': ip, 'info': json.dumps(loc)}, skip_if_already_exists=True)
 
                 return location
 
