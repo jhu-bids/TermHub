@@ -120,14 +120,16 @@ def get_connected_subgraph(
     hide_vocabs: Union[List[int], None] = []
 ) -> nx.Graph:
 
-    csmi = get_cset_members_items(codeset_ids=codeset_ids)
+    _csmi = get_cset_members_items(codeset_ids=codeset_ids)
     # concepts = get_concepts(extra_concept_ids)
     # give hidden rxnorm ext count
     hidden = {}
+    csmi = set()
     for vocab in hide_vocabs:
-        hidden[vocab] = set([c['concept_id'] for c in csmi if c['vocabulary_id'] == vocab])
-
-    csmi = [c for c in csmi if c['vocabulary_id'] == 'RxNorm Extension']
+        h = set([c['concept_id'] for c in _csmi if c['vocabulary_id'] == vocab])
+        if h:
+            hidden[vocab] = h
+        csmi.update([c for c in _csmi if c['vocabulary_id'] != vocab])
 
     # Organize Concept IDs
     timer = get_timer('')

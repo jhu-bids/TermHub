@@ -10,7 +10,7 @@ import pytz
 from starlette.requests import Request
 
 from backend.config import get_schema_name
-from backend.db.utils import get_db_connection, insert_from_dict, run_sql
+from backend.db.utils import get_db_connection, insert_from_dict, run_sql, sql_query
 from backend.utils import dump
 
 
@@ -106,11 +106,22 @@ async def client_location(request: Request) -> str:
 
     ip = re.sub(':.*', '', ip)
 
+    with get_db_connection() as con:
+        ip_info = sql_query(con, 'SELECT * FROM public.ip_info WHERE ip = :ip', {'ip': ip})
+        if ip_info:
+            city = ip_info.get('city', 'no city')
+            region = ip_info.get('region', 'no region')
+            location = f"{ip}: {city}, {region}"
+            return location
+
+    # for now we're going to just return the ip, free subscription ran out and need to update key
+    # return ip
+
     ipstack_key = os.getenv('API_STACK_KEY', None)
 
     if ip != '127.0.0.1' and ipstack_key:
         """
-        http://api.ipstack.com/134.201.250.155?access_key=7a6f9d6d72d68a1452b643eb58cd8ee7&format=1
+        http://api.ipstack.com/134.201.250.155?access_key=<key>&format=1
         {
             "ip": "134.201.250.155",
             "type": "ipv4",
@@ -148,10 +159,16 @@ async def client_location(request: Request) -> str:
         async with httpx.AsyncClient() as client:
             response = await client.get(loc_url)
             if response and response.json:
-                loc_obj = response.json()
-                city = loc_obj['city'] if 'city' in loc_obj else 'no city'
-                region = loc_obj['region'] if 'region' in loc_obj else 'no region'
+                loc = response.json()
+                if 'error' in loc:
+                    return f'{ip} (no loc, err {loc.get("error", {}).get("code", "")})'
+                city = loc.get('city', 'no city')
+                region = loc.get('region', 'no region')
                 location = f"{ip}: {city}, {region}"
+
+                with get_db_connection() as con:
+                    insert_from_dict(con, 'public.ip_info', loc)
+
                 return location
 
     return ip

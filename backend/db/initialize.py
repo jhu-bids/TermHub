@@ -63,6 +63,11 @@ DDL_CSET_COMPARE = """CREATE TABLE IF NOT EXISTS public.codeset_comparison (
                         rpt json
                         );"""
 
+DDL_IP_INFO = """CREATE TABLE IF NOT EXISTS public.ip_info (
+                        ip text,
+                        info json
+                        );"""
+
 def create_database(con: Connection, schema: str):
     """Create the database"""
     print('Current tables: ')
@@ -79,6 +84,7 @@ def create_database(con: Connection, schema: str):
         run_sql(con2, DDL_COUNTS_RUNS)
         run_sql(con2, DDL_FETCH_AUDIT)
         run_sql(con2, DDL_CSET_COMPARE)
+        run_sql(con2, DDL_IP_INFO)
         run_sql(con, f'CREATE SCHEMA IF NOT EXISTS {schema};')
 
 
