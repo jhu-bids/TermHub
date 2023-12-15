@@ -347,8 +347,8 @@ def make_objects_request(
                 if retry_if_empty:
                     sleep(retry_pause)
                     continue
-                print(f'no data returned in make_objects_request for {url}')
-                return
+                logging.warning(f'No data returned in make_objects_request() for: {url}')
+                return []
             else:
                 response: Response = enclave_get(url, verbose=verbose, error_dir=outdir, **request_args)
                 if return_type == 'Response':
@@ -363,7 +363,7 @@ def make_objects_request(
                 if return_type == 'json':  # do error checking/handling?
                     return response_json
                 if return_type == 'data':
-                    data = response_json
+                    data: Dict = response_json
                     if 'data' in response_json:
                         data = response_json['data']
                     # single items don't have 'data', just 'properties' at the top
@@ -384,7 +384,7 @@ def make_objects_request(
             raise err
         else:
             print(err)
-            return
+            return []
 
     raise EnclaveWranglerErr(f"didn't expect to get here")
     # Return
