@@ -74,18 +74,26 @@ export function ConceptGraph() {
 
   useEffect(() => {
     (async () => {
-      const concept_ids = await dataGetter.fetchAndCacheItems({ itemType: 'concept-ids-by-codeset-id',
-          keys: codeset_ids, shape: 'obj', returnFunc: results => union(...Object.values(results)), });
-      const [
-          concepts,
-          edges,
-        ] = await Promise.all([
-        dataGetter.fetchAndCacheItems({ itemType: 'concepts', keys: concept_ids, shape: 'array' }),
-        ( use_example === 1 && simpleGraphExample ||
-          use_example === 2 && mediumGraphExample ||
-          dataGetter.fetchAndCacheItems('edges', concept_ids)
-        )
-      ]);
+      const concept_ids_by_codeset_id = await dataGetter.fetchAndCacheItems(dataGetter.apiCalls.concept_ids_by_codeset_id, codeset_ids);
+      let concept_ids = union(flatten(Object.values(concept_ids_by_codeset_id)));
+      // const concept_ids = await dataGetter.fetchAndCacheItems({ itemType: 'concept-ids-by-codeset-id',
+      //     keys: codeset_ids, shape: 'obj', returnFunc: results => union(...Object.values(results)), });
+      const graph_data = await dataGetter.fetchAndCacheItems(dataGetter.apiCalls.concept_graph, concept_ids, );
+      const {edges, layout, filled_gaps} = graph_data;
+      // indentedCids = [[<level>, <concept_id>], ...]
+      concept_ids = uniq(concept_ids.concat(filled_gaps));
+      const concepts = await dataGetter.fetchAndCacheItems(dataGetter.apiCalls.concepts, concept_ids);
+
+      // const [
+      //     concepts,
+      //     edges,
+      //   ] = await Promise.all([
+      //   dataGetter.fetchAndCacheItems({ itemType: 'concepts', keys: concept_ids, shape: 'array' }),
+      //   ( use_example === 1 && simpleGraphExample ||
+      //     use_example === 2 && mediumGraphExample ||
+      //     dataGetter.fetchAndCacheItems('edges', concept_ids)
+      //   )
+      // ]);
       setData({concept_ids, edges: formatEdges(edges), concepts});
     })()
   }, []);

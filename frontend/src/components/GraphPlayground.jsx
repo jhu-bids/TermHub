@@ -7,12 +7,19 @@ import Graph from "graphology";
 import "@react-sigma/core/lib/react-sigma.min.css";
 import {useSearchParamsState} from "../state/SearchParamsProvider";
 import {useDataGetter} from "../state/DataGetter";
-import {flatten, isEmpty, union, uniq} from "lodash";
+import {flatten, isEmpty, max, sum, union, uniq} from "lodash";
+import * as d3dag from "d3-dag";
 // import {formatEdges} from "./ConceptGraph";
 // import { Attributes } from "graphology-types";
 
+function sugiyamaLayout(edges) {
+  const connect = d3dag.dagConnect();
+  const dag = connect(edges);
+  const layout = d3dag.sugiyama()
+  return {dag, graphSize: layout};
+}
 
-export const ConceptGraph: React.FC = () => {
+export const ConceptGraph/*: React.FC*/ = () => {
   const {sp} = useSearchParamsState();
   const {codeset_ids, use_example=false} = sp;
   const dataGetter = useDataGetter();
@@ -38,13 +45,16 @@ export const ConceptGraph: React.FC = () => {
     })()
   }, []);
 
+  /*
   interface SugiyamaGraphProps {
     graph_data: any;  // Replace 'any' with the actual type of graph_data
   }
+   */
 
-  const SugiyamaGraph: React.FC<SugiyamaGraphProps> = (props) => {
+  const SugiyamaGraph/*: React.FC<SugiyamaGraphProps>*/ = (props) => {
     const loadGraph = useLoadGraph();
     const {graph_data} = props;
+    const { positions, assign } = useLayoutCircular();
 
     useEffect(() => {
       if (isEmpty(graph_data)) {
@@ -53,22 +63,31 @@ export const ConceptGraph: React.FC = () => {
       // Create the graph
       const graph = new Graph();
 
-      const {edges, layout, filled_gaps} = graph_data;
+      let {edges, layout, filled_gaps} = graph_data;
+      edges = edges.map((e) => [String(e[0]), String(e[1])]);
 
-      for (let concept_id in layout) {
-        const [x, y] = layout[concept_id];
-        graph.addNode(concept_id, {
-          label: concepts[concept_id].concept_name,
+      let {dag, graphSize} = sugiyamaLayout(edges);
+
+      for (let dn of dag.descendants()) {
+        // let n = parseInt(dn.data.id);
+        let n = dn.data.id; // I think it turns graph node ids into strings
+        graph.addNode(n, {
+          label: concepts[n].concept_name,
           size: 10,
+          // x: dn.x, y: dn.y,
+          x: 0, y: 0,
           // color: randomColor(),
-          x, y,
         });
+
       }
       for (let edge of edges) {
         graph.addDirectedEdge(edge[0], edge[1]);
       }
 
       loadGraph(graph);
+      assign();
+      // let positions = positions();
+      // console.log(positions);
     }, [loadGraph, graph_data])
 
     return null;
@@ -76,13 +95,13 @@ export const ConceptGraph: React.FC = () => {
 
   return (
       <SigmaContainer style={{ height: "1500px" }}>
-        {/*<SugiyamaGraph graph_data={graph_data}/>*/}
-        <DisplayGraph />
+        <SugiyamaGraph graph_data={graph_data}/>
+        {/*<DisplayGraph />*/}
       </SigmaContainer>
   );
 }
-export const DisplayGraph: React.FC = () => {
-  const RandomCircleGraph: React.FC = () => {
+export const DisplayGraph/*: React.FC*/ = () => {
+  const RandomCircleGraph/*: React.FC*/ = () => {
     const { faker, randomColor } = useSeedRandom();
     const sigma = useSigma();
     const { positions, assign } = useLayoutCircular();
