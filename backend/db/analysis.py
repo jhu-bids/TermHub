@@ -174,19 +174,29 @@ def counts_over_time(
     dates = list(set(dateslist))
 
     finaldf = pd.DataFrame()
+    i = 0  # TODO: temp
     for date in dates:
+        i += 1  # TODO temp
         # Create temporary table with the columns of only one date
+        # TODO: Is there still a bug here sometimes?
         datedf = df[df.columns[df.columns.str.startswith(date)]]
         datedf = datedf.sort_index(axis=1)
         # todo: List number of times the refresh ran that day somewhere?
         # count = dateslist.count(date)
         # datedf.loc[f'Number of refreshes ran'] = count
-        # todo: improve performance. This msg is showing up many times:
+        # todo: performance.
+        #  This msg is showing up many times:
         #  PerformanceWarning: DataFrame is highly fragmented.  This is usually the result of calling `frame.insert`
         #  many times, which has poor performance.  Consider joining all columns at once using pd.concat(axis=1)
         #  instead. To get a de-fragmented frame, use `newframe = frame.copy()`
-        if values == 'counts':
+        #  - this is happening for both counts and deltas below
+        if values == 'count':
             # Keep only the most recent column from each day
+            # todo: performance
+            #  - apparently, this 3 line variation below didn't change anything:
+            # temp = datedf.iloc[:, -1:]
+            # vals = list(temp[temp.columns[0]])
+            # finaldf[date] = vals
             finaldf[date] = datedf.iloc[:, -1:]
         else:  # deltas
             # Keep the sum of columns from each day

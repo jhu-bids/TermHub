@@ -39,8 +39,8 @@ from enclave_wrangler.utils import EnclavePaginationLimitErr, enclave_get, encla
     make_objects_request
 from enclave_wrangler.models import OBJECT_TYPE_TABLE_MAP, convert_row, get_field_names, field_name_mapping, pkey
 from backend.db.utils import SCHEMA, insert_fetch_statuses, insert_from_dict, insert_from_dicts, \
-    refresh_termhub_core_cset_derived_tables, \
-    sql_query_single_col, run_sql, get_db_connection
+    is_refresh_active, refresh_termhub_core_cset_derived_tables, \
+    reset_temp_refresh_tables, sql_query_single_col, run_sql, get_db_connection
 from backend.db.queries import get_concepts
 from backend.utils import call_github_action, pdump
 
@@ -365,12 +365,17 @@ def get_bidirectional_csets_sets(con: Connection = None) -> Tuple[Set[int], Set[
 
 def add_missing_csets_to_db(cset_ids: List[int], con: Connection = None, schema=SCHEMA):
     """Add missing concept sets to the DB"""
-    con = con if con else get_db_connection(schema=schema)
-    csets_and_members_enclave_to_db(con, cset_ids=cset_ids, schema=schema)
+    try:
+        con = con if con else get_db_connection(schema=schema)
+        csets_and_members_enclave_to_db(con, cset_ids=cset_ids, schema=schema)
+    except Exception:
+        reset_temp_refresh_tables(schema)
 
 
 def find_and_add_missing_csets_to_db(con: Connection = None, schema=SCHEMA):
     """Find and add missing concept sets to the DB"""
+    if is_refresh_active():
+        print('find_and_add_missing_csets_to_db(): Refresh in progress. Try again when it is not.')
     con = con if con else get_db_connection(schema=schema)
     cset_ids: List[int] = list(find_termhub_missing_csets(con))
     if cset_ids:
@@ -431,6 +436,7 @@ def fetch_cset_and_member_objects(
     #  https://github.com/jhu-bids/TermHub/actions/runs/6489411749/job/17623626419
     cset_versions = [x for x in cset_versions if x['properties']['conceptSetNameOMOP']]
     cset_versions_by_id: Dict[int, Dict] = {cset['properties']['codesetId']: cset for cset in cset_versions}
+    del cset_versions
     print(f'   - retrieved {len(cset_versions_by_id)} versions')
 
     # Containers
@@ -440,7 +446,6 @@ def fetch_cset_and_member_objects(
     for _id in containers_ids:
         # todo: will a container ever be paginated? can drop this param, though shouldn't matter
         container: List[Dict] = make_objects_request(
-            # @joeflack4 -- concept set names sent to the api need to be urllib quoted
             'OMOPConceptSetContainer', query_params={'properties.conceptSetId.eq': _id}, verbose=verbose,
             return_type='data', handle_paginated=True)
         if not container:
@@ -453,7 +458,6 @@ def fetch_cset_and_member_objects(
         return
 
     # Expression items & concept set members
-    cset_versions_with_concepts: List[Dict] = []
     expression_items = []
     member_items = []
     print(f' - fetching expressions/members for {len(cset_versions_by_id)} versions:')
@@ -486,11 +490,10 @@ def fetch_cset_and_member_objects(
                 'comment': f"Fetched 0 members after fetching {len(cset['expression_items'])} items."}])
             call_github_action('resolve_fetch_failures_0_members.yml', {'version_id': str(version_id)})
 
-        cset_versions_with_concepts.append(cset)
         expression_items.extend(cset['expression_items'])
         member_items.extend(cset['member_items'])
 
-    return {'OMOPConceptSetContainer': cset_containers, 'OMOPConceptSet': cset_versions_by_id,
+    return {'OMOPConceptSetContainer': cset_containers, 'OMOPConceptSet': list(cset_versions_by_id.values()),
             'OmopConceptSetVersionItem': expression_items, 'OMOPConcept': member_items}
 
 
