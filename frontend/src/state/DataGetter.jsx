@@ -4,7 +4,6 @@ import axios from "axios";
 import {flatten, isEmpty, setWith, once, uniq, difference} from 'lodash';
 
 import {useAlertsDispatch} from "./AppState";
-import {formatEdges} from "../components/ConceptGraph";
 import {API_ROOT} from "../env";
 import {useDataCache} from "./DataCache";
 import {compress} from "lz-string";

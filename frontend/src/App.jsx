@@ -24,8 +24,8 @@ import {compress, decompress} from "lz-string";
 import { ConceptSetsPage } from "./components/Csets";
 import { CsetComparisonPage } from "./components/CsetComparisonPage";
 import { AboutPage } from "./components/AboutPage";
-// import { ConceptGraph } from "./components/ConceptGraph";
-import { ConceptGraph } from "./components/GraphPlayground";
+// import { ConceptGraph } from "./components/GraphD3dag";
+import { ConceptGraph, DisplayGraph } from "./components/GraphPlayground";
 import {ViewCurrentState, } from "./state/State";
 import {
   CodesetIdsProvider,
@@ -151,7 +151,7 @@ function RoutesContainer() {
         {/*<Route path="auth/logout" element={<Logout/>} />*/}
         <Route
             path="graph"
-            // element={<ConceptGraph/>}
+            // element={<DisplayGraph/>}
             element={<ConceptGraph/>}
         />
         {/*<Route path="download-json" element={<DownloadJSON/>} />*/}

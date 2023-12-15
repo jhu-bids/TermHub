@@ -13,7 +13,12 @@ const DataCacheContext = createContext(null);
 
 export function DataCacheProvider({children}) {
 	const {sp} = useSearchParamsState();
-	const {optimization_experiment} = sp;
+	let {optimization_experiment} = sp;
+
+	// TURNING OFF CACHING FOR NOW
+	optimization_experiment = optimization_experiment || 'no_cache';
+
+
 	const dataCache = new DataCache({optimization_experiment});
 	window.addEventListener("beforeunload", dataCache.saveCache);
 	window.dataCacheW = dataCache; // for debugging

@@ -7,7 +7,7 @@ import Graph from "graphology";
 import "@react-sigma/core/lib/react-sigma.min.css";
 import {useSearchParamsState} from "../state/SearchParamsProvider";
 import {useDataGetter} from "../state/DataGetter";
-import {flatten, isEmpty, union} from "lodash";
+import {flatten, isEmpty, union, uniq} from "lodash";
 // import {formatEdges} from "./ConceptGraph";
 // import { Attributes } from "graphology-types";
 
@@ -30,7 +30,7 @@ export const ConceptGraph: React.FC = () => {
       const graph_data = await dataGetter.fetchAndCacheItems(dataGetter.apiCalls.concept_graph, concept_ids, );
       const {edges, layout, filled_gaps} = graph_data;
       // indentedCids = [[<level>, <concept_id>], ...]
-      concept_ids = concept_ids.concat(filled_gaps);
+      concept_ids = uniq(concept_ids.concat(filled_gaps));
 
       const concepts = await dataGetter.fetchAndCacheItems(dataGetter.apiCalls.concepts, concept_ids);
 
@@ -76,7 +76,8 @@ export const ConceptGraph: React.FC = () => {
 
   return (
       <SigmaContainer style={{ height: "1500px" }}>
-        <SugiyamaGraph graph_data={graph_data}/>
+        {/*<SugiyamaGraph graph_data={graph_data}/>*/}
+        <DisplayGraph />
       </SigmaContainer>
   );
 }

@@ -362,16 +362,28 @@ def get_unrooted_children(G, roots, children):
 
 
 def get_indented_tree_nodes(sg, preferred_concept_ids=[], max_depth=3, max_children=20, small_graph_threshold=2000):
+
     def dfs(node, depth):
+        nonlocal tree, small_graph_big_tree, start_over
+        if start_over:
+            return 'start over'
         tree.append((depth, node))
         preferred_but_unshown.discard(node)
 
         children = set(sg.successors(node))
 
-        if len(sg.nodes) <= small_graph_threshold:
-            for child in children:
-                dfs(child, depth + 1)
-            return
+        # even if the graph is small, with repetition it can get huge --
+        #   so let's start over and respect the max_depth and max_children
+        if not small_graph_big_tree and len(sg.nodes) < small_graph_threshold:
+            if len(tree) < small_graph_threshold * 2:
+                for child in children:
+                    if not start_over and dfs(child, depth + 1) == 'start over':
+                        start_over = True
+                        return 'start over'
+                return
+            else:
+                small_graph_big_tree = True
+                return 'start over'
 
         if len(children) <= max_children and len(children) and depth <= max_depth: # ok to show
             for child in children:
@@ -385,11 +397,19 @@ def get_indented_tree_nodes(sg, preferred_concept_ids=[], max_depth=3, max_child
             if children_to_hide:
                 tree.append((depth + 1, list(children_to_hide)))
 
-    roots = [n for n in sg.nodes if sg.in_degree(n) == 0]
-    tree = []
-    preferred_but_unshown = set(preferred_concept_ids)
-    for root in roots:
-        dfs(root, 0)
+    small_graph_big_tree = False
+    while True:
+        roots = [n for n in sg.nodes if sg.in_degree(n) == 0]
+        tree = []
+        preferred_but_unshown = set(preferred_concept_ids)
+        start_over = False
+        for root in roots:
+            if dfs(root, 0) == 'start over':
+                start_over = True
+                break
+        if not start_over:
+            break
+
 
     for node in preferred_but_unshown:
         tree.append((0, node))
