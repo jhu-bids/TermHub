@@ -67,6 +67,8 @@ def refresh_db(
         try:
             # todo: when ready, will use all_new_objects_enclave_to_db() instead of csets_and_members_enclave_to_db()
             new_data: bool = csets_and_members_enclave_to_db(con, since, schema=schema)
+            update_db_status_var('last_refresh_success', current_datetime(), local)
+            update_db_status_var('last_refresh_result', 'success', local)
         except Exception as err:
             print(f"Database refresh incomplete; exception occurred. Tallying counts and exiting.", file=sys.stderr)
             update_db_status_var('last_refresh_result', 'error', local)
@@ -75,12 +77,9 @@ def refresh_db(
             counts_docs()
             raise err
         finally:
-            refresh_complete_dt = current_datetime()
-            update_db_status_var('last_refresh_exited', refresh_complete_dt, local)
+            update_db_status_var('last_refresh_exited', current_datetime(), local)
             update_db_status_var('refresh_status', 'inactive', local)
 
-    update_db_status_var('last_refresh_success', refresh_complete_dt, local)
-    update_db_status_var('last_refresh_result', 'success', local)
     if new_data:
         counts_update('DB refresh.', schema, local)
         counts_docs()
