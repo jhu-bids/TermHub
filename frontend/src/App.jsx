@@ -163,11 +163,12 @@ function RoutesContainer() {
   );
 }
 function App(props) {
+  const {sp} = useSearchParamsState();
   const alerts = useAlerts();
   const alertsDispatch = useAlertsDispatch();
-  const {sp} = useSearchParamsState();
   let alertsComponent = null;
-  if (DEPLOYMENT === 'local' || sp.show_alerts) {
+  // turning this off even locally
+  if (false && DEPLOYMENT === 'local' || sp.show_alerts) {
     alertsComponent = <AlertMessages alerts={alerts}/>;
   }
   // console.log(DEPLOYMENT);

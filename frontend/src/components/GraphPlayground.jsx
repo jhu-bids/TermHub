@@ -11,12 +11,28 @@ import {flatten, isEmpty, max, sum, union, uniq} from "lodash";
 import * as d3dag from "d3-dag";
 // import {formatEdges} from "./ConceptGraph";
 // import { Attributes } from "graphology-types";
+import {assignLayout} from 'graphology-layout/utils';
+import {collectLayout} from 'graphology-layout/utils';
+
+// import {useSeedRandom} from "react-seed-random";
 
 function sugiyamaLayout(edges) {
   const connect = d3dag.dagConnect();
-  const dag = connect(edges);
-  const layout = d3dag.sugiyama()
-  return {dag, graphSize: layout};
+  const dag = connect(edges); // using d3dag for the sugiyama layout
+  const graphSize = d3dag.sugiyama();
+  const layout = d3dag.sugiyama();
+  const {width, height} = layout(dag);
+
+
+  const graph = new Graph();  // but using graphology graph with sigma
+  let slayout = {};
+
+  for (let dn of dag.descendants()) {
+    // let n = parseInt(dn.data.id);
+    let n = dn.data.id; // I think it turns graph node ids into strings
+    slayout[n] = { x: dn.x, y: dn.y,};
+  }
+  return {graph, graphSize, slayout};
 }
 
 export const ConceptGraph/*: React.FC*/ = () => {
@@ -54,40 +70,39 @@ export const ConceptGraph/*: React.FC*/ = () => {
   const SugiyamaGraph/*: React.FC<SugiyamaGraphProps>*/ = (props) => {
     const loadGraph = useLoadGraph();
     const {graph_data} = props;
-    const { positions, assign } = useLayoutCircular();
+    // const { positions, assign } = useLayoutCircular();
 
     useEffect(() => {
       if (isEmpty(graph_data)) {
         return;
       }
-      // Create the graph
-      const graph = new Graph();
 
       let {edges, layout, filled_gaps} = graph_data;
       edges = edges.map((e) => [String(e[0]), String(e[1])]);
 
-      let {dag, graphSize} = sugiyamaLayout(edges);
+      let {graph, graphSize, slayout} = sugiyamaLayout(edges);
 
-      for (let dn of dag.descendants()) {
-        // let n = parseInt(dn.data.id);
-        let n = dn.data.id; // I think it turns graph node ids into strings
+      for (let n in slayout) {
         graph.addNode(n, {
           label: concepts[n].concept_name,
-          size: 10,
+          // size: 10,
           // x: dn.x, y: dn.y,
-          x: 0, y: 0,
+          // x: 0, y: 0,
           // color: randomColor(),
         });
-
       }
       for (let edge of edges) {
         graph.addDirectedEdge(edge[0], edge[1]);
       }
 
+      assignLayout(graph, slayout);
       loadGraph(graph);
-      assign();
-      // let positions = positions();
-      // console.log(positions);
+      let l = collectLayout(graph);
+      console.log(l);
+      // assign();
+
+
+      // console.log(positions());
     }, [loadGraph, graph_data])
 
     return null;
