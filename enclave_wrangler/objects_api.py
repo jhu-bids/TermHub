@@ -430,11 +430,12 @@ def fetch_cset_and_member_objects(
     # - Filter any old drafts from sourceApplicationVersion 1.0. Old data model. No containers, etc. See also:
     #  https://github.com/jhu-bids/TermHub/actions/runs/6489411749/job/17623626419
     cset_versions = [x for x in cset_versions if x['properties']['conceptSetNameOMOP']]
-    print(f'   - retrieved {len(cset_versions)} versions')
+    cset_versions_by_id: Dict[int, Dict] = {cset['properties']['codesetId']: cset for cset in cset_versions}
+    print(f'   - retrieved {len(cset_versions_by_id)} versions')
 
     # Containers
-    print(f' - fetching containers for {len(cset_versions)} versions')
-    containers_ids = [x['properties']['conceptSetNameOMOP'] for x in cset_versions]
+    print(f' - fetching containers for {len(cset_versions_by_id)} versions')
+    containers_ids = [x['properties']['conceptSetNameOMOP'] for x in cset_versions_by_id.values()]
     cset_containers: List[Dict] = []
     for _id in containers_ids:
         # todo: will a container ever be paginated? can drop this param, though shouldn't matter
@@ -448,18 +449,17 @@ def fetch_cset_and_member_objects(
         cset_containers.append(container[0]['properties'])
 
     # Returning None if no data
-    if not cset_containers and not cset_versions:
+    if not cset_containers and not cset_versions_by_id:
         return
 
     # Expression items & concept set members
     cset_versions_with_concepts: List[Dict] = []
     expression_items = []
     member_items = []
-    print(f' - fetching expressions/members for {len(cset_versions)} versions:')
+    print(f' - fetching expressions/members for {len(cset_versions_by_id)} versions:')
     i = 0
-    for cset in cset_versions:
+    for version_id, cset in cset_versions_by_id.items():
         i += 1
-        version_id: int = cset['properties']['codesetId']
         print(f'   - {i}: {version_id}')
         # todo: if failed to get expression items, should we not check for members? maybe ok because flagged
         try:
@@ -490,7 +490,7 @@ def fetch_cset_and_member_objects(
         expression_items.extend(cset['expression_items'])
         member_items.extend(cset['member_items'])
 
-    return {'OMOPConceptSetContainer': cset_containers, 'OMOPConceptSet': cset_versions,
+    return {'OMOPConceptSetContainer': cset_containers, 'OMOPConceptSet': cset_versions_by_id,
             'OmopConceptSetVersionItem': expression_items, 'OMOPConcept': member_items}
 
 
