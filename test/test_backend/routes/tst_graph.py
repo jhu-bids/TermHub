@@ -24,17 +24,17 @@ from backend.routes.graph import indented_concept_list, get_connected_subgraph, 
 
 TEST_CASES_FAST = """
 testType,testName,codeset_ids,timeoutSeconds
-single small,single-small,1000002363,30
+single 2000,autoimmune 1,101398605,180
 many small,many-small,"1000002363, 1000002657, 1000007602, 1000013397, 1000010688, 1000015307, 1000031299",45
+mixed 6000 to 21000,Sulfonylureas,"417730759, 423850600, 966671711, 577774492",120
+mixed 30 to 3000,autoimmune 2,"101398605, 947369784, 287650725, 283328624, 115052941",240
+single 30000,antibiotics 1,909552172,180
+single small,single-small,1000002363,30
 single small,single-small-second-time,1000002363,30
 """
 
 TEST_CASES_HOLD = """
 testType,testName,codeset_ids,timeoutSeconds
-mixed 6000 to 21000,Sulfonylureas,"417730759, 423850600, 966671711, 577774492",120
-single 2000,autoimmune 1,101398605,180
-mixed 30 to 3000,autoimmune 2,"101398605, 947369784, 287650725, 283328624, 115052941",240
-single 30000,antibiotics 1,909552172,180
 """
 
 TEST_CASES = TEST_CASES_FAST
@@ -73,11 +73,11 @@ class TstGraph:
         # todo; enable test cases from CSV
         for case in test_cases_list:
             codeset_ids = case['codeset_ids'].split(',')
-            sg, nodes_in_graph, preferred_concept_ids, orphans_not_in_graph, hidden = (
+            sg, nodes_in_graph, orphans_not_in_graph, hidden = (
                 get_connected_subgraph(REL_GRAPH, codeset_ids, extra_concept_ids, hide_vocabs))
             # todo: assertions
             j = json.dumps(
-                [list(sg.edges), list(nodes_in_graph), list(preferred_concept_ids), list(orphans_not_in_graph), hidden])
+                [list(sg.edges), list(nodes_in_graph), list(orphans_not_in_graph), hidden])
             print()
 
 

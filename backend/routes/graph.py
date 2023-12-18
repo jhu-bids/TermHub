@@ -158,7 +158,8 @@ def get_connected_subgraph(
         c['concept_id'] for c in csmi
         if c['item'] and not c['concept_id'] in orphans_not_in_graph])
 
-    sg = connect_nodes(REL_GRAPH, nodes_in_graph, preferred_concept_ids).copy()
+    sg = connect_nodes(REL_GRAPH, nodes_in_graph).copy()
+    # sg = connect_nodesOLD(REL_GRAPH, nodes_in_graph, preferred_concept_ids).copy()
     return sg, nodes_in_graph, preferred_concept_ids, orphans_not_in_graph, hidden
 
 
@@ -189,7 +190,64 @@ async def indented_concept_list_post(
         raise e
 
 
-def connect_nodes(G, target_nodes, preferred_nodes: Iterable[int] = None):
+def connect_nodes(G, nodes):
+    """Connects all nodes to the nearest common ancestor.
+    TODO: tell users when version is based on old vocab because connections might not be
+          there anymore, or might require paths that weren't there when it was created
+    """
+    timer = get_timer('   ')
+    nodes = set(nodes)
+
+    VERBOSE and timer('getting already connected nodes')
+    nodes_to_connect = set()  # gets smaller as nodes are connected by ancestors
+    nodes_already_connected = set()
+    additional_nodes = set()  # nodes that will be added in order to connect nodes_to_connect
+    sg = G.subgraph(nodes)
+    for node in nodes:
+        if sg.in_degree(node) == 0:
+            nodes_to_connect.add(node)
+        else:
+            nodes_already_connected.add(node)
+
+    if len(nodes_to_connect) < 2:
+        VERBOSE and timer('done')
+        return sg
+
+    # maybe will go faster from smaller to larger. With 50 nodes, it's taking -- probably hours
+    # combo_sizes = list(range(len(nodes_to_connect), 1, -1))
+    combo_sizes = list(range(2, len(nodes_to_connect)))
+    for i, set_size in enumerate(combo_sizes):
+        found_ancestors = False # if we don't find common ancestors for all 3-node combos
+        #   we don't need to bother with 4-node combos
+        VERBOSE and timer(f'getting common ancestor for {set_size} node combos')
+        for j, combo in enumerate(combinations(nodes_to_connect, set_size)):
+            common_ancestor, path_nodes = get_best_common_ancestor(G, combo)
+            if not common_ancestor:
+                continue
+            found_ancestors = True
+
+            additional_nodes.add(common_ancestor)
+            additional_nodes.update(path_nodes)
+            nodes_to_connect -= set(combo)
+            nodes_to_connect -= path_nodes
+            # was broken (commit b0dce49c), getting unneeded ancestors
+            # with http://127.0.0.1:8000/indented-concept-list?codeset_ids=1000062292
+            # it should have stopped at the following node, but kept going higher
+            # if 4239975 in additional_nodes:
+            #     pass
+            # try http://127.0.0.1:3000/cset-comparison?codeset_ids=1000062292&hierarchySettings=%7B%22collapsePaths%22%3A%7B%224180628%2F134057%2F321588%2F4239975%2F4124706%22%3Atrue%2C%224180628%2F440142%2F321588%2F4239975%2F4124706%22%3Atrue%2C%224023995%2F134057%2F321588%2F4239975%2F4124706%22%3Atrue%2C%224023995%2F4103183%2F321588%2F4239975%2F4124706%22%3Atrue%2C%2243531057%2F43531056%2F4043346%2F440142%2F321588%2F4239975%2F4124706%22%3Atrue%2C%2243531057%2F43531056%2F4043346%2F440142%2F321588%2F4239975%2F321319%22%3Atrue%2C%2243531057%2F4185503%2F4043346%2F440142%2F321588%2F4239975%2F4124706%22%3Atrue%2C%2243531057%2F4185503%2F4043346%2F440142%2F321588%2F4239975%2F321319%22%3Atrue%2C%224180628%2F134057%2F321588%2F4239975%2F321319%22%3Atrue%2C%224180628%2F440142%2F321588%2F4239975%2F321319%22%3Atrue%2C%224023995%2F134057%2F321588%2F4239975%2F321319%22%3Atrue%2C%224023995%2F4103183%2F321588%2F4239975%2F321319%22%3Atrue%7D%2C%22hideZeroCounts%22%3Atrue%7D
+            #   to see how it's doing now
+        if not found_ancestors:
+            break
+
+    all_nodes = nodes.union(additional_nodes)
+    VERBOSE and timer(f'getting subgraph for {len(all_nodes)} nodes')
+    sg = G.subgraph(all_nodes)
+    VERBOSE and timer('done')
+    return sg
+
+
+def connect_nodesOLD(G, target_nodes, preferred_nodes: Iterable[int] = None):
     """Connects all nodes in target_nodes to the nearest common ancestor.
 
     preferred nodes are the version item nodes
@@ -304,6 +362,8 @@ def get_best_common_ancestor(G, nodes):
     if not common_ancestors:
         return None, None
 
+    # TODO: this will go a lot faster if we keep track of ancestors we've
+    #   already found
     # path_nodes = set()
     paths = {}
 
