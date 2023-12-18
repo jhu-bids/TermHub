@@ -208,10 +208,16 @@ def connect_nodes(G, target_nodes, preferred_nodes: Iterable[int] = None):
 
     VERBOSE and timer('getting already connected nodes')
     nodes_already_connected = set()
+
     for a, b in combinations(nodes_to_connect, 2):
         if a == b:
             continue
         try:
+            # if a in nodes_already_connected or b in nodes_already_connected:
+            #     continue
+            # even better, i think -- https://chat.openai.com/share/3070dc23-cfbe-4192-b374-4461dc8f6977
+            #   but then could use that in a better refactor -- not sure preferred_nodes is needed
+            #   or unrooted children if other stuff is done right
             if nx.has_path(G, a, b):
                 nodes_to_connect.discard(b)
                 nodes_already_connected.add(b)
