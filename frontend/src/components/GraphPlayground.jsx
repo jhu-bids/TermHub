@@ -30,7 +30,8 @@ function sugiyamaLayout(edges) {
   for (let dn of dag.descendants()) {
     // let n = parseInt(dn.data.id);
     let n = dn.data.id; // I think it turns graph node ids into strings
-    slayout[n] = { x: dn.x, y: dn.y,};
+    slayout[n] = { x: dn.x, y: dn.y,}; // for TermHub example, this is too wide
+    // slayout[n] = { x: dn.y, y: dn.x,}; // now too tall, not helpful
   }
   return {graph, graphSize, slayout};
 }
@@ -98,7 +99,7 @@ export const ConceptGraph/*: React.FC*/ = () => {
       assignLayout(graph, slayout);
       loadGraph(graph);
       let l = collectLayout(graph);
-      console.log(l);
+      // console.log(l);
       // assign();
 
 
@@ -150,7 +151,7 @@ export const DisplayGraph/*: React.FC*/ = () => {
 
       loadGraph(graph);
       assign();
-      console.log(positions());
+      // console.log(positions());
     }, [assign, loadGraph, faker.datatype, faker.name, randomColor]);
 
     return null;
