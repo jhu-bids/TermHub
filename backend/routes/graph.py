@@ -117,7 +117,7 @@ def get_connected_subgraph(
     REL_GRAPH: nx.Graph,
     codeset_ids: List[int],
     extra_concept_ids: Union[List[int], None] = [],
-    hide_vocabs: Union[List[int], None] = []
+    hide_vocabs: Union[List[str], None] = []
 ) -> nx.Graph:
 
     _csmi = get_cset_members_items(codeset_ids=codeset_ids)
@@ -779,7 +779,6 @@ def load_relationship_graph(save_if_not_exists=True):
     timer = get_timer('./load_relationship_graph')
     timer(f'loading {GRAPH_PATH}')
     if os.path.isfile(GRAPH_PATH):
-        G = nx.DiGraph()
         with open(GRAPH_PATH, 'rb') as pickle_file:
             G = pickle.load(pickle_file)
             # while True:
