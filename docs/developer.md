@@ -59,6 +59,14 @@ ALTER DATABASE termhub SET default_transaction_read_only = off;
 COMMIT;
 ```
 
+##### `FATAL:  remaining connection slots are reserved for non-replication superuser connections`
+If you see seomthing like this...
+```
+psql -d $psql_conn
+psql: error: connection to server at "termhub.postgres.database.azure.com" (20.62.151.251), port 5432 failed: FATAL:  remaining connection slots are reserved for non-replication superuser connections
+```
+...This can be resolved by opening up the [DB management page in Azure](https://portal.azure.com/#@live.johnshopkins.edu/resource/subscriptions/fe24df19-d251-4821-9a6f-f037c93d7e47/resourceGroups/JH-POSTGRES-RG/providers/Microsoft.DBforPostgreSQL/flexibleServers/termhub/overview) and clicking the "Restart" button near the top. 
+
 #### Emergency handbook: Recovering from corrupted databases
 ##### 1. Reinstate working database
 ###### a. Restore from a backup
