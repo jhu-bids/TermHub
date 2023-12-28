@@ -625,7 +625,7 @@ def n3c_recommended_report(as_json=False) -> Union[List[str], Dict]:
 def n3c_comparison_rpt():
     with get_db_connection() as con:
         rpt = sql_query_single_col(con, "SELECT rpt FROM public.codeset_comparison WHERE rpt IS NOT NULL")
-        return rpt
+    return rpt
 
 
 @cache
