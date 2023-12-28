@@ -70,10 +70,10 @@ def refresh_db(
             update_db_status_var('last_refresh_success', current_datetime(), local)
             update_db_status_var('last_refresh_result', 'success', local)
         except Exception as err:
-            print(f"Database refresh incomplete; exception occurred. Tallying counts and exiting.", file=sys.stderr)
             update_db_status_var('last_refresh_result', 'error', local)
             update_db_status_var('last_refresh_error_message', str(err), local)
             reset_temp_refresh_tables(schema)
+            print(f"Database refresh incomplete; exception occurred. Tallying counts and exiting.", file=sys.stderr)
             counts_update('DB refresh error.', schema, local, filter_temp_refresh_tables=True)
             counts_docs()
             raise err
