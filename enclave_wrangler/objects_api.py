@@ -376,6 +376,7 @@ def find_and_add_missing_csets_to_db(con: Connection = None, schema=SCHEMA):
     """Find and add missing concept sets to the DB"""
     if is_refresh_active():
         print('find_and_add_missing_csets_to_db(): Refresh in progress. Try again when it is not.')
+        return
     con = con if con else get_db_connection(schema=schema)
     cset_ids: List[int] = list(find_termhub_missing_csets(con))
     if cset_ids:
