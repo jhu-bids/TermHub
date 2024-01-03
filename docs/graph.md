@@ -8,6 +8,14 @@ The code for filling in gaps in concept subgraphs and displaying them as trees h
 
 I'm realizing again that there are problems in the algorithm, so I'm going to use this space to try to plan out and document a new algorithm.
 
+### Steps
+1. Find all roots of subgraph (
+
+
+## Graph visualization
+I'd like to make a few test cases that include all the various edge cases that have to be handled. At least one small one that can be manually tinkered with and easy to understand and some big ones made with real data for testing front/back end performance and manageability and summarization features (collapsing many nodes into an expandable summary node.)
+
+I would like to be able to use [graphviz and dot](https://graphviz.org/) for authoring and graphically rendering the small use cases, but it has a weird architecture. It has APIs, declarative language, CLIs, and stuff; but they rely on [executables](https://graphviz.org/download/) which are environment-specific. (See stack overflow for [how to handle azure](https://stackoverflow.com/questions/76244214/how-to-fix-pygraphviz-program-dot-not-found-in-path-error-in-azure-or-gcp).)
 
 
 ## Old
