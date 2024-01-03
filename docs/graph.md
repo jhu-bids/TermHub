@@ -1,4 +1,16 @@
 # Documentation about vocabulary hierarchy algorithms and display
+## 2024-01-03 update
+The code for filling in gaps in concept subgraphs and displaying them as trees has never worked quite right -- though it usually is or seems right enough for people not to notice. But there have been a wide variety of edge cases like
+- The gaps aren't filled in correctly
+- Unneeded ancestors are added
+- The subgraph gap-filling or backend tree construction takes so long that it hangs
+- There's so many indented tree nodes that the browser slows to a crawl or crashes
+
+I'm realizing again that there are problems in the algorithm, so I'm going to use this space to try to plan out and document a new algorithm.
+
+
+
+## Old
 This is to answer @joeflack4's questions on https://github.com/jhu-bids/TermHub/pull/611 and will also
 be useful for documenting future work on managing vocabulary data and display, which will get complex
 when we start breaking it down into smaller pieces. See [issue 611](https://github.com/jhu-bids/TermHub/pull/611)
