@@ -1,0 +1,45 @@
+digraph G {
+  concentrate=true; // doesn't seem to do anything
+  subgraph cluster_1 {
+    style=filled;
+    color=lightblue;
+    node [style=filled,color=white];
+    a0 -> {a1, a2, a3};
+    label = "Simple component";
+  }
+  subgraph cluster_2 {
+    style=filled;
+    color=lightgrey;
+    node [style=filled,color=white];
+    r0 -> {b1, b2, b3, b4};
+    r1 -> {b4, b5};
+    label = "Two-root component";
+  }
+  subgraph cluster_0 {
+    style=filled;
+    color=lightblue;
+    node [style=filled,color=white];
+    c0-> {c1, c2, c3};
+    c2 -> c3;
+    {c1, c2} -> c4;
+    label = "Component #1";
+  }
+  a3 [color=purple];
+  p0 -> {a3, b1};
+  /*
+  subgraph cluster_1 {
+    node [style=filled];
+    z0 -> z1 -> z2 -> z3;
+    label = "process #2";
+    color=blue
+  }
+  start -> z0;
+  a1 -> z3;
+  z2 -> a3;
+  a3 -> end;
+  z3 -> end;
+
+  start [shape=Mdiamond];
+  end [shape=Msquare];
+  */
+}
