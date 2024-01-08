@@ -1,0 +1,17 @@
+digraph G {
+  node [style=filled,color=white];
+
+  subgraph cluster_common_ancestor_roots {
+    rank=same;
+    label = "Common ancestor of roots";
+    style=filled;
+    color=lightblue;
+    s2r [label="Root"];
+    s3r [label="Root"];
+    { node [label="Node"]; s2n1, s2n2, s2n3, s3n1, s3n2, s3n3};
+    ca [label="Common ancestor"];
+    ca -> {s2r, s3r};
+    s2r -> {s2n1, s2n2, s2n3};
+    s3r -> {s3n1, s3n2, s3n3};
+  }
+}

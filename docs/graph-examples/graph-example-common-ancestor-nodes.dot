@@ -1,0 +1,22 @@
+digraph G {
+  splines=false;
+  node [style=filled,color=white, ordering=out, width=.1];
+  subgraph cluster_common_ancestor_nodes {
+    rank=same;
+    concentrate=true;
+    label = "Common ancestor of non-root nodes";
+    style=filled;
+    color=lightblue;
+    ca [label="Common ancestor"];
+    r1 [label="Root node"];
+    invisible_node [style=invis, width=0.01, height=0.01];
+    r2 [label="Root node"];
+    { node [label="Node"]; a1, a2, a3};
+    r1 -> {a1, a2, a3};
+    { node [label="Node"]; b1, b2, b3};
+    r2 -> {b1, b2, b3};
+    ca -> invisible_node [style=invis];
+    invisible_node -> {a3, b1} [style=invis];
+    ca -> {a3, b1};
+  }
+}

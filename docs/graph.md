@@ -17,7 +17,9 @@ I'd like to make a few test cases that include all the various edge cases that h
 
 I would like to be able to use [graphviz and dot](https://graphviz.org/) for authoring and graphically rendering the small use cases, but it has a weird architecture. It has APIs, declarative language, CLIs, and stuff; but they rely on [executables](https://graphviz.org/download/) which are environment-specific. (See stack overflow for [how to handle azure](https://stackoverflow.com/questions/76244214/how-to-fix-pygraphviz-program-dot-not-found-in-path-error-in-azure-or-gcp).)
 
-![graph examples](./graph-examples.svg)
+![graph examples](./graph-examples/graph-example-simple.svg)
+![graph examples](./graph-examples/graph-example-common-ancestor-roots.svg)
+![graph examples](./graph-examples/graph-example-common-ancestor-nodes.svg)
 
 ## Old
 This is to answer @joeflack4's questions on https://github.com/jhu-bids/TermHub/pull/611 and will also

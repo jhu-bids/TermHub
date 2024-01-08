@@ -2,7 +2,7 @@
 
 ### Running locally
 
-`cd frontend; npm run start`
+`cd frontend; yarn start`
 
 ### Deployment
 

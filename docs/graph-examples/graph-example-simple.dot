@@ -1,0 +1,11 @@
+digraph G {
+  node [style=filled,color=white];
+  subgraph cluster_simple_component {
+    style=filled;
+    color=lightblue;
+    s1r [label="Root"];
+    { node [label="Node"]; s1n1, s1n2, s1n3};
+    s1r -> {s1n1, s1n2, s1n3};
+    label = "Simple component";
+  }
+}
