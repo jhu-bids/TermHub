@@ -1,0 +1,90 @@
+digraph G {
+  concentrate=true; // doesn't seem to do anything
+  // graph [nodesep=1, ranksep=2];
+  node [style=filled,color=white];
+  // node [fixed_size=true,width=0.5];
+
+  subgraph cluster_simple_component {
+    style=filled;
+    color=lightblue;
+    s1r [label="Root"];
+    { node [label="Node"]; s1n1, s1n2, s1n3};
+    s1r -> {s1n1, s1n2, s1n3};
+    label = "Simple component";
+  }
+
+  invisible_node_1 [style=invis];
+  s1n2 -> invisible_node_1 [style=invis];
+  invisible_node_1 -> ca [style=invis];
+
+  subgraph cluster_common_ancestor_roots {
+    rank=same;
+    label = "Common ancestor of roots";
+    style=filled;
+    color=lightblue;
+    s2r [label="Root"];
+    s3r [label="Root"];
+    { node [label="Node"]; s2n1, s2n2, s2n3, s3n1, s3n2, s3n3};
+    ca [label="Common ancestor"];
+    ca -> {s2r, s3r};
+
+    s2r -> {s2n1, s2n2, s2n3};
+    s3r -> {s3n1, s3n2, s3n3};
+  }
+
+  subgraph cluster_in2 {
+    style=invis;
+    rank=same;
+    invisible_node_2 [style=invis];
+  }
+  {s2n3, s3n1} -> invisible_node_2 [style=invis];
+  invisible_node_2 -> car_ca [style=invis];
+
+  subgraph cluster_common_ancestor_nodes {
+    rank=same;
+    label = "Common ancestor of non-root nodes";
+    style=filled;
+    color=lightblue;
+    car_s2r [label="Root"];
+    car_s3r [label="Root"];
+    { node [label="Node"]; car_s2n1, car_s2n2, car_s2n3, car_s3n1, car_s3n2, car_s3n3};
+    car_ca [label="Common ancestor"];
+    car_ca -> {car_s2n3, car_s3n3};
+    car_s2r -> {car_s2n1, car_s2n2, car_s2n3};
+    car_s3r -> {car_s3n1, car_s3n2, car_s3n3};
+  }
+  subgraph cluster_3 {
+    style=filled;
+    color=lightgrey;
+    node [style=filled,color=white];
+    r0 -> {b1, b2, b3, b4};
+    r1 -> {b4, b5};
+    label = "Two-root component";
+  }
+  subgraph cluster_0 {
+    style=filled;
+    color=lightblue;
+    node [style=filled,color=white];
+    c0-> {c1, c2, c3};
+    c2 -> c3;
+    {c1, c2} -> c4;
+    label = "Component #1";
+  }
+  // a3 [color=purple];
+  /*
+  subgraph cluster_1 {
+    node [style=filled];
+    z0 -> z1 -> z2 -> z3;
+    label = "process #2";
+    color=blue
+  }
+  start -> z0;
+  a1 -> z3;
+  z2 -> a3;
+  a3 -> end;
+  z3 -> end;
+
+  start [shape=Mdiamond];
+  end [shape=Msquare];
+  */
+}
