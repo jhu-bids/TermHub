@@ -50,7 +50,8 @@ DDL which is used to create any of the tables/views that it is derived from.
 #### Troubleshooting specific issues
 ##### `ERROR: cannot execute <COMMAND> in a read-only transaction`
 Or, you may see: `WARNING:  transaction read-write mode must be set before any query`
-This seems to result from situations where we're running commands after the database recently ran out of memory. It seems like it goes into read only mode at that point and these commands need to be ran to reset it.
+This seems to result from situations where we're running commands after the database recently ran out of memory. It 
+seems like it goes into read only mode at that point and these commands need to be ran to reset it.
 ```sql
 BEGIN;
 SET transaction read write;
@@ -63,7 +64,8 @@ COMMIT;
 If you see seomthing like this...
 ```
 psql -d $psql_conn
-psql: error: connection to server at "termhub.postgres.database.azure.com" (20.62.151.251), port 5432 failed: FATAL:  remaining connection slots are reserved for non-replication superuser connections
+psql: error: connection to server at "termhub.postgres.database.azure.com" (20.62.151.251), port 5432 failed: FATAL:  
+remaining connection slots are reserved for non-replication superuser connections
 ```
 ...This can be resolved by opening up the [DB management page in Azure](https://portal.azure.com/#@live.johnshopkins.edu/resource/subscriptions/fe24df19-d251-4821-9a6f-f037c93d7e47/resourceGroups/JH-POSTGRES-RG/providers/Microsoft.DBforPostgreSQL/flexibleServers/termhub/overview) and clicking the "Restart" button near the top. 
 
@@ -200,3 +202,11 @@ So if the version was 1.10.2 before, it would be 1.11.0 after.
 #### How to do a version update
 1. Update the version in `frontend/src/env.js`
 2. Tag the version in GitHub: `git tag VERSION; git push --tags`
+
+### Periodic maintenance
+#### Updating auth token
+The environmental variable `PALANTIR_ENCLAVE_AUTHENTICATION_BEARER_TOKEN` needs to be updated every 6 months. To do so,
+Maya Choudhury or Mariam Deacy. They will provide one. This then needs to get updated for all devs in their `env/.env`,
+and then that file should be copied and pasted into the `ENV_FILE` variable on GitHub. To do this, go to the [GitHub 
+actions secrets page](https://github.com/jhu-bids/TermHub/settings/secrets/actions), scroll down to "repository secrets"
+, edit `ENV_FILE`, paste the contents there, and save.
