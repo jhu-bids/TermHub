@@ -213,12 +213,15 @@ def connect_nodes(G, nodes):
         VERBOSE and timer('done')
         return sg
 
+    # set_size = 2
+    # while True:
+    #     found_ancestors = False
+    #     set_size += 1
     # maybe will go faster from smaller to larger. With 50 nodes, it's taking -- probably hours
     # combo_sizes = list(range(len(nodes_to_connect), 1, -1))
     combo_sizes = list(range(2, len(nodes_to_connect)))
     for i, set_size in enumerate(combo_sizes):
-        found_ancestors = False # if we don't find common ancestors for all 3-node combos
-        #   we don't need to bother with 4-node combos
+        found_ancestors = False
         VERBOSE and timer(f'getting common ancestor for {set_size} node combos')
         for j, combo in enumerate(combinations(nodes_to_connect, set_size)):
             common_ancestor, path_nodes = get_best_common_ancestor(G, combo)
@@ -238,6 +241,8 @@ def connect_nodes(G, nodes):
             # try http://127.0.0.1:3000/cset-comparison?codeset_ids=1000062292&hierarchySettings=%7B%22collapsePaths%22%3A%7B%224180628%2F134057%2F321588%2F4239975%2F4124706%22%3Atrue%2C%224180628%2F440142%2F321588%2F4239975%2F4124706%22%3Atrue%2C%224023995%2F134057%2F321588%2F4239975%2F4124706%22%3Atrue%2C%224023995%2F4103183%2F321588%2F4239975%2F4124706%22%3Atrue%2C%2243531057%2F43531056%2F4043346%2F440142%2F321588%2F4239975%2F4124706%22%3Atrue%2C%2243531057%2F43531056%2F4043346%2F440142%2F321588%2F4239975%2F321319%22%3Atrue%2C%2243531057%2F4185503%2F4043346%2F440142%2F321588%2F4239975%2F4124706%22%3Atrue%2C%2243531057%2F4185503%2F4043346%2F440142%2F321588%2F4239975%2F321319%22%3Atrue%2C%224180628%2F134057%2F321588%2F4239975%2F321319%22%3Atrue%2C%224180628%2F440142%2F321588%2F4239975%2F321319%22%3Atrue%2C%224023995%2F134057%2F321588%2F4239975%2F321319%22%3Atrue%2C%224023995%2F4103183%2F321588%2F4239975%2F321319%22%3Atrue%7D%2C%22hideZeroCounts%22%3Atrue%7D
             #   to see how it's doing now
         if not found_ancestors:
+            # if we don't find common ancestors for all 3-node combos
+            #   we don't need to bother with 4-node combos
             break
 
     all_nodes = nodes.union(additional_nodes)
