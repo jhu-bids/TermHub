@@ -622,6 +622,11 @@ def n3c_recommended_report(as_json=False) -> Union[List[str], Dict]:
 
 
 @router.get("/n3c-comparison-rpt")
+def _n3c_comparison_rpt():
+    return n3c_comparison_rpt()
+
+
+# @cache
 def n3c_comparison_rpt():
     with get_db_connection() as con:
         rpt = sql_query_single_col(con, "SELECT rpt FROM public.codeset_comparison WHERE rpt IS NOT NULL")
@@ -708,8 +713,8 @@ def next_api_call_group_id() -> int:
         return id
 
 
-from backend.utils import pdump
 if __name__ == '__main__':
+    from backend.utils import pdump
     # n3c_comparison_rpt()
     # generate_n3c_comparison_rpt()
     pass
