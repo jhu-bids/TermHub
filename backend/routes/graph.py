@@ -4,7 +4,7 @@ import os, warnings
 # import io
 from pathlib import Path
 
-from typing import Iterable, List, Union, Dict, Optional
+from typing import Iterable, List, Set, Union, Dict, Optional
 from collections import defaultdict
 from itertools import combinations
 
@@ -21,6 +21,7 @@ from fastapi import APIRouter, Query, Request
 import networkx as nx
 import pickle
 
+from networkx import DiGraph
 from sqlalchemy import RowMapping
 from sqlalchemy.sql import text
 
@@ -118,12 +119,11 @@ def get_connected_subgraph(
     codeset_ids: List[int],
     extra_concept_ids: Union[List[int], None] = [],
     hide_vocabs: Union[List[str], None] = []
-) -> nx.Graph:
-
+) -> (DiGraph, Set[int], Set[int], Set[int], Dict[str, Set[int]]):
     _csmi = get_cset_members_items(codeset_ids=codeset_ids)
     # concepts = get_concepts(extra_concept_ids)
     # give hidden rxnorm ext count
-    hidden = {}
+    hidden: Dict[str, Set[int]] = {}
     csmi = set()
     for vocab in hide_vocabs:
         h = set([c['concept_id'] for c in _csmi if c['vocabulary_id'] == vocab])
