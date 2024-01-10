@@ -2,6 +2,16 @@ import { defineConfig } from 'vite'
 import react from '@vitejs/plugin-react'
 import viteTsconfigPaths from 'vite-tsconfig-paths'
 
+// import {execSync} from 'child_process';
+// function getCommitHash() {
+//   try {
+//     return execSync('git rev-parse --short HEAD').toString().trim();
+//   } catch (e) {
+//     console.warn('Failed to get commit hash:', e.message);
+//     return 'unknown';
+//   }
+// }
+
 export default defineConfig({
     // depending on your application, base can also be "/"
     base: '',
@@ -12,4 +22,7 @@ export default defineConfig({
         // this sets a default port to 3000
         port: 3000,
     },
+    // define: {
+    //     'process.env.COMMIT_HASH': JSON.stringify(getCommitHash())
+    // }
 })
