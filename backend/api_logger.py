@@ -70,7 +70,9 @@ class Api_logger:
             insert_from_dict(con, 'public.api_runs', rpt, skip_if_already_exists=False)
 
 
-    async def finish(self, rows: List = []):
+    async def finish(self, rows: int = 0):
+        """Finsih report
+        todo: rename 'rows' to 'n_rows'"""
         if rows:
             self.rpt['result'] = f'{rows} rows'
         else:
@@ -80,6 +82,7 @@ class Api_logger:
 
 
     async def complete_log_record(self):
+        """Complete log record"""
         end_time = time.time()
         process_seconds = end_time - self.start_time
         self.rpt['process_seconds'] = process_seconds
@@ -110,18 +113,18 @@ async def get_ip_from_request(request: Request) -> str:
     return ip
 
 async def client_location(ip: str) -> str:
-
+    """Get user geolocation"""
     with get_db_connection() as con:
         ip_info = sql_query_single_col(con, 'SELECT info FROM public.ip_info WHERE ip = :ip', {'ip': ip})
-        if ip_info:
-            if len(ip_info) > 1:
-                warnings.warn(f"more than one ip_info for {ip}; just using first)")
+    if ip_info:
+        if len(ip_info) > 1:
+            warnings.warn(f"more than one ip_info for {ip}; just using first)")
 
-            ip_info = ip_info[0]
-            city = ip_info.get('city', 'no city')
-            region = ip_info.get('region_name', 'no region_name')
-            location = f"{ip}: {city}, {region}"
-            return location
+        ip_info = ip_info[0]
+        city = ip_info.get('city', 'no city')
+        region = ip_info.get('region_name', 'no region_name')
+        location = f"{ip}: {city}, {region}"
+        return location
 
     # for now we're going to just return the ip, free subscription ran out and need to update key
     # return ip

@@ -3,7 +3,7 @@
 todo's
   1. Some functions could be improved using `sql_query()` `params` arg to be less prone to sql injection.
   2. Making 'Connection' optional: Can write a wrapper function and decorate all functions that need, where all it does
-  is `con = con if con else get_db_connection()` and then pass that to inner function.
+  is `conn = con if con else get_db_connection()`, run the inner function, and then close conn if not con.
 """
 import json
 import os
@@ -514,7 +514,7 @@ def run_sql(con: Connection, command: str, params: Dict = {}) -> Any:
 
 def show_tables(con: Connection = None, print_dump=True):
     """Show tables"""
-    con = con if con else get_db_connection()
+    conn = con if con else get_db_connection()
     query = """
         SELECT n.nspname as "Schema", c.relname as "Name",
               CASE c.relkind WHEN 'r' THEN 'table' WHEN 'v' THEN 'view' WHEN 'm' THEN 'materialized view' WHEN 'i' THEN 'index' WHEN 'S' THEN 'sequence' WHEN 's' THEN 'special' WHEN 't' THEN 'TOAST table' WHEN 'f' THEN 'foreign table' WHEN 'p' THEN 'partitioned table' WHEN 'I' THEN 'partitioned index' END as "Type",
@@ -529,11 +529,13 @@ def show_tables(con: Connection = None, print_dump=True):
           AND pg_catalog.pg_table_is_visible(c.oid)
         ORDER BY 1,2;
     """
-    res = sql_query(con, query, return_with_keys=False)
+    res = sql_query(conn, query, return_with_keys=False)
     if print_dump:
         print(pd.DataFrame(res))
         # print('\n'.join([', '.join(r) for r in res])) ugly
         # print(pdump(res)) doesn't work
+    if not con:
+        conn.close()
     return res
 
 
@@ -714,3 +716,20 @@ def reset_temp_refresh_tables(schema: str = SCHEMA):
                 run_sql(con, f'DROP TABLE {schema}.{table}_new;')
             else:
                 run_sql(con, f'ALTER TABLE {schema}.{table}_new RENAME TO {table};')
+
+
+def get_idle_connections(interval: str = '1 week'):
+    """Get information about any currently idle connections
+
+    :param: interval: See https://www.postgresql.org/docs/current/functions-datetime.html
+
+    todo: consider backend_start vs query_start; backend probably better
+    backend_start: This field indicates the timestamp when the database backend process for a particular connection was
+    started. It provides information about when the connection to the database was established.
+    query_start: This field represents the timestamp when the currently executing query for a connection started. If a
+    connection is idle, this field will be null. When a query is actively being processed, this field reflects the start
+    time of that query."""
+    query = f"SELECT * FROM pg_stat_activity WHERE state = 'idle' AND backend_start > now() - '1 week'::interval;"
+    with get_db_connection(schema='') as con:
+        result = [dict(x) for x in sql_query(con, query)]
+    return result

@@ -14,7 +14,8 @@ from sqlalchemy.engine.base import Connection
 TEST_DIR = os.path.dirname(__file__)
 PROJECT_ROOT = Path(TEST_DIR).parent.parent.parent
 sys.path.insert(0, str(PROJECT_ROOT))
-from backend.db.utils import get_db_connection, insert_fetch_statuses, run_sql, select_failed_fetches, sql_query
+from backend.db.utils import get_db_connection, get_idle_connections, insert_fetch_statuses, run_sql, \
+    select_failed_fetches, sql_query
 
 
 class FetchAuditTestRunner(unittest.TestCase):
@@ -58,6 +59,17 @@ class TestBackendDbUtilsFetchAudit(FetchAuditTestRunner):
         results = select_failed_fetches()
         self.assertEqual(len(results), self.n1 + len(self.mock_data))
 
+
+class TestIdleConnections(unittest.TestCase):
+
+    def test_idle_connections(self, threshold=10, interval='1 week'):
+        """Test idle_connections()
+
+        :param: threshold: Threshold n idle connections considered acceptable to have accumulated in period (weekly).
+        """
+        idle_cnx = get_idle_connections(interval)
+        msg = f'{len(idle_cnx)} exceeds the theshold of {threshold} for interval {interval}.'
+        self.assertLessEqual(len(idle_cnx), threshold, msg=msg)
 
 # Uncomment this and run this file and run directly to run all tests
 # if __name__ == '__main__':

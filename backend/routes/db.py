@@ -8,8 +8,9 @@ from typing import Dict, List, Union, Set, Optional
 from functools import cache
 import urllib.parse
 
-from sqlalchemy import Connection
+from sqlalchemy import Connection, Row
 from sqlalchemy.engine import RowMapping
+from starlette.responses import Response
 
 from backend.api_logger import Api_logger
 from backend.utils import get_timer, return_err_with_trace
@@ -52,15 +53,17 @@ router = APIRouter(
 #       joined OMOPConceptSet in the all_csets ddl to get `rid`
 def get_csets(codeset_ids: List[int], con: Connection = None) -> List[Dict]:
     """Get information about concept sets the user has selected"""
-    con = con if con else get_db_connection()
+    conn = con if con else get_db_connection()
     rows: List = sql_query(
-        con, """
+        conn, """
           SELECT *
           FROM all_csets
           WHERE codeset_id = ANY(:codeset_ids);""",
         {'codeset_ids': codeset_ids})
     # {'codeset_ids': ','.join([str(id) for id in requested_codeset_ids])})
     row_dicts = [dict(x) for x in rows]
+    if not con:
+        conn.close()
     for row in row_dicts:
         row['researchers'] = get_row_researcher_ids_dict(row)
 
@@ -104,7 +107,7 @@ def get_related_csetsOBSOLETE(  # not calling this from front end anymore. can r
     include_atlas_json=False, con: Connection = None, verbose=True
 ) -> List[Dict]:
     """Get information about concept sets related to those selected by user"""
-    con = con if con else get_db_connection()
+    conn = con if con else get_db_connection()
     timer = get_timer('   get_related_csets')
     verbose and timer('get_concept_set_member_ids')
     if codeset_ids and not selected_concept_ids:
@@ -115,7 +118,10 @@ def get_related_csetsOBSOLETE(  # not calling this from front end anymore. can r
     FROM concept_set_members
     WHERE concept_id {sql_in(selected_concept_ids)}
     """
-    related_codeset_ids = sql_query_single_col(con, query, {'concept_ids': selected_concept_ids}, )
+    related_codeset_ids = sql_query_single_col(conn, query, {'concept_ids': selected_concept_ids}, )
+    if not con:
+        conn.close()
+
     # if any selected codesets don't have concepts, they will be missing from query above
     # add them back in:
     related_codeset_ids = list(set.union(set(codeset_ids), set(related_codeset_ids)))
@@ -158,19 +164,18 @@ def get_cset_members_items(
     if not columns:
         columns = ['*']
         # columns = ['codeset_id', 'concept_id']
-
+    query = f"""
+        SELECT DISTINCT {', '.join(columns)}
+        FROM cset_members_items
+        WHERE codeset_id {sql_in(codeset_ids)}
+    """
     with get_db_connection() as con:
-        query = f"""
-            SELECT DISTINCT {', '.join(columns)}
-            FROM cset_members_items
-            WHERE codeset_id {sql_in(codeset_ids)}
-        """
+        # TODO: these 3 following lines don't do anything; get overridden by the next query. which query is correct?
         rows: List = sql_query(con, query, debug=False, return_with_keys=True)
         if column:  # with single column, don't return List[Dict] but just List(<column>)
             rows: List[int] = [r[column] for r in rows]
-
         rows: List = sql_query(con, query)
-        return rows
+    return rows
 
 
 # TODO: don't keep both these routes; redundant
@@ -207,7 +212,7 @@ def get_concept_set_member_ids(
     con: Connection = None
 ) -> Union[List[int], List]:
     """Get concept set members"""
-    con = con if con else get_db_connection()
+    conn = con if con else get_db_connection()
     if column:
         columns = [column]
     if not columns:
@@ -219,7 +224,9 @@ def get_concept_set_member_ids(
         FROM concept_set_members csm
         WHERE csm.codeset_id {sql_in(codeset_ids)}
     """
-    res: List = sql_query(con, query, debug=False)
+    res: List = sql_query(conn, query, debug=False)
+    if not con:
+        conn.close()
     if column:  # with single column, don't return List[Dict] but just List(<column>)
         res: List[int] = [r[column] for r in res]
     return res
@@ -227,21 +234,24 @@ def get_concept_set_member_ids(
 
 def get_concept_relationships(cids: List[int], reltypes: List[str] = ['Subsumes'], con: Connection = None) -> List:
     """Get concept_relationship rows for cids """
-    con = con if con else get_db_connection()
-    return sql_query(
-        con, f"""
+    conn = con if con else get_db_connection()
+    result = sql_query(
+        conn, f"""
         SELECT DISTINCT *
         FROM concept_relationship_plus
         WHERE (concept_id_1 {sql_in(cids)} OR concept_id_2 {sql_in(cids)})
           AND relationship_id {sql_in(reltypes, quote_items=True)}
         """, debug=True)
+    if not con:
+        conn.close()
+    return result
 
 
 def get_all_csets(con: Connection = None) -> Union[Dict, List]:
     """Get all concept sets"""
-    con = con if con else get_db_connection()
+    conn = con if con else get_db_connection()
     results = sql_query(
-        con, f"""
+        conn, f"""
         SELECT codeset_id,
               --concept_set_version_title,
               alias,
@@ -254,6 +264,8 @@ def get_all_csets(con: Connection = None) -> Union[Dict, List]:
     # can't check for dups with json object in the results
     # if len(set(results)) != len(results):
     #     raise "Duplicate records in all_csets. Please alert app admin: sigfried@sigfried.org"
+    if not con:
+        conn.close()
     return results
     # smaller = DS2.all_csets[['codeset_id', 'concept_set_version_title', 'concepts']]
     # return smaller.to_dict(orient='records')
@@ -263,26 +275,27 @@ def get_all_csets(con: Connection = None) -> Union[Dict, List]:
 @router.get('/last-refreshed')
 def last_refreshed_DB():
     """Check when database was last refreshed."""
+    q = """
+          SELECT value
+          FROM public.manage
+          WHERE key = 'last_refresh_success'
+        """
     with get_db_connection() as con:
-        q = """
-              SELECT value
-              FROM public.manage
-              WHERE key = 'last_refresh_success'
-            """
         results = sql_query_single_col(con, q)
-        return results[0]
+    return results[0]
 
 @cache
 @router.get('/omop-id-from-concept-name/{name}')
 def omop_id_from_concept_name(name):
+    """Get OMOP ID for given concept name"""
+    q = """
+      SELECT *
+      FROM concept
+      WHERE concept_name = (:name)
+    """
     with get_db_connection() as con:
-        q = """
-          SELECT *
-          FROM concept
-          WHERE concept_name = (:name)
-        """
         results = sql_query(con, q, {'name': name})
-        return results
+    return results
 
 @router.get("/concepts")
 @return_err_with_trace
@@ -314,49 +327,54 @@ async def get_concept_ids_by_codeset_id_post(request: Request, codeset_ids: Unio
 
 @router.get("/concept-ids-by-codeset-id")
 @return_err_with_trace
-async def get_concept_ids_by_codeset_id(request: Request, codeset_ids: Union[List[str], None] = Query(...)) -> Dict:
+async def get_concept_ids_by_codeset_id(
+    request: Request, codeset_ids: Union[List[str], None] = Query(...)
+) -> Dict[str, str]:
+    """Get concept IDs by codeset id"""
+    q = f"""
+          SELECT csids.codeset_id, COALESCE(cibc.concept_ids, ARRAY[]::integer[]) AS concept_ids
+          FROM (VALUES{",".join([f"({csid})" for csid in codeset_ids])}) AS csids(codeset_id)
+          LEFT JOIN concept_ids_by_codeset_id cibc ON csids.codeset_id = cibc.codeset_id"""
     if not codeset_ids:
-        return [[]]
+        return {}
 
     rpt = Api_logger()
     await rpt.start_rpt(request, params={'codeset_ids': codeset_ids})
 
-    with get_db_connection() as con:
-        try:
-            q = f"""
-                  SELECT csids.codeset_id, COALESCE(cibc.concept_ids, ARRAY[]::integer[]) AS concept_ids
-                  FROM (VALUES{",".join([f"({csid})" for csid in codeset_ids])}) AS csids(codeset_id)
-                  LEFT JOIN concept_ids_by_codeset_id cibc ON csids.codeset_id = cibc.codeset_id"""
+    try:
+        with get_db_connection() as con:
             rows: List = sql_query(con, q)
-            await rpt.finish(rows=len(rows))
-        except Exception as e:
-            await rpt.log_error(e)
-            raise e
+        await rpt.finish(rows=len(rows))
+    except Exception as e:
+        await rpt.log_error(e)
+        raise e
     return {r['codeset_id']: r['concept_ids'] for r in rows}
 
 
 @router.post("/codeset-ids-by-concept-id")
 @return_err_with_trace
 async def get_codeset_ids_by_concept_id_post(request: Request, concept_ids: Union[List[int], None] = None) -> Dict:
+    """Get Codeset IDs by concept ID"""
+    q = f"""
+          SELECT *
+          FROM codeset_ids_by_concept_id
+          WHERE concept_id {sql_in(concept_ids)};"""
     rpt = Api_logger()
     await rpt.start_rpt(request, params={'concept_ids': concept_ids})
-    with get_db_connection() as con:
-        try:
-            q = f"""
-                  SELECT *
-                  FROM codeset_ids_by_concept_id
-                  WHERE concept_id {sql_in(concept_ids)};"""
+    try:
+        with get_db_connection() as con:
             rows: List = sql_query(con, q)
-            await rpt.finish(rows=len(rows))
-        except Exception as e:
-            await rpt.log_error(e)
-            raise e
+        await rpt.finish(rows=len(rows))
+    except Exception as e:
+        await rpt.log_error(e)
+        raise e
 
     return {r['concept_id']: r['codeset_ids']  for r in rows}
 
 
 @router.get("/codeset-ids-by-concept-id")
 async def get_codeset_ids_by_concept_id(request: Request, concept_ids: Union[List[str], None] = Query(...)) -> Dict:
+    """Get Codeset IDs by concept ID"""
     return await get_codeset_ids_by_concept_id_post(request, concept_ids)
 
 
@@ -402,7 +420,8 @@ def get_researchers(id: List[str] = Query(...), fields: Union[List[str], None] =
         FROM researcher
         WHERE "multipassId" = ANY(:id)
     """
-    res: List[RowMapping] = sql_query(get_db_connection(), query, {'id': list(id)}, return_with_keys=True)
+    with get_db_connection() as con:
+        res: List[RowMapping] = sql_query(con, query, {'id': list(id)}, return_with_keys=True)
     res2 = {r['multipassId']: dict(r) for r in res}
     for _id in id:
         if _id not in res2:
@@ -497,18 +516,6 @@ def _atlas_json_from_defs(defStr: List[Dict]) -> Dict:
     return atlas_json_from_defs(defs)
 
 
-@router.get('/omop-id-from-concept-name/{name}')
-def omop_id_from_concept_name(name):
-    with get_db_connection() as con:
-        q = """
-          SELECT *
-          FROM concept
-          WHERE concept_name = (:name)
-        """
-        results = sql_query(con, q, {'name': name})
-        return results
-
-
 # Utility functions ----------------------------------------------------------------------------------------------------
 @cache
 def parse_codeset_ids(qstring) -> List[int]:
@@ -578,12 +585,13 @@ def _whoami():
 
 @router.get("/get-n3c-recommended-codeset_ids")
 def get_n3c_recommended_codeset_ids() -> Dict[int, Union[Dict, None]]:
+    """Get N3C recommended codeset IDs"""
     codeset_ids = get_n3c_recommended_csets()
     return codeset_ids
 
 @router.get("/n3c-recommended-report")
-def n3c_recommended_report(as_json=False) -> Union[List[str], Dict]:
-
+def n3c_recommended_report(as_json=False) -> Union[List[Row], Response]:
+    """N3C recommended report"""
     # just for this one function
     from fastapi.responses import StreamingResponse
     import io
@@ -608,8 +616,9 @@ def n3c_recommended_report(as_json=False) -> Union[List[str], Dict]:
             GROUP BY 1, 2, 3, 4, 5, 6, 7, 8, 9
             ORDER BY 1, 6, 5, 4
     """
-    rows = sql_query(get_db_connection(), q)
-    if (as_json):
+    with get_db_connection() as con:
+        rows = sql_query(con, q)
+    if as_json:
         return rows
     else:
         df = pd.DataFrame(rows, columns=['is_most_recent_version', 'codeset_id',
@@ -690,6 +699,7 @@ def get_comparison_rpt(con, codeset_id_1: int, codeset_id_2: int) -> Dict[str, U
 
 
 def generate_n3c_comparison_rpt():
+    """Generate N3C comparison report"""
     with get_db_connection() as con:
         pairs = sql_query(
             con,
@@ -724,9 +734,10 @@ def check_token() -> int:
 
 @router.get("/next-api-call-group-id")
 def next_api_call_group_id() -> int:
-    with get_db_connection():
-        id = sql_query_single_col(get_db_connection(), "SELECT nextval('api_call_group_id_seq')")[0]
-        return id
+    """Get next API call group ID"""
+    with get_db_connection() as con:
+        id = sql_query_single_col(con, "SELECT nextval('api_call_group_id_seq')")[0]
+    return id
 
 
 if __name__ == '__main__':
