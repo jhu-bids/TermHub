@@ -52,6 +52,15 @@ WITH ac AS (SELECT DISTINCT cs.codeset_id,
                 JOIN {{schema}}concept_set_container csc ON cs.concept_set_name = csc.concept_set_name
                 LEFT JOIN {{schema}}omopconceptsetcontainer ocsc ON csc.concept_set_id = ocsc."conceptSetId"
                 LEFT JOIN {{schema}}concept_set_counts_clamped cscc ON cs.codeset_id = cscc.codeset_id
+/*
+ want to add term usage record counts, tried this code:
+     COALESCE(cwc.total_cnt, 0)                     AS total_cnt_from_term_usage
+     ...
+    LEFT JOIN concept_set_members csm ON cs.codeset_id = csm.codeset_id
+    LEFT JOIN concepts_with_counts cwc ON csm.concept_id = cwc.concept_id
+ but it makes things way too slow. should try pre-generating a table with
+     with just codeset_id and total_term_usage_record_cnt, and join that
+ */
             )
 SELECT ac.*,
        cscnt.counts,

@@ -628,6 +628,10 @@ def _n3c_comparison_rpt():
 
 # @cache
 def n3c_comparison_rpt():
+    """
+    display comparison data compiled in generate_n3c_comparison_rpt()
+        and get_comparison_rpt()
+    """
     with get_db_connection() as con:
         rpt = sql_query_single_col(con, "SELECT rpt FROM public.codeset_comparison WHERE rpt IS NOT NULL")
     return rpt
@@ -665,8 +669,14 @@ def get_comparison_rpt(con, codeset_id_1: int, codeset_id_2: int) -> Dict[str, U
 
     rpt = {
         'name': cset_1['concept_set_name'],
-        'cset_1': f"{cset_1['codeset_id']} v{cset_1['version']}, vocab {cset_1['omop_vocab_version']}; {cset_1['distinct_person_cnt']} pts, {cset_1['concepts']} concepts{flag_cnts_1}",
-        'cset_2': f"{cset_2['codeset_id']} v{cset_2['version']}, vocab {cset_2['omop_vocab_version']}; {cset_2['distinct_person_cnt']} pts, {cset_2['concepts']} concepts{flag_cnts_2}",
+        'cset_1': f"{cset_1['codeset_id']} v{cset_1['version']}, "
+                  f"vocab {cset_1['omop_vocab_version']}; "
+                  f"{cset_1['distinct_person_cnt']} pts, "
+                  f"{cset_1['concepts']} concepts{flag_cnts_1}",
+        'cset_2': f"{cset_2['codeset_id']} v{cset_2['version']}, "
+                  f"vocab {cset_2['omop_vocab_version']}; "
+                  f"{cset_2['distinct_person_cnt']} pts, "
+                  f"{cset_2['concepts']} concepts{flag_cnts_2}",
         'author': cset_1['codeset_creator'],
         'cset_1_codeset_id': codeset_id_1,
         # 'cset_1_version': cset_1['version'],
