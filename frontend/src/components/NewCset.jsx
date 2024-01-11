@@ -341,7 +341,7 @@ export function Legend({editing=false}) {
     "Concept is in the definition but not the expansion": {
       content: fakeCell({editing: false, flags: "i"}),
     },
-    "Concept is in the expansion but not the defintion": {
+    "Concept is in the expansion but not the definition": {
       content: fakeCell({editing: false, flags: "c"}),
     },
     "Concept is in the definition and the expansion": {
@@ -367,7 +367,7 @@ export function Legend({editing=false}) {
       // "Expression item but not member (only shows flags set to true)": { item: true, content: iconset(['includeDescendants', 'includeMapped', 'isExcluded']) },
       // "Both member and expression item": { csm: true, item: true, content: iconset(['includeDescendants', 'includeMapped', 'isExcluded']) },
       "Concept set being edited": {},
-      "Click D, M, X to toggle definiton flags": {},
+      "Click D, M, X to toggle definition flags": {},
       "Add concept to concept set definition": {
         content: fakeCell({editing: true, flags: ""}),
       },

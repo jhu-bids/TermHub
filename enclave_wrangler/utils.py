@@ -123,7 +123,7 @@ def _datetime_palantir_format() -> str:
     return datetime.now(timezone.utc).strftime("%Y-%m-%dT%H:%M:%S.%fZ")[:-4] + 'Z'
 
 
-def check_token_ttl(token: str, warning_threshold=60 * 60 * 24 * 14, warn_anyway=False):
+def check_token_ttl(warning_threshold=60 * 60 * 24 * 14, warn_anyway=False, format: str=None):
     """Given an auth token, call the API and check TTL (Time To Live).
 
     :param token: An auth token for the N3C Palantir Foundry data enclave.
@@ -142,6 +142,8 @@ def check_token_ttl(token: str, warning_threshold=60 * 60 * 24 * 14, warn_anyway
         # "f035ae89-85c4-49a8-ab39-48942e8264bf","parameters":{"error":"EXPIRED"}}'
         return 0
     ttl = int(response.text)
+    if format == 'date':
+        return str((datetime.now() + timedelta(seconds=ttl)).date())
     if ttl <= warning_threshold or warn_anyway:
         days = timedelta(seconds=ttl).days
         print('Warning: Token expiring soon. You may want to renew. Days left: ' + str(days) +

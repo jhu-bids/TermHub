@@ -17,7 +17,7 @@ from backend.db.utils import get_db_connection, sql_query, SCHEMA, sql_query_sin
 from backend.db.queries import get_concepts
 from enclave_wrangler.objects_api import get_n3c_recommended_csets, enclave_api_call_caller, \
     get_concept_set_version_expression_items, items_to_atlas_json_format
-from enclave_wrangler.utils import make_objects_request, whoami
+from enclave_wrangler.utils import make_objects_request, whoami, check_token_ttl
 from enclave_wrangler.config import RESEARCHER_COLS
 from enclave_wrangler.models import convert_rows
 # from backend.routes import graph
@@ -705,6 +705,12 @@ def generate_n3c_comparison_rpt():
                           'new_codeset_id': pair[1],
                           'rpt': json.dumps(rpt)})
 
+@router.get("/check-token")
+def check_token() -> int:
+    w = whoami()
+    # name = w.get('username', 'No name')
+    t = check_token_ttl(format='date')
+    return {'whoami': w, 'expires': t}
 
 @router.get("/next-api-call-group-id")
 def next_api_call_group_id() -> int:
