@@ -101,6 +101,7 @@ Many of these steps are specific to the JHU BIDS team, which deploys on JHU's Az
 #### Prerequisite steps
 **Update env**: Every once in a while, will need to update the [ENV_FILE GitHub Secret](https://github.com/jhu-bids/TermHub/settings/secrets/actions/ENV_FILE)
 with a copy/paste of `env/.env`. This is only necessary whenever environmental variables have changed, such as `PALANTIR_ENCLAVE_AUTHENTICATION_BEARER_TOKEN` getting refreshed, which happens every few months. If you're confident that the environment is still up to date, this step can be skipped, but to be safe, it can be done every tie.
+_You can read more about this in the related "Periodic maintenance > Updating auth token" section._
 
 #### Deploying to Dev
 Use the GitHub actions. Click these links for [backend](https://github.com/jhu-bids/TermHub/actions/workflows/backend_dev.yml) and [frontend](https://github.com/jhu-bids/TermHub/actions/workflows/frontend_dev.yml) actions, and then click "Run Workflow".
@@ -133,16 +134,27 @@ If you notice something wrong with a deployment, follow these steps to roll back
 5. It will scroll you to the bottom of the logs page. Scroll to the top, and you should see a step called "Print commit hash & branch for rollbacks & troubleshooting". Click that.
 6. You should now see the commit hash. Copy it.
 7. In your terminal, run `git checkout <commit hash>`. This will checkout the code at the commit hash you copied.
-8. Create a new branch & push it; for example, `git checkout -b rollback; git push -u origin rollback`.
+8. Create a new branch & push it; for example, `git checkout -b ROLLBACK; git push -u origin ROLLBACK`.
 9. Go to the [GitHub actions](https://github.com/jhu-bids/TermHub/actions) page.
 10. From the left sidebar, click the action that corresponds to the broken deployment (e.g. Backend dev, Frontend dev, Backend prod, or Frontend prod).
-11. Click the "Run workflow" button on the right, and in the popup that appears, where it says "Use workflow from", click the dropdown menu and select the branch you just created. Then, click "Run workflow".
+11. Click the "Run workflow" button on the right, and in the popup that appears, where it says "Use workflow from", click the dropdown menu and select the branch you just created (e.g. ROLLBACK). Then, click "Run workflow".
+12. Finally, after the deployment has been successful, you can delete that branch (e.g. `ROLLBACK`) locally and on GitHub.
 
 After the action finishes, your deployment should be rolled back to the last stable deployment.
 
 You will also want to separately figure out what went wrong and fix it separately (i.e. in the `develop` branch), and make a new deployment again when things are stable and ready for a new release.
 
 Note that for the _backend only_ instead of steps 2 - 4, you can also find the commit hash by going to the [deployments](https://github.com/jhu-bids/TermHub/deployments) page.
+
+#### Applying patches to existing deployments
+Sometimes you may want to redeploy an existing deployment with only minor changes. For example, you may have updated 
+the `ENV_FILE` as discussed in the "Periodic maintenance > Updating auth token" section. Or, you may have noticed a 
+small bug and want to deploy the fix on top of the currently deployed commit, rather than deploying further updates 
+from `develop` or `main`.
+What you want to do here is follow basically the same steps as in the "Deployment > Rollbacks" section. If all you did 
+was update `ENV_FILE`, you can follow those steps exactly. If you are mading additional changes, then you would 
+basically modify step (8). Instead of `git checkout -b BRANCH; git push -u origin BRANCH`, you would do 
+`git checkout -b BRANCH`, make your changes and do a new commit, and then `git push -u origin ROLLBACK`.    
 
 #### Troubleshooting
 ##### _Logs_
@@ -210,3 +222,6 @@ Maya Choudhury or Mariam Deacy. They will provide one. This then needs to get up
 and then that file should be copied and pasted into the `ENV_FILE` variable on GitHub. To do this, go to the [GitHub 
 actions secrets page](https://github.com/jhu-bids/TermHub/settings/secrets/actions), scroll down to "repository secrets"
 , edit `ENV_FILE`, paste the contents there, and save.
+Note that after the `ENV_FILE` is up to date, the currently deployed apps will not have access to its new contents. In 
+order to deploy these changes, follow the instructions in "Deployment > Applying patches to existing deployments".
+_You can read more about this in the related "Deployment > Prereqsuisite steps" section._
