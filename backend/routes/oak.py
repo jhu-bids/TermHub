@@ -142,17 +142,17 @@ def snomed_test(term, predicates):
     # timer('  connect to db (query uses name so doesn\'t need term lookup)')
     timer = get_timer('connect to postgres')
     timer('connecting')
+    q = """
+      SELECT *
+      FROM concept_relationship_plus
+      WHERE concept_name_1 = (:term)
+        AND relationship_id = 'Subsumes'
+    """
     with get_db_connection() as con:
         timer('done')
         timer = get_timer('Postgres speed test')
         timer(f'  parents of {term}')
         print()
-        q = """
-          SELECT *
-          FROM concept_relationship_plus
-          WHERE concept_name_1 = (:term)
-            AND relationship_id = 'Subsumes'
-        """
         results = sql_query(con, q, {'term': term})
         for row in results:
             print(f"  * {row['relationship_id']} {row['concept_id_1']} ! {row['concept_name_1']}")
