@@ -31,7 +31,7 @@ from sqlalchemy.sql.elements import TextClause
 from typing import Any, Dict, Tuple, Union, List
 
 from backend.db.config import CORE_CSET_DEPENDENT_TABLES, CORE_CSET_TABLES, \
-        RECURSIVE_DEPENDENT_TABLE_MAP, VIEWS, get_pg_connect_url
+        RECURSIVE_DEPENDENT_TABLE_MAP, get_pg_connect_url # , VIEWS
 from backend.config import CONFIG, DATASETS_PATH, OBJECTS_PATH
 from backend.utils import commify
 from enclave_wrangler.models import pkey
@@ -137,7 +137,7 @@ def refresh_derived_tables(
      entry will appear further down in the list."""
     temp_table_suffix = '_new'
     ddl_modules_queue = derived_tables_queue
-    views = [x for x in VIEWS if x in ddl_modules_queue]
+    # views = [x for x in VIEWS if x in ddl_modules_queue]
 
     # Create new tables/views and backup old ones
     print('Derived tables')
@@ -153,10 +153,12 @@ def refresh_derived_tables(
         run_sql(con, f'ALTER TABLE {schema}.{module}{temp_table_suffix} RENAME TO {module};')
 
     # Delete old tables/views. Because of view dependencies, order & commands are different
-    print(f' - Removing older, temporarily backed up tables/views...')
-    for view in views:
-        ddl_modules_queue.remove(view)
-        run_sql(con, f'DROP VIEW IF EXISTS {schema}.{view}_old;')
+    # print(f' - Removing older, temporarily backed up tables/views...')
+    print(f' - Removing older, temporarily backed up tables...')
+    # for view in views:
+    #     ddl_modules_queue.remove(view)
+    #     run_sql(con, f'DROP VIEW IF EXISTS {schema}.{view}_old;')
+
     for module in ddl_modules_queue:
         run_sql(con, f'DROP TABLE IF EXISTS {schema}.{module}_old;')
     t1 = datetime.now()
