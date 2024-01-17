@@ -244,6 +244,28 @@ textarea {
     100% { transform: rotate(359deg); }
 }
 
+/* for n3c comparison diff tables */
+#n3ccompdiff {
+    font-family: Arial, Helvetica, sans-serif;
+    border-collapse: collapse;
+    /* width: 100%;*/
+}
 
+#n3ccompdiff td, #n3ccompdiff th {
+    border: 1px solid #ddd;
+    padding: 2px 5px 2px 5px;
+}
+
+#n3ccompdiff tr:nth-child(even){background-color: #f2f2f2;}
+
+#n3ccompdiff tr:hover {background-color: #ddd;}
+
+#n3ccompdiff th {
+    padding-top: 12px;
+    padding-bottom: 12px;
+    text-align: left;
+    background-color: #04AA6D;
+    color: white;
+}
 
 

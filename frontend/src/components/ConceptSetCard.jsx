@@ -131,6 +131,8 @@ export function ConceptSetCard(props) {
         ? "~ " + cset.distinct_person_cnt.toLocaleString() : '';
     display_props["Record count"] = typeof(cset.total_cnt) === 'number'
         ? "~ " + cset.total_cnt.toLocaleString() : '';
+    display_props["Record count from term usage"] = typeof(cset.total_cnt_from_term_usage) === 'number'
+        ? "~ " + cset.total_cnt_from_term_usage.toLocaleString() : '';
 
     if (cset.is_most_recent_version) {
       tags.push("Most recent version");

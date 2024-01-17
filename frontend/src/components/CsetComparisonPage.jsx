@@ -697,6 +697,13 @@ function colConfig(props) {
       style: { justifyContent: "center" },
     },
     {
+      name: "Std",
+      selector: (row) => row.standard_concept,
+      sortable: !nested,
+      width: 30,
+      style: { justifyContent: "center" },
+    },
+    {
       name: "Concept ID",
       selector: (row) => row.concept_id < 0 ? '' : row.concept_id,
       sortable: !nested,

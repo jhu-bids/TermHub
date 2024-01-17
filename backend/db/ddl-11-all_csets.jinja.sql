@@ -1,6 +1,15 @@
 -- Table: all_csets ----------------------------------------------------------------------------------------------------
 DROP TABLE IF EXISTS {{schema}}all_csets{{optional_suffix}} CASCADE;
 
+CREATE TABLE {{schema}}cset_term_usage_rec_counts{{optional_suffix}} AS
+    SELECT csm.codeset_id, SUM(cwc.total_cnt) AS total_cnt
+    FROM {{schema}}concept_set_members csm
+    JOIN {{schema}}concepts_with_counts cwc ON csm.concept_id = cwc.concept_id
+    WHERE cwc.total_cnt > 0
+    GROUP BY csm.codeset_id;
+
+CREATE INDEX ctu_idx1{{optional_index_suffix}} ON {{schema}}cset_term_usage_rec_counts{{optional_suffix}}(codeset_id);
+
 CREATE TABLE {{schema}}all_csets{{optional_suffix}} AS
 -- table instead of view for performance (no materialized views in mySQL)
 -- TODO: but now we're on postgres should it be a materialized view?
@@ -45,13 +54,15 @@ WITH ac AS (SELECT DISTINCT cs.codeset_id,
                             -- COALESCE(members.concepts, 0) AS members,
                             -- COALESCE(items.concepts, 0) AS items,
                             COALESCE(cscc.approx_distinct_person_count, 0) AS distinct_person_cnt,
-                            COALESCE(cscc.approx_total_record_count, 0)    AS total_cnt
+                            COALESCE(cscc.approx_total_record_count, 0)    AS total_cnt,
+                            COALESCE(ctu.total_cnt, 0)                     AS total_cnt_from_term_usage
             FROM {{schema}}code_sets cs
                      LEFT JOIN {{schema}}OMOPConceptSet ocs
             ON cs.codeset_id = ocs."codesetId" -- need quotes because of caps in colname
                 JOIN {{schema}}concept_set_container csc ON cs.concept_set_name = csc.concept_set_name
                 LEFT JOIN {{schema}}omopconceptsetcontainer ocsc ON csc.concept_set_id = ocsc."conceptSetId"
                 LEFT JOIN {{schema}}concept_set_counts_clamped cscc ON cs.codeset_id = cscc.codeset_id
+                LEFT JOIN {{schema}}cset_term_usage_rec_counts ctu ON cs.codeset_id = ctu.codeset_id
 /*
  want to add term usage record counts, tried this code:
      COALESCE(cwc.total_cnt, 0)                     AS total_cnt_from_term_usage
@@ -76,3 +87,5 @@ LEFT JOIN {{schema}}researcher rver ON ac.codeset_created_by = rver."multipassId
 CREATE INDEX ac_idx1{{optional_index_suffix}} ON {{schema}}all_csets{{optional_suffix}}(codeset_id);
 
 CREATE INDEX ac_idx2{{optional_index_suffix}} ON {{schema}}all_csets{{optional_suffix}}(concept_set_name);
+
+DROP TABLE {{schema}}cset_term_usage_rec_counts{{optional_suffix}};

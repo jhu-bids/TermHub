@@ -1,5 +1,6 @@
 import React, { useState, useEffect, } from "react";
 import DataTable, { createTheme } from "react-data-table-component";
+import { flatten, uniq } from "lodash";
 
 import {useDataGetter} from "../state/DataGetter";
 import {useSearchParamsState} from "../state/SearchParamsProvider";
@@ -92,7 +93,9 @@ export const N3CComparisonRpt = () => {
       }
       try {
         const rows = await dataGetter.axiosCall('n3c-comparison-rpt', {sendAlert: false, });
-        setData(rows);
+        let concept_ids = uniq(flatten(rows.map(row => [...(row.added), ...(row.removed)])));
+        const concepts = await dataGetter.fetchAndCacheItems(dataGetter.apiCalls.concepts, concept_ids);
+        setData({rows, concepts});
       } catch (error) {
         console.error("Error fetching data:", error);
       }
@@ -102,16 +105,38 @@ export const N3CComparisonRpt = () => {
   if (!data) {
     return <div>Loading...</div>;
   }
-  let columns;
-  /*
-  if (data) {
-    columns = Object.keys(data[0]).map(col => ({
-      name: col,
-      selector: row => (row[col] ?? '').toString(),
-      // width: "fit-content",
-    }));
+  let {rows, concepts} = data
+  function tbl(concept_ids) {
+    return (
+        <table id="n3ccompdiff"><tbody>{
+          concept_ids.map((concept_id,i) => {
+            const c = concepts[concept_id];
+            return (
+              <tr key={i}>
+                <td>{c.concept_id}</td>
+                <td><i>{c.standard_concept === 'S' ? 'Standard' : c.standard_concept === 'C' ? 'Classification' : 'Non-standard'}</i></td>
+                <td>{c.concept_name}</td>
+              </tr>)
+          })
+        }</tbody></table>
+    )
   }
-  */
+
+  function DiffList({data: row}) {
+    console.log({row});
+    return (
+        <div style={{margin: 10,}}>
+          <p>
+            <b>Removed:</b>{tbl(row.removed)}
+          </p>
+          <p>
+            <b>Added:</b>{tbl(row.added)}
+          </p>
+        </div>
+    );
+  }
+
+  let columns;
   columns = [
     {grow: 4, sortable: true, name: "Name", selector: row => row.name},
     {grow: 2, sortable: true, name: "Author", selector: row => row.author},
@@ -129,26 +154,12 @@ export const N3CComparisonRpt = () => {
           </Button>
 
       )},
-      /*
-    {grow: 2, name: "Orig", selector: row => (
-        <span>
-          {row.orig_codeset_id} v{row.orig_version} {' '}
-          {}
-        </span>
-      )},
-    {grow: 2, name: "New", selector: row => (
-      )},
-       */
   ]
-
-  /*
-   */
-
   console.log({columns, data});
   return (
       <div>
         <DataTable
-            data={data || []}
+            data={rows || []}
             columns={columns}
             expandableRows
             expandableRowsComponent={DiffList}
@@ -163,21 +174,6 @@ export const N3CComparisonRpt = () => {
             // sortFunction={customSort}
         />
         {/*<pre>{JSON.stringify(data, null, 2)}</pre>*/}
-      </div>
-  );
-}
-function DiffList({data}) {
-  console.log({data});
-  return (
-      <div style={{margin: 10,}}>
-        <p>
-          <b>Differences:</b><br/>
-          {
-            data.diffs.map((diff,i) => (
-               <span key={i}>{diff}<br/></span>
-            ))
-          }
-        </p>
       </div>
   );
 }

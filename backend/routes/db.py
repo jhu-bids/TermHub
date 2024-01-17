@@ -13,7 +13,7 @@ from sqlalchemy.engine import RowMapping
 from starlette.responses import Response
 
 from backend.api_logger import Api_logger
-from backend.utils import get_timer, return_err_with_trace
+from backend.utils import get_timer, return_err_with_trace, commify
 from backend.db.utils import get_db_connection, sql_query, SCHEMA, sql_query_single_col, sql_in, run_sql
 from backend.db.queries import get_concepts
 from enclave_wrangler.objects_api import get_n3c_recommended_csets, enclave_api_call_caller, \
@@ -51,19 +51,17 @@ router = APIRouter(
 #       probably don't need precision etc.
 #       switched _container suffix on duplicate col names to container_ prefix
 #       joined OMOPConceptSet in the all_csets ddl to get `rid`
-def get_csets(codeset_ids: List[int], con: Connection = None) -> List[Dict]:
+def get_csets(codeset_ids: List[int]) -> List[Dict]:
     """Get information about concept sets the user has selected"""
-    conn = con if con else get_db_connection()
-    rows: List = sql_query(
-        conn, """
-          SELECT *
-          FROM all_csets
-          WHERE codeset_id = ANY(:codeset_ids);""",
-        {'codeset_ids': codeset_ids})
+    with get_db_connection() as con:
+        rows: List = sql_query(
+            con, """
+              SELECT *
+              FROM all_csets
+              WHERE codeset_id = ANY(:codeset_ids);""",
+            {'codeset_ids': codeset_ids})
     # {'codeset_ids': ','.join([str(id) for id in requested_codeset_ids])})
     row_dicts = [dict(x) for x in rows]
-    if not con:
-        conn.close()
     for row in row_dicts:
         row['researchers'] = get_row_researcher_ids_dict(row)
 
@@ -137,8 +135,8 @@ def _cset_members_items(codeset_ids: Union[str, None] = Query(default=''), ) -> 
 @router.get("/get-cset-members-items")
 async def _get_cset_members_items(request: Request,
                                   codeset_ids: str,
-                                  columns: Union[List[str], None] = Query(default=None),
-                                  column: Union[str, None] = Query(default=None),
+                                  # columns: Union[List[str], None] = Query(default=None),
+                                  # column: Union[str, None] = Query(default=None),
                                   # extra_concept_ids: Union[int, None] = Query(default=None)
                                   ) -> Union[List[int], List]:
     requested_codeset_ids = parse_codeset_ids(codeset_ids)
@@ -146,7 +144,7 @@ async def _get_cset_members_items(request: Request,
     await rpt.start_rpt(request, params={'codeset_ids': requested_codeset_ids})
 
     try:
-        rows = get_cset_members_items(requested_codeset_ids, columns, column)
+        rows = get_cset_members_items(requested_codeset_ids) #, columns, column
         await rpt.finish(rows=len(rows))
     except Exception as e:
         await rpt.log_error(e)
@@ -606,7 +604,6 @@ def get_comparison_rpt(con, codeset_id_1: int, codeset_id_2: int) -> Dict[str, U
             SELECT concept_id, concept_name FROM concept_set_members WHERE codeset_id = :cset_2_codeset_id
         ) x
     """, {'codeset_id_1': codeset_id_1, 'cset_2_codeset_id': codeset_id_2})
-    # orig_only = [dict(r) for r in orig_only]
     cset_1_only = [dict(r)['diff'] for r in cset_1_only]
 
     cset_2_only = sql_query(con, """
@@ -616,10 +613,21 @@ def get_comparison_rpt(con, codeset_id_1: int, codeset_id_2: int) -> Dict[str, U
             SELECT concept_id, concept_name FROM concept_set_members WHERE codeset_id = :codeset_id_1
         ) x
     """, {'codeset_id_1': codeset_id_1, 'cset_2_codeset_id': codeset_id_2})
-    # cset_2_only = [dict(r) for r in cset_2_only]
     cset_2_only = [dict(r)['diff'] for r in cset_2_only]
 
     diffs = cset_1_only + cset_2_only
+
+    removed = sql_query_single_col(con, """
+        SELECT concept_id FROM concept_set_members WHERE codeset_id = :codeset_id_1
+        EXCEPT
+        SELECT concept_id FROM concept_set_members WHERE codeset_id = :cset_2_codeset_id
+    """, {'codeset_id_1': codeset_id_1, 'cset_2_codeset_id': codeset_id_2})
+
+    added = sql_query_single_col(con, """
+        SELECT concept_id FROM concept_set_members WHERE codeset_id = :cset_2_codeset_id
+        EXCEPT
+        SELECT concept_id FROM concept_set_members WHERE codeset_id = :codeset_id_1
+    """, {'codeset_id_1': codeset_id_1, 'cset_2_codeset_id': codeset_id_2})
 
     flag_cnts_1 = ', flags: ' + ', '.join([f'{k}: {v}' for k, v in cset_1['flag_cnts'].items()]) if  cset_1['flag_cnts'] else ''
     flag_cnts_2 = ', flags: ' + ', '.join([f'{k}: {v}' for k, v in cset_2['flag_cnts'].items()]) if  cset_2['flag_cnts'] else ''
@@ -628,20 +636,24 @@ def get_comparison_rpt(con, codeset_id_1: int, codeset_id_2: int) -> Dict[str, U
         'name': cset_1['concept_set_name'],
         'cset_1': f"{cset_1['codeset_id']} v{cset_1['version']}, "
                   f"vocab {cset_1['omop_vocab_version']}; "
-                  f"{cset_1['distinct_person_cnt']} pts, "
-                  f"{cset_1['concepts']} concepts{flag_cnts_1}",
+                  f"{commify(cset_1['distinct_person_cnt'])} pts, "
+                  f"{commify(cset_1['total_cnt'] or cset_1['total_cnt_from_term_usage'])} recs, "
+                  f"{commify(cset_1['concepts'])} concepts{flag_cnts_1}",
         'cset_2': f"{cset_2['codeset_id']} v{cset_2['version']}, "
                   f"vocab {cset_2['omop_vocab_version']}; "
-                  f"{cset_2['distinct_person_cnt']} pts, "
-                  f"{cset_2['concepts']} concepts{flag_cnts_2}",
+                  f"{commify(cset_2['distinct_person_cnt'])} pts, "
+                  f"{commify(cset_2['total_cnt'] or cset_2['total_cnt_from_term_usage'])} recs, "
+                  f"{commify(cset_2['concepts'])} concepts{flag_cnts_2}",
         'author': cset_1['codeset_creator'],
         'cset_1_codeset_id': codeset_id_1,
         # 'cset_1_version': cset_1['version'],
         'cset_2_codeset_id': codeset_id_2,
+        'added': added,
+        'removed': removed,
         # 'cset_2_version': cset_2['version'],
         # 'cset_1_only': cset_1_only,
         # 'cset_2_only': cset_2_only,
-        'diffs': diffs,
+        'diffs': diffs, # remove once front end working with new added/removed data
     }
     return rpt
 
@@ -654,7 +666,7 @@ def generate_n3c_comparison_rpt():
             """
                 SELECT orig_codeset_id, new_codeset_id
                 FROM public.codeset_comparison
-                WHERE rpt IS NULL
+                --WHERE rpt IS NULL
                 """)
         i = 1
         for pair in pairs:
@@ -691,5 +703,5 @@ def next_api_call_group_id() -> int:
 if __name__ == '__main__':
     from backend.utils import pdump
     # n3c_comparison_rpt()
-    # generate_n3c_comparison_rpt()
+    generate_n3c_comparison_rpt()
     pass
