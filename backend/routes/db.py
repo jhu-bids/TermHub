@@ -89,61 +89,10 @@ def get_all_researcher_ids(rows: List[Dict]) -> Set[str]:
     return set([r[c] for r in rows for c in RESEARCHER_COLS if r[c]])
 
 
-# TODO
-#  i. Keys in our old `related_csets` that are not there anymore:
-#   ['precision', 'status_container', 'concept_set_id', 'selected', 'created_at_container', 'created_at_version',
-#   'intention_container', 'intention_version', 'created_by_container', 'intersecting_concepts', 'recall',
-#   'status_version', 'created_by_version']
-#  ii. Keys in our new `related_csets` that were not there previously:
-#   ['created_at', 'container_intentionall_csets', 'created_by', 'container_created_at', 'status', 'intention',
-#   'container_status', 'container_created_by']
-#  see fixes above. i think everything here is fixed now
-# TODO: Performance: takes ~75sec on http://127.0.0.1:8000/cr-hierarchy?format=flat&codeset_ids=400614256|87065556
-def get_related_csetsOBSOLETE(  # not calling this from front end anymore. can remove tests
-    codeset_ids: List[int] = None, selected_concept_ids: List[int] = None,
-    include_atlas_json=False, con: Connection = None, verbose=True
-) -> List[Dict]:
-    """Get information about concept sets related to those selected by user"""
-    con = con if con else get_db_connection()
-    timer = get_timer('   get_related_csets')
-    verbose and timer('get_concept_set_member_ids')
-    if codeset_ids and not selected_concept_ids:
-        selected_concept_ids = get_cset_members_items(codeset_ids, column='concept_id')
-    verbose and timer('query concept_set_members')
-    query = f"""
-    SELECT DISTINCT codeset_id
-    FROM concept_set_members
-    WHERE concept_id {sql_in(selected_concept_ids)}
-    """
-    related_codeset_ids = sql_query_single_col(con, query, {'concept_ids': selected_concept_ids}, )
-    # if any selected codesets don't have concepts, they will be missing from query above
-    # add them back in:
-    related_codeset_ids = list(set.union(set(codeset_ids), set(related_codeset_ids)))
-    verbose and timer('get_csets')
-    related_csets = get_csets(related_codeset_ids)
-    if not include_atlas_json:
-        for cset in related_csets:
-            del cset['atlas_json']
-    selected_cids = set(selected_concept_ids)
-    selected_cid_cnt = len(selected_concept_ids)
-    # this loop takes some time
-    verbose and timer(f"get_concept_set_member_ids {len(related_csets)} times")
-    for cset in related_csets:
-        cset['selected'] = cset['codeset_id'] in codeset_ids
-        cids = get_concept_set_member_ids([cset['codeset_id']], column='concept_id')
-        if selected_cid_cnt and len(cids):
-            intersecting_concepts = set(cids).intersection(selected_cids)
-            cset['intersecting_concepts'] = len(intersecting_concepts)
-            cset['recall'] = cset['intersecting_concepts'] / selected_cid_cnt
-            cset['precision'] = cset['intersecting_concepts'] / len(cids)
-    verbose and timer('done')
-    return related_csets
-
-
 def get_cset_members_items(
     codeset_ids: List[int] = [],
-    columns: Union[List[str], None] = None,
-    column: Union[str, None] = None,
+    # columns: Union[List[str], None] = None,
+    # column: Union[str, None] = None,
 ) -> Union[List[int], List]:
     """Get concept set members items for selected concept sets
         returns:
@@ -151,26 +100,27 @@ def get_cset_members_items(
         item: True if its an expression item, else false
         csm: false if not in concept set members
     """
-    if column:
-        # should check that column names are valid columns in concept_set_members
-        # but probably never use this option anyway
-        columns = [column]
-    if not columns:
-        columns = ['*']
-        # columns = ['codeset_id', 'concept_id']
+    # if column:
+    #     # should check that column names are valid columns in concept_set_members
+    #     # but probably never use this option anyway
+    #     columns = [column]
+    # if not columns:
+    #     columns = ['*']
+    #     # columns = ['codeset_id', 'concept_id']
 
     with get_db_connection() as con:
+        # SELECT DISTINCT {', '.join(columns)}
         query = f"""
-            SELECT DISTINCT {', '.join(columns)}
+            SELECT DISTINCT *
             FROM cset_members_items
             WHERE codeset_id {sql_in(codeset_ids)}
         """
-        rows: List = sql_query(con, query, debug=False, return_with_keys=True)
-        if column:  # with single column, don't return List[Dict] but just List(<column>)
-            rows: List[int] = [r[column] for r in rows]
+        # rows: List = sql_query(con, query, debug=False, return_with_keys=True)
+        # # if column:  # with single column, don't return List[Dict] but just List(<column>)
+        #     rows: List[int] = [r[column] for r in rows]
 
         rows: List = sql_query(con, query)
-        return rows
+    return rows
 
 
 # TODO: don't keep both these routes; redundant
