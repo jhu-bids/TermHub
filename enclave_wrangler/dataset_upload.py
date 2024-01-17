@@ -1192,7 +1192,6 @@ def make_new_versions_of_csets():
                 'new_codeset_id': new_version_codeset_id
             }
             insert_from_dict(con, 'public.codeset_comparison', row)
-    pass
 
 if __name__ == '__main__':
     # test_new_version_compare_codeset_ids = [27371375, 523378440, 490947789]

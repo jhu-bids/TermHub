@@ -756,9 +756,9 @@ def items_to_atlas_json_format(items):
 # todo: split into get/update
 def get_codeset_json(codeset_id, con: Connection = None, use_cache=True, set_cache=True) -> Dict:
     """Get code_set jSON"""
-    con = con if con else get_db_connection()
+    conn = con if con else get_db_connection()
     if use_cache:
-        jsn = sql_query_single_col(con, f"""
+        jsn = sql_query_single_col(conn, f"""
             SELECT json
             FROM concept_set_json
             WHERE codeset_id = {int(codeset_id)}
@@ -828,7 +828,7 @@ def get_codeset_json(codeset_id, con: Connection = None, use_cache=True, set_cac
 
     if set_cache:
         try:
-            run_sql(con, f"""
+            run_sql(conn, f"""
                 INSERT INTO concept_set_json VALUES (
                     {codeset_id},
                     (:jsn)::json
@@ -838,6 +838,9 @@ def get_codeset_json(codeset_id, con: Connection = None, use_cache=True, set_cac
             print('trying to insert\n')
             print(sql_jsn)
             raise err
+        finally:
+            if not con:
+                conn.close()
     return jsn
 
 
