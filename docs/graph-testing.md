@@ -17,15 +17,17 @@ issues.
 
 
 ### _[9f6f82b](https://github.com/jhu-bids/TermHub/commit/9f6f82b)_ 2023-11-13
-From commit message:
-  - Totally redid subgraph generation and now downloading indented concept
-    list instead of constructing it on the front end based on creating a
-    front-end graph based on subgraph edges from backend. Seems to work,
-    but collapse is broken now...maybe other stuff too.
-  - No longer need an undirected version of the graph
-  - Expanded to include all 'Is a' relationships from `concept_relationship`
-    table in addition to `concept_ancestor` where min separation = 1 already
-    included. [switched back at some later time]
+  - From commit message:
+      - Totally redid subgraph generation and now downloading indented concept
+        list instead of constructing it on the front end based on creating a
+        front-end graph based on subgraph edges from backend. Seems to work,
+        but collapse is broken now...maybe other stuff too.
+      - No longer need an undirected version of the graph
+      - Expanded to include all 'Is a' relationships from `concept_relationship`
+        table in addition to `concept_ancestor` where min separation = 1 already
+        included. [switched back at some later time]
+  - In order to get this to work, I had to turn off api_logging (which I've now
+    added to the patch file.)
 Tested with:
   - [MALIGNANT CANCER](#malignant-cancer)
 
@@ -75,7 +77,9 @@ On 2024-01-11, this is the commit deployed on prod
   - [eb27fa7](#eb27fa7): takes long time on server (minutes) and crashes browser
 
 [Many small -- neurological](http://localhost:3000/cset-comparison?codeset_ids=1000002657&codeset_ids=241882304&codeset_ids=488007883&codeset_ids=1000087163)
-  - [eb27fa7](#eb27fa7): takes long time on server (minutes) and crashes browser
+  - [eb27fa7](#eb27fa7)
     - ![screen shot](screen-shots/eb27fa7-many-small.png)
     - Multiple sclerosis (374919) appears twice; identical except Myasthenia gravis (76685)
       is (sort of) indented below the second one.
+  - [9f6f82b](#9f6f82b)
+    - ![img.png](img.png)
