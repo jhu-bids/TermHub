@@ -6,7 +6,7 @@ The code for filling in gaps in concept subgraphs and displaying them as trees h
 - The subgraph gap-filling or backend tree construction takes so long that it hangs
 - There's so many indented tree nodes that the browser slows to a crawl or crashes
 
-I'm realizing again that there are problems in the algorithm, so I'm going to use this space to try to plan out and document a new algorithm. This will be based on [graph testing](./graph_testing.md)
+I'm realizing again that there are problems in the algorithm, so I'm going to use this space to try to plan out and document a new algorithm. This will be based on [graph testing](./graph_testing.md).
 
 ### Steps
 1. Find all roots of subgraph (...)
