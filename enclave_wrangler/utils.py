@@ -144,6 +144,11 @@ def check_token_ttl(warning_threshold=60 * 60 * 24 * 14, warn_anyway=False, form
     ttl = int(response.text)
     if format == 'date':
         return str((datetime.now() + timedelta(seconds=ttl)).date())
+    if format == 'date-days':
+        return {
+            'date': str((datetime.now() + timedelta(seconds=ttl)).date()),
+            'days': timedelta(seconds=ttl).days
+        }
     if ttl <= warning_threshold or warn_anyway:
         days = timedelta(seconds=ttl).days
         print('Warning: Token expiring soon. You may want to renew. Days left: ' + str(days) +

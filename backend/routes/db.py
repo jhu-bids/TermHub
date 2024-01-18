@@ -689,7 +689,7 @@ def generate_n3c_comparison_rpt():
 def check_token() -> int:
     w = whoami()
     # name = w.get('username', 'No name')
-    t = check_token_ttl(format='date')
+    t = check_token_ttl(format='date-days')
     return {'whoami': w, 'expires': t}
 
 @router.get("/next-api-call-group-id")

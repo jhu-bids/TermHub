@@ -1,6 +1,6 @@
 import React, { useState, useEffect, } from "react";
 import DataTable, { createTheme } from "react-data-table-component";
-import { flatten, uniq } from "lodash";
+import { flatten, uniq, sortBy } from "lodash";
 
 import {useDataGetter} from "../state/DataGetter";
 import {useSearchParamsState} from "../state/SearchParamsProvider";
@@ -107,10 +107,10 @@ export const N3CComparisonRpt = () => {
   }
   let {rows, concepts} = data
   function tbl(concept_ids) {
+    let tblConcepts = concept_ids.map(d => concepts[d]);
     return (
         <table id="n3ccompdiff"><tbody>{
-          concept_ids.map((concept_id,i) => {
-            const c = concepts[concept_id];
+          sortBy(tblConcepts, ['standard_concept', 'concept_name']).map((c,i) => {
             return (
               <tr key={i}>
                 <td>{c.concept_id}</td>
