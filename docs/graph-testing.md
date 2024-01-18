@@ -1,14 +1,19 @@
 
 ## Commits of interest
 
-### ~~_[eb27fa7](https://github.com/jhu-bids/TermHub/commit/eb27fa7)_ 2023-05-16~~
-~~First appearance of graph.py. Not sure if there's important stuff to look at
-before this.~~
+### _[eb27fa7](https://github.com/jhu-bids/TermHub/commit/eb27fa7)_ 2023-05-16
+First appearance of graph.py. There's important stuff to look at
+before this, but can't get older ones working.
 
+Uses cr-hierarchy, which calls connected_subgraph_from_nodes. Method
+is to use undirected graph to connect pairs of root nodes
+and construct tree on front end.
 
-### _[7c6b78b](https://github.com/jhu-bids/TermHub/commit/7c6b78b)_ 2023-06-26
-Working on caching. Maybe no substantive change since 05-16, but graph.py is
-stable. Apparently no change in algorithm until 11-13.
+### ~~_[7c6b78b](https://github.com/jhu-bids/TermHub/commit/7c6b78b)_ 2023-06-26~~
+~~Working on caching. Maybe no substantive change since 05-16, but graph.py is
+stable. Apparently no change in algorithm until 11-13.~~
+Should be same algorithm as above, but can't get this one working. Too many package
+issues.
 
 
 ### _[9f6f82b](https://github.com/jhu-bids/TermHub/commit/9f6f82b)_ 2023-11-13
@@ -67,3 +72,10 @@ On 2024-01-11, this is the commit deployed on prod
   - 1000003793 v1.0, vocab v5.0 31-AUG-23; 0 pts, 53993 concepts, flags: D: 1, DX: 5
   - 53K concepts
   - [9f6f82bf](#9f6f82bf): hoses server
+  - [eb27fa7](#eb27fa7): takes long time on server (minutes) and crashes browser
+
+[Many small -- neurological](http://localhost:3000/cset-comparison?codeset_ids=1000002657&codeset_ids=241882304&codeset_ids=488007883&codeset_ids=1000087163)
+  - [eb27fa7](#eb27fa7): takes long time on server (minutes) and crashes browser
+    - ![screen shot](screen-shots/eb27fa7-many-small.png)
+    - Multiple sclerosis (374919) appears twice; identical except Myasthenia gravis (76685)
+      is (sort of) indented below the second one.
