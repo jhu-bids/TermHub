@@ -66,9 +66,12 @@ On 2024-01-11, this is the commit deployed on prod
   algorithm backwards and now it's very fast.
 
 
-### _[29ce57d](https://github.com/jhu-bids/TermHub/commit/29ce57d)_ 2024-01-08
-- Base case for `tst_graph`
-- On 2024-01-11 (commit 51bf3851), there have been no graph algorithm changes
+### Current
+- Base case for `tst_graph`: _[29ce57d](https://github.com/jhu-bids/TermHub/commit/29ce57d)_ 2024-01-08;
+  no graph algorithm changes in these subsequent commits.
+- _[29ce57d2](https://github.com/jhu-bids/TermHub/commit/29ce57d2)_ 2024-12-08
+- _[51bf3851](https://github.com/jhu-bids/TermHub/commit/51bf3851)_ 2024-01-10
+- _[5f80bfba](https://github.com/jhu-bids/TermHub/commit/5f80bfba)_ 2024-01-18
 
 
 ## Test cases
@@ -80,6 +83,7 @@ On 2024-01-11, this is the commit deployed on prod
 - [9f6f82bf](#9f6f82bf): hoses server
 - [eb27fa7](#eb27fa7): takes long time on server (minutes) and crashes browser
 - [9f6f82b](#9f6f82b): gave up after close to an hour waiting for backend results.
+- [Current](#current): about 20 seconds on server, but data is wrong --![img.png](screen-shots/5f80bfba-malignant-cancer.png)
 
 [Many small -- neurological](http://localhost:3000/cset-comparison?codeset_ids=1000002657&codeset_ids=241882304&codeset_ids=488007883&codeset_ids=1000087163)
 - [eb27fa7](#eb27fa7)
@@ -88,3 +92,14 @@ On 2024-01-11, this is the commit deployed on prod
       ![screen shot](screen-shots/eb27fa7-many-small.png)
 - [9f6f82b](#9f6f82b)
     - ![screen shot](screen-shots/9f6f82b-many-small.png)
+- [Current](#current):
+  - Multiple sclerosis (374919) unnecessarily duplicated. Apparently Schilder's disease
+    would have been an orphan except for including common ancestor with Multiple sclerosis;
+    but included too many common ancestors and second copy of Multiple sclerosis appears
+    unnecesarily under another ancestor with no other children.
+    ![screen shot](screen-shots%2F5f80bfba-many-small.png)
+
+[CARDIOMYOPATHIES](http://localhost:3000/cset-comparison?codeset_ids=35275316&codeset_ids=1000062292)
+  - 35275316 v3.0, vocab v5.0 22-JUN-22; 455,285 pts, 6,702,050 recs, 199 concepts, flags: D: 2, X: 1
+  - 1000062292 v4.0, vocab v5.0 31-AUG-23; 0 pts, 8,081,456 recs, 199 concepts, flags: D: 2, X: 1
+  - 12 removed, 12 added
