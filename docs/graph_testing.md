@@ -1,9 +1,9 @@
 
 ## Commits of interest
 
-### _[eb27fa7](https://github.com/jhu-bids/TermHub/commit/eb27fa7)_ 2023-05-16
-First appearance of graph.py. Not sure if there's important stuff to look at
-before this.
+### ~~_[eb27fa7](https://github.com/jhu-bids/TermHub/commit/eb27fa7)_ 2023-05-16~~
+~~First appearance of graph.py. Not sure if there's important stuff to look at
+before this.~~
 
 
 ### _[7c6b78b](https://github.com/jhu-bids/TermHub/commit/7c6b78b)_ 2023-06-26
