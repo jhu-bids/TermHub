@@ -78,8 +78,8 @@ On 2024-01-11, this is the commit deployed on prod
 
 [Many small -- neurological](http://localhost:3000/cset-comparison?codeset_ids=1000002657&codeset_ids=241882304&codeset_ids=488007883&codeset_ids=1000087163)
   - [eb27fa7](#eb27fa7)
-    - ![screen shot](screen-shots/eb27fa7-many-small.png)
     - Multiple sclerosis (374919) appears twice; identical except Myasthenia gravis (76685)
       is (sort of) indented below the second one.
+      ![screen shot](screen-shots/eb27fa7-many-small.png)
   - [9f6f82b](#9f6f82b)
-    - ![img.png](img.png)
+    - ![screen shot](screen-shots/9f6f82b-many-small.png)
