@@ -92,6 +92,8 @@ VIEWS = [
     'cset_members_items_plus',
     # 'csets_to_ignore',
 ]
+VIEWS_REFRESH_IGNORE_LIST = ['cset_members_items_plus']
+VIEWS_TO_REFRESH = list(set(VIEWS) - set(VIEWS_REFRESH_IGNORE_LIST))
 # DERIVED_TABLE_DEPENDENCY_MAP: Shows which tables are needed to create a derived table. Generally the idea is that when
 #  the dependency tables are updated, the dependent table also needs to be updated. But some tables in here have
 #  dependencies but do not meet that use case. for example, 'concept_set_members_with_dups' depends on
