@@ -58,7 +58,7 @@ def _current_counts(
             return df
     # Get tables
     with get_db_connection(schema=schema, local=local) as con:
-        tables: List[str] = list_tables(con, filter_temp_refresh_tables=filter_temp_refresh_tables)
+        tables: List[str] = list_tables(con, _filter_temp_refresh_tables=filter_temp_refresh_tables)
     with get_db_connection(schema='', local=local) as con:
         # Get previous counts
         timestamps: List[datetime] = [
