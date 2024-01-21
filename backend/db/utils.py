@@ -513,9 +513,9 @@ def run_sql(con: Connection, command: str, params: Dict = {}) -> Any:
     return q
 
 
-def show_tables(con: Connection = None, print_dump=True):
+def show_tables(con: Connection = None, print_dump=True) -> List[Row]:
     """Show tables"""
-    conn = con if con else get_db_connection()
+    conn = con if con else get_db_connection(schema=SCHEMA)
     query = """
         SELECT n.nspname as "Schema", c.relname as "Name",
               CASE c.relkind WHEN 'r' THEN 'table' WHEN 'v' THEN 'view' WHEN 'm' THEN 'materialized view' WHEN 'i' THEN 'index' WHEN 'S' THEN 'sequence' WHEN 's' THEN 'special' WHEN 't' THEN 'TOAST table' WHEN 'f' THEN 'foreign table' WHEN 'p' THEN 'partitioned table' WHEN 'I' THEN 'partitioned index' END as "Type",
@@ -538,6 +538,18 @@ def show_tables(con: Connection = None, print_dump=True):
     if not con:
         conn.close()
     return res
+
+
+def list_views(con: Connection = None, filter_temp_refresh_views=False) -> List[str]:
+    """Get list of names of views"""
+    conn = con if con else get_db_connection(schema=SCHEMA)
+    table_data: List[Row] = show_tables(conn, print_dump=False)
+    views: List[str] = [x[1] for x in table_data if x[2] == 'view']
+    if filter_temp_refresh_views:
+        views = filter_temp_refresh_tables(views)
+    if not con:
+        conn.close()
+    return views
 
 
 def load_csv(
@@ -626,18 +638,23 @@ def load_csv(
         update_db_status_var(f'last_updated_{table}', str(current_datetime()), local)
 
 
-def list_tables(con: Connection, schema: str = SCHEMA, filter_temp_refresh_tables=False) -> List[str]:
+def filter_temp_refresh_tables(tables: List[str]) -> List[str]:
+    """Filter temporary refresh tables/views from a list of table names"""
+    return [x for x in tables if not x.endswith('_new') and not x.endswith('_old')]
+
+
+def list_tables(con: Connection, schema: str = SCHEMA, _filter_temp_refresh_tables=False) -> List[str]:
     """List tables
-    :param filter_temp_refresh_tables: Filters out any temporary tables that are created during the refresh, e.g. ones
+    :param _filter_temp_refresh_tables: Filters out any temporary tables that are created during the refresh, e.g. ones
     that end w/ the suffix '_old'."""
     query = f"""
         SELECT relname
         FROM pg_stat_user_tables
         WHERE schemaname in ('{schema}') ORDER BY 1;"""
     result = run_sql(con, query)
-    tables = [x[0] for x in result]
-    if filter_temp_refresh_tables:
-        tables = [x for x in tables if not x.endswith('_new') and not x.endswith('_old')]
+    tables: List[str] = [x[0] for x in result]
+    if _filter_temp_refresh_tables:
+        tables = filter_temp_refresh_tables(tables)
     return tables
 
 
@@ -702,21 +719,23 @@ def reset_temp_refresh_tables(schema: str = SCHEMA):
     print('Error occurred during table refresh. Resetting tables to pre-refresh state; restoring backups.',
           file=sys.stderr)
     with get_db_connection(schema=schema) as con:
-        tables: List[str] = list_tables(con, schema)
-
-        backed_up_tables = [t for t in tables if t.endswith('_old')]
-        for table in backed_up_tables:
-            table = table.replace('_old', '')
-            run_sql(con, f'DROP TABLE IF EXISTS {schema}.{table};')
-            run_sql(con, f'ALTER TABLE {schema}.{table}_old RENAME TO {table};')
-
-        dangling_new_tables = [t for t in tables if t.endswith('_new')]
-        for table in dangling_new_tables:
-            table = table.replace('_new', '')
-            if table in tables:
-                run_sql(con, f'DROP TABLE {schema}.{table}_new;')
-            else:
-                run_sql(con, f'ALTER TABLE {schema}.{table}_new RENAME TO {table};')
+        for item_type, func in (('VIEW', list_views), ('TABLE', list_tables)):
+            # Get all tables/views
+            items: List[str] = func(con)
+            # _old tables/views
+            backed_up_items = [t for t in items if t.endswith('_old')]
+            for item in backed_up_items:
+                item = item.replace('_old', '')
+                run_sql(con, f'DROP {item_type} IF EXISTS {schema}.{item};')
+                run_sql(con, f'ALTER {item_type} {schema}.{item}_old RENAME TO {item};')
+            # _new tables/views
+            dangling_new_items = [t for t in items if t.endswith('_new')]
+            for item in dangling_new_items:
+                item = item.replace('_new', '')
+                if item in items:
+                    run_sql(con, f'DROP {item_type} {schema}.{item}_new;')
+                else:  # not sure if this would ever happen. never seen it happen. if so it will err if name collision
+                    run_sql(con, f'ALTER {item_type} {schema}.{item}_new RENAME TO {item};')
 
 
 def get_idle_connections(interval: str = '1 week'):
