@@ -31,7 +31,7 @@ from sqlalchemy.sql.elements import TextClause
 from typing import Any, Dict, Tuple, Union, List
 
 from backend.db.config import CORE_CSET_DEPENDENT_TABLES, CORE_CSET_TABLES, RECURSIVE_DEPENDENT_TABLE_MAP, \
-    get_pg_connect_url, VIEWS_TO_REFRESH
+    REFRESH_JOB_MAX_HRS, get_pg_connect_url, VIEWS_TO_REFRESH
 from backend.config import CONFIG, DATASETS_PATH, OBJECTS_PATH
 from backend.utils import commify
 from enclave_wrangler.models import pkey
@@ -167,7 +167,9 @@ def refresh_derived_tables(
 # todo: move this somewhere else, possibly load.py or db_refresh.py
 # todo: what to do if this process fails? any way to roll back? should we?
 # todo: currently has no way of passing 'local' down to db status var funcs
-def refresh_termhub_core_cset_derived_tables(con: Connection, schema=SCHEMA, polling_interval_seconds: int = 30):
+def refresh_termhub_core_cset_derived_tables(
+    con: Connection, schema=SCHEMA, local=False, polling_interval_seconds: int = 30
+):
     """Refresh TermHub core cset derived tables: wrapper function
 
     Handles simultaneous requests and try/except for worker function: refresh_termhub_core_cset_derived_tables_exec()"""
@@ -177,21 +179,23 @@ def refresh_termhub_core_cset_derived_tables(con: Connection, schema=SCHEMA, pol
         i += 1
         if (datetime.now() - t0).total_seconds() >= 2 * 60 * 60:  # 2 hours
             raise RuntimeError('Timed out after waiting 2 hours for other active derived table refresh to complete.')
-        elif check_db_status_var('derived_tables_refresh_status') == 'active':
+        # As of 2024/01/21 this is now a redundancy. Concerning the main refresh (refresh.py), it won't even begin if
+        # ...the derived refresh is active.
+        elif is_derived_refresh_active(local):
             msg = f'Another derived table refresh is active. Waiting {polling_interval_seconds} seconds to try again.' \
                 if i == 0 else '- trying again'
             print(msg)
             time.sleep(polling_interval_seconds)
         else:
             try:
-                update_db_status_var('derived_tables_refresh_status', 'active')
+                update_db_status_var('last_derived_refresh_request', current_datetime(), local)
                 # The following two calls yield equivalent results as of 2023/08/08. I've commented out
                 #  refresh_derived_tables() in case anything goes wrong with refresh_any_dependent_tables(), since that
                 #  is based on a heuristic currently, and if anything goes wrong, we may want to switch back. -joeflack4
                 # refresh_derived_tables(con, CORE_CSET_DEPENDENT_TABLES, schema)
                 refresh_any_dependent_tables(con, CORE_CSET_TABLES, schema)
             finally:
-                update_db_status_var('derived_tables_refresh_status', 'inactive')
+                update_db_status_var('last_derived_refresh_exited', current_datetime(), local)
             break
 
 
@@ -271,7 +275,8 @@ def is_table_up_to_date(table_name: str, skip_if_updated_within_hours: int = Non
     last_updated_key = f'last_updated_{table_name}'
     return check_if_updated(last_updated_key, skip_if_updated_within_hours)
 
-def is_refresh_active(local=False) -> bool:
+
+def is_refresh_active(refresh_type=('standard', 'derived')[0], local=False, threshold=REFRESH_JOB_MAX_HRS) -> bool:
     """Checks if the database refresh is currently running
 
     As of 2023/10/28, there is still a variable called 'refresh_status' with values active/inactive, left there for
@@ -282,11 +287,27 @@ def is_refresh_active(local=False) -> bool:
     determined that this is in error and the refresh is considered inactive. 6 hours was chosen because this is the
     default maximum amount of time that a GitHub action can run, but it is also well over the normal amount of time that
     the refresh takes."""
-    last_start = dp.parse(check_db_status_var('last_refresh_request', local))
-    last_end = dp.parse(check_db_status_var('last_refresh_exited', local))
-    considered_active = last_start > last_end
-    hours_since_last_refresh: float = (dp.parse(current_datetime()) - last_end).total_seconds() / 60 / 60
-    return considered_active and hours_since_last_refresh < 6
+    # Always check if derived tables refresh active for any case. Else check more for standard refresh status
+    key_pairs = [('last_derived_refresh_request', 'last_derived_refresh_exited')]
+    if refresh_type == 'standard':
+        key_pairs = [('last_refresh_request', 'last_refresh_exited')] + key_pairs
+    for start_time_key, end_time_key in key_pairs:
+        # Check status
+        last_start = dp.parse(check_db_status_var(start_time_key, local))
+        last_end = dp.parse(check_db_status_var(end_time_key, local))
+        # Determine if active
+        considered_active_via_reported_time = last_start > last_end
+        hours_since_last_refresh: float = (dp.parse(current_datetime()) - last_end).total_seconds() / 60 / 60
+        considered_active = considered_active_via_reported_time and hours_since_last_refresh < threshold
+        if considered_active:
+            return True
+    return False
+
+
+def is_derived_refresh_active(local=False) -> bool:
+    """Check if any refreshing of the derived tables is active"""
+    return is_refresh_active('derived', local)
+
 
 # todo: Can update update_db_status_var() so that it can accept optional param 'con' to improve performance.
 def update_db_status_var(key: str, val: str, local=False):
@@ -296,16 +317,19 @@ def update_db_status_var(key: str, val: str, local=False):
         sql_str = f"INSERT INTO public.manage (key, value) VALUES (:key, :val);"
         run_sql(con, sql_str, {'key': key, 'val': val})
 
+
 def check_db_status_var(key: str,  local=False):
     """Check the value of a given variable the `manage`table """
     with get_db_connection(schema='', local=local) as con:
         results: List = sql_query_single_col(con, f"SELECT value FROM public.manage WHERE key = '{key}';")
         return results[0] if results else None
 
+
 def delete_db_status_var(key: str, local=False):
     """Delete information from the `manage` table """
     with get_db_connection(schema='', local=local) as con2:
         run_sql(con2, f"DELETE FROM public.manage WHERE key = '{key}';")
+
 
 def insert_fetch_statuses(rows: List[Dict], local=False):
     """Update fetch status of record
@@ -314,10 +338,12 @@ def insert_fetch_statuses(rows: List[Dict], local=False):
     with get_db_connection(schema='', local=local) as con:
         insert_from_dicts(con, 'fetch_audit', rows)
 
+
 def select_failed_fetches(use_local_db=False) -> List[Dict]:
     """Collected data about unresolved fetches."""
     with get_db_connection(schema='', local=use_local_db) as con:
         return [dict(x) for x in sql_query(con, f"SELECT * FROM fetch_audit WHERE success_datetime IS NULL;")]
+
 
 def fetch_status_set_success(rows: List[Dict], local=False):
     """Update fetch status of record
@@ -330,6 +356,7 @@ def fetch_status_set_success(rows: List[Dict], local=False):
     with get_db_connection(schema='', local=local) as con:
         for row in rows:
             run_sql(con, sql_str, {k: v for k, v in row.items()})
+
 
 def database_exists(con: Connection, db_name: str) -> bool:
     """Check if database exists"""
