@@ -76,6 +76,7 @@ BRAND_NEW_DB_URL = \
 if CONFIG["server"] == 'mysql':
     BRAND_NEW_DB_URL = BRAND_NEW_DB_URL + '?charset=utf8mb4'
 DB_URL = BRAND_NEW_DB_URL.replace(f'{CONFIG["port"]}', f'{CONFIG["port"]}/{CONFIG["db"]}')
+REFRESH_JOB_MAX_HRS = 6  # see is_refresh_active() for documentation on this var
 CORE_CSET_TABLES = ['code_sets', 'concept_set_container', 'concept_set_version_item', 'concept_set_members']
 CORE_CSET_DEPENDENT_TABLES = [
     'cset_members_items',
