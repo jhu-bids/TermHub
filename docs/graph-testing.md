@@ -1,6 +1,7 @@
 ## Commits of interest
 
-### _[eb27fa7](https://github.com/jhu-bids/TermHub/commit/eb27fa7)_ 2023-05-16
+### First graph.py
+_[eb27fa7](https://github.com/jhu-bids/TermHub/commit/eb27fa7)_ 2023-05-16.
 First appearance of graph.py. There's important stuff to look at
 before this, but can't get older ones working.
 
@@ -15,7 +16,8 @@ Should be same algorithm as above, but can't get this one working. Too many pack
 issues.
 
 
-### _[9f6f82b](https://github.com/jhu-bids/TermHub/commit/9f6f82b)_ 2023-11-13
+### Connects root nodes
+- _[9f6f82b](https://github.com/jhu-bids/TermHub/commit/9f6f82b)_ 2023-11-13
 - Creates a subgraph from g using nodes.
   Identifies root and leaf nodes in this subgraph.
   Generates all simple paths from each root to each leaf in the original graph g.
@@ -76,21 +78,20 @@ On 2024-01-11, this is the commit deployed on prod
 
 ## Test cases
 
-[MALIGNANT CANCER](http://localhost:3000/cset-comparison?codeset_ids=585389357&codeset_ids=1000003793)
+#### [MALIGNANT CANCER](http://localhost:3000/cset-comparison?codeset_ids=585389357&codeset_ids=1000003793)
 - 585389357 v2.0, vocab v5.0 09-APR-22; 1469846 pts, **53510** concepts, flags: D: 1, DX: 5
 - 1000003793 v1.0, vocab v5.0 31-AUG-23; 0 pts, 53993 concepts, flags: D: 1, DX: 5
 - 53K concepts
-- [9f6f82bf](#9f6f82bf): hoses server
-- [eb27fa7](#eb27fa7): takes long time on server (minutes) and crashes browser
-- [9f6f82b](#9f6f82b): gave up after close to an hour waiting for backend results.
+- [First graph.py](#first-graph.py): takes long time on server (minutes) and crashes browser
+- [Connects root nodes](#connects-root-nodes): Hoses server; gave up after close to an hour waiting for backend results.
 - [Current](#current): about 20 seconds on server, but data is wrong --![img.png](screen-shots/5f80bfba-malignant-cancer.png)
 
-[Many small -- neurological](http://localhost:3000/cset-comparison?codeset_ids=1000002657&codeset_ids=241882304&codeset_ids=488007883&codeset_ids=1000087163)
-- [eb27fa7](#eb27fa7)
+#### [Many small -- neurological](http://localhost:3000/cset-comparison?codeset_ids=1000002657&codeset_ids=241882304&codeset_ids=488007883&codeset_ids=1000087163)
+- [First graph.py](#first-graph.py)
     - Multiple sclerosis (374919) appears twice; identical except Myasthenia gravis (76685)
       is (sort of) indented below the second one.
       ![screen shot](screen-shots/eb27fa7-many-small.png)
-- [9f6f82b](#9f6f82b)
+- [Connects root nodes](#connects-root-nodes)
     - ![screen shot](screen-shots/9f6f82b-many-small.png)
 - [Current](#current):
   - Multiple sclerosis (374919) unnecessarily duplicated. Apparently Schilder's disease
@@ -99,7 +100,10 @@ On 2024-01-11, this is the commit deployed on prod
     unnecesarily under another ancestor with no other children.
     ![screen shot](screen-shots%2F5f80bfba-many-small.png)
 
-[CARDIOMYOPATHIES](http://localhost:3000/cset-comparison?codeset_ids=35275316&codeset_ids=1000062292)
+#### [CEREBROVASCULAR DISEASE](http://localhost:3000/cset-comparison?codeset_ids=718894835&codeset_ids=1000017855)
+
+
+#### [CARDIOMYOPATHIES](http://localhost:3000/cset-comparison?codeset_ids=35275316&codeset_ids=1000062292)
   - 35275316 v3.0, vocab v5.0 22-JUN-22; 455,285 pts, 6,702,050 recs, 199 concepts, flags: D: 2, X: 1
   - 1000062292 v4.0, vocab v5.0 31-AUG-23; 0 pts, 8,081,456 recs, 199 concepts, flags: D: 2, X: 1
   - 12 removed, 12 added
