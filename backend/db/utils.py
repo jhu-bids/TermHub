@@ -13,7 +13,7 @@ from random import randint
 
 import pytz
 import dateutil.parser as dp
-from datetime import datetime, timezone
+from datetime import datetime, timedelta, timezone
 from glob import glob
 import re
 
@@ -31,7 +31,7 @@ from sqlalchemy.sql.elements import TextClause
 from typing import Any, Dict, Tuple, Union, List
 
 from backend.db.config import CORE_CSET_DEPENDENT_TABLES, CORE_CSET_TABLES, RECURSIVE_DEPENDENT_TABLE_MAP, \
-    REFRESH_JOB_MAX_HRS, get_pg_connect_url, VIEWS_TO_REFRESH
+    REFRESH_JOB_MAX_HRS, get_pg_connect_url
 from backend.config import CONFIG, DATASETS_PATH, OBJECTS_PATH
 from backend.utils import commify
 from enclave_wrangler.models import pkey
@@ -137,7 +137,7 @@ def refresh_derived_tables(
      entry will appear further down in the list."""
     temp_table_suffix = '_new'
     ddl_modules_queue = derived_tables_queue
-    views = [x for x in VIEWS_TO_REFRESH if x in ddl_modules_queue]
+    views = [x for x in list_views() if x in ddl_modules_queue]
 
     # Create new tables/views and backup old ones
     print('Derived tables')
@@ -274,6 +274,31 @@ def is_table_up_to_date(table_name: str, skip_if_updated_within_hours: int = Non
         return False
     last_updated_key = f'last_updated_{table_name}'
     return check_if_updated(last_updated_key, skip_if_updated_within_hours)
+
+
+def reset_refresh_status(local=False):
+    """Reset DB refresh active status variables to reflect non-active status
+
+    Used in situations where it is not active, but the variables reflect otherwise. This can happen due to exiting out
+    of the debugger during a refresh or when a GH action times out."""
+    key_pairs = [
+        ('last_derived_refresh_request', 'last_derived_refresh_exited'),
+        ('last_refresh_request', 'last_refresh_exited')
+    ]
+    for start_time_key, end_time_key in key_pairs:
+        last_start: datetime = dp.parse(check_db_status_var(start_time_key, local))
+        last_end: datetime = dp.parse(check_db_status_var(end_time_key, local))
+        if last_end < last_start:
+            # arbitrarily add 1 sec so considered exited after start
+            last_end: str = (last_start + timedelta(seconds=1)).astimezone(pytz.timezone('America/New_York')).isoformat()
+            update_db_status_var(end_time_key, last_end, local)
+    update_db_status_var('refresh_status', 'inactive', local)
+
+
+def reset_refresh_state(local=False):
+    """Resets both temporary tables and status variables"""
+    reset_temp_refresh_tables(local=local, verbose=False)
+    reset_refresh_status(local)
 
 
 def is_refresh_active(refresh_type=('standard', 'derived')[0], local=False, threshold=REFRESH_JOB_MAX_HRS) -> bool:
@@ -741,11 +766,12 @@ def delete_codesets_from_db(codeset_ids):
         )
 
 
-def reset_temp_refresh_tables(schema: str = SCHEMA):
+def reset_temp_refresh_tables(schema: str = SCHEMA, local=False, verbose=True):
     """This is run if an error occurs while refreshing tables, and resets to their state before the refresh."""
-    print('Error occurred during table refresh. Resetting tables to pre-refresh state; restoring backups.',
-          file=sys.stderr)
-    with get_db_connection(schema=schema) as con:
+    if verbose:
+        print('Error occurred during table refresh. Resetting tables to pre-refresh state; restoring backups.',
+              file=sys.stderr)
+    with get_db_connection(schema=schema, local=local) as con:
         for item_type, func in (('VIEW', list_views), ('TABLE', list_tables)):
             # Get all tables/views
             items: List[str] = func(con)
