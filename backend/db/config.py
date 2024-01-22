@@ -90,19 +90,6 @@ CORE_CSET_DEPENDENT_TABLES = [
     # 'csets_to_ignore',
     'cset_members_items_plus',
 ]
-
-# todo: remove obsolete view config code. can probably remove these
-# todo: obsoleted due to list_views()
-# VIEWS = [
-#     'cset_members_items_plus',
-#     # 'csets_to_ignore',
-# ]
-# todo: temporarily deactivating VIEWS_TO_REFRESH because it causes bugs since this view also needs to be removed
-#  elsewhere in the codebase. If we choose to keep the view, these 2 lines should be deleted. Otherwise if we remove
-#  the view (from both the DB and all references in codebase), there will proably be no need for these two lines either
-# VIEWS_REFRESH_IGNORE_LIST = ['cset_members_items_plus']
-# VIEWS_TO_REFRESH = list(set(list_views()) - set(VIEWS_REFRESH_IGNORE_LIST))
-
 # DERIVED_TABLE_DEPENDENCY_MAP: Shows which tables are needed to create a derived table. Generally the idea is that when
 #  the dependency tables are updated, the dependent table also needs to be updated. But some tables in here have
 #  dependencies but do not meet that use case. for example, 'concept_set_members_with_dups' depends on
