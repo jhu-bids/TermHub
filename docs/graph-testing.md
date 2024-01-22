@@ -1,13 +1,12 @@
 ## Commits of interest
 
 ### First graph.py
-_[eb27fa7](https://github.com/jhu-bids/TermHub/commit/eb27fa7)_ 2023-05-16.
-First appearance of graph.py. There's important stuff to look at
-before this, but can't get older ones working.
-
-Uses cr-hierarchy, which calls connected_subgraph_from_nodes. Method
-is to use undirected graph to connect pairs of root nodes
-and construct tree on front end.
+- _[eb27fa7](https://github.com/jhu-bids/TermHub/commit/eb27fa7)_ 2023-05-16
+- First appearance of graph.py. There's important stuff to look at
+  before this, but can't get older ones working.
+- Uses cr-hierarchy, which calls connected_subgraph_from_nodes. Method
+  is to use undirected graph to connect pairs of root nodes
+  and construct tree on front end.
 
 ### ~~_[7c6b78b](https://github.com/jhu-bids/TermHub/commit/7c6b78b)_ 2023-06-26~~
 ~~Working on caching. Maybe no substantive change since 05-16, but graph.py is
@@ -38,17 +37,23 @@ issues.
 - [Many small -- neurological](#many-small-neurological) (seems fine)
 
 
-### _[89863ba9](https://github.com/jhu-bids/TermHub/commit/89863ba9)_ 2023-12-04
-- I don't know why this one seemed important, but it did.
+### [Minor changes from Connects root nodes](https://github.com/jhu-bids/TermHub/compare/04d5699d..708ee558#diff-c98c490c3ff03167df87266a76886ca4b398141c13b02a66999e71ec45c889d7)
+- _[89863ba9](https://github.com/jhu-bids/TermHub/commit/89863ba9)_ 2023-12-04
+- For [Many small -- neurological](#many-small-neurological) identical output to Connects root nodes, but graph.py code is
+  somewhat different. May be worth testing this on other cases.
+
+### Small to large subset search for common ancestors
+- _[04d5699d](https://github.com/jhu-bids/TermHub/commit/04d5699d)_ 2023-12-14
+- [Significant refactor](https://github.com/jhu-bids/TermHub/compare/89863ba9..04d5699d#diff-c98c490c3ff03167df87266a76886ca4b398141c13b02a66999e71ec45c889d7)
+- On 2024-01-11, this is the commit deployed on prod
+- The Example comparison on the
+  home page was taking forever to run. I figured out
+  that I was doing part of the finding common ancestors
+  algorithm backwards and now it's very fast.
 
 
-### _[194b52c9](https://github.com/jhu-bids/TermHub/commit/194b52c9)_ 2023-12-18
-- made simplified version of `connect_nodes`. definitely different output
-  on some csets (not all). neither is correct though. i wonder if an
-  earlier commit has better results
-- added all the tests to the `graph_tst` csv
-
-### _[708ee558](https://github.com/jhu-bids/TermHub/commit/708ee558)_ 2023-12-15
+### [small_graph_threshold tweaks](https://github.com/jhu-bids/TermHub/compare/04d5699d..708ee558#diff-c98c490c3ff03167df87266a76886ca4b398141c13b02a66999e71ec45c889d7)
+- _[708ee558](https://github.com/jhu-bids/TermHub/commit/708ee558)_ 2023-12-15
 - On 2024-01-11, this is the commit deployed on dev
 
 
@@ -60,12 +65,11 @@ issues.
   which should be fine now
 
 
-### _[04d5699d](https://github.com/jhu-bids/TermHub/commit/04d5699d)_ 2023-12-14
-On 2024-01-11, this is the commit deployed on prod
-- The Example comparison on the
-  home page was taking forever to run. I figured out
-  that I was doing part of the finding common ancestors
-  algorithm backwards and now it's very fast.
+### _[194b52c9](https://github.com/jhu-bids/TermHub/commit/194b52c9)_ 2023-12-18
+- made simplified version of `connect_nodes`. definitely different output
+  on some csets (not all). neither is correct though. i wonder if an
+  earlier commit has better results
+- added all the tests to the `graph_tst` csv
 
 
 ### Current
@@ -79,15 +83,17 @@ On 2024-01-11, this is the commit deployed on prod
 ## Test cases
 
 #### [MALIGNANT CANCER](http://localhost:3000/cset-comparison?codeset_ids=585389357&codeset_ids=1000003793)
+- <font bgcolor="yellow">Have this reviewed before 2/9 friday meeting</font>
 - 585389357 v2.0, vocab v5.0 09-APR-22; 1469846 pts, **53510** concepts, flags: D: 1, DX: 5
 - 1000003793 v1.0, vocab v5.0 31-AUG-23; 0 pts, 53993 concepts, flags: D: 1, DX: 5
 - 53K concepts
-- [First graph.py](#first-graph.py): takes long time on server (minutes) and crashes browser
+- [First graph.py](#first-graphpy): takes long time on server (minutes) and crashes browser
 - [Connects root nodes](#connects-root-nodes): Hoses server; gave up after close to an hour waiting for backend results.
+- [Small to large subset search for common ancestors](#small-to-large-subset-search-for-common-ancestors):
 - [Current](#current): about 20 seconds on server, but data is wrong --![img.png](screen-shots/5f80bfba-malignant-cancer.png)
 
 #### [Many small -- neurological](http://localhost:3000/cset-comparison?codeset_ids=1000002657&codeset_ids=241882304&codeset_ids=488007883&codeset_ids=1000087163)
-- [First graph.py](#first-graph.py)
+- [First graph.py](#first-graphpy)
     - Multiple sclerosis (374919) appears twice; identical except Myasthenia gravis (76685)
       is (sort of) indented below the second one.
       ![screen shot](screen-shots/eb27fa7-many-small.png)
@@ -101,6 +107,8 @@ On 2024-01-11, this is the commit deployed on prod
     ![screen shot](screen-shots%2F5f80bfba-many-small.png)
 
 #### [CEREBROVASCULAR DISEASE](http://localhost:3000/cset-comparison?codeset_ids=718894835&codeset_ids=1000017855)
+
+
 
 
 #### [CARDIOMYOPATHIES](http://localhost:3000/cset-comparison?codeset_ids=35275316&codeset_ids=1000062292)
