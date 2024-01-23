@@ -16,9 +16,9 @@ CREATE TABLE IF NOT EXISTS public.api_runs (
     --note text
 );
 
-DROP SEQUENCE IF EXISTS api_call_group_id_seq;
+DROP SEQUENCE IF EXISTS public.api_call_group_id_seq;
 
-CREATE SEQUENCE api_call_group_id_seq START 10001;
+CREATE SEQUENCE public.api_call_group_id_seq START 10001;
 
 CREATE OR REPLACE  VIEW public.apiruns_grouped AS (
 WITH RankedGroups AS (
