@@ -77,6 +77,7 @@ if CONFIG["server"] == 'mysql':
     BRAND_NEW_DB_URL = BRAND_NEW_DB_URL + '?charset=utf8mb4'
 DB_URL = BRAND_NEW_DB_URL.replace(f'{CONFIG["port"]}', f'{CONFIG["port"]}/{CONFIG["db"]}')
 REFRESH_JOB_MAX_HRS = 6  # see is_refresh_active() for documentation on this var
+# Table/View configuration: for n3c schema
 CORE_CSET_TABLES = ['code_sets', 'concept_set_container', 'concept_set_version_item', 'concept_set_members']
 CORE_CSET_DEPENDENT_TABLES = [
     # tables
@@ -90,6 +91,11 @@ CORE_CSET_DEPENDENT_TABLES = [
     # 'csets_to_ignore',
     'cset_members_items_plus',
 ]
+# STANDALONE_TABLES: Not derived from any other table, nor used to derive any other table/view. Used for QC testing.
+STANDALONE_TABLES = [
+    'junk',
+    'relationship',
+]
 # DERIVED_TABLE_DEPENDENCY_MAP: Shows which tables are needed to create a derived table. Generally the idea is that when
 #  the dependency tables are updated, the dependent table also needs to be updated. But some tables in here have
 #  dependencies but do not meet that use case. for example, 'concept_set_members_with_dups' depends on
@@ -99,17 +105,21 @@ CORE_CSET_DEPENDENT_TABLES = [
 DERIVED_TABLE_DEPENDENCY_MAP = {
     # Dependencies figured out
     # - tables
-    'all_csets': ['code_sets', 'omopconceptset', 'concept_set_container', 'omopconceptsetcontainer', 'concept_set_counts_clamped', 'codeset_counts'],  # omopconceptset is all lowercase in DB but referred to as OMOPConceptSet in DDL and enclave object API
+    # all_csets: omopconceptset is all lowercase in DB but referred to as OMOPConceptSet in DDL and enclave object API
+    'all_csets': ['code_sets', 'omopconceptset', 'concept_set_container', 'omopconceptsetcontainer',
+                  'concept_set_counts_clamped', 'cset_term_usage_rec_counts',  'codeset_counts', 'researcher'],
     'codeset_counts': ['members_items_summary'],
     'codeset_ids_by_concept_id': ['cset_members_items'],
     'concept_ancestor_plus': ['concept_ancestor', 'concepts_with_counts'],
+    'concept_graph': ['concept_ancestor'],
     'concept_ids_by_codeset_id': ['cset_members_items'],
     'concept_relationship_plus': ['concept_relationship', 'concepts_with_counts'],
     'concepts_with_counts': ['concepts_with_counts_ungrouped'],
     'concepts_with_counts_ungrouped': ['concept', 'deidentified_term_usage_by_domain_clamped'],
     'cset_members_items': ['concept_set_members', 'concept_set_version_item'],
+    'cset_term_usage_rec_counts': ['concept_set_members', 'concepts_with_counts'],
     'members_items_summary': ['cset_members_items'],
-    'concept_graph': ['concept_ancestor'],
+
     # - views
     # 'csets_to_ignore': ['all_csets'],
     'cset_members_items_plus': ['cset_members_items', 'concept'],

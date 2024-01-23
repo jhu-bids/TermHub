@@ -18,7 +18,7 @@ PROJECT_ROOT = Path(THIS_DIR).parent.parent
 sys.path.insert(0, str(PROJECT_ROOT))
 from backend.db.config import CONFIG
 from backend.db.load import download_artefacts, indexes_and_derived_tables, initialize_test_schema, seed
-from backend.db.utils import database_exists, run_sql, show_tables, get_db_connection, DB
+from backend.db.utils import database_exists, run_sql, list_schema_objects, get_db_connection, DB
 
 SCHEMA = CONFIG['schema']
 
@@ -71,7 +71,7 @@ DDL_IP_INFO = """CREATE TABLE IF NOT EXISTS public.ip_info (
 def create_database(con: Connection, schema: str):
     """Create the database"""
     print('Current tables: ')
-    show_tables(con)
+    list_schema_objects(con)
     if not database_exists(con, DB):
         # noinspection PyUnresolvedReferences
         con.connection.connection.set_isolation_level(0)
