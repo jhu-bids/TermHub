@@ -7,6 +7,9 @@
 - Uses cr-hierarchy, which calls connected_subgraph_from_nodes. Method
   is to use undirected graph to connect pairs of root nodes
   and construct tree on front end.
+- <code style="color : gold">A week or two later (a5ae636c) added
+  `sort_by_most_descendants`, which I think is gone now. Might want
+  to add it back in.</code>
 
 ### ~~_[7c6b78b](https://github.com/jhu-bids/TermHub/commit/7c6b78b)_ 2023-06-26~~
 ~~Working on caching. Maybe no substantive change since 05-16, but graph.py is
@@ -17,10 +20,9 @@ issues.
 
 ### Connects root nodes
 - _[9f6f82b](https://github.com/jhu-bids/TermHub/commit/9f6f82b)_ 2023-11-13
-- Creates a subgraph from g using nodes.
-  Identifies root and leaf nodes in this subgraph.
-  Generates all simple paths from each root to each leaf in the original graph g.
-  Returns the list of all such paths.
+- Creates a subgraph from g using nodes. Identifies root and leaf nodes in this
+  subgraph. Generates all simple paths from each root to each leaf in the original
+  graph g. Returns the list of all such paths.
 - From commit message:
     - Totally redid subgraph generation and now downloading indented concept
       list instead of constructing it on the front end based on creating a
@@ -39,22 +41,28 @@ issues.
 
 ### [Minor changes from Connects root nodes](https://github.com/jhu-bids/TermHub/compare/04d5699d..708ee558#diff-c98c490c3ff03167df87266a76886ca4b398141c13b02a66999e71ec45c889d7)
 - _[89863ba9](https://github.com/jhu-bids/TermHub/commit/89863ba9)_ 2023-12-04
-- For [Many small -- neurological](#many-small-neurological) identical output to Connects root nodes, but graph.py code is
-  somewhat different. May be worth testing this on other cases.
+  - For [Many small -- neurological](#many-small-neurological) identical output to Connects root nodes, but graph.py code is
+    somewhat different. May be worth testing this on other cases.
+
+### [Factored `get_connected_subgraph` out of `indented_concept_list`](#factored-get_connected_subgraph-out-of-indented_concept_list)
+- _[72de8603](https://github.com/jhu-bids/TermHub/commit/72de8603)_ 2023-12-13
+  - Got rid of raise error on get_unrooted_children in connect_nodes
+    because it does find unrooted children
+  - In concept_graph_post, replaced fill_in_gaps with get_connected_subgraph
 
 ### Small to large subset search for common ancestors
-- _[04d5699d](https://github.com/jhu-bids/TermHub/commit/04d5699d)_ 2023-12-14
 - [Significant refactor](https://github.com/jhu-bids/TermHub/compare/89863ba9..04d5699d#diff-c98c490c3ff03167df87266a76886ca4b398141c13b02a66999e71ec45c889d7)
-- On 2024-01-11, this is the commit deployed on prod
-- The Example comparison on the
-  home page was taking forever to run. I figured out
-  that I was doing part of the finding common ancestors
-  algorithm backwards and now it's very fast.
+- _[04d5699d](https://github.com/jhu-bids/TermHub/commit/04d5699d)_ 2023-12-14
+  - On 2024-01-11, this is the commit deployed on prod
+  - The Example comparison on the
+    home page was taking forever to run. I figured out
+    that I was doing part of the finding common ancestors
+    algorithm backwards and now it's very fast.
 
 
 ### [small_graph_threshold tweaks](https://github.com/jhu-bids/TermHub/compare/04d5699d..708ee558#diff-c98c490c3ff03167df87266a76886ca4b398141c13b02a66999e71ec45c889d7)
 - _[708ee558](https://github.com/jhu-bids/TermHub/commit/708ee558)_ 2023-12-15
-- On 2024-01-11, this is the commit deployed on dev
+  - On 2024-01-11, this is the commit deployed on dev
 
 
 ### _[7adafa3c](https://github.com/jhu-bids/TermHub/commit/7adafa3c)_ 2023-12-15
