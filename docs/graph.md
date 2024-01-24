@@ -1,32 +1,116 @@
 # Documentation about vocabulary hierarchy algorithms and display
-## Graph display for hierarchical table of concepts
-### Requirements
+## Terminology
+**Expansion set**: Set of concepts/nodes in the concept set expansion, including any nodes in the definition that were
+not marked as excluded. _Filtered expansion set_ means after filtering out certain vocabs (e.g. RxNorm extension).
+I think this is the set of all of the nodes we ultimately want to display, with the exception of _missing in-betweens_,
+which we will find and add later.
 
-1. Display hierarchical list of all concepts of interest (i.e., in codesets of interest and possibly others found by search or vocab nav) 
-   a. Fill in gaps where included concepts are descendants of others but in-between nodes are not included. That is,
-      if we have unconnected graph, separate components, we would like to find if there are nodes in the graph that would connect
-      them. But now (unlike previous versions), we don't want to find ancestors of root nodes to connect stuff.
-3. Performance
-   - Within specific time (e.g., 20 seconds)
+**Missing in-betweens**: (i) Concepts that were not included in the original expansion at the time of the OMOP
+vocabulary version when the cset definition was created, but do show up in expansions in subsequent versions. (ii) When
+creating a single graph for more than 1 concept set, these are concepts that would exist in between any connecting paths
+between these concept sets.
+
+**Final/display hierarchy/graph**: The hierarchy / subgraph that object that wil be displayed in the browser.
+
+**Final/display node set**: All of the nodes in _final/display hierarchy/graph_.
+
+**Nodes of interest (deprecated?)**: I think Siggie originally came up with this term but I don't know if they are still
+using it. I think we should deprecate because it is ambiguous. "Of interest" means different things in different
+situations. This could be (a) all of the as all of the concept set members after expansion. Includes orphans if they are
+part of those concept set members. Or (b), 'a', minus concepts from filtered out vocabs (e.g. RxNorm Extension). It
+could also be (c) 'b', plus any missing in-betweens we'd find later.
+
+## Graph display for hierarchical table of concepts
+
+### Requirements
+1. **Create hierarchy**: Display hierarchical list of all concepts of interest  
+  - **Concepts of interest**: in codesets of interest, possibly others found by search or vocab nav (@Sigfried 1/24 can you 
+eleborate on that?).
+  - **Filter vocabs**: Filter out concepts from certain vocabs, e.g. RxNorm extension
+  - **Show only n concepts**: Limit number of concepts displayed to help w/ performance
+  - **Add missing in-betweens**
+  - **All concepts from multiple csets in single hierarchy**
+2. **Performance**
+   - Within specific time (e.g. <20 seconds for even largest csets)
    - Backend, frontend, user experience
       - Dynamic hide/display to allow for large sets of concepts
-4. Ordering of nodes
+3. Ordering of nodes
    - sibs: E.g. alphabetical, n descendants, patient/record counts
 
-
 ### Algorithm
-Accept input:
-   - list of codeset_ids
-   - optionally, extra concept_ids
-   - parameters:
-     - vocabs to hide
+Input params:
+   - `codeset_ids: List[int]`
+   - `concept_ids: List[int] = None`  (optional)
+   - more parameters:
+     - `vocabs_to_hide: List[str] = None`
      - other stuff to hide
-     - maximum depth, maximum nodes, ...
-1. Transform codeset_ids to concept_ids...
+     - `maximum_depth: int`
+     - `maximum_nodes: int`
+     - ...
+1. Transform `codeset_ids` to `concept_ids`...
 2. Find all roots of subgraph (...)
+3. Any steps in between?
+4. Construct hierarchy
+5. Gap filling
+6. Dynamic subgraph: Display only n (~2,000) nodes
 
-#### Requirement 1.a.
-ideas:
+#### Gap filling 
+We thought there would be a separate sub-algorithm for this, but if I'm correct, this should actually automatically be
+done by the "construct hierarchy" algorithm.
+
+Description:
+Fill in gaps where included concepts are descendants of others but in-between nodes are not included. That is, if we 
+have unconnected graph, separate components, we would like to find if there are nodes in the graph that would connect 
+them. But now (unlike previous versions), we don't want to find ancestors of root nodes to connect stuff.
+
+#### Construct hierarchy 
+**Considerations**
+- Where I have `Set[Node]` or `List[Node]`, perhaps the `int` `concept_id`/`Node.id` is just as well or better. Not sure.
+
+**Input params**
+- `leaf_nodes: Set[Node] `: IDK if this is as simple as using a pre-existing `networkx` or if it requires more coding on
+our part. Siggie probably already knows how to do this.
+- `expansion_set: Set[Node]`: See: _expansion set_ in 'terminology' section at top. I think this will be the same nodes 
+as the as `concept_ids` that are passed to or created in the general _Algorithm_.
+
+**Returns**
+- `graph: Graph`: The resulting graph / hierarchy.
+- `missing_in_betweens: Set[Node]`: Or `Set[int]` if it suffices just to have the `concept_id`. I'm not sure if this 
+will be needed for the rest of the Python algorithm, or will simply be returned to JS in order to display these
+differently. 
+
+**Declare variables**
+- `components: Dict[int, Graph]`, where `int` is the `Node.id` of its root, or some arbitrary number. I think this will 
+consist of networkx Graph objects? I may be totally wrong here,
+but the way I see this algorithm working is that we start with 0 subgraph components. As we traverse leaf nodes and hit
+roots, we will have built a component, and we add it to this list. As we progress, we'll be connecting and merging these
+until at the end we've connected everything and there is only 1 subgraph component left, and that is our finished
+hierarchy.
+- `nodes_traversed: Set[Node] = set()`: This is all of the Node in all of the subgraphs in `components`. We only need to
+add entries to this once determined we are done creating a component and are adding it to `components`. This will be
+used later to check if we've already traversed a node so that we don't do so again.
+
+**Algorithm**  
+`for node in leaf_nodes`:  
+  - for each `node`'s parent nodes `n`:  <-- this needs to be a recursive function  
+    - I think we need to store the path as we are recursing here. I guess we could be building up a Graph object, in which case we could call this 'component'. That 
+    would be better if we can. But if not then I guess this would be a `List[Node]` .
+    - `if n in nodes_traversed:`  
+      - I think here we need to connect this path to an existing graph in `components`, because we don't need to 
+      traverse any further. If the 'path' that we've been building up is not already a Graph object, we need to convert it too one. 
+      If it can't be connected to any graphs in `components`, it needs to be added to it. The dictionary key would be the ID of its root node.
+      - `node_component_lookup`
+      - `continue`
+    - Otherwise this will keep going until we hit the top of the hierarchy: and can't go any higher, we need to figure out what part of the path needs to
+    be discarded. So we descend back down until we find the first node that is in our expansion_set. We discard 
+    everything above that. And below and including that, we save this subgraph object by adding to `components`. 
+    - `if node not in expansion_set:` `missing_in_betweens.add(n)`  
+    - `nodes_traversed.add(n)`  
+    - Recurse: _for each `node`'s parent nodes `n`:_
+
+Somehow at the end we have to combine any remaining uncombined subgraphs in `components` into a single graph.
+
+ideas 2024/01/24 ~11am _(I don't know if these are still relevant after coding up the above psuedo code algorithm so leaving here)_:
    - Find path between each node and all the nodes in other components -- will probably be too slow
    - If node has descendants=True, its descendants should already be connected to anything the root
      is connected to -- **except** if vocabulary has changed and connecting nodes have become non-standard
@@ -36,7 +120,19 @@ ideas:
    - Traverse from each node through predecessors (parents)....?
    - Missing in-betweens: is it possible to find them before gap filling?
 
+#### Dynamic subgraphs
+[Dynamic subtrees (collapsing many lines to one) #602](https://github.com/jhu-bids/TermHub/issues/602)
+
+Crux of algorithm:
+1. **Hide deepest layers 1 at a time**: E.g. hide anything below 7 levels down, then 6, etc, until at or below threshold
+(e.g. 2k concepts).
+2. **Unhide until at threshold**: Step (1) will likely almost always result in overshooting, e.g. resulting in only 
+displaying <2k concepts. We want to then ideally increase this concepts until get to threshold, e.g. by unhiding 
+subtrees / nodes 1 at time until at threshold.
+
 ### Edge cases
+@Sigfried 1/24 this section might be outdated now but I wans't sure what to remove.
+
 The code for filling in gaps in concept subgraphs and displaying them as trees has never worked quite right -- though it usually is or seems right enough for people not to notice. But there have been a wide variety of edge cases like
 - The gaps aren't filled in correctly
 - Unneeded ancestors are added
