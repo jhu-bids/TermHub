@@ -565,9 +565,20 @@ def run_sql(con: Connection, command: str, params: Dict = {}) -> Any:
     return q
 
 
-def show_tables(con: Connection = None, print_dump=True) -> List[Row]:
-    """Show tables"""
-    conn = con if con else get_db_connection(schema=SCHEMA)
+# todo: should add a 'include_views' param because it is ambiguous as to whether or not this returns views. it does.
+def list_schema_objects(
+    con: Connection = None, schema=SCHEMA, filter_views=False, filter_sequences=False,
+    filter_temp_refresh_objects=False, filter_tables=False, names_only=False, verbose=True
+) -> Union[List[Row], List[str]]:
+    """Show tables
+
+    :param filter_temp_refresh_objects: Filters out any temporary tables/views that are created during the refresh, e.g.
+     ones that end w/ the suffix '_old' or '_new'.
+    """
+    if con and schema:
+        raise ValueError('`con` and `schema` params should not both be passed; choose one')
+    conn = con if con else get_db_connection(schema=schema)
+    # Query
     query = """
         SELECT n.nspname as "Schema", c.relname as "Name",
               CASE c.relkind WHEN 'r' THEN 'table' WHEN 'v' THEN 'view' WHEN 'm' THEN 'materialized view' WHEN 'i' THEN 'index' WHEN 'S' THEN 'sequence' WHEN 's' THEN 'special' WHEN 't' THEN 'TOAST table' WHEN 'f' THEN 'foreign table' WHEN 'p' THEN 'partitioned table' WHEN 'I' THEN 'partitioned index' END as "Type",
@@ -582,26 +593,32 @@ def show_tables(con: Connection = None, print_dump=True) -> List[Row]:
           AND pg_catalog.pg_table_is_visible(c.oid)
         ORDER BY 1,2;
     """
-    res = sql_query(conn, query, return_with_keys=False)
-    if print_dump:
+    res: List[Row] = sql_query(conn, query, return_with_keys=False)
+    if not con:
+        conn.close()
+    # Filter
+    if filter_tables:
+        res = [x for x in res if x[2] != 'table']
+    if filter_views:
+        res = [x for x in res if x[2] != 'view']
+    if filter_sequences:
+        res = [x for x in res if x[2] != 'sequence']
+    if filter_temp_refresh_objects:
+        res = [x for x in res if not x[1].endswith('_new') and not x[1].endswith('_old')]
+    # Print
+    if verbose:
         print(pd.DataFrame(res))
         # print('\n'.join([', '.join(r) for r in res])) ugly
         # print(pdump(res)) doesn't work
-    if not con:
-        conn.close()
+    # Format
+    if names_only:
+        res: List[str] = [x[1] for x in res]
     return res
 
 
-def list_views(con: Connection = None, filter_temp_refresh_views=False) -> List[str]:
-    """Get list of names of views"""
-    conn = con if con else get_db_connection(schema=SCHEMA)
-    table_data: List[Row] = show_tables(conn, print_dump=False)
-    views: List[str] = [x[1] for x in table_data if x[2] == 'view']
-    if filter_temp_refresh_views:
-        views = filter_temp_refresh_tables(views)
-    if not con:
-        conn.close()
-    return views
+def list_views(con: Connection = None, schema: str = SCHEMA, filter_temp_refresh_views=False) -> List[str]:
+    """Get list of names of views in schema"""
+    return list_schema_objects(con, schema, False, True, filter_temp_refresh_views, True, True, False)
 
 
 def load_csv(
@@ -690,24 +707,9 @@ def load_csv(
         update_db_status_var(f'last_updated_{table}', str(current_datetime()), local)
 
 
-def filter_temp_refresh_tables(tables: List[str]) -> List[str]:
-    """Filter temporary refresh tables/views from a list of table names"""
-    return [x for x in tables if not x.endswith('_new') and not x.endswith('_old')]
-
-
-def list_tables(con: Connection, schema: str = SCHEMA, _filter_temp_refresh_tables=False) -> List[str]:
-    """List tables
-    :param _filter_temp_refresh_tables: Filters out any temporary tables that are created during the refresh, e.g. ones
-    that end w/ the suffix '_old'."""
-    query = f"""
-        SELECT relname
-        FROM pg_stat_user_tables
-        WHERE schemaname in ('{schema}') ORDER BY 1;"""
-    result = run_sql(con, query)
-    tables: List[str] = [x[0] for x in result]
-    if _filter_temp_refresh_tables:
-        tables = filter_temp_refresh_tables(tables)
-    return tables
+def list_tables(con: Connection = None, schema: str = SCHEMA, _filter_temp_refresh_tables=False) -> List[str]:
+    """List table names in schema"""
+    return list_schema_objects(con, schema, True, True, _filter_temp_refresh_tables, names_only=True, verbose=False)
 
 
 def get_ddl_statements(
