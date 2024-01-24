@@ -35,7 +35,6 @@ ideas:
    - Could make combined vocabulary with edge attribute of bit string representing which vocab versions the edge exists in
    - Traverse from each node through predecessors (parents)....?
    - Missing in-betweens: is it possible to find them before gap filling?
-     - 
 
 ### Edge cases
 The code for filling in gaps in concept subgraphs and displaying them as trees has never worked quite right -- though it usually is or seems right enough for people not to notice. But there have been a wide variety of edge cases like
@@ -44,10 +43,10 @@ The code for filling in gaps in concept subgraphs and displaying them as trees h
 - The subgraph gap-filling or backend tree construction takes so long that it hangs
 - There's so many indented tree nodes that the browser slows to a crawl or crashes
 
-I'm realizing again that there are problems in the algorithm, so I'm going to use this space to try to plan out and document a new algorithm. This will be based on [graph testing](./graph-testing.md).
+I'm realizing again that there are problems in the algorithm, so I'm going to use this space to try to plan out and
+document a new algorithm. This will be based on [graph testing](./graph-testing.md).
 
-
-![img_1.png](screen-shots/gap-filling-algorithm.png)
+![screenshot](screen-shots/gap-filling-algorithm.png)
 
 ## Graph visualization
 I'd like to make a few test cases that include all the various edge cases that have to be handled. At least one small one that can be manually tinkered with and easy to understand and some big ones made with real data for testing front/back end performance and manageability and summarization features (collapsing many nodes into an expandable summary node.)

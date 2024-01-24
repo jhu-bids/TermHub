@@ -125,11 +125,13 @@ def get_connected_subgraph(
     # give hidden rxnorm ext count
     hidden: Dict[str, Set[int]] = {}
     csmi = set()
-    for vocab in hide_vocabs:
-        h = set([c['concept_id'] for c in _csmi if c['vocabulary_id'] == vocab])
-        if h:
-            hidden[vocab] = h
-        csmi.update([c for c in _csmi if c['vocabulary_id'] != vocab])
+    for vocab in hide_vocabs:   # for each vocab being hidden, separate out the concepts
+        hidden_concepts = set([c['concept_id'] for c in _csmi if c['vocabulary_id'] == vocab])
+        if hidden_concepts:
+            hidden[vocab] = hidden_concepts
+
+    hidden_concepts = set().union(*list(hidden.values()))
+    csmi.update([c for c in _csmi if c not in hidden_concepts])
 
     # Organize Concept IDs
     timer = get_timer('')
@@ -204,7 +206,7 @@ def connect_nodes(G, nodes):
     additional_nodes = set()  # nodes that will be added in order to connect nodes_to_connect
     sg = G.subgraph(nodes)
     for node in nodes:
-        if sg.in_degree(node) == 0:
+        if sg.in_degree(node) == 0:  # roots
             nodes_to_connect.add(node)
         else:
             nodes_already_connected.add(node)
