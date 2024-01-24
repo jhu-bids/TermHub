@@ -2,12 +2,15 @@
 ## Graph display for hierarchical table of concepts
 ### Requirements
 
-1. Display hierarchical list of all concepts of interest (i.e., in codesets of interest and possibly others found by search or vocab nav)
-2. Performance
+1. Display hierarchical list of all concepts of interest (i.e., in codesets of interest and possibly others found by search or vocab nav) 
+   a. Fill in gaps where included concepts are descendants of others but in-between nodes are not included. That is,
+      if we have unconnected graph, separate components, we would like to find if there are nodes in the graph that would connect
+      them. But now (unlike previous versions), we don't want to find ancestors of root nodes to connect stuff.
+3. Performance
    - Within specific time (e.g., 20 seconds)
    - Backend, frontend, user experience
       - Dynamic hide/display to allow for large sets of concepts
-3. Ordering of nodes
+4. Ordering of nodes
    - sibs: E.g. alphabetical, n descendants, patient/record counts
 
 
@@ -21,7 +24,12 @@ Accept input:
      - maximum depth, maximum nodes, ...
 1. Transform codeset_ids to concept_ids...
 2. Find all roots of subgraph (...)
-   
+
+#### Requirement 1.a.
+ideas:
+   - Find path between each node and all the nodes in other components -- will probably be too slow
+   - If node has descendants=True, don't nee
+
 ### Edge cases
 The code for filling in gaps in concept subgraphs and displaying them as trees has never worked quite right -- though it usually is or seems right enough for people not to notice. But there have been a wide variety of edge cases like
 - The gaps aren't filled in correctly
