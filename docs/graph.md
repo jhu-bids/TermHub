@@ -11,6 +11,7 @@ I'm realizing again that there are problems in the algorithm, so I'm going to us
 ### Steps
 1. Find all roots of subgraph (...)
 
+![img_1.png](screen-shots/gap-filling-algorithm.png)
 
 ## Graph visualization
 I'd like to make a few test cases that include all the various edge cases that have to be handled. At least one small one that can be manually tinkered with and easy to understand and some big ones made with real data for testing front/back end performance and manageability and summarization features (collapsing many nodes into an expandable summary node.)
