@@ -1,15 +1,24 @@
 # Documentation about vocabulary hierarchy algorithms and display
-## Graph display requirements and algorithm (for hierarchical table of concepts)
+## Graph display for hierarchical table of concepts
 ### Requirements
-1. Accept input:
+
+1. Display hierarchical list of all concepts of interest (i.e., in codesets of interest and possibly others found by search or vocab nav)
+2. Performance
+   - Within specific time (e.g., 20 seconds)
+   - Backend, frontend, user experience
+      - Dynamic hide/display to allow for large sets of concepts
+3. Ordering of nodes
+   - sibs: E.g. alphabetical, n descendants, patient/record counts
+
+
+### Algorithm
+Accept input:
    - list of codeset_ids
    - optionally, extra concept_ids
    - parameters:
      - vocabs to hide
      - other stuff to hide
      - maximum depth, maximum nodes, ...
-
-### Algorithm
 1. Transform codeset_ids to concept_ids...
 2. Find all roots of subgraph (...)
    
