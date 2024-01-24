@@ -106,8 +106,17 @@ DERIVED_TABLE_DEPENDENCY_MAP = {
     # Dependencies figured out
     # - tables
     # all_csets: omopconceptset is all lowercase in DB but referred to as OMOPConceptSet in DDL and enclave object API
-    'all_csets': ['code_sets', 'omopconceptset', 'concept_set_container', 'omopconceptsetcontainer',
-                  'concept_set_counts_clamped', 'cset_term_usage_rec_counts',  'codeset_counts', 'researcher'],
+    'all_csets': [
+        # - These two are dependencies on temp table 'cset_term_usage_rec_counts' which is created & deleted during
+        #   all_csets DDL runtime
+        'concept_set_members', 'concepts_with_counts',
+        # - These rest are just regular dependencies on all_csets
+        'code_sets', 'omopconceptset', 'concept_set_container', 'omopconceptsetcontainer',
+        'concept_set_counts_clamped',
+        # todo: see #1 below
+        # 'cset_term_usage_rec_counts',
+        'codeset_counts', 'researcher'
+    ],
     'codeset_counts': ['members_items_summary'],
     'codeset_ids_by_concept_id': ['cset_members_items'],
     'concept_ancestor_plus': ['concept_ancestor', 'concepts_with_counts'],
@@ -117,7 +126,8 @@ DERIVED_TABLE_DEPENDENCY_MAP = {
     'concepts_with_counts': ['concepts_with_counts_ungrouped'],
     'concepts_with_counts_ungrouped': ['concept', 'deidentified_term_usage_by_domain_clamped'],
     'cset_members_items': ['concept_set_members', 'concept_set_version_item'],
-    'cset_term_usage_rec_counts': ['concept_set_members', 'concepts_with_counts'],
+    # todo #1: If we're keeping cset_term_usage_rec_counts, it needs (i) its on DDL, and (ii) to be added back here
+    # 'cset_term_usage_rec_counts': ['concept_set_members', 'concepts_with_counts'],
     'members_items_summary': ['cset_members_items'],
 
     # - views
