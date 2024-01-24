@@ -1,5 +1,43 @@
 # Documentation about vocabulary hierarchy algorithms and display
-## 2024-01-03 update
+## Graph display for hierarchical table of concepts
+### Requirements
+
+1. Display hierarchical list of all concepts of interest (i.e., in codesets of interest and possibly others found by search or vocab nav) 
+   a. Fill in gaps where included concepts are descendants of others but in-between nodes are not included. That is,
+      if we have unconnected graph, separate components, we would like to find if there are nodes in the graph that would connect
+      them. But now (unlike previous versions), we don't want to find ancestors of root nodes to connect stuff.
+3. Performance
+   - Within specific time (e.g., 20 seconds)
+   - Backend, frontend, user experience
+      - Dynamic hide/display to allow for large sets of concepts
+4. Ordering of nodes
+   - sibs: E.g. alphabetical, n descendants, patient/record counts
+
+
+### Algorithm
+Accept input:
+   - list of codeset_ids
+   - optionally, extra concept_ids
+   - parameters:
+     - vocabs to hide
+     - other stuff to hide
+     - maximum depth, maximum nodes, ...
+1. Transform codeset_ids to concept_ids...
+2. Find all roots of subgraph (...)
+
+#### Requirement 1.a.
+ideas:
+   - Find path between each node and all the nodes in other components -- will probably be too slow
+   - If node has descendants=True, its descendants should already be connected to anything the root
+     is connected to -- **except** if vocabulary has changed and connecting nodes have become non-standard
+     and no longer show up in the concept_ancestor table and therefore in graph. This could be fixed if
+     we use the original vocabulary the concept set was expanded with.
+   - Could make combined vocabulary with edge attribute of bit string representing which vocab versions the edge exists in
+   - Traverse from each node through predecessors (parents)....?
+   - Missing in-betweens: is it possible to find them before gap filling?
+     - 
+
+### Edge cases
 The code for filling in gaps in concept subgraphs and displaying them as trees has never worked quite right -- though it usually is or seems right enough for people not to notice. But there have been a wide variety of edge cases like
 - The gaps aren't filled in correctly
 - Unneeded ancestors are added
@@ -8,8 +46,6 @@ The code for filling in gaps in concept subgraphs and displaying them as trees h
 
 I'm realizing again that there are problems in the algorithm, so I'm going to use this space to try to plan out and document a new algorithm. This will be based on [graph testing](./graph-testing.md).
 
-### Steps
-1. Find all roots of subgraph (...)
 
 ![img_1.png](screen-shots/gap-filling-algorithm.png)
 
