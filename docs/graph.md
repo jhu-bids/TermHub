@@ -28,7 +28,14 @@ Accept input:
 #### Requirement 1.a.
 ideas:
    - Find path between each node and all the nodes in other components -- will probably be too slow
-   - If node has descendants=True, don't nee
+   - If node has descendants=True, its descendants should already be connected to anything the root
+     is connected to -- **except** if vocabulary has changed and connecting nodes have become non-standard
+     and no longer show up in the concept_ancestor table and therefore in graph. This could be fixed if
+     we use the original vocabulary the concept set was expanded with.
+   - Could make combined vocabulary with edge attribute of bit string representing which vocab versions the edge exists in
+   - Traverse from each node through predecessors (parents)....?
+   - Missing in-betweens: is it possible to find them before gap filling?
+     - 
 
 ### Edge cases
 The code for filling in gaps in concept subgraphs and displaying them as trees has never worked quite right -- though it usually is or seems right enough for people not to notice. But there have been a wide variety of edge cases like
