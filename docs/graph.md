@@ -1,6 +1,17 @@
 # Documentation about vocabulary hierarchy algorithms and display
-## Graph display algorithm (for hierarchical table of concepts)
-1. Find all roots of subgraph (...)
+## Graph display requirements and algorithm (for hierarchical table of concepts)
+### Requirements
+1. Accept input:
+   - list of codeset_ids
+   - optionally, extra concept_ids
+   - parameters:
+     - vocabs to hide
+     - other stuff to hide
+     - maximum depth, maximum nodes, ...
+
+### Algorithm
+1. Transform codeset_ids to concept_ids...
+2. Find all roots of subgraph (...)
    
 ### Edge cases
 The code for filling in gaps in concept subgraphs and displaying them as trees has never worked quite right -- though it usually is or seems right enough for people not to notice. But there have been a wide variety of edge cases like
