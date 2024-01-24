@@ -1,5 +1,8 @@
 # Documentation about vocabulary hierarchy algorithms and display
-## 2024-01-03 update
+## Graph display algorithm (for hierarchical table of concepts)
+1. Find all roots of subgraph (...)
+   
+### Edge cases
 The code for filling in gaps in concept subgraphs and displaying them as trees has never worked quite right -- though it usually is or seems right enough for people not to notice. But there have been a wide variety of edge cases like
 - The gaps aren't filled in correctly
 - Unneeded ancestors are added
@@ -8,8 +11,6 @@ The code for filling in gaps in concept subgraphs and displaying them as trees h
 
 I'm realizing again that there are problems in the algorithm, so I'm going to use this space to try to plan out and document a new algorithm. This will be based on [graph testing](./graph-testing.md).
 
-### Steps
-1. Find all roots of subgraph (...)
 
 
 ## Graph visualization
