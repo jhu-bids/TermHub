@@ -98,6 +98,7 @@ issues.
 - [First graph.py](#first-graphpy): takes long time on server (minutes) and crashes browser
 - [Connects root nodes](#connects-root-nodes): Hoses server; gave up after close to an hour waiting for backend results.
 - [Small to large subset search for common ancestors](#small-to-large-subset-search-for-common-ancestors):
+  ![screenshot](screen-shots/large-to-small_many-small.png)
 - [Current](#current): about 20 seconds on server, but data is wrong --![img.png](screen-shots/5f80bfba-malignant-cancer.png)
 
 #### [Many small -- neurological](http://localhost:3000/cset-comparison?codeset_ids=1000002657&codeset_ids=241882304&codeset_ids=488007883&codeset_ids=1000087163)
