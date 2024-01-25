@@ -101,7 +101,8 @@ class TstGraph:
         with open(path, 'w') as f:
             f.write(json.dumps(results, indent=indent))
 
-    async def _create_inputs__get_connected_subgraph(self):
+    # this is not currently used. It needs modification after changes to get_connected_subgraph()
+    async def _create_inputs__get_connected_subgraph_NEEDS_REPAIR(self):
         """Test indented_concept_list()"""
         for test_type, test_name, codeset_ids, timeout_secs in [x.values() for x in self._get_test_cases()]:
             # Creat output files
@@ -130,11 +131,12 @@ class TstGraph:
                 else:
                     expected[k] = set(v)
             # Actual
-            sg, nodes_in_graph, preferred_concept_ids, orphans_not_in_graph, hidden = \
+            nodes_in_graph, missing_in_between_nodes, preferred_concept_ids, orphans_not_in_graph, hidden = \
                 get_connected_subgraph(REL_GRAPH, codeset_ids, EXTRA_CONCEPT_IDS, HIDE_VOCABS)
+            sg = REL_GRAPH.subgraph(nodes_in_graph.union(missing_in_between_nodes))
             actual = {
                 'sg.edges': set(sg.edges),
-                'nodes_in_graph': nodes_in_graph,
+                'nodes_in_graph': sg.nodes,
                 'preferred_concept_ids': preferred_concept_ids,
                 'orphans_not_in_graph': orphans_not_in_graph,
                 'hidden': hidden,

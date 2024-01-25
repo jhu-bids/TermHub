@@ -63,6 +63,8 @@ Fill in gaps where included concepts are descendants of others but in-between no
 have unconnected graph, separate components, we would like to find if there are nodes in the graph that would connect 
 them. But now (unlike previous versions), we don't want to find ancestors of root nodes to connect stuff.
 
+![screenshot](screen-shots/gap-filling-algorithm.png)
+
 #### Construct hierarchy 
 **Considerations**
 - Where I have `Set[Node]` or `List[Node]`, perhaps the `int` `concept_id`/`Node.id` is just as well or better. Not sure.
@@ -141,8 +143,6 @@ The code for filling in gaps in concept subgraphs and displaying them as trees h
 
 I'm realizing again that there are problems in the algorithm, so I'm going to use this space to try to plan out and
 document a new algorithm. This will be based on [graph testing](./graph-testing.md).
-
-![screenshot](screen-shots/gap-filling-algorithm.png)
 
 ## Graph visualization
 I'd like to make a few test cases that include all the various edge cases that have to be handled. At least one small one that can be manually tinkered with and easy to understand and some big ones made with real data for testing front/back end performance and manageability and summarization features (collapsing many nodes into an expandable summary node.)

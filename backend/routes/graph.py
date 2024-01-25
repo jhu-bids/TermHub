@@ -53,28 +53,22 @@ async def indented_concept_list(
     # Get Concept Set Members Items
     VERBOSE and timer('get_connected_subgraph')
 
-    sg, nodes_in_graph, preferred_concept_ids, orphans_not_in_graph, hidden = (
-        get_connected_subgraph(REL_GRAPH, codeset_ids, extra_concept_ids, hide_vocabs))
+    (nodes_in_graph, missing_in_between_nodes, preferred_concept_ids, orphans_not_in_graph,
+     hidden_nodes, hidden_dict) = get_connected_subgraph(REL_GRAPH, codeset_ids, extra_concept_ids, hide_vocabs)
+
+    sg = REL_GRAPH.subgraph(nodes_in_graph.union(missing_in_between_nodes))
 
     VERBOSE and timer('get roots')
-    # timer('get paths')
-    # testsg = REL_GRAPH.subgraph(nodes_in_graph)
-    # roots = [node for node, degree in testsg.in_degree() if degree == 0]
     roots = [node for node, degree in sg.in_degree() if degree == 0]
     leaves = [node for node, degree in sg.out_degree() if degree == 0]
 
+    # nodes that are both root and leaf, put in orphans_unlinked, remove from roots
     orphans_unlinked = set(roots).intersection(leaves)
     for o in orphans_unlinked:
         roots.remove(o)
 
     preferred_concept_ids.update(roots)
 
-    # paths = all_paths(sg, roots, leaves)
-    # timer('testing stuff')
-    #
-    # nodes_in_paths = set()
-    # for path in paths:
-    #     nodes_in_paths.update(path)
     # sg_nodes = set(sg.nodes)
     # print(f"sg \u2229 paths {len(sg_nodes.intersection(nodes_in_paths))}")
     # print(f"sg - paths {len(sg_nodes.difference(nodes_in_paths))}")
@@ -98,8 +92,8 @@ async def indented_concept_list(
             for orphan in orphans_unlinked:
                 tree.append((1, orphan))
 
-    for vocab in hidden.keys():
-        hidden_concept_ids = hidden[vocab]
+    for vocab in hidden_dict.keys():
+        hidden_concept_ids = hidden_dict[vocab]
         cnt = len(hidden_concept_ids)
         tree.append((0, f'Concept set also includes {cnt} {vocab} concepts not shown above'))
         if cnt <= hide_if_over:
@@ -123,15 +117,15 @@ def get_connected_subgraph(
     _csmi = get_cset_members_items(codeset_ids=codeset_ids)
     # concepts = get_concepts(extra_concept_ids)
     # give hidden rxnorm ext count
-    hidden: Dict[str, Set[int]] = {}
-    csmi = set()
+    hidden_dict: Dict[str, Set[int]] = {}
     for vocab in hide_vocabs:   # for each vocab being hidden, separate out the concepts
-        hidden_concepts = set([c['concept_id'] for c in _csmi if c['vocabulary_id'] == vocab])
-        if hidden_concepts:
-            hidden[vocab] = hidden_concepts
+        hidden_nodes = set([c['concept_id'] for c in _csmi if c['vocabulary_id'] == vocab])
+        if hidden_nodes:
+            hidden_dict[vocab] = hidden_nodes
 
-    hidden_concepts = set().union(*list(hidden.values()))
-    csmi.update([c for c in _csmi if c not in hidden_concepts])
+    hidden_nodes = set().union(*list(hidden_dict.values()))
+    csmi = set()
+    csmi.update([c for c in _csmi if c not in hidden_nodes])
 
     # Organize Concept IDs
     timer = get_timer('')
@@ -160,9 +154,9 @@ def get_connected_subgraph(
         c['concept_id'] for c in csmi
         if c['item'] and not c['concept_id'] in orphans_not_in_graph])
 
-    sg = connect_nodes(REL_GRAPH, nodes_in_graph).copy()
+    missing_in_between_nodes = get_missing_in_between_nodes(REL_GRAPH, nodes_in_graph).copy()
     # sg = connect_nodesOLD(REL_GRAPH, nodes_in_graph, preferred_concept_ids).copy()
-    return sg, nodes_in_graph, preferred_concept_ids, orphans_not_in_graph, hidden
+    return nodes_in_graph, missing_in_between_nodes, preferred_concept_ids, orphans_not_in_graph, hidden_nodes, hidden_dict
 
 
 @router.get("/indented-concept-list")
@@ -192,7 +186,7 @@ async def indented_concept_list_post(
         raise e
 
 
-def connect_nodes(G, nodes):
+def get_missing_in_between_nodes(G, nodes):
     """Connects all nodes to the nearest common ancestor.
     TODO: tell users when version is based on old vocab because connections might not be
           there anymore, or might require paths that weren't there when it was created
@@ -200,238 +194,51 @@ def connect_nodes(G, nodes):
     timer = get_timer('   ')
     nodes = set(nodes)
 
-    VERBOSE and timer('getting already connected nodes')
+    VERBOSE and timer('create subgraph')
     nodes_to_connect = set()  # gets smaller as nodes are connected by ancestors
     nodes_already_connected = set()
     additional_nodes = set()  # nodes that will be added in order to connect nodes_to_connect
     sg = G.subgraph(nodes)
-    for node in nodes:
-        if sg.in_degree(node) == 0:  # roots
-            nodes_to_connect.add(node)
-        else:
-            nodes_already_connected.add(node)
 
-    if len(nodes_to_connect) < 2:
-        VERBOSE and timer('done')
-        return sg
+    VERBOSE and timer('get leaves')
+    # roots = [node for node, degree in sg.in_degree() if degree == 0]
+    leaves = [node for node, degree in sg.out_degree() if degree == 0]
+    visited = set()
+    missing_in_between_nodes = set()
 
-    # set_size = 2
-    # while True:
-    #     found_ancestors = False
-    #     set_size += 1
-    # maybe will go faster from smaller to larger. With 50 nodes, it's taking -- probably hours
-    # combo_sizes = list(range(len(nodes_to_connect), 1, -1))
-    combo_sizes = list(range(2, len(nodes_to_connect)))
-    for i, set_size in enumerate(combo_sizes):
-        found_ancestors = False
-        VERBOSE and timer(f'getting common ancestor for {set_size} node combos')
-        for j, combo in enumerate(combinations(nodes_to_connect, set_size)):
-            common_ancestor, path_nodes = get_best_common_ancestor(G, combo)
-            if not common_ancestor:
-                continue
-            found_ancestors = True
+    def backwards_dfs(G, source):   # depth first search -- but with predecessors to go toward root
+        """
+        https://chat.openai.com/share/d018afbc-46f6-4b57-8fdb-46578acd8de2
+        Custom DFS generator that stops the search along a path when it reaches a visited node
 
-            additional_nodes.add(common_ancestor)
-            additional_nodes.update(path_nodes)
-            nodes_to_connect -= set(combo)
-            nodes_to_connect -= path_nodes
-            # was broken (commit b0dce49c), getting unneeded ancestors
-            # with http://127.0.0.1:8000/indented-concept-list?codeset_ids=1000062292
-            # it should have stopped at the following node, but kept going higher
-            # if 4239975 in additional_nodes:
-            #     pass
-            # try http://127.0.0.1:3000/cset-comparison?codeset_ids=1000062292&hierarchySettings=%7B%22collapsePaths%22%3A%7B%224180628%2F134057%2F321588%2F4239975%2F4124706%22%3Atrue%2C%224180628%2F440142%2F321588%2F4239975%2F4124706%22%3Atrue%2C%224023995%2F134057%2F321588%2F4239975%2F4124706%22%3Atrue%2C%224023995%2F4103183%2F321588%2F4239975%2F4124706%22%3Atrue%2C%2243531057%2F43531056%2F4043346%2F440142%2F321588%2F4239975%2F4124706%22%3Atrue%2C%2243531057%2F43531056%2F4043346%2F440142%2F321588%2F4239975%2F321319%22%3Atrue%2C%2243531057%2F4185503%2F4043346%2F440142%2F321588%2F4239975%2F4124706%22%3Atrue%2C%2243531057%2F4185503%2F4043346%2F440142%2F321588%2F4239975%2F321319%22%3Atrue%2C%224180628%2F134057%2F321588%2F4239975%2F321319%22%3Atrue%2C%224180628%2F440142%2F321588%2F4239975%2F321319%22%3Atrue%2C%224023995%2F134057%2F321588%2F4239975%2F321319%22%3Atrue%2C%224023995%2F4103183%2F321588%2F4239975%2F321319%22%3Atrue%7D%2C%22hideZeroCounts%22%3Atrue%7D
-            #   to see how it's doing now
-        if not found_ancestors:
-            # if we don't find common ancestors for all 3-node combos
-            #   we don't need to bother with 4-node combos
-            break
+        :param G: The graph
+        :param source: The starting node for DFS
+        :param stop_nodes: A set of nodes where the search should stop
+        :return: Yields nodes in the order they are visited
+        """
+        non_subgraph_nodes_seen = set()
+        stack = [source]
 
-    all_nodes = nodes.union(additional_nodes)
-    VERBOSE and timer(f'getting subgraph for {len(all_nodes)} nodes')
-    sg = G.subgraph(all_nodes)
+        while stack:
+            node = stack.pop()
+            if node not in visited:
+                if node in sg:
+                    if non_subgraph_nodes_seen:
+                        missing_in_between_nodes.update(non_subgraph_nodes_seen)
+                        non_subgraph_nodes_seen = set()
+                else:
+                    non_subgraph_nodes_seen.add(node)
+                # yield node    # if actually want nodes in dfs order, use this
+                visited.add(node)
+                next_level_up = reversed(list(G.predecessors(node)))
+                stack.extend(next_level_up)  # Add predecessors in reverse order for DFS
+
+    VERBOSE and timer('get missing nodes by doing backwards dfs')
+    for leaf in leaves:
+        backwards_dfs(G, leaf)
+
     VERBOSE and timer('done')
-    return sg
-
-
-def connect_nodesOLD(G, target_nodes, preferred_nodes: Iterable[int] = None):
-    """Connects all nodes in target_nodes to the nearest common ancestor.
-
-    preferred nodes are the version item nodes
-    They should be a subset of target_nodes
-    Besides those, only item members not descended from one of those needs
-    to be connected, but there shouldn't be any (unless their connection was
-    lost in vocabulary updates.)
-    TODO: tell users when version is based on old vocab because connections might not be
-          there anymore, or might require paths that weren't there when it was created
-    """
-    timer = get_timer('   ')
-    nodes_to_connect = set(preferred_nodes)  # gets smaller as nodes are connected by ancestors
-    target_nodes = set(target_nodes)
-    if nodes_to_connect.difference(target_nodes):
-        raise Exception(f"preferred_nodes should be a subset of target_nodes")
-
-    VERBOSE and timer('getting already connected nodes')
-    nodes_already_connected = set()
-
-    for a, b in combinations(nodes_to_connect, 2):
-        if a == b:
-            continue
-        try:
-            # if a in nodes_already_connected or b in nodes_already_connected:
-            #     continue
-            # even better, i think -- https://chat.openai.com/share/3070dc23-cfbe-4192-b374-4461dc8f6977
-            #   but then could use that in a better refactor -- not sure preferred_nodes is needed
-            #   or unrooted children if other stuff is done right
-            if nx.has_path(G, a, b):
-                nodes_to_connect.discard(b)
-                nodes_already_connected.add(b)
-            elif nx.has_path(G, b, a):
-                nodes_to_connect.discard(a)
-                nodes_already_connected.add(a)
-        except nx.NetworkXNoPath:
-            continue
-
-    # nodes_connected = set()         #
-    additional_nodes = set()  # nodes that will be added in order to connect nodes_to_connect
-
-    # Find nodes that are not connected any nodes_to_connect and add them.
-    #   The rest will already be connected when we create the subgraph.
-    VERBOSE and timer('getting unrooted children')
-    unrooted_children = get_unrooted_children(
-        G, nodes_to_connect, target_nodes.difference(nodes_to_connect))
-    if (unrooted_children):
-        # raise Exception("is this ever happening?")
-        # TODO: this does actually happen; add comment here about why
-        print(f"wasn't expecting to find unrooted children {str(unrooted_children)}") # except if vocab changes disconnected them from any other nodes
-        nodes_to_connect.update(unrooted_children)
-
-    if len(nodes_to_connect) < 2:
-        VERBOSE and timer(f'only one ancestor for {len(target_nodes)} nodes')
-        sg = G.subgraph(target_nodes)
-        VERBOSE and timer('done')
-        return sg
-
-    # maybe will go faster from smaller to larger. With 50 nodes, it's taking -- probably hours
-    # combo_sizes = list(range(len(nodes_to_connect), 1, -1))
-    combo_sizes = list(range(len(nodes_to_connect), 2))
-    for i, set_size in enumerate(combo_sizes):
-        found_ancestors = False # if we don't find common ancestors for all 3-node combos
-                                #   we don't need to bother with 4-node combos
-        VERBOSE and timer(f'getting common ancestor for {set_size} node combos')
-        for j, combo in enumerate(combinations(nodes_to_connect, set_size)):
-            common_ancestor, path_nodes = get_best_common_ancestor(G, combo)
-            if not common_ancestor:
-                continue
-            found_ancestors = True
-
-            # nodes_connected.update(combo)
-            additional_nodes.add(common_ancestor)
-            additional_nodes.update(path_nodes)
-
-            # was broken (commit b0dce49c), getting unneeded ancestors
-            # with http://127.0.0.1:8000/indented-concept-list?codeset_ids=1000062292
-            # it should have stopped at the following node, but kept going higher
-            # if 4239975 in additional_nodes:
-            #     pass
-            # try http://127.0.0.1:3000/cset-comparison?codeset_ids=1000062292&hierarchySettings=%7B%22collapsePaths%22%3A%7B%224180628%2F134057%2F321588%2F4239975%2F4124706%22%3Atrue%2C%224180628%2F440142%2F321588%2F4239975%2F4124706%22%3Atrue%2C%224023995%2F134057%2F321588%2F4239975%2F4124706%22%3Atrue%2C%224023995%2F4103183%2F321588%2F4239975%2F4124706%22%3Atrue%2C%2243531057%2F43531056%2F4043346%2F440142%2F321588%2F4239975%2F4124706%22%3Atrue%2C%2243531057%2F43531056%2F4043346%2F440142%2F321588%2F4239975%2F321319%22%3Atrue%2C%2243531057%2F4185503%2F4043346%2F440142%2F321588%2F4239975%2F4124706%22%3Atrue%2C%2243531057%2F4185503%2F4043346%2F440142%2F321588%2F4239975%2F321319%22%3Atrue%2C%224180628%2F134057%2F321588%2F4239975%2F321319%22%3Atrue%2C%224180628%2F440142%2F321588%2F4239975%2F321319%22%3Atrue%2C%224023995%2F134057%2F321588%2F4239975%2F321319%22%3Atrue%2C%224023995%2F4103183%2F321588%2F4239975%2F321319%22%3Atrue%7D%2C%22hideZeroCounts%22%3Atrue%7D
-            #   to see how it's doing now
-            nodes_to_connect -= set(combo)
-            nodes_to_connect -= path_nodes
-
-            # if nodes_to_connect.difference(unrooted_children):
-            #     # not done yet
-            #     if preferred_nodes.difference(nodes_connected):    # sanity check
-            #         continue
-            #     else:
-            #         raise Exception("wasn't expecting that!")
-            # else:
-            #     if preferred_nodes.difference(nodes_already_connected).difference(nodes_connected):
-            #         # sanity check
-            #         raise Exception("wasn't expecting that!")
-            #     else:
-            #         everything_is_connected = True
-            # raise Exception("something went wrong in connect_nodes")
-        if not found_ancestors:
-            break
-
-    all_nodes = target_nodes.union(additional_nodes)
-    VERBOSE and timer(f'getting subgraph for {len(all_nodes)} nodes')
-    sg = G.subgraph(all_nodes)
-    VERBOSE and timer('done')
-    return sg
-
-
-def get_best_common_ancestor(G, nodes):
-    all_ancestors = [set(nx.ancestors(G, node)) for node in nodes]
-    common_ancestors = set.intersection(*all_ancestors)
-
-    if not common_ancestors:
-        return None, None
-
-    # TODO: this will go a lot faster if we keep track of ancestors we've
-    #   already found
-    # path_nodes = set()
-    paths = {}
-
-    # if len(nodes) * len(common_ancestors) < 10000:  # 10000 is arbitrary, but this can get very slow for large csets
-
-    if len(common_ancestors) == 1:
-        common_ancestor = common_ancestors.pop()
-        for node in nodes:
-            path = nx.shortest_path(G, common_ancestor, node)
-            return common_ancestor, set(path[1: -1])
-            # path_nodes.update(path[1: -1])
-
-    elif len(common_ancestors) > 1:
-        max_distances = {}
-        for ca in common_ancestors:
-            for node in nodes:
-                path = nx.shortest_path(G, ca, node)
-                paths[ca] = path
-                # path_nodes.update(path[1: -1])
-                max_distances[ca] = max([len(path) - 1 for tn in nodes])
-
-        min_distance = min(max_distances.values())
-        min_distance_ancestors = [node for node, dist in max_distances.items() if dist == min_distance]
-        if len(min_distance_ancestors) != 1:
-            warnings.warn(f"can't choose best ancestor from {str(min_distance_ancestors)} for {str(nodes)}")
-
-        common_ancestor = min_distance_ancestors[0]
-        path = paths[common_ancestor]
-        return common_ancestor, set(path[1: -1])
-
-    # else:
-    #     raise Exception(f"get_best_ancestor broken for {str(nodes)}")
-    # return common_ancestor, path_nodes
-    raise Exception(f"get_best_ancestor broken for {str(nodes)}")
-
-
-def distance_to_root(G, node):
-    n = node
-    d = 0
-    for p in G.predecessors(node):
-        if n in G_ROOTS:
-            return d
-        d += 1
-        n = p
-    raise Exception(f"can't find root for {node}")
-
-
-def get_unrooted_children(G, roots, children):
-    unrooted = []
-    for child in children:
-        rooted = False
-        for root in roots:
-            try:
-                if nx.has_path(G, root, child):
-                    rooted = True
-                    break
-            except nx.NetworkXNoPath:
-                continue
-        if not rooted:
-            unrooted.append(child)
-    return unrooted
+    return missing_in_between_nodes
 
 
 def get_indented_tree_nodes(sg, preferred_concept_ids=[], max_depth=3, max_children=20, small_graph_threshold=2000):
@@ -544,10 +351,10 @@ async def concept_graph_post(
 
     try:
         # sg, filled_gaps = fill_in_gaps(REL_GRAPH, id, return_missing=True)
-        (sg, nodes_in_graph, preferred_concept_ids,
-         orphans_not_in_graph, hidden) = get_connected_subgraph(
-            REL_GRAPH, codeset_ids, concept_ids, hide_vocabs=['RxNorm Extension'])
-        filled_gaps = set(sg.nodes).difference(codeset_ids)
+        (nodes_in_graph, missing_in_between_nodes, preferred_concept_ids, orphans_not_in_graph, hidden_nodes,
+         hidden_dict) = get_connected_subgraph(REL_GRAPH, codeset_ids, concept_ids,
+                                               hide_vocabs=['RxNorm Extension'])
+        sg = REL_GRAPH.subgraph(nodes_in_graph.union(missing_in_between_nodes))
         layout = 'not implemented'
         # raise Exception("Not implemented")
         # P = to_pydot(sg)
@@ -560,7 +367,7 @@ async def concept_graph_post(
     except Exception as e:
         await rpt.log_error(e)
         raise e
-    return {'edges': list(sg.edges), 'layout': layout, 'filled_gaps': filled_gaps}
+    return {'edges': list(sg.edges), 'layout': layout, 'filled_gaps': missing_in_between_nodes}
 
 
 # def fill_in_gaps(G, codeset_ids, return_missing=False):
@@ -889,12 +696,15 @@ else:
         warnings.warn('not loading relationship graph')
     else:
         REL_GRAPH = load_relationship_graph(save_if_not_exists=True)
-        G_ROOTS = set([n for n in REL_GRAPH.nodes if REL_GRAPH.in_degree(n) == 0])
+        # REVERSE_GRAPH = REL_GRAPH.reverse()
 
-    # The resason this exists below is because we were not sure if, when a variable is imported by multiple files, the
-    # code gets run multiple times.
-    # if CONFIG['importer'] == 'app.py':
-    #     # REL_GRAPH, REL_GRAPH_UNDIRECTED = load_relationship_graph(save_if_not_exists=True)
-    #     REL_GRAPH = load_relationship_graph(save_if_not_exists=True)
-    # else:
-    #     print(f"Imported from {CONFIG['importer']}, not loading relationship graphs")
+        # G_ROOTS = set([n for n in REL_GRAPH.nodes if REL_GRAPH.in_degree(n) == 0])
+        # def distance_to_root(G, node):
+        #     n = node
+        #     d = 0
+        #     for p in G.predecessors(node):
+        #         if n in G_ROOTS:
+        #             return d
+        #         d += 1
+        #         n = p
+        #     raise Exception(f"can't find root for {node}")

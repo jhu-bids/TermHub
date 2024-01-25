@@ -38,8 +38,7 @@ issues.
 - [MALIGNANT CANCER](#malignant-cancer) (fails)
 - [Many small -- neurological](#many-small-neurological) (seems fine)
 
-
-### [Minor changes from Connects root nodes](https://github.com/jhu-bids/TermHub/compare/04d5699d..708ee558#diff-c98c490c3ff03167df87266a76886ca4b398141c13b02a66999e71ec45c889d7)
+### [Minor changes from Connects root nodes](https://github.com/jhu-bids/TermHub/compare/9f6f82b..89863ba9)
 - _[89863ba9](https://github.com/jhu-bids/TermHub/commit/89863ba9)_ 2023-12-04
   - For [Many small -- neurological](#many-small-neurological) identical output to Connects root nodes, but graph.py code is
     somewhat different. May be worth testing this on other cases.
@@ -65,7 +64,8 @@ issues.
   - On 2024-01-11, this is the commit deployed on dev
 
 
-### _[7adafa3c](https://github.com/jhu-bids/TermHub/commit/7adafa3c)_ 2023-12-15
+### [Not sure; haven't inspected](https://github.com/jhu-bids/TermHub/compare/708ee558..7adafa3c)
+_[7adafa3c](https://github.com/jhu-bids/TermHub/commit/7adafa3c)_ 2023-12-15
 - There was a problem with indented trees sometimes coming out huge
   even when the graphs were smallish. Fixed it. Stephanie had been
   having a problem with browser crashing or hanging a long time with
@@ -73,20 +73,24 @@ issues.
   which should be fine now
 
 
-### _[194b52c9](https://github.com/jhu-bids/TermHub/commit/194b52c9)_ 2023-12-18
+### [Simplified version](https://github.com/jhu-bids/TermHub/compare/7adafa3c..194b52c9)
+_[194b52c9](https://github.com/jhu-bids/TermHub/commit/194b52c9)_ 2023-12-18
 - made simplified version of `connect_nodes`. definitely different output
   on some csets (not all). neither is correct though. i wonder if an
   earlier commit has better results
 - added all the tests to the `graph_tst` csv
 
 
-### Current
+### [Minor changes, I think](https://github.com/jhu-bids/TermHub/compare/194b52c9..29ce57d)
 - Base case for `tst_graph`: _[29ce57d](https://github.com/jhu-bids/TermHub/commit/29ce57d)_ 2024-01-08;
   no graph algorithm changes in these subsequent commits.
 - _[29ce57d2](https://github.com/jhu-bids/TermHub/commit/29ce57d2)_ 2024-12-08
 - _[51bf3851](https://github.com/jhu-bids/TermHub/commit/51bf3851)_ 2024-01-10
 - _[5f80bfba](https://github.com/jhu-bids/TermHub/commit/5f80bfba)_ 2024-01-18
 
+### Backwards DFS
+_[c18773b6](https://github.com/jhu-bids/TermHub/commit/c18773b6)_ 2024-01-25
+- See [diagram](https://github.com/jhu-bids/TermHub/blob/develop/docs/graph.md#gap-filling)
 
 ## Test cases
 
@@ -99,7 +103,7 @@ issues.
 - [Connects root nodes](#connects-root-nodes): Hoses server; gave up after close to an hour waiting for backend results.
 - [Small to large subset search for common ancestors](#small-to-large-subset-search-for-common-ancestors):
   ![screenshot](screen-shots/large-to-small_many-small.png)
-- [Current](#current): about 20 seconds on server, but data is wrong --![img.png](screen-shots/5f80bfba-malignant-cancer.png)
+- [Minor changes](#minor-changes-i-think): about 20 seconds on server, but data is wrong --![img.png](screen-shots/5f80bfba-malignant-cancer.png)
 
 #### [Many small -- neurological](http://localhost:3000/cset-comparison?codeset_ids=1000002657&codeset_ids=241882304&codeset_ids=488007883&codeset_ids=1000087163)
 - [First graph.py](#first-graphpy)
@@ -108,16 +112,16 @@ issues.
       ![screen shot](screen-shots/eb27fa7-many-small.png)
 - [Connects root nodes](#connects-root-nodes)
     - ![screen shot](screen-shots/9f6f82b-many-small.png)
-- [Current](#current):
+- [Minor changes](#minor-changes-i-think):
   - Multiple sclerosis (374919) unnecessarily duplicated. Apparently Schilder's disease
     would have been an orphan except for including common ancestor with Multiple sclerosis;
     but included too many common ancestors and second copy of Multiple sclerosis appears
     unnecesarily under another ancestor with no other children.
     ![screen shot](screen-shots%2F5f80bfba-many-small.png)
+- [Backwards DFS](#backwards-dfs):
+![screenshot](screen-shots/backwards-dfs.png) (commit hash on the screenshot is wrong)
 
 #### [CEREBROVASCULAR DISEASE](http://localhost:3000/cset-comparison?codeset_ids=718894835&codeset_ids=1000017855)
-
-
 
 
 #### [CARDIOMYOPATHIES](http://localhost:3000/cset-comparison?codeset_ids=35275316&codeset_ids=1000062292)
