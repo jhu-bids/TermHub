@@ -104,6 +104,15 @@ _[c18773b6](https://github.com/jhu-bids/TermHub/commit/c18773b6)_ 2024-01-25
 - [Small to large subset search for common ancestors](#small-to-large-subset-search-for-common-ancestors):
   ![screenshot](screen-shots/large-to-small_many-small.png)
 - [Minor changes](#minor-changes-i-think): about 20 seconds on server, but data is wrong --![img.png](screen-shots/5f80bfba-malignant-cancer.png)
+- [Backwards DFS](#backwards-dfs):
+  - Graph construction and gap filling is quite fast, but `get_indented_tree_nodes` takes a
+    very long time. It does finish, though, and gives a lot more concepts. But even if I add
+    up all the hidden children and all the concepts (which will certainly have some double
+    counting), it still comes out to around 12K, which is a lot less than 53K.
+  - Stepping through backend, before calling `get_indented_tree_nodes`, sg has
+    55K concepts; so it must be `get_indented_tree_nodes` that's losing concepts.
+    Maybe the gap filling algorithms have been working? The newer one seems better,
+    but we might want to do some testing and comparison across algorithms.
 
 #### [Many small -- neurological](http://localhost:3000/cset-comparison?codeset_ids=1000002657&codeset_ids=241882304&codeset_ids=488007883&codeset_ids=1000087163)
 - [First graph.py](#first-graphpy)
@@ -119,7 +128,7 @@ _[c18773b6](https://github.com/jhu-bids/TermHub/commit/c18773b6)_ 2024-01-25
     unnecesarily under another ancestor with no other children.
     ![screen shot](screen-shots%2F5f80bfba-many-small.png)
 - [Backwards DFS](#backwards-dfs):
-![screenshot](screen-shots/backwards-dfs.png) (commit hash on the screenshot is wrong)
+  ![screenshot](screen-shots/backwards-dfs.png) (commit hash on the screenshot is wrong)
 
 #### [CEREBROVASCULAR DISEASE](http://localhost:3000/cset-comparison?codeset_ids=718894835&codeset_ids=1000017855)
 
