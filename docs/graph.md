@@ -20,6 +20,8 @@ situations. This could be (a) all of the as all of the concept set members after
 part of those concept set members. Or (b), 'a', minus concepts from filtered out vocabs (e.g. RxNorm Extension). It
 could also be (c) 'b', plus any missing in-betweens we'd find later.
 
+**Preferred nodes**: 
+
 ## Graph display for hierarchical table of concepts
 
 ### Requirements
@@ -48,26 +50,29 @@ Input params:
      - `maximum_nodes: int`
      - ...
 1. Transform `codeset_ids` to `concept_ids`...
-2. Find all roots of subgraph (...)
-3. Any steps in between?
-4. Construct hierarchy
+2. Get networkx subgraph object
+  - This will consist of disconnected 'components' that we have to connect through gap filling.
+3. Find all roots
+4. Any steps in between?
 5. Gap filling
-6. Dynamic subgraph: Display only n (~2,000) nodes
+6. Hide nodes (dynamic subgtree)
+  - Display only n (~2,000) nodes
 
 #### Gap filling 
-We thought there would be a separate sub-algorithm for this, but if I'm correct, this should actually automatically be
-done by the "construct hierarchy" algorithm.
-
-Description:
+**Description**
 Fill in gaps where included concepts are descendants of others but in-between nodes are not included. That is, if we 
 have unconnected graph, separate components, we would like to find if there are nodes in the graph that would connect 
 them. But now (unlike previous versions), we don't want to find ancestors of root nodes to connect stuff.
 
 ![screenshot](screen-shots/gap-filling-algorithm.png)
+Live diagram: https://app.diagrams.net/#G1mIthDUn4T1y1G3BdupdYKPkZVyQZ5XYR
 
-#### Construct hierarchy 
-**Considerations**
-- Where I have `Set[Node]` or `List[Node]`, perhaps the `int` `concept_id`/`Node.id` is just as well or better. Not sure.
+<details><summary>Outdated</summary>
+<p>
+
+> [!WARNING]  
+> TODO: The part in 'Outdated' below is incorrect and out of date, and either (a) needs to be updated to reflect the current code, or (b) discarded completely. Originally Joe had created an algorithm to do things differently, where we identify the leaf nodes and then construct a hierarchy all in one go, including the missing in-betweens. But what we went with instead is (i) create a partially disconnected graph consisting of only the nodes in the expansion, (ii) gap fill.
+
 
 **Input params**
 - `leaf_nodes: Set[Node] `: IDK if this is as simple as using a pre-existing `networkx` or if it requires more coding on
@@ -122,7 +127,10 @@ ideas 2024/01/24 ~11am _(I don't know if these are still relevant after coding u
    - Traverse from each node through predecessors (parents)....?
    - Missing in-betweens: is it possible to find them before gap filling?
 
-#### Dynamic subgraphs
+</p>
+</details> 
+
+#### Hide nodes (Dynamic subtree)
 [Dynamic subtrees (collapsing many lines to one) #602](https://github.com/jhu-bids/TermHub/issues/602)
 
 Crux of algorithm:
