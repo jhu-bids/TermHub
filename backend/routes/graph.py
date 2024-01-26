@@ -187,7 +187,7 @@ async def indented_concept_list_post(
 
 
 def get_missing_in_between_nodes(G, nodes):
-    """Connects all nodes to the nearest common ancestor.
+    """Get missing in-between nodes.
     TODO: tell users when version is based on old vocab because connections might not be
           there anymore, or might require paths that weren't there when it was created
     """
@@ -223,13 +223,16 @@ def get_missing_in_between_nodes(G, nodes):
             node = stack.pop()
             if node not in visited:
                 if node in sg:
+                    # TODO: fix case where we visit 7, finish it and its parents, then go down to 6, which is in the sg
+                    #  - keep track of last node looked at?
                     if non_subgraph_nodes_seen:
                         missing_in_between_nodes.update(non_subgraph_nodes_seen)
                         non_subgraph_nodes_seen = set()
                 else:
                     non_subgraph_nodes_seen.add(node)
-                # yield node    # if actually want nodes in dfs order, use this
+                # yield node   # if actually want nodes in dfs order, use this
                 visited.add(node)
+                # reverse(): doesn't matter for reality; nodes don't have natural order but helps read diagram
                 next_level_up = reversed(list(G.predecessors(node)))
                 stack.extend(next_level_up)  # Add predecessors in reverse order for DFS
 
@@ -297,10 +300,14 @@ def get_indented_tree_nodes(sg, preferred_concept_ids=[], max_depth=3, max_child
     return tree
 
 
+# TODO: Make test case to reflect diagram - https://app.diagrams.net/#G1mIthDUn4T1y1G3BdupdYKPkZVyQZ5XYR
+#  - for parents at top not in graph:, label like such. if one in the graph is '1', parents out of graph are 1p1, 1p2.
+#  if want further ancestry, 1p1p1, etc.
 # test code for the above:
 # G = nx.DiGraph([('a','b'), ('a','c'), ('b','d'), ('b','e'), ('c','f'), ('2', 'c'), ('1', '2'), ('1', 'a')])
 # target_nodes = ['d', 'e', 'f']
 # assert connect_roots(G, target_nodes).edges == nx.DiGraph([('a','b'), ('a','c'), ('b','d'), ('b','e'), ('c','f')]).edges
+# TODO: make sure it found missing in between nodes 5, 7, and 17 and that this is the only diff
 # print(list(connect_roots(G, target_nodes).edges))
 
 # test tree paths:
