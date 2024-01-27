@@ -20,7 +20,7 @@ situations. This could be (a) all of the as all of the concept set members after
 part of those concept set members. Or (b), 'a', minus concepts from filtered out vocabs (e.g. RxNorm Extension). It
 could also be (c) 'b', plus any missing in-betweens we'd find later.
 
-**Preferred nodes**: 
+**Preferred nodes**: TODO
 
 ## Graph display for hierarchical table of concepts
 
@@ -38,6 +38,16 @@ eleborate on that?).
       - Dynamic hide/display to allow for large sets of concepts
 3. Ordering of nodes
    - sibs: E.g. alphabetical, n descendants, patient/record counts
+4. Caching
+  - Should we cache the hierarchy of every cset by itself?
+  - Should we cache some popular comparisons as well?
+  - Cache most/all comparisons users request
+  - For each cset/comparison, cache for multiple vocabularies?
+  - For each cset/comparison, cache multiple levels of hiddenness?
+    - Default level of hiding (e.g. 2k concepts)
+    - Full tree, perhaps depending on how many cocepts
+    - Before/after hiding vocabs (e.g. RxNorm Extension)
+    - Pre-made buckets?: e.g. 2k, 4k, 6k, etc, rather as alternative to mechanism to arbitrarily show/hide beneath a single node
 
 ### Algorithm
 Input params:
@@ -55,8 +65,13 @@ Input params:
 3. Find all roots
 4. Any steps in between?
 5. Gap filling
-6. Hide nodes (dynamic subgtree)
+6. Hiding concepts by filtered vocab
+7. Hiding: dynamic subtree
   - Display only n (~2,000) nodes
+
+#### Algorithm considrations
+- Should "Hiding concepts by filtered vocab" come towards the beginning, or towards the end?
+
 
 #### Gap filling 
 **Description**
