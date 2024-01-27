@@ -4,7 +4,7 @@ import os, warnings
 # import io
 from pathlib import Path
 
-from typing import Iterable, List, Set, Union, Dict, Optional
+from typing import Any, Iterable, List, Set, Union, Dict, Optional
 from collections import defaultdict
 from itertools import combinations
 
@@ -186,7 +186,7 @@ async def indented_concept_list_post(
         raise e
 
 
-def get_missing_in_between_nodes(G, nodes):
+def get_missing_in_between_nodes(G: nx.DiGraph, nodes: Iterable[Any]) -> Set[Any]:
     """Get missing in-between nodes.
     TODO: tell users when version is based on old vocab because connections might not be
           there anymore, or might require paths that weren't there when it was created
@@ -198,15 +198,17 @@ def get_missing_in_between_nodes(G, nodes):
     nodes_to_connect = set()  # gets smaller as nodes are connected by ancestors
     nodes_already_connected = set()
     additional_nodes = set()  # nodes that will be added in order to connect nodes_to_connect
-    sg = G.subgraph(nodes)
+    sg: nx.DiGraph = G.subgraph(nodes)
 
     VERBOSE and timer('get leaves')
     # roots = [node for node, degree in sg.in_degree() if degree == 0]
+    # TODO: Bug: leaves: 2, 4, 11, 15, and 20 included. it considers peripherals = leaf cuz non-directed
     leaves = [node for node, degree in sg.out_degree() if degree == 0]
     visited = set()
     missing_in_between_nodes = set()
 
-    def backwards_dfs(G, source):   # depth first search -- but with predecessors to go toward root
+    # TODO: Broken: test case results in 0 missing_in_between_nodes
+    def backwards_dfs(G: nx.DiGraph, source):   # depth first search -- but with predecessors to go toward root
         """
         https://chat.openai.com/share/d018afbc-46f6-4b57-8fdb-46578acd8de2
         Custom DFS generator that stops the search along a path when it reaches a visited node
@@ -300,33 +302,48 @@ def get_indented_tree_nodes(sg, preferred_concept_ids=[], max_depth=3, max_child
     return tree
 
 
-# TODO: Make test case to reflect diagram - https://app.diagrams.net/#G1mIthDUn4T1y1G3BdupdYKPkZVyQZ5XYR
-#  - for parents at top not in graph:, label like such. if one in the graph is '1', parents out of graph are 1p1, 1p2.
-#  if want further ancestry, 1p1p1, etc.
-# test code for the above:
-# G = nx.DiGraph([('a','b'), ('a','c'), ('b','d'), ('b','e'), ('c','f'), ('2', 'c'), ('1', '2'), ('1', 'a')])
-# target_nodes = ['d', 'e', 'f']
-# assert connect_roots(G, target_nodes).edges == nx.DiGraph([('a','b'), ('a','c'), ('b','d'), ('b','e'), ('c','f')]).edges
-# TODO: make sure it found missing in between nodes 5, 7, and 17 and that this is the only diff
-# print(list(connect_roots(G, target_nodes).edges))
+nodes_from_edges = lambda edges : set(x for edge in edges for x in edge)
 
-# test tree paths:
-# G = nx.DiGraph([('a','b'), ('a','c'), ('b','d'), ('b','e'), ('c','f'), ('2', 'c'), ('1', '2'), ('1', 'a')])
-# sg = G.subgraph(['a', 'b', 'c', 'd', 'e', 'f', '1', '2'])
-# assert set(sg.edges) == set([('a','b'), ('a','c'), ('b','d'), ('b','e'), ('c','f'), ('2', 'c'), ('1', '2'), ('1', 'a')])
-# assert tree_paths = get_indented_tree_nodes(sg) == [ (0, '1'), (1, '2'), (2, 'c'), (3, 'f'), (1, 'a'), (2, 'b'), (3, 'd'), (3, 'e'), (2, 'c'), (3, 'f'), (3, 'c') ]
-# assert print_tree_paths(tree_paths) == """
-# 1
-#     2
-#         c
-#             f
-#     a
-#         b
-#             d
-#             e
-#         c
-#             f
-# """
+
+def tst_graph_code():
+    """Tests for graph related functionality"""
+    # - Test: Gap filling
+    #   Source: depth first of https://app.diagrams.net/#G1mIthDUn4T1y1G3BdupdYKPkZVyQZ5XYR
+    # test code for the above:
+    #   - edges
+    def_expansion_edges = [
+        (2, 1), (2, 8), (4, 3), (4, 10), (10, 9), (10, 12), (11, 10), (11, 13), (15, 14), (15, 18), (20, 16), (20, 19)]
+    missing_in_between_edges = [(8, 7), (7, 5), (5, 4), (18, 17), (17, 16)]
+    outside_scope_edges = [
+        ('root', '2p1'), ('2p1', 2), ('root', '2p2'), ('2p2', 2), ('root', 'cloud'), ('cloud', 8), ('cloud', 6), (6, 5),
+        (6, 11), (6, 17), ('cloud', 15), ('cloud', 20)]
+    #   - nodes
+    def_expansion_nodes: Set = nodes_from_edges(def_expansion_edges)
+    missing_in_between_nodes = {7, 5, 17}
+    # missing_in_between_nodes = def_expansion_nodes.difference(nodes_from_edges(missing_in_between_edges))  # works
+    #   - compute
+    g = nx.DiGraph(def_expansion_edges + missing_in_between_edges + outside_scope_edges)
+    #   - test
+    # TODO: Fails. get to pass
+    assert get_missing_in_between_nodes(g, def_expansion_nodes) == missing_in_between_nodes
+
+    # - Test: tree paths:
+    # G = nx.DiGraph([('a','b'), ('a','c'), ('b','d'), ('b','e'), ('c','f'), ('2', 'c'), ('1', '2'), ('1', 'a')])
+    # sg = G.subgraph(['a', 'b', 'c', 'd', 'e', 'f', '1', '2'])
+    # assert set(sg.edges) == set([('a','b'), ('a','c'), ('b','d'), ('b','e'), ('c','f'), ('2', 'c'), ('1', '2'), ('1', 'a')])
+    # assert tree_paths = get_indented_tree_nodes(sg) == [ (0, '1'), (1, '2'), (2, 'c'), (3, 'f'), (1, 'a'), (2, 'b'), (3, 'd'), (3, 'e'), (2, 'c'), (3, 'f'), (3, 'c') ]
+    # assert print_tree_paths(tree_paths) == """
+    # 1
+    #     2
+    #         c
+    #             f
+    #     a
+    #         b
+    #             d
+    #             e
+    #         c
+    #             f
+    # """
 
 
 def condense_super_nodes(sg, threshhold=10):
@@ -685,6 +702,7 @@ LOAD_RELGRAPH = True
 
 if __name__ == '__main__':
     pass
+    # - Pre 2024/01/26
     # create_rel_graphs(save_to_pickle=True)
     # G = for_testing()
     # sg = G.subgraph(1,9)
@@ -692,6 +710,8 @@ if __name__ == '__main__':
     # sg = connected_subgraph_from_nodes(G, [3, 7, 12])
     # j = graph_to_json(sg)
     # pdump(j)
+    # - 2024/01/26
+    tst_graph_code()
 else:
 
     # if you don't want graph loaded, then somewhere up in the import tree, do this
