@@ -62,11 +62,12 @@ def refresh_voc_and_counts(skip_downloads: bool = False, schema=SCHEMA):
                 # todo: set variable for 'last updated' for each table (look at load())
                 #  - consider: check if table already updated sooner than last_updated_them. if so, skip. and add a param to CLI for this
             print('Creating indexes')
-            statements: List[str] = get_ddl_statements(schema, ['indexes'], 'flat')
+            statements: List[str] = get_ddl_statements(schema, ['indexes'], return_type='flat')
             for statement in statements:
                 run_sql(con, statement)
             # print('Recreating derived tables')  # printed w/in refresh_derived_tables()
             refresh_any_dependent_tables(con, config['tables'])
+
             # Report done & do counts
             update_db_status_var(config['last_updated_termhub_var'], current_datetime())
             counts_update('DB refresh.', schema)

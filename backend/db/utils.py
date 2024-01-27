@@ -144,6 +144,7 @@ def refresh_derived_tables(
     t0 = datetime.now()
     hash_num = '_' + str(randint(10000000, 99999999))
     for module in ddl_modules_queue:
+        t0_2 = datetime.now()
         print(f' - creating new table/view: {module}...')
         statements: List[str] = get_ddl_statements(schema, [module], temp_table_suffix, hash_num, 'flat')
         for statement in statements:
@@ -151,6 +152,7 @@ def refresh_derived_tables(
         # todo: warn if counts in _new table not >= _old table (if it exists)?
         run_sql(con, f'ALTER TABLE IF EXISTS {schema}.{module} RENAME TO {module}_old;')
         run_sql(con, f'ALTER TABLE {schema}.{module}{temp_table_suffix} RENAME TO {module};')
+        print(f'   - completed in {(datetime.now() - t0_2).seconds} seconds')
 
     # Delete old tables/views. Because of view dependencies, order & commands are different
     print(f' - Removing older, temporarily backed up tables/views...')
