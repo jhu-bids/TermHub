@@ -18,14 +18,16 @@ from typing import List
 
 from dateutil import parser as dp
 
+from backend.db.analysis import counts_docs, counts_update
 
 DB_DIR = os.path.dirname(os.path.realpath(__file__))
 BACKEND_DIR = os.path.join(DB_DIR, '..')
 PROJECT_ROOT = os.path.join(BACKEND_DIR, '..')
 sys.path.insert(0, str(PROJECT_ROOT))
-from backend.db.utils import SCHEMA, check_db_status_var, get_db_connection, get_ddl_statements, load_csv, \
+from backend.db.utils import SCHEMA, check_db_status_var, current_datetime, get_db_connection, get_ddl_statements, \
+    load_csv, \
     refresh_any_dependent_tables, \
-    run_sql
+    run_sql, update_db_status_var
 from enclave_wrangler.config import DATASET_GROUPS_CONFIG
 from enclave_wrangler.datasets import download_datasets, get_last_update_of_dataset
 
@@ -65,6 +67,10 @@ def refresh_voc_and_counts(skip_downloads: bool = False, schema=SCHEMA):
                 run_sql(con, statement)
             # print('Recreating derived tables')  # printed w/in refresh_derived_tables()
             refresh_any_dependent_tables(con, config['tables'])
+            # Report done & do counts
+            update_db_status_var(config['last_updated_termhub_var'], current_datetime())
+            counts_update('DB refresh.', schema)
+            counts_docs()
 
     print('Done')
 
