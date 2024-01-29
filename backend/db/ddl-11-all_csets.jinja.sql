@@ -1,14 +1,14 @@
 -- Table: all_csets ----------------------------------------------------------------------------------------------------
 DROP TABLE IF EXISTS {{schema}}all_csets{{optional_suffix}} CASCADE;
 
-CREATE TABLE {{schema}}cset_term_usage_rec_counts{{optional_suffix}} AS
+CREATE TABLE {{schema}}cset_term_usage_rec_counts AS
     SELECT csm.codeset_id, SUM(cwc.total_cnt) AS total_cnt
     FROM {{schema}}concept_set_members csm
     JOIN {{schema}}concepts_with_counts cwc ON csm.concept_id = cwc.concept_id
     WHERE cwc.total_cnt > 0
     GROUP BY csm.codeset_id;
 
-CREATE INDEX ctu_idx1{{optional_index_suffix}} ON {{schema}}cset_term_usage_rec_counts{{optional_suffix}}(codeset_id);
+CREATE INDEX ctu_idx1{{optional_index_suffix}} ON {{schema}}cset_term_usage_rec_counts(codeset_id);
 
 CREATE TABLE {{schema}}all_csets{{optional_suffix}} AS
 -- table instead of view for performance (no materialized views in mySQL)
@@ -88,4 +88,4 @@ CREATE INDEX ac_idx1{{optional_index_suffix}} ON {{schema}}all_csets{{optional_s
 
 CREATE INDEX ac_idx2{{optional_index_suffix}} ON {{schema}}all_csets{{optional_suffix}}(concept_set_name);
 
-DROP TABLE {{schema}}cset_term_usage_rec_counts{{optional_suffix}};
+DROP TABLE {{schema}}cset_term_usage_rec_counts;
