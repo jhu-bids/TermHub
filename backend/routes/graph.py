@@ -305,24 +305,27 @@ def get_indented_tree_nodes(sg, preferred_concept_ids=[], max_depth=3, max_child
 nodes_from_edges = lambda edges : set(x for edge in edges for x in edge)
 
 
+# TODO: get test to pass
 def tst_graph_code():
-    """Tests for graph related functionality"""
+    """Tests for graph related functionality
+
+    Siggie would prefer if we declared nodes in groups; would help for readability. Joe doesn't know how that would work."""
     # - Test: Gap filling
     #   Source: depth first of https://app.diagrams.net/#G1mIthDUn4T1y1G3BdupdYKPkZVyQZ5XYR
     # test code for the above:
     #   - edges
-    def_expansion_edges = [
+    subgraph_edges = [  # all the ones in the definition and expansion
         (2, 1), (2, 8), (4, 3), (4, 10), (10, 9), (10, 12), (11, 10), (11, 13), (15, 14), (15, 18), (20, 16), (20, 19)]
     missing_in_between_edges = [(8, 7), (7, 5), (5, 4), (18, 17), (17, 16)]
     outside_scope_edges = [
         ('root', '2p1'), ('2p1', 2), ('root', '2p2'), ('2p2', 2), ('root', 'cloud'), ('cloud', 8), ('cloud', 6), (6, 5),
         (6, 11), (6, 17), ('cloud', 15), ('cloud', 20)]
     #   - nodes
-    def_expansion_nodes: Set = nodes_from_edges(def_expansion_edges)
+    def_expansion_nodes: Set = nodes_from_edges(subgraph_edges)
     missing_in_between_nodes = {7, 5, 17}
-    # missing_in_between_nodes = def_expansion_nodes.difference(nodes_from_edges(missing_in_between_edges))  # works
+    # missing_in_between_nodes = subgraph_edges.difference(nodes_from_edges(missing_in_between_edges))  # works
     #   - compute
-    g = nx.DiGraph(def_expansion_edges + missing_in_between_edges + outside_scope_edges)
+    g = nx.DiGraph(subgraph_edges + missing_in_between_edges + outside_scope_edges)
     #   - test
     # TODO: Fails. get to pass
     assert get_missing_in_between_nodes(g, def_expansion_nodes) == missing_in_between_nodes
