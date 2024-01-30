@@ -108,6 +108,14 @@ async def indented_concept_list(
     return tree
 
 
+# def get_connected_subgraph(REL_GRAPH: nx.Graph, nodes: Set[int]) -> (
+#     DiGraph, Set[int], Set[int], Set[int], Dict[str, Set[int]]):
+#
+#     missing_in_between_nodes = get_missing_in_between_nodes(REL_GRAPH, nodes).copy()
+#     # sg = connect_nodesOLD(REL_GRAPH, nodes_in_graph, preferred_concept_ids).copy()
+#     return nodes_in_graph, missing_in_between_nodes, preferred_concept_ids, orphans_not_in_graph, hidden_nodes, hidden_dict
+
+
 def get_connected_subgraph(
     REL_GRAPH: nx.Graph,
     codeset_ids: List[int],
@@ -241,7 +249,7 @@ def get_indented_tree_nodes(sg, preferred_concept_ids=[], max_depth=3, max_child
 
     return tree
 
-
+print_stack = lambda s: ' | '.join([f"{n} => {','.join([str(x) for x in p])}" for n,p in s])
 def get_missing_in_between_nodes(G, subgraph_nodes):
     missing_in_between_nodes = set()
     missing_in_between_nodes_tmp = set()
@@ -251,15 +259,22 @@ def get_missing_in_between_nodes(G, subgraph_nodes):
 
     for leaf_node in leaves:
         # stack = [(leaf_node, iter(G.predecessors(leaf_node)))]
+        descending_from = None
         stack = [(leaf_node, list(G.predecessors(leaf_node)))]
 
         while stack:
+            # if descending_from:
+                # if descending_from in subgraph_nodes:
+                #     missing_in_between_
+
             current_node, predecessors = stack[-1]
+            print(f"{str(print_stack(stack)):58} {(descending_from or ''):8} {','.join([str(n) for n in missing_in_between_nodes])} | {','.join([str(n) for n in missing_in_between_nodes_tmp])}")
 
-            try:
-                # next_node = next(predecessors)
-                next_node = predecessors.pop(0)
-
+            # try:
+            # next_node = next(predecessors)
+            next_node = predecessors.pop(0) if predecessors else None
+            if next_node:
+                descending_from = None
                 if next_node not in visited:
                     visited.add(next_node)
 
@@ -268,16 +283,22 @@ def get_missing_in_between_nodes(G, subgraph_nodes):
 
                     # stack.append((next_node, iter(G.predecessors(next_node))))
                     stack.append((next_node, list(G.predecessors(next_node))))
+            else:
+                # while True:
+                n, preds = stack.pop()
+                descending_from = n if n in subgraph_nodes else f"[{n}]"
+                if preds:
+                    raise RuntimeError("this shouldn't happen")
+
+                if n in subgraph_nodes:
+                    missing_in_between_nodes.update(missing_in_between_nodes_tmp)
+                    missing_in_between_nodes_tmp.clear()
+                    break
+                else:
+                    missing_in_between_nodes_tmp.discard(n)
+
             # except StopIteration:
-            except IndexError:
-                while True:
-                    n, preds = stack.pop()
-                    if n in subgraph_nodes:
-                        missing_in_between_nodes.update(missing_in_between_nodes_tmp)
-                        missing_in_between_nodes_tmp.clear()
-                        break
-                    else:
-                        missing_in_between_nodes_tmp.discard(n)
+            # except IndexError:
 
     return missing_in_between_nodes
 
@@ -297,15 +318,35 @@ def tst_graph_code():
     # (6, 11), (6, 17), ('cloud', 15), ('cloud', 20),
     # missing in between edges
     # (8, 7), (7, 5), (5, 4), (18, 17), (17, 16),
-    whole_graph_edges = [
+    whole_graph_edges = [   # now, more or less, in diagram number order
+        (2, 1),
         ('root', '2p1'), ('2p1', 2), ('root', '2p2'), ('2p2', 2), ('root', 'cloud'),
-        (2, 1), (2, 8),
-        (8, 7), (7, 5), (5, 4), (4, 3), (4, 10), (10, 9), (10, 12),
-        ('cloud', 8), ('cloud', 6), (6, 5), (6, 11), (11, 10), (11, 13),
-        (6, 17), (17, 16),
-        ('cloud', 15), (15, 14), (15, 18), (18, 17),
-        ('cloud', 20), (20, 16), (16, 21),
-        (20, 19), (19, 22), (22, 23),
+        (4, 3),
+        (5, 4),
+        (7, 5),
+        (8, 7),
+        ('cloud', 8),
+        (2, 8),
+        (6, 5),
+        ('cloud', 6),
+        (10, 9),
+        (4, 10),
+        (10, 12),
+        (11, 10),
+        (6, 11),
+        (11, 13),
+        (15, 14),
+        ('cloud', 15),
+        (16, 21),
+        (17, 16),
+        (6, 17),
+        (18, 17),
+        (15, 18),
+        (20, 16),
+        ('cloud', 20),
+        (22, 23),
+        (19, 22),
+        (20, 19),
     ]
     G = nx.DiGraph(whole_graph_edges)
 
