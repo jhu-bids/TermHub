@@ -186,66 +186,6 @@ async def indented_concept_list_post(
         raise e
 
 
-def get_missing_in_between_nodes(G: nx.DiGraph, nodes: Iterable[Any]) -> Set[Any]:
-    """Get missing in-between nodes.
-    TODO: tell users when version is based on old vocab because connections might not be
-          there anymore, or might require paths that weren't there when it was created
-    """
-    timer = get_timer('   ')
-    nodes = set(nodes)
-
-    VERBOSE and timer('create subgraph')
-    nodes_to_connect = set()  # gets smaller as nodes are connected by ancestors
-    nodes_already_connected = set()
-    additional_nodes = set()  # nodes that will be added in order to connect nodes_to_connect
-    sg: nx.DiGraph = G.subgraph(nodes)
-
-    VERBOSE and timer('get leaves')
-    # roots = [node for node, degree in sg.in_degree() if degree == 0]
-    # TODO: Bug: leaves: 2, 4, 11, 15, and 20 included. it considers peripherals = leaf cuz non-directed
-    leaves = [node for node, degree in sg.out_degree() if degree == 0]
-    visited = set()
-    missing_in_between_nodes = set()
-
-    # TODO: Broken: test case results in 0 missing_in_between_nodes
-    def backwards_dfs(G: nx.DiGraph, source):   # depth first search -- but with predecessors to go toward root
-        """
-        https://chat.openai.com/share/d018afbc-46f6-4b57-8fdb-46578acd8de2
-        Custom DFS generator that stops the search along a path when it reaches a visited node
-
-        :param G: The graph
-        :param source: The starting node for DFS
-        :param stop_nodes: A set of nodes where the search should stop
-        :return: Yields nodes in the order they are visited
-        """
-        non_subgraph_nodes_seen = set()
-        stack = [source]
-
-        while stack:
-            node = stack.pop()
-            if node not in visited:
-                if node in sg:
-                    # TODO: fix case where we visit 7, finish it and its parents, then go down to 6, which is in the sg
-                    #  - keep track of last node looked at?
-                    if non_subgraph_nodes_seen:
-                        missing_in_between_nodes.update(non_subgraph_nodes_seen)
-                        non_subgraph_nodes_seen = set()
-                else:
-                    non_subgraph_nodes_seen.add(node)
-                # yield node   # if actually want nodes in dfs order, use this
-                visited.add(node)
-                # reverse(): doesn't matter for reality; nodes don't have natural order but helps read diagram
-                next_level_up = reversed(list(G.predecessors(node)))
-                stack.extend(next_level_up)  # Add predecessors in reverse order for DFS
-
-    VERBOSE and timer('get missing nodes by doing backwards dfs')
-    for leaf in leaves:
-        backwards_dfs(G, leaf)
-
-    VERBOSE and timer('done')
-    return missing_in_between_nodes
-
-
 def get_indented_tree_nodes(sg, preferred_concept_ids=[], max_depth=3, max_children=20, small_graph_threshold=2000):
 
     def dfs(node, depth):
@@ -302,7 +242,44 @@ def get_indented_tree_nodes(sg, preferred_concept_ids=[], max_depth=3, max_child
     return tree
 
 
-nodes_from_edges = lambda edges : set(x for edge in edges for x in edge)
+def get_missing_in_between_nodes(G, subgraph_nodes):
+    missing_in_between_nodes = set()
+    missing_in_between_nodes_tmp = set()
+    sg = G.subgraph(subgraph_nodes)
+    leaves = [node for node, degree in sg.out_degree() if degree == 0]
+    visited = set()
+
+    for leaf_node in leaves:
+        # stack = [(leaf_node, iter(G.predecessors(leaf_node)))]
+        stack = [(leaf_node, list(G.predecessors(leaf_node)))]
+
+        while stack:
+            current_node, predecessors = stack[-1]
+
+            try:
+                # next_node = next(predecessors)
+                next_node = predecessors.pop(0)
+
+                if next_node not in visited:
+                    visited.add(next_node)
+
+                    if next_node not in subgraph_nodes:
+                        missing_in_between_nodes_tmp.add(next_node)
+
+                    # stack.append((next_node, iter(G.predecessors(next_node))))
+                    stack.append((next_node, list(G.predecessors(next_node))))
+            # except StopIteration:
+            except IndexError:
+                while True:
+                    n, preds = stack.pop()
+                    if n in subgraph_nodes:
+                        missing_in_between_nodes.update(missing_in_between_nodes_tmp)
+                        missing_in_between_nodes_tmp.clear()
+                        break
+                    else:
+                        missing_in_between_nodes_tmp.discard(n)
+
+    return missing_in_between_nodes
 
 
 def tst_graph_code():
@@ -310,22 +287,33 @@ def tst_graph_code():
     # - Test: Gap filling
     #   Source: depth first of https://app.diagrams.net/#G1mIthDUn4T1y1G3BdupdYKPkZVyQZ5XYR
     # test code for the above:
-    #   - edges
-    def_expansion_edges = [
-        (2, 1), (2, 8), (4, 3), (4, 10), (10, 9), (10, 12), (11, 10), (11, 13), (15, 14), (15, 18), (20, 16), (20, 19)]
-    missing_in_between_edges = [(8, 7), (7, 5), (5, 4), (18, 17), (17, 16)]
-    outside_scope_edges = [
-        ('root', '2p1'), ('2p1', 2), ('root', '2p2'), ('2p2', 2), ('root', 'cloud'), ('cloud', 8), ('cloud', 6), (6, 5),
-        (6, 11), (6, 17), ('cloud', 15), ('cloud', 20)]
-    #   - nodes
-    def_expansion_nodes: Set = nodes_from_edges(def_expansion_edges)
-    missing_in_between_nodes = {7, 5, 17}
-    # missing_in_between_nodes = def_expansion_nodes.difference(nodes_from_edges(missing_in_between_edges))  # works
-    #   - compute
-    g = nx.DiGraph(def_expansion_edges + missing_in_between_edges + outside_scope_edges)
-    #   - test
-    # TODO: Fails. get to pass
-    assert get_missing_in_between_nodes(g, def_expansion_nodes) == missing_in_between_nodes
+    # subgraph edges (from definitions and expansions)
+    # (2, 1), (2, 8), (4, 3), (4, 10), (10, 9), (10, 12), (11, 10), (11, 13), (15, 14), (15, 18), (20, 16), (20, 19),
+    # outside_scope_edges
+    # ('root', '2p1'), ('2p1', 2), ('root', '2p2'), ('2p2', 2), ('root', 'cloud'), ('cloud', 8), ('cloud', 6), (6, 5),
+    # (6, 11), (6, 17), ('cloud', 15), ('cloud', 20),
+    # missing in between edges
+    # (8, 7), (7, 5), (5, 4), (18, 17), (17, 16),
+    whole_graph_edges = [
+        ('root', '2p1'), ('2p1', 2), ('root', '2p2'), ('2p2', 2), ('root', 'cloud'),
+        (2, 1), (2, 8),
+        (8, 7), (7, 5), (5, 4), (4, 3), (4, 10), (10, 9), (10, 12),
+        ('cloud', 8), ('cloud', 6), (6, 5), (6, 11), (11, 10), (11, 13),
+        (6, 17), (17, 16),
+        ('cloud', 15), (15, 14), (15, 18), (18, 17),
+        ('cloud', 20), (20, 16), (16, 21),
+        (20, 19), (19, 22), (22, 23),
+    ]
+    G = nx.DiGraph(whole_graph_edges)
+
+    graph_nodes = set(list(range(1,21)))
+    subgraph_nodes =  graph_nodes - set([7, 5, 6, 17])
+
+    expected_missing_in_between_nodes = set([5, 7, 17])
+
+    missing_in_between_nodes = get_missing_in_between_nodes(G, subgraph_nodes)
+    assert missing_in_between_nodes == expected_missing_in_between_nodes
+    pass
 
     # - Test: tree paths:
     # G = nx.DiGraph([('a','b'), ('a','c'), ('b','d'), ('b','e'), ('c','f'), ('2', 'c'), ('1', '2'), ('1', 'a')])
