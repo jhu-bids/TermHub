@@ -282,8 +282,11 @@ def get_missing_in_between_nodes(G, subgraph_nodes):
     return missing_in_between_nodes
 
 
+# TODO: get test to pass
 def tst_graph_code():
-    """Tests for graph related functionality"""
+    """Tests for graph related functionality
+
+    Siggie would prefer if we declared nodes in groups; would help for readability. Joe doesn't know how that would work."""
     # - Test: Gap filling
     #   Source: depth first of https://app.diagrams.net/#G1mIthDUn4T1y1G3BdupdYKPkZVyQZ5XYR
     # test code for the above:
