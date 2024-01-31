@@ -243,6 +243,24 @@ class TestBackend(unittest.TestCase):
         ].sort(key=key)
         self.assertEquals(csmi, expected)
 
+    def test_get_cset_members_items_3_cols(self):
+        key = lambda d: f"{d['codeset_id']}.{d['concept_id']}"
+        csmi = get_cset_members_items([396155663, 643758668], columns=['concept_id', 'vocabulary_id', 'standard_concept']).sort(key=key)
+        # Todo: change expected: (i) expect 2 distinct rows since some dupe concept ids here, (ii) less col
+        expected = [
+            {'codeset_id': 643758668.0, 'concept_id': 4091006, 'csm': True,
+             'item': True, 'item_flags': 'includeDescendants', 'isExcluded': False,
+             'includeDescendants': True, 'includeMapped': False},
+            {'codeset_id': 396155663.0, 'concept_id': 4052321, 'csm': True, 'item': True,
+             'item_flags': '', 'isExcluded': False, 'includeDescendants': False, 'includeMapped': False},
+            {'codeset_id': 643758668.0, 'concept_id': 4052321, 'csm': True, 'item': True,
+             'item_flags': 'includeDescendants', 'isExcluded': False, 'includeDescendants': True,
+             'includeMapped': False},
+            {'codeset_id': 396155663.0, 'concept_id': 4091006, 'csm': True,
+             'item': True, 'item_flags': '', 'isExcluded': False, 'includeDescendants': False, 'includeMapped': False}
+        ].sort(key=key)
+        self.assertEquals(csmi, expected)
+
     def test_subgraph(self):
         "tests subgraphs"
         #Basic unit test for a simple connected graph without a complex hierarchy
