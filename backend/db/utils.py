@@ -811,3 +811,8 @@ def get_idle_connections(interval: str = '1 week'):
     with get_db_connection(schema='') as con:
         result = [dict(x) for x in sql_query(con, query)]
     return result
+
+
+if __name__ == '__main__':
+    # reset_refresh_state()
+    pass
