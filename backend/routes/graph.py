@@ -40,9 +40,71 @@ router = APIRouter(
     responses={404: {"description": "Not found"}},
 )
 
-@router.get("/wholegraph")
-def subgraph():
-    return list(REL_GRAPH.edges)
+
+@router.get("/indented-concept-list")
+async def indented_concept_list_get(request: Request, codeset_ids: List[int] = Query(...),
+                                    extra_concept_ids: Optional[List[int]] = Query(None)) -> List:
+
+    extra_concept_ids = extra_concept_ids if extra_concept_ids else []
+    return await indented_concept_list_post(
+        request=request, codeset_ids=codeset_ids, extra_concept_ids=extra_concept_ids)
+
+
+@router.post("/indented-concept-list")
+async def indented_concept_list_post(
+    request: Request, codeset_ids: List[int], extra_concept_ids: Union[List[int], None] = [],
+    hide_vocabs = ['RxNorm Extension'], verbose = False
+) -> List:
+    rpt = Api_logger()
+    await rpt.start_rpt(request, params={
+        'codeset_ids': codeset_ids, 'extra_concept_ids': extra_concept_ids})
+    try:
+        tree = await indented_concept_list(codeset_ids, extra_concept_ids, hide_vocabs)
+
+        await rpt.finish(rows=len(tree))
+        return tree
+    except Exception as e:
+        await rpt.log_error(e)
+        raise e
+
+
+@router.get("/concept-graph")
+async def concept_graph(
+    request: Request,
+    codeset_ids: List[int] = [],
+    id: List[int] = Query(...)   # id is a list of concept ids
+):
+    return await concept_graph_post(request=request, codeset_ids=codeset_ids, concept_ids=id)
+
+
+@router.post("/concept-graph")
+async def concept_graph_post(
+    request: Request,
+    codeset_ids: List[int] = [],
+    concept_ids: List[int] = [],
+) -> Dict:
+    rpt = Api_logger()
+    await rpt.start_rpt(request, params={'concept_ids': codeset_ids})
+
+    try:
+        # sg, filled_gaps = fill_in_gaps(REL_GRAPH, id, return_missing=True)
+        (nodes_in_graph, missing_in_between_nodes, preferred_concept_ids, orphans_not_in_graph, hidden_nodes,
+         hidden_dict) = get_connected_subgraph(REL_GRAPH, codeset_ids, concept_ids,
+                                               hide_vocabs=['RxNorm Extension'])
+        sg = REL_GRAPH.subgraph(nodes_in_graph.union(missing_in_between_nodes))
+        layout = 'not implemented'
+        # raise Exception("Not implemented")
+        # P = to_pydot(sg)
+        # layout = from_pydot(P)
+        # layout = {k: list(v) for k, v in _layout.items()}     # networkx doesn't seem to have sugiyama
+        # g = Graph.from_networkx(sg)
+        # _layout = g.layout_sugiyama()
+        # layout = {v["_nx_name"]: _layout[idx] for idx, v in enumerate(g.vs)}
+        await rpt.finish(rows=len(sg))
+    except Exception as e:
+        await rpt.log_error(e)
+        raise e
+    return {'edges': list(sg.edges), 'layout': layout, 'filled_gaps': missing_in_between_nodes}
 
 
 async def indented_concept_list(
@@ -107,6 +169,61 @@ async def indented_concept_list(
     # return testtree
     return tree
 
+def get_indented_tree_nodes(sg, preferred_concept_ids=[], max_depth=3, max_children=20, small_graph_threshold=2000):
+
+    def dfs(node, depth):
+        nonlocal tree, small_graph_big_tree, start_over
+        if start_over:
+            return 'start over'
+        tree.append((depth, node))
+        preferred_but_unshown.discard(node)
+
+        children = set(sg.successors(node))
+
+        # even if the graph is small, with repetition it can get huge --
+        #   so let's start over and respect the max_depth and max_children
+        if not small_graph_big_tree and len(sg.nodes) < small_graph_threshold:
+            if len(tree) < small_graph_threshold * 2:
+                for child in children:
+                    if not start_over and dfs(child, depth + 1) == 'start over':
+                        start_over = True
+                        return 'start over'
+                return
+            else:
+                small_graph_big_tree = True
+                return 'start over'
+
+        if len(children) <= max_children and len(children) and depth <= max_depth: # ok to show
+            for child in children:
+                dfs(child, depth + 1)
+        else: # summarize (except always_show)
+            always_show = children.intersection(preferred_concept_ids)
+            children_to_hide = children.difference(always_show)
+            for child in always_show:
+                children_to_hide.discard(child)
+                dfs(child, depth + 1)
+            if children_to_hide:
+                tree.append((depth + 1, list(children_to_hide)))
+
+    small_graph_big_tree = False
+    while True:
+        roots = [n for n in sg.nodes if sg.in_degree(n) == 0]
+        tree = []
+        preferred_but_unshown = set(preferred_concept_ids)
+        start_over = False
+        for root in roots:
+            if dfs(root, 0) == 'start over':
+                start_over = True
+                break
+        if not start_over:
+            break
+
+
+    for node in preferred_but_unshown:
+        tree.append((0, node))
+
+    return tree
+
 
 # def get_connected_subgraph(REL_GRAPH: nx.Graph, nodes: Set[int]) -> (
 #     DiGraph, Set[int], Set[int], Set[int], Dict[str, Set[int]]):
@@ -166,88 +283,6 @@ def get_connected_subgraph(
     # sg = connect_nodesOLD(REL_GRAPH, nodes_in_graph, preferred_concept_ids).copy()
     return nodes_in_graph, missing_in_between_nodes, preferred_concept_ids, orphans_not_in_graph, hidden_nodes, hidden_dict
 
-
-@router.get("/indented-concept-list")
-async def indented_concept_list_get(request: Request, codeset_ids: List[int] = Query(...),
-                                extra_concept_ids: Optional[List[int]] = Query(None)) -> List:
-
-    extra_concept_ids = extra_concept_ids if extra_concept_ids else []
-    return await indented_concept_list_post(
-        request=request, codeset_ids=codeset_ids, extra_concept_ids=extra_concept_ids)
-
-
-@router.post("/indented-concept-list")
-async def indented_concept_list_post(
-    request: Request, codeset_ids: List[int], extra_concept_ids: Union[List[int], None] = [],
-    hide_vocabs = ['RxNorm Extension'], verbose = False
-) -> List:
-    rpt = Api_logger()
-    await rpt.start_rpt(request, params={
-        'codeset_ids': codeset_ids, 'extra_concept_ids': extra_concept_ids})
-    try:
-        tree = await indented_concept_list(codeset_ids, extra_concept_ids, hide_vocabs)
-
-        await rpt.finish(rows=len(tree))
-        return tree
-    except Exception as e:
-        await rpt.log_error(e)
-        raise e
-
-
-def get_indented_tree_nodes(sg, preferred_concept_ids=[], max_depth=3, max_children=20, small_graph_threshold=2000):
-
-    def dfs(node, depth):
-        nonlocal tree, small_graph_big_tree, start_over
-        if start_over:
-            return 'start over'
-        tree.append((depth, node))
-        preferred_but_unshown.discard(node)
-
-        children = set(sg.successors(node))
-
-        # even if the graph is small, with repetition it can get huge --
-        #   so let's start over and respect the max_depth and max_children
-        if not small_graph_big_tree and len(sg.nodes) < small_graph_threshold:
-            if len(tree) < small_graph_threshold * 2:
-                for child in children:
-                    if not start_over and dfs(child, depth + 1) == 'start over':
-                        start_over = True
-                        return 'start over'
-                return
-            else:
-                small_graph_big_tree = True
-                return 'start over'
-
-        if len(children) <= max_children and len(children) and depth <= max_depth: # ok to show
-            for child in children:
-                dfs(child, depth + 1)
-        else: # summarize (except always_show)
-            always_show = children.intersection(preferred_concept_ids)
-            children_to_hide = children.difference(always_show)
-            for child in always_show:
-                children_to_hide.discard(child)
-                dfs(child, depth + 1)
-            if children_to_hide:
-                tree.append((depth + 1, list(children_to_hide)))
-
-    small_graph_big_tree = False
-    while True:
-        roots = [n for n in sg.nodes if sg.in_degree(n) == 0]
-        tree = []
-        preferred_but_unshown = set(preferred_concept_ids)
-        start_over = False
-        for root in roots:
-            if dfs(root, 0) == 'start over':
-                start_over = True
-                break
-        if not start_over:
-            break
-
-
-    for node in preferred_but_unshown:
-        tree.append((0, node))
-
-    return tree
 
 print_stack = lambda s: ' | '.join([f"{n} => {','.join([str(x) for x in p])}" for n,p in s])
 def get_missing_in_between_nodes(G, subgraph_nodes):
@@ -378,6 +413,11 @@ def tst_graph_code():
     # """
 
 
+@router.get("/wholegraph")
+def subgraph():
+    return list(REL_GRAPH.edges)
+
+
 def condense_super_nodes(sg, threshhold=10):
     super_nodes = [node for node, degree in sg.out_degree() if degree > threshhold]
     # for node in super_nodes:
@@ -385,68 +425,6 @@ def condense_super_nodes(sg, threshhold=10):
 
 def expand_super_node(G, subgraph_nodes, super_node):
     sg = G.subgraph(subgraph_nodes)
-
-
-@router.get("/concept-graph")
-async def concept_graph(
-    request: Request,
-    codeset_ids: List[int] = [],
-    id: List[int] = Query(...)   # id is a list of concept ids
-):
-    return await concept_graph_post(request=request, codeset_ids=codeset_ids, concept_ids=id)
-
-
-@router.post("/concept-graph")
-async def concept_graph_post(
-    request: Request,
-    codeset_ids: List[int] = [],
-    concept_ids: List[int] = [],
-) -> Dict:
-    rpt = Api_logger()
-    await rpt.start_rpt(request, params={'concept_ids': codeset_ids})
-
-    try:
-        # sg, filled_gaps = fill_in_gaps(REL_GRAPH, id, return_missing=True)
-        (nodes_in_graph, missing_in_between_nodes, preferred_concept_ids, orphans_not_in_graph, hidden_nodes,
-         hidden_dict) = get_connected_subgraph(REL_GRAPH, codeset_ids, concept_ids,
-                                               hide_vocabs=['RxNorm Extension'])
-        sg = REL_GRAPH.subgraph(nodes_in_graph.union(missing_in_between_nodes))
-        layout = 'not implemented'
-        # raise Exception("Not implemented")
-        # P = to_pydot(sg)
-        # layout = from_pydot(P)
-        # layout = {k: list(v) for k, v in _layout.items()}     # networkx doesn't seem to have sugiyama
-        # g = Graph.from_networkx(sg)
-        # _layout = g.layout_sugiyama()
-        # layout = {v["_nx_name"]: _layout[idx] for idx, v in enumerate(g.vs)}
-        await rpt.finish(rows=len(sg))
-    except Exception as e:
-        await rpt.log_error(e)
-        raise e
-    return {'edges': list(sg.edges), 'layout': layout, 'filled_gaps': missing_in_between_nodes}
-
-
-# def fill_in_gaps(G, codeset_ids, return_missing=False):
-#     (sg, nodes_in_graph, preferred_concept_ids,
-#      orphans_not_in_graph) = get_connected_subgraph(
-#         REL_GRAPH, codeset_ids, hide_vocabs=['RxNorm Extension'])
-#     return sg, set(sg.nodes).difference(codeset_ids)
-#             #nodes_in_graph, preferred_concept_ids, orphans_not)
-#     # sg = G.subgraph(nodes)
-#     # roots = [node for node, degree in sg.in_degree() if degree == 0]
-#     # leaves = [node for node, degree in sg.out_degree() if degree == 0]
-#     # missing_nodes = set()  # nodes needed to traverse all paths but not present in nodes list
-#     # for root in roots:
-#     #     for leaf in leaves:
-#     #         _paths = list(nx.all_simple_paths(G, root, leaf))
-#     #         for path in _paths:
-#     #             for node in path:
-#     #                 if node not in nodes:
-#     #                     missing_nodes.add(node)
-#     # sgc = G.subgraph(nodes + list(missing_nodes))
-#     # if return_missing:
-#     #     return sgc, missing_nodes
-#     # return sgc
 
 
 def from_pydot_layout(g):
@@ -478,185 +456,6 @@ def from_pydot_layout(g):
 #     SG = G.edge_subgraph(edges_to_include).copy()
 #     return SG
 
-
-
-# def get_paths_to_roots(G, node):
-#     # find all paths from a node to all its root nodes
-#     paths = []
-#     for parent in G.predecessors(node):
-#         paths.append(nx.shortest_path(G, parent, node))
-#
-#     shortest_path = min(paths, key=len)
-#     return shortest_path
-#
-#
-# def print_tree_paths(paths):
-#     for depth, node in paths:
-#         indent = "    " * depth
-#         print(f"{indent}{node}")
-#
-# def all_paths(g: networkx.DiGraph, roots: List[int], leaves: List[int]) -> List[List[int]]:
-#     """
-#     TODO:   something. this is working better than new technique, but much slower I think
-#             i need to compare it with current method to see what went wrong, or if i need
-#             this again
-#     Creates a subgraph from g using nodes.
-#     Identifies root and leaf nodes in this subgraph.
-#     Generates all simple paths from each root to each leaf in the original graph g.
-#     Returns the list of all such paths.
-#     """
-#     nodes = set(roots + leaves)
-#     paths = []
-#     missing_nodes = set()  # nodes needed to traverse all paths but not present in nodes list
-#     paths_with_missing_nodes = []
-#     descendants_of_missing = set()
-#     paths_node_is_in = defaultdict(list)
-#     for root in roots:
-#         for leaf in leaves:
-#             _paths = list(nx.all_simple_paths(g, root, leaf))
-#             for path in _paths:
-#                 # if len(path) > 1: # do i need this? don't think so; it might hide solitary nodes
-#                 paths.append(path)
-#                 for node in path:
-#                     if path not in paths_node_is_in[node]:
-#                         paths_node_is_in[node].append(path)
-#                     if node not in nodes:
-#                         missing_nodes.add(node)
-#                         if not path in paths_with_missing_nodes:
-#                             paths_with_missing_nodes.append(path)
-#                             for d in path[path.index(node) + 1:]:
-#                                 descendants_of_missing.add(d)
-#
-#     # if a path contains a missing node and all its descendants
-#     #   show up in other paths, the path is not needed
-#     # especially because we're now including stuff from concept_relationship
-#     #   that wouldn't appear in the expansion, ....
-#     #   TODO: figure out if the concept_relationship edges are really needed
-#
-#     # TODO: test that this code is doing what it should (and code above too, while you're at it)
-#     descendants_of_missing = descendants_of_missing.difference(missing_nodes)   # in case missing have missing descendants
-#
-#     for path_with_missing in paths_with_missing_nodes:
-#         # for each path with missing nodes, check if their descendants show up in other paths
-#         nodes_to_check = set(path_with_missing).intersection(descendants_of_missing)
-#         # we have to make sure that every descendant node in this path appears in other paths
-#         nodes_not_elsewhere = []
-#         for node in nodes_to_check:
-#             if not [p for p in paths_node_is_in[node] if p not in paths_with_missing_nodes]:
-#                 # this node does not appear in any non-missing-node paths
-#                 nodes_not_elsewhere.append(node)
-#                 break;
-#         if not nodes_not_elsewhere:
-#             # every node appears elsewhere; safe to remove
-#             paths.discard(path_with_missing)
-#
-#     return paths
-# # def all_paths(g: networkx.DiGraph, nodes: set, preferred_nodes: set = set()) -> List[List[int]]:
-# #     """
-# #     Creates a subgraph from g using nodes.
-# #     Fills in gaps (connect_nodes)
-# #     Identifies root and leaf nodes in this subgraph.
-# #     Generates all simple paths from each root to each leaf in the original graph g.
-# #     Returns the list of all such paths.
-# #     """
-# #     # sg = g.subgraph(nodes)    # this way give a view of g, which is frozen
-# #     # sg = nx.DiGraph(g.subgraph(nodes)) #.copy())  # Creates an independent copy of the subgraph
-# #     sg = g.subgraph(nodes).copy()  # Creates an independent copy of the subgraph
-# #
-# #     nodes = set(nodes)
-# #     sg = connect_nodes(g, nodes, preferred_nodes)
-# #     paths = get_indented_tree_nodes(sg)
-# #     return paths
-# #     pass
-# #     r = json.dumps(paths)
-# #     return r
-# #     # roots = [node for node, degree in sg.in_degree() if degree == 0]
-# #     # leaves = [node for node, degree in sg.out_degree() if degree == 0]
-# #     #
-# #     # paths = []
-# #     # paths_node_is_in = defaultdict(list)
-# #     # # already filling in missing in connect_nodes, so no need to do it here anymore
-# #     # # missing_nodes = set()  # nodes needed to traverse all paths but not present in nodes list
-# #     # # all_nodes = set(nodes)
-# #     # # paths_with_missing_nodes = []
-# #     # # descendants_of_missing = set()
-# #     # for root in roots:
-# #     #     for leaf in leaves:
-# #     #         # TODO: fix here, it can get really slow, like with http://127.0.0.1:8000/indented-concept-list?codeset_ids=417730759&codeset_ids=423850600&codeset_ids=966671711&codeset_ids=577774492
-# #     #         _paths = list(nx.all_simple_paths(sg, root, leaf))
-# #     #         for path in _paths:
-# #     #             # if len(path) > 1: # do i need this? don't think so; it might hide solitary nodes
-# #     #             paths.append(path)
-# #     #             for node in path:
-# #     #                 if path not in paths_node_is_in[node]:
-# #     #                     paths_node_is_in[node].append(path)
-# #     #                 # if node not in nodes:
-# #     #                 #     missing_nodes.add(node)
-# #     #                 #     all_nodes.add(node)
-# #     #                 #     if not path in paths_with_missing_nodes:
-# #     #                 #         paths_with_missing_nodes.append(path)
-# #     #                 #         for d in path[path.index(node) + 1:]:
-# #     #                 #             descendants_of_missing.add(d)
-# #     # return paths
-#
-#
-# def paths_as_indented_tree(paths: List[List[int]]) -> List[Tuple[int, int]]:
-#     """
-#     paths: A list of paths (each path is a list of node identifiers).
-#     Initializes a root TreeNode with None value.
-#     Inserts each path into this tree.
-#     Generates a list of lines where each line represents a level and a node identifier in the indented tree.
-#     """
-#     # Initialize tree and insert paths
-#     root = TreeNode(None)  # Root node doesn't hold any data
-#     # paths = [("A", "B", "C"), ("A", "B", "D"), ("E", "B", "C"), ("E", "B", "D")]
-#     for path in paths:
-#         root.insert(path)
-#
-#     tree = []
-#     for line in generate_indented_nodes(root):
-#         # tree.append({'level': line[0], 'concept_id': line[1]})
-#         tree.append((line[0], line[1]))
-#
-#     return tree
-#
-#
-# def generate_indented_nodes(node, level=-1):
-#     if node.value is not None:  # Skip the root node
-#         yield level, node.value
-#     for child in node.children.values():
-#         yield from generate_indented_nodes(child, level + 1)
-#
-#
-# class TreeNode:
-#     """TODO: document how this works, what it's for (got it from chatgpt)"""
-#     """
-#     Purpose: Represents a node in the tree, used to construct the indented tree structure.
-#     Attributes:
-#     value: The value (or identifier) of the node.
-#     children: A dictionary of child nodes.
-#     Methods:
-#     __init__(self, value): Constructor to initialize the node with a value.
-#     insert(self, path): Inserts a path into the tree, starting from this node.
-#     """
-#     def __init__(self, value):
-#         self.value = value
-#         self.children = {}
-#
-#     # this was working until i tried having lists for values (so when the tree got too deep
-#     #   or the parent node had too many children, it would just give a list of the children
-#     #   instead of recursing down into them)
-#     def insert(self, path):
-#         if path:
-#             head, *tail = path
-#             if head not in self.children:
-#                 self.children[head] = TreeNode(head)
-#             self.children[head].insert(tail)
-#     # but, also, although this code was working, the variable names are wrong. it assumes
-#     #   the path will have a "head" -- which for us is just the indent depth -- and further
-#     #   values in the tails, but we only have one value remaining, the node (or, now list of
-#     #   nodes) appearing at that spot in the tree
-#
 
 def generate_graph_edges():
     with get_db_connection() as con:
