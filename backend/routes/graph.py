@@ -41,17 +41,16 @@ router = APIRouter(
 )
 
 
-@router.get("/indented-concept-list")
-async def indented_concept_list_get(request: Request, codeset_ids: List[int] = Query(...),
-                                    extra_concept_ids: Optional[List[int]] = Query(None)) -> List:
-
+@router.get("/concept-graph")
+async def concept_graph(request: Request, codeset_ids: List[int] = Query(...),
+                        extra_concept_ids: Optional[List[int]] = Query(None)) -> List:
     extra_concept_ids = extra_concept_ids if extra_concept_ids else []
-    return await indented_concept_list_post(
+    return await concept_graph_post(
         request=request, codeset_ids=codeset_ids, extra_concept_ids=extra_concept_ids)
 
 
-@router.post("/indented-concept-list")
-async def indented_concept_list_post(
+@router.post("/concept-graph")
+async def concept_graph_post(
     request: Request, codeset_ids: List[int], extra_concept_ids: Union[List[int], None] = [],
     hide_vocabs = ['RxNorm Extension'], verbose = False
 ) -> List:
@@ -59,38 +58,47 @@ async def indented_concept_list_post(
     await rpt.start_rpt(request, params={
         'codeset_ids': codeset_ids, 'extra_concept_ids': extra_concept_ids})
     try:
-        tree = await indented_concept_list(codeset_ids, extra_concept_ids, hide_vocabs)
-
-        await rpt.finish(rows=len(tree))
-        return tree
-    except Exception as e:
-        await rpt.log_error(e)
-        raise e
-
-
-@router.get("/concept-graph")
-async def concept_graph(
-    request: Request,
-    codeset_ids: List[int] = [],
-    id: List[int] = Query(...)   # id is a list of concept ids
-):
-    return await concept_graph_post(request=request, codeset_ids=codeset_ids, concept_ids=id)
-
-
-@router.post("/concept-graph")
-async def concept_graph_post(
-    request: Request,
-    codeset_ids: List[int] = [],
-    concept_ids: List[int] = [],
-) -> Dict:
-    rpt = Api_logger()
-    await rpt.start_rpt(request, params={'concept_ids': codeset_ids})
-
-    try:
+        timer = get_timer('')
+        # tree = await indented_concept_list(codeset_ids, extra_concept_ids, hide_vocabs)
         # sg, filled_gaps = fill_in_gaps(REL_GRAPH, id, return_missing=True)
+        VERBOSE and timer('get_connected_subgraph')
+        # VERBOSE and timer('get_missing_in_between_nodes')
         (nodes_in_graph, missing_in_between_nodes, preferred_concept_ids, orphans_not_in_graph, hidden_nodes,
-         hidden_dict) = get_connected_subgraph(REL_GRAPH, codeset_ids, concept_ids,
+         hidden_dict) = get_connected_subgraph(REL_GRAPH, codeset_ids, extra_concept_ids,
                                                hide_vocabs=['RxNorm Extension'])
+
+
+        # Organize Concept IDs
+        timer = get_timer('')
+        VERBOSE and timer('organize cids')
+
+        concept_ids = set([c['concept_id'] for c in csmi])
+        concept_ids.update(extra_concept_ids)
+
+        # Orphans
+        # orphans_not_in_graph, here, are just nodes that don't appear in graph
+        #   they'll get appended to the end of the tree at level 0
+        # The graph, which comes from the concept_ancestor table, doesn't contain edges for every concept.
+        nodes_in_graph = set()
+        orphans_not_in_graph = set()
+        # TODO: deal with two kinds of orphan: not in the graph (handled here)
+        #   and in the graph but having no parents or children
+        for cid in concept_ids:
+            if cid in REL_GRAPH:
+                nodes_in_graph.add(cid)
+            else:
+                orphans_not_in_graph.add(cid)
+
+        # Preferred concept IDs are things we're trying to link in the graph; non-orphan items
+        #  - We don't want to accidentally hide them.
+        preferred_concept_ids = set([
+            c['concept_id'] for c in csmi
+            if c['item'] and not c['concept_id'] in orphans_not_in_graph])
+
+        missing_in_between_nodes = get_missing_in_between_nodes(REL_GRAPH, nodes_in_graph).copy()
+        # sg = connect_nodesOLD(REL_GRAPH, nodes_in_graph, preferred_concept_ids).copy()
+        return nodes_in_graph, missing_in_between_nodes, preferred_concept_ids, orphans_not_in_graph, hidden_nodes, hidden_dict
+
         sg = REL_GRAPH.subgraph(nodes_in_graph.union(missing_in_between_nodes))
         layout = 'not implemented'
         # raise Exception("Not implemented")
@@ -100,6 +108,60 @@ async def concept_graph_post(
         # g = Graph.from_networkx(sg)
         # _layout = g.layout_sugiyama()
         # layout = {v["_nx_name"]: _layout[idx] for idx, v in enumerate(g.vs)}
+        # await rpt.finish(rows=len(tree))
+        # return tree
+        # Get Concept Set Members Items
+
+        VERBOSE and timer('get roots')
+        roots = [node for node, degree in sg.in_degree() if degree == 0]
+        leaves = [node for node, degree in sg.out_degree() if degree == 0]
+
+        # nodes that are both root and leaf, put in orphans_unlinked, remove from roots
+        orphans_unlinked = set(roots).intersection(leaves)
+        for o in orphans_unlinked:
+            roots.remove(o)
+
+        preferred_concept_ids.update(roots)
+
+        # sg_nodes = set(sg.nodes)
+        # print(f"sg \u2229 paths {len(sg_nodes.intersection(nodes_in_paths))}")
+        # print(f"sg - paths {len(sg_nodes.difference(nodes_in_paths))}")
+        # print(f"paths - sg {len(nodes_in_paths.difference(sg_nodes))}")
+
+        VERBOSE and timer('get tree')
+        tree = get_indented_tree_nodes(sg, preferred_concept_ids)  # TODO: just testing below, put this line back
+
+        hide_if_over = 50
+        if orphans_not_in_graph:
+            cnt = len(orphans_not_in_graph)
+            tree.append((0,
+                         f"Concept set also includes {cnt} {'hidden ' if cnt > hide_if_over else ''}nodes in concept set but not in our graph"))
+            if cnt <= hide_if_over:
+                for orphan in orphans_not_in_graph:
+                    tree.append((1, orphan))
+
+        if orphans_unlinked:
+            cnt = len(orphans_unlinked)
+            tree.append((0,
+                         f"Concept set also includes {cnt} {'hidden ' if cnt > hide_if_over else ''}nodes unconnected to others in the concept set"))
+            if cnt <= hide_if_over:
+                for orphan in orphans_unlinked:
+                    tree.append((1, orphan))
+
+        for vocab in hidden_dict.keys():
+            hidden_concept_ids = hidden_dict[vocab]
+            cnt = len(hidden_concept_ids)
+            tree.append((0, f'Concept set also includes {cnt} {vocab} concepts not shown above'))
+            if cnt <= hide_if_over:
+                for h in hidden_concept_ids:
+                    tree.append((1, h))
+
+        # timer('get testtree')
+        # testtree = paths_as_indented_tree(paths)
+        # testtree.append((0, list(orphans_not_in_graph)))
+        VERBOSE and timer('done')
+        # return testtree
+        return tree
         await rpt.finish(rows=len(sg))
     except Exception as e:
         await rpt.log_error(e)
@@ -107,67 +169,22 @@ async def concept_graph_post(
     return {'edges': list(sg.edges), 'layout': layout, 'filled_gaps': missing_in_between_nodes}
 
 
-async def indented_concept_list(
-    codeset_ids: List[int], extra_concept_ids: Union[List[int], None] = [], hide_vocabs = ['RxNorm Extension']
-) -> List:
-    timer = get_timer('')
+def get_concepts_for_graph(codeset_ids: List[int], extra_concept_ids: List[int],
+                           hide_vocabs: List[str]):
+    _csmi = get_cset_members_items(codeset_ids=codeset_ids)
+    # concepts = get_concepts(extra_concept_ids)
+    # give hidden rxnorm ext count
+    hidden_dict: Dict[str, Set[int]] = {}
+    for vocab in hide_vocabs:  # for each vocab being hidden, separate out the concepts
+        hidden_nodes = set([c['concept_id'] for c in _csmi if c['vocabulary_id'] == vocab])
+        if hidden_nodes:
+            hidden_dict[vocab] = hidden_nodes
 
-    # Get Concept Set Members Items
-    VERBOSE and timer('get_connected_subgraph')
+    hidden_nodes = set().union(*list(hidden_dict.values()))
+    csmi = set()
+    csmi.update([c for c in _csmi if c not in hidden_nodes])
 
-    (nodes_in_graph, missing_in_between_nodes, preferred_concept_ids, orphans_not_in_graph,
-     hidden_nodes, hidden_dict) = get_connected_subgraph(REL_GRAPH, codeset_ids, extra_concept_ids, hide_vocabs)
 
-    sg = REL_GRAPH.subgraph(nodes_in_graph.union(missing_in_between_nodes))
-
-    VERBOSE and timer('get roots')
-    roots = [node for node, degree in sg.in_degree() if degree == 0]
-    leaves = [node for node, degree in sg.out_degree() if degree == 0]
-
-    # nodes that are both root and leaf, put in orphans_unlinked, remove from roots
-    orphans_unlinked = set(roots).intersection(leaves)
-    for o in orphans_unlinked:
-        roots.remove(o)
-
-    preferred_concept_ids.update(roots)
-
-    # sg_nodes = set(sg.nodes)
-    # print(f"sg \u2229 paths {len(sg_nodes.intersection(nodes_in_paths))}")
-    # print(f"sg - paths {len(sg_nodes.difference(nodes_in_paths))}")
-    # print(f"paths - sg {len(nodes_in_paths.difference(sg_nodes))}")
-
-    VERBOSE and timer('get tree')
-    tree = get_indented_tree_nodes(sg, preferred_concept_ids)  # TODO: just testing below, put this line back
-
-    hide_if_over = 50
-    if orphans_not_in_graph:
-        cnt = len(orphans_not_in_graph)
-        tree.append((0, f"Concept set also includes {cnt} {'hidden ' if cnt > hide_if_over else ''}nodes in concept set but not in our graph"))
-        if cnt <= hide_if_over:
-            for orphan in orphans_not_in_graph:
-                tree.append((1, orphan))
-
-    if orphans_unlinked:
-        cnt = len(orphans_unlinked)
-        tree.append((0, f"Concept set also includes {cnt} {'hidden ' if cnt > hide_if_over else ''}nodes unconnected to others in the concept set"))
-        if cnt <= hide_if_over:
-            for orphan in orphans_unlinked:
-                tree.append((1, orphan))
-
-    for vocab in hidden_dict.keys():
-        hidden_concept_ids = hidden_dict[vocab]
-        cnt = len(hidden_concept_ids)
-        tree.append((0, f'Concept set also includes {cnt} {vocab} concepts not shown above'))
-        if cnt <= hide_if_over:
-            for h in hidden_concept_ids:
-                tree.append((1, h))
-
-    # timer('get testtree')
-    # testtree = paths_as_indented_tree(paths)
-    # testtree.append((0, list(orphans_not_in_graph)))
-    VERBOSE and timer('done')
-    # return testtree
-    return tree
 
 def get_indented_tree_nodes(sg, preferred_concept_ids=[], max_depth=3, max_children=20, small_graph_threshold=2000):
 
@@ -239,49 +256,7 @@ def get_connected_subgraph(
     extra_concept_ids: Union[List[int], None] = [],
     hide_vocabs: Union[List[str], None] = []
 ) -> (DiGraph, Set[int], Set[int], Set[int], Dict[str, Set[int]]):
-    _csmi = get_cset_members_items(codeset_ids=codeset_ids)
-    # concepts = get_concepts(extra_concept_ids)
-    # give hidden rxnorm ext count
-    hidden_dict: Dict[str, Set[int]] = {}
-    for vocab in hide_vocabs:   # for each vocab being hidden, separate out the concepts
-        hidden_nodes = set([c['concept_id'] for c in _csmi if c['vocabulary_id'] == vocab])
-        if hidden_nodes:
-            hidden_dict[vocab] = hidden_nodes
-
-    hidden_nodes = set().union(*list(hidden_dict.values()))
-    csmi = set()
-    csmi.update([c for c in _csmi if c not in hidden_nodes])
-
-    # Organize Concept IDs
-    timer = get_timer('')
-    VERBOSE and timer('organize cids')
-
-    concept_ids = set([c['concept_id'] for c in csmi])
-    concept_ids.update(extra_concept_ids)
-
-    # Orphans
-    # orphans_not_in_graph, here, are just nodes that don't appear in graph
-    #   they'll get appended to the end of the tree at level 0
-    # The graph, which comes from the concept_ancestor table, doesn't contain edges for every concept.
-    nodes_in_graph = set()
-    orphans_not_in_graph = set()
-    # TODO: deal with two kinds of orphan: not in the graph (handled here)
-    #   and in the graph but having no parents or children
-    for cid in concept_ids:
-        if cid in REL_GRAPH:
-            nodes_in_graph.add(cid)
-        else:
-            orphans_not_in_graph.add(cid)
-
-    # Preferred concept IDs are things we're trying to link in the graph; non-orphan items
-    #  - We don't want to accidentally hide them.
-    preferred_concept_ids = set([
-        c['concept_id'] for c in csmi
-        if c['item'] and not c['concept_id'] in orphans_not_in_graph])
-
-    missing_in_between_nodes = get_missing_in_between_nodes(REL_GRAPH, nodes_in_graph).copy()
-    # sg = connect_nodesOLD(REL_GRAPH, nodes_in_graph, preferred_concept_ids).copy()
-    return nodes_in_graph, missing_in_between_nodes, preferred_concept_ids, orphans_not_in_graph, hidden_nodes, hidden_dict
+    pass
 
 
 print_stack = lambda s: ' | '.join([f"{n} => {','.join([str(x) for x in p])}" for n,p in s])
@@ -295,7 +270,7 @@ def get_missing_in_between_nodes(G, subgraph_nodes):
     for leaf_node in leaves:
         # stack = [(leaf_node, iter(G.predecessors(leaf_node)))]
         descending_from = None
-        stack = [(leaf_node, list(G.predecessors(leaf_node)))]
+        stack = [(leaf_node, list(reversed(list(G.predecessors(leaf_node)))))]
 
         while stack:
             # if descending_from:
@@ -317,7 +292,7 @@ def get_missing_in_between_nodes(G, subgraph_nodes):
                         missing_in_between_nodes_tmp.add(next_node)
 
                     # stack.append((next_node, iter(G.predecessors(next_node))))
-                    stack.append((next_node, list(G.predecessors(next_node))))
+                    stack.append((next_node, list(reversed(list(G.predecessors(next_node))))))
             else:
                 # while True:
                 n, preds = stack.pop()
@@ -385,10 +360,11 @@ def tst_graph_code():
     ]
     G = nx.DiGraph(whole_graph_edges)
 
-    graph_nodes = set(list(range(1,21)))
-    subgraph_nodes =  graph_nodes - set([7, 5, 6, 17])
+    graph_nodes = set(list(range(1, 23)))
+    # graph_nodes.update(['root', '2p1', '2p2', 'cloud'])
+    subgraph_nodes =  graph_nodes - {7, 5, 6, 17}
 
-    expected_missing_in_between_nodes = set([5, 7, 17])
+    expected_missing_in_between_nodes = {5, 7, 17}
 
     missing_in_between_nodes = get_missing_in_between_nodes(G, subgraph_nodes)
     assert missing_in_between_nodes == expected_missing_in_between_nodes

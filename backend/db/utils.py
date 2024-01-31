@@ -556,6 +556,12 @@ def sql_in(lst: List, quote_items=False) -> str:
         s: str = ', '.join([str(x) for x in lst]) or 'NULL'
     return f' IN ({s}) '
 
+def sql_in_safe(lst: List) -> (str, dict):
+    bindparams = [":id{}".format(i) for i in range(len(lst))]
+    query = text(','.join(bindparams))
+    params = {"id{}".format(i): id for i, id in enumerate(lst)}
+    return (query, params)
+
 
 def run_sql(con: Connection, command: str, params: Dict = {}) -> Any:
     """Run a sql command"""

@@ -11,10 +11,13 @@ import urllib.parse
 from sqlalchemy import Connection, Row
 from sqlalchemy.engine import RowMapping
 from starlette.responses import Response
+from psycopg2 import sql
+from sqlalchemy import text
+
 
 from backend.api_logger import Api_logger
 from backend.utils import get_timer, return_err_with_trace, commify
-from backend.db.utils import get_db_connection, sql_query, SCHEMA, sql_query_single_col, sql_in, run_sql
+from backend.db.utils import get_db_connection, sql_query, SCHEMA, sql_query_single_col, sql_in, sql_in_safe, run_sql
 from backend.db.queries import get_concepts
 from enclave_wrangler.objects_api import get_n3c_recommended_csets, enclave_api_call_caller, \
     get_concept_set_version_expression_items, items_to_atlas_json_format
@@ -92,8 +95,8 @@ def get_all_researcher_ids(rows: List[Dict]) -> Set[str]:
 
 def get_cset_members_items(
     codeset_ids: List[int] = [],
-    # columns: Union[List[str], None] = None,
-    # column: Union[str, None] = None,
+    columns: Union[List[str], None] = None,
+    column: Union[str, None] = None,
 ) -> Union[List[int], List]:
     """Get concept set members items for selected concept sets
         returns:
@@ -101,25 +104,30 @@ def get_cset_members_items(
         item: True if its an expression item, else false
         csm: false if not in concept set members
     """
-    # if column:
-    #     # should check that column names are valid columns in concept_set_members
-    #     # but probably never use this option anyway
-    #     columns = [column]
-    # if not columns:
-    #     columns = ['*']
-    #     # columns = ['codeset_id', 'concept_id']
+    if column:
+        # should check that column names are valid columns in concept_set_members
+        # but probably never use this option anyway
+        columns = [column]
+    if not columns:
+        columns = ['*']
 
     with get_db_connection() as con:
         # SELECT DISTINCT {', '.join(columns)}
+        (pstr, params) = sql_in_safe(codeset_ids)
         query = f"""
             SELECT DISTINCT *
             FROM cset_members_items
-            WHERE codeset_id {sql_in(codeset_ids)}
+            WHERE codeset_id IN ({pstr})
         """
+        query = f"""
+            SELECT DISTINCT *
+            FROM cset_members_items
+            WHERE codeset_id {sql_in(codeset_ids)}"""
         # rows: List = sql_query(con, query, debug=False, return_with_keys=True)
         # # if column:  # with single column, don't return List[Dict] but just List(<column>)
         #     rows: List[int] = [r[column] for r in rows]
 
+        # rows: List = sql_query(con, query, params)
         rows: List = sql_query(con, query)
     return rows
 
