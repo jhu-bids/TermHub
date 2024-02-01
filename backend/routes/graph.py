@@ -1,34 +1,28 @@
+"""Graph related functions and routes"""
 import os, warnings
-# import json
 # import csv
 # import io
+# import json
 from pathlib import Path
+from typing import Any, List, Set, Tuple, Union, Dict, Optional
 
-from typing import Any, Iterable, List, Set, Tuple, Union, Dict, Optional
-from collections import defaultdict
-from itertools import combinations
-
-# import networkx
-# from igraph import Graph
+import pickle
+import networkx as nx
 # import pydot
-# from networkx.drawing.nx_pydot import to_pydot, from_pydot
-
 from fastapi import APIRouter, Query, Request
+from networkx import DiGraph
+from sqlalchemy.sql import text
 # from fastapi.responses import JSONResponse
 # from fastapi.responses import Response
 # from fastapi.encoders import jsonable_encoder
 # from collections import OrderedDict
-import networkx as nx
-import pickle
+# from igraph import Graph
+# from networkx.drawing.nx_pydot import to_pydot, from_pydot
 
-from networkx import DiGraph
-from sqlalchemy import RowMapping
-from sqlalchemy.sql import text
-
-from backend.routes.db import get_cset_members_items, get_concepts
-from backend.db.utils import sql_query, get_db_connection, SCHEMA, sql_in
+from backend.routes.db import get_cset_members_items
+from backend.db.utils import get_db_connection, SCHEMA
 from backend.api_logger import Api_logger
-from backend.utils import pdump, get_timer, commify, powerset
+from backend.utils import get_timer, commify
 
 VERBOSE = True
 PROJECT_DIR = Path(os.path.dirname(__file__)).parent.parent
@@ -42,84 +36,107 @@ router = APIRouter(
 
 
 @router.get("/concept-graph")
-async def concept_graph(request: Request, codeset_ids: List[int] = Query(...),
-                        extra_concept_ids: Optional[List[int]] = Query(None)) -> List:
+async def concept_graph_get(
+    request: Request, codeset_ids: List[int] = Query(...), extra_concept_ids: Optional[List[int]] = Query(None),
+    hide_vocabs = ['RxNorm Extension'], hide_nonstandard_concepts=False, verbose = VERBOSE
+) -> Dict:
+    """Return concept graph"""
     extra_concept_ids = extra_concept_ids if extra_concept_ids else []
     return await concept_graph_post(
-        request=request, codeset_ids=codeset_ids, extra_concept_ids=extra_concept_ids)
+        request, codeset_ids, extra_concept_ids, hide_vocabs, hide_nonstandard_concepts, verbose)
 
 
-# TODO: Joe refactor: after get_concepts_for_graph()
-#  - if look at graph-testing.md, there are some codeset_ids i can use
+# TODO
 @router.post("/concept-graph")
 async def concept_graph_post(
     request: Request, codeset_ids: List[int], extra_concept_ids: Union[List[int], None] = [],
-    hide_vocabs = ['RxNorm Extension'], verbose = False
-) -> List:
+    hide_vocabs = ['RxNorm Extension'], hide_nonstandard_concepts=False, verbose = VERBOSE
+) -> Dict:
     """Return concept graph"""
     rpt = Api_logger()
-    await rpt.start_rpt(request, params={
-        'codeset_ids': codeset_ids, 'extra_concept_ids': extra_concept_ids})
     try:
-        timer = get_timer('')
-        # tree = await indented_concept_list(codeset_ids, extra_concept_ids, hide_vocabs)
-        # sg, filled_gaps = fill_in_gaps(REL_GRAPH, id, return_missing=True)
-        VERBOSE and timer('get_connected_subgraph')
-        # VERBOSE and timer('get_missing_in_between_nodes')
-        # TODO: Returns nothing right now. all code below this point used to be part of get_connected_subgraph() or
-        #  one of its sub-functions.
-        #  Now we're calling missing-in-between-nodes. Do we want to do that before or after filtering (for voc and
-        #  nonstandard concepts)?
-        (nodes_in_graph, missing_in_between_nodes, preferred_concept_ids, orphans_not_in_graph, hidden_nodes,
-         hidden_dict) = get_connected_subgraph(REL_GRAPH, codeset_ids, extra_concept_ids,
-                                               hide_vocabs=['RxNorm Extension'])
-
-        # Organize Concept IDs
-        timer = get_timer('')
-        VERBOSE and timer('organize cids')
-
-        # Get members items
-        # TODO: want just concept_id and some metadata: standard voc (bool), vocabulary ID
-        #  - Do this via passing 'columns'
-        #  - copilot did this, make sure it's correct
-        # TODO: test this in test_get_cset_members_items_3_cols()
-        # todo: add typing
-        # TODO: Rename 'csmi' because it is not actually members items. it's concept IDs, not
-        _concept_metadata = get_cset_members_items(codeset_ids=codeset_ids,
-                                       columns=['concept_id', 'vocabulary_id', 'standard_concept'])
-        # Filter
-        # TODO: Joe: now this is calling func. pass something in
-        # TODO: Joe: make use of hidden_dict, nonstandard_concepts_hidden
-        #  - it's possible i'll just return to frontend for reporting
-        # TODO: This is just for hiding now
-        concept_metadata, hidden_dict, nonstandard_concepts_hidden = filter_concepts(_concept_metadata)
-        concept_ids = set([c['concept_id'] for c in concept_metadata])
-        # todo: Not using extra_concept_ids. make a note about that?
-        # concept_ids.update(extra_concept_ids)
-
-        # TODO: call get missing in between nodes
-        #  - add typing
-        missing_in_betweens_ids = get_missing_in_between_nodes(REL_GRAPH, concept_ids)
-        # TODO: needs to be the list of missing nodes with vocab and nonstandard id. probably is get_concepts()
-        missing_in_betweens = ''
-        concept_metadata_m, hidden_dict_m, nonstandard_concepts_hidden_m = filter_concepts(missing_in_betweens)
-
-        # TODO: merge/update the 3 variables each from the 2 returns of filter_concepts()
-        concept_ids.update(missing_in_betweens_ids)
-
-        # Get subgaph
-        sg = REL_GRAPH.subgraph(concept_ids)
-
+        await rpt.start_rpt(request, params={'codeset_ids': codeset_ids, 'extra_concept_ids': extra_concept_ids})
+        sg, missing_in_betweens, hidden_dict, nonstandard_concepts_hidden = await concept_graph(
+            request, codeset_ids, extra_concept_ids, hide_vocabs, hide_nonstandard_concepts, verbose)
         await rpt.finish(rows=len(sg))
-        VERBOSE and timer('done')
+        # TODO: see return for concept_graph() and add anything missing bleow
+        return {'edges': list(sg.edges), 'filled_gaps': missing_in_betweens}
     except Exception as e:
         await rpt.log_error(e)
         raise e
+
+
+# TODO: Joe refactor: after get_concepts_for_graph()
+#  - update typedefs returns here and for concept_graph()
+# TODO: Now we're calling missing-in-between-nodes. Do we want to do that before or after filtering (for voc and
+#  nonstandard concepts)?
+# TODO: use hide_vocabs()
+async def concept_graph(
+    codeset_ids: List[int], extra_concept_ids: Union[List[int], None] = [], hide_vocabs = ['RxNorm Extension'],
+    hide_nonstandard_concepts=False, verbose = VERBOSE
+) -> List:
+    """Return concept graph
+
+    :param extra_concept_ids: Not used right now. This is for when we allow user to add concepts from other concept sets
+    . They're not part of any codesets yet, as these are added by user.
+    :returns
+      hidden_by_voc: Map of vocab to set of concept ids"""
+    if extra_concept_ids:
+        raise NotImplementedError('See docstring for concept_graph()')
+    # todo: old code to remove. Returns nothing right now. all code below this point in concept_graph_post() used to
+    #  be part of get_connected_subgraph() or one of its sub-functions.
+    # (nodes_in_graph, missing_in_between_nodes, preferred_concept_ids, orphans_not_in_graph, hidden_nodes,
+    #  hidden_dict) = get_connected_subgraph(REL_GRAPH, codeset_ids, extra_concept_ids, hide_vocabs=['RxNorm Extension'])
+    # tree = await indented_concept_list(codeset_ids, extra_concept_ids, hide_vocabs)
+    # sg, filled_gaps = fill_in_gaps(REL_GRAPH, id, return_missing=True)
+    timer = get_timer('')
+    verbose and timer('concept_graph()')
+
+    # Get concepts & metadata
+    concepts_raw: List[Dict] = [dict(x) for x in get_cset_members_items(
+        codeset_ids=codeset_ids, columns=['concept_id', 'vocabulary_id', 'standard_concept'])]
+    # Filter
+    # TODO: see: filter_concepts()
+    concepts: List[Dict]
+    hidden_by_voc: Dict[str, Set[int]]
+    nonstandard_concepts_hidden: Set
+    concepts, hidden_by_voc, nonstandard_concepts_hidden = filter_concepts(
+        concepts_raw, hide_vocabs, hide_nonstandard_concepts)
+    concept_ids: Set[int] = set([c['concept_id'] for c in concepts])
+    # concept_ids.update(extra_concept_ids)  # future
+
+    # TODO: Joe: make use of: hidden_dict, nonstandard_concepts_hidden?
+    #  - possibly just return to frontend for reporting
+
+    # TODO: call get missing in between nodes
+    #  - Set[int] correct?
+    missing_in_betweens_ids: Set[int] = get_missing_in_between_nodes(REL_GRAPH, concept_ids)
+    # TODO: needs to be the list of missing nodes with vocab and nonstandard id. probably is get_concepts()
+    missing_in_betweens = []
+
+    concepts_m: List[Dict]
+    hidden_by_voc_m: Dict[str, Set[int]]
+    nonstandard_concepts_hidden_m: Set
+    concepts_m, hidden_by_voc_m, nonstandard_concepts_hidden_m = filter_concepts(
+        missing_in_betweens, hide_vocabs, hide_nonstandard_concepts)
+
+    # TODO: merge/update the 3 variables each from the 2 returns of filter_concepts()
+    #  - is the below correct?
+    concept_ids.update(missing_in_betweens_ids)
+    hidden_by_voc_m.update(hidden_by_voc)
+    nonstandard_concepts_hidden = nonstandard_concepts_hidden.union(nonstandard_concepts_hidden_m)
+
+    # Get subgaph
+    sg = REL_GRAPH.subgraph(concept_ids)
+
+
+    verbose and timer('done')
     # TODO: change to return: edges, filled gaps (missing_in_betweens), NOT layout, hidden_dict &
     #  nonstandard_concepts_hidden ((merged of the normal and the  missing in betweens calls
     #  maybe return: preferred_concept_ids, and orphans
     #  - update function return typedef
-    return {'edges': list(sg.edges), 'filled_gaps': missing_in_between_nodes}
+    return sg, missing_in_betweens, hidden_by_voc, nonstandard_concepts_hidden
+
 
     # TODO: @Siggie: move below to frontend
     # Orphans
@@ -140,7 +157,7 @@ async def concept_graph_post(
     #  - We don't want to accidentally hide them.
     #  - for indented list
     preferred_concept_ids = set([
-        c['concept_id'] for c in concept_metadata
+        c['concept_id'] for c in concepts
         if c['item'] and not c['concept_id'] in orphans_not_in_graph])
 
     # Layout - no longer used
@@ -192,8 +209,8 @@ async def concept_graph_post(
             for orphan in orphans_unlinked:
                 tree.append((1, orphan))
 
-    for vocab in hidden_dict.keys():
-        hidden_concept_ids = hidden_dict[vocab]
+    for vocab in hidden_by_voc.keys():
+        hidden_concept_ids = hidden_by_voc[vocab]
         cnt = len(hidden_concept_ids)
         tree.append((0, f'Concept set also includes {cnt} {vocab} concepts not shown above'))
         if cnt <= hide_if_over:
@@ -207,40 +224,30 @@ async def concept_graph_post(
     return tree
 
 
-# TODO: Joe
-#  - add data type of the return
 def filter_concepts(
-    concepts: List[Dict[str, Tuple[int, str, str]]], hide_vocabs: List[str], nonstandard_concepts_hidden=False
-) -> Tuple[Set, Dict, Set]:
+    concepts: List[Dict[str, Any]], hide_vocabs: List[str], hide_nonstandard_concepts=False
+) -> Tuple[List[Dict], Dict[str, Set[int]], Set]:
     """Get lists of concepts for graph
 
     :param: concepts: List of concept ids as keys, and metadata as values.
-    # todo: move this comment to calling func:
-    :param extra_concept_ids: Not used right now. This is for when we allow user to add concepts from other concept sets
-    . They're not part of any codesets yet, as these are added by user."""
-
-    # Hide things
-    hidden_dict: Dict[str, Set[int]] = {}
-    # TODO: add hide_nonstandard_concepts param, and add a filter here for it
-    # TODO: Return ids or count for nonstandard_concepts_hidden
-    nonstandard_concepts_hidden = set()
+    :returns
+      hidden_by_voc: Map of vocab to set of concept ids"""
+    # Hide by vocabulary
+    hidden_by_voc: Dict[str, Set[int]] = {}
     for vocab in hide_vocabs:  # for each vocab being hidden, separate out the concepts
-        hidden_nodes = set([c['concept_id'] for c in concepts if c['vocabulary_id'] == vocab])
-        if hidden_nodes:
-            hidden_dict[vocab] = hidden_nodes
+        hidden_i: Set[int] = set([c['concept_id'] for c in concepts if c['vocabulary_id'] == vocab])
+        if hidden_i:
+            hidden_by_voc[vocab] = hidden_i
 
-    # TODO do something
-    if nonstandard_concepts_hidden:
-        pass
+    # Hide non-standard concepts
+    nonstandard_concepts_hidden = set()
+    if hide_nonstandard_concepts:
+        nonstandard_concepts_hidden: Set[int] = set([c['concept_id'] for c in concepts if c['standard_concept'] != 'S'])
 
-    # TODO: add hidden nodes also from nonstandard_concepts_hidden
-    hidden_nodes = set().union(*list(hidden_dict.values()))
-
-    filtered_concepts: List[Dict] = [c for c in concepts if c not in hidden_nodes]
-    # TODO: bugfix: testing for whether a row is in a list of ints
-    # TODO: Return: csmi, hidden_dict
-    #   - we probably don't need hidden_nodes to be passed back
-    return filtered_concepts, hidden_dict, nonstandard_concepts_hidden
+    # Get filtered concepts
+    hidden_nodes = set().union(*list(hidden_by_voc.values())).union(nonstandard_concepts_hidden)
+    filtered_concepts: List[Dict] = [c for c in concepts if c['concept_id'] not in hidden_nodes]
+    return filtered_concepts, hidden_by_voc, nonstandard_concepts_hidden
 
 
 
@@ -309,16 +316,19 @@ def get_indented_tree_nodes(sg, preferred_concept_ids=[], max_depth=3, max_child
 
 
 def get_connected_subgraph(
-    REL_GRAPH: nx.Graph,
+    g: nx.Graph,
     codeset_ids: List[int],
     extra_concept_ids: Union[List[int], None] = [],
     hide_vocabs: Union[List[str], None] = []
 ) -> (DiGraph, Set[int], Set[int], Set[int], Dict[str, Set[int]]):
-    pass
+    """Get connected subgraph and various other things"""
+    print(g, codeset_ids, extra_concept_ids, hide_vocabs)
+    raise NotImplementedError('Moved to concept_graph_post()')
 
 
 print_stack = lambda s: ' | '.join([f"{n} => {','.join([str(x) for x in p])}" for n,p in s])
 def get_missing_in_between_nodes(G, subgraph_nodes):
+    """Get missing in-betweens, nodes that weren't in definition or expansion but are in between those."""
     missing_in_between_nodes = set()
     missing_in_between_nodes_tmp = set()
     sg = G.subgraph(subgraph_nodes)
@@ -371,7 +381,8 @@ def get_missing_in_between_nodes(G, subgraph_nodes):
     return missing_in_between_nodes
 
 
-# TODO: get test to pass
+# TODO: get test to pass. currently missing '17'
+#  - move to test_graph.py
 def tst_graph_code():
     """Tests for graph related functionality
 
