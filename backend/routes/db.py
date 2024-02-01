@@ -112,23 +112,24 @@ def get_cset_members_items(
         columns = ['*']
 
     with get_db_connection() as con:
-        # SELECT DISTINCT {', '.join(columns)}
         (pstr, params) = sql_in_safe(codeset_ids)
-        query = f"""
-            SELECT DISTINCT *
-            FROM cset_members_items
-            WHERE codeset_id IN ({pstr})
-        """
-        query = f"""
-            SELECT DISTINCT *
-            FROM cset_members_items
-            WHERE codeset_id {sql_in(codeset_ids)}"""
-        # rows: List = sql_query(con, query, debug=False, return_with_keys=True)
-        # # if column:  # with single column, don't return List[Dict] but just List(<column>)
-        #     rows: List[int] = [r[column] for r in rows]
 
-        # rows: List = sql_query(con, query, params)
-        rows: List = sql_query(con, query)
+        q1 = sql.SQL("""
+                SELECT {}
+                FROM cset_members_items"""
+                f"""
+                WHERE codeset_id IN ({pstr})""").format(
+            sql.SQL(', ').join(map(sql.Identifier, columns)),
+            sql.SQL(', ').join(sql.Placeholder() * len(columns)))
+
+
+        query = text(q1.as_string(con.connection.connection))
+
+        rows: List = sql_query(con, query, params)
+
+        if column:  # with single column, don't return List[Dict] but just List(<column>)
+            rows: List[int] = [r[column] for r in rows]
+
     return rows
 
 

@@ -65,9 +65,9 @@ function CsetComparisonPage() {
       }
 
       // have to get indentedCids, which might contain more concept_ids after filling gaps
-      const extra_concept_ids = []; // not collecting these yet
+      const cids = []; // not collecting these yet
       let indentedTreeRows = await dataGetter.fetchAndCacheItems(
-          dataGetter.apiCalls.indented_concept_list, { codeset_ids, extra_concept_ids });
+          dataGetter.apiCalls.indented_concept_list, { codeset_ids, cids });
       // indentedCids = [[<level>, <concept_id>], ...], or, if summarized: [<level>, [<concept_id>, <concept_id>,...]]
 
       // summarized rows have a list of the parent's child concept_ids in place of the parent's descendants

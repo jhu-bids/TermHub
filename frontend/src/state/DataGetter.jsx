@@ -227,15 +227,20 @@ class DataGetter {
 			// cacheShape: 'obj of array of array', // cache.edges[key] = [[src,tgt], [src,tgt], ....]
 			// formatResultsFunc: edges => edges.map(edge => edge.map(String)), // might need this!!
 		},
-		indented_concept_list: {	// expects codeset_ids plus extra concept_ids if any requested
+		concept_graph_new: {	// expects codeset_ids plus extra concept_ids (cids) if any requested
+			// was indented_concept_list
 			expectedParams: {},
-			dataLengthFunc: params => params.codeset_ids.length + params.extra_concept_ids.length,
-			api: 'indented-concept-list',
+			dataLengthFunc: params => params.codeset_ids.length + params.cids.length,
+			// api: 'indented-concept-list',
+			api: 'concept-graph',
 			makeQueryString: params => createSearchParams(params),
 			protocols: ['get', 'post'],
-			cacheSlice: 'indented-concept-list',
-			singleKeyFunc: concept_ids => compress(concept_ids.join('|')),
-			alertTitle: 'Get subgraph for all listed concept_ids',
+			cacheSlice: 'concept-graph',
+			// TODO: this can't be right. why no codeset_ids in key func?
+			// 	singleKeyFunc: concept_ids => compress(concept_ids.join('|')),
+			singleKeyFunc: ({codeset_ids=[], cids=[]}) =>
+					compress(codeset_ids.join('|') + ';' + cids.join('|')),
+			alertTitle: 'Get subgraph for all listed code sets plus additional concept_ids (cids)',
 			apiResultShape: 'array of array [level, concept_id]',
 			cacheShape: 'obj of array of array', // cache.edges[key] = [[src,tgt], [src,tgt], ....]
 			// formatResultsFunc: edges => edges.map(edge => edge.map(String)), // might need this!!
@@ -323,8 +328,8 @@ class DataGetter {
 		const dataCache = this.dataCache;
 
 		if (apiDef.api === 'indented-concept-list') { // indented_concept_list: { codeset_ids: [], additional_concept_ids: [] }
-			const {codeset_ids, extra_concept_ids} = params;
-			let cacheKey = codeset_ids.join(',') + ';' + extra_concept_ids.join(',');
+			const {codeset_ids, cids} = params;
+			let cacheKey = codeset_ids.join(',') + ';' + cids.join(',');
 
 			let data = dataCache.cacheGet([apiDef.cacheSlice, cacheKey]);
 			if (isEmpty(data)) {

@@ -4,7 +4,7 @@ import os, warnings
 # import io
 from pathlib import Path
 
-from typing import Any, Iterable, List, Set, Tuple, Union, Dict, Optional
+from typing import Any, Iterable, List, Set, Union, Dict, Optional
 from collections import defaultdict
 from itertools import combinations
 
@@ -49,14 +49,11 @@ async def concept_graph(request: Request, codeset_ids: List[int] = Query(...),
         request=request, codeset_ids=codeset_ids, extra_concept_ids=extra_concept_ids)
 
 
-# TODO: Joe refactor: after get_concepts_for_graph()
-#  - if look at graph-testing.md, there are some codeset_ids i can use
 @router.post("/concept-graph")
 async def concept_graph_post(
     request: Request, codeset_ids: List[int], extra_concept_ids: Union[List[int], None] = [],
     hide_vocabs = ['RxNorm Extension'], verbose = False
 ) -> List:
-    """Return concept graph"""
     rpt = Api_logger()
     await rpt.start_rpt(request, params={
         'codeset_ids': codeset_ids, 'extra_concept_ids': extra_concept_ids})
@@ -66,181 +63,128 @@ async def concept_graph_post(
         # sg, filled_gaps = fill_in_gaps(REL_GRAPH, id, return_missing=True)
         VERBOSE and timer('get_connected_subgraph')
         # VERBOSE and timer('get_missing_in_between_nodes')
-        # TODO: Returns nothing right now. all code below this point used to be part of get_connected_subgraph() or
-        #  one of its sub-functions.
-        #  Now we're calling missing-in-between-nodes. Do we want to do that before or after filtering (for voc and
-        #  nonstandard concepts)?
         (nodes_in_graph, missing_in_between_nodes, preferred_concept_ids, orphans_not_in_graph, hidden_nodes,
          hidden_dict) = get_connected_subgraph(REL_GRAPH, codeset_ids, extra_concept_ids,
                                                hide_vocabs=['RxNorm Extension'])
+
 
         # Organize Concept IDs
         timer = get_timer('')
         VERBOSE and timer('organize cids')
 
-        # Get members items
-        # TODO: want just concept_id and some metadata: standard voc (bool), vocabulary ID
-        #  - Do this via passing 'columns'
-        #  - copilot did this, make sure it's correct
-        # TODO: test this in test_get_cset_members_items_3_cols()
-        # todo: add typing
-        # TODO: Rename 'csmi' because it is not actually members items. it's concept IDs, not
-        _concept_metadata = get_cset_members_items(codeset_ids=codeset_ids,
-                                       columns=['concept_id', 'vocabulary_id', 'standard_concept'])
-        # Filter
-        # TODO: Joe: now this is calling func. pass something in
-        # TODO: Joe: make use of hidden_dict, nonstandard_concepts_hidden
-        #  - it's possible i'll just return to frontend for reporting
-        # TODO: This is just for hiding now
-        concept_metadata, hidden_dict, nonstandard_concepts_hidden = filter_concepts(_concept_metadata)
-        concept_ids = set([c['concept_id'] for c in concept_metadata])
-        # todo: Not using extra_concept_ids. make a note about that?
-        # concept_ids.update(extra_concept_ids)
+        concepts, hidden_dict = get_concepts_for_graph(codeset_ids, extra_concept_ids, hide_vocabs)
+        concept_ids = set([c['concept_id'] for c in concepts])
+        concept_ids.update(extra_concept_ids)
 
-        # TODO: call get missing in between nodes
-        #  - add typing
-        missing_in_betweens_ids = get_missing_in_between_nodes(REL_GRAPH, concept_ids)
-        # TODO: needs to be the list of missing nodes with vocab and nonstandard id. probably is get_concepts()
-        missing_in_betweens = ''
-        concept_metadata_m, hidden_dict_m, nonstandard_concepts_hidden_m = filter_concepts(missing_in_betweens)
+        # Orphans
+        # orphans_not_in_graph, here, are just nodes that don't appear in graph
+        #   they'll get appended to the end of the tree at level 0
+        # The graph, which comes from the concept_ancestor table, doesn't contain edges for every concept.
+        nodes_in_graph = set()
+        orphans_not_in_graph = set()
+        # TODO: deal with two kinds of orphan: not in the graph (handled here)
+        #   and in the graph but having no parents or children
+        for cid in concept_ids:
+            if cid in REL_GRAPH:
+                nodes_in_graph.add(cid)
+            else:
+                orphans_not_in_graph.add(cid)
 
-        # TODO: merge/update the 3 variables each from the 2 returns of filter_concepts()
-        concept_ids.update(missing_in_betweens_ids)
+        # Preferred concept IDs are things we're trying to link in the graph; non-orphan items
+        #  - We don't want to accidentally hide them.
+        preferred_concept_ids = set([
+            c['concept_id'] for c in csmi
+            if c['item'] and not c['concept_id'] in orphans_not_in_graph])
 
-        # Get subgaph
-        sg = REL_GRAPH.subgraph(concept_ids)
+        missing_in_between_nodes = get_missing_in_between_nodes(REL_GRAPH, nodes_in_graph).copy()
+        # sg = connect_nodesOLD(REL_GRAPH, nodes_in_graph, preferred_concept_ids).copy()
+        return nodes_in_graph, missing_in_between_nodes, preferred_concept_ids, orphans_not_in_graph, hidden_nodes, hidden_dict
 
-        await rpt.finish(rows=len(sg))
+        sg = REL_GRAPH.subgraph(nodes_in_graph.union(missing_in_between_nodes))
+        layout = 'not implemented'
+        # raise Exception("Not implemented")
+        # P = to_pydot(sg)
+        # layout = from_pydot(P)
+        # layout = {k: list(v) for k, v in _layout.items()}     # networkx doesn't seem to have sugiyama
+        # g = Graph.from_networkx(sg)
+        # _layout = g.layout_sugiyama()
+        # layout = {v["_nx_name"]: _layout[idx] for idx, v in enumerate(g.vs)}
+        # await rpt.finish(rows=len(tree))
+        # return tree
+        # Get Concept Set Members Items
+
+        VERBOSE and timer('get roots')
+        roots = [node for node, degree in sg.in_degree() if degree == 0]
+        leaves = [node for node, degree in sg.out_degree() if degree == 0]
+
+        # nodes that are both root and leaf, put in orphans_unlinked, remove from roots
+        orphans_unlinked = set(roots).intersection(leaves)
+        for o in orphans_unlinked:
+            roots.remove(o)
+
+        preferred_concept_ids.update(roots)
+
+        # sg_nodes = set(sg.nodes)
+        # print(f"sg \u2229 paths {len(sg_nodes.intersection(nodes_in_paths))}")
+        # print(f"sg - paths {len(sg_nodes.difference(nodes_in_paths))}")
+        # print(f"paths - sg {len(nodes_in_paths.difference(sg_nodes))}")
+
+        VERBOSE and timer('get tree')
+        tree = get_indented_tree_nodes(sg, preferred_concept_ids)  # TODO: just testing below, put this line back
+
+        hide_if_over = 50
+        if orphans_not_in_graph:
+            cnt = len(orphans_not_in_graph)
+            tree.append((0,
+                         f"Concept set also includes {cnt} {'hidden ' if cnt > hide_if_over else ''}nodes in concept set but not in our graph"))
+            if cnt <= hide_if_over:
+                for orphan in orphans_not_in_graph:
+                    tree.append((1, orphan))
+
+        if orphans_unlinked:
+            cnt = len(orphans_unlinked)
+            tree.append((0,
+                         f"Concept set also includes {cnt} {'hidden ' if cnt > hide_if_over else ''}nodes unconnected to others in the concept set"))
+            if cnt <= hide_if_over:
+                for orphan in orphans_unlinked:
+                    tree.append((1, orphan))
+
+        for vocab in hidden_dict.keys():
+            hidden_concept_ids = hidden_dict[vocab]
+            cnt = len(hidden_concept_ids)
+            tree.append((0, f'Concept set also includes {cnt} {vocab} concepts not shown above'))
+            if cnt <= hide_if_over:
+                for h in hidden_concept_ids:
+                    tree.append((1, h))
+
+        # timer('get testtree')
+        # testtree = paths_as_indented_tree(paths)
+        # testtree.append((0, list(orphans_not_in_graph)))
         VERBOSE and timer('done')
+        # return testtree
+        return tree
+        await rpt.finish(rows=len(sg))
     except Exception as e:
         await rpt.log_error(e)
         raise e
-    # TODO: change to return: edges, filled gaps (missing_in_betweens), NOT layout, hidden_dict &
-    #  nonstandard_concepts_hidden ((merged of the normal and the  missing in betweens calls
-    #  maybe return: preferred_concept_ids, and orphans
-    #  - update function return typedef
-    return {'edges': list(sg.edges), 'filled_gaps': missing_in_between_nodes}
-
-    # TODO: @Siggie: move below to frontend
-    # Orphans
-    # orphans_not_in_graph, here, are just nodes that don't appear in graph
-    #   they'll get appended to the end of the tree at level 0
-    # The graph, which comes from the concept_ancestor table, doesn't contain edges for every concept.
-    nodes_in_graph = set()
-    orphans_not_in_graph = set()
-    # TODO: deal with two kinds of orphan: not in the graph (handled here)
-    #   and in the graph but having no parents or children
-    for cid in concept_ids:
-        if cid in sg.nodes():
-            nodes_in_graph.add(cid)
-        else:
-            orphans_not_in_graph.add(cid)
-
-    # Preferred concept IDs are things we're trying to link in the graph; non-orphan items
-    #  - We don't want to accidentally hide them.
-    #  - for indented list
-    preferred_concept_ids = set([
-        c['concept_id'] for c in concept_metadata
-        if c['item'] and not c['concept_id'] in orphans_not_in_graph])
-
-    # Layout - no longer used
-    # P = to_pydot(sg)
-    # layout = from_pydot(P)
-    # layout = {k: list(v) for k, v in _layout.items()}     # networkx doesn't seem to have sugiyama
-    # g = Graph.from_networkx(sg)
-    # _layout = g.layout_sugiyama()
-    # layout = {v["_nx_name"]: _layout[idx] for idx, v in enumerate(g.vs)}
-    # await rpt.finish(rows=len(tree))
-    # return tree
-
-    # Get Concept Set Members Items
-    VERBOSE and timer('get roots')
-    roots = [node for node, degree in sg.in_degree() if degree == 0]
-    leaves = [node for node, degree in sg.out_degree() if degree == 0]
-
-    # orphans_unlinked: nodes that are both root and leaf, put in orphans_unlinked, remove from roots
-    #  - in subgraph sg, but not in the connected graph
-    # todo: undersrtand what's different between orphans_unlinked and orphans_not_in_graph
-    orphans_unlinked = set(roots).intersection(leaves)
-    for o in orphans_unlinked:
-        roots.remove(o)
-
-    preferred_concept_ids.update(roots)
-
-    # sg_nodes = set(sg.nodes)
-    # print(f"sg \u2229 paths {len(sg_nodes.intersection(nodes_in_paths))}")
-    # print(f"sg - paths {len(sg_nodes.difference(nodes_in_paths))}")
-    # print(f"paths - sg {len(nodes_in_paths.difference(sg_nodes))}")
-
-    VERBOSE and timer('get tree')
-    tree = get_indented_tree_nodes(sg, preferred_concept_ids)  # TODO: just testing below, put this line back
-
-    hide_if_over = 50
-    if orphans_not_in_graph:
-        cnt = len(orphans_not_in_graph)
-        tree.append((0,
-                     f"Concept set also includes {cnt} {'hidden ' if cnt > hide_if_over else ''}nodes in concept set but not in our graph"))
-        if cnt <= hide_if_over:
-            for orphan in orphans_not_in_graph:
-                tree.append((1, orphan))
-
-    if orphans_unlinked:
-        cnt = len(orphans_unlinked)
-        tree.append((0,
-                     f"Concept set also includes {cnt} {'hidden ' if cnt > hide_if_over else ''}nodes unconnected to others in the concept set"))
-        if cnt <= hide_if_over:
-            for orphan in orphans_unlinked:
-                tree.append((1, orphan))
-
-    for vocab in hidden_dict.keys():
-        hidden_concept_ids = hidden_dict[vocab]
-        cnt = len(hidden_concept_ids)
-        tree.append((0, f'Concept set also includes {cnt} {vocab} concepts not shown above'))
-        if cnt <= hide_if_over:
-            for h in hidden_concept_ids:
-                tree.append((1, h))
-
-    # timer('get testtree')
-    # testtree = paths_as_indented_tree(paths)
-    # testtree.append((0, list(orphans_not_in_graph)))
-    # return testtree
-    return tree
+    return {'edges': list(sg.edges), 'layout': layout, 'filled_gaps': missing_in_between_nodes}
 
 
-# TODO: Joe
-#  - add data type of the return
-def filter_concepts(
-    concepts: List[Dict[str, Tuple[int, str, str]]], hide_vocabs: List[str], nonstandard_concepts_hidden=False
-) -> Tuple[Set, Dict, Set]:
-    """Get lists of concepts for graph
-
-    :param: concepts: List of concept ids as keys, and metadata as values.
-    # todo: move this comment to calling func:
-    :param extra_concept_ids: Not used right now. This is for when we allow user to add concepts from other concept sets
-    . They're not part of any codesets yet, as these are added by user."""
-
-    # Hide things
+def get_concepts_for_graph(codeset_ids: List[int], extra_concept_ids: List[int],
+                           hide_vocabs: List[str]):
+    _csmi = get_cset_members_items(codeset_ids=codeset_ids)
+    # concepts = get_concepts(extra_concept_ids)
+    # give hidden rxnorm ext count
     hidden_dict: Dict[str, Set[int]] = {}
-    # TODO: add hide_nonstandard_concepts param, and add a filter here for it
-    # TODO: Return ids or count for nonstandard_concepts_hidden
-    nonstandard_concepts_hidden = set()
     for vocab in hide_vocabs:  # for each vocab being hidden, separate out the concepts
-        hidden_nodes = set([c['concept_id'] for c in concepts if c['vocabulary_id'] == vocab])
+        hidden_nodes = set([c['concept_id'] for c in _csmi if c['vocabulary_id'] == vocab])
         if hidden_nodes:
             hidden_dict[vocab] = hidden_nodes
 
-    # TODO do something
-    if nonstandard_concepts_hidden:
-        pass
-
-    # TODO: add hidden nodes also from nonstandard_concepts_hidden
     hidden_nodes = set().union(*list(hidden_dict.values()))
-
-    filtered_concepts: List[Dict] = [c for c in concepts if c not in hidden_nodes]
-    # TODO: bugfix: testing for whether a row is in a list of ints
-    # TODO: Return: csmi, hidden_dict
-    #   - we probably don't need hidden_nodes to be passed back
-    return filtered_concepts, hidden_dict, nonstandard_concepts_hidden
+    csmi = set()
+    csmi.update([c for c in _csmi if c not in hidden_nodes])
+    return csmi, hidden_dict
 
 
 
