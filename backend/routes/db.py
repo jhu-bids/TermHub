@@ -94,9 +94,10 @@ def get_all_researcher_ids(rows: List[Dict]) -> Set[str]:
 
 
 def get_cset_members_items(
-    codeset_ids: List[int] = [],
+    codeset_ids: Union[List[int], None] = None,
     columns: Union[List[str], None] = None,
     column: Union[str, None] = None,
+    return_with_keys: bool = True,
 ) -> Union[List[int], List]:
     """Get concept set members items for selected concept sets
         returns:
@@ -104,28 +105,32 @@ def get_cset_members_items(
         item: True if its an expression item, else false
         csm: false if not in concept set members
     """
-    if column:
-        # should check that column names are valid columns in concept_set_members
-        # but probably never use this option anyway
-        columns = [column]
-    if not columns:
-        columns = ['*']
 
-    with get_db_connection() as con:
-        (pstr, params) = sql_in_safe(codeset_ids)
+    with (get_db_connection() as con):
+        if codeset_ids:
+            (pstr, params) = sql_in_safe(codeset_ids)
+            where = sql.SQL(f" WHERE codeset_id IN ({pstr})").as_string(con.connection.connection)
+        else:
+            where = ''
+            params = {}
 
-        q1 = sql.SQL("""
-                SELECT {}
-                FROM cset_members_items"""
-                f"""
-                WHERE codeset_id IN ({pstr})""").format(
-            sql.SQL(', ').join(map(sql.Identifier, columns)),
-            sql.SQL(', ').join(sql.Placeholder() * len(columns)))
+        if column:
+            columns = [column]
 
+        if columns:
+            select = sql.SQL("""
+                    SELECT {}
+                    FROM cset_members_items
+                    """).format(
+                sql.SQL(', ').join(map(sql.Identifier, columns)),
+                sql.SQL(', ').join(sql.Placeholder() * len(columns)))
+            select = select.as_string(con.connection.connection)
+        else:
+            select = "SELECT * FROM cset_members_items"
 
-        query = text(q1.as_string(con.connection.connection))
+        query = text(select + where)
 
-        rows: List = sql_query(con, query, params)
+        rows: List = sql_query(con, query, params, return_with_keys=return_with_keys)
 
         if column:  # with single column, don't return List[Dict] but just List(<column>)
             rows: List[int] = [r[column] for r in rows]
@@ -133,19 +138,12 @@ def get_cset_members_items(
     return rows
 
 
-# TODO: don't keep both these routes; redundant
-@router.get("/cset-members-items")
-def _cset_members_items(codeset_ids: Union[str, None] = Query(default=''), ) -> List:
-    """Route for: cset_memberss_items()"""
-    codeset_ids: List[int] = parse_codeset_ids(codeset_ids)
-    return get_cset_members_items(codeset_ids)
-
-
 @router.get("/get-cset-members-items")
 async def _get_cset_members_items(request: Request,
-                                  codeset_ids: str,
-                                  # columns: Union[List[str], None] = Query(default=None),
-                                  # column: Union[str, None] = Query(default=None),
+                                  codeset_ids: str = None,
+                                  columns: Union[List[str], None] = Query(default=None),
+                                  column: Union[str, None] = Query(default=None),
+                                  return_with_keys: bool = True,
                                   # extra_concept_ids: Union[int, None] = Query(default=None)
                                   ) -> Union[List[int], List]:
     requested_codeset_ids = parse_codeset_ids(codeset_ids)
@@ -153,38 +151,12 @@ async def _get_cset_members_items(request: Request,
     await rpt.start_rpt(request, params={'codeset_ids': requested_codeset_ids})
 
     try:
-        rows = get_cset_members_items(requested_codeset_ids) #, columns, column
+        rows = get_cset_members_items(requested_codeset_ids, columns, column, return_with_keys)
         await rpt.finish(rows=len(rows))
     except Exception as e:
         await rpt.log_error(e)
         raise e
     return rows
-
-def get_concept_set_member_ids(
-    codeset_ids: List[int],
-    columns: Union[List[str], None] = None,
-    column: Union[str, None] = None,
-    con: Connection = None
-) -> Union[List[int], List]:
-    """Get concept set members"""
-    conn = con if con else get_db_connection()
-    if column:
-        columns = [column]
-    if not columns:
-        columns = ['codeset_id', 'concept_id']
-
-    # should check that column names are valid columns in concept_set_members
-    query = f"""
-        SELECT DISTINCT {', '.join(columns)}
-        FROM concept_set_members csm
-        WHERE csm.codeset_id {sql_in(codeset_ids)}
-    """
-    res: List = sql_query(conn, query, debug=False)
-    if not con:
-        conn.close()
-    if column:  # with single column, don't return List[Dict] but just List(<column>)
-        res: List[int] = [r[column] for r in res]
-    return res
 
 
 def get_concept_relationships(cids: List[int], reltypes: List[str] = ['Subsumes'], con: Connection = None) -> List:
@@ -281,17 +253,15 @@ async def get_concept_ids_by_codeset_id_post(request: Request, codeset_ids: Unio
 
 
 @router.get("/concept-ids-by-codeset-id")
-@return_err_with_trace
-async def get_concept_ids_by_codeset_id(
-    request: Request, codeset_ids: Union[List[str], None] = Query(...)
-) -> Dict[str, str]:
+async def get_concept_ids_by_codeset_id(request: Request, codeset_ids: Optional[List[int]] = []) -> Dict:
     """Get concept IDs by codeset id"""
-    q = f"""
-          SELECT csids.codeset_id, COALESCE(cibc.concept_ids, ARRAY[]::integer[]) AS concept_ids
-          FROM (VALUES{",".join([f"({csid})" for csid in codeset_ids])}) AS csids(codeset_id)
-          LEFT JOIN concept_ids_by_codeset_id cibc ON csids.codeset_id = cibc.codeset_id"""
-    if not codeset_ids:
-        return {}
+    if codeset_ids:
+        q = f"""
+              SELECT csids.codeset_id, COALESCE(cibc.concept_ids, ARRAY[]::integer[]) AS concept_ids
+              FROM (VALUES{",".join([f"({csid})" for csid in codeset_ids])}) AS csids(codeset_id)
+              LEFT JOIN concept_ids_by_codeset_id cibc ON csids.codeset_id = cibc.codeset_id"""
+    else:
+        q = f"""SELECT * FROM concept_ids_by_codeset_id"""
 
     rpt = Api_logger()
     await rpt.start_rpt(request, params={'codeset_ids': codeset_ids})
@@ -303,17 +273,18 @@ async def get_concept_ids_by_codeset_id(
     except Exception as e:
         await rpt.log_error(e)
         raise e
+    return rows
     return {r['codeset_id']: r['concept_ids'] for r in rows}
 
 
 @router.post("/codeset-ids-by-concept-id")
 @return_err_with_trace
-async def get_codeset_ids_by_concept_id_post(request: Request, concept_ids: Union[List[int], None] = None) -> Dict:
+async def get_codeset_ids_by_concept_id_post(request: Request, concept_ids: Union[List[int], None] = []) -> Dict:
     """Get Codeset IDs by concept ID"""
     q = f"""
           SELECT *
-          FROM codeset_ids_by_concept_id
-          WHERE concept_id {sql_in(concept_ids)};"""
+          FROM codeset_ids_by_concept_id"""
+    q += f" WHERE concept_id {sql_in(concept_ids)}" if concept_ids else ""
     rpt = Api_logger()
     await rpt.start_rpt(request, params={'concept_ids': concept_ids})
     try:
@@ -328,7 +299,9 @@ async def get_codeset_ids_by_concept_id_post(request: Request, concept_ids: Unio
 
 
 @router.get("/codeset-ids-by-concept-id")
-async def get_codeset_ids_by_concept_id(request: Request, concept_ids: Union[List[str], None] = Query(...)) -> Dict:
+# async def get_codeset_ids_by_concept_id(request: Request, concept_ids: Union[List[str], None] = Query(...)) -> Dict:
+async def get_codeset_ids_by_concept_id(request: Request, concept_ids: Union[List[int], None] = []) -> Dict:
+
     """Get Codeset IDs by concept ID"""
     return await get_codeset_ids_by_concept_id_post(request, concept_ids)
 

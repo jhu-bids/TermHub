@@ -393,7 +393,7 @@ def database_exists(con: Connection, db_name: str) -> bool:
 
 def sql_query(
     con: Connection, query: Union[text, str], params: Dict = {}, debug: bool = DEBUG, return_with_keys=True
-) -> Union[List[RowMapping], List[Row]]:
+) -> Union[List[RowMapping], List[List]]:
     """Run a sql query with optional params, fetching records.
     https://stackoverflow.com/a/39414254/1368860:
     query = "SELECT * FROM my_table t WHERE t.id = ANY(:ids);"
@@ -418,7 +418,7 @@ def sql_query(
             # noinspection PyTypeChecker
             results: List[Row] = q.fetchall()  # Row tuples, with additional properties
             # after upgrading some packages, fastapi can no longer serialize Row objects
-            # return [list(x) for x in results]
+            return [list(x) for x in results]
         return results
     except (ProgrammingError, OperationalError) as err:
         raise RuntimeError(f'Got an error [{err}] executing the following statement:\n{query}, {json.dumps(params, indent=2)}')

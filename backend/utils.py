@@ -9,6 +9,7 @@ import smtplib
 import traceback
 from typing import Dict, List, Any
 from datetime import datetime
+import warnings
 
 from requests import Response, post
 from starlette.responses import JSONResponse
@@ -182,9 +183,6 @@ def set_nested_in_dict(d: Dict, key_path: List, value: Any):
 
 def return_err_with_trace(func):
     """Handle exceptions"""
-    # @joeflack4: is this helping us? it's used for four routes. it took me a while to track down
-    #   that it needed to be async and have `await func(..)`
-
     @wraps(func)
     async def decorated_func(*args, **kwargs):
         """Handle exceptions"""
@@ -197,6 +195,7 @@ def return_err_with_trace(func):
             stacktrace = "".join(
                 traceback.format_exception(err, value=err, tb=err.__traceback__)
             )
+            warnings.warn(stacktrace)   # added so that we can see the stacktrace in the console and logs
             return JSONResponse(
                 status_code=500,
                 content={

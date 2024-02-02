@@ -94,12 +94,14 @@ function CsetComparisonPage() {
 
       let [ csmi, selected_csets, conceptLookup, ] = await Promise.all(promises);
 
-      selected_csets = codeset_ids.map(d => selected_csets[d]);
+      selected_csets = codeset_ids.map(d => selected_csets[d]); // to get them in the order asked for
 
       if (!isEmpty(newCset)) {
         selected_csets.push(newCset);
         selected_csets = selected_csets.map(cset => {
           cset = {...cset};
+          // not sure why these counts are needed...oh, maybe because we
+          //  planned to update them and add them to the comparison UI somehow
           cset.intersecting_concepts= 0;
           cset.precision = 0;
           cset.recall = 0;
