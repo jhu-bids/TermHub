@@ -212,9 +212,11 @@ class TestBackend(unittest.TestCase):
     #     self.assertEqual(selected_csets,[396155663,643758668])
 
     def test_get_researchers(self):
-        related_csets = get_related_csets([396155663, 643758668])
+        """Test get_researchers()"""
+        related_csets = []
+        # related_csets = get_related_csets([396155663, 643758668])  # get_related_csets() doesn't exist
         researcher_ids = get_all_researcher_ids(related_csets)
-        self.assertEqual(get_researchers(researcher_ids),
+        self.assertEqual(get_researchers(list(researcher_ids)),
                          {'48fd3b68-84fc-47e7-bdf4-3de94554b986': {'multipassId': '48fd3b68-84fc-47e7-bdf4-3de94554b986',
                                                                    'institutionsId': 'https://ror.org/00za53h95', 'name': 'Lisa Eskenazi',
                                                                    'emailAddress': 'leskena2@jh.edu', 'unaPath': 'InCommon', 'signedDua': True,
@@ -227,6 +229,7 @@ class TestBackend(unittest.TestCase):
                                                                    'name': 'unknown', 'emailAddress': '4bf7076c-6723-49cc-b4e5-f6c6ada1bdae'}})
 
     def test_get_cset_members_items(self):
+        """Test test_get_cset_members_items()"""
         key = lambda d: f"{d['codeset_id']}.{d['concept_id']}"
         csmi = get_cset_members_items([396155663, 643758668]).sort(key=key)
         expected = [
@@ -243,22 +246,16 @@ class TestBackend(unittest.TestCase):
         ].sort(key=key)
         self.assertEquals(csmi, expected)
 
-    def test_get_cset_members_items_3_cols(self):
-        key = lambda d: f"{d['codeset_id']}.{d['concept_id']}"
-        csmi = get_cset_members_items([396155663, 643758668], columns=['concept_id', 'vocabulary_id', 'standard_concept']).sort(key=key)
-        # Todo: change expected: (i) expect 2 distinct rows since some dupe concept ids here, (ii) less col
+    def test_get_cset_members_items__cols(self):
+        """Test test_get_cset_members_items() using columns param.
+
+        Even though same codeset IDs as test_get_cset_members_items(), should reduce distinct rows from 4 to 2."""
+        key = lambda d: {d['concept_id']}
+        csmi = get_cset_members_items(
+            [396155663, 643758668], columns=['concept_id', 'vocabulary_id', 'standard_concept']).sort(key=key)
         expected = [
-            {'codeset_id': 643758668.0, 'concept_id': 4091006, 'csm': True,
-             'item': True, 'item_flags': 'includeDescendants', 'isExcluded': False,
-             'includeDescendants': True, 'includeMapped': False},
-            {'codeset_id': 396155663.0, 'concept_id': 4052321, 'csm': True, 'item': True,
-             'item_flags': '', 'isExcluded': False, 'includeDescendants': False, 'includeMapped': False},
-            {'codeset_id': 643758668.0, 'concept_id': 4052321, 'csm': True, 'item': True,
-             'item_flags': 'includeDescendants', 'isExcluded': False, 'includeDescendants': True,
-             'includeMapped': False},
-            {'codeset_id': 396155663.0, 'concept_id': 4091006, 'csm': True,
-             'item': True, 'item_flags': '', 'isExcluded': False, 'includeDescendants': False, 'includeMapped': False}
-        ].sort(key=key)
+            {'concept_id': 4091006, 'standard_concept': 'S', 'vocabulary_id': 'SNOMED'},
+            {'concept_id': 4052321, 'standard_concept': 'S', 'vocabulary_id': 'SNOMED'}].sort(key=key)
         self.assertEquals(csmi, expected)
 
     def test_subgraph(self):

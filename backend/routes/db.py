@@ -2,30 +2,28 @@
     A bunch are elsewhere, but just starting this file for a couple new ones
     (2023-05-08)
 """
-from fastapi import APIRouter, Query, Request
 import json
-from typing import Dict, List, Union, Set, Optional
-from functools import cache
 import urllib.parse
+from functools import cache
+from typing import Dict, List, Union, Set
 
+from fastapi import APIRouter, Query, Request
 from sqlalchemy import Connection, Row
 from sqlalchemy.engine import RowMapping
 from starlette.responses import Response
 from psycopg2 import sql
 from sqlalchemy import text
 
-
 from backend.api_logger import Api_logger
-from backend.utils import get_timer, return_err_with_trace, commify
-from backend.db.utils import get_db_connection, sql_query, SCHEMA, sql_query_single_col, sql_in, sql_in_safe, run_sql
+from backend.db.refresh import refresh_db
 from backend.db.queries import get_concepts
-from enclave_wrangler.objects_api import get_n3c_recommended_csets, enclave_api_call_caller, \
-    get_concept_set_version_expression_items, items_to_atlas_json_format
-from enclave_wrangler.utils import make_objects_request, whoami, check_token_ttl
+from backend.db.utils import get_db_connection, sql_query, SCHEMA, sql_query_single_col, sql_in, sql_in_safe, run_sql
+from backend.utils import return_err_with_trace, commify
 from enclave_wrangler.config import RESEARCHER_COLS
 from enclave_wrangler.models import convert_rows
-# from backend.routes import graph
-from backend.db.refresh import refresh_db
+from enclave_wrangler.objects_api import get_n3c_recommended_csets, get_concept_set_version_expression_items, \
+    items_to_atlas_json_format
+from enclave_wrangler.utils import make_objects_request, whoami, check_token_ttl
 
 
 JSON_TYPE = Union[Dict, List]
@@ -105,7 +103,6 @@ def get_cset_members_items(
         item: True if its an expression item, else false
         csm: false if not in concept set members
     """
-
     with (get_db_connection() as con):
         if codeset_ids:
             (pstr, params) = sql_in_safe(codeset_ids)
@@ -114,6 +111,8 @@ def get_cset_members_items(
             where = ''
             params = {}
 
+        if column and columns:
+            raise ValueError('Cannot specify both columns and column')
         if column:
             columns = [column]
 
@@ -130,12 +129,12 @@ def get_cset_members_items(
 
         query = text(select + where)
 
-        rows: List = sql_query(con, query, params, return_with_keys=return_with_keys)
+        res: List = sql_query(con, query, params, return_with_keys=return_with_keys)
 
         if column:  # with single column, don't return List[Dict] but just List(<column>)
-            rows: List[int] = [r[column] for r in rows]
+            res: List[int] = [r[column] for r in res]
 
-    return rows
+    return res
 
 
 @router.get("/get-cset-members-items")
@@ -253,7 +252,7 @@ async def get_concept_ids_by_codeset_id_post(request: Request, codeset_ids: Unio
 
 
 @router.get("/concept-ids-by-codeset-id")
-async def get_concept_ids_by_codeset_id(request: Request, codeset_ids: Optional[List[int]] = []) -> Dict:
+async def get_concept_ids_by_codeset_id(request: Request, codeset_ids: List[int] = []) -> Dict:
     """Get concept IDs by codeset id"""
     if codeset_ids:
         q = f"""
@@ -273,7 +272,6 @@ async def get_concept_ids_by_codeset_id(request: Request, codeset_ids: Optional[
     except Exception as e:
         await rpt.log_error(e)
         raise e
-    return rows
     return {r['codeset_id']: r['concept_ids'] for r in rows}
 
 
@@ -335,9 +333,10 @@ async def _get_csets(request: Request, codeset_ids: Union[str, None] = Query(def
 
 
 @router.get("/researchers")
-def get_researchers(id: List[str] = Query(...), fields: Union[List[str], None] = []) -> JSON_TYPE:
+def get_researchers(ids: List[str] = Query(...), fields: Union[List[str], None] = []) -> JSON_TYPE:
     """Get researcher info for list of multipassIds.
     fields is the list of fields to return from researcher table; defaults to * if None."""
+    ids = list(ids)
     if fields:
         fields = ', '.join([f'"{x}"' for x in fields])
     else:
@@ -349,9 +348,9 @@ def get_researchers(id: List[str] = Query(...), fields: Union[List[str], None] =
         WHERE "multipassId" = ANY(:id)
     """
     with get_db_connection() as con:
-        res: List[RowMapping] = sql_query(con, query, {'id': list(id)}, return_with_keys=True)
+        res: List[RowMapping] = sql_query(con, query, {'id': list(ids)}, return_with_keys=True)
     res2 = {r['multipassId']: dict(r) for r in res}
-    for _id in id:
+    for _id in ids:
         if _id not in res2:
             res2[_id] = {"multipassId": _id, "name": "unknown", "emailAddress": _id}
     return res2

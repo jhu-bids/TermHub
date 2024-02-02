@@ -15,8 +15,8 @@ export function DataCacheProvider({children}) {
 	const {sp} = useSearchParamsState();
 	let {optimization_experiment} = sp;
 
-	// TURNING OFF CACHING FOR NOW
-	optimization_experiment = optimization_experiment || 'no_cache';
+	// TURN OFF CACHING by uncommenting below
+	// optimization_experiment = optimization_experiment || 'no_cache';
 
 
 	const dataCache = new DataCache({optimization_experiment});

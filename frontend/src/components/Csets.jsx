@@ -8,7 +8,7 @@ import { TextField, Autocomplete, Box, } from "@mui/material";
 import { matchSorter } from 'match-sorter';
 import Button from "@mui/material/Button";
 // import Chip from '@mui/material/Chip';
-import {every, keyBy, union, orderBy, difference,} from "lodash";
+import {every, keyBy, union, uniq, orderBy, difference,} from "lodash";
 import { get, isNumber, isEmpty, flatten, intersection, } from "lodash";
 // import {isEqual, pick, uniqWith, max, omit, uniq, } from 'lodash';
 // import Box from "@mui/material/Box";
@@ -203,7 +203,7 @@ export function ConceptSetsPage(props) {
             // returnFunc: results => union(flatten(Object.values(results)))
 
       concept_ids = await concept_ids;
-      concept_ids = union(flatten(Object.values(await concept_ids)));
+      concept_ids = uniq(flatten(Object.values(await concept_ids)));
       // setData(current => ({...current, concept_ids}));
 
       let relatedCodesetIdsByConceptId = dataGetter.fetchAndCacheItems(dataGetter.apiCalls.codeset_ids_by_concept_id, concept_ids);

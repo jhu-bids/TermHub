@@ -64,6 +64,9 @@ function CsetComparisonPage() {
         concept_ids = union(concept_ids, Object.values(newCset.definitions).map(d => d.concept_id));
       }
 
+      const {edges, filled_gaps} = await dataGetter.fetchAndCacheItems(dataGetter.apiCalls.concept_graph_new, {codeset_ids, cids: cids});
+      debugger;
+
       // have to get indentedCids, which might contain more concept_ids after filling gaps
       const cids = []; // not collecting these yet
       let indentedTreeRows = await dataGetter.fetchAndCacheItems(
