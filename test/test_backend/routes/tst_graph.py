@@ -27,7 +27,7 @@ from networkx import DiGraph
 THIS_DIR = Path(os.path.dirname(__file__))
 PROJECT_ROOT = THIS_DIR.parent.parent.parent
 sys.path.insert(0, str(PROJECT_ROOT))
-from backend.routes.graph import indented_concept_list, get_connected_subgraph, REL_GRAPH
+from backend.routes.graph import concept_graph, get_connected_subgraph, REL_GRAPH
 
 
 THIS_STATIC_DIR = THIS_DIR / 'static'
@@ -101,18 +101,18 @@ class TstGraph:
         with open(path, 'w') as f:
             f.write(json.dumps(results, indent=indent))
 
-    # this is not currently used. It needs modification after changes to get_connected_subgraph()
-    async def _create_inputs__get_connected_subgraph_NEEDS_REPAIR(self):
-        """Test indented_concept_list()"""
+    # todo: this is not currently used. It needs modification after changes to get_connected_subgraph()
+    async def _create_inputs__get_connected_subgraph__needs_repair(self):
+        """Creat inputs for get_connected_subgraph()"""
         for test_type, test_name, codeset_ids, timeout_secs in [x.values() for x in self._get_test_cases()]:
             # Creat output files
             sg, nodes_in_graph, preferred_concept_ids, orphans_not_in_graph, hidden = \
                 get_connected_subgraph(REL_GRAPH, codeset_ids, EXTRA_CONCEPT_IDS, HIDE_VOCABS)
-            self._save_output(test_name, sg, nodes_in_graph, preferred_concept_ids, orphans_not_in_graph, hidden,
-                              base_case=True)
+            self._save_output(
+                test_name, sg, nodes_in_graph, preferred_concept_ids, orphans_not_in_graph, hidden, base_case=True)
 
     async def tst_get_connected_subgraph(self, only_fast_cases=True, save_output=True):
-        """Test indented_concept_list()"""
+        """Test get_connected_subgraph()"""
         # Get results
         expected_actual_by_test: Dict[str, Tuple[Dict, Dict]] = {}
         for test_type, test_name, codeset_ids, timeout_secs in [x.values() for x in self._get_test_cases()]:
@@ -154,19 +154,22 @@ class TstGraph:
                 # self.assertEqual(v, expected[k], msg=f'Results differ for {k} for test {test_name}')
                 assert v == expected[k], f'Results differ for "{k}" in test for "{test_name}"'
 
-    # todo: at some point
-    async def tst_indented_concept_list(self):
-        """Test indented_concept_list()"""
-        # this commented out line not needed anymore?
-        # test_case = [1000002363, 1000002657, 1000007602, 1000013397, 1000010688, 1000015307, 1000031299]
-        for test_type, test_name, codeset_ids, timeout_secs in [x.values() for x in self.test_cases]:
-            tree: List = await indented_concept_list(
-                codeset_ids=codeset_ids, extra_concept_ids=EXTRA_CONCEPT_IDS, hide_vocabs=HIDE_VOCABS)
-            print(tree)
+    async def tst_concept_graph(self):
+        """Test concept_graph()"""
+        # Get results
+        for test_type, test_name, codeset_ids, timeout_secs in [x.values() for x in self._get_test_cases()]:
+            # todo: allow for more test cases, perhaps
+            if test_name not in ['many-small']:
+                continue
+            sg, missing_in_betweens, hidden_dict, nonstandard_concepts_hidden = await concept_graph(codeset_ids)
+        # Assertions
+        # noinspection PyUnboundLocalVariable
+        assert len(sg.edges) > 1, 'Results differ'  # todo: create test cases
 
 
+# TODO: my new post thing
 # Uncomment this and run this file and run directly to run all tests
 # if __name__ == '__main__':
 #     unittest.main()
-# asyncio.run(TstGraph().tst_indented_concept_list())
-asyncio.run(TstGraph().tst_get_connected_subgraph())
+# asyncio.run(TstGraph().tst_get_connected_subgraph())
+asyncio.run(TstGraph().tst_concept_graph())
