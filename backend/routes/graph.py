@@ -4,14 +4,16 @@ import os, warnings
 # import io
 # import json
 from pathlib import Path
-from typing import Any, List, Set, Tuple, Union, Dict, Optional
+from typing import Any, Iterable, List, Set, Tuple, Union, Dict, Optional
 
 import pickle
 import networkx as nx
 # import pydot
 from fastapi import APIRouter, Query, Request
 from networkx import DiGraph
+from sqlalchemy import Row, RowMapping
 from sqlalchemy.sql import text
+
 # from fastapi.responses import JSONResponse
 # from fastapi.responses import Response
 # from fastapi.encoders import jsonable_encoder
@@ -20,6 +22,7 @@ from sqlalchemy.sql import text
 # from networkx.drawing.nx_pydot import to_pydot, from_pydot
 
 from backend.routes.db import get_cset_members_items
+from backend.db.queries import get_concepts
 from backend.db.utils import get_db_connection, SCHEMA
 from backend.api_logger import Api_logger
 from backend.utils import get_timer, commify
@@ -39,42 +42,44 @@ router = APIRouter(
 async def concept_graph_get(
     request: Request, codeset_ids: List[int] = Query(...), extra_concept_ids: Optional[List[int]] = Query(None),
     hide_vocabs = ['RxNorm Extension'], hide_nonstandard_concepts=False, verbose = VERBOSE
-) -> Dict:
+) -> Dict[str, Any]:
     """Return concept graph"""
     extra_concept_ids = extra_concept_ids if extra_concept_ids else []
     return await concept_graph_post(
         request, codeset_ids, extra_concept_ids, hide_vocabs, hide_nonstandard_concepts, verbose)
 
 
-# TODO
+# TODO: match return of concept_graph()
 @router.post("/concept-graph")
 async def concept_graph_post(
     request: Request, codeset_ids: List[int], extra_concept_ids: Union[List[int], None] = [],
     hide_vocabs = ['RxNorm Extension'], hide_nonstandard_concepts=False, verbose = VERBOSE
-) -> Dict:
+) -> Dict[str, Any]:
     """Return concept graph"""
     rpt = Api_logger()
     try:
         await rpt.start_rpt(request, params={'codeset_ids': codeset_ids, 'extra_concept_ids': extra_concept_ids})
+        sg: DiGraph
+        concepts: List[Dict[str, Any]]
+        hidden_by_voc: Dict[str, Set[int]]
+        nonstandard_concepts_hidden: Set[int]
         sg, missing_in_betweens, hidden_dict, nonstandard_concepts_hidden = await concept_graph(
-            request, codeset_ids, extra_concept_ids, hide_vocabs, hide_nonstandard_concepts, verbose)
+            codeset_ids, extra_concept_ids, hide_vocabs, hide_nonstandard_concepts, verbose)
         await rpt.finish(rows=len(sg))
-        # TODO: see return for concept_graph() and add anything missing bleow
-        return {'edges': list(sg.edges), 'filled_gaps': missing_in_betweens}
+        return {
+            'edges': list(sg.edges),
+            'filled_gaps': missing_in_betweens,
+            'hidden_by_vocab': hidden_dict,
+            'nonstandard_concepts_hidden': nonstandard_concepts_hidden}
     except Exception as e:
         await rpt.log_error(e)
         raise e
 
 
-# TODO: Joe refactor: after get_concepts_for_graph()
-#  - update typedefs returns here and for concept_graph()
-# TODO: Now we're calling missing-in-between-nodes. Do we want to do that before or after filtering (for voc and
-#  nonstandard concepts)?
-# TODO: use hide_vocabs()
 async def concept_graph(
     codeset_ids: List[int], extra_concept_ids: Union[List[int], None] = [], hide_vocabs = ['RxNorm Extension'],
     hide_nonstandard_concepts=False, verbose = VERBOSE
-) -> List:
+) -> Tuple[DiGraph, Set[int], Dict[str, Set[int]], Set[int]]:
     """Return concept graph
 
     :param extra_concept_ids: Not used right now. This is for when we allow user to add concepts from other concept sets
@@ -93,49 +98,28 @@ async def concept_graph(
     verbose and timer('concept_graph()')
 
     # Get concepts & metadata
-    concepts_raw: List[Dict] = [dict(x) for x in get_cset_members_items(
-        codeset_ids=codeset_ids, columns=['concept_id', 'vocabulary_id', 'standard_concept'])]
-    # Filter
-    # TODO: see: filter_concepts()
-    concepts: List[Dict]
+    concepts_unfiltered: List[RowMapping] = get_cset_members_items(
+        codeset_ids=codeset_ids, columns=['concept_id', 'vocabulary_id', 'standard_concept'])
+
+    # Fill gaps
+    missing_in_betweens_ids: Set[int] = get_missing_in_between_nodes(
+        REL_GRAPH, set([c['concept_id'] for c in concepts_unfiltered]), False)
+    missing_in_betweens: List[RowMapping] = get_concepts(missing_in_betweens_ids)
+    concepts_unfiltered2: List[RowMapping] = concepts_unfiltered + missing_in_betweens
+
+    # Filter: by vocab & non-standard
+    concepts: List[Dict[str, Any]]
     hidden_by_voc: Dict[str, Set[int]]
     nonstandard_concepts_hidden: Set
     concepts, hidden_by_voc, nonstandard_concepts_hidden = filter_concepts(
-        concepts_raw, hide_vocabs, hide_nonstandard_concepts)
-    concept_ids: Set[int] = set([c['concept_id'] for c in concepts])
-    # concept_ids.update(extra_concept_ids)  # future
-
-    # TODO: Joe: make use of: hidden_dict, nonstandard_concepts_hidden?
-    #  - possibly just return to frontend for reporting
-
-    # TODO: call get missing in between nodes
-    #  - Set[int] correct?
-    missing_in_betweens_ids: Set[int] = get_missing_in_between_nodes(REL_GRAPH, concept_ids)
-    # TODO: needs to be the list of missing nodes with vocab and nonstandard id. probably is get_concepts()
-    missing_in_betweens = []
-
-    concepts_m: List[Dict]
-    hidden_by_voc_m: Dict[str, Set[int]]
-    nonstandard_concepts_hidden_m: Set
-    concepts_m, hidden_by_voc_m, nonstandard_concepts_hidden_m = filter_concepts(
-        missing_in_betweens, hide_vocabs, hide_nonstandard_concepts)
-
-    # TODO: merge/update the 3 variables each from the 2 returns of filter_concepts()
-    #  - is the below correct?
-    concept_ids.update(missing_in_betweens_ids)
-    hidden_by_voc_m.update(hidden_by_voc)
-    nonstandard_concepts_hidden = nonstandard_concepts_hidden.union(nonstandard_concepts_hidden_m)
+        concepts_unfiltered2, hide_vocabs, hide_nonstandard_concepts)
 
     # Get subgaph
-    sg = REL_GRAPH.subgraph(concept_ids)
+    sg: DiGraph = REL_GRAPH.subgraph(set([c['concept_id'] for c in concepts]))
 
-
+    # Return
     verbose and timer('done')
-    # TODO: change to return: edges, filled gaps (missing_in_betweens), NOT layout, hidden_dict &
-    #  nonstandard_concepts_hidden ((merged of the normal and the  missing in betweens calls
-    #  maybe return: preferred_concept_ids, and orphans
-    #  - update function return typedef
-    return sg, missing_in_betweens, hidden_by_voc, nonstandard_concepts_hidden
+    return sg, missing_in_betweens_ids, hidden_by_voc, nonstandard_concepts_hidden
 
 
     # TODO: @Siggie: move below to frontend
@@ -143,6 +127,7 @@ async def concept_graph(
     # orphans_not_in_graph, here, are just nodes that don't appear in graph
     #   they'll get appended to the end of the tree at level 0
     # The graph, which comes from the concept_ancestor table, doesn't contain edges for every concept.
+    # noinspection PyUnreachableCode
     nodes_in_graph = set()
     orphans_not_in_graph = set()
     # TODO: deal with two kinds of orphan: not in the graph (handled here)
@@ -221,12 +206,13 @@ async def concept_graph(
     # testtree = paths_as_indented_tree(paths)
     # testtree.append((0, list(orphans_not_in_graph)))
     # return testtree
+    # noinspection PyTypeChecker
     return tree
 
 
 def filter_concepts(
-    concepts: List[Dict[str, Any]], hide_vocabs: List[str], hide_nonstandard_concepts=False
-) -> Tuple[List[Dict], Dict[str, Set[int]], Set]:
+    concepts: List[Union[Dict[str, Any], RowMapping]], hide_vocabs: List[str], hide_nonstandard_concepts=False
+) -> Tuple[List[Dict], Dict[str, Set[int]], Set[int]]:
     """Get lists of concepts for graph
 
     :param: concepts: List of concept ids as keys, and metadata as values.
@@ -246,14 +232,16 @@ def filter_concepts(
 
     # Get filtered concepts
     hidden_nodes = set().union(*list(hidden_by_voc.values())).union(nonstandard_concepts_hidden)
-    filtered_concepts: List[Dict] = [c for c in concepts if c['concept_id'] not in hidden_nodes]
+    filtered_concepts: List[Dict[str, Any]] = [c for c in concepts if c['concept_id'] not in hidden_nodes]
     return filtered_concepts, hidden_by_voc, nonstandard_concepts_hidden
 
 
 
-def get_indented_tree_nodes(sg, preferred_concept_ids=[], max_depth=3, max_children=20, small_graph_threshold=2000):
-
+def get_indented_tree_nodes(sg, preferred_concept_ids: Union[List, Set]=[], max_depth=3, max_children=20, small_graph_threshold=2000):
+    """Get indented tree nodes"""
+    # noinspection PyShadowingNames
     def dfs(node, depth):
+        """Depth-first search"""
         nonlocal tree, small_graph_big_tree, start_over
         if start_over:
             return 'start over'
@@ -327,11 +315,15 @@ def get_connected_subgraph(
 
 
 print_stack = lambda s: ' | '.join([f"{n} => {','.join([str(x) for x in p])}" for n,p in s])
-def get_missing_in_between_nodes(G, subgraph_nodes):
+
+
+# noinspection PyPep8Naming
+def get_missing_in_between_nodes(G: DiGraph, subgraph_nodes: Union[List[int], Set[int]], verbose=True) -> Set:
     """Get missing in-betweens, nodes that weren't in definition or expansion but are in between those."""
     missing_in_between_nodes = set()
     missing_in_between_nodes_tmp = set()
-    sg = G.subgraph(subgraph_nodes)
+    sg: DiGraph = G.subgraph(subgraph_nodes)
+    # noinspection PyCallingNonCallable
     leaves = [node for node, degree in sg.out_degree() if degree == 0]
     visited = set()
 
@@ -346,7 +338,10 @@ def get_missing_in_between_nodes(G, subgraph_nodes):
                 #     missing_in_between_
 
             current_node, predecessors = stack[-1]
-            print(f"{str(print_stack(stack)):58} {(descending_from or ''):8} {','.join([str(n) for n in missing_in_between_nodes])} | {','.join([str(n) for n in missing_in_between_nodes_tmp])}")
+            if verbose:
+                print(f"{str(print_stack(stack)):58} {(descending_from or ''):8} "
+                      f"{','.join([str(n) for n in missing_in_between_nodes])} | "
+                      f"{','.join([str(n) for n in missing_in_between_nodes_tmp])}")
 
             # try:
             # next_node = next(predecessors)
@@ -427,6 +422,7 @@ def tst_graph_code():
         (19, 22),
         (20, 19),
     ]
+    # noinspection PyPep8Naming
     G = nx.DiGraph(whole_graph_edges)
 
     graph_nodes = set(list(range(1, 23)))
@@ -460,20 +456,28 @@ def tst_graph_code():
 
 @router.get("/wholegraph")
 def subgraph():
+    """Get subgraph edges"""
     return list(REL_GRAPH.edges)
 
 
-def condense_super_nodes(sg, threshhold=10):
+def condense_super_nodes(sg, threshhold=10):  # todo
+    """Condense super nodes"""
     super_nodes = [node for node, degree in sg.out_degree() if degree > threshhold]
     # for node in super_nodes:
     # sg.discard(node) -- n
-
-def expand_super_node(G, subgraph_nodes, super_node):
-    sg = G.subgraph(subgraph_nodes)
+    return NotImplementedError(super_nodes)
 
 
-def from_pydot_layout(g):
-    pass
+# noinspection PyPep8Naming
+def expand_super_node(G, subgraph_nodes, super_node):  # todo
+    """Expand super node"""
+    # sg = G.subgraph(subgraph_nodes)
+    return NotImplementedError(G, subgraph_nodes, super_node)
+
+
+def from_pydot_layout(g):  # Todo
+    """From PyDot layout"""
+    return NotImplementedError(g)
 # def find_nearest_common_ancestor(G, nodes):
 #     all_ancestors = [set(nx.ancestors(G, node)) for node in nodes]
 #     common_ancestors = set.intersection(*all_ancestors)
@@ -502,7 +506,8 @@ def from_pydot_layout(g):
 #     return SG
 
 
-def generate_graph_edges():
+def generate_graph_edges() -> Iterable[Row]:
+    """Generate graph edges"""
     with get_db_connection() as con:
         # moving the sql to ddl-20-concept_graph.jinja.sql
 
@@ -516,12 +521,14 @@ def generate_graph_edges():
             yield row
 
 
-def create_rel_graphs(save_to_pickle: bool):
+def create_rel_graphs(save_to_pickle: bool) -> DiGraph:
+    """Create relationship graphs"""
     timer = get_timer('create_rel_graphs')
 
     timer('get edge records')
     edge_generator = generate_graph_edges()
 
+    # noinspection PyPep8Naming
     G = nx.DiGraph()
     if save_to_pickle:
         msg = 'loading and pickling'
@@ -556,10 +563,12 @@ def create_rel_graphs(save_to_pickle: bool):
 
 
 def load_relationship_graph(save_if_not_exists=True):
+    """Load relationship graph from disk"""
     timer = get_timer('./load_relationship_graph')
     timer(f'loading {GRAPH_PATH}')
     if os.path.isfile(GRAPH_PATH):
         with open(GRAPH_PATH, 'rb') as pickle_file:
+            # noinspection PyPep8Naming
             G = pickle.load(pickle_file)
             # while True:
             #     try:
@@ -568,6 +577,7 @@ def load_relationship_graph(save_if_not_exists=True):
             #     except EOFError:
             #         break  # End of file reached
     else:
+        # noinspection PyPep8Naming
         G = create_rel_graphs(save_if_not_exists)
     timer('done')
     return G

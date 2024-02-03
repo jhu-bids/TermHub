@@ -20,7 +20,7 @@ from io import StringIO
 import json
 # import unittest
 from pathlib import Path
-from typing import Dict, List, Set, Tuple
+from typing import Any, Dict, List, Set, Tuple
 
 from networkx import DiGraph
 
@@ -154,6 +154,7 @@ class TstGraph:
                 # self.assertEqual(v, expected[k], msg=f'Results differ for {k} for test {test_name}')
                 assert v == expected[k], f'Results differ for "{k}" in test for "{test_name}"'
 
+    # noinspection PyUnboundLocalVariable removeNoinspectWhenMoreTestsAndMoveAssertsIntoLoop
     async def tst_concept_graph(self):
         """Test concept_graph()"""
         # Get results
@@ -161,10 +162,21 @@ class TstGraph:
             # todo: allow for more test cases, perhaps
             if test_name not in ['many-small']:
                 continue
-            sg, missing_in_betweens, hidden_dict, nonstandard_concepts_hidden = await concept_graph(codeset_ids)
+            sg: DiGraph
+            concepts: List[Dict[str, Any]]
+            hidden_by_voc: Dict[str, Set[int]]
+            nonstandard_concepts_hidden: Set
+            sg, missing_in_betweens, hidden_by_voc, nonstandard_concepts_hidden = await concept_graph(
+                codeset_ids,
+                # Hiding these in order to test functionality; nothing gets hidden w/ defaults
+                hide_vocabs=['SNOMED'], hide_nonstandard_concepts=True)
         # Assertions
-        # noinspection PyUnboundLocalVariable
-        assert len(sg.edges) > 1, 'Results differ'  # todo: create test cases
+        # self.assertEqual(...)
+        assert len(sg.nodes) == 14
+        assert len(sg.edges) == 24
+        assert len(missing_in_betweens) == 7
+        assert len(nonstandard_concepts_hidden) == 19
+        assert len(hidden_by_voc['SNOMED']) == 92
 
 
 # TODO: my new post thing
