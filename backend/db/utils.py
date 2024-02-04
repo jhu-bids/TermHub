@@ -28,7 +28,7 @@ from sqlalchemy.engine.base import Connection
 from sqlalchemy.exc import OperationalError, ProgrammingError
 from sqlalchemy.sql import text
 from sqlalchemy.sql.elements import TextClause
-from typing import Any, Dict, Tuple, Union, List
+from typing import Any, Dict, Set, Tuple, Union, List
 
 from backend.db.config import CORE_CSET_DEPENDENT_TABLES, CORE_CSET_TABLES, RECURSIVE_DEPENDENT_TABLE_MAP, \
     REFRESH_JOB_MAX_HRS, get_pg_connect_url
@@ -547,7 +547,7 @@ def sql_count(con: Connection, table: str) -> int:
     return sql_query(con, query, return_with_keys=False)[0][0]
 
 
-def sql_in(lst: List, quote_items=False) -> str:
+def sql_in(lst: Union[List, Set], quote_items=False) -> str:
     """Construct SQL 'IN' expression."""
     if quote_items:
         lst = [str(x).replace("'", "''") for x in lst]
