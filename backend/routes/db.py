@@ -103,16 +103,17 @@ def get_cset_members_items(
         item: True if its an expression item, else false
         csm: false if not in concept set members
     """
+    if column and columns:
+        raise ValueError('Cannot specify both columns and column')
+
     with (get_db_connection() as con):
         if codeset_ids:
-            (pstr, params) = sql_in_safe(codeset_ids)
+            pstr, params = sql_in_safe(codeset_ids)
             where = sql.SQL(f" WHERE codeset_id IN ({pstr})").as_string(con.connection.connection)
         else:
             where = ''
             params = {}
 
-        if column and columns:
-            raise ValueError('Cannot specify both columns and column')
         if column:
             columns = [column]
 
@@ -129,10 +130,10 @@ def get_cset_members_items(
 
         query = text(select + where)
 
-        res: List = sql_query(con, query, params, return_with_keys=return_with_keys)
-
         if column:  # with single column, don't return List[Dict] but just List(<column>)
-            res: List[int] = [r[column] for r in res]
+            res: List = sql_query_single_col(con, query, params)
+        else:
+            res: List = sql_query(con, query, params, return_with_keys=return_with_keys)
 
     return res
 

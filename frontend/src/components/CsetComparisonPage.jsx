@@ -193,7 +193,8 @@ function CsetComparisonPage() {
 
   if (!isEmpty(graph)) {
     console.log(graph);
-    return TreeTable({graphDataForTable});
+    // return TreeTable({graphDataForTable});
+    return <TreeTable nodes={graphDataForTable} />;
   }
 
   if (isEmpty(concepts) || isEmpty(indentedCids)) {
@@ -445,7 +446,6 @@ const NodeRow = ({ node, toggleVisibility }) => {
 };
 
 const TreeTable = ({ nodes }) => {
-  /*
   const [data, setData] = useState(nodes);
 
   const toggleVisibility = (nodeId) => {
@@ -467,7 +467,7 @@ const TreeTable = ({ nodes }) => {
         <tr>
           <th>Node Name</th>
           <th>Other Data</th>
-          {/* Add other headers as needed * /}
+          {/* Add other headers as needed */}
         </tr>
       </thead>
       <tbody>
@@ -477,6 +477,7 @@ const TreeTable = ({ nodes }) => {
       </tbody>
     </table>
   );
+  /*
    */
 };
 function precisionRecall(props) {

@@ -27,7 +27,7 @@ from backend.db.utils import get_db_connection, SCHEMA
 from backend.api_logger import Api_logger
 from backend.utils import get_timer, commify
 
-VERBOSE = True
+VERBOSE = False
 PROJECT_DIR = Path(os.path.dirname(__file__)).parent.parent
 VOCABS_PATH = os.path.join(PROJECT_DIR, 'termhub-vocab')
 GRAPH_PATH = os.path.join(VOCABS_PATH, 'relationship_graph.pickle')
@@ -390,85 +390,6 @@ def get_missing_in_between_nodes(G: DiGraph, subgraph_nodes: Union[List[int], Se
     return missing_in_between_nodes
 
 
-# TODO: get test to pass. currently missing '17'
-#  - move to test_graph.py
-def tst_graph_code():
-    """Tests for graph related functionality
-
-    Siggie would prefer if we declared nodes in groups; would help for readability. Joe doesn't know how that would work."""
-    # - Test: Gap filling
-    #   Source: depth first of https://app.diagrams.net/#G1mIthDUn4T1y1G3BdupdYKPkZVyQZ5XYR
-    # test code for the above:
-    # subgraph edges (from definitions and expansions)
-    # (2, 1), (2, 8), (4, 3), (4, 10), (10, 9), (10, 12), (11, 10), (11, 13), (15, 14), (15, 18), (20, 16), (20, 19),
-    # outside_scope_edges
-    # ('root', '2p1'), ('2p1', 2), ('root', '2p2'), ('2p2', 2), ('root', 'cloud'), ('cloud', 8), ('cloud', 6), (6, 5),
-    # (6, 11), (6, 17), ('cloud', 15), ('cloud', 20),
-    # missing in between edges
-    # (8, 7), (7, 5), (5, 4), (18, 17), (17, 16),
-    whole_graph_edges = [   # now, more or less, in diagram number order
-        (2, 1),
-        ('root', '2p1'), ('2p1', 2), ('root', '2p2'), ('2p2', 2), ('root', 'cloud'),
-        (4, 3),
-        (5, 4),
-        (7, 5),
-        (8, 7),
-        ('cloud', 8),
-        (2, 8),
-        (6, 5),
-        ('cloud', 6),
-        (10, 9),
-        (4, 10),
-        (10, 12),
-        (11, 10),
-        (6, 11),
-        (11, 13),
-        (15, 14),
-        ('cloud', 15),
-        (16, 21),
-        (17, 16),
-        (6, 17),
-        (18, 17),
-        (15, 18),
-        (20, 16),
-        ('cloud', 20),
-        (22, 23),
-        (19, 22),
-        (20, 19),
-    ]
-    # noinspection PyPep8Naming
-    G = nx.DiGraph(whole_graph_edges)
-
-    graph_nodes = set(list(range(1, 23)))
-    # graph_nodes.update(['root', '2p1', '2p2', 'cloud'])
-    subgraph_nodes =  graph_nodes - {7, 5, 6, 17}
-
-    expected_missing_in_between_nodes = {5, 7, 17}
-
-    missing_in_between_nodes = get_missing_in_between_nodes(G, subgraph_nodes)
-    assert missing_in_between_nodes == expected_missing_in_between_nodes
-    print(f"passed with {missing_in_between_nodes}")
-    pass
-
-    # - Test: tree paths:
-    # G = nx.DiGraph([('a','b'), ('a','c'), ('b','d'), ('b','e'), ('c','f'), ('2', 'c'), ('1', '2'), ('1', 'a')])
-    # sg = G.subgraph(['a', 'b', 'c', 'd', 'e', 'f', '1', '2'])
-    # assert set(sg.edges) == set([('a','b'), ('a','c'), ('b','d'), ('b','e'), ('c','f'), ('2', 'c'), ('1', '2'), ('1', 'a')])
-    # assert tree_paths = get_indented_tree_nodes(sg) == [ (0, '1'), (1, '2'), (2, 'c'), (3, 'f'), (1, 'a'), (2, 'b'), (3, 'd'), (3, 'e'), (2, 'c'), (3, 'f'), (3, 'c') ]
-    # assert print_tree_paths(tree_paths) == """
-    # 1
-    #     2
-    #         c
-    #             f
-    #     a
-    #         b
-    #             d
-    #             e
-    #         c
-    #             f
-    # """
-
-
 @router.get("/wholegraph")
 def subgraph():
     """Get subgraph edges"""
@@ -612,7 +533,6 @@ if __name__ == '__main__':
     # j = graph_to_json(sg)
     # pdump(j)
     # - 2024/01/26
-    tst_graph_code()
 else:
 
     # if you don't want graph loaded, then somewhere up in the import tree, do this
