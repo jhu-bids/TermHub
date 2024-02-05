@@ -41,19 +41,20 @@ router = APIRouter(
 @router.get("/concept-graph")
 async def concept_graph_get(
     request: Request, codeset_ids: List[int] = Query(...), cids: Optional[List[int]] = Query(None),
-    hide_vocabs = ['RxNorm Extension'], hide_nonstandard_concepts=False, verbose = VERBOSE
+    hide_vocabs = ['RxNorm Extension'], hide_nonstandard_concepts=False, verbose = VERBOSE,
+    indented=False  # TODO: if we keep this around, it's annoying that it ends up a string ('true')
 ) -> Dict[str, Any]:
     """Return concept graph"""
     cids = cids if cids else []
     return await concept_graph_post(
-        request, codeset_ids, cids, hide_vocabs, hide_nonstandard_concepts, verbose)
+        request, codeset_ids, cids, hide_vocabs, hide_nonstandard_concepts, verbose, indented)
 
 
 # TODO: match return of concept_graph()
 @router.post("/concept-graph")
 async def concept_graph_post(
     request: Request, codeset_ids: List[int], cids: Union[List[int], None] = [],
-    hide_vocabs = ['RxNorm Extension'], hide_nonstandard_concepts=False, verbose = VERBOSE
+    hide_vocabs = ['RxNorm Extension'], hide_nonstandard_concepts=False, verbose = VERBOSE, indented=False
 ) -> Dict[str, Any]:
     """Return concept graph"""
     rpt = Api_logger()
@@ -67,6 +68,12 @@ async def concept_graph_post(
 
         sg, missing_in_betweens, hidden_dict, nonstandard_concepts_hidden = await concept_graph(
             codeset_ids, cids, hide_vocabs, hide_nonstandard_concepts, verbose)
+
+        if indented:
+            # tree = get_indented_tree_nodes(sg, preferred_concept_ids)  # TODO: just testing below, put this line back
+            tree = [list(x) for x in get_indented_tree_nodes(sg)]  # TODO: just testing below, put this line back
+            return tree
+
         await rpt.finish(rows=len(sg))
         return {
             'edges': list(sg.edges),
@@ -190,6 +197,7 @@ def MOVE_TO_FRONT_END():
     # print(f"paths - sg {len(nodes_in_paths.difference(sg_nodes))}")
 
     VERBOSE and timer('get tree')
+    # tree = await indented_concept_list(codeset_ids, cids, hide_vocabs)
     tree = get_indented_tree_nodes(sg, preferred_concept_ids)  # TODO: just testing below, put this line back
 
     hide_if_over = 50

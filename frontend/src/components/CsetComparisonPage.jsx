@@ -66,10 +66,9 @@ function CsetComparisonPage() {
       const {edges, filled_gaps} = await dataGetter.fetchAndCacheItems(dataGetter.apiCalls.concept_graph_new, {codeset_ids, cids: cids});
       concept_ids = union(concept_ids, filled_gaps);
 
-      /*
       // have to get indentedCids, which might contain more concept_ids after filling gaps
       let indentedTreeRows = await dataGetter.fetchAndCacheItems(
-          dataGetter.apiCalls.indented_concept_list, { codeset_ids, cids });
+          dataGetter.apiCalls.indented_concept_list, { codeset_ids, cids, indented: true });
       // indentedCids = [[<level>, <concept_id>], ...], or, if summarized: [<level>, [<concept_id>, <concept_id>,...]]
 
       // summarized rows have a list of the parent's child concept_ids in place of the parent's descendants
@@ -91,6 +90,7 @@ function CsetComparisonPage() {
       summarizedRows.forEach((d,i) => {
           indentedCids[i] = d;
       });
+      /*
        */
 
       promises.push(dataGetter.fetchAndCacheItems(dataGetter.apiCalls.concepts, concept_ids));
@@ -132,7 +132,20 @@ function CsetComparisonPage() {
 
       const currentUserId = (await whoami).id;
       researchers = await researchers;
-      setData(current => ({...current, edges, concept_ids, /* indentedCids,*/ selected_csets, conceptLookup, csmi,
+
+      const graph = new Graph();
+      for (let c of concepts) {
+        graph.addNode(c.concept_id, {
+          label: c.concept_name,
+        })
+      }
+      for (let edge of edges) {
+        graph.addDirectedEdge(edge[0], edge[1]);
+      }
+
+      let indentedCidsJS = getIndentedTreeNodes(graph);
+
+      setData(current => ({...current, edges, concept_ids, indentedCids, selected_csets, conceptLookup, csmi,
           concepts, researchers, currentUserId, }));
     })();
   }, [newCset]);
@@ -155,15 +168,10 @@ function CsetComparisonPage() {
               infoPanelRef.current,
               (infoPanelRef.current ? infoPanelRef.current.offsetHeight : 0),
             ]);
+  /*
   useEffect(() => {
     if (isEmpty(edges) || isEmpty(concepts)) {
       return;
-    }
-    const graph = new Graph();
-    for (let c of concepts) {
-      graph.addNode(c.concept_id, {
-        label: c.concept_name,
-      })
     }
     /*
     for (let n in slayout) {
@@ -175,10 +183,9 @@ function CsetComparisonPage() {
         // color: randomColor(),
       });
     }
-     */
-    for (let edge of edges) {
-      graph.addDirectedEdge(edge[0], edge[1]);
-    }
+     * /
+
+    let indentedTree = getIndentedTreeNodes(graph);
 
     const roots = graph.nodes().filter(n => !graph.inDegree(n));
     const leaves = graph.nodes().filter(n => !graph.outDegree(n));
@@ -189,13 +196,16 @@ function CsetComparisonPage() {
 
     setData(current => ({...current, graph, graphDataForTable}));
   }, [edges]);
+   */
 
 
+  /*
   if (!isEmpty(graph)) {
     console.log(graph);
     // return TreeTable({graphDataForTable});
     return <TreeTable nodes={graphDataForTable} />;
   }
+   */
 
   if (isEmpty(concepts) || isEmpty(indentedCids)) {
     return <p>Downloading...</p>;
@@ -426,60 +436,6 @@ function prepareDataForRendering(graph, startNodeId) {
 
   return result;
 }
-
-const NodeRow = ({ node, toggleVisibility }) => {
-  const handleRowClick = () => {
-    if (node.hasChildren) {
-      toggleVisibility(node.id);
-    }
-  };
-
-  return (
-    <tr onClick={handleRowClick} style={{ display: node.visible ? '' : 'none' }}>
-      <td style={{ paddingLeft: `${node.depth * 20}px` }}>
-        {node.hasChildren ? (node.expanded ? '-' : '+') : ''} {node.name}
-      </td>
-      <td>{node.otherData}</td>
-      {/* Render other columns as needed */}
-    </tr>
-  );
-};
-
-const TreeTable = ({ nodes }) => {
-  const [data, setData] = useState(nodes);
-
-  const toggleVisibility = (nodeId) => {
-    const newData = data.map(node => {
-      if (node.id === nodeId) {
-        node.expanded = !node.expanded;
-      }
-      if (node.parentId === nodeId) {
-        node.visible = !node.visible;
-      }
-      return node;
-    });
-    setData(newData);
-  };
-
-  return (
-    <table>
-      <thead>
-        <tr>
-          <th>Node Name</th>
-          <th>Other Data</th>
-          {/* Add other headers as needed */}
-        </tr>
-      </thead>
-      <tbody>
-        {data.map(node => (
-          <NodeRow key={node.id} node={node} toggleVisibility={toggleVisibility} />
-        ))}
-      </tbody>
-    </table>
-  );
-  /*
-   */
-};
 function precisionRecall(props) {
 
 }
@@ -1314,4 +1270,75 @@ export function howToSaveStagedChanges(params) {
         </p>
       </>
   );
+}
+
+export function getIndentedTreeNodes(graph, preferredConceptIds = [], maxDepth = 3, maxChildren = 20, smallGraphThreshold = 2000) {
+  let smallGraphBigTree = false;
+  let tree = [];
+  let preferredButUnshown = new Set(preferredConceptIds);
+  let startOver = false;
+
+  function dfs(node, depth) {
+    if (startOver) {
+      return 'start over';
+    }
+
+    tree.push([depth, node]);
+    preferredButUnshown.delete(node);
+
+    const children = graph.outNeighbors(node);
+
+    if (!smallGraphBigTree && graph.order < smallGraphThreshold) {
+      if (tree.length < smallGraphThreshold * 2) {
+        for (let child of children) {
+          if (!startOver && dfs(child, depth + 1) === 'start over') {
+            startOver = true;
+            return 'start over';
+          }
+        }
+        return;
+      } else {
+        smallGraphBigTree = true;
+        return 'start over';
+      }
+    }
+
+    if (children.length <= maxChildren && children.length > 0 && depth <= maxDepth) {
+      for (let child of children) {
+        dfs(child, depth + 1);
+      }
+    } else {
+      let alwaysShow = new Set(children.filter(x => preferredConceptIds.includes(x)));
+      let childrenToHide = new Set(children.filter(x => !alwaysShow.has(x)));
+      for (let child of alwaysShow) {
+        childrenToHide.delete(child);
+        dfs(child, depth + 1);
+      }
+      if (childrenToHide.size) {
+        tree.push([depth + 1, [...childrenToHide]]);
+      }
+    }
+  }
+
+  while (true) {
+    let roots = graph.nodes().filter(n => graph.inDegree(n) === 0);
+    tree = [];
+    preferredButUnshown = new Set(preferredConceptIds);
+    startOver = false;
+    for (let root of roots) {
+      if (dfs(root, 0) === 'start over') {
+        startOver = true;
+        break;
+      }
+    }
+    if (!startOver) {
+      break;
+    }
+  }
+
+  for (let node of preferredButUnshown) {
+    tree.push([0, node]);
+  }
+
+  return tree;
 }

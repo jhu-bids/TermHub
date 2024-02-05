@@ -227,6 +227,23 @@ class DataGetter {
 			// cacheShape: 'obj of array of array', // cache.edges[key] = [[src,tgt], [src,tgt], ....]
 			// formatResultsFunc: edges => edges.map(edge => edge.map(String)), // might need this!!
 		},
+		indented_concept_list: {	// expects codeset_ids plus extra concept_ids (cids) if any requested
+			expectedParams: {},
+			dataLengthFunc: params => params.codeset_ids.length + params.cids.length,
+			api: 'concept-graph',
+			// api: 'indented-concept-list',	# TODO: this is the same as concept-graph, but with indented=true
+			makeQueryString: params => createSearchParams({...params, indented: true}),
+			protocols: ['get', 'post'],
+			cacheSlice: 'concept-graph',
+			// TODO: this can't be right. why no codeset_ids in key func?
+			// 	singleKeyFunc: concept_ids => compress(concept_ids.join('|')),
+			singleKeyFunc: ({codeset_ids=[], cids=[]}) =>
+				compress(codeset_ids.join('|') + ';' + cids.join('|') + ';indented'),
+			alertTitle: 'Get subgraph for all listed code sets plus additional concept_ids (cids)',
+			apiResultShape: 'array of array [level, concept_id]',
+			cacheShape: 'obj of array of array', // cache.edges[key] = [[src,tgt], [src,tgt], ....]
+			// formatResultsFunc: edges => edges.map(edge => edge.map(String)), // might need this!!
+		},
 		concept_graph_new: {	// expects codeset_ids plus extra concept_ids (cids) if any requested
 			// was indented_concept_list
 			expectedParams: {},
@@ -327,9 +344,9 @@ class DataGetter {
 
 		const dataCache = this.dataCache;
 
-		if (apiDef.api === 'indented-concept-list') { // indented_concept_list: { codeset_ids: [], additional_concept_ids: [] }
-			const {codeset_ids, cids} = params;
-			let cacheKey = codeset_ids.join(',') + ';' + cids.join(',');
+		if (apiDef.api === 'concept-graph') { // indented_concept_list: { codeset_ids: [], additional_concept_ids: [] }
+			const {codeset_ids, cids, indented} = params;
+			let cacheKey = codeset_ids.join(',') + ';' + cids.join(',') + `${indented ? ';indented' : ''}`;
 
 			let data = dataCache.cacheGet([apiDef.cacheSlice, cacheKey]);
 			if (isEmpty(data)) {
