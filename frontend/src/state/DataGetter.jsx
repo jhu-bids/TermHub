@@ -311,7 +311,7 @@ class DataGetter {
 			api: 'researchers',
 			cacheSlice: 'researchers',
 			key: 'multipassId',
-			makeQueryString: id => createSearchParams({id}),
+			makeQueryString: ids => createSearchParams({ids}),
 			apiResultShape: 'obj of obj',
 		},
 	}

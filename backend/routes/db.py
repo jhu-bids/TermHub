@@ -252,8 +252,12 @@ async def get_concept_ids_by_codeset_id_post(request: Request, codeset_ids: Unio
 
 
 @router.get("/concept-ids-by-codeset-id")
-async def get_concept_ids_by_codeset_id(request: Request, codeset_ids: List[int] = []) -> Dict:
+@return_err_with_trace
+async def get_concept_ids_by_codeset_id(
+    request: Request, codeset_ids: Union[List[str], None] = Query(...)
+) -> Dict[str, str]:
     """Get concept IDs by codeset id"""
+
     if codeset_ids:
         q = f"""
               SELECT csids.codeset_id, COALESCE(cibc.concept_ids, ARRAY[]::integer[]) AS concept_ids
@@ -277,7 +281,8 @@ async def get_concept_ids_by_codeset_id(request: Request, codeset_ids: List[int]
 
 @router.post("/codeset-ids-by-concept-id")
 @return_err_with_trace
-async def get_codeset_ids_by_concept_id_post(request: Request, concept_ids: Union[List[int], None] = []) -> Dict:
+async def get_codeset_ids_by_concept_id_post(
+    request: Request, concept_ids: Union[List[int], None] = None) -> Dict:
     """Get Codeset IDs by concept ID"""
     q = f"""
           SELECT *
@@ -298,7 +303,7 @@ async def get_codeset_ids_by_concept_id_post(request: Request, concept_ids: Unio
 
 @router.get("/codeset-ids-by-concept-id")
 # async def get_codeset_ids_by_concept_id(request: Request, concept_ids: Union[List[str], None] = Query(...)) -> Dict:
-async def get_codeset_ids_by_concept_id(request: Request, concept_ids: Union[List[int], None] = []) -> Dict:
+async def get_codeset_ids_by_concept_id(request: Request, concept_ids: Union[List[str], None] = Query(...)) -> Dict:
 
     """Get Codeset IDs by concept ID"""
     return await get_codeset_ids_by_concept_id_post(request, concept_ids)

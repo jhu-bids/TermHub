@@ -11,6 +11,8 @@ import CloseIcon from "@mui/icons-material/Close";
 import Button from "@mui/material/Button";
 import { flatten, fromPairs, intersection, isEmpty, max, throttle, union, uniqBy } from "lodash";
 
+import Graph from "graphology";
+
 import {fmt, saveCsv, useWindowSize} from "./utils";
 import {setColDefDimensions} from "./dataTableUtils";
 import {ConceptSetCard} from "./ConceptSetCard";
@@ -44,7 +46,7 @@ function CsetComparisonPage() {
   const sizes = getSizes(/*squishTo*/ 1);
   const customStyles = styles(sizes);
   const [data, setData] = useState({});
-  const { indentedCids, concepts, conceptLookup, selected_csets, csmi, researchers, currentUserId,  } = data;
+  const { edges, graph, graphDataForTable, indentedCids, concepts, conceptLookup, selected_csets, csmi, researchers, currentUserId,  } = data;
 
   useEffect(() => {
     (async () => {
@@ -60,15 +62,12 @@ function CsetComparisonPage() {
       const concept_ids_by_codeset_id = await dataGetter.fetchAndCacheItems(dataGetter.apiCalls.concept_ids_by_codeset_id, codeset_ids);
       let concept_ids = union(flatten(Object.values(concept_ids_by_codeset_id)));
 
-      if (!isEmpty(newCset)) {
-        concept_ids = union(concept_ids, Object.values(newCset.definitions).map(d => d.concept_id));
-      }
-
+      const cids = []; // not collecting these extra concept ids yet
       const {edges, filled_gaps} = await dataGetter.fetchAndCacheItems(dataGetter.apiCalls.concept_graph_new, {codeset_ids, cids: cids});
-      debugger;
+      concept_ids = union(concept_ids, filled_gaps);
 
+      /*
       // have to get indentedCids, which might contain more concept_ids after filling gaps
-      const cids = []; // not collecting these yet
       let indentedTreeRows = await dataGetter.fetchAndCacheItems(
           dataGetter.apiCalls.indented_concept_list, { codeset_ids, cids });
       // indentedCids = [[<level>, <concept_id>], ...], or, if summarized: [<level>, [<concept_id>, <concept_id>,...]]
@@ -92,6 +91,7 @@ function CsetComparisonPage() {
       summarizedRows.forEach((d,i) => {
           indentedCids[i] = d;
       });
+       */
 
       promises.push(dataGetter.fetchAndCacheItems(dataGetter.apiCalls.concepts, concept_ids));
 
@@ -118,6 +118,10 @@ function CsetComparisonPage() {
       const researcherIds = getResearcherIdsFromCsets(selected_csets);
       let researchers = dataGetter.fetchAndCacheItems(dataGetter.apiCalls.researchers, researcherIds);
 
+      if (!isEmpty(newCset)) {
+        concept_ids = union(concept_ids, Object.values(newCset.definitions).map(d => d.concept_id));
+      }
+
       const concepts = Object.values(conceptLookup);
 
       const conceptsCids = concepts.map(d => d.concept_id).sort();
@@ -128,7 +132,7 @@ function CsetComparisonPage() {
 
       const currentUserId = (await whoami).id;
       researchers = await researchers;
-      setData(current => ({...current, concept_ids, indentedCids, selected_csets, conceptLookup, csmi,
+      setData(current => ({...current, edges, concept_ids, /* indentedCids,*/ selected_csets, conceptLookup, csmi,
           concepts, researchers, currentUserId, }));
     })();
   }, [newCset]);
@@ -151,7 +155,46 @@ function CsetComparisonPage() {
               infoPanelRef.current,
               (infoPanelRef.current ? infoPanelRef.current.offsetHeight : 0),
             ]);
+  useEffect(() => {
+    if (isEmpty(edges) || isEmpty(concepts)) {
+      return;
+    }
+    const graph = new Graph();
+    for (let c of concepts) {
+      graph.addNode(c.concept_id, {
+        label: c.concept_name,
+      })
+    }
+    /*
+    for (let n in slayout) {
+      graph.addNode(n, {
+        label: concepts[n].concept_name,
+        // size: 10,
+        // x: dn.x, y: dn.y,
+        // x: 0, y: 0,
+        // color: randomColor(),
+      });
+    }
+     */
+    for (let edge of edges) {
+      graph.addDirectedEdge(edge[0], edge[1]);
+    }
 
+    const roots = graph.nodes().filter(n => !graph.inDegree(n));
+    const leaves = graph.nodes().filter(n => !graph.outDegree(n));
+
+    const orphans = intersection(roots, leaves);
+
+    const graphDataForTable = flatten(roots.map(r => prepareDataForRendering(graph, r)));
+
+    setData(current => ({...current, graph, graphDataForTable}));
+  }, [edges]);
+
+
+  if (!isEmpty(graph)) {
+    console.log(graph);
+    return TreeTable({graphDataForTable});
+  }
 
   if (isEmpty(concepts) || isEmpty(indentedCids)) {
     return <p>Downloading...</p>;
@@ -350,6 +393,92 @@ function CsetComparisonPage() {
   );
 }
 
+// experiment, from https://chat.openai.com/share/8e817f4d-0581-4b07-aefe-acd5e7110de6
+function prepareDataForRendering(graph, startNodeId) {
+  let result = [];
+  let stack = [{ nodeId: startNodeId, depth: 0 }];
+  let visited = new Set([startNodeId]);
+
+  while (stack.length > 0) {
+    const { nodeId, depth } = stack.pop();
+    const nodeData = graph.getNodeAttributes(nodeId);
+
+    result.push({
+      id: nodeId,
+      name: nodeData.label || nodeId, // Assuming nodes have a 'label' attribute
+      otherData: nodeData.otherData, // Add other node attributes as needed
+      depth,
+      visible: true, // Initially, all nodes are visible
+      hasChildren: graph.outDegree(nodeId) > 0,
+      expanded: false
+    });
+
+    // Reverse to maintain the correct order after pushing to stack
+    const neighbors = [...graph.neighbors(nodeId)].reverse();
+    neighbors.forEach(neighbor => {
+      if (!visited.has(neighbor)) {
+        visited.add(neighbor);
+        stack.push({ nodeId: neighbor, depth: depth + 1 });
+      }
+    });
+  }
+
+  return result;
+}
+
+const NodeRow = ({ node, toggleVisibility }) => {
+  const handleRowClick = () => {
+    if (node.hasChildren) {
+      toggleVisibility(node.id);
+    }
+  };
+
+  return (
+    <tr onClick={handleRowClick} style={{ display: node.visible ? '' : 'none' }}>
+      <td style={{ paddingLeft: `${node.depth * 20}px` }}>
+        {node.hasChildren ? (node.expanded ? '-' : '+') : ''} {node.name}
+      </td>
+      <td>{node.otherData}</td>
+      {/* Render other columns as needed */}
+    </tr>
+  );
+};
+
+const TreeTable = ({ nodes }) => {
+  /*
+  const [data, setData] = useState(nodes);
+
+  const toggleVisibility = (nodeId) => {
+    const newData = data.map(node => {
+      if (node.id === nodeId) {
+        node.expanded = !node.expanded;
+      }
+      if (node.parentId === nodeId) {
+        node.visible = !node.visible;
+      }
+      return node;
+    });
+    setData(newData);
+  };
+
+  return (
+    <table>
+      <thead>
+        <tr>
+          <th>Node Name</th>
+          <th>Other Data</th>
+          {/* Add other headers as needed * /}
+        </tr>
+      </thead>
+      <tbody>
+        {data.map(node => (
+          <NodeRow key={node.id} node={node} toggleVisibility={toggleVisibility} />
+        ))}
+      </tbody>
+    </table>
+  );
+   */
+};
 function precisionRecall(props) {
 
 }

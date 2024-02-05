@@ -341,7 +341,7 @@ def get_missing_in_between_nodes(G, subgraph_nodes):
     for leaf_node in leaves:
         # stack = [(leaf_node, iter(G.predecessors(leaf_node)))]
         descending_from = None
-        stack = [(leaf_node, list(reversed(list(G.predecessors(leaf_node)))))]
+        stack = [(leaf_node, list(list(G.predecessors(leaf_node))))]
 
         while stack:
             # if descending_from:
@@ -363,7 +363,7 @@ def get_missing_in_between_nodes(G, subgraph_nodes):
                         missing_in_between_nodes_tmp.add(next_node)
 
                     # stack.append((next_node, iter(G.predecessors(next_node))))
-                    stack.append((next_node, list(reversed(list(G.predecessors(next_node))))))
+                    stack.append((next_node, list(list(G.predecessors(next_node)))))
             else:
                 # while True:
                 n, preds = stack.pop()
@@ -440,6 +440,7 @@ def tst_graph_code():
 
     missing_in_between_nodes = get_missing_in_between_nodes(G, subgraph_nodes)
     assert missing_in_between_nodes == expected_missing_in_between_nodes
+    print(f"passed with {missing_in_between_nodes}")
     pass
 
     # - Test: tree paths:
