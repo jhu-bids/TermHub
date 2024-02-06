@@ -100,8 +100,8 @@ def cli():
     parser.add_argument(
         '-l', '--use-local-db', action='store_true', default=False, required=False,
         help='Use local database instead of server.')
-    parser.add_argument(
-        '-b', '--buffer-hours', default=0, required=False,  # we were defaulting to 48 for a while
+    parser.add_argument(    # changing buffer hours to 2 so don't miss cset members
+        '-b', '--buffer-hours', default=2, required=False,  # we were defaulting to 48 for a while
         help='An additional period of time before "since" to fetch additional data, as a failsafe measure in case of '
              'possible API unreliability')
     parser.add_argument(
