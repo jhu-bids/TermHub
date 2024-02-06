@@ -135,7 +135,7 @@ async def concept_graph(
     nonstandard_concepts_hidden = nonstandard_concepts_hidden.union(nonstandard_concepts_hidden_m)
 
     # Get subgraph
-    sg: DiGraph = REL_GRAPH.subgraph(set([c['concept_id'] for c in concepts]))
+    sg: DiGraph = REL_GRAPH.subgraph(concept_ids)
 
     # Return
     verbose and timer('done')

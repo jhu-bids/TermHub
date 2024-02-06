@@ -119,7 +119,7 @@ def get_cset_members_items(
 
         if columns:
             select = sql.SQL("""
-                    SELECT {}
+                    SELECT DISTINCT {}
                     FROM cset_members_items
                     """).format(
                 sql.SQL(', ').join(map(sql.Identifier, columns)),
