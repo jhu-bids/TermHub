@@ -66,6 +66,7 @@ function CsetComparisonPage() {
       const {edges, filled_gaps} = await dataGetter.fetchAndCacheItems(dataGetter.apiCalls.concept_graph_new, {codeset_ids, cids: cids});
       concept_ids = union(concept_ids, filled_gaps);
 
+      /* this is here in case i have to compare against indented tree on backend again
       // have to get indentedCids, which might contain more concept_ids after filling gaps
       let indentedTreeRows = await dataGetter.fetchAndCacheItems(
           dataGetter.apiCalls.indented_concept_list, { codeset_ids, cids, indented: true });
@@ -90,8 +91,7 @@ function CsetComparisonPage() {
       summarizedRows.forEach((d,i) => {
           indentedCids[i] = d;
       });
-      /*
-       */
+      */
 
       promises.push(dataGetter.fetchAndCacheItems(dataGetter.apiCalls.concepts, concept_ids));
 
@@ -143,7 +143,8 @@ function CsetComparisonPage() {
         graph.addDirectedEdge(edge[0], edge[1]);
       }
 
-      let indentedCidsJS = getIndentedTreeNodes(graph);
+      // let indentedCidsJS = getIndentedTreeNodes(graph).map(([level, cid]) => [level, parseInt(cid)]);
+      let indentedCids = getIndentedTreeNodes(graph).map(([level, cid]) => [level, parseInt(cid)]);
 
       setData(current => ({...current, edges, concept_ids, indentedCids, selected_csets, conceptLookup, csmi,
           concepts, researchers, currentUserId, }));
