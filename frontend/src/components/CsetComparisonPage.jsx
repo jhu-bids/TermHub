@@ -138,17 +138,8 @@ function CsetComparisonPage() {
       return;
     }
 
-    const graph = new Graph({allowSelfLoops: false, multi: false, type: 'directed'});
-    // add each concept as a node in the graph, the concept properties become the node attributes
-    for (let c of concepts) {
-      graph.addNode(c.concept_id, {
-        label: c.concept_name,
-        ...c,
-      })
-    }
-    for (let edge of edges) {
-      graph.addDirectedEdge(edge[0], edge[1]);
-    }
+    const graph = makeGraph(edges, concepts);
+
 
     setDescendantStats(graph)
 
@@ -362,6 +353,20 @@ function CsetComparisonPage() {
   );
 }
 
+function makeGraph(edges, concepts) {
+  const graph = new Graph({allowSelfLoops: false, multi: false, type: 'directed'});
+  // add each concept as a node in the graph, the concept properties become the node attributes
+  for (let c of concepts) {
+    graph.addNode(c.concept_id, {
+      label: c.concept_name,
+      ...c,
+    })
+  }
+  for (let edge of edges) {
+    graph.addDirectedEdge(edge[0], edge[1]);
+  }
+  return graph;
+}
 function setDescendantStats(graph) {
   function computeAttributes(node, graph) {
     // Check if the attributes have already been computed to avoid recomputation
