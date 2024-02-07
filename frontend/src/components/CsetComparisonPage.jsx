@@ -9,9 +9,10 @@ import Slider from "@mui/material/Slider";
 import Switch from "@mui/material/Switch";
 import CloseIcon from "@mui/icons-material/Close";
 import Button from "@mui/material/Button";
-import { flatten, fromPairs, intersection, isEmpty, max, throttle, union, uniqBy } from "lodash";
+import { flatten, fromPairs, intersection, isEmpty, max, throttle, union, uniqBy, sum } from "lodash";
 
 import Graph from "graphology";
+import {dfs, dfsFromNode} from 'graphology-traversal/dfs';
 
 import {fmt, saveCsv, useWindowSize} from "./utils";
 import {setColDefDimensions} from "./dataTableUtils";
@@ -46,7 +47,8 @@ function CsetComparisonPage() {
   const sizes = getSizes(/*squishTo*/ 1);
   const customStyles = styles(sizes);
   const [data, setData] = useState({});
-  const { edges, graph, graphDataForTable, indentedCids, concepts, conceptLookup, selected_csets, csmi, researchers, currentUserId,  } = data;
+  const { edges, concepts, conceptLookup, selected_csets, csmi, researchers, currentUserId,
+          graph, roots, orphans, nodeMap, } = data;
 
   useEffect(() => {
     (async () => {
@@ -59,39 +61,13 @@ function CsetComparisonPage() {
         dataGetter.fetchAndCacheItems(dataGetter.apiCalls.csets, codeset_ids),
       ];
       // have to get concept_ids before fetching concepts
-      const concept_ids_by_codeset_id = await dataGetter.fetchAndCacheItems(dataGetter.apiCalls.concept_ids_by_codeset_id, codeset_ids);
-      let concept_ids = union(flatten(Object.values(concept_ids_by_codeset_id)));
+      // const concept_ids_by_codeset_id = await dataGetter.fetchAndCacheItems(dataGetter.apiCalls.concept_ids_by_codeset_id, codeset_ids);
+      // let concept_ids = union(flatten(Object.values(concept_ids_by_codeset_id)));
 
       const cids = []; // not collecting these extra concept ids yet
       const {edges, filled_gaps} = await dataGetter.fetchAndCacheItems(dataGetter.apiCalls.concept_graph_new, {codeset_ids, cids: cids});
+      let concept_ids = union(flatten(Object.values(edges)));
       concept_ids = union(concept_ids, filled_gaps);
-
-      /* this is here in case i have to compare against indented tree on backend again
-      // have to get indentedCids, which might contain more concept_ids after filling gaps
-      let indentedTreeRows = await dataGetter.fetchAndCacheItems(
-          dataGetter.apiCalls.indented_concept_list, { codeset_ids, cids, indented: true });
-      // indentedCids = [[<level>, <concept_id>], ...], or, if summarized: [<level>, [<concept_id>, <concept_id>,...]]
-
-      // summarized rows have a list of the parent's child concept_ids in place of the parent's descendants
-      let summarizedRows = [];
-      let indentedCids = [];
-
-      indentedTreeRows.forEach((d,i) => {
-        if (typeof(d[1]) === 'number') {
-          indentedCids[i] = d;
-        } else {
-          summarizedRows[i] = d;
-        }
-      });
-      concept_ids = union(
-          concept_ids,
-          indentedCids.map(d => d[1])
-      ).filter(d=>d).sort();
-
-      summarizedRows.forEach((d,i) => {
-          indentedCids[i] = d;
-      });
-      */
 
       promises.push(dataGetter.fetchAndCacheItems(dataGetter.apiCalls.concepts, concept_ids));
 
@@ -133,20 +109,7 @@ function CsetComparisonPage() {
       const currentUserId = (await whoami).id;
       researchers = await researchers;
 
-      const graph = new Graph();
-      for (let c of concepts) {
-        graph.addNode(c.concept_id, {
-          label: c.concept_name,
-        })
-      }
-      for (let edge of edges) {
-        graph.addDirectedEdge(edge[0], edge[1]);
-      }
-
-      // let indentedCidsJS = getIndentedTreeNodes(graph).map(([level, cid]) => [level, parseInt(cid)]);
-      let indentedCids = getIndentedTreeNodes(graph).map(([level, cid]) => [level, parseInt(cid)]);
-
-      setData(current => ({...current, edges, concept_ids, indentedCids, selected_csets, conceptLookup, csmi,
+      setData(current => ({...current, edges, concept_ids, selected_csets, conceptLookup, csmi,
           concepts, researchers, currentUserId, }));
     })();
   }, [newCset]);
@@ -169,48 +132,41 @@ function CsetComparisonPage() {
               infoPanelRef.current,
               (infoPanelRef.current ? infoPanelRef.current.offsetHeight : 0),
             ]);
-  /*
+
   useEffect(() => {
-    if (isEmpty(edges) || isEmpty(concepts)) {
+    if (isEmpty(edges)) {
       return;
     }
-    /*
-    for (let n in slayout) {
-      graph.addNode(n, {
-        label: concepts[n].concept_name,
-        // size: 10,
-        // x: dn.x, y: dn.y,
-        // x: 0, y: 0,
-        // color: randomColor(),
-      });
+
+    const graph = new Graph({allowSelfLoops: false, multi: false, type: 'directed'});
+    // add each concept as a node in the graph, the concept properties become the node attributes
+    for (let c of concepts) {
+      graph.addNode(c.concept_id, {
+        label: c.concept_name,
+        ...c,
+      })
     }
-     * /
+    for (let edge of edges) {
+      graph.addDirectedEdge(edge[0], edge[1]);
+    }
 
-    let indentedTree = getIndentedTreeNodes(graph);
+    setDescendantStats(graph)
 
+    // let indentedTree = getIndentedTreeNodes(graph);
     const roots = graph.nodes().filter(n => !graph.inDegree(n));
     const leaves = graph.nodes().filter(n => !graph.outDegree(n));
-
     const orphans = intersection(roots, leaves);
 
-    const graphDataForTable = flatten(roots.map(r => prepareDataForRendering(graph, r)));
+    // const graphDataForTable = flatten(roots.map(r => prepareDataForRendering(graph, r)));
 
-    setData(current => ({...current, graph, graphDataForTable}));
+    setData(data => ({...data, graph, roots, orphans, nodeMap}));
   }, [edges]);
-   */
 
-
-  /*
-  if (!isEmpty(graph)) {
-    console.log(graph);
-    // return TreeTable({graphDataForTable});
-    return <TreeTable nodes={graphDataForTable} />;
-  }
-   */
-
-  if (isEmpty(concepts) || isEmpty(indentedCids)) {
+  if (isEmpty(graph) || isEmpty(concepts)) {
     return <p>Downloading...</p>;
   }
+
+  let indentedCids = getIndentedTreeNodes(graph).map(([level, cid]) => [level, parseInt(cid)]);
 
   // TODO: component is rendering twice. why? not necessary? fix?
   if (!indentedCids) { // if no indentedCids (yet), no information to nest with, so turn off nesting for this
@@ -218,6 +174,7 @@ function CsetComparisonPage() {
     hierarchySettings = {...hierarchySettings, nested: false};
   }
   let {allRows, displayedRows, distinctRows, hidden} = getRowData({conceptLookup, indentedCids, hierarchySettings});
+  // let {someVariables} = newGetRowData({graph, roots, orphans});
   let rowData;
   if (nested) {
     rowData = displayedRows;
@@ -405,6 +362,44 @@ function CsetComparisonPage() {
   );
 }
 
+function setDescendantStats(graph) {
+  function computeAttributes(node, graph) {
+    // Check if the attributes have already been computed to avoid recomputation
+    if (graph.getNodeAttribute(node, 'descendantCount') !== undefined) {
+      return {
+        count: graph.getNodeAttribute(node, 'descendantCount'),
+        levels: graph.getNodeAttribute(node, 'levelsBelow'),
+        totalCountSum: graph.getNodeAttribute(node, 'totalCountSum')
+      };
+    }
+
+    let count = 0;
+    let maxLevelsBelow = 0;
+    let totalCountSum = graph.getNodeAttribute(node, 'total_cnt') || 0; // Initialize with the node's own total_cnt
+
+    const neighbors = graph.outNeighbors(node); // Get outgoing neighbors (children)
+
+    neighbors.forEach(neighbor => {
+      const {count: childCount, levels: childLevels, totalCountSum: childTotalCountSum} = computeAttributes(neighbor, graph);
+      count += 1 + childCount; // Count child + descendants of child
+      maxLevelsBelow = Math.max(maxLevelsBelow, 1 + childLevels); // Update max depth if this path is deeper
+      totalCountSum += childTotalCountSum; // Accumulate total_cnt from descendants
+    });
+
+    // Set the computed attributes on the node
+    graph.setNodeAttribute(node, 'descendantCount', count);
+    graph.setNodeAttribute(node, 'levelsBelow', maxLevelsBelow);
+    graph.setNodeAttribute(node, 'totalCountSum', totalCountSum);
+
+    return {count, levels: maxLevelsBelow, totalCountSum};
+  }
+
+  // Iterate over all nodes to compute and store attributes
+  graph.nodes().forEach(node => {
+    computeAttributes(node, graph);
+  });
+}
+
 // experiment, from https://chat.openai.com/share/8e817f4d-0581-4b07-aefe-acd5e7110de6
 function prepareDataForRendering(graph, startNodeId) {
   let result = [];
@@ -540,62 +535,6 @@ function nestedConcepts(conceptLookup, indentedCids, hierarchySettings) {
     displayedRows.push(row);
   }
   return [allRows, displayedRows];
-  /*
-  const graph = new Graph({allowSelfLoops: false, multi: false, type: 'directed'});
-  // add each concept as a node in the graph, the concept properties become the node attributes
-  concepts.forEach(c => graph.addNode(c.concept_id, c));
-  edges.forEach(edge => graph.addEdge(...edge));
-
-  // sort the nodes so the ones with the most descendants come first
-  let nodeDepths = [];
-  graph.nodes().map(n => {
-    let descendants = 0;
-    dfsFromNode(graph, n, (node, attr, depth) => {
-      if (n !== node) {
-        descendants++;
-      }
-    });
-    nodeDepths.push({node: n, descendants});
-  });
-  let nodes = sortBy(nodeDepths, n => -n.descendants).map(n => n.node);
-
-  let nodeSeen = {};
-  nodes.map((n,i) => {
-    let currentPath = [];
-    if (nodeSeen[n]) {
-      return;
-    }
-    dfsFromNode(graph, n, (node, attr, depth) => {
-      nodeSeen[node] = true;
-      if (depth === currentPath.length) {
-        currentPath.push(node);
-      }
-      else if (depth <= currentPath.length) {
-        currentPath.splice(depth);
-        currentPath.push(node);
-      } else {
-        console.log(currentPath.join('/'), node);
-        let paths = allSimplePaths(graph, currentPath[currentPath.length - 1], node);
-        console.log(paths);
-        throw new Error("shouldn't happen");
-      }
-
-      let row = {...graph.getNodeAttributes(node)};
-      row.pathToRoot = currentPath.join('/');
-      if (collapsedDescendantPaths[row.pathToRoot]) {
-        // currentPath.pop(); // don't do this, descendants will continue popping
-        allRows.push(row);
-        return;
-      }
-      // console.log('   '.repeat(depth) + node);
-      row.hasChildren = graph.outboundDegree(node) > 0;
-      row.level = depth;
-      allRows.push(row);
-      displayedRows.push(row);
-    });
-  });
-  return [allRows, displayedRows];
-  */
 }
 function ComparisonDataTable(props) {
   const {
@@ -1273,13 +1212,80 @@ export function howToSaveStagedChanges(params) {
   );
 }
 
+function nodeDescendants(graph) {
+  // const dfs = require('graphology-traversal/dfs');
+
+  // Assuming `graph` is your Graphology graph instance
+
+  // Step 1: Initialize a map to store descendant counts
+  let descendantsCount = new Map();
+
+  // Step 2: DFS function to count descendants
+  function countDescendants(node, graph, descendantsCount) {
+    if (descendantsCount.has(node)) {
+      // Return previously computed count to avoid recomputation
+      return descendantsCount.get(node);
+    }
+
+    let count = 0; // Initialize descendant count for this node
+    const neighbors = graph.outNeighbors(node); // Get outgoing neighbors (children)
+
+    neighbors.forEach(neighbor => {
+      count += 1 + countDescendants(neighbor, graph, descendantsCount, node); // Count child + descendants of child
+    });
+
+    descendantsCount.set(node, count); // Store count in map
+    graph.setNodeAttribute(node, 'descendantCount', count);
+    return count;
+  }
+
+  // Step 3: Iterate over all nodes to compute and store descendants count
+  graph.nodes().forEach(node => {
+    if (!descendantsCount.has(node)) { // Compute count if not already done
+      countDescendants(node, graph, descendantsCount);
+    }
+  });
+  // Now `descendantsCount` map contains the descendants count for each node
+  return descendantsCount;
+}
+
 export function getIndentedTreeNodes(graph, preferredConceptIds = [], maxDepth = 3, maxChildren = 20, smallGraphThreshold = 2000) {
+  // testing
+
+  let dc = nodeDescendants(graph);
+
+  function getNodeStats(n) {
+    let depthCnt = {};
+    let total = 0;
+    dfsFromNode(graph, n, function (node, attr, depth) {
+      depthCnt[depth] = (depthCnt[depth] || 0) + 1;
+      total++;
+    })
+    return {depthCnt, total};
+  }
+  let o = {};
+  let roots = graph.nodes().filter(n => graph.inDegree(n) === 0);
+  for (let r of roots) {
+    o[r] = getNodeStats(r);
+  }
+  console.log(o);
+  let nodeCnt = 0;
+  dfs(graph, function (node, attr, depth) {
+    nodeCnt++;
+    // console.log(node, attr, depth);
+  });
+  console.log(nodeCnt);
+
+
+
+
   let smallGraphBigTree = false;
   let tree = [];
   let preferredButUnshown = new Set(preferredConceptIds);
   let startOver = false;
+  let hiddenChildren = new Set();
 
-  function dfs(node, depth) {
+  function dfsCustom(node, depth) {
     if (startOver) {
       return 'start over';
     }
@@ -1292,7 +1298,7 @@ export function getIndentedTreeNodes(graph, preferredConceptIds = [], maxDepth =
     if (!smallGraphBigTree && graph.order < smallGraphThreshold) {
       if (tree.length < smallGraphThreshold * 2) {
         for (let child of children) {
-          if (!startOver && dfs(child, depth + 1) === 'start over') {
+          if (!startOver && dfsCustom(child, depth + 1) === 'start over') {
             startOver = true;
             return 'start over';
           }
@@ -1306,17 +1312,21 @@ export function getIndentedTreeNodes(graph, preferredConceptIds = [], maxDepth =
 
     if (children.length <= maxChildren && children.length > 0 && depth <= maxDepth) {
       for (let child of children) {
-        dfs(child, depth + 1);
+        dfsCustom(child, depth + 1);
       }
     } else {
       let alwaysShow = new Set(children.filter(x => preferredConceptIds.includes(x)));
       let childrenToHide = new Set(children.filter(x => !alwaysShow.has(x)));
       for (let child of alwaysShow) {
         childrenToHide.delete(child);
-        dfs(child, depth + 1);
+        dfsCustom(child, depth + 1);
       }
       if (childrenToHide.size) {
         tree.push([depth + 1, [...childrenToHide]]);
+        for (let child of childrenToHide) {
+          hiddenChildren.add(child);
+        }
+        console.log(`hid ${childrenToHide.size} children`);
       }
     }
   }
@@ -1327,7 +1337,7 @@ export function getIndentedTreeNodes(graph, preferredConceptIds = [], maxDepth =
     preferredButUnshown = new Set(preferredConceptIds);
     startOver = false;
     for (let root of roots) {
-      if (dfs(root, 0) === 'start over') {
+      if (dfsCustom(root, 0) === 'start over') {
         startOver = true;
         break;
       }

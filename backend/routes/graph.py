@@ -340,7 +340,7 @@ print_stack = lambda s: ' | '.join([f"{n} => {','.join([str(x) for x in p])}" fo
 
 
 # noinspection PyPep8Naming
-def get_missing_in_between_nodes(G: DiGraph, subgraph_nodes: Union[List[int], Set[int]], verbose=True) -> Set:
+def get_missing_in_between_nodes(G: DiGraph, subgraph_nodes: Union[List[int], Set[int]], verbose=VERBOSE) -> Set:
     """Get missing in-betweens, nodes that weren't in definition or expansion but are in between those."""
     missing_in_between_nodes = set()
     missing_in_between_nodes_tmp = set()
@@ -360,7 +360,7 @@ def get_missing_in_between_nodes(G: DiGraph, subgraph_nodes: Union[List[int], Se
                 #     missing_in_between_
 
             current_node, predecessors = stack[-1]
-            if verbose:
+            if verbose and len(subgraph_nodes) < 1000:
                 print(f"{str(print_stack(stack)):58} {(descending_from or ''):8} "
                       f"{','.join([str(n) for n in missing_in_between_nodes])} | "
                       f"{','.join([str(n) for n in missing_in_between_nodes_tmp])}")

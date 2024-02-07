@@ -1,6 +1,9 @@
 /* eslint-disable */
 
-const { test, expect } = require('@playwright/test');
+import {test, expect} from 'jest';
+
+
+// const { test, expect } = require('@playwright/test');
 
 import {getIndentedTreeNodes} from "../src/components/CsetComparisonPage";
 
