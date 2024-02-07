@@ -3,6 +3,21 @@ import {sum, sortBy, uniq, flatten, intersection, difference} from "lodash";
 import Graph from "graphology";
 import {bidirectional} from 'graphology-shortest-path/unweighted';
 
+export const makeGraph = (edges, concepts) => {
+  const graph = new Graph({allowSelfLoops: false, multi: false, type: 'directed'});
+  let nodes = {};
+  // add each concept as a node in the graph, the concept properties become the node attributes
+  for (let c of concepts) {
+    let nodeId = c.concept_id;
+    graph.addNode(nodeId);
+    nodes[nodeId] = {...c};
+  }
+  for (let edge of edges) {
+    graph.addDirectedEdge(edge[0], edge[1]);
+  }
+  return [graph, nodes];
+};
+
 const graphReducer = (gc, action) => {
   if (!(action && action.type)) return gc;
   // let { graph, nodes } = gc;
@@ -130,18 +145,9 @@ export class GraphContainer {
 
     return displayedRows;
   }
+  
   #makeGraph(edges, concepts) {
-    const graph = new Graph({allowSelfLoops: false, multi: false, type: 'directed'});
-    let nodes = {};
-    // add each concept as a node in the graph, the concept properties become the node attributes
-    for (let c of concepts) {
-      let nodeId = c.concept_id;
-      graph.addNode(nodeId);
-      nodes[nodeId] = {...c};
-    }
-    for (let edge of edges) {
-      graph.addDirectedEdge(edge[0], edge[1]);
-    }
+    const [graph, nodes] = makeGraph(edges, concepts);
     this.graph = graph;
     this.nodes = nodes;
   }
