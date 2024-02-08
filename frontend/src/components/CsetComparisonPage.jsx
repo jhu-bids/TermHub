@@ -11,7 +11,6 @@ import CloseIcon from "@mui/icons-material/Close";
 import Button from "@mui/material/Button";
 import { flatten, fromPairs, intersection, isEmpty, max, throttle, union, uniqBy, sum } from "lodash";
 
-import Graph from "graphology";
 import {dfs, dfsFromNode} from 'graphology-traversal/dfs';
 
 import {fmt, saveCsv, useWindowSize} from "./utils";
@@ -22,6 +21,7 @@ import { cellContents, cellStyle, getCodesetEditActionFunc, getItem, Legend, new
 import {FlexibleContainer} from "./FlexibleContainer";
 import {NEW_CSET_ID, urlWithSessionStorage, useCodesetIds, useHierarchySettings, useNewCset,} from "../state/AppState";
 import {useDataCache} from "../state/DataCache";
+import {useGraphContainer} from "../state/GraphState";
 import {getResearcherIdsFromCsets, useDataGetter} from "../state/DataGetter";
 import {LI} from "./AboutPage";
 
@@ -47,8 +47,8 @@ function CsetComparisonPage() {
   const sizes = getSizes(/*squishTo*/ 1);
   const customStyles = styles(sizes);
   const [data, setData] = useState({});
-  const { edges, concepts, conceptLookup, selected_csets, csmi, researchers, currentUserId,
-          graph, roots, orphans, nodeMap, } = data;
+  const { visibleRows, /* colDefs, */ edges, concepts, conceptLookup, selected_csets, csmi, researchers, currentUserId, } = data;
+  const {gc, gcDispatch} = useGraphContainer();
 
   useEffect(() => {
     (async () => {
@@ -100,6 +100,8 @@ function CsetComparisonPage() {
 
       const concepts = Object.values(conceptLookup);
 
+      gcDispatch({type: "CREATE", payload: {edges, concepts}});
+
       const conceptsCids = concepts.map(d => d.concept_id).sort();
       /* this has been a valuable check, but it no longer works
       console.assert(intersection(conceptsCids, concept_ids).length === concept_ids.length,
@@ -134,28 +136,34 @@ function CsetComparisonPage() {
             ]);
 
   useEffect(() => {
-    if (isEmpty(edges)) {
+    if (isEmpty(gc)) {
       return;
     }
-
-    const graph = makeGraph(edges, concepts);
-
-
-    setDescendantStats(graph)
-
-    // let indentedTree = getIndentedTreeNodes(graph);
-    const roots = graph.nodes().filter(n => !graph.inDegree(n));
-    const leaves = graph.nodes().filter(n => !graph.outDegree(n));
-    const orphans = intersection(roots, leaves);
-
-    // const graphDataForTable = flatten(roots.map(r => prepareDataForRendering(graph, r)));
-
-    setData(data => ({...data, graph, roots, orphans, nodeMap}));
-  }, [edges]);
-
-  if (isEmpty(graph) || isEmpty(concepts)) {
+    /*
+    const colDefs = getColDefs(
+        gc,
+        selected_csets,
+        concepts,
+        sizes,
+        editAction,
+        windowSize,
+        hidden,
+        displayedRows,
+        hierarchySettings,
+        hsDispatch,
+        csmi,
+        newCset, newCsetDispatch,
+        setShowCsetCodesetId
+    );
+    */
+    setData(current => ({...current, visibleRows: gc.getVisibleRows()/*, colDefs*/}));
+  }, [gc]);
+  if (isEmpty(visibleRows)) {
     return <p>Downloading...</p>;
   }
+
+  // OLD CODE BELOW, LEAVING IN PLACE TILL NEW CODE IS WORKING
+  let graph = gc.withAttributes(edges);
 
   let indentedCids = getIndentedTreeNodes(graph).map(([level, cid]) => [level, parseInt(cid)]);
 
@@ -165,7 +173,6 @@ function CsetComparisonPage() {
     hierarchySettings = {...hierarchySettings, nested: false};
   }
   let {allRows, displayedRows, distinctRows, hidden} = getRowData({conceptLookup, indentedCids, hierarchySettings});
-  // let {someVariables} = newGetRowData({graph, roots, orphans});
   let rowData;
   if (nested) {
     rowData = displayedRows;
@@ -188,10 +195,31 @@ function CsetComparisonPage() {
     displayedRows,
     hierarchySettings,
     hsDispatch,
+    gcDispatch,
     newCset,
     newCsetDispatch,
     setShowCsetCodesetId,
   });
+
+
+  const colDefs = getColDefs({
+                               gc, gcDispatch,
+                               selected_csets,
+                               concepts,
+                               sizes,
+                               editAction,
+                               windowSize,
+                               hidden,
+                               displayedRows,
+                               hierarchySettings,
+                               hsDispatch,
+                               csmi,
+                               newCset, newCsetDispatch,
+                               setShowCsetCodesetId
+                             });
+  const tableProps = {rowData: visibleRows, columns: colDefs, selected_csets, customStyles};
+  const newDataTable = <ComparisonDataTable /*squishTo={squishTo}*/ {...tableProps} />
+
 
   let csetCard = null;
   if (showCsetCodesetId) {
@@ -347,96 +375,15 @@ function CsetComparisonPage() {
           }
         </Typography> */}
       </Box>
+      New:
+      {newDataTable}
+      Old:
       <ComparisonDataTable /*squishTo={squishTo}*/ {...sendProps} />
       <span data-testid="comp-page-loaded"></span>
     </div>
   );
 }
 
-function makeGraph(edges, concepts) {
-  const graph = new Graph({allowSelfLoops: false, multi: false, type: 'directed'});
-  // add each concept as a node in the graph, the concept properties become the node attributes
-  for (let c of concepts) {
-    graph.addNode(c.concept_id, {
-      label: c.concept_name,
-      ...c,
-    })
-  }
-  for (let edge of edges) {
-    graph.addDirectedEdge(edge[0], edge[1]);
-  }
-  return graph;
-}
-function setDescendantStats(graph) {
-  function computeAttributes(node, graph) {
-    // Check if the attributes have already been computed to avoid recomputation
-    if (graph.getNodeAttribute(node, 'descendantCount') !== undefined) {
-      return {
-        count: graph.getNodeAttribute(node, 'descendantCount'),
-        levels: graph.getNodeAttribute(node, 'levelsBelow'),
-        totalCountSum: graph.getNodeAttribute(node, 'totalCountSum')
-      };
-    }
-
-    let count = 0;
-    let maxLevelsBelow = 0;
-    let totalCountSum = graph.getNodeAttribute(node, 'total_cnt') || 0; // Initialize with the node's own total_cnt
-
-    const neighbors = graph.outNeighbors(node); // Get outgoing neighbors (children)
-
-    neighbors.forEach(neighbor => {
-      const {count: childCount, levels: childLevels, totalCountSum: childTotalCountSum} = computeAttributes(neighbor, graph);
-      count += 1 + childCount; // Count child + descendants of child
-      maxLevelsBelow = Math.max(maxLevelsBelow, 1 + childLevels); // Update max depth if this path is deeper
-      totalCountSum += childTotalCountSum; // Accumulate total_cnt from descendants
-    });
-
-    // Set the computed attributes on the node
-    graph.setNodeAttribute(node, 'descendantCount', count);
-    graph.setNodeAttribute(node, 'levelsBelow', maxLevelsBelow);
-    graph.setNodeAttribute(node, 'totalCountSum', totalCountSum);
-
-    return {count, levels: maxLevelsBelow, totalCountSum};
-  }
-
-  // Iterate over all nodes to compute and store attributes
-  graph.nodes().forEach(node => {
-    computeAttributes(node, graph);
-  });
-}
-
-// experiment, from https://chat.openai.com/share/8e817f4d-0581-4b07-aefe-acd5e7110de6
-function prepareDataForRendering(graph, startNodeId) {
-  let result = [];
-  let stack = [{ nodeId: startNodeId, depth: 0 }];
-  let visited = new Set([startNodeId]);
-
-  while (stack.length > 0) {
-    const { nodeId, depth } = stack.pop();
-    const nodeData = graph.getNodeAttributes(nodeId);
-
-    result.push({
-      id: nodeId,
-      name: nodeData.label || nodeId, // Assuming nodes have a 'label' attribute
-      otherData: nodeData.otherData, // Add other node attributes as needed
-      depth,
-      visible: true, // Initially, all nodes are visible
-      hasChildren: graph.outDegree(nodeId) > 0,
-      expanded: false
-    });
-
-    // Reverse to maintain the correct order after pushing to stack
-    const neighbors = [...graph.neighbors(nodeId)].reverse();
-    neighbors.forEach(neighbor => {
-      if (!visited.has(neighbor)) {
-        visited.add(neighbor);
-        stack.push({ nodeId: neighbor, depth: depth + 1 });
-      }
-    });
-  }
-
-  return result;
-}
 function precisionRecall(props) {
 
 }
@@ -446,6 +393,339 @@ function nodeToTree(node) {
   const subTrees = node.children().map(n => nodeToTree(n));
   return [node, ...subTrees];
 }
+function newGetCollapseIconAndName(row, sizes, gcDispatch) {
+  let Component, collapseAction;
+  if (row.expanded) {
+    Component = RemoveCircleOutline;
+  } else {
+    Component = AddCircle;
+  }
+  return (
+      <span
+          className="toggle-collapse concept-name-row"
+          onClick={() => gcDispatch({ type: "TOGGLE_NODE_EXPANDED", payload: {nodeId: row.concept_id} })}
+      >
+                <Component
+                    sx={{
+                      fontSize: sizes.collapseIcon,
+                      display: "inline-flex",
+                      marginRight: "0.15rem",
+                      marginTop: "0.05rem",
+                      verticalAlign: "top",
+                    }}
+                />
+        <span className="concept-name-text">{row.concept_name}</span>
+      </span>
+  );
+}
+function getColDefs(props) {
+  let {
+    gc, gcDispatch,
+    selected_csets,
+    concepts,
+    sizes,
+    editAction,
+    windowSize,
+    hidden,
+    displayedRows,
+    hierarchySettings,
+    hsDispatch,
+    csmi,
+    newCset, newCsetDispatch,
+    setShowCsetCodesetId
+  } = props;
+  const {nested, hideRxNormExtension, hideZeroCounts} = hierarchySettings;
+  const { definitions = {}, } = newCset;
+
+  const maxNameLength = max(displayedRows.map(d => d.concept_name.length));
+  let coldefs = [
+    {
+      name: "Concept name",
+      selector: (row) => row.concept_name,
+      format: (row) => {
+        let content = nested ? (
+            row.hasChildren
+                ? newGetCollapseIconAndName(row, sizes, gcDispatch)
+                : (
+                    <span className="concept-name-row">
+                    <RemoveCircleOutline
+                        // this is just here so it indents the same distance as the collapse icons
+                        sx={{ fontSize: sizes.collapseIcon, visibility: "hidden" }}
+                    />
+                    <span className="concept-name-text">{row.concept_name}</span>
+                  </span>)
+        ) : (
+            <span className="concept-name-text">{row.concept_name}</span>
+        );
+        return content;
+      },
+      sortable: !nested,
+      // minWidth: 100,
+      // remainingPct: .60,
+      width: Math.min((400 + selected_csets.length * 80) * 1.5,
+                      window.innerWidth - 400 - selected_csets.length * 80) - 36,
+      // grow: 4,
+      wrap: true,
+      compact: true,
+      conditionalCellStyles: [
+        {
+          when: (row) => true,
+          style: (row) => ({
+            padding: '0px 3px 0px ' + (nested ? (16 + row.level * 16) : 16) + "px",
+          }),
+        },
+      ],
+    },
+    {
+      // name: "Vocabulary",
+      headerProps: {
+        headerContent: (
+            concepts.some(d => d.vocabulary_id === 'RxNorm Extension')
+                ? <div style={{display: 'flex', flexDirection: 'column'}}>
+                  <div>Vocabulary</div>
+                  <div style={{fontSize: 'x-small'}}>({hidden.rxNormExtension} {hideRxNormExtension ? 'hidden' : ''} RxNorm Extension rows)</div>
+                  <Tooltip label="Toggle hiding of RxNorm Extension concepts">
+                    <Switch sx={{margin: '-8px 0px'}} checked={!hideRxNormExtension}
+                            onClick={() => hsDispatch({type:'hideRxNormExtension', hideRxNormExtension: !hideRxNormExtension})}
+                    />
+                  </Tooltip>
+                </div>
+                : "Vocabulary"
+        )
+        // headerContentProps: { onClick: editCodesetFunc, codeset_id: cset_col.codeset_id, },
+      },
+      selector: (row) => row.vocabulary_id,
+      // format: (row) => <Tooltip label={row.vocabulary_id} content={row.vocabulary_id} />,
+      sortable: !nested,
+      width: 100,
+      style: { justifyContent: "center" },
+    },
+    {
+      name: "Std",
+      selector: (row) => row.standard_concept,
+      sortable: !nested,
+      width: 30,
+      style: { justifyContent: "center" },
+    },
+    {
+      name: "Concept ID",
+      selector: (row) => row.concept_id < 0 ? '' : row.concept_id,
+      sortable: !nested,
+      width: 80,
+      style: { justifyContent: "center" },
+    },
+    {
+      name: "Links",
+      selector: (row) => row.concept_id,
+      headerProps: {
+        tooltipContent: (
+            <span>Click icons to open the concept in ATLAS or Athena</span>
+        ),
+      },
+      // TODO: @fabiofdez: after widening this column so (i) icon would display, the cells should be centered. can you figure out how to do that?
+      format: (row) => (
+          <span
+              style={{
+                height: sizes.linkHeight,
+                display: "flex",
+                flex: 1,
+                justifyContent: "space-between",
+                alignItems: "center",
+              }}
+          >
+          <a
+              href={`https://atlas-demo.ohdsi.org/#/concept/${row.concept_id}`}
+              target="_blank"
+              rel="noreferrer"
+              style={{
+                display: "flex",
+                aspectRatio: 1,
+                alignItems: "center",
+                padding: "3px",
+              }}
+          >
+            <img
+                height={sizes.atlasHeight}
+                src="atlas.ico"
+                alt="Link to this concept in ATLAS"
+            />
+          </a>
+            &nbsp;
+            <a
+                href={`https://athena.ohdsi.org/search-terms/terms/${row.concept_id}`}
+                target="_blank"
+                rel="noreferrer"
+                style={{
+                  display: "flex",
+                  aspectRatio: 1,
+                  alignItems: "center",
+                  padding: "3px",
+                }}
+            >
+            <img
+                height={sizes.athenaHeight}
+                src="athena.ico"
+                alt="Link to this concept in Athena"
+            />
+          </a>
+        </span>
+      ),
+      sortable: !nested,
+      width: 60,
+      style: {
+        backgroundColor: "lightgray",
+        paddingRight: "0px",
+        display: "flex",
+        flex: 1,
+        justifyContent: "center",
+      },
+    },
+    // ...cset_cols,
+    {
+      // name: "Patients",
+      headerProps: {
+        headerContent: (
+            <div style={{display: 'flex', flexDirection: 'column'}}>
+              <Tooltip label="Approximate distinct person count. Small counts rounded up to 20.">
+                <div>Patients</div>
+                {/*<div>{hideZeroCounts ? 'Unhide ' : 'Hide '} {hidden.zeroCount} rows</div>*/}
+              </Tooltip>
+              <Tooltip label={`Toggle hiding of ${hidden.zeroCount} concepts with 0 patients`}>
+                <Switch sx={{margin: '-8px 0px'}} checked={!hideZeroCounts}
+                        onClick={() => hsDispatch({type:'hideZeroCounts', hideZeroCounts: !hideZeroCounts})}
+                />
+              </Tooltip>
+            </div>
+        )
+        // headerContentProps: { onClick: editCodesetFunc, codeset_id: cset_col.codeset_id, },
+      },
+      selector: (row) => {
+        // can be comma=separated list if pt cnts in more than one domain
+        const cnts = row.distinct_person_cnt.split(',').map(n => parseInt(n));
+        return max(cnts);
+      },
+      format: (row) => {
+        if (typeof(row.distinct_person_cnt) === 'undefined') {
+          return '';
+        }
+        const cnts = row.distinct_person_cnt.split(',').map(n => parseInt(n));
+        return fmt(max(cnts));
+      },
+      sortable: !nested,
+      right: true,
+      width: 80,
+      // minWidth: 80,
+      // remainingPct: .10,
+      style: { justifyContent: "center" },
+    },
+    {
+      name: "Records",
+      headerProps: {
+        tooltipContent: "Record count. Small counts rounded up to 20.",
+      },
+      /* name:   <Tooltip label="Record count. Small counts rounded up to 20.">
+                <span>Records</span>
+            </Tooltip>, */
+      selector: (row) => row.total_cnt,
+      format: (row) => {
+        if (typeof(row.distinct_person_cnt) === 'undefined') {
+          return '';
+        }
+        return fmt(row.total_cnt)
+      },
+      sortable: !nested,
+      right: true,
+      width: 80,
+      // minWidth: 80,
+      // remainingPct: .10,
+      style: { justifyContent: "center" },
+    },
+  ];
+  let cset_cols = selected_csets.map((cset_col) => {
+    const { codeset_id } = cset_col;
+    let def = {
+      cset_col,
+      codeset_id,
+      headerProps: {
+        showInfoIcon: !!nested,
+        //tooltipContent: "Click to create and edit new draft of this concept set",
+        tooltipContent: `${cset_col.codeset_id} ${cset_col.concept_set_version_title}.
+                            ${nested ? 'Click for details' : 'Click to sort.'}`,
+        //style: { cursor: 'pointer', },
+
+        // headerContent: cset_col.concept_set_name,
+        headerContent: (
+            <span onClick={() => setShowCsetCodesetId(cset_col.codeset_id)}>
+              {cset_col.concept_set_name}
+            </span>
+        ),
+        headerContentProps: {
+          codeset_id: cset_col.codeset_id,
+        },
+      },
+      selector: row => {
+        const item = getItem({ codeset_id: cset_col.codeset_id,
+                               concept_id: row.concept_id, csmi, newCset, }) || {};
+        return !(item.item || item.csm);
+      },
+      format: (row) => {
+        return cellContents({
+                              ...props,
+                              row,
+                              cset_col,
+                              editAction,
+                            });
+      },
+      conditionalCellStyles: [
+        {
+          when: (row) => true, //csmiLookup[codeset_id][row.concept_id],
+          // when: row => row.checkboxes && row.checkboxes[codeset_id],
+          style: (row) => cellStyle({ ...props, cset_col, row }),
+        },
+      ],
+      sortable: !nested,
+      // compact: true,
+      width: 80,
+      // center: true,
+    };
+
+    if (codeset_id === NEW_CSET_ID) {
+      def.headerProps.headerContent = (
+          <div style={{display: 'flex', flexDirection: 'column'}}>
+            {/*<Tooltip label={def.headerProps.tooltipContent}>*/}
+            {/*  <div>{def.headerProps.headerContent}</div>*/}
+            {/*</Tooltip>*/}
+            New concept set
+            <Tooltip label="Discard">
+              <IconButton
+                  onClick={() => {
+                    newCsetDispatch({type: 'reset'});
+                  }}
+              >
+                <CloseIcon />
+              </IconButton>
+            </Tooltip>
+          </div>);
+      delete def.headerProps.tooltipContent;
+    }
+
+    return def;
+  });
+
+  coldefs = [...coldefs, ...cset_cols];
+  // coldefs.forEach(d => {delete d.width; d.flexGrow=1;})
+  // coldefs[0].grow = 5;
+  // delete coldefs[0].width;
+  coldefs = setColDefDimensions({ coldefs, windowSize });
+  // console.log(coldefs);
+  /*
+  if (!nested) {
+    delete coldefs[0].conditionalCellStyles;
+  }
+   */
+  return coldefs;
+}
+
 export function getRowData(props) {
   console.log("getting row data");
 
@@ -652,6 +932,7 @@ function getCollapseIconAndName(collapsePaths, row, allRows, sizes, hsDispatch, 
 }
 function colConfig(props) {
   let {
+    gcDispatch,
     selected_csets,
     concepts,
     sizes,
@@ -677,7 +958,7 @@ function colConfig(props) {
       format: (row) => {
         let content = nested ? (
           row.hasChildren
-              ? getCollapseIconAndName(collapsePaths, row, allRows, sizes, hsDispatch)
+              ? getCollapseIconAndName(collapsePaths, row, allRows, sizes, gcDispatch)
               : (
                   <span className="concept-name-row">
                     <RemoveCircleOutline
