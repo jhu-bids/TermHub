@@ -471,10 +471,74 @@ function getColDefs(props) {
         {
           when: (row) => true,
           style: (row) => ({
-            padding: '0px 3px 0px ' + (nested ? (16 + row.level * 16) : 16) + "px",
+            padding: '0px 3px 0px ' + (nested ? (16 + row.depth * 16) : 16) + "px",
           }),
         },
       ],
+    },
+    {
+      name: "Depth",
+      headerProps: {
+        tooltipContent: "Levels of descendants below.",
+      },
+      selector: (row) => row.levelsBelow,
+      format: (row) => {
+        return fmt(row.levelsBelow)
+      },
+      sortable: false,
+      right: true,
+      width: 80,
+      style: { justifyContent: "right", paddingRight: 4 },
+    },
+    {
+      name: "Concepts",
+      headerProps: {
+        tooltipContent: "Count of descendant concepts.",
+      },
+      selector: (row) => row.descendantCount,
+      format: (row) => {
+        return fmt(row.descendantCount)
+      },
+      sortable: false,
+      right: true,
+      width: 80,
+      style: { justifyContent: "right", paddingRight: 4 },
+    },
+    {
+      name: "Records",
+      headerProps: {
+        tooltipContent: "Record count. Small counts rounded up to 20.",
+      },
+      /* name:   <Tooltip label="Record count. Small counts rounded up to 20.">
+                <span>Records</span>
+            </Tooltip>, */
+      selector: (row) => row.total_cnt,
+      format: (row) => {
+        if (typeof(row.distinct_person_cnt) === 'undefined') {
+          return '';
+        }
+        return fmt(row.total_cnt)
+      },
+      sortable: !nested,
+      right: true,
+      width: 80,
+      // minWidth: 80,
+      // remainingPct: .10,
+      style: { justifyContent: "right", paddingRight: 4 },
+    },
+    {
+      name: "DRC",
+      headerProps: {
+        tooltipContent: "Sum of descendant concept record counts.",
+      },
+      selector: (row) => row.totalCountsSum,
+      format: (row) => {
+        return fmt(row.totalCountSum)
+      },
+      sortable: false,
+      right: true,
+      width: 80,
+      style: { justifyContent: "right", paddingRight: 4 },
     },
     {
       // name: "Vocabulary",
@@ -610,28 +674,6 @@ function getColDefs(props) {
         }
         const cnts = row.distinct_person_cnt.split(',').map(n => parseInt(n));
         return fmt(max(cnts));
-      },
-      sortable: !nested,
-      right: true,
-      width: 80,
-      // minWidth: 80,
-      // remainingPct: .10,
-      style: { justifyContent: "center" },
-    },
-    {
-      name: "Records",
-      headerProps: {
-        tooltipContent: "Record count. Small counts rounded up to 20.",
-      },
-      /* name:   <Tooltip label="Record count. Small counts rounded up to 20.">
-                <span>Records</span>
-            </Tooltip>, */
-      selector: (row) => row.total_cnt,
-      format: (row) => {
-        if (typeof(row.distinct_person_cnt) === 'undefined') {
-          return '';
-        }
-        return fmt(row.total_cnt)
       },
       sortable: !nested,
       right: true,

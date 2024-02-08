@@ -43,13 +43,13 @@ class GraphContainer {
     this.nodes = {...this.nodes, [nodeId]: {...node, expanded:!node.expanded}};
   }
 
-  addNodeToVisible(nodeId, displayedRows) {
+  addNodeToVisible(nodeId, displayedRows, depth = 0) {
     const node = this.nodes[nodeId];
-    displayedRows.push(node);
+    displayedRows.push({...node, depth});
     if (node.expanded) {
       const neighborIds = this.graph.outNeighbors(nodeId); // Get outgoing neighbors (children)
       neighborIds.forEach(neighborId => {
-        this.addNodeToVisible(neighborId, displayedRows);
+        this.addNodeToVisible(neighborId, displayedRows, depth + 1); // Recurse
       });
     }
     // return displayedRows;
