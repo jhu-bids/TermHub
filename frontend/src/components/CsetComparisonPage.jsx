@@ -158,10 +158,12 @@ function CsetComparisonPage() {
     */
     setData(current => ({...current, visibleRows: gc.getVisibleRows()/*, colDefs*/}));
   }, [gc]);
-  if (isEmpty(visibleRows)) {
+  if (isEmpty(visibleRows) || isEmpty(selected_csets)) {
+    // sometimes selected_csets and some other data disappears when the page is reloaded
     return <p>Downloading...</p>;
   }
 
+  /*
   // OLD CODE BELOW, LEAVING IN PLACE TILL NEW CODE IS WORKING
   let graph = gc.withAttributes(edges);
 
@@ -180,9 +182,6 @@ function CsetComparisonPage() {
     // rowData = hierarchyToFlatCids(hierarchy).map(cid => conceptLookup[cid]);
     rowData = distinctRows;
   }
-
-  const editAction = getCodesetEditActionFunc({ csmi, newCset, newCsetDispatch, });
-
   let columns = colConfig({
     csmi,
     selected_csets,
@@ -200,7 +199,12 @@ function CsetComparisonPage() {
     newCsetDispatch,
     setShowCsetCodesetId,
   });
+  let sendProps = {
+    displayedRows, rowData, columns, selected_csets, customStyles
+  };
+  */
 
+  const editAction = getCodesetEditActionFunc({ csmi, newCset, newCsetDispatch, });
 
   const colDefs = getColDefs({
                                gc, gcDispatch,
@@ -209,17 +213,14 @@ function CsetComparisonPage() {
                                sizes,
                                editAction,
                                windowSize,
-                               hidden,
-                               displayedRows,
+                               // hidden,
+                               displayedRows: visibleRows,
                                hierarchySettings,
                                hsDispatch,
                                csmi,
                                newCset, newCsetDispatch,
                                setShowCsetCodesetId
                              });
-  const tableProps = {rowData: visibleRows, columns: colDefs, selected_csets, customStyles};
-  const newDataTable = <ComparisonDataTable /*squishTo={squishTo}*/ {...tableProps} />
-
 
   let csetCard = null;
   if (showCsetCodesetId) {
@@ -239,6 +240,7 @@ function CsetComparisonPage() {
   }
 
   let infoPanels = [
+    /*
     <Button key="distinct"
             disabled={!nested}
             onClick={() => hsDispatch({type:'nested', nested: false})}
@@ -255,12 +257,13 @@ function CsetComparisonPage() {
             onClick={() => hsDispatch({type:'nested', nested: true})}
             sx={{ marginRight: '4px' }}
     >
-      {displayedRows.length} in hierarchy
+      {visibleRows.length} in hierarchy
     </Button>,
+    */
     /*
     <Button key="download-distinct-tsv"
             variant="outlined"
-            onClick={ () => downloadCSV({codeset_ids, displayedRows, selected_csets, csmi}, true) }
+            onClick={ () => downloadCSV({codeset_ids, visibleRows, selected_csets, csmi}, true) }
             sx={{
               cursor: 'pointer',
               marginRight: '4px',
@@ -271,7 +274,7 @@ function CsetComparisonPage() {
     */
     <Button key="download-distinct-csv"
             variant="outlined"
-            onClick={ () => downloadCSV({codeset_ids, displayedRows, selected_csets, csmi}) }
+            onClick={ () => downloadCSV({codeset_ids, visibleRows, selected_csets, csmi}) }
             sx={{
               cursor: 'pointer',
               marginRight: '4px',
@@ -349,9 +352,7 @@ function CsetComparisonPage() {
     );
   }
 
-  let sendProps = {
-    displayedRows, rowData, columns, selected_csets, customStyles
-  };
+  const tableProps = {rowData: visibleRows, columns: colDefs, selected_csets, customStyles};
   return (
     <div>
       <span data-testid="comp-page-loading"></span>
@@ -375,10 +376,7 @@ function CsetComparisonPage() {
           }
         </Typography> */}
       </Box>
-      New:
-      {newDataTable}
-      Old:
-      <ComparisonDataTable /*squishTo={squishTo}*/ {...sendProps} />
+      <ComparisonDataTable /*squishTo={squishTo}*/ {...tableProps} />
       <span data-testid="comp-page-loaded"></span>
     </div>
   );
@@ -462,9 +460,8 @@ function getColDefs(props) {
       sortable: !nested,
       // minWidth: 100,
       // remainingPct: .60,
-      width: Math.min((400 + selected_csets.length * 80) * 1.5,
-                      window.innerWidth - 400 - selected_csets.length * 80) - 36,
-      // grow: 4,
+      width: Math.min((620 + selected_csets.length * 80) * 1.5,
+                      window.innerWidth - 620 - selected_csets.length * 80) - 36,
       wrap: true,
       compact: true,
       conditionalCellStyles: [
@@ -487,7 +484,7 @@ function getColDefs(props) {
       },
       sortable: false,
       right: true,
-      width: 80,
+      width: 60,
       style: { justifyContent: "right", paddingRight: 4 },
     },
     {
@@ -654,11 +651,15 @@ function getColDefs(props) {
                 <div>Patients</div>
                 {/*<div>{hideZeroCounts ? 'Unhide ' : 'Hide '} {hidden.zeroCount} rows</div>*/}
               </Tooltip>
-              <Tooltip label={`Toggle hiding of ${hidden.zeroCount} concepts with 0 patients`}>
-                <Switch sx={{margin: '-8px 0px'}} checked={!hideZeroCounts}
-                        onClick={() => hsDispatch({type:'hideZeroCounts', hideZeroCounts: !hideZeroCounts})}
-                />
-              </Tooltip>
+              {
+                hidden
+                  ? <Tooltip label={`Toggle hiding of ${hidden.zeroCount} concepts with 0 patients`}>
+                      <Switch sx={{margin: '-8px 0px'}} checked={!hideZeroCounts}
+                              onClick={() => hsDispatch({type:'hideZeroCounts', hideZeroCounts: !hideZeroCounts})}
+                      />
+                    </Tooltip>
+                  : ''
+              }
             </div>
         )
         // headerContentProps: { onClick: editCodesetFunc, codeset_id: cset_col.codeset_id, },
