@@ -42,7 +42,7 @@ class DataGetter {
 		return this.api_call_group_id;
 	}
 	async axiosCall(path, { backend = true, data, returnDataOnly = true, useGetForSmallData = true,
-		verbose = false, sendAlert = true, title, makeQueryString, dataLengthFunc,
+		verbose = false, sendAlert = true, title, makeQueryString, dataLengthFunc, skipApiGroup,
 	} = {}) {
 		let url = backend ? backend_url(path) : path;
 		let request = { url };
@@ -54,8 +54,9 @@ class DataGetter {
 		};
 		alertAction.id = alertAction.title + ':' + (new Date()).toISOString();
 		let qsData = {};
-		let qs = '?';
-		if (path !== 'next-api-call-group-id' && this.api_call_group_id ) {
+		let qs = path.match(/\?/) ? '' : '?';
+		if (path !== 'next-api-call-group-id' && this.api_call_group_id &&
+				!skipApiGroup) {
 			qs = qs + 'api_call_group_id=' + this.api_call_group_id + '&';
 		}
 		try {

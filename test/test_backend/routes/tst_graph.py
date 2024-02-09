@@ -230,7 +230,7 @@ class TstGraph:
             missing_in_betweens: Set[int]
             hidden_by_voc: Dict[str, Set[int]]
             nonstandard_concepts_hidden: Set[int]
-            sg, missing_in_betweens, hidden_by_voc, nonstandard_concepts_hidden = await concept_graph(
+            sg, concept_ids, missing_in_betweens, hidden_by_voc, nonstandard_concepts_hidden = await concept_graph(
                 codeset_ids, hide_vocabs=hide_vocabs, hide_nonstandard_concepts=True, verbose=False)
                 # self.assertEqual(...)
             if test_name == 'single-small':  # TODO

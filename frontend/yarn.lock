@@ -1721,6 +1721,16 @@ graphology-layout@^0.6.1:
     graphology-utils "^2.3.0"
     pandemonium "^2.4.0"
 
+graphology-shortest-path@^2.0.2:
+  version "2.0.2"
+  resolved "https://registry.yarnpkg.com/graphology-shortest-path/-/graphology-shortest-path-2.0.2.tgz#01385d2c0452ead890da2203b30d00177397678e"
+  integrity sha512-hlGvh4Yb1Vmd2J7wT8Q8+t4RQ6Tx+9wRYm0/fZB9PZJ4uW3nml5kJ7yXZ2+JYWT+7wLLmY5mg3o9bLSAWmv/jQ==
+  dependencies:
+    "@yomguithereal/helpers" "^1.1.1"
+    graphology-indices "^0.17.0"
+    graphology-utils "^2.4.3"
+    mnemonist "^0.39.0"
+
 graphology-simple-path@^0.2.0:
   version "0.2.0"
   resolved "https://registry.yarnpkg.com/graphology-simple-path/-/graphology-simple-path-0.2.0.tgz#f98070e3204ab33ac28a2a8263adb357c0406a04"
@@ -1742,7 +1752,7 @@ graphology-utils@^1.8.0:
   resolved "https://registry.yarnpkg.com/graphology-utils/-/graphology-utils-1.8.0.tgz#41315c468656e2a3e028a76468bbc2fbe42b0145"
   integrity sha512-Pa7SW30OMm8fVtyH49b3GJ/uxlMHGfXly50wIhlcc7ZoX9ahZa7sPBz+obo4WZClrRV6wh3tIu0GJoI42eao1A==
 
-graphology-utils@^2.0.0, graphology-utils@^2.3.0, graphology-utils@^2.4.2, graphology-utils@^2.5.0:
+graphology-utils@^2.0.0, graphology-utils@^2.3.0, graphology-utils@^2.4.2, graphology-utils@^2.4.3, graphology-utils@^2.5.0:
   version "2.5.2"
   resolved "https://registry.yarnpkg.com/graphology-utils/-/graphology-utils-2.5.2.tgz#4d30d6e567d27c01f105e1494af816742e8d2440"
   integrity sha512-ckHg8MXrXJkOARk56ZaSCM1g1Wihe2d6iTmz1enGOz4W/l831MBCKSayeFQfowgF8wd+PQ4rlch/56Vs/VZLDQ==

@@ -579,6 +579,21 @@ def n3c_comparison_rpt():
     return rpt
 
 
+@router.get("/single-n3c-comparison-rpt")
+def single_n3c_comparison_rpt(pair: str):
+    """
+    display comparison data compiled in generate_n3c_comparison_rpt()
+        and get_comparison_rpt()
+    """
+    orig_codeset_id, new_codeset_id = pair.split('-')
+    with get_db_connection() as con:
+        rpt = sql_query_single_col(
+            con,
+            "SELECT rpt FROM public.codeset_comparison WHERE orig_codeset_id || '-' || new_codeset_id = :pair",
+            {"pair": pair})
+
+    return rpt[0] if rpt else None
+
 @cache
 def get_comparison_rpt(con, codeset_id_1: int, codeset_id_2: int) -> Dict[str, Union[str, None]]:
     cset_1 = get_csets([codeset_id_1])[0]

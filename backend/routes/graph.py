@@ -66,7 +66,7 @@ async def concept_graph_post(
         hidden_by_voc: Dict[str, Set[int]]
         nonstandard_concepts_hidden: Set[int]
 
-        sg, missing_in_betweens, hidden_dict, nonstandard_concepts_hidden = await concept_graph(
+        sg, concept_ids, missing_in_betweens, hidden_dict, nonstandard_concepts_hidden = await concept_graph(
             codeset_ids, cids, hide_vocabs, hide_nonstandard_concepts, verbose)
 
         if indented:
@@ -77,6 +77,7 @@ async def concept_graph_post(
         await rpt.finish(rows=len(sg))
         return {
             'edges': list(sg.edges),
+            'concept_ids': concept_ids,
             'filled_gaps': missing_in_betweens,
             'hidden_by_vocab': hidden_dict,
             'nonstandard_concepts_hidden': nonstandard_concepts_hidden}
@@ -139,7 +140,7 @@ async def concept_graph(
 
     # Return
     verbose and timer('done')
-    return sg, missing_in_betweens_ids, hidden_by_voc, nonstandard_concepts_hidden
+    return sg, concept_ids, missing_in_betweens_ids, hidden_by_voc, nonstandard_concepts_hidden
 
 
 

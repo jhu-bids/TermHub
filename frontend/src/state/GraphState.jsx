@@ -1,7 +1,7 @@
 import React, {createContext, useContext, useReducer, useState} from "react";
-import {once, flatten, fromPairs, get, pick, isEqual, isEmpty, intersection} from "lodash";
+import {sortBy, once, flatten, fromPairs, get, pick, isEqual, isEmpty, intersection} from "lodash";
 import Graph from "graphology";
-
+import {bidirectional} from 'graphology-shortest-path/unweighted';
 
 const graphReducer = (gc, action) => {
   if (!(action && action.type)) return gc;
@@ -43,24 +43,65 @@ class GraphContainer {
     this.nodes = {...this.nodes, [nodeId]: {...node, expanded:!node.expanded}};
   }
 
-  addNodeToVisible(nodeId, displayedRows, depth = 0) {
-    const node = this.nodes[nodeId];
-    displayedRows.push({...node, depth});
+  addNodeToVisible(nodeId, displayedRows, alwaysShow, depth = 0) {
+    const node = {...this.nodes[nodeId], depth};
+    displayedRows.push(node);
+    const neighborIds = this.graph.outNeighbors(nodeId); // Get outgoing neighbors (children)
     if (node.expanded) {
-      const neighborIds = this.graph.outNeighbors(nodeId); // Get outgoing neighbors (children)
       neighborIds.forEach(neighborId => {
-        this.addNodeToVisible(neighborId, displayedRows, depth + 1); // Recurse
+        this.addNodeToVisible(neighborId, displayedRows, alwaysShow, depth + 1); // Recurse
       });
+    } else {
+      alwaysShow.all.forEach(alwaysShowId => {
+        if (alwaysShowId != nodeId) {
+          try {
+            let path = bidirectional(this.graph, nodeId, alwaysShowId);
+            if (path) {
+              path.shift();
+              const id = path.pop();
+              console.assert(id == alwaysShowId);
+              const nd = {...this.nodes[id], depth: depth + 1, path};
+
+              displayedRows.push(nd);
+              alwaysShow.all.delete(id);
+              if (nd.expanded) {
+                const neighborIds = this.graph.outNeighbors(id); // Get outgoing neighbors (children)
+                sortBy(neighborIds, this.sortFunc).forEach(neighborId => {
+                  this.addNodeToVisible(neighborId, displayedRows, alwaysShow, depth + 2); // Recurse
+                });
+              }
+              /*
+              path.forEach((id, i) => {
+                displayedRows.push({...this.nodes[id], depth: depth + 1 + i});
+                alwaysShow.delete(id);
+              });
+              */
+            }
+          } catch (e) {
+            console.log(e);
+          }
+        } else {
+          alwaysShow.all.delete(alwaysShowId);
+        }
+      })
     }
     // return displayedRows;
   }
 
+  sortFunc = (d => {
+    let n = this.nodes[d];
+    return - (n.totalCountSum || n.descendantCount || n.levelsBelow || n.status ? 1 : 0);
+  })
+
   getVisibleRows(props) {
+    let { alwaysShow = [] } = props;
+    alwaysShow.all = new Set(flatten(['expressionItems','added','removed'].map(d => alwaysShow[d])))
+
     // const {/*collapsedDescendantPaths, */ collapsePaths, hideZeroCounts, hideRxNormExtension, nested } = hierarchySettings;
     let displayedRows = [];
 
-    for (let nodeId of this.roots) {
-      this.addNodeToVisible(nodeId, displayedRows);
+    for (let nodeId of sortBy(this.roots, this.sortFunc)) {
+      this.addNodeToVisible(nodeId, displayedRows, alwaysShow);
     }
 
     return displayedRows;
