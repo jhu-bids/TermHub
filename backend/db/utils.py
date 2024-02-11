@@ -236,15 +236,20 @@ def chunk_list(input_list: List, chunk_size) -> List[List]:
         yield input_list[i:i + chunk_size]
 
 
-def current_datetime(time_zone=['UTC/GMT', 'EST/EDT'][1]) -> str:
-    """Get current datetime in ISO format as a string."""
+def tz_datetime_str(dt: datetime, time_zone=['UTC/GMT', 'EST/EDT'][1]) -> str:
+    """Timezone-formatted datetime string"""
     if time_zone == 'UTC/GMT':
-        stamp = datetime.now(timezone.utc).isoformat()
+        stamp = dt.astimezone(timezone.utc).isoformat()
     elif time_zone == 'EST/EDT':
-        stamp = datetime.now(pytz.timezone('America/New_York')).isoformat()
+        stamp = dt.astimezone(pytz.timezone('America/New_York')).isoformat()
     else:
         raise ValueError(f'Unsupported time zone: {time_zone}')
     return stamp
+
+
+def current_datetime(time_zone=['UTC/GMT', 'EST/EDT'][1]) -> str:
+    """Get current datetime in ISO format as a string."""
+    return tz_datetime_str(datetime.now())
 
 
 def last_refresh_timestamp(con: Connection) -> str:
@@ -291,8 +296,8 @@ def reset_refresh_status(local=False):
         last_start: datetime = dp.parse(check_db_status_var(start_time_key, local))
         last_end: datetime = dp.parse(check_db_status_var(end_time_key, local))
         if last_end < last_start:
-            # arbitrarily add 1 sec so considered exited after start
-            last_end: str = (last_start + timedelta(seconds=1)).astimezone(pytz.timezone('America/New_York')).isoformat()
+            # arbitrarily add 1 microsecond so considered exited after start
+            last_end: str = tz_datetime_str(last_start + timedelta(microseconds=1))
             update_db_status_var(end_time_key, last_end, local)
     update_db_status_var('refresh_status', 'inactive', local)
 
@@ -323,7 +328,7 @@ def is_refresh_active(refresh_type=('standard', 'derived')[0], local=False, thre
         last_start = dp.parse(check_db_status_var(start_time_key, local))
         last_end = dp.parse(check_db_status_var(end_time_key, local))
         # Determine if active
-        considered_active_via_reported_time = last_start > last_end
+        considered_active_via_reported_time = last_start >= last_end
         hours_since_last_refresh: float = (dp.parse(current_datetime()) - last_end).total_seconds() / 60 / 60
         considered_active = considered_active_via_reported_time and hours_since_last_refresh < threshold
         if considered_active:
