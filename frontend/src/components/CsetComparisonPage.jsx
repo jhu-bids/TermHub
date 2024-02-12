@@ -57,7 +57,7 @@ export function CsetComparisonPage() {
     const customStyles = styles(sizes);
     const [data, setData] = useState({});
     const {
-        visibleRows, /* colDefs, */ edges, concepts, conceptLookup, selected_csets, csmi, researchers, currentUserId,
+        visibleRows, /* colDefs, */ concepts, conceptLookup, selected_csets, csmi, researchers, currentUserId,
         alwaysShow, comparison_rpt,
     } = data;
     const {gc, gcDispatch} = useGraphContainer();
@@ -82,14 +82,18 @@ export function CsetComparisonPage() {
             // let concept_ids = union(flatten(Object.values(concept_ids_by_codeset_id)));
 
             const cids = []; // not collecting these extra concept ids yet
-            let {edges, concept_ids, filled_gaps, hidden_by_vocab, nonstandard_concepts_hidden} =
-                await dataGetter.fetchAndCacheItems(dataGetter.apiCalls.concept_graph_new, {codeset_ids, cids: cids});
+            const graphData = await dataGetter.fetchAndCacheItems(
+                     dataGetter.apiCalls.concept_graph_new, {codeset_ids, cids: cids});
+            let {concept_ids} = graphData;
 
             promises.push(dataGetter.fetchAndCacheItems(dataGetter.apiCalls.concepts, concept_ids));
 
             let [csmi, selected_csets, conceptLookup,] = await Promise.all(promises);
 
             selected_csets = codeset_ids.map(d => selected_csets[d]); // to get them in the order asked for
+
+            const researcherIds = getResearcherIdsFromCsets(selected_csets);
+            let researchers = dataGetter.fetchAndCacheItems(dataGetter.apiCalls.researchers, researcherIds);
 
             if (!isEmpty(newCset)) {
                 selected_csets.push(newCset);
@@ -114,8 +118,8 @@ export function CsetComparisonPage() {
 
             comparison_rpt = await comparison_rpt;
             if (comparison_rpt) {
-                alwaysShow.added = comparison_rpt.added.map(String);
-                alwaysShow.removed = comparison_rpt.removed.map(String);
+                // alwaysShow.added = comparison_rpt.added.map(String);
+                // alwaysShow.removed = comparison_rpt.removed.map(String);
             }
 
             if (isEmpty(alwaysShow)) {
@@ -134,10 +138,7 @@ export function CsetComparisonPage() {
 
             const concepts = Object.values(conceptLookup);
 
-            gcDispatch({type: "CREATE", payload: {edges, concepts}});
-
-            const researcherIds = getResearcherIdsFromCsets(selected_csets);
-            let researchers = dataGetter.fetchAndCacheItems(dataGetter.apiCalls.researchers, researcherIds);
+            gcDispatch({type: "CREATE", payload: {...graphData, concepts}});
 
             if (!isEmpty(newCset)) {
                 const cidcnt = concept_ids.length;
@@ -151,7 +152,7 @@ export function CsetComparisonPage() {
             researchers = await researchers;
 
             setData(current => ({
-                ...current, edges, concept_ids, selected_csets, conceptLookup, csmi,
+                ...current, concept_ids, selected_csets, conceptLookup, csmi,
                 concepts, researchers, currentUserId, alwaysShow, comparison_rpt,
             }));
         })();
@@ -441,6 +442,10 @@ function getColDefs(props) {
             name: "Concept name",
             selector: (row) => row.concept_name,
             format: (row) => {
+                let name = row.concept_name;
+                if (row.path) {
+                    name = row.path.map(cid => gc.nodes[cid].concept_name).concat(name).join(" > ");
+                }
                 let content = nested ? (
                     row.hasChildren
                         ? newGetCollapseIconAndName(row, sizes, gcDispatch)
@@ -450,10 +455,10 @@ function getColDefs(props) {
                         // this is just here so it indents the same distance as the collapse icons
                         sx={{fontSize: sizes.collapseIcon, visibility: "hidden"}}
                     />
-                    <span className="concept-name-text">{row.concept_name}</span>
+                    <span className="concept-name-text">{name}</span>
                   </span>)
                 ) : (
-                    <span className="concept-name-text">{row.concept_name}</span>
+                    <span className="concept-name-text">{name}</span>
                 );
                 return content;
             },
@@ -789,7 +794,7 @@ function getColDefs(props) {
         window.innerWidth - 620 - selected_csets.length * 80) - 36;
      */
     coldefs[0].width = // Math.min(totalWidthOfOthers * 1.5,
-        window.innerWidth - totalWidthOfOthers - 36;
+        window.innerWidth - totalWidthOfOthers - 3;
     // coldefs.forEach(d => {delete d.width; d.flexGrow=1;})
     // coldefs[0].grow = 5;
     // delete coldefs[0].width;

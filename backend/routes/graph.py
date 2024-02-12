@@ -68,6 +68,7 @@ async def concept_graph_post(
 
         sg, concept_ids, missing_in_betweens, hidden_dict, nonstandard_concepts_hidden = await concept_graph(
             codeset_ids, cids, hide_vocabs, hide_nonstandard_concepts, verbose)
+        missing_from_graph = set(concept_ids) - set(sg.nodes)
 
         if indented:
             # tree = get_indented_tree_nodes(sg, preferred_concept_ids)  # TODO: just testing below, put this line back
@@ -79,6 +80,7 @@ async def concept_graph_post(
             'edges': list(sg.edges),
             'concept_ids': concept_ids,
             'filled_gaps': missing_in_betweens,
+            'missing_from_graph': missing_from_graph,
             'hidden_by_vocab': hidden_dict,
             'nonstandard_concepts_hidden': nonstandard_concepts_hidden}
     except Exception as e:

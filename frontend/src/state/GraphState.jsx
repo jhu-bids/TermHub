@@ -1,5 +1,5 @@
 import React, {createContext, useContext, useReducer, useState} from "react";
-import {sortBy, once, flatten, fromPairs, get, pick, isEqual, isEmpty, intersection} from "lodash";
+import {sortBy, uniq, flatten, intersection, difference} from "lodash";
 import Graph from "graphology";
 import {bidirectional} from 'graphology-shortest-path/unweighted';
 
@@ -12,7 +12,7 @@ const graphReducer = (gc, action) => {
       gc = new GraphContainer(action.payload);
       break;
     case 'TOGGLE_NODE_EXPANDED':
-      gc = new GraphContainer({self: gc});
+      gc = new GraphContainer(null, gc);
       gc.toggleNodeExpanded(action.payload.nodeId);
       break;
     default:
@@ -21,22 +21,44 @@ const graphReducer = (gc, action) => {
   return gc;
 };
 
-const GraphContext = createContext(null);
+export class GraphContainer {
+  constructor(graphData, cloneThis) {
+    if (cloneThis) {
+      // shallow copy cloneThis's properties to this
+      Object.assign(this, cloneThis);
+      return;
+    }
+    let {concepts, edges, concept_ids, filled_gaps, missing_from_graph,
+      hidden_by_vocab, nonstandard_concepts_hidden} = graphData;
+    Object.assign(this, {concept_ids, filled_gaps, missing_from_graph,
+      hidden_by_vocab, nonstandard_concepts_hidden});
+    let graphConceptIds = uniq(flatten(edges));
+    // this.graphConcepts = concepts.filter(c => graphConceptIds.includes(c.concept_id));
+    this.#makeGraph(edges, concepts);  // sets this.graph and this.nodes
 
-class GraphContainer {
-  constructor(props) {
-    const { edges, concepts, self } = props;
-    if (self) {
-      // cloning to force re-render on change
-      this.graph = self.graph;
-      this.nodes = self.nodes;
-    } else {
-      this.#makeGraph(edges, concepts);  // sets this.graph and this.nodes
-      this.#computeAttributes();
+    this.roots = this.graph.nodes().filter(n => !this.graph.inDegree(n));
+    this.leaves = this.graph.nodes().filter(n => !this.graph.outDegree(n));
+    this.isolatedConcepts = intersection(this.roots, this.leaves);
+
+    let isolatedConceptsParent = {
+      "concept_id": 'isolated',
+      "concept_name": "Concepts in set but not linked to others",
+      "vocabulary_id": "--",
+      "standard_concept": "",
+      "total_cnt": 0,
+      "distinct_person_cnt": "0",
+      "status": ""
+    };
+    this.graph.addNode('isolated');
+    this.nodes['isolated'] = isolatedConceptsParent;
+    for (let c of this.isolatedConcepts) {
+      this.graph.addDirectedEdge('isolated', c);
     }
     this.roots = this.graph.nodes().filter(n => !this.graph.inDegree(n));
     this.leaves = this.graph.nodes().filter(n => !this.graph.outDegree(n));
-    this.orphans = intersection(this.roots, this.leaves);
+
+    this.#computeAttributes();
+    this.concepts = concepts;
   }
   toggleNodeExpanded(nodeId) {
     const node = this.nodes[nodeId];
@@ -52,6 +74,7 @@ class GraphContainer {
         this.addNodeToVisible(neighborId, displayedRows, alwaysShow, depth + 1); // Recurse
       });
     } else {
+      /*
       alwaysShow.all.forEach(alwaysShowId => {
         if (alwaysShowId != nodeId) {
           try {
@@ -75,7 +98,7 @@ class GraphContainer {
                 displayedRows.push({...this.nodes[id], depth: depth + 1 + i});
                 alwaysShow.delete(id);
               });
-              */
+              * /
             }
           } catch (e) {
             console.log(e);
@@ -84,13 +107,16 @@ class GraphContainer {
           alwaysShow.all.delete(alwaysShowId);
         }
       })
+       */
     }
     // return displayedRows;
   }
 
   sortFunc = (d => {
     let n = this.nodes[d];
-    return - (n.totalCountSum || n.descendantCount || n.levelsBelow || n.status ? 1 : 0);
+    let statusRank = n.isItem && 3 + n.added && 2 + n.removed && 1 || 0;
+    // return - (n.totalCountSum || n.descendantCount || n.levelsBelow || n.status ? 1 : 0);
+    return - (n.levelsBelow || n.descendantCount || n.status ? 1 : 0);
   })
 
   getVisibleRows(props) {
@@ -136,12 +162,14 @@ class GraphContainer {
       let totalCountSum = node.total_cnt || 0; // Initialize with the node's own total_cnt
 
       const neighborIds = graph.outNeighbors(node.concept_id); // Get outgoing neighbors (children)
+      let descendants = [neighborIds];
 
       neighborIds.forEach(neighborId => {
-        const {descendantCount: childCount, levelsBelow: childLevels, totalCountSum: childTotalCountSum} = computeAttributesFunc(neighborId);
-        descendantCount += 1 + childCount; // Count child + descendants of child
-        levelsBelow = Math.max(levelsBelow, 1 + childLevels); // Update max depth if this path is deeper
-        totalCountSum += (childTotalCountSum || 0); // Accumulate total_cnt from descendants
+        let child = computeAttributesFunc(neighborId);
+        descendantCount += 1 + child.descendantCount; // Count child + descendants of child
+        levelsBelow = Math.max(levelsBelow, 1 + child.levelsBelow); // Update max depth if this path is deeper
+        totalCountSum += (child.totalCountSum || 0); // Accumulate total_cnt from descendants
+        descendants = descendants.concat(child.descendants);
       });
 
       nodes[nodeId] = node = {...node, descendantCount, levelsBelow, totalCountSum};
@@ -173,6 +201,7 @@ class GraphContainer {
   }
 }
 
+const GraphContext = createContext(null);
 
 export const GraphProvider = ({ children }) => {
   const [gc, gcDispatch] = useReducer(graphReducer, {});
