@@ -9,7 +9,7 @@ import Slider from "@mui/material/Slider";
 import Switch from "@mui/material/Switch";
 import CloseIcon from "@mui/icons-material/Close";
 import Button from "@mui/material/Button";
-import {flatten, fromPairs, intersection, isEmpty, max, throttle, union, uniqBy, sum} from "lodash";
+import {flatten, fromPairs, intersection, isEmpty, max, throttle, union, uniq, uniqBy, sum} from "lodash";
 
 import {dfs, dfsFromNode} from 'graphology-traversal/dfs';
 
@@ -118,8 +118,8 @@ export function CsetComparisonPage() {
 
             comparison_rpt = await comparison_rpt;
             if (comparison_rpt) {
-                // alwaysShow.added = comparison_rpt.added.map(String);
-                // alwaysShow.removed = comparison_rpt.removed.map(String);
+                alwaysShow.added = comparison_rpt.added.map(String);
+                alwaysShow.removed = comparison_rpt.removed.map(String);
             }
 
             if (isEmpty(alwaysShow)) {
@@ -442,9 +442,18 @@ function getColDefs(props) {
             name: "Concept name",
             selector: (row) => row.concept_name,
             format: (row) => {
-                let name = row.concept_name;
-                if (row.path) {
-                    name = row.path.map(cid => gc.nodes[cid].concept_name).concat(name).join(" > ");
+                let name;
+                if (row.path && row.path.length) {
+                    let names = row.path.map(cid => gc.nodes[cid].concept_name);
+                    name = <span>
+                            {names.map((name, index) => (
+                                    <span key={index}>
+                                        <span style={{opacity: .5}}>{name}</span>
+                                        <span> → </span>
+                                    </span>
+                                  ))}
+                            {row.concept_name}
+                           </span>;
                 }
                 let content = nested ? (
                     row.hasChildren
@@ -546,9 +555,9 @@ function getColDefs(props) {
             headerProps: {
                 tooltipContent: "Sum of descendant concept record counts.",
             },
-            selector: (row) => row.totalCountsSum,
+            selector: (row) => row.drc,
             format: (row) => {
-                return fmt(row.totalCountSum)
+                return fmt(row.drc)
             },
             sortable: false,
             right: true,
@@ -939,7 +948,7 @@ function ComparisonDataTable(props) {
             when: () => true,
             style: (row) => ({
                 backgroundColor: row.removed && "#F662" ||
-                                 row.added && "#00FF0008" ||
+                                 row.added && "#00FF0016" ||
                                  row.isItem && "#33F2" || "#FFF",
                 // backgroundColor: row.concept_id in definitions ? "#F662" : "#FFF",
             }),

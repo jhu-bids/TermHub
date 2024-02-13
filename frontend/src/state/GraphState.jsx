@@ -1,5 +1,5 @@
 import React, {createContext, useContext, useReducer, useState} from "react";
-import {sortBy, uniq, flatten, intersection, difference} from "lodash";
+import {sum, sortBy, uniq, flatten, intersection, difference} from "lodash";
 import Graph from "graphology";
 import {bidirectional} from 'graphology-shortest-path/unweighted';
 
@@ -74,7 +74,6 @@ export class GraphContainer {
         this.addNodeToVisible(neighborId, displayedRows, alwaysShow, depth + 1); // Recurse
       });
     } else {
-      /*
       alwaysShow.all.forEach(alwaysShowId => {
         if (alwaysShowId != nodeId) {
           try {
@@ -98,7 +97,7 @@ export class GraphContainer {
                 displayedRows.push({...this.nodes[id], depth: depth + 1 + i});
                 alwaysShow.delete(id);
               });
-              * /
+              */
             }
           } catch (e) {
             console.log(e);
@@ -107,7 +106,6 @@ export class GraphContainer {
           alwaysShow.all.delete(alwaysShowId);
         }
       })
-       */
     }
     // return displayedRows;
   }
@@ -115,7 +113,7 @@ export class GraphContainer {
   sortFunc = (d => {
     let n = this.nodes[d];
     let statusRank = n.isItem && 3 + n.added && 2 + n.removed && 1 || 0;
-    // return - (n.totalCountSum || n.descendantCount || n.levelsBelow || n.status ? 1 : 0);
+    // return - (n.drc || n.descendantCount || n.levelsBelow || n.status ? 1 : 0);
     return - (n.levelsBelow || n.descendantCount || n.status ? 1 : 0);
   })
 
@@ -157,22 +155,24 @@ export class GraphContainer {
         return node;
       }
 
-      let descendantCount = 0;
       let levelsBelow = 0;
-      let totalCountSum = node.total_cnt || 0; // Initialize with the node's own total_cnt
+
 
       const neighborIds = graph.outNeighbors(node.concept_id); // Get outgoing neighbors (children)
-      let descendants = [neighborIds];
+      let descendants = neighborIds;
 
       neighborIds.forEach(neighborId => {
         let child = computeAttributesFunc(neighborId);
-        descendantCount += 1 + child.descendantCount; // Count child + descendants of child
+
         levelsBelow = Math.max(levelsBelow, 1 + child.levelsBelow); // Update max depth if this path is deeper
-        totalCountSum += (child.totalCountSum || 0); // Accumulate total_cnt from descendants
-        descendants = descendants.concat(child.descendants);
+        if (child.descendants) {
+          descendants = descendants.concat(child.descendants);
+        }
       });
 
-      nodes[nodeId] = node = {...node, descendantCount, levelsBelow, totalCountSum};
+      descendants = uniq(descendants); // Remove duplicates
+      const drc = sum(descendants.concat(nodeId).map(d => nodes[d].total_cnt || 0)); // Compute descendant counts
+      nodes[nodeId] = node = {...node, descendantCount: descendants.length, levelsBelow, drc};
       if (levelsBelow > 0) {
         node.hasChildren = true;
         node.expanded = false;
