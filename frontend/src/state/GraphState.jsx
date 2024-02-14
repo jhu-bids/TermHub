@@ -1,5 +1,5 @@
 import React, {createContext, useContext, useReducer, useState} from "react";
-import {sum, sortBy, uniq, flatten, intersection, difference} from "lodash";
+import {get, once, sum, sortBy, uniq, flatten, intersection, difference, differenceWith, isEmpty} from "lodash";
 import Graph from "graphology";
 import {bidirectional} from 'graphology-shortest-path/unweighted';
 
@@ -12,8 +12,14 @@ const graphReducer = (gc, action) => {
       gc = new GraphContainer(action.payload);
       break;
     case 'TOGGLE_NODE_EXPANDED':
-      gc = new GraphContainer(null, gc);
       gc.toggleNodeExpanded(action.payload.nodeId);
+      gc = new GraphContainer(null, gc);
+      break;
+    case 'TOGGLE_OPTION':
+      const type = action.payload.type;
+      gc.options.specialConceptsHidden[type] = ! gc.options.specialConceptsHidden[type];
+      gc.statsOptionsRows[type].isHidden = gc.options.specialConceptsHidden[type];
+      gc = new GraphContainer(null, gc);
       break;
     default:
       throw new Error(`unexpected action.type ${action.type}`);
@@ -26,9 +32,10 @@ export class GraphContainer {
     if (cloneThis) {
       // shallow copy cloneThis's properties to this
       Object.assign(this, cloneThis);
+      this.getVisibleRows();
       return;
     }
-    let {concepts, edges, concept_ids, filled_gaps, missing_from_graph,
+    let {concepts, specialConcepts, edges, concept_ids, filled_gaps, missing_from_graph,
       hidden_by_vocab, nonstandard_concepts_hidden} = graphData;
     Object.assign(this, {concept_ids, filled_gaps, missing_from_graph,
       hidden_by_vocab, nonstandard_concepts_hidden});
@@ -38,10 +45,10 @@ export class GraphContainer {
 
     this.roots = this.graph.nodes().filter(n => !this.graph.inDegree(n));
     this.leaves = this.graph.nodes().filter(n => !this.graph.outDegree(n));
-    this.isolatedConcepts = intersection(this.roots, this.leaves);
+    this.unlinkedConcepts = intersection(this.roots, this.leaves);
 
-    let isolatedConceptsParent = {
-      "concept_id": 'isolated',
+    let unlinkedConceptsParent = {
+      "concept_id": 'unlinked',
       "concept_name": "Concepts in set but not linked to others",
       "vocabulary_id": "--",
       "standard_concept": "",
@@ -49,20 +56,101 @@ export class GraphContainer {
       "distinct_person_cnt": "0",
       "status": ""
     };
-    this.graph.addNode('isolated');
-    this.nodes['isolated'] = isolatedConceptsParent;
-    for (let c of this.isolatedConcepts) {
-      this.graph.addDirectedEdge('isolated', c);
+    this.graph.addNode('unlinked');
+    this.nodes['unlinked'] = unlinkedConceptsParent;
+    for (let c of this.unlinkedConcepts) {
+      this.graph.addDirectedEdge('unlinked', c);
     }
     this.roots = this.graph.nodes().filter(n => !this.graph.inDegree(n));
     this.leaves = this.graph.nodes().filter(n => !this.graph.outDegree(n));
 
     this.#computeAttributes();
     this.concepts = concepts;
+    this.specialConcepts = specialConcepts;
+
+    this.options = {
+      specialConceptsHidden: {},
+    };
+    this.specialConceptTypeCnt = 0;
+    for (let type in this.specialConcepts) {
+      this.options.specialConceptsHidden[type] = true;
+      this.specialConceptTypeCnt += 1;
+      // should include expressionItems and, optionally, added and removed
+    }
+    this.getVisibleRows();
   }
   toggleNodeExpanded(nodeId) {
     const node = this.nodes[nodeId];
     this.nodes = {...this.nodes, [nodeId]: {...node, expanded:!node.expanded}};
+  }
+  setStatsOptionsRows({concepts, concept_ids, csmi,}) {
+    const visibleCids = this.visibleRows.map(r => r.concept_id);
+    let displayOrder = 0;
+    let rows = {
+      visibleRows: {
+        name: "Visible rows", displayOrder: displayOrder++,
+        value: this.visibleRows.length,
+      },
+      concepts: {
+        name: "Concepts", displayOrder: displayOrder++,
+        value: concept_ids.length,
+        hiddenConceptCnt: cidDiff(concept_ids, visibleCids),
+      },
+      expressionItems: {
+        name: "Definition concepts", displayOrder: displayOrder++,
+        value: this.specialConcepts.expressionItems.length,
+        hiddenConceptCnt: cidDiff(this.specialConcepts.expressionItems, visibleCids),
+        hideByDefault: false,
+      },
+      added: {
+        name: "Added", displayOrder: displayOrder++,
+        value: get(this.specialConcepts, '.added.length', undefined),
+        hiddenConceptCnt: cidDiff(this.specialConcepts.added, visibleCids),
+        hideByDefault: true,
+      },
+      removed: {
+        name: "Removed", displayOrder: displayOrder++,
+        value: get(this.specialConcepts, '.removed.length', undefined),
+        hiddenConceptCnt: cidDiff(this.specialConcepts.removed, visibleCids),
+        hideByDefault: true,
+      },
+      expansion: {
+        name: "Expansion concepts", displayOrder: displayOrder++,
+        value: uniq(flatten(Object.values(csmi).map(Object.values))
+                .filter(c => c.csm).map(c => c.concept_id)).length,
+        hiddenConceptCnt: cidDiff(concept_ids, visibleCids),
+      },
+      standard: {
+        name: "Standard concepts", displayOrder: displayOrder++,
+        value: concepts.filter(c => c.standard_concept === 'S').length,
+      },
+      classification: {
+        name: "Classification concepts", displayOrder: displayOrder++,
+        value: concepts.filter(c => c.standard_concept === 'C').length,
+      },
+      nonStandard: {
+        name: "Non-standard", displayOrder: displayOrder++,
+        value: this.specialConcepts.nonStandard.length,
+        hiddenConceptCnt: cidDiff(this.specialConcepts.nonStandard, visibleCids),
+        hideByDefault: false,
+      },
+    }
+    for (let type in rows) {
+      let row = {...get(this, ['statsOptionsRows', type], {}), ...rows[type]};
+      if (typeof(row.value) === 'undefined') {
+        delete rows[type];
+        continue;
+      }
+      row.type = type;
+      if (isEmpty(this.statsOptionsRows) && typeof(row.hideByDefault) !== 'undefined') {
+        row.isHidden = row.hideByDefault;
+      }
+      rows[type] = row;
+    }
+    this.statsOptionsRows = rows;
+  };
+  getStatsOptionsRows() {
+    return sortBy(this.statsOptionsRows, d => d.displayOrder);
   }
 
   addNodeToVisible(nodeId, displayedRows, alwaysShow, depth = 0) {
@@ -74,7 +162,7 @@ export class GraphContainer {
         this.addNodeToVisible(neighborId, displayedRows, alwaysShow, depth + 1); // Recurse
       });
     } else {
-      alwaysShow.all.forEach(alwaysShowId => {
+      alwaysShow.forEach(alwaysShowId => {
         if (alwaysShowId != nodeId) {
           try {
             let path = bidirectional(this.graph, nodeId, alwaysShowId);
@@ -85,7 +173,7 @@ export class GraphContainer {
               const nd = {...this.nodes[id], depth: depth + 1, path};
 
               displayedRows.push(nd);
-              alwaysShow.all.delete(id);
+              alwaysShow.delete(id);
               if (nd.expanded) {
                 const neighborIds = this.graph.outNeighbors(id); // Get outgoing neighbors (children)
                 sortBy(neighborIds, this.sortFunc).forEach(neighborId => {
@@ -103,7 +191,7 @@ export class GraphContainer {
             console.log(e);
           }
         } else {
-          alwaysShow.all.delete(alwaysShowId);
+          alwaysShow.delete(alwaysShowId);
         }
       })
     }
@@ -118,8 +206,16 @@ export class GraphContainer {
   })
 
   getVisibleRows(props) {
-    let { alwaysShow = [] } = props;
-    alwaysShow.all = new Set(flatten(['expressionItems','added','removed'].map(d => alwaysShow[d])))
+    // TODO: need to treat things to hide differently from things to always show.
+    // let { specialConcepts = [] } = props;
+    let alwaysShow = new Set();
+    for (let type in this.options.specialConceptsHidden) {
+      if (! this.options.specialConceptsHidden[type]) {
+        for (let id of this.specialConcepts[type] || []) {
+          alwaysShow.add(id);
+        }
+      }
+    }
 
     // const {/*collapsedDescendantPaths, */ collapsePaths, hideZeroCounts, hideRxNormExtension, nested } = hierarchySettings;
     let displayedRows = [];
@@ -128,7 +224,7 @@ export class GraphContainer {
       this.addNodeToVisible(nodeId, displayedRows, alwaysShow);
     }
 
-    return displayedRows;
+    return this.visibleRows = displayedRows;
   }
   #makeGraph(edges, concepts) {
     const graph = new Graph({allowSelfLoops: false, multi: false, type: 'directed'});
@@ -220,6 +316,9 @@ export const useGraphContainer = () => {
   }
   return context;
 };
+function cidDiff(a, b) {
+  return differenceWith(a, b, (a, b) => a == b).length;
+}
 /* use like:
   const { {graph, nodes}, gcDispatch } = useGraphContainer();
   const toggleNodeAttribute = (nodeId) => {

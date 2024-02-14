@@ -9,7 +9,7 @@ import Slider from "@mui/material/Slider";
 import Switch from "@mui/material/Switch";
 import CloseIcon from "@mui/icons-material/Close";
 import Button from "@mui/material/Button";
-import {flatten, fromPairs, intersection, isEmpty, max, throttle, union, uniq, uniqBy, sum} from "lodash";
+import {flatten, fromPairs, intersection, union, differenceWith, isEmpty, max, throttle, uniq, uniqBy, sum} from "lodash";
 
 import {dfs, dfsFromNode} from 'graphology-traversal/dfs';
 
@@ -57,8 +57,8 @@ export function CsetComparisonPage() {
     const customStyles = styles(sizes);
     const [data, setData] = useState({});
     const {
-        visibleRows, /* colDefs, */ concepts, conceptLookup, selected_csets, csmi, researchers, currentUserId,
-        alwaysShow, comparison_rpt,
+        /* visibleRows, colDefs, */ concepts, concept_ids, conceptLookup, selected_csets, csmi, researchers, currentUserId,
+        specialConcepts, comparison_rpt,
     } = data;
     const {gc, gcDispatch} = useGraphContainer();
 
@@ -114,23 +114,22 @@ export function CsetComparisonPage() {
             const expressionItems = flatten(Object.values(csmi)
                 .map(d => Object.values(d))).filter(d => d.item).map(d => d.concept_id);
 
-            let alwaysShow = { expressionItems: expressionItems.map(String), };
+            let specialConcepts = {
+                expressionItems: expressionItems.map(String),
+                nonStandard: Object.values(conceptLookup).filter(c => !c.standard_concept).map(c => c.concept_id),
+            };
 
             comparison_rpt = await comparison_rpt;
             if (comparison_rpt) {
-                alwaysShow.added = comparison_rpt.added.map(String);
-                alwaysShow.removed = comparison_rpt.removed.map(String);
-            }
-
-            if (isEmpty(alwaysShow)) {
-                alwaysShow = null;
+                specialConcepts.added = comparison_rpt.added.map(String);
+                specialConcepts.removed = comparison_rpt.removed.map(String);
             }
 
             for (let cid in conceptLookup) {
                 let c = {...conceptLookup[cid]}; // don't want to mutate the cached concepts
-                if (alwaysShow.expressionItems.includes(cid+'')) c.isItem = true;
-                if ((alwaysShow.added||[]).includes(cid+'')) c.added = true;
-                if ((alwaysShow.removed||[]).includes(cid+'')) c.removed = true;
+                if (specialConcepts.expressionItems.includes(cid+'')) c.isItem = true;
+                if ((specialConcepts.added||[]).includes(cid+'')) c.added = true;
+                if ((specialConcepts.removed||[]).includes(cid+'')) c.removed = true;
                 c.status = [c.isItem && 'Def', c.added && 'Added', c.removed && 'Removed']
                     .filter(d => d).join(', ');
                 conceptLookup[cid] = c;
@@ -138,7 +137,7 @@ export function CsetComparisonPage() {
 
             const concepts = Object.values(conceptLookup);
 
-            gcDispatch({type: "CREATE", payload: {...graphData, concepts}});
+            gcDispatch({type: "CREATE", payload: {...graphData, concepts, specialConcepts}});
 
             if (!isEmpty(newCset)) {
                 const cidcnt = concept_ids.length;
@@ -153,7 +152,7 @@ export function CsetComparisonPage() {
 
             setData(current => ({
                 ...current, concept_ids, selected_csets, conceptLookup, csmi,
-                concepts, researchers, currentUserId, alwaysShow, comparison_rpt,
+                concepts, researchers, currentUserId, specialConcepts, comparison_rpt,
             }));
         })();
     }, [newCset]);
@@ -178,12 +177,13 @@ export function CsetComparisonPage() {
     ]);
 
     useEffect(() => {
-        if (isEmpty(gc) || !alwaysShow) {
+        if (isEmpty(gc) || !specialConcepts) {
             return;
         }
-        setData(current => ({...current, visibleRows: gc.getVisibleRows({alwaysShow})/*, colDefs*/}));
-    }, [gc, alwaysShow]);
-    if (isEmpty(visibleRows) || isEmpty(selected_csets)) {
+        gc.setStatsOptionsRows({concepts, concept_ids, specialConcepts, csmi, });
+        setData(current => ({...current, /*visibleRows, colDefs*/}));
+    }, [gc, specialConcepts]);
+    if (isEmpty(gc.visibleRows) || isEmpty(selected_csets)) {
         // sometimes selected_csets and some other data disappears when the page is reloaded
         return <p>Downloading...</p>;
     }
@@ -219,7 +219,7 @@ export function CsetComparisonPage() {
         editAction,
         windowSize,
         // hidden,
-        displayedRows: visibleRows,
+        displayedRows: gc.visibleRows,
         hierarchySettings,
         hsDispatch,
         csmi,
@@ -245,7 +245,20 @@ export function CsetComparisonPage() {
         );
     }
 
+    let statsOptionsRows = gc.getStatsOptionsRows();
+    console.log("statsOptionsRows", statsOptionsRows);
+    const statsOptionsWidth = 525;
+    const statsOptionsHeight = statsOptionsRows.length * 31 + 40;
     let infoPanels = [
+        <FlexibleContainer key="stats-options" title="Stats and options"
+            position={panelPosition} countRef={countRef}
+            style={{minWidth: statsOptionsWidth + 'px', resize: "both", minHeight: statsOptionsHeight + 'px'}}
+        >
+            <StatsAndOptions {...{gc, gcDispatch, statsOptionsRows,
+                                    // concepts, concept_ids, visibleRows, specialConcepts, csmi,
+                                    statsOptionsWidth, customStyles}} />
+        </FlexibleContainer>,
+
         /*
         <Button key="distinct"
                 disabled={!nested}
@@ -280,7 +293,7 @@ export function CsetComparisonPage() {
         */
         <Button key="download-distinct-csv"
                 variant="outlined"
-                onClick={() => downloadCSV({codeset_ids, visibleRows, selected_csets, csmi})}
+                onClick={() => downloadCSV({codeset_ids, displayedRows: gc.visibleRows, selected_csets, csmi})}
                 sx={{
                     cursor: 'pointer',
                     marginRight: '4px',
@@ -358,7 +371,7 @@ export function CsetComparisonPage() {
         );
     }
 
-    const tableProps = {rowData: visibleRows, columns: colDefs, selected_csets, customStyles};
+    const tableProps = {rowData: gc.visibleRows, columns: colDefs, selected_csets, customStyles};
     return (
         <div>
             <span data-testid="comp-page-loading"></span>
@@ -380,6 +393,102 @@ export function CsetComparisonPage() {
     );
 }
 
+function StatsAndOptions(props) {
+    const {gc, gcDispatch, statsOptionsRows, statsOptionsWidth, customStyles} = props;
+    const infoPanelRef = useRef();
+    let coldefs = [
+         {
+            name: "name",
+            selector: (row) => row.name,
+            style: {paddingLeft: 4},
+        },
+        {
+            name: "value",
+            selector: (row) => row.value,
+            format: (row) => fmt(row.value),
+            width: 80,
+            style: {justifyContent: "right", paddingRight: 4},
+        },
+        {
+            name: "hidden-rows",
+            // headerProps: { tooltipContent: "Levels of descendants below.", },
+            selector: (row) => row.value,
+            format: (row) => isNaN(row.hiddenConceptCnt) ? '' : fmt(row.hiddenConceptCnt || '') + ' hidden',
+            // sortable: false,
+            // right: true,
+            width: 120,
+            style: {justifyContent: "right", paddingRight: 4},
+        },
+        {
+            name: "isHidden",
+            selector: (row) => row.isHidden,
+            format: (row) => {
+                if (typeof row.hideByDefault === 'undefined') {
+                    return '';
+                }
+                let onClick;
+                onClick = () => {
+                    gcDispatch({type: 'TOGGLE_OPTION', payload: row});
+                };
+                let text;
+                if (row.hiddenConceptCnt) {
+                    text = 'show';
+                } else {
+                    text = 'hide';
+                }
+                /*
+                if (row.isHidden === true) {
+                    text = 'show';
+                } else if (row.isHidden === false) {
+                    text = 'hide';
+                } else {
+                    return '';
+                }
+                */
+
+                return <Button key="stats"
+                               onClick={onClick}
+                               sx={{
+                                   marginRight: '4px',
+                                   display: "flex",
+                                   flexDirection: "row",
+                               }}
+                >
+                    {text}
+                </Button>
+            },
+            width: 80,
+            style: {justifyContent: "center", },
+        },
+    ]
+    const totalWidthOfOthers = sum(coldefs.map(d => d.width));
+    coldefs[0].width = statsOptionsWidth - totalWidthOfOthers - 15;
+    for (let def of coldefs) {
+        def.width = def.width + 'px';
+    }
+
+    return (
+        <DataTable
+            className="stats-and-options"
+            customStyles={customStyles}
+            // conditionalRowStyles={conditionalRowStyles}
+            // className="comparison-data-table"
+            // theme="custom-theme" // theme="light"
+            columns={coldefs}
+            data={statsOptionsRows}
+            dense
+            /*
+             */
+            // highlightOnHover
+            // responsive
+            // subHeaderAlign="right"
+            // subHeaderWrap
+            //striped //pagination //selectableRowsComponent={Checkbox}
+            //selectableRowsComponentProps={selectProps} //sortIcon={sortIcon}
+            // expandOnRowClicked // expandableRows // {...props}
+        />
+    );
+}
 function precisionRecall(props) {
 
 }
@@ -442,7 +551,7 @@ function getColDefs(props) {
             name: "Concept name",
             selector: (row) => row.concept_name,
             format: (row) => {
-                let name;
+                let name = row.concept_name;
                 if (row.path && row.path.length) {
                     let names = row.path.map(cid => gc.nodes[cid].concept_name);
                     name = <span>
@@ -730,13 +839,15 @@ function getColDefs(props) {
                 //tooltipContent: "Click to create and edit new draft of this concept set",
                 tooltipContent: `${cset_col.codeset_id} ${cset_col.concept_set_version_title}.
                             ${nested ? 'Click for details' : 'Click to sort.'}`,
-                //style: { cursor: 'pointer', },
 
                 // headerContent: cset_col.concept_set_name,
                 headerContent: (
-                    <span onClick={() => setShowCsetCodesetId(cset_col.codeset_id)}>
-              {cset_col.concept_set_name}
-            </span>
+                    <span onClick={() => setShowCsetCodesetId(cset_col.codeset_id)}
+                          // not working for ellipsis; TODO: fix this later
+                          style={{ cursor: 'pointer', overflow: 'hidden', textOverflow: 'ellipsis' }}
+                    >
+                      {cset_col.concept_set_name}
+                    </span>
                 ),
                 headerContentProps: {
                     codeset_id: cset_col.codeset_id,
