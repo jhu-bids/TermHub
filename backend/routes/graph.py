@@ -91,7 +91,7 @@ async def concept_graph_post(
 async def concept_graph(
     codeset_ids: List[int], cids: Union[List[int], None] = [], hide_vocabs = ['RxNorm Extension'],
     hide_nonstandard_concepts=False, verbose = VERBOSE
-) -> Tuple[DiGraph, Set[int], Dict[str, Set[int]], Set[int]]:
+ ) -> Tuple[DiGraph, Set[int], Set[int], Dict[str, Set[int]], Set[int]]:
     """Return concept graph
 
     :param cids: Not used right now. This is for when we allow user to add concepts from other concept sets
