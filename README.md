@@ -1,4 +1,7 @@
 # TermHub
+[![Test - Frontend deployments - End to end](https://github.com/jhu-bids/TermHub/actions/workflows/test_frontend_e2e_live.yml/badge.svg)](https://github.com/jhu-bids/TermHub/actions/workflows/test_frontend_e2e_live.yml)
+[![Test - Backend - E2E and unit tests and QC](https://github.com/jhu-bids/TermHub/actions/workflows/test_backend_e2e_and_unit_and_qc.yml/badge.svg)](https://github.com/jhu-bids/TermHub/actions/workflows/test_backend_e2e_and_unit_and_qc.yml)
+[![Test - Frontend - Unit tests and QC](https://github.com/jhu-bids/TermHub/actions/workflows/test_frontend_unit_and_qc.yml/badge.svg)](https://github.com/jhu-bids/TermHub/actions/workflows/test_frontend_unit_and_qc.yml)
 
 TermHub is a user interface and collection of analytic tools for working with concept sets. Its goal is to ease the process of concept set authoring and to facilitate the creation of higher-quality concept sets by providing users with immediate information and viasualization capabilities to understand their concept set and take advantage of existing concept sets that can aid their use case.
 
