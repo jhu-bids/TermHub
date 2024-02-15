@@ -4,6 +4,8 @@
   "private": true,
   "dependencies": {
     "@babel/plugin-proposal-private-property-in-object": "^7.21.11",
+    "@babel/preset-env": "^7.23.9",
+    "@babel/preset-react": "^7.23.3",
     "@emotion/react": "^11.11.1",
     "@emotion/styled": "^11.11.0",
     "@faker-js/faker": "^8.2.0",
@@ -14,6 +16,8 @@
     "@mui/material": "^5.14.15",
     "@react-sigma/core": "^3.4.2",
     "@react-sigma/layout-circular": "^3.4.2",
+    "@swc/core": "^1.4.0",
+    "@swc/jest": "^0.2.36",
     "@vitejs/plugin-react": "^4.1.0",
     "ag-grid-community": "^30.2.0",
     "ag-grid-react": "^30.2.0",
@@ -27,6 +31,7 @@
     "graphology-shortest-path": "^2.0.2",
     "graphology-simple-path": "^0.2.0",
     "graphology-traversal": "^0.3.1",
+    "jest-environment-jsdom": "^29.7.0",
     "lz-string": "^1.5.0",
     "match-sorter": "^6.3.1",
     "papaparse": "^5.4.1",
@@ -40,7 +45,7 @@
     "react-router-dom": "^6.17.0",
     "react-use": "^17.4.0",
     "seedrandom": "^3.0.5",
-    "sigma": "^3.0.0-alpha3",
+    "sigma": "^3.0.0-beta.6",
     "styled-components": "^5",
     "supergroup": "^1.1.9",
     "vite": "^4.5.0",
@@ -51,7 +56,9 @@
     "start": "vite",
     "build": "CI= vite build",
     "preview": "vite preview",
-    "test": "react-scripts test --transformIgnorePatterns \"node_modules/(?!your-module-name)/\" --watchAll",
+    "test": "jest; playwright test",
+    "test:unit": "jest",
+    "test:e2e": "playwright test",
     "eject": "react-scripts eject"
   },
   "eslintConfig": {
@@ -73,10 +80,12 @@
     ]
   },
   "devDependencies": {
-    "@playwright/test": "^1.39.0",
+    "@babel/plugin-transform-modules-commonjs": "^7.23.3",
+    "@playwright/test": "^1.41.2",
     "@testing-library/jest-dom": "^6.1.4",
     "@testing-library/react": "^14.0.0",
-    "@testing-library/user-event": "^14.5.1"
+    "@testing-library/user-event": "^14.5.1",
+    "jest": "^29.7.0"
   },
   "engines": {
     "npm": ">=8.9.0",

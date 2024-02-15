@@ -14,8 +14,6 @@ import {selectedConfigs, deploymentConfigs} from "./setup-test-environments";
 
 const { test, expect } = require('@playwright/test');
 
-import {getIndentedTreeNodes} from "../src/components/CsetComparisonPage";
-
 // setUp ---------------------------------------------------------------------------------------------------------------
 /* this doesn't do anything
 test.beforeAll(async () => {
@@ -31,13 +29,6 @@ const configsToRun = 'local'; // only run these tests in local for now
 for (const envName in selectedConfigs) {
   const appUrl = deploymentConfigs[envName];
   console.log('testing ' + appUrl);
-
-  test('getIndentedTreeNodes()', () => {
-    // TODO: get 'graph' from backend call or declare it here
-    const graph = ''
-    const results = getIndentedTreeNodes(graph)  // pass graph
-    expect(results).toBe(true);  // TODO: make an assertion
-  })
 
   test(envName + ': ' + 'Main page - has title & heading', async ({ page }) => {
     await page.goto(appUrl);

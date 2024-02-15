@@ -25,10 +25,8 @@ module.exports = defineConfig({
   reporter: './tests/test-reporter.js',
   /* Shared settings for all the projects below. See https://playwright.dev/docs/api/class-testoptions. */
   use: {
-
     // timeout: 10000,
-
-
+    
     /* Base URL to use in actions like `await page.goto('/')`. */
     // baseURL: 'http://127.0.0.1:3000',
 
@@ -72,15 +70,16 @@ module.exports = defineConfig({
     //   use: { ...devices['Desktop Chrome'], channel: 'chrome' },
     // },
   ],
-
+  
+  // TODO: This is only for local testing which is not working yet
   /* Run your local dev server before starting the tests */
-  webServer: [
-    {
-      command: 'yarn start',
-      url: 'http://127.0.0.1:3000',
-      reuseExistingServer: !process.env.CI,
-      stdout: 'ignore',
-      stderr: 'pipe',
-    },
-  ]
+  // webServer: [
+  //   {
+  //     command: 'yarn start',
+  //     url: 'http://127.0.0.1:3000',
+  //     reuseExistingServer: !process.env.CI,
+  //     stdout: 'ignore',
+  //     stderr: 'pipe',
+  //   },
+  // ]
 });

@@ -51,6 +51,8 @@ node_modules
 /frontend/test-results/
 /frontend/playwright-report/
 /frontend/playwright/.cache/
+/frontend/tests/performance/*
+!/frontend/tests/performance/.keep
 # production
 /build
 # misc

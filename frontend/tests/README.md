@@ -1,4 +1,5 @@
 # Frontend testing documentation
+The `tests/` dir contains end-to-end tests using Playwright. Any tests inside of `src/` are unit tests using Jest. 
 
 ## Performance testing
 - Implements strategies described in [issue #514](/../../issues/514)

@@ -9,7 +9,9 @@ todo: when finished developing these tests, revert to actual test
  - revert file name: tst_ -> test_
  - revert bit at bottom of file
  - revert asserts to self.assert*
-TOD: for big JSON, save without indent
+TODO: for big JSON, save without indent
+todo: Siggie already wrote some code that gets the commit hash, because we show that in TermHub's UI. i can probably
+re-use that here for DRYness.
 """
 import asyncio
 import os
