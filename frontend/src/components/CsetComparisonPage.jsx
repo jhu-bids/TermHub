@@ -246,7 +246,6 @@ export function CsetComparisonPage() {
     }
 
     let statsOptionsRows = gc.getStatsOptionsRows();
-    console.log("statsOptionsRows", statsOptionsRows);
     const statsOptionsWidth = 525;
     const statsOptionsHeight = statsOptionsRows.length * 31 + 40;
     let infoPanels = [
@@ -624,18 +623,17 @@ function getColDefs(props) {
             style: {justifyContent: "right", paddingRight: 4},
         },
         {
-            name: "Concepts",
+            name: "Child / descendant concepts",
             headerProps: {
-                tooltipContent: "Count of descendant concepts.",
+                tooltipContent: "Counts of direct child and descendant concepts.",
             },
             selector: (row) => row.descendantCount,
             format: (row) => {
-                return fmt(row.descendantCount)
+                return fmt(row.descendantCount) + ' / ' + fmt(row.childCount)
             },
             sortable: false,
-            right: true,
             width: 80,
-            style: {justifyContent: "right", paddingRight: 4},
+            style: {justifyContent: "center",},
         },
         {
             name: "Records",

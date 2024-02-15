@@ -171,10 +171,10 @@ export class GraphContainer {
   addNodeToVisible(nodeId, displayedRows, alwaysShow, depth = 0) {
     const node = {...this.nodes[nodeId], depth};
     displayedRows.push(node);
-    const neighborIds = this.graph.outNeighbors(nodeId); // Get outgoing neighbors (children)
+    const childIds = this.graph.outNeighbors(nodeId); // Get outgoing neighbors (children)
     if (node.expanded) {
-      neighborIds.forEach(neighborId => {
-        this.addNodeToVisible(neighborId, displayedRows, alwaysShow, depth + 1); // Recurse
+      childIds.forEach(childId => {
+        this.addNodeToVisible(childId, displayedRows, alwaysShow, depth + 1); // Recurse
       });
     } else {
       alwaysShow.forEach(alwaysShowId => {
@@ -190,9 +190,9 @@ export class GraphContainer {
               displayedRows.push(nd);
               alwaysShow.delete(id);
               if (nd.expanded) {
-                const neighborIds = this.graph.outNeighbors(id); // Get outgoing neighbors (children)
-                sortBy(neighborIds, this.sortFunc).forEach(neighborId => {
-                  this.addNodeToVisible(neighborId, displayedRows, alwaysShow, depth + 2); // Recurse
+                const childIds = this.graph.outNeighbors(id); // Get outgoing neighbors (children)
+                sortBy(childIds, this.sortFunc).forEach(childId => {
+                  this.addNodeToVisible(childId, displayedRows, alwaysShow, depth + 2); // Recurse
                 });
               }
               /*
@@ -250,7 +250,7 @@ export class GraphContainer {
   #computeAttributes() {
     const graph = this.graph;
     let nodes = this.nodes;
-    function computeAttributesFunc(nodeId) {
+    function computeAttributesFunc(nodeId, level) {
       let node = nodes[nodeId];
       // Check if the attributes have already been computed to avoid recomputation
       if (node.descendantCount !== undefined) {
@@ -260,11 +260,11 @@ export class GraphContainer {
       let levelsBelow = 0;
 
 
-      const neighborIds = graph.outNeighbors(node.concept_id); // Get outgoing neighbors (children)
-      let descendants = neighborIds;
+      const childIds = graph.outNeighbors(node.concept_id); // Get outgoing neighbors (children)
+      let descendants = childIds;
 
-      neighborIds.forEach(neighborId => {
-        let child = computeAttributesFunc(neighborId);
+      childIds.forEach(childId => {
+        let child = computeAttributesFunc(childId, level + 1);
 
         levelsBelow = Math.max(levelsBelow, 1 + child.levelsBelow); // Update max depth if this path is deeper
         if (child.descendants) {
@@ -272,12 +272,23 @@ export class GraphContainer {
         }
       });
 
-      descendants = uniq(descendants); // Remove duplicates
-      const drc = sum(descendants.concat(nodeId).map(d => nodes[d].total_cnt || 0)); // Compute descendant counts
-      nodes[nodeId] = node = {...node, descendantCount: descendants.length, levelsBelow, drc};
+      // nodes[nodeId] = node = {...node, descendantCount: descendants.length, levelsBelow, drc};
+      nodes[nodeId] = node = {...node};
+      // node.level = level; not sure why level isn't always correct;
+      //  to see problem, try `gc.visibleRows.filter(d => d.depth != d.level)` from comparison renderer
+      node.levelsBelow = levelsBelow;
+      node.descendantCount = 0;
+      node.childCount = 0;
+      node.drc = node.total_cnt || 0;
+
       if (levelsBelow > 0) {
+        node.expanded = false;  // TODO: deal with expanded differently for shown and hidden
         node.hasChildren = true;
-        node.expanded = false;
+        node.descendants = uniq(descendants); // Remove duplicates
+        node.descendantCount = node.descendants.length;
+        node.drc += sum(node.descendants.concat(nodeId).map(d => nodes[d].total_cnt || 0)); // Compute descendant counts
+        node.children = childIds;
+        node.childCount = childIds.length;
       }
 
       return node;
@@ -285,7 +296,7 @@ export class GraphContainer {
 
     // Iterate over all nodes to compute and store attributes
     this.graph.nodes().forEach(node => {
-      computeAttributesFunc(node, this.graph, this.nodes);
+      computeAttributesFunc(node, 0);
     });
     return nodes;
   }
