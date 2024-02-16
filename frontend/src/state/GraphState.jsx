@@ -1,5 +1,6 @@
 import React, {createContext, useContext, useReducer, useState} from "react";
-import {get, once, sum, sortBy, uniq, flatten, intersection, difference, differenceWith, isEmpty} from "lodash";
+import {get, once, sum, sortBy, uniq, flatten, intersection,
+        difference, differenceWith, unionWith, intersectionWith, isEmpty} from "lodash";
 import Graph from "graphology";
 import {bidirectional} from 'graphology-shortest-path/unweighted';
 
@@ -33,7 +34,7 @@ const graphReducer = (gc, action) => {
     case 'TOGGLE_OPTION':
       const type = action.payload.type;
       gc.options.specialConceptsHidden[type] = ! gc.options.specialConceptsHidden[type];
-      gc.statsOptionsRows[type].isHidden = gc.options.specialConceptsHidden[type];
+      gc.statsOptions[type].isHidden = gc.options.specialConceptsHidden[type];
       gc = new GraphContainer(null, gc);
       break;
     default:
@@ -50,7 +51,7 @@ export class GraphContainer {
       this.getVisibleRows();
       return;
     }
-    let {concepts, specialConcepts, edges, concept_ids, filled_gaps, missing_from_graph,
+    let {concepts, specialConcepts, csmi, edges, concept_ids, filled_gaps, missing_from_graph,
       hidden_by_vocab, nonstandard_concepts_hidden} = graphData;
     Object.assign(this, {concept_ids, filled_gaps, missing_from_graph,
       hidden_by_vocab, nonstandard_concepts_hidden});
@@ -92,48 +93,53 @@ export class GraphContainer {
       this.specialConceptTypeCnt += 1;
       // should include expressionItems and, optionally, added and removed
     }
+    this.setStatsOptions({concepts, concept_ids, specialConcepts, csmi, });
     this.getVisibleRows();
   }
   toggleNodeExpanded(nodeId) {
     const node = this.nodes[nodeId];
     this.nodes = {...this.nodes, [nodeId]: {...node, expanded:!node.expanded}};
   }
-  setStatsOptionsRows({concepts, concept_ids, csmi,}) {
-    const visibleCids = this.visibleRows.map(r => r.concept_id);
+  setStatsOptions({concepts, concept_ids, csmi,}) {
+    const visibleConcepts = this.visibleRows || []; // first time through, don't have visible rows yet
+    const visibleCids = visibleConcepts.map(r => r.concept_id);
     let displayOrder = 0;
     let rows = {
       visibleRows: {
         name: "Visible rows", displayOrder: displayOrder++,
-        value: this.visibleRows.length,
+        value: visibleConcepts.length,
       },
       concepts: {
         name: "Concepts", displayOrder: displayOrder++,
         value: concept_ids.length,
-        hiddenConceptCnt: cidDiff(concept_ids, visibleCids),
+        hiddenConceptCnt: setOp('difference', concept_ids, visibleCids).length,
       },
       expressionItems: {
         name: "Definition concepts", displayOrder: displayOrder++,
         value: this.specialConcepts.expressionItems.length,
-        hiddenConceptCnt: cidDiff(this.specialConcepts.expressionItems, visibleCids),
+        hiddenConceptCnt: setOp('difference', this.specialConcepts.expressionItems, visibleCids).length,
         hideByDefault: false,
+        hideRule: 'show though collapsed',
       },
       added: {
         name: "Added", displayOrder: displayOrder++,
-        value: get(this.specialConcepts, '.added.length', undefined),
-        hiddenConceptCnt: cidDiff(this.specialConcepts.added, visibleCids),
+        value: get(this.specialConcepts, 'added.length', undefined),
+        hiddenConceptCnt: setOp('difference', this.specialConcepts.added, visibleCids).length,
         hideByDefault: true,
+        hideRule: 'show though collapsed',
       },
       removed: {
         name: "Removed", displayOrder: displayOrder++,
-        value: get(this.specialConcepts, '.removed.length', undefined),
-        hiddenConceptCnt: cidDiff(this.specialConcepts.removed, visibleCids),
+        value: get(this.specialConcepts, 'removed.length', undefined),
+        hiddenConceptCnt: setOp('difference', this.specialConcepts.removed, visibleCids).length,
         hideByDefault: true,
+        hideRule: 'show though collapsed',
       },
       expansion: {
         name: "Expansion concepts", displayOrder: displayOrder++,
         value: uniq(flatten(Object.values(csmi).map(Object.values))
                 .filter(c => c.csm).map(c => c.concept_id)).length,
-        hiddenConceptCnt: cidDiff(concept_ids, visibleCids),
+        hiddenConceptCnt: setOp('difference', concept_ids, visibleCids).length,
       },
       standard: {
         name: "Standard concepts", displayOrder: displayOrder++,
@@ -146,26 +152,34 @@ export class GraphContainer {
       nonStandard: {
         name: "Non-standard", displayOrder: displayOrder++,
         value: this.specialConcepts.nonStandard.length,
-        hiddenConceptCnt: cidDiff(this.specialConcepts.nonStandard, visibleCids),
+        visibleConceptCnt: setOp('intersection', this.specialConcepts.nonStandard, visibleCids).length,
         hideByDefault: false,
+        hideRule: 'hide though expanded',
+      },
+      zeroRecord: {
+        name: "Zero records / patients", displayOrder: displayOrder++,
+        value: this.specialConcepts.zeroRecord.length,
+        visibleConceptCnt: setOp('intersection', this.specialConcepts.zeroRecord, visibleCids).length,
+        hideByDefault: false,
+        hideRule: 'hide though expanded',
       },
     }
     for (let type in rows) {
-      let row = {...get(this, ['statsOptionsRows', type], {}), ...rows[type]};
+      let row = {...get(this, ['statsOptions', type], {}), ...rows[type]};
       if (typeof(row.value) === 'undefined') {
         delete rows[type];
         continue;
       }
       row.type = type;
-      if (isEmpty(this.statsOptionsRows) && typeof(row.hideByDefault) !== 'undefined') {
+      if (isEmpty(this.statsOptions) && typeof(row.hideByDefault) !== 'undefined') {
         row.isHidden = row.hideByDefault;
       }
       rows[type] = row;
     }
-    this.statsOptionsRows = rows;
+    this.statsOptions = rows;
   };
-  getStatsOptionsRows() {
-    return sortBy(this.statsOptionsRows, d => d.displayOrder);
+  getStatsOptions() {
+    return sortBy(this.statsOptions, d => d.displayOrder);
   }
 
   addNodeToVisible(nodeId, displayedRows, alwaysShow, depth = 0) {
@@ -333,8 +347,14 @@ export const useGraphContainer = () => {
   }
   return context;
 };
-function cidDiff(a, b) {
-  return differenceWith(a, b, (a, b) => a == b).length;
+
+function setOp(op, setA, setB) {
+  const f = ({
+    union: unionWith,
+    difference: differenceWith,
+    intersection: intersectionWith
+  })[op];
+  return f(setA, setB, (itemA, itemB) => itemA == itemB);
 }
 /* use like:
   const { {graph, nodes}, gcDispatch } = useGraphContainer();

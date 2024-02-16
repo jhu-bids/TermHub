@@ -111,12 +111,13 @@ export function CsetComparisonPage() {
                 csmi = {...csmi, ...newCset.definitions};
             }
 
-            const expressionItems = flatten(Object.values(csmi)
-                .map(d => Object.values(d))).filter(d => d.item).map(d => d.concept_id);
+            const expressionItems = uniq(flatten(Object.values(csmi)
+                .map(d => Object.values(d))).filter(d => d.item).map(d => d.concept_id));
 
             let specialConcepts = {
                 expressionItems: expressionItems.map(String),
-                nonStandard: Object.values(conceptLookup).filter(c => !c.standard_concept).map(c => c.concept_id),
+                nonStandard: uniq(Object.values(conceptLookup).filter(c => !c.standard_concept).map(c => c.concept_id)),
+                zeroRecord: uniq(Object.values(conceptLookup).filter(c => !c.total_cnt).map(c => c.concept_id)),
             };
 
             comparison_rpt = await comparison_rpt;
@@ -137,7 +138,7 @@ export function CsetComparisonPage() {
 
             const concepts = Object.values(conceptLookup);
 
-            gcDispatch({type: "CREATE", payload: {...graphData, concepts, specialConcepts}});
+            gcDispatch({type: "CREATE", payload: {...graphData, concepts, specialConcepts, csmi}});
 
             if (!isEmpty(newCset)) {
                 const cidcnt = concept_ids.length;
@@ -180,7 +181,7 @@ export function CsetComparisonPage() {
         if (isEmpty(gc) || !specialConcepts) {
             return;
         }
-        gc.setStatsOptionsRows({concepts, concept_ids, specialConcepts, csmi, });
+        gc.setStatsOptions({concepts, concept_ids, specialConcepts, csmi, });
         setData(current => ({...current, /*visibleRows, colDefs*/}));
     }, [gc, specialConcepts]);
     if (isEmpty(gc.visibleRows) || isEmpty(selected_csets)) {
@@ -245,15 +246,15 @@ export function CsetComparisonPage() {
         );
     }
 
-    let statsOptionsRows = gc.getStatsOptionsRows();
+    let statsOptions = gc.getStatsOptions();
     const statsOptionsWidth = 525;
-    const statsOptionsHeight = statsOptionsRows.length * 31 + 40;
+    const statsOptionsHeight = statsOptions.length * 31 + 40;
     let infoPanels = [
         <FlexibleContainer key="stats-options" title="Stats and options"
             position={panelPosition} countRef={countRef}
             style={{minWidth: statsOptionsWidth + 'px', resize: "both", minHeight: statsOptionsHeight + 'px'}}
         >
-            <StatsAndOptions {...{gc, gcDispatch, statsOptionsRows,
+            <StatsAndOptions {...{gc, gcDispatch, statsOptions,
                                     // concepts, concept_ids, visibleRows, specialConcepts, csmi,
                                     statsOptionsWidth, customStyles}} />
         </FlexibleContainer>,
@@ -393,7 +394,7 @@ export function CsetComparisonPage() {
 }
 
 function StatsAndOptions(props) {
-    const {gc, gcDispatch, statsOptionsRows, statsOptionsWidth, customStyles} = props;
+    const {gc, gcDispatch, statsOptions, statsOptionsWidth, customStyles} = props;
     const infoPanelRef = useRef();
     let coldefs = [
          {
@@ -474,7 +475,7 @@ function StatsAndOptions(props) {
             // className="comparison-data-table"
             // theme="custom-theme" // theme="light"
             columns={coldefs}
-            data={statsOptionsRows}
+            data={statsOptions}
             dense
             /*
              */
@@ -629,7 +630,7 @@ function getColDefs(props) {
             },
             selector: (row) => row.descendantCount,
             format: (row) => {
-                return fmt(row.descendantCount) + ' / ' + fmt(row.childCount)
+                return fmt(row.childCount) + ' / ' + fmt(row.descendantCount)
             },
             sortable: false,
             width: 80,
