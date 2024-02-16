@@ -33,8 +33,8 @@ const graphReducer = (gc, action) => {
       break;
     case 'TOGGLE_OPTION':
       const type = action.payload.type;
-      gc.options.specialConceptsHidden[type] = ! gc.options.specialConceptsHidden[type];
-      gc.statsOptions[type].isHidden = gc.options.specialConceptsHidden[type];
+      gc.options.specialConceptTreatment[type] = ! gc.options.specialConceptTreatment[type];
+      gc.statsOptions[type].specialTreatment = gc.options.specialConceptTreatment[type];
       gc = new GraphContainer(null, gc);
       break;
     default:
@@ -85,14 +85,8 @@ export class GraphContainer {
     this.specialConcepts = specialConcepts;
 
     this.options = {
-      specialConceptsHidden: {},
+      specialConceptTreatment: {},
     };
-    this.specialConceptTypeCnt = 0;
-    for (let type in this.specialConcepts) {
-      this.options.specialConceptsHidden[type] = true;
-      this.specialConceptTypeCnt += 1;
-      // should include expressionItems and, optionally, added and removed
-    }
     this.setStatsOptions({concepts, concept_ids, specialConcepts, csmi, });
     this.getVisibleRows();
   }
@@ -114,26 +108,26 @@ export class GraphContainer {
         value: concept_ids.length,
         hiddenConceptCnt: setOp('difference', concept_ids, visibleCids).length,
       },
-      expressionItems: {
+      definitionConcepts: {
         name: "Definition concepts", displayOrder: displayOrder++,
-        value: this.specialConcepts.expressionItems.length,
-        hiddenConceptCnt: setOp('difference', this.specialConcepts.expressionItems, visibleCids).length,
-        hideByDefault: false,
-        hideRule: 'show though collapsed',
+        value: this.specialConcepts.definitionConcepts.length,
+        hiddenConceptCnt: setOp('difference', this.specialConcepts.definitionConcepts, visibleCids).length,
+        specialTreatmentDefault: true,
+        specialTreatmentRule: 'show though collapsed',
       },
       added: {
         name: "Added", displayOrder: displayOrder++,
         value: get(this.specialConcepts, 'added.length', undefined),
         hiddenConceptCnt: setOp('difference', this.specialConcepts.added, visibleCids).length,
-        hideByDefault: true,
-        hideRule: 'show though collapsed',
+        specialTreatmentDefault: false,
+        specialTreatmentRule: 'show though collapsed',
       },
       removed: {
         name: "Removed", displayOrder: displayOrder++,
         value: get(this.specialConcepts, 'removed.length', undefined),
         hiddenConceptCnt: setOp('difference', this.specialConcepts.removed, visibleCids).length,
-        hideByDefault: true,
-        hideRule: 'show though collapsed',
+        specialTreatmentDefault: false,
+        specialTreatmentRule: 'show though collapsed',
       },
       expansion: {
         name: "Expansion concepts", displayOrder: displayOrder++,
@@ -153,26 +147,31 @@ export class GraphContainer {
         name: "Non-standard", displayOrder: displayOrder++,
         value: this.specialConcepts.nonStandard.length,
         visibleConceptCnt: setOp('intersection', this.specialConcepts.nonStandard, visibleCids).length,
-        hideByDefault: false,
-        hideRule: 'hide though expanded',
+        hiddenConceptCnt:  setOp('intersection', this.specialConcepts.nonStandard, this.hideThoughExpanded).length,
+        specialTreatmentDefault: false,
+        specialTreatmentRule: 'hide though expanded',
       },
       zeroRecord: {
         name: "Zero records / patients", displayOrder: displayOrder++,
         value: this.specialConcepts.zeroRecord.length,
         visibleConceptCnt: setOp('intersection', this.specialConcepts.zeroRecord, visibleCids).length,
-        hideByDefault: false,
-        hideRule: 'hide though expanded',
+        hiddenConceptCnt: setOp('intersection', this.specialConcepts.zeroRecord, [...(this.hideThoughExpanded || [])]).length,
+        specialTreatmentDefault: false,
+        specialTreatmentRule: 'hide though expanded',
       },
     }
     for (let type in rows) {
-      let row = {...get(this, ['statsOptions', type], {}), ...rows[type]};
-      if (typeof(row.value) === 'undefined') {
+      let row = {...get(this, ['statsOptions', type], {}), ...rows[type]};  // don't lose stuff previously set
+      if (typeof(row.value) === 'undefined') {  // don't show rows that don't represent any concepts
         delete rows[type];
         continue;
       }
       row.type = type;
-      if (isEmpty(this.statsOptions) && typeof(row.hideByDefault) !== 'undefined') {
-        row.isHidden = row.hideByDefault;
+      if (isEmpty(this.statsOptions) && typeof(row.specialTreatmentDefault) !== 'undefined') {
+        row.specialTreatment = row.specialTreatmentDefault;
+      }
+      if (type in this.specialConcepts) {
+        this.options.specialConceptTreatment[type] = row.specialTreatment;
       }
       rows[type] = row;
     }
@@ -182,37 +181,42 @@ export class GraphContainer {
     return sortBy(this.statsOptions, d => d.displayOrder);
   }
 
-  addNodeToVisible(nodeId, displayedRows, alwaysShow, depth = 0) {
+  addNodeToVisible(nodeId, displayedRows, showThoughCollapsed, hideThoughExpanded, depth = 0) {
     const node = {...this.nodes[nodeId], depth};
-    displayedRows.push(node);
+    if (hideThoughExpanded.has(parseInt(nodeId))) {
+      // TODO: not sure how to keep descendants with showThoughCollapsed, but not show this node
+      console.log(node);
+    } else {
+      displayedRows.push(node);
+    }
     const childIds = this.graph.outNeighbors(nodeId); // Get outgoing neighbors (children)
     if (node.expanded) {
       childIds.forEach(childId => {
-        this.addNodeToVisible(childId, displayedRows, alwaysShow, depth + 1); // Recurse
+        this.addNodeToVisible(childId, displayedRows, showThoughCollapsed, hideThoughExpanded, depth + 1); // Recurse
       });
     } else {
-      alwaysShow.forEach(alwaysShowId => {
-        if (alwaysShowId != nodeId) {
+      showThoughCollapsed.forEach(showThoughCollapsedId => {
+        if (showThoughCollapsedId != nodeId) {
           try {
-            let path = bidirectional(this.graph, nodeId, alwaysShowId);
+            let path = bidirectional(this.graph, nodeId, showThoughCollapsedId);
             if (path) {
               path.shift();
               const id = path.pop();
-              console.assert(id == alwaysShowId);
+              console.assert(id == showThoughCollapsedId);
               const nd = {...this.nodes[id], depth: depth + 1, path};
 
               displayedRows.push(nd);
-              alwaysShow.delete(id);
+              showThoughCollapsed.delete(id);
               if (nd.expanded) {
                 const childIds = this.graph.outNeighbors(id); // Get outgoing neighbors (children)
                 sortBy(childIds, this.sortFunc).forEach(childId => {
-                  this.addNodeToVisible(childId, displayedRows, alwaysShow, depth + 2); // Recurse
+                  this.addNodeToVisible(childId, displayedRows, showThoughCollapsed, hideThoughExpanded, depth + 2); // Recurse
                 });
               }
               /*
               path.forEach((id, i) => {
                 displayedRows.push({...this.nodes[id], depth: depth + 1 + i});
-                alwaysShow.delete(id);
+                showThoughCollapsed.delete(id);
               });
               */
             }
@@ -220,7 +224,7 @@ export class GraphContainer {
             console.log(e);
           }
         } else {
-          alwaysShow.delete(alwaysShowId);
+          showThoughCollapsed.delete(showThoughCollapsedId);
         }
       })
     }
@@ -237,11 +241,12 @@ export class GraphContainer {
   getVisibleRows(props) {
     // TODO: need to treat things to hide differently from things to always show.
     // let { specialConcepts = [] } = props;
-    let alwaysShow = new Set();
-    for (let type in this.options.specialConceptsHidden) {
-      if (! this.options.specialConceptsHidden[type]) {
+    let showThoughCollapsed = new Set();
+    let hideThoughExpanded = new Set();
+    for (let type in this.options.specialConceptTreatment) {
+      if (this.statsOptions[type].specialTreatmentRule === 'show though collapsed' && this.options.specialConceptTreatment[type]) {
         for (let id of this.specialConcepts[type] || []) {
-          alwaysShow.add(id);
+          showThoughCollapsed.add(id);
         }
       }
     }
@@ -250,9 +255,19 @@ export class GraphContainer {
     let displayedRows = [];
 
     for (let nodeId of sortBy(this.roots, this.sortFunc)) {
-      this.addNodeToVisible(nodeId, displayedRows, alwaysShow);
+      this.addNodeToVisible(nodeId, displayedRows, showThoughCollapsed, hideThoughExpanded);
     }
 
+    for (let type in this.options.specialConceptTreatment) {
+      if (this.statsOptions[type].specialTreatmentRule === 'hide though expanded' && this.options.specialConceptTreatment[type]) {
+        for (let id of setOp('intersection', this.specialConcepts[type], displayedRows.map(d => d.concept_id))) {
+          hideThoughExpanded.add(id);
+        }
+      }
+    }
+    displayedRows = displayedRows.filter(row => ! hideThoughExpanded.has(row.concept_id));
+
+    this.hideThoughExpanded = hideThoughExpanded;
     return this.visibleRows = displayedRows;
   }
   

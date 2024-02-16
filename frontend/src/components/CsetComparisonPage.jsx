@@ -111,11 +111,11 @@ export function CsetComparisonPage() {
                 csmi = {...csmi, ...newCset.definitions};
             }
 
-            const expressionItems = uniq(flatten(Object.values(csmi)
+            const definitionConcepts = uniq(flatten(Object.values(csmi)
                 .map(d => Object.values(d))).filter(d => d.item).map(d => d.concept_id));
 
             let specialConcepts = {
-                expressionItems: expressionItems.map(String),
+                definitionConcepts: definitionConcepts.map(String),
                 nonStandard: uniq(Object.values(conceptLookup).filter(c => !c.standard_concept).map(c => c.concept_id)),
                 zeroRecord: uniq(Object.values(conceptLookup).filter(c => !c.total_cnt).map(c => c.concept_id)),
             };
@@ -128,7 +128,7 @@ export function CsetComparisonPage() {
 
             for (let cid in conceptLookup) {
                 let c = {...conceptLookup[cid]}; // don't want to mutate the cached concepts
-                if (specialConcepts.expressionItems.includes(cid+'')) c.isItem = true;
+                if (specialConcepts.definitionConcepts.includes(cid+'')) c.isItem = true;
                 if ((specialConcepts.added||[]).includes(cid+'')) c.added = true;
                 if ((specialConcepts.removed||[]).includes(cid+'')) c.removed = true;
                 c.status = [c.isItem && 'Def', c.added && 'Added', c.removed && 'Removed']
@@ -413,49 +413,84 @@ function StatsAndOptions(props) {
             name: "hidden-rows",
             // headerProps: { tooltipContent: "Levels of descendants below.", },
             selector: (row) => row.value,
-            format: (row) => isNaN(row.hiddenConceptCnt) ? '' : fmt(row.hiddenConceptCnt || '') + ' hidden',
+            format: (row) => {
+                let text;
+                if (row.specialTreatmentRule === 'show though collapsed') {
+                    if (row.hiddenConceptCnt) {
+                        text = fmt(row.hiddenConceptCnt) + ' not visible';
+                    } else {
+                        text = "";
+                    }
+                } else if (row.specialTreatmentRule ==='hide though expanded') {
+                    if (row.hiddenConceptCnt) {
+                        text = fmt(row.hiddenConceptCnt) + ' hidden';
+                    } else if (row.visibleConceptCnt) {
+                        text = fmt(row.visibleConceptCnt) + ' visible';
+                    } else {
+                        text = "";
+                    }
+                } else {
+                    text = "";
+                }
+                // isNaN(row.hiddenConceptCnt) ? '' : fmt(row.hiddenConceptCnt || '') + ' hidden'
+                return text;
+            },
             // sortable: false,
             // right: true,
             width: 120,
             style: {justifyContent: "right", paddingRight: 4},
         },
         {
-            name: "isHidden",
-            selector: (row) => row.isHidden,
+            name: "specialTreatment",
+            selector: (row) => row.specialTreatment,
             format: (row) => {
-                if (typeof row.hideByDefault === 'undefined') {
+                if (typeof row.specialTreatmentDefault === 'undefined') {
                     return '';
                 }
                 let onClick;
                 onClick = () => {
                     gcDispatch({type: 'TOGGLE_OPTION', payload: row});
                 };
-                let text;
-                if (row.hiddenConceptCnt) {
-                    text = 'show';
+                let text = '';
+                let tttext = 'toggle';
+                if (row.specialTreatmentRule === 'show though collapsed') {
+                    if (row.specialTreatment) {
+                        text = "unshow";
+                    } else {
+                        if (row.hiddenConceptCnt) {
+                            text = "show";
+                            tttext = "Show even if parents aren't expanded";
+                        }
+                    }
+                } else if (row.specialTreatmentRule ==='hide though expanded') {
+                    if (row.specialTreatment) {
+                        text = "unhide";
+                    } else {
+                        text = "hide";
+                    }
                 } else {
-                    text = 'hide';
+                    throw new Error("shouldn't be here");
                 }
-                /*
-                if (row.isHidden === true) {
-                    text = 'show';
-                } else if (row.isHidden === false) {
-                    text = 'hide';
-                } else {
-                    return '';
+                let button = (
+                    <Button key="stats"
+                            onClick={onClick}
+                            sx={{
+                                marginRight: '4px',
+                                display: "flex",
+                                flexDirection: "row",
+                            }}
+                    >
+                        {text}
+                    </Button>
+                );
+                return button;
+                if (tttext) {
+                    return (
+                        <Tooltip label={tttext} onClick={onClick} >
+                            {button}
+                        </Tooltip>);
                 }
-                */
-
-                return <Button key="stats"
-                               onClick={onClick}
-                               sx={{
-                                   marginRight: '4px',
-                                   display: "flex",
-                                   flexDirection: "row",
-                               }}
-                >
-                    {text}
-                </Button>
+                return button;
             },
             width: 80,
             style: {justifyContent: "center", },
