@@ -1,7 +1,7 @@
 SRC=backend/
 
 .PHONY: lint tags ltags test all lintall codestyle docstyle lintsrc linttest doctest doc docs code linters_all codesrc \
-codetest docsrc doctest counts-compare-schemas counts-table deltas-table test-missing-csets fetch-missing-csets
+codetest docsrc doctest counts-compare-schemas counts-table deltas-table test-missing-csets fetch-missing-csets backup
 
 # Analysis
 ANALYSIS_SCRIPT = 'backend/db/analysis.py'
@@ -74,6 +74,10 @@ codetest:
 	python -m pycodestyle test/
 codeall: code codetest
 doc: docstyle
+
+# Utils
+backup:
+	sh ./db_backup.sh
 
 # Testing
 test: test-backend test-frontend

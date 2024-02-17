@@ -16,7 +16,7 @@ Step 1: Backup the DB
 pg_dump -d \$psql_conn -n n3c | sed '/^[0-9][0-9]*\t/! s/[[:<:]]n3c[[:>:]]/$fname/' > $fname.dmp
 
 Step 2: Upload
-Immediately upload the backup schema to the database.
+Immediately upload the backup schema to the database. You may need to delete the oldest backup schema firrst in order to make room to upload this new schema.
 psql -d \$psql_conn < $fname.dmp
 
 Step 3: Quality control checks
