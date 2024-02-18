@@ -40,14 +40,14 @@ DOCS_JINJA = """# DB row counts
 {{ counts_markdown_table }}"""
 
 
-# TODO: rename current_counts where from_cache = True to counts_history or something. because the datastructure is
+# TODO: rename current_counts_and_deltas where from_cache = True to counts_deltas_history or something. because the datastructure is
 #  different. either that, or have it re-use the from_cache code at the end if from_cache = False
 #  - then, counts_over_time() & docs(): add cache param set to false, and change how they call current_counts()
-def _current_counts(
+def _current_counts_and_deltas(
     schema: str = SCHEMA, local=False, from_cache=False, return_as=['dict', 'df'][0], dt=datetime.now(),
     filter_temp_refresh_tables=False
 ) -> Union[pd.DataFrame, Dict]:
-    """Gets current database counts
+    """Gets current database counts and deltas
     :param filter_temp_refresh_tables: Filters out any temporary tables that are created during the refresh, e.g. ones
     that end w/ the suffix '_old'."""
     if from_cache:
@@ -56,20 +56,19 @@ def _current_counts(
             df = pd.DataFrame(counts)
             df = df[df['schema'] == schema]
             return df
-    # Get tables
-    with get_db_connection(schema=schema, local=local) as con:
-        tables: List[str] = list_tables(con, filter_temp_refresh_tables=filter_temp_refresh_tables)
+    # Get previous counts
     with get_db_connection(schema='', local=local) as con:
-        # Get previous counts
         timestamps: List[datetime] = [
-            dp.parse(x[0]) for x in sql_query(con, f'SELECT DISTINCT timestamp from counts;', return_with_keys=False)]
+            dp.parse(x[0]) for x in sql_query(con, f"SELECT DISTINCT timestamp from counts WHERE schema = '{schema}';", return_with_keys=False)]
         most_recent_timestamp: str = str(max(timestamps)) if timestamps else None
         prev_counts: List[Dict] = [dict(x) for x in sql_query(con, f'SELECT * from counts;', return_with_keys=True)]
         prev_counts_df = pd.DataFrame(prev_counts)
-        # Get counts
+    # Get current counts / deltas
+    with get_db_connection(schema=schema, local=local) as con:
+        tables: List[str] = list_tables(con, filter_temp_refresh_tables=filter_temp_refresh_tables)
         table_rows: Dict[str, Dict[str, Any]] = {}
         for table in tables:
-            count: int = [x for x in sql_query(con, f'SELECT COUNT(*) from n3c.{table};', return_with_keys=False)][0][0]
+            count: int = [x for x in sql_query(con, f'SELECT COUNT(*) from {schema}.{table};', return_with_keys=False)][0][0]
             last_count = 0
             if most_recent_timestamp:
                 last_count_fetch: Series = prev_counts_df[
@@ -84,7 +83,7 @@ def _current_counts(
                 'table': table,
                 'count': count,
                 'delta': count - last_count,
-            }
+                }
     return table_rows if return_as == 'dict' else pd.DataFrame(table_rows)
 
 
@@ -113,8 +112,8 @@ def counts_compare_schemas(
                 compare_schema = schema_name
 
     # Get counts
-    main: Dict = _current_counts(schema, from_cache=use_cached_counts, local=local)
-    compare: Dict = _current_counts(compare_schema, from_cache=use_cached_counts, local=local)
+    main: Dict = _current_counts_and_deltas(schema, from_cache=use_cached_counts, local=local)
+    compare: Dict = _current_counts_and_deltas(compare_schema, from_cache=use_cached_counts, local=local)
     tables = set(main.keys()).union(set(compare.keys()))
     rows = []
     for table in tables:
@@ -150,7 +149,7 @@ def counts_update(note: str, schema: str = SCHEMA, local=False, filter_temp_refr
         })
         # Save counts
         # noinspection PyCallingNonCallable pycharm_doesnt_undestand_its_returning_dict
-        for d in _current_counts(
+        for d in _current_counts_and_deltas(
             from_cache=False, dt=dt, local=local, filter_temp_refresh_tables=filter_temp_refresh_tables).values():
             insert_from_dict(con, 'counts', d)
 
@@ -163,7 +162,7 @@ def counts_over_time(
     """Checks counts of database and store what the results look like in a database over time"""
     if method not in COUNTS_OVER_TIME_OPTIONS:
         raise ValueError(f'counts_over_time(): Invalid method {method}. Must be one of {COUNTS_OVER_TIME_OPTIONS}')
-    current_counts_df = current_counts_df if len(current_counts_df) > 0 else _current_counts(
+    current_counts_df = current_counts_df if len(current_counts_df) > 0 else _current_counts_and_deltas(
         schema, local, from_cache=True)
 
     # Pivot
@@ -217,7 +216,7 @@ def counts_over_time(
 def counts_docs(use_cached_counts=True):
     """Runs --counts-over-time and --deltas-over-time and puts in documentation: docs/backend/db/analysis.md."""
     # Get data
-    current_counts_df = _current_counts(from_cache=use_cached_counts)
+    current_counts_df = _current_counts_and_deltas(from_cache=use_cached_counts)
     counts_df: pd.DataFrame = counts_over_time(method='counts_table', current_counts_df=current_counts_df, _print=False)
     deltas_df: pd.DataFrame = counts_over_time(method='delta_table', current_counts_df=current_counts_df, _print=False)
     # Write docs
