@@ -15,13 +15,16 @@ from pathlib import Path
 from typing import Dict, List, Union
 
 import pandas as pd
+import pyarrow.parquet as pq
 from typeguard import typechecked
+
+from backend.db.utils import chunk_list
 
 ENCLAVE_WRANGLER_DIR = os.path.dirname(__file__)
 PROJECT_ROOT = Path(ENCLAVE_WRANGLER_DIR).parent
 sys.path.insert(0, str(PROJECT_ROOT))
 # TODO: backend implorts: Ideally we don't want to couple with TermHub code
-from backend.utils import pdump
+from backend.utils import commify, pdump
 from enclave_wrangler.config import TERMHUB_CSETS_DIR, DATASET_REGISTRY, DATASET_REGISTRY_RID_NAME_MAP
 from enclave_wrangler.utils import enclave_get, log_debug_info
 
@@ -91,6 +94,26 @@ def get_termhub_disk_usage() -> float:
     return s_bytes / (1024 ** 3)
 
 
+def combine_parquet_files(input_files, target_path):
+    """Combine parquet files"""
+    files = []
+    try:
+        for file_name in input_files:
+            files.append(pq.read_table(file_name))
+        with pq.ParquetWriter(
+            target_path,
+            files[0].schema,
+            version='2.0',
+            compression='gzip',
+            use_dictionary=True,
+            data_page_size=2097152,  # 2MB
+            write_statistics=True
+        ) as writer:
+            for f in files:
+                writer.write_table(f)
+    except Exception as e:
+        print(e, file=sys.stderr)
+
 
 @typechecked
 def download_csv_from_parquet_parts(fav: dict, file_parts: [str], outpath: str):
@@ -108,15 +131,50 @@ def download_csv_from_parquet_parts(fav: dict, file_parts: [str], outpath: str):
             print('\t' + f'{index + 1} of {len(file_parts)}: {url}')
             response = enclave_get(url, args={'stream': True}, verbose=False)
             if response.status_code == 200:
-                parquet_part_path = parquet_dir + fp.replace('spark', '')
-                response.raw.decode_content = True
-                with open(parquet_part_path, "wb") as f:
+                fname = parquet_dir + fp.replace('spark', '')
+                with open(fname, "wb") as f:
+                    response.raw.decode_content = True
                     shutil.copyfileobj(response.raw, f)
-                df = pd.read_parquet(parquet_part_path)
-                df.to_csv(outpath, index=False, header=True if index == 0 else False, mode='a')
             else:
                 raise RuntimeError(f'Failed opening {url} with {response.status_code}: {response.content}')
-        print(f'Downloaded {os.path.basename(outpath)}\n')
+
+        print('INFO: Combining parquet files: Saving chunks')
+        combined_parquet_fname = parquet_dir + '/combined.parquet'
+        files: List[str] = []
+        for file_name in os.listdir(parquet_dir):
+            files.append(os.path.join(parquet_dir, file_name))
+
+        df = pd.DataFrame()
+        chunk_paths = []
+        # todo: why don't we just convert parquet to csv one at a time? change chunk_list n?
+        # chunks = chunk_list(files, 5)  # chunks size 5: arbitrary
+        chunks = chunk_list(files, len(files))
+        # Chunked to avoid memory issues w/ GitHub Action.
+        for chunk_n, chunk in enumerate(chunks):
+            if chunk[0].endswith('.parquet'):
+                combine_parquet_files(chunk, combined_parquet_fname)
+                df = pd.read_parquet(combined_parquet_fname)
+            elif chunk[0].endswith('.csv'):
+                if len(chunk) != 1:
+                    raise RuntimeError(f"with csv, only expected one file; got: [{', '.join(chunk)}]")
+                df = pd.read_csv(chunk[0], names=fav['column_names'])
+            else:
+                raise RuntimeError(f"unexpected file(s) downloaded: [{', '.join(chunk)}]")
+            if outpath:
+                os.makedirs(os.path.dirname(outpath), exist_ok=True)
+                outpath_i = outpath.replace('.csv', f'_{chunk_n}.csv')
+                chunk_paths.append(outpath_i)
+                df.to_csv(outpath_i, index=False)
+
+        print('INFO: Combining parquet files: Combining chunks')
+        if outpath:
+            df = pd.concat([pd.read_csv(path) for path in chunk_paths])
+            df.to_csv(outpath, index=False)
+            for path in chunk_paths:
+                os.remove(path)
+
+        print(f'Downloaded {os.path.basename(outpath)}, {commify(len(df))} records\n')
+        return df
 
 
 # todo: for this and alltransform_* funcs. They have a common pattern, especially first couple lines. Can we refactor?

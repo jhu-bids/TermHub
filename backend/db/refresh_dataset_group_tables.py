@@ -15,7 +15,7 @@ import sys
 from argparse import ArgumentParser
 from datetime import datetime
 from pathlib import Path
-from typing import List, Union
+from typing import Dict, List, Union
 
 from dateutil import parser as dp
 
@@ -31,13 +31,56 @@ from enclave_wrangler.config import DATASET_GROUPS_CONFIG
 from enclave_wrangler.datasets import download_datasets, get_last_update_of_dataset
 
 
-def refresh_dataset_group_tables(
-    dataset_group: List[str], skip_downloads: bool = False, download_only: bool = False, schema=SCHEMA,
-    alternate_dataset_dir: Union[Path, str] = None, test_run_dont_mark_updated=False
-):
-    """Refresh tables by dataset group (e.g. vocabulary and counts)
+def load_dataset_group(dataset_group_name: str, schema: str = SCHEMA, alternate_dataset_dir: Union[Path, str] = None):
+    """Load data
 
     :param alternate_dataset_dir: Designed mainly for automated tests to load input files to test schema."""
+    config: Dict = DATASET_GROUPS_CONFIG[dataset_group_name]
+    # noinspection PyBroadException
+    try:
+        with get_db_connection(schema=schema) as con:
+            for table in config['tables']:  # tables themselves (non-derived)
+                print(f' - loading {table}...')
+                t0 = datetime.now()
+                load_csv(
+                    con, table, replace_rule='do not replace', schema=schema, optional_suffix='_new',
+                    path_override=Path(alternate_dataset_dir) / f'{table}.csv' if alternate_dataset_dir else None,
+                    is_test_table=bool(alternate_dataset_dir))
+                run_sql(con, f'ALTER TABLE IF EXISTS {schema}.{table} RENAME TO {table}_old;')
+                run_sql(con, f'ALTER TABLE {schema}.{table}_new RENAME TO {table};')
+
+                # Primary keys
+                # - setting all of them; quick operation, and only creates if not exist
+                statements: List[str] = get_ddl_statements(schema, ['primary_keys'], return_type='flat')
+                for statement in statements:
+                    run_sql(con, statement)
+
+                # Indexes
+                statements: List[str] = get_ddl_statements(schema, ['indexes'], return_type='flat')
+                statements = [x for x in statements if f'{schema}.{table}(' in x]  # filter for this table
+                for statement in statements:
+                    run_sql(con, statement)
+
+                t1 = datetime.now()
+                # todo: set variable for 'last updated' for each table (look at load())
+                #  - consider: check if table already updated sooner than last_updated_them. if so, skip. and add a param to CLI for this
+                print(f'   done in {(t1 - t0).seconds} seconds')
+
+            print('Recreating derived tables')  # derived tables
+            refresh_derived_tables(con, config['tables'], schema)
+
+            print('Deleting old, temporarily backed up versions of tables')
+            for table in config['tables']:
+                run_sql(con, f'DROP TABLE IF EXISTS {schema}.{table}_old;')
+    except Exception as err:
+        reset_temp_refresh_tables(schema)
+        raise err
+
+
+def refresh_dataset_group_tables(
+    dataset_group: List[str], skip_downloads: bool = False, download_only: bool = False, schema=SCHEMA
+):
+    """Refresh tables by dataset group (e.g. vocabulary and counts)"""
     print(f'Refreshing tables for the following dataset groups: {",".join(dataset_group)}')
     selected_configs = {k: v for k, v in DATASET_GROUPS_CONFIG.items() if k in dataset_group}
     for group_name, config in selected_configs.items():
@@ -57,52 +100,15 @@ def refresh_dataset_group_tables(
         # Load data
         if not download_only:
             print('Loading downloaded datasets into DB tables')
-            con = get_db_connection(schema=schema)
-            # noinspection PyBroadException
-            try:
-                for table in config['tables']:  # tables themselves (non-derived)
-                    print(f' - loading {table}...')
-                    t0 = datetime.now()
-                    load_csv(
-                        con, table, replace_rule='do not replace', schema=schema, optional_suffix='_new',
-                        path_override=Path(alternate_dataset_dir) / f'{table}.csv' if alternate_dataset_dir else None,
-                        is_test_table=bool(alternate_dataset_dir))
-                    run_sql(con, f'ALTER TABLE IF EXISTS {schema}.{table} RENAME TO {table}_old;')
-                    run_sql(con, f'ALTER TABLE {schema}.{table}_new RENAME TO {table};')
-                    t1 = datetime.now()
-                    # todo: set variable for 'last updated' for each table (look at load())
-                    #  - consider: check if table already updated sooner than last_updated_them. if so, skip. and add a param to CLI for this
-                    print(f'   done in {(t1 - t0).seconds} seconds')
+            load_dataset_group(group_name, schema)
 
-                # Primary keys
-                statements: List[str] = get_ddl_statements(schema, ['primary_keys'], return_type='flat')
-                for statement in statements:
-                    run_sql(con, statement)
+            # Mark complete
+            update_db_status_var(config['last_updated_termhub_var'], current_datetime())
 
-                print('Creating indexes')  # indexes
-                statements_all: List[str] = get_ddl_statements(schema, ['indexes'], return_type='flat')
-                statements = [x for x in statements_all if any(f'{schema}.{y}(' in x for y in config['tables'])]
-                for statement in statements:
-                    run_sql(con, statement)
-
-                print('Recreating derived tables')  # derived tables
-                refresh_derived_tables(con, config['tables'], schema)
-
-                if not test_run_dont_mark_updated:
-                    update_db_status_var(config['last_updated_termhub_var'], current_datetime())  # mark done
-
-                print('Deleting old, temporarily backed up versions of tables')
-                for table in config['tables']:
-                    run_sql(con, f'DROP TABLE IF EXISTS {schema}.{table}_old;')
-
-                # DB Counts
-                counts_update(f'DB refresh: {",".join(dataset_group)}', schema)
-                counts_docs()
-            except Exception as err:
-                reset_temp_refresh_tables(schema)
-                raise err
-            finally:
-                con.close()
+            # DB Counts
+            print('Updating database counts. This could take a while...')
+            counts_update(f'DB refresh: {",".join(dataset_group)}', schema)
+            counts_docs()
     print('Done')
 
 

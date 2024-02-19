@@ -143,11 +143,10 @@ def refresh_derived_tables_exec(
     # Create new tables/views and backup old ones
     print('Derived tables')
     t0 = datetime.now()
-    hash_num = '_' + str(randint(10000000, 99999999))
     for module in ddl_modules_queue:
         t0_2 = datetime.now()
         print(f' - creating new table/view: {module}...')
-        statements: List[str] = get_ddl_statements(schema, [module], temp_table_suffix, hash_num, 'flat')
+        statements: List[str] = get_ddl_statements(schema, [module], temp_table_suffix, 'flat')
         for statement in statements:
             run_sql(con, statement)
         # todo: warn if counts in _new table not >= _old table (if it exists)?
@@ -707,7 +706,8 @@ def list_tables(con: Connection = None, schema: str = None, filter_temp_refresh_
 
 
 def get_ddl_statements(
-    schema: str = SCHEMA, modules: List[str] = None, table_suffix='', index_suffix='', return_type=['flat', 'nested'][1]
+    schema: str = SCHEMA, modules: List[str] = None, table_suffix='',return_type=['flat', 'nested'][1],
+    unique_index_names=True,
 ) -> Union[List[str], Dict[str, List[str]]]:
     """From local SQL DDL Jinja2 templates, pa rse and get a list of SQL statements to run.
 
@@ -723,6 +723,7 @@ def get_ddl_statements(
       dataframe that loads data into db.
       3. I think it's inserting a second ; at the end of the last statement of a given module
       4. consider throwing an error if no statements found, either here, or where func is called"""
+    index_suffix: str = '' if not unique_index_names else '_' + str(randint(10000000, 99999999))
     paths: List[str] = glob(DDL_JINJA_PATH_PATTERN)
     if modules:
         paths = [p for p in paths if any([m == os.path.basename(p).split('-')[2].split('.')[0] for m in modules])]

@@ -1,4 +1,4 @@
--- Indexes -------------------------------------------------------------------------------------------------------------
+-- Indexes: for non-derived tables -------------------------------------------------------------------------------------------------------------
 CREATE INDEX IF NOT EXISTS concept_idx{{optional_index_suffix}} ON {{schema}}concept(concept_id);
 
 CREATE INDEX IF NOT EXISTS concept_idx2{{optional_index_suffix}} ON {{schema}}concept(concept_code);
