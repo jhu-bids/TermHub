@@ -14,7 +14,7 @@ sys.path.insert(0, str(PROJECT_ROOT))
 from backend.db.analysis import counts_update,counts_docs
 from backend.db.config import CONFIG
 from backend.db.utils import current_datetime, get_db_connection, is_refresh_active, last_refresh_timestamp, \
-    reset_temp_refresh_tables, update_db_status_var, check_db_status_var, delete_db_status_var
+    reset_temp_refresh_tables, tz_datetime_str, update_db_status_var, check_db_status_var, delete_db_status_var
 from enclave_wrangler.objects_api import csets_and_members_enclave_to_db
 
 DESC = 'Refresh TermHub database w/ newest updates from the Enclave using the objects API.'
@@ -46,14 +46,18 @@ def refresh_db(
     """
     local = use_local_db
     print('INFO: Starting database refresh.', flush=True)  # flush: for gh action
-    t0, t0_str = datetime.now(), current_datetime()
+    t0, start_time = datetime.now(), current_datetime()
 
     if is_refresh_active():
         print('INFO: Refresh already in progress. When that process completes, it will restart again. Exiting.')
-        update_db_status_var('new_request_while_refreshing', t0_str, local)
+        update_db_status_var('new_request_while_refreshing', start_time, local)
         return
+    # end_time: Even though in reality the refresh will not end 1 microsecond after the start time, we're setting it
+    # this way because this is the easiest way to make sure that future refreshes will not miss any new data that was
+    # added between when the refresh started and ended.
+    end_time: str = tz_datetime_str(dp.parse(start_time) + timedelta(microseconds=1))
     update_db_status_var('refresh_status', 'active', local)
-    update_db_status_var('last_refresh_request', current_datetime(), local)
+    update_db_status_var('last_refresh_request', start_time, local)
 
     new_data = False
     with get_db_connection(local=local) as con:
@@ -67,7 +71,7 @@ def refresh_db(
         try:
             # todo: when ready, will use all_new_objects_enclave_to_db() instead of csets_and_members_enclave_to_db()
             new_data: bool = csets_and_members_enclave_to_db(con, since, schema=schema)
-            update_db_status_var('last_refresh_success', current_datetime(), local)
+            update_db_status_var('last_refresh_success', end_time, local)
             update_db_status_var('last_refresh_result', 'success', local)
         except Exception as err:
             update_db_status_var('last_refresh_result', 'error', local)
