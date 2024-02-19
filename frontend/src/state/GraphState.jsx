@@ -112,7 +112,7 @@ export class GraphContainer {
         name: "Definition concepts", displayOrder: displayOrder++,
         value: this.specialConcepts.definitionConcepts.length,
         hiddenConceptCnt: setOp('difference', this.specialConcepts.definitionConcepts, visibleCids).length,
-        specialTreatmentDefault: true,
+        specialTreatmentDefault: false,
         specialTreatmentRule: 'show though collapsed',
       },
       added: {
@@ -181,11 +181,18 @@ export class GraphContainer {
     return sortBy(this.statsOptions, d => d.displayOrder);
   }
 
+  /* adds the node to the list of visible nodes
+      if it is set to be expanded, recurse and add its children to the list
+      if it has descendants that are in showThoughCollapsed, show those descendants, but
+        not it's other children/descendants
+      if it is in hideThoughExpanded, don't display it BUT -- do display its
+        descendants, either from being expanded or being in showThoughCollapsed
+   */
   addNodeToVisible(nodeId, displayedRows, showThoughCollapsed, hideThoughExpanded, depth = 0) {
     const node = {...this.nodes[nodeId], depth};
     if (hideThoughExpanded.has(parseInt(nodeId))) {
       // TODO: not sure how to keep descendants with showThoughCollapsed, but not show this node
-      console.log(node);
+      // console.log(node);
     } else {
       displayedRows.push(node);
     }
@@ -199,6 +206,8 @@ export class GraphContainer {
         if (showThoughCollapsedId != nodeId) {
           try {
             let path = bidirectional(this.graph, nodeId, showThoughCollapsedId);
+            // TODO: only show it if it's not a descendant of one of this node's descendants
+            //    that is, make sure to put the path as low in the tree as possible
             if (path) {
               path.shift();
               const id = path.pop();

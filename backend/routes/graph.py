@@ -61,6 +61,7 @@ async def concept_graph_post(
     try:
         await rpt.start_rpt(request, params={'codeset_ids': codeset_ids, 'cids': cids})
 
+        hide_vocabs = hide_vocabs if isinstance(hide_vocabs, list) else []
         sg: DiGraph
         missing_in_betweens: List[Dict[str, Any]]
         hidden_by_voc: Dict[str, Set[int]]
@@ -89,7 +90,7 @@ async def concept_graph_post(
 
 
 async def concept_graph(
-    codeset_ids: List[int], cids: Union[List[int], None] = [], hide_vocabs = ['RxNorm Extension'],
+    codeset_ids: List[int], cids: Union[List[int], None] = [], hide_vocabs = [],
     hide_nonstandard_concepts=False, verbose = VERBOSE
  ) -> Tuple[DiGraph, Set[int], Set[int], Dict[str, Set[int]], Set[int]]:
     """Return concept graph

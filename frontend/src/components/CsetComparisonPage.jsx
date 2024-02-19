@@ -129,8 +129,8 @@ export function CsetComparisonPage() {
             for (let cid in conceptLookup) {
                 let c = {...conceptLookup[cid]}; // don't want to mutate the cached concepts
                 if (specialConcepts.definitionConcepts.includes(cid+'')) c.isItem = true;
-                if ((specialConcepts.added||[]).includes(cid+'')) c.added = true;
-                if ((specialConcepts.removed||[]).includes(cid+'')) c.removed = true;
+                if ((specialConcepts.added || []).includes(cid+'')) c.added = true;
+                if ((specialConcepts.removed || []).includes(cid+'')) c.removed = true;
                 c.status = [c.isItem && 'Def', c.added && 'Added', c.removed && 'Removed']
                     .filter(d => d).join(', ');
                 conceptLookup[cid] = c;
@@ -181,9 +181,14 @@ export function CsetComparisonPage() {
         if (isEmpty(gc) || !specialConcepts) {
             return;
         }
+        // since setStatsOptions is called in GraphContainer constructor, it maybe
+        //  doesn't need to be called the first time this useEffect runs;
+        //  TODO: maybe we don't need this useEffect at all, and can just call setStatsOptions
+        //  right before getVisibleRows in the clone branch of the constructor
         gc.setStatsOptions({concepts, concept_ids, specialConcepts, csmi, });
         setData(current => ({...current, /*visibleRows, colDefs*/}));
     }, [gc, specialConcepts]);
+
     if (isEmpty(gc.visibleRows) || isEmpty(selected_csets)) {
         // sometimes selected_csets and some other data disappears when the page is reloaded
         return <p>Downloading...</p>;

@@ -251,7 +251,10 @@ class DataGetter {
 			dataLengthFunc: params => params.codeset_ids.length + params.cids.length,
 			// api: 'indented-concept-list',
 			api: 'concept-graph',
-			makeQueryString: params => createSearchParams(params),
+			makeQueryString: params => {
+				// params = {...params, hide_vocabs: 'null'};
+				return createSearchParams(params)
+			},
 			protocols: ['get', 'post'],
 			cacheSlice: 'concept-graph',
 			// TODO: this can't be right. why no codeset_ids in key func?
