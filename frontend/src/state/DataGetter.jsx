@@ -42,7 +42,7 @@ class DataGetter {
 		return this.api_call_group_id;
 	}
 	async axiosCall(path, { backend = true, data, returnDataOnly = true, useGetForSmallData = true,
-		verbose = false, sendAlert = true, title, makeQueryString, dataLengthFunc,
+		verbose = false, sendAlert = true, title, makeQueryString, dataLengthFunc, skipApiGroup,
 	} = {}) {
 		let url = backend ? backend_url(path) : path;
 		let request = { url };
@@ -54,8 +54,9 @@ class DataGetter {
 		};
 		alertAction.id = alertAction.title + ':' + (new Date()).toISOString();
 		let qsData = {};
-		let qs = '?';
-		if (path !== 'next-api-call-group-id' && this.api_call_group_id ) {
+		let qs = path.match(/\?/) ? '' : '?';
+		if (path !== 'next-api-call-group-id' && this.api_call_group_id &&
+				!skipApiGroup) {
 			qs = qs + 'api_call_group_id=' + this.api_call_group_id + '&';
 		}
 		try {
@@ -227,15 +228,40 @@ class DataGetter {
 			// cacheShape: 'obj of array of array', // cache.edges[key] = [[src,tgt], [src,tgt], ....]
 			// formatResultsFunc: edges => edges.map(edge => edge.map(String)), // might need this!!
 		},
-		indented_concept_list: {	// expects codeset_ids plus extra concept_ids if any requested
+		indented_concept_list: {	// expects codeset_ids plus extra concept_ids (cids) if any requested
 			expectedParams: {},
-			dataLengthFunc: params => params.codeset_ids.length + params.extra_concept_ids.length,
-			api: 'indented-concept-list',
-			makeQueryString: params => createSearchParams(params),
+			dataLengthFunc: params => params.codeset_ids.length + params.cids.length,
+			api: 'concept-graph',
+			// api: 'indented-concept-list',	# TODO: this is the same as concept-graph, but with indented=true
+			makeQueryString: params => createSearchParams({...params, indented: true}),
 			protocols: ['get', 'post'],
-			cacheSlice: 'indented-concept-list',
-			singleKeyFunc: concept_ids => compress(concept_ids.join('|')),
-			alertTitle: 'Get subgraph for all listed concept_ids',
+			cacheSlice: 'concept-graph',
+			// TODO: this can't be right. why no codeset_ids in key func?
+			// 	singleKeyFunc: concept_ids => compress(concept_ids.join('|')),
+			singleKeyFunc: ({codeset_ids=[], cids=[]}) =>
+				compress(codeset_ids.join('|') + ';' + cids.join('|') + ';indented'),
+			alertTitle: 'Get subgraph for all listed code sets plus additional concept_ids (cids)',
+			apiResultShape: 'array of array [level, concept_id]',
+			cacheShape: 'obj of array of array', // cache.edges[key] = [[src,tgt], [src,tgt], ....]
+			// formatResultsFunc: edges => edges.map(edge => edge.map(String)), // might need this!!
+		},
+		concept_graph_new: {	// expects codeset_ids plus extra concept_ids (cids) if any requested
+			// was indented_concept_list
+			expectedParams: {},
+			dataLengthFunc: params => params.codeset_ids.length + params.cids.length,
+			// api: 'indented-concept-list',
+			api: 'concept-graph',
+			makeQueryString: params => {
+				// params = {...params, hide_vocabs: 'null'};
+				return createSearchParams(params)
+			},
+			protocols: ['get', 'post'],
+			cacheSlice: 'concept-graph',
+			// TODO: this can't be right. why no codeset_ids in key func?
+			// 	singleKeyFunc: concept_ids => compress(concept_ids.join('|')),
+			singleKeyFunc: ({codeset_ids=[], cids=[]}) =>
+					compress(codeset_ids.join('|') + ';' + cids.join('|')),
+			alertTitle: 'Get subgraph for all listed code sets plus additional concept_ids (cids)',
 			apiResultShape: 'array of array [level, concept_id]',
 			cacheShape: 'obj of array of array', // cache.edges[key] = [[src,tgt], [src,tgt], ....]
 			// formatResultsFunc: edges => edges.map(edge => edge.map(String)), // might need this!!
@@ -306,7 +332,7 @@ class DataGetter {
 			api: 'researchers',
 			cacheSlice: 'researchers',
 			key: 'multipassId',
-			makeQueryString: id => createSearchParams({id}),
+			makeQueryString: ids => createSearchParams({ids}),
 			apiResultShape: 'obj of obj',
 		},
 	}
@@ -322,9 +348,9 @@ class DataGetter {
 
 		const dataCache = this.dataCache;
 
-		if (apiDef.api === 'indented-concept-list') { // indented_concept_list: { codeset_ids: [], additional_concept_ids: [] }
-			const {codeset_ids, extra_concept_ids} = params;
-			let cacheKey = codeset_ids.join(',') + ';' + extra_concept_ids.join(',');
+		if (apiDef.api === 'concept-graph') { // indented_concept_list: { codeset_ids: [], additional_concept_ids: [] }
+			const {codeset_ids, cids, indented} = params;
+			let cacheKey = codeset_ids.join(',') + ';' + cids.join(',') + `${indented ? ';indented' : ''}`;
 
 			let data = dataCache.cacheGet([apiDef.cacheSlice, cacheKey]);
 			if (isEmpty(data)) {

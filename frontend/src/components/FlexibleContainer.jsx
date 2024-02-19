@@ -12,7 +12,7 @@ export function ErrorAlert(props) {
 }
 
 const itemContent = once(() => {
-  let stackTop = -1;
+  let stackTop = 0;
   let stack = [];
   const STARTING_ZINDEX = 1000;     // FlexibleContainers will increment from here
 
@@ -63,17 +63,33 @@ const itemContent = once(() => {
     let { title, position, children, countRef, closeAction=()=>{}, zIndex, setZIndex,
       stackPosition, draggableRef, setDisplay, hideTitle, style, } = props;
 
-
     const closeFunc = (() => {
       countRef.current.n--;
       stack = stack.filter(d => d !== title);
+      stackTop--;
+      stackPosition = stackTop;
       setDisplay("hidden");
       closeAction();
+      // Remove event listener on cleanup
+      document.removeEventListener('keydown', handleKeyDown);
     });
+    const handleKeyDown = (event) => {
+      if (event.key === 'Escape') {
+        // console.log({stack, stackTop, stackPosition, zIndex})
+        closeFunc();
+        // console.log({stack, stackTop, stackPosition, zIndex})
+      }
+    };
+    document.addEventListener('keydown', handleKeyDown);
+
+    const getZIndex = (stackPos = stackPosition) => {
+      // console.log(stackPos, zIndex);
+      return STARTING_ZINDEX + stackPos + (zIndex || 0);
+    }
+
     style = {
-      ...style,
       // zIndex: countRef.current.z,
-      zIndex: STARTING_ZINDEX + (zIndex || stackPosition), // zIndex can get updated by stackPutOnTop
+      zIndex: getZIndex(), // zIndex can get updated by stackPutOnTop
       position: "absolute",
       backgroundColor: "#EEE",
       border: "2px solid green",
@@ -83,6 +99,7 @@ const itemContent = once(() => {
       // display: "flex",
       // flexDirection: "column",
       overflow: "scroll!important",
+      ...style,
     };
     const displayedContent = (
         <Box
@@ -107,9 +124,19 @@ const itemContent = once(() => {
     );
     return (
         <Draggable
-            onStart={() => {
-              const stackPos = stackPutOnTop(props);
-              setZIndex(stackPos);
+            onStart={(evt) => {
+              // console.log(evt.target.tagName, evt, draggableRef.current);
+              if (evt.target.tagName === 'DIV') {
+                // if tagName is path or svg, they're just trying to close the container, so don't do anything.
+                const stackPos = stackPutOnTop(props);
+                setZIndex(z => {
+                  // let zIndexNew = (z || 0) + (stackPos || 0); // (z || 0) + (stack||([1,2,3,4,5].length)));
+                  let zIndexNew = getZIndex(stackPos);
+                  draggableRef.current.style.zIndex = zIndexNew;
+                  // console.log(z, stackPos, zIndexNew);
+                })
+              }
+              return null;
             }}
             nodeRef={draggableRef}
             handle=".handle"
@@ -130,6 +157,24 @@ export function FlexibleContainer(props) {
   const [display, setDisplay] = useState((startHidden && !openOnly) ? "hidden" : "shown");
   const draggableRef = useRef(null);
   const [zIndex, setZIndex] = useState(); // this is just to force render on zindex change
+
+  /*  would like to be able to close boxes on escape, but it's too tangled...
+  useEffect(() => {
+    const handleKeyDown = (event) => {
+      if (event.key === 'Escape') {
+        closeFunc();
+      }
+    };
+
+    // Add event listener
+    document.addEventListener('keydown', handleKeyDown);
+
+    // Remove event listener on cleanup
+    return () => {
+      document.removeEventListener('keydown', handleKeyDown);
+    };
+  }, []); // Empty dependency array means this effect runs once on mount
+   */
 
   const [showButton, showContent, stackAdd, stackRemove] = itemContent();
 

@@ -2,27 +2,28 @@
     A bunch are elsewhere, but just starting this file for a couple new ones
     (2023-05-08)
 """
-from fastapi import APIRouter, Query, Request
 import json
-from typing import Dict, List, Union, Set, Optional
-from functools import cache
 import urllib.parse
+from functools import cache
+from typing import Dict, List, Union, Set
 
+from fastapi import APIRouter, Query, Request
 from sqlalchemy import Connection, Row
 from sqlalchemy.engine import RowMapping
 from starlette.responses import Response
+from psycopg2 import sql
+from sqlalchemy import text
 
 from backend.api_logger import Api_logger
-from backend.utils import get_timer, return_err_with_trace, commify
-from backend.db.utils import get_db_connection, sql_query, SCHEMA, sql_query_single_col, sql_in, run_sql
+from backend.db.refresh import refresh_db
 from backend.db.queries import get_concepts
-from enclave_wrangler.objects_api import get_n3c_recommended_csets, enclave_api_call_caller, \
-    get_concept_set_version_expression_items, items_to_atlas_json_format
-from enclave_wrangler.utils import make_objects_request, whoami, check_token_ttl
+from backend.db.utils import get_db_connection, sql_query, SCHEMA, sql_query_single_col, sql_in, sql_in_safe, run_sql
+from backend.utils import return_err_with_trace, commify
 from enclave_wrangler.config import RESEARCHER_COLS
 from enclave_wrangler.models import convert_rows
-# from backend.routes import graph
-from backend.db.refresh import refresh_db
+from enclave_wrangler.objects_api import get_n3c_recommended_csets, get_concept_set_version_expression_items, \
+    items_to_atlas_json_format
+from enclave_wrangler.utils import make_objects_request, whoami, check_token_ttl
 
 
 JSON_TYPE = Union[Dict, List]
@@ -91,9 +92,10 @@ def get_all_researcher_ids(rows: List[Dict]) -> Set[str]:
 
 
 def get_cset_members_items(
-    codeset_ids: List[int] = [],
-    # columns: Union[List[str], None] = None,
-    # column: Union[str, None] = None,
+    codeset_ids: Union[List[int], None] = None,
+    columns: Union[List[str], None] = None,
+    column: Union[str, None] = None,
+    return_with_keys: bool = True,
 ) -> Union[List[int], List]:
     """Get concept set members items for selected concept sets
         returns:
@@ -101,42 +103,47 @@ def get_cset_members_items(
         item: True if its an expression item, else false
         csm: false if not in concept set members
     """
-    # if column:
-    #     # should check that column names are valid columns in concept_set_members
-    #     # but probably never use this option anyway
-    #     columns = [column]
-    # if not columns:
-    #     columns = ['*']
-    #     # columns = ['codeset_id', 'concept_id']
+    if column and columns:
+        raise ValueError('Cannot specify both columns and column')
 
-    with get_db_connection() as con:
-        # SELECT DISTINCT {', '.join(columns)}
-        query = f"""
-            SELECT DISTINCT *
-            FROM cset_members_items
-            WHERE codeset_id {sql_in(codeset_ids)}
-        """
-        # rows: List = sql_query(con, query, debug=False, return_with_keys=True)
-        # # if column:  # with single column, don't return List[Dict] but just List(<column>)
-        #     rows: List[int] = [r[column] for r in rows]
+    with (get_db_connection() as con):
+        if codeset_ids:
+            pstr, params = sql_in_safe(codeset_ids)
+            where = sql.SQL(f" WHERE codeset_id IN ({pstr})").as_string(con.connection.connection)
+        else:
+            where = ''
+            params = {}
 
-        rows: List = sql_query(con, query)
-    return rows
+        if column:
+            columns = [column]
 
+        if columns:
+            select = sql.SQL("""
+                    SELECT DISTINCT {}
+                    FROM cset_members_items
+                    """).format(
+                sql.SQL(', ').join(map(sql.Identifier, columns)),
+                sql.SQL(', ').join(sql.Placeholder() * len(columns)))
+            select = select.as_string(con.connection.connection)
+        else:
+            select = "SELECT * FROM cset_members_items"
 
-# TODO: don't keep both these routes; redundant
-@router.get("/cset-members-items")
-def _cset_members_items(codeset_ids: Union[str, None] = Query(default=''), ) -> List:
-    """Route for: cset_memberss_items()"""
-    codeset_ids: List[int] = parse_codeset_ids(codeset_ids)
-    return get_cset_members_items(codeset_ids)
+        query = text(select + where)
+
+        if column:  # with single column, don't return List[Dict] but just List(<column>)
+            res: List = sql_query_single_col(con, query, params)
+        else:
+            res: List = sql_query(con, query, params, return_with_keys=return_with_keys)
+
+    return res
 
 
 @router.get("/get-cset-members-items")
 async def _get_cset_members_items(request: Request,
-                                  codeset_ids: str,
-                                  # columns: Union[List[str], None] = Query(default=None),
-                                  # column: Union[str, None] = Query(default=None),
+                                  codeset_ids: str = None,
+                                  columns: Union[List[str], None] = Query(default=None),
+                                  column: Union[str, None] = Query(default=None),
+                                  return_with_keys: bool = True,
                                   # extra_concept_ids: Union[int, None] = Query(default=None)
                                   ) -> Union[List[int], List]:
     requested_codeset_ids = parse_codeset_ids(codeset_ids)
@@ -144,38 +151,12 @@ async def _get_cset_members_items(request: Request,
     await rpt.start_rpt(request, params={'codeset_ids': requested_codeset_ids})
 
     try:
-        rows = get_cset_members_items(requested_codeset_ids) #, columns, column
+        rows = get_cset_members_items(requested_codeset_ids, columns, column, return_with_keys)
         await rpt.finish(rows=len(rows))
     except Exception as e:
         await rpt.log_error(e)
         raise e
     return rows
-
-def get_concept_set_member_ids(
-    codeset_ids: List[int],
-    columns: Union[List[str], None] = None,
-    column: Union[str, None] = None,
-    con: Connection = None
-) -> Union[List[int], List]:
-    """Get concept set members"""
-    conn = con if con else get_db_connection()
-    if column:
-        columns = [column]
-    if not columns:
-        columns = ['codeset_id', 'concept_id']
-
-    # should check that column names are valid columns in concept_set_members
-    query = f"""
-        SELECT DISTINCT {', '.join(columns)}
-        FROM concept_set_members csm
-        WHERE csm.codeset_id {sql_in(codeset_ids)}
-    """
-    res: List = sql_query(conn, query, debug=False)
-    if not con:
-        conn.close()
-    if column:  # with single column, don't return List[Dict] but just List(<column>)
-        res: List[int] = [r[column] for r in res]
-    return res
 
 
 def get_concept_relationships(cids: List[int], reltypes: List[str] = ['Subsumes'], con: Connection = None) -> List:
@@ -277,12 +258,14 @@ async def get_concept_ids_by_codeset_id(
     request: Request, codeset_ids: Union[List[str], None] = Query(...)
 ) -> Dict[str, str]:
     """Get concept IDs by codeset id"""
-    q = f"""
-          SELECT csids.codeset_id, COALESCE(cibc.concept_ids, ARRAY[]::integer[]) AS concept_ids
-          FROM (VALUES{",".join([f"({csid})" for csid in codeset_ids])}) AS csids(codeset_id)
-          LEFT JOIN concept_ids_by_codeset_id cibc ON csids.codeset_id = cibc.codeset_id"""
-    if not codeset_ids:
-        return {}
+
+    if codeset_ids:
+        q = f"""
+              SELECT csids.codeset_id, COALESCE(cibc.concept_ids, ARRAY[]::integer[]) AS concept_ids
+              FROM (VALUES{",".join([f"({csid})" for csid in codeset_ids])}) AS csids(codeset_id)
+              LEFT JOIN concept_ids_by_codeset_id cibc ON csids.codeset_id = cibc.codeset_id"""
+    else:
+        q = f"""SELECT * FROM concept_ids_by_codeset_id"""
 
     rpt = Api_logger()
     await rpt.start_rpt(request, params={'codeset_ids': codeset_ids})
@@ -299,12 +282,13 @@ async def get_concept_ids_by_codeset_id(
 
 @router.post("/codeset-ids-by-concept-id")
 @return_err_with_trace
-async def get_codeset_ids_by_concept_id_post(request: Request, concept_ids: Union[List[int], None] = None) -> Dict:
+async def get_codeset_ids_by_concept_id_post(
+    request: Request, concept_ids: Union[List[int], None] = None) -> Dict:
     """Get Codeset IDs by concept ID"""
     q = f"""
           SELECT *
-          FROM codeset_ids_by_concept_id
-          WHERE concept_id {sql_in(concept_ids)};"""
+          FROM codeset_ids_by_concept_id"""
+    q += f" WHERE concept_id {sql_in(concept_ids)}" if concept_ids else ""
     rpt = Api_logger()
     await rpt.start_rpt(request, params={'concept_ids': concept_ids})
     try:
@@ -319,7 +303,9 @@ async def get_codeset_ids_by_concept_id_post(request: Request, concept_ids: Unio
 
 
 @router.get("/codeset-ids-by-concept-id")
+# async def get_codeset_ids_by_concept_id(request: Request, concept_ids: Union[List[str], None] = Query(...)) -> Dict:
 async def get_codeset_ids_by_concept_id(request: Request, concept_ids: Union[List[str], None] = Query(...)) -> Dict:
+
     """Get Codeset IDs by concept ID"""
     return await get_codeset_ids_by_concept_id_post(request, concept_ids)
 
@@ -353,9 +339,10 @@ async def _get_csets(request: Request, codeset_ids: Union[str, None] = Query(def
 
 
 @router.get("/researchers")
-def get_researchers(id: List[str] = Query(...), fields: Union[List[str], None] = []) -> JSON_TYPE:
+def get_researchers(ids: List[str] = Query(...), fields: Union[List[str], None] = []) -> JSON_TYPE:
     """Get researcher info for list of multipassIds.
     fields is the list of fields to return from researcher table; defaults to * if None."""
+    ids = list(ids)
     if fields:
         fields = ', '.join([f'"{x}"' for x in fields])
     else:
@@ -367,9 +354,9 @@ def get_researchers(id: List[str] = Query(...), fields: Union[List[str], None] =
         WHERE "multipassId" = ANY(:id)
     """
     with get_db_connection() as con:
-        res: List[RowMapping] = sql_query(con, query, {'id': list(id)}, return_with_keys=True)
+        res: List[RowMapping] = sql_query(con, query, {'id': list(ids)}, return_with_keys=True)
     res2 = {r['multipassId']: dict(r) for r in res}
-    for _id in id:
+    for _id in ids:
         if _id not in res2:
             res2[_id] = {"multipassId": _id, "name": "unknown", "emailAddress": _id}
     return res2
@@ -591,6 +578,21 @@ def n3c_comparison_rpt():
         rpt = sql_query_single_col(con, "SELECT rpt FROM public.codeset_comparison WHERE rpt IS NOT NULL")
     return rpt
 
+
+@router.get("/single-n3c-comparison-rpt")
+def single_n3c_comparison_rpt(pair: str):
+    """
+    display comparison data compiled in generate_n3c_comparison_rpt()
+        and get_comparison_rpt()
+    """
+    orig_codeset_id, new_codeset_id = pair.split('-')
+    with get_db_connection() as con:
+        rpt = sql_query_single_col(
+            con,
+            "SELECT rpt FROM public.codeset_comparison WHERE orig_codeset_id || '-' || new_codeset_id = :pair",
+            {"pair": pair})
+
+    return rpt[0] if rpt else None
 
 @cache
 def get_comparison_rpt(con, codeset_id_1: int, codeset_id_2: int) -> Dict[str, Union[str, None]]:

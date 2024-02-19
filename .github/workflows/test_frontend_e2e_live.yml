@@ -48,7 +48,7 @@ jobs:
 
     # Run tests
     - name: Run Playwright tests
-      run: make test-frontend-deployments
+      run: make test-frontend-e2e-deployments
     - uses: actions/upload-artifact@v3
       if: always()
       with:

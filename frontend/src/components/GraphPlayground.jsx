@@ -38,16 +38,20 @@ function sugiyamaLayout(edges) {
 
 export const ConceptGraph/*: React.FC*/ = () => {
   const {sp} = useSearchParamsState();
-  const {codeset_ids, use_example=false} = sp;
+  let {codeset_ids=[], cids=[], use_example=false} = sp;
   const dataGetter = useDataGetter();
-  const [data, setData] = useState({ concept_ids: [], graph_data: {}, concepts: [], });
-  const { concept_ids, graph_data, concepts, } = data;
+  const [data, setData] = useState({ cids: [], graph_data: {}, concepts: [], });
+  const { graph_data, concepts, } = data;
 
   useEffect(() => {
     (async () => {
 
       await dataGetter.getApiCallGroupId();
 
+      const graph_data_JUNK = await dataGetter.fetchAndCacheItems(dataGetter.apiCalls.concept_graph_new, {codeset_ids, cids: cids});
+      debugger;
+
+      /*
       const concept_ids_by_codeset_id = await dataGetter.fetchAndCacheItems(dataGetter.apiCalls.concept_ids_by_codeset_id, codeset_ids);
       let concept_ids = union(flatten(Object.values(concept_ids_by_codeset_id)));
 
@@ -57,6 +61,7 @@ export const ConceptGraph/*: React.FC*/ = () => {
       concept_ids = uniq(concept_ids.concat(filled_gaps));
 
       const concepts = await dataGetter.fetchAndCacheItems(dataGetter.apiCalls.concepts, concept_ids);
+      */
 
       setData({concept_ids, graph_data, concepts});
     })()

@@ -268,4 +268,6 @@ textarea {
     color: white;
 }
 
-
+.stats-and-options .rdt_TableHead {
+    display: none;
+}

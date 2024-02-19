@@ -28,7 +28,7 @@ from sqlalchemy.engine.base import Connection
 from sqlalchemy.exc import OperationalError, ProgrammingError
 from sqlalchemy.sql import text
 from sqlalchemy.sql.elements import TextClause
-from typing import Any, Dict, Tuple, Union, List
+from typing import Any, Dict, Set, Tuple, Union, List
 
 from backend.db.config import CORE_CSET_DEPENDENT_TABLES, CORE_CSET_TABLES, RECURSIVE_DEPENDENT_TABLE_MAP, \
     REFRESH_JOB_MAX_HRS, get_pg_connect_url
@@ -398,7 +398,7 @@ def database_exists(con: Connection, db_name: str) -> bool:
 
 def sql_query(
     con: Connection, query: Union[text, str], params: Dict = {}, debug: bool = DEBUG, return_with_keys=True
-) -> Union[List[RowMapping], List[Row]]:
+) -> Union[List[RowMapping], List[List]]:
     """Run a sql query with optional params, fetching records.
     https://stackoverflow.com/a/39414254/1368860:
     query = "SELECT * FROM my_table t WHERE t.id = ANY(:ids);"
@@ -423,7 +423,7 @@ def sql_query(
             # noinspection PyTypeChecker
             results: List[Row] = q.fetchall()  # Row tuples, with additional properties
             # after upgrading some packages, fastapi can no longer serialize Row objects
-            # return [list(x) for x in results]
+            return [list(x) for x in results]
         return results
     except (ProgrammingError, OperationalError) as err:
         raise RuntimeError(f'Got an error [{err}] executing the following statement:\n{query}, {json.dumps(params, indent=2)}')
@@ -552,7 +552,7 @@ def sql_count(con: Connection, table: str) -> int:
     return sql_query(con, query, return_with_keys=False)[0][0]
 
 
-def sql_in(lst: List, quote_items=False) -> str:
+def sql_in(lst: Union[List, Set], quote_items=False) -> str:
     """Construct SQL 'IN' expression."""
     if quote_items:
         lst = [str(x).replace("'", "''") for x in lst]
@@ -560,6 +560,12 @@ def sql_in(lst: List, quote_items=False) -> str:
     else:
         s: str = ', '.join([str(x) for x in lst]) or 'NULL'
     return f' IN ({s}) '
+
+def sql_in_safe(lst: List) -> (str, dict):
+    bindparams = [":id{}".format(i) for i in range(len(lst))]
+    query = text(','.join(bindparams))
+    params = {"id{}".format(i): id for i, id in enumerate(lst)}
+    return (query, params)
 
 
 def run_sql(con: Connection, command: str, params: Dict = {}) -> Any:

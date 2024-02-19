@@ -1,13 +1,13 @@
 """Queries"""
 from functools import cache
-from typing import List, Dict
+from typing import List, Dict, Set, Union
 from fastapi import Query
 from sqlalchemy import Connection
 
 from backend.db.utils import sql_query, sql_query_single_col, get_db_connection, sql_in
 
 
-def get_concepts(concept_ids: List[int], con: Connection = None, table:str='concepts_with_counts') -> List:
+def get_concepts(concept_ids: Union[List[int], Set[int]], con: Connection = None, table:str='concepts_with_counts') -> List:
     """Get information about concept sets the user has selected"""
     conn = con if con else get_db_connection()
     q = f"""

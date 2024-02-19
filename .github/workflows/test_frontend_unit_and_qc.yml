@@ -34,4 +34,4 @@ jobs:
 
     # Run tests
     - name: Run tests
-      run: echo todo - make tests
+      run: make test-frontend-unit

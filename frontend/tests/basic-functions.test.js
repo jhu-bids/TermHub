@@ -22,9 +22,14 @@ test.beforeAll(async () => {
 */
 
 // Tests ---------------------------------------------------------------------------------------------------------------
+
+const configsToRun = 'local'; // only run these tests in local for now
+// const configsToRun = selectedConfigs; // uncomment to run on dev or prod
+
 for (const envName in selectedConfigs) {
   const appUrl = deploymentConfigs[envName];
   console.log('testing ' + appUrl);
+
   test(envName + ': ' + 'Main page - has title & heading', async ({ page }) => {
     await page.goto(appUrl);
     await expect(page).toHaveTitle(/TermHub/);  // Expect a title "to contain" a substring.

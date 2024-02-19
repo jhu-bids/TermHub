@@ -13,7 +13,7 @@ from urllib.parse import urljoin
 from dateutil.parser import parse
 import requests
 import unittest
-from backend.routes.db import cr_hierarchy, get_concepts, get_related_csets, get_all_researcher_ids, get_researchers, get_cset_members_items
+from backend.routes.db import get_concepts, get_all_researcher_ids, get_researchers, get_cset_members_items
 
 from requests import Response
 
@@ -182,38 +182,41 @@ class TestBackend(unittest.TestCase):
         self.assertEqual(len(response['data_counts']), 0)
     """
 
-    def test_get_related_csets(self):
-        """ Test the related csets output of cr_hierarchy defined in backend/routes/app.py.
-        The related csets output is given by get_related_csets in backend/routes/app.py.
-        """
-        related_csets = get_related_csets([396155663,643758668])
-        related_cs_ids = [concept['codeset_id']for concept in related_csets]
-        self.assertEqual(related_cs_ids,[93330599, 128430450, 201986476, 396155663, 643758668])
-        self.assertEqual(related_csets[2],{'codeset_id': 201986476, 'concept_set_version_title': '[VSAC] Social Determinants of Health Goals (v2)',
-                          'project': 'RP-4A9E27', 'concept_set_name': '[VSAC] Social Determinants of Health Goals',
-                          'alias': '[VSAC] Social Determinants of Health Goals', 'source_application': 'UNITE',
-                          'source_application_version': '2.0', 'codeset_created_at': '2022-03-16 18:47:09.939000+00:00',
-                          'atlas_json': None, 'is_most_recent_version': True, 'version': 2.0, 'comments': None,
-                          'codeset_intention': 'Clinical Focus: The value sets in this group represent all of the individual domain goals identified by the Gravity Project; Data Element Scope: Supports the Gravity SDOH Clinical Care FHIR Implementation guide for the exchange of goal resource elements.; Inclusion Criteria: Includes SNOMED CT goals that have been identified through the Gravity Project community consensus voting process',
-                          'limitations': 'Exclusion Criteria: N/A', 'issues': None, 'update_message': 'Initial version.',
-                          'codeset_status': 'Finished', 'has_review': True, 'reviewed_by': None, 'codeset_created_by': '6387db50-9f12-48d2-b7dc-e8e88fdf51e3',
-                          'provenance': 'Steward: The Gravity Project; OID: 2.16.840.1.113762.1.4.1247.71; Code System(s): SNOMEDCT; Definition Type: Grouping; Definition Version: Latest; Accessed: 2022-02-23 15:28:52; dih_id:1000000232\n\nset include descendants = FALSE',
-                          'atlas_json_resource_url': None, 'parent_version_id': None, 'authoritative_source': 'The Gravity Project',
-                          'is_draft': False, 'codeset_rid': 'ri.phonograph2-objects.main.object.199e59df-b414-4742-9fde-564de4a885ce',
-                          'project_id': None, 'assigned_informatician': None, 'assigned_sme': None, 'container_status': 'Under Construction',
-                          'stage': 'Awaiting Editing', 'container_intention': None, 'n3c_reviewer': None, 'archived': False,
-                          'container_created_by': '6387db50-9f12-48d2-b7dc-e8e88fdf51e3', 'container_created_at': '2022-02-24 00:06:05.027000+00:00',
-                          'container_rid': 'ri.phonograph2-objects.main.object.f2a45883-78d4-4cd8-a994-0d5a0dcdeb45',
-                          'distinct_person_cnt': 4425, 'total_cnt': 8825, 'counts': {'Expression item and member -- no flags': 21, 'Expression item only -- includeDescendants': 1, 'Expression items': 22, 'Members': 21},
-                          'concepts': '21', 'researchers': {'6387db50-9f12-48d2-b7dc-e8e88fdf51e3': ['container_created_by', 'codeset_created_by']},
-                          'selected': False, 'intersecting_concepts': 2, 'recall': 1.0, 'precision': 0.09523809523809523})
-        selected_csets = [cset for cset in related_csets if cset['selected']]
-        self.assertEqual(selected_csets,[396155663,643758668])
+    # get_related_csets no longer exists -- leaving this for possible future use
+    # def test_get_related_csets(self):
+    #     """ Test the related csets output of cr_hierarchy defined in backend/routes/app.py.
+    #     The related csets output is given by get_related_csets in backend/routes/app.py.
+    #     """
+    #     related_csets = get_related_csets([396155663,643758668])
+    #     related_cs_ids = [concept['codeset_id']for concept in related_csets]
+    #     self.assertEqual(related_cs_ids,[93330599, 128430450, 201986476, 396155663, 643758668])
+    #     self.assertEqual(related_csets[2],{'codeset_id': 201986476, 'concept_set_version_title': '[VSAC] Social Determinants of Health Goals (v2)',
+    #                       'project': 'RP-4A9E27', 'concept_set_name': '[VSAC] Social Determinants of Health Goals',
+    #                       'alias': '[VSAC] Social Determinants of Health Goals', 'source_application': 'UNITE',
+    #                       'source_application_version': '2.0', 'codeset_created_at': '2022-03-16 18:47:09.939000+00:00',
+    #                       'atlas_json': None, 'is_most_recent_version': True, 'version': 2.0, 'comments': None,
+    #                       'codeset_intention': 'Clinical Focus: The value sets in this group represent all of the individual domain goals identified by the Gravity Project; Data Element Scope: Supports the Gravity SDOH Clinical Care FHIR Implementation guide for the exchange of goal resource elements.; Inclusion Criteria: Includes SNOMED CT goals that have been identified through the Gravity Project community consensus voting process',
+    #                       'limitations': 'Exclusion Criteria: N/A', 'issues': None, 'update_message': 'Initial version.',
+    #                       'codeset_status': 'Finished', 'has_review': True, 'reviewed_by': None, 'codeset_created_by': '6387db50-9f12-48d2-b7dc-e8e88fdf51e3',
+    #                       'provenance': 'Steward: The Gravity Project; OID: 2.16.840.1.113762.1.4.1247.71; Code System(s): SNOMEDCT; Definition Type: Grouping; Definition Version: Latest; Accessed: 2022-02-23 15:28:52; dih_id:1000000232\n\nset include descendants = FALSE',
+    #                       'atlas_json_resource_url': None, 'parent_version_id': None, 'authoritative_source': 'The Gravity Project',
+    #                       'is_draft': False, 'codeset_rid': 'ri.phonograph2-objects.main.object.199e59df-b414-4742-9fde-564de4a885ce',
+    #                       'project_id': None, 'assigned_informatician': None, 'assigned_sme': None, 'container_status': 'Under Construction',
+    #                       'stage': 'Awaiting Editing', 'container_intention': None, 'n3c_reviewer': None, 'archived': False,
+    #                       'container_created_by': '6387db50-9f12-48d2-b7dc-e8e88fdf51e3', 'container_created_at': '2022-02-24 00:06:05.027000+00:00',
+    #                       'container_rid': 'ri.phonograph2-objects.main.object.f2a45883-78d4-4cd8-a994-0d5a0dcdeb45',
+    #                       'distinct_person_cnt': 4425, 'total_cnt': 8825, 'counts': {'Expression item and member -- no flags': 21, 'Expression item only -- includeDescendants': 1, 'Expression items': 22, 'Members': 21},
+    #                       'concepts': '21', 'researchers': {'6387db50-9f12-48d2-b7dc-e8e88fdf51e3': ['container_created_by', 'codeset_created_by']},
+    #                       'selected': False, 'intersecting_concepts': 2, 'recall': 1.0, 'precision': 0.09523809523809523})
+    #     selected_csets = [cset for cset in related_csets if cset['selected']]
+    #     self.assertEqual(selected_csets,[396155663,643758668])
 
     def test_get_researchers(self):
-        related_csets = get_related_csets([396155663, 643758668])
+        """Test get_researchers()"""
+        related_csets = []
+        # related_csets = get_related_csets([396155663, 643758668])  # get_related_csets() doesn't exist
         researcher_ids = get_all_researcher_ids(related_csets)
-        self.assertEqual(get_researchers(researcher_ids),
+        self.assertEqual(get_researchers(list(researcher_ids)),
                          {'48fd3b68-84fc-47e7-bdf4-3de94554b986': {'multipassId': '48fd3b68-84fc-47e7-bdf4-3de94554b986',
                                                                    'institutionsId': 'https://ror.org/00za53h95', 'name': 'Lisa Eskenazi',
                                                                    'emailAddress': 'leskena2@jh.edu', 'unaPath': 'InCommon', 'signedDua': True,
@@ -226,7 +229,10 @@ class TestBackend(unittest.TestCase):
                                                                    'name': 'unknown', 'emailAddress': '4bf7076c-6723-49cc-b4e5-f6c6ada1bdae'}})
 
     def test_get_cset_members_items(self):
-        self.assertEquals(get_cset_members_items([396155663, 643758668]),[
+        """Test test_get_cset_members_items()"""
+        key = lambda d: f"{d['codeset_id']}.{d['concept_id']}"
+        csmi = get_cset_members_items([396155663, 643758668]).sort(key=key)
+        expected = [
             {'codeset_id': 643758668.0, 'concept_id': 4091006, 'csm': True,
              'item': True, 'item_flags': 'includeDescendants', 'isExcluded': False,
              'includeDescendants': True, 'includeMapped': False},
@@ -236,7 +242,21 @@ class TestBackend(unittest.TestCase):
              'item_flags': 'includeDescendants', 'isExcluded': False, 'includeDescendants': True,
              'includeMapped': False},
             {'codeset_id': 396155663.0, 'concept_id': 4091006, 'csm': True,
-             'item': True, 'item_flags': '', 'isExcluded': False, 'includeDescendants': False, 'includeMapped': False}])
+             'item': True, 'item_flags': '', 'isExcluded': False, 'includeDescendants': False, 'includeMapped': False}
+        ].sort(key=key)
+        self.assertEquals(csmi, expected)
+
+    def test_get_cset_members_items__cols(self):
+        """Test test_get_cset_members_items() using columns param.
+
+        Even though same codeset IDs as test_get_cset_members_items(), should reduce distinct rows from 4 to 2."""
+        key = lambda d: {d['concept_id']}
+        csmi = get_cset_members_items(
+            [396155663, 643758668], columns=['concept_id', 'vocabulary_id', 'standard_concept']).sort(key=key)
+        expected = [
+            {'concept_id': 4091006, 'standard_concept': 'S', 'vocabulary_id': 'SNOMED'},
+            {'concept_id': 4052321, 'standard_concept': 'S', 'vocabulary_id': 'SNOMED'}].sort(key=key)
+        self.assertEquals(csmi, expected)
 
     def test_subgraph(self):
         "tests subgraphs"

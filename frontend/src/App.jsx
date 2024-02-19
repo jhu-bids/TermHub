@@ -35,6 +35,7 @@ import {
   NewCsetProvider,
   useNewCset,
 } from "./state/AppState";
+import {GraphProvider} from "./state/GraphState";
 import {SearchParamsProvider, useSearchParamsState} from "./state/SearchParamsProvider";
 import {DataGetterProvider} from "./state/DataGetter";
 import { UploadCsvPage } from "./components/UploadCsv";
@@ -55,7 +56,9 @@ import {DEPLOYMENT} from "./env";
             <DataCacheProvider>       // ability to save to and retrieve from cache in localStorage
               <DataGetterProvider>    // utilities for fetching data. dataCache needs access to this a couple of times
                                       //  so those method calls will have to pass in a dataGetter
-                <RoutesContainer/>
+                <GraphProvider>       // graph stuff for concept hierarchy
+                  <RoutesContainer/>
+                </GraphProvider>
               </DataGetterProvider>
             </DataCacheProvider>
           </NewCsetProvider>
@@ -73,7 +76,9 @@ function AppWrapper() {
             <NewCsetProvider>
               <DataCacheProvider>
                 <DataGetterProvider>
-                  <RoutesContainer/>
+                  <GraphProvider>
+                    <RoutesContainer/>
+                  </GraphProvider>
                 </DataGetterProvider>
               </DataCacheProvider>
             </NewCsetProvider>

@@ -92,18 +92,24 @@ test-missing-csets:
 ## - ENVIRONMENTS: To run multiple, hyphen-delimit, e.g. ENVIRONMENTS=local-dev-prod
 TEST_ENV_LOCAL=ENVIRONMENTS=local
 TEST_ENV_DEPLOYED=ENVIRONMENTS=dev-prod
-TEST_FRONTEND_CMD=yarn playwright test
+TEST_FRONTEND_CMD=yarn test:e2e
 test-frontend:
 	(cd frontend; \
+	yarn test)
+test-frontend-unit:
+	(cd frontend; \
+	yarn test:unit)
+test-frontend-e2e:
+	(cd frontend; \
 	${TEST_ENV_LOCAL} ${TEST_FRONTEND_CMD}; \
-	npx playwright show-report)
-test-frontend-debug:
+	yarn playwright show-report)
+test-frontend-e2e-debug:
 	(cd frontend; \
 	${TEST_ENV_LOCAL} ${TEST_FRONTEND_CMD} --debug)
-test-frontend-ui:
+test-frontend-e2e-ui:
 	(cd frontend; \
 	${TEST_ENV_LOCAL} ${TEST_FRONTEND_CMD} --ui)
-test-frontend-deployments:
+test-frontend-e2e-deployments:
 	(cd frontend; \
 	${TEST_ENV_DEPLOYED} ${TEST_FRONTEND_CMD})
 

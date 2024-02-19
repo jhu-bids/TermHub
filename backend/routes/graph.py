@@ -1,36 +1,33 @@
+"""Graph related functions and routes"""
 import os, warnings
-# import json
 # import csv
 # import io
+# import json
 from pathlib import Path
+from typing import Any, Iterable, List, Set, Tuple, Union, Dict, Optional
 
-from typing import Any, Iterable, List, Set, Union, Dict, Optional
-from collections import defaultdict
-from itertools import combinations
-
-# import networkx
-# from igraph import Graph
+import pickle
+import networkx as nx
 # import pydot
-# from networkx.drawing.nx_pydot import to_pydot, from_pydot
-
 from fastapi import APIRouter, Query, Request
+from networkx import DiGraph
+from sqlalchemy import Row, RowMapping
+from sqlalchemy.sql import text
+
 # from fastapi.responses import JSONResponse
 # from fastapi.responses import Response
 # from fastapi.encoders import jsonable_encoder
 # from collections import OrderedDict
-import networkx as nx
-import pickle
+# from igraph import Graph
+# from networkx.drawing.nx_pydot import to_pydot, from_pydot
 
-from networkx import DiGraph
-from sqlalchemy import RowMapping
-from sqlalchemy.sql import text
-
-from backend.routes.db import get_cset_members_items, get_concepts
-from backend.db.utils import sql_query, get_db_connection, SCHEMA, sql_in
+from backend.routes.db import get_cset_members_items
+from backend.db.queries import get_concepts
+from backend.db.utils import get_db_connection, SCHEMA
 from backend.api_logger import Api_logger
-from backend.utils import pdump, get_timer, commify, powerset
+from backend.utils import get_timer, commify
 
-VERBOSE = True
+VERBOSE = False
 PROJECT_DIR = Path(os.path.dirname(__file__)).parent.parent
 VOCABS_PATH = os.path.join(PROJECT_DIR, 'termhub-vocab')
 GRAPH_PATH = os.path.join(VOCABS_PATH, 'relationship_graph.pickle')
@@ -41,90 +38,157 @@ router = APIRouter(
 )
 
 
-@router.get("/indented-concept-list")
-async def indented_concept_list_get(request: Request, codeset_ids: List[int] = Query(...),
-                                    extra_concept_ids: Optional[List[int]] = Query(None)) -> List:
-
-    extra_concept_ids = extra_concept_ids if extra_concept_ids else []
-    return await indented_concept_list_post(
-        request=request, codeset_ids=codeset_ids, extra_concept_ids=extra_concept_ids)
-
-
-@router.post("/indented-concept-list")
-async def indented_concept_list_post(
-    request: Request, codeset_ids: List[int], extra_concept_ids: Union[List[int], None] = [],
-    hide_vocabs = ['RxNorm Extension'], verbose = False
-) -> List:
-    rpt = Api_logger()
-    await rpt.start_rpt(request, params={
-        'codeset_ids': codeset_ids, 'extra_concept_ids': extra_concept_ids})
-    try:
-        tree = await indented_concept_list(codeset_ids, extra_concept_ids, hide_vocabs)
-
-        await rpt.finish(rows=len(tree))
-        return tree
-    except Exception as e:
-        await rpt.log_error(e)
-        raise e
-
-
 @router.get("/concept-graph")
-async def concept_graph(
-    request: Request,
-    codeset_ids: List[int] = [],
-    id: List[int] = Query(...)   # id is a list of concept ids
-):
-    return await concept_graph_post(request=request, codeset_ids=codeset_ids, concept_ids=id)
+async def concept_graph_get(
+    request: Request, codeset_ids: List[int] = Query(...), cids: Optional[List[int]] = Query(None),
+    hide_vocabs = ['RxNorm Extension'], hide_nonstandard_concepts=False, verbose = VERBOSE,
+    indented=False  # TODO: if we keep this around, it's annoying that it ends up a string ('true')
+) -> Dict[str, Any]:
+    """Return concept graph"""
+    cids = cids if cids else []
+    return await concept_graph_post(
+        request, codeset_ids, cids, hide_vocabs, hide_nonstandard_concepts, verbose, indented)
 
 
+# TODO: match return of concept_graph()
 @router.post("/concept-graph")
 async def concept_graph_post(
-    request: Request,
-    codeset_ids: List[int] = [],
-    concept_ids: List[int] = [],
-) -> Dict:
+    request: Request, codeset_ids: List[int], cids: Union[List[int], None] = [],
+    hide_vocabs = ['RxNorm Extension'], hide_nonstandard_concepts=False, verbose = VERBOSE, indented=False
+) -> Dict[str, Any]:
+    """Return concept graph"""
     rpt = Api_logger()
-    await rpt.start_rpt(request, params={'concept_ids': codeset_ids})
-
     try:
-        # sg, filled_gaps = fill_in_gaps(REL_GRAPH, id, return_missing=True)
-        (nodes_in_graph, missing_in_between_nodes, preferred_concept_ids, orphans_not_in_graph, hidden_nodes,
-         hidden_dict) = get_connected_subgraph(REL_GRAPH, codeset_ids, concept_ids,
-                                               hide_vocabs=['RxNorm Extension'])
-        sg = REL_GRAPH.subgraph(nodes_in_graph.union(missing_in_between_nodes))
-        layout = 'not implemented'
-        # raise Exception("Not implemented")
-        # P = to_pydot(sg)
-        # layout = from_pydot(P)
-        # layout = {k: list(v) for k, v in _layout.items()}     # networkx doesn't seem to have sugiyama
-        # g = Graph.from_networkx(sg)
-        # _layout = g.layout_sugiyama()
-        # layout = {v["_nx_name"]: _layout[idx] for idx, v in enumerate(g.vs)}
+        await rpt.start_rpt(request, params={'codeset_ids': codeset_ids, 'cids': cids})
+
+        hide_vocabs = hide_vocabs if isinstance(hide_vocabs, list) else []
+        sg: DiGraph
+        missing_in_betweens: List[Dict[str, Any]]
+        hidden_by_voc: Dict[str, Set[int]]
+        nonstandard_concepts_hidden: Set[int]
+
+        sg, concept_ids, missing_in_betweens, hidden_dict, nonstandard_concepts_hidden = await concept_graph(
+            codeset_ids, cids, hide_vocabs, hide_nonstandard_concepts, verbose)
+        missing_from_graph = set(concept_ids) - set(sg.nodes)
+
+        if indented:
+            # tree = get_indented_tree_nodes(sg, preferred_concept_ids)  # TODO: just testing below, put this line back
+            tree = [list(x) for x in get_indented_tree_nodes(sg)]  # TODO: just testing below, put this line back
+            return tree
+
         await rpt.finish(rows=len(sg))
+        return {
+            'edges': list(sg.edges),
+            'concept_ids': concept_ids,
+            'filled_gaps': missing_in_betweens,
+            'missing_from_graph': missing_from_graph,
+            'hidden_by_vocab': hidden_dict,
+            'nonstandard_concepts_hidden': nonstandard_concepts_hidden}
     except Exception as e:
         await rpt.log_error(e)
         raise e
-    return {'edges': list(sg.edges), 'layout': layout, 'filled_gaps': missing_in_between_nodes}
 
 
-async def indented_concept_list(
-    codeset_ids: List[int], extra_concept_ids: Union[List[int], None] = [], hide_vocabs = ['RxNorm Extension']
-) -> List:
+async def concept_graph(
+    codeset_ids: List[int], cids: Union[List[int], None] = [], hide_vocabs = [],
+    hide_nonstandard_concepts=False, verbose = VERBOSE
+ ) -> Tuple[DiGraph, Set[int], Set[int], Dict[str, Set[int]], Set[int]]:
+    """Return concept graph
+
+    :param cids: Not used right now. This is for when we allow user to add concepts from other concept sets
+    . They're not part of any codesets yet, as these are added by user.
+    :returns
+      hidden_by_voc: Map of vocab to set of concept ids"""
+    if cids:
+        raise NotImplementedError('See docstring for concept_graph()')
+    # todo: old code to remove. Returns nothing right now. all code below this point in concept_graph_post() used to
+    #  be part of get_connected_subgraph() or one of its sub-functions.
+    # (nodes_in_graph, missing_in_between_nodes, preferred_concept_ids, orphans_not_in_graph, hidden_nodes,
+    #  hidden_dict) = get_connected_subgraph(REL_GRAPH, codeset_ids, cids, hide_vocabs=['RxNorm Extension'])
+    # tree = await indented_concept_list(codeset_ids, cids, hide_vocabs)
+    # sg, filled_gaps = fill_in_gaps(REL_GRAPH, id, return_missing=True)
     timer = get_timer('')
+    verbose and timer('concept_graph()')
+
+    # Get concepts & metadata
+    concepts_unfiltered: List[RowMapping] = get_cset_members_items(
+        codeset_ids=codeset_ids, columns=['concept_id', 'vocabulary_id', 'standard_concept'])
+    concepts: List[Dict[str, Any]]
+    hidden_by_voc: Dict[str, Set[int]]
+    nonstandard_concepts_hidden: Set
+    # - filter: by vocab & non-standard
+    concepts, hidden_by_voc, nonstandard_concepts_hidden = filter_concepts(
+        concepts_unfiltered, hide_vocabs, hide_nonstandard_concepts)
+    concept_ids: Set[int] = set([c['concept_id'] for c in concepts])
+    # concept_ids.update(cids)  # future
+
+    # Fill gaps
+    missing_in_betweens_ids: Set[int] = get_missing_in_between_nodes(REL_GRAPH, concept_ids)
+    missing_in_betweens: List[RowMapping] = get_concepts(missing_in_betweens_ids)
+    concepts_m: List[Dict]
+    hidden_by_voc_m: Dict[str, Set[int]]
+    nonstandard_concepts_hidden_m: Set
+    # - filter missing_in_betweens: by vocab & non-standard
+    concepts_m, hidden_by_voc_m, nonstandard_concepts_hidden_m = filter_concepts(
+        missing_in_betweens, hide_vocabs, hide_nonstandard_concepts)
+
+    # Merge: missing_in_betweens into concept_ids
+    concept_ids.update(missing_in_betweens_ids)
+    for voc, hidden in hidden_by_voc_m.items():
+        hidden_by_voc[voc] = hidden_by_voc.get(voc, set()).union(hidden)
+    nonstandard_concepts_hidden = nonstandard_concepts_hidden.union(nonstandard_concepts_hidden_m)
+
+    # Get subgraph
+    sg: DiGraph = REL_GRAPH.subgraph(concept_ids)
+
+    # Return
+    verbose and timer('done')
+    return sg, concept_ids, missing_in_betweens_ids, hidden_by_voc, nonstandard_concepts_hidden
+
+
+
+def MOVE_TO_FRONT_END():
+    # TODO: @Siggie: move below to frontend
+    # Orphans
+    # orphans_not_in_graph, here, are just nodes that don't appear in graph
+    #   they'll get appended to the end of the tree at level 0
+    # The graph, which comes from the concept_ancestor table, doesn't contain edges for every concept.
+    # noinspection PyUnreachableCode
+    nodes_in_graph = set()
+    orphans_not_in_graph = set()
+    # TODO: deal with two kinds of orphan: not in the graph (handled here)
+    #   and in the graph but having no parents or children
+    for cid in concept_ids:
+        if cid in sg.nodes():
+            nodes_in_graph.add(cid)
+        else:
+            orphans_not_in_graph.add(cid)
+
+    # Preferred concept IDs are things we're trying to link in the graph; non-orphan items
+    #  - We don't want to accidentally hide them.
+    #  - for indented list
+    preferred_concept_ids = set([
+        c['concept_id'] for c in concepts
+        if c['item'] and not c['concept_id'] in orphans_not_in_graph])
+
+    # Layout - no longer used
+    # P = to_pydot(sg)
+    # layout = from_pydot(P)
+    # layout = {k: list(v) for k, v in _layout.items()}     # networkx doesn't seem to have sugiyama
+    # g = Graph.from_networkx(sg)
+    # _layout = g.layout_sugiyama()
+    # layout = {v["_nx_name"]: _layout[idx] for idx, v in enumerate(g.vs)}
+    # await rpt.finish(rows=len(tree))
+    # return tree
 
     # Get Concept Set Members Items
-    VERBOSE and timer('get_connected_subgraph')
-
-    (nodes_in_graph, missing_in_between_nodes, preferred_concept_ids, orphans_not_in_graph,
-     hidden_nodes, hidden_dict) = get_connected_subgraph(REL_GRAPH, codeset_ids, extra_concept_ids, hide_vocabs)
-
-    sg = REL_GRAPH.subgraph(nodes_in_graph.union(missing_in_between_nodes))
-
     VERBOSE and timer('get roots')
     roots = [node for node, degree in sg.in_degree() if degree == 0]
     leaves = [node for node, degree in sg.out_degree() if degree == 0]
 
-    # nodes that are both root and leaf, put in orphans_unlinked, remove from roots
+    # orphans_unlinked: nodes that are both root and leaf, put in orphans_unlinked, remove from roots
+    #  - in subgraph sg, but not in the connected graph
+    # todo: undersrtand what's different between orphans_unlinked and orphans_not_in_graph
     orphans_unlinked = set(roots).intersection(leaves)
     for o in orphans_unlinked:
         roots.remove(o)
@@ -137,25 +201,28 @@ async def indented_concept_list(
     # print(f"paths - sg {len(nodes_in_paths.difference(sg_nodes))}")
 
     VERBOSE and timer('get tree')
+    # tree = await indented_concept_list(codeset_ids, cids, hide_vocabs)
     tree = get_indented_tree_nodes(sg, preferred_concept_ids)  # TODO: just testing below, put this line back
 
     hide_if_over = 50
     if orphans_not_in_graph:
         cnt = len(orphans_not_in_graph)
-        tree.append((0, f"Concept set also includes {cnt} {'hidden ' if cnt > hide_if_over else ''}nodes in concept set but not in our graph"))
+        tree.append((0,
+                     f"Concept set also includes {cnt} {'hidden ' if cnt > hide_if_over else ''}nodes in concept set but not in our graph"))
         if cnt <= hide_if_over:
             for orphan in orphans_not_in_graph:
                 tree.append((1, orphan))
 
     if orphans_unlinked:
         cnt = len(orphans_unlinked)
-        tree.append((0, f"Concept set also includes {cnt} {'hidden ' if cnt > hide_if_over else ''}nodes unconnected to others in the concept set"))
+        tree.append((0,
+                     f"Concept set also includes {cnt} {'hidden ' if cnt > hide_if_over else ''}nodes unconnected to others in the concept set"))
         if cnt <= hide_if_over:
             for orphan in orphans_unlinked:
                 tree.append((1, orphan))
 
-    for vocab in hidden_dict.keys():
-        hidden_concept_ids = hidden_dict[vocab]
+    for vocab in hidden_by_voc.keys():
+        hidden_concept_ids = hidden_by_voc[vocab]
         cnt = len(hidden_concept_ids)
         tree.append((0, f'Concept set also includes {cnt} {vocab} concepts not shown above'))
         if cnt <= hide_if_over:
@@ -165,13 +232,42 @@ async def indented_concept_list(
     # timer('get testtree')
     # testtree = paths_as_indented_tree(paths)
     # testtree.append((0, list(orphans_not_in_graph)))
-    VERBOSE and timer('done')
     # return testtree
+    # noinspection PyTypeChecker
     return tree
 
-def get_indented_tree_nodes(sg, preferred_concept_ids=[], max_depth=3, max_children=20, small_graph_threshold=2000):
 
+def filter_concepts(
+    concepts: List[Union[Dict[str, Any], RowMapping]], hide_vocabs: List[str], hide_nonstandard_concepts=False
+) -> Tuple[List[Dict], Dict[str, Set[int]], Set[int]]:
+    """Get lists of concepts for graph
+
+    :param: concepts: List of concept ids as keys, and metadata as values.
+    :returns
+      hidden_by_voc: Map of vocab to set of concept ids"""
+    # Hide by vocabulary
+    hidden_by_voc: Dict[str, Set[int]] = {}
+    for vocab in hide_vocabs:  # for each vocab being hidden, separate out the concepts
+        hidden_i: Set[int] = set([c['concept_id'] for c in concepts if c['vocabulary_id'] == vocab])
+        if hidden_i:
+            hidden_by_voc[vocab] = hidden_i
+
+    # Hide non-standard concepts
+    nonstandard_concepts_hidden = set()
+    if hide_nonstandard_concepts:
+        nonstandard_concepts_hidden: Set[int] = set([c['concept_id'] for c in concepts if c['standard_concept'] != 'S'])
+
+    # Get filtered concepts
+    hidden_nodes = set().union(*list(hidden_by_voc.values())).union(nonstandard_concepts_hidden)
+    filtered_concepts: List[Dict[str, Any]] = [c for c in concepts if c['concept_id'] not in hidden_nodes]
+    return filtered_concepts, hidden_by_voc, nonstandard_concepts_hidden
+
+
+def get_indented_tree_nodes(sg, preferred_concept_ids: Union[List, Set]=[], max_depth=3, max_children=20, small_graph_threshold=2000):
+    """Get indented tree nodes"""
+    # noinspection PyShadowingNames
     def dfs(node, depth):
+        """Depth-first search"""
         nonlocal tree, small_graph_big_tree, start_over
         if start_over:
             return 'start over'
@@ -234,68 +330,33 @@ def get_indented_tree_nodes(sg, preferred_concept_ids=[], max_depth=3, max_child
 
 
 def get_connected_subgraph(
-    REL_GRAPH: nx.Graph,
+    g: nx.Graph,
     codeset_ids: List[int],
-    extra_concept_ids: Union[List[int], None] = [],
+    cids: Union[List[int], None] = [],
     hide_vocabs: Union[List[str], None] = []
 ) -> (DiGraph, Set[int], Set[int], Set[int], Dict[str, Set[int]]):
-    _csmi = get_cset_members_items(codeset_ids=codeset_ids)
-    # concepts = get_concepts(extra_concept_ids)
-    # give hidden rxnorm ext count
-    hidden_dict: Dict[str, Set[int]] = {}
-    for vocab in hide_vocabs:   # for each vocab being hidden, separate out the concepts
-        hidden_nodes = set([c['concept_id'] for c in _csmi if c['vocabulary_id'] == vocab])
-        if hidden_nodes:
-            hidden_dict[vocab] = hidden_nodes
-
-    hidden_nodes = set().union(*list(hidden_dict.values()))
-    csmi = set()
-    csmi.update([c for c in _csmi if c not in hidden_nodes])
-
-    # Organize Concept IDs
-    timer = get_timer('')
-    VERBOSE and timer('organize cids')
-
-    concept_ids = set([c['concept_id'] for c in csmi])
-    concept_ids.update(extra_concept_ids)
-
-    # Orphans
-    # orphans_not_in_graph, here, are just nodes that don't appear in graph
-    #   they'll get appended to the end of the tree at level 0
-    # The graph, which comes from the concept_ancestor table, doesn't contain edges for every concept.
-    nodes_in_graph = set()
-    orphans_not_in_graph = set()
-    # TODO: deal with two kinds of orphan: not in the graph (handled here)
-    #   and in the graph but having no parents or children
-    for cid in concept_ids:
-        if cid in REL_GRAPH:
-            nodes_in_graph.add(cid)
-        else:
-            orphans_not_in_graph.add(cid)
-
-    # Preferred concept IDs are things we're trying to link in the graph; non-orphan items
-    #  - We don't want to accidentally hide them.
-    preferred_concept_ids = set([
-        c['concept_id'] for c in csmi
-        if c['item'] and not c['concept_id'] in orphans_not_in_graph])
-
-    missing_in_between_nodes = get_missing_in_between_nodes(REL_GRAPH, nodes_in_graph).copy()
-    # sg = connect_nodesOLD(REL_GRAPH, nodes_in_graph, preferred_concept_ids).copy()
-    return nodes_in_graph, missing_in_between_nodes, preferred_concept_ids, orphans_not_in_graph, hidden_nodes, hidden_dict
+    """Get connected subgraph and various other things"""
+    print(g, codeset_ids, cids, hide_vocabs)
+    raise NotImplementedError('Moved to concept_graph_post()')
 
 
 print_stack = lambda s: ' | '.join([f"{n} => {','.join([str(x) for x in p])}" for n,p in s])
-def get_missing_in_between_nodes(G, subgraph_nodes):
+
+
+# noinspection PyPep8Naming
+def get_missing_in_between_nodes(G: DiGraph, subgraph_nodes: Union[List[int], Set[int]], verbose=VERBOSE) -> Set:
+    """Get missing in-betweens, nodes that weren't in definition or expansion but are in between those."""
     missing_in_between_nodes = set()
     missing_in_between_nodes_tmp = set()
-    sg = G.subgraph(subgraph_nodes)
+    sg: DiGraph = G.subgraph(subgraph_nodes)
+    # noinspection PyCallingNonCallable
     leaves = [node for node, degree in sg.out_degree() if degree == 0]
     visited = set()
 
     for leaf_node in leaves:
         # stack = [(leaf_node, iter(G.predecessors(leaf_node)))]
         descending_from = None
-        stack = [(leaf_node, list(G.predecessors(leaf_node)))]
+        stack = [(leaf_node, list(list(G.predecessors(leaf_node))))]
 
         while stack:
             # if descending_from:
@@ -303,7 +364,10 @@ def get_missing_in_between_nodes(G, subgraph_nodes):
                 #     missing_in_between_
 
             current_node, predecessors = stack[-1]
-            print(f"{str(print_stack(stack)):58} {(descending_from or ''):8} {','.join([str(n) for n in missing_in_between_nodes])} | {','.join([str(n) for n in missing_in_between_nodes_tmp])}")
+            if verbose and len(subgraph_nodes) < 1000:
+                print(f"{str(print_stack(stack)):58} {(descending_from or ''):8} "
+                      f"{','.join([str(n) for n in missing_in_between_nodes])} | "
+                      f"{','.join([str(n) for n in missing_in_between_nodes_tmp])}")
 
             # try:
             # next_node = next(predecessors)
@@ -317,7 +381,7 @@ def get_missing_in_between_nodes(G, subgraph_nodes):
                         missing_in_between_nodes_tmp.add(next_node)
 
                     # stack.append((next_node, iter(G.predecessors(next_node))))
-                    stack.append((next_node, list(G.predecessors(next_node))))
+                    stack.append((next_node, list(list(G.predecessors(next_node)))))
             else:
                 # while True:
                 n, preds = stack.pop()
@@ -338,97 +402,30 @@ def get_missing_in_between_nodes(G, subgraph_nodes):
     return missing_in_between_nodes
 
 
-# TODO: get test to pass
-def tst_graph_code():
-    """Tests for graph related functionality
-
-    Siggie would prefer if we declared nodes in groups; would help for readability. Joe doesn't know how that would work."""
-    # - Test: Gap filling
-    #   Source: depth first of https://app.diagrams.net/#G1mIthDUn4T1y1G3BdupdYKPkZVyQZ5XYR
-    # test code for the above:
-    # subgraph edges (from definitions and expansions)
-    # (2, 1), (2, 8), (4, 3), (4, 10), (10, 9), (10, 12), (11, 10), (11, 13), (15, 14), (15, 18), (20, 16), (20, 19),
-    # outside_scope_edges
-    # ('root', '2p1'), ('2p1', 2), ('root', '2p2'), ('2p2', 2), ('root', 'cloud'), ('cloud', 8), ('cloud', 6), (6, 5),
-    # (6, 11), (6, 17), ('cloud', 15), ('cloud', 20),
-    # missing in between edges
-    # (8, 7), (7, 5), (5, 4), (18, 17), (17, 16),
-    whole_graph_edges = [   # now, more or less, in diagram number order
-        (2, 1),
-        ('root', '2p1'), ('2p1', 2), ('root', '2p2'), ('2p2', 2), ('root', 'cloud'),
-        (4, 3),
-        (5, 4),
-        (7, 5),
-        (8, 7),
-        ('cloud', 8),
-        (2, 8),
-        (6, 5),
-        ('cloud', 6),
-        (10, 9),
-        (4, 10),
-        (10, 12),
-        (11, 10),
-        (6, 11),
-        (11, 13),
-        (15, 14),
-        ('cloud', 15),
-        (16, 21),
-        (17, 16),
-        (6, 17),
-        (18, 17),
-        (15, 18),
-        (20, 16),
-        ('cloud', 20),
-        (22, 23),
-        (19, 22),
-        (20, 19),
-    ]
-    G = nx.DiGraph(whole_graph_edges)
-
-    graph_nodes = set(list(range(1,21)))
-    subgraph_nodes =  graph_nodes - set([7, 5, 6, 17])
-
-    expected_missing_in_between_nodes = set([5, 7, 17])
-
-    missing_in_between_nodes = get_missing_in_between_nodes(G, subgraph_nodes)
-    assert missing_in_between_nodes == expected_missing_in_between_nodes
-    pass
-
-    # - Test: tree paths:
-    # G = nx.DiGraph([('a','b'), ('a','c'), ('b','d'), ('b','e'), ('c','f'), ('2', 'c'), ('1', '2'), ('1', 'a')])
-    # sg = G.subgraph(['a', 'b', 'c', 'd', 'e', 'f', '1', '2'])
-    # assert set(sg.edges) == set([('a','b'), ('a','c'), ('b','d'), ('b','e'), ('c','f'), ('2', 'c'), ('1', '2'), ('1', 'a')])
-    # assert tree_paths = get_indented_tree_nodes(sg) == [ (0, '1'), (1, '2'), (2, 'c'), (3, 'f'), (1, 'a'), (2, 'b'), (3, 'd'), (3, 'e'), (2, 'c'), (3, 'f'), (3, 'c') ]
-    # assert print_tree_paths(tree_paths) == """
-    # 1
-    #     2
-    #         c
-    #             f
-    #     a
-    #         b
-    #             d
-    #             e
-    #         c
-    #             f
-    # """
-
-
 @router.get("/wholegraph")
 def subgraph():
+    """Get subgraph edges"""
     return list(REL_GRAPH.edges)
 
 
-def condense_super_nodes(sg, threshhold=10):
+def condense_super_nodes(sg, threshhold=10):  # todo
+    """Condense super nodes"""
     super_nodes = [node for node, degree in sg.out_degree() if degree > threshhold]
     # for node in super_nodes:
     # sg.discard(node) -- n
-
-def expand_super_node(G, subgraph_nodes, super_node):
-    sg = G.subgraph(subgraph_nodes)
+    return NotImplementedError(super_nodes)
 
 
-def from_pydot_layout(g):
-    pass
+# noinspection PyPep8Naming
+def expand_super_node(G, subgraph_nodes, super_node):  # todo
+    """Expand super node"""
+    # sg = G.subgraph(subgraph_nodes)
+    return NotImplementedError(G, subgraph_nodes, super_node)
+
+
+def from_pydot_layout(g):  # Todo
+    """From PyDot layout"""
+    return NotImplementedError(g)
 # def find_nearest_common_ancestor(G, nodes):
 #     all_ancestors = [set(nx.ancestors(G, node)) for node in nodes]
 #     common_ancestors = set.intersection(*all_ancestors)
@@ -457,7 +454,8 @@ def from_pydot_layout(g):
 #     return SG
 
 
-def generate_graph_edges():
+def generate_graph_edges() -> Iterable[Row]:
+    """Generate graph edges"""
     with get_db_connection() as con:
         # moving the sql to ddl-20-concept_graph.jinja.sql
 
@@ -471,12 +469,14 @@ def generate_graph_edges():
             yield row
 
 
-def create_rel_graphs(save_to_pickle: bool):
+def create_rel_graphs(save_to_pickle: bool) -> DiGraph:
+    """Create relationship graphs"""
     timer = get_timer('create_rel_graphs')
 
     timer('get edge records')
     edge_generator = generate_graph_edges()
 
+    # noinspection PyPep8Naming
     G = nx.DiGraph()
     if save_to_pickle:
         msg = 'loading and pickling'
@@ -511,10 +511,12 @@ def create_rel_graphs(save_to_pickle: bool):
 
 
 def load_relationship_graph(save_if_not_exists=True):
+    """Load relationship graph from disk"""
     timer = get_timer('./load_relationship_graph')
     timer(f'loading {GRAPH_PATH}')
     if os.path.isfile(GRAPH_PATH):
         with open(GRAPH_PATH, 'rb') as pickle_file:
+            # noinspection PyPep8Naming
             G = pickle.load(pickle_file)
             # while True:
             #     try:
@@ -523,6 +525,7 @@ def load_relationship_graph(save_if_not_exists=True):
             #     except EOFError:
             #         break  # End of file reached
     else:
+        # noinspection PyPep8Naming
         G = create_rel_graphs(save_if_not_exists)
     timer('done')
     return G
@@ -542,7 +545,6 @@ if __name__ == '__main__':
     # j = graph_to_json(sg)
     # pdump(j)
     # - 2024/01/26
-    tst_graph_code()
 else:
 
     # if you don't want graph loaded, then somewhere up in the import tree, do this
