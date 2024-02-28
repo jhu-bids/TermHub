@@ -7,11 +7,13 @@ on:
   workflow_dispatch:
 jobs:
   refresh-counts-tables:
-    runs-on: ubuntu-latest
+    runs-on: BIDS-Premium-Action-Runners
+#    runs-on: ubuntu-latest
     # fail-fast: At least shows "Error: Process completed with exit code 143." instead of "exit code 1", for slightly more information about unexpected exits: https://docs.github.com/en/actions/using-jobs/using-a-matrix-for-your-jobs#handling-failures
     strategy:
       fail-fast: false
     steps:
+      # Set up
       - name: Checkout repository and submodules
         uses: actions/checkout@v2
         with:
@@ -40,6 +42,10 @@ jobs:
           pip install --upgrade setuptools
           pip install -r requirements.txt
 
+      # Refresh
       - name: Refresh counts
-        run: |
-          python backend/db/refresh_dataset_group_tables.py --dataset-group counts
+        run: make refresh-counts
+
+      # Test
+      - name: Test
+        run: python -m unittest test.test_backend.db.test_refresh_dataset_group_tables.TestCurrentDatasetGroupSetup.test_current_counts

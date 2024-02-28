@@ -15,6 +15,7 @@ jobs:
     # todo: macos-latest: I think was just needed for datasets API because of high memory. should be able to switch back to ubuntu
     runs-on: macos-latest
     steps:
+      # Set up
       - name: Checkout repository and submodules
         uses: actions/checkout@v2
       - name: Set up Python version
@@ -57,6 +58,7 @@ jobs:
       # https://github.com/jhu-bids/TermHub/issues/573 https://github.com/jhu-bids/TermHub/issues/574
 #      - name: Fetch missing csets
 #        run: make fetch-missing-csets
+
       # Test
       # todo: add more tests, ideally
       - name: Test missing csets

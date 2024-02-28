@@ -1,0 +1,50 @@
+concept_id,concept_name,domain_id,vocabulary_id,concept_class_id,standard_concept,concept_code,valid_start_date,valid_end_date,invalid_reason
+0,No matching concept,Metadata,None,Undefined,,No matching concept,1970-01-01,2099-12-31,
+1,Domain,Metadata,Domain,Domain,,OMOP generated,1970-01-01,2099-12-31,
+2,Gender,Metadata,Domain,Domain,,OMOP generated,1970-01-01,2099-12-31,
+3,Race,Metadata,Domain,Domain,,OMOP generated,1970-01-01,2099-12-31,
+4,Ethnicity,Metadata,Domain,Domain,,OMOP generated,1970-01-01,2099-12-31,
+5,Observation period type,Metadata,Domain,Domain,,OMOP generated,1970-01-01,2015-10-15,U
+6,Death type,Metadata,Domain,Domain,,OMOP generated,1970-01-01,2015-10-15,U
+7,Metadata,Metadata,Domain,Domain,,OMOP generated,1970-01-01,2099-12-31,
+8,Visit,Metadata,Domain,Domain,,OMOP generated,1970-01-01,2099-12-31,
+9,Visit type,Metadata,Domain,Domain,,OMOP generated,1970-01-01,2015-10-15,U
+10,Procedure,Metadata,Domain,Domain,,OMOP generated,1970-01-01,2099-12-31,
+11,Procedure type,Metadata,Domain,Domain,,OMOP generated,1970-01-01,2015-10-15,U
+12,Modifier,Metadata,Domain,Domain,,OMOP generated,1970-01-01,2099-12-31,
+13,Drug,Metadata,Domain,Domain,,OMOP generated,1970-01-01,2099-12-31,
+14,Drug type,Metadata,Domain,Domain,,OMOP generated,1970-01-01,2015-10-15,U
+15,Route,Metadata,Domain,Domain,,OMOP generated,1970-01-01,2099-12-31,
+16,Unit,Metadata,Domain,Domain,,OMOP generated,1970-01-01,2099-12-31,
+17,Device,Metadata,Domain,Domain,,OMOP generated,1970-01-01,2099-12-31,
+18,Device type,Metadata,Domain,Domain,,OMOP generated,1970-01-01,2015-10-15,U
+19,Condition,Metadata,Domain,Domain,,OMOP generated,1970-01-01,2099-12-31,
+20,Condition type,Metadata,Domain,Domain,,OMOP generated,1970-01-01,2015-10-15,U
+21,Measurement,Metadata,Domain,Domain,,OMOP generated,1970-01-01,2099-12-31,
+22,Measurement type,Metadata,Domain,Domain,,OMOP generated,1970-01-01,2015-10-15,U
+23,Measurement value operator,Metadata,Domain,Domain,,OMOP generated,1970-01-01,2099-12-31,
+24,Measurement value,Metadata,Domain,Domain,,OMOP generated,1970-01-01,2099-12-31,
+26,Note Type,Metadata,Domain,Domain,,OMOP generated,1970-01-01,2015-10-15,U
+27,Observation,Metadata,Domain,Domain,,OMOP generated,1970-01-01,2099-12-31,
+28,Observation type,Metadata,Domain,Domain,,OMOP generated,1970-01-01,2015-10-15,U
+31,Relationship,Metadata,Domain,Domain,,OMOP generated,1970-01-01,2099-12-31,
+32,Place of Service,Metadata,Domain,Domain,,OMOP generated,1970-01-01,2099-12-31,
+33,Provider,Metadata,Domain,Domain,,OMOP generated,1970-01-01,2099-12-31,
+34,Currency,Metadata,Domain,Domain,,OMOP generated,1970-01-01,2099-12-31,
+35,Revenue code,Metadata,Domain,Domain,,OMOP generated,1970-01-01,2099-12-31,
+36,Specimen,Metadata,Domain,Domain,,OMOP generated,1970-01-01,2099-12-31,
+37,Specimen type,Metadata,Domain,Domain,,OMOP generated,1970-01-01,2015-10-15,U
+38,Specimen anatomic site,Metadata,Domain,Domain,,OMOP generated,1970-01-01,2099-12-31,
+39,Specimen disease status,Metadata,Domain,Domain,,OMOP generated,1970-01-01,2099-12-31,
+41,Device/Procedure,Metadata,Domain,Domain,,OMOP generated,1970-01-01,2099-12-31,
+42,Observation/Procedure,Metadata,Domain,Domain,,OMOP generated,1970-01-01,2099-12-31,
+43,Measurement/Procedure,Metadata,Domain,Domain,,OMOP generated,1970-01-01,2099-12-31,
+44,Measurement/Observation,Metadata,Domain,Domain,,OMOP generated,1970-01-01,2099-12-31,
+45,Device/Observation,Metadata,Domain,Domain,,OMOP generated,1970-01-01,2099-12-31,
+47,Condition/Measurement,Metadata,Domain,Domain,,OMOP generated,1970-01-01,2099-12-31,
+48,Condition/Observation,Metadata,Domain,Domain,,OMOP generated,1970-01-01,2099-12-31,
+49,Condition/Procedure,Metadata,Domain,Domain,,OMOP generated,1970-01-01,2099-12-31,
+50,Device/Drug,Metadata,Domain,Domain,,OMOP generated,1970-01-01,2099-12-31,
+51,Drug/Measurement,Metadata,Domain,Domain,,OMOP generated,1970-01-01,2099-12-31,
+52,Drug/Observation,Metadata,Domain,Domain,,OMOP generated,1970-01-01,2099-12-31,
+53,Condition/Drug,Metadata,Domain,Domain,,OMOP generated,1970-01-01,2099-12-31,

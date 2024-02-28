@@ -25,6 +25,7 @@ networkx
 PyCG==0.0.6
 
 # dev dependencies
+# psutil  # for memory profiling
 virtualenvwrapper
 
 setuptools
