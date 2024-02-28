@@ -9,6 +9,7 @@ import json
 import os
 import sys
 import time
+from argparse import ArgumentParser
 from pathlib import Path
 from random import randint
 
@@ -31,13 +32,16 @@ from sqlalchemy.sql import text
 from sqlalchemy.sql.elements import TextClause
 from typing import Any, Dict, Set, Tuple, Union, List
 
+DB_DIR = os.path.dirname(os.path.realpath(__file__))
+PROJECT_ROOT = Path(DB_DIR).parent.parent
+sys.path.insert(0, str(PROJECT_ROOT))
 from backend.db.config import CORE_CSET_DEPENDENT_TABLES, CORE_CSET_TABLES, RECURSIVE_DEPENDENT_TABLE_MAP, \
     REFRESH_JOB_MAX_HRS, get_pg_connect_url
 from backend.config import CONFIG, DATASETS_PATH, OBJECTS_PATH
 from backend.utils import commify
 from enclave_wrangler.models import pkey
 
-DB_DIR = os.path.dirname(os.path.realpath(__file__))
+
 DDL_JINJA_PATH_PATTERN = os.path.join(DB_DIR, 'ddl-*.jinja.sql')
 
 
@@ -805,6 +809,17 @@ def get_idle_connections(interval: str = '1 week'):
     return result
 
 
+def cli():
+    """Command line interface"""
+    parser = ArgumentParser(prog='termhub-db-utils', description='Database utilities.')
+    parser.add_argument(
+        '-f', '--reset-refresh-state', required=False, default=False, action='store_true',
+        help='Resets both temporary tables and status variables')
+    d: Dict = vars(parser.parse_args())
+    if d['reset_refresh_state']:
+        print('Resetting temporary tables and status variables')
+        reset_refresh_state()
+
+
 if __name__ == '__main__':
-    # reset_refresh_state()
-    pass
+    cli()

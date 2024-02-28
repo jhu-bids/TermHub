@@ -117,6 +117,8 @@ refresh-counts:
 	python backend/db/refresh_dataset_group_tables.py --dataset-group counts
 refresh-vocab:
 	python backend/db/refresh_dataset_group_tables.py --dataset-group vocab
+reset-refresh-state:
+	python backend/db/utils.py --reset-refresh-state
 
 # Serve
 # nvm allows to switch to a particular versio of npm/node. Useful for working w/ deployment
