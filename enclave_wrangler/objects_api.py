@@ -524,7 +524,7 @@ def csets_and_members_to_db(con: Connection, csets_and_members: Dict[str, List[D
     print(f'  - concept_set_members completed in {(datetime.now() - t2).seconds} seconds')
 
     # Derived tables
-    refresh_derived_tables(con, schema)
+    refresh_derived_tables(con, schema=schema)
 
 
 def fetch_object_by_id(
