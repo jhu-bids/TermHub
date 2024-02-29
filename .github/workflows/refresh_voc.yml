@@ -3,15 +3,17 @@ name: Refresh vocabulary tables
 on:
 #  schedule:
 ##    - cron: '0 0 * * 0'  # weekly, sunday 12am
-#    - cron: '0 6 * * *'  # every day 6am GMT (1-2am EST/EDT)
+#    - cron: '0 8 * * *'  # every day 6am GMT (3-4am EST/EDT)
   workflow_dispatch:
 jobs:
   refresh-vocab-tables:
-    runs-on: ubuntu-latest
+    runs-on: BIDS-Premium-Action-Runners
+#    runs-on: ubuntu-latest
     # fail-fast: At least shows "Error: Process completed with exit code 143." instead of "exit code 1", for slightly more information about unexpected exits: https://docs.github.com/en/actions/using-jobs/using-a-matrix-for-your-jobs#handling-failures
     strategy:
       fail-fast: false
     steps:
+      # Set up
       - name: Checkout repository and submodules
         uses: actions/checkout@v2
         with:
@@ -40,6 +42,10 @@ jobs:
           pip install --upgrade setuptools
           pip install -r requirements.txt
 
+      # Refresh
       - name: Refresh vocab
-        run: |
-          python backend/db/refresh_dataset_group_tables.py --dataset-group vocab
+        run: make refresh-vocab
+
+      # Test
+      - name: Test
+        run: python -m unittest test.test_backend.db.test_refresh_dataset_group_tables.TestCurrentDatasetGroupSetup.test_current_vocab

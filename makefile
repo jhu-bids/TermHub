@@ -1,10 +1,11 @@
 SRC=backend/
 
 .PHONY: lint tags ltags test all lintall codestyle docstyle lintsrc linttest doctest doc docs code linters_all codesrc \
-codetest docsrc doctest counts-compare-schemas counts-table deltas-table test-missing-csets fetch-missing-csets backup
+codetest docsrc doctest counts-compare-schemas counts-table deltas-table test-missing-csets fetch-missing-csets backup \
+refresh-counts refresh-vocab serve-frontend serve-backend
 
 # Analysis
-ANALYSIS_SCRIPT = 'backend/db/analysis.py'
+ANALYSIS_SCRIPT=backend/db/analysis.py
 
 # counts-compare-schemas: Checks counts of database tables for the current 'n3c' schema and its most recent backup.
 counts-compare-schemas:
@@ -21,12 +22,6 @@ deltas-table:
 # counts-docs: Runs --counts-over-time and --deltas-over-time and puts in documentation: docs/backend/db/analysis.md.
 counts-docs:
 	@python $(ANALYSIS_SCRIPT) --counts-docs
-
-# todo
-#deltas-viz:
-#	@python $(ANALYSIS_SCRIPT) --counts-over-time save_delta_viz
-#counts-viz:
-#	@python $(ANALYSIS_SCRIPT) --counts-over-time save_counts_viz
 
 # counts-update: Update 'counts' table with current row counts for the 'n3c' schema. Adds note to the 'counts-runs' table.
 counts-update:
@@ -116,6 +111,14 @@ test-frontend-e2e-deployments:
 # QC
 fetch-missing-csets:
 	python enclave_wrangler/objects_api.py --find-and-add-missing-csets-to-db
+
+# Database refreshes
+refresh-counts:
+	python backend/db/refresh_dataset_group_tables.py --dataset-group counts
+refresh-vocab:
+	python backend/db/refresh_dataset_group_tables.py --dataset-group vocab
+reset-refresh-state:
+	python backend/db/utils.py --reset-refresh-state
 
 # Serve
 # nvm allows to switch to a particular versio of npm/node. Useful for working w/ deployment

@@ -6,7 +6,6 @@ Can run all tests in all files by running this from root of TermHub:
 import os
 import pickle
 import sys
-import unittest
 from datetime import datetime, timedelta
 from pathlib import Path
 from typing import Dict, List
@@ -17,6 +16,7 @@ THIS_TEST_DIR = Path(os.path.dirname(__file__))
 TEST_DIR = THIS_TEST_DIR.parent
 PROJECT_ROOT = TEST_DIR.parent
 sys.path.insert(0, str(PROJECT_ROOT))
+
 TEST_INPUT_DIR = THIS_TEST_DIR / 'input'
 TEST_SCHEMA = 'test_n3c'
 YESTERDAY: str = (datetime.now() - timedelta(days=1)).isoformat() + 'Z'  # works: 2023-01-01T00:00:00.000Z
@@ -27,9 +27,14 @@ from enclave_wrangler.objects_api import concept_enclave_to_db, \
     concept_expression_enclave_to_db, concept_set_container_enclave_to_db, cset_version_enclave_to_db, \
     csets_and_members_to_db, fetch_cset_and_member_objects, all_new_objects_to_db, \
     get_concept_set_version_members
+from test.utils_db_refresh_test_wrapper import DbRefreshTestWrapper
 
 
-class TestObjectsApi(unittest.TestCase):
+class TestObjectsApi(DbRefreshTestWrapper):
+
+    @classmethod
+    def setUpClass(cls):
+        super().setUpClass()
 
     # todo: after completing this 'test', create func for it in backend/db and call/assert here
     #  - what is the ultimate goal? how many tables are we refreshing?

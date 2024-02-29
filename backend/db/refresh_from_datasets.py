@@ -72,8 +72,8 @@ def reset_and_update_db(
         run_sql(con, f'CREATE SCHEMA IF NOT EXISTS {schema_new_temp};')
     load(schema_new_temp, True, hours_threshold_for_updates, local)
     with get_db_connection(schema=schema_new_temp, local=local) as con:
-        run_sql(con, f'ALTER SCHEMA n3c RENAME TO {schema_old_backup};')
-        run_sql(con, f'ALTER SCHEMA {schema_new_temp} RENAME TO n3c;')
+        run_sql(con, f'ALTER SCHEMA {schema} RENAME TO {schema_old_backup};')
+        run_sql(con, f'ALTER SCHEMA {schema_new_temp} RENAME TO {schema};')
         update_db_status_var(last_updated_db_key, str(current_datetime()), local)
     counts_update('DB reset and update.', schema, local)
     print('INFO: Database reset complete.')
@@ -105,7 +105,8 @@ def cli():
     parser.add_argument(
         '-l', '--use-local-db', action='store_true', default=False, help='Use local database instead of server.')
     parser.add_argument(
-        '-z', '--run-final-ddl-only', action='store_true', default=False, help='Only run indexes_and_derived_tables (ddl.jinja.sql).')
+        '-z', '--run-final-ddl-only', action='store_true', default=False,
+        help='Only run indexes_and_derived_tables (ddl.jinja.sql).')
     reset_and_update_db(**vars(parser.parse_args()))
 
 

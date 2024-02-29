@@ -39,8 +39,8 @@ from enclave_wrangler.utils import EnclavePaginationLimitErr, enclave_get, encla
     make_objects_request
 from enclave_wrangler.models import OBJECT_TYPE_TABLE_MAP, convert_row, get_field_names, field_name_mapping, pkey
 from backend.db.utils import SCHEMA, insert_fetch_statuses, insert_from_dict, insert_from_dicts, \
-    is_refresh_active, refresh_termhub_core_cset_derived_tables, \
-    reset_temp_refresh_tables, sql_query_single_col, run_sql, get_db_connection
+    is_refresh_active, refresh_derived_tables, reset_temp_refresh_tables, refresh_derived_tables, \
+    sql_query_single_col, run_sql, get_db_connection
 from backend.db.queries import get_concepts
 from backend.utils import call_github_action, pdump
 
@@ -524,7 +524,7 @@ def csets_and_members_to_db(con: Connection, csets_and_members: Dict[str, List[D
     print(f'  - concept_set_members completed in {(datetime.now() - t2).seconds} seconds')
 
     # Derived tables
-    refresh_termhub_core_cset_derived_tables(con, schema)
+    refresh_derived_tables(con, schema=schema)
 
 
 def fetch_object_by_id(
@@ -1012,7 +1012,7 @@ def cli():
         find_and_add_missing_csets_to_db()
     if'refresh_derived' in commands_to_run:
         with get_db_connection() as con:
-            refresh_termhub_core_cset_derived_tables(con)
+            refresh_derived_tables(con)
 
 
 if __name__ == '__main__':

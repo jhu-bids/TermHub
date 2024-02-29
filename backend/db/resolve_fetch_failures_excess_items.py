@@ -11,7 +11,7 @@ BACKEND_DIR = os.path.join(DB_DIR, '..')
 PROJECT_ROOT = os.path.join(BACKEND_DIR, '..')
 sys.path.insert(0, str(PROJECT_ROOT))
 from backend.db.utils import SCHEMA, fetch_status_set_success, get_db_connection, insert_from_dicts, \
-    refresh_termhub_core_cset_derived_tables, \
+    refresh_derived_tables, \
     select_failed_fetches
 from enclave_wrangler.datasets import CSV_TRANSFORM_DIR, download_datasets
 from enclave_wrangler.utils import was_file_modified_within_threshold
@@ -74,7 +74,7 @@ def resolve_fetch_failures_excess_items(use_local_db=False, cached_dataset_thres
                 if rows:
                     insert_from_dicts(con, dataset, rows)
                     solved_failures.append(failure)
-        refresh_termhub_core_cset_derived_tables(con)
+        refresh_derived_tables(con)
 
     # Update fetch_audit status
     fetch_status_set_success(solved_failures)

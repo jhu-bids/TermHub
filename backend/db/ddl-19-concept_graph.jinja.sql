@@ -1,6 +1,6 @@
-DROP TABLE IF EXISTS concept_graph CASCADE;
+DROP TABLE IF EXISTS {{schema}}concept_graph{{optional_suffix}} CASCADE;
 
-CREATE TABLE IF NOT EXISTS concept_graph AS (
+CREATE TABLE IF NOT EXISTS {{schema}}concept_graph{{optional_suffix}} AS (
      SELECT ancestor_concept_id AS source_id,
             -- 'Child of' AS relationship_id,
             descendant_concept_id AS target_id
@@ -16,9 +16,9 @@ CREATE TABLE IF NOT EXISTS concept_graph AS (
       */
 );
 
-CREATE INDEX cg_idx1 ON concept_graph(source_id);
+CREATE INDEX cg_idx1{{optional_index_suffix}} ON {{schema}}concept_graph{{optional_suffix}}(source_id);
 
-CREATE INDEX cg_idx2 ON concept_graph(target_id);
+CREATE INDEX cg_idx2{{optional_index_suffix}} ON {{schema}}concept_graph{{optional_suffix}}(target_id);
 
 /*
         # load_csv(con, 'relationship', 'dataset', schema='n3c')

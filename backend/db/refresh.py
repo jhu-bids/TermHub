@@ -77,8 +77,9 @@ def refresh_db(
             update_db_status_var('last_refresh_result', 'error', local)
             update_db_status_var('last_refresh_error_message', str(err), local)
             reset_temp_refresh_tables(schema)
-            print(f"Database refresh incomplete; exception occurred. Tallying counts and exiting.", file=sys.stderr)
+            print(f"Database refresh incomplete; exception occurred.", file=sys.stderr)
             counts_update('DB refresh error.', schema, local, filter_temp_refresh_tables=True)
+            print('Updating database counts. This could take a while...')
             counts_docs()
             raise err
         finally:
@@ -86,6 +87,8 @@ def refresh_db(
             update_db_status_var('refresh_status', 'inactive', local)
 
     if new_data:
+        print('DB refresh complete.')
+        print('Updating database counts. This could take a while...')
         counts_update('DB refresh.', schema, local)
         counts_docs()
         print(f'INFO: Database refresh complete in {(datetime.now() - t0).seconds} seconds.')

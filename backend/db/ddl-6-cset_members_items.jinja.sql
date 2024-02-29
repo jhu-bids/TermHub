@@ -41,8 +41,8 @@ JOIN {{schema}}concept c ON COALESCE(csm.concept_id, item.concept_id) = c.concep
 WHERE csm.codeset_id IS NOT NULL
    OR item.codeset_id IS NOT NULL;
 
-CREATE INDEX {{optional_index_suffix}}csmi_idx1 ON {{schema}}cset_members_items{{optional_suffix}}(codeset_id);
+CREATE INDEX csmi_idx1{{optional_index_suffix}} ON {{schema}}cset_members_items{{optional_suffix}}(codeset_id);
 
-CREATE INDEX {{optional_index_suffix}}csmi_idx2 ON {{schema}}cset_members_items{{optional_suffix}}(concept_id);
+CREATE INDEX csmi_idx2{{optional_index_suffix}} ON {{schema}}cset_members_items{{optional_suffix}}(concept_id);
 
-CREATE INDEX {{optional_index_suffix}}csmi_idx3 ON {{schema}}cset_members_items{{optional_suffix}}(codeset_id, concept_id);
+CREATE INDEX csmi_idx3{{optional_index_suffix}} ON {{schema}}cset_members_items{{optional_suffix}}(codeset_id, concept_id);
