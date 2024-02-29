@@ -38,6 +38,87 @@ import {LI} from "./AboutPage";
 // TODO: show table w/ hierarchical indent
 // TODO: Color table: I guess would need to see if could pass extra values/props and see if table widget can use that
 //  ...for coloration, since we want certain rows grouped together
+export async function fetchGraphData(props) {
+    let {dataGetter, sp, gcDispatch, codeset_ids, newCset={}} = props;
+    let promises = [ // these can run immediately
+        dataGetter.fetchAndCacheItems(dataGetter.apiCalls.cset_members_items, codeset_ids),
+        dataGetter.fetchAndCacheItems(dataGetter.apiCalls.csets, codeset_ids),
+    ];
+    let comparison_rpt;
+    if (sp.comparison_rpt) {
+        comparison_rpt = dataGetter.axiosCall(`single-n3c-comparison-rpt?pair=${sp.comparison_rpt}`,
+                                              {sendAlert: false, skipApiGroup: true});
+    }
+    // have to get concept_ids before fetching concepts
+    // const concept_ids_by_codeset_id = await dataGetter.fetchAndCacheItems(dataGetter.apiCalls.concept_ids_by_codeset_id, codeset_ids);
+    // let concept_ids = union(flatten(Object.values(concept_ids_by_codeset_id)));
+
+    const cids = []; // not collecting these extra concept ids yet
+    const graphData = await dataGetter.fetchAndCacheItems(
+        dataGetter.apiCalls.concept_graph_new, {codeset_ids, cids: cids});
+    let {concept_ids} = graphData;
+
+    promises.push(dataGetter.fetchAndCacheItems(dataGetter.apiCalls.concepts, concept_ids));
+
+    let [csmi, selected_csets, conceptLookup,] = await Promise.all(promises);
+
+    selected_csets = codeset_ids.map(d => selected_csets[d]); // to get them in the order asked for
+
+    if (!isEmpty(newCset)) {
+        selected_csets.push(newCset);
+        selected_csets = selected_csets.map(cset => {
+            cset = {...cset};
+            // not sure why these counts are needed...oh, maybe because we
+            //  planned to update them and add them to the comparison UI somehow
+            cset.intersecting_concepts = 0;
+            cset.precision = 0;
+            cset.recall = 0;
+            cset.counts = {};
+            return cset;
+        });
+
+        csmi = {...csmi, ...newCset.definitions};
+    }
+
+    const definitionConcepts = uniq(flatten(Object.values(csmi)
+                                                .map(d => Object.values(d))).filter(d => d.item).map(d => d.concept_id));
+
+    let specialConcepts = {
+        definitionConcepts: definitionConcepts.map(String),
+        nonStandard: uniq(Object.values(conceptLookup).filter(c => !c.standard_concept).map(c => c.concept_id)),
+        zeroRecord: uniq(Object.values(conceptLookup).filter(c => !c.total_cnt).map(c => c.concept_id)),
+    };
+
+    comparison_rpt = await comparison_rpt;
+    if (comparison_rpt) {
+        specialConcepts.added = comparison_rpt.added.map(String);
+        specialConcepts.removed = comparison_rpt.removed.map(String);
+    }
+
+    for (let cid in conceptLookup) {
+        let c = {...conceptLookup[cid]}; // don't want to mutate the cached concepts
+        if (specialConcepts.definitionConcepts.includes(cid+'')) c.isItem = true;
+        if ((specialConcepts.added || []).includes(cid+'')) c.added = true;
+        if ((specialConcepts.removed || []).includes(cid+'')) c.removed = true;
+        c.status = [c.isItem && 'Def', c.added && 'Added', c.removed && 'Removed']
+            .filter(d => d).join(', ');
+        conceptLookup[cid] = c;
+    }
+
+    const concepts = Object.values(conceptLookup);
+
+    gcDispatch({type: "CREATE", payload: {...graphData, concepts, specialConcepts, csmi}});
+
+    if (!isEmpty(newCset)) {
+        const cidcnt = concept_ids.length;
+        concept_ids = union(concept_ids, Object.values(newCset.definitions).map(d => d.concept_id));
+        if (concept_ids.length > cidcnt) {
+            throw new Error("not implemented");
+        }
+    }
+
+    return { concept_ids, selected_csets, conceptLookup, csmi, concepts, specialConcepts, comparison_rpt };
+}
 export function CsetComparisonPage() {
     const [codeset_ids, codesetIdsDispatch] = useCodesetIds();
     const {sp, updateSp} = useSearchParamsState();
@@ -68,88 +149,15 @@ export function CsetComparisonPage() {
 
             await dataGetter.getApiCallGroupId();
 
-            let promises = [ // these can run immediately
-                dataGetter.fetchAndCacheItems(dataGetter.apiCalls.cset_members_items, codeset_ids),
-                dataGetter.fetchAndCacheItems(dataGetter.apiCalls.csets, codeset_ids),
-            ];
-            let comparison_rpt;
-            if (sp.comparison_rpt) {
-                comparison_rpt = dataGetter.axiosCall(`single-n3c-comparison-rpt?pair=${sp.comparison_rpt}`,
-                    {sendAlert: false, skipApiGroup: true});
-            }
-            // have to get concept_ids before fetching concepts
-            // const concept_ids_by_codeset_id = await dataGetter.fetchAndCacheItems(dataGetter.apiCalls.concept_ids_by_codeset_id, codeset_ids);
-            // let concept_ids = union(flatten(Object.values(concept_ids_by_codeset_id)));
+            const graphData = fetchGraphData({dataGetter, sp, gcDispatch, codeset_ids, newCset})
 
-            const cids = []; // not collecting these extra concept ids yet
-            const graphData = await dataGetter.fetchAndCacheItems(
-                     dataGetter.apiCalls.concept_graph_new, {codeset_ids, cids: cids});
-            let {concept_ids} = graphData;
 
-            promises.push(dataGetter.fetchAndCacheItems(dataGetter.apiCalls.concepts, concept_ids));
-
-            let [csmi, selected_csets, conceptLookup,] = await Promise.all(promises);
-
-            selected_csets = codeset_ids.map(d => selected_csets[d]); // to get them in the order asked for
-
-            const researcherIds = getResearcherIdsFromCsets(selected_csets);
-            let researchers = dataGetter.fetchAndCacheItems(dataGetter.apiCalls.researchers, researcherIds);
-
-            if (!isEmpty(newCset)) {
-                selected_csets.push(newCset);
-                selected_csets = selected_csets.map(cset => {
-                    cset = {...cset};
-                    // not sure why these counts are needed...oh, maybe because we
-                    //  planned to update them and add them to the comparison UI somehow
-                    cset.intersecting_concepts = 0;
-                    cset.precision = 0;
-                    cset.recall = 0;
-                    cset.counts = {};
-                    return cset;
-                });
-
-                csmi = {...csmi, ...newCset.definitions};
-            }
-
-            const definitionConcepts = uniq(flatten(Object.values(csmi)
-                .map(d => Object.values(d))).filter(d => d.item).map(d => d.concept_id));
-
-            let specialConcepts = {
-                definitionConcepts: definitionConcepts.map(String),
-                nonStandard: uniq(Object.values(conceptLookup).filter(c => !c.standard_concept).map(c => c.concept_id)),
-                zeroRecord: uniq(Object.values(conceptLookup).filter(c => !c.total_cnt).map(c => c.concept_id)),
-            };
-
-            comparison_rpt = await comparison_rpt;
-            if (comparison_rpt) {
-                specialConcepts.added = comparison_rpt.added.map(String);
-                specialConcepts.removed = comparison_rpt.removed.map(String);
-            }
-
-            for (let cid in conceptLookup) {
-                let c = {...conceptLookup[cid]}; // don't want to mutate the cached concepts
-                if (specialConcepts.definitionConcepts.includes(cid+'')) c.isItem = true;
-                if ((specialConcepts.added || []).includes(cid+'')) c.added = true;
-                if ((specialConcepts.removed || []).includes(cid+'')) c.removed = true;
-                c.status = [c.isItem && 'Def', c.added && 'Added', c.removed && 'Removed']
-                    .filter(d => d).join(', ');
-                conceptLookup[cid] = c;
-            }
-
-            const concepts = Object.values(conceptLookup);
-
-            gcDispatch({type: "CREATE", payload: {...graphData, concepts, specialConcepts, csmi}});
-
-            if (!isEmpty(newCset)) {
-                const cidcnt = concept_ids.length;
-                concept_ids = union(concept_ids, Object.values(newCset.definitions).map(d => d.concept_id));
-                if (concept_ids.length > cidcnt) {
-                    throw new Error("not implemented");
-                }
-            }
+            let { concept_ids, selected_csets, conceptLookup, csmi, concepts, specialConcepts,
+                    comparison_rpt } = await graphData;
 
             const currentUserId = (await whoami).id;
-            researchers = await researchers;
+            const researcherIds = getResearcherIdsFromCsets(selected_csets);
+            let researchers = await dataGetter.fetchAndCacheItems(dataGetter.apiCalls.researchers, researcherIds);
 
             setData(current => ({
                 ...current, concept_ids, selected_csets, conceptLookup, csmi,
@@ -539,8 +547,8 @@ function nodeToTree(node) {
     return [node, ...subTrees];
 }
 
-function newGetCollapseIconAndName(row, sizes, gcDispatch) {
-    let Component, collapseAction;
+function getCollapseIconAndName(row, sizes, gcDispatch) {
+    let Component;
     if (row.expanded) {
         Component = RemoveCircleOutline;
     } else {
@@ -549,7 +557,14 @@ function newGetCollapseIconAndName(row, sizes, gcDispatch) {
     return (
         <span
             className="toggle-collapse concept-name-row"
-            onClick={() => gcDispatch({type: "TOGGLE_NODE_EXPANDED", payload: {nodeId: row.concept_id}})}
+            onClick={
+                (evt) => {
+                    // console.log(evt);
+                    gcDispatch({type: "TOGGLE_NODE_EXPANDED", payload: {nodeId: row.concept_id}})
+                }
+            }
+            // TODO: capture long click or double click or something to do expandAll
+            // onDoubleClick={() => gcDispatch({type: "TOGGLE_NODE_EXPANDED", payload: {expandAll: true, nodeId: row.concept_id}})}
         >
                 <Component
                     sx={{
@@ -606,16 +621,17 @@ function getColDefs(props) {
                 }
                 let content = nested ? (
                     row.hasChildren
-                        ? newGetCollapseIconAndName(row, sizes, gcDispatch)
+                        ? getCollapseIconAndName(row, sizes, gcDispatch)
                         : (
                             <span className="concept-name-row">
-                    <RemoveCircleOutline
-                        // this is just here so it indents the same distance as the collapse icons
-                        sx={{fontSize: sizes.collapseIcon, visibility: "hidden"}}
-                    />
-                    <span className="concept-name-text">{name}</span>
-                  </span>)
+                                <RemoveCircleOutline
+                                    // this is just here so it indents the same distance as the collapse icons
+                                    sx={{fontSize: sizes.collapseIcon, visibility: "hidden"}} />
+                                <span className="concept-name-text">{name}</span>
+                            </span>)
                 ) : (
+                    // this is for non-nested which is not currently implemented (no button for it)
+                    //      it allowed sorting rows... TODO: figure out if bringing it back
                     <span className="concept-name-text">{name}</span>
                 );
                 return content;
@@ -670,7 +686,9 @@ function getColDefs(props) {
             },
             selector: (row) => row.descendantCount,
             format: (row) => {
-                return fmt(row.childCount) + ' / ' + fmt(row.descendantCount)
+                let icon = getCollapseIconAndName(row, sizes, gcDispatch)
+                let text = fmt(row.childCount) + ' / ' + fmt(row.descendantCount)
+                return text;
             },
             sortable: false,
             width: 80,
@@ -868,6 +886,9 @@ function getColDefs(props) {
             style: {justifyContent: "center"},
         },
     ];
+    if (!comparison_rpt) {
+        coldefs = coldefs.filter(d => d.name!== "Status");
+    }
     let cset_cols = selected_csets.map((cset_col) => {
         const {codeset_id} = cset_col;
         let def = {

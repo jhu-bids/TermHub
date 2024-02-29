@@ -3,6 +3,7 @@ import {get, once, sum, sortBy, uniq, flatten, intersection,
         difference, differenceWith, unionWith, intersectionWith, isEmpty} from "lodash";
 import Graph from "graphology";
 import {bidirectional} from 'graphology-shortest-path/unweighted';
+import {dfsFromNode} from "graphology-traversal/dfs";
 
 export const makeGraph = (edges, concepts) => {
   const graph = new Graph({allowSelfLoops: false, multi: false, type: 'directed'});
@@ -62,6 +63,7 @@ export class GraphContainer {
     this.roots = this.graph.nodes().filter(n => !this.graph.inDegree(n));
     this.leaves = this.graph.nodes().filter(n => !this.graph.outDegree(n));
     this.unlinkedConcepts = intersection(this.roots, this.leaves);
+    this.partiallyExpandedNodes = new Set();
 
     let unlinkedConceptsParent = {
       "concept_id": 'unlinked',
@@ -92,8 +94,25 @@ export class GraphContainer {
   }
   toggleNodeExpanded(nodeId) {
     const node = this.nodes[nodeId];
+    // is it worth being not mutating this.nodes here? may be mutating elsewhere
     this.nodes = {...this.nodes, [nodeId]: {...node, expanded:!node.expanded}};
   }
+  /*
+  toggleNodeExpanded(nodeId) {
+    const node = this.nodes[nodeId];
+    // the next line was keeping the function pure and not mutating this.nodes
+    //  but not bothering when deleting partialExpansion, so forget it
+    // this.nodes = {...this.nodes, [nodeId]: {...node, expanded:!node.expanded}};
+
+    node.expanded =!node.expanded;
+
+    dfsFromNode(this.graph, nodeId, (descendantId, attr, depth) => {
+      let descendant = this.nodes[descendantId];
+      delete descendant.partialExpansion;
+      console.log(node, attr, depth);
+    }, {mode: 'outbound'});
+  }
+   */
   setStatsOptions({concepts, concept_ids, csmi,}) {
     const visibleConcepts = this.visibleRows || []; // first time through, don't have visible rows yet
     const visibleCids = visibleConcepts.map(r => r.concept_id);
@@ -188,18 +207,14 @@ export class GraphContainer {
       if it is in hideThoughExpanded, don't display it BUT -- do display its
         descendants, either from being expanded or being in showThoughCollapsed
    */
-  addNodeToVisible(nodeId, displayedRows, showThoughCollapsed, hideThoughExpanded, depth = 0) {
+  addNodeToVisible(nodeId, displayedRows, showThoughCollapsed, showPath = null, depth = 0) {
     const node = {...this.nodes[nodeId], depth};
-    if (hideThoughExpanded.has(parseInt(nodeId))) {
-      // TODO: not sure how to keep descendants with showThoughCollapsed, but not show this node
-      // console.log(node);
-    } else {
-      displayedRows.push(node);
-    }
     const childIds = this.graph.outNeighbors(nodeId); // Get outgoing neighbors (children)
+
+    displayedRows.push(node);
     if (node.expanded) {
       childIds.forEach(childId => {
-        this.addNodeToVisible(childId, displayedRows, showThoughCollapsed, hideThoughExpanded, depth + 1); // Recurse
+        this.addNodeToVisible(childId, displayedRows, showThoughCollapsed, null, depth + 1); // Recurse
       });
     } else {
       showThoughCollapsed.forEach(showThoughCollapsedId => {
@@ -219,7 +234,7 @@ export class GraphContainer {
               if (nd.expanded) {
                 const childIds = this.graph.outNeighbors(id); // Get outgoing neighbors (children)
                 sortBy(childIds, this.sortFunc).forEach(childId => {
-                  this.addNodeToVisible(childId, displayedRows, showThoughCollapsed, hideThoughExpanded, depth + 2); // Recurse
+                  this.addNodeToVisible(childId, displayedRows, showThoughCollapsed, null, depth + 2); // Recurse
                 });
               }
               /*
@@ -228,6 +243,8 @@ export class GraphContainer {
                 showThoughCollapsed.delete(id);
               });
               */
+            } else {
+              throw new Error("didn't expect this");
             }
           } catch (e) {
             console.log(e);
@@ -247,6 +264,17 @@ export class GraphContainer {
     return - (n.levelsBelow || n.descendantCount || n.status ? 1 : 0);
   })
 
+  showThoughCollapsed(nodeId) {
+    dfsFromNode(this.graph, nodeId, (ancestorId, attr, depth) => {
+      let ancestor = this.nodes[ancestorId];
+      if (!ancestor.expanded) {
+        if (!ancestor.partialExpansion) {
+          ancestor.partialExpansion = [];
+        }
+        ancestor.partialExpansion.push(nodeId);
+      }
+    }, {mode: 'inbound'});
+  }
   getVisibleRows(props) {
     // TODO: need to treat things to hide differently from things to always show.
     // let { specialConcepts = [] } = props;
@@ -256,6 +284,7 @@ export class GraphContainer {
       if (this.statsOptions[type].specialTreatmentRule === 'show though collapsed' && this.options.specialConceptTreatment[type]) {
         for (let id of this.specialConcepts[type] || []) {
           showThoughCollapsed.add(id);
+          this.showThoughCollapsed(id);
         }
       }
     }
@@ -264,7 +293,7 @@ export class GraphContainer {
     let displayedRows = [];
 
     for (let nodeId of sortBy(this.roots, this.sortFunc)) {
-      this.addNodeToVisible(nodeId, displayedRows, showThoughCollapsed, hideThoughExpanded);
+      this.addNodeToVisible(nodeId, displayedRows, showThoughCollapsed);
     }
 
     for (let type in this.options.specialConceptTreatment) {
@@ -320,7 +349,7 @@ export class GraphContainer {
       node.drc = node.total_cnt || 0;
 
       if (levelsBelow > 0) {
-        node.expanded = false;  // TODO: deal with expanded differently for shown and hidden
+        // node.expanded = false;  // TODO: deal with expanded differently for shown and hidden
         node.hasChildren = true;
         node.descendants = uniq(descendants); // Remove duplicates
         node.descendantCount = node.descendants.length;
@@ -338,16 +367,33 @@ export class GraphContainer {
     });
     return nodes;
   }
-  withAttributes(edges) {
-    // this is temporary just to keep the indented stuff working a little while longer
-    const graph = new Graph({allowSelfLoops: false, multi: false, type: 'directed'});
-    // add each concept as a node in the graph, the concept properties become the node attributes
-    Object.entries(this.nodes).forEach(([nodeId, node]) => {
-      graph.addNode(nodeId, {...node});
-    })
-    for (let edge of edges) {
-      graph.addDirectedEdge(edge[0], edge[1]);
+  graphCopy() {
+    return this.graph.copy();
+  }
+  graphLayout(maxWidth=12) {
+    const layerSpacing = 120;
+    const nodeSpacing = 120;
+    const graph = this.graph.copy();
+    for (let nodeId in this.nodes) {
+      graph.replaceNodeAttributes(nodeId, {...this.nodes[nodeId]});
     }
+    const layers = computeLayers(graph, maxWidth); // Use a copy to keep the original graph intact
+    // const layers = coffmanGrahamLayering(graph, maxWidth); // Use a copy to keep the original graph intact
+    // that algorithm (both are from chatgpt) doesn't include all the nodes. dropping the ones left
+    //    out of layering for the moment
+    for (let nodeId in setOp('difference', graph.nodes(), flatten(layers))) {
+      graph.dropNode(nodeId);
+    }
+
+    layers.forEach((layer, i) => {
+      layer.forEach((node, j) => {
+        // Here we are simply setting x and y for visualization
+        // Spacing might need adjustments based on your visualization container's size
+        graph.setNodeAttribute(node, 'x', j * nodeSpacing); // Spread nodes horizontally within a layer
+        graph.setNodeAttribute(node, 'y', i * layerSpacing); // Stack layers vertically
+      });
+    });
+    console.log(layers);
     return graph;
   }
 }
@@ -380,6 +426,106 @@ function setOp(op, setA, setB) {
   })[op];
   return f(setA, setB, (itemA, itemB) => itemA == itemB);
 }
+
+function coffmanGrahamLayering(graph, maxWidth) {
+  let layers = [];
+  let currentLayer = [];
+  let visited = new Set();
+
+  // Function to find nodes with in-degree 0
+  function findSources() {
+    return graph.nodes().filter(node => {
+      return graph.inDegree(node) === 0 && !visited.has(node);
+    });
+  }
+
+  // Assign nodes to layers
+  while (visited.size < graph.order) {
+    let sources = findSources();
+    if (sources.length === 0) {
+      break; // Avoid infinite loop for cyclic graphs
+    }
+
+    for (let node of sources) {
+      if (currentLayer.length < maxWidth) {
+        currentLayer.push(node);
+        visited.add(node);
+      }
+      if (currentLayer.length === maxWidth) {
+        layers.push(currentLayer);
+        currentLayer = [];
+      }
+    }
+
+    // Remove nodes from graph to simulate "layer assignment"
+    sources.forEach(node => {
+      // graph.dropNode(node);
+    });
+  }
+
+  if (currentLayer.length > 0) {
+    layers.push(currentLayer); // Add remaining nodes to layers
+  }
+
+  return layers;
+}
+/*
+   chatgpt graph layering stuff:
+     https://chat.openai.com/share/443602bd-e90f-48cb-92a7-4f85b0accad2
+ */
+function computeLayers(graph, maxWidth) {
+  const inDegrees = {};
+  graph.nodes().forEach(node => {
+    inDegrees[node] = graph.inDegree(node);
+  });
+
+  const layers = [];
+  let currentLayer = [];
+  let layerIndex = 0;
+
+  while (Object.keys(inDegrees).length > 0) {
+    // Select nodes with in-degree of 0 up to the maxWidth
+    Object.entries(inDegrees).forEach(([node, inDegree]) => {
+      if (inDegree === 0 && currentLayer.length < maxWidth) {
+        currentLayer.push(node);
+      }
+    });
+
+    // If no node was added but there are still nodes left, increment the layer index to avoid an infinite loop
+    if (currentLayer.length === 0 && Object.keys(inDegrees).length > 0) {
+      layerIndex++;
+      continue;
+    }
+
+    // Update inDegrees for the next iteration
+    currentLayer.forEach(node => {
+      graph.outEdges(node).forEach(edge => {
+        const target = graph.target(edge);
+        if (inDegrees[target] !== undefined) {
+          inDegrees[target]--;
+        }
+      });
+      delete inDegrees[node];
+    });
+
+    if (layers[layerIndex] === undefined) {
+      layers[layerIndex] = [];
+    }
+
+    // Add current layer to layers and prepare for next iteration
+    layers[layerIndex] = layers[layerIndex].concat(currentLayer);
+    currentLayer = [];
+
+    // If the current layer is full or no more nodes can be added, move to the next layer
+    if (layers[layerIndex].length >= maxWidth || !Object.values(inDegrees).some(inDegree => inDegree === 0)) {
+      layerIndex++;
+    }
+  }
+
+  return layers;
+}
+
+
 /* use like:
   const { {graph, nodes}, gcDispatch } = useGraphContainer();
   const toggleNodeAttribute = (nodeId) => {

@@ -6,121 +6,72 @@ import { useLayoutCircular } from "@react-sigma/layout-circular";
 import Graph from "graphology";
 import "@react-sigma/core/lib/react-sigma.min.css";
 import {useSearchParamsState} from "../state/SearchParamsProvider";
-import {useDataGetter} from "../state/DataGetter";
+import {getResearcherIdsFromCsets, useDataGetter} from "../state/DataGetter";
 import {flatten, isEmpty, max, sum, union, uniq} from "lodash";
 import * as d3dag from "d3-dag";
 // import {formatEdges} from "./ConceptGraph";
 // import { Attributes } from "graphology-types";
 import {assignLayout} from 'graphology-layout/utils';
 import {collectLayout} from 'graphology-layout/utils';
+import {fetchGraphData} from "./CsetComparisonPage";
+import {useGraphContainer} from "../state/GraphState";
 
 // import {useSeedRandom} from "react-seed-random";
-
-function sugiyamaLayout(edges) {
-  const connect = d3dag.dagConnect();
-  const dag = connect(edges); // using d3dag for the sugiyama layout
-  const graphSize = d3dag.sugiyama();
-  const layout = d3dag.sugiyama();
-  const {width, height} = layout(dag);
-
-
-  const graph = new Graph();  // but using graphology graph with sigma
-  let slayout = {};
-
-  for (let dn of dag.descendants()) {
-    // let n = parseInt(dn.data.id);
-    let n = dn.data.id; // I think it turns graph node ids into strings
-    slayout[n] = { x: dn.x, y: dn.y,}; // for TermHub example, this is too wide
-    // slayout[n] = { x: dn.y, y: dn.x,}; // now too tall, not helpful
-  }
-  return {graph, graphSize, slayout};
-}
-
 export const ConceptGraph/*: React.FC*/ = () => {
+  // const sigma = useSigma();
   const {sp} = useSearchParamsState();
   let {codeset_ids=[], cids=[], use_example=false} = sp;
   const dataGetter = useDataGetter();
+  const {gc, gcDispatch} = useGraphContainer();
   const [data, setData] = useState({ cids: [], graph_data: {}, concepts: [], });
-  const { graph_data, concepts, } = data;
+  const { concept_ids, selected_csets, conceptLookup, csmi,
+            concepts, specialConcepts, comparison_rpt, } = data;
 
   useEffect(() => {
     (async () => {
 
       await dataGetter.getApiCallGroupId();
 
-      const graph_data_JUNK = await dataGetter.fetchAndCacheItems(dataGetter.apiCalls.concept_graph_new, {codeset_ids, cids: cids});
-      debugger;
+      const graphData = fetchGraphData({dataGetter, sp, gcDispatch, codeset_ids})
 
-      /*
-      const concept_ids_by_codeset_id = await dataGetter.fetchAndCacheItems(dataGetter.apiCalls.concept_ids_by_codeset_id, codeset_ids);
-      let concept_ids = union(flatten(Object.values(concept_ids_by_codeset_id)));
+      let { concept_ids, selected_csets, conceptLookup, csmi, concepts, specialConcepts,
+        comparison_rpt } = await graphData;
 
-      const graph_data = await dataGetter.fetchAndCacheItems(dataGetter.apiCalls.concept_graph, concept_ids, );
-      const {edges, layout, filled_gaps} = graph_data;
-      // indentedCids = [[<level>, <concept_id>], ...]
-      concept_ids = uniq(concept_ids.concat(filled_gaps));
-
-      const concepts = await dataGetter.fetchAndCacheItems(dataGetter.apiCalls.concepts, concept_ids);
-      */
-
-      setData({concept_ids, graph_data, concepts});
+      setData(current => ({
+        ...current, concept_ids, selected_csets, conceptLookup, csmi,
+        concepts, specialConcepts, comparison_rpt,
+      }));
     })()
   }, []);
 
-  /*
-  interface SugiyamaGraphProps {
-    graph_data: any;  // Replace 'any' with the actual type of graph_data
-  }
-   */
-
-  const SugiyamaGraph/*: React.FC<SugiyamaGraphProps>*/ = (props) => {
+  const MyGraph = () => {
     const loadGraph = useLoadGraph();
-    const {graph_data} = props;
-    // const { positions, assign } = useLayoutCircular();
 
     useEffect(() => {
-      if (isEmpty(graph_data)) {
-        return;
+      // Create the graph
+      // const graph = new MultiDirectedGraph();
+      /*
+      const graph = new Graph();
+      graph.addNode("A", { x: 0, y: 0, label: "Node A", size: 10 });
+      graph.addNode("B", { x: 1, y: 1, label: "Node B", size: 10 });
+      graph.addEdgeWithKey("rel1", "A", "B", { label: "REL_1" });
+       */
+      if (gc && gc.graph) {
+        let laidOutGraph = gc.graphLayout();
+        loadGraph(laidOutGraph);
       }
-
-      let {edges, layout, filled_gaps} = graph_data;
-      edges = edges.map((e) => [String(e[0]), String(e[1])]);
-
-      let {graph, graphSize, slayout} = sugiyamaLayout(edges);
-
-      for (let n in slayout) {
-        graph.addNode(n, {
-          label: concepts[n].concept_name,
-          // size: 10,
-          // x: dn.x, y: dn.y,
-          // x: 0, y: 0,
-          // color: randomColor(),
-        });
-      }
-      for (let edge of edges) {
-        graph.addDirectedEdge(edge[0], edge[1]);
-      }
-
-      assignLayout(graph, slayout);
-      loadGraph(graph);
-      let l = collectLayout(graph);
-      // console.log(l);
-      // assign();
-
-
-      // console.log(positions());
-    }, [loadGraph, graph_data])
+    }, [loadGraph, gc]);
 
     return null;
-  }
+  };
 
   return (
-      <SigmaContainer style={{ height: "1500px" }}>
-        <SugiyamaGraph graph_data={graph_data}/>
-        {/*<DisplayGraph />*/}
-      </SigmaContainer>
+    <SigmaContainer style={{ height: "1500px" }}>
+      <MyGraph />
+    </SigmaContainer>
   );
 }
+
 export const DisplayGraph/*: React.FC*/ = () => {
   const RandomCircleGraph/*: React.FC*/ = () => {
     const { faker, randomColor } = useSeedRandom();
@@ -168,3 +119,22 @@ export const DisplayGraph/*: React.FC*/ = () => {
     </SigmaContainer>
   );
 };
+function sugiyamaLayout(edges) {
+  const connect = d3dag.dagConnect();
+  const dag = connect(edges); // using d3dag for the sugiyama layout
+  const graphSize = d3dag.sugiyama();
+  const layout = d3dag.sugiyama();
+  const {width, height} = layout(dag);
+
+
+  const graph = new Graph();  // but using graphology graph with sigma
+  let slayout = {};
+
+  for (let dn of dag.descendants()) {
+    // let n = parseInt(dn.data.id);
+    let n = dn.data.id; // I think it turns graph node ids into strings
+    slayout[n] = { x: dn.x, y: dn.y,}; // for TermHub example, this is too wide
+    // slayout[n] = { x: dn.y, y: dn.x,}; // now too tall, not helpful
+  }
+  return {graph, graphSize, slayout};
+}
