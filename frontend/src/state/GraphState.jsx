@@ -114,93 +114,6 @@ export class GraphContainer {
     gc.options.specialConceptTreatment[type] = ! gc.options.specialConceptTreatment[type];
     gc.statsOptions[type].specialTreatment = gc.options.specialConceptTreatment[type];
   }
-  setStatsOptions({concepts, concept_ids, csmi,}) {
-    const visibleConcepts = this.visibleRows || []; // first time through, don't have visible rows yet
-    const visibleCids = visibleConcepts.map(r => r.concept_id);
-    let displayOrder = 0;
-    let rows = {
-      visibleRows: {
-        name: "Visible rows", displayOrder: displayOrder++,
-        value: visibleConcepts.length,
-      },
-      concepts: {
-        name: "Concepts", displayOrder: displayOrder++,
-        value: concept_ids.length,
-        hiddenConceptCnt: setOp('difference', concept_ids, visibleCids).length,
-      },
-      definitionConcepts: {
-        name: "Definition concepts", displayOrder: displayOrder++,
-        value: this.specialConcepts.definitionConcepts.length,
-        hiddenConceptCnt: setOp('difference', this.specialConcepts.definitionConcepts, visibleCids).length,
-        specialTreatmentDefault: false,
-        specialTreatmentRule: 'show though collapsed',
-      },
-      added: {
-        name: "Added", displayOrder: displayOrder++,
-        value: get(this.specialConcepts, 'added.length', undefined),
-        hiddenConceptCnt: setOp('difference', this.specialConcepts.added, visibleCids).length,
-        specialTreatmentDefault: false,
-        specialTreatmentRule: 'show though collapsed',
-      },
-      removed: {
-        name: "Removed", displayOrder: displayOrder++,
-        value: get(this.specialConcepts, 'removed.length', undefined),
-        hiddenConceptCnt: setOp('difference', this.specialConcepts.removed, visibleCids).length,
-        specialTreatmentDefault: false,
-        specialTreatmentRule: 'show though collapsed',
-      },
-      expansion: {
-        name: "Expansion concepts", displayOrder: displayOrder++,
-        value: uniq(flatten(Object.values(csmi).map(Object.values))
-                .filter(c => c.csm).map(c => c.concept_id)).length,
-        hiddenConceptCnt: setOp('difference', concept_ids, visibleCids).length,
-      },
-      standard: {
-        name: "Standard concepts", displayOrder: displayOrder++,
-        value: concepts.filter(c => c.standard_concept === 'S').length,
-      },
-      classification: {
-        name: "Classification concepts", displayOrder: displayOrder++,
-        value: concepts.filter(c => c.standard_concept === 'C').length,
-      },
-      nonStandard: {
-        name: "Non-standard", displayOrder: displayOrder++,
-        value: this.specialConcepts.nonStandard.length,
-        visibleConceptCnt: setOp('intersection', this.specialConcepts.nonStandard, visibleCids).length,
-        hiddenConceptCnt:  setOp('intersection', this.specialConcepts.nonStandard, this.hideThoughExpanded).length,
-        specialTreatmentDefault: false,
-        specialTreatmentRule: 'hide though expanded',
-      },
-      zeroRecord: {
-        name: "Zero records / patients", displayOrder: displayOrder++,
-        value: this.specialConcepts.zeroRecord.length,
-        visibleConceptCnt: setOp('intersection', this.specialConcepts.zeroRecord, visibleCids).length,
-        hiddenConceptCnt: setOp('intersection', this.specialConcepts.zeroRecord, [...(this.hideThoughExpanded || [])]).length,
-        specialTreatmentDefault: false,
-        specialTreatmentRule: 'hide though expanded',
-      },
-    }
-    for (let type in rows) {
-      let row = {...get(this, ['statsOptions', type], {}), ...rows[type]};  // don't lose stuff previously set
-      if (typeof(row.value) === 'undefined') {  // don't show rows that don't represent any concepts
-        delete rows[type];
-        continue;
-      }
-      row.type = type;
-      if (isEmpty(this.statsOptions) && typeof(row.specialTreatmentDefault) !== 'undefined') {
-        row.specialTreatment = row.specialTreatmentDefault;
-      }
-      if (type in this.specialConcepts) {
-        this.options.specialConceptTreatment[type] = row.specialTreatment;
-      }
-      rows[type] = row;
-    }
-    this.statsOptions = rows;
-  };
-  getStatsOptions() {
-    return sortBy(this.statsOptions, d => d.displayOrder);
-  }
-
   /* adds the node to the list of visible nodes
       if it is set to be expanded, recurse and add its children to the list
       if it has descendants that are in showThoughCollapsed, show those descendants, but
@@ -424,6 +337,94 @@ export class GraphContainer {
     console.log(layers);
     return graph;
   }
+
+  setStatsOptions({concepts, concept_ids, csmi,}) {
+    const visibleConcepts = this.visibleRows || []; // first time through, don't have visible rows yet
+    const visibleCids = visibleConcepts.map(r => r.concept_id);
+    let displayOrder = 0;
+    let rows = {
+      visibleRows: {
+        name: "Visible rows", displayOrder: displayOrder++,
+        value: visibleConcepts.length,
+      },
+      concepts: {
+        name: "Concepts", displayOrder: displayOrder++,
+        value: concept_ids.length,
+        hiddenConceptCnt: setOp('difference', concept_ids, visibleCids).length,
+      },
+      definitionConcepts: {
+        name: "Definition concepts", displayOrder: displayOrder++,
+        value: this.specialConcepts.definitionConcepts.length,
+        hiddenConceptCnt: setOp('difference', this.specialConcepts.definitionConcepts, visibleCids).length,
+        specialTreatmentDefault: false,
+        specialTreatmentRule: 'show though collapsed',
+      },
+      added: {
+        name: "Added", displayOrder: displayOrder++,
+        value: get(this.specialConcepts, 'added.length', undefined),
+        hiddenConceptCnt: setOp('difference', this.specialConcepts.added, visibleCids).length,
+        specialTreatmentDefault: false,
+        specialTreatmentRule: 'show though collapsed',
+      },
+      removed: {
+        name: "Removed", displayOrder: displayOrder++,
+        value: get(this.specialConcepts, 'removed.length', undefined),
+        hiddenConceptCnt: setOp('difference', this.specialConcepts.removed, visibleCids).length,
+        specialTreatmentDefault: false,
+        specialTreatmentRule: 'show though collapsed',
+      },
+      expansion: {
+        name: "Expansion concepts", displayOrder: displayOrder++,
+        value: uniq(flatten(Object.values(csmi).map(Object.values))
+            .filter(c => c.csm).map(c => c.concept_id)).length,
+        hiddenConceptCnt: setOp('difference', concept_ids, visibleCids).length,
+      },
+      standard: {
+        name: "Standard concepts", displayOrder: displayOrder++,
+        value: concepts.filter(c => c.standard_concept === 'S').length,
+      },
+      classification: {
+        name: "Classification concepts", displayOrder: displayOrder++,
+        value: concepts.filter(c => c.standard_concept === 'C').length,
+      },
+      nonStandard: {
+        name: "Non-standard", displayOrder: displayOrder++,
+        value: this.specialConcepts.nonStandard.length,
+        visibleConceptCnt: setOp('intersection', this.specialConcepts.nonStandard, visibleCids).length,
+        hiddenConceptCnt:  setOp('intersection', this.specialConcepts.nonStandard, this.hideThoughExpanded).length,
+        specialTreatmentDefault: false,
+        specialTreatmentRule: 'hide though expanded',
+      },
+      zeroRecord: {
+        name: "Zero records / patients", displayOrder: displayOrder++,
+        value: this.specialConcepts.zeroRecord.length,
+        visibleConceptCnt: setOp('intersection', this.specialConcepts.zeroRecord, visibleCids).length,
+        hiddenConceptCnt: setOp('intersection', this.specialConcepts.zeroRecord, [...(this.hideThoughExpanded || [])]).length,
+        specialTreatmentDefault: false,
+        specialTreatmentRule: 'hide though expanded',
+      },
+    }
+    for (let type in rows) {
+      let row = {...get(this, ['statsOptions', type], {}), ...rows[type]};  // don't lose stuff previously set
+      if (typeof(row.value) === 'undefined') {  // don't show rows that don't represent any concepts
+        delete rows[type];
+        continue;
+      }
+      row.type = type;
+      if (isEmpty(this.statsOptions) && typeof(row.specialTreatmentDefault) !== 'undefined') {
+        row.specialTreatment = row.specialTreatmentDefault;
+      }
+      if (type in this.specialConcepts) {
+        this.options.specialConceptTreatment[type] = row.specialTreatment;
+      }
+      rows[type] = row;
+    }
+    this.statsOptions = rows;
+  };
+  getStatsOptions() {
+    return sortBy(this.statsOptions, d => d.displayOrder);
+  }
+
 }
 
 const GraphContext = createContext(null);
