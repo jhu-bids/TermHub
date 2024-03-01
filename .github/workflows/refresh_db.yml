@@ -1,10 +1,10 @@
 name: DB Refresh (Objects API)
 
 on:
-  schedule:
-#    - cron: '0 5 * * *'  # every day 5am GMT (12/1am EST/EDT)
-    - cron: '*/20 * * * *'  # every 20 minutes
-#    - cron: '0 * * * *'  # every hour on the hour
+#  schedule:
+##    - cron: '0 5 * * *'  # every day 5am GMT (12/1am EST/EDT)
+#    - cron: '*/20 * * * *'  # every 20 minutes
+##    - cron: '0 * * * *'  # every hour on the hour
   workflow_dispatch:
     inputs:
       since:

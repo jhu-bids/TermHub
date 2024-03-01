@@ -1,9 +1,11 @@
 name: Refresh vocabulary tables
 
 on:
-#  schedule:
-##    - cron: '0 0 * * 0'  # weekly, sunday 12am
-#    - cron: '0 8 * * *'  # every day 6am GMT (3/4am EST/EDT)
+  schedule:
+#    - cron: '0 0 * * 0'  # weekly, sunday 12am
+# todo: consider more than a 2 hour spread between counts and vocab refresh
+#  - if length of time required for counts increases, probably won't cause a problem for vocab, but might. at very least it would error out and end up being wasted compute and need to run again a day later. if shifting shadow-bids fork jobs to run earlierearlier, would have to probably also adjust times on the TermHub trunk repo too
+    - cron: '0 8 * * *'  # every day 6am GMT (3/4am EST/EDT)
   workflow_dispatch:
 jobs:
   refresh-vocab-tables:
