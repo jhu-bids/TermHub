@@ -672,7 +672,7 @@ function getColDefs(props) {
             },
             selector: (row) => row.levelsBelow,
             format: (row) => {
-                return fmt(row.levelsBelow)
+                return fmt(row.levelsBelow || '')
             },
             sortable: false,
             right: true,
@@ -686,8 +686,8 @@ function getColDefs(props) {
             },
             selector: (row) => row.descendantCount,
             format: (row) => {
-                let icon = getCollapseIconAndName(row, sizes, gcDispatch)
-                let text = fmt(row.childCount) + ' / ' + fmt(row.descendantCount)
+                let icon = getCollapseIconAndName(row, sizes, gcDispatch);
+                let text = row.not_a_concept ? '' : fmt(row.childCount) + ' / ' + fmt(row.descendantCount);
                 return text;
             },
             sortable: false,
@@ -695,19 +695,23 @@ function getColDefs(props) {
             style: {justifyContent: "center",},
         },
         {
-            name: "Records",
+            // name: "Records",
             headerProps: {
-                tooltipContent: "Record count. Small counts rounded up to 20.",
+                tooltipContent: "Record count. Small counts rounded up to 20. Click to toggle hiding of zero counts.",
+                headerContent: (
+                    <span onClick={() => gcDispatch({type: 'TOGGLE_OPTION', payload: {type: 'zeroRecord'}})}
+                          style={{ cursor: 'pointer', }}
+                    >
+                      Records
+                    </span>
+                ),
             },
             /* name:   <Tooltip label="Record count. Small counts rounded up to 20.">
                       <span>Records</span>
                   </Tooltip>, */
             selector: (row) => row.total_cnt,
             format: (row) => {
-                if (typeof (row.distinct_person_cnt) === 'undefined') {
-                    return '';
-                }
-                return fmt(row.total_cnt)
+                return fmt(row.total_cnt || '')
             },
             sortable: !nested,
             right: true,
@@ -723,7 +727,7 @@ function getColDefs(props) {
             },
             selector: (row) => row.drc,
             format: (row) => {
-                return fmt(row.drc)
+                return fmt(row.drc || '')
             },
             sortable: false,
             right: true,
@@ -761,6 +765,20 @@ function getColDefs(props) {
             style: {justifyContent: "center"},
         },
         {
+            name: "Domain",
+            selector: (row) => row.domain_id,
+            sortable: !nested,
+            width: 90,
+            style: {justifyContent: "center"},
+        },
+        {
+            name: "Class",
+            selector: (row) => row.concept_class_id,
+            sortable: !nested,
+            width: 90,
+            style: {justifyContent: "center"},
+        },
+        {
             name: "Std",
             selector: (row) => row.standard_concept,
             sortable: !nested,
@@ -793,23 +811,23 @@ function getColDefs(props) {
                         alignItems: "center",
                     }}
                 >
-          <a
-              href={`https://atlas-demo.ohdsi.org/#/concept/${row.concept_id}`}
-              target="_blank"
-              rel="noreferrer"
-              style={{
-                  display: "flex",
-                  aspectRatio: 1,
-                  alignItems: "center",
-                  padding: "3px",
-              }}
-          >
-            <img
-                height={sizes.atlasHeight}
-                src="atlas.ico"
-                alt="Link to this concept in ATLAS"
-            />
-          </a>
+                    <a
+                      href={`https://atlas-demo.ohdsi.org/#/concept/${row.concept_id}`}
+                      target="_blank"
+                      rel="noreferrer"
+                      style={{
+                          display: "flex",
+                          aspectRatio: 1,
+                          alignItems: "center",
+                          padding: "3px",
+                      }}
+                    >
+                    <img
+                        height={sizes.atlasHeight}
+                        src="atlas.ico"
+                        alt="Link to this concept in ATLAS"
+                    />
+                    </a>
                     &nbsp;
                     <a
                         href={`https://athena.ohdsi.org/search-terms/terms/${row.concept_id}`}
@@ -822,13 +840,13 @@ function getColDefs(props) {
                             padding: "3px",
                         }}
                     >
-            <img
-                height={sizes.athenaHeight}
-                src="athena.ico"
-                alt="Link to this concept in Athena"
-            />
-          </a>
-        </span>
+                        <img
+                            height={sizes.athenaHeight}
+                            src="athena.ico"
+                            alt="Link to this concept in Athena"
+                        />
+                    </a>
+                </span>
             ),
             sortable: !nested,
             width: 60,
@@ -848,20 +866,7 @@ function getColDefs(props) {
                     <div style={{display: 'flex', flexDirection: 'column'}}>
                         <Tooltip label="Approximate distinct person count. Small counts rounded up to 20.">
                             <div>Patients</div>
-                            {/*<div>{hideZeroCounts ? 'Unhide ' : 'Hide '} {hidden.zeroCount} rows</div>*/}
                         </Tooltip>
-                        {
-                            hidden
-                                ? <Tooltip label={`Toggle hiding of ${hidden.zeroCount} concepts with 0 patients`}>
-                                    <Switch sx={{margin: '-8px 0px'}} checked={!hideZeroCounts}
-                                            onClick={() => hsDispatch({
-                                                type: 'hideZeroCounts',
-                                                hideZeroCounts: !hideZeroCounts
-                                            })}
-                                    />
-                                </Tooltip>
-                                : ''
-                        }
                     </div>
                 )
                 // headerContentProps: { onClick: editCodesetFunc, codeset_id: cset_col.codeset_id, },
