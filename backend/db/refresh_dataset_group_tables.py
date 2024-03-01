@@ -19,12 +19,12 @@ from typing import Dict, List, Union
 
 from dateutil import parser as dp
 
-from backend.db.analysis import counts_docs, counts_update
 
 DB_DIR = os.path.dirname(os.path.realpath(__file__))
 BACKEND_DIR = os.path.join(DB_DIR, '..')
 PROJECT_ROOT = os.path.join(BACKEND_DIR, '..')
 sys.path.insert(0, str(PROJECT_ROOT))
+from backend.db.analysis import counts_docs, counts_update
 from backend.db.utils import SCHEMA, check_db_status_var, current_datetime, get_db_connection, get_ddl_statements, \
     load_csv, refresh_derived_tables, reset_temp_refresh_tables, run_sql, update_db_status_var
 from enclave_wrangler.config import DATASET_GROUPS_CONFIG
