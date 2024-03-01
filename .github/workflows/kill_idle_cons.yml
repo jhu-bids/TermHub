@@ -2,9 +2,9 @@
 name: Kill idle connections
 
 on:
-  schedule:
+#  schedule:
 #    - cron: '0 */3 * * * '  # every 3 hours
-    - cron: '0 5 * * *'  # every day 5am GMT (12/1am EST/EDT)
+#    - cron: '0 5 * * *'  # every day 5am GMT (12/1am EST/EDT)
   workflow_dispatch:
 jobs:
   kill-idle-cons:
