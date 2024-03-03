@@ -108,7 +108,6 @@ def refresh_dataset_group_tables(
             # DB Counts
             print('Updating database counts. This could take a while...')
             counts_update(f'DB refresh: {",".join(dataset_group)}', schema)
-            counts_docs()
     print('Done')
 
 
