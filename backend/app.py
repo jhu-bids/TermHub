@@ -33,6 +33,7 @@ APP.add_middleware(GZipMiddleware, minimum_size=1000)
 @APP.middleware("http")
 async def set_schema_globally(request: Request, call_next):
     print(request.url)
+    # if request.url.path == "/usage": return request
 
     schema = request.query_params.get("schema")
     if schema:

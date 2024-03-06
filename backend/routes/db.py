@@ -22,7 +22,7 @@ from backend.utils import return_err_with_trace, commify
 from enclave_wrangler.config import RESEARCHER_COLS
 from enclave_wrangler.models import convert_rows
 from enclave_wrangler.objects_api import get_n3c_recommended_csets, get_concept_set_version_expression_items, \
-    items_to_atlas_json_format
+    items_to_atlas_json_format, get_codeset_json
 from enclave_wrangler.utils import make_objects_request, whoami, check_token_ttl
 
 
@@ -522,6 +522,24 @@ def get_n3c_recommended_codeset_ids() -> Dict[int, Union[Dict, None]]:
     codeset_ids = get_n3c_recommended_csets()
     return codeset_ids
 
+
+@router.get("/download-n3c-recommended")
+def download_n3c_recommended():
+    """"
+        This one is trying to get all useful cset information including definition
+    """
+    codeset_ids = get_n3c_recommended_csets()
+    csets_from_ac = get_csets(codeset_ids)
+    # researcher_ids =
+    # return uniq(flatten(csets.map(cset= > Object.keys(cset.researchers))));
+    csets = []
+    with get_db_connection() as con:
+        for codeset_id in codeset_ids:
+            cset = get_codeset_json(codeset_id, con)
+            csets.append(cset)
+    return {'codeset_json': csets, 'codeset_metadata': csets_from_ac}
+
+
 @router.get("/n3c-recommended-report")
 def n3c_recommended_report(as_json=False) -> Union[List[Row], Response]:
     """N3C recommended report"""
@@ -700,6 +718,16 @@ def next_api_call_group_id() -> int:
     with get_db_connection() as con:
         id = sql_query_single_col(con, "SELECT nextval('api_call_group_id_seq')")[0]
     return id
+
+
+@router.get("/usage")
+def usage() -> Dict:
+    with get_db_connection() as con:
+        data = sql_query(con, """
+            select distinct r.*, array_sort(g.api_calls) api_calls, g.duration_seconds, g.group_start_time
+            from public.apiruns_grouped g
+            right join public.api_runs r ON g.api_call_group_id = r.api_call_group_id""")
+    return data
 
 
 if __name__ == '__main__':
