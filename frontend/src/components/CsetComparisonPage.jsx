@@ -28,7 +28,6 @@ import {
 } from "./NewCset";
 import {FlexibleContainer} from "./FlexibleContainer";
 import {NEW_CSET_ID, urlWithSessionStorage, useCodesetIds, useHierarchySettings, useNewCset,} from "../state/AppState";
-import {useDataCache} from "../state/DataCache";
 import {useGraphContainer} from "../state/GraphState";
 import {getResearcherIdsFromCsets, useDataGetter} from "../state/DataGetter";
 import {useSearchParamsState} from "../state/SearchParamsProvider";
@@ -126,7 +125,6 @@ export function CsetComparisonPage() {
     const editingCset = !isEmpty(newCset);
     // const { selected_csets = [], researchers, } = cset_data;
     const dataGetter = useDataGetter();
-    const dataCache = useDataCache();
     let [hierarchySettings, hsDispatch] = useHierarchySettings();
     const {nested} = hierarchySettings;
     const windowSize = useWindowSize();
@@ -481,6 +479,11 @@ function StatsAndOptions(props) {
                     } else {
                         text = "hide";
                     }
+                } else if (row.name ==='Concepts') {
+                    onClick = () => {
+                        gcDispatch({type: 'TOGGLE_EXPAND_ALL'});
+                    };
+                    text = gc.options.expandAll ? 'Collapse all' : 'Expand all';
                 } else {
                     throw new Error("shouldn't be here");
                 }

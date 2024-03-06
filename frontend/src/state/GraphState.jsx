@@ -37,6 +37,10 @@ const graphReducer = (gc, action) => {
       gc.toggleOption(type);
       gc = new GraphContainer(null, gc);
       break;
+    case 'TOGGLE_EXPAND_ALL':
+      gc.options.expandAll = !gc.options.expandAll;
+      gc = new GraphContainer(null, gc);
+      break;
     default:
       throw new Error(`unexpected action.type ${action.type}`);
   }
@@ -122,57 +126,26 @@ export class GraphContainer {
         descendants, either from being expanded or being in showThoughCollapsed
    */
   addNodeToVisible(nodeId, displayedRows, depth = 0) {
-    const node = {...this.nodes[nodeId], depth};
-    // const childIds = this.graph.outNeighbors(nodeId); // Get outgoing neighbors (children)
+    const node = {...this.nodes[nodeId], depth}; // is this necessary?
+    // const node = this.nodes[nodeId]; // TODO: try this instead when have a chance to test
+    // node.depth = depth;
 
     displayedRows.push(node);
     if (node.expanded) {
       node.children.forEach(childId => {
         this.addNodeToVisible(childId, displayedRows, depth + 1); // Recurse
       });
-    } else if (node.partialExpansion) {
-    } else { /*
-      showThoughCollapsed.forEach(showThoughCollapsedId => {
-        if (showThoughCollapsedId != nodeId) {
-          try {
-            let path = bidirectional(this.graph, nodeId, showThoughCollapsedId);
-            // TODO: only show it if it's not a descendant of one of this node's descendants
-            //    that is, make sure to put the path as low in the tree as possible
-            if (path) {
-              path.shift();
-              const id = path.pop();
-              console.assert(id == showThoughCollapsedId);
-              const nd = {...this.nodes[id], depth: depth + 1, path};
-
-              displayedRows.push(nd);
-              showThoughCollapsed.delete(id);
-              if (nd.expanded) {
-                const childIds = this.graph.outNeighbors(id); // Get outgoing neighbors (children)
-                sortBy(childIds, this.sortFunc).forEach(childId => {
-                  this.addNodeToVisible(childId, displayedRows, showThoughCollapsed, null, depth + 2); // Recurse
-                });
-              }
-            } else {
-              throw new Error("didn't expect this");
-            }
-          } catch (e) {
-            console.log(e);
-          }
-        } else {
-          showThoughCollapsed.delete(showThoughCollapsedId);
-        }
-      })
-    */
     }
-    // return displayedRows;
   }
+  wholeHierarchy(nodeId, rows = [], depth = 0) {
+    const node = {...this.nodes[nodeId], depth}; // is this necessary?
 
-  sortFunc = (d => {
-    let n = this.nodes[d];
-    let statusRank = n.isItem && 3 + n.added && 2 + n.removed && 1 || 0;
-    // return - (n.drc || n.descendantCount || n.levelsBelow || n.status ? 1 : 0);
-    return - (n.levelsBelow || n.descendantCount || n.status ? 1 : 0);
-  })
+    rows.push(node);
+    node.children.forEach(childId => {
+      this.wholeHierarchy(childId, rows, depth + 1); // Recurse
+    });
+    return rows;
+  }
 
   hideOtherNodes(partialExpansions) {
     for (let parentId in partialExpansions) {
@@ -196,42 +169,55 @@ export class GraphContainer {
         descendantCount: others.length,
         drc: sum(others.map(d => this.nodes[d].total_cnt || 0)), // Compute descendant counts
       };
-      this.graph.addNode(othersId);
+      this.graph.mergeNode(othersId);
+      this.graph.mergeDirectedEdge(parentId, othersId);
       this.nodes[othersId] = othersRow;
+      console.log(`collapsing ${others.join(',')} under ${parentId}`);
       for (let other of others) {
-        this.graph.addDirectedEdge(othersId, other);
+        this.graph.mergeDirectedEdge(othersId, other);
         this.graph.dropEdge(parentId, other);
+        parent.children = setOp('difference', parent.children, [other]);
       }
+      parent.children.push(othersId);
+    }
+  }
+
+  getPartialExpansions(nodesToShow, partialExpansions) {
+    for (let showId of nodesToShow) {
+      let parentIds = this.graph.inNeighbors(showId);
+      if (isEmpty(parentIds)) continue;
+      for (let parentId of parentIds) {
+        if (showId == parentId) return;
+        let parent = this.nodes[parentId];
+        if (!parent.expanded) {
+          partialExpansions[parentId] = partialExpansions[parentId] || new Set();
+          partialExpansions[parentId].add(showId);
+        }
+      }
+      this.getPartialExpansions(parentIds, partialExpansions);
     }
   }
   getVisibleRows(props) {
     // TODO: need to treat things to hide differently from things to always show.
-    // let { specialConcepts = [] } = props;
-    // let showThoughCollapsed = new Set();
+
+    let displayedRows = [];
+
+    if (this.options.expandAll) {
+      for (let rootId of sortBy(this.roots, this.sortFunc)) {
+        this.addNodeToVisible(rootId, displayedRows);
+      }
+    }
+
     let partialExpansions = {};
     for (let type in this.options.specialConceptTreatment) {
       if (this.statsOptions[type].specialTreatmentRule === 'show though collapsed' && this.options.specialConceptTreatment[type]) {
-        for (let showId of this.specialConcepts[type] || []) {
-          // showThoughCollapsed.add(showId);
-          // this.showThoughCollapsed(showId, partialExpansions);
-          dfsFromNode(this.graph, showId, (ancestorId, attr, depth) => {
-            // traversing upwards to ancestors
-            if (showId == ancestorId) return;
-            let ancestor = this.nodes[ancestorId];
-            if (!ancestor.expanded) {
-              partialExpansions[ancestorId] = partialExpansions[ancestorId] || new Set();
-              partialExpansions[ancestorId].add(showId);
-            }
-          }, {mode: 'inbound'});
-        }
+        this.getPartialExpansions(this.specialConcepts[type] || [], partialExpansions);
       }
     }
     console.log(partialExpansions);
     this.hideOtherNodes(partialExpansions);
 
     // const {/*collapsedDescendantPaths, */ collapsePaths, hideZeroCounts, hideRxNormExtension, nested } = hierarchySettings;
-    let displayedRows = [];
-
     for (let rootId of sortBy(this.roots, this.sortFunc)) {
       this.addNodeToVisible(rootId, displayedRows);
     }
@@ -249,7 +235,14 @@ export class GraphContainer {
     this.hideThoughExpanded = hideThoughExpanded;
     return this.visibleRows = displayedRows;
   }
-  
+
+  sortFunc = (d => {
+    let n = this.nodes[d];
+    let statusRank = n.isItem && 3 + n.added && 2 + n.removed && 1 || 0;
+    // return - (n.drc || n.descendantCount || n.levelsBelow || n.status ? 1 : 0);
+    return - (n.levelsBelow || n.descendantCount || n.status ? 1 : 0);
+  })
+
   #makeGraph(edges, concepts) {
     const [graph, nodes] = makeGraph(edges, concepts);
     this.graph = graph;
@@ -453,6 +446,8 @@ function setOp(op, setA, setB) {
     difference: differenceWith,
     intersection: intersectionWith
   })[op];
+  if (setA instanceof Set) setA = [...setA];
+  if (setB instanceof Set) setB = [...setB];
   return f(setA, setB, (itemA, itemB) => itemA == itemB);
 }
 
