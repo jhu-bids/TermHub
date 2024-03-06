@@ -235,18 +235,26 @@ export function AboutPage() {
           /OMOPConceptSets?{codeset_ids.map(d => `codeset_ids=${d}`).join("&")}
         </Button>
 
-      <TextH1>Debug / explore application data</TextH1>
-      <TextBody>
-        <Button
-                to={`/view-state${search ? search : ''}`}
+        <TextH1>Debug / explore application data</TextH1>
+        <TextBody>
+            <Button
+                    to={`/view-state${search ? search : ''}`}
+                    variant={"contained"}
+                    component={Link}
+                    style={{margin: '7px', textTransform: 'none'}}
+            >
+                View state
+            </Button>
+
+            <Button
+                to={`/usage${search ? search : ''}`}
                 variant={"contained"}
                 component={Link}
                 style={{margin: '7px', textTransform: 'none'}}
-        >
-          View state
-        </Button>
-      </TextBody>
-
+            >
+                Usage report
+            </Button>
+        </TextBody>
 
     </div>
   );

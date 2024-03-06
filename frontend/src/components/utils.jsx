@@ -160,6 +160,24 @@ export function oneSidedObjectDifference(a ,b) {
   }, {})
 }
 
+export function median(array) {
+  array.sort();
+  const mid = array.length / 2;
+  if (array.length % 2 === 0) {
+    return (array[mid] + array[mid - 1]) / 2;
+  } else {
+    return array[mid];
+  }
+}
+
+export function mean(array) {
+  let total = 0;
+  for (let i = 0; i < array.length; i++) {
+    total += array[i];
+  }
+  return total / array.length;
+}
+
 export function saveCsv(rows, columns, filename, config=null, tsv = false) {
 
   config = config || {
@@ -179,6 +197,9 @@ export function saveCsv(rows, columns, filename, config=null, tsv = false) {
     columns: columns, //or array of strings
   }
   const dataString = Papa.unparse(rows, config);
+  if (!filename) {
+    return dataString;
+  }
   const blob = new Blob([dataString], {
     type: tsv ? 'text/tab-separated-values;charset=utf-8' : 'text/csv;charset=utf-8'
   });

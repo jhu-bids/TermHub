@@ -93,6 +93,14 @@ class DataCache {
 		this.cachePut('cacheHistory', cacheHistory, false);
 		// console.log(cacheHistory);
 	}
+	cacheAge() {
+		if (this.#cache.cacheHistory.length > 0) {
+			const cacheStart = new Date(this.#cache.cacheHistory[0].ts);
+			const today = new Date();
+			const daysOld = (today - cacheStart) / (1000*60*60*24);
+			return daysOld;
+		}
+	}
 	loadCache = () => {
 		const startTime = performance.now();
 		let cache;
@@ -101,6 +109,9 @@ class DataCache {
 			let compressedCache = localStorage.getItem('dataCache');
 			let decompressed = decompress(compressedCache);
 			this.#cache = JSON.parse(decompressed);
+			if (this.cacheAge() > 1) {
+				this.emptyCache();
+			}
 			evtMsg = `loaded cache: ${compressedCache.length.toLocaleString()} compressed, ${decompressed.length.toLocaleString()} decompressed`;
 			this.addCacheHistoryEvent(evtMsg);
 		} catch (error) {
