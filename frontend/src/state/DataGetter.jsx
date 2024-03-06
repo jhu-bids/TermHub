@@ -335,6 +335,24 @@ class DataGetter {
 			makeQueryString: ids => createSearchParams({ids}),
 			apiResultShape: 'obj of obj',
 		},
+		usage: {
+			expectedParams: undefined,
+			api: 'usage',
+			protocols: ['get'],
+			cacheSlice: 'usage',
+			key: 'timestamp',
+			alertTitle: 'Get usage log',
+			apiResultShape: 'array of keyed obj',
+		},
+		n3c_comparison_rpt: {
+			expectedParams: undefined,
+			api: 'n3c-comparison-rpt',
+			protocols: ['get'],
+			cacheSlice: 'n3c_comparison_rpt',
+			key: undefined,
+			alertTitle: 'Get N3C comparison report',
+			apiResultShape: 'array of keyed obj',
+		},
 	}
 	async fetchAndCacheItems(apiDef, params) {
 		if (typeof(apiDef.expectedParams) !== typeof(params)) {

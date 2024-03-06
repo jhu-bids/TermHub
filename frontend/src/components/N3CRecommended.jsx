@@ -2,7 +2,7 @@ import React, { useState, useEffect, } from "react";
 import DataTable, { createTheme } from "react-data-table-component";
 import { flatten, uniq, sortBy } from "lodash";
 
-import {useDataGetter} from "../state/DataGetter";
+import {backend_url, useDataGetter} from "../state/DataGetter";
 import {useSearchParamsState} from "../state/SearchParamsProvider";
 import {fmt, saveCsv, useWindowSize} from "./utils";
 import {TextH2} from "./AboutPage";
@@ -92,7 +92,9 @@ export const N3CComparisonRpt = () => {
         return;
       }
       try {
-        const rows = await dataGetter.axiosCall('n3c-comparison-rpt', {sendAlert: false, });
+        // const rows = await dataGetter.axiosCall('n3c-comparison-rpt', {sendAlert: false, });
+        let url = backend_url('n3c_comparison_rpt');
+        let data = await dataGetter.fetchAndCacheItems(dataGetter.apiCalls.n3c_comparison_rpt);
         let concept_ids = uniq(flatten(rows.map(row => [...(row.added), ...(row.removed)])));
         const concepts = await dataGetter.fetchAndCacheItems(dataGetter.apiCalls.concepts, concept_ids);
         setData({rows, concepts});

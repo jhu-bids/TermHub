@@ -14,7 +14,7 @@ from starlette.responses import Response
 from psycopg2 import sql
 from sqlalchemy import text
 
-from backend.api_logger import Api_logger
+from backend.api_logger import Api_logger, get_ip_from_request
 from backend.db.refresh import refresh_db
 from backend.db.queries import get_concepts
 from backend.db.utils import get_db_connection, sql_query, SCHEMA, sql_query_single_col, sql_in, sql_in_safe, run_sql
@@ -582,7 +582,12 @@ def n3c_recommended_report(as_json=False) -> Union[List[Row], Response]:
 
 
 @router.get("/n3c-comparison-rpt")
-def _n3c_comparison_rpt():
+def _n3c_comparison_rpt(request: Request):
+    # TODO: figure out how to log user's IP address to maybe figure out why
+    #       this endpoint keeps getting called constantly -- is there a bot out
+    #       there? maybe we just block that IP? @joeflack4 -- can you help?
+    ip = get_ip_from_request(request)
+    print(f"n3c-comparison-rpt call from: {ip}")
     return n3c_comparison_rpt()
 
 
