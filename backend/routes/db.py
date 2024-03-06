@@ -582,11 +582,11 @@ def n3c_recommended_report(as_json=False) -> Union[List[Row], Response]:
 
 
 @router.get("/n3c-comparison-rpt")
-def _n3c_comparison_rpt(request: Request):
+async def _n3c_comparison_rpt(request: Request):
     # TODO: figure out how to log user's IP address to maybe figure out why
     #       this endpoint keeps getting called constantly -- is there a bot out
     #       there? maybe we just block that IP? @joeflack4 -- can you help?
-    ip = get_ip_from_request(request)
+    ip = await get_ip_from_request(request)
     print(f"n3c-comparison-rpt call from: {ip}")
     return n3c_comparison_rpt()
 
