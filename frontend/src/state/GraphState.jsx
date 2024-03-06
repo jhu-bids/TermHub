@@ -147,13 +147,6 @@ export class GraphContainer {
     return rows;
   }
 
-  sortFunc = (d => {
-    let n = this.nodes[d];
-    let statusRank = n.isItem && 3 + n.added && 2 + n.removed && 1 || 0;
-    // return - (n.drc || n.descendantCount || n.levelsBelow || n.status ? 1 : 0);
-    return - (n.levelsBelow || n.descendantCount || n.status ? 1 : 0);
-  })
-
   hideOtherNodes(partialExpansions) {
     for (let parentId in partialExpansions) {
       let parent = this.nodes[parentId];
@@ -214,8 +207,6 @@ export class GraphContainer {
         this.addNodeToVisible(rootId, displayedRows);
       }
     }
-    console.log(partialExpansions);
-    this.hideOtherNodes(partialExpansions);
 
     let partialExpansions = {};
     for (let type in this.options.specialConceptTreatment) {
