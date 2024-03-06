@@ -10,9 +10,9 @@ export function UsageReport() {
     useEffect(() => {
         (async () => {
 
+            let url = backend_url('usage');
             // let response = await axios(url);
             // await dataGetter.axiosCall(`usage`, {sendAlert: false, skipApiGroup: true});
-            let url = backend_url('usage');
             let data = await dataGetter.fetchAndCacheItems(dataGetter.apiCalls.usage);
             console.log(data);
             setData(current => (data));
