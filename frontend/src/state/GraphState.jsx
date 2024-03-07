@@ -39,6 +39,7 @@ const graphReducer = (gc, action) => {
       break;
     case 'TOGGLE_EXPAND_ALL':
       gc.options.expandAll = !gc.options.expandAll;
+      Object.values(gc.nodes).forEach(n => {if (n.hasChildren) n.expanded = gc.options.expandAll;});
       gc = new GraphContainer(null, gc);
       break;
     default:
@@ -202,12 +203,6 @@ export class GraphContainer {
 
     let displayedRows = [];
 
-    if (this.options.expandAll) {
-      for (let rootId of sortBy(this.roots, this.sortFunc)) {
-        this.addNodeToVisible(rootId, displayedRows);
-      }
-    }
-
     let partialExpansions = {};
     for (let type in this.options.specialConceptTreatment) {
       if (this.statsOptions[type].specialTreatmentRule === 'show though collapsed' && this.options.specialConceptTreatment[type]) {
@@ -344,6 +339,9 @@ export class GraphContainer {
         name: "Concepts", displayOrder: displayOrder++,
         value: concept_ids.length,
         hiddenConceptCnt: setOp('difference', concept_ids, visibleCids).length,
+        visibleConceptCnt: setOp('intersection', concept_ids, visibleCids).length,
+        specialTreatmentRule: 'expand all',
+        specialTreatmentDefault: false,
       },
       definitionConcepts: {
         name: "Definition concepts", displayOrder: displayOrder++,

@@ -440,6 +440,8 @@ function StatsAndOptions(props) {
                     } else {
                         text = "";
                     }
+                } else if (row.name ==='Concepts') {
+                    text = fmt(row.visibleConceptCnt) + ' visible';
                 } else {
                     text = "";
                 }
@@ -463,7 +465,7 @@ function StatsAndOptions(props) {
                     gcDispatch({type: 'TOGGLE_OPTION', payload: row});
                 };
                 let text = '';
-                let tttext = 'toggle';
+                let tttext = '';
                 if (row.specialTreatmentRule === 'show though collapsed') {
                     if (row.specialTreatment) {
                         text = "unshow";
@@ -499,7 +501,7 @@ function StatsAndOptions(props) {
                         {text}
                     </Button>
                 );
-                return button;
+                // return button;
                 if (tttext) {
                     return (
                         <Tooltip label={tttext} onClick={onClick} >
@@ -508,7 +510,7 @@ function StatsAndOptions(props) {
                 }
                 return button;
             },
-            width: 80,
+            width: 120,
             style: {justifyContent: "center", },
         },
     ]
