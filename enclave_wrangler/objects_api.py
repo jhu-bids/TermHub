@@ -671,10 +671,10 @@ def concept_set_members__cset_rows_to_db(con: Connection, cset: Dict, members: L
         'codeset_id': cset['codesetId'],
         'concept_id': member['conceptId'],
         'concept_set_name': cset['conceptSetNameOMOP'],
-        'is_most_recent_version': cset['isMostRecentVersion'], # not sure: is this correct?
-        'version': cset['version'], # not sure: is this correct?
+        'is_most_recent_version': cset['isMostRecentVersion'],
+        'version': cset['version'],
         'concept_name': member['conceptName'],
-        'archived': container['archived'], # not sure: is this correct?
+        'archived': container.get('archived', False),
     } for member in members]
     insert_from_dicts(con, 'concept_set_members', table_objs, skip_if_already_exists=True)
 
