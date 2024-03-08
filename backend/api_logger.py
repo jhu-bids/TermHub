@@ -20,7 +20,7 @@ class Api_logger:
     def __init__(self):
         pass
 
-    async def start_rpt(self, request: Request, params: Dict, debugIP=False):
+    async def start_rpt(self, request: Request, params: Dict):
         self.start_time = time.time()
         rpt = {}
         url = request.url
@@ -32,7 +32,7 @@ class Api_logger:
 
         rpt['host'] = os.getenv('HOSTENV', gethostname())
 
-        ip = await get_ip_from_request(request, debugIP)
+        ip = await get_ip_from_request(request)
         rpt['client'] = await client_location(ip)
 
         rpt['schema'] = get_schema_name()
@@ -101,10 +101,9 @@ class Api_logger:
         await self.complete_log_record()
 
 
-async def get_ip_from_request(request: Request, debugIP=True) -> str:
+async def get_ip_from_request(request: Request) -> str:
     forwarded_for: Optional[str] = request.headers.get('X-Forwarded-For')
-    if debugIP:
-        print((forwarded_for or 'no forward') + '; ' + request.client.host)
+    print((forwarded_for or 'no forward') + '; ' + request.client.host)
     if forwarded_for:
         # The header can contain multiple IP addresses, so take the first one
         ip = forwarded_for.split(',')[0]
