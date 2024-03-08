@@ -67,6 +67,7 @@ export class GraphContainer {
     this.roots = this.graph.nodes().filter(n => !this.graph.inDegree(n));
     this.leaves = this.graph.nodes().filter(n => !this.graph.outDegree(n));
     this.unlinkedConcepts = intersection(this.roots, this.leaves);
+    this.partiallyExpandedNodes = new Set();  // from path version of show though collapsed
 
     let unlinkedConceptsParent = {
       concept_id: 'unlinked',
@@ -126,7 +127,58 @@ export class GraphContainer {
       if it is in hideThoughExpanded, don't display it BUT -- do display its
         descendants, either from being expanded or being in showThoughCollapsed
    */
-  addNodeToVisible(nodeId, displayedRows, depth = 0) {
+
+  addNodeToVisible(nodeId, displayedRows, showThoughCollapsed, showPath = null, depth = 0) {
+    const node = {...this.nodes[nodeId], depth};
+    const childIds = this.graph.outNeighbors(nodeId); // Get outgoing neighbors (children)
+
+    displayedRows.push(node);
+    if (node.expanded) {
+      childIds.forEach(childId => {
+        this.addNodeToVisible(childId, displayedRows, showThoughCollapsed, null, depth + 1); // Recurse
+      });
+    } else {
+      showThoughCollapsed.forEach(showThoughCollapsedId => {
+        if (showThoughCollapsedId != nodeId) {
+          try {
+            let path = bidirectional(this.graph, nodeId, showThoughCollapsedId);
+            // TODO: only show it if it's not a descendant of one of this node's descendants
+            //    that is, make sure to put the path as low in the tree as possible
+            if (path) {
+              path.shift();
+              const id = path.pop();
+              console.assert(id == showThoughCollapsedId);
+              const nd = {...this.nodes[id], depth: depth + 1, path};
+
+              displayedRows.push(nd);
+              showThoughCollapsed.delete(id);
+              if (nd.expanded) {
+                const childIds = this.graph.outNeighbors(id); // Get outgoing neighbors (children)
+                sortBy(childIds, this.sortFunc).forEach(childId => {
+                  this.addNodeToVisible(childId, displayedRows, showThoughCollapsed, null, depth + 2); // Recurse
+                });
+              }
+              /*
+              path.forEach((id, i) => {
+                displayedRows.push({...this.nodes[id], depth: depth + 1 + i});
+                showThoughCollapsed.delete(id);
+              });
+              */
+            } else {
+              throw new Error("didn't expect this");
+            }
+          } catch (e) {
+            console.log(e);
+          }
+        } else {
+          showThoughCollapsed.delete(showThoughCollapsedId);
+        }
+      })
+    }
+    // return displayedRows;
+  }
+
+  addNodeToVisibleOtherVersion(nodeId, displayedRows, depth = 0) {
     const node = {...this.nodes[nodeId], depth}; // is this necessary?
     // const node = this.nodes[nodeId]; // TODO: try this instead when have a chance to test
     // node.depth = depth;
@@ -156,7 +208,7 @@ export class GraphContainer {
     return rows;
   }
 
-  hideOtherNodes(partialExpansions) {
+  hideOtherNodesOtherVersion(partialExpansions) {
     for (let parentId in partialExpansions) {
       let parent = this.nodes[parentId];
       parent.expanded = true;
@@ -191,7 +243,7 @@ export class GraphContainer {
     }
   }
 
-  getPartialExpansions(nodesToShow, partialExpansions) {
+  getPartialExpansionsOtherVersion(nodesToShow, partialExpansions) {
     // For show though collapsed, partially expand the parents of the nodes to show
     // This function adds each node to show to the partialExpansions set for its parents
     for (let showId of nodesToShow) {
@@ -210,7 +262,54 @@ export class GraphContainer {
       this.getPartialExpansions(parentIds, partialExpansions);
     }
   }
+
+  showThoughCollapsed(nodeId) {
+    dfsFromNode(this.graph, nodeId, (ancestorId, attr, depth) => {
+      let ancestor = this.nodes[ancestorId];
+      if (!ancestor.expanded) {
+        if (!ancestor.partialExpansion) {
+          ancestor.partialExpansion = [];
+        }
+        ancestor.partialExpansion.push(nodeId);
+      }
+    }, {mode: 'inbound'});
+  }
+
   getVisibleRows(props) {
+    // TODO: need to treat things to hide differently from things to always show.
+    // let { specialConcepts = [] } = props;
+    let showThoughCollapsed = new Set();
+    let hideThoughExpanded = new Set();
+    for (let type in this.options.specialConceptTreatment) {
+      if (this.statsOptions[type].specialTreatmentRule === 'show though collapsed' && this.options.specialConceptTreatment[type]) {
+        for (let id of this.specialConcepts[type] || []) {
+          showThoughCollapsed.add(id);
+          this.showThoughCollapsed(id);
+        }
+      }
+    }
+
+    // const {/*collapsedDescendantPaths, */ collapsePaths, hideZeroCounts, hideRxNormExtension, nested } = hierarchySettings;
+    let displayedRows = [];
+
+    for (let nodeId of sortBy(this.roots, this.sortFunc)) {
+      this.addNodeToVisible(nodeId, displayedRows, showThoughCollapsed);
+    }
+
+    for (let type in this.options.specialConceptTreatment) {
+      if (this.statsOptions[type].specialTreatmentRule === 'hide though expanded' && this.options.specialConceptTreatment[type]) {
+        for (let id of setOp('intersection', this.specialConcepts[type], displayedRows.map(d => d.concept_id))) {
+          hideThoughExpanded.add(id);
+        }
+      }
+    }
+    displayedRows = displayedRows.filter(row => ! hideThoughExpanded.has(row.concept_id));
+
+    this.hideThoughExpanded = hideThoughExpanded;
+    return this.visibleRows = displayedRows;
+  }
+
+  getVisibleRowsOtherVersion(props) {
     // TODO: need to treat things to hide differently from things to always show.
 
     let displayedRows = [];

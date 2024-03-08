@@ -872,6 +872,18 @@ function getColDefs(props) {
                         <Tooltip label="Approximate distinct person count. Small counts rounded up to 20.">
                             <div>Patients</div>
                         </Tooltip>
+                        {
+                            hidden
+                                ? <Tooltip label={`Toggle hiding of ${hidden.zeroCount} concepts with 0 patients`}>
+                                    <Switch sx={{margin: '-8px 0px'}} checked={!hideZeroCounts}
+                                            onClick={() => hsDispatch({
+                                                type: 'hideZeroCounts',
+                                                hideZeroCounts: !hideZeroCounts
+                                            })}
+                                    />
+                                </Tooltip>
+                                : ''
+                        }
                     </div>
                 )
                 // headerContentProps: { onClick: editCodesetFunc, codeset_id: cset_col.codeset_id, },

@@ -323,7 +323,7 @@ async def _get_csets(request: Request, codeset_ids: Union[str, None] = Query(def
     """Route for: get_csets()"""
     requested_codeset_ids = parse_codeset_ids(codeset_ids)
     rpt = Api_logger()
-    await rpt.start_rpt(request, params={'codeset_ids': requested_codeset_ids}, debugIP=True)
+    await rpt.start_rpt(request, params={'codeset_ids': requested_codeset_ids})
 
     try:
         csets = get_csets(requested_codeset_ids)
