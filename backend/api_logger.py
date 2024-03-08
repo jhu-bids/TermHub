@@ -103,8 +103,7 @@ class Api_logger:
 
 async def get_ip_from_request(request: Request, debugIP=False) -> str:
     forwarded_for: Optional[str] = request.headers.get('X-Forwarded-For')
-    if debugIP:
-        return (forwarded_for or 'no forward') + '; ' + request.client.host
+    print((forwarded_for or 'no forward') + '; ' + request.client.host)
     if forwarded_for:
         # The header can contain multiple IP addresses, so take the first one
         ip = forwarded_for.split(',')[0]

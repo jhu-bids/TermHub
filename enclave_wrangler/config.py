@@ -1,7 +1,7 @@
 """Config"""
 import os
 from collections import OrderedDict
-from backend.config import PROJECT_ROOT
+from backend.config import PROJECT_ROOT, ENV_FILE
 
 TERMHUB_VERSION = "0.0.1"
 
