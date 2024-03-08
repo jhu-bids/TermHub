@@ -304,7 +304,7 @@ export function CsetComparisonPage() {
         */
         <Button key="download-distinct-csv"
                 variant="outlined"
-                onClick={() => downloadCSV({codeset_ids, displayedRows: gc.visibleRows, selected_csets, csmi})}
+                onClick={() => downloadCSV({codeset_ids, displayedRows: gc.wholeHierarchy(), selected_csets, csmi})}
                 sx={{
                     cursor: 'pointer',
                     marginRight: '4px',
@@ -998,108 +998,6 @@ function getColDefs(props) {
     return coldefs;
 }
 
-export function getRowData(props) {
-    console.log("getting row data");
-
-    const {conceptLookup, indentedCids, hierarchySettings,} = props;
-    const {/*collapsedDescendantPaths, */
-        collapsePaths,
-        hideZeroCounts,
-        hideRxNormExtension,
-        nested
-    } = hierarchySettings;
-
-    let allRows, displayedRows;
-    if (indentedCids) {   // not sure why they wouldn't be here...maybe not ready yet?
-        [allRows, displayedRows] = nestedConcepts(conceptLookup, indentedCids, hierarchySettings);
-    } else {
-        allRows = concepts;
-        displayedRows = concepts;
-    }
-
-    // console.log(`allRows: ${allRows.length}, displayedRows: ${displayedRows}`);
-    const hidden = {
-        rxNormExtension: allRows.filter(row => row.vocabulary_id === 'RxNorm Extension').length,
-    }
-    // const collapsedRows= allRows.filter(row => row.collapsed);
-    // let rows = allRows.filter(row => !row.collapsed);
-    if (nested) {
-        // collapsedDescendantPaths are all the paths that get hidden, the descendants of all the collapsePaths
-        const hiddenRows = flatten(Object.keys(collapsePaths).map(collapsedPath => {
-            return allRows.map(r => r.pathToRoot).filter(
-                p => p.length > collapsedPath.length && p.startsWith(collapsedPath));
-        }));
-        const collapsedDescendantPaths = fromPairs(hiddenRows.map(p => [p, true]));
-        hidden.collapsed = nested ? collapsedDescendantPaths.length : 0;
-        displayedRows = allRows.filter(row => !collapsedDescendantPaths[row.pathToRoot]);
-    }
-
-    // const rxNormExtensionRows = rows.filter(r => r.vocabulary_id == 'RxNorm Extension');
-    if (hideRxNormExtension) {
-        displayedRows = displayedRows.filter(r => r.vocabulary_id !== 'RxNorm Extension');
-    }
-    hidden.zeroCount = displayedRows.filter(row => row.total_cnt === 0).length;
-    if (hideZeroCounts) {
-        displayedRows = displayedRows.filter(r => r.total_cnt > 0);
-    }
-    const distinctRows = uniqBy(displayedRows, row => row.concept_id);
-    return {allRows, displayedRows, distinctRows, hidden};
-}
-
-// TODO: decide if any of this needs to be moved into new code
-function nestedConcepts(conceptLookup, indentedCids, hierarchySettings) {
-    const {collapsedDescendantPaths, hideZeroCounts, hideRxNormExtension} = hierarchySettings;
-
-    // let allRows = indentedCids.map(r => ({level: r[0], concept_id: r[1], ...conceptLookup[r[1]]}));
-    let allRows = [];
-    let summaryRowNum = -1;
-    for (let i = 0; i < indentedCids.length; i++) {
-        const r = indentedCids[i];
-        let row = {};
-        if (typeof (r[1]) === 'number') {
-            row = {level: r[0], ...conceptLookup[r[1]]};
-        } else {
-            row = {
-                level: r[0],
-                concept_id: summaryRowNum,
-                concept_name: `${r[1].length} ${r[0] ? 'children' : 'orphans'} not shown`, // if level==0, these are orphans
-            }
-            if (typeof (r[1]) === 'string') {
-                row.concept_name = r[1];
-            }
-            summaryRowNum--;
-        }
-        allRows.push(row);
-    }
-    let displayedRows = [];
-    let currentPath = [];
-
-    for (let i = 0; i < allRows.length; i++) {
-        let row = allRows[i];
-
-        if (collapsedDescendantPaths[row.pathToRoot]) {
-            continue;
-        }
-
-        if (row.level === currentPath.length) {
-            currentPath.push(row.concept_id);
-        } else if (row.level <= currentPath.length) {
-            currentPath.splice(row.level);
-            currentPath.push(row.concept_id);
-        } else {
-            throw new Error("shouldn't happen");
-        }
-
-        row.pathToRoot = currentPath.join('/');
-
-        if (i < allRows.length - 1 && allRows[i + 1].level > row.level) {
-            row.hasChildren = true;
-        }
-        displayedRows.push(row);
-    }
-    return [allRows, displayedRows];
-}
-
 function ComparisonDataTable(props) {
     const {
         columns,
@@ -1190,7 +1088,28 @@ function getSizes(squishTo) {
 function downloadCSV(props, tsv = false) {
     const {displayedRows, codeset_ids, selected_csets, csmi,} = props;
     const filename = 'thdownload-' + codeset_ids.join('-') + (tsv ? '.tsv' : '.csv');
-    const maxLevel = max(displayedRows.map(r => r.level));
+    const maxLevel = max(displayedRows.map(r => r.depth));
+    const key_convert = {
+        'depth': 'Level',
+        'concept_name': 'Concept name',
+        'concept_code': 'Concept code',
+        'concept_id': 'Concept ID',
+        'domain_id': 'Concept domain',
+        'domain': 'Domain tables with concept',
+        'domain_cnt': 'Domain count',
+        'standard_concept': 'OMOP standard',
+        'invalid_reason': 'Invalid reason',
+        'distinct_person_cnt': 'Patients',
+        'total_cnt': 'Records',
+        'vocabulary_id': 'Vocabulary',
+        'concept_class_id': 'Concept class',
+        'added': 'Added',
+        'removed': 'Removed',
+        'childCount': 'Child count',
+        'descendantCount': 'Descendant count',
+        'drc': 'Descendant record count',
+        'levelsBelow': 'Descendant levels',
+    };
     const first_keys = ['Patients', 'Records', 'Vocabulary', 'Concept code'];
     const addedEmptyColumns = ['Include', 'Exclude', 'Notes'];
     const cset_keys = codeset_ids.map(id => selected_csets.find(cset => cset.codeset_id === id).concept_set_name);
@@ -1205,27 +1124,58 @@ function downloadCSV(props, tsv = false) {
           ...addedEmptyColumns
      */
     const excluded_keys = ['pathToRoot', 'hasChildren'];
-    const key_convert = {
-        'level': 'Level',
-        'concept_code': 'Concept code',
-        'concept_class_id': 'Concept class',
-        'domain_id': 'Concept domain',
-        'domain': 'Domain tables with concept',
-        'domain_cnt': 'Domain count',
-        'standard_concept': 'OMOP standard',
-        'invalid_reason': 'Invalid reason',
-        'distinct_person_cnt': 'Patients',
-        'total_cnt': 'Records',
-        'vocabulary_id': 'Vocabulary',
-        'concept_id': 'Concept ID',
-        'concept_name': 'Concept name',
-    };
+    // let keys = uniq(flatten(displayedRows.map(d => Object.keys(d))));
+    // console.log(keys)
+    let keys = [ // as of 2024-03-07
+        "concept_id",
+        "concept_name",
+        "domain_id",
+        "vocabulary_id",
+        "concept_class_id",
+        "standard_concept",
+        "concept_code",
+        "invalid_reason",
+        "domain_cnt",
+        "domain",
+        "total_cnt",
+        "distinct_person_cnt",
+        "isItem",
+        "status",
+        "levelsBelow",
+        "descendantCount",
+        "childCount",
+        "drc",
+        "hasChildren",
+        "descendants",
+        "children",
+        "depth",
+        "added",
+        "removed",
+        "not_a_concept"
+    ];
+
+    // specify the order of columns in csv
+    let columns = ['Level'];
+    for (let i = 0; i <= maxLevel; i++) {
+        columns.push('level' + i);
+    }
+    columns.push(...first_keys);
+    Object.keys(displayedRows[0]).forEach(k => {
+        if (excluded_keys.includes(k) || k === 'concept_name') {
+            return;
+        }
+        if (!first_keys.includes(k) && k !== 'depth') {
+            columns.push(key_convert[k]);
+        }
+    });
+    columns.push(...cset_keys, 'Concept name', ...addedEmptyColumns);
+
 
     const rows = displayedRows.map(r => {
         let row = {};
         // adds indented concept names to rows
         for (let i = 0; i <= maxLevel; i++) {
-            row['level' + i] = (r.level === i ? r.concept_name : '');
+            row['level' + i] = (r.depth === i ? r.concept_name : '');
         }
         // renames row properties to column names
         for (let k in r) {
@@ -1242,22 +1192,6 @@ function downloadCSV(props, tsv = false) {
         });
         return row;
     });
-
-    // specify the order of columns in csv
-    let columns = ['Level'];
-    for (let i = 0; i <= maxLevel; i++) {
-        columns.push('level' + i);
-    }
-    columns.push(...first_keys);
-    Object.keys(displayedRows[0]).forEach(k => {
-        if (excluded_keys.includes(k) || k === 'concept_name') {
-            return;
-        }
-        if (!first_keys.includes(k) && k !== 'level') {
-            columns.push(key_convert[k]);
-        }
-    });
-    columns.push(...cset_keys, 'Concept name', ...addedEmptyColumns);
 
     saveCsv(rows, columns, filename);
 }

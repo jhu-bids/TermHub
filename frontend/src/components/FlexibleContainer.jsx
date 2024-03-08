@@ -17,6 +17,10 @@ const itemContent = once(() => {
   const STARTING_ZINDEX = 1000;     // FlexibleContainers will increment from here
 
   function stackAdd(props) {
+    if (stackTop < 0) {
+      // not sure why this was getting negative
+      stackTop = 0; // 2 is the minimum number of items in a stack
+    }
     const {title} = props;
     let stackPosition = stack.findIndex(d => d === title);
     if (stackPosition > -1) {

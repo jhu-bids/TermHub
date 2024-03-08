@@ -1,6 +1,6 @@
 import React, {createContext, useContext, useReducer, useState} from "react";
-import {get, once, sum, sortBy, uniq, flatten, intersection,
-        difference, differenceWith, unionWith, intersectionWith, isEmpty} from "lodash";
+import {get, sum, sortBy, uniq, flatten, intersection, cloneDeep,
+        differenceWith, unionWith, intersectionWith, isEmpty} from "lodash";
 import Graph from "graphology";
 import {bidirectional} from 'graphology-shortest-path/unweighted';
 import {dfsFromNode} from "graphology-traversal/dfs";
@@ -138,13 +138,21 @@ export class GraphContainer {
       });
     }
   }
-  wholeHierarchy(nodeId, rows = [], depth = 0) {
-    const node = {...this.nodes[nodeId], depth}; // is this necessary?
-
-    rows.push(node);
-    node.children.forEach(childId => {
-      this.wholeHierarchy(childId, rows, depth + 1); // Recurse
-    });
+  wholeHierarchy() {
+    // deep copy the node so we don't mutate the original
+    let nodes = cloneDeep(this.nodes);
+    let rows = [];
+    function traverse(nodeId, depth = 0) {
+      let node = nodes[nodeId];
+      node.depth = depth;
+      rows.push(node);
+      node.hasChildren && node.children.forEach(childId => {
+        traverse(childId, depth + 1); // Recurse
+      });
+    }
+    for (let rootId of sortBy(this.roots, this.sortFunc)) {
+      traverse(rootId);
+    }
     return rows;
   }
 
@@ -184,17 +192,21 @@ export class GraphContainer {
   }
 
   getPartialExpansions(nodesToShow, partialExpansions) {
+    // For show though collapsed, partially expand the parents of the nodes to show
+    // This function adds each node to show to the partialExpansions set for its parents
     for (let showId of nodesToShow) {
+      if (!this.graph.hasNode(showId)) continue;
       let parentIds = this.graph.inNeighbors(showId);
       if (isEmpty(parentIds)) continue;
       for (let parentId of parentIds) {
-        if (showId == parentId) return;
+        if (showId == parentId) return; // can't recall why this is necessary -- is it?
         let parent = this.nodes[parentId];
         if (!parent.expanded) {
           partialExpansions[parentId] = partialExpansions[parentId] || new Set();
           partialExpansions[parentId].add(showId);
         }
       }
+      // recurse (upwards) to partially expand parents of parents
       this.getPartialExpansions(parentIds, partialExpansions);
     }
   }

@@ -262,7 +262,7 @@ export default function MuiAppBar() {
               color: "inherit",
             }}
           >
-            v{ VERSION } {process.env.COMMIT_HASH}
+            v{ VERSION } {/*process.env.COMMIT_HASH*/}
           </Typography>
 
           {hamburgerMenu}
