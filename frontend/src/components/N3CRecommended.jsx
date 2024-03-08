@@ -92,9 +92,7 @@ export const N3CComparisonRpt = () => {
         return;
       }
       try {
-        // const rows = await dataGetter.axiosCall('n3c-comparison-rpt', {sendAlert: false, });
-        let url = backend_url('n3c_comparison_rpt');
-        let rows = await dataGetter.fetchAndCacheItems(dataGetter.apiCalls.n3c_comparison_rpt);
+        const rows = await dataGetter.fetchAndCacheItems(dataGetter.apiCalls.n3c_comparison_rpt);
         let concept_ids = uniq(flatten(rows.map(row => [...(row.added), ...(row.removed)])));
         const concepts = await dataGetter.fetchAndCacheItems(dataGetter.apiCalls.concepts, concept_ids);
         setData({rows, concepts});
