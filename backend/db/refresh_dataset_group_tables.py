@@ -28,7 +28,7 @@ from backend.db.analysis import counts_docs, counts_update
 from backend.db.utils import SCHEMA, check_db_status_var, current_datetime, get_db_connection, get_ddl_statements, \
     load_csv, refresh_derived_tables, reset_temp_refresh_tables, run_sql, update_db_status_var
 from enclave_wrangler.config import DATASET_GROUPS_CONFIG
-from enclave_wrangler.datasets import download_datasets, get_last_update_of_dataset
+from enclave_wrangler.datasets import download_datasets, get_datetime_dataset_last_updated
 
 
 def load_dataset_group(dataset_group_name: str, schema: str = SCHEMA, alternate_dataset_dir: Union[Path, str] = None):
@@ -87,7 +87,7 @@ def refresh_dataset_group_tables(
         print(f'\nRefreshing {group_name} tables...')
         # Check if tables are already up-to-date
         last_updated_us: str = check_db_status_var(config['last_updated_termhub_var'])
-        last_updated_them: str = get_last_update_of_dataset(config['last_updated_enclave_representative_table'])
+        last_updated_them: str = get_datetime_dataset_last_updated(config['last_updated_enclave_representative_table'])
         if last_updated_us and last_updated_them and dp.parse(last_updated_us) > dp.parse(last_updated_them):
             print('Tables already up to date. Nothing to be done.')
             continue

@@ -25,7 +25,8 @@ PROJECT_ROOT = Path(ENCLAVE_WRANGLER_DIR).parent
 sys.path.insert(0, str(PROJECT_ROOT))
 # TODO: backend implorts: Ideally we don't want to couple with TermHub code
 from backend.utils import commify, pdump
-from enclave_wrangler.config import TERMHUB_CSETS_DIR, DATASET_REGISTRY, DATASET_REGISTRY_RID_NAME_MAP
+from enclave_wrangler.config import DATASET_GROUPS_CONFIG, TERMHUB_CSETS_DIR, DATASET_REGISTRY, \
+    DATASET_REGISTRY_RID_NAME_MAP
 from enclave_wrangler.utils import enclave_get, log_debug_info
 
 
@@ -275,17 +276,21 @@ def transform(dataset_config: dict):
     return df
 
 
-def get_last_update_of_dataset(dataset_name_or_rid: str) -> str:
+def get_datetime_dataset_last_updated(identifier: str) -> str:
     """Get timestamp of when dataset whas last updated
 
-    :param dataset_name_or_rid: Either (a) an RID (Reference ID) or (b) the name of a dataset. If 'b', the name will be
-    looked up in FAVORITE_DATASETS to get its RID.
+    :param identifier: Either (a) an RID (Reference ID) or (b) the name of a dataset, e.g. 'concept_ancestor', or (c)
+    the name of a TermHub dataset group, i.e. 'counts' or 'vocab'. If 'c', a dataset from that group will be chosen as
+    representative. If 'b', the name will be looked up in FAVORITE_DATASETS to get its RID.
 
     Resources:
      https://unite.nih.gov/workspace/documentation/developer/api/catalog/services/CatalogService/endpoints/getTransaction
      https://unite.nih.gov/workspace/documentation/developer/api/catalog/objects/com.palantir.foundry.catalog.api.transactions.Transaction"""
-    rid = dataset_name_or_rid if dataset_name_or_rid.startswith('ri.foundry.main.dataset.') \
-        else DATASET_REGISTRY[dataset_name_or_rid]['rid']
+    rid = identifier if identifier.startswith('ri.foundry.main.dataset.') else None
+    if not rid:
+        dataset_group = identifier if identifier in ('vocab', 'counts') else None
+        dataset_name = DATASET_GROUPS_CONFIG[dataset_group]['last_updated_enclave_representative_table'] if dataset_group else identifier
+        rid = DATASET_REGISTRY[dataset_name]['rid']
     ref = 'master'
     transaction = get_transaction(rid, ref, return_field=None)
     # pdump(transaction)
