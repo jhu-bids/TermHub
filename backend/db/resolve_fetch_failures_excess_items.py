@@ -12,13 +12,13 @@ PROJECT_ROOT = os.path.join(BACKEND_DIR, '..')
 sys.path.insert(0, str(PROJECT_ROOT))
 from backend.db.utils import SCHEMA, fetch_status_set_success, get_db_connection, insert_from_dicts, \
     refresh_derived_tables, \
-    select_failed_fetches
+    reset_temp_refresh_tables, select_failed_fetches
 from enclave_wrangler.datasets import CSV_TRANSFORM_DIR, download_datasets
 from enclave_wrangler.utils import was_file_modified_within_threshold
 
 DESC = "Resolve failures due to too many expression items or members when fetching data from the Enclave's objects API."
 
-def resolve_fetch_failures_excess_items(use_local_db=False, cached_dataset_threshold_hours=0):
+def resolve_fetch_failures_excess_items(schema=SCHEMA, use_local_db=False, cached_dataset_threshold_hours=0):
     """Resolve failures due to too many expression items or members when fetching data from the Enclave's objects API.
     cached_dataset_threshold_hours: Threshold, in hours, until cached datasets considered invalid and need to be
     re-downloaded.
@@ -62,19 +62,23 @@ def resolve_fetch_failures_excess_items(use_local_db=False, cached_dataset_thres
 
     # Update DB
     solved_failures = []
-    with get_db_connection(local=use_local_db) as con:
-        for dataset, failures in failures_by_dataset.items():
-            print(f'Inserting data into core table: {dataset}')
-            print(f'- This will address the following failures:\n{failures}')
-            df = pd.read_csv(dataset_path_map[dataset])
-            df['codeset_id'] = df['codeset_id'].apply(lambda x: str(x).split('.')[0] if x else '')  # couldn't int cuz nan's
-            for failure in failures:
-                rows = df[df['codeset_id'] == failure['primary_key']].to_dict('records')
-                # todo: if not rows, update comment that tried to fix but couldn't find any data?
-                if rows:
-                    insert_from_dicts(con, dataset, rows)
-                    solved_failures.append(failure)
-        refresh_derived_tables(con)
+    try:
+        with get_db_connection(schema=schema, local=use_local_db) as con:
+            for dataset, failures in failures_by_dataset.items():
+                print(f'Inserting data into core table: {dataset}')
+                print(f'- This will address the following failures:\n{failures}')
+                df = pd.read_csv(dataset_path_map[dataset])
+                df['codeset_id'] = df['codeset_id'].apply(lambda x: str(x).split('.')[0] if x else '')  # couldn't int cuz nan's
+                for failure in failures:
+                    rows = df[df['codeset_id'] == failure['primary_key']].to_dict('records')
+                    # todo: if not rows, update comment that tried to fix but couldn't find any data?
+                    if rows:
+                        insert_from_dicts(con, dataset, rows)
+                        solved_failures.append(failure)
+            refresh_derived_tables(con)
+    except Exception as err:
+        reset_temp_refresh_tables(schema)
+        raise err
 
     # Update fetch_audit status
     fetch_status_set_success(solved_failures)
