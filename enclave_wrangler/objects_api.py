@@ -40,7 +40,7 @@ from backend.db.utils import SCHEMA, insert_fetch_statuses, insert_from_dict, in
     is_refresh_active, reset_temp_refresh_tables, refresh_derived_tables, \
     sql_query_single_col, run_sql, get_db_connection
 from backend.db.queries import get_concepts
-from backend.utils import call_github_action, pdump
+from backend.utils import call_github_action
 
 DEBUG = False
 HEADERS = {
@@ -410,15 +410,20 @@ def find_and_add_missing_csets_to_db(con: Connection = None, schema=SCHEMA):
 
 
 def fetch_cset_and_member_objects(
-    since: Union[datetime, str] = '', codeset_ids: List[int] = [], handle_issues=True, verbose=False
+    since: Union[datetime, str] = '', codeset_ids: List[int] = [], flag_issues=True, verbose=False,
+    try_fixing_issues_immediately=False
 ) -> Union[Dict[str, List[Dict]], None]:
     """Get new objects: cset container, cset version, expression items, and member items.
 
     :param since: datetime or str, e.g. '2023-07-09T01:08:23.547680-04:00'. If present, codeset_ids should be empty.
     :param codeset_ids: List of IDs. If present, since should be empty. Will fetch containers, versions, items, and
     members related to these code set IDs.
-    :param handle_issues: If True, will flag issues for cset members/items unable to fetch to the fetch audit/status table
-
+    :param flag_issues: If True, will flag issues for cset members/items unable to fetch to the fetch audit/status table
+    :param try_fixing_issues_immediately: If True, will initialize a function or GitHub action which will attempt to
+    address issue immediately. Set to False because, given how frequently the refresh runs, it is probably the case that
+     when new issus arrive, at least for the '0 members' case, the Enclave hasn't yet expanded expressions into members,
+     and fetching now will not yield new members. Might as well wait until the end of each 20 minute refresh to try and
+     fetch them.
     todo: enclave API returns jagged rows (different lengths). E.g. for OMOPConceptSet, if it fetches a cset that does
      not have a value set for the field 'updateMessage', that field will not appear in the object/dictionary.
     todo: refactor so that, (a) ideally for both flat and hierarchical, containers get returned with a 'csets' key, and
@@ -491,29 +496,35 @@ def fetch_cset_and_member_objects(
         i += 1
         print(f'   - {i}: {version_id}')
         # todo: if failed to get expression items, should we not check for members? maybe ok because flagged
+        # - fetch expression items
         try:
             cset['expression_items']: List[Dict] = \
                 get_concept_set_version_expression_items(version_id, return_detail='full')
         except EnclavePaginationLimitErr as err:
             cset['expression_items']: List[Dict] = err.args[1]['results_prior_to_error']
-            if handle_issues:
+            if flag_issues:
                 insert_fetch_statuses([{'table': 'code_sets', 'primary_key': version_id, 'status_initially':
                     'fail-excessive-items', 'comment':
                     f"Failed after {len(cset['expression_items'])} expression_items."}])
-                call_github_action('resolve-fetch-failures-excess-items')
+                if try_fixing_issues_immediately:
+                    call_github_action('resolve-fetch-failures-excess-items')
+        # - fetch member items
         try:
             cset['member_items']: List[Dict] = get_concept_set_version_members(version_id, return_detail='full')
         except EnclavePaginationLimitErr as err:
             cset['member_items']: List[Dict] = err.args[1]['results_prior_to_error']
-            if handle_issues:
+            if flag_issues:
                 insert_fetch_statuses([{'table': 'code_sets', 'primary_key': version_id, 'status_initially':
                     'fail-excessive-members', 'comment': f"Failed after {len(cset['member_items'])} members."}])
-                call_github_action('resolve-fetch-failures-excess-items')
-        if not cset['member_items'] and cset['expression_items'] and not cset['properties']['isDraft'] and handle_issues:
+                if try_fixing_issues_immediately:
+                    call_github_action('resolve-fetch-failures-excess-items')
+        if not cset['member_items'] and cset['expression_items'] and flag_issues:
+            draft_text = 'Draft cset at time reported. ' if cset['properties']['isDraft'] else ''
             insert_fetch_statuses([{
                 'table': 'code_sets', 'primary_key': version_id, 'status_initially': 'fail-0-members',
-                'comment': f"Fetched 0 members after fetching {len(cset['expression_items'])} items."}])
-            call_github_action('resolve_fetch_failures_0_members.yml', {'version_id': str(version_id)})
+                'comment': f"{draft_text}Fetched 0 members after fetching {len(cset['expression_items'])} items."}])
+            if try_fixing_issues_immediately:
+                call_github_action('resolve_fetch_failures_0_members.yml', {'version_id': str(version_id)})
 
         expression_items.extend(cset['expression_items'])
         member_items.extend(cset['member_items'])

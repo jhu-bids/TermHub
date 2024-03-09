@@ -59,6 +59,7 @@ DDL_FETCH_AUDIT = """
     "table" text not null,
     primary_key text not null,
     status_initially text not null,
+    error_datetime timestamp with time zone,
     success_datetime timestamp with time zone,
     comment text);"""
 
