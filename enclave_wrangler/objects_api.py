@@ -467,6 +467,7 @@ def fetch_cset_and_member_objects(
         i += 1
         print(f'   - {i}: {version_id}')
         # todo: if failed to get expression items, should we not check for members? maybe ok because flagged
+        # - fetch expression items
         try:
             cset['expression_items']: List[Dict] = \
                 get_concept_set_version_expression_items(version_id, return_detail='full')
@@ -477,6 +478,7 @@ def fetch_cset_and_member_objects(
                     'fail-excessive-items', 'comment':
                     f"Failed after {len(cset['expression_items'])} expression_items."}])
                 call_github_action('resolve-fetch-failures-excess-items')
+        # - fetch member items
         try:
             cset['member_items']: List[Dict] = get_concept_set_version_members(version_id, return_detail='full')
         except EnclavePaginationLimitErr as err:
@@ -485,10 +487,11 @@ def fetch_cset_and_member_objects(
                 insert_fetch_statuses([{'table': 'code_sets', 'primary_key': version_id, 'status_initially':
                     'fail-excessive-members', 'comment': f"Failed after {len(cset['member_items'])} members."}])
                 call_github_action('resolve-fetch-failures-excess-items')
-        if not cset['member_items'] and cset['expression_items'] and not cset['properties']['isDraft'] and handle_issues:
+        if not cset['member_items'] and cset['expression_items'] and handle_issues:
+            draft_text = 'Draft cset at time reported. ' if cset['properties']['isDraft'] else ''
             insert_fetch_statuses([{
                 'table': 'code_sets', 'primary_key': version_id, 'status_initially': 'fail-0-members',
-                'comment': f"Fetched 0 members after fetching {len(cset['expression_items'])} items."}])
+                'comment': f"{draft_text}Fetched 0 members after fetching {len(cset['expression_items'])} items."}])
             call_github_action('resolve_fetch_failures_0_members.yml', {'version_id': str(version_id)})
 
         expression_items.extend(cset['expression_items'])
