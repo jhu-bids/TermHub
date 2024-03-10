@@ -1,0 +1,40 @@
+# Kill idle connections older than 10 minutes
+name: Kill idle connections
+
+on:
+  schedule:
+    - cron: '0 */3 * * * '  # every 3 hours
+  workflow_dispatch:
+jobs:
+  kill-idle-cons:
+    runs-on: ubuntu-latest
+    steps:
+      # Set up
+      - name: Checkout repository and submodules
+        uses: actions/checkout@v2
+      - name: Set up Python version
+        uses: actions/setup-python@v2
+        with:
+          # Consider '3.10' or 'v3.10.0': https://github.com/actions/setup-python/issues/160
+          python-version: '3.9.7'  # Not sure why 3.9.7 here and 3.9 elsewhere. the .7 works on Mac, but not on Ubuntu
+
+      - name: 'Create env file'
+        run: |
+          mkdir env
+          echo "${{ secrets.ENV_FILE }}" > env/.env
+
+      - name: Create and start virtual environment
+        run: |
+          python3 -m venv venv
+          source venv/bin/activate
+
+      - name: Install dependencies
+        run: |
+          python -m pip install --upgrade pip
+          pip install --upgrade wheel
+          pip install --upgrade setuptools
+          pip install -r requirements.txt
+
+      # Run the action
+      - name: Kill idle connections
+        run: make kill-idle-cons

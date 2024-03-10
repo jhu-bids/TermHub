@@ -35,6 +35,9 @@ counts-help:
 backup:
 	sh ./db_backup.sh
 
+kill-idle-cons:
+	python backend/db/utils.py --kill-idle-cons
+
 # Testing
 test: test-backend test-frontend
 
@@ -108,6 +111,8 @@ help:
 	@printf "Show help for counts commands.\n\n"
 	@echo backup
 	@printf "Runs a script with instructions on how to do a database backup.\n\n"
+	@echo kill-idle-cons
+	@printf "Kills all idle connections older than 10 minutes.\n\n"
 	@echo test
 	@printf "Runs all backend and frontend tests.\n\n"
 	@echo test-backend
