@@ -16,7 +16,7 @@ jobs:
         uses: actions/setup-python@v2
         with:
           # Consider '3.10' or 'v3.10.0': https://github.com/actions/setup-python/issues/160
-          python-version: '3.9.7'  # Not sure why 3.9.7 here and 3.9 elsewhere. the .7 works on Mac, but not on Ubuntu
+          python-version: '3.9'  # Not sure why 3.9.7 here and 3.9 elsewhere. the .7 works on Mac, but not on Ubuntu
 
       - name: 'Create env file'
         run: |

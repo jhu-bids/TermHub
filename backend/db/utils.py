@@ -839,6 +839,5 @@ def cli():
         reset_refresh_state()
 
 
-
 if __name__ == '__main__':
     cli()
