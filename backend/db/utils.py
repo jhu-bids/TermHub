@@ -831,7 +831,7 @@ def cli():
         '-k', '--kill-idle-cons', required=False, default=False, action='store_true',
         help='Kills any idle connections older than 10 minutes')
     d: Dict = vars(parser.parse_args())
-    if d['reset_refresh_state']:
+    if d['kill_idle_cons']:
         print('Killing idle connections older than 10 minutes')
         kill_idle_cons()
     if d['reset_refresh_state']:
