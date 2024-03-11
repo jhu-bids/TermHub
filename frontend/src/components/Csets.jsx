@@ -78,7 +78,7 @@ export function CsetSearch(props) {
   }
   const largeCsetWarning = largeCsets.length ? (
       <Alert severity="error" >
-        <AlertTitle>TermHub can behave unreliably when loading large concept sets</AlertTitle>
+        <AlertTitle>VS-Hub can behave unreliably when loading large concept sets</AlertTitle>
       </Alert>
   ) : null;
 

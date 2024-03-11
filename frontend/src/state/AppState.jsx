@@ -147,9 +147,9 @@ const newCsetReducer = (state, action) => {
         alias: "New Cset",
         source_application: SOURCE_APPLICATION,
         source_application_version: SOURCE_APPLICATION_VERSION,
-        codeset_intention: "From TermHub",
-        limitations: "From TermHub",
-        update_message: "TermHub testing",
+        codeset_intention: "From VS-Hub",
+        limitations: "From VS-Hub",
+        update_message: "VS-Hub testing",
         // "codeset_created_at": "2022-07-28 16:14:13.085000+00:00", // will be set by enclave
         // "codeset_created_by": "e64b8f7b-7af8-4b44-a570-557b812c0eeb", // will be set by enclave
         is_draft: true,
@@ -189,11 +189,11 @@ const newCsetReducer = (state, action) => {
   }
 
   const restoreUrl = urlWithSessionStorage();
-  // provenance: `TermHub url: ${urlWithSessionStorage()}`,
+  // provenance: `VS-Hub url: ${urlWithSessionStorage()}`,
   state = {
     ...state,
     counts: {...state.counts, 'Expression items': Object.keys(state.definitions).length},
-    provenance: `TermHub url: ${restoreUrl}`, // not really needed currently. not displaying on newCset card because
+    provenance: `VS-Hub url: ${restoreUrl}`, // not really needed currently. not displaying on newCset card because
                                               //  it's too ugly, and no current way to save metadata to enclave
   };
   return state

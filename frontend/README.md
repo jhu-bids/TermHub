@@ -1,4 +1,4 @@
-## TermHub Frontend
+## VS-Hub Frontend
 
 ### Running locally
 

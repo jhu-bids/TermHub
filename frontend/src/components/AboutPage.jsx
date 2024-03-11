@@ -109,7 +109,7 @@ export function AboutPage() {
       console.log('Triggering database refresh and clearing cache so new data will be fetched when ready');
       // empty cache immediately, and then again after the db-refresh call is done
       dataCache.emptyCache();
-      await dataGetter.axiosCall('db-refresh', {backend: true, verbose: false, title: 'Refreshing TermHub database from Enclave'});
+      await dataGetter.axiosCall('db-refresh', {backend: true, verbose: false, title: 'Refreshing VS-Hub database from Enclave'});
       dataCache.emptyCache();
     } catch (error) {
       console.error('Error:', error);
@@ -129,9 +129,9 @@ export function AboutPage() {
 
   return (
     <div style={{ margin: "15px 30px 15px 40px" }}>
-      <TextH1>About TermHub</TextH1>
+      <TextH1>About VS-Hub</TextH1>
       <TextBody>
-        TermHub is a tool for comparing, analyzing, updating, and (soon)
+        VS-Hub is a tool for comparing, analyzing, updating, and (soon)
         creating concept sets. At the current time it only handles concept sets
         in the <a href="https://covid.cd2h.org/enclave">N3C Enclave</a>, but is
         charted to expand beyond N3C (to work with FHIR, VSAC, OHDSI/ATLAS, and
@@ -140,7 +140,7 @@ export function AboutPage() {
       </TextBody>
       <TextBody>
         This <a href="https://youtu.be/EAwBZUiNUUk?t=2130">demo video</a> from
-        the October 31, 2022 N3C Forum provides a brief introduction. (TermHub
+        the October 31, 2022 N3C Forum provides a brief introduction. (VS-Hub
         has evolved since the video was made. Use the <a href="https://github.com/jhu-bids/termhub/issues/new/choose" target="_blank" rel="noopener noreferrer">create issue</a> button below
         to clamor for a new video and we will push that up on our priority
         list.)
@@ -165,7 +165,7 @@ export function AboutPage() {
       <TextBody>Will refresh the database with the latest data from the N3C Enclave.</TextBody>
       <TextBody><b>IMPORTANT:</b> There is a delay in the Enclave where when a concept set draft is finalized, its
         concept set members must be expanded. This can take between 20-45 minutes to complete. At that time, the members
-        will be visible in the UI and also the API for fetching by TermHub. TermHub will detect if this issue occurs and
+        will be visible in the UI and also the API for fetching by VS-Hub. VS-Hub will detect if this issue occurs and
         will continue to check until the members are available and import them as soon as they are.</TextBody>
       <TextBody>Last refresh: {lastRefreshed ? lastRefreshed.toLocaleString() : 'fetching it...'}</TextBody>
       <TextBody>
@@ -262,13 +262,13 @@ export function AboutPage() {
 
 DOCS.blank_search_intro = (
   <>
-    <h1>Welcome to TermHub! Beta version { VERSION }</h1>
+    <h1>Welcome to VS-Hub! Beta version { VERSION }</h1>
     <p style={{ paddingLeft: "12px", paddingRight: "130px" }}>
-      TermHub is a tool for comparing, analyzing, updating, and creating concept
+      VS-Hub is a tool for comparing, analyzing, updating, and creating concept
       sets. At the current time it only handles concept sets in the N3C Enclave,
       but is charted to expand beyond N3C in the near future.
     </p>
-    <h2>Within TermHub you can:</h2>
+    <h2>Within VS-Hub you can:</h2>
 
     <div style={{ paddingLeft: "12px", paddingRight: "130px" }}>
       <p>
@@ -321,7 +321,7 @@ DOCS.blank_search_intro = (
       </p>
       <ul>
         <LI>
-          Learn more about TermHub and review the step by step “How To” section.
+          Learn more about VS-Hub and review the step by step “How To” section.
         </LI>
         <LI>Provide feedback by creating a <a href="https://github.com/jhu-bids/termhub/issues/new/choose" target="_blank" rel="noopener noreferrer">GitHub issue.</a></LI>
         <LI>

@@ -30,7 +30,7 @@ export function UsageReport() {
             { Measure: 'Log records', Value: data.length,
                 Notes: `backend server usage logs. Since we use caching to avoid redundant server
                         calls, these logs do not capture analysis of already-downloaded data. After
-                        removing 3,600 log entries of testing or use by TermHub developers, the
+                        removing 3,600 log entries of testing or use by VS-Hub developers, the
                         remaining 9,400 records represent use by our target audiences`},
         ];
         // let csvRows = tableRows.map(row => ({ Statistic: row.stat, Value: row.value, }));

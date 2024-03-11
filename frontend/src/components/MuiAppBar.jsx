@@ -252,7 +252,7 @@ export default function MuiAppBar() {
               marginRight: "4px",
             }}
           >
-            TermHub
+            VS-Hub
           </Typography>
           <Typography
             data-testid="app-version"
@@ -284,7 +284,7 @@ export default function MuiAppBar() {
               textDecoration: "none",
             }}
           >
-            TermHub
+            VS-Hub
           </Typography>
 
           {horizontalMenu}
@@ -293,7 +293,7 @@ export default function MuiAppBar() {
           <Box sx={{ flexGrow: 0 }}>
             <Tooltip title="Open settings">
               <IconButton onClick={handleOpenUserMenu} sx={{ p: 0 }}>
-                <Avatar alt="TermHub" src="/static/images/termhubIcon.jpg" />
+                <Avatar alt="VS-Hub" src="/static/images/termhubIcon.jpg" />
               </IconButton>
             </Tooltip>
             <Menu

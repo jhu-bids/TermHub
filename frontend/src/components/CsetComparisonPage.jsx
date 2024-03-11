@@ -1369,7 +1369,7 @@ export function howToSaveStagedChanges(params) {
                     JSON" from the menu.
                 </LI>
                 <LI>
-                    Paste the JSON copied into your clipboard from TermHub earlier into the box, and
+                    Paste the JSON copied into your clipboard from VS-Hub earlier into the box, and
                     click "Import Atlas JSON".
                 </LI>
                 <LI>Click the version on the left again.</LI>
