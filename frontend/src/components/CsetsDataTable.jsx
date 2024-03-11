@@ -222,6 +222,7 @@ function getColdefs(min_col = false) {
       center: true,
       sortable: true,
     },
+      /*
     {
       name: (
           <Tooltip label="Number of members in this concept set that can be hidden in the CSET COMPARISON page.">
@@ -234,6 +235,7 @@ function getColdefs(min_col = false) {
       center: true,
       sortable: true,
     },
+     */
   ];
 
   if (!min_col) {

@@ -58,6 +58,7 @@ export default function ConceptSetCards(props) {
             key={cset.codeset_id}
             cset={cset}
             researchers={researchers}
+            styles={{ maxWidth: "600px" }}
             // widestConceptName={widestConceptName} cols={Math.min(4, codeset_ids.length)}
           />
         );

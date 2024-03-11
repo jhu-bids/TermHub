@@ -219,6 +219,7 @@ export function ConceptSetsPage(props) {
       let allCsetsObj = keyBy(all_csets, 'codeset_id');
 
       let _allRelatedCsetsArray = relatedCodesetIds.map(csid => ({...allCsetsObj[csid]}));
+
       let allRelatedCsets = keyBy(_allRelatedCsetsArray, 'codeset_id');
 
       selected_csets = await selected_csets;
@@ -258,6 +259,9 @@ export function ConceptSetsPage(props) {
 
       let relatedCsets = Object.values(allRelatedCsets).filter(cset => !cset.selected);
       relatedCsets = orderBy( relatedCsets, ["selected", "precision"], ["desc", "desc"] );
+      // This is here for making screenshots for paper. TODO:  Might want to make a user control
+        // for this.
+      relatedCsets = relatedCsets.filter(d => d.precision < 1 || (d.counts||{}).Members > 10);
       // setData(current => ({...current, relatedCsets}));
 
       researchers = await researchers;
