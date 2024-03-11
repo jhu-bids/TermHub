@@ -7,8 +7,9 @@ import sys
 import time
 from argparse import ArgumentParser
 from datetime import datetime
-from typing import Dict, List
+from typing import Dict, List, Set, Tuple
 
+from backend.utils import call_github_action
 
 DB_DIR = os.path.dirname(os.path.realpath(__file__))
 BACKEND_DIR = os.path.join(DB_DIR, "..")
@@ -36,24 +37,42 @@ def _report_success(
         success_rows.append(row)
     fetch_status_set_success(success_rows, use_local_db)
 
+
+def resolve_failures_0_members_if_exist(use_local_db=False, via_github_action=True):
+    """Starts handling of fetch failurers if they exist. Applies only to schema SCHEMA."""
+    failures: List[Dict] = select_failed_fetches(use_local_db)
+    failures_exist: bool = any([int(x['primary_key']) for x in failures if x['status_initially'] == 'fail-0-members'])
+    if failures_exist and via_github_action:
+        call_github_action('resolve_fetch_failures_0_members.yml')
+    elif failures_exist:
+        resolve_fetch_failures_0_members(use_local_db=use_local_db)
+
+
+def get_failures_0_members(version_id: int = None, use_local_db=False) -> Tuple[Set[int], Dict[str, Dict]]:
+    """Gets list of IDs of failed concetp set versions as well as a lookup for more information about them"""
+    failures: List[Dict] = select_failed_fetches(use_local_db)
+    failure_lookup: Dict[str, Dict] = {x['primary_key']: x for x in failures}
+    failed_cset_ids: List[int] = [version_id] if version_id else [
+        int(x['primary_key']) for x in failures if x['status_initially'] == 'fail-0-members']
+    failed_cset_ids: Set[int] = set(failed_cset_ids)  # dedupe
+    return failed_cset_ids, failure_lookup
+
+
 def resolve_fetch_failures_0_members(
-    version_id: int = None, use_local_db=False, polling_interval_seconds=30, schema=SCHEMA
+    version_id: int = None, use_local_db=False, polling_interval_seconds=30, schema=SCHEMA, runtime=2 * 60 * 60
 ):
     """Resolve situations where we tried to fetch data from the Enclave, but failed due to the concept set being too new
     resulting in initial fetch of concept set members being 0.
     :param version_id: Optional concept set version ID to resolve. If not provided, will check database for flagged
     failures.
+    :param runtime: 2 hours
     todo: Performance: Fetch only members, ideally: Even though we are fetching 'members', adding to the cset members
      table requires cset version and container metadata, and the function that does this expects them to be formaatted
      as objects, not as they come from our DB. We can fetch from DB and then convert to objects, but a lot of work for
      small performance gain."""
     print("Resolving fetch failures: non-draft, ostensibly new concept sets with >0 expressions but 0 members")
     # Collect failures
-    failures: List[Dict] = select_failed_fetches(use_local_db)
-    failure_lookup: Dict[str, Dict] = {x['primary_key']: x for x in failures}
-    failed_cset_ids: List[int] = [version_id] if version_id else [
-        int(x['primary_key']) for x in failures if x['status_initially'] == 'fail-0-members']
-    failed_cset_ids = list(set(failed_cset_ids))  # dedupe
+    failed_cset_ids, failure_lookup = get_failures_0_members(version_id, use_local_db)
     if not failed_cset_ids:
         print("No failures to resolve.")
         return
@@ -62,12 +81,15 @@ def resolve_fetch_failures_0_members(
     i = 0
     t0 = datetime.now()
     print(f"Fetching concept set versions and their related objects: {', '.join([str(x) for x in failed_cset_ids])}")
-    while len(failed_cset_ids) > 0 and (datetime.now() - t0).total_seconds() < 2 * 60 * 60:  # 2 hours
+    while len(failed_cset_ids) > 0 and (datetime.now() - t0).total_seconds() < runtime:
         i += 1
         print(f"- attempt {i}: fetching members for {len(failed_cset_ids)} concept set versions")
+        # Check for new failures: that may have occurred during runtime
+        failed_cset_ids, failure_lookup_i = get_failures_0_members(version_id, use_local_db)
+        failure_lookup.update(failure_lookup_i)
         # Fetch data
         csets_and_members: Dict[str, List[Dict]] = fetch_cset_and_member_objects(
-            codeset_ids=failed_cset_ids, handle_issues=False)
+            codeset_ids=list(failed_cset_ids), handle_issues=False)
         # - filter success & track results
         csets_and_members['OMOPConceptSet'] = [
             x for x in csets_and_members['OMOPConceptSet'] if x['member_items']]
