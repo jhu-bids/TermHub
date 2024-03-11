@@ -809,13 +809,31 @@ def get_idle_connections(interval: str = '1 week'):
     return result
 
 
+def kill_idle_cons(threshold_minutes=10):
+    """Kill idle connections older than threshold minutes
+
+    Kills only those connections having to do with TermHub."""
+    qry = f"""SELECT pg_terminate_backend(pid) FROM pg_stat_activity 
+    WHERE state = 'idle' and datname = 'termhub' and usename = 'thadmin' 
+    and state_change < NOW() - INTERVAL '{threshold_minutes} minutes';
+    """
+    with get_db_connection(schema='') as con:
+        run_sql(con, qry)
+
+
 def cli():
     """Command line interface"""
     parser = ArgumentParser(prog='termhub-db-utils', description='Database utilities.')
     parser.add_argument(
         '-f', '--reset-refresh-state', required=False, default=False, action='store_true',
         help='Resets both temporary tables and status variables')
+    parser.add_argument(
+        '-k', '--kill-idle-cons', required=False, default=False, action='store_true',
+        help='Kills any idle connections older than 10 minutes')
     d: Dict = vars(parser.parse_args())
+    if d['kill_idle_cons']:
+        print('Killing idle connections older than 10 minutes')
+        kill_idle_cons()
     if d['reset_refresh_state']:
         print('Resetting temporary tables and status variables')
         reset_refresh_state()

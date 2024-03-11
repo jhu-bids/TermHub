@@ -1,8 +1,9 @@
 SRC=backend/
 
-.PHONY: lint tags ltags test all lintall codestyle docstyle lintsrc linttest doctest doc docs code linters_all codesrc \
-codetest docsrc doctest counts-compare-schemas counts-table deltas-table test-missing-csets fetch-missing-csets backup \
-refresh-counts refresh-vocab serve-frontend serve-backend
+.PHONY: counts-compare-schemas counts-table deltas-table count-docs counts-update counts-help backup test test-backend \
+test-missing-csets test-frontend test-frontend-unit test-frontend-e2e test-frontend-e2e-debug test-frontend-e2e-ui \
+test-frontend-e2e-deployment fetch-missing-csets refresh-counts refresh-vocab reset-refresh-state serve-frontend \
+serve-backend help
 
 # Analysis
 ANALYSIS_SCRIPT=backend/db/analysis.py
@@ -30,49 +31,12 @@ counts-update:
 counts-help:
 	@python $(ANALYSIS_SCRIPT) --help
 
-# Codestyle, linters, and testing
-# - Code & Style Linters
-all: linters_all test
-lint: lintsrc codesrc docsrc
-linters_all: doc code lintall
-
-# Pylint Only
-PYLINT_BASE =python -m pylint --output-format=colorized --reports=n
-lintall: lintsrc linttest
-lintsrc:
-	${PYLINT_BASE} ${SRC}
-linttest:
-	${PYLINT_BASE} test/
-
-# PyCodeStyle Only
-PYCODESTYLE_BASE=python -m pycodestyle
-codestyle: codestylesrc codestyletest
-codesrc: codestylesrc
-codetest: codestyletest
-code: codestyle
-codestylesrc:
-	${PYCODESTYLE_BASE} ${SRC}
-codestyletest:
-	 ${PYCODESTYLE_BASE} test/
-
-# PyDocStyle Only
-PYDOCSTYLE_BASE=python -m pydocstyle
-docstyle: docstylesrc docstyletest
-docsrc: docstylesrc
-doctest: docstyletest
-docs: docstyle
-docstylesrc:
-	${PYDOCSTYLE_BASE} ${SRC}
-docstyletest:
-	${PYDOCSTYLE_BASE} test/
-codetest:
-	python -m pycodestyle test/
-codeall: code codetest
-doc: docstyle
-
 # Utils
 backup:
 	sh ./db_backup.sh
+
+kill-idle-cons:
+	python backend/db/utils.py --kill-idle-cons
 
 # Testing
 test: test-backend test-frontend
@@ -128,3 +92,59 @@ serve-frontend:
 
 serve-backend:
 	uvicorn backend.app:APP --reload
+
+# Help
+help:
+	@echo "Available targets:"
+	@echo counts-compare-schemas
+	@printf "Checks counts of database tables for the current 'n3c' schema and its most recent backup.\n\n"
+	@echo counts-table
+	@printf "View counts row counts over time for the 'n3c' schema.\n\n"
+	@echo deltas-table
+	@printf "View row count detlas over time for the 'n3c' schema.\n\n"
+	@echo count-docs
+	@printf "Runs --counts-over-time and --deltas-over-time and puts in documentation: docs/backend/db/analysis.md.\n\n"
+	@echo counts-update
+	@printf "Update 'counts' table with current row counts for the 'n3c' schema. Adds note to the 'counts-runs' table.\
+	\n\n"
+	@echo counts-help
+	@printf "Show help for counts commands.\n\n"
+	@echo backup
+	@printf "Runs a script with instructions on how to do a database backup.\n\n"
+	@echo kill-idle-cons
+	@printf "Kills all idle connections older than 10 minutes.\n\n"
+	@echo test
+	@printf "Runs all backend and frontend tests.\n\n"
+	@echo test-backend
+	@printf "Runs all backend tests.\n\n"
+	@echo test-missing-csets
+	@printf "Runs a test to check for any missing concept sets; things in the Enclave that are not in TermHub, or vice \
+	versa.\n\n"
+	@echo test-frontend
+	@printf "Runs all frontend tests.\n\n"
+	@echo test-frontend-unit
+	@printf "Runs all frontend unit tests.\n\n"
+	@echo test-frontend-e2e
+	@printf "Runs all frontend end-to-end tests.\n\n"
+	@echo test-frontend-e2e-debug
+	@printf "Run frontend end-to-end tests in debug mode.\n\n"
+	@echo test-frontend-e2e-ui
+	@printf "Runs frontend end-to-end tests in Playwright's special UI.\n\n"
+	@echo test-frontend-e2e-deployment
+	@printf "Runs frontend end-to-end tests on just deployed instances; not local.\n\n"
+	@echo fetch-missing-csets
+	@printf "Fetches any missing concept sets from the Enclave, importing them into TermHub.\n\n"
+	@echo refresh-counts
+	@printf "Refresh the 'counts' dataset group tables.\n\n"
+	@echo refresh-vocab
+	@printf "Refresh the 'vocab' dataset group tables.\n\n"
+	@echo reset-refresh-state
+	@printf "Run this if the refresh exited incorrectly and the 'finally' block didn't get run (e.g. manually stopping \
+	the debugger or a crash). Removes any temporary tables that have _old or _new suffixes. Updates timestamp database \
+	variables which indicate that the refresh is currently in progress.\n\n"
+	@echo serve-frontend
+	@printf "Starts up a server process for the frontend.\n\n"
+	@echo serve-backend
+	@printf "Starts up a server process for the backend.\n\n"
+	@echo help
+	@printf "Show this help message.\n\n"
