@@ -4,6 +4,7 @@
 """
 import json
 import urllib.parse
+from datetime import datetime
 from functools import cache
 from typing import Dict, List, Union, Set
 
@@ -725,23 +726,103 @@ def next_api_call_group_id() -> int:
     return id
 
 
-def usage_query():
-    """Query for usage data"""
+def usage_query(verbose=True) -> List[Dict]:
+    """Query for usage data
+
+    Filters out problematic api_call_group_id where the call group is amibiguous (-1 or NULL)"""
+    t0 = datetime.now()
     with get_db_connection() as con:
-        data = sql_query(con, """
+        # what we had originally
+        # data: List[RowMapping] = sql_query(con, """
+        #     SELECT DISTINCT r.*, array_sort(g.api_calls) api_calls, g.duration_seconds, g.group_start_time
+        #     FROM public.apiruns_grouped g
+        #     RIGHT JOIN public.api_runs r ON g.api_call_group_id = r.api_call_group_id""")  # 530,232
+        # todo: siggie says this same as inner join? how/why? does that matter?
+        data: List[RowMapping] = sql_query(con, """
             SELECT DISTINCT r.*, array_sort(g.api_calls) api_calls, g.duration_seconds, g.group_start_time
-            FROM public.apiruns_grouped g
-            RIGHT JOIN public.api_runs r ON g.api_call_group_id = r.api_call_group_id""")
+            FROM public.api_runs r
+            LEFT JOIN public.apiruns_grouped g ON g.api_call_group_id = r.api_call_group_id
+            WHERE g.api_call_group_id != -1 AND g.api_call_group_id IS NOT NULL;""")  # 13,210
+
+        # todo: temp: cleanup at end of paper
+        # --- good?
+        # 'filter api_call_group = -1' - multiple variations
+        # - chaning 'IS NULL' to 'IS NOT NULL" turned query from a few seconds into 70 seconds before i canceled
+        # - as i suspected (the AI was wrong), there *are* NULL records in here (604). Subtracting that gives exact
+        #   number as the two queries below this one. Makes sense that it matches my "AND IS NOT NULL" one. but IDK why
+        #   I'm getting the same number from the query whe I leave NULL out of it.
+        # data: List[RowMapping] = sql_query(con, """
+        #     SELECT DISTINCT r.*, array_sort(g.api_calls) api_calls, g.duration_seconds, g.group_start_time
+        #     FROM public.api_runs r
+        #     LEFT JOIN public.apiruns_grouped g ON g.api_call_group_id = r.api_call_group_id
+        #     WHERE g.api_call_group_id != -1 OR g.api_call_group_id IS NULL;""")  #  13,814
+        # - not adding NULL clause filter. somehow I got less records
+        # data: List[RowMapping] = sql_query(con, """
+        #     SELECT DISTINCT r.*, array_sort(g.api_calls) api_calls, g.duration_seconds, g.group_start_time
+        #     FROM public.api_runs r
+        #     LEFT JOIN public.apiruns_grouped g ON g.api_call_group_id = r.api_call_group_id
+        #     WHERE g.api_call_group_id != -1;""")  # 13,210
+        # data: List[RowMapping] = sql_query(con, """
+        #     SELECT DISTINCT r.*, array_sort(g.api_calls) api_calls, g.duration_seconds, g.group_start_time
+        #     FROM public.api_runs r
+        #     LEFT JOIN public.apiruns_grouped g ON g.api_call_group_id = r.api_call_group_id
+        #     WHERE g.api_call_group_id != -1 AND g.api_call_group_id IS NOT NULL;""")  # 13,210
+
+        # --- haven't tried
+        # inner join + prefilter distinct call groups
+        # data: List[RowMapping] = sql_query(con, """
+        #     SELECT DISTINCT r.*, array_sort(g.api_calls) api_calls, g.duration_seconds, g.group_start_time
+        #     FROM (
+        #         SELECT *
+        #         FROM public.apiruns_grouped
+        #         WHERE api_call_group_id IN (SELECT DISTINCT api_call_group_id FROM public.apiruns_grouped)
+        #     ) AS g
+        #     INNER JOIN public.api_runs r ON g.api_call_group_id = r.api_call_group_id""")  # 529,628
+
+        # --- Failed
+        # data: List[RowMapping] = sql_query(con, """
+        #     SELECT DISTINCT r.*, array_sort(g.api_calls) api_calls, g.duration_seconds, g.group_start_time
+        #     FROM public.apiruns_grouped g
+        #     INNER JOIN public.api_runs r ON g.api_call_group_id = r.api_call_group_id""")  # 529,628
+        # flip and left join
+        # data: List[RowMapping] = sql_query(con, """
+        #     SELECT DISTINCT r.*, array_sort(g.api_calls) api_calls, g.duration_seconds, g.group_start_time
+        #     FROM public.api_runs r
+        #     LEFT JOIN public.apiruns_grouped g ON g.api_call_group_id = r.api_call_group_id""")  # 530,232
+        # prefilter distinct call groups
+        # data: List[RowMapping] = sql_query(con, """
+        #     SELECT DISTINCT r.*, array_sort(g.api_calls) api_calls, g.duration_seconds, g.group_start_time
+        #     FROM (
+        #       SELECT * FROM public.apiruns_grouped
+        #       WHERE api_call_group_id IN (SELECT DISTINCT api_call_group_id FROM public.apiruns_grouped)
+        #     ) as g
+        #     RIGHT JOIN public.api_runs r ON g.api_call_group_id = r.api_call_group_id""")  # 530,232
+        # w/ LIMIT on inner query
+        # - also got 530,232 records without the array_sort()
+        # data: List[RowMapping] = sql_query(con, """
+        #     SELECT DISTINCT r.*, array_sort(g.api_calls) api_calls, g.duration_seconds, g.group_start_time
+        #     FROM (
+        #       SELECT * FROM public.apiruns_grouped LIMIT 10
+        #     ) as g
+        #     RIGHT JOIN public.api_runs r ON g.api_call_group_id = r.api_call_group_id""")  # 28k
+        # no JOIN
+        # data: List[RowMapping] = sql_query(con, """
+        #     SELECT DISTINCT array_sort(g.api_calls) api_calls, g.duration_seconds, g.group_start_time
+        #     FROM public.apiruns_grouped g""")  # 3288
+        print()
+
+    data: List[Dict] = [dict(x) for x in data]
+    if verbose:
+        print(f'usage_query(): Fetched {len(data)} records in n seconds: {(datetime.now() - t0).seconds}')
     return data
 
 
-# @router.get("/usage")
+
+
+@router.get("/usage")
 def usage() -> JSON_TYPE:
-    """Usage report
-
-    Get all data from our monitoring."""
-    data = usage_query()
-    return data
+    """Usage report: Get all data from our monitoring."""
+    return usage_query()
 
 
 if __name__ == '__main__':
