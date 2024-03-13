@@ -17,7 +17,8 @@ from sqlalchemy import text
 from backend.api_logger import Api_logger, get_ip_from_request
 from backend.db.refresh import refresh_db
 from backend.db.queries import get_concepts
-from backend.db.utils import get_db_connection, sql_query, SCHEMA, sql_query_single_col, sql_in, sql_in_safe, run_sql
+from backend.db.utils import get_db_connection, get_engine, sql_query, SCHEMA, sql_query_single_col, sql_in, \
+    sql_in_safe, run_sql
 from backend.utils import return_err_with_trace, commify
 from enclave_wrangler.config import RESEARCHER_COLS
 from enclave_wrangler.models import convert_rows
@@ -597,8 +598,14 @@ def n3c_comparison_rpt():
     display comparison data compiled in generate_n3c_comparison_rpt()
         and get_comparison_rpt()
     """
-    with get_db_connection() as con:
+    engine = get_engine(schema='public')
+    with engine.connect() as con:
+    # with get_db_connection(schema='public') as con:
         rpt = sql_query_single_col(con, "SELECT rpt FROM public.codeset_comparison WHERE rpt IS NOT NULL")
+        print()
+    # con.close()
+    engine.dispose()
+    print()
     return rpt
 
 
@@ -609,7 +616,7 @@ def single_n3c_comparison_rpt(pair: str):
         and get_comparison_rpt()
     """
     orig_codeset_id, new_codeset_id = pair.split('-')
-    with get_db_connection() as con:
+    with get_db_connection(schema='public') as con:
         rpt = sql_query_single_col(
             con,
             "SELECT rpt FROM public.codeset_comparison WHERE orig_codeset_id || '-' || new_codeset_id = :pair",
