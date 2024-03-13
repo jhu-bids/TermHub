@@ -16,7 +16,7 @@ export function UsageReport() {
             let data = await dataGetter.fetchAndCacheItems(dataGetter.apiCalls.usage);
             console.log(data);
             setData(current => (data));
-        })()
+        })();
     }, []);
     if (!isEmpty(data)) {
         let csids_selections = data.map(d => d.codeset_ids).filter(d => !isEmpty(d));
