@@ -58,7 +58,8 @@ DROP TABLE IF EXISTS public.apijoin CASCADE;
 
 SELECT DISTINCT r.*, array_sort(g.api_calls) api_calls, g.duration_seconds, g.group_start_time,
                 date_bin('1 week', timestamp::TIMESTAMP, TIMESTAMP '2023-10-30')::date week,
-                timestamp::date date
+                timestamp::date date,
+                FORMAT('%s of %s', ROW_NUMBER() OVER(PARTITION BY g.api_call_group_id ORDER BY timestamp), COUNT(*) OVER(PARTITION BY g.api_call_group_id)) AS callnum
 INTO public.apijoin
 FROM public.api_runs r
 LEFT JOIN public.apiruns_grouped g ON g.api_call_group_id = r.api_call_group_id AND g.api_call_group_id != -1
@@ -66,4 +67,16 @@ LEFT JOIN public.apiruns_grouped g ON g.api_call_group_id = r.api_call_group_id 
 
 CREATE INDEX aprjidx ON public.apijoin(api_call_group_id);
 
+/*
+WITH RankedRows AS (
+    SELECT host,client,api_call,result,week,codeset_ids, params, callnum, api_call_group_id,
+           ROW_NUMBER() OVER(PARTITION BY column_to_partition_by ORDER BY column_to_order_by) AS rn
+    FROM public.apijoin
+    WHERE api_call = 'concept-ids-by-codeset-id'
+    ORDER BY 9,8
+)
+SELECT *
+FROM RankedRows
+WHERE rn = 1;
 --WHERE r.api_call_group_id = -1 OR g.api_call_group_id IS NULL
+ */

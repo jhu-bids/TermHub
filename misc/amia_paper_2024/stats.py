@@ -234,3 +234,51 @@ def run(use_cache=False, verbose=False):
 
 if __name__ == '__main__':
     run()
+
+"""
+other queries:
+
+with c as (select count(*) cnt from cset_members_items group by codeset_id)
+select 10^round(log10(cnt)) || ' - ' || 10 * 10^round(log10(cnt)) - 1 value_set_size, count(*) value_sets
+from c group by 1 order by 1 desc;
+┌─────────────────┬────────────┐
+│ value_set_size  │ value_sets │
+├─────────────────┼────────────┤
+│ 1 - 9           │        774 │
+│ 10 - 99         │       1862 │
+│ 100 - 999       │       2596 │
+│ 1000 - 9999     │       1357 │
+│ 10000 - 99999   │        537 │
+│ 100000 - 999999 │         64 │
+└─────────────────┴────────────┘
+
+
+SELECT host,client,result, replace(result, ' rows', '') concept_ids, week,api_call_group_id
+FROM public.apijoin
+WHERE api_call = 'codeset-ids-by-concept-id'
+
+with c1 as (
+  SELECT replace(result, ' rows', '') cnt FROM public.apijoin
+  WHERE api_call IN ('codeset-ids-by-concept-id', 'concept', 'get-cset-members-items')
+), c2 as (
+  SELECT CASE WHEN cnt ~ '^[0-9]+$' THEN cnt::integer ELSE NULL END AS cnt FROM c1
+)
+select 10^round(log10(cnt)) || ' - ' || 10 * 10^round(log10(cnt)) - 1 concepts_in_call, count(*) calls
+from c2 group by 1 order by 1 desc;
+
+result, modified
+┌─────────────────────┬───────┐
+│  concepts_in_call   │ calls │
+├─────────────────────┼───────┤
+│ 1 - 9               │    20 │
+│ 10 - 99             │  1,642 │
+│ 100 - 999           │   855 │
+│ 1000 - 9999         │   505 │
+│ 10000 - 99999       │   153 │
+│ 100000 - 999999     │   121 │
+│ 1000000 - 9999999   │     3 │
+│ 10000000 - 99999999 │     2 │
+└─────────────────────┴───────┘
+
+
+"""
