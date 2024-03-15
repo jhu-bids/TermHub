@@ -192,60 +192,84 @@ def summary_stats(
     return df
 
 
-def plot_render(title: str, xlab: str, ylab: str, small=False):
-    """Close out plot"""
-    filename = title.replace(' ', '_').lower()
-    # todo: put in else?
-    plt.xlabel(xlab)
-    plt.ylabel(ylab)
+def plot_render(
+    data: List[Union[float, int]], bins, title: str, xlab: str, ylab: str, small=False, is_timeseries=False,
+    tick_fix=False
+):
+    """Close out plot
+
+    :param: tick_fix: Turned off by default because increases overall exec time from 5 to 28 seconds"""
+    # Initialize plot
     if small:
-        plt.title(title, fontsize='smaller')
-        plt.axis('off')
+        plt.figure(figsize=(3, 1))  # fig = plt.figure(figsize=(1, 0.5))
+    plt.hist(data, bins=bins, edgecolor='black', alpha=0.7)
+    # Name
+    filename = title.replace(' ', '_').lower()
+    # Title
+    # Valid font size are xx-small, x-small, small, medium, large, x-large, xx-large, larger, smaller, None
+    # plt.title(title, fontsize='x-small' if small else 'medium')  # medium is the default
+    plt.title(title)
+    # X Ticks: center of bars rather than to the left
+    # todo: why ticks & labels getting super bolded with this fix?
+    if not is_timeseries and tick_fix:
+        plt.xticks([edge + 0.5 for edge in data[:-1]], data[:-1])
+
+    if small:
+        # Font size
+        # todo: this isn't working; not a big priority
+        plt.rcParams["font.size"] = "6" if len(title) < 30 else "6"  # long titles make plot smaller
+        # Axis
+        if not is_timeseries:  # it makes sense to get rid of axis for timeseries, but not otherwise
+            plt.tick_params(axis='y', which='both', left=False, labelleft=False)  # Turn off y-axis ticks and labels
+        else:
+            plt.axis('off')
+        # Save
         # plt.savefig(OUTDIR / f'{filename}.png', dpi=100)
         plt.savefig(OUTDIR / f'{filename} - small.png', bbox_inches='tight', dpi=100)
     else:
-        plt.title(title)
+        # Labels
+        plt.xlabel(xlab)
+        plt.ylabel(ylab)
+        # Save
         plt.savefig(OUTDIR / f'{filename}.png')
     plt.clf()
 
 
 # todo: histogram sections duplicative. could be refactored to be more DRY
-def plots(df: pd.DataFrame, df_dev0: pd.DataFrame, small=False):
+def plots(df: pd.DataFrame, df_dev0: pd.DataFrame, small=False, dev_data_plots=False):
     """Plots"""
     # todo: consider dev + non-dev in same plot
     # Histogram: Value set n selections
     # - Size distribution histogram. How many code sets in initial call of log session
-    for df, name_suffix in ((df, 'Dev data included'), (df_dev0, '')):
+    datasets = ((df, 'Dev data included'), (df_dev0, '')) if dev_data_plots else ((df_dev0, ''),)
+    for df_i, name_suffix in datasets:
         # Title
         title = f'Code set comparison size{f" - {name_suffix}" if name_suffix else ""}'
         # Select data
-        df_i = df[df['api_call'] == 'get-csets']
-        df_i['len_codeset_ids'] = df_i['codeset_ids'].apply(lambda x: len(x))
-        data = list(df_i['len_codeset_ids'])
+        df_i2 = df_i[df_i['api_call'] == 'get-csets']
+        df_i2['len_codeset_ids'] = df_i['codeset_ids'].apply(lambda x: len(x))
+        data = list(df_i2['len_codeset_ids'])
+        bins = range(min(data), max(data) + 2)
         # Render
-        if small:
-            plt.figure(figsize=(3, 1))  # fig = plt.figure(figsize=(1, 0.5))
-        plt.hist(data, bins=range(min(data), max(data) + 1), edgecolor='black', alpha=0.7)
-        plot_render(title, 'Number of code sets being compared', 'Frequency', small)
+        plot_render(data, bins, title, 'Number of code sets being compared', 'Frequency', small)
 
-    for df, name_suffix in ((df, 'Dev data included'), (df_dev0, '')):
+    for df_i, name_suffix in datasets:
         # Title
         title = f'API calls per week{f" - {name_suffix}" if name_suffix else ""}'
         # Select data
         # for df, name_suffix in ((df_apiruns, 'Dev data included'), (df_apiruns_dev0, '')):
-        data = list(df['week'])
+        data = list(df_i['week'])
+        bins = len(set(data))
         # Render
-        if small:
-            plt.figure(figsize=(3, 1))  # fig = plt.figure(figsize=(1, 0.5))
-        plt.hist(data, bins=len(set(data)), edgecolor='black', alpha=0.7)
-        plot_render(title, 'Week', 'API calls', small)
+        plot_render(data, bins, title, 'Week', 'API calls', small, is_timeseries=True)
 
 
-def run(use_cache=False, verbose=False):
+def run(use_cache=False, verbose=False, dev_data_plots=False):
     """Run analysis
 
     :param use_cache: If True, will use most recent local CSV instead of calling the database"""
     # Initial setup ---
+    t0 = datetime.now()
     setup()
     df_apiruns: pd.DataFrame = get_dataset_with_mods(api_runs_query, USAGE_UNJOINED_CSV_PATH, use_cache, verbose)
     df_w_groups_filtered: pd.DataFrame = get_dataset_with_mods(usage_query, USAGE_JOINED_CSV_PATH, use_cache, verbose)
@@ -266,8 +290,10 @@ def run(use_cache=False, verbose=False):
     # Plots ---
     # todo: would be better to combine dev0/dev1 and small(T/F) here and then make 1 call to plot() for each combo
     #  - would need refactor 'for df, name_suffix in' out of plot()
-    plots(df_w_groups_filtered, df_w_groups_filtered_dev0, small=False)
-    plots(df_w_groups_filtered, df_w_groups_filtered_dev0, small=True)
+    plots(df_w_groups_filtered, df_w_groups_filtered_dev0, False, dev_data_plots)  # Big
+    plots(df_w_groups_filtered, df_w_groups_filtered_dev0, True, dev_data_plots)  # Small
+    if verbose:
+        print(f'Finished stats report in n seconds: {(datetime.now() - t0).seconds}')
 
 
 if __name__ == '__main__':
