@@ -156,7 +156,7 @@ function getColdefs(min_col = false) {
     {
       name: (
         <Tooltip label="Number of definition items in this concept set.">
-          <span>Expression items</span>
+          <span>Definition concepts</span>
         </Tooltip>
       ),
       selector: (row) => (row.counts || {})['Expression items'] ?? 0,
@@ -167,13 +167,13 @@ function getColdefs(min_col = false) {
     },
     {
       name: (
-          <Tooltip label="Number of members in this concept set, that is, concepts included after expanding expression items.">
-            <span>Members</span>
+          <Tooltip label="Number of members in this concept set, that is, concepts included after expanding definition concepts.">
+            <span>Expansion concepts</span>
           </Tooltip>
       ),
       selector: (row) => (row.counts || {})['Members'] ?? 0,
       compact: true,
-      width: "70px",
+      width: "72px",
       center: true,
       sortable: true,
     },

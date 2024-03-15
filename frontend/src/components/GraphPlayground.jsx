@@ -44,18 +44,10 @@ export const ConceptGraph/*: React.FC*/ = () => {
     })()
   }, []);
 
-  const MyGraph = () => {
+  const SigmaGraph = () => {
     const loadGraph = useLoadGraph();
 
     useEffect(() => {
-      // Create the graph
-      // const graph = new MultiDirectedGraph();
-      /*
-      const graph = new Graph();
-      graph.addNode("A", { x: 0, y: 0, label: "Node A", size: 10 });
-      graph.addNode("B", { x: 1, y: 1, label: "Node B", size: 10 });
-      graph.addEdgeWithKey("rel1", "A", "B", { label: "REL_1" });
-       */
       if (gc && gc.graph) {
         let laidOutGraph = gc.graphLayout();
         loadGraph(laidOutGraph);
@@ -66,75 +58,8 @@ export const ConceptGraph/*: React.FC*/ = () => {
   };
 
   return (
-    <SigmaContainer style={{ height: "1500px" }}>
-      <MyGraph />
+    <SigmaContainer style={{ height: "1200px" }}>
+      <SigmaGraph />
     </SigmaContainer>
   );
-}
-
-export const DisplayGraph/*: React.FC*/ = () => {
-  const RandomCircleGraph/*: React.FC*/ = () => {
-    const { faker, randomColor } = useSeedRandom();
-    const sigma = useSigma();
-    const { positions, assign } = useLayoutCircular();
-    const registerEvents = useRegisterEvents();
-    const [draggedNode, setDraggedNode] = useState<string | null>(null);
-
-
-    const loadGraph = useLoadGraph();
-
-    useEffect(() => {
-      const order = 100;
-      const probability = 0.1;
-
-      // Create the graph
-      const graph = new Graph();
-      for (let i = 0; i < order; i++) {
-        graph.addNode(i, {
-          label: faker.name.fullName(),
-          size: faker.datatype.number({ min: 4, max: 20, precision: 1 }),
-          color: randomColor(),
-          x: 0,
-          y: 0,
-        });
-      }
-      for (let i = 0; i < order; i++) {
-        for (let j = i + 1; j < order; j++) {
-          if (Math.random() < probability) graph.addDirectedEdge(i, j);
-          if (Math.random() < probability) graph.addDirectedEdge(j, i);
-        }
-      }
-
-      loadGraph(graph);
-      assign();
-      // console.log(positions());
-    }, [assign, loadGraph, faker.datatype, faker.name, randomColor]);
-
-    return null;
-  };
-
-  return (
-    <SigmaContainer style={{ height: "1500px" }}>
-      <RandomCircleGraph />
-    </SigmaContainer>
-  );
-};
-function sugiyamaLayout(edges) {
-  const connect = d3dag.dagConnect();
-  const dag = connect(edges); // using d3dag for the sugiyama layout
-  const graphSize = d3dag.sugiyama();
-  const layout = d3dag.sugiyama();
-  const {width, height} = layout(dag);
-
-
-  const graph = new Graph();  // but using graphology graph with sigma
-  let slayout = {};
-
-  for (let dn of dag.descendants()) {
-    // let n = parseInt(dn.data.id);
-    let n = dn.data.id; // I think it turns graph node ids into strings
-    slayout[n] = { x: dn.x, y: dn.y,}; // for TermHub example, this is too wide
-    // slayout[n] = { x: dn.y, y: dn.x,}; // now too tall, not helpful
-  }
-  return {graph, graphSize, slayout};
 }

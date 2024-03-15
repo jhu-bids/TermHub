@@ -61,6 +61,18 @@ export async function fetchGraphData(props) {
 
     let [csmi, selected_csets, conceptLookup,] = await Promise.all(promises);
 
+    /*
+    // just for screenshot
+    let x = csmi[718894835][4153380];
+    x.item = true;
+    x.csm = false;
+    x.flags = 'DX';
+    x.item_flags = "includeDescendants,isExcluded";
+    x.includeDescendants = true;
+    x.isExcluded = true;
+     */
+
+
     selected_csets = codeset_ids.map(d => selected_csets[d]); // to get them in the order asked for
 
     if (!isEmpty(newCset)) {
@@ -700,6 +712,49 @@ function getColDefs(props) {
             style: {justifyContent: "center",},
         },
         {
+            // name: "Patients",
+            headerProps: {
+                headerContent: (
+                    <div style={{display: 'flex', flexDirection: 'column'}}>
+                        <Tooltip label="Approximate distinct person count. Small counts rounded up to 20.">
+                            <div>Patients</div>
+                        </Tooltip>
+                        {
+                            hidden
+                                ? <Tooltip label={`Toggle hiding of ${hidden.zeroCount} concepts with 0 patients`}>
+                                    <Switch sx={{margin: '-8px 0px'}} checked={!hideZeroCounts}
+                                            onClick={() => hsDispatch({
+                                                                          type: 'hideZeroCounts',
+                                                                          hideZeroCounts: !hideZeroCounts
+                                                                      })}
+                                    />
+                                </Tooltip>
+                                : ''
+                        }
+                    </div>
+                )
+                // headerContentProps: { onClick: editCodesetFunc, codeset_id: cset_col.codeset_id, },
+            },
+            selector: (row) => {
+                // can be comma=separated list if pt cnts in more than one domain
+                const cnts = row.distinct_person_cnt.split(',').map(n => parseInt(n));
+                return max(cnts);
+            },
+            format: (row) => {
+                if (typeof (row.distinct_person_cnt) === 'undefined') {
+                    return '';
+                }
+                const cnts = row.distinct_person_cnt.split(',').map(n => parseInt(n));
+                return fmt(max(cnts));
+            },
+            sortable: !nested,
+            right: true,
+            width: 80,
+            // minWidth: 80,
+            // remainingPct: .10,
+            style: {justifyContent: "center"},
+        },
+        {
             // name: "Records",
             headerProps: {
                 tooltipContent: "Record count. Small counts rounded up to 20. Click to toggle hiding of zero counts.",
@@ -864,49 +919,6 @@ function getColDefs(props) {
             },
         },
         // ...cset_cols,
-        {
-            // name: "Patients",
-            headerProps: {
-                headerContent: (
-                    <div style={{display: 'flex', flexDirection: 'column'}}>
-                        <Tooltip label="Approximate distinct person count. Small counts rounded up to 20.">
-                            <div>Patients</div>
-                        </Tooltip>
-                        {
-                            hidden
-                                ? <Tooltip label={`Toggle hiding of ${hidden.zeroCount} concepts with 0 patients`}>
-                                    <Switch sx={{margin: '-8px 0px'}} checked={!hideZeroCounts}
-                                            onClick={() => hsDispatch({
-                                                type: 'hideZeroCounts',
-                                                hideZeroCounts: !hideZeroCounts
-                                            })}
-                                    />
-                                </Tooltip>
-                                : ''
-                        }
-                    </div>
-                )
-                // headerContentProps: { onClick: editCodesetFunc, codeset_id: cset_col.codeset_id, },
-            },
-            selector: (row) => {
-                // can be comma=separated list if pt cnts in more than one domain
-                const cnts = row.distinct_person_cnt.split(',').map(n => parseInt(n));
-                return max(cnts);
-            },
-            format: (row) => {
-                if (typeof (row.distinct_person_cnt) === 'undefined') {
-                    return '';
-                }
-                const cnts = row.distinct_person_cnt.split(',').map(n => parseInt(n));
-                return fmt(max(cnts));
-            },
-            sortable: !nested,
-            right: true,
-            width: 80,
-            // minWidth: 80,
-            // remainingPct: .10,
-            style: {justifyContent: "center"},
-        },
     ];
     if (!comparison_rpt) {
         coldefs = coldefs.filter(d => d.name!== "Status");
@@ -959,7 +971,7 @@ function getColDefs(props) {
             ],
             sortable: !nested,
             // compact: true,
-            width: 80,
+            width: 97,
             // center: true,
         };
 

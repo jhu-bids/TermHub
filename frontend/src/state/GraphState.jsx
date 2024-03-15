@@ -71,7 +71,7 @@ export class GraphContainer {
 
     let unlinkedConceptsParent = {
       concept_id: 'unlinked',
-      concept_name: 'Concepts in set but not linked to others',
+      concept_name: 'Concepts included but not linked to other concepts',
       not_a_concept: true,
       vocabulary_id: '--',
       standard_concept: '',
@@ -134,7 +134,7 @@ export class GraphContainer {
 
     displayedRows.push(node);
     if (node.expanded) {
-      childIds.forEach(childId => {
+      sortBy(childIds, this.sortFunc).forEach(childId => {
         this.addNodeToVisible(childId, displayedRows, showThoughCollapsed, null, depth + 1); // Recurse
       });
     } else {
@@ -299,7 +299,10 @@ export class GraphContainer {
     for (let type in this.options.specialConceptTreatment) {
       if (this.statsOptions[type].specialTreatmentRule === 'hide though expanded' && this.options.specialConceptTreatment[type]) {
         for (let id of setOp('intersection', this.specialConcepts[type], displayedRows.map(d => d.concept_id))) {
-          hideThoughExpanded.add(id);
+          let nodeToHide = this.nodes[id];
+          if (!nodeToHide.expanded) {
+            hideThoughExpanded.add(id);
+          }
         }
       }
     }
@@ -344,6 +347,7 @@ export class GraphContainer {
 
   sortFunc = (d => {
     let n = this.nodes[d];
+    return n.not_a_concept ? Infinity : -n.drc;
     let statusRank = n.isItem && 3 + n.added && 2 + n.removed && 1 || 0;
     // return - (n.drc || n.descendantCount || n.levelsBelow || n.status ? 1 : 0);
     return - (n.levelsBelow || n.descendantCount || n.status ? 1 : 0);
@@ -393,7 +397,7 @@ export class GraphContainer {
         node.hasChildren = true;
         node.descendants = uniq(descendants); // Remove duplicates
         node.descendantCount = node.descendants.length;
-        node.drc += sum(node.descendants.concat(nodeId).map(d => nodes[d].total_cnt || 0)); // Compute descendant counts
+        node.drc += sum(node.descendants.map(d => nodes[d].total_cnt || 0)); // Compute descendant counts
         node.children = childIds;
         node.childCount = childIds.length;
       }
