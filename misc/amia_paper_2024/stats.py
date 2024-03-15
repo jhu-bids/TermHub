@@ -8,7 +8,7 @@ Resources
 - Paper: https://livejohnshopkins-my.sharepoint.com/:w:/g/personal/sgold15_jh_edu/EXbuxwBsb0pPgFfgPYjR6qgBlJ1gmpqsMPYJ3vn6Y_HnYw?e=4%3ApEDbMe&fromShare=true&at=9&CID=d4663c40-1ebe-db59-8cf5-2bc091d45692"""
 import os
 import sys
-from datetime import datetime, timedelta
+from datetime import datetime
 import matplotlib.pyplot as plt
 from pathlib import Path
 from typing import Callable, Dict, List, Union
@@ -43,6 +43,8 @@ def setup():
     #   df_get_csets['codeset_ids'] = df_get_csets['codeset_ids'].astype(str)
     pd.options.mode.chained_assignment = None  # default='warn'
 
+    if not INDIR.exists():
+        OUTDIR.mkdir()
     if not OUTDIR.exists():
         OUTDIR.mkdir()
 
@@ -95,7 +97,7 @@ def get_dataset_with_mods(func: Callable, path: Union[str, Path], use_cache=Fals
     return df
 
 
-def preprocess_dev_ips(df: pd.DataFrame, verbose=True) -> pd.DataFrame:
+def filter_dev_data(df: pd.DataFrame, verbose=True) -> pd.DataFrame:
     """Preprocess data: remove developers"""
     # Devs accessing dev/prod
     developer_ips = {'Siggie': '216.164.48.98', 'Joe': '174.99.54.40'}
@@ -110,6 +112,23 @@ def preprocess_dev_ips(df: pd.DataFrame, verbose=True) -> pd.DataFrame:
     df2 = df2[df2['host'].isin(['dev', 'prod'])]
     if verbose:
         print('Filtered out n records based devs running locally: ',  count_before - len(df2))
+    # Test cases being run by GitHub actions: IPs unknown
+    test_cases = [
+        '[1000002363, 1000002657, 1000007602, 1000013397, 1000010688, 1000015307, 1000031299]',  # many small
+        '[1000002363]'  # single small
+    ]
+    sessions = set()
+    len_before = len(df2)
+    df2['codeset_ids_str'] = df2['codeset_ids'].astype(str)
+    for case in test_cases:
+        df_i = df2[(df2['api_call'] == 'get-csets') & (df2['codeset_ids_str'] == case)]
+        sessions.update(set(df_i['api_call_group_id']))
+    # -1 is an erroneous api_call_group_id linked to otherwise contextually valid records
+    if float(-1) in sessions:
+        sessions.remove(float(-1))
+    df2 = df2[~df2['api_call_group_id'].isin(sessions)]
+    if verbose:
+        print(f'Filtered out n records created by test cases: ', len_before - len(df2))
     return df2
 
 def preprocess_null_call_groups(df: pd.DataFrame, verbose=True) -> pd.DataFrame:
@@ -173,6 +192,55 @@ def summary_stats(
     return df
 
 
+def plot_render(title: str, xlab: str, ylab: str, small=False):
+    """Close out plot"""
+    filename = title.replace(' ', '_').lower()
+    # todo: put in else?
+    plt.xlabel(xlab)
+    plt.ylabel(ylab)
+    if small:
+        plt.title(title, fontsize='smaller')
+        plt.axis('off')
+        # plt.savefig(OUTDIR / f'{filename}.png', dpi=100)
+        plt.savefig(OUTDIR / f'{filename} - small.png', bbox_inches='tight', dpi=100)
+    else:
+        plt.title(title)
+        plt.savefig(OUTDIR / f'{filename}.png')
+    plt.clf()
+
+
+# todo: histogram sections duplicative. could be refactored to be more DRY
+def plots(df: pd.DataFrame, df_dev0: pd.DataFrame, small=False):
+    """Plots"""
+    # todo: consider dev + non-dev in same plot
+    # Histogram: Value set n selections
+    # - Size distribution histogram. How many code sets in initial call of log session
+    for df, name_suffix in ((df, 'Dev data included'), (df_dev0, '')):
+        # Title
+        title = f'Code set comparison size{f" - {name_suffix}" if name_suffix else ""}'
+        # Select data
+        df_i = df[df['api_call'] == 'get-csets']
+        df_i['len_codeset_ids'] = df_i['codeset_ids'].apply(lambda x: len(x))
+        data = list(df_i['len_codeset_ids'])
+        # Render
+        if small:
+            plt.figure(figsize=(3, 1))  # fig = plt.figure(figsize=(1, 0.5))
+        plt.hist(data, bins=range(min(data), max(data) + 1), edgecolor='black', alpha=0.7)
+        plot_render(title, 'Number of code sets being compared', 'Frequency', small)
+
+    for df, name_suffix in ((df, 'Dev data included'), (df_dev0, '')):
+        # Title
+        title = f'API calls per week{f" - {name_suffix}" if name_suffix else ""}'
+        # Select data
+        # for df, name_suffix in ((df_apiruns, 'Dev data included'), (df_apiruns_dev0, '')):
+        data = list(df['week'])
+        # Render
+        if small:
+            plt.figure(figsize=(3, 1))  # fig = plt.figure(figsize=(1, 0.5))
+        plt.hist(data, bins=len(set(data)), edgecolor='black', alpha=0.7)
+        plot_render(title, 'Week', 'API calls', small)
+
+
 def run(use_cache=False, verbose=False):
     """Run analysis
 
@@ -181,8 +249,8 @@ def run(use_cache=False, verbose=False):
     setup()
     df_apiruns: pd.DataFrame = get_dataset_with_mods(api_runs_query, USAGE_UNJOINED_CSV_PATH, use_cache, verbose)
     df_w_groups_filtered: pd.DataFrame = get_dataset_with_mods(usage_query, USAGE_JOINED_CSV_PATH, use_cache, verbose)
-    df_apiruns_dev0: pd.DataFrame = preprocess_dev_ips(df_apiruns, verbose)
-    df_w_groups_filtered_dev0: pd.DataFrame = preprocess_dev_ips(df_w_groups_filtered, verbose)
+    df_apiruns_dev0: pd.DataFrame = filter_dev_data(df_apiruns, verbose)
+    df_w_groups_filtered_dev0: pd.DataFrame = filter_dev_data(df_w_groups_filtered, verbose)
 
     # Table ---
     # Stats: With dev IPs included
@@ -196,40 +264,10 @@ def run(use_cache=False, verbose=False):
     df_out.to_csv(OUT_CSV_PATH_ALL, index=False)
 
     # Plots ---
-    # todo: consider dev + non-dev in same plot
-    # Histogram: Value set n selections
-    # - Size distribution histogram. How many code sets in initial call of log session
-    for df, name_suffix in ((df_w_groups_filtered, 'Dev data included'), (df_w_groups_filtered_dev0, '')):
-        df_i = df[df['api_call'] == 'get-csets']
-        df_i['len_codeset_ids'] = df_i['codeset_ids'].apply(lambda x: len(x))
-        data = list(df_i['len_codeset_ids'])
-        plt.hist(data, bins=range(min(data), max(data) + 1), edgecolor='black', alpha=0.7)
-        plt.xlabel('Number of code sets being compared')
-        plt.ylabel('Frequency')
-        title_affix = f' - {name_suffix}' if name_suffix else ''
-        title = f'Code set comparison size{title_affix}'
-        filename = title.replace(' ', '_').lower()
-        plt.title(title)
-        if verbose:
-            plt.show()
-        plt.savefig(OUTDIR / f'{filename}.png')
-        plt.clf()
-
-    for df, name_suffix in ((df_w_groups_filtered, 'Dev data included'), (df_w_groups_filtered_dev0, '')):
-    # for df, name_suffix in ((df_apiruns, 'Dev data included'), (df_apiruns_dev0, '')):
-        data = list(df['week'])
-        plt.hist(data, bins=len(set(data)), edgecolor='black', alpha=0.7)
-        plt.xlabel('Week')
-        plt.ylabel('API calls')
-        title_affix = f' - {name_suffix}' if name_suffix else ''
-        title = f'API calls per week{title_affix}'
-        filename = title.replace(' ', '_').lower()
-        plt.title(title)
-        if verbose:
-            plt.show()
-        plt.savefig(OUTDIR / f'{filename}.png')
-        plt.clf()
-    print()
+    # todo: would be better to combine dev0/dev1 and small(T/F) here and then make 1 call to plot() for each combo
+    #  - would need refactor 'for df, name_suffix in' out of plot()
+    plots(df_w_groups_filtered, df_w_groups_filtered_dev0, small=False)
+    plots(df_w_groups_filtered, df_w_groups_filtered_dev0, small=True)
 
 
 if __name__ == '__main__':
