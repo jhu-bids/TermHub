@@ -725,13 +725,22 @@ def next_api_call_group_id() -> int:
     return id
 
 
-@router.get("/usage")
-def usage() -> Dict:
+def usage_query():
+    """Query for usage data"""
     with get_db_connection() as con:
         data = sql_query(con, """
-            select distinct r.*, array_sort(g.api_calls) api_calls, g.duration_seconds, g.group_start_time
-            from public.apiruns_grouped g
-            right join public.api_runs r ON g.api_call_group_id = r.api_call_group_id""")
+            SELECT DISTINCT r.*, array_sort(g.api_calls) api_calls, g.duration_seconds, g.group_start_time
+            FROM public.apiruns_grouped g
+            RIGHT JOIN public.api_runs r ON g.api_call_group_id = r.api_call_group_id""")
+    return data
+
+
+# @router.get("/usage")
+def usage() -> JSON_TYPE:
+    """Usage report
+
+    Get all data from our monitoring."""
+    data = usage_query()
     return data
 
 
