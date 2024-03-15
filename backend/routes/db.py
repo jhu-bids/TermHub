@@ -748,7 +748,9 @@ def usage_query(verbose=True) -> List[Dict]:
                 timestamp::date date
             FROM public.api_runs r
             LEFT JOIN public.apiruns_grouped g ON g.api_call_group_id = r.api_call_group_id
-            WHERE g.api_call_group_id != -1 AND g.api_call_group_id IS NOT NULL;""")  # 13,210
+            -- WHERE g.api_call_group_id != -1 AND g.api_call_group_id IS NOT NULL;
+            WHERE g.api_call_group_id = -1 or g.api_call_group_id IS NULL;
+            """)  # 13,210
 
         # todo: temp: cleanup at end of paper
         # --- good?
