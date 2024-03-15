@@ -738,8 +738,14 @@ def usage_query(verbose=True) -> List[Dict]:
         #     FROM public.apiruns_grouped g
         #     RIGHT JOIN public.api_runs r ON g.api_call_group_id = r.api_call_group_id""")  # 530,232
         # todo: siggie says this same as inner join? how/why? does that matter?
+        #   answer: a left join includes all rows of the left table regardless of whether they
+        #           match the right table. this leaves all columns from the right table null.
+        #           but if you require any column from the right table to be not null, then
+        #           it's the same as an inner join. -- whether it matters here, I don't know.
         data: List[RowMapping] = sql_query(con, """
-            SELECT DISTINCT r.*, array_sort(g.api_calls) api_calls, g.duration_seconds, g.group_start_time
+            SELECT DISTINCT r.*, array_sort(g.api_calls) api_calls, g.duration_seconds, g.group_start_time,
+                date_bin('1 week', timestamp::TIMESTAMP, TIMESTAMP '2023-10-30')::date week,
+                timestamp::date date
             FROM public.api_runs r
             LEFT JOIN public.apiruns_grouped g ON g.api_call_group_id = r.api_call_group_id
             WHERE g.api_call_group_id != -1 AND g.api_call_group_id IS NOT NULL;""")  # 13,210

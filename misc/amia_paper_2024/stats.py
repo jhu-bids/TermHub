@@ -8,7 +8,7 @@ Resources
 - Paper: https://livejohnshopkins-my.sharepoint.com/:w:/g/personal/sgold15_jh_edu/EXbuxwBsb0pPgFfgPYjR6qgBlJ1gmpqsMPYJ3vn6Y_HnYw?e=4%3ApEDbMe&fromShare=true&at=9&CID=d4663c40-1ebe-db59-8cf5-2bc091d45692"""
 import os
 import sys
-from datetime import datetime
+from datetime import datetime, timedelta
 import matplotlib.pyplot as plt
 from pathlib import Path
 from typing import Callable, Dict, List, Union
@@ -51,7 +51,11 @@ def api_runs_query(verbose=False):
     """Get all records from api_runs table"""
     t0 = datetime.now()
     with get_db_connection() as con:
-        data: List[RowMapping] = sql_query(con, """SELECT DISTINCT * FROM public.api_runs r""")
+        data: List[RowMapping] = sql_query(
+            con, """
+                SELECT DISTINCT *,
+                date_bin('1 week', timestamp::TIMESTAMP, TIMESTAMP '2023-10-30')::date week,
+                timestamp::date date FROM public.api_runs r""")
     data: List[Dict] = [dict(d) for d in data]
     if verbose:
         print(f'api_runs_query(): Fetched {len(data)} records in n seconds: {(datetime.now() - t0).seconds}')
@@ -113,7 +117,7 @@ def preprocess_null_call_groups(df: pd.DataFrame, verbose=True) -> pd.DataFrame:
 
     These are cases from before we added this feature, or where we called the backend directly.
 
-    As of 2023/03/14 this doesn't have an effect. No NULL groups."""
+    As of 2024/03/14 this doesn't have an effect. No NULL groups."""
     df2 = df[~df['api_call_group_id'].isna()]
     if verbose:
         print(f'Filtered out n records based on null api_call_group_id: ', len(df) - len(df2))
@@ -132,11 +136,13 @@ def summary_stats(
      of -1 filtered out."""
     # Get summary statistics
     summary = {}
-    summary['Total log records'] = len(df_w_groups_filtered)
-    summary['Log sessions (api_call_group_id)'] = len(df_w_groups_filtered['api_call_group_id'].unique())
+    summary['Total log records'] = len(df_apiruns)
+    summary['Log records with session id'] = len(df_w_groups_filtered)
+    summary['Log sessions'] = len(df_w_groups_filtered['api_call_group_id'].unique())
     summary['IP addresses'] = len(df_apiruns['client_ip'].unique())
-    summary['Errors'] = df_w_groups_filtered[df_w_groups_filtered['result'].str.lower().str.contains('error')][
+    summary['Sessions with errors'] = df_w_groups_filtered[df_w_groups_filtered['result'].str.lower().str.contains('error')][
         'api_call_group_id'].nunique()
+    summary['All API call errors'] = len(df_apiruns[df_apiruns['result'].str.lower().str.contains('error')])
 
     # Value set combos
     df_get_csets = df_w_groups_filtered[df_w_groups_filtered['api_call'] == 'get-csets']
@@ -182,7 +188,7 @@ def run(use_cache=False, verbose=False):
     # Stats: With dev IPs included
     df_out_dev1: pd.DataFrame = summary_stats(df_apiruns, df_w_groups_filtered)
 
-    # Stats: With def IPs filtered out
+    # Stats: With dev IPs filtered out
     df_out_dev0: pd.DataFrame = summary_stats(df_apiruns_dev0, df_w_groups_filtered_dev0)
 
     # Join different output datasets
@@ -209,6 +215,20 @@ def run(use_cache=False, verbose=False):
         plt.savefig(OUTDIR / f'{filename}.png')
         plt.clf()
 
+    for df, name_suffix in ((df_w_groups_filtered, 'Dev data included'), (df_w_groups_filtered_dev0, '')):
+    # for df, name_suffix in ((df_apiruns, 'Dev data included'), (df_apiruns_dev0, '')):
+        data = list(df['week'])
+        plt.hist(data, bins=len(set(data)), edgecolor='black', alpha=0.7)
+        plt.xlabel('Week')
+        plt.ylabel('API calls')
+        title_affix = f' - {name_suffix}' if name_suffix else ''
+        title = f'API calls per week{title_affix}'
+        filename = title.replace(' ', '_').lower()
+        plt.title(title)
+        if verbose:
+            plt.show()
+        plt.savefig(OUTDIR / f'{filename}.png')
+        plt.clf()
     print()
 
 
