@@ -733,15 +733,15 @@ def usage_query(verbose=True) -> List[Dict]:
     Filters out problematic api_call_group_id where the call group is amibiguous (-1 or NULL)"""
     t0 = datetime.now()
     with get_db_connection() as con:
-        data: List[RowMapping] = sql_query(con, """
-            SELECT DISTINCT r.*, array_sort(g.api_calls) api_calls, g.duration_seconds, g.group_start_time,
-                date_bin('1 week', timestamp::TIMESTAMP, TIMESTAMP '2023-10-30')::date week,
-                timestamp::date date
-            FROM public.api_runs r
-            LEFT JOIN public.apiruns_grouped g ON g.api_call_group_id = r.api_call_group_id
-            WHERE g.api_call_group_id != -1 AND g.api_call_group_id IS NOT NULL;
-            -- WHERE g.api_call_group_id = -1 or g.api_call_group_id IS NULL;
-            """)
+        data: List[RowMapping] = sql_query(con, """SELECT * FROM public.apijoin""")
+            # SELECT DISTINCT r.*, array_sort(g.api_calls) api_calls, g.duration_seconds, g.group_start_time,
+            #     date_bin('1 week', timestamp::TIMESTAMP, TIMESTAMP '2023-10-30')::date week,
+            #     timestamp::date date
+            # FROM public.api_runs r
+            # LEFT JOIN public.apiruns_grouped g ON g.api_call_group_id = r.api_call_group_id
+            # WHERE g.api_call_group_id != -1 AND g.api_call_group_id IS NOT NULL;
+            # -- WHERE g.api_call_group_id = -1 or g.api_call_group_id IS NULL;
+            # """)
     data: List[Dict] = [dict(x) for x in data]
     if verbose:
         print(f'usage_query(): Fetched {len(data)} records in n seconds: {(datetime.now() - t0).seconds}')

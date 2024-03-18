@@ -24,7 +24,7 @@ from c group by 1 order by 1 desc;
 └─────────────────┴────────────┘
 
 - IDK what this one is
-SELECT host,client,result, replace(result, ' rows', '') concept_ids, week,api_call_group_id
+SELECT host,client,result, replace(result, ' rows', '') concept_ids, week,group_id
 FROM public.apijoin
 WHERE api_call = 'codeset-ids-by-concept-id'
 """
@@ -67,7 +67,8 @@ def setup():
     pd.options.mode.chained_assignment = None  # default='warn'
 
     if not INDIR.exists():
-        OUTDIR.mkdir()
+        # OUTDIR.mkdir()  # typo?
+        INDIR.mkdir()
     if not OUTDIR.exists():
         OUTDIR.mkdir()
 
@@ -83,10 +84,10 @@ def api_runs_query(verbose=False):
     t0 = datetime.now()
     with get_db_connection() as con:
         data: List[RowMapping] = sql_query(
-            con, """
-                SELECT DISTINCT *,
-                date_bin('1 week', timestamp::TIMESTAMP, TIMESTAMP '2023-10-30')::date week,
-                timestamp::date date FROM public.api_runs r""")
+            con, """SELECT * FROM public.apiruns_plus""")
+                # SELECT DISTINCT *,
+                # date_bin('1 week', timestamp::TIMESTAMP, TIMESTAMP '2023-10-30')::date week,
+                # timestamp::date date FROM public.api_runs r""")
     data: List[Dict] = [dict(d) for d in data]
     if verbose:
         print(f'api_runs_query(): Fetched {len(data)} records in n seconds: {(datetime.now() - t0).seconds}')
@@ -230,13 +231,13 @@ def get_dataset_with_mods(func: Callable, path: Union[str, Path], use_cache=Fals
         df['duration_seconds_float'] = df['duration_seconds'].apply(lambda x: x.total_seconds())
         # - session duration / concept count
         df['cnt'] = df.apply(get_concept_counts, axis=1)
-        df['cnt_tot'] = df.groupby('api_call_group_id')['cnt'].transform('sum')
+        df['cnt_tot'] = df.groupby('group_id')['cnt'].transform('sum')
         df['duration_sec_per_concept'] = df['duration_seconds_float'] / df['cnt_tot']
         # duration_sec_per_1k_concepts: didn't prove useful. visually the same anyway
         # df['duration_sec_per_1k_concepts'] = df['duration_seconds_float'] / (df['cnt_tot'] / 1000)
 
     # Filtering
-    df = preprocess_null_call_groups(df, verbose)
+    df = preprocess_null_call_groups(df, verbose) # shouldn't do anything
     # Formatting
     df = df.fillna('')  # fixes problem w/ .str.contains() ops
     return df
@@ -267,11 +268,11 @@ def filter_dev_data(df: pd.DataFrame, verbose=True) -> pd.DataFrame:
     df2['codeset_ids_str'] = df2['codeset_ids'].astype(str)
     for case in test_cases:
         df_i = df2[(df2['api_call'] == 'get-csets') & (df2['codeset_ids_str'] == case)]
-        sessions.update(set(df_i['api_call_group_id']))
+        sessions.update(set(df_i['group_id']))
     # -1 is an erroneous api_call_group_id linked to otherwise contextually valid records
     if float(-1) in sessions:
         sessions.remove(float(-1))
-    df2 = df2[~df2['api_call_group_id'].isin(sessions)]
+    df2 = df2[~df2['group_id'].isin(sessions)]
     if verbose:
         print(f'Filtered out n records created by test cases: ', len_before - len(df2))
     return df2
@@ -282,9 +283,9 @@ def preprocess_null_call_groups(df: pd.DataFrame, verbose=True) -> pd.DataFrame:
     These are cases from before we added this feature, or where we called the backend directly.
 
     As of 2024/03/14 this doesn't have an effect. No NULL groups."""
-    df2 = df[~df['api_call_group_id'].isna()]
+    df2 = df[~df['group_id'].isna()]
     if verbose:
-        print(f'Filtered out n records based on null api_call_group_id: ', len(df) - len(df2))
+        print(f'Filtered out n records based on null group_id: ', len(df) - len(df2))
     return df2
 
 
@@ -302,10 +303,10 @@ def summary_stats(
     summary = {}
     summary['Total log records'] = len(df_apiruns)
     summary['Log records with session id'] = len(df_w_groups_filtered)
-    summary['Log sessions'] = len(df_w_groups_filtered['api_call_group_id'].unique())
+    summary['Log sessions'] = len(df_w_groups_filtered['group_id'].unique())
     summary['IP addresses'] = len(df_apiruns['client_ip'].unique())
     summary['Sessions with errors'] = df_w_groups_filtered[df_w_groups_filtered['result'].str.lower().str.contains('error')][
-        'api_call_group_id'].nunique()
+        'group_id'].nunique()
     summary['All API call errors'] = len(df_apiruns[df_apiruns['result'].str.lower().str.contains('error')])
 
     # Value set combos
@@ -316,14 +317,14 @@ def summary_stats(
     #  - analyze uniqueness of get-csets calls within an API call group session
     # diff_get_csets_vs_groups=35; i feel like this should be equal to some calc involving next 4 vars, but not sure
     # noinspection PyUnusedLocal
-    diff_get_csets_vs_groups = len(df_get_csets) - len(df_get_csets['api_call_group_id'].unique())  # 35
+    diff_get_csets_vs_groups = len(df_get_csets) - len(df_get_csets['group_id'].unique())  # 35
     diff_codeset_ids_in_group__n_instances = 0  # 1
     diff_codeset_ids_in_group__n_calls = 0  # 2
     mult_get_cset_in_session__n_instances = 0  # 30
     mult_get_cset_in_session__n_calls = 0  # 64
     # todo: maybe convert to str in pre-processing instead, if need 'str' more than temporarily
     df_get_csets['codeset_ids'] = df_get_csets['codeset_ids'].astype(str)
-    for group_id, group_data in df_get_csets.groupby('api_call_group_id'):
+    for group_id, group_data in df_get_csets.groupby('group_id'):
         if len(group_data) > 1 and len(group_data['codeset_ids'].unique()) > 1:
             diff_codeset_ids_in_group__n_instances += 1
             diff_codeset_ids_in_group__n_calls += len(group_data)
@@ -422,7 +423,7 @@ def plots(df: pd.DataFrame, df_dev0: pd.DataFrame, small=False, dev_data_plots=F
     # Title
     title = f'Duration, session API calls'
     # Select data
-    df_i2 = df_i.drop_duplicates(subset='api_call_group_id', keep='first')
+    df_i2 = df_i.drop_duplicates(subset='group_id', keep='first')
     data: List[float] = df_i2['duration_seconds_float'].tolist()
     # noinspection PyTypeChecker
     data = [x for x in data if x]  # filter null ''s
@@ -440,7 +441,7 @@ def plots(df: pd.DataFrame, df_dev0: pd.DataFrame, small=False, dev_data_plots=F
     # Title
     title = f'Session API call duration / concept count'
     # Select data
-    df_i2 = df_i.drop_duplicates(subset='api_call_group_id', keep='first')  # df_dev0: len 1550 --> 542
+    df_i2 = df_i.drop_duplicates(subset='group_id', keep='first')  # df_dev0: len 1550 --> 542
     df_i2 = df_i2[~df_i2['duration_sec_per_concept'].isin([np.inf, -np.inf, ''])]  # idk how '' snuck in
     data: List[float] = df_i2['duration_sec_per_concept'].tolist()
     # noinspection PyTypeChecker
@@ -474,7 +475,7 @@ def plots(df: pd.DataFrame, df_dev0: pd.DataFrame, small=False, dev_data_plots=F
 
     # Histogram: User queries - sessions
     df_i = df_dev0
-    df_i2 = df_i.drop_duplicates(subset='api_call_group_id', keep='first')  # df_dev0: len 1550 --> 542
+    df_i2 = df_i.drop_duplicates(subset='group_id', keep='first')  # df_dev0: len 1550 --> 542
     # Select data
     # noinspection DuplicatedCode
     ip_counts = {}
@@ -512,28 +513,29 @@ def run(use_cache=False, verbose=False, dev_data_plots=False):
     # Initial setup ---
     t0 = datetime.now()
     setup()
-    df_apiruns: pd.DataFrame = get_dataset_with_mods(api_runs_query, USAGE_UNJOINED_CSV_PATH, use_cache, verbose)
-    df_w_groups_filtered: pd.DataFrame = get_dataset_with_mods(usage_query, USAGE_JOINED_CSV_PATH, use_cache, verbose)
-    df_apiruns_dev0: pd.DataFrame = filter_dev_data(df_apiruns, verbose)
-    df_w_groups_filtered_dev0: pd.DataFrame = filter_dev_data(df_w_groups_filtered, verbose)
+    df_apiruns_dev1: pd.DataFrame = get_dataset_with_mods(api_runs_query, USAGE_UNJOINED_CSV_PATH, use_cache, verbose)
+    df_dev0: pd.DataFrame = get_dataset_with_mods(usage_query, USAGE_JOINED_CSV_PATH, use_cache, verbose)
+    # df_apiruns_dev0: pd.DataFrame = filter_dev_data(df_apiruns_dev1, verbose)
+    # df_w_groups_filtered_dev0: pd.DataFrame = filter_dev_data(df_w_groups_filtered, verbose)
 
+    df_out: pd.DataFrame = summary_stats(df_apiruns_dev1, df_dev0)
     # Table ---
     # Stats: With dev IPs included
-    df_out_dev1: pd.DataFrame = summary_stats(df_apiruns, df_w_groups_filtered)
+    # df_out_dev1: pd.DataFrame = summary_stats(df_apiruns_dev1, df_w_groups_filtered)
 
     # Stats: With dev IPs filtered out
-    df_out_dev0: pd.DataFrame = summary_stats(df_apiruns_dev0, df_w_groups_filtered_dev0)
+    # df_out_dev0: pd.DataFrame = summary_stats(df_apiruns_dev0, df_w_groups_filtered_dev0)
 
     # Join different output datasets
-    df_out = df_out_dev1.merge(df_out_dev0.rename(columns={'Value': 'Value_no_dev'}), on='Measure', how='outer')
+    # df_out = df_out_dev1.merge(df_out_dev0.rename(columns={'Value': 'Value_no_dev'}), on='Measure', how='outer')
     df_out.to_csv(OUT_CSV_PATH_ALL, index=False)
 
     # Plots ---
     # - From primary datasets
     # todo: would be better to combine dev0/dev1 and small(T/F) here and then make 1 call to plot() for each combo
     #  - would need refactor 'for df, name_suffix in' out of plot()
-    plots(df_w_groups_filtered, df_w_groups_filtered_dev0, False, dev_data_plots)  # Big
-    plots(df_w_groups_filtered, df_w_groups_filtered_dev0, True, dev_data_plots)  # Small
+    plots(df_apiruns_dev1, df_dev0, False, dev_data_plots)  # Big
+    plots(df_apiruns_dev1, df_dev0, True, dev_data_plots)  # Small
     if verbose:
         print(f'Finished stats report in n seconds: {(datetime.now() - t0).seconds}')
 
@@ -563,7 +565,7 @@ from c group by 1 order by 1 desc;
 └─────────────────┴────────────┘
 
 
-SELECT host,client,result, replace(result, ' rows', '') concept_ids, week,api_call_group_id
+SELECT host,client,result, replace(result, ' rows', '') concept_ids, week,group_id
 FROM public.apijoin
 WHERE api_call = 'codeset-ids-by-concept-id'
 
