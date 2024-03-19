@@ -2,7 +2,6 @@
 DROP TABLE IF EXISTS public.api_runs CASCADE;
 
 CREATE TABLE IF NOT EXISTS public.api_runs (
-    api_call_group_id integer,
     host text,
     client text,
     schema text not null,
@@ -11,7 +10,8 @@ CREATE TABLE IF NOT EXISTS public.api_runs (
     params text,
     timestamp text not null,
     result text,
-    process_seconds float
+    process_seconds float,
+    api_call_group_id integer
     --date text,
     --note text
 );
@@ -51,6 +51,9 @@ groups_broke_by_long_gap AS (
         SUM(new_group_flag) OVER (PARTITION BY host, ip3, api_call_group_id
             ORDER BY timestamp::timestamp ROWS BETWEEN UNBOUNDED PRECEDING AND CURRENT ROW) AS group_id
   FROM RankedGroups
+  WHERE (week IN ('2024-03-04', '2024-03-11') AND ip3='130.44.174') -- tons of these, don't know why
+     OR codeset_ids = array[1000002363, 1000002657, 1000007602, 1000013397, 1000010688, 1000015307, 1000031299]
+     OR codeset_ids = array[1000002363] -- these are called mostly by gh action tests, not humans
 )
 SELECT *,
       ROW_NUMBER() OVER(PARTITION BY group_id ORDER BY timestamp) AS rownum,

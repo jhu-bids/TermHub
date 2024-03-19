@@ -302,16 +302,19 @@ def summary_stats(
     # Get summary statistics
     summary = {}
     summary['Total log records'] = len(df_apiruns)
-    summary['Log records with session id'] = len(df_w_groups_filtered)
-    summary['Log sessions'] = len(df_w_groups_filtered['group_id'].unique())
     summary['IP addresses'] = len(df_apiruns['client_ip'].unique())
+    summary['Log records -- developer IPs removed'] = len(df_w_groups_filtered)
+    summary['Log sessions'] = len(df_w_groups_filtered['group_id'].unique())
     summary['Sessions with errors'] = df_w_groups_filtered[df_w_groups_filtered['result'].str.lower().str.contains('error')][
         'group_id'].nunique()
-    summary['All API call errors'] = len(df_apiruns[df_apiruns['result'].str.lower().str.contains('error')])
+    summary['Developer API call errors'] = len(df_apiruns[df_apiruns['result'].str.lower().str.contains('error')])
+    summary['User API call errors'] = (summary['Developer API call errors'] -
+                                       len(df_w_groups_filtered[df_w_groups_filtered['result']
+                                           .str.lower().str.contains('error')]))
 
     # Value set combos
     df_get_csets = df_w_groups_filtered[df_w_groups_filtered['api_call'] == 'get-csets']
-    summary['Value set combos'] = len(set([tuple(x) for x in df_get_csets['codeset_ids']]))
+    # summary['Value set combos'] = len(set([tuple(x) for x in df_get_csets['codeset_ids']]))
 
     # todo: temp: analysis
     #  - analyze uniqueness of get-csets calls within an API call group session
@@ -454,24 +457,24 @@ def plots(df: pd.DataFrame, df_dev0: pd.DataFrame, small=False, dev_data_plots=F
     # Histogram: User queries - calls
     # todo #1: DRY up w/ other user queries section(s)
     #  - remove '# noinspection DuplicatedCode' after
-    df_i = df_dev0
+    # df_i = df_dev0
     # Select data
     # noinspection DuplicatedCode
-    ip_counts = {}
-    ips = df_i['client_ip'].to_list()
-    for ip in ips:
-        ip_counts[ip] = ip_counts.get(ip, 0) + 1
-    data = list(ip_counts.values())
-    # Variation: binning
-    bins = int(max(data) / 3)
-    title = f'N queries made by users'
-    plot_render(
-        data, title, 'n queries', 'n users', bins, small, log_scale=True, xtick_step=10)
-    # Variation: no binning
-    bins = max(data)
-    title = f'N queries made by users - No bins'
-    plot_render(
-        data, title, 'n queries', 'n users', bins, small, log_scale=True, xtick_step=10)
+    # ip_counts = {}
+    # ips = df_i['client_ip'].to_list()
+    # for ip in ips:
+    #     ip_counts[ip] = ip_counts.get(ip, 0) + 1
+    # data = list(ip_counts.values())
+    # # Variation: binning
+    # bins = int(max(data) / 3)
+    # title = f'N queries made by users'
+    # plot_render(
+    #     data, title, 'N queries', 'N users', bins, small, log_scale=False, xtick_step=10)
+    # # Variation: no binning
+    # bins = max(data)
+    # title = f'N queries made by users - No bins'
+    # plot_render(
+    #     data, title, 'API calls', 'Number of users', bins, small, log_scale=True, xtick_step=10)
 
     # Histogram: User queries - sessions
     df_i = df_dev0
@@ -485,9 +488,9 @@ def plots(df: pd.DataFrame, df_dev0: pd.DataFrame, small=False, dev_data_plots=F
     data = list(ip_counts.values())
     # Plot
     bins = max(data)
-    title = f'N user sessions'
+    title = f'VS-Hub use distribution'
     plot_render(
-        data, title, 'n sessions', 'n users', bins, small, log_scale=True, xtick_step=2)
+        data, title, 'VS-Hub page visits', 'Number of users', bins, small, log_scale=False, xtick_step=5)
 
     # Histogram: User queries - days
     df_i = df_dev0
