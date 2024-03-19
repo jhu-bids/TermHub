@@ -25,7 +25,7 @@ import { ConceptSetsPage } from "./components/Csets";
 import { CsetComparisonPage } from "./components/CsetComparisonPage";
 import { AboutPage } from "./components/AboutPage";
 // import { ConceptGraph } from "./components/GraphD3dag";
-import { ConceptGraph, DisplayGraph } from "./components/GraphPlayground";
+import { ConceptGraph, } from "./components/GraphPlayground";
 import {ViewCurrentState, } from "./state/State";
 import {
   CodesetIdsProvider,
