@@ -67,7 +67,6 @@ def setup():
     pd.options.mode.chained_assignment = None  # default='warn'
 
     if not INDIR.exists():
-        # OUTDIR.mkdir()  # typo?
         INDIR.mkdir()
     if not OUTDIR.exists():
         OUTDIR.mkdir()
@@ -246,7 +245,7 @@ def get_dataset_with_mods(func: Callable, path: Union[str, Path], use_cache=Fals
 def filter_dev_data(df: pd.DataFrame, verbose=True) -> pd.DataFrame:
     """Preprocess data: remove developers"""
     # Devs accessing dev/prod
-    developer_ips = {'Siggie': '216.164.48.98', 'Joe': '174.99.54.40'}
+    developer_ips = {'Singgie': '216.164.48.98', 'Joe': '174.99.54.40'}
     if verbose:
         print('Filtered out n records based on IP addresses of each developer accesing dev/prod:')
         for dev, ip in developer_ips.items():
@@ -255,7 +254,7 @@ def filter_dev_data(df: pd.DataFrame, verbose=True) -> pd.DataFrame:
     df2 = df[~df['client_ip'].isin(list(developer_ips.values()))]
     # Devs running locally
     count_before = len(df2)
-    df2 = df2[df2['host'].isin(['dev', 'prod'])]
+    df2 = df2[df2['host'].isi(['dev', 'prod'])]
     if verbose:
         print('Filtered out n records based devs running locally: ',  count_before - len(df2))
     # Test cases being run by GitHub actions: IPs unknown
@@ -516,8 +515,11 @@ def run(use_cache=False, verbose=False, dev_data_plots=False):
     # Initial setup ---
     t0 = datetime.now()
     setup()
+    # api_runs_query uses apiruns_plus which has dev data
     df_apiruns_dev1: pd.DataFrame = get_dataset_with_mods(api_runs_query, USAGE_UNJOINED_CSV_PATH, use_cache, verbose)
+    # usage_query uses apijoin which has no dev data
     df_dev0: pd.DataFrame = get_dataset_with_mods(usage_query, USAGE_JOINED_CSV_PATH, use_cache, verbose)
+    # TODO: consider filtering out the dev data from the 3am gh actions:
     # df_apiruns_dev0: pd.DataFrame = filter_dev_data(df_apiruns_dev1, verbose)
     # df_w_groups_filtered_dev0: pd.DataFrame = filter_dev_data(df_w_groups_filtered, verbose)
 
@@ -549,51 +551,3 @@ def run(use_cache=False, verbose=False, dev_data_plots=False):
 
 if __name__ == '__main__':
     run()
-
-"""
-other queries:
-
-with c as (select count(*) cnt from cset_members_items group by codeset_id)
-select 10^round(log10(cnt)) || ' - ' || 10 * 10^round(log10(cnt)) - 1 value_set_size, count(*) value_sets
-from c group by 1 order by 1 desc;
-┌─────────────────┬────────────┐
-│ value_set_size  │ value_sets │
-├─────────────────┼────────────┤
-│ 1 - 9           │        774 │
-│ 10 - 99         │       1862 │
-│ 100 - 999       │       2596 │
-│ 1000 - 9999     │       1357 │
-│ 10000 - 99999   │        537 │
-│ 100000 - 999999 │         64 │
-└─────────────────┴────────────┘
-
-
-SELECT host,client,result, replace(result, ' rows', '') concept_ids, week,group_id
-FROM public.apijoin
-WHERE api_call = 'codeset-ids-by-concept-id'
-
-with c1 as (
-  SELECT replace(result, ' rows', '') cnt FROM public.apijoin
-  WHERE api_call IN ('codeset-ids-by-concept-id', 'concept', 'get-cset-members-items')
-), c2 as (
-  SELECT CASE WHEN cnt ~ '^[0-9]+$' THEN cnt::integer ELSE NULL END AS cnt FROM c1
-)
-select 10^round(log10(cnt)) || ' - ' || 10 * 10^round(log10(cnt)) - 1 concepts_in_call, count(*) calls
-from c2 group by 1 order by 1 desc;
-
-result, modified
-┌─────────────────────┬───────┐
-│  concepts_in_call   │ calls │
-├─────────────────────┼───────┤
-│ 1 - 9               │    20 │
-│ 10 - 99             │ 1,642 │
-│ 100 - 999           │   855 │
-│ 1000 - 9999         │   505 │
-│ 10000 - 99999       │   153 │
-│ 100000 - 999999     │   121 │
-│ 1000000 - 9999999   │     3 │
-│ 10000000 - 99999999 │     2 │
-└─────────────────────┴───────┘
-
-
-"""
