@@ -81,7 +81,14 @@ export class GraphContainer {
       standard_concept: '',
       total_cnt: 0,
       distinct_person_cnt: '0',
-      status: ""
+      status: "",
+      hasChildren: true,
+      levelsBelow: 1,
+      children: this.unlinkedConcepts,
+      childCount: this.unlinkedConcepts.length,
+      descendantCount: this.unlinkedConcepts.length,
+      drc: sum(this.unlinkedConcepts.map(d => this.nodes[d].total_cnt || 0)), // Compute descendant counts
+      // descendants: uniq(descendants), // Remove duplicates
     };
     this.graph.addNode('unlinked');
     this.nodes['unlinked'] = unlinkedConceptsParent;
@@ -129,77 +136,6 @@ export class GraphContainer {
       if it is in hideThoughExpanded, don't display it BUT -- do display its
         descendants, either from being expanded or being in showThoughCollapsed
    */
-
-  addNodeToVisible(nodeId, displayedRows, showThoughCollapsed, rowPath, depth = 0) {
-    const row = {...this.nodes[nodeId], depth};
-    row.rowPosition = Object.keys(displayedRows).length;
-    row.rowPath = [...rowPath, nodeId];
-
-    if (this.nodePaths.hasOwnProperty(nodeId)) {
-      row.nodeOccurrence = this.nodePaths[nodeId].length;
-      this.nodePaths[nodeId].push(row.rowPath);
-      this.gd.specialConcepts.allButFirstOccurrence.push(row.rowPath);
-    } else {
-      this.nodePaths[nodeId] = [row.rowPath];
-      row.nodeOccurrence = 0;
-    }
-
-    displayedRows.push(row);
-    const childIds = this.graph.outNeighbors(nodeId); // Get outgoing neighbors (children)
-
-    if (row.expanded) {
-      sortBy(childIds, this.sortFunc).forEach(childId => {
-        this.addNodeToVisible(childId, displayedRows, showThoughCollapsed,
-                              row.rowPath, depth + 1); // Recurse
-      });
-    } else {
-      showThoughCollapsed.forEach(showThoughCollapsedId => {
-        if (showThoughCollapsedId != nodeId) {
-          try {
-            let pathFromVisibleNode = bidirectional(this.graph, nodeId, showThoughCollapsedId);
-            // TODO: only show it if it's not a descendant of one of this node's descendants
-            //    that is, make sure to put the path as low in the tree as possible
-            if (pathFromVisibleNode) {
-              pathFromVisibleNode.shift();
-              const id = pathFromVisibleNode.pop();
-              console.assert(id == showThoughCollapsedId);
-              const nd = {...this.nodes[id], depth: depth + 1, pathFromVisibleNode,
-                            rowPath: [...row.rowPath, ...pathFromVisibleNode, id] };
-
-              if (this.nodePaths.hasOwnProperty(id)) {
-                throw new Error(`${nodeId} already appears above`);
-              } else {
-                this.nodePaths[id] = [nd.rowPath];
-                row.nodeOccurrence = 0;
-              }
-              displayedRows.push(nd);
-
-              showThoughCollapsed.delete(id);
-              if (nd.expanded) {
-                const childIds = this.graph.outNeighbors(id); // Get outgoing neighbors (children)
-                sortBy(childIds, this.sortFunc).forEach(childId => {
-                  this.addNodeToVisible(childId, displayedRows, showThoughCollapsed,
-                                        nd.rowPath, depth + 2); // Recurse
-                });
-              }
-              /*
-              path.forEach((id, i) => {
-                displayedRows.push({...this.nodes[id], depth: depth + 1 + i});
-                showThoughCollapsed.delete(id);
-              });
-              */
-            // } else {
-            //   throw new Error("didn't expect this");
-            }
-          } catch (e) {
-            console.log(e);
-          }
-        } else {
-          showThoughCollapsed.delete(showThoughCollapsedId);
-        }
-      })
-    }
-  }
 
   wholeHierarchy() {
     // deep copy the node so we don't mutate the original
@@ -277,6 +213,77 @@ export class GraphContainer {
 
     this.hideThoughExpanded = hideThoughExpanded;
     return this.visibleRows = displayedRows;
+  }
+
+  addNodeToVisible(nodeId, displayedRows, showThoughCollapsed, rowPath, depth = 0) {
+    const row = {...this.nodes[nodeId], depth};
+    row.rowPosition = Object.keys(displayedRows).length;
+    row.rowPath = [...rowPath, nodeId];
+
+    if (this.nodePaths.hasOwnProperty(nodeId)) {
+      row.nodeOccurrence = this.nodePaths[nodeId].length;
+      this.nodePaths[nodeId].push(row.rowPath);
+      this.gd.specialConcepts.allButFirstOccurrence.push(row.rowPath);
+    } else {
+      this.nodePaths[nodeId] = [row.rowPath];
+      row.nodeOccurrence = 0;
+    }
+
+    displayedRows.push(row);
+    const childIds = this.graph.outNeighbors(nodeId); // Get outgoing neighbors (children)
+
+    if (row.expanded) {
+      sortBy(childIds, this.sortFunc).forEach(childId => {
+        this.addNodeToVisible(childId, displayedRows, showThoughCollapsed,
+                              row.rowPath, depth + 1); // Recurse
+      });
+    } else {
+      showThoughCollapsed.forEach(showThoughCollapsedId => {
+        if (showThoughCollapsedId != nodeId) {
+          try {
+            let pathFromVisibleNode = bidirectional(this.graph, nodeId, showThoughCollapsedId);
+            // TODO: only show it if it's not a descendant of one of this node's descendants
+            //    that is, make sure to put the path as low in the tree as possible
+            if (pathFromVisibleNode) {
+              pathFromVisibleNode.shift();
+              const id = pathFromVisibleNode.pop();
+              console.assert(id == showThoughCollapsedId);
+              const nd = {...this.nodes[id], depth: depth + 1, pathFromVisibleNode,
+                rowPath: [...row.rowPath, ...pathFromVisibleNode, id] };
+
+              if (this.nodePaths.hasOwnProperty(id)) {
+                throw new Error(`${nodeId} already appears above`);
+              } else {
+                this.nodePaths[id] = [nd.rowPath];
+                row.nodeOccurrence = 0;
+              }
+              displayedRows.push(nd);
+
+              showThoughCollapsed.delete(id);
+              if (nd.expanded) {
+                const childIds = this.graph.outNeighbors(id); // Get outgoing neighbors (children)
+                sortBy(childIds, this.sortFunc).forEach(childId => {
+                  this.addNodeToVisible(childId, displayedRows, showThoughCollapsed,
+                                        nd.rowPath, depth + 2); // Recurse
+                });
+              }
+              /*
+              path.forEach((id, i) => {
+                displayedRows.push({...this.nodes[id], depth: depth + 1 + i});
+                showThoughCollapsed.delete(id);
+              });
+              */
+              // } else {
+              //   throw new Error("didn't expect this");
+            }
+          } catch (e) {
+            console.log(e);
+          }
+        } else {
+          showThoughCollapsed.delete(showThoughCollapsedId);
+        }
+      })
+    }
   }
 
   sortFunc = (d => {

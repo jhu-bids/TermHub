@@ -669,7 +669,7 @@ function getColDefs(props) {
                 {
                     when: (row) => true,
                     style: (row) => ({
-                        padding: '0px 3px 0px ' + (nested ? (16 + row.depth * 16) : 16) + "px",
+                        padding: '0px 3px 0px ' + (nested ? (9 + row.depth * 19 + (row.hasChildren ? 0 : 8)) : 19) + "px",
                     }),
                 },
             ],
@@ -715,7 +715,7 @@ function getColDefs(props) {
             selector: (row) => row.descendantCount,
             format: (row) => {
                 let icon = getCollapseIconAndName(row, sizes, gcDispatch);
-                let text = row.not_a_concept ? '' : fmt(row.childCount) + ' / ' + fmt(row.descendantCount);
+                let text = fmt(row.childCount) + ' / ' + fmt(row.descendantCount);
                 return text;
             },
             sortable: false,
