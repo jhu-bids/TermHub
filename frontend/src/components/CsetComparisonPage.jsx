@@ -91,11 +91,17 @@ export async function fetchGraphData(props) {
         csmi = {...csmi, ...newCset.definitions};
     }
 
-    const definitionConcepts = uniq(flatten(Object.values(csmi)
-                                                .map(d => Object.values(d))).filter(d => d.item).map(d => d.concept_id));
+    const definitionConcepts = uniq(flatten(
+        Object.values(csmi).map(d => Object.values(d))
+    ).filter(d => d.item).map(d => d.concept_id));
+
+    const expansionConcepts = uniq(flatten(
+        Object.values(csmi).map(d => Object.values(d))
+    ).filter(d => d.csm).map(d => d.concept_id + ''));
 
     let specialConcepts = {
         definitionConcepts: definitionConcepts.map(String),
+        expansionConcepts: expansionConcepts.map(String),
         nonStandard: uniq(Object.values(conceptLookup).filter(c => !c.standard_concept).map(c => c.concept_id)),
         zeroRecord: uniq(Object.values(conceptLookup).filter(c => !c.total_cnt).map(c => c.concept_id)),
     };
@@ -109,10 +115,11 @@ export async function fetchGraphData(props) {
     for (let cid in conceptLookup) {
         let c = {...conceptLookup[cid]}; // don't want to mutate the cached concepts
         if (specialConcepts.definitionConcepts.includes(cid+'')) c.isItem = true;
+        if (specialConcepts.expansionConcepts.includes(cid+'')) c.isMember = true;
         if ((specialConcepts.added || []).includes(cid+'')) c.added = true;
         if ((specialConcepts.removed || []).includes(cid+'')) c.removed = true;
-        c.status = [c.isItem && 'Def', c.added && 'Added', c.removed && 'Removed']
-            .filter(d => d).join(', ');
+        c.status = [c.isItem && 'In definition', c.isMember && 'In Expansion',
+                    c.added && 'Added', c.removed && 'Removed'].filter(d => d).join(', ');
         conceptLookup[cid] = c;
     }
 
@@ -177,6 +184,18 @@ export function CsetComparisonPage() {
     }, [newCset]);
 
     useEffect(() => {
+        if (isEmpty(gc) || !specialConcepts) {
+            return;
+        }
+        // since setStatsOptions is called in GraphContainer constructor, it maybe
+        //  doesn't need to be called the first time this useEffect runs;
+        //  TODO: maybe we don't need this useEffect at all, and can just call setStatsOptions
+        //  right before getVisibleRows in the clone branch of the constructor
+        gc.setStatsOptions({concepts, concept_ids, csmi, });
+        setData(current => ({...current, /*visibleRows, colDefs*/}));
+    }, [gc, specialConcepts]);
+
+    useEffect(() => {
         if (infoPanelRef.current) {
 
             let margin_text = window
@@ -186,26 +205,12 @@ export function CsetComparisonPage() {
             const margin = parseInt(margin_text);
 
             setPanelPosition({
-                x: 0,
-                y: infoPanelRef.current.clientHeight + 2 * margin
-            });
+                                 x: 0,
+                                 y: infoPanelRef.current.clientHeight + 2 * margin
+                             });
         }
-    }, [
-        infoPanelRef.current,
-        (infoPanelRef.current ? infoPanelRef.current.offsetHeight : 0),
-    ]);
-
-    useEffect(() => {
-        if (isEmpty(gc) || !specialConcepts) {
-            return;
-        }
-        // since setStatsOptions is called in GraphContainer constructor, it maybe
-        //  doesn't need to be called the first time this useEffect runs;
-        //  TODO: maybe we don't need this useEffect at all, and can just call setStatsOptions
-        //  right before getVisibleRows in the clone branch of the constructor
-        gc.setStatsOptions({concepts, concept_ids, specialConcepts, csmi, });
-        setData(current => ({...current, /*visibleRows, colDefs*/}));
-    }, [gc, specialConcepts]);
+    }, [ infoPanelRef.current,
+         (infoPanelRef.current ? infoPanelRef.current.offsetHeight : 0), ]);
 
     if (isEmpty(gc.visibleRows) || isEmpty(selected_csets)) {
         // sometimes selected_csets and some other data disappears when the page is reloaded
@@ -452,7 +457,7 @@ function StatsAndOptions(props) {
                     } else {
                         text = "";
                     }
-                } else if (row.name ==='Concepts') {
+                } else if (['Concepts', 'Expansion concepts'].includes(row.name)) {
                     text = fmt(row.visibleConceptCnt) + ' visible';
                 } else {
                     text = "";
@@ -624,8 +629,8 @@ function getColDefs(props) {
             selector: (row) => row.concept_name,
             format: (row) => {
                 let name = row.concept_name;
-                if (row.path && row.path.length) {
-                    let names = row.path.map(cid => gc.nodes[cid].concept_name);
+                if (row.pathFromVisibleNode && row.pathFromVisibleNode.length) {
+                    let names = row.pathFromVisibleNode.map(cid => gc.nodes[cid].concept_name);
                     name = <span>
                             {names.map((name, index) => (
                                     <span key={index}>
@@ -641,15 +646,15 @@ function getColDefs(props) {
                         ? getCollapseIconAndName(row, sizes, gcDispatch)
                         : (
                             <span className="concept-name-row">
-                                <RemoveCircleOutline
+                                {/*<RemoveCircleOutline
                                     // this is just here so it indents the same distance as the collapse icons
-                                    sx={{fontSize: sizes.collapseIcon, visibility: "hidden"}} />
+                                    sx={{fontSize: sizes.collapseIcon, visibility: "hidden"}} /> */}
                                 <span className="concept-name-text">{name}</span>
                             </span>)
                 ) : (
                     // this is for non-nested which is not currently implemented (no button for it)
                     //      it allowed sorting rows... TODO: figure out if bringing it back
-                    <span className="concept-name-text">{name}</span>
+                    name
                 );
                 return content;
             },
@@ -672,15 +677,21 @@ function getColDefs(props) {
         {
             name: "Status",
             headerProps: {
+                tooltipContent: 'Information about this row',
+                /*
                 tooltipContent: 'Whether concept is a definition item' +
-                    comparison_rpt ? ' or added or removed in the comparison report' : '' +
+                    (comparison_rpt ? ' or added or removed in the comparison report' : '') +
                     ". These concepts are displayed even if you haven't expanded their parents" +
                     " and are highlighted with a row color.",
+                 */
+                // doesn't work:
+                // ttStyle: {zIndex: 1000, opacity: .1, overflow: 'visible', width: '300px', backgroundColor: 'pink'},
             },
             selector: (row) => row.status,
             sortable: false,
-            width: 64,
-            style: {justifyContent: "center", paddingRight: 4},
+            width: 88,
+            style: {paddingRight: 4, paddingLeft: 4},
+            wrap: true,
         },
         {
             name: "Levels below",
@@ -1053,6 +1064,7 @@ function ComparisonDataTable(props) {
                 backgroundColor: row.removed && "#F662" ||
                                  row.added && "#00FF0016" ||
                                  row.isItem && "#33F2" || "#FFF",
+                opacity: row.nodeOccurrence ? .4 : 1,
                 // backgroundColor: row.concept_id in definitions ? "#F662" : "#FFF",
             }),
         },

@@ -100,13 +100,6 @@ export function ColumnHeader(props) {
     header = <Tooltip content={tooltipContent}>{header}</Tooltip>;
   }
   return header;
-
-  return (
-    <div ref={targetRef}>
-      <p>{headerDims.width}</p>
-      <p>{headerDims.height}</p>
-    </div>
-  );
 }
 export function setColDefDimensions({ coldefs, windowSize, margin = 10 }) {
   /* expecting width OR minWidth and remainingPct */
@@ -146,11 +139,11 @@ export function setColDefHeader(coldef) {
 
   coldef.name = (
     <ColumnHeader
-      headerContent={headerContent}
-      headerContentProps={headerContentProps}
-      tooltipContent={tooltipContent}
       allottedWidth={width}
       coldef={coldef}
+      //*...headerProps} {...headerContentProps}
+      headerContent={headerContent}
+      tooltipContent={tooltipContent}
       showInfoIcon={showInfoIcon}
     />
   );
