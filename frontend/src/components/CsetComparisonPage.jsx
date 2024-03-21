@@ -155,7 +155,7 @@ export function CsetComparisonPage() {
     const customStyles = styles(sizes);
     const [data, setData] = useState({});
     const {
-        /* visibleRows, colDefs, */ concepts, concept_ids, conceptLookup, selected_csets, csmi, researchers, currentUserId,
+        concepts, concept_ids, conceptLookup, selected_csets, csmi, researchers, currentUserId,
         specialConcepts, comparison_rpt,
     } = data;
     const {gc, gcDispatch} = useGraphContainer();
@@ -190,9 +190,9 @@ export function CsetComparisonPage() {
         // since setStatsOptions is called in GraphContainer constructor, it maybe
         //  doesn't need to be called the first time this useEffect runs;
         //  TODO: maybe we don't need this useEffect at all, and can just call setStatsOptions
-        //  right before getVisibleRows in the clone branch of the constructor
+        //  right before getDisplayedRows in the clone branch of the constructor
         gc.setStatsOptions({concepts, concept_ids, csmi, });
-        setData(current => ({...current, /*visibleRows, colDefs*/}));
+        setData(current => ({...current}));
     }, [gc, specialConcepts]);
 
     useEffect(() => {
@@ -212,7 +212,7 @@ export function CsetComparisonPage() {
     }, [ infoPanelRef.current,
          (infoPanelRef.current ? infoPanelRef.current.offsetHeight : 0), ]);
 
-    if (isEmpty(gc.visibleRows) || isEmpty(selected_csets)) {
+    if (isEmpty(gc.displayedRows) || isEmpty(selected_csets)) {
         // sometimes selected_csets and some other data disappears when the page is reloaded
         return <p>Downloading...</p>;
     }
@@ -248,7 +248,7 @@ export function CsetComparisonPage() {
         editAction,
         windowSize,
         // hidden,
-        displayedRows: gc.visibleRows,
+        displayedRows: gc.displayedRows,
         hierarchySettings,
         hsDispatch,
         csmi,
@@ -282,9 +282,7 @@ export function CsetComparisonPage() {
             position={panelPosition} countRef={countRef}
             style={{minWidth: statsOptionsWidth + 'px', resize: "both", minHeight: statsOptionsHeight + 'px'}}
         >
-            <StatsAndOptions {...{gc, gcDispatch, statsOptions,
-                                    // concepts, concept_ids, visibleRows, specialConcepts, csmi,
-                                    statsOptionsWidth, customStyles}} />
+            <StatsAndOptions {...{gc, gcDispatch, statsOptions, statsOptionsWidth, customStyles}} />
         </FlexibleContainer>,
 
         /*
@@ -304,13 +302,13 @@ export function CsetComparisonPage() {
                 onClick={() => hsDispatch({type:'nested', nested: true})}
                 sx={{ marginRight: '4px' }}
         >
-          {visibleRows.length} in hierarchy
+          {displayedRows.length} in hierarchy
         </Button>,
         */
         /*
         <Button key="download-distinct-tsv"
                 variant="outlined"
-                onClick={ () => downloadCSV({codeset_ids, visibleRows, selected_csets, csmi}, true) }
+                onClick={ () => downloadCSV({codeset_ids, displayedRows, selected_csets, csmi}, true) }
                 sx={{
                   cursor: 'pointer',
                   marginRight: '4px',
@@ -399,7 +397,7 @@ export function CsetComparisonPage() {
         );
     }
 
-    const tableProps = {rowData: gc.visibleRows, columns: colDefs, selected_csets, customStyles};
+    const tableProps = {rowData: gc.displayedRows, columns: colDefs, selected_csets, customStyles};
     return (
         <div>
             <span data-testid="comp-page-loading"></span>
@@ -452,13 +450,13 @@ function StatsAndOptions(props) {
                 } else if (row.specialTreatmentRule ==='hide though expanded') {
                     if (row.hiddenConceptCnt) {
                         text = fmt(row.hiddenConceptCnt) + ' hidden';
-                    } else if (row.visibleConceptCnt) {
-                        text = fmt(row.visibleConceptCnt) + ' visible';
+                    } else if (row.displayedConceptCnt) {
+                        text = fmt(row.displayedConceptCnt) + ' visible';
                     } else {
                         text = "";
                     }
                 } else if (['Concepts', 'Expansion concepts'].includes(row.name)) {
-                    text = fmt(row.visibleConceptCnt) + ' visible';
+                    text = fmt(row.displayedConceptCnt) + ' visible';
                 } else {
                     text = "";
                 }
@@ -565,7 +563,7 @@ function precisionRecall(props) {
 
 function nodeToTree(node) {
     // a flat tree
-    const subTrees = node.children().map(n => nodeToTree(n));
+    const subTrees = node.childIds().map(n => nodeToTree(n));
     return [node, ...subTrees];
 }
 
@@ -629,8 +627,8 @@ function getColDefs(props) {
             selector: (row) => row.concept_name,
             format: (row) => {
                 let name = row.concept_name;
-                if (row.pathFromVisibleNode && row.pathFromVisibleNode.length) {
-                    let names = row.pathFromVisibleNode.map(cid => gc.nodes[cid].concept_name);
+                if (row.pathFromDisplayedNode && row.pathFromDisplayedNode.length) {
+                    let names = row.pathFromDisplayedNode.map(cid => gc.nodes[cid].concept_name);
                     name = <span>
                             {names.map((name, index) => (
                                     <span key={index}>
@@ -1183,7 +1181,7 @@ function downloadCSV(props, tsv = false) {
         "drc",
         "hasChildren",
         "descendants",
-        "children",
+        "childIds",
         "depth",
         "added",
         "removed",
