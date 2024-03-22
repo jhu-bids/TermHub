@@ -1,6 +1,6 @@
 import React, {createContext, useContext, useReducer, useState} from "react";
 import {get, sum, sortBy, uniq, flatten, intersection, cloneDeep,
-        differenceWith, unionWith, intersectionWith, isEmpty} from "lodash";
+        differenceWith, unionWith, intersectionWith, isEmpty, some} from "lodash";
 import Graph from "graphology";
 import {bidirectional} from 'graphology-shortest-path/unweighted';
 import {dfsFromNode} from "graphology-traversal/dfs";
@@ -150,7 +150,7 @@ export class GraphContainer {
     // const {/*collapsedDescendantPaths, */ collapsePaths, hideZeroCounts, hideRxNormExtension, nested } = hierarchySettings;
     Object.values(this.nodes).forEach(node => {delete node.childRows});
     this.displayedRows = [];
-    this.nodeRows = new Map();    // map from nodeId to row (node copy)
+    this.displayedNodeRows = new Map();    // map from nodeId to row (node copy)
     this.gd.specialConcepts.allButFirstOccurrence = [];
 
     // add root nodes and their children if expanded to displayed
@@ -182,7 +182,7 @@ export class GraphContainer {
       // path starts with the nodeIdToShow and recurses up, prepending parents
       const nodeIdToShow = path[path.length - 1]; // remains the same through recursion
       if (shown.has(nodeIdToShow)) return; // already displayed
-      if (this.nodeRows.has(nodeIdToShow)) {
+      if (this.displayedNodeRows.has(nodeIdToShow)) {
         throw new Error(`nodeToShow ${nodeIdToShow} is already displayed`);
       }
       // so, only one nodeIdToShow, but separate nodeToShow copies for each path
@@ -194,14 +194,14 @@ export class GraphContainer {
           insertShowThoughCollapsed([parentId, ...(path.slice(0, -1))]);
         }
         let parentNode = this.nodes[parentId];
-        if (this.nodeRows.has(parentId)) {  // parent is already displayed
+        if (this.displayedNodeRows.has(parentId)) {  // parent is already displayed
           if (parentNode.expanded) {
             throw new Error(`parent ${parentId} is expanded; we shouldn't be here`);
           }
           parentNode.childRows = parentNode.childRows || [];
 
           // put the nodeIdToShow below its paths
-          for (let parentRow of this.nodeRows.get(parentId)) {
+          for (let parentRow of this.displayedNodeRows.get(parentId)) {
             let nodeToShowRow = {...this.nodes[nodeIdToShow]};
             nodeToShowRow.depth = parentRow.depth + 1;
             nodeToShowRow.rowPath = [...parentRow.rowPath, nodeIdToShow]; // straight from visible ancestor to nodeToShowRow
@@ -215,48 +215,64 @@ export class GraphContainer {
           return;
         }
       }
-      if (this.nodeRows.has(nodeIdToShow)) {
+      if (this.displayedNodeRows.has(nodeIdToShow)) {
         throw new Error(`nodeToShow ${nodeIdToShow} is already displayed`);
       }
-      this.nodeRows.set(nodeIdToShow, []);
+      this.displayedNodeRows.set(nodeIdToShow, []);
       nodeToShowRows.forEach((nodeToShowRow, i) => {
-        this.nodeRows.get(nodeIdToShow).push(nodeToShowRow);
+        this.displayedNodeRows.get(nodeIdToShow).push(nodeToShowRow);
       });
       shown.add(nodeIdToShow);
     }
     showThoughCollapsed.forEach(nodeIdToShow => {
-      if (this.nodeRows.has(nodeIdToShow)) return; // already displayed
+      if (this.displayedNodeRows.has(nodeIdToShow)) return; // already displayed
       showThoughCollapsedIds.add(nodeIdToShow);
       insertShowThoughCollapsed([nodeIdToShow]);
     });
 
     this.arrangeDisplayRows(rootRows);
-    this.displayedRows.forEach(row => { row.levelsBelow = this.sortFunc(row) });
-    this.gd.specialConcepts.allButFirstOccurrence = this.displayedRows.filter(row => row.nodeOccurrence > 0);
+    // this.displayedRows.forEach(row => { row.levelsBelow = this.sortFunc(row) }); // for debugging
+    this.gd.specialConcepts.allButFirstOccurrence = this.displayedRows.filter(row => row.nodeOccurrence > 0).map(d => d.concept_id);
 
     for (let type in this.options.specialConceptTreatment) {
       if (this.statsOptions[type].specialTreatmentRule === 'hide though expanded' && this.options.specialConceptTreatment[type]) {
-        if (type == 'allButFirstOccurrence') {
-          this.displayedRows = this.displayedRows.filter(row => ! row.nodeOccurrence > 0);
-        }
+        // gather all the hideThoughExpanded ids
+        this.gd.specialConcepts[type].forEach(id => {
+          hideThoughExpanded.add(id);
+        })
+      }
+    }
+    for (let type in this.options.specialConceptTreatment) {
+      if (this.statsOptions[type].specialTreatmentRule === 'hide though expanded' && this.options.specialConceptTreatment[type]) {
         let [special, displayed] = [
             this.gd.specialConcepts[type],
             this.displayedRows.map(d => d.concept_id)];
         for (let id of setOp('intersection', special, displayed)) {
           let nodeToHide = this.nodes[id];
-          if (!nodeToHide.expanded) {
-            hideThoughExpanded.add(id);
-            nodeRows.delete(id); // remove from nodeRows map
+          if (nodeToHide.expanded) {
+            if (!some(nodeToHide.childIds, id => this.displayedNodeRows.has(id) && !hideThoughExpanded.has(id))) {
+              // don't hide if it has children that should be shown
+              // that is, if it's already displayed and not hidden
+              hideThoughExpanded.remove(id);
+            }
           }
+          /* if (!nodeToHide.expanded) {
+            // hideThoughExpanded.add(id);
+            this.displayedNodeRows.delete(id); // remove from displayedNodeRows map
+          } */
         }
       }
     }
+    hideThoughExpanded.forEach(id => {
+      this.displayedNodeRows.delete(id); // remove from displayedNodeRows map
+    });
 
     // this.displayedRows = sortBy(Object.values(this.displayedRows), d => d.rowPosition);
     // this.displayedRows = this.displayedRows.filter(row => ! hideThoughExpanded.has(row.concept_id));
     // this.displayedRows = this.displayedRows.map((d,i) => {d.rowPosition = i; return d;})
 
     this.hideThoughExpanded = hideThoughExpanded;
+    this.arrangeDisplayRows(rootRows);
     return this.displayedRows;
   }
 
@@ -267,12 +283,11 @@ export class GraphContainer {
     let row = {...node, depth};
     row.rowPath = [...rowPath, nodeId];
 
-    if (this.nodeRows.has(nodeId)) {
-      let rowsForThisNode = this.nodeRows.get(nodeId);
+    if (this.displayedNodeRows.has(nodeId)) {
+      let rowsForThisNode = this.displayedNodeRows.get(nodeId);
       rowsForThisNode.push(row);
-      this.gd.specialConcepts.allButFirstOccurrence.push(row.rowPath);
     } else {
-      this.nodeRows.set(nodeId, [row]);
+      this.displayedNodeRows.set(nodeId, [row]);
     }
 
     // this.displayedRows.push(row);
@@ -293,6 +308,7 @@ export class GraphContainer {
       for (let row of sortBy(rows, this.sortFunc)) {
         nodeOccurrences[row.concept_id] = nodeOccurrences[row.concept_id] ?? -1;
         row.nodeOccurrence = ++nodeOccurrences[row.concept_id];
+        if (this.hideThoughExpanded && this.hideThoughExpanded.has(row.concept_id)) continue;
         this.displayedRows.push(row);
         // const node = this.nodes[row.concept_id];
         if (row.childRows) {
@@ -305,7 +321,13 @@ export class GraphContainer {
 
   sortFunc = (d => {
     let n = typeof(d) === 'object' ? d : this.nodes[d];
-    return n.not_a_concept ? Infinity : ((n.pathFromDisplayedNode ? -(10**9) : 0) - n.drc);
+    return n.not_a_concept
+        ? Infinity
+        : (
+            (n.pathFromDisplayedNode && !n.hasChildren
+                ? -(10**9)
+                : 0
+            ) + (n.pathFromDisplayedNode || []).length * 10**6 - n.drc);
     let statusRank = n.isItem && 3 + n.added && 2 + n.removed && 1 || 0;
     // return - (n.drc || n.descendantCount || n.levelsBelow || n.status ? 1 : 0);
     return - (n.levelsBelow || n.descendantCount || n.status ? 1 : 0);
@@ -537,13 +559,19 @@ export const useGraphContainer = () => {
 };
 
 function setOp(op, setA, setB) {
+  /*
+   * setOp(op, setA, setB)
+   *   - op: one of union, difference, intersection
+   *   - setA, setB: can be an array, Set, or Iterator (like you get from map.keys())
+   *   - returns: a new set of items based on ==, so integers are equivalent to their string representations
+   */
   const f = ({
     union: unionWith,
     difference: differenceWith,
     intersection: intersectionWith
   })[op];
-  if (setA instanceof Set) setA = [...setA];
-  if (setB instanceof Set) setB = [...setB];
+  if (setA instanceof Set || setA instanceof Iterator) setA = [...setA];
+  if (setB instanceof Set || setB instanceof Iterator) setB = [...setB];
   return f(setA, setB, (itemA, itemB) => itemA == itemB);
 }
 

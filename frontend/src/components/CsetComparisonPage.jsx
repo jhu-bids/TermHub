@@ -652,7 +652,7 @@ function getColDefs(props) {
                 ) : (
                     // this is for non-nested which is not currently implemented (no button for it)
                     //      it allowed sorting rows... TODO: figure out if bringing it back
-                    name
+                    <span className="concept-name-text">{name}</span>
                 );
                 return content;
             },
