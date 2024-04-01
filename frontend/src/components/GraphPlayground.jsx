@@ -43,19 +43,10 @@ export const ConceptGraph/*: React.FC*/ = () => {
     })()
   }, []);
 
-  const MyGraph = () => {
+  const SigmaGraph = () => {
     const loadGraph = useLoadGraph();
 
     useEffect(() => {
-      // Create the graph
-      // const graph = new MultiDirectedGraph();
-      /*
-      const graph = new Graph();
-      graph.addNode("A", { x: 0, y: 0, label: "Node A", size: 10 });
-      graph.addNode("B", { x: 1, y: 1, label: "Node B", size: 10 });
-      graph.addEdgeWithKey("rel1", "A", "B", { label: "REL_1" });
-       */
-
       if (gc && gc.graph) {
         let laidOutGraph = gc.graphLayout();
         loadGraph(laidOutGraph);
@@ -65,26 +56,9 @@ export const ConceptGraph/*: React.FC*/ = () => {
     return null;
   };
 
-  const GraphEvents = () => {
-    const registerEvents = useRegisterEvents();
-    const sigma = useSigma();
-    useEffect(() => {
-      registerEvents({
-        enterNode: (event) => {
-          console.log(
-              sigma.getGraph().getNodeAttribute(event.node, "concept_name"),
-              sigma.getGraph().getNodeAttribute(event.node, "layer"),
-              sigma.getGraph().getNodeAttribute(event.node, "position"),
-          );
-        }
-      })
-    }, [registerEvents, sigma, ])
-  }
-
   return (
-    <SigmaContainer style={{ height: "1500px" }}>
-      <MyGraph />
-      <GraphEvents />
+    <SigmaContainer style={{ height: "1200px" }}>
+      <SigmaGraph />
     </SigmaContainer>
   );
 }

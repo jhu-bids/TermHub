@@ -61,6 +61,18 @@ export async function fetchGraphData(props) {
 
     let [csmi, selected_csets, conceptLookup,] = await Promise.all(promises);
 
+    /*
+    // just for screenshot
+    let x = csmi[718894835][4153380];
+    x.item = true;
+    x.csm = false;
+    x.flags = 'DX';
+    x.item_flags = "includeDescendants,isExcluded";
+    x.includeDescendants = true;
+    x.isExcluded = true;
+     */
+
+
     selected_csets = codeset_ids.map(d => selected_csets[d]); // to get them in the order asked for
 
     if (!isEmpty(newCset)) {
@@ -79,11 +91,17 @@ export async function fetchGraphData(props) {
         csmi = {...csmi, ...newCset.definitions};
     }
 
-    const definitionConcepts = uniq(flatten(Object.values(csmi)
-                                                .map(d => Object.values(d))).filter(d => d.item).map(d => d.concept_id));
+    const definitionConcepts = uniq(flatten(
+        Object.values(csmi).map(d => Object.values(d))
+    ).filter(d => d.item).map(d => d.concept_id));
+
+    const expansionConcepts = uniq(flatten(
+        Object.values(csmi).map(d => Object.values(d))
+    ).filter(d => d.csm).map(d => d.concept_id + ''));
 
     let specialConcepts = {
         definitionConcepts: definitionConcepts.map(String),
+        expansionConcepts: expansionConcepts.map(String),
         nonStandard: uniq(Object.values(conceptLookup).filter(c => !c.standard_concept).map(c => c.concept_id)),
         zeroRecord: uniq(Object.values(conceptLookup).filter(c => !c.total_cnt).map(c => c.concept_id)),
     };
@@ -97,10 +115,11 @@ export async function fetchGraphData(props) {
     for (let cid in conceptLookup) {
         let c = {...conceptLookup[cid]}; // don't want to mutate the cached concepts
         if (specialConcepts.definitionConcepts.includes(cid+'')) c.isItem = true;
+        if (specialConcepts.expansionConcepts.includes(cid+'')) c.isMember = true;
         if ((specialConcepts.added || []).includes(cid+'')) c.added = true;
         if ((specialConcepts.removed || []).includes(cid+'')) c.removed = true;
-        c.status = [c.isItem && 'Def', c.added && 'Added', c.removed && 'Removed']
-            .filter(d => d).join(', ');
+        c.status = [c.isItem && 'In definition', c.isMember && 'In Expansion',
+                    c.added && 'Added', c.removed && 'Removed'].filter(d => d).join(', ');
         conceptLookup[cid] = c;
     }
 
@@ -136,7 +155,7 @@ export function CsetComparisonPage() {
     const customStyles = styles(sizes);
     const [data, setData] = useState({});
     const {
-        /* visibleRows, colDefs, */ concepts, concept_ids, conceptLookup, selected_csets, csmi, researchers, currentUserId,
+        concepts, concept_ids, conceptLookup, selected_csets, csmi, researchers, currentUserId,
         specialConcepts, comparison_rpt,
     } = data;
     const {gc, gcDispatch} = useGraphContainer();
@@ -165,6 +184,18 @@ export function CsetComparisonPage() {
     }, [newCset]);
 
     useEffect(() => {
+        if (isEmpty(gc) || !specialConcepts) {
+            return;
+        }
+        // since setStatsOptions is called in GraphContainer constructor, it maybe
+        //  doesn't need to be called the first time this useEffect runs;
+        //  TODO: maybe we don't need this useEffect at all, and can just call setStatsOptions
+        //  right before getDisplayedRows in the clone branch of the constructor
+        gc.setStatsOptions({concepts, concept_ids, csmi, });
+        setData(current => ({...current}));
+    }, [gc, specialConcepts]);
+
+    useEffect(() => {
         if (infoPanelRef.current) {
 
             let margin_text = window
@@ -174,28 +205,14 @@ export function CsetComparisonPage() {
             const margin = parseInt(margin_text);
 
             setPanelPosition({
-                x: 0,
-                y: infoPanelRef.current.clientHeight + 2 * margin
-            });
+                                 x: 0,
+                                 y: infoPanelRef.current.clientHeight + 2 * margin
+                             });
         }
-    }, [
-        infoPanelRef.current,
-        (infoPanelRef.current ? infoPanelRef.current.offsetHeight : 0),
-    ]);
+    }, [ infoPanelRef.current,
+         (infoPanelRef.current ? infoPanelRef.current.offsetHeight : 0), ]);
 
-    useEffect(() => {
-        if (isEmpty(gc) || !specialConcepts) {
-            return;
-        }
-        // since setStatsOptions is called in GraphContainer constructor, it maybe
-        //  doesn't need to be called the first time this useEffect runs;
-        //  TODO: maybe we don't need this useEffect at all, and can just call setStatsOptions
-        //  right before getVisibleRows in the clone branch of the constructor
-        gc.setStatsOptions({concepts, concept_ids, specialConcepts, csmi, });
-        setData(current => ({...current, /*visibleRows, colDefs*/}));
-    }, [gc, specialConcepts]);
-
-    if (isEmpty(gc.visibleRows) || isEmpty(selected_csets)) {
+    if (isEmpty(gc.displayedRows) || isEmpty(selected_csets)) {
         // sometimes selected_csets and some other data disappears when the page is reloaded
         return <p>Downloading...</p>;
     }
@@ -231,7 +248,7 @@ export function CsetComparisonPage() {
         editAction,
         windowSize,
         // hidden,
-        displayedRows: gc.visibleRows,
+        displayedRows: gc.displayedRows,
         hierarchySettings,
         hsDispatch,
         csmi,
@@ -265,9 +282,7 @@ export function CsetComparisonPage() {
             position={panelPosition} countRef={countRef}
             style={{minWidth: statsOptionsWidth + 'px', resize: "both", minHeight: statsOptionsHeight + 'px'}}
         >
-            <StatsAndOptions {...{gc, gcDispatch, statsOptions,
-                                    // concepts, concept_ids, visibleRows, specialConcepts, csmi,
-                                    statsOptionsWidth, customStyles}} />
+            <StatsAndOptions {...{gc, gcDispatch, statsOptions, statsOptionsWidth, customStyles}} />
         </FlexibleContainer>,
 
         /*
@@ -287,13 +302,13 @@ export function CsetComparisonPage() {
                 onClick={() => hsDispatch({type:'nested', nested: true})}
                 sx={{ marginRight: '4px' }}
         >
-          {visibleRows.length} in hierarchy
+          {displayedRows.length} in hierarchy
         </Button>,
         */
         /*
         <Button key="download-distinct-tsv"
                 variant="outlined"
-                onClick={ () => downloadCSV({codeset_ids, visibleRows, selected_csets, csmi}, true) }
+                onClick={ () => downloadCSV({codeset_ids, displayedRows, selected_csets, csmi}, true) }
                 sx={{
                   cursor: 'pointer',
                   marginRight: '4px',
@@ -382,7 +397,7 @@ export function CsetComparisonPage() {
         );
     }
 
-    const tableProps = {rowData: gc.visibleRows, columns: colDefs, selected_csets, customStyles};
+    const tableProps = {rowData: gc.displayedRows, columns: colDefs, selected_csets, customStyles};
     return (
         <div>
             <span data-testid="comp-page-loading"></span>
@@ -435,13 +450,13 @@ function StatsAndOptions(props) {
                 } else if (row.specialTreatmentRule ==='hide though expanded') {
                     if (row.hiddenConceptCnt) {
                         text = fmt(row.hiddenConceptCnt) + ' hidden';
-                    } else if (row.visibleConceptCnt) {
-                        text = fmt(row.visibleConceptCnt) + ' visible';
+                    } else if (row.displayedConceptCnt) {
+                        text = fmt(row.displayedConceptCnt) + ' visible';
                     } else {
                         text = "";
                     }
-                } else if (row.name ==='Concepts') {
-                    text = fmt(row.visibleConceptCnt) + ' visible';
+                } else if (['Concepts', 'Expansion concepts'].includes(row.name)) {
+                    text = fmt(row.displayedConceptCnt) + ' visible';
                 } else {
                     text = "";
                 }
@@ -548,7 +563,7 @@ function precisionRecall(props) {
 
 function nodeToTree(node) {
     // a flat tree
-    const subTrees = node.children().map(n => nodeToTree(n));
+    const subTrees = node.childIds().map(n => nodeToTree(n));
     return [node, ...subTrees];
 }
 
@@ -612,8 +627,8 @@ function getColDefs(props) {
             selector: (row) => row.concept_name,
             format: (row) => {
                 let name = row.concept_name;
-                if (row.path && row.path.length) {
-                    let names = row.path.map(cid => gc.nodes[cid].concept_name);
+                if (row.pathFromDisplayedNode && row.pathFromDisplayedNode.length) {
+                    let names = row.pathFromDisplayedNode.map(cid => gc.nodes[cid].concept_name);
                     name = <span>
                             {names.map((name, index) => (
                                     <span key={index}>
@@ -629,15 +644,15 @@ function getColDefs(props) {
                         ? getCollapseIconAndName(row, sizes, gcDispatch)
                         : (
                             <span className="concept-name-row">
-                                <RemoveCircleOutline
+                                {/*<RemoveCircleOutline
                                     // this is just here so it indents the same distance as the collapse icons
-                                    sx={{fontSize: sizes.collapseIcon, visibility: "hidden"}} />
+                                    sx={{fontSize: sizes.collapseIcon, visibility: "hidden"}} /> */}
                                 <span className="concept-name-text">{name}</span>
                             </span>)
                 ) : (
                     // this is for non-nested which is not currently implemented (no button for it)
                     //      it allowed sorting rows... TODO: figure out if bringing it back
-                    <span className="concept-name-text">{name}</span>
+                    name
                 );
                 return content;
             },
@@ -652,7 +667,7 @@ function getColDefs(props) {
                 {
                     when: (row) => true,
                     style: (row) => ({
-                        padding: '0px 3px 0px ' + (nested ? (16 + row.depth * 16) : 16) + "px",
+                        padding: '0px 3px 0px ' + (nested ? (9 + row.depth * 19 + (row.hasChildren ? 0 : 8)) : 19) + "px",
                     }),
                 },
             ],
@@ -660,15 +675,21 @@ function getColDefs(props) {
         {
             name: "Status",
             headerProps: {
+                tooltipContent: 'Information about this row',
+                /*
                 tooltipContent: 'Whether concept is a definition item' +
-                    comparison_rpt ? ' or added or removed in the comparison report' : '' +
+                    (comparison_rpt ? ' or added or removed in the comparison report' : '') +
                     ". These concepts are displayed even if you haven't expanded their parents" +
                     " and are highlighted with a row color.",
+                 */
+                // doesn't work:
+                // ttStyle: {zIndex: 1000, opacity: .1, overflow: 'visible', width: '300px', backgroundColor: 'pink'},
             },
             selector: (row) => row.status,
             sortable: false,
-            width: 64,
-            style: {justifyContent: "center", paddingRight: 4},
+            width: 88,
+            style: {paddingRight: 4, paddingLeft: 4},
+            wrap: true,
         },
         {
             name: "Levels below",
@@ -692,12 +713,55 @@ function getColDefs(props) {
             selector: (row) => row.descendantCount,
             format: (row) => {
                 let icon = getCollapseIconAndName(row, sizes, gcDispatch);
-                let text = row.not_a_concept ? '' : fmt(row.childCount) + ' / ' + fmt(row.descendantCount);
+                let text = fmt(row.childCount) + ' / ' + fmt(row.descendantCount);
                 return text;
             },
             sortable: false,
             width: 80,
             style: {justifyContent: "center",},
+        },
+        {
+            // name: "Patients",
+            headerProps: {
+                headerContent: (
+                    <div style={{display: 'flex', flexDirection: 'column'}}>
+                        <Tooltip label="Approximate distinct person count. Small counts rounded up to 20.">
+                            <div>Patients</div>
+                        </Tooltip>
+                        {
+                            hidden
+                                ? <Tooltip label={`Toggle hiding of ${hidden.zeroCount} concepts with 0 patients`}>
+                                    <Switch sx={{margin: '-8px 0px'}} checked={!hideZeroCounts}
+                                            onClick={() => hsDispatch({
+                                                                          type: 'hideZeroCounts',
+                                                                          hideZeroCounts: !hideZeroCounts
+                                                                      })}
+                                    />
+                                </Tooltip>
+                                : ''
+                        }
+                    </div>
+                )
+                // headerContentProps: { onClick: editCodesetFunc, codeset_id: cset_col.codeset_id, },
+            },
+            selector: (row) => {
+                // can be comma=separated list if pt cnts in more than one domain
+                const cnts = row.distinct_person_cnt.split(',').map(n => parseInt(n));
+                return max(cnts);
+            },
+            format: (row) => {
+                if (typeof (row.distinct_person_cnt) === 'undefined') {
+                    return '';
+                }
+                const cnts = row.distinct_person_cnt.split(',').map(n => parseInt(n));
+                return fmt(max(cnts));
+            },
+            sortable: !nested,
+            right: true,
+            width: 80,
+            // minWidth: 80,
+            // remainingPct: .10,
+            style: {justifyContent: "center"},
         },
         {
             // name: "Records",
@@ -864,49 +928,6 @@ function getColDefs(props) {
             },
         },
         // ...cset_cols,
-        {
-            // name: "Patients",
-            headerProps: {
-                headerContent: (
-                    <div style={{display: 'flex', flexDirection: 'column'}}>
-                        <Tooltip label="Approximate distinct person count. Small counts rounded up to 20.">
-                            <div>Patients</div>
-                        </Tooltip>
-                        {
-                            hidden
-                                ? <Tooltip label={`Toggle hiding of ${hidden.zeroCount} concepts with 0 patients`}>
-                                    <Switch sx={{margin: '-8px 0px'}} checked={!hideZeroCounts}
-                                            onClick={() => hsDispatch({
-                                                type: 'hideZeroCounts',
-                                                hideZeroCounts: !hideZeroCounts
-                                            })}
-                                    />
-                                </Tooltip>
-                                : ''
-                        }
-                    </div>
-                )
-                // headerContentProps: { onClick: editCodesetFunc, codeset_id: cset_col.codeset_id, },
-            },
-            selector: (row) => {
-                // can be comma=separated list if pt cnts in more than one domain
-                const cnts = row.distinct_person_cnt.split(',').map(n => parseInt(n));
-                return max(cnts);
-            },
-            format: (row) => {
-                if (typeof (row.distinct_person_cnt) === 'undefined') {
-                    return '';
-                }
-                const cnts = row.distinct_person_cnt.split(',').map(n => parseInt(n));
-                return fmt(max(cnts));
-            },
-            sortable: !nested,
-            right: true,
-            width: 80,
-            // minWidth: 80,
-            // remainingPct: .10,
-            style: {justifyContent: "center"},
-        },
     ];
     if (!comparison_rpt) {
         coldefs = coldefs.filter(d => d.name!== "Status");
@@ -959,7 +980,7 @@ function getColDefs(props) {
             ],
             sortable: !nested,
             // compact: true,
-            width: 80,
+            width: 97,
             // center: true,
         };
 
@@ -1041,6 +1062,7 @@ function ComparisonDataTable(props) {
                 backgroundColor: row.removed && "#F662" ||
                                  row.added && "#00FF0016" ||
                                  row.isItem && "#33F2" || "#FFF",
+                opacity: row.nodeOccurrence ? .4 : 1,
                 // backgroundColor: row.concept_id in definitions ? "#F662" : "#FFF",
             }),
         },
@@ -1159,7 +1181,7 @@ function downloadCSV(props, tsv = false) {
         "drc",
         "hasChildren",
         "descendants",
-        "children",
+        "childIds",
         "depth",
         "added",
         "removed",

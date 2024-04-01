@@ -206,12 +206,12 @@ export function ConceptSetsPage(props) {
       concept_ids = uniq(flatten(Object.values(await concept_ids)));
       // setData(current => ({...current, concept_ids}));
 
-      let relatedCodesetIdsByConceptId = dataGetter.fetchAndCacheItems(dataGetter.apiCalls.codeset_ids_by_concept_id, concept_ids);
-
       all_csets = await all_csets;
       // setData(current => ({...current, all_csets, }));
 
-      const relatedCodesetIds = union(flatten(Object.values(await relatedCodesetIdsByConceptId)));
+      let relatedCodesetIdsByConceptId = await dataGetter.fetchAndCacheItems(dataGetter.apiCalls.codeset_ids_by_concept_id, concept_ids);
+
+      const relatedCodesetIds = union(flatten(Object.values(relatedCodesetIdsByConceptId)));
 
       let relatedCsetConceptIds = dataGetter.fetchAndCacheItems(dataGetter.apiCalls.concept_ids_by_codeset_id, relatedCodesetIds);
            // shape: 'obj'
@@ -261,7 +261,7 @@ export function ConceptSetsPage(props) {
       relatedCsets = orderBy( relatedCsets, ["selected", "precision"], ["desc", "desc"] );
       // This is here for making screenshots for paper. TODO:  Might want to make a user control
         // for this.
-      relatedCsets = relatedCsets.filter(d => d.precision < 1 || (d.counts||{}).Members > 10);
+      // relatedCsets = relatedCsets.filter(d => d.precision < 1 || (d.counts||{}).Members > 10);
       // setData(current => ({...current, relatedCsets}));
 
       researchers = await researchers;
