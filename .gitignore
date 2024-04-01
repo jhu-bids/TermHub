@@ -38,6 +38,8 @@ backup/
 .vscode/
 *.code-workspace
 *.dmp
+output/
+/misc/amia_paper_2024/input/
 
 # Frontend
 # - JS: CreateReactApp
