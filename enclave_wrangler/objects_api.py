@@ -12,21 +12,19 @@ TODO's
  concept_set_version_item_rv_edited_mapped.
  3. All _db funcs / funcs that act on the DB (and unit tests) should be in backend/, not enclave_wrangler.
 """
+import dateutil.parser as dp
 import json
 import os
 import sys
 from argparse import ArgumentParser
-
-from datetime import datetime
+from datetime import datetime, timedelta
 from pathlib import Path
 from typing import List, Dict, Set, Tuple, Union
 from urllib.parse import quote, unquote
 
-uquote = lambda s: quote(unquote(s), safe='')   # in case it was already quoted
-
-from sanitize_filename import sanitize
-
+import pytz
 from requests import Response
+from sanitize_filename import sanitize
 from sqlalchemy.engine.base import Connection
 from typeguard import typechecked
 
@@ -39,7 +37,7 @@ from enclave_wrangler.utils import EnclavePaginationLimitErr, enclave_get, encla
     make_objects_request
 from enclave_wrangler.models import OBJECT_TYPE_TABLE_MAP, convert_row, get_field_names, field_name_mapping, pkey
 from backend.db.utils import SCHEMA, insert_fetch_statuses, insert_from_dict, insert_from_dicts, \
-    is_refresh_active, refresh_derived_tables, reset_temp_refresh_tables, refresh_derived_tables, \
+    is_refresh_active, reset_temp_refresh_tables, refresh_derived_tables, \
     sql_query_single_col, run_sql, get_db_connection
 from backend.db.queries import get_concepts
 from backend.utils import call_github_action, pdump
@@ -55,6 +53,8 @@ HEADERS = {
 
 BASE_URL = f'https://{config["HOSTNAME"]}'
 ONTOLOGY_RID = config['ONTOLOGY_RID']
+
+uquote = lambda s: quote(unquote(s), safe='')   # in case it was already quoted
 
 @typechecked
 def get_object_types(verbose=False) -> List[Dict]:
@@ -358,13 +358,34 @@ def get_bidirectional_csets_sets(con: Connection = None) -> Tuple[Set[int], Set[
     db_codeset_ids: Set[int] = set(sql_query_single_col(con, 'SELECT codeset_id FROM code_sets'))
     # Set 2 of 2: In the enclave
     enclave_codesets = fetch_all_csets()
-    # Set difference & return
     enclave_codeset_ids: Set[int] = set([cset['codesetId'] for cset in enclave_codesets])
+
     return db_codeset_ids, enclave_codeset_ids
+
+
+def find_missing_csets_within_threshold(age_minutes=30, con: Connection = None) -> Set[int]:
+    """Find missing csets within a certain threshold, e.g. if older than 30 minutes."""
+    # Set 1 of 2: In our database
+    con = con if con else get_db_connection(schema=SCHEMA)
+    db_codeset_ids: Set[int] = set(sql_query_single_col(con, 'SELECT codeset_id FROM code_sets'))
+    # Set 2 of 2: In the enclave
+    enclave_codesets: List[Dict] = fetch_all_csets()
+    enclave_codesets_lookup: Dict[int, Dict] = {cset['codesetId']: cset for cset in enclave_codesets}
+    enclave_codeset_ids: Set[int] = set([cset['codesetId'] for cset in enclave_codesets])
+    # Determine within threshold
+    missing_ids: Set[int] = enclave_codeset_ids.difference(db_codeset_ids)
+    missing: List[Dict] = [enclave_codesets_lookup[cset_id] for cset_id in missing_ids]
+    missing_within_threshold: Set[int] = set([
+        cset['codesetId'] for cset in missing
+        if dp.parse(cset['createdAt']) > (datetime.now().astimezone(pytz.utc) - timedelta(minutes=age_minutes))
+    ])
+
+    return missing_within_threshold
 
 
 def add_missing_csets_to_db(cset_ids: List[int], con: Connection = None, schema=SCHEMA):
     """Add missing concept sets to the DB"""
+    # noinspection PyBroadException
     try:
         con = con if con else get_db_connection(schema=schema)
         csets_and_members_enclave_to_db(con, cset_ids=cset_ids, schema=schema)
@@ -1016,4 +1037,6 @@ def cli():
 
 
 if __name__ == '__main__':
-    cli()
+    # TODO
+    # cli()
+    find_missing_csets_within_threshold()

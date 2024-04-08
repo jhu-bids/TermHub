@@ -45,7 +45,7 @@ test: test-backend test-frontend
 test-backend:
 	python -m unittest discover -v
 test-missing-csets:
-	python -m unittest test.test_database.TestDatabaseCurrent.test_all_enclave_csets_in_termhub
+	python -m unittest test.test_database.TestDatabaseCurrent.test_all_enclave_csets_in_termhub_within_threshold
 
 ## Testing - Frontend
 ## - ENVIRONMENTS: To run multiple, hyphen-delimit, e.g. ENVIRONMENTS=local-dev-prod
@@ -118,8 +118,7 @@ help:
 	@echo test-backend
 	@printf "Runs all backend tests.\n\n"
 	@echo test-missing-csets
-	@printf "Runs a test to check for any missing concept sets; things in the Enclave that are not in TermHub, or vice \
-	versa.\n\n"
+	@printf "Runs a test to check for any missing concept sets that have been in the Enclave for >30 minutes and are not in TermHub\n\n"
 	@echo test-frontend
 	@printf "Runs all frontend tests.\n\n"
 	@echo test-frontend-unit
