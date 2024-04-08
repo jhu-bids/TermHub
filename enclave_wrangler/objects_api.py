@@ -1037,6 +1037,4 @@ def cli():
 
 
 if __name__ == '__main__':
-    # TODO
-    # cli()
-    find_missing_csets_within_threshold()
+    cli()
