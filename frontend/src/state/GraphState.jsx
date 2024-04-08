@@ -7,6 +7,18 @@ import {dfsFromNode} from "graphology-traversal/dfs";
 
 window.graphFuncs = {bidirectional, dfsFromNode};
 
+class StringSet extends Set {
+  add(value) { super.add(value.toString()); }
+  has(value) { return super.has(value.toString()); }
+  delete(value) { return super.delete(value.toString()); }
+}
+class StringKeyMap extends Map {
+  set(key, value) { super.set(key.toString(), value); }
+  get(key) { return super.get(key.toString()); }
+  has(key) { return super.has(key.toString()); }
+  delete(key) { return super.delete(key.toString()); }
+}
+
 export const makeGraph = (edges, concepts) => {
   const graph = new Graph({allowSelfLoops: false, multi: false, type: 'directed'});
   let nodes = {};
@@ -72,6 +84,10 @@ export class GraphContainer {
     this.leaves = this.graph.nodes().filter(n => !this.graph.outDegree(n));
     this.unlinkedConcepts = intersection(this.roots, this.leaves);
     // this.partiallyExpandedNodes = new Set();  // from path version of show though collapsed
+    this.displayedRows = [];
+    this.displayedNodeRows = new StringKeyMap();    // map from nodeId to row (node copy)
+    this.showThoughCollapsed = new StringSet();
+    this.hideThoughExpanded = new StringSet();
 
     let unlinkedConceptsParent = {
       concept_id: 'unlinked',
@@ -149,8 +165,8 @@ export class GraphContainer {
   getDisplayedRows(props) {
     // const {/*collapsedDescendantPaths, */ collapsePaths, hideZeroCounts, hideRxNormExtension, nested } = hierarchySettings;
     Object.values(this.nodes).forEach(node => {delete node.childRows});
-    this.displayedRows = [];
-    this.displayedNodeRows = new Map();    // map from nodeId to row (node copy)
+    this.displayedRows.splice(0, this.displayedRows.length); // keeping same array ref to help with debugging using graphW
+    this.displayedNodeRows.clear();
     this.gd.specialConcepts.allButFirstOccurrence = [];
 
     // add root nodes and their children if expanded to displayed
@@ -163,21 +179,19 @@ export class GraphContainer {
     this.arrangeDisplayRows(rootRows);
     const displayedRowsBeforeSpecial = [...this.displayedRows];
 
-    let showThoughCollapsed = new Set();
-    let hideThoughExpanded = new Set();
+    this.showThoughCollapsed.clear();
+    this.hideThoughExpanded.clear();
     for (let type in this.options.specialConceptTreatment) {
       if (this.statsOptions[type].specialTreatmentRule === 'show though collapsed' && this.options.specialConceptTreatment[type]) {
         for (let id of this.gd.specialConcepts[type] || []) {
-          showThoughCollapsed.add(id);
-          // this.showThoughCollapsed(id);
+          this.showThoughCollapsed.add(id);
         }
       }
     }
 
     // if there are showThoughCollapsed nodes to show, find each one's
     //  nearest parents add them at those path locations
-    let showThoughCollapsedIds = new Set();
-    let shown = new Set();
+    let shown = new StringSet();
     const insertShowThoughCollapsed = (path) => {
       // path starts with the nodeIdToShow and recurses up, prepending parents
       const nodeIdToShow = path[path.length - 1]; // remains the same through recursion
@@ -189,7 +203,7 @@ export class GraphContainer {
       let nodeToShowRows = [];
       let parents = this.graph.inNeighbors(path[0]);
       for (let parentId of parents) {
-        if (showThoughCollapsedIds.has(parentId)) {
+        if (this.showThoughCollapsed.has(parentId)) {
           // if the parent is also a showThoughCollapsed node, do it first
           insertShowThoughCollapsed([parentId, ...(path.slice(0, -1))]);
         }
@@ -224,21 +238,23 @@ export class GraphContainer {
       });
       shown.add(nodeIdToShow);
     }
-    showThoughCollapsed.forEach(nodeIdToShow => {
+    this.showThoughCollapsed.forEach(nodeIdToShow => {
       if (this.displayedNodeRows.has(nodeIdToShow)) return; // already displayed
-      showThoughCollapsedIds.add(nodeIdToShow);
+      this.showThoughCollapsed.add(nodeIdToShow);
       insertShowThoughCollapsed([nodeIdToShow]);
     });
 
+
     this.arrangeDisplayRows(rootRows);
     // this.displayedRows.forEach(row => { row.levelsBelow = this.sortFunc(row) }); // for debugging
-    this.gd.specialConcepts.allButFirstOccurrence = this.displayedRows.filter(row => row.nodeOccurrence > 0).map(d => d.concept_id);
+    // this.gd.specialConcepts.allButFirstOccurrence = this.displayedRows.filter(row => row.nodeOccurrence > 0).map(d => d.rowPath);
+    // this.statsOptions.allButFirstOccurrence
 
     for (let type in this.options.specialConceptTreatment) {
       if (this.statsOptions[type].specialTreatmentRule === 'hide though expanded' && this.options.specialConceptTreatment[type]) {
         // gather all the hideThoughExpanded ids
         this.gd.specialConcepts[type].forEach(id => {
-          hideThoughExpanded.add(id);
+          this.hideThoughExpanded.add(id);
         })
       }
     }
@@ -250,28 +266,23 @@ export class GraphContainer {
         for (let id of setOp('intersection', special, displayed)) {
           let nodeToHide = this.nodes[id];
           if (nodeToHide.expanded) {
-            if (!some(nodeToHide.childIds, id => this.displayedNodeRows.has(id) && !hideThoughExpanded.has(id))) {
+            if (!some(nodeToHide.childIds, id => this.displayedNodeRows.has(id) && !this.hideThoughExpanded.has(id))) {
               // don't hide if it has children that should be shown
               // that is, if it's already displayed and not hidden
-              hideThoughExpanded.remove(id);
+              this.hideThoughExpanded.delete(id);
             }
           }
           /* if (!nodeToHide.expanded) {
-            // hideThoughExpanded.add(id);
+            // this.hideThoughExpanded.add(id);
             this.displayedNodeRows.delete(id); // remove from displayedNodeRows map
           } */
         }
       }
     }
-    hideThoughExpanded.forEach(id => {
+    this.hideThoughExpanded.forEach(id => {
       this.displayedNodeRows.delete(id); // remove from displayedNodeRows map
     });
 
-    // this.displayedRows = sortBy(Object.values(this.displayedRows), d => d.rowPosition);
-    // this.displayedRows = this.displayedRows.filter(row => ! hideThoughExpanded.has(row.concept_id));
-    // this.displayedRows = this.displayedRows.map((d,i) => {d.rowPosition = i; return d;})
-
-    this.hideThoughExpanded = hideThoughExpanded;
     this.arrangeDisplayRows(rootRows);
     return this.displayedRows;
   }
@@ -302,7 +313,7 @@ export class GraphContainer {
     return row;
   }
   arrangeDisplayRows(rows) {
-    this.displayedRows = [];
+    this.displayedRows.splice(0, this.displayedRows.length);
     let nodeOccurrences = {};
     const f = (rows) => {
       for (let row of sortBy(rows, this.sortFunc)) {
@@ -539,6 +550,32 @@ export class GraphContainer {
     return sortBy(this.statsOptions, d => d.displayOrder);
   }
 
+  graphLayout(maxWidth=12) {
+    const layerSpacing = 120;
+    const nodeSpacing = 120;
+    const graph = this.graph.copy();
+    for (let nodeId in this.nodes) {
+      graph.replaceNodeAttributes(nodeId, {...this.nodes[nodeId]});
+    }
+    const layers = computeLayers(graph, maxWidth); // Use a copy to keep the original graph intact
+    // const layers = coffmanGrahamLayering(graph, maxWidth); // Use a copy to keep the original graph intact
+    // that algorithm (both are from chatgpt) doesn't include all the nodes. dropping the ones left
+    //    out of layering for the moment
+    for (let nodeId in setOp('difference', graph.nodes(), flatten(layers))) {
+      graph.dropNode(nodeId);
+    }
+
+    layers.forEach((layer, i) => {
+      layer.forEach((node, j) => {
+        // Here we are simply setting x and y for visualization
+        // Spacing might need adjustments based on your visualization container's size
+        graph.setNodeAttribute(node, 'x', j * nodeSpacing); // Spread nodes horizontally within a layer
+        graph.setNodeAttribute(node, 'y', i * layerSpacing); // Stack layers vertically
+      });
+    });
+    console.log(layers);
+    return graph;
+  }
 }
 
 const GraphContext = createContext(null);
@@ -581,7 +618,7 @@ function setOp(op, setA, setB) {
 function coffmanGrahamLayering(graph, maxWidth) {
   let layers = [];
   let currentLayer = [];
-  let visited = new Set();
+  let visited = new StringSet();
 
   // Function to find nodes with in-degree 0
   function findSources() {

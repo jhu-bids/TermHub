@@ -32,6 +32,7 @@ import {useGraphContainer} from "../state/GraphState";
 import {getResearcherIdsFromCsets, useDataGetter} from "../state/DataGetter";
 import {useSearchParamsState} from "../state/SearchParamsProvider";
 import {LI} from "./AboutPage";
+// import {AddConcepts} from "./AddConcepts";
 
 // TODO: Find concepts w/ good overlap and save a good URL for that
 // TODO: show table w/ hierarchical indent
@@ -285,6 +286,13 @@ export function CsetComparisonPage() {
             <StatsAndOptions {...{gc, gcDispatch, statsOptions, statsOptionsWidth, customStyles}} />
         </FlexibleContainer>,
 
+        <FlexibleContainer key="add-concept" title="Add concepts"
+                           position={panelPosition} countRef={countRef}
+                           style={{width: "90%", resize: "both", }}
+        >
+            {/*<AddConcepts {...{gc, gcDispatch, customStyles}} />*/}
+        </FlexibleContainer>,
+
         /*
         <Button key="distinct"
                 disabled={!nested}
@@ -307,7 +315,7 @@ export function CsetComparisonPage() {
         */
         /*
         <Button key="download-distinct-tsv"
-                variant="outlined"
+                variant="contained"
                 onClick={ () => downloadCSV({codeset_ids, displayedRows, selected_csets, csmi}, true) }
                 sx={{
                   cursor: 'pointer',
@@ -317,8 +325,9 @@ export function CsetComparisonPage() {
           TSV <Download></Download>
         </Button>,
         */
+
         <Button key="download-distinct-csv"
-                variant="outlined"
+                variant="contained"
                 onClick={() => downloadCSV({codeset_ids, displayedRows: gc.wholeHierarchy(), selected_csets, csmi})}
                 sx={{
                     cursor: 'pointer',
@@ -328,12 +337,8 @@ export function CsetComparisonPage() {
             CSV <Download></Download>
         </Button>,
 
-        <FlexibleContainer key="legend" title="Legend" position={panelPosition} countRef={countRef}>
-            <Legend editing={editingCset}/>
-        </FlexibleContainer>,
-
         <Button key="add-cset"
-                variant="outlined"
+                variant="contained"
                 onClick={() => {
                     newCsetDispatch({type: 'createNewCset'});
                 }}
@@ -346,16 +351,14 @@ export function CsetComparisonPage() {
             Create new concept set or version
         </Button>,
 
-        /*
-        <FlexibleContainer key="cset-table" title="Table of concept set being edited"
+        /* <FlexibleContainer key="cset-table" title="Table of concept set being edited"
                            position={panelPosition} countRef={countRef}>
           <CsetsDataTable show_selected={true}
                           min_col={false}
                           clickable={false}
                           showTitle={false}
                           selected_csets={selected_csets} />
-        </FlexibleContainer>,
-        */
+        </FlexibleContainer>, */
     ];
 
     let edited_cset;
@@ -396,6 +399,12 @@ export function CsetComparisonPage() {
             </FlexibleContainer>
         );
     }
+
+    infoPanels.push(
+        <FlexibleContainer key="legend" title="Legend" position={panelPosition} countRef={countRef}>
+            <Legend editing={editingCset}/>
+        </FlexibleContainer>
+    );
 
     const tableProps = {rowData: gc.displayedRows, columns: colDefs, selected_csets, customStyles};
     return (
@@ -1399,10 +1408,10 @@ export function howToSaveStagedChanges(params) {
             </ol>
             <p>
                 Return to this work later by saving or bookmarking <a
-                href={urlWithSessionStorage(params.newCset)} target="_blank" rel="noreferrer">this link</a> (
+                href={urlWithSessionStorage({newCset: params.newCset})} target="_blank" rel="noreferrer">this link</a> (
                 <Button
                     onClick={() => {
-                        navigator.clipboard.writeText(urlWithSessionStorage(params.newCset));
+                        navigator.clipboard.writeText(urlWithSessionStorage({newCset: params.newCset}));
                     }}
                 >
                     Copy to clipboard

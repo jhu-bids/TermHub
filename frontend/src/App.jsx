@@ -7,6 +7,7 @@ might be useful to look at https://mui.com/material-ui/guides/composition/#link
 referred to by https://stackoverflow.com/questions/63216730/can-you-use-material-ui-link-with-react-router-dom-link
 */
 import React, {useEffect} from "react";
+import axios from "axios";
 import {
   // Link, useHref, useParams, BrowserRouter, redirect,
   Outlet,
@@ -33,11 +34,11 @@ import {
   useAlerts,
   useAlertsDispatch,
   NewCsetProvider,
-  useNewCset,
+  useNewCset, urlWithSessionStorage, getSessionStorage, serializeSessionStorage,
 } from "./state/AppState";
 import {GraphProvider} from "./state/GraphState";
 import {SearchParamsProvider, useSearchParamsState} from "./state/SearchParamsProvider";
-import {DataGetterProvider} from "./state/DataGetter";
+import {backend_url, DataGetterProvider} from "./state/DataGetter";
 import { UploadCsvPage } from "./components/UploadCsv";
 // import { DownloadJSON } from "./components/DownloadJSON";
 import MuiAppBar from "./components/MuiAppBar";
@@ -100,9 +101,9 @@ function RoutesContainer() {
 
   useEffect(() => {
     if (sp.sstorage) {
-      // const sstorageString = decompress(sp.sstorage);
-      // const sstorage = JSON.parse(sstorageString);
-      const sstorage = JSON.parse(sp.sstorage);
+      const sstorageString = decompress(sp.sstorage);
+      const sstorage = JSON.parse(sstorageString);
+      // const sstorage = JSON.parse(sp.sstorage);
       Object.entries(sstorage).map(([k,v]) => {
         if (k === 'newCset') {
           // restore alters newCset.definitions (unabbreviates)
@@ -171,6 +172,8 @@ function RoutesContainer() {
 }
 function App(props) {
   const {sp} = useSearchParamsState();
+  const location = useLocation();
+  /*
   const alerts = useAlerts();
   const alertsDispatch = useAlertsDispatch();
   let alertsComponent = null;
@@ -178,6 +181,27 @@ function App(props) {
   if (false && DEPLOYMENT === 'local' || sp.show_alerts) {
     alertsComponent = <AlertMessages alerts={alerts}/>;
   }
+  */
+  useEffect(() => {
+    (async () => {
+      // start or continue session on server
+      const page_url = urlWithSessionStorage({compressed: true});
+      let session_id = sessionStorage.getItem('session_id');
+      let data = { page_url };
+
+      if (!session_id) {
+        const url = backend_url('start-session');
+        let response = await axios.post(url, data);
+        let session_id = response.data.session_id;
+        sessionStorage.setItem('session_id', session_id);
+      } else {
+        data.session_id = session_id;
+        const url = backend_url('continue-session');
+        // let response = await axios(request);
+        axios.post(url, data); // don't need response, right?
+      }
+    })();
+  }, [location]);
   // console.log(DEPLOYMENT);
 
   return (
@@ -187,7 +211,7 @@ function App(props) {
         {/* <ReactQueryDevtools initialIsOpen={false} />*/}
         <MuiAppBar>
         </MuiAppBar>
-        { alertsComponent }
+        {/*{ alertsComponent }*/}
         <Outlet />
         {/* Outlet will render the results of whatever nested route has been clicked/activated. */}
       </div>

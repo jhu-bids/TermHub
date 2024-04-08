@@ -6,7 +6,7 @@ import Typography from "@mui/material/Typography";
 import IconButton from "@mui/material/IconButton";
 import CloseIcon from "@mui/icons-material/Close";
 import Button from "@mui/material/Button";
-import {NEW_CSET_ID, newCsetProvenance, } from "../state/AppState";
+import {NEW_CSET_ID, /* newCsetProvenance, */ } from "../state/AppState";
 import {newCsetAtlasWidget, copyConceptsFromWidget} from "./NewCset";
 import {SOURCE_APPLICATION, SOURCE_APPLICATION_VERSION} from "../env";
 // import Box from '@mui/material/Box';
@@ -120,7 +120,7 @@ export function ConceptSetCard(props) {
     delete display_props["Code set ID"];
     atlasWidget = newCsetAtlasWidget(cset, conceptLookup);
     copyConceptsWidget = copyConceptsFromWidget(cset, selected_csets, csmi, newCsetDispatch);
-    display_props["Provenance"] = newCsetProvenance(cset);
+    // display_props["Provenance"] = newCsetProvenance(cset);
   } else {
     if (cset.provenance) {
       display_props["Provenance"] = cset.provenance;

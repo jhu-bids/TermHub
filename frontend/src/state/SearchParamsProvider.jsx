@@ -120,7 +120,7 @@ export function SearchParamsProvider({children}) {
   if (!sp.codeset_ids) {
     sp.codeset_ids = [];
   }
-  const value = { sp, updateSp: updateSearchParams, changeCodesetIds, getItem, setItem, removeItem, clear, dontStringifySetItem: true, };
+  const value = { sp, updateSp: updateSearchParams, getItem, setItem, removeItem, clear, dontStringifySetItem: true, };
   return (
       <SearchParamsContext.Provider value={value} >
         {children}
