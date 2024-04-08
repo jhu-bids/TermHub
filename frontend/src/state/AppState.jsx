@@ -193,7 +193,7 @@ const newCsetReducer = (state, action) => {
   state = {
     ...state,
     counts: {...state.counts, 'Expression items': Object.keys(state.definitions).length},
-    provenance: `VS-Hub url: ${restoreUrl}`, // not really needed currently. not displaying on newCset card because
+    // provenance: `VS-Hub url: ${restoreUrl}`, // not really needed currently. not displaying on newCset card because
                                               //  it's too ugly, and no current way to save metadata to enclave
   };
   return state
@@ -251,19 +251,32 @@ export function unabbreviateDefinitions(defs) {
   }
   return definitions;
 }
-export function urlWithSessionStorage(newCset) {
+export function getSessionStorage() {
   const sstorage = fromPairs(Object.entries(sessionStorage).map(([k,v]) => ([k, JSON.parse(v)])));
-  newCset = {...newCset};
-  delete newCset.provenance;
-
-  newCset.definitions = abbreviateDefinitions(newCset.definitions);
-  sstorage.newCset = newCset;
+  delete sstorage.AI_buffer;    // added by chrome ai stuff i think...I don't want it
+  delete sstorage.AI_sentBuffer;
+  return sstorage;
+}
+export function serializeSessionStorage({newCset, compress = false}) {
+  const sstorage = getSessionStorage();
+  if (newCset) {
+    newCset = {...newCset};
+    delete newCset.provenance;
+    newCset.definitions = abbreviateDefinitions(newCset.definitions);
+    sstorage.newCset = newCset;
+  }
   let sstorageString = JSON.stringify(sstorage);
-  // sstorageString = compress(sstorageString);
+  if (compress) {
+    sstorageString = compress(sstorageString);
+  }
+  return sstorageString;
+}
+export function urlWithSessionStorage({newCset, compress = false}) {
+  const sstorageString = serializeSessionStorage({newCset, compress});
   return window.location.href + (window.location.search ? '&' : '?') + `sstorage=${sstorageString}`;
 }
 export function newCsetProvenance(newCset) {
-  return `${SOURCE_APPLICATION} (v${SOURCE_APPLICATION_VERSION}) link: ${urlWithSessionStorage(newCset)}`;
+  return `${SOURCE_APPLICATION} (v${SOURCE_APPLICATION_VERSION}) link: ${urlWithSessionStorage({newCset})}`;
 }
 export function newCsetAtlasJson(cset, conceptLookup) {
   if (isEmpty(cset.definitions)) {

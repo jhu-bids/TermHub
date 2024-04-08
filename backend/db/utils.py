@@ -31,6 +31,7 @@ from sqlalchemy.exc import OperationalError, ProgrammingError
 from sqlalchemy.sql import text
 from sqlalchemy.sql.elements import TextClause
 from typing import Any, Dict, Set, Tuple, Union, List
+from uuid import uuid4
 
 DB_DIR = os.path.dirname(os.path.realpath(__file__))
 PROJECT_ROOT = Path(DB_DIR).parent.parent
@@ -48,6 +49,24 @@ DDL_JINJA_PATH_PATTERN = os.path.join(DB_DIR, 'ddl-*.jinja.sql')
 DEBUG = False
 DB = CONFIG["db"]
 SCHEMA = CONFIG["schema"]
+
+
+def log_concepts(session_id: int, concept_ids: List[int]):
+    # Construct the SQL command with ON CONFLICT DO NOTHING to avoid inserting duplicates
+    # Usage example
+    # log_concepts(1, [101, 102, 103])
+    cmd = text("""
+        INSERT INTO session_concept (session_id, concept_id)
+        VALUES (:session_id, :concept_ids)
+        ON CONFLICT (session_id, concept_id) DO NOTHING
+    """)
+
+    # Prepare the list of dictionaries for bulk insert
+    data = [{'session_id': session_id, 'concept_id': concept_id} for concept_id in concept_ids]
+
+    # Execute the batch insert
+    with get_db_connection() as conn:
+        conn.execute(cmd, data)
 
 
 def extract_keys_from_nested_dict(d: Dict[str, Dict]) -> List[str]:
@@ -407,7 +426,7 @@ def sql_query(
     """Run a sql query with optional params, fetching records.
     https://stackoverflow.com/a/39414254/1368860:
     query = "SELECT * FROM my_table t WHERE t.id = ANY(:ids);"
-    conn.execute(sqlalchemy.text(query), ids=some_ids)
+    con.execute(sqlalchemy.text(query), ids=some_ids)
     """
     query = text(query) if not isinstance(query, TextClause) else query
     try:
