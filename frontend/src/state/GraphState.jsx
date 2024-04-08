@@ -408,6 +408,9 @@ export class GraphContainer {
 
     layers.forEach((layer, i) => {
       layer.forEach((node, j) => {
+        graph.setNodeAttribute(node, 'size', 4);
+        graph.setNodeAttribute(node, 'position', j); // Spread nodes horizontally within a layer
+        graph.setNodeAttribute(node, 'layer', i); // Stack layers vertically
         // Here we are simply setting x and y for visualization
         // Spacing might need adjustments based on your visualization container's size
         graph.setNodeAttribute(node, 'x', j * nodeSpacing); // Spread nodes horizontally within a layer

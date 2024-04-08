@@ -153,6 +153,18 @@ DERIVED_TABLE_DEPENDENCY_MAP = {
     # # - objects
     # 'researcher': [],
 
+    # Public schema
+    # todo? Probably not a use case for adding such tables here. As of 2024/04/07, public tables/views are:
+    # api_runs
+    # apijoin
+    # apirruns_grouped
+    # apiruns_plus
+    # codeset_comparison
+    # counts
+    # counts_runs
+    # fetch_audit
+    # ip_info
+    # manage
 }
 # DIRECT_DEPENDENT_TABLES: Keys are tables. Values are tables that depend on the table in the key. That is to say, when
 # the table in the key is updated, the tables in the values under that key also need to be updated. Inversion of

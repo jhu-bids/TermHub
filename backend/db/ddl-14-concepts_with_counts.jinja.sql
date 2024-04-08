@@ -20,5 +20,5 @@ CREATE TABLE IF NOT EXISTS {{schema}}concepts_with_counts{{optional_suffix}} AS 
 
 CREATE INDEX cc_idx1{{optional_index_suffix}} ON {{schema}}concepts_with_counts{{optional_suffix}}(concept_id);
 
--- the following drop table is causing errors with the initialize script
--- DROP TABLE {{schema}}concepts_with_counts_ungrouped{{optional_suffix}} CASCADE;
+-- Index cwcgin takes some time to complete
+CREATE INDEX cwcgin{{optional_index_suffix}} ON concepts_with_counts{{optional_suffix}} USING gin (concept_name gin_trgm_ops);

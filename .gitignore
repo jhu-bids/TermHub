@@ -38,6 +38,8 @@ backup/
 .vscode/
 *.code-workspace
 *.dmp
+output/
+/misc/amia_paper_2024/input/
 
 # Frontend
 # - JS: CreateReactApp
@@ -63,6 +65,7 @@ node_modules
 npm-debug.log*
 yarn-debug.log*
 yarn-error.log*
+misc/
 
 # Test
 frontend/playwright-report/index.html

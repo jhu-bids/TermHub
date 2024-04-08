@@ -1,6 +1,4 @@
 import React, { FC, useEffect, useState, useMemo } from "react";
-// import seedrandom from "seedrandom";
-import { faker, Faker } from "@faker-js/faker";
 import { SigmaContainer, useSigma, useLoadGraph, useRegisterEvents } from "@react-sigma/core";
 import { useLayoutCircular } from "@react-sigma/layout-circular";
 import Graph from "graphology";
@@ -19,6 +17,7 @@ import {useGraphContainer} from "../state/GraphState";
 // import {useSeedRandom} from "react-seed-random";
 export const ConceptGraph/*: React.FC*/ = () => {
   // const sigma = useSigma();
+
   const {sp} = useSearchParamsState();
   let {codeset_ids=[], cids=[], use_example=false} = sp;
   const dataGetter = useDataGetter();
