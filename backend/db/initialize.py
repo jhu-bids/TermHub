@@ -3,6 +3,9 @@
 1. Initialize the database if it doesn't exist
 2. Download CSV files from the enclave
 3. Load the data from the CSV files into the database
+
+todo's (minor)
+  1. Consider moving DDL strings here into separate DDL files in backend/db/
 """
 import os
 import sys
@@ -13,8 +16,6 @@ from sqlalchemy.engine.base import Connection
 
 THIS_DIR = os.path.dirname(__file__)
 PROJECT_ROOT = Path(THIS_DIR).parent.parent
-# todo: why is this necessary in this case and almost never otherwise?
-# https://stackoverflow.com/questions/33862963/python-cant-find-my-module
 sys.path.insert(0, str(PROJECT_ROOT))
 from backend.db.config import CONFIG
 from backend.db.load import download_artefacts, indexes_and_derived_tables, initialize_test_schema, seed
@@ -22,25 +23,29 @@ from backend.db.utils import database_exists, run_sql, list_schema_objects, get_
 
 SCHEMA = CONFIG['schema']
 
-DDL_MANAGE = """CREATE TABLE IF NOT EXISTS public.manage (
-                    key text not null,
-                    value text);"""
+# DDL: Tables
+DDL_MANAGE = """
+    CREATE TABLE IF NOT EXISTS public.manage (
+    key text not null,
+    value text);"""
 
-DDL_COUNTS = """CREATE TABLE IF NOT EXISTS public.counts (
-                    timestamp text not null,
-                    date text,
-                    schema text not null,
-                    "table" text not null,
-                    count integer not null,
-                    delta integer not null);"""
+DDL_COUNTS = """
+    CREATE TABLE IF NOT EXISTS public.counts (
+    timestamp text not null,
+    date text,
+    schema text not null,
+    "table" text not null,
+    count integer not null,
+    delta integer not null);"""
 
-DDL_COUNTS_RUNS = """CREATE TABLE IF NOT EXISTS public.counts_runs (
-                        timestamp text not null,
-                        date text,
-                        schema text not null,
-                        note text);"""
+DDL_COUNTS_RUNS = """
+    CREATE TABLE IF NOT EXISTS public.counts_runs (
+    timestamp text not null,
+    date text,
+    schema text not null,
+    note text);"""
 
-# fetch_audit: table schema
+# - fetch_audit: table schema
 #   table: text; examples: code_sets | concept_set_container | concept_set_members | concept_set_version_item
 #   primary_key: text; comma-delimited: this should store the value of the keys, e.g. codeset_id 12345, concept_id 5678
 #     would be 12345,5678
@@ -49,24 +54,39 @@ DDL_COUNTS_RUNS = """CREATE TABLE IF NOT EXISTS public.counts_runs (
 #   success_datetime: timestamp; initially null, used by code that updates the derived tables.
 #   comment: text
 # todo: change comment to text[]?
-DDL_FETCH_AUDIT = """CREATE TABLE IF NOT EXISTS public.fetch_audit (
-                        "table" text not null,
-                        primary_key text not null,
-                        status_initially text not null,
-                        success_datetime timestamp with time zone,
-                        comment text);"""
+DDL_FETCH_AUDIT = """
+    CREATE TABLE IF NOT EXISTS public.fetch_audit (
+    "table" text not null,
+    primary_key text not null,
+    status_initially text not null,
+    success_datetime timestamp with time zone,
+    comment text);"""
 
-DDL_CSET_COMPARE = """CREATE TABLE IF NOT EXISTS public.codeset_comparison (
-                        fetch_time text,
-                        orig_codeset_id integer,
-                        new_codeset_id integer,
-                        rpt json
-                        );"""
+DDL_CSET_COMPARE = """
+CREATE TABLE IF NOT EXISTS public.codeset_comparison (
+    fetch_time text,
+    orig_codeset_id integer,
+    new_codeset_id integer,
+    rpt json);"""
 
-DDL_IP_INFO = """CREATE TABLE IF NOT EXISTS public.ip_info (
-                        ip text,
-                        info json
-                        );"""
+DDL_IP_INFO = """
+CREATE TABLE IF NOT EXISTS public.ip_info (
+    ip text,
+    info json);"""
+
+# DDL: PostgreSQL extensions
+#  Extension name | Description                   | Utilized as of 2024/04/07
+#  PG_TRGM        | Trigrams                      | Yes
+#  BTREE_GIN      | Generalized Inverted Index    | No
+#  BTREE_GIST     | Generalized Search Tree Index | No
+# Enabling extensions requires two steps:
+# 1. Enable them in the cloud, e.g. Azure: https://portal.azure.com/#@live.johnshopkins.edu/resource/subscriptions/fe24df19-d251-4821-9a6f-f037c93d7e47/resourceGroups/JH-POSTGRES-RG/providers/Microsoft.DBforPostgreSQL/flexibleServers/termhub/serverParameters
+# 2. Run SQL: CREATE EXTENSION <EXTENSION>;
+# If, when running initialize() there is an error because can't create the extension, try step (1) and enable in Azure.
+DDL_EXTENSIONS = """
+    CREATE EXTENSION PG_TRGM;
+    CREATE EXTENSION BTREE_GIN;
+    CREATE EXTENSION BTREE_GIST;"""
 
 def create_database(con: Connection, schema: str):
     """Create the database"""
@@ -85,6 +105,7 @@ def create_database(con: Connection, schema: str):
         run_sql(con2, DDL_FETCH_AUDIT)
         run_sql(con2, DDL_CSET_COMPARE)
         run_sql(con2, DDL_IP_INFO)
+        run_sql(con2, DDL_EXTENSIONS)
         run_sql(con, f'CREATE SCHEMA IF NOT EXISTS {schema};')
 
 
