@@ -100,6 +100,7 @@ STANDALONE_TABLES = [
 #  the dependency tables are updated, the dependent table also needs to be updated. But some tables in here have
 #  dependencies but do not meet that use case. for example, 'concept_set_members_with_dups' depends on
 #  'concept_set_members', but that table is temporary.
+# - Last updated: 2024/04/07
 # todo: are the 'module names' part of the DDL file names the same as the keys in this dictionary? If so, write that
 #  down here as a comment. Could be useful for dynamically selecting the DDL files.
 DERIVED_TABLE_DEPENDENCY_MAP = {
@@ -165,6 +166,8 @@ DERIVED_TABLE_DEPENDENCY_MAP = {
     # fetch_audit
     # ip_info
     # manage
+    # sessions
+    # session_concept
 }
 # DIRECT_DEPENDENT_TABLES: Keys are tables. Values are tables that depend on the table in the key. That is to say, when
 # the table in the key is updated, the tables in the values under that key also need to be updated. Inversion of
