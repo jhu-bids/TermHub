@@ -125,6 +125,8 @@ def seed(
             local=local)
 
 
+# TODO: This function and more needs to be renamed and checked for any bugs. This is no longer just about derived
+#  tables. See: https://github.com/jhu-bids/TermHub/issues/752
 def make_derived_tables_and_more(
     con: Connection, schema_name: str, skip_if_updated_within_hours: int = None, start_step: int = None, local=False
 ):
