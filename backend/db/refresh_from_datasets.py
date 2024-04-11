@@ -19,7 +19,7 @@ BACKEND_DIR = os.path.join(DB_DIR, '..')
 PROJECT_ROOT = os.path.join(BACKEND_DIR, '..')
 sys.path.insert(0, str(PROJECT_ROOT))
 from backend.db.config import CONFIG
-from backend.db.load import load, indexes_and_derived_tables
+from backend.db.load import load, make_derived_tables_and_more
 from backend.db.utils import check_if_updated, current_datetime, get_db_connection, run_sql, update_db_status_var
 from enclave_wrangler.datasets import download_datasets
 from enclave_wrangler.objects_api import download_favorite_objects
@@ -38,7 +38,7 @@ def reset_and_update_db(
     local = use_local_db
     if run_final_ddl_only:
         with get_db_connection(local=local) as con:
-            indexes_and_derived_tables(con, schema, local=local)
+            make_derived_tables_and_more(con, schema, local=local)
         print('INFO: Indexes and derived tables complete.')
         return
 

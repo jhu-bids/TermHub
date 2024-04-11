@@ -363,7 +363,7 @@ def get_bidirectional_csets_sets(con: Connection = None) -> Tuple[Set[int], Set[
     return db_codeset_ids, enclave_codeset_ids
 
 
-def find_missing_csets_within_threshold(age_minutes=30, con: Connection = None) -> Set[int]:
+def find_missing_csets_within_threshold(age_minutes=30, con: Connection = None) -> Dict[int, Dict]:
     """Find missing csets within a certain threshold, e.g. if older than 30 minutes."""
     # Set 1 of 2: In our database
     con = con if con else get_db_connection(schema=SCHEMA)
@@ -375,10 +375,13 @@ def find_missing_csets_within_threshold(age_minutes=30, con: Connection = None) 
     # Determine within threshold
     missing_ids: Set[int] = enclave_codeset_ids.difference(db_codeset_ids)
     missing: List[Dict] = [enclave_codesets_lookup[cset_id] for cset_id in missing_ids]
-    missing_within_threshold: Set[int] = set([
-        cset['codesetId'] for cset in missing
-        if dp.parse(cset['createdAt']) > (datetime.now().astimezone(pytz.utc) - timedelta(minutes=age_minutes))
-    ])
+    missing_within_threshold: Dict[int, Dict] = {}
+    for cset in missing:
+        delta: timedelta = datetime.now().astimezone(pytz.utc) - dp.parse(cset['createdAt'])
+        age_minutes_i: float = delta.total_seconds() / 60
+        if age_minutes_i > age_minutes:
+            entry = cset | {'age_minutes': age_minutes_i}
+            missing_within_threshold[cset['codesetId']] = entry
 
     return missing_within_threshold
 
