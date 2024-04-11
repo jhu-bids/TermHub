@@ -52,7 +52,7 @@ class TestDatabaseCurrent(unittest.TestCase):
         sub_msg = 'CSET_ID | DATETIME_CREATED_GMT | AGE_IN_MINUTES\n' + \
                   '\n'.join([f'{cset_id} | {cset["createdAt"]} | {cset["age_minutes"]}' for cset_id, cset in missing.items()]) + \
                   '\n\nCurrent datetime (GMT): ' + str(datetime.now().astimezone(pytz.utc))
-        self.assertEqual(missing, set(), msg=FAIL_MSG.format(sub_msg))
+        self.assertEqual(missing, {}, msg=FAIL_MSG.format(sub_msg))
 
     def test_all_termhub_csets_in_enclave(self):
         """Test that TermHub concept sets are in the Enclave"""
