@@ -10,6 +10,7 @@ pandasql
 pyarrow
 PyMySQL[rsa]
 python-multipart
+pytz
 requests
 sanitize-filename
 sqlalchemy

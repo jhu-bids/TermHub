@@ -6,8 +6,11 @@ Can run all tests in all files by running this from root of TermHub:
 import os
 import sys
 import unittest
+from datetime import datetime
 from pathlib import Path
-from typing import Set
+from typing import Dict, Set
+
+import pytz
 
 TEST_DIR = Path(os.path.abspath(os.path.dirname(__file__)))
 PROJECT_ROOT = TEST_DIR.parent
@@ -45,8 +48,11 @@ class TestDatabaseCurrent(unittest.TestCase):
         """Test that all Enclave concept sets are in TermHub, within a certain threshold.
 
         We considered an alternative threshold 'number of csets' rather than age, but age seems better."""
-        missing_ids_from_db: Set[int] = find_missing_csets_within_threshold(age_minutes)
-        self.assertEqual(missing_ids_from_db, set(), msg=FAIL_MSG.format(missing_ids_from_db))
+        missing: Dict[int, Dict] = find_missing_csets_within_threshold(age_minutes)
+        sub_msg = 'CSET_ID | DATETIME_CREATED_GMT | AGE_IN_MINUTES\n' + \
+                  '\n'.join([f'{cset_id} | {cset["createdAt"]} | {cset["age_minutes"]}' for cset_id, cset in missing.items()]) + \
+                  '\n\nCurrent datetime (GMT): ' + str(datetime.now().astimezone(pytz.utc))
+        self.assertEqual(missing, set(), msg=FAIL_MSG.format(sub_msg))
 
     def test_all_termhub_csets_in_enclave(self):
         """Test that TermHub concept sets are in the Enclave"""
