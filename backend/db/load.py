@@ -125,10 +125,15 @@ def seed(
             local=local)
 
 
-def indexes_and_derived_tables(
+def make_derived_tables_and_more(
     con: Connection, schema_name: str, skip_if_updated_within_hours: int = None, start_step: int = None, local=False
 ):
-    """Create table indexes and derived tables
+    """Runs DDL files, creating derived tables, as well as various other things, including:
+    - setting column types
+    - creating functions
+    - creating indexes
+    - settign primary keys
+    - creating extra, meta/management tables in the 'public' schema
 
     todo: print updates: (i) when picking up where it left off, don't need to print "module n of n" if all steps in that
      module have already been completed; pick up on the module it left off on (ii) for that module, put
@@ -197,7 +202,7 @@ def load(
     with get_db_connection(local=use_local_db) as con:
         # download_artefacts(force_download_if_exists=False)
         seed(con, schema, clobber, skip_if_updated_within_hours, local=use_local_db)
-        indexes_and_derived_tables(con, schema, skip_if_updated_within_hours, local=use_local_db)
+        make_derived_tables_and_more(con, schema, skip_if_updated_within_hours, local=use_local_db)
 
 
 # Common operations

@@ -18,7 +18,7 @@ THIS_DIR = os.path.dirname(__file__)
 PROJECT_ROOT = Path(THIS_DIR).parent.parent
 sys.path.insert(0, str(PROJECT_ROOT))
 from backend.db.config import CONFIG
-from backend.db.load import download_artefacts, indexes_and_derived_tables, initialize_test_schema, seed
+from backend.db.load import download_artefacts, make_derived_tables_and_more, initialize_test_schema, seed
 from backend.db.utils import database_exists, run_sql, list_schema_objects, get_db_connection, DB
 
 SCHEMA = CONFIG['schema']
@@ -131,7 +131,7 @@ def initialize(
         if optimization_experiment == 'n3c_no_rxnorm':
             delete_rxnorm_extension_records(con)
 
-        indexes_and_derived_tables(con, schema, local=local)  # , start_step=30)
+        make_derived_tables_and_more(con, schema, local=local)  # , start_step=30)
 
         if test_schema:
             initialize_test_schema(con, schema, local=local)
@@ -155,8 +155,6 @@ def delete_rxnorm_extension_records(con: Connection):
                DELETE FROM concept_set_version_item
                WHERE concept_id IN (SELECT concept_id FROM rxnorm_ext_concepts)
             """)
-
-
 
 
 def cli():
