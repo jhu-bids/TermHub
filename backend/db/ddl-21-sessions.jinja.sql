@@ -20,4 +20,4 @@ CREATE TABLE public.session_concept{{optional_suffix}} (
         ON CONFLICT (session_id, concept_id) DO NOTHING
  */
 
-CREATE INDEX session_conceptidx{{optional_index_suffix}} ON {{schema}}session_concept{{optional_suffix}}(session_id, concept_id);
+CREATE INDEX session_conceptidx{{optional_index_suffix}} ON public.session_concept{{optional_suffix}}(session_id, concept_id);
