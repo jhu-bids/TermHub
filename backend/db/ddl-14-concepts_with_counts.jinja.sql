@@ -22,3 +22,8 @@ CREATE INDEX cc_idx1{{optional_index_suffix}} ON {{schema}}concepts_with_counts{
 
 -- Index cwcgin takes some time to complete
 CREATE INDEX cwcgin{{optional_index_suffix}} ON concepts_with_counts{{optional_suffix}} USING gin (concept_name gin_trgm_ops);
+
+--  this query will go fast with the index above and slow otherwise
+--       SELECT *
+--       FROM concepts_with_counts
+--       WHERE concept_name ILIKE '%test%'

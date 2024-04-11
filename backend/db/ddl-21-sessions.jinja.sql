@@ -21,4 +21,3 @@ CREATE TABLE {{schema}}session_concept{{optional_suffix}} (
  */
 
 CREATE INDEX session_conceptidx{{optional_index_suffix}} ON {{schema}}session_concept{{optional_suffix}}(session_id, concept_id);
-CREATE INDEX session_conceptidx2{{optional_index_suffix}} ON {{schema}}session_concept{{optional_suffix}}(session_id, concept_id);

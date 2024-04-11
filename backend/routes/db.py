@@ -264,6 +264,12 @@ async def update_jsonb_data(session: AsyncSession, table, primary_key, new_data)
 
 @router.get("/search/")
 async def search(session_id: str, q: str, page: int = 1, per_page: int = 10):
+    """
+        How to do this...
+        do the query with the q string
+        save that query with all the ids of the results to a cache {q: ids}
+        send the appropriate page of those results
+    """
     async with get_db_connection() as con:
         result = await con.execute(
             select([sessions_table.c.sent_ids]).where(sessions_table.c.session_id == session_id))

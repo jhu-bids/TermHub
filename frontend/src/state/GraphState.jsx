@@ -402,35 +402,6 @@ export class GraphContainer {
   graphCopy() {
     return this.graph.copy();
   }
-  graphLayout(maxWidth=12) {
-    const layerSpacing = 120;
-    const nodeSpacing = 120;
-    const graph = this.graph.copy();
-    for (let nodeId in this.nodes) {
-      graph.replaceNodeAttributes(nodeId, {...this.nodes[nodeId]});
-    }
-    const layers = computeLayers(graph, maxWidth); // Use a copy to keep the original graph intact
-    // const layers = coffmanGrahamLayering(graph, maxWidth); // Use a copy to keep the original graph intact
-    // that algorithm (both are from chatgpt) doesn't include all the nodes. dropping the ones left
-    //    out of layering for the moment
-    for (let nodeId in setOp('difference', graph.nodes(), flatten(layers))) {
-      graph.dropNode(nodeId);
-    }
-
-    layers.forEach((layer, i) => {
-      layer.forEach((node, j) => {
-        graph.setNodeAttribute(node, 'size', 4);
-        graph.setNodeAttribute(node, 'position', j); // Spread nodes horizontally within a layer
-        graph.setNodeAttribute(node, 'layer', i); // Stack layers vertically
-        // Here we are simply setting x and y for visualization
-        // Spacing might need adjustments based on your visualization container's size
-        graph.setNodeAttribute(node, 'x', j * nodeSpacing); // Spread nodes horizontally within a layer
-        graph.setNodeAttribute(node, 'y', i * layerSpacing); // Stack layers vertically
-      });
-    });
-    console.log(layers);
-    return graph;
-  }
 
   setStatsOptions() {
     const displayedConcepts = this.displayedRows || []; // first time through, don't have displayed rows yet
@@ -567,6 +538,9 @@ export class GraphContainer {
 
     layers.forEach((layer, i) => {
       layer.forEach((node, j) => {
+        graph.setNodeAttribute(node, 'size', 4);
+        graph.setNodeAttribute(node, 'position', j); // Spread nodes horizontally within a layer
+        graph.setNodeAttribute(node, 'layer', i); // Stack layers vertically
         // Here we are simply setting x and y for visualization
         // Spacing might need adjustments based on your visualization container's size
         graph.setNodeAttribute(node, 'x', j * nodeSpacing); // Spread nodes horizontally within a layer

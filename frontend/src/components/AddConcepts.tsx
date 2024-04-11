@@ -20,6 +20,9 @@ interface Concept {
   readonly distinct_person_cnt: string;
 }
 
+// use data table with pagination?
+//  https://react-data-table-component.netlify.app/?path=/docs/pagination-remote--docs
+
 export function AddConcepts() {
   const dataGetter = useDataGetter();
 
@@ -27,7 +30,7 @@ export function AddConcepts() {
 
   const fetchConcepts = (inputValue: string) => {
     return concepts.filter((i) =>
-        i.label.toLowerCase().includes(inputValue.toLowerCase())
+        i.concept_name.toLowerCase().includes(inputValue.toLowerCase())
     );
   };
 
