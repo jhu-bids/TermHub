@@ -17,8 +17,7 @@ sys.path.insert(0, str(PROJECT_ROOT))
 from enclave_wrangler.objects_api import concept_set_members__from_csets_and_members_to_db, \
     fetch_cset_and_member_objects
 from backend.db.utils import SCHEMA, fetch_status_set_success, get_db_connection, reset_temp_refresh_tables, \
-    select_failed_fetches, \
-    refresh_derived_tables
+    select_failed_fetches, refresh_derived_tables
 
 DESC = "Resolve any failures resulting from fetching data from the Enclave's objects API."
 

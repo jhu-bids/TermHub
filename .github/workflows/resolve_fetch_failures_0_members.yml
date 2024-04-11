@@ -2,7 +2,7 @@ name: "Resolve fetch failures: New csets w/ 0 members"
 
 on:
   schedule:
-    - cron: '0 7 * * *'  # every day 7am GMT (2-3am EST/EDT)
+    - cron: '10 5 * * *'  # every day 5:10am GMT (12:10/1:10am EST/EDT)
   workflow_dispatch:
     inputs:
       version_id:
