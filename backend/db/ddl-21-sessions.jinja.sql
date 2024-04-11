@@ -1,15 +1,15 @@
-DROP TABLE IF EXISTS {{schema}}sessions{{optional_suffix}} CASCADE;
+DROP TABLE IF EXISTS public.sessions{{optional_suffix}} CASCADE;
 
-CREATE TABLE IF NOT EXISTS {{schema}}sessions{{optional_suffix}} (
+CREATE TABLE IF NOT EXISTS public.sessions{{optional_suffix}} (
     session_id integer PRIMARY KEY,
     screen_log text[],
     call_log text[],
     last_access TIMESTAMP WITH TIME ZONE DEFAULT CURRENT_TIMESTAMP
 );
 
-CREATE INDEX sessionidx{{optional_index_suffix}} ON {{schema}}sessions{{optional_suffix}}(session_id);
+CREATE INDEX sessionidx{{optional_index_suffix}} ON public.sessions{{optional_suffix}}(session_id);
 
-CREATE TABLE {{schema}}session_concept{{optional_suffix}} (
+CREATE TABLE public.session_concept{{optional_suffix}} (
     session_id integer,
     concept_id integer,
     UNIQUE(session_id, concept_id)
