@@ -9,12 +9,11 @@ from argparse import ArgumentParser
 from datetime import datetime
 from typing import Dict, List, Set, Tuple
 
-from backend.utils import call_github_action
-
 DB_DIR = os.path.dirname(os.path.realpath(__file__))
 BACKEND_DIR = os.path.join(DB_DIR, "..")
 PROJECT_ROOT = os.path.join(BACKEND_DIR, "..")
 sys.path.insert(0, str(PROJECT_ROOT))
+from backend.utils import call_github_action
 from enclave_wrangler.objects_api import concept_set_members__from_csets_and_members_to_db, \
     fetch_cset_and_member_objects
 from backend.db.utils import SCHEMA, fetch_status_set_success, get_db_connection, reset_temp_refresh_tables, \
