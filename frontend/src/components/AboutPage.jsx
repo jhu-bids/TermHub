@@ -109,7 +109,7 @@ export function AboutPage() {
       console.log('Triggering database refresh and clearing cache so new data will be fetched when ready');
       // empty cache immediately, and then again after the db-refresh call is done
       dataCache.emptyCache();
-      await dataGetter.axiosCall('db-refresh', {backend: true, verbose: false, title: 'Refreshing VS-Hub database from Enclave'});
+      await dataGetter.axiosCall('db-refresh');
       dataCache.emptyCache();
     } catch (error) {
       console.error('Error:', error);
