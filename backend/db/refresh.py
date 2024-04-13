@@ -7,6 +7,9 @@ from datetime import datetime, timedelta
 from typing import Union
 import dateutil.parser as dp
 
+from backend.db.resolve_fetch_failures_0_members import resolve_failures_0_members_if_exist
+from backend.utils import call_github_action
+
 DB_DIR = os.path.dirname(os.path.realpath(__file__))
 BACKEND_DIR = os.path.join(DB_DIR, '..')
 PROJECT_ROOT = os.path.join(BACKEND_DIR, '..')
@@ -28,7 +31,8 @@ SINCE_ERR = '--since is more recent than the database\'s record of last refresh,
 # todo: What if 'since' is passed, but it is not the same date or before 'last_updated' in db? should print warning
 def refresh_db(
     since: Union[datetime, str] = None, use_local_db=False,  schema: str = CONFIG['schema'],
-    force_non_contiguity=False, buffer_hours=0
+    force_non_contiguity=False, buffer_hours=0, resolve_fetch_failures_0_members=True,
+    resolve_fetch_failures_excess_items=False
 ):
     """Refresh the database
 
@@ -38,6 +42,9 @@ def refresh_db(
     when the last refresh occurred, this will result in there being a gap in which any changes that occurred during that
     time will not be fetched, resulting in an incomplete database. Therefore by default this will raise an error unless
     this is set to True.
+    todo: resolve_fetch_failures_excess_items currently set to False until the following issues are addressed:
+     - https://github.com/jhu-bids/TermHub/issues/499
+     - https://github.com/jhu-bids/TermHub/issues/518
     todo: Can update update_db_status_var() so that it can accept optional param 'con' to improve performance.
     todo: refactor `new_request_while_refreshing` usage for brevity in code and DB: Rather than checking a variable
      new_request_while_refreshing , at the end of the refresh, if the last_refresh_request has changed / is newer than
@@ -70,7 +77,9 @@ def refresh_db(
         # Refresh db
         try:
             # todo: when ready, will use all_new_objects_enclave_to_db() instead of csets_and_members_enclave_to_db()
+            # - csets_and_members_enclave_to_db(): Runs the refresh
             new_data: bool = csets_and_members_enclave_to_db(con, since, schema=schema)
+
             update_db_status_var('last_refresh_success', end_time, local)
             update_db_status_var('last_refresh_result', 'success', local)
         except Exception as err:
@@ -83,8 +92,14 @@ def refresh_db(
             counts_docs()
             raise err
         finally:
+            # Update status vars
             update_db_status_var('last_refresh_exited', current_datetime(), local)
             update_db_status_var('refresh_status', 'inactive', local)
+            # Routine: Check for and resolve any open fetch failures
+            if resolve_fetch_failures_excess_items:
+                call_github_action('resolve-fetch-failures-excess-items')
+            if resolve_fetch_failures_0_members:
+                resolve_failures_0_members_if_exist(local)
 
     if new_data:
         print('DB refresh complete.')
