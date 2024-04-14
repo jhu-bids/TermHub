@@ -7,17 +7,16 @@ from datetime import datetime, timedelta
 from typing import Union
 import dateutil.parser as dp
 
-from backend.db.resolve_fetch_failures_0_members import resolve_failures_0_members_if_exist
-from backend.utils import call_github_action
-
 DB_DIR = os.path.dirname(os.path.realpath(__file__))
 BACKEND_DIR = os.path.join(DB_DIR, '..')
 PROJECT_ROOT = os.path.join(BACKEND_DIR, '..')
 sys.path.insert(0, str(PROJECT_ROOT))
 from backend.db.analysis import counts_update,counts_docs
 from backend.db.config import CONFIG
+from backend.db.resolve_fetch_failures_0_members import resolve_failures_0_members_if_exist
 from backend.db.utils import current_datetime, get_db_connection, is_refresh_active, last_refresh_timestamp, \
     reset_temp_refresh_tables, tz_datetime_str, update_db_status_var, check_db_status_var, delete_db_status_var
+from backend.utils import call_github_action
 from enclave_wrangler.objects_api import csets_and_members_enclave_to_db
 
 DESC = 'Refresh TermHub database w/ newest updates from the Enclave using the objects API.'
