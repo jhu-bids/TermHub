@@ -197,6 +197,7 @@ def make_derived_tables_and_more(
     update_db_status_var(last_completed_key, str(current_datetime()), local)
 
 
+# todo: this has no usages. it used to be used by initialize(), but no more. remove?
 def load(
     schema: str = SCHEMA, clobber=False, skip_if_updated_within_hours: int = None, use_local_db=False
 ):

@@ -110,6 +110,25 @@ def create_database(con: Connection, schema: str):
         run_sql(con, f'CREATE SCHEMA IF NOT EXISTS {schema};')
 
 
+def _delete_rxnorm_extension_records(con: Connection):
+    """Delete all concepts in the RxNorm Extension vocabulary
+        This is for issue #514 and
+        https://github.com/jhu-bids/TermHub/tree/perf-tests/frontend/tests#no-rxnorm-extension-codes"""
+    run_sql(con, """
+               SELECT concept_id
+               INTO rxnorm_ext_concepts
+               FROM concept
+               WHERE vocabulary_id = 'RxNorm Extension'
+            """)
+    run_sql(con, """
+               DELETE FROM concept_set_members
+               WHERE concept_id IN (SELECT concept_id FROM rxnorm_ext_concepts)
+            """)
+    run_sql(con, """
+               DELETE FROM concept_set_version_item
+               WHERE concept_id IN (SELECT concept_id FROM rxnorm_ext_concepts)
+            """)
+
 def initialize(
     clobber=False, replace_rule=None, schema: str = SCHEMA, local=False, create_db=False, download=True, download_force_if_exists=False,
     test_schema=True, test_schema_only=False, hours_threshold_for_updates=24, optimization_experiment=None
@@ -130,32 +149,12 @@ def initialize(
         seed(con, schema, clobber, replace_rule, hours_threshold_for_updates, local=local)
 
         if optimization_experiment == 'n3c_no_rxnorm':
-            delete_rxnorm_extension_records(con)
+            _delete_rxnorm_extension_records(con)
 
         make_derived_tables_and_more(con, schema, local=local)  # , start_step=30)
 
         if test_schema:
             initialize_test_schema(con, schema, local=local)
-
-
-def delete_rxnorm_extension_records(con: Connection):
-    """Delete all concepts in the RxNorm Extension vocabulary
-        This is for issue #514 and
-        https://github.com/jhu-bids/TermHub/tree/perf-tests/frontend/tests#no-rxnorm-extension-codes"""
-    run_sql(con, """
-               SELECT concept_id
-               INTO rxnorm_ext_concepts
-               FROM concept
-               WHERE vocabulary_id = 'RxNorm Extension'
-            """)
-    run_sql(con, """
-               DELETE FROM concept_set_members
-               WHERE concept_id IN (SELECT concept_id FROM rxnorm_ext_concepts)
-            """)
-    run_sql(con, """
-               DELETE FROM concept_set_version_item
-               WHERE concept_id IN (SELECT concept_id FROM rxnorm_ext_concepts)
-            """)
 
 
 def cli():
