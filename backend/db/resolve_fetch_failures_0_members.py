@@ -8,7 +8,7 @@ import time
 from argparse import ArgumentParser
 from copy import copy, deepcopy
 from datetime import datetime
-from typing import Dict, List, Set, Tuple
+from typing import Dict, List, Set, Tuple, Union
 
 DB_DIR = os.path.dirname(os.path.realpath(__file__))
 BACKEND_DIR = os.path.join(DB_DIR, "..")
@@ -47,11 +47,13 @@ def resolve_failures_0_members_if_exist(use_local_db=False, via_github_action=Tr
         resolve_fetch_failures_0_members(use_local_db=use_local_db)
 
 
-def get_failures_0_members(version_id: int = None, use_local_db=False) -> Tuple[Set[int], Dict[str, Dict]]:
+def get_failures_0_members(version_id: Union[int, List[int]] = None, use_local_db=False) -> Tuple[Set[int], Dict[str, Dict]]:
     """Gets list of IDs of failed concetp set versions as well as a lookup for more information about them"""
+    version_id: List[int] = [version_id] if version_id and isinstance(version_id, int) else version_id
+
     failures: List[Dict] = select_failed_fetches(use_local_db)
     failure_lookup: Dict[str, Dict] = {x['primary_key']: x for x in failures}
-    failed_cset_ids: List[int] = [version_id] if version_id else [
+    failed_cset_ids: List[int] = version_id if version_id else [
         int(x['primary_key']) for x in failures if x['status_initially'] == 'fail-0-members']
     failed_cset_ids: Set[int] = set(failed_cset_ids)  # dedupe
     return failed_cset_ids, failure_lookup
