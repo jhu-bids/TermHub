@@ -23,6 +23,17 @@ DESC = 'Refresh TermHub database w/ newest updates from the Enclave using the ob
 SINCE_ERR = '--since is more recent than the database\'s record of last refresh, which will result in missing data.'
 
 
+def trigger_resolve_failures(
+    resolve_fetch_failures_excess_items=False, resolve_fetch_failures_0_members=True, local=False
+):
+    """Trigger the GitHub actions to resolve fetch failures"""
+    # Routine: Check for and resolve any open fetch failures
+    if resolve_fetch_failures_excess_items:
+        call_github_action('resolve-fetch-failures-excess-items')
+    if resolve_fetch_failures_0_members:
+        resolve_failures_0_members_if_exist(local)
+
+
 # todo: low priority: track the time it takes for this process to run, and then update the `manage` table, 2 variables:
 #  total time for downloads, and total time for uploading to db (perhaps for each table as well)
 # todo: store runs of db refresh in a table, so can have a reference for troubleshooting. e.g. date of run, and what
@@ -57,6 +68,7 @@ def refresh_db(
     if is_refresh_active():
         print('INFO: Refresh already in progress. When that process completes, it will restart again. Exiting.')
         update_db_status_var('new_request_while_refreshing', start_time, local)
+        trigger_resolve_failures(resolve_fetch_failures_excess_items, resolve_fetch_failures_0_members, local)
         return
     # end_time: Even though in reality the refresh will not end 1 microsecond after the start time, we're setting it
     # this way because this is the easiest way to make sure that future refreshes will not miss any new data that was
@@ -94,11 +106,7 @@ def refresh_db(
             # Update status vars
             update_db_status_var('last_refresh_exited', current_datetime(), local)
             update_db_status_var('refresh_status', 'inactive', local)
-            # Routine: Check for and resolve any open fetch failures
-            if resolve_fetch_failures_excess_items:
-                call_github_action('resolve-fetch-failures-excess-items')
-            if resolve_fetch_failures_0_members:
-                resolve_failures_0_members_if_exist(local)
+            trigger_resolve_failures(resolve_fetch_failures_excess_items, resolve_fetch_failures_0_members, local)
 
     if new_data:
         print('DB refresh complete.')

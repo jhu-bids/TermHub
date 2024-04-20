@@ -12,6 +12,8 @@ TODO's
  concept_set_version_item_rv_edited_mapped.
  3. All _db funcs / funcs that act on the DB (and unit tests) should be in backend/, not enclave_wrangler.
 """
+import logging
+
 import dateutil.parser as dp
 import json
 import os
@@ -452,8 +454,6 @@ def fetch_cset_and_member_objects(
       - member items
       - expression items
     """
-
-    # codeset_ids_to_ignore = [938394329] # Hope Termhub Test (v2), 53K concepts. taking forever
     # Concept set versions
     if not (since or codeset_ids) or (since and codeset_ids):
         raise RuntimeError('Must pass either: `since` or `codeset_ids`, but not both.')
@@ -464,7 +464,19 @@ def fetch_cset_and_member_objects(
         cset_versions: List[Dict] = fetch_objects_since_datetime('OMOPConceptSet', since, verbose) or []
     # - Filter any old drafts from sourceApplicationVersion 1.0. Old data model. No containers, etc. See also:
     #  https://github.com/jhu-bids/TermHub/actions/runs/6489411749/job/17623626419
-    cset_versions = [x for x in cset_versions if x['properties']['conceptSetNameOMOP']]
+    cset_versions = [x for x in cset_versions if x and x['properties']['conceptSetNameOMOP']]
+
+    # - handle discarded drafts
+    if codeset_ids and len(cset_versions) < len(codeset_ids):
+        discarded_draft_ids: Set[int] = \
+            set(codeset_ids).difference([x['properties']['codesetId'] for x in cset_versions])
+        # todo: could confirm is marked a draft in TermHub db for extra confidence, and update this message
+        logging.warning(
+            'Tried to fetch data for the following cset versions, but the Enclave returned with no data. It is '
+            'probably the case that these are discarded drafts. Offending cset ids: ' +
+            ', '.join([str(x) for x in discarded_draft_ids]))
+        # todo: consider deleting discarded drafts from DB or archiving in some way
+
     cset_versions_by_id: Dict[int, Dict] = {cset['properties']['codesetId']: cset for cset in cset_versions}
     del cset_versions
     print(f'   - retrieved {len(cset_versions_by_id)} versions')
