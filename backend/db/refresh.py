@@ -27,7 +27,7 @@ HELP_SINCE = """A timestamp by which new data should be fetched. If not present,
 refreshed and fetch new data from that time. Valid formats: 
 - Simple date timestamp, YYYY-MM-DD, e.g. 2022-02-22.
 - ISO 8601 datetime with timezone offset, YYYY-MM-DDTHH:MM:SS.SSSSSS+HH:MM, e.g. 2022-02-22T22:22:22.222222+00:00."""
-DEFAULT_BUFFER_HOURS = 2
+DEFAULT_BUFFER_HOURS = 0
 
 
 def trigger_resolve_failures(
@@ -97,7 +97,13 @@ def refresh_db(
     """
     local = use_local_db
     print('INFO: Starting database refresh.', flush=True)  # flush: for gh action
+
+    # Calculate: Start & end time
+    # end_time: Even though in reality the refresh will not end 1 microsecond after the start time, we're setting it
+    # this way because this is the easiest way to make sure that future refreshes will not miss any new data that was
+    # added between when the refresh started and ended.
     t0, start_time = datetime.now(), current_datetime()
+    end_time_reported: str = tz_datetime_str(dp.parse(start_time) + timedelta(microseconds=1))
 
     if is_refresh_active():
         print('INFO: Refresh already in progress. When that process completes, it will restart again. Exiting.')
@@ -105,10 +111,6 @@ def refresh_db(
         # todo: consider running trigger_resolve_failure(), but maybe not necessary.
         # trigger_resolve_failures(resolve_fetch_failures_excess_items, resolve_fetch_failures_0_members, local)
         return
-    # end_time: Even though in reality the refresh will not end 1 microsecond after the start time, we're setting it
-    # this way because this is the easiest way to make sure that future refreshes will not miss any new data that was
-    # added between when the refresh started and ended.
-    end_time: str = tz_datetime_str(dp.parse(start_time) + timedelta(microseconds=1))
     update_db_status_var('refresh_status', 'active', local)
     update_db_status_var('last_refresh_request', start_time, local)
 
@@ -118,7 +120,7 @@ def refresh_db(
             # todo: when ready, will use all_new_objects_enclave_to_db() instead of csets_and_members_enclave_to_db()
             # - csets_and_members_enclave_to_db(): Runs the refresh
             new_data: bool = csets_and_members_enclave_to_db(con, since, schema=schema)
-        update_db_status_var('last_refresh_success', end_time, local)
+        update_db_status_var('last_refresh_success', end_time_reported, local)
         update_db_status_var('last_refresh_result', 'success', local)
     except Exception as err:
         update_db_status_var('last_refresh_result', 'error', local)
