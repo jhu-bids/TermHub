@@ -10,6 +10,8 @@ from copy import copy, deepcopy
 from datetime import datetime
 from typing import Dict, List, Set, Tuple, Union
 
+from backend.db.resolve_fetch_failures_excess_items import resolve_fetch_failures_excess_items
+
 DB_DIR = os.path.dirname(os.path.realpath(__file__))
 BACKEND_DIR = os.path.join(DB_DIR, "..")
 PROJECT_ROOT = os.path.join(BACKEND_DIR, "..")
@@ -37,14 +39,37 @@ def _report_success(
     fetch_status_set_success(success_rows, use_local_db)
 
 
+#todo: could DRY up resolve_failures_excess_items_if_exist() and resolve_failures_0_members_if_exist(), especially
+# if/when creating resolve_failures_excess_members_if_exist()
+# - especially needs to be refactored because resolve_failures_excess_items_if_exist() doesn't belong in
+#   resolve_failures_0_members.py
+def resolve_failures_excess_items_if_exist(use_local_db=False, via_github_action=True):
+    """Starts handling of fetch failurers if they exist. Applies only to schema SCHEMA."""
+    failure_type = 'fail-excessive-items'
+    failures: List[Dict] = select_failed_fetches(use_local_db)
+    failures_exist: bool = any(
+        [int(x['primary_key']) for x in failures if x['status_initially'] == failure_type])
+    if failures_exist:
+        print(f"Fetch failures of type detected: {failure_type}\n - " +
+              'Kicking off GitHub action to resolve.' if via_github_action else 'Attempting to resolve.')
+        if via_github_action:
+            call_github_action('resolve-fetch-failures-excess-items')
+        else:
+            resolve_fetch_failures_excess_items(use_local_db=use_local_db)
+
+
 def resolve_failures_0_members_if_exist(use_local_db=False, via_github_action=True):
     """Starts handling of fetch failurers if they exist. Applies only to schema SCHEMA."""
+    failure_type = 'fail-0-members'
     failures: List[Dict] = select_failed_fetches(use_local_db)
-    failures_exist: bool = any([int(x['primary_key']) for x in failures if x['status_initially'] == 'fail-0-members'])
-    if failures_exist and via_github_action:
-        call_github_action('resolve_fetch_failures_0_members.yml')
-    elif failures_exist:
-        resolve_fetch_failures_0_members(use_local_db=use_local_db)
+    failures_exist: bool = any([int(x['primary_key']) for x in failures if x['status_initially'] == failure_type])
+    if failures_exist:
+        print(f"Fetch failures of type detected: {failure_type}\n - " +
+              'Kicking off GitHub action to resolve.' if via_github_action else 'Attempting to resolve.')
+        if via_github_action:
+            call_github_action('resolve_fetch_failures_0_members.yml')
+        else:
+            resolve_fetch_failures_0_members(use_local_db=use_local_db)
 
 
 def get_failures_0_members(version_id: Union[int, List[int]] = None, use_local_db=False) -> Tuple[Set[int], Dict[str, Dict]]:

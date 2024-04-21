@@ -15,7 +15,8 @@ PROJECT_ROOT = os.path.join(BACKEND_DIR, '..')
 sys.path.insert(0, str(PROJECT_ROOT))
 from backend.db.analysis import counts_update,counts_docs
 from backend.db.config import CONFIG
-from backend.db.resolve_fetch_failures_0_members import resolve_failures_0_members_if_exist
+from backend.db.resolve_fetch_failures_0_members import resolve_failures_0_members_if_exist, \
+    resolve_failures_excess_items_if_exist
 from backend.db.utils import current_datetime, get_db_connection, is_refresh_active, last_refresh_timestamp, \
     reset_temp_refresh_tables, tz_datetime_str, update_db_status_var, check_db_status_var, delete_db_status_var
 from backend.utils import call_github_action
@@ -36,7 +37,7 @@ def trigger_resolve_failures(
     """Trigger the GitHub actions to resolve fetch failures"""
     # Routine: Check for and resolve any open fetch failures
     if resolve_fetch_failures_excess_items:
-        call_github_action('resolve-fetch-failures-excess-items')
+        resolve_failures_excess_items_if_exist(local)
     if resolve_fetch_failures_0_members:
         resolve_failures_0_members_if_exist(local)
 
@@ -102,7 +103,8 @@ def refresh_db(
     if is_refresh_active():
         print('INFO: Refresh already in progress. When that process completes, it will restart again. Exiting.')
         update_db_status_var('new_request_while_refreshing', start_time, local)
-        trigger_resolve_failures(resolve_fetch_failures_excess_items, resolve_fetch_failures_0_members, local)
+        # todo: consider running trigger_resolve_failure(), but maybe not necessary.
+        # trigger_resolve_failures(resolve_fetch_failures_excess_items, resolve_fetch_failures_0_members, local)
         return
     # end_time: Even though in reality the refresh will not end 1 microsecond after the start time, we're setting it
     # this way because this is the easiest way to make sure that future refreshes will not miss any new data that was
@@ -114,8 +116,8 @@ def refresh_db(
     try:
         with get_db_connection(local=local) as con:
             since: str = _calc_refresh_datetime(con, since, buffer_hours, force_non_contiguity)
-            # - csets_and_members_enclave_to_db(): Runs the refresh
             # todo: when ready, will use all_new_objects_enclave_to_db() instead of csets_and_members_enclave_to_db()
+            # - csets_and_members_enclave_to_db(): Runs the refresh
             new_data: bool = csets_and_members_enclave_to_db(con, since, schema=schema)
         update_db_status_var('last_refresh_success', end_time, local)
         update_db_status_var('last_refresh_result', 'success', local)
