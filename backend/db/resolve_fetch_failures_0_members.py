@@ -96,6 +96,7 @@ def resolve_fetch_failures_0_members(
     :param loop: If True, will run in a loop to keep attempting to fetch. If this is set to False, it's probably
     because the normal DB refresh rate is already high, and this action runs at the end of every refresh (if there are
     any outstanding issus), so it's not really necessary to run these two concurrently.
+    todo: version_id: support list of IDs (comma-delimited)
     todo: Performance: Fetch only members, ideally: Even though we are fetching 'members', adding to the cset members
      table requires cset version and container metadata, and the function that does this expects them to be formaatted
      as objects, not as they come from our DB. We can fetch from DB and then convert to objects, but a lot of work for

@@ -12,7 +12,7 @@ on:
         # refreshed and fetch new data from that time. Valid formats:
         # - Simple date timestamp, YYYY-MM-DD, e.g. 2022-02-22.
         # - ISO 8601 datetime with timezone offset, YYYY-MM-DDTHH:MM:SS.SSSSSS+HH:MM, e.g. 2022-02-22T22:22:22.222222+00:00.
-        description: 'YYYY-MM-DD or YYYY-MM-DDTHH:MM:SS.SSSSSS+HH:MM'
+        description: 'Optional: YYYY-MM-DD or YYYY-MM-DDTHH:MM:SS.SSSSSS+HH:MM'
         required: false
         type: string
   repository_dispatch:

@@ -5,8 +5,9 @@ on:
     - cron: '10 5 * * *'  # every day 5:10am GMT (12:10/1:10am EST/EDT)
   workflow_dispatch:
     inputs:
+      # todo: support list of IDs (comma-delimited)
       version_id:
-        description: 'Concept set version ID'
+        description: 'Optional: Concept set version ID'
         required: false
 #        type: string  # integer not supported; type will be corrected by script
 jobs:
