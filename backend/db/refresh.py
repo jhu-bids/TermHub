@@ -19,7 +19,6 @@ from backend.db.resolve_fetch_failures_0_members import resolve_failures_0_membe
     resolve_failures_excess_items_if_exist
 from backend.db.utils import current_datetime, get_db_connection, is_refresh_active, last_refresh_timestamp, \
     reset_temp_refresh_tables, tz_datetime_str, update_db_status_var, check_db_status_var, delete_db_status_var
-from backend.utils import call_github_action
 from enclave_wrangler.objects_api import csets_and_members_enclave_to_db
 
 DESC = 'Refresh TermHub database w/ newest updates from the Enclave using the objects API.'

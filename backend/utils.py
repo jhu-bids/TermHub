@@ -92,7 +92,13 @@ def call_github_action(
         if params:
             payload["inputs"] = params
 
-    response = post(url, headers=headers, data=json.dumps(payload))
+    response: Response = post(url, headers=headers, data=json.dumps(payload))
+    if response.status_code >= 400:
+        raise RuntimeError(
+            f"Error calling GitHub action {action_name} with params:"
+            f"\n{params}."
+            f"\n\nResponse: {response.json()}")
+
     return response
 
 
