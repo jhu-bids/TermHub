@@ -128,7 +128,7 @@ def resolve_fetch_failures_0_members(
         discarded_cset_ids: Set[int] = failed_cset_ids - fetch_cset_ids
         if discarded_cset_ids:
             print(f"Discarded drafts detected: {', '.join([str(x) for x in discarded_cset_ids])}")
-        _report_success(list(discarded_cset_ids), failure_lookup, 'Success result: Discarded draft', use_local_db)
+            _report_success(list(discarded_cset_ids), failure_lookup, 'Success result: Discarded draft', use_local_db)
 
         # - identify persistent, long-lived drafts
         cset_is_draft_map.update(
@@ -179,7 +179,7 @@ def resolve_fetch_failures_0_members(
                            'so. It may be that the Enclave simply has not expanded their members yet:\n\n'
                            f'{", ".join([str(x) for x in failed_cset_ids])}')
     else:
-        print("All failures resolved.")
+        print("All outstanding non-draft failures resolved.")
 
 
 def cli():
