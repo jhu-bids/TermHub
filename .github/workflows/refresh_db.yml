@@ -6,6 +6,15 @@ on:
     - cron: '*/20 * * * *'  # every 20 minutes
 #    - cron: '0 * * * *'  # every hour on the hour
   workflow_dispatch:
+    inputs:
+      since:
+        # A timestamp by which new data should be fetched. If not present, will look up the last time the DB was
+        # refreshed and fetch new data from that time. Valid formats:
+        # - Simple date timestamp, YYYY-MM-DD, e.g. 2022-02-22.
+        # - ISO 8601 datetime with timezone offset, YYYY-MM-DDTHH:MM:SS.SSSSSS+HH:MM, e.g. 2022-02-22T22:22:22.222222+00:00.
+        description: 'YYYY-MM-DD or YYYY-MM-DDTHH:MM:SS.SSSSSS+HH:MM'
+        required: false
+        type: string
   repository_dispatch:
     types: [refresh-db]
 jobs:
@@ -48,7 +57,11 @@ jobs:
       # Refresh
       - name: Refresh db
         run: |
-          python backend/db/refresh.py
+          if [ -z "${{ github.event.inputs.since }}" ]; then
+            python backend/db/refresh.py
+          else
+            python backend/db/refresh.py --since ${{ github.event.inputs.since }}
+          fi
       - name: Commit changes to documentation
         uses: stefanzweifel/git-auto-commit-action@v4
         with:
