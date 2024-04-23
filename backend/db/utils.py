@@ -206,6 +206,41 @@ def refresh_derived_tables(
             break
 
 
+ENGINES = {
+    # 'n3c': get_engine(),
+    # 'public': get_engine(schema='public')
+}
+
+
+def get_engine(isolation_level='AUTOCOMMIT', schema: str = SCHEMA, local=False):
+    """Connect to db
+    :param local: If True, connection is on local instead of production database."""
+    engine = ENGINES.get(schema, '') or create_engine(get_pg_connect_url(local), isolation_level=isolation_level)
+    if schema not in ENGINES:
+        ENGINES[schema] = engine
+
+    # noinspection PyUnusedLocal
+    @event.listens_for(engine, "connect", insert=True)
+    def set_search_path(dbapi_connection, connection_record):
+        """This does "set search_path to n3c;" when you connect.
+        https://docs.sqlalchemy.org/en/14/dialects/postgresql.html#setting-alternate-search-paths-on-connect
+        :param connection_record: Part of the example but we're not using yet.
+
+        Ideally, we'd want to be able to call this whenever we want. But cannot be called outside of context of
+        initializing a connection.
+        """
+        if not schema:
+            return
+        existing_autocommit = dbapi_connection.autocommit
+        dbapi_connection.autocommit = True
+        cursor = dbapi_connection.cursor()
+        cursor.execute(f"SET SESSION search_path='{schema}'")
+        cursor.close()
+        dbapi_connection.autocommit = existing_autocommit
+
+    return engine
+
+
 # todo: make 'isolation_level' the final param, since we never override it. this would it so we dont' have to pass the
 #  other params as named params.
 def get_db_connection(isolation_level='AUTOCOMMIT', schema: str = SCHEMA, local=False) -> Connection:
