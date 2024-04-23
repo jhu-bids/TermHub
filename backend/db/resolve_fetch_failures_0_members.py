@@ -19,7 +19,7 @@ from backend.db.resolve_fetch_failures_excess_items import resolve_fetch_failure
 from backend.db.utils import SCHEMA, fetch_status_set_success, get_db_connection, reset_temp_refresh_tables, \
     select_failed_fetches, refresh_derived_tables
 from enclave_wrangler.objects_api import concept_set_members__from_csets_and_members_to_db, \
-    fetch_cset_and_member_objects
+    fetch_cset_and_member_objects, get_csets_over_threshold
 
 DESC = "Resolve any failures resulting from fetching data from the Enclave's objects API."
 
@@ -84,14 +84,14 @@ def get_failures_0_members(version_id: Union[int, List[int]] = None, use_local_d
 
 
 def resolve_fetch_failures_0_members(
-    version_id: int = None, use_local_db=False, polling_interval_seconds=30, schema=SCHEMA, runtime=2 * 60 * 60,
-    loop=False
+    version_id: int = None, use_local_db=False, polling_interval_seconds=30, schema=SCHEMA,
+    expansion_threshold_seconds=2 * 60 * 60, loop=False
 ):
     """Resolve situations where we tried to fetch data from the Enclave, but failed due to the concept set being too new
     resulting in initial fetch of concept set members being 0.
     :param version_id: Optional concept set version ID to resolve. If not provided, will check database for flagged
     failures.
-    :param runtime: 2 hours
+    :param expansion_threshold_seconds: The length of time that we reasonably expect that the Enclave should take to expand
     :param loop: If True, will run in a loop to keep attempting to fetch. If this is set to False, it's probably
     because the normal DB refresh rate is already high, and this action runs at the end of every refresh (if there are
     any outstanding issus), so it's not really necessary to run these two concurrently.
@@ -113,7 +113,7 @@ def resolve_fetch_failures_0_members(
     t0 = datetime.now()
     cset_is_draft_map: Dict[int, bool] = {}
     print(f"Fetching concept set versions and their related objects: {', '.join([str(x) for x in failed_cset_ids])}")
-    while len(failed_cset_ids) > 0 and (datetime.now() - t0).total_seconds() < runtime:
+    while len(failed_cset_ids) > 0 and (datetime.now() - t0).total_seconds() < expansion_threshold_seconds:
         i += 1
         print(f"- attempt {i}: fetching members for {len(failed_cset_ids)} concept set versions")
         # Check for new failures: that may have occurred during runtime
@@ -162,22 +162,29 @@ def resolve_fetch_failures_0_members(
     if still_draft_cset_ids:
         print(f"Fetch attempted for the following csets, but they still remain drafts and thus still have not had their"
               f" members expanded yet: {', '.join([str(x) for x in still_draft_cset_ids])}")
-    true_failed_cset_ids: Set[int] = set(failed_cset_ids) - still_draft_cset_ids
+    non_draft_failure_ids: Set[int] = set(failed_cset_ids) - still_draft_cset_ids
+
+    # Filter by only if has been finalized longer than we would expect it should take for expansion to be available
+    # noinspection PyUnboundLocalVariable
+    still_draft_csets: List[Dict] = [
+        x['properties'] for x in csets_and_members['OMOPConceptSet']
+        if x['properties']['codesetId'] in non_draft_failure_ids]
+    final_failure_ids: Set[int] = get_csets_over_threshold(still_draft_csets, int(expansion_threshold_seconds / 60))
 
     # Close out
-    if true_failed_cset_ids and loop:
+    if final_failure_ids and loop:
         # todo: maybe this is not optimal. Maybe what we should do is check all the expression items and see if 100% are
         #  cases of isExcluded=true and includeDescendants=false. This should be the only case in which a cset is
         #  finalized and has 0 members.
         print(f"2 hours have passed. No members were fetched for the following concept sets, but given the length "
               f"of time passed, members should have been available by now, and we assume that these concept sets do"
-              f" not actually have members. Reporting resolved: {', '.join([str(x) for x in failed_cset_ids])}")
+              f" not actually have members. Reporting resolved: {', '.join([str(x) for x in final_failure_ids])}")
         comment = 'Success result: No members after 2 hours. Considering resolved.'
-        _report_success(failed_cset_ids, failure_lookup, comment, use_local_db)
-    elif true_failed_cset_ids:
+        _report_success(list(final_failure_ids), failure_lookup, comment, use_local_db)
+    elif final_failure_ids:
         raise RuntimeError('Attempted to resolve fetch failures for the following concept sets, but was not able to do '
                            'so. It may be that the Enclave simply has not expanded their members yet:\n\n'
-                           f'{", ".join([str(x) for x in failed_cset_ids])}')
+                           f'{", ".join([str(x) for x in final_failure_ids])}')
     else:
         print("All outstanding non-draft failures resolved.")
 

@@ -365,6 +365,30 @@ def get_bidirectional_csets_sets(con: Connection = None) -> Tuple[Set[int], Set[
     return db_codeset_ids, enclave_codeset_ids
 
 
+def get_age_of_utc_timestamp(timestamp: Union[str, datetime]) -> float:
+    """Get age of a GMT/UTC timestamp in seconds"""
+    timestamp: datetime = dp.parse(timestamp) if isinstance(timestamp, str) else timestamp
+    delta: timedelta = datetime.now().astimezone(pytz.utc) - dp.parse(timestamp)
+    return delta.total_seconds()
+
+
+def get_csets_over_threshold(
+    csets: List[Dict], threshold_minutes: int, return_type=['cset_ids', 'csets_by_id'][0]
+) -> Union[Set[int], Dict[int, Dict], None]:
+    """Determine csets that are older than a certain threshold
+
+    csets: List of dictionaries of cset objects. Should not have 'properties' key. But should be the dictionary of items
+    within 'properties'."""
+    over_threshold: Dict[int, Dict] = {}
+    for cset in csets:
+        age_minutes_i: float = get_age_of_utc_timestamp(cset['createdAt']) / 60
+        if age_minutes_i > threshold_minutes:
+            entry = cset | {'age_minutes': age_minutes_i}
+            over_threshold[cset['codesetId']] = entry
+
+    return {x['codesetId'] for x in over_threshold.values()} if return_type == 'cset_ids' else over_threshold if return_type == 'csets_by_id' else None
+
+
 def find_missing_csets_within_threshold(age_minutes=30, con: Connection = None) -> Dict[int, Dict]:
     """Find missing csets within a certain threshold, e.g. if older than 30 minutes."""
     # Set 1 of 2: In our database
@@ -377,14 +401,7 @@ def find_missing_csets_within_threshold(age_minutes=30, con: Connection = None) 
     # Determine within threshold
     missing_ids: Set[int] = enclave_codeset_ids.difference(db_codeset_ids)
     missing: List[Dict] = [enclave_codesets_lookup[cset_id] for cset_id in missing_ids]
-    missing_within_threshold: Dict[int, Dict] = {}
-    for cset in missing:
-        delta: timedelta = datetime.now().astimezone(pytz.utc) - dp.parse(cset['createdAt'])
-        age_minutes_i: float = delta.total_seconds() / 60
-        if age_minutes_i > age_minutes:
-            entry = cset | {'age_minutes': age_minutes_i}
-            missing_within_threshold[cset['codesetId']] = entry
-
+    missing_within_threshold: Dict[int, Dict] = get_csets_over_threshold(missing, age_minutes, 'csets_by_id')
     return missing_within_threshold
 
 
