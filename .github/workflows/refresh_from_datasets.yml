@@ -15,9 +15,7 @@ jobs:
       - name: Set up Python version
         uses: actions/setup-python@v2
         with:
-          # Consider '3.10' or 'v3.10.0': https://github.com/actions/setup-python/issues/160
-          python-version: '3.9.7'
-
+          python-version: '3.11'
       - name: Print commit hash & branch for rollbacks & troubleshooting
         run: |
           echo "Commit hash: ${{ github.sha }}"
