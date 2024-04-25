@@ -368,7 +368,7 @@ def get_bidirectional_csets_sets(con: Connection = None) -> Tuple[Set[int], Set[
 def get_age_of_utc_timestamp(timestamp: Union[str, datetime]) -> float:
     """Get age of a GMT/UTC timestamp in seconds"""
     timestamp: datetime = dp.parse(timestamp) if isinstance(timestamp, str) else timestamp
-    delta: timedelta = datetime.now().astimezone(pytz.utc) - dp.parse(timestamp)
+    delta: timedelta = datetime.now().astimezone(pytz.utc) - timestamp
     return delta.total_seconds()
 
 
