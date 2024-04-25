@@ -224,6 +224,9 @@ def resolve_fetch_failures_0_members(
         comment = 'No members after 2 hours. Considering resolved.'
         _report_success(list(final_failure_ids), failure_lookup, comment, use_local_db)
     elif final_failure_ids:
+        # todo: for troubleshooting, it would help to print the timestamp of when the cset was created here, as well as
+        #  its age (in minutes). For the latter, would involve passing arg return_type='csets_by_id' to
+        #  get_csets_over_threshold().
         raise RuntimeError('Attempted to resolve fetch failures for the following concept sets, but was not able to do '
                            'so. It may be that the Enclave simply has not expanded their members yet:\n\n'
                            f'{", ".join([str(x) for x in final_failure_ids])}')
