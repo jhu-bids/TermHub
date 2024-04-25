@@ -17,7 +17,7 @@ sys.path.insert(0, str(PROJECT_ROOT))
 from backend.utils import call_github_action
 from backend.db.resolve_fetch_failures_excess_items import resolve_fetch_failures_excess_items
 from backend.db.utils import SCHEMA, fetch_status_set_success, get_db_connection, reset_temp_refresh_tables, \
-    select_failed_fetches, refresh_derived_tables
+    select_failed_fetches, refresh_derived_tables, sql_in, sql_query
 from enclave_wrangler.objects_api import concept_set_members__from_csets_and_members_to_db, \
     fetch_cset_and_member_objects, get_csets_over_threshold
 
@@ -25,15 +25,16 @@ DESC = "Resolve any failures resulting from fetching data from the Enclave's obj
 
 
 def _report_success(
-    cset_ids: List[int], fetch_audit_row_lookup: Dict[str, Dict], comment_addition: str = None, use_local_db=False
+    cset_ids: List[int], fetch_audit_row_lookup: Dict[int, Dict], comment_addition: str = None, use_local_db=False
 ):
     """Report success for a list of concept set IDs.
     todo: kind of weird to pass a lookup. Maybe do that beforehand and pass row dict"""
     success_rows = []
     for cset_id in cset_ids:
-        row = fetch_audit_row_lookup[str(cset_id)]
+        row = fetch_audit_row_lookup[cset_id]
         if comment_addition:
-            row['comment'] = row['comment'] + '; ' + comment_addition
+            row['comment'] = row['comment'] + '; ' + \
+            'Success result: ' if not comment_addition.startswith('Success result: ') else '' + comment_addition
         success_rows.append(row)
     fetch_status_set_success(success_rows, use_local_db)
 
@@ -70,17 +71,47 @@ def resolve_failures_0_members_if_exist(use_local_db=False, via_github_action=Tr
         else:
             resolve_fetch_failures_0_members(use_local_db=use_local_db)
 
+def filter_cset_id_where_0_expanded_members(cset_ids: List[int], schema=SCHEMA, use_local_db=False) -> List[int]:
+    """Filter cset IDs where there are 0 members when expanded
 
-def get_failures_0_members(version_id: Union[int, List[int]] = None, use_local_db=False) -> Tuple[Set[int], Dict[str, Dict]]:
+    TODO: complex cases: presently only does simple case: isExcluded=true, includeDescendants=false,
+     includeMapped=false. Ideally we'd also check cases where isExcluded=true, but if any includeDescendants=true,
+     check concept_ancestor to see if there actually are any descendants, and for includeMapped=true, check
+     concept_relationship to see if any mapped."""
+    qry = f"""SELECT codeset_id
+        FROM concept_set_version_item AS csvi
+        WHERE codeset_id {sql_in(cset_ids)}
+        GROUP BY codeset_id
+        HAVING COUNT(*) = COUNT(
+          CASE WHEN "isExcluded" = true AND "includeDescendants" = false AND "includeMapped" = false
+          THEN 1 ELSE NULL END);"""
+    with get_db_connection(schema=schema, local=use_local_db) as con:
+        id_rows: List[List[float]] = sql_query(con, qry, return_with_keys=False)
+        ids: List[int] = [int(x[0]) for x in id_rows]
+        return ids
+
+
+def get_failures_0_members(
+    version_id: Union[int, List[int]] = None, use_local_db=False
+) -> Tuple[Set[int], Dict[int, Dict]]:
     """Gets list of IDs of failed concetp set versions as well as a lookup for more information about them"""
-    version_id: List[int] = [version_id] if version_id and isinstance(version_id, int) else version_id
+    # Typing modification
+    version_id: List[int] = [version_id] if version_id and not isinstance(version_id, list) else version_id
 
+    # Lookup failure data in DB
     failures: List[Dict] = select_failed_fetches(use_local_db)
-    failure_lookup: Dict[str, Dict] = {x['primary_key']: x for x in failures}
-    failed_cset_ids: List[int] = version_id if version_id else [
-        int(x['primary_key']) for x in failures if x['status_initially'] == 'fail-0-members']
-    failed_cset_ids: Set[int] = set(failed_cset_ids)  # dedupe
-    return failed_cset_ids, failure_lookup
+    failure_lookup: Dict[int, Dict] = {int(x['primary_key']): x for x in failures}
+    failure_cset_ids: Set[int] = set(version_id if version_id else [
+        int(x['primary_key']) for x in failures if x['status_initially'] == 'fail-0-members'])
+
+    # Validate & filter
+    non_failures_passed: Set[int] = set(version_id).difference(failure_lookup.keys())
+    if bool(version_id and non_failures_passed):
+        print("Warning: Cset IDs were passed to be resolved, but these are no longer failures; skipping them: "
+              f"{', '.join([str(x) for x in non_failures_passed])}", file=sys.stderr)
+    failure_cset_ids = failure_cset_ids - non_failures_passed
+
+    return failure_cset_ids, failure_lookup
 
 
 def resolve_fetch_failures_0_members(
@@ -127,8 +158,8 @@ def resolve_fetch_failures_0_members(
         fetch_cset_ids: Set[int] = set([x['properties']['codesetId'] for x in csets_and_members['OMOPConceptSet']])
         discarded_cset_ids: Set[int] = failed_cset_ids - fetch_cset_ids
         if discarded_cset_ids:
-            print(f"Discarded drafts detected: {', '.join([str(x) for x in discarded_cset_ids])}")
-            _report_success(list(discarded_cset_ids), failure_lookup, 'Success result: Discarded draft', use_local_db)
+            print(f"Discarded drafts detected; marking resolved: {', '.join([str(x) for x in discarded_cset_ids])}")
+            _report_success(list(discarded_cset_ids), failure_lookup, 'Discarded draft', use_local_db)
 
         # - identify persistent, long-lived drafts
         cset_is_draft_map.update(
@@ -147,7 +178,7 @@ def resolve_fetch_failures_0_members(
                     refresh_derived_tables(con)
                 print(f"Successfully fetched concept set members for concept set versions: "
                       f"{', '.join([str(x) for x in success_cset_ids])}")
-                _report_success(success_cset_ids, failure_lookup, 'Success result: Found members', use_local_db)
+                _report_success(success_cset_ids, failure_lookup, 'Found members', use_local_db)
             except Exception as err:
                 reset_temp_refresh_tables(schema)
                 raise err
@@ -156,6 +187,17 @@ def resolve_fetch_failures_0_members(
         if not loop:
             break
         time.sleep(polling_interval_seconds)
+
+    # Csets with 0 expansion members
+    #  - todo: only detecting simple cases. For more info, see docstring of filter_cset_id_where_0_expanded_members()
+    csets_w_no_expanded_members: List[int] = filter_cset_id_where_0_expanded_members(failed_cset_ids)
+    comment = 'There are 0 expansion members because 100% of the expressions are set to isExcluded=true, ' + \
+        'includeDescendants=false, and includeMapped=false.'
+    print(f'Csets detected matching the following condition; marking them resolved:\n'
+          f'- Condition: {comment}\n'
+          f'- Cset IDs:', f'{", ".join([str(x) for x in csets_w_no_expanded_members])}')
+    _report_success(csets_w_no_expanded_members, failure_lookup, comment, use_local_db)
+    failed_cset_ids = list(set(failed_cset_ids) - set(csets_w_no_expanded_members))
 
     # Parse drafts from actual failures
     still_draft_cset_ids: Set[int] = set([cset_id for cset_id in failed_cset_ids if cset_is_draft_map[cset_id]])
@@ -179,14 +221,14 @@ def resolve_fetch_failures_0_members(
         print(f"2 hours have passed. No members were fetched for the following concept sets, but given the length "
               f"of time passed, members should have been available by now, and we assume that these concept sets do"
               f" not actually have members. Reporting resolved: {', '.join([str(x) for x in final_failure_ids])}")
-        comment = 'Success result: No members after 2 hours. Considering resolved.'
+        comment = 'No members after 2 hours. Considering resolved.'
         _report_success(list(final_failure_ids), failure_lookup, comment, use_local_db)
     elif final_failure_ids:
         raise RuntimeError('Attempted to resolve fetch failures for the following concept sets, but was not able to do '
                            'so. It may be that the Enclave simply has not expanded their members yet:\n\n'
                            f'{", ".join([str(x) for x in final_failure_ids])}')
     else:
-        print("All outstanding non-draft failures resolved.")
+        print("Complete: All outstanding non-draft failures resolved.")
 
 
 def cli():
