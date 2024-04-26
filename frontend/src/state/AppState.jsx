@@ -188,7 +188,7 @@ const newCsetReducer = (state, action) => {
     }
   }
 
-  const restoreUrl = urlWithSessionStorage();
+  // const restoreUrl = urlWithSessionStorage();
   // provenance: `VS-Hub url: ${urlWithSessionStorage()}`,
   state = {
     ...state,
@@ -261,7 +261,7 @@ export function serializeSessionStorage({newCset, compress = false}) {
   const sstorage = getSessionStorage();
   if (newCset) {
     newCset = {...newCset};
-    delete newCset.provenance;
+    delete newCset.provenance;  // it's a mess. not using for now
     newCset.definitions = abbreviateDefinitions(newCset.definitions);
     sstorage.newCset = newCset;
   }
@@ -299,10 +299,9 @@ export function newCsetAtlasJson(cset, conceptLookup) {
   return atlasJson;
 }
 
+/* more complicated than I thought.... have to save (uncompressed probably) to this
+    as well as (compressed) to sessionStorage. and be able to load/decompress everything
 export let CompressedSessionStorage = {
-  /* more complicated than I thought.... have to save (uncompressed probably) to this
-      as well as (compressed) to sessionStorage. and be able to load/decompress everything
-   */
   store: sessionStorage,
   setItem: (k, v) => this.store.setItem(k, compress(v)),
   getItem: (k) => this.store.getItem(decompress(k)),
@@ -321,3 +320,4 @@ const currentConceptIdsReducer = (state, action) => { // not being used
       return state;
   }
 };
+ */

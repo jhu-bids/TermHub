@@ -4,8 +4,8 @@
 """
 import json
 import urllib.parse
-from datetime import datetime
-from functools import cache
+from datetime import datetime, timedelta
+from functools import cache, lru_cache
 from typing import Dict, List, Union, Set
 
 from fastapi import APIRouter, Query, Request, Body
@@ -19,7 +19,7 @@ from backend.api_logger import Api_logger, get_ip_from_request
 from backend.db.refresh import refresh_db
 from backend.db.queries import get_concepts
 from backend.db.utils import get_db_connection, sql_query, SCHEMA, sql_query_single_col, sql_in, sql_in_safe, run_sql
-from backend.utils import return_err_with_trace, commify
+from backend.utils import return_err_with_trace, commify, throttle
 from enclave_wrangler.config import RESEARCHER_COLS
 from enclave_wrangler.models import convert_rows
 from enclave_wrangler.objects_api import get_n3c_recommended_csets, get_concept_set_version_expression_items, \
@@ -199,100 +199,32 @@ def get_all_csets(con: Connection = None) -> Union[Dict, List]:
     # return smaller.to_dict(orient='records')
 
 
-
-@router.get("/next-api-call-group-id")
-def next_api_call_group_id() -> int:
-    """Get next API call group ID"""
-    with get_db_connection() as con:
-        id = sql_query_single_col(con, "SELECT nextval('api_call_group_id_seq')")[0]
-    return id
-
-
-@router.post("/start-session")
-def start_session(body: Dict[str, str] = Body(...)) -> Dict[str, int]:
-    page_url = body.get("page_url")
-    with get_db_connection() as con:
-        session_id = next_api_call_group_id();
-        q = text("""INSERT INTO sessions (session_id, screen_log) VALUES (:session_id, ARRAY[:page_url])""")
-        run_sql(con, q, {"session_id": session_id, "page_url": page_url})
-    return {"session_id": session_id}
-
-
-@router.post("/continue-session")
-def continue_session(body: Dict[str, str] = Body(...)):
-    page_url = body.get("page_url")
-    session_id = body.get("session_id")
-
-    with get_db_connection() as con:
-        # session = sql_query(
-        #     con,
-        #     "SELECT * FROM sessions WHERE session_id = :session_id FOR UPDATE",
-        #     {"session_id": "session_id"})
-        q = text("""UPDATE sessions SET screen_log = screen_log || ARRAY[:page_url] WHERE session_id = :session_id""")
-        run_sql(con, q, {"session_id": session_id, "page_url": page_url})
-        # await con.commit()
-        # return {"session_id": session_id}
-
-
-from sqlalchemy import select, update
-from sqlalchemy.ext.asyncio import AsyncSession
-from sqlalchemy.dialects.postgresql import JSONB
-
-async def update_jsonb_data(session: AsyncSession, table, primary_key, new_data):
-    # Start a transaction
-    async with session.begin():
-        # Select and lock the specific row
-        stmt = select(table).where(table.c.id == primary_key).with_for_update()
-        result = await session.execute(stmt)
-        row = result.scalar_one_or_none()
-
-        if row:
-            # Update the jsonb column
-            updated_jsonb = row.data.copy()
-            updated_jsonb.update(new_data)  # Assume 'data' is the jsonb column
-
-            update_stmt = (
-                update(table)
-                .where(table.c.id == primary_key)
-                .values(data=updated_jsonb)
-            )
-            await session.execute(update_stmt)
-
-            # Commit the transaction
-            await session.commit()
-
-
-@router.get("/search/")
-async def search(session_id: str, q: str, page: int = 1, per_page: int = 10):
-    """
-        How to do this...
-        do the query with the q string
-        save that query with all the ids of the results to a cache {q: ids}
-        send the appropriate page of those results
-    """
-    async with get_db_connection() as con:
-        result = await con.execute(
-            select([sessions_table.c.sent_ids]).where(sessions_table.c.session_id == session_id))
-        session = result.fetchone()
-        if session is None:
-            raise HTTPException(status_code=404, detail="Session not found")
-
-        sent_ids = session.sent_ids
-        matching_items = [item for item in items if q.lower() in item["name"].lower() and item["id"] not in sent_ids]
-
-        # Implement pagination
-        start = (page - 1) * per_page
-        end = start + per_page
-        result_items = matching_items[start:end]
-
-        # Update the session with the IDs of sent items
-        new_sent_ids = sent_ids + [item["id"] for item in result_items]
-        await con.execute(
-            update(sessions_table).where(sessions_table.c.session_id == session_id).values(sent_ids=new_sent_ids))
-        await con.commit()
-
-        return {"page": page, "per_page": per_page, "results": result_items}
-
+# from sqlalchemy import select, update
+# from sqlalchemy.ext.asyncio import AsyncSession
+# from sqlalchemy.dialects.postgresql import JSONB
+#
+# async def update_jsonb_data(session: AsyncSession, table, primary_key, new_data):
+#     # Start a transaction
+#     async with session.begin():
+#         # Select and lock the specific row
+#         stmt = select(table).where(table.c.id == primary_key).with_for_update()
+#         result = await session.execute(stmt)
+#         row = result.scalar_one_or_none()
+#
+#         if row:
+#             # Update the jsonb column
+#             updated_jsonb = row.data.copy()
+#             updated_jsonb.update(new_data)  # Assume 'data' is the jsonb column
+#
+#             update_stmt = (
+#                 update(table)
+#                 .where(table.c.id == primary_key)
+#                 .values(data=updated_jsonb)
+#             )
+#             await session.execute(update_stmt)
+#
+#             # Commit the transaction
+#             await session.commit()
 
 
 # Routes ---------------------------------------------------------------------------------------------------------------
@@ -343,16 +275,164 @@ async def get_concepts_post_route(request: Request, id: Union[List[str], None] =
     return await get_concepts_route(request, id=id, table=table)
 
 
+sessions_cache: Dict = {}
+session_stale_hours = 24
+
+
+@router.get("/start-session")
+def start_session():
+    return get_session(None)
+
+
+def get_session(session_id: int):
+    if session_id:
+        if session_id not in sessions_cache:
+            # raise HTTPException(status_code=404, detail="Session not found")
+            raise Exception(f"Session {session_id} not found")
+        return sessions_cache[session_id]
+    session = {
+        "session_id": next_api_call_group_id(),
+        "session_start": datetime.now(),
+        "concept_ids_seen": [],
+        "searches": {},
+    }
+    return session
+
+
+def update_session(session_id: int, concepts: List[Dict]):
+    session = get_session(session_id)
+    session["concept_ids"].extend([c["concept_id"] for c in concepts])
+    session["last_used"] = datetime.now()
+    sessions_cache[session_id] = session
+    clear_old_sessions()
+    return session
+
+
+@throttle(wait = 600) # 10 minutes
+def clear_old_sessions():
+    for session_id in list(sessions_cache.keys()):
+        if datetime.now() - sessions_cache[session_id]["last_used"] > timedelta(hours=session_stale_hours):
+            del sessions_cache[session_id]
+    pdump(sessions_cache)
+
+
 @router.get("/concept-search")
-async def get_concepts_route(search: str) -> List:
-    q = """
-      SELECT *
+async def _concept_search(search_str: str, sort_by: str = "-total_cnt|vocabulary_id|concept_name") -> List[int]:
+    sort_columns = {"total_cnt", "concept_name", "vocabulary_id", "domain_id", "concept_class_id"}
+    #   for desc, prefix with -
+    sort_strs = sort_by.split('|')
+    sort_cols = []
+    for s in sort_strs:
+        desc = False
+        if s[0] == '-':
+            desc = True
+            s = s[1:]
+        if s not in sort_columns:
+            raise f"invalid sort_by: {s}"
+        s = f"{s} DESC" if desc else s
+        sort_cols.append(s)
+    q = f"""
+      SELECT concept_id
       FROM concepts_with_counts
-      WHERE concept_name ILIKE %s
+      WHERE concept_name ILIKE :search_str
+      ORDER BY {', '.join(sort_cols)} DESC
     """
     with get_db_connection() as con:
-        results = sql_query(con, q, ['%' + search + '%'])
-    return results
+        concept_ids = sql_query_single_col(con, q, { "search_str": '%' + search_str + '%', })
+    return concept_ids
+
+
+# old version when I was thinking about pagination. might come back to it
+# @router.get("/concept-search")
+# async def _concept_search(session_id: int, search_str: str, page: int = 1, per_page: int = 10) -> List:
+#     session = get_session()
+#     concept_ids_seen = session["concept_ids_seen"]
+#     concept_id_filter = f" AND concept_id != ANY(:concept_ids_seen) " if concept_ids_seen else ""
+#     q = f"""
+#       SELECT *
+#       FROM concepts_with_counts
+#       WHERE concept_name ILIKE :search_str
+#       {concept_id_filter}
+#       ORDER BY total_cnt DESC
+#       LIMIT :per_page
+#     """
+#     with get_db_connection() as con:
+#         concepts = sql_query(con, q, {
+#             "search_str": '%' + search_str + '%',
+#             "concept_ids_seen": concept_ids_seen,
+#             "per_page": per_page})
+#     # results = concepts[per_page * (page - 1):per_page * page]
+#     update_session(session_id, concepts = concepts)
+#     return concepts
+#     # return concept_search(session_id, search_str, page, per_page)
+
+
+@router.get("/next-api-call-group-id")
+def next_api_call_group_id() -> int:
+    """Get next API call group ID"""
+    with get_db_connection() as con:
+        id = sql_query_single_col(con, "SELECT nextval('api_call_group_id_seq')")[0]
+    return id
+
+
+# maybe might use this later, but for now going to track sessions in memory only
+@router.post("/start-session")
+def start_sessionNOT_USING(body: Dict[str, str] = Body(...)) -> Dict[str, int]:
+    page_url = body.get("page_url")
+    with get_db_connection() as con:
+        session_id = next_api_call_group_id();
+        q = text("""INSERT INTO sessions (session_id, screen_log) VALUES (:session_id, ARRAY[:page_url])""")
+        run_sql(con, q, {"session_id": session_id, "page_url": page_url})
+    return {"session_id": session_id, "page_num": 1}
+
+
+# maybe might use this later, but for now going to track sessions in memory only
+@router.post("/continue-session")
+def continue_sessionNOT_USING(body: Dict[str, str] = Body(...)):
+    page_url = body.get("page_url")
+    session_id = body.get("session_id")
+
+    with get_db_connection() as con:
+        # session = sql_query(
+        #     con,
+        #     "SELECT * FROM sessions WHERE session_id = :session_id FOR UPDATE",
+        #     {"session_id": "session_id"})
+        q = text("""UPDATE sessions SET screen_log = screen_log || ARRAY[:page_url] WHERE session_id = :session_id""")
+        run_sql(con, q, {"session_id": session_id, "page_url": page_url})
+        # await con.commit()
+        # return {"session_id": session_id}
+
+
+# @router.get("/search/")
+# async def search(session_id: str, q: str, page: int = 1, per_page: int = 10):
+#     """
+#         How to do this...
+#         do the query with the q string
+#         save that query with all the ids of the results to a cache {q: ids}
+#         send the appropriate page of those results
+#     """
+#     async with get_db_connection() as con:
+#         result = await con.execute(
+#             select([sessions_table.c.sent_ids]).where(sessions_table.c.session_id == session_id))
+#         session = result.fetchone()
+#         if session is None:
+#             raise HTTPException(status_code=404, detail="Session not found")
+#
+#         sent_ids = session.sent_ids
+#         matching_items = [item for item in items if q.lower() in item["name"].lower() and item["id"] not in sent_ids]
+#
+#         # Implement pagination
+#         start = (page - 1) * per_page
+#         end = start + per_page
+#         result_items = matching_items[start:end]
+#
+#         # Update the session with the IDs of sent items
+#         new_sent_ids = sent_ids + [item["id"] for item in result_items]
+#         await con.execute(
+#             update(sessions_table).where(sessions_table.c.session_id == session_id).values(sent_ids=new_sent_ids))
+#         await con.commit()
+#
+#         return {"page": page, "per_page": per_page, "results": result_items}
 
 
 @router.post("/concept-ids-by-codeset-id")

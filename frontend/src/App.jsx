@@ -34,7 +34,7 @@ import {
   useAlerts,
   useAlertsDispatch,
   NewCsetProvider,
-  useNewCset, urlWithSessionStorage, getSessionStorage, serializeSessionStorage,
+  useNewCset, urlWithSessionStorage, // getSessionStorage, serializeSessionStorage,
 } from "./state/AppState";
 import {GraphProvider} from "./state/GraphState";
 import {SearchParamsProvider, useSearchParamsState} from "./state/SearchParamsProvider";
@@ -46,7 +46,7 @@ import {DataCacheProvider} from "./state/DataCache";
 import {AlertMessages} from "./components/AlertMessages";
 import {N3CRecommended} from "./components/N3CRecommended";
 import {UsageReport} from "./components/UsageReport";
-import {Concepts} from "./components/Concepts";
+import {AddConcepts} from "./components/AddConcepts";
 // import {EnclaveAuthTest, AuthCallback, Logout, } from "./components/utils";
 import {DEPLOYMENT} from "./env";
 
@@ -151,7 +151,7 @@ function RoutesContainer() {
       <Route path="/" element={<App/>}>
         <Route path="cset-comparison" element={<CsetComparisonPage/>} />
         <Route path="OMOPConceptSets" element={<ConceptSetsPage/>} />
-        <Route path="concepts" element={<Concepts/>} />
+        <Route path="add-concepts" element={<AddConcepts/>} />
         <Route path="about" element={<AboutPage/>} />
         <Route path="upload-csv" element={<UploadCsvPage/>} />
         {/*<Route path="auth/callback" element={<AuthCallback/>} />*/}
@@ -185,20 +185,33 @@ function App(props) {
   useEffect(() => {
     (async () => {
       // start or continue session on server
-      const page_url = urlWithSessionStorage({compressed: true});
+      /*  OLD VERSION, uses start_sessionNOT_USING and continue_sessionNOT_USING:
+          const page_url = urlWithSessionStorage({compressed: true});
+          let session_id = sessionStorage.getItem('session_id');
+          let page_num = (sessionStorage.getItem('page_num') || 0) + 1;
+          let data = { page_url, page_num };
+
+          if (!session_id) {
+            const url = backend_url('start-session');
+            let response = await axios.post(url, data);
+            let {session_id, page_num} = response.data;
+            sessionStorage.setItem('session_id', session_id);
+            sessionStorage.setItem('page_num', page_num);
+          } else {
+            data.session_id = session_id;
+            const url = backend_url('continue-session');
+            // let response = await axios(request);
+            axios.post(url, data); // don't need response, right?
+          }
+       */
+      // SIMPLER VERSION:
       let session_id = sessionStorage.getItem('session_id');
-      let data = { page_url };
 
       if (!session_id) {
         const url = backend_url('start-session');
-        let response = await axios.post(url, data);
-        let session_id = response.data.session_id;
+        let response = await axios.get(url);
+        let session_id = response.data;
         sessionStorage.setItem('session_id', session_id);
-      } else {
-        data.session_id = session_id;
-        const url = backend_url('continue-session');
-        // let response = await axios(request);
-        axios.post(url, data); // don't need response, right?
       }
     })();
   }, [location]);

@@ -1,3 +1,4 @@
+/*
 import React from'react';
 
 export function Concepts(props) {
@@ -40,3 +41,4 @@ function callWebSocket() {
     console.error("WebSocket error:", error);
   };
 }
+*/

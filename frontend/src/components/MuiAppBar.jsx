@@ -43,7 +43,7 @@ let _pages = [
 if (DEPLOYMENT === 'local') {
   _pages.push(
       { name: "Graph", href: "/graph" },
-      { name: "Add concepts", href: "/concepts" }, );
+      { name: "Add concepts", href: "/add-concepts" }, );
 }
 export function getPages(codeset_ids) {
   let pages = cloneDeep(_pages);

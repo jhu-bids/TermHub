@@ -28,7 +28,7 @@ export function useDataGetter() {
 	return useContext(DataGetterContext);
 }
 
-class DataGetter {
+export class DataGetter {
 	constructor(dataCache, alertsDispatch) {
 		this.dataCache = dataCache;
 		this.alertsDispatch = alertsDispatch;
@@ -42,7 +42,7 @@ class DataGetter {
 		return this.api_call_group_id;
 	}
 	async axiosCall(path, { backend = true, data, returnDataOnly = true, useGetForSmallData = true,
-		verbose = false, sendAlert = true, title, makeQueryString, dataLengthFunc, skipApiGroup,
+		verbose = false, sendAlert = false, title, makeQueryString, dataLengthFunc, skipApiGroup,
 	} = {}) {
 		let url = backend ? backend_url(path) : path;
 		let request = { url };
@@ -66,7 +66,7 @@ class DataGetter {
 				let dataLength = 0;
 				if (dataLengthFunc) {
 					dataLength = dataLengthFunc(data);
-				} else if (Array.isArray(data)) {
+				} else if (Array.isArray(data) || typeof (data) === 'string') {
 					dataLength = data.length;
 				} else {
 					throw new Error("dataLengthFunc or data.length is required");
@@ -228,6 +228,7 @@ class DataGetter {
 			// cacheShape: 'obj of array of array', // cache.edges[key] = [[src,tgt], [src,tgt], ....]
 			// formatResultsFunc: edges => edges.map(edge => edge.map(String)), // might need this!!
 		},
+		/*
 		indented_concept_list: {	// expects codeset_ids plus extra concept_ids (cids) if any requested
 			expectedParams: {},
 			dataLengthFunc: params => params.codeset_ids.length + params.cids.length,
@@ -245,6 +246,7 @@ class DataGetter {
 			cacheShape: 'obj of array of array', // cache.edges[key] = [[src,tgt], [src,tgt], ....]
 			// formatResultsFunc: edges => edges.map(edge => edge.map(String)), // might need this!!
 		},
+		*/
 		concept_graph_new: {	// expects codeset_ids plus extra concept_ids (cids) if any requested
 			// was indented_concept_list
 			expectedParams: {},
@@ -306,6 +308,20 @@ class DataGetter {
 				total_cnt: 0,
 				distinct_person_cnt: '0'
 			})
+		},
+		concept_search: {
+			expectedParams: '',
+			api: 'concept-search',
+			// makeQueryString: ({search_str, per_page}) => createSearchParams({search_str, per_page, session_id: sessionStorage.getItem('session_id')}),
+			makeQueryString: search_str => createSearchParams({search_str}),
+			singleKeyFunc: search_str => search_str,
+			dataLengthFunc: () => 1,
+			protocols: ['get'],
+			cacheSlice: 'search_str',
+			key: 'concept_id',
+			alertTitle: 'Get concepts for search_str',
+			apiResultShape: 'array of keyed obj',
+			expectOneResultRowPerKey: true,
 		},
 		codeset_ids_by_concept_id: {
 			expectedParams: [],	// concept_ids

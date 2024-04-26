@@ -37,7 +37,7 @@ CREATE TABLE IF NOT EXISTS {{schema}}concept_ancestor_plus{{optional_suffix}} AS
     FROM {{schema}}concept_ancestor ca
     JOIN {{schema}}concepts_with_counts c1 ON ca.ancestor_concept_id = c1.concept_id -- AND c1.invalid_reason IS NULL
     JOIN {{schema}}concepts_with_counts c2 ON ca.descendant_concept_id = c2.concept_id -- AND c2.invalid_reason IS NULL
-    JOIN concept_depth cd ON ca.ancestor_concept_id = cd.descendant_concept_id
+    LEFT JOIN concept_depth cd ON ca.ancestor_concept_id = cd.descendant_concept_id
 );
 CREATE INDEX cap_idx1{{optional_index_suffix}} ON {{schema}}concept_ancestor_plus{{optional_suffix}}(ancestor_concept_id);
 

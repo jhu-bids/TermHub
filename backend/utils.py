@@ -1,7 +1,9 @@
 """Backend utilities"""
 import datetime
+import time
 from itertools import chain, combinations
 from functools import wraps, reduce
+import threading
 import json
 import operator
 import os
@@ -18,10 +20,55 @@ from starlette.responses import JSONResponse
 from backend.config import CONFIG
 
 
-def powerset(iterable):
-    """powerset([1,2,3]) --> () (1,) (2,) (3,) (1,2) (1,3) (2,3) (1,2,3)"""
-    s = list(iterable)
-    return chain.from_iterable(combinations(s, r) for r in range(len(s)+1))
+def debounce(wait):
+    """ Decorator that will postpone a function's
+        execution until after `wait` seconds
+        have elapsed since the last time it was invoked.
+        from https://chat.openai.com/share/7ed01b5b-97bd-436a-b23b-542f068a4302"""
+    def decorator(func):
+        def debounced(*args, **kwargs):
+            def call_it():
+                func(*args, **kwargs)
+            if hasattr(debounced, '_timer'):
+                debounced._timer.cancel()
+            debounced._timer = threading.Timer(wait, call_it)
+            debounced._timer.start()
+        return wraps(func)(debounced)
+    return decorator
+
+# Example usage
+@debounce(2)  # Wait for 2 seconds before executing the function
+def debounce_test(arg):
+    print(f"debounce test called: {arg}")
+
+
+def throttle(wait = 1):
+    """ Decorator that prevents a function from being called
+        more than once every `wait` seconds. """
+    def decorator(func):
+        last_called = [0]  # Use a list to allow nonlocal modification
+
+        @wraps(func)
+        def throttled(*args, **kwargs):
+            nonlocal last_called
+            elapsed = time.time() - last_called[0]
+            if elapsed > wait:
+                last_called[0] = time.time()
+                return func(*args, **kwargs)
+
+        return throttled
+    return decorator
+
+
+# Example usage
+@throttle(2)  # Function can only be called once every 2 seconds
+def throttle_test(arg):
+    print(f"throttle test called: {arg}")
+
+# def powerset(iterable):
+#     """powerset([1,2,3]) --> () (1,) (2,) (3,) (1,2) (1,3) (2,3) (1,2,3)"""
+#     s = list(iterable)
+#     return chain.from_iterable(combinations(s, r) for r in range(len(s)+1))
 
 
 def commify(n):
@@ -96,6 +143,7 @@ def call_github_action(
     return response
 
 
+# TODO: I don't think we're using this. Delete?
 def send_email(subject: str, body: str, to=["sigfried@sigfried.org", "jflack@jhu.edu"]):
     """Send email
     todo: Need alternative. Gmail doesn't work as of 2022/05:
@@ -158,6 +206,7 @@ def pdump(o):
     print(dump(o))
 
 
+# TODO: I don't think we're using this. Delete?
 class Bunch(object):
     """dictionary to namespace, a la https://stackoverflow.com/a/2597440/1368860"""
 
@@ -175,6 +224,7 @@ def get_nested_from_dict(d: Dict, key_path: List):
     return reduce(operator.getitem, key_path, d)
 
 
+# TODO: I don't think we're using this. Delete?
 def set_nested_in_dict(d: Dict, key_path: List, value: Any):
     """Set nested value in dictionary"""
     # noinspection PyUnresolvedReferences
@@ -208,17 +258,7 @@ def return_err_with_trace(func):
     return decorated_func
 
 
-# No longer using this inject stuff. got rid of circular imports
-# But this was how it was used:
-#
-#     inject_to_avoid_circular_imports('get_concepts', get_concepts)
-#     inject_to_avoid_circular_imports('CON', CON)
-#
-# INJECTED_STUFF = {}
-# def inject_to_avoid_circular_imports(name, obj):
-#     INJECTED_STUFF[name] = obj
-
-
+# TODO: never got these working, I think. Would be good to have, though. Not a high priority, but @joeflack4, look at some time
 # async def disconnect_poller(request: Request, result: Any):
 #     """
 #     Poll for a disconnect.

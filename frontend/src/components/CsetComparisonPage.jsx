@@ -286,12 +286,14 @@ export function CsetComparisonPage() {
             <StatsAndOptions {...{gc, gcDispatch, statsOptions, statsOptionsWidth, customStyles}} />
         </FlexibleContainer>,
 
+        /*
         <FlexibleContainer key="add-concept" title="Add concepts"
                            position={panelPosition} countRef={countRef}
                            style={{width: "90%", resize: "both", }}
         >
-            {/*<AddConcepts {...{gc, gcDispatch, customStyles}} />*/}
+            {/*<AddConcepts {...{gc, gcDispatch, customStyles}} />* /}
         </FlexibleContainer>,
+        */
 
         /*
         <Button key="distinct"
