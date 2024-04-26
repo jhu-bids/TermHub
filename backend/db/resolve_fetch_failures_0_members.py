@@ -105,7 +105,7 @@ def get_failures_0_members(
         int(x['primary_key']) for x in failures if x['status_initially'] == 'fail-0-members'])
 
     # Validate & filter
-    non_failures_passed: Set[int] = set(version_id).difference(failure_lookup.keys()) if version_id else {}
+    non_failures_passed: Set[int] = set(version_id).difference(failure_lookup.keys()) if version_id else set()
     if bool(version_id and non_failures_passed):
         print("Warning: Cset IDs were passed to be resolved, but these are no longer failures; skipping them: "
               f"{', '.join([str(x) for x in non_failures_passed])}", file=sys.stderr)
