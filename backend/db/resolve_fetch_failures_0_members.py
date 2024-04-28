@@ -146,7 +146,8 @@ def resolve_fetch_failures_0_members(
     print(f"Fetching concept set versions and their related objects: {', '.join([str(x) for x in failed_cset_ids])}")
     while len(failed_cset_ids) > 0 and (datetime.now() - t0).total_seconds() < expansion_threshold_seconds:
         i += 1
-        print(f"- attempt {i}: fetching members for {len(failed_cset_ids)} concept set versions")
+        if loop:
+            print(f"- attempt {i}: fetching members for {len(failed_cset_ids)} concept set versions")
         # Check for new failures: that may have occurred during runtime
         failed_cset_ids, failure_lookup_i = get_failures_0_members(version_id, use_local_db)
         failure_lookup.update(failure_lookup_i)
