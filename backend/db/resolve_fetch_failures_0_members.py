@@ -191,13 +191,14 @@ def resolve_fetch_failures_0_members(
     # Csets with 0 expansion members
     #  - todo: only detecting simple cases. For more info, see docstring of filter_cset_id_where_0_expanded_members()
     csets_w_no_expanded_members: List[int] = filter_cset_id_where_0_expanded_members(failed_cset_ids)
-    comment = 'There are 0 expansion members because 100% of the expressions are set to isExcluded=true, ' + \
-        'includeDescendants=false, and includeMapped=false.'
-    print(f'Csets detected matching the following condition; marking them resolved:\n'
-          f'- Condition: {comment}\n'
-          f'- Cset IDs:', f'{", ".join([str(x) for x in csets_w_no_expanded_members])}')
-    _report_success(csets_w_no_expanded_members, failure_lookup, comment, use_local_db)
-    failed_cset_ids = list(set(failed_cset_ids) - set(csets_w_no_expanded_members))
+    if csets_w_no_expanded_members:
+        comment = 'There are 0 expansion members because 100% of the expressions are set to isExcluded=true, ' + \
+            'includeDescendants=false, and includeMapped=false.'
+        print(f'Csets detected matching the following condition; marking them resolved:\n'
+              f'- Condition: {comment}\n'
+              f'- Cset IDs:', f'{", ".join([str(x) for x in csets_w_no_expanded_members])}')
+        _report_success(csets_w_no_expanded_members, failure_lookup, comment, use_local_db)
+        failed_cset_ids = list(set(failed_cset_ids) - set(csets_w_no_expanded_members))
 
     # Parse drafts from actual failures
     still_draft_cset_ids: Set[int] = set([cset_id for cset_id in failed_cset_ids if cset_is_draft_map[cset_id]])
