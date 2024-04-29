@@ -182,39 +182,6 @@ function App(props) {
     alertsComponent = <AlertMessages alerts={alerts}/>;
   }
   */
-  useEffect(() => {
-    (async () => {
-      // start or continue session on server
-      /*  OLD VERSION, uses start_sessionNOT_USING and continue_sessionNOT_USING:
-          const page_url = urlWithSessionStorage({compressed: true});
-          let session_id = sessionStorage.getItem('session_id');
-          let page_num = (sessionStorage.getItem('page_num') || 0) + 1;
-          let data = { page_url, page_num };
-
-          if (!session_id) {
-            const url = backend_url('start-session');
-            let response = await axios.post(url, data);
-            let {session_id, page_num} = response.data;
-            sessionStorage.setItem('session_id', session_id);
-            sessionStorage.setItem('page_num', page_num);
-          } else {
-            data.session_id = session_id;
-            const url = backend_url('continue-session');
-            // let response = await axios(request);
-            axios.post(url, data); // don't need response, right?
-          }
-       */
-      // SIMPLER VERSION:
-      let session_id = sessionStorage.getItem('session_id');
-
-      if (!session_id) {
-        const url = backend_url('start-session');
-        let response = await axios.get(url);
-        let session_id = response.data;
-        sessionStorage.setItem('session_id', session_id);
-      }
-    })();
-  }, [location]);
   // console.log(DEPLOYMENT);
 
   return (
