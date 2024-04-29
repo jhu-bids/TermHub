@@ -252,7 +252,7 @@ async def get_concepts_post_route(request: Request, id: Union[List[str], None] =
 
 @router.get("/concept-search")
 async def _concept_search(search_str: str, sort_by: str = "-total_cnt|vocabulary_id|concept_name") -> List[int]:
-    sort_columns = {"total_cnt", "concept_name", "vocabulary_id", "domain_id", "concept_class_id"}
+    valid_sort_columns = {"total_cnt", "concept_name", "vocabulary_id", "domain_id", "concept_class_id"}
     #   for desc, prefix with -
     sort_strs = sort_by.split('|')
     sort_cols = []
@@ -262,7 +262,7 @@ async def _concept_search(search_str: str, sort_by: str = "-total_cnt|vocabulary
             desc = True
             s = s[1:]
         if s not in sort_columns:
-            raise f"invalid sort_by: {s}"
+            raise ValueError(f"invalid sort_by: {s}")
         s = f"{s} DESC" if desc else s
         sort_cols.append(s)
     q = f"""
