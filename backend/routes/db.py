@@ -274,16 +274,16 @@ async def get_concepts_post_route(request: Request, id: Union[List[str], None] =
                             table: str = 'concepts_with_counts') -> List:
     return await get_concepts_route(request, id=id, table=table)
 
-
+# todo: Sessions code not being currently utilized
+# Sessions ---------------------------------------------------------------------
 sessions_cache: Dict = {}
 session_stale_hours = 24
-
 
 @router.get("/start-session")
 def start_session():
     return get_session(None)
 
-
+# todo: not being currently utilized
 def get_session(session_id: int):
     if session_id:
         if session_id not in sessions_cache:
@@ -308,6 +308,34 @@ def update_session(session_id: int, concepts: List[Dict]):
     return session
 
 
+# maybe might use this later, but for now going to track sessions in memory only
+@router.post("/start-session")
+def start_sessionNOT_USING(body: Dict[str, str] = Body(...)) -> Dict[str, int]:
+    page_url = body.get("page_url")
+    with get_db_connection() as con:
+        session_id = next_api_call_group_id();
+        q = text("""INSERT INTO sessions (session_id, screen_log) VALUES (:session_id, ARRAY[:page_url])""")
+        run_sql(con, q, {"session_id": session_id, "page_url": page_url})
+    return {"session_id": session_id, "page_num": 1}
+
+
+# maybe might use this later, but for now going to track sessions in memory only
+@router.post("/continue-session")
+def continue_sessionNOT_USING(body: Dict[str, str] = Body(...)):
+    page_url = body.get("page_url")
+    session_id = body.get("session_id")
+
+    with get_db_connection() as con:
+        # session = sql_query(
+        #     con,
+        #     "SELECT * FROM sessions WHERE session_id = :session_id FOR UPDATE",
+        #     {"session_id": "session_id"})
+        q = text("""UPDATE sessions SET screen_log = screen_log || ARRAY[:page_url] WHERE session_id = :session_id""")
+        run_sql(con, q, {"session_id": session_id, "page_url": page_url})
+        # await con.commit()
+        # return {"session_id": session_id}
+
+
 @throttle(wait = 600) # 10 minutes
 def clear_old_sessions():
     for session_id in list(sessions_cache.keys()):
@@ -316,6 +344,7 @@ def clear_old_sessions():
     pdump(sessions_cache)
 
 
+# Search ---------
 @router.get("/concept-search")
 async def _concept_search(search_str: str, sort_by: str = "-total_cnt|vocabulary_id|concept_name") -> List[int]:
     sort_columns = {"total_cnt", "concept_name", "vocabulary_id", "domain_id", "concept_class_id"}
@@ -367,42 +396,6 @@ async def _concept_search(search_str: str, sort_by: str = "-total_cnt|vocabulary
 #     # return concept_search(session_id, search_str, page, per_page)
 
 
-@router.get("/next-api-call-group-id")
-def next_api_call_group_id() -> int:
-    """Get next API call group ID"""
-    with get_db_connection() as con:
-        id = sql_query_single_col(con, "SELECT nextval('api_call_group_id_seq')")[0]
-    return id
-
-
-# maybe might use this later, but for now going to track sessions in memory only
-@router.post("/start-session")
-def start_sessionNOT_USING(body: Dict[str, str] = Body(...)) -> Dict[str, int]:
-    page_url = body.get("page_url")
-    with get_db_connection() as con:
-        session_id = next_api_call_group_id();
-        q = text("""INSERT INTO sessions (session_id, screen_log) VALUES (:session_id, ARRAY[:page_url])""")
-        run_sql(con, q, {"session_id": session_id, "page_url": page_url})
-    return {"session_id": session_id, "page_num": 1}
-
-
-# maybe might use this later, but for now going to track sessions in memory only
-@router.post("/continue-session")
-def continue_sessionNOT_USING(body: Dict[str, str] = Body(...)):
-    page_url = body.get("page_url")
-    session_id = body.get("session_id")
-
-    with get_db_connection() as con:
-        # session = sql_query(
-        #     con,
-        #     "SELECT * FROM sessions WHERE session_id = :session_id FOR UPDATE",
-        #     {"session_id": "session_id"})
-        q = text("""UPDATE sessions SET screen_log = screen_log || ARRAY[:page_url] WHERE session_id = :session_id""")
-        run_sql(con, q, {"session_id": session_id, "page_url": page_url})
-        # await con.commit()
-        # return {"session_id": session_id}
-
-
 # @router.get("/search/")
 # async def search(session_id: str, q: str, page: int = 1, per_page: int = 10):
 #     """
@@ -433,6 +426,14 @@ def continue_sessionNOT_USING(body: Dict[str, str] = Body(...)):
 #         await con.commit()
 #
 #         return {"page": page, "per_page": per_page, "results": result_items}
+
+# -----------------
+@router.get("/next-api-call-group-id")
+def next_api_call_group_id() -> int:
+    """Get next API call group ID"""
+    with get_db_connection() as con:
+        id = sql_query_single_col(con, "SELECT nextval('api_call_group_id_seq')")[0]
+    return id
 
 
 @router.post("/concept-ids-by-codeset-id")

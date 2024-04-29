@@ -1,3 +1,4 @@
+-- todo: put to some use eventually. currently unused
 DROP TABLE IF EXISTS public.sessions{{optional_suffix}} CASCADE;
 
 CREATE TABLE IF NOT EXISTS public.sessions{{optional_suffix}} (
