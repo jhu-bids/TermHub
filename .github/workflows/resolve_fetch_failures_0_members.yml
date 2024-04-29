@@ -2,11 +2,12 @@ name: "Resolve fetch failures: New csets w/ 0 members"
 
 on:
   schedule:
-    - cron: '0 7 * * *'  # every day 7am GMT (2-3am EST/EDT)
+    - cron: '10 5 * * *'  # every day 5:10am GMT (12:10/1:10am EST/EDT)
   workflow_dispatch:
     inputs:
+      # todo: support list of IDs (comma-delimited)
       version_id:
-        description: 'Concept set version ID'
+        description: 'Optional: Concept set version ID'
         required: false
 #        type: string  # integer not supported; type will be corrected by script
 jobs:
@@ -20,7 +21,6 @@ jobs:
       - name: Set up Python version
         uses: actions/setup-python@v2
         with:
-          # Consider '3.10' or 'v3.10.0': https://github.com/actions/setup-python/issues/160
           python-version: '3.9'
       - name: Print commit hash & branch for rollbacks & troubleshooting
         run: |

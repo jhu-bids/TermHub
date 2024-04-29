@@ -544,7 +544,7 @@ def insert_from_dicts(con: Connection, table: str, rows: List[Dict], skip_if_alr
         rows = [{field: row.get(field, None) for field in fields} for row in rows]
         key_vals = {f'{k}{i}': v for i, d in enumerate(rows) for k, v in d.items()}
         values = ', '.join([f"({', '.join([':' + str(k) + str(i) for k in d.keys()])})" for i, d in enumerate(rows)])
-        # TODO: use parameterized queries to prevent SQL injection
+        # todo: use parameterized queries to prevent SQL injection
         statement = f"""INSERT INTO {table} ({', '.join([f'"{x}"' for x in rows[0].keys()])}) VALUES {values}"""
         run_sql(con, statement, key_vals)
 
@@ -771,14 +771,14 @@ def get_ddl_statements(
 
 def delete_codesets_from_db(codeset_ids):
     """ Delete codesets from db
-        TODO: finish working on this. addresses #571 / #521
-              for each codeset_id will need to:
-                - get concept_set_name
-                - delete record from code_sets table
-                - delete associated concept_set_members and concept_set_version_item records
-                - determine whether container has any remaining code_sets (versions)
-                  attached to it, if not, delete container
-                - regenerate derived tables (all_csets, csets_members_items, etc.)
+        todo: finish working on this. addresses: https://github.com/jhu-bids/termhub/issues/571
+          for each codeset_id will need to:
+            - get concept_set_name
+            - delete record from code_sets table
+            - delete associated concept_set_members and concept_set_version_item records
+            - determine whether container has any remaining code_sets (versions)
+              attached to it, if not, delete container
+            - regenerate derived tables (all_csets, csets_members_items, etc.)
     """
     with get_db_connection() as con:
         code_sets_to_be_deleted = sql_query(

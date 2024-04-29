@@ -12,6 +12,8 @@ TODO's
  concept_set_version_item_rv_edited_mapped.
  3. All _db funcs / funcs that act on the DB (and unit tests) should be in backend/, not enclave_wrangler.
 """
+import logging
+
 import dateutil.parser as dp
 import json
 import os
@@ -40,7 +42,7 @@ from backend.db.utils import SCHEMA, insert_fetch_statuses, insert_from_dict, in
     is_refresh_active, reset_temp_refresh_tables, refresh_derived_tables, \
     sql_query_single_col, run_sql, get_db_connection
 from backend.db.queries import get_concepts
-from backend.utils import call_github_action, pdump
+from backend.utils import call_github_action
 
 DEBUG = False
 HEADERS = {
@@ -363,6 +365,30 @@ def get_bidirectional_csets_sets(con: Connection = None) -> Tuple[Set[int], Set[
     return db_codeset_ids, enclave_codeset_ids
 
 
+def get_age_of_utc_timestamp(timestamp: Union[str, datetime]) -> float:
+    """Get age of a GMT/UTC timestamp in seconds"""
+    timestamp: datetime = dp.parse(timestamp) if isinstance(timestamp, str) else timestamp
+    delta: timedelta = datetime.now().astimezone(pytz.utc) - timestamp
+    return delta.total_seconds()
+
+
+def get_csets_over_threshold(
+    csets: List[Dict], threshold_minutes: int, return_type=['cset_ids', 'csets_by_id'][0]
+) -> Union[Set[int], Dict[int, Dict], None]:
+    """Determine csets that are older than a certain threshold
+
+    csets: List of dictionaries of cset objects. Should not have 'properties' key. But should be the dictionary of items
+    within 'properties'."""
+    over_threshold: Dict[int, Dict] = {}
+    for cset in csets:
+        age_minutes_i: float = get_age_of_utc_timestamp(cset['createdAt']) / 60
+        if age_minutes_i > threshold_minutes:
+            entry = cset | {'age_minutes': age_minutes_i}
+            over_threshold[cset['codesetId']] = entry
+
+    return {x['codesetId'] for x in over_threshold.values()} if return_type == 'cset_ids' else over_threshold if return_type == 'csets_by_id' else None
+
+
 def find_missing_csets_within_threshold(age_minutes=30, con: Connection = None) -> Dict[int, Dict]:
     """Find missing csets within a certain threshold, e.g. if older than 30 minutes."""
     # Set 1 of 2: In our database
@@ -375,14 +401,7 @@ def find_missing_csets_within_threshold(age_minutes=30, con: Connection = None) 
     # Determine within threshold
     missing_ids: Set[int] = enclave_codeset_ids.difference(db_codeset_ids)
     missing: List[Dict] = [enclave_codesets_lookup[cset_id] for cset_id in missing_ids]
-    missing_within_threshold: Dict[int, Dict] = {}
-    for cset in missing:
-        delta: timedelta = datetime.now().astimezone(pytz.utc) - dp.parse(cset['createdAt'])
-        age_minutes_i: float = delta.total_seconds() / 60
-        if age_minutes_i > age_minutes:
-            entry = cset | {'age_minutes': age_minutes_i}
-            missing_within_threshold[cset['codesetId']] = entry
-
+    missing_within_threshold: Dict[int, Dict] = get_csets_over_threshold(missing, age_minutes, 'csets_by_id')
     return missing_within_threshold
 
 
@@ -410,15 +429,20 @@ def find_and_add_missing_csets_to_db(con: Connection = None, schema=SCHEMA):
 
 
 def fetch_cset_and_member_objects(
-    since: Union[datetime, str] = '', codeset_ids: List[int] = [], handle_issues=True, verbose=False
+    since: Union[datetime, str] = '', codeset_ids: List[int] = [], flag_issues=True, verbose=False,
+    try_fixing_issues_immediately=False
 ) -> Union[Dict[str, List[Dict]], None]:
     """Get new objects: cset container, cset version, expression items, and member items.
 
     :param since: datetime or str, e.g. '2023-07-09T01:08:23.547680-04:00'. If present, codeset_ids should be empty.
     :param codeset_ids: List of IDs. If present, since should be empty. Will fetch containers, versions, items, and
     members related to these code set IDs.
-    :param handle_issues: If True, will flag issues for cset members/items unable to fetch to the fetch audit/status table
-
+    :param flag_issues: If True, will flag issues for cset members/items unable to fetch to the fetch audit/status table
+    :param try_fixing_issues_immediately: If True, will initialize a function or GitHub action which will attempt to
+    address issue immediately. Set to False because, given how frequently the refresh runs, it is probably the case that
+     when new issus arrive, at least for the '0 members' case, the Enclave hasn't yet expanded expressions into members,
+     and fetching now will not yield new members. Might as well wait until the end of each 20 minute refresh to try and
+     fetch them.
     todo: enclave API returns jagged rows (different lengths). E.g. for OMOPConceptSet, if it fetches a cset that does
      not have a value set for the field 'updateMessage', that field will not appear in the object/dictionary.
     todo: refactor so that, (a) ideally for both flat and hierarchical, containers get returned with a 'csets' key, and
@@ -447,8 +471,6 @@ def fetch_cset_and_member_objects(
       - member items
       - expression items
     """
-
-    # codeset_ids_to_ignore = [938394329] # Hope Termhub Test (v2), 53K concepts. taking forever
     # Concept set versions
     if not (since or codeset_ids) or (since and codeset_ids):
         raise RuntimeError('Must pass either: `since` or `codeset_ids`, but not both.')
@@ -459,7 +481,19 @@ def fetch_cset_and_member_objects(
         cset_versions: List[Dict] = fetch_objects_since_datetime('OMOPConceptSet', since, verbose) or []
     # - Filter any old drafts from sourceApplicationVersion 1.0. Old data model. No containers, etc. See also:
     #  https://github.com/jhu-bids/TermHub/actions/runs/6489411749/job/17623626419
-    cset_versions = [x for x in cset_versions if x['properties']['conceptSetNameOMOP']]
+    cset_versions = [x for x in cset_versions if x and x['properties']['conceptSetNameOMOP']]
+
+    # - handle discarded drafts
+    if codeset_ids and len(cset_versions) < len(codeset_ids):
+        discarded_draft_ids: Set[int] = \
+            set(codeset_ids).difference([x['properties']['codesetId'] for x in cset_versions])
+        # todo: could confirm is marked a draft in TermHub db for extra confidence, and update this message
+        logging.warning(
+            'Tried to fetch data for the following cset versions, but the Enclave returned with no data. It is '
+            'probably the case that these are discarded drafts. Offending cset ids: ' +
+            ', '.join([str(x) for x in discarded_draft_ids]))
+        # todo: consider deleting discarded drafts from DB or archiving in some way
+
     cset_versions_by_id: Dict[int, Dict] = {cset['properties']['codesetId']: cset for cset in cset_versions}
     del cset_versions
     print(f'   - retrieved {len(cset_versions_by_id)} versions')
@@ -491,29 +525,35 @@ def fetch_cset_and_member_objects(
         i += 1
         print(f'   - {i}: {version_id}')
         # todo: if failed to get expression items, should we not check for members? maybe ok because flagged
+        # - fetch expression items
         try:
             cset['expression_items']: List[Dict] = \
                 get_concept_set_version_expression_items(version_id, return_detail='full')
         except EnclavePaginationLimitErr as err:
             cset['expression_items']: List[Dict] = err.args[1]['results_prior_to_error']
-            if handle_issues:
+            if flag_issues:
                 insert_fetch_statuses([{'table': 'code_sets', 'primary_key': version_id, 'status_initially':
                     'fail-excessive-items', 'comment':
                     f"Failed after {len(cset['expression_items'])} expression_items."}])
-                call_github_action('resolve-fetch-failures-excess-items')
+                if try_fixing_issues_immediately:
+                    call_github_action('resolve-fetch-failures-excess-items')
+        # - fetch member items
         try:
             cset['member_items']: List[Dict] = get_concept_set_version_members(version_id, return_detail='full')
         except EnclavePaginationLimitErr as err:
             cset['member_items']: List[Dict] = err.args[1]['results_prior_to_error']
-            if handle_issues:
+            if flag_issues:
                 insert_fetch_statuses([{'table': 'code_sets', 'primary_key': version_id, 'status_initially':
                     'fail-excessive-members', 'comment': f"Failed after {len(cset['member_items'])} members."}])
-                call_github_action('resolve-fetch-failures-excess-items')
-        if not cset['member_items'] and cset['expression_items'] and not cset['properties']['isDraft'] and handle_issues:
+                if try_fixing_issues_immediately:
+                    call_github_action('resolve-fetch-failures-excess-items')
+        if not cset['member_items'] and cset['expression_items'] and flag_issues:
+            draft_text = 'Draft cset at time reported. ' if cset['properties']['isDraft'] else ''
             insert_fetch_statuses([{
                 'table': 'code_sets', 'primary_key': version_id, 'status_initially': 'fail-0-members',
-                'comment': f"Fetched 0 members after fetching {len(cset['expression_items'])} items."}])
-            call_github_action('resolve_fetch_failures_0_members.yml', {'version_id': str(version_id)})
+                'comment': f"{draft_text}Fetched 0 members after fetching {len(cset['expression_items'])} items."}])
+            if try_fixing_issues_immediately:
+                call_github_action('resolve_fetch_failures_0_members.yml', {'version_id': str(version_id)})
 
         expression_items.extend(cset['expression_items'])
         member_items.extend(cset['member_items'])

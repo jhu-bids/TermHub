@@ -3,7 +3,7 @@ name: Refresh vocabulary tables
 on:
 #  schedule:
 ##    - cron: '0 0 * * 0'  # weekly, sunday 12am
-#    - cron: '0 8 * * *'  # every day 6am GMT (3-4am EST/EDT)
+#    - cron: '0 8 * * *'  # every day 6am GMT (3/4am EST/EDT)
   workflow_dispatch:
 jobs:
   refresh-vocab-tables:
@@ -21,7 +21,6 @@ jobs:
       - name: Set up Python version
         uses: actions/setup-python@v2
         with:
-          # Consider '3.10' or 'v3.10.0': https://github.com/actions/setup-python/issues/160
           python-version: '3.9'
       - name: Print commit hash & branch for rollbacks & troubleshooting
         run: |
