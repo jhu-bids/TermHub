@@ -261,7 +261,7 @@ async def _concept_search(search_str: str, sort_by: str = "-total_cnt|vocabulary
         if s[0] == '-':
             desc = True
             s = s[1:]
-        if s not in sort_columns:
+        if s not in valid_sort_columns:
             raise ValueError(f"invalid sort_by: {s}")
         s = f"{s} DESC" if desc else s
         sort_cols.append(s)

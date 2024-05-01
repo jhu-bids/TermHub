@@ -1258,7 +1258,7 @@ createTheme(
     "light"
 );
 
-function styles(sizes) {
+export function styles(sizes) {
     return {
         /*
               tableWrapper: {
