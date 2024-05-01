@@ -152,7 +152,7 @@ function ConceptTable(props) {
   };
   const handlePerRowsChange = async (newPerPage, page) => {
     setLoading(true);
-    let ids = concept_ids.slice(page - 1, perPage);
+    let ids = concept_ids.slice(page - 1, page - 1 + perPage);
     let conceptLookup = await dataGetter.fetchAndCacheItems(dataGetter.apiCalls.concepts, ids);
     const _concepts = ids.map(id => conceptLookup[id]);
     setConcepts(_concepts);
