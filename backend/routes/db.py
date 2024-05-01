@@ -19,7 +19,7 @@ from backend.api_logger import Api_logger, get_ip_from_request
 from backend.db.refresh import refresh_db
 from backend.db.queries import get_concepts
 from backend.db.utils import get_db_connection, sql_query, SCHEMA, sql_query_single_col, sql_in, sql_in_safe, run_sql
-from backend.utils import return_err_with_trace, commify, throttle
+from backend.utils import return_err_with_trace, commify
 from enclave_wrangler.config import RESEARCHER_COLS
 from enclave_wrangler.models import convert_rows
 from enclave_wrangler.objects_api import get_n3c_recommended_csets, get_concept_set_version_expression_items, \
@@ -250,6 +250,7 @@ async def get_concepts_post_route(request: Request, id: Union[List[str], None] =
     return await get_concepts_route(request, id=id, table=table)
 
 
+@lru_cache(maxsize=20)  # probably not helpful, caching at front end anyway
 @router.get("/concept-search")
 async def _concept_search(search_str: str, sort_by: str = "-total_cnt|vocabulary_id|concept_name") -> List[int]:
     valid_sort_columns = {"total_cnt", "concept_name", "vocabulary_id", "domain_id", "concept_class_id"}

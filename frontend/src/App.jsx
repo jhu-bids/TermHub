@@ -20,7 +20,9 @@ import {
 import { createTheme, ThemeProvider } from "@mui/material/styles";
 import "./App.css";
 import { isEmpty } from "lodash";
-import {compress, decompress} from "lz-string";
+// import {decompress, decompressFromEncodedURIComponent} from "lz-string";
+// import * as lz from "lz-string";
+// window.lz = lz;
 
 import { ConceptSetsPage } from "./components/Csets";
 import { CsetComparisonPage } from "./components/CsetComparisonPage";
@@ -90,8 +92,8 @@ function AppWrapper() {
     // </React.StrictMode>
   );
 }
-window.compress = compress;
-window.decompress = decompress;
+// window.compress = compress;
+// window.decompress = decompress;
 function RoutesContainer() {
   const spState = useSearchParamsState();
   let {sp, updateSp, } = spState;
@@ -101,18 +103,27 @@ function RoutesContainer() {
 
   useEffect(() => {
     if (sp.sstorage) {
-      const sstorageString = decompress(sp.sstorage);
-      const sstorage = JSON.parse(sstorageString);
-      // const sstorage = JSON.parse(sp.sstorage);
+      const sstorage = JSON.parse(sp.sstorage);
+      /*
+      // compressing doesn't do much when you have to uri it
+      try {
+        // const sstorageString = lz.decompressFromEncodedURIComponent(sp.sstorage) || sp.sstorage;
+        // sstorage = JSON.parse(sstorageString);
+      } catch (e) {
+        // const sstorageString = decompress(sp.sstorage);
+        // sstorage = JSON.parse(sstorageString);
+        console.warn('could not parse sstorage', e);
+      }
+       */
       Object.entries(sstorage).map(([k,v]) => {
-        if (k === 'newCset') {
+        if (k === 'newCset' || k === 'session_id') {
           // restore alters newCset.definitions (unabbreviates)
           v = newCsetDispatch({type: 'restore', newCset: v});
         } else {
           console.warn('was only expecting newCset in sstorage search param, got', {[k]: v},
                        'adding to sessionStorage anyway');
+          sessionStorage.setItem(k, JSON.stringify(v));
         }
-        sessionStorage.setItem(k, JSON.stringify(v));
       });
 
       updateSp({delProps: ['sstorage']});

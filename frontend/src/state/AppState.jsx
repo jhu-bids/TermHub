@@ -1,6 +1,6 @@
 import React, {createContext, useContext, useReducer, useState} from "react";
 import {flatten, fromPairs, get, pick, isEqual, isEmpty} from "lodash";
-import {compress, decompress} from "lz-string";
+// import {compressToEncodedURIComponent} from "lz-string";
 import {createPersistedReducer} from "./usePersistedReducer";
 import {alertsReducer} from "../components/AlertMessages";
 import {useSearchParamsState} from "./SearchParamsProvider";
@@ -240,7 +240,7 @@ export function abbreviateDefinitions(defs) {
 export function unabbreviateDefinitions(defs) {
   let definitions = {};
   for (let d in defs) {
-    let def={item: true, codeset_id: NEW_CSET_ID, concept_id: d};
+    let def={item: true, codeset_id: NEW_CSET_ID, concept_id: parseInt(d)};
     let flags = defs[d].split('');
     for (let flag of flags) {
       if (flag === 'D') def.includeDescendants = true;
@@ -257,8 +257,9 @@ export function getSessionStorage() {
   delete sstorage.AI_sentBuffer;
   return sstorage;
 }
-export function serializeSessionStorage({newCset, compress = false}) {
+export function serializeSessionStorage({newCset} = {}) {
   const sstorage = getSessionStorage();
+  newCset = newCset || sstorage.newCset || {};
   if (newCset) {
     newCset = {...newCset};
     delete newCset.provenance;  // it's a mess. not using for now
@@ -266,13 +267,16 @@ export function serializeSessionStorage({newCset, compress = false}) {
     sstorage.newCset = newCset;
   }
   let sstorageString = JSON.stringify(sstorage);
-  if (compress) {
-    sstorageString = compress(sstorageString);
+  /*
+  if (zip) {
+    // compressing doesn't do much when you have to uri it
+    sstorageString = compressToEncodedURIComponent(sstorageString);
   }
+   */
   return sstorageString;
 }
-export function urlWithSessionStorage({newCset, compress = false}) {
-  const sstorageString = serializeSessionStorage({newCset, compress});
+export function urlWithSessionStorage({newCset} = {}) {
+  const sstorageString = serializeSessionStorage({newCset});
   return window.location.href + (window.location.search ? '&' : '?') + `sstorage=${sstorageString}`;
 }
 export function newCsetProvenance(newCset) {

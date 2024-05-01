@@ -5,7 +5,7 @@ import Box from "@mui/material/Box";
 import {Inspector} from 'react-inspector'; // https://github.com/storybookjs/react-inspector
 import {pct_fmt} from "../components/utils";
 import {useSearchParamsState} from "./SearchParamsProvider";
-import {useAlerts, useHierarchySettings, useNewCset} from "./AppState";
+import {useAlerts, useHierarchySettings, useNewCset, getSessionStorage, urlWithSessionStorage} from "./AppState";
 import {useDataCache} from "../state/DataCache";
 import {useDataGetter} from "./DataGetter";
 
@@ -105,11 +105,18 @@ export function ViewCurrentState() {
   const [hierarchySettings, hsDispatch] = useHierarchySettings();
   const newCset = useNewCset();
   const dataCache = useDataCache();
+  const sstorage = getSessionStorage();
   return (<div style={{margin: 30, }}>
     <h1>Current state</h1>
 
     <h2>query string parameters</h2>
     <Inspector data={sp} />
+
+    <h2>sessionStorage</h2>
+    <Inspector data={sstorage} />
+    <ul>
+      <li>Current state URL: <a href={urlWithSessionStorage()}>{urlWithSessionStorage()}</a></li>
+    </ul>
 
     <h2>app state (reducers)</h2>
     <Inspector data={{alerts, hierarchySettings, newCset}} />

@@ -103,10 +103,10 @@ function ConceptStringSearch() {
         lastRequest.current = searchText;
         const r = await dataGetter.fetchAndCacheItems(dataGetter.apiCalls.concept_search, searchText)
         if (lastRequest.current === searchText) {
-          console.log("response is valid!", r);
+          // console.log("response is valid!", r);
           setConceptIds(r);
         } else {
-          console.log("discarding api response", searchText, lastRequest.current);
+          // console.log("discarding api response", searchText, lastRequest.current);
         }
       }
     })();
@@ -116,7 +116,7 @@ function ConceptStringSearch() {
   const padding = paddingLeft + paddingRight;
   const divWidth = Math.min(windowSize[0], 1300) - padding;
   return (
-    <div className="App" style={{paddingLeft, paddingRight, width: divWidth}}>
+    <div style={{paddingLeft, paddingRight, width: divWidth}}>
       <h1>Concept Search</h1>
       <input style={{width: 350}} type="text" placeholder="match characters in concept name"
              onChange={(e) => setSearchText(e.target.value)}
@@ -135,7 +135,7 @@ function ConceptTable(props) {
   const [concepts, setConcepts] = useState([]);
   const [loading, setLoading] = useState(false);
   const totalRows = concept_ids.length;
-  const [perPage, setPerPage] = useState(10);
+  const [perPage, setPerPage] = useState(30);
   let customStyles = styles(1);
   customStyles.cells.style.padding= '0px 5px 0px 5px';
 
