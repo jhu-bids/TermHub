@@ -1,7 +1,7 @@
 import React, { useState, useCallback, useEffect } from "react";
 import { throttle } from "lodash";
 import DataTable, { createTheme } from "react-data-table-component";
-import { fmt, pct_fmt } from "./utils";
+import { fmt, pct_fmt } from "../utils";
 import { StatsMessage, } from "../state/State";
 import { Tooltip } from "./Tooltip";
 import {useCodesetIds} from "../state/AppState";

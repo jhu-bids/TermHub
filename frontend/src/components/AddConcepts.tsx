@@ -3,9 +3,11 @@ import DataTable, {createTheme} from "react-data-table-component";
 import {styles} from "./CsetComparisonPage";
 
 import {useDataGetter, DataGetter} from "../state/DataGetter";
-import {sum} from "lodash";
+import {sum, set} from "lodash";
 import {setColDefDimensions} from "./dataTableUtils";
-import {useWindowSize} from "./utils";
+import {useWindowSize} from "../utils";
+import {useCids,} from "../state/AppState";
+import {setOp} from "../utils";
 
 interface Concept {
   readonly concept_id: number;
@@ -131,17 +133,19 @@ function ConceptStringSearch() {
 
 function ConceptTable(props) {
   let {concept_ids, divWidth} = props;
+  const [cids, cidsDispatch] = useCids();
+  const allConceptIds = setOp('union', concept_ids, cids);
   const dataGetter = useDataGetter();
   const [concepts, setConcepts] = useState([]);
   const [loading, setLoading] = useState(false);
-  const totalRows = concept_ids.length;
+  const totalRows = allConceptIds.length;
   const [perPage, setPerPage] = useState(30);
   let customStyles = styles(1);
-  customStyles.cells.style.padding= '0px 5px 0px 5px';
+  set(customStyles, 'cells.style.padding', '0px 5px 0px 5px');
 
   const fetchConcepts = async page => {
     setLoading(true);
-    let ids = concept_ids.slice(page - 1, perPage);
+    let ids = allConceptIds.slice(page - 1, perPage);
     let conceptLookup = await dataGetter.fetchAndCacheItems(dataGetter.apiCalls.concepts, ids);
     const _concepts = ids.map(id => conceptLookup[id]);
     setConcepts(_concepts);
@@ -152,7 +156,7 @@ function ConceptTable(props) {
   };
   const handlePerRowsChange = async (newPerPage, page) => {
     setLoading(true);
-    let ids = concept_ids.slice(page - 1, page - 1 + perPage);
+    let ids = allConceptIds.slice(page - 1, page - 1 + perPage);
     let conceptLookup = await dataGetter.fetchAndCacheItems(dataGetter.apiCalls.concepts, ids);
     const _concepts = ids.map(id => conceptLookup[id]);
     setConcepts(_concepts);
@@ -163,12 +167,18 @@ function ConceptTable(props) {
     fetchConcepts(1); // fetch page 1 of users
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [concept_ids]);
-  console.log(customStyles);
+
+  const handleSelectedRows = ({selectedRows}) => {
+    console.log("selected rows", selectedRows);
+    cidsDispatch(selectedRows.map(row => row.concept_id));
+  }
   return <DataTable
             customStyles={customStyles}
             // title="Users"
             columns={getColDefs([divWidth, 1234])} // need an array here but don't need the height
             data={concepts}
+            selectableRows
+            onSelectedRowsChange={handleSelectedRows}
             progressPending={loading}
             pagination
             paginationServer

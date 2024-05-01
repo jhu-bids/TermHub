@@ -3,7 +3,7 @@ import React, {createContext, useContext, useEffect, useState} from "react";
 import CircularProgress from "@mui/material/CircularProgress";
 import Box from "@mui/material/Box";
 import {Inspector} from 'react-inspector'; // https://github.com/storybookjs/react-inspector
-import {pct_fmt} from "../components/utils";
+import {pct_fmt} from "../utils";
 import {useSearchParamsState} from "./SearchParamsProvider";
 import {useAlerts, useHierarchySettings, useNewCset, getSessionStorage, urlWithSessionStorage} from "./AppState";
 import {useDataCache} from "../state/DataCache";

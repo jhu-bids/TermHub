@@ -1,6 +1,6 @@
-import React, {useLayoutEffect, useState, useEffect} from "react";
+import React, {useLayoutEffect, useState} from "react";
 // import {Navigate, useNavigate} from "react-router-dom";
-import {debounce, isEqual, reduce,} from "lodash";
+import {debounce, differenceWith, intersectionWith, isEqual, reduce, unionWith,} from "lodash";
 import Papa from "papaparse";
 import {saveAs} from 'file-saver';
 // import {useDataGetter} from "../state/DataGetter";
@@ -204,4 +204,21 @@ export function saveCsv(rows, columns, filename, config=null, tsv = false) {
     type: tsv ? 'text/tab-separated-values;charset=utf-8' : 'text/csv;charset=utf-8'
   });
   saveAs(blob, filename);
+}
+
+export function setOp(op, setA, setB) {
+  /*
+   * setOp(op, setA, setB)
+   *   - op: one of union, difference, intersection
+   *   - setA, setB: can be an array, Set, or Iterator (like you get from map.keys())
+   *   - returns: a new set of items based on ==, so integers are equivalent to their string representations
+   */
+  const f = ({
+                      union: unionWith,
+                      difference: differenceWith,
+                      intersection: intersectionWith
+  })[op];
+  if (setA instanceof Set || setA instanceof Iterator) setA = [...setA];
+  if (setB instanceof Set || setB instanceof Iterator) setB = [...setB];
+  return f(setA, setB, (itemA, itemB) => itemA == itemB);
 }

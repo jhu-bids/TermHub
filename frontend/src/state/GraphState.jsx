@@ -1,9 +1,9 @@
-import React, {createContext, useContext, useReducer, useState} from "react";
-import {get, sum, sortBy, uniq, flatten, intersection, cloneDeep,
-        differenceWith, unionWith, intersectionWith, isEmpty, some} from "lodash";
+import React, {createContext, useContext, useReducer} from "react";
+import {cloneDeep, flatten, get, intersection, isEmpty, some, sortBy, sum, uniq} from "lodash";
 import Graph from "graphology";
 import {bidirectional} from 'graphology-shortest-path/unweighted';
 import {dfsFromNode} from "graphology-traversal/dfs";
+import {setOp} from "../utils";
 
 window.graphFuncs = {bidirectional, dfsFromNode};
 
@@ -571,23 +571,6 @@ export const useGraphContainer = () => {
   }
   return context;
 };
-
-function setOp(op, setA, setB) {
-  /*
-   * setOp(op, setA, setB)
-   *   - op: one of union, difference, intersection
-   *   - setA, setB: can be an array, Set, or Iterator (like you get from map.keys())
-   *   - returns: a new set of items based on ==, so integers are equivalent to their string representations
-   */
-  const f = ({
-    union: unionWith,
-    difference: differenceWith,
-    intersection: intersectionWith
-  })[op];
-  if (setA instanceof Set || setA instanceof Iterator) setA = [...setA];
-  if (setB instanceof Set || setB instanceof Iterator) setB = [...setB];
-  return f(setA, setB, (itemA, itemB) => itemA == itemB);
-}
 
 function coffmanGrahamLayering(graph, maxWidth) {
   let layers = [];

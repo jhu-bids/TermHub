@@ -20,14 +20,6 @@ const codesetIdsReducer = (state, action) => {
     case "set_all": {
       return [...action.codeset_ids];
     }
-      /*  ends up toggling multiple times now that not using context provider
-      case "toggle": {
-        if (state.includes(action.codesetId)) {
-          return state.filter(d => d !== action.codesetId);
-        }
-        return [...state, parseInt(action.codesetId)].sort();
-      }
-       */
     default:
       throw new Error(`unexpected action.type ${action.type}`);
   }
@@ -54,6 +46,31 @@ export function useCodesetIds() {
   return useContext(CodesetIdsContext);
 }
 
+
+const cidsReducer = (state, cids) => {
+  return cids || state;
+};
+const CidsContext = createContext(null);
+export function CidsProvider({ children }) {
+  const storageProvider = useSearchParamsState();
+  let state = storageProvider.getItem('cids') || [];
+
+  const dispatch = action => {
+    let latestState = storageProvider.getItem('cids') || [];
+    const stateAfterDispatch = cidsReducer(latestState, action);
+    if (!isEqual(latestState, stateAfterDispatch)) {
+      storageProvider.setItem('cids', stateAfterDispatch);
+    }
+  }
+  return (
+      <CidsContext.Provider value={[state, dispatch]}>
+        {children}
+      </CidsContext.Provider>
+  );
+}
+export function useCids() {
+  return useContext(CidsContext);
+}
 
 
 const AlertsContext = createContext(null);

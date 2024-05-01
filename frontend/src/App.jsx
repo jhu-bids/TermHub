@@ -32,6 +32,7 @@ import { ConceptGraph, } from "./components/GraphPlayground";
 import {ViewCurrentState, } from "./state/State";
 import {
   CodesetIdsProvider,
+  CidsProvider,
   AlertsProvider,
   useAlerts,
   useAlertsDispatch,
@@ -77,15 +78,17 @@ function AppWrapper() {
       <SearchParamsProvider>
         <AlertsProvider>
           <CodesetIdsProvider>
-            <NewCsetProvider>
-              <DataCacheProvider>
-                <DataGetterProvider>
-                  <GraphProvider>
-                    <RoutesContainer/>
-                  </GraphProvider>
-                </DataGetterProvider>
-              </DataCacheProvider>
-            </NewCsetProvider>
+            <CidsProvider>
+              <NewCsetProvider>
+                <DataCacheProvider>
+                  <DataGetterProvider>
+                    <GraphProvider>
+                      <RoutesContainer/>
+                    </GraphProvider>
+                  </DataGetterProvider>
+                </DataCacheProvider>
+              </NewCsetProvider>
+            </CidsProvider>
           </CodesetIdsProvider>
         </AlertsProvider>
       </SearchParamsProvider>

@@ -13,7 +13,7 @@ import {flatten, fromPairs, intersection, union, differenceWith, isEmpty, max, t
 
 import {dfs, dfsFromNode} from 'graphology-traversal/dfs';
 
-import {fmt, saveCsv, useWindowSize} from "./utils";
+import {fmt, saveCsv, useWindowSize} from "../utils";
 import {setColDefDimensions} from "./dataTableUtils";
 import {ConceptSetCard} from "./ConceptSetCard";
 import {Tooltip} from "./Tooltip";
@@ -217,27 +217,6 @@ export function CsetComparisonPage() {
         // sometimes selected_csets and some other data disappears when the page is reloaded
         return <p>Downloading...</p>;
     }
-
-    /*
-    // OLD CODE BELOW, LEAVING IN PLACE TILL NEW CODE IS WORKING
-    let graph = gc.withAttributes(edges);
-
-    let indentedCids = getIndentedTreeNodes(graph).map(([level, cid]) => [level, parseInt(cid)]);
-
-    // TODO: component is rendering twice. why? not necessary? fix?
-    if (!indentedCids) { // if no indentedCids (yet), no information to nest with, so turn off nesting for this
-                  //  invocation of getRowData (don't save to state)
-      hierarchySettings = {...hierarchySettings, nested: false};
-    }
-    let {allRows, displayedRows, distinctRows, hidden} = getRowData({conceptLookup, indentedCids, hierarchySettings});
-    let rowData;
-    if (nested) {
-      rowData = displayedRows;
-    } else {
-      // rowData = hierarchyToFlatCids(hierarchy).map(cid => conceptLookup[cid]);
-      rowData = distinctRows;
-    }
-    */
 
     const editAction = getCodesetEditActionFunc({csmi, newCset, newCsetDispatch,});
 

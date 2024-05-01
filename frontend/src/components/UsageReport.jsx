@@ -2,7 +2,7 @@ import React, {useEffect, useState} from "react";
 import {backend_url, useDataGetter} from "../state/DataGetter";
 // import axios from "axios";
 import {isEmpty, uniq, } from 'lodash';
-import {fmt, saveCsv, mean, median} from "./utils";
+import {fmt, saveCsv, mean, median} from "../utils";
 
 export function UsageReport() {
     const dataGetter = useDataGetter();

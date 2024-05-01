@@ -4,7 +4,7 @@
 
 import React, { useEffect, useReducer } from 'react';
 import {get, isEmpty, } from 'lodash';
-import {oneSidedObjectDifference} from "../components/utils";
+import {oneSidedObjectDifference} from "../utils";
 
 /*
   - Had to do weird thing by allowing default state instead of (or

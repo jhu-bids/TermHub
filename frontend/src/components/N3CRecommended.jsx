@@ -4,7 +4,7 @@ import { flatten, uniq, sortBy } from "lodash";
 
 import {backend_url, useDataGetter} from "../state/DataGetter";
 import {useSearchParamsState} from "../state/SearchParamsProvider";
-import {fmt, saveCsv, useWindowSize} from "./utils";
+import {fmt, saveCsv, useWindowSize} from "../utils";
 import {TextH2} from "./AboutPage";
 import Button from "@mui/material/Button";
 import {Link} from "react-router-dom";
