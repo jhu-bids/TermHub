@@ -19,7 +19,7 @@ from backend.api_logger import Api_logger, get_ip_from_request
 from backend.db.refresh import refresh_db
 from backend.db.queries import get_concepts
 from backend.db.utils import get_db_connection, sql_query, SCHEMA, sql_query_single_col, sql_in, sql_in_safe, run_sql
-from backend.utils import return_err_with_trace, commify
+from backend.utils import call_github_action, return_err_with_trace, commify
 from enclave_wrangler.config import RESEARCHER_COLS
 from enclave_wrangler.models import convert_rows
 from enclave_wrangler.objects_api import get_n3c_recommended_csets, get_concept_set_version_expression_items, \
@@ -365,21 +365,9 @@ def get_researchers(ids: List[str] = Query(...), fields: Union[List[str], None] 
 
 @router.get("/db-refresh")
 def db_refresh_route():
-    """Triggers refresh of the database
-    todo: May want to change this back to GH action for reasons:
-     1. Easier to check logs
-     If there's a problem, I can go to the actions tab and find easily. Finding on azure takes many more clicks, and then I have to scroll up to find where the refresh got logged, and it may be mixed with logs for other requests.
-     2. Almost always won't increase speed of refresh
-     This was supposed to be the only benefit of calling it directly.
-     If someone creates a cset and clicks the button, it doesn't matter that our backend is faster than a GH action starting up, since it will take 20-45 minutes for that cset to be ready anyway. so effectively this is not faster, except for fetching csets that are not brand new, which (i) is not the primary thing people are using the button for, and (ii) is unlikely to happen w/ a fast refresh rate.
-     3. Harder to make changes
-     If we want to make changes to the refresh, we have to redeploy the whole app to make that work, rather than pushing to develop.
-     4. Uses more server resources.
-     5. Possible server stability issues
-     I'm not sure, but I wonder if there is some edge case where an error that happens during the refresh, or other unanticipated side effects, could have an effect on performance or stability of the web server."""
-    # response: Response = call_github_action('refresh-db')
-    # return response
-    refresh_db()
+    """Triggers refresh of the database"""
+    response: Response = call_github_action('refresh-db')
+    return response.status_code
 
 
 FLAGS = ['includeDescendants', 'includeMapped', 'isExcluded']
