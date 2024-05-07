@@ -27,7 +27,7 @@ import {
     textCellForItem,
 } from "./NewCset";
 import {FlexibleContainer} from "./FlexibleContainer";
-import {NEW_CSET_ID, urlWithSessionStorage, useCodesetIds, useHierarchySettings, useNewCset,} from "../state/AppState";
+import {NEW_CSET_ID, urlWithSessionStorage, useCodesetIds, useCids, useHierarchySettings, useNewCset,} from "../state/AppState";
 import {useGraphContainer} from "../state/GraphState";
 import {getResearcherIdsFromCsets, useDataGetter} from "../state/DataGetter";
 import {useSearchParamsState} from "../state/SearchParamsProvider";
@@ -39,7 +39,7 @@ import {LI} from "./AboutPage";
 // TODO: Color table: I guess would need to see if could pass extra values/props and see if table widget can use that
 //  ...for coloration, since we want certain rows grouped together
 export async function fetchGraphData(props) {
-    let {dataGetter, sp, gcDispatch, codeset_ids, newCset={}} = props;
+    let {dataGetter, sp, gcDispatch, codeset_ids, cids, newCset={}} = props;
     let promises = [ // these can run immediately
         dataGetter.fetchAndCacheItems(dataGetter.apiCalls.cset_members_items, codeset_ids),
         dataGetter.fetchAndCacheItems(dataGetter.apiCalls.csets, codeset_ids),
@@ -53,11 +53,13 @@ export async function fetchGraphData(props) {
     // const concept_ids_by_codeset_id = await dataGetter.fetchAndCacheItems(dataGetter.apiCalls.concept_ids_by_codeset_id, codeset_ids);
     // let concept_ids = union(flatten(Object.values(concept_ids_by_codeset_id)));
 
-    const cids = []; // not collecting these extra concept ids yet
     const graphData = await dataGetter.fetchAndCacheItems(
         dataGetter.apiCalls.concept_graph_new, {codeset_ids, cids: cids});
     let {concept_ids} = graphData;
 
+    if (!isEmpty(newCset)) {
+        concept_ids = union(concept_ids, Object.values(newCset.definitions).map(d => d.concept_id));
+    }
     promises.push(dataGetter.fetchAndCacheItems(dataGetter.apiCalls.concepts, concept_ids));
 
     let [csmi, selected_csets, conceptLookup,] = await Promise.all(promises);
@@ -128,18 +130,11 @@ export async function fetchGraphData(props) {
 
     gcDispatch({type: "CREATE", payload: {...graphData, concepts, specialConcepts, csmi}});
 
-    if (!isEmpty(newCset)) {
-        const cidcnt = concept_ids.length;
-        concept_ids = union(concept_ids, Object.values(newCset.definitions).map(d => d.concept_id));
-        if (concept_ids.length > cidcnt) {
-            throw new Error("not implemented");
-        }
-    }
-
     return { concept_ids, selected_csets, conceptLookup, csmi, concepts, specialConcepts, comparison_rpt };
 }
 export function CsetComparisonPage() {
     const [codeset_ids, codesetIdsDispatch] = useCodesetIds();
+    const [cids, cidsDispatch] = useCids();
     const {sp, updateSp} = useSearchParamsState();
     const [newCset, newCsetDispatch] = useNewCset();
     const editingCset = !isEmpty(newCset);
@@ -167,7 +162,7 @@ export function CsetComparisonPage() {
 
             await dataGetter.getApiCallGroupId();
 
-            const graphData = fetchGraphData({dataGetter, sp, gcDispatch, codeset_ids, newCset})
+            const graphData = fetchGraphData({dataGetter, sp, gcDispatch, codeset_ids, cids, newCset})
 
 
             let { concept_ids, selected_csets, conceptLookup, csmi, concepts, specialConcepts,

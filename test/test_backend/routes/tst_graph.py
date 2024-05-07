@@ -29,7 +29,8 @@ from networkx import DiGraph
 THIS_DIR = Path(os.path.dirname(__file__))
 PROJECT_ROOT = THIS_DIR.parent.parent.parent
 sys.path.insert(0, str(PROJECT_ROOT))
-from backend.routes.graph import concept_graph, get_connected_subgraph, REL_GRAPH, get_missing_in_between_nodes
+from backend.routes.graph import concept_graph, get_connected_subgraph, REL_GRAPH, test_get_missing_in_between_nodes
+                                  # get_missing_in_between_nodes
 
 THIS_STATIC_DIR = THIS_DIR / 'static'
 STATIC_DIR_get_connected_subgraph = THIS_STATIC_DIR / 'get_connected_subgraph'
@@ -161,61 +162,6 @@ class TstGraph:
                 # self.assertEqual(v, expected[k], msg=f'Results differ for {k} for test {test_name}')
                 assert v == expected[k], f'Results differ for "{k}" in test for "{test_name}"'
 
-    async def tst_get_missing_in_between_nodes(self):
-        """Test get_missing_in_between_nodes()"""
-        # - Test: Gap filling
-        #   Source: depth first of https://app.diagrams.net/#G1mIthDUn4T1y1G3BdupdYKPkZVyQZ5XYR
-        # test code for the above:
-        # subgraph edges (from definitions and expansions)
-        # (2, 1), (2, 8), (4, 3), (4, 10), (10, 9), (10, 12), (11, 10), (11, 13), (15, 14), (15, 18), (20, 16), (20, 19),
-        # outside_scope_edges
-        # ('root', '2p1'), ('2p1', 2), ('root', '2p2'), ('2p2', 2), ('root', 'cloud'), ('cloud', 8), ('cloud', 6), (6, 5),
-        # (6, 11), (6, 17), ('cloud', 15), ('cloud', 20),
-        # missing in between edges
-        # (8, 7), (7, 5), (5, 4), (18, 17), (17, 16),
-        whole_graph_edges = [   # now, more or less, in diagram number order
-            (2, 1),
-            ('root', '2p1'), ('2p1', 2), ('root', '2p2'), ('2p2', 2), ('root', 'cloud'),
-            (4, 3),
-            (5, 4),
-            (7, 5),
-            (8, 7),
-            ('cloud', 8),
-            (2, 8),
-            (6, 5),
-            ('cloud', 6),
-            (10, 9),
-            (4, 10),
-            (10, 12),
-            (11, 10),
-            (6, 11),
-            (11, 13),
-            (15, 14),
-            ('cloud', 15),
-            (16, 21),
-            (17, 16),
-            (6, 17),
-            (18, 17),
-            (15, 18),
-            (20, 16),
-            ('cloud', 20),
-            (22, 23),
-            (19, 22),
-            (20, 19),
-        ]
-        # noinspection PyPep8Naming
-        G = DiGraph(whole_graph_edges)
-
-        graph_nodes = set(list(range(1, 23)))
-        # graph_nodes.update(['root', '2p1', '2p2', 'cloud'])
-        subgraph_nodes =  graph_nodes - {7, 5, 6, 17}
-        expected_missing_in_between_nodes = {5, 7, 17}
-
-        missing_in_between_nodes = get_missing_in_between_nodes(G, subgraph_nodes)
-        # self.assertEquals(missing_in_between_nodes, expected_missing_in_between_nodes)
-        assert missing_in_between_nodes == expected_missing_in_between_nodes
-        print(f"passed with {missing_in_between_nodes}")
-
     # TODO:
     #   cardiomyopathies and the graph.py:tst_graph_code tests are working as expected for missing_in_between
     #     have those two tests as a case for testing missing in between
@@ -248,9 +194,63 @@ class TstGraph:
                 assert len(nonstandard_concepts_hidden) == 19
                 assert len(hidden_by_voc[hide_vocabs[0]]) == 92
 
+    async def tst_get_missing_in_between_nodes(
+            self,
+            whole_graph_edges=None,
+            non_subgraph_nodes=None,
+            expected_missing_in_between_nodes=None):
+
+        """Test get_missing_in_between_nodes()"""
+        # - Test: Gap filling
+        #   Source: depth first of https://app.diagrams.net/#G1mIthDUn4T1y1G3BdupdYKPkZVyQZ5XYR
+        # test code for the above:
+        # subgraph edges (from definitions and expansions)
+        # (2, 1), (2, 8), (4, 3), (4, 10), (10, 9), (10, 12), (11, 10), (11, 13), (15, 14), (15, 18), (20, 16), (20, 19),
+        # outside_scope_edges
+        # ('root', '2p1'), ('2p1', 2), ('root', '2p2'), ('2p2', 2), ('root', 'cloud'), ('cloud', 8), ('cloud', 6), (6, 5),
+        # (6, 11), (6, 17), ('cloud', 15), ('cloud', 20),
+        # missing in between edges
+        # (8, 7), (7, 5), (5, 4), (18, 17), (17, 16),
+        whole_graph_edges = whole_graph_edges or [   # now, more or less, in diagram number order
+            (2, 1),
+            ('root', '2p1'), ('2p1', 2), ('root', '2p2'), ('2p2', 2), ('root', 'cloud'),
+            (4, 3),
+            (5, 4),
+            (7, 5),
+            (8, 7),
+            ('cloud', 8),
+            (2, 8),
+            (6, 5),
+            ('cloud', 6),
+            (10, 9),
+            (4, 10),
+            (10, 12),
+            (11, 10),
+            (6, 11),
+            (11, 13),
+            (15, 14),
+            ('cloud', 15),
+            (16, 21),
+            (17, 16),
+            (6, 17),
+            (18, 17),
+            (15, 18),
+            (20, 16),
+            ('cloud', 20),
+            (22, 23),
+            (19, 22),
+            (20, 19),
+        ]
+
+        non_subgraph_nodes = non_subgraph_nodes or {5, 6, 7, 17}
+        expected_missing_in_between_nodes = expected_missing_in_between_nodes or {5, 7, 17}
+
+        test_get_missing_in_between_nodes(whole_graph_edges, non_subgraph_nodes, expected_missing_in_between_nodes)
 
 # Uncomment this and run this file and run directly to run all tests
-# if __name__ == '__main__':
+if __name__ == '__main__':
+    pass
 #     unittest.main()
 # asyncio.run(TstGraph().tst_get_connected_subgraph())
-asyncio.run(TstGraph().tst_concept_graph())
+# asyncio.run(TstGraph().tst_concept_graph())
+asyncio.run(TstGraph().tst_get_missing_in_between_nodes())

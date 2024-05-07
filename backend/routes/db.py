@@ -97,6 +97,7 @@ def get_cset_members_items(
     columns: Union[List[str], None] = None,
     column: Union[str, None] = None,
     return_with_keys: bool = True,
+    cids: Union[List[int], None] = None,
 ) -> Union[List[int], List]:
     """Get concept set members items for selected concept sets
         returns:
