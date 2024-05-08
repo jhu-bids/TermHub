@@ -11,6 +11,7 @@ import os
 import sys
 import unittest
 from pathlib import Path
+from typing import Set
 
 # noinspection DuplicatedCode
 THIS_DIR = Path(os.path.dirname(__file__))
@@ -28,18 +29,24 @@ class TestBackendDbConfig(unittest.TestCase):
         """Test that DERIVED_TABLE_DEPENDENCY_MAP is not missing tables/views."""
         # Get expected dependent/derived tables/views vs actual tables that might be dependent / have a dependent
         # - gets all table/views in keys or vals of map. Not seem readable/Pythonic though. Surprised it's correct.
-        expected = {
+        expected: Set[str] = {
             name for sublist in
             [list(DERIVED_TABLE_DEPENDENCY_MAP.keys())] + list(DERIVED_TABLE_DEPENDENCY_MAP.values())
             for name in sublist
         }
-        actual = set(list_schema_objects(filter_sequences=True, names_only=True, verbose=False))
+        # noinspection PyTypeChecker
+        actual: Set[str] = set(list_schema_objects(filter_sequences=True, names_only=True, verbose=False))
         # Adjust for tables known not to be dependent / have a dependent
         actual_adjusted = actual - set(STANDALONE_TABLES)
         # Test diff
-        msg = 'In DB but not in config:\n' + str(actual_adjusted - expected) + '\n'\
-              'In config but not in DB:\n' + str(expected - actual_adjusted)
-        self.assertEqual(expected, actual, msg=msg)
+        msg = '\n'
+        if actual_adjusted - expected:
+            msg += 'In DB but not in config:\n' + str(actual_adjusted - expected)
+        if expected - actual_adjusted:
+            if msg:
+                msg += '\n\n'
+            msg += 'In config but not in DB:\n' + str(expected - actual_adjusted)
+        self.assertTrue(expected == actual_adjusted, msg=msg)
 
 
 # Uncomment this and run this file and run directly to run all tests
