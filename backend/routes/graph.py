@@ -345,13 +345,13 @@ print_stack = lambda s: ' | '.join([f"""{n}{'=>' if p else ''}{','.join(p)}""" f
 def get_missing_in_between_nodes(G: nx.DiGraph, subgraph_nodes: Union[List[int], Set[int]], verbose=VERBOSE) -> Set:
     missing_in_between_nodes = set()
     missing_in_between_nodes_tmp = set()
-    sg: nx.DiGraph = G.subgraph(subgraph_nodes)
     subgraph_nodes = set(subgraph_nodes)
     # noinspection PyCallingNonCallable
-    leaves = [node for node, degree in sg.out_degree() if degree == 0]
-    print(leaves)
-    # leaves = sorted([node for node, degree in sg.out_degree() if degree == 0])
-    visited = set()
+    leaves = [node for node, degree in G.out_degree() if degree == 0]
+    leaves = set(leaves).intersection(subgraph_nodes)
+    print(f"subgraph: {subgraph_nodes}, leaves: {leaves}")
+    # leaves = sorted([node for node, degree in G.out_degree() if degree == 0])
+    discard = set()   # nodes not in subgraph and with no predecessors in subgraph
 
     for leaf_node in leaves:
         descending_from = None
@@ -367,14 +367,14 @@ def get_missing_in_between_nodes(G: nx.DiGraph, subgraph_nodes: Union[List[int],
                     f"{(descending_from or ''):8} "
                     f"<{','.join([str(n) for n in missing_in_between_nodes])}> "  # <missing nodes>
                     f"{{{','.join([str(n) for n in missing_in_between_nodes_tmp])}}} "
-                    f"--{','.join([str(n) for n in visited]) if visited else ''}"  # <missing nodes>
+                    f"--{','.join([str(n) for n in discard]) if discard else ''}"  # <missing nodes>
                 )  # {temp missing nodes}
 
             next_node = predecessors.pop(0) if predecessors else None
             if next_node:
                 descending_from = None
                 # ignoring visited is messing stuff up visited node is in the graph, i think
-                if next_node not in visited:
+                if next_node not in discard:
                     # visited.add(next_node)
 
                     if next_node not in subgraph_nodes:
@@ -398,84 +398,27 @@ def get_missing_in_between_nodes(G: nx.DiGraph, subgraph_nodes: Union[List[int],
                     # break
                 else:
                     missing_in_between_nodes_tmp.discard(n)
-                    visited.add(n)
-
-    return missing_in_between_nodes
-
-def get_missing_in_between_nodes_BEFORE_FIXING(G: DiGraph, subgraph_nodes: Union[List[int], Set[int]], verbose=VERBOSE) -> Set:
-    """Get missing in-betweens, nodes that weren't in definition or expansion but are in between those.
-        documentation of this very tricky algorithm is here: https://github.com/jhu-bids/TermHub/blob/develop/docs/graph.md#gap-filling
-        Algorithm in english:
-            - For each leaf node
-                - Backwards depth-first search
-                - Mark visited nodes; don't revisit
-                - Save last (highest) subgraph node encountered (will always be a component root)
-                - Any non-subgraph nodes encountered between component root and leaf are added for
-                  gap filling
-    """
-    missing_in_between_nodes = set()
-    missing_in_between_nodes_tmp = set()
-    sg: DiGraph = G.subgraph(subgraph_nodes)
-    # noinspection PyCallingNonCallable
-    leaves = [node for node, degree in sg.out_degree() if degree == 0]
-    visited = set()
-
-    for leaf_node in leaves:
-        # stack = [(leaf_node, iter(G.predecessors(leaf_node)))]
-        descending_from = None
-        stack = [(leaf_node, list(list(G.predecessors(leaf_node))))]
-
-        while stack:
-            # if descending_from:
-                # if descending_from in subgraph_nodes:
-                #     missing_in_between_
-
-            current_node, predecessors = stack[-1]
-            if verbose and len(subgraph_nodes) < 1000:
-                print(f"{str(print_stack(stack)):58} {(descending_from or ''):8} "
-                      f"<{','.join([str(n) for n in missing_in_between_nodes])}> ; "
-                      f"{{{','.join([str(n) for n in missing_in_between_nodes_tmp])}}}")
-
-            # try:
-            # next_node = next(predecessors)
-            next_node = predecessors.pop(0) if predecessors else None
-            if next_node:
-                descending_from = None
-                if next_node not in visited:
-                    visited.add(next_node)
-
-                    if next_node not in subgraph_nodes:
-                        missing_in_between_nodes_tmp.add(next_node)
-
-                    # stack.append((next_node, iter(G.predecessors(next_node))))
-                    stack.append((next_node, list(list(G.predecessors(next_node)))))
-            else:
-                # while True:
-                n, preds = stack.pop()
-                descending_from = n if n in subgraph_nodes else f"[{n}]"
-                if preds:
-                    raise RuntimeError("this shouldn't happen")
-
-                if n in subgraph_nodes:
-                    missing_in_between_nodes.update(missing_in_between_nodes_tmp)
-                    missing_in_between_nodes_tmp.clear()
-                    break
-                else:
-                    missing_in_between_nodes_tmp.discard(n)
-
-            # except StopIteration:
-            # except IndexError:
-
+                    discard.add(n)
     return missing_in_between_nodes
 
 
-def test_get_missing_in_between_nodes(whole_graph_edges=None, non_subgraph_nodes=None, expected_missing_in_between_nodes=None,
-                                        verbose=VERBOSE):
+def test_get_missing_in_between_nodes(
+        whole_graph_edges=None,
+        non_subgraph_nodes=None,
+        expected_missing_in_between_nodes=None,
+        subgraph_nodes=None,
+        fail=True,
+        ):
     G = DiGraph(whole_graph_edges)
-    subgraph_nodes = set(G.nodes) - set(non_subgraph_nodes)
-    missing_in_between_nodes = get_missing_in_between_nodes(G, subgraph_nodes)
-    assert missing_in_between_nodes == set(expected_missing_in_between_nodes)
-    print(f"passed with {missing_in_between_nodes}")
+    subgraph_nodes = subgraph_nodes or set(G.nodes) - set(non_subgraph_nodes)
+    missing_in_between_nodes = get_missing_in_between_nodes(G, subgraph_nodes, verbose=True)
+    if fail:
+        assert missing_in_between_nodes == set(expected_missing_in_between_nodes)
+    else:
+        if missing_in_between_nodes == set(expected_missing_in_between_nodes):
+            print(f"passed with {missing_in_between_nodes}")
+        else:
+            print(f"expected {expected_missing_in_between_nodes}, got {missing_in_between_nodes}")
 
 
 @router.get("/wholegraph")
