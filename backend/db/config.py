@@ -124,7 +124,7 @@ DERIVED_TABLE_DEPENDENCY_MAP: Dict[str, List[str]] = {
     ],
     'codeset_counts': ['members_items_summary'],
     'codeset_ids_by_concept_id': ['cset_members_items'],
-    'concept_ancestor_plus': ['concept_ancestor', 'concepts_with_counts'],
+    'concept_ancestor_plus': ['concept_ancestor', 'concepts_with_counts', 'concept_depth'],
     'concept_depth': ['root_concepts', 'concept_ancestor'],
     'concept_graph': ['concept_ancestor'],
     'concept_ids_by_codeset_id': ['cset_members_items'],
@@ -185,3 +185,4 @@ DIRECT_DEPENDENT_TABLE_MAP = invert_list_dict(DERIVED_TABLE_DEPENDENCY_MAP)
 # RECURSIVE_DEPENDENT_TABLE_MAP: Hierarchy of each table and all of the tables that depend on it. If nothing depends on
 # a table, it  will not appear in the keys.
 RECURSIVE_DEPENDENT_TABLE_MAP: Dict[str, Dict] = recursify_list_dict(DIRECT_DEPENDENT_TABLE_MAP)
+print()
