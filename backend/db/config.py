@@ -6,6 +6,8 @@ from backend.config import CONFIG, CONFIG_LOCAL
 
 def invert_list_dict(d1: Dict[str, List[str]]) -> Dict[str, List[str]]:
     """Invert a dictionary with lists as values"""
+    if any(not isinstance(value, list) for value in d1.values()):
+        raise ValueError('Dictionary values must be lists')
     d2 = {}
     for key, values in d1.items():
         for value in values:
@@ -93,8 +95,12 @@ CORE_CSET_DEPENDENT_TABLES = [
 ]
 # STANDALONE_TABLES: Not derived from any other table, nor used to derive any other table/view. Used for QC testing.
 STANDALONE_TABLES = [
+    'concept_set_json',
     'junk',
     'relationship',
+    'session_concept',
+    'sessions',
+    'test',
 ]
 # DERIVED_TABLE_DEPENDENCY_MAP: Shows which tables are needed to create a derived table. Generally the idea is that when
 #  the dependency tables are updated, the dependent table also needs to be updated. But some tables in here have
@@ -103,7 +109,7 @@ STANDALONE_TABLES = [
 # - Last updated: 2024/04/07
 # todo: are the 'module names' part of the DDL file names the same as the keys in this dictionary? If so, write that
 #  down here as a comment. Could be useful for dynamically selecting the DDL files.
-DERIVED_TABLE_DEPENDENCY_MAP = {
+DERIVED_TABLE_DEPENDENCY_MAP: Dict[str, List[str]] = {
     # Dependencies figured out
     # - tables
     # all_csets: omopconceptset is all lowercase in DB but referred to as OMOPConceptSet in DDL and enclave object API
@@ -119,6 +125,7 @@ DERIVED_TABLE_DEPENDENCY_MAP = {
     'codeset_counts': ['members_items_summary'],
     'codeset_ids_by_concept_id': ['cset_members_items'],
     'concept_ancestor_plus': ['concept_ancestor', 'concepts_with_counts'],
+    'concept_depth': ['root_concepts', 'concept_ancestor'],
     'concept_graph': ['concept_ancestor'],
     'concept_ids_by_codeset_id': ['cset_members_items'],
     'concept_relationship_plus': ['concept_relationship', 'concepts_with_counts'],
@@ -126,6 +133,7 @@ DERIVED_TABLE_DEPENDENCY_MAP = {
     'concepts_with_counts_ungrouped': ['concept', 'deidentified_term_usage_by_domain_clamped'],
     'cset_members_items': ['concept_set_members', 'concept_set_version_item'],
     'members_items_summary': ['cset_members_items'],
+    'root_concepts': ['concept_ancestor'],
 
     # - views
     # 'csets_to_ignore': ['all_csets'],
@@ -156,18 +164,19 @@ DERIVED_TABLE_DEPENDENCY_MAP = {
 
     # Public schema
     # todo? Probably not a use case for adding such tables here. As of 2024/04/07, public tables/views are:
-    # api_runs
+    # - dependent
     # apijoin
-    # apirruns_grouped
     # apiruns_plus
+    # apirruns_grouped
+    # - independent
+    # api_runs
     # codeset_comparison
     # counts
     # counts_runs
     # fetch_audit
     # ip_info
     # manage
-    # sessions
-    # session_concept
+
 }
 # DIRECT_DEPENDENT_TABLES: Keys are tables. Values are tables that depend on the table in the key. That is to say, when
 # the table in the key is updated, the tables in the values under that key also need to be updated. Inversion of
