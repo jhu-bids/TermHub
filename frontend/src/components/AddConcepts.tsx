@@ -3,11 +3,12 @@ import DataTable, {createTheme} from "react-data-table-component";
 import {styles} from "./CsetComparisonPage";
 
 import {useDataGetter, DataGetter} from "../state/DataGetter";
-import {sum, set} from "lodash";
+import {sum, set, uniq, flatten} from "lodash";
 import {setColDefDimensions} from "./dataTableUtils";
 import {useWindowSize} from "../utils";
-import {useCids,} from "../state/AppState";
+import {useCids, useCodesetIds,} from "../state/AppState";
 import {setOp} from "../utils";
+import Button from "@mui/material/Button";
 
 interface Concept {
   readonly concept_id: number;
@@ -90,9 +91,12 @@ export function AddConcepts() {
 // from https://stackoverflow.com/a/66167322/1368860
 function ConceptStringSearch() {
   const dataGetter: DataGetter = useDataGetter();
-  let concepts: Concept[] = [];
+  const [codeset_ids, codesetIdsDispatch] = useCodesetIds();
+  const [cids, cidsDispatch] = useCids();
   const [searchText, setSearchText] = React.useState("");
-  const [concept_ids, setConceptIds] = React.useState(concepts);
+  const c: number[] = [];
+  const [have_concept_ids, setHaveConceptIds] = React.useState(c);
+  const [found_concept_ids, setFoundConceptIds] = React.useState(c);
   const lastRequest = React.useRef(null);
   const windowSize = useWindowSize();
 
@@ -106,13 +110,26 @@ function ConceptStringSearch() {
         const r = await dataGetter.fetchAndCacheItems(dataGetter.apiCalls.concept_search, searchText)
         if (lastRequest.current === searchText) {
           // console.log("response is valid!", r);
-          setConceptIds(r);
+          setFoundConceptIds(r);
         } else {
           // console.log("discarding api response", searchText, lastRequest.current);
         }
       }
     })();
   }, [searchText]);
+
+  React.useEffect(() => {
+    (async () => {
+      // csmi for these codeset_ids should already be cached
+      const csmi: { [key: number]: Concept } = await dataGetter.fetchAndCacheItems(dataGetter.apiCalls.cset_members_items, codeset_ids);
+      let h = uniq(flatten(
+          Object.values(csmi).map(d => Object.values(d))
+      ).filter(d => d.item).map(d => d.concept_id));
+      // let h = Object.values(csmi).map(c => c.concept_id);
+      h = setOp('union', h, cids);
+      setHaveConceptIds(h);
+    })();
+  }, [codeset_ids, cids]);
 
   const paddingLeft = 100, paddingRight = 100;
   const padding = paddingLeft + paddingRight;
@@ -124,28 +141,32 @@ function ConceptStringSearch() {
              onChange={(e) => setSearchText(e.target.value)}
              value={searchText}
              autoFocus={true}
-      />{'\u00A0'}{'\u00A0'}{'\u00A0'}{concept_ids.length ? concept_ids.length.toLocaleString() + ' concept_ids' : ""}
+      />
+      {'\u00A0'}{'\u00A0'}{'\u00A0'}{found_concept_ids.length ? found_concept_ids.length.toLocaleString() + ' concept_ids found; ' : ""}
+      {'\u00A0'}{'\u00A0'}{'\u00A0'}{have_concept_ids.length ? have_concept_ids.length.toLocaleString() + ' concept_ids already included' : ""}
       <hr/>
-      <ConceptTable concept_ids={concept_ids} divWidth={divWidth}/>
+      <FoundConceptTable have_concept_ids={have_concept_ids} found_concept_ids={found_concept_ids} divWidth={divWidth}/>
+      <AddedCidsConceptTable divWidth={divWidth}/>
     </div>
   );
 }
 
-function ConceptTable(props) {
-  let {concept_ids, divWidth} = props;
+function FoundConceptTable(props) {
+  let {have_concept_ids, found_concept_ids, divWidth} = props;
   const [cids, cidsDispatch] = useCids();
-  const allConceptIds = setOp('union', concept_ids, cids);
+  const displayConceptIds = setOp('difference', found_concept_ids, have_concept_ids);
   const dataGetter = useDataGetter();
-  const [concepts, setConcepts] = useState([]);
+  const c: Concept[] = [];
+  const [concepts, setConcepts] = useState(c);
   const [loading, setLoading] = useState(false);
-  const totalRows = allConceptIds.length;
+  const totalRows = displayConceptIds.length;
   const [perPage, setPerPage] = useState(30);
   let customStyles = styles(1);
   set(customStyles, 'cells.style.padding', '0px 5px 0px 5px');
 
   const fetchConcepts = async page => {
     setLoading(true);
-    let ids = allConceptIds.slice(page - 1, perPage);
+    let ids = displayConceptIds.slice(page - 1, perPage);
     let conceptLookup = await dataGetter.fetchAndCacheItems(dataGetter.apiCalls.concepts, ids);
     const _concepts = ids.map(id => conceptLookup[id]);
     setConcepts(_concepts);
@@ -156,7 +177,7 @@ function ConceptTable(props) {
   };
   const handlePerRowsChange = async (newPerPage, page) => {
     setLoading(true);
-    let ids = allConceptIds.slice(page - 1, page - 1 + perPage);
+    let ids = displayConceptIds.slice(page - 1, page - 1 + perPage);
     let conceptLookup = await dataGetter.fetchAndCacheItems(dataGetter.apiCalls.concepts, ids);
     const _concepts = ids.map(id => conceptLookup[id]);
     setConcepts(_concepts);
@@ -166,11 +187,11 @@ function ConceptTable(props) {
   useEffect(() => {
     fetchConcepts(1); // fetch page 1 of users
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [concept_ids]);
+  }, [have_concept_ids, found_concept_ids]);
 
   const handleSelectedRows = ({selectedRows}) => {
     console.log("selected rows", selectedRows);
-    cidsDispatch(selectedRows.map(row => row.concept_id));
+    cidsDispatch(setOp('union', cids, selectedRows.map(row => row.concept_id)));
   }
   return <DataTable
             customStyles={customStyles}
@@ -183,11 +204,87 @@ function ConceptTable(props) {
             pagination
             paginationServer
             paginationTotalRows={totalRows}
-            onChangeRowsPerPage={handlePerRowsChange}
+            // onChangeRowsPerPage={handlePerRowsChange}
             onChangePage={handlePageChange}
             dense
             className="comparison-data-table"
             // theme="light"
 
             />;
+}
+function AddedCidsConceptTable(props) {
+  let {divWidth} = props;
+  const [selectedRows, setSelectedRows] = React.useState([]);
+  const [toggleCleared, setToggleCleared] = React.useState(false);
+  const [cids, cidsDispatch] = useCids();
+  const dataGetter = useDataGetter();
+  const c: Concept[] = [];
+  const [concepts, setConcepts] = useState(c);
+  const [loading, setLoading] = useState(false);
+  const totalRows = cids.length;
+  const [perPage, setPerPage] = useState(30);
+  let customStyles = styles(1);
+  set(customStyles, 'cells.style.padding', '0px 5px 0px 5px');
+
+  const fetchConcepts = async page => {
+    setLoading(true);
+    let ids = cids.slice(page - 1, perPage);
+    let conceptLookup = await dataGetter.fetchAndCacheItems(dataGetter.apiCalls.concepts, ids);
+    const _concepts = ids.map(id => conceptLookup[id]);
+    setConcepts(_concepts);
+    setLoading(false);
+  };
+  const handlePageChange = page => {
+    fetchConcepts(page);
+  };
+  const handlePerRowsChange = async (newPerPage, page) => {
+    setLoading(true);
+    let ids = cids.slice(page - 1, page - 1 + perPage);
+    let conceptLookup = await dataGetter.fetchAndCacheItems(dataGetter.apiCalls.concepts, ids);
+    const _concepts = ids.map(id => conceptLookup[id]);
+    setConcepts(_concepts);
+    setPerPage(newPerPage);
+    setLoading(false);
+  };
+  useEffect(() => {
+    fetchConcepts(1); // fetch page 1 of users
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [cids]);
+
+  const handleSelectedRows = ({selectedRows}) => {
+    console.log("selected rows", selectedRows);
+  }
+
+
+  const handleRowSelected = React.useCallback(state => {
+    setSelectedRows(state.selectedRows);
+  }, []);
+  const contextActions = React.useMemo(() => {
+    const handleDelete = () => {
+      // eslint-disable-next-line no-alert
+      if (window.confirm(`Are you sure you want to delete:\r ${selectedRows.map(r => r.concept_name)}?`)) {
+        setToggleCleared(!toggleCleared);
+        cidsDispatch(selectedRows.map(row => row.concept_id));
+      }
+    };
+    return (
+        <Button key="delete" onClick={handleDelete} style={{ backgroundColor: 'red' }} >
+            Delete
+        </Button>);
+  }, [cids, selectedRows, toggleCleared]);
+
+  const data = concepts.map(c => ({...c, selected: true}));
+
+  return <DataTable title="Remove added concepts"
+            customStyles={customStyles}
+            columns={getColDefs([divWidth, 1234])} // need an array here but don't need the height
+            data={data}
+            selectableRows
+            contextActions={contextActions}
+            onSelectedRowsChange={handleRowSelected}
+            clearSelectedRows={toggleCleared}
+            progressPending={loading}
+            dense
+            className="comparison-data-table"
+            pagination />;
 }

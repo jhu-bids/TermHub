@@ -342,8 +342,6 @@ def get_connected_subgraph(
 print_stack = lambda s: ' | '.join([f"""{n}{'=>' if p else ''}{','.join(p)}""" for n,p in reversed(s)])
 
 # noinspection PyPep8Naming
-
-# editing this one. keep it and replace graph.py one with it
 def get_missing_in_between_nodes(G: nx.DiGraph, subgraph_nodes: Union[List[int], Set[int]], verbose=VERBOSE) -> Set:
     missing_in_between_nodes = set()
     missing_in_between_nodes_tmp = set()
