@@ -213,7 +213,8 @@ def resolve_fetch_failures_0_members(
     still_draft_csets: List[Dict] = [
         x['properties'] for x in csets_and_members['OMOPConceptSet']
         if x['properties']['codesetId'] in non_draft_failure_ids]
-    final_failure_ids: Set[int] = get_csets_over_threshold(still_draft_csets, int(expansion_threshold_seconds / 60))
+    expansion_threshold_minutes = int(expansion_threshold_seconds / 60)
+    final_failure_ids: Set[int] = get_csets_over_threshold(still_draft_csets, expansion_threshold_minutes)
 
     # Close out
     if final_failure_ids and loop:
@@ -229,9 +230,11 @@ def resolve_fetch_failures_0_members(
         # todo: for troubleshooting, it would help to print the timestamp of when the cset was created here, as well as
         #  its age (in minutes). For the latter, would involve passing arg return_type='csets_by_id' to
         #  get_csets_over_threshold().
-        raise RuntimeError('Attempted to resolve fetch failures for the following concept sets, but was not able to do '
-                           'so. It may be that the Enclave simply has not expanded their members yet:\n\n'
-                           f'{", ".join([str(x) for x in final_failure_ids])}')
+        raise RuntimeError(
+            'Attempted to resolve fetch failures for the following concept sets, but was not able to do so. The cset '
+            f'has been finalized for over {expansion_threshold_minutes} minutes, so typically the expansion would\'ve '
+            'happened by now, but sometimes it takes longer; the expansion may still be pending. Failed IDs:\n\n'
+            f'{", ".join([str(x) for x in final_failure_ids])}')
     else:
         print("Complete: All outstanding non-draft failures resolved.")
 
