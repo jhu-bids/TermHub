@@ -3,7 +3,7 @@ import DataTable, { createTheme } from "react-data-table-component";
 import { flatten, uniq, sortBy } from "lodash";
 
 import {backend_url, useDataGetter} from "../state/DataGetter";
-import {useSearchParamsState} from "../state/SearchParamsProvider";
+import {useSearchParamsState} from "../state/StorageProvider";
 import {fmt, saveCsv, useWindowSize} from "../utils";
 import {TextH2} from "./AboutPage";
 import Button from "@mui/material/Button";

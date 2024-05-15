@@ -1,10 +1,11 @@
-import React, {createContext, useContext, useReducer, useState} from "react";
+import React, {createContext, useCallback, useContext, useReducer, useState} from "react";
 import {flatten, fromPairs, get, pick, isEqual, isEmpty} from "lodash";
 // import {compressToEncodedURIComponent} from "lz-string";
 import {createPersistedReducer} from "./usePersistedReducer";
 import {alertsReducer} from "../components/AlertMessages";
-import {useSearchParamsState} from "./SearchParamsProvider";
+import {useSearchParamsState} from "./StorageProvider";
 import {SOURCE_APPLICATION, SOURCE_APPLICATION_VERSION} from "../env";
+import {createSearchParams, useSearchParams} from "react-router-dom";
 
 export const NEW_CSET_ID = -1;
 
@@ -94,17 +95,48 @@ export function useAlertsDispatch() {
 }
 
 export function useHierarchySettings() {
-  const unpersistedDefaultState = { nested: true, collapsePaths: {},
-    collapsedDescendantPaths: {}, hideRxNormExtension: true, hideZeroCounts: false, };
+  const unpersistedDefaultState = {
+    nested: true,
+    // collapsePaths: {},
+    // collapsedDescendantPaths: {},
+    hideRxNormExtension: true,
+    // hideZeroCounts: false,
+  };
   const storageProvider = useSearchParamsState();
   const usePersistedReducer = createPersistedReducer('hierarchySettings',
     storageProvider, unpersistedDefaultState);
 
   function hierarchySettingsReducer(state, action) {
     if ( ! ( action || {} ).type ) return state;
-    let {collapsePaths, // collapsedDescendantPaths,
-      nested, hideRxNormExtension, hideZeroCounts} = {...unpersistedDefaultState, ...state};
+    // let {collapsePaths, // collapsedDescendantPaths,
+    //   nested, hideRxNormExtension, hideZeroCounts} = {...unpersistedDefaultState, ...state};
+    const { graphOptions, gc } = action;
+    // real kludgy passsing gc in, but trying not to rewrite a bunch more code than I need to
     switch (action.type) {
+      case "graphOptions": {
+        return {...state, graphOptions};
+      }
+      // took this from GraphState, but it still stores graphOptions state there as well as here
+      case 'TOGGLE_NODE_EXPANDED':
+        gc.toggleNodeExpanded(action.payload.nodeId);
+        console.warn("have to persist nodes expanded");
+        return {...state, graphOptions: {...graphOptions,
+            expandedNodes: {...graphOptions.expandedNodes, [action.payload.nodeId]:!graphOptions.expandedNodes[action.payload.nodeId]}
+        }};
+      case 'TOGGLE_OPTION':
+        const type = action.payload.type;
+        gc.toggleOption(type);
+        console.warn("have to persist special concept treatment");
+          // gc.options.specialConceptTreatment[type] = ! gc.options.specialConceptTreatment[type];
+          // gc.statsOptions[type].specialTreatment = gc.options.specialConceptTreatment[type];
+        break;
+      case 'TOGGLE_EXPAND_ALL':
+        gc.options.expandAll = !gc.options.expandAll;
+        Object.values(gc.nodes).forEach(n => {if (n.hasChildren) n.expanded = gc.options.expandAll;});
+        break;
+
+      // OLD STUFF
+      /*
       case "collapseDescendants": {
         console.log(state, action);
         // this toggles the collapse state of the given row
@@ -118,8 +150,9 @@ export function useHierarchySettings() {
           collapsePaths = {...collapsePaths};
           delete collapsePaths[row.pathToRoot];
         }
-        return {...state, collapsePaths /*, collapsedDescendantPaths */};
+        return {...state, collapsePaths /*, collapsedDescendantPaths * /};
       }
+      */
       case "nested": {
         return {...state, nested: action.nested}
       }
@@ -268,6 +301,7 @@ export function unabbreviateDefinitions(defs) {
   }
   return definitions;
 }
+
 export function getSessionStorage() {
   const sstorage = fromPairs(Object.entries(sessionStorage).map(([k,v]) => ([k, JSON.parse(v)])));
   delete sstorage.AI_buffer;    // added by chrome ai stuff i think...I don't want it

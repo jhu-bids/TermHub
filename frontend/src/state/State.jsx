@@ -4,7 +4,7 @@ import CircularProgress from "@mui/material/CircularProgress";
 import Box from "@mui/material/Box";
 import {Inspector} from 'react-inspector'; // https://github.com/storybookjs/react-inspector
 import {pct_fmt} from "../utils";
-import {useSearchParamsState} from "./SearchParamsProvider";
+import {useSearchParamsState} from "./StorageProvider";
 import {useAlerts, useHierarchySettings, useNewCset, getSessionStorage, urlWithSessionStorage} from "./AppState";
 import {useDataCache} from "../state/DataCache";
 import {useDataGetter} from "./DataGetter";

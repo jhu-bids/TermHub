@@ -11,7 +11,7 @@ import {Link, useLocation} from "react-router-dom";
 import {VERSION} from "../env";
 import {useDataCache} from "../state/DataCache";
 import {useDataGetter} from "../state/DataGetter";
-import {useSearchParamsState} from "../state/SearchParamsProvider";
+import {useSearchParamsState} from "../state/StorageProvider";
 
 // import * as po from './Popover';
 

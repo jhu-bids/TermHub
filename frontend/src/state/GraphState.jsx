@@ -1,12 +1,14 @@
-import React, {createContext, useContext, useReducer} from "react";
+import React, {createContext, useContext, useReducer, useEffect} from "react";
 import {cloneDeep, flatten, get, intersection, isEmpty, some, sortBy, sum, uniq} from "lodash";
 import Graph from "graphology";
 import {bidirectional} from 'graphology-shortest-path/unweighted';
 import {dfsFromNode} from "graphology-traversal/dfs";
 import {setOp} from "../utils";
+import {useSessionStorage} from "./StorageProvider";
 
 window.graphFuncs = {bidirectional, dfsFromNode};
 
+// versions of Set and Map that force keys to be strings
 class StringSet extends Set {
   add(value) { super.add(value.toString()); }
   has(value) { return super.has(value.toString()); }
@@ -41,25 +43,25 @@ const graphReducer = (gc, action) => {
   switch (action.type) {
     case 'CREATE':
       gc = new GraphContainer(action.payload);
-      break;
+      return gc;
+    /*
     case 'TOGGLE_NODE_EXPANDED':
       gc.toggleNodeExpanded(action.payload.nodeId);
-      gc = new GraphContainer(null, gc);
       break;
     case 'TOGGLE_OPTION':
       const type = action.payload.type;
       gc.toggleOption(type);
-      gc = new GraphContainer(null, gc);
       break;
     case 'TOGGLE_EXPAND_ALL':
       gc.options.expandAll = !gc.options.expandAll;
       Object.values(gc.nodes).forEach(n => {if (n.hasChildren) n.expanded = gc.options.expandAll;});
-      gc = new GraphContainer(null, gc);
       break;
+     */
     default:
       throw new Error(`unexpected action.type ${action.type}`);
   }
-  return gc;
+  // gc = new GraphContainer(null, gc);
+  // return gc;
 };
 
 export class GraphContainer {
@@ -67,10 +69,29 @@ export class GraphContainer {
     if (cloneThis) {
       // shallow copy cloneThis's properties to this
       Object.assign(this, cloneThis);
+
+      // this.storage.setItem('graphOptions', this.options);
+      this.hsDispatch({type: "graphOptions", graphOptions: cloneThis.options});
+
       this.getDisplayedRows();
       window.graphW = this; // for debugging
       return;
     }
+
+    /*
+    if (graphData.storage) {
+      this.storage = graphData.storage; // sessionStorage hook
+      delete graphData.storage;
+    } else {
+      throw new Error('graphData.storage is missing');
+    }
+     */
+
+    // this.options = this.storage.getItem('graphOptions') || { specialConceptTreatment: {}, };
+    this.hierarchySettings = graphData.hierarchySettings || {};
+    this.hsDispatch = graphData.hsDispatch;
+    this.options = this.hierarchySettings.options || { specialConceptTreatment: {}, };
+
     window.graphW = this; // for debugging
     // this.gd holds inputs -- except
     // this.gd.specialConcepts.allButFirstOccurrence which is added later
@@ -116,9 +137,6 @@ export class GraphContainer {
 
     this.#computeAttributes();
 
-    this.options = {
-      specialConceptTreatment: {},
-    };
     this.setStatsOptions();
     this.getDisplayedRows();
   }
@@ -197,7 +215,8 @@ export class GraphContainer {
       const nodeIdToShow = path[path.length - 1]; // remains the same through recursion
       if (shown.has(nodeIdToShow)) return; // already displayed
       if (this.displayedNodeRows.has(nodeIdToShow)) {
-        throw new Error(`nodeToShow ${nodeIdToShow} is already displayed`);
+        return;
+        // throw new Error(`nodeToShow ${nodeIdToShow} is already displayed`);
       }
       // so, only one nodeIdToShow, but separate nodeToShow copies for each path
       let nodeToShowRows = [];
@@ -669,166 +688,3 @@ function computeLayers(graph, maxWidth) {
 
   return layers;
 }
-
-
-/* use like:
-  const { {graph, nodes}, gcDispatch } = useGraphContainer();
-  const toggleNodeAttribute = (nodeId) => {
-    gcDispatch({
-      type: 'TOGGLE_NODE_ATTRIBUTE',
-      payload: { nodeId },
-    });
-  };
-*/
-
-// experiment, from https://chat.openai.com/share/8e817f4d-0581-4b07-aefe-acd5e7110de6
-/*
-function prepareDataForRendering(graph, startNodeId) {
-  let result = [];
-  let stack = [{ nodeId: startNodeId, depth: 0 }];
-  let visited = new Set([startNodeId]);
-
-  while (stack.length > 0) {
-    const { nodeId, depth } = stack.pop();
-    const nodeData = graph.getNodeAttributes(nodeId);
-
-    result.push({
-                  id: nodeId,
-                  name: nodeData.label || nodeId, // Assuming nodes have a 'label' attribute
-                  otherData: nodeData.otherData, // Add other node attributes as needed
-                  depth,
-                  visible: true, // Initially, all nodes are visible
-                  hasChildren: graph.outDegree(nodeId) > 0,
-                  expanded: false
-                });
-
-    // Reverse to maintain the correct order after pushing to stack
-    const neighbors = [...graph.neighbors(nodeId)].reverse();
-    neighbors.forEach(neighbor => {
-      if (!visited.has(neighbor)) {
-        visited.add(neighbor);
-        stack.push({ nodeId: neighbor, depth: depth + 1 });
-      }
-    });
-  }
-
-  return result;
-}
-*/
-/*
-
-Below is code for another way of showing rows even when parents are collapsed.
-Instead of showing the path to the concept from the nearest expanded parent,
-it expands up to the nearest expanded and collapses all the siblings that
-aren't being specially shown.
-TODO: determine if this way is better now with the ability to hide repeated rows
-
-addNodeToVisibleOtherVersion(nodeId, displayedRows, depth = 0) {
-  const node = {...this.nodes[nodeId], depth}; // is this necessary?
-  // const node = this.nodes[nodeId]; // TODO: try this instead when have a chance to test
-  // node.depth = depth;
-
-  displayedRows.push(node);
-  if (node.expanded) {
-    node.children.forEach(childId => {
-      this.addNodeToVisible(childId, displayedRows, depth + 1); // Recurse
-    });
-  }
-}
-hideOtherNodesOtherVersion(partialExpansions) {
-  for (let parentId in partialExpansions) {
-    let parent = this.nodes[parentId];
-    parent.expanded = true;
-    let others = setOp('difference', parent.children, partialExpansions[parentId]);
-    let othersId = `${parentId}-unshown`;
-    let othersRow = {
-      concept_id: othersId,
-      parent: parentId,
-      concept_name: `${others.length} concepts not expanded`,
-      vocabulary_id: "--",
-      standard_concept: "",
-      not_a_concept: true,
-      depth: parent.depth + 1,
-      levelsBelow: 1,
-      hasChildren: true,
-      children: others,
-      childCount: others.length,
-      descendants: others,
-      descendantCount: others.length,
-      drc: sum(others.map(d => this.nodes[d].total_cnt || 0)), // Compute descendant counts
-    };
-    this.graph.mergeNode(othersId);
-    this.graph.mergeDirectedEdge(parentId, othersId);
-    this.nodes[othersId] = othersRow;
-    console.log(`collapsing ${others.join(',')} under ${parentId}`);
-    for (let other of others) {
-      this.graph.mergeDirectedEdge(othersId, other);
-      this.graph.dropEdge(parentId, other);
-      parent.children = setOp('difference', parent.children, [other]);
-    }
-    parent.children.push(othersId);
-  }
-}
-getPartialExpansionsOtherVersion(nodesToShow, partialExpansions) {
-  // For show though collapsed, partially expand the parents of the nodes to show
-  // This function adds each node to show to the partialExpansions set for its parents
-  for (let showId of nodesToShow) {
-    if (!this.graph.hasNode(showId)) continue;
-    let parentIds = this.graph.inNeighbors(showId);
-    if (isEmpty(parentIds)) continue;
-    for (let parentId of parentIds) {
-      if (showId == parentId) return; // can't recall why this is necessary -- is it?
-      let parent = this.nodes[parentId];
-      if (!parent.expanded) {
-        partialExpansions[parentId] = partialExpansions[parentId] || new Set();
-        partialExpansions[parentId].add(showId);
-      }
-    }
-    // recurse (upwards) to partially expand parents of parents
-    this.getPartialExpansions(parentIds, partialExpansions);
-  }
-}
-getVisibleRowsOtherVersion(props) {
-  // TODO: need to treat things to hide differently from things to always show.
-
-  let displayedRows = [];
-
-  let partialExpansions = {};
-  for (let type in this.options.specialConceptTreatment) {
-    if (this.statsOptions[type].specialTreatmentRule === 'show though collapsed' && this.options.specialConceptTreatment[type]) {
-      this.getPartialExpansions(this.specialConcepts[type] || [], partialExpansions);
-    }
-  }
-  console.log(partialExpansions);
-  this.hideOtherNodes(partialExpansions);
-
-  // const {/*collapsedDescendantPaths, * / collapsePaths, hideZeroCounts, hideRxNormExtension, nested } = hierarchySettings;
-  for (let rootId of sortBy(this.roots, this.sortFunc)) {
-    this.addNodeToVisible(rootId, displayedRows);
-  }
-
-  let hideThoughExpanded = new Set();
-  for (let type in this.options.specialConceptTreatment) {
-    if (this.statsOptions[type].specialTreatmentRule === 'hide though expanded' && this.options.specialConceptTreatment[type]) {
-      for (let id of setOp('intersection', this.specialConcepts[type], displayedRows.map(d => d.concept_id))) {
-        hideThoughExpanded.add(id);
-      }
-    }
-  }
-  displayedRows = displayedRows.filter(row => ! hideThoughExpanded.has(row.concept_id));
-
-  this.hideThoughExpanded = hideThoughExpanded;
-  return this.v'isibleRows = displayedRows;
-}
-showThoughCollapsed(nodeId) {
-  dfsFromNode(this.graph, nodeId, (ancestorId, attr, depth) => {
-    let ancestor = this.nodes[ancestorId];
-    if (!ancestor.expanded) {
-      if (!ancestor.partialExpansion) {
-        ancestor.partialExpansion = [];
-      }
-      ancestor.partialExpansion.push(nodeId);
-    }
-  }, {mode: 'inbound'});
-}
-*/

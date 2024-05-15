@@ -25,7 +25,7 @@ import { NavLink, useLocation } from "react-router-dom";
 // import ListItemText from "@mui/material/ListItemText";
 import { cloneDeep } from "lodash";
 import {VERSION, DEPLOYMENT} from "../env";
-import {useSearchParamsState} from "../state/SearchParamsProvider";
+import {useSearchParamsState} from "../state/StorageProvider";
 // import {client} from "./utils";
 
 const drawerWidth = 240;

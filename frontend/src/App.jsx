@@ -40,7 +40,7 @@ import {
   useNewCset, urlWithSessionStorage, // getSessionStorage, serializeSessionStorage,
 } from "./state/AppState";
 import {GraphProvider} from "./state/GraphState";
-import {SearchParamsProvider, useSearchParamsState} from "./state/SearchParamsProvider";
+import {SearchParamsProvider, useSearchParamsState} from "./state/StorageProvider";
 import {backend_url, DataGetterProvider} from "./state/DataGetter";
 import { UploadCsvPage } from "./components/UploadCsv";
 // import { DownloadJSON } from "./components/DownloadJSON";

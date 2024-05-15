@@ -107,7 +107,9 @@ function ConceptStringSearch() {
       if (searchText.length >= 3) {
         // updating the ref variable with the current searchText
         lastRequest.current = searchText;
+        console.log('before search fetch');
         const r = await dataGetter.fetchAndCacheItems(dataGetter.apiCalls.concept_search, searchText)
+        console.log('after search fetch');
         if (lastRequest.current === searchText) {
           // console.log("response is valid!", r);
           setFoundConceptIds(r);
@@ -121,7 +123,9 @@ function ConceptStringSearch() {
   React.useEffect(() => {
     (async () => {
       // csmi for these codeset_ids should already be cached
+      console.log('before csmi fetch');
       const csmi: { [key: number]: Concept } = await dataGetter.fetchAndCacheItems(dataGetter.apiCalls.cset_members_items, codeset_ids);
+      console.log('after csmi fetch');
       let h = uniq(flatten(
           Object.values(csmi).map(d => Object.values(d))
       ).filter(d => d.item).map(d => d.concept_id));
@@ -134,6 +138,9 @@ function ConceptStringSearch() {
   const paddingLeft = 100, paddingRight = 100;
   const padding = paddingLeft + paddingRight;
   const divWidth = Math.min(windowSize[0], 1300) - padding;
+  const displayConceptIds = setOp('difference', found_concept_ids, have_concept_ids);
+  const hiddenMatches = setOp('intersection', found_concept_ids, have_concept_ids);
+  console.log('render 1');
   return (
     <div style={{paddingLeft, paddingRight, width: divWidth}}>
       <h1>Concept Search</h1>
@@ -142,19 +149,18 @@ function ConceptStringSearch() {
              value={searchText}
              autoFocus={true}
       />
-      {'\u00A0'}{'\u00A0'}{'\u00A0'}{found_concept_ids.length ? found_concept_ids.length.toLocaleString() + ' concept_ids found; ' : ""}
-      {'\u00A0'}{'\u00A0'}{'\u00A0'}{have_concept_ids.length ? have_concept_ids.length.toLocaleString() + ' concept_ids already included' : ""}
+      {'\u00A0'}{'\u00A0'}{'\u00A0'}{found_concept_ids.length ? found_concept_ids.length.toLocaleString() + ` concepts match "${searchText}"` : ""}
+      ;{'\u00A0'}{hiddenMatches.length ? hiddenMatches.length.toLocaleString() + ' already included and not listed' : ""}
       <hr/>
-      <FoundConceptTable have_concept_ids={have_concept_ids} found_concept_ids={found_concept_ids} divWidth={divWidth}/>
-      <AddedCidsConceptTable divWidth={divWidth}/>
+      <FoundConceptTable displayConceptIds={displayConceptIds} divWidth={divWidth}/>
+      {/*<AddedCidsConceptTable divWidth={divWidth}/>*/}
     </div>
   );
 }
 
 function FoundConceptTable(props) {
-  let {have_concept_ids, found_concept_ids, divWidth} = props;
+  let {displayConceptIds, divWidth} = props;
   const [cids, cidsDispatch] = useCids();
-  const displayConceptIds = setOp('difference', found_concept_ids, have_concept_ids);
   const dataGetter = useDataGetter();
   const c: Concept[] = [];
   const [concepts, setConcepts] = useState(c);
@@ -167,7 +173,9 @@ function FoundConceptTable(props) {
   const fetchConcepts = async page => {
     setLoading(true);
     let ids = displayConceptIds.slice(page - 1, perPage);
+    console.log(`fetching ${ids} concepts`);
     let conceptLookup = await dataGetter.fetchAndCacheItems(dataGetter.apiCalls.concepts, ids);
+    console.log('fetched concepts');
     const _concepts = ids.map(id => conceptLookup[id]);
     setConcepts(_concepts);
     setLoading(false);
@@ -187,12 +195,12 @@ function FoundConceptTable(props) {
   useEffect(() => {
     fetchConcepts(1); // fetch page 1 of users
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [have_concept_ids, found_concept_ids]);
+  }, [displayConceptIds]);
 
   const handleSelectedRows = ({selectedRows}) => {
-    console.log("selected rows", selectedRows);
     cidsDispatch(setOp('union', cids, selectedRows.map(row => row.concept_id)));
   }
+  console.log('render 2');
   return <DataTable
             customStyles={customStyles}
             // title="Users"
@@ -235,9 +243,11 @@ function AddedCidsConceptTable(props) {
     setLoading(false);
   };
   const handlePageChange = page => {
+    debugger;
     fetchConcepts(page);
   };
   const handlePerRowsChange = async (newPerPage, page) => {
+    debugger;
     setLoading(true);
     let ids = cids.slice(page - 1, page - 1 + perPage);
     let conceptLookup = await dataGetter.fetchAndCacheItems(dataGetter.apiCalls.concepts, ids);
@@ -250,11 +260,6 @@ function AddedCidsConceptTable(props) {
     fetchConcepts(1); // fetch page 1 of users
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [cids]);
-
-  const handleSelectedRows = ({selectedRows}) => {
-    console.log("selected rows", selectedRows);
-  }
-
 
   const handleRowSelected = React.useCallback(state => {
     setSelectedRows(state.selectedRows);
@@ -273,12 +278,10 @@ function AddedCidsConceptTable(props) {
         </Button>);
   }, [cids, selectedRows, toggleCleared]);
 
-  const data = concepts.map(c => ({...c, selected: true}));
-
   return <DataTable title="Remove added concepts"
             customStyles={customStyles}
             columns={getColDefs([divWidth, 1234])} // need an array here but don't need the height
-            data={data}
+            data={concepts}
             selectableRows
             contextActions={contextActions}
             onSelectedRowsChange={handleRowSelected}
@@ -288,3 +291,105 @@ function AddedCidsConceptTable(props) {
             className="comparison-data-table"
             pagination />;
 }
+
+/*
+function TestingSelectionExample() {
+  const [selectedRows, setSelectedRows] = React.useState([]);
+  const [toggleCleared, setToggleCleared] = React.useState(true);
+  const [data, setData] = React.useState(junkData);
+  const handleRowSelected = React.useCallback(state => {
+    setSelectedRows(state.selectedRows);
+  }, []);
+  const contextActions = React.useMemo(() => {
+    const handleDelete = () => {
+      // eslint-disable-next-line no-alert
+      if (window.confirm(`Are you sure you want to delete:\r ${selectedRows.map(r => r.concept_id)}?`)) {
+        setToggleCleared(!toggleCleared);
+        setData(differenceBy(data, selectedRows, 'title'));
+      }
+    };
+    return <Button key="delete" onClick={handleDelete} style={{
+      backgroundColor: 'red'
+    }} >
+      Delete
+    </Button>;
+  }, [data, selectedRows, toggleCleared]);
+  return <DataTable title="Desserts" columns={columns} data={data} selectableRows contextActions={contextActions} onSelectedRowsChange={handleRowSelected} clearSelectedRows={toggleCleared} pagination />;
+}
+let junkData = [
+    {
+        "concept_id": 442793,
+        "concept_name": "Complication due to diabetes mellitus",
+        "domain_id": "Condition",
+        "vocabulary_id": "SNOMED",
+        "concept_class_id": "Disorder",
+        "standard_concept": "S",
+        "concept_code": "74627003",
+        "invalid_reason": null,
+        "domain_cnt": 1,
+        "domain": "condition_occurrence",
+        "total_cnt": 6474230,
+        "distinct_person_cnt": "692384",
+        "selected": true
+    },
+    {
+        "concept_id": 4235703,
+        "concept_name": "Asthma management",
+        "domain_id": "Observation",
+        "vocabulary_id": "SNOMED",
+        "concept_class_id": "Procedure",
+        "standard_concept": "S",
+        "concept_code": "406162001",
+        "invalid_reason": null,
+        "domain_cnt": 1,
+        "domain": "observation",
+        "total_cnt": 50526,
+        "distinct_person_cnt": "8725",
+        "selected": true
+    },
+    {
+        "concept_id": 443731,
+        "concept_name": "Renal disorder due to type 2 diabetes mellitus",
+        "domain_id": "Condition",
+        "vocabulary_id": "SNOMED",
+        "concept_class_id": "Disorder",
+        "standard_concept": "S",
+        "concept_code": "420279001",
+        "invalid_reason": null,
+        "domain_cnt": 1,
+        "domain": "condition_occurrence",
+        "total_cnt": 3001400,
+        "distinct_person_cnt": "277119",
+        "selected": true
+    },
+    {
+        "concept_id": 42529247,
+        "concept_name": "How often did your asthma symptoms (wheezing, coughing, shortness of breath, chest tightness or pain) wake you up at night or earlier than usual in the morning during the past 4 weeks [ACT]",
+        "domain_id": "Observation",
+        "vocabulary_id": "LOINC",
+        "concept_class_id": "Survey",
+        "standard_concept": "S",
+        "concept_code": "82671-9",
+        "invalid_reason": null,
+        "domain_cnt": 1,
+        "domain": "observation",
+        "total_cnt": 54500,
+        "distinct_person_cnt": "9397",
+        "selected": true
+    },
+    {
+        "concept_id": 316577,
+        "concept_name": "Poisoning by antiasthmatic",
+        "domain_id": "Condition",
+        "vocabulary_id": "SNOMED",
+        "concept_class_id": "Disorder",
+        "standard_concept": "S",
+        "concept_code": "2935001",
+        "invalid_reason": null,
+        "domain_cnt": 1,
+        "domain": "condition_occurrence",
+        "total_cnt": 745,
+        "distinct_person_cnt": "436",
+        "selected": true
+    }
+]; */

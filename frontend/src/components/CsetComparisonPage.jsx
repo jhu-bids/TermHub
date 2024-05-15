@@ -9,7 +9,7 @@ import Slider from "@mui/material/Slider";
 import Switch from "@mui/material/Switch";
 import CloseIcon from "@mui/icons-material/Close";
 import Button from "@mui/material/Button";
-import {flatten, fromPairs, intersection, union, differenceWith, isEmpty, max, throttle, uniq, uniqBy, sum} from "lodash";
+import {flatten, fromPairs, intersection, union, differenceWith, isEmpty, max, throttle, uniq, uniqBy, sum, get} from "lodash";
 
 import {dfs, dfsFromNode} from 'graphology-traversal/dfs';
 
@@ -30,7 +30,8 @@ import {FlexibleContainer} from "./FlexibleContainer";
 import {NEW_CSET_ID, urlWithSessionStorage, useCodesetIds, useCids, useHierarchySettings, useNewCset,} from "../state/AppState";
 import {useGraphContainer} from "../state/GraphState";
 import {getResearcherIdsFromCsets, useDataGetter} from "../state/DataGetter";
-import {useSearchParamsState} from "../state/SearchParamsProvider";
+import {useSearchParamsState} from "../state/StorageProvider";
+// import {useSessionStorage} from "../state/StorageProvider";
 import {LI} from "./AboutPage";
 // import {AddConcepts} from "./AddConcepts";
 
@@ -39,7 +40,7 @@ import {LI} from "./AboutPage";
 // TODO: Color table: I guess would need to see if could pass extra values/props and see if table widget can use that
 //  ...for coloration, since we want certain rows grouped together
 export async function fetchGraphData(props) {
-    let {dataGetter, sp, gcDispatch, codeset_ids, cids, newCset={}} = props;
+    let {dataGetter, hierarchySettings, hsDispatch, sp, gcDispatch, codeset_ids, cids, newCset={}} = props;
     let promises = [ // these can run immediately
         dataGetter.fetchAndCacheItems(dataGetter.apiCalls.cset_members_items, codeset_ids),
         dataGetter.fetchAndCacheItems(dataGetter.apiCalls.csets, codeset_ids),
@@ -128,25 +129,33 @@ export async function fetchGraphData(props) {
 
     const concepts = Object.values(conceptLookup);
 
-    gcDispatch({type: "CREATE", payload: {...graphData, concepts, specialConcepts, csmi}});
+    gcDispatch({type: "CREATE", payload: {...graphData, concepts, specialConcepts, csmi, hierarchySettings, hsDispatch, }});
 
     return { concept_ids, selected_csets, conceptLookup, csmi, concepts, specialConcepts, comparison_rpt };
 }
 export function CsetComparisonPage() {
+    const storage = useSearchParamsState();
+    const {sp} = storage;
+    // const {sp, updateSp} = useSearchParamsState(); // sp is actually a sessionStorage hook object
+
+    // codeset_ids, cids, newCset, and hierarchySettings are all stored in sp/ss,
+    //  so maybe the additional hooks aren't needed, but maybe they are
     const [codeset_ids, codesetIdsDispatch] = useCodesetIds();
     const [cids, cidsDispatch] = useCids();
-    const {sp, updateSp} = useSearchParamsState();
     const [newCset, newCsetDispatch] = useNewCset();
+    let [hierarchySettings, hsDispatch] = useHierarchySettings();
+
+    const {gc, gcDispatch} = useGraphContainer();
+
     const editingCset = !isEmpty(newCset);
     // const { selected_csets = [], researchers, } = cset_data;
     const dataGetter = useDataGetter();
-    let [hierarchySettings, hsDispatch] = useHierarchySettings();
     const {nested} = hierarchySettings;
     const windowSize = useWindowSize();
     const infoPanelRef = useRef();
     const countRef = useRef({n: 1, z: 10});
     const [panelPosition, setPanelPosition] = useState({x: 0, y: 0});
-    const [showCsetCodesetId, setShowCsetCodesetId] = useState();
+    const [showCsetCodesetId, setShowCsetCodesetId] = useState(); // when you click cset col heading, shows card for that cset
     const sizes = getSizes(/*squishTo*/ 1);
     const customStyles = styles(sizes);
     const [data, setData] = useState({});
@@ -154,7 +163,6 @@ export function CsetComparisonPage() {
         concepts, concept_ids, conceptLookup, selected_csets, csmi, researchers, currentUserId,
         specialConcepts, comparison_rpt,
     } = data;
-    const {gc, gcDispatch} = useGraphContainer();
 
     useEffect(() => {
         (async () => {
@@ -162,7 +170,7 @@ export function CsetComparisonPage() {
 
             await dataGetter.getApiCallGroupId();
 
-            const graphData = fetchGraphData({dataGetter, sp, gcDispatch, codeset_ids, cids, newCset})
+            const graphData = fetchGraphData({dataGetter, hierarchySettings, hsDispatch, sp, gcDispatch, codeset_ids, cids, newCset, })
 
 
             let { concept_ids, selected_csets, conceptLookup, csmi, concepts, specialConcepts,
@@ -257,7 +265,7 @@ export function CsetComparisonPage() {
             position={panelPosition} countRef={countRef}
             style={{minWidth: statsOptionsWidth + 'px', resize: "both", minHeight: statsOptionsHeight + 'px'}}
         >
-            <StatsAndOptions {...{gc, gcDispatch, statsOptions, statsOptionsWidth, customStyles}} />
+            <StatsAndOptions {...{/*gc, gcDispatch, */ hierarchySettings, hsDispatch, statsOptions, statsOptionsWidth, customStyles}} />
         </FlexibleContainer>,
 
         /*
@@ -405,7 +413,7 @@ export function CsetComparisonPage() {
 }
 
 function StatsAndOptions(props) {
-    const {gc, gcDispatch, statsOptions, statsOptionsWidth, customStyles} = props;
+    const {/*gc, gcDispatch, */ hierarchySettings, hsDispatch, statsOptions, statsOptionsWidth, customStyles} = props;
     const infoPanelRef = useRef();
     let coldefs = [
          {
@@ -462,7 +470,7 @@ function StatsAndOptions(props) {
                 }
                 let onClick;
                 onClick = () => {
-                    gcDispatch({type: 'TOGGLE_OPTION', payload: row});
+                    hsDispatch({type: 'TOGGLE_OPTION', payload: row, gc, });
                 };
                 let text = '';
                 let tttext = '';
@@ -483,9 +491,10 @@ function StatsAndOptions(props) {
                     }
                 } else if (row.name ==='Concepts') {
                     onClick = () => {
-                        gcDispatch({type: 'TOGGLE_EXPAND_ALL'});
+                        hsDispatch({type: 'TOGGLE_EXPAND_ALL'});
                     };
-                    text = gc.options.expandAll ? 'Collapse all' : 'Expand all';
+                    // text = gc.options.expandAll ? 'Collapse all' : 'Expand all';
+                    text = get(hierarchySettings, 'graphOptions.expandAll') ? 'Collapse all' : 'Expand all';
                 } else {
                     throw new Error("shouldn't be here");
                 }
@@ -524,21 +533,9 @@ function StatsAndOptions(props) {
         <DataTable
             className="stats-and-options"
             customStyles={customStyles}
-            // conditionalRowStyles={conditionalRowStyles}
-            // className="comparison-data-table"
-            // theme="custom-theme" // theme="light"
             columns={coldefs}
             data={statsOptions}
             dense
-            /*
-             */
-            // highlightOnHover
-            // responsive
-            // subHeaderAlign="right"
-            // subHeaderWrap
-            //striped //pagination //selectableRowsComponent={Checkbox}
-            //selectableRowsComponentProps={selectProps} //sortIcon={sortIcon}
-            // expandOnRowClicked // expandableRows // {...props}
         />
     );
 }
@@ -565,7 +562,7 @@ function getCollapseIconAndName(row, sizes, gcDispatch) {
             onClick={
                 (evt) => {
                     // console.log(evt);
-                    gcDispatch({type: "TOGGLE_NODE_EXPANDED", payload: {nodeId: row.concept_id}})
+                    hsDispatch({type: "TOGGLE_NODE_EXPANDED", nodeId: row.concept_id, gc})
                 }
             }
             // TODO: capture long click or double click or something to do expandAll
@@ -626,7 +623,7 @@ function getColDefs(props) {
                 }
                 let content = nested ? (
                     row.hasChildren
-                        ? getCollapseIconAndName(row, sizes, gcDispatch)
+                        ? getCollapseIconAndName(row, sizes, hsDispatch)
                         : (
                             <span className="concept-name-row">
                                 {/*<RemoveCircleOutline
@@ -697,7 +694,7 @@ function getColDefs(props) {
             },
             selector: (row) => row.descendantCount,
             format: (row) => {
-                let icon = getCollapseIconAndName(row, sizes, gcDispatch);
+                // let icon = getCollapseIconAndName(row, sizes, hsDispatch);
                 let text = fmt(row.childCount) + ' / ' + fmt(row.descendantCount);
                 return text;
             },
@@ -753,7 +750,7 @@ function getColDefs(props) {
             headerProps: {
                 tooltipContent: "Record count. Small counts rounded up to 20. Click to toggle hiding of zero counts.",
                 headerContent: (
-                    <span onClick={() => gcDispatch({type: 'TOGGLE_OPTION', payload: {type: 'zeroRecord'}})}
+                    <span onClick={() => hsDispatch({type: 'TOGGLE_OPTION', payload: {type: 'zeroRecord'}})}
                           style={{ cursor: 'pointer', }}
                     >
                       Records
