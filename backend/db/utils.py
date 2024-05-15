@@ -24,7 +24,8 @@ from jinja2 import Template
 # noinspection PyUnresolvedReferences
 from psycopg2.errors import UndefinedTable
 from sqlalchemy import create_engine, event
-from sqlalchemy.engine import Row, RowMapping
+from sqlalchemy.engine import Row, RowMapping, Engine
+from sqlalchemy.pool import QueuePool
 
 from sqlalchemy.engine.base import Connection
 from sqlalchemy.exc import OperationalError, ProgrammingError
@@ -225,9 +226,30 @@ def refresh_derived_tables(
             break
 
 
+# @joeflack4: finally put in connection pooling. (it didn't help the problem I was having)
+# got the code from our friend: https://chat.openai.com/share/0472ba44-0e58-44ad-bbcb-5eabffae3d39
+def set_search_path(dbapi_connection, connection_record):
+    """Set the search_path when connecting."""
+    if SCHEMA:
+        cursor = dbapi_connection.cursor()
+        cursor.execute(f"SET SESSION search_path='{SCHEMA}'")
+        cursor.close()
+
+def get_db_connection(isolation_level='AUTOCOMMIT', schema: str = SCHEMA, local=False) -> Connection:
+    if not schema:
+        raise ValueError('Must pass schema to get_db_connection()')
+    engine = create_engine(
+        get_pg_connect_url(local),
+        poolclass=QueuePool,
+        isolation_level=isolation_level,
+    )
+    event.listen(engine, "connect", set_search_path)
+    return engine.connect()
+
+
 # todo: make 'isolation_level' the final param, since we never override it. this would it so we dont' have to pass the
 #  other params as named params.
-def get_db_connection(isolation_level='AUTOCOMMIT', schema: str = SCHEMA, local=False) -> Connection:
+def OLDget_db_connection(isolation_level='AUTOCOMMIT', schema: str = SCHEMA, local=False) -> Connection:
     """Connect to db
     :param local: If True, connection is on local instead of production database."""
     engine = create_engine(get_pg_connect_url(local), isolation_level=isolation_level)
