@@ -173,10 +173,8 @@ def counts_over_time(
     dates = list(set(dateslist))
 
     finaldf = pd.DataFrame()
-    i = 0  # TODO: temp
     for date in dates:
-        i += 1  # TODO temp
-        # Create temporary table with the columns of only one date
+        # Create temporary table with the colimns of only one date
         # TODO: Is there still a bug here sometimes?
         datedf = df[df.columns[df.columns.str.startswith(date)]]
         datedf = datedf.sort_index(axis=1)
