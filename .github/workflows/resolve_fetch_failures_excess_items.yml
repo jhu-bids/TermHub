@@ -1,4 +1,5 @@
 name: Resolve fetch failures for excess items or members
+# todo: rename to _items_members (it fetches excess caes of both)
 
 on:
 #  schedule:

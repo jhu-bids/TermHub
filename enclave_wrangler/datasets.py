@@ -337,7 +337,9 @@ def download_datasets(
 ):
     """Download datasets
     :param specific: If passed, will only download datasets whose names are in this list.
-    :param single_group: If passed, will only download datasets that are in this group."""
+    :param single_group: If passed, will only download datasets that are in this group.
+
+    todo: speed up usinc async: https://stackoverflow.com/a/33399896/5258518"""
     if specific and single_group:
         raise ValueError('Cannot pass both "specific" and "single_group" arguments.')
     configs = DATASET_REGISTRY.values()

@@ -10,6 +10,7 @@ from pathlib import Path
 from typing import Any, Dict, List
 from subprocess import call as sp_call
 
+import numpy as np
 import pandas as pd
 from fastapi import APIRouter
 # from fastapi import APIRouter, Depends, HTTPException
@@ -222,7 +223,8 @@ def csets_git_update(dataset_path: str, row_index_data_map: Dict[int, Dict[str, 
     return {'result': result, 'details': details}
 
 
-# TODO: Maybe change to `id` instead of row index
+# todo: Maybe change to `id` instead of row index
+# TODO: obsolete?
 @router.put("/datasets/csets")
 def put_csets_update(d: CsetsGitUpdate = None) -> Dict:
     """HTTP PUT wrapper for csets_update()"""

@@ -22,6 +22,8 @@ def resolve_fetch_failures_excess_items(schema=SCHEMA, use_local_db=False, cache
     """Resolve failures due to too many expression items or members when fetching data from the Enclave's objects API.
     cached_dataset_threshold_hours: Threshold, in hours, until cached datasets considered invalid and need to be
     re-downloaded.
+
+    todo: rename to _items_members (it fetches excess caes of both)
     """
     print('Resolve failures due to too many expression items or members when fetching data from the Enclave\'s '
           'objects API by using datasets API instead.')
@@ -35,6 +37,7 @@ def resolve_fetch_failures_excess_items(schema=SCHEMA, use_local_db=False, cache
 
     # Determine if any failures & what needs to be done
     failures: List[Dict] = select_failed_fetches(use_local_db)
+    failures = [f for f in failures if f['status_initially'] in failure_dataset_map]  # filter relevant
     if not failures:
         return
 

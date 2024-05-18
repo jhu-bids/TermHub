@@ -85,6 +85,7 @@ def get_link_types(use_cache_if_failure=False) -> List[Union[Dict, str]]:
     todo: What is the UUID starting with 00000001?
     todo: Do equivalent of `jq '..|objects|.apiName//empty'` here so that what's returned from response.json() is
       the also a List[str], like what's 'cached' here.
+    todo: This is about the same as get_link_types(). Remove one?
 
     curl -H "Content-type: application/json" -H "Authorization: Bearer $OTHER_TOKEN" \
     "https://unite.nih.gov/ontology-metadata/api/ontology/linkTypesForObjectTypes" --data '{
@@ -190,6 +191,7 @@ def link_types() -> List[Dict]:
             "ri.ontology.main.object-type.a11d04a3-601a-45a9-9bc2-5d0e77dd512e": "00000001-9834-2acf-8327-ecb491e69b5c"
         }
     }' | jq '..|objects|.apiName//empty'
+    todo: This is about the same as get_link_types(). Remove one?
     """
     headers = {
         # "authorization": f"Bearer {config['PALANTIR_ENCLAVE_AUTHENTICATION_BEARER_TOKEN']}",
@@ -226,7 +228,12 @@ def link_types() -> List[Dict]:
 
 
 def download_favorite_objects(fav_obj_names: List[str] = OBJECT_REGISTRY, force_if_exists=False):
-    """Download objects of interest"""
+    """Download objects of interest
+    todo: speed up usinc async: https://stackoverflow.com/a/33399896/5258518
+    todo: Make objects_api:download_favorite_objects more verbose (like datasets:download_favorites) #197
+      Make this like dataset download, where it says what it's downloading, shows curls, etc. I can walk through it or
+      do a run to see what it's doing and what I need to implement. https://github.com/jhu-bids/TermHub/issues/197
+    """
     for o in fav_obj_names:
         outdir = os.path.join(OUTDIR_OBJECTS, o)
         exists = os.path.exists(outdir)
@@ -378,7 +385,10 @@ def get_csets_over_threshold(
     """Determine csets that are older than a certain threshold
 
     csets: List of dictionaries of cset objects. Should not have 'properties' key. But should be the dictionary of items
-    within 'properties'."""
+    within 'properties'.
+
+    Note that this uses createdAt. Ideally, it would use last_modified_at, but that field does not seem available via
+    the normal objects API that we use to fetch cset objects."""
     over_threshold: Dict[int, Dict] = {}
     for cset in csets:
         age_minutes_i: float = get_age_of_utc_timestamp(cset['createdAt']) / 60
@@ -452,6 +462,7 @@ def fetch_cset_and_member_objects(
      I needed to refactor that function to do a lookup to get the container, which is messy. Whenever I make this
      change, it will be a breaking change at the very least for csets_and_members_to_db() both in terms of no longer
      needing to do this lookup, and also dealing properly w/ how the data is returned from this func.
+    todo: speed up usinc async, when codeset_ids: https://stackoverflow.com/a/33399896/5258518
     TODO: @joeflack4, if new container but it has no versions, should still fetch it. right now not doing that
             and, when metadata updated on container or version, need to fetch (but not bother with members and items)
 

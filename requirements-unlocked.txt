@@ -22,9 +22,6 @@ uvicorn[standard]
 psycopg2-binary
 networkx
 
-# Fixes bug: https://github.com/jhu-bids/TermHub/issues/627
-PyCG==0.0.6
-
 # dev dependencies
 # psutil  # for memory profiling
 virtualenvwrapper
