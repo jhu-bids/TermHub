@@ -152,7 +152,16 @@ def refresh_derived_tables_exec(
         print(f' - creating new table/view: {module}...')
         statements: List[str] = get_ddl_statements(schema, [module], temp_table_suffix, 'flat')
         for statement in statements:
-            run_sql(con, statement)
+            try:
+                run_sql(con, statement)
+            except ProgrammingError as err:
+                # Context: https://github.com/jhu-bids/TermHub/issues/792
+                if schema == 'test_n3c' and 'does not exist for access method' in str(err):
+                    print('Warning: A known error occurred while trying to create an extension-based index in the test'
+                          ' schema. For now, we\'re skipping creation of this index here as is not necessary for '
+                          'testing.', file=sys.stderr)
+                    continue
+                raise err
         # todo: warn if counts in _new table not >= _old table (if it exists)?
         run_sql(con, f'ALTER TABLE IF EXISTS {schema}.{module} RENAME TO {module}_old;')
         run_sql(con, f'ALTER TABLE {schema}.{module}{temp_table_suffix} RENAME TO {module};')

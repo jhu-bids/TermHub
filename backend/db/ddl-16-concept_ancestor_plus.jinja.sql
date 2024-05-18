@@ -1,5 +1,5 @@
 -- Table: concept_ancestor_plus ------------------------------------------------------------------------------------
-
+-- Temp tables do not have {{optional_suffix}} for _new and _old becauser they do not get recreated during refreshes; they are temporary.
 CREATE TEMP TABLE root_concepts AS (
     SELECT ancestor_concept_id FROM {{schema}}concept_ancestor r WHERE min_levels_of_separation != 0
     EXCEPT
