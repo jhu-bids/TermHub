@@ -36,47 +36,50 @@ export const makeGraph = (edges, concepts) => {
   return [graph, nodes];
 };
 
-const graphReducer = (gc, action) => {
-  if (!(action && action.type)) return gc;
-  // let { graph, nodes } = gc;
-  let graph;
-  switch (action.type) {
-    case 'CREATE':
-      gc = new GraphContainer(action.payload);
-      return gc;
-    /*
-    case 'TOGGLE_NODE_EXPANDED':
-      gc.toggleNodeExpanded(action.payload.nodeId);
-      break;
-    case 'TOGGLE_OPTION':
-      const type = action.payload.type;
-      gc.toggleOption(type);
-      break;
-    case 'TOGGLE_EXPAND_ALL':
-      gc.options.expandAll = !gc.options.expandAll;
-      Object.values(gc.nodes).forEach(n => {if (n.hasChildren) n.expanded = gc.options.expandAll;});
-      break;
-     */
-    default:
-      throw new Error(`unexpected action.type ${action.type}`);
-  }
-  // gc = new GraphContainer(null, gc);
-  // return gc;
-};
+// const graphReducer = (gc, action) => {
+//   if (!(action && action.type)) return gc;
+//   // let { graph, nodes } = gc;
+//   let graph;
+//   switch (action.type) {
+//     case 'CREATE':
+//       gc = new GraphContainer(action.payload);
+//       return gc;
+//     // case 'TOGGLE_NODE_EXPANDED':
+//     //   gc.toggleNodeExpanded(action.payload.nodeId);
+//     //   break;
+//     // case 'TOGGLE_OPTION':
+//     //   const type = action.payload.type;
+//     //   gc.toggleOption(type);
+//     //   break;
+//     // case 'TOGGLE_EXPAND_ALL':
+//     //   gc.options.expandAll = !gc.options.expandAll;
+//     //   Object.values(gc.nodes).forEach(n => {if (n.hasChildren) n.expanded = gc.options.expandAll;});
+//     //   break;
+//     default:
+//       throw new Error(`unexpected action.type ${action.type}`);
+//   }
+//   // gc = new GraphContainer(null, gc);
+//   // return gc;
+// };
 
 export class GraphContainer {
-  constructor(graphData, cloneThis) {
-    if (cloneThis) {
-      // shallow copy cloneThis's properties to this
-      Object.assign(this, cloneThis);
-
-      // this.storage.setItem('graphOptions', this.options);
-      this.hsDispatch({type: "graphOptions", graphOptions: cloneThis.options});
-
-      this.getDisplayedRows();
-      window.graphW = this; // for debugging
-      return;
+  constructor(graphData, /*, cloneThis */) {
+    let appSettings = graphData.appSettings;
+    if (!appSettings) {
+      throw new Error('appSettings is missing');
     }
+    // if (cloneThis) {
+    //   // shallow copy cloneThis's properties to this
+    //   Object.assign(this, cloneThis);
+    //
+    //   // calling graphOptions appSettings, but someday i'll want appSettings besides graphOptions, rights?
+    //   // this.storage.setItem('graphOptions', this.options);
+    //   // this.appSettingsDispatch({type: "graphOptions", graphOptions: cloneThis.options});
+    //
+    //   this.getDisplayedRows();
+    //   window.graphW = this; // for debugging
+    //   return;
+    // }
 
     /*
     if (graphData.storage) {
@@ -88,9 +91,9 @@ export class GraphContainer {
      */
 
     // this.options = this.storage.getItem('graphOptions') || { specialConceptTreatment: {}, };
-    this.hierarchySettings = graphData.hierarchySettings || {};
-    this.hsDispatch = graphData.hsDispatch;
-    this.options = this.hierarchySettings.options || { specialConceptTreatment: {}, };
+    // this.options = graphData.hierarchySettings || {};
+    // this.appSettingsDispatch = graphData.appSettingsDispatch;
+    // this.options = graphData.appSettings.graphOptions;    // THIS NEEDS TO BE READ-ONLY/IMMUTABLE
 
     window.graphW = this; // for debugging
     // this.gd holds inputs -- except
@@ -137,30 +140,18 @@ export class GraphContainer {
 
     this.#computeAttributes();
 
-    this.setStatsOptions();
-    this.getDisplayedRows();
+    this.setGraphDisplayConfig(graphData.appSettings.graphOptions);
+    this.getDisplayedRows(graphData.appSettings.graphOptions);
   }
-  toggleNodeExpanded(nodeId) {
-    const node = this.nodes[nodeId];
-    node.expanded =!node.expanded;
-
-    /*  if switching back to other show though collapsed method, uncomment the following
-    if (node.not_a_concept && node.parent) {
-      let parent = this.nodes[node.parent];
-      delete parent.partialExpansion;
-    } else {
-      dfsFromNode(this.graph, nodeId, (descendantId, attr, depth) => {
-        let descendant = this.nodes[descendantId];
-        delete descendant.partialExpansion;
-      }, {mode: 'outbound'});
-    }
-     */
-  }
-  toggleOption(type) {
-    let gc = this;
-    gc.options.specialConceptTreatment[type] = ! gc.options.specialConceptTreatment[type];
-    gc.statsOptions[type].specialTreatment = gc.options.specialConceptTreatment[type];
-  }
+  // toggleNodeExpanded(nodeId) {
+  //   const node = this.nodes[nodeId];
+  //   node.expanded =!node.expanded;
+  // }
+  // toggleOption(type) {
+  //   let gc = this;
+  //   gc.options.specialConceptTreatment[type] = ! gc.options.specialConceptTreatment[type];
+  //   gc.graphDisplayConfig[type].specialTreatment = gc.options.specialConceptTreatment[type];
+  // }
 
   wholeHierarchy() {
     // deep copy the node so we don't mutate the original
@@ -180,7 +171,7 @@ export class GraphContainer {
     return rows;
   }
 
-  getDisplayedRows(props) {
+  getDisplayedRows(graphOptions) {
     // const {/*collapsedDescendantPaths, */ collapsePaths, hideZeroCounts, hideRxNormExtension, nested } = hierarchySettings;
     Object.values(this.nodes).forEach(node => {delete node.childRows});
     this.displayedRows.splice(0, this.displayedRows.length); // keeping same array ref to help with debugging using graphW
@@ -199,8 +190,8 @@ export class GraphContainer {
 
     this.showThoughCollapsed.clear();
     this.hideThoughExpanded.clear();
-    for (let type in this.options.specialConceptTreatment) {
-      if (this.statsOptions[type].specialTreatmentRule === 'show though collapsed' && this.options.specialConceptTreatment[type]) {
+    for (let type in graphOptions.specialConceptTreatment) {
+      if (this.graphDisplayConfig[type].specialTreatmentRule === 'show though collapsed' && graphOptions.specialConceptTreatment[type]) {
         for (let id of this.gd.specialConcepts[type] || []) {
           this.showThoughCollapsed.add(id);
         }
@@ -267,18 +258,18 @@ export class GraphContainer {
     this.arrangeDisplayRows(rootRows);
     // this.displayedRows.forEach(row => { row.levelsBelow = this.sortFunc(row) }); // for debugging
     // this.gd.specialConcepts.allButFirstOccurrence = this.displayedRows.filter(row => row.nodeOccurrence > 0).map(d => d.rowPath);
-    // this.statsOptions.allButFirstOccurrence
+    // this.graphDisplayConfig.allButFirstOccurrence
 
-    for (let type in this.options.specialConceptTreatment) {
-      if (this.statsOptions[type].specialTreatmentRule === 'hide though expanded' && this.options.specialConceptTreatment[type]) {
+    for (let type in graphOptions.specialConceptTreatment) {
+      if (this.graphDisplayConfig[type].specialTreatmentRule === 'hide though expanded' && graphOptions.specialConceptTreatment[type]) {
         // gather all the hideThoughExpanded ids
         this.gd.specialConcepts[type].forEach(id => {
           this.hideThoughExpanded.add(id);
         })
       }
     }
-    for (let type in this.options.specialConceptTreatment) {
-      if (this.statsOptions[type].specialTreatmentRule === 'hide though expanded' && this.options.specialConceptTreatment[type]) {
+    for (let type in graphOptions.specialConceptTreatment) {
+      if (this.graphDisplayConfig[type].specialTreatmentRule === 'hide though expanded' && graphOptions.specialConceptTreatment[type]) {
         let [special, displayed] = [
             this.gd.specialConcepts[type],
             this.displayedRows.map(d => d.concept_id)];
@@ -422,10 +413,13 @@ export class GraphContainer {
     return this.graph.copy();
   }
 
-  setStatsOptions() {
+  setGraphDisplayConfig(graphOptions) {
     const displayedConcepts = this.displayedRows || []; // first time through, don't have displayed rows yet
     const displayedCids = displayedConcepts.map(r => r.concept_id);
     let displayOrder = 0;
+    if (!graphOptions) {
+      debugger;
+    }
     let rows = {
       displayedRows: {
         name: "Visible rows", displayOrder: displayOrder++,
@@ -496,10 +490,10 @@ export class GraphContainer {
       allButFirstOccurrence: {
         name: "All but first occurrence", displayOrder: displayOrder++,
         value: this.gd.specialConcepts.allButFirstOccurrence.length,
-        displayedConceptCnt: this.options.specialConceptTreatment.allButFirstOccurrence
+        displayedConceptCnt: graphOptions.specialConceptTreatment.allButFirstOccurrence
             ? 0
             : this.gd.specialConcepts.allButFirstOccurrence.length,
-        hiddenConceptCnt: this.options.specialConceptTreatment.allButFirstOccurrence
+        hiddenConceptCnt: graphOptions.specialConceptTreatment.allButFirstOccurrence
             ? this.gd.specialConcepts.allButFirstOccurrence.length
             : 0,
         /* special_v_displayed: () => {
@@ -513,32 +507,28 @@ export class GraphContainer {
       },
     }
     for (let type in rows) {
-      let row = {...get(this, ['statsOptions', type], {}), ...rows[type]};  // don't lose stuff previously set
+      let row = {...get(this, ['graphDisplayConfig', type], {}), ...rows[type]};  // don't lose stuff previously set
       if (typeof(row.value) === 'undefined') {  // don't show rows that don't represent any concepts
         delete rows[type];
         continue;
       }
       row.type = type;
-      if (isEmpty(this.statsOptions) && typeof(row.specialTreatmentDefault) !== 'undefined') {
+      if (isEmpty(this.graphDisplayConfig) && typeof(row.specialTreatmentDefault) !== 'undefined') {
         // set specialTreatment to default only the first time through
         row.specialTreatment = row.specialTreatmentDefault;
       }
-      // TODO: figure out if row.specialTreatment and
-      //       this.options.specialConceptTreatment are redundant
-      //       OR, maybe they are but saving it in this.options is good
-      //       for saving the options
-      // TODO: implement saving and reloading the options
-      if (type in this.gd.specialConcepts) {
+      // if (type in this.gd.specialConcepts && graphOptions.specialConceptTreatment[type] === undefined) {
+        // don't mutate graphOptions
+        // graphOptions = {...graphOptions};
         // don't bother setting the option if there are no concepts/items of this type
-        this.options.specialConceptTreatment[type] = row.specialTreatment;
-      }
+        // this.options.specialConceptTreatment[type] = row.specialTreatment;
+        // graphOptions.specialConceptTreatment[type] = row.specialTreatmentDefault;
+      // }
       rows[type] = row;
     }
-    this.statsOptions = rows;
+    rows = sortBy(rows, d => d.displayOrder);
+    return this.graphDisplayConfig = rows;
   };
-  getStatsOptions() {
-    return sortBy(this.statsOptions, d => d.displayOrder);
-  }
 
   graphLayout(maxWidth=12) {
     const layerSpacing = 120;
@@ -571,25 +561,25 @@ export class GraphContainer {
   }
 }
 
-const GraphContext = createContext(null);
-
-export const GraphProvider = ({ children }) => {
-  const [gc, gcDispatch] = useReducer(graphReducer, {});
-
-  return (
-    <GraphContext.Provider value={{ gc, gcDispatch }}>
-      {children}
-    </GraphContext.Provider>
-  );
-};
-
-export const useGraphContainer = () => {
-  const context = useContext(GraphContext);
-  if (context === undefined) {
-    throw new Error('useGraphContainer must be used within a GraphProvider');
-  }
-  return context;
-};
+// const GraphContext = createContext(null);
+//
+// export const GraphProvider = ({ children }) => {
+//   const [gc, gcDispatch] = useReducer(graphReducer, {});
+//
+//   return (
+//     <GraphContext.Provider value={{ gc, gcDispatch }}>
+//       {children}
+//     </GraphContext.Provider>
+//   );
+// };
+//
+// export const useGraphContainer = () => {
+//   const context = useContext(GraphContext);
+//   if (context === undefined) {
+//     throw new Error('useGraphContainer must be used within a GraphProvider');
+//   }
+//   return context;
+// };
 
 function coffmanGrahamLayering(graph, maxWidth) {
   let layers = [];

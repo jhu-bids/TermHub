@@ -440,5 +440,5 @@ export class DataGetter {
 }
 
 export function getResearcherIdsFromCsets(csets) {
-	return uniq(flatten(csets.map(cset => Object.keys(cset.researchers))));
+	return uniq(flatten(csets.map(cset => Object.keys((cset ||{}).researchers || {}))));
 }

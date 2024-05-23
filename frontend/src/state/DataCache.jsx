@@ -169,24 +169,16 @@ class DataCache {
 			return;
 		}
 
-		let [parentPath, parentObj,] = this.popLastPathKey(path);
-		/*
-		if (isEmpty(parentObj)) {
-			// have to do this or numeric keys will force new obj to be an array
-			set(this.#cache, parentPath, {})
-		}
-		 */
 		setWith(this.#cache, path, value, Object);
 		if (save) {
 			this.saveCache();
 		}
 	}
-	cacheArrayPut(path, value, storeAsArray = false, appendToArray = false) {
-
-		if (storeAsArray && appendToArray) {
-			let val = get(this.#cache, path);
-		}
-	}
+	// cacheArrayPut(path, value, storeAsArray = false, appendToArray = false) {
+	// 	if (storeAsArray && appendToArray) {
+	// 		let val = get(this.#cache, path);
+	// 	}
+	// }
 
 	popLastPathKey(path) {
 		path = [...pathToArray(path)];

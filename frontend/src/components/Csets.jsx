@@ -82,6 +82,10 @@ export function CsetSearch(props) {
       </Alert>
   ) : null;
 
+  let invalidCodesetIds = value.filter(d => !opts.find(o => o.value === d));
+  if (invalidCodesetIds.length) {
+    throw new Error(`Invalid codeset ids: ${invalidCodesetIds.join(', ')}`);
+  }
   const autocomplete = (
     // https://mui.com/material-ui/react-autocomplete/
     // https://stackoverflow.com/a/70193988/1368860
@@ -243,8 +247,8 @@ export function ConceptSetsPage(props) {
       for (let csid in relatedCsetConceptIds) {
         let cset = allRelatedCsets[csid];
         if (!cset) {
-          debugger;
           console.warn(`WHY IS csid ${csid} MISSING???`);
+          debugger;
           continue;
         }
         let rcids = relatedCsetConceptIds[csid];
@@ -286,8 +290,7 @@ export function ConceptSetsPage(props) {
       </>
     );
   }
-  // {<CsetsSelectedDataTable {...props} />} is added to separately show
-  // selected concept sets
+  // {<CsetsSelectedDataTable {...props} />} is added to separately show selected concept sets
   return (
     <div
       style={{

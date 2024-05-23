@@ -33,13 +33,13 @@ import {ViewCurrentState, } from "./state/State";
 import {
   CodesetIdsProvider,
   CidsProvider,
+  SettingsProvider,
   AlertsProvider,
   useAlerts,
   useAlertsDispatch,
   NewCsetProvider,
   useNewCset, urlWithSessionStorage, // getSessionStorage, serializeSessionStorage,
 } from "./state/AppState";
-import {GraphProvider} from "./state/GraphState";
 import {SearchParamsProvider, useSearchParamsState} from "./state/StorageProvider";
 import {backend_url, DataGetterProvider} from "./state/DataGetter";
 import { UploadCsvPage } from "./components/UploadCsv";
@@ -61,9 +61,7 @@ import {DEPLOYMENT} from "./env";
             <DataCacheProvider>       // ability to save to and retrieve from cache in localStorage
               <DataGetterProvider>    // utilities for fetching data. dataCache needs access to this a couple of times
                                       //  so those method calls will have to pass in a dataGetter
-                <GraphProvider>       // graph stuff for concept hierarchy
                   <RoutesContainer/>
-                </GraphProvider>
               </DataGetterProvider>
             </DataCacheProvider>
           </NewCsetProvider>
@@ -79,15 +77,15 @@ function AppWrapper() {
         <AlertsProvider>
           <CodesetIdsProvider>
             <CidsProvider>
-              <NewCsetProvider>
-                <DataCacheProvider>
-                  <DataGetterProvider>
-                    <GraphProvider>
-                      <RoutesContainer/>
-                    </GraphProvider>
-                  </DataGetterProvider>
-                </DataCacheProvider>
-              </NewCsetProvider>
+              <SettingsProvider>
+                <NewCsetProvider>
+                  <DataCacheProvider>
+                    <DataGetterProvider>
+                        <RoutesContainer/>
+                    </DataGetterProvider>
+                  </DataCacheProvider>
+                </NewCsetProvider>
+              </SettingsProvider>
             </CidsProvider>
           </CodesetIdsProvider>
         </AlertsProvider>

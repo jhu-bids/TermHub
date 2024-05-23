@@ -152,6 +152,7 @@ export function ShowWindowDimensions(props) {
 }
 
 export function oneSidedObjectDifference(a ,b) {
+  // return all items in b that are different from a
   return reduce(b, function(acc, val, key, col) {
     if ( !isEqual(a[key], val )) {
         acc[key] = val;

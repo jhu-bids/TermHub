@@ -1,9 +1,9 @@
 import React, {createContext, useCallback, useContext, useReducer, useState} from "react";
 import {flatten, fromPairs, get, pick, isEqual, isEmpty} from "lodash";
 // import {compressToEncodedURIComponent} from "lz-string";
-import {createPersistedReducer} from "./usePersistedReducer";
+// import {createPersistedReducer} from "./usePersistedReducer";
 import {alertsReducer} from "../components/AlertMessages";
-import {useSearchParamsState} from "./StorageProvider";
+import {useSearchParamsState, useSessionStorage} from "./StorageProvider";
 import {SOURCE_APPLICATION, SOURCE_APPLICATION_VERSION} from "../env";
 import {createSearchParams, useSearchParams} from "react-router-dom";
 
@@ -73,67 +73,42 @@ export function useCids() {
   return useContext(CidsContext);
 }
 
+function settingsReducer(state, action) {
+  if ( ! ( action || {} ).type ) return state;
+  // let {collapsePaths, // collapsedDescendantPaths,
+  //   nested, hideRxNormExtension, hideZeroCounts} = {...unpersistedDefaultState, ...state};
+  const { gc } = action;
+  // real kludgy passsing gc in, but trying not to rewrite a bunch more code than I need to
+  // TODO: try to get rid of gc
 
-const AlertsContext = createContext(null);
-const AlertsDispatchContext = createContext(null);
-export function AlertsProvider({ children }) {
-  const [alerts, dispatch] = useReducer(alertsReducer, {});
+  let { graphOptions } = state;
+  // this is all for graphOptions appSettings, but someday i'll want appSettings besides graphOptions, rights?
 
-  return (
-      <AlertsContext.Provider value={alerts}>
-        <AlertsDispatchContext.Provider value={dispatch}>
-          {children}
-        </AlertsDispatchContext.Provider>
-      </AlertsContext.Provider>
-  );
-}
-export function useAlerts() {
-  return useContext(AlertsContext);
-}
-export function useAlertsDispatch() {
-  return useContext(AlertsDispatchContext);
-}
-
-export function useHierarchySettings() {
-  const unpersistedDefaultState = {
-    nested: true,
-    // collapsePaths: {},
-    // collapsedDescendantPaths: {},
-    hideRxNormExtension: true,
-    // hideZeroCounts: false,
-  };
-  const storageProvider = useSearchParamsState();
-  const usePersistedReducer = createPersistedReducer('hierarchySettings',
-    storageProvider, unpersistedDefaultState);
-
-  function hierarchySettingsReducer(state, action) {
-    if ( ! ( action || {} ).type ) return state;
-    // let {collapsePaths, // collapsedDescendantPaths,
-    //   nested, hideRxNormExtension, hideZeroCounts} = {...unpersistedDefaultState, ...state};
-    const { graphOptions, gc } = action;
-    // real kludgy passsing gc in, but trying not to rewrite a bunch more code than I need to
-    switch (action.type) {
-      case "graphOptions": {
-        return {...state, graphOptions};
-      }
+  switch (action.type) {
+    // case "graphOptions": { return {...state, graphOptions}; }
       // took this from GraphState, but it still stores graphOptions state there as well as here
-      case 'TOGGLE_NODE_EXPANDED':
-        gc.toggleNodeExpanded(action.payload.nodeId);
-        console.warn("have to persist nodes expanded");
-        return {...state, graphOptions: {...graphOptions,
-            expandedNodes: {...graphOptions.expandedNodes, [action.payload.nodeId]:!graphOptions.expandedNodes[action.payload.nodeId]}
-        }};
-      case 'TOGGLE_OPTION':
-        const type = action.payload.type;
-        gc.toggleOption(type);
-        console.warn("have to persist special concept treatment");
-          // gc.options.specialConceptTreatment[type] = ! gc.options.specialConceptTreatment[type];
-          // gc.statsOptions[type].specialTreatment = gc.options.specialConceptTreatment[type];
-        break;
-      case 'TOGGLE_EXPAND_ALL':
-        gc.options.expandAll = !gc.options.expandAll;
-        Object.values(gc.nodes).forEach(n => {if (n.hasChildren) n.expanded = gc.options.expandAll;});
-        break;
+    case 'TOGGLE_NODE_EXPANDED':
+      console.error("have to fix this and persist nodes expanded");
+      // gc.toggleNodeExpanded(action.payload.nodeId);
+      // graphOptions = {
+      //   ...graphOptions,
+      //   expandedNodes: {...graphOptions.expandedNodes, [action.payload.nodeId]:!graphOptions.expandedNodes[action.payload.nodeId]}
+      // };
+      break;
+    case 'TOGGLE_OPTION':
+      const type = action.payload.type;
+      // if ( !isEqual(gc.options, graphOptions) ) {
+      //   throw new Error("nothing should be changing gc.options, should be equal to state.graphOptions");
+      // }
+      // gc.toggleOption(type);
+      graphOptions = {...graphOptions, specialConceptTreatment: {...graphOptions.specialConceptTreatment, [type]:!graphOptions.specialConceptTreatment[type]}};
+      // gc.options.specialConceptTreatment[type] = ! gc.options.specialConceptTreatment[type];
+      // gc.graphOptions[type].specialTreatment = gc.options.specialConceptTreatment[type];
+      break;
+    case 'TOGGLE_EXPAND_ALL':
+      graphOptions = {...graphOptions, expandedAll:!graphOptions.expandedAll};
+      Object.values(gc.nodes).forEach(n => {if (n.hasChildren) n.expanded = graphOptions.expandedAll;});
+      break;
 
       // OLD STUFF
       /*
@@ -152,23 +127,71 @@ export function useHierarchySettings() {
         }
         return {...state, collapsePaths /*, collapsedDescendantPaths * /};
       }
+    case "nested": {
+      return {...state, nested: action.nested}
+    }
+    case "hideRxNormExtension": {
+      return {...state, hideRxNormExtension: action.hideRxNormExtension}
+    }
+    case "hideZeroCounts": {
+      return {...state, hideZeroCounts: action.hideZeroCounts}
+    }
+    default:
+      return state;
       */
-      case "nested": {
-        return {...state, nested: action.nested}
-      }
-      case "hideRxNormExtension": {
-        return {...state, hideRxNormExtension: action.hideRxNormExtension}
-      }
-      case "hideZeroCounts": {
-        return {...state, hideZeroCounts: action.hideZeroCounts}
-      }
-      default:
-        return state;
+  }
+  return {...state, graphOptions};
+}
+const SettingsContext = createContext(null);
+export function SettingsProvider({ children }) {
+  const initialSettings = {
+    graphOptions: {
+      specialConceptTreatment: {},
+      nested: true,
+      hideRxNormExtension: true,
+    }
+    // collapsePaths: {}, // collapsedDescendantPaths: {}, // hideZeroCounts: false,
+  };
+  const storageProvider = useSearchParamsState();
+  let state = storageProvider.getItem('appSettings') || initialSettings;
+
+  const dispatch = action => {
+    let latestState = storageProvider.getItem('appSettings') || initialSettings;
+    const stateAfterDispatch = settingsReducer(latestState, action);
+    if (!isEqual(latestState, stateAfterDispatch)) {
+      storageProvider.setItem('appSettings', stateAfterDispatch);
     }
   }
+  return (
+      <SettingsContext.Provider value={[state, dispatch]}>
+        {children}
+      </SettingsContext.Provider>
+  );
+}
+export function useSettings() {
+  return useContext(SettingsContext);
+}
+/*
+export function useHierarchySettings() {
+  const unpersistedDefaultState = {
+    specialConceptTreatment: {},
+    nested: true,
+    // collapsePaths: {},
+    // collapsedDescendantPaths: {},
+    hideRxNormExtension: true,
+    // hideZeroCounts: false,
+  };
+  const storageProvider = useSearchParamsState();
+  // const storageProvider = useSessionStorage();
+  const usePersistedReducer = createPersistedReducer('hierarchySettings',
+    storageProvider, unpersistedDefaultState);
+
+  // reducer was here
+
   const [state, dispatch] = usePersistedReducer(hierarchySettingsReducer);
   return [state, dispatch];
 }
+ */
 
 const newCsetReducer = (state, action) => {
   /*
@@ -376,3 +399,23 @@ const currentConceptIdsReducer = (state, action) => { // not being used
   }
 };
  */
+
+const AlertsContext = createContext(null);
+const AlertsDispatchContext = createContext(null);
+export function AlertsProvider({ children }) {
+  const [alerts, dispatch] = useReducer(alertsReducer, {});
+
+  return (
+      <AlertsContext.Provider value={alerts}>
+        <AlertsDispatchContext.Provider value={dispatch}>
+          {children}
+        </AlertsDispatchContext.Provider>
+      </AlertsContext.Provider>
+  );
+}
+export function useAlerts() {
+  return useContext(AlertsContext);
+}
+export function useAlertsDispatch() {
+  return useContext(AlertsDispatchContext);
+}

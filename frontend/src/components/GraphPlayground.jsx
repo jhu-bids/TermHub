@@ -12,7 +12,7 @@ import * as d3dag from "d3-dag";
 import {assignLayout} from 'graphology-layout/utils';
 import {collectLayout} from 'graphology-layout/utils';
 import {fetchGraphData} from "./CsetComparisonPage";
-import {useGraphContainer} from "../state/GraphState";
+// import {useGraphContainer} from "../state/GraphState";
 
 // import {useSeedRandom} from "react-seed-random";
 export const ConceptGraph/*: React.FC*/ = () => {
@@ -21,10 +21,11 @@ export const ConceptGraph/*: React.FC*/ = () => {
   const {sp} = useSearchParamsState();
   let {codeset_ids=[], cids=[], use_example=false} = sp;
   const dataGetter = useDataGetter();
-  const {gc, gcDispatch} = useGraphContainer();
   const [data, setData] = useState({ cids: [], graph_data: {}, concepts: [], });
   const { concept_ids, selected_csets, conceptLookup, csmi,
             concepts, specialConcepts, comparison_rpt, } = data;
+  // const {gc, gcDispatch} = useGraphContainer();
+  throw new Error("need to get graph container...no longer available through useGraphContainer");
 
   useEffect(() => {
     (async () => {
