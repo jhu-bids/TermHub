@@ -191,7 +191,8 @@ export class GraphContainer {
     this.showThoughCollapsed.clear();
     this.hideThoughExpanded.clear();
     for (let type in graphOptions.specialConceptTreatment) {
-      if (this.graphDisplayConfig[type].specialTreatmentRule === 'show though collapsed' && graphOptions.specialConceptTreatment[type]) {
+      if (this.graphDisplayConfig[type].specialTreatmentRule === 'show though collapsed' &&
+          graphOptions.specialConceptTreatment[type]) {
         for (let id of this.gd.specialConcepts[type] || []) {
           this.showThoughCollapsed.add(id);
         }
@@ -526,8 +527,8 @@ export class GraphContainer {
       // }
       rows[type] = row;
     }
-    rows = sortBy(rows, d => d.displayOrder);
-    return this.graphDisplayConfig = rows;
+    this.graphDisplayConfig = rows;
+    this.graphDisplayConfigList = sortBy(rows, d => d.displayOrder);
   };
 
   graphLayout(maxWidth=12) {

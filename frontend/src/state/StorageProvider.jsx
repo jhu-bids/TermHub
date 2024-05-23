@@ -103,7 +103,7 @@ const SEARCH_PARAM_STATE_CONFIG = {
   "optimization_experiment", "comparison_rpt"],
   global_props_but_not_search_params: [], // ["searchParams", "setSearchParams"],
   // ignore: ["sstorage"],
-  serialize: ["newCset", "hierarchySettings"],
+  serialize: ["newCset", "appSettings"],
 };
 
 const SearchParamsContext = createContext(null);

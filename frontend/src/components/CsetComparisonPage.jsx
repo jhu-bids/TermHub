@@ -133,6 +133,7 @@ export async function fetchGraphData(props) {
 
     return { concept_ids, selected_csets, conceptLookup, csmi, concepts, specialConcepts, comparison_rpt, gc};
 }
+/*
 function onRender(props) {
     console.log(props);
 }
@@ -144,7 +145,8 @@ export function CsetComparisonPage() {
     )
 
 }
-export function PCsetComparisonPage() {
+ */
+export function CsetComparisonPage() {
     const storage = useSearchParamsState();
     const {sp} = storage;
     // const {sp, updateSp} = useSearchParamsState(); // sp is actually a sessionStorage hook object
@@ -268,7 +270,7 @@ export function PCsetComparisonPage() {
     }
 
     const graphDisplayOptionsWidth = 525;
-    const graphDisplayOptionsHeight = gc.graphDisplayConfig.length * 31 + 40;
+    const graphDisplayOptionsHeight = Object.keys(gc.graphDisplayConfig).length * 31 + 40;
     let infoPanels = [
         <FlexibleContainer key="stats-options" title="Stats and options"
             position={panelPosition} countRef={countRef}
@@ -543,7 +545,7 @@ function StatsAndOptions(props) {
             className="stats-and-options"
             customStyles={customStyles}
             columns={coldefs}
-            data={gc.graphDisplayConfig}
+            data={gc.graphDisplayConfigList}
             dense
         />
     );
