@@ -47,7 +47,7 @@ class TestDatasetUpload(unittest.TestCase):
         todo: reduce verbosity. printing out lots of curl statements, e.g.
          "curl  -H "authorization: $PALANTIR_ENCLAVE_AUTHENTICATION_BEARER_TOKEN"\ ...
         """
-        # TODO: temp validate_first until fix all bugs
+        # TODO: validate_first is temporary until fix all bugs
         # TODO: Will this work if UUID is different?
         d: Dict = upload_new_cset_version_with_concepts_from_csv(path, validate_first=True)
         d = list(d.values())[0]

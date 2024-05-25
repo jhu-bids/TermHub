@@ -93,6 +93,8 @@ CORE_CSET_DEPENDENT_TABLES = [
     # 'csets_to_ignore',
     'cset_members_items_plus',
 ]
+# STANDALONE_TABLES & DERIVED_TABLE_DEPENDENCY_MAP
+#  - 100% of tables in the main schema, e.g. n3c, should be listed somewhere in
 # STANDALONE_TABLES: Not derived from any other table, nor used to derive any other table/view. Used for QC testing.
 STANDALONE_TABLES = [
     'concept_set_json',

@@ -55,8 +55,10 @@ async def concept_graph_get(
 async def concept_graph_post(
     request: Request, codeset_ids: List[int], cids: Union[List[int], None] = [],
     hide_vocabs = ['RxNorm Extension'], hide_nonstandard_concepts=False, verbose = VERBOSE, indented=False
-) -> Dict[str, Any]:
-    """Return concept graph"""
+) -> Union[Dict[str, Any], List[List[Union[int, Any]]]]:
+    """Return concept graph
+
+    :returns:  Dict[str, Any] if not indented, else List[List[Union[int, Any]]]"""
     rpt = Api_logger()
     try:
         await rpt.start_rpt(request, params={'codeset_ids': codeset_ids, 'cids': cids})
@@ -73,7 +75,7 @@ async def concept_graph_post(
 
         if indented:
             # tree = get_indented_tree_nodes(sg, preferred_concept_ids)  # TODO: just testing below, put this line back
-            tree = [list(x) for x in get_indented_tree_nodes(sg)]  # TODO: just testing below, put this line back
+            tree: List[List[Union[int, Any]]] = [list(x) for x in get_indented_tree_nodes(sg)]  # TODO: just testing below, put this line back
             return tree
 
         await rpt.finish(rows=len(sg))
@@ -146,9 +148,15 @@ async def concept_graph(
     return sg, concept_ids, missing_in_betweens_ids, hidden_by_voc, nonstandard_concepts_hidden
 
 
-
+# TODO: @Siggie: move below to frontend
+# noinspection PyPep8Naming
 def MOVE_TO_FRONT_END():
-    # TODO: @Siggie: move below to frontend
+    """Graph related code"""
+    concept_ids = []
+    concepts = []
+    sg = nx.DiGraph()
+    hidden_by_voc = {}
+
     # Orphans
     # orphans_not_in_graph, here, are just nodes that don't appear in graph
     #   they'll get appended to the end of the tree at level 0
@@ -182,8 +190,10 @@ def MOVE_TO_FRONT_END():
     # return tree
 
     # Get Concept Set Members Items
-    VERBOSE and timer('get roots')
+    VERBOSE and get_timer('get roots')
+    # noinspection PyCallingNonCallable
     roots = [node for node, degree in sg.in_degree() if degree == 0]
+    # noinspection PyCallingNonCallable
     leaves = [node for node, degree in sg.out_degree() if degree == 0]
 
     # orphans_unlinked: nodes that are both root and leaf, put in orphans_unlinked, remove from roots
@@ -200,23 +210,26 @@ def MOVE_TO_FRONT_END():
     # print(f"sg - paths {len(sg_nodes.difference(nodes_in_paths))}")
     # print(f"paths - sg {len(nodes_in_paths.difference(sg_nodes))}")
 
-    VERBOSE and timer('get tree')
+    VERBOSE and get_timer('get tree')
     # tree = await indented_concept_list(codeset_ids, cids, hide_vocabs)
     tree = get_indented_tree_nodes(sg, preferred_concept_ids)  # TODO: just testing below, put this line back
 
     hide_if_over = 50
     if orphans_not_in_graph:
         cnt = len(orphans_not_in_graph)
-        tree.append((0,
-                     f"Concept set also includes {cnt} {'hidden ' if cnt > hide_if_over else ''}nodes in concept set but not in our graph"))
+        # noinspection PyTypeChecker
+        tree.append((0, f"Concept set also includes {cnt} {'hidden ' if cnt > hide_if_over else ''}nodes in concept"
+                        f" set but not in our graph"))
         if cnt <= hide_if_over:
             for orphan in orphans_not_in_graph:
                 tree.append((1, orphan))
 
     if orphans_unlinked:
         cnt = len(orphans_unlinked)
+        # noinspection PyTypeChecker
         tree.append((0,
-                     f"Concept set also includes {cnt} {'hidden ' if cnt > hide_if_over else ''}nodes unconnected to others in the concept set"))
+                     f"Concept set also includes {cnt} {'hidden ' if cnt > hide_if_over else ''}nodes unconnected to "
+                     f"others in the concept set"))
         if cnt <= hide_if_over:
             for orphan in orphans_unlinked:
                 tree.append((1, orphan))
@@ -224,6 +237,7 @@ def MOVE_TO_FRONT_END():
     for vocab in hidden_by_voc.keys():
         hidden_concept_ids = hidden_by_voc[vocab]
         cnt = len(hidden_concept_ids)
+        # noinspection PyTypeChecker
         tree.append((0, f'Concept set also includes {cnt} {vocab} concepts not shown above'))
         if cnt <= hide_if_over:
             for h in hidden_concept_ids:
@@ -263,7 +277,9 @@ def filter_concepts(
     return filtered_concepts, hidden_by_voc, nonstandard_concepts_hidden
 
 
-def get_indented_tree_nodes(sg, preferred_concept_ids: Union[List, Set]=[], max_depth=3, max_children=20, small_graph_threshold=2000):
+def get_indented_tree_nodes(
+    sg, preferred_concept_ids: Union[List, Set]=[], max_depth=3, max_children=20, small_graph_threshold=2000
+) -> List[Tuple[int, int]]:
     """Get indented tree nodes"""
     # noinspection PyShadowingNames
     def dfs(node, depth):
@@ -536,17 +552,7 @@ LOAD_RELGRAPH = True
 
 if __name__ == '__main__':
     pass
-    # - Pre 2024/01/26
-    # create_rel_graphs(save_to_pickle=True)
-    # G = for_testing()
-    # sg = G.subgraph(1,9)
-    # G, components = disconnected_subgraphs()
-    # sg = connected_subgraph_from_nodes(G, [3, 7, 12])
-    # j = graph_to_json(sg)
-    # pdump(j)
-    # - 2024/01/26
 else:
-
     # if you don't want graph loaded, then somewhere up in the import tree, do this
     #   import builtins
     #   builtins.DONT_LOAD_GRAPH = True

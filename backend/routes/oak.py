@@ -3,14 +3,16 @@ import os, warnings
 from functools import cache
 from pathlib import Path
 from typing import List
-from oaklib import BasicOntologyInterface, get_adapter
-import oaklib.interfaces.obograph_interface as oi_pkg
-import oaklib.interfaces.subsetter_interface as ss
-from oaklib.datamodels.vocabulary import IS_A, PART_OF
+
 from fastapi import APIRouter, Query
-from backend.utils import get_timer
+from oaklib import get_adapter
+from oaklib.datamodels.vocabulary import IS_A, PART_OF
+import oaklib.interfaces.obograph_interface as oi_pkg
+
 from backend.db.utils import sql_query, get_db_connection
-from backend.db.queries import get_vocab_of_concepts, get_vocabs_of_concepts
+from backend.db.queries import get_vocabs_of_concepts
+from backend.utils import get_timer
+
 
 router = APIRouter(
     # prefix="/oak",
@@ -18,22 +20,20 @@ router = APIRouter(
     # dependencies=[Depends(get_token_header)],  # from FastAPI example
     responses={404: {"description": "Not found"}},
 )
-
 # logging.basicConfig(level=logging.INFO)
 # logger = logging.getLogger(__name__)
 # APIRouter.logger = logger
 # oi_pkg.logger = logger
-
 PROJECT_DIR = Path(os.path.dirname(__file__)).parent.parent
 VOCABS_PATH = os.path.join(PROJECT_DIR, 'termhub-vocab')
-
-vocab_paths = {
+VOCAB_PATHS = {
     'SNOMED': os.path.join(VOCABS_PATH, 'n3c-SNOMED.db'),
     'RxNorm': os.path.join(VOCABS_PATH, 'n3c-RxNorm.db'),
 }
 
 def get_oi(vocab):
-    return get_adapter(vocab_paths[vocab])
+    """Get OAK OntologyImplementation"""
+    return get_adapter(VOCAB_PATHS[vocab])
 
 
 def omop_id_to_curie(id: int, vocab: str):

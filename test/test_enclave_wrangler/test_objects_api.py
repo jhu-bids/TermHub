@@ -1,12 +1,16 @@
-"""Tests for the Enclave objects API"""
+"""Tests for the Enclave objects API
+
+todo: fix: PKs (and other constraints) aren't set, so this inserts again and again without raising ane error.
+ When done, reactivate several tests currently being skipped because of #804. Search for #804 or IntegrityError
+ background: originally thought the issue was this: https://github.com/jhu-bids/TermHub/issues/803, but it's #804
+"""
 import os
 import pickle
 import sys
 import unittest
 from datetime import datetime, timedelta
 from pathlib import Path
-from typing import Dict, List
-
+from typing import Callable, Dict, List, Union
 from sqlalchemy.exc import IntegrityError
 
 THIS_TEST_DIR = Path(os.path.dirname(__file__))
@@ -33,6 +37,12 @@ class TestObjectsApi(DbRefreshTestWrapper):
     def setUpClass(cls):
         super().setUpClass()
 
+    def _raises_err_on_duplicate_insert_test(self, table: str, obj_id: Union[int, str], func: Callable):
+        """Inserts once so it exists in the table, then inserts again. Error expected."""
+        with get_db_connection(schema=TEST_SCHEMA) as con:
+            func(con, obj_id, [table], skip_if_already_exists=False)
+            self.assertRaises(IntegrityError, func, con, obj_id, [table], skip_if_already_exists=False)
+
     # todo: after completing this 'test', create func for it in backend/db and call/assert here
     #  - what is the ultimate goal? how many tables are we refreshing?
     # todo: also add test for get_new_objects()
@@ -41,84 +51,93 @@ class TestObjectsApi(DbRefreshTestWrapper):
     #     csets_and_members: Dict[str, List] = fetch_cset_and_member_objects(since=yesterday)
     #     # todo: what kind of assert?
 
-    # TODO: Seems to be failing now because using test_n3c instead of n3c even though con schema=TEST_SCHEMA
+    @unittest.skip("Skipping failing test for now. See: https://github.com/jhu-bids/TermHub/issues/804")
+    def test_concept_expression_enclave_to_db__raises_err(self):
+        """Test concept_expression_enclave_to_db() throws err when expected.
+        Inserts once so it exists in the table, then inserts again."""
+        table = 'concept_set_version_item'
+        obj_id = 'c129643b-0896-4fe3-9722-1191bb0c75ba'  # exists in enclave
+        self._raises_err_on_duplicate_insert_test(table, obj_id, concept_expression_enclave_to_db)
 
-    # TODO: test is failing. fix
-    @unittest.skip("Skipping failing/erroring test temporarily.")
     def test_concept_expression_enclave_to_db(self):  # aka test_concept_set_version_item_enclave_to_db()
         """Test concept_expression_enclave_to_db()"""
         table = 'concept_set_version_item'
+        obj_id = '479356-3023361'  # exists in enclave
         with get_db_connection(schema=TEST_SCHEMA) as con:
-            # Failure case: exists in test DB
-            item_id_fail = 'c129643b-0896-4fe3-9722-1191bb0c75ba'
-            self.assertRaises(IntegrityError, concept_expression_enclave_to_db, con, item_id_fail, [table], False)
-
-            # Success case:  doesn't exist in test DB
-            item_id_succeed = '479356-3023361'
             n1: int = sql_count(con, table)
-            concept_expression_enclave_to_db(con, item_id_succeed, [table])
+            concept_expression_enclave_to_db(con, obj_id, [table])
             n2: int = sql_count(con, table)
             self.assertGreater(n2, n1)
             # Teardown
-            run_sql(con, f"DELETE FROM {table} WHERE item_id = '{item_id_succeed}';")
+            run_sql(con, f"DELETE FROM {table} WHERE item_id = '{obj_id}';")
 
-    # TODO: test is failing. fix
-    @unittest.skip("Skipping failing/erroring test temporarily.")
+    @unittest.skip("Skipping failing test for now. See: https://github.com/jhu-bids/TermHub/issues/804")
+    def test_concept_enclave_to_db__raises_err(self):
+        """Test concept_enclave_to_db() throws err when expected.
+        Inserts once so it exists in the table, then inserts again."""
+        table = 'concept'
+        obj_id = 3018737  # exists in enclave
+        self._raises_err_on_duplicate_insert_test(table, obj_id, concept_enclave_to_db)
+
     def test_concept_enclave_to_db(self):
         """Test concept_expression_enclave_to_db()"""
+        table = 'concept'
+        obj_id = 9472  # exists in enclave
         with get_db_connection(schema=TEST_SCHEMA) as con:
-            table = 'concept'
-            # Failure case: exists in test DB
-            concept_id_fail = 3018737
-            self.assertRaises(IntegrityError, concept_enclave_to_db, con, concept_id_fail, [table], False)
-
-            # Success case: doesn't exist in test DB
-            concept_id_succeed = 9472
             n1: int = sql_count(con, table)
-            concept_enclave_to_db(con, concept_id_succeed, [table])
+            concept_enclave_to_db(con, obj_id, [table])
             n2: int = sql_count(con, table)
             self.assertGreater(n2, n1)
             # Teardown
-            run_sql(con, f"DELETE FROM {table} WHERE concept_id = '{concept_id_succeed}';")
+            run_sql(con, f"DELETE FROM {table} WHERE concept_id = '{obj_id}';")
+
+    # TODO: In addition to #804, 2 other issues:
+    #  1. need new failure case. Why was this removed from the DB? I guess we need more dummy/archived cases.
+    #  2. is there supposed to be a space at the beginning of the label / obj_id?
+    @unittest.skip("Skipping failing test for now. See: https://github.com/jhu-bids/TermHub/issues/804")
+    def test_concept_set_container_enclave_to_db__raises_err(self):
+        """Test concept_set_container_enclave_to_db() throws err when expected.
+        Inserts once so it exists in the table, then inserts again."""
+        table = 'code_sets'
+        obj_id = ' Casirivimab Monotherapy (Injection route of admin, 120 MG/ML dose minimum)'  # exists in enclave
+        self._raises_err_on_duplicate_insert_test(table, obj_id, concept_set_container_enclave_to_db)
 
     def test_concept_set_container_enclave_to_db(self):
         """Test cset_container_enclave_to_db()"""
         table = 'concept_set_container'
-        # TODO: Switch back to test schema after
+        obj_id = 'HIV Zihao'
         with get_db_connection(schema=TEST_SCHEMA) as con:
-            # Failure case: exists in test DB
-            # TODO: need new failure case. Why was this removed from the DB? I guess we need more dummy/archived cases.
-            # concept_set_id_fail = ' Casirivimab Monotherapy (Injection route of admin, 120 MG/ML dose minimum)'
-            # self.assertRaises(
-            #     IntegrityError, concept_set_container_enclave_to_db, con, concept_set_id_fail, [table], False)
-
-            # Success case:  doesn't exist in test DB
-            concept_set_id_succeed = 'HIV Zihao'
             n1: int = sql_count(con, table)
-            concept_set_container_enclave_to_db(con, concept_set_id_succeed, [table])
+            concept_set_container_enclave_to_db(con, obj_id, [table])
             n2: int = sql_count(con, table)
             self.assertGreater(n2, n1)
             # Teardown
-            run_sql(con, f"DELETE FROM {table} WHERE concept_set_id = '{concept_set_id_succeed}';")
+            run_sql(con, f"DELETE FROM {table} WHERE concept_set_id = '{obj_id}';")
 
-    # TODO: test is failing. fix
-    @unittest.skip("Skipping failing/erroring test temporarily.")
-    def test_cset_version_enclave_to_db(self):  # aka test_code_sets_enclave_to_db()
-        """Test codeset_version_enclave_to_db()"""
+    @unittest.skip("Skipping failing test for now. See: https://github.com/jhu-bids/TermHub/issues/804")
+    def test_cset_version_enclave_to_db__raises_err(self):
+        """Test codeset_version_enclave_to_db() throws err when expected
+        Inserts once so it exists in the table, then inserts again."""
         table = 'code_sets'
-        with get_db_connection(schema=TEST_SCHEMA) as con:
-            # Failure case
-            codeset_id_fail = 1  # exists in test DB
-            self.assertRaises(IntegrityError, cset_version_enclave_to_db, con, codeset_id_fail, [table], False)
+        obj_id = 1  # exists in enclave
+        self._raises_err_on_duplicate_insert_test(table, obj_id, cset_version_enclave_to_db)
+        self._raises_err_on_duplicate_insert_test(table, obj_id)
 
-            # Success case
-            codeset_id_succeed = 1049370  # doesn't exist in test DB
+    def test_cset_version_enclave_to_db(self):
+        """Test codeset_version_enclave_to_db()
+
+        Test that can successfully fetch and insert data.
+        Also effectively tests test_code_sets_enclave_to_db().
+        """
+        table = 'code_sets'
+        obj_id = 129091261  # doesn't exist in test DB
+        with get_db_connection(schema=TEST_SCHEMA) as con:
             n1: int = sql_count(con, table)
-            cset_version_enclave_to_db(con, codeset_id_succeed, [table], )
+            cset_version_enclave_to_db(con, obj_id, [table])
             n2: int = sql_count(con, table)
             self.assertGreater(n2, n1)
             # Teardown
-            run_sql(con, f"DELETE FROM {table} WHERE codeset_id = '{codeset_id_succeed}';")
+            run_sql(con, f"DELETE FROM {table} WHERE codeset_id = '{obj_id}';")
 
     def test_csets_and_members_to_db(self):
         """Test csets_and_members_enclave_to_db()
@@ -189,6 +208,6 @@ class TestObjectsApi(DbRefreshTestWrapper):
 
     def test_get_concept_set_version_members(self):
         """test get_concept_set_version_members()"""
-        codeset_id = 563193300
-        data = get_concept_set_version_members(codeset_id, return_detail='full')
+        obj_id = 563193300
+        data = get_concept_set_version_members(obj_id, return_detail='full')
         self.assertGreater(len(data), 0)

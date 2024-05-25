@@ -113,52 +113,6 @@ def validFieldList(objlist: List[Dict], fields: List[str]):
     return ok_fields
 
 
-@APP.get("/datasets/csets")
-def csets_read(
-    field_filter: Union[List[str], None] = Query(default=None), path=CSETS_JSON_PATH
-    # value_filter: Union[List[str], None] = Query(default=None) # not implemented here
-) -> Union[Dict, List]:
-    """Get concept sets
-
-    field_filter: If present, the data returned will only contain these fields. Example: Passing `concept_set_name` as
-    the only field_filter for OMOPConceptSet will return a string list of concept set names.
-
-    Resources: jq docs: https://stedolan.github.io/jq/manual/ , jq python api doc: https://github.com/mwilliamson/jq.py
-    """
-    if field_filter:
-        if len(field_filter) > 1:
-            d = {'error': 'Currently only 1 field_filter is allowed.'}
-        else:
-            # TODO: Need to replace this with Python API. Otherwise, deployment will be harder and must global
-            #  installation of JQ.
-            #  DONE
-
-            query = f".[] | .{field_filter[0]}"
-            cmd = f"jq '{query}' {path}"
-            print(f'jq cmd:\n{cmd}')
-
-            with open(path, 'r') as f:
-                d = json.load(f)
-                result = jq.compile(query).input(d).all()
-                return result
-
-            # output, err = jq_wrapper(query)
-            # if err:
-            #     return {'error': str('error')}
-            # d = output.split('\n')
-            # # x[1:-1]: What gets returned is a \n-delimited string of names, where each name is formatted
-            # # as '"{NAME}"',so we need to remove the extra set of quotations.
-            # # TODO: This operation likely needs to be done in a variety of cases, but I don't know JQ well enough to
-            # #  anticipate all of the situations where this might arise. - joeflack4 2022/08/24
-            # # todo: Is this List[str] preferable to List[Dict,? e.g. [{'concept_set_name': 'HEART FAILURE'}, ...]?
-            # d = [x[1:-1] for x in d]
-            # return d
-    else:
-        with open(path, 'r') as f:
-            d = json.load(f)
-    return d
-
-
 # # todo: @Siggie: Not sure how to do what I needed in JQ, so no JQ in here yet
 # @APP.get("/datasets/concepts")
 # def concepts_read(
@@ -298,12 +252,6 @@ def ontocall(path) -> [{}]:
     # if os.path.startswith('objectTypes/'):
     #     return json
     # return {'valid but unhandled path': path, 'json': json}
-
-
-@APP.put("/datasets/vocab")
-def vocab_update():
-    """Update vocab dataset"""
-    pass
 
 
 @APP.get("/linkTypesForObjectTypes")

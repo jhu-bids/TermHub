@@ -1,5 +1,6 @@
-# Built from:
-# https://docs.github.com/en/actions/guides/building-and-testing-python
+# Test - Backend - E2E and unit tests and QC
+# todo: Add 'qc' parts eventually to this, or rather, codestyle (e.g. black, flake8, pylint, docstyle, etc.)
+# Built w/ inspiration from: https://docs.github.com/en/actions/guides/building-and-testing-python
 
 name: Test - Backend - E2E and unit tests and QC
 
