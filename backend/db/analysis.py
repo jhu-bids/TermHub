@@ -156,7 +156,7 @@ def counts_update(note: str, schema: str = SCHEMA, local=False, filter_temp_refr
 
 # TODO: support multiple schema
 def counts_over_time(
-    schema: str = SCHEMA, local=False, method=COUNTS_OVER_TIME_OPTIONS[0], _print=True,
+    schema: str = SCHEMA, local=False, method=COUNTS_OVER_TIME_OPTIONS[0], verbose=True,
     current_counts_df: pd.DataFrame = pd.DataFrame()
 ) -> pd.DataFrame:
     """Checks counts of database and store what the results look like in a database over time"""
@@ -207,7 +207,7 @@ def counts_over_time(
     # Print / save
     if method == 'save_delta_viz':
         raise NotImplementedError('Option save_delta_viz for counts_over_time() not yet implemented.')
-    elif _print:
+    elif verbose:
         print(df.to_markdown(index=False))
     return finaldf
 
@@ -215,8 +215,8 @@ def counts_docs(use_cached_counts=True):
     """Runs --counts-over-time and --deltas-over-time and puts in documentation: docs/backend/db/analysis.md."""
     # Get data
     current_counts_df = _current_counts_and_deltas(from_cache=use_cached_counts)
-    counts_df: pd.DataFrame = counts_over_time(method='counts_table', current_counts_df=current_counts_df, _print=False)
-    deltas_df: pd.DataFrame = counts_over_time(method='delta_table', current_counts_df=current_counts_df, _print=False)
+    counts_df: pd.DataFrame = counts_over_time(method='counts_table', current_counts_df=current_counts_df, verbose=False)
+    deltas_df: pd.DataFrame = counts_over_time(method='delta_table', current_counts_df=current_counts_df, verbose=False)
     # Write docs
     instantiated_str: str = Template(DOCS_JINJA).render(
         counts_markdown_table=counts_df.to_markdown(),
