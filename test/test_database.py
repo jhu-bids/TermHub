@@ -50,11 +50,8 @@ class TestDatabaseCurrent(unittest.TestCase):
                   '\n\nCurrent datetime (GMT): ' + str(datetime.now().astimezone(pytz.utc))
         self.assertEqual(missing, {}, msg=FAIL_MSG.format(sub_msg))
 
-    # TODO: test is failing. fix
-    @unittest.skip("Skipping failing/erroring test temporarily.")
+    @unittest.skip("Skipping failing test for now. See: https://github.com/jhu-bids/TermHub/issues/571")
     def test_all_termhub_csets_in_enclave(self):
         """Test that TermHub concept sets are in the Enclave"""
         extra_in_db: Set[int] = self.db_codeset_ids.difference(self.enclave_codeset_ids)
-        # todo: analyze: get these from database and figure out what's up with them
-        # if extra_in_db:
         self.assertEqual(extra_in_db, set())

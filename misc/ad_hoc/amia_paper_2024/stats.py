@@ -315,7 +315,7 @@ def summary_stats(
     df_get_csets = df_w_groups_filtered[df_w_groups_filtered['api_call'] == 'get-csets']
     # summary['Value set combos'] = len(set([tuple(x) for x in df_get_csets['codeset_ids']]))
 
-    # todo: temp: analysis
+    # todo: this analysis is temporary
     #  - analyze uniqueness of get-csets calls within an API call group session
     # diff_get_csets_vs_groups=35; i feel like this should be equal to some calc involving next 4 vars, but not sure
     # noinspection PyUnusedLocal

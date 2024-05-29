@@ -40,6 +40,10 @@ DOCS_JINJA = """# DB row counts
 {{ counts_markdown_table }}"""
 
 
+class InvalidCompareSchemaError(ValueError):
+    """For if there is any problem with a schema comparison situation."""
+
+
 # TODO: rename current_counts_and_deltas where from_cache = True to counts_deltas_history or something. because the datastructure is
 #  different. either that, or have it re-use the from_cache code at the end if from_cache = False
 #  - then, counts_over_time() & docs(): add cache param set to false, and change how they call current_counts()
@@ -49,7 +53,39 @@ def _current_counts_and_deltas(
 ) -> Union[pd.DataFrame, Dict]:
     """Gets current database counts and deltas
     :param filter_temp_refresh_tables: Filters out any temporary tables that are created during the refresh, e.g. ones
-    that end w/ the suffix '_old'."""
+    that end w/ the suffix '_old'.
+    :returns pd.DataFrame if cache, else dict. If schema doesn't exist in counts, returns empty dict.
+
+    Performance:
+    As of 2025/05/26 on an M3, `SELECT COUNT(*) from {schema}.{table}` took this many seconds for each table.
+        concept_ancestor: 40.2
+        concept_ancestor_plus: 9.3
+        concept_relationship: 7.4
+        concept_graph: 5.7
+        concept_relationship_plus: 3.8
+        concept_set_members: 3.0
+        concepts_with_counts_ungrouped: 1.5
+        concepts_with_counts: 1.3
+        cset_members_items: 1.1
+        concept: 1.0
+        concept_set_version_item: 0.7
+        codeset_ids_by_concept_id: 0.4
+        deidentified_term_usage_by_domain_clamped: 0.1
+        all_csets: 0.0
+        code_sets: 0.0
+        codeset_counts: 0.0
+        concept_ids_by_codeset_id: 0.0
+        concept_set_container: 0.0
+        concept_set_counts_clamped: 0.0
+        concept_set_json: 0.0
+        members_items_summary: 0.0
+        omopconceptset: 0.0
+        omopconceptsetcontainer: 0.0
+        relationship: 0.0
+        researcher: 0.0
+        session_concept: 0.0
+        sessions: 0.0
+    """
     if from_cache:
         with get_db_connection(schema='', local=local) as con:
             counts: List[Dict] = [dict(x) for x in sql_query(con, f'SELECT * from counts;', return_with_keys=True)]
@@ -58,10 +94,10 @@ def _current_counts_and_deltas(
             return df
     # Get previous counts
     with get_db_connection(schema='', local=local) as con:
-        timestamps: List[datetime] = [
-            dp.parse(x[0]) for x in sql_query(con, f"SELECT DISTINCT timestamp from counts WHERE schema = '{schema}';", return_with_keys=False)]
+        ts_strings: List[List[str]] = sql_query(con, f"SELECT DISTINCT timestamp from counts WHERE schema = '{schema}';", return_with_keys=False)
+        timestamps: List[datetime] = [dp.parse(x[0]) for x in ts_strings]
         most_recent_timestamp: str = str(max(timestamps)) if timestamps else None
-        prev_counts: List[Dict] = [dict(x) for x in sql_query(con, f'SELECT * from counts;', return_with_keys=True)]
+        prev_counts: List[Dict] = [dict(x) for x in sql_query(con, f'SELECT count, "table", "timestamp" from counts;', return_with_keys=True)]
         prev_counts_df = pd.DataFrame(prev_counts)
     # Get current counts / deltas
     with get_db_connection(schema=schema, local=local) as con:
@@ -89,12 +125,14 @@ def _current_counts_and_deltas(
 
 def counts_compare_schemas(
     compare_schema: str = 'most_recent_backup', schema: str = SCHEMA, local=False, verbose=True, use_cached_counts=False
-) -> pd.DataFrame:
+) -> Union[pd.DataFrame, None]:
     """Checks counts of database tables for the current schema and its most recent backup.
 
     :param compare_schema: The schema to check against. e.g. ncurrent_counts3c_backup_20230322
     :param use_cached_counts: If True, will use whatever is in the `counts` table, though it is less likely that counts
     will exist for backups. Runs much faster though if using this option.
+    :returns pd.DataFrame if w/ comparison of current schema and another schema. If compare_schema='most_recent_backup'
+    and there is no backup schema in the counts, returns None.
     """
     # Determine most recent schema if necessary
     if compare_schema == 'most_recent_backup':
@@ -106,14 +144,22 @@ def counts_compare_schemas(
         """
         with get_db_connection(schema='', local=local) as con:
             backup_schemas: List[str] = [x[0] for x in sql_query(con, query, return_with_keys=False) if x[0].startswith(f'{schema}_backup_')]
+            if not backup_schemas:
+                print('Warning: Detected no backup schema to compare against. Quitting counts_compare_schemas().',
+                file=sys.stderr)
+                return None
         dates: List[datetime] = [dp.parse(x.split('_')[2]) for x in backup_schemas]
         for schema_name, date in zip(backup_schemas, dates):
             if date == max(dates):
                 compare_schema = schema_name
 
     # Get counts
-    main: Dict = _current_counts_and_deltas(schema, from_cache=use_cached_counts, local=local)
-    compare: Dict = _current_counts_and_deltas(compare_schema, from_cache=use_cached_counts, local=local)
+    main: Dict = _current_counts_and_deltas(
+        schema, from_cache=use_cached_counts, local=local, filter_temp_refresh_tables=True)
+    compare: Dict = _current_counts_and_deltas(
+        compare_schema, from_cache=use_cached_counts, local=local, filter_temp_refresh_tables=True)
+    if not compare:
+        raise InvalidCompareSchemaError(f'compare_schema {compare_schema} does not exist.')
     tables = set(main.keys()).union(set(compare.keys()))
     rows = []
     for table in tables:
