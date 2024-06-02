@@ -142,7 +142,7 @@ def refresh_derived_tables_exec(
      entry will appear further down in the list."""
     temp_table_suffix = '_new'
     ddl_modules_queue = derived_tables_queue
-    views = [x for x in list_views() if x in ddl_modules_queue]
+    views = [x for x in list_views(schema=schema) if x in ddl_modules_queue]
 
     # Create new tables/views and backup old ones
     print('Derived tables')
@@ -182,6 +182,9 @@ def refresh_derived_tables_exec(
 # todo: move this somewhere else, possibly load.py or db_refresh.py
 # todo: what to do if this process fails? any way to roll back? should we?
 # todo: currently has no way of passing 'local' down to db status var funcs
+# todo: last_derived_refresh_request and last_derived_refresh_exited: these should ideally be schema specific. That way,
+#  refreshes on normal schema and test_schema don't block each other. Only a minor issue. Will sometimes cause tests
+#  to take a very long time to run, especially during the wee hours when vocab/counts refreshes are running.
 def refresh_derived_tables(
     con: Connection, independent_tables: List[str] = CORE_CSET_TABLES, schema=SCHEMA, local=False,
     polling_interval_seconds: int = 30
