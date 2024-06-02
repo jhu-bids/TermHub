@@ -6,14 +6,16 @@ How to run:
 import os
 import sys
 from pathlib import Path
-from backend.db.resolve_fetch_failures_excess_items import resolve_fetch_failures_excess_items
-from backend.db.utils import run_sql, sql_query
-from enclave_wrangler.objects_api import fetch_cset_and_member_objects
-from test.test_backend.db.test_utils import FetchAuditTestRunner
+from typing import Union
 
 THIS_DIR = os.path.dirname(__file__)
 PROJECT_ROOT = Path(THIS_DIR).parent.parent
 sys.path.insert(0, str(PROJECT_ROOT))
+from backend.db.resolve_fetch_failures_excess_items import resolve_fetch_failures_excess_items
+from backend.db.utils import run_sql, sql_query
+from enclave_wrangler.objects_api import fetch_cset_and_member_objects
+from test.test_backend.db.test_utils import FetchAuditTestRunner
+from test.utils import TEST_SCHEMA
 
 
 # todo: could create some more test cases (i) too many expressions, (ii) >100k members, (iii) 0 members?
@@ -45,18 +47,25 @@ class TestBackendResolveFetchFailures(FetchAuditTestRunner):
     mock_data = [{'table': 'code_sets', 'primary_key': 112182256, 'status_initially': 'fail-excessive-items',
                   'comment': 'Unit testing.'}]
 
+    def _failure_status_query(self, pk: Union[int, str]):
+        """Check status of fetch failure and its possible resolution"""
+        result = sql_query(self.con, f"SELECT success_datetime FROM fetch_audit WHERE primary_key = '{pk}';")
+        results2 = result[-1]
+        return results2
+
     # todo: A better test would be to actually run this in test_n3c, and check before/after that actual data is inserted
     def test_resolve_fetch_failures_excess_items(self):
         """Test resolve_fetch_failures_excess_items()"""
         pk = self.mock_data[0]['primary_key']
-        query = lambda: sql_query(self.con, f"SELECT success_datetime FROM fetch_audit WHERE primary_key = '{pk}';")[-1]
         # mock_data: setUpClass will have inserted by now
         if self.run_live_fetch:
             run_sql(self.con, f"DELETE FROM fetch_audit WHERE primary_key = '{pk}' AND comment = 'Unit testing.';")
             fetch_cset_and_member_objects(codeset_ids=[pk])
-        status1 = query()
-        resolve_fetch_failures_excess_items()
-        status2 = query()
+        status1 = self._failure_status_query(pk)
+        # todo: Ideally should be able to pass specific failures. What if actual failures exist that aren't test cases?
+        #  the it will run those as well.
+        resolve_fetch_failures_excess_items(TEST_SCHEMA, 24)
+        status2 = self._failure_status_query(pk)
         self.assertNotEqual(status1, status2)
 
 # Uncomment this and run this file and run directly to run all tests

@@ -18,6 +18,8 @@ from backend.db.utils import get_db_connection, get_idle_connections, insert_fet
     select_failed_fetches, sql_query
 
 
+# todo: add datetime to setUp and tearDown: It might be possible, despite failsafes being in place to prevent refreshes
+#  from running simultaneously,
 class FetchAuditTestRunner(unittest.TestCase):
     n1: int = None
     mock_data: List[Dict] = None
@@ -33,10 +35,10 @@ class FetchAuditTestRunner(unittest.TestCase):
     @classmethod
     def tearDownClass(cls):
         """tearDown"""
-        run_sql(cls.con, f"DELETE FROM fetch_audit WHERE comment = 'Unit testing.';")
+        run_sql(cls.con, f"DELETE FROM fetch_audit WHERE comment LIKE 'Unit testing.%';")
         n3 = sql_query(cls.con, 'SELECT COUNT(*) FROM fetch_audit;')[0]['count']
         # https://stackoverflow.com/questions/43483683/python-unittest-teardownclass-for-the-instance-how-to-have-it
-        assert cls.n1 == n3  # .assertEqual() deosn't work here; see above
+        assert cls.n1 == n3  # .assertEqual() doesn't work here; see above
         cls.con.close()
 
 
