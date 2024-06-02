@@ -92,6 +92,6 @@
     "node": ">=18.2.0"
   },
   "jshintConfig": {
-    "esversion": 8
+    "esversion": 11
   }
 }

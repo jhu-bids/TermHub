@@ -15,9 +15,6 @@ playwright test`, where  dev is short for 'development' and prod is short for 'p
 */
 import {DEPLOYMENT} from "../src/env";
 
-const { test, expect } = require('@playwright/test');
-const fs = require('fs');
-
 
 // Config --------------------------------------------------------------------------------------------------------------
 export const deploymentConfigs = {
@@ -28,16 +25,13 @@ export const deploymentConfigs = {
 
 // CLI --------------------------------------------------------------------------------------------------------------
 // https://playwright.dev/docs/test-parameterize
-// let envsString = 'local-dev-prod';
-// let envsString = 'local';
+// Usable like: ENVIRONMENTS=dev-prod yarn test:e2e
+
+// - Determine which environments to run tests on
 let envsString = DEPLOYMENT;
-
-// replacing process.env with import.meta.env for vite migration; see https://www.freecodecamp.org/news/how-to-migrate-from-create-react-app-to-vite/
-
 if (process.env.ENVIRONMENTS) {
   envsString = process.env.ENVIRONMENTS;
 }
-
 const envs = envsString.split("-");
 export let selectedConfigs = {};
 for (let key in deploymentConfigs) {
@@ -45,6 +39,8 @@ for (let key in deploymentConfigs) {
     selectedConfigs[key] = deploymentConfigs[key];
   }
 }
+
+// todo?: replace process.env with import.meta.env for vite migration; see https://www.freecodecamp.org/news/how-to-migrate-from-create-react-app-to-vite/
 /*
 if (import.meta.env.ENVIRONMENTS) {
   envsString = import.meta.env.ENVIRONMENTS;
