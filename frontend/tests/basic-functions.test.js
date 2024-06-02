@@ -32,15 +32,14 @@ for (const envName in selectedConfigs) {
 
   test(envName + ': ' + 'Main page - has title & heading', async ({ page }) => {
     await page.goto(appUrl);
-    await expect(page).toHaveTitle(/VS-Hub/);  // Expect a title "to contain" a substring.
-    await expect(page.getByRole('heading', { name: 'Within VS-Hub you can:' })).toBeVisible();
-    // await expect(page.getByRole('heading', { name: 'Welcome to VS-Hub! Beta version 0.3.2' })).toBeVisible();
+    await expect(page).toHaveTitle(/(VS-Hub|TermHub)/);  // Expect a title "to contain" a substring.
+    await expect(page.getByRole('heading', { name: /Within (VS-Hub|TermHub) you can:/ })).toBeVisible();
   });
 
   test(envName + ': ' + 'Help / about - hyperlink & title', async ({ page }) => {
     await page.goto(appUrl);
     await page.getByRole('link', { name: 'Help / About' }).click();
-    await expect(page.getByRole('heading', { name: 'About VS-Hub\n' })).toBeVisible();
+    await expect(page.getByRole('heading', { name: /About (VS-Hub|TermHub)/ })).toBeVisible();
   });
 
   // todo: rename this as I add onto it. I think I want to do the workflow from search -> comparison
