@@ -419,8 +419,8 @@ def get_missing_in_between_nodes(G: DiGraph, subgraph_nodes: Union[List[int], Se
 
 
 @router.get("/wholegraph")
-def subgraph():
-    """Get subgraph edges"""
+def wholegraph():
+    """Get subgraph edges for the whole graph"""
     return list(REL_GRAPH.edges)
 
 

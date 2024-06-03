@@ -346,9 +346,9 @@ class TestBackend(unittest.TestCase):
     @unittest.skip("May need to remove this test. I think the code it was testing got removed. Skipping failing/erroring test temporarily.")
     def test_subgraph(self):
         """Tests subgraph()"""
-        from backend.routes.graph import subgraph  # a little slow, and only needed here
+        from backend.routes.graph import wholegraph  # a little slow, and only needed here
         # Basic unit test for a simple connected graph without a complex hierarchy
-        edges1 = subgraph([1738170, 1738171, 1738202, 1738203])
+        edges1 = wholegraph([1738170, 1738171, 1738202, 1738203])
         """
         ┌────────────┬──────────────────────┬───────────┬───────────────┬────────────────────┬────┬──────────────┬─────┬────────────┬───────────────┬───────────┬─────────────────────┐
         │ concept_id │ concept_name         │ domain_id │ vocabulary_id │  concept_class_id  │ sc │ concept_code │ inv │ domain_cnt │    domain     │ total_cnt │ distinct_person_cnt │
@@ -390,7 +390,7 @@ class TestBackend(unittest.TestCase):
         """
 
         #Test for a concept set that fills in the gaps (i.e between child and grandparent)
-        edges2 = subgraph([1738170,19122186])
+        edges2 = wholegraph([1738170, 19122186])
         self.assertEqual(edges2, [ ( "1738170", "1738203" ), ( "1738203", "19122186" ) ])
         """
         ┌────────────┬────────────────────────────────────────────────┬───────────┬───────────────┬────────────────────┬──────────────────┬──────────────┬────────────────┬────────────┬───────────────┬───────────┬─────────────────────┐
@@ -405,11 +405,11 @@ class TestBackend(unittest.TestCase):
         """
 
         #Test for a more complex hierarchial relationship
-        edges3 = subgraph([321588,4027255,316139,43530856,
-                                                 45766164,
-                                  4024552,
-                                         # missing node 4027255,
-                                         43530961])
+        edges3 = wholegraph([321588, 4027255, 316139, 43530856,
+                             45766164,
+                             4024552,
+                             # missing node 4027255,
+                             43530961])
         """
         ┌────────────┬──────────────────────────────────────────────────┬───────────┬───────────────┬──────────────────┬──────────────────┬──────────────┬────────────────┬────────────┬────────────────────────────────────┬───────────┬─────────────────────┐
         │ concept_id │                   concept_name                   │ domain_id │ vocabulary_id │ concept_class_id │ standard_concept │ concept_code │ invalid_reason │ domain_cnt │               domain               │ total_cnt │ distinct_person_cnt │
@@ -442,7 +442,7 @@ class TestBackend(unittest.TestCase):
                              ( "321588", "4024552" ), ( "321588", "4027255" ), ( "4027255", "43530856" ) ] )
 
         #Testing a relationship where a common ancestor is needed to connect the graph
-        edges3 = subgraph([4027255, 43530856, 4024552, 316139, 45766164, 43530961])
+        edges3 = wholegraph([4027255, 43530856, 4024552, 316139, 45766164, 43530961])
         """
         ┌────────────┬──────────────────────────────────────────────────┬───────────┬───────────────┬──────────────────┬──────────────────┬──────────────┬────────────────┬────────────┬────────────────────────────────────┬───────────┬─────────────────────┐
         │ concept_id │                   concept_name                   │ domain_id │ vocabulary_id │ concept_class_id │ standard_concept │ concept_code │ invalid_reason │ domain_cnt │               domain               │ total_cnt │ distinct_person_cnt │

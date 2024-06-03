@@ -140,7 +140,7 @@ class TstGraph:
             # Actual
             nodes_in_graph, missing_in_between_nodes, preferred_concept_ids, orphans_not_in_graph, hidden = \
                 get_connected_subgraph(REL_GRAPH, codeset_ids, EXTRA_CONCEPT_IDS, HIDE_VOCABS)
-            sg = REL_GRAPH.subgraph(nodes_in_graph.union(missing_in_between_nodes))
+            sg = REL_GRAPH.wholegraph(nodes_in_graph.union(missing_in_between_nodes))
             actual = {
                 'sg.edges': set(sg.edges),
                 'nodes_in_graph': sg.nodes,
