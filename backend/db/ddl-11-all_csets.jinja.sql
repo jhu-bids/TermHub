@@ -1,4 +1,5 @@
 -- Table: all_csets ----------------------------------------------------------------------------------------------------
+-- todo: change CREATE TABLE cset_term_usage_rec_counts to `CREATE TEMP TABLE`?
 DROP TABLE IF EXISTS {{schema}}all_csets{{optional_suffix}} CASCADE;
 
 DROP TABLE IF EXISTS {{schema}}cset_term_usage_rec_counts;

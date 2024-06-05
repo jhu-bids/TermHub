@@ -23,14 +23,14 @@ import pandas as pd
 from jinja2 import Template
 # noinspection PyUnresolvedReferences
 from psycopg2.errors import UndefinedTable
-from sqlalchemy import create_engine, event
+from sqlalchemy import CursorResult, create_engine, event
 from sqlalchemy.engine import Row, RowMapping
 
 from sqlalchemy.engine.base import Connection
 from sqlalchemy.exc import OperationalError, ProgrammingError
 from sqlalchemy.sql import text
 from sqlalchemy.sql.elements import TextClause
-from typing import Any, Dict, Set, Tuple, Union, List
+from typing import Dict, Set, Tuple, Union, List
 
 DB_DIR = os.path.dirname(os.path.realpath(__file__))
 PROJECT_ROOT = Path(DB_DIR).parent.parent
@@ -142,7 +142,7 @@ def refresh_derived_tables_exec(
      entry will appear further down in the list."""
     temp_table_suffix = '_new'
     ddl_modules_queue = derived_tables_queue
-    views = [x for x in list_views() if x in ddl_modules_queue]
+    views = [x for x in list_views(schema=schema) if x in ddl_modules_queue]
 
     # Create new tables/views and backup old ones
     print('Derived tables')
@@ -152,7 +152,16 @@ def refresh_derived_tables_exec(
         print(f' - creating new table/view: {module}...')
         statements: List[str] = get_ddl_statements(schema, [module], temp_table_suffix, 'flat')
         for statement in statements:
-            run_sql(con, statement)
+            try:
+                run_sql(con, statement)
+            except ProgrammingError as err:
+                # Context: https://github.com/jhu-bids/TermHub/issues/792
+                if schema == 'test_n3c' and 'does not exist for access method' in str(err):
+                    print('Warning: A known error occurred while trying to create an extension-based index in the test'
+                          ' schema. For now, we\'re skipping creation of this index here as is not necessary for '
+                          'testing.', file=sys.stderr)
+                    continue
+                raise err
         # todo: warn if counts in _new table not >= _old table (if it exists)?
         run_sql(con, f'ALTER TABLE IF EXISTS {schema}.{module} RENAME TO {module}_old;')
         run_sql(con, f'ALTER TABLE {schema}.{module}{temp_table_suffix} RENAME TO {module};')
@@ -173,6 +182,9 @@ def refresh_derived_tables_exec(
 # todo: move this somewhere else, possibly load.py or db_refresh.py
 # todo: what to do if this process fails? any way to roll back? should we?
 # todo: currently has no way of passing 'local' down to db status var funcs
+# todo: last_derived_refresh_request and last_derived_refresh_exited: these should ideally be schema specific. That way,
+#  refreshes on normal schema and test_schema don't block each other. Only a minor issue. Will sometimes cause tests
+#  to take a very long time to run, especially during the wee hours when vocab/counts refreshes are running.
 def refresh_derived_tables(
     con: Connection, independent_tables: List[str] = CORE_CSET_TABLES, schema=SCHEMA, local=False,
     polling_interval_seconds: int = 30
@@ -401,42 +413,45 @@ def database_exists(con: Connection, db_name: str) -> bool:
     return len(result) == 1
 
 
+def run_sql(con: Connection, query: str, params: Dict = {}) -> CursorResult:
+    """Run a sql command"""
+    query = text(query) if not isinstance(query, TextClause) else query
+    return con.execute(query, params) if params else con.execute(query)
+
+
 def sql_query(
     con: Connection, query: Union[text, str], params: Dict = {}, debug: bool = DEBUG, return_with_keys=True
 ) -> Union[List[RowMapping], List[List]]:
-    """Run a sql query with optional params, fetching records.
-    https://stackoverflow.com/a/39414254/1368860:
-    query = "SELECT * FROM my_table t WHERE t.id = ANY(:ids);"
-    conn.execute(sqlalchemy.text(query), ids=some_ids)
+    """Run an idempotent (read) SQL query with optional params, fetching records.
+    Inspiration:
+      https://stackoverflow.com/a/39414254/1368860:
+      query = "SELECT * FROM my_table t WHERE t.id = ANY(:ids);"
+      conn.execute(sqlalchemy.text(query), ids=some_ids)
     """
-    query = text(query) if not isinstance(query, TextClause) else query
     try:
-        if params:
-            # after SQLAlchemy upgrade, send params as dict, not **params
-            q = con.execute(query, params) if params else con.execute(query)
-        else:
-            q = con.execute(query)
+        q: CursorResult = run_sql(con, query, params)
 
         if debug:
             print(f'{query}\n{json.dumps(params, indent=2)}')
+        # Conversions: after upgrading some packages, fastapi can no longer serialize Row & RowMapping objects
+        # todo: format q.mappings() for FastAPI like w/ q.fetchall() below? Are we not doing this cuz heavy refactor?
         if return_with_keys:
             # noinspection PyTypeChecker
-            results: List[RowMapping] = q.mappings().all()  # key value pairs
-            # after upgrading some packages, fastapi can no longer serialize RowMapping objects
+            results: List[RowMapping] = q.mappings().all()  # Key value pairs
             # return [dict(x) for x in results]
+            return results
         else:
             # noinspection PyTypeChecker
             results: List[Row] = q.fetchall()  # Row tuples, with additional properties
-            # after upgrading some packages, fastapi can no longer serialize Row objects
             return [list(x) for x in results]
-        return results
     except (ProgrammingError, OperationalError) as err:
-        raise RuntimeError(f'Got an error [{err}] executing the following statement:\n{query}, {json.dumps(params, indent=2)}')
+        raise RuntimeError(
+            f'Got an error [{err}] executing the following statement:\n{query}, {json.dumps(params, indent=2)}')
 
 
 def sql_query_single_col(*argv) -> List:
     """Run SQL query on single column"""
-    results = sql_query(*argv, return_with_keys=False)
+    results: List = sql_query(*argv, return_with_keys=False)
     return [r[0] for r in results]
 
 
@@ -457,7 +472,7 @@ def get_obj_by_composite_key(con, table: str, keys: List[str], obj: Dict) -> Lis
         {f'{key}_id': obj[key] for key in keys})
 
 
-def get_obj_by_id(con, table: str, pk: str, obj_id: Union[str, int]) -> List[Row]:
+def get_obj_by_id(con, table: str, pk: str, obj_id: Union[str, int]) -> List[List]:
     """Get object by ID"""
     return sql_query(con, f'SELECT * FROM {table} WHERE {pk} = (:obj_id)', {'obj_id': obj_id}, return_with_keys=False)
 
@@ -525,7 +540,7 @@ def insert_from_dicts(con: Connection, table: str, rows: List[Dict], skip_if_alr
         rows = [{field: row.get(field, None) for field in fields} for row in rows]
         key_vals = {f'{k}{i}': v for i, d in enumerate(rows) for k, v in d.items()}
         values = ', '.join([f"({', '.join([':' + str(k) + str(i) for k in d.keys()])})" for i, d in enumerate(rows)])
-        # TODO: use parameterized queries to prevent SQL injection
+        # todo: use parameterized queries to prevent SQL injection
         statement = f"""INSERT INTO {table} ({', '.join([f'"{x}"' for x in rows[0].keys()])}) VALUES {values}"""
         run_sql(con, statement, key_vals)
 
@@ -539,16 +554,16 @@ def insert_from_dict(con: Connection, table: str, d: Union[Dict, List[Dict]], sk
         if pk:
             already_in_db = []
             if isinstance(pk, str):  # normal, single primary key
-                already_in_db: List[Dict] = get_obj_by_id(con, table, pk, d[pk])
+                already_in_db: List[List] = get_obj_by_id(con, table, pk, d[pk])
             elif isinstance(pk, list):  # composite key
-                already_in_db: List[Dict] = get_obj_by_composite_key(con, table, pk, d)
+                already_in_db: List[RowMapping] = get_obj_by_composite_key(con, table, pk, d)
             if already_in_db:
                 return
 
-    insert = f"""
+    query = f"""
     INSERT INTO {table} ({', '.join([f'"{x}"' for x in d.keys()])})
     VALUES ({', '.join([':' + str(k) for k in d.keys()])})"""
-    run_sql(con, insert, d)
+    run_sql(con, query, d)
 
 
 def sql_count(con: Connection, table: str) -> int:
@@ -571,16 +586,6 @@ def sql_in_safe(lst: List) -> (str, dict):
     query = text(','.join(bindparams))
     params = {"id{}".format(i): id for i, id in enumerate(lst)}
     return (query, params)
-
-
-def run_sql(con: Connection, command: str, params: Dict = {}) -> Any:
-    """Run a sql command"""
-    command = text(command) if not isinstance(command, TextClause) else command
-    if params:
-        q = con.execute(command, params) if params else con.execute(command)
-    else:
-        q = con.execute(command)
-    return q
 
 
 def list_schema_objects(
@@ -752,14 +757,14 @@ def get_ddl_statements(
 
 def delete_codesets_from_db(codeset_ids):
     """ Delete codesets from db
-        TODO: finish working on this. addresses #571 / #521
-              for each codeset_id will need to:
-                - get concept_set_name
-                - delete record from code_sets table
-                - delete associated concept_set_members and concept_set_version_item records
-                - determine whether container has any remaining code_sets (versions)
-                  attached to it, if not, delete container
-                - regenerate derived tables (all_csets, csets_members_items, etc.)
+        todo: finish working on this. addresses: https://github.com/jhu-bids/termhub/issues/571
+          for each codeset_id will need to:
+            - get concept_set_name
+            - delete record from code_sets table
+            - delete associated concept_set_members and concept_set_version_item records
+            - determine whether container has any remaining code_sets (versions)
+              attached to it, if not, delete container
+            - regenerate derived tables (all_csets, csets_members_items, etc.)
     """
     with get_db_connection() as con:
         code_sets_to_be_deleted = sql_query(

@@ -59,6 +59,7 @@ DDL_FETCH_AUDIT = """
     "table" text not null,
     primary_key text not null,
     status_initially text not null,
+    error_datetime timestamp with time zone,
     success_datetime timestamp with time zone,
     comment text);"""
 
@@ -81,12 +82,14 @@ CREATE TABLE IF NOT EXISTS public.ip_info (
 #  BTREE_GIST     | Generalized Search Tree Index | No
 # Enabling extensions requires two steps:
 # 1. Enable them in the cloud, e.g. Azure: https://portal.azure.com/#@live.johnshopkins.edu/resource/subscriptions/fe24df19-d251-4821-9a6f-f037c93d7e47/resourceGroups/JH-POSTGRES-RG/providers/Microsoft.DBforPostgreSQL/flexibleServers/termhub/serverParameters
-# 2. Run SQL: CREATE EXTENSION <EXTENSION>;
-# If, when running initialize() there is an error because can't create the extension, try step (1) and enable in Azure.
+# 2. Run SQL: `CREATE EXTENSION <EXTENSION> WITH SCHEMA pg_catalog`;
+# - if, when running initialize() there is an error because can't create the extension, try step (1) and enable in Azure.
+# - `WITH SCHEMA pg_catalog`: This enables the extension for all schemas, which is good for future proofing. Currently
+# it will mainly be used in the main schema, `n3c`, but might also be used in the test schema, `test_n3c`.
 DDL_EXTENSIONS = """
-    CREATE EXTENSION PG_TRGM;
-    CREATE EXTENSION BTREE_GIN;
-    CREATE EXTENSION BTREE_GIST;"""
+    CREATE EXTENSION PG_TRGM WITH SCHEMA pg_catalog;
+    CREATE EXTENSION BTREE_GIN WITH SCHEMA pg_catalog;
+    CREATE EXTENSION BTREE_GIST WITH SCHEMA pg_catalog;"""
 
 def create_database(con: Connection, schema: str):
     """Create the database"""
@@ -109,6 +112,25 @@ def create_database(con: Connection, schema: str):
         run_sql(con, f'CREATE SCHEMA IF NOT EXISTS {schema};')
 
 
+def _delete_rxnorm_extension_records(con: Connection):
+    """Delete all concepts in the RxNorm Extension vocabulary
+        This is for issue #514 and
+        https://github.com/jhu-bids/TermHub/tree/perf-tests/frontend/tests#no-rxnorm-extension-codes"""
+    run_sql(con, """
+               SELECT concept_id
+               INTO rxnorm_ext_concepts
+               FROM concept
+               WHERE vocabulary_id = 'RxNorm Extension'
+            """)
+    run_sql(con, """
+               DELETE FROM concept_set_members
+               WHERE concept_id IN (SELECT concept_id FROM rxnorm_ext_concepts)
+            """)
+    run_sql(con, """
+               DELETE FROM concept_set_version_item
+               WHERE concept_id IN (SELECT concept_id FROM rxnorm_ext_concepts)
+            """)
+
 def initialize(
     clobber=False, replace_rule=None, schema: str = SCHEMA, local=False, create_db=False, download=True, download_force_if_exists=False,
     test_schema=True, test_schema_only=False, hours_threshold_for_updates=24, optimization_experiment=None
@@ -129,32 +151,12 @@ def initialize(
         seed(con, schema, clobber, replace_rule, hours_threshold_for_updates, local=local)
 
         if optimization_experiment == 'n3c_no_rxnorm':
-            delete_rxnorm_extension_records(con)
+            _delete_rxnorm_extension_records(con)
 
         make_derived_tables_and_more(con, schema, local=local)  # , start_step=30)
 
         if test_schema:
             initialize_test_schema(con, schema, local=local)
-
-
-def delete_rxnorm_extension_records(con: Connection):
-    """Delete all concepts in the RxNorm Extension vocabulary
-        This is for issue #514 and
-        https://github.com/jhu-bids/TermHub/tree/perf-tests/frontend/tests#no-rxnorm-extension-codes"""
-    run_sql(con, """
-               SELECT concept_id
-               INTO rxnorm_ext_concepts
-               FROM concept
-               WHERE vocabulary_id = 'RxNorm Extension'
-            """)
-    run_sql(con, """
-               DELETE FROM concept_set_members
-               WHERE concept_id IN (SELECT concept_id FROM rxnorm_ext_concepts)
-            """)
-    run_sql(con, """
-               DELETE FROM concept_set_version_item
-               WHERE concept_id IN (SELECT concept_id FROM rxnorm_ext_concepts)
-            """)
 
 
 def cli():

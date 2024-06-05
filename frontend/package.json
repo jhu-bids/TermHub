@@ -90,5 +90,8 @@
   "engines": {
     "npm": ">=8.9.0",
     "node": ">=18.2.0"
+  },
+  "jshintConfig": {
+    "esversion": 11
   }
 }

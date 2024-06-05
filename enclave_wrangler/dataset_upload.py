@@ -586,7 +586,7 @@ def post_to_enclave_old_api(input_csv_folder_path: str) -> pd.DataFrame:
     # ...now that we have all the data from concept set are created
     # temp_testing_cset_id = 1000000326  # Stephanie said this was a draft or archived set - Joe 2022/03/15
     for premade_codeset_id in premade_codeset_ids:
-        # TODO: temporary debug code to look for missing concept container not showing in the UI
+        # TODO: this is temporary debug code to look for missing concept container not showing in the UI
         # TODO: debug code for adding expressionItems to missing container from UI, l162,l163
 
         #    if premade_codeset_id != temp_testing_cset_id:
@@ -814,8 +814,8 @@ def update_cset_upload_registry_moffit(
     return registry_df  # if no new updates
 
 
-# TODO: repurpose to moffit
-# TODO: Make sure all cols are being used
+# todo: repurpose to moffit (if not defunct)
+#  - Make sure all cols are being used
 def transform_moffit_to_palantir3file(inpath: str) -> str:
     """Transform Moffit format to Palantir 3 File format."""
     # Vars
@@ -991,53 +991,7 @@ def transform_moffit_to_palantir3file(inpath: str) -> str:
     return out_dir
 
 
-def upload_dataset(input_path: str, format='palantir-three-file', use_cache=False):
-    """Main function"""
-    if format == 'moffit':
-        input_path = transform_moffit_to_palantir3file(input_path)
-    code_sets_df: pd.DataFrame = post_to_enclave_from_3csv(input_path)
-    persist_to_db(code_sets_df)
-
-
-def cli():
-    """Command line interface for package.
-
-    Side Effects: Executes program."""
-    package_description = 'Tool for uploading to the Palantir Foundry enclave.'
-    parser = ArgumentParser(description=package_description)
-
-    parser.add_argument(
-        '-n', '--n3c', default=False, action='store_true', required=False,
-        help='Create new versions of N3C Recommended for comparison after vocab updates')
-    parser.add_argument(
-        '-p', '--input-path',
-        help='Path to file or folder to be parsed and uploaded.')
-    parser.add_argument(
-        '-f', '--format',
-        choices=['palantir-three-file', 'moffit'],
-        default='palantir-three-file',
-        help='The format of the file(s) to be uploaded.\n'
-             '- palantir-three-file: Path to folder with 3 files that have specific columns that adhere to concept table data model. These '
-             'files must have the following names: i. `code_sets.csv`, ii. `concept_set_container_edited.csv`, iii. '
-             '`concept_set_version_item_rv_edited.csv`.\n'
-             '- moffit: Has columns concept_set_id, concept_set_name, concept_code, concept_name, code_system.')
-    # parser.add_argument(
-    #     '-c', '--use-cache',
-    #     action='store_true',
-    #     help='If present, will check the input file and look at the `enclave_codeset_id` column. If no empty values are'
-    #          ' present, this indicates that the `enclave_wrangler` has already been run and that the input file itself '
-    #          'can be used as cached data. The only thing that will happen is an update to the persistence layer, '
-    #          '(`data/cset.csv` as of 2022/03/18).'),
-    kwargs = parser.parse_args()
-    kwargs_dict: Dict = vars(kwargs)
-
-    if kwargs.n3c:
-        make_new_versions_of_csets()
-    else:
-        # TODO: @joeflack4, can we get rid of this and the things it calls?
-        upload_dataset(**kwargs_dict)
-
-
+# todo: clean up these comments; can probably remove
 # going to do new container instead. just keeping this code for a bit in case
 #   we want to revert to just new version
 # def upload_cset_as_new_version_of_itself(
@@ -1086,6 +1040,7 @@ def cli():
 def upload_cset_copy_in_new_container(
     codeset_id: int,
 ) -> Dict:
+    """Upload a copy of a concept set in a new container."""
     ov = fetch_cset_version(codeset_id, False)
 
     concept_set_name = ov.get('conceptSetNameOMOP')
@@ -1169,6 +1124,7 @@ def upload_cset_copy_in_new_container(
 
 
 def make_new_versions_of_csets():
+    """For making a copy of a cset, but for the newest vocabulary"""
     from backend.db.utils import sql_query_single_col, get_db_connection
     from backend.routes.db import get_n3c_recommended_codeset_ids
     with get_db_connection() as con:
@@ -1193,9 +1149,52 @@ def make_new_versions_of_csets():
             }
             insert_from_dict(con, 'public.codeset_comparison', row)
 
+
+def upload_dataset(input_path: str, format='palantir-three-file', use_cache=False):
+    """Main function"""
+    if format == 'moffit':
+        input_path = transform_moffit_to_palantir3file(input_path)
+    code_sets_df: pd.DataFrame = post_to_enclave_from_3csv(input_path)
+    persist_to_db(code_sets_df)
+
+
+def cli():
+    """Command line interface for package.
+
+    Side Effects: Executes program."""
+    package_description = 'Tool for uploading to the Palantir Foundry enclave.'
+    parser = ArgumentParser(description=package_description)
+
+    parser.add_argument(
+        '-n', '--n3c', default=False, action='store_true', required=False,
+        help='Create new versions of N3C Recommended for comparison after vocab updates')
+    parser.add_argument(
+        '-p', '--input-path',
+        help='Path to file or folder to be parsed and uploaded.')
+    parser.add_argument(
+        '-f', '--format',
+        choices=['palantir-three-file', 'moffit'],
+        default='palantir-three-file',
+        help='The format of the file(s) to be uploaded.\n'
+             '- palantir-three-file: Path to folder with 3 files that have specific columns that adhere to concept table data model. These '
+             'files must have the following names: i. `code_sets.csv`, ii. `concept_set_container_edited.csv`, iii. '
+             '`concept_set_version_item_rv_edited.csv`.\n'
+             '- moffit: Has columns concept_set_id, concept_set_name, concept_code, concept_name, code_system.')
+    # parser.add_argument(
+    #     '-c', '--use-cache',
+    #     action='store_true',
+    #     help='If present, will check the input file and look at the `enclave_codeset_id` column. If no empty values are'
+    #          ' present, this indicates that the `enclave_wrangler` has already been run and that the input file itself '
+    #          'can be used as cached data. The only thing that will happen is an update to the persistence layer, '
+    #          '(`data/cset.csv` as of 2022/03/18).'),
+    kwargs = parser.parse_args()
+    kwargs_dict: Dict = vars(kwargs)
+
+    if kwargs.n3c:
+        make_new_versions_of_csets()
+    else:
+        upload_dataset(**kwargs_dict)
+
+
 if __name__ == '__main__':
-    # test_new_version_compare_codeset_ids = [27371375, 523378440, 490947789]
-    # test_new_version_compare_codeset_ids = [523378440]
-    # make_new_versions_of_csets(codeset_ids=test_new_version_compare_codeset_ids)
-    # pass
     cli()

@@ -18,8 +18,8 @@ MANIFEST
 /*.json
 */cache/*
 !*/cache/.keep
-vsac_wrangler/data/cache/*
-!vsac_wrangler/data/cache/.keep
+*/vsac_wrangler/data/cache/*
+*/!vsac_wrangler/data/cache/.keep
 /env/*
 !/env/.env.example
 input/VSAC Values Sets 17Jan22
@@ -39,7 +39,7 @@ backup/
 *.code-workspace
 *.dmp
 output/
-/misc/amia_paper_2024/input/
+misc/ad_hoc/amia_paper_2024/input/
 
 # Frontend
 # - JS: CreateReactApp
@@ -65,7 +65,6 @@ node_modules
 npm-debug.log*
 yarn-debug.log*
 yarn-error.log*
-misc/
 
 # Test
 frontend/playwright-report/index.html

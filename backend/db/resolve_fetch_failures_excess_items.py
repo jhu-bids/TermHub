@@ -18,13 +18,16 @@ from enclave_wrangler.utils import was_file_modified_within_threshold
 
 DESC = "Resolve failures due to too many expression items or members when fetching data from the Enclave's objects API."
 
-def resolve_fetch_failures_excess_items(schema=SCHEMA, use_local_db=False, cached_dataset_threshold_hours=0):
+def resolve_fetch_failures_excess_items(schema=SCHEMA, cached_dataset_threshold_hours=0, use_local_db=False):
     """Resolve failures due to too many expression items or members when fetching data from the Enclave's objects API.
-    cached_dataset_threshold_hours: Threshold, in hours, until cached datasets considered invalid and need to be
+
+    Uses the datasets API instead, to get around object API limits.
+
+    param cached_dataset_threshold_hours: Threshold, in hours, until cached datasets considered invalid and need to be
     re-downloaded.
+
+    todo: rename to _items_members (it fetches excess caes of both)
     """
-    print('Resolve failures due to too many expression items or members when fetching data from the Enclave\'s '
-          'objects API by using datasets API instead.')
     # Vars
     datasets = ['concept_set_version_item', 'concept_set_members']
     failure_dataset_map = {
@@ -35,9 +38,11 @@ def resolve_fetch_failures_excess_items(schema=SCHEMA, use_local_db=False, cache
 
     # Determine if any failures & what needs to be done
     failures: List[Dict] = select_failed_fetches(use_local_db)
+    failures = [f for f in failures if f['status_initially'] in failure_dataset_map]  # filter relevant
     if not failures:
         return
 
+    # Determine which datasets are needed to resolve failures
     datasets_needed: Set[str] = set()
     failures_by_dataset: Dict[str, List[Dict]] = {}
     for failure in failures:
@@ -51,7 +56,8 @@ def resolve_fetch_failures_excess_items(schema=SCHEMA, use_local_db=False, cache
     # - Determine if cache OK
     for dataset in list(datasets_needed):
         path = dataset_path_map[dataset]
-        if cached_dataset_threshold_hours and was_file_modified_within_threshold(path, cached_dataset_threshold_hours):
+        if cached_dataset_threshold_hours and os.path.exists(path) and \
+            was_file_modified_within_threshold(path, cached_dataset_threshold_hours):
             datasets_needed.remove(dataset)
     # - Download
     if datasets_needed:
@@ -73,9 +79,9 @@ def resolve_fetch_failures_excess_items(schema=SCHEMA, use_local_db=False, cache
                     rows = df[df['codeset_id'] == failure['primary_key']].to_dict('records')
                     # todo: if not rows, update comment that tried to fix but couldn't find any data?
                     if rows:
-                        insert_from_dicts(con, dataset, rows)
+                        insert_from_dicts(con, dataset, rows, skip_if_already_exists=False)
                         solved_failures.append(failure)
-            refresh_derived_tables(con)
+            refresh_derived_tables(con, schema=schema)
     except Exception as err:
         reset_temp_refresh_tables(schema)
         raise err

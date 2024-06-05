@@ -44,7 +44,8 @@ DATASET_TABLES_TEST = [
 DATASET_TABLES_TEST_CONFIG = {k: v for k, v in DATASET_REGISTRY.items() if k in DATASET_TABLES_TEST}
 
 def download_artefacts(force_download_if_exists=False):
-    """Download essential DB artefacts to be uploaded"""
+    """Download essential DB artefacts to be uploaded
+    todo: speed up usinc async: https://stackoverflow.com/a/33399896/5258518"""
     print('INFO: Downloading datasets: csets.')
     download_datasets(force_if_exists=force_download_if_exists, single_group='cset')
     print('INFO: Downloading datasets: objects.')
@@ -197,6 +198,7 @@ def make_derived_tables_and_more(
     update_db_status_var(last_completed_key, str(current_datetime()), local)
 
 
+# todo: this has no usages. it used to be used by initialize(), but no more. remove?
 def load(
     schema: str = SCHEMA, clobber=False, skip_if_updated_within_hours: int = None, use_local_db=False
 ):

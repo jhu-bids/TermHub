@@ -15,9 +15,6 @@ playwright test`, where  dev is short for 'development' and prod is short for 'p
 */
 import {DEPLOYMENT} from "../src/env";
 
-const { test, expect } = require('@playwright/test');
-const fs = require('fs');
-
 
 // Config --------------------------------------------------------------------------------------------------------------
 export const deploymentConfigs = {
@@ -28,16 +25,13 @@ export const deploymentConfigs = {
 
 // CLI --------------------------------------------------------------------------------------------------------------
 // https://playwright.dev/docs/test-parameterize
-// let envsString = 'local-dev-prod';
-// let envsString = 'local';
+// Usable like: ENVIRONMENTS=dev-prod yarn test:e2e
+
+// - Determine which environments to run tests on
 let envsString = DEPLOYMENT;
-
-// replacing process.env with import.meta.env for vite migration; see https://www.freecodecamp.org/news/how-to-migrate-from-create-react-app-to-vite/
-
 if (process.env.ENVIRONMENTS) {
   envsString = process.env.ENVIRONMENTS;
 }
-
 const envs = envsString.split("-");
 export let selectedConfigs = {};
 for (let key in deploymentConfigs) {
@@ -45,47 +39,3 @@ for (let key in deploymentConfigs) {
     selectedConfigs[key] = deploymentConfigs[key];
   }
 }
-/*
-if (import.meta.env.ENVIRONMENTS) {
-  envsString = import.meta.env.ENVIRONMENTS;
-}
-function getSelectedConfigs(estr) {
-  let selConfigs = {};
-  const estrs = envsString.split("-");
-  for (let key in deploymentConfigs) {
-    if (estrs.includes(key)) {
-      selConfigs[key] = deploymentConfigs[key];
-    }
-  }
-  return selConfigs;
-}
-export let selectedConfigs = {};
-envsString = 'local';
-
-export class ReportStash {
-  data = {
-    firstCols: {},
-    durations: {},
-
-  }
-  constructor() { }
-  stash() {
-    this.firstCols = { stepCompleted: 'start', };
-    this.lastCols = { testType, run_how, envName, }
-    durations = {};
-    mem = {};
-    report = {...firstCols, ...lastCols};
-  }
-}
-*/
-
-/*
-export function logTestResult(result) {
-  const resultLine = '|' + Object.values(result).join('|') + '|';
-  fs.appendFile('../test-results/performance-test-log.md', resultLine,
-        (err) => {
-          if (err) throw err;
-          console.log('appended result to test log');
-        });
-}
-*/

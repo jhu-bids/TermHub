@@ -2,18 +2,25 @@ name: DB Refresh (Objects API)
 
 on:
   schedule:
-#    - cron: '0 5 * * *'  # every day 5am GMT (12-1am EST/EDT)
+#    - cron: '0 5 * * *'  # every day 5am GMT (12/1am EST/EDT)
     - cron: '*/20 * * * *'  # every 20 minutes
 #    - cron: '0 * * * *'  # every hour on the hour
   workflow_dispatch:
+    inputs:
+      since:
+        # A timestamp by which new data should be fetched. If not present, will look up the last time the DB was
+        # refreshed and fetch new data from that time. Valid formats:
+        # - Simple date timestamp, YYYY-MM-DD, e.g. 2022-02-22.
+        # - ISO 8601 datetime with timezone offset, YYYY-MM-DDTHH:MM:SS.SSSSSS+HH:MM, e.g. 2022-02-22T22:22:22.222222+00:00.
+        description: 'Optional: YYYY-MM-DD or YYYY-MM-DDTHH:MM:SS.SSSSSS+HH:MM'
+        required: false
+        type: string
   repository_dispatch:
     types: [refresh-db]
 jobs:
   refresh-db:
 #    runs-on: ubuntu-18.04
-#    runs-on: ubuntu-latest   # not sure which is more current when resolving merge conflicts
-    # todo: macos-latest: I think was just needed for datasets API because of high memory. should be able to switch back to ubuntu
-    runs-on: macos-latest
+    runs-on: ubuntu-latest
     steps:
       # Set up
       - name: Checkout repository and submodules
@@ -21,8 +28,7 @@ jobs:
       - name: Set up Python version
         uses: actions/setup-python@v2
         with:
-          # Consider '3.10' or 'v3.10.0': https://github.com/actions/setup-python/issues/160
-          python-version: '3.9.7'  # Not sure why 3.9.7 here and 3.9 elsewhere. the .7 works on mac, but not on ubuntu
+          python-version: '3.10'
       - name: Print commit hash & branch for rollbacks & troubleshooting
         run: |
           echo "Commit hash: ${{ github.sha }}"
@@ -48,7 +54,11 @@ jobs:
       # Refresh
       - name: Refresh db
         run: |
-          python backend/db/refresh.py
+          if [ -z "${{ github.event.inputs.since }}" ]; then
+            python backend/db/refresh.py
+          else
+            python backend/db/refresh.py --since ${{ github.event.inputs.since }}
+          fi
       - name: Commit changes to documentation
         uses: stefanzweifel/git-auto-commit-action@v4
         with:

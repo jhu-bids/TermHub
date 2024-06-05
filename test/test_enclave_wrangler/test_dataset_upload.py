@@ -1,8 +1,8 @@
-"""Tests
+"""Tests for dataset upload features
 
-Can run all tests in all files by running this from root of TermHub:
-    python -m unittest discover
-"""
+todo: activate these tests when this feature is ready
+todo: these tests are slow. When activating them, consider not having them be part of the GH action that runs on PRs
+ to develop. can probably have them on PRs to main. have them run on push to develop and main"""
 import os
 import sys
 import unittest
@@ -22,8 +22,9 @@ from enclave_wrangler.dataset_upload import upload_new_cset_container_with_conce
     upload_new_cset_version_with_concepts_from_csv
 
 
+@unittest.skip("Skipping tests for incomplete feature. See: https://github.com/jhu-bids/TermHub/issues/799")
 class TestDatasetUpload(unittest.TestCase):
-    def test_upload_cset_container_from_csv(self):
+    def test_upload_cset_container_from_csv(self):  # TODO
         """Test uploading a concept set container from CSV"""
         # response: Response = upload_concept_set_container(
         #     concept_set_id='x', intention='x', research_project='x', assigned_sme=user_id,
@@ -32,8 +33,8 @@ class TestDatasetUpload(unittest.TestCase):
         #     print('Failure: test_upload_concept_set\n', response, file=sys.stderr)
         inpath = os.path.join(TEST_INPUT_DIR, 'test_upload_cset_container_from_csv', 'new_container.csv')
         df = pd.read_csv(inpath).fillna('')
+        # noinspection PyUnusedLocal
         response: Dict = upload_new_cset_container_with_concepts_from_csv(df=df)
-        print(response)
 
 
     # TODO #1: for "success case", these things that aren't in the DB yet will be, so will need to instead
@@ -42,8 +43,11 @@ class TestDatasetUpload(unittest.TestCase):
 
     def _test_upload_cset_version_from_csv(self, path: str):
         """Test uploading a new cset version with concepts
-        file format docs: https://github.com/jhu-bids/TermHub/tree/develop/enclave_wrangler"""
-        # TODO: temp validate_first until fix all bugs
+        file format docs: https://github.com/jhu-bids/TermHub/tree/develop/enclave_wrangler
+        todo: reduce verbosity. printing out lots of curl statements, e.g.
+         "curl  -H "authorization: $PALANTIR_ENCLAVE_AUTHENTICATION_BEARER_TOKEN"\ ...
+        """
+        # TODO: validate_first is temporary until fix all bugs
         # TODO: Will this work if UUID is different?
         d: Dict = upload_new_cset_version_with_concepts_from_csv(path, validate_first=True)
         d = list(d.values())[0]

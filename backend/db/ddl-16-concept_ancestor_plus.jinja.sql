@@ -1,5 +1,5 @@
 -- Table: concept_ancestor_plus ------------------------------------------------------------------------------------
-
+-- Temp tables do not have {{optional_suffix}} for _new and _old becauser they do not get recreated during refreshes; they are temporary.
 CREATE TEMP TABLE root_concepts AS (
     SELECT ancestor_concept_id FROM {{schema}}concept_ancestor r WHERE min_levels_of_separation != 0
     EXCEPT
@@ -37,7 +37,7 @@ CREATE TABLE IF NOT EXISTS {{schema}}concept_ancestor_plus{{optional_suffix}} AS
     FROM {{schema}}concept_ancestor ca
     JOIN {{schema}}concepts_with_counts c1 ON ca.ancestor_concept_id = c1.concept_id -- AND c1.invalid_reason IS NULL
     JOIN {{schema}}concepts_with_counts c2 ON ca.descendant_concept_id = c2.concept_id -- AND c2.invalid_reason IS NULL
-    JOIN concept_depth cd ON ca.ancestor_concept_id = cd.descendant_concept_id
+    LEFT JOIN concept_depth cd ON ca.ancestor_concept_id = cd.descendant_concept_id
 );
 CREATE INDEX cap_idx1{{optional_index_suffix}} ON {{schema}}concept_ancestor_plus{{optional_suffix}}(ancestor_concept_id);
 

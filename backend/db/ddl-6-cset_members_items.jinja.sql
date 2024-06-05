@@ -1,4 +1,5 @@
 -- Table: cset_members_items -------------------------------------------------------------------------------------------
+-- Doesn't have {{optional_suffix}} for _old and _new because this is a core table and won't be re-created during refreshes.
 DROP TABLE IF EXISTS {{schema}}cset_members_items{{optional_suffix}} CASCADE;
 
 CREATE TABLE {{schema}}cset_members_items{{optional_suffix}} AS

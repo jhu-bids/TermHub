@@ -5,7 +5,7 @@ name: Test - Frontend deployments - End to end
 on:
   workflow_dispatch:
   schedule:
-   - cron: '0 8 * * *'  # every day 8am GMT (3-4am EST/EDT)
+   - cron: '30 5 * * *'  # every day 5:30am GMT (12:30/1:30am EST/EDT)
 #  push:
 #    branches: [ main, develop ]
 #  pull_request:
