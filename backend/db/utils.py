@@ -144,7 +144,7 @@ def refresh_derived_tables_exec(
      entry will appear further down in the list."""
     temp_table_suffix = '_new'
     ddl_modules_queue = derived_tables_queue
-    views = [x for x in list_views() if x in ddl_modules_queue]
+    views = [x for x in list_views(schema=schema) if x in ddl_modules_queue]
 
     # Create new tables/views and backup old ones
     print('Derived tables')
@@ -154,7 +154,16 @@ def refresh_derived_tables_exec(
         print(f' - creating new table/view: {module}...')
         statements: List[str] = get_ddl_statements(schema, [module], temp_table_suffix, 'flat')
         for statement in statements:
-            run_sql(con, statement)
+            try:
+                run_sql(con, statement)
+            except ProgrammingError as err:
+                # Context: https://github.com/jhu-bids/TermHub/issues/792
+                if schema == 'test_n3c' and 'does not exist for access method' in str(err):
+                    print('Warning: A known error occurred while trying to create an extension-based index in the test'
+                          ' schema. For now, we\'re skipping creation of this index here as is not necessary for '
+                          'testing.', file=sys.stderr)
+                    continue
+                raise err
         # todo: warn if counts in _new table not >= _old table (if it exists)?
         run_sql(con, f'ALTER TABLE IF EXISTS {schema}.{module} RENAME TO {module}_old;')
         run_sql(con, f'ALTER TABLE {schema}.{module}{temp_table_suffix} RENAME TO {module};')
@@ -175,6 +184,9 @@ def refresh_derived_tables_exec(
 # todo: move this somewhere else, possibly load.py or db_refresh.py
 # todo: what to do if this process fails? any way to roll back? should we?
 # todo: currently has no way of passing 'local' down to db status var funcs
+# todo: last_derived_refresh_request and last_derived_refresh_exited: these should ideally be schema specific. That way,
+#  refreshes on normal schema and test_schema don't block each other. Only a minor issue. Will sometimes cause tests
+#  to take a very long time to run, especially during the wee hours when vocab/counts refreshes are running.
 def refresh_derived_tables(
     con: Connection, independent_tables: List[str] = CORE_CSET_TABLES, schema=SCHEMA, local=False,
     polling_interval_seconds: int = 30
@@ -462,7 +474,7 @@ def sql_query(
 
 def sql_query_single_col(*argv) -> List:
     """Run SQL query on single column"""
-    results = sql_query(*argv, return_with_keys=False)
+    results: List = sql_query(*argv, return_with_keys=False)
     return [r[0] for r in results]
 
 
@@ -483,7 +495,7 @@ def get_obj_by_composite_key(con, table: str, keys: List[str], obj: Dict) -> Lis
         {f'{key}_id': obj[key] for key in keys})
 
 
-def get_obj_by_id(con, table: str, pk: str, obj_id: Union[str, int]) -> List[Row]:
+def get_obj_by_id(con, table: str, pk: str, obj_id: Union[str, int]) -> List[List]:
     """Get object by ID"""
     return sql_query(con, f'SELECT * FROM {table} WHERE {pk} = (:obj_id)', {'obj_id': obj_id}, return_with_keys=False)
 
@@ -565,16 +577,16 @@ def insert_from_dict(con: Connection, table: str, d: Union[Dict, List[Dict]], sk
         if pk:
             already_in_db = []
             if isinstance(pk, str):  # normal, single primary key
-                already_in_db: List[Dict] = get_obj_by_id(con, table, pk, d[pk])
+                already_in_db: List[List] = get_obj_by_id(con, table, pk, d[pk])
             elif isinstance(pk, list):  # composite key
-                already_in_db: List[Dict] = get_obj_by_composite_key(con, table, pk, d)
+                already_in_db: List[RowMapping] = get_obj_by_composite_key(con, table, pk, d)
             if already_in_db:
                 return
 
-    insert = f"""
+    query = f"""
     INSERT INTO {table} ({', '.join([f'"{x}"' for x in d.keys()])})
     VALUES ({', '.join([':' + str(k) for k in d.keys()])})"""
-    run_sql(con, insert, d)
+    run_sql(con, query, d)
 
 
 def sql_count(con: Connection, table: str) -> int:

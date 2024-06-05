@@ -33,7 +33,9 @@ DEFAULT_BUFFER_HOURS = 0
 def trigger_resolve_failures(
     resolve_fetch_failures_excess_items=False, resolve_fetch_failures_0_members=True, local=False
 ):
-    """Trigger the GitHub actions to resolve fetch failures"""
+    """Trigger the GitHub actions to resolve fetch failures
+
+    todo: very minor edge case to add: resolve_fetch_failures_excess_members"""
     # Routine: Check for and resolve any open fetch failures
     if resolve_fetch_failures_excess_items:
         resolve_failures_excess_items_if_exist(local)

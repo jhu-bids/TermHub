@@ -21,8 +21,7 @@ CREATE TABLE IF NOT EXISTS {{schema}}concepts_with_counts{{optional_suffix}} AS 
 CREATE INDEX cc_idx1{{optional_index_suffix}} ON {{schema}}concepts_with_counts{{optional_suffix}}(concept_id);
 
 -- Index cwcgin takes some time to complete
-CREATE INDEX cwcgin{{optional_index_suffix}} ON concepts_with_counts{{optional_suffix}} USING gin (concept_name gin_trgm_ops);
-
+CREATE INDEX cwcgin{{optional_index_suffix}} ON {{schema}}concepts_with_counts{{optional_suffix}} USING gin (concept_name gin_trgm_ops);
 --  this query will go fast with the index above and slow otherwise
 --       SELECT *
 --       FROM concepts_with_counts

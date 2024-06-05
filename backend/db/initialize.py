@@ -82,12 +82,14 @@ CREATE TABLE IF NOT EXISTS public.ip_info (
 #  BTREE_GIST     | Generalized Search Tree Index | No
 # Enabling extensions requires two steps:
 # 1. Enable them in the cloud, e.g. Azure: https://portal.azure.com/#@live.johnshopkins.edu/resource/subscriptions/fe24df19-d251-4821-9a6f-f037c93d7e47/resourceGroups/JH-POSTGRES-RG/providers/Microsoft.DBforPostgreSQL/flexibleServers/termhub/serverParameters
-# 2. Run SQL: CREATE EXTENSION <EXTENSION>;
-# If, when running initialize() there is an error because can't create the extension, try step (1) and enable in Azure.
+# 2. Run SQL: `CREATE EXTENSION <EXTENSION> WITH SCHEMA pg_catalog`;
+# - if, when running initialize() there is an error because can't create the extension, try step (1) and enable in Azure.
+# - `WITH SCHEMA pg_catalog`: This enables the extension for all schemas, which is good for future proofing. Currently
+# it will mainly be used in the main schema, `n3c`, but might also be used in the test schema, `test_n3c`.
 DDL_EXTENSIONS = """
-    CREATE EXTENSION PG_TRGM;
-    CREATE EXTENSION BTREE_GIN;
-    CREATE EXTENSION BTREE_GIST;"""
+    CREATE EXTENSION PG_TRGM WITH SCHEMA pg_catalog;
+    CREATE EXTENSION BTREE_GIN WITH SCHEMA pg_catalog;
+    CREATE EXTENSION BTREE_GIST WITH SCHEMA pg_catalog;"""
 
 def create_database(con: Connection, schema: str):
     """Create the database"""

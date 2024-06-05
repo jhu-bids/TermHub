@@ -1,4 +1,5 @@
 name: Resolve fetch failures for excess items or members
+# todo: rename to _items_members (it fetches excess caes of both)
 
 on:
 #  schedule:
@@ -17,7 +18,7 @@ jobs:
       - name: Set up Python version
         uses: actions/setup-python@v2
         with:
-          python-version: '3.9'
+          python-version: '3.10'
       - name: Print commit hash & branch for rollbacks & troubleshooting
         run: |
           echo "Commit hash: ${{ github.sha }}"

@@ -87,13 +87,6 @@ def views2(dataset_rid: str, end_ref: str) -> [str]:
     file_parts = [fp for fp in file_parts if re.match(r'.*part-\d\d\d\d\d', fp)]
     return file_parts
 
-# TODO: temp
-def get_termhub_disk_usage() -> float:
-    """Get usage in GB"""
-    root_directory = Path(PROJECT_ROOT)
-    s_bytes = sum(f.stat().st_size for f in root_directory.glob('**/*') if f.is_file())
-    return s_bytes / (1024 ** 3)
-
 
 def combine_parquet_files(input_files, target_path):
     """Combine parquet files"""
@@ -312,7 +305,7 @@ def download_and_transform(
 
     # Download
     if not transforms_only:
-        # todo: Temp: would be good to accept either 'outdir' or 'outpath'.
+        # todo: would be good to accept either 'outdir' or 'outpath'.
         if not outpath:
             outpath = os.path.join(output_dir, f'{dataset_name}.csv') if output_dir else None
         if os.path.exists(outpath) and not force_if_exists:
@@ -337,7 +330,9 @@ def download_datasets(
 ):
     """Download datasets
     :param specific: If passed, will only download datasets whose names are in this list.
-    :param single_group: If passed, will only download datasets that are in this group."""
+    :param single_group: If passed, will only download datasets that are in this group.
+
+    todo: speed up usinc async: https://stackoverflow.com/a/33399896/5258518"""
     if specific and single_group:
         raise ValueError('Cannot pass both "specific" and "single_group" arguments.')
     configs = DATASET_REGISTRY.values()

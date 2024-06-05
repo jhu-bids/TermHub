@@ -18,6 +18,7 @@ N_ROWS_TEST_TABLES = 50
 TEST_SCHEMA = f'test_{SCHEMA}'
 
 
+# todo: various sub-tasks in https://github.com/jhu-bids/TermHub/issues/804
 def remake_test_schema(schema: str = SCHEMA, test_schema: str = TEST_SCHEMA, n_rows=N_ROWS_TEST_TABLES):
     """Reset entire test_schema, copying over n_rows from all tables in schema."""
     with get_db_connection(schema='') as con:

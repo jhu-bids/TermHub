@@ -71,7 +71,8 @@ class MyReporter {
         attachmentObj = attachmentJson && JSON.parse(attachmentJson) || {};
       }
       if (isEmpty(attachmentObj)) {
-        console.log("why no attachments?");
+        // todo: This is happening. what needs to be addressed?
+        console.warn("Warning: No attachments: TestReporter expected attachments at test end, but they were not founds?");
         // debugger;
       }
       reportLine = {...reportLine, ...attachmentObj};

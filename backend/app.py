@@ -3,12 +3,10 @@
 Resources
 - https://github.com/tiangolo/fastapi
 """
-
 import uvicorn
 from fastapi import FastAPI, Request
 from fastapi.middleware.cors import CORSMiddleware
 from fastapi.middleware.gzip import GZipMiddleware
-import time
 
 from backend.config import CONFIG, override_schema
 CONFIG['importer'] = 'app.py'
@@ -18,7 +16,6 @@ from backend.routes import cset_crud, db, graph
 # APP = FastAPI()
 APP = FastAPI(client_max_size=100_000_000) # trying this, but it shouldn't be necessary
 APP.include_router(cset_crud.router)
-# APP.include_router(oak.router)
 APP.include_router(graph.router)
 APP.include_router(db.router)
 APP.add_middleware(

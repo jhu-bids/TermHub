@@ -16,10 +16,9 @@ from psycopg2 import sql
 from sqlalchemy import text
 
 from backend.api_logger import Api_logger, get_ip_from_request
-from backend.db.refresh import refresh_db
 from backend.db.queries import get_concepts
 from backend.db.utils import get_db_connection, sql_query, SCHEMA, sql_query_single_col, sql_in, sql_in_safe, run_sql
-from backend.utils import return_err_with_trace, commify
+from backend.utils import call_github_action, return_err_with_trace, commify
 from enclave_wrangler.config import RESEARCHER_COLS
 from enclave_wrangler.models import convert_rows
 from enclave_wrangler.objects_api import get_n3c_recommended_csets, get_concept_set_version_expression_items, \
@@ -27,6 +26,7 @@ from enclave_wrangler.objects_api import get_n3c_recommended_csets, get_concept_
 from enclave_wrangler.utils import make_objects_request, whoami, check_token_ttl
 
 
+FLAGS = ['includeDescendants', 'includeMapped', 'isExcluded']
 JSON_TYPE = Union[Dict, List]
 
 router = APIRouter(
@@ -37,10 +37,7 @@ router = APIRouter(
 )
 
 
-
 # Database functions ---------------------------------------------------------------------------------------------------
-
-
 # TODO
 #  i. Keys in our old `get_csets` that are not there anymore:
 #   ['precision', 'status_container', 'concept_set_id', 'rid', 'selected', 'created_at_container', 'created_at_version'
@@ -62,8 +59,7 @@ def get_csets(codeset_ids: List[int]) -> List[Dict]:
               FROM all_csets
               WHERE codeset_id = ANY(:codeset_ids);""",
             {'codeset_ids': codeset_ids})
-    # {'codeset_ids': ','.join([str(id) for id in requested_codeset_ids])})
-    row_dicts = [dict(x) for x in rows]
+    row_dicts: List[Dict] = [dict(x) for x in rows]
     for row in row_dicts:
         row['researchers'] = get_row_researcher_ids_dict(row)
 
@@ -111,6 +107,7 @@ def get_cset_members_items(
     with (get_db_connection() as con):
         if codeset_ids:
             pstr, params = sql_in_safe(codeset_ids)
+            # noinspection PyUnresolvedReferences false_positive
             where = sql.SQL(f" WHERE codeset_id IN ({pstr})").as_string(con.connection.connection)
         else:
             where = ''
@@ -120,15 +117,10 @@ def get_cset_members_items(
             columns = [column]
 
         if columns:
-            # noinspection This works, but Pycharm thinks it doesn't. sql.SQL returns a 2nd string placeholder {}to use,
-            # and we pass (i) columns, and (ii) column placeholders to this for purposes of avoiding SQL injection.
-            select = sql.SQL("""
-                    SELECT DISTINCT {}
-                    FROM cset_members_items
-                    """).format(
+            select = sql.SQL("SELECT DISTINCT {}" + " FROM cset_members_items").format(
                 sql.SQL(', ').join(map(sql.Identifier, columns)),
-                sql.SQL(', ').join(sql.Placeholder() * len(columns))
-            )
+                sql.SQL(', ').join(sql.Placeholder() * len(columns)))
+            # noinspection PyUnresolvedReferences false_positive
             select = select.as_string(con.connection.connection)
         else:
             select = "SELECT * FROM cset_members_items"
@@ -205,13 +197,13 @@ def get_all_csets(con: Connection = None) -> Union[Dict, List]:
 
 # Routes ---------------------------------------------------------------------------------------------------------------
 @router.get('/last-refreshed')
-def last_refreshed_DB():
+def last_refreshed_db():
     """Check when database was last refreshed."""
     q = """
-          SELECT value
-          FROM public.manage
-          WHERE key = 'last_refresh_success'
-        """
+        SELECT value
+        FROM public.manage
+        WHERE key = 'last_refresh_success'
+"""
     with get_db_connection() as con:
         results = sql_query_single_col(con, q)
     return results[0]
@@ -246,8 +238,10 @@ async def get_concepts_route(request: Request, id: List[str] = Query(...), table
 
 
 @router.post("/concepts")
-async def get_concepts_post_route(request: Request, id: Union[List[str], None] = None,
-                            table: str = 'concepts_with_counts') -> List:
+async def get_concepts_post_route(
+    request: Request, id: Union[List[str], None] = None, table: str = 'concepts_with_counts'
+) -> List:
+    """Route for get_concepts() via POST"""
     return await get_concepts_route(request, id=id, table=table)
 
 
@@ -288,6 +282,7 @@ def next_api_call_group_id() -> int:
 
 @router.post("/concept-ids-by-codeset-id")
 async def get_concept_ids_by_codeset_id_post(request: Request, codeset_ids: Union[List[int], None] = None) -> Dict:
+    """Route for get_concept_ids_by_codeset_id() via POST"""
     print(codeset_ids)
     return await get_concept_ids_by_codeset_id(request, codeset_ids)
 
@@ -358,8 +353,9 @@ def _get_all_csets() -> Union[Dict, List]:
 
 
 @router.get("/get-csets")
-async def _get_csets(request: Request, codeset_ids: Union[str, None] = Query(default=''),
-               include_atlas_json = False) -> List[Dict]:
+async def _get_csets(
+    request: Request, codeset_ids: Union[str, None] = Query(default=''), include_atlas_json=False
+) -> List[Dict]:
     """Route for: get_csets()"""
     requested_codeset_ids = parse_codeset_ids(codeset_ids)
     rpt = Api_logger()
@@ -378,10 +374,13 @@ async def _get_csets(request: Request, codeset_ids: Union[str, None] = Query(def
     return csets
 
 
-@router.get("/researchers")
-def get_researchers(ids: List[str] = Query(...), fields: Union[List[str], None] = []) -> JSON_TYPE:
+def get_researchers(ids: Union[str, List[str]], fields: Union[List[str], None] = []) -> Dict[str, Dict]:
     """Get researcher info for list of multipassIds.
-    fields is the list of fields to return from researcher table; defaults to * if None."""
+
+    Fields is the list of fields to return from researcher table; defaults to * if None.
+    """
+    # Format params
+    ids: List[str] = [ids] if isinstance(ids, str) else ids
     ids = list(ids)
     if fields:
         fields = ', '.join([f'"{x}"' for x in fields])
@@ -395,40 +394,36 @@ def get_researchers(ids: List[str] = Query(...), fields: Union[List[str], None] 
     """
     with get_db_connection() as con:
         res: List[RowMapping] = sql_query(con, query, {'id': list(ids)}, return_with_keys=True)
+    # todo: Allow return List[Dict] as well? if so, would basically just reutrn
     res2 = {r['multipassId']: dict(r) for r in res}
+    # Add placeholder info for any researchers not presently in the database
     for _id in ids:
         if _id not in res2:
-            res2[_id] = {"multipassId": _id, "name": "unknown", "emailAddress": _id}
+            res2[_id] = {"multipassId": _id, "name": "unknown", "emailAddress": "unknown"}
     return res2
+
+
+@router.get("/researchers")
+def get_researchers_route(ids: List[str] = Query(...), fields: Union[List[str], None] = []) -> JSON_TYPE:
+    """Route for get_researchers()"""
+    return get_researchers(ids, fields)
 
 
 @router.get("/db-refresh")
 def db_refresh_route():
-    """Triggers refresh of the database
-    todo: May want to change this back to GH action for reasons:
-     1. Easier to check logs
-     If there's a problem, I can go to the actions tab and find easily. Finding on azure takes many more clicks, and then I have to scroll up to find where the refresh got logged, and it may be mixed with logs for other requests.
-     2. Almost always won't increase speed of refresh
-     This was supposed to be the only benefit of calling it directly.
-     If someone creates a cset and clicks the button, it doesn't matter that our backend is faster than a GH action starting up, since it will take 20-45 minutes for that cset to be ready anyway. so effectively this is not faster, except for fetching csets that are not brand new, which (i) is not the primary thing people are using the button for, and (ii) is unlikely to happen w/ a fast refresh rate.
-     3. Harder to make changes
-     If we want to make changes to the refresh, we have to redeploy the whole app to make that work, rather than pushing to develop.
-     4. Uses more server resources.
-     5. Possible server stability issues
-     I'm not sure, but I wonder if there is some edge case where an error that happens during the refresh, or other unanticipated side effects, could have an effect on performance or stability of the web server."""
-    # response: Response = call_github_action('refresh-db')
-    # return response
-    refresh_db()
+    """Triggers refresh of the database"""
+    response: Response = call_github_action('refresh-db')
+    return response.status_code
 
 
-FLAGS = ['includeDescendants', 'includeMapped', 'isExcluded']
+# NO LONGER USED BECAUSE WE DON'T EDIT EXISTING CODESETS BUT JUST CREATE NEW ONES FROM DEFINITIONS
 @router.get("/cset-download")
-def cset_download(codeset_id: int, csetEditState: str = None,
-                  atlas_items=True, # atlas_items_only=False,
-                  sort_json: bool = False, include_metadata = False) -> Dict:
+def cset_download(
+    codeset_id: int, csetEditState: str = None, atlas_items=True, sort_json: bool = False,
+    # include_metadata=False, atlas_items_only=False
+) -> Union[Dict, List]:
     """Download concept set
-        NO LONGER USED BECAUSE WE DON'T EDIT EXISTING CODESETS BUT JUST CREATE NEW ONES FROM DEFINITIONS
-
+    NO LONGER USED BECAUSE WE DON'T EDIT EXISTING CODESETS BUT JUST CREATE NEW ONES FROM DEFINITIONS
     """
     # if not atlas_items_only: # and False  TODO: document this param and what it does (what does it do again?)
     #     jsn = get_codeset_json(codeset_id) #  , use_cache=False)
@@ -459,26 +454,19 @@ def cset_download(codeset_id: int, csetEditState: str = None,
     if sort_json:
         items.sort(key=lambda i: i['conceptId'])
 
-    # if include_metadata:
-
     if atlas_items:
         items_jsn = items_to_atlas_json_format(items)
         return {'items': items_jsn}
     else:
         return items  #  when would we want this?
-    # pdump(items)
-    # pdump(items_jsn)
 
 
 # NOT USING THESE TWO ROUTES EITHER -- WAS EASIER JUST TO IMPLEMENT ON FRONTEND
-#   but might want them someday
+#  - but might want them someday
 @router.post('/atlas-json-from-defs')
 def atlas_json_from_defs(defs: List[Dict]) -> Dict:
-
-    items = convert_rows('concept_set_version_item',
-                        'OmopConceptSetVersionItem',
-                        defs)
-
+    """From concept set definitions, get Atlas JSON format"""
+    items = convert_rows('concept_set_version_item','OmopConceptSetVersionItem', defs)
     items_jsn = items_to_atlas_json_format(items)
     return {'items': items_jsn}
 
@@ -657,6 +645,7 @@ def single_n3c_comparison_rpt(pair: str):
 
     return rpt[0] if rpt else None
 
+
 @cache
 def get_comparison_rpt(con, codeset_id_1: int, codeset_id_2: int) -> Dict[str, Union[str, None]]:
     cset_1 = get_csets([codeset_id_1])[0]
@@ -750,8 +739,10 @@ def generate_n3c_comparison_rpt():
                           'new_codeset_id': pair[1],
                           'rpt': json.dumps(rpt)})
 
+
 @router.get("/check-token")
-def check_token() -> int:
+def check_token() -> Dict:
+    """Check Enclave authorization tokentoken"""
     w = whoami()
     # name = w.get('username', 'No name')
     t = check_token_ttl(format='date-days')
@@ -780,8 +771,6 @@ def usage_query(verbose=True) -> List[Dict]:
     return data
 
 
-
-
 @router.get("/usage")
 def usage() -> JSON_TYPE:
     """Usage report: Get all data from our monitoring."""
@@ -789,7 +778,4 @@ def usage() -> JSON_TYPE:
 
 
 if __name__ == '__main__':
-    from backend.utils import pdump
-    # n3c_comparison_rpt()
     generate_n3c_comparison_rpt()
-    pass

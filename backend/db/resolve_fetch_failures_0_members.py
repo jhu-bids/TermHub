@@ -39,6 +39,13 @@ def _report_success(
     fetch_status_set_success(success_rows, use_local_db)
 
 
+def resolve_failures_excess_members_if_exist():
+    """Starts handling of fetch failurers if they exist. Applies only to schema SCHEMA.
+
+    todo: implement this very rare edge case. There may have only been 1 case in all of enclave existence"""
+    return NotImplementedError
+
+
 #todo: could DRY up resolve_failures_excess_items_if_exist() and resolve_failures_0_members_if_exist(), especially
 # if/when creating resolve_failures_excess_members_if_exist()
 # - especially needs to be refactored because resolve_failures_excess_items_if_exist() doesn't belong in
@@ -213,7 +220,8 @@ def resolve_fetch_failures_0_members(
     still_draft_csets: List[Dict] = [
         x['properties'] for x in csets_and_members['OMOPConceptSet']
         if x['properties']['codesetId'] in non_draft_failure_ids]
-    final_failure_ids: Set[int] = get_csets_over_threshold(still_draft_csets, int(expansion_threshold_seconds / 60))
+    expansion_threshold_minutes = int(expansion_threshold_seconds / 60)
+    final_failure_ids: Set[int] = get_csets_over_threshold(still_draft_csets, expansion_threshold_minutes)
 
     # Close out
     if final_failure_ids and loop:
@@ -229,9 +237,13 @@ def resolve_fetch_failures_0_members(
         # todo: for troubleshooting, it would help to print the timestamp of when the cset was created here, as well as
         #  its age (in minutes). For the latter, would involve passing arg return_type='csets_by_id' to
         #  get_csets_over_threshold().
-        raise RuntimeError('Attempted to resolve fetch failures for the following concept sets, but was not able to do '
-                           'so. It may be that the Enclave simply has not expanded their members yet:\n\n'
-                           f'{", ".join([str(x) for x in final_failure_ids])}')
+        raise RuntimeError(
+            'Attempted to resolve fetch failures for the following concept sets, but was not able to do so. The cset '
+            f'has been finalized, and it has been over our threshold of {expansion_threshold_minutes} minutes since the'
+            f' cset was created, so we would have typically the expansion would\'ve happened by now if it was '
+            f'finalized when or soon after it was created, but sometimes it takes longer, or perhaps the cset was not'
+            f' finalized very soon after it was created; the expansion may still be pending. Failed IDs:\n\n'
+            f'{", ".join([str(x) for x in final_failure_ids])}')
     else:
         print("Complete: All outstanding non-draft failures resolved.")
 

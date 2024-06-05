@@ -1,8 +1,4 @@
-"""Tests
-
-Can run all tests in all files by running this from root of TermHub:
-    python -m unittest discover
-"""
+"""Tests for the Enclave actions API"""
 import os
 import sys
 import unittest
@@ -19,6 +15,7 @@ from enclave_wrangler.actions_api import upload_concept_set_version_draft
 
 class TestActionsApi(unittest.TestCase):
 
+    @unittest.skip("Skipping tests for incomplete feature. See: https://github.com/jhu-bids/TermHub/issues/799")
     def test_upload_concept_set_version(self):
         response: Response = upload_concept_set_version_draft(
             domain_team='x', provenance='x', current_max_version=2.1, concept_set='x', annotation='x', limitations='x',
