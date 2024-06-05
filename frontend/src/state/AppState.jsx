@@ -1,4 +1,4 @@
-import React, {createContext, useCallback, useContext, useReducer, useState} from "react";
+import React, {createContext, useEffect, useContext, useReducer, useState} from "react";
 import {flatten, fromPairs, get, pick, isEqual, isEmpty} from "lodash";
 // import {compressToEncodedURIComponent} from "lz-string";
 // import {createPersistedReducer} from "./usePersistedReducer";
@@ -25,6 +25,9 @@ const codesetIdsReducer = (state, action) => {
       throw new Error(`unexpected action.type ${action.type}`);
   }
 };
+export const [CodesetIdsProvider, useCodesetIds] = makeProvider({
+  name: 'codeset_ids', reducer: codesetIdsReducer, initialSettings: {}, storageProviderGetter: useSearchParamsState, });
+/*
 const CodesetIdsContext = createContext(null);
 export function CodesetIdsProvider({ children }) {
   const storageProvider = useSearchParamsState();
@@ -46,7 +49,7 @@ export function CodesetIdsProvider({ children }) {
 export function useCodesetIds() {
   return useContext(CodesetIdsContext);
 }
-
+*/
 
 const cidsReducer = (state, cids) => {
   return cids || state;
@@ -73,20 +76,22 @@ export function useCids() {
   return useContext(CidsContext);
 }
 
-function settingsReducer(state, action) {
+function graphOptionsReducer(state, action) {
   if ( ! ( action || {} ).type ) return state;
   // let {collapsePaths, // collapsedDescendantPaths,
   //   nested, hideRxNormExtension, hideZeroCounts} = {...unpersistedDefaultState, ...state};
-
-  let { graphOptions } = state;
-  let { specialConceptTreatment, expandAll, specificNodesCollapsed, specificNodesExpanded, } = graphOptions; // hide, show
-
   let {type, nodeId, specialConceptType, } = action;
-  // this is all for graphOptions appSettings, but someday i'll want appSettings besides graphOptions, rights?
+
+  let graphOptions = get(action, 'graphOptions') || state;
+
+  let { specialConceptTreatment, expandAll, specificNodesCollapsed, specificNodesExpanded, } = graphOptions; // hide, show
 
   switch (type) {
     // case "graphOptions": { return {...state, graphOptions}; }
-      // took this from GraphState, but it still stores graphOptions state there as well as here
+    // took this from GraphState, but it still stores graphOptions state there as well as here
+
+    case 'NEW_GRAPH_OPTIONS':
+      return graphOptions;
     case 'TOGGLE_NODE_EXPANDED':
       console.error("have to fix this and persist nodes expanded");
       // gc.toggleNodeExpanded(action.payload.nodeId);
@@ -98,7 +103,7 @@ function settingsReducer(state, action) {
     case 'TOGGLE_OPTION':
       graphOptions = {...graphOptions, specialConceptTreatment: {
         ...graphOptions.specialConceptTreatment,
-          [specialConceptType]:!graphOptions.specialConceptTreatment[specialConceptType]}};
+          [specialConceptType]: !graphOptions.specialConceptTreatment[specialConceptType]}};
       break;
     case 'TOGGLE_EXPAND_ALL':
       graphOptions = {...graphOptions, expandAll:!graphOptions.expandAll};
@@ -122,71 +127,119 @@ function settingsReducer(state, action) {
         }
         return {...state, collapsePaths /*, collapsedDescendantPaths * /};
       }
-    case "nested": {
-      return {...state, nested: action.nested}
-    }
-    case "hideRxNormExtension": {
-      return {...state, hideRxNormExtension: action.hideRxNormExtension}
-    }
-    case "hideZeroCounts": {
-      return {...state, hideZeroCounts: action.hideZeroCounts}
-    }
-    default:
-      return state;
+      case "nested": {
+        return {...state, nested: action.nested}
+      }
+      case "hideRxNormExtension": {
+        return {...state, hideRxNormExtension: action.hideRxNormExtension}
+      }
+      case "hideZeroCounts": {
+        return {...state, hideZeroCounts: action.hideZeroCounts}
+      }
+      default:
+        return state;
       */
   }
-  return {...state, graphOptions};
+  return {...state, ...graphOptions};
 }
-const SettingsContext = createContext(null);
-export function SettingsProvider({ children }) {    // settings 1
-  const initialSettings = {
+/*
+const GraphOptionsContext = createContext(null);
+export function GraphOptionsProvider({ children }) {    // settings 1
+  const initialSettings = {};
+  // const initialSettings = null;
+  /* {
+    // graphOptions will actually be initialized in GraphContainer.setGraphDisplayConfig
     graphOptions: {
       specialConceptTreatment: {},
       nested: true,
       // hideRxNormExtension: true,
     }
     // collapsePaths: {}, // collapsedDescendantPaths: {}, // hideZeroCounts: false,
-  };
+  }; * /
   const storageProvider = useSearchParamsState();
-  let state = storageProvider.getItem('appSettings') || initialSettings;
+  let state = storageProvider.getItem('graphOptions') || initialSettings;
 
   const dispatch = action => {
-    let latestState = storageProvider.getItem('appSettings') || initialSettings;
+    let latestState = storageProvider.getItem('graphOptions') || initialSettings;
     const stateAfterDispatch = settingsReducer(latestState, action);
     if (!isEqual(latestState, stateAfterDispatch)) {
-      storageProvider.setItem('appSettings', stateAfterDispatch);
+      storageProvider.setItem('graphOptions', stateAfterDispatch);
     }
   }
   return (
-      <SettingsContext.Provider value={[state, dispatch]}>
+      <GraphOptionsContext.Provider value={[state, dispatch]}>
         {children}
-      </SettingsContext.Provider>
+      </GraphOptionsContext.Provider>
   );
 }
-export function useSettings() {
-  return useContext(SettingsContext);
+export function useGraphOptions() {
+  return useContext(GraphOptionsContext);
+}
+*/
+
+export const [GraphOptionsProvider, useGraphOptions] = makeProvider({
+  name: 'graphOptions', reducer: graphOptionsReducer, initialSettings: {}, storageProviderGetter: useSearchParamsState, });
+
+function makeProvider({name, reducer, initialSettings, storageProviderGetter, jsonify=false, forceUpdateForConsumers=false}) {
+  const nonUpdatingReducer = (state, action) => {
+    const newState = reducer(state, action);
+    return isEqual(state, newState) ? state : newState;
+  };
+
+  const Context = createContext();
+  const Provider = ({children}) => {
+    const storageProvider = storageProviderGetter();
+    const [state, dispatch] = useReducer(nonUpdatingReducer, initialSettings, (initial) => {
+      let storedSettings = storageProvider.getItem(name);
+      if (storedSettings) {
+        return jsonify ? JSON.stringify(storedSettings) : storedSettings;
+      }
+      return initial;
+    });
+
+    useEffect(() => {
+      let newState = jsonify ? JSON.stringify(state) : state;
+      storageProvider.setItem(name, newState);
+    }, [name, state]);
+
+
+    return (
+        <Context.Provider value={[state, dispatch]}>
+          {children}
+        </Context.Provider>
+    );
+  }
+  const useReducerWithStorage = () => {
+    const context = useContext(Context);
+    if (!context) {
+      throw new Error(`use ${name} must be called within a GraphOptionsProvider`);
+    }
+    return context;
+  }
+
+  return [Provider, useReducerWithStorage];
 }
 /*
-export function useHierarchySettings() {
-  const unpersistedDefaultState = {
-    specialConceptTreatment: {},
-    nested: true,
-    // collapsePaths: {},
-    // collapsedDescendantPaths: {},
-    hideRxNormExtension: true,
-    // hideZeroCounts: false,
-  };
-  const storageProvider = useSearchParamsState();
-  // const storageProvider = useSessionStorage();
-  const usePersistedReducer = createPersistedReducer('hierarchySettings',
-    storageProvider, unpersistedDefaultState);
+  export function useHierarchySettings() {
+    const unpersistedDefaultState = {
+      specialConceptTreatment: {},
+      nested: true,
+      // collapsePaths: {},
+      // collapsedDescendantPaths: {},
+      hideRxNormExtension: true,
+      // hideZeroCounts: false,
+    };
+    const storageProvider = useSearchParamsState();
+    // const storageProvider = useSessionStorage();
+    const usePersistedReducer = createPersistedReducer('hierarchySettings',
+      storageProvider, unpersistedDefaultState);
 
-  // reducer was here
+    // reducer was here
 
-  const [state, dispatch] = usePersistedReducer(hierarchySettingsReducer);
-  return [state, dispatch];
-}
- */
+    const [state, dispatch] = usePersistedReducer(hierarchySettingsReducer);
+    return [state, dispatch];
+  }
+   */
 
 const newCsetReducer = (state, action) => {
   /*
@@ -266,6 +319,7 @@ const newCsetReducer = (state, action) => {
   };
   return state
 };
+
 
 const NewCsetContext = createContext(null);
 export function NewCsetProvider({ children }) {

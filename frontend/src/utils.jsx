@@ -1,4 +1,4 @@
-import React, {useLayoutEffect, useState} from "react";
+import React, {useLayoutEffect, useState, } from "react";
 // import {Navigate, useNavigate} from "react-router-dom";
 import {debounce, differenceWith, intersectionWith, isEqual, reduce, unionWith,} from "lodash";
 import Papa from "papaparse";
@@ -223,3 +223,22 @@ export function setOp(op, setA, setB) {
   if (setB instanceof Set || setB instanceof Iterator) setB = [...setB];
   return f(setA, setB, (itemA, itemB) => itemA == itemB);
 }
+
+export function isJsonString(str) {
+  if (typeof str !== "string") {
+    return false;
+  }
+  try {
+    const parsed = JSON.parse(str);
+    return (parsed && typeof parsed === "object") ? true : false;
+  } catch (e) {
+    return false;
+  }
+}
+
+/*
+export function useComparePrevProps = (props) => {
+  const prevProps = usePrevious(props);
+  return prevProps!== props;
+}
+*/

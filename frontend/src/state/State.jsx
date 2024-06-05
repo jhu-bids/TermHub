@@ -5,7 +5,7 @@ import Box from "@mui/material/Box";
 import {Inspector} from 'react-inspector'; // https://github.com/storybookjs/react-inspector
 import {pct_fmt} from "../utils";
 import {useSearchParamsState} from "./StorageProvider";
-import {useAlerts, useSettings, useNewCset, getSessionStorage, urlWithSessionStorage} from "./AppState";
+import {useAlerts, useGraphOptions, useNewCset, getSessionStorage, urlWithSessionStorage} from "./AppState";
 import {useDataCache} from "../state/DataCache";
 import {useDataGetter} from "./DataGetter";
 
@@ -55,7 +55,7 @@ const stateDoc = `
       use_example
 
     reducers and context
-      alerts, appSettings, newCset
+      alerts, graphOptions, newCset
       newCset
 
     DataCache
@@ -102,7 +102,7 @@ export function StatsMessage(props) {
 export function ViewCurrentState() {
   const {sp} = useSearchParamsState();
   const alerts = useAlerts();
-  const [appSettings, appSettingsDispatch] = useSettings();
+  const [graphOptions, graphOptionsDispatch] = useGraphOptions();
   const newCset = useNewCset();
   const dataCache = useDataCache();
   const sstorage = getSessionStorage();
@@ -119,7 +119,7 @@ export function ViewCurrentState() {
     </ul>
 
     <h2>app state (reducers)</h2>
-    <Inspector data={{alerts, appSettings, newCset}} />
+    <Inspector data={{alerts, graphOptions, newCset}} />
 
     <h2>dataCache</h2>
     <Inspector data={dataCache.getWholeCache()} />

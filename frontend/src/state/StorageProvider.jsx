@@ -1,18 +1,20 @@
 import React, {createContext, useContext, useState, useCallback, useEffect} from "react";
 import {createSearchParams, useSearchParams, /* useLocation, Navigate, */ } from "react-router-dom";
 import {isEmpty, omit} from "lodash";
+import {isJsonString} from "../utils";
 
 // starting from https://chat.openai.com/share/6cc19197-8a46-49ce-9100-84a83d0d2bf1
 // at least for now, moving all search params to sessionStorage
 export function useSessionStorage() {
   const [storage, setStorage] = useState(() => {
     const items = { codeset_ids: [], ...window.sessionStorage };
+    delete items.AI_buffer;    // added by chrome ai stuff i think...I don't want it
+    delete items.AI_sentBuffer;
     let sstorage = Object.keys(items).reduce((acc, key) => {
-      acc[key] = JSON.parse(items[key]);
+      let value = items[key];
+      acc[key] = isJsonString(value) ? JSON.parse(items[key]) : value;
       return acc;
     }, {});
-    delete sstorage.AI_buffer;    // added by chrome ai stuff i think...I don't want it
-    delete sstorage.AI_sentBuffer;
     return sstorage;
   });
 
@@ -103,7 +105,7 @@ const SEARCH_PARAM_STATE_CONFIG = {
   "optimization_experiment", "comparison_rpt"],
   global_props_but_not_search_params: [], // ["searchParams", "setSearchParams"],
   // ignore: ["sstorage"],
-  serialize: ["newCset", "appSettings"],
+  serialize: ["newCset", "graphOptions"],
 };
 
 const SearchParamsContext = createContext(null);

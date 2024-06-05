@@ -33,7 +33,7 @@ import {ViewCurrentState, } from "./state/State";
 import {
   CodesetIdsProvider,
   CidsProvider,
-  SettingsProvider,
+  GraphOptionsProvider,
   AlertsProvider,
   useAlerts,
   useAlertsDispatch,
@@ -77,7 +77,7 @@ function AppWrapper() {
         <AlertsProvider>
           <CodesetIdsProvider>
             <CidsProvider>
-              <SettingsProvider>      // settings 1.1 (doesn't do anything except make provider available
+              <GraphOptionsProvider>
                 <NewCsetProvider>
                   <DataCacheProvider>
                     <DataGetterProvider>
@@ -85,7 +85,7 @@ function AppWrapper() {
                     </DataGetterProvider>
                   </DataCacheProvider>
                 </NewCsetProvider>
-              </SettingsProvider>
+              </GraphOptionsProvider>
             </CidsProvider>
           </CodesetIdsProvider>
         </AlertsProvider>

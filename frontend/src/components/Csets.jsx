@@ -4,7 +4,7 @@ import { CsetsDataTable, } from "./CsetsDataTable";
 import ConceptSetCards from "./ConceptSetCard";
 import Alert from '@mui/material/Alert';
 import AlertTitle from '@mui/material/AlertTitle';
-import { TextField, Autocomplete, Box, } from "@mui/material";
+import { TextField, Autocomplete, Box, createFilterOptions, Chip, } from "@mui/material";
 import { matchSorter } from 'match-sorter';
 import Button from "@mui/material/Button";
 // import Chip from '@mui/material/Chip';
@@ -47,22 +47,37 @@ function initialOpts(all_csets, codesetIds) {
       }));
   return opts;
 }
-export function CsetSearch(props) {
+export function CsetSearch(props = {}) {
   const { all_csets, } = props;
   const [codeset_ids, codesetIdsDispatch] = useCodesetIds();
-  const [value, setValue] = useState(codeset_ids);
+  console.log('about to useState with:', codeset_ids);
+  const [codesetIdsSelected, setCodesetIdsSelected] = useState(codeset_ids);
 
+  /*
+  const prevPropsRef = useRef();
   useEffect(() => {
-    setValue(codeset_ids);
-  }, [codeset_ids.join('|')]);
+    if (prevPropsRef.current) {
+      console.log('Previous props:', prevPropsRef.current);
+      console.log('Current props:', props);
 
-  const filterOptions = (options, { inputValue }) => {
+      // Example comparison:
+      if (prevPropsRef.current.selected_csets !== props.selected_csets) {
+        console.log('selected_csets has changed');
+      }
+    }
+
+    // Store current props in ref for next render
+    prevPropsRef.current = props;
+  }, [props]);
+  */
+
+  const filterOptions = createFilterOptions((options, { inputValue }) => {
     // from https://github.com/kentcdodds/match-sorter#keys-string
     // having lag problems. see #540 and https://github.com/kentcdodds/match-sorter/issues/131
     let matches = matchSorter(options, inputValue, { keys: [ 'label' ] , /* threshold: matchSorter.rankings.EQUAL */ });
     // console.log({options, inputValue, matches});
     return matches;
-  }
+  });
 
   if (isEmpty(all_csets)) {
     return <p>Downloading...</p>;
@@ -70,7 +85,7 @@ export function CsetSearch(props) {
   const opts = initialOpts(all_csets, codeset_ids);
 
   let largeCsets = [];
-  const unloadedCodesetIds = difference(value, codeset_ids);
+  const unloadedCodesetIds = difference(codesetIdsSelected, codeset_ids);
   if (unloadedCodesetIds.length) {
     const unloadedCsets = all_csets.filter(cset => unloadedCodesetIds.includes(cset.codeset_id));
     largeCsets = unloadedCsets.filter(cset => get(cset, ['counts', 'Members']) > 9999);
@@ -82,22 +97,25 @@ export function CsetSearch(props) {
       </Alert>
   ) : null;
 
-  let invalidCodesetIds = value.filter(d => !opts.find(o => o.value === d));
+  let invalidCodesetIds = codesetIdsSelected.filter(d => !opts.find(o => o.value === d));
   if (invalidCodesetIds.length) {
     throw new Error(`Invalid codeset ids: ${invalidCodesetIds.join(', ')}`);
   }
+  let ctr = 0;
   const autocomplete = (
     // https://mui.com/material-ui/react-autocomplete/
     // https://stackoverflow.com/a/70193988/1368860
     <Autocomplete
       multiple
       // key={keyForRefreshingAutocomplete}
-      value={value}
+      value={codesetIdsSelected}
       onChange={(event, newValue) => {
-        setValue(newValue.map(option => option.value || option));
+        // console.log(ctr++, newValue);
+        setCodesetIdsSelected(newValue.map(option => option.value || option));
         // dataGetter.prefetch({itemType: 'everything', codeset_ids: newValue});
       }}
       isOptionEqualToValue={(opt, value) => {
+        // console.log('isOptionEqualToValue', ctr++, opt, value);
         return opt.value === value;
       }}
       getOptionLabel={(option) => {
@@ -107,6 +125,24 @@ export function CsetSearch(props) {
           return option.label;
         }
       }}
+
+      // fixing impossible to track down bug with stackoverflow: https://stackoverflow.com/a/75968316/1368860
+      // no idea why the bug suddenly started happening
+      renderOption={(props, option) => {
+        return (
+          <li {...props} key={option}>
+            {option}
+          </li>
+        )
+      }}
+      renderTags={(tagValue, getTagProps) => {
+        return tagValue.map((option, index) => (
+          <Chip {...getTagProps({ index })} key={option} label={
+            typeof(option) === 'number'? opts.find(item => item.value === option)?.label : option.label
+          } />
+        ))
+      }}
+
       disablePortal
       id="add-codeset-id"
       data-testid="add-codeset-id"
@@ -155,7 +191,7 @@ export function CsetSearch(props) {
         </Tooltip>
         {largeCsetWarning}
         <Button data-testid="load-concept-sets" onClick={() => {
-          codesetIdsDispatch({type: "set_all", codeset_ids: value});
+          codesetIdsDispatch({type: "set_all", codeset_ids: codesetIdsSelected});
           // changeCodesetIds(value, "set");
           // setKeyForRefreshingAutocomplete((k) => k + 1);
         }}
@@ -185,7 +221,7 @@ export function CsetSearch(props) {
      and also use Multiple Values */
 }
 
-export function ConceptSetsPage(props) {
+export function ConceptSetsPage() {
   const [codeset_ids, codesetIdsDispatch] = useCodesetIds();
   const dataGetter = useDataGetter();
   const dataCache = useDataCache();
@@ -270,6 +306,7 @@ export function ConceptSetsPage(props) {
 
       researchers = await researchers;
       // setData(current => ({...current, researchers}));
+      console.log("currentData", data);
       setData(current => ({...current, concept_ids, all_csets, selected_csets,
         allRelatedCsets, relatedCsets, researchers, }));
     })()
@@ -279,10 +316,11 @@ export function ConceptSetsPage(props) {
     return <p>Downloading...</p>;
   }
 
-  props = {...props, all_csets, relatedCsets, selected_csets,
+  let props = {codeset_ids, all_csets, relatedCsets, selected_csets,
       concept_ids, researchers, clickable: true, showTitle: true };
 
   if (!codeset_ids.length) {
+    console.log("going to CsetSearch no codeset_ids and with props", props);
     return (
       <>
         <CsetSearch {...props} />
@@ -291,6 +329,7 @@ export function ConceptSetsPage(props) {
     );
   }
   // {<CsetsSelectedDataTable {...props} />} is added to separately show selected concept sets
+  console.log("going to CsetSearch with props", props);
   return (
     <div
       style={{
