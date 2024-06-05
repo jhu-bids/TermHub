@@ -490,6 +490,7 @@ function StatsAndOptions(props) {
                         appSettingsDispatch({gc, type: 'TOGGLE_EXPAND_ALL'});
                     };
                     text = get(appSettings, 'graphOptions.expandAll') ? 'Collapse all' : 'Expand all';
+                    tttext = "Does not affect rows hidden or shown by other options";
                 } else if (row.specialTreatmentRule === 'show though collapsed') {
                     if (row.specialTreatment) {
                         text = "unshow";

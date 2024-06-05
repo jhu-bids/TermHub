@@ -77,7 +77,7 @@ function AppWrapper() {
         <AlertsProvider>
           <CodesetIdsProvider>
             <CidsProvider>
-              <SettingsProvider>      // settings 1.1 (doesn't do anything except make provider available
+              <SettingsProvider>      {/* settings 1.1 (doesn't do anything except make provider available */}
                 <NewCsetProvider>
                   <DataCacheProvider>
                     <DataGetterProvider>

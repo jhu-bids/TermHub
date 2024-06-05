@@ -89,6 +89,7 @@ export class GraphContainer {
 
     this.setGraphDisplayConfig(graphData.appSettings.graphOptions);
     this.getDisplayedRows(graphData.appSettings.graphOptions);
+    this.setGraphDisplayConfig(graphData.appSettings.graphOptions);
   }
 
   isConceptRowExpanded({nodeId, graphOptions}) {
@@ -114,7 +115,9 @@ export class GraphContainer {
 
   getDisplayedRows(graphOptions) {
     // const {/*collapsedDescendantPaths, */ collapsePaths, hideZeroCounts, hideRxNormExtension, nested } = hierarchySettings;
-    Object.values(this.nodes).forEach(node => {delete node.childRows});
+    Object.values(this.nodes).forEach(node => {
+      delete node.childRows
+    });
     this.displayedRows.splice(0, this.displayedRows.length); // keeping same array ref to help with debugging using graphW
     this.displayedNodeRows.clear();
     this.gd.specialConcepts.allButFirstOccurrence = [];
@@ -122,7 +125,7 @@ export class GraphContainer {
     // add root nodes and their children if expanded to displayed
     let rootRows = [];
     for (let nodeId of sortBy(this.roots, this.sortFunc)) {
-      let rootRow = this.addNodeToDisplayed(nodeId, []);
+      let rootRow = this.addNodeToDisplayed(nodeId, graphOptions.expandAll, []);
       rootRows.push(rootRow);
     }
 
@@ -131,70 +134,72 @@ export class GraphContainer {
 
     this.showThoughCollapsed.clear();
     this.hideThoughExpanded.clear();
-    for (let type in graphOptions.specialConceptTreatment) {
-      if (this.graphDisplayConfig[type].specialTreatmentRule === 'show though collapsed' &&
-          graphOptions.specialConceptTreatment[type]) {
-        for (let id of this.gd.specialConcepts[type] || []) {
-          this.showThoughCollapsed.add(id);
+
+    if (!graphOptions.expandAll) {
+      // if there are showThoughCollapsed nodes to show, find each one's
+      //  nearest parents add them at those path locations
+      for (let type in graphOptions.specialConceptTreatment) {
+        if (this.graphDisplayConfig[type].specialTreatmentRule === 'show though collapsed' &&
+            graphOptions.specialConceptTreatment[type]) {
+          for (let id of this.gd.specialConcepts[type] || []) {
+            this.showThoughCollapsed.add(id);
+          }
         }
       }
-    }
-
-    // if there are showThoughCollapsed nodes to show, find each one's
-    //  nearest parents add them at those path locations
-    let shown = new StringSet();
-    const insertShowThoughCollapsed = (path) => {
-      // path starts with the nodeIdToShow and recurses up, prepending parents
-      const nodeIdToShow = path[path.length - 1]; // remains the same through recursion
-      if (shown.has(nodeIdToShow)) return; // already displayed
-      if (this.displayedNodeRows.has(nodeIdToShow)) {
-        return;
-        // throw new Error(`nodeToShow ${nodeIdToShow} is already displayed`);
-      }
-      // so, only one nodeIdToShow, but separate nodeToShow copies for each path
-      let nodeToShowRows = [];
-      let parents = this.graph.inNeighbors(path[0]);
-      for (let parentId of parents) {
-        if (this.showThoughCollapsed.has(parentId)) {
-          // if the parent is also a showThoughCollapsed node, do it first
-          insertShowThoughCollapsed([parentId, ...(path.slice(0, -1))]);
-        }
-        let parentNode = this.nodes[parentId];
-        if (this.displayedNodeRows.has(parentId)) {  // parent is already displayed
-          if (parentNode.expanded) {
-            throw new Error(`parent ${parentId} is expanded; we shouldn't be here`);
-          }
-          parentNode.childRows = parentNode.childRows || [];
-
-          // put the nodeIdToShow below its paths
-          for (let parentRow of this.displayedNodeRows.get(parentId)) {
-            let nodeToShowRow = {...this.nodes[nodeIdToShow]};
-            nodeToShowRow.depth = parentRow.depth + 1;
-            nodeToShowRow.rowPath = [...parentRow.rowPath, nodeIdToShow]; // straight from visible ancestor to nodeToShowRow
-            nodeToShowRow.pathFromDisplayedNode = path.slice(0, -1);  // intervening path between them
-            nodeToShowRows.push(nodeToShowRow);
-            parentNode.childRows.push(nodeToShowRow); // add to parent's childRows
-            parentRow.childRows = parentNode.childRows;
-          }
-        } else {
-          insertShowThoughCollapsed([parentId, ...path]);
+      let shown = new StringSet();
+      const insertShowThoughCollapsed = (path) => {
+        // path starts with the nodeIdToShow and recurses up, prepending parents
+        const nodeIdToShow = path[path.length - 1]; // remains the same through recursion
+        if (shown.has(nodeIdToShow)) return; // already displayed
+        if (this.displayedNodeRows.has(nodeIdToShow)) {
           return;
+          // throw new Error(`nodeToShow ${nodeIdToShow} is already displayed`);
         }
+        // so, only one nodeIdToShow, but separate nodeToShow copies for each path
+        let nodeToShowRows = [];
+        let parents = this.graph.inNeighbors(path[0]);
+        for (let parentId of parents) {
+          if (this.showThoughCollapsed.has(parentId)) {
+            // if the parent is also a showThoughCollapsed node, do it first
+            insertShowThoughCollapsed([parentId, ...(path.slice(0, -1))]);
+          }
+          let parentNode = this.nodes[parentId];
+          if (this.displayedNodeRows.has(parentId)) {  // parent is already displayed
+            if (parentNode.expanded) {
+              throw new Error(`parent ${parentId} is expanded; we shouldn't be here`);
+            }
+            parentNode.childRows = parentNode.childRows || [];
+
+            // put the nodeIdToShow below its paths
+            for (let parentRow of this.displayedNodeRows.get(parentId)) {
+              let nodeToShowRow = {...this.nodes[nodeIdToShow]};
+              nodeToShowRow.depth = parentRow.depth + 1;
+              nodeToShowRow.rowPath = [...parentRow.rowPath, nodeIdToShow]; // straight from visible ancestor to nodeToShowRow
+              nodeToShowRow.pathFromDisplayedNode = path.slice(0, -1);  // intervening path between them
+              nodeToShowRows.push(nodeToShowRow);
+              parentNode.childRows.push(nodeToShowRow); // add to parent's childRows
+              parentRow.childRows = parentNode.childRows;
+            }
+          } else {
+            insertShowThoughCollapsed([parentId, ...path]);
+            return;
+          }
+        }
+        if (this.displayedNodeRows.has(nodeIdToShow)) {
+          throw new Error(`nodeToShow ${nodeIdToShow} is already displayed`);
+        }
+        this.displayedNodeRows.set(nodeIdToShow, []);
+        nodeToShowRows.forEach((nodeToShowRow, i) => {
+          this.displayedNodeRows.get(nodeIdToShow).push(nodeToShowRow);
+        });
+        shown.add(nodeIdToShow);
       }
-      if (this.displayedNodeRows.has(nodeIdToShow)) {
-        throw new Error(`nodeToShow ${nodeIdToShow} is already displayed`);
-      }
-      this.displayedNodeRows.set(nodeIdToShow, []);
-      nodeToShowRows.forEach((nodeToShowRow, i) => {
-        this.displayedNodeRows.get(nodeIdToShow).push(nodeToShowRow);
+      this.showThoughCollapsed.forEach(nodeIdToShow => {
+        if (this.displayedNodeRows.has(nodeIdToShow)) return; // already displayed
+        this.showThoughCollapsed.add(nodeIdToShow);
+        insertShowThoughCollapsed([nodeIdToShow]);
       });
-      shown.add(nodeIdToShow);
     }
-    this.showThoughCollapsed.forEach(nodeIdToShow => {
-      if (this.displayedNodeRows.has(nodeIdToShow)) return; // already displayed
-      this.showThoughCollapsed.add(nodeIdToShow);
-      insertShowThoughCollapsed([nodeIdToShow]);
-    });
 
 
     this.arrangeDisplayRows(rootRows);
@@ -239,7 +244,7 @@ export class GraphContainer {
     return this.displayedRows;
   }
 
-  addNodeToDisplayed(nodeId, rowPath, depth = 0) {
+  addNodeToDisplayed(nodeId, expandAll, rowPath, depth = 0) {
     /* adds the node to the list of displayed nodes
         if it is set to be expanded, recurse and add its children to the list */
     let node = this.nodes[nodeId];
@@ -255,10 +260,10 @@ export class GraphContainer {
 
     // this.displayedRows.push(row);
 
-    if (row.expanded) {
+    if (row.expanded || expandAll) {
       // if it's expanded, it must have children
       row.childRows = row.childRows = sortBy(node.childIds, this.sortFunc).map(childId => {
-        const childRow = this.addNodeToDisplayed(childId, row.rowPath, depth + 1); // Recurse
+        const childRow = this.addNodeToDisplayed(childId, expandAll, row.rowPath, depth + 1); // Recurse
         return childRow;
       });
     }
@@ -452,7 +457,6 @@ export class GraphContainer {
       let row = {...get(this, ['graphDisplayConfig', type], {}), ...rows[type]};  // don't lose stuff previously set
       if (typeof(row.value) === 'undefined') {  // don't show rows that don't represent any concepts
         delete rows[type];
-        debugger;
         continue;
       }
       row.type = type;
@@ -464,7 +468,7 @@ export class GraphContainer {
     }
     this.graphDisplayConfig = rows;
     this.graphDisplayConfigList = sortBy(rows, d => d.displayOrder);
-  };
+  }
 
   graphLayout(maxWidth=12) {
     const layerSpacing = 120;
