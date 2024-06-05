@@ -150,7 +150,7 @@ function ConceptStringSearch() {
              autoFocus={true}
       />
       {'\u00A0'}{'\u00A0'}{'\u00A0'}{found_concept_ids.length ? found_concept_ids.length.toLocaleString() + ` concepts match "${searchText}"` : ""}
-      ;{'\u00A0'}{hiddenMatches.length ? hiddenMatches.length.toLocaleString() + ' already included and not listed' : ""}
+      {'\u00A0'}{hiddenMatches.length ? hiddenMatches.length.toLocaleString() + ' already included and not listed' : ""}
       <hr/>
       <FoundConceptTable displayConceptIds={displayConceptIds} divWidth={divWidth}/>
       {/*<AddedCidsConceptTable divWidth={divWidth}/>*/}

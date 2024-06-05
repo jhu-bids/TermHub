@@ -36,71 +36,18 @@ export const makeGraph = (edges, concepts) => {
   return [graph, nodes];
 };
 
-// const graphReducer = (gc, action) => {
-//   if (!(action && action.type)) return gc;
-//   // let { graph, nodes } = gc;
-//   let graph;
-//   switch (action.type) {
-//     case 'CREATE':
-//       gc = new GraphContainer(action.payload);
-//       return gc;
-//     // case 'TOGGLE_NODE_EXPANDED':
-//     //   gc.toggleNodeExpanded(action.payload.nodeId);
-//     //   break;
-//     // case 'TOGGLE_OPTION':
-//     //   const type = action.payload.type;
-//     //   gc.toggleOption(type);
-//     //   break;
-//     // case 'TOGGLE_EXPAND_ALL':
-//     //   gc.options.expandAll = !gc.options.expandAll;
-//     //   Object.values(gc.nodes).forEach(n => {if (n.hasChildren) n.expanded = gc.options.expandAll;});
-//     //   break;
-//     default:
-//       throw new Error(`unexpected action.type ${action.type}`);
-//   }
-//   // gc = new GraphContainer(null, gc);
-//   // return gc;
-// };
-
 export class GraphContainer {
   constructor(graphData, /*, cloneThis */) {
     let appSettings = graphData.appSettings;
     if (!appSettings) {
       throw new Error('appSettings is missing');
     }
-    // if (cloneThis) {
-    //   // shallow copy cloneThis's properties to this
-    //   Object.assign(this, cloneThis);
-    //
-    //   // calling graphOptions appSettings, but someday i'll want appSettings besides graphOptions, rights?
-    //   // this.storage.setItem('graphOptions', this.options);
-    //   // this.appSettingsDispatch({type: "graphOptions", graphOptions: cloneThis.options});
-    //
-    //   this.getDisplayedRows();
-    //   window.graphW = this; // for debugging
-    //   return;
-    // }
-
-    /*
-    if (graphData.storage) {
-      this.storage = graphData.storage; // sessionStorage hook
-      delete graphData.storage;
-    } else {
-      throw new Error('graphData.storage is missing');
-    }
-     */
-
-    // this.options = this.storage.getItem('graphOptions') || { specialConceptTreatment: {}, };
-    // this.options = graphData.hierarchySettings || {};
-    // this.appSettingsDispatch = graphData.appSettingsDispatch;
-    // this.options = graphData.appSettings.graphOptions;    // THIS NEEDS TO BE READ-ONLY/IMMUTABLE
-
     window.graphW = this; // for debugging
+    this.gd = graphData;  // concepts, specialConcepts, csmi, edges, concept_ids, filled_gaps,
+                          // missing_from_graph, hidden_by_vocab, nonstandard_concepts_hidden
     // this.gd holds inputs -- except
     // this.gd.specialConcepts.allButFirstOccurrence which is added later
     //    it's also a list of paths; all the other specialConcepts are lists of concept_ids
-    this.gd = graphData;  // concepts, specialConcepts, csmi, edges, concept_ids, filled_gaps,
-                          // missing_from_graph, hidden_by_vocab, nonstandard_concepts_hidden
     this.gd.specialConcepts.allButFirstOccurrence = [];
     [this.graph, this.nodes] = makeGraph(this.gd.edges, this.gd.concepts);
 
@@ -143,16 +90,10 @@ export class GraphContainer {
     this.setGraphDisplayConfig(graphData.appSettings.graphOptions);
     this.getDisplayedRows(graphData.appSettings.graphOptions);
   }
-  // toggleNodeExpanded(nodeId) {
-  //   const node = this.nodes[nodeId];
-  //   node.expanded =!node.expanded;
-  // }
-  // toggleOption(type) {
-  //   let gc = this;
-  //   gc.options.specialConceptTreatment[type] = ! gc.options.specialConceptTreatment[type];
-  //   gc.graphDisplayConfig[type].specialTreatment = gc.options.specialConceptTreatment[type];
-  // }
 
+  isConceptRowExpanded({nodeId, graphOptions}) {
+    let {xxx} = graphOptions;
+  }
   wholeHierarchy() {
     // deep copy the node so we don't mutate the original
     let nodes = cloneDeep(this.nodes);
@@ -431,7 +372,7 @@ export class GraphContainer {
         value: this.gd.concept_ids.length,
         hiddenConceptCnt: setOp('difference', this.gd.concept_ids, displayedCids).length,
         displayedConceptCnt: setOp('intersection', this.gd.concept_ids, displayedCids).length,
-        specialTreatmentRule: 'expand all',
+        specialTreatmentRule: 'expandAll',
         specialTreatmentDefault: false,
       },
       definitionConcepts: {
@@ -511,6 +452,7 @@ export class GraphContainer {
       let row = {...get(this, ['graphDisplayConfig', type], {}), ...rows[type]};  // don't lose stuff previously set
       if (typeof(row.value) === 'undefined') {  // don't show rows that don't represent any concepts
         delete rows[type];
+        debugger;
         continue;
       }
       row.type = type;
@@ -518,13 +460,6 @@ export class GraphContainer {
         // set specialTreatment to default only the first time through
         row.specialTreatment = row.specialTreatmentDefault;
       }
-      // if (type in this.gd.specialConcepts && graphOptions.specialConceptTreatment[type] === undefined) {
-        // don't mutate graphOptions
-        // graphOptions = {...graphOptions};
-        // don't bother setting the option if there are no concepts/items of this type
-        // this.options.specialConceptTreatment[type] = row.specialTreatment;
-        // graphOptions.specialConceptTreatment[type] = row.specialTreatmentDefault;
-      // }
       rows[type] = row;
     }
     this.graphDisplayConfig = rows;

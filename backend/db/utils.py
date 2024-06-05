@@ -23,7 +23,7 @@ import pandas as pd
 from jinja2 import Template
 # noinspection PyUnresolvedReferences
 from psycopg2.errors import UndefinedTable
-from sqlalchemy import create_engine, event
+from sqlalchemy import create_engine, event, CursorResult
 from sqlalchemy.engine import Row, RowMapping, Engine
 from sqlalchemy.pool import QueuePool
 
@@ -424,37 +424,40 @@ def database_exists(con: Connection, db_name: str) -> bool:
     return len(result) == 1
 
 
+def run_sql(con: Connection, query: str, params: Dict = {}) -> CursorResult:
+    """Run a sql command"""
+    query = text(query) if not isinstance(query, TextClause) else query
+    return con.execute(query, params) if params else con.execute(query)
+
+
 def sql_query(
     con: Connection, query: Union[text, str], params: Dict = {}, debug: bool = DEBUG, return_with_keys=True
 ) -> Union[List[RowMapping], List[List]]:
-    """Run a sql query with optional params, fetching records.
-    https://stackoverflow.com/a/39414254/1368860:
-    query = "SELECT * FROM my_table t WHERE t.id = ANY(:ids);"
-    con.execute(sqlalchemy.text(query), ids=some_ids)
+    """Run an idempotent (read) SQL query with optional params, fetching records.
+    Inspiration:
+      https://stackoverflow.com/a/39414254/1368860:
+      query = "SELECT * FROM my_table t WHERE t.id = ANY(:ids);"
+      conn.execute(sqlalchemy.text(query), ids=some_ids)
     """
-    query = text(query) if not isinstance(query, TextClause) else query
     try:
-        if params:
-            # after SQLAlchemy upgrade, send params as dict, not **params
-            q = con.execute(query, params) if params else con.execute(query)
-        else:
-            q = con.execute(query)
+        q: CursorResult = run_sql(con, query, params)
 
         if debug:
             print(f'{query}\n{json.dumps(params, indent=2)}')
+        # Conversions: after upgrading some packages, fastapi can no longer serialize Row & RowMapping objects
+        # todo: format q.mappings() for FastAPI like w/ q.fetchall() below? Are we not doing this cuz heavy refactor?
         if return_with_keys:
             # noinspection PyTypeChecker
-            results: List[RowMapping] = q.mappings().all()  # key value pairs
-            # after upgrading some packages, fastapi can no longer serialize RowMapping objects
+            results: List[RowMapping] = q.mappings().all()  # Key value pairs
             # return [dict(x) for x in results]
+            return results
         else:
             # noinspection PyTypeChecker
             results: List[Row] = q.fetchall()  # Row tuples, with additional properties
-            # after upgrading some packages, fastapi can no longer serialize Row objects
             return [list(x) for x in results]
-        return results
     except (ProgrammingError, OperationalError) as err:
-        raise RuntimeError(f'Got an error [{err}] executing the following statement:\n{query}, {json.dumps(params, indent=2)}')
+        raise RuntimeError(
+            f'Got an error [{err}] executing the following statement:\n{query}, {json.dumps(params, indent=2)}')
 
 
 def sql_query_single_col(*argv) -> List:
@@ -594,16 +597,6 @@ def sql_in_safe(lst: List) -> (str, dict):
     query = text(','.join(bindparams))
     params = {"id{}".format(i): id for i, id in enumerate(lst)}
     return (query, params)
-
-
-def run_sql(con: Connection, command: str, params: Dict = {}) -> Any:
-    """Run a sql command"""
-    command = text(command) if not isinstance(command, TextClause) else command
-    if params:
-        q = con.execute(command, params) if params else con.execute(command)
-    else:
-        q = con.execute(command)
-    return q
 
 
 def list_schema_objects(

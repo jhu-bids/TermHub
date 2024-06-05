@@ -409,6 +409,7 @@ def test_get_missing_in_between_nodes(
         subgraph_nodes=None,
         fail=True,
         ):
+    # add code to load whole REL_GRAPH
     G = DiGraph(whole_graph_edges)
     subgraph_nodes = subgraph_nodes or set(G.nodes) - set(non_subgraph_nodes)
     missing_in_between_nodes = get_missing_in_between_nodes(G, subgraph_nodes, verbose=True)

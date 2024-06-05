@@ -485,7 +485,12 @@ function StatsAndOptions(props) {
                 };
                 let text = '';
                 let tttext = '';
-                if (row.specialTreatmentRule === 'show though collapsed') {
+                if (row.specialTreatmentRule === 'expandAll') {
+                    onClick = () => {
+                        appSettingsDispatch({gc, type: 'TOGGLE_EXPAND_ALL'});
+                    };
+                    text = get(appSettings, 'graphOptions.expandAll') ? 'Collapse all' : 'Expand all';
+                } else if (row.specialTreatmentRule === 'show though collapsed') {
                     if (row.specialTreatment) {
                         text = "unshow";
                     } else {
@@ -500,12 +505,6 @@ function StatsAndOptions(props) {
                     } else {
                         text = "hide";
                     }
-                } else if (row.name ==='Concepts') {
-                    onClick = () => {
-                        appSettingsDispatch({gc, type: 'TOGGLE_EXPAND_ALL'});
-                    };
-                    // text = gc.options.expandAll ? 'Collapse all' : 'Expand all';
-                    text = get(appSettings, 'graphOptions.expandAll') ? 'Collapse all' : 'Expand all';
                 } else {
                     throw new Error("shouldn't be here");
                 }
@@ -533,7 +532,7 @@ function StatsAndOptions(props) {
             width: 120,
             style: {justifyContent: "center", },
         },
-    ]
+    ];
     const totalWidthOfOthers = sum(coldefs.map(d => d.width));
     coldefs[0].width = graphDisplayOptionsWidth - totalWidthOfOthers - 15;
     for (let def of coldefs) {
@@ -551,16 +550,16 @@ function StatsAndOptions(props) {
     );
 }
 function precisionRecall(props) {
-
+    // TODO: write someday -- precision recall of newCset against all? Or each against all? Not sure what the plan was
 }
 
-function nodeToTree(node) {
+function nodeToTree(node) { // Not using
     // a flat tree
     const subTrees = node.childIds().map(n => nodeToTree(n));
     return [node, ...subTrees];
 }
 
-function getCollapseIconAndName(row, sizes, appSettingsDispatch, gc) {
+function getCollapseIconAndName(row, sizes, appSettings, appSettingsDispatch, gc) {
     let Component;
     if (row.expanded) {
         Component = RemoveCircleOutline;
@@ -576,8 +575,8 @@ function getCollapseIconAndName(row, sizes, appSettingsDispatch, gc) {
                     appSettingsDispatch({gc, type: "TOGGLE_NODE_EXPANDED", nodeId: row.concept_id, })
                 }
             }
-            // TODO: capture long click or double click or something to do expandAll
-            // onDoubleClick={() => appSettingsDispatch({type: "TOGGLE_NODE_EXPANDED", payload: {expandAll: true, nodeId: row.concept_id}})}
+            // TODO: capture long click or double click or something to expand descendants
+            // onDoubleClick={() => appSettingsDispatch({type: "TOGGLE_NODE_EXPANDED", payload: {expandDescendants: true, nodeId: row.concept_id}})}
         >
                 <Component
                     sx={{
@@ -634,7 +633,7 @@ function getColDefs(props) {
                 }
                 let content = nested ? (
                     row.hasChildren
-                        ? getCollapseIconAndName(row, sizes, appSettingsDispatch, gc)
+                        ? getCollapseIconAndName(row, sizes, appSettings, appSettingsDispatch, gc)
                         : (
                             <span className="concept-name-row">
                                 {/*<RemoveCircleOutline
@@ -705,7 +704,6 @@ function getColDefs(props) {
             },
             selector: (row) => row.descendantCount,
             format: (row) => {
-                // let icon = getCollapseIconAndName(row, sizes, appSettingsDispatch);
                 let text = fmt(row.childCount) + ' / ' + fmt(row.descendantCount);
                 return text;
             },
@@ -722,10 +720,10 @@ function getColDefs(props) {
                             <div>Patients</div>
                         </Tooltip>
                         {
-                            hidden
+                            hidden          // not currently being used
                                 ? <Tooltip label={`Toggle hiding of ${hidden.zeroCount} concepts with 0 patients`}>
                                     <Switch sx={{margin: '-8px 0px'}} checked={!hideZeroCounts}
-                                            onClick={() => appSettingsDispatch({
+                                            onClick={() => appSettingsDispatch({          // not currently being used
                                                                           type: 'hideZeroCounts',
                                                                           hideZeroCounts: !hideZeroCounts
                                                                       })}
@@ -761,7 +759,8 @@ function getColDefs(props) {
             headerProps: {
                 tooltipContent: "Record count. Small counts rounded up to 20. Click to toggle hiding of zero counts.",
                 headerContent: (
-                    <span onClick={() => appSettingsDispatch({gc, type: 'TOGGLE_OPTION', payload: {type: 'zeroRecord'}})}
+                    <span onClick={() => appSettingsDispatch(       // is still active, at least on dev
+                        {gc, type: 'TOGGLE_OPTION', specialConceptType: 'zeroRecord'})}
                           style={{ cursor: 'pointer', }}
                     >
                       Records
@@ -809,7 +808,7 @@ function getColDefs(props) {
                             </div>
                             <Tooltip label="Toggle hiding of RxNorm Extension concepts">
                                 <Switch sx={{margin: '-8px 0px'}} checked={!hideRxNormExtension}
-                                        onClick={() => appSettingsDispatch({
+                                        onClick={() => appSettingsDispatch({          // not currently being used
                                             type: 'hideRxNormExtension',
                                             hideRxNormExtension: !hideRxNormExtension
                                         })}

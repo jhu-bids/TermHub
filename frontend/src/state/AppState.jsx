@@ -77,14 +77,14 @@ function settingsReducer(state, action) {
   if ( ! ( action || {} ).type ) return state;
   // let {collapsePaths, // collapsedDescendantPaths,
   //   nested, hideRxNormExtension, hideZeroCounts} = {...unpersistedDefaultState, ...state};
-  const { gc } = action;
-  // real kludgy passsing gc in, but trying not to rewrite a bunch more code than I need to
-  // TODO: try to get rid of gc
 
   let { graphOptions } = state;
+  let { specialConceptTreatment, expandAll, specificNodesCollapsed, specificNodesExpanded, } = graphOptions; // hide, show
+
+  let {type, nodeId, specialConceptType, } = action;
   // this is all for graphOptions appSettings, but someday i'll want appSettings besides graphOptions, rights?
 
-  switch (action.type) {
+  switch (type) {
     // case "graphOptions": { return {...state, graphOptions}; }
       // took this from GraphState, but it still stores graphOptions state there as well as here
     case 'TOGGLE_NODE_EXPANDED':
@@ -96,18 +96,13 @@ function settingsReducer(state, action) {
       // };
       break;
     case 'TOGGLE_OPTION':
-      const type = action.payload.type;
-      // if ( !isEqual(gc.options, graphOptions) ) {
-      //   throw new Error("nothing should be changing gc.options, should be equal to state.graphOptions");
-      // }
-      // gc.toggleOption(type);
-      graphOptions = {...graphOptions, specialConceptTreatment: {...graphOptions.specialConceptTreatment, [type]:!graphOptions.specialConceptTreatment[type]}};
-      // gc.options.specialConceptTreatment[type] = ! gc.options.specialConceptTreatment[type];
-      // gc.graphOptions[type].specialTreatment = gc.options.specialConceptTreatment[type];
+      graphOptions = {...graphOptions, specialConceptTreatment: {
+        ...graphOptions.specialConceptTreatment,
+          [specialConceptType]:!graphOptions.specialConceptTreatment[specialConceptType]}};
       break;
     case 'TOGGLE_EXPAND_ALL':
-      graphOptions = {...graphOptions, expandedAll:!graphOptions.expandedAll};
-      Object.values(gc.nodes).forEach(n => {if (n.hasChildren) n.expanded = graphOptions.expandedAll;});
+      graphOptions = {...graphOptions, expandAll:!graphOptions.expandAll};
+      // Object.values(gc.nodes).forEach(n => {if (n.hasChildren) n.expanded = graphOptions.expandAll;});
       break;
 
       // OLD STUFF
@@ -143,12 +138,12 @@ function settingsReducer(state, action) {
   return {...state, graphOptions};
 }
 const SettingsContext = createContext(null);
-export function SettingsProvider({ children }) {
+export function SettingsProvider({ children }) {    // settings 1
   const initialSettings = {
     graphOptions: {
       specialConceptTreatment: {},
       nested: true,
-      hideRxNormExtension: true,
+      // hideRxNormExtension: true,
     }
     // collapsePaths: {}, // collapsedDescendantPaths: {}, // hideZeroCounts: false,
   };
