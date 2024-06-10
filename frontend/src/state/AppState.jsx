@@ -26,7 +26,7 @@ const codesetIdsReducer = (state, action) => {
   }
 };
 export const [CodesetIdsProvider, useCodesetIds] = makeProvider({
-  name: 'codeset_ids', reducer: codesetIdsReducer, initialSettings: {}, storageProviderGetter: useSearchParamsState, });
+  name: 'codeset_ids', reducer: codesetIdsReducer, initialSettings: [], storageProviderGetter: useSearchParamsState, });
 /*
 const CodesetIdsContext = createContext(null);
 export function CodesetIdsProvider({ children }) {
@@ -54,6 +54,9 @@ export function useCodesetIds() {
 const cidsReducer = (state, cids) => {
   return cids || state;
 };
+export const [CidsProvider, useCids] = makeProvider({
+  name: 'codeset_ids', reducer: codesetIdsReducer, initialSettings: [], storageProviderGetter: useSearchParamsState, });
+/*
 const CidsContext = createContext(null);
 export function CidsProvider({ children }) {
   const storageProvider = useSearchParamsState();
@@ -75,6 +78,7 @@ export function CidsProvider({ children }) {
 export function useCids() {
   return useContext(CidsContext);
 }
+*/
 
 function graphOptionsReducer(state, action) {
   if ( ! ( action || {} ).type ) return state;

@@ -128,7 +128,7 @@ function ConceptStringSearch() {
       console.log('after csmi fetch');
       let h = uniq(flatten(
           Object.values(csmi).map(d => Object.values(d))
-      ).filter(d => d.item).map(d => d.concept_id));
+      )); // .filter(d => d.item).map(d => d.concept_id));
       // let h = Object.values(csmi).map(c => c.concept_id);
       h = setOp('union', h, cids);
       setHaveConceptIds(h);
@@ -153,7 +153,7 @@ function ConceptStringSearch() {
       {'\u00A0'}{hiddenMatches.length ? hiddenMatches.length.toLocaleString() + ' already included and not listed' : ""}
       <hr/>
       <FoundConceptTable displayConceptIds={displayConceptIds} divWidth={divWidth}/>
-      {/*<AddedCidsConceptTable divWidth={divWidth}/>*/}
+      <AddedCidsConceptTable divWidth={divWidth}/>
     </div>
   );
 }

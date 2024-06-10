@@ -130,7 +130,7 @@ function RoutesContainer() {
       updateSp({delProps: ['sstorage']});
       // this updateSp generates a warning
       //  You should call navigate() in a React.useEffect(), not when your component is first rendered.
-      //  but seems to work ok anyway. If if doesn't, try going back to something like the code below.
+      //  but seems to work ok anyway. If it doesn't, try going back to something like the code below.
       //  but the problem with code below is that you can't re-navigate by returning <Navigate...> from
       //    useEffect. has to be returned by RoutesContainer.
       // sp = {...sp};
@@ -143,13 +143,14 @@ function RoutesContainer() {
   let pathname = location.pathname;
 
   if (pathname === "/cset-comparison" && isEmpty(codeset_ids)) {
-    pathname = '/';
+    pathname = '/OMOPConceptSets';
   }
   if (pathname === "/") {
+    // navigate('/OMOPConceptSets');
     return <Navigate to={`/OMOPConceptSets`} />;
   }
   if (pathname === "/testing") {
-    const test_codeset_ids = [400614256, 411456218, 419757429, 484619125];
+    const test_codeset_ids = [400614256, 419757429, 484619125]; // 411456218 : asthma wide
     let params = createSearchParams({ codeset_ids: test_codeset_ids });
     // setSearchParams(params);
     let url = "/cset-comparison?" + params;
