@@ -162,7 +162,12 @@ export function SearchParamsProvider({children}) {
     });
     const csp = createSearchParams(sp);
     if (csp+'' !== searchParams+'') {
-      setSearchParams(csp);
+      // for some reason this isn't just setting the querystring, it's getting rid of the path
+      // setSearchParams(csp);
+      let url = new (window.URL)(window.location);
+      let path = url.pathname.slice(1);
+      url.search = csp + '';
+      window.location.href = url.toString();
     }
   }
 
