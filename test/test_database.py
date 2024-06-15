@@ -33,7 +33,7 @@ class TestDatabaseCurrent(unittest.TestCase):
     def test_all_enclave_csets_in_termhub(self):
         """Test that all Enclave concept sets are in TermHub"""
         missing_ids_from_db: Set[int] = self.enclave_codeset_ids.difference(self.db_codeset_ids)
-        # todo?: some analysis may be uesful here?
+        # todo?: some analysis could be uesful here?
         # if missing_ids_from_db:
         #     missing_from_db = [cset for cset in enclave_codesets if cset['codesetId'] in missing_ids_from_db]
         #     drafts = [cset for cset in missing_from_db if cset['isDraft']]

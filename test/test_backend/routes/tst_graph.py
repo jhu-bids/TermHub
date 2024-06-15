@@ -195,11 +195,8 @@ class TstGraph:
                 assert len(hidden_by_voc[hide_vocabs[0]]) == 92
 
     async def tst_get_missing_in_between_nodes(
-            self,
-            whole_graph_edges=None,
-            non_subgraph_nodes=None,
-            expected_missing_in_between_nodes=None):
-
+        self, whole_graph_edges=None, non_subgraph_nodes=None, expected_missing_in_between_nodes=None
+    ):
         """Test get_missing_in_between_nodes()"""
         # - Test: Gap filling
         #   Source: depth first of https://app.diagrams.net/#G1mIthDUn4T1y1G3BdupdYKPkZVyQZ5XYR

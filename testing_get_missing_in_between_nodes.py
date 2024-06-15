@@ -5,9 +5,9 @@ from backend.routes.graph import get_missing_in_between_nodes, test_get_missing_
 
 print_stack = lambda s: '; '.join([f"""{n}{'<--' if p else ''}{','.join(p)}""" for n,p in reversed(s)])
 
-def get_missing(edges, subgraph_nodes):
+def get_missing(edges, subgraph_nodes, verbose=False):
     G = nx.DiGraph(edges)
-    n = get_missing_in_between_nodes(G, subgraph_nodes, verbose=True)
+    n = get_missing_in_between_nodes(G, subgraph_nodes, verbose=verbose)
     print(f"Found {n} missing nodes\n")
     return n
 

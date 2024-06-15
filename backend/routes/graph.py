@@ -419,16 +419,13 @@ def get_missing_in_between_nodes(G: nx.DiGraph, subgraph_nodes: Union[List[int],
 
 
 def test_get_missing_in_between_nodes(
-        whole_graph_edges=None,
-        non_subgraph_nodes=None,
-        expected_missing_in_between_nodes=None,
-        subgraph_nodes=None,
-        fail=True,
-        ):
+    whole_graph_edges=None, non_subgraph_nodes=None, expected_missing_in_between_nodes=None, subgraph_nodes=None,
+    fail=True, verbose=False
+):
     # add code to load whole REL_GRAPH
     G = DiGraph(whole_graph_edges)
     subgraph_nodes = subgraph_nodes or set(G.nodes) - set(non_subgraph_nodes)
-    missing_in_between_nodes = get_missing_in_between_nodes(G, subgraph_nodes, verbose=True)
+    missing_in_between_nodes = get_missing_in_between_nodes(G, subgraph_nodes, verbose=verbose)
     if fail:
         assert missing_in_between_nodes == set(expected_missing_in_between_nodes)
     else:
