@@ -21,6 +21,8 @@ uvicorn[standard]
 # psycopg2
 psycopg2-binary
 networkx
+# # special cases
+airium==0.2.6  # resolves "Please use pip<24.1 if you need to use this version.". See: https://github.com/jhu-bids/TermHub/actions/runs/9607624748/job/26499102183
 
 # dev dependencies
 # psutil  # for memory profiling
