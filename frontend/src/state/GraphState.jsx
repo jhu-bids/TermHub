@@ -65,6 +65,7 @@ export class GraphContainer {
     //    it's also a list of paths; all the other specialConcepts are lists of concept_ids
     this.gd = graphData;  // concepts, specialConcepts, csmi, edges, concept_ids, filled_gaps,
                           // missing_from_graph, hidden_by_vocab, nonstandard_concepts_hidden
+    this.gd.specialConcepts = {};
     this.gd.specialConcepts.allButFirstOccurrence = [];
     [this.graph, this.nodes] = makeGraph(this.gd.edges, this.gd.concepts);
 
@@ -427,79 +428,86 @@ export class GraphContainer {
     let displayOrder = 0;
     let rows = {
       displayedRows: {
-        name: "Visible rows", displayOrder: displayOrder++,
+        name: "Visible rows",
+        displayOrder: displayOrder++,
         value: displayedConcepts.length,
       },
       concepts: {
-        name: "Concepts", displayOrder: displayOrder++,
-        value: this.gd.concept_ids.length,
-        hiddenConceptCnt: setOp('difference', this.gd.concept_ids, displayedCids).length,
-        displayedConceptCnt: setOp('intersection', this.gd.concept_ids, displayedCids).length,
+        name: "Concepts",
+        displayOrder: displayOrder++,
+        value: this.gd.concept_ids?.length ?? 0,
+        hiddenConceptCnt: setOp('difference', this.gd.concept_ids ?? [], displayedCids).length,
+        displayedConceptCnt: setOp('intersection', this.gd.concept_ids ?? [], displayedCids).length,
         specialTreatmentRule: 'expand all',
         specialTreatmentDefault: false,
       },
       definitionConcepts: {
-        name: "Definition concepts", displayOrder: displayOrder++,
-        value: this.gd.specialConcepts.definitionConcepts.length,
-        hiddenConceptCnt: setOp('difference', this.gd.specialConcepts.definitionConcepts, displayedCids).length,
+        name: "Definition concepts",
+        displayOrder: displayOrder++,
+        value: this.gd.specialConcepts.definitionConcepts?.length ?? 0,
+        hiddenConceptCnt: setOp('difference', this.gd.specialConcepts.definitionConcepts ?? [], displayedCids).length,
         specialTreatmentDefault: false,
         specialTreatmentRule: 'show though collapsed',
       },
       expansionConcepts: {
-        name: "Expansion concepts", displayOrder: displayOrder++,
-        value: this.gd.specialConcepts.expansionConcepts.length,
-        // value: uniq(flatten(Object.values(this.gd.csmi).map(Object.values)) .filter(c => c.csm).map(c => c.concept_id)).length,
-        displayedConceptCnt: setOp('intersection', this.gd.specialConcepts.expansionConcepts, displayedCids).length,
-        // hiddenConceptCnt: setOp('difference', this.gd.concept_ids, displayedCids).length,
-        // specialTreatmentDefault: false,
-        // specialTreatmentRule: 'hide though expanded',
+        name: "Expansion concepts",
+        displayOrder: displayOrder++,
+        value: this.gd.specialConcepts.expansionConcepts?.length ?? 0,
+        displayedConceptCnt: setOp('intersection', this.gd.specialConcepts.expansionConcepts ?? [], displayedCids).length,
       },
       added: {
-        name: "Added", displayOrder: displayOrder++,
-        value: get(this.gd.specialConcepts, 'added.length', undefined),
-        hiddenConceptCnt: setOp('difference', this.gd.specialConcepts.added, displayedCids).length,
+        name: "Added",
+        displayOrder: displayOrder++,
+        value: this.gd.specialConcepts.added?.length ?? 0,
+        hiddenConceptCnt: setOp('difference', this.gd.specialConcepts.added ?? [], displayedCids).length,
         specialTreatmentDefault: false,
         specialTreatmentRule: 'show though collapsed',
       },
       removed: {
-        name: "Removed", displayOrder: displayOrder++,
-        value: get(this.gd.specialConcepts, 'removed.length', undefined),
-        hiddenConceptCnt: setOp('difference', this.gd.specialConcepts.removed, displayedCids).length,
+        name: "Removed",
+        displayOrder: displayOrder++,
+        value: this.gd.specialConcepts.removed?.length ?? 0,
+        hiddenConceptCnt: setOp('difference', this.gd.specialConcepts.removed ?? [], displayedCids).length,
         specialTreatmentDefault: false,
         specialTreatmentRule: 'show though collapsed',
       },
       standard: {
-        name: "Standard concepts", displayOrder: displayOrder++,
+        name: "Standard concepts",
+        displayOrder: displayOrder++,
         value: this.gd.concepts.filter(c => c.standard_concept === 'S').length,
       },
       classification: {
-        name: "Classification concepts", displayOrder: displayOrder++,
+        name: "Classification concepts",
+        displayOrder: displayOrder++,
         value: this.gd.concepts.filter(c => c.standard_concept === 'C').length,
       },
       nonStandard: {
-        name: "Non-standard", displayOrder: displayOrder++,
-        value: this.gd.specialConcepts.nonStandard.length,
-        displayedConceptCnt: setOp('intersection', this.gd.specialConcepts.nonStandard, displayedCids).length,
-        hiddenConceptCnt:  setOp('intersection', this.gd.specialConcepts.nonStandard, this.hideThoughExpanded).length,
+        name: "Non-standard",
+        displayOrder: displayOrder++,
+        value: this.gd.specialConcepts.nonStandard?.length ?? 0,
+        displayedConceptCnt: setOp('intersection', this.gd.specialConcepts.nonStandard ?? [], displayedCids).length,
+        hiddenConceptCnt: setOp('intersection', this.gd.specialConcepts.nonStandard ?? [], this.hideThoughExpanded).length,
         specialTreatmentDefault: false,
         specialTreatmentRule: 'hide though expanded',
       },
       zeroRecord: {
-        name: "Zero records / patients", displayOrder: displayOrder++,
-        value: this.gd.specialConcepts.zeroRecord.length,
-        displayedConceptCnt: setOp('intersection', this.gd.specialConcepts.zeroRecord, displayedCids).length,
-        hiddenConceptCnt: setOp('intersection', this.gd.specialConcepts.zeroRecord, [...(this.hideThoughExpanded || [])]).length,
+        name: "Zero records / patients",
+        displayOrder: displayOrder++,
+        value: this.gd.specialConcepts.zeroRecord?.length ?? 0,
+        displayedConceptCnt: setOp('intersection', this.gd.specialConcepts.zeroRecord ?? [], displayedCids).length,
+        hiddenConceptCnt: setOp('intersection', this.gd.specialConcepts.zeroRecord ?? [], [...(this.hideThoughExpanded || [])]).length,
         specialTreatmentDefault: false,
         specialTreatmentRule: 'hide though expanded',
       },
       allButFirstOccurrence: {
-        name: "All but first occurrence", displayOrder: displayOrder++,
-        value: this.gd.specialConcepts.allButFirstOccurrence.length,
+        name: "All but first occurrence",
+        displayOrder: displayOrder++,
+        value: this.gd.specialConcepts.allButFirstOccurrence?.length ?? 0,
         displayedConceptCnt: this.options.specialConceptTreatment.allButFirstOccurrence
             ? 0
-            : this.gd.specialConcepts.allButFirstOccurrence.length,
+            : this.gd.specialConcepts.allButFirstOccurrence?.length ?? 0,
         hiddenConceptCnt: this.options.specialConceptTreatment.allButFirstOccurrence
-            ? this.gd.specialConcepts.allButFirstOccurrence.length
+            ? this.gd.specialConcepts.allButFirstOccurrence?.length ?? 0
             : 0,
         /* special_v_displayed: () => {
           let special = this.gd.specialConcepts.allButFirstOccurrence.map(p => p.join('/'));
@@ -534,7 +542,7 @@ export class GraphContainer {
       rows[type] = row;
     }
     this.statsOptions = rows;
-  };
+  }
   getStatsOptions() {
     return sortBy(this.statsOptions, d => d.displayOrder);
   }
@@ -561,6 +569,11 @@ export const useGraphContainer = () => {
   return context;
 };
 
+function decomposeToArray(setOrIterator) {
+  if (setOrIterator instanceof Set || (setOrIterator && typeof setOrIterator.next === 'function')) setOrIterator = [...setOrIterator];
+  return setOrIterator;
+}
+
 function setOp(op, setA, setB) {
   /*
    * setOp(op, setA, setB)
@@ -573,8 +586,8 @@ function setOp(op, setA, setB) {
     difference: differenceWith,
     intersection: intersectionWith
   })[op];
-  if (setA instanceof Set || setA instanceof Iterator) setA = [...setA];
-  if (setB instanceof Set || setB instanceof Iterator) setB = [...setB];
+  setA = decomposeToArray(setA);
+  setB = decomposeToArray(setB);
   return f(setA, setB, (itemA, itemB) => itemA == itemB);
 }
 
