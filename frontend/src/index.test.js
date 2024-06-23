@@ -2505,14 +2505,12 @@ test('test makeGraph() - diagram case', () => {
 });
 
 // TODO:
-test('test makeGraph() - 1 cset "single small"', () => {
-  console.log();
-});
-
-// TODO:
-test('test makeGraph() - 2+ csets', () => {
-  console.log();
-});
+// test('test makeGraph() - 1 cset "single small"', () => {
+// });
+//
+// // TODO:
+// test('test makeGraph() - 2+ csets', () => {
+// });
 
 // - roots, leaves
 // todo?
@@ -2520,12 +2518,12 @@ test('test makeGraph() - 2+ csets', () => {
 
 test('test roots, leaves - 1 cset "single small"', () => {
   const gc = new GraphContainer(singleSmallGraphContainerGraphData);
-  expect(gc.roots).toStrictEqual(["442793", "4044391", "4129519", "isolated"]);
+  expect(gc.roots).toStrictEqual(["442793", "4044391", "4129519", "unlinked"]);
   expect(gc.leaves).toStrictEqual(["3172958", "4016047", "4034962", "4044392", "4129524", "4129525", "4161671", "4162239", "4221962", "4224419", "4237068", "4252356", "4270049", "4294429", "4327944", "35625724", "35626038", "35626039", "36674752", "43022019", "43531010", "44833365", "45766050"]);
 });
 
 test('test roots, leaves - 2+ csets', () => {
   const gc = new GraphContainer(manySmallGraphContainerGraphData);
-  expect(gc.roots).toStrictEqual(["76685", "81893", "441269", "442793", "4044391", "4129519", "4209139", "isolated"]);
+  expect(gc.roots).toStrictEqual(["76685", "81893", "441269", "442793", "4044391", "4129519", "4209139", "unlinked"]);
   expect(gc.leaves).toStrictEqual(["78799", "81400", "436956", "3172958", "4016047", "4029372", "4031048", "4034962", "4043730", "4044392", "4045731", "4046356", "4048782", "4086978", "4129524", "4129525", "4135454", "4146936", "4161671", "4162239", "4187900", "4204694", "4215003", "4215784", "4221962", "4224419", "4237068", "4252356", "4269919", "4270049", "4271197", "4294429", "4301738", "4327944", "35625724", "35626038", "35626039", "36674478", "36674752", "36713763", "37116298", "37116300", "37116301", "37117740", "40481367", "43022019", "43531010", "43531560", "43531561", "44783784", "44833365", "45766050", "46269838", "46269840", "46269841", "46269848", "46269850", "46269851"]);
 });
