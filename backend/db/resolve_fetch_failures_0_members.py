@@ -59,7 +59,9 @@ def handle_discarded_drafts(
     con: Connection, csets_and_members: Dict[str, List[Dict]], queried_cset_ids: Set[int],
     failure_lookup: Dict[int, Dict] = None, report_success=True, use_local_db=False
 ) -> Set[int]:
-    """Determine if drafts have been discarded and, if so, mark resolved and delete from DB."""
+    """Determine if drafts have been discarded and, if so, mark resolved and delete from DB.
+
+    todo: if not report_success, no backup of the discarded draft is deleted. Might want to save to disk."""
     if report_success and not failure_lookup:
         raise ValueError("Failure lookup must be provided if reporting success")
 
