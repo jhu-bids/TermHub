@@ -123,7 +123,10 @@ def get_dependent_tables_queue(independent_tables: List[str]) -> List[str]:
 
 
 def refresh_any_dependent_tables(con: Connection, independent_tables: List[str] = CORE_CSET_TABLES, schema=SCHEMA):
-    """Refresh all derived tables that depend on independent_tables"""
+    """Refresh all derived tables that depend on independent_tables
+
+    :param independent_tables: Any tables that changed for which we now want to update any dependent tables.
+    """
     derived_tables: List[str] = get_dependent_tables_queue(independent_tables)
     if not derived_tables:
         print(f'No derived tables found for: {", ".join(independent_tables)}')
@@ -192,7 +195,10 @@ def refresh_derived_tables(
     """Refresh TermHub core cset derived tables: wrapper function
 
     Handles simultaneous requests and try/except for worker function: refresh_any_dependent_tables() ->
-    refresh_derived_tables_exec()"""
+    refresh_derived_tables_exec()
+
+    :param independent_tables: Any tables that changed for which we now want to update any dependent tables.
+    """
     i = 0
     t0 = datetime.now()
     while True:
