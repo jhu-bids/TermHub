@@ -422,6 +422,8 @@ export class GraphContainer {
     return graph;
   }
 
+  /* todo: ?.PROP ?? pattern: consider refactoring to lodash, e.g. get(this, "gd.concept_ids") || []
+  * */
   setStatsOptions() {
     const displayedConcepts = this.displayedRows || []; // first time through, don't have displayed rows yet
     const displayedCids = displayedConcepts.map(r => r.concept_id);
