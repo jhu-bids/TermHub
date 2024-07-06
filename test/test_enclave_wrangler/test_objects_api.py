@@ -4,14 +4,19 @@ todo: fix: PKs (and other constraints) aren't set, so this inserts again and aga
  When done, reactivate several tests currently being skipped because of #804. Search for #804 or IntegrityError
  background: originally thought the issue was this: https://github.com/jhu-bids/TermHub/issues/803, but it's #804
 """
+import json
 import os
 import pickle
+import pytz
 import sys
 import unittest
 from datetime import datetime, timedelta
 from pathlib import Path
 from typing import Callable, Dict, List, Union
 from sqlalchemy.exc import IntegrityError
+from unittest.mock import patch, MagicMock
+
+from enclave_wrangler.utils import JSON_TYPE
 
 THIS_TEST_DIR = Path(os.path.dirname(__file__))
 TEST_DIR = THIS_TEST_DIR.parent
@@ -24,10 +29,29 @@ YESTERDAY: str = (datetime.now() - timedelta(days=1)).isoformat() + 'Z'  # works
 
 from backend.db.utils import delete_obj_by_composite_key, get_db_connection, run_sql, sql_count
 from enclave_wrangler.models import OBJECT_TYPE_TABLE_MAP, field_name_mapping, pkey
-from enclave_wrangler.objects_api import concept_enclave_to_db, \
+from enclave_wrangler.objects_api import LINK_TYPES_RID, concept_enclave_to_db, \
     concept_expression_enclave_to_db, concept_set_container_enclave_to_db, cset_version_enclave_to_db, \
     csets_and_members_to_db, fetch_cset_and_member_objects, all_new_objects_to_db, \
     get_concept_set_version_members
+from enclave_wrangler.objects_api import (
+    get_object_types,
+    get_link_types,
+    get_object_links,
+    download_all_researchers,
+    get_researcher,
+    get_projects,
+    fetch_cset_version,
+    fetch_cset_container,
+    fetch_cset_member_item,
+    fetch_concept,
+    fetch_cset_expression_item,
+    get_age_of_utc_timestamp,
+    get_csets_over_threshold,
+    find_missing_csets_within_threshold,
+    items_to_atlas_json_format,
+    get_codeset_json,
+    get_concept_set_version_expression_items,
+)
 from test.utils_db_refresh_test_wrapper import DbRefreshTestWrapper
 
 
@@ -211,3 +235,126 @@ class TestObjectsApi(DbRefreshTestWrapper):
         obj_id = 563193300
         data = get_concept_set_version_members(obj_id, return_detail='full')
         self.assertGreater(len(data), 0)
+
+    def test_get_object_links(self):
+        """Test get_object_links()"""
+        # OMOPConceptSet from OMOPConceptSetContainer
+        csets: List[Dict] = get_object_links(
+            object_type='OMOPConceptSetContainer',
+            object_id='Termhub Test',
+            link_type='OMOPConceptSet',
+            return_type='data',
+            expect_single_item=True)
+        # self.assertEqual(len(csets), 7)
+
+        # OmopConceptSetVersionItem from OMOPConceptSet
+        items: List[Dict] = get_object_links(
+            object_type='OMOPConceptSet',
+            object_id=25731524,
+            link_type='OmopConceptSetVersionItem')
+        # self.assertEqual(len(items), 1)
+
+        # omopconcepts from OMOPConceptSet
+        members: List[Dict] = get_object_links(
+            object_type='OMOPConceptSet',
+            object_id=25731524,
+            link_type='omopconcepts')
+        self.assertEqual(len(members), 18)
+
+    # TODO: Test these new tests from claude
+    #  - https://claude.ai/chat/7f64ea42-7ab2-43c6-9a86-382bdafc26bf
+    def test_get_age_of_utc_timestamp(self):
+        now = datetime.now(pytz.utc)
+        test_timestamp = now - timedelta(hours=2)
+        result = get_age_of_utc_timestamp(test_timestamp)
+        self.assertAlmostEqual(result, 7200, delta=10)  # Allow for small time differences during test execution
+
+    def test_get_csets_over_threshold(self):
+        csets = [
+            {'codesetId': 1, 'createdAt': '2023-01-01T00:00:00Z'},
+            {'codesetId': 2, 'createdAt': '2023-07-01T00:00:00Z'},
+        ]
+        result = get_csets_over_threshold(csets, 30, 'cset_ids')
+        self.assertEqual(result, {1, 2})
+
+
+# todo: #2 new tests by claude to try
+# todo: #1: Wherever I put '#1', consider removing the mock and call the actual function.
+#  - perhaps that will be the case for other test methods; not just the ones where '#1' is tagged
+# todo: DRYify test methods? There's a lot of logic re-used, but it looks like it wouldn't be ane asy refactor; return
+#  values and params differ for each func, for example.
+class TestObjectsApiMocks(DbRefreshTestWrapper):
+    """Tests that specifically use mock APIs
+
+    Scaffolded by: https://claude.ai/chat/7f64ea42-7ab2-43c6-9a86-382bdafc26bf
+    """
+    func_cached_return_map = {
+        func: os.path.join(TEST_INPUT_DIR, 'test_' + func.__name__, 'input.json')
+        for func in [get_object_types, get_link_types]
+    }
+
+    def setUp(self):
+        """Set up mock connection"""
+        self.mock_connection = MagicMock()
+
+    # todo: consider refactors
+    #  1. DRYer: just list the functions, instead of their paths, and the paths should just be automatically calculated,
+    #   e.g. test_FUNC/input.json.
+    #  2. Even DRYer: Maybe just have _read_cached_return() do everything if cached file doesn't exist. In that
+    #  case, it'd call another func to do the caching, then exit out with a warning that the test probably isn't set up
+    #  yet, and to look at the cached file and set up the test.
+    @classmethod
+    def setUpClass(cls):
+        """Set up inputs: cached return data for functions that use mock API calls
+
+        Important!: There are some cases where the cached file was saved manually rather than as a result of
+        setUpClass() running. Below are the functions and why this was done.
+        - get_object_types(): It mocks enclave_get(), but then it removes the 'data' key before returning. I needed to
+        add it back manually. It'd get a KeyError if the mock data was returned without that key."""
+        for func, path in cls.func_cached_return_map.items():
+            if not os.path.exists(path):
+                os.makedirs(os.path.dirname(path), exist_ok=True)
+                with open(path, 'w') as f:
+                    json.dump(func(), f)
+
+    def _read_cached_return(self, func: Callable):
+        """Read cached return from file"""
+        path = self.func_cached_return_map[func]
+        with open(path, 'r') as f:
+            return json.load(f)
+
+    def _call_func_using_cached_mock_data(self, func: Callable, mock_func: MagicMock, *args, **kwargs) -> JSON_TYPE:
+        """Will call func(), interpolating the mock_func() as it runs (via MagicMock), and using previously cached
+        return for said mock_func() running in context of func().
+        E.g. for func=get_object_types(), mock_func=enclave_get(), it will call get_object_types(), and when
+        enclave_get() is called during that function, it will instead use previously cached data."""
+        mock_response = MagicMock()
+        mock_response.json.return_value: JSON_TYPE = self._read_cached_return(func)
+        mock_func.return_value = mock_response
+        result: JSON_TYPE = func(*args, **kwargs)
+        return result
+
+    @patch('enclave_wrangler.objects_api.enclave_get')  # todo #1
+    def test_get_object_types(self, mock_enclave_get):
+        """Test get_object_types()
+
+        This test mocks enclave_get(). get_object_types() doesn't really do any mutation. Just tests nothing breaks."""
+        result: JSON_TYPE = self._call_func_using_cached_mock_data(get_object_types, mock_enclave_get)
+        endpoints = set({obj['apiName'] for obj in result})
+        expected_endpoints_we_need = {
+            'OMOPConcept', 'OMOPConceptSetContainer', 'OMOPConceptSet', 'OmopConceptSetVersionItem'}
+        expected_endpoints_there = expected_endpoints_we_need.intersection(endpoints)
+        self.assertEqual(expected_endpoints_we_need, expected_endpoints_there)
+
+    # todo: could also add a test for link_types(), but it is also unused currently.
+    @patch('enclave_wrangler.objects_api.enclave_post')  # todo #1
+    def test_get_link_types(self, mock_enclave_post):
+        """Test get_link_types()"""
+        result: JSON_TYPE = self._call_func_using_cached_mock_data(get_link_types, mock_enclave_post)
+        # todo: shouldn't this be an option to return from get_link_types()?
+        link_types_ids: List[str] = [x['id'] for x in result['linkTypes'][LINK_TYPES_RID]]
+        # todo: would be better to list even more link types that we depend upon and would expect, but as of this
+        #  writing (2024/07/06), I don't know which if any we are; this function we're testing doesn't have usages.
+        link_types_possibly_needed = {'omop-concept-set-to-omop-concept'}
+        expected_endpoints_there = link_types_possibly_needed.intersection(link_types_ids)
+        self.assertEqual(link_types_possibly_needed, expected_endpoints_there)

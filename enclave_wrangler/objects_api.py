@@ -7,10 +7,11 @@ Resources
   List: https://www.palantir.com/docs/foundry/api/ontology-resources/objects/list-objects/
 
 TODO's
- 1. Consider refactor: Python -> Bash (curl + JQ)
- 2. Are the tables in 'datasets' isomorphic w/ 'objects'? e.g. object OmopConceptSetVersionItem == table
+ 1. minor: Consider refactor: Python -> Bash (curl + JQ)
+ 2. minor: Are the tables in 'datasets' isomorphic w/ 'objects'? e.g. object OmopConceptSetVersionItem == table
  concept_set_version_item_rv_edited_mapped.
  3. All _db funcs / funcs that act on the DB (and unit tests) should be in backend/, not enclave_wrangler.
+ 4. minor: Should there be an objects_api_utils for these funcs that don't really interact w/ the API?
 """
 import logging
 
@@ -25,6 +26,7 @@ from typing import List, Dict, Set, Tuple, Union
 from urllib.parse import quote, unquote
 
 import pytz
+from deprecation import deprecated
 from requests import Response
 from sanitize_filename import sanitize
 from sqlalchemy.engine.base import Connection
@@ -51,10 +53,10 @@ HEADERS = {
     "Content-type": "application/json",
     #'content-type': 'application/json'
 }
-
-
 BASE_URL = f'https://{config["HOSTNAME"]}'
 ONTOLOGY_RID = config['ONTOLOGY_RID']
+# what RID is this? is this just for link types?
+LINK_TYPES_RID = "ri.ontology.main.object-type.a11d04a3-601a-45a9-9bc2-5d0e77dd512e"
 
 uquote = lambda s: quote(unquote(s), safe='')   # in case it was already quoted
 
@@ -75,17 +77,20 @@ def get_object_types(verbose=False) -> List[Dict]:
     return response.json()['data']
 
 
+# todo: unused other than unit test. remove?
 def get_link_types(use_cache_if_failure=False) -> List[Union[Dict, str]]:
     """Get link types
 
     https://www.palantir.com/docs/foundry/api/ontology-resources/objects/list-linked-objects/
 
-    todo: This doesn't work on Joe's machine, in PyCharm or shell. Works for Siggie. We both tried using
-      PALANTIR_ENCLAVE_AUTHENTICATION_BEARER_TOKEN (we use the same one) instead as well- 2022/12/12
     todo: What is the UUID starting with 00000001?
     todo: Do equivalent of `jq '..|objects|.apiName//empty'` here so that what's returned from response.json() is
       the also a List[str], like what's 'cached' here.
-    todo: This is about the same as get_link_types(). Remove one?
+    todo: This is about the same as ink_types(). Remove one?
+    todo: cached_types heavily outdated. See cached file as of 2024/07/06: test/test_enclave_wrangler/input/
+     test_get_link_types/input.json
+    todo: link_types: List[str]: shouldn't this be an option to return from get_link_types()? see: test_get_link_types()
+
 
     curl -H "Content-type: application/json" -H "Authorization: Bearer $OTHER_TOKEN" \
     "https://unite.nih.gov/ontology-metadata/api/ontology/linkTypesForObjectTypes" --data '{
@@ -133,12 +138,11 @@ def get_link_types(use_cache_if_failure=False) -> List[Union[Dict, str]]:
         'revisedconceptSetVersionChangeAcknowledgement',
         'revisedomopconceptSet',
     ]
-
     # noinspection PyBroadException
     try:
         data = {
             "objectTypeVersions": {
-                "ri.ontology.main.object-type.a11d04a3-601a-45a9-9bc2-5d0e77dd512e":  # what RID is this?
+                LINK_TYPES_RID:
                     "00000001-9834-2acf-8327-ecb491e69b5c"  # what UUID is this?
             }
         }
@@ -156,11 +160,8 @@ def get_link_types(use_cache_if_failure=False) -> List[Union[Dict, str]]:
 
 
 def get_object_links(
-    object_type: str, object_id: str, link_type: str, fail_on_error=False, handle_paginated=True,
-    return_type: str = ['Response', 'json', 'data'][2], retry_if_empty=False,
-    expect_single_item=False,
-    verbose = False,
-
+    object_type: str, object_id: Union[str, int], link_type: str, fail_on_error=False, handle_paginated=True,
+    return_type: str = ['Response', 'json', 'data'][2], retry_if_empty=False, expect_single_item=False, verbose=False,
 ) -> Union[Response, List[Dict]]:
     """Get links of a given type for a given object
 
@@ -168,7 +169,7 @@ def get_object_links(
     - If the `link_type` is not valid for a given `object_type`, you'll get a 404 not found.
     """
     return make_objects_request(
-        f'{object_type}/{object_id}/links/{link_type}', return_type=return_type, fail_on_error=fail_on_error,
+        f'{object_type}/{str(object_id)}/links/{link_type}', return_type=return_type, fail_on_error=fail_on_error,
         handle_paginated=handle_paginated, expect_single_item=expect_single_item,
         retry_if_empty=retry_if_empty, verbose=verbose)
 
@@ -182,33 +183,10 @@ def get_ontologies() -> Union[List, Dict]:
     response_json = response.json()
     return response_json
 
-
+@deprecated(details="Use get_link_types() instead")
 def link_types() -> List[Dict]:
-    """Get link types
-    curl -H "Content-type: application/json" -H "Authorization: Bearer $OTHER_TOKEN" \
-    "https://unite.nih.gov/ontology-metadata/api/ontology/linkTypesForObjectTypes" --data '{
-        "objectTypeVersions": {
-            "ri.ontology.main.object-type.a11d04a3-601a-45a9-9bc2-5d0e77dd512e": "00000001-9834-2acf-8327-ecb491e69b5c"
-        }
-    }' | jq '..|objects|.apiName//empty'
-    todo: This is about the same as get_link_types(). Remove one?
-    """
-    headers = {
-        # "authorization": f"Bearer {config['PALANTIR_ENCLAVE_AUTHENTICATION_BEARER_TOKEN']}",
-        "authorization": f"Bearer {config['OTHER_TOKEN']}",
-        'Content-type': 'application/json',
-    }
-    data = {
-        "objectTypeVersions": {
-            "ri.ontology.main.object-type.a11d04a3-601a-45a9-9bc2-5d0e77dd512e":  # what RID is this?
-                "00000001-9834-2acf-8327-ecb491e69b5c"  # what UUID is this?
-        }
-    }
-    api_path = '/ontology-metadata/api/ontology/linkTypesForObjectTypes'
-    url = f'https://{config["HOSTNAME"]}{api_path}'
-    response = enclave_post(url, data=data)
-    response_json = response.json()
-    return response_json
+    """Get link types"""
+    return get_link_types()
 
 
 # def run(request_types: List[str]) -> Dict[str, Dict]:
