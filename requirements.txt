@@ -1,6 +1,6 @@
 aiohttp==3.8.4
 aiosignal==1.3.1
-airium==0.2.5
+airium==0.2.6
 alabaster==0.7.13
 antlr4-python3-runtime==4.9.3
 anyio==3.6.1
