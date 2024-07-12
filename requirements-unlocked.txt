@@ -23,6 +23,8 @@ networkx
 
 # Fixes bug: https://github.com/jhu-bids/TermHub/issues/627
 PyCG==0.0.6
+# Fixes bug
+airium==0.2.6
 
 # dev dependencies
 # psutil  # for memory profiling
