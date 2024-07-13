@@ -1,7 +1,6 @@
 """Resolve situations where we tried to fetch data from the Enclave, but failed due to the concept set being too new,
 resulting in initial fetch of concept set members being 0.
-
-TODO: if every expression is set to `isExcluded=true`, we expect no members. Can add as a check rather than wait 2hrs"""
+"""
 import json
 import os
 import sys
@@ -21,8 +20,8 @@ from backend.utils import call_github_action
 from backend.db.resolve_fetch_failures_excess_items import resolve_fetch_failures_excess_items
 from backend.db.utils import SCHEMA, fetch_status_set_success, get_db_connection, reset_temp_refresh_tables,\
     run_sql, select_failed_fetches, refresh_derived_tables, sql_in, sql_query
-from enclave_wrangler.objects_api import  csets_and_members_to_db, fetch_cset_and_member_objects, fetch_cset_version,\
-    get_csets_over_threshold
+from enclave_wrangler.objects_api import  csets_and_members_to_db, fetch_cset_and_member_objects, fetch_cset_version, \
+    get_csets_over_threshold, update_cset_metadata_from_objs
 
 DESC = "Resolve any failures resulting from fetching data from the Enclave's objects API."
 
@@ -139,10 +138,12 @@ def resolve_failures_0_members_if_exist(use_local_db=False, via_github_action=Tr
 def filter_cset_id_where_0_expanded_members(cset_ids: List[int], schema=SCHEMA, use_local_db=False) -> List[int]:
     """Filter cset IDs where there are 0 members when expanded
 
-    TODO: complex cases: presently only does simple case: isExcluded=true, includeDescendants=false,
-     includeMapped=false. Ideally we'd also check cases where isExcluded=true, but if any includeDescendants=true,
-     check concept_ancestor to see if there actually are any descendants, and for includeMapped=true, check
-     concept_relationship to see if any mapped."""
+    Todo: complex cases: presently only does simple case:
+      - isExcluded=true, includeDescendants=false, includeMapped=false
+     Ideally we'd also check cases where:
+      - isExcluded=true, but if any includeDescendants=true, check concept_ancestor to see if there actually are any
+      descendants, and for includeMapped=true, check concept_relationship to see if any mapped.
+    """
     qry = f"""SELECT codeset_id
         FROM concept_set_version_item AS csvi
         WHERE codeset_id {sql_in(cset_ids)}
@@ -244,13 +245,16 @@ def resolve_fetch_failures_0_members(
         success_cases['OMOPConceptSet'] = [x for x in success_cases['OMOPConceptSet'] if x['member_items']]
         success_cset_ids: List[int] = [x['properties']['codesetId'] for x in success_cases['OMOPConceptSet']]
         failed_cset_ids = list(set(failed_cset_ids) - set(success_cset_ids) - set(discarded_cset_ids))
+        finalized_draft_ids: List[int] = [x for x in success_cset_ids if not cset_is_draft_map[x]]
+        finalized_drafts: List[Dict] = \
+            [x['properties'] for x in success_cases['OMOPConceptSet'] if x['properties']['codesetId'] in finalized_draft_ids]
 
         # Update DB & report success
         if success_cset_ids:
             try:
                 with get_db_connection(schema=schema, local=use_local_db) as con:
-                    csets_and_members_to_db(con, success_cases, schema)
-                    refresh_derived_tables(con)
+                    update_cset_metadata_from_objs(finalized_drafts, con)
+                    csets_and_members_to_db(con, success_cases, ['OmopConceptSetVersionItem', 'OMOPConcept'], schema)
                 print(f"Successfully fetched concept set members for concept set versions: "
                       f"{', '.join([str(x) for x in success_cset_ids])}")
                 # todo: Rare occasion: Ideally, if manually passing and using --force, it's because there was previously

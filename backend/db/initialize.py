@@ -155,6 +155,14 @@ def initialize(
 
         make_derived_tables_and_more(con, schema, local=local)  # , start_step=30)
 
+        # Make update audit tables
+        # - these tables are to store history of updates made to 'core' tables; when they were made, not by who
+        audit_update_tables = ['code_sets']
+        for table in audit_update_tables:
+            run_sql(con, f"""CREATE TABLE {schema}.{table}_audit AS TABLE {schema}.{table} WITH NO DATA;
+                ALTER TABLE {schema}.{table}_audit
+                ADD COLUMN update_timestamp TIMESTAMP DEFAULT CURRENT_TIMESTAMP;""")
+
         if test_schema:
             initialize_test_schema(con, schema, local=local)
 

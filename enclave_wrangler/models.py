@@ -383,16 +383,24 @@ def convert_rows(source: str, target: str, rows: List[Dict]) -> List[Dict]:
     return out
 
 
-def convert_row(source: str, target: str, row: Dict, skip_missing_fields=True) -> Dict:
-    """Convert row from source to target"""
+# todo: automatically determine the source and target rowtypes based on the fields in the row
+# todo: consider, if running multiple times on row, do we want it to error the second time, since the row has already
+#  been converted, or do we want it to do nothing and return the same obj?
+def convert_row(source: str, target: str, row: Dict, skip_missing_fields=True, keep_missing_fields=False) -> Dict:
+    """Convert row from source to target
+
+    :param keep_missing_fields: If True, keep fields that are not in the target model. This is useful when the source
+     is actually the same object type as the target. If True, will result in the returned object/row being the same as
+     the `row` that was passed.
+    """
     out = {}
     for field in get_field_names(target):
         try:
             out[field] = row[field_name_mapping(target, source, field)]
         except KeyError as err:
-            if skip_missing_fields:
-                pass
-            else:
+            if keep_missing_fields:
+                out[field] = row[field]
+            elif not skip_missing_fields:
                 raise err
     return out
 
