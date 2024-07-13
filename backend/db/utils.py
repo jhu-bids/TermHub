@@ -310,7 +310,11 @@ def reset_refresh_status(local=False):
     """Reset DB refresh active status variables to reflect non-active status
 
     Used in situations where it is not active, but the variables reflect otherwise. This can happen due to exiting out
-    of the debugger during a refresh or when a GH action times out."""
+    of the debugger during a refresh or when a GH action times out.
+
+    todo: consider also setting `last_refresh_result` to 'error' or 'termination', though if choosting 'error', then
+     might want to set `last_refresh_error` to 'terminated' or 'unknown' or 'unknown; probably terminated'.
+    """
     key_pairs = [
         ('last_derived_refresh_request', 'last_derived_refresh_exited'),
         ('last_refresh_request', 'last_refresh_exited')
