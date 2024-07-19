@@ -1,0 +1,2 @@
+python3 -m pip install -r requirements.txt
+python3 -m pip install vshub_sdk --upgrade --extra-index-url "https://:${PALANTIR_ENCLAVE_AUTHENTICATION_BEARER_TOKEN}@unite.nih.gov/artifacts/api/repositories/ri.artifacts.main.repository.9bc9cc56-4b8c-4560-9bfb-fba8ade55246/contents/release/pypi/simple" --extra-index-url "https://:${PALANTIR_ENCLAVE_AUTHENTICATION_BEARER_TOKEN}@unite.nih.gov/artifacts/api/repositories/ri.foundry-sdk-asset-bundle.main.artifacts.repository/contents/release/pypi/simple"

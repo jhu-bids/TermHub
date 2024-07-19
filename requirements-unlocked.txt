@@ -4,7 +4,6 @@ fastapi
 httpx
 jinja2
 mezmorize
-oaklib
 pandas
 pandasql
 pyarrow

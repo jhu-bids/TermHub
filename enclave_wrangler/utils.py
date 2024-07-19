@@ -12,8 +12,8 @@ import pandas as pd
 import requests
 from datetime import datetime, timezone, timedelta
 from http.client import HTTPConnection
-
 from requests import Response
+from vshub_sdk.core.api import UserTokenAuth
 
 from enclave_wrangler.config import OUTDIR_OBJECTS, config, TERMHUB_VERSION, CSET_VERSION_MIN_ID
 from backend.utils import dump
@@ -30,7 +30,11 @@ EXTRA_PARAMS = {
 JSON_TYPE = Union[Dict, List]
 SERVICE_TOKEN_KEY = 'PALANTIR_ENCLAVE_AUTHENTICATION_BEARER_TOKEN'
 PERSONAL_TOKEN_KEY = 'OTHER_TOKEN'
+# todo:some instances where TOKEN_KEY is used will break when service token expires; as the code uses it as $TOKEN_KEY.
+#  should print oauth key instead
 TOKEN_KEY = SERVICE_TOKEN_KEY
+OAUTH_TOKEN = ''  # this gets set by refresh_oauth_token()
+OAUTH_TOKEN_EXPIRES = datetime.now()  # this gets set by refresh_oauth_token()
 
 
 class EnclaveWranglerErr(RuntimeError):
@@ -44,44 +48,78 @@ class ActionValidateError(RuntimeError):
     """Wrapper just to handle errors from this module"""
 
 
-def get_headers(personal=False, content_type="application/json", for_curl=False):
+def get_headers(personal=False, content_type="application/json", for_curl=False, oauth=True):
     """Format headers for enclave calls
 
-    TODO: fix all this -- we've been switching back and forth between service token and personal because some APIs are
+    todo: fix all this -- we've been switching back and forth between service token and personal because some APIs are
       open to one, some to the other (and sometimes the service one has been expired. In the past we've switched by hard
       coding the api call header, but now we have to make api calls (temporarily, see
       https://cd2h.slack.com/archives/C034EG5ESU9/p1670337451241379?thread_ts=1667317248.546169&cid=C034EG5ESU9)
-      using one and then the other."""
+      using one and then the other.
+      - joeflack4 2024/07/19: is this still relevant?"""
+    # todo: joeflack4 2024/07/19: is this commented out stuff still relevant?
     # current_key = get_auth_token_key()
     # set_auth_token_key(personal)
+    auth_token: str = get_auth_token(oauth)
     headers = {
-        "authorization": f"Bearer {get_auth_token()}",
+        "authorization": f"Bearer {auth_token}",
     }
     if content_type:    # call get_headers with content_type=None if you don't want that in the headers
         headers["Content-type"] = "application/json"
 
     # set_auth_token_key(current_key)
     if for_curl:
-        headers["authorization"] = '$' + get_auth_token_key()
+        # headers["authorization"] = '$' + TOKEN_KEY
+        headers["authorization"] = auth_token
         headers = '\\\n'.join([f' -H "{k}: {v}"' for k, v in headers.items()])
     return headers
 
-#     #"authorization": f"Bearer {config['PALANTIR_ENCLAVE_AUTHENTICATION_BEARER_TOKEN']}",
 
-def set_auth_token_key(personal=False):
-    """Sets the key to be looked up for the auth token for the N3C Palantir Foundry data enclave."""
-    global TOKEN_KEY
-    TOKEN_KEY = PERSONAL_TOKEN_KEY if personal else SERVICE_TOKEN_KEY
-
-
-def get_auth_token_key():
-    """Returns the key to be looked up for the auth token for the N3C Palantir Foundry data enclave."""
-    return TOKEN_KEY
+# def set_auth_token_key(personal=False):
+#     """Sets the key to be looked up for the auth token for the N3C Palantir Foundry data enclave."""
+#     global TOKEN_KEY
+#     TOKEN_KEY = PERSONAL_TOKEN_KEY if personal else SERVICE_TOKEN_KEY
 
 
-def get_auth_token():
+def refresh_oauth_token(service_user_token: str = config[TOKEN_KEY]):
+    """Refresh service token via oauth
+
+    Docs: https://unite.nih.gov/workspace/developer-console/app/ri.third-party-applications.main.application.a4747154-
+    06a6-4282-ad40-b9740234e7b2/docs/guide/getting-started?language=python&packageType=pypi
+    todo: consider name 'set_oauth_token'
+    todo: Do I need to use these at all?: OAUTH_CLIENT_ID, OAUTH_CLIENT_SECRET?
+    todo: this stuff is just here temporarily for ref and can be removed later:
+        # client = FoundryClient(auth=auth, hostname="https://unite.nih.gov")
+        # OMOPConceptSetObject = client.ontology.objects.OMOPConceptSet
+        # print(OMOPConceptSetObject.take(1))
+    todo: if needs to be in DB (OAUTH_TOKEN, OAUTH_TOKEN_EXPIRES), then need to refactor to use that
+    """
+    global OAUTH_TOKEN, OAUTH_TOKEN_EXPIRES
+    auth = UserTokenAuth(hostname="https://unite.nih.gov", token=service_user_token)
+    auth_token: str = auth.get_token().access_token
+    OAUTH_TOKEN_EXPIRES = datetime.now() + timedelta(minutes=59)  # 1 min buffer
+    OAUTH_TOKEN = auth_token
+    return auth_token
+
+
+def get_oauth_token() -> str:
+    """Gets the key to be looked up for the auth token for the N3C Palantir Foundry data enclave.
+
+    todo: check if token is old: refactor?
+     - could refactor this to potentially use FoundryClient. it automates refreshing the token on calls if it is
+     expired, but IDK if that's something we can conveniently plug in here. It may only be something to use if we
+     fully refactor to use that SDK for all/most calls.
+    todo: if needs to be in DB (OAUTH_TOKEN, OAUTH_TOKEN_EXPIRES), then need to refactor to use that
+    todo: Can our service user have multiple active oauth tokens? like, can all actions / deployments / envs of
+     TermHub have their own oauth tokens? Or do we need to store in the DB and share?
+    """
+    return OAUTH_TOKEN if OAUTH_TOKEN_EXPIRES > datetime.now() else refresh_oauth_token()
+
+
+def get_auth_token(oauth=True) -> str:
     """Returns the auth token for the N3C Palantir Foundry data enclave."""
-    return config[TOKEN_KEY]
+    service_user_token: str = config[TOKEN_KEY]
+    return get_oauth_token() if oauth else service_user_token
 
 
 def log_debug_info():
@@ -181,7 +219,7 @@ def handle_response_error(
         error_report['msg'] = msg
 
         curl_str = f'curl -H "Content-type: application/json" ' \
-                   f'-H "Authorization: Bearer ${get_auth_token_key()}" {response.url}'
+                   f'-H "Authorization: Bearer ${TOKEN_KEY}" {response.url}'
         error_report['curl'] = curl_str
 
         print(error_report, file=sys.stderr)
@@ -199,11 +237,11 @@ def handle_response_error(
         })
 
 
-def enclave_get(url: str, verbose: bool = True, args: Dict = {}, error_dir: str = None) -> Response:
+def enclave_get(url: str, verbose: bool = True, args: Dict = {}, error_dir: str = None, oauth=True) -> Response:
     """Get from the enclave and print curl"""
     if verbose:
         print_curl(url, args=args)
-    headers = get_headers()
+    headers = get_headers(oauth=oauth)
     response = requests.get(url, headers=headers, **args)
     handle_response_error(response, error_dir)
     return response
@@ -431,11 +469,11 @@ def make_actions_request(
     return response
 
 
-def process_validate_errors(response: Response, errType: Exception=None, print_error=False):
+def process_validate_errors(response: Response, err_type: Exception=None, print_error=False):
     """Process validate errors"""
     if response.status_code >= 400:
-        if errType:
-            raise errType(response.json())
+        if err_type:
+            raise err_type(response.json())
         return response.json()
     validate_errors = response.json()
     if not validate_errors['result'] == 'INVALID':
@@ -459,17 +497,17 @@ def process_validate_errors(response: Response, errType: Exception=None, print_e
                 # out_errors.append(v['evaluatedConstraints'])
     if print_error:
         print(dump(out_errors), file=sys.stderr)
-    if errType:
-        raise errType(out_errors)
+    if err_type:
+        raise err_type(out_errors)
     return out_errors
 
 
-def enclave_post(url: str, data: Union[List, Dict], raise_validate_error: bool=False, verbose=True) -> Response:
+def enclave_post(url: str, data: Union[List, Dict], raise_validate_error: bool=False, verbose=True, oauth=True) -> Response:
     """Post to the enclave and handle / report on some common issues"""
     if verbose:
         print_curl(url, data)
 
-    headers = get_headers()
+    headers = get_headers(oauth=oauth)
     try:
         response = requests.post(url, headers=headers, json=data)
         err = False
@@ -479,7 +517,8 @@ def enclave_post(url: str, data: Union[List, Dict], raise_validate_error: bool=F
         if any([x in response.text for x in ['errorCode', 'INVALID']]):
             err = True
             if raise_validate_error:
-                process_validate_errors(response, errType=ActionValidateError)
+                # noinspection PyTypeChecker doesnt_understand_superclass
+                process_validate_errors(response, err_type=ActionValidateError)
             print('Error: ' + response.text, file=sys.stderr)
         # response.raise_for_status()
         if err:
@@ -489,7 +528,7 @@ def enclave_post(url: str, data: Union[List, Dict], raise_validate_error: bool=F
     except Exception as err:
         ttl = check_token_ttl(get_auth_token())
         if ttl == 0:
-            raise RuntimeError(f'Error: Token expired: ' + get_auth_token_key())
+            raise RuntimeError(f'Error: Token expired for {TOKEN_KEY}: {headers["authorization"]}')
         raise err
 
 
@@ -562,19 +601,3 @@ def was_file_modified_within_threshold(path: str, threshold_hours: int) -> bool:
     """Check if a file was modified within a certain threshold"""
     diff_hours = (time() - os.path.getmtime(path)) / (60 * 60)
     return diff_hours <= threshold_hours
-
-
-if __name__ == '__main__':
-    cset_name = 'Hope Termhub Test'
-    codeset_id = 27371375
-
-    x = make_actions_request('edit-concept-set-version-intention',
-                         data={ 'parameters': {
-                             'omop-concept-set': codeset_id,
-                             'intention': f'testing on july 19'
-                         }}, validate_first=True)
-    print(x)
-
-    x = make_actions_request('archive-concept-set',
-                             data={'parameters': { 'concept-set': cset_name, }}, validate_first=True)
-    print(x)
