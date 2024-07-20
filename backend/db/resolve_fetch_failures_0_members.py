@@ -19,10 +19,10 @@ PROJECT_ROOT = os.path.join(BACKEND_DIR, "..")
 sys.path.insert(0, str(PROJECT_ROOT))
 from backend.utils import call_github_action
 from backend.db.resolve_fetch_failures_excess_items import resolve_fetch_failures_excess_items
-from backend.db.utils import SCHEMA, fetch_status_set_success, get_db_connection, reset_temp_refresh_tables, \
+from backend.db.utils import SCHEMA, fetch_status_set_success, get_db_connection, reset_temp_refresh_tables,\
     run_sql, select_failed_fetches, refresh_derived_tables, sql_in, sql_query
-from enclave_wrangler.objects_api import concept_set_members__from_csets_and_members_to_db, \
-    fetch_cset_and_member_objects, fetch_cset_version, get_csets_over_threshold
+from enclave_wrangler.objects_api import  csets_and_members_to_db, fetch_cset_and_member_objects, fetch_cset_version,\
+    get_csets_over_threshold
 
 DESC = "Resolve any failures resulting from fetching data from the Enclave's objects API."
 
@@ -154,9 +154,13 @@ def filter_cset_id_where_0_expanded_members(cset_ids: List[int], schema=SCHEMA, 
 
 
 def get_failures_0_members(
-    version_ids: Union[int, List[int]] = None, use_local_db=False
+    version_ids: Union[int, List[int]] = None, use_local_db=False, force=False
 ) -> Tuple[Set[int], Dict[int, Dict]]:
-    """Gets list of IDs of failed concetp set versions as well as a lookup for more information about them"""
+    """Gets list of IDs of failed concetp set versions as well as a lookup for more information about them
+
+    :param force: If any csets are encountered which have already been resolved, will execute the fetch/import process
+     instead of skipping
+    """
     # Typing modification
     version_ids: List[int] = [version_ids] if version_ids and not isinstance(version_ids, list) else version_ids
 
@@ -167,18 +171,19 @@ def get_failures_0_members(
         int(x['primary_key']) for x in failures if x['status_initially'] == 'fail-0-members'])
 
     # Validate & filter
-    non_failures_passed: Set[int] = set(version_ids).difference(failure_lookup.keys()) if version_ids else set()
-    if bool(version_ids and non_failures_passed):
-        print("Warning: Cset IDs were passed to be resolved, but these are no longer failures; skipping them: "
-              f"{', '.join([str(x) for x in non_failures_passed])}", file=sys.stderr)
-    failure_cset_ids = failure_cset_ids - non_failures_passed
+    if not force:
+        non_failures_passed: Set[int] = set(version_ids).difference(failure_lookup.keys()) if version_ids else set()
+        if bool(version_ids and non_failures_passed):
+            print("Warning: Cset IDs were passed to be resolved, but these are no longer failures; skipping them: "
+                  f"{', '.join([str(x) for x in non_failures_passed])}", file=sys.stderr)
+        failure_cset_ids = failure_cset_ids - non_failures_passed
 
     return failure_cset_ids, failure_lookup
 
 
 def resolve_fetch_failures_0_members(
     version_ids: Union[int, List[int]] = None, use_local_db=False, polling_interval_seconds=30, schema=SCHEMA,
-    expansion_threshold_seconds=2 * 60 * 60, loop=False
+    expansion_threshold_seconds=2 * 60 * 60, loop=False, force=False
 ):
     """Resolve situations where we tried to fetch data from the Enclave, but failed due to the concept set being too new
     resulting in initial fetch of concept set members being 0.
@@ -192,12 +197,13 @@ def resolve_fetch_failures_0_members(
     todo: Performance: Fetch only members, ideally: Even though we are fetching 'members', adding to the cset members
      table requires cset version and container metadata, and the function that does this expects them to be formaatted
      as objects, not as they come from our DB. We can fetch from DB and then convert to objects, but a lot of work for
-     small performance gain."""
+     small performance gain.
+    """
     version_ids = [version_ids] if version_ids and not isinstance(version_ids, list) else version_ids
 
     print("Resolving fetch failures: ostensibly new (possibly draft) concept sets with >0 expressions but 0 members")
     # Collect failures
-    failed_cset_ids_prefilter, failure_lookup = get_failures_0_members(version_ids, use_local_db)
+    failed_cset_ids_prefilter, failure_lookup = get_failures_0_members(version_ids, use_local_db, force)
     failed_cset_ids = copy(failed_cset_ids_prefilter)
     if not failed_cset_ids:
         print("No failures to resolve.")
@@ -213,7 +219,7 @@ def resolve_fetch_failures_0_members(
         if loop:
             print(f"- attempt {i}: fetching members for {len(failed_cset_ids)} concept set versions")
         # Check for new failures: that may have occurred during runtime
-        failed_cset_ids, failure_lookup_i = get_failures_0_members(version_ids, use_local_db)
+        failed_cset_ids, failure_lookup_i = get_failures_0_members(version_ids, use_local_db, force)
         failure_lookup.update(failure_lookup_i)
         # Fetch data
         csets_and_members: Dict[str, List[Dict]] = fetch_cset_and_member_objects(
@@ -240,7 +246,7 @@ def resolve_fetch_failures_0_members(
         if success_cset_ids:
             try:
                 with get_db_connection(schema=schema, local=use_local_db) as con:
-                    concept_set_members__from_csets_and_members_to_db(con, success_cases)
+                    csets_and_members_to_db(con, success_cases, schema)
                     refresh_derived_tables(con)
                 print(f"Successfully fetched concept set members for concept set versions: "
                       f"{', '.join([str(x) for x in success_cset_ids])}")
@@ -329,6 +335,13 @@ def cli():
         required=False,
         default=30,
         help="How often, in seconds, to try to fetch again if fetching still yields 0 members.")
+    parser.add_argument(
+        "-F",
+        "--force",
+        action="store_true",
+        required=False,
+        help="If any csets are encountered which have already been resolved, will execute the fetch/import process "
+             "instead of skipping.")
     resolve_fetch_failures_0_members(**vars(parser.parse_args()))
 
 

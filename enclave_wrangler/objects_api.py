@@ -14,6 +14,7 @@ TODO's
  4. minor: Should there be an objects_api_utils for these funcs that don't really interact w/ the API?
 """
 import logging
+from pprint import pprint
 
 import dateutil.parser as dp
 import json
@@ -57,6 +58,8 @@ BASE_URL = f'https://{config["HOSTNAME"]}'
 ONTOLOGY_RID = config['ONTOLOGY_RID']
 # what RID is this? is this just for link types?
 LINK_TYPES_RID = "ri.ontology.main.object-type.a11d04a3-601a-45a9-9bc2-5d0e77dd512e"
+# CSETS_AND_MEMBERS_TYPE: 'OMOPConceptSetContainer', 'OMOPConceptSet', 'OmopConceptSetVersionItem', 'OMOPConcept'
+CSETS_AND_MEMBERS_TYPE = Union[Dict[str, List[Dict]], None]
 
 uquote = lambda s: quote(unquote(s), safe='')   # in case it was already quoted
 
@@ -279,6 +282,14 @@ def fetch_all_new_objects(since: Union[datetime, str]) -> Dict[str, List]:
     return dict(csets_and_members | {'researchers': researchers} | {'projects': projects})
 
 
+def fetch_csets_by_id(cset_ids: List[int], verbose=True) -> CSETS_AND_MEMBERS_TYPE:
+    """Given a list of cset ids, fetch cset objects and print information about them."""
+    cset_and_members:  CSETS_AND_MEMBERS_TYPE = fetch_cset_and_member_objects(codeset_ids=cset_ids)
+    if verbose:
+        pprint(cset_and_members)
+    return cset_and_members
+
+
 # TODO: do together: all_new_objects_to_db() fetch_all_new_objects() all_new_objects_enclave_to_db()
 def all_new_objects_enclave_to_db(since: Union[datetime, str]) -> Dict[str, List]:
     """Get all new objects and update database"""
@@ -291,12 +302,14 @@ def csets_and_members_enclave_to_db(
     con: Connection, since: Union[datetime, str] = None, cset_ids: List[int] = None, schema=SCHEMA
 ) -> bool:
     """Fetch new csets and members, if needed, and then update database with them, returns None is no updates needed"""
-    if not (since or cset_ids) or (since and cset_ids):
-        raise ValueError('Must pass either: `since` or `cset_ids`, but not both.')
+    if not since or cset_ids:
+        raise ValueError('Must pass either: `since` or `cset_ids`.')
+    elif since and cset_ids:
+        raise NotImplementedError('Cannot pass both `since` and `cset_ids`.')
     t0 = datetime.now()
     print('Fetching new data from the N3C data enclave...')
 
-    csets_and_members: Dict[str, List[Dict]] = fetch_cset_and_member_objects(since) if since \
+    csets_and_members: CSETS_AND_MEMBERS_TYPE = fetch_cset_and_member_objects(since) if since \
         else fetch_cset_and_member_objects(codeset_ids=cset_ids)
     if not csets_and_members:
         return False
@@ -419,7 +432,7 @@ def find_and_add_missing_csets_to_db(con: Connection = None, schema=SCHEMA):
 def fetch_cset_and_member_objects(
     since: Union[datetime, str] = '', codeset_ids: List[int] = [], flag_issues=True, verbose=False,
     try_fixing_issues_immediately=False
-) -> Union[Dict[str, List[Dict]], None]:
+) -> CSETS_AND_MEMBERS_TYPE:
     """Get new objects: cset container, cset version, expression items, and member items.
 
     :param since: datetime or str, e.g. '2023-07-09T01:08:23.547680-04:00'. If present, codeset_ids should be empty.
@@ -536,7 +549,7 @@ def fetch_cset_and_member_objects(
                     'fail-excessive-members', 'comment': f"Failed after {len(cset['member_items'])} members."}])
                 if try_fixing_issues_immediately:
                     call_github_action('resolve-fetch-failures-excess-items')
-        if not cset['member_items'] and cset['expression_items'] and flag_issues:
+        if cset['properties']['isDraft'] or (not cset['member_items'] and cset['expression_items']) and flag_issues:
             draft_text = 'Draft cset at time reported. ' if cset['properties']['isDraft'] else ''
             insert_fetch_statuses([{
                 'table': 'code_sets', 'primary_key': version_id, 'status_initially': 'fail-0-members',
@@ -551,14 +564,15 @@ def fetch_cset_and_member_objects(
             'OmopConceptSetVersionItem': expression_items, 'OMOPConcept': member_items}
 
 
-def concept_set_members__from_csets_and_members_to_db(con: Connection, csets_and_members: Dict[str, List[Dict]]):
+def concept_set_members__from_csets_and_members_to_db(con: Connection, csets_and_members: CSETS_AND_MEMBERS_TYPE):
     """Take a 'csets_and_members' object and take what is needed to insert data into concept_set_members table."""
     container_lookup = {x['conceptSetId']: x for x in csets_and_members['OMOPConceptSetContainer']}
     for cset in csets_and_members['OMOPConceptSet']:
         container = container_lookup[cset['properties']['conceptSetNameOMOP']]
         concept_set_members__cset_rows_to_db(con, cset, cset['member_items'], container)
 
-def csets_and_members_to_db(con: Connection, csets_and_members: Dict[str, List[Dict]], schema=SCHEMA):
+
+def csets_and_members_to_db(con: Connection, csets_and_members: CSETS_AND_MEMBERS_TYPE, schema=SCHEMA):
     """Update database with csets and members.
     todo: add_object_to_db(): support multiple objects with single insert"""
     # Core cset tables: with normal, single primary keys
@@ -1057,6 +1071,10 @@ def cli():
     parser.add_argument(
         '-d', '--refresh-derived', action='store_true',
         help='Just refresh the derived tables.')
+    parser.add_argument(
+        '-c', '--fetch-csets-by-ids', nargs='+', type=int,
+        help='Fetches and prints information about csets, given IDs. Pass them space-delimited, e.g. '
+             '--fetch-csets-by-ids 123 456.')
     args: Dict = vars(parser.parse_args())
     commands_to_run = [k for k, v in args.items() if v]
     if 'find_missing_csets' in commands_to_run:
@@ -1066,6 +1084,8 @@ def cli():
     if'refresh_derived' in commands_to_run:
         with get_db_connection() as con:
             refresh_derived_tables(con)
+    if 'fetch_csets_by_ids' in commands_to_run:
+        fetch_csets_by_id(args['fetch_csets_by_ids'])
 
 
 if __name__ == '__main__':
