@@ -48,18 +48,18 @@ from backend.db.queries import get_concepts
 from backend.utils import call_github_action
 
 DEBUG = False
-HEADERS = {
-    "authorization": f"Bearer {config['PALANTIR_ENCLAVE_AUTHENTICATION_BEARER_TOKEN']}",
-    # "authorization": f"Bearer {config['OTHER_TOKEN']}",
-    "Content-type": "application/json",
-    #'content-type': 'application/json'
-}
 BASE_URL = f'https://{config["HOSTNAME"]}'
 ONTOLOGY_RID = config['ONTOLOGY_RID']
 # what RID is this? is this just for link types?
 LINK_TYPES_RID = "ri.ontology.main.object-type.a11d04a3-601a-45a9-9bc2-5d0e77dd512e"
 # CSETS_AND_MEMBERS_TYPE: 'OMOPConceptSetContainer', 'OMOPConceptSet', 'OmopConceptSetVersionItem', 'OMOPConcept'
 CSETS_AND_MEMBERS_TYPE = Union[Dict[str, List[Dict]], None]
+headers = {
+    "authorization": f"Bearer {config['PALANTIR_ENCLAVE_AUTHENTICATION_BEARER_TOKEN']}",
+    # "authorization": f"Bearer {config['OTHER_TOKEN']}",
+    "Content-type": "application/json",
+    #'content-type': 'application/json'
+}
 
 uquote = lambda s: quote(unquote(s), safe='')   # in case it was already quoted
 
