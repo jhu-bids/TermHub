@@ -82,7 +82,10 @@ def handle_discarded_drafts(
             con, f'SELECT * FROM code_sets WHERE codeset_id {sql_in(discarded_cset_ids)};')]
         codeset_lookup: Dict[int, Dict] = {x['codeset_id']: x for x in codeset_rows}
         for _id in discarded_cset_ids:
-            cset: Dict = codeset_lookup[_id]
+            try:
+                cset: Dict = codeset_lookup[_id]
+            except KeyError:
+                continue  # already deleted; this is probably a re-run of a case that was previously handled
             _report_success(
                 _id, failure_lookup, f'Discarded draft. Original properties: {json.dumps(cset)}',
                 use_local_db)
