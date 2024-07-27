@@ -16,7 +16,8 @@ from typing import Callable, Dict, List, Union
 from sqlalchemy.exc import IntegrityError
 from unittest.mock import patch, MagicMock
 
-from enclave_wrangler.utils import JSON_TYPE
+from enclave_wrangler.config import config
+from enclave_wrangler.utils import JSON_TYPE, enclave_get
 
 THIS_TEST_DIR = Path(os.path.dirname(__file__))
 TEST_DIR = THIS_TEST_DIR.parent
@@ -245,21 +246,21 @@ class TestObjectsApi(DbRefreshTestWrapper):
             link_type='OMOPConceptSet',
             return_type='data',
             expect_single_item=True)
-        # self.assertEqual(len(csets), 7)
+        self.assertEqual(7, len(csets))
 
         # OmopConceptSetVersionItem from OMOPConceptSet
         items: List[Dict] = get_object_links(
             object_type='OMOPConceptSet',
             object_id=25731524,
             link_type='OmopConceptSetVersionItem')
-        # self.assertEqual(len(items), 1)
+        self.assertEqual(1, len(items))
 
         # omopconcepts from OMOPConceptSet
         members: List[Dict] = get_object_links(
             object_type='OMOPConceptSet',
             object_id=25731524,
             link_type='omopconcepts')
-        self.assertEqual(len(members), 18)
+        self.assertEqual(18, len(members))
 
     # TODO: Test these new tests from claude
     #  - https://claude.ai/chat/7f64ea42-7ab2-43c6-9a86-382bdafc26bf
