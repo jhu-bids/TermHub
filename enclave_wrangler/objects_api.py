@@ -37,7 +37,8 @@ THIS_DIR = Path(os.path.abspath(os.path.dirname(__file__)))
 PROJECT_ROOT = THIS_DIR.parent
 sys.path.insert(0, str(PROJECT_ROOT))
 from enclave_wrangler.config import OBJECT_REGISTRY, OUTDIR_OBJECTS, OUTDIR_CSET_JSON, config
-from enclave_wrangler.utils import EnclavePaginationLimitErr, enclave_get, enclave_post, fetch_objects_since_datetime, \
+from enclave_wrangler.utils import EnclavePaginationLimitErr, JSON_TYPE, enclave_get, enclave_post, \
+    fetch_objects_since_datetime, \
     get_objects_df, get_url_from_api_path, \
     make_objects_request
 from enclave_wrangler.models import OBJECT_TYPE_TABLE_MAP, convert_row, get_field_names, field_name_mapping, pkey
@@ -222,7 +223,7 @@ def download_favorite_objects(fav_obj_names: List[str] = OBJECT_REGISTRY, force_
             get_objects_df(o, outdir=outdir)
 
 
-def get_all_bundles():
+def get_all_bundles() -> JSON_TYPE:
     """Get all bundles"""
     return make_objects_request('objects/ConceptSetTag', ).json()
 
@@ -233,13 +234,15 @@ def get_bundle_names(prop: str='displayName'):
     return [b['properties'][prop] for b in all_bundles['data']]
 
 
-def get_bundle(bundle_name):
+def get_bundle(bundle_name) -> JSON_TYPE:
     """
     call this like: http://127.0.0.1:8000/enclave-api-call/get_bundle/Anticoagulants
     """
-    all_bundles = get_all_bundles()
-    tag_name = [b['properties']['tagName'] for b in all_bundles['data'] if b['properties']['displayName'] == bundle_name][0]
-    return make_objects_request(f'objects/ConceptSetTag/{tag_name}/links/ConceptSetBundleItem', return_type='data', handle_paginated=True)
+    all_bundles: JSON_TYPE = get_all_bundles()
+    tag_name: List[str] = [
+        b['properties']['tagName'] for b in all_bundles['data'] if b['properties']['displayName'] == bundle_name][0]
+    return make_objects_request(
+        f'objects/ConceptSetTag/{tag_name}/links/ConceptSetBundleItem', return_type='data', handle_paginated=True)
 
 
 def get_bundle_codeset_ids(bundle_name):
@@ -260,7 +263,7 @@ def all_new_objects_to_db(objects: Dict):
     #    - expression_items: we might want to delete its previous items as well, because of possible changes
     #      does expression item ID change when you change one of its flags?
     #    - members
-    pass
+    print(objects)
 
 
 # TODO: do together: all_new_objects_to_db() fetch_all_new_objects() all_new_objects_enclave_to_db()
@@ -623,7 +626,7 @@ def fetch_cset_version(object_id: int, retain_properties_nesting=False) -> Dict:
     return fetch_object_by_id('OMOPConceptSet', object_id, 'codesetId', retain_properties_nesting)
 
 
-def fetch_cset_container(object_id: str, fail_on_error=False, retain_properties_nesting=False, verbose=False) -> Dict:
+def fetch_cset_container(object_id: str, fail_on_error=False, verbose=False) -> Dict:
     """Get object from enclave"""
     return make_objects_request(
         f'OMOPConceptSetContainer/{object_id}', fail_on_error=fail_on_error,
@@ -768,18 +771,6 @@ def concept_set_members__row_to_db(con: Connection, cset_enclave_obj: Dict, conc
     insert_from_dict(con, 'concept_set_members', table_obj)
 
 
-# deprecated: do we really need it? Not used anywhere currently due to refactors
-def concept_set_members_enclave_to_db(con: Connection, codeset_id: int, concept_id: int, members_table_only=False):
-    """Given ID, get object's current state from the enclave, and add it the DB
-    # todo: allow to insert handle multiple objects at once"""
-    code_set_enclave_obj: Dict = fetch_object_by_id('OMOPConceptSet', codeset_id)
-    concept_enclave_obj: Dict = fetch_object_by_id('OMOPConcept', concept_id)
-    if not members_table_only:
-        add_object_to_db(
-            con, 'OMOPConceptSet', code_set_enclave_obj, OBJECT_TYPE_TABLE_MAP['OMOPConceptSet'])
-        add_object_to_db(con, 'OMOPConcept', concept_enclave_obj, OBJECT_TYPE_TABLE_MAP['OMOPConcept'])
-    concept_set_members__row_to_db(con, code_set_enclave_obj, concept_enclave_obj)
-
 def items_to_atlas_json_format(items):
     """Convert version items to atlas json format"""
     flags = ['includeDescendants', 'includeMapped', 'isExcluded']
@@ -788,7 +779,7 @@ def items_to_atlas_json_format(items):
 
     try:
         concept_ids = [i['conceptId'] for i in items]
-    except Exception as err:
+    except KeyError:
         concept_ids = [i['concept_id'] for i in items]
 
     # getting individual concepts from objects api is way too slow
@@ -822,24 +813,9 @@ def items_to_atlas_json_format(items):
 
 # todo: split into get/update
 def get_codeset_json(codeset_id, con: Connection = None, use_cache=True, set_cache=True) -> Dict:
-    """Get code_set jSON"""
-    conn = con if con else get_db_connection()
-    if use_cache:
-        jsn = sql_query_single_col(conn, f"""
-            SELECT json_data
-            FROM concept_set_json
-            WHERE codeset_id = {int(codeset_id)}
-        """)
-        if jsn:
-            return jsn[0]
-    cset = make_objects_request(f'objects/OMOPConceptSet/{codeset_id}', return_type='data', expect_single_item=True)
-    container = make_objects_request(
-        f'objects/OMOPConceptSetContainer/{uquote(cset["conceptSetNameOMOP"])}',
-        return_type='data', expect_single_item=True)
-    items = get_concept_set_version_expression_items(codeset_id, handle_paginated=True, return_detail='full')
-    items_jsn = items_to_atlas_json_format(items)
+    """Get code_set jSON
 
-    junk = """ What an item should look like for ATLAS JSON import format:
+    What an item should look like for ATLAS JSON import format:
     {
       "concept": {
         "CONCEPT_CLASS_ID": "Prescription Drug",
@@ -884,7 +860,21 @@ def get_codeset_json(codeset_id, con: Connection = None, use_cache=True, set_cac
         "includeMapped": false
       },
     """
-
+    conn = con if con else get_db_connection()
+    if use_cache:
+        jsn = sql_query_single_col(conn, f"""
+            SELECT json_data
+            FROM concept_set_json
+            WHERE codeset_id = {int(codeset_id)}
+        """)
+        if jsn:
+            return jsn[0]
+    cset = make_objects_request(f'objects/OMOPConceptSet/{codeset_id}', return_type='data', expect_single_item=True)
+    container = make_objects_request(
+        f'objects/OMOPConceptSetContainer/{uquote(cset["conceptSetNameOMOP"])}',
+        return_type='data', expect_single_item=True)
+    items = get_concept_set_version_expression_items(codeset_id, handle_paginated=True, return_detail='full')
+    items_jsn = items_to_atlas_json_format(items)
     jsn = {
         'concept_set_container': container,
         'version': cset,
@@ -1014,7 +1004,7 @@ def download_all_researchers(verbose=False) -> List[Dict]:
     return data
 
 
-def get_researcher(multipass_id: str, verbose=False) -> Dict:
+def get_researcher(multipass_id: str, verbose=False) -> List[Dict]:
     """Get researcher objects
     Researcher exploration page:
     https://unite.nih.gov/workspace/hubble/exploration?objectTypeRid=ri.ontology.main.object-type.70d7defa-4914-422f-83da-f45c28befd5a
