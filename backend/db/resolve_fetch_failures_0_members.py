@@ -253,7 +253,13 @@ def resolve_fetch_failures_0_members(
                     refresh_derived_tables(con)
                 print(f"Successfully fetched concept set members for concept set versions: "
                       f"{', '.join([str(x) for x in success_cset_ids])}")
-                _report_success(success_cset_ids, failure_lookup, 'Found members', use_local_db)
+                # todo: Rare occasion: Ideally, if manually passing and using --force, it's because there was previously
+                #  a success, but this is being re-run for those cases because the success is in question. In these
+                #  cases, ideally we'd figure out if any new / different data for the given cset was actually found /
+                #  imported, and report about that in the comment.
+                # filter: if manually passing IDs and using --force, won't be in lookup.
+                filtered_ids = [x for x in success_cset_ids if x in failure_lookup]
+                _report_success(filtered_ids, failure_lookup, 'Found members', use_local_db)
             except Exception as err:
                 reset_temp_refresh_tables(schema)
                 raise err
@@ -263,7 +269,8 @@ def resolve_fetch_failures_0_members(
             break
         time.sleep(polling_interval_seconds)
 
-    # Csets with 0 expansion members
+    # Reporting
+    # - Csets with 0 expansion members
     #  - todo: only detecting simple cases. For more info, see docstring of filter_cset_id_where_0_expanded_members()
     csets_w_no_expanded_members: List[int] = filter_cset_id_where_0_expanded_members(failed_cset_ids)
     if csets_w_no_expanded_members:
@@ -275,14 +282,14 @@ def resolve_fetch_failures_0_members(
         _report_success(csets_w_no_expanded_members, failure_lookup, comment, use_local_db)
         failed_cset_ids = list(set(failed_cset_ids) - set(csets_w_no_expanded_members))
 
-    # Parse drafts from actual failures
+    # - Parse drafts from actual failures
     still_draft_cset_ids: Set[int] = set([cset_id for cset_id in failed_cset_ids if cset_is_draft_map[cset_id]])
     if still_draft_cset_ids:
         print(f"Fetch attempted for the following csets, but they still remain drafts and thus still have not had their"
               f" members expanded yet: {', '.join([str(x) for x in still_draft_cset_ids])}")
     non_draft_failure_ids: Set[int] = set(failed_cset_ids) - still_draft_cset_ids
 
-    # Filter by only if has been finalized longer than we would expect it should take for expansion to be available
+    # - Filter by only if has been finalized longer than we would expect it should take for expansion to be available
     # noinspection PyUnboundLocalVariable
     still_draft_csets: List[Dict] = [
         x['properties'] for x in csets_and_members['OMOPConceptSet']
