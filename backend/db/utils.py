@@ -716,7 +716,7 @@ def load_csv(
     df.to_sql(table, con, **{'if_exists': 'append', 'index': False, 'schema': schema, 'chunksize': 1000})
     # - update status
     if not is_test_table:
-        update_db_status_var(f'last_updated_{table}', str(current_datetime()), local)
+        update_db_status_var(f'last_updated_{table_name_no_suffix}', str(current_datetime()), local)
 
 
 def list_tables(con: Connection = None, schema: str = None, filter_temp_refresh_tables=False) -> List[str]:
