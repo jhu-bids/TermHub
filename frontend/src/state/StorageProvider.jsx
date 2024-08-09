@@ -22,7 +22,7 @@ export function useSessionStorage() {
     for (const key in obj) {
       this.setItem(key, obj[key]);
     }
-  }
+  };
   const getItem = (key) => {
     try {
       const item = window.sessionStorage.getItem(key);
@@ -66,26 +66,15 @@ export function useSessionStorage() {
     }
   };
 
-  /*
-  useEffect(() => {
-    const handleStorageChange = (event) => {
-      if (event.storageArea === window.sessionStorage) {
-        const items = { ...window.sessionStorage };
-        setStorage(
-            Object.keys(items).reduce((acc, key) => {
-              acc[key] = JSON.parse(items[key]);
-              return acc;
-            }, {})
-        );
-      }
-    };
-
-    window.addEventListener('storage', handleStorageChange);
-    return () => {
-      window.removeEventListener('storage', handleStorageChange);
-    };
-  }, []);
-   */
+  function addToArray(key, val) {
+    let item = getItem(key);
+    if (!Array.isArray(item)) throw new Error("not an array");
+    setItem(key, [...item, val]);
+  }
+  function removeFromArray(key, val) {
+    let item = getItem(key) || [];
+    setItem(key, item.filter(d => d != val));
+  }
 
   let ss = {
     getItem,
@@ -93,6 +82,8 @@ export function useSessionStorage() {
     removeItem,
     clear,
     extend,
+    addToArray,
+    removeFromArray,
     storage,
     sp: storage, // so code like `{sp} = useSearchParamsState();` works
     dontStringifySetItem: true,
@@ -106,11 +97,12 @@ const SEARCH_PARAM_STATE_CONFIG = {
   global_props_but_not_search_params: [], // ["searchParams", "setSearchParams"],
   // ignore: ["sstorage"],
   serialize: ["newCset", "graphOptions"],
+  intArray: ["codeset_ids"],
 };
 
 const SearchParamsContext = createContext(null);
 
-export function SearchParamsProvider({children}) {
+export function SearchParamsProviderREAL({children}) {
   const [searchParams, setSearchParams] = useSearchParams();
 
   const searchParamsToObj = useCallback(searchParams => {
@@ -188,55 +180,40 @@ export function SearchParamsProvider({children}) {
     const csp = createSearchParams();
     setSearchParams(csp);
   }
-
-  function changeCodesetIds(codeset_id, how) {
+  function addToArray(key, val) {
     let sp = searchParamsToObj(searchParams);
-
-    // how = add | remove | toggle
-    if (how === "set" && Array.isArray(codeset_id)) {
-      updateSearchParams({ /* ...sp, haven't tested removing this, but should be ok */
-        addProps: { codeset_ids: codeset_id }, searchParams, setSearchParams, });
-      return;
-    }
-    const included = codeset_ids.includes(codeset_id);
-    let action = how;
-    if (how === "add" && included) return;
-    if (how === "remove" && !included) return;
-    if (how === "toggle") {
-      action = included ? "remove" : "add";
-    }
-    if (action === "add") {
-      updateSearchParams({ ...sp, addProps: { codeset_ids: [...codeset_ids, codeset_id] },
-                            searchParams, setSearchParams, });
-    } else if (action === "remove") {
-      if (!included) return;
-      updateSearchParams({ ...sp, addProps: { codeset_ids: codeset_ids.filter((d) => d !== codeset_id) },
-                            searchParams, setSearchParams, });
-    } else {
-      throw new Error(
-          "unrecognized action in changeCodesetIds: " +
-          JSON.stringify({ how, codeset_id })
-      );
-    }
+    let arr = sp[key] ?? [];
+    updateSearchParams({addProps: {[key]: [...arr, val]}});
+  }
+  function removeFromArray(key, val) {
+    let sp = searchParamsToObj(searchParams);
+    let arr = sp[key] ?? [];
+    updateSearchParams({addProps: {[key]: arr.filter(d => d != val)}});
   }
 
   if (!sp.codeset_ids) {
     sp.codeset_ids = [];
   }
-  const value = { sp, updateSp: updateSearchParams, changeCodesetIds, getItem, setItem, removeItem, clear, dontStringifySetItem: true, };
+  const value = { sp, getItem, setItem, removeItem, clear, addToArray, removeFromArray, dontStringifySetItem: true, };
   return (
       <SearchParamsContext.Provider value={value} >
         {children}
       </SearchParamsContext.Provider>
   );
 }
-export function SearchParamsProviderActuallySessionStorage({children}) {
+//export function SearchParamsProviderActuallySessionStorage({children})
+export function SearchParamsProvider({children}) {
+  // combines searchParams into sessionStorage and deletes searchParams
+  // this is so we can save state into a url for sharing or returning to
+  //  but then maintain it in sessionStorage to prevent the url getting
+  //  unmanageably large and ugly
   const [searchParams, setSearchParams] = useSearchParams();
   const ss = useSessionStorage();
   if (!ss) {
+    throw new Error("why would this be?");
     return;
   }
-  if (isEmpty(searchParams)) {  // forwarding control to useSessionStorage
+  if (isEmpty(searchParams.toString())) {  // forwarding control to useSessionStorage
     return (
         <SearchParamsContext.Provider value={ss} >
           {children}
@@ -274,7 +251,7 @@ export function SearchParamsProviderActuallySessionStorage({children}) {
   const { codeset_ids = [] } = sp;
 
   function updateSearchParams(props) {
-    const {addProps = {}, delProps = [], replaceAllProps} = props;
+    const {addProps = {}, delProps = [], replaceAllProps, } = props;
     let sp;
     if (replaceAllProps) {
       sp = replaceAllProps;
@@ -330,8 +307,8 @@ export function SearchParamsProviderActuallySessionStorage({children}) {
   sp = {...ss.storage, ...sp}
   const value =
       { sp, ...omit(ss, ['storage', 'sp']), /* this has getItem, setItem, etc. */
-        updateSp: updateSearchParams, dontStringifySetItem: true};
-  // const value = { sp, updateSp: updateSearchParams, getItem, setItem, removeItem, clear, dontStringifySetItem: true, };
+        dontStringifySetItem: true};
+  // const value = { sp, getItem, setItem, removeItem, clear, dontStringifySetItem: true, };
   clear();  // if there was anything in querystring, it's now in sessionStorage, so clear it
   return (
       <SearchParamsContext.Provider value={value} >

@@ -25,8 +25,11 @@ const codesetIdsReducer = (state, action) => {
       throw new Error(`unexpected action.type ${action.type}`);
   }
 };
-export const [CodesetIdsProvider, useCodesetIds] = makeProvider({
-  name: 'codeset_ids', reducer: codesetIdsReducer, initialSettings: [], storageProviderGetter: useSearchParamsState, });
+export const [CodesetIdsProvider, useCodesetIds] = makeProvider(
+    { name: 'codeset_ids',
+      reducer: codesetIdsReducer,
+      initialSettings: [],
+      storageProviderGetter: useSearchParamsState, });
 /*
 const CodesetIdsContext = createContext(null);
 export function CodesetIdsProvider({ children }) {
@@ -54,8 +57,11 @@ export function useCodesetIds() {
 const cidsReducer = (state, cids) => {
   return cids || state;
 };
-export const [CidsProvider, useCids] = makeProvider({
-  name: 'codeset_ids', reducer: codesetIdsReducer, initialSettings: [], storageProviderGetter: useSearchParamsState, });
+export const [CidsProvider, useCids] = makeProvider(
+    { name: 'codeset_ids',
+      reducer: codesetIdsReducer,
+      initialSettings: [],
+      storageProviderGetter: useSearchParamsState, });
 /*
 const CidsContext = createContext(null);
 export function CidsProvider({ children }) {
@@ -84,11 +90,11 @@ function graphOptionsReducer(state, action) {
   if ( ! ( action || {} ).type ) return state;
   // let {collapsePaths, // collapsedDescendantPaths,
   //   nested, hideRxNormExtension, hideZeroCounts} = {...unpersistedDefaultState, ...state};
-  let {type, nodeId, specialConceptType, } = action;
+  let {type, nodeId, specialConceptType, direction} = action;
 
   let graphOptions = get(action, 'graphOptions') || state;
 
-  let { specialConceptTreatment, expandAll, specificNodesCollapsed, specificNodesExpanded, } = graphOptions; // hide, show
+  let { specialConceptTreatment, expandAll, specificNodesCollapsed = [], specificNodesExpanded = [], } = graphOptions;
 
   switch (type) {
     // case "graphOptions": { return {...state, graphOptions}; }
@@ -97,7 +103,19 @@ function graphOptionsReducer(state, action) {
     case 'NEW_GRAPH_OPTIONS':
       return graphOptions;
     case 'TOGGLE_NODE_EXPANDED':
-      console.error("have to fix this and persist nodes expanded");
+      let expand = new Set(graphOptions.specificNodesExpanded);
+      let collapse = new Set(graphOptions.specificNodesCollapsed);
+      if (action.direction === 'expand') {
+        expand.add(nodeId);
+        collapse.delete(nodeId);
+      } else if (action.direction === 'collapse') {
+        expand.delete(nodeId);
+        collapse.add(nodeId);
+      } else {
+        console.error("have to give direction for TOGGLE_NODE_EXPANDED");
+      }
+      // TODO: quit storing expanded/collapsed nodes in row!!!
+      graphOptions = {...graphOptions, specificNodesExpanded: [...expand], specificNodesCollapsed: [...collapse]};
       // gc.toggleNodeExpanded(action.payload.nodeId);
       // graphOptions = {
       //   ...graphOptions,
@@ -181,11 +199,18 @@ export function useGraphOptions() {
 }
 */
 
-export const [GraphOptionsProvider, useGraphOptions] = makeProvider({
-  name: 'graphOptions', reducer: graphOptionsReducer, initialSettings: {}, storageProviderGetter: useSearchParamsState, });
+export const [GraphOptionsProvider, useGraphOptions] = makeProvider(
+    { name: 'graphOptions',
+      reducer: graphOptionsReducer,
+      initialSettings: {},
+      storageProviderGetter: useSearchParamsState, });
+
 
 function makeProvider({name, reducer, initialSettings, storageProviderGetter, jsonify=false, forceUpdateForConsumers=false}) {
-  const nonUpdatingReducer = (state, action) => {
+  // makes provider to manage both a regular reducer and a storage provider
+  // I think the idea was to put update logic into reducers and try to have storage providers
+  //  just emulate localStorage (whether for localStorage, sessionStorage, or querystring)
+  const regularReducer = (state, action) => {
     const newState = reducer(state, action);
     return isEqual(state, newState) ? state : newState;
   };
@@ -193,7 +218,7 @@ function makeProvider({name, reducer, initialSettings, storageProviderGetter, js
   const Context = createContext();
   const Provider = ({children}) => {
     const storageProvider = storageProviderGetter();
-    const [state, dispatch] = useReducer(nonUpdatingReducer, initialSettings, (initial) => {
+    const [state, dispatch] = useReducer(regularReducer, initialSettings, (initial) => {
       let storedSettings = storageProvider.getItem(name);
       if (storedSettings) {
         return jsonify ? JSON.stringify(storedSettings) : storedSettings;

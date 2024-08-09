@@ -807,7 +807,7 @@ def items_to_atlas_json_format(items):
     for item in items:
         j = {}
         for flag in flags:
-            j[flag] = item[flag]
+            j[flag] = item.get(flag, False)
         c = concepts[item['conceptId']]
         jc = {}
         for field in mapped_atlasjson_fields:

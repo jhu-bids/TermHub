@@ -27,7 +27,7 @@ import {
     textCellForItem,
 } from "./NewCset";
 import {FlexibleContainer} from "./FlexibleContainer";
-import {NEW_CSET_ID, urlWithSessionStorage, useCodesetIds, useCids, useGraphOptions, useNewCset,} from "../state/AppState";
+import {NEW_CSET_ID, urlWithSessionStorage, useGraphOptions, useNewCset,} from "../state/AppState";
 import {GraphContainer} from "../state/GraphState";
 import {getResearcherIdsFromCsets, useDataGetter} from "../state/DataGetter";
 import {useSearchParamsState} from "../state/StorageProvider";
@@ -55,7 +55,7 @@ export async function fetchGraphData(props) {
     // let concept_ids = union(flatten(Object.values(concept_ids_by_codeset_id)));
 
     const graphData = await dataGetter.fetchAndCacheItems(
-        dataGetter.apiCalls.concept_graph_new, {codeset_ids, cids: cids});
+        dataGetter.apiCalls.concept_graph_new, {codeset_ids: codeset_ids || [], cids: cids || []});
     let {concept_ids} = graphData;
 
     if (!isEmpty(newCset)) {
@@ -134,12 +134,10 @@ export async function fetchGraphData(props) {
 export function CsetComparisonPage() {
     const storage = useSearchParamsState();
     const {sp} = storage;
+    const {codeset_ids, cids, } = sp;
 
     // codeset_ids, cids, newCset, and graphOptions are all stored in sp/ss,
     //  so maybe the additional hooks aren't needed, but maybe they are
-    const [codeset_ids, codesetIdsDispatch] = useCodesetIds();
-    // could just be const codeset_ids = sp.codeset_ids;
-    const [cids, cidsDispatch] = useCids();
     const [newCset, newCsetDispatch] = useNewCset();
     const [api_call_group_id, setApiCallGroupId] = useState();
     let [graphOptions, graphOptionsDispatch] = useGraphOptions();
@@ -391,7 +389,7 @@ export function CsetComparisonPage() {
 
     const tableProps = {rowData: gc.displayedRows, columns: colDefs, selected_csets, customStyles};
     return (
-        <div>
+        <div style={{margin: 10, }}>
             <span data-testid="comp-page-loading"></span>
             {csetCard}
             <Box
@@ -550,18 +548,21 @@ function nodeToTree(node) { // Not using
 
 function getCollapseIconAndName(row, sizes, graphOptions, graphOptionsDispatch, gc) {
     let Component;
-    if (row.expanded) {
+    let direction;
+    if (graphOptions.specificNodesExpanded.includes(parseInt(row.concept_id))) {
         Component = RemoveCircleOutline;
+        direction = "collapse";
     } else {
         Component = AddCircle;
+        direction = "expand";
     }
     return (
         <span
             className="toggle-collapse concept-name-row"
             onClick={
                 (evt) => {
-                    // console.log(evt);
-                    graphOptionsDispatch({gc, type: "TOGGLE_NODE_EXPANDED", nodeId: row.concept_id, })
+                    console.log(evt);
+                    graphOptionsDispatch({gc, type: "TOGGLE_NODE_EXPANDED", nodeId: row.concept_id, direction})
                 }
             }
             // TODO: capture long click or double click or something to expand descendants
@@ -998,7 +999,7 @@ function getColDefs(props) {
         window.innerWidth - 620 - selected_csets.length * 80) - 36;
      */
     coldefs[0].width = // Math.min(totalWidthOfOthers * 1.5,
-        window.innerWidth - totalWidthOfOthers - 3;
+        window.innerWidth - totalWidthOfOthers - 60;
     // coldefs.forEach(d => {delete d.width; d.flexGrow=1;})
     // coldefs[0].grow = 5;
     // delete coldefs[0].width;

@@ -97,7 +97,7 @@ function AppWrapper() {
 // window.decompress = decompress;
 function RoutesContainer() {
   const spState = useSearchParamsState();
-  let {sp, updateSp, } = spState;
+  let {sp, updateSearchParams, } = spState;
   const {codeset_ids, } = sp;
   const location = useLocation();
   const [newCset, newCsetDispatch] = useNewCset();
@@ -127,8 +127,8 @@ function RoutesContainer() {
         }
       });
 
-      updateSp({delProps: ['sstorage']});
-      // this updateSp generates a warning
+      updateSearchParams({delProps: ['sstorage']});
+      // this updateSearchParams generates a warning
       //  You should call navigate() in a React.useEffect(), not when your component is first rendered.
       //  but seems to work ok anyway. If it doesn't, try going back to something like the code below.
       //  but the problem with code below is that you can't re-navigate by returning <Navigate...> from
@@ -184,8 +184,8 @@ function RoutesContainer() {
   );
 }
 function App(props) {
-  const {sp} = useSearchParamsState();
-  const location = useLocation();
+  // const {sp} = useSearchParamsState();
+  // const location = useLocation();
   /*
   const alerts = useAlerts();
   const alertsDispatch = useAlertsDispatch();

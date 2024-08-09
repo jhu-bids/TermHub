@@ -713,14 +713,21 @@ def get_comparison_rpt(con, codeset_id_1: int, codeset_id_2: int) -> Dict[str, U
 
 
 def generate_n3c_comparison_rpt():
-    """Generate N3C comparison report"""
+    """Generate N3C comparison report
+        If you want more or difference comparisons than what are currently in the report, you need
+        to add new pairs of original and new codesets to the codeset_comparison table.
+        For doing that while actually creating new copies of codesets based on old ones, look at
+         make_new_versions_of_csets.
+        To just add a comparison between two codeset_ids that already exist, add the new pair to the table,
+        leaving the rpt column as NULL, and then run this function.
+    """
     with get_db_connection() as con:
         pairs = sql_query(
             con,
             """
                 SELECT orig_codeset_id, new_codeset_id
                 FROM public.codeset_comparison
-                --WHERE rpt IS NULL
+                WHERE rpt IS NULL
                 """)
         i = 1
         for pair in pairs:

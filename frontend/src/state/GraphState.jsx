@@ -108,7 +108,7 @@ export class GraphContainer {
   getDisplayedRows(graphOptions) {
     // const {/*collapsedDescendantPaths, */ collapsePaths, hideZeroCounts, hideRxNormExtension, nested } = hierarchySettings;
     Object.values(this.nodes).forEach(node => {
-      delete node.childRows
+      delete node.childRows;
     });
     this.displayedRows.splice(0, this.displayedRows.length); // keeping same array ref to help with debugging using graphW
     this.displayedNodeRows.clear();
@@ -117,7 +117,7 @@ export class GraphContainer {
     // add root nodes and their children if expanded to displayed
     let rootRows = [];
     for (let nodeId of sortBy(this.roots, this.sortFunc)) {
-      let rootRow = this.addNodeToDisplayed(nodeId, graphOptions.expandAll, []);
+      let rootRow = this.addNodeToDisplayed(nodeId, graphOptions, []);
       rootRows.push(rootRow);
     }
 
@@ -185,7 +185,7 @@ export class GraphContainer {
           this.displayedNodeRows.get(nodeIdToShow).push(nodeToShowRow);
         });
         shown.add(nodeIdToShow);
-      }
+      };
       this.showThoughCollapsed.forEach(nodeIdToShow => {
         if (this.displayedNodeRows.has(nodeIdToShow)) return; // already displayed
         this.showThoughCollapsed.add(nodeIdToShow);
@@ -236,7 +236,7 @@ export class GraphContainer {
     return this.displayedRows;
   }
 
-  addNodeToDisplayed(nodeId, expandAll, rowPath, depth = 0) {
+  addNodeToDisplayed(nodeId, graphOptions, rowPath, depth = 0) {
     /* adds the node to the list of displayed nodes
         if it is set to be expanded, recurse and add its children to the list */
     let node = this.nodes[nodeId];
@@ -252,10 +252,13 @@ export class GraphContainer {
 
     // this.displayedRows.push(row);
 
-    if (row.expanded || expandAll) {
+    if (row.expanded || graphOptions.expandAll ||
+        graphOptions.specificNodesExpanded.includes(parseInt(nodeId))) {
+        // now with tracking specificNodesExpanded/Collapsed, I'm not sure if we
+        //  still need to check row.expanded
       // if it's expanded, it must have children
       row.childRows = row.childRows = sortBy(node.childIds, this.sortFunc).map(childId => {
-        const childRow = this.addNodeToDisplayed(childId, expandAll, row.rowPath, depth + 1); // Recurse
+        const childRow = this.addNodeToDisplayed(childId, graphOptions, row.rowPath, depth + 1); // Recurse
         return childRow;
       });
     }
