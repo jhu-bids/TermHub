@@ -66,6 +66,7 @@ export function useSessionStorage() {
     }
   };
 
+  // is this stuff working right?
   function addToArray(key, val) {
     let item = getItem(key);
     if (!Array.isArray(item)) throw new Error("not an array");
@@ -201,26 +202,19 @@ export function SearchParamsProviderREAL({children}) {
       </SearchParamsContext.Provider>
   );
 }
-//export function SearchParamsProviderActuallySessionStorage({children})
-export function SearchParamsProvider({children}) {
+export function useSearchParamsState() {
+    return useContext(SearchParamsContext);
+}
+
+const SSSPContext = createContext(null);
+export function SessionStorageWithSearchParamsProvider({children}) {
   // combines searchParams into sessionStorage and deletes searchParams
   // this is so we can save state into a url for sharing or returning to
   //  but then maintain it in sessionStorage to prevent the url getting
   //  unmanageably large and ugly
+  let ss = useSessionStorage();
+  const [providerStorage, setProviderStorage] = useState({...ss.storage});
   const [searchParams, setSearchParams] = useSearchParams();
-  const ss = useSessionStorage();
-  if (!ss) {
-    throw new Error("why would this be?");
-    return;
-  }
-  if (isEmpty(searchParams.toString())) {  // forwarding control to useSessionStorage
-    return (
-        <SearchParamsContext.Provider value={ss} >
-          {children}
-        </SearchParamsContext.Provider>
-    );
-  }
-
   const searchParamsToObj = useCallback(searchParams => {
     const qsKeys = Array.from(new Set(searchParams.keys()));
     let sp = {};
@@ -242,81 +236,35 @@ export function SearchParamsProvider({children}) {
     return sp;
   }, [searchParams]);
 
-  let sp = searchParamsToObj(searchParams);
-  // console.log('got sp', sp);
-
-  // gets state (codeset_ids for now) from query string, passes down through props
-  // const [codeset_ids, setCodeset_ids] = useState(sp.codeset_ids || []);
-
-  const { codeset_ids = [] } = sp;
-
-  function updateSearchParams(props) {
-    const {addProps = {}, delProps = [], replaceAllProps, } = props;
-    let sp;
-    if (replaceAllProps) {
-      sp = replaceAllProps;
-    } else {
-      sp = searchParamsToObj(searchParams);
+  useEffect(() => {
+    if (!ss) {
+      throw new Error("why would this be?");
     }
-    if (!sp) {
-      return;
-    }
-    /* SEARCH_PARAM_STATE_CONFIG.global_props_but_not_search_params.forEach((p) => { delete sp[p]; }); */
-    delProps.forEach((p) => {
-      delete sp[p];
-    });
-    sp = {...sp, ...addProps};
-    SEARCH_PARAM_STATE_CONFIG.serialize.forEach((p) => {
-      if (sp[p] && typeof(sp[p] !== 'string')) {
-        sp[p] = JSON.stringify(sp[p]);
+    let storage = {...ss.storage};  // just the values, not the methods
+    if (searchParams.toString()) {
+      // if there are any search params, add them on top of sessionStorage
+      let sp = searchParamsToObj(searchParams);
+      for (let k in sp) {
+        ss.setItem(k, sp[k]);
       }
-    });
-    const csp = createSearchParams(sp);
-    if (csp+'' !== searchParams+'') {
-      setSearchParams(csp);
     }
-  }
+    setSearchParams();
+  }, []);
 
-  // getItem and setItem are so SearchParams can be used with usePersistedReducer
-  function getItem(key) {
-    let sp = searchParamsToObj(searchParams);
-    return sp[key] ?? null ;
-  }
+  // ss (sessionStorage) has a storage prop for the values it holds. ss.storage is
+  //  identical to ss.sp. sp (searchParams) is there because of other code that expects
+  //  to find the storage values there
+  // the rest of ss is getItem, setItem, clear, etc.
+  // let value = {...ss, dontStringifySetItem: true};
+  // value.storage = value.sp = providerStorage;
 
-  function setItem(key, value) {
-    updateSearchParams({addProps: {[key]: value}});
-  }
-
-  function removeItem(key) {
-    updateSearchParams({delProps: [key]});
-  }
-  function clear() {
-    if (! isEmpty(searchParams)) {
-      // let sp = searchParamsToObj(searchParams);
-      setSearchParams({});
-    }
-  }
-
-  /*
-  if (!sp.codeset_ids) {
-    sp.codeset_ids = [];
-  }
-   */
-
-  // forwarding control to useSessionStorage
-  sp = {...ss.storage, ...sp}
-  const value =
-      { sp, ...omit(ss, ['storage', 'sp']), /* this has getItem, setItem, etc. */
-        dontStringifySetItem: true};
-  // const value = { sp, getItem, setItem, removeItem, clear, dontStringifySetItem: true, };
-  clear();  // if there was anything in querystring, it's now in sessionStorage, so clear it
   return (
-      <SearchParamsContext.Provider value={value} >
+      <SSSPContext.Provider value={ss} >
         {children}
-      </SearchParamsContext.Provider>
+      </SSSPContext.Provider>
   );
 }
 
-export function useSearchParamsState() {
-  return useContext(SearchParamsContext);
+export function useSessionStorageWithSearchParams() {
+  return useContext(SSSPContext);
 }

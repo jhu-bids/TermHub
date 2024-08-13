@@ -25,7 +25,7 @@ import { NavLink, useLocation } from "react-router-dom";
 // import ListItemText from "@mui/material/ListItemText";
 import { cloneDeep } from "lodash";
 import {VERSION, DEPLOYMENT} from "../env";
-import {useSearchParamsState} from "../state/StorageProvider";
+import {useCodesetIds} from "../state/AppState";
 // import {client} from "./utils";
 
 const drawerWidth = 240;
@@ -60,8 +60,7 @@ export function getPages(codeset_ids) {
 
 /* https://mui.com/material-ui/react-app-bar/ */
 export default function MuiAppBar() {
-  const {sp} = useSearchParamsState();
-  const {codeset_ids, } = sp;
+  const [codeset_ids, ] = useCodesetIds();
   const location = useLocation();
   const { search } = location;
   const pages = getPages(codeset_ids);

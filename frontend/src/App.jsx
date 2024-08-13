@@ -31,16 +31,16 @@ import { AboutPage } from "./components/AboutPage";
 import { ConceptGraph, } from "./components/GraphPlayground";
 import {ViewCurrentState, } from "./state/State";
 import {
-  CodesetIdsProvider,
-  CidsProvider,
-  GraphOptionsProvider,
-  AlertsProvider,
-  useAlerts,
-  useAlertsDispatch,
-  NewCsetProvider,
-  useNewCset, urlWithSessionStorage, // getSessionStorage, serializeSessionStorage,
+    CodesetIdsProvider,
+    CidsProvider,
+    GraphOptionsProvider,
+    AlertsProvider,
+    useAlerts,
+    useAlertsDispatch,
+    NewCsetProvider,
+    useNewCset, urlWithSessionStorage, useCodesetIds, // getSessionStorage, serializeSessionStorage,
 } from "./state/AppState";
-import {SearchParamsProvider, useSearchParamsState} from "./state/StorageProvider";
+import {SessionStorageWithSearchParamsProvider, useSessionStorageWithSearchParams} from "./state/StorageProvider";
 import {backend_url, DataGetterProvider} from "./state/DataGetter";
 import { UploadCsvPage } from "./components/UploadCsv";
 // import { DownloadJSON } from "./components/DownloadJSON";
@@ -73,8 +73,8 @@ function AppWrapper() {
   // prefetch({itemType: 'all_csets'});
   return (
     // <React.StrictMode> // {/* StrictMode helps assure code goodness by running everything twice, but it's annoying*/}
-      <SearchParamsProvider>
-        <AlertsProvider>
+      <SessionStorageWithSearchParamsProvider>
+        {/*<AlertsProvider>*/}
           <CodesetIdsProvider>
             <CidsProvider>
               <GraphOptionsProvider>
@@ -88,58 +88,18 @@ function AppWrapper() {
               </GraphOptionsProvider>
             </CidsProvider>
           </CodesetIdsProvider>
-        </AlertsProvider>
-      </SearchParamsProvider>
+        {/*</AlertsProvider>*/}
+      </SessionStorageWithSearchParamsProvider>
     // </React.StrictMode>
   );
 }
 // window.compress = compress;
 // window.decompress = decompress;
 function RoutesContainer() {
-  const spState = useSearchParamsState();
-  let {sp, updateSearchParams, } = spState;
-  const {codeset_ids, } = sp;
+  const {codeset_ids, } = useCodesetIds();
   const location = useLocation();
   const [newCset, newCsetDispatch] = useNewCset();
 
-  useEffect(() => {
-    if (sp.sstorage) {
-      const sstorage = JSON.parse(sp.sstorage);
-      /*
-      // compressing doesn't do much when you have to uri it
-      try {
-        // const sstorageString = lz.decompressFromEncodedURIComponent(sp.sstorage) || sp.sstorage;
-        // sstorage = JSON.parse(sstorageString);
-      } catch (e) {
-        // const sstorageString = decompress(sp.sstorage);
-        // sstorage = JSON.parse(sstorageString);
-        console.warn('could not parse sstorage', e);
-      }
-       */
-      Object.entries(sstorage).map(([k,v]) => {
-        if (k === 'newCset' || k === 'session_id') {
-          // restore alters newCset.definitions (unabbreviates)
-          v = newCsetDispatch({type: 'restore', newCset: v});
-        } else {
-          console.warn('was only expecting newCset in sstorage search param, got', {[k]: v},
-                       'adding to sessionStorage anyway');
-          sessionStorage.setItem(k, JSON.stringify(v));
-        }
-      });
-
-      updateSearchParams({delProps: ['sstorage']});
-      // this updateSearchParams generates a warning
-      //  You should call navigate() in a React.useEffect(), not when your component is first rendered.
-      //  but seems to work ok anyway. If it doesn't, try going back to something like the code below.
-      //  but the problem with code below is that you can't re-navigate by returning <Navigate...> from
-      //    useEffect. has to be returned by RoutesContainer.
-      // sp = {...sp};
-      // delete sp.sstorage;
-      // let csp = createSearchParams(sp);
-      // let url = location.pathname + '?' + csp;
-      // return <Navigate to={url} replace={true} />;
-    }
-  })
   let pathname = location.pathname;
 
   if (pathname === "/cset-comparison" && isEmpty(codeset_ids)) {
@@ -184,8 +144,6 @@ function RoutesContainer() {
   );
 }
 function App(props) {
-  // const {sp} = useSearchParamsState();
-  // const location = useLocation();
   /*
   const alerts = useAlerts();
   const alertsDispatch = useAlertsDispatch();
@@ -199,7 +157,7 @@ function App(props) {
 
   return (
     <ThemeProvider theme={theme}>
-      {/*{ sp.login ? <EnclaveAuthTest /> : null }*/}
+      {/*{ login ? <EnclaveAuthTest /> : null }*/}
       <div className="App">
         {/* <ReactQueryDevtools initialIsOpen={false} />*/}
         <MuiAppBar>

@@ -25,14 +25,13 @@ export const ConceptGraph/*: React.FC*/ = () => {
   const { concept_ids, selected_csets, conceptLookup, csmi,
             concepts, specialConcepts, comparison_rpt, } = data;
   // const {gc, gcDispatch} = useGraphContainer();
-  throw new Error("need to get graph container...no longer available through useGraphContainer");
 
   useEffect(() => {
     (async () => {
 
       await dataGetter.getApiCallGroupId();
 
-      const graphData = fetchGraphData({dataGetter, sp, gcDispatch, codeset_ids})
+      const graphData = fetchGraphData({dataGetter, sp, gcDispatch, codeset_ids});
 
       let { concept_ids, selected_csets, conceptLookup, csmi, concepts, specialConcepts,
         comparison_rpt } = await graphData;
@@ -41,7 +40,7 @@ export const ConceptGraph/*: React.FC*/ = () => {
         ...current, concept_ids, selected_csets, conceptLookup, csmi,
         concepts, specialConcepts, comparison_rpt,
       }));
-    })()
+    })();
   }, []);
 
   const SigmaGraph = () => {
@@ -54,7 +53,8 @@ export const ConceptGraph/*: React.FC*/ = () => {
       }
     }, [loadGraph, gc]);
 
-    return null;
+    throw new Error("need to get graph container...no longer available through useGraphContainer");
+    // return null;
   };
 
   return (

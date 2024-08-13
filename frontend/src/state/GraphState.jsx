@@ -4,7 +4,6 @@ import Graph from "graphology";
 import {bidirectional} from 'graphology-shortest-path/unweighted';
 import {dfsFromNode} from "graphology-traversal/dfs";
 import {setOp} from "../utils";
-import {useSessionStorage} from "./StorageProvider";
 
 window.graphFuncs = {bidirectional, dfsFromNode};
 
