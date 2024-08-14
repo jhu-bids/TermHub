@@ -29,17 +29,16 @@ import { CsetComparisonPage } from "./components/CsetComparisonPage";
 import { AboutPage } from "./components/AboutPage";
 // import { ConceptGraph } from "./components/GraphD3dag";
 import { ConceptGraph, } from "./components/GraphPlayground";
-import {ViewCurrentState, } from "./state/State";
 import {
-    CodesetIdsProvider,
-    CidsProvider,
-    GraphOptionsProvider,
-    AlertsProvider,
-    useAlerts,
-    useAlertsDispatch,
-    NewCsetProvider,
-    useNewCset, urlWithSessionStorage, useCodesetIds, // getSessionStorage, serializeSessionStorage,
-} from "./state/AppState";
+  CodesetIdsProvider,
+  CidsProvider,
+  GraphOptionsProvider,
+  AlertsProvider,
+  useAlerts,
+  useAlertsDispatch,
+  NewCsetProvider,
+  useNewCset, urlWithSessionStorage, useCodesetIds, ViewCurrentState, // getSessionStorage, serializeSessionStorage,
+} from './state/AppState';
 import {SessionStorageWithSearchParamsProvider, useSessionStorageWithSearchParams} from "./state/StorageProvider";
 import {backend_url, DataGetterProvider} from "./state/DataGetter";
 import { UploadCsvPage } from "./components/UploadCsv";
@@ -73,8 +72,9 @@ function AppWrapper() {
   // prefetch({itemType: 'all_csets'});
   return (
     // <React.StrictMode> // {/* StrictMode helps assure code goodness by running everything twice, but it's annoying*/}
-      <SessionStorageWithSearchParamsProvider>
-        {/*<AlertsProvider>*/}
+    //   <SessionStorageWithSearchParamsProvider>
+    //     <AlertsProvider>
+        <AppOtionsPr>
           <CodesetIdsProvider>
             <CidsProvider>
               <GraphOptionsProvider>
@@ -88,8 +88,9 @@ function AppWrapper() {
               </GraphOptionsProvider>
             </CidsProvider>
           </CodesetIdsProvider>
-        {/*</AlertsProvider>*/}
-      </SessionStorageWithSearchParamsProvider>
+        </AppOtionsPr>
+      // </AlertsProvider>
+      // </SessionStorageWithSearchParamsProvider>
     // </React.StrictMode>
   );
 }
@@ -98,7 +99,7 @@ function AppWrapper() {
 function RoutesContainer() {
   const {codeset_ids, } = useCodesetIds();
   const location = useLocation();
-  const [newCset, newCsetDispatch] = useNewCset();
+  // const [newCset, newCsetDispatch] = useNewCset();
 
   let pathname = location.pathname;
 
@@ -149,9 +150,9 @@ function App(props) {
   const alertsDispatch = useAlertsDispatch();
   let alertsComponent = null;
   // turning this off even locally
-  if (false && DEPLOYMENT === 'local' || sp.show_alerts) {
-    alertsComponent = <AlertMessages alerts={alerts}/>;
-  }
+  // if (false && DEPLOYMENT === 'local' || sp.show_alerts) {
+  //   alertsComponent = <AlertMessages alerts={alerts}/>;
+  // }
   */
   // console.log(DEPLOYMENT);
 

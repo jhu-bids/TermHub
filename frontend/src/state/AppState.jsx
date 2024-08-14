@@ -1,11 +1,24 @@
-import React, {createContext, useEffect, useContext, useReducer, useState} from "react";
-import {flatten, fromPairs, get, pick, isEqual, isEmpty} from "lodash";
+import React, {
+  createContext,
+  useContext,
+  useEffect,
+  useReducer,
+  useState,
+} from 'react';
+import { fromPairs, get, isEmpty, isEqual, pick } from 'lodash';
 // import {compressToEncodedURIComponent} from "lz-string";
 // import {createPersistedReducer} from "./usePersistedReducer";
-import {alertsReducer} from "../components/AlertMessages";
-import {useSearchParamsState, useSessionStorage} from "./StorageProvider";
-import {SOURCE_APPLICATION, SOURCE_APPLICATION_VERSION} from "../env";
-import {createSearchParams, useSearchParams} from "react-router-dom";
+import { alertsReducer } from '../components/AlertMessages';
+import {
+  useSearchParamsState,
+  useSessionStorageWithSearchParams,
+} from './StorageProvider';
+import { SOURCE_APPLICATION, SOURCE_APPLICATION_VERSION } from '../env';
+import { pct_fmt } from '../utils';
+import Box from '@mui/material/Box';
+import CircularProgress from '@mui/material/CircularProgress';
+import { useDataCache } from './DataCache';
+import { Inspector } from 'react-inspector';
 
 export const NEW_CSET_ID = -1;
 
@@ -30,29 +43,7 @@ export const [CodesetIdsProvider, useCodesetIds] = makeProvider(
       reducer: codesetIdsReducer,
       initialSettings: [],
       storageProviderGetter: useSearchParamsState, });
-/*
-const CodesetIdsContext = createContext(null);
-export function CodesetIdsProvider({ children }) {
-  const storageProvider = useSearchParamsState();
-  let state = storageProvider.getItem('codeset_ids') || [];
 
-  const dispatch = action => {
-    let latestState = storageProvider.getItem('codeset_ids') || [];
-    const stateAfterDispatch = codesetIdsReducer(latestState, action);
-    if (!isEqual(latestState, stateAfterDispatch)) {
-      storageProvider.setItem('codeset_ids', stateAfterDispatch);
-    }
-  }
-  return (
-      <CodesetIdsContext.Provider value={[state, dispatch]}>
-        {children}
-      </CodesetIdsContext.Provider>
-  );
-}
-export function useCodesetIds() {
-  return useContext(CodesetIdsContext);
-}
-*/
 
 const cidsReducer = (state, cids) => {
   return cids || state;
@@ -62,29 +53,34 @@ export const [CidsProvider, useCids] = makeProvider(
       reducer: codesetIdsReducer,
       initialSettings: [],
       storageProviderGetter: useSearchParamsState, });
-/*
-const CidsContext = createContext(null);
-export function CidsProvider({ children }) {
-  const storageProvider = useSearchParamsState();
-  let state = storageProvider.getItem('cids') || [];
 
-  const dispatch = action => {
-    let latestState = storageProvider.getItem('cids') || [];
-    const stateAfterDispatch = cidsReducer(latestState, action);
-    if (!isEqual(latestState, stateAfterDispatch)) {
-      storageProvider.setItem('cids', stateAfterDispatch);
-    }
+
+export const [AppOptionsProvider, useAppOptions] = makeProvider(
+    { name: 'appOptions',
+      reducer: appOptionsReducer,
+      initialSettings: {
+        use_example: false,
+        optimization_experiment: '', // probably will never get this working again, for controlling which
+                                     // experimental cset/comparison methods are being used
+        comparison_pair: '', // pair of codeset_ids that will be provided on the command line
+      },
+      storageProviderGetter: useSessionStorageWithSearchParams, });
+
+function appOptionsReducer(state, action) {
+  if ( ! ( action || {} ).type ) return state;
+
+
+
+  // from SEARCH_PARAM_STATE_CONFIG scalars: ["editCodesetId", "use_example", "sstorage", "show_alerts", "optimization_experiment", "comparison_rpt"],
+  let { use_example, optimization_experiment, comparison_pair, } = appOptions;
+
+  switch (type) {
+    case 'NEW_GRAPH_OPTIONS':
+      return appOptions;
   }
-  return (
-      <CidsContext.Provider value={[state, dispatch]}>
-        {children}
-      </CidsContext.Provider>
-  );
+  return {...state, ...appOptions};
 }
-export function useCids() {
-  return useContext(CidsContext);
-}
-*/
+
 
 function graphOptionsReducer(state, action) {
   if ( ! ( action || {} ).type ) return state;
@@ -132,78 +128,19 @@ function graphOptionsReducer(state, action) {
       // Object.values(gc.nodes).forEach(n => {if (n.hasChildren) n.expanded = graphOptions.expandAll;});
       break;
 
-      // OLD STUFF
-      /*
-      case "collapseDescendants": {
-        console.log(state, action);
-        // this toggles the collapse state of the given row
-        const {row, allRows, collapseAction} = action;
-        const collapse = !get(collapsePaths, row.pathToRoot);
-        // collapsePaths are the paths to all the rows the user collapsed
-        //  these rows still appear in the table, but their descendants don't
-        if (collapseAction === 'collapse') {
-          collapsePaths = {...collapsePaths, [row.pathToRoot]: true};
-        } else {
-          collapsePaths = {...collapsePaths};
-          delete collapsePaths[row.pathToRoot];
-        }
-        return {...state, collapsePaths /*, collapsedDescendantPaths * /};
-      }
-      case "nested": {
-        return {...state, nested: action.nested}
-      }
-      case "hideRxNormExtension": {
-        return {...state, hideRxNormExtension: action.hideRxNormExtension}
-      }
-      case "hideZeroCounts": {
-        return {...state, hideZeroCounts: action.hideZeroCounts}
-      }
-      default:
-        return state;
-      */
+      /* OLD STUFF
+      case "nested": { return {...state, nested: action.nested} }
+      case "hideRxNormExtension": { return {...state, hideRxNormExtension: action.hideRxNormExtension} }
+      case "hideZeroCounts": { return {...state, hideZeroCounts: action.hideZeroCounts} } */
   }
   return {...state, ...graphOptions};
 }
-/*
-const GraphOptionsContext = createContext(null);
-export function GraphOptionsProvider({ children }) {    // settings 1
-  const initialSettings = {};
-  // const initialSettings = null;
-  /* {
-    // graphOptions will actually be initialized in GraphContainer.setGraphDisplayConfig
-    graphOptions: {
-      specialConceptTreatment: {},
-      nested: true,
-      // hideRxNormExtension: true,
-    }
-    // collapsePaths: {}, // collapsedDescendantPaths: {}, // hideZeroCounts: false,
-  }; * /
-  const storageProvider = useSearchParamsState();
-  let state = storageProvider.getItem('graphOptions') || initialSettings;
-
-  const dispatch = action => {
-    let latestState = storageProvider.getItem('graphOptions') || initialSettings;
-    const stateAfterDispatch = settingsReducer(latestState, action);
-    if (!isEqual(latestState, stateAfterDispatch)) {
-      storageProvider.setItem('graphOptions', stateAfterDispatch);
-    }
-  }
-  return (
-      <GraphOptionsContext.Provider value={[state, dispatch]}>
-        {children}
-      </GraphOptionsContext.Provider>
-  );
-}
-export function useGraphOptions() {
-  return useContext(GraphOptionsContext);
-}
-*/
 
 export const [GraphOptionsProvider, useGraphOptions] = makeProvider(
     { name: 'graphOptions',
       reducer: graphOptionsReducer,
       initialSettings: {},
-      storageProviderGetter: useSearchParamsState, });
+      storageProviderGetter: useSessionStorageWithSearchParams, });
 
 
 function makeProvider({name, reducer, initialSettings, storageProviderGetter, jsonify=false, forceUpdateForConsumers=false}) {
@@ -241,7 +178,7 @@ function makeProvider({name, reducer, initialSettings, storageProviderGetter, js
   const useReducerWithStorage = () => {
     const context = useContext(Context);
     if (!context) {
-      throw new Error(`use ${name} must be called within a GraphOptionsProvider`);
+      throw new Error(`use ${name} must be called within a makeProvider provider`);
     }
     return context;
   }
@@ -496,4 +433,133 @@ export function useAlerts() {
 }
 export function useAlertsDispatch() {
   return useContext(AlertsDispatchContext);
+}
+
+const stateDoc = `
+    2023-08
+    State management is pretty messed up at the moment. We need decent performance....
+    Here's what needs to be tracked in state and description of how it's all related.
+
+    codeset_ids, selected in a few different ways:
+      - with a list on the About page
+      - on search page by selecting from drop down and clicking load concept sets
+      - on search page after some are chosen by clicking a selected cset to deselect it
+        or clicking a related cset to add it to the selection
+
+    concept_ids and concept (metadata) for them:
+      - for all definition (expression) items and expansion members of selected codeset_ids
+        PLUS:
+          - Additional concepts from vocab hierarchies needed to connect the already selected concept_ids
+          - Concept_ids (but don't need all the metadata) for for all the related concept sets in order to
+            calculate share, precision, and recall
+          - Additional concepts of interest to users -- not implemented yet, but important (and these will
+            probably require the concept metadata, not just concept_ids)
+      - The way that all works (will work) is:
+        1. Call concept_ids_by_codeset_id for all selected codeset_ids
+        2. Call subgraph to get hierarchy for all resulting concept_ids (and any additionally requested concept_ids);
+           this will add a few more concept_ids for filling in gaps. Subgraph returns edges. Edge list is unique for
+           each unique set of input concept_ids. --- which makes this step horrible for caching and a possible performance
+           bottleneck.
+        3. Call codeset_ids_by_concept_id for all concept_ids from step 1 (or 2?)
+        4. Call concept_ids_by_codeset_id again for all codeset_ids from step 3. This is also a performance/caching
+           problem because it's a lot of data.
+
+        For steps 2 and 3, the union of all concept_ids is what we need. For step 4, we need the list of concept_ids
+        associated with each codeset_id in order to perform the calculations (shared/prec/recall.)
+
+    Coming up with the right caching strategy that balances ease of use (programming-wise), data retrieval and
+    storage efficiency, and stability has been hard and I don't have a decent solution at the moment. Considering
+    trying to move (back) to something simpler.
+
+    URL query string: SearchParamsProvider, useSearchParams
+      codeset_ids
+      use_example
+
+    reducers and context
+      alerts, graphOptions, newCset
+      newCset
+
+    DataCache
+      all_csets
+      edges
+      cset_members_items
+      selected_csets
+      researchers
+      concepts
+      ????
+
+    local to components, useState, etc.
+
+    Goals:
+      Manage all/
+
+    # 2024-08-14, refactoring
+
+    State managers / reducer providers and their storage providers (goal)
+      - DataCache (not a reducer provider)
+      - appOptions -- searchParams (MakeProvider) (currently sessionStorage) -- keep small
+      - codeset_ids -- searchParams (MakeProvider) (currently sessionStorage)
+      - graphOptions -- sessionStorage (MakeProvider)
+      - cids -- sessionStorage (MakeProvider)
+      - newCset -- sessionStorage
+`;
+
+function Progress (props) {
+  return (
+    <Box sx={{ display: 'flex' }}>
+      <CircularProgress {...props} size="35px"/>
+    </Box>
+  );
+}
+
+export function StatsMessage (props) {
+  const {
+    codeset_ids = [], all_csets = [], relatedCsets,
+    concept_ids, selected_csets,
+  } = props;
+
+  const relcsetsCnt = relatedCsets.length;
+  return (
+    <p style={{ margin: 0, fontSize: 'small' }}>
+      The <strong>{codeset_ids.length} concept sets </strong>
+      selected contain{' '}
+      <strong>{(concept_ids || []).length.toLocaleString()} distinct
+        concepts</strong>. The
+      following <strong>{relcsetsCnt.toLocaleString()} concept sets </strong>(
+      {pct_fmt(relcsetsCnt / all_csets.length)}) have 1 or more
+      concepts in common with the selected sets. Click rows below to select or
+      deselect concept sets.
+    </p>
+  );
+}
+
+export function ViewCurrentState () {
+  const { sp } = useSearchParamsState();
+  const alerts = useAlerts();
+  const [graphOptions, graphOptionsDispatch] = useGraphOptions();
+  const newCset = useNewCset();
+  const dataCache = useDataCache();
+  const sstorage = getSessionStorage();
+  return (<div style={{ margin: 30 }}>
+    <h1>Current state</h1>
+
+    <h2>query string parameters</h2>
+    <Inspector data={sp}/>
+
+    <h2>sessionStorage</h2>
+    <Inspector data={sstorage}/>
+    <ul>
+      <li>Current state URL: <a
+        href={urlWithSessionStorage()}>{urlWithSessionStorage()}</a></li>
+    </ul>
+
+    <h2>app state (reducers)</h2>
+    <Inspector data={{ alerts, graphOptions, newCset }}/>
+
+    <h2>dataCache</h2>
+    <Inspector data={dataCache.getWholeCache()}/>
+
+    <h2>The different kinds of state</h2>
+    <pre>{stateDoc}</pre>
+  </div>);
 }

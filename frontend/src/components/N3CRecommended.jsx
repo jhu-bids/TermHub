@@ -145,7 +145,7 @@ export const N3CComparisonRpt = () => {
     {grow: 2, name: "Compare", selector: row => (
           <Button
               to={`/cset-comparison?codeset_ids=${row.cset_1_codeset_id}&codeset_ids=${row.cset_2_codeset_id}` +
-                `&comparison_rpt=${row.cset_1_codeset_id}-${row.cset_2_codeset_id}`}
+                `&comparison_pair=${row.cset_1_codeset_id}-${row.cset_2_codeset_id}`}
               component={Link}
               style={{margin: '7px', textTransform: 'none'}}
           >

@@ -12,6 +12,7 @@ import {VERSION} from "../env";
 import {useDataCache} from "../state/DataCache";
 import {useDataGetter} from "../state/DataGetter";
 import {useSearchParamsState} from "../state/StorageProvider";
+import {useCodesetIds} from "../state/AppState";
 
 // import * as po from './Popover';
 
@@ -85,7 +86,6 @@ export let DOCS = {};
 
 
 export function AboutPage() {
-  const {sp} = useSearchParamsState();
   // const {codeset_ids=[], all_csets=[], cset_data={}} = props;
   // const {data_counts=[], } = cset_data;
   //
@@ -98,7 +98,7 @@ export function AboutPage() {
   // )
   const dataCache = useDataCache();
   const dataGetter = useDataGetter();
-  const [codeset_ids, setCodeset_ids] = useState(sp.codeset_ids);
+  const [codeset_ids, setCodeset_ids] = useCodesetIds();
   const [refreshButtonClicked, setRefreshButtonClicked] = useState();
   const [lastRefreshed, setLastRefreshed] = useState();
   const location = useLocation();

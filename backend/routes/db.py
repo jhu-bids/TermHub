@@ -416,67 +416,6 @@ def db_refresh_route():
     return response.status_code
 
 
-# NO LONGER USED BECAUSE WE DON'T EDIT EXISTING CODESETS BUT JUST CREATE NEW ONES FROM DEFINITIONS
-@router.get("/cset-download")
-def cset_download(
-    codeset_id: int, csetEditState: str = None, atlas_items=True, sort_json: bool = False,
-    # include_metadata=False, atlas_items_only=False
-) -> Union[Dict, List]:
-    """Download concept set
-    NO LONGER USED BECAUSE WE DON'T EDIT EXISTING CODESETS BUT JUST CREATE NEW ONES FROM DEFINITIONS
-    """
-    # if not atlas_items_only: # and False  TODO: document this param and what it does (what does it do again?)
-    #     jsn = get_codeset_json(codeset_id) #  , use_cache=False)
-    #     if sort_json:
-    #         jsn['items'].sort(key=lambda i: i['concept']['CONCEPT_ID'])
-    #     return jsn
-
-    items = get_concept_set_version_expression_items(codeset_id, return_detail='full', handle_paginated=True)
-    items = [i['properties'] for i in items]
-    if csetEditState:
-        edits = json.loads(csetEditState)
-        edits = edits[str(codeset_id)]
-
-        deletes = [i['concept_id'] for i in edits.values() if i['stagedAction'] in ['Remove', 'Update']]
-        items = [i for i in items if i['conceptId'] not in deletes]
-        adds: List[Dict] = [i for i in edits.values() if i['stagedAction'] in ['Add', 'Update']]
-        # items is object api format but the edits from the UI are in dataset format
-        # so, convert the edits to object api format for consistency
-        for item in adds:
-            # set flags to false if they don't appear in item
-            for flag in FLAGS:
-                if flag not in item:
-                    item[flag] = False
-        adds = convert_rows('concept_set_version_item',
-                            'OmopConceptSetVersionItem',
-                            adds)
-        items.extend(adds)
-    if sort_json:
-        items.sort(key=lambda i: i['conceptId'])
-
-    if atlas_items:
-        items_jsn = items_to_atlas_json_format(items)
-        return {'items': items_jsn}
-    else:
-        return items  #  when would we want this?
-
-
-# NOT USING THESE TWO ROUTES EITHER -- WAS EASIER JUST TO IMPLEMENT ON FRONTEND
-#  - but might want them someday
-@router.post('/atlas-json-from-defs')
-def atlas_json_from_defs(defs: List[Dict]) -> Dict:
-    """From concept set definitions, get Atlas JSON format"""
-    items = convert_rows('concept_set_version_item','OmopConceptSetVersionItem', defs)
-    items_jsn = items_to_atlas_json_format(items)
-    return {'items': items_jsn}
-
-
-@router.get('/atlas-json-from-defs')
-def _atlas_json_from_defs(defStr: List[Dict]) -> Dict:
-    defs = json.loads(defStr)
-    return atlas_json_from_defs(defs)
-
-
 # Utility functions ----------------------------------------------------------------------------------------------------
 @cache
 def parse_codeset_ids(qstring) -> List[int]:

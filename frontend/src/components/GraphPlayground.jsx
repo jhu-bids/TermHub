@@ -12,18 +12,21 @@ import * as d3dag from "d3-dag";
 import {assignLayout} from 'graphology-layout/utils';
 import {collectLayout} from 'graphology-layout/utils';
 import {fetchGraphData} from "./CsetComparisonPage";
+import {useCodesetIds, useCids} from "../state/AppState";
 // import {useGraphContainer} from "../state/GraphState";
 
 // import {useSeedRandom} from "react-seed-random";
 export const ConceptGraph/*: React.FC*/ = () => {
   // const sigma = useSigma();
 
-  const {sp} = useSearchParamsState();
-  let {codeset_ids=[], cids=[], use_example=false} = sp;
+  const [appOptions, setAppOptions] = useAppOptions();
+  const {comparison_pair} = appOptions();
+  const [codeset_ids, ] = useCodesetIds();
+  const [cids, ] = useCids();
+
   const dataGetter = useDataGetter();
-  const [data, setData] = useState({ cids: [], graph_data: {}, concepts: [], });
-  const { concept_ids, selected_csets, conceptLookup, csmi,
-            concepts, specialConcepts, comparison_rpt, } = data;
+  // const [data, setData] = useState({ cids: [], graph_data: {}, concepts: [], });
+  // const { concept_ids, selected_csets, conceptLookup, csmi, concepts, specialConcepts, comparison_rpt, } = data;
   // const {gc, gcDispatch} = useGraphContainer();
 
   useEffect(() => {
@@ -31,14 +34,12 @@ export const ConceptGraph/*: React.FC*/ = () => {
 
       await dataGetter.getApiCallGroupId();
 
-      const graphData = fetchGraphData({dataGetter, sp, gcDispatch, codeset_ids});
+      const graphData = fetchGraphData({dataGetter, comparison_pair, gcDispatch, codeset_ids});
 
-      let { concept_ids, selected_csets, conceptLookup, csmi, concepts, specialConcepts,
-        comparison_rpt } = await graphData;
+      let { concept_ids, selected_csets, conceptLookup, csmi, concepts, specialConcepts, comparison_rpt } = await graphData;
 
       setData(current => ({
-        ...current, concept_ids, selected_csets, conceptLookup, csmi,
-        concepts, specialConcepts, comparison_rpt,
+        ...current, concept_ids, selected_csets, conceptLookup, csmi, concepts, specialConcepts, comparison_rpt,
       }));
     })();
   }, []);

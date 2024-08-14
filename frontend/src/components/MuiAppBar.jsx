@@ -68,27 +68,6 @@ export default function MuiAppBar() {
   const [anchorElNav, setAnchorElNav] = React.useState(null);
   const [anchorElUser, setAnchorElUser] = React.useState(null);
 
-  /*
-  const [pages, setPages] = useState(getPages(codeset_ids));
-  if (client && client.auth && client.auth.token) {
-    console.log(`logged in as ${client.auth.username}`);
-    setPages(pages => [...pages, { name: "Logout", href: "/logout", }]);
-  }
-  useEffect(() => {
-    (async () => {
-      console.log("client in appbar useeffect", client);
-      if (sp.login && client) {
-        await client.auth.signIn();
-        let token = await client.auth.getToken();
-        if (token) {
-          console.log(`logged in as ${client.auth.username}`);
-          setPages(pages => [...pages, { name: "Logout", href: "/logout", }]);
-        }
-      }
-    })();
-  }, []);
-  */
-
   const handleOpenNavMenu = (event) => {
     setAnchorElNav(event.currentTarget);
     console.log(anchorElNav);
