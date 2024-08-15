@@ -128,6 +128,12 @@ export function SearchParamsProvider({children}) {
   );
 }
 
+// export function useSearchParamsState() {
+//   return useContext(SearchParamsContext);
+// }
 export function useSearchParamsState() {
-  return useContext(SearchParamsContext);
+  // console.log(SearchParamsContext);
+  const ctx = useContext(SearchParamsContext);
+  // console.log(ctx);
+  return ctx;
 }
