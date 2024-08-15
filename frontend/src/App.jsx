@@ -38,7 +38,11 @@ import {
   NewCsetProvider,
   // AlertsProvider, useAlerts, useAlertsDispatch, useNewCset, urlWithSessionStorage,
 } from './state/AppState';
-import {SessionStorageWithSearchParamsProvider, useSessionStorageWithSearchParams} from "./state/StorageProvider";
+import {
+  SearchParamsProvider,
+  // SessionStorageWithSearchParamsProvider,
+  // useSessionStorageWithSearchParams,
+} from './state/StorageProvider';
 import {backend_url, DataGetterProvider} from "./state/DataGetter";
 import { UploadCsvPage } from "./components/UploadCsv";
 // import { DownloadJSON } from "./components/DownloadJSON";
@@ -74,6 +78,7 @@ function AppWrapper() {
     //   <SessionStorageWithSearchParamsProvider>
     //     <AlertsProvider>
     //     <AppOptionsProvider>
+    <SearchParamsProvider>
           <CodesetIdsProvider>
             <CidsProvider>
               <GraphOptionsProvider>
@@ -87,6 +92,7 @@ function AppWrapper() {
               </GraphOptionsProvider>
             </CidsProvider>
           </CodesetIdsProvider>
+    </SearchParamsProvider>
         // </AppOptionsProvider>
       // </AlertsProvider>
       // </SessionStorageWithSearchParamsProvider>
