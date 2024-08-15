@@ -6,6 +6,7 @@ import {isJsonString} from "../utils";
 // starting from https://chat.openai.com/share/6cc19197-8a46-49ce-9100-84a83d0d2bf1
 // at least for now, moving all search params to sessionStorage
 export function useSessionStorage() {
+  const providerName = 'sessionStorage';
   const [storage, setStorage] = useState(() => {
     const items = { codeset_ids: [], ...window.sessionStorage };
     delete items.AI_buffer;    // added by chrome ai stuff i think...I don't want it
@@ -78,6 +79,7 @@ export function useSessionStorage() {
   }
 
   let ss = {
+    providerName,
     getItem,
     setItem,
     removeItem,
@@ -102,8 +104,8 @@ const SEARCH_PARAM_STATE_CONFIG = {
 };
 
 const SearchParamsContext = createContext(null);
-
-export function SearchParamsProviderREAL({children}) {
+export function SearchParamsProvider({children}) {
+  const providerName = 'searchParams';
   const [searchParams, setSearchParams] = useSearchParams();
 
   const searchParamsToObj = useCallback(searchParams => {
@@ -195,7 +197,7 @@ export function SearchParamsProviderREAL({children}) {
   if (!sp.codeset_ids) {
     sp.codeset_ids = [];
   }
-  const value = { sp, getItem, setItem, removeItem, clear, addToArray, removeFromArray, dontStringifySetItem: true, };
+  const value = { providerName, sp, getItem, setItem, removeItem, clear, addToArray, removeFromArray, dontStringifySetItem: true, };
   return (
       <SearchParamsContext.Provider value={value} >
         {children}
@@ -208,6 +210,7 @@ export function useSearchParamsState() {
 
 const SSSPContext = createContext(null);
 export function SessionStorageWithSearchParamsProvider({children}) {
+  const providerName = 'sessionStorageWithSearchParamsProvider';
   // combines searchParams into sessionStorage and deletes searchParams
   // this is so we can save state into a url for sharing or returning to
   //  but then maintain it in sessionStorage to prevent the url getting

@@ -11,6 +11,7 @@ import { fromPairs, get, isEmpty, isEqual, pick } from 'lodash';
 import { alertsReducer } from '../components/AlertMessages';
 import {
   useSearchParamsState,
+  useSessionStorage,
   useSessionStorageWithSearchParams,
 } from './StorageProvider';
 import { SOURCE_APPLICATION, SOURCE_APPLICATION_VERSION } from '../env';
@@ -22,41 +23,22 @@ import { Inspector } from 'react-inspector';
 
 export const NEW_CSET_ID = -1;
 
-const codesetIdsReducer = (state, action) => {
-  if (!(action && action.type)) return state;
-  switch (action.type) {
-    case "add_codeset_id": {
-      return [...state, parseInt(action.codeset_id)]; // .sort();
-    }
-    case "delete_codeset_id": {
-      return state.filter((d) => d != action.codeset_id);
-    }
-    case "set_all": {
-      return [...action.codeset_ids];
-    }
-    default:
-      throw new Error(`unexpected action.type ${action.type}`);
-  }
-};
 export const [CodesetIdsProvider, useCodesetIds] = makeProvider(
-    { name: 'codeset_ids',
+    { stateName: 'codeset_ids',
       reducer: codesetIdsReducer,
       initialSettings: [],
       storageProviderGetter: useSearchParamsState, });
 
 
-const cidsReducer = (state, cids) => {
-  return cids || state;
-};
 export const [CidsProvider, useCids] = makeProvider(
-    { name: 'codeset_ids',
-      reducer: codesetIdsReducer,
+    { stateName: 'cids',
+      reducer: cidsReducer,
       initialSettings: [],
-      storageProviderGetter: useSearchParamsState, });
+      storageProviderGetter: useSessionStorage, });
 
 
 export const [AppOptionsProvider, useAppOptions] = makeProvider(
-    { name: 'appOptions',
+    { stateName: 'appOptions',
       reducer: appOptionsReducer,
       initialSettings: {
         use_example: false,
@@ -64,7 +46,14 @@ export const [AppOptionsProvider, useAppOptions] = makeProvider(
                                      // experimental cset/comparison methods are being used
         comparison_pair: '', // pair of codeset_ids that will be provided on the command line
       },
-      storageProviderGetter: useSessionStorageWithSearchParams, });
+      storageProviderGetter: useSearchParamsState, });
+
+export const [GraphOptionsProvider, useGraphOptions] = makeProvider(
+  { stateName: 'graphOptions',
+    reducer: graphOptionsReducer,
+    initialSettings: {},
+    storageProviderGetter: useSessionStorage, });
+
 
 function appOptionsReducer(state, action) {
   if ( ! ( action || {} ).type ) return state;
@@ -81,6 +70,26 @@ function appOptionsReducer(state, action) {
   return {...state, ...appOptions};
 }
 
+function codesetIdsReducer(state, action) {
+  if (!(action && action.type)) return state;
+  switch (action.type) {
+    case "add_codeset_id": {
+      return [...state, parseInt(action.codeset_id)]; // .sort();
+    }
+    case "delete_codeset_id": {
+      return state.filter((d) => d != action.codeset_id);
+    }
+    case "set_all": {
+      return [...action.codeset_ids];
+    }
+    default:
+      throw new Error(`unexpected action.type ${action.type}`);
+  }
+}
+
+function cidsReducer(state, cids) {
+  return cids || state;
+}
 
 function graphOptionsReducer(state, action) {
   if ( ! ( action || {} ).type ) return state;
@@ -136,14 +145,7 @@ function graphOptionsReducer(state, action) {
   return {...state, ...graphOptions};
 }
 
-export const [GraphOptionsProvider, useGraphOptions] = makeProvider(
-    { name: 'graphOptions',
-      reducer: graphOptionsReducer,
-      initialSettings: {},
-      storageProviderGetter: useSessionStorageWithSearchParams, });
-
-
-function makeProvider({name, reducer, initialSettings, storageProviderGetter, jsonify=false, forceUpdateForConsumers=false}) {
+function makeProvider({stateName, reducer, initialSettings, storageProviderGetter, jsonify=false, forceUpdateForConsumers=false}) {
   // makes provider to manage both a regular reducer and a storage provider
   // I think the idea was to put update logic into reducers and try to have storage providers
   //  just emulate localStorage (whether for localStorage, sessionStorage, or querystring)
@@ -156,7 +158,7 @@ function makeProvider({name, reducer, initialSettings, storageProviderGetter, js
   const Provider = ({children}) => {
     const storageProvider = storageProviderGetter();
     const [state, dispatch] = useReducer(regularReducer, initialSettings, (initial) => {
-      let storedSettings = storageProvider.getItem(name);
+      let storedSettings = storageProvider.getItem(stateName);
       if (storedSettings) {
         return jsonify ? JSON.stringify(storedSettings) : storedSettings;
       }
@@ -165,8 +167,8 @@ function makeProvider({name, reducer, initialSettings, storageProviderGetter, js
 
     useEffect(() => {
       let newState = jsonify ? JSON.stringify(state) : state;
-      storageProvider.setItem(name, newState);
-    }, [name, state]);
+      storageProvider.setItem(stateName, newState);
+    }, [stateName, state]);
 
 
     return (
@@ -178,7 +180,7 @@ function makeProvider({name, reducer, initialSettings, storageProviderGetter, js
   const useReducerWithStorage = () => {
     const context = useContext(Context);
     if (!context) {
-      throw new Error(`use ${name} must be called within a makeProvider provider`);
+      throw new Error(`use ${stateName} must be called within a makeProvider provider`);
     }
     return context;
   }

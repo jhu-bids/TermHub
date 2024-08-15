@@ -31,13 +31,12 @@ import { AboutPage } from "./components/AboutPage";
 import { ConceptGraph, } from "./components/GraphPlayground";
 import {
   CodesetIdsProvider,
+  useCodesetIds, ViewCurrentState,
   CidsProvider,
   GraphOptionsProvider,
-  AlertsProvider,
-  useAlerts,
-  useAlertsDispatch,
+  AppOptionsProvider,
   NewCsetProvider,
-  useNewCset, urlWithSessionStorage, useCodesetIds, ViewCurrentState, // getSessionStorage, serializeSessionStorage,
+  // AlertsProvider, useAlerts, useAlertsDispatch, useNewCset, urlWithSessionStorage,
 } from './state/AppState';
 import {SessionStorageWithSearchParamsProvider, useSessionStorageWithSearchParams} from "./state/StorageProvider";
 import {backend_url, DataGetterProvider} from "./state/DataGetter";
@@ -74,7 +73,7 @@ function AppWrapper() {
     // <React.StrictMode> // {/* StrictMode helps assure code goodness by running everything twice, but it's annoying*/}
     //   <SessionStorageWithSearchParamsProvider>
     //     <AlertsProvider>
-        <AppOtionsPr>
+    //     <AppOptionsProvider>
           <CodesetIdsProvider>
             <CidsProvider>
               <GraphOptionsProvider>
@@ -88,7 +87,7 @@ function AppWrapper() {
               </GraphOptionsProvider>
             </CidsProvider>
           </CodesetIdsProvider>
-        </AppOtionsPr>
+        // </AppOptionsProvider>
       // </AlertsProvider>
       // </SessionStorageWithSearchParamsProvider>
     // </React.StrictMode>
