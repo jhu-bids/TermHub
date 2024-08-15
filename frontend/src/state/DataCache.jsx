@@ -12,9 +12,10 @@ import {useSearchParamsState} from "./StorageProvider";
 const DataCacheContext = createContext(null);
 
 export function DataCacheProvider({children}) {
-	const {sp} = useSearchParamsState();
-	let {optimization_experiment} = sp;
+	// const {sp} = useSearchParamsState();
+	// let {optimization_experiment} = sp;
 
+  let {optimization_experiment} = '';
 	// TURN OFF CACHING by uncommenting below
 	// optimization_experiment = optimization_experiment || 'no_cache';
 

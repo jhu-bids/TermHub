@@ -21,7 +21,6 @@ import { DOCS } from "./AboutPage";
 import {useDataCache} from "../state/DataCache";
 import {useDataGetter, getResearcherIdsFromCsets, } from "../state/DataGetter";
 import {useCodesetIds} from "../state/AppState";
-import {useSearchParamsState} from "../state/StorageProvider";
 
 /* TODO: Solve
     react_devtools_backend.js:4026 MUI: The value provided to Autocomplete is invalid.
@@ -29,7 +28,7 @@ import {useSearchParamsState} from "../state/StorageProvider";
     You can use the `isOptionEqualToValue` prop to customize the equality test.
     @ SIggie: is this fixed?
 */
-function initialOpts(all_csets, codesetIds) {
+function initialOpts(all_csets, codesetIds) { // option rows for autocomplete dropdown
   let opts = all_csets
       // .filter((d) => !codeset_ids.includes(d.codeset_id))
       .map((d) => ({
@@ -51,10 +50,11 @@ function initialOpts(all_csets, codesetIds) {
 
 export function CsetSearch(props = {}) {
   const { all_csets, } = props;
-  const storage = useSearchParamsState();
-  const {sp} = storage;
-  const {codeset_ids, cids,} = sp;
-  // const [codeset_ids, codesetIdsDispatch] = useCodesetIds();
+  // const storage = useSearchParamsState();
+  // const {sp} = storage;
+  // const {codeset_ids, cids,} = sp;
+  const [codeset_ids, codesetIdsDispatch] = useCodesetIds();
+  // const [cids, cidsDispatch] = useCodesetIds();
   console.log('about to useState with:', codeset_ids);
   const [codesetIdsSelected, setCodesetIdsSelected] = useState(codeset_ids);
 
