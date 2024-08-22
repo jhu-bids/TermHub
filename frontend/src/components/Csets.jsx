@@ -30,6 +30,7 @@ import {useCodesetIds} from "../state/AppState";
 */
 function initialOpts(all_csets, codesetIds) { // option rows for autocomplete dropdown
   let opts = all_csets
+      .filter(d => d.codeset_id)
       // .filter((d) => !codeset_ids.includes(d.codeset_id))
       .map((d) => ({
         label:
@@ -53,9 +54,8 @@ export function CsetSearch(props = {}) {
   // const storage = useSearchParamsState();
   // const {sp} = storage;
   // const {codeset_ids, cids,} = sp;
-  const [codeset_ids, codesetIdsDispatch] = useCodesetIds();
-  // const [cids, cidsDispatch] = useCodesetIds();
-  console.log('about to useState with:', codeset_ids);
+  const [codeset_ids, ] = useCodesetIds();
+  // console.log('about to useState with:', codeset_ids);
   const [codesetIdsSelected, setCodesetIdsSelected] = useState(codeset_ids);
 
   /*
@@ -94,7 +94,7 @@ export function CsetSearch(props = {}) {
   if (unloadedCodesetIds.length) {
     const unloadedCsets = all_csets.filter(cset => unloadedCodesetIds.includes(cset.codeset_id));
     largeCsets = unloadedCsets.filter(cset => get(cset, ['counts', 'Members']) > 9999);
-    console.log(unloadedCsets, largeCsets);
+    // console.log(unloadedCsets, largeCsets);
   }
   const largeCsetWarning = largeCsets.length ? (
       <Alert severity="error" >
@@ -107,18 +107,32 @@ export function CsetSearch(props = {}) {
     throw new Error(`Invalid codeset ids: ${invalidCodesetIds.join(', ')}`);
   }
   let ctr = 0;
+  let optsseen = {};
   const autocomplete = (
     // https://mui.com/material-ui/react-autocomplete/
     // https://stackoverflow.com/a/70193988/1368860
     <Autocomplete
+      /*  changing it into single select just for adding
       multiple
-      // key={keyForRefreshingAutocomplete}
       value={codesetIdsSelected}
       onChange={(event, newValue) => {
         // console.log(ctr++, newValue);
         setCodesetIdsSelected(newValue.map(option => option.value || option));
         // dataGetter.prefetch({itemType: 'everything', codeset_ids: newValue});
       }}
+      renderTags={(tagValue, getTagProps) => {
+        return tagValue.map((option, index) => (
+          <Chip {...getTagProps({ index })} key={option} label={
+            typeof(option) === 'number'? opts.find(item => item.value === option)?.label : option.label
+          } />
+        ))
+      }}
+       */
+
+      onSelect={(evt, val, other) => {
+        console.log(evt, val, other);
+      }}
+      /*
       isOptionEqualToValue={(opt, value) => {
         // console.log('isOptionEqualToValue', ctr++, opt, value);
         return opt.value === value;
@@ -134,19 +148,18 @@ export function CsetSearch(props = {}) {
       // fixing impossible to track down bug with stackoverflow: https://stackoverflow.com/a/75968316/1368860
       // no idea why the bug suddenly started happening
       renderOption={(props, option) => {
+        // console.log(option);
+        optsseen[option.value] = true;
+        if (!option.value) {
+          debugger;
+        }
         return (
-          <li {...props} key={option}>
-            {option}
+          <li {...props} key={option.value}>
+            {option.label}
           </li>
         )
       }}
-      renderTags={(tagValue, getTagProps) => {
-        return tagValue.map((option, index) => (
-          <Chip {...getTagProps({ index })} key={option} label={
-            typeof(option) === 'number'? opts.find(item => item.value === option)?.label : option.label
-          } />
-        ))
-      }}
+      */
 
       disablePortal
       id="add-codeset-id"
@@ -195,14 +208,13 @@ export function CsetSearch(props = {}) {
           {autocomplete}
         </Tooltip>
         {largeCsetWarning}
-        <Button data-testid="load-concept-sets" onClick={() => {
-          codesetIdsDispatch({type: "set_all", codeset_ids: codesetIdsSelected});
-          // changeCodesetIds(value, "set");
-          // setKeyForRefreshingAutocomplete((k) => k + 1);
-        }}
-        >
-          Load concept sets
-        </Button>
+        {/*<Button data-testid="load-concept-sets" onClick={() => {*/}
+        {/*  codesetIdsDispatch({type: "set_all", codeset_ids: codesetIdsSelected});*/}
+        {/*  // changeCodesetIds(value, "set");*/}
+        {/*  // setKeyForRefreshingAutocomplete((k) => k + 1);*/}
+        {/*}}>*/}
+        {/*  Load concept sets*/}
+        {/*</Button>*/}
       </Box>
   );
   /*
@@ -227,7 +239,7 @@ export function CsetSearch(props = {}) {
 }
 
 export function ConceptSetsPage() {
-  const [codeset_ids, codesetIdsDispatch] = useCodesetIds();
+  const [codeset_ids, ] = useCodesetIds();
   const dataGetter = useDataGetter();
   const [data, setData] = useState({});
   const { all_csets=[], concept_ids=[], selected_csets=[],
@@ -288,7 +300,7 @@ export function ConceptSetsPage() {
         let cset = allRelatedCsets[csid];
         if (!cset) {
           console.warn(`WHY IS csid ${csid} MISSING???`);
-          debugger;
+          // debugger;
           continue;
         }
         let rcids = relatedCsetConceptIds[csid];
@@ -333,7 +345,7 @@ export function ConceptSetsPage() {
     );
   }
   // {<CsetsSelectedDataTable {...props} />} is added to separately show selected concept sets
-  console.log("going to CsetSearch with props", props);
+  // console.log("going to CsetSearch with props", props);
   return (
     <div
       style={{

@@ -91,7 +91,7 @@ export function AddConcepts() {
 // from https://stackoverflow.com/a/66167322/1368860
 function ConceptStringSearch() {
   const dataGetter: DataGetter = useDataGetter();
-  const [codeset_ids, codesetIdsDispatch] = useCodesetIds();
+  const [codeset_ids, ] = useCodesetIds();
   const [cids, cidsDispatch] = useCids();
   const [searchText, setSearchText] = React.useState("");
   const c: number[] = [];

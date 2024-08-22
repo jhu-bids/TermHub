@@ -48,9 +48,9 @@ import {
 import { FlexibleContainer } from './FlexibleContainer';
 import {
   NEW_CSET_ID,
-  urlWithSessionStorage,
-  useGraphOptions,
-  useNewCset,
+  urlWithSessionStorage, useCodesetIds,
+  useGraphOptions, useAppOptions,
+  useNewCset, useCids,
 } from '../state/AppState';
 import { GraphContainer } from '../state/GraphState';
 import { getResearcherIdsFromCsets, useDataGetter } from '../state/DataGetter';
@@ -174,10 +174,8 @@ export async function fetchGraphData (props) {
 }
 
 export function CsetComparisonPage () {
-  const { codeset_ids, cids } = sp;
-
-  // codeset_ids, cids, newCset, and graphOptions are all stored in sp/ss,
-  //  so maybe the additional hooks aren't needed, but maybe they are
+  const [codeset_ids, ] = useCodesetIds();
+  const [cids, cidsDispatch] = useCids();
   const [newCset, newCsetDispatch] = useNewCset();
   const [api_call_group_id, setApiCallGroupId] = useState();
   let [graphOptions, graphOptionsDispatch] = useGraphOptions();

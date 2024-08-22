@@ -40,6 +40,7 @@ import {
 } from './state/AppState';
 import {
   SearchParamsProvider,
+  SessionStorageProvider,
   // SessionStorageWithSearchParamsProvider,
   // useSessionStorageWithSearchParams,
 } from './state/StorageProvider';
@@ -79,19 +80,23 @@ function AppWrapper() {
     //     <AlertsProvider>
     //     <AppOptionsProvider>
     <SearchParamsProvider>
+      <SessionStorageProvider>
+        <AppOptionsProvider>
           <CodesetIdsProvider>
             <CidsProvider>
               <GraphOptionsProvider>
                 <NewCsetProvider>
                   <DataCacheProvider>
                     <DataGetterProvider>
-                        <RoutesContainer/>
+                      <RoutesContainer/>
                     </DataGetterProvider>
                   </DataCacheProvider>
                 </NewCsetProvider>
               </GraphOptionsProvider>
             </CidsProvider>
           </CodesetIdsProvider>
+        </AppOptionsProvider>
+      </SessionStorageProvider>
     </SearchParamsProvider>
         // </AppOptionsProvider>
       // </AlertsProvider>

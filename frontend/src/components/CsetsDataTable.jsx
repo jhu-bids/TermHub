@@ -36,9 +36,10 @@ function getCsetSelectionHandler(tooltipId) {
 
 /* TODO: review function for appropriate state management */
 export function CsetsDataTable(props) {
-  const { show_selected, selected_csets, clickable, showTitle, codeset_ids} = props;
-  // const [codeset_ids, codesetIdsDispatch] = useCodesetIds();
-  const spState = useSearchParamsState();
+  const { show_selected, selected_csets, clickable, showTitle, } = props;
+  // const {codeset_ids, codesetIdsDispatch} = props;
+  const [codeset_ids, codesetIdsDispatch] = useCodesetIds();
+  // const spState = useSearchParamsState();
   // const codeset_ids = show_selected ? null : props.codeset_ids;
   const relatedCsets = show_selected ? null : props.relatedCsets;
   const all_csets = show_selected ? null : props.all_csets;
@@ -54,8 +55,11 @@ export function CsetsDataTable(props) {
   let customStyles = getCustomStyles();
 
   const handleRowClick = useCallback(
-    (row) => spState[ show_selected ? 'removeFromArray' : 'addToArray']('codeset_ids',  row.codeset_id)
-    // (row) => codesetIdsDispatch({type: show_selected ? 'delete_codeset_id' : 'add_codeset_id', codeset_id: row.codeset_id})
+    row => codesetIdsDispatch({
+      type: show_selected ? 'delete_codeset_id' : 'add_codeset_id',
+      codeset_id: row.codeset_id,
+    })
+    // (row) => spState[ show_selected ? 'removeFromArray' : 'addToArray']('codeset_ids',  row.codeset_id)
   );
   /*
     const handleSelectionChange = useCallback(state => {

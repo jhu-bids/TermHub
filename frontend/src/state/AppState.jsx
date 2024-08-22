@@ -5,6 +5,7 @@ import React, {
   useReducer,
   useState,
 } from 'react';
+import Markdown from 'react-markdown';
 import { fromPairs, get, isEmpty, isEqual, pick } from 'lodash';
 // import {compressToEncodedURIComponent} from "lz-string";
 // import {createPersistedReducer} from "./usePersistedReducer";
@@ -12,7 +13,6 @@ import { alertsReducer } from '../components/AlertMessages';
 import {
   useSearchParamsState,
   useSessionStorage,
-  useSessionStorageWithSearchParams,
 } from './StorageProvider';
 import { SOURCE_APPLICATION, SOURCE_APPLICATION_VERSION } from '../env';
 import { pct_fmt } from '../utils';
@@ -95,19 +95,27 @@ export const [AppOptionsProvider, useAppOptions] = makeProvider(
                                      // experimental cset/comparison methods are being used
         comparison_pair: '', // pair of codeset_ids that will be provided on the command line
       },
-      storageProviderGetter: useSearchParamsState, });
+      storageProviderGetter: useSessionStorage, });
 
 export const [GraphOptionsProvider, useGraphOptions] = makeProvider(
   { stateName: 'graphOptions',
     reducer: graphOptionsReducer,
-    initialSettings: {},
+    initialSettings: {
+      specialConceptTreatment: {},
+      nested: true,
+      // hideRxNormExtension: true,
+      // hideZeroCounts: false,
+      specificNodesCollapsed: [],
+      specificNodesExpanded: [],
+    },
     storageProviderGetter: useSessionStorage, });
 
 
 function appOptionsReducer(state, action) {
   if ( ! ( action || {} ).type ) return state;
 
-
+  // TODO: FIX THIS!!
+  throw new Error("fix appOptionsReducer");
 
   // from SEARCH_PARAM_STATE_CONFIG scalars: ["editCodesetId", "use_example", "sstorage", "show_alerts", "optimization_experiment", "comparison_rpt"],
   let { use_example, optimization_experiment, comparison_pair, } = appOptions;
@@ -121,6 +129,7 @@ function appOptionsReducer(state, action) {
 
 function codesetIdsReducer(state, action) {
   if (!(action && action.type)) return state;
+  console.log(`codesetIdsReducer ${JSON.stringify(action)}`)
   switch (action.type) {
     case "add_codeset_id": {
       return [...state, parseInt(action.codeset_id)]; // .sort();
@@ -194,13 +203,16 @@ function graphOptionsReducer(state, action) {
   return {...state, ...graphOptions};
 }
 
+window.appStateW = {}; // FOR DEBUGGING, GLOBAL TO SEE all appState and storage
 function makeProvider({stateName, reducer, initialSettings, storageProviderGetter, jsonify=false, forceUpdateForConsumers=false}) {
   // makes provider to manage both a regular reducer and a storage provider
   // I think the idea was to put update logic into reducers and try to have storage providers
   //  just emulate localStorage (whether for localStorage, sessionStorage, or querystring)
   const regularReducer = (state, action) => {
     const newState = reducer(state, action);
-    return isEqual(state, newState) ? state : newState;
+    const returnState = isEqual(state, newState) ? state : newState;
+    appStateW[stateName] = returnState;
+    return returnState;
   };
 
   const Context = createContext();
@@ -236,27 +248,6 @@ function makeProvider({stateName, reducer, initialSettings, storageProviderGette
 
   return [Provider, useReducerWithStorage];
 }
-/*
-  export function useHierarchySettings() {
-    const unpersistedDefaultState = {
-      specialConceptTreatment: {},
-      nested: true,
-      // collapsePaths: {},
-      // collapsedDescendantPaths: {},
-      hideRxNormExtension: true,
-      // hideZeroCounts: false,
-    };
-    const storageProvider = useSearchParamsState();
-    // const storageProvider = useSessionStorage();
-    const usePersistedReducer = createPersistedReducer('hierarchySettings',
-      storageProvider, unpersistedDefaultState);
-
-    // reducer was here
-
-    const [state, dispatch] = usePersistedReducer(hierarchySettingsReducer);
-    return [state, dispatch];
-  }
-   */
 
 const newCsetReducer = (state, action) => {
   /*
@@ -487,102 +478,79 @@ export function useAlertsDispatch() {
 }
 
 const stateDoc = `
-    2023-08
-    State management is pretty messed up at the moment. We need decent performance....
-    Here's what needs to be tracked in state and description of how it's all related.
+# 2024-08-14, refactoring
 
-    codeset_ids, selected in a few different ways:
-      - with a list on the About page
-      - on search page by selecting from drop down and clicking load concept sets
-      - on search page after some are chosen by clicking a selected cset to deselect it
-        or clicking a related cset to add it to the selection
+State managers / reducer providers and their storage providers
+  - DataCache (not a reducer provider)
+    - all_csets
+    - edges
+    - cset_members_items
+    - selected_csets
+    - researchers
+    - concepts
+    - ????  not sure if this is up-to-date
+  - Uses SearchParamsProvider/useSearchParamsState
+    - Provider created using MakeProvider
+      - appOptions
+      - codeset_ids
+  - Uses useSessionStorage
+    - newCset -- sessionStorage
+    - Provider created using MakeProvider
+      - graphOptions
+      - cids
 
-    concept_ids and concept (metadata) for them:
-      - for all definition (expression) items and expansion members of selected codeset_ids
-        PLUS:
-          - Additional concepts from vocab hierarchies needed to connect the already selected concept_ids
-          - Concept_ids (but don't need all the metadata) for for all the related concept sets in order to
-            calculate share, precision, and recall
-          - Additional concepts of interest to users -- not implemented yet, but important (and these will
-            probably require the concept metadata, not just concept_ids)
-      - The way that all works (will work) is:
-        1. Call concept_ids_by_codeset_id for all selected codeset_ids
-        2. Call subgraph to get hierarchy for all resulting concept_ids (and any additionally requested concept_ids);
-           this will add a few more concept_ids for filling in gaps. Subgraph returns edges. Edge list is unique for
-           each unique set of input concept_ids. --- which makes this step horrible for caching and a possible performance
-           bottleneck.
-        3. Call codeset_ids_by_concept_id for all concept_ids from step 1 (or 2?)
-        4. Call concept_ids_by_codeset_id again for all codeset_ids from step 3. This is also a performance/caching
-           problem because it's a lot of data.
 
-        For steps 2 and 3, the union of all concept_ids is what we need. For step 4, we need the list of concept_ids
-        associated with each codeset_id in order to perform the calculations (shared/prec/recall.)
+2023-08
+State management is pretty messed up at the moment. We need decent performance....
+Here's what needs to be tracked in state and description of how it's all related.
 
-    Coming up with the right caching strategy that balances ease of use (programming-wise), data retrieval and
-    storage efficiency, and stability has been hard and I don't have a decent solution at the moment. Considering
-    trying to move (back) to something simpler.
+codeset_ids, selected in a few different ways:
+  - with a list on the About page
+  - on search page by selecting from drop down and clicking load concept sets
+  - on search page after some are chosen by clicking a selected cset to deselect it
+    or clicking a related cset to add it to the selection
 
-    URL query string: SearchParamsProvider, useSearchParams
-      codeset_ids
-      use_example
+concept_ids and concept (metadata) for them:
+  - for all definition (expression) items and expansion members of selected codeset_ids
+    PLUS:
+      - Additional concepts from vocab hierarchies needed to connect the already selected concept_ids
+      - Concept_ids (but don't need all the metadata) for for all the related concept sets in order to
+        calculate share, precision, and recall
+      - Additional concepts of interest to users -- not implemented yet, but important (and these will
+        probably require the concept metadata, not just concept_ids)
+  - The way that all works (will work) is:
+    1. Call concept_ids_by_codeset_id for all selected codeset_ids
+    2. Call subgraph to get hierarchy for all resulting concept_ids (and any additionally requested concept_ids);
+       this will add a few more concept_ids for filling in gaps. Subgraph returns edges. Edge list is unique for
+       each unique set of input concept_ids. --- which makes this step horrible for caching and a possible performance
+       bottleneck.
+    3. Call codeset_ids_by_concept_id for all concept_ids from step 1 (or 2?)
+    4. Call concept_ids_by_codeset_id again for all codeset_ids from step 3. This is also a performance/caching
+       problem because it's a lot of data.
 
-    reducers and context
-      alerts, graphOptions, newCset
-      newCset
+    For steps 2 and 3, the union of all concept_ids is what we need. For step 4, we need the list of concept_ids
+    associated with each codeset_id in order to perform the calculations (shared/prec/recall.)
 
-    DataCache
-      all_csets
-      edges
-      cset_members_items
-      selected_csets
-      researchers
-      concepts
-      ????
+Coming up with the right caching strategy that balances ease of use (programming-wise), data retrieval and
+storage efficiency, and stability has been hard and I don't have a decent solution at the moment. Considering
+trying to move (back) to something simpler.
 
-    local to components, useState, etc.
+URL query string: SearchParamsProvider, useSearchParams
+  codeset_ids
+  use_example
 
-    Goals:
-      Manage all/
+reducers and context
+  alerts, graphOptions, newCset
+  newCset
 
-    # 2024-08-14, refactoring
+DataCache
 
-    State managers / reducer providers and their storage providers (goal)
-      - DataCache (not a reducer provider)
-      - appOptions -- searchParams (MakeProvider) (currently sessionStorage) -- keep small
-      - codeset_ids -- searchParams (MakeProvider) (currently sessionStorage)
-      - graphOptions -- sessionStorage (MakeProvider)
-      - cids -- sessionStorage (MakeProvider)
-      - newCset -- sessionStorage
+local to components, useState, etc.
+
+Goals:
+  Manage all/
+
 `;
-
-function Progress (props) {
-  return (
-    <Box sx={{ display: 'flex' }}>
-      <CircularProgress {...props} size="35px"/>
-    </Box>
-  );
-}
-
-export function StatsMessage (props) {
-  const {
-    codeset_ids = [], all_csets = [], relatedCsets,
-    concept_ids, selected_csets,
-  } = props;
-
-  const relcsetsCnt = relatedCsets.length;
-  return (
-    <p style={{ margin: 0, fontSize: 'small' }}>
-      The <strong>{codeset_ids.length} concept sets </strong>
-      selected contain{' '}
-      <strong>{(concept_ids || []).length.toLocaleString()} distinct
-        concepts</strong>. The
-      following <strong>{relcsetsCnt.toLocaleString()} concept sets </strong>(
-      {pct_fmt(relcsetsCnt / all_csets.length)}) have 1 or more
-      concepts in common with the selected sets. Click rows below to select or
-      deselect concept sets.
-    </p>
-  );
-}
 
 export function ViewCurrentState () {
   const { sp } = useSearchParamsState();
@@ -611,6 +579,36 @@ export function ViewCurrentState () {
     <Inspector data={dataCache.getWholeCache()}/>
 
     <h2>The different kinds of state</h2>
-    <pre>{stateDoc}</pre>
+    <Markdown>{stateDoc}</Markdown>
+    {/*<pre>{stateDoc}</pre>*/}
   </div>);
+}
+
+function Progress (props) {
+  return (
+    <Box sx={{ display: 'flex' }}>
+      <CircularProgress {...props} size="35px"/>
+    </Box>
+  );
+}
+
+export function StatsMessage (props) {
+  const {
+    codeset_ids = [], all_csets = [], relatedCsets,
+    concept_ids, selected_csets,
+  } = props;
+
+  const relcsetsCnt = relatedCsets.length;
+  return (
+    <p style={{ margin: 0, fontSize: 'small' }}>
+      The <strong>{codeset_ids.length} concept sets </strong>
+      selected contain{' '}
+      <strong>{(concept_ids || []).length.toLocaleString()} distinct
+        concepts</strong>. The
+      following <strong>{relcsetsCnt.toLocaleString()} concept sets </strong>(
+      {pct_fmt(relcsetsCnt / all_csets.length)}) have 1 or more
+      concepts in common with the selected sets. Click rows below to select or
+      deselect concept sets.
+    </p>
+  );
 }

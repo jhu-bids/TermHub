@@ -2,7 +2,7 @@
  * todo's
  *  todo: 1. Siggie was going to add some sort of Table here
  * */
-import React, {useEffect, useState} from "react";
+import React, { useCallback, useEffect, useState } from 'react';
 // import {queryClient} from "../App";
 import Typography from "@mui/material/Typography";
 import Button from "@mui/material/Button";
@@ -98,11 +98,12 @@ export function AboutPage() {
   // )
   const dataCache = useDataCache();
   const dataGetter = useDataGetter();
-  const [codeset_ids, setCodeset_ids] = useCodesetIds();
+  const [codeset_ids, codesetIdsDispatch] = useCodesetIds();
+  const [localCodesetIds, setLocalCodesetIds] = useState(codeset_ids);
   const [refreshButtonClicked, setRefreshButtonClicked] = useState();
   const [lastRefreshed, setLastRefreshed] = useState();
   const location = useLocation();
-  const { search } = location;
+  const { search } = location;  // querystring for passing along to page links
 
   const handleRefresh = async () => {
     try {
@@ -115,17 +116,29 @@ export function AboutPage() {
       console.error('Error:', error);
     }
   };
+  const handleCodesetIdsTextChange = useCallback((evt) => {
+    const val = evt.target.value;
+    const cset_ids = val.split(/[,\s]+/).filter(d=>d.length);
+    setLocalCodesetIds(cset_ids);
+  }, []);
+
+  // const linkPath = `/OMOPConceptSets?${localCodesetIds.map(d => `codeset_ids=${d}`).join("&")}`;
 
   useEffect(() => {
     (async () =>{
-      let lastRefreshed = dataCache.lastRefreshed();
-      if (!lastRefreshed) {
-        await dataCache.cacheCheck(dataGetter);
-        lastRefreshed = dataCache.lastRefreshed();
+      try {
+        let lastRefreshed = dataCache.lastRefreshed();
+        if (!lastRefreshed) {
+          await dataCache.cacheCheck(dataGetter);
+          lastRefreshed = dataCache.lastRefreshed();
+        }
+        setLastRefreshed(lastRefreshed);
+      } catch(e) {
+        console.warn("was getting a max update depth exceeded here. fix it if it comes up again");
+        debugger;
       }
-      setLastRefreshed(lastRefreshed);
     })()
-  });
+  }, []);
 
   return (
     <div style={{ margin: "15px 30px 15px 40px" }}>
@@ -214,25 +227,25 @@ export function AboutPage() {
         </ol>
       <TextH2>How to: Load a set of concept sets</TextH2>
         <TextBody>
-          Using the select list on the CSet Search page loads the concept
-          sets one at a time, which can be slow. Until we fix that, you
-          can enter a list of codeset_ids here.
+          You can add concept sets one at a time on the CSet Search page or paste several in here.
         </TextBody>
         <TextField fullWidth multiline
-                   label="Enter codeset_ids separated by spaces, commas, or newlines and click link below"
-                   onChange={(evt) => {
-                     const val = evt.target.value;
-                     const cids = val.split(/[,\s]+/).filter(d=>d.length);
-                     setCodeset_ids(cids);
-                   }}
+                   label="Enter codeset_ids separated by spaces, commas, or newlines and click button below"
+                   onChange={handleCodesetIdsTextChange}
                    defaultValue={codeset_ids.join(', ')}
         >
         </TextField>
-        <Button to={`/OMOPConceptSets?${codeset_ids.map(d => `codeset_ids=${d}`).join("&")}`}
-                component={Link}
+        <Button
                 style={{margin: '7px', textTransform: 'none'}}
+                variant={"contained"}
+                onClick={(evt) => {
+                  codesetIdsDispatch({
+                    type: 'set_all',
+                    codeset_ids: localCodesetIds,
+                  })
+                }}
         >
-          /OMOPConceptSets?{codeset_ids.map(d => `codeset_ids=${d}`).join("&")}
+          Load code sets {localCodesetIds.join(', ')}
         </Button>
 
         <TextH1>Debug / explore application data</TextH1>

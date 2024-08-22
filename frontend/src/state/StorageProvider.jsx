@@ -1,11 +1,10 @@
-import React, {createContext, useContext, useState, useCallback, useEffect} from "react";
+import React, {createContext, useContext, useState, useCallback, useMemo, useEffect} from "react";
 import {createSearchParams, useSearchParams, /* useLocation, Navigate, */ } from "react-router-dom";
-import {isEmpty, omit} from "lodash";
+// import {isEmpty, omit} from "lodash";
 import {isJsonString} from "../utils";
 
-// starting from https://chat.openai.com/share/6cc19197-8a46-49ce-9100-84a83d0d2bf1
-// at least for now, moving all search params to sessionStorage
-export function useSessionStorage() {
+const SessionStorageContext = createContext(null);
+export function SessionStorageProvider({children}) {
   const providerName = 'sessionStorage';
   const [storage, setStorage] = useState(() => {
     const items = { codeset_ids: [], ...window.sessionStorage };
@@ -91,27 +90,122 @@ export function useSessionStorage() {
     sp: storage, // so code like `{sp} = useSearchParamsState();` works
     dontStringifySetItem: true,
   };
-  return ss;
+  return (
+    <SessionStorageContext.Provider value={ss}>
+      {children}
+    </SessionStorageContext.Provider>
+  );
 }
 
-// FROM SearchParamsProvider in develop branch (that still seems to work)
+export function useSessionStorage() {
+  return useContext(SessionStorageContext);
+}
+
+/*
+
+const SessionStorageContext = createContext(null);
+
+const SessionStorageProto = {
+  getItem(key) {
+    try {
+      const item = window.sessionStorage.getItem(key);
+      return item ? JSON.parse(item) : null;
+    } catch (error) {
+      console.error(error);
+      return null;
+    }
+  },
+
+  setItem(key, value) {
+    try {
+      window.sessionStorage.setItem(key, JSON.stringify(value));
+      this._forceUpdate();
+    } catch (error) {
+      console.error(error);
+    }
+  },
+
+  removeItem(key) {
+    try {
+      window.sessionStorage.removeItem(key);
+      this._forceUpdate();
+    } catch (error) {
+      console.error(error);
+    }
+  },
+
+  clear() {
+    try {
+      window.sessionStorage.clear();
+      this._forceUpdate();
+    } catch (error) {
+      console.error(error);
+    }
+  },
+
+  addToArray(key, val) {
+    const item = this.getItem(key);
+    if (!Array.isArray(item)) {
+      this.setItem(key, [val]);
+    } else if (!item.includes(val)) {
+      this.setItem(key, [...item, val]);
+    }
+  },
+
+  removeFromArray(key, val) {
+    const item = this.getItem(key);
+    if (Array.isArray(item)) {
+      this.setItem(key, item.filter(d => d !== val));
+    }
+  },
+};
+
+export function SessionStorageProvider({ children }) {
+  const [, forceUpdate] = useState({});
+
+  const sessionStorageObj = useMemo(() => {
+    const ss = Object.create(SessionStorageProto);
+    ss._forceUpdate = () => forceUpdate({});
+    return new Proxy(ss, {
+      get(target, prop) {
+        if (prop in target) return target[prop];
+        return target.getItem(prop);
+      },
+      set(target, prop, value) {
+        target.setItem(prop, value);
+        return true;
+      },
+    });
+  }, []);
+
+  return (
+    <SessionStorageContext.Provider value={sessionStorageObj}>
+      {children}
+    </SessionStorageContext.Provider>
+  );
+}
+
+export function useSessionStorage() {
+  return useContext(SessionStorageContext);
+}
+
+ */
+
+
 
 const SEARCH_PARAM_STATE_CONFIG = {
-  scalars: ["editCodesetId", "sort_json", "use_example", "sstorage", "show_alerts",
-  "optimization_experiment", "comparison_rpt"],
-  global_props_but_not_search_params: [], // ["searchParams", "setSearchParams"],
-  // ignore: ["sstorage"],
-  serialize: ["newCset", "hierarchySettings"],
+  scalars: ["editCodesetId", "sort_json", "use_example", "show_alerts", "optimization_experiment", "comparison_rpt"],
+  serialize: ["newCset", "appOptions"],
 };
 
 const SearchParamsContext = createContext(null);
 
 export function SearchParamsProvider({children}) {
   const [searchParams, setSearchParams] = useSearchParams();
+  const [sp, setSp] = useState(searchParams);
 
   const searchParamsToObj = useCallback(searchParams => {
     const qsKeys = Array.from(new Set(searchParams.keys()));
-    let sp = {};
     qsKeys.forEach((key) => {
       // if (SEARCH_PARAM_STATE_CONFIG.ignore.includes(key)) { return; }
       let vals = searchParams.getAll(key);
@@ -129,14 +223,6 @@ export function SearchParamsProvider({children}) {
     // console.log('returning sp', sp);
     return sp;
   }, [searchParams]);
-
-  let sp = searchParamsToObj(searchParams);
-  // console.log('got sp', sp);
-
-  // gets state (codeset_ids for now) from query string, passes down through props
-  // const [codeset_ids, setCodeset_ids] = useState(sp.codeset_ids || []);
-
-  const { codeset_ids = [] } = sp;
 
   function updateSearchParams(props) {
     const {addProps = {}, delProps = [], replaceAllProps} = props;
@@ -158,7 +244,9 @@ export function SearchParamsProvider({children}) {
     });
     const csp = createSearchParams(sp);
     if (csp+'' !== searchParams+'') {
+      // console.log(csp, sp);
       setSearchParams(csp);
+      setSp(sp);
     }
   }
 
@@ -180,41 +268,24 @@ export function SearchParamsProvider({children}) {
     setSearchParams(csp);
   }
 
-  function changeCodesetIds(codeset_id, how) {
-    let sp = searchParamsToObj(searchParams);
-
-    // how = add | remove | toggle
-    if (how === "set" && Array.isArray(codeset_id)) {
-      updateSearchParams({ /* ...sp, haven't tested removing this, but should be ok */
-        addProps: { codeset_ids: codeset_id }, searchParams, setSearchParams, });
-      return;
+  function addToArray(key, val) {
+    let item = this.getItem(key);
+    if (!Array.isArray(item)) {
+      item = [];
     }
-    const included = codeset_ids.includes(codeset_id);
-    let action = how;
-    if (how === "add" && included) return;
-    if (how === "remove" && !included) return;
-    if (how === "toggle") {
-      action = included ? "remove" : "add";
-    }
-    if (action === "add") {
-      updateSearchParams({ ...sp, addProps: { codeset_ids: [...codeset_ids, codeset_id] },
-                            searchParams, setSearchParams, });
-    } else if (action === "remove") {
-      if (!included) return;
-      updateSearchParams({ ...sp, addProps: { codeset_ids: codeset_ids.filter((d) => d !== codeset_id) },
-                            searchParams, setSearchParams, });
-    } else {
-      throw new Error(
-          "unrecognized action in changeCodesetIds: " +
-          JSON.stringify({ how, codeset_id })
-      );
+    if (!item.includes(val)) {
+      this.setItem(key, [...item, val]);
     }
   }
 
-  if (!sp.codeset_ids) {
-    sp.codeset_ids = [];
+  function removeFromArray(key, val) {
+    let item = this.getItem(key);
+    if (Array.isArray(item)) {
+      this.setItem(key, item.filter(d => d != val));
+    }
   }
-  const value = { sp, updateSp: updateSearchParams, changeCodesetIds, getItem, setItem, removeItem, clear, dontStringifySetItem: true, };
+
+  const value = { sp, updateSp: updateSearchParams, getItem, setItem, removeItem, clear, addToArray, removeFromArray, };
   return (
       <SearchParamsContext.Provider value={value} >
         {children}
@@ -223,151 +294,66 @@ export function SearchParamsProvider({children}) {
 }
 
 export function useSearchParamsState() {
-  console.log(SearchParamsContext);
   const ctx = useContext(SearchParamsContext);
-  console.log(ctx);
   return ctx;
 }
 
-
-
-
-
 /*
-const SEARCH_PARAM_STATE_CONFIG = {
-  scalars: ["editCodesetId", "use_example", "sstorage", "show_alerts",
-  "optimization_experiment", "comparison_rpt"],
-  global_props_but_not_search_params: [], // ["searchParams", "setSearchParams"],
-  // ignore: ["sstorage"],
-  serialize: ["newCset", "graphOptions"],
-  intArray: ["codeset_ids"],
-};
-
-
-const SearchParamsContext = createContext(null);
-export function SearchParamsProvider({children}) {
-  const providerName = 'searchParams';
-  const [searchParams, setSearchParams] = useSearchParams();
-
-  const searchParamsToObj = useCallback(searchParams => {
-    const qsKeys = Array.from(new Set(searchParams.keys()));
-    let sp = {};
-    qsKeys.forEach((key) => {
-      // if (SEARCH_PARAM_STATE_CONFIG.ignore.includes(key)) { return; }
-      let vals = searchParams.getAll(key);
-      sp[key] = vals.map((v) => (parseInt(v) == v ? parseInt(v) : v)); //   ok to disable sort? it's messing up codeset_id order; .sort(); // eslint-disable-line
-      if (SEARCH_PARAM_STATE_CONFIG.scalars.includes(key)) {
-        if (sp[key].length !== 1) {
-          throw new Error("Didn't expect that!");
-        }
-        sp[key] = sp[key][0];
-      }
-      if (SEARCH_PARAM_STATE_CONFIG.serialize.includes(key)) {
-        sp[key] = JSON.parse(sp[key]);
-      }
-    });
-    // console.log('returning sp', sp);
-    return sp;
-  }, [searchParams]);
-
-  let sp = searchParamsToObj(searchParams);
-  // console.log('got sp', sp);
-
-  // gets state (codeset_ids for now) from query string, passes down through props
-  // const [codeset_ids, setCodeset_ids] = useState(sp.codeset_ids || []);
-
-  const { codeset_ids = [] } = sp;
-
-  function updateSearchParams(props) {
-    const {addProps = {}, delProps = [], replaceAllProps} = props;
-    let sp;
-    if (replaceAllProps) {
-      sp = replaceAllProps;
-    } else {
-      sp = searchParamsToObj(searchParams);
-    }
-    // SEARCH_PARAM_STATE_CONFIG.global_props_but_not_search_params.forEach((p) => { delete sp[p]; });
-    delProps.forEach((p) => {
-      delete sp[p];
-    });
-    sp = {...sp, ...addProps};
+const SearchParamsProto = {
+  updateSearchParams({ addProps = {}, delProps = [], replaceAllProps }) {
+    let sp = replaceAllProps || this._searchParamsToObj(this._searchParams);
+    delProps.forEach((p) => { delete sp[p]; });
+    sp = { ...sp, ...addProps };
     SEARCH_PARAM_STATE_CONFIG.serialize.forEach((p) => {
-      if (sp[p] && typeof(sp[p] !== 'string')) {
+      if (sp[p] && typeof sp[p] !== 'string') {
         sp[p] = JSON.stringify(sp[p]);
       }
     });
     const csp = createSearchParams(sp);
-    if (csp+'' !== searchParams+'') {
-      // for some reason this isn't just setting the querystring, it's getting rid of the path
-      // setSearchParams(csp);
-      let url = new (window.URL)(window.location);
-      let path = url.pathname.slice(1);
-      url.search = csp + '';
-      window.location.href = url.toString();
+    if (csp.toString() !== this._searchParams.toString()) {
+      this._setSearchParams(csp);
     }
-  }
+  },
 
-  // getItem and setItem are so SearchParams can be used with usePersistedReducer
-  function getItem(key) {
-    let sp = searchParamsToObj(searchParams);
-    return sp[key] ?? null ;
-  }
+  getItem(key) {
+    return this._searchParamsToObj(this._searchParams)[key] ?? null;
+  },
 
-  function setItem(key, value) {
-    updateSearchParams({addProps: {[key]: value}});
-  }
+  setItem(key, value) {
+    this.updateSearchParams({ addProps: { [key]: value } });
+  },
 
-  function removeItem(key) {
-    updateSearchParams({delProps: [key]});
-  }
-  function clear() {
-    const csp = createSearchParams();
-    setSearchParams(csp);
-  }
-  function addToArray(key, val) {
-    let sp = searchParamsToObj(searchParams);
-    let arr = sp[key] ?? [];
-    updateSearchParams({addProps: {[key]: [...arr, val]}});
-  }
-  function removeFromArray(key, val) {
-    let sp = searchParamsToObj(searchParams);
-    let arr = sp[key] ?? [];
-    updateSearchParams({addProps: {[key]: arr.filter(d => d != val)}});
-  }
+  removeItem(key) {
+    this.updateSearchParams({ delProps: [key] });
+  },
 
-  if (!sp.codeset_ids) {
-    sp.codeset_ids = [];
-  }
-  const value = { providerName, sp, getItem, setItem, removeItem, clear, addToArray, removeFromArray, dontStringifySetItem: true, };
-  console.log(value);
-  return (
-      <SearchParamsContext.Provider value={value} >
-        {children}
-      </SearchParamsContext.Provider>
-  );
-}
-export function useSearchParamsState() {
-    return useContext(SearchParamsContext);
-}
- */
+  clear() {
+    this._setSearchParams(createSearchParams());
+  },
 
-const SSSPContext = createContext(null);
-export function SessionStorageWithSearchParamsProvider({children}) {
-  const providerName = 'sessionStorageWithSearchParamsProvider';
-  // combines searchParams into sessionStorage and deletes searchParams
-  // this is so we can save state into a url for sharing or returning to
-  //  but then maintain it in sessionStorage to prevent the url getting
-  //  unmanageably large and ugly
-  let ss = useSessionStorage();
-  const [providerStorage, setProviderStorage] = useState({...ss.storage});
-  const [searchParams, setSearchParams] = useSearchParams();
-  const searchParamsToObj = useCallback(searchParams => {
+  addToArray(key, val) {
+    let item = this.getItem(key);
+    if (!Array.isArray(item)) {
+      item = [];
+    }
+    if (!item.includes(val)) {
+      this.setItem(key, [...item, val]);
+    }
+  },
+
+  removeFromArray(key, val) {
+    let item = this.getItem(key);
+    if (Array.isArray(item)) {
+      this.setItem(key, item.filter(d => d != val));
+    }
+  },
+
+  _searchParamsToObj(searchParams) {
     const qsKeys = Array.from(new Set(searchParams.keys()));
     let sp = {};
     qsKeys.forEach((key) => {
-      // if (SEARCH_PARAM_STATE_CONFIG.ignore.includes(key)) { return; }
       let vals = searchParams.getAll(key);
-      sp[key] = vals.map((v) => (parseInt(v) == v ? parseInt(v) : v)); //   ok to disable sort? it's messing up codeset_id order; .sort(); // eslint-disable-line
+      sp[key] = vals.map((v) => (parseInt(v) == v ? parseInt(v) : v));
       if (SEARCH_PARAM_STATE_CONFIG.scalars.includes(key)) {
         if (sp[key].length !== 1) {
           throw new Error("Didn't expect that!");
@@ -378,39 +364,51 @@ export function SessionStorageWithSearchParamsProvider({children}) {
         sp[key] = JSON.parse(sp[key]);
       }
     });
-    // console.log('returning sp', sp);
     return sp;
-  }, [searchParams]);
+  },
+};
+
+const SearchParamsContext = createContext(null);
+
+export function SearchParamsProvider({ children }) {
+  const [searchParams, setSearchParams] = useSearchParams();
+  const [, forceUpdate] = useState({});
+
+  const setSearchParamsWrapper = useCallback((newParams) => {
+    setSearchParams(newParams);
+    forceUpdate({});
+  }, [setSearchParams]);
+
+  const searchParamsObj = useMemo(() => {
+    const sp = Object.create(SearchParamsProto);
+    Object.assign(sp, {
+      _searchParams: searchParams,
+      _setSearchParams: setSearchParamsWrapper,
+    });
+    return new Proxy(sp, {
+      get(target, prop) {
+        if (prop in target) return target[prop];
+        return target._searchParamsToObj(target._searchParams)[prop];
+      },
+      set(target, prop, value) {
+        target.setItem(prop, value);
+        return true;
+      },
+    });
+  }, [searchParams, setSearchParamsWrapper]);
 
   useEffect(() => {
-    if (!ss) {
-      throw new Error("why would this be?");
-    }
-    let storage = {...ss.storage};  // just the values, not the methods
-    if (searchParams.toString()) {
-      // if there are any search params, add them on top of sessionStorage
-      let sp = searchParamsToObj(searchParams);
-      for (let k in sp) {
-        ss.setItem(k, sp[k]);
-      }
-    }
-    setSearchParams();
-  }, []);
-
-  // ss (sessionStorage) has a storage prop for the values it holds. ss.storage is
-  //  identical to ss.sp. sp (searchParams) is there because of other code that expects
-  //  to find the storage values there
-  // the rest of ss is getItem, setItem, clear, etc.
-  // let value = {...ss, dontStringifySetItem: true};
-  // value.storage = value.sp = providerStorage;
+    forceUpdate({});
+  }, [searchParams]);
 
   return (
-      <SSSPContext.Provider value={ss} >
-        {children}
-      </SSSPContext.Provider>
+    <SearchParamsContext.Provider value={searchParamsObj}>
+      {children}
+    </SearchParamsContext.Provider>
   );
 }
 
-export function useSessionStorageWithSearchParams() {
-  return useContext(SSSPContext);
+export function useSearchParamsState() {
+  return useContext(SearchParamsContext);
 }
+*/
