@@ -15,6 +15,11 @@ on:
         description: 'Optional: YYYY-MM-DD or YYYY-MM-DDTHH:MM:SS.SSSSSS+HH:MM'
         required: false
         type: string
+      cset-ids:
+        # Space-delimited list of integers representing codeset IDs
+        description: 'Optional: Space-delimited list of integers representing codeset IDs'
+        required: false
+        type: string
   repository_dispatch:
     types: [refresh-db]
 jobs:
@@ -57,10 +62,15 @@ jobs:
       # Refresh
       - name: Refresh db
         run: |
-          if [ -z "${{ github.event.inputs.since }}" ]; then
-            python backend/db/refresh.py
-          else
+          if [ -n "${{ github.event.inputs.cset-ids }}" ] && [ -n "${{ github.event.inputs.since }}" ]; then
+            echo "Error: Both 'cset-ids' and 'since' were provided. These inputs are mutually exclusive."
+            exit 1
+          elif [ -n "${{ github.event.inputs.cset-ids }}" ]; then
+            python backend/db/refresh.py --cset-ids ${{ github.event.inputs.cset-ids }}
+          elif [ -n "${{ github.event.inputs.since }}" ]; then
             python backend/db/refresh.py --since ${{ github.event.inputs.since }}
+          else
+            python backend/db/refresh.py
           fi
       - name: Commit changes to documentation
         uses: stefanzweifel/git-auto-commit-action@v4
