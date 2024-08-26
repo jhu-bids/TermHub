@@ -105,7 +105,6 @@ ndex2==3.5.0
 networkx==3.3
 numpy==1.23.1
 nxontology==0.4.1
-oaklib==0.6.11
 oauthlib==3.2.2
 ols-client==0.1.3
 ontoportal-client==0.0.3
