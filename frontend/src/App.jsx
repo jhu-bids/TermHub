@@ -55,6 +55,7 @@ import {UsageReport} from "./components/UsageReport";
 import {AddConcepts} from "./components/AddConcepts";
 // import {EnclaveAuthTest, AuthCallback, Logout, } from "./components/utils";
 import {DEPLOYMENT} from "./env";
+import Button from '@mui/material/Button';
 
 /* structure is:
     <BrowserRouter>                 // from index.js root.render
@@ -107,7 +108,7 @@ function AppWrapper() {
 // window.compress = compress;
 // window.decompress = decompress;
 function RoutesContainer() {
-  const {codeset_ids, } = useCodesetIds();
+  const [codeset_ids, codesetIdsDispatch] = useCodesetIds();
   const location = useLocation();
   // const [newCset, newCsetDispatch] = useNewCset();
 
@@ -119,14 +120,6 @@ function RoutesContainer() {
   if (pathname === "/") {
     // navigate('/OMOPConceptSets');
     return <Navigate to={`/OMOPConceptSets`} />;
-  }
-  if (pathname === "/testing") {
-    const test_codeset_ids = [400614256, 419757429, 484619125]; // 411456218 : asthma wide
-    let params = createSearchParams({ codeset_ids: test_codeset_ids });
-    // setSearchParams(params);
-    let url = "/cset-comparison?" + params;
-    // return redirect(url); not exported even though it's in the docs
-    return <Navigate to={url} replace={true} /* what does this do? */ />;
   }
 
   return (

@@ -118,13 +118,13 @@ function appOptionsReducer(state, action) {
   throw new Error("fix appOptionsReducer");
 
   // from SEARCH_PARAM_STATE_CONFIG scalars: ["editCodesetId", "use_example", "sstorage", "show_alerts", "optimization_experiment", "comparison_rpt"],
-  let { use_example, optimization_experiment, comparison_pair, } = appOptions;
-
-  switch (type) {
-    case 'NEW_GRAPH_OPTIONS':
-      return appOptions;
-  }
-  return {...state, ...appOptions};
+  // let { use_example, optimization_experiment, comparison_pair, } = appOptions;
+  //
+  // switch (type) {
+  //   case 'NEW_GRAPH_OPTIONS':
+  //     return appOptions;
+  // }
+  // return {...state, ...appOptions};
 }
 
 function codesetIdsReducer(state, action) {
@@ -382,6 +382,7 @@ export function unabbreviateDefinitions(defs) {
   return definitions;
 }
 
+// TODO: make sure this works with useSessionStorage. It probably doesn't
 export function getSessionStorage() {
   const sstorage = fromPairs(Object.entries(sessionStorage).map(([k,v]) => ([k, JSON.parse(v)])));
   delete sstorage.AI_buffer;    // added by chrome ai stuff i think...I don't want it
@@ -406,6 +407,8 @@ export function serializeSessionStorage({newCset} = {}) {
    */
   return sstorageString;
 }
+
+// TODO: this probably needs fixing after refactor
 export function urlWithSessionStorage({newCset} = {}) {
   const sstorageString = serializeSessionStorage({newCset});
   return window.location.href + (window.location.search ? '&' : '?') + `sstorage=${sstorageString}`;

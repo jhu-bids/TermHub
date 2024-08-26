@@ -2,7 +2,7 @@
  * todo's
  *  todo: 1. Siggie was going to add some sort of Table here
  * */
-import React, { useCallback, useEffect, useState } from 'react';
+import React, { useCallback, useEffect, useState, useRef } from 'react';
 // import {queryClient} from "../App";
 import Typography from "@mui/material/Typography";
 import Button from "@mui/material/Button";
@@ -11,8 +11,9 @@ import {Link, useLocation} from "react-router-dom";
 import {VERSION} from "../env";
 import {useDataCache} from "../state/DataCache";
 import {useDataGetter} from "../state/DataGetter";
-import {useSearchParamsState} from "../state/StorageProvider";
+import {useSearchParamsState, useSessionStorage} from "../state/StorageProvider";
 import {useCodesetIds} from "../state/AppState";
+import { isEmpty } from 'lodash';
 
 // import * as po from './Popover';
 
@@ -98,6 +99,8 @@ export function AboutPage() {
   // )
   const dataCache = useDataCache();
   const dataGetter = useDataGetter();
+  const ss = useSessionStorage();
+  const sp = useSearchParamsState();
   const [codeset_ids, codesetIdsDispatch] = useCodesetIds();
   const [localCodesetIds, setLocalCodesetIds] = useState(codeset_ids);
   const [refreshButtonClicked, setRefreshButtonClicked] = useState();
@@ -215,38 +218,22 @@ export function AboutPage() {
         <ol>
           <LI>Try: Refreshing the page</LI>
           <LI>
-            Try purging localStorage (by clicking here, or if you can't get to this page, open chrome(or other browser
-            console, and enter `localStorage.clear()`): <Button variant={"contained"}
+            Try purging application state (by clicking here, or if you can't get to this page, open chrome(or other browser
+            console, and enter <code>localStorage.clear()</code> and <code>sessionStorage.clear()</code>): <Button variant={"contained"}
               // onClick={() => queryClient.removeQueries()}
-              onClick={() => dataCache.emptyCache()}
+              onClick={() => {
+                dataCache.emptyCache();
+                ss.clear();
+                sp.clear();
+              }}
             >
-              Empty the data cache
+              Clear application state
             </Button>
           </LI>
           <LI>File a report: via <a href="https://github.com/jhu-bids/termhub/issues/new/choose" target="_blank" rel="noopener noreferrer">GitHub issue</a> or <a href="mailto:termhub-support@jhu.edu">termhub-support@jhu.edu</a></LI>
         </ol>
       <TextH2>How to: Load a set of concept sets</TextH2>
-        <TextBody>
-          You can add concept sets one at a time on the CSet Search page or paste several in here.
-        </TextBody>
-        <TextField fullWidth multiline
-                   label="Enter codeset_ids separated by spaces, commas, or newlines and click button below"
-                   onChange={handleCodesetIdsTextChange}
-                   defaultValue={codeset_ids.join(', ')}
-        >
-        </TextField>
-        <Button
-                style={{margin: '7px', textTransform: 'none'}}
-                variant={"contained"}
-                onClick={(evt) => {
-                  codesetIdsDispatch({
-                    type: 'set_all',
-                    codeset_ids: localCodesetIds,
-                  })
-                }}
-        >
-          Load code sets {localCodesetIds.join(', ')}
-        </Button>
+        <LoadCodesetIds />
 
         <TextH1>Debug / explore application data</TextH1>
         <TextBody>
@@ -269,6 +256,65 @@ export function AboutPage() {
             </Button>
         </TextBody>
 
+    </div>
+  );
+}
+function LoadCodesetIds(props) {
+  const {containingPage, } = props;
+  let [codeset_ids, codesetIdsDispatch] = useCodesetIds();
+  const [localCodesetIds, setLocalCodesetIds] = useState(codeset_ids);
+  const textFieldRef = useRef(null);
+  const testCodesetIds = [400614256, 419757429, 484619125]; // 411456218 : asthma wide
+  if (isEmpty(codeset_ids)) {
+    codeset_ids = localCodesetIds;
+  }
+
+  const handleCodesetIdsTextChange = useCallback((evt) => {
+    const val = evt.target.value;
+    const cset_ids = val.split(/[,\s]+/).filter(d=>d.length);
+    setLocalCodesetIds(cset_ids);
+  }, []);
+
+  return (
+    <div style={{ margin: "15px 30px 15px 40px" }}>
+      <TextBody>
+        You can add concept sets one at a time
+        {containingPage === 'OMOPConceptSets' ? ' in the select box above ' : ' on the Cset Search page '}
+        or paste several in here.
+        <Button style={{display: 'inline-block'}} variant="text"
+                onClick={(evt) => {
+                  setLocalCodesetIds(testCodesetIds);
+                  if (textFieldRef.current) {
+                    textFieldRef.current.value = testCodesetIds.join(' ') + ' ';
+                  }
+                }}
+        >
+          Use asthma example concept sets.
+        </Button>
+      </TextBody>
+      <TextField fullWidth multiline
+                 label={codeset_ids.length ? '' : "Enter codeset_ids separated by spaces, commas, or newlines and click button below"}
+                 onChange={handleCodesetIdsTextChange}
+                 defaultValue={codeset_ids.join(', ')}
+                 inputRef={textFieldRef}
+      >
+      </TextField>
+      {
+        codeset_ids.length
+          ? <Button
+              style={{margin: '7px', textTransform: 'none'}}
+              variant={"contained"}
+              onClick={(evt) => {
+                codesetIdsDispatch({
+                  type: 'set_all',
+                  codeset_ids: localCodesetIds,
+                })
+              }}
+            >
+              Load code sets {localCodesetIds.join(', ')}
+            </Button>
+          : null
+      }
     </div>
   );
 }
@@ -317,6 +363,11 @@ DOCS.blank_search_intro = (
         </LI>
       </ul>
 
+      <p>
+        <strong>LOAD A LIST OF CONCEPT SETS (codeset_ids)</strong>
+      </p>
+      <LoadCodesetIds containingPage="OMOPConceptSet"/>
+
       {/*
     <p><strong>UPLOAD CSV</strong>
       <ul>
@@ -334,7 +385,7 @@ DOCS.blank_search_intro = (
       </p>
       <ul>
         <LI>
-          Learn more about VS-Hub and review the step by step “How To” section.
+          Learn more about VS-Hub and review the step by step <Link to="/about">“How To” section</Link>.
         </LI>
         <LI>Provide feedback by creating a <a href="https://github.com/jhu-bids/termhub/issues/new/choose" target="_blank" rel="noopener noreferrer">GitHub issue.</a></LI>
         <LI>
