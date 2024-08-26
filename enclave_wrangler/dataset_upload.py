@@ -291,7 +291,10 @@ def upload_new_container_with_concepts(
     research_project: str = ENCLAVE_PROJECT_NAME, assigned_sme: str = PALANTIR_ENCLAVE_USER_ID_1,
     assigned_informatician: str = PALANTIR_ENCLAVE_USER_ID_1, validate_first=VALIDATE_FIRST,
     fail_if_exists = True
-) -> Dict[str, Union[Response, List[Response]]]:
+) -> Union[
+    Dict[str, Union[Dict, List[Dict]]],
+    Dict[str, Union[Response, List[Response]]]
+]:
     """Upload a new concept set container, and 1+ concept set versions, along with their concepts.
 
     :param container (Dict): Has the following keys:
@@ -302,7 +305,9 @@ def upload_new_container_with_concepts(
         assigned_informatician (str) (optional): Default:`PALANTIR_ENCLAVE_USER_ID_1`
     :param versions_with_concepts (List[Dict]): Has the following schema: [
         TODO: @jflack, this doesn't seem to be what upload_new_cset_version_with_concepts
-              is really expecting. I'm changing omop_concept_ids to omop_concepts in upload_and_sync_rxnorm_cset
+         is really expecting. I'm changing omop_concept_ids to omop_concepts in upload_and_sync_rxnorm_cset
+         @Siggie 2024/07/06: What's the to-do here? To change some documentation, or some code? Or did you already handle
+          everything?
       {
           'omop_concept_ids': (List[int]) (required),
           'provenance' (str) (required):
@@ -321,10 +326,11 @@ def upload_new_container_with_concepts(
         raise ValueError("expecting a single version to upload with container")
 
     # Upload container
-    existing_container = fetch_cset_container(concept_set_name, fail_on_error=False)
+    existing_container: Dict = fetch_cset_container(concept_set_name, fail_on_error=False)
     if existing_container:
         if fail_if_exists:
             raise RuntimeError(f'Error attempting to upload container. Container [{concept_set_name}] already exists.')
+        # todo: what is the return type of this? Response? dict? list of dict?
         version = get_object_links(
             object_type='OMOPConceptSetContainer',
             object_id=concept_set_name,
@@ -338,6 +344,7 @@ def upload_new_container_with_concepts(
             version: Dict[str, Union[Response, List[Response]]] = \
                 upload_new_cset_version_with_concepts(**(versions_with_concepts[0]),
                                                       validate_first=validate_first)
+        # Dict[str, Union[Dict, List[Dict]]]?
         return {'already_exists': True,
                 'upload_concept_set_container': existing_container,
                 'upload_new_cset_version_with_concepts': version}
@@ -355,7 +362,7 @@ def upload_new_container_with_concepts(
     version_response: Dict[str, Union[Response, List[Response]]] = \
         upload_new_cset_version_with_concepts(**(versions_with_concepts[0]),
                                               validate_first=validate_first)
-
+    # Dict[str, Union[Response, List[Response]]]
     return {
         'upload_concept_set_container': response_upload_concept_set_container,
         'upload_new_cset_version_with_concepts': version_response}

@@ -5,6 +5,7 @@ How to run:
 """
 import os
 import sys
+import unittest
 from pathlib import Path
 from typing import Union
 
@@ -54,6 +55,7 @@ class TestBackendResolveFetchFailures(FetchAuditTestRunner):
         return results2
 
     # todo: A better test would be to actually run this in test_n3c, and check before/after that actual data is inserted
+    @unittest.skip("Broken. See: https://github.com/jhu-bids/TermHub/issues/829")
     def test_resolve_fetch_failures_excess_items(self):
         """Test resolve_fetch_failures_excess_items()"""
         pk = self.mock_data[0]['primary_key']

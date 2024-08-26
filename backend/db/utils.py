@@ -126,7 +126,10 @@ def get_dependent_tables_queue(independent_tables: List[str]) -> List[str]:
 
 
 def refresh_any_dependent_tables(con: Connection, independent_tables: List[str] = CORE_CSET_TABLES, schema=SCHEMA):
-    """Refresh all derived tables that depend on independent_tables"""
+    """Refresh all derived tables that depend on independent_tables
+
+    :param independent_tables: Any tables that changed for which we now want to update any dependent tables.
+    """
     derived_tables: List[str] = get_dependent_tables_queue(independent_tables)
     if not derived_tables:
         print(f'No derived tables found for: {", ".join(independent_tables)}')
@@ -195,7 +198,10 @@ def refresh_derived_tables(
     """Refresh TermHub core cset derived tables: wrapper function
 
     Handles simultaneous requests and try/except for worker function: refresh_any_dependent_tables() ->
-    refresh_derived_tables_exec()"""
+    refresh_derived_tables_exec()
+
+    :param independent_tables: Any tables that changed for which we now want to update any dependent tables.
+    """
     i = 0
     t0 = datetime.now()
     while True:
@@ -343,7 +349,11 @@ def reset_refresh_status(local=False):
     """Reset DB refresh active status variables to reflect non-active status
 
     Used in situations where it is not active, but the variables reflect otherwise. This can happen due to exiting out
-    of the debugger during a refresh or when a GH action times out."""
+    of the debugger during a refresh or when a GH action times out.
+
+    todo: consider also setting `last_refresh_result` to 'error' or 'termination', though if choosting 'error', then
+     might want to set `last_refresh_error` to 'terminated' or 'unknown' or 'unknown; probably terminated'.
+    """
     key_pairs = [
         ('last_derived_refresh_request', 'last_derived_refresh_exited'),
         ('last_refresh_request', 'last_refresh_exited')
@@ -745,7 +755,7 @@ def load_csv(
     df.to_sql(table, con, **{'if_exists': 'append', 'index': False, 'schema': schema, 'chunksize': 1000})
     # - update status
     if not is_test_table:
-        update_db_status_var(f'last_updated_{table}', str(current_datetime()), local)
+        update_db_status_var(f'last_updated_{table_name_no_suffix}', str(current_datetime()), local)
 
 
 def list_tables(con: Connection = None, schema: str = None, filter_temp_refresh_tables=False) -> List[str]:

@@ -2,6 +2,7 @@
 resulting in initial fetch of concept set members being 0.
 
 TODO: if every expression is set to `isExcluded=true`, we expect no members. Can add as a check rather than wait 2hrs"""
+import json
 import os
 import sys
 import time
@@ -10,33 +11,90 @@ from copy import copy, deepcopy
 from datetime import datetime
 from typing import Dict, List, Set, Tuple, Union
 
+from sqlalchemy import Connection
+
 DB_DIR = os.path.dirname(os.path.realpath(__file__))
 BACKEND_DIR = os.path.join(DB_DIR, "..")
 PROJECT_ROOT = os.path.join(BACKEND_DIR, "..")
 sys.path.insert(0, str(PROJECT_ROOT))
 from backend.utils import call_github_action
 from backend.db.resolve_fetch_failures_excess_items import resolve_fetch_failures_excess_items
-from backend.db.utils import SCHEMA, fetch_status_set_success, get_db_connection, reset_temp_refresh_tables, \
-    select_failed_fetches, refresh_derived_tables, sql_in, sql_query
-from enclave_wrangler.objects_api import concept_set_members__from_csets_and_members_to_db, \
-    fetch_cset_and_member_objects, get_csets_over_threshold
+from backend.db.utils import SCHEMA, fetch_status_set_success, get_db_connection, reset_temp_refresh_tables,\
+    run_sql, select_failed_fetches, refresh_derived_tables, sql_in, sql_query
+from enclave_wrangler.objects_api import  csets_and_members_to_db, fetch_cset_and_member_objects, fetch_cset_version,\
+    get_csets_over_threshold
 
 DESC = "Resolve any failures resulting from fetching data from the Enclave's objects API."
 
 
 def _report_success(
-    cset_ids: List[int], fetch_audit_row_lookup: Dict[int, Dict], comment_addition: str = None, use_local_db=False
+    cset_ids: Union[int, List[int]], fetch_audit_row_lookup: Dict[int, Dict], comment_addition: str = None, use_local_db=False
 ):
-    """Report success for a list of concept set IDs.
+    """Report success fetch success for given concept sets.
     todo: kind of weird to pass a lookup. Maybe do that beforehand and pass row dict"""
+    cset_ids = [cset_ids] if not isinstance(cset_ids, list) else cset_ids
     success_rows = []
     for cset_id in cset_ids:
         row = fetch_audit_row_lookup[cset_id]
         if comment_addition:
             row['comment'] = row['comment'] + '; ' + \
-            'Success result: ' if not comment_addition.startswith('Success result: ') else '' + comment_addition
+                 ('Success result: ' if not comment_addition.startswith('Success result: ') else '') + comment_addition
         success_rows.append(row)
     fetch_status_set_success(success_rows, use_local_db)
+
+
+def _ad_hoc_detect_and_delete_discarded_drafts(schema: str = SCHEMA, local: bool = False):
+    """Check all csets currently marked draft in the DB, check if discarded, and handle."""
+    with get_db_connection(schema=schema, local=local) as con:
+        rows: List[List[int]] = sql_query(
+            con, f"SELECT codeset_id FROM code_sets WHERE is_draft = true;", return_with_keys=False)
+        draft_ids: List[int] = [x[0] for x in rows]
+        cset_versions: List[Dict] = [fetch_cset_version(_id, retain_properties_nesting=True) for _id in draft_ids]
+        cset_versions = [x for x in cset_versions if x]  # remove discarded draft empty dicts {}
+        csets_and_members: Dict[str, List[Dict]] = {'OMOPConceptSet': cset_versions}
+        handle_discarded_drafts(con, csets_and_members, set(draft_ids), report_success=False, use_local_db=local)
+
+
+def handle_discarded_drafts(
+    con: Connection, csets_and_members: Dict[str, List[Dict]], queried_cset_ids: Set[int],
+    failure_lookup: Dict[int, Dict] = None, report_success=True, use_local_db=False
+) -> Set[int]:
+    """Determine if drafts have been discarded and, if so, mark resolved and delete from DB.
+
+    todo: if not report_success, no backup of the discarded draft is deleted. Might want to save to disk."""
+    if report_success and not failure_lookup:
+        raise ValueError("Failure lookup must be provided if reporting success")
+
+    # Detect which cset drafts have been discarded
+    fetched_cset_ids: Set[int] = set([x['properties']['codesetId'] for x in csets_and_members['OMOPConceptSet']]) if \
+        csets_and_members else set()
+    discarded_cset_ids: Set[int] = queried_cset_ids - fetched_cset_ids
+    if not discarded_cset_ids:
+        return set()
+    print(f"Discarded drafts detected; removing from DB and marking resolved: "
+          f"{', '.join([str(x) for x in discarded_cset_ids])}")
+
+    # Report success
+    # todo: delete the expressions too, and preserve that information.
+    # todo: what if all drafts on a container were deleted. delete container too? (no need)
+    if report_success:
+        codeset_rows = [dict(x) for x in sql_query(
+            con, f'SELECT * FROM code_sets WHERE codeset_id {sql_in(discarded_cset_ids)};')]
+        codeset_lookup: Dict[int, Dict] = {x['codeset_id']: x for x in codeset_rows}
+        for _id in discarded_cset_ids:
+            try:
+                cset: Dict = codeset_lookup[_id]
+            except KeyError:
+                continue  # already deleted; this is probably a re-run of a case that was previously handled
+            _report_success(
+                _id, failure_lookup, f'Discarded draft. Original properties: {json.dumps(cset)}',
+                use_local_db)
+
+    # Delete and refresh
+    run_sql(con, f'DELETE FROM code_sets WHERE codeset_id {sql_in(discarded_cset_ids)};')
+    refresh_derived_tables(con, independent_tables=['code_sets'])
+
+    return discarded_cset_ids
 
 
 def resolve_failures_excess_members_if_exist():
@@ -99,35 +157,40 @@ def filter_cset_id_where_0_expanded_members(cset_ids: List[int], schema=SCHEMA, 
 
 
 def get_failures_0_members(
-    version_id: Union[int, List[int]] = None, use_local_db=False
+    version_ids: Union[int, List[int]] = None, use_local_db=False, force=False
 ) -> Tuple[Set[int], Dict[int, Dict]]:
-    """Gets list of IDs of failed concetp set versions as well as a lookup for more information about them"""
+    """Gets list of IDs of failed concetp set versions as well as a lookup for more information about them
+
+    :param force: If any csets are encountered which have already been resolved, will execute the fetch/import process
+     instead of skipping
+    """
     # Typing modification
-    version_id: List[int] = [version_id] if version_id and not isinstance(version_id, list) else version_id
+    version_ids: List[int] = [version_ids] if version_ids and not isinstance(version_ids, list) else version_ids
 
     # Lookup failure data in DB
     failures: List[Dict] = select_failed_fetches(use_local_db)
     failure_lookup: Dict[int, Dict] = {int(x['primary_key']): x for x in failures}
-    failure_cset_ids: Set[int] = set(version_id if version_id else [
+    failure_cset_ids: Set[int] = set(version_ids if version_ids else [
         int(x['primary_key']) for x in failures if x['status_initially'] == 'fail-0-members'])
 
     # Validate & filter
-    non_failures_passed: Set[int] = set(version_id).difference(failure_lookup.keys()) if version_id else set()
-    if bool(version_id and non_failures_passed):
-        print("Warning: Cset IDs were passed to be resolved, but these are no longer failures; skipping them: "
-              f"{', '.join([str(x) for x in non_failures_passed])}", file=sys.stderr)
-    failure_cset_ids = failure_cset_ids - non_failures_passed
+    if not force:
+        non_failures_passed: Set[int] = set(version_ids).difference(failure_lookup.keys()) if version_ids else set()
+        if bool(version_ids and non_failures_passed):
+            print("Warning: Cset IDs were passed to be resolved, but these are no longer failures; skipping them: "
+                  f"{', '.join([str(x) for x in non_failures_passed])}", file=sys.stderr)
+        failure_cset_ids = failure_cset_ids - non_failures_passed
 
     return failure_cset_ids, failure_lookup
 
 
 def resolve_fetch_failures_0_members(
-    version_id: int = None, use_local_db=False, polling_interval_seconds=30, schema=SCHEMA,
-    expansion_threshold_seconds=2 * 60 * 60, loop=False
+    version_ids: Union[int, List[int]] = None, use_local_db=False, polling_interval_seconds=30, schema=SCHEMA,
+    expansion_threshold_seconds=2 * 60 * 60, loop=False, force=False
 ):
     """Resolve situations where we tried to fetch data from the Enclave, but failed due to the concept set being too new
     resulting in initial fetch of concept set members being 0.
-    :param version_id: Optional concept set version ID to resolve. If not provided, will check database for flagged
+    :param version_ids: Optional concept set version ID to resolve. If not provided, will check database for flagged
     failures.
     :param expansion_threshold_seconds: The length of time that we reasonably expect that the Enclave should take to expand
     :param loop: If True, will run in a loop to keep attempting to fetch. If this is set to False, it's probably
@@ -137,10 +200,13 @@ def resolve_fetch_failures_0_members(
     todo: Performance: Fetch only members, ideally: Even though we are fetching 'members', adding to the cset members
      table requires cset version and container metadata, and the function that does this expects them to be formaatted
      as objects, not as they come from our DB. We can fetch from DB and then convert to objects, but a lot of work for
-     small performance gain."""
+     small performance gain.
+    """
+    version_ids = [version_ids] if version_ids and not isinstance(version_ids, list) else version_ids
+
     print("Resolving fetch failures: ostensibly new (possibly draft) concept sets with >0 expressions but 0 members")
     # Collect failures
-    failed_cset_ids_prefilter, failure_lookup = get_failures_0_members(version_id, use_local_db)
+    failed_cset_ids_prefilter, failure_lookup = get_failures_0_members(version_ids, use_local_db, force)
     failed_cset_ids = copy(failed_cset_ids_prefilter)
     if not failed_cset_ids:
         print("No failures to resolve.")
@@ -156,18 +222,19 @@ def resolve_fetch_failures_0_members(
         if loop:
             print(f"- attempt {i}: fetching members for {len(failed_cset_ids)} concept set versions")
         # Check for new failures: that may have occurred during runtime
-        failed_cset_ids, failure_lookup_i = get_failures_0_members(version_id, use_local_db)
+        failed_cset_ids, failure_lookup_i = get_failures_0_members(version_ids, use_local_db, force)
         failure_lookup.update(failure_lookup_i)
         # Fetch data
         csets_and_members: Dict[str, List[Dict]] = fetch_cset_and_member_objects(
             codeset_ids=list(failed_cset_ids), flag_issues=False)
 
         # - identify & report discarded drafts
-        fetch_cset_ids: Set[int] = set([x['properties']['codesetId'] for x in csets_and_members['OMOPConceptSet']])
-        discarded_cset_ids: Set[int] = failed_cset_ids - fetch_cset_ids
-        if discarded_cset_ids:
-            print(f"Discarded drafts detected; marking resolved: {', '.join([str(x) for x in discarded_cset_ids])}")
-            _report_success(list(discarded_cset_ids), failure_lookup, 'Discarded draft', use_local_db)
+        with get_db_connection(schema=schema, local=use_local_db) as con:
+            discarded_cset_ids = handle_discarded_drafts(
+                con, csets_and_members, failed_cset_ids, failure_lookup, use_local_db=use_local_db)
+
+        if not csets_and_members:
+            return  # all failures were discarded
 
         # - identify persistent, long-lived drafts
         cset_is_draft_map.update(
@@ -182,11 +249,17 @@ def resolve_fetch_failures_0_members(
         if success_cset_ids:
             try:
                 with get_db_connection(schema=schema, local=use_local_db) as con:
-                    concept_set_members__from_csets_and_members_to_db(con, success_cases)
+                    csets_and_members_to_db(con, success_cases, schema)
                     refresh_derived_tables(con)
                 print(f"Successfully fetched concept set members for concept set versions: "
                       f"{', '.join([str(x) for x in success_cset_ids])}")
-                _report_success(success_cset_ids, failure_lookup, 'Found members', use_local_db)
+                # todo: Rare occasion: Ideally, if manually passing and using --force, it's because there was previously
+                #  a success, but this is being re-run for those cases because the success is in question. In these
+                #  cases, ideally we'd figure out if any new / different data for the given cset was actually found /
+                #  imported, and report about that in the comment.
+                # filter: if manually passing IDs and using --force, won't be in lookup.
+                filtered_ids = [x for x in success_cset_ids if x in failure_lookup]
+                _report_success(filtered_ids, failure_lookup, 'Found members', use_local_db)
             except Exception as err:
                 reset_temp_refresh_tables(schema)
                 raise err
@@ -196,7 +269,8 @@ def resolve_fetch_failures_0_members(
             break
         time.sleep(polling_interval_seconds)
 
-    # Csets with 0 expansion members
+    # Reporting
+    # - Csets with 0 expansion members
     #  - todo: only detecting simple cases. For more info, see docstring of filter_cset_id_where_0_expanded_members()
     csets_w_no_expanded_members: List[int] = filter_cset_id_where_0_expanded_members(failed_cset_ids)
     if csets_w_no_expanded_members:
@@ -208,14 +282,14 @@ def resolve_fetch_failures_0_members(
         _report_success(csets_w_no_expanded_members, failure_lookup, comment, use_local_db)
         failed_cset_ids = list(set(failed_cset_ids) - set(csets_w_no_expanded_members))
 
-    # Parse drafts from actual failures
+    # - Parse drafts from actual failures
     still_draft_cset_ids: Set[int] = set([cset_id for cset_id in failed_cset_ids if cset_is_draft_map[cset_id]])
     if still_draft_cset_ids:
         print(f"Fetch attempted for the following csets, but they still remain drafts and thus still have not had their"
               f" members expanded yet: {', '.join([str(x) for x in still_draft_cset_ids])}")
     non_draft_failure_ids: Set[int] = set(failed_cset_ids) - still_draft_cset_ids
 
-    # Filter by only if has been finalized longer than we would expect it should take for expansion to be available
+    # - Filter by only if has been finalized longer than we would expect it should take for expansion to be available
     # noinspection PyUnboundLocalVariable
     still_draft_csets: List[Dict] = [
         x['properties'] for x in csets_and_members['OMOPConceptSet']
@@ -260,8 +334,9 @@ def cli():
         help="Use local database instead of server.")
     parser.add_argument(
         "-v",
-        "--version-id",
+        "--version-ids",
         type=int,
+        nargs='+',
         required=False,
         help="Optional concept set version ID to resolve. If not provided, will check database for flagged failures.")
     parser.add_argument(
@@ -270,6 +345,13 @@ def cli():
         required=False,
         default=30,
         help="How often, in seconds, to try to fetch again if fetching still yields 0 members.")
+    parser.add_argument(
+        "-F",
+        "--force",
+        action="store_true",
+        required=False,
+        help="If any csets are encountered which have already been resolved, will execute the fetch/import process "
+             "instead of skipping.")
     resolve_fetch_failures_0_members(**vars(parser.parse_args()))
 
 

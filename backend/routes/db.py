@@ -2,18 +2,20 @@
     A bunch are elsewhere, but just starting this file for a couple new ones
     (2023-05-08)
 """
+import io
 import json
 import urllib.parse
 from datetime import datetime, timedelta
 from functools import cache, lru_cache
 from typing import Dict, List, Union, Set
 
-from fastapi import APIRouter, Query, Request, Body
-from sqlalchemy import Connection, Row
+import pandas as pd
+from fastapi import APIRouter, Query, Request
+from fastapi.responses import StreamingResponse
+from psycopg2 import sql
+from sqlalchemy import Connection, Row, text
 from sqlalchemy.engine import RowMapping
 from starlette.responses import Response
-from psycopg2 import sql
-from sqlalchemy import text
 
 from backend.api_logger import Api_logger, get_ip_from_request
 from backend.db.queries import get_concepts
@@ -507,14 +509,19 @@ def download_n3c_recommended():
     return {'codeset_json': csets, 'codeset_metadata': csets_from_ac}
 
 
-@router.get("/n3c-recommended-report")
-def n3c_recommended_report(as_json=False) -> Union[List[Row], Response]:
-    """N3C recommended report"""
-    # just for this one function
-    from fastapi.responses import StreamingResponse
-    import io
-    import pandas as pd
+@router.get("/n3c-recommended-report", response_model=False)
+def n3c_recommended_report(as_json=False) -> Union[List[Row], StreamingResponse]:
+    """N3C recommended report
 
+    todo: possibly drop return typing, or figure out how to get it correct.
+     it's not imperative that we have return typing, but this also triggers validation, which is now failing after
+     upgrading pydantic. response_model=False addresses:
+     fastapi.exceptions.FastAPIError: Invalid args for response field! Hint: check that typing.Union[typing.List[
+     sqlalchemy.engine.row.Row], starlette.responses.StreamingResponse] is a valid Pydantic field type. If you are using
+     a return type annotation that is not a valid Pydantic field (e.g. Union[Response, dict, None]) you can disable
+     generating the response model from the type annotation with the path operation decorator parameter response_model
+     =None. Read more: https://fastapi.tiangolo.com/tutorial/response-model/
+    """
     codeset_ids = get_n3c_recommended_csets()
     q = f"""
             SELECT

@@ -29,10 +29,13 @@ jobs:
 
       - name: Install dependencies
         run: |
-          python -m pip install --upgrade pip
-          pip install --upgrade wheel
-          pip install --upgrade setuptools
+          # Reactivate install upgrades of pip, wheel, &/or setuptools if needed
+          # python -m pip install --upgrade pip
+          # pip install --upgrade wheel
+          # pip install --upgrade setuptools
           pip install -r requirements.txt
+          TOKEN=$(grep '^PALANTIR_ENCLAVE_AUTHENTICATION_BEARER_TOKEN=' env/.env | cut -d'=' -f2)
+          python3 -m pip install vshub_sdk --upgrade --extra-index-url "https://:${TOKEN}@unite.nih.gov/artifacts/api/repositories/ri.artifacts.main.repository.9bc9cc56-4b8c-4560-9bfb-fba8ade55246/contents/release/pypi/simple" --extra-index-url "https://:${TOKEN}@unite.nih.gov/artifacts/api/repositories/ri.foundry-sdk-asset-bundle.main.artifacts.repository/contents/release/pypi/simple"
 
       # Run the action
       - name: Kill idle connections

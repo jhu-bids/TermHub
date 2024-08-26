@@ -4,7 +4,7 @@ import os
 import sys
 from argparse import ArgumentParser
 from datetime import datetime, timedelta
-from typing import Union
+from typing import List, Union
 
 import pytz
 from sqlalchemy import Connection
@@ -13,7 +13,7 @@ DB_DIR = os.path.dirname(os.path.realpath(__file__))
 BACKEND_DIR = os.path.join(DB_DIR, '..')
 PROJECT_ROOT = os.path.join(BACKEND_DIR, '..')
 sys.path.insert(0, str(PROJECT_ROOT))
-from backend.db.analysis import counts_update,counts_docs
+from backend.db.analysis import counts_update, counts_docs
 from backend.db.config import CONFIG
 from backend.db.resolve_fetch_failures_0_members import resolve_failures_0_members_if_exist, \
     resolve_failures_excess_items_if_exist
@@ -76,9 +76,9 @@ def _calc_refresh_datetime(
 #  timestamp it fetched from.
 # todo: What if 'since' is passed, but it is not the same date or before 'last_updated' in db? should print warning
 def refresh_db(
-    since: Union[datetime, str] = None, use_local_db=False,  schema: str = CONFIG['schema'],
+    since: Union[datetime, str] = None, cset_ids: List[int] = None, use_local_db=False,  schema: str = CONFIG['schema'],
     force_non_contiguity=False, buffer_hours=DEFAULT_BUFFER_HOURS, resolve_fetch_failures_0_members=True,
-    resolve_fetch_failures_excess_items=False
+    resolve_fetch_failures_excess_items=False,
 ):
     """Refresh the database
 
@@ -100,6 +100,10 @@ def refresh_db(
     local = use_local_db
     print('INFO: Starting database refresh.', flush=True)  # flush: for gh action
 
+    # Validation
+    if since and cset_ids:
+        raise NotImplementedError('Cannot pass both "since" and "cset_ids" params.')
+
     # Calculate: Start & end time
     # end_time: Even though in reality the refresh will not end 1 microsecond after the start time, we're setting it
     # this way because this is the easiest way to make sure that future refreshes will not miss any new data that was
@@ -119,9 +123,10 @@ def refresh_db(
     try:
         with get_db_connection(local=local) as con:
             since: str = _calc_refresh_datetime(con, since, buffer_hours, force_non_contiguity)
+            since = since if not cset_ids else None
             # todo: when ready, will use all_new_objects_enclave_to_db() instead of csets_and_members_enclave_to_db()
             # - csets_and_members_enclave_to_db(): Runs the refresh
-            new_data: bool = csets_and_members_enclave_to_db(con, since, schema=schema)
+            new_data: bool = csets_and_members_enclave_to_db(con, since, cset_ids, schema)
         update_db_status_var('last_refresh_success', end_time_reported, local)
         update_db_status_var('last_refresh_result', 'success', local)
     except Exception as err:
@@ -151,7 +156,7 @@ def refresh_db(
     if check_db_status_var('new_request_while_refreshing'):
         print('INFO: New refresh request detected while refresh was running. Starting a new refresh.')
         delete_db_status_var('new_request_while_refreshing')
-        refresh_db(None, use_local_db, schema, force_non_contiguity)
+        refresh_db(None, None, use_local_db, schema, force_non_contiguity)
 
 
 def cli():
@@ -164,11 +169,12 @@ def cli():
         '-b', '--buffer-hours', default=DEFAULT_BUFFER_HOURS, required=False,
         help='An additional period of time before "since" to fetch additional data, as a failsafe measure in case of '
              'possible API unreliability. Somewhat redundant with fetch_failures_0_members process.')
-    parser.add_argument(
-        '-s', '--since', required=False,
-        help=HELP_SINCE)
-
+    parser.add_argument('-s', '--since', required=False, help=HELP_SINCE)
+    parser.add_argument("-c", "--cset-ids", type=int, required=False, nargs='+',
+        help="Run just for certain code sets. Pass their IDs space-delimited, e.g. --cset-ids 123 456. Should only be"
+             " passed without 'since'.")
     refresh_db(**vars(parser.parse_args()))
+
 
 if __name__ == '__main__':
     cli()

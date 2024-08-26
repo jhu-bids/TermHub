@@ -15,6 +15,11 @@ on:
         description: 'Optional: YYYY-MM-DD or YYYY-MM-DDTHH:MM:SS.SSSSSS+HH:MM'
         required: false
         type: string
+      cset-ids:
+        # Space-delimited list of integers representing codeset IDs
+        description: 'Optional: Space-delimited list of integers representing codeset IDs'
+        required: false
+        type: string
   repository_dispatch:
     types: [refresh-db]
 jobs:
@@ -46,18 +51,26 @@ jobs:
 
       - name: Install dependencies
         run: |
-          python -m pip install --upgrade pip
-          pip install --upgrade wheel
-          pip install --upgrade setuptools
+          # Reactivate install upgrades of pip, wheel, &/or setuptools if needed
+          # python -m pip install --upgrade pip
+          # pip install --upgrade wheel
+          # pip install --upgrade setuptools
           pip install -r requirements.txt
+          TOKEN=$(grep '^PALANTIR_ENCLAVE_AUTHENTICATION_BEARER_TOKEN=' env/.env | cut -d'=' -f2)
+          python3 -m pip install vshub_sdk --upgrade --extra-index-url "https://:${TOKEN}@unite.nih.gov/artifacts/api/repositories/ri.artifacts.main.repository.9bc9cc56-4b8c-4560-9bfb-fba8ade55246/contents/release/pypi/simple" --extra-index-url "https://:${TOKEN}@unite.nih.gov/artifacts/api/repositories/ri.foundry-sdk-asset-bundle.main.artifacts.repository/contents/release/pypi/simple"
 
       # Refresh
       - name: Refresh db
         run: |
-          if [ -z "${{ github.event.inputs.since }}" ]; then
-            python backend/db/refresh.py
-          else
+          if [ -n "${{ github.event.inputs.cset-ids }}" ] && [ -n "${{ github.event.inputs.since }}" ]; then
+            echo "Error: Both 'cset-ids' and 'since' were provided. These inputs are mutually exclusive."
+            exit 1
+          elif [ -n "${{ github.event.inputs.cset-ids }}" ]; then
+            python backend/db/refresh.py --cset-ids ${{ github.event.inputs.cset-ids }}
+          elif [ -n "${{ github.event.inputs.since }}" ]; then
             python backend/db/refresh.py --since ${{ github.event.inputs.since }}
+          else
+            python backend/db/refresh.py
           fi
       - name: Commit changes to documentation
         uses: stefanzweifel/git-auto-commit-action@v4

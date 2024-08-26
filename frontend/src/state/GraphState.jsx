@@ -40,6 +40,7 @@ export class GraphContainer {
     window.graphW = this; // for debugging
     this.gd = graphData;  // concepts, specialConcepts, csmi, edges, concept_ids, filled_gaps,
                           // missing_from_graph, hidden_by_vocab, nonstandard_concepts_hidden
+
     // this.gd holds inputs -- except this.gd.specialConcepts.allButFirstOccurrence which is added later
     //    it's also a list of paths; all the other specialConcepts are lists of concept_ids
     this.gd.specialConcepts.allButFirstOccurrence = [];
@@ -537,26 +538,6 @@ export class GraphContainer {
     return graph;
   }
 }
-
-// const GraphContext = createContext(null);
-//
-// export const GraphProvider = ({ children }) => {
-//   const [gc, gcDispatch] = useReducer(graphReducer, {});
-//
-//   return (
-//     <GraphContext.Provider value={{ gc, gcDispatch }}>
-//       {children}
-//     </GraphContext.Provider>
-//   );
-// };
-//
-// export const useGraphContainer = () => {
-//   const context = useContext(GraphContext);
-//   if (context === undefined) {
-//     throw new Error('useGraphContainer must be used within a GraphProvider');
-//   }
-//   return context;
-// };
 
 function coffmanGrahamLayering(graph, maxWidth) {
   let layers = [];

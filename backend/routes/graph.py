@@ -42,7 +42,7 @@ router = APIRouter(
 async def concept_graph_get(
     request: Request, codeset_ids: List[int] = Query(...), cids: Optional[List[int]] = Query(None),
     hide_vocabs = ['RxNorm Extension'], hide_nonstandard_concepts=False, verbose = VERBOSE,
-    indented=False  # TODO: if we keep this around, it's annoying that it ends up a string ('true')
+    indented=False  # todo: if we keep this around, it's annoying that it ends up a string ('true')
 ) -> Dict[str, Any]:
     """Return concept graph"""
     cids = cids if cids else []
@@ -50,7 +50,7 @@ async def concept_graph_get(
         request, codeset_ids, cids, hide_vocabs, hide_nonstandard_concepts, verbose, indented)
 
 
-# TODO: match return of concept_graph()
+# todo: match return of concept_graph()
 @router.post("/concept-graph")
 async def concept_graph_post(
     request: Request, codeset_ids: List[int], cids: Union[List[int], None] = [],
@@ -334,28 +334,11 @@ def get_indented_tree_nodes(
     return tree
 
 
-# def get_connected_subgraph(REL_GRAPH: nx.Graph, nodes: Set[int]) -> (
-#     DiGraph, Set[int], Set[int], Set[int], Dict[str, Set[int]]):
-#
-#     missing_in_between_nodes = get_missing_in_between_nodes(REL_GRAPH, nodes).copy()
-#     # sg = connect_nodesOLD(REL_GRAPH, nodes_in_graph, preferred_concept_ids).copy()
-#     return nodes_in_graph, missing_in_between_nodes, preferred_concept_ids, orphans_not_in_graph, hidden_nodes, hidden_dict
-
-
-def get_connected_subgraph(
-    g: nx.Graph,
-    codeset_ids: List[int],
-    cids: Union[List[int], None] = [],
-    hide_vocabs: Union[List[str], None] = []
-) -> (DiGraph, Set[int], Set[int], Set[int], Dict[str, Set[int]]):
-    """Get connected subgraph and various other things"""
-    print(g, codeset_ids, cids, hide_vocabs)
-    raise NotImplementedError('Moved to concept_graph_post()')
-
-
 # print_stack = lambda s: ' | '.join([f"{n} => {','.join([str(x) for x in p])}" for n,p in s])
 # print_stack = lambda s: ' | '.join([f"{n} => {str(p)}" for n,p in s])
-print_stack = lambda s: ' | '.join([f"""{n}{'=>' if p else ''}{','.join(p)}""" for n,p in reversed(s)])
+# print_stack = lambda s: ' | '.join([f"""{n}{'=>' if p else ''}{','.join(p)}""" for n,p in reversed(s)])
+print_stack = lambda s: ' | '.join([f"{n} => {','.join([str(x) for x in p])}" for n,p in s])
+
 
 # noinspection PyPep8Naming
 def get_missing_in_between_nodes(G: nx.DiGraph, subgraph_nodes: Union[List[int], Set[int]], verbose=VERBOSE) -> Set:
@@ -502,6 +485,7 @@ def generate_graph_edges() -> Iterable[Row]:
             yield row
 
 
+# todo: control verbosity?
 def create_rel_graphs(save_to_pickle: bool) -> DiGraph:
     """Create relationship graphs"""
     timer = get_timer('create_rel_graphs')
