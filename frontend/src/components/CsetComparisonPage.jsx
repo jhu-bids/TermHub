@@ -243,9 +243,19 @@ export function CsetComparisonPage () {
 
       let _gc = new GraphContainer(
         { ...graphData, concepts, specialConcepts, csmi });
+
+      // Call setGraphDisplayConfig twice! First time to make sure
+      //  all the statsOptions are set to their default values.
+      //  Then again after calling getDisplayedRows in order to
+      //  set the counts that appear in the statsoptions dialog box
+
       let newGraphOptions = _gc.setGraphDisplayConfig(graphOptions);
+
       _gc.getDisplayedRows(newGraphOptions);
+
       newGraphOptions = _gc.setGraphDisplayConfig(graphOptions);
+
+      // save the options to state. todo: why is this necessary?
       graphOptionsDispatch({ type: 'REPLACE', graphOptions: newGraphOptions });
 
       const currentUserId = (await whoami).id;
@@ -267,7 +277,7 @@ export function CsetComparisonPage () {
         gc: _gc,
       }));
     })();
-  }, [newCset, graphOptions, api_call_group_id]);
+  }, [newCset, graphOptions, api_call_group_id]); // todo: why api_call_group_id here? still needed?
 
   useEffect(() => {
     if (infoPanelRef.current) {
@@ -658,7 +668,10 @@ function getCollapseIconAndName (
   row, sizes, graphOptions, graphOptionsDispatch, gc) {
   let Component;
   let direction;
-  if (graphOptions.specificNodesExpanded.includes(parseInt(row.concept_id))) {
+  if (
+    graphOptions.specificNodesExpanded.includes(parseInt(row.concept_id)) ||
+    (graphOptions.expandAll && ! graphOptions.specificNodesCollapsed.includes(parseInt(row.concept_id)))
+  ) {
     Component = RemoveCircleOutline;
     direction = 'collapse';
   } else {

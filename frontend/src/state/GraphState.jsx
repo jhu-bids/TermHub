@@ -43,16 +43,19 @@ export class GraphContainer {
     // this.gd holds inputs -- except this.gd.specialConcepts.allButFirstOccurrence which is added later
     //    it's also a list of paths; all the other specialConcepts are lists of concept_ids
     this.gd.specialConcepts.allButFirstOccurrence = [];
+    this.displayedRows = [];  // array of displayed rows...individual node could occur in multiple places
+    this.displayedNodeRows = new StringKeyMap();    // map from nodeId to row (node copy)
+    this.showThoughCollapsed = new StringSet();
+    this.hideThoughExpanded = new StringSet();
+
     [this.graph, this.nodes] = makeGraph(this.gd.edges, this.gd.concepts);
 
     this.roots = this.graph.nodes().filter(n => !this.graph.inDegree(n));
     this.leaves = this.graph.nodes().filter(n => !this.graph.outDegree(n));
+
+    // for concepts not linked to anything, move them under an artificial
+    //  'unlinked' concept, and remove them from this.roots
     this.unlinkedConcepts = intersection(this.roots, this.leaves);
-    // this.partiallyExpandedNodes = new Set();  // from path version of show though collapsed
-    this.displayedRows = [];
-    this.displayedNodeRows = new StringKeyMap();    // map from nodeId to row (node copy)
-    this.showThoughCollapsed = new StringSet();
-    this.hideThoughExpanded = new StringSet();
 
     let unlinkedConceptsParent = {
       concept_id: 'unlinked',
@@ -76,8 +79,9 @@ export class GraphContainer {
     for (let c of this.unlinkedConcepts) {
       this.graph.addDirectedEdge('unlinked', c);
     }
+
+    // delete unlinked concepts from this.roots
     this.roots = this.graph.nodes().filter(n => !this.graph.inDegree(n));
-    this.leaves = this.graph.nodes().filter(n => !this.graph.outDegree(n));
 
     this.#computeAttributes();
   }
@@ -105,6 +109,9 @@ export class GraphContainer {
 
   getDisplayedRows(graphOptions) {
     // const {/*collapsedDescendantPaths, */ collapsePaths, hideZeroCounts, hideRxNormExtension, nested } = hierarchySettings;
+
+    // delete childRows for every node because some option might have changed and we need
+    //  to recalculate the children
     Object.values(this.nodes).forEach(node => {
       delete node.childRows;
     });
@@ -119,7 +126,7 @@ export class GraphContainer {
       rootRows.push(rootRow);
     }
 
-    this.arrangeDisplayRows(rootRows);
+    this.arrangeDisplayRows(rootRows);  // first time
     const displayedRowsBeforeSpecial = [...this.displayedRows];
 
     this.showThoughCollapsed.clear();
@@ -128,6 +135,7 @@ export class GraphContainer {
     if (!graphOptions.expandAll) {
       // if there are showThoughCollapsed nodes to show, find each one's
       //  nearest parents add them at those path locations
+
       for (let type in graphOptions.specialConceptTreatment) {
         if (this.graphDisplayConfig[type].specialTreatmentRule === 'show though collapsed' &&
             graphOptions.specialConceptTreatment[type]) {
@@ -192,9 +200,10 @@ export class GraphContainer {
     }
 
 
-    this.arrangeDisplayRows(rootRows);
+    this.arrangeDisplayRows(rootRows);  // second time
     // this.displayedRows.forEach(row => { row.levelsBelow = this.sortFunc(row) }); // for debugging
-    debugger;
+    // debugger;
+    // TODO: FIX allButFirstOccurrence -- needs to hide paths, not just concept_ids, it's broken
     this.gd.specialConcepts.allButFirstOccurrence = this.displayedRows.filter(row => row.nodeOccurrence > 0).map(d => d.rowPath);
     // this.graphDisplayConfig.allButFirstOccurrence
 
@@ -213,7 +222,10 @@ export class GraphContainer {
             this.displayedRows.map(d => d.concept_id)];
         for (let id of setOp('intersection', special, displayed)) {
           let nodeToHide = this.nodes[id];
-          if (nodeToHide.expanded) {
+          if (nodeToHide.expanded) {  //
+            // does this get used anymore? we shouldn't be using expanded property now
+            debugger;
+            // TODO:  make sure this still works without using node.expanded
             if (!some(nodeToHide.childIds, id => this.displayedNodeRows.has(id) && !this.hideThoughExpanded.has(id))) {
               // don't hide if it has children that should be shown
               // that is, if it's already displayed and not hidden
@@ -231,7 +243,7 @@ export class GraphContainer {
       this.displayedNodeRows.delete(id); // remove from displayedNodeRows map
     });
 
-    this.arrangeDisplayRows(rootRows);
+    this.arrangeDisplayRows(rootRows);  // third time
     return this.displayedRows;
   }
 
@@ -251,8 +263,10 @@ export class GraphContainer {
 
     // this.displayedRows.push(row);
 
-    if (row.expanded || graphOptions.expandAll ||
-        graphOptions.specificNodesExpanded.includes(parseInt(nodeId))) {
+    if ((row.expanded || graphOptions.expandAll ||  // todo: get rid of row.expanded property -- not using anymore, right?
+        graphOptions.specificNodesExpanded.includes(parseInt(nodeId))) &&
+        ! graphOptions.specificNodesCollapsed.includes(parseInt(nodeId))
+    ) {
         // now with tracking specificNodesExpanded/Collapsed, I'm not sure if we
         //  still need to check row.expanded
       // if it's expanded, it must have children
@@ -263,8 +277,10 @@ export class GraphContainer {
     }
     return row;
   }
-  arrangeDisplayRows(rows) {
-    this.displayedRows.splice(0, this.displayedRows.length);
+  arrangeDisplayRows(rootRows) {
+    // recursively traverse rootRows and add child rows to display according to all the rules;
+    //  I can't remember why this gets called _three_ times
+    this.displayedRows.splice(0, this.displayedRows.length); // empty out this.displayedRows and create again
     let nodeOccurrences = {};
     const f = (rows) => {
       for (let row of sortBy(rows, this.sortFunc)) {
@@ -277,11 +293,13 @@ export class GraphContainer {
           f(row.childRows);
         }
       }
-    }
-    f(rows);
+    };
+    f(rootRows);
   }
 
   sortFunc = (d => {
+    // used to sort each level of the comparison table.
+    // todo: allow this to be changed by user
     let n = typeof(d) === 'object' ? d : this.nodes[d];
     return n.not_a_concept
         ? Infinity
@@ -296,9 +314,11 @@ export class GraphContainer {
   })
 
   #computeAttributes() {
+    // compute children, descendants, child/descendant counts -- counts
+    //  of concepts and also of records using this term's children/descendants
     const graph = this.graph;
     let nodes = this.nodes;
-    function computeAttributesFunc(nodeId, level) {
+    function computeAttributesFunc(nodeId, level) { // recursive function, called on each node's children
       let node = nodes[nodeId];
       // Check if the attributes have already been computed to avoid recomputation
       if (node.descendantCount !== undefined) {
@@ -330,7 +350,7 @@ export class GraphContainer {
       // TODO: node.level = level; not sure why level isn't always correct;
       //  to see problem, try `gc.displayedRows.filter(d => d.depth != d.level)` from comparison renderer
 
-      // if (levelsBelow > 0) {
+      // if (levelsBelow > 0) { // todo: WHY IS THIS COMMENTED OUT?
         // node.expanded = false;  // TODO: deal with expanded differently for shown and hidden
         node.hasChildren = true;
         node.descendants = uniq(descendants); // Remove duplicates
@@ -355,6 +375,8 @@ export class GraphContainer {
   }
 
   setGraphDisplayConfig(graphOptions) {
+    // these are all options that appear in Show Stats/Options
+
     const displayedConcepts = this.displayedRows || []; // first time through, don't have displayed rows yet
     const displayedConceptIds = displayedConcepts.map(r => r.concept_id);
     let displayOrder = 0;

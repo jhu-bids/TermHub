@@ -204,7 +204,7 @@ function graphOptionsReducer(state, action) {
 }
 
 window.appStateW = {}; // FOR DEBUGGING, GLOBAL TO SEE all appState and storage
-function makeProvider({stateName, reducer, initialSettings, storageProviderGetter, jsonify=false, forceUpdateForConsumers=false}) {
+function makeProvider({stateName, reducer, initialSettings, storageProviderGetter, jsonify=false, }) {
   // makes provider to manage both a regular reducer and a storage provider
   // I think the idea was to put update logic into reducers and try to have storage providers
   //  just emulate localStorage (whether for localStorage, sessionStorage, or querystring)
