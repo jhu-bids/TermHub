@@ -353,14 +353,6 @@ DOCS.blank_search_intro = (
           Export JSON of modified concept set. (Required in order to put changes
           in Enclave, for now.)
         </LI>
-        <LI>
-          <Button
-                to="/testing"
-                component={Link}
-          >
-            Example Comparison
-          </Button>
-        </LI>
       </ul>
 
       <p>
