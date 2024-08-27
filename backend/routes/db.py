@@ -137,13 +137,14 @@ def get_cset_members_items(
 
 
 @router.get("/get-cset-members-items")
-async def _get_cset_members_items(request: Request,
-                                  codeset_ids: str = None,
-                                  columns: Union[List[str], None] = Query(default=None),
-                                  column: Union[str, None] = Query(default=None),
-                                  return_with_keys: bool = True,
-                                  # extra_concept_ids: Union[int, None] = Query(default=None)
-                                  ) -> Union[List[int], List]:
+async def _get_cset_members_items(
+    request: Request,
+    codeset_ids: str = None,
+    columns: Union[List[str], None] = Query(default=None),
+    column: Union[str, None] = Query(default=None),
+    return_with_keys: bool = True,
+    # extra_concept_ids: Union[int, None] = Query(default=None)
+):  # -> Union[List[int], List]
     requested_codeset_ids = parse_codeset_ids(codeset_ids)
     rpt = Api_logger()
     await rpt.start_rpt(request, params={'codeset_ids': requested_codeset_ids})
@@ -222,6 +223,7 @@ def omop_id_from_concept_name(name):
         results = sql_query(con, q, {'name': name})
     return results
 
+# todo: style: 'id' matches built-in name 'id'
 @router.get("/concepts")
 @return_err_with_trace
 async def get_concepts_route(request: Request, id: List[str] = Query(...), table:str='concepts_with_counts') -> List:
@@ -257,9 +259,8 @@ async def get_concept_ids_by_codeset_id_post(request: Request, codeset_ids: Unio
 @return_err_with_trace
 async def get_concept_ids_by_codeset_id(
     request: Request, codeset_ids: Union[List[str], None] = Query(...)
-) -> Dict[str, str]:
+) -> Dict[int, List[int]]:
     """Get concept IDs by codeset id"""
-
     if codeset_ids:
         q = f"""
               SELECT csids.codeset_id, COALESCE(cibc.concept_ids, ARRAY[]::integer[]) AS concept_ids
@@ -284,7 +285,8 @@ async def get_concept_ids_by_codeset_id(
 @router.post("/codeset-ids-by-concept-id")
 @return_err_with_trace
 async def get_codeset_ids_by_concept_id_post(
-    request: Request, concept_ids: Union[List[int], None] = None) -> Dict:
+    request: Request, concept_ids: Union[List[int], None] = None
+) -> Dict:  # Dict[int, List[int]]
     """Get Codeset IDs by concept ID"""
     q = f"""
           SELECT *
@@ -304,9 +306,7 @@ async def get_codeset_ids_by_concept_id_post(
 
 
 @router.get("/codeset-ids-by-concept-id")
-# async def get_codeset_ids_by_concept_id(request: Request, concept_ids: Union[List[str], None] = Query(...)) -> Dict:
 async def get_codeset_ids_by_concept_id(request: Request, concept_ids: Union[List[str], None] = Query(...)) -> Dict:
-
     """Get Codeset IDs by concept ID"""
     return await get_codeset_ids_by_concept_id_post(request, concept_ids)
 
@@ -315,7 +315,6 @@ async def get_codeset_ids_by_concept_id(request: Request, concept_ids: Union[Lis
 def _get_all_csets() -> Union[Dict, List]:
     """Route for: get_all_csets()"""
     return get_all_csets()
-
 
 
 @router.get("/get-csets")
@@ -511,7 +510,7 @@ def _whoami():
 
 
 @router.get("/get-n3c-recommended-codeset_ids")
-def get_n3c_recommended_codeset_ids() -> Dict[int, Union[Dict, None]]:
+def get_n3c_recommended_codeset_ids():  # -> Dict[int, Union[Dict, None]]
     """Get N3C recommended codeset IDs"""
     codeset_ids = get_n3c_recommended_csets()
     return codeset_ids
@@ -535,7 +534,7 @@ def download_n3c_recommended():
 
 
 @router.get("/n3c-recommended-report", response_model=False)
-def n3c_recommended_report(as_json=False) -> Union[List[Row], StreamingResponse]:
+def n3c_recommended_report(as_json=False):  # -> Union[List[Row], StreamingResponse]
     """N3C recommended report
 
     todo: possibly drop return typing, or figure out how to get it correct.
@@ -618,7 +617,8 @@ def single_n3c_comparison_rpt(pair: str):
 
 
 @cache
-def get_comparison_rpt(con, codeset_id_1: int, codeset_id_2: int) -> Dict[str, Union[str, None]]:
+def get_comparison_rpt(con, codeset_id_1: int, codeset_id_2: int):  # -> Dict[str, Union[str, None]]
+    """Get comparison report"""
     cset_1 = get_csets([codeset_id_1])[0]
     cset_2 = get_csets([codeset_id_2])[0]
 
@@ -750,7 +750,7 @@ def usage_query(verbose=True) -> List[Dict]:
 
 
 @router.get("/usage")
-def usage() -> JSON_TYPE:
+def usage():  # -> JSON_TYPE
     """Usage report: Get all data from our monitoring."""
     return usage_query()
 
