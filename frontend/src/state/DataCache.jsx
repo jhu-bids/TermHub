@@ -2,7 +2,6 @@ import {createContext, useContext,} from "react";
 import {LRUCache} from 'lru-cache'; // https://isaacs.github.io/node-lru-cache
 import {debounce, get, isEmpty, setWith, } from 'lodash';
 import {compress, decompress} from "lz-string";
-import {useSearchParamsState} from "./SearchParamsProvider";
 
 /*
 		TODO: get LRU cache working, one cache for each itemType, probably
@@ -12,9 +11,10 @@ import {useSearchParamsState} from "./SearchParamsProvider";
 const DataCacheContext = createContext(null);
 
 export function DataCacheProvider({children}) {
-	const {sp} = useSearchParamsState();
-	let {optimization_experiment} = sp;
+	// const {sp} = useSearchParamsState();
+	// let {optimization_experiment} = sp;
 
+  let {optimization_experiment} = '';
 	// TURN OFF CACHING by uncommenting below
 	// optimization_experiment = optimization_experiment || 'no_cache';
 
@@ -169,24 +169,16 @@ class DataCache {
 			return;
 		}
 
-		let [parentPath, parentObj,] = this.popLastPathKey(path);
-		/*
-		if (isEmpty(parentObj)) {
-			// have to do this or numeric keys will force new obj to be an array
-			set(this.#cache, parentPath, {})
-		}
-		 */
 		setWith(this.#cache, path, value, Object);
 		if (save) {
 			this.saveCache();
 		}
 	}
-	cacheArrayPut(path, value, storeAsArray = false, appendToArray = false) {
-
-		if (storeAsArray && appendToArray) {
-			let val = get(this.#cache, path);
-		}
-	}
+	// cacheArrayPut(path, value, storeAsArray = false, appendToArray = false) {
+	// 	if (storeAsArray && appendToArray) {
+	// 		let val = get(this.#cache, path);
+	// 	}
+	// }
 
 	popLastPathKey(path) {
 		path = [...pathToArray(path)];

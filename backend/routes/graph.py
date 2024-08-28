@@ -97,18 +97,10 @@ async def concept_graph(
  ) -> Tuple[DiGraph, Set[int], Set[int], Dict[str, Set[int]], Set[int]]:
     """Return concept graph
 
-    :param cids: Not used right now. This is for when we allow user to add concepts from other concept sets
-    . They're not part of any codesets yet, as these are added by user.
+        concepts/concept_ids will include all definition and expansion concepts for codeset_ids
+            plus any cids that are passed in
     :returns
       hidden_by_voc: Map of vocab to set of concept ids"""
-    if cids:
-        raise NotImplementedError('See docstring for concept_graph()')
-    # todo: old code to remove. Returns nothing right now. all code below this point in concept_graph_post() used to
-    #  be part of get_connected_subgraph() or one of its sub-functions.
-    # (nodes_in_graph, missing_in_between_nodes, preferred_concept_ids, orphans_not_in_graph, hidden_nodes,
-    #  hidden_dict) = get_connected_subgraph(REL_GRAPH, codeset_ids, cids, hide_vocabs=['RxNorm Extension'])
-    # tree = await indented_concept_list(codeset_ids, cids, hide_vocabs)
-    # sg, filled_gaps = fill_in_gaps(REL_GRAPH, id, return_missing=True)
     timer = get_timer('')
     verbose and timer('concept_graph()')
 
@@ -118,6 +110,11 @@ async def concept_graph(
     concepts: List[Dict[str, Any]]
     hidden_by_voc: Dict[str, Set[int]]
     nonstandard_concepts_hidden: Set
+
+    if cids:
+        more_concepts = get_concepts(cids)
+        concepts_unfiltered.extend(more_concepts)
+
     # - filter: by vocab & non-standard
     concepts, hidden_by_voc, nonstandard_concepts_hidden = filter_concepts(
         concepts_unfiltered, hide_vocabs, hide_nonstandard_concepts)
@@ -337,66 +334,88 @@ def get_indented_tree_nodes(
     return tree
 
 
+# print_stack = lambda s: ' | '.join([f"{n} => {','.join([str(x) for x in p])}" for n,p in s])
+# print_stack = lambda s: ' | '.join([f"{n} => {str(p)}" for n,p in s])
+# print_stack = lambda s: ' | '.join([f"""{n}{'=>' if p else ''}{','.join(p)}""" for n,p in reversed(s)])
 print_stack = lambda s: ' | '.join([f"{n} => {','.join([str(x) for x in p])}" for n,p in s])
 
 
 # noinspection PyPep8Naming
-def get_missing_in_between_nodes(G: DiGraph, subgraph_nodes: Union[List[int], Set[int]], verbose=VERBOSE) -> Set:
-    """Get missing in-betweens, nodes that weren't in definition or expansion but are in between those."""
+def get_missing_in_between_nodes(G: nx.DiGraph, subgraph_nodes: Union[List[int], Set[int]], verbose=VERBOSE) -> Set:
     missing_in_between_nodes = set()
     missing_in_between_nodes_tmp = set()
-    sg: DiGraph = G.subgraph(subgraph_nodes)
+    subgraph_nodes = set(subgraph_nodes)
     # noinspection PyCallingNonCallable
-    leaves = [node for node, degree in sg.out_degree() if degree == 0]
-    visited = set()
+    leaves = [node for node, degree in G.out_degree() if degree == 0]
+    leaves = set(leaves).intersection(subgraph_nodes)
+    print(f"subgraph: {subgraph_nodes}, leaves: {leaves}")
+    # leaves = sorted([node for node, degree in G.out_degree() if degree == 0])
+    discard = set()   # nodes not in subgraph and with no predecessors in subgraph
 
     for leaf_node in leaves:
-        # stack = [(leaf_node, iter(G.predecessors(leaf_node)))]
         descending_from = None
         stack = [(leaf_node, list(list(G.predecessors(leaf_node))))]
 
         while stack:
-            # if descending_from:
-                # if descending_from in subgraph_nodes:
-                #     missing_in_between_
-
             current_node, predecessors = stack[-1]
+            # current node is on the top of the stack
+            #   if it has predecessors, the first will be shifted off and pushed to top of the stack
             if verbose and len(subgraph_nodes) < 1000:
-                print(f"{str(print_stack(stack)):58} {(descending_from or ''):8} "
-                      f"{','.join([str(n) for n in missing_in_between_nodes])} | "
-                      f"{','.join([str(n) for n in missing_in_between_nodes_tmp])}")
+                print(
+                    f"{str(print_stack(stack)):>59}   " # node => [predecessors] | ... from top to bottom of stack
+                    f"{(descending_from or ''):8} "
+                    f"<{','.join([str(n) for n in missing_in_between_nodes])}> "  # <missing nodes>
+                    f"{{{','.join([str(n) for n in missing_in_between_nodes_tmp])}}} "
+                    f"--{','.join([str(n) for n in discard]) if discard else ''}"  # <missing nodes>
+                )  # {temp missing nodes}
 
-            # try:
-            # next_node = next(predecessors)
             next_node = predecessors.pop(0) if predecessors else None
             if next_node:
                 descending_from = None
-                if next_node not in visited:
-                    visited.add(next_node)
+                # ignoring visited is messing stuff up visited node is in the graph, i think
+                if next_node not in discard:
+                    # visited.add(next_node)
 
                     if next_node not in subgraph_nodes:
                         missing_in_between_nodes_tmp.add(next_node)
 
-                    # stack.append((next_node, iter(G.predecessors(next_node))))
                     stack.append((next_node, list(list(G.predecessors(next_node)))))
             else:
                 # while True:
                 n, preds = stack.pop()
-                descending_from = n if n in subgraph_nodes else f"[{n}]"
+                # descending_from = n if n in subgraph_nodes else f"[{n}]"
+                descending_from = f"<= {n}"
+                descending_from += '  ' if n in subgraph_nodes else ' x'
                 if preds:
                     raise RuntimeError("this shouldn't happen")
 
                 if n in subgraph_nodes:
                     missing_in_between_nodes.update(missing_in_between_nodes_tmp)
+                    subgraph_nodes.update(missing_in_between_nodes_tmp)
                     missing_in_between_nodes_tmp.clear()
-                    break
+                    continue
+                    # break
                 else:
                     missing_in_between_nodes_tmp.discard(n)
-
-            # except StopIteration:
-            # except IndexError:
-
+                    discard.add(n)
     return missing_in_between_nodes
+
+
+def test_get_missing_in_between_nodes(
+    whole_graph_edges=None, non_subgraph_nodes=None, expected_missing_in_between_nodes=None, subgraph_nodes=None,
+    fail=True, verbose=False
+):
+    # add code to load whole REL_GRAPH
+    G = DiGraph(whole_graph_edges)
+    subgraph_nodes = subgraph_nodes or set(G.nodes) - set(non_subgraph_nodes)
+    missing_in_between_nodes = get_missing_in_between_nodes(G, subgraph_nodes, verbose=verbose)
+    if fail:
+        assert missing_in_between_nodes == set(expected_missing_in_between_nodes)
+    else:
+        if missing_in_between_nodes == set(expected_missing_in_between_nodes):
+            print(f"passed with {missing_in_between_nodes}")
+        else:
+            print(f"expected {expected_missing_in_between_nodes}, got {missing_in_between_nodes}")
 
 
 @router.get("/wholegraph")

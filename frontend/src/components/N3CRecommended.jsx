@@ -3,8 +3,8 @@ import DataTable, { createTheme } from "react-data-table-component";
 import { flatten, uniq, sortBy } from "lodash";
 
 import {backend_url, useDataGetter} from "../state/DataGetter";
-import {useSearchParamsState} from "../state/SearchParamsProvider";
-import {fmt, saveCsv, useWindowSize} from "./utils";
+import {useSearchParamsState} from "../state/StorageProvider";
+import {fmt, saveCsv, useWindowSize} from "../utils";
 import {TextH2} from "./AboutPage";
 import Button from "@mui/material/Button";
 import {Link} from "react-router-dom";
@@ -12,11 +12,6 @@ import {Link} from "react-router-dom";
 export const N3CRecommended = () => {
   const [data, setData] = useState(null);
   const dataGetter = useDataGetter();
-  const {sp} = useSearchParamsState();
-
-  if (sp.comparison) {
-    return <N3CComparisonRpt />;
-  }
 
   const filename = 'n3c-recommended-report';
 
@@ -145,7 +140,7 @@ export const N3CComparisonRpt = () => {
     {grow: 2, name: "Compare", selector: row => (
           <Button
               to={`/cset-comparison?codeset_ids=${row.cset_1_codeset_id}&codeset_ids=${row.cset_2_codeset_id}` +
-                `&comparison_rpt=${row.cset_1_codeset_id}-${row.cset_2_codeset_id}`}
+                `&comparison_pair=${row.cset_1_codeset_id}-${row.cset_2_codeset_id}`}
               component={Link}
               style={{margin: '7px', textTransform: 'none'}}
           >

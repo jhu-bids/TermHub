@@ -5,8 +5,8 @@
 import io
 import json
 import urllib.parse
-from datetime import datetime
-from functools import cache
+from datetime import datetime, timedelta
+from functools import cache, lru_cache
 from typing import Dict, List, Union, Set
 
 import pandas as pd
@@ -95,6 +95,7 @@ def get_cset_members_items(
     columns: Union[List[str], None] = None,
     column: Union[str, None] = None,
     return_with_keys: bool = True,
+    cids: Union[List[int], None] = None,
 ) -> Union[List[int], List]:
     """Get concept set members items for selected concept sets
         returns:
@@ -248,6 +249,41 @@ async def get_concepts_post_route(
     return await get_concepts_route(request, id=id, table=table)
 
 
+@lru_cache(maxsize=20)  # probably not helpful, caching at front end anyway
+@router.get("/concept-search")
+async def _concept_search(search_str: str, sort_by: str = "-total_cnt|vocabulary_id|concept_name") -> List[int]:
+    valid_sort_columns = {"total_cnt", "concept_name", "vocabulary_id", "domain_id", "concept_class_id"}
+    #   for desc, prefix with -
+    sort_strs = sort_by.split('|')
+    sort_cols = []
+    for s in sort_strs:
+        desc = False
+        if s[0] == '-':
+            desc = True
+            s = s[1:]
+        if s not in valid_sort_columns:
+            raise ValueError(f"invalid sort_by: {s}")
+        s = f"{s} DESC" if desc else s
+        sort_cols.append(s)
+    q = f"""
+      SELECT concept_id
+      FROM concepts_with_counts
+      WHERE concept_name ILIKE :search_str
+      ORDER BY {', '.join(sort_cols)} DESC
+    """
+    with get_db_connection() as con:
+        concept_ids = sql_query_single_col(con, q, { "search_str": '%' + search_str + '%', })
+    return concept_ids
+
+
+@router.get("/next-api-call-group-id")
+def next_api_call_group_id() -> int:
+    """Get next API call group ID"""
+    with get_db_connection() as con:
+        id = sql_query_single_col(con, "SELECT nextval('api_call_group_id_seq')")[0]
+    return id
+
+
 @router.post("/concept-ids-by-codeset-id")
 async def get_concept_ids_by_codeset_id_post(request: Request, codeset_ids: Union[List[int], None] = None) -> Dict:
     """Route for get_concept_ids_by_codeset_id() via POST"""
@@ -379,67 +415,6 @@ def db_refresh_route():
     """Triggers refresh of the database"""
     response: Response = call_github_action('refresh-db')
     return response.status_code
-
-
-# NO LONGER USED BECAUSE WE DON'T EDIT EXISTING CODESETS BUT JUST CREATE NEW ONES FROM DEFINITIONS
-@router.get("/cset-download")
-def cset_download(
-    codeset_id: int, csetEditState: str = None, atlas_items=True, sort_json: bool = False,
-    # include_metadata=False, atlas_items_only=False
-) -> Union[Dict, List]:
-    """Download concept set
-    NO LONGER USED BECAUSE WE DON'T EDIT EXISTING CODESETS BUT JUST CREATE NEW ONES FROM DEFINITIONS
-    """
-    # if not atlas_items_only: # and False  TODO: document this param and what it does (what does it do again?)
-    #     jsn = get_codeset_json(codeset_id) #  , use_cache=False)
-    #     if sort_json:
-    #         jsn['items'].sort(key=lambda i: i['concept']['CONCEPT_ID'])
-    #     return jsn
-
-    items = get_concept_set_version_expression_items(codeset_id, return_detail='full', handle_paginated=True)
-    items = [i['properties'] for i in items]
-    if csetEditState:
-        edits = json.loads(csetEditState)
-        edits = edits[str(codeset_id)]
-
-        deletes = [i['concept_id'] for i in edits.values() if i['stagedAction'] in ['Remove', 'Update']]
-        items = [i for i in items if i['conceptId'] not in deletes]
-        adds: List[Dict] = [i for i in edits.values() if i['stagedAction'] in ['Add', 'Update']]
-        # items is object api format but the edits from the UI are in dataset format
-        # so, convert the edits to object api format for consistency
-        for item in adds:
-            # set flags to false if they don't appear in item
-            for flag in FLAGS:
-                if flag not in item:
-                    item[flag] = False
-        adds = convert_rows('concept_set_version_item',
-                            'OmopConceptSetVersionItem',
-                            adds)
-        items.extend(adds)
-    if sort_json:
-        items.sort(key=lambda i: i['conceptId'])
-
-    if atlas_items:
-        items_jsn = items_to_atlas_json_format(items)
-        return {'items': items_jsn}
-    else:
-        return items  #  when would we want this?
-
-
-# NOT USING THESE TWO ROUTES EITHER -- WAS EASIER JUST TO IMPLEMENT ON FRONTEND
-#  - but might want them someday
-@router.post('/atlas-json-from-defs')
-def atlas_json_from_defs(defs: List[Dict]) -> Dict:
-    """From concept set definitions, get Atlas JSON format"""
-    items = convert_rows('concept_set_version_item','OmopConceptSetVersionItem', defs)
-    items_jsn = items_to_atlas_json_format(items)
-    return {'items': items_jsn}
-
-
-@router.get('/atlas-json-from-defs')
-def _atlas_json_from_defs(defStr: List[Dict]) -> Dict:
-    defs = json.loads(defStr)
-    return atlas_json_from_defs(defs)
 
 
 # Utility functions ----------------------------------------------------------------------------------------------------
@@ -684,14 +659,21 @@ def get_comparison_rpt(con, codeset_id_1: int, codeset_id_2: int):  # -> Dict[st
 
 
 def generate_n3c_comparison_rpt():
-    """Generate N3C comparison report"""
+    """Generate N3C comparison report
+        If you want more or difference comparisons than what are currently in the report, you need
+        to add new pairs of original and new codesets to the codeset_comparison table.
+        For doing that while actually creating new copies of codesets based on old ones, look at
+         make_new_versions_of_csets.
+        To just add a comparison between two codeset_ids that already exist, add the new pair to the table,
+        leaving the rpt column as NULL, and then run this function.
+    """
     with get_db_connection() as con:
         pairs = sql_query(
             con,
             """
                 SELECT orig_codeset_id, new_codeset_id
                 FROM public.codeset_comparison
-                --WHERE rpt IS NULL
+                WHERE rpt IS NULL
                 """)
         i = 1
         for pair in pairs:
@@ -718,13 +700,6 @@ def check_token() -> Dict:
     # name = w.get('username', 'No name')
     t = check_token_ttl(format='date-days')
     return {'whoami': w, 'expires': t}
-
-
-@router.get("/next-api-call-group-id")
-def next_api_call_group_id() -> int:
-    """Get next API call group ID"""
-    with get_db_connection() as con:
-        return sql_query_single_col(con, "SELECT nextval('api_call_group_id_seq')")[0]
 
 
 # todo: can / should we replace this query with selecting from `apijoin` table instead?

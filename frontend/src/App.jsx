@@ -7,6 +7,7 @@ might be useful to look at https://mui.com/material-ui/guides/composition/#link
 referred to by https://stackoverflow.com/questions/63216730/can-you-use-material-ui-link-with-react-router-dom-link
 */
 import React, {useEffect} from "react";
+import axios from "axios";
 import {
   // Link, useHref, useParams, BrowserRouter, redirect,
   Outlet,
@@ -19,35 +20,42 @@ import {
 import { createTheme, ThemeProvider } from "@mui/material/styles";
 import "./App.css";
 import { isEmpty } from "lodash";
-import {compress, decompress} from "lz-string";
+// import {decompress, decompressFromEncodedURIComponent} from "lz-string";
+// import * as lz from "lz-string";
+// window.lz = lz;
 
 import { ConceptSetsPage } from "./components/Csets";
 import { CsetComparisonPage } from "./components/CsetComparisonPage";
 import { AboutPage } from "./components/AboutPage";
 // import { ConceptGraph } from "./components/GraphD3dag";
 import { ConceptGraph, } from "./components/GraphPlayground";
-import {ViewCurrentState, } from "./state/State";
 import {
   CodesetIdsProvider,
-  AlertsProvider,
-  useAlerts,
-  useAlertsDispatch,
+  useCodesetIds, ViewCurrentState,
+  CidsProvider,
+  GraphOptionsProvider,
+  AppOptionsProvider,
   NewCsetProvider,
-  useNewCset,
-} from "./state/AppState";
-import {GraphProvider} from "./state/GraphState";
-import {SearchParamsProvider, useSearchParamsState} from "./state/SearchParamsProvider";
-import {DataGetterProvider} from "./state/DataGetter";
+  // AlertsProvider, useAlerts, useAlertsDispatch, useNewCset, urlWithSessionStorage,
+} from './state/AppState';
+import {
+  SearchParamsProvider,
+  SessionStorageProvider,
+  // SessionStorageWithSearchParamsProvider,
+  // useSessionStorageWithSearchParams,
+} from './state/StorageProvider';
+import {backend_url, DataGetterProvider} from "./state/DataGetter";
 import { UploadCsvPage } from "./components/UploadCsv";
 // import { DownloadJSON } from "./components/DownloadJSON";
 import MuiAppBar from "./components/MuiAppBar";
 import {DataCacheProvider} from "./state/DataCache";
 import {AlertMessages} from "./components/AlertMessages";
-import {N3CRecommended} from "./components/N3CRecommended";
+import {N3CRecommended, N3CComparisonRpt} from "./components/N3CRecommended";
 import {UsageReport} from "./components/UsageReport";
-import {Concepts} from "./components/Concepts";
+import {AddConcepts} from "./components/AddConcepts";
 // import {EnclaveAuthTest, AuthCallback, Logout, } from "./components/utils";
 import {DEPLOYMENT} from "./env";
+import Button from '@mui/material/Button';
 
 /* structure is:
     <BrowserRouter>                 // from index.js root.render
@@ -57,9 +65,7 @@ import {DEPLOYMENT} from "./env";
             <DataCacheProvider>       // ability to save to and retrieve from cache in localStorage
               <DataGetterProvider>    // utilities for fetching data. dataCache needs access to this a couple of times
                                       //  so those method calls will have to pass in a dataGetter
-                <GraphProvider>       // graph stuff for concept hierarchy
                   <RoutesContainer/>
-                </GraphProvider>
               </DataGetterProvider>
             </DataCacheProvider>
           </NewCsetProvider>
@@ -71,77 +77,49 @@ function AppWrapper() {
   // prefetch({itemType: 'all_csets'});
   return (
     // <React.StrictMode> // {/* StrictMode helps assure code goodness by running everything twice, but it's annoying*/}
-      <SearchParamsProvider>
-        <AlertsProvider>
+    //   <SessionStorageWithSearchParamsProvider>
+    //     <AlertsProvider>
+    //     <AppOptionsProvider>
+    <SearchParamsProvider>
+      <SessionStorageProvider>
+        <AppOptionsProvider>
           <CodesetIdsProvider>
-            <NewCsetProvider>
-              <DataCacheProvider>
-                <DataGetterProvider>
-                  <GraphProvider>
-                    <RoutesContainer/>
-                  </GraphProvider>
-                </DataGetterProvider>
-              </DataCacheProvider>
-            </NewCsetProvider>
+            <CidsProvider>
+              <GraphOptionsProvider>
+                <NewCsetProvider>
+                  <DataCacheProvider>
+                    <DataGetterProvider>
+                      <RoutesContainer/>
+                    </DataGetterProvider>
+                  </DataCacheProvider>
+                </NewCsetProvider>
+              </GraphOptionsProvider>
+            </CidsProvider>
           </CodesetIdsProvider>
-        </AlertsProvider>
-      </SearchParamsProvider>
+        </AppOptionsProvider>
+      </SessionStorageProvider>
+    </SearchParamsProvider>
+        // </AppOptionsProvider>
+      // </AlertsProvider>
+      // </SessionStorageWithSearchParamsProvider>
     // </React.StrictMode>
   );
 }
-window.compress = compress;
-window.decompress = decompress;
+// window.compress = compress;
+// window.decompress = decompress;
 function RoutesContainer() {
-  const spState = useSearchParamsState();
-  let {sp, updateSp, } = spState;
-  const {codeset_ids, } = sp;
+  const [codeset_ids, codesetIdsDispatch] = useCodesetIds();
   const location = useLocation();
-  const [newCset, newCsetDispatch] = useNewCset();
+  // const [newCset, newCsetDispatch] = useNewCset();
 
-  useEffect(() => {
-    if (sp.sstorage) {
-      // const sstorageString = decompress(sp.sstorage);
-      // const sstorage = JSON.parse(sstorageString);
-      const sstorage = JSON.parse(sp.sstorage);
-      Object.entries(sstorage).map(([k,v]) => {
-        if (k === 'newCset') {
-          // restore alters newCset.definitions (unabbreviates)
-          v = newCsetDispatch({type: 'restore', newCset: v});
-        } else {
-          console.warn('was only expecting newCset in sstorage search param, got', {[k]: v},
-                       'adding to sessionStorage anyway');
-        }
-        sessionStorage.setItem(k, JSON.stringify(v));
-      });
-
-      updateSp({delProps: ['sstorage']});
-      // this updateSp generates a warning
-      //  You should call navigate() in a React.useEffect(), not when your component is first rendered.
-      //  but seems to work ok anyway. If if doesn't, try going back to something like the code below.
-      //  but the problem with code below is that you can't re-navigate by returning <Navigate...> from
-      //    useEffect. has to be returned by RoutesContainer.
-      // sp = {...sp};
-      // delete sp.sstorage;
-      // let csp = createSearchParams(sp);
-      // let url = location.pathname + '?' + csp;
-      // return <Navigate to={url} replace={true} />;
-    }
-  })
   let pathname = location.pathname;
 
   if (pathname === "/cset-comparison" && isEmpty(codeset_ids)) {
-    pathname = '/';
+    pathname = '/OMOPConceptSets';
   }
   if (pathname === "/") {
+    // navigate('/OMOPConceptSets');
     return <Navigate to={`/OMOPConceptSets`} />;
-  }
-  if (pathname === "/testing") {
-    const test_codeset_ids = [400614256, 411456218, 419757429, 484619125];
-    let params = createSearchParams({ codeset_ids: test_codeset_ids });
-    // setSearchParams(params);
-    let url = "/cset-comparison?" + params;
-    // return redirect(url); not exported even though it's in the docs
-    return <Navigate to={url} replace={true} /* what does this do? */ />;
   }
 
   return (
@@ -150,7 +128,7 @@ function RoutesContainer() {
       <Route path="/" element={<App/>}>
         <Route path="cset-comparison" element={<CsetComparisonPage/>} />
         <Route path="OMOPConceptSets" element={<ConceptSetsPage/>} />
-        <Route path="concepts" element={<Concepts/>} />
+        <Route path="add-concepts" element={<AddConcepts/>} />
         <Route path="about" element={<AboutPage/>} />
         <Route path="upload-csv" element={<UploadCsvPage/>} />
         {/*<Route path="auth/callback" element={<AuthCallback/>} />*/}
@@ -163,6 +141,7 @@ function RoutesContainer() {
         {/*<Route path="download-json" element={<DownloadJSON/>} />*/}
         <Route path="view-state" element={<ViewCurrentState/>} />
         <Route path="N3CRecommended" element={<N3CRecommended/>} />
+        <Route path="N3CComparisonRpt" element={<N3CComparisonRpt/>} />
         <Route path="usage" element={<UsageReport/>} />
         {/* <Route path="OMOPConceptSet/:conceptId" element={<OldConceptSet />} /> */}
       </Route>
@@ -170,24 +149,25 @@ function RoutesContainer() {
   );
 }
 function App(props) {
-  const {sp} = useSearchParamsState();
+  /*
   const alerts = useAlerts();
   const alertsDispatch = useAlertsDispatch();
   let alertsComponent = null;
   // turning this off even locally
-  if (false && DEPLOYMENT === 'local' || sp.show_alerts) {
-    alertsComponent = <AlertMessages alerts={alerts}/>;
-  }
+  // if (false && DEPLOYMENT === 'local' || sp.show_alerts) {
+  //   alertsComponent = <AlertMessages alerts={alerts}/>;
+  // }
+  */
   // console.log(DEPLOYMENT);
 
   return (
     <ThemeProvider theme={theme}>
-      {/*{ sp.login ? <EnclaveAuthTest /> : null }*/}
+      {/*{ login ? <EnclaveAuthTest /> : null }*/}
       <div className="App">
         {/* <ReactQueryDevtools initialIsOpen={false} />*/}
         <MuiAppBar>
         </MuiAppBar>
-        { alertsComponent }
+        {/*{ alertsComponent }*/}
         <Outlet />
         {/* Outlet will render the results of whatever nested route has been clicked/activated. */}
       </div>

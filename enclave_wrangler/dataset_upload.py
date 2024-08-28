@@ -201,8 +201,8 @@ def upload_new_cset_version_with_concepts(
 ) -> Dict:
     """Upload a concept set version along with its concepts.
 
-    # todo: Update this slightly now that this function accepts named params instead of a dict 
-    
+    # todo: Update this slightly now that this function accepts named params instead of a dict
+
         'omop_concepts': [
           {
             'concept_id' (int) (required):

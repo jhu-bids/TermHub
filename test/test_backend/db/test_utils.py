@@ -25,17 +25,27 @@ class FetchAuditTestRunner(unittest.TestCase):
     mock_data: List[Dict] = None
     con: Connection = None
 
+    @staticmethod
+    def clean_fetch_audit(con: Connection):
+        """Remove any rows that should not be there.
+
+        Normally this would only need to be done at the end in tearDown(), but in cases of errors, rows could sneak in
+        and not be removed at the end, so we should also clean in setUp()."""
+        run_sql(con, f"DELETE FROM fetch_audit WHERE comment LIKE 'Unit testing.%';")
+
+
     @classmethod
     def setUpClass(cls):
         """setUp"""
         cls.con = get_db_connection(schema='')
+        cls.clean_fetch_audit(cls.con)
         cls.n1 = sql_query(cls.con, 'SELECT COUNT(*) FROM fetch_audit;')[0]['count']
         insert_fetch_statuses(cls.mock_data)
 
     @classmethod
     def tearDownClass(cls):
         """tearDown"""
-        run_sql(cls.con, f"DELETE FROM fetch_audit WHERE comment LIKE 'Unit testing.%';")
+        cls.clean_fetch_audit(cls.con)
         n3 = sql_query(cls.con, 'SELECT COUNT(*) FROM fetch_audit;')[0]['count']
         # https://stackoverflow.com/questions/43483683/python-unittest-teardownclass-for-the-instance-how-to-have-it
         assert cls.n1 == n3  # .assertEqual() doesn't work here; see above

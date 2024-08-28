@@ -104,7 +104,7 @@ Many of these steps are specific to the JHU BIDS team, which deploys on JHU's Az
 with a copy/paste of `env/.env`. This is only necessary whenever environmental variables have changed, such as `PALANTIR_ENCLAVE_AUTHENTICATION_BEARER_TOKEN` getting refreshed, which happens every few months. If you're confident that the environment is still up to date, this step can be skipped, but to be safe, it can be done every tie.
 _You can read more about this in the related "Periodic maintenance > Updating auth token" section._
 2. Also update the [ENV_FILE for shadow-bids](https://github.com/shadow-bids/TermHub/settings/secrets/actions/ENV_FILE).
-`shadow-bids` is a secondary organization that we have in order for us to run premium GitHub actions that we have to 
+`shadow-bids` is a secondary organization that we have in order for us to run premium GitHub actions that we have to
 pay for. We can't currently do this at `jhu-bids` because it's connected to the JHU organization, and they aren't set up
 to handle this kind of billing.
 
@@ -225,17 +225,17 @@ So if the version was 1.10.2 before, it would be 1.11.0 after.
 If any environmental variables are created/updated/deleted, follow these steps.
 
 1. **Local `.env`:** All devs need to update their `env/.env` file. Each dev's `.env` should be exactly the same.
-2. **GitHub settings**: Then the `.env` file should be copied and pasted into the `ENV_FILE` variable on GitHub. To do 
+2. **GitHub settings**: Then the `.env` file should be copied and pasted into the `ENV_FILE` variable on GitHub. To do
 this, go to the [GitHub actions secrets page](https://github.com/jhu-bids/TermHub/settings/secrets/actions), scroll down
-to "repository secrets", edit `ENV_FILE`, paste the contents there, and save. _You can read more about this in the 
+to "repository secrets", edit `ENV_FILE`, paste the contents there, and save. _You can read more about this in the
 related "Deployment > Prerequisite steps" section._
 3. **Deployment**: Note that after the `ENV_FILE` is up to date, the currently deployed apps will not have access to its
-new contents. _In order to deploy these changes, follow the instructions in "Deployment > Applying patches to existing 
+new contents. _In order to deploy these changes, follow the instructions in "Deployment > Applying patches to existing
 deployments"._
 
 #### Updating auth token, if necessary
-As of https://github.com/jhu-bids/TermHub/pull/837, we switched to authentication using Oauth. Apparently, this means 
-that we will no longer need to refresh our service token every 6 months. 
+As of https://github.com/jhu-bids/TermHub/pull/837, we switched to authentication using Oauth. Apparently, this means
+that we will no longer need to refresh our service token every 6 months.
 
 **Should only be necessary if Oauth setup breaks:**
 The environmental variable `PALANTIR_ENCLAVE_AUTHENTICATION_BEARER_TOKEN` needs to be updated every 6 months. To do so,

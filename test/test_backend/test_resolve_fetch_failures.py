@@ -61,7 +61,7 @@ class TestBackendResolveFetchFailures(FetchAuditTestRunner):
         pk = self.mock_data[0]['primary_key']
         # mock_data: setUpClass will have inserted by now
         if self.run_live_fetch:
-            run_sql(self.con, f"DELETE FROM fetch_audit WHERE primary_key = '{pk}' AND comment = 'Unit testing.';")
+            run_sql(self.con, f"DELETE FROM fetch_audit WHERE primary_key = '{pk}' AND comment LIKE 'Unit testing.%';")
             fetch_cset_and_member_objects(codeset_ids=[pk])
         status1 = self._failure_status_query(pk)
         # todo: Ideally should be able to pass specific failures. What if actual failures exist that aren't test cases?

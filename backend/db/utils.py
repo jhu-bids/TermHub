@@ -10,6 +10,7 @@ import os
 import sys
 import time
 from argparse import ArgumentParser
+from functools import partial
 from pathlib import Path
 from random import randint
 
@@ -23,14 +24,16 @@ import pandas as pd
 from jinja2 import Template
 # noinspection PyUnresolvedReferences
 from psycopg2.errors import UndefinedTable
-from sqlalchemy import CursorResult, create_engine, event
-from sqlalchemy.engine import Row, RowMapping
+from sqlalchemy import create_engine, event, CursorResult
+from sqlalchemy.engine import Row, RowMapping, Engine
+from sqlalchemy.pool import QueuePool
 
 from sqlalchemy.engine.base import Connection
 from sqlalchemy.exc import OperationalError, ProgrammingError
 from sqlalchemy.sql import text
 from sqlalchemy.sql.elements import TextClause
-from typing import Dict, Set, Tuple, Union, List
+from typing import Any, Dict, Set, Tuple, Union, List
+from uuid import uuid4
 
 DB_DIR = os.path.dirname(os.path.realpath(__file__))
 PROJECT_ROOT = Path(DB_DIR).parent.parent
@@ -224,11 +227,47 @@ def refresh_derived_tables(
             break
 
 
+# todo: Any use to having this? If not, remove. Otherwise, needs fixing. It was working when in get_db_connection() we
+#  were not passing schema... but that's not really working. We need to be able to control the schema. After changing to
+#  pass schema, sometimes it worked, and sometimes we got err: AttributeError: 'dict' object has no attribute 'cursor',
+#  indicating that the kwargs weren't getting passed appropriately.
+# def set_search_path(dbapi_connection, schema=SCHEMA, connection_record=None):
+#     """Set the search_path when connecting.
+#
+#     Source: https://chat.openai.com/share/0472ba44-0e58-44ad-bbcb-5eabffae3d39
+#
+#     Note: This hasn't helped w/ a problem we were having. If it continues to not help, we could rever to the old
+#     version of get_db_connection().
+#     """
+#     cursor = dbapi_connection.cursor()
+#     cursor.execute(f"SET SESSION search_path='{schema}'")
+#     cursor.close()
+#
+#
+# def get_db_connection(isolation_level='AUTOCOMMIT', schema: str = SCHEMA, local=False) -> Connection:
+#     """Get database connection object
+#
+#     :param local: If True, connection is on local instead of production database.
+#     """
+#     if schema == None:
+#         raise ValueError('Must pass schema to get_db_connection()')
+#     engine = create_engine(
+#         get_pg_connect_url(local),
+#         poolclass=QueuePool,
+#         isolation_level=isolation_level,
+#     )
+#     # event.listen(engine, "connect", set_search_path)
+#     event.listen(engine, "connect", partial(set_search_path, {'schema': schema}))
+#     return engine.connect()
+
+
 # todo: make 'isolation_level' the final param, since we never override it. this would it so we dont' have to pass the
 #  other params as named params.
 def get_db_connection(isolation_level='AUTOCOMMIT', schema: str = SCHEMA, local=False) -> Connection:
-    """Connect to db
-    :param local: If True, connection is on local instead of production database."""
+    """Get DB connection object.
+
+    :param local: If True, connection is on local instead of production database.
+    """
     engine = create_engine(get_pg_connect_url(local), isolation_level=isolation_level)
 
     # noinspection PyUnusedLocal
@@ -855,4 +894,5 @@ def cli():
 
 
 if __name__ == '__main__':
-    cli()
+    # cli()
+    get_db_connection(schema='xyz')

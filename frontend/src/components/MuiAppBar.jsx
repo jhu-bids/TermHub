@@ -13,19 +13,19 @@ import MenuBookRounded from "@mui/icons-material/MenuBookRounded";
 import MenuItem from "@mui/material/MenuItem";
 import Tooltip from "@mui/material/Tooltip";
 import { NavLink, useLocation } from "react-router-dom";
-import ChevronLeftIcon from "@mui/icons-material/ChevronLeft";
-import ChevronRightIcon from "@mui/icons-material/ChevronRight";
-import CssBaseline from "@mui/material/CssBaseline";
-import Divider from "@mui/material/Divider";
-import Drawer from "@mui/material/Drawer";
-import List from "@mui/material/List";
-import ListItem from "@mui/material/ListItem";
-import ListItemButton from "@mui/material/ListItemButton";
-import { styled, useTheme } from "@mui/material/styles";
-import ListItemText from "@mui/material/ListItemText";
+// import ChevronLeftIcon from "@mui/icons-material/ChevronLeft";
+// import ChevronRightIcon from "@mui/icons-material/ChevronRight";
+// import CssBaseline from "@mui/material/CssBaseline";
+// import Divider from "@mui/material/Divider";
+// import Drawer from "@mui/material/Drawer";
+// import List from "@mui/material/List";
+// import ListItem from "@mui/material/ListItem";
+// import ListItemButton from "@mui/material/ListItemButton";
+// import { styled, useTheme } from "@mui/material/styles";
+// import ListItemText from "@mui/material/ListItemText";
 import { cloneDeep } from "lodash";
 import {VERSION, DEPLOYMENT} from "../env";
-import {useSearchParamsState} from "../state/SearchParamsProvider";
+import {useCodesetIds} from "../state/AppState";
 // import {client} from "./utils";
 
 const drawerWidth = 240;
@@ -33,7 +33,6 @@ const drawerWidth = 240;
 let _pages = [
   { name: "Cset search", href: "/OMOPConceptSets" },
   { name: "Cset comparison", href: "/cset-comparison" },
-  // { name: "Example comparison", href: "/testing" },
   // { name: "Graph", href: "/graph" },
   // {name: 'Upload CSV', href: '/upload-csv', noSearch: true, },
   // TODO: re-add Download (CSets, bundles, json...) at some point
@@ -43,7 +42,7 @@ let _pages = [
 if (DEPLOYMENT === 'local') {
   _pages.push(
       { name: "Graph", href: "/graph" },
-      { name: "Add concepts", href: "/concepts" }, );
+      { name: "Add concepts", href: "/add-concepts" }, );
 }
 export function getPages(codeset_ids) {
   let pages = cloneDeep(_pages);
@@ -58,82 +57,15 @@ export function getPages(codeset_ids) {
 }
 // const settings = ['About'];
 
-const Main = styled("main", { shouldForwardProp: (prop) => prop !== "open" })(
-  ({ theme, open }) => ({
-    flexGrow: 1,
-    padding: theme.spacing(3),
-    transition: theme.transitions.create("margin", {
-      easing: theme.transitions.easing.sharp,
-      duration: theme.transitions.duration.leavingScreen,
-    }),
-    marginLeft: `-${drawerWidth}px`,
-    ...(open && {
-      transition: theme.transitions.create("margin", {
-        easing: theme.transitions.easing.easeOut,
-        duration: theme.transitions.duration.enteringScreen,
-      }),
-      marginLeft: 0,
-    }),
-  })
-);
-
-const AppBarForDrawer = styled(AppBar, {
-  shouldForwardProp: (prop) => prop !== "open",
-})(({ theme, open }) => ({
-  transition: theme.transitions.create(["margin", "width"], {
-    easing: theme.transitions.easing.sharp,
-    duration: theme.transitions.duration.leavingScreen,
-  }),
-  ...(open && {
-    width: `calc(100% - ${drawerWidth}px)`,
-    marginLeft: `${drawerWidth}px`,
-    transition: theme.transitions.create(["margin", "width"], {
-      easing: theme.transitions.easing.easeOut,
-      duration: theme.transitions.duration.enteringScreen,
-    }),
-  }),
-}));
-
-const DrawerHeader = styled("div")(({ theme }) => ({
-  display: "flex",
-  alignItems: "center",
-  padding: theme.spacing(0, 1),
-  // necessary for content to be below app bar
-  ...theme.mixins.toolbar,
-  justifyContent: "flex-end",
-}));
-
 /* https://mui.com/material-ui/react-app-bar/ */
 export default function MuiAppBar() {
-  const {sp} = useSearchParamsState();
-  const {codeset_ids, } = sp;
+  const [codeset_ids, ] = useCodesetIds();
   const location = useLocation();
   const { search } = location;
   const pages = getPages(codeset_ids);
 
   const [anchorElNav, setAnchorElNav] = React.useState(null);
   const [anchorElUser, setAnchorElUser] = React.useState(null);
-
-  /*
-  const [pages, setPages] = useState(getPages(codeset_ids));
-  if (client && client.auth && client.auth.token) {
-    console.log(`logged in as ${client.auth.username}`);
-    setPages(pages => [...pages, { name: "Logout", href: "/logout", }]);
-  }
-  useEffect(() => {
-    (async () => {
-      console.log("client in appbar useeffect", client);
-      if (sp.login && client) {
-        await client.auth.signIn();
-        let token = await client.auth.getToken();
-        if (token) {
-          console.log(`logged in as ${client.auth.username}`);
-          setPages(pages => [...pages, { name: "Logout", href: "/logout", }]);
-        }
-      }
-    })();
-  }, []);
-  */
 
   const handleOpenNavMenu = (event) => {
     setAnchorElNav(event.currentTarget);
@@ -326,3 +258,51 @@ export default function MuiAppBar() {
   );
 }
 // export default MuiAppBar;
+
+/*
+
+const Main = styled("main", { shouldForwardProp: (prop) => prop !== "open" })(
+  ({ theme, open }) => ({
+    flexGrow: 1,
+    padding: theme.spacing(3),
+    transition: theme.transitions.create("margin", {
+      easing: theme.transitions.easing.sharp,
+      duration: theme.transitions.duration.leavingScreen,
+    }),
+    marginLeft: `-${drawerWidth}px`,
+    ...(open && {
+      transition: theme.transitions.create("margin", {
+        easing: theme.transitions.easing.easeOut,
+        duration: theme.transitions.duration.enteringScreen,
+      }),
+      marginLeft: 0,
+    }),
+  })
+);
+
+const AppBarForDrawer = styled(AppBar, {
+  shouldForwardProp: (prop) => prop !== "open",
+})(({ theme, open }) => ({
+  transition: theme.transitions.create(["margin", "width"], {
+    easing: theme.transitions.easing.sharp,
+    duration: theme.transitions.duration.leavingScreen,
+  }),
+  ...(open && {
+    width: `calc(100% - ${drawerWidth}px)`,
+    marginLeft: `${drawerWidth}px`,
+    transition: theme.transitions.create(["margin", "width"], {
+      easing: theme.transitions.easing.easeOut,
+      duration: theme.transitions.duration.enteringScreen,
+    }),
+  }),
+}));
+
+const DrawerHeader = styled("div")(({ theme }) => ({
+  display: "flex",
+  alignItems: "center",
+  padding: theme.spacing(0, 1),
+  // necessary for content to be below app bar
+  ...theme.mixins.toolbar,
+  justifyContent: "flex-end",
+}));
+ */
