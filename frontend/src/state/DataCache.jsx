@@ -2,7 +2,6 @@ import {createContext, useContext,} from "react";
 import {LRUCache} from 'lru-cache'; // https://isaacs.github.io/node-lru-cache
 import {debounce, get, isEmpty, setWith, } from 'lodash';
 import {compress, decompress} from "lz-string";
-import {useSearchParamsState} from "./StorageProvider";
 
 /*
 		TODO: get LRU cache working, one cache for each itemType, probably

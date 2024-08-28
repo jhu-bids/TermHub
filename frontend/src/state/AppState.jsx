@@ -29,56 +29,6 @@ export const [CodesetIdsProvider, useCodesetIds] = makeProvider(
       initialSettings: [],
       storageProviderGetter: useSearchParamsState, });
 
-/*
-const codesetIdsReducer = (state, action) => {
-  if (!(action && action.type)) return state;
-  switch (action.type) {
-    case "add_codeset_id": {
-      return [...state, parseInt(action.codeset_id)]; // .sort();
-    }
-    case "delete_codeset_id": {
-      return state.filter((d) => d != action.codeset_id);
-    }
-    case "set_all": {
-      return [...action.codeset_ids];
-    }
-    /*  ends up toggling multiple times now that not using context provider
-    case "toggle": {
-      if (state.includes(action.codesetId)) {
-        return state.filter(d => d !== action.codesetId);
-      }
-      return [...state, parseInt(action.codesetId)].sort();
-    }
-     * /
-    default:
-      throw new Error(`unexpected action.type ${action.type}`);
-  }
-};
-const CodesetIdsContext = createContext(null);
-export function CodesetIdsProvider({ children }) {
-  const storageProvider = useSearchParamsState();
-  // const storageProvider = window.sessionStorage;
-  let state = storageProvider.getItem('codeset_ids') || [];
-
-  const dispatch = action => {
-    let latestState = storageProvider.getItem('codeset_ids') || [];
-    const stateAfterDispatch = codesetIdsReducer(latestState, action);
-    if (!isEqual(latestState, stateAfterDispatch)) {
-      storageProvider.setItem('codeset_ids', stateAfterDispatch);
-    }
-  }
-  return (
-    <CodesetIdsContext.Provider value={[state, dispatch]}>
-      {children}
-    </CodesetIdsContext.Provider>
-  );
-}
-export function useCodesetIds() {
-  return useContext(CodesetIdsContext);
-}
-*/
-
-
 export const [CidsProvider, useCids] = makeProvider(
     { stateName: 'cids',
       reducer: cidsReducer,

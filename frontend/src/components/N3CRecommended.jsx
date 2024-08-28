@@ -12,11 +12,6 @@ import {Link} from "react-router-dom";
 export const N3CRecommended = () => {
   const [data, setData] = useState(null);
   const dataGetter = useDataGetter();
-  const {sp} = useSearchParamsState();
-
-  if (sp.comparison) {
-    return <N3CComparisonRpt />;
-  }
 
   const filename = 'n3c-recommended-report';
 

@@ -204,7 +204,7 @@ export function AboutPage() {
         >
           N3C Recommended
         </Button>
-        <Button to="/N3CRecommended?comparison=true"
+        <Button to="/N3CComparisonRpt"
                 variant={"contained"}
                 component={Link}
                 style={{margin: '7px', textTransform: 'none'}}

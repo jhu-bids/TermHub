@@ -50,7 +50,7 @@ import { UploadCsvPage } from "./components/UploadCsv";
 import MuiAppBar from "./components/MuiAppBar";
 import {DataCacheProvider} from "./state/DataCache";
 import {AlertMessages} from "./components/AlertMessages";
-import {N3CRecommended} from "./components/N3CRecommended";
+import {N3CRecommended, N3CComparisonRpt} from "./components/N3CRecommended";
 import {UsageReport} from "./components/UsageReport";
 import {AddConcepts} from "./components/AddConcepts";
 // import {EnclaveAuthTest, AuthCallback, Logout, } from "./components/utils";
@@ -141,6 +141,7 @@ function RoutesContainer() {
         {/*<Route path="download-json" element={<DownloadJSON/>} />*/}
         <Route path="view-state" element={<ViewCurrentState/>} />
         <Route path="N3CRecommended" element={<N3CRecommended/>} />
+        <Route path="N3CComparisonRpt" element={<N3CComparisonRpt/>} />
         <Route path="usage" element={<UsageReport/>} />
         {/* <Route path="OMOPConceptSet/:conceptId" element={<OldConceptSet />} /> */}
       </Route>

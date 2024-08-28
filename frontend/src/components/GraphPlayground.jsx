@@ -3,7 +3,6 @@ import { SigmaContainer, useSigma, useLoadGraph, useRegisterEvents } from "@reac
 import { useLayoutCircular } from "@react-sigma/layout-circular";
 import Graph from "graphology";
 import "@react-sigma/core/lib/react-sigma.min.css";
-import {useSearchParamsState} from "../state/StorageProvider";
 import {getResearcherIdsFromCsets, useDataGetter} from "../state/DataGetter";
 import {flatten, isEmpty, max, sum, union, uniq} from "lodash";
 import * as d3dag from "d3-dag";

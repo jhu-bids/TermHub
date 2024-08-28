@@ -54,8 +54,6 @@ import {
 } from '../state/AppState';
 import { GraphContainer } from '../state/GraphState';
 import { getResearcherIdsFromCsets, useDataGetter } from '../state/DataGetter';
-import { useSearchParamsState } from '../state/StorageProvider';
-// import {useSessionStorage} from "../state/StorageProvider";
 import { LI } from './AboutPage';
 // import {AddConcepts} from "./AddConcepts";
 
