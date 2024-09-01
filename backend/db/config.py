@@ -79,8 +79,16 @@ if CONFIG["server"] == 'mysql':
     BRAND_NEW_DB_URL = BRAND_NEW_DB_URL + '?charset=utf8mb4'
 DB_URL = BRAND_NEW_DB_URL.replace(f'{CONFIG["port"]}', f'{CONFIG["port"]}/{CONFIG["db"]}')
 REFRESH_JOB_MAX_HRS = 6  # see is_refresh_active() for documentation on this var
+PG_DATATYPES_BY_GROUP = {
+    'numeric': ['integer', 'bigint', 'smallint', 'real', 'double precision', 'numeric'],
+    'string': ['text', 'character', 'character varying'],
+    'datetime': ['timestamp with time zone', 'timestamp without time zone', 'time with time zone',
+                 'time without time zone']
+}
 # Table/View configuration: for n3c schema
 CORE_CSET_TABLES = ['code_sets', 'concept_set_container', 'concept_set_version_item', 'concept_set_members']
+# todo: add comment for CORE_CSET_DEPENDENT_TABLES. What does this tell us easily that DERIVED_TABLE_DEPENDENCY_MAP does
+#  not? Is it not computable from DERIVED_TABLE_DEPENDENCY_MAP?
 CORE_CSET_DEPENDENT_TABLES = [
     # tables
     'cset_members_items',
@@ -103,6 +111,7 @@ STANDALONE_TABLES = [
     'session_concept',
     'sessions',
     'test',
+    'code_sets_audit'
 ]
 # DERIVED_TABLE_DEPENDENCY_MAP: Shows which tables are needed to create a derived table. Generally the idea is that when
 #  the dependency tables are updated, the dependent table also needs to be updated. But some tables in here have

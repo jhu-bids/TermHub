@@ -1,4 +1,8 @@
-# jq commented out because doesn't work on Windows and are also not needed.
+# todo:
+#  - it may be necessary to make sure we have PyDantic <2.x. >=2.x has been causing issues.
+# notes:
+# - jq commented out because doesn't work on Windows and are also not needed.
+#
 # dependencies
 fastapi
 httpx
@@ -16,15 +20,21 @@ sqlalchemy
 tabulate
 typeguard
 uvicorn[standard]
-# jq
-# psycopg2
+# psycopg2  # this does not work in all / our situations, but the binary one below does
 psycopg2-binary
 networkx
 # # special cases
 airium==0.2.6  # resolves "Please use pip<24.1 if you need to use this version.". See: https://github.com/jhu-bids/TermHub/actions/runs/9607624748/job/26499102183
 
 # dev dependencies
-# psutil  # for memory profiling
+# jq
+# psutil  # for memory profiling, if needed
+# joe uses this:
 virtualenvwrapper
-
+# todo: why is this here? Should come with Python distribution:
 setuptools
+
+# non-PyPi packages
+# - For the command to install these, consult: install-requirements.sh
+# foundry-sdk-runtime==1.113.0
+# vshub_sdk==0.1.0

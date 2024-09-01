@@ -10,7 +10,6 @@ import os
 import sys
 import time
 from argparse import ArgumentParser
-from functools import partial
 from pathlib import Path
 from random import randint
 
@@ -25,20 +24,19 @@ from jinja2 import Template
 # noinspection PyUnresolvedReferences
 from psycopg2.errors import UndefinedTable
 from sqlalchemy import create_engine, event, CursorResult
-from sqlalchemy.engine import Row, RowMapping, Engine
-from sqlalchemy.pool import QueuePool
-
+from sqlalchemy.engine import Row, RowMapping
 from sqlalchemy.engine.base import Connection
 from sqlalchemy.exc import OperationalError, ProgrammingError
 from sqlalchemy.sql import text
 from sqlalchemy.sql.elements import TextClause
 from typing import Any, Dict, Set, Tuple, Union, List
-from uuid import uuid4
+
 
 DB_DIR = os.path.dirname(os.path.realpath(__file__))
 PROJECT_ROOT = Path(DB_DIR).parent.parent
 sys.path.insert(0, str(PROJECT_ROOT))
-from backend.db.config import CORE_CSET_DEPENDENT_TABLES, CORE_CSET_TABLES, RECURSIVE_DEPENDENT_TABLE_MAP, \
+from backend.db.config import CORE_CSET_DEPENDENT_TABLES, CORE_CSET_TABLES, PG_DATATYPES_BY_GROUP, \
+    RECURSIVE_DEPENDENT_TABLE_MAP, \
     REFRESH_JOB_MAX_HRS, get_pg_connect_url
 from backend.config import CONFIG, DATASETS_PATH, OBJECTS_PATH
 from backend.utils import commify
@@ -46,8 +44,7 @@ from enclave_wrangler.models import pkey
 
 
 DDL_JINJA_PATH_PATTERN = os.path.join(DB_DIR, 'ddl-*.jinja.sql')
-
-
+TIMEZONE_DEFAULT = ['UTC/GMT', 'EST/EDT'][1]
 DEBUG = False
 DB = CONFIG["db"]
 SCHEMA = CONFIG["schema"]
@@ -231,6 +228,8 @@ def refresh_derived_tables(
 #  were not passing schema... but that's not really working. We need to be able to control the schema. After changing to
 #  pass schema, sometimes it worked, and sometimes we got err: AttributeError: 'dict' object has no attribute 'cursor',
 #  indicating that the kwargs weren't getting passed appropriately.
+# from functools import partial
+# from sqlalchemy.pool import QueuePool
 # def set_search_path(dbapi_connection, schema=SCHEMA, connection_record=None):
 #     """Set the search_path when connecting.
 #
@@ -298,7 +297,7 @@ def chunk_list(input_list: List, chunk_size) -> List[List]:
         yield input_list[i:i + chunk_size]
 
 
-def tz_datetime_str(dt: datetime, time_zone=['UTC/GMT', 'EST/EDT'][1]) -> str:
+def tz_datetime_str(dt: datetime, time_zone=TIMEZONE_DEFAULT) -> str:
     """Timezone-formatted datetime string"""
     if time_zone == 'UTC/GMT':
         stamp = dt.astimezone(timezone.utc).isoformat()
@@ -309,15 +308,16 @@ def tz_datetime_str(dt: datetime, time_zone=['UTC/GMT', 'EST/EDT'][1]) -> str:
     return stamp
 
 
-def current_datetime(time_zone=['UTC/GMT', 'EST/EDT'][1]) -> str:
+def current_datetime(time_zone=TIMEZONE_DEFAULT) -> str:
     """Get current datetime in ISO format as a string."""
-    return tz_datetime_str(datetime.now())
+    return tz_datetime_str(datetime.now(), time_zone=time_zone)
 
 
 def last_refresh_timestamp(con: Connection) -> str:
     """Get the timestamp of the last database refresh"""
-    return sql_query(
-        con, f"SELECT value FROM public.manage WHERE key = 'last_refresh_success';", return_with_keys=False)[0][0]
+    results: List[List] = sql_query(
+        con, f"SELECT value FROM public.manage WHERE key = 'last_refresh_success';", return_with_keys=False)
+    return results[0][0]
 
 
 def is_up_to_date(last_updated: Union[datetime, str], threshold_hours=24) -> bool:
@@ -332,7 +332,7 @@ def is_up_to_date(last_updated: Union[datetime, str], threshold_hours=24) -> boo
 def check_if_updated(key: str, skip_if_updated_within_hours: int = None) -> bool:
     """Check if table is up to date"""
     with get_db_connection(schema='') as con2:
-        results = sql_query(con2, f"SELECT value FROM public.manage WHERE key = '{key}';", return_with_keys=False)
+        results: List[List] = sql_query(con2, f"SELECT value FROM public.manage WHERE key = '{key}';", return_with_keys=False)
     last_updated = results[0][0] if results else None
     return last_updated and is_up_to_date(last_updated, skip_if_updated_within_hours)
 
@@ -462,15 +462,59 @@ def database_exists(con: Connection, db_name: str) -> bool:
     return len(result) == 1
 
 
-def run_sql(con: Connection, query: str, params: Dict = {}) -> CursorResult:
+def run_sql(con: Connection, query: str, params: Dict[str, Any] = {}) -> CursorResult:
     """Run a sql command"""
     query = text(query) if not isinstance(query, TextClause) else query
     return con.execute(query, params) if params else con.execute(query)
 
 
+def sql_handle_none_to_null(query: str, params: Dict[str, Any], table: str, schema=SCHEMA) -> str:
+    """Convert None to NULL for certain fields.
+
+    SqlAlchemy w/ Postegres is finicky when accepting None as a NULL value for certain field types, e.g. numeric ones.
+    Will find any numeric fields on table and convert None to NULL.
+    """
+    # Find numeric fields
+    field_data_types: Dict[str, str] = get_field_data_types(table, schema)
+    numeric_fields: Set[str] = set([k for k, v in field_data_types.items() if v in PG_DATATYPES_BY_GROUP['numeric']])
+    # Figure out which fields need replacement
+    fields_with_none: List[str] = [k for k, v in params.items() if v is None]
+    # todo: this is really inefficient: O(n^2)
+    numeric_fields_with_none: List[str] = []
+    for fld1 in fields_with_none:
+        for fld2 in numeric_fields:
+            if fld1.startswith(fld2):
+                numeric_fields_with_none.append(fld2)
+                # numeric_fields.remove(fld2)  # would be performance optimization; but causes set size change err
+    # Make replacements
+    query2 = query
+    for fld in numeric_fields_with_none:
+        query2 = query2.replace(f'"{fld}" = v.{fld}',
+            f'"{fld}" = CASE WHEN v.{fld}::text = \'None\' THEN NULL ELSE v.{fld}::double precision END')
+    return query2
+
+
+# todo: schema: Ideally, I should make sure that any usages of this function are passing `schema`.
+def run_sql_update(
+    con: Connection, query: str, params: Dict[str, Any] = {}, handle_none_as_null_on_table='', schema=SCHEMA
+) -> CursorResult:
+    """Run a sql update query
+
+    :param handle_none_as_null_on_table: SqlAlchemy w/ Postegres is finicky when accepting None as a NULL value for
+     certain field types, e.g. numeric ones. With this param, set the table name, and it will find any numeric fields
+     and convert None to NULL. If passing this, should also pass schema.
+    :param schema: Pass this with handle_none_as_null_on_table to ensure the correct table in the correct schema is
+     being looked up.
+    """
+    if handle_none_as_null_on_table and None in params.values():
+        query = sql_handle_none_to_null(query, params, handle_none_as_null_on_table, schema)
+    return run_sql(con, query, params)
+
+
+# todo: If we're only selecting from 1 column, do we want to modify this to return List[Any] instead of List[List]?
 def sql_query(
     con: Connection, query: Union[text, str], params: Dict = {}, debug: bool = DEBUG, return_with_keys=True
-) -> Union[List[RowMapping], List[List]]:
+) -> Union[List[RowMapping], List[List[Any]]]:
     """Run an idempotent (read) SQL query with optional params, fetching records.
     Inspiration:
       https://stackoverflow.com/a/39414254/1368860:
@@ -565,6 +609,45 @@ def get_cset_members_items_rows(
     return get_objs_by_composite_key(con, 'cset_members_items', ['codeset_id', 'concept_id'], objs)
 
 
+def fix_jagged_rows(rows: List[Dict]) -> List[Dict]:
+    """# Fix possible jaggedneess / missing fields in rows"""
+    fields = []
+    for row in rows:
+        fields.extend(row.keys())
+        for k in row.keys():
+            fields.append(k)
+    fields = set(fields)
+    return [{field: row.get(field, None) for field in fields} for row in rows]
+
+
+def update_from_dicts(con: Connection, table: str, rows: List[Dict]):
+    """Update rows in table from a list of dictionaries"""
+    pk: str = pkey(table)
+    rows = fix_jagged_rows(rows)
+    # todo: fully use parameterized queries to prevent SQL injection
+    key_vals: Dict[str, Any] = key_vals_for_sqlalchemy_query(rows)
+    values: str = value_str_for_sqlalchemy_query(rows)
+    fields: str = ', '.join([f'"{x}"' for x in rows[0].keys()])
+    field_set_str: str= ', '.join([f'"{x}" = v.{x}' for x in [x for x in rows[0].keys() if x != pk]])
+    statement = f"""
+        UPDATE {table}
+        SET {field_set_str}
+        FROM (VALUES
+            {values}
+        ) AS v({fields})
+        WHERE {table}.{pk} = v.{pk};"""
+    run_sql_update(con, statement, key_vals, handle_none_as_null_on_table=table)
+
+
+def key_vals_for_sqlalchemy_query(rows: List[Dict]) -> Dict[str, Any]:
+    """Get key value pairs  for a non-idempotent SQL query."""
+    return {f'{k}{i}': v for i, d in enumerate(rows) for k, v in d.items()}
+
+
+def value_str_for_sqlalchemy_query(rows: List[Dict]) -> str:
+    """Get a string of values for a non-idempotent SQL query."""
+    return  ', '.join([f"({', '.join([':' + str(k) + str(i) for k in d.keys()])})" for i, d in enumerate(rows)])
+
 def insert_from_dicts(con: Connection, table: str, rows: List[Dict], skip_if_already_exists=True):
     """Insert rows into table from a list of dictionaries"""
     pk: str = pkey(table)
@@ -577,19 +660,11 @@ def insert_from_dicts(con: Connection, table: str, rows: List[Dict], skip_if_alr
             already_in_db: List[Dict] = get_objs_by_composite_key(con, table, pk, rows)
             already_in_db_ids = [[row[pk_n] for pk_n in pk] for row in already_in_db]
             rows = [row for row in rows if [row[pk_n] for pk_n in pk] not in already_in_db_ids]
-
     if rows:
-        # Fix possible jaggedneess / missing fields in rows
-        fields = []
-        for row in rows:
-            fields.extend(row.keys())
-            for k in row.keys():
-                fields.append(k)
-        fields = set(fields)
-        rows = [{field: row.get(field, None) for field in fields} for row in rows]
-        key_vals = {f'{k}{i}': v for i, d in enumerate(rows) for k, v in d.items()}
-        values = ', '.join([f"({', '.join([':' + str(k) + str(i) for k in d.keys()])})" for i, d in enumerate(rows)])
-        # todo: use parameterized queries to prevent SQL injection
+        rows = fix_jagged_rows(rows)
+        # todo: fully use parameterized queries to prevent SQL injection
+        key_vals: Dict[str, Any] = key_vals_for_sqlalchemy_query(rows)
+        values: str = value_str_for_sqlalchemy_query(rows)
         statement = f"""INSERT INTO {table} ({', '.join([f'"{x}"' for x in rows[0].keys()])}) VALUES {values}"""
         run_sql(con, statement, key_vals)
 
@@ -608,7 +683,6 @@ def insert_from_dict(con: Connection, table: str, d: Union[Dict, List[Dict]], sk
                 already_in_db: List[RowMapping] = get_obj_by_composite_key(con, table, pk, d)
             if already_in_db:
                 return
-
     query = f"""
     INSERT INTO {table} ({', '.join([f'"{x}"' for x in d.keys()])})
     VALUES ({', '.join([':' + str(k) for k in d.keys()])})"""
@@ -618,7 +692,8 @@ def insert_from_dict(con: Connection, table: str, d: Union[Dict, List[Dict]], sk
 def sql_count(con: Connection, table: str) -> int:
     """Return the number of rows in a table. A simple count of rows, not ignoring NULLs or duplicates."""
     query = f'SELECT COUNT(*) FROM {table};'
-    return sql_query(con, query, return_with_keys=False)[0][0]
+    results: List[List] = sql_query(con, query, return_with_keys=False)
+    return results[0][0]
 
 
 def sql_in(lst: Union[List, Set], quote_items=False) -> str:
@@ -631,10 +706,11 @@ def sql_in(lst: Union[List, Set], quote_items=False) -> str:
     return f' IN ({s}) '
 
 def sql_in_safe(lst: List) -> (str, dict):
+    """Safe version of SQL 'in' statement."""
     bindparams = [":id{}".format(i) for i in range(len(lst))]
     query = text(','.join(bindparams))
-    params = {"id{}".format(i): id for i, id in enumerate(lst)}
-    return (query, params)
+    params = {"id{}".format(i): _id for i, _id in enumerate(lst)}
+    return query, params
 
 
 def list_schema_objects(
@@ -665,7 +741,7 @@ def list_schema_objects(
           AND pg_catalog.pg_table_is_visible(c.oid)
         ORDER BY 1,2;
     """
-    res: List[Row] = sql_query(conn, query, return_with_keys=False)
+    res: List[List] = sql_query(conn, query, return_with_keys=False)
     if not con:
         conn.close()
     # Filter
@@ -746,7 +822,7 @@ def load_csv(
         print(f'INFO: {schema}.{table} exists with same number of rows {existing_rows}; leaving it')
         return
     if replace_rule == 'finish aborted upload' and existing_rows < len(df):
-        print(f'INFO: {schema}.{table} exists with {commify(existing_rows)} rows; uploading remaining {commify(len(df)-existing_rows)} rows');
+        print(f'INFO: {schema}.{table} exists with {commify(existing_rows)} rows; uploading remaining {commify(len(df)-existing_rows)} rows')
         df = df.iloc[existing_rows: len(df)]
     else:
         con.execute(text(f'DROP TABLE IF EXISTS {schema}.{table} CASCADE'))
@@ -756,6 +832,16 @@ def load_csv(
     # - update status
     if not is_test_table:
         update_db_status_var(f'last_updated_{table_name_no_suffix}', str(current_datetime()), local)
+
+
+def get_field_data_types(table: str, schema=SCHEMA) -> Dict[str, str]:
+    """Get data types for each field in the table"""
+    with get_db_connection(schema='') as con:
+        field_data_types: List[Dict[str, str]] = [dict(x) for x in sql_query(con, f"""
+            SELECT column_name,  data_type FROM information_schema.columns 
+            WHERE table_schema = '{schema}' AND table_name = '{table}';""")]
+        field_data_types: Dict[str, str] = {x['column_name']: x['data_type'] for x in field_data_types}
+    return field_data_types
 
 
 def list_tables(con: Connection = None, schema: str = None, filter_temp_refresh_tables=False) -> List[str]:
@@ -816,6 +902,8 @@ def delete_codesets_from_db(codeset_ids):
             - regenerate derived tables (all_csets, csets_members_items, etc.)
     """
     with get_db_connection() as con:
+        # todo: finish working on, then remove noinspection
+        # noinspection PyUnusedLocal
         code_sets_to_be_deleted = sql_query(
             con, f"""SELECT codeset_id, concept_set_name FROM code_sets WHERE id IN ({codeset_ids.sql_format()})"""
         )
@@ -857,7 +945,7 @@ def get_idle_connections(interval: str = '1 week'):
     query_start: This field represents the timestamp when the currently executing query for a connection started. If a
     connection is idle, this field will be null. When a query is actively being processed, this field reflects the start
     time of that query."""
-    query = f"SELECT * FROM pg_stat_activity WHERE state = 'idle' AND backend_start > now() - '1 week'::interval;"
+    query = f"SELECT * FROM pg_stat_activity WHERE state = 'idle' AND backend_start > now() - f'{interval}'::interval;"
     with get_db_connection(schema='') as con:
         result = [dict(x) for x in sql_query(con, query)]
     return result
