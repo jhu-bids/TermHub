@@ -399,17 +399,11 @@ def convert_row(source: str, target: str, row: Dict, skip_missing_fields=True, k
             out[field] = row[field_name_mapping(target, source, field)]
         except KeyError as err:
             if keep_missing_fields:
-                out[field] = row[field]
+                try:
+                    out[field] = row[field]
+                except KeyError:
+                    if not skip_missing_fields:
+                        raise err
             elif not skip_missing_fields:
                 raise err
     return out
-
-
-if __name__ == '__main__':
-    # mappings = get_field_mappings()
-    # pdump(m)
-    # t = field_name_mapping('concept', 'concept_id', 'atlasjson')
-    # print(t)
-    # t = field_name_mapping('concept', 'domain_id', 'atlasjson')
-    # print(t)
-    print()
