@@ -1090,6 +1090,9 @@ def update_cset_metadata_from_objs(
      timestamp, you see the before/after for each cset, rather than all of the csets before the update, then all the
      csets after the update, with all the timestamps in the before/after sets being equal due to the same audit_query
      for each set.
+    todo: If errors after the 1st audit table entry but before the 2nd, it should delete the 1st audit query. There
+     should only be ever 2 rows for a single update: the before and after. It might also help in this case to have a
+     special PK for such things so that the pair for each before/after update can easily be identified.
     """
     conn = con if con else get_db_connection()
     cset_objs = cset_objs if isinstance(cset_objs, list) else [cset_objs]
