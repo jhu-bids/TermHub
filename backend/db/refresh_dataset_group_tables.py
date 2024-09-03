@@ -91,6 +91,7 @@ def refresh_dataset_group_tables(
         if last_updated_us and last_updated_them and dp.parse(last_updated_us) > dp.parse(last_updated_them):
             print('Tables already up to date. Nothing to be done.')
             continue
+        print('- New updates are available')
 
         # Download datasets
         if not skip_downloads:
