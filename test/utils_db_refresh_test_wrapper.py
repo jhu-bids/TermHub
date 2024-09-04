@@ -12,4 +12,5 @@ class DbRefreshTestWrapper(unittest.TestCase):
     @classmethod
     def setUpClass(cls):
         """setUpClass() meant to run for all subclasses when they call super().setUpClass()"""
+        print('DbRefreshTestWrapper: Setting up class; running remake_test_schema()')
         remake_test_schema()

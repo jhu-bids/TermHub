@@ -23,7 +23,7 @@ import sys
 from argparse import ArgumentParser
 from datetime import datetime, timedelta
 from pathlib import Path
-from typing import List, Dict, Set, Tuple, Union
+from typing import Any, List, Dict, Set, Tuple, Union
 from urllib.parse import quote, unquote
 
 import pytz
@@ -42,9 +42,9 @@ from enclave_wrangler.utils import EnclavePaginationLimitErr, JSON_TYPE, enclave
     get_objects_df, get_url_from_api_path, \
     make_objects_request
 from enclave_wrangler.models import OBJECT_TYPE_TABLE_MAP, convert_row, get_field_names, field_name_mapping, pkey
-from backend.db.utils import SCHEMA, insert_fetch_statuses, insert_from_dict, insert_from_dicts, \
+from backend.db.utils import SCHEMA, get_field_data_types, insert_fetch_statuses, insert_from_dict, insert_from_dicts, \
     is_refresh_active, reset_temp_refresh_tables, refresh_derived_tables, \
-    sql_query_single_col, run_sql, get_db_connection
+    sql_in, sql_query, sql_query_single_col, run_sql, get_db_connection, update_from_dicts
 from backend.db.queries import get_concepts
 from backend.utils import call_github_action
 
@@ -316,7 +316,7 @@ def csets_and_members_enclave_to_db(
 
     print(f'  - Fetched new data in {(datetime.now() - t0).seconds} seconds:\n    OBJECT_TYPE: COUNT\n' +
           "\n".join(['    ' + str(k) + ": " + str(len(v)) for k, v in csets_and_members.items()]))
-    csets_and_members_to_db(con, csets_and_members, schema)
+    csets_and_members_to_db(con, csets_and_members, schema=schema)
     return True
 
 
@@ -564,7 +564,7 @@ def fetch_cset_and_member_objects(
             'OmopConceptSetVersionItem': expression_items, 'OMOPConcept': member_items}
 
 
-def concept_set_members__from_csets_and_members_to_db(con: Connection, csets_and_members: CSETS_AND_MEMBERS_TYPE):
+def concept_set_members__from_csets_and_members__to_db(con: Connection, csets_and_members: CSETS_AND_MEMBERS_TYPE):
     """Take a 'csets_and_members' object and take what is needed to insert data into concept_set_members table."""
     container_lookup = {x['conceptSetId']: x for x in csets_and_members['OMOPConceptSetContainer']}
     for cset in csets_and_members['OMOPConceptSet']:
@@ -572,11 +572,19 @@ def concept_set_members__from_csets_and_members_to_db(con: Connection, csets_and
         concept_set_members__cset_rows_to_db(con, cset, cset['member_items'], container)
 
 
-def csets_and_members_to_db(con: Connection, csets_and_members: CSETS_AND_MEMBERS_TYPE, schema=SCHEMA):
+def csets_and_members_to_db(
+    con: Connection, csets_and_members: CSETS_AND_MEMBERS_TYPE, obj_types: List[str] = ['OMOPConceptSetContainer',
+    'OMOPConceptSet', 'OmopConceptSetVersionItem', 'OMOPConcept'], schema=SCHEMA
+):
     """Update database with csets and members.
-    todo: add_object_to_db(): support multiple objects with single insert"""
+
+    :param obj_types: List of object types to update. Default is all 4.
+    todo: add_object_to_db(): support multiple objects with single insert
+    """
     # Core cset tables: with normal, single primary keys
     for object_type_name, objects in csets_and_members.items():
+        if object_type_name not in obj_types:
+            continue
         print(f'Running SQL inserts in core tables for: {object_type_name}...')
         t0 = datetime.now()
         objects = [obj['properties'] if 'properties' in obj else obj for obj in objects]
@@ -587,7 +595,7 @@ def csets_and_members_to_db(con: Connection, csets_and_members: CSETS_AND_MEMBER
     # Core cset tables with: composite primary keys
     print('Running SQL inserts in core tables for: concept_set_members...')
     t2 = datetime.now()
-    concept_set_members__from_csets_and_members_to_db(con, csets_and_members)
+    concept_set_members__from_csets_and_members__to_db(con, csets_and_members)
     print(f'  - concept_set_members completed in {(datetime.now() - t2).seconds} seconds')
 
     # Derived tables
@@ -645,6 +653,17 @@ def fetch_cset_expression_item(object_id: int, retain_properties_nesting=False) 
     return fetch_object_by_id('OmopConceptSetVersionItem', object_id, 'itemId', retain_properties_nesting)
 
 
+def update_objects_in_db(
+    con: Connection, object_type_name: str, objects: List[Dict], tables: List[str] = None
+):
+    """Update objects in db"""
+    tables = tables if tables else OBJECT_TYPE_TABLE_MAP[object_type_name]
+    for table in tables:
+        table_objects: List[Dict] = [
+            convert_row(object_type_name, table, obj, keep_missing_fields=True) for obj in objects]
+        update_from_dicts(con, table, table_objects)
+
+
 def add_objects_to_db(
     con: Connection, object_type_name: str, objects: List[Dict], tables: List[str] = None, skip_if_already_exists=True
 ):
@@ -655,6 +674,7 @@ def add_objects_to_db(
         insert_from_dicts(con, table, table_objects, skip_if_already_exists)
 
 
+# todo: is this redundant with add_objects_to_db()? Any way to just use that one instead?
 def add_object_to_db(
     con: Connection, object_type_name: str, obj: Dict, tables: List[str] = None, skip_if_already_exists=True
 ):
@@ -1028,6 +1048,160 @@ def get_projects(verbose=False) -> List[Dict]:
     return data
 
 
+def cset_obj_field_datatypes(schema=SCHEMA) -> Dict[str, str]:
+    """Get data types for each field in the code_sets table.
+
+    todo: If there's a use case, would be nice to generalize this function:
+     - support any table, not just code_sets
+     - param to return keys for the DB table model, or Enclave object model (if there is corollary obj model for table)
+    """
+    table_data_types = get_field_data_types('code_sets', schema)
+    obj_data_types: Dict[str, str] = convert_row('code_sets', 'OMOPConceptSet', table_data_types)
+    return obj_data_types
+
+
+def cset_objs_set_missing_fields_to_null(cset_objs: List[Dict], schema=SCHEMA) -> List[Dict]:
+    """Will set any add any fields that don't exist on object and set them to NULL.
+
+    todo: could be nice to have a generalized function for other object types"""
+    # noinspection PyTypeChecker doesnt_understand_union_w_list_of_lists
+    obj_data_types: Dict[str, str] = cset_obj_field_datatypes(schema)
+    obj_fields: Set[str] = set(obj_data_types.keys())
+    new_objs = [
+        cset | {f: None for f in obj_fields.difference(cset.keys())}
+        for cset in cset_objs
+    ]
+    return new_objs
+
+
+def update_cset_metadata_from_objs(
+    cset_objs: Union[Dict, List[Dict]], con: Connection = None, set_missing_fields_to_null=False, schema=SCHEMA
+):
+    """Given 1+ OMOPConceptSet objects fetched from the Enclave, update its metadata fields in the database.
+
+    :param set_missing_fields_to_null: If True, will set any missing fields to NULL in the DB. If False, will leave them
+     untouched. This is useful if the cset_objs are the result of a fetch from the Enclave. In that case, the Enclave
+     will not return fields on objects if they are NULL in the Enclave. However, if using this function to update a set
+     of specific values, and cset_objs are not the result of a fetch from the Enclave, then set this to False.
+
+    todo: Ideally would check if there were any changes before updating the DB, and do nothing if no changes.
+    todo: refactor to do all csets in 1 audit query each, and 1 update_objects_in_db() call
+    todo: performance: Ideally would update all csets with a single query, but right now stability is more important. We
+     want to update one at a time, and as soon as a single case fails, we want to throw an err message at that time.
+     This applies to the 'for cset in cset_objs' part. In order to run update_objects_in_db() on all cset_objs at once,
+     I should also update the audit_query to run on multiple objs at once. Also, it may be useful that updated rows are
+     sorted 1 at a time in the audit table. So that with default sorting / or sorting explicitly by the update
+     timestamp, you see the before/after for each cset, rather than all of the csets before the update, then all the
+     csets after the update, with all the timestamps in the before/after sets being equal due to the same audit_query
+     for each set.
+    todo: If errors after the 1st audit table entry but before the 2nd, it should delete the 1st audit query. There
+     should only be ever 2 rows for a single update: the before and after. It might also help in this case to have a
+     special PK for such things so that the pair for each before/after update can easily be identified.
+    """
+    conn = con if con else get_db_connection()
+    cset_objs = cset_objs if isinstance(cset_objs, list) else [cset_objs]
+
+    if set_missing_fields_to_null:
+        cset_objs = cset_objs_set_missing_fields_to_null(cset_objs, schema)
+
+    audit_query = """INSERT INTO code_sets_audit
+        SELECT *, CURRENT_TIMESTAMP AS update_timestamp
+        FROM code_sets
+        WHERE codeset_id = cset_id;"""
+    for cset in cset_objs:
+        cset_id = str(cset.get('codesetId', cset.get('codeset_id')))
+        run_sql(con, audit_query.replace('cset_id', cset_id))  # backup to audit table: original
+        update_objects_in_db(con, 'OMOPConceptSet', [cset])
+        run_sql(con, audit_query.replace('cset_id', cset_id))  # backup to audit table: updated
+    if not con:
+        conn.close()
+
+
+def _get_cset_row_diffs_by_field(list1: List[Dict], list2: List[Dict]) -> Dict[int, Dict[str, Tuple[Any, Any]]]:
+    """Get differences between two sets of rows of the same type of codeset, e.g. 1 from DB and 1 from Enclave.
+
+    Result: Dict where keys are codeset_id, and values are inner dictionaries, which have as keys, any key in each
+     object where the values differ between their appearance in , and values are a tuple of 2 values, where 1 is the
+     val from the first list (e.g. DB) and the other is from the corresponding entry from the other list (e.g. Enclave).
+    """
+    report = {}
+    enclave_dict = {obj.get('codeset_id', obj.get('codesetId')): obj for obj in list2}
+    for db_obj in list1:
+        codeset_id = db_obj['codeset_id', db_obj.get('codesetId')]
+        if codeset_id in enclave_dict:
+            enclave_obj = enclave_dict[codeset_id]
+            # Compare all keys and store differences
+            differences = {}
+            all_keys = set(db_obj.keys()) | set(enclave_obj.keys())
+            for key in all_keys:
+                db_value = db_obj.get(key)
+                enclave_value = enclave_obj.get(key)
+                if db_value != enclave_value:
+                    differences[key] = (db_value, enclave_value)
+            if differences:
+                report[codeset_id] = differences
+    return report
+
+
+def clean_improper_finalized_draft_metadata(check_even_if_still_draft=False, verbose=False, codeset_ids: List[int]=None):
+    """Identify finalized drafts with improper metadata and update their metadata, title and all.
+
+    Updates metadata for all csets in DB of title containing '[DRAFT]' but is_draft=false.
+
+    :param check_even_if_still_draft: There have been cases in the past where we did not properly set is_draft to False
+     when the csets was finalized. Setting this to True will check these cases. Doesn't apply if using codeset_ids. In
+     the cases where the cset is indeed still a draft, it will also update its metadata if changed.
+    :param verbose: If True, prints report of all of the diffs between DB and Enclave for these csets.
+    :param codeset_ids: If using this, doesn't check the DB for any specific csets; just checks what you pass.
+
+    todo: will this be obsolete when sync_updated_metadata() is complete?
+    todo: 'Filter & report' section: Fix false positives because of "null flavoring". E.g. for 'limitations', DB had
+     None, and Enclave had 'na' or '', or 'intention' with DB of None and Enclave of ''.
+    """
+    draft_cond = '' if check_even_if_still_draft else " AND is_draft = false"
+    qry = f"SELECT * FROM code_sets WHERE concept_set_version_title LIKE '%[DRAFT]%'{draft_cond};" if not codeset_ids \
+        else f"SELECT * FROM code_sets WHERE codeset_id {sql_in(codeset_ids)});"
+    with get_db_connection() as con:
+        # Fetch cset information from DB
+        csets_db: List[Dict] = [dict(x) for x in sql_query(con, qry)]
+        # Fetch current metadata from Enclave
+        csets_enclave: List[Dict] = []
+        deleted_or_archived: List[int] = []
+        for cset in csets_db:
+            _id: int = cset['codeset_id']
+            cset_enclave: Dict = fetch_cset_version(_id)
+            if not cset_enclave:
+                deleted_or_archived.append(_id)
+                continue
+            csets_enclave.append(cset_enclave)
+
+        # Report: Deleted or archived
+        if deleted_or_archived:
+            print('Deleted or archived csets', file=sys.stderr)
+            print(' - Tried updating metadata for the following concept sets, but they were not found in the Enclave. '
+                  'They are either drafts that were deleted, or finalized csets that have been archived. They should '
+                  'probably be deleted from the DB. IDs:\n', deleted_or_archived, file=sys.stderr)
+
+        if csets_enclave:
+            # Filter & report: Csets that changed
+            csets_enclave = cset_objs_set_missing_fields_to_null(csets_enclave)
+            csets_enclave_table_objs: List[Dict] = [convert_row('OMOPConceptSet', 'code_sets', x) for x in csets_enclave]
+            cset_table_keys_not_in_objs: Set[str] = set(
+                csets_db[0].keys()).difference(set(csets_enclave_table_objs[0].keys()))
+            comparable_csets_db = [{k: v for k, v in x.items() if k not in cset_table_keys_not_in_objs} for x in csets_db]
+            csets_with_diff_metadata: List[Dict] = [x for x in csets_enclave_table_objs if x not in comparable_csets_db]
+            if verbose:
+                diffs_by_id: Dict[int, Dict[str, Tuple[Any, Any]]] = _get_cset_row_diffs_by_field(
+                    comparable_csets_db, csets_enclave_table_objs)
+                print('Differences in metadata between DB and Enclave:')
+                print('- % csets that had updated metadata: ', (len(diffs_by_id) / len(csets_db)) * 100, '\n')
+                pprint(diffs_by_id)
+            # Update DB
+            update_cset_metadata_from_objs(csets_with_diff_metadata, con)
+            refresh_derived_tables(con, ['code_sets'])
+
+
+
 def cli():
     """Command line interface for package."""
     parser = ArgumentParser(
@@ -1063,12 +1237,15 @@ def cli():
         '-f', '--find-missing-csets', action='store_true',
         help='Find missing csets, either in enclave and not in TermHub, or vice versa.')
     parser.add_argument(
-        '-d', '--refresh-derived', action='store_true',
-        help='Just refresh the derived tables.')
+        '-d', '--refresh-derived', action='store_true', help='Just refresh the derived tables.')
     parser.add_argument(
         '-c', '--fetch-csets-by-ids', nargs='+', type=int,
         help='Fetches and prints information about csets, given IDs. Pass them space-delimited, e.g. '
              '--fetch-csets-by-ids 123 456.')
+    parser.add_argument(
+        '-m', '--clean-improper-finalized-draft-metadata', action='store_true',
+        help='Identify finalized drafts with improper metadata (identifiable by presence of [DRAFT] in their title '
+             'even when is_draft=False, and update their metadata, title and all.')
     args: Dict = vars(parser.parse_args())
     commands_to_run = [k for k, v in args.items() if v]
     if 'find_missing_csets' in commands_to_run:
@@ -1080,6 +1257,8 @@ def cli():
             refresh_derived_tables(con)
     if 'fetch_csets_by_ids' in commands_to_run:
         fetch_csets_by_id(args['fetch_csets_by_ids'])
+    if'clean_improper_finalized_draft_metadata' in commands_to_run:
+        clean_improper_finalized_draft_metadata()
 
 
 if __name__ == '__main__':
