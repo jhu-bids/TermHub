@@ -24,7 +24,7 @@ from backend.utils import call_github_action, return_err_with_trace, commify
 from enclave_wrangler.config import RESEARCHER_COLS
 from enclave_wrangler.models import convert_rows
 from enclave_wrangler.objects_api import get_n3c_recommended_csets, get_concept_set_version_expression_items, \
-    items_to_atlas_json_format, get_codeset_json
+    items_to_atlas_json_format, get_codeset_json, get_bundle_codeset_ids, get_bundle_names
 from enclave_wrangler.utils import make_objects_request, whoami, check_token_ttl
 
 
@@ -495,6 +495,7 @@ def get_n3c_recommended_codeset_ids():  # -> Dict[int, Union[Dict, None]]
 def download_n3c_recommended():
     """"
         This one is trying to get all useful cset information including definition
+        It seems to work fine, but is not being used.
     """
     codeset_ids = get_n3c_recommended_csets()
     csets_from_ac = get_csets(codeset_ids)
@@ -508,20 +509,30 @@ def download_n3c_recommended():
     return {'codeset_json': csets, 'codeset_metadata': csets_from_ac}
 
 
+@router.get("/get-bundle-names")
+def _get_bundle_names():  # -> Union[List[Row], StreamingResponse]
+    return sorted(get_bundle_names())
+
+
 @router.get("/n3c-recommended-report", response_model=False)
 def n3c_recommended_report(as_json=False):  # -> Union[List[Row], StreamingResponse]
+    return bundle_report('N3C Recommended', as_json)
+
+
+@router.get("/bundle-report", response_model=False)
+def bundle_report(bundle: str, as_json=False):  # -> Union[List[Row], StreamingResponse]
     """N3C recommended report
 
-    todo: possibly drop return typing, or figure out how to get it correct.
-     it's not imperative that we have return typing, but this also triggers validation, which is now failing after
-     upgrading pydantic. response_model=False addresses:
-     fastapi.exceptions.FastAPIError: Invalid args for response field! Hint: check that typing.Union[typing.List[
-     sqlalchemy.engine.row.Row], starlette.responses.StreamingResponse] is a valid Pydantic field type. If you are using
-     a return type annotation that is not a valid Pydantic field (e.g. Union[Response, dict, None]) you can disable
-     generating the response model from the type annotation with the path operation decorator parameter response_model
-     =None. Read more: https://fastapi.tiangolo.com/tutorial/response-model/
-    """
-    codeset_ids = get_n3c_recommended_csets()
+todo: possibly drop return typing, or figure out how to get it correct.
+ it's not imperative that we have return typing, but this also triggers validation, which is now failing after
+ upgrading pydantic. response_model=False addresses:
+ fastapi.exceptions.FastAPIError: Invalid args for response field! Hint: check that typing.Union[typing.List[
+ sqlalchemy.engine.row.Row], starlette.responses.StreamingResponse] is a valid Pydantic field type. If you are using
+ a return type annotation that is not a valid Pydantic field (e.g. Union[Response, dict, None]) you can disable
+ generating the response model from the type annotation with the path operation decorator parameter response_model
+ =None. Read more: https://fastapi.tiangolo.com/tutorial/response-model/
+"""
+    codeset_ids = get_bundle_codeset_ids(bundle)
     q = f"""
             SELECT
                   ac.is_most_recent_version,

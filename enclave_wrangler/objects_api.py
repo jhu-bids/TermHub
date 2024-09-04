@@ -235,9 +235,6 @@ def get_bundle_names(prop: str='displayName'):
 
 
 def get_bundle(bundle_name) -> JSON_TYPE:
-    """
-    call this like: http://127.0.0.1:8000/enclave-api-call/get_bundle/Anticoagulants
-    """
     all_bundles: JSON_TYPE = get_all_bundles()
     tag_name: List[str] = [
         b['properties']['tagName'] for b in all_bundles['data'] if b['properties']['displayName'] == bundle_name][0]
@@ -248,7 +245,7 @@ def get_bundle(bundle_name) -> JSON_TYPE:
 def get_bundle_codeset_ids(bundle_name):
     """Get bundle codeset IDs"""
     bundle = get_bundle(bundle_name)
-    codeset_ids = [b['properties']['bestVersionId'] for b in bundle]
+    codeset_ids = [b['properties']['bestVersionId'] for b in bundle] if bundle else []
     return list(set(codeset_ids))
 
 
@@ -901,10 +898,17 @@ def get_codeset_json(codeset_id, con: Connection = None, use_cache=True, set_cac
     return jsn
 
 
-# todo: split into get/update
 def get_n3c_recommended_csets(save=False):
-    """Get N3C recommended concept sets"""
-    codeset_ids = get_bundle_codeset_ids('N3C Recommended')
+    return get_bundle_csets('N3C Recommended', save)
+
+
+# todo: split into get/update
+def get_bundle_csets(bundle: str, save=False):
+    """Get N3C recommended concept sets
+
+        THIS IS ONLY BEING USED FOR codeset_ids, never called with save=True
+    """
+    codeset_ids = get_bundle_codeset_ids(bundle)
     if not save:
         return codeset_ids
     if not os.path.exists(OUTDIR_CSET_JSON):

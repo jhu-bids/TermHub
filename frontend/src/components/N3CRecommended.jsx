@@ -7,13 +7,17 @@ import {useSearchParamsState} from "../state/StorageProvider";
 import {fmt, saveCsv, useWindowSize} from "../utils";
 import {TextH2} from "./AboutPage";
 import Button from "@mui/material/Button";
-import {Link} from "react-router-dom";
+import {Link, useLocation} from "react-router-dom";
 
-export const N3CRecommended = () => {
+export function BundleReport() {
+  const location = useLocation();
+  const queryParams = new URLSearchParams(location.search);
+  const bundle = queryParams.get('bundle');
+
   const [data, setData] = useState(null);
   const dataGetter = useDataGetter();
 
-  const filename = 'n3c-recommended-report';
+  const filename = `bundle-report-${bundle.replaceAll(' ', '_')}`;
 
   useEffect(() => {
     (async () => {
@@ -22,7 +26,7 @@ export const N3CRecommended = () => {
       }
       try {
         // const response = await axios.get("https://api.example.com/data");
-        const rows = await dataGetter.axiosCall(`${filename}?as_json=true`, {sendAlert: false, });
+        const rows = await dataGetter.axiosCall(`bundle-report?bundle=${bundle}&as_json=true`, {sendAlert: false, });
         const columns = Object.keys(rows[0]);
         setData(rows);
         saveCsv(rows, columns, filename);
@@ -45,7 +49,7 @@ export const N3CRecommended = () => {
   return (
     <div>
       <TextH2>
-        Downloading N3C recommended concept sets to <samp style={{backgroundColor: '#CCC'}}>{filename}.csv</samp> in your downloads folder.
+        Downloading {bundle} concept sets to <samp style={{backgroundColor: '#CCC'}}>{filename}.csv</samp> in your downloads folder.
       </TextH2>
       <DataTable
           data={data || []}
@@ -61,7 +65,11 @@ export const N3CRecommended = () => {
       {/*<pre>{JSON.stringify(data, null, 2)}</pre>*/}
     </div>
   );
-};
+}
+
+export function N3CRecommended() {
+    return <BundleReport bundle="N3C Recommended" />;
+}
 
 /*  can't recall what this was for,
     it was being called in the useEffect above, but the result
