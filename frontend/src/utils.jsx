@@ -207,11 +207,12 @@ export function saveCsv(rows, columns, filename, config=null, tsv = false) {
   saveAs(blob, filename);
 }
 
-export function setOp(op, setA, setB) {
+export function setOp(op, setA, setB, transform = d => d) {
   /*
    * setOp(op, setA, setB)
    *   - op: one of union, difference, intersection
    *   - setA, setB: can be an array, Set, or Iterator (like you get from map.keys())
+   *   - transform: function to map the results onto (e.g., parseInt, or d => d.toLocaleString())
    *   - returns: a new set of items based on ==, so integers are equivalent to their string representations
    */
   const f = ({
@@ -221,7 +222,7 @@ export function setOp(op, setA, setB) {
   })[op];
   if (setA instanceof Set || setA instanceof Iterator) setA = [...setA];
   if (setB instanceof Set || setB instanceof Iterator) setB = [...setB];
-  return f(setA, setB, (itemA, itemB) => itemA == itemB);
+  return f(setA, setB, (itemA, itemB) => itemA == itemB).map(transform);
 }
 
 export function isJsonString(str) {

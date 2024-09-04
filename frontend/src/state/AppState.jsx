@@ -6,7 +6,7 @@ import React, {
   useState,
 } from 'react';
 import Markdown from 'react-markdown';
-import { fromPairs, get, isEmpty, isEqual, pick } from 'lodash';
+import { fromPairs, get, isEmpty, isEqual, pick, uniq, } from 'lodash';
 // import {compressToEncodedURIComponent} from "lz-string";
 // import {createPersistedReducer} from "./usePersistedReducer";
 import { alertsReducer } from '../components/AlertMessages';
@@ -15,7 +15,7 @@ import {
   useSessionStorage,
 } from './StorageProvider';
 import { SOURCE_APPLICATION, SOURCE_APPLICATION_VERSION } from '../env';
-import { pct_fmt } from '../utils';
+import { pct_fmt, setOp } from '../utils';
 import Box from '@mui/material/Box';
 import CircularProgress from '@mui/material/CircularProgress';
 import { useDataCache } from './DataCache';
@@ -95,8 +95,25 @@ function codesetIdsReducer(state, action) {
   }
 }
 
-function cidsReducer(state, cids) {
-  return cids || state;
+function cidsReducer(state, action) {
+  if (!(action && action.type)) return state;
+  switch (action.type) {
+    case "add": {
+      state = setOp('union', state, action.cids);
+      break;
+    }
+    case "delete": {
+      state = setOp('difference', state, action.cids);
+      break;
+    }
+    case "set_all": {
+      state = [...action.cids];
+      break;
+    }
+    default:
+      throw new Error(`unexpected action.type ${action.type}`);
+  }
+  return state.map(d => parseInt(d));
 }
 
 function graphOptionsReducer(state, action) {

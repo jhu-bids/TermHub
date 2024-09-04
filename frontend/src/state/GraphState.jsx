@@ -402,6 +402,14 @@ export class GraphContainer {
         specialTreatmentRule: 'expandAll',
         specialTreatmentDefault: false,
       },
+      addedCids: {
+        name: "Individually added concept_ids", displayOrder: displayOrder++,
+        value: this.gd.specialConcepts.addedCids.length,
+        hiddenConceptCnt: setOp('difference', this.gd.specialConcepts.addedCids, displayedConceptIds).length,
+        displayedConceptCnt: setOp('intersection', this.gd.specialConcepts.addedCids, displayedConceptIds).length,
+        specialTreatmentDefault: true,
+        specialTreatmentRule: 'show though collapsed',
+      },
       definitionConcepts: {
         name: "Definition concepts", displayOrder: displayOrder++,
         value: this.gd.specialConcepts.definitionConcepts.length,
@@ -414,19 +422,19 @@ export class GraphContainer {
         value: this.gd.specialConcepts.expansionConcepts.length,
         // value: uniq(flatten(Object.values(this.gd.csmi).map(Object.values)) .filter(c => c.csm).map(c => c.concept_id)).length,
         displayedConceptCnt: setOp('intersection', this.gd.specialConcepts.expansionConcepts, displayedConceptIds).length,
-        // hiddenConceptCnt: setOp('difference', this.gd.concept_ids, displayedConceptIds).length,
-        // specialTreatmentDefault: false,
-        // specialTreatmentRule: 'hide though expanded',
+        hiddenConceptCnt: setOp('difference', this.gd.concept_ids, displayedConceptIds).length,
+        specialTreatmentDefault: false,
+        specialTreatmentRule: 'hide though expanded',
       },
       added: {
-        name: "Added", displayOrder: displayOrder++,
+        name: "Added to compared", displayOrder: displayOrder++,
         value: get(this.gd.specialConcepts, 'added.length', undefined),
         hiddenConceptCnt: setOp('difference', this.gd.specialConcepts.added, displayedConceptIds).length,
         specialTreatmentDefault: false,
         specialTreatmentRule: 'show though collapsed',
       },
       removed: {
-        name: "Removed", displayOrder: displayOrder++,
+        name: "Removed from compared", displayOrder: displayOrder++,
         value: get(this.gd.specialConcepts, 'removed.length', undefined),
         hiddenConceptCnt: setOp('difference', this.gd.specialConcepts.removed, displayedConceptIds).length,
         specialTreatmentDefault: false,
@@ -435,6 +443,7 @@ export class GraphContainer {
       standard: {
         name: "Standard concepts", displayOrder: displayOrder++,
         value: this.gd.concepts.filter(c => c.standard_concept === 'S').length,
+        displayedConceptCnt: setOp('intersection', this.gd.concepts.filter(c => c.standard_concept === 'S'), displayedConceptIds).length,
       },
       classification: {
         name: "Classification concepts", displayOrder: displayOrder++,
@@ -485,18 +494,20 @@ export class GraphContainer {
       if (typeof(displayOption.specialTreatmentDefault) !== 'undefined') {
         if (typeof (displayOption.specialTreatment) === 'undefined') {
           // set specialTreatment to default only when initializing stats options
+          type === 'addedCids' && console.log(`setting ${type} to default`);
           displayOption.specialTreatment = displayOption.specialTreatmentDefault;
         }
-        if (brandNew) {
+        if (typeof(graphOptions.specialConceptTreatment[type]) === 'undefined') {
           // set specialConceptTreatment[type] only when not already in graphOptions
+          type === 'addedCids' && console.log(`setting graphOption.specialConceptTreatment.${type} to ${displayOption.specialTreatment}`);
           graphOptions.specialConceptTreatment[type] = displayOption.specialTreatment;
         } else {
           // already have an option set, use that
           // this is wrong, but allows flipping bit if other bit is true
-          graphOptions.specialConceptTreatment[type] = (
-              Boolean(graphOptions.specialConceptTreatment[type] + displayOption.specialTreatment) % 2);
+          // graphOptions.specialConceptTreatment[type] = (Boolean(graphOptions.specialConceptTreatment[type] + displayOption.specialTreatment) % 2);
           // no this is wrong
           displayOption.specialTreatment = graphOptions.specialConceptTreatment[type];
+          type === 'addedCids' && console.log(`just set specialTreatment.${type} to ${displayOption.specialTreatment}`);
         }
       }
       displayOptions[type] = displayOption;

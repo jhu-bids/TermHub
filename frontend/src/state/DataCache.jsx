@@ -36,6 +36,7 @@ export function useDataCache() {
 
 class DataCache {
 	#cache = {};
+  cacheTooBig = false;
 
 	constructor(opts) {
 		this.optimization_experiment = opts.optimization_experiment;
@@ -54,12 +55,22 @@ class DataCache {
 	}
 
 	saveCache = debounce(async () => {
+    if (this.cacheTooBig) {
+      return;
+    }
+    const uncompressed = JSON.stringify(this.#cache);
+    if (uncompressed.length > 40 * 10**6) {
+      // on my (sg) computer right now (2024-08-28) 60 million uncompressed
+      //  is too big for the cache. so let's quit caching when we get to
+      //  this point
+      this.cacheTooBig = true;
+      console.warn(`uncompressed cache size ${uncompressed.length.toLocaleString()}; giving up on caching`);
+    }
 		const startTime = performance.now();
 		const duration = performance.now() - startTime;
 		const before = (localStorage.getItem('dataCache') || '').length;
 		this.addCacheHistoryEvent(`saving cache`);
 		// TODO: use history to check if changed size *before* compressing
-		const uncompressed = JSON.stringify(this.#cache);
 		const compressed = compress(uncompressed);
 		const after = compressed.length;
 		if (before === after) { // assume compressed cache after change will be different length
@@ -73,7 +84,8 @@ class DataCache {
 		try {
 			localStorage.setItem('dataCache', compressed);
 		} catch(err) {
-			alert("Can't save cache!");
+      // TODO: probably fix alert message?
+			alert("Can't save cache! (This shouldn't happen anymore. Tell Siggie.)");
 			// debugger;
 			throw err;
 		}
@@ -194,6 +206,7 @@ class DataCache {
 	emptyCache() {
 		// this.#cache = {};
 		localStorage.clear();
+    this.cacheTooBig = false;
 		this.loadCache();
 	}
 }

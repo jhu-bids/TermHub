@@ -10,9 +10,7 @@ export function ColumnHeader(props) {
     headerContentProps,
     allottedWidth,
     coldef,
-    showInfoIcon,
   } = props;
-  showInfoIcon = showInfoIcon ?? true;
   const targetRef = useRef();
   const [headerDims, setHeaderDims] = useState({ width: 0, height: 0 });
 
@@ -77,7 +75,7 @@ export function ColumnHeader(props) {
         codeset_id={coldef.codeset_id}
       >
         {headerContent}
-        { showInfoIcon && <Info sx={iconStyle} /> }
+        <Info sx={iconStyle} />
         {/* <span style={{whiteSpace: "nowrap", textOverflow: "ellipsis", overflow: "hidden"}}>
           {headerContent}
           // (coldef.codeset_id) ? <Edit sx={iconStyle} /> : <Info sx={iconStyle} />
@@ -121,7 +119,7 @@ export function setColDefDimensions({ coldefs, windowSize, margin = 10 }) {
 }
 export function setColDefHeader(coldef) {
   let { name, headerProps = {}, width } = coldef;
-  let { headerContent, headerContentProps, tooltipContent, showInfoIcon, } = headerProps;
+  let { headerContent, headerContentProps, tooltipContent, } = headerProps;
   if (headerContent) {
     if (name) {
       throw new Error(
@@ -144,7 +142,6 @@ export function setColDefHeader(coldef) {
       //*...headerProps} {...headerContentProps}
       headerContent={headerContent}
       tooltipContent={tooltipContent}
-      showInfoIcon={showInfoIcon}
     />
   );
   coldef.width = coldef.width + "px";
