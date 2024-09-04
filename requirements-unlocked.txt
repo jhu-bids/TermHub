@@ -37,4 +37,4 @@ setuptools
 # non-PyPi packages
 # - For the command to install these, consult: install-requirements.sh
 # foundry-sdk-runtime==1.113.0
-# vshub_sdk==0.1.0
+# vshub_sdk==0.1.0  # VS Hub SDK w/ OAuth disabled: https://github.com/jhu-bids/TermHub/issues/863
