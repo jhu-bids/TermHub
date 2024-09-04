@@ -13,7 +13,10 @@ import requests
 from datetime import datetime, timezone, timedelta
 from http.client import HTTPConnection
 from requests import Response
-from vshub_sdk.core.api import UserTokenAuth
+try:
+    from vshub_sdk.core.api import UserTokenAuth
+except ModuleNotFoundError:  # VS Hub SDK w/ OAuth disabled: https://github.com/jhu-bids/TermHub/issues/863
+    pass
 
 from enclave_wrangler.config import OUTDIR_OBJECTS, config, TERMHUB_VERSION, CSET_VERSION_MIN_ID
 from backend.utils import dump
@@ -48,7 +51,7 @@ class ActionValidateError(RuntimeError):
     """Wrapper just to handle errors from this module"""
 
 
-def get_headers(personal=False, content_type="application/json", for_curl=False, oauth=True):
+def get_headers(personal=False, content_type="application/json", for_curl=False, oauth=False):
     """Format headers for enclave calls
 
     todo: fix all this -- we've been switching back and forth between service token and personal because some APIs are
@@ -116,7 +119,7 @@ def get_oauth_token() -> str:
     return OAUTH_TOKEN if OAUTH_TOKEN_EXPIRES > datetime.now() else refresh_oauth_token()
 
 
-def get_auth_token(oauth=True) -> str:
+def get_auth_token(oauth=False) -> str:
     """Returns the auth token for the N3C Palantir Foundry data enclave."""
     service_user_token: str = config[TOKEN_KEY]
     return get_oauth_token() if oauth else service_user_token
@@ -237,7 +240,7 @@ def handle_response_error(
         })
 
 
-def enclave_get(url: str, verbose: bool = True, args: Dict = {}, error_dir: str = None, oauth=True) -> Response:
+def enclave_get(url: str, verbose: bool = True, args: Dict = {}, error_dir: str = None, oauth=False) -> Response:
     """Get from the enclave and print curl"""
     if verbose:
         print_curl(url, args=args)
@@ -502,7 +505,7 @@ def process_validate_errors(response: Response, err_type: Exception=None, print_
     return out_errors
 
 
-def enclave_post(url: str, data: Union[List, Dict], raise_validate_error: bool=False, verbose=True, oauth=True) -> Response:
+def enclave_post(url: str, data: Union[List, Dict], raise_validate_error: bool=False, verbose=True, oauth=False) -> Response:
     """Post to the enclave and handle / report on some common issues"""
     if verbose:
         print_curl(url, data)
