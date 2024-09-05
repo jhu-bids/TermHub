@@ -161,8 +161,8 @@ export function AboutPage() {
                 This <a href="https://youtu.be/EAwBZUiNUUk?t=2130">demo video</a> from
                 the October 31, 2022 N3C Forum provides a brief introduction. (VS-Hub
                 has evolved since the video was made. Use the <a
-                href="https://github.com/jhu-bids/termhub/issues/new/choose" target="_blank" rel="noopener noreferrer">create
-                issue</a> button below
+                href="https://github.com/jhu-bids/termhub/issues/new/choose"
+                target="_blank" rel="noopener noreferrer">create issue</a> button below
                 to clamor for a new video and we will push that up on our priority
                 list.)
             </TextBody>
@@ -186,10 +186,9 @@ export function AboutPage() {
             <TextBody>Will refresh the database with the latest data from the N3C Enclave.</TextBody>
             <TextBody><b>IMPORTANT:</b> There is a delay in the Enclave where when a concept set draft is finalized, its
                 concept set members must be expanded. This can take between 20-45 minutes to complete. At that time, the
-                members
-                will be visible in the UI and also the API for fetching by VS-Hub. VS-Hub will detect if this issue
-                occurs and
-                will continue to check until the members are available and import them as soon as they are.</TextBody>
+                members will be visible in the UI and also the API for fetching by VS-Hub. VS-Hub will detect if this
+                issue occurs and will continue to check until the members are available and import them as soon as they
+                are.</TextBody>
             <TextBody>Last refresh: {lastRefreshed ? lastRefreshed.toLocaleString() : 'fetching it...'}</TextBody>
             <TextBody>
                 <Button
@@ -228,8 +227,7 @@ export function AboutPage() {
                 <LI>Try: Refreshing the page</LI>
                 <LI>
                     Try purging application state (by clicking here, or if you can't get to this page, open chrome(or
-                    other browser
-                    console, and
+                    other browser console, and
                     enter <code>localStorage.clear()</code> and <code>sessionStorage.clear()</code>): <Button
                     variant={'contained'}
                     // onClick={() => queryClient.removeQueries()}
