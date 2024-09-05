@@ -679,8 +679,11 @@ function getCollapseIconAndName(
     let Component;
     let direction;
     if (
-        graphOptions.specificNodesExpanded.includes(parseInt(row.concept_id)) ||
-        (graphOptions.expandAll && !graphOptions.specificNodesCollapsed.includes(parseInt(row.concept_id)))
+        // graphOptions.specificNodesExpanded.includes(parseInt(row.concept_id)) ||
+        // (graphOptions.expandAll && !graphOptions.specificNodesCollapsed.includes(parseInt(row.concept_id)))
+        // parseInt means it doesn't work with the 'unlinked' node
+        graphOptions.specificNodesExpanded.find(d => d == row.concept_id) ||
+        (graphOptions.expandAll && !graphOptions.specificNodesCollapsed.find(d => d == row.concept_id))
     ) {
         Component = RemoveCircleOutline;
         direction = 'collapse';

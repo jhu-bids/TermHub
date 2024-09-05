@@ -265,8 +265,8 @@ export class GraphContainer {
     // this.displayedRows.push(row);
 
     if ((row.expanded || graphOptions.expandAll ||  // todo: get rid of row.expanded property -- not using anymore, right?
-        graphOptions.specificNodesExpanded.includes(parseInt(nodeId))) &&
-        ! graphOptions.specificNodesCollapsed.includes(parseInt(nodeId))
+        graphOptions.specificNodesExpanded.find(d => d == row.concept_id) &&
+        ! graphOptions.specificNodesCollapsed.find(d => d == row.concept_id))
     ) {
         // now with tracking specificNodesExpanded/Collapsed, I'm not sure if we
         //  still need to check row.expanded
@@ -494,12 +494,12 @@ export class GraphContainer {
       if (typeof(displayOption.specialTreatmentDefault) !== 'undefined') {
         if (typeof (displayOption.specialTreatment) === 'undefined') {
           // set specialTreatment to default only when initializing stats options
-          type === 'addedCids' && console.log(`setting ${type} to default`);
+          // type === 'addedCids' && console.log(`setting ${type} to default`);
           displayOption.specialTreatment = displayOption.specialTreatmentDefault;
         }
         if (typeof(graphOptions.specialConceptTreatment[type]) === 'undefined') {
           // set specialConceptTreatment[type] only when not already in graphOptions
-          type === 'addedCids' && console.log(`setting graphOption.specialConceptTreatment.${type} to ${displayOption.specialTreatment}`);
+          // type === 'addedCids' && console.log(`setting graphOption.specialConceptTreatment.${type} to ${displayOption.specialTreatment}`);
           graphOptions.specialConceptTreatment[type] = displayOption.specialTreatment;
         } else {
           // already have an option set, use that
@@ -507,7 +507,7 @@ export class GraphContainer {
           // graphOptions.specialConceptTreatment[type] = (Boolean(graphOptions.specialConceptTreatment[type] + displayOption.specialTreatment) % 2);
           // no this is wrong
           displayOption.specialTreatment = graphOptions.specialConceptTreatment[type];
-          type === 'addedCids' && console.log(`just set specialTreatment.${type} to ${displayOption.specialTreatment}`);
+          // type === 'addedCids' && console.log(`just set specialTreatment.${type} to ${displayOption.specialTreatment}`);
         }
       }
       displayOptions[type] = displayOption;
