@@ -211,7 +211,6 @@ validators==0.20.0
 virtualenv==20.15.1
 virtualenv-clone==0.5.7
 virtualenvwrapper==4.8.4
-# vshub_sdk==0.1.0
 watchdog==3.0.0
 watchfiles==0.15.0
 webcolors==1.12
