@@ -42,23 +42,20 @@ router = APIRouter(
 async def concept_graph_get(
     request: Request, codeset_ids: List[int] = Query(...), cids: Optional[List[int]] = Query(None),
     hide_vocabs = ['RxNorm Extension'], hide_nonstandard_concepts=False, verbose = VERBOSE,
-    indented=False  # todo: if we keep this around, it's annoying that it ends up a string ('true')
 ) -> Dict[str, Any]:
     """Return concept graph"""
     cids = cids if cids else []
-    return await concept_graph_post(
-        request, codeset_ids, cids, hide_vocabs, hide_nonstandard_concepts, verbose, indented)
+    return await concept_graph_post(request, codeset_ids, cids, hide_vocabs,
+                                    hide_nonstandard_concepts, verbose)
 
 
 # todo: match return of concept_graph()
 @router.post("/concept-graph")
 async def concept_graph_post(
     request: Request, codeset_ids: List[int], cids: Union[List[int], None] = [],
-    hide_vocabs = ['RxNorm Extension'], hide_nonstandard_concepts=False, verbose = VERBOSE, indented=False
-) -> Union[Dict[str, Any], List[List[Union[int, Any]]]]:
-    """Return concept graph
+    hide_vocabs = ['RxNorm Extension'], hide_nonstandard_concepts=False, verbose = VERBOSE,
+) -> List[List[Union[int, Any]]]:
 
-    :returns:  Dict[str, Any] if not indented, else List[List[Union[int, Any]]]"""
     rpt = Api_logger()
     try:
         await rpt.start_rpt(request, params={'codeset_ids': codeset_ids, 'cids': cids})
@@ -72,11 +69,6 @@ async def concept_graph_post(
         sg, concept_ids, missing_in_betweens, hidden_dict, nonstandard_concepts_hidden = await concept_graph(
             codeset_ids, cids, hide_vocabs, hide_nonstandard_concepts, verbose)
         missing_from_graph = set(concept_ids) - set(sg.nodes)
-
-        if indented:
-            # tree = get_indented_tree_nodes(sg, preferred_concept_ids)  # TODO: just testing below, put this line back
-            tree: List[List[Union[int, Any]]] = [list(x) for x in get_indented_tree_nodes(sg)]  # TODO: just testing below, put this line back
-            return tree
 
         await rpt.finish(rows=len(sg))
         return {
@@ -148,89 +140,12 @@ async def concept_graph(
 # TODO: @Siggie: move below to frontend
 # noinspection PyPep8Naming
 def MOVE_TO_FRONT_END():
-    """Graph related code"""
-    concept_ids = []
-    concepts = []
-    sg = nx.DiGraph()
     hidden_by_voc = {}
-
-    # Orphans
-    # orphans_not_in_graph, here, are just nodes that don't appear in graph
-    #   they'll get appended to the end of the tree at level 0
-    # The graph, which comes from the concept_ancestor table, doesn't contain edges for every concept.
-    # noinspection PyUnreachableCode
-    nodes_in_graph = set()
-    orphans_not_in_graph = set()
-    # TODO: deal with two kinds of orphan: not in the graph (handled here)
-    #   and in the graph but having no parents or children
-    for cid in concept_ids:
-        if cid in sg.nodes():
-            nodes_in_graph.add(cid)
-        else:
-            orphans_not_in_graph.add(cid)
-
-    # Preferred concept IDs are things we're trying to link in the graph; non-orphan items
-    #  - We don't want to accidentally hide them.
-    #  - for indented list
-    preferred_concept_ids = set([
-        c['concept_id'] for c in concepts
-        if c['item'] and not c['concept_id'] in orphans_not_in_graph])
-
-    # Layout - no longer used
-    # P = to_pydot(sg)
-    # layout = from_pydot(P)
-    # layout = {k: list(v) for k, v in _layout.items()}     # networkx doesn't seem to have sugiyama
-    # g = Graph.from_networkx(sg)
-    # _layout = g.layout_sugiyama()
-    # layout = {v["_nx_name"]: _layout[idx] for idx, v in enumerate(g.vs)}
-    # await rpt.finish(rows=len(tree))
-    # return tree
-
-    # Get Concept Set Members Items
-    VERBOSE and get_timer('get roots')
-    # noinspection PyCallingNonCallable
-    roots = [node for node, degree in sg.in_degree() if degree == 0]
-    # noinspection PyCallingNonCallable
-    leaves = [node for node, degree in sg.out_degree() if degree == 0]
-
-    # orphans_unlinked: nodes that are both root and leaf, put in orphans_unlinked, remove from roots
-    #  - in subgraph sg, but not in the connected graph
-    # todo: undersrtand what's different between orphans_unlinked and orphans_not_in_graph
-    orphans_unlinked = set(roots).intersection(leaves)
-    for o in orphans_unlinked:
-        roots.remove(o)
-
-    preferred_concept_ids.update(roots)
-
-    # sg_nodes = set(sg.nodes)
-    # print(f"sg \u2229 paths {len(sg_nodes.intersection(nodes_in_paths))}")
-    # print(f"sg - paths {len(sg_nodes.difference(nodes_in_paths))}")
-    # print(f"paths - sg {len(nodes_in_paths.difference(sg_nodes))}")
-
-    VERBOSE and get_timer('get tree')
-    # tree = await indented_concept_list(codeset_ids, cids, hide_vocabs)
-    tree = get_indented_tree_nodes(sg, preferred_concept_ids)  # TODO: just testing below, put this line back
-
     hide_if_over = 50
-    if orphans_not_in_graph:
-        cnt = len(orphans_not_in_graph)
-        # noinspection PyTypeChecker
-        tree.append((0, f"Concept set also includes {cnt} {'hidden ' if cnt > hide_if_over else ''}nodes in concept"
-                        f" set but not in our graph"))
-        if cnt <= hide_if_over:
-            for orphan in orphans_not_in_graph:
-                tree.append((1, orphan))
-
-    if orphans_unlinked:
-        cnt = len(orphans_unlinked)
-        # noinspection PyTypeChecker
-        tree.append((0,
-                     f"Concept set also includes {cnt} {'hidden ' if cnt > hide_if_over else ''}nodes unconnected to "
-                     f"others in the concept set"))
-        if cnt <= hide_if_over:
-            for orphan in orphans_unlinked:
-                tree.append((1, orphan))
-
+    tree = [] # this used to be indented tree stuff that we're no longer using
+    # TODO: but I should allow hiding vocabs again (used to be RxNorm Extension only
+    #   but now nothing. But vocab hiding, unlike the other stuff that was stashed in
+    #   this function, belongs on backend, right?
     for vocab in hidden_by_voc.keys():
         hidden_concept_ids = hidden_by_voc[vocab]
         cnt = len(hidden_concept_ids)
@@ -239,13 +154,6 @@ def MOVE_TO_FRONT_END():
         if cnt <= hide_if_over:
             for h in hidden_concept_ids:
                 tree.append((1, h))
-
-    # timer('get testtree')
-    # testtree = paths_as_indented_tree(paths)
-    # testtree.append((0, list(orphans_not_in_graph)))
-    # return testtree
-    # noinspection PyTypeChecker
-    return tree
 
 
 def filter_concepts(
@@ -272,66 +180,6 @@ def filter_concepts(
     hidden_nodes = set().union(*list(hidden_by_voc.values())).union(nonstandard_concepts_hidden)
     filtered_concepts: List[Dict[str, Any]] = [c for c in concepts if c['concept_id'] not in hidden_nodes]
     return filtered_concepts, hidden_by_voc, nonstandard_concepts_hidden
-
-
-def get_indented_tree_nodes(
-    sg, preferred_concept_ids: Union[List, Set]=[], max_depth=3, max_children=20, small_graph_threshold=2000
-) -> List[Tuple[int, int]]:
-    """Get indented tree nodes"""
-    # noinspection PyShadowingNames
-    def dfs(node, depth):
-        """Depth-first search"""
-        nonlocal tree, small_graph_big_tree, start_over
-        if start_over:
-            return 'start over'
-        tree.append((depth, node))
-        preferred_but_unshown.discard(node)
-
-        children = set(sg.successors(node))
-
-        # even if the graph is small, with repetition it can get huge --
-        #   so let's start over and respect the max_depth and max_children
-        if not small_graph_big_tree and len(sg.nodes) < small_graph_threshold:
-            if len(tree) < small_graph_threshold * 2:
-                for child in children:
-                    if not start_over and dfs(child, depth + 1) == 'start over':
-                        start_over = True
-                        return 'start over'
-                return
-            else:
-                small_graph_big_tree = True
-                return 'start over'
-
-        if len(children) <= max_children and len(children) and depth <= max_depth: # ok to show
-            for child in children:
-                dfs(child, depth + 1)
-        else: # summarize (except always_show)
-            always_show = children.intersection(preferred_concept_ids)
-            children_to_hide = children.difference(always_show)
-            for child in always_show:
-                children_to_hide.discard(child)
-                dfs(child, depth + 1)
-            if children_to_hide:
-                tree.append((depth + 1, list(children_to_hide)))
-
-    small_graph_big_tree = False
-    while True:
-        roots = [n for n in sg.nodes if sg.in_degree(n) == 0]
-        tree = []
-        preferred_but_unshown = set(preferred_concept_ids)
-        start_over = False
-        for root in roots:
-            if dfs(root, 0) == 'start over':
-                start_over = True
-                break
-        if not start_over:
-            break
-
-
-    for node in preferred_but_unshown:
-        tree.append((0, node))
-
-    return tree
 
 
 # print_stack = lambda s: ' | '.join([f"{n} => {','.join([str(x) for x in p])}" for n,p in s])
