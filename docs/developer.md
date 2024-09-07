@@ -234,9 +234,7 @@ new contents. _In order to deploy these changes, follow the instructions in "Dep
 deployments"._
 
 #### Updating auth token, if necessary
-As of https://github.com/jhu-bids/TermHub/pull/837, we switched to authentication using Oauth. Apparently, this means
-that we will no longer need to refresh our service token every 6 months.
+Necessary if not using OAuth, which we are not using as of 2024/09/07.
 
-**Should only be necessary if Oauth setup breaks:**
 The environmental variable `PALANTIR_ENCLAVE_AUTHENTICATION_BEARER_TOKEN` needs to be updated every 6 months. To do so,
 contact Mariam Deacy, Amin, or another member of the enclave's IT team.
