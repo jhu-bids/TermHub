@@ -237,4 +237,4 @@ deployments"._
 Necessary if not using OAuth, which we are not using as of 2024/09/07.
 
 The environmental variable `PALANTIR_ENCLAVE_AUTHENTICATION_BEARER_TOKEN` needs to be updated every 6 months. To do so,
-contact Mariam Deacy, Amin, or another member of the enclave's IT team.
+contact Mariam Deacy, or another member of the enclave's IT team.
