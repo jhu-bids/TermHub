@@ -87,9 +87,6 @@ export class GraphContainer {
     this.#computeAttributes();
   }
 
-  isConceptRowExpanded({nodeId, graphOptions}) {
-    let {xxx} = graphOptions;
-  }
   wholeHierarchy() {
     // deep copy the node so we don't mutate the original
     let nodes = cloneDeep(this.nodes);
