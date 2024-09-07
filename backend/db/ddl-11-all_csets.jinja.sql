@@ -65,16 +65,7 @@ WITH ac AS (SELECT DISTINCT cs.codeset_id,
                 LEFT JOIN {{schema}}omopconceptsetcontainer ocsc ON csc.concept_set_id = ocsc."conceptSetId"
                 LEFT JOIN {{schema}}concept_set_counts_clamped cscc ON cs.codeset_id = cscc.codeset_id
                 LEFT JOIN {{schema}}cset_term_usage_rec_counts ctu ON cs.codeset_id = ctu.codeset_id
-/*
- want to add term usage record counts, tried this code:
-     COALESCE(cwc.total_cnt, 0)                     AS total_cnt_from_term_usage
-     ...
-    LEFT JOIN concept_set_members csm ON cs.codeset_id = csm.codeset_id
-    LEFT JOIN concepts_with_counts cwc ON csm.concept_id = cwc.concept_id
- but it makes things way too slow. should try pre-generating a table with
-     with just codeset_id and total_term_usage_record_cnt, and join that
- */
-            )
+)
 SELECT ac.*,
        cscnt.counts,
        cscnt.flag_cnts,
@@ -91,3 +82,24 @@ CREATE INDEX ac_idx1{{optional_index_suffix}} ON {{schema}}all_csets{{optional_s
 CREATE INDEX ac_idx2{{optional_index_suffix}} ON {{schema}}all_csets{{optional_suffix}}(concept_set_name);
 
 DROP TABLE {{schema}}cset_term_usage_rec_counts;
+
+
+CREATE OR REPLACE VIEW {{schema}}all_csets_view{{optional_suffix}} AS (
+    SELECT
+        codeset_id,
+        project,
+        alias,
+        is_most_recent_version AS mrv,
+        version AS v,
+        is_draft AS draft,
+        archived AS arch,
+        codeset_created_at::date AS ver_create,
+        container_created_at::date AS cont_create,
+        omop_vocab_version AS omop_voc,
+        distinct_person_cnt AS perscnt,
+        total_cnt AS totcnt,
+        flag_cnts,
+        concepts,
+        container_creator,
+        codeset_creator
+    FROM {{schema}}all_csets{{optional_suffix}});

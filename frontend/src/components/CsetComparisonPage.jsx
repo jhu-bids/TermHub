@@ -240,8 +240,9 @@ export function CsetComparisonPage() {
                 comparison_rpt,
             } = graphData;
 
-            let _gc = new GraphContainer(
-                { ...graphData, concepts, specialConcepts, csmi });
+            // let _gc = new GraphContainer({ ...graphData, concepts, specialConcepts, csmi });
+            //  that looks redundant, unneeded. fixing now but not testing. hopefully won't break anything:
+            let _gc = new GraphContainer(graphData);
 
             // Call setGraphDisplayConfig twice! First time to make sure
             //  all the statsOptions are set to their default values.
@@ -679,8 +680,11 @@ function getCollapseIconAndName(
     let Component;
     let direction;
     if (
-        graphOptions.specificNodesExpanded.includes(parseInt(row.concept_id)) ||
-        (graphOptions.expandAll && !graphOptions.specificNodesCollapsed.includes(parseInt(row.concept_id)))
+        // graphOptions.specificNodesExpanded.includes(parseInt(row.concept_id)) ||
+        // (graphOptions.expandAll && !graphOptions.specificNodesCollapsed.includes(parseInt(row.concept_id)))
+        // parseInt means it doesn't work with the 'unlinked' node
+        graphOptions.specificNodesExpanded.find(d => d == row.concept_id) ||
+        (graphOptions.expandAll && !graphOptions.specificNodesCollapsed.find(d => d == row.concept_id))
     ) {
         Component = RemoveCircleOutline;
         direction = 'collapse';

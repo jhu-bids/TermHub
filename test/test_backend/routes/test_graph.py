@@ -28,7 +28,7 @@ THIS_DIR = Path(os.path.dirname(__file__))
 PROJECT_ROOT = THIS_DIR.parent.parent.parent
 sys.path.insert(0, str(PROJECT_ROOT))
 # noinspection PyUnresolvedReferences rel_graph_exists_just_not_if_name_eq_main
-from backend.routes.graph import concept_graph, concept_graph, REL_GRAPH, get_missing_in_between_nodes
+from backend.routes.graph import concept_graph, REL_GRAPH, get_missing_in_between_nodes
 
 THIS_STATIC_DIR = THIS_DIR / 'static'
 STATIC_DIR_concept_graph = THIS_STATIC_DIR / 'concept_graph'

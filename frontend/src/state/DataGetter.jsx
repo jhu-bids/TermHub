@@ -167,10 +167,8 @@ export class DataGetter {
 			cacheShape: 'obj of obj of obj', // cache.cset_members_items[codeset_id][concept_id] = csmi obj
 		},
 		concept_graph_new: {	// expects codeset_ids plus extra concept_ids (cids) if any requested
-			// was indented_concept_list
 			expectedParams: {},
 			dataLengthFunc: params => params.codeset_ids.length + params.cids.length,
-			// api: 'indented-concept-list',
 			api: 'concept-graph',
 			makeQueryString: params => {
 				// params = {...params, hide_vocabs: 'null'};
@@ -285,9 +283,8 @@ export class DataGetter {
 	}
 	async fetchAndCacheItems(apiDef, params) {
 		if (typeof(apiDef.expectedParams) !== typeof(params)) {
-			// apiDef.expectedParams, for now, can be undefined (all_csets) or
-			// array (everything else).
-			// for indented_concept_list: { codeset_ids: [], additional_concept_ids: [] }
+			// apiDef.expectedParams; can be undefined (all_csets) or array or string or obj
+			//  for concept-graph: { codeset_ids: [], cids: [] }
 			throw new Error("passed wrong type");
 		}
 
@@ -295,9 +292,9 @@ export class DataGetter {
 
 		const dataCache = this.dataCache;
 
-		if (apiDef.api === 'concept-graph') { // indented_concept_list: { codeset_ids: [], additional_concept_ids: [] }
-			const {codeset_ids, cids, indented} = params;
-			let cacheKey = codeset_ids.join(',') + ';' + cids.join(',') + `${indented ? ';indented' : ''}`;
+		if (apiDef.api === 'concept-graph') {
+			const {codeset_ids, cids, } = params;
+			let cacheKey = codeset_ids.join(',') + ';' + cids.join(',');
 
 			let data = dataCache.cacheGet([apiDef.cacheSlice, cacheKey]);
 			if (isEmpty(data)) {

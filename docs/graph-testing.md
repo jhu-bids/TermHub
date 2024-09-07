@@ -1,5 +1,7 @@
 ## Test cases
 
+#### TODO: fix all this. still working on malignant cancer and need jest tests
+
 #### [MALIGNANT CANCER](http://localhost:3000/cset-comparison?codeset_ids=585389357&codeset_ids=1000003793)
 - <font bgcolor="yellow">Have this reviewed before 2/9 friday meeting</font>
 - 585389357 v2.0, vocab v5.0 09-APR-22; 1469846 pts, **53510** concepts, flags: D: 1, DX: 5

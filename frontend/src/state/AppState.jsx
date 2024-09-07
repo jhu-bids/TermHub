@@ -39,13 +39,12 @@ export const [CidsProvider, useCids] = makeProvider(
 export const [AppOptionsProvider, useAppOptions] = makeProvider(
     { stateName: 'appOptions',
       reducer: appOptionsReducer,
-      initialSettings: {
-        use_example: false,
-        optimization_experiment: '', // probably will never get this working again, for controlling which
+      initialSettings: {},
+        // use_example: false,
+        // optimization_experiment: '', // probably will never get this working again, for controlling which
                                      // experimental cset/comparison methods are being used
-        comparison_pair: '', // pair of codeset_ids that will be provided on the command line
-      },
-      storageProviderGetter: useSessionStorage, });
+        // comparison_pair: '', // pair of codeset_ids that will be provided on the command line
+      storageProviderGetter: useSearchParamsState, });
 
 export const [GraphOptionsProvider, useGraphOptions] = makeProvider(
   { stateName: 'graphOptions',
@@ -136,9 +135,12 @@ function graphOptionsReducer(state, action) {
       let expand = new Set(graphOptions.specificNodesExpanded);
       let collapse = new Set(graphOptions.specificNodesCollapsed);
       if (action.direction === 'expand') {
+        // TODO: don't do both! only expand if not previously collapsed
+        //  See #873
         expand.add(nodeId);
         collapse.delete(nodeId);
       } else if (action.direction === 'collapse') {
+        // TODO: don't do both! only collapse if not previously expanded
         expand.delete(nodeId);
         collapse.add(nodeId);
       } else {
