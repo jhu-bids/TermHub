@@ -15,12 +15,16 @@ from backend.config import get_schema_name
 from backend.db.utils import get_db_connection, insert_from_dict, run_sql, sql_query, sql_query_single_col
 from backend.utils import dump
 
+API_CALL_LOGGING_ON=False
 
 class Api_logger:
     def __init__(self):
         pass
 
     async def start_rpt(self, request: Request, params: Dict):
+        if not API_CALL_LOGGING_ON:
+            return
+
         self.start_time = time.time()
         rpt = {}
         url = request.url
@@ -71,6 +75,9 @@ class Api_logger:
 
 
     async def finish(self, rows: int = 0):
+        if not API_CALL_LOGGING_ON:
+            return
+
         """Finsih report
         todo: rename 'rows' to 'n_rows'"""
         if rows:
@@ -97,6 +104,9 @@ class Api_logger:
 
 
     async def log_error(self, e):
+        if not API_CALL_LOGGING_ON:
+            return
+
         self.rpt['result'] = f'Error: {e}'
         await self.complete_log_record()
 

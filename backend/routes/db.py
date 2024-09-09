@@ -7,7 +7,7 @@ import json
 import urllib.parse
 from datetime import datetime, timedelta
 from functools import cache, lru_cache
-from typing import Dict, List, Union, Set
+from typing import Dict, List, Union, Set, Optional
 
 import pandas as pd
 from fastapi import APIRouter, Query, Request
@@ -17,7 +17,7 @@ from sqlalchemy import Connection, Row, text
 from sqlalchemy.engine import RowMapping
 from starlette.responses import Response
 
-from backend.api_logger import Api_logger, get_ip_from_request
+from backend.api_logger import Api_logger, get_ip_from_request, API_CALL_LOGGING_ON
 from backend.db.queries import get_concepts
 from backend.db.utils import get_db_connection, sql_query, SCHEMA, sql_query_single_col, sql_in, sql_in_safe, run_sql
 from backend.utils import call_github_action, return_err_with_trace, commify
@@ -26,7 +26,6 @@ from enclave_wrangler.models import convert_rows
 from enclave_wrangler.objects_api import get_n3c_recommended_csets, get_concept_set_version_expression_items, \
     items_to_atlas_json_format, get_codeset_json, get_bundle_codeset_ids, get_bundle_names
 from enclave_wrangler.utils import make_objects_request, whoami, check_token_ttl
-
 
 FLAGS = ['includeDescendants', 'includeMapped', 'isExcluded']
 JSON_TYPE = Union[Dict, List]
@@ -275,9 +274,15 @@ async def _concept_search(search_str: str, sort_by: str = "-total_cnt|vocabulary
         concept_ids = sql_query_single_col(con, q, { "search_str": '%' + search_str + '%', })
     return concept_ids
 
+@router.get("/api-call-logging-on")
+def api_call_logging_on() -> bool:
+    return API_CALL_LOGGING_ON
 
 @router.get("/next-api-call-group-id")
-def next_api_call_group_id() -> int:
+def next_api_call_group_id() -> Optional[int]:
+    if not API_CALL_LOGGING_ON:
+        return None
+
     """Get next API call group ID"""
     with get_db_connection() as con:
         id = sql_query_single_col(con, "SELECT nextval('api_call_group_id_seq')")[0]

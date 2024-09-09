@@ -215,7 +215,7 @@ export function CsetComparisonPage() {
 
     useEffect(() => {
         (async () => {
-            if (!api_call_group_id) return;
+            if (typeof(api_call_group_id) === 'undefined') return;
             if (!graphOptions) return;
 
             let whoami = dataGetter.fetchAndCacheItems(dataGetter.apiCalls.whoami,
