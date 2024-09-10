@@ -43,6 +43,7 @@ export default ({ mode }) => {
       open: false,
       // this sets a default port to 3000
       port: 3000,
+      host: true,
     },
     // build: {
     //   outDir: 'dist',
