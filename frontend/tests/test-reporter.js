@@ -71,8 +71,9 @@ class MyReporter {
         attachmentObj = attachmentJson && JSON.parse(attachmentJson) || {};
       }
       if (isEmpty(attachmentObj)) {
+        // the basic-functions.test does not add attachments, so getting rid of this warning
         // todo: This is happening. what needs to be addressed?
-        console.warn("Warning: No attachments: TestReporter expected attachments at test end, but they were not founds?");
+        // console.warn("Warning: No attachments: TestReporter expected attachments at test end, but they were not founds?");
         // debugger;
       }
       reportLine = {...reportLine, ...attachmentObj};

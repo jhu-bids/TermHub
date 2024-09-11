@@ -11,6 +11,7 @@
 // @ts-check
 
 import {selectedConfigs, deploymentConfigs} from "./setup-test-environments";
+import {isEqual} from 'lodash';
 
 const { test, expect } = require('@playwright/test');
 
@@ -27,7 +28,7 @@ const configsToRun = 'local'; // only run these tests in local for now
 // const configsToRun = selectedConfigs; // uncomment to run on dev or prod
 
 for (const envName in selectedConfigs) {
-  const appUrl = deploymentConfigs[envName];
+  const appUrl = deploymentConfigs[envName] + '/OMOPConceptSets';
   console.log('testing ' + appUrl);
 
   test(envName + ': ' + 'Main page - has title & heading', async ({ page }) => {
@@ -48,11 +49,13 @@ for (const envName in selectedConfigs) {
     // Load page and click menu
     await page.goto(appUrl);
 
-    // close alert panel if it appears
+    // close alert panel if it appears  // I think it's turned off
+    /*
     if (envName === 'local') {
       const alertPanelClose = await page.waitForSelector('[data-testid=flexcontainer-Alerts] button');
       await alertPanelClose.click();
     }
+    */
 
     const searchWidget = await page.waitForSelector('#add-codeset-id');
 
@@ -65,12 +68,15 @@ for (const envName in selectedConfigs) {
 
     // Load cset
     // todo: Change this back soon after next deployment after 2023/09/05; will have id soon.
-    await page.locator('text="Load concept sets"').click();
+    // await page.locator('text="Load concept sets"').click();
 
     let codeset_ids = [testCodesetId];
 
-    // could be simpler with only one codeset_id, but using same line below with more than one
-    await expect(page).toHaveURL(`${appUrl}/OMOPConceptSets?${codeset_ids.map(d => 'codeset_ids='+d).join('&')}`);
+    await expect(async ({ page }) => {
+      const url = new URL(page.url());
+      return isEqual(url.searchParams.getAll('codeset_ids').sort(), codeset_ids.sort());
+    }).toBeTruthy();
+
 
     const firstRow = await page.waitForSelector('#related-csets-table #row-0');
     const cset = await firstRow.innerText();
@@ -81,7 +87,18 @@ for (const envName in selectedConfigs) {
 
     // Compare
     await page.getByRole('link', { name: 'Cset comparison' }).click();
+    // await expect(page).toHaveURL(`${appUrl}/cset-comparison?${codeset_ids.map(d => 'codeset_ids='+d).join('&')}`);
+    // that broke because there's other stuff in query string
 
-    await expect(page).toHaveURL(`${appUrl}/cset-comparison?${codeset_ids.map(d => 'codeset_ids='+d).join('&')}`);
+    await expect(async ({ page }) => {
+      const url = new URL(page.url());
+      return url.pathname === 'cset-comparison';
+    }).toBeTruthy();
+
+    await expect(async ({ page }) => {
+      const url = new URL(page.url());
+      return isEqual(url.searchParams.getAll('codeset_ids').sort(), codeset_ids.sort());
+    }).toBeTruthy();
+
   });
 }

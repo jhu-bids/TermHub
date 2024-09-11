@@ -76,9 +76,17 @@ async function getMem(page, prefix, fields) {
   return mem;
 }
 
-console.log(`running ${tests.length} tests for ${JSON.stringify(configsToRun)}`)
+console.log(`running ${tests.length} tests for ${JSON.stringify(configsToRun)}`);
 for (const envName in configsToRun) {
   const appUrl = deploymentConfigs[envName];
+  /*
+    in basic-functions, needed to change this to
+        const appUrl = deploymentConfigs[envName] + '/OMOPConceptSets';
+    but that won't work here. maybe needed to change it because something
+    changed in the way the app redirects from / to /OMOPConceptSets. so
+    i'm not sure the tests in this file will work without dealing with
+    that somehow.
+   */
   for (const csets_test of tests) {
     let {testType, testName, codeset_ids, timeoutSeconds} = csets_test;
     codeset_ids = codeset_ids.split(',');
@@ -101,7 +109,7 @@ for (const envName in configsToRun) {
       let durations = {};
       let mem = {};
       let report = {...firstCols, ...lastCols};
-      testInfo.attach('report', {body: JSON.stringify(report), contentType: 'application/json'})
+      testInfo.attach('report', {body: JSON.stringify(report), contentType: 'application/json'});
 
       performance.mark('start');
       await page.goto(appUrl);
@@ -113,7 +121,7 @@ for (const envName in configsToRun) {
       memStart = await getMem(page, 'homepage', ['limit','used']);
       // const [startLimit, startTotal, startUsed] = memStuff;
       mem = { ...memStart };
-      testInfo.attach('report', {body: JSON.stringify(report), contentType: 'application/json'})
+      testInfo.attach('report', {body: JSON.stringify(report), contentType: 'application/json'});
 
       let pageUrl = `${appUrl}/OMOPConceptSets?optimization_experiment=no_cache&${codeset_ids.map(d => `codeset_ids=${d}`).join("&")}`
       await page.goto(pageUrl);
@@ -134,7 +142,7 @@ for (const envName in configsToRun) {
       mem = {...mem, ...memStart };
       firstCols.stepCompleted = 'searchLoaded';
       report = {...firstCols, ...durations, ...mem, ...lastCols};
-      testInfo.attach('report', {body: JSON.stringify(report), contentType: 'application/json'})
+      testInfo.attach('report', {body: JSON.stringify(report), contentType: 'application/json'});
 
       // page.setDefaultTimeout(120000); // already did this, but maybe it needs doing again? or not?
 
