@@ -195,7 +195,7 @@ export function useSessionStorage() {
 
 const SEARCH_PARAM_STATE_CONFIG = {
   scalars: ["editCodesetId", "sort_json", "use_example", "show_alerts", "optimization_experiment", "comparison_rpt"],
-  serialize: ["newCset", "appOptions"],
+  serialize: ["newCset", ], // "appOptions"
 };
 
 const SearchParamsContext = createContext(null);

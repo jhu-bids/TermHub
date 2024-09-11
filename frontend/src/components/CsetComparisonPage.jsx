@@ -49,7 +49,7 @@ import { FlexibleContainer } from './FlexibleContainer';
 import {
     NEW_CSET_ID,
     urlWithSessionStorage, useCodesetIds,
-    useGraphOptions, useAppOptions,
+    useGraphOptions, // useAppOptions,
     useNewCset, useCids,
 } from '../state/AppState';
 import { GraphContainer } from '../state/GraphState';
@@ -178,8 +178,8 @@ export function CsetComparisonPage() {
     const [newCset, newCsetDispatch] = useNewCset();
     const [api_call_group_id, setApiCallGroupId] = useState();
     let [graphOptions, graphOptionsDispatch] = useGraphOptions();
-    let [appOptions, appOptionsDispatch] = useAppOptions();
-    const { comparison_pair } = appOptions;
+    // let [appOptions, appOptionsDispatch] = useAppOptions();
+    // const { comparison_pair } = appOptions;
 
     const editingCset = !isEmpty(newCset);
     // const { selected_csets = [], researchers, } = cset_data;
@@ -224,7 +224,7 @@ export function CsetComparisonPage() {
             const graphData = await fetchGraphData({
                 dataGetter,
                 graphOptions,
-                comparison_pair,
+                // comparison_pair,
                 codeset_ids,
                 cids,
                 newCset,

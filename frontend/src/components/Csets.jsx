@@ -102,7 +102,7 @@ export function CsetSearch (props = {}) {
   ) : null;
 
   let invalidCodesetIds = codesetIdsSelected.filter(
-    d => !opts.find(o => o.value === d));
+    d => !opts.find(o => o.value == d));
   if (invalidCodesetIds.length) {
     throw new Error(`Invalid codeset ids: ${invalidCodesetIds.join(', ')}`);
   }

@@ -34,7 +34,7 @@ import {
   useCodesetIds, ViewCurrentState,
   CidsProvider,
   GraphOptionsProvider,
-  AppOptionsProvider,
+  // AppOptionsProvider,
   NewCsetProvider,
   // AlertsProvider, useAlerts, useAlertsDispatch, useNewCset, urlWithSessionStorage,
 } from './state/AppState';
@@ -79,10 +79,9 @@ function AppWrapper() {
     // <React.StrictMode> // {/* StrictMode helps assure code goodness by running everything twice, but it's annoying*/}
     //   <SessionStorageWithSearchParamsProvider>
     //     <AlertsProvider>
-    //     <AppOptionsProvider>
     <SearchParamsProvider>
       <SessionStorageProvider>
-        <AppOptionsProvider>
+        {/*<AppOptionsProvider>*/}
           <CodesetIdsProvider>
             <CidsProvider>
               <GraphOptionsProvider>
@@ -96,10 +95,9 @@ function AppWrapper() {
               </GraphOptionsProvider>
             </CidsProvider>
           </CodesetIdsProvider>
-        </AppOptionsProvider>
+        {/*</AppOptionsProvider>*/}
       </SessionStorageProvider>
     </SearchParamsProvider>
-        // </AppOptionsProvider>
       // </AlertsProvider>
       // </SessionStorageWithSearchParamsProvider>
     // </React.StrictMode>

@@ -36,15 +36,22 @@ export const [CidsProvider, useCids] = makeProvider(
       storageProviderGetter: useSessionStorage, });
 
 
+/*
 export const [AppOptionsProvider, useAppOptions] = makeProvider(
     { stateName: 'appOptions',
       reducer: appOptionsReducer,
-      initialSettings: {},
+      initialSettings: [],
         // use_example: false,
         // optimization_experiment: '', // probably will never get this working again, for controlling which
                                      // experimental cset/comparison methods are being used
         // comparison_pair: '', // pair of codeset_ids that will be provided on the command line
       storageProviderGetter: useSearchParamsState, });
+
+function appOptionsReducer(state, action) {
+  if (!(action && action.type)) return state;
+  throw new Error("fix appOptionsReducer");
+}
+*/
 
 export const [GraphOptionsProvider, useGraphOptions] = makeProvider(
   { stateName: 'graphOptions',
@@ -60,21 +67,6 @@ export const [GraphOptionsProvider, useGraphOptions] = makeProvider(
     storageProviderGetter: useSessionStorage, });
 
 
-function appOptionsReducer(state, action) {
-  if ( ! ( action || {} ).type ) return state;
-
-  // TODO: FIX THIS!!
-  throw new Error("fix appOptionsReducer");
-
-  // from SEARCH_PARAM_STATE_CONFIG scalars: ["editCodesetId", "use_example", "sstorage", "show_alerts", "optimization_experiment", "comparison_rpt"],
-  // let { use_example, optimization_experiment, comparison_pair, } = appOptions;
-  //
-  // switch (type) {
-  //   case 'NEW_GRAPH_OPTIONS':
-  //     return appOptions;
-  // }
-  // return {...state, ...appOptions};
-}
 
 function codesetIdsReducer(state, action) {
   if (!(action && action.type)) return state;

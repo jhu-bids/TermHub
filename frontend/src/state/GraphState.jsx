@@ -1,5 +1,5 @@
 import React, {createContext, useContext, useReducer, useEffect} from "react";
-import {cloneDeep, flatten, get, intersection, isEmpty, some, sortBy, sum, uniq} from "lodash";
+import {cloneDeep, flatten, get, intersection, isEmpty, some, sortBy, sum, uniq, set} from "lodash";
 import Graph from "graphology";
 import {bidirectional} from 'graphology-shortest-path/unweighted';
 import {dfsFromNode} from "graphology-traversal/dfs";
@@ -43,7 +43,7 @@ export class GraphContainer {
 
     // this.gd holds inputs -- except this.gd.specialConcepts.allButFirstOccurrence which is added later
     //    it's also a list of paths; all the other specialConcepts are lists of concept_ids
-    this.gd.specialConcepts.allButFirstOccurrence = [];
+    set(this, 'gd.specialConcepts.allButFirstOccurrence', []);
     this.displayedRows = [];  // array of displayed rows...individual node could occur in multiple places
     this.displayedNodeRows = new StringKeyMap();    // map from nodeId to row (node copy)
     this.showThoughCollapsed = new StringSet();

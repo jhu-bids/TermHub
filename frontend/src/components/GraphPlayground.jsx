@@ -18,8 +18,8 @@ import {useCodesetIds, useCids} from "../state/AppState";
 export const ConceptGraph/*: React.FC*/ = () => {
   // const sigma = useSigma();
 
-  const [appOptions, setAppOptions] = useAppOptions();
-  const {comparison_pair} = appOptions();
+  // const [appOptions, setAppOptions] = useAppOptions();
+  // const {comparison_pair} = appOptions();
   const [codeset_ids, ] = useCodesetIds();
   const [cids, ] = useCids();
 
@@ -33,7 +33,7 @@ export const ConceptGraph/*: React.FC*/ = () => {
 
       await dataGetter.getApiCallGroupId();
 
-      const graphData = fetchGraphData({dataGetter, comparison_pair, gcDispatch, codeset_ids});
+      const graphData = fetchGraphData({dataGetter, /* comparison_pair, */ gcDispatch, codeset_ids});
 
       let { concept_ids, selected_csets, conceptLookup, csmi, concepts, specialConcepts, comparison_rpt } = await graphData;
 
