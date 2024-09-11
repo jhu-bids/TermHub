@@ -67,12 +67,13 @@ def extract_keys_from_nested_dict(d: Dict[str, Dict]) -> List[str]:
     return ordered_unique_keys
 
 
-def get_dependent_tables_queue(independent_tables: List[str]) -> List[str]:
+def get_dependent_tables_queue(independent_tables: Union[List[str], str], _filter: str = None) -> List[str]:
     """From independent_tables, get a list of all tables that depend on those tables.
 
     :param independent_tables:  The tables from which you are trying to get an ordered list of dependent tables from.
     This can be used in a situation such as: You are updating 1+ database tables 'root_tables', and now want to find
     which derived tables need to be updated in the correct order.
+    :param _filter: One of 'table' or 'views'.
     :return: A list in the correct order such that for every entry in the list, any tables that depend on that entry
     will appear further down in the list.
 
@@ -80,11 +81,15 @@ def get_dependent_tables_queue(independent_tables: List[str]) -> List[str]:
      I originally had no steps 2&3, and only 1&4 combined. But the result was out of order. This algorithm below is
      based on a quick (but messy/long) heuristic. Basically, the longer dependency trees go first. This corrected the
      problem that I had. But this is just a heuristic. I'm feel confident that there is some correct algorithm for this
-     solvable in polynomial time. When this is done, probably should delete CORE_CSET_DEPENDENT_TABLES & its usages."""
+     solvable in polynomial time. When this is done, probably should delete CORE_CSET_DEPENDENT_TABLES & its usages.
+    """
+    if _filter not in [None, 'tables', 'views']:
+        raise ValueError(f'Invalid _filter value: {_filter}. Must be one of "tables" or "views".')
     final_queue: List[str] = []
     table_queues1: List[List[str]] = []
     table_queues2: List[List[str]] = []
     queues_by_len: Dict[int, List[List[str]]] = {}
+    independent_tables: List[str] = [independent_tables] if isinstance(independent_tables, str) else independent_tables
 
     # 1 & 4: Get a queue of dependent tables
     # 1. Build up a list of queues; queue is dependent tables
@@ -118,6 +123,14 @@ def get_dependent_tables_queue(independent_tables: List[str]) -> List[str]:
         for i in q:
             if i not in final_queue:
                 final_queue.append(i)
+
+    # 5. Optional: Filtering
+    if _filter:
+        views: List[str] = [x for x in list_views() if x in final_queue]
+        if _filter == 'views':
+            return views
+        elif _filter == 'tables':
+            return [x for x in final_queue if x not in views]
 
     return final_queue
 
@@ -153,7 +166,7 @@ def refresh_derived_tables_exec(
     for module in ddl_modules_queue:
         t0_2 = datetime.now()
         print(f' - creating new table/view: {module}...')
-        statements: List[str] = get_ddl_statements(schema, [module], temp_table_suffix, 'flat')
+        statements: List[str] = get_ddl_statements(schema, module, temp_table_suffix, 'flat')
         for statement in statements:
             try:
                 run_sql(con, statement)
@@ -850,7 +863,7 @@ def list_tables(con: Connection = None, schema: str = None, filter_temp_refresh_
 
 
 def get_ddl_statements(
-    schema: str = SCHEMA, modules: List[str] = None, table_suffix='',return_type=['flat', 'nested'][1],
+    schema: str = SCHEMA, modules: Union[List[str], str] = None, table_suffix='', return_type=['flat', 'nested'][1],
     unique_index_names=True,
 ) -> Union[List[str], Dict[str, List[str]]]:
     """From local SQL DDL Jinja2 templates, pa rse and get a list of SQL statements to run.
@@ -866,7 +879,9 @@ def get_ddl_statements(
       2. Add alters to fix data types (although, should really move this stuff to dtypes settings when creating
       dataframe that loads data into db.
       3. I think it's inserting a second ; at the end of the last statement of a given module
-      4. consider throwing an error if no statements found, either here, or where func is called"""
+      4. consider throwing an error if no statements found, either here, or where func is called
+    """
+    modules: List[str] = [modules] if isinstance(modules, str) else modules
     index_suffix: str = '' if not unique_index_names else '_' + str(randint(10000000, 99999999))
     paths: List[str] = glob(DDL_JINJA_PATH_PATTERN)
     if modules:
@@ -919,11 +934,19 @@ def reset_temp_refresh_tables(schema: str = SCHEMA, local=False, verbose=True):
             # Get all tables/views
             items: List[str] = func(con)
             # _old tables/views
+            #  - For each, drop the current one and replace w/ the backed up one. Drop and remake any dependent views.
             backed_up_items = [t for t in items if t.endswith('_old')]
             for item in backed_up_items:
                 item = item.replace('_old', '')
+                dependent_views: List[str] = get_dependent_tables_queue(item, 'views')
+                for view in dependent_views:
+                    run_sql(con, f'DROP VIEW IF EXISTS {schema}.{view};')  # alternative: drop table w/ CASCADE
                 run_sql(con, f'DROP {item_type} IF EXISTS {schema}.{item};')
                 run_sql(con, f'ALTER {item_type} {schema}.{item}_old RENAME TO {item};')
+                for view in dependent_views:
+                    statements: List[str] = get_ddl_statements(schema, view, return_type='flat')
+                    for statement in statements:
+                        run_sql(con, statement)
             # _new tables/views
             dangling_new_items = [t for t in items if t.endswith('_new')]
             for item in dangling_new_items:
@@ -982,5 +1005,4 @@ def cli():
 
 
 if __name__ == '__main__':
-    # cli()
-    get_db_connection(schema='xyz')
+    cli()
