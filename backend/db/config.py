@@ -87,20 +87,6 @@ PG_DATATYPES_BY_GROUP = {
 }
 # Table/View configuration: for n3c schema
 CORE_CSET_TABLES = ['code_sets', 'concept_set_container', 'concept_set_version_item', 'concept_set_members']
-# todo: add comment for CORE_CSET_DEPENDENT_TABLES. What does this tell us easily that DERIVED_TABLE_DEPENDENCY_MAP does
-#  not? Is it not computable from DERIVED_TABLE_DEPENDENCY_MAP?
-CORE_CSET_DEPENDENT_TABLES = [
-    # tables
-    'cset_members_items',
-    'codeset_ids_by_concept_id',
-    'concept_ids_by_codeset_id',
-    'members_items_summary',
-    'codeset_counts',
-    'all_csets',
-    # views
-    # 'csets_to_ignore',
-    'cset_members_items_plus',
-]
 # STANDALONE_TABLES & DERIVED_TABLE_DEPENDENCY_MAP
 #  - 100% of tables in the main schema, e.g. n3c, should be listed somewhere in
 # STANDALONE_TABLES: Not derived from any other table, nor used to derive any other table/view. Used for QC testing.
@@ -147,6 +133,7 @@ DERIVED_TABLE_DEPENDENCY_MAP: Dict[str, List[str]] = {
     # - views
     # 'csets_to_ignore': ['all_csets'],
     'cset_members_items_plus': ['cset_members_items', 'concept'],
+    'all_csets_view': ['all_csets'],
 
     # Unfinished / unsure
     # - unsure what to do with these. they probably aren't derived either
