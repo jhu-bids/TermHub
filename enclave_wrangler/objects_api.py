@@ -42,7 +42,8 @@ from enclave_wrangler.utils import EnclavePaginationLimitErr, JSON_TYPE, enclave
     get_objects_df, get_url_from_api_path, \
     make_objects_request
 from enclave_wrangler.models import OBJECT_TYPE_TABLE_MAP, convert_row, get_field_names, field_name_mapping, pkey
-from backend.db.utils import SCHEMA, get_field_data_types, insert_fetch_statuses, insert_from_dict, insert_from_dicts, \
+from backend.db.utils import SCHEMA, dedupe_dicts, get_field_data_types, insert_fetch_statuses, insert_from_dict, \
+    insert_from_dicts, \
     is_refresh_active, reset_temp_refresh_tables, refresh_derived_tables, \
     sql_in, sql_query, sql_query_single_col, run_sql, get_db_connection, update_from_dicts
 from backend.db.queries import get_concepts
@@ -470,7 +471,8 @@ def fetch_cset_and_member_objects(
       - cset versions
           - member items
           - expression items
-      - member items
+      - member items: Disambiguation: These are member concept objects that conform to the `concept` table schema, not
+          the `concept_set_members` schema, and will be transformed into those objects later.
       - expression items
     """
     # Concept set versions
@@ -519,8 +521,8 @@ def fetch_cset_and_member_objects(
         return
 
     # Expression items & concept set members
-    expression_items = []
-    member_items = []
+    expression_items: List[Dict] = []
+    member_items: List[Dict] = []
     print(f' - fetching expressions/members for {len(cset_versions_by_id)} versions:')
     i = 0
     for version_id, cset in cset_versions_by_id.items():
@@ -560,6 +562,8 @@ def fetch_cset_and_member_objects(
         expression_items.extend(cset['expression_items'])
         member_items.extend(cset['member_items'])
 
+    expression_items = dedupe_dicts([x['properties'] for x in expression_items])
+    member_items = dedupe_dicts([x['properties'] for x in member_items])
     return {'OMOPConceptSetContainer': cset_containers, 'OMOPConceptSet': list(cset_versions_by_id.values()),
             'OmopConceptSetVersionItem': expression_items, 'OMOPConcept': member_items}
 

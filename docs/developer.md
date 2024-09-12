@@ -47,6 +47,12 @@ DDL which is used to create any of the tables/views that it is derived from.
 2. Update `backend/db/config.py:DERIVED_TABLE_DEPENDENCY_MAP`.
 3. Update `backend/db/config.py:DERIVED_TABLE_DEPENDENCY_MAP` if it is a view.
 
+Additional rules:
+- Each table and view should be in their own DDL, not part of another DDL, even if they only depend on one table. Otherwise there will be errors.
+- The Jinja `{{optional_suffix}}` should only go on the table/view being created itself, not what it's selecting from:
+  - E.g. you want like: `CREATE OR REPLACE VIEW {{schema}}all_csets_view{{optional_suffix}} ...` and `... FROM {{schema}}all_csets);`
+
+
 ### Troubleshooting specific issues
 #### `ERROR: cannot execute <COMMAND> in a read-only transaction`
 Or, you may see: `WARNING:  transaction read-write mode must be set before any query`
