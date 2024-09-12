@@ -35,8 +35,7 @@ from typing import Any, Dict, Set, Tuple, Union, List
 DB_DIR = os.path.dirname(os.path.realpath(__file__))
 PROJECT_ROOT = Path(DB_DIR).parent.parent
 sys.path.insert(0, str(PROJECT_ROOT))
-from backend.db.config import CORE_CSET_DEPENDENT_TABLES, CORE_CSET_TABLES, PG_DATATYPES_BY_GROUP, \
-    RECURSIVE_DEPENDENT_TABLE_MAP, \
+from backend.db.config import CORE_CSET_TABLES, PG_DATATYPES_BY_GROUP, RECURSIVE_DEPENDENT_TABLE_MAP, \
     REFRESH_JOB_MAX_HRS, get_pg_connect_url
 from backend.config import CONFIG, DATASETS_PATH, OBJECTS_PATH
 from backend.utils import commify
@@ -48,6 +47,12 @@ TIMEZONE_DEFAULT = ['UTC/GMT', 'EST/EDT'][1]
 DEBUG = False
 DB = CONFIG["db"]
 SCHEMA = CONFIG["schema"]
+
+
+def dedupe_dicts(list_of_dicts: List[Dict]) -> List[Dict]:
+    """Dedupe list of dictionaries"""
+    # noinspection PyTypeChecker
+    return list(map(dict, set(tuple(sorted(d.items())) for d in list_of_dicts)))
 
 
 def extract_keys_from_nested_dict(d: Dict[str, Dict]) -> List[str]:
@@ -80,8 +85,8 @@ def get_dependent_tables_queue(independent_tables: Union[List[str], str], _filte
     todo: Replace heuristic w/ a correct algorithm.
      I originally had no steps 2&3, and only 1&4 combined. But the result was out of order. This algorithm below is
      based on a quick (but messy/long) heuristic. Basically, the longer dependency trees go first. This corrected the
-     problem that I had. But this is just a heuristic. I'm feel confident that there is some correct algorithm for this
-     solvable in polynomial time. When this is done, probably should delete CORE_CSET_DEPENDENT_TABLES & its usages.
+     problem that I had. But this is just a heuristic. I feel confident that there is some correct algorithm for this
+     solvable in polynomial time.
     """
     if _filter not in [None, 'tables', 'views']:
         raise ValueError(f'Invalid _filter value: {_filter}. Must be one of "tables" or "views".')
@@ -148,7 +153,7 @@ def refresh_any_dependent_tables(con: Connection, independent_tables: List[str] 
 
 
 def refresh_derived_tables_exec(
-    con: Connection, derived_tables_queue: List[str] = CORE_CSET_DEPENDENT_TABLES, schema=SCHEMA
+    con: Connection, derived_tables_queue: List[str], schema=SCHEMA
 ):
     """Refresh TermHub core cset derived tables
 
@@ -227,10 +232,6 @@ def refresh_derived_tables(
         else:
             try:
                 update_db_status_var('last_derived_refresh_request', current_datetime(), local)
-                # The following two calls yield equivalent results as of 2023/08/08. I've commented out
-                #  refresh_derived_tables() in case anything goes wrong with refresh_any_dependent_tables(), since that
-                #  is based on a heuristic currently, and if anything goes wrong, we may want to switch back. -joeflack4
-                # refresh_derived_tables_exec(con, CORE_CSET_DEPENDENT_TABLES, schema)
                 refresh_any_dependent_tables(con, independent_tables, schema)
             finally:
                 update_db_status_var('last_derived_refresh_exited', current_datetime(), local)
@@ -667,7 +668,7 @@ def insert_from_dicts(con: Connection, table: str, rows: List[Dict], skip_if_alr
     if skip_if_already_exists:
         if pk and isinstance(pk, str):  # normal, single primary key
             already_in_db: List[Dict] = get_objs_by_id(con, table, pk, [row[pk] for row in rows])
-            already_in_db_ids = [row[pk] for row in already_in_db]
+            already_in_db_ids = set([row[pk] for row in already_in_db])
             rows = [row for row in rows if row[pk] not in already_in_db_ids]
         elif pk and isinstance(pk, list):  # composite key
             already_in_db: List[Dict] = get_objs_by_composite_key(con, table, pk, rows)

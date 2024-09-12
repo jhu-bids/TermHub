@@ -12,7 +12,7 @@ THIS_DIR = Path(os.path.dirname(__file__))
 PROJECT_ROOT = THIS_DIR.parent
 sys.path.insert(0, str(PROJECT_ROOT))
 
-from backend.db.utils import SCHEMA, get_db_connection, list_tables, list_views, refresh_derived_tables_exec, run_sql
+from backend.db.utils import SCHEMA, get_db_connection, get_ddl_statements, list_tables, list_views, run_sql
 
 N_ROWS_TEST_TABLES = 50
 TEST_SCHEMA = f'test_{SCHEMA}'
@@ -71,7 +71,11 @@ def _copy_over_tables(tables: List[str], schema= SCHEMA, test_schema=TEST_SCHEMA
                     END $$;""")
     # Create views
     with get_db_connection(schema=test_schema) as con:
-        refresh_derived_tables_exec(con, list_views(), schema=test_schema)
+        views: List[str] = list_views()
+        for view in views:
+            statements: List[str] = get_ddl_statements(schema, view, return_type='flat')
+            for statement in statements:
+                    run_sql(con, statement)
 
 
 if __name__ == '__main__':
