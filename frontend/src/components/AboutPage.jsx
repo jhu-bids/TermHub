@@ -13,7 +13,7 @@ import { VERSION } from '../env';
 import { useDataCache } from '../state/DataCache';
 import { useDataGetter } from '../state/DataGetter';
 import { useSearchParamsState, useSessionStorage } from '../state/StorageProvider';
-import { useCodesetIds } from '../state/AppState';
+import { useCodesetIds, resetReducers } from '../state/AppState';
 import { isEmpty } from 'lodash';
 import { saveCsv } from '../utils';
 
@@ -104,8 +104,7 @@ export function AboutPage() {
     const dataGetter = useDataGetter();
     const ss = useSessionStorage();
     const sp = useSearchParamsState();
-    const [codeset_ids, codesetIdsDispatch] = useCodesetIds();
-    const [localCodesetIds, setLocalCodesetIds] = useState(codeset_ids);
+    const loadCSetsRef = useRef(null);
     const [refreshButtonClicked, setRefreshButtonClicked] = useState();
     const [lastRefreshed, setLastRefreshed] = useState();
     const location = useLocation();
@@ -122,11 +121,6 @@ export function AboutPage() {
             console.error('Error:', error);
         }
     };
-    const handleCodesetIdsTextChange = useCallback((evt) => {
-        const val = evt.target.value;
-        const cset_ids = val.split(/[,\s]+/).filter(d => d.length);
-        setLocalCodesetIds(cset_ids);
-    }, []);
 
     // const linkPath = `/OMOPConceptSets?${localCodesetIds.map(d => `codeset_ids=${d}`).join("&")}`;
 
@@ -146,6 +140,7 @@ export function AboutPage() {
         })();
     }, []);
 
+    console.log(loadCSetsRef);
     return (
         <div style={{ margin: '15px 30px 15px 40px' }}>
             <TextH1>About VS-Hub</TextH1>
@@ -233,8 +228,11 @@ export function AboutPage() {
                     // onClick={() => queryClient.removeQueries()}
                     onClick={() => {
                         dataCache.emptyCache();
-                        ss.clear();
-                        sp.clear();
+                        if (loadCSetsRef.current) loadCSetsRef.current.value = '';
+                        resetReducers();
+                        // maybe resetReducers makes these redundant?
+                        // ss.clear();
+                        // sp.clear();
                     }}
                 >
                     Clear application state
@@ -245,7 +243,7 @@ export function AboutPage() {
                     href="mailto:termhub-support@jhu.edu">termhub-support@jhu.edu</a></LI>
             </ol>
             <TextH2>How to: Load a set of concept sets</TextH2>
-            <LoadCodesetIds/>
+            <LoadCodesetIds loadCsetsRef={loadCSetsRef}/>
 
             <TextH1>Debug / explore application data</TextH1>
             <TextBody>
@@ -273,10 +271,11 @@ export function AboutPage() {
 }
 
 function LoadCodesetIds(props) {
-    const { containingPage } = props;
+    let { containingPage, loadCsetsRef } = props;
+    const didntGetRef = useRef(null);
+    loadCsetsRef = loadCsetsRef || didntGetRef;
     let [codeset_ids, codesetIdsDispatch] = useCodesetIds();
     const [localCodesetIds, setLocalCodesetIds] = useState(codeset_ids);
-    const textFieldRef = useRef(null);
     const testCodesetIds = [400614256, 419757429, 484619125]; // 411456218 : asthma wide
     if (isEmpty(codeset_ids)) {
         codeset_ids = localCodesetIds;
@@ -297,8 +296,8 @@ function LoadCodesetIds(props) {
                 <Button style={{ display: 'inline-block' }} variant="text"
                         onClick={(evt) => {
                             setLocalCodesetIds(testCodesetIds);
-                            if (textFieldRef.current) {
-                                textFieldRef.current.value = testCodesetIds.join(' ') + ' ';
+                            if (loadCsetsRef.current) {
+                                loadCsetsRef.current.value = testCodesetIds.join(' ') + ' ';
                             }
                         }}
                 >
@@ -309,7 +308,7 @@ function LoadCodesetIds(props) {
                        label={codeset_ids.length ? '' : 'Enter codeset_ids separated by spaces, commas, or newlines and click button below'}
                        onChange={handleCodesetIdsTextChange}
                        defaultValue={codeset_ids.join(', ')}
-                       inputRef={textFieldRef}
+                       inputRef={loadCsetsRef}
             >
             </TextField>
             {

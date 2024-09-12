@@ -23,6 +23,8 @@ import { Inspector } from 'react-inspector';
 
 export const NEW_CSET_ID = -1;
 
+let resetFuncs = [];
+
 export const [CodesetIdsProvider, useCodesetIds] = makeProvider(
     { stateName: 'codeset_ids',
       reducer: codesetIdsReducer,
@@ -34,7 +36,6 @@ export const [CidsProvider, useCids] = makeProvider(
       reducer: cidsReducer,
       initialSettings: [],
       storageProviderGetter: useSessionStorage, });
-
 
 /*
 export const [AppOptionsProvider, useAppOptions] = makeProvider(
@@ -66,7 +67,9 @@ export const [GraphOptionsProvider, useGraphOptions] = makeProvider(
     },
     storageProviderGetter: useSessionStorage, });
 
-
+export function resetReducers() {
+    resetFuncs.forEach(f => f());
+}
 
 function codesetIdsReducer(state, action) {
   if (!(action && action.type)) return state;
@@ -80,6 +83,9 @@ function codesetIdsReducer(state, action) {
     }
     case "set_all": {
       return [...action.codeset_ids];
+    }
+    case "reset": {
+      return action.resetValue;
     }
     default:
       throw new Error(`unexpected action.type ${action.type}`);
@@ -100,6 +106,9 @@ function cidsReducer(state, action) {
     case "set_all": {
       state = [...action.cids];
       break;
+    }
+    case "reset": {
+      return action.resetValue;
     }
     default:
       throw new Error(`unexpected action.type ${action.type}`);
@@ -155,6 +164,9 @@ function graphOptionsReducer(state, action) {
       graphOptions = {...graphOptions, expandAll:!graphOptions.expandAll};
       // Object.values(gc.nodes).forEach(n => {if (n.hasChildren) n.expanded = graphOptions.expandAll;});
       break;
+    case "reset": {
+      return action.resetValue;
+    }
 
       /* OLD STUFF
       case "nested": { return {...state, nested: action.nested} }
@@ -192,6 +204,8 @@ function makeProvider({stateName, reducer, initialSettings, storageProviderGette
       storageProvider.setItem(stateName, newState);
     }, [stateName, state]);
 
+    const resetFunc = () => dispatch({type: 'reset', resetValue: initialSettings});
+    resetFuncs.push(resetFunc);
 
     return (
         <Context.Provider value={[state, dispatch]}>

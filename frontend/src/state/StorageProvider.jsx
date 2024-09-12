@@ -263,9 +263,11 @@ export function SearchParamsProvider({children}) {
   function removeItem(key) {
     updateSearchParams({delProps: [key]});
   }
+
   function clear() {
     const csp = createSearchParams();
     setSearchParams(csp);
+    [...reducerResetFuncs].map(f => f());
   }
 
   function addToArray(key, val) {
