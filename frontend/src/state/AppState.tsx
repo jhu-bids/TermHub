@@ -6,7 +6,7 @@ import React, {
   useState,
 } from 'react';
 import Markdown from 'react-markdown';
-import { fromPairs, get, isEmpty, isEqual, pick, uniq, } from 'lodash';
+import { fromPairs, get, isEmpty, isEqual, pick, } from 'lodash';
 // import {compressToEncodedURIComponent} from "lz-string";
 // import {createPersistedReducer} from "./usePersistedReducer";
 import { alertsReducer } from '../components/AlertMessages';
@@ -23,7 +23,7 @@ import { Inspector } from 'react-inspector';
 
 export const NEW_CSET_ID = -1;
 
-let resetFuncs = [];
+const resetFuncs: (() => unknown)[] = [];
 
 export const [CodesetIdsProvider, useCodesetIds] = makeProvider(
     { stateName: 'codeset_ids',
@@ -54,6 +54,16 @@ function appOptionsReducer(state, action) {
 }
 */
 
+interface GraphOpts {
+    specialConceptTreatment: { [key: string]: boolean },
+    nested: boolean,
+    // hideRxNormExtension: true,
+    // hideZeroCounts: false,
+    specificNodesCollapsed: number[],
+    specificNodesExpanded: number[],
+    expandAll: boolean,
+}
+
 export const [GraphOptionsProvider, useGraphOptions] = makeProvider(
   { stateName: 'graphOptions',
     reducer: graphOptionsReducer,
@@ -71,12 +81,15 @@ export function resetReducers() {
     resetFuncs.forEach(f => f());
 }
 
-function codesetIdsReducer(state, action) {
+function codesetIdsReducer(
+    state: number[],
+    action: {type: string, codeset_id: number|string,
+             codeset_ids: [number|string], resetValue: [number]}) {
   if (!(action && action.type)) return state;
   console.log(`codesetIdsReducer ${JSON.stringify(action)}`)
   switch (action.type) {
     case "add_codeset_id": {
-      return [...state, parseInt(action.codeset_id)]; // .sort();
+      return [...state, action.codeset_id]; // .sort();
     }
     case "delete_codeset_id": {
       return state.filter((d) => d != action.codeset_id);
@@ -92,7 +105,8 @@ function codesetIdsReducer(state, action) {
   }
 }
 
-function cidsReducer(state, action) {
+function cidsReducer(state: number[],
+                     action: {type: string, cids: [number|string], resetValue: [void]}) {
   if (!(action && action.type)) return state;
   switch (action.type) {
     case "add": {
@@ -104,7 +118,7 @@ function cidsReducer(state, action) {
       break;
     }
     case "set_all": {
-      state = [...action.cids];
+      state = [...action.cids.map(Number)];
       break;
     }
     case "reset": {
@@ -113,18 +127,21 @@ function cidsReducer(state, action) {
     default:
       throw new Error(`unexpected action.type ${action.type}`);
   }
-  return state.map(d => parseInt(d));
+  return state.map(Number);
 }
 
-function graphOptionsReducer(state, action) {
+function graphOptionsReducer(
+    state: GraphOpts,
+    action: {
+        type: string, graphOptions: GraphOpts, direction: string,
+        nodeId: number, specialConceptType: string, resetValue: GraphOpts,
+    }) {
   if ( ! ( action || {} ).type ) return state;
   // let {collapsePaths, // collapsedDescendantPaths,
   //   nested, hideRxNormExtension, hideZeroCounts} = {...unpersistedDefaultState, ...state};
-  let {type, nodeId, specialConceptType, direction} = action;
+  const {type, nodeId, specialConceptType, } = action;
 
   let graphOptions = get(action, 'graphOptions') || state;
-
-  let { specialConceptTreatment, expandAll, specificNodesCollapsed = [], specificNodesExpanded = [], } = graphOptions;
 
   switch (type) {
     // case "graphOptions": { return {...state, graphOptions}; }
@@ -132,9 +149,9 @@ function graphOptionsReducer(state, action) {
 
     case 'NEW_GRAPH_OPTIONS':
       return graphOptions;
-    case 'TOGGLE_NODE_EXPANDED':
-      let expand = new Set(graphOptions.specificNodesExpanded);
-      let collapse = new Set(graphOptions.specificNodesCollapsed);
+    case 'TOGGLE_NODE_EXPANDED': {
+      const expand = new Set(graphOptions.specificNodesExpanded);
+      const collapse = new Set(graphOptions.specificNodesCollapsed);
       if (action.direction === 'expand') {
         // TODO: don't do both! only expand if not previously collapsed
         //  See #873
@@ -148,13 +165,18 @@ function graphOptionsReducer(state, action) {
         console.error("have to give direction for TOGGLE_NODE_EXPANDED");
       }
       // TODO: quit storing expanded/collapsed nodes in row!!!
-      graphOptions = {...graphOptions, specificNodesExpanded: [...expand], specificNodesCollapsed: [...collapse]};
+      graphOptions = {
+        ...graphOptions,
+        specificNodesExpanded: [...expand],
+        specificNodesCollapsed: [...collapse]
+      };
       // gc.toggleNodeExpanded(action.payload.nodeId);
       // graphOptions = {
       //   ...graphOptions,
       //   expandedNodes: {...graphOptions.expandedNodes, [action.payload.nodeId]:!graphOptions.expandedNodes[action.payload.nodeId]}
       // };
       break;
+    }
     case 'TOGGLE_OPTION':
       graphOptions = {...graphOptions, specialConceptTreatment: {
         ...graphOptions.specialConceptTreatment,
@@ -176,7 +198,11 @@ function graphOptionsReducer(state, action) {
   return {...state, ...graphOptions};
 }
 
-window.appStateW = {}; // FOR DEBUGGING, GLOBAL TO SEE all appState and storage
+if (process.env.NODE_ENV !== 'production') {
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
+    (window as any).appStateW = {};
+}
+
 function makeProvider({stateName, reducer, initialSettings, storageProviderGetter, jsonify=false, }) {
   // makes provider to manage both a regular reducer and a storage provider
   // I think the idea was to put update logic into reducers and try to have storage providers
@@ -184,7 +210,7 @@ function makeProvider({stateName, reducer, initialSettings, storageProviderGette
   const regularReducer = (state, action) => {
     const newState = reducer(state, action);
     const returnState = isEqual(state, newState) ? state : newState;
-    appStateW[stateName] = returnState;
+    window.appStateW[stateName] = returnState;
     return returnState;
   };
 

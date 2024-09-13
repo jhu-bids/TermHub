@@ -697,7 +697,6 @@ function getCollapseIconAndName(
             className="toggle-collapse concept-name-row"
             onClick={
                 (evt) => {
-                    console.log(evt);
                     graphOptionsDispatch({
                         gc,
                         type: 'TOGGLE_NODE_EXPANDED',

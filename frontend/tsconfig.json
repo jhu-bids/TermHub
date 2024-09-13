@@ -22,10 +22,11 @@
 
     "allowJs": true,
     "checkJs": false,
-    "strict": false,
-    "noImplicitAny": false
+    "strict": true,
+    "noImplicitAny": true,
+    "strictNullChecks": true,
+    "typeRoots": ["./src/types", "./node_modules/@types"]
   },
-  "include": [
-    "src"
-  ]
+  "include": ["src/**/*", "src/**/*.d.ts"],
+  "exclude": ["node_modules"]
 }
