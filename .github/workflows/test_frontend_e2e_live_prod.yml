@@ -18,7 +18,10 @@ jobs:
     steps:
     - uses: actions/checkout@v3
       with:
-        ref: prod
+        # TODO: When deploying to prod next, change this from dev to prod
+        #  Q: why is this 'dev' if it's for the test on prod? A: Because when we deployed to prod, our playwright tests hadn't been updated yet.
+        ref: dev
+#        ref: prod
     - uses: actions/setup-node@v3
       with:
         node-version: 18
