@@ -1,7 +1,8 @@
-# TODO: 1. run local: (i) start backend (a) local backend in GH action, or (b) use dev's backend URL (won't always work), (ii) set to on:pr&push
-# TODO: 2. after '1': expose params to workflow_dispatch: so can choose which env we want to test, in case we don't want to run all 3 at once
+# Test Frontend deployment using Playwright End-to-End tests.
+# todo: 1. run local: (i) start backend (a) local backend in GH action, or (b) use dev's backend URL (won't always work), (ii) set to on:pr&push
+# todo: 2. after '1': expose params to workflow_dispatch: so can choose which env we want to test, in case we don't want to run all 3 at once
 
-name: Test - Frontend deployments - End to end
+name: Test, Frontend Dev, Playwright E2E
 on:
   workflow_dispatch:
   schedule:
@@ -16,6 +17,8 @@ jobs:
     runs-on: ubuntu-latest
     steps:
     - uses: actions/checkout@v3
+      with:
+        ref: dev
     - uses: actions/setup-node@v3
       with:
         node-version: 18
@@ -48,7 +51,7 @@ jobs:
 
     # Run tests
     - name: Run Playwright tests
-      run: make test-frontend-e2e-deployments
+      run: make test-frontend-e2e-dev
     - uses: actions/upload-artifact@v3
       if: always()
       with:

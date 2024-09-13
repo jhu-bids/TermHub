@@ -50,7 +50,6 @@ test-missing-csets:
 ## Testing - Frontend
 ## - ENVIRONMENTS: To run multiple, hyphen-delimit, e.g. ENVIRONMENTS=local-dev-prod
 TEST_ENV_LOCAL=ENVIRONMENTS=local
-TEST_ENV_DEPLOYED=ENVIRONMENTS=dev-prod
 TEST_FRONTEND_CMD=yarn test:e2e
 test-frontend:
 	(cd frontend; \
@@ -70,7 +69,13 @@ test-frontend-e2e-ui:
 	${TEST_ENV_LOCAL} ${TEST_FRONTEND_CMD} --ui)
 test-frontend-e2e-deployments:
 	(cd frontend; \
-	${TEST_ENV_DEPLOYED} ${TEST_FRONTEND_CMD})
+	ENVIRONMENTS=dev-prod ${TEST_FRONTEND_CMD})
+test-frontend-e2e-dev:
+	(cd frontend; \
+	ENVIRONMENTS=dev ${TEST_FRONTEND_CMD})
+test-frontend-e2e-prod:
+	(cd frontend; \
+	ENVIRONMENTS=prod ${TEST_FRONTEND_CMD})
 
 # QC
 fetch-missing-csets:
