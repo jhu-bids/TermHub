@@ -6,8 +6,8 @@
 name: Test, Frontend Dev (local changes), Playwright E2E
 on:
   workflow_dispatch:
-  schedule:
-   - cron: '30 5 * * *'  # every day 5:30am GMT (12:30/1:30am EST/EDT)
+#  schedule:
+#   - cron: '30 5 * * *'  # every day 5:30am GMT (12:30/1:30am EST/EDT)
   push:
     branches: [ develop ]
 #  pull_request:
