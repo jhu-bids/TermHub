@@ -3,7 +3,7 @@ import {createSearchParams} from "react-router-dom";
 import axios from "axios";
 import {flatten, isEmpty, setWith, once, uniq, difference} from 'lodash';
 
-import {useAlertsDispatch} from "./AppState";
+// import {useAlertsDispatch} from "./AppState";
 import {API_ROOT} from "../env";
 import {useDataCache} from "./DataCache";
 import {compress} from "lz-string";
@@ -13,9 +13,9 @@ export const backend_url = (path) => `${API_ROOT}/${path}`;
 const DataGetterContext = createContext(null);
 
 export function DataGetterProvider({children}) {
-	const alertsDispatch = useAlertsDispatch();
+	// const alertsDispatch = useAlertsDispatch();
 	const dataCache = useDataCache();
-	const dataGetter = new DataGetter(dataCache, alertsDispatch);
+	const dataGetter = new DataGetter(dataCache, /*alertsDispatch*/);
 
 	return (
 			<DataGetterContext.Provider value={dataGetter}>
@@ -29,9 +29,9 @@ export function useDataGetter() {
 }
 
 export class DataGetter {
-	constructor(dataCache, alertsDispatch) {
+	constructor(dataCache, /*alertsDispatch*/) {
 		this.dataCache = dataCache;
-		this.alertsDispatch = alertsDispatch;
+		// this.alertsDispatch = alertsDispatch;
 	}
 	async getApiCallGroupId() {
 		const getid = once(() => {
@@ -89,12 +89,12 @@ export class DataGetter {
 
 			if (sendAlert) {
 				alertAction.axiosCall = response;
-				this.alertsDispatch(alertAction);
+				// this.alertsDispatch(alertAction);
 				// debugger;
 				response = await response;
 				alertAction = {...alertAction, response, type: 'resolve', };
 				delete alertAction.axiosCall;
-				this.alertsDispatch(alertAction);
+				// this.alertsDispatch(alertAction);
 			}
 			response = await response;
 			return returnDataOnly ? response.data : response;
@@ -102,7 +102,7 @@ export class DataGetter {
 		} catch (error) {
 			if (sendAlert) {
 				alertAction = {...alertAction, error, type: 'error', };
-				this.alertsDispatch(alertAction);
+				// this.alertsDispatch(alertAction);
 			} else {
 				throw new Error(error);
 			}

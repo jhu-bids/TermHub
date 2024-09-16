@@ -44,8 +44,10 @@ module.exports = {
     '^react-merge-refs$': '<rootDir>/src/__mocks__/react-merge-refs.js',
     '^@floating-ui/react-dom-interactions$': '<rootDir>/src/__mocks__/@floating-ui/react-dom-interactions.js',
     '^react-markdown$': '<rootDir>/src/__mocks__/react-markdown.js',
-    '\\.(jpg|jpeg|png|gif|eot|otf|webp|svg|ttf|woff|woff2|mp4|webm|wav|mp3|m4a|aac|oga)$':
-    'jest-transform-stub',
-    '\\.(css|less|scss|sass)$': 'jest-transform-stub',
+    // '\\.(jpg|jpeg|png|gif|eot|otf|webp|svg|ttf|woff|woff2|mp4|webm|wav|mp3|m4a|aac|oga)$': 'jest-transform-stub',
+    // '\\.(css|less|scss|sass)$': 'jest-transform-stub',
+
+    "^.+\\.svg$": "jest-svg-transformer",
+    "^.+\\.(css|less|scss)$": "identity-obj-proxy"
   },
 };
