@@ -9,13 +9,14 @@ w/in the given framework (combo of "test input" x "test target").
  */
 import React from 'react';
 import {renderHook, act} from '@testing-library/react-hooks';
-import {test, expect} from '@jest/globals';
+import { describe, test, expect, /*beforeAll, afterAll, beforeEach, afterEach */} from '@jest/globals';
 import {
   GraphContainer,
   makeGraph,
   GraphOptionsProvider,
   useGraphOptions,
 } from './state/GraphState';
+import {graphOptionsInitialState,} from './state/AppState';
 
 // siggie 2024-09-05 to @joeflack4: I just refactored the following out of
 //  this file into json files, but now I see that these data already exist in
@@ -46,7 +47,7 @@ let diagramCase = convertToArrayOfStrings(_diagramCase);
 // siggie 2024-09-05: I'm not sure this test does much. I think
 //  there's more real testing of this in ./test/test_backend/routes/test_graph.py
 // - makeGraph()
-test('test makeGraph() - diagram case', () => {
+test('makeGraph() - diagram case', () => {
   const uniqueConcepts = [...new Set(diagramCase.flat())];
   const uniqueConceptObjs = uniqueConcepts.map(d => ({concept_id: d}));
   const [graph, nodes] = makeGraph(diagramCase, uniqueConceptObjs);
@@ -58,55 +59,82 @@ test('test makeGraph() - diagram case', () => {
 });
 
 // TODO:
-// test('test makeGraph() - 1 cset "single small"', () => {
+// test('makeGraph() - 1 cset "single small"', () => {
 // });
 //
 // // TODO:
-// test('test makeGraph() - 2+ csets', () => {
+// test('makeGraph() - 2+ csets', () => {
 // });
 
 // - roots, leaves
 // todo?
-// test('test roots, leaves - diagram case', () => {});
+// test('roots, leaves - diagram case', () => {});
 
-test('test roots, leaves - 1 cset "single small"', () => {
-  // codeset_id: 1000002363, [DM]Type2 Diabetes Mellitus (v1)
-  const {graphData, roots, leaves, } = singleSmallTestData;
-  const gc = new GraphContainer(graphData);
-  expect(gc.roots).toStrictEqual(roots); // did include 4044391, but that's a grandchild of 442793
-  expect(gc.leaves).toStrictEqual(leaves);
-  const wrapper = ({children}) => (
-      <GraphOptionsProvider>{children}</GraphOptionsProvider>
-  );
+describe(
+    `Single small: ${singleSmallTestData.codeset_ids[0]} ${singleSmallTestData.concept_set_names[0]}`,
+    () => {
+      const {graphData, roots, leaves, firstRow, } = singleSmallTestData;
+      const wrapper = ({children}) => (
+          <GraphOptionsProvider>{children}</GraphOptionsProvider>
+      );
+      const {result} = renderHook(() => useGraphOptions(), {wrapper});
+      const [graphOptions, graphOptionsDispatch] = result.current;
+      // graphRender();
+      const gc = new GraphContainer(graphData);
+      let newGraphOptions = gc.setGraphDisplayConfig(graphOptions);
+      gc.getDisplayedRows(newGraphOptions);
+      newGraphOptions = gc.setGraphDisplayConfig(graphOptions);
+      graphOptionsDispatch({type: 'REPLACE', graphOptions: newGraphOptions});
 
-  const {result} = renderHook(() => useGraphOptions(), {wrapper});
+      test('roots', () => {
+        expect(gc.roots).toStrictEqual(roots); // did include 4044391, but that's a grandchild of 442793
+      });
 
-  // Destructure the returned values from the hook
-  const [graphOptions, graphOptionsDispatch] = result.current;
+      test('leaves', () => {
+        expect(gc.leaves).toStrictEqual(leaves);
+      });
+      test('initial graphOptions', () => {
+        expect(graphOptions).toEqual(graphOptionsInitialState);
+      });
+      test('initially displays root nodes', () => {
+        expect(gc.displayedRows.map(r => r.concept_id)).toEqual(roots);
+      });
 
-  // Test initial state
-  expect(graphOptions).toEqual(/* your expected initial state */);
+      describe('First row expand/collapse', () => {
+        const row = gc.displayedRows[0];
 
-  // Test dispatch function
-  act(() => {
-    graphOptionsDispatch({type: 'SOME_ACTION', payload: 'some value'});
-  });
+        test('has expected first row', () => {
+          expect(row).toEqual(firstRow);
+        });
 
-  // Check if state updated correctly
-  expect(result.current[0]).toEqual(/* your expected updated state */);
+        test('expands first row correctly', () => {
+          act(() => { // toggle first row
+            graphOptionsDispatch({
+              gc,
+              type: 'TOGGLE_NODE_EXPANDED',
+              nodeId: row.concept_id,
+              direction: 'expand',
+            });
+            graphRender();
+          });
 
-      graphRender();
-  graphOptionsDispatch({
-    gc,
-    type: 'TOGGLE_NODE_EXPANDED',
-    nodeId: concept_id,
-    direction: 'expand',
-  });
-  graphRender();
+          // Check if state updated correctly
+          // expect(result.current[0]).toEqual(/* your expected updated state */);
+        });
 
+        console.log(gc);
+      });
 });
 
-test('test roots, leaves - 2+ csets', () => {
+function graphRender(graphData, graphOptions) {
+  let gc = new GraphContainer(graphData);
+  let newGraphOptions = gc.setGraphDisplayConfig(graphOptions);
+  gc.getDisplayedRows(newGraphOptions);
+  newGraphOptions = gc.setGraphDisplayConfig(graphOptions);
+  // graphOptionsDispatch({type: 'REPLACE', graphOptions: newGraphOptions});
+}
+
+test('roots, leaves - 2+ csets', () => {
   // codeset_ids: 1000002657, 241882304, 488007883, 1000087163
   const gc = new GraphContainer(manySmallGraphContainerGraphData);
   expect(gc.roots).
@@ -182,7 +210,7 @@ test('test roots, leaves - 2+ csets', () => {
 
 });
 
-test('tests with asthma example', () => {
+test('with asthma example', () => {
   // codeset_ids: 400614256, 419757429, 484619125
   // console.log(asthmaGraphData);
   const gc = new GraphContainer(asthmaGraphData);
@@ -311,14 +339,6 @@ test('tests with asthma example', () => {
 
 test('initial state and dispatch function', () => {
 });
-
-function graphRender() {
-  let gc = new GraphContainer(graphData);
-  let newGraphOptions = gc.setGraphDisplayConfig(graphOptions);
-  gc.getDisplayedRows(newGraphOptions);
-  newGraphOptions = gc.setGraphDisplayConfig(graphOptions);
-  graphOptionsDispatch({type: 'REPLACE', graphOptions: newGraphOptions});
-}
 
 // UTILS
 /* Used to convert input to be same as graphology serialization (all strings). */

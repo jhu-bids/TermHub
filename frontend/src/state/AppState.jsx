@@ -5,25 +5,26 @@ import React, {
   useReducer,
   useState,
 } from 'react';
+import {PropTypes} from 'prop-types';
 import Markdown from 'react-markdown';
 import { fromPairs, get, isEmpty, isEqual, pick, } from 'lodash';
 // import {compressToEncodedURIComponent} from "lz-string";
 // import {createPersistedReducer} from "./usePersistedReducer";
-import { alertsReducer } from '../components/AlertMessages';
 import {
   useSearchParamsState,
   useSessionStorage,
 } from './StorageProvider';
 import { SOURCE_APPLICATION, SOURCE_APPLICATION_VERSION } from '../env';
 import { pct_fmt, setOp } from '../utils';
-import Box from '@mui/material/Box';
-import CircularProgress from '@mui/material/CircularProgress';
+// import Box from '@mui/material/Box';
+// import CircularProgress from '@mui/material/CircularProgress';
 import { useDataCache } from './DataCache';
 import { Inspector } from 'react-inspector';
 
 export const NEW_CSET_ID = -1;
 
-const resetFuncs: (() => unknown)[] = [];
+// const resetFuncs: (() => unknown)[] = [];
+const resetFuncs = [];
 
 export const [CodesetIdsProvider, useCodesetIds] = makeProvider(
     { stateName: 'codeset_ids',
@@ -54,6 +55,7 @@ function appOptionsReducer(state, action) {
 }
 */
 
+/*
 interface GraphOpts {
     specialConceptTreatment: { [key: string]: boolean },
     nested: boolean,
@@ -63,28 +65,31 @@ interface GraphOpts {
     specificNodesExpanded: number[],
     expandAll: boolean,
 }
+ */
+
+export const graphOptionsInitialState = {
+    specialConceptTreatment: {},
+    nested: true,
+    // hideRxNormExtension: true,
+    // hideZeroCounts: false,
+    specificNodesCollapsed: [],
+    specificNodesExpanded: [],
+};
 
 export const [GraphOptionsProvider, useGraphOptions] = makeProvider(
   { stateName: 'graphOptions',
     reducer: graphOptionsReducer,
-    initialSettings: {
-      specialConceptTreatment: {},
-      nested: true,
-      // hideRxNormExtension: true,
-      // hideZeroCounts: false,
-      specificNodesCollapsed: [],
-      specificNodesExpanded: [],
-    },
+    initialSettings: graphOptionsInitialState,
     storageProviderGetter: useSessionStorage, });
 
 export function resetReducers() {
     resetFuncs.forEach(f => f());
 }
 
-function codesetIdsReducer(
-    state: number[],
+function codesetIdsReducer( state, action) {
+    /* state: number[],
     action: {type: string, codeset_id: number|string,
-             codeset_ids: [number|string], resetValue: [number]}) {
+             codeset_ids: [number|string], resetValue: [number]}) { */
   if (!(action && action.type)) return state;
   console.log(`codesetIdsReducer ${JSON.stringify(action)}`)
   switch (action.type) {
@@ -105,8 +110,8 @@ function codesetIdsReducer(
   }
 }
 
-function cidsReducer(state: number[],
-                     action: {type: string, cids: [number|string], resetValue: [void]}) {
+function cidsReducer(state, action) {
+    // state: number[], action: {type: string, cids: [number|string], resetValue: [void]}) {
   if (!(action && action.type)) return state;
   switch (action.type) {
     case "add": {
@@ -130,12 +135,10 @@ function cidsReducer(state: number[],
   return state.map(Number);
 }
 
-function graphOptionsReducer(
-    state: GraphOpts,
-    action: {
+function graphOptionsReducer(state, action) {
+  /* state: GraphOpts, action: {
         type: string, graphOptions: GraphOpts, direction: string,
-        nodeId: number, specialConceptType: string, resetValue: GraphOpts,
-    }) {
+        nodeId: number, specialConceptType: string, resetValue: GraphOpts, }) { */
   if ( ! ( action || {} ).type ) return state;
   // let {collapsePaths, // collapsedDescendantPaths,
   //   nested, hideRxNormExtension, hideZeroCounts} = {...unpersistedDefaultState, ...state};
@@ -198,10 +201,12 @@ function graphOptionsReducer(
   return {...state, ...graphOptions};
 }
 
+/*
 if (process.env.NODE_ENV !== 'production') {
     // eslint-disable-next-line @typescript-eslint/no-explicit-any
     (window as any).appStateW = {};
 }
+*/
 
 function makeProvider({stateName, reducer, initialSettings, storageProviderGetter, jsonify=false, }) {
   // makes provider to manage both a regular reducer and a storage provider
@@ -238,6 +243,9 @@ function makeProvider({stateName, reducer, initialSettings, storageProviderGette
           {children}
         </Context.Provider>
     );
+  }
+  Provider.propTypes = {
+    children: PropTypes.ReactNode,
   }
   const useReducerWithStorage = () => {
     const context = useContext(Context);
@@ -307,14 +315,17 @@ const newCsetReducer = (state, action) => {
 
     case "addDefinition": {
       state = {...state, definitions: {...state.definitions, [action.definition.concept_id]: action.definition }}
+      break;
     }
     case "addDefinitions": {
       state = {...state, definitions: {...state.definitions, ...action.definitions }}
+      break;
     }
     case "deleteDefinition": {
       let definitions = {...state.definitions};
       delete definitions[action.concept_id];
       state = {...state, definitions, };
+      break;
     }
   }
 
@@ -332,6 +343,7 @@ const newCsetReducer = (state, action) => {
 
 const NewCsetContext = createContext(null);
 export function NewCsetProvider({ children }) {
+  // eslint-disable-next-line @typescript-eslint/no-unused-vars
   const [stateUpdate, setStateUpdate] = useState(); // just to force consumers to rerender
   // const storageProvider = useSearchParamsState();
   const storageProvider = sessionStorage; // for now, for simplicity, just save to sessionStorage
@@ -353,6 +365,9 @@ export function NewCsetProvider({ children }) {
         {children}
       </NewCsetContext.Provider>
   );
+}
+NewCsetProvider.propTypes = {
+  children: PropTypes.ReactNode,
 }
 export function useNewCset() {
   return useContext(NewCsetContext);
@@ -461,6 +476,8 @@ const currentConceptIdsReducer = (state, action) => { // not being used
 };
  */
 
+/*
+import { alertsReducer } from '../components/AlertMessages';
 const AlertsContext = createContext(null);
 const AlertsDispatchContext = createContext(null);
 export function AlertsProvider({ children }) {
@@ -480,6 +497,7 @@ export function useAlerts() {
 export function useAlertsDispatch() {
   return useContext(AlertsDispatchContext);
 }
+ */
 
 const stateDoc = `
 # 2024-08-14, refactoring
@@ -558,7 +576,8 @@ Goals:
 
 export function ViewCurrentState () {
   const { sp } = useSearchParamsState();
-  const alerts = useAlerts();
+  // const alerts = useAlerts();
+  // eslint-disable-next-line @typescript-eslint/no-unused-vars
   const [graphOptions, graphOptionsDispatch] = useGraphOptions();
   const newCset = useNewCset();
   const dataCache = useDataCache();
@@ -577,7 +596,7 @@ export function ViewCurrentState () {
     </ul>
 
     <h2>app state (reducers)</h2>
-    <Inspector data={{ alerts, graphOptions, newCset }}/>
+    <Inspector data={{ /*alerts, */ graphOptions, newCset }}/>
 
     <h2>dataCache</h2>
     <Inspector data={dataCache.getWholeCache()}/>
@@ -588,19 +607,16 @@ export function ViewCurrentState () {
   </div>);
 }
 
-function Progress (props) {
+/* function Progress (props) {
   return (
     <Box sx={{ display: 'flex' }}>
       <CircularProgress {...props} size="35px"/>
     </Box>
   );
-}
+} */
 
 export function StatsMessage (props) {
-  const {
-    codeset_ids = [], all_csets = [], relatedCsets,
-    concept_ids, selected_csets,
-  } = props;
+  const { codeset_ids = [], all_csets = [], relatedCsets, concept_ids, } = props;
 
   const relcsetsCnt = relatedCsets.length;
   return (
@@ -615,4 +631,10 @@ export function StatsMessage (props) {
       deselect concept sets.
     </p>
   );
+}
+StatsMessage.propTypes = {
+  codeset_ids: PropTypes.array,
+  all_csets: PropTypes.array,
+  relatedCsets: PropTypes.array,
+  concept_ids: PropTypes.array,
 }
