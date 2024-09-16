@@ -1,42 +1,51 @@
 /*
 module.exports = {
-  preset: 'ts-jest',
-  testEnvironment: 'jest-environment-jsdom',
+  testEnvironment: 'jsdom',
   transform: {
-    '^.+\\.(js|jsx|ts|tsx)$': 'ts-jest',
-    // "^.+\\.jsx?$": "babel-jest"
+    // '^.+\\.jsx?$': 'vite-jest',
+    '^.+\\.(js|jsx|ts|tsx)$': 'vite-jest',
   },
-  transformIgnorePatterns: [
-    '/node_modules/(?!(@testing-library/jest-dom)/)',
-  ],
-  moduleFileExtensions: ['ts', 'tsx', 'js', 'jsx', 'json', 'node'],
-  setupFilesAfterEnv: ['./jest.setup.js'],
+  setupFilesAfterEnv: ['<rootDir>/jest.setup.js'],
+};
+
+module.exports = {
+  testEnvironment: 'jsdom',
+  transform: {
+    '^.+\\.(js|jsx|ts|tsx)$': '@swc/jest',
+  },
+  setupFilesAfterEnv: ['<rootDir>/jest.setup.js'],
 };
  */
-module.exports = {
-  preset: 'ts-jest',
 
-  // not sure this stuff is useful
-  testEnvironment: 'jest-environment-jsdom',
+module.exports = {
+  testEnvironment: 'jsdom',
   transform: {
-    // '^.+\\.(js|jsx|ts|tsx)$': ['babel-jest', { rootMode: 'upward' }],
-    '^.+\\.(js|jsx|ts|tsx)$': ['babel-jest', {
-      configFile: '../babel.config.js'  // path to your root babel.config.js
+    '^.+\\.(js|jsx|ts|tsx)$': ['@swc/jest', {
+      jsc: {
+        parser: {
+          syntax: 'ecmascript',
+          jsx: true,
+        },
+        transform: {
+          react: {
+            runtime: 'automatic',
+          },
+        },
+      },
     }],
   },
-  // "transform": { "^.+\\.jsx?$": "babel-jest" },
+  setupFilesAfterEnv: ['<rootDir>/jest.setup.js'],
+  moduleDirectories: ['node_modules', 'src'],
+  moduleFileExtensions: ['js', 'jsx', 'ts', 'tsx', 'json', 'node'],
   transformIgnorePatterns: [
-    // '/node_modules/(?!(@testing-library/jest-dom)/)',
-    // '/node_modules/(?!(@babel|@ngrx|(?!deck.gl)|ng-dynamic))',
-    // "node_modules/(?!@ngrx|(?!deck.gl)|ng-dynamic)",
-    // '/node_modules/(?!(@babel/runtime)/)'
-    // https://stackoverflow.com/questions/49263429/jest-gives-an-error-syntaxerror-unexpected-token-export
-    // - didn't work
+    'node_modules/(?!(react-merge-refs|@floating-ui/react-dom-interactions)/)',
   ],
-
-
-  moduleFileExtensions: ['ts', 'tsx', 'js', 'jsx', 'json', 'node'],
-  setupFilesAfterEnv: ['./jest.setup.js'],
-
-  testMatch: ['.', '**/src/**/*.test.(ts|tsx|js|jsx)', '**/src/**/*.spec.(ts|tsx|js|jsx)'],
+  moduleNameMapper: {
+    '^react-merge-refs$': '<rootDir>/src/__mocks__/react-merge-refs.js',
+    '^@floating-ui/react-dom-interactions$': '<rootDir>/src/__mocks__/@floating-ui/react-dom-interactions.js',
+    '^react-markdown$': '<rootDir>/src/__mocks__/react-markdown.js',
+    '\\.(jpg|jpeg|png|gif|eot|otf|webp|svg|ttf|woff|woff2|mp4|webm|wav|mp3|m4a|aac|oga)$':
+    'jest-transform-stub',
+    '\\.(css|less|scss|sass)$': 'jest-transform-stub',
+  },
 };
