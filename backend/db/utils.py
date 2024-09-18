@@ -142,7 +142,7 @@ def get_dependent_tables_queue(independent_tables: Union[List[str], str], _filte
         elif _filter == 'tables':
             return [x for x in queue if x not in views]
 
-    # todo: temp fix: see "DDL" comment in docstring
+    # todo - temporary fix: see "DDL" comment in docstring
     ddl_order_based_queue: List[str] = order_modules_by_ddl_order(queue)
 
     return ddl_order_based_queue
@@ -336,6 +336,28 @@ def current_datetime(time_zone=TIMEZONE_DEFAULT) -> str:
     return tz_datetime_str(datetime.now(), time_zone=time_zone)
 
 
+# todo: Can update update_db_status_var() so that it can accept optional param 'con' to improve performance.
+def update_db_status_var(key: str, val: str, local=False):
+    """Update the `manage` table with information for a given variable, e.g. when a table was last updated"""
+    with get_db_connection(schema='', local=local) as con:
+        run_sql(con, f"DELETE FROM public.manage WHERE key = '{key}';")
+        sql_str = f"INSERT INTO public.manage (key, value) VALUES (:key, :val);"
+        run_sql(con, sql_str, {'key': key, 'val': val})
+
+
+def check_db_status_var(key: str,  local=False):
+    """Check the value of a given variable the `manage`table """
+    with get_db_connection(schema='', local=local) as con:
+        results: List = sql_query_single_col(con, f"SELECT value FROM public.manage WHERE key = '{key}';")
+        return results[0] if results else None
+
+
+def delete_db_status_var(key: str, local=False):
+    """Delete information from the `manage` table """
+    with get_db_connection(schema='', local=local) as con2:
+        run_sql(con2, f"DELETE FROM public.manage WHERE key = '{key}';")
+
+
 def last_refresh_timestamp(con: Connection) -> str:
     """Get the timestamp of the last database refresh"""
     results: List[List] = sql_query(
@@ -352,13 +374,10 @@ def is_up_to_date(last_updated: Union[datetime, str], threshold_hours=24) -> boo
     return hours_since_update < threshold_hours
 
 
-def check_if_updated(key: str, skip_if_updated_within_hours: int = None) -> bool:
+def check_if_updated(key: str, skip_if_updated_within_hours: int = None, local=False) -> bool:
     """Check if table is up to date"""
-    with get_db_connection(schema='') as con2:
-        results: List[List] = sql_query(con2, f"SELECT value FROM public.manage WHERE key = '{key}';", return_with_keys=False)
-    last_updated = results[0][0] if results else None
+    last_updated: str = check_db_status_var(key, local)
     return last_updated and is_up_to_date(last_updated, skip_if_updated_within_hours)
-
 
 def is_table_up_to_date(table_name: str, skip_if_updated_within_hours: int = None) -> bool:
     """Check if table is up to date"""
@@ -428,28 +447,6 @@ def is_refresh_active(refresh_type=('standard', 'derived')[0], local=False, thre
 def is_derived_refresh_active(local=False) -> bool:
     """Check if any refreshing of the derived tables is active"""
     return is_refresh_active('derived', local)
-
-
-# todo: Can update update_db_status_var() so that it can accept optional param 'con' to improve performance.
-def update_db_status_var(key: str, val: str, local=False):
-    """Update the `manage` table with information for a given variable, e.g. when a table was last updated"""
-    with get_db_connection(schema='', local=local) as con:
-        run_sql(con, f"DELETE FROM public.manage WHERE key = '{key}';")
-        sql_str = f"INSERT INTO public.manage (key, value) VALUES (:key, :val);"
-        run_sql(con, sql_str, {'key': key, 'val': val})
-
-
-def check_db_status_var(key: str,  local=False):
-    """Check the value of a given variable the `manage`table """
-    with get_db_connection(schema='', local=local) as con:
-        results: List = sql_query_single_col(con, f"SELECT value FROM public.manage WHERE key = '{key}';")
-        return results[0] if results else None
-
-
-def delete_db_status_var(key: str, local=False):
-    """Delete information from the `manage` table """
-    with get_db_connection(schema='', local=local) as con2:
-        run_sql(con2, f"DELETE FROM public.manage WHERE key = '{key}';")
 
 
 def insert_fetch_statuses(rows: List[Dict], local=False):
