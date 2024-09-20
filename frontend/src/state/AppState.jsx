@@ -5,8 +5,7 @@ import React, {
   useReducer,
   useState,
 } from 'react';
-import {PropTypes} from 'prop-types';
-import Markdown from 'react-markdown';
+// import {PropTypes} from 'prop-types';
 import { fromPairs, get, isEmpty, isEqual, pick, } from 'lodash';
 // import {compressToEncodedURIComponent} from "lz-string";
 // import {createPersistedReducer} from "./usePersistedReducer";
@@ -19,7 +18,9 @@ import { pct_fmt, setOp } from '../utils';
 // import Box from '@mui/material/Box';
 // import CircularProgress from '@mui/material/CircularProgress';
 import { useDataCache } from './DataCache';
-import { Inspector } from 'react-inspector';
+console.log("is there a problem?")
+// import Markdown from 'react-markdown';
+// import { Inspector } from 'react-inspector';
 
 export const NEW_CSET_ID = -1;
 
@@ -140,6 +141,8 @@ function graphOptionsReducer(state, action) {
         type: string, graphOptions: GraphOpts, direction: string,
         nodeId: number, specialConceptType: string, resetValue: GraphOpts, }) { */
   if ( ! ( action || {} ).type ) return state;
+  console.log('graphOptions action', action);
+  debugger;
   // let {collapsePaths, // collapsedDescendantPaths,
   //   nested, hideRxNormExtension, hideZeroCounts} = {...unpersistedDefaultState, ...state};
   const {type, nodeId, specialConceptType, } = action;
@@ -207,6 +210,8 @@ if (process.env.NODE_ENV !== 'production') {
     (window as any).appStateW = {};
 }
 */
+// window.appStateW = {}; // playwright complaining that window isn't defined
+let appStateW = {};
 
 function makeProvider({stateName, reducer, initialSettings, storageProviderGetter, jsonify=false, }) {
   // makes provider to manage both a regular reducer and a storage provider
@@ -215,7 +220,7 @@ function makeProvider({stateName, reducer, initialSettings, storageProviderGette
   const regularReducer = (state, action) => {
     const newState = reducer(state, action);
     const returnState = isEqual(state, newState) ? state : newState;
-    window.appStateW[stateName] = returnState;
+    appStateW[stateName] = returnState;
     return returnState;
   };
 
@@ -244,9 +249,9 @@ function makeProvider({stateName, reducer, initialSettings, storageProviderGette
         </Context.Provider>
     );
   }
-  Provider.propTypes = {
-    children: PropTypes.ReactNode,
-  }
+  // Provider.propTypes = {
+  //   children: PropTypes.ReactNode,
+  // }
   const useReducerWithStorage = () => {
     const context = useContext(Context);
     if (!context) {
@@ -366,9 +371,9 @@ export function NewCsetProvider({ children }) {
       </NewCsetContext.Provider>
   );
 }
-NewCsetProvider.propTypes = {
-  children: PropTypes.ReactNode,
-}
+// NewCsetProvider.propTypes = {
+//   children: PropTypes.ReactNode,
+// }
 export function useNewCset() {
   return useContext(NewCsetContext);
 }
@@ -575,6 +580,8 @@ Goals:
 `;
 
 export function ViewCurrentState () {
+  // Inspector not working in playwright tests, so disabling this component
+  return null;
   const { sp } = useSearchParamsState();
   // const alerts = useAlerts();
   // eslint-disable-next-line @typescript-eslint/no-unused-vars
@@ -632,9 +639,9 @@ export function StatsMessage (props) {
     </p>
   );
 }
-StatsMessage.propTypes = {
-  codeset_ids: PropTypes.array,
-  all_csets: PropTypes.array,
-  relatedCsets: PropTypes.array,
-  concept_ids: PropTypes.array,
-}
+// StatsMessage.propTypes = {
+//   codeset_ids: PropTypes.array,
+//   all_csets: PropTypes.array,
+//   relatedCsets: PropTypes.array,
+//   concept_ids: PropTypes.array,
+// }

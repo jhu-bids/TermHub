@@ -1,4 +1,5 @@
 {
+  "test_name": "singleSmallGraph",
   "codeset_ids": [1000002363],
   "concept_set_names":  ["[DM]Type2 Diabetes Mellitus (v1)"],
   "roots": ["442793", "4129519", "unlinked"],

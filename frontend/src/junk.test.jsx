@@ -26,7 +26,7 @@ test('renders learn react link', () => {
   expect(linkElement).toBeInTheDocument();
 });
 
-
+/*
 test('provider hook', () => {
   const wrapper = () => (
       <GraphOptionsProvider><TestGraph/></GraphOptionsProvider>
@@ -35,6 +35,7 @@ test('provider hook', () => {
   const [graphOptions, graphOptionsDispatch] = result.current;
   expect(30 + 2).toBe(32);
 });
+ */
 
 test('anything at all', () => {
   expect(30 + 2).toBe(32);

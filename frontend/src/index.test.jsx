@@ -10,26 +10,13 @@ w/in the given framework (combo of "test input" x "test target").
 import React from 'react';
 import {renderHook, act} from '@testing-library/react-hooks';
 import { describe, test, expect, /*beforeAll, afterAll, beforeEach, afterEach */} from '@jest/globals';
-import {
-  GraphContainer,
-  makeGraph,
-  GraphOptionsProvider,
-  useGraphOptions,
-} from './state/GraphState';
-import {graphOptionsInitialState,} from './state/AppState';
+import { GraphContainer, makeGraph, } from './state/GraphState';
+import {graphOptionsInitialState, GraphOptionsProvider, useGraphOptions, } from './state/AppState';
+import {useSessionStorage} from './state/StorageProvider';
 
 // siggie 2024-09-05 to @joeflack4: I just refactored the following out of
 //  this file into json files, but now I see that these data already exist in
 //  data files in ./test/test_backend/routes/static/concept_graph
-
-// const singleSmallFromConceptGraphEndpoint = {
-// 	"edges":[[4174977,380096],[4034964,4029423],[4311708,376112],[4102176,35625722],[442793,443767],[442793,4034964],[376112,4044392],[380096,4210128],[4210128,4161671],[4044391,4311708],[4129519,43531010],[4029423,4016047],[443767,4102176],[443767,4174977],[443767,4224419],[35625722,35625724]],
-// 	"concept_ids":[4174977,43531010,4161671,4327944,4221962,4237068,4034962,4034964,4311708,4294429,4102176,45766050,4224419,442793,4016047,376112,35626038,35626039,4162239,36674752,380096,43022019,4252356,4210128,44833365,3172958,4270049,4044391,4044392,4129519,4029423,4129524,4129525,443767,35625722,35625724],
-// 	"filled_gaps":[380096,4210128,376112,443767,35625722,4311708,4029423],
-// 	"missing_from_graph":[4252356,44833365],
-// 	"hidden_by_vocab":{},
-// 	"nonstandard_concepts_hidden":[]
-// };
 import singleSmallTestData from './jest-data/singleSmallGraph.json';
 import manySmallGraphContainerGraphData
   from './jest-data/manySmallGraphContainerGraphData.json';
@@ -73,11 +60,15 @@ test('makeGraph() - diagram case', () => {
 describe(
     `Single small: ${singleSmallTestData.codeset_ids[0]} ${singleSmallTestData.concept_set_names[0]}`,
     () => {
+      // can't get this to work in jest. moving to playwright
+      const ss = useSessionStorage();
+      console.log(ss);
       const {graphData, roots, leaves, firstRow, } = singleSmallTestData;
       const wrapper = ({children}) => (
           <GraphOptionsProvider>{children}</GraphOptionsProvider>
       );
       const {result} = renderHook(() => useGraphOptions(), {wrapper});
+      // const {result} = renderHook(() => useGraphOptions());
       const [graphOptions, graphOptionsDispatch] = result.current;
       // graphRender();
       const gc = new GraphContainer(graphData);
@@ -120,6 +111,9 @@ describe(
 
           // Check if state updated correctly
           // expect(result.current[0]).toEqual(/* your expected updated state */);
+          test('expanded child rows', () => {
+            expect(gc.displayRows.slice(1, firstRow.childIds.length).map(r => r.concept_id)).toEqual(firstRow.childIds);
+          });
         });
 
         console.log(gc);

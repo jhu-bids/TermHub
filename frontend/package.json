@@ -107,5 +107,6 @@
   },
   "jshintConfig": {
     "esversion": 11
-  }
+  },
+  "packageManager": "yarn@4.5.0"
 }

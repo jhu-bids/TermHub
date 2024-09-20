@@ -1,10 +1,10 @@
 import {cloneDeep, flatten, get, intersection, isEmpty, some, sortBy, sum, uniq, set} from "lodash";
 import Graph from "graphology";
-import {bidirectional} from 'graphology-shortest-path/unweighted';
-import {dfsFromNode} from "graphology-traversal/dfs";
+// import {bidirectional} from 'graphology-shortest-path/unweighted';
+// import {dfsFromNode} from "graphology-traversal/dfs";
 import {setOp} from "../utils";
 
-window.graphFuncs = {bidirectional, dfsFromNode};
+// window.graphFuncs = {bidirectional, dfsFromNode};
 
 // versions of Set and Map that force keys to be strings
 class StringSet extends Set {
