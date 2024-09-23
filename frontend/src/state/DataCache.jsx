@@ -11,23 +11,21 @@ import {compress, decompress} from "lz-string";
 const DataCacheContext = createContext(null);
 
 export function DataCacheProvider({children}) {
-	// const {sp} = useSearchParamsState();
-	// let {optimization_experiment} = sp;
+	// let {optimization_experiment} = ...;
+	const dataCache = new DataCache({optimization_experiment: ''});
+	// optimization_experiment = optimization_experiment || 'no_cache'; // TURN OFF CACHING by uncommenting
 
-  let {optimization_experiment} = '';
-	// TURN OFF CACHING by uncommenting below
-	// optimization_experiment = optimization_experiment || 'no_cache';
+	  // Only add event listener if window is defined (i.e., in a browser environment)
+	  if (typeof window !== 'undefined') {
+		window.addEventListener("beforeunload", dataCache.saveCache);
+		window.dataCacheW = dataCache; // for debugging
+	  }
 
-
-	const dataCache = new DataCache({optimization_experiment});
-	window.addEventListener("beforeunload", dataCache.saveCache);
-	window.dataCacheW = dataCache; // for debugging
-
-	return (
-			<DataCacheContext.Provider value={dataCache}>
-				{children}
-			</DataCacheContext.Provider>
-	);
+	  return (
+		<DataCacheContext.Provider value={dataCache}>
+		  {children}
+		</DataCacheContext.Provider>
+	  );
 }
 
 export function useDataCache() {
@@ -36,7 +34,7 @@ export function useDataCache() {
 
 class DataCache {
 	#cache = {};
-  cacheTooBig = false;
+	cacheTooBig = false;
 
 	constructor(opts) {
 		this.optimization_experiment = opts.optimization_experiment;
@@ -55,17 +53,17 @@ class DataCache {
 	}
 
 	saveCache = debounce(async () => {
-    if (this.cacheTooBig) {
-      return;
-    }
-    const uncompressed = JSON.stringify(this.#cache);
-    if (uncompressed.length > 40 * 10**6) {
-      // on my (sg) computer right now (2024-08-28) 60 million uncompressed
-      //  is too big for the cache. so let's quit caching when we get to
-      //  this point
-      this.cacheTooBig = true;
-      console.warn(`uncompressed cache size ${uncompressed.length.toLocaleString()}; giving up on caching`);
-    }
+		if (this.cacheTooBig) {
+			return;
+		}
+		const uncompressed = JSON.stringify(this.#cache);
+		if (uncompressed.length > 40 * 10**6) {
+			// on my (sg) computer right now (2024-08-28) 60 million uncompressed
+			//  is too big for the cache. so let's quit caching when we get to
+			//  this point
+			this.cacheTooBig = true;
+			console.warn(`uncompressed cache size ${uncompressed.length.toLocaleString()}; giving up on caching`);
+		}
 		const startTime = performance.now();
 		const duration = performance.now() - startTime;
 		const before = (localStorage.getItem('dataCache') || '').length;
@@ -82,15 +80,30 @@ class DataCache {
 		this.addCacheHistoryEvent(evtMsg);
 
 		try {
+			this.setLocalStorageItem('dataCache', compressed);
+		} catch(err) {
+			alert("Can't save cache! (This shouldn't happen anymore. Tell Siggie.)");
+			throw err;
+		}
+		try {
 			localStorage.setItem('dataCache', compressed);
 		} catch(err) {
-      // TODO: probably fix alert message?
+	// TODO: probably fix alert message?
 			alert("Can't save cache! (This shouldn't happen anymore. Tell Siggie.)");
 			// debugger;
 			throw err;
 		}
 		// console.log(`saveCache took ${duration}ms`);
 	}, 400);
+
+	  // Add these methods to make it easier to mock localStorage
+	setLocalStorageItem(key, value) {
+		localStorage.setItem(key, value);
+	}
+
+	getLocalStorageItem(key) {
+		return localStorage.getItem(key);
+	}
 
 	addCacheHistoryEvent(evtMsg) {
 		let evt = {

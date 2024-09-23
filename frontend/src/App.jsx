@@ -73,7 +73,7 @@ import Button from '@mui/material/Button';
       </SearchParamsProvider>
     </BrowserRouter>
 */
-function AppWrapper() {
+export function AppWrapper({children}) {
   // prefetch({itemType: 'all_csets'});
   return (
     // <React.StrictMode> // {/* StrictMode helps assure code goodness by running everything twice, but it's annoying*/}
@@ -88,7 +88,7 @@ function AppWrapper() {
                 <NewCsetProvider>
                   <DataCacheProvider>
                     <DataGetterProvider>
-                      <RoutesContainer/>
+                      {children}
                     </DataGetterProvider>
                   </DataCacheProvider>
                 </NewCsetProvider>
@@ -105,7 +105,7 @@ function AppWrapper() {
 }
 // window.compress = compress;
 // window.decompress = decompress;
-function RoutesContainer() {
+export function RoutesContainer() {
   const [codeset_ids, codesetIdsDispatch] = useCodesetIds();
   const location = useLocation();
   // const [newCset, newCsetDispatch] = useNewCset();
@@ -214,5 +214,3 @@ https://reactjs.org/docs/hooks-reference.html#conditionally-firing-an-effect
 OH!! Does that mean: without a dependency list, the useEffects function will run on every render?
 
 */
-
-export { AppWrapper };
