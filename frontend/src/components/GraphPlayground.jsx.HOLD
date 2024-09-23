@@ -1,3 +1,6 @@
+// sigma is messing up jest tests
+// getting rid of it -- it's only needed by this file
+
 import React, { FC, useEffect, useState, useMemo } from "react";
 import { SigmaContainer, useSigma, useLoadGraph, useRegisterEvents } from "@react-sigma/core";
 import { useLayoutCircular } from "@react-sigma/layout-circular";

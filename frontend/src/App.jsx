@@ -28,7 +28,7 @@ import { ConceptSetsPage } from "./components/Csets";
 import { CsetComparisonPage } from "./components/CsetComparisonPage";
 import { AboutPage } from "./components/AboutPage";
 // import { ConceptGraph } from "./components/GraphD3dag";
-import { ConceptGraph, } from "./components/GraphPlayground";
+// import { ConceptGraph, } from "./components/GraphPlayground";
 import {
   CodesetIdsProvider,
   useCodesetIds, ViewCurrentState,
@@ -131,11 +131,10 @@ export function RoutesContainer() {
         <Route path="upload-csv" element={<UploadCsvPage/>} />
         {/*<Route path="auth/callback" element={<AuthCallback/>} />*/}
         {/*<Route path="auth/logout" element={<Logout/>} />*/}
-        <Route
-            path="graph"
-            // element={<DisplayGraph/>}
-            element={<ConceptGraph/>}
-        />
+        {/*<Route path="graph"*/}
+        {/*    // element={<DisplayGraph/>}*/}
+        {/*    element={<ConceptGraph/>}*/}
+        {/*/>*/}
         {/*<Route path="download-json" element={<DownloadJSON/>} />*/}
         <Route path="view-state" element={<ViewCurrentState/>} />
         <Route path="N3CRecommended" element={<N3CRecommended/>} />

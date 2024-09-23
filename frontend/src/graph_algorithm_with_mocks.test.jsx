@@ -5,6 +5,16 @@ import {AppWrapper} from './App';
 import { CsetComparisonPage } from './components/CsetComparisonPage';
 import { DataCacheProvider } from './state/DataCache';
 import * as DataGetterModule from './state/DataGetter';
+import {
+  SearchParamsProvider,
+  SessionStorageProvider,
+} from './state/StorageProvider';
+import {
+  CidsProvider,
+  CodesetIdsProvider,
+  GraphOptionsProvider, NewCsetProvider,
+} from './state/AppState';
+import {DataGetterProvider} from './state/DataGetter';
 
 // Mock the DataGetter
 jest.mock('./state/DataGetter', () => ({
@@ -47,9 +57,29 @@ describe('CsetComparisonPage', () => {
     let component;
     await act(async () => {
       component = render(
-        <AppWrapper>
-          <CsetComparisonPage />
-        </AppWrapper>
+          /*
+          <AppWrapper>
+            <CsetComparisonPage />
+          </AppWrapper>
+
+        <SearchParamsProvider>
+        </SearchParamsProvider>
+          */
+          <SessionStorageProvider>
+            <CodesetIdsProvider>
+              <CidsProvider>
+                <GraphOptionsProvider>
+                  <NewCsetProvider>
+                    <DataCacheProvider>
+                      <DataGetterProvider>
+                        <CsetComparisonPage />
+                      </DataGetterProvider>
+                    </DataCacheProvider>
+                  </NewCsetProvider>
+                </GraphOptionsProvider>
+              </CidsProvider>
+            </CodesetIdsProvider>
+          </SessionStorageProvider>
       );
     });
 

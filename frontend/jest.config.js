@@ -1,3 +1,17 @@
+module.exports = {
+  transform: {
+    "^.+\\.jsx?$": "babel-jest"
+  },
+  moduleFileExtensions: ["js", "jsx"],
+  testEnvironment: "jsdom",
+  setupFilesAfterEnv: ["<rootDir>/jest.setup.js"],
+  moduleNameMapper: {
+    "\\.(css|less|scss|sass)$": "identity-obj-proxy"
+  },
+  transformIgnorePatterns: [
+    "node_modules/(?!(react-sigma|graphology|@react-sigma/core)/)"
+  ]
+};
 /*
 module.exports = {
   testEnvironment: 'jsdom',
@@ -17,6 +31,7 @@ module.exports = {
 };
  */
 
+/*
 module.exports = {
   testEnvironment: 'jsdom',
   transform: {
@@ -51,3 +66,4 @@ module.exports = {
     "^.+\\.(css|less|scss)$": "identity-obj-proxy"
   },
 };
+*/

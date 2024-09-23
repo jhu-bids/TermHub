@@ -1,8 +1,8 @@
 import React, { useState, useEffect, useCallback, useRef, useMemo, } from 'react';
-import DataTable, { createTheme } from 'react-data-table-component';
+import DataTable from 'react-data-table-component';
 import { styles } from './CsetComparisonPage';
 
-import { useDataGetter, DataGetter } from '../state/DataGetter';
+import { useDataGetter, } from '../state/DataGetter';
 import { sum, set, uniq, flatten, debounce, isEmpty } from 'lodash';
 import { setColDefDimensions } from './dataTableUtils';
 import { useWindowSize } from '../utils';
@@ -11,6 +11,7 @@ import { setOp } from '../utils';
 import Button from '@mui/material/Button';
 import { TextField } from '@mui/material';
 
+/*
 interface Concept {
     readonly concept_id: number;
     readonly concept_name: string;
@@ -25,6 +26,7 @@ interface Concept {
     readonly total_cnt: number;
     readonly distinct_person_cnt: string;
 }
+ */
 
 const columns = [
     {
@@ -99,11 +101,11 @@ export function AddConcepts() {
 
 // from https://stackoverflow.com/a/66167322/1368860
 function ConceptStringSearch() {
-    const dataGetter: DataGetter = useDataGetter();
+    const dataGetter = useDataGetter();
     const [codeset_ids] = useCodesetIds();
     const [cids, cidsDispatch] = useCids();
     const [searchText, setSearchText] = React.useState('');
-    const c: number[] = [];
+    const c = [];
     const [have_concept_ids, setHaveConceptIds] = React.useState(c);
     const [found_concept_ids, setFoundConceptIds] = React.useState(c);
     const lastRequest = React.useRef(null);
@@ -131,9 +133,7 @@ function ConceptStringSearch() {
     React.useEffect(() => {
         (async () => {
             // csmi for these codeset_ids should already be cached
-            const csmi: {
-                [key: number]: Concept
-            } = await dataGetter.fetchAndCacheItems(dataGetter.apiCalls.cset_members_items, codeset_ids);
+            const csmi = await dataGetter.fetchAndCacheItems(dataGetter.apiCalls.cset_members_items, codeset_ids);
             let h = uniq(flatten(
                 Object.values(csmi).map(d => Object.values(d)),
             )); // .filter(d => d.item).map(d => d.concept_id));
@@ -169,7 +169,7 @@ function ConceptStringSearch() {
             <Button
                 style={{margin: '7px', textTransform: 'none'}}
                 variant={"contained"}
-                onClick={(evt) => {
+                onClick={() => {
                     const cidsText = addCidsFieldRef.current.value;
                     const cids = cidsText.split(/[,\s]+/).filter(d=>d.length);
                     cidsDispatch({ type: 'add', cids: cids, });
@@ -192,7 +192,7 @@ function FoundConceptTable(props) {
     let { displayConceptIds, divWidth } = props;
     const [cids, cidsDispatch] = useCids();
     const dataGetter = useDataGetter();
-    const c: Concept[] = [];
+    const c = [];
     const [concepts, setConcepts] = useState(c);
     const [loading, setLoading] = useState(false);
     const totalRows = displayConceptIds.length;
@@ -213,6 +213,8 @@ function FoundConceptTable(props) {
     const handlePageChange = page => {
         fetchConcepts(page);
     };
+
+    //  FIX -- this isn't being used
     const handlePerRowsChange = async (newPerPage, page) => {
         setLoading(true);
         let ids = displayConceptIds.slice(page - 1, page - 1 + perPage);
@@ -224,7 +226,6 @@ function FoundConceptTable(props) {
     };
     useEffect(() => {
         fetchConcepts(1); // fetch page 1 of users
-        // eslint-disable-next-line react-hooks/exhaustive-deps
     }, [displayConceptIds]);
 
     if (isEmpty(displayConceptIds)) {
@@ -345,7 +346,7 @@ function AddedCidsConceptTableHOLD(props) {
     const [toggleCleared, setToggleCleared] = React.useState(false);
     const [cids, cidsDispatch] = useCids();
     const dataGetter = useDataGetter();
-    const c: Concept[] = [];
+    const c = [];
     const [concepts, setConcepts] = useState(c);
     const [loading, setLoading] = useState(false);
     const totalRows = cids.length;
