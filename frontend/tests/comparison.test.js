@@ -57,8 +57,10 @@ for (const envName in selectedConfigs) {
           const conceptIdCell = await page.locator('#row-0 div:nth-child(11)', {timeout});
           await expect(conceptIdCell).toHaveText(firstRow.concept_id+'', {timeout});
 
+          const gc = new GraphContainer(graphData);
+
           await page.evaluate(() => window.dispatchGraphOptions({
-            gc: new GraphContainer(graphData),
+            gc,
             type: 'TOGGLE_NODE_EXPANDED',
             nodeId: firstRow.concept_id,
             direction: 'expand',

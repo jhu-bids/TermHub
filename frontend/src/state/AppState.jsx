@@ -136,13 +136,12 @@ function cidsReducer(state, action) {
   return state.map(Number);
 }
 
-function graphOptionsReducer(state, action) {
+export function graphOptionsReducer(state, action) {
   /* state: GraphOpts, action: {
         type: string, graphOptions: GraphOpts, direction: string,
         nodeId: number, specialConceptType: string, resetValue: GraphOpts, }) { */
   if ( ! ( action || {} ).type ) return state;
   console.log('graphOptions action', action);
-  debugger;
   // let {collapsePaths, // collapsedDescendantPaths,
   //   nested, hideRxNormExtension, hideZeroCounts} = {...unpersistedDefaultState, ...state};
   const {type, nodeId, specialConceptType, } = action;

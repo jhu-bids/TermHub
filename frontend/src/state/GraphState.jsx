@@ -36,7 +36,7 @@ export const makeGraph = (edges, concepts) => {
 
 export class GraphContainer {
   constructor(graphData, /*, cloneThis */) {
-    window.graphW = this; // for debugging
+    // window.graphW = this; // for debugging
     this.gd = graphData;  // concepts, specialConcepts, csmi, edges, concept_ids, filled_gaps,
                           // missing_from_graph, hidden_by_vocab, nonstandard_concepts_hidden
 
