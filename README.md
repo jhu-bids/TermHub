@@ -4,10 +4,11 @@
 [![Test, Frontend Prod, Playwright E2E](https://github.com/jhu-bids/TermHub/actions/workflows/test_frontend_e2e_live_prod.yml/badge.svg)](https://github.com/jhu-bids/TermHub/actions/workflows/test_frontend_e2e_live_prod.yml)
 [![Test, Frontend Dev, Playwright E2E](https://github.com/jhu-bids/TermHub/actions/workflows/test_frontend_e2e_live_dev.yml/badge.svg)](https://github.com/jhu-bids/TermHub/actions/workflows/test_frontend_e2e_live_dev.yml)
 
-<details><summary>More test statuses</summary>
+<details><summary>More badges</summary>
 <p>
 
-Failure on this doesn't necessarily indicate an issue. It could just mean that the deployed instance has an older UI that is not compatible with new tests:
+### More test statuses
+Failure on this doesn't necessarily indicate an issue. It could just mean that the deployed instance has an older UI that is not compatible with new tests:  
 [![Test, Frontend Dev (local changes), Playwright E2E](https://github.com/jhu-bids/TermHub/actions/workflows/test_frontend_e2e_live_dev_running_local.yml/badge.svg)](https://github.com/jhu-bids/TermHub/actions/workflows/test_frontend_e2e_live_dev_running_local.yml)
 
 </p>
