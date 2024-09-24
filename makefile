@@ -76,6 +76,20 @@ test-frontend-e2e-dev:
 test-frontend-e2e-prod:
 	(cd frontend; \
 	ENVIRONMENTS=prod ${TEST_FRONTEND_CMD})
+## - codegen: "codeless" Playwright generation of UI tests by recording browser interaction
+##   You don't need to use 'local' necessarily if you want to write the tests for local. Any of these commands can work
+##   to write tests that are theoretically compatible in any environment (as long as the UI is the same). The only
+##   difference is that when the test code is written, the first line will hard-code the URL to that environment. So
+##   after recording, the code should be repuprosed in the style of frontend/tests/.
+codegen-local:
+	(cd frontend; \
+	yarn playwright codegen https://localhost:3000)
+codegen-dev:
+	(cd frontend; \
+	yarn playwright codegen https://icy-ground-0416a040f.2.azurestaticapps.net)
+codegen-prod:
+	(cd frontend; \
+	yarn playwright codegen https://purple-plant-0f4023d0f.2.azurestaticapps.net)
 
 # QC
 fetch-missing-csets:
