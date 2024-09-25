@@ -78,7 +78,7 @@ jobs:
     steps:
       # About: https://azure.github.io/AppService/2020/12/11/cicd-for-python-apps.html
       - name: Download artifact from build job
-        uses: actions/download-artifact@v2
+        uses: actions/download-artifact@v4
         with:
           name: python-app
           path: .
