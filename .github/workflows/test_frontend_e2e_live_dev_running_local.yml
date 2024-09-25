@@ -53,7 +53,7 @@ jobs:
     # Run tests
     - name: Run Playwright tests
       run: make test-frontend-e2e-dev
-    - uses: actions/upload-artifact@v3
+    - uses: actions/upload-artifact@v4
       if: always()
       with:
         name: playwright-report
@@ -82,7 +82,7 @@ jobs:
 #      run: yarn playwright install --with-deps # Use yarn to run playwright install
 #    - name: Run Playwright tests
 #      run: yarn playwright test # Use yarn to run playwright test
-#    - uses: actions/upload-artifact@v3
+#    - uses: actions/upload-artifact@v4
 #      if: always()
 #      with:
 #        name: playwright-report
