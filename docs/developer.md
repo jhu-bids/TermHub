@@ -114,6 +114,26 @@ _You can read more about this in the related "Periodic maintenance > Updating au
 pay for. We can't currently do this at `jhu-bids` because it's connected to the JHU organization, and they aren't set up
 to handle this kind of billing.
 
+### Do for both dev and prod
+First, make replace the current `dev` or `prod` git tag with the commit that you are deploying from. The reason for this 
+is because the Playright tests are set to run on those tagged commits, so that the tests that run are in sync with the 
+actual deployment. That way, we'll know if some problem has occurred with our infrastructure. Playwright tests using the
+latest code should only be run on local.
+
+Example using `dev`:
+```sh
+# Optional: back up old tag
+git checkout dev
+git tag dev-YYYY-MM-DD  # The date the commit was made. There might already be such a tag.
+# Make new tags
+git checkout BRANCH_OR_COMMIT_TO_DEPLOY 
+git tag -d dev  # delete locally
+git tag dev
+git tag dev-YYYY-MM-DD  # This is a backup. YYYY-MM-DD: The date the commit was made.
+# Push updates
+git push --tags -f  # -f (force) overwrites the previous `dev` tag
+```
+
 ### Deploying to Dev
 Use the GitHub actions. Click these links for [backend](https://github.com/jhu-bids/TermHub/actions/workflows/backend_dev.yml) and [frontend](https://github.com/jhu-bids/TermHub/actions/workflows/frontend_dev.yml) actions, and then click "Run Workflow".
 After both are deployed, test the app here: http://bit.ly/termhub-dev
