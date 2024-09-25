@@ -62,7 +62,7 @@ jobs:
 #        run: python -m unittest discover -v
       # About: https://azure.github.io/AppService/2020/12/11/cicd-for-python-apps.html
       - name: Upload artifact for deployment jobs
-        uses: actions/upload-artifact@v2
+        uses: actions/upload-artifact@v4
         with:
           name: python-app
           path: |
