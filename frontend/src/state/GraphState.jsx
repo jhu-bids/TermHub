@@ -199,7 +199,6 @@ export class GraphContainer {
 
     this.arrangeDisplayRows(rootRows);  // second time
     // this.displayedRows.forEach(row => { row.levelsBelow = this.sortFunc(row) }); // for debugging
-    // debugger;
     // TODO: FIX allButFirstOccurrence -- needs to hide paths, not just concept_ids, it's broken
     this.gd.specialConcepts.allButFirstOccurrence = this.displayedRows.filter(row => row.nodeOccurrence > 0).map(d => d.rowPath);
     // this.graphDisplayConfig.allButFirstOccurrence
@@ -221,7 +220,7 @@ export class GraphContainer {
           let nodeToHide = this.nodes[id];
           if (nodeToHide.expanded) {  //
             // does this get used anymore? we shouldn't be using expanded property now
-            debugger;
+            console.warn("shouldn't be using .expanded property on nodes. look into this");
             // TODO:  make sure this still works without using node.expanded
             if (!some(nodeToHide.childIds, id => this.displayedNodeRows.has(id) && !this.hideThoughExpanded.has(id))) {
               // don't hide if it has children that should be shown

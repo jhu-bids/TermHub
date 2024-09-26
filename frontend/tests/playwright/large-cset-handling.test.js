@@ -97,7 +97,6 @@ for (const envName in configsToRun) {
       page.setDefaultTimeout(timeoutSeconds * 2000);  // need extra time here i think. single-small timed out with 30 seconds
                                                       // or maybe that was a temporary problem with indented-concept-list performance
       /* if (testName === 'single-small-second-time') {
-        debugger;
       } */
 
       /**

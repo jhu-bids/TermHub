@@ -103,7 +103,6 @@ class DataCache {
 			localStorage.setItem('dataCache', compressed);
 		} catch(err) {
 			alert("Can't save cache!");
-			debugger;
 			throw err;
 		}
 		console.log(`saveCache took ${duration}ms`);

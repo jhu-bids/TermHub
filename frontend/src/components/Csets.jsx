@@ -184,7 +184,6 @@ export function CsetSearch (props = {}) {
         // console.log(option);
         optsseen[option.value] = true;
         if (!option.value) {
-          debugger;
         }
         return (
           <li {...props} key={option.value}>
@@ -320,7 +319,6 @@ export function ConceptSetsPage () {
         let cset = allRelatedCsets[csid];
         if (!cset) {
           console.warn(`WHY IS csid ${csid} MISSING???`);
-          // debugger;
           continue;
         }
         let rcids = relatedCsetConceptIds[csid];
@@ -329,7 +327,7 @@ export function ConceptSetsPage () {
         cset['recall'] = cset['intersecting_concepts'] / concept_ids.length;
         cset['precision'] = cset['intersecting_concepts'] / rcids.length;
         if (isNaN(cset['recall']) || isNaN(cset['precision'])) {
-          debugger
+          console.warn(`WHY ARE recall or precision NaN?`);
         }
       }
 
