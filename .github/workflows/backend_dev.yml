@@ -82,6 +82,11 @@ jobs:
         with:
           name: python-app
           path: .
+      # TODO temp
+      - name: ls
+        run: ls
+      - name: Display env file contents
+        run: cat env/.env
       - name: 'Deploy to Azure Web App'
         uses: azure/webapps-deploy@v2
         id: deploy-to-webapp
