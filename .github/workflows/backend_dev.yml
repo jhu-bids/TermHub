@@ -65,9 +65,10 @@ jobs:
         uses: actions/upload-artifact@v4
         with:
           name: python-app
+          include-hidden-files: true
           path: |
-            **
-            !venv/**
+            .
+            !venv/
 
   deploy:
     runs-on: ubuntu-latest
@@ -81,11 +82,7 @@ jobs:
         uses: actions/download-artifact@v4
         with:
           name: python-app
-      # TODO temp
-      - name: ls
-        run: ls -R
-      - name: Display env file contents
-        run: cat env/.env
+          path: .
       - name: 'Deploy to Azure Web App'
         uses: azure/webapps-deploy@v2
         id: deploy-to-webapp
