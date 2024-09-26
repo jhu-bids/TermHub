@@ -63,6 +63,7 @@ node_modules
 .env.test.local
 .env.production.local
 npm-debug.log*
+/frontend/.yarn/*
 yarn-debug.log*
 yarn-error.log*
 

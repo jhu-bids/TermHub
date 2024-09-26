@@ -1,53 +1,19 @@
-/*
 module.exports = {
-  testEnvironment: 'jsdom',
+  // not sure this stuff is sueful
+  testEnvironment: 'jest-environment-jsdom',
   transform: {
-    // '^.+\\.jsx?$': 'vite-jest',
-    '^.+\\.(js|jsx|ts|tsx)$': 'vite-jest',
+    '^.+\\.[t|j]sx?$': 'babel-jest',
+    "node_modules\\/.+\\.(js)|(mjs)$": "@swc/jest",
+    '\\.[tj]sx?$': ['babel-jest', { rootMode: 'upward' }]
   },
-  setupFilesAfterEnv: ['<rootDir>/jest.setup.js'],
-};
-
-module.exports = {
-  testEnvironment: 'jsdom',
-  transform: {
-    '^.+\\.(js|jsx|ts|tsx)$': '@swc/jest',
-  },
-  setupFilesAfterEnv: ['<rootDir>/jest.setup.js'],
-};
- */
-
-module.exports = {
-  testEnvironment: 'jsdom',
-  transform: {
-    '^.+\\.(js|jsx|ts|tsx)$': ['@swc/jest', {
-      jsc: {
-        parser: {
-          syntax: 'ecmascript',
-          jsx: true,
-        },
-        transform: {
-          react: {
-            runtime: 'automatic',
-          },
-        },
-      },
-    }],
-  },
-  setupFilesAfterEnv: ['<rootDir>/jest.setup.js'],
-  moduleDirectories: ['node_modules', 'src'],
-  moduleFileExtensions: ['js', 'jsx', 'ts', 'tsx', 'json', 'node'],
+  
+  
+  // https://stackoverflow.com/questions/49263429/jest-gives-an-error-syntaxerror-unexpected-token-export
+  // - didn't work
   transformIgnorePatterns: [
-    'node_modules/(?!(react-merge-refs|@floating-ui/react-dom-interactions)/)',
+    "node_modules/(?!@ngrx|(?!deck.gl)|ng-dynamic)"
   ],
-  moduleNameMapper: {
-    '^react-merge-refs$': '<rootDir>/src/__mocks__/react-merge-refs.js',
-    '^@floating-ui/react-dom-interactions$': '<rootDir>/src/__mocks__/@floating-ui/react-dom-interactions.js',
-    '^react-markdown$': '<rootDir>/src/__mocks__/react-markdown.js',
-    // '\\.(jpg|jpeg|png|gif|eot|otf|webp|svg|ttf|woff|woff2|mp4|webm|wav|mp3|m4a|aac|oga)$': 'jest-transform-stub',
-    // '\\.(css|less|scss|sass)$': 'jest-transform-stub',
-
-    "^.+\\.svg$": "jest-svg-transformer",
-    "^.+\\.(css|less|scss)$": "identity-obj-proxy"
-  },
+  
+  setupFilesAfterEnv: ['./jest.setup.js'], // Optional, see Step 4
+  testMatch: ['**/src/**/*.test.js', '**/src/**/*.spec.js'],
 };

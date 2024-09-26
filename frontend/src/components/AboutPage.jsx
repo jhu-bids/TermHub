@@ -135,7 +135,6 @@ export function AboutPage() {
                 setLastRefreshed(lastRefreshed);
             } catch (e) {
                 console.warn('was getting a max update depth exceeded here. fix it if it comes up again');
-                debugger;
             }
         })();
     }, []);

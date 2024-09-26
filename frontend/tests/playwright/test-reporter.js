@@ -74,7 +74,6 @@ class MyReporter {
         // the basic-functions.test does not add attachments, so getting rid of this warning
         // todo: This is happening. what needs to be addressed?
         // console.warn("Warning: No attachments: TestReporter expected attachments at test end, but they were not founds?");
-        // debugger;
       }
       reportLine = {...reportLine, ...attachmentObj};
 
@@ -92,8 +91,7 @@ class MyReporter {
 
     onError(error) {
         console.log('\nError in onError!!!!');
-        console.log(error);
-        debugger;
+        console.warn(error);
     }
 
     onEnd(result) {
@@ -107,7 +105,6 @@ class MyReporter {
     onStdErr(chunk, test, result) {
         let c = typeof(chunk) === 'string' ? chunk : JSON.stringify(chunk);
         console.log(`${test} error: ${chunk}`);
-        // debugger;
     }
     */
   }

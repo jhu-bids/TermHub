@@ -90,7 +90,6 @@ class DataCache {
 		} catch(err) {
 	// TODO: probably fix alert message?
 			alert("Can't save cache! (This shouldn't happen anymore. Tell Siggie.)");
-			// debugger;
 			throw err;
 		}
 		// console.log(`saveCache took ${duration}ms`);

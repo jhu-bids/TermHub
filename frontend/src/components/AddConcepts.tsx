@@ -362,11 +362,11 @@ function AddedCidsConceptTableHOLD(props) {
         setLoading(false);
     };
     const handlePageChange = page => {
-        debugger;
+        console.log("handling page change");
         fetchConcepts(page);
     };
     const handlePerRowsChange = async (newPerPage, page) => {
-        debugger;
+        console.log("handling perRows change");
         setLoading(true);
         let ids = cids.slice(page - 1, page - 1 + perPage);
         let conceptLookup = await dataGetter.fetchAndCacheItems(dataGetter.apiCalls.concepts, ids);

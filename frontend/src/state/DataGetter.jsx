@@ -101,7 +101,6 @@ export class DataGetter {
       if (sendAlert) {
         alertAction.axiosCall = response;
         // this.alertsDispatch(alertAction);
-        // debugger;
         response = await response;
         alertAction = {...alertAction, response, type: 'resolve'};
         delete alertAction.axiosCall;
@@ -109,7 +108,6 @@ export class DataGetter {
       }
       response = await response;
       return returnDataOnly ? response.data : response;
-      // debugger;
     } catch (error) {
       if (sendAlert) {
         alertAction = {...alertAction, error, type: 'error'};
@@ -405,7 +403,7 @@ export class DataGetter {
           dataCache.cachePut([apiDef.cacheSlice, key], obj);
         });
       } else {
-        debugger;
+        throw new Error(`unexpected apiDef.apiResultShape: ${apiDef.apiResultShape}`);
       }
     }
     const results = {...cachedItems, ...uncachedItems};
@@ -421,7 +419,6 @@ export class DataGetter {
     } else {
       // was doing this for everything before but ending up with items assigned to the wrong keys sometimes
       // 	going forward, the server should probably return everything in a keyed dict
-      debugger;
       data.forEach((item, i) => uncachedItems[uncachedKeys[i]] = item);
     }
 
