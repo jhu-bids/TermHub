@@ -194,7 +194,9 @@ export function useSessionStorage() {
 
 
 const SEARCH_PARAM_STATE_CONFIG = {
-  scalars: ["editCodesetId", "sort_json", "use_example", "show_alerts", "optimization_experiment", "comparison_rpt"],
+  scalars: ["editCodesetId", "sort_json", "use_example", "show_alerts", "optimization_experiment",
+            // "comparison_rpt",
+            "compare_opt"],
   serialize: ["newCset", ], // "appOptions"
 };
 

@@ -30,10 +30,9 @@ import { AboutPage } from "./components/AboutPage";
 // import { ConceptGraph } from "./components/GraphD3dag";
 import { ConceptGraph, } from "./components/GraphPlayground";
 import {
-  CodesetIdsProvider,
-  useCodesetIds, ViewCurrentState,
-  CidsProvider,
-  GraphOptionsProvider,
+  ReducerProviders, useCodesetIds,
+  // CodesetIdsProvider, CidsProvider, GraphOptionsProvider,
+  ViewCurrentState,
   // AppOptionsProvider,
   NewCsetProvider,
   // AlertsProvider, useAlerts, useAlertsDispatch, useNewCset, urlWithSessionStorage,
@@ -82,19 +81,15 @@ export function AppWrapper({children}) {
     <SearchParamsProvider>
       <SessionStorageProvider>
         {/*<AppOptionsProvider>*/}
-          <CodesetIdsProvider>
-            <CidsProvider>
-              <GraphOptionsProvider>
-                <NewCsetProvider>
-                  <DataCacheProvider>
-                    <DataGetterProvider>
-                      {children}
-                    </DataGetterProvider>
-                  </DataCacheProvider>
-                </NewCsetProvider>
-              </GraphOptionsProvider>
-            </CidsProvider>
-          </CodesetIdsProvider>
+        <ReducerProviders>
+          <NewCsetProvider>
+            <DataCacheProvider>
+              <DataGetterProvider>
+                {children}
+              </DataGetterProvider>
+            </DataCacheProvider>
+          </NewCsetProvider>
+        </ReducerProviders>
         {/*</AppOptionsProvider>*/}
       </SessionStorageProvider>
     </SearchParamsProvider>
