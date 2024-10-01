@@ -2,9 +2,9 @@ import {GraphContainer} from '../../src/state/GraphState';
 import { graphOptionsInitialState, graphOptionsReducer } from '../../src/state/AppState';
 import { safeTest, resetTestSuite } from './testUtils';
 
-const singleSmallTestData = require('./jest-data/singleSmallGraph.json');
-const manySmallGraphContainerGraphData = require('./jest-data/manySmallGraphContainerGraphData.json');
-const asthmaGraphData = require('./jest-data/asthmaExampleGraphData.json');
+const singleSmallTestData = require('../test-data/singleSmallGraph.json');
+const manySmallGraphContainerGraphData = require('../test-data/manySmallGraphContainerGraphData.json');
+const asthmaGraphData = require('../test-data/asthmaExampleGraphData.json');
 
 let graphDataCases = [singleSmallTestData, manySmallGraphContainerGraphData, asthmaGraphData];
 graphDataCases = graphDataCases.slice(0,1);

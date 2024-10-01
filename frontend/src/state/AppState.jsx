@@ -18,7 +18,6 @@ import { pct_fmt, setOp } from '../utils';
 // import Box from '@mui/material/Box';
 // import CircularProgress from '@mui/material/CircularProgress';
 import { useDataCache } from './DataCache';
-console.log("is there a problem?")
 // import Markdown from 'react-markdown';
 // import { Inspector } from 'react-inspector';
 
@@ -242,6 +241,7 @@ function makeProvider({stateName, reducer, initialSettings, storageProviderGette
     const resetFunc = () => dispatch({type: 'reset', resetValue: initialSettings});
     resetFuncs.push(resetFunc);
 
+    // <Context.Provider value={[storageProvider.getItem(stateName), dispatch]}>
     return (
         <Context.Provider value={[state, dispatch]}>
           {children}

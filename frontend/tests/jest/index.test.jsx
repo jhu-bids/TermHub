@@ -17,13 +17,13 @@ import {useSessionStorage} from './state/StorageProvider';
 // siggie 2024-09-05 to @joeflack4: I just refactored the following out of
 //  this file into json files, but now I see that these data already exist in
 //  data files in ./test/test_backend/routes/static/concept_graph
-import singleSmallTestData from './jest-data/singleSmallGraph.json';
+import singleSmallTestData from '../test-data/singleSmallGraph.json';
 import manySmallGraphContainerGraphData
-  from './jest-data/manySmallGraphContainerGraphData.json';
-import asthmaGraphData from './jest-data/asthmaExampleGraphData.json';
+  from '../test-data/manySmallGraphContainerGraphData.json';
+import asthmaGraphData from '../test-data/asthmaExampleGraphData.json';
 // diagramCase: last copied from test_graph.py test_get_missing_in_between_nodes(): 2024/02/11
 // edges only. see https://github.com/jhu-bids/TermHub/blob/develop/docs/graph.md
-import _diagramCase from './jest-data/diagramCase.json';
+import _diagramCase from '../test-data/diagramCase.json';
 
 let diagramCase = convertToArrayOfStrings(_diagramCase);
 
