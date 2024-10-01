@@ -14,6 +14,7 @@ import asthmaGraphData from '../test-data/asthmaExampleGraphData.json';
 // diagramCase: last copied from test_graph.py test_get_missing_in_between_nodes(): 2024/02/11
 // edges only. see https://github.com/jhu-bids/TermHub/blob/develop/docs/graph.md
 import _diagramCase from '../test-data/diagramCase.json';
+import convertToArrayOfStrings from './utils';
 let diagramCase = convertToArrayOfStrings(_diagramCase);
 
 
@@ -25,12 +26,12 @@ testCases = [singleSmallTestData, ];
 let timeout = 20000;
 
 for (const envName in selectedConfigs) {
+  const appUrl =
+      deploymentConfigs[envName] +
+      '/cset-comparison?' +
+      codeset_ids.map(d => `codeset_ids=${d}`).join('&');
   for (const testData of testCases) {
     const {test_name, codeset_ids, graphData, roots, leaves, firstRow, } = testData;
-    const appUrl =
-        deploymentConfigs[envName] +
-        '/cset-comparison?' +
-        codeset_ids.map(d => `codeset_ids=${d}`).join('&');
 
     test.describe(`On ${envName} with case ${test_name}`, () => {
       test.describe(`GraphOptions and GraphContainer Tests`, async () => {
@@ -117,10 +118,6 @@ for (const envName in selectedConfigs) {
           const url = new URL(page.url());
           return url.pathname === 'cset-comparison';
         }).toBeTruthy();
-
-    /*
-
-    */
       });
     });
 
@@ -196,18 +193,4 @@ for (const envName in selectedConfigs) {
     });
      */
   }
-}
-
-// UTILS
-/* Used to convert input to be same as graphology serialization (all strings). */
-function convertToArrayOfStrings(matrix) {
-  var stringMatrix = [];
-  for (var i = 0; i < matrix.length; i++) {
-    var stringRow = [];
-    for (var j = 0; j < matrix[i].length; j++) {
-      stringRow.push(matrix[i][j].toString());
-    }
-    stringMatrix.push(stringRow);
-  }
-  return stringMatrix;
 }
