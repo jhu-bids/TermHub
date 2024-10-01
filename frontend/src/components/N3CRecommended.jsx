@@ -5,14 +5,18 @@ import { flatten, uniq, sortBy } from "lodash";
 import {backend_url, useDataGetter} from "../state/DataGetter";
 import {useSearchParamsState} from "../state/StorageProvider";
 import {fmt, saveCsv, useWindowSize} from "../utils";
-import {TextH2} from "./AboutPage";
+import {TextH2, } from "./AboutPage";
 import Button from "@mui/material/Button";
 import {Link, useLocation} from "react-router-dom";
+import {useCodesetIds, useCompareOpt} from '../state/AppState';
 
-export function BundleReport() {
-  const location = useLocation();
-  const queryParams = new URLSearchParams(location.search);
-  const bundle = queryParams.get('bundle');
+export function BundleReport({bundle}) {
+  // can get here from ViewBundleReportSelector
+  if (!bundle) {
+    const location = useLocation();
+    const queryParams = new URLSearchParams(location.search);
+    bundle = queryParams.get('bundle');
+  }
 
   const [data, setData] = useState(null);
   const dataGetter = useDataGetter();
@@ -68,7 +72,7 @@ export function BundleReport() {
 }
 
 export function N3CRecommended() {
-    return <BundleReport bundle="N3C Recommended" />;
+  return <BundleReport bundle="N3C Recommended" />;
 }
 
 /*  can't recall what this was for,
@@ -88,6 +92,8 @@ function json2csv(items) {
 export const N3CComparisonRpt = () => {
   const [data, setData] = useState(null);
   const dataGetter = useDataGetter();
+  const [codeset_ids, codesetIdsDispatch] = useCodesetIds();
+  const [compareOpt, compareOptDispatch] = useCompareOpt();
 
   useEffect(() => {
     (async () => {
@@ -147,8 +153,15 @@ export const N3CComparisonRpt = () => {
     {grow: 3, sortable: true, name: "New", selector: row => row.cset_2, wrap: true},
     {grow: 2, name: "Compare", selector: row => (
           <Button
+              onClick={() => {
+                codesetIdsDispatch({
+                  type: 'set_all',
+                  codeset_ids: [row.cset_1_codeset_id, row.cset_2_codeset_id]
+                });
+                compareOptDispatch('compare-precalculated');
+              }}
               to={`/cset-comparison?codeset_ids=${row.cset_1_codeset_id}&codeset_ids=${row.cset_2_codeset_id}` +
-                `&comparison_pair=${row.cset_1_codeset_id}-${row.cset_2_codeset_id}`}
+                `&compare_opt=compare-precalculated`}
               component={Link}
               style={{margin: '7px', textTransform: 'none'}}
           >

@@ -24,7 +24,6 @@ console.log("is there a problem?")
 
 export const NEW_CSET_ID = -1;
 
-// const resetFuncs: (() => unknown)[] = [];
 const resetFuncs = [];
 
 export const [CodesetIdsProvider, useCodesetIds] = makeProvider(
@@ -38,6 +37,12 @@ export const [CidsProvider, useCids] = makeProvider(
       reducer: cidsReducer,
       initialSettings: [],
       storageProviderGetter: useSessionStorage, });
+
+export const [CompareOptProvider, useCompareOpt] = makeProvider(
+    { stateName: 'compare_opt',
+      reducer: compareOptReducer,
+      initialSettings: [],
+      storageProviderGetter: useSearchParamsState, });
 
 /*
 export const [AppOptionsProvider, useAppOptions] = makeProvider(
@@ -87,7 +92,24 @@ export function resetReducers() {
     resetFuncs.forEach(f => f());
 }
 
-function codesetIdsReducer( state, action) {
+export function ReducerProviders({children}) {
+  const Context = createContext();
+  return (
+      <Context.Provider value={null}>
+        <CodesetIdsProvider>
+          <CidsProvider>
+            <GraphOptionsProvider>
+              <CompareOptProvider>
+                {children}
+              </CompareOptProvider>
+            </GraphOptionsProvider>
+          </CidsProvider>
+        </CodesetIdsProvider>
+      </Context.Provider>
+  );
+}
+
+function codesetIdsReducer(state, action) {
     /* state: number[],
     action: {type: string, codeset_id: number|string,
              codeset_ids: [number|string], resetValue: [number]}) { */
@@ -134,6 +156,17 @@ function cidsReducer(state, action) {
       throw new Error(`unexpected action.type ${action.type}`);
   }
   return state.map(Number);
+}
+
+function compareOptReducer(state, action) {
+  // must be one of two string values
+  if (typeof(action === 'undefined')) {
+    return state;
+  }
+  if (['compare-precalculated', 'real-time-comparison'].includes(action)) {
+    return action;
+  }
+  return undefined;
 }
 
 export function graphOptionsReducer(state, action) {
