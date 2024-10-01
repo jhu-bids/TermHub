@@ -83,13 +83,13 @@ test-frontend-e2e-prod:
 ##   after recording, the code should be repuprosed in the style of frontend/tests/.
 codegen-local:
 	(cd frontend; \
-	yarn playwright codegen https://localhost:3000)
+	yarn playwright codegen http://localhost:3000)
 codegen-dev:
 	(cd frontend; \
-	yarn playwright codegen https://icy-ground-0416a040f.2.azurestaticapps.net)
+	yarn playwright codegen http://icy-ground-0416a040f.2.azurestaticapps.net)
 codegen-prod:
 	(cd frontend; \
-	yarn playwright codegen https://purple-plant-0f4023d0f.2.azurestaticapps.net)
+	yarn playwright codegen http://purple-plant-0f4023d0f.2.azurestaticapps.net)
 
 # QC
 fetch-missing-csets:
