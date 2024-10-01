@@ -71,6 +71,12 @@ test-frontend-e2e-ui:
 test-frontend-e2e-deployments:
 	(cd frontend; \
 	${TEST_ENV_DEPLOYED} ${TEST_FRONTEND_CMD})
+test-frontend-e2e-prod:
+	(cd frontend; \
+	ENVIRONMENTS=prod ${TEST_FRONTEND_CMD})
+test-frontend-e2e-dev:
+	(cd frontend; \
+	ENVIRONMENTS=dev ${TEST_FRONTEND_CMD})
 
 # QC
 fetch-missing-csets:
