@@ -1,5 +1,5 @@
 module.exports = {
-  // not sure this stuff is sueful
+  // not sure this stuff is useful
   testEnvironment: 'jest-environment-jsdom',
   transform: {
     '^.+\\.[t|j]sx?$': 'babel-jest',
@@ -15,5 +15,5 @@ module.exports = {
   ],
   
   setupFilesAfterEnv: ['./jest.setup.js'], // Optional, see Step 4
-  testMatch: ['**/src/**/*.test.js', '**/src/**/*.spec.js'],
+  testMatch: ['**/src/**/*.test.js', '**/src/**/*.spec.js', '**/tests/jest/**/*.test.js'],
 };
