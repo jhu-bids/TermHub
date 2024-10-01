@@ -2,7 +2,7 @@
 
 const fs = require('fs');
 const {isEmpty} = require('lodash');
-const LOGDIR = process.cwd() + '/tests/performance';
+const LOGDIR = process.cwd() + '/tests/playwright/performance';
 
 /*
 let cols = [  // from testInfo.attach in large-cset test

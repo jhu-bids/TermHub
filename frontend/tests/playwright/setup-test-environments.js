@@ -13,7 +13,7 @@ playwright test`, where  dev is short for 'development' and prod is short for 'p
     (c) Command?: make a command that sets the URL in a file and then import that into the playwright test
     (d) playwright.config.js? - (didn't work; kinda makes sense since that url doesn't get passed)
 */
-import {DEPLOYMENT} from "../src/env";
+import {DEPLOYMENT} from "../../src/env";
 
 
 // Config --------------------------------------------------------------------------------------------------------------

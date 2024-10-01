@@ -4,16 +4,16 @@ import {createSearchParams, useSearchParams, /* useLocation, Navigate, */ } from
 // const { test, expect } = require('@playwright/test');
 import {test, expect, } from '@playwright/test';
 
-import { GraphContainer, makeGraph, } from '../src/state/GraphState';
-import {graphOptionsInitialState, GraphOptionsProvider, useGraphOptions, } from '../src/state/AppState';
+import { GraphContainer, makeGraph, } from '../../src/state/GraphState';
+// import {graphOptionsInitialState, GraphOptionsProvider, useGraphOptions, } from '../../src/state/AppState';
 
-import singleSmallTestData from '../src/jest-data/singleSmallGraph.json';
+import singleSmallTestData from '../test-data/singleSmallGraph.json';
 import manySmallGraphContainerGraphData
-  from '../src/jest-data/manySmallGraphContainerGraphData.json';
-import asthmaGraphData from '../src/jest-data/asthmaExampleGraphData.json';
+  from '../test-data/manySmallGraphContainerGraphData.json';
+import asthmaGraphData from '../test-data/asthmaExampleGraphData.json';
 // diagramCase: last copied from test_graph.py test_get_missing_in_between_nodes(): 2024/02/11
 // edges only. see https://github.com/jhu-bids/TermHub/blob/develop/docs/graph.md
-import _diagramCase from '../src/jest-data/diagramCase.json';
+import _diagramCase from '../test-data/diagramCase.json';
 let diagramCase = convertToArrayOfStrings(_diagramCase);
 
 
