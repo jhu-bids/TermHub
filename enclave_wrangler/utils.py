@@ -352,7 +352,6 @@ def make_objects_request(
     path: str, url_only=False, return_type: str = ['Response', 'json', 'data'][0],
     handle_paginated=False, expect_single_item=False, retry_if_empty=False, retry_times=15, retry_pause=1,
     outdir: str = None, query_params: Dict = None, fail_on_error=True, verbose=False, **request_args
-        # why isn't fail_on_error implemented?
 ) -> Union[Response, JSON_TYPE, str]:
     """Fetch objects from enclave
 

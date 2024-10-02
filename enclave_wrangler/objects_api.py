@@ -638,7 +638,7 @@ def fetch_cset_version(object_id: int, retain_properties_nesting=False) -> Dict:
 def fetch_cset_container(object_id: str, fail_on_error=False, verbose=False) -> Dict:
     """Get object from enclave"""
     return make_objects_request(
-        f'OMOPConceptSetContainer/{object_id}', fail_on_error=fail_on_error,
+        f'OMOPConceptSetContainer/{uquote(object_id)}', fail_on_error=fail_on_error,
         verbose=verbose, return_type='data', expect_single_item=True)
 
 

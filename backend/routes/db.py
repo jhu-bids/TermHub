@@ -676,7 +676,7 @@ def get_comparison_rpt(con, codeset_id_1: int, codeset_id_2: int):  # -> Dict[st
 
 def generate_n3c_comparison_rpt():
     """Generate N3C comparison report
-        If you want more or difference comparisons than what are currently in the report, you need
+        If you want more or different comparisons than what are currently in the report, you need
         to add new pairs of original and new codesets to the codeset_comparison table.
         For doing that while actually creating new copies of codesets based on old ones, look at
          make_new_versions_of_csets.
