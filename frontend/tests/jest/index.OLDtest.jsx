@@ -13,6 +13,7 @@ import { describe, test, expect, /*beforeAll, afterAll, beforeEach, afterEach */
 import { GraphContainer, makeGraph, } from './state/GraphState';
 import {graphOptionsInitialState, GraphOptionsProvider, useGraphOptions, } from './state/AppState';
 import {useSessionStorage} from './state/StorageProvider';
+import {convertToArrayOfStrings} from '../testUtils';
 
 // siggie 2024-09-05 to @joeflack4: I just refactored the following out of
 //  this file into json files, but now I see that these data already exist in
@@ -333,17 +334,3 @@ test('with asthma example', () => {
 
 test('initial state and dispatch function', () => {
 });
-
-// UTILS
-/* Used to convert input to be same as graphology serialization (all strings). */
-function convertToArrayOfStrings(matrix) {
-  var stringMatrix = [];
-  for (var i = 0; i < matrix.length; i++) {
-    var stringRow = [];
-    for (var j = 0; j < matrix[i].length; j++) {
-      stringRow.push(matrix[i][j].toString());
-    }
-    stringMatrix.push(stringRow);
-  }
-  return stringMatrix;
-}

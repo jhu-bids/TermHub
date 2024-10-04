@@ -1,0 +1,6 @@
+name	status	duration	errors
+local: Main page - has title & heading	passed	0.955	""
+name	status	duration	errors
+local: Main page - has title & heading	passed	1.309	""
+local: Help / about - hyperlink & title	passed	1.473	""
+local: Cset search - select, load, compare	passed	14.413	""

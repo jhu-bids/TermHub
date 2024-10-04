@@ -1,23 +1,39 @@
 import {selectedConfigs, deploymentConfigs} from "./setup-test-environments";
 // const { test, expect } = require('@playwright/test');
-import {test, expect, } from '@playwright/test';
+import {test, expect, describe, } from '@playwright/test';
 
+/*
+use this test in for loop
+
+test('test', async ({ page }) => {
+  await page.goto('http://localhost:3000/');
+  await page.goto('http://localhost:3000/OMOPConceptSets');
+  await page.getByTestId('Help / About').click();
+  await page.getByRole('link', { name: 'N3C Recommended comparison' }).click();
+  await page.getByRole('link', { name: '12 removed , 12 added' }).click();
+  await page.locator('html').click({
+    button: 'right'
+  });
+});
+ */
 // Tests ---------------------------------------------------------------------------------------------------------------
 let timeout = 20000;
 
 // todo temp: toggle comment for development
 // for (const envName of ['dev']) {
-for (const envName in selectedConfigs) {
-  
+describe.each(selectedConfigs)('Graph algorithm tests for $test_name', (envName) => {
   const appUrl = deploymentConfigs[envName];
   
   test('N3C Recommended', async ({ page }) => {
-    await page.goto(appUrl);
+    // await page.goto(appUrl);
     await page.goto(appUrl + '/OMOPConceptSets');
-    
+
     await page.getByTestId('Help / About').click();
     await page.getByRole('link', { name: 'N3C Recommended', exact: true }).click();
     // TODO: make some assertions
+    await expect(page.getByText(
+      'Downloading N3C Recommended concept sets to bundle-report-N3C_Recommended.csv in your downloads folder.'
+    )).toBeVisible();
   });
   
   test('N3C Recommended comparison', async ({ page }) => {
@@ -39,4 +55,4 @@ for (const envName in selectedConfigs) {
     // TODO: What do I expect to happen next? it says "downloading..."
     await page.getByRole('link', { name: '12 removed , 12 added' }).click();
   });
-}
+});

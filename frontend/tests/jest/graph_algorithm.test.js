@@ -1,21 +1,18 @@
 import {GraphContainer} from '../../src/state/GraphState';
 import { graphOptionsInitialState, graphOptionsReducer } from '../../src/state/AppState';
-import { safeTest, resetTestSuite } from './testUtils';
+import { getSafeTestFunc, csetTestData} from '../testUtils';
+let safeTest;
 
-const singleSmallTestData = require('../test-data/singleSmallGraph.json');
-const manySmallGraphContainerGraphData = require('../test-data/manySmallGraphContainerGraphData.json');
-const asthmaGraphData = require('../test-data/asthmaExampleGraphData.json');
-
-let graphDataCases = [singleSmallTestData, manySmallGraphContainerGraphData, asthmaGraphData];
-graphDataCases = graphDataCases.slice(0,1);
+let graphDataCases = csetTestData.slice(0,1);
 
 describe.each(graphDataCases)('Graph algorithm tests for $test_name', (dataCase) => {
+  safeTest = getSafeTestFunc();
   let gc;
   let graphOptions;
   let firstDisplayedRow;
 
   beforeEach(() => {
-    resetTestSuite(); // Reset the suite at the start
+    /* this should run once, not before each test, right? */
     try {
       gc = new GraphContainer(dataCase.graphData);
       graphOptions = { ...graphOptionsInitialState };

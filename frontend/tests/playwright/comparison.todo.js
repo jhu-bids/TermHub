@@ -14,7 +14,7 @@ import asthmaGraphData from '../test-data/asthmaExampleGraphData.json';
 // diagramCase: last copied from test_graph.py test_get_missing_in_between_nodes(): 2024/02/11
 // edges only. see https://github.com/jhu-bids/TermHub/blob/develop/docs/graph.md
 import _diagramCase from '../test-data/diagramCase.json';
-import convertToArrayOfStrings from './utils';
+import {convertToArrayOfStrings} from '../testUtils';
 let diagramCase = convertToArrayOfStrings(_diagramCase);
 
 
