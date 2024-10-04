@@ -1069,7 +1069,7 @@ def upload_cset_copy_in_new_container(
         c_created_by = oc.get('createdBy')
         if c_created_by == config['SERVICE_USER_ID']:
             c_creator = 'UNITEConceptSetBulk@nih.gov'
-        elif c_created_by:
+        elif c_created_by and type(c_created_by) == dict:
             c_creator = get_researcher(c_created_by).get('name', 'unknown')
     except Exception as e:
         raise e
@@ -1079,7 +1079,7 @@ def upload_cset_copy_in_new_container(
         v_created_by = ov.get('createdBy')
         if v_created_by == config['SERVICE_USER_ID']:
             v_creator = 'UNITEConceptSetBulk@nih.gov'
-        elif v_created_by:
+        elif v_created_by and type(v_created_by) == dict:
             v_creator = get_researcher(v_created_by).get('name', 'unknown')
     except Exception as e:
         raise e

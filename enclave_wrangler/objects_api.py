@@ -1038,7 +1038,9 @@ def get_researcher(multipass_id: str, verbose=False) -> List[Dict]:
     https://unite.nih.gov/workspace/hubble/exploration?objectTypeRid=ri.ontology.main.object-type.70d7defa-4914-422f-83da-f45c28befd5a
     """
     object_name = 'Researcher'
-    data: List[Dict] = make_objects_request(object_name + '/' + multipass_id, expect_single_item=True, return_type='data', verbose=verbose)
+    data: List[Dict] = make_objects_request(object_name + '/' + multipass_id, expect_single_item=True,
+        return_type='data', verbose=verbose, fail_on_error=False)
+    #   added fail_on_error=False because sometimes the API returns not found for actual multipass_ids
     return data
 
 

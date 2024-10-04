@@ -528,7 +528,7 @@ def enclave_post(url: str, data: Union[List, Dict], raise_validate_error: bool=F
 
         return response
     except Exception as err:
-        ttl = check_token_ttl(get_auth_token())
+        ttl = check_token_ttl() # 2024-10-02 was check_token_ttl(get_auth_token()), which is wrong
         if ttl == 0:
             raise RuntimeError(f'Error: Token expired for {TOKEN_KEY}: {headers["authorization"]}')
         raise err

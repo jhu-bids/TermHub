@@ -60,6 +60,7 @@ from requests import Response
 from enclave_wrangler.config import ENCLAVE_PROJECT_NAME, TERMHUB_VERSION, VALIDATE_FIRST, config
 from enclave_wrangler.objects_api import get_concept_set_version_expression_items, get_codeset_json
 from enclave_wrangler.utils import enclave_get, make_actions_request, get_random_codeset_id  # set_auth_token_key,
+from backend.routes.db import identify_missing_concept_ids
 
 
 UUID = str
@@ -132,6 +133,11 @@ def add_concepts_via_array(
     - https://unite.nih.gov/workspace/data-integration/dataset/preview/ri.foundry.main.dataset.7104f18e-b37c-419b-9755-a732bfa33b03/master
     - https://unite.nih.gov/workspace/module/view/latest/ri.workshop.main.module.5a6c64c0-e82b-4cf8-ba5b-645cd77a1dbf
     """
+
+    # first check to make sure all these concept_ids are really in the concepts table
+    missing_concept_ids = identify_missing_concept_ids(concepts)
+    concepts = list(set(concepts).difference(missing_concept_ids))
+
     api_name = 'add-selected-concepts-as-omop-version-expressions'
     # Commented out portions are part of the api definition
     # Required params

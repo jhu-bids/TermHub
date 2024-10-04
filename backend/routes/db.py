@@ -67,6 +67,29 @@ def get_csets(codeset_ids: List[int]) -> List[Dict]:
     return row_dicts
 
 
+def identify_missing_concept_ids(concept_ids: List[int]) -> List[int]:
+    """
+    Parameters
+    ----------
+    concept_ids
+
+    Returns
+    -------
+
+    """
+    with get_db_connection() as con:
+        sql = f"""
+            SELECT t.concept_id
+            FROM (VALUES 
+                {", ".join([f"({c})" for c in concept_ids])}
+            ) AS t (concept_id)
+            LEFT JOIN concept c ON t.concept_id = c.concept_id
+            WHERE c.concept_id IS NULL
+        """
+        missing_concept_ids = sql_query_single_col(con, sql)
+    return missing_concept_ids
+
+
 def get_row_researcher_ids_dict(row: Dict):
     """
         dict of id: [roles]
