@@ -194,9 +194,8 @@ export function useSessionStorage() {
 
 
 const SEARCH_PARAM_STATE_CONFIG = {
-  scalars: ["editCodesetId", "sort_json", "use_example", "show_alerts", "optimization_experiment",
-            // "comparison_rpt",
-            "compare_opt"],
+  scalars: ["editCodesetId", "sort_json", "use_example", "show_alerts", "optimization_experiment",],
+            // "comparison_rpt", "compare_opt"
   serialize: ["newCset", ], // "appOptions"
 };
 
@@ -259,7 +258,12 @@ export function SearchParamsProvider({children}) {
   }
 
   function setItem(key, value) {
-    updateSearchParams({addProps: {[key]: value}});
+    if (typeof(value) === 'undefined') {
+      // for scalar items, this was explicitly setting query param key=undefined
+      removeItem(key);
+    } else {
+      updateSearchParams({addProps: {[key]: value}});
+    }
   }
 
   function removeItem(key) {

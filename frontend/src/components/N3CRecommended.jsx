@@ -8,7 +8,7 @@ import {fmt, saveCsv, useWindowSize} from "../utils";
 import {TextH2, } from "./AboutPage";
 import Button from "@mui/material/Button";
 import {Link, useLocation} from "react-router-dom";
-import {useCodesetIds, useCompareOpt} from '../state/AppState';
+import {useCodesetIds, } from '../state/AppState';
 
 export function BundleReport({bundle}) {
   // can get here from ViewBundleReportSelector
@@ -93,7 +93,7 @@ export const N3CComparisonRpt = () => {
   const [data, setData] = useState(null);
   const dataGetter = useDataGetter();
   const [codeset_ids, codesetIdsDispatch] = useCodesetIds();
-  const [compareOpt, compareOptDispatch] = useCompareOpt();
+  // const [compareOpt, compareOptDispatch] = useCompareOpt();
 
   useEffect(() => {
     (async () => {
@@ -158,10 +158,10 @@ export const N3CComparisonRpt = () => {
                   type: 'set_all',
                   codeset_ids: [row.cset_1_codeset_id, row.cset_2_codeset_id]
                 });
-                compareOptDispatch('compare-precalculated');
+                // compareOptDispatch('compare-precalculated');
               }}
-              to={`/cset-comparison?codeset_ids=${row.cset_1_codeset_id}&codeset_ids=${row.cset_2_codeset_id}` +
-                `&compare_opt=compare-precalculated`}
+              to={`/cset-comparison?codeset_ids=${row.cset_1_codeset_id}&codeset_ids=${row.cset_2_codeset_id}`}
+              // + `&compare_opt=compare-precalculated`
               component={Link}
               style={{margin: '7px', textTransform: 'none'}}
           >

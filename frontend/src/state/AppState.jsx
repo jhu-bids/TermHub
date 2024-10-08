@@ -6,7 +6,7 @@ import React, {
   useState,
 } from 'react';
 // import {PropTypes} from 'prop-types';
-import { fromPairs, get, isEmpty, isEqual, pick, } from 'lodash';
+import { fromPairs, get, isEmpty, isEqual, pick, cloneDeep, } from 'lodash';
 // import {compressToEncodedURIComponent} from "lz-string";
 // import {createPersistedReducer} from "./usePersistedReducer";
 import {
@@ -23,7 +23,7 @@ import { useDataCache } from './DataCache';
 
 export const NEW_CSET_ID = -1;
 
-const resetFuncs = [];
+const resetFuncs = {};
 
 export const [CodesetIdsProvider, useCodesetIds] = makeProvider(
     { stateName: 'codeset_ids',
@@ -37,13 +37,12 @@ export const [CidsProvider, useCids] = makeProvider(
       initialSettings: [],
       storageProviderGetter: useSessionStorage, });
 
-export const [CompareOptProvider, useCompareOpt] = makeProvider(
+/* export const [CompareOptProvider, useCompareOpt] = makeProvider(
     { stateName: 'compare_opt',
       reducer: compareOptReducer,
-      initialSettings: [],
+      // initialSettings: [],
       storageProviderGetter: useSearchParamsState, });
 
-/*
 export const [AppOptionsProvider, useAppOptions] = makeProvider(
     { stateName: 'appOptions',
       reducer: appOptionsReducer,
@@ -88,7 +87,7 @@ export const [GraphOptionsProvider, useGraphOptions] = makeProvider(
     storageProviderGetter: useSessionStorage, });
 
 export function resetReducers() {
-    resetFuncs.forEach(f => f());
+    Object.values(resetFuncs).forEach(f => f());
 }
 
 export function ReducerProviders({children}) {
@@ -98,9 +97,9 @@ export function ReducerProviders({children}) {
         <CodesetIdsProvider>
           <CidsProvider>
             <GraphOptionsProvider>
-              <CompareOptProvider>
+              {/*<CompareOptProvider>*/}
                 {children}
-              </CompareOptProvider>
+              {/*</CompareOptProvider>*/}
             </GraphOptionsProvider>
           </CidsProvider>
         </CodesetIdsProvider>
@@ -157,16 +156,16 @@ function cidsReducer(state, action) {
   return state.map(Number);
 }
 
-function compareOptReducer(state, action) {
+/* function compareOptReducer(state, action) {
   // must be one of two string values
-  if (typeof(action === 'undefined')) {
+  if (typeof(action) === 'undefined') {
     return state;
   }
   if (['compare-precalculated', 'real-time-comparison'].includes(action)) {
     return action;
   }
-  return undefined;
-}
+  return state;
+} */
 
 export function graphOptionsReducer(state, action) {
   /* state: GraphOpts, action: {
@@ -248,16 +247,31 @@ function makeProvider({stateName, reducer, initialSettings, storageProviderGette
   // makes provider to manage both a regular reducer and a storage provider
   // I think the idea was to put update logic into reducers and try to have storage providers
   //  just emulate localStorage (whether for localStorage, sessionStorage, or querystring)
+  /*
   const regularReducer = (state, action) => {
     const newState = reducer(state, action);
     const returnState = isEqual(state, newState) ? state : newState;
     appStateW[stateName] = returnState;
     return returnState;
   };
+   */
+  let state = cloneDeep(initialSettings);
 
   const Context = createContext();
   const Provider = ({children}) => {
     const storageProvider = storageProviderGetter();
+    state = storageProvider.getItem(stateName) ?? state;
+
+    function dispatch(action) {
+      const newState = reducer(state, action);
+      if (!isEqual(state, newState)) {
+        state = newState;
+        storageProvider.setItem(stateName, jsonify ? JSON.stringify(state) : state);
+        appStateW[stateName] = state;
+      }
+      return state;
+    }
+    /*
     const [state, dispatch] = useReducer(regularReducer, initialSettings, (initial) => {
       let storedSettings = storageProvider.getItem(stateName);
       if (storedSettings) {
@@ -270,12 +284,13 @@ function makeProvider({stateName, reducer, initialSettings, storageProviderGette
       let newState = jsonify ? JSON.stringify(state) : state;
       storageProvider.setItem(stateName, newState);
     }, [stateName, state]);
+     */
 
     const resetFunc = () => dispatch({type: 'reset', resetValue: initialSettings});
-    resetFuncs.push(resetFunc);
+    resetFuncs[stateName] = resetFunc;
 
-    // <Context.Provider value={[storageProvider.getItem(stateName), dispatch]}>
     return (
+        // <Context.Provider value={[storageProvider.getItem(stateName) ?? initialSettings, dispatch]}>
         <Context.Provider value={[state, dispatch]}>
           {children}
         </Context.Provider>

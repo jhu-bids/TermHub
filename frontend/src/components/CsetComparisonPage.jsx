@@ -50,7 +50,7 @@ import {
   NEW_CSET_ID,
   urlWithSessionStorage, useCodesetIds,
   useGraphOptions, // useAppOptions,
-  useNewCset, useCids, useCompareOpt,
+  useNewCset, useCids, // useCompareOpt,
 } from '../state/AppState';
 import {GraphContainer} from '../state/GraphState';
 import {getResearcherIdsFromCsets, useDataGetter} from '../state/DataGetter';
@@ -62,27 +62,13 @@ import {LI} from './AboutPage';
 // TODO: Color table: I guess would need to see if could pass extra values/props and see if table widget can use that
 //  ...for coloration, since we want certain rows grouped together
 export async function fetchGraphData(props) {
-  let {dataGetter, compareOpt, codeset_ids, cids, newCset = {}} = props;
+  let {dataGetter, codeset_ids, cids, newCset = {}} = props;
   let promises = [ // these can run immediately
     dataGetter.fetchAndCacheItems(dataGetter.apiCalls.cset_members_items,
         codeset_ids),
     dataGetter.fetchAndCacheItems(dataGetter.apiCalls.csets, codeset_ids),
+    dataGetter.fetchAndCacheItems(dataGetter.apiCalls.n3c_comparison_rpt),
   ];
-  let comparison_rpt;
-  if (compareOpt) {
-    if (codeset_ids.length !== 2) {
-      throw new Error("Can't use the compare option unless there are exactly two codeset_ids");
-    }
-    if (compareOpt === 'compare-precalculated') {
-      comparison_rpt = dataGetter.axiosCall(
-          `single-n3c-comparison-rpt?pair=${codeset_ids.join('-')}`,
-          {sendAlert: false, skipApiGroup: true});
-    } else if (compareOpt === 'real-time-comparison') {
-      throw new Error("haven't implemented real-time-comparison yet");
-    } else {
-      throw new Error(`invalid compareOpt: ${compareOpt}`);
-    }
-  }
   // have to get concept_ids before fetching concepts
   // const concept_ids_by_codeset_id = await dataGetter.fetchAndCacheItems(dataGetter.apiCalls.concept_ids_by_codeset_id, codeset_ids);
   // let concept_ids = union(flatten(Object.values(concept_ids_by_codeset_id)));
@@ -99,8 +85,23 @@ export async function fetchGraphData(props) {
   promises.push(
       dataGetter.fetchAndCacheItems(dataGetter.apiCalls.concepts, concept_ids));
 
-  let [csmi, selected_csets, conceptLookup] = await Promise.all(promises);
+  let [csmi, selected_csets, comparedPairs, conceptLookup] = await Promise.all(promises);
+  let cpairs = comparedPairs.map(p => [p.cset_1_codeset_id, p.cset_2_codeset_id].sort().join('-'));
 
+  let comparison_rpt;
+  if (codeset_ids.length === 2) {
+    const pcids = codeset_ids.sort().join('-');
+    let compareOpt = false;
+    if (compareOpt === 'compare-precalculated') {
+      comparison_rpt = dataGetter.axiosCall(
+          `single-n3c-comparison-rpt?pair=${codeset_ids.join('-')}`,
+          {sendAlert: false, skipApiGroup: true});
+    } else if (compareOpt === 'real-time-comparison') {
+      throw new Error("haven't implemented real-time-comparison yet");
+    } else {
+      // throw new Error(`invalid compareOpt: ${compareOpt}`);
+    }
+  }
   /*
   // just for screenshot
   let x = csmi[718894835][4153380];
@@ -184,7 +185,7 @@ export async function fetchGraphData(props) {
 export function CsetComparisonPage() {
   const [codeset_ids] = useCodesetIds();
   const [cids, cidsDispatch] = useCids();
-  const [compareOpt, compareOptDispatch] = useCompareOpt();
+  // const [compareOpt, compareOptDispatch] = useCompareOpt();
   const [newCset, newCsetDispatch] = useNewCset();
   const [api_call_group_id, setApiCallGroupId] = useState();
   let [graphOptions, graphOptionsDispatch] = useGraphOptions();
@@ -232,7 +233,7 @@ export function CsetComparisonPage() {
       const graphData = await fetchGraphData({
         dataGetter,
         graphOptions,
-        compareOpt,
+        // compareOpt,
         codeset_ids,
         cids,
         newCset,
