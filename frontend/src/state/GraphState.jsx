@@ -86,24 +86,6 @@ export class GraphContainer {
     this.#computeAttributes();
   }
 
-  wholeHierarchy() {
-    // deep copy the node so we don't mutate the original
-    let nodes = cloneDeep(this.nodes);
-    let rows = [];
-    function traverse(nodeId, depth = 0) {
-      let node = nodes[nodeId];
-      node.depth = depth;
-      rows.push(node);
-      node.hasChildren && node.childIds.forEach(childId => {
-        traverse(childId, depth + 1); // Recurse
-      });
-    }
-    for (let rootId of sortBy(this.roots, this.sortFunc)) {
-      traverse(rootId);
-    }
-    return rows;
-  }
-
   getDisplayedRows(graphOptions) {
     // const {/*collapsedDescendantPaths, */ collapsePaths, hideZeroCounts, hideRxNormExtension, nested } = hierarchySettings;
 
@@ -123,8 +105,8 @@ export class GraphContainer {
       rootRows.push(rootRow);
     }
 
+    // start by adding rootRows
     this.arrangeDisplayRows(rootRows);  // first time
-    const displayedRowsBeforeSpecial = [...this.displayedRows];
 
     this.showThoughCollapsed.clear();
     this.hideThoughExpanded.clear();
@@ -134,7 +116,7 @@ export class GraphContainer {
       //  nearest parents add them at those path locations
 
       for (let type in graphOptions.specialConceptTreatment) {
-        if (this.graphDisplayConfig[type].specialTreatmentRule === 'show though collapsed' &&
+        if (get(this, ['graphDisplayConfig', type, 'specialTreatmentRule']) === 'show though collapsed' &&
             graphOptions.specialConceptTreatment[type]) {
           for (let id of this.gd.specialConcepts[type] || []) {
             this.showThoughCollapsed.add(id);
@@ -201,10 +183,19 @@ export class GraphContainer {
     // this.displayedRows.forEach(row => { row.levelsBelow = this.sortFunc(row) }); // for debugging
     // TODO: FIX allButFirstOccurrence -- needs to hide paths, not just concept_ids, it's broken
     this.gd.specialConcepts.allButFirstOccurrence = this.displayedRows.filter(row => row.nodeOccurrence > 0).map(d => d.rowPath);
+    /*
+    if (graphOptions.specialConceptTreatment.allButFirstOccurrence) {
+      this.gd.specialConcepts.allButFirstOccurrence.forEach(row => )
+    }
+     */
+
     // this.graphDisplayConfig.allButFirstOccurrence
 
     for (let type in graphOptions.specialConceptTreatment) {
-      if (this.graphDisplayConfig[type].specialTreatmentRule === 'hide though expanded' && graphOptions.specialConceptTreatment[type]) {
+      if (type === 'allButFirstOccurrence') continue; // handle this differently
+      if (get(this, ['graphDisplayConfig', type, 'specialTreatmentRule'])
+            === 'hide though expanded' &&
+            graphOptions.specialConceptTreatment[type]) {
         // gather all the hideThoughExpanded ids
         this.gd.specialConcepts[type].forEach(id => {
           this.hideThoughExpanded.add(id);
@@ -212,7 +203,9 @@ export class GraphContainer {
       }
     }
     for (let type in graphOptions.specialConceptTreatment) {
-      if (this.graphDisplayConfig[type].specialTreatmentRule === 'hide though expanded' && graphOptions.specialConceptTreatment[type]) {
+      if (get(this, ['graphDisplayConfig', type, 'specialTreatmentRule'])
+          === 'hide though expanded' &&
+          graphOptions.specialConceptTreatment[type]) {
         let [special, displayed] = [
             this.gd.specialConcepts[type],
             this.displayedRows.map(d => d.concept_id)];
@@ -279,9 +272,11 @@ export class GraphContainer {
     this.displayedRows.splice(0, this.displayedRows.length); // empty out this.displayedRows and create again
     let nodeOccurrences = {};
     const f = (rows) => {
-      for (let row of sortBy(rows, this.sortFunc)) {
+      for (let row of sortBy(rows, this.sortFunc)) { // for each row at this level
+        // if it's the first occurrence set nodeOccurrence = 0
         nodeOccurrences[row.concept_id] = nodeOccurrences[row.concept_id] ?? -1;
         row.nodeOccurrence = ++nodeOccurrences[row.concept_id];
+        // if it has been added to hideThoughExpanded, don't display it or its descendants
         if (this.hideThoughExpanded && this.hideThoughExpanded.has(row.concept_id)) continue;
         this.displayedRows.push(row);
         // const node = this.nodes[row.concept_id];
@@ -385,6 +380,21 @@ export class GraphContainer {
       };
     }
     let displayOptions = {
+      /*
+        displayOptions logic
+        See code for hidden-rows column in CsetComparisonPage StatsAndOptions
+        table.
+
+        If specialTreatmentRule is 'show though collapsed', then what we care
+        about are how many currently hidden rows will be shown if option is
+        turned on and how many currently shown rows will be hidden if option
+        is turned off.
+
+        If specialTreatmentRule is 'hide though expanded', then what we care
+        about are how many currently visible rows will be hidden if option is
+        turned on and how many currently hidden rows will be unhidden if option
+        is turned off.
+       */
       displayedRows: {
         name: "Visible rows", displayOrder: displayOrder++,
         value: displayedConcepts.length,
@@ -408,16 +418,17 @@ export class GraphContainer {
       definitionConcepts: {
         name: "Definition concepts", displayOrder: displayOrder++,
         value: this.gd.specialConcepts.definitionConcepts.length,
+        displayedConceptCnt: setOp('intersection', this.gd.specialConcepts.definitionConcepts, displayedConceptIds).length,
         hiddenConceptCnt: setOp('difference', this.gd.specialConcepts.definitionConcepts, displayedConceptIds).length,
         specialTreatmentDefault: false,
         specialTreatmentRule: 'show though collapsed',
       },
       expansionConcepts: {
-        name: "Expansion concepts", displayOrder: displayOrder++,
+        name: "Expansion only concepts", displayOrder: displayOrder++,
         value: this.gd.specialConcepts.expansionConcepts.length,
         // value: uniq(flatten(Object.values(this.gd.csmi).map(Object.values)) .filter(c => c.csm).map(c => c.concept_id)).length,
         displayedConceptCnt: setOp('intersection', this.gd.specialConcepts.expansionConcepts, displayedConceptIds).length,
-        hiddenConceptCnt: setOp('difference', this.gd.concept_ids, displayedConceptIds).length,
+        hiddenConceptCnt: setOp('difference', this.gd.specialConcepts.expansionConcepts, displayedConceptIds).length,
         specialTreatmentDefault: false,
         specialTreatmentRule: 'hide though expanded',
       },
@@ -481,7 +492,8 @@ export class GraphContainer {
     }
     for (let type in displayOptions) {
       let displayOption = {...get(this, ['graphDisplayConfig', type], {}), ...displayOptions[type]};  // don't lose stuff previously set
-      if (typeof(displayOption.value) === 'undefined') {  // don't show displayOptions that don't represent any concepts
+      // if (typeof(displayOption.value) === 'undefined') // don't show displayOptions that don't represent any concepts
+      if (!displayOption.value) {  // addedCids was 0 instead of undefined. will this hide things that shouldn't be hidden?
         delete displayOptions[type];
         continue;
       }
@@ -542,6 +554,24 @@ export class GraphContainer {
     });
     console.log(layers);
     return graph;
+  }
+
+  wholeHierarchy() {
+    // deep copy the node so we don't mutate the original
+    let nodes = cloneDeep(this.nodes);
+    let rows = [];
+    function traverse(nodeId, depth = 0) {
+      let node = nodes[nodeId];
+      node.depth = depth;
+      rows.push(node);
+      node.hasChildren && node.childIds.forEach(childId => {
+        traverse(childId, depth + 1); // Recurse
+      });
+    }
+    for (let rootId of sortBy(this.roots, this.sortFunc)) {
+      traverse(rootId);
+    }
+    return rows;
   }
 }
 

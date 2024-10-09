@@ -137,7 +137,8 @@ export async function fetchGraphData(props) {
 
   const expansionConcepts = uniq(flatten(
       Object.values(csmi).map(d => Object.values(d)),
-  ).filter(d => d.csm).map(d => d.concept_id + ''));
+      // concepts that are in expansion but not definition
+  ).filter(d => d.csm && !d.item).map(d => d.concept_id + ''));
 
   let specialConcepts = {
     definitionConcepts: definitionConcepts.map(String),
@@ -561,26 +562,35 @@ function StatsAndOptions(props) {
     },
     {
       name: 'hidden-rows',
-      // headerProps: { tooltipContent: "Levels of descendants below.", },
       selector: (row) => row.value,
       format: (row) => {
+        // for explanation see displayOptions logic in
+        //    GraphState:setGraphDisplayConfig
         let text;
         let tttext = '';
         if (row.specialTreatmentRule === 'show though collapsed') {
-          if (row.hiddenConceptCnt) {
-            text = fmt(row.hiddenConceptCnt) + ' not visible';
-            tttext = 'Click SHOW to make them visible.';
+          if (graphOptions.specialConceptTreatment[row.type] === false) {
+            if (row.hiddenConceptCnt > 0) {
+              text = fmt(row.hiddenConceptCnt) + ' not shown';
+              tttext = 'Click SHOW to make them visible.';
+            }
           } else {
-            text = fmt(row.displayedConceptCnt) + ' visible';
-            tttext = `Currently showing records even if parents aren't expanded. Click UNSHOW to disable.`;
+            if (row.displayedConceptCnt > 0) {
+              text = fmt(row.displayedConceptCnt) + ' shown';
+              tttext = `Currently showing records even if parents aren't expanded. Click UNSHOW to disable.`;
+            }
           }
         } else if (row.specialTreatmentRule === 'hide though expanded') {
-          if (row.displayedConceptCnt) {
-            text = fmt(row.displayedConceptCnt) + ' visible';
-          } else if (row.hiddenConceptCnt) {
-            text = fmt(row.hiddenConceptCnt) + ' hidden';
+          if (graphOptions.specialConceptTreatment[row.type] === false) {
+            if (row.displayedConceptCnt > 0) {
+              // how many rows will be hidden if HIDE is clicked
+              text = fmt(row.displayedConceptCnt) + ' visible';
+            }
           } else {
-            text = '';
+            if (row.hiddenConceptCnt) {
+              // how many rows will be unhidden if UNHIDE is clicked
+              text = fmt(row.hiddenConceptCnt) + ' hidden';
+            }
           }
         } else if (['Concepts', 'Expansion concepts'].includes(row.name)) {
           text = fmt(row.displayedConceptCnt) + ' visible';
