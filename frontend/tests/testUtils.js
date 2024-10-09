@@ -1,7 +1,7 @@
 // testUtils.js
-const singleSmallTestData = require('../test-data/singleSmallGraph.json');
-const manySmallGraphContainerGraphData = require('../test-data/manySmallGraphContainerGraphData.json');
-const asthmaGraphData = require('../test-data/asthmaExampleGraphData.json');
+const singleSmallTestData = require('./test-data/singleSmallGraph.json');
+const manySmallGraphContainerGraphData = require('./test-data/manySmallGraphContainerGraphData.json');
+const asthmaGraphData = require('./test-data/asthmaExampleGraphData.json');
 
 export const csetTestData = [singleSmallTestData, manySmallGraphContainerGraphData, asthmaGraphData];
 

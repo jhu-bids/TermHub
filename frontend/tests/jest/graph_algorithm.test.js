@@ -10,13 +10,14 @@ describe.each(graphDataCases)('Graph algorithm tests for $test_name', (dataCase)
   let gc;
   let graphOptions;
   let firstDisplayedRow;
+  let displayedRows;
 
   beforeEach(() => {
     /* this should run once, not before each test, right? */
     try {
       gc = new GraphContainer(dataCase.graphData);
       graphOptions = { ...graphOptionsInitialState };
-      gc.getDisplayedRows(graphOptions);
+      displayedRows = gc.getDisplayedRows(graphOptions);
     } catch(e) {
       console.log(e);
       throw new Error(e);
@@ -24,13 +25,13 @@ describe.each(graphDataCases)('Graph algorithm tests for $test_name', (dataCase)
   });
 
   safeTest('1. Initial displayed rows should match roots', () => {
-    const displayedConceptIds = gc.displayedRows.map(row => row.concept_id + '');
+    const displayedConceptIds = displayedRows.map(row => row.concept_id + '');
     expect(displayedConceptIds.sort()).toEqual(dataCase.roots.map(String).sort());
   });
 
   safeTest('2. Initial displayed first row should match dataCase.first row', () => {
-    // firstDisplayedRow = gc.displayedRows.find(row => row.concept_id == firstRowConceptId);
-    firstDisplayedRow = gc.displayedRows[0];
+    // firstDisplayedRow = displayedRows.find(row => row.concept_id == firstRowConceptId);
+    firstDisplayedRow = displayedRows[0];
     expect(firstDisplayedRow.concept_id == dataCase.firstRow.concept_id).toBeTruthy();
     expect(firstDisplayedRow.childIds).toBeDefined();
     expect(firstDisplayedRow.childIds.length).toEqual(dataCase)
@@ -44,11 +45,11 @@ describe.each(graphDataCases)('Graph algorithm tests for $test_name', (dataCase)
       nodeId: dataCase.firstRow.concept_id,
       direction: 'expand'
     };
-    gc.getDisplayedRows(graphOptions);
+    displayedRows = gc.getDisplayedRows(graphOptions);
     graphOptions = graphOptionsReducer(graphOptions, expandAction);
-    const displayedChildIds = gc.displayedRows.slice(1, 1 + dataCase.firstRow.childIds.length);
+    const displayedChildIds = displayedRows.slice(1, 1 + dataCase.firstRow.childIds.length);
     expect(displayedChildIds.map(String).sort()).toEqual(dataCase.firstRow.childIds.map(String).sort());
-    expect(gc.displayedRows.length).toEqual(dataCase.roots.length + dataCase.firstRow.childIds.length);
+    expect(displayedRows.length).toEqual(dataCase.roots.length + dataCase.firstRow.childIds.length);
   });
 
   safeTest('4. Collapsing first row should hide expanded children', () => {
@@ -57,8 +58,8 @@ describe.each(graphDataCases)('Graph algorithm tests for $test_name', (dataCase)
       nodeId: dataCase.firstRow.concept_id,
       direction: 'collapse'
     };
-    gc.getDisplayedRows(graphOptions);
-    const displayedConceptIds = gc.displayedRows.map(row => row.concept_id + '');
+    displayedRows = gc.getDisplayedRows(graphOptions);
+    const displayedConceptIds = displayedRows.map(row => row.concept_id + '');
     expect(displayedConceptIds.sort()).toEqual(dataCase.roots.map(String).sort());
   });
 });
