@@ -74,7 +74,7 @@ describe(
       // graphRender();
       const gc = new GraphContainer(graphData);
       let newGraphOptions = gc.setGraphDisplayConfig(graphOptions);
-      gc.getDisplayedRows(newGraphOptions);
+      let displayedRows = gc.getDisplayedRows(newGraphOptions);
       newGraphOptions = gc.setGraphDisplayConfig(graphOptions);
       graphOptionsDispatch({type: 'REPLACE', graphOptions: newGraphOptions});
 
@@ -89,11 +89,11 @@ describe(
         expect(graphOptions).toEqual(graphOptionsInitialState);
       });
       test('initially displays root nodes', () => {
-        expect(gc.displayedRows.map(r => r.concept_id)).toEqual(roots);
+        expect(displayedRows.map(r => r.concept_id)).toEqual(roots);
       });
 
       describe('First row expand/collapse', () => {
-        const row = gc.displayedRows[0];
+        const row = displayedRows[0];
 
         test('has expected first row', () => {
           expect(row).toEqual(firstRow);
@@ -124,7 +124,7 @@ describe(
 function graphRender(graphData, graphOptions) {
   let gc = new GraphContainer(graphData);
   let newGraphOptions = gc.setGraphDisplayConfig(graphOptions);
-  gc.getDisplayedRows(newGraphOptions);
+  let displayedRows = gc.getDisplayedRows(newGraphOptions);
   newGraphOptions = gc.setGraphDisplayConfig(graphOptions);
   // graphOptionsDispatch({type: 'REPLACE', graphOptions: newGraphOptions});
 }
