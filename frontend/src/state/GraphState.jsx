@@ -84,97 +84,97 @@ export class GraphContainer {
   }
 
   getDisplayedRows(graphOptions) {
-    /*
-      New algorithm
-      Special classes           Action              Default
-        concepts                expandAll           false
-        standard                nothing
-        classification          nothing
+/*
+  New algorithm
+  Special classes           Action              Default
+    concepts                expandAll           false
+    standard                nothing
+    classification          nothing
 
-        specificNodesExpanded
-        specificNodesCollapsed
+    specificNodesExpanded
+    specificNodesCollapsed
 
-        addedCids               showThoughCollapsed true
-        definitionConcepts      showThoughCollapsed false
-        added                   showThoughCollapsed false
-        removed                 showThoughCollapsed false
+    addedCids               showThoughCollapsed true
+    definitionConcepts      showThoughCollapsed false
+    added                   showThoughCollapsed false
+    removed                 showThoughCollapsed false
 
-        allButFirstOccurrence   hideThoughExpanded  true
-        expansionConcepts       hideThoughExpanded  false
-        nonStandard             hideThoughExpanded  false
-        zeroRecord              hideThoughExpanded  false
+    allButFirstOccurrence   hideThoughExpanded  true
+    expansionConcepts       hideThoughExpanded  false
+    nonStandard             hideThoughExpanded  false
+    zeroRecord              hideThoughExpanded  false
 
-      For each row:
-        showReasons:
-          - showThoughCollapsed (include which option in reason?)
-          - hidden parent/ancestor of showThoughCollapsed
-          - child of specificNodesExpanded
-        hideReasons:
-          - hideThoughExpanded (include which option?)
-          - child of specificNodesCollapsed
-          - duplicate occurrence
+  For each row:
+    showReasons:
+      - showThoughCollapsed (include which option in reason?)
+      - hidden parent/ancestor of showThoughCollapsed
+      - child of specificNodesExpanded
+    hideReasons:
+      - hideThoughExpanded (include which option?)
+      - child of specificNodesCollapsed
+      - duplicate occurrence
 
-      TODO:
-        Column shows how many rows hidden below each displayed row
-          With tooltip giving reasons
-          Too complicated to have expand control in that field
-        If expandAll, default icon is (-), otherwise (+)
-          What happens to SNC/SNE when expandAll changes?
-          Clear them? Have two sets of SNC/SNE and swap?
-          Clear for now, then implement swap maybe
+  TODO:
+    [ ] Column shows how many rows hidden below each displayed row
+      With tooltip giving reasons
+      Too complicated to have expand control in that field
+    [ ] If expandAll, default icon is (-), otherwise (+)
+      What happens to SNC/SNE when expandAll changes?
+      Clear them? Have two sets of SNC/SNE and swap?
+      Clear for now, then implement swap maybe
 
-      Cases to think about (test?)
-        Shown (definition) concept is descendant of hidden (nonStandard, zeroRecord) concept
-          (-) Hidden concept    {hideReasons: [HTE(zero)],  showReasons: [parentOfSTC], result: show}
-            (-) Def concept     {hideReasons: [childOfHTE], showReasons: [STC(def)],    result: show}
-              (-) Another       {hideReasons: [],           showReasons: [childOfSTC],  result: show}
-            (+) Def concept     {hideReasons: [childOfHTE], showReasons: [STC(def)],    result: show}
-              (-) Another       {hideReasons: [childOfSNC], showReasons: [],            result: hide}
+  Cases to think about (test?)
+    Shown (definition) concept is descendant of hidden (nonStandard, zeroRecord) concept
+      (-) Hidden concept    {hideReasons: [HTE(zero)],  showReasons: [parentOfSTC], result: show}
+        (-) Def concept     {hideReasons: [childOfHTE], showReasons: [STC(def)],    result: show}
+          (-) Another       {hideReasons: [],           showReasons: [childOfSTC],  result: show}
+        (+) Def concept     {hideReasons: [childOfHTE], showReasons: [STC(def)],    result: show}
+          (-) Another       {hideReasons: [childOfSNC], showReasons: [],            result: hide}
 
-        Shown (definition) concept is descendant of hidden specificNodesCollapsed concept
-          Ideally might depend on order of events, but too hard to code?
-            If you collapse a parent of a STC node, expect the STC node to get hidden?
-            If you turn show def concepts on while some are hidden undeer SNC, expect them to appear?
-            Ok, keep hidden, but implement idea
-          (+) Concept           {hideReasons: [],           showReasons: [root],        result: show}
-            (-) Def concept     {hideReasons: [childOfSNC], showReasons: [STC(def)],    result: hide}
-              (-) Another       {hideReasons: [descOfSNC],  showReasons: [childOfSTC],  result: hide}
+    Shown (definition) concept is descendant of hidden specificNodesCollapsed concept
+      Ideally might depend on order of events, but too hard to code?
+        If you collapse a parent of a STC node, expect the STC node to get hidden?
+        If you turn show def concepts on while some are hidden undeer SNC, expect them to appear?
+        Ok, keep hidden, but implement idea
+      (+) Concept           {hideReasons: [],           showReasons: [root],        result: show}
+        (-) Def concept     {hideReasons: [childOfSNC], showReasons: [STC(def)],    result: hide}
+          (-) Another       {hideReasons: [descOfSNC],  showReasons: [childOfSTC],  result: hide}
 
-        Shown (definition) concept is also hidden (zeroRecord) concept
-          (-) Def zero concept  {hideReasons: [HTE(zero)],  showReasons: [STC(def)],    result: show}
-          STC takes precedence over HTE
+    Shown (definition) concept is also hidden (zeroRecord) concept
+      (-) Def zero concept  {hideReasons: [HTE(zero)],  showReasons: [STC(def)],    result: show}
+      STC takes precedence over HTE
 
-        Hidden (zeroRecord) concept is root
-          Don't hide roots (will sort to bottom anyway probably)
+    Hidden (zeroRecord) concept is root
+      Don't hide roots (will sort to bottom anyway probably)
 
-        specificNodeCollapsed while expandAll is on
-          (currently broken, but should hide descendants)
+    specificNodeCollapsed while expandAll is on
+      (currently broken, but should hide descendants)
 
-      1. Generate allRows: list of all rows, in order, with duplicates
-      2. If allButFirstOccurrence hidden, hide allButFirstOccurrence
-          (and their descendants? descendants will be duplicate occurrences
-          and hidden anyway)
-          crap: what if STC/HTE settings affect which occurrence comes first?
-            could that happen?
-            having a hard time constructing the case (below). maybe just don't
-              worry about it for now?
+  1. [ ] Generate allRows: list of all rows, in order, with duplicates
+  2. [ ] If allButFirstOccurrence hidden, hide allButFirstOccurrence
+      (and their descendants? descendants will be duplicate occurrences
+      and hidden anyway)
+      crap: what if STC/HTE settings affect which occurrence comes first?
+        could that happen?
+        having a hard time constructing the case (below). maybe just don't
+          worry about it for now?
 
-          (-) Concept 1         {hideReasons: [HTE(zero)],  showReasons: [parentOfSTC], result: show}
-            (-) Concept 2       {hideReasons: [childOfHTE], showReasons: [STC(def)],    result: show}
-            (-) Concept 3       {hideReasons: [childOfHTE], showReasons: [STC(def)],    result: show}
-          ...
-          (-) Concept 4         {hideReasons: [],           showReasons: [childOfSNE],  result: show}
-            (-) Concept 2       {hideReasons: [childOfHTE], showReasons: [STC(def)],    result: show}
-            (-) Concept 3       {hideReasons: [childOfHTE], showReasons: [STC(def)],    result: show}
+      (-) Concept 1         {hideReasons: [HTE(zero)],  showReasons: [parentOfSTC], result: show}
+        (-) Concept 2       {hideReasons: [childOfHTE], showReasons: [STC(def)],    result: show}
+        (-) Concept 3       {hideReasons: [childOfHTE], showReasons: [STC(def)],    result: show}
+      ...
+      (-) Concept 4         {hideReasons: [],           showReasons: [childOfSNE],  result: show}
+        (-) Concept 2       {hideReasons: [childOfHTE], showReasons: [STC(def)],    result: show}
+        (-) Concept 3       {hideReasons: [childOfHTE], showReasons: [STC(def)],    result: show}
 
-      3. If expandAll, hide all HTE
-      4. If not expandAll, mark all showThoughCollapsed for showing.
-          That includes ancestors up to nearest not collapsed
-      5. If not expandAll, hide everything that's not
-          a. a root
-          b. marked for showThoughCollapsed
-          c. child of SNE (specificNodesExpanded)
-     */
+  3. If expandAll, hide all HTE
+  4. If not expandAll, mark all showThoughCollapsed for showing.
+      That includes ancestors up to nearest not collapsed
+  5. If not expandAll, hide everything that's not
+      a. a root
+      b. marked for showThoughCollapsed
+      c. child of SNE (specificNodesExpanded)
+ */
 
     // 1. Generate allRows
     let {allRows, nodeRows} = this.setupAllRows(this.roots);
@@ -210,15 +210,17 @@ export class GraphContainer {
         showThoughCollapsed.add(nodeIdToShow);
         this.insertShowThoughCollapsed([nodeIdToShow], shown);
       }); */
+
       // 5. Hide...
-      const rootRows = allRows.filter(row => row.depth === 0);
       // 5a. Hide non-root rows
+      const rootRows = allRows.filter(row => row.depth === 0);
       for (let rootRow of allRows) {
         for(let descendantRow of this.getDescendantRows(rootRow, allRows)) {
           descendantRow.display.hideReasons.push('non-root');
           descendantRow.display.result = 'hide';
         }
       }
+      // 5a. Unhide STC, child of SNE
 
       const hideThoughExpanded = new StringSet();
 
