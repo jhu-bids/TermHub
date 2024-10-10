@@ -113,7 +113,6 @@ export async function fetchGraphData(props) {
         concept_ids = union(concept_ids, Object.values(newCset.definitions).map(d => d.concept_id));
         if (concept_ids.length > cidcnt) {
             console.log("why am I ending up here (on deploy-prod-2024-07-1-branch, commit 125460c7b) when I haven't made a new cset?");
-            debugger;
             throw new Error("not implemented");
         }
     }
@@ -123,7 +122,7 @@ export async function fetchGraphData(props) {
 export function CsetComparisonPage() {
     const [codeset_ids, codesetIdsDispatch] = useCodesetIds();
     const {sp, updateSp} = useSearchParamsState();
-    debugger;
+    console.log("about to call useNewCset");
     const [newCset, newCsetDispatch] = useNewCset();
     const editingCset = !isEmpty(newCset);
     // const { selected_csets = [], researchers, } = cset_data;
@@ -150,9 +149,7 @@ export function CsetComparisonPage() {
 
             await dataGetter.getApiCallGroupId();
 
-            debugger;
             const graphData = fetchGraphData({dataGetter, sp, gcDispatch, codeset_ids, newCset})
-
 
             let { concept_ids, selected_csets, conceptLookup, csmi, concepts, specialConcepts,
                     comparison_rpt } = await graphData;

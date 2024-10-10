@@ -103,7 +103,6 @@ export function ViewCurrentState() {
   const {sp} = useSearchParamsState();
   const alerts = useAlerts();
   const [hierarchySettings, hsDispatch] = useHierarchySettings();
-  debugger;
   const newCset = useNewCset();
   const dataCache = useDataCache();
   return (<div style={{margin: 30, }}>

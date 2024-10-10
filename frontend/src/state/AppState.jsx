@@ -207,6 +207,10 @@ export function NewCsetProvider({ children }) {
   // const storageProvider = CompressedSessionStorage; // for now, for simplicity, just save to sessionStorage
   let state = JSON.parse(storageProvider.getItem('newCset')) || {};
   console.log("debugging on deploy-prod-2024-07-1-branch", {storageProvider, state});
+  console.log("I don't know where the newCset data is coming from, but need to get rid of it");
+  storageProvider.removeItem('newCset')
+  state = JSON.parse(storageProvider.getItem('newCset')) || {};
+
 
   const dispatch = action => {
     let latestState = JSON.parse(storageProvider.getItem('newCset'));
