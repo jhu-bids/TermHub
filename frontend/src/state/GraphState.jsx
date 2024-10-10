@@ -114,6 +114,15 @@ export class GraphContainer {
           - child of specificNodesCollapsed
           - duplicate occurrence
 
+      TODO:
+        Column shows how many rows hidden below each displayed row
+          With tooltip giving reasons
+          Too complicated to have expand control in that field
+        If expandAll, default icon is (-), otherwise (+)
+          What happens to SNC/SNE when expandAll changes?
+          Clear them? Have two sets of SNC/SNE and swap?
+          Clear for now, then implement swap maybe
+
       Cases to think about (test?)
         Shown (definition) concept is descendant of hidden (nonStandard, zeroRecord) concept
           (-) Hidden concept    {hideReasons: [HTE(zero)],  showReasons: [parentOfSTC], result: show}
@@ -141,7 +150,7 @@ export class GraphContainer {
         specificNodeCollapsed while expandAll is on
           (currently broken, but should hide descendants)
 
-      1. Generate this.allRows: list of all rows, in order, with duplicates
+      1. Generate allRows: list of all rows, in order, with duplicates
       2. If allButFirstOccurrence hidden, hide allButFirstOccurrence
           (and their descendants? descendants will be duplicate occurrences
           and hidden anyway)
@@ -165,27 +174,13 @@ export class GraphContainer {
           a. a root
           b. marked for showThoughCollapsed
           c. child of SNE (specificNodesExpanded)
-          --
-
-      TODO:
-        Column shows how many rows hidden below each displayed row
-          With tooltip giving reasons
-          Too complicated to have expand control in that field
-        If expandAll, default icon is (-), otherwise (+)
-          What happens to SNC/SNE when expandAll changes?
-          Clear them? Have two sets of SNC/SNE and swap?
-          Clear for now, then implement swap maybe
-
-    this.displayedRows = [];  // array of displayed rows...individual node could occur in multiple places
-    this.displayedNodeRows = new StringKeyMap();    // map from nodeId to row (node copy)
-    this.showThoughCollapsed = new StringSet();
-    this.hideThoughExpanded = new StringSet();
      */
 
-    this.allRows = this.setupAllRows(this.roots);
+    // 1. Generate allRows
+    let {allRows, nodeRows} = this.setupAllRows(this.roots);
 
-    // get list of allButFirstOccurrence; hide if option on
-    for (let row of this.allRows) {
+    // 2. Get list of allButFirstOccurrence; hide if option on
+    for (let row of allRows) {
       if (row.nodeOccurrence > 0) {
         this.gd.specialConcepts.allButFirstOccurrence.push(row.rowPath);
         if (graphOptions.specialConceptTreatment.allButFirstOccurrence) {
@@ -197,13 +192,10 @@ export class GraphContainer {
     }
 
     if (graphOptions.expandAll) {
-      // no need to expand STC, because nothing collapsed except SNC
+      // 3....  no need to expand STC, because nothing collapsed except SNC
     } else {
-
-      const showThoughCollapsed = new StringSet();
-      const hideThoughExpanded = new StringSet();
-
-      // process STC (showThoughCollapsed)
+      // 4. Process STC (showThoughCollapsed)
+      /* const showThoughCollapsed = new StringSet();
       for (let type in graphOptions.specialConceptTreatment) {
         if (get(this, ['graphDisplayConfig', type, 'specialTreatmentRule']) === 'show though collapsed' &&
             graphOptions.specialConceptTreatment[type]) {
@@ -217,13 +209,35 @@ export class GraphContainer {
         if (this.displayedNodeRows.has(nodeIdToShow)) return; // already displayed
         showThoughCollapsed.add(nodeIdToShow);
         this.insertShowThoughCollapsed([nodeIdToShow], shown);
-      });
+      }); */
+      // 5. Hide...
+      const rootRows = allRows.filter(row => row.depth === 0);
+      // 5a. Hide non-root rows
+      for (let rootRow of allRows) {
+        for(let descendantRow of this.getDescendantRows(rootRow, allRows)) {
+          descendantRow.display.hideReasons.push('non-root');
+          descendantRow.display.result = 'hide';
+        }
+      }
+
+      const hideThoughExpanded = new StringSet();
+
     }
 
-    let displayedRows = this.allRows.filter(r => r.display.result !== 'hide');
+    let displayedRows = allRows.filter(r => r.display.result !== 'hide');
     // return this.displayedRows.filter(r => r.depth < 3);
     return displayedRows;
     // return this.getDisplayedRowsOLD(graphOptions);
+  }
+  getDescendantRows(parentRow, allRows) {
+    // sort of a fragile way to do it, but will get all rows deeper
+    //  than current row until the next row of the same depth
+    let idx = allRows.indexOf(parentRow) + 1;
+    let rows = [];
+    while (idx < allRows.length && allRows[idx].depth > parentRow.depth) {
+      rows.push(allRows[idx++]);
+    }
+    return rows;
   }
   getDisplayedRowsOLD(graphOptions) {
     // const {/*collapsedDescendantPaths, */ collapsePaths, hideZeroCounts, hideRxNormExtension, nested } = hierarchySettings;
@@ -360,7 +374,7 @@ export class GraphContainer {
       }
     };
     addRows(rootNodes);
-    return allRows;
+    return {allRows, nodeRows};
   }
 
   insertShowThoughCollapsed(path, shown) {
