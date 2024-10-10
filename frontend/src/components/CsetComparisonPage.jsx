@@ -255,13 +255,13 @@ export function CsetComparisonPage() {
       //  that looks redundant, unneeded. fixing now but not testing. hopefully won't break anything:
       let _gc = new GraphContainer(graphData);
 
-      let displayedRows = _gc.getDisplayedRows(graphOptions);
 
       let newGraphOptions = _gc.setGraphDisplayConfig(graphOptions);
       if (!isEqual(graphOptions, newGraphOptions)) {
         debugger;
       }
       graphOptions = newGraphOptions;
+      let displayedRows = _gc.getDisplayedRows(graphOptions);
 
 
       newGraphOptions = _gc.setGraphDisplayConfig(graphOptions);
