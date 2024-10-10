@@ -106,6 +106,7 @@ function RoutesContainer() {
       Object.entries(sstorage).map(([k,v]) => {
         if (k === 'newCset') {
           // restore alters newCset.definitions (unabbreviates)
+          debugger;
           v = newCsetDispatch({type: 'restore', newCset: v});
         } else {
           console.warn('was only expecting newCset in sstorage search param, got', {[k]: v},

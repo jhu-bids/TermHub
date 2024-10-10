@@ -123,6 +123,7 @@ export async function fetchGraphData(props) {
 export function CsetComparisonPage() {
     const [codeset_ids, codesetIdsDispatch] = useCodesetIds();
     const {sp, updateSp} = useSearchParamsState();
+    debugger;
     const [newCset, newCsetDispatch] = useNewCset();
     const editingCset = !isEmpty(newCset);
     // const { selected_csets = [], researchers, } = cset_data;
@@ -149,6 +150,7 @@ export function CsetComparisonPage() {
 
             await dataGetter.getApiCallGroupId();
 
+            debugger;
             const graphData = fetchGraphData({dataGetter, sp, gcDispatch, codeset_ids, newCset})
 
 
