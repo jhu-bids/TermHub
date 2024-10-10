@@ -28,8 +28,7 @@ jobs:
       - name: Set up Python version
         uses: actions/setup-python@v2
         with:
-          # Consider '3.10' or 'v3.10.0': https://github.com/actions/setup-python/issues/160
-          python-version: '3.9'
+          python-version: '3.10'
       - name: Print commit hash & branch for rollbacks & troubleshooting
         run: |
           echo "Commit hash: ${{ github.sha }}"
@@ -50,18 +49,23 @@ jobs:
           git lfs pull
       - name: Install dependencies
         run: |
-          python -m pip install --upgrade pip
-          pip install --upgrade wheel
-          pip install --upgrade setuptools
+          # Reactivate install upgrades of pip, wheel, &/or setuptools if needed
+          # python -m pip install --upgrade pip
+          # pip install --upgrade wheel
+          # pip install --upgrade setuptools
+          # VS Hub SDK w/ OAuth disabled: https://github.com/jhu-bids/TermHub/issues/863
+          # TOKEN=$(grep '^PALANTIR_ENCLAVE_AUTHENTICATION_BEARER_TOKEN=' env/.env | cut -d'=' -f2)
+          # python3 -m pip install vshub_sdk --upgrade --extra-index-url "https://:${TOKEN}@unite.nih.gov/artifacts/api/repositories/ri.artifacts.main.repository.9bc9cc56-4b8c-4560-9bfb-fba8ade55246/contents/release/pypi/simple" --extra-index-url "https://:${TOKEN}@unite.nih.gov/artifacts/api/repositories/ri.foundry-sdk-asset-bundle.main.artifacts.repository/contents/release/pypi/simple"
           pip install -r requirements.txt
 # todo: optional: run tests
 #      - name: Run tests
 #        run: python -m unittest discover -v
       # About: https://azure.github.io/AppService/2020/12/11/cicd-for-python-apps.html
       - name: Upload artifact for deployment jobs
-        uses: actions/upload-artifact@v2
+        uses: actions/upload-artifact@v4
         with:
           name: python-app
+          include-hidden-files: true
           path: |
             .
             !venv/
@@ -75,7 +79,7 @@ jobs:
     steps:
       # About: https://azure.github.io/AppService/2020/12/11/cicd-for-python-apps.html
       - name: Download artifact from build job
-        uses: actions/download-artifact@v2
+        uses: actions/download-artifact@v4
         with:
           name: python-app
           path: .
