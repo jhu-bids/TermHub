@@ -112,6 +112,8 @@ export async function fetchGraphData(props) {
         const cidcnt = concept_ids.length;
         concept_ids = union(concept_ids, Object.values(newCset.definitions).map(d => d.concept_id));
         if (concept_ids.length > cidcnt) {
+            console.log("why am I ending up here (on deploy-prod-2024-07-1-branch, commit 125460c7b) when I haven't made a new cset?");
+            debugger;
             throw new Error("not implemented");
         }
     }
