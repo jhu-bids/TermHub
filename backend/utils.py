@@ -178,6 +178,23 @@ def cnt(vals):
     return len(set(vals))
 
 
+def recs2dicts(recs):
+    """Return something like a RowMapping as an actual dict"""
+    return [dict(x) for x in recs]
+
+
+def dicts2dict(dicts, key):
+    """Return a list of dicts to a dict keyed by a property"""
+    d = {}
+    for r in dicts:
+        d[r[key]] = r
+
+    if len(d) != len(dicts):
+        raise ValueError(f"Duplicate keys");
+
+    return d
+
+
 def dump(o):
     """Return pretty printed json"""
     return json.dumps(o, indent=2)
