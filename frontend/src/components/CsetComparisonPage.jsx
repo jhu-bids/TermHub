@@ -90,8 +90,8 @@ export async function fetchGraphData(props) {
 
     comparison_rpt = await comparison_rpt;
     if (comparison_rpt) {
-        specialConcepts.added = comparison_rpt.added.map(String);
-        specialConcepts.removed = comparison_rpt.removed.map(String);
+        specialConcepts.added = comparison_rpt.added.map(d => d.concept_id + '');
+        specialConcepts.removed = comparison_rpt.removed.map(d => d.concept_id + '');
     }
 
     for (let cid in conceptLookup) {

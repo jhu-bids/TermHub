@@ -7,6 +7,7 @@ import urllib.parse
 from functools import cache
 from typing import Dict, List, Union, Set
 
+import pandas as pd
 from fastapi import APIRouter, Query, Request
 from sqlalchemy import Connection, Row
 from sqlalchemy.engine import RowMapping
@@ -18,7 +19,7 @@ from backend.api_logger import Api_logger, get_ip_from_request
 from backend.db.refresh import refresh_db
 from backend.db.queries import get_concepts
 from backend.db.utils import get_db_connection, sql_query, SCHEMA, sql_query_single_col, sql_in, sql_in_safe, run_sql
-from backend.utils import return_err_with_trace, commify
+from backend.utils import return_err_with_trace, commify, recs2dicts, dicts2dict
 from enclave_wrangler.config import RESEARCHER_COLS
 from enclave_wrangler.models import convert_rows
 from enclave_wrangler.objects_api import get_n3c_recommended_csets, get_concept_set_version_expression_items, \
@@ -617,45 +618,84 @@ def single_n3c_comparison_rpt(pair: str):
 
     return rpt[0] if rpt else None
 
+def get_possible_replacement_concepts(concept_id):
+    with get_db_connection() as con:
+        q = f"""
+            SELECT DISTINCT
+                -- cr.concept_id_1,
+                -- c1.concept_name AS concept_name_1,
+                -- c1.vocabulary_id AS vocab_1,
+                -- c1.concept_class_id AS class_1,
+                -- c1.standard_concept AS sc_1,
+                -- c1.invalid_reason AS invalid_1,
+                
+                c2.concept_id,
+                c2.concept_name,
+                c2.vocabulary_id,
+                c2.concept_class_id,
+                c2.standard_concept,
+                
+                public.ARRAY_SORT(ARRAY_AGG(relationship_id)) rels
+                
+            FROM concept_relationship cr
+            -- JOIN concepts_with_counts c1 ON cr.concept_id_1 = c1.concept_id
+            JOIN concepts_with_counts c2 ON cr.concept_id_2 = c2.concept_id
+            WHERE concept_id_1 = :concept_id
+              AND relationship_id in (
+                    'Maps to',
+                    'Mapped from',
+                    'Concept alt_to from',
+                    'Concept alt_to to',
+                    'Concept poss_eq from',
+                    'Concept poss_eq to',
+                    'Concept replaced by',
+                    'Concept replaces',
+                    'Concept same_as from',
+                    'Concept same_as to',
+                    'Concept was_a from',
+                    'Concept was_a to'
+                    )
+              AND concept_id_1 != concept_id_2
+            GROUP BY 1,2,3,4,5;
+        """
+        results = sql_query(con, q, {'concept_id': concept_id})
+        return results
+
 @cache
-def get_comparison_rpt(con, codeset_id_1: int, codeset_id_2: int) -> Dict[str, Union[str, None]]:
+def get_comparison_rpt(codeset_id_1: int, codeset_id_2: int) -> Dict[str, Union[str, None]]:
     cset_1 = get_csets([codeset_id_1])[0]
     cset_2 = get_csets([codeset_id_2])[0]
+    csmi_1 = get_cset_members_items([codeset_id_1], ['concept_id', 'csm','item','flags',])
+    csmi_2 = get_cset_members_items([codeset_id_2], ['concept_id', 'csm','item','flags',])
 
-    cset_1_only = sql_query(con, """
-        SELECT 'removed ' || concept_id || ' ' || concept_name AS diff FROM (
-            SELECT concept_id, concept_name FROM concept_set_members WHERE codeset_id = :codeset_id_1
-            EXCEPT
-            SELECT concept_id, concept_name FROM concept_set_members WHERE codeset_id = :cset_2_codeset_id
-        ) x
-    """, {'codeset_id_1': codeset_id_1, 'cset_2_codeset_id': codeset_id_2})
-    cset_1_only = [dict(r)['diff'] for r in cset_1_only]
+    removed_cids = set([c['concept_id'] for c in csmi_1]).difference([c['concept_id'] for c in csmi_2])
+    removed = [dict(csmi) for csmi in csmi_1 if csmi['concept_id'] in removed_cids]
+    removed_concepts = get_concepts(removed_cids)
+    for rec in removed:
+        c = [c for c in removed_concepts if c['concept_id'] == rec['concept_id']]
+        if len(c) == 1:
+            rec['name'] = c[0]['concept_name']
+            rec['voc'] = c[0]['vocabulary_id']
+            rec['cls'] = c[0]['concept_class_id']
+            rec['std'] = c[0]['standard_concept']
+        replacements = recs2dicts(get_possible_replacement_concepts(rec['concept_id']))
+        rec['replacements'] = replacements
 
-    cset_2_only = sql_query(con, """
-        SELECT 'added ' || concept_id || ' ' || concept_name AS diff FROM (
-            SELECT concept_id, concept_name FROM concept_set_members WHERE codeset_id = :cset_2_codeset_id
-            EXCEPT
-            SELECT concept_id, concept_name FROM concept_set_members WHERE codeset_id = :codeset_id_1
-        ) x
-    """, {'codeset_id_1': codeset_id_1, 'cset_2_codeset_id': codeset_id_2})
-    cset_2_only = [dict(r)['diff'] for r in cset_2_only]
+    added_cids   = set([c['concept_id'] for c in csmi_2]).difference([c['concept_id'] for c in csmi_1])
+    added = [dict(csmi) for csmi in csmi_2 if csmi['concept_id'] in added_cids]
+    added_concepts = get_concepts(added_cids)
+    for rec in added:
+        c = [c for c in added_concepts if c['concept_id'] == rec['concept_id']]
+        if len(c) == 1:
+            rec['name'] = c[0]['concept_name']
+            rec['voc'] = c[0]['vocabulary_id']
+            rec['cls'] = c[0]['concept_class_id']
+            rec['std'] = c[0]['standard_concept']
 
-    diffs = cset_1_only + cset_2_only
+    flag_cnts_1 = 'flags: ' + ', '.join([f'{k}: {v}' for k, v in cset_1['flag_cnts'].items()]) if  cset_1['flag_cnts'] else ''
+    flag_cnts_2 = 'flags: ' + ', '.join([f'{k}: {v}' for k, v in cset_2['flag_cnts'].items()]) if  cset_2['flag_cnts'] else ''
 
-    removed = sql_query_single_col(con, """
-        SELECT concept_id FROM concept_set_members WHERE codeset_id = :codeset_id_1
-        EXCEPT
-        SELECT concept_id FROM concept_set_members WHERE codeset_id = :cset_2_codeset_id
-    """, {'codeset_id_1': codeset_id_1, 'cset_2_codeset_id': codeset_id_2})
-
-    added = sql_query_single_col(con, """
-        SELECT concept_id FROM concept_set_members WHERE codeset_id = :cset_2_codeset_id
-        EXCEPT
-        SELECT concept_id FROM concept_set_members WHERE codeset_id = :codeset_id_1
-    """, {'codeset_id_1': codeset_id_1, 'cset_2_codeset_id': codeset_id_2})
-
-    flag_cnts_1 = ', flags: ' + ', '.join([f'{k}: {v}' for k, v in cset_1['flag_cnts'].items()]) if  cset_1['flag_cnts'] else ''
-    flag_cnts_2 = ', flags: ' + ', '.join([f'{k}: {v}' for k, v in cset_2['flag_cnts'].items()]) if  cset_2['flag_cnts'] else ''
+    # df = pd.DataFrame(replacements)
 
     rpt = {
         'name': cset_1['concept_set_name'],
@@ -663,22 +703,21 @@ def get_comparison_rpt(con, codeset_id_1: int, codeset_id_2: int) -> Dict[str, U
                   f"vocab {cset_1['omop_vocab_version']}; "
                   f"{commify(cset_1['distinct_person_cnt'])} pts, "
                   f"{commify(cset_1['total_cnt'] or cset_1['total_cnt_from_term_usage'])} recs, "
-                  f"{commify(cset_1['concepts'])} concepts{flag_cnts_1}",
+                  f"{commify(cset_1['concepts'])} concepts, {flag_cnts_1}",
         'cset_2': f"{cset_2['codeset_id']} v{cset_2['version']}, "
                   f"vocab {cset_2['omop_vocab_version']}; "
                   f"{commify(cset_2['distinct_person_cnt'])} pts, "
                   f"{commify(cset_2['total_cnt'] or cset_2['total_cnt_from_term_usage'])} recs, "
-                  f"{commify(cset_2['concepts'])} concepts{flag_cnts_2}",
+                  f"{commify(cset_2['concepts'])} concepts, {flag_cnts_2}",
         'author': cset_1['codeset_creator'],
-        'cset_1_codeset_id': codeset_id_1,
+        'codeset_id_1': codeset_id_1,
         # 'cset_1_version': cset_1['version'],
-        'cset_2_codeset_id': codeset_id_2,
+        'codeset_id_2': codeset_id_2,
         'added': added,
         'removed': removed,
         # 'cset_2_version': cset_2['version'],
         # 'cset_1_only': cset_1_only,
         # 'cset_2_only': cset_2_only,
-        'diffs': diffs, # remove once front end working with new added/removed data
     }
     return rpt
 
@@ -691,7 +730,7 @@ def generate_n3c_comparison_rpt():
             """
                 SELECT orig_codeset_id, new_codeset_id
                 FROM public.codeset_comparison
-                --WHERE rpt IS NULL
+                WHERE rpt IS NULL
                 """)
         i = 1
         for pair in pairs:
@@ -699,7 +738,7 @@ def generate_n3c_comparison_rpt():
             print(f"Processing {str(pair)} {i} of {len(pairs)}")
             i += 1
 
-            rpt = get_comparison_rpt(con, *pair)
+            rpt = get_comparison_rpt(*pair)
 
             run_sql(con, """
                     UPDATE public.codeset_comparison

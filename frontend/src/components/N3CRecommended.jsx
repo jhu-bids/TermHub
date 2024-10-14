@@ -1,6 +1,6 @@
 import React, { useState, useEffect, } from "react";
 import DataTable, { createTheme } from "react-data-table-component";
-import { flatten, uniq, sortBy } from "lodash";
+import { flatten, uniq, sortBy, isEmpty } from "lodash";
 
 import {backend_url, useDataGetter} from "../state/DataGetter";
 import {useSearchParamsState} from "../state/SearchParamsProvider";
@@ -93,7 +93,7 @@ export const N3CComparisonRpt = () => {
       }
       try {
         const rows = await dataGetter.fetchAndCacheItems(dataGetter.apiCalls.n3c_comparison_rpt);
-        let concept_ids = uniq(flatten(rows.map(row => [...(row.added), ...(row.removed)])));
+        let concept_ids = uniq(flatten(rows.map(row => [...(row.added), ...(row.removed)])).map(d => d.concept_id));
         const concepts = await dataGetter.fetchAndCacheItems(dataGetter.apiCalls.concepts, concept_ids);
         setData({rows, concepts});
       } catch (error) {
@@ -106,32 +106,44 @@ export const N3CComparisonRpt = () => {
     return <div>Loading...</div>;
   }
   let {rows, concepts} = data
-  function tbl(concept_ids) {
-    let tblConcepts = concept_ids.map(d => concepts[d]);
+  function tbl(tblConcepts) {
     return (
         <table id="n3ccompdiff"><tbody>{
           sortBy(tblConcepts, ['standard_concept', 'concept_name']).map((c,i) => {
+            const pr = isEmpty(c.replacements) ? null : (
+              <td>Poss replacements: {
+                c.replacements.map(r => (
+                    `${r.rels.join(
+                        ',')}: ${r.concept_id} ${r.concept_name} ${r.standard_concept} ${r.vocabulary_id} ${r.concept_class_id}`
+                )).join(', ')
+              }</td>);
             return (
-              <tr key={i}>
-                <td>{c.concept_id}</td>
-                <td><i>{c.standard_concept === 'S' ? 'Standard' : c.standard_concept === 'C' ? 'Classification' : 'Non-standard'}</i></td>
-                <td>{c.concept_name}</td>
-              </tr>)
+                <tr key={i}>
+                  <td>{c.concept_id}</td>
+                  <td>{c.name}</td>
+                  <td><i>{c.std === 'S' ? 'Standard' : c.std === 'C'
+                      ? 'Classification'
+                      : 'Non-standard'}</i></td>
+                  <td>{c.voc}</td>
+                  <td>{c.cls}</td>
+                  {pr}
+                </tr>);
           })
-        }</tbody></table>
+        }</tbody>
+        </table>
     )
   }
 
   function DiffList({data: row}) {
     console.log({row});
+    const removed = isEmpty(row.removed) ? null : <span><b>Removed:</b>{tbl(
+        row.removed)}</span>;
+    const added = isEmpty(row.added) ? null : <span><b>Added:</b>{tbl(
+        row.added)}</span>;
     return (
         <div style={{margin: 10,}}>
-          <p>
-            <b>Removed:</b>{tbl(row.removed)}
-          </p>
-          <p>
-            <b>Added:</b>{tbl(row.added)}
-          </p>
+          {removed}
+          {added}
         </div>
     );
   }
@@ -144,13 +156,12 @@ export const N3CComparisonRpt = () => {
     {grow: 3, sortable: true, name: "New", selector: row => row.cset_2, wrap: true},
     {grow: 2, name: "Compare", selector: row => (
           <Button
-              to={`/cset-comparison?codeset_ids=${row.cset_1_codeset_id}&codeset_ids=${row.cset_2_codeset_id}` +
-                `&comparison_rpt=${row.cset_1_codeset_id}-${row.cset_2_codeset_id}`}
+              to={`/cset-comparison?codeset_ids=${row.codeset_id_1}&codeset_ids=${row.codeset_id_2}` +
+                `&comparison_rpt=${row.codeset_id_1}-${row.codeset_id_2}`}
               component={Link}
               style={{margin: '7px', textTransform: 'none'}}
           >
-            {row.diffs.filter(d => d.startsWith('removed')).length} removed
-            , {row.diffs.filter(d => d.startsWith('added')).length} added
+            {row.removed.length} removed, {row.added.length} added
             {/*orig {String.fromCodePoint(0x2192)} new*/}
           </Button>
 
