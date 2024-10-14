@@ -154,8 +154,8 @@ export async function fetchGraphData(props) {
 
   if (comparison_rpt) {
     comparison_rpt = await comparison_rpt;
-    specialConcepts.added = comparison_rpt.added.map(String);
-    specialConcepts.removed = comparison_rpt.removed.map(String);
+    specialConcepts.added = comparison_rpt.added.map(d => d.concept_id + '');
+    specialConcepts.removed = comparison_rpt.removed.map(d => d.concept_id + '');
   }
 
   for (let cid in conceptLookup) {    // why putting all the specialConcepts membership as properties on the concept?
