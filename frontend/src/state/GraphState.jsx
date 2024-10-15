@@ -2,7 +2,7 @@ import {cloneDeep, flatten, get, intersection, isEmpty, some, sortBy, sum, uniq,
 import Graph from "graphology";
 // import {bidirectional} from 'graphology-shortest-path/unweighted';
 // import {dfsFromNode} from "graphology-traversal/dfs";
-import {setOp} from "../utils";
+import {setOp, formatPath, comparePaths} from "../utils";
 
 // window.graphFuncs = {bidirectional, dfsFromNode};
 
@@ -91,8 +91,8 @@ export class GraphContainer {
         standard                nothing
         classification          nothing
 
-        specificNodesExpanded
-        specificNodesCollapsed
+        specificPathsExpanded
+        specificPathsCollapsed
 
         addedCids               showThoughCollapsed true
         definitionConcepts      showThoughCollapsed false
@@ -108,10 +108,10 @@ export class GraphContainer {
         showReasons:
           - showThoughCollapsed (include which option in reason?)
           - hidden parent/ancestor of showThoughCollapsed
-          - child of specificNodesExpanded
+          - child of specificPathsExpanded
         hideReasons:
           - hideThoughExpanded (include which option?)
-          - child of specificNodesCollapsed
+          - child of specificPathsCollapsed
           - duplicate occurrence
 
       TODO:
@@ -131,7 +131,7 @@ export class GraphContainer {
             (+) Def concept     {hideReasons: [childOfHTE], showReasons: [STC(def)],    result: show}
               (-) Another       {hideReasons: [childOfSNC], showReasons: [],            result: hide}
 
-        Shown (definition) concept is descendant of hidden specificNodesCollapsed concept
+        Shown (definition) concept is descendant of hidden specificPathsCollapsed concept
           Ideally might depend on order of events, but too hard to code?
             If you collapse a parent of a STC node, expect the STC node to get hidden?
             If you turn show def concepts on while some are hidden undeer SNC, expect them to appear?
@@ -173,7 +173,7 @@ export class GraphContainer {
       5. Unhide
           a. STC (showThoughCollapsed) That includes ancestors up to
              nearest not collapsed
-          b. Child of SNE (specificNodesExpanded)
+          b. Child of SNE (specificPathsExpanded)
       6. Hide remaining HTE (hideThoughExpanded)
      */
 
@@ -186,7 +186,7 @@ export class GraphContainer {
         this.gd.specialConcepts.allButFirstOccurrence.push(row.rowPath);
         if (graphOptions.specialConceptTreatment.allButFirstOccurrence) {
           // hide allButFirstOccurrence
-          row.display.hideReasons.push('duplicate');
+          row.display.hideReasons.duplicate = true;
           row.display.result = 'hide';
         }
       }
@@ -200,7 +200,7 @@ export class GraphContainer {
           const rootRows = allRows.filter(row => row.depth === 0);
           for (let rootRow of rootRows) {
             for(let descendantRow of this.getDescendantRows(rootRow, allRows)) {
-              descendantRow.display.hideReasons.push('non-root');
+              descendantRow.display.hideReasons.nonRoot = true;
               descendantRow.display.result = 'hide';
             }
           }
@@ -208,31 +208,48 @@ export class GraphContainer {
       // Easier: just hide depth > 0;
       for (let row of allRows) {
         if (row.depth > 0) {
-          row.display.hideReasons.push('non-root');
+          row.display.hideReasons.nonRoot = true;
           row.display.result = 'hide';
         }
       }
       // 5. Unhide STC (showThoughCollapsed)
-      const showThoughCollapsed = new StringSet();
-      for (let type in graphOptions.specialConceptTreatment) {
-        if (get(this, ['graphDisplayConfig', type, 'specialTreatmentRule']) === 'show though collapsed' &&
-            graphOptions.specialConceptTreatment[type]) {
-          for (let id of this.gd.specialConcepts[type] || []) {
-            showThoughCollapsed.add(id);
+      /*    maybe don't do this -- TOO COMPLICATED
+        const showThoughCollapsed = new StringSet();
+
+        // just for testing/dev
+        // showThoughCollapsed.add(4154309);
+        this.gd.specialConcepts.definitionConcepts.push('4154309'); // Severe recurrent major depression with psychotic features, down a couple levels
+
+        for (let type in graphOptions.specialConceptTreatment) {
+          if (get(this, ['graphDisplayConfig', type, 'specialTreatmentRule']) === 'show though collapsed' &&
+              graphOptions.specialConceptTreatment[type]) {
+            for (let id of this.gd.specialConcepts[type] || []) {
+              showThoughCollapsed.add(id);
+            }
           }
         }
-      }
-      let shown = new StringSet();
-      showThoughCollapsed.forEach(nodeIdToShow => {
-        if (nodeRows.has(nodeIdToShow)) return; // already displayed
-        showThoughCollapsed.add(nodeIdToShow);
-        this.insertShowThoughCollapsed([nodeIdToShow], shown, nodeRows);
-      });
-
+        let shown = new StringSet();
+        showThoughCollapsed.forEach(nodeIdToShow => {
+          if (nodeRows.has(nodeIdToShow)) return; // already displayed
+          showThoughCollapsed.add(nodeIdToShow);
+          this.insertShowThoughCollapsed([nodeIdToShow], shown, nodeRows);
+        });
+       */
       // 5a. Unhide STC, child of SNE
 
-      const hideThoughExpanded = new StringSet();
+      for (let path of graphOptions.specificPathsExpanded) {
+        const rowIdx = allRows.map(d => formatPath(d.rowPath)).findIndex(p => p === path);
+        if (! (rowIdx > -1)) {
+          throw new Error(`Can't find row with path ${path}`);
+        }
+        const row = allRows[rowIdx];
+        for (let childRow of this.getDescendantRows(rowIdx, allRows, 1)) {
+          childRow.display.showReasons.childOfExpanded = row;
+          childRow.display.result = 'show';
+        }
+      }
 
+      const hideThoughExpanded = new StringSet();
     }
 
     let displayedRows = allRows.filter(r => r.display.result !== 'hide');
@@ -240,12 +257,18 @@ export class GraphContainer {
     return displayedRows;
     // return this.getDisplayedRowsOLD(graphOptions);
   }
-  getDescendantRows(parentRow, allRows) {
+  getDescendantRows(parentRowIdx, allRows, howDeep=Infinity) {
     // sort of a fragile way to do it, but will get all rows deeper
     //  than current row until the next row of the same depth
-    let idx = allRows.indexOf(parentRow) + 1;
+    // if howDeep is passed, will only go that much deeper than current row
+    //  so, howDeep = 1 will get direct children, howDeep = 2, children and grandchildren
+    // let idx = allRows.indexOf(parentRow) + 1;
+    const parentRow = allRows[parentRowIdx];
+    let idx = parentRowIdx + 1;
     let rows = [];
-    while (idx < allRows.length && allRows[idx].depth > parentRow.depth) {
+    while (idx < allRows.length &&
+            allRows[idx].depth > parentRow.depth &&
+            allRows[idx].depth <= parentRow.depth + howDeep) {
       rows.push(allRows[idx++]);
     }
     return rows;
@@ -289,7 +312,7 @@ export class GraphContainer {
       let shown = new StringSet();
       this.showThoughCollapsed.forEach(nodeIdToShow => {
         if (this.displayedNodeRows.has(nodeIdToShow)) return; // already displayed
-        this.showThoughCollapsed.add(nodeIdToShow);
+        this.showThoughCollapsed.add(nodeIdToShow);           // why is this here?
         this.insertShowThoughCollapsed([nodeIdToShow], shown, nodeRows);
       });
     }
@@ -364,8 +387,8 @@ export class GraphContainer {
         let nodeId = node.concept_id;
         let row = {...node, depth, rowPath: [...parentPath, nodeId], };
         row.display = {
-          hideReasons: [],
-          showReasons: [],
+          hideReasons: {},
+          showReasons: {},
           result: '',
         }
 
@@ -453,10 +476,10 @@ export class GraphContainer {
     // this.displayedRows.push(row);
 
     if ((row.expanded || graphOptions.expandAll ||  // todo: get rid of row.expanded property -- not using anymore, right?
-        graphOptions.specificNodesExpanded.find(d => d == row.concept_id) &&
-        ! graphOptions.specificNodesCollapsed.find(d => d == row.concept_id))
+        graphOptions.specificPathsExpanded.find(d => d == row.concept_id) &&
+        ! graphOptions.specificPathsCollapsed.find(d => d == row.concept_id))
     ) {
-        // now with tracking specificNodesExpanded/Collapsed, I'm not sure if we
+        // now with tracking specificPathsExpanded/Collapsed, I'm not sure if we
         //  still need to check row.expanded
       // if it's expanded, it must have children
       row.childRows = row.childRows = sortBy(node.childIds, this.sortFunc).map(childId => {
@@ -694,7 +717,7 @@ export class GraphContainer {
       let displayOption = {...get(this, ['graphDisplayConfig', type], {}), ...displayOptions[type]};  // don't lose stuff previously set
       // if (typeof(displayOption.value) === 'undefined') // don't show displayOptions that don't represent any concepts
       if (!displayOption.value) {  // addedCids was 0 instead of undefined. will this hide things that shouldn't be hidden?
-        console.log(`deleting ${type} from statsopts`);
+        // console.log(`deleting ${type} from statsopts`);
         delete displayOptions[type];
         continue;
       }

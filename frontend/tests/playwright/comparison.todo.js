@@ -63,7 +63,7 @@ for (const envName in selectedConfigs) {
           await page.evaluate(() => window.dispatchGraphOptions({
             gc,
             type: 'TOGGLE_NODE_EXPANDED',
-            nodeId: firstRow.concept_id,
+            rowPath: '/' + firstRow.concept_id,
             direction: 'expand',
           }));
 

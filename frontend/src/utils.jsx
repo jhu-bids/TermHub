@@ -1,9 +1,30 @@
 import React, {useLayoutEffect, useState, } from "react";
 // import {Navigate, useNavigate} from "react-router-dom";
-import {debounce, differenceWith, intersectionWith, isEqual, reduce, unionWith,} from "lodash";
+import {debounce, differenceWith, intersectionWith, isEqual, reduce, unionWith, memoize} from "lodash";
 import Papa from "papaparse";
 import {saveAs} from 'file-saver';
 // import {useDataGetter} from "../state/DataGetter";
+
+export const formatPath = memoize((path) => {
+  if (!path.length) {
+    throw new Error('All paths should have a length');
+  }
+  if (typeof(path) === 'string') {
+  }
+  else if (Array.isArray(path)) {
+    path = path.map(d => '/' + d).join('');
+  } else {
+    throw new Error('Paths must be string or array');
+  }
+  if (!path.match('^(/([0-9]+|unlinked))+$')) {
+    throw new Error(`Path must be one or more numeric IDs, each preceded by /. Got ${path}`);
+  }
+  return path;
+});
+
+export const comparePaths = memoize((a, b) => {
+  return formatPath(a) === formatPath(b);
+});
 
 /*
 import { FoundryClient, PublicClientAuth } from "@termhub/sdk";
