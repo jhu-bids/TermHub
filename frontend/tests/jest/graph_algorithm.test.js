@@ -42,7 +42,7 @@ describe.each(graphDataCases)('Graph algorithm tests for $test_name', (dataCase)
   safeTest('3. Expanding first row should display its children', () => {
     const expandAction = { // Expand the first row
       type: 'TOGGLE_NODE_EXPANDED',
-      nodeId: dataCase.firstRow.concept_id,
+      rowPath: '/' + dataCase.firstRow.concept_id,
       direction: 'expand'
     };
     displayedRows = gc.getDisplayedRows(graphOptions);
@@ -55,7 +55,7 @@ describe.each(graphDataCases)('Graph algorithm tests for $test_name', (dataCase)
   safeTest('4. Collapsing first row should hide expanded children', () => {
     let collapseAction = {
       type: 'TOGGLE_NODE_EXPANDED',
-      nodeId: dataCase.firstRow.concept_id,
+      rowPath: '/' + dataCase.firstRow.concept_id,
       direction: 'collapse'
     };
     displayedRows = gc.getDisplayedRows(graphOptions);

@@ -711,12 +711,9 @@ function getCollapseIconAndName(
   let Component;
   let direction;
   if (
-      // graphOptions.specificNodesExpanded.includes(parseInt(row.concept_id)) ||
-      // (graphOptions.expandAll && !graphOptions.specificNodesCollapsed.includes(parseInt(row.concept_id)))
-      // parseInt means it doesn't work with the 'unlinked' node
-      graphOptions.specificNodesExpanded.find(d => d == row.concept_id) ||
-      (graphOptions.expandAll &&
-          !graphOptions.specificNodesCollapsed.find(d => d == row.concept_id))
+    graphOptions.specificPathsExpanded.find(d => d == row.rowPath.join('/')) ||
+    (graphOptions.expandAll &&
+        !graphOptions.specificPathsCollapsed.find(d => d == row.rowPath.join('/')))
   ) {
     Component = RemoveCircleOutline;
     direction = 'collapse';
@@ -732,7 +729,7 @@ function getCollapseIconAndName(
               graphOptionsDispatch({
                 gc,
                 type: 'TOGGLE_NODE_EXPANDED',
-                nodeId: row.concept_id,
+                rowPath: row.rowPath,
                 direction,
               });
             }

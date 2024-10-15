@@ -104,7 +104,7 @@ describe(
             graphOptionsDispatch({
               gc,
               type: 'TOGGLE_NODE_EXPANDED',
-              nodeId: row.concept_id,
+              rowPath: '/' + row.concept_id,
               direction: 'expand',
             });
             graphRender();
