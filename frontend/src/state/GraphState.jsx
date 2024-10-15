@@ -2,7 +2,7 @@ import {cloneDeep, flatten, get, intersection, isEmpty, some, sortBy, sum, uniq,
 import Graph from "graphology";
 // import {bidirectional} from 'graphology-shortest-path/unweighted';
 // import {dfsFromNode} from "graphology-traversal/dfs";
-import {setOp, formatPath, comparePaths} from "../utils";
+import {setOp, } from "../utils";
 
 // window.graphFuncs = {bidirectional, dfsFromNode};
 
@@ -40,10 +40,6 @@ export class GraphContainer {
     this.gd = graphData;  // concepts, specialConcepts, csmi, edges, concept_ids, filled_gaps,
                           // missing_from_graph, hidden_by_vocab, nonstandard_concepts_hidden
     set(this, 'gd.specialConcepts.allButFirstOccurrence', []);
-    // this.displayedRows = [];  // array of displayed rows...individual node could occur in multiple places
-    // this.displayedNodeRows = new StringKeyMap();    // map from nodeId to row (node copy)
-    // this.showThoughCollapsed = new StringSet();
-    // this.hideThoughExpanded = new StringSet();
 
     [this.graph, this.nodes] = makeGraph(this.gd.edges, this.gd.concepts);
 
@@ -91,8 +87,7 @@ export class GraphContainer {
         standard                nothing
         classification          nothing
 
-        specificPathsExpanded
-        specificPathsCollapsed
+        specificPaths (expanded/collapsed)
 
         addedCids               showThoughCollapsed true
         definitionConcepts      showThoughCollapsed false
@@ -178,19 +173,7 @@ export class GraphContainer {
      */
 
     // 1. Generate allRows
-    let {allRows, nodeRows} = this.setupAllRows(this.roots);
-
-    // 2. Get list of allButFirstOccurrence; hide if option on
-    for (let row of allRows) {
-      if (row.nodeOccurrence > 0) {
-        this.gd.specialConcepts.allButFirstOccurrence.push(row.rowPath);
-        if (graphOptions.specialConceptTreatment.allButFirstOccurrence) {
-          // hide allButFirstOccurrence
-          row.display.hideReasons.duplicate = true;
-          row.display.result = 'hide';
-        }
-      }
-    }
+    let allRows = this.setupAllRows(this.roots);
 
     if (graphOptions.expandAll) {
       // 3....  no need to expand STC, because nothing collapsed except SNC
@@ -235,24 +218,47 @@ export class GraphContainer {
           this.insertShowThoughCollapsed([nodeIdToShow], shown, nodeRows);
         });
        */
-      // 5a. Unhide STC, child of SNE
+      // 5a. Expand children of specificPaths: expand, but only for displayed rows
 
-      for (let path of graphOptions.specificPathsExpanded) {
-        const rowIdx = allRows.map(d => formatPath(d.rowPath)).findIndex(p => p === path);
-        if (! (rowIdx > -1)) {
-          throw new Error(`Can't find row with path ${path}`);
+
+      const hideThoughExpanded = new StringSet();
+    }
+
+    allRows.forEach((row, rowIdx) => {
+      if (row.display.result === 'hide') return;
+      if (graphOptions.specificPaths[row.rowPath] === 'collapse') {
+        for (let childRow of this.getDescendantRows(rowIdx, allRows)) {
+          childRow.display.hideReasons.descendantOfCollapsed = row;
+          childRow.display.result = 'hide';
         }
-        const row = allRows[rowIdx];
+      }
+      if (graphOptions.specificPaths[row.rowPath] === 'expand') {
         for (let childRow of this.getDescendantRows(rowIdx, allRows, 1)) {
           childRow.display.showReasons.childOfExpanded = row;
           childRow.display.result = 'show';
         }
       }
-
-      const hideThoughExpanded = new StringSet();
-    }
+    });
 
     let displayedRows = allRows.filter(r => r.display.result !== 'hide');
+
+    // 2. Get list of allButFirstOccurrence; hide if option on
+    let rowsPerId = {};
+    displayedRows.forEach(row => {
+      if (rowsPerId[row.concept_id]) {
+        this.gd.specialConcepts.allButFirstOccurrence.push(row.rowPath);
+        if (graphOptions.specialConceptTreatment.allButFirstOccurrence) {
+          row.display.hideReasons.duplicate = true;
+          row.display.result = 'hide';
+        }
+      } else {
+        rowsPerId[row.concept_id] = 0;
+      }
+      row.nodeOccurrence = rowsPerId[row.concept_id]++;
+    });
+    //  this could filter allRows, shouldn't matter
+    displayedRows = displayedRows.filter(r => r.display.result !== 'hide');
+
     // return this.displayedRows.filter(r => r.depth < 3);
     return displayedRows;
     // return this.getDisplayedRowsOLD(graphOptions);
@@ -260,146 +266,37 @@ export class GraphContainer {
   getDescendantRows(parentRowIdx, allRows, howDeep=Infinity) {
     // sort of a fragile way to do it, but will get all rows deeper
     //  than current row until the next row of the same depth
-    // if howDeep is passed, will only go that much deeper than current row
+    // if howDeep is passed, will not return rows that much deeper than current row
     //  so, howDeep = 1 will get direct children, howDeep = 2, children and grandchildren
     // let idx = allRows.indexOf(parentRow) + 1;
     const parentRow = allRows[parentRowIdx];
     let idx = parentRowIdx + 1;
     let rows = [];
-    while (idx < allRows.length &&
-            allRows[idx].depth > parentRow.depth &&
-            allRows[idx].depth <= parentRow.depth + howDeep) {
-      rows.push(allRows[idx++]);
+    while (idx < allRows.length && allRows[idx].depth > parentRow.depth) {
+      if (allRows[idx].depth <= parentRow.depth + howDeep) {
+        rows.push(allRows[idx]);
+      }
+      idx++;
     }
     return rows;
   }
-  getDisplayedRowsOLD(graphOptions) {
-    // const {/*collapsedDescendantPaths, */ collapsePaths, hideZeroCounts, hideRxNormExtension, nested } = hierarchySettings;
-
-    // delete childRows for every node because some option might have changed and we need
-    //  to recalculate the children
-    Object.values(this.nodes).forEach(node => {
-      delete node.childRows;
-    });
-    this.displayedRows.splice(0, this.displayedRows.length); // keeping same array ref to help with debugging using graphW
-    this.displayedNodeRows.clear();
-
-    // add root nodes and their children if expanded to displayed
-    let rootRows = [];
-    for (let nodeId of sortBy(this.roots, this.sortFunc)) {
-      let rootRow = this.addNodeToDisplayed(nodeId, this.displayedNodeRows, graphOptions, []);
-      rootRows.push(rootRow);
-    }
-
-    // start by adding rootRows
-    this.arrangeDisplayRows(rootRows);  // first time
-
-    this.showThoughCollapsed.clear();
-    this.hideThoughExpanded.clear();
-
-    if (!graphOptions.expandAll) {
-      // if there are showThoughCollapsed nodes to show, find each one's
-      //  nearest parents add them at those path locations
-
-      for (let type in graphOptions.specialConceptTreatment) {
-        if (get(this, ['graphDisplayConfig', type, 'specialTreatmentRule']) === 'show though collapsed' &&
-            graphOptions.specialConceptTreatment[type]) {
-          for (let id of this.gd.specialConcepts[type] || []) {
-            this.showThoughCollapsed.add(id);
-          }
-        }
-      }
-      let shown = new StringSet();
-      this.showThoughCollapsed.forEach(nodeIdToShow => {
-        if (this.displayedNodeRows.has(nodeIdToShow)) return; // already displayed
-        this.showThoughCollapsed.add(nodeIdToShow);           // why is this here?
-        this.insertShowThoughCollapsed([nodeIdToShow], shown, nodeRows);
-      });
-    }
-
-
-    this.arrangeDisplayRows(rootRows);  // second time
-    // this.displayedRows.forEach(row => { row.levelsBelow = this.sortFunc(row) }); // for debugging
-    // TODO: FIX allButFirstOccurrence -- needs to hide paths, not just concept_ids, it's broken
-    this.gd.specialConcepts.allButFirstOccurrence = this.displayedRows.filter(row => row.nodeOccurrence > 0).map(d => d.rowPath);
-    /*
-    if (graphOptions.specialConceptTreatment.allButFirstOccurrence) {
-      this.gd.specialConcepts.allButFirstOccurrence.forEach(row => )
-    }
-     */
-
-    // this.graphDisplayConfig.allButFirstOccurrence
-
-    for (let type in graphOptions.specialConceptTreatment) {
-      if (type === 'allButFirstOccurrence') continue; // handle this differently
-      if (get(this, ['graphDisplayConfig', type, 'specialTreatmentRule'])
-            === 'hide though expanded' &&
-            graphOptions.specialConceptTreatment[type]) {
-        // gather all the hideThoughExpanded ids
-        this.gd.specialConcepts[type].forEach(id => {
-          this.hideThoughExpanded.add(id);
-        })
-      }
-    }
-    for (let type in graphOptions.specialConceptTreatment) {
-      if (get(this, ['graphDisplayConfig', type, 'specialTreatmentRule'])
-          === 'hide though expanded' &&
-          graphOptions.specialConceptTreatment[type]) {
-        let [special, displayed] = [
-            this.gd.specialConcepts[type],
-            this.displayedRows.map(d => d.concept_id)];
-        for (let id of setOp('intersection', special, displayed)) {
-          let nodeToHide = this.nodes[id];
-          if (nodeToHide.expanded) {  //
-            // does this get used anymore? we shouldn't be using expanded property now
-            console.warn("shouldn't be using .expanded property on nodes. look into this");
-            // TODO:  make sure this still works without using node.expanded
-            if (!some(nodeToHide.childIds, id => this.displayedNodeRows.has(id) && !this.hideThoughExpanded.has(id))) {
-              // don't hide if it has children that should be shown
-              // that is, if it's already displayed and not hidden
-              this.hideThoughExpanded.delete(id);
-            }
-          }
-          /* if (!nodeToHide.expanded) {
-            // this.hideThoughExpanded.add(id);
-            this.displayedNodeRows.delete(id); // remove from displayedNodeRows map
-          } */
-        }
-      }
-    }
-    this.hideThoughExpanded.forEach(id => {
-      this.displayedNodeRows.delete(id); // remove from displayedNodeRows map
-    });
-
-    this.arrangeDisplayRows(rootRows);  // third time
-    return this.displayedRows;
-  }
   setupAllRows(rootNodes) {
     let allRows = [];
-    let nodeRows = new StringKeyMap();    // map from nodeId to row (node copy)
 
     // rows and nodes and concepts are all the same thing, I just use the term
     //  that fits the purpose at the moment
-    const addRows = (nodeIds, parentPath = [], depth = 0) => {
+    const addRows = (nodeIds, parentPath = '', depth = 0) => {
       let nodes = nodeIds.map(id => this.nodes[id]);
       nodes = sortBy(nodes, this.sortFunc);
       for (let node of nodes) {
         let nodeId = node.concept_id;
-        let row = {...node, depth, rowPath: [...parentPath, nodeId], };
+        let row = {...node, depth, rowPath: `${parentPath}/${nodeId}` };
         row.display = {
           hideReasons: {},
           showReasons: {},
           result: '',
         }
 
-        if (nodeRows.has(nodeId)) {
-          let rowsForThisNode = nodeRows.get(nodeId);
-          rowsForThisNode.push(row);
-        } else {
-          nodeRows.set(nodeId, [row]);
-        }
-        row.nodeOccurrence = nodeRows.get(nodeId).length - 1;
-        // row.concept_name += ` ${row.nodeOccurrence}`;
         allRows.push(row);
 
         if (node.childIds && node.childIds.length) {
@@ -408,107 +305,7 @@ export class GraphContainer {
       }
     };
     addRows(rootNodes);
-    return {allRows, nodeRows};
-  }
-
-  insertShowThoughCollapsed(path, shown, nodeRows) {
-    // moved out of getDisplayedRows where shown was a closure var
-    // path starts with the nodeIdToShow and recurses up, prepending parents
-    const nodeIdToShow = path[path.length - 1]; // remains the same through recursion
-    if (shown.has(nodeIdToShow)) return; // already displayed
-    if (nodeRows.has(nodeIdToShow)) {
-      return;
-      // throw new Error(`nodeToShow ${nodeIdToShow} is already displayed`);
-    }
-    // so, only one nodeIdToShow, but separate nodeToShow copies for each path
-    let nodeToShowRows = [];
-    let parents = this.graph.inNeighbors(path[0]);
-    for (let parentId of parents) {
-      if (this.showThoughCollapsed.has(parentId)) {
-        // if the parent is also a showThoughCollapsed node, do it first
-        this.insertShowThoughCollapsed([parentId, ...(path.slice(0, -1))], shown, nodeRows);
-      }
-      let parentNode = this.nodes[parentId];
-      if (nodeRows.has(parentId)) {  // parent is already displayed
-        if (parentNode.expanded) {
-          throw new Error(`parent ${parentId} is expanded; we shouldn't be here`);
-        }
-        parentNode.childRows = parentNode.childRows || [];
-
-        // put the nodeIdToShow below its paths
-        for (let parentRow of nodeRows.get(parentId)) {
-          let nodeToShowRow = {...this.nodes[nodeIdToShow]};
-          nodeToShowRow.depth = parentRow.depth + 1;
-          nodeToShowRow.rowPath = [...parentRow.rowPath, nodeIdToShow]; // straight from visible ancestor to nodeToShowRow
-          nodeToShowRow.pathFromDisplayedNode = path.slice(0, -1);  // intervening path between them
-          nodeToShowRows.push(nodeToShowRow);
-          parentNode.childRows.push(nodeToShowRow); // add to parent's childRows
-          parentRow.childRows = parentNode.childRows;
-        }
-      } else {
-        this.insertShowThoughCollapsed([parentId, ...path], shown, nodeRows);
-        return;
-      }
-    }
-    if (nodeRows.has(nodeIdToShow)) {
-      throw new Error(`nodeToShow ${nodeIdToShow} is already displayed`);
-    }
-    nodeRows.set(nodeIdToShow, []);
-    nodeToShowRows.forEach((nodeToShowRow, i) => {
-      nodeRows.get(nodeIdToShow).push(nodeToShowRow);
-    });
-    shown.add(nodeIdToShow);
-  };
-  addNodeToDisplayed(nodeId, graphOptions, nodeRows, rowPath, depth = 0) {  // will be obsolete
-    /* adds the node to the list of displayed nodes
-        if it is set to be expanded, recurse and add its children to the list */
-    let node = this.nodes[nodeId];
-    let row = {...node, depth};
-    row.rowPath = [...rowPath, nodeId];
-
-    if (nodeRows.has(nodeId)) {
-      let rowsForThisNode = nodeRows.get(nodeId);
-      rowsForThisNode.push(row);
-    } else {
-      nodeRows.set(nodeId, [row]);
-    }
-
-    // this.displayedRows.push(row);
-
-    if ((row.expanded || graphOptions.expandAll ||  // todo: get rid of row.expanded property -- not using anymore, right?
-        graphOptions.specificPathsExpanded.find(d => d == row.concept_id) &&
-        ! graphOptions.specificPathsCollapsed.find(d => d == row.concept_id))
-    ) {
-        // now with tracking specificPathsExpanded/Collapsed, I'm not sure if we
-        //  still need to check row.expanded
-      // if it's expanded, it must have children
-      row.childRows = row.childRows = sortBy(node.childIds, this.sortFunc).map(childId => {
-        const childRow = this.addNodeToDisplayed(childId, graphOptions, nodeRows, row.rowPath, depth + 1); // Recurse
-        return childRow;
-      });
-    }
-    return row;
-  }
-  arrangeDisplayRows(rootRows) {  // will be obsolete
-    // recursively traverse rootRows and add child rows to display according to all the rules;
-    //  I can't remember why this gets called _three_ times
-    this.displayedRows.splice(0, this.displayedRows.length); // empty out this.displayedRows and create again
-    let nodeOccurrences = {};
-    const f = (rows) => {
-      for (let row of sortBy(rows, this.sortFunc)) { // for each row at this level
-        // if it's the first occurrence set nodeOccurrence = 0
-        nodeOccurrences[row.concept_id] = nodeOccurrences[row.concept_id] ?? -1;
-        row.nodeOccurrence = ++nodeOccurrences[row.concept_id];
-        // if it has been added to hideThoughExpanded, don't display it or its descendants
-        if (this.hideThoughExpanded && this.hideThoughExpanded.has(row.concept_id)) continue;
-        this.displayedRows.push(row);
-        // const node = this.nodes[row.concept_id];
-        if (row.childRows) {
-          f(row.childRows);
-        }
-      }
-    };
-    f(rootRows);
+    return allRows;
   }
 
   sortFunc = (d => {
