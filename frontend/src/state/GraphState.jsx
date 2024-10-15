@@ -217,19 +217,37 @@ export class GraphContainer {
     // Expand and collapse children based on user having clicked +/- on row
     allRows.forEach((row, rowIdx) => {
       if (row.display.result === 'hide') return;
-      if (graphOptions.specificPaths[row.rowPath] === 'collapse') {
-        for (let childRow of this.getDescendantRows(rowIdx, allRows)) {
-          childRow.display.hideReasons.descendantOfCollapsed = row;
-          childRow.display.result = 'hide';
-        }
-      }
-      if (graphOptions.specificPaths[row.rowPath] === 'expand') {
-        for (let childRow of this.getDescendantRows(rowIdx, allRows, 1)) {
-          childRow.display.showReasons.childOfExpanded = row;
-          childRow.display.result = 'show';
-        }
+      if (graphOptions.specificPaths[row.rowPath]) {
+        this.rowDisplay(rowIdx, graphOptions.specificPaths[row.rowPath], 'specific', allRows)
       }
     });
+
+    // hide all HTE
+    let allRowIdxById = {}; // start by getting lists of rowIdx by concept_id
+    allRows.forEach((row, rowIdx) => {
+      if (allRowIdxById[row.concept_id]) {
+        allRowIdxById[row.concept_id].push(rowIdx)
+      } else {
+        allRowIdxById[row.concept_id] = [rowIdx];
+      }
+    });
+
+    for (let type in graphOptions.specialConceptTreatment) {
+      if (type === 'allButFirstOccurrence') continue; // handle this differently
+      if (get(this, ['graphDisplayConfig', type, 'specialTreatmentRule'])
+          === 'hide though expanded' &&
+          graphOptions.specialConceptTreatment[type]) {
+        // gather all the hideThoughExpanded ids
+        this.gd.specialConcepts[type].forEach(id => {
+          const rowsToHide = get(allRowIdxById, id, []);
+          for (const rowToHideIdx of rowsToHide) {
+            const rowToHide = allRows[rowToHideIdx];
+            this.rowDisplay(rowToHideIdx, graphOptions.specificPaths[rowToHide.rowPath], type, allRows)
+          }
+        })
+      }
+    }
+    // end hide all HTE
 
     let displayedRows = allRows.filter(r => r.display.result !== 'hide');
 
@@ -253,6 +271,31 @@ export class GraphContainer {
     // return this.displayedRows.filter(r => r.depth < 3);
     return displayedRows;
     // return this.getDisplayedRowsOLD(graphOptions);
+  }
+  rowDisplay(rowIdx, showHide, reason, allRows) {
+    // this.rowDisplay(row, graphOptions.specificPaths[row.rowPath], 'specific')
+    // this.rowDisplay(rowToHide, graphOptions.specificPaths[rowToHide.rowPath], type)
+    // TODO: don't hide if it has children that should be shown
+    if (reason === 'specific') {
+      if (showHide === 'expand') {
+        for (let childRow of this.getDescendantRows(rowIdx, allRows, 1)) {
+          childRow.display.showReasons.childOfExpanded = rowIdx;
+          childRow.display.result = 'show';
+        }
+      } else if (showHide === 'collapse') {
+        for (let childRow of this.getDescendantRows(rowIdx, allRows)) {
+          childRow.display.hideReasons.descendantOfCollapsed = rowIdx;
+          childRow.display.result = 'hide';
+        }
+      } else {
+        throw new Error(`Invalid showHide: ${showHide}`);
+      }
+    } else {
+      for (let childRow of this.getDescendantRows(rowIdx, allRows)) {
+        childRow.display.hideReasons[`descendantOf_${reason}`] = rowIdx;
+        childRow.display.result = 'hide';
+      }
+    }
   }
   getDescendantRows(parentRowIdx, allRows, howDeep=Infinity) {
     // sort of a fragile way to do it, but will get all rows deeper
