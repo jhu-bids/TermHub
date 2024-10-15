@@ -103,7 +103,7 @@ export class GraphContainer {
         showReasons:
           - showThoughCollapsed (include which option in reason?)
           - hidden parent/ancestor of showThoughCollapsed
-          - child of specificPathsExpanded
+          - child of specificPathsExpanded1G
         hideReasons:
           - hideThoughExpanded (include which option?)
           - child of specificPathsCollapsed
