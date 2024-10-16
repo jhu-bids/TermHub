@@ -1,9 +1,38 @@
+"""Testing get_missing_in_between_nodes()
+
+todo: @Siggie: (1) Should this be a proper Python test file?, (2) I moved test_get_missing_in_between_nodes() here
+ because the Python debugger was making that file run this as a test instead of doing what I wanted. But IDK if this
+ breaks anything for you.
+"""
 import networkx as nx
 import builtins
+
+from networkx import DiGraph
+
 builtins.DONT_LOAD_GRAPH = True
-from backend.routes.graph import get_missing_in_between_nodes, test_get_missing_in_between_nodes
+# from backend.routes.graph import get_missing_in_between_nodes, test_get_missing_in_between_nodes
+from backend.routes.graph import get_missing_in_between_nodes
 
 print_stack = lambda s: '; '.join([f"""{n}{'<--' if p else ''}{','.join(p)}""" for n,p in reversed(s)])
+
+
+def test_get_missing_in_between_nodes(
+    whole_graph_edges=None, non_subgraph_nodes=None, expected_missing_in_between_nodes=None, subgraph_nodes=None,
+    fail=True, verbose=False
+):
+    # add code to load whole REL_GRAPH
+    # noinspection PyPep8Naming
+    G = DiGraph(whole_graph_edges)
+    subgraph_nodes = subgraph_nodes or set(G.nodes) - set(non_subgraph_nodes)
+    missing_in_between_nodes = get_missing_in_between_nodes(G, subgraph_nodes, verbose=verbose)
+    if fail:
+        assert missing_in_between_nodes == set(expected_missing_in_between_nodes)
+    else:
+        if missing_in_between_nodes == set(expected_missing_in_between_nodes):
+            print(f"passed with {missing_in_between_nodes}")
+        else:
+            print(f"expected {expected_missing_in_between_nodes}, got {missing_in_between_nodes}")
+
 
 def get_missing(edges, subgraph_nodes, verbose=False):
     G = nx.DiGraph(edges)
