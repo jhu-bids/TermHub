@@ -173,7 +173,7 @@ export class GraphContainer {
      */
 
     // 1. Generate allRows
-    let allRows = this.setupAllRows(this.roots);
+    let {allRows, allRowsById} = this.setupAllRows(this.roots);
 
     if (graphOptions.expandAll) {
       // 3....  no need to expand STC, because nothing collapsed except SNC
@@ -222,16 +222,7 @@ export class GraphContainer {
       }
     });
 
-    // hide all HTE
-    let allRowIdxById = {}; // start by getting lists of rowIdx by concept_id
-    allRows.forEach((row, rowIdx) => {
-      if (allRowIdxById[row.concept_id]) {
-        allRowIdxById[row.concept_id].push(rowIdx)
-      } else {
-        allRowIdxById[row.concept_id] = [rowIdx];
-      }
-    });
-
+    // hide all HTE (non-standard, zero pt, expansion only)
     for (let type in graphOptions.specialConceptTreatment) {
       if (type === 'allButFirstOccurrence') continue; // handle this differently
       if (get(this, ['graphDisplayConfig', type, 'specialTreatmentRule'])
@@ -239,9 +230,9 @@ export class GraphContainer {
           graphOptions.specialConceptTreatment[type]) {
         // gather all the hideThoughExpanded ids
         this.gd.specialConcepts[type].forEach(id => {
-          const rowsToHide = get(allRowIdxById, id, []);
-          for (const rowToHideIdx of rowsToHide) {
-            const rowToHide = allRows[rowToHideIdx];
+          const rowsToHide = allRowsById.get(id) || [];
+          for (const rowToHide of rowsToHide) {
+            const rowToHideIdx = rowToHide.allRowsIdx;
             this.rowDisplay(rowToHideIdx, graphOptions.specificPaths[rowToHide.rowPath], type, allRows)
           }
         })
@@ -272,6 +263,54 @@ export class GraphContainer {
     return displayedRows;
     // return this.getDisplayedRowsOLD(graphOptions);
   }
+  insertShowThoughCollapsed(path, shown, nodeRows) {
+    // moved out of getDisplayedRows where shown was a closure var
+    // path starts with the nodeIdToShow and recurses up, prepending parents
+    const nodeIdToShow = path[path.length - 1]; // remains the same through recursion
+    if (shown.has(nodeIdToShow)) return; // already displayed
+    if (nodeRows.has(nodeIdToShow)) {
+      return;
+      // throw new Error(`nodeToShow ${nodeIdToShow} is already displayed`);
+    }
+    // so, only one nodeIdToShow, but separate nodeToShow copies for each path
+    let nodeToShowRows = [];
+    let parents = this.graph.inNeighbors(path[0]);
+    for (let parentId of parents) {
+      if (this.showThoughCollapsed.has(parentId)) {
+        // if the parent is also a showThoughCollapsed node, do it first
+        this.insertShowThoughCollapsed([parentId, ...(path.slice(0, -1))], shown, nodeRows);
+      }
+      let parentNode = this.nodes[parentId];
+      if (nodeRows.has(parentId)) {  // parent is already displayed
+        if (parentNode.expanded) {
+          throw new Error(`parent ${parentId} is expanded; we shouldn't be here`);
+        }
+        parentNode.childRows = parentNode.childRows || [];
+
+        // put the nodeIdToShow below its paths
+        for (let parentRow of nodeRows.get(parentId)) {
+          let nodeToShowRow = {...this.nodes[nodeIdToShow]};
+          nodeToShowRow.depth = parentRow.depth + 1;
+          nodeToShowRow.rowPath = [...parentRow.rowPath, nodeIdToShow]; // straight from visible ancestor to nodeToShowRow
+          nodeToShowRow.pathFromDisplayedNode = path.slice(0, -1);  // intervening path between them
+          nodeToShowRows.push(nodeToShowRow);
+          parentNode.childRows.push(nodeToShowRow); // add to parent's childRows
+          parentRow.childRows = parentNode.childRows;
+        }
+      } else {
+        this.insertShowThoughCollapsed([parentId, ...path], shown, nodeRows);
+        return;
+      }
+    }
+    if (nodeRows.has(nodeIdToShow)) {
+      throw new Error(`nodeToShow ${nodeIdToShow} is already displayed`);
+    }
+    nodeRows.set(nodeIdToShow, []);
+    nodeToShowRows.forEach((nodeToShowRow, i) => {
+      nodeRows.get(nodeIdToShow).push(nodeToShowRow);
+    });
+    shown.add(nodeIdToShow);
+  };
   rowDisplay(rowIdx, showHide, reason, allRows) {
     // this.rowDisplay(row, graphOptions.specificPaths[row.rowPath], 'specific')
     // this.rowDisplay(rowToHide, graphOptions.specificPaths[rowToHide.rowPath], type)
@@ -279,7 +318,7 @@ export class GraphContainer {
     if (reason === 'specific') {
       if (showHide === 'expand') {
         for (let childRow of this.getDescendantRows(rowIdx, allRows, 1)) {
-          childRow.display.showReasons.childOfExpanded = rowIdx;
+          childRow.display.showReasons.childOfExpanded = true;
           childRow.display.result = 'show';
         }
       } else if (showHide === 'collapse') {
@@ -291,6 +330,9 @@ export class GraphContainer {
         throw new Error(`Invalid showHide: ${showHide}`);
       }
     } else {
+      const rowToHide = allRows[rowIdx];
+      rowToHide.display.hideReasons[reason] = true;
+      rowToHide.display.result = 'hide';
       for (let childRow of this.getDescendantRows(rowIdx, allRows)) {
         childRow.display.hideReasons[`descendantOf_${reason}`] = rowIdx;
         childRow.display.result = 'hide';
@@ -316,7 +358,7 @@ export class GraphContainer {
   }
   setupAllRows(rootNodes) {
     let allRows = [];
-
+    let allRowsById = new StringKeyMap(); // start by getting lists of rowIdx by concept_id
     // rows and nodes and concepts are all the same thing, I just use the term
     //  that fits the purpose at the moment
     const addRows = (nodeIds, parentPath = '', depth = 0) => {
@@ -330,8 +372,13 @@ export class GraphContainer {
           showReasons: {},
           result: '',
         }
-
+        row.allRowsIdx = allRows.length;
         allRows.push(row);
+        if (allRowsById.has(row.concept_id)) {
+          allRowsById.get(row.concept_id).push(row);
+        } else {
+          allRowsById.set(row.concept_id, [row]);
+        }
 
         if (node.childIds && node.childIds.length) {
           addRows(node.childIds, row.rowPath, depth + 1);
@@ -339,7 +386,7 @@ export class GraphContainer {
       }
     };
     addRows(rootNodes);
-    return allRows;
+    return {allRows, allRowsById};
   }
 
   sortFunc = (d => {

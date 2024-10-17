@@ -707,7 +707,7 @@ function nodeToTree(node) { // Not using
 }
 
 function getCollapseIconAndName(
-    row, sizes, graphOptions, graphOptionsDispatch, gc) {
+    row, name, sizes, graphOptions, graphOptionsDispatch, gc) {
   let Component;
   let direction;
   if (
@@ -746,7 +746,7 @@ function getCollapseIconAndName(
                       verticalAlign: 'top',
                     }}
                 />
-        <span className="concept-name-text">{row.concept_name}</span>
+        <span className="concept-name-text">{name}</span>
       </span>
   );
 }
@@ -779,6 +779,8 @@ function getColDefs(props) {
       selector: (row) => row.concept_name,
       format: (row) => {
         let name = row.concept_name;
+        // debugging show/hide:
+        // name += ` --- ${Object.keys(row.display.hideReasons).join(', ')}; ${Object.keys(row.display.showReasons).join(', ')} ${row.display.result}`;
         if (row.pathFromDisplayedNode && row.pathFromDisplayedNode.length) {
           let names = row.pathFromDisplayedNode.map(
               cid => gc.nodes[cid].concept_name);
@@ -795,7 +797,7 @@ function getColDefs(props) {
         }
         let content = nested ? (
             row.hasChildren
-                ? getCollapseIconAndName(row, sizes, graphOptions,
+                ? getCollapseIconAndName(row, name, sizes, graphOptions,
                     graphOptionsDispatch, gc)
                 : (
                     <span className="concept-name-row">
