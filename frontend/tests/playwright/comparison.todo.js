@@ -63,20 +63,20 @@ for (const envName in selectedConfigs) {
           await page.evaluate(() => window.dispatchGraphOptions({
             gc,
             type: 'TOGGLE_NODE_EXPANDED',
-            nodeId: firstRow.concept_id,
+            rowPath: '/' + firstRow.concept_id,
             direction: 'expand',
           }));
 
           const result = await page.evaluate((/*{graphData, roots, firstRow}*/) => {
             // const [graphOptions, graphOptionsDispatch] = useGraphOptions();
             const gc = new GraphContainer(graphData);
-            gc.getDisplayedRows(window.graphOptions);
+            let displayedRows = gc.getDisplayedRows(window.graphOptions);
 
             const initialRoots = gc.roots;
-            const initialDisplayedRows = gc.displayedRows.map(r => r.concept_id);
-            const initialFirstRow = gc.displayedRows[0];
+            const initialDisplayedRows = displayedRows.map(r => r.concept_id);
+            const initialFirstRow = displayedRows[0];
 
-            const expandedChildRows = gc.displayedRows.slice(1,
+            const expandedChildRows = displayedRows.slice(1,
                 initialFirstRow.childIds.length + 1).map(r => r.concept_id);
 
             return {

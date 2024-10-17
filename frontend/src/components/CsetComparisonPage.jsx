@@ -55,6 +55,7 @@ import {
 import {GraphContainer} from '../state/GraphState';
 import {getResearcherIdsFromCsets, useDataGetter} from '../state/DataGetter';
 import {LI} from './AboutPage';
+import {isEqual} from '@react-sigma/core';
 // import {AddConcepts} from "./AddConcepts";
 
 // TODO: Find concepts w/ good overlap and save a good URL for that
@@ -204,7 +205,7 @@ export function CsetComparisonPage() {
 
   const [data, setData] = useState({});
   const {
-    gc,
+    gc, displayedRows,
     concepts,
     concept_ids,
     conceptLookup,
@@ -254,19 +255,21 @@ export function CsetComparisonPage() {
       //  that looks redundant, unneeded. fixing now but not testing. hopefully won't break anything:
       let _gc = new GraphContainer(graphData);
 
-      // Call setGraphDisplayConfig twice! First time to make sure
-      //  all the statsOptions are set to their default values.
-      //  Then again after calling getDisplayedRows in order to
-      //  set the counts that appear in the statsoptions dialog box
 
       let newGraphOptions = _gc.setGraphDisplayConfig(graphOptions);
+      if (!isEqual(graphOptions, newGraphOptions)) {
+        debugger;
+      }
+      graphOptions = newGraphOptions;
+      let displayedRows = _gc.getDisplayedRows(graphOptions);
 
-      _gc.getDisplayedRows(newGraphOptions);
 
       newGraphOptions = _gc.setGraphDisplayConfig(graphOptions);
-
-      // save the options to state. todo: why is this necessary?
-      graphOptionsDispatch({type: 'REPLACE', graphOptions: newGraphOptions});
+      if (!isEqual(graphOptions, newGraphOptions)) {
+        debugger;
+        // save the options to state. todo: why is this necessary?
+        graphOptionsDispatch({type: 'REPLACE', graphOptions: newGraphOptions});
+      }
 
       const currentUserId = (await whoami).id;
       const researcherIds = getResearcherIdsFromCsets(selected_csets);
@@ -285,6 +288,7 @@ export function CsetComparisonPage() {
         specialConcepts,
         comparison_rpt,
         gc: _gc,
+        displayedRows,
       }));
     })();
   }, [newCset, graphOptions, api_call_group_id]); // todo: why api_call_group_id here? still needed?
@@ -313,7 +317,7 @@ export function CsetComparisonPage() {
     infoPanelRef.current,
     (infoPanelRef.current ? infoPanelRef.current.offsetHeight : 0)]);
 
-  if (!gc || isEmpty(graphOptions) || isEmpty(gc.displayedRows) ||
+  if (!gc || isEmpty(graphOptions) || isEmpty(displayedRows) ||
       isEmpty(selected_csets)) {
     // sometimes selected_csets and some other data disappears when the page is reloaded
     return <p>Downloading...</p>;
@@ -333,7 +337,7 @@ export function CsetComparisonPage() {
     editAction,
     windowSize,
     // hidden,
-    displayedRows: gc.displayedRows,
+    displayedRows,
     graphOptions,
     graphOptionsDispatch,
     csmi,
@@ -512,7 +516,7 @@ export function CsetComparisonPage() {
   );
 
   const tableProps = {
-    rowData: gc.displayedRows,
+    rowData: displayedRows,
     columns: colDefs,
     selected_csets,
     customStyles,
@@ -703,16 +707,13 @@ function nodeToTree(node) { // Not using
 }
 
 function getCollapseIconAndName(
-    row, sizes, graphOptions, graphOptionsDispatch, gc) {
+    row, name, sizes, graphOptions, graphOptionsDispatch, gc) {
   let Component;
   let direction;
   if (
-      // graphOptions.specificNodesExpanded.includes(parseInt(row.concept_id)) ||
-      // (graphOptions.expandAll && !graphOptions.specificNodesCollapsed.includes(parseInt(row.concept_id)))
-      // parseInt means it doesn't work with the 'unlinked' node
-      graphOptions.specificNodesExpanded.find(d => d == row.concept_id) ||
       (graphOptions.expandAll &&
-          !graphOptions.specificNodesCollapsed.find(d => d == row.concept_id))
+           graphOptions.specificPaths[row.rowPath] !== 'collapse'
+      ) || graphOptions.specificPaths[row.rowPath] === 'expand'
   ) {
     Component = RemoveCircleOutline;
     direction = 'collapse';
@@ -728,7 +729,7 @@ function getCollapseIconAndName(
               graphOptionsDispatch({
                 gc,
                 type: 'TOGGLE_NODE_EXPANDED',
-                nodeId: row.concept_id,
+                rowPath: row.rowPath,
                 direction,
               });
             }
@@ -745,7 +746,7 @@ function getCollapseIconAndName(
                       verticalAlign: 'top',
                     }}
                 />
-        <span className="concept-name-text">{row.concept_name}</span>
+        <span className="concept-name-text">{name}</span>
       </span>
   );
 }
@@ -778,6 +779,8 @@ function getColDefs(props) {
       selector: (row) => row.concept_name,
       format: (row) => {
         let name = row.concept_name;
+        // debugging show/hide:
+        // name += ` --- ${Object.keys(row.display.hideReasons).join(', ')}; ${Object.keys(row.display.showReasons).join(', ')} ${row.display.result}`;
         if (row.pathFromDisplayedNode && row.pathFromDisplayedNode.length) {
           let names = row.pathFromDisplayedNode.map(
               cid => gc.nodes[cid].concept_name);
@@ -794,7 +797,7 @@ function getColDefs(props) {
         }
         let content = nested ? (
             row.hasChildren
-                ? getCollapseIconAndName(row, sizes, graphOptions,
+                ? getCollapseIconAndName(row, name, sizes, graphOptions,
                     graphOptionsDispatch, gc)
                 : (
                     <span className="concept-name-row">
@@ -829,6 +832,12 @@ function getColDefs(props) {
           }),
         },
       ],
+    },
+    {
+      name: '#',
+      selector: (row) => row.nodeOccurrence,
+      width: 30,
+      style: {justifyContent: 'center'},
     },
     {
       name: 'Status', // only shown for comparisons I think
@@ -1236,7 +1245,7 @@ function ComparisonDataTable(props) {
         backgroundColor: row.removed && '#F662' ||
             row.added && '#00FF0016' ||
             row.isItem && '#33F2' || '#FFF',
-        opacity: row.nodeOccurrence ? .4 : 1,
+        opacity: row.nodeOccurrence > 0 ? .4 : 1,
         // backgroundColor: row.concept_id in definitions ? "#F662" : "#FFF",
       }),
     },

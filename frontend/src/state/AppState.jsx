@@ -14,7 +14,7 @@ import {
   useSessionStorage,
 } from './StorageProvider';
 import { SOURCE_APPLICATION, SOURCE_APPLICATION_VERSION } from '../env';
-import { pct_fmt, setOp } from '../utils';
+import { pct_fmt, setOp, } from '../utils';
 // import Box from '@mui/material/Box';
 // import CircularProgress from '@mui/material/CircularProgress';
 import { useDataCache } from './DataCache';
@@ -59,25 +59,13 @@ function appOptionsReducer(state, action) {
 }
 */
 
-/*
-interface GraphOpts {
-    specialConceptTreatment: { [key: string]: boolean },
-    nested: boolean,
-    // hideRxNormExtension: true,
-    // hideZeroCounts: false,
-    specificNodesCollapsed: number[],
-    specificNodesExpanded: number[],
-    expandAll: boolean,
-}
- */
 
 export const graphOptionsInitialState = {
     specialConceptTreatment: {},
     nested: true,
     // hideRxNormExtension: true,
     // hideZeroCounts: false,
-    specificNodesCollapsed: [],
-    specificNodesExpanded: [],
+    specificPaths: {}, // like { '/123/456': 'expanded', '/234/567': 'collapsed' }
 };
 
 export const [GraphOptionsProvider, useGraphOptions] = makeProvider(
@@ -170,12 +158,12 @@ function cidsReducer(state, action) {
 export function graphOptionsReducer(state, action) {
   /* state: GraphOpts, action: {
         type: string, graphOptions: GraphOpts, direction: string,
-        nodeId: number, specialConceptType: string, resetValue: GraphOpts, }) { */
+        rowPath: string, specialConceptType: string, resetValue: GraphOpts, }) { */
   if ( ! ( action || {} ).type ) return state;
   console.log('graphOptions action', action);
   // let {collapsePaths, // collapsedDescendantPaths,
   //   nested, hideRxNormExtension, hideZeroCounts} = {...unpersistedDefaultState, ...state};
-  const {type, nodeId, specialConceptType, } = action;
+  let {type, rowPath, specialConceptType, } = action;
 
   let graphOptions = get(action, 'graphOptions') || state;
 
@@ -186,31 +174,29 @@ export function graphOptionsReducer(state, action) {
     case 'NEW_GRAPH_OPTIONS':
       return graphOptions;
     case 'TOGGLE_NODE_EXPANDED': {
-      const expand = new Set(graphOptions.specificNodesExpanded);
-      const collapse = new Set(graphOptions.specificNodesCollapsed);
-      if (action.direction === 'expand') {
-        // TODO: don't do both! only expand if not previously collapsed
-        //  See #873
-        expand.add(nodeId);
-        collapse.delete(nodeId);
-      } else if (action.direction === 'collapse') {
-        // TODO: don't do both! only collapse if not previously expanded
-        expand.delete(nodeId);
-        collapse.add(nodeId);
-      } else {
-        console.error("have to give direction for TOGGLE_NODE_EXPANDED");
+      // will delete all when expandAll flips
+      // could have two sets of specificPaths, one for expandAll, one for not
+      const validValues = ['expand','collapse'];
+      if (!validValues.includes(action.direction)) {
+        console.error(`Invalid direction for TOGGLE_NODE_EXPANDED: ${action.direction}`);
       }
-      // TODO: quit storing expanded/collapsed nodes in row!!!
-      graphOptions = {
-        ...graphOptions,
-        specificNodesExpanded: [...expand],
-        specificNodesCollapsed: [...collapse]
-      };
-      // gc.toggleNodeExpanded(action.payload.nodeId);
-      // graphOptions = {
-      //   ...graphOptions,
-      //   expandedNodes: {...graphOptions.expandedNodes, [action.payload.nodeId]:!graphOptions.expandedNodes[action.payload.nodeId]}
-      // };
+      let specificPaths = {...graphOptions.specificPaths};
+      let current = specificPaths[rowPath];
+      if (typeof(current) === 'undefined') {
+        // if no current expand/collapse for path, set it
+        specificPaths[rowPath] = action.direction;
+      } else {
+        // path has current state -- should be opposite of action.direction
+        //  so just delete it (to unexpand/uncollapse)
+        if (!validValues.includes(current)) {
+          console.error(`Invalid current state for path ${rowPath}: ${current}`);
+        }
+        if (current === action.direction) {
+          console.error(`Trying to ${action.direction} ${rowPath} but is already`);
+        }
+        delete specificPaths[rowPath];
+      }
+      graphOptions = { ...graphOptions, specificPaths};
       break;
     }
     case 'TOGGLE_OPTION':
@@ -220,7 +206,9 @@ export function graphOptionsReducer(state, action) {
       break;
     case 'TOGGLE_EXPAND_ALL':
       graphOptions = {...graphOptions, expandAll:!graphOptions.expandAll};
-      // Object.values(gc.nodes).forEach(n => {if (n.hasChildren) n.expanded = graphOptions.expandAll;});
+      graphOptions.specificPaths = {};
+        // just start over when expandAll flips
+        // could have two sets of specificPaths, one for expandAll, one for not
       break;
     case "reset": {
       return action.resetValue;
