@@ -84,10 +84,12 @@ export class GraphContainer {
       New algorithm
       Special classes           Action              Default
         concepts                expandAll           false
+        TODO: make the expandAll default depend on number of concepts rather
+              than being always false
         standard                nothing
         classification          nothing
 
-        specificPaths (expanded/collapsed)
+        specificPaths (expanded/collapsed)  // rename -- chosenPaths?
 
         addedCids               showThoughCollapsed true
         definitionConcepts      showThoughCollapsed false
@@ -99,13 +101,34 @@ export class GraphContainer {
         nonStandard             hideThoughExpanded  false
         zeroRecord              hideThoughExpanded  false
 
+      TODO: decide how to handle showThoughCollapsed
+        1.  Like before -- show path below nearest displayed ancestor
+        2.  Actually expand down to STC row and have some way to indicate
+            that siblings of the in-between nodes are not being displayed
+        3.  Give users a way to see these separately and then expand
+            manually to find the row of interest.
+
+       Possible question for LLM:
+          I have a big, indented table representing a DAG -- it's a hierarchical
+          tree, but nodes can appear multiple times if they have multiple
+          parents. The tree can get big and cause performance problems and
+          user interface overwhelm at times. There are certain classes of
+          nodes that are of special interest to users. And other classes of
+          nodes that are especially uninteresting to users. We would like a
+          way for users to selectively expose one of the interesting classes
+          or selectively hide one of the uninteresting classes, while maintaining
+          the hierarchical display. Do you have any suggestions? Are you aware
+          of any existing UIs that implement anything like this?
+
+
       For each row:
         showReasons:
-          - showThoughCollapsed (include which option in reason?)
+          - showThoughCollapsed
           - hidden parent/ancestor of showThoughCollapsed
           - child of specificPathsExpanded
         hideReasons:
-          - hideThoughExpanded (include which option?)
+          - non-root
+          - hideThoughExpanded
           - child of specificPathsCollapsed
           - duplicate occurrence
 
@@ -140,10 +163,10 @@ export class GraphContainer {
           STC takes precedence over HTE
 
         Hidden (zeroRecord) concept is root
-          Don't hide roots (will sort to bottom anyway probably)
+          Hide anyway
 
         specificNodeCollapsed while expandAll is on
-          (currently broken, but should hide descendants)
+          Hide descendants
 
       1. [ ] Generate allRows: list of all rows, in order, with duplicates
       2. [ ] If allButFirstOccurrence hidden, hide allButFirstOccurrence
