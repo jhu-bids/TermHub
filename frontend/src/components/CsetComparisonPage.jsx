@@ -707,8 +707,8 @@ function getCollapseIconAndName(
   let direction;
   if (
       (graphOptions.expandAll &&
-           graphOptions.specificPaths[row.rowPath] !== 'collapse'
-      ) || graphOptions.specificPaths[row.rowPath] === 'expand'
+           graphOptions.expandStateByPath[row.rowPath] !== 'collapse'
+      ) || graphOptions.expandStateByPath[row.rowPath] === 'expand'
   ) {
     Component = RemoveCircleOutline;
     direction = 'collapse';
