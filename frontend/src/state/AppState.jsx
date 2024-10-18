@@ -231,10 +231,16 @@ if (process.env.NODE_ENV !== 'production') {
 // window.appStateW = {}; // playwright complaining that window isn't defined
 let appStateW = {};
 
+/* makeProvider()
+Makes provider to manage both a regular reducer and a storage provider.
+I think the idea was to put update logic into reducers and try to have storage providers.
+just emulate localStorage (whether for localStorage, sessionStorage, or querystring).
+
+Side effects:
+ - Updates global `resetFuncs` obj w/ the `resetFunc` for the given `stateName`.
+
+*/
 function makeProvider({stateName, reducer, initialSettings, storageProviderGetter, jsonify=false, }) {
-  // makes provider to manage both a regular reducer and a storage provider
-  // I think the idea was to put update logic into reducers and try to have storage providers
-  //  just emulate localStorage (whether for localStorage, sessionStorage, or querystring)
   /*
   const regularReducer = (state, action) => {
     const newState = reducer(state, action);
@@ -273,9 +279,8 @@ function makeProvider({stateName, reducer, initialSettings, storageProviderGette
       storageProvider.setItem(stateName, newState);
     }, [stateName, state]);
      */
-
-    const resetFunc = () => dispatch({type: 'reset', resetValue: initialSettings});
-    resetFuncs[stateName] = resetFunc;
+    
+    resetFuncs[stateName] = () => dispatch({type: 'reset', resetValue: initialSettings});
 
     return (
         // <Context.Provider value={[storageProvider.getItem(stateName) ?? initialSettings, dispatch]}>
