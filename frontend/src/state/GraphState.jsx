@@ -120,15 +120,57 @@ export class GraphContainer {
           the hierarchical display. Do you have any suggestions? Are you aware
           of any existing UIs that implement anything like this?
 
+          Some ideas to a claude follow-up question:
+          Preserving the hierarchical structure while hiding intermediate nodes
+          can indeed be confusing for users. Let's explore some alternative
+          approaches that might help address this issue:
+
+          - Breadcrumb trails:
+            - When displaying a node that's several levels below its next
+              visible parent, show a breadcrumb trail.
+            - This could be a compact representation of the hidden intermediate nodes.
+            - Example: Parent > [2 hidden levels] > Current Node
+          - Ghost nodes:
+            - Instead of completely hiding intermediate nodes, display them as "ghost" or "phantom" nodes.
+            - These could be visually distinct (e.g., semi-transparent, grayed out) and take up less space.
+            - Users can optionally expand these to see more detail.
+          - Vertical space indicators:
+            - Use vertical lines or spaces to indicate the depth of hidden levels.
+            - Each hidden level could be represented by a small gap or a dashed line.
+          - Expandable summaries:
+            - Replace hidden subtrees with summary nodes.
+            - Example: "[3 hidden nodes]" or "[Marketing subtree]"
+            - These can be expanded on demand to show more detail.
+          - Context-aware tooltips:
+            - When hovering over a node that's far from its visible parent, show a tooltip with the full path.
+            - This provides context without cluttering the main view.
+          - Mini-map navigation:
+            - Provide a compact overview of the entire tree structure.
+            - Highlight the current visible area and allow quick navigation.
+            - This helps users maintain overall context.
+          - Animated transitions:
+            - When expanding or collapsing nodes, use smooth animations to show how the tree structure changes.
+            - This can help users understand the relationships between distant nodes.
+          - Hybrid list-tree view:
+            - Present the main structure as a list of top-level nodes.
+            - Each list item can be expanded to show its subtree in a traditional tree view.
+            - This approach simplifies the top-level view while allowing detailed exploration.
+          - Focus mode with context:
+            - When a user focuses on a specific subtree, dim but don't hide the rest of the tree.
+            - This maintains overall structure while emphasizing the area of interest.
+          - Interactive path highlighting:
+            - When a user selects a node, highlight the path back to its root.
+            - This can include temporarily revealing hidden intermediate nodes.
+
 
       For each row:
         showReasons:
-          - showThoughCollapsed
+          - showThoughCollapsed (definitions, added cids, comparison added/removed)
           - hidden parent/ancestor of showThoughCollapsed
           - child of specificPathsExpanded
         hideReasons:
           - non-root
-          - hideThoughExpanded
+          - hideThoughExpanded (expansion only, non-standard, zero pt, all but first)
           - child of specificPathsCollapsed
           - duplicate occurrence
 

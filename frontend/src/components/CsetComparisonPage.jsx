@@ -68,7 +68,6 @@ export async function fetchGraphData(props) {
     dataGetter.fetchAndCacheItems(dataGetter.apiCalls.cset_members_items,
         codeset_ids),
     dataGetter.fetchAndCacheItems(dataGetter.apiCalls.csets, codeset_ids),
-    dataGetter.fetchAndCacheItems(dataGetter.apiCalls.n3c_comparison_rpt),
   ];
   // have to get concept_ids before fetching concepts
   // const concept_ids_by_codeset_id = await dataGetter.fetchAndCacheItems(dataGetter.apiCalls.concept_ids_by_codeset_id, codeset_ids);
@@ -86,9 +85,9 @@ export async function fetchGraphData(props) {
   promises.push(
       dataGetter.fetchAndCacheItems(dataGetter.apiCalls.concepts, concept_ids));
 
-  let [csmi, selected_csets, comparedPairs, conceptLookup] = await Promise.all(promises);
-  let cpairs = comparedPairs.map(p => [p.cset_1_codeset_id, p.cset_2_codeset_id].sort().join('-'));
+  let [csmi, selected_csets, conceptLookup] = await Promise.all(promises);
 
+  /*
   let comparison_rpt;
   if (codeset_ids.length === 2) {
     const pcids = codeset_ids.sort().join('-');
@@ -102,7 +101,14 @@ export async function fetchGraphData(props) {
     } else {
       // throw new Error(`invalid compareOpt: ${compareOpt}`);
     }
+
+    if (comparison_rpt) {
+      comparison_rpt = await comparison_rpt;
+      specialConcepts.added = comparison_rpt.added.map(d => d.concept_id + '');
+      specialConcepts.removed = comparison_rpt.removed.map(d => d.concept_id + '');
+    }
   }
+ */
   /*
   // just for screenshot
   let x = csmi[718894835][4153380];
@@ -153,12 +159,6 @@ export async function fetchGraphData(props) {
     addedCids: cids.map(String),
   };
 
-  if (comparison_rpt) {
-    comparison_rpt = await comparison_rpt;
-    specialConcepts.added = comparison_rpt.added.map(d => d.concept_id + '');
-    specialConcepts.removed = comparison_rpt.removed.map(d => d.concept_id + '');
-  }
-
   for (let cid in conceptLookup) {    // why putting all the specialConcepts membership as properties on the concept?
     let c = {...conceptLookup[cid]}; // don't want to mutate the cached concepts
     if (specialConcepts.definitionConcepts.includes(cid + '')) c.isItem = true;
@@ -180,7 +180,6 @@ export async function fetchGraphData(props) {
     csmi,
     concepts,
     specialConcepts,
-    comparison_rpt,
   };
 }
 
@@ -214,7 +213,6 @@ export function CsetComparisonPage() {
     researchers,
     currentUserId,
     specialConcepts,
-    comparison_rpt,
   } = data;
 
   useEffect(() => {
@@ -248,7 +246,6 @@ export function CsetComparisonPage() {
         csmi,
         concepts,
         specialConcepts,
-        comparison_rpt,
       } = graphData;
 
       // let _gc = new GraphContainer({ ...graphData, concepts, specialConcepts, csmi });
@@ -286,7 +283,6 @@ export function CsetComparisonPage() {
         researchers,
         currentUserId,
         specialConcepts,
-        comparison_rpt,
         gc: _gc,
         displayedRows,
       }));
@@ -343,7 +339,6 @@ export function CsetComparisonPage() {
     csmi,
     newCset, newCsetDispatch,
     setShowCsetCodesetId,
-    comparison_rpt,
   });
 
   let csetCard = null;
@@ -767,7 +762,6 @@ function getColDefs(props) {
     csmi,
     newCset, newCsetDispatch,
     setShowCsetCodesetId,
-    comparison_rpt,
   } = props;
   const {nested, hideRxNormExtension, hideZeroCounts} = graphOptions;
   const {definitions = {}} = newCset;
@@ -832,31 +826,6 @@ function getColDefs(props) {
           }),
         },
       ],
-    },
-    {
-      name: '#',
-      selector: (row) => row.nodeOccurrence,
-      width: 30,
-      style: {justifyContent: 'center'},
-    },
-    {
-      name: 'Status', // only shown for comparisons I think
-      headerProps: {
-        tooltipContent: 'Information about this row',
-        /*
-        tooltipContent: 'Whether concept is a definition item' +
-            (comparison_rpt ? ' or added or removed in the comparison report' : '') +
-            ". These concepts are displayed even if you haven't expanded their parents" +
-            " and are highlighted with a row color.",
-         */
-        // doesn't work:
-        // ttStyle: {zIndex: 1000, opacity: .1, overflow: 'visible', width: '300px', backgroundColor: 'pink'},
-      },
-      selector: (row) => row.status,
-      sortable: false,
-      width: 88,
-      style: {paddingRight: 4, paddingLeft: 4},
-      wrap: true,
     },
     {
       name: 'Levels below',
@@ -1109,9 +1078,6 @@ function getColDefs(props) {
     },
     // ...cset_cols,
   ];
-  if (!comparison_rpt) {
-    coldefs = coldefs.filter(d => d.name !== 'Status');
-  }
   let cset_cols = selected_csets.map((cset_col) => {
     const {codeset_id} = cset_col;
     let def = {
@@ -1242,9 +1208,10 @@ function ComparisonDataTable(props) {
     {
       when: () => true,
       style: (row) => ({
-        backgroundColor: row.removed && '#F662' ||
+        backgroundColor:
+            row.removed && '#F662' ||
             row.added && '#00FF0016' ||
-            row.isItem && '#33F2' || '#FFF',
+            '#FFF', // row.isItem && '#33F2' || '#FFF',
         opacity: row.nodeOccurrence > 0 ? .4 : 1,
         // backgroundColor: row.concept_id in definitions ? "#F662" : "#FFF",
       }),
