@@ -125,7 +125,7 @@ export class GraphContainer {
         showReasons:
           - showThoughCollapsed
           - hidden parent/ancestor of showThoughCollapsed
-          - child of specificPathsExpanded1G
+          - child of specificPathsExpanded
         hideReasons:
           - non-root
           - hideThoughExpanded
