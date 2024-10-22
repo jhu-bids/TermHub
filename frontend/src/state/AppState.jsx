@@ -484,6 +484,10 @@ export function newCsetAtlasJson(cset, conceptLookup) {
         Object.entries(concept).forEach(([k, v]) => {
           atlasConcept[k.toUpperCase()] = v;
         })
+        atlasConcept = pick(atlasConcept, ["CONCEPT_CLASS_ID", "CONCEPT_CODE",
+          "CONCEPT_ID", "CONCEPT_NAME", "DOMAIN_ID", "INVALID_REASON",
+          "INVALID_REASON_CAPTION", "STANDARD_CONCEPT", "STANDARD_CONCEPT_CAPTION",
+          "VOCABULARY_ID", "VALID_START_DATE", "VALID_END_DATE", ]);
         item.concept = atlasConcept;
         return item;
       }
