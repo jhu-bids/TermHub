@@ -142,14 +142,8 @@ export async function fetchGraphData(props) {
       Object.values(csmi).map(d => Object.values(d)),
   ).filter(d => d.item).map(d => d.concept_id));
 
-  const expansionConcepts = uniq(flatten(
-      Object.values(csmi).map(d => Object.values(d)),
-      // concepts that are in expansion but not definition
-  ).filter(d => d.csm && !d.item).map(d => d.concept_id + ''));
-
   let specialConcepts = {
     definitionConcepts: definitionConcepts.map(String),
-    expansionConcepts: expansionConcepts.map(String),
     nonStandard: uniq(Object.values(conceptLookup).
         filter(c => !c.standard_concept).
         map(c => c.concept_id)),
@@ -158,18 +152,6 @@ export async function fetchGraphData(props) {
         map(c => c.concept_id)),
     addedCids: cids.map(String),
   };
-
-  for (let cid in conceptLookup) {    // why putting all the specialConcepts membership as properties on the concept?
-    let c = {...conceptLookup[cid]}; // don't want to mutate the cached concepts
-    if (specialConcepts.definitionConcepts.includes(cid + '')) c.isItem = true;
-    if (specialConcepts.expansionConcepts.includes(cid + '')) c.isMember = true;
-    if ((specialConcepts.added || []).includes(cid + '')) c.added = true;
-    if ((specialConcepts.removed || []).includes(cid + '')) c.removed = true;
-    c.status = [
-      c.isItem && 'In definition', c.isMember && 'In Expansion',
-      c.added && 'Added', c.removed && 'Removed'].filter(d => d).join(', ');
-    conceptLookup[cid] = c;
-  }
 
   const concepts = Object.values(conceptLookup);
   return {
@@ -258,10 +240,9 @@ export function CsetComparisonPage() {
         debugger;
       }
       graphOptions = newGraphOptions;
-      let displayedRows = _gc.getDisplayedRows(graphOptions);
+      let {displayedRows, allRows} = _gc.getDisplayedRows(graphOptions);
 
-
-      newGraphOptions = _gc.setGraphDisplayConfig(graphOptions);
+      newGraphOptions = _gc.setGraphDisplayConfig(graphOptions, allRows, displayedRows);
       if (!isEqual(graphOptions, newGraphOptions)) {
         debugger;
         // save the options to state. todo: why is this necessary?

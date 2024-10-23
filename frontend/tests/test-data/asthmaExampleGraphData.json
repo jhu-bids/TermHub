@@ -692,9 +692,7 @@
             "domain_cnt": 0,
             "domain": "",
             "total_cnt": 0,
-            "distinct_person_cnt": "0",
-            "isMember": true,
-            "status": "In Expansion"
+            "distinct_person_cnt": "0"
         },
         "259055": {
             "concept_id": 259055,
@@ -708,9 +706,7 @@
             "domain_cnt": 0,
             "domain": "",
             "total_cnt": 0,
-            "distinct_person_cnt": "0",
-            "isMember": true,
-            "status": "In Expansion"
+            "distinct_person_cnt": "0"
         },
         "312950": {
             "concept_id": 312950,
@@ -724,9 +720,7 @@
             "domain_cnt": 1,
             "domain": "condition_occurrence",
             "total_cnt": 45812,
-            "distinct_person_cnt": "11653",
-            "isMember": true,
-            "status": "In Expansion"
+            "distinct_person_cnt": "11653"
         },
         "3080832": {
             "concept_id": 3080832,
@@ -740,9 +734,7 @@
             "domain_cnt": 0,
             "domain": "",
             "total_cnt": 0,
-            "distinct_person_cnt": "0",
-            "isMember": true,
-            "status": "In Expansion"
+            "distinct_person_cnt": "0"
         },
         "3105910": {
             "concept_id": 3105910,
@@ -756,9 +748,7 @@
             "domain_cnt": 0,
             "domain": "",
             "total_cnt": 0,
-            "distinct_person_cnt": "0",
-            "isMember": true,
-            "status": "In Expansion"
+            "distinct_person_cnt": "0"
         },
         "3124228": {
             "concept_id": 3124228,
@@ -772,9 +762,7 @@
             "domain_cnt": 0,
             "domain": "",
             "total_cnt": 0,
-            "distinct_person_cnt": "0",
-            "isMember": true,
-            "status": "In Expansion"
+            "distinct_person_cnt": "0"
         },
         "3124987": {
             "concept_id": 3124987,
@@ -788,9 +776,7 @@
             "domain_cnt": 0,
             "domain": "",
             "total_cnt": 0,
-            "distinct_person_cnt": "0",
-            "isMember": true,
-            "status": "In Expansion"
+            "distinct_person_cnt": "0"
         },
         "3124988": {
             "concept_id": 3124988,
@@ -804,9 +790,7 @@
             "domain_cnt": 0,
             "domain": "",
             "total_cnt": 0,
-            "distinct_person_cnt": "0",
-            "isMember": true,
-            "status": "In Expansion"
+            "distinct_person_cnt": "0"
         },
         "3124991": {
             "concept_id": 3124991,
@@ -820,9 +804,7 @@
             "domain_cnt": 0,
             "domain": "",
             "total_cnt": 0,
-            "distinct_person_cnt": "0",
-            "isMember": true,
-            "status": "In Expansion"
+            "distinct_person_cnt": "0"
         },
         "3137829": {
             "concept_id": 3137829,
@@ -836,9 +818,7 @@
             "domain_cnt": 0,
             "domain": "",
             "total_cnt": 0,
-            "distinct_person_cnt": "0",
-            "isMember": true,
-            "status": "In Expansion"
+            "distinct_person_cnt": "0"
         },
         "3137830": {
             "concept_id": 3137830,
@@ -852,9 +832,7 @@
             "domain_cnt": 0,
             "domain": "",
             "total_cnt": 0,
-            "distinct_person_cnt": "0",
-            "isMember": true,
-            "status": "In Expansion"
+            "distinct_person_cnt": "0"
         },
         "3141621": {
             "concept_id": 3141621,
@@ -868,9 +846,7 @@
             "domain_cnt": 0,
             "domain": "",
             "total_cnt": 0,
-            "distinct_person_cnt": "0",
-            "isMember": true,
-            "status": "In Expansion"
+            "distinct_person_cnt": "0"
         },
         "3141622": {
             "concept_id": 3141622,
@@ -884,9 +860,7 @@
             "domain_cnt": 0,
             "domain": "",
             "total_cnt": 0,
-            "distinct_person_cnt": "0",
-            "isMember": true,
-            "status": "In Expansion"
+            "distinct_person_cnt": "0"
         },
         "3153572": {
             "concept_id": 3153572,
@@ -900,9 +874,7 @@
             "domain_cnt": 0,
             "domain": "",
             "total_cnt": 0,
-            "distinct_person_cnt": "0",
-            "isMember": true,
-            "status": "In Expansion"
+            "distinct_person_cnt": "0"
         },
         "3162019": {
             "concept_id": 3162019,
@@ -916,9 +888,7 @@
             "domain_cnt": 0,
             "domain": "",
             "total_cnt": 0,
-            "distinct_person_cnt": "0",
-            "isMember": true,
-            "status": "In Expansion"
+            "distinct_person_cnt": "0"
         },
         "3164757": {
             "concept_id": 3164757,
@@ -932,9 +902,7 @@
             "domain_cnt": 0,
             "domain": "",
             "total_cnt": 0,
-            "distinct_person_cnt": "0",
-            "isMember": true,
-            "status": "In Expansion"
+            "distinct_person_cnt": "0"
         },
         "3201654": {
             "concept_id": 3201654,
@@ -948,9 +916,7 @@
             "domain_cnt": 0,
             "domain": "",
             "total_cnt": 0,
-            "distinct_person_cnt": "0",
-            "isMember": true,
-            "status": "In Expansion"
+            "distinct_person_cnt": "0"
         },
         "3240140": {
             "concept_id": 3240140,
@@ -964,9 +930,7 @@
             "domain_cnt": 0,
             "domain": "",
             "total_cnt": 0,
-            "distinct_person_cnt": "0",
-            "isMember": true,
-            "status": "In Expansion"
+            "distinct_person_cnt": "0"
         },
         "3427139": {
             "concept_id": 3427139,
@@ -980,9 +944,7 @@
             "domain_cnt": 0,
             "domain": "",
             "total_cnt": 0,
-            "distinct_person_cnt": "0",
-            "isMember": true,
-            "status": "In Expansion"
+            "distinct_person_cnt": "0"
         },
         "3427698": {
             "concept_id": 3427698,
@@ -996,9 +958,7 @@
             "domain_cnt": 0,
             "domain": "",
             "total_cnt": 0,
-            "distinct_person_cnt": "0",
-            "isMember": true,
-            "status": "In Expansion"
+            "distinct_person_cnt": "0"
         },
         "3429308": {
             "concept_id": 3429308,
@@ -1012,9 +972,7 @@
             "domain_cnt": 0,
             "domain": "",
             "total_cnt": 0,
-            "distinct_person_cnt": "0",
-            "isMember": true,
-            "status": "In Expansion"
+            "distinct_person_cnt": "0"
         },
         "3430639": {
             "concept_id": 3430639,
@@ -1028,9 +986,7 @@
             "domain_cnt": 0,
             "domain": "",
             "total_cnt": 0,
-            "distinct_person_cnt": "0",
-            "isMember": true,
-            "status": "In Expansion"
+            "distinct_person_cnt": "0"
         },
         "3432874": {
             "concept_id": 3432874,
@@ -1044,9 +1000,7 @@
             "domain_cnt": 0,
             "domain": "",
             "total_cnt": 0,
-            "distinct_person_cnt": "0",
-            "isMember": true,
-            "status": "In Expansion"
+            "distinct_person_cnt": "0"
         },
         "3436486": {
             "concept_id": 3436486,
@@ -1060,9 +1014,7 @@
             "domain_cnt": 0,
             "domain": "",
             "total_cnt": 0,
-            "distinct_person_cnt": "0",
-            "isMember": true,
-            "status": "In Expansion"
+            "distinct_person_cnt": "0"
         },
         "3439569": {
             "concept_id": 3439569,
@@ -1076,9 +1028,7 @@
             "domain_cnt": 0,
             "domain": "",
             "total_cnt": 0,
-            "distinct_person_cnt": "0",
-            "isMember": true,
-            "status": "In Expansion"
+            "distinct_person_cnt": "0"
         },
         "3447664": {
             "concept_id": 3447664,
@@ -1092,9 +1042,7 @@
             "domain_cnt": 0,
             "domain": "",
             "total_cnt": 0,
-            "distinct_person_cnt": "0",
-            "isMember": true,
-            "status": "In Expansion"
+            "distinct_person_cnt": "0"
         },
         "3451367": {
             "concept_id": 3451367,
@@ -1108,9 +1056,7 @@
             "domain_cnt": 0,
             "domain": "",
             "total_cnt": 0,
-            "distinct_person_cnt": "0",
-            "isMember": true,
-            "status": "In Expansion"
+            "distinct_person_cnt": "0"
         },
         "3451853": {
             "concept_id": 3451853,
@@ -1124,9 +1070,7 @@
             "domain_cnt": 0,
             "domain": "",
             "total_cnt": 0,
-            "distinct_person_cnt": "0",
-            "isMember": true,
-            "status": "In Expansion"
+            "distinct_person_cnt": "0"
         },
         "3452171": {
             "concept_id": 3452171,
@@ -1140,9 +1084,7 @@
             "domain_cnt": 0,
             "domain": "",
             "total_cnt": 0,
-            "distinct_person_cnt": "0",
-            "isMember": true,
-            "status": "In Expansion"
+            "distinct_person_cnt": "0"
         },
         "3452456": {
             "concept_id": 3452456,
@@ -1156,9 +1098,7 @@
             "domain_cnt": 0,
             "domain": "",
             "total_cnt": 0,
-            "distinct_person_cnt": "0",
-            "isMember": true,
-            "status": "In Expansion"
+            "distinct_person_cnt": "0"
         },
         "3456756": {
             "concept_id": 3456756,
@@ -1172,9 +1112,7 @@
             "domain_cnt": 0,
             "domain": "",
             "total_cnt": 0,
-            "distinct_person_cnt": "0",
-            "isMember": true,
-            "status": "In Expansion"
+            "distinct_person_cnt": "0"
         },
         "3458794": {
             "concept_id": 3458794,
@@ -1188,9 +1126,7 @@
             "domain_cnt": 0,
             "domain": "",
             "total_cnt": 0,
-            "distinct_person_cnt": "0",
-            "isMember": true,
-            "status": "In Expansion"
+            "distinct_person_cnt": "0"
         },
         "3459941": {
             "concept_id": 3459941,
@@ -1204,9 +1140,7 @@
             "domain_cnt": 0,
             "domain": "",
             "total_cnt": 0,
-            "distinct_person_cnt": "0",
-            "isMember": true,
-            "status": "In Expansion"
+            "distinct_person_cnt": "0"
         },
         "3466361": {
             "concept_id": 3466361,
@@ -1220,9 +1154,7 @@
             "domain_cnt": 0,
             "domain": "",
             "total_cnt": 0,
-            "distinct_person_cnt": "0",
-            "isMember": true,
-            "status": "In Expansion"
+            "distinct_person_cnt": "0"
         },
         "3468370": {
             "concept_id": 3468370,
@@ -1236,9 +1168,7 @@
             "domain_cnt": 0,
             "domain": "",
             "total_cnt": 0,
-            "distinct_person_cnt": "0",
-            "isMember": true,
-            "status": "In Expansion"
+            "distinct_person_cnt": "0"
         },
         "3472300": {
             "concept_id": 3472300,
@@ -1252,9 +1182,7 @@
             "domain_cnt": 0,
             "domain": "",
             "total_cnt": 0,
-            "distinct_person_cnt": "0",
-            "isMember": true,
-            "status": "In Expansion"
+            "distinct_person_cnt": "0"
         },
         "3472327": {
             "concept_id": 3472327,
@@ -1268,9 +1196,7 @@
             "domain_cnt": 0,
             "domain": "",
             "total_cnt": 0,
-            "distinct_person_cnt": "0",
-            "isMember": true,
-            "status": "In Expansion"
+            "distinct_person_cnt": "0"
         },
         "3475208": {
             "concept_id": 3475208,
@@ -1284,9 +1210,7 @@
             "domain_cnt": 0,
             "domain": "",
             "total_cnt": 0,
-            "distinct_person_cnt": "0",
-            "isMember": true,
-            "status": "In Expansion"
+            "distinct_person_cnt": "0"
         },
         "3476610": {
             "concept_id": 3476610,
@@ -1300,9 +1224,7 @@
             "domain_cnt": 0,
             "domain": "",
             "total_cnt": 0,
-            "distinct_person_cnt": "0",
-            "isMember": true,
-            "status": "In Expansion"
+            "distinct_person_cnt": "0"
         },
         "3557638": {
             "concept_id": 3557638,
@@ -1316,9 +1238,7 @@
             "domain_cnt": 0,
             "domain": "",
             "total_cnt": 0,
-            "distinct_person_cnt": "0",
-            "isMember": true,
-            "status": "In Expansion"
+            "distinct_person_cnt": "0"
         },
         "3661412": {
             "concept_id": 3661412,
@@ -1332,9 +1252,7 @@
             "domain_cnt": 0,
             "domain": "",
             "total_cnt": 0,
-            "distinct_person_cnt": "0",
-            "isMember": true,
-            "status": "In Expansion"
+            "distinct_person_cnt": "0"
         },
         "4112669": {
             "concept_id": 4112669,
@@ -1348,9 +1266,7 @@
             "domain_cnt": 0,
             "domain": "",
             "total_cnt": 0,
-            "distinct_person_cnt": "0",
-            "isMember": true,
-            "status": "In Expansion"
+            "distinct_person_cnt": "0"
         },
         "4112831": {
             "concept_id": 4112831,
@@ -1364,9 +1280,7 @@
             "domain_cnt": 0,
             "domain": "",
             "total_cnt": 0,
-            "distinct_person_cnt": "0",
-            "isMember": true,
-            "status": "In Expansion"
+            "distinct_person_cnt": "0"
         },
         "4119299": {
             "concept_id": 4119299,
@@ -1380,9 +1294,7 @@
             "domain_cnt": 0,
             "domain": "",
             "total_cnt": 0,
-            "distinct_person_cnt": "0",
-            "isMember": true,
-            "status": "In Expansion"
+            "distinct_person_cnt": "0"
         },
         "4119300": {
             "concept_id": 4119300,
@@ -1396,9 +1308,7 @@
             "domain_cnt": 0,
             "domain": "",
             "total_cnt": 0,
-            "distinct_person_cnt": "0",
-            "isMember": true,
-            "status": "In Expansion"
+            "distinct_person_cnt": "0"
         },
         "4123253": {
             "concept_id": 4123253,
@@ -1412,9 +1322,7 @@
             "domain_cnt": 1,
             "domain": "condition_occurrence",
             "total_cnt": 39,
-            "distinct_person_cnt": "21",
-            "isMember": true,
-            "status": "In Expansion"
+            "distinct_person_cnt": "21"
         },
         "4125022": {
             "concept_id": 4125022,
@@ -1428,10 +1336,7 @@
             "domain_cnt": 0,
             "domain": "",
             "total_cnt": 0,
-            "distinct_person_cnt": "0",
-            "isItem": true,
-            "isMember": true,
-            "status": "In definition, In Expansion"
+            "distinct_person_cnt": "0"
         },
         "4142738": {
             "concept_id": 4142738,
@@ -1445,10 +1350,7 @@
             "domain_cnt": 1,
             "domain": "condition_occurrence",
             "total_cnt": 44488,
-            "distinct_person_cnt": "10923",
-            "isItem": true,
-            "isMember": true,
-            "status": "In definition, In Expansion"
+            "distinct_person_cnt": "10923"
         },
         "4145356": {
             "concept_id": 4145356,
@@ -1462,10 +1364,7 @@
             "domain_cnt": 1,
             "domain": "condition_occurrence",
             "total_cnt": 10387,
-            "distinct_person_cnt": "2145",
-            "isItem": true,
-            "isMember": true,
-            "status": "In definition, In Expansion"
+            "distinct_person_cnt": "2145"
         },
         "4147509": {
             "concept_id": 4147509,
@@ -1479,9 +1378,7 @@
             "domain_cnt": 0,
             "domain": "",
             "total_cnt": 0,
-            "distinct_person_cnt": "0",
-            "isMember": true,
-            "status": "In Expansion"
+            "distinct_person_cnt": "0"
         },
         "4152913": {
             "concept_id": 4152913,
@@ -1495,10 +1392,7 @@
             "domain_cnt": 1,
             "domain": "condition_occurrence",
             "total_cnt": 2025,
-            "distinct_person_cnt": "639",
-            "isItem": true,
-            "isMember": true,
-            "status": "In definition, In Expansion"
+            "distinct_person_cnt": "639"
         },
         "4155469": {
             "concept_id": 4155469,
@@ -1512,10 +1406,7 @@
             "domain_cnt": 1,
             "domain": "condition_occurrence",
             "total_cnt": 6517,
-            "distinct_person_cnt": "3051",
-            "isItem": true,
-            "isMember": true,
-            "status": "In definition, In Expansion"
+            "distinct_person_cnt": "3051"
         },
         "4191479": {
             "concept_id": 4191479,
@@ -1529,10 +1420,7 @@
             "domain_cnt": 1,
             "domain": "condition_occurrence",
             "total_cnt": 3509,
-            "distinct_person_cnt": "1597",
-            "isItem": true,
-            "isMember": true,
-            "status": "In definition, In Expansion"
+            "distinct_person_cnt": "1597"
         },
         "4211530": {
             "concept_id": 4211530,
@@ -1546,9 +1434,7 @@
             "domain_cnt": 0,
             "domain": "",
             "total_cnt": 0,
-            "distinct_person_cnt": "0",
-            "isMember": true,
-            "status": "In Expansion"
+            "distinct_person_cnt": "0"
         },
         "4271333": {
             "concept_id": 4271333,
@@ -1562,9 +1448,7 @@
             "domain_cnt": 1,
             "domain": "condition_occurrence",
             "total_cnt": 314,
-            "distinct_person_cnt": "47",
-            "isMember": true,
-            "status": "In Expansion"
+            "distinct_person_cnt": "47"
         },
         "4283362": {
             "concept_id": 4283362,
@@ -1578,9 +1462,7 @@
             "domain_cnt": 0,
             "domain": "",
             "total_cnt": 0,
-            "distinct_person_cnt": "0",
-            "isMember": true,
-            "status": "In Expansion"
+            "distinct_person_cnt": "0"
         },
         "4309833": {
             "concept_id": 4309833,
@@ -1594,9 +1476,7 @@
             "domain_cnt": 1,
             "domain": "condition_occurrence",
             "total_cnt": 20,
-            "distinct_person_cnt": "20",
-            "isMember": true,
-            "status": "In Expansion"
+            "distinct_person_cnt": "20"
         },
         "35609846": {
             "concept_id": 35609846,
@@ -1610,9 +1490,7 @@
             "domain_cnt": 0,
             "domain": "",
             "total_cnt": 0,
-            "distinct_person_cnt": "0",
-            "isMember": true,
-            "status": "In Expansion"
+            "distinct_person_cnt": "0"
         },
         "36684328": {
             "concept_id": 36684328,
@@ -1626,9 +1504,7 @@
             "domain_cnt": 1,
             "domain": "condition_occurrence",
             "total_cnt": 20,
-            "distinct_person_cnt": "20",
-            "isMember": true,
-            "status": "In Expansion"
+            "distinct_person_cnt": "20"
         },
         "36684335": {
             "concept_id": 36684335,
@@ -1642,9 +1518,7 @@
             "domain_cnt": 1,
             "domain": "condition_occurrence",
             "total_cnt": 76,
-            "distinct_person_cnt": "27",
-            "isMember": true,
-            "status": "In Expansion"
+            "distinct_person_cnt": "27"
         },
         "37310241": {
             "concept_id": 37310241,
@@ -1658,9 +1532,7 @@
             "domain_cnt": 1,
             "domain": "condition_occurrence",
             "total_cnt": 1054,
-            "distinct_person_cnt": "340",
-            "isMember": true,
-            "status": "In Expansion"
+            "distinct_person_cnt": "340"
         },
         "40316544": {
             "concept_id": 40316544,
@@ -1674,9 +1546,7 @@
             "domain_cnt": 0,
             "domain": "",
             "total_cnt": 0,
-            "distinct_person_cnt": "0",
-            "isMember": true,
-            "status": "In Expansion"
+            "distinct_person_cnt": "0"
         },
         "40345717": {
             "concept_id": 40345717,
@@ -1690,9 +1560,7 @@
             "domain_cnt": 0,
             "domain": "",
             "total_cnt": 0,
-            "distinct_person_cnt": "0",
-            "isMember": true,
-            "status": "In Expansion"
+            "distinct_person_cnt": "0"
         },
         "40345719": {
             "concept_id": 40345719,
@@ -1706,9 +1574,7 @@
             "domain_cnt": 0,
             "domain": "",
             "total_cnt": 0,
-            "distinct_person_cnt": "0",
-            "isMember": true,
-            "status": "In Expansion"
+            "distinct_person_cnt": "0"
         },
         "40389375": {
             "concept_id": 40389375,
@@ -1722,9 +1588,7 @@
             "domain_cnt": 0,
             "domain": "",
             "total_cnt": 0,
-            "distinct_person_cnt": "0",
-            "isMember": true,
-            "status": "In Expansion"
+            "distinct_person_cnt": "0"
         },
         "40395876": {
             "concept_id": 40395876,
@@ -1738,9 +1602,7 @@
             "domain_cnt": 0,
             "domain": "",
             "total_cnt": 0,
-            "distinct_person_cnt": "0",
-            "isMember": true,
-            "status": "In Expansion"
+            "distinct_person_cnt": "0"
         },
         "40395878": {
             "concept_id": 40395878,
@@ -1754,9 +1616,7 @@
             "domain_cnt": 0,
             "domain": "",
             "total_cnt": 0,
-            "distinct_person_cnt": "0",
-            "isMember": true,
-            "status": "In Expansion"
+            "distinct_person_cnt": "0"
         },
         "40395891": {
             "concept_id": 40395891,
@@ -1770,9 +1630,7 @@
             "domain_cnt": 0,
             "domain": "",
             "total_cnt": 0,
-            "distinct_person_cnt": "0",
-            "isMember": true,
-            "status": "In Expansion"
+            "distinct_person_cnt": "0"
         },
         "40481763": {
             "concept_id": 40481763,
@@ -1786,10 +1644,7 @@
             "domain_cnt": 1,
             "domain": "condition_occurrence",
             "total_cnt": 82,
-            "distinct_person_cnt": "42",
-            "isItem": true,
-            "isMember": true,
-            "status": "In definition, In Expansion"
+            "distinct_person_cnt": "42"
         },
         "40483397": {
             "concept_id": 40483397,
@@ -1803,10 +1658,7 @@
             "domain_cnt": 1,
             "domain": "condition_occurrence",
             "total_cnt": 192,
-            "distinct_person_cnt": "82",
-            "isItem": true,
-            "isMember": true,
-            "status": "In definition, In Expansion"
+            "distinct_person_cnt": "82"
         },
         "40561687": {
             "concept_id": 40561687,
@@ -1820,9 +1672,7 @@
             "domain_cnt": 0,
             "domain": "",
             "total_cnt": 0,
-            "distinct_person_cnt": "0",
-            "isMember": true,
-            "status": "In Expansion"
+            "distinct_person_cnt": "0"
         },
         "42536207": {
             "concept_id": 42536207,
@@ -1836,8 +1686,7 @@
             "domain_cnt": 0,
             "domain": "",
             "total_cnt": 0,
-            "distinct_person_cnt": "0",
-            "status": ""
+            "distinct_person_cnt": "0"
         },
         "42536648": {
             "concept_id": 42536648,
@@ -1851,9 +1700,7 @@
             "domain_cnt": 0,
             "domain": "",
             "total_cnt": 0,
-            "distinct_person_cnt": "0",
-            "isMember": true,
-            "status": "In Expansion"
+            "distinct_person_cnt": "0"
         },
         "42538744": {
             "concept_id": 42538744,
@@ -1867,9 +1714,7 @@
             "domain_cnt": 1,
             "domain": "condition_occurrence",
             "total_cnt": 20,
-            "distinct_person_cnt": "20",
-            "isMember": true,
-            "status": "In Expansion"
+            "distinct_person_cnt": "20"
         },
         "42539549": {
             "concept_id": 42539549,
@@ -1883,9 +1728,7 @@
             "domain_cnt": 1,
             "domain": "condition_occurrence",
             "total_cnt": 2810,
-            "distinct_person_cnt": "1005",
-            "isMember": true,
-            "status": "In Expansion"
+            "distinct_person_cnt": "1005"
         },
         "43530693": {
             "concept_id": 43530693,
@@ -1899,10 +1742,7 @@
             "domain_cnt": 1,
             "domain": "condition_occurrence",
             "total_cnt": 4396,
-            "distinct_person_cnt": "1740",
-            "isItem": true,
-            "isMember": true,
-            "status": "In definition, In Expansion"
+            "distinct_person_cnt": "1740"
         },
         "44824287": {
             "concept_id": 44824287,
@@ -1916,9 +1756,7 @@
             "domain_cnt": 0,
             "domain": "",
             "total_cnt": 0,
-            "distinct_person_cnt": "0",
-            "isMember": true,
-            "status": "In Expansion"
+            "distinct_person_cnt": "0"
         },
         "44824288": {
             "concept_id": 44824288,
@@ -1932,9 +1770,7 @@
             "domain_cnt": 0,
             "domain": "",
             "total_cnt": 0,
-            "distinct_person_cnt": "0",
-            "isMember": true,
-            "status": "In Expansion"
+            "distinct_person_cnt": "0"
         },
         "44831278": {
             "concept_id": 44831278,
@@ -1948,9 +1784,7 @@
             "domain_cnt": 0,
             "domain": "",
             "total_cnt": 0,
-            "distinct_person_cnt": "0",
-            "isMember": true,
-            "status": "In Expansion"
+            "distinct_person_cnt": "0"
         },
         "44832423": {
             "concept_id": 44832423,
@@ -1964,9 +1798,7 @@
             "domain_cnt": 0,
             "domain": "",
             "total_cnt": 0,
-            "distinct_person_cnt": "0",
-            "isMember": true,
-            "status": "In Expansion"
+            "distinct_person_cnt": "0"
         },
         "45543269": {
             "concept_id": 45543269,
@@ -1980,10 +1812,7 @@
             "domain_cnt": 0,
             "domain": "",
             "total_cnt": 0,
-            "distinct_person_cnt": "0",
-            "isItem": true,
-            "isMember": true,
-            "status": "In definition, In Expansion"
+            "distinct_person_cnt": "0"
         },
         "45543270": {
             "concept_id": 45543270,
@@ -1997,10 +1826,7 @@
             "domain_cnt": 0,
             "domain": "",
             "total_cnt": 0,
-            "distinct_person_cnt": "0",
-            "isItem": true,
-            "isMember": true,
-            "status": "In definition, In Expansion"
+            "distinct_person_cnt": "0"
         },
         "45548116": {
             "concept_id": 45548116,
@@ -2014,10 +1840,7 @@
             "domain_cnt": 0,
             "domain": "",
             "total_cnt": 0,
-            "distinct_person_cnt": "0",
-            "isItem": true,
-            "isMember": true,
-            "status": "In definition, In Expansion"
+            "distinct_person_cnt": "0"
         },
         "45548117": {
             "concept_id": 45548117,
@@ -2031,10 +1854,7 @@
             "domain_cnt": 0,
             "domain": "",
             "total_cnt": 0,
-            "distinct_person_cnt": "0",
-            "isItem": true,
-            "isMember": true,
-            "status": "In definition, In Expansion"
+            "distinct_person_cnt": "0"
         },
         "45557624": {
             "concept_id": 45557624,
@@ -2048,9 +1868,7 @@
             "domain_cnt": 0,
             "domain": "",
             "total_cnt": 0,
-            "distinct_person_cnt": "0",
-            "isMember": true,
-            "status": "In Expansion"
+            "distinct_person_cnt": "0"
         },
         "45557626": {
             "concept_id": 45557626,
@@ -2064,10 +1882,7 @@
             "domain_cnt": 0,
             "domain": "",
             "total_cnt": 0,
-            "distinct_person_cnt": "0",
-            "isItem": true,
-            "isMember": true,
-            "status": "In definition, In Expansion"
+            "distinct_person_cnt": "0"
         },
         "45562457": {
             "concept_id": 45562457,
@@ -2081,10 +1896,7 @@
             "domain_cnt": 0,
             "domain": "",
             "total_cnt": 0,
-            "distinct_person_cnt": "0",
-            "isItem": true,
-            "isMember": true,
-            "status": "In definition, In Expansion"
+            "distinct_person_cnt": "0"
         },
         "45567265": {
             "concept_id": 45567265,
@@ -2098,10 +1910,7 @@
             "domain_cnt": 0,
             "domain": "",
             "total_cnt": 0,
-            "distinct_person_cnt": "0",
-            "isItem": true,
-            "isMember": true,
-            "status": "In definition, In Expansion"
+            "distinct_person_cnt": "0"
         },
         "45567266": {
             "concept_id": 45567266,
@@ -2115,10 +1924,7 @@
             "domain_cnt": 0,
             "domain": "",
             "total_cnt": 0,
-            "distinct_person_cnt": "0",
-            "isItem": true,
-            "isMember": true,
-            "status": "In definition, In Expansion"
+            "distinct_person_cnt": "0"
         },
         "45572169": {
             "concept_id": 45572169,
@@ -2132,10 +1938,7 @@
             "domain_cnt": 0,
             "domain": "",
             "total_cnt": 0,
-            "distinct_person_cnt": "0",
-            "isItem": true,
-            "isMember": true,
-            "status": "In definition, In Expansion"
+            "distinct_person_cnt": "0"
         },
         "45572170": {
             "concept_id": 45572170,
@@ -2149,10 +1952,7 @@
             "domain_cnt": 0,
             "domain": "",
             "total_cnt": 0,
-            "distinct_person_cnt": "0",
-            "isItem": true,
-            "isMember": true,
-            "status": "In definition, In Expansion"
+            "distinct_person_cnt": "0"
         },
         "45572171": {
             "concept_id": 45572171,
@@ -2166,10 +1966,7 @@
             "domain_cnt": 0,
             "domain": "",
             "total_cnt": 0,
-            "distinct_person_cnt": "0",
-            "isItem": true,
-            "isMember": true,
-            "status": "In definition, In Expansion"
+            "distinct_person_cnt": "0"
         },
         "45576951": {
             "concept_id": 45576951,
@@ -2183,10 +1980,7 @@
             "domain_cnt": 0,
             "domain": "",
             "total_cnt": 0,
-            "distinct_person_cnt": "0",
-            "isItem": true,
-            "isMember": true,
-            "status": "In definition, In Expansion"
+            "distinct_person_cnt": "0"
         },
         "45576952": {
             "concept_id": 45576952,
@@ -2200,10 +1994,7 @@
             "domain_cnt": 0,
             "domain": "",
             "total_cnt": 0,
-            "distinct_person_cnt": "0",
-            "isItem": true,
-            "isMember": true,
-            "status": "In definition, In Expansion"
+            "distinct_person_cnt": "0"
         },
         "45581860": {
             "concept_id": 45581860,
@@ -2217,10 +2008,7 @@
             "domain_cnt": 0,
             "domain": "",
             "total_cnt": 0,
-            "distinct_person_cnt": "0",
-            "isItem": true,
-            "isMember": true,
-            "status": "In definition, In Expansion"
+            "distinct_person_cnt": "0"
         },
         "45586674": {
             "concept_id": 45586674,
@@ -2234,10 +2022,7 @@
             "domain_cnt": 0,
             "domain": "",
             "total_cnt": 0,
-            "distinct_person_cnt": "0",
-            "isItem": true,
-            "isMember": true,
-            "status": "In definition, In Expansion"
+            "distinct_person_cnt": "0"
         },
         "45586675": {
             "concept_id": 45586675,
@@ -2251,10 +2036,7 @@
             "domain_cnt": 0,
             "domain": "",
             "total_cnt": 0,
-            "distinct_person_cnt": "0",
-            "isItem": true,
-            "isMember": true,
-            "status": "In definition, In Expansion"
+            "distinct_person_cnt": "0"
         },
         "45601133": {
             "concept_id": 45601133,
@@ -2268,10 +2050,7 @@
             "domain_cnt": 0,
             "domain": "",
             "total_cnt": 0,
-            "distinct_person_cnt": "0",
-            "isItem": true,
-            "isMember": true,
-            "status": "In definition, In Expansion"
+            "distinct_person_cnt": "0"
         },
         "45601134": {
             "concept_id": 45601134,
@@ -2285,10 +2064,7 @@
             "domain_cnt": 0,
             "domain": "",
             "total_cnt": 0,
-            "distinct_person_cnt": "0",
-            "isItem": true,
-            "isMember": true,
-            "status": "In definition, In Expansion"
+            "distinct_person_cnt": "0"
         },
         "45766727": {
             "concept_id": 45766727,
@@ -2302,9 +2078,7 @@
             "domain_cnt": 0,
             "domain": "",
             "total_cnt": 0,
-            "distinct_person_cnt": "0",
-            "isMember": true,
-            "status": "In Expansion"
+            "distinct_person_cnt": "0"
         },
         "45766728": {
             "concept_id": 45766728,
@@ -2318,9 +2092,7 @@
             "domain_cnt": 1,
             "domain": "condition_occurrence",
             "total_cnt": 20,
-            "distinct_person_cnt": "20",
-            "isMember": true,
-            "status": "In Expansion"
+            "distinct_person_cnt": "20"
         },
         "45768912": {
             "concept_id": 45768912,
@@ -2334,10 +2106,7 @@
             "domain_cnt": 1,
             "domain": "condition_occurrence",
             "total_cnt": 10709,
-            "distinct_person_cnt": "2188",
-            "isItem": true,
-            "isMember": true,
-            "status": "In definition, In Expansion"
+            "distinct_person_cnt": "2188"
         },
         "45768964": {
             "concept_id": 45768964,
@@ -2351,10 +2120,7 @@
             "domain_cnt": 1,
             "domain": "condition_occurrence",
             "total_cnt": 2697987,
-            "distinct_person_cnt": "353762",
-            "isItem": true,
-            "isMember": true,
-            "status": "In definition, In Expansion"
+            "distinct_person_cnt": "353762"
         },
         "45768965": {
             "concept_id": 45768965,
@@ -2368,10 +2134,7 @@
             "domain_cnt": 1,
             "domain": "condition_occurrence",
             "total_cnt": 950210,
-            "distinct_person_cnt": "69537",
-            "isItem": true,
-            "isMember": true,
-            "status": "In definition, In Expansion"
+            "distinct_person_cnt": "69537"
         },
         "45769350": {
             "concept_id": 45769350,
@@ -2385,10 +2148,7 @@
             "domain_cnt": 1,
             "domain": "condition_occurrence",
             "total_cnt": 296340,
-            "distinct_person_cnt": "44728",
-            "isItem": true,
-            "isMember": true,
-            "status": "In definition, In Expansion"
+            "distinct_person_cnt": "44728"
         },
         "45769351": {
             "concept_id": 45769351,
@@ -2402,10 +2162,7 @@
             "domain_cnt": 1,
             "domain": "condition_occurrence",
             "total_cnt": 50791,
-            "distinct_person_cnt": "15013",
-            "isItem": true,
-            "isMember": true,
-            "status": "In definition, In Expansion"
+            "distinct_person_cnt": "15013"
         },
         "45769352": {
             "concept_id": 45769352,
@@ -2419,10 +2176,7 @@
             "domain_cnt": 1,
             "domain": "condition_occurrence",
             "total_cnt": 20446,
-            "distinct_person_cnt": "8416",
-            "isItem": true,
-            "isMember": true,
-            "status": "In definition, In Expansion"
+            "distinct_person_cnt": "8416"
         },
         "45769438": {
             "concept_id": 45769438,
@@ -2436,10 +2190,7 @@
             "domain_cnt": 1,
             "domain": "condition_occurrence",
             "total_cnt": 31565,
-            "distinct_person_cnt": "13212",
-            "isItem": true,
-            "isMember": true,
-            "status": "In definition, In Expansion"
+            "distinct_person_cnt": "13212"
         },
         "45769441": {
             "concept_id": 45769441,
@@ -2453,10 +2204,7 @@
             "domain_cnt": 1,
             "domain": "condition_occurrence",
             "total_cnt": 3918,
-            "distinct_person_cnt": "1730",
-            "isItem": true,
-            "isMember": true,
-            "status": "In definition, In Expansion"
+            "distinct_person_cnt": "1730"
         },
         "45769442": {
             "concept_id": 45769442,
@@ -2470,10 +2218,7 @@
             "domain_cnt": 1,
             "domain": "condition_occurrence",
             "total_cnt": 453,
-            "distinct_person_cnt": "172",
-            "isItem": true,
-            "isMember": true,
-            "status": "In definition, In Expansion"
+            "distinct_person_cnt": "172"
         },
         "45769443": {
             "concept_id": 45769443,
@@ -2487,10 +2232,7 @@
             "domain_cnt": 1,
             "domain": "condition_occurrence",
             "total_cnt": 75,
-            "distinct_person_cnt": "46",
-            "isItem": true,
-            "isMember": true,
-            "status": "In definition, In Expansion"
+            "distinct_person_cnt": "46"
         },
         "45771045": {
             "concept_id": 45771045,
@@ -2504,10 +2246,7 @@
             "domain_cnt": 1,
             "domain": "condition_occurrence",
             "total_cnt": 36225,
-            "distinct_person_cnt": "10320",
-            "isItem": true,
-            "isMember": true,
-            "status": "In definition, In Expansion"
+            "distinct_person_cnt": "10320"
         },
         "45772937": {
             "concept_id": 45772937,
@@ -2521,10 +2260,7 @@
             "domain_cnt": 1,
             "domain": "condition_occurrence",
             "total_cnt": 823338,
-            "distinct_person_cnt": "186551",
-            "isItem": true,
-            "isMember": true,
-            "status": "In definition, In Expansion"
+            "distinct_person_cnt": "186551"
         },
         "45773005": {
             "concept_id": 45773005,
@@ -2538,10 +2274,7 @@
             "domain_cnt": 1,
             "domain": "condition_occurrence",
             "total_cnt": 1092,
-            "distinct_person_cnt": "536",
-            "isItem": true,
-            "isMember": true,
-            "status": "In definition, In Expansion"
+            "distinct_person_cnt": "536"
         },
         "45909769": {
             "concept_id": 45909769,
@@ -2555,9 +2288,7 @@
             "domain_cnt": 0,
             "domain": "",
             "total_cnt": 0,
-            "distinct_person_cnt": "0",
-            "isMember": true,
-            "status": "In Expansion"
+            "distinct_person_cnt": "0"
         },
         "45917166": {
             "concept_id": 45917166,
@@ -2571,9 +2302,7 @@
             "domain_cnt": 0,
             "domain": "",
             "total_cnt": 0,
-            "distinct_person_cnt": "0",
-            "isMember": true,
-            "status": "In Expansion"
+            "distinct_person_cnt": "0"
         },
         "45938316": {
             "concept_id": 45938316,
@@ -2587,9 +2316,7 @@
             "domain_cnt": 0,
             "domain": "",
             "total_cnt": 0,
-            "distinct_person_cnt": "0",
-            "isMember": true,
-            "status": "In Expansion"
+            "distinct_person_cnt": "0"
         },
         "45939036": {
             "concept_id": 45939036,
@@ -2603,9 +2330,7 @@
             "domain_cnt": 0,
             "domain": "",
             "total_cnt": 0,
-            "distinct_person_cnt": "0",
-            "isMember": true,
-            "status": "In Expansion"
+            "distinct_person_cnt": "0"
         },
         "45939199": {
             "concept_id": 45939199,
@@ -2619,9 +2344,7 @@
             "domain_cnt": 0,
             "domain": "",
             "total_cnt": 0,
-            "distinct_person_cnt": "0",
-            "isMember": true,
-            "status": "In Expansion"
+            "distinct_person_cnt": "0"
         },
         "45939829": {
             "concept_id": 45939829,
@@ -2635,9 +2358,7 @@
             "domain_cnt": 0,
             "domain": "",
             "total_cnt": 0,
-            "distinct_person_cnt": "0",
-            "isMember": true,
-            "status": "In Expansion"
+            "distinct_person_cnt": "0"
         },
         "45940320": {
             "concept_id": 45940320,
@@ -2651,9 +2372,7 @@
             "domain_cnt": 0,
             "domain": "",
             "total_cnt": 0,
-            "distinct_person_cnt": "0",
-            "isMember": true,
-            "status": "In Expansion"
+            "distinct_person_cnt": "0"
         },
         "45946655": {
             "concept_id": 45946655,
@@ -2667,9 +2386,7 @@
             "domain_cnt": 0,
             "domain": "",
             "total_cnt": 0,
-            "distinct_person_cnt": "0",
-            "isMember": true,
-            "status": "In Expansion"
+            "distinct_person_cnt": "0"
         },
         "46269767": {
             "concept_id": 46269767,
@@ -2683,10 +2400,7 @@
             "domain_cnt": 1,
             "domain": "condition_occurrence",
             "total_cnt": 20,
-            "distinct_person_cnt": "20",
-            "isItem": true,
-            "isMember": true,
-            "status": "In definition, In Expansion"
+            "distinct_person_cnt": "20"
         },
         "46269770": {
             "concept_id": 46269770,
@@ -2700,10 +2414,7 @@
             "domain_cnt": 1,
             "domain": "condition_occurrence",
             "total_cnt": 529,
-            "distinct_person_cnt": "118",
-            "isItem": true,
-            "isMember": true,
-            "status": "In definition, In Expansion"
+            "distinct_person_cnt": "118"
         },
         "46269771": {
             "concept_id": 46269771,
@@ -2717,10 +2428,7 @@
             "domain_cnt": 1,
             "domain": "condition_occurrence",
             "total_cnt": 20,
-            "distinct_person_cnt": "20",
-            "isItem": true,
-            "isMember": true,
-            "status": "In definition, In Expansion"
+            "distinct_person_cnt": "20"
         },
         "46269776": {
             "concept_id": 46269776,
@@ -2734,9 +2442,7 @@
             "domain_cnt": 1,
             "domain": "condition_occurrence",
             "total_cnt": 470,
-            "distinct_person_cnt": "230",
-            "isMember": true,
-            "status": "In Expansion"
+            "distinct_person_cnt": "230"
         },
         "46269784": {
             "concept_id": 46269784,
@@ -2750,10 +2456,7 @@
             "domain_cnt": 1,
             "domain": "condition_occurrence",
             "total_cnt": 397,
-            "distinct_person_cnt": "131",
-            "isItem": true,
-            "isMember": true,
-            "status": "In definition, In Expansion"
+            "distinct_person_cnt": "131"
         },
         "46269785": {
             "concept_id": 46269785,
@@ -2767,10 +2470,7 @@
             "domain_cnt": 0,
             "domain": "",
             "total_cnt": 0,
-            "distinct_person_cnt": "0",
-            "isItem": true,
-            "isMember": true,
-            "status": "In definition, In Expansion"
+            "distinct_person_cnt": "0"
         },
         "46269802": {
             "concept_id": 46269802,
@@ -2784,10 +2484,7 @@
             "domain_cnt": 1,
             "domain": "condition_occurrence",
             "total_cnt": 42,
-            "distinct_person_cnt": "20",
-            "isItem": true,
-            "isMember": true,
-            "status": "In definition, In Expansion"
+            "distinct_person_cnt": "20"
         },
         "46270028": {
             "concept_id": 46270028,
@@ -2801,10 +2498,7 @@
             "domain_cnt": 1,
             "domain": "condition_occurrence",
             "total_cnt": 51,
-            "distinct_person_cnt": "20",
-            "isItem": true,
-            "isMember": true,
-            "status": "In definition, In Expansion"
+            "distinct_person_cnt": "20"
         },
         "46270082": {
             "concept_id": 46270082,
@@ -2818,10 +2512,7 @@
             "domain_cnt": 1,
             "domain": "condition_occurrence",
             "total_cnt": 9911,
-            "distinct_person_cnt": "2447",
-            "isItem": true,
-            "isMember": true,
-            "status": "In definition, In Expansion"
+            "distinct_person_cnt": "2447"
         },
         "46273452": {
             "concept_id": 46273452,
@@ -2835,10 +2526,7 @@
             "domain_cnt": 1,
             "domain": "condition_occurrence",
             "total_cnt": 69,
-            "distinct_person_cnt": "46",
-            "isItem": true,
-            "isMember": true,
-            "status": "In definition, In Expansion"
+            "distinct_person_cnt": "46"
         },
         "46273454": {
             "concept_id": 46273454,
@@ -2852,10 +2540,7 @@
             "domain_cnt": 1,
             "domain": "condition_occurrence",
             "total_cnt": 197,
-            "distinct_person_cnt": "35",
-            "isItem": true,
-            "isMember": true,
-            "status": "In definition, In Expansion"
+            "distinct_person_cnt": "35"
         },
         "46273462": {
             "concept_id": 46273462,
@@ -2869,10 +2554,7 @@
             "domain_cnt": 1,
             "domain": "condition_occurrence",
             "total_cnt": 39,
-            "distinct_person_cnt": "22",
-            "isItem": true,
-            "isMember": true,
-            "status": "In definition, In Expansion"
+            "distinct_person_cnt": "22"
         },
         "46273487": {
             "concept_id": 46273487,
@@ -2886,10 +2568,7 @@
             "domain_cnt": 1,
             "domain": "condition_occurrence",
             "total_cnt": 21351,
-            "distinct_person_cnt": "4092",
-            "isItem": true,
-            "isMember": true,
-            "status": "In definition, In Expansion"
+            "distinct_person_cnt": "4092"
         },
         "46274059": {
             "concept_id": 46274059,
@@ -2903,10 +2582,7 @@
             "domain_cnt": 1,
             "domain": "condition_occurrence",
             "total_cnt": 20,
-            "distinct_person_cnt": "20",
-            "isItem": true,
-            "isMember": true,
-            "status": "In definition, In Expansion"
+            "distinct_person_cnt": "20"
         },
         "46274124": {
             "concept_id": 46274124,
@@ -2920,10 +2596,7 @@
             "domain_cnt": 1,
             "domain": "condition_occurrence",
             "total_cnt": 20,
-            "distinct_person_cnt": "20",
-            "isItem": true,
-            "isMember": true,
-            "status": "In definition, In Expansion"
+            "distinct_person_cnt": "20"
         }
     },
     "csmi": {
@@ -4806,9 +4479,7 @@
             "domain_cnt": 0,
             "domain": "",
             "total_cnt": 0,
-            "distinct_person_cnt": "0",
-            "isMember": true,
-            "status": "In Expansion"
+            "distinct_person_cnt": "0"
         },
         {
             "concept_id": 259055,
@@ -4822,9 +4493,7 @@
             "domain_cnt": 0,
             "domain": "",
             "total_cnt": 0,
-            "distinct_person_cnt": "0",
-            "isMember": true,
-            "status": "In Expansion"
+            "distinct_person_cnt": "0"
         },
         {
             "concept_id": 312950,
@@ -4838,9 +4507,7 @@
             "domain_cnt": 1,
             "domain": "condition_occurrence",
             "total_cnt": 45812,
-            "distinct_person_cnt": "11653",
-            "isMember": true,
-            "status": "In Expansion"
+            "distinct_person_cnt": "11653"
         },
         {
             "concept_id": 3080832,
@@ -4854,9 +4521,7 @@
             "domain_cnt": 0,
             "domain": "",
             "total_cnt": 0,
-            "distinct_person_cnt": "0",
-            "isMember": true,
-            "status": "In Expansion"
+            "distinct_person_cnt": "0"
         },
         {
             "concept_id": 3105910,
@@ -4870,9 +4535,7 @@
             "domain_cnt": 0,
             "domain": "",
             "total_cnt": 0,
-            "distinct_person_cnt": "0",
-            "isMember": true,
-            "status": "In Expansion"
+            "distinct_person_cnt": "0"
         },
         {
             "concept_id": 3124228,
@@ -4886,9 +4549,7 @@
             "domain_cnt": 0,
             "domain": "",
             "total_cnt": 0,
-            "distinct_person_cnt": "0",
-            "isMember": true,
-            "status": "In Expansion"
+            "distinct_person_cnt": "0"
         },
         {
             "concept_id": 3124987,
@@ -4902,9 +4563,7 @@
             "domain_cnt": 0,
             "domain": "",
             "total_cnt": 0,
-            "distinct_person_cnt": "0",
-            "isMember": true,
-            "status": "In Expansion"
+            "distinct_person_cnt": "0"
         },
         {
             "concept_id": 3124988,
@@ -4918,9 +4577,7 @@
             "domain_cnt": 0,
             "domain": "",
             "total_cnt": 0,
-            "distinct_person_cnt": "0",
-            "isMember": true,
-            "status": "In Expansion"
+            "distinct_person_cnt": "0"
         },
         {
             "concept_id": 3124991,
@@ -4934,9 +4591,7 @@
             "domain_cnt": 0,
             "domain": "",
             "total_cnt": 0,
-            "distinct_person_cnt": "0",
-            "isMember": true,
-            "status": "In Expansion"
+            "distinct_person_cnt": "0"
         },
         {
             "concept_id": 3137829,
@@ -4950,9 +4605,7 @@
             "domain_cnt": 0,
             "domain": "",
             "total_cnt": 0,
-            "distinct_person_cnt": "0",
-            "isMember": true,
-            "status": "In Expansion"
+            "distinct_person_cnt": "0"
         },
         {
             "concept_id": 3137830,
@@ -4966,9 +4619,7 @@
             "domain_cnt": 0,
             "domain": "",
             "total_cnt": 0,
-            "distinct_person_cnt": "0",
-            "isMember": true,
-            "status": "In Expansion"
+            "distinct_person_cnt": "0"
         },
         {
             "concept_id": 3141621,
@@ -4982,9 +4633,7 @@
             "domain_cnt": 0,
             "domain": "",
             "total_cnt": 0,
-            "distinct_person_cnt": "0",
-            "isMember": true,
-            "status": "In Expansion"
+            "distinct_person_cnt": "0"
         },
         {
             "concept_id": 3141622,
@@ -4998,9 +4647,7 @@
             "domain_cnt": 0,
             "domain": "",
             "total_cnt": 0,
-            "distinct_person_cnt": "0",
-            "isMember": true,
-            "status": "In Expansion"
+            "distinct_person_cnt": "0"
         },
         {
             "concept_id": 3153572,
@@ -5014,9 +4661,7 @@
             "domain_cnt": 0,
             "domain": "",
             "total_cnt": 0,
-            "distinct_person_cnt": "0",
-            "isMember": true,
-            "status": "In Expansion"
+            "distinct_person_cnt": "0"
         },
         {
             "concept_id": 3162019,
@@ -5030,9 +4675,7 @@
             "domain_cnt": 0,
             "domain": "",
             "total_cnt": 0,
-            "distinct_person_cnt": "0",
-            "isMember": true,
-            "status": "In Expansion"
+            "distinct_person_cnt": "0"
         },
         {
             "concept_id": 3164757,
@@ -5046,9 +4689,7 @@
             "domain_cnt": 0,
             "domain": "",
             "total_cnt": 0,
-            "distinct_person_cnt": "0",
-            "isMember": true,
-            "status": "In Expansion"
+            "distinct_person_cnt": "0"
         },
         {
             "concept_id": 3201654,
@@ -5062,9 +4703,7 @@
             "domain_cnt": 0,
             "domain": "",
             "total_cnt": 0,
-            "distinct_person_cnt": "0",
-            "isMember": true,
-            "status": "In Expansion"
+            "distinct_person_cnt": "0"
         },
         {
             "concept_id": 3240140,
@@ -5078,9 +4717,7 @@
             "domain_cnt": 0,
             "domain": "",
             "total_cnt": 0,
-            "distinct_person_cnt": "0",
-            "isMember": true,
-            "status": "In Expansion"
+            "distinct_person_cnt": "0"
         },
         {
             "concept_id": 3427139,
@@ -5094,9 +4731,7 @@
             "domain_cnt": 0,
             "domain": "",
             "total_cnt": 0,
-            "distinct_person_cnt": "0",
-            "isMember": true,
-            "status": "In Expansion"
+            "distinct_person_cnt": "0"
         },
         {
             "concept_id": 3427698,
@@ -5110,9 +4745,7 @@
             "domain_cnt": 0,
             "domain": "",
             "total_cnt": 0,
-            "distinct_person_cnt": "0",
-            "isMember": true,
-            "status": "In Expansion"
+            "distinct_person_cnt": "0"
         },
         {
             "concept_id": 3429308,
@@ -5126,9 +4759,7 @@
             "domain_cnt": 0,
             "domain": "",
             "total_cnt": 0,
-            "distinct_person_cnt": "0",
-            "isMember": true,
-            "status": "In Expansion"
+            "distinct_person_cnt": "0"
         },
         {
             "concept_id": 3430639,
@@ -5142,9 +4773,7 @@
             "domain_cnt": 0,
             "domain": "",
             "total_cnt": 0,
-            "distinct_person_cnt": "0",
-            "isMember": true,
-            "status": "In Expansion"
+            "distinct_person_cnt": "0"
         },
         {
             "concept_id": 3432874,
@@ -5158,9 +4787,7 @@
             "domain_cnt": 0,
             "domain": "",
             "total_cnt": 0,
-            "distinct_person_cnt": "0",
-            "isMember": true,
-            "status": "In Expansion"
+            "distinct_person_cnt": "0"
         },
         {
             "concept_id": 3436486,
@@ -5174,9 +4801,7 @@
             "domain_cnt": 0,
             "domain": "",
             "total_cnt": 0,
-            "distinct_person_cnt": "0",
-            "isMember": true,
-            "status": "In Expansion"
+            "distinct_person_cnt": "0"
         },
         {
             "concept_id": 3439569,
@@ -5190,9 +4815,7 @@
             "domain_cnt": 0,
             "domain": "",
             "total_cnt": 0,
-            "distinct_person_cnt": "0",
-            "isMember": true,
-            "status": "In Expansion"
+            "distinct_person_cnt": "0"
         },
         {
             "concept_id": 3447664,
@@ -5206,9 +4829,7 @@
             "domain_cnt": 0,
             "domain": "",
             "total_cnt": 0,
-            "distinct_person_cnt": "0",
-            "isMember": true,
-            "status": "In Expansion"
+            "distinct_person_cnt": "0"
         },
         {
             "concept_id": 3451367,
@@ -5222,9 +4843,7 @@
             "domain_cnt": 0,
             "domain": "",
             "total_cnt": 0,
-            "distinct_person_cnt": "0",
-            "isMember": true,
-            "status": "In Expansion"
+            "distinct_person_cnt": "0"
         },
         {
             "concept_id": 3451853,
@@ -5238,9 +4857,7 @@
             "domain_cnt": 0,
             "domain": "",
             "total_cnt": 0,
-            "distinct_person_cnt": "0",
-            "isMember": true,
-            "status": "In Expansion"
+            "distinct_person_cnt": "0"
         },
         {
             "concept_id": 3452171,
@@ -5254,9 +4871,7 @@
             "domain_cnt": 0,
             "domain": "",
             "total_cnt": 0,
-            "distinct_person_cnt": "0",
-            "isMember": true,
-            "status": "In Expansion"
+            "distinct_person_cnt": "0"
         },
         {
             "concept_id": 3452456,
@@ -5270,9 +4885,7 @@
             "domain_cnt": 0,
             "domain": "",
             "total_cnt": 0,
-            "distinct_person_cnt": "0",
-            "isMember": true,
-            "status": "In Expansion"
+            "distinct_person_cnt": "0"
         },
         {
             "concept_id": 3456756,
@@ -5286,9 +4899,7 @@
             "domain_cnt": 0,
             "domain": "",
             "total_cnt": 0,
-            "distinct_person_cnt": "0",
-            "isMember": true,
-            "status": "In Expansion"
+            "distinct_person_cnt": "0"
         },
         {
             "concept_id": 3458794,
@@ -5302,9 +4913,7 @@
             "domain_cnt": 0,
             "domain": "",
             "total_cnt": 0,
-            "distinct_person_cnt": "0",
-            "isMember": true,
-            "status": "In Expansion"
+            "distinct_person_cnt": "0"
         },
         {
             "concept_id": 3459941,
@@ -5318,9 +4927,7 @@
             "domain_cnt": 0,
             "domain": "",
             "total_cnt": 0,
-            "distinct_person_cnt": "0",
-            "isMember": true,
-            "status": "In Expansion"
+            "distinct_person_cnt": "0"
         },
         {
             "concept_id": 3466361,
@@ -5334,9 +4941,7 @@
             "domain_cnt": 0,
             "domain": "",
             "total_cnt": 0,
-            "distinct_person_cnt": "0",
-            "isMember": true,
-            "status": "In Expansion"
+            "distinct_person_cnt": "0"
         },
         {
             "concept_id": 3468370,
@@ -5350,9 +4955,7 @@
             "domain_cnt": 0,
             "domain": "",
             "total_cnt": 0,
-            "distinct_person_cnt": "0",
-            "isMember": true,
-            "status": "In Expansion"
+            "distinct_person_cnt": "0"
         },
         {
             "concept_id": 3472300,
@@ -5366,9 +4969,7 @@
             "domain_cnt": 0,
             "domain": "",
             "total_cnt": 0,
-            "distinct_person_cnt": "0",
-            "isMember": true,
-            "status": "In Expansion"
+            "distinct_person_cnt": "0"
         },
         {
             "concept_id": 3472327,
@@ -5382,9 +4983,7 @@
             "domain_cnt": 0,
             "domain": "",
             "total_cnt": 0,
-            "distinct_person_cnt": "0",
-            "isMember": true,
-            "status": "In Expansion"
+            "distinct_person_cnt": "0"
         },
         {
             "concept_id": 3475208,
@@ -5398,9 +4997,7 @@
             "domain_cnt": 0,
             "domain": "",
             "total_cnt": 0,
-            "distinct_person_cnt": "0",
-            "isMember": true,
-            "status": "In Expansion"
+            "distinct_person_cnt": "0"
         },
         {
             "concept_id": 3476610,
@@ -5414,9 +5011,7 @@
             "domain_cnt": 0,
             "domain": "",
             "total_cnt": 0,
-            "distinct_person_cnt": "0",
-            "isMember": true,
-            "status": "In Expansion"
+            "distinct_person_cnt": "0"
         },
         {
             "concept_id": 3557638,
@@ -5430,9 +5025,7 @@
             "domain_cnt": 0,
             "domain": "",
             "total_cnt": 0,
-            "distinct_person_cnt": "0",
-            "isMember": true,
-            "status": "In Expansion"
+            "distinct_person_cnt": "0"
         },
         {
             "concept_id": 3661412,
@@ -5446,9 +5039,7 @@
             "domain_cnt": 0,
             "domain": "",
             "total_cnt": 0,
-            "distinct_person_cnt": "0",
-            "isMember": true,
-            "status": "In Expansion"
+            "distinct_person_cnt": "0"
         },
         {
             "concept_id": 4112669,
@@ -5462,9 +5053,7 @@
             "domain_cnt": 0,
             "domain": "",
             "total_cnt": 0,
-            "distinct_person_cnt": "0",
-            "isMember": true,
-            "status": "In Expansion"
+            "distinct_person_cnt": "0"
         },
         {
             "concept_id": 4112831,
@@ -5478,9 +5067,7 @@
             "domain_cnt": 0,
             "domain": "",
             "total_cnt": 0,
-            "distinct_person_cnt": "0",
-            "isMember": true,
-            "status": "In Expansion"
+            "distinct_person_cnt": "0"
         },
         {
             "concept_id": 4119299,
@@ -5494,9 +5081,7 @@
             "domain_cnt": 0,
             "domain": "",
             "total_cnt": 0,
-            "distinct_person_cnt": "0",
-            "isMember": true,
-            "status": "In Expansion"
+            "distinct_person_cnt": "0"
         },
         {
             "concept_id": 4119300,
@@ -5510,9 +5095,7 @@
             "domain_cnt": 0,
             "domain": "",
             "total_cnt": 0,
-            "distinct_person_cnt": "0",
-            "isMember": true,
-            "status": "In Expansion"
+            "distinct_person_cnt": "0"
         },
         {
             "concept_id": 4123253,
@@ -5526,9 +5109,7 @@
             "domain_cnt": 1,
             "domain": "condition_occurrence",
             "total_cnt": 39,
-            "distinct_person_cnt": "21",
-            "isMember": true,
-            "status": "In Expansion"
+            "distinct_person_cnt": "21"
         },
         {
             "concept_id": 4125022,
@@ -5542,10 +5123,7 @@
             "domain_cnt": 0,
             "domain": "",
             "total_cnt": 0,
-            "distinct_person_cnt": "0",
-            "isItem": true,
-            "isMember": true,
-            "status": "In definition, In Expansion"
+            "distinct_person_cnt": "0"
         },
         {
             "concept_id": 4142738,
@@ -5559,10 +5137,7 @@
             "domain_cnt": 1,
             "domain": "condition_occurrence",
             "total_cnt": 44488,
-            "distinct_person_cnt": "10923",
-            "isItem": true,
-            "isMember": true,
-            "status": "In definition, In Expansion"
+            "distinct_person_cnt": "10923"
         },
         {
             "concept_id": 4145356,
@@ -5576,10 +5151,7 @@
             "domain_cnt": 1,
             "domain": "condition_occurrence",
             "total_cnt": 10387,
-            "distinct_person_cnt": "2145",
-            "isItem": true,
-            "isMember": true,
-            "status": "In definition, In Expansion"
+            "distinct_person_cnt": "2145"
         },
         {
             "concept_id": 4147509,
@@ -5593,9 +5165,7 @@
             "domain_cnt": 0,
             "domain": "",
             "total_cnt": 0,
-            "distinct_person_cnt": "0",
-            "isMember": true,
-            "status": "In Expansion"
+            "distinct_person_cnt": "0"
         },
         {
             "concept_id": 4152913,
@@ -5609,10 +5179,7 @@
             "domain_cnt": 1,
             "domain": "condition_occurrence",
             "total_cnt": 2025,
-            "distinct_person_cnt": "639",
-            "isItem": true,
-            "isMember": true,
-            "status": "In definition, In Expansion"
+            "distinct_person_cnt": "639"
         },
         {
             "concept_id": 4155469,
@@ -5626,10 +5193,7 @@
             "domain_cnt": 1,
             "domain": "condition_occurrence",
             "total_cnt": 6517,
-            "distinct_person_cnt": "3051",
-            "isItem": true,
-            "isMember": true,
-            "status": "In definition, In Expansion"
+            "distinct_person_cnt": "3051"
         },
         {
             "concept_id": 4191479,
@@ -5643,10 +5207,7 @@
             "domain_cnt": 1,
             "domain": "condition_occurrence",
             "total_cnt": 3509,
-            "distinct_person_cnt": "1597",
-            "isItem": true,
-            "isMember": true,
-            "status": "In definition, In Expansion"
+            "distinct_person_cnt": "1597"
         },
         {
             "concept_id": 4211530,
@@ -5660,9 +5221,7 @@
             "domain_cnt": 0,
             "domain": "",
             "total_cnt": 0,
-            "distinct_person_cnt": "0",
-            "isMember": true,
-            "status": "In Expansion"
+            "distinct_person_cnt": "0"
         },
         {
             "concept_id": 4271333,
@@ -5676,9 +5235,7 @@
             "domain_cnt": 1,
             "domain": "condition_occurrence",
             "total_cnt": 314,
-            "distinct_person_cnt": "47",
-            "isMember": true,
-            "status": "In Expansion"
+            "distinct_person_cnt": "47"
         },
         {
             "concept_id": 4283362,
@@ -5692,9 +5249,7 @@
             "domain_cnt": 0,
             "domain": "",
             "total_cnt": 0,
-            "distinct_person_cnt": "0",
-            "isMember": true,
-            "status": "In Expansion"
+            "distinct_person_cnt": "0"
         },
         {
             "concept_id": 4309833,
@@ -5708,9 +5263,7 @@
             "domain_cnt": 1,
             "domain": "condition_occurrence",
             "total_cnt": 20,
-            "distinct_person_cnt": "20",
-            "isMember": true,
-            "status": "In Expansion"
+            "distinct_person_cnt": "20"
         },
         {
             "concept_id": 35609846,
@@ -5724,9 +5277,7 @@
             "domain_cnt": 0,
             "domain": "",
             "total_cnt": 0,
-            "distinct_person_cnt": "0",
-            "isMember": true,
-            "status": "In Expansion"
+            "distinct_person_cnt": "0"
         },
         {
             "concept_id": 36684328,
@@ -5740,9 +5291,7 @@
             "domain_cnt": 1,
             "domain": "condition_occurrence",
             "total_cnt": 20,
-            "distinct_person_cnt": "20",
-            "isMember": true,
-            "status": "In Expansion"
+            "distinct_person_cnt": "20"
         },
         {
             "concept_id": 36684335,
@@ -5756,9 +5305,7 @@
             "domain_cnt": 1,
             "domain": "condition_occurrence",
             "total_cnt": 76,
-            "distinct_person_cnt": "27",
-            "isMember": true,
-            "status": "In Expansion"
+            "distinct_person_cnt": "27"
         },
         {
             "concept_id": 37310241,
@@ -5772,9 +5319,7 @@
             "domain_cnt": 1,
             "domain": "condition_occurrence",
             "total_cnt": 1054,
-            "distinct_person_cnt": "340",
-            "isMember": true,
-            "status": "In Expansion"
+            "distinct_person_cnt": "340"
         },
         {
             "concept_id": 40316544,
@@ -5788,9 +5333,7 @@
             "domain_cnt": 0,
             "domain": "",
             "total_cnt": 0,
-            "distinct_person_cnt": "0",
-            "isMember": true,
-            "status": "In Expansion"
+            "distinct_person_cnt": "0"
         },
         {
             "concept_id": 40345717,
@@ -5804,9 +5347,7 @@
             "domain_cnt": 0,
             "domain": "",
             "total_cnt": 0,
-            "distinct_person_cnt": "0",
-            "isMember": true,
-            "status": "In Expansion"
+            "distinct_person_cnt": "0"
         },
         {
             "concept_id": 40345719,
@@ -5820,9 +5361,7 @@
             "domain_cnt": 0,
             "domain": "",
             "total_cnt": 0,
-            "distinct_person_cnt": "0",
-            "isMember": true,
-            "status": "In Expansion"
+            "distinct_person_cnt": "0"
         },
         {
             "concept_id": 40389375,
@@ -5836,9 +5375,7 @@
             "domain_cnt": 0,
             "domain": "",
             "total_cnt": 0,
-            "distinct_person_cnt": "0",
-            "isMember": true,
-            "status": "In Expansion"
+            "distinct_person_cnt": "0"
         },
         {
             "concept_id": 40395876,
@@ -5852,9 +5389,7 @@
             "domain_cnt": 0,
             "domain": "",
             "total_cnt": 0,
-            "distinct_person_cnt": "0",
-            "isMember": true,
-            "status": "In Expansion"
+            "distinct_person_cnt": "0"
         },
         {
             "concept_id": 40395878,
@@ -5868,9 +5403,7 @@
             "domain_cnt": 0,
             "domain": "",
             "total_cnt": 0,
-            "distinct_person_cnt": "0",
-            "isMember": true,
-            "status": "In Expansion"
+            "distinct_person_cnt": "0"
         },
         {
             "concept_id": 40395891,
@@ -5884,9 +5417,7 @@
             "domain_cnt": 0,
             "domain": "",
             "total_cnt": 0,
-            "distinct_person_cnt": "0",
-            "isMember": true,
-            "status": "In Expansion"
+            "distinct_person_cnt": "0"
         },
         {
             "concept_id": 40481763,
@@ -5900,10 +5431,7 @@
             "domain_cnt": 1,
             "domain": "condition_occurrence",
             "total_cnt": 82,
-            "distinct_person_cnt": "42",
-            "isItem": true,
-            "isMember": true,
-            "status": "In definition, In Expansion"
+            "distinct_person_cnt": "42"
         },
         {
             "concept_id": 40483397,
@@ -5917,10 +5445,7 @@
             "domain_cnt": 1,
             "domain": "condition_occurrence",
             "total_cnt": 192,
-            "distinct_person_cnt": "82",
-            "isItem": true,
-            "isMember": true,
-            "status": "In definition, In Expansion"
+            "distinct_person_cnt": "82"
         },
         {
             "concept_id": 40561687,
@@ -5934,9 +5459,7 @@
             "domain_cnt": 0,
             "domain": "",
             "total_cnt": 0,
-            "distinct_person_cnt": "0",
-            "isMember": true,
-            "status": "In Expansion"
+            "distinct_person_cnt": "0"
         },
         {
             "concept_id": 42536207,
@@ -5950,8 +5473,7 @@
             "domain_cnt": 0,
             "domain": "",
             "total_cnt": 0,
-            "distinct_person_cnt": "0",
-            "status": ""
+            "distinct_person_cnt": "0"
         },
         {
             "concept_id": 42536648,
@@ -5965,9 +5487,7 @@
             "domain_cnt": 0,
             "domain": "",
             "total_cnt": 0,
-            "distinct_person_cnt": "0",
-            "isMember": true,
-            "status": "In Expansion"
+            "distinct_person_cnt": "0"
         },
         {
             "concept_id": 42538744,
@@ -5981,9 +5501,7 @@
             "domain_cnt": 1,
             "domain": "condition_occurrence",
             "total_cnt": 20,
-            "distinct_person_cnt": "20",
-            "isMember": true,
-            "status": "In Expansion"
+            "distinct_person_cnt": "20"
         },
         {
             "concept_id": 42539549,
@@ -5997,9 +5515,7 @@
             "domain_cnt": 1,
             "domain": "condition_occurrence",
             "total_cnt": 2810,
-            "distinct_person_cnt": "1005",
-            "isMember": true,
-            "status": "In Expansion"
+            "distinct_person_cnt": "1005"
         },
         {
             "concept_id": 43530693,
@@ -6013,10 +5529,7 @@
             "domain_cnt": 1,
             "domain": "condition_occurrence",
             "total_cnt": 4396,
-            "distinct_person_cnt": "1740",
-            "isItem": true,
-            "isMember": true,
-            "status": "In definition, In Expansion"
+            "distinct_person_cnt": "1740"
         },
         {
             "concept_id": 44824287,
@@ -6030,9 +5543,7 @@
             "domain_cnt": 0,
             "domain": "",
             "total_cnt": 0,
-            "distinct_person_cnt": "0",
-            "isMember": true,
-            "status": "In Expansion"
+            "distinct_person_cnt": "0"
         },
         {
             "concept_id": 44824288,
@@ -6046,9 +5557,7 @@
             "domain_cnt": 0,
             "domain": "",
             "total_cnt": 0,
-            "distinct_person_cnt": "0",
-            "isMember": true,
-            "status": "In Expansion"
+            "distinct_person_cnt": "0"
         },
         {
             "concept_id": 44831278,
@@ -6062,9 +5571,7 @@
             "domain_cnt": 0,
             "domain": "",
             "total_cnt": 0,
-            "distinct_person_cnt": "0",
-            "isMember": true,
-            "status": "In Expansion"
+            "distinct_person_cnt": "0"
         },
         {
             "concept_id": 44832423,
@@ -6078,9 +5585,7 @@
             "domain_cnt": 0,
             "domain": "",
             "total_cnt": 0,
-            "distinct_person_cnt": "0",
-            "isMember": true,
-            "status": "In Expansion"
+            "distinct_person_cnt": "0"
         },
         {
             "concept_id": 45543269,
@@ -6094,10 +5599,7 @@
             "domain_cnt": 0,
             "domain": "",
             "total_cnt": 0,
-            "distinct_person_cnt": "0",
-            "isItem": true,
-            "isMember": true,
-            "status": "In definition, In Expansion"
+            "distinct_person_cnt": "0"
         },
         {
             "concept_id": 45543270,
@@ -6111,10 +5613,7 @@
             "domain_cnt": 0,
             "domain": "",
             "total_cnt": 0,
-            "distinct_person_cnt": "0",
-            "isItem": true,
-            "isMember": true,
-            "status": "In definition, In Expansion"
+            "distinct_person_cnt": "0"
         },
         {
             "concept_id": 45548116,
@@ -6128,10 +5627,7 @@
             "domain_cnt": 0,
             "domain": "",
             "total_cnt": 0,
-            "distinct_person_cnt": "0",
-            "isItem": true,
-            "isMember": true,
-            "status": "In definition, In Expansion"
+            "distinct_person_cnt": "0"
         },
         {
             "concept_id": 45548117,
@@ -6145,10 +5641,7 @@
             "domain_cnt": 0,
             "domain": "",
             "total_cnt": 0,
-            "distinct_person_cnt": "0",
-            "isItem": true,
-            "isMember": true,
-            "status": "In definition, In Expansion"
+            "distinct_person_cnt": "0"
         },
         {
             "concept_id": 45557624,
@@ -6162,9 +5655,7 @@
             "domain_cnt": 0,
             "domain": "",
             "total_cnt": 0,
-            "distinct_person_cnt": "0",
-            "isMember": true,
-            "status": "In Expansion"
+            "distinct_person_cnt": "0"
         },
         {
             "concept_id": 45557626,
@@ -6178,10 +5669,7 @@
             "domain_cnt": 0,
             "domain": "",
             "total_cnt": 0,
-            "distinct_person_cnt": "0",
-            "isItem": true,
-            "isMember": true,
-            "status": "In definition, In Expansion"
+            "distinct_person_cnt": "0"
         },
         {
             "concept_id": 45562457,
@@ -6195,10 +5683,7 @@
             "domain_cnt": 0,
             "domain": "",
             "total_cnt": 0,
-            "distinct_person_cnt": "0",
-            "isItem": true,
-            "isMember": true,
-            "status": "In definition, In Expansion"
+            "distinct_person_cnt": "0"
         },
         {
             "concept_id": 45567265,
@@ -6212,10 +5697,7 @@
             "domain_cnt": 0,
             "domain": "",
             "total_cnt": 0,
-            "distinct_person_cnt": "0",
-            "isItem": true,
-            "isMember": true,
-            "status": "In definition, In Expansion"
+            "distinct_person_cnt": "0"
         },
         {
             "concept_id": 45567266,
@@ -6229,10 +5711,7 @@
             "domain_cnt": 0,
             "domain": "",
             "total_cnt": 0,
-            "distinct_person_cnt": "0",
-            "isItem": true,
-            "isMember": true,
-            "status": "In definition, In Expansion"
+            "distinct_person_cnt": "0"
         },
         {
             "concept_id": 45572169,
@@ -6246,10 +5725,7 @@
             "domain_cnt": 0,
             "domain": "",
             "total_cnt": 0,
-            "distinct_person_cnt": "0",
-            "isItem": true,
-            "isMember": true,
-            "status": "In definition, In Expansion"
+            "distinct_person_cnt": "0"
         },
         {
             "concept_id": 45572170,
@@ -6263,10 +5739,7 @@
             "domain_cnt": 0,
             "domain": "",
             "total_cnt": 0,
-            "distinct_person_cnt": "0",
-            "isItem": true,
-            "isMember": true,
-            "status": "In definition, In Expansion"
+            "distinct_person_cnt": "0"
         },
         {
             "concept_id": 45572171,
@@ -6280,10 +5753,7 @@
             "domain_cnt": 0,
             "domain": "",
             "total_cnt": 0,
-            "distinct_person_cnt": "0",
-            "isItem": true,
-            "isMember": true,
-            "status": "In definition, In Expansion"
+            "distinct_person_cnt": "0"
         },
         {
             "concept_id": 45576951,
@@ -6297,10 +5767,7 @@
             "domain_cnt": 0,
             "domain": "",
             "total_cnt": 0,
-            "distinct_person_cnt": "0",
-            "isItem": true,
-            "isMember": true,
-            "status": "In definition, In Expansion"
+            "distinct_person_cnt": "0"
         },
         {
             "concept_id": 45576952,
@@ -6314,10 +5781,7 @@
             "domain_cnt": 0,
             "domain": "",
             "total_cnt": 0,
-            "distinct_person_cnt": "0",
-            "isItem": true,
-            "isMember": true,
-            "status": "In definition, In Expansion"
+            "distinct_person_cnt": "0"
         },
         {
             "concept_id": 45581860,
@@ -6331,10 +5795,7 @@
             "domain_cnt": 0,
             "domain": "",
             "total_cnt": 0,
-            "distinct_person_cnt": "0",
-            "isItem": true,
-            "isMember": true,
-            "status": "In definition, In Expansion"
+            "distinct_person_cnt": "0"
         },
         {
             "concept_id": 45586674,
@@ -6348,10 +5809,7 @@
             "domain_cnt": 0,
             "domain": "",
             "total_cnt": 0,
-            "distinct_person_cnt": "0",
-            "isItem": true,
-            "isMember": true,
-            "status": "In definition, In Expansion"
+            "distinct_person_cnt": "0"
         },
         {
             "concept_id": 45586675,
@@ -6365,10 +5823,7 @@
             "domain_cnt": 0,
             "domain": "",
             "total_cnt": 0,
-            "distinct_person_cnt": "0",
-            "isItem": true,
-            "isMember": true,
-            "status": "In definition, In Expansion"
+            "distinct_person_cnt": "0"
         },
         {
             "concept_id": 45601133,
@@ -6382,10 +5837,7 @@
             "domain_cnt": 0,
             "domain": "",
             "total_cnt": 0,
-            "distinct_person_cnt": "0",
-            "isItem": true,
-            "isMember": true,
-            "status": "In definition, In Expansion"
+            "distinct_person_cnt": "0"
         },
         {
             "concept_id": 45601134,
@@ -6399,10 +5851,7 @@
             "domain_cnt": 0,
             "domain": "",
             "total_cnt": 0,
-            "distinct_person_cnt": "0",
-            "isItem": true,
-            "isMember": true,
-            "status": "In definition, In Expansion"
+            "distinct_person_cnt": "0"
         },
         {
             "concept_id": 45766727,
@@ -6416,9 +5865,7 @@
             "domain_cnt": 0,
             "domain": "",
             "total_cnt": 0,
-            "distinct_person_cnt": "0",
-            "isMember": true,
-            "status": "In Expansion"
+            "distinct_person_cnt": "0"
         },
         {
             "concept_id": 45766728,
@@ -6432,9 +5879,7 @@
             "domain_cnt": 1,
             "domain": "condition_occurrence",
             "total_cnt": 20,
-            "distinct_person_cnt": "20",
-            "isMember": true,
-            "status": "In Expansion"
+            "distinct_person_cnt": "20"
         },
         {
             "concept_id": 45768912,
@@ -6448,10 +5893,7 @@
             "domain_cnt": 1,
             "domain": "condition_occurrence",
             "total_cnt": 10709,
-            "distinct_person_cnt": "2188",
-            "isItem": true,
-            "isMember": true,
-            "status": "In definition, In Expansion"
+            "distinct_person_cnt": "2188"
         },
         {
             "concept_id": 45768964,
@@ -6465,10 +5907,7 @@
             "domain_cnt": 1,
             "domain": "condition_occurrence",
             "total_cnt": 2697987,
-            "distinct_person_cnt": "353762",
-            "isItem": true,
-            "isMember": true,
-            "status": "In definition, In Expansion"
+            "distinct_person_cnt": "353762"
         },
         {
             "concept_id": 45768965,
@@ -6482,10 +5921,7 @@
             "domain_cnt": 1,
             "domain": "condition_occurrence",
             "total_cnt": 950210,
-            "distinct_person_cnt": "69537",
-            "isItem": true,
-            "isMember": true,
-            "status": "In definition, In Expansion"
+            "distinct_person_cnt": "69537"
         },
         {
             "concept_id": 45769350,
@@ -6499,10 +5935,7 @@
             "domain_cnt": 1,
             "domain": "condition_occurrence",
             "total_cnt": 296340,
-            "distinct_person_cnt": "44728",
-            "isItem": true,
-            "isMember": true,
-            "status": "In definition, In Expansion"
+            "distinct_person_cnt": "44728"
         },
         {
             "concept_id": 45769351,
@@ -6516,10 +5949,7 @@
             "domain_cnt": 1,
             "domain": "condition_occurrence",
             "total_cnt": 50791,
-            "distinct_person_cnt": "15013",
-            "isItem": true,
-            "isMember": true,
-            "status": "In definition, In Expansion"
+            "distinct_person_cnt": "15013"
         },
         {
             "concept_id": 45769352,
@@ -6533,10 +5963,7 @@
             "domain_cnt": 1,
             "domain": "condition_occurrence",
             "total_cnt": 20446,
-            "distinct_person_cnt": "8416",
-            "isItem": true,
-            "isMember": true,
-            "status": "In definition, In Expansion"
+            "distinct_person_cnt": "8416"
         },
         {
             "concept_id": 45769438,
@@ -6550,10 +5977,7 @@
             "domain_cnt": 1,
             "domain": "condition_occurrence",
             "total_cnt": 31565,
-            "distinct_person_cnt": "13212",
-            "isItem": true,
-            "isMember": true,
-            "status": "In definition, In Expansion"
+            "distinct_person_cnt": "13212"
         },
         {
             "concept_id": 45769441,
@@ -6567,10 +5991,7 @@
             "domain_cnt": 1,
             "domain": "condition_occurrence",
             "total_cnt": 3918,
-            "distinct_person_cnt": "1730",
-            "isItem": true,
-            "isMember": true,
-            "status": "In definition, In Expansion"
+            "distinct_person_cnt": "1730"
         },
         {
             "concept_id": 45769442,
@@ -6584,10 +6005,7 @@
             "domain_cnt": 1,
             "domain": "condition_occurrence",
             "total_cnt": 453,
-            "distinct_person_cnt": "172",
-            "isItem": true,
-            "isMember": true,
-            "status": "In definition, In Expansion"
+            "distinct_person_cnt": "172"
         },
         {
             "concept_id": 45769443,
@@ -6601,10 +6019,7 @@
             "domain_cnt": 1,
             "domain": "condition_occurrence",
             "total_cnt": 75,
-            "distinct_person_cnt": "46",
-            "isItem": true,
-            "isMember": true,
-            "status": "In definition, In Expansion"
+            "distinct_person_cnt": "46"
         },
         {
             "concept_id": 45771045,
@@ -6618,10 +6033,7 @@
             "domain_cnt": 1,
             "domain": "condition_occurrence",
             "total_cnt": 36225,
-            "distinct_person_cnt": "10320",
-            "isItem": true,
-            "isMember": true,
-            "status": "In definition, In Expansion"
+            "distinct_person_cnt": "10320"
         },
         {
             "concept_id": 45772937,
@@ -6635,10 +6047,7 @@
             "domain_cnt": 1,
             "domain": "condition_occurrence",
             "total_cnt": 823338,
-            "distinct_person_cnt": "186551",
-            "isItem": true,
-            "isMember": true,
-            "status": "In definition, In Expansion"
+            "distinct_person_cnt": "186551"
         },
         {
             "concept_id": 45773005,
@@ -6652,10 +6061,7 @@
             "domain_cnt": 1,
             "domain": "condition_occurrence",
             "total_cnt": 1092,
-            "distinct_person_cnt": "536",
-            "isItem": true,
-            "isMember": true,
-            "status": "In definition, In Expansion"
+            "distinct_person_cnt": "536"
         },
         {
             "concept_id": 45909769,
@@ -6669,9 +6075,7 @@
             "domain_cnt": 0,
             "domain": "",
             "total_cnt": 0,
-            "distinct_person_cnt": "0",
-            "isMember": true,
-            "status": "In Expansion"
+            "distinct_person_cnt": "0"
         },
         {
             "concept_id": 45917166,
@@ -6685,9 +6089,7 @@
             "domain_cnt": 0,
             "domain": "",
             "total_cnt": 0,
-            "distinct_person_cnt": "0",
-            "isMember": true,
-            "status": "In Expansion"
+            "distinct_person_cnt": "0"
         },
         {
             "concept_id": 45938316,
@@ -6701,9 +6103,7 @@
             "domain_cnt": 0,
             "domain": "",
             "total_cnt": 0,
-            "distinct_person_cnt": "0",
-            "isMember": true,
-            "status": "In Expansion"
+            "distinct_person_cnt": "0"
         },
         {
             "concept_id": 45939036,
@@ -6717,9 +6117,7 @@
             "domain_cnt": 0,
             "domain": "",
             "total_cnt": 0,
-            "distinct_person_cnt": "0",
-            "isMember": true,
-            "status": "In Expansion"
+            "distinct_person_cnt": "0"
         },
         {
             "concept_id": 45939199,
@@ -6733,9 +6131,7 @@
             "domain_cnt": 0,
             "domain": "",
             "total_cnt": 0,
-            "distinct_person_cnt": "0",
-            "isMember": true,
-            "status": "In Expansion"
+            "distinct_person_cnt": "0"
         },
         {
             "concept_id": 45939829,
@@ -6749,9 +6145,7 @@
             "domain_cnt": 0,
             "domain": "",
             "total_cnt": 0,
-            "distinct_person_cnt": "0",
-            "isMember": true,
-            "status": "In Expansion"
+            "distinct_person_cnt": "0"
         },
         {
             "concept_id": 45940320,
@@ -6765,9 +6159,7 @@
             "domain_cnt": 0,
             "domain": "",
             "total_cnt": 0,
-            "distinct_person_cnt": "0",
-            "isMember": true,
-            "status": "In Expansion"
+            "distinct_person_cnt": "0"
         },
         {
             "concept_id": 45946655,
@@ -6781,9 +6173,7 @@
             "domain_cnt": 0,
             "domain": "",
             "total_cnt": 0,
-            "distinct_person_cnt": "0",
-            "isMember": true,
-            "status": "In Expansion"
+            "distinct_person_cnt": "0"
         },
         {
             "concept_id": 46269767,
@@ -6797,10 +6187,7 @@
             "domain_cnt": 1,
             "domain": "condition_occurrence",
             "total_cnt": 20,
-            "distinct_person_cnt": "20",
-            "isItem": true,
-            "isMember": true,
-            "status": "In definition, In Expansion"
+            "distinct_person_cnt": "20"
         },
         {
             "concept_id": 46269770,
@@ -6814,10 +6201,7 @@
             "domain_cnt": 1,
             "domain": "condition_occurrence",
             "total_cnt": 529,
-            "distinct_person_cnt": "118",
-            "isItem": true,
-            "isMember": true,
-            "status": "In definition, In Expansion"
+            "distinct_person_cnt": "118"
         },
         {
             "concept_id": 46269771,
@@ -6831,10 +6215,7 @@
             "domain_cnt": 1,
             "domain": "condition_occurrence",
             "total_cnt": 20,
-            "distinct_person_cnt": "20",
-            "isItem": true,
-            "isMember": true,
-            "status": "In definition, In Expansion"
+            "distinct_person_cnt": "20"
         },
         {
             "concept_id": 46269776,
@@ -6848,9 +6229,7 @@
             "domain_cnt": 1,
             "domain": "condition_occurrence",
             "total_cnt": 470,
-            "distinct_person_cnt": "230",
-            "isMember": true,
-            "status": "In Expansion"
+            "distinct_person_cnt": "230"
         },
         {
             "concept_id": 46269784,
@@ -6864,10 +6243,7 @@
             "domain_cnt": 1,
             "domain": "condition_occurrence",
             "total_cnt": 397,
-            "distinct_person_cnt": "131",
-            "isItem": true,
-            "isMember": true,
-            "status": "In definition, In Expansion"
+            "distinct_person_cnt": "131"
         },
         {
             "concept_id": 46269785,
@@ -6881,10 +6257,7 @@
             "domain_cnt": 0,
             "domain": "",
             "total_cnt": 0,
-            "distinct_person_cnt": "0",
-            "isItem": true,
-            "isMember": true,
-            "status": "In definition, In Expansion"
+            "distinct_person_cnt": "0"
         },
         {
             "concept_id": 46269802,
@@ -6898,10 +6271,7 @@
             "domain_cnt": 1,
             "domain": "condition_occurrence",
             "total_cnt": 42,
-            "distinct_person_cnt": "20",
-            "isItem": true,
-            "isMember": true,
-            "status": "In definition, In Expansion"
+            "distinct_person_cnt": "20"
         },
         {
             "concept_id": 46270028,
@@ -6915,10 +6285,7 @@
             "domain_cnt": 1,
             "domain": "condition_occurrence",
             "total_cnt": 51,
-            "distinct_person_cnt": "20",
-            "isItem": true,
-            "isMember": true,
-            "status": "In definition, In Expansion"
+            "distinct_person_cnt": "20"
         },
         {
             "concept_id": 46270082,
@@ -6932,10 +6299,7 @@
             "domain_cnt": 1,
             "domain": "condition_occurrence",
             "total_cnt": 9911,
-            "distinct_person_cnt": "2447",
-            "isItem": true,
-            "isMember": true,
-            "status": "In definition, In Expansion"
+            "distinct_person_cnt": "2447"
         },
         {
             "concept_id": 46273452,
@@ -6949,10 +6313,7 @@
             "domain_cnt": 1,
             "domain": "condition_occurrence",
             "total_cnt": 69,
-            "distinct_person_cnt": "46",
-            "isItem": true,
-            "isMember": true,
-            "status": "In definition, In Expansion"
+            "distinct_person_cnt": "46"
         },
         {
             "concept_id": 46273454,
@@ -6966,10 +6327,7 @@
             "domain_cnt": 1,
             "domain": "condition_occurrence",
             "total_cnt": 197,
-            "distinct_person_cnt": "35",
-            "isItem": true,
-            "isMember": true,
-            "status": "In definition, In Expansion"
+            "distinct_person_cnt": "35"
         },
         {
             "concept_id": 46273462,
@@ -6983,10 +6341,7 @@
             "domain_cnt": 1,
             "domain": "condition_occurrence",
             "total_cnt": 39,
-            "distinct_person_cnt": "22",
-            "isItem": true,
-            "isMember": true,
-            "status": "In definition, In Expansion"
+            "distinct_person_cnt": "22"
         },
         {
             "concept_id": 46273487,
@@ -7000,10 +6355,7 @@
             "domain_cnt": 1,
             "domain": "condition_occurrence",
             "total_cnt": 21351,
-            "distinct_person_cnt": "4092",
-            "isItem": true,
-            "isMember": true,
-            "status": "In definition, In Expansion"
+            "distinct_person_cnt": "4092"
         },
         {
             "concept_id": 46274059,
@@ -7017,10 +6369,7 @@
             "domain_cnt": 1,
             "domain": "condition_occurrence",
             "total_cnt": 20,
-            "distinct_person_cnt": "20",
-            "isItem": true,
-            "isMember": true,
-            "status": "In definition, In Expansion"
+            "distinct_person_cnt": "20"
         },
         {
             "concept_id": 46274124,
@@ -7034,10 +6383,7 @@
             "domain_cnt": 1,
             "domain": "condition_occurrence",
             "total_cnt": 20,
-            "distinct_person_cnt": "20",
-            "isItem": true,
-            "isMember": true,
-            "status": "In definition, In Expansion"
+            "distinct_person_cnt": "20"
         }
     ],
     "specialConcepts": {

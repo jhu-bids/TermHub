@@ -97,7 +97,7 @@ export class GraphContainer {
         removed                 showThoughCollapsed false
 
         allButFirstOccurrence   hideThoughExpanded  true
-        expansionConcepts       hideThoughExpanded  false
+        nonDefinitionConcepts   hideThoughExpanded  false
         nonStandard             hideThoughExpanded  false
         zeroRecord              hideThoughExpanded  false
 
@@ -325,7 +325,7 @@ export class GraphContainer {
     displayedRows = displayedRows.filter(r => r.display.result !== 'hide');
 
     // return this.displayedRows.filter(r => r.depth < 3);
-    return displayedRows;
+    return {displayedRows, allRows};
     // return this.getDisplayedRowsOLD(graphOptions);
   }
   insertShowThoughCollapsed(path, shown, nodeRows) {
@@ -531,7 +531,7 @@ export class GraphContainer {
     return this.graph.copy();
   }
 
-  setGraphDisplayConfig(graphOptions) {
+  setGraphDisplayConfig(graphOptions, allRows=[], displayedRows=[]) {
     // these are all options that appear in Show Stats/Options
 
     const displayedConcepts = this.displayedRows || []; // first time through, don't have displayed rows yet
@@ -589,15 +589,17 @@ export class GraphContainer {
         specialTreatmentDefault: false,
         specialTreatmentRule: 'show though collapsed',
       },
-      expansionConcepts: {
+      /*
+      nonDefinitionConcepts: {
         name: "Expansion only concepts", displayOrder: displayOrder++,
-        value: this.gd.specialConcepts.expansionConcepts.length,
+        value: this.gd.specialConcepts.nonDefinitionConcepts.length,
         // value: uniq(flatten(Object.values(this.gd.csmi).map(Object.values)) .filter(c => c.csm).map(c => c.concept_id)).length,
         displayedConceptCnt: setOp('intersection', this.gd.specialConcepts.expansionConcepts, displayedConceptIds).length,
         hiddenConceptCnt: setOp('difference', this.gd.specialConcepts.expansionConcepts, displayedConceptIds).length,
         specialTreatmentDefault: false,
         specialTreatmentRule: 'hide though expanded',
       },
+       */
       added: {
         name: "Added to compared", displayOrder: displayOrder++,
         value: get(this.gd.specialConcepts, 'added.length', undefined),
@@ -659,11 +661,11 @@ export class GraphContainer {
     for (let type in displayOptions) {
       let displayOption = {...get(this, ['graphDisplayConfig', type], {}), ...displayOptions[type]};  // don't lose stuff previously set
       // if (typeof(displayOption.value) === 'undefined') // don't show displayOptions that don't represent any concepts
-      if (!displayOption.value) {  // addedCids was 0 instead of undefined. will this hide things that shouldn't be hidden?
+      /* if (!displayOption.value) {  // addedCids was 0 instead of undefined. will this hide things that shouldn't be hidden?
         // console.log(`deleting ${type} from statsopts`);
         delete displayOptions[type];
         continue;
-      }
+      } */
       displayOption.type = type;
       if (typeof(displayOption.specialTreatmentDefault) !== 'undefined') {
         if (typeof (displayOption.specialTreatment) === 'undefined') {
