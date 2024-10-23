@@ -180,11 +180,11 @@ export function graphOptionsReducer(state, action) {
       if (!validValues.includes(action.direction)) {
         console.error(`Invalid direction for TOGGLE_NODE_EXPANDED: ${action.direction}`);
       }
-      let specificPaths = {...graphOptions.specificPaths};
-      let current = specificPaths[rowPath];
+      let expandStateByPath = {...graphOptions.expandStateByPath};
+      let current = expandStateByPath[rowPath];
       if (typeof(current) === 'undefined') {
         // if no current expand/collapse for path, set it
-        specificPaths[rowPath] = action.direction;
+        expandStateByPath[rowPath] = action.direction;
       } else {
         // path has current state -- should be opposite of action.direction
         //  so just delete it (to unexpand/uncollapse)
@@ -194,9 +194,9 @@ export function graphOptionsReducer(state, action) {
         if (current === action.direction) {
           console.error(`Trying to ${action.direction} ${rowPath} but is already`);
         }
-        delete specificPaths[rowPath];
+        delete expandStateByPath[rowPath];
       }
-      graphOptions = { ...graphOptions, specificPaths};
+      graphOptions = { ...graphOptions, expandStateByPath};
       break;
     }
     case 'TOGGLE_OPTION':
@@ -206,7 +206,7 @@ export function graphOptionsReducer(state, action) {
       break;
     case 'TOGGLE_EXPAND_ALL':
       graphOptions = {...graphOptions, expandAll:!graphOptions.expandAll};
-      graphOptions.specificPaths = {};
+      graphOptions.expandStateByPath = {};
         // just start over when expandAll flips
         // could have two sets of specificPaths, one for expandAll, one for not
       break;
@@ -231,10 +231,19 @@ if (process.env.NODE_ENV !== 'production') {
 // window.appStateW = {}; // playwright complaining that window isn't defined
 let appStateW = {};
 
+/* makeProvider()
+Makes provider to manage both a regular reducer and a storage provider.
+I think the idea was to put update logic into reducers and try to have storage providers.
+just emulate localStorage (whether for localStorage, sessionStorage, or querystring).
+
+Returns:
+  Provider, useReducerWithStorage
+
+Side effects:
+ - Updates global `resetFuncs` obj w/ the `resetFunc` for the given `stateName`.
+
+*/
 function makeProvider({stateName, reducer, initialSettings, storageProviderGetter, jsonify=false, }) {
-  // makes provider to manage both a regular reducer and a storage provider
-  // I think the idea was to put update logic into reducers and try to have storage providers
-  //  just emulate localStorage (whether for localStorage, sessionStorage, or querystring)
   /*
   const regularReducer = (state, action) => {
     const newState = reducer(state, action);
@@ -273,9 +282,8 @@ function makeProvider({stateName, reducer, initialSettings, storageProviderGette
       storageProvider.setItem(stateName, newState);
     }, [stateName, state]);
      */
-
-    const resetFunc = () => dispatch({type: 'reset', resetValue: initialSettings});
-    resetFuncs[stateName] = resetFunc;
+    
+    resetFuncs[stateName] = () => dispatch({type: 'reset', resetValue: initialSettings});
 
     return (
         // <Context.Provider value={[storageProvider.getItem(stateName) ?? initialSettings, dispatch]}>
