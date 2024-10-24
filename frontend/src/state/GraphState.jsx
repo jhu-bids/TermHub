@@ -210,11 +210,11 @@ export class GraphContainer {
         specificNodeCollapsed while expandAll is on
           Hide descendants
 
-      1. [ ] Generate allRows: list of all rows, in order, with duplicates
-      2. [ ] If allButFirstOccurrence hidden, hide allButFirstOccurrence
+      1. [x] Generate allRows: list of all rows, in order, with duplicates
+      2. [x] If allButFirstOccurrence hidden, hide allButFirstOccurrence
           (and their descendants? descendants will be duplicate occurrences
           and hidden anyway)
-          crap: what if STC/HTE settings affect which occurrence comes first?
+          [ ] crap: what if STC/HTE settings affect which occurrence comes first?
             could that happen?
             having a hard time constructing the case (below). maybe just don't
               worry about it for now?
@@ -228,15 +228,13 @@ export class GraphContainer {
             (-) Concept 3       {hideReasons: [childOfHTE], showReasons: [STC(def)],    result: show}
 
       3. If expandAll, hide all HTE
-      4. If not expandAll, hide everything that's
+      4. If 'collapse all' (not expandAll), hide everything that's
           a. not a root -- hides everything depth > 0;
-      5. Unhide
-          a. STC (showThoughCollapsed) That includes ancestors up to
-             nearest not collapsed
+      5. Hide remaining HTE (hideThoughExpanded)
+      6. Unhide
+          a. STC (showThoughCollapsed) That includes ancestors up to nearest not collapsed
           b. Child of SNE (specificPathsExpanded)
-      6. Hide remaining HTE (hideThoughExpanded)
-     */
-
+    */
     // 1. Generate allRows
     let {allRows, allRowsById} = this.setupAllRows(this.roots);
 
@@ -275,39 +273,38 @@ export class GraphContainer {
        */
       // 5a. Expand children of specificPaths: expand, but only for displayed rows
 
-
-      const hideThoughExpanded = new StringSet();
+      // const hideThoughExpanded = new StringSet();
     }
 
     // Expand and collapse children based on user having clicked +/- on row
+    // - Collapse
+    void(0);  // no-op; Collapse is handled by deleting path from specificPaths. When following block runs, won't expand
+    // - Expand
     allRows.forEach((row, rowIdx) => {
       if (row.display.result === 'hide') return;
-      if (graphOptions.specificPaths[row.rowPath]) {
+      if (graphOptions.specificPaths[row.rowPath]) {  // todo: rename specificPaths: isExpandedByPath
         this.rowDisplay(rowIdx, graphOptions.specificPaths[row.rowPath], 'specific', allRows)
       }
     });
 
-    // hide all HTE (non-standard, zero pt, expansion only)
+    // HTE: non-standard, zero pt, expansion only
     for (let type in graphOptions.specialConceptTreatment) {
       if (type === 'allButFirstOccurrence') continue; // handle this differently
       if (get(this, ['graphDisplayConfig', type, 'specialTreatmentRule'])
           === 'hide though expanded' &&
           graphOptions.specialConceptTreatment[type]) {
-        // gather all the hideThoughExpanded ids
         this.gd.specialConcepts[type].forEach(id => {
           const rowsToHide = allRowsById.get(id) || [];
           for (const rowToHide of rowsToHide) {
             const rowToHideIdx = rowToHide.allRowsIdx;
-            this.rowDisplay(rowToHideIdx, graphOptions.specificPaths[rowToHide.rowPath], type, allRows)
+            this.rowDisplay(rowToHideIdx, graphOptions.specificPaths[rowToHide.rowPath], type, allRows);
           }
-        })
+        });
       }
     }
-    // end hide all HTE
-
     let displayedRows = allRows.filter(r => r.display.result !== 'hide');
 
-    // 2. Get list of allButFirstOccurrence; hide if option on
+    // HTE: allButFirstOccurrence: get counts, then hide if option on
     let rowsPerId = {};
     displayedRows.forEach(row => {
       if (rowsPerId[row.concept_id]) {
@@ -321,13 +318,35 @@ export class GraphContainer {
       }
       row.nodeOccurrence = rowsPerId[row.concept_id]++;
     });
-    //  this could filter allRows, shouldn't matter
-    displayedRows = displayedRows.filter(r => r.display.result !== 'hide');
-
-    // return this.displayedRows.filter(r => r.depth < 3);
+    displayedRows = displayedRows.filter(r => r.display.result !== 'hide');  // alternative: could filter allRows; shouldn't matter
+    
+    // TODO: STC: Joe's attempt: WIP
+    //  - See more TODO notes inside rowDisplay()
+    // STC
+    // this.gd.specialConcepts['definitionConcepts'].push('312950');  // todo: temp debugging: 1 below root
+    this.gd.specialConcepts['definitionConcepts'].push('45769441');  // todo: temp debugging: 2 below root
+    for (let type in graphOptions.specialConceptTreatment) {
+      if (type === 'allButFirstOccurrence') continue; // handle this differently
+      if (get(this, ['graphDisplayConfig', type, 'specialTreatmentRule'])
+          === 'show though collapsed' &&
+          graphOptions.specialConceptTreatment[type]) {
+        this.gd.specialConcepts[type].forEach(id => {
+          const rowsToShow = allRowsById.get(id) || [];
+          for (const rowToShow of rowsToShow) {
+            const rowToShowIdx = rowToShow.allRowsIdx;
+            this.rowDisplay(rowToShowIdx, 'expand', type, allRows);
+          }
+        });
+      }
+    }
+    // todo: displayedRows get set 3 times. redundant; only needed at end; only useful otherwise for debugging
+    displayedRows = allRows.filter(r => r.display.result !== 'hide');
+    
     return {displayedRows, allRows};
+    // return this.displayedRows.filter(r => r.depth < 3);
     // return this.getDisplayedRowsOLD(graphOptions);
   }
+  
   insertShowThoughCollapsed(path, shown, nodeRows) {
     // moved out of getDisplayedRows where shown was a closure var
     // path starts with the nodeIdToShow and recurses up, prepending parents
@@ -376,16 +395,25 @@ export class GraphContainer {
     });
     shown.add(nodeIdToShow);
   };
+  
+  /*
+  *  todo: Needs redesign / rename / split. Confusign to have showHide be undefined, and 2nd block to execute.
+  *  todo: showHide should be renamed to expandCollapse. showHide could mean 1 row. But expandCollapse inherently means
+  *   1 row + descendants, which is what this code does.
+  */
   rowDisplay(rowIdx, showHide, reason, allRows) {
     // this.rowDisplay(row, graphOptions.specificPaths[row.rowPath], 'specific')
     // this.rowDisplay(rowToHide, graphOptions.specificPaths[rowToHide.rowPath], type)
     // TODO: don't hide if it has children that should be shown
+    
     if (reason === 'specific') {
+      // HTE
       if (showHide === 'expand') {
         for (let childRow of this.getDescendantRows(rowIdx, allRows, 1)) {
           childRow.display.showReasons.childOfExpanded = true;
           childRow.display.result = 'show';
         }
+      // This block currently doesn't get triggered
       } else if (showHide === 'collapse') {
         for (let childRow of this.getDescendantRows(rowIdx, allRows)) {
           childRow.display.hideReasons.descendantOfCollapsed = rowIdx;
@@ -394,7 +422,23 @@ export class GraphContainer {
       } else {
         throw new Error(`Invalid showHide: ${showHide}`);
       }
-    } else {
+    
+    // STC
+    // TODO: Joe's attempt
+    //  - works: Shows the definition row
+    //  - problem 1: Doesn't show ancestors (other than root). I think we want to see them. solutions?:
+    //    a. recurse ancestors? I think this is what siggie was doing something like this before?
+    //      Make getAncestorRows() func, like how we have getDescandantRows() for HTE? Should we precalc?
+    //    b. iter path segments, e.g.: root/concept2/concept3/.../DefinitionConcept
+    //    c. expand down to row, but some other way?
+    //  - problem 2: if click + (expand) definition row, doesn't expand
+    } else if (showHide === 'expand') {
+      const row = allRows[rowIdx];
+      row.display.showReasons[reason] = true;
+      row.display.result = 'show';
+    
+    // HTE
+    } else {  // Hides row and its descendants
       const rowToHide = allRows[rowIdx];
       rowToHide.display.hideReasons[reason] = true;
       rowToHide.display.result = 'hide';
