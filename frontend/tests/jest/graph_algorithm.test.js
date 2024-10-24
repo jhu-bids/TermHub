@@ -11,13 +11,16 @@ describe.each(graphDataCases)('Graph algorithm tests for $test_name', (dataCase)
   let graphOptions;
   let firstDisplayedRow;
   let displayedRows;
+  let allRows
 
   beforeEach(() => {
     /* this should run once, not before each test, right? */
     try {
       gc = new GraphContainer(dataCase.graphData);
       graphOptions = { ...graphOptionsInitialState };
-      displayedRows = gc.getDisplayedRows(graphOptions);
+      const displayAllRows = gc.getDisplayedRows(graphOptions);
+      displayedRows = displayAllRows.displayedRows;
+      allRows = displayAllRows.allRows;
     } catch(e) {
       console.log(e);
       throw new Error(e);
@@ -33,8 +36,7 @@ describe.each(graphDataCases)('Graph algorithm tests for $test_name', (dataCase)
     // firstDisplayedRow = displayedRows.find(row => row.concept_id == firstRowConceptId);
     firstDisplayedRow = displayedRows[0];
     expect(firstDisplayedRow.concept_id == dataCase.firstRow.concept_id).toBeTruthy();
-    expect(firstDisplayedRow.childIds).toBeDefined();
-    expect(firstDisplayedRow.childIds.length).toEqual(dataCase)
+    expect(firstDisplayedRow.childIds.length).toEqual(dataCase.firstRow.childCount);  // expect number of kids
     // the childIds are already part of the firstDisplayedRow object, but are not displayed yet
     expect(firstDisplayedRow.childIds.map(String).sort()).toEqual(dataCase.firstRow.childIds.map(String).sort());
   });
@@ -45,10 +47,13 @@ describe.each(graphDataCases)('Graph algorithm tests for $test_name', (dataCase)
       rowPath: '/' + dataCase.firstRow.concept_id,
       direction: 'expand'
     };
-    displayedRows = gc.getDisplayedRows(graphOptions);
     graphOptions = graphOptionsReducer(graphOptions, expandAction);
-    const displayedChildIds = displayedRows.slice(1, 1 + dataCase.firstRow.childIds.length);
+    displayedRows = gc.getDisplayedRows(graphOptions).displayedRows;
+    const displayedChildObjects = displayedRows.slice(1, 1 + dataCase.firstRow.childIds.length);
+    const displayedChildIds = displayedChildObjects.map(row => row.concept_id + '');
+    // Test in correct order
     expect(displayedChildIds.map(String).sort()).toEqual(dataCase.firstRow.childIds.map(String).sort());
+    // Test total rows = roots + n children expanded
     expect(displayedRows.length).toEqual(dataCase.roots.length + dataCase.firstRow.childIds.length);
   });
 
@@ -58,7 +63,7 @@ describe.each(graphDataCases)('Graph algorithm tests for $test_name', (dataCase)
       rowPath: '/' + dataCase.firstRow.concept_id,
       direction: 'collapse'
     };
-    displayedRows = gc.getDisplayedRows(graphOptions);
+    displayedRows = gc.getDisplayedRows(graphOptions).displayedRows;
     const displayedConceptIds = displayedRows.map(row => row.concept_id + '');
     expect(displayedConceptIds.sort()).toEqual(dataCase.roots.map(String).sort());
   });
