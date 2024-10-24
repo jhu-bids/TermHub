@@ -269,7 +269,7 @@ textarea {
 }
 
 .stats-and-options .rdt_TableHead {
-    display: none;
+    /*display: none;*/
 }
 
 /* html table styles from https://www.htmltables.io/. can modify there */

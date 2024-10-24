@@ -1,6 +1,6 @@
 import React, {useLayoutEffect, useState, } from "react";
 // import {Navigate, useNavigate} from "react-router-dom";
-import {debounce, differenceWith, intersectionWith, isEqual, reduce, unionWith,} from "lodash";
+import {debounce, differenceWith, intersectionWith, isEqual, reduce, unionWith, memoize} from "lodash";
 import Papa from "papaparse";
 import {saveAs} from 'file-saver';
 // import {useDataGetter} from "../state/DataGetter";

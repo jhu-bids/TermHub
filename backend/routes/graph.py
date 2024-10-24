@@ -85,7 +85,7 @@ async def concept_graph_post(
 
 async def concept_graph(
     codeset_ids: List[int], cids: Union[List[int], None] = [], hide_vocabs = [],
-    hide_nonstandard_concepts=False, verbose = VERBOSE
+    hide_nonstandard_concepts=False, verbose = VERBOSE, all_descendants = True
  ) -> Tuple[DiGraph, Set[int], Set[int], Dict[str, Set[int]], Set[int]]:
     """Return concept graph
 
@@ -113,18 +113,24 @@ async def concept_graph(
     concept_ids: Set[int] = set([c['concept_id'] for c in concepts])
     # concept_ids.update(cids)  # future
 
-    # Fill gaps
-    missing_in_betweens_ids: Set[int] = get_missing_in_between_nodes(REL_GRAPH, concept_ids)
-    missing_in_betweens: List[RowMapping] = get_concepts(missing_in_betweens_ids)
+    # 2024-10-22. What if we get all descendants, not just missing in between?
+    if all_descendants:
+        more_concept_ids: Set[int] = get_all_descendants(REL_GRAPH, concept_ids)
+    else:
+        # Fill gaps
+        more_concept_ids: Set[int] = get_missing_in_between_nodes(REL_GRAPH, concept_ids)
+
+    # merge and filter
+    more_concepts: List[RowMapping] = get_concepts(more_concept_ids)
     concepts_m: List[Dict]
     hidden_by_voc_m: Dict[str, Set[int]]
     nonstandard_concepts_hidden_m: Set
-    # - filter missing_in_betweens: by vocab & non-standard
+    # - filter more_concepts: by vocab & non-standard
     concepts_m, hidden_by_voc_m, nonstandard_concepts_hidden_m = filter_concepts(
-        missing_in_betweens, hide_vocabs, hide_nonstandard_concepts)
+        more_concepts, hide_vocabs, hide_nonstandard_concepts)
 
-    # Merge: missing_in_betweens into concept_ids
-    concept_ids.update(missing_in_betweens_ids)
+    # Merge: more_concepts into concept_ids
+    concept_ids.update(more_concept_ids)
     for voc, hidden in hidden_by_voc_m.items():
         hidden_by_voc[voc] = hidden_by_voc.get(voc, set()).union(hidden)
     nonstandard_concepts_hidden = nonstandard_concepts_hidden.union(nonstandard_concepts_hidden_m)
@@ -134,7 +140,15 @@ async def concept_graph(
 
     # Return
     verbose and timer('done')
-    return sg, concept_ids, missing_in_betweens_ids, hidden_by_voc, nonstandard_concepts_hidden
+    return sg, concept_ids, more_concept_ids, hidden_by_voc, nonstandard_concepts_hidden
+
+
+def get_all_descendants(G: nx.DiGraph, subgraph_nodes: Union[List[int], Set[int]], verbose=VERBOSE) -> Set:
+    descendants: Set[int] = set()
+    for node in subgraph_nodes:
+        if G.has_node(node):
+            descendants.update(G.successors(node))
+    return descendants
 
 
 # TODO: @Siggie: move below to frontend
