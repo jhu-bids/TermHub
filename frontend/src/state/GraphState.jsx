@@ -449,13 +449,9 @@ export class GraphContainer {
         turned on and how many currently hidden rows will be unhidden if option
         is turned off.
        */
-      displayedRows: {
-        name: "Visible rows", displayOrder: displayOrder++,
-        value: displayedConcepts.length,
-      },
       concepts: {
-        name: "Concepts", displayOrder: displayOrder++,
-        value: this.gd.concept_ids.length,
+        name: "All", displayOrder: displayOrder++,
+        total: this.gd.concept_ids.length,
         hiddenConceptCnt: setOp('difference', this.gd.concept_ids, displayedConceptIds).length,
         displayedConceptCnt: setOp('intersection', this.gd.concept_ids, displayedConceptIds).length,
         specialTreatmentRule: 'expandAll',
@@ -463,57 +459,57 @@ export class GraphContainer {
       },
       addedCids: {
         name: "Individually added concept_ids", displayOrder: displayOrder++,
-        value: this.gd.specialConcepts.addedCids.length,
+        total: this.gd.specialConcepts.addedCids.length,
         hiddenConceptCnt: setOp('difference', this.gd.specialConcepts.addedCids, displayedConceptIds).length,
         displayedConceptCnt: setOp('intersection', this.gd.specialConcepts.addedCids, displayedConceptIds).length,
-        specialTreatmentDefault: true,
-        specialTreatmentRule: 'show though collapsed',
+        // specialTreatmentDefault: true,
+        // specialTreatmentRule: 'show though collapsed',
       },
       definitionConcepts: {
         name: "Definition concepts", displayOrder: displayOrder++,
-        value: this.gd.specialConcepts.definitionConcepts.length,
+        total: this.gd.specialConcepts.definitionConcepts.length,
         displayedConceptCnt: setOp('intersection', this.gd.specialConcepts.definitionConcepts, displayedConceptIds).length,
         hiddenConceptCnt: setOp('difference', this.gd.specialConcepts.definitionConcepts, displayedConceptIds).length,
-        specialTreatmentDefault: false,
-        specialTreatmentRule: 'show though collapsed',
+        // specialTreatmentDefault: false,
+        // specialTreatmentRule: 'show though collapsed',
       },
       /*
       nonDefinitionConcepts: {
         name: "Expansion only concepts", displayOrder: displayOrder++,
-        value: this.gd.specialConcepts.nonDefinitionConcepts.length,
-        // value: uniq(flatten(Object.values(this.gd.csmi).map(Object.values)) .filter(c => c.csm).map(c => c.concept_id)).length,
+        total: this.gd.specialConcepts.nonDefinitionConcepts.length,
+        // total: uniq(flatten(Object.values(this.gd.csmi).map(Object.values)) .filter(c => c.csm).map(c => c.concept_id)).length,
         displayedConceptCnt: setOp('intersection', this.gd.specialConcepts.expansionConcepts, displayedConceptIds).length,
         hiddenConceptCnt: setOp('difference', this.gd.specialConcepts.expansionConcepts, displayedConceptIds).length,
         specialTreatmentDefault: false,
         specialTreatmentRule: 'hide though expanded',
       },
-       */
       added: {
         name: "Added to compared", displayOrder: displayOrder++,
-        value: get(this.gd.specialConcepts, 'added.length', undefined),
+        total: get(this.gd.specialConcepts, 'added.length', undefined),
         hiddenConceptCnt: setOp('difference', this.gd.specialConcepts.added, displayedConceptIds).length,
-        specialTreatmentDefault: false,
-        specialTreatmentRule: 'show though collapsed',
+        // specialTreatmentDefault: false,
+        // specialTreatmentRule: 'show though collapsed',
       },
       removed: {
         name: "Removed from compared", displayOrder: displayOrder++,
-        value: get(this.gd.specialConcepts, 'removed.length', undefined),
+        total: get(this.gd.specialConcepts, 'removed.length', undefined),
         hiddenConceptCnt: setOp('difference', this.gd.specialConcepts.removed, displayedConceptIds).length,
-        specialTreatmentDefault: false,
-        specialTreatmentRule: 'show though collapsed',
+        // specialTreatmentDefault: false,
+        // specialTreatmentRule: 'show though collapsed',
       },
+       */
       standard: {
         name: "Standard concepts", displayOrder: displayOrder++,
-        value: this.gd.concepts.filter(c => c.standard_concept === 'S').length,
+        total: this.gd.concepts.filter(c => c.standard_concept === 'S').length,
         displayedConceptCnt: setOp('intersection', this.gd.concepts.filter(c => c.standard_concept === 'S'), displayedConceptIds).length,
       },
       classification: {
         name: "Classification concepts", displayOrder: displayOrder++,
-        value: this.gd.concepts.filter(c => c.standard_concept === 'C').length,
+        total: this.gd.concepts.filter(c => c.standard_concept === 'C').length,
       },
       nonStandard: {
         name: "Non-standard", displayOrder: displayOrder++,
-        value: this.gd.specialConcepts.nonStandard.length,
+        total: this.gd.specialConcepts.nonStandard.length,
         displayedConceptCnt: setOp('intersection', this.gd.specialConcepts.nonStandard, displayedConceptIds).length,
         hiddenConceptCnt:  setOp('intersection', this.gd.specialConcepts.nonStandard, this.hideThoughExpanded).length,
         specialTreatmentDefault: false,
@@ -521,7 +517,7 @@ export class GraphContainer {
       },
       zeroRecord: {
         name: "Zero records / patients", displayOrder: displayOrder++,
-        value: this.gd.specialConcepts.zeroRecord.length,
+        total: this.gd.specialConcepts.zeroRecord.length,
         displayedConceptCnt: setOp('intersection', this.gd.specialConcepts.zeroRecord, displayedConceptIds).length,
         hiddenConceptCnt: setOp('intersection', this.gd.specialConcepts.zeroRecord, [...(this.hideThoughExpanded || [])]).length,
         specialTreatmentDefault: false,
@@ -529,7 +525,7 @@ export class GraphContainer {
       },
       allButFirstOccurrence: {
         name: "All but first occurrence", displayOrder: displayOrder++,
-        value: this.gd.specialConcepts.allButFirstOccurrence.length,
+        total: this.gd.specialConcepts.allButFirstOccurrence.length,
         displayedConceptCnt: get(graphOptions, 'specialConceptTreatment.allButFirstOccurrence', true)
             ? 0
             : this.gd.specialConcepts.allButFirstOccurrence.length,
@@ -548,12 +544,12 @@ export class GraphContainer {
     }
     for (let type in displayOptions) {
       let displayOption = {...get(this, ['graphDisplayConfig', type], {}), ...displayOptions[type]};  // don't lose stuff previously set
-      // if (typeof(displayOption.value) === 'undefined') // don't show displayOptions that don't represent any concepts
-      /* if (!displayOption.value) {  // addedCids was 0 instead of undefined. will this hide things that shouldn't be hidden?
-        // console.log(`deleting ${type} from statsopts`);
+      // if (typeof(displayOption.total) === 'undefined') // don't show displayOptions that don't represent any concepts
+      if (! (displayOption.total > 0)) {  // addedCids was 0 instead of undefined. will this hide things that shouldn't be hidden?
+        console.log(`deleting ${type} from statsopts`);
         delete displayOptions[type];
         continue;
-      } */
+      }
       displayOption.type = type;
       if (typeof(displayOption.specialTreatmentDefault) !== 'undefined') {
         if (typeof (displayOption.specialTreatment) === 'undefined') {
@@ -580,7 +576,6 @@ export class GraphContainer {
     // TODO: gotta assemble whatever's needed for graphOptions
     this.graphDisplayConfigList = sortBy(displayOptions, d => d.displayOrder);
     this.graphDisplayConfig = displayOptions;
-    return graphOptions;
   }
 
   graphLayout(maxWidth=12) {

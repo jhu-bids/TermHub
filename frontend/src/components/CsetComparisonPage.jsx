@@ -242,21 +242,12 @@ export function CsetComparisonPage() {
        *    3) set counts for StatsAndOptions table accordingly
        *
        */
-      let newGraphOptions = _gc.setGraphDisplayConfig(graphOptions);
-      if (!isEqual(graphOptions, newGraphOptions)) {
-        debugger;
-        throw new Error("I don't think this ever occurs");
-      }
-      graphOptions = newGraphOptions;
+
+      _gc.setGraphDisplayConfig(graphOptions);
+
       let {displayedRows, allRows} = _gc.getDisplayedRows(graphOptions);
 
-      newGraphOptions = _gc.setGraphDisplayConfig(graphOptions, allRows, displayedRows);
-      if (!isEqual(graphOptions, newGraphOptions)) {
-        debugger;
-        throw new Error("I don't think this ever occurs");
-        // save the options to state. todo: why is this necessary?
-        graphOptionsDispatch({type: 'REPLACE', graphOptions: newGraphOptions});
-      }
+      _gc.setGraphDisplayConfig(graphOptions);
 
       const currentUserId = (await whoami).id;
       const researcherIds = getResearcherIdsFromCsets(selected_csets);
@@ -350,7 +341,7 @@ export function CsetComparisonPage() {
   }
 
   const graphDisplayOptionsWidth = 525;
-  const graphDisplayOptionsHeight = Object.keys(gc.graphDisplayConfig).length *
+  const graphDisplayOptionsHeight = gc.graphDisplayConfigList.length *
       31 + 40;
   let infoPanels = [
     <FlexibleContainer key="stats-options" title="Stats and options"
@@ -538,14 +529,30 @@ function StatsAndOptions(props) {
   const infoPanelRef = useRef();
   let coldefs = [
     {
-      name: 'name',
+      name: 'Concept group',
       selector: (row) => row.name,
       style: {paddingLeft: 4},
     },
+      // columns: Visible, Hidden -- concepts
+      // columns: Visible, Hidden -- rows, but not now
     {
-      name: 'value',
-      selector: (row) => row.value,
-      format: (row) => fmt(row.value),
+      name: 'Total',
+      selector: (row) => row.total,
+      format: (row) => fmt(row.total),
+      width: 80,
+      style: {justifyContent: 'right', paddingRight: 4},
+    },
+    {
+      name: 'Visible',
+      selector: (row) => row.displayedConceptCnt,
+      format: (row) => fmt(row.displayedConceptCnt),
+      width: 80,
+      style: {justifyContent: 'right', paddingRight: 4},
+    },
+    {
+      name: 'Hidden',
+      selector: (row) => row.hiddenConceptCnt,
+      format: (row) => fmt(row.hiddenConceptCnt),
       width: 80,
       style: {justifyContent: 'right', paddingRight: 4},
     },
