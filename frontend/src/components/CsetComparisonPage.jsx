@@ -549,17 +549,20 @@ function StatsAndOptions(props) {
         let text;
         let tttext = '';
         if (row.specialTreatmentRule === 'show though collapsed') {
-          if (graphOptions.specialConceptTreatment[row.type] === false) {
-            if (row.hiddenConceptCnt > 0) {
-              text = fmt(row.hiddenConceptCnt) + ' not shown';
-              tttext = 'Click SHOW to make them visible.';
-            }
-          } else {
-            if (row.displayedConceptCnt > 0) {
-              text = fmt(row.displayedConceptCnt) + ' shown';
-              tttext = `Currently showing records even if parents aren't expanded. Click UNSHOW to disable.`;
-            }
-          }
+          console.log("not doing showThoughCollapsed anymore");
+          /*
+           *  if (graphOptions.specialConceptTreatment[row.type] === false) {
+           *    if (row.hiddenConceptCnt > 0) {
+           *      text = fmt(row.hiddenConceptCnt) + ' not shown';
+           *      tttext = 'Click SHOW to make them visible.';
+           *    }
+           *  } else {
+           *    if (row.displayedConceptCnt > 0) {
+           *      text = fmt(row.displayedConceptCnt) + ' shown';
+           *      tttext = `Currently showing records even if parents aren't expanded. Click UNSHOW to disable.`;
+           *    }
+           *  }
+           */
         } else if (row.specialTreatmentRule === 'hide though expanded') {
           if (graphOptions.specialConceptTreatment[row.type] === false) {
             if (row.displayedConceptCnt > 0) {
@@ -612,15 +615,18 @@ function StatsAndOptions(props) {
           text = get(graphOptions, 'expandAll') ? 'Collapse all' : 'Expand all';
           tttext = 'Does not affect rows hidden or shown by other options';
         } else if (row.specialTreatmentRule === 'show though collapsed') {
-          if (row.specialTreatment) {
-            text = 'unshow';
-            tttext = 'Currently showing records even if parents aren\'t expanded. Click to disable.';
-          } else {
-            if (row.hiddenConceptCnt) {
-              text = 'show';
-              tttext = 'Show even if parents aren\'t expanded';
-            }
-          }
+          console.log("not doing showThoughCollapsed anymore");
+          /*
+           *  if (row.specialTreatment) {
+           *    text = 'unshow';
+           *    tttext = 'Currently showing records even if parents aren\'t expanded. Click to disable.';
+           *  } else {
+           *    if (row.hiddenConceptCnt) {
+           *      text = 'show';
+           *      tttext = 'Show even if parents aren\'t expanded';
+           *    }
+           *  }
+           */
         } else if (row.specialTreatmentRule === 'hide though expanded') {
           if (row.specialTreatment) {
             text = 'unhide';
@@ -756,20 +762,6 @@ function getColDefs(props) {
         let name = row.concept_name;
         // debugging show/hide:
         // name += ` --- ${Object.keys(row.display.hideReasons).join(', ')}; ${Object.keys(row.display.showReasons).join(', ')} ${row.display.result}`;
-        if (row.pathFromDisplayedNode && row.pathFromDisplayedNode.length) {
-          let names = row.pathFromDisplayedNode.map(
-              cid => gc.nodes[cid].concept_name);
-          name = <span>
-                            {names.map((name, index) => (
-                                <span key={index}>
-                                        <span
-                                            style={{opacity: .5}}>{name}</span>
-                                        <span> → </span>
-                                    </span>
-                            ))}
-            {row.concept_name}
-                           </span>;
-        }
         let content = nested ? (
             row.hasChildren
                 ? getCollapseIconAndName(row, name, sizes, graphOptions,

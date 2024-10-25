@@ -81,6 +81,13 @@ export class GraphContainer {
 
   getDisplayedRows(graphOptions) {
     /*
+      See new description of show/filter issue: https://github.com/jhu-bids/TermHub/issues/547
+      Getting rid of showThoughCollapsed. But not sure how to handle hidden rows.
+
+      if row collapsed, show summary in column of what's beneath it
+      if row expanded but some children are hidden HTE, then show...?
+
+
       New algorithm
       Special classes           Action              Default
         concepts                expandAll           false
@@ -108,60 +115,7 @@ export class GraphContainer {
         3.  Give users a way to see these separately and then expand
             manually to find the row of interest.
 
-       Possible question for LLM:
-          I have a big, indented table representing a DAG -- it's a hierarchical
-          tree, but nodes can appear multiple times if they have multiple
-          parents. The tree can get big and cause performance problems and
-          user interface overwhelm at times. There are certain classes of
-          nodes that are of special interest to users. And other classes of
-          nodes that are especially uninteresting to users. We would like a
-          way for users to selectively expose one of the interesting classes
-          or selectively hide one of the uninteresting classes, while maintaining
-          the hierarchical display. Do you have any suggestions? Are you aware
-          of any existing UIs that implement anything like this?
-
-          Some ideas to a claude follow-up question:
-          Preserving the hierarchical structure while hiding intermediate nodes
-          can indeed be confusing for users. Let's explore some alternative
-          approaches that might help address this issue:
-
-          - Breadcrumb trails:
-            - When displaying a node that's several levels below its next
-              visible parent, show a breadcrumb trail.
-            - This could be a compact representation of the hidden intermediate nodes.
-            - Example: Parent > [2 hidden levels] > Current Node
-          - Ghost nodes:
-            - Instead of completely hiding intermediate nodes, display them as "ghost" or "phantom" nodes.
-            - These could be visually distinct (e.g., semi-transparent, grayed out) and take up less space.
-            - Users can optionally expand these to see more detail.
-          - Vertical space indicators:
-            - Use vertical lines or spaces to indicate the depth of hidden levels.
-            - Each hidden level could be represented by a small gap or a dashed line.
-          - Expandable summaries:
-            - Replace hidden subtrees with summary nodes.
-            - Example: "[3 hidden nodes]" or "[Marketing subtree]"
-            - These can be expanded on demand to show more detail.
-          - Context-aware tooltips:
-            - When hovering over a node that's far from its visible parent, show a tooltip with the full path.
-            - This provides context without cluttering the main view.
-          - Mini-map navigation:
-            - Provide a compact overview of the entire tree structure.
-            - Highlight the current visible area and allow quick navigation.
-            - This helps users maintain overall context.
-          - Animated transitions:
-            - When expanding or collapsing nodes, use smooth animations to show how the tree structure changes.
-            - This can help users understand the relationships between distant nodes.
-          - Hybrid list-tree view:
-            - Present the main structure as a list of top-level nodes.
-            - Each list item can be expanded to show its subtree in a traditional tree view.
-            - This approach simplifies the top-level view while allowing detailed exploration.
-          - Focus mode with context:
-            - When a user focuses on a specific subtree, dim but don't hide the rest of the tree.
-            - This maintains overall structure while emphasizing the area of interest.
-          - Interactive path highlighting:
-            - When a user selects a node, highlight the path back to its root.
-            - This can include temporarily revealing hidden intermediate nodes.
-
+        *   - Example: Parent > [2 hidden levels] > Current Node
 
       For each row:
         showReasons:
@@ -250,31 +204,7 @@ export class GraphContainer {
           row.display.result = 'hide';
         }
       }
-      // 5. Unhide STC (showThoughCollapsed)
-      /*    maybe don't do this -- TOO COMPLICATED
-        const showThoughCollapsed = new StringSet();
-
-        // just for testing/dev
-        // showThoughCollapsed.add(4154309);
-        this.gd.specialConcepts.definitionConcepts.push('4154309'); // Severe recurrent major depression with psychotic features, down a couple levels
-
-        for (let type in graphOptions.specialConceptTreatment) {
-          if (get(this, ['graphDisplayConfig', type, 'specialTreatmentRule']) === 'show though collapsed' &&
-              graphOptions.specialConceptTreatment[type]) {
-            for (let id of this.gd.specialConcepts[type] || []) {
-              showThoughCollapsed.add(id);
-            }
-          }
-        }
-        let shown = new StringSet();
-        showThoughCollapsed.forEach(nodeIdToShow => {
-          if (nodeRows.has(nodeIdToShow)) return; // already displayed
-          showThoughCollapsed.add(nodeIdToShow);
-          this.insertShowThoughCollapsed([nodeIdToShow], shown, nodeRows);
-        });
-       */
       // 5a. Expand children of specificPaths: expand, but only for displayed rows
-
 
       const hideThoughExpanded = new StringSet();
     }
@@ -328,54 +258,6 @@ export class GraphContainer {
     return {displayedRows, allRows};
     // return this.getDisplayedRowsOLD(graphOptions);
   }
-  insertShowThoughCollapsed(path, shown, nodeRows) {
-    // moved out of getDisplayedRows where shown was a closure var
-    // path starts with the nodeIdToShow and recurses up, prepending parents
-    const nodeIdToShow = path[path.length - 1]; // remains the same through recursion
-    if (shown.has(nodeIdToShow)) return; // already displayed
-    if (nodeRows.has(nodeIdToShow)) {
-      return;
-      // throw new Error(`nodeToShow ${nodeIdToShow} is already displayed`);
-    }
-    // so, only one nodeIdToShow, but separate nodeToShow copies for each path
-    let nodeToShowRows = [];
-    let parents = this.graph.inNeighbors(path[0]);
-    for (let parentId of parents) {
-      if (this.showThoughCollapsed.has(parentId)) {
-        // if the parent is also a showThoughCollapsed node, do it first
-        this.insertShowThoughCollapsed([parentId, ...(path.slice(0, -1))], shown, nodeRows);
-      }
-      let parentNode = this.nodes[parentId];
-      if (nodeRows.has(parentId)) {  // parent is already displayed
-        if (parentNode.expanded) {
-          throw new Error(`parent ${parentId} is expanded; we shouldn't be here`);
-        }
-        parentNode.childRows = parentNode.childRows || [];
-
-        // put the nodeIdToShow below its paths
-        for (let parentRow of nodeRows.get(parentId)) {
-          let nodeToShowRow = {...this.nodes[nodeIdToShow]};
-          nodeToShowRow.depth = parentRow.depth + 1;
-          nodeToShowRow.rowPath = [...parentRow.rowPath, nodeIdToShow]; // straight from visible ancestor to nodeToShowRow
-          nodeToShowRow.pathFromDisplayedNode = path.slice(0, -1);  // intervening path between them
-          nodeToShowRows.push(nodeToShowRow);
-          parentNode.childRows.push(nodeToShowRow); // add to parent's childRows
-          parentRow.childRows = parentNode.childRows;
-        }
-      } else {
-        this.insertShowThoughCollapsed([parentId, ...path], shown, nodeRows);
-        return;
-      }
-    }
-    if (nodeRows.has(nodeIdToShow)) {
-      throw new Error(`nodeToShow ${nodeIdToShow} is already displayed`);
-    }
-    nodeRows.set(nodeIdToShow, []);
-    nodeToShowRows.forEach((nodeToShowRow, i) => {
-      nodeRows.get(nodeIdToShow).push(nodeToShowRow);
-    });
-    shown.add(nodeIdToShow);
-  };
   rowDisplay(rowIdx, showHide, reason, allRows) {
     // this.rowDisplay(row, graphOptions.specificPaths[row.rowPath], 'specific')
     // this.rowDisplay(rowToHide, graphOptions.specificPaths[rowToHide.rowPath], type)
