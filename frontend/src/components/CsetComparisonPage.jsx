@@ -234,10 +234,18 @@ export function CsetComparisonPage() {
       //  that looks redundant, unneeded. fixing now but not testing. hopefully won't break anything:
       let _gc = new GraphContainer(graphData);
 
-
+      /* call setGraphDisplayConfig, then getDisplayedRows,
+       * then setGraphDisplayConfig again, so
+       *    1) get graphOptions from state if any are saved or create them
+       *       from defaults
+       *    2) figure out displayedRows accordingly
+       *    3) set counts for StatsAndOptions table accordingly
+       *
+       */
       let newGraphOptions = _gc.setGraphDisplayConfig(graphOptions);
       if (!isEqual(graphOptions, newGraphOptions)) {
         debugger;
+        throw new Error("I don't think this ever occurs");
       }
       graphOptions = newGraphOptions;
       let {displayedRows, allRows} = _gc.getDisplayedRows(graphOptions);
@@ -245,6 +253,7 @@ export function CsetComparisonPage() {
       newGraphOptions = _gc.setGraphDisplayConfig(graphOptions, allRows, displayedRows);
       if (!isEqual(graphOptions, newGraphOptions)) {
         debugger;
+        throw new Error("I don't think this ever occurs");
         // save the options to state. todo: why is this necessary?
         graphOptionsDispatch({type: 'REPLACE', graphOptions: newGraphOptions});
       }

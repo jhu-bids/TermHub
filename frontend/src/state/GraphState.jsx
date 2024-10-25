@@ -1,8 +1,10 @@
-import {cloneDeep, flatten, get, intersection, isEmpty, some, sortBy, sum, uniq, set} from "lodash";
+import {cloneDeep, flatten, get, intersection, isEmpty, isEqual, sortBy, sum, uniq, set} from "lodash";
 import Graph from "graphology";
 // import {bidirectional} from 'graphology-shortest-path/unweighted';
 // import {dfsFromNode} from "graphology-traversal/dfs";
 import {setOp, } from "../utils";
+
+const EXPAND_ALL_DEFAULT_THRESHOLD = 2000;
 
 // window.graphFuncs = {bidirectional, dfsFromNode};
 
@@ -77,9 +79,15 @@ export class GraphContainer {
     this.roots = this.graph.nodes().filter(n => !this.graph.inDegree(n));
 
     this.#computeAttributes();
+
+    const x = this.setupAllRows(this.roots);
+    this.allRows = x.allRows;
+    this.allRowsById = x.allRowsById;
   }
 
   getDisplayedRows(graphOptions) {
+    const allRows = this.allRows; // have been going back and forth about this being saved prop
+    const allRowsById = this.allRowsById;
     /*
       See new description of show/filter issue: https://github.com/jhu-bids/TermHub/issues/547
       Getting rid of showThoughCollapsed. But not sure how to handle hidden rows.
@@ -192,7 +200,10 @@ export class GraphContainer {
      */
 
     // 1. Generate allRows
-    let {allRows, allRowsById} = this.setupAllRows(this.roots);
+    // let {allRows, allRowsById} = this.setupAllRows(this.roots);
+
+    const x = this.setupAllRows(this.roots);
+    console.log(isEqual(allRows, x.allRows));
 
     if (graphOptions.expandAll) {
       // 3....  no need to expand STC, because nothing collapsed except SNC
@@ -413,19 +424,14 @@ export class GraphContainer {
     return this.graph.copy();
   }
 
-  setGraphDisplayConfig(graphOptions, allRows=[], displayedRows=[]) {
+  setGraphDisplayConfig(graphOptions) {
     // these are all options that appear in Show Stats/Options
 
     const displayedConcepts = this.displayedRows || []; // first time through, don't have displayed rows yet
     const displayedConceptIds = displayedConcepts.map(r => r.concept_id);
     let displayOrder = 0;
-    let brandNew = isEmpty(graphOptions);
-    if (brandNew) {
-      graphOptions = {
-        specialConceptTreatment: {},
-        expandAll: false,
-        nested: true,
-      };
+    if (typeof(graphOptions.expandAll) === 'undefined') {
+      graphOptions.expandAll = this.allRows.length <= EXPAND_ALL_DEFAULT_THRESHOLD;
     }
     let displayOptions = {
       /*
