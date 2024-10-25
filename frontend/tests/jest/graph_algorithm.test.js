@@ -11,16 +11,18 @@ describe.each(graphDataCases)('Graph algorithm tests for $test_name', (dataCase)
   let graphOptions;
   let firstDisplayedRow;
   let displayedRows;
-  let allRows
+  let allRows;
+  let allRowsById;
 
   beforeEach(() => {
     /* this should run once, not before each test, right? */
     try {
       gc = new GraphContainer(dataCase.graphData);
+      const x = gc.setupAllRows(gc.roots);
+      allRows = x.allRows;
+      allRowsById = x.allRowsById;
       graphOptions = { ...graphOptionsInitialState };
-      const displayAllRows = gc.getDisplayedRows(graphOptions);
-      displayedRows = displayAllRows.displayedRows;
-      allRows = displayAllRows.allRows;
+      displayedRows = gc.getDisplayedRows(graphOptions, allRows, allRowsById);
     } catch(e) {
       console.log(e);
       throw new Error(e);
@@ -48,7 +50,7 @@ describe.each(graphDataCases)('Graph algorithm tests for $test_name', (dataCase)
       direction: 'expand'
     };
     graphOptions = graphOptionsReducer(graphOptions, expandAction);
-    displayedRows = gc.getDisplayedRows(graphOptions).displayedRows;
+    displayedRows = gc.getDisplayedRows(graphOptions, allRows, allRowsById);
     const displayedChildObjects = displayedRows.slice(1, 1 + dataCase.firstRow.childIds.length);
     const displayedChildIds = displayedChildObjects.map(row => row.concept_id + '');
     // Test in correct order
@@ -63,7 +65,7 @@ describe.each(graphDataCases)('Graph algorithm tests for $test_name', (dataCase)
       rowPath: '/' + dataCase.firstRow.concept_id,
       direction: 'collapse'
     };
-    displayedRows = gc.getDisplayedRows(graphOptions).displayedRows;
+    displayedRows = gc.getDisplayedRows(graphOptions, allRows, allRowsById);
     const displayedConceptIds = displayedRows.map(row => row.concept_id + '');
     expect(displayedConceptIds.sort()).toEqual(dataCase.roots.map(String).sort());
   });

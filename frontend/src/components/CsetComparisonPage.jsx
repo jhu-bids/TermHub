@@ -234,6 +234,8 @@ export function CsetComparisonPage() {
       //  that looks redundant, unneeded. fixing now but not testing. hopefully won't break anything:
       let _gc = new GraphContainer(graphData);
 
+      const {allRows, allRowsById} = _gc.setupAllRows(_gc.roots);
+
       /* call setGraphDisplayConfig, then getDisplayedRows,
        * then setGraphDisplayConfig again, so
        *    1) get graphOptions from state if any are saved or create them
@@ -245,7 +247,7 @@ export function CsetComparisonPage() {
 
       _gc.setGraphDisplayConfig(graphOptions);
 
-      let {displayedRows, allRows} = _gc.getDisplayedRows(graphOptions);
+      let displayedRows = _gc.getDisplayedRows(graphOptions, allRows, allRowsById);
 
       _gc.setGraphDisplayConfig(graphOptions);
 

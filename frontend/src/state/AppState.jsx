@@ -160,7 +160,7 @@ export function graphOptionsReducer(state, action) {
         type: string, graphOptions: GraphOpts, direction: string,
         rowPath: string, specialConceptType: string, resetValue: GraphOpts, }) { */
   if ( ! ( action || {} ).type ) return state;
-  console.log('graphOptions action', action);
+  // console.log('graphOptions action', action);
   // let {collapsePaths, // collapsedDescendantPaths,
   //   nested, hideRxNormExtension, hideZeroCounts} = {...unpersistedDefaultState, ...state};
   let {type, rowPath, specialConceptType, } = action;

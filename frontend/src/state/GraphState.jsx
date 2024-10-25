@@ -79,15 +79,9 @@ export class GraphContainer {
     this.roots = this.graph.nodes().filter(n => !this.graph.inDegree(n));
 
     this.#computeAttributes();
-
-    const x = this.setupAllRows(this.roots);
-    this.allRows = x.allRows;
-    this.allRowsById = x.allRowsById;
   }
 
-  getDisplayedRows(graphOptions) {
-    const allRows = this.allRows; // have been going back and forth about this being saved prop
-    const allRowsById = this.allRowsById;
+  getDisplayedRows(graphOptions, allRows, allRowsById) {
     /*
       See new description of show/filter issue: https://github.com/jhu-bids/TermHub/issues/547
       Getting rid of showThoughCollapsed. But not sure how to handle hidden rows.
@@ -202,9 +196,6 @@ export class GraphContainer {
     // 1. Generate allRows
     // let {allRows, allRowsById} = this.setupAllRows(this.roots);
 
-    const x = this.setupAllRows(this.roots);
-    console.log(isEqual(allRows, x.allRows));
-
     if (graphOptions.expandAll) {
       // 3....  no need to expand STC, because nothing collapsed except SNC
     } else {
@@ -266,7 +257,7 @@ export class GraphContainer {
     displayedRows = displayedRows.filter(r => r.display.result !== 'hide');
 
     // return this.displayedRows.filter(r => r.depth < 3);
-    return {displayedRows, allRows};
+    return displayedRows;
     // return this.getDisplayedRowsOLD(graphOptions);
   }
   rowDisplay(rowIdx, showHide, reason, allRows) {
