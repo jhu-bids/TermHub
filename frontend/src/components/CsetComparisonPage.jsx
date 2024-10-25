@@ -245,11 +245,12 @@ export function CsetComparisonPage() {
        *
        */
 
-      _gc.setGraphDisplayConfig(graphOptions);
+      let displayedRows = [];
+      _gc.setGraphDisplayConfig(graphOptions, allRows, displayedRows);
 
-      let displayedRows = _gc.getDisplayedRows(graphOptions, allRows, allRowsById);
+      displayedRows = _gc.getDisplayedRows(graphOptions, allRows, allRowsById);
 
-      _gc.setGraphDisplayConfig(graphOptions);
+      _gc.setGraphDisplayConfig(graphOptions, allRows, displayedRows);
 
       const currentUserId = (await whoami).id;
       const researcherIds = getResearcherIdsFromCsets(selected_csets);
@@ -342,7 +343,7 @@ export function CsetComparisonPage() {
     );
   }
 
-  const graphDisplayOptionsWidth = 525;
+  const graphDisplayOptionsWidth = 825;
   const graphDisplayOptionsHeight = gc.graphDisplayConfigList.length *
       31 + 40;
   let infoPanels = [
@@ -559,61 +560,7 @@ function StatsAndOptions(props) {
       style: {justifyContent: 'right', paddingRight: 4},
     },
     {
-      name: 'hidden-rows',
-      selector: (row) => row.value,
-      format: (row) => {
-        // for explanation see displayOptions logic in
-        //    GraphState:setGraphDisplayConfig
-        let text;
-        let tttext = '';
-        if (row.specialTreatmentRule === 'show though collapsed') {
-          console.log("not doing showThoughCollapsed anymore");
-          /*
-           *  if (graphOptions.specialConceptTreatment[row.type] === false) {
-           *    if (row.hiddenConceptCnt > 0) {
-           *      text = fmt(row.hiddenConceptCnt) + ' not shown';
-           *      tttext = 'Click SHOW to make them visible.';
-           *    }
-           *  } else {
-           *    if (row.displayedConceptCnt > 0) {
-           *      text = fmt(row.displayedConceptCnt) + ' shown';
-           *      tttext = `Currently showing records even if parents aren't expanded. Click UNSHOW to disable.`;
-           *    }
-           *  }
-           */
-        } else if (row.specialTreatmentRule === 'hide though expanded') {
-          if (graphOptions.specialConceptTreatment[row.type] === false) {
-            if (row.displayedConceptCnt > 0) {
-              // how many rows will be hidden if HIDE is clicked
-              text = fmt(row.displayedConceptCnt) + ' visible';
-            }
-          } else {
-            if (row.hiddenConceptCnt) {
-              // how many rows will be unhidden if UNHIDE is clicked
-              text = fmt(row.hiddenConceptCnt) + ' hidden';
-            }
-          }
-        } else if (['Concepts', 'Expansion concepts'].includes(row.name)) {
-          text = fmt(row.displayedConceptCnt) + ' visible';
-        } else {
-          text = '';
-        }
-        // isNaN(row.hiddenConceptCnt) ? '' : fmt(row.hiddenConceptCnt || '') + ' hidden'
-        if (tttext) {
-          return (
-              <Tooltip label={tttext}>
-                <span>{text}</span>
-              </Tooltip>);
-        }
-        return text;
-      },
-      // sortable: false,
-      // right: true,
-      width: 120,
-      style: {justifyContent: 'right', paddingRight: 4},
-    },
-    {
-      name: 'specialTreatment',
+      name: 'Action',
       selector: (row) => row.specialTreatment,
       format: (row) => {
         if (typeof row.specialTreatmentDefault === 'undefined') {

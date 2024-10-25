@@ -415,11 +415,10 @@ export class GraphContainer {
     return this.graph.copy();
   }
 
-  setGraphDisplayConfig(graphOptions) {
+  setGraphDisplayConfig(graphOptions, allRows, displayedRows) {
     // these are all options that appear in Show Stats/Options
 
-    const displayedConcepts = this.displayedRows || []; // first time through, don't have displayed rows yet
-    const displayedConceptIds = displayedConcepts.map(r => r.concept_id);
+    const displayedConceptIds = uniq(displayedRows.map(r => r.concept_id));
     let displayOrder = 0;
     if (typeof(graphOptions.expandAll) === 'undefined') {
       graphOptions.expandAll = this.allRows.length <= EXPAND_ALL_DEFAULT_THRESHOLD;
@@ -492,7 +491,8 @@ export class GraphContainer {
       standard: {
         name: "Standard concepts", displayOrder: displayOrder++,
         total: this.gd.concepts.filter(c => c.standard_concept === 'S').length,
-        displayedConceptCnt: setOp('intersection', this.gd.concepts.filter(c => c.standard_concept === 'S'), displayedConceptIds).length,
+        displayedConceptCnt: setOp('intersection', this.gd.concepts.filter(c => c.standard_concept === 'S').map(d =>d.concept_id), displayedConceptIds).length,
+        hiddenConceptCnt: setOp('difference', this.gd.concepts.filter(c => c.standard_concept === 'S').map(d =>d.concept_id), displayedConceptIds).length,
       },
       classification: {
         name: "Classification concepts", displayOrder: displayOrder++,
