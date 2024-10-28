@@ -1,5 +1,9 @@
-import {GraphContainer} from '../../src/state/GraphState';
-import { graphOptionsInitialState, graphOptionsReducer } from '../../src/state/AppState';
+import {
+  GraphContainer,
+  graphOptionsInitialState,
+  graphOptionsReducer,
+  ExpandState
+} from '../../src/state/GraphState';
 import { getSafeTestFunc, csetTestData} from '../testUtils';
 let safeTest;
 
@@ -10,13 +14,19 @@ describe.each(graphDataCases)('Graph algorithm tests for $test_name', (dataCase)
   let gc;
   let graphOptions;
   let firstDisplayedRow;
+  let displayedRows;
+  let allRows;
+  let allRowsById;
 
   beforeEach(() => {
     /* this should run once, not before each test, right? */
     try {
       gc = new GraphContainer(dataCase.graphData);
+      const x = gc.setupAllRows(gc.roots);
+      allRows = x.allRows;
+      allRowsById = x.allRowsById;
       graphOptions = { ...graphOptionsInitialState };
-      gc.getDisplayedRows(graphOptions);
+      displayedRows = gc.getDisplayedRows(graphOptions, allRows, allRowsById);
     } catch(e) {
       console.log(e);
       throw new Error(e);
@@ -24,16 +34,15 @@ describe.each(graphDataCases)('Graph algorithm tests for $test_name', (dataCase)
   });
 
   safeTest('1. Initial displayed rows should match roots', () => {
-    const displayedConceptIds = gc.displayedRows.map(row => row.concept_id + '');
+    const displayedConceptIds = displayedRows.map(row => row.concept_id + '');
     expect(displayedConceptIds.sort()).toEqual(dataCase.roots.map(String).sort());
   });
 
   safeTest('2. Initial displayed first row should match dataCase.first row', () => {
-    // firstDisplayedRow = gc.displayedRows.find(row => row.concept_id == firstRowConceptId);
-    firstDisplayedRow = gc.displayedRows[0];
+    // firstDisplayedRow = displayedRows.find(row => row.concept_id == firstRowConceptId);
+    firstDisplayedRow = displayedRows[0];
     expect(firstDisplayedRow.concept_id == dataCase.firstRow.concept_id).toBeTruthy();
-    expect(firstDisplayedRow.childIds).toBeDefined();
-    expect(firstDisplayedRow.childIds.length).toEqual(dataCase)
+    expect(firstDisplayedRow.childIds.length).toEqual(dataCase.firstRow.childCount);  // expect number of kids
     // the childIds are already part of the firstDisplayedRow object, but are not displayed yet
     expect(firstDisplayedRow.childIds.map(String).sort()).toEqual(dataCase.firstRow.childIds.map(String).sort());
   });
@@ -41,24 +50,27 @@ describe.each(graphDataCases)('Graph algorithm tests for $test_name', (dataCase)
   safeTest('3. Expanding first row should display its children', () => {
     const expandAction = { // Expand the first row
       type: 'TOGGLE_NODE_EXPANDED',
-      nodeId: dataCase.firstRow.concept_id,
-      direction: 'expand'
+      rowPath: '/' + dataCase.firstRow.concept_id,
+      direction: ExpandState.EXPAND,
     };
-    gc.getDisplayedRows(graphOptions);
     graphOptions = graphOptionsReducer(graphOptions, expandAction);
-    const displayedChildIds = gc.displayedRows.slice(1, 1 + dataCase.firstRow.childIds.length);
+    displayedRows = gc.getDisplayedRows(graphOptions, allRows, allRowsById);
+    const displayedChildObjects = displayedRows.slice(1, 1 + dataCase.firstRow.childIds.length);
+    const displayedChildIds = displayedChildObjects.map(row => row.concept_id + '');
+    // Test in correct order
     expect(displayedChildIds.map(String).sort()).toEqual(dataCase.firstRow.childIds.map(String).sort());
-    expect(gc.displayedRows.length).toEqual(dataCase.roots.length + dataCase.firstRow.childIds.length);
+    // Test total rows = roots + n children expanded
+    expect(displayedRows.length).toEqual(dataCase.roots.length + dataCase.firstRow.childIds.length);
   });
 
   safeTest('4. Collapsing first row should hide expanded children', () => {
     let collapseAction = {
       type: 'TOGGLE_NODE_EXPANDED',
-      nodeId: dataCase.firstRow.concept_id,
-      direction: 'collapse'
+      rowPath: '/' + dataCase.firstRow.concept_id,
+      direction: ExpandState.COLLAPSE,
     };
-    gc.getDisplayedRows(graphOptions);
-    const displayedConceptIds = gc.displayedRows.map(row => row.concept_id + '');
+    displayedRows = gc.getDisplayedRows(graphOptions, allRows, allRowsById);
+    const displayedConceptIds = displayedRows.map(row => row.concept_id + '');
     expect(displayedConceptIds.sort()).toEqual(dataCase.roots.map(String).sort());
   });
 });

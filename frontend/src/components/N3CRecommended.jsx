@@ -18,7 +18,7 @@ export function BundleReport({bundle}) {
     bundle = queryParams.get('bundle');
   }
 
-  const [data, setData] = useState(null);
+  let [data, setData] = useState(null);
   const dataGetter = useDataGetter();
 
   const filename = `bundle-report-${bundle.replaceAll(' ', '_')}`;
@@ -46,7 +46,16 @@ export function BundleReport({bundle}) {
     columns = Object.keys(data[0]).map(col => ({
       name: col,
       selector: row => (row[col] ?? '').toString(),
+      sortable: true,
     }));
+
+    data = sortBy(data, row => row.concept_set_name);
+
+    columns.push({
+      name: 'link',
+      selector: row => `/cset-comparison?codeset_ids=${row.codeset_id}`,
+      format: row => <Link to={`/cset-comparison?codeset_ids=${row.codeset_id}`}>view</Link>,
+    });
   }
 
   console.log({columns, data});
@@ -58,6 +67,7 @@ export function BundleReport({bundle}) {
       <DataTable
           data={data || []}
           columns={columns}
+          // defaultSortFieldId="concept_set_name" // not working. don't know why
           // noHeader={false}
           dense
           direction="auto"
@@ -165,13 +175,6 @@ export const N3CComparisonRpt = () => {
     {grow: 3, sortable: true, name: "New", selector: row => row.cset_2, wrap: true},
     {grow: 2, name: "Compare", selector: row => (
           <Button
-              onClick={() => {
-                codesetIdsDispatch({
-                  type: 'set_all',
-                  codeset_ids: [row.cset_1_codeset_id, row.cset_2_codeset_id]
-                });
-                // compareOptDispatch('compare-precalculated');
-              }}
               to={`/cset-comparison?codeset_ids=${row.codeset_id_1}&codeset_ids=${row.codeset_id_2}`}
               // + `&compare_opt=compare-precalculated`
               component={Link}

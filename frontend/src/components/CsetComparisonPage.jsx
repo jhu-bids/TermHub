@@ -52,9 +52,10 @@ import {
   useGraphOptions, // useAppOptions,
   useNewCset, useCids, // useCompareOpt,
 } from '../state/AppState';
-import {GraphContainer} from '../state/GraphState';
+import {GraphContainer, ExpandState} from '../state/GraphState';
 import {getResearcherIdsFromCsets, useDataGetter} from '../state/DataGetter';
 import {LI} from './AboutPage';
+import {isEqual} from '@react-sigma/core';
 // import {AddConcepts} from "./AddConcepts";
 
 // TODO: Find concepts w/ good overlap and save a good URL for that
@@ -67,7 +68,6 @@ export async function fetchGraphData(props) {
     dataGetter.fetchAndCacheItems(dataGetter.apiCalls.cset_members_items,
         codeset_ids),
     dataGetter.fetchAndCacheItems(dataGetter.apiCalls.csets, codeset_ids),
-    dataGetter.fetchAndCacheItems(dataGetter.apiCalls.n3c_comparison_rpt),
   ];
   // have to get concept_ids before fetching concepts
   // const concept_ids_by_codeset_id = await dataGetter.fetchAndCacheItems(dataGetter.apiCalls.concept_ids_by_codeset_id, codeset_ids);
@@ -85,9 +85,9 @@ export async function fetchGraphData(props) {
   promises.push(
       dataGetter.fetchAndCacheItems(dataGetter.apiCalls.concepts, concept_ids));
 
-  let [csmi, selected_csets, comparedPairs, conceptLookup] = await Promise.all(promises);
-  let cpairs = comparedPairs.map(p => [p.cset_1_codeset_id, p.cset_2_codeset_id].sort().join('-'));
+  let [csmi, selected_csets, conceptLookup] = await Promise.all(promises);
 
+  /*
   let comparison_rpt;
   if (codeset_ids.length === 2) {
     const pcids = codeset_ids.sort().join('-');
@@ -101,7 +101,14 @@ export async function fetchGraphData(props) {
     } else {
       // throw new Error(`invalid compareOpt: ${compareOpt}`);
     }
+
+    if (comparison_rpt) {
+      comparison_rpt = await comparison_rpt;
+      specialConcepts.added = comparison_rpt.added.map(d => d.concept_id + '');
+      specialConcepts.removed = comparison_rpt.removed.map(d => d.concept_id + '');
+    }
   }
+ */
   /*
   // just for screenshot
   let x = csmi[718894835][4153380];
@@ -131,18 +138,21 @@ export async function fetchGraphData(props) {
     csmi = {...csmi, ...newCset.definitions};
   }
 
+  const concepts = Object.values(conceptLookup);
+
   const definitionConcepts = uniq(flatten(
       Object.values(csmi).map(d => Object.values(d)),
   ).filter(d => d.item).map(d => d.concept_id));
 
-  const expansionConcepts = uniq(flatten(
+  const nonDefinitionConcepts = uniq(flatten(
       Object.values(csmi).map(d => Object.values(d)),
-      // concepts that are in expansion but not definition
-  ).filter(d => d.csm && !d.item).map(d => d.concept_id + ''));
+  ).filter(d => !d.item).map(d => d.concept_id));
+
+  const rxNormExtensionConcepts = concepts.filter(d => d.vocabulary_id === 'RxNorm Extension');
 
   let specialConcepts = {
     definitionConcepts: definitionConcepts.map(String),
-    expansionConcepts: expansionConcepts.map(String),
+    nonDefinitionConcepts: nonDefinitionConcepts.map(String),
     nonStandard: uniq(Object.values(conceptLookup).
         filter(c => !c.standard_concept).
         map(c => c.concept_id)),
@@ -150,27 +160,9 @@ export async function fetchGraphData(props) {
         filter(c => !c.total_cnt).
         map(c => c.concept_id)),
     addedCids: cids.map(String),
+    rxNormExtensionConcepts: rxNormExtensionConcepts.map(String),
   };
 
-  if (comparison_rpt) {
-    comparison_rpt = await comparison_rpt;
-    specialConcepts.added = comparison_rpt.added.map(d => d.concept_id + '');
-    specialConcepts.removed = comparison_rpt.removed.map(d => d.concept_id + '');
-  }
-
-  for (let cid in conceptLookup) {    // why putting all the specialConcepts membership as properties on the concept?
-    let c = {...conceptLookup[cid]}; // don't want to mutate the cached concepts
-    if (specialConcepts.definitionConcepts.includes(cid + '')) c.isItem = true;
-    if (specialConcepts.expansionConcepts.includes(cid + '')) c.isMember = true;
-    if ((specialConcepts.added || []).includes(cid + '')) c.added = true;
-    if ((specialConcepts.removed || []).includes(cid + '')) c.removed = true;
-    c.status = [
-      c.isItem && 'In definition', c.isMember && 'In Expansion',
-      c.added && 'Added', c.removed && 'Removed'].filter(d => d).join(', ');
-    conceptLookup[cid] = c;
-  }
-
-  const concepts = Object.values(conceptLookup);
   return {
     ...graphData,
     concept_ids,
@@ -179,7 +171,6 @@ export async function fetchGraphData(props) {
     csmi,
     concepts,
     specialConcepts,
-    comparison_rpt,
   };
 }
 
@@ -204,7 +195,7 @@ export function CsetComparisonPage() {
 
   const [data, setData] = useState({});
   const {
-    gc,
+    gc, displayedRows,
     concepts,
     concept_ids,
     conceptLookup,
@@ -213,7 +204,6 @@ export function CsetComparisonPage() {
     researchers,
     currentUserId,
     specialConcepts,
-    comparison_rpt,
   } = data;
 
   useEffect(() => {
@@ -247,26 +237,29 @@ export function CsetComparisonPage() {
         csmi,
         concepts,
         specialConcepts,
-        comparison_rpt,
       } = graphData;
 
       // let _gc = new GraphContainer({ ...graphData, concepts, specialConcepts, csmi });
       //  that looks redundant, unneeded. fixing now but not testing. hopefully won't break anything:
       let _gc = new GraphContainer(graphData);
 
-      // Call setGraphDisplayConfig twice! First time to make sure
-      //  all the statsOptions are set to their default values.
-      //  Then again after calling getDisplayedRows in order to
-      //  set the counts that appear in the statsoptions dialog box
+      const {allRows, allRowsById} = _gc.setupAllRows(_gc.roots);
 
-      let newGraphOptions = _gc.setGraphDisplayConfig(graphOptions);
+      /* call setGraphDisplayConfig, then getDisplayedRows,
+       * then setGraphDisplayConfig again, so
+       *    1) get graphOptions from state if any are saved or create them
+       *       from defaults
+       *    2) figure out displayedRows accordingly
+       *    3) set counts for StatsAndOptions table accordingly
+       *
+       */
 
-      _gc.getDisplayedRows(newGraphOptions);
+      let displayedRows = [];
+      _gc.setGraphDisplayConfig(graphOptions, allRows, displayedRows);
 
-      newGraphOptions = _gc.setGraphDisplayConfig(graphOptions);
+      displayedRows = _gc.getDisplayedRows(graphOptions, allRows, allRowsById);
 
-      // save the options to state. todo: why is this necessary?
-      graphOptionsDispatch({type: 'REPLACE', graphOptions: newGraphOptions});
+      _gc.setGraphDisplayConfig(graphOptions, allRows, displayedRows);
 
       const currentUserId = (await whoami).id;
       const researcherIds = getResearcherIdsFromCsets(selected_csets);
@@ -283,8 +276,8 @@ export function CsetComparisonPage() {
         researchers,
         currentUserId,
         specialConcepts,
-        comparison_rpt,
         gc: _gc,
+        displayedRows,
       }));
     })();
   }, [newCset, graphOptions, api_call_group_id]); // todo: why api_call_group_id here? still needed?
@@ -313,7 +306,7 @@ export function CsetComparisonPage() {
     infoPanelRef.current,
     (infoPanelRef.current ? infoPanelRef.current.offsetHeight : 0)]);
 
-  if (!gc || isEmpty(graphOptions) || isEmpty(gc.displayedRows) ||
+  if (!gc || isEmpty(graphOptions) || isEmpty(displayedRows) ||
       isEmpty(selected_csets)) {
     // sometimes selected_csets and some other data disappears when the page is reloaded
     return <p>Downloading...</p>;
@@ -333,13 +326,12 @@ export function CsetComparisonPage() {
     editAction,
     windowSize,
     // hidden,
-    displayedRows: gc.displayedRows,
+    displayedRows,
     graphOptions,
     graphOptionsDispatch,
     csmi,
     newCset, newCsetDispatch,
     setShowCsetCodesetId,
-    comparison_rpt,
   });
 
   let csetCard = null;
@@ -360,8 +352,8 @@ export function CsetComparisonPage() {
     );
   }
 
-  const graphDisplayOptionsWidth = 525;
-  const graphDisplayOptionsHeight = Object.keys(gc.graphDisplayConfig).length *
+  const graphDisplayOptionsWidth = 825;
+  const graphDisplayOptionsHeight = gc.graphDisplayConfigList.length *
       31 + 40;
   let infoPanels = [
     <FlexibleContainer key="stats-options" title="Stats and options"
@@ -512,7 +504,7 @@ export function CsetComparisonPage() {
   );
 
   const tableProps = {
-    rowData: gc.displayedRows,
+    rowData: displayedRows,
     columns: colDefs,
     selected_csets,
     customStyles,
@@ -549,104 +541,58 @@ function StatsAndOptions(props) {
   const infoPanelRef = useRef();
   let coldefs = [
     {
-      name: 'name',
+      name: 'Concept group',
       selector: (row) => row.name,
       style: {paddingLeft: 4},
     },
+      // columns: Visible, Hidden -- concepts
+      // columns: Visible, Hidden -- rows, but not now
     {
-      name: 'value',
-      selector: (row) => row.value,
-      format: (row) => fmt(row.value),
+      name: 'Total',
+      selector: (row) => row.total,
+      format: (row) => fmt(row.total),
       width: 80,
       style: {justifyContent: 'right', paddingRight: 4},
     },
     {
-      name: 'hidden-rows',
-      selector: (row) => row.value,
-      format: (row) => {
-        // for explanation see displayOptions logic in
-        //    GraphState:setGraphDisplayConfig
-        let text;
-        let tttext = '';
-        if (row.specialTreatmentRule === 'show though collapsed') {
-          if (graphOptions.specialConceptTreatment[row.type] === false) {
-            if (row.hiddenConceptCnt > 0) {
-              text = fmt(row.hiddenConceptCnt) + ' not shown';
-              tttext = 'Click SHOW to make them visible.';
-            }
-          } else {
-            if (row.displayedConceptCnt > 0) {
-              text = fmt(row.displayedConceptCnt) + ' shown';
-              tttext = `Currently showing records even if parents aren't expanded. Click UNSHOW to disable.`;
-            }
-          }
-        } else if (row.specialTreatmentRule === 'hide though expanded') {
-          if (graphOptions.specialConceptTreatment[row.type] === false) {
-            if (row.displayedConceptCnt > 0) {
-              // how many rows will be hidden if HIDE is clicked
-              text = fmt(row.displayedConceptCnt) + ' visible';
-            }
-          } else {
-            if (row.hiddenConceptCnt) {
-              // how many rows will be unhidden if UNHIDE is clicked
-              text = fmt(row.hiddenConceptCnt) + ' hidden';
-            }
-          }
-        } else if (['Concepts', 'Expansion concepts'].includes(row.name)) {
-          text = fmt(row.displayedConceptCnt) + ' visible';
-        } else {
-          text = '';
-        }
-        // isNaN(row.hiddenConceptCnt) ? '' : fmt(row.hiddenConceptCnt || '') + ' hidden'
-        if (tttext) {
-          return (
-              <Tooltip label={tttext}>
-                <span>{text}</span>
-              </Tooltip>);
-        }
-        return text;
-      },
-      // sortable: false,
-      // right: true,
-      width: 120,
+      name: 'Visible',
+      selector: (row) => row.displayedConceptCnt,
+      format: (row) => fmt(row.displayedConceptCnt),
+      width: 80,
       style: {justifyContent: 'right', paddingRight: 4},
     },
     {
-      name: 'specialTreatment',
+      name: 'Hidden',
+      selector: (row) => row.hiddenConceptCnt,
+      format: (row) => fmt(row.hiddenConceptCnt),
+      width: 80,
+      style: {justifyContent: 'right', paddingRight: 4},
+    },
+    {
+      name: 'State',
+      selector: (row) => (graphOptions.specialConceptTreatment[row.type] || '').toString(),
+      width: 80,
+      style: {justifyContent: 'right', paddingRight: 4},
+    },
+    {
+      name: 'Action',
       selector: (row) => row.specialTreatment,
       format: (row) => {
-        if (typeof row.specialTreatmentDefault === 'undefined') {
-          return '';
-        }
-        let onClick;
-        onClick = () => {
-          graphOptionsDispatch(
-              {gc, type: 'TOGGLE_OPTION', specialConceptType: row.type});
-        };
         let text = '';
         let tttext = '';
-        if (row.specialTreatmentRule === 'expandAll') {
+
+        let onClick = () => graphOptionsDispatch({gc, type: 'TOGGLE_OPTION', specialConceptType: row.type});
+
+        if (row.type === 'concepts') {
           onClick = () => {
             graphOptionsDispatch({gc, type: 'TOGGLE_EXPAND_ALL'});
           };
           text = get(graphOptions, 'expandAll') ? 'Collapse all' : 'Expand all';
           tttext = 'Does not affect rows hidden or shown by other options';
-        } else if (row.specialTreatmentRule === 'show though collapsed') {
-          if (row.specialTreatment) {
-            text = 'unshow';
-            tttext = 'Currently showing records even if parents aren\'t expanded. Click to disable.';
-          } else {
-            if (row.hiddenConceptCnt) {
-              text = 'show';
-              tttext = 'Show even if parents aren\'t expanded';
-            }
-          }
-        } else if (row.specialTreatmentRule === 'hide though expanded') {
-          if (row.specialTreatment) {
-            text = 'unhide';
-          } else {
-            text = 'hide';
-          }
+        } else if (graphOptions.specialConceptTreatment[row.type] === 'hidden') {
+          text = 'unhide';
+        } else if (graphOptions.specialConceptTreatment[row.type] === 'shown') {
+          text = 'hide';
         } else {
           throw new Error('shouldn\'t be here');
         }
@@ -702,17 +648,14 @@ function nodeToTree(node) { // Not using
   return [node, ...subTrees];
 }
 
-function getCollapseIconAndName(
-    row, sizes, graphOptions, graphOptionsDispatch, gc) {
+function getCollapseIconAndNameOLD(
+    row, name, sizes, graphOptions, graphOptionsDispatch, gc) {
   let Component;
   let direction;
   if (
-      // graphOptions.specificNodesExpanded.includes(parseInt(row.concept_id)) ||
-      // (graphOptions.expandAll && !graphOptions.specificNodesCollapsed.includes(parseInt(row.concept_id)))
-      // parseInt means it doesn't work with the 'unlinked' node
-      graphOptions.specificNodesExpanded.find(d => d == row.concept_id) ||
       (graphOptions.expandAll &&
-          !graphOptions.specificNodesCollapsed.find(d => d == row.concept_id))
+           graphOptions.specificPaths[row.rowPath] !== 'collapse'
+      ) || graphOptions.specificPaths[row.rowPath] === 'expand'
   ) {
     Component = RemoveCircleOutline;
     direction = 'collapse';
@@ -728,11 +671,14 @@ function getCollapseIconAndName(
               graphOptionsDispatch({
                 gc,
                 type: 'TOGGLE_NODE_EXPANDED',
-                nodeId: row.concept_id,
+                rowPath: row.rowPath,
                 direction,
               });
             }
           }
+          onDoubleClick={() => {
+            console.log('got a double click');
+          }}
           // TODO: capture long click or double click or something to expand descendants
           // onDoubleClick={() => graphOptionsDispatch({type: "TOGGLE_NODE_EXPANDED", payload: {expandDescendants: true, nodeId: row.concept_id}})}
       >
@@ -745,7 +691,93 @@ function getCollapseIconAndName(
                       verticalAlign: 'top',
                     }}
                 />
-        <span className="concept-name-text">{row.concept_name}</span>
+        <span className="concept-name-text">{name}</span>
+      </span>
+  );
+}
+function getCollapseIconAndName(
+    row, name, sizes, graphOptions, graphOptionsDispatch, gc) {
+  let Component;
+  let direction;
+  if (graphOptions.specificPaths[row.rowPath] === ExpandState.COLLAPSE) {
+    // show (+) if this row is collapsed
+    Component = AddCircle;
+    direction = ExpandState.EXPAND;
+  } else if ( // show (-) if
+      // expandAll and not collapsed
+      ( graphOptions.expandAll &&
+        graphOptions.specificPaths[row.rowPath] !== ExpandState.COLLAPSE
+      )
+      // or expanded
+      || graphOptions.specificPaths[row.rowPath] === ExpandState.EXPAND
+      // or expand all
+      || graphOptions.specificPaths[row.rowPath] === ExpandState.EXPAND_ALL
+      // or child of expand all
+      || row.display.showReasons.childOfExpandAll
+  ) {
+    Component = RemoveCircleOutline;
+    direction = ExpandState.COLLAPSE;
+  } else {
+    // otherwise (+)
+    Component = AddCircle;
+    direction = ExpandState.EXPAND;
+  }
+
+  // Click handling variables
+  let clickTimeout = null;
+
+  const handleClick = (evt) => {
+    graphOptionsDispatch({
+      gc,
+      type: 'TOGGLE_NODE_EXPANDED',
+      rowPath: row.rowPath,
+      direction,
+    });
+    return;
+    // code for double clicking commented out. some weird edge cases and slight lag
+    if (clickTimeout) {
+      // If we get here, it's a double click
+      clearTimeout(clickTimeout);
+      clickTimeout = null;
+
+      // Handle double click - expand descendants
+      graphOptionsDispatch({
+        type: "TOGGLE_NODE_EXPANDED",
+        rowPath: row.rowPath,
+        direction: direction === ExpandState.EXPAND ? ExpandState.EXPAND_ALL : ExpandState.COLLAPSE,
+        gc
+      });
+    } else {
+      // Single click - wait to see if double click comes
+      clickTimeout = setTimeout(() => {
+        // If we get here, it was a single click
+        clickTimeout = null;
+        graphOptionsDispatch({
+          gc,
+          type: 'TOGGLE_NODE_EXPANDED',
+          rowPath: row.rowPath,
+          direction,
+        });
+      }, 200);
+    }
+  };
+
+  return (
+      <span
+          className="toggle-collapse concept-name-row"
+          onClick={handleClick}
+          // Remove onDoubleClick since we're handling it in onClick
+      >
+                <Component
+                    sx={{
+                      fontSize: sizes.collapseIcon,
+                      display: 'inline-flex',
+                      marginRight: '0.15rem',
+                      marginTop: '0.05rem',
+                      verticalAlign: 'top',
+                    }}
+                />
+        <span className="concept-name-text">{name}</span>
       </span>
   );
 }
@@ -766,7 +798,6 @@ function getColDefs(props) {
     csmi,
     newCset, newCsetDispatch,
     setShowCsetCodesetId,
-    comparison_rpt,
   } = props;
   const {nested, hideRxNormExtension, hideZeroCounts} = graphOptions;
   const {definitions = {}} = newCset;
@@ -778,23 +809,11 @@ function getColDefs(props) {
       selector: (row) => row.concept_name,
       format: (row) => {
         let name = row.concept_name;
-        if (row.pathFromDisplayedNode && row.pathFromDisplayedNode.length) {
-          let names = row.pathFromDisplayedNode.map(
-              cid => gc.nodes[cid].concept_name);
-          name = <span>
-                            {names.map((name, index) => (
-                                <span key={index}>
-                                        <span
-                                            style={{opacity: .5}}>{name}</span>
-                                        <span> → </span>
-                                    </span>
-                            ))}
-            {row.concept_name}
-                           </span>;
-        }
+        // debugging show/hide:
+        // name += ` --- ${Object.keys(row.display.hideReasons).join(', ')}; ${Object.keys(row.display.showReasons).join(', ')} ${row.display.result}`;
         let content = nested ? (
             row.hasChildren
-                ? getCollapseIconAndName(row, sizes, graphOptions,
+                ? getCollapseIconAndName(row, name, sizes, graphOptions,
                     graphOptionsDispatch, gc)
                 : (
                     <span className="concept-name-row">
@@ -829,25 +848,6 @@ function getColDefs(props) {
           }),
         },
       ],
-    },
-    {
-      name: 'Status', // only shown for comparisons I think
-      headerProps: {
-        tooltipContent: 'Information about this row',
-        /*
-        tooltipContent: 'Whether concept is a definition item' +
-            (comparison_rpt ? ' or added or removed in the comparison report' : '') +
-            ". These concepts are displayed even if you haven't expanded their parents" +
-            " and are highlighted with a row color.",
-         */
-        // doesn't work:
-        // ttStyle: {zIndex: 1000, opacity: .1, overflow: 'visible', width: '300px', backgroundColor: 'pink'},
-      },
-      selector: (row) => row.status,
-      sortable: false,
-      width: 88,
-      style: {paddingRight: 4, paddingLeft: 4},
-      wrap: true,
     },
     {
       name: 'Levels below',
@@ -970,8 +970,8 @@ function getColDefs(props) {
       style: {justifyContent: 'right', paddingRight: 4},
     },
     {
-      // name: "Vocabulary",
-      headerProps: {
+      name: "Vocabulary",
+      /* headerProps: {
         headerContent: (
             concepts.some(d => d.vocabulary_id === 'RxNorm Extension')
                 ? <div style={{display: 'flex', flexDirection: 'column'}}>
@@ -993,8 +993,7 @@ function getColDefs(props) {
                 </div>
                 : 'Vocabulary'
         ),
-        // headerContentProps: { onClick: editCodesetFunc, codeset_id: cset_col.codeset_id, },
-      },
+      }, */
       selector: (row) => row.vocabulary_id,
       // format: (row) => <Tooltip label={row.vocabulary_id} content={row.vocabulary_id} />,
       sortable: !nested,
@@ -1100,9 +1099,6 @@ function getColDefs(props) {
     },
     // ...cset_cols,
   ];
-  if (!comparison_rpt) {
-    coldefs = coldefs.filter(d => d.name !== 'Status');
-  }
   let cset_cols = selected_csets.map((cset_col) => {
     const {codeset_id} = cset_col;
     let def = {
@@ -1233,10 +1229,11 @@ function ComparisonDataTable(props) {
     {
       when: () => true,
       style: (row) => ({
-        backgroundColor: row.removed && '#F662' ||
+        backgroundColor:
+            row.removed && '#F662' ||
             row.added && '#00FF0016' ||
-            row.isItem && '#33F2' || '#FFF',
-        opacity: row.nodeOccurrence ? .4 : 1,
+            '#FFF', // row.isItem && '#33F2' || '#FFF',
+        opacity: row.nodeOccurrence > 0 ? .4 : 1,
         // backgroundColor: row.concept_id in definitions ? "#F662" : "#FFF",
       }),
     },

@@ -64,6 +64,9 @@ class DataCache {
 			this.cacheTooBig = true;
 			console.warn(`uncompressed cache size ${uncompressed.length.toLocaleString()}; giving up on caching`);
 		}
+    if (this.cacheTooBig) {
+      return;
+    }
 		const startTime = performance.now();
 		const duration = performance.now() - startTime;
 		const before = (localStorage.getItem('dataCache') || '').length;

@@ -1,23 +1,15 @@
-import React, {
-  createContext,
-  useContext,
-  useEffect,
-  useReducer,
-  useState,
-} from 'react';
+import React, {createContext, useContext, useState} from 'react';
 // import {PropTypes} from 'prop-types';
-import { fromPairs, get, isEmpty, isEqual, pick, cloneDeep, } from 'lodash';
+import {cloneDeep, fromPairs, isEmpty, isEqual, pick} from 'lodash';
 // import {compressToEncodedURIComponent} from "lz-string";
 // import {createPersistedReducer} from "./usePersistedReducer";
-import {
-  useSearchParamsState,
-  useSessionStorage,
-} from './StorageProvider';
-import { SOURCE_APPLICATION, SOURCE_APPLICATION_VERSION } from '../env';
-import { pct_fmt, setOp } from '../utils';
+import {useSearchParamsState, useSessionStorage} from './StorageProvider';
+import {SOURCE_APPLICATION, SOURCE_APPLICATION_VERSION} from '../env';
+import {pct_fmt, setOp} from '../utils';
 // import Box from '@mui/material/Box';
 // import CircularProgress from '@mui/material/CircularProgress';
-import { useDataCache } from './DataCache';
+import {useDataCache} from './DataCache';
+import {graphOptionsInitialState, graphOptionsReducer} from './GraphState';
 // import Markdown from 'react-markdown';
 // import { Inspector } from 'react-inspector';
 
@@ -59,26 +51,6 @@ function appOptionsReducer(state, action) {
 }
 */
 
-/*
-interface GraphOpts {
-    specialConceptTreatment: { [key: string]: boolean },
-    nested: boolean,
-    // hideRxNormExtension: true,
-    // hideZeroCounts: false,
-    specificNodesCollapsed: number[],
-    specificNodesExpanded: number[],
-    expandAll: boolean,
-}
- */
-
-export const graphOptionsInitialState = {
-    specialConceptTreatment: {},
-    nested: true,
-    // hideRxNormExtension: true,
-    // hideZeroCounts: false,
-    specificNodesCollapsed: [],
-    specificNodesExpanded: [],
-};
 
 export const [GraphOptionsProvider, useGraphOptions] = makeProvider(
   { stateName: 'graphOptions',
@@ -166,73 +138,6 @@ function cidsReducer(state, action) {
   }
   return state;
 } */
-
-export function graphOptionsReducer(state, action) {
-  /* state: GraphOpts, action: {
-        type: string, graphOptions: GraphOpts, direction: string,
-        nodeId: number, specialConceptType: string, resetValue: GraphOpts, }) { */
-  if ( ! ( action || {} ).type ) return state;
-  console.log('graphOptions action', action);
-  // let {collapsePaths, // collapsedDescendantPaths,
-  //   nested, hideRxNormExtension, hideZeroCounts} = {...unpersistedDefaultState, ...state};
-  const {type, nodeId, specialConceptType, } = action;
-
-  let graphOptions = get(action, 'graphOptions') || state;
-
-  switch (type) {
-    // case "graphOptions": { return {...state, graphOptions}; }
-    // took this from GraphState, but it still stores graphOptions state there as well as here
-
-    case 'NEW_GRAPH_OPTIONS':
-      return graphOptions;
-    case 'TOGGLE_NODE_EXPANDED': {
-      const expand = new Set(graphOptions.specificNodesExpanded);
-      const collapse = new Set(graphOptions.specificNodesCollapsed);
-      if (action.direction === 'expand') {
-        // TODO: don't do both! only expand if not previously collapsed
-        //  See #873
-        expand.add(nodeId);
-        collapse.delete(nodeId);
-      } else if (action.direction === 'collapse') {
-        // TODO: don't do both! only collapse if not previously expanded
-        expand.delete(nodeId);
-        collapse.add(nodeId);
-      } else {
-        console.error("have to give direction for TOGGLE_NODE_EXPANDED");
-      }
-      // TODO: quit storing expanded/collapsed nodes in row!!!
-      graphOptions = {
-        ...graphOptions,
-        specificNodesExpanded: [...expand],
-        specificNodesCollapsed: [...collapse]
-      };
-      // gc.toggleNodeExpanded(action.payload.nodeId);
-      // graphOptions = {
-      //   ...graphOptions,
-      //   expandedNodes: {...graphOptions.expandedNodes, [action.payload.nodeId]:!graphOptions.expandedNodes[action.payload.nodeId]}
-      // };
-      break;
-    }
-    case 'TOGGLE_OPTION':
-      graphOptions = {...graphOptions, specialConceptTreatment: {
-        ...graphOptions.specialConceptTreatment,
-          [specialConceptType]: !graphOptions.specialConceptTreatment[specialConceptType]}};
-      break;
-    case 'TOGGLE_EXPAND_ALL':
-      graphOptions = {...graphOptions, expandAll:!graphOptions.expandAll};
-      // Object.values(gc.nodes).forEach(n => {if (n.hasChildren) n.expanded = graphOptions.expandAll;});
-      break;
-    case "reset": {
-      return action.resetValue;
-    }
-
-      /* OLD STUFF
-      case "nested": { return {...state, nested: action.nested} }
-      case "hideRxNormExtension": { return {...state, hideRxNormExtension: action.hideRxNormExtension} }
-      case "hideZeroCounts": { return {...state, hideZeroCounts: action.hideZeroCounts} } */
-  }
-  return {...state, ...graphOptions};
-}
 
 /*
 if (process.env.NODE_ENV !== 'production') {
@@ -496,6 +401,10 @@ export function newCsetAtlasJson(cset, conceptLookup) {
         Object.entries(concept).forEach(([k, v]) => {
           atlasConcept[k.toUpperCase()] = v;
         })
+        atlasConcept = pick(atlasConcept, ["CONCEPT_CLASS_ID", "CONCEPT_CODE",
+          "CONCEPT_ID", "CONCEPT_NAME", "DOMAIN_ID", "INVALID_REASON",
+          "INVALID_REASON_CAPTION", "STANDARD_CONCEPT", "STANDARD_CONCEPT_CAPTION",
+          "VOCABULARY_ID", "VALID_START_DATE", "VALID_END_DATE", ]);
         item.concept = atlasConcept;
         return item;
       }

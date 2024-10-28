@@ -4,7 +4,11 @@ import {createSearchParams, useSearchParams, /* useLocation, Navigate, */ } from
 // const { test, expect } = require('@playwright/test');
 import {test, expect, } from '@playwright/test';
 
-import { GraphContainer, makeGraph, } from '../../src/state/GraphState';
+import {
+  ExpandState,
+  GraphContainer,
+  makeGraph,
+} from '../../src/state/GraphState';
 // import {graphOptionsInitialState, GraphOptionsProvider, useGraphOptions, } from '../../src/state/AppState';
 
 import singleSmallTestData from '../test-data/singleSmallGraph.json';
@@ -63,20 +67,20 @@ for (const envName in selectedConfigs) {
           await page.evaluate(() => window.dispatchGraphOptions({
             gc,
             type: 'TOGGLE_NODE_EXPANDED',
-            nodeId: firstRow.concept_id,
-            direction: 'expand',
+            rowPath: '/' + firstRow.concept_id,
+            direction: ExpandState.EXPAND,
           }));
 
           const result = await page.evaluate((/*{graphData, roots, firstRow}*/) => {
             // const [graphOptions, graphOptionsDispatch] = useGraphOptions();
             const gc = new GraphContainer(graphData);
-            gc.getDisplayedRows(window.graphOptions);
+            let displayedRows = gc.getDisplayedRows(window.graphOptions);
 
             const initialRoots = gc.roots;
-            const initialDisplayedRows = gc.displayedRows.map(r => r.concept_id);
-            const initialFirstRow = gc.displayedRows[0];
+            const initialDisplayedRows = displayedRows.map(r => r.concept_id);
+            const initialFirstRow = displayedRows[0];
 
-            const expandedChildRows = gc.displayedRows.slice(1,
+            const expandedChildRows = displayedRows.slice(1,
                 initialFirstRow.childIds.length + 1).map(r => r.concept_id);
 
             return {

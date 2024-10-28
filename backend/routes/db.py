@@ -202,7 +202,7 @@ def get_all_csets(con: Connection = None) -> Union[Dict, List]:
     results = sql_query(
         conn, f"""
         SELECT codeset_id,
-              --concept_set_version_title,
+              concept_set_version_title,
               alias,
               version,
               --concepts

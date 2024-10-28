@@ -1,8 +1,136 @@
-import {cloneDeep, flatten, get, intersection, isEmpty, some, sortBy, sum, uniq, set} from "lodash";
-import Graph from "graphology";
+import {
+  cloneDeep,
+  flatten,
+  get,
+  intersection,
+  set,
+  sortBy,
+  sum,
+  uniq,
+} from 'lodash';
+import Graph from 'graphology';
 // import {bidirectional} from 'graphology-shortest-path/unweighted';
 // import {dfsFromNode} from "graphology-traversal/dfs";
-import {setOp} from "../utils";
+import {setOp} from '../utils';
+
+const EXPAND_ALL_DEFAULT_THRESHOLD = 2000;
+export class ExpandState {
+  static EXPAND = 'expand';
+  static COLLAPSE = 'collapse';
+  static EXPAND_ALL = 'expandAll';
+
+  static isValid(value) {
+    return [this.EXPAND, this.COLLAPSE, this.EXPAND_ALL].includes(value);
+  }
+}
+
+class ConceptClassVisibility {
+  static SHOWN = 'shown';
+  static HIDDEN = 'hidden';
+
+  static isValid(value) {
+    return [this.SHOWN, this.HIDDEN].includes(value);
+  }
+}
+
+class GraphOptionsActionType {
+  static TOGGLE_NODE_EXPANDED = 'TOGGLE_NODE_EXPANDED';
+  static TOGGLE_OPTION = 'TOGGLE_OPTION';
+  static TOGGLE_EXPAND_ALL = 'TOGGLE_EXPAND_ALL';
+  static RESET = 'reset';
+}
+
+export const graphOptionsInitialState = {
+  specialConceptTreatment: {
+    addedCids: ConceptClassVisibility.SHOWN,
+    definitionConcepts: ConceptClassVisibility.SHOWN,
+    nonDefinitionConcepts: ConceptClassVisibility.SHOWN,
+    standard: ConceptClassVisibility.SHOWN,
+    classification: ConceptClassVisibility.SHOWN,
+    nonStandard: ConceptClassVisibility.SHOWN,
+    zeroRecord: ConceptClassVisibility.SHOWN,
+    rxNormExtension: ConceptClassVisibility.HIDDEN,
+    allButFirstOccurrence: ConceptClassVisibility.HIDDEN,
+  },
+  nested: true,
+  specificPaths: {}, // { '/123/456': ExpandState.EXPAND, '/234/567': ExpandState.COLLAPSE }
+  // expandAll is intentionally undefined until rows are displayed
+  // hideRxNormExtension: true,
+};
+
+export function graphOptionsReducer(state, action) {
+  if (!action?.type) return state;
+
+  let {type, rowPath, expandDescendants, specialConceptType} = action;
+  let graphOptions = action.graphOptions || state;
+
+  switch (type) {
+    case GraphOptionsActionType.TOGGLE_NODE_EXPANDED: {
+      const { direction } = action;
+      // will delete all when expandAll flips
+      // could have two sets of specificPaths, one for expandAll, one for not
+
+      if (!ExpandState.isValid(direction)) {
+        console.error(`Invalid direction for TOGGLE_NODE_EXPANDED: ${direction}`);
+        return state;
+      }
+
+      const specificPaths = { ...graphOptions.specificPaths };
+      const currentState = specificPaths[rowPath];
+
+      if (typeof currentState === 'undefined') {
+        specificPaths[rowPath] = direction;
+      } else {
+        if (!ExpandState.isValid(currentState) || currentState === direction) {
+          console.error(
+            `Invalid state transition: current=${currentState}, requested=${direction}`
+          );
+        }
+        delete specificPaths[rowPath];
+      }
+
+      return { ...graphOptions, specificPaths };
+    }
+    case GraphOptionsActionType.TOGGLE_OPTION: {
+      if (!specialConceptType) {
+        console.error('Missing specialConceptType for TOGGLE_OPTION');
+        return state;
+      }
+
+      const currentVisibility =
+        graphOptions.specialConceptTreatment[specialConceptType];
+
+      const newVisibility = currentVisibility === ConceptClassVisibility.HIDDEN
+        ? ConceptClassVisibility.SHOWN
+        : ConceptClassVisibility.HIDDEN;
+
+      return {
+        ...graphOptions,
+        specialConceptTreatment: {
+          ...graphOptions.specialConceptTreatment,
+          [specialConceptType]: newVisibility
+        }
+      };
+    }
+    case GraphOptionsActionType.TOGGLE_EXPAND_ALL:
+      return {
+        ...graphOptions,
+        expandAll: !graphOptions.expandAll,
+        specificPaths: {} // Reset paths when toggling expandAll
+        // could have two sets of specificPaths, one for expandAll, one for not
+      };
+    case 'reset': {
+      return action.resetValue;
+    }
+
+      /* OLD STUFF
+      case "nested": { return {...state, nested: action.nested} }
+      case "hideRxNormExtension": { return {...state, hideRxNormExtension: action.hideRxNormExtension} }
+      case "hideZeroCounts": { return {...state, hideZeroCounts: action.hideZeroCounts} } */
+  }
+  throw new Error("shouldn't get here");
+  return {...state, ...graphOptions};
+}
 
 // window.graphFuncs = {bidirectional, dfsFromNode};
 
@@ -36,17 +164,10 @@ export const makeGraph = (edges, concepts) => {
 
 export class GraphContainer {
   constructor(graphData, /*, cloneThis */) {
-    // window.graphW = this; // for debugging
+    window.graphW = this; // for debugging
     this.gd = graphData;  // concepts, specialConcepts, csmi, edges, concept_ids, filled_gaps,
                           // missing_from_graph, hidden_by_vocab, nonstandard_concepts_hidden
-
-    // this.gd holds inputs -- except this.gd.specialConcepts.allButFirstOccurrence which is added later
-    //    it's also a list of paths; all the other specialConcepts are lists of concept_ids
     set(this, 'gd.specialConcepts.allButFirstOccurrence', []);
-    this.displayedRows = [];  // array of displayed rows...individual node could occur in multiple places
-    this.displayedNodeRows = new StringKeyMap();    // map from nodeId to row (node copy)
-    this.showThoughCollapsed = new StringSet();
-    this.hideThoughExpanded = new StringSet();
 
     [this.graph, this.nodes] = makeGraph(this.gd.edges, this.gd.concepts);
 
@@ -86,206 +207,261 @@ export class GraphContainer {
     this.#computeAttributes();
   }
 
-  getDisplayedRows(graphOptions) {
-    // const {/*collapsedDescendantPaths, */ collapsePaths, hideZeroCounts, hideRxNormExtension, nested } = hierarchySettings;
-
-    // delete childRows for every node because some option might have changed and we need
-    //  to recalculate the children
-    Object.values(this.nodes).forEach(node => {
-      delete node.childRows;
-    });
-    this.displayedRows.splice(0, this.displayedRows.length); // keeping same array ref to help with debugging using graphW
-    this.displayedNodeRows.clear();
-    this.gd.specialConcepts.allButFirstOccurrence = [];
-
-    // add root nodes and their children if expanded to displayed
-    let rootRows = [];
-    for (let nodeId of sortBy(this.roots, this.sortFunc)) {
-      let rootRow = this.addNodeToDisplayed(nodeId, graphOptions, []);
-      rootRows.push(rootRow);
-    }
-
-    // start by adding rootRows
-    this.arrangeDisplayRows(rootRows);  // first time
-
-    this.showThoughCollapsed.clear();
-    this.hideThoughExpanded.clear();
-
-    if (!graphOptions.expandAll) {
-      // if there are showThoughCollapsed nodes to show, find each one's
-      //  nearest parents add them at those path locations
-
-      for (let type in graphOptions.specialConceptTreatment) {
-        if (get(this, ['graphDisplayConfig', type, 'specialTreatmentRule']) === 'show though collapsed' &&
-            graphOptions.specialConceptTreatment[type]) {
-          for (let id of this.gd.specialConcepts[type] || []) {
-            this.showThoughCollapsed.add(id);
-          }
-        }
-      }
-      let shown = new StringSet();
-      const insertShowThoughCollapsed = (path) => {
-        // path starts with the nodeIdToShow and recurses up, prepending parents
-        const nodeIdToShow = path[path.length - 1]; // remains the same through recursion
-        if (shown.has(nodeIdToShow)) return; // already displayed
-        if (this.displayedNodeRows.has(nodeIdToShow)) {
-          return;
-          // throw new Error(`nodeToShow ${nodeIdToShow} is already displayed`);
-        }
-        // so, only one nodeIdToShow, but separate nodeToShow copies for each path
-        let nodeToShowRows = [];
-        let parents = this.graph.inNeighbors(path[0]);
-        for (let parentId of parents) {
-          if (this.showThoughCollapsed.has(parentId)) {
-            // if the parent is also a showThoughCollapsed node, do it first
-            insertShowThoughCollapsed([parentId, ...(path.slice(0, -1))]);
-          }
-          let parentNode = this.nodes[parentId];
-          if (this.displayedNodeRows.has(parentId)) {  // parent is already displayed
-            if (parentNode.expanded) {
-              throw new Error(`parent ${parentId} is expanded; we shouldn't be here`);
-            }
-            parentNode.childRows = parentNode.childRows || [];
-
-            // put the nodeIdToShow below its paths
-            for (let parentRow of this.displayedNodeRows.get(parentId)) {
-              let nodeToShowRow = {...this.nodes[nodeIdToShow]};
-              nodeToShowRow.depth = parentRow.depth + 1;
-              nodeToShowRow.rowPath = [...parentRow.rowPath, nodeIdToShow]; // straight from visible ancestor to nodeToShowRow
-              nodeToShowRow.pathFromDisplayedNode = path.slice(0, -1);  // intervening path between them
-              nodeToShowRows.push(nodeToShowRow);
-              parentNode.childRows.push(nodeToShowRow); // add to parent's childRows
-              parentRow.childRows = parentNode.childRows;
-            }
-          } else {
-            insertShowThoughCollapsed([parentId, ...path]);
-            return;
-          }
-        }
-        if (this.displayedNodeRows.has(nodeIdToShow)) {
-          throw new Error(`nodeToShow ${nodeIdToShow} is already displayed`);
-        }
-        this.displayedNodeRows.set(nodeIdToShow, []);
-        nodeToShowRows.forEach((nodeToShowRow, i) => {
-          this.displayedNodeRows.get(nodeIdToShow).push(nodeToShowRow);
-        });
-        shown.add(nodeIdToShow);
-      };
-      this.showThoughCollapsed.forEach(nodeIdToShow => {
-        if (this.displayedNodeRows.has(nodeIdToShow)) return; // already displayed
-        this.showThoughCollapsed.add(nodeIdToShow);
-        insertShowThoughCollapsed([nodeIdToShow]);
-      });
-    }
-
-
-    this.arrangeDisplayRows(rootRows);  // second time
-    // this.displayedRows.forEach(row => { row.levelsBelow = this.sortFunc(row) }); // for debugging
-    // TODO: FIX allButFirstOccurrence -- needs to hide paths, not just concept_ids, it's broken
-    this.gd.specialConcepts.allButFirstOccurrence = this.displayedRows.filter(row => row.nodeOccurrence > 0).map(d => d.rowPath);
+  getDisplayedRows(graphOptions, allRows, allRowsById) {
     /*
-    if (graphOptions.specialConceptTreatment.allButFirstOccurrence) {
-      this.gd.specialConcepts.allButFirstOccurrence.forEach(row => )
-    }
+      See new description of show/filter issue: https://github.com/jhu-bids/TermHub/issues/547
+      Getting rid of showThoughCollapsed. But not sure how to handle hidden rows.
+
+      if row collapsed, show summary in column of what's beneath it
+      if row expanded but some children are hidden HTE, then show...?
+
+
+      New algorithm
+      Special classes           Action              Default
+        concepts                expandAll           false
+        TODO: make the expandAll default depend on number of concepts rather
+              than being always false
+        standard                nothing
+        classification          nothing
+
+        specificPaths (expanded/collapsed)  // rename -- chosenPaths?
+
+        addedCids               showThoughCollapsed true
+        definitionConcepts      showThoughCollapsed false
+        added                   showThoughCollapsed false
+        removed                 showThoughCollapsed false
+
+        allButFirstOccurrence   hideThoughExpanded  true
+        nonDefinitionConcepts   hideThoughExpanded  false
+        nonStandard             hideThoughExpanded  false
+        zeroRecord              hideThoughExpanded  false
+
+      TODO: decide how to handle showThoughCollapsed
+        1.  Like before -- show path below nearest displayed ancestor
+        2.  Actually expand down to STC row and have some way to indicate
+            that siblings of the in-between nodes are not being displayed
+        3.  Give users a way to see these separately and then expand
+            manually to find the row of interest.
+
+        *   - Example: Parent > [2 hidden levels] > Current Node
+
+      For each row:
+        showReasons:
+          - showThoughCollapsed (definitions, added cids, comparison added/removed)
+          - hidden parent/ancestor of showThoughCollapsed
+          - child of specificPathsExpanded
+        hideReasons:
+          - non-root
+          - hideThoughExpanded (expansion only, non-standard, zero pt, all but first)
+          - child of specificPathsCollapsed
+          - duplicate occurrence
+
+      TODO:
+        [ ] Column shows how many rows hidden below each displayed row
+          With tooltip giving reasons
+          Too complicated to have expand control in that field
+        [ ] If expandAll, default icon is (-), otherwise (+)
+          What happens to SNC/SNE when expandAll changes?
+          Clear them? Have two sets of SNC/SNE and swap?
+          Clear for now, then implement swap maybe
+
+      Cases to think about (test?)
+        Shown (definition) concept is descendant of hidden (nonStandard, zeroRecord) concept
+          (-) Hidden concept    {hideReasons: [HTE(zero)],  showReasons: [parentOfSTC], result: show}
+            (-) Def concept     {hideReasons: [childOfHTE], showReasons: [STC(def)],    result: show}
+              (-) Another       {hideReasons: [],           showReasons: [childOfSTC],  result: show}
+            (+) Def concept     {hideReasons: [childOfHTE], showReasons: [STC(def)],    result: show}
+              (-) Another       {hideReasons: [childOfSNC], showReasons: [],            result: hide}
+
+        Shown (definition) concept is descendant of hidden specificPathsCollapsed concept
+          Ideally might depend on order of events, but too hard to code?
+            If you collapse a parent of a STC node, expect the STC node to get hidden?
+            If you turn show def concepts on while some are hidden undeer SNC, expect them to appear?
+            Ok, keep hidden, but implement idea
+          (+) Concept           {hideReasons: [],           showReasons: [root],        result: show}
+            (-) Def concept     {hideReasons: [childOfSNC], showReasons: [STC(def)],    result: hide}
+              (-) Another       {hideReasons: [descOfSNC],  showReasons: [childOfSTC],  result: hide}
+
+        Shown (definition) concept is also hidden (zeroRecord) concept
+          (-) Def zero concept  {hideReasons: [HTE(zero)],  showReasons: [STC(def)],    result: show}
+          STC takes precedence over HTE
+
+        Hidden (zeroRecord) concept is root
+          Hide anyway
+
+        specificNodeCollapsed while expandAll is on
+          Hide descendants
+
+      1. [ ] Generate allRows: list of all rows, in order, with duplicates
+      2. [ ] If allButFirstOccurrence hidden, hide allButFirstOccurrence
+          (and their descendants? descendants will be duplicate occurrences
+          and hidden anyway)
+          crap: what if STC/HTE settings affect which occurrence comes first?
+            could that happen?
+            having a hard time constructing the case (below). maybe just don't
+              worry about it for now?
+
+          (-) Concept 1         {hideReasons: [HTE(zero)],  showReasons: [parentOfSTC], result: show}
+            (-) Concept 2       {hideReasons: [childOfHTE], showReasons: [STC(def)],    result: show}
+            (-) Concept 3       {hideReasons: [childOfHTE], showReasons: [STC(def)],    result: show}
+          ...
+          (-) Concept 4         {hideReasons: [],           showReasons: [childOfSNE],  result: show}
+            (-) Concept 2       {hideReasons: [childOfHTE], showReasons: [STC(def)],    result: show}
+            (-) Concept 3       {hideReasons: [childOfHTE], showReasons: [STC(def)],    result: show}
+
+      3. If expandAll, hide all HTE
+      4. If not expandAll, hide everything that's
+          a. not a root -- hides everything depth > 0;
+      5. Unhide
+          a. STC (showThoughCollapsed) That includes ancestors up to
+             nearest not collapsed
+          b. Child of SNE (specificPathsExpanded)
+      6. Hide remaining HTE (hideThoughExpanded)
      */
 
-    // this.graphDisplayConfig.allButFirstOccurrence
+    // 1. Generate allRows
+    // let {allRows, allRowsById} = this.setupAllRows(this.roots);
 
+    if (graphOptions.expandAll) {
+      // 3....  no need to expand STC, because nothing collapsed except SNC
+    } else {
+      // 4. Hide non-root rows; just hide depth > 0;
+      for (let row of allRows) {
+        if (row.depth > 0) {
+          row.display.hideReasons.nonRoot = true;
+          row.display.result = 'hide';
+        }
+      }
+    }
+
+    // Expand and collapse children based on user having clicked +/- on row
+    allRows.forEach((row, rowIdx) => {
+      if (row.display.result === 'hide') return;
+      if (graphOptions.specificPaths[row.rowPath]) {
+        this.rowDisplay(rowIdx, graphOptions.specificPaths[row.rowPath], 'specific', allRows)
+      }
+    });
+
+    // hide all HTE (non-standard, zero pt, expansion only)
     for (let type in graphOptions.specialConceptTreatment) {
       if (type === 'allButFirstOccurrence') continue; // handle this differently
-      if (get(this, ['graphDisplayConfig', type, 'specialTreatmentRule'])
-            === 'hide though expanded' &&
-            graphOptions.specialConceptTreatment[type]) {
+      if (graphOptions.specialConceptTreatment[type] === 'hidden') {
         // gather all the hideThoughExpanded ids
         this.gd.specialConcepts[type].forEach(id => {
-          this.hideThoughExpanded.add(id);
+          const rowsToHide = allRowsById.get(id) || [];
+          for (const rowToHide of rowsToHide) {
+            const rowToHideIdx = rowToHide.allRowsIdx;
+            this.rowDisplay(rowToHideIdx, graphOptions.specificPaths[rowToHide.rowPath], type, allRows)
+          }
         })
       }
     }
-    for (let type in graphOptions.specialConceptTreatment) {
-      if (get(this, ['graphDisplayConfig', type, 'specialTreatmentRule'])
-          === 'hide though expanded' &&
-          graphOptions.specialConceptTreatment[type]) {
-        let [special, displayed] = [
-            this.gd.specialConcepts[type],
-            this.displayedRows.map(d => d.concept_id)];
-        for (let id of setOp('intersection', special, displayed)) {
-          let nodeToHide = this.nodes[id];
-          if (nodeToHide.expanded) {  //
-            // does this get used anymore? we shouldn't be using expanded property now
-            console.warn("shouldn't be using .expanded property on nodes. look into this");
-            // TODO:  make sure this still works without using node.expanded
-            if (!some(nodeToHide.childIds, id => this.displayedNodeRows.has(id) && !this.hideThoughExpanded.has(id))) {
-              // don't hide if it has children that should be shown
-              // that is, if it's already displayed and not hidden
-              this.hideThoughExpanded.delete(id);
-            }
-          }
-          /* if (!nodeToHide.expanded) {
-            // this.hideThoughExpanded.add(id);
-            this.displayedNodeRows.delete(id); // remove from displayedNodeRows map
-          } */
+    // end hide all HTE
+
+    let displayedRows = allRows.filter(r => r.display.result !== 'hide');
+
+    // 2. Get list of allButFirstOccurrence; hide if option on
+    let rowsPerId = {};
+    displayedRows.forEach(row => {
+      if (rowsPerId[row.concept_id]) {
+        this.gd.specialConcepts.allButFirstOccurrence.push(row.rowPath);
+        if (graphOptions.specialConceptTreatment.allButFirstOccurrence === 'hidden') {
+          row.display.hideReasons.duplicate = true;
+          row.display.result = 'hide';
         }
+      } else {
+        rowsPerId[row.concept_id] = 0;
+      }
+      row.nodeOccurrence = rowsPerId[row.concept_id]++;
+    });
+    //  this could filter allRows, shouldn't matter
+    displayedRows = displayedRows.filter(r => r.display.result !== 'hide');
+
+    // return this.displayedRows.filter(r => r.depth < 3);
+    return displayedRows;
+    // return this.getDisplayedRowsOLD(graphOptions);
+  }
+  rowDisplay(rowIdx, showHide, reason, allRows) {
+    // this.rowDisplay(row, graphOptions.specificPaths[row.rowPath], 'specific')
+    // this.rowDisplay(rowToHide, graphOptions.specificPaths[rowToHide.rowPath], type)
+    // TODO: don't hide if it has children that should be shown
+    if (reason === 'specific') {
+      if (showHide === ExpandState.EXPAND) {
+        for (let childRow of this.getDescendantRows(rowIdx, allRows, 1)) {
+          childRow.display.showReasons.childOfExpanded = true;
+          childRow.display.result = 'show';
+        }
+      } else if (showHide === ExpandState.EXPAND_ALL) {
+        for (let childRow of this.getDescendantRows(rowIdx, allRows, Infinity)) {
+          childRow.display.showReasons.childOfExpandAll = true;
+          childRow.display.result = 'show';
+        }
+      } else if (showHide === ExpandState.COLLAPSE) {
+        for (let childRow of this.getDescendantRows(rowIdx, allRows, Infinity)) {
+          childRow.display.hideReasons.descendantOfCollapsed = rowIdx;
+          childRow.display.result = 'hide';
+        }
+      } else {
+        throw new Error(`Invalid showHide: ${showHide}`);
+      }
+    } else {
+      const rowToHide = allRows[rowIdx];
+      rowToHide.display.hideReasons[reason] = true;
+      rowToHide.display.result = 'hide';
+      for (let childRow of this.getDescendantRows(rowIdx, allRows)) {
+        childRow.display.hideReasons[`descendantOf_${reason}`] = rowIdx;
+        childRow.display.result = 'hide';
       }
     }
-    this.hideThoughExpanded.forEach(id => {
-      this.displayedNodeRows.delete(id); // remove from displayedNodeRows map
-    });
-
-    this.arrangeDisplayRows(rootRows);  // third time
-    return this.displayedRows;
   }
-
-  addNodeToDisplayed(nodeId, graphOptions, rowPath, depth = 0) {
-    /* adds the node to the list of displayed nodes
-        if it is set to be expanded, recurse and add its children to the list */
-    let node = this.nodes[nodeId];
-    let row = {...node, depth};
-    row.rowPath = [...rowPath, nodeId];
-
-    if (this.displayedNodeRows.has(nodeId)) {
-      let rowsForThisNode = this.displayedNodeRows.get(nodeId);
-      rowsForThisNode.push(row);
-    } else {
-      this.displayedNodeRows.set(nodeId, [row]);
+  getDescendantRows(parentRowIdx, allRows, howDeep=Infinity) {
+    // sort of a fragile way to do it, but will get all rows deeper
+    //  than current row until the next row of the same depth
+    // if howDeep is passed, will not return rows that much deeper than current row
+    //  so, howDeep = 1 will get direct children, howDeep = 2, children and grandchildren
+    // let idx = allRows.indexOf(parentRow) + 1;
+    const parentRow = allRows[parentRowIdx];
+    let idx = parentRowIdx + 1;
+    let rows = [];
+    while (idx < allRows.length && allRows[idx].depth > parentRow.depth) {
+      if (allRows[idx].depth <= parentRow.depth + howDeep) {
+        rows.push(allRows[idx]);
+      }
+      idx++;
     }
-
-    // this.displayedRows.push(row);
-
-    if ((row.expanded || graphOptions.expandAll ||  // todo: get rid of row.expanded property -- not using anymore, right?
-        graphOptions.specificNodesExpanded.find(d => d == row.concept_id) &&
-        ! graphOptions.specificNodesCollapsed.find(d => d == row.concept_id))
-    ) {
-        // now with tracking specificNodesExpanded/Collapsed, I'm not sure if we
-        //  still need to check row.expanded
-      // if it's expanded, it must have children
-      row.childRows = row.childRows = sortBy(node.childIds, this.sortFunc).map(childId => {
-        const childRow = this.addNodeToDisplayed(childId, graphOptions, row.rowPath, depth + 1); // Recurse
-        return childRow;
-      });
-    }
-    return row;
+    return rows;
   }
-  arrangeDisplayRows(rootRows) {
-    // recursively traverse rootRows and add child rows to display according to all the rules;
-    //  I can't remember why this gets called _three_ times
-    this.displayedRows.splice(0, this.displayedRows.length); // empty out this.displayedRows and create again
-    let nodeOccurrences = {};
-    const f = (rows) => {
-      for (let row of sortBy(rows, this.sortFunc)) { // for each row at this level
-        // if it's the first occurrence set nodeOccurrence = 0
-        nodeOccurrences[row.concept_id] = nodeOccurrences[row.concept_id] ?? -1;
-        row.nodeOccurrence = ++nodeOccurrences[row.concept_id];
-        // if it has been added to hideThoughExpanded, don't display it or its descendants
-        if (this.hideThoughExpanded && this.hideThoughExpanded.has(row.concept_id)) continue;
-        this.displayedRows.push(row);
-        // const node = this.nodes[row.concept_id];
-        if (row.childRows) {
-          f(row.childRows);
+  setupAllRows(rootNodes) {
+    let allRows = [];
+    let allRowsById = new StringKeyMap(); // start by getting lists of rowIdx by concept_id
+    // rows and nodes and concepts are all the same thing, I just use the term
+    //  that fits the purpose at the moment
+    const addRows = (nodeIds, parentPath = '', depth = 0) => {
+      let nodes = nodeIds.map(id => this.nodes[id]);
+      nodes = sortBy(nodes, this.sortFunc);
+      for (let node of nodes) {
+        let nodeId = node.concept_id;
+        let row = {...node, depth, rowPath: `${parentPath}/${nodeId}` };
+        row.display = {
+          hideReasons: {},
+          showReasons: {},
+          result: '',
+        }
+        row.allRowsIdx = allRows.length;
+        allRows.push(row);
+        if (allRowsById.has(row.concept_id)) {
+          allRowsById.get(row.concept_id).push(row);
+        } else {
+          allRowsById.set(row.concept_id, [row]);
+        }
+
+        if (node.childIds && node.childIds.length) {
+          addRows(node.childIds, row.rowPath, depth + 1);
         }
       }
     };
-    f(rootRows);
+    addRows(rootNodes);
+    return {allRows, allRowsById};
   }
 
   sortFunc = (d => {
@@ -365,115 +541,86 @@ export class GraphContainer {
     return this.graph.copy();
   }
 
-  setGraphDisplayConfig(graphOptions) {
+  setGraphDisplayConfig(graphOptions, allRows, displayedRows) {
     // these are all options that appear in Show Stats/Options
 
-    const displayedConcepts = this.displayedRows || []; // first time through, don't have displayed rows yet
-    const displayedConceptIds = displayedConcepts.map(r => r.concept_id);
+    const displayedConceptIds = uniq(displayedRows.map(r => r.concept_id));
     let displayOrder = 0;
-    let brandNew = isEmpty(graphOptions);
-    if (brandNew) {
-      graphOptions = {
-        specialConceptTreatment: {},
-        expandAll: false,
-        nested: true,
-      };
+    if (typeof(graphOptions.expandAll) === 'undefined') {
+      graphOptions.expandAll = allRows.length <= EXPAND_ALL_DEFAULT_THRESHOLD;
     }
     let displayOptions = {
-      /*
-        displayOptions logic
-        See code for hidden-rows column in CsetComparisonPage StatsAndOptions
-        table.
-
-        If specialTreatmentRule is 'show though collapsed', then what we care
-        about are how many currently hidden rows will be shown if option is
-        turned on and how many currently shown rows will be hidden if option
-        is turned off.
-
-        If specialTreatmentRule is 'hide though expanded', then what we care
-        about are how many currently visible rows will be hidden if option is
-        turned on and how many currently hidden rows will be unhidden if option
-        is turned off.
+      /* displayOptions logic
        */
-      displayedRows: {
-        name: "Visible rows", displayOrder: displayOrder++,
-        value: displayedConcepts.length,
-      },
       concepts: {
-        name: "Concepts", displayOrder: displayOrder++,
-        value: this.gd.concept_ids.length,
+        name: "All", displayOrder: displayOrder++,
+        total: this.gd.concept_ids.length,
         hiddenConceptCnt: setOp('difference', this.gd.concept_ids, displayedConceptIds).length,
         displayedConceptCnt: setOp('intersection', this.gd.concept_ids, displayedConceptIds).length,
-        specialTreatmentRule: 'expandAll',
-        specialTreatmentDefault: false,
       },
       addedCids: {
         name: "Individually added concept_ids", displayOrder: displayOrder++,
-        value: this.gd.specialConcepts.addedCids.length,
+        total: this.gd.specialConcepts.addedCids.length,
         hiddenConceptCnt: setOp('difference', this.gd.specialConcepts.addedCids, displayedConceptIds).length,
         displayedConceptCnt: setOp('intersection', this.gd.specialConcepts.addedCids, displayedConceptIds).length,
-        specialTreatmentDefault: true,
-        specialTreatmentRule: 'show though collapsed',
       },
       definitionConcepts: {
         name: "Definition concepts", displayOrder: displayOrder++,
-        value: this.gd.specialConcepts.definitionConcepts.length,
+        total: this.gd.specialConcepts.definitionConcepts.length,
         displayedConceptCnt: setOp('intersection', this.gd.specialConcepts.definitionConcepts, displayedConceptIds).length,
         hiddenConceptCnt: setOp('difference', this.gd.specialConcepts.definitionConcepts, displayedConceptIds).length,
-        specialTreatmentDefault: false,
-        specialTreatmentRule: 'show though collapsed',
       },
-      expansionConcepts: {
-        name: "Expansion only concepts", displayOrder: displayOrder++,
-        value: this.gd.specialConcepts.expansionConcepts.length,
-        // value: uniq(flatten(Object.values(this.gd.csmi).map(Object.values)) .filter(c => c.csm).map(c => c.concept_id)).length,
-        displayedConceptCnt: setOp('intersection', this.gd.specialConcepts.expansionConcepts, displayedConceptIds).length,
-        hiddenConceptCnt: setOp('difference', this.gd.specialConcepts.expansionConcepts, displayedConceptIds).length,
-        specialTreatmentDefault: false,
-        specialTreatmentRule: 'hide though expanded',
+      nonDefinitionConcepts: {
+        name: "Non-definition concepts", displayOrder: displayOrder++,
+        total: this.gd.specialConcepts.nonDefinitionConcepts.length,
+        displayedConceptCnt: setOp('intersection', this.gd.specialConcepts.nonDefinitionConcepts, displayedConceptIds).length,
+        hiddenConceptCnt: setOp('difference', this.gd.specialConcepts.nonDefinitionConcepts, displayedConceptIds).length,
       },
+      /*
       added: {
         name: "Added to compared", displayOrder: displayOrder++,
-        value: get(this.gd.specialConcepts, 'added.length', undefined),
+        total: get(this.gd.specialConcepts, 'added.length', undefined),
         hiddenConceptCnt: setOp('difference', this.gd.specialConcepts.added, displayedConceptIds).length,
-        specialTreatmentDefault: false,
-        specialTreatmentRule: 'show though collapsed',
       },
       removed: {
         name: "Removed from compared", displayOrder: displayOrder++,
-        value: get(this.gd.specialConcepts, 'removed.length', undefined),
+        total: get(this.gd.specialConcepts, 'removed.length', undefined),
         hiddenConceptCnt: setOp('difference', this.gd.specialConcepts.removed, displayedConceptIds).length,
-        specialTreatmentDefault: false,
-        specialTreatmentRule: 'show though collapsed',
       },
+       */
       standard: {
         name: "Standard concepts", displayOrder: displayOrder++,
-        value: this.gd.concepts.filter(c => c.standard_concept === 'S').length,
-        displayedConceptCnt: setOp('intersection', this.gd.concepts.filter(c => c.standard_concept === 'S'), displayedConceptIds).length,
+        total: this.gd.concepts.filter(c => c.standard_concept === 'S').length,
+        displayedConceptCnt: setOp('intersection', this.gd.concepts.filter(c => c.standard_concept === 'S').map(d =>d.concept_id), displayedConceptIds).length,
+        hiddenConceptCnt: setOp('difference', this.gd.concepts.filter(c => c.standard_concept === 'S').map(d =>d.concept_id), displayedConceptIds).length,
       },
       classification: {
         name: "Classification concepts", displayOrder: displayOrder++,
-        value: this.gd.concepts.filter(c => c.standard_concept === 'C').length,
+        total: this.gd.concepts.filter(c => c.standard_concept === 'C').length,
+        displayedConceptCnt: setOp('intersection', this.gd.concepts.filter(c => c.standard_concept === 'C').map(d =>d.concept_id), displayedConceptIds).length,
+        hiddenConceptCnt: setOp('difference', this.gd.concepts.filter(c => c.standard_concept === 'C').map(d =>d.concept_id), displayedConceptIds).length,
       },
       nonStandard: {
         name: "Non-standard", displayOrder: displayOrder++,
-        value: this.gd.specialConcepts.nonStandard.length,
+        total: this.gd.specialConcepts.nonStandard.length,
         displayedConceptCnt: setOp('intersection', this.gd.specialConcepts.nonStandard, displayedConceptIds).length,
-        hiddenConceptCnt:  setOp('intersection', this.gd.specialConcepts.nonStandard, this.hideThoughExpanded).length,
-        specialTreatmentDefault: false,
-        specialTreatmentRule: 'hide though expanded',
+        hiddenConceptCnt: setOp('difference', this.gd.specialConcepts.nonStandard, displayedConceptIds).length,
       },
       zeroRecord: {
         name: "Zero records / patients", displayOrder: displayOrder++,
-        value: this.gd.specialConcepts.zeroRecord.length,
+        total: this.gd.specialConcepts.zeroRecord.length,
         displayedConceptCnt: setOp('intersection', this.gd.specialConcepts.zeroRecord, displayedConceptIds).length,
-        hiddenConceptCnt: setOp('intersection', this.gd.specialConcepts.zeroRecord, [...(this.hideThoughExpanded || [])]).length,
-        specialTreatmentDefault: false,
-        specialTreatmentRule: 'hide though expanded',
+        hiddenConceptCnt: setOp('difference', this.gd.specialConcepts.zeroRecord, displayedConceptIds).length,
+      },
+      rxNormExtension: {
+        name: "RxNorm Extension", displayOrder: displayOrder++,
+        total: this.gd.specialConcepts.rxNormExtensionConcepts.length,
+        displayedConceptCnt: setOp('intersection', this.gd.specialConcepts.rxNormExtensionConcepts, displayedConceptIds).length,
+        hiddenConceptCnt: setOp('difference', this.gd.specialConcepts.rxNormExtensionConcepts, displayedConceptIds).length,
       },
       allButFirstOccurrence: {
         name: "All but first occurrence", displayOrder: displayOrder++,
-        value: this.gd.specialConcepts.allButFirstOccurrence.length,
+        total: this.gd.specialConcepts.allButFirstOccurrence.length,
         displayedConceptCnt: get(graphOptions, 'specialConceptTreatment.allButFirstOccurrence', true)
             ? 0
             : this.gd.specialConcepts.allButFirstOccurrence.length,
@@ -486,14 +633,13 @@ export class GraphContainer {
                                       .map(paths => paths.map(path => path.join('/'))))
           return [special, displayed];
         }, */
-        specialTreatmentDefault: true,
-        specialTreatmentRule: 'hide though expanded',
       },
     }
     for (let type in displayOptions) {
       let displayOption = {...get(this, ['graphDisplayConfig', type], {}), ...displayOptions[type]};  // don't lose stuff previously set
-      // if (typeof(displayOption.value) === 'undefined') // don't show displayOptions that don't represent any concepts
-      if (!displayOption.value) {  // addedCids was 0 instead of undefined. will this hide things that shouldn't be hidden?
+      // if (typeof(displayOption.total) === 'undefined') // don't show displayOptions that don't represent any concepts
+      if (! (displayOption.total > 0)) {  // addedCids was 0 instead of undefined. will this hide things that shouldn't be hidden?
+        // console.log(`deleting ${type} from statsopts`);
         delete displayOptions[type];
         continue;
       }
@@ -523,7 +669,6 @@ export class GraphContainer {
     // TODO: gotta assemble whatever's needed for graphOptions
     this.graphDisplayConfigList = sortBy(displayOptions, d => d.displayOrder);
     this.graphDisplayConfig = displayOptions;
-    return graphOptions;
   }
 
   graphLayout(maxWidth=12) {

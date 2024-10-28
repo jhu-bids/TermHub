@@ -44,7 +44,8 @@ function initialOpts (all_csets, codesetIds) { // option rows for autocomplete d
     // .filter((d) => !codeset_ids.includes(d.codeset_id))
     .map((d) => ({
       label:
-        `${d.codeset_id} - ${d.alias}` +
+        // `${d.codeset_id} - ${d.alias}` +
+        `${d.codeset_id} - ${d.concept_set_version_title}` +
         (isNumber(d.version) ? ` (v${d.version})` : '') + ' ' +
         `${d.archived ? 'archived' : ''}` +
         (d.counts ?
@@ -213,9 +214,10 @@ export function CsetSearch (props = {}) {
   return (
     <Box data-testid="csetsearch"
          sx={{ display: 'flex', flexDirection: 'row', width: '95%' }}>
-      <Tooltip content={tt} classes="help-card" placement="top-end">
-        {autocomplete}
-      </Tooltip>
+      {/*<Tooltip content={tt} classes="help-card" placement="top-end">*/}
+      {autocomplete}
+      {tt}
+      {/*</Tooltip>*/}
       {largeCsetWarning}
       {/*<Button data-testid="load-concept-sets" onClick={() => {*/}
       {/*  codesetIdsDispatch({type: "set_all", codeset_ids: codesetIdsSelected});*/}
