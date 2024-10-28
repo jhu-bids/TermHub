@@ -61,7 +61,16 @@ function appOptionsReducer(state, action) {
 
 
 export const graphOptionsInitialState = {
-    specialConceptTreatment: {},
+    specialConceptTreatment: {
+      addedCids: 'shown',
+      definitionConcepts: 'shown',
+      nonDefinitionConcepts: 'shown',
+      standard: 'shown',
+      classification: 'shown',
+      nonStandard: 'shown',
+      zeroRecord: 'shown',
+      allButFirstOccurrence: 'hidden',
+    },
     nested: true,
     // hideRxNormExtension: true,
     // hideZeroCounts: false,
@@ -202,7 +211,10 @@ export function graphOptionsReducer(state, action) {
     case 'TOGGLE_OPTION':
       graphOptions = {...graphOptions, specialConceptTreatment: {
         ...graphOptions.specialConceptTreatment,
-          [specialConceptType]: !graphOptions.specialConceptTreatment[specialConceptType]}};
+          [specialConceptType]:
+              graphOptions.specialConceptTreatment[specialConceptType] === 'hidden'
+              ? 'shown' : 'hidden'
+      }};
       break;
     case 'TOGGLE_EXPAND_ALL':
       graphOptions = {...graphOptions, expandAll:!graphOptions.expandAll};

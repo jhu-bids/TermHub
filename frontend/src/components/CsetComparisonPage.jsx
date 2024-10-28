@@ -142,8 +142,13 @@ export async function fetchGraphData(props) {
       Object.values(csmi).map(d => Object.values(d)),
   ).filter(d => d.item).map(d => d.concept_id));
 
+  const nonDefinitionConcepts = uniq(flatten(
+      Object.values(csmi).map(d => Object.values(d)),
+  ).filter(d => !d.item).map(d => d.concept_id));
+
   let specialConcepts = {
     definitionConcepts: definitionConcepts.map(String),
+    nonDefinitionConcepts: nonDefinitionConcepts.map(String),
     nonStandard: uniq(Object.values(conceptLookup).
         filter(c => !c.standard_concept).
         map(c => c.concept_id)),
@@ -560,44 +565,30 @@ function StatsAndOptions(props) {
       style: {justifyContent: 'right', paddingRight: 4},
     },
     {
+      name: 'State',
+      selector: (row) => graphOptions.specialConceptTreatment[row.type].toString(),
+      width: 80,
+      style: {justifyContent: 'right', paddingRight: 4},
+    },
+    {
       name: 'Action',
       selector: (row) => row.specialTreatment,
       format: (row) => {
-        if (typeof row.specialTreatmentDefault === 'undefined') {
-          return '';
-        }
-        let onClick;
-        onClick = () => {
-          graphOptionsDispatch(
-              {gc, type: 'TOGGLE_OPTION', specialConceptType: row.type});
-        };
         let text = '';
         let tttext = '';
-        if (row.specialTreatmentRule === 'expandAll') {
+
+        let onClick = () => graphOptionsDispatch({gc, type: 'TOGGLE_OPTION', specialConceptType: row.type});
+
+        if (row.type === 'concepts') {
           onClick = () => {
             graphOptionsDispatch({gc, type: 'TOGGLE_EXPAND_ALL'});
           };
           text = get(graphOptions, 'expandAll') ? 'Collapse all' : 'Expand all';
           tttext = 'Does not affect rows hidden or shown by other options';
-        } else if (row.specialTreatmentRule === 'show though collapsed') {
-          console.log("not doing showThoughCollapsed anymore");
-          /*
-           *  if (row.specialTreatment) {
-           *    text = 'unshow';
-           *    tttext = 'Currently showing records even if parents aren\'t expanded. Click to disable.';
-           *  } else {
-           *    if (row.hiddenConceptCnt) {
-           *      text = 'show';
-           *      tttext = 'Show even if parents aren\'t expanded';
-           *    }
-           *  }
-           */
-        } else if (row.specialTreatmentRule === 'hide though expanded') {
-          if (row.specialTreatment) {
-            text = 'unhide';
-          } else {
-            text = 'hide';
-          }
+        } else if (graphOptions.specialConceptTreatment[row.type] === 'hidden') {
+          text = 'unhide';
+        } else if (graphOptions.specialConceptTreatment[row.type] === 'shown') {
+          text = 'hide';
         } else {
           throw new Error('shouldn\'t be here');
         }

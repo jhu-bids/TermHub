@@ -222,9 +222,10 @@ export class GraphContainer {
     // hide all HTE (non-standard, zero pt, expansion only)
     for (let type in graphOptions.specialConceptTreatment) {
       if (type === 'allButFirstOccurrence') continue; // handle this differently
-      if (get(this, ['graphDisplayConfig', type, 'specialTreatmentRule'])
-          === 'hide though expanded' &&
-          graphOptions.specialConceptTreatment[type]) {
+      if (
+          // get(this, ['graphDisplayConfig', type, 'specialTreatmentRule']) === 'hide though expanded' &&
+          graphOptions.specialConceptTreatment[type] === 'hidden'
+      ) {
         // gather all the hideThoughExpanded ids
         this.gd.specialConcepts[type].forEach(id => {
           const rowsToHide = allRowsById.get(id) || [];
@@ -244,7 +245,7 @@ export class GraphContainer {
     displayedRows.forEach(row => {
       if (rowsPerId[row.concept_id]) {
         this.gd.specialConcepts.allButFirstOccurrence.push(row.rowPath);
-        if (graphOptions.specialConceptTreatment.allButFirstOccurrence) {
+        if (graphOptions.specialConceptTreatment.allButFirstOccurrence === 'hidden') {
           row.display.hideReasons.duplicate = true;
           row.display.result = 'hide';
         }
@@ -421,7 +422,7 @@ export class GraphContainer {
     const displayedConceptIds = uniq(displayedRows.map(r => r.concept_id));
     let displayOrder = 0;
     if (typeof(graphOptions.expandAll) === 'undefined') {
-      graphOptions.expandAll = this.allRows.length <= EXPAND_ALL_DEFAULT_THRESHOLD;
+      graphOptions.expandAll = allRows.length <= EXPAND_ALL_DEFAULT_THRESHOLD;
     }
     let displayOptions = {
       /*
@@ -452,7 +453,6 @@ export class GraphContainer {
         total: this.gd.specialConcepts.addedCids.length,
         hiddenConceptCnt: setOp('difference', this.gd.specialConcepts.addedCids, displayedConceptIds).length,
         displayedConceptCnt: setOp('intersection', this.gd.specialConcepts.addedCids, displayedConceptIds).length,
-        // specialTreatmentDefault: true,
         // specialTreatmentRule: 'show though collapsed',
       },
       definitionConcepts: {
@@ -460,19 +460,14 @@ export class GraphContainer {
         total: this.gd.specialConcepts.definitionConcepts.length,
         displayedConceptCnt: setOp('intersection', this.gd.specialConcepts.definitionConcepts, displayedConceptIds).length,
         hiddenConceptCnt: setOp('difference', this.gd.specialConcepts.definitionConcepts, displayedConceptIds).length,
-        // specialTreatmentDefault: false,
-        // specialTreatmentRule: 'show though collapsed',
+      },
+      nonDefinitionConcepts: {
+        name: "Non-definition concepts", displayOrder: displayOrder++,
+        total: this.gd.specialConcepts.nonDefinitionConcepts.length,
+        displayedConceptCnt: setOp('intersection', this.gd.specialConcepts.nonDefinitionConcepts, displayedConceptIds).length,
+        hiddenConceptCnt: setOp('difference', this.gd.specialConcepts.nonDefinitionConcepts, displayedConceptIds).length,
       },
       /*
-      nonDefinitionConcepts: {
-        name: "Expansion only concepts", displayOrder: displayOrder++,
-        total: this.gd.specialConcepts.nonDefinitionConcepts.length,
-        // total: uniq(flatten(Object.values(this.gd.csmi).map(Object.values)) .filter(c => c.csm).map(c => c.concept_id)).length,
-        displayedConceptCnt: setOp('intersection', this.gd.specialConcepts.expansionConcepts, displayedConceptIds).length,
-        hiddenConceptCnt: setOp('difference', this.gd.specialConcepts.expansionConcepts, displayedConceptIds).length,
-        specialTreatmentDefault: false,
-        specialTreatmentRule: 'hide though expanded',
-      },
       added: {
         name: "Added to compared", displayOrder: displayOrder++,
         total: get(this.gd.specialConcepts, 'added.length', undefined),
@@ -493,25 +488,29 @@ export class GraphContainer {
         total: this.gd.concepts.filter(c => c.standard_concept === 'S').length,
         displayedConceptCnt: setOp('intersection', this.gd.concepts.filter(c => c.standard_concept === 'S').map(d =>d.concept_id), displayedConceptIds).length,
         hiddenConceptCnt: setOp('difference', this.gd.concepts.filter(c => c.standard_concept === 'S').map(d =>d.concept_id), displayedConceptIds).length,
+        specialTreatmentDefault: 'shown',
       },
       classification: {
         name: "Classification concepts", displayOrder: displayOrder++,
         total: this.gd.concepts.filter(c => c.standard_concept === 'C').length,
+        displayedConceptCnt: setOp('intersection', this.gd.concepts.filter(c => c.standard_concept === 'C').map(d =>d.concept_id), displayedConceptIds).length,
+        hiddenConceptCnt: setOp('difference', this.gd.concepts.filter(c => c.standard_concept === 'C').map(d =>d.concept_id), displayedConceptIds).length,
+        specialTreatmentDefault: 'shown',
       },
       nonStandard: {
         name: "Non-standard", displayOrder: displayOrder++,
         total: this.gd.specialConcepts.nonStandard.length,
         displayedConceptCnt: setOp('intersection', this.gd.specialConcepts.nonStandard, displayedConceptIds).length,
-        hiddenConceptCnt:  setOp('intersection', this.gd.specialConcepts.nonStandard, this.hideThoughExpanded).length,
-        specialTreatmentDefault: false,
+        hiddenConceptCnt: setOp('difference', this.gd.specialConcepts.nonStandard, displayedConceptIds).length,
+        specialTreatmentDefault: 'shown',
         specialTreatmentRule: 'hide though expanded',
       },
       zeroRecord: {
         name: "Zero records / patients", displayOrder: displayOrder++,
         total: this.gd.specialConcepts.zeroRecord.length,
         displayedConceptCnt: setOp('intersection', this.gd.specialConcepts.zeroRecord, displayedConceptIds).length,
-        hiddenConceptCnt: setOp('intersection', this.gd.specialConcepts.zeroRecord, [...(this.hideThoughExpanded || [])]).length,
-        specialTreatmentDefault: false,
+        hiddenConceptCnt: setOp('difference', this.gd.specialConcepts.zeroRecord, displayedConceptIds).length,
+        specialTreatmentDefault: 'shown',
         specialTreatmentRule: 'hide though expanded',
       },
       allButFirstOccurrence: {
@@ -529,7 +528,7 @@ export class GraphContainer {
                                       .map(paths => paths.map(path => path.join('/'))))
           return [special, displayed];
         }, */
-        specialTreatmentDefault: true,
+        specialTreatmentDefault: 'hidden',
         specialTreatmentRule: 'hide though expanded',
       },
     }
