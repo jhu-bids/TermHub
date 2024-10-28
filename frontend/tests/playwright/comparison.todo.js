@@ -4,7 +4,11 @@ import {createSearchParams, useSearchParams, /* useLocation, Navigate, */ } from
 // const { test, expect } = require('@playwright/test');
 import {test, expect, } from '@playwright/test';
 
-import { GraphContainer, makeGraph, } from '../../src/state/GraphState';
+import {
+  ExpandState,
+  GraphContainer,
+  makeGraph,
+} from '../../src/state/GraphState';
 // import {graphOptionsInitialState, GraphOptionsProvider, useGraphOptions, } from '../../src/state/AppState';
 
 import singleSmallTestData from '../test-data/singleSmallGraph.json';
@@ -64,7 +68,7 @@ for (const envName in selectedConfigs) {
             gc,
             type: 'TOGGLE_NODE_EXPANDED',
             rowPath: '/' + firstRow.concept_id,
-            direction: 'expand',
+            direction: ExpandState.EXPAND,
           }));
 
           const result = await page.evaluate((/*{graphData, roots, firstRow}*/) => {

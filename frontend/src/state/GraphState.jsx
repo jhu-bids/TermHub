@@ -1,10 +1,135 @@
-import {cloneDeep, flatten, get, intersection, isEmpty, isEqual, sortBy, sum, uniq, set} from "lodash";
-import Graph from "graphology";
+import {
+  cloneDeep,
+  flatten,
+  get,
+  intersection,
+  set,
+  sortBy,
+  sum,
+  uniq,
+} from 'lodash';
+import Graph from 'graphology';
 // import {bidirectional} from 'graphology-shortest-path/unweighted';
 // import {dfsFromNode} from "graphology-traversal/dfs";
-import {setOp, } from "../utils";
+import {setOp} from '../utils';
 
 const EXPAND_ALL_DEFAULT_THRESHOLD = 2000;
+export class ExpandState {
+  static EXPAND = 'expand';
+  static COLLAPSE = 'collapse';
+  static EXPAND_ALL = 'expandAll';
+
+  static isValid(value) {
+    return [this.EXPAND, this.COLLAPSE, this.EXPAND_ALL].includes(value);
+  }
+}
+
+class ConceptClassVisibility {
+  static SHOWN = 'shown';
+  static HIDDEN = 'hidden';
+
+  static isValid(value) {
+    return [this.SHOWN, this.HIDDEN].includes(value);
+  }
+}
+
+class GraphOptionsActionType {
+  static TOGGLE_NODE_EXPANDED = 'TOGGLE_NODE_EXPANDED';
+  static TOGGLE_OPTION = 'TOGGLE_OPTION';
+  static TOGGLE_EXPAND_ALL = 'TOGGLE_EXPAND_ALL';
+  static RESET = 'reset';
+}
+
+export const graphOptionsInitialState = {
+  specialConceptTreatment: {
+    addedCids: ConceptClassVisibility.SHOWN,
+    definitionConcepts: ConceptClassVisibility.SHOWN,
+    nonDefinitionConcepts: ConceptClassVisibility.SHOWN,
+    standard: ConceptClassVisibility.SHOWN,
+    classification: ConceptClassVisibility.SHOWN,
+    nonStandard: ConceptClassVisibility.SHOWN,
+    zeroRecord: ConceptClassVisibility.SHOWN,
+    allButFirstOccurrence: ConceptClassVisibility.HIDDEN,
+  },
+  nested: true,
+  specificPaths: {}, // { '/123/456': ExpandState.EXPAND, '/234/567': ExpandState.COLLAPSE }
+  // expandAll is intentionally undefined until rows are displayed
+  // hideRxNormExtension: true,
+};
+
+export function graphOptionsReducer(state, action) {
+  if (!action?.type) return state;
+
+  let {type, rowPath, expandDescendants, specialConceptType} = action;
+  let graphOptions = action.graphOptions || state;
+
+  switch (type) {
+    case GraphOptionsActionType.TOGGLE_NODE_EXPANDED: {
+      const { direction } = action;
+      // will delete all when expandAll flips
+      // could have two sets of specificPaths, one for expandAll, one for not
+
+      if (!ExpandState.isValid(direction)) {
+        console.error(`Invalid direction for TOGGLE_NODE_EXPANDED: ${direction}`);
+        return state;
+      }
+
+      const specificPaths = { ...graphOptions.specificPaths };
+      const currentState = specificPaths[rowPath];
+
+      if (typeof currentState === 'undefined') {
+        specificPaths[rowPath] = direction;
+      } else {
+        if (!ExpandState.isValid(currentState) || currentState === direction) {
+          console.error(
+            `Invalid state transition: current=${currentState}, requested=${direction}`
+          );
+        }
+        delete specificPaths[rowPath];
+      }
+
+      return { ...graphOptions, specificPaths };
+    }
+    case GraphOptionsActionType.TOGGLE_OPTION: {
+      if (!specialConceptType) {
+        console.error('Missing specialConceptType for TOGGLE_OPTION');
+        return state;
+      }
+
+      const currentVisibility =
+        graphOptions.specialConceptTreatment[specialConceptType];
+
+      const newVisibility = currentVisibility === ConceptClassVisibility.HIDDEN
+        ? ConceptClassVisibility.SHOWN
+        : ConceptClassVisibility.HIDDEN;
+
+      return {
+        ...graphOptions,
+        specialConceptTreatment: {
+          ...graphOptions.specialConceptTreatment,
+          [specialConceptType]: newVisibility
+        }
+      };
+    }
+    case GraphOptionsActionType.TOGGLE_EXPAND_ALL:
+      return {
+        ...graphOptions,
+        expandAll: !graphOptions.expandAll,
+        specificPaths: {} // Reset paths when toggling expandAll
+        // could have two sets of specificPaths, one for expandAll, one for not
+      };
+    case 'reset': {
+      return action.resetValue;
+    }
+
+      /* OLD STUFF
+      case "nested": { return {...state, nested: action.nested} }
+      case "hideRxNormExtension": { return {...state, hideRxNormExtension: action.hideRxNormExtension} }
+      case "hideZeroCounts": { return {...state, hideZeroCounts: action.hideZeroCounts} } */
+  }
+  throw new Error("shouldn't get here");
+  return {...state, ...graphOptions};
+}
 
 // window.graphFuncs = {bidirectional, dfsFromNode};
 
@@ -206,9 +331,6 @@ export class GraphContainer {
           row.display.result = 'hide';
         }
       }
-      // 5a. Expand children of specificPaths: expand, but only for displayed rows
-
-      const hideThoughExpanded = new StringSet();
     }
 
     // Expand and collapse children based on user having clicked +/- on row
@@ -222,10 +344,7 @@ export class GraphContainer {
     // hide all HTE (non-standard, zero pt, expansion only)
     for (let type in graphOptions.specialConceptTreatment) {
       if (type === 'allButFirstOccurrence') continue; // handle this differently
-      if (
-          // get(this, ['graphDisplayConfig', type, 'specialTreatmentRule']) === 'hide though expanded' &&
-          graphOptions.specialConceptTreatment[type] === 'hidden'
-      ) {
+      if (graphOptions.specialConceptTreatment[type] === 'hidden') {
         // gather all the hideThoughExpanded ids
         this.gd.specialConcepts[type].forEach(id => {
           const rowsToHide = allRowsById.get(id) || [];
@@ -266,13 +385,18 @@ export class GraphContainer {
     // this.rowDisplay(rowToHide, graphOptions.specificPaths[rowToHide.rowPath], type)
     // TODO: don't hide if it has children that should be shown
     if (reason === 'specific') {
-      if (showHide === 'expand') {
+      if (showHide === ExpandState.EXPAND) {
         for (let childRow of this.getDescendantRows(rowIdx, allRows, 1)) {
           childRow.display.showReasons.childOfExpanded = true;
           childRow.display.result = 'show';
         }
-      } else if (showHide === 'collapse') {
-        for (let childRow of this.getDescendantRows(rowIdx, allRows)) {
+      } else if (showHide === ExpandState.EXPAND_ALL) {
+        for (let childRow of this.getDescendantRows(rowIdx, allRows, Infinity)) {
+          childRow.display.showReasons.childOfExpandAll = true;
+          childRow.display.result = 'show';
+        }
+      } else if (showHide === ExpandState.COLLAPSE) {
+        for (let childRow of this.getDescendantRows(rowIdx, allRows, Infinity)) {
           childRow.display.hideReasons.descendantOfCollapsed = rowIdx;
           childRow.display.result = 'hide';
         }
@@ -425,35 +549,19 @@ export class GraphContainer {
       graphOptions.expandAll = allRows.length <= EXPAND_ALL_DEFAULT_THRESHOLD;
     }
     let displayOptions = {
-      /*
-        displayOptions logic
-        See code for hidden-rows column in CsetComparisonPage StatsAndOptions
-        table.
-
-        If specialTreatmentRule is 'show though collapsed', then what we care
-        about are how many currently hidden rows will be shown if option is
-        turned on and how many currently shown rows will be hidden if option
-        is turned off.
-
-        If specialTreatmentRule is 'hide though expanded', then what we care
-        about are how many currently visible rows will be hidden if option is
-        turned on and how many currently hidden rows will be unhidden if option
-        is turned off.
+      /* displayOptions logic
        */
       concepts: {
         name: "All", displayOrder: displayOrder++,
         total: this.gd.concept_ids.length,
         hiddenConceptCnt: setOp('difference', this.gd.concept_ids, displayedConceptIds).length,
         displayedConceptCnt: setOp('intersection', this.gd.concept_ids, displayedConceptIds).length,
-        specialTreatmentRule: 'expandAll',
-        specialTreatmentDefault: false,
       },
       addedCids: {
         name: "Individually added concept_ids", displayOrder: displayOrder++,
         total: this.gd.specialConcepts.addedCids.length,
         hiddenConceptCnt: setOp('difference', this.gd.specialConcepts.addedCids, displayedConceptIds).length,
         displayedConceptCnt: setOp('intersection', this.gd.specialConcepts.addedCids, displayedConceptIds).length,
-        // specialTreatmentRule: 'show though collapsed',
       },
       definitionConcepts: {
         name: "Definition concepts", displayOrder: displayOrder++,
@@ -472,15 +580,11 @@ export class GraphContainer {
         name: "Added to compared", displayOrder: displayOrder++,
         total: get(this.gd.specialConcepts, 'added.length', undefined),
         hiddenConceptCnt: setOp('difference', this.gd.specialConcepts.added, displayedConceptIds).length,
-        // specialTreatmentDefault: false,
-        // specialTreatmentRule: 'show though collapsed',
       },
       removed: {
         name: "Removed from compared", displayOrder: displayOrder++,
         total: get(this.gd.specialConcepts, 'removed.length', undefined),
         hiddenConceptCnt: setOp('difference', this.gd.specialConcepts.removed, displayedConceptIds).length,
-        // specialTreatmentDefault: false,
-        // specialTreatmentRule: 'show though collapsed',
       },
        */
       standard: {
@@ -488,30 +592,24 @@ export class GraphContainer {
         total: this.gd.concepts.filter(c => c.standard_concept === 'S').length,
         displayedConceptCnt: setOp('intersection', this.gd.concepts.filter(c => c.standard_concept === 'S').map(d =>d.concept_id), displayedConceptIds).length,
         hiddenConceptCnt: setOp('difference', this.gd.concepts.filter(c => c.standard_concept === 'S').map(d =>d.concept_id), displayedConceptIds).length,
-        specialTreatmentDefault: 'shown',
       },
       classification: {
         name: "Classification concepts", displayOrder: displayOrder++,
         total: this.gd.concepts.filter(c => c.standard_concept === 'C').length,
         displayedConceptCnt: setOp('intersection', this.gd.concepts.filter(c => c.standard_concept === 'C').map(d =>d.concept_id), displayedConceptIds).length,
         hiddenConceptCnt: setOp('difference', this.gd.concepts.filter(c => c.standard_concept === 'C').map(d =>d.concept_id), displayedConceptIds).length,
-        specialTreatmentDefault: 'shown',
       },
       nonStandard: {
         name: "Non-standard", displayOrder: displayOrder++,
         total: this.gd.specialConcepts.nonStandard.length,
         displayedConceptCnt: setOp('intersection', this.gd.specialConcepts.nonStandard, displayedConceptIds).length,
         hiddenConceptCnt: setOp('difference', this.gd.specialConcepts.nonStandard, displayedConceptIds).length,
-        specialTreatmentDefault: 'shown',
-        specialTreatmentRule: 'hide though expanded',
       },
       zeroRecord: {
         name: "Zero records / patients", displayOrder: displayOrder++,
         total: this.gd.specialConcepts.zeroRecord.length,
         displayedConceptCnt: setOp('intersection', this.gd.specialConcepts.zeroRecord, displayedConceptIds).length,
         hiddenConceptCnt: setOp('difference', this.gd.specialConcepts.zeroRecord, displayedConceptIds).length,
-        specialTreatmentDefault: 'shown',
-        specialTreatmentRule: 'hide though expanded',
       },
       allButFirstOccurrence: {
         name: "All but first occurrence", displayOrder: displayOrder++,
@@ -528,15 +626,13 @@ export class GraphContainer {
                                       .map(paths => paths.map(path => path.join('/'))))
           return [special, displayed];
         }, */
-        specialTreatmentDefault: 'hidden',
-        specialTreatmentRule: 'hide though expanded',
       },
     }
     for (let type in displayOptions) {
       let displayOption = {...get(this, ['graphDisplayConfig', type], {}), ...displayOptions[type]};  // don't lose stuff previously set
       // if (typeof(displayOption.total) === 'undefined') // don't show displayOptions that don't represent any concepts
       if (! (displayOption.total > 0)) {  // addedCids was 0 instead of undefined. will this hide things that shouldn't be hidden?
-        console.log(`deleting ${type} from statsopts`);
+        // console.log(`deleting ${type} from statsopts`);
         delete displayOptions[type];
         continue;
       }

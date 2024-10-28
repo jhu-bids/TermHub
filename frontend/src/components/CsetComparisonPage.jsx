@@ -52,7 +52,7 @@ import {
   useGraphOptions, // useAppOptions,
   useNewCset, useCids, // useCompareOpt,
 } from '../state/AppState';
-import {GraphContainer} from '../state/GraphState';
+import {GraphContainer, ExpandState} from '../state/GraphState';
 import {getResearcherIdsFromCsets, useDataGetter} from '../state/DataGetter';
 import {LI} from './AboutPage';
 import {isEqual} from '@react-sigma/core';
@@ -644,7 +644,7 @@ function nodeToTree(node) { // Not using
   return [node, ...subTrees];
 }
 
-function getCollapseIconAndName(
+function getCollapseIconAndNameOLD(
     row, name, sizes, graphOptions, graphOptionsDispatch, gc) {
   let Component;
   let direction;
@@ -672,8 +672,97 @@ function getCollapseIconAndName(
               });
             }
           }
+          onDoubleClick={() => {
+            console.log('got a double click');
+          }}
           // TODO: capture long click or double click or something to expand descendants
           // onDoubleClick={() => graphOptionsDispatch({type: "TOGGLE_NODE_EXPANDED", payload: {expandDescendants: true, nodeId: row.concept_id}})}
+      >
+                <Component
+                    sx={{
+                      fontSize: sizes.collapseIcon,
+                      display: 'inline-flex',
+                      marginRight: '0.15rem',
+                      marginTop: '0.05rem',
+                      verticalAlign: 'top',
+                    }}
+                />
+        <span className="concept-name-text">{name}</span>
+      </span>
+  );
+}
+function getCollapseIconAndName(
+    row, name, sizes, graphOptions, graphOptionsDispatch, gc) {
+  let Component;
+  let direction;
+  if (graphOptions.specificPaths[row.rowPath] === ExpandState.COLLAPSE) {
+    // show (+) if this row is collapsed
+    Component = AddCircle;
+    direction = ExpandState.EXPAND;
+  } else if ( // show (-) if
+      // expandAll and not collapsed
+      ( graphOptions.expandAll &&
+        graphOptions.specificPaths[row.rowPath] !== ExpandState.COLLAPSE
+      )
+      // or expanded
+      || graphOptions.specificPaths[row.rowPath] === ExpandState.EXPAND
+      // or expand all
+      || graphOptions.specificPaths[row.rowPath] === ExpandState.EXPAND_ALL
+      // or child of expand all
+      || row.display.showReasons.childOfExpandAll
+  ) {
+    Component = RemoveCircleOutline;
+    direction = ExpandState.COLLAPSE;
+  } else {
+    // otherwise (+)
+    Component = AddCircle;
+    direction = ExpandState.EXPAND;
+  }
+
+  // Click handling variables
+  let clickTimeout = null;
+
+  const handleClick = (evt) => {
+    graphOptionsDispatch({
+      gc,
+      type: 'TOGGLE_NODE_EXPANDED',
+      rowPath: row.rowPath,
+      direction,
+    });
+    return;
+    // code for double clicking commented out. some weird edge cases and slight lag
+    if (clickTimeout) {
+      // If we get here, it's a double click
+      clearTimeout(clickTimeout);
+      clickTimeout = null;
+
+      // Handle double click - expand descendants
+      graphOptionsDispatch({
+        type: "TOGGLE_NODE_EXPANDED",
+        rowPath: row.rowPath,
+        direction: direction === ExpandState.EXPAND ? ExpandState.EXPAND_ALL : ExpandState.COLLAPSE,
+        gc
+      });
+    } else {
+      // Single click - wait to see if double click comes
+      clickTimeout = setTimeout(() => {
+        // If we get here, it was a single click
+        clickTimeout = null;
+        graphOptionsDispatch({
+          gc,
+          type: 'TOGGLE_NODE_EXPANDED',
+          rowPath: row.rowPath,
+          direction,
+        });
+      }, 200);
+    }
+  };
+
+  return (
+      <span
+          className="toggle-collapse concept-name-row"
+          onClick={handleClick}
+          // Remove onDoubleClick since we're handling it in onClick
       >
                 <Component
                     sx={{

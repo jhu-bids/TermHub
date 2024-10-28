@@ -1,23 +1,15 @@
-import React, {
-  createContext,
-  useContext,
-  useEffect,
-  useReducer,
-  useState,
-} from 'react';
+import React, {createContext, useContext, useState} from 'react';
 // import {PropTypes} from 'prop-types';
-import { fromPairs, get, isEmpty, isEqual, pick, cloneDeep, } from 'lodash';
+import {cloneDeep, fromPairs, isEmpty, isEqual, pick} from 'lodash';
 // import {compressToEncodedURIComponent} from "lz-string";
 // import {createPersistedReducer} from "./usePersistedReducer";
-import {
-  useSearchParamsState,
-  useSessionStorage,
-} from './StorageProvider';
-import { SOURCE_APPLICATION, SOURCE_APPLICATION_VERSION } from '../env';
-import { pct_fmt, setOp, } from '../utils';
+import {useSearchParamsState, useSessionStorage} from './StorageProvider';
+import {SOURCE_APPLICATION, SOURCE_APPLICATION_VERSION} from '../env';
+import {pct_fmt, setOp} from '../utils';
 // import Box from '@mui/material/Box';
 // import CircularProgress from '@mui/material/CircularProgress';
-import { useDataCache } from './DataCache';
+import {useDataCache} from './DataCache';
+import {graphOptionsInitialState, graphOptionsReducer} from './GraphState';
 // import Markdown from 'react-markdown';
 // import { Inspector } from 'react-inspector';
 
@@ -59,23 +51,6 @@ function appOptionsReducer(state, action) {
 }
 */
 
-
-export const graphOptionsInitialState = {
-    specialConceptTreatment: {
-      addedCids: 'shown',
-      definitionConcepts: 'shown',
-      nonDefinitionConcepts: 'shown',
-      standard: 'shown',
-      classification: 'shown',
-      nonStandard: 'shown',
-      zeroRecord: 'shown',
-      allButFirstOccurrence: 'hidden',
-    },
-    nested: true,
-    // hideRxNormExtension: true,
-    // hideZeroCounts: false,
-    specificPaths: {}, // like { '/123/456': 'expanded', '/234/567': 'collapsed' }
-};
 
 export const [GraphOptionsProvider, useGraphOptions] = makeProvider(
   { stateName: 'graphOptions',
@@ -163,76 +138,6 @@ function cidsReducer(state, action) {
   }
   return state;
 } */
-
-export function graphOptionsReducer(state, action) {
-  /* state: GraphOpts, action: {
-        type: string, graphOptions: GraphOpts, direction: string,
-        rowPath: string, specialConceptType: string, resetValue: GraphOpts, }) { */
-  if ( ! ( action || {} ).type ) return state;
-  // console.log('graphOptions action', action);
-  // let {collapsePaths, // collapsedDescendantPaths,
-  //   nested, hideRxNormExtension, hideZeroCounts} = {...unpersistedDefaultState, ...state};
-  let {type, rowPath, specialConceptType, } = action;
-
-  let graphOptions = get(action, 'graphOptions') || state;
-
-  switch (type) {
-    // case "graphOptions": { return {...state, graphOptions}; }
-    // took this from GraphState, but it still stores graphOptions state there as well as here
-
-    case 'NEW_GRAPH_OPTIONS':
-      return graphOptions;
-    case 'TOGGLE_NODE_EXPANDED': {
-      // will delete all when expandAll flips
-      // could have two sets of specificPaths, one for expandAll, one for not
-      const validValues = ['expand','collapse'];
-      if (!validValues.includes(action.direction)) {
-        console.error(`Invalid direction for TOGGLE_NODE_EXPANDED: ${action.direction}`);
-      }
-      let specificPaths = {...graphOptions.specificPaths};
-      let current = specificPaths[rowPath];
-      if (typeof(current) === 'undefined') {
-        // if no current expand/collapse for path, set it
-        specificPaths[rowPath] = action.direction;
-      } else {
-        // path has current state -- should be opposite of action.direction
-        //  so just delete it (to unexpand/uncollapse)
-        if (!validValues.includes(current)) {
-          console.error(`Invalid current state for path ${rowPath}: ${current}`);
-        }
-        if (current === action.direction) {
-          console.error(`Trying to ${action.direction} ${rowPath} but is already`);
-        }
-        delete specificPaths[rowPath];
-      }
-      graphOptions = { ...graphOptions, specificPaths};
-      break;
-    }
-    case 'TOGGLE_OPTION':
-      graphOptions = {...graphOptions, specialConceptTreatment: {
-        ...graphOptions.specialConceptTreatment,
-          [specialConceptType]:
-              graphOptions.specialConceptTreatment[specialConceptType] === 'hidden'
-              ? 'shown' : 'hidden'
-      }};
-      break;
-    case 'TOGGLE_EXPAND_ALL':
-      graphOptions = {...graphOptions, expandAll:!graphOptions.expandAll};
-      graphOptions.specificPaths = {};
-        // just start over when expandAll flips
-        // could have two sets of specificPaths, one for expandAll, one for not
-      break;
-    case "reset": {
-      return action.resetValue;
-    }
-
-      /* OLD STUFF
-      case "nested": { return {...state, nested: action.nested} }
-      case "hideRxNormExtension": { return {...state, hideRxNormExtension: action.hideRxNormExtension} }
-      case "hideZeroCounts": { return {...state, hideZeroCounts: action.hideZeroCounts} } */
-  }
-  return {...state, ...graphOptions};
-}
 
 /*
 if (process.env.NODE_ENV !== 'production') {

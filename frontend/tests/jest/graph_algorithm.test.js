@@ -1,5 +1,9 @@
-import {GraphContainer} from '../../src/state/GraphState';
-import { graphOptionsInitialState, graphOptionsReducer } from '../../src/state/AppState';
+import {
+  GraphContainer,
+  graphOptionsInitialState,
+  graphOptionsReducer,
+  ExpandState
+} from '../../src/state/GraphState';
 import { getSafeTestFunc, csetTestData} from '../testUtils';
 let safeTest;
 
@@ -47,7 +51,7 @@ describe.each(graphDataCases)('Graph algorithm tests for $test_name', (dataCase)
     const expandAction = { // Expand the first row
       type: 'TOGGLE_NODE_EXPANDED',
       rowPath: '/' + dataCase.firstRow.concept_id,
-      direction: 'expand'
+      direction: ExpandState.EXPAND,
     };
     graphOptions = graphOptionsReducer(graphOptions, expandAction);
     displayedRows = gc.getDisplayedRows(graphOptions, allRows, allRowsById);
@@ -63,7 +67,7 @@ describe.each(graphDataCases)('Graph algorithm tests for $test_name', (dataCase)
     let collapseAction = {
       type: 'TOGGLE_NODE_EXPANDED',
       rowPath: '/' + dataCase.firstRow.concept_id,
-      direction: 'collapse'
+      direction: ExpandState.COLLAPSE,
     };
     displayedRows = gc.getDisplayedRows(graphOptions, allRows, allRowsById);
     const displayedConceptIds = displayedRows.map(row => row.concept_id + '');
