@@ -49,6 +49,7 @@ export const graphOptionsInitialState = {
     classification: ConceptClassVisibility.SHOWN,
     nonStandard: ConceptClassVisibility.SHOWN,
     zeroRecord: ConceptClassVisibility.SHOWN,
+    rxNormExtension: ConceptClassVisibility.HIDDEN,
     allButFirstOccurrence: ConceptClassVisibility.HIDDEN,
   },
   nested: true,
@@ -610,6 +611,12 @@ export class GraphContainer {
         total: this.gd.specialConcepts.zeroRecord.length,
         displayedConceptCnt: setOp('intersection', this.gd.specialConcepts.zeroRecord, displayedConceptIds).length,
         hiddenConceptCnt: setOp('difference', this.gd.specialConcepts.zeroRecord, displayedConceptIds).length,
+      },
+      rxNormExtension: {
+        name: "RxNorm Extension", displayOrder: displayOrder++,
+        total: this.gd.specialConcepts.rxNormExtensionConcepts.length,
+        displayedConceptCnt: setOp('intersection', this.gd.specialConcepts.rxNormExtensionConcepts, displayedConceptIds).length,
+        hiddenConceptCnt: setOp('difference', this.gd.specialConcepts.rxNormExtensionConcepts, displayedConceptIds).length,
       },
       allButFirstOccurrence: {
         name: "All but first occurrence", displayOrder: displayOrder++,

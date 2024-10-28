@@ -138,6 +138,8 @@ export async function fetchGraphData(props) {
     csmi = {...csmi, ...newCset.definitions};
   }
 
+  const concepts = Object.values(conceptLookup);
+
   const definitionConcepts = uniq(flatten(
       Object.values(csmi).map(d => Object.values(d)),
   ).filter(d => d.item).map(d => d.concept_id));
@@ -145,6 +147,8 @@ export async function fetchGraphData(props) {
   const nonDefinitionConcepts = uniq(flatten(
       Object.values(csmi).map(d => Object.values(d)),
   ).filter(d => !d.item).map(d => d.concept_id));
+
+  const rxNormExtensionConcepts = concepts.filter(d => d.vocabulary_id === 'RxNorm Extension');
 
   let specialConcepts = {
     definitionConcepts: definitionConcepts.map(String),
@@ -156,9 +160,9 @@ export async function fetchGraphData(props) {
         filter(c => !c.total_cnt).
         map(c => c.concept_id)),
     addedCids: cids.map(String),
+    rxNormExtensionConcepts: rxNormExtensionConcepts.map(String),
   };
 
-  const concepts = Object.values(conceptLookup);
   return {
     ...graphData,
     concept_ids,
@@ -566,7 +570,7 @@ function StatsAndOptions(props) {
     },
     {
       name: 'State',
-      selector: (row) => graphOptions.specialConceptTreatment[row.type].toString(),
+      selector: (row) => (graphOptions.specialConceptTreatment[row.type] || '').toString(),
       width: 80,
       style: {justifyContent: 'right', paddingRight: 4},
     },
@@ -966,8 +970,8 @@ function getColDefs(props) {
       style: {justifyContent: 'right', paddingRight: 4},
     },
     {
-      // name: "Vocabulary",
-      headerProps: {
+      name: "Vocabulary",
+      /* headerProps: {
         headerContent: (
             concepts.some(d => d.vocabulary_id === 'RxNorm Extension')
                 ? <div style={{display: 'flex', flexDirection: 'column'}}>
@@ -989,8 +993,7 @@ function getColDefs(props) {
                 </div>
                 : 'Vocabulary'
         ),
-        // headerContentProps: { onClick: editCodesetFunc, codeset_id: cset_col.codeset_id, },
-      },
+      }, */
       selector: (row) => row.vocabulary_id,
       // format: (row) => <Tooltip label={row.vocabulary_id} content={row.vocabulary_id} />,
       sortable: !nested,
