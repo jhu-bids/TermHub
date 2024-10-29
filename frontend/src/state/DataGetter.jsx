@@ -157,7 +157,7 @@ export class DataGetter {
       apiResultShape: 'obj',
     },
     csets: {
-      expectedParams: [],	// codeset_ids
+      expectedParams: [],  // codeset_ids
       api: 'get-csets',
       makeQueryString: codeset_ids => 'codeset_ids=' + codeset_ids.join('|'), // pipe-delimited list
       protocols: ['get'],
@@ -167,17 +167,17 @@ export class DataGetter {
       apiResultShape: 'array of keyed obj',
     },
     cset_members_items: {
-      expectedParams: [],	// codeset_ids
+      expectedParams: [],  // codeset_ids
       api: 'get-cset-members-items',
       makeQueryString: codeset_ids => 'codeset_ids=' + codeset_ids.join('|'),
       protocols: ['get'],
       cacheSlice: 'cset_members_items',
       key: 'codeset_id.concept_id', // multipart key, requires splitting
       alertTitle: 'Get definition and expansion concepts (concept_set_members_items) for selected codeset_ids',
-      apiResultShape: 'array of keyed obj',	 //	[ {csmi}, {csmi}, ... ]
+      apiResultShape: 'array of keyed obj',   //  [ {csmi}, {csmi}, ... ]
       cacheShape: 'obj of obj of obj', // cache.cset_members_items[codeset_id][concept_id] = csmi obj
     },
-    concept_graph_new: {	// expects codeset_ids plus extra concept_ids (cids) if any requested
+    concept_graph_new: {  // expects codeset_ids plus extra concept_ids (cids) if any requested
       expectedParams: {},
       dataLengthFunc: params => params.codeset_ids.length + params.cids.length,
       api: 'concept-graph',
@@ -188,7 +188,7 @@ export class DataGetter {
       protocols: ['get', 'post'],
       cacheSlice: 'concept-graph',
       // TODO: this can't be right. why no codeset_ids in key func?
-      // 	singleKeyFunc: concept_ids => compress(concept_ids.join('|')),
+      //   singleKeyFunc: concept_ids => compress(concept_ids.join('|')),
       singleKeyFunc: ({codeset_ids = [], cids = []}) =>
           compress(codeset_ids.join('|') + ';' + cids.join('|')),
       alertTitle: 'Get subgraph for all listed code sets plus additional concept_ids (cids)',
@@ -197,7 +197,7 @@ export class DataGetter {
       // formatResultsFunc: edges => edges.map(edge => edge.map(String)), // might need this!!
     },
     concepts: {
-      expectedParams: [],	// concept_ids
+      expectedParams: [],  // concept_ids
       api: 'concepts',
       makeQueryString: concept_ids => createSearchParams({id: concept_ids}),
       protocols: ['get', 'post'],
@@ -236,7 +236,7 @@ export class DataGetter {
       expectOneResultRowPerKey: true,
     },
     codeset_ids_by_concept_id: {
-      expectedParams: [],	// concept_ids
+      expectedParams: [],  // concept_ids
       api: 'codeset-ids-by-concept-id',
       makeQueryString: concept_ids => createSearchParams(
           {concept_ids: concept_ids}),
@@ -247,7 +247,7 @@ export class DataGetter {
       apiResultShape: 'obj of array',
     },
     concept_ids_by_codeset_id: {
-      expectedParams: [],	// codeset_ids
+      expectedParams: [],  // codeset_ids
       api: 'concept-ids-by-codeset-id',
       makeQueryString: codeset_ids => createSearchParams(
           {codeset_ids: codeset_ids}),
@@ -258,7 +258,7 @@ export class DataGetter {
       apiResultShape: 'obj of array',
     },
     researchers: {
-      expectedParams: [],	// multipassIds
+      expectedParams: [],  // multipassIds
       api: 'researchers',
       cacheSlice: 'researchers',
       key: 'multipassId',
@@ -408,7 +408,7 @@ export class DataGetter {
     }
     const results = {...cachedItems, ...uncachedItems};
     return results;
-    // if (Array.isArray(data)) {}	get this code from oneToOneFetchAndCache
+    // if (Array.isArray(data)) {}  get this code from oneToOneFetchAndCache
     /*
     if (keyName) {
       if (keyName.split('.').length > 1) {
@@ -418,7 +418,7 @@ export class DataGetter {
       data.forEach(item => set(uncachedItems, item[keyName], item));
     } else {
       // was doing this for everything before but ending up with items assigned to the wrong keys sometimes
-      // 	going forward, the server should probably return everything in a keyed dict
+      //   going forward, the server should probably return everything in a keyed dict
       data.forEach((item, i) => uncachedItems[uncachedKeys[i]] = item);
     }
 
@@ -452,7 +452,7 @@ export class DataGetter {
     }
     if (shape === 'array') {
       let vals = Object.values(results);
-      if (keyName) {	// this was an attempt to fix things assigned to wrong keys, not sure if it's needed
+      if (keyName) {  // this was an attempt to fix things assigned to wrong keys, not sure if it's needed
         vals = sortBy(vals, d => d[keyName]);
       }
       return vals;
