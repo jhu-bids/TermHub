@@ -148,7 +148,7 @@ export async function fetchGraphData(props) {
       Object.values(csmi).map(d => Object.values(d)),
   ).filter(d => !d.item).map(d => d.concept_id));
 
-  const rxNormExtensionConcepts = concepts.filter(d => d.vocabulary_id === 'RxNorm Extension');
+  const rxNormExtension = concepts.filter(d => d.vocabulary_id === 'RxNorm Extension').map(d => d.concept_id);
 
   let specialConcepts = {
     definitionConcepts: definitionConcepts.map(String),
@@ -160,7 +160,7 @@ export async function fetchGraphData(props) {
         filter(c => !c.total_cnt).
         map(c => c.concept_id)),
     addedCids: cids.map(String),
-    rxNormExtensionConcepts: rxNormExtensionConcepts.map(String),
+    rxNormExtension: rxNormExtension.map(String),
   };
 
   return {
@@ -799,10 +799,8 @@ function getColDefs(props) {
     newCset, newCsetDispatch,
     setShowCsetCodesetId,
   } = props;
-  const {nested, hideRxNormExtension, hideZeroCounts} = graphOptions;
-  const {definitions = {}} = newCset;
+  const {nested, } = graphOptions;
 
-  const maxNameLength = max(displayedRows.map(d => d.concept_name.length));
   let coldefs = [
     {
       name: 'Concept name',
@@ -971,31 +969,7 @@ function getColDefs(props) {
     },
     {
       name: "Vocabulary",
-      /* headerProps: {
-        headerContent: (
-            concepts.some(d => d.vocabulary_id === 'RxNorm Extension')
-                ? <div style={{display: 'flex', flexDirection: 'column'}}>
-                  <div>Vocabulary</div>
-                  <div
-                      style={{fontSize: 'x-small'}}>({hidden.rxNormExtension} {hideRxNormExtension
-                      ? 'hidden'
-                      : ''} RxNorm
-                    Extension rows)
-                  </div>
-                  <Tooltip label="Toggle hiding of RxNorm Extension concepts">
-                    <Switch sx={{margin: '-8px 0px'}} checked={!hideRxNormExtension}
-                            onClick={() => graphOptionsDispatch({          // not currently being used
-                              type: 'hideRxNormExtension',
-                              hideRxNormExtension: !hideRxNormExtension,
-                            })}
-                    />
-                  </Tooltip>
-                </div>
-                : 'Vocabulary'
-        ),
-      }, */
       selector: (row) => row.vocabulary_id,
-      // format: (row) => <Tooltip label={row.vocabulary_id} content={row.vocabulary_id} />,
       sortable: !nested,
       width: 100,
       style: {justifyContent: 'center'},

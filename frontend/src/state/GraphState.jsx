@@ -125,8 +125,7 @@ export function graphOptionsReducer(state, action) {
 
       /* OLD STUFF
       case "nested": { return {...state, nested: action.nested} }
-      case "hideRxNormExtension": { return {...state, hideRxNormExtension: action.hideRxNormExtension} }
-      case "hideZeroCounts": { return {...state, hideZeroCounts: action.hideZeroCounts} } */
+      */
   }
   throw new Error("shouldn't get here");
   return {...state, ...graphOptions};
@@ -614,9 +613,9 @@ export class GraphContainer {
       },
       rxNormExtension: {
         name: "RxNorm Extension", displayOrder: displayOrder++,
-        total: this.gd.specialConcepts.rxNormExtensionConcepts.length,
-        displayedConceptCnt: setOp('intersection', this.gd.specialConcepts.rxNormExtensionConcepts, displayedConceptIds).length,
-        hiddenConceptCnt: setOp('difference', this.gd.specialConcepts.rxNormExtensionConcepts, displayedConceptIds).length,
+        total: this.gd.specialConcepts.rxNormExtension.length,
+        displayedConceptCnt: setOp('intersection', this.gd.specialConcepts.rxNormExtension, displayedConceptIds).length,
+        hiddenConceptCnt: setOp('difference', this.gd.specialConcepts.rxNormExtension, displayedConceptIds).length,
       },
       allButFirstOccurrence: {
         name: "All but first occurrence", displayOrder: displayOrder++,
