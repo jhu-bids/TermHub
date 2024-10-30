@@ -209,6 +209,11 @@ export function saveCsv(rows, columns, filename, config=null, tsv = false) {
 
 export function setOp(op, setA, setB, transform = d => d) {
   /*
+   * Convenience function to perform set operations using == instead of ===
+   *    mostly because concept_ids are sometimes strings, sometimes ints.
+   *    It can go really slow. And -- weirdly, union with a large setA and empty
+   *    setB can take a surprisingly long time.
+   *
    * setOp(op, setA, setB)
    *   - op: one of union, difference, intersection
    *   - setA, setB: can be an array, Set, or Iterator (like you get from map.keys())

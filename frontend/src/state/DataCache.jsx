@@ -1,7 +1,12 @@
-import {createContext, useContext,} from "react";
+import {createContext, useContext, useEffect, useState, useRef, } from "react";
 import {LRUCache} from 'lru-cache'; // https://isaacs.github.io/node-lru-cache
 import {debounce, get, isEmpty, setWith, } from 'lodash';
 import {compress, decompress} from "lz-string";
+import {useCids, useCodesetIds} from './AppState';
+
+const STOP_CACHING = 50 * 10**6;
+const START_EMPTYING_CACHE = 20 * 10**6;
+const OPTIMIZATION_EXPERIMENT = ''; // 'no_cache';
 
 /*
     TODO: get LRU cache working, one cache for each itemType, probably
@@ -11,21 +16,56 @@ import {compress, decompress} from "lz-string";
 const DataCacheContext = createContext(null);
 
 export function DataCacheProvider({children}) {
-  // let {optimization_experiment} = ...;
-  const dataCache = new DataCache({optimization_experiment: ''});
-  // optimization_experiment = optimization_experiment || 'no_cache'; // TURN OFF CACHING by uncommenting
+  const [codeset_ids] = useCodesetIds();
+  const [cids] = useCids();
+  const dataCacheRef = useRef(null);
+  const [isInitialized, setIsInitialized] = useState(false);
 
-    // Only add event listener if window is defined (i.e., in a browser environment)
-    if (typeof window !== 'undefined') {
-    window.addEventListener("beforeunload", dataCache.saveCache);
-    window.dataCacheW = dataCache; // for debugging
+  // Initialize the DataCache instance once
+  useEffect(() => {
+    if (!dataCacheRef.current) {
+      const initialSelectState = codeset_ids.join(',') + ';' + cids.join(',');
+      dataCacheRef.current = new DataCache({
+        optimization_experiment: OPTIMIZATION_EXPERIMENT,
+        selectState: initialSelectState
+      });
+
+      // Only add event listener if window is defined
+      if (typeof window !== 'undefined') {
+        window.addEventListener("beforeunload", dataCacheRef.current.saveCache);
+        window.dataCacheW = dataCacheRef.current; // for debugging
+      }
+
+      setIsInitialized(true);
     }
+  }, []); // Empty dependency array ensures this runs once
 
-    return (
-    <DataCacheContext.Provider value={dataCache}>
+  // Update the cache when dependencies change
+  useEffect(() => {
+    if (dataCacheRef.current) {
+      const newSelectState = codeset_ids.join(',') + ';' + cids.join(',');
+      dataCacheRef.current.setSelectState(newSelectState);
+    }
+  }, [codeset_ids, cids]);
+
+  // Cleanup event listener
+  useEffect(() => {
+    return () => {
+      if (typeof window !== 'undefined' && dataCacheRef.current) {
+        window.removeEventListener("beforeunload", dataCacheRef.current.saveCache);
+      }
+    };
+  }, []);
+
+  if (!isInitialized) {
+    return null; // or a loading indicator if preferred
+  }
+
+  return (
+    <DataCacheContext.Provider value={dataCacheRef.current}>
       {children}
     </DataCacheContext.Provider>
-    );
+  );
 }
 
 export function useDataCache() {
@@ -38,7 +78,12 @@ class DataCache {
 
   constructor(opts) {
     this.optimization_experiment = opts.optimization_experiment;
+    this.selectState = opts.selectState;  // will be codeset_ids;cids
     this.loadCache();
+  }
+
+  setSelectState(selectState) {
+    this.selectState = selectState;
   }
 
   getWholeCache() {
@@ -189,15 +234,14 @@ class DataCache {
   }
 
   cachePut(path, value, save=true) {
-    // console.log(`ignoring cachePut ${path}`);
-    // console.log(`ignoring cachePut ${path.map(p => p.substring(0, 40)).join('/')}`);
-
     if (this.optimization_experiment === 'no_cache') {
       return;
     }
 
+    // setWith(..., Object) in order to create objects instead of arrays even with numeric keys
     setWith(this.#cache, path, value, Object);
     if (save) {
+      // this.addCacheHistoryEvent()
       this.saveCache();
     }
   }

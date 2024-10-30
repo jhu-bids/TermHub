@@ -3,7 +3,7 @@ import DataTable, { createTheme } from 'react-data-table-component';
 import { styles } from './CsetComparisonPage';
 
 import { useDataGetter, DataGetter } from '../state/DataGetter';
-import { sum, set, uniq, flatten, debounce, isEmpty } from 'lodash';
+import { sum, set, uniq, flatten, debounce, isEmpty, union, difference, intersection, } from 'lodash';
 import { setColDefDimensions } from './dataTableUtils';
 import { useWindowSize } from '../utils';
 import { useCids, useCodesetIds } from '../state/AppState';
@@ -84,7 +84,7 @@ function getColDefs(windowSize) {
     let coldefs = columns.map(d => ({ ...d }));
     const totalWidthOfOthers = sum(coldefs.map(d => d.width || d.maxWidth));
     coldefs[0].width = // Math.min(totalWidthOfOthers * 1.5,
-        windowSize[0] - totalWidthOfOthers - 30; // not sure why it's different from CsetComparisonPage.js where it's -3
+        windowSize[0] - totalWidthOfOthers - 100; // not sure why it's different from CsetComparisonPage.js where it's -3
 // coldefs.forEach(d => {delete d.width; d.flexGrow=1;})
 // coldefs[0].grow = 5;
 // delete coldefs[0].width;
@@ -97,6 +97,50 @@ export function AddConcepts() {
 
 }
 
+// Create debounced function outside component to avoid recreating it
+const debouncedSearch = debounce(async (
+  searchText,
+  dataGetter,
+  signal,
+  onResult
+) => {
+  try {
+    const r = await dataGetter.fetchAndCacheItems(
+      dataGetter.apiCalls.concept_search,
+      searchText,
+      { signal }
+    );
+    onResult(r);
+  } catch (err) {
+    if (err.name === 'AbortError') return;
+    throw err;
+  }
+}, 700);
+
+function useSearch(searchText, dataGetter) {
+  const [foundConceptIds, setFoundConceptIds] = useState([]);
+
+  useEffect(() => {
+    if (searchText.length < 3) return;
+
+    const controller = new AbortController();
+
+    debouncedSearch(
+      searchText,
+      dataGetter,
+      controller.signal,
+      setFoundConceptIds
+    );
+
+    return () => {
+      controller.abort();
+      debouncedSearch.cancel();
+    };
+  }, [searchText, dataGetter]);
+
+  return foundConceptIds;
+}
+
 // from https://stackoverflow.com/a/66167322/1368860
 function ConceptStringSearch() {
     const dataGetter: DataGetter = useDataGetter();
@@ -105,15 +149,16 @@ function ConceptStringSearch() {
     const [searchText, setSearchText] = React.useState('');
     const c: number[] = [];
     const [have_concept_ids, setHaveConceptIds] = React.useState(c);
-    const [found_concept_ids, setFoundConceptIds] = React.useState(c);
+    // const [found_concept_ids, setFoundConceptIds] = React.useState(c);
     const lastRequest = React.useRef(null);
     const addCidsFieldRef = useRef(null);
     const windowSize = useWindowSize();
 
+    const found_concept_ids = useSearch(searchText, dataGetter);
     // this effect will be fired every time searchText changes
-    React.useEffect(() => {
+    /* React.useEffect(() => {
         debounce(async () => {
-            // setting min lenght for searchText
+            // setting min length for searchText
             // console.log(`processing search text: ${searchText}`);
             if (searchText.length >= 3) {
                 // updating the ref variable with the current searchText
@@ -126,7 +171,7 @@ function ConceptStringSearch() {
                 }
             }
         }, 700)();
-    }, [searchText]);
+    }, [searchText]); */
 
     React.useEffect(() => {
         (async () => {
@@ -134,20 +179,19 @@ function ConceptStringSearch() {
             const csmi: {
                 [key: number]: Concept
             } = await dataGetter.fetchAndCacheItems(dataGetter.apiCalls.cset_members_items, codeset_ids);
-            let h = uniq(flatten(
-                Object.values(csmi).map(d => Object.values(d)),
-            )); // .filter(d => d.item).map(d => d.concept_id));
-            // let h = Object.values(csmi).map(c => c.concept_id);
-            h = setOp('union', h, cids);
+            let h = uniq(flatten(Object.values(csmi).map(d => Object.values(d).map(d => d.concept_id))));
+            // h = setOp('union', h, cids); // really slow with big set of concepts
+            //  replicate: http://localhost:3000/add-concepts?codeset_ids=265005208&codeset_ids=246957665&codeset_ids=894796651&codeset_ids=588335259
+            h = union(h, cids);
             setHaveConceptIds(h);
         })();
     }, [codeset_ids, cids]);
 
     const paddingLeft = 100, paddingRight = 100;
     const padding = paddingLeft + paddingRight;
-    const divWidth = Math.min(windowSize[0], 1300) - padding;
-    const displayConceptIds = setOp('difference', found_concept_ids, have_concept_ids);
-    const hiddenMatches = setOp('intersection', found_concept_ids, have_concept_ids);
+    const divWidth = Math.min(windowSize[0], 1900) - padding;
+    const displayConceptIds = difference(found_concept_ids, have_concept_ids);
+    const hiddenMatches = intersection(found_concept_ids, have_concept_ids);
     return (
         <div style={{ paddingLeft, paddingRight, width: divWidth }}>
             <h1>Concept Search</h1>
@@ -192,7 +236,7 @@ function FoundConceptTable(props) {
     let { displayConceptIds, divWidth } = props;
     const [cids, cidsDispatch] = useCids();
     const dataGetter = useDataGetter();
-    const c: Concept[] = [];
+    const c = [];
     const [concepts, setConcepts] = useState(c);
     const [loading, setLoading] = useState(false);
     const totalRows = displayConceptIds.length;
@@ -201,30 +245,28 @@ function FoundConceptTable(props) {
     let customStyles = styles(1);
     set(customStyles, 'cells.style.padding', '0px 5px 0px 5px');
 
-    const fetchConcepts = async page => {
+    const fetchConcepts = async (page, rowsPerPage) => {
         setLoading(true);
-        let ids = displayConceptIds.slice(page - 1, perPage);
+        const startIndex = (page - 1) * rowsPerPage;
+        const endIndex = startIndex + rowsPerPage;
+        let ids = displayConceptIds.slice(startIndex, endIndex);
         let conceptLookup = await dataGetter.fetchAndCacheItems(dataGetter.apiCalls.concepts, ids);
-        console.log(`fetched ${ids} concepts`);
         const _concepts = ids.map(id => conceptLookup[id]);
         setConcepts(_concepts);
         setLoading(false);
     };
+
     const handlePageChange = page => {
-        fetchConcepts(page);
+        fetchConcepts(page, perPage);
     };
+
     const handlePerRowsChange = async (newPerPage, page) => {
-        setLoading(true);
-        let ids = displayConceptIds.slice(page - 1, page - 1 + perPage);
-        let conceptLookup = await dataGetter.fetchAndCacheItems(dataGetter.apiCalls.concepts, ids);
-        const _concepts = ids.map(id => conceptLookup[id]);
-        setConcepts(_concepts);
         setPerPage(newPerPage);
-        setLoading(false);
+        fetchConcepts(page, newPerPage);
     };
+
     useEffect(() => {
-        fetchConcepts(1); // fetch page 1 of users
-        // eslint-disable-next-line react-hooks/exhaustive-deps
+        fetchConcepts(1, perPage);
     }, [displayConceptIds]);
 
     if (isEmpty(displayConceptIds)) {
@@ -232,13 +274,12 @@ function FoundConceptTable(props) {
     }
 
     const handleSelectedRows = ({ selectedRows }) => {
-        // cidsDispatch(setOp('union', cids, selectedRows.map(row => row.concept_id)));
         cidsDispatch({ type: 'add', cids: selectedRows.map(row => row.concept_id)});
     };
+
     return <DataTable
         customStyles={customStyles}
-        // title="Users"
-        columns={getColDefs([divWidth, 1234])} // need an array here but don't need the height
+        columns={getColDefs([divWidth, 1234])}
         data={concepts}
         selectableRows
         onSelectedRowsChange={handleSelectedRows}
@@ -246,12 +287,11 @@ function FoundConceptTable(props) {
         pagination
         paginationServer
         paginationTotalRows={totalRows}
-        // onChangeRowsPerPage={handlePerRowsChange}
+        paginationRowsPerPageOptions={[20, 50, 100]}
+        onChangeRowsPerPage={handlePerRowsChange}
         onChangePage={handlePageChange}
         dense
         className="comparison-data-table"
-        // theme="light"
-
     />;
 }
 

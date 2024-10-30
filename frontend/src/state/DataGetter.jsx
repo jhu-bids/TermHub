@@ -393,7 +393,6 @@ export class DataGetter {
         returnData.forEach(obj => {
           let keys = apiDef.key.split('.').map(k => obj[k]);
           setWith(uncachedItems, keys, obj, Object);
-          // setWith(..., Object) in order to create objects instead of arrays even with numeric keys
           dataCache.cachePut([apiDef.cacheSlice, ...keys], obj);
         });
       } else if (apiDef.apiResultShape === 'obj of array' ||
