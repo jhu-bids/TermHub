@@ -155,23 +155,6 @@ function ConceptStringSearch() {
     const windowSize = useWindowSize();
 
     const found_concept_ids = useSearch(searchText, dataGetter);
-    // this effect will be fired every time searchText changes
-    /* React.useEffect(() => {
-        debounce(async () => {
-            // setting min length for searchText
-            // console.log(`processing search text: ${searchText}`);
-            if (searchText.length >= 3) {
-                // updating the ref variable with the current searchText
-                lastRequest.current = searchText;
-                const r = await dataGetter.fetchAndCacheItems(dataGetter.apiCalls.concept_search, searchText);
-                if (lastRequest.current === searchText) {
-                    setFoundConceptIds(r);
-                } else {
-                    // console.log("discarding api response", searchText, lastRequest.current);
-                }
-            }
-        }, 700)();
-    }, [searchText]); */
 
     React.useEffect(() => {
         (async () => {
