@@ -269,17 +269,12 @@ export function ConceptSetsPage () {
 
       let selected_csets = dataGetter.fetchAndCacheItems(
         dataGetter.apiCalls.csets, codeset_ids);
-      // returnFunc: results => [...Object.values(results)]; // isn't this the same as shape: 'array'?
-      let concept_ids = dataGetter.fetchAndCacheItems(
-        dataGetter.apiCalls.concept_ids_by_codeset_id, codeset_ids);
-      // returnFunc: results => union(flatten(Object.values(results)))
 
-      concept_ids = await concept_ids;
-      concept_ids = uniq(flatten(Object.values(await concept_ids)));
-      // setData(current => ({...current, concept_ids}));
+      let csmi = await dataGetter.fetchAndCacheItems(dataGetter.apiCalls.cset_members_items, codeset_ids);
+
+      let concept_ids = flatten(Object.values(csmi).map(d => Object.values(d))).map(d => d.concept_id);
 
       all_csets = await all_csets;
-      // setData(current => ({...current, all_csets, }));
 
       let relatedCsetConceptCounts = await dataGetter.axiosCall(
           'related-cset-concept-counts',

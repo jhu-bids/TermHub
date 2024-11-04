@@ -70,9 +70,6 @@ export async function fetchGraphData(props) {
     dataGetter.fetchAndCacheItems(dataGetter.apiCalls.csets, codeset_ids),
   ];
   // have to get concept_ids before fetching concepts
-  // const concept_ids_by_codeset_id = await dataGetter.fetchAndCacheItems(dataGetter.apiCalls.concept_ids_by_codeset_id, codeset_ids);
-  // let concept_ids = union(flatten(Object.values(concept_ids_by_codeset_id)));
-
   const graphData = await dataGetter.fetchAndCacheItems(
       dataGetter.apiCalls.concept_graph_new,
       {codeset_ids: codeset_ids || [], cids: cids || []});

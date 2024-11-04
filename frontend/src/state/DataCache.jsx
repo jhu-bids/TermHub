@@ -1,13 +1,15 @@
-import { LRUCache } from 'lru-cache';
-import { compress, decompress } from "lz-string";
-import { isEmpty } from 'lodash';
-import {createContext, useContext, useEffect, useRef, useState} from 'react';
+import { createContext, useContext, useEffect, useState, useRef } from "react";
 import {useCids, useCodesetIds} from './AppState';
+import { LRUCache } from 'lru-cache'; // https://isaacs.github.io/node-lru-cache
+// import { debounce, get, isEmpty, setWith } from 'lodash';
+import {fromPairs, map} from 'lodash';
+import { compress, decompress } from "lz-string";
 
 const CACHE_CONFIG = {
   MAX_STORAGE_SIZE: 50 * 10**6,
   WARN_STORAGE_SIZE: 20 * 10**6,
-  DEFAULT_TTL: 24 * 60 * 60 * 1000,
+  DEFAULT_TTL: 24 * 60 * 60 * 1000, // 24 hours in milliseconds
+  OPTIMIZATION_EXPERIMENT: '', // 'no-cache',
 };
 
 const DataCacheContext = createContext(null);
@@ -22,12 +24,10 @@ export function DataCacheProvider({children}) {
   useEffect(() => {
     if (!dataCacheRef.current) {
       const initialSelectState = codeset_ids.join(',') + ';' + cids.join(',');
-      /* dataCacheRef.current = new DataCache({
-        optimization_experiment: OPTIMIZATION_EXPERIMENT,
+      dataCacheRef.current = new DataCache({
+        optimization_experiment: CACHE_CONFIG.OPTIMIZATION_EXPERIMENT,
         selectState: initialSelectState
-      }); */
-
-      dataCacheRef.current = new MonitoredCache();
+      });
 
       // Only add event listener if window is defined
       if (typeof window !== 'undefined') {
@@ -71,311 +71,130 @@ export function useDataCache() {
   return useContext(DataCacheContext);
 }
 
-class CacheStats {
-  constructor() {
-    this.reset();
+class DataCache {
+  constructor(opts) {
+    this.selectState = opts.selectState;
+    this.lruCaches = new Map(); // Create separate LRU caches for each slice
+    this.memoryCache = new Map(); // Main memory cache for frequently accessed data
+    this.sizeTracker = new Map(); // Keep track of compressed sizes
+    this.accessTimes = new Map();
+    this.writeTimes = new Map();
+    this.initializeCache();
   }
 
-  reset() {
-    this.operations = {
-      get: { count: 0, timeTotal: 0, hits: 0, misses: 0, sizes: [] },
-      put: { count: 0, timeTotal: 0, sizes: [] },
-      compress: { count: 0, timeTotal: 0, ratios: [] },
-      decompress: { count: 0, timeTotal: 0 }
-    };
+  initializeCache() {
+    try {
+      // Load existing keys and their metadata from localStorage
+      for (let i = 0; i < localStorage.length; i++) {
+        const key = localStorage.key(i);
+        if (key.startsWith('_')) { // Using your encoded slice prefix
+          const compressed = localStorage.getItem(key);
+          const size = compressed.length;
+          this.sizeTracker.set(key, size);
 
-    // Track by API endpoint and cache slice
-    this.byEndpoint = new Map();
-    this.bySlice = new Map();
-  }
-
-  trackOperation(opType, details) {
-    const { slice, endpoint, size, time, hit } = details;
-    const startTime = performance.now();
-
-    // Update general stats
-    const opStats = this.operations[opType];
-    opStats.count++;
-    opStats.timeTotal += time;
-    if (size) opStats.sizes.push(size);
-
-    if (opType === 'get') {
-      if (hit) opStats.hits++;
-      else opStats.misses++;
-    }
-
-    // Track by endpoint
-    if (endpoint) {
-      if (!this.byEndpoint.has(endpoint)) {
-        this.byEndpoint.set(endpoint, {
-          gets: { count: 0, hits: 0, misses: 0 },
-          puts: { count: 0 },
-          totalSize: 0,
-          avgTime: 0,
-          totalTime: 0
-        });
-      }
-
-      const endpointStats = this.byEndpoint.get(endpoint);
-      endpointStats.totalTime += time;
-      endpointStats.avgTime = endpointStats.totalTime / (endpointStats.gets.count + endpointStats.puts.count);
-
-      if (opType === 'get') {
-        endpointStats.gets.count++;
-        if (hit) endpointStats.gets.hits++;
-        else endpointStats.gets.misses++;
-      } else if (opType === 'put') {
-        endpointStats.puts.count++;
-        if (size) endpointStats.totalSize += size;
-      }
-    }
-
-    // Track by cache slice
-    if (slice) {
-      if (!this.bySlice.has(slice)) {
-        this.bySlice.set(slice, {
-          itemCount: 0,
-          totalSize: 0,
-          gets: { count: 0, hits: 0, misses: 0 },
-          puts: { count: 0 }
-        });
-      }
-
-      const sliceStats = this.bySlice.get(slice);
-      if (opType === 'get') {
-        sliceStats.gets.count++;
-        if (hit) sliceStats.gets.hits++;
-        else sliceStats.gets.misses++;
-      } else if (opType === 'put') {
-        sliceStats.puts.count++;
-        if (size) {
-          sliceStats.totalSize += size;
-          sliceStats.itemCount++;
+          // Try to load metadata
+          try {
+            const meta = localStorage.getItem(`meta:${key}`);
+            if (meta) {
+              const { writeTime, accessTime } = JSON.parse(meta);
+              if (writeTime) this.writeTimes.set(key, writeTime);
+              if (accessTime) this.accessTimes.set(key, accessTime);
+            }
+          } catch (error) {
+            console.error(`Failed to load metadata for ${key}:`, error);
+          }
         }
       }
+    } catch (error) {
+      console.error('Failed to initialize cache:', error);
     }
-  }
-
-  getReport() {
-    const report = {
-      operations: {},
-      byEndpoint: {},
-      bySlice: {},
-      summary: {
-        totalSize: 0,
-        hitRate: 0,
-        mostAccessedEndpoints: [],
-        largestSlices: []
-      }
-    };
-
-    // Process operations stats
-    for (const [opType, stats] of Object.entries(this.operations)) {
-      report.operations[opType] = {
-        count: stats.count,
-        avgTime: stats.count ? stats.timeTotal / stats.count : 0,
-        totalTime: stats.timeTotal
-      };
-
-      if (opType === 'get') {
-        report.operations[opType].hitRate = stats.count ? stats.hits / stats.count : 0;
-      }
-    }
-
-    // Process endpoint stats
-    for (const [endpoint, stats] of this.byEndpoint.entries()) {
-      report.byEndpoint[endpoint] = {
-        hitRate: stats.gets.count ? stats.gets.hits / stats.gets.count : 0,
-        avgTime: stats.avgTime,
-        totalSize: stats.totalSize,
-        gets: stats.gets,
-        puts: stats.puts
-      };
-    }
-
-    // Process slice stats
-    for (const [slice, stats] of this.bySlice.entries()) {
-      report.bySlice[slice] = {
-        itemCount: stats.itemCount,
-        totalSize: stats.totalSize,
-        hitRate: stats.gets.count ? stats.gets.hits / stats.gets.count : 0
-      };
-      report.summary.totalSize += stats.totalSize;
-    }
-
-    return report;
-  }
-}
-
-class MonitoredCache {
-  constructor() {
-    this.storage = new Map();
-    this.stats = new CacheStats();
-    this.loadFromStorage();
-  }
-
-    constructor() {
-    this.storage = new Map();
-    this.stats = new CacheStats();
-
-    // Configure which slices should be stored as collections
-    this.collectionSlices = new Set([
-      'codeset_ids_by_concept_id',
-      'concept_ids_by_codeset_id',
-      'concepts',
-      'cset_members_items'
-    ]);
-
-    this.loadFromStorage();
-  }
-
-  isCollectionSlice(path) {
-    const slice = Array.isArray(path) ? path[0] : path.split(':')[0];
-    return this.collectionSlices.has(slice);
   }
 
   async cacheGet(path) {
-    const startTime = performance.now();
-    const key = Array.isArray(path) ? path.join(':') : path;
-    const slice = Array.isArray(path) ? path[0] : path.split(':')[0];
+    const {slice, sliceCode, key} = this.pathToKey(path);
+    return this.cacheGetSliceKey(slice, key);
+  }
 
+  async cacheGetSliceKey(slice, key) {
+    const now = Date.now();
     let value;
-    let hit = false;
 
-    if (this.isCollectionSlice(path)) {
-      // For collection slices, get the whole collection and extract the needed item
-      const collectionKey = `cache:${slice}`;
-      try {
-        // Try memory first
-        let collection = this.storage.get(slice);
-
-        if (!collection) {
-          // Try localStorage
-          const compressed = localStorage.getItem(collectionKey);
-          if (compressed) {
-            const decompressStart = performance.now();
-            collection = JSON.parse(decompress(compressed));
-            this.stats.trackOperation('decompress', {
-              time: performance.now() - decompressStart,
-              slice
-            });
-
-            // Store in memory
-            this.storage.set(slice, collection);
-          }
-        }
-
-        if (collection) {
-          hit = true;
-          // Extract the specific item if a longer path was provided
-          if (path.length > 1) {
-            value = path.slice(1).reduce((obj, key) => obj?.[key], collection);
-          } else {
-            value = collection;
-          }
-        }
-      } catch (error) {
-        console.error(`Failed to retrieve cached collection for ${slice}:`, error);
-      }
+    // Try memory cache first
+    if (this.memoryCache.has(key)) {
+      value = this.memoryCache.get(key);
     } else {
-      // For non-collection slices, use the original direct item storage
-      try {
-        // Try memory first
-        value = this.storage.get(key);
-        if (value !== undefined) {
-          hit = true;
-        } else {
-          // Try localStorage
-          const compressed = localStorage.getItem(`cache:${key}`);
-          if (compressed) {
-            const decompressStart = performance.now();
-            value = JSON.parse(decompress(compressed));
-            this.stats.trackOperation('decompress', {
-              time: performance.now() - decompressStart,
-              slice
-            });
+      // Try LRU cache next
+      const lruCache = this.getLRUCache(slice);
+      value = lruCache.get(key);
 
-            // Store in memory
-            this.storage.set(key, value);
-            hit = true;
+      if (value === undefined) {
+        // Finally, try localStorage
+        try {
+          const compressed = localStorage.getItem(key);
+          if (compressed) {
+            value = JSON.parse(decompress(compressed));
+
+            // Store in memory cache if it's small enough
+            if (compressed.length < 1000) {
+              this.memoryCache.set(key, value);
+            }
+
+            // Store in LRU cache
+            lruCache.set(key, value);
           }
+        } catch (error) {
+          console.error(`Failed to retrieve cached value for ${key}:`, error);
         }
-      } catch (error) {
-        console.error(`Failed to retrieve cached value for ${key}:`, error);
       }
     }
 
-    this.stats.trackOperation('get', {
-      slice,
-      endpoint: this.getCurrentEndpoint(),
-      size: value ? JSON.stringify(value).length : 0,
-      time: performance.now() - startTime,
-      hit
-    });
+    // Update access time if we found a value
+    if (value !== undefined) {
+      this.accessTimes.set(key, now);
+      // Update metadata in localStorage
+      this.updateMetadata(key);
+    }
 
     return value;
   }
 
-  async cachePut(path, value) {
-    const startTime = performance.now();
-    const key = Array.isArray(path) ? path.join(':') : path;
-    const slice = Array.isArray(path) ? path[0] : path.split(':')[0];
+  async cachePut(path, value, options = {}) {
+    const {slice, sliceCode, key} = this.pathToKey(path);
+    const now = Date.now();
 
     try {
-      if (this.isCollectionSlice(path)) {
-        // For collection slices, update the item in the collection
-        let collection = this.storage.get(slice) || {};
+      // Compress the value
+      const serialized = JSON.stringify(value);
+      const compressed = compress(serialized);
 
-        if (path.length > 1) {
-          // Update specific item in collection
-          let current = collection;
-          for (let i = 1; i < path.length - 1; i++) {
-            current[path[i]] = current[path[i]] || {};
-            current = current[path[i]];
-          }
-          current[path[path.length - 1]] = value;
-        } else {
-          // Update entire collection
-          collection = value;
-        }
+      // Check size
+      const size = compressed.length;
+      const totalSize = Array.from(this.sizeTracker.values()).reduce((a, b) => a + b, 0) + size;
 
-        // Store updated collection
-        const serialized = JSON.stringify(collection);
-        const compressStart = performance.now();
-        const compressed = compress(serialized);
-
-        this.stats.trackOperation('compress', {
-          time: performance.now() - compressStart,
-          slice,
-          ratio: compressed.length / serialized.length
-        });
-
-        // Store in memory and localStorage
-        this.storage.set(slice, collection);
-        localStorage.setItem(`cache:${slice}`, compressed);
-      } else {
-        // For non-collection slices, use direct item storage
-        const serialized = JSON.stringify(value);
-        const compressStart = performance.now();
-        const compressed = compress(serialized);
-
-        this.stats.trackOperation('compress', {
-          time: performance.now() - compressStart,
-          slice,
-          ratio: compressed.length / serialized.length
-        });
-
-        // Store in memory and localStorage
-        this.storage.set(key, value);
-        localStorage.setItem(`cache:${key}`, compressed);
+      if (totalSize > CACHE_CONFIG.MAX_STORAGE_SIZE) {
+        this.pruneCache(slice, sliceCode);
+        return false;
       }
 
-      this.stats.trackOperation('put', {
-        slice,
-        endpoint: this.getCurrentEndpoint(),
-        size: JSON.stringify(value).length,
-        time: performance.now() - startTime
-      });
+      // Update storage
+      localStorage.setItem(key, compressed);
+      this.sizeTracker.set(key, size);
+
+      // Update timestamps
+      this.writeTimes.set(key, now);
+      this.accessTimes.set(key, now);
+
+      // Update metadata in localStorage
+      this.updateMetadata(key);
+
+      // Update memory cache if small enough
+      if (size < 1000) {
+        this.memoryCache.set(key, value);
+      }
+
+      // Update LRU cache
+      const lruCache = this.getLRUCache(slice);
+      lruCache.set(key, value);
 
       return true;
     } catch (error) {
@@ -384,67 +203,152 @@ class MonitoredCache {
     }
   }
 
-  // Helper to track current API endpoint
-  getCurrentEndpoint() {
-    // This could be set by DataGetter when making API calls
-    return this._currentEndpoint;
+  updateMetadata(key) {
+    const meta = {
+      writeTime: this.writeTimes.get(key),
+      accessTime: this.accessTimes.get(key)
+    };
+    localStorage.setItem(`meta:${key}`, JSON.stringify(meta));
   }
 
-  setCurrentEndpoint(endpoint) {
-    this._currentEndpoint = endpoint;
+  pruneCache(slice, sliceCode) {
+    // Clear memory cache
+    this.memoryCache.clear();
+
+    // Clear LRU cache for the data type
+    const lruCache = this.getLRUCache(slice);
+    lruCache.clear();
+
+    // Remove oldest items from localStorage until we're under the warning size
+    const keys = this.getSliceKeys(sliceCode)
+      .sort((a, b) => {
+        // Sort by access time, falling back to write time if access times are equal
+        const aAccess = this.accessTimes.get(a) || 0;
+        const bAccess = this.accessTimes.get(b) || 0;
+        if (aAccess !== bAccess) return aAccess - bAccess;
+
+        const aWrite = this.writeTimes.get(a) || 0;
+        const bWrite = this.writeTimes.get(b) || 0;
+        return aWrite - bWrite;
+      });
+
+    let totalSize = Array.from(this.sizeTracker.values()).reduce((a, b) => a + b, 0);
+
+    for (const key of keys) {
+      if (totalSize <= CACHE_CONFIG.WARN_STORAGE_SIZE) break;
+
+      const size = this.sizeTracker.get(key) || 0;
+      localStorage.removeItem(key);
+      localStorage.removeItem(`meta:${key}`);
+      this.sizeTracker.delete(key);
+      this.accessTimes.delete(key);
+      this.writeTimes.delete(key);
+      totalSize -= size;
+    }
   }
 
-  // Get statistics
-  getStats() {
-    return this.stats.getReport();
+  delete(path) {
+    const {slice, sliceCode, key} = this.pathToKey(path);
+
+    // Clear from all caches and tracking
+    this.memoryCache.delete(key);
+    this.getLRUCache(slice).delete(key);
+    localStorage.removeItem(key);
+    localStorage.removeItem(`meta:${key}`);
+    this.sizeTracker.delete(key);
+    this.accessTimes.delete(key);
+    this.writeTimes.delete(key);
   }
 
-  // Reset statistics
-  resetStats() {
-    this.stats.reset();
-  }
+  clear() {
+    this.memoryCache.clear();
+    this.lruCaches.clear();
+    this.sizeTracker.clear();
+    this.accessTimes.clear();
+    this.writeTimes.clear();
 
-  // Load initial data from localStorage
-  loadFromStorage() {
-    for (let i = 0; i < localStorage.length; i++) {
+    // Clear cache items from localStorage
+    for (let i = localStorage.length - 1; i >= 0; i--) {
       const key = localStorage.key(i);
-      if (key.startsWith('cache:')) {
-        try {
-          const compressed = localStorage.getItem(key);
-          const value = JSON.parse(decompress(compressed));
-          this.storage.set(key.replace('cache:', ''), value);
-        } catch (error) {
-          console.error(`Failed to load cached value for ${key}:`, error);
-        }
+      if (key && key.startsWith('_')) { // Using your encoded slice prefix
+        localStorage.removeItem(key);
+        localStorage.removeItem(`meta:${key}`);
       }
     }
   }
+
+  // setSelectState(selectState) { this.selectState = selectState; }
+
+
+  // Get or create an LRU cache for a specific data type
+  getLRUCache(slice, options = {}) {
+    if (!this.lruCaches.has(slice)) {
+      this.lruCaches.set(slice, new LRUCache({
+        max: options.max || 1000,
+        ttl: options.ttl || CACHE_CONFIG.DEFAULT_TTL,
+        updateAgeOnGet: true
+      }));
+    }
+    return this.lruCaches.get(slice);
+  }
+
+  // Convert path to storage key, return slice (first bit) and whole key
+  pathToKey(path) {
+    if (!Array.isArray(path)) {
+      throw new Error("cache path should always be given as array");
+    }
+    let [slice, ...keys] = path;
+    let sliceCode = mapper.encode(slice);
+    let key = [sliceCode, ...keys].join(':');
+    return {slice, sliceCode, key};
+  }
+
+  async getWholeSlice(slice) {
+    const sliceCode = mapper.encode(slice);
+    const keys = this.getSliceKeys(sliceCode);
+    return fromPairs(map(keys, async key => [key.replace(`${sliceCode}:`,''), await this.cacheGetSliceKey(slice, key)]));
+  }
+
+  getSliceKeys(sliceCode) {
+    return Object.keys(localStorage)
+      .filter(key => key.startsWith(sliceCode));
+  }
+
+  getSlices() {
+    return mapper.strings;
+  }
 }
 
+const createStringMapper = () => {
+  const stringToNum = new Map();
+  const numToString = [];
 
-// Usage example
-export function monitorCachePerformance(dataGetter) {
-  setInterval(() => {
-    const stats = dataGetter.dataCache.getStats();
-    console.log('Cache Performance Report:', stats);
+  const encode = (str) => {
+    if (stringToNum.has(str)) {
+      return `_${stringToNum.get(str)}`;
+    }
 
-    // Example stats output:
-    console.log('Most accessed endpoints:',
-      Object.entries(stats.byEndpoint)
-        .sort((a, b) => b[1].gets.count - a[1].gets.count)
-        .slice(0, 5)
-    );
+    const num = numToString.length + 1;
+    stringToNum.set(str, num);
+    numToString.push(str);
+    return `_${num}`;
+  };
 
-    console.log('Largest cache slices:',
-      Object.entries(stats.bySlice)
-        .sort((a, b) => b[1].totalSize - a[1].totalSize)
-        .slice(0, 5)
-    );
+  const decode = (encoded) => {
+    if (!encoded.startsWith('_')) {
+      throw new Error('Invalid encoded string: must start with underscore');
+    }
 
-    console.log('Overall hit rate:',
-      stats.operations.get.hitRate
-    );
+    const num = parseInt(encoded.slice(1));
+    // Convert to 0-based index for array access
+    const index = num - 1;
+    if (isNaN(num) || index < 0 || index >= numToString.length) {
+      throw new Error(`Invalid encoded string: ${encoded}`);
+    }
+    return numToString[index];
+  };
 
-    dataGetter.dataCache.resetStats(); // Start fresh for next period
-  }, 10000); // Every ten seconds
-}
+  return { encode, decode, strings: [...numToString] };
+};
+
+const mapper = createStringMapper();

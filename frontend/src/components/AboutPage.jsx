@@ -84,9 +84,9 @@ export function AboutPage() {
       console.log(
           'Triggering database refresh and clearing cache so new data will be fetched when ready');
       // empty cache immediately, and then again after the db-refresh call is done
-      dataCache.emptyCache();
+      dataCache.clear();
       await dataGetter.axiosCall('db-refresh');
-      dataCache.emptyCache();
+      dataCache.clear();
     } catch (error) {
       console.error('Error:', error);
     }
@@ -205,7 +205,7 @@ export function AboutPage() {
               variant={'contained'}
               // onClick={() => queryClient.removeQueries()}
               onClick={() => {
-                dataCache.emptyCache();
+                dataCache.clear();
                 if (loadCSetsRef.current) loadCSetsRef.current.value = '';
                 resetReducers();
                 // maybe resetReducers makes these redundant?

@@ -312,69 +312,6 @@ def next_api_call_group_id() -> Optional[int]:
     return id
 
 
-@router.post("/concept-ids-by-codeset-id")
-async def get_concept_ids_by_codeset_id_post(request: Request, codeset_ids: Union[List[int], None] = None) -> Dict:
-    """Route for get_concept_ids_by_codeset_id() via POST"""
-    print(codeset_ids)
-    return await get_concept_ids_by_codeset_id(request, codeset_ids)
-
-
-@router.get("/concept-ids-by-codeset-id")
-@return_err_with_trace
-async def get_concept_ids_by_codeset_id(
-    request: Request, codeset_ids: Union[List[str], None] = Query(...)
-) -> Dict[int, List[int]]:
-    """Get concept IDs by codeset id"""
-    if codeset_ids:
-        q = f"""
-              SELECT csids.codeset_id, COALESCE(cibc.concept_ids, ARRAY[]::integer[]) AS concept_ids
-              FROM (VALUES{",".join([f"({csid})" for csid in codeset_ids])}) AS csids(codeset_id)
-              LEFT JOIN concept_ids_by_codeset_id cibc ON csids.codeset_id = cibc.codeset_id"""
-    else:
-        q = f"""SELECT * FROM concept_ids_by_codeset_id"""
-
-    rpt = Api_logger()
-    await rpt.start_rpt(request, params={'codeset_ids': codeset_ids})
-
-    try:
-        with get_db_connection() as con:
-            rows: List = sql_query(con, q)
-        await rpt.finish(rows=len(rows))
-    except Exception as e:
-        await rpt.log_error(e)
-        raise e
-    return {r['codeset_id']: r['concept_ids'] for r in rows}
-
-
-@router.post("/codeset-ids-by-concept-id")
-@return_err_with_trace
-async def get_codeset_ids_by_concept_id_post(
-    request: Request, concept_ids: Union[List[int], None] = None
-) -> Dict:  # Dict[int, List[int]]
-    """Get Codeset IDs by concept ID"""
-    q = f"""
-          SELECT *
-          FROM codeset_ids_by_concept_id"""
-    q += f" WHERE concept_id {sql_in(concept_ids)}" if concept_ids else ""
-    rpt = Api_logger()
-    await rpt.start_rpt(request, params={'concept_ids': concept_ids})
-    try:
-        with get_db_connection() as con:
-            rows: List = sql_query(con, q)
-        await rpt.finish(rows=len(rows))
-    except Exception as e:
-        await rpt.log_error(e)
-        raise e
-
-    return {r['concept_id']: r['codeset_ids']  for r in rows}
-
-
-@router.get("/codeset-ids-by-concept-id")
-async def get_codeset_ids_by_concept_id(request: Request, concept_ids: Union[List[str], None] = Query(...)) -> Dict:
-    """Get Codeset IDs by concept ID"""
-    return await get_codeset_ids_by_concept_id_post(request, concept_ids)
-
-
 @router.post("/related-cset-concept-counts")
 def get_related_cset_concept_counts(concept_ids: List[int] = None, verbose=True) -> Dict:
     """Returns dict of codeset_id: count of included concepts"""
