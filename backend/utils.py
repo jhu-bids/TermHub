@@ -145,6 +145,7 @@ def call_github_action(
             f"Error calling GitHub action {action_name} with params:"
             f"\n{params}."
             f"\n\nResponse: {response.json()}")
+    return response
 
 
 def get_timer(name: str = "Timer", debug=False):
