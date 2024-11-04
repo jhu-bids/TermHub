@@ -4,6 +4,7 @@ import React, {
   useEffect,
   useCallback, /* useReducer, */
 } from 'react';
+import axios from 'axios';
 import { CsetsDataTable } from './CsetsDataTable';
 // import {difference, symmetricDifference} from "./utils";
 import ConceptSetCards from './ConceptSetCard';
@@ -258,7 +259,6 @@ export function ConceptSetsPage () {
     allRelatedCsets = {}, relatedCsets = [], researchers = {},
   } = data;
 
-  // todo: Combine this with the useEffect in CsetComparisonPage.js
   useEffect(() => {
     (async () => {
       // dataCache.
@@ -281,24 +281,30 @@ export function ConceptSetsPage () {
       all_csets = await all_csets;
       // setData(current => ({...current, all_csets, }));
 
-      let relatedCodesetIdsByConceptId = await dataGetter.fetchAndCacheItems(
-        dataGetter.apiCalls.codeset_ids_by_concept_id, concept_ids);
+      let relatedCsetConceptCounts = await dataGetter.axiosCall(
+          'related-cset-concept-counts',
+          {sendAlert: false, skipApiGroup: true, data: concept_ids, protocols: ['post']});
 
-      const relatedCodesetIds = union(
-        flatten(Object.values(relatedCodesetIdsByConceptId)));
-
-      let relatedCsetConceptIds = dataGetter.fetchAndCacheItems(
-        dataGetter.apiCalls.concept_ids_by_codeset_id, relatedCodesetIds);
-      // shape: 'obj'
+      let relatedCodesetIds = Object.keys(relatedCsetConceptCounts);
 
       let allCsetsObj = keyBy(all_csets, 'codeset_id');
 
+      selected_csets = await selected_csets;
+
       let _allRelatedCsetsArray = relatedCodesetIds.map(
-        csid => ({ ...allCsetsObj[csid] }));
+          codeset_id => {
+            let cset = selected_csets[codeset_id] || {...allCsetsObj[codeset_id]};
+            cset['intersecting_concepts'] = relatedCsetConceptCounts[codeset_id];
+            cset['recall'] = cset['intersecting_concepts'] / concept_ids.length;
+            cset['precision'] = cset['intersecting_concepts'] / cset.counts.Members;
+            if (isNaN(cset['recall']) || isNaN(cset['precision'])) {
+              console.warn(`WHY ARE recall or precision NaN?`);
+            }
+            return cset;
+          });
 
       let allRelatedCsets = keyBy(_allRelatedCsetsArray, 'codeset_id');
 
-      selected_csets = await selected_csets;
       selected_csets = codeset_ids.map(d => selected_csets[d]);
       // setData(current => ({...current, selected_csets}));
 
@@ -313,25 +319,6 @@ export function ConceptSetsPage () {
         return cset;
       });
       // setData(current => ({...current, allRelatedCsets}));
-
-      relatedCsetConceptIds = await relatedCsetConceptIds;
-      // setData(current => ({...current, relatedCsetConceptIds}));
-
-      for (let csid in relatedCsetConceptIds) {
-        let cset = allRelatedCsets[csid];
-        if (!cset) {
-          console.warn(`WHY IS csid ${csid} MISSING???`);
-          continue;
-        }
-        let rcids = relatedCsetConceptIds[csid];
-        let intersecting_concepts = intersection(concept_ids, rcids);
-        cset['intersecting_concepts'] = intersecting_concepts.length;
-        cset['recall'] = cset['intersecting_concepts'] / concept_ids.length;
-        cset['precision'] = cset['intersecting_concepts'] / rcids.length;
-        if (isNaN(cset['recall']) || isNaN(cset['precision'])) {
-          console.warn(`WHY ARE recall or precision NaN?`);
-        }
-      }
 
       let relatedCsets = Object.values(allRelatedCsets).
         filter(cset => !cset.selected);

@@ -20,7 +20,7 @@ from starlette.responses import Response
 from backend.api_logger import Api_logger, get_ip_from_request, API_CALL_LOGGING_ON
 from backend.db.queries import get_concepts
 from backend.db.utils import get_db_connection, sql_query, SCHEMA, sql_query_single_col, sql_in, sql_in_safe, run_sql
-from backend.utils import return_err_with_trace, commify, recs2dicts, dicts2dict
+from backend.utils import return_err_with_trace, commify, recs2dicts, call_github_action
 from enclave_wrangler.config import RESEARCHER_COLS
 from enclave_wrangler.models import convert_rows
 from enclave_wrangler.objects_api import get_n3c_recommended_csets, get_concept_set_version_expression_items, \
@@ -373,6 +373,25 @@ async def get_codeset_ids_by_concept_id_post(
 async def get_codeset_ids_by_concept_id(request: Request, concept_ids: Union[List[str], None] = Query(...)) -> Dict:
     """Get Codeset IDs by concept ID"""
     return await get_codeset_ids_by_concept_id_post(request, concept_ids)
+
+
+@router.post("/related-cset-concept-counts")
+def get_related_cset_concept_counts(concept_ids: List[int] = None, verbose=True) -> Dict:
+    """Returns dict of codeset_id: count of included concepts"""
+    query = f"""
+        SELECT DISTINCT codeset_id, concept_id 
+        FROM concept_set_members
+        WHERE concept_id = ANY(:concept_ids)
+    """
+    with get_db_connection() as con:
+        csm = sql_query(con, query, {'concept_ids': concept_ids}, )
+
+    counts = {}
+    for record in csm:
+        codeset_id = record['codeset_id']
+        counts[codeset_id] = counts.get(codeset_id, 0) + 1
+
+    return counts
 
 
 @router.get("/get-all-csets")
