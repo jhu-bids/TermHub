@@ -179,7 +179,7 @@ class TestObjectsApi(DbRefreshTestWrapper):
         print('test_csets_and_members_to_db() setup completed in ', (t1 - t0).seconds, ' seconds')  # temp
 
         # Teardown: single primary key tables
-        # TODO: add teardowns for DDL-created tables (except for cset_members_items_plus, which is a view)
+        # TODO: add teardowns for DDL-created tables
         #  'cset_members_items', 'members_items_summary', 'cset_members_items_plus', 'codeset_counts', 'all_csets'
         #   - maybe for now i can do this before this next section. but then I can move it to the end.
         #   - i'd like to ideally keep it with this section and do things dynamically, but i think I should program

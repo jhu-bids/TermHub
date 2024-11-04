@@ -132,7 +132,7 @@ DERIVED_TABLE_DEPENDENCY_MAP: Dict[str, List[str]] = {
 
     # - views
     # 'csets_to_ignore': ['all_csets'],
-    'cset_members_items_plus': ['cset_members_items', 'concept'],
+    # 'cset_members_items_plus': ['cset_members_items', 'concept'], # getting rid of cset_members_items_plus
     'all_csets_view': ['all_csets'],
 
     # Unfinished / unsure
