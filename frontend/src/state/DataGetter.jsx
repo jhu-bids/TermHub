@@ -5,7 +5,7 @@ import {flatten, isEmpty, setWith, once, uniq, difference} from 'lodash';
 
 // import {useAlertsDispatch} from "./AppState";
 import {API_ROOT} from '../env';
-import {useDataCache} from './DataCache';
+import {useDataCache, monitorCachePerformance} from './DataCache';
 import {compress} from 'lz-string';
 
 export const backend_url = (path) => `${API_ROOT}/${path}`;
@@ -16,6 +16,7 @@ export function DataGetterProvider({children}) {
   // const alertsDispatch = useAlertsDispatch();
   const dataCache = useDataCache();
   const dataGetter = new DataGetter(dataCache /*alertsDispatch*/);
+  monitorCachePerformance(dataGetter);
 
   return (
       <DataGetterContext.Provider value={dataGetter}>
@@ -29,9 +30,8 @@ export function useDataGetter() {
 }
 
 export class DataGetter {
-  constructor(dataCache /*alertsDispatch*/) {
+  constructor(dataCache) {
     this.dataCache = dataCache;
-    // this.alertsDispatch = alertsDispatch;
   }
 
   async getApiCallGroupId() {
@@ -306,6 +306,8 @@ export class DataGetter {
 
     const dataCache = this.dataCache;
 
+    dataCache.setCurrentEndpoint(apiDef.api);
+
     if (apiDef.api === 'concept-graph') {
       const {codeset_ids, cids} = params;
       let cacheKey = codeset_ids.join(',') + ';' + cids.join(',');
@@ -355,7 +357,9 @@ export class DataGetter {
     }
 
     // use this for concepts and cset_members_items
-    let wholeCache = dataCache.getCacheForKey(apiDef.cacheSlice) || {};
+    // TODO: FIX THIS. claude.ai got rid of getCacheForKey
+    // let wholeCache = dataCache.getCacheForKey(apiDef.cacheSlice) || {};
+    let wholeCache = {};
     let cachedItems = {};     // this will hold the requested items that are already cached
     let uncachedKeys = []; // requested items that still need to be fetched
     let uncachedItems = {};   // this will hold the newly fetched items
@@ -407,58 +411,6 @@ export class DataGetter {
     }
     const results = {...cachedItems, ...uncachedItems};
     return results;
-    // if (Array.isArray(data)) {}  get this code from oneToOneFetchAndCache
-    /*
-    if (keyName) {
-      if (keyName.split('.').length > 1) {
-        throw new Error("write code to handle this");
-      }
-      // this doesn't put stuff in the cache, just in uncachedItems (obviously, but I got confused about it at one point)
-      data.forEach(item => set(uncachedItems, item[keyName], item));
-    } else {
-      // was doing this for everything before but ending up with items assigned to the wrong keys sometimes
-      //   going forward, the server should probably return everything in a keyed dict
-      data.forEach((item, i) => uncachedItems[uncachedKeys[i]] = item);
-    }
-
-     */
-
-    /*
-    // from oneToOneFetchAndCache
-    if (Array.isArray(data)) {
-      if (keyName) {
-        data.forEach(item => {
-          dataCache.cachePut([itemType, item[keyName]], item);
-        });
-      } else {
-        throw new Error("don't be getting arrays back: get stuff back with keys...maybe?");
-      }
-    } else {
-      Object.entries(data).map(([key, val]) => {
-        dataCache.cachePut([itemType, key], val);
-      });
-    }
-    */
-
-    /*
-    const not_found = uncachedKeys.filter(key => !(key in results));
-    if (not_found.length) {
-      // TODO: let user see warning somehow
-      console.warn(`Warning in DataCache.fetchAndCacheItemsByKey: failed to fetch ${itemType}s for ${not_found.join(', ')}`);
-    }
-    if (returnFunc) {
-      return returnFunc(results);
-    }
-    if (shape === 'array') {
-      let vals = Object.values(results);
-      if (keyName) {  // this was an attempt to fix things assigned to wrong keys, not sure if it's needed
-        vals = sortBy(vals, d => d[keyName]);
-      }
-      return vals;
-    }
-    return results;
-
-     */
   }
 }
 
