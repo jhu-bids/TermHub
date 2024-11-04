@@ -38,7 +38,6 @@ LEFT JOIN (
     FROM {{schema}}concept_set_version_item
     GROUP BY 1,2,3,4,5
 ) AS item ON cs.codeset_id = item.codeset_id
-         AND csm.concept_id = item.concept_id
 JOIN {{schema}}concept c ON COALESCE(csm.concept_id, item.concept_id) = c.concept_id
 WHERE csm.codeset_id IS NOT NULL
    OR item.codeset_id IS NOT NULL;
