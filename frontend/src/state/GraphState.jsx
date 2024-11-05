@@ -346,7 +346,7 @@ export class GraphContainer {
       if (type === 'allButFirstOccurrence') continue; // handle this differently
       if (graphOptions.specialConceptTreatment[type] === 'hidden') {
         // gather all the hideThoughExpanded ids
-        this.gd.specialConcepts[type].forEach(id => {
+        (this.gd.specialConcepts[type] || []).forEach(id => {
           const rowsToHide = allRowsById.get(id) || [];
           for (const rowToHide of rowsToHide) {
             const rowToHideIdx = rowToHide.allRowsIdx;
@@ -467,16 +467,12 @@ export class GraphContainer {
     // used to sort each level of the comparison table.
     // todo: allow this to be changed by user
     let n = typeof(d) === 'object' ? d : this.nodes[d];
-    return n.not_a_concept
+    return n.not_a_concept  // not_a_concept should just be unlinked and should go to bottom
         ? Infinity
-        : (
-            (n.pathFromDisplayedNode && !n.hasChildren
-                ? -(10**9)
-                : 0
-            ) + (n.pathFromDisplayedNode || []).length * 10**6 - n.drc);
-    let statusRank = n.isItem && 3 + n.added && 2 + n.removed && 1 || 0;
+        : - n.drc;
+    // let statusRank = n.isItem && 3 + n.added && 2 + n.removed && 1 || 0;
     // return - (n.drc || n.descendantCount || n.levelsBelow || n.status ? 1 : 0);
-    return - (n.levelsBelow || n.descendantCount || n.status ? 1 : 0);
+    // return - (n.levelsBelow || n.descendantCount || n.status ? 1 : 0);
   })
 
   #computeAttributes() {

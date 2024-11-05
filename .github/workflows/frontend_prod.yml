@@ -20,6 +20,13 @@ jobs:
       - uses: actions/checkout@v2
         with:
           submodules: true
+
+      - name: Setup Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: '22.x'
+          cache: 'yarn'
+
       - name: Print commit hash & branch for rollbacks & troubleshooting
         run: |
           echo "Commit hash: ${{ github.sha }}"

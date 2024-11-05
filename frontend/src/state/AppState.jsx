@@ -483,7 +483,7 @@ State managers / reducer providers and their storage providers
       - cids
 
 
-2023-08
+2023-08     VERY OUT OF DATE
 State management is pretty messed up at the moment. We need decent performance....
 Here's what needs to be tracked in state and description of how it's all related.
 
@@ -562,7 +562,7 @@ export function ViewCurrentState () {
     <Inspector data={{ /*alerts, */ graphOptions, newCset }}/>
 
     <h2>dataCache</h2>
-    <Inspector data={dataCache.getWholeCache()}/>
+    <Inspector data={dataCache}/>
 
     <h2>The different kinds of state</h2>
     <Markdown>{stateDoc}</Markdown>

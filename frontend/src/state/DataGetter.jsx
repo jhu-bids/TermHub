@@ -5,7 +5,7 @@ import {flatten, isEmpty, setWith, once, uniq, difference} from 'lodash';
 
 // import {useAlertsDispatch} from "./AppState";
 import {API_ROOT} from '../env';
-import {useDataCache, monitorCachePerformance} from './DataCache';
+import {useDataCache, } from './DataCache';
 import {compress} from 'lz-string';
 
 export const backend_url = (path) => `${API_ROOT}/${path}`;
@@ -16,7 +16,6 @@ export function DataGetterProvider({children}) {
   // const alertsDispatch = useAlertsDispatch();
   const dataCache = useDataCache();
   const dataGetter = new DataGetter(dataCache /*alertsDispatch*/);
-  monitorCachePerformance(dataGetter);
 
   return (
       <DataGetterContext.Provider value={dataGetter}>
@@ -54,6 +53,7 @@ export class DataGetter {
     makeQueryString,
     dataLengthFunc,
     skipApiGroup,
+    protocols = ['get'], // could include get, post, or both
   } = {}) {
     let url = backend ? backend_url(path) : path;
     let request = {url};
@@ -64,14 +64,15 @@ export class DataGetter {
       title: title || path,
     };
     alertAction.id = alertAction.title + ':' + (new Date()).toISOString();
-    let qsData = {};
     let qs = path.match(/\?/) ? '' : '?';
     if (path !== 'next-api-call-group-id' && this.api_call_group_id &&
         !skipApiGroup) {
       qs = qs + 'api_call_group_id=' + this.api_call_group_id + '&';
     }
     try {
-      if (typeof (data) === 'undefined') {
+      if (protocols.length === 1) {
+        request.method = protocols[0];
+      } else if (typeof (data) === 'undefined') {
         request.method = 'get';
       } else {
         let dataLength = 0;
@@ -85,13 +86,18 @@ export class DataGetter {
 
         if (useGetForSmallData && dataLength <= 1000) {
           request.method = 'get';
-          qs += makeQueryString(data).toString();
         } else {
           request.method = 'post';
-          request.data = data;
         }
       }
-      request.url = url + qs;
+      if (request.method === 'get') {
+        if (makeQueryString) {
+          qs += makeQueryString(data).toString();
+        }
+        request.url = url + qs;
+      } else {
+        request.data = data;
+      }
       verbose && console.log('axios request', request);
 
       // alertAction.id = compress(JSON.stringify(request));
@@ -235,27 +241,14 @@ export class DataGetter {
       apiResultShape: 'array of keyed obj',
       expectOneResultRowPerKey: true,
     },
-    codeset_ids_by_concept_id: {
+    related_cset_concept_counts: {
       expectedParams: [],  // concept_ids
-      api: 'codeset-ids-by-concept-id',
-      makeQueryString: concept_ids => createSearchParams(
-          {concept_ids: concept_ids}),
-      protocols: ['get', 'post'],
-      cacheSlice: 'codeset_ids_by_concept_id',
+      api: 'related-cset-concept_counts',
+      makeQueryString: concept_ids => createSearchParams({concept_ids}),
+      protocols: ['post'],
+      cacheSlice: 'related_cset_concept_counts',
       key: 'concept_id',
-      alertTitle: 'Get list of codeset_ids for each concept_id',
-      apiResultShape: 'obj of array',
-    },
-    concept_ids_by_codeset_id: {
-      expectedParams: [],  // codeset_ids
-      api: 'concept-ids-by-codeset-id',
-      makeQueryString: codeset_ids => createSearchParams(
-          {codeset_ids: codeset_ids}),
-      protocols: ['get', 'post'],
-      cacheSlice: 'codeset_ids_by_concept_id',
-      key: 'codeset_id',
-      alertTitle: 'Get list of concept_ids for each codeset_id',
-      apiResultShape: 'obj of array',
+      apiResultShape: 'obj',
     },
     researchers: {
       expectedParams: [],  // multipassIds
@@ -306,13 +299,11 @@ export class DataGetter {
 
     const dataCache = this.dataCache;
 
-    dataCache.setCurrentEndpoint(apiDef.api);
-
     if (apiDef.api === 'concept-graph') {
       const {codeset_ids, cids} = params;
       let cacheKey = codeset_ids.join(',') + ';' + cids.join(',');
 
-      let data = dataCache.cacheGet([apiDef.cacheSlice, cacheKey]);
+      let data = await dataCache.cacheGet([apiDef.cacheSlice, cacheKey]);
       if (isEmpty(data)) {
         data = await this.axiosCall(apiDef.api,
             {...apiDef, data: params, backend: true});
@@ -322,7 +313,7 @@ export class DataGetter {
     }
     if (typeof (apiDef.expectedParams) === 'undefined') {
       // handle no-param calls (all_csets, whoami) here; get from cache or fetch and cache
-      let data = dataCache.cacheGet([apiDef.cacheSlice]);
+      let data = await dataCache.cacheGet([apiDef.cacheSlice]);
       if (isEmpty(data)) {
         data = await this.axiosCall(apiDef.api,
             {...apiDef, data: params, backend: true});
@@ -333,7 +324,7 @@ export class DataGetter {
     if (apiDef.singleKeyFunc) {
       // handle single key per result queries
       const cacheKey = apiDef.singleKeyFunc(params);
-      let data = dataCache.cacheGet([apiDef.cacheSlice, cacheKey]);
+      let data = await dataCache.cacheGet([apiDef.cacheSlice, cacheKey]);
       if (isEmpty(data)) {
         data = await this.axiosCall(apiDef.api,
             {...apiDef, data: params, backend: true});
@@ -358,8 +349,7 @@ export class DataGetter {
 
     // use this for concepts and cset_members_items
     // TODO: FIX THIS. claude.ai got rid of getCacheForKey
-    // let wholeCache = dataCache.getCacheForKey(apiDef.cacheSlice) || {};
-    let wholeCache = {};
+    let wholeCache = await dataCache.getWholeSlice(apiDef.cacheSlice) || {};
     let cachedItems = {};     // this will hold the requested items that are already cached
     let uncachedKeys = []; // requested items that still need to be fetched
     let uncachedItems = {};   // this will hold the newly fetched items

@@ -120,10 +120,8 @@ DERIVED_TABLE_DEPENDENCY_MAP: Dict[str, List[str]] = {
         'codeset_counts', 'researcher'
     ],
     'codeset_counts': ['members_items_summary'],
-    'codeset_ids_by_concept_id': ['cset_members_items'],
     'concept_ancestor_plus': ['concept_ancestor', 'concepts_with_counts'],
     'concept_graph': ['concept_ancestor'],
-    'concept_ids_by_codeset_id': ['cset_members_items'],
     'concept_relationship_plus': ['concept_relationship', 'concepts_with_counts'],
     'concepts_with_counts': ['concepts_with_counts_ungrouped'],
     'concepts_with_counts_ungrouped': ['concept', 'deidentified_term_usage_by_domain_clamped'],
