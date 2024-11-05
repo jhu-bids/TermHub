@@ -16,15 +16,18 @@ jobs:
     timeout-minutes: 60
     runs-on: ubuntu-latest
     steps:
-    - uses: actions/checkout@v3
+    - uses: actions/checkout@v4
       with:
         # TODO: If fails on prod, try dev again
         #  Q: why is this 'dev' if it's for the test on prod? A: Because when we deployed to prod, our playwright tests hadn't been updated yet.
 #        ref: dev
         ref: prod
-    - uses: actions/setup-node@v3
+
+    - name: Setup Node.js
+      uses: actions/setup-node@v4
       with:
-        node-version: 18
+        node-version: '22.x'
+        cache: 'yarn'
 
     # Yarn Setup
     # cache: 'yarn' # Enable yarn cache
