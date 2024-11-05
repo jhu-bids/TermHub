@@ -23,13 +23,16 @@ SELECT DISTINCT
         CASE WHEN "includeMapped" THEN 'M' ELSE '' END,
         CASE WHEN "isExcluded" THEN 'X' ELSE '' END
     ) AS flags,
+    NULLIF(concat_ws(',',
+        CASE WHEN "isExcluded" THEN 'isExcluded' ELSE NULL END,
+        CASE WHEN "includeDescendants" THEN 'includeDescendants' ELSE NULL END,
+        CASE WHEN "includeMapped" THEN 'includeMapped' ELSE NULL END
+    ), '') AS item_flags,
     "isExcluded",
     "includeDescendants",
     "includeMapped"
 FROM csvi
 LEFT JOIN {{schema}}concept_set_members csm ON csvi.codeset_id = csm.codeset_id AND csvi.concept_id = csm.concept_id;
-
-DROP TABLE csvi;
 
 CREATE TEMP TABLE csmi2 AS
 SELECT DISTINCT
@@ -38,6 +41,7 @@ SELECT DISTINCT
     true AS "csm",
     false AS "item",
     NULL::text AS flags,
+    NULL::text AS item_flags,
     NULL::bool AS "isExcluded",
     NULL::bool AS "includeDescendants",
     NULL::bool AS "includeMapped"
@@ -47,7 +51,9 @@ WHERE csmi1.concept_id IS NULL
 UNION
 SELECT * FROM csmi1;
 
-DROP TABLE csmi1;
+CREATE INDEX csmi_idx21 ON csmi2(codeset_id);
+
+CREATE INDEX csmi_idx22 ON csmi2(concept_id);
 
 DROP TABLE IF EXISTS {{schema}}cset_members_items{{optional_suffix}} CASCADE;
 
@@ -64,10 +70,15 @@ LEFT JOIN csmi2 ON cs.codeset_id = csmi2.codeset_id
 JOIN {{schema}}concept c ON csmi2.concept_id = c.concept_id
 WHERE csmi2.codeset_id IS NOT NULL;
 
-DROP TABLE csmi2;
-
 CREATE INDEX csmi_idx1{{optional_index_suffix}} ON {{schema}}cset_members_items{{optional_suffix}}(codeset_id);
 
 CREATE INDEX csmi_idx2{{optional_index_suffix}} ON {{schema}}cset_members_items{{optional_suffix}}(concept_id);
 
 CREATE INDEX csmi_idx3{{optional_index_suffix}} ON {{schema}}cset_members_items{{optional_suffix}}(codeset_id, concept_id);
+
+DROP TABLE csvi;
+
+DROP TABLE csmi1;
+
+DROP TABLE csmi2;
+
