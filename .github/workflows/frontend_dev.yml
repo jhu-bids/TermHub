@@ -26,6 +26,7 @@ jobs:
         with:
           node-version: '22.x'
           cache: 'yarn'
+          cache-dependency-path: 'frontend/yarn.lock'
 
       - name: Print commit hash & branch for rollbacks & troubleshooting
         run: |
