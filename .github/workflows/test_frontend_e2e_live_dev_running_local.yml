@@ -26,6 +26,7 @@ jobs:
       with:
         node-version: '22.x'
         cache: 'yarn'
+        cache-dependency-path: 'frontend/yarn.lock'
 
     # Yarn Setup
     # cache: 'yarn' # Enable yarn cache
