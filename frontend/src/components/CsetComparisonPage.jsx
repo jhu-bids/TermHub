@@ -132,7 +132,7 @@ export async function fetchGraphData(props) {
       return cset;
     });
 
-    csmi = {...csmi, ...newCset.definitions};
+    csmi[newCset.codeset_id] = newCset.definitions;
   }
 
   const concepts = Object.values(conceptLookup);

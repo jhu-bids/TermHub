@@ -583,29 +583,22 @@ def single_n3c_comparison_rpt(pair: str):
 
     return rpt[0] if rpt else None
 
-def get_possible_replacement_concepts(concept_id):
+
+def get_possible_replacement_concepts(concept_ids):
+    """Get replacement concepts for multiple concept IDs in a single query"""
     with get_db_connection() as con:
-        q = f"""
-            SELECT DISTINCT
-                -- cr.concept_id_1,
-                -- c1.concept_name AS concept_name_1,
-                -- c1.vocabulary_id AS vocab_1,
-                -- c1.concept_class_id AS class_1,
-                -- c1.standard_concept AS sc_1,
-                -- c1.invalid_reason AS invalid_1,
-                
+        q = """
+            SELECT 
+                cr.concept_id_1 as source_concept_id,
                 c2.concept_id,
                 c2.concept_name,
                 c2.vocabulary_id,
                 c2.concept_class_id,
                 c2.standard_concept,
-                
                 public.ARRAY_SORT(ARRAY_AGG(relationship_id)) rels
-                
             FROM concept_relationship cr
-            -- JOIN concepts_with_counts c1 ON cr.concept_id_1 = c1.concept_id
             JOIN concepts_with_counts c2 ON cr.concept_id_2 = c2.concept_id
-            WHERE concept_id_1 = :concept_id
+            WHERE concept_id_1 = ANY(:concept_ids)
               AND relationship_id in (
                     'Maps to',
                     'Mapped from',
@@ -621,71 +614,95 @@ def get_possible_replacement_concepts(concept_id):
                     'Concept was_a to'
                     )
               AND concept_id_1 != concept_id_2
-            GROUP BY 1,2,3,4,5;
+            GROUP BY 1,2,3,4,5,6;
         """
-        results = sql_query(con, q, {'concept_id': concept_id})
-        return results
+        results = sql_query(con, q, {'concept_ids': list(concept_ids)})
 
-@cache
+        # Organize results by source concept
+        replacements_by_concept = {}
+        for row in results:
+            source_id = row['source_concept_id']
+            if source_id not in replacements_by_concept:
+                replacements_by_concept[source_id] = []
+            replacement = {k: v for k, v in row.items() if k != 'source_concept_id'}
+            replacements_by_concept[source_id].append(replacement)
+
+        return replacements_by_concept
+
+
 def get_comparison_rpt(codeset_id_1: int, codeset_id_2: int) -> Dict[str, Union[str, None]]:
+    def enrich_records_with_concepts(records: List[dict], concepts: List[dict]) -> List[dict]:
+        """Enrich records with concept information where available"""
+        concept_lookup = {c['concept_id']: c for c in concepts}
+
+        for rec in records:
+            if concept := concept_lookup.get(rec['concept_id']):
+                rec.update({
+                    'name': concept['concept_name'],
+                    'voc': concept['vocabulary_id'],
+                    'cls': concept['concept_class_id'],
+                    'std': concept['standard_concept']
+                })
+        return records
+
+    def format_codeset_info(cset: dict) -> str:
+        """Format codeset information into a readable string"""
+        flag_cnts = f"flags: {', '.join(f'{k}: {v}' for k, v in cset['flag_cnts'].items())}" if cset[
+            'flag_cnts'] else ''
+        return (
+            f"{cset['codeset_id']} v{cset['version']}, "
+            f"vocab {cset['omop_vocab_version']}; "
+            f"{commify(cset['distinct_person_cnt'])} pts, "
+            f"{commify(cset['total_cnt'] or cset['total_cnt_from_term_usage'])} recs, "
+            f"{commify(cset['concepts'])} concepts, {flag_cnts}"
+        )
+
+    # Get basic codeset information
     cset_1 = get_csets([codeset_id_1])[0]
     cset_2 = get_csets([codeset_id_2])[0]
-    csmi_1 = get_cset_members_items([codeset_id_1], ['concept_id', 'csm','item','flags',])
-    csmi_2 = get_cset_members_items([codeset_id_2], ['concept_id', 'csm','item','flags',])
 
-    removed_cids = set([c['concept_id'] for c in csmi_1]).difference([c['concept_id'] for c in csmi_2])
+    # Get member items for both codesets
+    csmi_1 = get_cset_members_items([codeset_id_1], ['concept_id', 'csm', 'item', 'flags'])
+    csmi_2 = get_cset_members_items([codeset_id_2], ['concept_id', 'csm', 'item', 'flags'])
+
+    # Find concepts that were removed or added
+    cids_1 = {c['concept_id'] for c in csmi_1}
+    cids_2 = {c['concept_id'] for c in csmi_2}
+    all_codeset_cids = cids_1 | cids_2
+
+    removed_cids = cids_1 - cids_2
+    added_cids = cids_2 - cids_1
+
+    # Create record lists
     removed = [dict(csmi) for csmi in csmi_1 if csmi['concept_id'] in removed_cids]
-    removed_concepts = get_concepts(removed_cids)
-    for rec in removed:
-        c = [c for c in removed_concepts if c['concept_id'] == rec['concept_id']]
-        if len(c) == 1:
-            rec['name'] = c[0]['concept_name']
-            rec['voc'] = c[0]['vocabulary_id']
-            rec['cls'] = c[0]['concept_class_id']
-            rec['std'] = c[0]['standard_concept']
-        replacements = recs2dicts(get_possible_replacement_concepts(rec['concept_id']))
-        rec['replacements'] = replacements
-
-    added_cids   = set([c['concept_id'] for c in csmi_2]).difference([c['concept_id'] for c in csmi_1])
     added = [dict(csmi) for csmi in csmi_2 if csmi['concept_id'] in added_cids]
-    added_concepts = get_concepts(added_cids)
-    for rec in added:
-        c = [c for c in added_concepts if c['concept_id'] == rec['concept_id']]
-        if len(c) == 1:
-            rec['name'] = c[0]['concept_name']
-            rec['voc'] = c[0]['vocabulary_id']
-            rec['cls'] = c[0]['concept_class_id']
-            rec['std'] = c[0]['standard_concept']
 
-    flag_cnts_1 = 'flags: ' + ', '.join([f'{k}: {v}' for k, v in cset_1['flag_cnts'].items()]) if  cset_1['flag_cnts'] else ''
-    flag_cnts_2 = 'flags: ' + ', '.join([f'{k}: {v}' for k, v in cset_2['flag_cnts'].items()]) if  cset_2['flag_cnts'] else ''
+    # Get and add concept information
+    removed = enrich_records_with_concepts(removed, get_concepts(removed_cids))
+    added = enrich_records_with_concepts(added, get_concepts(added_cids))
 
-    # df = pd.DataFrame(replacements)
+    # Get all replacement suggestions in one query
+    if removed:
+        all_replacements = get_possible_replacement_concepts(removed_cids)
 
-    rpt = {
+        # Add filtered replacement suggestions for removed concepts
+        for rec in removed:
+            replacements = all_replacements.get(rec['concept_id'], [])
+            rec['replacements'] = [
+                r for r in replacements
+                if r['concept_id'] not in all_codeset_cids
+            ]
+
+    return {
         'name': cset_1['concept_set_name'],
-        'cset_1': f"{cset_1['codeset_id']} v{cset_1['version']}, "
-                  f"vocab {cset_1['omop_vocab_version']}; "
-                  f"{commify(cset_1['distinct_person_cnt'])} pts, "
-                  f"{commify(cset_1['total_cnt'] or cset_1['total_cnt_from_term_usage'])} recs, "
-                  f"{commify(cset_1['concepts'])} concepts, {flag_cnts_1}",
-        'cset_2': f"{cset_2['codeset_id']} v{cset_2['version']}, "
-                  f"vocab {cset_2['omop_vocab_version']}; "
-                  f"{commify(cset_2['distinct_person_cnt'])} pts, "
-                  f"{commify(cset_2['total_cnt'] or cset_2['total_cnt_from_term_usage'])} recs, "
-                  f"{commify(cset_2['concepts'])} concepts, {flag_cnts_2}",
+        'cset_1': format_codeset_info(cset_1),
+        'cset_2': format_codeset_info(cset_2),
         'author': cset_1['codeset_creator'],
         'codeset_id_1': codeset_id_1,
-        # 'cset_1_version': cset_1['version'],
         'codeset_id_2': codeset_id_2,
         'added': added,
         'removed': removed,
-        # 'cset_2_version': cset_2['version'],
-        # 'cset_1_only': cset_1_only,
-        # 'cset_2_only': cset_2_only,
     }
-    return rpt
-
 
 def generate_n3c_comparison_rpt():
     """Generate N3C comparison report

@@ -125,7 +125,7 @@ export const N3CComparisonRpt = () => {
     return <div>Loading...</div>;
   }
   let {rows, concepts} = data
-  function tbl(tblConcepts) {
+  function diffListTable(tblConcepts) {
     return (
         <table id="n3ccompdiff"><tbody>{
           sortBy(tblConcepts, ['standard_concept', 'concept_name']).map((c,i) => {
@@ -155,9 +155,9 @@ export const N3CComparisonRpt = () => {
 
   function DiffList({data: row}) {
     console.log({row});
-    const removed = isEmpty(row.removed) ? null : <span><b>Removed:</b>{tbl(
+    const removed = isEmpty(row.removed) ? null : <span><b>Removed:</b>{diffListTable(
         row.removed)}</span>;
-    const added = isEmpty(row.added) ? null : <span><b>Added:</b>{tbl(
+    const added = isEmpty(row.added) ? null : <span><b>Added:</b>{diffListTable(
         row.added)}</span>;
     return (
         <div style={{margin: 10,}}>
