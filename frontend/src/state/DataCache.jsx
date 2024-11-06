@@ -6,8 +6,8 @@ import {fromPairs, map} from 'lodash';
 import { compress, decompress } from "lz-string";
 
 const CACHE_CONFIG = {
-  MAX_STORAGE_SIZE: 50 * 10**6,
-  WARN_STORAGE_SIZE: 20 * 10**6,
+  MAX_STORAGE_SIZE: 10 * 10**6,
+  WARN_STORAGE_SIZE: 5 * 10**6,
   DEFAULT_TTL: 24 * 60 * 60 * 1000, // 24 hours in milliseconds
   OPTIMIZATION_EXPERIMENT: '', // 'no-cache',
 };
@@ -169,6 +169,8 @@ class DataCache {
 
       // Check size
       const size = compressed.length;
+      // console.log(`Attempting to cache ${key} with size ${(size/1024/1024).toFixed(2)}MB`);
+
       const totalSize = Array.from(this.sizeTracker.values()).reduce((a, b) => a + b, 0) + size;
 
       if (totalSize > CACHE_CONFIG.MAX_STORAGE_SIZE) {
@@ -198,6 +200,10 @@ class DataCache {
 
       return true;
     } catch (error) {
+      const stats = this.getStats();
+      console.log(stats.summary);  // Overall usage
+      console.log(stats.slices);   // Per-slice details
+      console.log(stats.largestItems);  // Biggest items taking up space
       console.error(`Failed to cache value for ${key}:`, error);
       return false;
     }
@@ -317,11 +323,156 @@ class DataCache {
   getSlices() {
     return mapper.strings;
   }
+
+  // Add this method to the DataCache class
+  getStats() {
+    const stats = {
+      totalSize: 0,
+      slices: {},
+      summary: {
+        totalItems: 0,
+        sizeMB: 0,
+        currentAction: { items: 0, sizeMB: 0 },
+        previousActions: { items: 0, sizeMB: 0 },
+        largestItems: []
+      }
+    };
+
+    // First find the most recent timestamp to identify current action
+    let mostRecentTime = 0;
+    for (let i = 0; i < localStorage.length; i++) {
+      const key = localStorage.key(i);
+      // Skip non-cache keys and mapper state
+      if (!key || !key.startsWith('_') || key === '__mapper_state') continue;
+      const writeTime = this.writeTimes.get(key) || 0;
+      mostRecentTime = Math.max(mostRecentTime, writeTime);
+    }
+
+    const CURRENT_ACTION_THRESHOLD = 60 * 1000; // 1 minute
+    const allItems = []; // collect all items for sorting by size
+
+    // Collect stats
+    for (let i = 0; i < localStorage.length; i++) {
+      const key = localStorage.key(i);
+      // Skip non-cache keys and mapper state
+      if (!key || !key.startsWith('_') || key === '__mapper_state') continue;
+
+      const size = this.sizeTracker.get(key) || 0;
+      const writeTime = this.writeTimes.get(key) || 0;
+      const value = localStorage.getItem(key);
+
+      if (!value) continue;
+
+      // Extract slice from key
+      const [sliceCode, ...rest] = key.split(':');
+      let slice;
+      try {
+        slice = mapper.decode(sliceCode);
+      } catch (e) {
+        console.warn(`Invalid slice code ${sliceCode} for key ${key}`);
+        continue;
+      }
+
+      // Track item for size sorting
+      allItems.push({ key, size, slice, writeTime });
+
+      // Initialize slice stats if needed
+      if (!stats.slices[slice]) {
+        stats.slices[slice] = {
+          totalSize: 0,
+          itemCount: 0,
+          currentAction: { items: 0, sizeMB: 0 },
+          previousActions: { items: 0, sizeMB: 0 },
+          largestItems: []
+        };
+      }
+
+      const isCurrentAction = (mostRecentTime - writeTime) <= CURRENT_ACTION_THRESHOLD;
+
+      // Update slice stats
+      const sliceStats = stats.slices[slice];
+      sliceStats.totalSize += size;
+      sliceStats.itemCount++;
+
+      if (isCurrentAction) {
+        sliceStats.currentAction.items++;
+        sliceStats.currentAction.sizeMB += size;
+        stats.summary.currentAction.items++;
+        stats.summary.currentAction.sizeMB += size;
+      } else {
+        sliceStats.previousActions.items++;
+        sliceStats.previousActions.sizeMB += size;
+        stats.summary.previousActions.items++;
+        stats.summary.previousActions.sizeMB += size;
+      }
+
+      stats.totalSize += size;
+      stats.summary.totalItems++;
+    }
+
+    // Sort all items by size and get top 5 largest
+    allItems.sort((a, b) => b.size - a.size);
+    stats.summary.largestItems = allItems.slice(0, 5).map(item => ({
+      key: item.key,
+      slice: item.slice,
+      sizeMB: (item.size / (1024 * 1024)).toFixed(2),
+      isCurrentAction: (mostRecentTime - item.writeTime) <= CURRENT_ACTION_THRESHOLD
+    }));
+
+    // Get per-slice largest items
+    for (const slice in stats.slices) {
+      const sliceItems = allItems.filter(item => item.slice === slice);
+      stats.slices[slice].largestItems = sliceItems.slice(0, 5).map(item => ({
+        key: item.key,
+        sizeMB: (item.size / (1024 * 1024)).toFixed(2),
+        isCurrentAction: (mostRecentTime - item.writeTime) <= CURRENT_ACTION_THRESHOLD
+      }));
+    }
+
+    // Convert accumulated sizes to MB
+    stats.summary.sizeMB = (stats.totalSize / (1024 * 1024)).toFixed(2);
+    stats.summary.currentAction.sizeMB = (stats.summary.currentAction.sizeMB / (1024 * 1024)).toFixed(2);
+    stats.summary.previousActions.sizeMB = (stats.summary.previousActions.sizeMB / (1024 * 1024)).toFixed(2);
+
+    for (const slice in stats.slices) {
+      const sliceStats = stats.slices[slice];
+      sliceStats.sizeMB = (sliceStats.totalSize / (1024 * 1024)).toFixed(2);
+      sliceStats.currentAction.sizeMB = (sliceStats.currentAction.sizeMB / (1024 * 1024)).toFixed(2);
+      sliceStats.previousActions.sizeMB = (sliceStats.previousActions.sizeMB / (1024 * 1024)).toFixed(2);
+    }
+
+    return stats;
+  }
 }
 
 const createStringMapper = () => {
-  const stringToNum = new Map();
-  const numToString = [];
+  let stringToNum = new Map();
+  let numToString = [];
+
+  // Use a key that won't conflict with our encoded keys
+  const MAPPER_STORAGE_KEY = '__mapper_state';
+
+  // Try to load existing mappings from localStorage
+  try {
+    const savedMapper = localStorage.getItem(MAPPER_STORAGE_KEY);
+    if (savedMapper) {
+      const { strings } = JSON.parse(savedMapper);
+      numToString = strings;
+      stringToNum = new Map(strings.map((str, i) => [str, i + 1]));
+    }
+  } catch (error) {
+    console.error('Failed to load string mapper:', error);
+  }
+
+  const saveMapper = () => {
+    try {
+      localStorage.setItem(MAPPER_STORAGE_KEY, JSON.stringify({
+        strings: numToString
+      }));
+    } catch (error) {
+      console.error('Failed to save string mapper:', error);
+    }
+  };
 
   const encode = (str) => {
     if (stringToNum.has(str)) {
@@ -331,6 +482,7 @@ const createStringMapper = () => {
     const num = numToString.length + 1;
     stringToNum.set(str, num);
     numToString.push(str);
+    saveMapper(); // Save whenever we add a new mapping
     return `_${num}`;
   };
 
@@ -348,7 +500,15 @@ const createStringMapper = () => {
     return numToString[index];
   };
 
-  return { encode, decode, strings: [...numToString] };
+  return {
+    encode,
+    decode,
+    strings: [...numToString],
+    debug: () => ({
+      numToString,
+      stringToNumEntries: Array.from(stringToNum.entries())
+    })
+  };
 };
 
 const mapper = createStringMapper();

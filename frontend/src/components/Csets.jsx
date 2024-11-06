@@ -32,7 +32,7 @@ import Typography from '@mui/material/Typography';
 import { DOCS } from './AboutPage';
 import { useDataCache } from '../state/DataCache';
 import { useDataGetter, getResearcherIdsFromCsets } from '../state/DataGetter';
-import { useCodesetIds } from '../state/AppState';
+import {useCids, useCodesetIds} from '../state/AppState';
 
 /* TODO: Solve
     react_devtools_backend.js:4026 MUI: The value provided to Autocomplete is invalid.
@@ -252,6 +252,7 @@ export function CsetSearch (props = {}) {
 
 export function ConceptSetsPage () {
   const [codeset_ids, ] = useCodesetIds();
+  const [cids, ] = useCids();
   const dataGetter = useDataGetter();
   const [data, setData] = useState({});
   const {
@@ -273,6 +274,7 @@ export function ConceptSetsPage () {
       let csmi = await dataGetter.fetchAndCacheItems(dataGetter.apiCalls.cset_members_items, codeset_ids);
 
       let concept_ids = flatten(Object.values(csmi).map(d => Object.values(d))).map(d => d.concept_id);
+      concept_ids = concept_ids.concat(cids);
 
       all_csets = await all_csets;
 

@@ -1,13 +1,12 @@
 import React, { useState, useEffect, useCallback, useRef, useMemo, } from 'react';
-import DataTable, { createTheme } from 'react-data-table-component';
+import DataTable from 'react-data-table-component';
 import { styles } from './CsetComparisonPage';
+import { countBy, sum, set, uniq, flatten, debounce, isEmpty, union, difference, intersection, } from 'lodash';
 
 import { useDataGetter, DataGetter } from '../state/DataGetter';
-import { sum, set, uniq, flatten, debounce, isEmpty, union, difference, intersection, } from 'lodash';
 import { setColDefDimensions } from './dataTableUtils';
 import { useWindowSize } from '../utils';
 import { useCids, useCodesetIds } from '../state/AppState';
-import { setOp } from '../utils';
 import Button from '@mui/material/Button';
 import { TextField } from '@mui/material';
 
