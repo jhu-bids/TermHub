@@ -94,6 +94,8 @@ export function AboutPage() {
 
   // const linkPath = `/OMOPConceptSets?${localCodesetIds.map(d => `codeset_ids=${d}`).join("&")}`;
 
+  /* I don't know if this code was working before 2024-11 cache refactoring,
+      but now there's no dataCache.lastRefreshed or .cacheCheck, so it's broken
   useEffect(() => {
     (async () => {
       try {
@@ -108,7 +110,7 @@ export function AboutPage() {
             'was getting a max update depth exceeded here. fix it if it comes up again');
       }
     })();
-  }, []);
+  }, []); */
 
   console.log(loadCSetsRef);
   return (
@@ -236,6 +238,7 @@ export function AboutPage() {
             View state
           </Button>
 
+          {/* not keeping usage logs now, I don't think
           <Button
               to={`/usage${search ? search : ''}`}
               variant={'contained'}
@@ -244,6 +247,7 @@ export function AboutPage() {
           >
             Usage report
           </Button>
+          */}
         </TextBody>
 
       </div>

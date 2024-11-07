@@ -77,7 +77,8 @@ export async function fetchGraphData(props) {
 
   if (!isEmpty(newCset)) {
     concept_ids = union(concept_ids,
-        Object.values(newCset.definitions).map(d => d.concept_id));
+      Object.keys(newCset.definitions).map(d => parseInt(d))
+    );
   }
   promises.push(
       dataGetter.fetchAndCacheItems(dataGetter.apiCalls.concepts, concept_ids));
@@ -1551,12 +1552,12 @@ export function howToSaveStagedChanges(params) {
         </ol>
         <p>
           Return to this work later by saving or bookmarking <a
-            href={urlWithSessionStorage({newCset: params.newCset})}
+            href={urlWithSessionStorage()}
             target="_blank" rel="noreferrer">this link</a> (
           <Button
               onClick={() => {
                 navigator.clipboard.writeText(
-                    urlWithSessionStorage({newCset: params.newCset}));
+                    urlWithSessionStorage());
               }}
           >
             Copy to clipboard

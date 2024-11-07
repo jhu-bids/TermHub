@@ -31,15 +31,16 @@ import { AboutPage } from "./components/AboutPage";
 import { ConceptGraph, } from "./components/GraphPlayground";
 import {
   ReducerProviders, useCodesetIds,
+  resetReducers,
   // CodesetIdsProvider, CidsProvider, GraphOptionsProvider,
   ViewCurrentState,
   // AppOptionsProvider,
-  NewCsetProvider,
+  NewCsetProvider, useNewCset,
   // AlertsProvider, useAlerts, useAlertsDispatch, useNewCset, urlWithSessionStorage,
 } from './state/AppState';
 import {
   SearchParamsProvider,
-  SessionStorageProvider,
+  SessionStorageProvider, useSearchParamsState,
   // SessionStorageWithSearchParamsProvider,
   // useSessionStorageWithSearchParams,
 } from './state/StorageProvider';
@@ -101,9 +102,45 @@ export function AppWrapper({children}) {
 // window.compress = compress;
 // window.decompress = decompress;
 export function RoutesContainer() {
+  const spState = useSearchParamsState();
+  let {sp, updateSp, } = spState;
+  const [newCset, newCsetDispatch] = useNewCset();
+
   const [codeset_ids, codesetIdsDispatch] = useCodesetIds();
   const location = useLocation();
   // const [newCset, newCsetDispatch] = useNewCset();
+
+  useEffect(() => {
+    if (sp.sstorage) {
+      // const sstorageString = decompress(sp.sstorage);
+      // const sstorage = JSON.parse(sstorageString);
+      const sstorage = JSON.parse(sp.sstorage);
+      Object.entries(sstorage).map(([k,v]) => {
+        if (k === 'newCset') {
+          // restore alters newCset.definitions (unabbreviates)
+          v = newCsetDispatch({type: 'restore', newCset: v});
+        } else {
+          // console.warn('was only expecting newCset in sstorage search param, got', {[k]: v}, 'adding to sessionStorage anyway');
+          sessionStorage.setItem(k, JSON.stringify(v));
+        }
+      });
+
+      updateSp({delProps: ['sstorage']});
+
+      resetReducers({useStorageState: true});
+
+      // this updateSp generates a warning
+      //  You should call navigate() in a React.useEffect(), not when your component is first rendered.
+      //  but seems to work ok anyway. If if doesn't, try going back to something like the code below.
+      //  but the problem with code below is that you can't re-navigate by returning <Navigate...> from
+      //    useEffect. has to be returned by RoutesContainer.
+      // sp = {...sp};
+      // delete sp.sstorage;
+      // let csp = createSearchParams(sp);
+      // let url = location.pathname + '?' + csp;
+      // return <Navigate to={url} replace={true} />;
+    }
+  })
 
   let pathname = location.pathname;
 

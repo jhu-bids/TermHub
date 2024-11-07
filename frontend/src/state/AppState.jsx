@@ -10,8 +10,8 @@ import {pct_fmt, setOp} from '../utils';
 // import CircularProgress from '@mui/material/CircularProgress';
 import {useDataCache} from './DataCache';
 import {graphOptionsInitialState, graphOptionsReducer} from './GraphState';
-// import Markdown from 'react-markdown';
-// import { Inspector } from 'react-inspector';
+import Markdown from 'react-markdown';
+import { Inspector } from 'react-inspector';
 
 export const NEW_CSET_ID = -1;
 
@@ -58,8 +58,8 @@ export const [GraphOptionsProvider, useGraphOptions] = makeProvider(
     initialSettings: graphOptionsInitialState,
     storageProviderGetter: useSessionStorage, });
 
-export function resetReducers() {
-    Object.values(resetFuncs).forEach(f => f());
+export function resetReducers({useStorageState = false}) {
+    Object.values(resetFuncs).forEach(f => f({useStorageState}));
 }
 
 export function ReducerProviders({children}) {
@@ -191,7 +191,17 @@ function makeProvider({stateName, reducer, initialSettings, storageProviderGette
     }, [stateName, state]);
      */
 
-    const resetFunc = () => dispatch({type: 'reset', resetValue: initialSettings});
+    const resetFunc = ({useStorageState}) => {
+      let resetValue;
+      if (useStorageState) {
+        resetValue = storageProvider.getItem(stateName);
+      }
+      if (typeof(resetValue) === 'undefined') {
+        resetValue = cloneDeep(initialSettings);
+      }
+
+      dispatch({type: 'reset', resetValue});
+    };
     resetFuncs[stateName] = resetFunc;
 
     return (
@@ -362,28 +372,21 @@ export function getSessionStorage() {
   delete sstorage.AI_sentBuffer;
   return sstorage;
 }
-export function serializeSessionStorage({newCset} = {}) {
+export function serializeSessionStorage() {
   const sstorage = getSessionStorage();
-  newCset = newCset || sstorage.newCset || {};
-  if (newCset) {
-    newCset = {...newCset};
+  if (sstorage.newCset) {
+    let newCset = {...sstorage.newCset};
     delete newCset.provenance;  // it's a mess. not using for now
     newCset.definitions = abbreviateDefinitions(newCset.definitions);
     sstorage.newCset = newCset;
   }
   let sstorageString = JSON.stringify(sstorage);
-  /*
-  if (zip) {
-    // compressing doesn't do much when you have to uri it
-    sstorageString = compressToEncodedURIComponent(sstorageString);
-  }
-   */
   return sstorageString;
 }
 
 // TODO: this probably needs fixing after refactor
-export function urlWithSessionStorage({newCset} = {}) {
-  const sstorageString = serializeSessionStorage({newCset});
+export function urlWithSessionStorage() {
+  const sstorageString = serializeSessionStorage();
   return window.location.href + (window.location.search ? '&' : '?') + `sstorage=${sstorageString}`;
 }
 export function newCsetProvenance(newCset) {
@@ -537,7 +540,6 @@ Goals:
 
 export function ViewCurrentState () {
   // Inspector not working in playwright tests, so disabling this component
-  return null;
   const { sp } = useSearchParamsState();
   // const alerts = useAlerts();
   // eslint-disable-next-line @typescript-eslint/no-unused-vars
@@ -563,6 +565,7 @@ export function ViewCurrentState () {
 
     <h2>dataCache</h2>
     <Inspector data={dataCache}/>
+    <Inspector data={dataCache.getStats()}/>
 
     <h2>The different kinds of state</h2>
     <Markdown>{stateDoc}</Markdown>

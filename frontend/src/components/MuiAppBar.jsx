@@ -5,6 +5,7 @@ import Box from "@mui/material/Box";
 import Button from "@mui/material/Button";
 import Container from "@mui/material/Container";
 import IconButton from "@mui/material/IconButton";
+import Snackbar from '@mui/material/Snackbar';
 import Menu from "@mui/material/Menu";
 import Toolbar from "@mui/material/Toolbar";
 import Typography from "@mui/material/Typography";
@@ -13,6 +14,8 @@ import MenuBookRounded from "@mui/icons-material/MenuBookRounded";
 import MenuItem from "@mui/material/MenuItem";
 import Tooltip from "@mui/material/Tooltip";
 import { NavLink, useLocation } from "react-router-dom";
+import ContentCopyIcon from '@mui/icons-material/ContentCopy';
+
 // import ChevronLeftIcon from "@mui/icons-material/ChevronLeft";
 // import ChevronRightIcon from "@mui/icons-material/ChevronRight";
 // import CssBaseline from "@mui/material/CssBaseline";
@@ -25,7 +28,7 @@ import { NavLink, useLocation } from "react-router-dom";
 // import ListItemText from "@mui/material/ListItemText";
 import { cloneDeep } from "lodash";
 import {VERSION, DEPLOYMENT} from "../env";
-import {useCodesetIds} from "../state/AppState";
+import {urlWithSessionStorage, useCodesetIds} from '../state/AppState';
 // import {client} from "./utils";
 
 const drawerWidth = 240;
@@ -61,6 +64,8 @@ export function getPages(codeset_ids) {
 /* https://mui.com/material-ui/react-app-bar/ */
 export default function MuiAppBar() {
   const [codeset_ids, ] = useCodesetIds();
+  const [showCopySuccess, setShowCopySuccess] = useState(false);
+
   const location = useLocation();
   const { search } = location;
   const pages = getPages(codeset_ids);
@@ -160,6 +165,15 @@ export default function MuiAppBar() {
       })}
     </Box>
   );
+  const handleCopyAppStateToClipboard = async () => {
+    try {
+      await navigator.clipboard.writeText(urlWithSessionStorage());
+      setShowCopySuccess(true);
+    } catch (err) {
+      console.error('Failed to copy:', err);
+    }
+  };
+
   return (
     <AppBar
       className="Mui-app-bar"
@@ -197,6 +211,19 @@ export default function MuiAppBar() {
           >
             v{ VERSION } {/*process.env.COMMIT_HASH*/}
           </Typography>
+          <IconButton
+              onClick={handleCopyAppStateToClipboard}
+              title="Copy link to current application state to clipboard"
+          >
+            <ContentCopyIcon sx={{ color: 'white', display: { xs: "none", md: "flex" }, mr: 1 }} />
+          </IconButton>
+
+          <Snackbar
+              open={showCopySuccess}
+              autoHideDuration={2000}
+              onClose={() => setShowCopySuccess(false)}
+              message="Link copied to clipboard"
+          />
 
           {hamburgerMenu}
 
