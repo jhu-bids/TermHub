@@ -244,7 +244,7 @@ class TestObjectsApi(DbRefreshTestWrapper):
             link_type='OMOPConceptSet',
             return_type='data',
             expect_single_item=True)
-        self.assertEqual(7, len(csets))
+        self.assertEqual(8, len(csets))
 
         # OmopConceptSetVersionItem from OMOPConceptSet
         items: List[Dict] = get_object_links(
