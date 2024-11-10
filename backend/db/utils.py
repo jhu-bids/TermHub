@@ -82,52 +82,59 @@ def get_dependent_tables_queue(independent_tables: Union[List[str], str], _filte
     :return: A list in the correct order such that for every entry in the list, any tables that depend on that entry
     will appear further down in the list.
 
-    todo: Replace heuristic w/ a correct algorithm.
+    TODO: Replace heuristic w/ a correct algorithm.
      I originally had no steps 2&3, and only 1&4 combined. But the result was out of order. This algorithm below is
      based on a quick (but messy/long) heuristic. Basically, the longer dependency trees go first. This corrected the
      problem that I had. But this is just a heuristic. I feel confident that there is some correct algorithm for this
      solvable in polynomial time.
+     2024/11/09: Determined that this often returns incorrect result. Non-deterministic. For now, have a patch if
+     independent_tables == CORE_CSET_TABLES.
     """
     if _filter not in [None, 'tables', 'views']:
         raise ValueError(f'Invalid _filter value: {_filter}. Must be one of "tables" or "views".')
-    final_queue: List[str] = []
-    table_queues1: List[List[str]] = []
-    table_queues2: List[List[str]] = []
-    queues_by_len: Dict[int, List[List[str]]] = {}
-    independent_tables: List[str] = [independent_tables] if isinstance(independent_tables, str) else independent_tables
 
-    # 1 & 4: Get a queue of dependent tables
-    # 1. Build up a list of queues; queue is dependent tables
-    for table in independent_tables:
-        dependent_tree: Dict = RECURSIVE_DEPENDENT_TABLE_MAP.get(table, {})
-        if not dependent_tree:
-            continue
-        q: List[str] = extract_keys_from_nested_dict(dependent_tree)
-        table_queues1.append(q)
+    # TODO: Need correct algo. see docstring -> 2024/11/09
+    if independent_tables == CORE_CSET_TABLES:
+        final_queue = ['cset_members_items', 'members_items_summary', 'codeset_counts', 'all_csets', 'all_csets_view']
+    else:
+        final_queue: List[str] = []
+        table_queues1: List[List[str]] = []
+        table_queues2: List[List[str]] = []
+        queues_by_len: Dict[int, List[List[str]]] = {}
+        independent_tables: List[str] = [independent_tables] if isinstance(independent_tables, str) else independent_tables
 
-    # 2-3: Heuristic: Reorder the queue
-    # 2. Group by queue lengths
-    # - some dependency trees are the same for multiple tables; dedupe for simplicity
-    table_queues1 = [list(x) for x in set([tuple(x) for x in table_queues1])]
-    for q in table_queues1:
-        l = len(q)
-        if l not in queues_by_len:
-            queues_by_len[l] = []
-        queues_by_len[l].append(q)
+        # 1 & 4: Get a queue of dependent tables
+        # 1. Build up a list of queues; queue is dependent tables
+        for table in independent_tables:
+            dependent_tree: Dict = RECURSIVE_DEPENDENT_TABLE_MAP.get(table, {})
+            if not dependent_tree:
+                continue
+            q: List[str] = extract_keys_from_nested_dict(dependent_tree)
+            table_queues1.append(q)
 
-    # 3. Reorganize list of queues, sorted by longest queues first
-    queue_len_keys = list(queues_by_len.keys())
-    queue_len_keys.sort(reverse=True)
-    for k in queue_len_keys:
-        queues: List[List[str]] = queues_by_len[k]
-        for q in queues:
-            table_queues2.append(q)
+        # 2-3: Heuristic: Reorder the queue
+        # 2. Group by queue lengths
+        # - some dependency trees are the same for multiple tables; dedupe for simplicity
+        table_queues1 = [list(x) for x in set([tuple(x) for x in table_queues1])]
+        for q in table_queues1:
+            l = len(q)
+            if l not in queues_by_len:
+                queues_by_len[l] = []
+            queues_by_len[l].append(q)
 
-    # 4. Flatten to single list queue of dependent tables
-    for q in table_queues2:
-        for i in q:
-            if i not in final_queue:
-                final_queue.append(i)
+        # 3. Reorganize list of queues, sorted by longest queues first
+        queue_len_keys = list(queues_by_len.keys())
+        queue_len_keys.sort(reverse=True)
+        for k in queue_len_keys:
+            queues: List[List[str]] = queues_by_len[k]
+            for q in queues:
+                table_queues2.append(q)
+
+        # 4. Flatten to single list queue of dependent tables
+        for q in table_queues2:
+            for i in q:
+                if i not in final_queue:
+                    final_queue.append(i)
 
     # 5. Optional: Filtering
     if _filter:
@@ -170,7 +177,8 @@ def refresh_derived_tables_exec(
     t0 = datetime.now()
     for module in ddl_modules_queue:
         t0_2 = datetime.now()
-        print(f' - creating new table/view: {module}...')
+        table_or_view = 'view' if module in views else 'table'
+        print(f' - creating new {table_or_view}: {module}...')
         statements: List[str] = get_ddl_statements(schema, module, temp_table_suffix, 'flat')
         for statement in statements:
             try:
