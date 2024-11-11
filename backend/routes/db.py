@@ -584,8 +584,42 @@ def single_n3c_comparison_rpt(pair: str):
     return rpt[0] if rpt else None
 
 
-def get_possible_replacement_concepts(concept_ids):
-    """Get replacement concepts for multiple concept IDs in a single query"""
+@router.post("/get-similar-concepts")
+def get_similar_concepts(concept_ids: List[Union[int, str]], which: str = 'all' ) -> Dict:
+    """Get similar concepts for multiple concept IDs in a single query
+     Args:
+        concept_ids: List of concept IDs (can be integers or strings)
+        which: Relationship type filter ('all', 'to', or 'from')
+    """
+    concept_ids = [int(cid) for cid in concept_ids]
+    if which == 'all':  # all similar for possible replacement suggestions for codeset comparisons
+        rels = [
+            'Maps to',
+            'Maps to value',
+            'Mapped from',
+            'Mapped from value',
+            'Concept alt_to from',
+            'Concept alt_to to',
+            'Concept poss_eq from',
+            'Concept poss_eq to',
+            'Concept replaced by',
+            'Concept replaces',
+            'Concept same_as from',
+            'Concept same_as to',
+            'Concept was_a from',
+            'Concept was_a to'
+        ]
+    elif which == 'to': # what OHDSI includeMapped usually does, I think
+        rels = [
+            'Maps to',
+            'Maps to value',
+        ]
+    elif which == 'from': # what OHDSI includeMapped should do, I think
+        rels = [
+            'Mapped from',
+            'Mapped from value',
+        ]
+
     with get_db_connection() as con:
         q = """
             SELECT 
@@ -599,24 +633,11 @@ def get_possible_replacement_concepts(concept_ids):
             FROM concept_relationship cr
             JOIN concepts_with_counts c2 ON cr.concept_id_2 = c2.concept_id
             WHERE concept_id_1 = ANY(:concept_ids)
-              AND relationship_id in (
-                    'Maps to',
-                    'Mapped from',
-                    'Concept alt_to from',
-                    'Concept alt_to to',
-                    'Concept poss_eq from',
-                    'Concept poss_eq to',
-                    'Concept replaced by',
-                    'Concept replaces',
-                    'Concept same_as from',
-                    'Concept same_as to',
-                    'Concept was_a from',
-                    'Concept was_a to'
-                    )
+              AND relationship_id = ANY(:rels)
               AND concept_id_1 != concept_id_2
             GROUP BY 1,2,3,4,5,6;
         """
-        results = sql_query(con, q, {'concept_ids': list(concept_ids)})
+        results = sql_query(con, q, {'concept_ids': list(concept_ids), 'rels': rels})
 
         # Organize results by source concept
         replacements_by_concept = {}
@@ -683,7 +704,7 @@ def get_comparison_rpt(codeset_id_1: int, codeset_id_2: int) -> Dict[str, Union[
 
     # Get all replacement suggestions in one query
     if removed:
-        all_replacements = get_possible_replacement_concepts(removed_cids)
+        all_replacements = get_similar_concepts(removed_cids)
 
         # Add filtered replacement suggestions for removed concepts
         for rec in removed:

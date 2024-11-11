@@ -144,6 +144,8 @@ async def concept_graph(
 
 
 def get_all_descendants(G: nx.DiGraph, subgraph_nodes: Union[List[int], Set[int]], verbose=VERBOSE) -> Set:
+    # using this instead of get_missing_in_between_nodes. this way the front end has the entire
+    #   descendant tree for all concepts being looked at
     descendants: Set[int] = set()
     for node in subgraph_nodes:
         if G.has_node(node):
@@ -204,6 +206,7 @@ print_stack = lambda s: ' | '.join([f"{n} => {','.join([str(x) for x in p])}" fo
 
 # noinspection PyPep8Naming
 def get_missing_in_between_nodes(G: nx.DiGraph, subgraph_nodes: Union[List[int], Set[int]], verbose=VERBOSE) -> Set:
+    # not using this anymore
     missing_in_between_nodes = set()
     missing_in_between_nodes_tmp = set()
     subgraph_nodes = set(subgraph_nodes)

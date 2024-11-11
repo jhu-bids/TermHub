@@ -40,10 +40,10 @@ import {
   cellContents,
   cellStyle,
   getCodesetEditActionFunc,
-  getItem,
   Legend,
   newCsetAtlasWidget,
   textCellForItem,
+  expandCset,
 } from './NewCset';
 import {FlexibleContainer} from './FlexibleContainer';
 import {
@@ -65,8 +65,7 @@ import {isEqual} from '@react-sigma/core';
 export async function fetchGraphData(props) {
   let {dataGetter, codeset_ids, cids, newCset = {}} = props;
   let promises = [ // these can run immediately
-    dataGetter.fetchAndCacheItems(dataGetter.apiCalls.cset_members_items,
-        codeset_ids),
+    dataGetter.fetchAndCacheItems(dataGetter.apiCalls.cset_members_items, codeset_ids),
     dataGetter.fetchAndCacheItems(dataGetter.apiCalls.csets, codeset_ids),
   ];
   // have to get concept_ids before fetching concepts
@@ -122,18 +121,8 @@ export async function fetchGraphData(props) {
 
   if (!isEmpty(newCset)) {
     selected_csets.push(newCset);
-    selected_csets = selected_csets.map(cset => {
-      cset = {...cset};
-      // not sure why these counts are needed...oh, maybe because we
-      //  planned to update them and add them to the comparison UI somehow
-      cset.intersecting_concepts = 0;
-      cset.precision = 0;
-      cset.recall = 0;
-      cset.counts = {};
-      return cset;
-    });
-
     csmi[newCset.codeset_id] = newCset.definitions;
+    // these will be modified once the concept graph is constructed
   }
 
   const concepts = Object.values(conceptLookup);
@@ -240,6 +229,10 @@ export function CsetComparisonPage() {
       // let _gc = new GraphContainer({ ...graphData, concepts, specialConcepts, csmi });
       //  that looks redundant, unneeded. fixing now but not testing. hopefully won't break anything:
       let _gc = new GraphContainer(graphData);
+      if (newCset) {
+        const expansion = await expandCset({newCset, graphContainer: _gc});
+        csmi[newCset.codeset_id] = expansion;
+      }
 
       const {allRows, allRowsById} = _gc.setupAllRows(_gc.roots);
 
@@ -312,16 +305,12 @@ export function CsetComparisonPage() {
 
   const nested = get(graphOptions, 'nested', true);   // defaults to true but allows false to be set
 
-  const editAction = getCodesetEditActionFunc(
-      {csmi, newCset, newCsetDispatch});
-
   const colDefs = getColDefs({
     gc,
     selected_csets,
     concepts,
     cids,
     sizes,
-    editAction,
     windowSize,
     // hidden,
     displayedRows,
@@ -787,7 +776,6 @@ function getColDefs(props) {
     concepts,
     cids,
     sizes,
-    editAction,
     windowSize,
     hidden,
     displayedRows,
@@ -798,6 +786,8 @@ function getColDefs(props) {
     setShowCsetCodesetId,
   } = props;
   const {nested, } = graphOptions;
+
+  const editAction = getCodesetEditActionFunc({csmi, newCset, newCsetDispatch});
 
   let coldefs = [
     {
@@ -1099,11 +1089,8 @@ function getColDefs(props) {
         },
       },
       selector: row => {
-        const item = getItem({
-          codeset_id: cset_col.codeset_id,
-          concept_id: row.concept_id, csmi, newCset,
-        }) || {};
-        return !(item.item || item.csm);
+        const item = get(csmi, [cset_col.codeset_id, row.concept_id]) || {};
+        return !(item.item || item.csm);  // why?
       },
       format: (row) => {
         return cellContents({

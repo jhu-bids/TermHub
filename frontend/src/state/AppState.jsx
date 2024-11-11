@@ -259,10 +259,12 @@ const newCsetReducer = (state, action) => {
         // "codeset_created_by": "e64b8f7b-7af8-4b44-a570-557b812c0eeb", // will be set by enclave
         is_draft: true,
         researchers: [],
+        /*
         counts: {'Expression items': 0},
         intersecting_concepts: 0,
         precision: 0,
         recall: 0,
+         */
       };
       /*
       if (state.currentUserId) {
@@ -298,12 +300,12 @@ const newCsetReducer = (state, action) => {
 
   // const restoreUrl = urlWithSessionStorage();
   // provenance: `VS-Hub url: ${urlWithSessionStorage()}`,
-  state = {
+  /* state = {
     ...state,
     counts: {...state.counts, 'Expression items': Object.keys(state.definitions).length},
     // provenance: `VS-Hub url: ${restoreUrl}`, // not really needed currently. not displaying on newCset card because
                                               //  it's too ugly, and no current way to save metadata to enclave
-  };
+  }; */
   return state
 };
 

@@ -10,7 +10,7 @@ import Typography from "@mui/material/Typography";
 // import Paper from "@mui/material/Paper";
 // import TextareaAutosize from "@mui/base/TextareaAutosize";
 // import CardContent from '@mui/material/CardContent';
-import {get, isEmpty} from "lodash"; // set, map, omit, pick, uniq, reduce, cloneDeepWith, isEqual, uniqWith, groupBy,
+import {get, set, isEmpty, sortBy} from "lodash"; // set, map, omit, pick, uniq, reduce, cloneDeepWith, isEqual, uniqWith, groupBy,
 import IconButton from "@mui/material/IconButton";
 import {Tooltip} from "./Tooltip";
 import {howToSaveStagedChanges} from "./CsetComparisonPage";
@@ -19,6 +19,54 @@ import Button from "@mui/material/Button";
 import React from "react";
 
 const checkmark = <span>{"\u2713"}</span>;
+
+export function expandCset({ newCset, graphContainer, }) {
+  let expansion = {...newCset.definitions};
+  for (let def of Object.values(newCset.definitions || {}).filter(d => !d.isExcluded)) {
+    expansion[def.concept_id] = {
+      ...def,
+      csm: true
+    };
+    if (def.includeMapped) {
+      console.warn("don't know how to handle includeMapped in expansion yet");
+    }
+    def.csm = true;
+    expansion[def.concept_id] = def;
+
+    if (def.includeDescendants) {
+      let descendants = graphContainer.getDescendants(def.concept_id);
+      for (const descendantId of descendants) {
+        if (!expansion[descendantId]) {
+          expansion[descendantId] = {
+            // ...def,
+            concept_id: parseInt(descendantId),
+            item: false,  // Not an original item
+            flags: null,  // Clear flags for expanded members
+            item_flags: null,
+            csm: true,
+            reason: `included descendant of ${def.concept_id}`,
+          };
+        }
+      }
+    }
+  }
+  for (let def of Object.values(newCset.definitions || {}).filter(d => d.isExcluded)) {
+    expansion[def.concept_id] = {
+      ...def,
+      csm: false
+    };
+    if (def.includeDescendants) {
+      let descendants = graphContainer.getDescendants(def.concept_id);
+      for (const descendantId of descendants) {
+        if (expansion[descendantId]) {
+          expansion[descendantId].csm = false;
+          expansion[descendantId].reason = `excluded descendant of ${def.concept_id}`;
+        }
+      }
+    }
+  }
+  return expansion;
+}
 
 export function getCodesetEditActionFunc({ newCset, newCsetDispatch, csmi }) {
   return (props) => {
@@ -32,20 +80,51 @@ export function getCodesetEditActionFunc({ newCset, newCsetDispatch, csmi }) {
       row: { concept_id },
       no_action = false,
     } = props;
-    const { definitions = {}, } = newCset;
-    let definition = getItem({
-      codeset_id,
-      concept_id,
-      newCset,
-      clickAction,
-      csmi,
-    });
+
+
+    let definition = get(csmi, [codeset_id, concept_id]);
+    let _clickAction = clickAction; // because this code was in a function
+                                    // that locally changed clickAction
+    if (clickAction) {
+      definition = { ...definition };
+      if (clickAction.startsWith("Cancel")) {
+        newCsetDispatch({type: 'deleteDefinition', concept_id});
+        return;
+      }
+      if (isEmpty(definition)) {
+        if (clickAction === "Add") {
+          definition = { codeset_id, concept_id, csm: false, item: true };
+          Object.keys(FLAGS).forEach((flag) => {
+            definition[flag] = false;
+          });
+        } else {
+          throw new Error("wasn't expecting no item except on Add");
+        }
+      } else {
+        if (clickAction === "Add") {
+          definition.item = true;
+          Object.keys(FLAGS).forEach((flag) => {
+            definition[flag] = false;
+          });
+        }
+        if (definition.stagedAction === "Add" && clickAction === "Update") {
+          _clickAction = "Add";
+        }
+        if (definition.stagedAction && definition.stagedAction !== _clickAction) {
+          throw new Error("wasn't expecting a different action");
+        }
+      }
+      if (definition) {
+        definition.stagedAction = _clickAction;
+      }
+    }
+
+
     if (clickAction === "Update") {
       definition[flag] = !definition[flag];
     }
     if (clickAction.startsWith("Cancel")) {
-      // delete csidState[concept_id];
-      newCsetDispatch({type: 'deleteDefinition', concept_id});
+      // moved this up above to dispatch action and return
     } else {
       // csidState[concept_id] = definition;
       newCsetDispatch({type: 'addDefinition', definition});
@@ -155,62 +234,6 @@ function OptionIcon(props) {
     </Tooltip>
   );
 }
-export function getItem({
-  fakeItem,
-  codeset_id,
-  concept_id,
-  csmi,
-  newCset,
-  clickAction,
-}) {
-  /*  if no item for codeset_id,concept_id, return undefined;
-      otherwise, return copy of item,
-        1) from edit state if available there,
-        2) from csmi (concept_set_members_items),
-        3) new if clickAction === 'Add'
-      set item.stagedAction if action parameter included   */
-  let item = fakeItem;
-  if (!item) {
-    if (codeset_id === get(newCset, ['codeset_id'])) {
-      item = newCset.definitions[concept_id];
-    } else {
-      item = get(csmi, [codeset_id, concept_id]);
-    }
-  }
-  if (clickAction) {
-    item = { ...item };
-    if (clickAction.startsWith("Cancel")) {
-      return item;
-    }
-    if (isEmpty(item)) {
-      if (clickAction === "Add") {
-        item = { codeset_id, concept_id, csm: false, item: true };
-        Object.keys(FLAGS).forEach((flag) => {
-          item[flag] = false;
-        });
-      } else {
-        throw new Error("wasn't expecting no item except on Add");
-      }
-    } else {
-      if (clickAction === "Add") {
-        item.item = true;
-        Object.keys(FLAGS).forEach((flag) => {
-          item[flag] = false;
-        });
-      }
-      if (item.stagedAction === "Add" && clickAction === "Update") {
-        clickAction = "Add";
-      }
-      if (item.stagedAction && item.stagedAction !== clickAction) {
-        throw new Error("wasn't expecting a different action");
-      }
-    }
-    if (item) {
-      item.stagedAction = clickAction;
-    }
-  }
-  return item;
-}
 function cellInfo(props) {
   if ("fakeItem" in props) {
     return { editing: props.editing, item: props.fakeItem };
@@ -221,12 +244,7 @@ function cellInfo(props) {
     newCset,
     csmi,
   } = props;
-  const item = getItem({
-    csmi,
-    codeset_id,
-    concept_id,
-    newCset,
-  });
+  const item = get(csmi, [codeset_id, concept_id]);
   const editing = codeset_id === get(newCset, ['codeset_id']);
 
   return { editing, item };
@@ -254,6 +272,7 @@ function _cellStyle(item, editing) {
   } else if (item.item) {
     style.backgroundColor = "plum";
   }
+  /*
   editing = editing ?? item.editing;
   if (editing) {
     if (item.stagedAction === "Add") {
@@ -264,6 +283,7 @@ function _cellStyle(item, editing) {
       style.backgroundColor = "lightblue";
     }
   }
+   */
   return style;
 }
 

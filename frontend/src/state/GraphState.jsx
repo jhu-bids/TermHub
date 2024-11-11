@@ -10,7 +10,7 @@ import {
 } from 'lodash';
 import Graph from 'graphology';
 // import {bidirectional} from 'graphology-shortest-path/unweighted';
-// import {dfsFromNode} from "graphology-traversal/dfs";
+import {dfsFromNode} from 'graphology-traversal/dfs';
 import {setOp} from '../utils';
 
 const EXPAND_ALL_DEFAULT_THRESHOLD = 2000;
@@ -712,6 +712,15 @@ export class GraphContainer {
       traverse(rootId);
     }
     return rows;
+  }
+
+  getDescendants(startNode) {
+    let descendants = [];
+    dfsFromNode(this.graph, startNode, function (node, attr, depth) {
+      console.log(node, attr, depth);
+      descendants.push(node);
+    });
+    return descendants;
   }
 }
 

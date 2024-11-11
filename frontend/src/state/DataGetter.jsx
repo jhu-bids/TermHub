@@ -227,6 +227,28 @@ export class DataGetter {
         distinct_person_cnt: '0',
       }),
     },
+    concept_mappings: {
+      expectedParams: [], // concept_ids array
+      api: 'get-similar-concepts',
+      protocols: ['post'],
+      data: concept_ids => ({
+        concept_ids,
+        which: 'to'  // Use OHDSI standard mapping relationships
+      }),
+      cacheSlice: 'concept_mappings',
+      key: 'source_concept_id',
+      alertTitle: 'Get mapped concepts for concept IDs',
+      apiResultShape: 'obj of array',  // matches your API's return format: {source_id: [mapped_concepts]}
+    },
+    related_cset_concept_counts: {
+      expectedParams: [],  // concept_ids
+      api: 'related-cset-concept_counts',
+      makeQueryString: concept_ids => createSearchParams({concept_ids}),
+      protocols: ['post'],
+      cacheSlice: 'related_cset_concept_counts',
+      key: 'concept_id',
+      apiResultShape: 'obj',
+    },
     concept_search: {
       expectedParams: '',
       api: 'concept-search',
@@ -240,15 +262,6 @@ export class DataGetter {
       alertTitle: 'Get concepts for search_str',
       apiResultShape: 'array of keyed obj',
       expectOneResultRowPerKey: true,
-    },
-    related_cset_concept_counts: {
-      expectedParams: [],  // concept_ids
-      api: 'related-cset-concept_counts',
-      makeQueryString: concept_ids => createSearchParams({concept_ids}),
-      protocols: ['post'],
-      cacheSlice: 'related_cset_concept_counts',
-      key: 'concept_id',
-      apiResultShape: 'obj',
     },
     researchers: {
       expectedParams: [],  // multipassIds
