@@ -58,8 +58,9 @@ export const [GraphOptionsProvider, useGraphOptions] = makeProvider(
     initialSettings: graphOptionsInitialState,
     storageProviderGetter: useSessionStorage, });
 
-export function resetReducers({useStorageState = false}) {
-    Object.values(resetFuncs).forEach(f => f({useStorageState}));
+export function resetReducers(props = {}) {
+  const {useStorageState = false} = props;
+  Object.values(resetFuncs).forEach(f => f({useStorageState}));
 }
 
 export function ReducerProviders({children}) {
