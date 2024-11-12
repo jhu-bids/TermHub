@@ -140,6 +140,9 @@ export async function fetchGraphData(props) {
   let specialConcepts = {
     definitionConcepts: definitionConcepts.map(String),
     nonDefinitionConcepts: nonDefinitionConcepts.map(String),
+    standard: uniq(Object.values(conceptLookup).
+        filter(c => c.standard_concept).
+        map(c => c.concept_id)),
     nonStandard: uniq(Object.values(conceptLookup).
         filter(c => !c.standard_concept).
         map(c => c.concept_id)),
