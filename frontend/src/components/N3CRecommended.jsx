@@ -104,6 +104,7 @@ export const N3CComparisonRpt = () => {
   const dataGetter = useDataGetter();
   const [codeset_ids, codesetIdsDispatch] = useCodesetIds();
   // const [compareOpt, compareOptDispatch] = useCompareOpt();
+  console.log("N3CComparisonRpt");
 
   useEffect(() => {
     (async () => {

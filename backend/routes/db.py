@@ -22,7 +22,9 @@ from backend.db.queries import get_concepts
 from backend.db.utils import get_db_connection, sql_query, SCHEMA, sql_query_single_col, sql_in, sql_in_safe, run_sql
 from backend.utils import return_err_with_trace, commify, recs2dicts, call_github_action
 from enclave_wrangler.config import RESEARCHER_COLS
-from enclave_wrangler.objects_api import get_n3c_recommended_csets, get_codeset_json, get_bundle_codeset_ids, get_bundle_names
+from enclave_wrangler.models import convert_rows
+from enclave_wrangler.objects_api import get_n3c_recommended_csets, get_codeset_json, get_bundle_codeset_ids, \
+        get_bundle_names, get_concept_set_version_expression_items, items_to_atlas_json_format, get_codeset_json
 from enclave_wrangler.utils import make_objects_request, whoami, check_token_ttl
 
 FLAGS = ['includeDescendants', 'includeMapped', 'isExcluded']
@@ -397,6 +399,55 @@ def db_refresh_route():
     """Triggers refresh of the database"""
     response: Response = call_github_action('refresh-db')
     return response.status_code
+
+
+
+FLAGS = ['includeDescendants', 'includeMapped', 'isExcluded']
+@router.get("/cset-download")
+def cset_download(codeset_id: int, csetEditState: str = None,
+                  atlas_items=True, # atlas_items_only=False,
+                  sort_json: bool = False, include_metadata = False) -> Dict:
+    """Download concept set
+        Had deleted this, but it's used for atlas-json download for existing concept sets
+    """
+    # if not atlas_items_only: # and False  TODO: document this param and what it does (what does it do again?)
+    #     jsn = get_codeset_json(codeset_id) #  , use_cache=False)
+    #     if sort_json:
+    #         jsn['items'].sort(key=lambda i: i['concept']['CONCEPT_ID'])
+    #     return jsn
+
+    items = get_concept_set_version_expression_items(codeset_id, return_detail='full', handle_paginated=True)
+    items = [i['properties'] for i in items]
+    if csetEditState:
+        edits = json.loads(csetEditState)
+        edits = edits[str(codeset_id)]
+
+        deletes = [i['concept_id'] for i in edits.values() if i['stagedAction'] in ['Remove', 'Update']]
+        items = [i for i in items if i['conceptId'] not in deletes]
+        adds: List[Dict] = [i for i in edits.values() if i['stagedAction'] in ['Add', 'Update']]
+        # items is object api format but the edits from the UI are in dataset format
+        # so, convert the edits to object api format for consistency
+        for item in adds:
+            # set flags to false if they don't appear in item
+            for flag in FLAGS:
+                if flag not in item:
+                    item[flag] = False
+        adds = convert_rows('concept_set_version_item',
+                            'OmopConceptSetVersionItem',
+                            adds)
+        items.extend(adds)
+    if sort_json:
+        items.sort(key=lambda i: i['conceptId'])
+
+    # if include_metadata:
+
+    if atlas_items:
+        items_jsn = items_to_atlas_json_format(items)
+        return {'items': items_jsn}
+    else:
+        return items  #  when would we want this?
+    # pdump(items)
+    # pdump(items_jsn)
 
 
 # Utility functions ----------------------------------------------------------------------------------------------------

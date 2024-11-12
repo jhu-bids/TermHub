@@ -717,7 +717,7 @@ export class GraphContainer {
   getDescendants(startNode) {
     let descendants = [];
     dfsFromNode(this.graph, startNode, function (node, attr, depth) {
-      console.log(node, attr, depth);
+      // console.log(node, attr, depth);
       descendants.push(node);
     });
     return descendants;
