@@ -6,13 +6,14 @@ import {fromPairs, map} from 'lodash';
 import { compress, decompress } from "lz-string";
 
 const CACHE_CONFIG = {
-  MAX_STORAGE_SIZE: 3 * 10**6,
-  WARN_STORAGE_SIZE: 2 * 10**6,
+  MAX_STORAGE_SIZE: 4 * 10**6,
+  WARN_STORAGE_SIZE: 3.5 * 10**6,
   DEFAULT_TTL: 24 * 60 * 60 * 1000, // 24 hours in milliseconds
   OPTIMIZATION_EXPERIMENT: '', // 'no-cache',
 };
 // Use a key that won't conflict with our encoded keys
 const MAPPER_STORAGE_KEY = 'mapper_state';
+const CACHE_PREFIX = '_';
 
 
 const DataCacheContext = createContext(null);
@@ -90,14 +91,14 @@ class DataCache {
       // Load existing keys and their metadata from localStorage
       for (let i = 0; i < localStorage.length; i++) {
         const key = localStorage.key(i);
-        if (key.startsWith('_')) { // Using your encoded slice prefix
+        if (key.startsWith(CACHE_PREFIX)) { // Using your encoded slice prefix
           const compressed = localStorage.getItem(key);
           const size = compressed.length;
           this.sizeTracker.set(key, size);
 
           // Try to load metadata
           try {
-            const meta = localStorage.getItem(`meta:${key}`);
+            const meta = localStorage.getItem(`${key}:meta`);
             if (meta) {
               const { writeTime, accessTime } = JSON.parse(meta);
               if (writeTime) this.writeTimes.set(key, writeTime);
@@ -113,12 +114,12 @@ class DataCache {
     }
   }
 
-  async cacheGet(path) {
+  cacheGet(path) {
     const {slice, sliceCode, key} = this.pathToKey(path);
     return this.cacheGetSliceKey(slice, key);
   }
 
-  async cacheGetSliceKey(slice, key) {
+  cacheGetSliceKey(slice, key) {
     const now = Date.now();
     let value;
 
@@ -295,7 +296,7 @@ class DataCache {
 
       // Remove from all caches
       localStorage.removeItem(item.key);
-      localStorage.removeItem(`meta:${item.key}`);
+      localStorage.removeItem(`${item.key}:meta`);
       this.memoryCache.delete(item.key);
       this.sizeTracker.delete(item.key);
       this.accessTimes.delete(item.key);
@@ -317,7 +318,7 @@ class DataCache {
       writeTime: this.writeTimes.get(key),
       accessTime: this.accessTimes.get(key)
     };
-    localStorage.setItem(`meta:${key}`, JSON.stringify(meta));
+    localStorage.setItem(`${key}:meta`, JSON.stringify(meta));
   }
 
   delete(path) {
@@ -327,7 +328,7 @@ class DataCache {
     this.memoryCache.delete(key);
     this.getLRUCache(slice).delete(key);
     localStorage.removeItem(key);
-    localStorage.removeItem(`meta:${key}`);
+    localStorage.removeItem(`${key}:meta`);
     this.sizeTracker.delete(key);
     this.accessTimes.delete(key);
     this.writeTimes.delete(key);
@@ -343,9 +344,9 @@ class DataCache {
     // Clear cache items from localStorage
     for (let i = localStorage.length - 1; i >= 0; i--) {
       const key = localStorage.key(i);
-      if (key && key.startsWith('_')) { // Using your encoded slice prefix
+      if (key && key.startsWith(CACHE_PREFIX)) { // Using your encoded slice prefix
         localStorage.removeItem(key);
-        localStorage.removeItem(`meta:${key}`);
+        localStorage.removeItem(`${key}:meta`);
       }
     }
   }
@@ -376,15 +377,15 @@ class DataCache {
     return {slice, sliceCode, key};
   }
 
-  async getWholeSlice(slice) {
+  getWholeSlice(slice) {
     const sliceCode = mapper.encode(slice);
     const keys = this.getSliceKeys(sliceCode);
-    return fromPairs(map(keys, async key => [key.replace(`${sliceCode}:`,''), await this.cacheGetSliceKey(slice, key)]));
+    return fromPairs(map(keys, key => [key.replace(`${sliceCode}:`,''), this.cacheGetSliceKey(slice, key)]));
   }
 
   getSliceKeys(sliceCode) {
     return Object.keys(localStorage)
-      .filter(key => key.startsWith(sliceCode));
+      .filter(key => key.startsWith(sliceCode) && !key.match(':meta'));
   }
 
   getSlices() {
@@ -410,7 +411,7 @@ class DataCache {
     for (let i = 0; i < localStorage.length; i++) {
       const key = localStorage.key(i);
       // Skip non-cache keys and mapper state
-      if (!key || !key.startsWith('_') || key === MAPPER_STORAGE_KEY) continue;
+      if (!key || !key.startsWith(CACHE_PREFIX) || key === MAPPER_STORAGE_KEY) continue;
       const writeTime = this.writeTimes.get(key) || 0;
       mostRecentTime = Math.max(mostRecentTime, writeTime);
     }
@@ -422,7 +423,7 @@ class DataCache {
     for (let i = 0; i < localStorage.length; i++) {
       const key = localStorage.key(i);
       // Skip non-cache keys and mapper state
-      if (!key || !key.startsWith('_') || key === MAPPER_STORAGE_KEY) continue;
+      if (!key || !key.startsWith(CACHE_PREFIX) || key === MAPPER_STORAGE_KEY) continue;
 
       const size = this.sizeTracker.get(key) || 0;
       const writeTime = this.writeTimes.get(key) || 0;
@@ -513,6 +514,21 @@ class DataCache {
 }
 
 const createStringMapper = () => {
+  // trying strategy of not caching individual small items, so don't
+  //  need to abbreviate slice keys anymore. if this strategy works,
+  //  can get rid of all this mapper stuff
+
+  // oh, except relying on cache keys to start with underscore
+
+  const encode = (str) => CACHE_PREFIX + str;
+  const decode = (str) => {
+    if (str[0] !== '_') {
+      throw new Error(`expected slice code to start with underscore, got ${str}`);
+    }
+    return str.slice(1);
+  }
+
+
   let stringToNum = new Map();
   let numToString = [];
 
@@ -538,7 +554,7 @@ const createStringMapper = () => {
     }
   };
 
-  const encode = (str) => {
+  const encodeOLD = (str) => {
     if (stringToNum.has(str)) {
       return `_${stringToNum.get(str)}`;
     }
@@ -550,8 +566,8 @@ const createStringMapper = () => {
     return `_${num}`;
   };
 
-  const decode = (encoded) => {
-    if (!encoded.startsWith('_')) {
+  const decodeOLD = (encoded) => {
+    if (!encoded.startsWith(CACHE_PREFIX)) {
       throw new Error('Invalid encoded string: must start with underscore');
     }
 

@@ -193,13 +193,11 @@ export class DataGetter {
       },
       protocols: ['get', 'post'],
       cacheSlice: 'concept-graph',
-      // TODO: this can't be right. why no codeset_ids in key func?
-      //   singleKeyFunc: concept_ids => compress(concept_ids.join('|')),
       singleKeyFunc: ({codeset_ids = [], cids = []}) =>
           compress(codeset_ids.join('|') + ';' + cids.join('|')),
       alertTitle: 'Get subgraph for all listed code sets plus additional concept_ids (cids)',
       apiResultShape: 'array of array [level, concept_id]',
-      cacheShape: 'obj of array of array', // cache.edges[key] = [[src,tgt], [src,tgt], ....]
+      // cacheShape: 'obj of array of array', // cache.edges[key] = [[src,tgt], [src,tgt], ....]
       // formatResultsFunc: edges => edges.map(edge => edge.map(String)), // might need this!!
     },
     concepts: {
@@ -227,7 +225,7 @@ export class DataGetter {
         distinct_person_cnt: '0',
       }),
     },
-    concept_mappings: {
+    /* concept_mappings: {
       expectedParams: [], // concept_ids array
       api: 'get-similar-concepts',
       protocols: ['post'],
@@ -239,7 +237,7 @@ export class DataGetter {
       key: 'source_concept_id',
       alertTitle: 'Get mapped concepts for concept IDs',
       apiResultShape: 'obj of array',  // matches your API's return format: {source_id: [mapped_concepts]}
-    },
+    }, */
     related_cset_concept_counts: {
       expectedParams: [],  // concept_ids
       api: 'related-cset-concept_counts',
@@ -278,7 +276,7 @@ export class DataGetter {
       cacheSlice: 'usage',
       key: 'timestamp',
       alertTitle: 'Get usage log',
-      apiResultShape: 'array of keyed obj',
+      // apiResultShape: 'array of keyed obj',
     },
     n3c_comparison_rpt: {
       expectedParams: undefined,
@@ -287,7 +285,7 @@ export class DataGetter {
       cacheSlice: 'n3c_comparison_rpt',
       key: undefined,
       alertTitle: 'Get N3C comparison report',
-      apiResultShape: 'array of keyed obj',
+      // apiResultShape: 'array of keyed obj',
     },
     bundle_rpt: {
       expectedParams: '',
@@ -312,18 +310,6 @@ export class DataGetter {
 
     const dataCache = this.dataCache;
 
-    if (apiDef.api === 'concept-graph') {
-      const {codeset_ids, cids} = params;
-      let cacheKey = codeset_ids.join(',') + ';' + cids.join(',');
-
-      let data = await dataCache.cacheGet([apiDef.cacheSlice, cacheKey]);
-      if (isEmpty(data)) {
-        data = await this.axiosCall(apiDef.api,
-            {...apiDef, data: params, backend: true});
-        dataCache.cachePut([apiDef.cacheSlice, cacheKey], data);
-      }
-      return data;
-    }
     if (typeof (apiDef.expectedParams) === 'undefined') {
       // handle no-param calls (all_csets, whoami) here; get from cache or fetch and cache
       let data = await dataCache.cacheGet([apiDef.cacheSlice]);
@@ -345,24 +331,51 @@ export class DataGetter {
       }
       return data;
     }
+    if (apiDef.api === 'concept-graph') {
+      const {codeset_ids, cids} = params;
+      let cacheKey = codeset_ids.join(',') + ';' + cids.join(',');
 
-    if (typeof (params) === 'object' && !Array.isArray(params)) {
-      throw new Error('wasn\'t expecting a non-array object');
+      let data = await dataCache.cacheGet([apiDef.cacheSlice, cacheKey]);
+      if (isEmpty(data)) {
+        data = await this.axiosCall(apiDef.api,
+            {...apiDef, data: params, backend: true});
+        dataCache.cachePut([apiDef.cacheSlice, cacheKey], data);
+      }
+      return data;
     }
     if (isEmpty(params)) {
       // what to do if params empty? like no codeset_ids? return undefined for now
       return apiDef.expectedParams;
     }
 
-    // params = params.sort(); ok to get rid of sort? it's messing up codeset_id order
+    if ( ! [ 'array of keyed obj',
+          'obj of array',
+          'obj of obj'].includes(apiDef.apiResultShape)) {
+      throw new Error(`not sure how to handle apiDef ${apiDef.api}`);
+    }
+
+    if (typeof (params) === 'object' && !Array.isArray(params)) {
+      throw new Error('wasn\'t expecting a non-array object');
+    }
+
     params = params.map(String);
     if (params.length !== uniq(params).length) {
       throw new Error(`Why are you sending duplicate param values?`);
     }
 
-    // use this for concepts and cset_members_items
-    // TODO: FIX THIS. claude.ai got rid of getCacheForKey
-    let wholeCache = await dataCache.getWholeSlice(apiDef.cacheSlice) || {};
+    // 2024-11-13. Trying new strategy.
+    //  Don't put individual keyed items in cache, put the whole slice at once.
+    //  Only fetch keys not already in cache.
+    //  But then get rid of all keys not in the current request.
+    //  As long as the app doesn't use the same cache slice for different purposes,
+    //    any time a key is no longer present, there's a good chance they aren't
+    //    interested in it anymore.
+    //  This might mean that cache pruning is barely necessary anymore.
+    //  Previously, with, e.g., tens of thousands of concepts or cset_members_items,
+    //    the cache would fill up with metadata.
+
+    // let wholeCache = await dataCache.getWholeSlice(apiDef.cacheSlice) || {};
+    let wholeCache = dataCache.cacheGet([apiDef.cacheSlice]) || {};
     let cachedItems = {};     // this will hold the requested items that are already cached
     let uncachedKeys = []; // requested items that still need to be fetched
     let uncachedItems = {};   // this will hold the newly fetched items
@@ -379,12 +392,13 @@ export class DataGetter {
       returnData = await this.axiosCall(apiDef.api,
           {...apiDef, data: uncachedKeys});
       if (!returnData) {
-        throw new Error(`Error fetching from ${apiDef.api}`,
-            {apiDef, uncachedKeys});
+        throw new Error(`Error fetching from ${apiDef.api}`); // {apiDef, uncachedKeys});
       }
 
       if (apiDef.expectOneResultRowPerKey) {
         if (returnData.length < uncachedKeys.length) {
+          console.warn("why do we need stubs?");
+          debugger;
           // if not getting rows for all keys, make stubs
           const stubRecords = difference(uncachedKeys,
               returnData.map(d => d[apiDef.key] + '')).map(
@@ -396,24 +410,22 @@ export class DataGetter {
         }
       }
 
-      if (apiDef.apiResultShape === 'array of keyed obj') {
-        returnData.forEach(obj => {
-          let keys = apiDef.key.split('.').map(k => obj[k]);
-          setWith(uncachedItems, keys, obj, Object);
-          dataCache.cachePut([apiDef.cacheSlice, ...keys], obj);
-        });
-      } else if (apiDef.apiResultShape === 'obj of array' ||
+      if (apiDef.apiResultShape === 'obj of array' ||
           apiDef.apiResultShape === 'obj of obj') {
-        Object.entries(returnData).forEach(([key, obj]) => {
-          setWith(uncachedItems, key, obj, Object);
-          dataCache.cachePut([apiDef.cacheSlice, key], obj);
-        });
+        uncachedItems = returnData;
       } else {
-        throw new Error(`unexpected apiDef.apiResultShape: ${apiDef.apiResultShape}`);
+        let keyNames = apiDef.key.split('.');
+        returnData.forEach(obj => {
+          let keys = keyNames.map(k => obj[k]);
+          setWith(uncachedItems, keys, obj, Object);
+        });
       }
+
+      const results = {...cachedItems, ...uncachedItems};
+      await dataCache.cachePut([apiDef.cacheSlice], results);
+      return results;
     }
-    const results = {...cachedItems, ...uncachedItems};
-    return results;
+    return cachedItems;
   }
 }
 

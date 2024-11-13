@@ -208,11 +208,10 @@ export function AboutPage() {
               // onClick={() => queryClient.removeQueries()}
               onClick={() => {
                 dataCache.clear();
+                localStorage.clear(); // mostly redundant with above, which only clears dataCache items
                 if (loadCSetsRef.current) loadCSetsRef.current.value = '';
-                resetReducers();
-                // maybe resetReducers makes these redundant?
-                // ss.clear();
-                // sp.clear();
+                sessionStorage.clear();
+                resetReducers();  // will reset sessionStorage reducers to initial state
               }}
           >
             Clear application state
