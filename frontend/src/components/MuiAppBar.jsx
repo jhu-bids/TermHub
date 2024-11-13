@@ -64,7 +64,7 @@ export function getPages(codeset_ids) {
 /* https://mui.com/material-ui/react-app-bar/ */
 export default function MuiAppBar() {
   const [codeset_ids, ] = useCodesetIds();
-  const [showCopySuccess, setShowCopySuccess] = useState(false);
+  const [copiedUrlSize, setCopiedUrlSize] = useState(undefined);
 
   const location = useLocation();
   const { search } = location;
@@ -167,8 +167,10 @@ export default function MuiAppBar() {
   );
   const handleCopyAppStateToClipboard = async () => {
     try {
-      await navigator.clipboard.writeText(urlWithSessionStorage());
-      setShowCopySuccess(true);
+      const url = urlWithSessionStorage();
+      await navigator.clipboard.writeText(url);
+      setCopiedUrlSize(url.length);
+      console.log(`copied url ${url.length} characters`);
     } catch (err) {
       console.error('Failed to copy:', err);
     }
@@ -219,10 +221,14 @@ export default function MuiAppBar() {
           </IconButton>
 
           <Snackbar
-              open={showCopySuccess}
-              autoHideDuration={2000}
-              onClose={() => setShowCopySuccess(false)}
-              message="Link copied to clipboard"
+              open={typeof(copiedUrlSize) !== 'undefined'}
+              autoHideDuration={copiedUrlSize <= 2000 ? 2000 : 8000}
+              onClose={() => setCopiedUrlSize(undefined)}
+              message={
+                copiedUrlSize <= 2000
+                  ? "Link copied to clipboard"
+                  : `Copied URL is ${copiedUrlSize} characters long, which may be too long for pasting into a browser`
+              }
           />
 
           {hamburgerMenu}
