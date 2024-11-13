@@ -6,11 +6,14 @@ import {fromPairs, map} from 'lodash';
 import { compress, decompress } from "lz-string";
 
 const CACHE_CONFIG = {
-  MAX_STORAGE_SIZE: 10 * 10**6,
-  WARN_STORAGE_SIZE: 5 * 10**6,
+  MAX_STORAGE_SIZE: 3 * 10**6,
+  WARN_STORAGE_SIZE: 2 * 10**6,
   DEFAULT_TTL: 24 * 60 * 60 * 1000, // 24 hours in milliseconds
   OPTIMIZATION_EXPERIMENT: '', // 'no-cache',
 };
+// Use a key that won't conflict with our encoded keys
+const MAPPER_STORAGE_KEY = 'mapper_state';
+
 
 const DataCacheContext = createContext(null);
 
@@ -158,6 +161,7 @@ class DataCache {
     return value;
   }
 
+
   async cachePut(path, value, options = {}) {
     const {slice, sliceCode, key} = this.pathToKey(path);
     const now = Date.now();
@@ -166,27 +170,54 @@ class DataCache {
       // Compress the value
       const serialized = JSON.stringify(value);
       const compressed = compress(serialized);
-
-      // Check size
       const size = compressed.length;
-      // console.log(`Attempting to cache ${key} with size ${(size/1024/1024).toFixed(2)}MB`);
 
+      // Calculate total size including new item
       const totalSize = Array.from(this.sizeTracker.values()).reduce((a, b) => a + b, 0) + size;
 
-      if (totalSize > CACHE_CONFIG.MAX_STORAGE_SIZE) {
-        this.pruneCache(slice, sliceCode);
-        return false;
+      // If the new item is very large (>500KB), be more aggressive with pruning
+      const isLargeItem = size > 500 * 1024; // 500KB threshold
+      const targetThreshold = isLargeItem ?
+        CACHE_CONFIG.WARN_STORAGE_SIZE * 0.5 : // 50% for large items
+        CACHE_CONFIG.WARN_STORAGE_SIZE * 0.8;  // 80% for normal items
+
+      // Always try to prune before adding new items
+      await this.proactivePrune(size, targetThreshold);
+
+      try {
+        // Attempt to store the item
+        localStorage.setItem(key, compressed);
+      } catch (error) {
+        if (error.name === 'QuotaExceededError') {
+          // For quota errors, do increasingly aggressive pruning
+          const pruneTargets = [0.5, 0.3, 0.2].map(factor =>
+            CACHE_CONFIG.WARN_STORAGE_SIZE * factor
+          );
+
+          for (const targetSize of pruneTargets) {
+            try {
+              await this.emergencyPrune(size, targetSize);
+              localStorage.setItem(key, compressed);
+              break; // If successful, exit the loop
+            } catch (retryError) {
+              if (retryError.name !== 'QuotaExceededError') throw retryError;
+              // If it's still a quota error, continue to next iteration
+              if (targetSize === pruneTargets[pruneTargets.length - 1]) {
+                // If we've tried all targets and still failing, give up
+                console.error('Failed to store item even after aggressive pruning');
+                return false;
+              }
+            }
+          }
+        } else {
+          throw error;
+        }
       }
 
-      // Update storage
-      localStorage.setItem(key, compressed);
+      // Update tracking maps
       this.sizeTracker.set(key, size);
-
-      // Update timestamps
       this.writeTimes.set(key, now);
       this.accessTimes.set(key, now);
-
-      // Update metadata in localStorage
       this.updateMetadata(key);
 
       // Update memory cache if small enough
@@ -200,13 +231,85 @@ class DataCache {
 
       return true;
     } catch (error) {
-      const stats = this.getStats();
-      console.log(stats.summary);  // Overall usage
-      console.log(stats.slices);   // Per-slice details
-      console.log(stats.largestItems);  // Biggest items taking up space
       console.error(`Failed to cache value for ${key}:`, error);
       return false;
     }
+  }
+
+  async proactivePrune(incomingSize, targetSize) {
+    const currentTotal = Array.from(this.sizeTracker.values()).reduce((a, b) => a + b, 0);
+
+    if (currentTotal > targetSize) {
+      await this.pruneToSize(targetSize - incomingSize);
+    }
+  }
+
+  async emergencyPrune(incomingSize, targetSize) {
+    await this.pruneToSize(targetSize - incomingSize);
+
+    // Clear memory cache entirely in emergency situations
+    this.memoryCache.clear();
+
+    // Clear all LRU caches
+    for (const cache of this.lruCaches.values()) {
+      cache.clear();
+    }
+  }
+
+  async pruneToSize(targetSize) {
+    // Get all items across all slices
+    const allItems = [];
+    const now = Date.now();
+    const CURRENT_ACTION_THRESHOLD = 60 * 1000; // 1 minute
+
+    for (const [key, size] of this.sizeTracker.entries()) {
+      const accessTime = this.accessTimes.get(key) || 0;
+      const writeTime = this.writeTimes.get(key) || 0;
+      const [sliceCode] = key.split(':');
+      const slice = mapper.decode(sliceCode);
+
+      // Calculate item score (higher score = more likely to keep)
+      const isCurrent = (now - writeTime) <= CURRENT_ACTION_THRESHOLD;
+      const ageScore = (now - accessTime) / (24 * 60 * 60 * 1000); // Age in days
+      const sizeScore = size / (100 * 1024); // Size penalty (100KB units)
+
+      // Special handling for different slices
+      const slicePriority = slice === 'concepts' ? 0.5 : 1; // Lower priority for concepts
+
+      const score = (isCurrent ? 1000 : 0) + // High bonus for current items
+                   (10 / (ageScore + 1)) * slicePriority - // Age factor
+                   sizeScore; // Size penalty
+
+      allItems.push({ key, size, score, slice });
+    }
+
+    // Sort by score (lower scores removed first)
+    allItems.sort((a, b) => a.score - b.score);
+
+    let currentSize = Array.from(this.sizeTracker.values()).reduce((a, b) => a + b, 0);
+    let itemsRemoved = 0;
+
+    // Remove items until we're under target size
+    for (const item of allItems) {
+      if (currentSize <= targetSize) break;
+
+      // Remove from all caches
+      localStorage.removeItem(item.key);
+      localStorage.removeItem(`meta:${item.key}`);
+      this.memoryCache.delete(item.key);
+      this.sizeTracker.delete(item.key);
+      this.accessTimes.delete(item.key);
+      this.writeTimes.delete(item.key);
+
+      // Clear from LRU cache
+      const lruCache = this.getLRUCache(item.slice);
+      lruCache.delete(item.key);
+
+      currentSize -= item.size;
+      itemsRemoved++;
+    }
+
+    console.log(`Pruned ${itemsRemoved} items, new size: ${(currentSize / 1024 / 1024).toFixed(2)}MB`);
   }
 
   updateMetadata(key) {
@@ -215,42 +318,6 @@ class DataCache {
       accessTime: this.accessTimes.get(key)
     };
     localStorage.setItem(`meta:${key}`, JSON.stringify(meta));
-  }
-
-  pruneCache(slice, sliceCode) {
-    // Clear memory cache
-    this.memoryCache.clear();
-
-    // Clear LRU cache for the data type
-    const lruCache = this.getLRUCache(slice);
-    lruCache.clear();
-
-    // Remove oldest items from localStorage until we're under the warning size
-    const keys = this.getSliceKeys(sliceCode)
-      .sort((a, b) => {
-        // Sort by access time, falling back to write time if access times are equal
-        const aAccess = this.accessTimes.get(a) || 0;
-        const bAccess = this.accessTimes.get(b) || 0;
-        if (aAccess !== bAccess) return aAccess - bAccess;
-
-        const aWrite = this.writeTimes.get(a) || 0;
-        const bWrite = this.writeTimes.get(b) || 0;
-        return aWrite - bWrite;
-      });
-
-    let totalSize = Array.from(this.sizeTracker.values()).reduce((a, b) => a + b, 0);
-
-    for (const key of keys) {
-      if (totalSize <= CACHE_CONFIG.WARN_STORAGE_SIZE) break;
-
-      const size = this.sizeTracker.get(key) || 0;
-      localStorage.removeItem(key);
-      localStorage.removeItem(`meta:${key}`);
-      this.sizeTracker.delete(key);
-      this.accessTimes.delete(key);
-      this.writeTimes.delete(key);
-      totalSize -= size;
-    }
   }
 
   delete(path) {
@@ -343,7 +410,7 @@ class DataCache {
     for (let i = 0; i < localStorage.length; i++) {
       const key = localStorage.key(i);
       // Skip non-cache keys and mapper state
-      if (!key || !key.startsWith('_') || key === '__mapper_state') continue;
+      if (!key || !key.startsWith('_') || key === MAPPER_STORAGE_KEY) continue;
       const writeTime = this.writeTimes.get(key) || 0;
       mostRecentTime = Math.max(mostRecentTime, writeTime);
     }
@@ -355,7 +422,7 @@ class DataCache {
     for (let i = 0; i < localStorage.length; i++) {
       const key = localStorage.key(i);
       // Skip non-cache keys and mapper state
-      if (!key || !key.startsWith('_') || key === '__mapper_state') continue;
+      if (!key || !key.startsWith('_') || key === MAPPER_STORAGE_KEY) continue;
 
       const size = this.sizeTracker.get(key) || 0;
       const writeTime = this.writeTimes.get(key) || 0;
@@ -448,9 +515,6 @@ class DataCache {
 const createStringMapper = () => {
   let stringToNum = new Map();
   let numToString = [];
-
-  // Use a key that won't conflict with our encoded keys
-  const MAPPER_STORAGE_KEY = '__mapper_state';
 
   // Try to load existing mappings from localStorage
   try {
