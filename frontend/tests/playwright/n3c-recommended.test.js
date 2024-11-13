@@ -53,7 +53,8 @@ for (const envName in selectedConfigs) {
 
       // TODO: Next, find some way to dynamically select the hyperink in the rightmost column
       // TODO: What do I expect to happen next? it says "downloading..."
-      await page.getByRole('link', { name: '12 removed , 12 added' }).click();
+      // await page.getByRole('link', { name: '12 removed , 12 added' }).click();
+      //    commented that out. there isn't a link with that text anymore
     });
 
   });
