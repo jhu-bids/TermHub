@@ -119,13 +119,12 @@ export function graphOptionsReducer(state, action) {
         specificPaths: {} // Reset paths when toggling expandAll
         // could have two sets of specificPaths, one for expandAll, one for not
       };
+    case 'toggle-nested': {
+      return {...state, nested: !state.nested}
+    }
     case 'reset': {
       return action.resetValue;
     }
-
-      /* OLD STUFF
-      case "nested": { return {...state, nested: action.nested} }
-      */
   }
   throw new Error("shouldn't get here");
   return {...state, ...graphOptions};
@@ -696,6 +695,8 @@ export class GraphContainer {
     return graph;
   }
 
+  // TODO: probably don't need this anymore because already have allRows somewhere
+  //       and maybe this doesn't work right or the same way, not sure
   wholeHierarchy() {
     // deep copy the node so we don't mutate the original
     let nodes = cloneDeep(this.nodes);

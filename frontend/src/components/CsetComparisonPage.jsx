@@ -11,8 +11,10 @@ import Download from '@mui/icons-material/Download';
 import RemoveCircleOutline from '@mui/icons-material/RemoveCircleOutline';
 import Box from '@mui/material/Box';
 import IconButton from '@mui/material/IconButton';
+import FormatListBulleted from '@mui/icons-material/FormatListBulleted';
+import IndentedListIcon from '../assets/IndentedListIcon';
 import Slider from '@mui/material/Slider';
-import Switch from '@mui/material/Switch';
+// import Switch from '@mui/material/Switch';
 import CloseIcon from '@mui/icons-material/Close';
 import Button from '@mui/material/Button';
 import {
@@ -167,7 +169,6 @@ export async function fetchGraphData(props) {
 export function CsetComparisonPage() {
   const [codeset_ids] = useCodesetIds();
   const [cids, cidsDispatch] = useCids();
-  // const [compareOpt, compareOptDispatch] = useCompareOpt();
   const [newCset, newCsetDispatch] = useNewCset();
   const [api_call_group_id, setApiCallGroupId] = useState();
   let [graphOptions, graphOptionsDispatch] = useGraphOptions();
@@ -306,8 +307,6 @@ export function CsetComparisonPage() {
     return <p>Downloading...</p>;
   }
 
-  const nested = get(graphOptions, 'nested', true);   // defaults to true but allows false to be set
-
   const colDefs = getColDefs({
     gc,
     selected_csets,
@@ -346,6 +345,31 @@ export function CsetComparisonPage() {
   const graphDisplayOptionsHeight = gc.graphDisplayConfigList.length *
       31 + 40;
   let infoPanels = [
+    <IconButton
+        key="toggle-nested"
+        sx={{ bgcolor: 'primary.main', '&:hover': { bgcolor: 'primary.dark' },
+           cursor: 'pointer', marginRight: '4px', color: 'white', borderRadius: 1, }}
+        onClick={() => {
+          graphOptionsDispatch({type: 'toggle-nested'});
+          if (!graphOptions.nested) {
+            // trying to force the table back to unsorted after toggling nesting back on
+            window.location.reload();
+            /* setData(current => ({  // this didn't work
+              ...current,
+              displayedRows: [...current.displayedRows.slice(1)]
+            })) */
+          }
+        }}
+        title= { graphOptions.nested
+            ? "Switch display to unindented list. Allows sorting whole list."
+            : "Switch display to indented list. Each level sorted by record count descending."
+        }
+    >
+      { graphOptions.nested
+          ? <FormatListBulleted sx={{ color: 'white', display: { xs: "none", md: "flex" }, mr: 1 }} />
+          : <IndentedListIcon size={24} color="white" /> }
+    </IconButton>,
+
     <FlexibleContainer key="stats-options" title="Stats and options"
                        position={panelPosition} countRef={countRef}
                        style={{
@@ -383,13 +407,6 @@ export function CsetComparisonPage() {
             }}
     >
       {distinctRows.length} distinct concepts
-    </Button>,
-    <Button key="nested"
-            disabled={nested}
-            onClick={() => graphOptionsDispatch({type:'nested', nested: true})}
-            sx={{ marginRight: '4px' }}
-    >
-      {displayedRows.length} in hierarchy
     </Button>,
     */
     /*
@@ -1171,9 +1188,7 @@ function ComparisonDataTable(props) {
     rowData,
     /* squishTo = 1, cset_data, displayedRows, selected_csets */
   } = props;
-  const {definitions = {}, members = {}} = newCset;
   const infoPanelRef = useRef();
-  // console.log(derivedState);
 
   useEffect(() => {
     for (let i = 0; i < columns.length; i++) {
@@ -1200,6 +1215,7 @@ function ComparisonDataTable(props) {
       }),
     },
   ];
+
   return (
       <DataTable
           customStyles={customStyles}
@@ -1226,6 +1242,7 @@ function ComparisonDataTable(props) {
             );
             // return "400px";
           }}
+
           /*
            */
           // highlightOnHover
