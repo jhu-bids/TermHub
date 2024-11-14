@@ -127,8 +127,9 @@ def refresh_db(
             # todo: when ready, will use all_new_objects_enclave_to_db() instead of csets_and_members_enclave_to_db()
             # - csets_and_members_enclave_to_db(): Runs the refresh
             new_data: bool = csets_and_members_enclave_to_db(con, since, cset_ids, schema)
-        update_db_status_var('last_refresh_success', end_time_reported, local)
-        update_db_status_var('last_refresh_result', 'success', local)
+            if new_data:
+                update_db_status_var('last_refresh_success', end_time_reported, local)
+                update_db_status_var('last_refresh_result', 'success', local)
     except Exception as err:
         update_db_status_var('last_refresh_result', 'error', local)
         update_db_status_var('last_refresh_error_message', str(err), local)
