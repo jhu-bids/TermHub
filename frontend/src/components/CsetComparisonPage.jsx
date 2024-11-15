@@ -1271,7 +1271,8 @@ function getSizes(squishTo) {
 }
 
 function downloadCSV(props, tsv = false) {
-  const {displayedRows, codeset_ids, selected_csets, csmi} = props;
+  const {displayedRows, codeset_ids, selected_csets, csmi,
+          separateLevels = false, includeNotesColumns = false, } = props;
   const filename = 'thdownload-' + codeset_ids.join('-') +
       (tsv ? '.tsv' : '.csv');
   const maxLevel = max(displayedRows.map(r => r.depth));
@@ -1296,8 +1297,10 @@ function downloadCSV(props, tsv = false) {
     'drc': 'Descendant record count',
     'levelsBelow': 'Descendant levels',
   };
-  const first_keys = ['Patients', 'Records', 'Vocabulary', 'Concept code'];
-  const addedEmptyColumns = ['Include', 'Exclude', 'Notes'];
+  // const first_keys = ['Patients', 'Records', 'Vocabulary', 'Concept code'];
+  // first_keys things wasn't working. just commented out in case want to fix it later
+  let addedEmptyColumns = [];
+  if (includeNotesColumns)  addedEmptyColumns.push('Include', 'Exclude', 'Notes');
   const cset_keys = codeset_ids.map(
       id => selected_csets.find(
           cset => cset.codeset_id === id).concept_set_name);
@@ -1311,58 +1314,48 @@ function downloadCSV(props, tsv = false) {
         Concept name
         ...addedEmptyColumns
    */
-  const excluded_keys = ['pathToRoot', 'hasChildren'];
-  // let keys = uniq(flatten(displayedRows.map(d => Object.keys(d))));
-  // console.log(keys)
-  let keys = [ // as of 2024-03-07
-    'concept_id',
-    'concept_name',
-    'domain_id',
-    'vocabulary_id',
-    'concept_class_id',
-    'standard_concept',
-    'concept_code',
-    'invalid_reason',
-    'domain_cnt',
-    'domain',
-    'total_cnt',
-    'distinct_person_cnt',
-    'isItem',
-    'status',
-    'levelsBelow',
-    'descendantCount',
-    'childCount',
-    'drc',
-    'hasChildren',
-    'descendants',
-    'childIds',
-    'depth',
-    'added',
-    'removed',
-    'not_a_concept',
+  const excluded_keys = [
+      'pathToRoot', 'hasChildren', 'childIds', 'descendants', 'domain_cnt',
+      'levelsBelow', 'descendantCount', 'childCount',
   ];
+  /* let keys = [ // as of 2024-03-07
+    'concept_id', 'concept_name', 'domain_id', 'vocabulary_id', 'concept_class_id',
+    'standard_concept', 'concept_code', 'invalid_reason', 'domain_cnt', 'domain',
+    'total_cnt', 'distinct_person_cnt', 'isItem', 'status', 'levelsBelow',
+    'descendantCount', 'childCount', 'drc', 'hasChildren', 'descendants', 'childIds',
+    'depth', 'added', 'removed', 'not_a_concept', ]; */
 
   // specify the order of columns in csv
-  let columns = ['Level'];
-  for (let i = 0; i <= maxLevel; i++) {
-    columns.push('level' + i);
+  let columns = [];
+  if (separateLevels) {
+    columns.push('Level');
+    for (let i = 0; i <= maxLevel; i++) {
+      columns.push('level' + i);
+    }
+  } else {
+    columns.push('Concept name');
   }
-  columns.push(...first_keys);
+  // columns.push(...first_keys);
+  // get columns from what's actually in displayedRows[0]
   Object.keys(displayedRows[0]).forEach(k => {
     if (excluded_keys.includes(k) || k === 'concept_name') {
       return;
     }
-    if (!first_keys.includes(k) && k !== 'depth') {
-      columns.push(key_convert[k]);
-    }
+    // if (!first_keys.includes(k) && k !== 'depth') {
+    columns.push(key_convert[k]);
+    // }
   });
-  columns.push(...cset_keys, 'Concept name', ...addedEmptyColumns);
+  columns.push(...cset_keys);
+  if (separateLevels) columns.push('Concept name');
+  columns.push(...addedEmptyColumns);
 
-  const rows = displayedRows.map(r => {
+  let rows = displayedRows.map(r => {
     let row = {};
     // adds indented concept names to rows
-    for (let i = 0; i <= maxLevel; i++) {
-      row['level' + i] = (r.depth === i ? r.concept_name : '');
+    if (separateLevels) {
+      for (let i = 0; i <= maxLevel; i++) {
+        row['level' + i] = (r.depth === i ? r.concept_name : '');
+      }
     }
     // renames row properties to column names
     for (let k in r) {
@@ -1380,6 +1373,7 @@ function downloadCSV(props, tsv = false) {
     return row;
   });
 
+  rows = uniqBy(rows, d => Object.values(d).join('|'));
   saveCsv(rows, columns, filename);
 }
 
