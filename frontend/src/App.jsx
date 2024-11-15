@@ -44,11 +44,11 @@ import {
   // SessionStorageWithSearchParamsProvider,
   // useSessionStorageWithSearchParams,
 } from './state/StorageProvider';
-import {backend_url, DataGetterProvider} from "./state/DataGetter";
+import {backend_url, DataGetterProvider, useDataGetter} from "./state/DataGetter";
 import { UploadCsvPage } from "./components/UploadCsv";
 // import { DownloadJSON } from "./components/DownloadJSON";
 import MuiAppBar from "./components/MuiAppBar";
-import {DataCacheProvider} from "./state/DataCache";
+import {DataCacheProvider, useDataCache} from "./state/DataCache";
 import {AlertMessages} from "./components/AlertMessages";
 import {N3CRecommended, BundleReport, N3CComparisonRpt} from "./components/N3CRecommended";
 import {UsageReport} from "./components/UsageReport";
@@ -105,10 +105,15 @@ export function RoutesContainer() {
   const spState = useSearchParamsState();
   let {sp, updateSp, } = spState;
   const [newCset, newCsetDispatch] = useNewCset();
-
   const [codeset_ids, codesetIdsDispatch] = useCodesetIds();
   const location = useLocation();
-  // const [newCset, newCsetDispatch] = useNewCset();
+  const dataCache = useDataCache();
+  const dataGetter = useDataGetter();
+
+  useEffect(() => {
+    // do an initial cacheCheck to see if cache is older than db updates
+    dataCache.cacheCheck(dataGetter);
+  }, []);
 
   useEffect(() => {
     if (sp.sstorage) {

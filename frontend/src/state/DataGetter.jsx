@@ -312,11 +312,11 @@ export class DataGetter {
 
     if (typeof (apiDef.expectedParams) === 'undefined') {
       // handle no-param calls (all_csets, whoami) here; get from cache or fetch and cache
-      let data = await dataCache.cacheGet([apiDef.cacheSlice]);
+      let data = await dataCache.cacheGet(apiDef.cacheSlice);
       if (isEmpty(data)) {
         data = await this.axiosCall(apiDef.api,
             {...apiDef, data: params, backend: true});
-        dataCache.cachePut([apiDef.cacheSlice], data);
+        dataCache.cachePut(apiDef.cacheSlice, data);
       }
       return data;
     }
@@ -375,7 +375,7 @@ export class DataGetter {
     //    the cache would fill up with metadata.
 
     // let wholeCache = await dataCache.getWholeSlice(apiDef.cacheSlice) || {};
-    let wholeCache = dataCache.cacheGet([apiDef.cacheSlice]) || {};
+    let wholeCache = dataCache.cacheGet(apiDef.cacheSlice) || {};
     let cachedItems = {};     // this will hold the requested items that are already cached
     let uncachedKeys = []; // requested items that still need to be fetched
     let uncachedItems = {};   // this will hold the newly fetched items
@@ -422,7 +422,7 @@ export class DataGetter {
       }
 
       const results = {...cachedItems, ...uncachedItems};
-      await dataCache.cachePut([apiDef.cacheSlice], results);
+      await dataCache.cachePut(apiDef.cacheSlice, results);
       return results;
     }
     return cachedItems;

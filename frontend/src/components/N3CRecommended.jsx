@@ -114,6 +114,10 @@ export const N3CComparisonRpt = () => {
       try {
         const rows = await dataGetter.fetchAndCacheItems(dataGetter.apiCalls.n3c_comparison_rpt);
         let concept_ids = uniq(flatten(rows.map(row => [...(row.added), ...(row.removed)])).map(d => d.concept_id));
+        // TODO: every visit to cset-comparison page with new set of concepts will
+        //       rewrite the concept slice of the DataCache, which means that this
+        //       set of concepts, which will be the same on each visit to this page
+        //       won't be retained. Might be worth fixing the caching so this doesn't happen
         const concepts = await dataGetter.fetchAndCacheItems(dataGetter.apiCalls.concepts, concept_ids);
         setData({rows, concepts});
       } catch (error) {

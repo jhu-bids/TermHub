@@ -10,10 +10,10 @@ const CACHE_CONFIG = {
   WARN_STORAGE_SIZE: 3.5 * 10**6,
   DEFAULT_TTL: 24 * 60 * 60 * 1000, // 24 hours in milliseconds
   OPTIMIZATION_EXPERIMENT: '', // 'no-cache',
+  MIN_COMPRESS_SIZE: 40,
+  MAPPER_STORAGE_KEY: 'mapper_state',
+  CACHE_PREFIX: '_',
 };
-// Use a key that won't conflict with our encoded keys
-const MAPPER_STORAGE_KEY = 'mapper_state';
-const CACHE_PREFIX = '_';
 
 
 const DataCacheContext = createContext(null);
@@ -81,6 +81,7 @@ class DataCache {
     this.lruCaches = new Map(); // Create separate LRU caches for each slice
     this.memoryCache = new Map(); // Main memory cache for frequently accessed data
     this.sizeTracker = new Map(); // Keep track of compressed sizes
+    this.isCompressed = new Map(); // Whether item is compressed
     this.accessTimes = new Map();
     this.writeTimes = new Map();
     this.initializeCache();
@@ -89,30 +90,71 @@ class DataCache {
   initializeCache() {
     try {
       // Load existing keys and their metadata from localStorage
-      for (let i = 0; i < localStorage.length; i++) {
-        const key = localStorage.key(i);
-        if (key.startsWith(CACHE_PREFIX)) { // Using your encoded slice prefix
-          const compressed = localStorage.getItem(key);
-          const size = compressed.length;
-          this.sizeTracker.set(key, size);
-
-          // Try to load metadata
-          try {
-            const meta = localStorage.getItem(`${key}:meta`);
-            if (meta) {
-              const { writeTime, accessTime } = JSON.parse(meta);
-              if (writeTime) this.writeTimes.set(key, writeTime);
-              if (accessTime) this.accessTimes.set(key, accessTime);
-            }
-          } catch (error) {
-            console.error(`Failed to load metadata for ${key}:`, error);
+      const cacheKeys = this.getCacheKeys();
+      if (cacheKeys.length === 0) {
+        const now = Date.now();
+        this.cachePut('cacheInitializationTime', now, {compressValue: false});
+        return;
+      }
+      for (const key of cacheKeys) {
+        // Try to load metadata
+        try {
+          const meta = localStorage.getItem(`${key}:meta`);
+          if (meta) {
+            const { writeTime, accessTime, isCompressed } = JSON.parse(meta);
+            if (writeTime) this.writeTimes.set(key, writeTime);
+            if (accessTime) this.accessTimes.set(key, accessTime);
+            if (isCompressed) this.isCompressed.set(key, isCompressed);
           }
+        } catch (error) {
+          console.error(`Failed to load metadata for ${key}:`, error);
+        }
+        const cacheValue = localStorage.getItem(key);
+        const size = cacheValue.length;
+        this.sizeTracker.set(key, size);
+
+        if (!this.cacheGet('cacheInitializationTime')) {
+          this.cachePut('cacheInitializationTime', this.getMaxCacheAge(), {compressValue: false});
         }
       }
     } catch (error) {
       console.error('Failed to initialize cache:', error);
     }
   }
+
+  getMaxCacheAge() {
+    let oldest = Infinity;
+    for (const key of this.getCacheKeys(false)) {
+      const writeTime = this.writeTimes.get(key) || 0;
+      oldest = Math.min(oldest, writeTime);
+    }
+    return oldest;
+  }
+
+  async cacheCheck(dataGetter) {
+    // App.js will do an initial cacheCheck to see if cache is older than db updates
+    const url = 'last-refreshed';
+    const dbRefreshTimestampStr = await dataGetter.axiosCall(url, {backend: true, verbose: false, sendAlert: false});
+    const dbRefreshTimestamp = new Date(dbRefreshTimestampStr);
+    if (isNaN(dbRefreshTimestamp.getDate())) {
+      throw new Error(`invalid date from ${url}: ${dbRefreshTimestampStr}`);
+    }
+    const cacheInitializationTimeStr = this.lastRefreshed();
+    const cacheInitializationTime = new Date(cacheInitializationTimeStr);
+    if (isNaN(cacheInitializationTime.getDate()) || dbRefreshTimestamp > cacheInitializationTime) {
+      console.log(`previous DB refresh: ${cacheInitializationTime}; latest DB refresh: ${dbRefreshTimestamp}. Clearing localStorage.`);
+      this.clear();
+      this.cachePut('cacheInitializationTime', dbRefreshTimestamp, {compressValue: false});
+    } else {
+      console.log(`no DB update since cache initialized at ${cacheInitializationTime}`);
+    }
+  }
+
+  lastRefreshed() {
+    const cacheInitializationTime = this.cacheGet('cacheInitializationTime');
+    return typeof(cacheInitializationTime) === 'string' ? new Date(cacheInitializationTime) : cacheInitializationTime;
+  }
+
 
   cacheGet(path) {
     const {slice, sliceCode, key} = this.pathToKey(path);
@@ -134,12 +176,15 @@ class DataCache {
       if (value === undefined) {
         // Finally, try localStorage
         try {
-          const compressed = localStorage.getItem(key);
-          if (compressed) {
-            value = JSON.parse(decompress(compressed));
+          const cacheValue = localStorage.getItem(key);
+          if (cacheValue) {
+            value = JSON.parse(
+                this.isCompressed.get(key)
+                  ? decompress(cacheValue)
+                  : cacheValue);
 
             // Store in memory cache if it's small enough
-            if (compressed.length < 1000) {
+            if (value.length < 1000) {
               this.memoryCache.set(key, value);
             }
 
@@ -164,17 +209,18 @@ class DataCache {
 
 
   async cachePut(path, value, options = {}) {
+    let {compressValue, } = options;
+    // compressValue can be true or false; if neither will depend on size of value
     const {slice, sliceCode, key} = this.pathToKey(path);
     const now = Date.now();
 
     try {
-      // Compress the value
+      // Compress the value if bigger than min size
       const serialized = JSON.stringify(value);
-      const compressed = compress(serialized);
-      const size = compressed.length;
-
-      // Calculate total size including new item
-      const totalSize = Array.from(this.sizeTracker.values()).reduce((a, b) => a + b, 0) + size;
+      let size = serialized.length;
+      compressValue = compressValue ?? size >= CACHE_CONFIG.MIN_COMPRESS_SIZE;
+      const cacheValue = compressValue ? compress(serialized) : serialized;
+      size = cacheValue.length;
 
       // If the new item is very large (>500KB), be more aggressive with pruning
       const isLargeItem = size > 500 * 1024; // 500KB threshold
@@ -187,7 +233,7 @@ class DataCache {
 
       try {
         // Attempt to store the item
-        localStorage.setItem(key, compressed);
+        localStorage.setItem(key, cacheValue);
       } catch (error) {
         if (error.name === 'QuotaExceededError') {
           // For quota errors, do increasingly aggressive pruning
@@ -198,7 +244,7 @@ class DataCache {
           for (const targetSize of pruneTargets) {
             try {
               await this.emergencyPrune(size, targetSize);
-              localStorage.setItem(key, compressed);
+              localStorage.setItem(key, cacheValue);
               break; // If successful, exit the loop
             } catch (retryError) {
               if (retryError.name !== 'QuotaExceededError') throw retryError;
@@ -219,6 +265,7 @@ class DataCache {
       this.sizeTracker.set(key, size);
       this.writeTimes.set(key, now);
       this.accessTimes.set(key, now);
+      this.isCompressed.set(key, compressValue);
       this.updateMetadata(key);
 
       // Update memory cache if small enough
@@ -316,7 +363,8 @@ class DataCache {
   updateMetadata(key) {
     const meta = {
       writeTime: this.writeTimes.get(key),
-      accessTime: this.accessTimes.get(key)
+      accessTime: this.accessTimes.get(key),
+      isCompressed: this.isCompressed.get(key),
     };
     localStorage.setItem(`${key}:meta`, JSON.stringify(meta));
   }
@@ -342,17 +390,13 @@ class DataCache {
     this.writeTimes.clear();
 
     // Clear cache items from localStorage
-    for (let i = localStorage.length - 1; i >= 0; i--) {
-      const key = localStorage.key(i);
-      if (key && key.startsWith(CACHE_PREFIX)) { // Using your encoded slice prefix
-        localStorage.removeItem(key);
-        localStorage.removeItem(`${key}:meta`);
-      }
+    for (const key of this.getCacheKeys(false)) {
+      localStorage.removeItem(key);
+      localStorage.removeItem(`${key}:meta`);
     }
   }
 
   // setSelectState(selectState) { this.selectState = selectState; }
-
 
   // Get or create an LRU cache for a specific data type
   getLRUCache(slice, options = {}) {
@@ -368,8 +412,9 @@ class DataCache {
 
   // Convert path to storage key, return slice (first bit) and whole key
   pathToKey(path) {
+    if (typeof(path) === 'string') path = [path];
     if (!Array.isArray(path)) {
-      throw new Error("cache path should always be given as array");
+      throw new Error("cache path can be string or array of strings");
     }
     let [slice, ...keys] = path;
     let sliceCode = mapper.encode(slice);
@@ -377,19 +422,16 @@ class DataCache {
     return {slice, sliceCode, key};
   }
 
-  getWholeSlice(slice) {
-    const sliceCode = mapper.encode(slice);
-    const keys = this.getSliceKeys(sliceCode);
-    return fromPairs(map(keys, key => [key.replace(`${sliceCode}:`,''), this.cacheGetSliceKey(slice, key)]));
-  }
-
-  getSliceKeys(sliceCode) {
-    return Object.keys(localStorage)
-      .filter(key => key.startsWith(sliceCode) && !key.match(':meta'));
-  }
-
-  getSlices() {
-    return mapper.strings;
+  getCacheKeys(excludeMeta = true) {
+    let keys = [];
+    for (let i = 0; i < localStorage.length; i++) {
+      const key = localStorage.key(i);
+      // Skip non-cache keys and mapper state
+      if (!key || !key.startsWith(CACHE_CONFIG.CACHE_PREFIX) || key === CACHE_CONFIG.MAPPER_STORAGE_KEY) continue;
+      if (excludeMeta && key.match(':meta')) continue;
+      keys.push(key);
+    }
+    return keys;
   }
 
   // Add this method to the DataCache class
@@ -408,10 +450,7 @@ class DataCache {
 
     // First find the most recent timestamp to identify current action
     let mostRecentTime = 0;
-    for (let i = 0; i < localStorage.length; i++) {
-      const key = localStorage.key(i);
-      // Skip non-cache keys and mapper state
-      if (!key || !key.startsWith(CACHE_PREFIX) || key === MAPPER_STORAGE_KEY) continue;
+    for (const key of this.getCacheKeys()) {
       const writeTime = this.writeTimes.get(key) || 0;
       mostRecentTime = Math.max(mostRecentTime, writeTime);
     }
@@ -420,11 +459,7 @@ class DataCache {
     const allItems = []; // collect all items for sorting by size
 
     // Collect stats
-    for (let i = 0; i < localStorage.length; i++) {
-      const key = localStorage.key(i);
-      // Skip non-cache keys and mapper state
-      if (!key || !key.startsWith(CACHE_PREFIX) || key === MAPPER_STORAGE_KEY) continue;
-
+    for (const key of this.getCacheKeys()) {
       const size = this.sizeTracker.get(key) || 0;
       const writeTime = this.writeTimes.get(key) || 0;
       const value = localStorage.getItem(key);
@@ -520,7 +555,7 @@ const createStringMapper = () => {
 
   // oh, except relying on cache keys to start with underscore
 
-  const encode = (str) => CACHE_PREFIX + str;
+  const encode = (str) => CACHE_CONFIG.CACHE_PREFIX + str;
   const decode = (str) => {
     if (str[0] !== '_') {
       throw new Error(`expected slice code to start with underscore, got ${str}`);
@@ -534,7 +569,7 @@ const createStringMapper = () => {
 
   // Try to load existing mappings from localStorage
   try {
-    const savedMapper = localStorage.getItem(MAPPER_STORAGE_KEY);
+    const savedMapper = localStorage.getItem(CACHE_CONFIG.MAPPER_STORAGE_KEY);
     if (savedMapper) {
       const { strings } = JSON.parse(savedMapper);
       numToString = strings;
@@ -546,7 +581,7 @@ const createStringMapper = () => {
 
   const saveMapper = () => {
     try {
-      localStorage.setItem(MAPPER_STORAGE_KEY, JSON.stringify({
+      localStorage.setItem(CACHE_CONFIG.MAPPER_STORAGE_KEY, JSON.stringify({
         strings: numToString
       }));
     } catch (error) {
@@ -567,7 +602,7 @@ const createStringMapper = () => {
   };
 
   const decodeOLD = (encoded) => {
-    if (!encoded.startsWith(CACHE_PREFIX)) {
+    if (!encoded.startsWith(CACHE_CONFIG.CACHE_PREFIX)) {
       throw new Error('Invalid encoded string: must start with underscore');
     }
 
