@@ -89,62 +89,63 @@ def get_dependent_tables_queue(independent_tables: Union[List[str], str], _filte
      solvable in polynomial time.
      2024/11/09: Determined that this often returns incorrect result. Non-deterministic. For now, have a patch if
      independent_tables == CORE_CSET_TABLES.
+     - DDL: For now: I have a fix at the bottom, where we go by the order of the DDL. However if the DDL order ever
+     becomes incorrect, this will break.
     """
     if _filter not in [None, 'tables', 'views']:
         raise ValueError(f'Invalid _filter value: {_filter}. Must be one of "tables" or "views".')
 
-    # TODO: Need correct algo. see docstring -> 2024/11/09
-    if independent_tables == CORE_CSET_TABLES:
-        final_queue = ['cset_members_items', 'members_items_summary', 'codeset_counts', 'all_csets', 'all_csets_view']
-    else:
-        final_queue: List[str] = []
-        table_queues1: List[List[str]] = []
-        table_queues2: List[List[str]] = []
-        queues_by_len: Dict[int, List[List[str]]] = {}
-        independent_tables: List[str] = [independent_tables] if isinstance(independent_tables, str) else independent_tables
+    queue: List[str] = []
+    pre_queue1: List[List[str]] = []
+    pre_queue2: List[List[str]] = []
+    queues_by_len: Dict[int, List[List[str]]] = {}
+    independent_tables: List[str] = [independent_tables] if isinstance(independent_tables, str) else independent_tables
 
-        # 1 & 4: Get a queue of dependent tables
-        # 1. Build up a list of queues; queue is dependent tables
-        for table in independent_tables:
-            dependent_tree: Dict = RECURSIVE_DEPENDENT_TABLE_MAP.get(table, {})
-            if not dependent_tree:
-                continue
-            q: List[str] = extract_keys_from_nested_dict(dependent_tree)
-            table_queues1.append(q)
+    # 1 & 4: Get a queue of dependent tables
+    # 1. Build up a list of queues; queue is dependent tables
+    for table in independent_tables:
+        dependent_tree: Dict = RECURSIVE_DEPENDENT_TABLE_MAP.get(table, {})
+        if not dependent_tree:
+            continue
+        q: List[str] = extract_keys_from_nested_dict(dependent_tree)
+        pre_queue1.append(q)
 
-        # 2-3: Heuristic: Reorder the queue
-        # 2. Group by queue lengths
-        # - some dependency trees are the same for multiple tables; dedupe for simplicity
-        table_queues1 = [list(x) for x in set([tuple(x) for x in table_queues1])]
-        for q in table_queues1:
-            l = len(q)
-            if l not in queues_by_len:
-                queues_by_len[l] = []
-            queues_by_len[l].append(q)
+    # 2-3: Heuristic: Reorder the queue
+    # 2. Group by queue lengths
+    # - some dependency trees are the same for multiple tables; dedupe for simplicity
+    pre_queue1 = [list(x) for x in set([tuple(x) for x in pre_queue1])]
+    for q in pre_queue1:
+        l = len(q)
+        if l not in queues_by_len:
+            queues_by_len[l] = []
+        queues_by_len[l].append(q)
 
-        # 3. Reorganize list of queues, sorted by longest queues first
-        queue_len_keys = list(queues_by_len.keys())
-        queue_len_keys.sort(reverse=True)
-        for k in queue_len_keys:
-            queues: List[List[str]] = queues_by_len[k]
-            for q in queues:
-                table_queues2.append(q)
+    # 3. Reorganize list of queues, sorted by longest queues first
+    queue_len_keys = list(queues_by_len.keys())
+    queue_len_keys.sort(reverse=True)
+    for k in queue_len_keys:
+        queues: List[List[str]] = queues_by_len[k]
+        for q in queues:
+            pre_queue2.append(q)
 
-        # 4. Flatten to single list queue of dependent tables
-        for q in table_queues2:
-            for i in q:
-                if i not in final_queue:
-                    final_queue.append(i)
+    # 4. Flatten to single list queue of dependent tables
+    for q in pre_queue2:
+        for i in q:
+            if i not in queue:
+                queue.append(i)
 
     # 5. Optional: Filtering
     if _filter:
-        views: List[str] = [x for x in list_views() if x in final_queue]
+        views: List[str] = [x for x in list_views() if x in queue]
         if _filter == 'views':
             return views
         elif _filter == 'tables':
-            return [x for x in final_queue if x not in views]
+            return [x for x in queue if x not in views]
 
-    return final_queue
+    # todo: temp fix: see "DDL" comment in docstring
+    ddl_order_based_queue: List[str] = order_modules_by_ddl_order(queue)
+
+    return ddl_order_based_queue
 
 
 def refresh_any_dependent_tables(con: Connection, independent_tables: List[str] = CORE_CSET_TABLES, schema=SCHEMA):
@@ -871,6 +872,36 @@ def list_tables(con: Connection = None, schema: str = None, filter_temp_refresh_
     return list_schema_objects(con, schema, True, True, filter_temp_refresh_tables, names_only=True, verbose=False)
 
 
+def get_ddl_paths_by_name(module_names: Union[List[str], str]) -> List[str]:
+    """Given a list of module/table names, get the paths to each of the DDL files."""
+    modules: List[str] = [module_names] if isinstance(module_names, str) else module_names
+    paths: List[str] = glob(DDL_JINJA_PATH_PATTERN)
+    if modules:
+        paths = [p for p in paths if any([m == os.path.basename(p).split('-')[2].split('.')[0] for m in modules])]
+    return sorted(paths, key=lambda x: int(os.path.basename(x).split('-')[1]))
+
+
+def order_modules_by_ddl_order(module_names: Union[List[str], str]) -> List[str]:
+    """Given a list of module/table names, return the list, ordered by the order in which they should be run.
+
+    The order is determined by integers in the DDL name. Example: If modules are `concept_set_container` and
+    `codeset_counts`, the DDL are `ddl-5-concept_set_container.jinja.sql` and `ddl-10-codeset_counts.jinja.sql`.
+    Based on the order of the ddl files (5 and 10), concept_set_container would be run first (5), and codeset_counts
+    second (10).
+    """
+    paths: List[str] = get_ddl_paths_by_name(module_names)
+    filenames: List[str] = [os.path.basename(p) for p in paths]
+    module_to_number: Dict[str, int] = {}
+    for filename in filenames:
+        # Extract the number after 'ddl-' and before the next dash
+        number = int(filename.split('ddl-')[1].split('-')[0])
+        # Extract the module name (remove .jinja.sql and the ddl prefix)
+        module_name = filename.split('-', 2)[-1].replace('.jinja.sql', '')
+        module_to_number[module_name] = number
+    # Sort the provided module names based on their corresponding DDL numbers
+    return sorted(module_names, key=lambda x: module_to_number[x])
+
+
 def get_ddl_statements(
     schema: str = SCHEMA, modules: Union[List[str], str] = None, table_suffix='', return_type=['flat', 'nested'][1],
     unique_index_names=True,
@@ -890,12 +921,8 @@ def get_ddl_statements(
       3. I think it's inserting a second ; at the end of the last statement of a given module
       4. consider throwing an error if no statements found, either here, or where func is called
     """
-    modules: List[str] = [modules] if isinstance(modules, str) else modules
     index_suffix: str = '' if not unique_index_names else '_' + str(randint(10000000, 99999999))
-    paths: List[str] = glob(DDL_JINJA_PATH_PATTERN)
-    if modules:
-        paths = [p for p in paths if any([m == os.path.basename(p).split('-')[2].split('.')[0] for m in modules])]
-    paths = sorted(paths, key=lambda x: int(os.path.basename(x).split('-')[1]))
+    paths: List[str] = get_ddl_paths_by_name(modules)
     statements: List[str] = []
     statements_by_module: Dict[str, List[str]] = {}
     for i, path in enumerate(paths):
