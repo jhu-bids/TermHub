@@ -14,6 +14,7 @@ from datetime import datetime, timezone, timedelta
 from http.client import HTTPConnection
 from requests import Response
 try:
+    # noinspection PyUnresolvedReferences
     from vshub_sdk.core.api import UserTokenAuth
 except ModuleNotFoundError:  # VS Hub SDK w/ OAuth disabled: https://github.com/jhu-bids/TermHub/issues/863
     pass
@@ -51,7 +52,9 @@ class ActionValidateError(RuntimeError):
     """Wrapper just to handle errors from this module"""
 
 
-def get_headers(personal=False, content_type="application/json", for_curl=False, oauth=False):
+# TODO: might still accidentally print if not using 'for_curl' param, but then printing the results.
+#  - addressable via https://github.com/jhu-bids/TermHub/issues/981
+def get_headers(content_type="application/json", for_curl=False, oauth=False):
     """Format headers for enclave calls
 
     todo: fix all this -- we've been switching back and forth between service token and personal because some APIs are
@@ -71,9 +74,9 @@ def get_headers(personal=False, content_type="application/json", for_curl=False,
         headers["Content-type"] = "application/json"
 
     # set_auth_token_key(current_key)
+    # Security: space added after '$ ' to prevent possible accidental interpolation
     if for_curl:
-        # headers["authorization"] = '$' + TOKEN_KEY
-        headers["authorization"] = auth_token
+        headers["authorization"] = '$ ' + TOKEN_KEY
         headers = '\\\n'.join([f' -H "{k}: {v}"' for k, v in headers.items()])
     return headers
 
