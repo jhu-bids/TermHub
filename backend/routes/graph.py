@@ -51,11 +51,10 @@ async def concept_graph_post(
 
         hide_vocabs = hide_vocabs if isinstance(hide_vocabs, list) else []
         sg: DiGraph
-        missing_in_betweens: List[Dict[str, Any]]
         hidden_by_voc: Dict[str, Set[int]]
         nonstandard_concepts_hidden: Set[int]
 
-        sg, concept_ids, missing_in_betweens, hidden_dict, nonstandard_concepts_hidden = await concept_graph(
+        sg, concept_ids, hidden_dict, nonstandard_concepts_hidden = await concept_graph(
             codeset_ids, cids, hide_vocabs, hide_nonstandard_concepts, verbose)
         missing_from_graph = set(concept_ids) - set(sg.nodes)
 
@@ -63,7 +62,6 @@ async def concept_graph_post(
         return {
             'edges': list(sg.edges),
             'concept_ids': concept_ids,
-            'filled_gaps': missing_in_betweens,
             'missing_from_graph': missing_from_graph,
             'hidden_by_vocab': hidden_dict,
             'nonstandard_concepts_hidden': nonstandard_concepts_hidden}
@@ -103,11 +101,9 @@ async def concept_graph(
     # concept_ids.update(cids)  # future
 
     # 2024-10-22. What if we get all descendants, not just missing in between?
-    if all_descendants:
-        more_concept_ids: Set[int] = get_all_descendants(REL_GRAPH, concept_ids)
-    else:
-        # Fill gaps
-        more_concept_ids: Set[int] = get_missing_in_between_nodes(REL_GRAPH, concept_ids)
+    # 2024-11-18. It's been working ok. Now getting rid of all missing-in-between stuff.
+    #               Return to commit fdb472ee1bf14156e87c324f2d7297ea2df3601d to get it back.
+    more_concept_ids: Set[int] = get_all_descendants(REL_GRAPH, concept_ids)
 
     # merge and filter
     more_concepts: List[RowMapping] = get_concepts(more_concept_ids)
@@ -195,72 +191,6 @@ def filter_concepts(
 # print_stack = lambda s: ' | '.join([f"{n} => {str(p)}" for n,p in s])
 # print_stack = lambda s: ' | '.join([f"""{n}{'=>' if p else ''}{','.join(p)}""" for n,p in reversed(s)])
 print_stack = lambda s: ' | '.join([f"{n} => {','.join([str(x) for x in p])}" for n,p in s])
-
-
-# not using this anymore
-# noinspection PyPep8Naming
-def get_missing_in_between_nodes(G: nx.DiGraph, subgraph_nodes: Union[List[int], Set[int]], verbose=VERBOSE) -> Set:
-    """Find any missing nodes that exist in a subgraph.
-
-    This can happen when a concept set expansions that are indirect subtrees of other expansions.
-    For"""
-    missing_in_between_nodes = set()
-    missing_in_between_nodes_tmp = set()
-    subgraph_nodes = set(subgraph_nodes)
-    # noinspection PyCallingNonCallable
-    leaves = [node for node, degree in G.out_degree() if degree == 0]
-    leaves = set(leaves).intersection(subgraph_nodes)
-    print(f"subgraph: {subgraph_nodes}, leaves: {leaves}")
-    # leaves = sorted([node for node, degree in G.out_degree() if degree == 0])
-    discard = set()   # nodes not in subgraph and with no predecessors in subgraph
-
-    for leaf_node in leaves:
-        descending_from = None
-        stack = [(leaf_node, list(list(G.predecessors(leaf_node))))]
-
-        while stack:
-            current_node, predecessors = stack[-1]
-            # current node is on the top of the stack
-            #   if it has predecessors, the first will be shifted off and pushed to top of the stack
-            if verbose and len(subgraph_nodes) < 1000:
-                print(
-                    f"{str(print_stack(stack)):>59}   " # node => [predecessors] | ... from top to bottom of stack
-                    f"{(descending_from or ''):8} "
-                    f"<{','.join([str(n) for n in missing_in_between_nodes])}> "  # <missing nodes>
-                    f"{{{','.join([str(n) for n in missing_in_between_nodes_tmp])}}} "
-                    f"--{','.join([str(n) for n in discard]) if discard else ''}"  # <missing nodes>
-                )  # {temp missing nodes}
-
-            next_node = predecessors.pop(0) if predecessors else None
-            if next_node:
-                descending_from = None
-                # ignoring visited is messing stuff up visited node is in the graph, i think
-                if next_node not in discard:
-                    # visited.add(next_node)
-
-                    if next_node not in subgraph_nodes:
-                        missing_in_between_nodes_tmp.add(next_node)
-
-                    stack.append((next_node, list(list(G.predecessors(next_node)))))
-            else:
-                # while True:
-                n, preds = stack.pop()
-                # descending_from = n if n in subgraph_nodes else f"[{n}]"
-                descending_from = f"<= {n}"
-                descending_from += '  ' if n in subgraph_nodes else ' x'
-                if preds:
-                    raise RuntimeError("this shouldn't happen")
-
-                if n in subgraph_nodes:
-                    missing_in_between_nodes.update(missing_in_between_nodes_tmp)
-                    subgraph_nodes.update(missing_in_between_nodes_tmp)
-                    missing_in_between_nodes_tmp.clear()
-                    continue
-                    # break
-                else:
-                    missing_in_between_nodes_tmp.discard(n)
-                    discard.add(n)
-    return missing_in_between_nodes
 
 
 @router.get("/wholegraph")

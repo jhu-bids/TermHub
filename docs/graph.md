@@ -1,16 +1,13 @@
+### This is very out-of-date as of 11-2024
+
 # Documentation about vocabulary hierarchy algorithms and display
 ## Terminology
 **Expansion set**: Set of concepts/nodes in the concept set expansion, including any nodes in the definition that were
 not marked as excluded. _Filtered expansion set_ means after filtering out certain vocabs (e.g. RxNorm extension).
-I think this is the set of all of the nodes we ultimately want to display, with the exception of _missing in-betweens_,
-which we will find and add later.
-
-**Missing in-betweens**: (i) Concepts that were not included in the original expansion at the time of the OMOP
-vocabulary version when the cset definition was created, but do show up in expansions in subsequent versions. (ii) When
-creating a single graph for more than 1 concept set, these are concepts that would exist in between any connecting paths
-between these concept sets.
 
 **Final/display hierarchy/graph**: The hierarchy / subgraph that object that wil be displayed in the browser.
+This will include all concepts in selected codesets, all added concepts (called `cids` in the code) from the 
+Add Concepts tab, and all descendants of these.
 
 **Final/display node set**: All of the nodes in _final/display hierarchy/graph_.
 

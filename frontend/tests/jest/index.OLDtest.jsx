@@ -28,8 +28,6 @@ import _diagramCase from '../test-data/diagramCase.json';
 
 let diagramCase = convertToArrayOfStrings(_diagramCase);
 
-// todo: add ./testing_get_missing_in_between_nodes.py
-
 // TESTS
 // TODO: What are some good assertions, given various inputs?
 // siggie 2024-09-05: I'm not sure this test does much. I think
