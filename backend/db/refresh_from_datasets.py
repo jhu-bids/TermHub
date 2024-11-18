@@ -45,7 +45,7 @@ def reset_and_update_db(
     print('INFO: Starting database refresh.', flush=True)  # flush: for gh action
     schema_new_temp = schema + '_' + datetime.now().strftime('%Y%m%d')
     schema_old_backup = schema + '_before_' + schema_new_temp.replace(schema + '_', '')
-    last_updated_db_key = 'last_updated_DB'
+    last_updated_db_key = 'last_intialized_DB'
     hours_threshold_for_updates = int(hours_threshold_for_updates)
     is_updated = check_if_updated(last_updated_db_key, hours_threshold_for_updates)
 
