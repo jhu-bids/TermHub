@@ -117,7 +117,6 @@ def get_cset_members_items(
     columns: Union[List[str], None] = None,
     column: Union[str, None] = None,
     return_with_keys: bool = True,
-    cids: Union[List[int], None] = None,
 ) -> Union[List[int], List]:
     """Get concept set members items for selected concept sets
         returns:
@@ -129,13 +128,8 @@ def get_cset_members_items(
         raise ValueError('Cannot specify both columns and column')
 
     with (get_db_connection() as con):
-        if codeset_ids:
-            pstr, params = sql_in_safe(codeset_ids)
-            # noinspection PyUnresolvedReferences false_positive
-            where = sql.SQL(f" WHERE codeset_id IN ({pstr})").as_string(con.connection.connection)
-        else:
-            where = ''
-            params = {}
+        where = f" WHERE codeset_id = ANY(:codeset_ids)"
+        params = {'codeset_ids': codeset_ids or []}
 
         if column:
             columns = [column]

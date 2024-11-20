@@ -302,7 +302,7 @@ export function CsetComparisonPage() {
     (infoPanelRef.current ? infoPanelRef.current.offsetHeight : 0)]);
 
   if (!gc || isEmpty(graphOptions) || isEmpty(displayedRows) ||
-      isEmpty(selected_csets)) {
+      isEmpty(concepts)) {
     // sometimes selected_csets and some other data disappears when the page is reloaded
     return <p>Downloading...</p>;
   }

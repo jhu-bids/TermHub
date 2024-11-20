@@ -585,19 +585,19 @@ export function ViewCurrentState () {
 } */
 
 export function StatsMessage (props) {
-  const { codeset_ids = [], all_csets = [], relatedCsets, concept_ids, } = props;
+  const { codeset_ids = [], all_csets = [], relatedCsets, concept_ids, cids = [], } = props;
 
   const relcsetsCnt = relatedCsets.length;
   return (
     <p style={{ margin: 0, fontSize: 'small' }}>
-      The <strong>{codeset_ids.length} concept sets </strong>
-      selected contain{' '}
+      The <strong>{codeset_ids.length} concept sets </strong> selected
+      and <strong>{cids.length} more</strong> from the Add Concepts tab,
+      plus their descendants, contain{' '}
       <strong>{(concept_ids || []).length.toLocaleString()} distinct
         concepts</strong>. The
       following <strong>{relcsetsCnt.toLocaleString()} concept sets </strong>(
-      {pct_fmt(relcsetsCnt / all_csets.length)}) have 1 or more
-      concepts in common with the selected sets. Click rows below to select or
-      deselect concept sets.
+      {pct_fmt(relcsetsCnt / all_csets.length)}) contain at least one of these.
+      Click rows below to select or deselect concept sets.
     </p>
   );
 }

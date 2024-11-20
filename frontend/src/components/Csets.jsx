@@ -336,7 +336,7 @@ export function ConceptSetsPage () {
     })();
   }, [codeset_ids.join('|')]);
 
-  if (codeset_ids.length && isEmpty(allRelatedCsets)) {
+  if ((codeset_ids.length || cids.length) && isEmpty(allRelatedCsets)) {
     return <p>Downloading...</p>;
   }
 
@@ -345,7 +345,7 @@ export function ConceptSetsPage () {
     concept_ids, researchers, clickable: true, showTitle: true,
   };
 
-  if (!codeset_ids.length) {
+  if (!codeset_ids.length && !cids.length) {
     // console.log("going to CsetSearch no codeset_ids and with props", props);
     return (
       <>

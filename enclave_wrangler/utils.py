@@ -240,7 +240,7 @@ def handle_response_error(
         })
 
 
-def enclave_get(url: str, verbose: bool = True, args: Dict = {}, error_dir: str = None, oauth=False) -> Response:
+def enclave_get(url: str, verbose: bool = False, args: Dict = {}, error_dir: str = None, oauth=False) -> Response:
     """Get from the enclave and print curl"""
     if verbose:
         print_curl(url, args=args)
@@ -504,7 +504,7 @@ def process_validate_errors(response: Response, err_type: Exception=None, print_
     return out_errors
 
 
-def enclave_post(url: str, data: Union[List, Dict], raise_validate_error: bool=False, verbose=True, oauth=False) -> Response:
+def enclave_post(url: str, data: Union[List, Dict], raise_validate_error: bool=False, verbose=False, oauth=False) -> Response:
     """Post to the enclave and handle / report on some common issues"""
     if verbose:
         print_curl(url, data)

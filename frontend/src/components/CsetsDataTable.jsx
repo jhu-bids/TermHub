@@ -3,7 +3,7 @@ import { throttle } from "lodash";
 import DataTable, { createTheme } from "react-data-table-component";
 import { fmt, pct_fmt } from "../utils";
 import { Tooltip } from "./Tooltip";
-import { StatsMessage, useCodesetIds } from '../state/AppState';
+import { StatsMessage, useCodesetIds, useCids } from '../state/AppState';
 // import Checkbox from '@material-ui/core/Checkbox';
 // import ArrowDownward from '@material-ui/icons/ArrowDownward';
 // const sortIcon = <ArrowDownward />;
@@ -38,6 +38,7 @@ export function CsetsDataTable(props) {
   const { show_selected, selected_csets, clickable, showTitle, } = props;
   // const {codeset_ids, codesetIdsDispatch} = props;
   const [codeset_ids, codesetIdsDispatch] = useCodesetIds();
+  const [cids, ] = useCids();
   // const spState = useSearchParamsState();
   // const codeset_ids = show_selected ? null : props.codeset_ids;
   const relatedCsets = show_selected ? null : props.relatedCsets;
@@ -75,7 +76,7 @@ export function CsetsDataTable(props) {
   // const related_ids = new Set(f lattened_concept_hierarchy.map(d => d.concept_id));
   const subHeader = show_selected ? null : <StatsMessage
       {...{ codeset_ids, all_csets, relatedCsets,
-        concept_ids, selected_csets, } } />;
+        concept_ids, selected_csets, cids, } } />;
   // const [handleRowMouseEnter, handleRowMouseLeave] =
   //     getCsetSelectionHandler(show_selected ? 'select-to-remove' : 'select-to-add');
 

@@ -31,7 +31,7 @@ router = APIRouter(
 
 @router.get("/concept-graph")
 async def concept_graph_get(
-    request: Request, codeset_ids: List[int] = Query(...), cids: Optional[List[int]] = Query(None),
+    request: Request, codeset_ids: Optional[List[int]] = Query(None), cids: Optional[List[int]] = Query(None),
     hide_vocabs = ['RxNorm Extension'], hide_nonstandard_concepts=False, verbose = VERBOSE,
 ) -> Dict[str, Any]:
     """Return concept graph"""
@@ -71,7 +71,7 @@ async def concept_graph_post(
 
 
 async def concept_graph(
-    codeset_ids: List[int], cids: Union[List[int], None] = [], hide_vocabs = [],
+    codeset_ids: Union[List[int], None], cids: Union[List[int], None] = [], hide_vocabs = [],
     hide_nonstandard_concepts=False, verbose = VERBOSE, all_descendants = True
  ) -> Tuple[DiGraph, Set[int], Set[int], Dict[str, Set[int]], Set[int]]:
     """Return concept graph
@@ -125,7 +125,7 @@ async def concept_graph(
 
     # Return
     verbose and timer('done')
-    return sg, concept_ids, more_concept_ids, hidden_by_voc, nonstandard_concepts_hidden
+    return sg, concept_ids, hidden_by_voc, nonstandard_concepts_hidden
 
 
 def get_all_descendants(g: nx.DiGraph, subgraph_nodes: Union[List[int], Set[int]]) -> Set[int]:
@@ -316,7 +316,7 @@ def load_relationship_graph(graph_path: str = GRAPH_PATH, update_if_outdated=Tru
     """Load relationship graph from disk"""
     timer = get_timer('./load_relationship_graph')
     timer(f'loading {graph_path}')
-    up_to_date = True if not update_if_outdated else is_graph_up_to_date(GRAPH_PATH)
+    up_to_date = True if not update_if_outdated else is_graph_up_to_date(graph_path)
     if os.path.isfile(graph_path) and up_to_date:
         with open(graph_path, 'rb') as pickle_file:
             G: DiGraph = pickle.load(pickle_file)
