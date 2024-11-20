@@ -83,8 +83,6 @@ export function getCodesetEditActionFunc({ newCset, newCsetDispatch, csmi }) {
 
 
     let definition = get(csmi, [codeset_id, concept_id]);
-    let _clickAction = clickAction; // because this code was in a function
-                                    // that locally changed clickAction
     if (clickAction) {
       definition = { ...definition };
       if (clickAction.startsWith("Cancel")) {
@@ -107,15 +105,6 @@ export function getCodesetEditActionFunc({ newCset, newCsetDispatch, csmi }) {
             definition[flag] = false;
           });
         }
-        if (definition.stagedAction === "Add" && clickAction === "Update") {
-          _clickAction = "Add";
-        }
-        if (definition.stagedAction && definition.stagedAction !== _clickAction) {
-          throw new Error("wasn't expecting a different action");
-        }
-      }
-      if (definition) {
-        definition.stagedAction = _clickAction;
       }
     }
 
@@ -194,8 +183,7 @@ function OptionIcon(props) {
     editing,
     cset_col: { codeset_id },
     row: { concept_id },
-    editCodesetId,
-    editAction,
+    onClick,
   } = props;
   const icon = ICONS[flag];
   if (flag == "block") {
@@ -207,13 +195,7 @@ function OptionIcon(props) {
   return (
     <Tooltip label={icon.tt + " =" + (on ? "True" : "False")}>
       <IconButton
-        onClick={
-          editing && !item.fakeItem
-            ? (evt) => {
-                editAction({evt, ...props, clickAction: "Update"})
-              }
-            : null
-        }
+        onClick={onClick}
         size="9px"
         // color={on ? 'primary' : 'secondary'}
         sx={{
@@ -247,7 +229,7 @@ function cellInfo(props) {
   const item = get(csmi, [codeset_id, concept_id]);
   const editing = codeset_id === get(newCset, ['codeset_id']);
 
-  return { editing, item };
+  return { editing, item, codeset_id, concept_id };
 }
 export const defaultCellStyle = {
   // https://stackoverflow.com/questions/19461521/how-to-center-an-element-horizontally-and-vertically
@@ -272,18 +254,6 @@ function _cellStyle(item, editing) {
   } else if (item.item) {
     style.backgroundColor = "plum";
   }
-  /*
-  editing = editing ?? item.editing;
-  if (editing) {
-    if (item.stagedAction === "Add") {
-      style.backgroundColor = "lightgreen";
-    } else if (item.stagedAction === "Remove") {
-      style.backgroundColor = "pink";
-    } else if (item.stagedAction === "Update") {
-      style.backgroundColor = "lightblue";
-    }
-  }
-   */
   return style;
 }
 
@@ -323,8 +293,8 @@ function flagAbbrev(letter) {
   return FLAG_ABBREV[letter];
 }
 function fakeCell(props) {
-  let { editing, stagedAction, flags = "DMX" } = props;
-  let item = { fakeItem: true, stagedAction, item: !!stagedAction };
+  let { editing, flags = "DMX" } = props;
+  let item = { fakeItem: true, };
   flags.split("").forEach((f) => {
     item[flagAbbrev(f)] = true;
   });
@@ -404,7 +374,6 @@ export function Legend({editing=false}) {
       "Click to toggle isExcluded": {
         content: <div style={{textAlign: 'center', paddingTop: '3px'}}>X</div>
       },
-       */
       "Concept added": {
         content: fakeCell({editing: true, flags: "i", stagedAction: "Add"}),
       },
@@ -477,8 +446,8 @@ export function cellContents(props) {
         - If staged for deletion:
           - Just the word 'Deleted', clicking cancels deletion
    */
-  const { editAction } = props;
-  const { item, editing } = cellInfo(props);
+  const { editAction, newCset, newCsetDispatch } = props;
+  const { item, editing, codeset_id, concept_id } = cellInfo(props);
   let removeIcon, clickAction, contents;
   let flags = Object.keys(FLAGS);
   if (!editing) {
@@ -490,7 +459,8 @@ export function cellContents(props) {
         );
       });
     } else if (item && item.csm) {
-      contents = checkmark;
+      // contents = checkmark;
+      //  adding checkmark later now
     } else if (item) {
       throw new Error("Impossible: item has neither csm nor item set to true");
     } else {
@@ -499,67 +469,59 @@ export function cellContents(props) {
   } else {
     // editing
     if (!item || !item.item) {
-      clickAction = "Add";
       contents = (
         <Add
           style={{ cursor: "pointer" }}
-          onClick={(evt) => editAction({ evt, ...props, clickAction })}
+          onClick={(evt) => {
+            let definition = {
+              codeset_id,
+              concept_id,
+              csm: true,
+              item: true,
+            };
+            Object.keys(FLAGS).forEach((flag) => {
+              definition[flag] = false;
+            });
+            newCsetDispatch({type: 'addDefinition', definition});
+
+            //editAction({ evt, ...props, clickAction })}
+          }}
         />
       );
-      // return contents;
     } else {
-      // item is an item, either existing or staged for addition
-      if (item.stagedAction) {
-        // staged edits
-        clickAction = `Cancel ${item.stagedAction}`;
-        if (item.stagedAction === "Remove") {
-          contents = (
-            <Tooltip label={clickAction}>
-              <span style={{ cursor: 'pointer' /*, width:'70px', ...centered */}}
-                onClick={(evt) => editAction({ evt, ...props, item, clickAction })}
-              >
-                Deleted
-              </span>
-            </Tooltip>
-          );
-          return contents;
-        }
-      } else {
-        clickAction = "Remove";
-      }
-    }
-    removeIcon = // if any staged edit, this icon cancels, otherwise icon removes existing item
-      clickAction === "Add" ? null : (
-        <Tooltip label={clickAction}>
-          <BlockIcon
-            onClick={(evt) => editAction({ evt, ...props, item, clickAction })}
-            sx={{
-              width: "12px",
-              height: "12px",
-              marginBottom: "1px",
-              padding: 0,
-            }}
-          />
-        </Tooltip>
+      clickAction = "Remove";
+      removeIcon = (
+          <Tooltip label={clickAction}>
+            <BlockIcon
+                onClick={(evt) => newCsetDispatch({type: 'deleteDefinition', concept_id: item.concept_id})}
+                    // editAction({ evt, ...props, item, clickAction })}
+                sx={{
+                  width: "12px",
+                  height: "12px",
+                  marginBottom: "1px",
+                  padding: 0,
+                }}
+            />
+          </Tooltip>
       );
+      const flagButtons = flags.map((flag) => (
+            <OptionIcon {...props} {...{ item, flag, editing }} key={flag}
+              onClick={(evt) => {
+                console.log("clicking flag");
+                newCsetDispatch({type: 'toggleFlag', concept_id: item.concept_id, flag})
+              }}
+            />));
+      contents = <span>{removeIcon}{flagButtons}</span>;
+    }
   }
-  const cellStuff = (
-    <div onClick={(evt) => { editAction({ evt, ...props, clickAction, no_action: true });}}
+  if (item?.csm) {
+    contents = <span>{checkmark}{contents}</span>;
+  }
+  let cellStuff = (
+    <div //onClick={(evt) => { editAction({ evt, ...props, clickAction, no_action: true });}}
       style={{display: "flex", alignItems: "center", gap: "4px", marginTop: "1px"}}
     >
-      {removeIcon}
-      {contents || contents === ""
-        ? contents
-        : flags.map((flag) => {
-            //Object.keys(ICONS).map((flag) => {}
-            if (!item) {
-              throw new Error("that's not expected");
-            }
-            // either contents already set, or ready to get flag icons
-            return (
-              <OptionIcon {...props} {...{ item, flag, editing }} key={flag} />
-            );
-          })}
+      {contents}
     </div>
   );
   return cellStuff;
@@ -590,7 +552,6 @@ export function copyConceptsFromWidget(cset, selected_csets, csmi, newCsetDispat
       }
       let newDef = {...def};
       newDef.codeset_id = cset.codeset_id;
-      newDef.stagedAction = 'Add';
       newDefs[concept_id] = newDef;
     });
     newCsetDispatch({type: 'addDefinitions', definitions: newDefs})

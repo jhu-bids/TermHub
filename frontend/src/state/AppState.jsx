@@ -230,16 +230,13 @@ const newCsetReducer = (state, action) => {
   /*
       state structure in storageProvider.newCset should look like:
         {
-          codeset_id: 1234,
+          codeset_id: -1,
           concept_set_name: 'New Cset',
           ...
           definitions: {
             concept_id: 12345,
             includeDescendants: true,
             ...
-          },
-          members: {
-            // this won't work for a while
           },
         }
    */
@@ -295,6 +292,12 @@ const newCsetReducer = (state, action) => {
       let definitions = {...state.definitions};
       delete definitions[action.concept_id];
       state = {...state, definitions, };
+      break;
+    }
+    case "toggleFlag": {
+      let definition = {...state.definitions[action.concept_id]};
+      definition[action.flag] = !definition[action.flag];
+      state = {...state, definitions: {...state.definitions, [action.concept_id]: definition} };
       break;
     }
   }

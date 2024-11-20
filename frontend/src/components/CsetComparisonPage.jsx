@@ -3,7 +3,7 @@ import React, {
   useEffect,
   useRef,
   useState,
-  Profiler,
+  useMemo,
 } from 'react';
 import DataTable, {createTheme} from 'react-data-table-component';
 import AddCircle from '@mui/icons-material/AddCircle';
@@ -301,6 +301,10 @@ export function CsetComparisonPage() {
     infoPanelRef.current,
     (infoPanelRef.current ? infoPanelRef.current.offsetHeight : 0)]);
 
+  const atlasWidget = useMemo(() =>
+      !isEmpty(newCset) && !isEmpty(conceptLookup) &&
+      newCsetAtlasWidget(newCset, conceptLookup), [newCset, conceptLookup]);
+
   if (!gc || isEmpty(graphOptions) || isEmpty(displayedRows) ||
       isEmpty(concepts)) {
     // sometimes selected_csets and some other data disappears when the page is reloaded
@@ -466,7 +470,7 @@ export function CsetComparisonPage() {
   if (editingCset) {
     infoPanels.push(
         <FlexibleContainer key="cset" title="New concept set"
-                           startHidden={false}
+                           startHidden={true}
                            hideShowPrefix={true}
                            style={{width: '80%', resize: 'both'}}
                            position={panelPosition}
@@ -490,8 +494,6 @@ export function CsetComparisonPage() {
           <CsetsDataTable {...props} show_selected={true} min_col={false} />
         </FlexibleContainer>
     ); */
-
-    const atlasWidget = newCsetAtlasWidget(newCset, conceptLookup);
 
     infoPanels.push(
         <FlexibleContainer key="instructions"

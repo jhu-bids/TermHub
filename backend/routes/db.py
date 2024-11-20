@@ -398,9 +398,7 @@ def db_refresh_route():
 
 FLAGS = ['includeDescendants', 'includeMapped', 'isExcluded']
 @router.get("/cset-download")
-def cset_download(codeset_id: int, csetEditState: str = None,
-                  atlas_items=True, # atlas_items_only=False,
-                  sort_json: bool = False, include_metadata = False) -> Dict:
+def cset_download(codeset_id: int, atlas_items=True, sort_json: bool = False) -> Dict:
     """Download concept set
         Had deleted this, but it's used for atlas-json download for existing concept sets
     """
@@ -412,24 +410,6 @@ def cset_download(codeset_id: int, csetEditState: str = None,
 
     items = get_concept_set_version_expression_items(codeset_id, return_detail='full', handle_paginated=True)
     items = [i['properties'] for i in items]
-    if csetEditState:
-        edits = json.loads(csetEditState)
-        edits = edits[str(codeset_id)]
-
-        deletes = [i['concept_id'] for i in edits.values() if i['stagedAction'] in ['Remove', 'Update']]
-        items = [i for i in items if i['conceptId'] not in deletes]
-        adds: List[Dict] = [i for i in edits.values() if i['stagedAction'] in ['Add', 'Update']]
-        # items is object api format but the edits from the UI are in dataset format
-        # so, convert the edits to object api format for consistency
-        for item in adds:
-            # set flags to false if they don't appear in item
-            for flag in FLAGS:
-                if flag not in item:
-                    item[flag] = False
-        adds = convert_rows('concept_set_version_item',
-                            'OmopConceptSetVersionItem',
-                            adds)
-        items.extend(adds)
     if sort_json:
         items.sort(key=lambda i: i['conceptId'])
 
