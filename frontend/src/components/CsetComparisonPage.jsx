@@ -41,7 +41,6 @@ import {Tooltip} from './Tooltip';
 import {
   cellContents,
   cellStyle,
-  getCodesetEditActionFunc,
   Legend,
   newCsetAtlasWidget,
   textCellForItem,
@@ -455,15 +454,6 @@ export function CsetComparisonPage() {
     >
       Create new concept set or version
     </Button>,
-
-    /* <FlexibleContainer key="cset-table" title="Table of concept set being edited"
-                       position={panelPosition} countRef={countRef}>
-      <CsetsDataTable show_selected={true}
-                      min_col={false}
-                      clickable={false}
-                      showTitle={false}
-                      selected_csets={selected_csets} />
-    </FlexibleContainer>, */
   ];
 
   let edited_cset;
@@ -489,11 +479,6 @@ export function CsetComparisonPage() {
           />
         </FlexibleContainer>,
     );
-    /* infoPanels.push(
-        <FlexibleContainer key="compare" title={edited_cset.concept_set_name}>
-          <CsetsDataTable {...props} show_selected={true} min_col={false} />
-        </FlexibleContainer>
-    ); */
 
     infoPanels.push(
         <FlexibleContainer key="instructions"
@@ -645,10 +630,6 @@ function StatsAndOptions(props) {
           dense
       />
   );
-}
-
-function precisionRecall(props) {
-  // TODO: write someday -- precision recall of newCset against all? Or each against all? Not sure what the plan was
 }
 
 function nodeToTree(node) { // Not using
@@ -808,8 +789,6 @@ function getColDefs(props) {
     setShowCsetCodesetId,
   } = props;
   const {nested, } = graphOptions;
-
-  const editAction = getCodesetEditActionFunc({csmi, newCset, newCsetDispatch});
 
   let coldefs = [
     {
@@ -1119,7 +1098,6 @@ function getColDefs(props) {
           ...props,
           row,
           cset_col,
-          editAction,
         });
       },
       conditionalCellStyles: [

@@ -308,11 +308,15 @@ def next_api_call_group_id() -> Optional[int]:
 
 @router.post("/related-cset-concept-counts")
 def get_related_cset_concept_counts(concept_ids: List[int] = None, verbose=True) -> Dict:
-    """Returns dict of codeset_id: count of included concepts"""
+    """Returns dict of codeset_id: count of included concepts
+        2024-11-21: adding counts by vocab
+    """
     query = f"""
-        SELECT DISTINCT codeset_id, concept_id 
-        FROM concept_set_members
+        SELECT codeset_id, vocabulary_id, COUNT(DISTINCT concept_id) cnt
+        FROM cset_members_items
         WHERE concept_id = ANY(:concept_ids)
+          AND csm
+        GROUP BY 1, 2
     """
     with get_db_connection() as con:
         csm = sql_query(con, query, {'concept_ids': concept_ids}, )
@@ -320,9 +324,18 @@ def get_related_cset_concept_counts(concept_ids: List[int] = None, verbose=True)
     counts = {}
     for record in csm:
         codeset_id = record['codeset_id']
-        counts[codeset_id] = counts.get(codeset_id, 0) + 1
+        counts[codeset_id] = counts.get(codeset_id, 0) + record['cnt']
 
-    return counts
+    vcounts = {}
+    for record in csm:
+        codeset_id = int(record['codeset_id'])
+        vcounts[codeset_id] = vcounts.get(codeset_id, {})
+        cnt = counts.get(codeset_id)
+        pct = record['cnt'] / cnt
+        vcounts[codeset_id]['concepts'] = cnt
+        vcounts[codeset_id][record['vocabulary_id']] = pct
+
+    return vcounts
 
 
 @router.get("/get-all-csets")

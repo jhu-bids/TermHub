@@ -257,12 +257,6 @@ const newCsetReducer = (state, action) => {
         // "codeset_created_by": "e64b8f7b-7af8-4b44-a570-557b812c0eeb", // will be set by enclave
         is_draft: true,
         researchers: [],
-        /*
-        counts: {'Expression items': 0},
-        intersecting_concepts: 0,
-        precision: 0,
-        recall: 0,
-         */
       };
       /*
       if (state.currentUserId) {

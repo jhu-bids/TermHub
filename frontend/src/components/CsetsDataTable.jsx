@@ -44,10 +44,8 @@ export function CsetsDataTable(props) {
   const relatedCsets = show_selected ? null : props.relatedCsets;
   const all_csets = show_selected ? null : props.all_csets;
   const concept_ids = show_selected ? null : props.concept_ids;
-  const min_col = show_selected ?
-      ("min_col" in props ? props.min_col : true) : false;
 
-  let coldefs = getColdefs(min_col);
+  let coldefs = getColdefs();
   /* const conditionalRowStyles = [{ when: row => row.selected,
         style: { backgroundColor: 'rgba(63, 195, 128, 0.9)', color: 'white',
                 '&:hover': { cursor: 'pointer', }, } }]; */
@@ -136,13 +134,13 @@ export function CsetsDataTable(props) {
   );
 }
 
-function getColdefs(min_col = false) {
+function getColdefs() {
   /*
     const descending = (rows, selector, direction) => {
         return orderBy(rows, selector, ['desc']);
     };
      */
-  let coldefs_first_4 = [
+  let coldefs = [
     // { name: 'level', selector: row => row.level, },
     {
       name: "Version ID",
@@ -183,22 +181,25 @@ function getColdefs(min_col = false) {
       center: true,
       sortable: true,
     },
-  ];
-  let coldefs_last_4 = [
     {
-      // name: 'Recall',
       name: (
-        <Tooltip label="Portion of concepts in the selected concept sets that belong to this set.">
-          <span>Recall</span>
-        </Tooltip>
+          <Tooltip label="Number of concepts in this set overlapping with all the concepts selected.">
+            <span>Common</span>
+          </Tooltip>
       ),
-      selector: (row) => row.recall,
-      format: (row) => pct_fmt(row.recall),
-      desc: true,
+      selector: (row) => row.intersecting_concepts,
       compact: true,
-      width: "70px",
+      width: "66px",
       center: true,
       sortable: true,
+    },
+    {
+      name: 'Vocabularies',
+      selector: (row) => row.vocabs,
+      compact: true,
+      width: "200px",
+      sortable: true,
+      wrap: true,
     },
     {
       name: (
@@ -244,42 +245,7 @@ function getColdefs(min_col = false) {
      */
   ];
 
-  if (!min_col) {
-    let coldefs_extra = [
-      {
-        // name: 'Shared concepts',
-        name: (
-          <Tooltip label="Number of concepts in this set that also belong to the selected concept sets.">
-            <span>Shared</span>
-          </Tooltip>
-        ),
-        selector: (row) => row.intersecting_concepts,
-        compact: true,
-        width: "70px",
-        center: true,
-        sortable: true,
-      },
-      {
-        name: (
-          <Tooltip label="Portion of the concepts in this set shared with the selected concept sets.">
-            <span>Precision</span>
-          </Tooltip>
-        ),
-        selector: (row) => row.precision,
-        format: (row) => pct_fmt(row.precision),
-        desc: true,
-        compact: true,
-        width: "70px",
-        center: true,
-        sortable: true,
-        // sortFunction: descending,
-      },
-    ];
-
-    return [...coldefs_first_4, ...coldefs_extra, ...coldefs_last_4];
-  }
-
-  return [...coldefs_first_4, ...coldefs_last_4];
+  return coldefs;
 }
 
 function getCustomStyles() {

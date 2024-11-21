@@ -68,60 +68,6 @@ export function expandCset({ newCset, graphContainer, }) {
   return expansion;
 }
 
-export function getCodesetEditActionFunc({ newCset, newCsetDispatch, csmi }) {
-  return (props) => {
-    // this function will be called editAction and passed around as needed
-    const {
-      evt,
-      // csmi,  // not sure if this should come from closure or props sent to the generated function
-      clickAction,
-      flag,
-      cset_col: { codeset_id },
-      row: { concept_id },
-      no_action = false,
-    } = props;
-
-
-    let definition = get(csmi, [codeset_id, concept_id]);
-    if (clickAction) {
-      definition = { ...definition };
-      if (clickAction.startsWith("Cancel")) {
-        newCsetDispatch({type: 'deleteDefinition', concept_id});
-        return;
-      }
-      if (isEmpty(definition)) {
-        if (clickAction === "Add") {
-          definition = { codeset_id, concept_id, csm: false, item: true };
-          Object.keys(FLAGS).forEach((flag) => {
-            definition[flag] = false;
-          });
-        } else {
-          throw new Error("wasn't expecting no item except on Add");
-        }
-      } else {
-        if (clickAction === "Add") {
-          definition.item = true;
-          Object.keys(FLAGS).forEach((flag) => {
-            definition[flag] = false;
-          });
-        }
-      }
-    }
-
-
-    if (clickAction === "Update") {
-      definition[flag] = !definition[flag];
-    }
-    if (clickAction.startsWith("Cancel")) {
-      // moved this up above to dispatch action and return
-    } else {
-      // csidState[concept_id] = definition;
-      newCsetDispatch({type: 'addDefinition', definition});
-    }
-    evt.stopPropagation();
-  };
-}
-
 const FLAGS = {
   // includeMapped: {component: TranslateIcon, sz:12, tt: 'Include Mapped'},
   // includeDescendants: {component: TreeIcon, sz:12, tt: 'Include descendants'},
@@ -446,7 +392,7 @@ export function cellContents(props) {
         - If staged for deletion:
           - Just the word 'Deleted', clicking cancels deletion
    */
-  const { editAction, newCset, newCsetDispatch } = props;
+  const { newCset, newCsetDispatch } = props;
   const { item, editing, codeset_id, concept_id } = cellInfo(props);
   let removeIcon, clickAction, contents;
   let flags = Object.keys(FLAGS);
@@ -483,8 +429,6 @@ export function cellContents(props) {
               definition[flag] = false;
             });
             newCsetDispatch({type: 'addDefinition', definition});
-
-            //editAction({ evt, ...props, clickAction })}
           }}
         />
       );
@@ -494,7 +438,6 @@ export function cellContents(props) {
           <Tooltip label={clickAction}>
             <BlockIcon
                 onClick={(evt) => newCsetDispatch({type: 'deleteDefinition', concept_id: item.concept_id})}
-                    // editAction({ evt, ...props, item, clickAction })}
                 sx={{
                   width: "12px",
                   height: "12px",
@@ -518,9 +461,7 @@ export function cellContents(props) {
     contents = <span>{checkmark}{contents}</span>;
   }
   let cellStuff = (
-    <div //onClick={(evt) => { editAction({ evt, ...props, clickAction, no_action: true });}}
-      style={{display: "flex", alignItems: "center", gap: "4px", marginTop: "1px"}}
-    >
+    <div style={{display: "flex", alignItems: "center", gap: "4px", marginTop: "1px"}} >
       {contents}
     </div>
   );
