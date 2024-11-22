@@ -230,16 +230,13 @@ const newCsetReducer = (state, action) => {
   /*
       state structure in storageProvider.newCset should look like:
         {
-          codeset_id: 1234,
+          codeset_id: -1,
           concept_set_name: 'New Cset',
           ...
           definitions: {
             concept_id: 12345,
             includeDescendants: true,
             ...
-          },
-          members: {
-            // this won't work for a while
           },
         }
    */
@@ -260,12 +257,6 @@ const newCsetReducer = (state, action) => {
         // "codeset_created_by": "e64b8f7b-7af8-4b44-a570-557b812c0eeb", // will be set by enclave
         is_draft: true,
         researchers: [],
-        /*
-        counts: {'Expression items': 0},
-        intersecting_concepts: 0,
-        precision: 0,
-        recall: 0,
-         */
       };
       /*
       if (state.currentUserId) {
@@ -295,6 +286,12 @@ const newCsetReducer = (state, action) => {
       let definitions = {...state.definitions};
       delete definitions[action.concept_id];
       state = {...state, definitions, };
+      break;
+    }
+    case "toggleFlag": {
+      let definition = {...state.definitions[action.concept_id]};
+      definition[action.flag] = !definition[action.flag];
+      state = {...state, definitions: {...state.definitions, [action.concept_id]: definition} };
       break;
     }
   }
@@ -585,19 +582,19 @@ export function ViewCurrentState () {
 } */
 
 export function StatsMessage (props) {
-  const { codeset_ids = [], all_csets = [], relatedCsets, concept_ids, } = props;
+  const { codeset_ids = [], all_csets = [], relatedCsets, concept_ids, cids = [], } = props;
 
   const relcsetsCnt = relatedCsets.length;
   return (
     <p style={{ margin: 0, fontSize: 'small' }}>
-      The <strong>{codeset_ids.length} concept sets </strong>
-      selected contain{' '}
+      The <strong>{codeset_ids.length} concept sets </strong> selected
+      and <strong>{cids.length} more</strong> from the Add Concepts tab,
+      plus their descendants, contain{' '}
       <strong>{(concept_ids || []).length.toLocaleString()} distinct
         concepts</strong>. The
       following <strong>{relcsetsCnt.toLocaleString()} concept sets </strong>(
-      {pct_fmt(relcsetsCnt / all_csets.length)}) have 1 or more
-      concepts in common with the selected sets. Click rows below to select or
-      deselect concept sets.
+      {pct_fmt(relcsetsCnt / all_csets.length)}) contain at least one of these.
+      Click rows below to select or deselect concept sets.
     </p>
   );
 }

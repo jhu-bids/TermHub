@@ -3,7 +3,7 @@ import { throttle } from "lodash";
 import DataTable, { createTheme } from "react-data-table-component";
 import { fmt, pct_fmt } from "../utils";
 import { Tooltip } from "./Tooltip";
-import { StatsMessage, useCodesetIds } from '../state/AppState';
+import { StatsMessage, useCodesetIds, useCids } from '../state/AppState';
 // import Checkbox from '@material-ui/core/Checkbox';
 // import ArrowDownward from '@material-ui/icons/ArrowDownward';
 // const sortIcon = <ArrowDownward />;
@@ -38,15 +38,14 @@ export function CsetsDataTable(props) {
   const { show_selected, selected_csets, clickable, showTitle, } = props;
   // const {codeset_ids, codesetIdsDispatch} = props;
   const [codeset_ids, codesetIdsDispatch] = useCodesetIds();
+  const [cids, ] = useCids();
   // const spState = useSearchParamsState();
   // const codeset_ids = show_selected ? null : props.codeset_ids;
   const relatedCsets = show_selected ? null : props.relatedCsets;
   const all_csets = show_selected ? null : props.all_csets;
   const concept_ids = show_selected ? null : props.concept_ids;
-  const min_col = show_selected ?
-      ("min_col" in props ? props.min_col : true) : false;
 
-  let coldefs = getColdefs(min_col);
+  let coldefs = getColdefs();
   /* const conditionalRowStyles = [{ when: row => row.selected,
         style: { backgroundColor: 'rgba(63, 195, 128, 0.9)', color: 'white',
                 '&:hover': { cursor: 'pointer', }, } }]; */
@@ -75,7 +74,7 @@ export function CsetsDataTable(props) {
   // const related_ids = new Set(f lattened_concept_hierarchy.map(d => d.concept_id));
   const subHeader = show_selected ? null : <StatsMessage
       {...{ codeset_ids, all_csets, relatedCsets,
-        concept_ids, selected_csets, } } />;
+        concept_ids, selected_csets, cids, } } />;
   // const [handleRowMouseEnter, handleRowMouseLeave] =
   //     getCsetSelectionHandler(show_selected ? 'select-to-remove' : 'select-to-add');
 
@@ -135,13 +134,13 @@ export function CsetsDataTable(props) {
   );
 }
 
-function getColdefs(min_col = false) {
+function getColdefs() {
   /*
     const descending = (rows, selector, direction) => {
         return orderBy(rows, selector, ['desc']);
     };
      */
-  let coldefs_first_4 = [
+  let coldefs = [
     // { name: 'level', selector: row => row.level, },
     {
       name: "Version ID",
@@ -182,22 +181,25 @@ function getColdefs(min_col = false) {
       center: true,
       sortable: true,
     },
-  ];
-  let coldefs_last_4 = [
     {
-      // name: 'Recall',
       name: (
-        <Tooltip label="Portion of concepts in the selected concept sets that belong to this set.">
-          <span>Recall</span>
-        </Tooltip>
+          <Tooltip label="Number of concepts in this set overlapping with all the concepts selected.">
+            <span>Common</span>
+          </Tooltip>
       ),
-      selector: (row) => row.recall,
-      format: (row) => pct_fmt(row.recall),
-      desc: true,
+      selector: (row) => row.intersecting_concepts,
       compact: true,
-      width: "70px",
+      width: "66px",
       center: true,
       sortable: true,
+    },
+    {
+      name: 'Vocabularies',
+      selector: (row) => row.vocabs,
+      compact: true,
+      width: "200px",
+      sortable: true,
+      wrap: true,
     },
     {
       name: (
@@ -243,42 +245,7 @@ function getColdefs(min_col = false) {
      */
   ];
 
-  if (!min_col) {
-    let coldefs_extra = [
-      {
-        // name: 'Shared concepts',
-        name: (
-          <Tooltip label="Number of concepts in this set that also belong to the selected concept sets.">
-            <span>Shared</span>
-          </Tooltip>
-        ),
-        selector: (row) => row.intersecting_concepts,
-        compact: true,
-        width: "70px",
-        center: true,
-        sortable: true,
-      },
-      {
-        name: (
-          <Tooltip label="Portion of the concepts in this set shared with the selected concept sets.">
-            <span>Precision</span>
-          </Tooltip>
-        ),
-        selector: (row) => row.precision,
-        format: (row) => pct_fmt(row.precision),
-        desc: true,
-        compact: true,
-        width: "70px",
-        center: true,
-        sortable: true,
-        // sortFunction: descending,
-      },
-    ];
-
-    return [...coldefs_first_4, ...coldefs_extra, ...coldefs_last_4];
-  }
-
-  return [...coldefs_first_4, ...coldefs_last_4];
+  return coldefs;
 }
 
 function getCustomStyles() {

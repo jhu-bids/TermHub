@@ -5,7 +5,7 @@ How to run:
 
 TODO: _save_output() broken now. Need to match updated concept_graph() outputs:
  Tuple[DiGraph, Set[int], Set[int], Dict[str, Set[int]], Set[int]], from:
- return sg, concept_ids, missing_in_betweens_ids, hidden_by_voc, nonstandard_concepts_hidden
+ return sg, concept_ids, hidden_by_voc, nonstandard_concepts_hidden
 
 TODO: for big JSON, save without indent
 todo: Siggie already wrote some code that gets the commit hash, because we show that in TermHub's UI. i can probably
@@ -27,8 +27,15 @@ from networkx import DiGraph
 THIS_DIR = Path(os.path.dirname(__file__))
 PROJECT_ROOT = THIS_DIR.parent.parent.parent
 sys.path.insert(0, str(PROJECT_ROOT))
+
+# todo: https://github.com/jhu-bids/TermHub/issues/784 . Failing as of https://github.com/jhu-bids/TermHub/pull/883 ,
+#  but examining the diff, it's not obvious why. Pickle didn't change. Loading of pickle essentially unchanged. 
+import builtins
+builtins.DONT_LOAD_GRAPH = True
+from backend.routes.graph import concept_graph
 # noinspection PyUnresolvedReferences rel_graph_exists_just_not_if_name_eq_main
-from backend.routes.graph import concept_graph, REL_GRAPH, get_missing_in_between_nodes
+REL_GRAPH = DiGraph()
+
 
 THIS_STATIC_DIR = THIS_DIR / 'static'
 STATIC_DIR_concept_graph = THIS_STATIC_DIR / 'concept_graph'
@@ -157,10 +164,10 @@ class TestGraph(AsyncTests):
                 else:
                     expected[k] = set(v)
             # Actual
-            nodes_in_graph, missing_in_between_nodes, preferred_concept_ids, orphans_not_in_graph, hidden = \
+            nodes_in_graph, preferred_concept_ids, orphans_not_in_graph, hidden = \
                 await concept_graph(codeset_ids, EXTRA_CONCEPT_IDS, HIDE_VOCABS)
             # TODO: AttributeError: 'DiGraph' object has no attribute 'wholegraph'
-            sg = REL_GRAPH.wholegraph(nodes_in_graph.union(missing_in_between_nodes))
+            sg = REL_GRAPH.wholegraph(nodes_in_graph)
             actual = {
                 'sg.edges': set(sg.edges),
                 'nodes_in_graph': sg.nodes,
@@ -181,10 +188,6 @@ class TestGraph(AsyncTests):
                 self.assertEqual(v, expected[k], msg=f'Results differ for {k} for test {test_name}')
 
     # todo: docstring: write how this differs from test_concept_graph()
-    # todo:
-    #   cardiomyopathies and the graph.py:tst_graph_code tests are working as expected for missing_in_between
-    #     have those two tests as a case for testing missing in between
-    #   for the other's below, we don't know if they are working or telling us anything meaningful
     # noinspection PyUnboundLocalVariable removeNoinspectWhenMoreTestsAndMoveAssertsIntoLoop
     @unittest.skip("https://github.com/jhu-bids/TermHub/issues/811")
     async def test_concept_graph2(self):
@@ -195,27 +198,26 @@ class TestGraph(AsyncTests):
                 continue
             hide_vocabs = hide_vocabs or []
             sg: DiGraph
-            missing_in_betweens: Set[int]
             hidden_by_voc: Dict[str, Set[int]]
             nonstandard_concepts_hidden: Set[int]
-            sg, concept_ids, missing_in_betweens, hidden_by_voc, nonstandard_concepts_hidden = await concept_graph(
+            sg, concept_ids, hidden_by_voc, nonstandard_concepts_hidden = await concept_graph(
                 codeset_ids, hide_vocabs=hide_vocabs, hide_nonstandard_concepts=True, verbose=False)
                 # self.assertEqual(...)
             if test_name == 'single-small':  # TODO: make assertions. although these are actually passing. why?
                 self.assertEquals(len(sg.nodes), 000)
                 self.assertEquals(len(sg.edges), 000)
-                self.assertEquals(len(missing_in_betweens), 000)
                 self.assertEquals(len(nonstandard_concepts_hidden), 000)
                 self.assertEquals(len(hidden_by_voc[hide_vocabs[0]]), 000)
             elif test_name == 'many-small':
                 self.assertEquals(len(sg.nodes), 14)  # TODO: assertion failing. update
                 self.assertEquals(len(sg.edges), 24)
-                self.assertEquals(len(missing_in_betweens), 7)  # TODO: failing now after refactor of get_missing_in_betweens(); is it really 0?
                 self.assertEquals(len(nonstandard_concepts_hidden), 19)
                 self.assertEquals(len(hidden_by_voc[hide_vocabs[0]]), 92)
 
-    # TODO: Upgrade for multiple scenarios: https://github.com/jhu-bids/TermHub/issues/784
+    # todo: Upgrade for multiple scenarios & fix in GH action: https://github.com/jhu-bids/TermHub/issues/784
+    @unittest.skip("Not using tested function anymore.")
     async def test_get_missing_in_between_nodes(self, verbose=False):
+        """Could change this to test for current behavior of getting all descendants"""
         """Test get_missing_in_between_nodes()"""
         # - Test: Gap filling
         #   Source: depth first of https://app.diagrams.net/#G1mIthDUn4T1y1G3BdupdYKPkZVyQZ5XYR
@@ -263,6 +265,7 @@ class TestGraph(AsyncTests):
         graph_nodes = set(list(range(1, 23)))
         # graph_nodes.update(['root', '2p1', '2p2', 'cloud'])
         subgraph_nodes =  graph_nodes - {7, 5, 6, 17}
+        """ comment out because get_missing_in_between_nodes no longer exists
         expected_missing_in_between_nodes = {5, 7, 17}
 
         missing_in_between_nodes = get_missing_in_between_nodes(G, subgraph_nodes)
@@ -270,6 +273,7 @@ class TestGraph(AsyncTests):
         self.assertEquals(missing_in_between_nodes, expected_missing_in_between_nodes)
         if verbose:
             print(f"test_get_missing_in_between_nodes(): passed with case: {missing_in_between_nodes}")
+        """
 
     # TODO: test is failing. fix
     #  - The cause of the err is that subgraph() is a different function now. it used to call connected_subgraph_from_nodes(), which no longer exists.

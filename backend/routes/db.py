@@ -117,7 +117,6 @@ def get_cset_members_items(
     columns: Union[List[str], None] = None,
     column: Union[str, None] = None,
     return_with_keys: bool = True,
-    cids: Union[List[int], None] = None,
 ) -> Union[List[int], List]:
     """Get concept set members items for selected concept sets
         returns:
@@ -129,13 +128,8 @@ def get_cset_members_items(
         raise ValueError('Cannot specify both columns and column')
 
     with (get_db_connection() as con):
-        if codeset_ids:
-            pstr, params = sql_in_safe(codeset_ids)
-            # noinspection PyUnresolvedReferences false_positive
-            where = sql.SQL(f" WHERE codeset_id IN ({pstr})").as_string(con.connection.connection)
-        else:
-            where = ''
-            params = {}
+        where = f" WHERE codeset_id = ANY(:codeset_ids)"
+        params = {'codeset_ids': codeset_ids or []}
 
         if column:
             columns = [column]
@@ -314,11 +308,15 @@ def next_api_call_group_id() -> Optional[int]:
 
 @router.post("/related-cset-concept-counts")
 def get_related_cset_concept_counts(concept_ids: List[int] = None, verbose=True) -> Dict:
-    """Returns dict of codeset_id: count of included concepts"""
+    """Returns dict of codeset_id: count of included concepts
+        2024-11-21: adding counts by vocab
+    """
     query = f"""
-        SELECT DISTINCT codeset_id, concept_id 
-        FROM concept_set_members
+        SELECT codeset_id, vocabulary_id, COUNT(DISTINCT concept_id) cnt
+        FROM cset_members_items
         WHERE concept_id = ANY(:concept_ids)
+          AND csm
+        GROUP BY 1, 2
     """
     with get_db_connection() as con:
         csm = sql_query(con, query, {'concept_ids': concept_ids}, )
@@ -326,9 +324,18 @@ def get_related_cset_concept_counts(concept_ids: List[int] = None, verbose=True)
     counts = {}
     for record in csm:
         codeset_id = record['codeset_id']
-        counts[codeset_id] = counts.get(codeset_id, 0) + 1
+        counts[codeset_id] = counts.get(codeset_id, 0) + record['cnt']
 
-    return counts
+    vcounts = {}
+    for record in csm:
+        codeset_id = int(record['codeset_id'])
+        vcounts[codeset_id] = vcounts.get(codeset_id, {})
+        cnt = counts.get(codeset_id)
+        pct = record['cnt'] / cnt
+        vcounts[codeset_id]['concepts'] = cnt
+        vcounts[codeset_id][record['vocabulary_id']] = pct
+
+    return vcounts
 
 
 @router.get("/get-all-csets")
@@ -404,9 +411,7 @@ def db_refresh_route():
 
 FLAGS = ['includeDescendants', 'includeMapped', 'isExcluded']
 @router.get("/cset-download")
-def cset_download(codeset_id: int, csetEditState: str = None,
-                  atlas_items=True, # atlas_items_only=False,
-                  sort_json: bool = False, include_metadata = False) -> Dict:
+def cset_download(codeset_id: int, atlas_items=True, sort_json: bool = False) -> Dict:
     """Download concept set
         Had deleted this, but it's used for atlas-json download for existing concept sets
     """
@@ -418,24 +423,6 @@ def cset_download(codeset_id: int, csetEditState: str = None,
 
     items = get_concept_set_version_expression_items(codeset_id, return_detail='full', handle_paginated=True)
     items = [i['properties'] for i in items]
-    if csetEditState:
-        edits = json.loads(csetEditState)
-        edits = edits[str(codeset_id)]
-
-        deletes = [i['concept_id'] for i in edits.values() if i['stagedAction'] in ['Remove', 'Update']]
-        items = [i for i in items if i['conceptId'] not in deletes]
-        adds: List[Dict] = [i for i in edits.values() if i['stagedAction'] in ['Add', 'Update']]
-        # items is object api format but the edits from the UI are in dataset format
-        # so, convert the edits to object api format for consistency
-        for item in adds:
-            # set flags to false if they don't appear in item
-            for flag in FLAGS:
-                if flag not in item:
-                    item[flag] = False
-        adds = convert_rows('concept_set_version_item',
-                            'OmopConceptSetVersionItem',
-                            adds)
-        items.extend(adds)
     if sort_json:
         items.sort(key=lambda i: i['conceptId'])
 

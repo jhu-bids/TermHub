@@ -1,29 +1,20 @@
 """Graph related functions and routes"""
 import os, warnings
-# import csv
-# import io
-# import json
+import dateutil.parser as dp
+from datetime import datetime
 from pathlib import Path
 from typing import Any, Iterable, List, Set, Tuple, Union, Dict, Optional
 
 import pickle
 import networkx as nx
-# import pydot
 from fastapi import APIRouter, Query, Request
 from networkx import DiGraph
 from sqlalchemy import Row, RowMapping
 from sqlalchemy.sql import text
 
-# from fastapi.responses import JSONResponse
-# from fastapi.responses import Response
-# from fastapi.encoders import jsonable_encoder
-# from collections import OrderedDict
-# from igraph import Graph
-# from networkx.drawing.nx_pydot import to_pydot, from_pydot
-
 from backend.routes.db import get_cset_members_items
 from backend.db.queries import get_concepts
-from backend.db.utils import get_db_connection, SCHEMA
+from backend.db.utils import check_db_status_var, get_db_connection, SCHEMA
 from backend.api_logger import Api_logger
 from backend.utils import get_timer, commify
 
@@ -40,33 +31,30 @@ router = APIRouter(
 
 @router.get("/concept-graph")
 async def concept_graph_get(
-    request: Request, codeset_ids: List[int] = Query(...), cids: Optional[List[int]] = Query(None),
+    request: Request, codeset_ids: Optional[List[int]] = Query(None), cids: Optional[List[int]] = Query(None),
     hide_vocabs = ['RxNorm Extension'], hide_nonstandard_concepts=False, verbose = VERBOSE,
 ) -> Dict[str, Any]:
     """Return concept graph"""
     cids = cids if cids else []
-    return await concept_graph_post(request, codeset_ids, cids, hide_vocabs,
-                                    hide_nonstandard_concepts, verbose)
+    return await concept_graph_post(request, codeset_ids, cids, hide_vocabs, hide_nonstandard_concepts, verbose)
 
 
-# todo: match return of concept_graph()
 @router.post("/concept-graph")
 async def concept_graph_post(
     request: Request, codeset_ids: List[int], cids: Union[List[int], None] = [],
     hide_vocabs = ['RxNorm Extension'], hide_nonstandard_concepts=False, verbose = VERBOSE,
-) -> List[List[Union[int, Any]]]:
-
+) -> Dict:
+    """Return concept graph via HTTP POST"""
     rpt = Api_logger()
     try:
         await rpt.start_rpt(request, params={'codeset_ids': codeset_ids, 'cids': cids})
 
         hide_vocabs = hide_vocabs if isinstance(hide_vocabs, list) else []
         sg: DiGraph
-        missing_in_betweens: List[Dict[str, Any]]
         hidden_by_voc: Dict[str, Set[int]]
         nonstandard_concepts_hidden: Set[int]
 
-        sg, concept_ids, missing_in_betweens, hidden_dict, nonstandard_concepts_hidden = await concept_graph(
+        sg, concept_ids, hidden_dict, nonstandard_concepts_hidden = await concept_graph(
             codeset_ids, cids, hide_vocabs, hide_nonstandard_concepts, verbose)
         missing_from_graph = set(concept_ids) - set(sg.nodes)
 
@@ -74,7 +62,6 @@ async def concept_graph_post(
         return {
             'edges': list(sg.edges),
             'concept_ids': concept_ids,
-            'filled_gaps': missing_in_betweens,
             'missing_from_graph': missing_from_graph,
             'hidden_by_vocab': hidden_dict,
             'nonstandard_concepts_hidden': nonstandard_concepts_hidden}
@@ -84,7 +71,7 @@ async def concept_graph_post(
 
 
 async def concept_graph(
-    codeset_ids: List[int], cids: Union[List[int], None] = [], hide_vocabs = [],
+    codeset_ids: Union[List[int], None], cids: Union[List[int], None] = [], hide_vocabs = [],
     hide_nonstandard_concepts=False, verbose = VERBOSE, all_descendants = True
  ) -> Tuple[DiGraph, Set[int], Set[int], Dict[str, Set[int]], Set[int]]:
     """Return concept graph
@@ -114,11 +101,9 @@ async def concept_graph(
     # concept_ids.update(cids)  # future
 
     # 2024-10-22. What if we get all descendants, not just missing in between?
-    if all_descendants:
-        more_concept_ids: Set[int] = get_all_descendants(REL_GRAPH, concept_ids)
-    else:
-        # Fill gaps
-        more_concept_ids: Set[int] = get_missing_in_between_nodes(REL_GRAPH, concept_ids)
+    # 2024-11-18. It's been working ok. Now getting rid of all missing-in-between stuff.
+    #               Return to commit fdb472ee1bf14156e87c324f2d7297ea2df3601d to get it back.
+    more_concept_ids: Set[int] = get_all_descendants(REL_GRAPH, concept_ids)
 
     # merge and filter
     more_concepts: List[RowMapping] = get_concepts(more_concept_ids)
@@ -140,22 +125,26 @@ async def concept_graph(
 
     # Return
     verbose and timer('done')
-    return sg, concept_ids, more_concept_ids, hidden_by_voc, nonstandard_concepts_hidden
+    return sg, concept_ids, hidden_by_voc, nonstandard_concepts_hidden
 
 
-def get_all_descendants(G: nx.DiGraph, subgraph_nodes: Union[List[int], Set[int]], verbose=VERBOSE) -> Set:
-    # using this instead of get_missing_in_between_nodes. this way the front end has the entire
-    #   descendant tree for all concepts being looked at
+def get_all_descendants(g: nx.DiGraph, subgraph_nodes: Union[List[int], Set[int]]) -> Set[int]:
+    """Get all descendants of a set of nodes
+
+    Using this instead of get_missing_in_between_nodes. this way the front end has the entire descendant tree for all
+    concepts being looked at.
+    """
     descendants: Set[int] = set()
     for node in subgraph_nodes:
-        if G.has_node(node):
-            descendants.update(G.successors(node))
+        if g.has_node(node):
+            descendants.update(g.successors(node))
     return descendants
 
 
 # TODO: @Siggie: move below to frontend
 # noinspection PyPep8Naming
 def MOVE_TO_FRONT_END():
+    """Move to front end"""
     hidden_by_voc = {}
     hide_if_over = 50
     tree = [] # this used to be indented tree stuff that we're no longer using
@@ -202,85 +191,6 @@ def filter_concepts(
 # print_stack = lambda s: ' | '.join([f"{n} => {str(p)}" for n,p in s])
 # print_stack = lambda s: ' | '.join([f"""{n}{'=>' if p else ''}{','.join(p)}""" for n,p in reversed(s)])
 print_stack = lambda s: ' | '.join([f"{n} => {','.join([str(x) for x in p])}" for n,p in s])
-
-
-# noinspection PyPep8Naming
-def get_missing_in_between_nodes(G: nx.DiGraph, subgraph_nodes: Union[List[int], Set[int]], verbose=VERBOSE) -> Set:
-    # not using this anymore
-    missing_in_between_nodes = set()
-    missing_in_between_nodes_tmp = set()
-    subgraph_nodes = set(subgraph_nodes)
-    # noinspection PyCallingNonCallable
-    leaves = [node for node, degree in G.out_degree() if degree == 0]
-    leaves = set(leaves).intersection(subgraph_nodes)
-    print(f"subgraph: {subgraph_nodes}, leaves: {leaves}")
-    # leaves = sorted([node for node, degree in G.out_degree() if degree == 0])
-    discard = set()   # nodes not in subgraph and with no predecessors in subgraph
-
-    for leaf_node in leaves:
-        descending_from = None
-        stack = [(leaf_node, list(list(G.predecessors(leaf_node))))]
-
-        while stack:
-            current_node, predecessors = stack[-1]
-            # current node is on the top of the stack
-            #   if it has predecessors, the first will be shifted off and pushed to top of the stack
-            if verbose and len(subgraph_nodes) < 1000:
-                print(
-                    f"{str(print_stack(stack)):>59}   " # node => [predecessors] | ... from top to bottom of stack
-                    f"{(descending_from or ''):8} "
-                    f"<{','.join([str(n) for n in missing_in_between_nodes])}> "  # <missing nodes>
-                    f"{{{','.join([str(n) for n in missing_in_between_nodes_tmp])}}} "
-                    f"--{','.join([str(n) for n in discard]) if discard else ''}"  # <missing nodes>
-                )  # {temp missing nodes}
-
-            next_node = predecessors.pop(0) if predecessors else None
-            if next_node:
-                descending_from = None
-                # ignoring visited is messing stuff up visited node is in the graph, i think
-                if next_node not in discard:
-                    # visited.add(next_node)
-
-                    if next_node not in subgraph_nodes:
-                        missing_in_between_nodes_tmp.add(next_node)
-
-                    stack.append((next_node, list(list(G.predecessors(next_node)))))
-            else:
-                # while True:
-                n, preds = stack.pop()
-                # descending_from = n if n in subgraph_nodes else f"[{n}]"
-                descending_from = f"<= {n}"
-                descending_from += '  ' if n in subgraph_nodes else ' x'
-                if preds:
-                    raise RuntimeError("this shouldn't happen")
-
-                if n in subgraph_nodes:
-                    missing_in_between_nodes.update(missing_in_between_nodes_tmp)
-                    subgraph_nodes.update(missing_in_between_nodes_tmp)
-                    missing_in_between_nodes_tmp.clear()
-                    continue
-                    # break
-                else:
-                    missing_in_between_nodes_tmp.discard(n)
-                    discard.add(n)
-    return missing_in_between_nodes
-
-
-def test_get_missing_in_between_nodes(
-    whole_graph_edges=None, non_subgraph_nodes=None, expected_missing_in_between_nodes=None, subgraph_nodes=None,
-    fail=True, verbose=False
-):
-    # add code to load whole REL_GRAPH
-    G = DiGraph(whole_graph_edges)
-    subgraph_nodes = subgraph_nodes or set(G.nodes) - set(non_subgraph_nodes)
-    missing_in_between_nodes = get_missing_in_between_nodes(G, subgraph_nodes, verbose=verbose)
-    if fail:
-        assert missing_in_between_nodes == set(expected_missing_in_between_nodes)
-    else:
-        if missing_in_between_nodes == set(expected_missing_in_between_nodes):
-            print(f"passed with {missing_in_between_nodes}")
-        else:
-            print(f"expected {expected_missing_in_between_nodes}, got {missing_in_between_nodes}")
 
 
 @router.get("/wholegraph")
@@ -392,23 +302,26 @@ def create_rel_graphs(save_to_pickle: bool) -> DiGraph:
     return G # , Gu
 
 
-def load_relationship_graph(save_if_not_exists=True):
+def is_graph_up_to_date(graph_path: str = GRAPH_PATH) -> bool:
+    """Determine if the networkx relationship_graph derived from OMOP vocab is current"""
+    voc_last_updated = dp.parse(check_db_status_var('last_refreshed_vocab_tables'))
+    graph_last_updated = datetime.fromtimestamp(os.path.getmtime(graph_path))
+    if voc_last_updated.tzinfo and not graph_last_updated.tzinfo:  # if one has timezone, both need
+        graph_last_updated = graph_last_updated.replace(tzinfo=voc_last_updated.tzinfo)
+    return graph_last_updated > voc_last_updated
+
+
+# noinspection PyPep8Naming for_G
+def load_relationship_graph(graph_path: str = GRAPH_PATH, update_if_outdated=True, save=True) -> DiGraph:
     """Load relationship graph from disk"""
     timer = get_timer('./load_relationship_graph')
-    timer(f'loading {GRAPH_PATH}')
-    if os.path.isfile(GRAPH_PATH):
-        with open(GRAPH_PATH, 'rb') as pickle_file:
-            # noinspection PyPep8Naming
-            G = pickle.load(pickle_file)
-            # while True:
-            #     try:
-            #         chunk = pickle.load(pickle_file)
-            #         G.add_edges_from(chunk)
-            #     except EOFError:
-            #         break  # End of file reached
+    timer(f'loading {graph_path}')
+    up_to_date = True if not update_if_outdated else is_graph_up_to_date(graph_path)
+    if os.path.isfile(graph_path) and up_to_date:
+        with open(graph_path, 'rb') as pickle_file:
+            G: DiGraph = pickle.load(pickle_file)
     else:
-        # noinspection PyPep8Naming
-        G = create_rel_graphs(save_if_not_exists)
+        G: DiGraph = create_rel_graphs(save)
     timer('done')
     return G
 
@@ -423,20 +336,7 @@ else:
     #   import builtins
     #   builtins.DONT_LOAD_GRAPH = True
     import builtins
-
     if hasattr(builtins, 'DONT_LOAD_GRAPH') and builtins.DONT_LOAD_GRAPH:
         warnings.warn('not loading relationship graph')
     else:
-        REL_GRAPH = load_relationship_graph(save_if_not_exists=True)
-        # REVERSE_GRAPH = REL_GRAPH.reverse()
-
-        # G_ROOTS = set([n for n in REL_GRAPH.nodes if REL_GRAPH.in_degree(n) == 0])
-        # def distance_to_root(G, node):
-        #     n = node
-        #     d = 0
-        #     for p in G.predecessors(node):
-        #         if n in G_ROOTS:
-        #             return d
-        #         d += 1
-        #         n = p
-        #     raise Exception(f"can't find root for {node}")
+        REL_GRAPH = load_relationship_graph()

@@ -3,7 +3,7 @@ import React, {
   useEffect,
   useRef,
   useState,
-  Profiler,
+  useMemo,
 } from 'react';
 import DataTable, {createTheme} from 'react-data-table-component';
 import AddCircle from '@mui/icons-material/AddCircle';
@@ -41,7 +41,6 @@ import {Tooltip} from './Tooltip';
 import {
   cellContents,
   cellStyle,
-  getCodesetEditActionFunc,
   Legend,
   newCsetAtlasWidget,
   textCellForItem,
@@ -301,8 +300,12 @@ export function CsetComparisonPage() {
     infoPanelRef.current,
     (infoPanelRef.current ? infoPanelRef.current.offsetHeight : 0)]);
 
+  const atlasWidget = useMemo(() =>
+      !isEmpty(newCset) && !isEmpty(conceptLookup) &&
+      newCsetAtlasWidget(newCset, conceptLookup), [newCset, conceptLookup]);
+
   if (!gc || isEmpty(graphOptions) || isEmpty(displayedRows) ||
-      isEmpty(selected_csets)) {
+      isEmpty(concepts)) {
     // sometimes selected_csets and some other data disappears when the page is reloaded
     return <p>Downloading...</p>;
   }
@@ -451,22 +454,13 @@ export function CsetComparisonPage() {
     >
       Create new concept set or version
     </Button>,
-
-    /* <FlexibleContainer key="cset-table" title="Table of concept set being edited"
-                       position={panelPosition} countRef={countRef}>
-      <CsetsDataTable show_selected={true}
-                      min_col={false}
-                      clickable={false}
-                      showTitle={false}
-                      selected_csets={selected_csets} />
-    </FlexibleContainer>, */
   ];
 
   let edited_cset;
   if (editingCset) {
     infoPanels.push(
         <FlexibleContainer key="cset" title="New concept set"
-                           startHidden={false}
+                           startHidden={true}
                            hideShowPrefix={true}
                            style={{width: '80%', resize: 'both'}}
                            position={panelPosition}
@@ -485,13 +479,6 @@ export function CsetComparisonPage() {
           />
         </FlexibleContainer>,
     );
-    /* infoPanels.push(
-        <FlexibleContainer key="compare" title={edited_cset.concept_set_name}>
-          <CsetsDataTable {...props} show_selected={true} min_col={false} />
-        </FlexibleContainer>
-    ); */
-
-    const atlasWidget = newCsetAtlasWidget(newCset, conceptLookup);
 
     infoPanels.push(
         <FlexibleContainer key="instructions"
@@ -643,10 +630,6 @@ function StatsAndOptions(props) {
           dense
       />
   );
-}
-
-function precisionRecall(props) {
-  // TODO: write someday -- precision recall of newCset against all? Or each against all? Not sure what the plan was
 }
 
 function nodeToTree(node) { // Not using
@@ -806,8 +789,6 @@ function getColDefs(props) {
     setShowCsetCodesetId,
   } = props;
   const {nested, } = graphOptions;
-
-  const editAction = getCodesetEditActionFunc({csmi, newCset, newCsetDispatch});
 
   let coldefs = [
     {
@@ -1117,7 +1098,6 @@ function getColDefs(props) {
           ...props,
           row,
           cset_col,
-          editAction,
         });
       },
       conditionalCellStyles: [

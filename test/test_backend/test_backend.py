@@ -228,6 +228,8 @@ class TestBackend(unittest.TestCase):
 
     # todo: re-implement? get_related_csets() no longer exists. but we do have a way to see related csets in TermHub,
     #  so how can we test that?
+    #   @joeflack4: actually, we now have something like this again: get_related_cset_concept_counts
+    #               we could rewrite this test for that
     # def test_get_related_csets(self):
     #     """ Test the related csets output of cr_hierarchy defined in backend/routes/app.py.
     #     The related csets output is given by get_related_csets in backend/routes/app.py.

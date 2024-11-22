@@ -1,12 +1,6 @@
-import React, {
-  useState,
-  useRef,
-  useEffect,
-  useCallback, /* useReducer, */
-} from 'react';
-import axios from 'axios';
+import React, { useState, useEffect, } from 'react';
 import { CsetsDataTable } from './CsetsDataTable';
-// import {difference, symmetricDifference} from "./utils";
+import {pct_fmt} from "../utils";
 import ConceptSetCards from './ConceptSetCard';
 import Alert from '@mui/material/Alert';
 import AlertTitle from '@mui/material/AlertTitle';
@@ -17,20 +11,12 @@ import {
   createFilterOptions,
   Chip,
 } from '@mui/material';
-import { matchSorter } from 'match-sorter';
-import Button from '@mui/material/Button';
-// import Chip from '@mui/material/Chip';
-import { every, keyBy, union, uniq, orderBy, difference } from 'lodash';
-import { get, isNumber, isEmpty, flatten, intersection } from 'lodash';
-// import {isEqual, pick, uniqWith, max, omit, uniq, } from 'lodash';
-// import Box from "@mui/material/Box";
-import { Tooltip } from './Tooltip';
+// import { matchSorter } from 'match-sorter';
+import { get, keyBy, orderBy, difference, isNumber, isEmpty, flatten } from 'lodash';
 import Card from '@mui/material/Card';
 import CardContent from '@mui/material/CardContent';
 import Typography from '@mui/material/Typography';
-// import * as po from '../pages/Popover';
 import { DOCS } from './AboutPage';
-import { useDataCache } from '../state/DataCache';
 import { useDataGetter, getResearcherIdsFromCsets } from '../state/DataGetter';
 import {useCids, useCodesetIds} from '../state/AppState';
 
@@ -291,12 +277,18 @@ export function ConceptSetsPage () {
       let _allRelatedCsetsArray = relatedCodesetIds.map(
           codeset_id => {
             let cset = selected_csets[codeset_id] || {...allCsetsObj[codeset_id]};
-            cset['intersecting_concepts'] = relatedCsetConceptCounts[codeset_id];
-            cset['recall'] = cset['intersecting_concepts'] / concept_ids.length;
-            cset['precision'] = cset['intersecting_concepts'] / cset.counts.Members;
-            if (isNaN(cset['recall']) || isNaN(cset['precision'])) {
-              console.warn(`WHY ARE recall or precision NaN?`);
-            }
+            let counts = Object.entries(relatedCsetConceptCounts[codeset_id]);
+            counts = orderBy(counts, d => d[0]);
+            let vocabs = [];
+            counts.forEach(([key, val]) => {
+              if (key === 'concepts') {
+                cset['intersecting_concepts'] = val;
+              } else {
+                val = Number(val).toLocaleString(undefined, {style:'percent', maximumFractionDigits: 2});
+                vocabs.push(`${val}\u00A0${key}`);
+              }
+            });
+            cset['vocabs'] = vocabs.join(', ');
             return cset;
           });
 
@@ -319,8 +311,7 @@ export function ConceptSetsPage () {
 
       let relatedCsets = Object.values(allRelatedCsets).
         filter(cset => !cset.selected);
-      relatedCsets = orderBy(relatedCsets, ['selected', 'precision'],
-        ['desc', 'desc']);
+      relatedCsets = orderBy(relatedCsets, ['selected', 'intersecting_concepts'], ['desc', 'desc']);
       // This is here for making screenshots for paper. TODO:  Might want to make a user control
       // for this.
       // relatedCsets = relatedCsets.filter(d => d.precision < 1 || (d.counts||{}).Members > 10);
@@ -336,7 +327,7 @@ export function ConceptSetsPage () {
     })();
   }, [codeset_ids.join('|')]);
 
-  if (codeset_ids.length && isEmpty(allRelatedCsets)) {
+  if ((codeset_ids.length || cids.length) && isEmpty(allRelatedCsets)) {
     return <p>Downloading...</p>;
   }
 
@@ -345,7 +336,7 @@ export function ConceptSetsPage () {
     concept_ids, researchers, clickable: true, showTitle: true,
   };
 
-  if (!codeset_ids.length) {
+  if (!codeset_ids.length && !cids.length) {
     // console.log("going to CsetSearch no codeset_ids and with props", props);
     return (
       <>

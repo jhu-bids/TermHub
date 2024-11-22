@@ -28,14 +28,14 @@ import ContentCopyIcon from '@mui/icons-material/ContentCopy';
 // import ListItemText from "@mui/material/ListItemText";
 import { cloneDeep } from "lodash";
 import {VERSION, DEPLOYMENT} from "../env";
-import {urlWithSessionStorage, useCodesetIds} from '../state/AppState';
+import {urlWithSessionStorage, useCodesetIds, useCids, } from '../state/AppState';
 // import {client} from "./utils";
 
 const drawerWidth = 240;
 
 let _pages = [
-  { name: "Cset search", href: "/OMOPConceptSets" },
-  { name: "Cset comparison", href: "/cset-comparison" },
+  { name: "Load value sets", href: "/OMOPConceptSets" },
+  { name: "Analyze and author", href: "/cset-comparison" },
   { name: "Add concepts", href: "/add-concepts" },
   // { name: "Graph", href: "/graph" },
   // {name: 'Upload CSV', href: '/upload-csv', noSearch: true, },
@@ -48,10 +48,10 @@ if (DEPLOYMENT === 'local') {
       { name: "Graph", href: "/graph" },
       );
 }
-export function getPages(codeset_ids) {
+export function getPages(codeset_ids, cids) {
   let pages = cloneDeep(_pages);
   // if there are no codesets, disable the comparison page
-  if (!codeset_ids.length) {
+  if (!codeset_ids.length && !cids.length) {
     let page = pages.find((d) => d.href == "/cset-comparison");
     page.disable = true;
     page.tt =
@@ -64,11 +64,12 @@ export function getPages(codeset_ids) {
 /* https://mui.com/material-ui/react-app-bar/ */
 export default function MuiAppBar() {
   const [codeset_ids, ] = useCodesetIds();
+  const [cids, ] = useCids();
   const [copiedUrlSize, setCopiedUrlSize] = useState(undefined);
 
   const location = useLocation();
   const { search } = location;
-  const pages = getPages(codeset_ids);
+  const pages = getPages(codeset_ids, cids);
 
   const [anchorElNav, setAnchorElNav] = React.useState(null);
   const [anchorElUser, setAnchorElUser] = React.useState(null);
