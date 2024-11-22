@@ -180,7 +180,7 @@ class TestObjectsApi(DbRefreshTestWrapper):
 
         # Teardown: single primary key tables
         # TODO: add teardowns for DDL-created tables
-        #  'cset_members_items', 'members_items_summary', 'cset_members_items_plus', 'codeset_counts', 'all_csets'
+        #  'cset_members_items', 'members_items_summary', 'codeset_counts', 'all_csets'
         #   - maybe for now i can do this before this next section. but then I can move it to the end.
         #   - i'd like to ideally keep it with this section and do things dynamically, but i think I should program
         #   it statically first until I become more familiar with these tables
