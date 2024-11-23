@@ -204,91 +204,92 @@ export class GraphContainer {
 
     this.#computeAttributes();
   }
-
+  
   getDisplayedRows(graphOptions, allRows, allRowsById) {
     /*
-      See new description of show/filter issue: https://github.com/jhu-bids/TermHub/issues/547
-      Getting rid of showThoughCollapsed. But not sure how to handle hidden rows.
+    See new description of show/filter issue: https://github.com/jhu-bids/TermHub/issues/547
+    Getting rid of showThoughCollapsed. But not sure how to handle hidden rows.
 
-      if row collapsed, show summary in column of what's beneath it
-      if row expanded but some children are hidden HTE, then show...?
+    if row collapsed, show summary in column of what's beneath it
+    if row expanded but some children are hidden HTE, then show...?
 
+    STC: showThoughCollapsed
+    HTE: hideThoughExpanded
+    SNC: specificPathsCollapsed (N=Nodes/Paths)
+    SNE: specificPathsExpanded (N=Nodes/Paths)
+    
+    Special classes         Action              Default Label
+    concepts                expandAll           false   Concepts
+    TODO: make the expandAll default depend on number of concepts rather than being always false
+    standard                nothing                     Standard concepts
+    classification          nothing                     Classification concepts
+  
+    specificPaths (expanded/collapsed)              n/a
+  
+    addedCids               showThoughCollapsed true    Individually added concept_ids
+    definitionConcepts      showThoughCollapsed false   Definition concepts
+    added                   showThoughCollapsed false   n/a
+    removed                 showThoughCollapsed false   n/a
+  
+    allButFirstOccurrence   hideThoughExpanded  true    All but first occurrence
+    expansionConcepts       hideThoughExpanded  false   Expansion concepts
+    nonStandard             hideThoughExpanded  false   Non-standard
+    zeroRecord              hideThoughExpanded  false   Zero records / patients
 
-      New algorithm
-      Special classes           Action              Default
-        concepts                expandAll           false
-        TODO: make the expandAll default depend on number of concepts rather
-              than being always false
-        standard                nothing
-        classification          nothing
+    Algorithm
+    For each row:
+      showReasons: (todo)
+        - showThoughCollapsed (definitions, added cids, comparison added/removed)
+        - hidden parent/ancestor of showThoughCollapsed
+        - child of specificPathsExpanded
+      hideReasons:
+        - non-root
+        - hideThoughExpanded (expansion only, non-standard, zero pt, all but first)
+        - child of specificPathsCollapsed
+        - duplicate occurrence
 
-        specificPaths (expanded/collapsed)  // rename -- chosenPaths?
+    TODO:
+      [ ] Column shows how many rows hidden below each displayed row
+        With tooltip giving reasons
+        Too complicated to have expand control in that field
+      [ ] If expandAll, default icon is (-), otherwise (+)
+        What happens to SNC/SNE when expandAll changes?
+        Clear them? Have two sets of SNC/SNE and swap?
+        Clear for now, then implement swap maybe
+    TODO: decide how to handle showThoughCollapsed
+      1.  Like before -- show path below nearest displayed ancestor
+      2.  Actually expand down to STC row and have some way to indicate
+          that siblings of the in-between nodes are not being displayed
+      3.  Give users a way to see these separately and then expand
+          manually to find the row of interest.
+      *   - Example: Parent > [2 hidden levels] > Current Node
 
-        addedCids               showThoughCollapsed true
-        definitionConcepts      showThoughCollapsed false
-        added                   showThoughCollapsed false
-        removed                 showThoughCollapsed false
+    Cases to think about (test?)
+      Shown (definition) concept is descendant of hidden (nonStandard, zeroRecord) concept
+        (-) Hidden concept    {hideReasons: [HTE(zero)],  showReasons: [parentOfSTC], result: show}
+          (-) Def concept     {hideReasons: [childOfHTE], showReasons: [STC(def)],    result: show}
+            (-) Another       {hideReasons: [],           showReasons: [childOfSTC],  result: show}
+          (+) Def concept     {hideReasons: [childOfHTE], showReasons: [STC(def)],    result: show}
+            (-) Another       {hideReasons: [childOfSNC], showReasons: [],            result: hide}
 
-        allButFirstOccurrence   hideThoughExpanded  true
-        nonDefinitionConcepts   hideThoughExpanded  false
-        nonStandard             hideThoughExpanded  false
-        zeroRecord              hideThoughExpanded  false
+      Shown (definition) concept is descendant of hidden specificPathsCollapsed concept
+        Ideally might depend on order of events, but too hard to code?
+          If you collapse a parent of a STC node, expect the STC node to get hidden?
+          If you turn show def concepts on while some are hidden undeer SNC, expect them to appear?
+          Ok, keep hidden, but implement idea
+        (+) Concept           {hideReasons: [],           showReasons: [root],        result: show}
+          (-) Def concept     {hideReasons: [childOfSNC], showReasons: [STC(def)],    result: hide}
+            (-) Another       {hideReasons: [descOfSNC],  showReasons: [childOfSTC],  result: hide}
 
-      TODO: decide how to handle showThoughCollapsed
-        1.  Like before -- show path below nearest displayed ancestor
-        2.  Actually expand down to STC row and have some way to indicate
-            that siblings of the in-between nodes are not being displayed
-        3.  Give users a way to see these separately and then expand
-            manually to find the row of interest.
+      Shown (definition) concept is also hidden (zeroRecord) concept
+        (-) Def zero concept  {hideReasons: [HTE(zero)],  showReasons: [STC(def)],    result: show}
+        STC takes precedence over HTE
 
-        *   - Example: Parent > [2 hidden levels] > Current Node
+      Hidden (zeroRecord) concept is root
+        Hide anyway
 
-      For each row:
-        showReasons:
-          - showThoughCollapsed (definitions, added cids, comparison added/removed)
-          - hidden parent/ancestor of showThoughCollapsed
-          - child of specificPathsExpanded
-        hideReasons:
-          - non-root
-          - hideThoughExpanded (expansion only, non-standard, zero pt, all but first)
-          - child of specificPathsCollapsed
-          - duplicate occurrence
-
-      TODO:
-        [ ] Column shows how many rows hidden below each displayed row
-          With tooltip giving reasons
-          Too complicated to have expand control in that field
-        [ ] If expandAll, default icon is (-), otherwise (+)
-          What happens to SNC/SNE when expandAll changes?
-          Clear them? Have two sets of SNC/SNE and swap?
-          Clear for now, then implement swap maybe
-
-      Cases to think about (test?)
-        Shown (definition) concept is descendant of hidden (nonStandard, zeroRecord) concept
-          (-) Hidden concept    {hideReasons: [HTE(zero)],  showReasons: [parentOfSTC], result: show}
-            (-) Def concept     {hideReasons: [childOfHTE], showReasons: [STC(def)],    result: show}
-              (-) Another       {hideReasons: [],           showReasons: [childOfSTC],  result: show}
-            (+) Def concept     {hideReasons: [childOfHTE], showReasons: [STC(def)],    result: show}
-              (-) Another       {hideReasons: [childOfSNC], showReasons: [],            result: hide}
-
-        Shown (definition) concept is descendant of hidden specificPathsCollapsed concept
-          Ideally might depend on order of events, but too hard to code?
-            If you collapse a parent of a STC node, expect the STC node to get hidden?
-            If you turn show def concepts on while some are hidden undeer SNC, expect them to appear?
-            Ok, keep hidden, but implement idea
-          (+) Concept           {hideReasons: [],           showReasons: [root],        result: show}
-            (-) Def concept     {hideReasons: [childOfSNC], showReasons: [STC(def)],    result: hide}
-              (-) Another       {hideReasons: [descOfSNC],  showReasons: [childOfSTC],  result: hide}
-
-        Shown (definition) concept is also hidden (zeroRecord) concept
-          (-) Def zero concept  {hideReasons: [HTE(zero)],  showReasons: [STC(def)],    result: show}
-          STC takes precedence over HTE
-
-        Hidden (zeroRecord) concept is root
-          Hide anyway
-
-        specificNodeCollapsed while expandAll is on
-          Hide descendants
+      specificNodeCollapsed while expandAll is on
+        Hide descendants
 
       1. [ ] Generate allRows: list of all rows, in order, with duplicates
       2. [ ] If allButFirstOccurrence hidden, hide allButFirstOccurrence
@@ -298,7 +299,7 @@ export class GraphContainer {
             could that happen?
             having a hard time constructing the case (below). maybe just don't
               worry about it for now?
-
+    
           (-) Concept 1         {hideReasons: [HTE(zero)],  showReasons: [parentOfSTC], result: show}
             (-) Concept 2       {hideReasons: [childOfHTE], showReasons: [STC(def)],    result: show}
             (-) Concept 3       {hideReasons: [childOfHTE], showReasons: [STC(def)],    result: show}
@@ -306,7 +307,7 @@ export class GraphContainer {
           (-) Concept 4         {hideReasons: [],           showReasons: [childOfSNE],  result: show}
             (-) Concept 2       {hideReasons: [childOfHTE], showReasons: [STC(def)],    result: show}
             (-) Concept 3       {hideReasons: [childOfHTE], showReasons: [STC(def)],    result: show}
-
+    
       3. If expandAll, hide all HTE
       4. If not expandAll, hide everything that's
           a. not a root -- hides everything depth > 0;
@@ -315,15 +316,14 @@ export class GraphContainer {
              nearest not collapsed
           b. Child of SNE (specificPathsExpanded)
       6. Hide remaining HTE (hideThoughExpanded)
-     */
-
-    // 1. Generate allRows
+    */
+    // Generate allRows
     // let {allRows, allRowsById} = this.setupAllRows(this.roots);
 
     if (graphOptions.expandAll) {
-      // 3....  no need to expand STC, because nothing collapsed except SNC
+      // ....  no need to expand STC, because nothing collapsed except SNC
     } else {
-      // 4. Hide non-root rows; just hide depth > 0;
+      // Hide non-root rows (depth > 0)
       for (let row of allRows) {
         if (row.depth > 0) {
           row.display.hideReasons.nonRoot = true;
@@ -332,11 +332,12 @@ export class GraphContainer {
       }
     }
 
-    // Expand and collapse children based on user having clicked +/- on row
+    // specificPaths: Expand and collapse children based on user having clicked +/- on row
     allRows.forEach((row, rowIdx) => {
       if (row.display.result === 'hide') return;
-      if (graphOptions.specificPaths[row.rowPath]) {
-        this.rowDisplay(rowIdx, graphOptions.specificPaths[row.rowPath], 'specific', allRows)
+      let expandState = graphOptions.specificPaths[row.rowPath];
+      if (expandState) {
+        this.rowDisplay(rowIdx, expandState, 'specific', allRows);
       }
     });
 
@@ -379,6 +380,7 @@ export class GraphContainer {
     return displayedRows;
     // return this.getDisplayedRowsOLD(graphOptions);
   }
+  
   rowDisplay(rowIdx, showHide, reason, allRows) {
     // this.rowDisplay(row, graphOptions.specificPaths[row.rowPath], 'specific')
     // this.rowDisplay(rowToHide, graphOptions.specificPaths[rowToHide.rowPath], type)
@@ -412,6 +414,7 @@ export class GraphContainer {
       }
     }
   }
+  
   getDescendantRows(parentRowIdx, allRows, howDeep=Infinity) {
     // sort of a fragile way to do it, but will get all rows deeper
     //  than current row until the next row of the same depth
@@ -429,30 +432,36 @@ export class GraphContainer {
     }
     return rows;
   }
+  
+  /* setupAllRows
+  * Nomenclature: Rows, nodes, &concepts are all the same thing; just using term that fits purpose at the moment. */
   setupAllRows(rootNodes) {
     let allRows = [];
     let allRowsById = new StringKeyMap(); // start by getting lists of rowIdx by concept_id
-    // rows and nodes and concepts are all the same thing, I just use the term
-    //  that fits the purpose at the moment
     const addRows = (nodeIds, parentPath = '', depth = 0) => {
       let nodes = nodeIds.map(id => this.nodes[id]);
       nodes = sortBy(nodes, this.sortFunc);
       for (let node of nodes) {
-        let nodeId = node.concept_id;
-        let row = {...node, depth, rowPath: `${parentPath}/${nodeId}` };
+        // Create `row`: `node` props, plus `depth`, `rowPath`, `display`, index
+        let row = {...node, depth, rowPath: `${parentPath}/${node.concept_id}` };
         row.display = {
           hideReasons: {},
           showReasons: {},
           result: '',
         }
         row.allRowsIdx = allRows.length;
+        
+        // Add row
+        // - to rows array
         allRows.push(row);
+        // - too lookup
         if (allRowsById.has(row.concept_id)) {
           allRowsById.get(row.concept_id).push(row);
         } else {
           allRowsById.set(row.concept_id, [row]);
         }
-
+        
+        // If children/descendants, add rows for them, too
         if (node.childIds && node.childIds.length) {
           addRows(node.childIds, row.rowPath, depth + 1);
         }
@@ -534,7 +543,31 @@ export class GraphContainer {
   graphCopy() {
     return this.graph.copy();
   }
-
+  
+  /* `setGraphDisplayConfig()`:  These are all options that appear in Show Stats/Options
+  *
+  *  Returns:
+  *   graphOptions: Object
+  *
+  *  Side effects:
+  *   Sets: this.graphDisplayConfig (Object)
+  *   Sets: this.graphDisplayConfigList (Array)
+  *   Sets: graphOptions.specialConceptTreatment[type]
+  *
+  *  displayOptions logic
+  *  See code for hidden-rows column in CsetComparisonPage StatsAndOptions table.
+  *
+  *  If specialTreatmentRule is 'show though collapsed', then what we care
+  *  about are how many currently hidden rows will be shown if option is
+  *  turned on and how many currently shown rows will be hidden if option
+  *  is turned off.
+  *
+  *  If specialTreatmentRule is 'hide though expanded', then what we care
+  *  about are how many currently visible rows will be hidden if option is
+  *  turned on and how many currently hidden rows will be unhidden if option
+  *  is turned off.
+  *
+  * */
   setGraphDisplayConfig(graphOptions, allRows, displayedRows) {
     // these are all options that appear in Show Stats/Options
 
@@ -544,8 +577,6 @@ export class GraphContainer {
       graphOptions.expandAll = allRows.length <= EXPAND_ALL_DEFAULT_THRESHOLD;
     }
     let displayOptions = {
-      /* displayOptions logic
-       */
       concepts: {
         name: "All", displayOrder: displayOrder++,
         total: this.gd.concept_ids.length,
@@ -623,8 +654,7 @@ export class GraphContainer {
             : 0,
         /* special_v_displayed: () => {
           let special = this.gd.specialConcepts.allButFirstOccurrence.map(p => p.join('/'));
-          let displayed = flatten(Object.values(this.displayedNodePaths)
-                                      .map(paths => paths.map(path => path.join('/'))))
+          let displayed = flatten(Object.values(this.displayedNodePaths).map(paths => paths.map(path => path.join('/'))))
           return [special, displayed];
         }, */
       },
