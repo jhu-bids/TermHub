@@ -11,7 +11,11 @@ We do have some end-to-end test workflows. Can run them locally via `make test-f
 you can see alternative commands (e.g. debugging). There is also a GitHub action for this.
 
 ## Database
-### Refreshing database contents from sources
+### Refresh: Concept set tables (`code_sets`, `concept_set_container`, `concept_set_version_item` `concept_set_members`)
+There are several database refreshes, which synchronize TermHub with its data source, the N3C data enclave. The most 
+important of these is for the concept set tables. After these tables are synchronized, any dependent tables or views 
+are also regenerated.
+
 A refresh is done nightly via [GitHub action](https://github.com/jhu-bids/TermHub/actions/workflows/db_refresh.yml), 
 but this can also be run manually, either by (a) using the [GitHub action](https://github.com/jhu-bids/TermHub/actions/workflows/db_refresh.yml), or (b) running the Python script 
 manually via `python backend/db/full_data_refresh.py`, which supports the following CLI parameters.
@@ -25,6 +29,42 @@ manually via `python backend/db/full_data_refresh.py`, which supports the follow
 | `-f` / `--force-download-if-exists`    | True    | If the dataset/object already exists as a local file, force a re-download. This is moot if the last update was done within --hours-threshold-for-updates.                                                                                    |
 | `-l` / `--use-local-db`                | False   | Use local database instead of server.                                                                                                                                                                                                        |
 
+### Refresh: Counts tables
+Patient and record counts are updated in the N3C data enclave routinely, typically every few weeks or months. There is 
+a [GitHub action](https://github.com/shadow-bids/TermHub/actions/workflows/refresh_counts.yml) that checks nightly for 
+any changes and updates if so. It runs on the `shadow-bids` repo (more info about that is in the "deployment" section).
+
+This refresh updates the `concept_set_counts_clamped` and `deidentified_term_usage_by_domain_clamped` tables, as well 
+as their derived tables and views.
+
+This can also be run manually via `make refresh-counts`, or `python backend/db/refresh_dataset_group_tables.py 
+--dataset-group counts`.
+
+### Refresh: Vocabulary tables
+OMOP vocabulary tables are updated typically every 6 months. There is 
+a [GitHub action](https://github.com/shadow-bids/TermHub/actions/workflows/refresh_voc.yml) that checks nightly for 
+any changes and updates if so. It runs on the `shadow-bids` repo (more info about that is in the "deployment" section). 
+**However**, as of November 2024, this action no longer works, as it takes longer than the maximum allowable time for 
+GitHub actions, which is 6 hours. So it must be run manually.
+
+This refresh updates the `concept`, `concept_ancestor`, `concept_relationship`, `relationship` tables, as well 
+as their derived tables and views.
+
+Additionally, whenever this refresh occurs, the `networkx` graph `term-vocab/relationship_graph.pickle` needs updating. 
+Presently this does not happen as part of the refresh runs, but afterward. The next time that the app starts, if it 
+sees that the pickle is out of date, it will regenerate it. This takes about 5 minutes.
+
+This can also be run manually via `make refresh-vocab`, or `python backend/db/refresh_dataset_group_tables.py 
+--dataset-group vocab`.
+
+### Standard Operating Procedure (SOP) for vocabulary refresh
+Every 6 months or so, whenever the vocab tables are updated:
+1. Run the vocab refresh locally.
+2. Go to https://portal.azure.com/ and restart the TermHub server(s).
+3. After 15 minutes or so, face check the app in the browser to make sure it's working.
+4. It's also a good idea to run the frontend [Playwright E2E tests](https://github.com/jhu-bids/termhub/actions), 
+though these do run nightly.
+
 ### Allowing remote access
 To allow a new user to access the database remotely, their IP address must be added to Azure: (i) select 
 [DB resource](https://portal.azure.com/#@live.johnshopkins.edu/resource/subscriptions/fe24df19-d251-4821-9a6f-f037c93d7e47/resourceGroups/JH-POSTGRES-RG/providers/Microsoft.DBforPostgreSQL/flexibleServers/termhub/overview), (ii) [select 'Networking'](https://portal.azure.com/#@live.johnshopkins.edu/resource/subscriptions/fe24df19-d251-4821-9a6f-f037c93d7e47/resourceGroups/JH-POSTGRES-RG/providers/Microsoft.DBforPostgreSQL/flexibleServers/termhub/networking), (iii) add IP address.
@@ -32,7 +72,8 @@ To allow a new user to access the database remotely, their IP address must be ad
 ### Creating backups
 **Prerequisites**
 You should have an environmental variable called `psql_conn`, set as follows:
-`psql_conn="host=$TERMHUB_DB_HOST port=$TERMHUB_DB_PORT dbname=$TERMHUB_DB_DB user=$TERMHUB_DB_USER password=$TERMHUB_DB_PASS sslmode=require"`
+`psql_conn="host=$TERMHUB_DB_HOST port=$TERMHUB_DB_PORT dbname=$TERMHUB_DB_DB user=$TERMHUB_DB_USER 
+password=$TERMHUB_DB_PASS sslmode=require"`
 
 If you run `./db_backup.sh`, it will generate commands that you can directly copy/paste into the terminal to (i) 
 create the backup, and (ii) restore it.
