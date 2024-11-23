@@ -144,8 +144,7 @@ for (const envName in configsToRun) {
       testInfo.attach('report', {body: JSON.stringify(report), contentType: 'application/json'});
 
       // page.setDefaultTimeout(120000); // already did this, but maybe it needs doing again? or not?
-
-      const compPageLink = await page.waitForSelector('[data-testid="Cset comparison"]');
+      const compPageLink = await page.waitForSelector('[data-testid="Analyze and author"]');
       await compPageLink.click();
       console.log('going to comparison page');
       await expect(page.locator('[data-testid=comp-page-loading]')).toBeAttached({timeout: timeoutSeconds * 1000});

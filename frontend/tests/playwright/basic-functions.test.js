@@ -86,7 +86,7 @@ for (const envName in selectedConfigs) {
     await firstRow.click();
 
     // Compare
-    await page.getByRole('link', { name: 'Cset comparison' }).click();
+    await page.getByRole('link', { name: 'Analyze and author' }).click();
     // await expect(page).toHaveURL(`${appUrl}/cset-comparison?${codeset_ids.map(d => 'codeset_ids='+d).join('&')}`);
     // that broke because there's other stuff in query string
 
