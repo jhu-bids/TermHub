@@ -8,6 +8,13 @@ not marked as excluded. _Filtered expansion set_ means after filtering out certa
 **Final/display hierarchy/graph**: The hierarchy / subgraph that object that wil be displayed in the browser.
 This will include all concepts in selected codesets, all added concepts (called `cids` in the code) from the 
 Add Concepts tab, and all descendants of these.
+I think this is the set of all of the nodes we ultimately want to display, with the exception of _missing in-betweens_,
+which we will find and add later.
+
+**Missing in-betweens**: (i) Concepts that were not included in the original expansion at the time of the OMOP
+vocabulary version when the cset definition was created, but do show up in expansions in subsequent versions. (ii) When
+creating a single graph for more than 1 concept set, these are concepts that would exist in between any connecting paths
+between these concept sets.
 
 **Final/display node set**: All of the nodes in _final/display hierarchy/graph_.
 
@@ -23,8 +30,11 @@ could also be (c) 'b', plus any missing in-betweens we'd find later.
 
 ### Requirements
 1. **Create hierarchy**: Display hierarchical list of all concepts of interest  
-  - **Concepts of interest**: in codesets of interest, possibly others found by search or vocab nav (@Sigfried 1/24 can you 
-eleborate on that?).
+  - **Concepts of interest**: in codesets of interest, possibly others found by search or vocab nav.
+    - Display hierarchical list of all concepts of interest (i.e., in codesets of interest and possibly others found by search or vocab nav) 
+     a. **Gap filling**: Fill in gaps where included concepts are descendants of others but in-between nodes are not included. That is,
+      if we have unconnected graph, separate components, we would like to find if there are nodes in the graph that would connect
+      them. But now (unlike previous versions), we don't want to find ancestors of root nodes to connect stuff.
   - **Filter vocabs**: Filter out concepts from certain vocabs, e.g. RxNorm extension
   - **Show only n concepts**: Limit number of concepts displayed to help w/ performance
   - **Add missing in-betweens**
@@ -69,13 +79,6 @@ Input params:
 #### Algorithm considrations
 - Should "Hiding concepts by filtered vocab" come towards the beginning, or towards the end?
 
-
-#### Gap filling 
-**Description**
-Fill in gaps where included concepts are descendants of others but in-between nodes are not included. That is, if we 
-have unconnected graph, separate components, we would like to find if there are nodes in the graph that would connect 
-them. But now (unlike previous versions), we don't want to find ancestors of root nodes to connect stuff.
-
 ![screenshot](screen-shots/gap-filling-algorithm.png)
 Live diagram: https://app.diagrams.net/#G1mIthDUn4T1y1G3BdupdYKPkZVyQZ5XYR
 
@@ -85,6 +88,15 @@ Live diagram: https://app.diagrams.net/#G1mIthDUn4T1y1G3BdupdYKPkZVyQZ5XYR
 > [!WARNING]  
 > TODO: The part in 'Outdated' below is incorrect and out of date, and either (a) needs to be updated to reflect the current code, or (b) discarded completely. Originally Joe had created an algorithm to do things differently, where we identify the leaf nodes and then construct a hierarchy all in one go, including the missing in-betweens. But what we went with instead is (i) create a partially disconnected graph consisting of only the nodes in the expansion, (ii) gap fill.
 
+#### Gap filling 
+**Description**
+Fill in gaps where included concepts are descendants of others but in-between nodes are not included. That is, if we 
+have unconnected graph, separate components, we would like to find if there are nodes in the graph that would connect 
+them. But now (unlike previous versions), we don't want to find ancestors of root nodes to connect stuff. 
+
+#### Construct hierarchy 
+**Considerations**
+- Where I have `Set[Node]` or `List[Node]`, perhaps the `int` `concept_id`/`Node.id` is just as well or better. Not sure.
 
 **Input params**
 - `leaf_nodes: Set[Node] `: IDK if this is as simple as using a pre-existing `networkx` or if it requires more coding on
