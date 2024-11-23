@@ -224,7 +224,7 @@ export class GraphContainer {
     standard                nothing                     Standard concepts
     classification          nothing                     Classification concepts
   
-    expandStateByPath (expanded/collapsed)              n/a
+    specificPaths (expanded/collapsed)              n/a
   
     addedCids               showThoughCollapsed true    Individually added concept_ids
     definitionConcepts      showThoughCollapsed false   Definition concepts
@@ -332,10 +332,10 @@ export class GraphContainer {
       }
     }
 
-    // expandStateByPath: Expand and collapse children based on user having clicked +/- on row
+    // specificPaths: Expand and collapse children based on user having clicked +/- on row
     allRows.forEach((row, rowIdx) => {
       if (row.display.result === 'hide') return;
-      let expandState = graphOptions.expandStateByPath[row.rowPath];
+      let expandState = graphOptions.specificPaths[row.rowPath];
       if (expandState) {
         this.rowDisplay(rowIdx, expandState, 'specific', allRows);
       }
@@ -350,7 +350,7 @@ export class GraphContainer {
           const rowsToHide = allRowsById.get(id) || [];
           for (const rowToHide of rowsToHide) {
             const rowToHideIdx = rowToHide.allRowsIdx;
-            this.rowDisplay(rowToHideIdx, graphOptions.expandStateByPath[rowToHide.rowPath], type, allRows)
+            this.rowDisplay(rowToHideIdx, graphOptions.specificPaths[rowToHide.rowPath], type, allRows)
           }
         })
       }
@@ -382,8 +382,8 @@ export class GraphContainer {
   }
   
   rowDisplay(rowIdx, showHide, reason, allRows) {
-    // this.rowDisplay(row, graphOptions.expandStateByPath[row.rowPath], 'specific')
-    // this.rowDisplay(rowToHide, graphOptions.expandStateByPath[rowToHide.rowPath], type)
+    // this.rowDisplay(row, graphOptions.specificPaths[row.rowPath], 'specific')
+    // this.rowDisplay(rowToHide, graphOptions.specificPaths[rowToHide.rowPath], type)
     // TODO: don't hide if it has children that should be shown
     if (reason === 'specific') {
       if (showHide === ExpandState.EXPAND) {
