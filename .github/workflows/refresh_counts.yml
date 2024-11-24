@@ -7,8 +7,8 @@ on:
   workflow_dispatch:
 jobs:
   refresh-counts-tables:
-    runs-on: BIDS-Premium-Action-Runners
-#    runs-on: ubuntu-latest
+#    runs-on: BIDS-Premium-Action-Runners
+    runs-on: ubuntu-latest
     # fail-fast: At least shows "Error: Process completed with exit code 143." instead of "exit code 1", for slightly more information about unexpected exits: https://docs.github.com/en/actions/using-jobs/using-a-matrix-for-your-jobs#handling-failures
     strategy:
       fail-fast: false
