@@ -250,6 +250,10 @@ basically modify step (8). Instead of `git checkout -b BRANCH; git push -u origi
 
 ### Troubleshooting
 #### _Logs_
+**Special case: Failed deployments**: Below are steps to find general logs. In order to find the azure log for failed 
+deployments, [go here](https://portal.azure.com/#@live.johnshopkins.edu/resource/subscriptions/fe24df19-d251-4821-9a6f-f037c93d7e47/resourceGroups/jh-termhub-webapp-rg/providers/Microsoft.Web/sites/termhub/slots/dev/vstscd) 
+, select "Logs" and then select the one that failed.
+
 Logs for the backend can be opened via the following steps.
 Option A: Log stream
 Advantages of log stream vs granular: (i) easier to get to, (ii) combines multiple logs into 1. Disadvantages: (i) when
@@ -301,6 +305,10 @@ find this by opening the "App Service" ([example: develop](https://portal.azure.
 ). If it looks like it's maxed and/or of the logs say something about no memory, try increasing the memory to see if
 that solves. If the memory must be increased, let a BIDS administrator (e.g. Tricia) know.
 
+### Changing app config
+Example use case: Changing Python version.
+Steps: Stop app service, change config, start the service, and run the GH action to re-deploy.
+
 ## Versioning
 ### Semantic versioning
 TermHub uses [semver (semantic versioning)](https://semver.org/). That is, Given a version number `MAJOR.MINOR.PATCH`,
@@ -331,7 +339,11 @@ new contents. _In order to deploy these changes, follow the instructions in "Dep
 deployments"._
 
 #### Updating auth token, if necessary
-Necessary if not using OAuth, which we are not using as of 2024/09/07.
+Not necessary if using OAuth, but we were not able to [finish setting that up](
+https://github.com/jhu-bids/TermHub/issues/863).
 
 The environmental variable `PALANTIR_ENCLAVE_AUTHENTICATION_BEARER_TOKEN` needs to be updated every 6 months. To do so,
 contact Mariam Deacy, or another member of the enclave's IT team.
+After doing so, set a reminder on your calendar before the expiry date.
+
+Note that when close to expiring, messages will start to appear in the logs about that.
