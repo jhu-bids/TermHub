@@ -281,7 +281,9 @@ add_mappings(
        includeMapped,                includeMapped
        isExcluded,                   isExcluded
        createdBy,                    created_by
-       createdAt,                    created_at""")
+       createdAt,                    created_at
+       annotation,                   annotation
+       sourceApplication,            source_application""")
 
 # OMOPConceptSet (Version): object <-> dataset
 add_mappings(

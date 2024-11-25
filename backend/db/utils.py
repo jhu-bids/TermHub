@@ -216,7 +216,7 @@ def refresh_derived_tables_exec(
 #  refreshes on normal schema and test_schema don't block each other. Only a minor issue. Will sometimes cause tests
 #  to take a very long time to run, especially during the wee hours when vocab/counts refreshes are running.
 def refresh_derived_tables(
-    con: Connection, independent_tables: List[str] = CORE_CSET_TABLES, schema=SCHEMA, local=False,
+    con: Connection, independent_tables: Union[str, List[str]] = CORE_CSET_TABLES, schema=SCHEMA, local=False,
     polling_interval_seconds: int = 30
 ):
     """Refresh TermHub core cset derived tables: wrapper function
@@ -228,6 +228,7 @@ def refresh_derived_tables(
     """
     i = 0
     t0 = datetime.now()
+    independent_tables: List[str] = [independent_tables] if isinstance(independent_tables, str) else independent_tables
     while True:
         i += 1
         if (datetime.now() - t0).total_seconds() >= 2 * 60 * 60:  # 2 hours
@@ -568,12 +569,20 @@ def sql_query_single_col(*argv) -> List:
     return [r[0] for r in results]
 
 
+# todo: consider adding 'schema' param
 def delete_obj_by_composite_key(con, table: str, key_ids: Dict[str, Union[str, int]]):
-    """Get object by ID"""
+    """Delete object by ID"""
     keys_str = ' AND '.join([f'{key} = (:{key})' for key in key_ids.keys()])
     return run_sql(
         con, f'DELETE FROM {table} WHERE {keys_str}',
         {f'{key}': _id for key, _id in key_ids.items()})
+
+
+# todo: consider adding 'schema' param
+def delete_obj_by_pk(con, table: str, pk_field: str, pk: Union[str, int]):
+    """Delete object by primary key"""
+    return run_sql(
+        con, f'DELETE FROM {table} WHERE {pk_field} = :{pk_field}',{pk_field: pk})
 
 
 def get_obj_by_composite_key(con, table: str, keys: List[str], obj: Dict) -> List[RowMapping]:

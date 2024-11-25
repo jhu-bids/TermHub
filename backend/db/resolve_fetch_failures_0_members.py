@@ -20,8 +20,8 @@ from backend.utils import call_github_action
 from backend.db.resolve_fetch_failures_excess_items import resolve_fetch_failures_excess_items
 from backend.db.utils import SCHEMA, fetch_status_set_success, get_db_connection, reset_temp_refresh_tables,\
     run_sql, select_failed_fetches, refresh_derived_tables, sql_in, sql_query
-from enclave_wrangler.objects_api import  csets_and_members_to_db, fetch_cset_and_member_objects, fetch_cset_version, \
-    get_csets_over_threshold, update_cset_metadata_from_objs
+from enclave_wrangler.objects_api import csets_and_members_to_db, fetch_cset_and_member_objects, fetch_cset_version, \
+    get_csets_over_threshold, sync_expressions_for_csets, update_cset_metadata_from_objs
 
 DESC = "Resolve any failures resulting from fetching data from the Enclave's objects API."
 
@@ -225,14 +225,18 @@ def resolve_fetch_failures_0_members(
         # Check for new failures: that may have occurred during runtime
         failed_cset_ids, failure_lookup_i = get_failures_0_members(version_ids, use_local_db, force)
         failure_lookup.update(failure_lookup_i)
+
         # Fetch data
         csets_and_members: Dict[str, List[Dict]] = fetch_cset_and_member_objects(
             codeset_ids=list(failed_cset_ids), flag_issues=False)
 
-        # - identify & report discarded drafts
+        # Sync updates
         with get_db_connection(schema=schema, local=use_local_db) as con:
+            # - identify & report discarded drafts
             discarded_cset_ids = handle_discarded_drafts(
                 con, csets_and_members, failed_cset_ids, failure_lookup, use_local_db=use_local_db)
+            # - sync expression item additions or deletions (todo: updates too)
+            sync_expressions_for_csets(csets_and_members['OMOPConceptSet'], con, schema)
 
         if not csets_and_members:
             return  # all failures were discarded
