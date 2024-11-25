@@ -64,15 +64,14 @@ import {isEqual} from '@react-sigma/core';
 // TODO: Color table: I guess would need to see if could pass extra values/props and see if table widget can use that
 //  ...for coloration, since we want certain rows grouped together
 export async function fetchGraphData(props) {
-  let {dataGetter, codeset_ids, cids, newCset = {}} = props;
+  let {dataGetter, codeset_ids=[], cids=[], newCset = {}} = props;
   let promises = [ // these can run immediately
     dataGetter.fetchAndCacheItems(dataGetter.apiCalls.cset_members_items, codeset_ids),
     dataGetter.fetchAndCacheItems(dataGetter.apiCalls.csets, codeset_ids),
   ];
   // have to get concept_ids before fetching concepts
   const graphData = await dataGetter.fetchAndCacheItems(
-      dataGetter.apiCalls.concept_graph_new,
-      {codeset_ids: codeset_ids || [], cids: cids || []});
+      dataGetter.apiCalls.concept_graph_new, {codeset_ids, cids});
   let {concept_ids} = graphData;
 
   if (!isEmpty(newCset)) {

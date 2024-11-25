@@ -206,7 +206,7 @@ function makeProvider({stateName, reducer, initialSettings, storageProviderGette
       if (useStorageState) {
         resetValue = storageProvider.getItem(stateName);
       }
-      if (typeof(resetValue) === 'undefined') {
+      if (typeof(resetValue) === 'undefined' || resetValue === null) {
         resetValue = cloneDeep(initialSettings);
       }
 
