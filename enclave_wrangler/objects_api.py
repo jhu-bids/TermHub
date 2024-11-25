@@ -42,9 +42,8 @@ from enclave_wrangler.utils import EnclavePaginationLimitErr, JSON_TYPE, enclave
     get_objects_df, get_url_from_api_path, \
     make_objects_request
 from enclave_wrangler.models import OBJECT_TYPE_TABLE_MAP, convert_row, get_field_names, field_name_mapping, pkey
-from backend.db.utils import SCHEMA, dedupe_dicts, get_field_data_types, insert_fetch_statuses, insert_from_dict, \
-    insert_from_dicts, \
-    is_refresh_active, reset_temp_refresh_tables, refresh_derived_tables, \
+from backend.db.utils import SCHEMA, dedupe_dicts, delete_obj_by_pk, get_field_data_types, insert_fetch_statuses, \
+    insert_from_dict, insert_from_dicts, is_refresh_active, reset_temp_refresh_tables, refresh_derived_tables, \
     sql_in, sql_query, sql_query_single_col, run_sql, get_db_connection, update_from_dicts
 from backend.db.queries import get_concepts
 from backend.utils import call_github_action
@@ -1121,6 +1120,60 @@ def update_cset_metadata_from_objs(
         run_sql(con, audit_query.replace('cset_id', cset_id))  # backup to audit table: updated
     if not con:
         conn.close()
+
+
+def sync_cset_expression_changes(cset: Dict[str, Any], con: Connection = None):
+    """Sync: Add or delete expression item changes as needed.
+
+    todo: Sync expression updates (example: includeDescendants true -> false)
+     - exps_enclave_db_format useful for that
+     - if doing this, best way to do it is to repurpose update_cset_metadata_from_objs(), cset_obj_field_datatypes(),
+       and cset_objs_set_missing_fields_to_null(), to be generalized, to work with csets (1st, previous use case) and
+       expression items (this new use case). For update_cset_metadata_from_objs(), would have to (a) create a new audit
+       table just for expression items, or (b) set a flag to not do auditing in this case.
+    todo: audit table for concept_set_version_items deletions
+    """
+    conn = con if con else get_db_connection()
+    cst_id: int = cset['properties']['codesetId']
+    # Collect data
+    # - enclave
+    exps_enclave: List[Dict] = [x['properties'] for x in cset['expression_items']]
+    # exps_enclave_db_format = [convert_row('OmopConceptSetVersionItem', 'concept_set_version_item', x) for x in exps_enclave]
+    exps_enclave: Dict[int, Dict] = {x['conceptId']: x for x in exps_enclave}
+    # exps_enclave_db_format: Dict[int, Dict] = {x['concept_id']: x for x in exps_enclave_db_format}
+    # - db
+    qry = f"SELECT * FROM concept_set_version_item WHERE codeset_id = {cst_id};"
+    exps_db: List[Dict] = [dict(x) for x in sql_query(conn, qry)]
+    exps_db: Dict[int, Dict] = {x['concept_id']: x for x in exps_db}
+
+    # Detect changes
+    # - additions
+    additions = {k: v for k, v in exps_enclave.items() if k not in exps_db}
+    # - deletions
+    deletions = {k: v for k, v in exps_db.items() if k not in exps_enclave}
+
+    # Make updates
+    # - additions
+    add_objects_to_db(conn, 'OmopConceptSetVersionItem', list(additions.values()))
+    # - deletions
+    for exp in deletions.values():
+        delete_obj_by_pk(conn, 'concept_set_version_item', 'item_id', exp['item_id'])
+    return any([bool(x) for x in [additions, deletions]])
+
+
+def sync_expressions_for_csets(csets: List[Dict], con: Connection = None, schema=SCHEMA) -> bool:
+    """Sync expression item changes between Enclave and DB.
+
+    todo: There will be a redundancy if refreshing derived tables is done here, and then later in the fetch failures
+     script in the event that a draft was finalized. Ideally refresh_derived_tables() would only be done 1x in such
+     situations."""
+    conn = con if con else get_db_connection()
+    changes = 0
+    for cset in csets:
+        changes += sync_cset_expression_changes(cset, conn)
+    if changes:
+        refresh_derived_tables(con, 'concept_set_version_item', schema=schema)
+    return bool(changes)
 
 
 def _get_cset_row_diffs_by_field(list1: List[Dict], list2: List[Dict]) -> Dict[int, Dict[str, Tuple[Any, Any]]]:
