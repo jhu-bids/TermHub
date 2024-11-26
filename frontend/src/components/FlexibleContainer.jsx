@@ -21,25 +21,19 @@ const itemContent = once(() => {
       // not sure why this was getting negative
       stackTop = 0; // 2 is the minimum number of items in a stack
     }
-    const {title} = props;
-    let stackPosition = stack.findIndex(d => d === title);
+    let stackPosition = stack.findIndex(d => d === props.id);
     if (stackPosition > -1) {
-      // console.warn(`${title} already at stack [${stack.join()}][${stackPosition}]`);
+      // console.warn(`${id} already at stack [${stack.join()}][${stackPosition}]`);
     } else {
-      stack.push(title);
+      stack.push(props.id);
       stackTop++;
       stackPosition = stackTop;
     }
     return stackPosition;
   }
-  function stackRemove(props) {
-    const {title} = props;
-    stack = stack.filter(d => d !== title);
-  }
   function stackPutOnTop(props) {
-    const {title} = props;
-    stack = stack.filter(d => d !== title);
-    stack.push(title);
+    stack = stack.filter(d => d !== props.id);
+    stack.push(props.id);
     stackTop++;
     return stackTop;
   }
@@ -69,7 +63,7 @@ const itemContent = once(() => {
 
     const closeFunc = (() => {
       countRef.current.n--;
-      stack = stack.filter(d => d !== title);
+      stack = stack.filter(d => d !== props.id);
       stackTop--;
       stackPosition = stackTop;
       setDisplay("hidden");
@@ -98,7 +92,7 @@ const itemContent = once(() => {
       backgroundColor: "#EEE",
       border: "2px solid green",
       minWidth: "200px",
-      minHeight: "400px",
+      minHeight: "300px",
       maxWidth: "95%",
       // display: "flex",
       // flexDirection: "column",
@@ -111,7 +105,7 @@ const itemContent = once(() => {
             // closeFunc={() => setDisplay("hidden")}
             sx={style}
         >
-          <div className="handle" data-testid={`flexcontainer-${title}`} style={{display: 'flex', flexDirection: 'row', cursor: "move", }}>
+          <div className="handle" data-testid={`flexcontainer-${props.id}`} style={{display: 'flex', flexDirection: 'row', cursor: "move", }}>
             {/*[{stack.join(', ')}][{stackPosition}]*/}
             {
               hideTitle ? null : <span style={{padding: '10px 3px 3px 10px'}}><strong>{title}</strong></span>
@@ -153,37 +147,22 @@ const itemContent = once(() => {
         </Draggable>
     );
   }
-  return [showButton, showContent, stackAdd, stackRemove];
+  return [showButton, showContent, stackAdd, ];
 });
 
 export function FlexibleContainer(props) {
-  let { startHidden=true, openOnly=false} = props;
+  let { startHidden=true, openOnly=false, id, } = props;
   const [display, setDisplay] = useState((startHidden && !openOnly) ? "hidden" : "shown");
   const draggableRef = useRef(null);
   const [zIndex, setZIndex] = useState(); // this is just to force render on zindex change
 
-  /*  would like to be able to close boxes on escape, but it's too tangled...
-  useEffect(() => {
-    const handleKeyDown = (event) => {
-      if (event.key === 'Escape') {
-        closeFunc();
-      }
-    };
+  if (typeof(id) === 'undefined') {
+    throw new Error("all containers need an ID");
+  }
 
-    // Add event listener
-    document.addEventListener('keydown', handleKeyDown);
-
-    // Remove event listener on cleanup
-    return () => {
-      document.removeEventListener('keydown', handleKeyDown);
-    };
-  }, []); // Empty dependency array means this effect runs once on mount
-   */
-
-  const [showButton, showContent, stackAdd, stackRemove] = itemContent();
+  const [showButton, showContent, stackAdd, ] = itemContent();
 
   if (display === "hidden" && !openOnly) {
-    stackRemove(props);
     return showButton({...props, setDisplay, setZIndex});
   } else if (display === "shown" || openOnly) {
     const stackPosition = stackAdd(props);

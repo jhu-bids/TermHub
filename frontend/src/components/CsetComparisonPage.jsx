@@ -35,7 +35,8 @@ import {
 import {dfs, dfsFromNode} from 'graphology-traversal/dfs';
 
 import {fmt, saveCsv, useWindowSize} from '../utils';
-import {setColDefDimensions} from './dataTableUtils';
+import {Info} from "@mui/icons-material";
+import {iconStyle, setColDefDimensions} from './dataTableUtils';
 import {ConceptSetCard} from './ConceptSetCard';
 import {Tooltip} from './Tooltip';
 import {
@@ -169,6 +170,7 @@ export function CsetComparisonPage() {
   const [cids, cidsDispatch] = useCids();
   const [newCset, newCsetDispatch] = useNewCset();
   const [api_call_group_id, setApiCallGroupId] = useState();
+  const [showInfoAbout, setShowInfoAbout] = useState();
   let [graphOptions, graphOptionsDispatch] = useGraphOptions();
 
   const editingCset = !isEmpty(newCset);
@@ -284,7 +286,9 @@ export function CsetComparisonPage() {
 
   useEffect(() => {
     if (infoPanelRef.current) {
-
+      // I think the purpose of this is to set y position of first displayed (open)
+      //  panel (FlexibleContainer) to be a short distance below the bar that shows
+      //  the buttons
       let margin_text = window.getComputedStyle(infoPanelRef.current).
           getPropertyValue('margin-bottom');
       margin_text = margin_text.substring(0, margin_text.length - 2);
@@ -323,13 +327,14 @@ export function CsetComparisonPage() {
     csmi,
     newCset, newCsetDispatch,
     setShowCsetCodesetId,
+    setShowInfoAbout,
   });
 
   let csetCard = null;
   if (showCsetCodesetId) {
     const cset = selected_csets.find(d => d.codeset_id == showCsetCodesetId);
     csetCard = (
-        <FlexibleContainer key="csetCard" openOnly={true}
+        <FlexibleContainer id="csetCard" key="csetCard" openOnly={true}
                            title={cset.concept_set_version_title}
                            position={panelPosition} countRef={countRef}
                            closeAction={() => setShowCsetCodesetId(undefined)}>
@@ -372,7 +377,7 @@ export function CsetComparisonPage() {
           : <IndentedListIcon size={24} color="white" /> }
     </IconButton>,
 
-    <FlexibleContainer key="stats-options" title="Stats and options"
+    <FlexibleContainer id="stats-options" key="stats-options" title="Stats and options"
                        position={panelPosition} countRef={countRef}
                        style={{
                          minWidth: graphDisplayOptionsWidth + 'px',
@@ -458,7 +463,7 @@ export function CsetComparisonPage() {
   let edited_cset;
   if (editingCset) {
     infoPanels.push(
-        <FlexibleContainer key="cset" title="New concept set"
+        <FlexibleContainer id="cset" key="cset" title="New concept set"
                            startHidden={true}
                            hideShowPrefix={true}
                            style={{width: '80%', resize: 'both'}}
@@ -480,9 +485,9 @@ export function CsetComparisonPage() {
     );
 
     infoPanels.push(
-        <FlexibleContainer key="instructions"
+        <FlexibleContainer id="instructions" key="instructions"
                            title="Instructions to save new concept set"
-                           style={{maxWidth: 700}}
+                           style={{width: '600px', resize: 'both'}}
                            position={panelPosition} countRef={countRef}>
           {howToSaveStagedChanges({newCset, atlasWidget})}
         </FlexibleContainer>,
@@ -490,11 +495,53 @@ export function CsetComparisonPage() {
   }
 
   infoPanels.push(
-      <FlexibleContainer key="legend" title="Legend" position={panelPosition}
+      <FlexibleContainer id="legend" key="legend" title="Legend" position={panelPosition}
                          countRef={countRef}>
         <Legend editing={editingCset}/>
       </FlexibleContainer>,
   );
+
+  if (showInfoAbout) {
+    const item = {...csmi[showInfoAbout.codeset_id][showInfoAbout.concept_id], ...showInfoAbout};
+    const descendantOf = csmi[item.codeset_id][item.descendantOf];
+    const cset = selected_csets.find(d => d.codeset_id === item.codeset_id);
+    const concept = conceptLookup[item.concept_id];
+    const dconcept = conceptLookup[item.descendantOf];
+    let paths = displayedRows
+      .filter(d => d.concept_id == item.concept_id)
+      .map(d => d.rowPath.split('/')
+                  .map(p => conceptLookup[p]?.concept_name || p).join('/'));
+    console.log(displayedRows);
+    infoPanels.push(
+        <FlexibleContainer id="infoAbout" key="infoAbout" title={<span>Last clicked <Info sx={iconStyle}/></span>}
+                           closeAction={() => setShowInfoAbout(undefined)}
+                           startHidden={false}
+                           hideShowPrefix={true}
+                           style={{midWidth: '500px', height: '300px', resize: 'both'}}
+                           position={panelPosition}
+                           countRef={countRef}>
+          <ul style={{listStyleType: 'none', paddingLeft: '2em'}}>
+            <li>In{' '} {cset.concept_set_version_title}</li>
+            <ul style={{listStyleType: 'none', paddingLeft: '2em'}}>
+              <li>Concept <strong>{concept.concept_id} {concept.concept_name}</strong>
+              </li>
+              <li><em>{textCellForItem(descendantOf, true, true)}</em></li>
+            </ul>
+            <li>is descended from</li>
+            <ul style={{listStyleType: 'none', paddingLeft: '2em'}}>
+              <li><strong>{dconcept.concept_id} {dconcept.concept_name}</strong>
+              </li>
+              <li><em>{textCellForItem(descendantOf, true, true)}</em></li>
+            </ul>
+            <li>and appears at these paths</li>
+            <ul>
+              { paths.map((p,i) => <li key={i}>{p}</li>) }
+            </ul>
+          </ul>
+        </FlexibleContainer>
+        ,
+    );
+  }
 
   const tableProps = {
     rowData: displayedRows,
@@ -786,6 +833,7 @@ function getColDefs(props) {
     csmi,
     newCset, newCsetDispatch,
     setShowCsetCodesetId,
+    setShowInfoAbout,
   } = props;
   const {nested, } = graphOptions;
 
@@ -1097,6 +1145,7 @@ function getColDefs(props) {
           ...props,
           row,
           cset_col,
+          setShowInfoAbout,
         });
       },
       conditionalCellStyles: [

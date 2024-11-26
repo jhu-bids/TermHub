@@ -695,7 +695,6 @@ export class GraphContainer {
       displayOptions[type] = displayOption;
 
     }
-    // TODO: gotta assemble whatever's needed for graphOptions
     this.graphDisplayConfigList = sortBy(displayOptions, d => d.displayOrder);
     this.graphDisplayConfig = displayOptions;
   }

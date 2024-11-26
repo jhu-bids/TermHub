@@ -3,8 +3,8 @@
 //  new cset also
 
 import BlockIcon from "@mui/icons-material/Block";
-import {Add} from "@mui/icons-material";
-// import {SvgIcon} from "@mui/material";
+import {Add, Info} from "@mui/icons-material";
+import {iconStyle} from './dataTableUtils';
 import Box from "@mui/material/Box";
 import Typography from "@mui/material/Typography";
 // import Paper from "@mui/material/Paper";
@@ -13,8 +13,7 @@ import Typography from "@mui/material/Typography";
 import {get, set, isEmpty, sortBy} from "lodash"; // set, map, omit, pick, uniq, reduce, cloneDeepWith, isEqual, uniqWith, groupBy,
 import IconButton from "@mui/material/IconButton";
 import {Tooltip} from "./Tooltip";
-import {howToSaveStagedChanges} from "./CsetComparisonPage";
-import {newCsetAtlasJson} from "../state/AppState";
+import {NEW_CSET_ID, newCsetAtlasJson} from '../state/AppState';
 import Button from "@mui/material/Button";
 import React from "react";
 
@@ -38,32 +37,30 @@ export function expandCset({ newCset, graphContainer, }) {
       for (const descendantId of descendants) {
         if (!expansion[descendantId]) {
           expansion[descendantId] = {
-            // ...def,
+            codeset_id: NEW_CSET_ID,
             concept_id: parseInt(descendantId),
             item: false,  // Not an original item
-            flags: null,  // Clear flags for expanded members
-            item_flags: null,
             csm: true,
-            reason: `included descendant of ${def.concept_id}`,
+            descendantOf: def.concept_id,
           };
         }
       }
     }
   }
-  for (let def of Object.values(newCset.definitions || {}).filter(d => d.isExcluded)) {
-    expansion[def.concept_id] = {
-      ...def,
-      csm: false
-    };
+  for (let def of Object.values(expansion).filter(d => d.isExcluded)) {
+    def.csm = false;
     if (def.includeDescendants) {
       let descendants = graphContainer.getDescendants(def.concept_id);
       for (const descendantId of descendants) {
         if (expansion[descendantId]) {
           expansion[descendantId].csm = false;
-          expansion[descendantId].reason = `excluded descendant of ${def.concept_id}`;
+          expansion[descendantId].descendantOf = def.concept_id;
         }
       }
     }
+  }
+  for (let def of Object.values(expansion).filter(d => d.concept_id === d.descendantOf)) {
+    delete def.descendantOf;
   }
   return expansion;
 }
@@ -76,34 +73,42 @@ const FLAGS = {
   includeMapped: { symbol: "M", tt: "Include Mapped" },
   isExcluded: { symbol: "X", tt: "Exclude" },
 };
-export function textCellForItem(item) {
+export function textCellForItem(item, includeFlags = false, surroundInParens = false) {
   // for use in csv download
+  //    and now also in showInfoAbout panel
   let textPieces = [];
+  let flags = [];
   let text = '';
   if (item.item) {
     text = 'In definition';
     textPieces.push('In definition')
     if (!isEmpty(item.item_flags)) {
-      text += `: ${item.item_flags}`;
-      textPieces.push(': ');
-      textPieces.push(item.item_flags);
+      text += `: ${item.item_flags}`; // for csv
+      // textPieces.push(': ');
+      // textPieces.push(item.item_flags);
     }
   }
-  /*
-  for (let flag in FLAGS) {
-    if (item[flag]) {
-      textPieces.push(FLAGS[flag].symbol);
-    }
-  }
-   */
   if (item.csm) {
     text += (text.length ? '; ' : '');
     text += 'In expansion';
     textPieces.push('In expansion');
     // textPieces.push("\u2713");
   }
-  return text;
-  //return textPieces.join('');
+  let ret;
+  if (includeFlags) {
+    for (let flag in FLAGS) {
+      if (item[flag]) {
+        textPieces.push(FLAGS[flag].symbol);
+      }
+    }
+    ret = textPieces.join(', ');
+  } else {
+    ret = text;
+  }
+  if (surroundInParens && ret.length) {
+    ret = '(' + ret + ')';
+  }
+  return ret
 }
 const ICONS = {
   block: {
@@ -392,7 +397,7 @@ export function cellContents(props) {
         - If staged for deletion:
           - Just the word 'Deleted', clicking cancels deletion
    */
-  const { newCset, newCsetDispatch } = props;
+  const { newCset, newCsetDispatch, setShowInfoAbout, } = props;
   const { item, editing, codeset_id, concept_id } = cellInfo(props);
   let removeIcon, clickAction, contents;
   let flags = Object.keys(FLAGS);
@@ -463,6 +468,9 @@ export function cellContents(props) {
   let cellStuff = (
     <div style={{display: "flex", alignItems: "center", gap: "4px", marginTop: "1px"}} >
       {contents}
+      { item?.descendantOf
+          ? <Info sx={iconStyle} onClick={() => setShowInfoAbout(item)} />
+          : null }
     </div>
   );
   return cellStuff;

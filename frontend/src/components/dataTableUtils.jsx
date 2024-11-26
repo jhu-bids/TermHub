@@ -58,11 +58,6 @@ export function ColumnHeader(props) {
    */
   // console.log({headerContent, allottedWidth, contentWidth: headerDims.width})
   if (tooltipContent) {
-    const iconStyle = {
-      fontSize: "80%",
-      marginTop: "auto",
-      marginBottom: "2px",
-    };
     headerContent = (
       <span
         style={{
@@ -147,3 +142,9 @@ export function setColDefHeader(coldef) {
   coldef.width = coldef.width + "px";
   return coldef;
 }
+
+export const iconStyle = {
+  fontSize: "80%",
+  marginTop: "auto",
+  marginBottom: "2px",
+};
