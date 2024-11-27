@@ -42,7 +42,7 @@ def _report_success(
     fetch_status_set_success(success_rows, use_local_db)
 
 
-def _ad_hoc_detect_and_delete_discarded_drafts(schema: str = SCHEMA, local: bool = False):
+def _ad_hoc_detect_and_delete_discarded_drafts(schema=SCHEMA, local=False):
     """Check all csets currently marked draft in the DB, check if discarded, and handle."""
     with get_db_connection(schema=schema, local=local) as con:
         rows: List[List[int]] = sql_query(
@@ -52,6 +52,20 @@ def _ad_hoc_detect_and_delete_discarded_drafts(schema: str = SCHEMA, local: bool
         cset_versions = [x for x in cset_versions if x]  # remove discarded draft empty dicts {}
         csets_and_members: Dict[str, List[Dict]] = {'OMOPConceptSet': cset_versions}
         handle_discarded_drafts(con, csets_and_members, set(draft_ids), report_success=False, use_local_db=local)
+
+
+def _ad_hoc_sync_draft_expression_items(since='2023-08-15', schema=SCHEMA, local=False):
+    """Syncronizes all expression items since specified date.
+
+    Syncs just the presence of them in the DB, not their field values) between the enclave and TermHub
+    Default value 2023-08-15: 1 day before we implemented inclusion of drafts. This last ran on 2024/11/16,
+    synchronizing all csets that were were created since that date.
+    """
+    with get_db_connection(schema=schema, local=local) as con:
+        rows: List[List[int]] = sql_query(
+            con, f"SELECT codeset_id FROM code_sets WHERE created_at > {since};", return_with_keys=False)
+        cset_ids: List[int] = [x[0] for x in rows]
+        resolve_fetch_failures_0_members(cset_ids, local, schema=schema, force=True)
 
 
 def handle_discarded_drafts(
