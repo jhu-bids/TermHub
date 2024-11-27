@@ -364,7 +364,9 @@ export class GraphContainer {
     displayedRows.forEach(row => {
       if (rowsPerId[row.concept_id]) {
         this.gd.specialConcepts.allButFirstOccurrence.push(row.rowPath);
-        if (graphOptions.specialConceptTreatment.allButFirstOccurrence === 'hidden') {
+        if (graphOptions.specialConceptTreatment.allButFirstOccurrence === 'hidden'
+            || !graphOptions.nested
+        ) {
           row.display.hideReasons.duplicate = true;
           row.display.result = 'hide';
         }
@@ -472,6 +474,7 @@ export class GraphContainer {
         }
       }
     };
+    rootNodes = sortBy(rootNodes, this.sortFunc);
     addRows(rootNodes);
     return {allRows, allRowsById};
   }

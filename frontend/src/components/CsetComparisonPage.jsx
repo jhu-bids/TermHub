@@ -34,7 +34,13 @@ import {
 
 import {dfs, dfsFromNode} from 'graphology-traversal/dfs';
 
-import {fmt, saveCsv, useWindowSize} from '../utils';
+import {
+  fmt,
+  saveCsv,
+  useWindowSize,
+  RIGHT_ARROW,
+  NO_BREAK_SPACE,
+} from '../utils';
 import {Info} from "@mui/icons-material";
 import {iconStyle, setColDefDimensions} from './dataTableUtils';
 import {ConceptSetCard} from './ConceptSetCard';
@@ -71,15 +77,15 @@ export async function fetchGraphData(props) {
     dataGetter.fetchAndCacheItems(dataGetter.apiCalls.csets, codeset_ids),
   ];
   // have to get concept_ids before fetching concepts
+  let newCsetCids = [];
+  if (!isEmpty(newCset)) {
+    newCsetCids = Object.keys(newCset.definitions).map(d => parseInt(d));
+  }
+  cids = union(cids, newCsetCids);
   const graphData = await dataGetter.fetchAndCacheItems(
       dataGetter.apiCalls.concept_graph_new, {codeset_ids, cids});
   let {concept_ids} = graphData;
 
-  if (!isEmpty(newCset)) {
-    concept_ids = union(concept_ids,
-      Object.keys(newCset.definitions).map(d => parseInt(d))
-    );
-  }
   promises.push(
       dataGetter.fetchAndCacheItems(dataGetter.apiCalls.concepts, concept_ids));
 
@@ -170,7 +176,7 @@ export function CsetComparisonPage() {
   const [cids, cidsDispatch] = useCids();
   const [newCset, newCsetDispatch] = useNewCset();
   const [api_call_group_id, setApiCallGroupId] = useState();
-  const [showInfoAbout, setShowInfoAbout] = useState();
+  const [showRowInfo, setShowRowInfo] = useState();
   let [graphOptions, graphOptionsDispatch] = useGraphOptions();
 
   const editingCset = !isEmpty(newCset);
@@ -246,9 +252,7 @@ export function CsetComparisonPage() {
        *       from defaults
        *    2) figure out displayedRows accordingly
        *    3) set counts for StatsAndOptions table accordingly
-       *
        */
-
       let displayedRows = [];
       _gc.setGraphDisplayConfig(graphOptions, allRows, displayedRows);
 
@@ -327,7 +331,6 @@ export function CsetComparisonPage() {
     csmi,
     newCset, newCsetDispatch,
     setShowCsetCodesetId,
-    setShowInfoAbout,
   });
 
   let csetCard = null;
@@ -501,45 +504,89 @@ export function CsetComparisonPage() {
       </FlexibleContainer>,
   );
 
-  if (showInfoAbout) {
-    const item = {...csmi[showInfoAbout.codeset_id][showInfoAbout.concept_id], ...showInfoAbout};
-    const descendantOf = csmi[item.codeset_id][item.descendantOf];
-    const cset = selected_csets.find(d => d.codeset_id === item.codeset_id);
-    const concept = conceptLookup[item.concept_id];
-    const dconcept = conceptLookup[item.descendantOf];
-    let paths = displayedRows
-      .filter(d => d.concept_id == item.concept_id)
-      .map(d => d.rowPath.split('/')
-                  .map(p => conceptLookup[p]?.concept_name || p).join('/'));
-    console.log(displayedRows);
+  if (showRowInfo) {
+    const row = showRowInfo;
+    console.log(row);
+    const concept = conceptLookup[row.concept_id];
+
+    // paths = all paths to concept in displayedRows
+    let conceptPaths = displayedRows
+      .filter(d => d.concept_id == row.concept_id)
+        // remove initial /, split into concept_ids
+      .map(d => d.rowPath.slice(1).split('/'));
+
+    let paths = conceptPaths
+        // replace concept_ids with names, join with →
+      .map(path => path.map(c => conceptLookup[c]?.concept_name || c).join(RIGHT_ARROW))
+      // add spaces at end so window border doesn't touch text
+      .map(path => path + NO_BREAK_SPACE + NO_BREAK_SPACE);
+
+    console.log(selected_csets);
+    let items = selected_csets.map(
+        cset => {
+          let item = csmi[cset.codeset_id][row.concept_id];
+          if (!item) return;
+          item = {
+            ...item,
+            codesetName: cset.concept_set_version_title,
+          };
+          console.log(item);
+          if (item.descendantOf) {
+            if (Number.isInteger(item.descendantOf)) {
+              let ancestor = csmi[cset.codeset_id][item.descendantOf];
+              if (ancestor?.includeDescendants) {
+                item.descendantOf = {...ancestor, ...conceptLookup[ancestor.concept_id] };
+              }
+            } else {
+              throw new Error("wasn't expecting this");
+            }
+          } else {
+            // let's try to find definition this item descended from
+            for (const path of conceptPaths) {
+              for (const concept_id of path.reverse()) {
+                let ancestor = csmi[cset.codeset_id][concept_id];
+                if (ancestor?.includeDescendants) {
+                  item.descendantOf = ancestor;
+                  break;
+                }
+              }
+              if (item.descendantOf) break;
+            }
+          }
+          return item;
+        }).filter(d => d);
+
     infoPanels.push(
-        <FlexibleContainer id="infoAbout" key="infoAbout" title={<span>Last clicked <Info sx={iconStyle}/></span>}
-                           closeAction={() => setShowInfoAbout(undefined)}
+        <FlexibleContainer id="rowInfo" key="rowInfo" title={concept.concept_name}
+                           closeAction={() => setShowRowInfo(undefined)}
                            startHidden={false}
                            hideShowPrefix={true}
-                           style={{midWidth: '500px', height: '300px', resize: 'both'}}
+                           style={{midWidth: '500px', minHeight: '200px', resize: 'both'}}
                            position={panelPosition}
                            countRef={countRef}>
-          <ul style={{listStyleType: 'none', paddingLeft: '2em'}}>
-            <li>In{' '} {cset.concept_set_version_title}</li>
-            <ul style={{listStyleType: 'none', paddingLeft: '2em'}}>
-              <li>Concept <strong>{concept.concept_id} {concept.concept_name}</strong>
-              </li>
-              <li><em>{textCellForItem(descendantOf, true, true)}</em></li>
-            </ul>
-            <li>is descended from</li>
-            <ul style={{listStyleType: 'none', paddingLeft: '2em'}}>
-              <li><strong>{dconcept.concept_id} {dconcept.concept_name}</strong>
-              </li>
-              <li><em>{textCellForItem(descendantOf, true, true)}</em></li>
-            </ul>
-            <li>and appears at these paths</li>
+          <ul>
+            <li>Concept <strong>{concept.concept_id}</strong> appears at these paths</li>
             <ul>
-              { paths.map((p,i) => <li key={i}>{p}</li>) }
+              {paths.map((p, i) => <li key={i}>{p}</li>)}
             </ul>
+            {items.filter(d => d).map((item, i) => (
+                <li key={i}>
+                  In {item.codesetName} this concept is
+                  <ul style={{paddingLeft: '2em'}}>
+                    <li>{textCellForItem(item, true)}</li>
+                    {
+                      item.descendantOf
+                        ? <li>Descended from{' '}
+                            <strong>{item.descendantOf.concept_id} {item.descendantOf.concept_name}</strong>
+                            {' '}<em>{textCellForItem(item.descendantOf, true, true)}</em>
+                          </li>
+                          : null
+                    }
+                  </ul>
+                </li>
+            ))}
           </ul>
         </FlexibleContainer>
-        ,
     );
   }
 
@@ -548,6 +595,7 @@ export function CsetComparisonPage() {
     columns: colDefs,
     selected_csets,
     customStyles,
+    setShowRowInfo,
   };
   return (
       <div style={{margin: 10}}>
@@ -684,53 +732,6 @@ function nodeToTree(node) { // Not using
   return [node, ...subTrees];
 }
 
-function getCollapseIconAndNameOLD(
-    row, name, sizes, graphOptions, graphOptionsDispatch, gc) {
-  let Component;
-  let direction;
-  if (
-      (graphOptions.expandAll &&
-           graphOptions.specificPaths[row.rowPath] !== 'collapse'
-      ) || graphOptions.specificPaths[row.rowPath] === 'expand'
-  ) {
-    Component = RemoveCircleOutline;
-    direction = 'collapse';
-  } else {
-    Component = AddCircle;
-    direction = 'expand';
-  }
-  return (
-      <span
-          className="toggle-collapse concept-name-row"
-          onClick={
-            (evt) => {
-              graphOptionsDispatch({
-                gc,
-                type: 'TOGGLE_NODE_EXPANDED',
-                rowPath: row.rowPath,
-                direction,
-              });
-            }
-          }
-          onDoubleClick={() => {
-            console.log('got a double click');
-          }}
-          // TODO: capture long click or double click or something to expand descendants
-          // onDoubleClick={() => graphOptionsDispatch({type: "TOGGLE_NODE_EXPANDED", payload: {expandDescendants: true, nodeId: row.concept_id}})}
-      >
-                <Component
-                    sx={{
-                      fontSize: sizes.collapseIcon,
-                      display: 'inline-flex',
-                      marginRight: '0.15rem',
-                      marginTop: '0.05rem',
-                      verticalAlign: 'top',
-                    }}
-                />
-        <span className="concept-name-text">{name}</span>
-      </span>
-  );
-}
 function getCollapseIconAndName(
     row, name, sizes, graphOptions, graphOptionsDispatch, gc) {
   let Component;
@@ -833,7 +834,6 @@ function getColDefs(props) {
     csmi,
     newCset, newCsetDispatch,
     setShowCsetCodesetId,
-    setShowInfoAbout,
   } = props;
   const {nested, } = graphOptions;
 
@@ -857,8 +857,6 @@ function getColDefs(props) {
                       <span className="concept-name-text">{name}</span>
                             </span>)
         ) : (
-            // this is for non-nested which is not currently implemented (no button for it)
-            //      it allowed sorting rows... TODO: figure out if bringing it back
             <span className="concept-name-text">{name}</span>
         );
         return content;
@@ -1145,7 +1143,6 @@ function getColDefs(props) {
           ...props,
           row,
           cset_col,
-          setShowInfoAbout,
         });
       },
       conditionalCellStyles: [
@@ -1186,6 +1183,12 @@ function getColDefs(props) {
 
   coldefs = [...coldefs, ...cset_cols];
 
+  // add pointer style to everything so users know they can click anywhere
+  //  on row for row info
+  coldefs = coldefs.map(d => ({
+    ...d, style: {...(d.style ?? {}), cursor: 'pointer' }
+  }));
+
   // concept name takes up remaining window width after all other columns
   const totalWidthOfOthers = sum(coldefs.map(d => d.width));
 
@@ -1214,6 +1217,7 @@ function ComparisonDataTable(props) {
     newCset = {},
     customStyles,
     rowData,
+    setShowRowInfo,
     /* squishTo = 1, cset_data, displayedRows, selected_csets */
   } = props;
   const infoPanelRef = useRef();
@@ -1252,6 +1256,9 @@ function ComparisonDataTable(props) {
           theme="custom-theme" // theme="light"
           columns={columns}
           data={rowData}
+          onRowClicked={row => {
+            setShowRowInfo(row);
+          }}
           dense
           fixedHeader
           fixedHeaderScrollHeight={() => {

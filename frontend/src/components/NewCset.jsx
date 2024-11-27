@@ -16,8 +16,7 @@ import {Tooltip} from "./Tooltip";
 import {NEW_CSET_ID, newCsetAtlasJson} from '../state/AppState';
 import Button from "@mui/material/Button";
 import React from "react";
-
-const checkmark = <span>{"\u2713"}</span>;
+import {CHECKMARK} from '../utils';
 
 export function expandCset({ newCset, graphContainer, }) {
   let expansion = {...newCset.definitions};
@@ -339,7 +338,6 @@ export function Legend({editing=false}) {
     }
   };
   const items = Object.entries(itemTypes).map(([k, v]) => {
-    // const {content='\u00A0\u00A0\u00A0\u00A0'} = v;
     return LegendItem({ label: k, content: v.content });
   });
   return <div>{items}</div>;
@@ -397,7 +395,7 @@ export function cellContents(props) {
         - If staged for deletion:
           - Just the word 'Deleted', clicking cancels deletion
    */
-  const { newCset, newCsetDispatch, setShowInfoAbout, } = props;
+  const { newCset, newCsetDispatch, } = props;
   const { item, editing, codeset_id, concept_id } = cellInfo(props);
   let removeIcon, clickAction, contents;
   let flags = Object.keys(FLAGS);
@@ -410,7 +408,7 @@ export function cellContents(props) {
         );
       });
     } else if (item && item.csm) {
-      // contents = checkmark;
+      // contents = CHECKMARK;
       //  adding checkmark later now
     } else if (item) {
       throw new Error("Impossible: item has neither csm nor item set to true");
@@ -463,31 +461,16 @@ export function cellContents(props) {
     }
   }
   if (item?.csm) {
-    contents = <span>{checkmark}{contents}</span>;
+    contents = <span>{CHECKMARK}{contents}</span>;
   }
   let cellStuff = (
     <div style={{display: "flex", alignItems: "center", gap: "4px", marginTop: "1px"}} >
       {contents}
-      { item?.descendantOf
-          ? <Info sx={iconStyle} onClick={() => setShowInfoAbout(item)} />
-          : null }
     </div>
   );
   return cellStuff;
-} /* was going to use tagged templates; see https://developer.mozilla.org/en-US/docs/Web/JavaScript/Reference/Template_literals
-  but these docs are react chunks, so, should be easier
-function processTemplate(strings, params={}) {
-  const keys = Object.keys(params);
-  if (strings.length !== keys.length + 1) {
-    throw new Error("not supposed to happen, wrong number of params");
-  }
+}
 
-}
-function getDoc(docName, params={}) {
-  const tmpl = DOCS[docName];
-  return processTemplate(tmpl, params);
-}
-*/
 export function copyConceptsFromWidget(cset, selected_csets, csmi, newCsetDispatch) {
   console.log({cset, selected_csets, csmi});
   selected_csets = [...selected_csets];

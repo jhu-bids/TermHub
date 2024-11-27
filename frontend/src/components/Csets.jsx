@@ -1,6 +1,6 @@
 import React, { useState, useEffect, } from 'react';
 import { CsetsDataTable } from './CsetsDataTable';
-import {pct_fmt} from "../utils";
+import {NO_BREAK_SPACE, pct_fmt} from '../utils';
 import ConceptSetCards from './ConceptSetCard';
 import Alert from '@mui/material/Alert';
 import AlertTitle from '@mui/material/AlertTitle';
@@ -285,7 +285,7 @@ export function ConceptSetsPage () {
                 cset['intersecting_concepts'] = val;
               } else {
                 val = Number(val).toLocaleString(undefined, {style:'percent', maximumFractionDigits: 2});
-                vocabs.push(`${val}\u00A0${key}`);
+                vocabs.push(`${val}${NO_BREAK_SPACE}${key}`);
               }
             });
             cset['vocabs'] = vocabs.join(', ');

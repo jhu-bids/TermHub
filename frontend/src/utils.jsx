@@ -5,6 +5,9 @@ import Papa from "papaparse";
 import {saveAs} from 'file-saver';
 // import {useDataGetter} from "../state/DataGetter";
 
+export const NO_BREAK_SPACE = '\u00a0';
+export const CHECKMARK = '\u2713';
+export const RIGHT_ARROW = '\u2192';
 /*
 import { FoundryClient, PublicClientAuth } from "@termhub/sdk";
 import { Researcher } from "@termhub/sdk/ontology/objects";

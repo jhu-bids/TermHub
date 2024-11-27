@@ -5,7 +5,7 @@ import { countBy, sum, set, uniq, flatten, debounce, isEmpty, union, difference,
 
 import { useDataGetter, DataGetter } from '../state/DataGetter';
 import { setColDefDimensions } from './dataTableUtils';
-import { useWindowSize } from '../utils';
+import { useWindowSize, NO_BREAK_SPACE } from '../utils';
 import { useCids, useCodesetIds } from '../state/AppState';
 import Button from '@mui/material/Button';
 import { TextField } from '@mui/material';
@@ -182,8 +182,8 @@ function ConceptStringSearch() {
                    value={searchText}
                    autoFocus={true}
             />
-            {'\u00A0'}{'\u00A0'}{'\u00A0'}{found_concept_ids.length ? found_concept_ids.length.toLocaleString() + ` concepts match "${searchText}"` : ''}
-            {'\u00A0'}{hiddenMatches.length ? hiddenMatches.length.toLocaleString() + ' already included and not listed' : ''}
+            {NO_BREAK_SPACE}{NO_BREAK_SPACE}{NO_BREAK_SPACE}{found_concept_ids.length ? found_concept_ids.length.toLocaleString() + ` concepts match "${searchText}"` : ''}
+            {NO_BREAK_SPACE}{hiddenMatches.length ? hiddenMatches.length.toLocaleString() + ' already included and not listed' : ''}
             <TextField fullWidth multiline
                        style={{marginTop: 15, }}
                        label={"Enter concept_ids to add separated by spaces, commas, or newlines and click button below"}
