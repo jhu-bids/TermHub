@@ -31,8 +31,8 @@ manually via `python backend/db/full_data_refresh.py`, which supports the follow
 
 ### Refresh: Counts tables
 Patient and record counts are updated in the N3C data enclave routinely, typically every few weeks or months. There is 
-a [GitHub action](https://github.com/shadow-bids/TermHub/actions/workflows/refresh_counts.yml) that checks nightly for 
-any changes and updates if so. It runs on the `shadow-bids` repo (more info about that is in the "deployment" section).
+a [GitHub action](https://github.com/jhu-bids/TermHub/actions/workflows/refresh_counts.yml) that checks nightly for 
+any changes and updates if so.
 
 This refresh updates the `concept_set_counts_clamped` and `deidentified_term_usage_by_domain_clamped` tables, as well 
 as their derived tables and views.
@@ -42,10 +42,13 @@ This can also be run manually via `make refresh-counts`, or `python backend/db/r
 
 ### Refresh: Vocabulary tables
 OMOP vocabulary tables are updated typically every 6 months. There is 
-a [GitHub action](https://github.com/shadow-bids/TermHub/actions/workflows/refresh_voc.yml) that checks nightly for 
-any changes and updates if so. It runs on the `shadow-bids` repo (more info about that is in the "deployment" section). 
-**However**, as of November 2024, this action no longer works, as it takes longer than the maximum allowable time for 
-GitHub actions, which is 6 hours. So it must be run manually.
+a [GitHub action](https://github.com/jhu-bids/TermHub/actions/workflows/refresh_voc.yml) that checks nightly for 
+any changes and updates if so. 
+
+**Warning**: As of November 2024, the GitHub action for this no longer works 100% of the time. Inexplicably, even with 
+the same inputs, sometimes it only takes ~4.5 hours, and sometimes it takes >6 hours, which is greater than the maximum 
+allowable time for GitHub actions. If it fails, then we can do the following: (i) perhaps just try running the action 
+again; maybe it will take <6 hours the second time, or (ii) just run the refresh locally. 
 
 This refresh updates the `concept`, `concept_ancestor`, `concept_relationship`, `relationship` tables, as well 
 as their derived tables and views.
@@ -158,15 +161,11 @@ Many of these steps are specific to the JHU BIDS team, which deploys on JHU's Az
 
 ### Prerequisite steps
 **Update environmental variables for GitHub actions when necessary**:
-1. Every once in a while, will need to update the [ENV_FILE GitHub Secret](https://github.com/jhu-bids/TermHub/settings/secrets/actions/ENV_FILE)
+Every once in a while, will need to update the [ENV_FILE GitHub Secret](https://github.com/jhu-bids/TermHub/settings/secrets/actions/ENV_FILE)
 with a copy/paste of `env/.env`. This is only necessary whenever environmental variables have changed, such as 
 `PALANTIR_ENCLAVE_AUTHENTICATION_BEARER_TOKEN` getting refreshed, which happens every few months. If you're confident 
 that the environment is still up to date, this step can be skipped, but to be safe, it can be done every tie. _You can 
 read more about this in the related "Periodic maintenance > Updating auth token" section._
-2. Also update the [ENV_FILE for shadow-bids](https://github.com/shadow-bids/TermHub/settings/secrets/actions/ENV_FILE).
-`shadow-bids` is a secondary organization that we have in order for us to run premium GitHub actions that we have to
-pay for. We can't currently do this at `jhu-bids` because it's connected to the JHU organization, and they aren't set up
-to handle this kind of billing.
 
 ### Do for both dev and prod
 First, make replace the current `dev` or `prod` git tag with the commit that you are deploying from. The reason for this 
