@@ -1,9 +1,9 @@
 name: Refresh vocabulary tables
 
 on:
-#  schedule:
+  schedule:
 ##    - cron: '0 0 * * 0'  # weekly, sunday 12am
-#    - cron: '0 8 * * *'  # every day 6am GMT (3/4am EST/EDT)
+    - cron: '0 8 * * *'  # every day 6am GMT (3/4am EST/EDT)
   workflow_dispatch:
 jobs:
   refresh-vocab-tables:
