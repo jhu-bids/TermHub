@@ -1,5 +1,11 @@
 """Resolve situations where we tried to fetch data from the Enclave, but failed due to the concept set being too new,
 resulting in initial fetch of concept set members being 0.
+
+todo's:
+todo #1 Rare occasion: Ideally, if manually passing and using --force, it's because there was previouslya success,
+ but this is being re-run for those cases because the success is in question. In these cases, ideally we'd figure out
+ if any new / different data for the given cset was actually found / imported, and report about that in the comment. So
+ for now, we filter: if manually passing IDs and using --force, won't be in lookup.
 """
 import json
 import os
@@ -275,12 +281,7 @@ def resolve_fetch_failures_0_members(
                     csets_and_members_to_db(con, success_cases, ['OmopConceptSetVersionItem', 'OMOPConcept'], schema)
                 print(f"Successfully fetched concept set members for concept set versions: "
                       f"{', '.join([str(x) for x in success_cset_ids])}")
-                # todo: Rare occasion: Ideally, if manually passing and using --force, it's because there was previously
-                #  a success, but this is being re-run for those cases because the success is in question. In these
-                #  cases, ideally we'd figure out if any new / different data for the given cset was actually found /
-                #  imported, and report about that in the comment.
-                # filter: if manually passing IDs and using --force, won't be in lookup.
-                filtered_ids = [x for x in success_cset_ids if x in failure_lookup]
+                filtered_ids = [x for x in success_cset_ids if x in failure_lookup]  # todo #1
                 _report_success(filtered_ids, failure_lookup, 'Found members', use_local_db)
             except Exception as err:
                 reset_temp_refresh_tables(schema)
@@ -301,7 +302,8 @@ def resolve_fetch_failures_0_members(
         print(f'Csets detected matching the following condition; marking them resolved:\n'
               f'- Condition: {comment}\n'
               f'- Cset IDs:', f'{", ".join([str(x) for x in csets_w_no_expanded_members])}')
-        _report_success(csets_w_no_expanded_members, failure_lookup, comment, use_local_db)
+        filtered_ids = [x for x in csets_w_no_expanded_members if x in failure_lookup]  # todo #1
+        _report_success(filtered_ids, failure_lookup, comment, use_local_db)
         failed_cset_ids = list(set(failed_cset_ids) - set(csets_w_no_expanded_members))
 
     # - Parse drafts from actual failures
@@ -328,7 +330,8 @@ def resolve_fetch_failures_0_members(
               f"of time passed, members should have been available by now, and we assume that these concept sets do"
               f" not actually have members. Reporting resolved: {', '.join([str(x) for x in final_failure_ids])}")
         comment = 'No members after 2 hours. Considering resolved.'
-        _report_success(list(final_failure_ids), failure_lookup, comment, use_local_db)
+        filtered_ids = [x for x in list(final_failure_ids) if x in failure_lookup]  # todo #1
+        _report_success(filtered_ids, failure_lookup, comment, use_local_db)
     elif final_failure_ids:
         # todo: for troubleshooting, it would help to print the timestamp of when the cset was created here, as well as
         #  its age (in minutes). For the latter, would involve passing arg return_type='csets_by_id' to
