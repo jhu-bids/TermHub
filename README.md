@@ -2,14 +2,17 @@
 [![Test - Frontend - Unit tests and QC](https://github.com/jhu-bids/TermHub/actions/workflows/test_frontend_unit_and_qc.yml/badge.svg)](https://github.com/jhu-bids/TermHub/actions/workflows/test_frontend_unit_and_qc.yml)
 [![Test - Backend - E2E and unit tests and QC](https://github.com/jhu-bids/TermHub/actions/workflows/test_backend_e2e_and_unit_and_qc.yml/badge.svg)](https://github.com/jhu-bids/TermHub/actions/workflows/test_backend_e2e_and_unit_and_qc.yml)
 [![Test, Frontend Prod, Playwright E2E](https://github.com/jhu-bids/TermHub/actions/workflows/test_frontend_e2e_live_prod.yml/badge.svg)](https://github.com/jhu-bids/TermHub/actions/workflows/test_frontend_e2e_live_prod.yml)
-[![Test, Frontend Dev, Playwright E2E](https://github.com/jhu-bids/TermHub/actions/workflows/test_frontend_e2e_live_dev.yml/badge.svg)](https://github.com/jhu-bids/TermHub/actions/workflows/test_frontend_e2e_live_dev.yml)
 
 <details><summary>More badges</summary>
 <p>
-
-### More test statuses
-Failure on this doesn't necessarily indicate an issue. It could just mean that the deployed instance has an older UI that is not compatible with new tests:  
+ 
 [![Test, Frontend Dev (local changes), Playwright E2E](https://github.com/jhu-bids/TermHub/actions/workflows/test_frontend_e2e_live_dev_running_local.yml/badge.svg)](https://github.com/jhu-bids/TermHub/actions/workflows/test_frontend_e2e_live_dev_running_local.yml)
+[![Test, Frontend Dev, Playwright E2E](https://github.com/jhu-bids/TermHub/actions/workflows/test_frontend_e2e_live_dev.yml/badge.svg)](https://github.com/jhu-bids/TermHub/actions/workflows/test_frontend_e2e_live_dev.yml)
+About these extra badges:
+- **Both badges**: Defunct as of 2024/12, as from that time we are only using a single deployment. 
+- **`Test, Frontend Dev (local changes), Playwright E2E` only**: Failure on this doesn't necessarily indicate an issue. It could just mean that the deployed instance has an older UI that is not compatible with new tests:
+
+---
 
 </p>
 </details> 
