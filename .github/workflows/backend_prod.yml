@@ -7,11 +7,10 @@
 # Prod: https://portal.azure.com/#@live.johnshopkins.edu/resource/subscriptions/fe24df19-d251-4821-9a6f-f037c93d7e47/resourceGroups/JH-TERMHUB-WEBAPP-RG/providers/Microsoft.Web/sites/termhub/configuration
 name: Backend prod - build and deploy
 
-# I believe this will do the deploy when merged. We don't want it to deploy prod when PR opened
 on:
-  push:
-    branches:
-      - main
+#  push:
+#    branches:
+#      - main
 #  pull_request:
 #    types: [opened, synchronize, reopened, closed]
 #    branches:
