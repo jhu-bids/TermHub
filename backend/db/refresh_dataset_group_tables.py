@@ -31,6 +31,11 @@ from enclave_wrangler.config import DATASET_GROUPS_CONFIG
 from enclave_wrangler.datasets import download_datasets, get_datetime_dataset_last_updated
 
 
+class NotAnError(Exception):
+    """Used to throw an error that causes a GitHub action notification."""
+    pass
+
+
 def load_dataset_group(dataset_group_name: str, schema: str = SCHEMA, alternate_dataset_dir: Union[Path, str] = None):
     """Load data
 
@@ -109,6 +114,14 @@ def refresh_dataset_group_tables(
             # DB Counts
             print('Updating database counts. This could take a while...')
             counts_update(f'DB refresh: {",".join(dataset_group)}', schema)
+
+        # Vocab refresh only
+        # todo: ideally this notification would happen differently. More comments near bottom of refresh_voc.yml
+        if group_name == 'vocab' and len(dataset_group) == 1:  # Will be the case for GH actions
+            raise NotAnError('Notification: Restart deployment backend.\nThis is not an error. It is only being raised '
+                'as an easy way to trigger a GitHub action notification. Vocabulary refresh has completed '
+                'successfully. Please restart backend to refresh networkx graph.')
+
     print('Done')
 
 
