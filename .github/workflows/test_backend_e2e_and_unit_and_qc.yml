@@ -10,6 +10,8 @@ on:
     branches: [ develop, main ]
   pull_request:
     branches: [ develop, main ]
+  schedule:
+    - cron: '0 14 * * *'  # every day 2pm GMT (9/10am EST/EDT)
 
 jobs:
   test:

@@ -3,7 +3,7 @@ name: Refresh vocabulary tables
 on:
   schedule:
 ##    - cron: '0 0 * * 0'  # weekly, sunday 12am
-    - cron: '0 8 * * *'  # every day 6am GMT (3/4am EST/EDT)
+    - cron: '0 8 * * *'  # every day 8am GMT (3/4am EST/EDT)
   workflow_dispatch:
 jobs:
   refresh-vocab-tables:
@@ -50,5 +50,8 @@ jobs:
         run: make refresh-vocab
 
       # Test
+      # todo: This won't actually run, because the Python script will throw an error at the end (only if successful
+      #  refresh happened, which will notify that it completed successfully. So the GitHub action will only get this far
+      #  if there was never any data. However, this test does run daily in a separate action.
       - name: Test
         run: python -m unittest test.test_backend.db.test_refresh_dataset_group_tables.TestCurrentDatasetGroupSetup.test_current_vocab
