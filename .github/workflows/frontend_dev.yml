@@ -1,3 +1,4 @@
+# As of 2024/12/05, this won't do anything, as the server has been taken down on Azure.
 name: Frontend dev - build and deploy
 
 on:
