@@ -444,86 +444,89 @@ export const PRE = (props) => (
     </Typography>
 );
 
-export let DOCS = {};
-DOCS.blank_search_intro = (
-    <>
-      <h1>Welcome to VS-Hub! Beta version {VERSION}</h1>
-      <p style={{paddingLeft: '12px', paddingRight: '130px'}}>
-        VS-Hub is a tool for comparing, analyzing, updating, and creating concept
-        sets. At the current time it only handles concept sets in the N3C Enclave,
-        but is charted to expand beyond N3C in the near future.
-      </p>
-      <h2>Within VS-Hub you can:</h2>
+export function BlankSearchIntro() {
 
-      <div style={{paddingLeft: '12px', paddingRight: '130px'}}>
-        <p>
-          <strong>CSET SEARCH</strong>
-        </p>
-        <ul>
-          <LI>
-            Perform searches for existing concept sets currently in the N3C
-            Enclave.
-          </LI>
-        </ul>
+  return (
+      <div style={{position: 'relative', minHeight: '100vh'}}>
+        <div style={{paddingBottom: '60px', paddingLeft: '20px'}}>
+          <h1>Welcome to VS-Hub! Beta version {VERSION}</h1>
+          <p style={{paddingLeft: '12px', paddingRight: '130px'}}>
+            VS-Hub is a tool for comparing, analyzing, updating, and creating
+            concept
+            sets. At the current time it only handles concept sets in the N3C
+            Enclave,
+            but is charted to expand beyond N3C in the near future.
+          </p>
+          <h2>Within VS-Hub you can:</h2>
 
-        <p>
-          <strong>CSET COMPARISON</strong>
-        </p>
-        <ul>
-          <LI>Compare selected concept sets.</LI>
-          <LI>
-            Add and remove concepts by reviewing and selecting concept mappings,
-            descendants, exclusions.
-          </LI>
-          <LI>
-            Export JSON of modified concept set. (Required in order to put
-            changes
-            in Enclave, for now.)
-          </LI>
-        </ul>
+          <div style={{paddingLeft: '12px', paddingRight: '130px'}}>
+            <p>
+              <strong>CSET SEARCH</strong>
+            </p>
+            <ul>
+              <LI>
+                Perform searches for existing concept sets currently in the
+                N3C
+                Enclave.
+              </LI>
+            </ul>
 
-        <p>
-          <strong>LOAD A LIST OF CONCEPT SETS (codeset_ids)</strong>
-        </p>
-        <LoadCodesetIds containingPage="OMOPConceptSet"/>
+            <p>
+              <strong>CSET COMPARISON</strong>
+            </p>
+            <ul>
+              <LI>Compare selected concept sets.</LI>
+              <LI>
+                Add and remove concepts by reviewing and selecting concept
+                mappings,
+                descendants, exclusions.
+              </LI>
+              <LI>
+                Export JSON of modified concept set. (Required in order to put
+                changes
+                in Enclave, for now.)
+              </LI>
+            </ul>
 
-        {/*
-    <p><strong>UPLOAD CSV</strong>
-      <ul>
-        <LI>
-          With a single CSV, you can create (i) a new version to an existing concept set, e.g. to
-          add/delete concepts or change metadata, and (ii) coming soon: upload a completely new concept set ("concept set
-          container").
-        </LI>
-      </ul>
-    </p>
-    */}
-
-        <p>
-          <strong>HELP/ABOUT</strong>
-        </p>
-        <ul>
-          <LI>
-            Learn more about VS-Hub and review the step by step <Link
-              to="/about">“How To” section</Link>.
-          </LI>
-          <LI>Provide feedback by creating a <a
-              href="https://github.com/jhu-bids/termhub/issues/new/choose"
-              target="_blank" rel="noopener noreferrer">GitHub issue.</a></LI>
-          <LI>
-            Let us know of any bug or a poor user experience, or share a feature
-            request.
-          </LI>
-        </ul>
+            <p>
+              <strong>LOAD A LIST OF CONCEPT SETS (codeset_ids)</strong>
+            </p>
+            <LoadCodesetIds containingPage="OMOPConceptSet"/>
+            <p>
+              <strong>HELP/ABOUT</strong>
+            </p>
+            <ul>
+              <LI>
+                Learn more about VS-Hub and review the step by step <Link
+                  to="/about">“How To” section</Link>.
+              </LI>
+              <LI>Provide feedback by creating a <a
+                  href="https://github.com/jhu-bids/termhub/issues/new/choose"
+                  target="_blank" rel="noopener noreferrer">GitHub
+                issue.</a></LI>
+              <LI>
+                Let us know of any bug or a poor user experience, or share a
+                feature
+                request.
+              </LI>
+            </ul>
+          </div>
+          {/* Copyright notice */}
+          <div style={{
+            position: 'fixed',
+            bottom: 0,
+            left: 0,
+            width: '100%',
+            height: '40px',
+            backgroundColor: 'white',
+            paddingLeft: '20px',
+            borderTop: '1px solid #eee'
+          }}>
+            &#169; Johns Hopkins University 2023, 2024. Available open source on{' '}
+            <a href="https://github.com/jhu-bids/TermHub">GitHub</a> under a{' '}
+            <a href="https://github.com/jhu-bids/TermHub/blob/develop/LICENSE">GPL 3 License</a>.
+          </div>
+        </div>
       </div>
-      <div style={{position: 'absolute', top: window.innerHeight - 40 + 'px'}}>
-        &#169; Johns Hopkins University 2023. Available open source on{' '}
-        <a href="https://github.com/jhu-bids/TermHub">GitHub</a> under a{' '}
-        <a href="https://github.com/jhu-bids/TermHub/blob/develop/LICENSE">
-          GPL 3 License
-        </a>
-        .
-      </div>
-    </>
-);
-
+  )
+}
