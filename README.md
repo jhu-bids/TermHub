@@ -8,6 +8,7 @@
  
 [![Test, Frontend Dev (local changes), Playwright E2E](https://github.com/jhu-bids/TermHub/actions/workflows/test_frontend_e2e_live_dev_running_local.yml/badge.svg)](https://github.com/jhu-bids/TermHub/actions/workflows/test_frontend_e2e_live_dev_running_local.yml)
 [![Test, Frontend Dev, Playwright E2E](https://github.com/jhu-bids/TermHub/actions/workflows/test_frontend_e2e_live_dev.yml/badge.svg)](https://github.com/jhu-bids/TermHub/actions/workflows/test_frontend_e2e_live_dev.yml)
+
 About these extra badges:
 - **Both badges**: Defunct as of 2024/12, as from that time we are only using a single deployment. 
 - **`Test, Frontend Dev (local changes), Playwright E2E` only**: Failure on this doesn't necessarily indicate an issue. It could just mean that the deployed instance has an older UI that is not compatible with new tests:
