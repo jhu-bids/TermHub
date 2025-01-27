@@ -78,12 +78,12 @@ You should have an environmental variable called `psql_conn`, set as follows:
 `psql_conn="host=$TERMHUB_DB_HOST port=$TERMHUB_DB_PORT dbname=$TERMHUB_DB_DB user=$TERMHUB_DB_USER 
 password=$TERMHUB_DB_PASS sslmode=require"`
 
-If you run `./db_backup.sh`, it will generate commands that you can directly copy/paste into the terminal to (i) 
-create the backup, and (ii) restore it.
+If you run `./db_backup.sh`, it will generate commands that you can directly copy/paste into the terminal to create a 
+backup file.
 
-**Optional steps**
-- [Google Drive](https://drive.google.com/drive/folders/1Nc2ZVzjT62q__wrNRfKfFsstaMvrG3Rm): Uploading the backup there as well can be helpful because it has happened in the past that our 
-- backup schemas on PostgreSQL have gotten corrupted.
+Then, it should be uploaded to the [BIDS Teams drive](https://livejohnshopkins.sharepoint.com/sites/BiomedicalInformaticsandDataScience/Shared%20Documents/Forms/AllItems.aspx?id=%2Fsites%2FBiomedicalInformaticsandDataScience%2FShared%20Documents%2FResearch%2FProjects%2FTermHub%2FBackups&viewid=51daccc9%2D8479%2D4ef4%2Da7bf%2D65b689881f3a). 
+The `./db_backup.sh` will instruct otherwise for this step. It will say to upload to the remote PostgreSQL server. 
+However, this is only for if TermHub is actively funded and in use.
 
 ### Adding new tables / views
 If any new views or derived tables are added, there are some additional steps that need to be followed in order to avoid
