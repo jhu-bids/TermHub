@@ -18,6 +18,8 @@ from typing import Dict, List, Set, Tuple, Union
 
 from sqlalchemy import Connection
 
+from enclave_wrangler.utils import EnclaveWranglerErr
+
 DB_DIR = os.path.dirname(os.path.realpath(__file__))
 BACKEND_DIR = os.path.join(DB_DIR, "..")
 PROJECT_ROOT = os.path.join(BACKEND_DIR, "..")
@@ -30,6 +32,9 @@ from enclave_wrangler.objects_api import csets_and_members_to_db, fetch_cset_and
     get_csets_over_threshold, sync_expressions_for_csets, update_cset_metadata_from_objs
 
 DESC = "Resolve any failures resulting from fetching data from the Enclave's objects API."
+err_500_msg = "Tried to fetch members for cset {}, but got an error 500. Suspecting this is due to having more " \
+    "members than the Enclave API will allow to fetch. Marking it in the DB as such a suspected case. This cset will " \
+    "have to be fetched some other way."
 
 
 def _report_success(
@@ -247,12 +252,32 @@ def resolve_fetch_failures_0_members(
         failure_lookup.update(failure_lookup_i)
 
         # Fetch data
-        csets_and_members: Dict[str, List[Dict]] = fetch_cset_and_member_objects(
-            codeset_ids=list(failed_cset_ids), flag_issues=False)
+        try:
+            csets_and_members: Dict[str, List[Dict]] = fetch_cset_and_member_objects(
+                codeset_ids=list(failed_cset_ids), flag_issues=False)
+        except EnclaveWranglerErr as err:  # Handle new excess item / server error 500 cases
+            err2: Dict = err.args[0]
+            err3: Dict = err2['error_report']
+            # todo: would be good to close initial "status_initially" and open a new one, rather than changing it.
+            # todo: would be good to have WHERE clause include table and status_initially cols, too
+            if err2['status_code'] == 500 and err3['request'].endswith('links/omopconcepts'):
+                err_id = int(err3['request'].split('/')[-3])
+                err_cmt = failure_lookup[err_id]['comment'] + 'Received error 500 while trying to resolve fetch ' + \
+                    'failures under initial failure status of "fail-0-members". Suspected that this is now a ' + \
+                    'case of "fail-exessive-items", so setting status to that.'
+                with get_db_connection(schema='', local=use_local_db) as con:
+                    run_sql(con, f"UPDATE fetch_audit SET status_initially = 'fail-excessive-items', "
+                        f"comment = '{err_cmt}' WHERE primary_key = '{err_id}';")
+                failed_cset_ids.remove(err_id)
+                if not failed_cset_ids:
+                    raise RuntimeError(err_500_msg.format(err_id))
+                csets_and_members: Dict[str, List[Dict]] = fetch_cset_and_member_objects(
+                    codeset_ids=list(failed_cset_ids), flag_issues=False)
 
         # Sync updates
         with get_db_connection(schema=schema, local=use_local_db) as con:
             # - identify & report discarded drafts
+            # noinspection PyUnboundLocalVariable false_positive
             discarded_cset_ids = handle_discarded_drafts(
                 con, csets_and_members, failed_cset_ids, failure_lookup, use_local_db=use_local_db)
             # - sync expression item additions or deletions (todo: updates too)
@@ -262,6 +287,7 @@ def resolve_fetch_failures_0_members(
             return  # all failures were discarded
 
         # - identify persistent, long-lived drafts
+        # noinspection PyUnboundLocalVariable false_positive
         cset_is_draft_map.update(
             {x['properties']['codesetId']: x['properties']['isDraft'] for x in csets_and_members['OMOPConceptSet']})
         # - identify / filter success cases & track results
