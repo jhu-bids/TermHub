@@ -276,6 +276,11 @@ def resolve_fetch_failures_0_members(
         # Sync updates
         with get_db_connection(schema=schema, local=use_local_db) as con:
             # - identify & report discarded drafts
+            # todo: Fix: Somehow it is possible it's actually not a false positive, that csets_and_members can be
+            #  unbound. On very rare occassion (so far once every several years), there will be an excess members cset,
+            #  which will cause a 500 here. As can be seen above, if it's the only cset, it re-raises the err. Else, it
+            #  will re-run csets_and_members. So by the time it gets here, it should not be unbound. But that did
+            #  happen: https://github.com/jhu-bids/TermHub/actions/runs/13448793056/job/37579441859
             # noinspection PyUnboundLocalVariable false_positive
             discarded_cset_ids = handle_discarded_drafts(
                 con, csets_and_members, failed_cset_ids, failure_lookup, use_local_db=use_local_db)
