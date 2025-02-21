@@ -18,8 +18,6 @@ from typing import Dict, List, Set, Tuple, Union
 
 from sqlalchemy import Connection
 
-from enclave_wrangler.utils import EnclaveWranglerErr
-
 DB_DIR = os.path.dirname(os.path.realpath(__file__))
 BACKEND_DIR = os.path.join(DB_DIR, "..")
 PROJECT_ROOT = os.path.join(BACKEND_DIR, "..")
@@ -30,6 +28,7 @@ from backend.db.utils import SCHEMA, fetch_status_set_success, get_db_connection
     run_sql, select_failed_fetches, refresh_derived_tables, sql_in, sql_query
 from enclave_wrangler.objects_api import csets_and_members_to_db, fetch_cset_and_member_objects, fetch_cset_version, \
     get_csets_over_threshold, sync_expressions_for_csets, update_cset_metadata_from_objs
+from enclave_wrangler.utils import EnclaveWranglerErr
 
 DESC = "Resolve any failures resulting from fetching data from the Enclave's objects API."
 err_500_msg = "Tried to fetch members for cset {}, but got an error 500. Suspecting this is due to having more " \
