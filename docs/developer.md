@@ -16,7 +16,8 @@ There are several database refreshes, which synchronize TermHub with its data so
 important of these is for the concept set tables. After these tables are synchronized, any dependent tables or views 
 are also regenerated.
 
-A refresh is done nightly via [GitHub action](https://github.com/jhu-bids/TermHub/actions/workflows/db_refresh.yml), 
+A refresh is done every 20 minutes via [GitHub action](
+https://github.com/jhu-bids/TermHub/actions/workflows/db_refresh.yml), 
 but this can also be run manually, either by (a) using the [GitHub action](https://github.com/jhu-bids/TermHub/actions/workflows/db_refresh.yml), or (b) running the Python script 
 manually via `python backend/db/full_data_refresh.py`, which supports the following CLI parameters.
 
@@ -29,6 +30,16 @@ manually via `python backend/db/full_data_refresh.py`, which supports the follow
 | `-f` / `--force-download-if-exists`    | True    | If the dataset/object already exists as a local file, force a re-download. This is moot if the last update was done within --hours-threshold-for-updates.                                                                                    |
 | `-l` / `--use-local-db`                | False   | Use local database instead of server.                                                                                                                                                                                                        |
 
+There is also a second refresh for these tables that also runs every 20 minutes, specifically an [action for draft 
+finalization](https://github.com/jhu-bids/TermHub/actions/workflows/resolve_fetch_failures_0_members.yml). It is called 
+"Resolve fetch failures: New csets w/ 0 members".
+
+To see when this refresh was last successfully run, consult the `last_refresh_success` variable in the `manage` table. 
+There are also several other useful variables there, such as `last_intialized_DB` (the last time it was 
+initialized from scratch), `last_refresh_result` ("success" or "error"), and `last_refresh_error`. Another way to see 
+the datetime of the last successful run, you can open up VS-Hub and look at the console; it prints this on app 
+initialization. 
+
 ### Refresh: Counts tables
 Patient and record counts are updated in the N3C data enclave routinely, typically every few weeks or months. There is 
 a [GitHub action](https://github.com/jhu-bids/TermHub/actions/workflows/refresh_counts.yml) that checks nightly for 
@@ -39,6 +50,9 @@ as their derived tables and views.
 
 This can also be run manually via `make refresh-counts`, or `python backend/db/refresh_dataset_group_tables.py 
 --dataset-group counts`.
+
+To see when this refresh was last successfully run, consult the `last_refreshed_counts_tables` variable in the `manage` 
+table.
 
 ### Refresh: Vocabulary tables
 OMOP vocabulary tables are updated typically every 6 months. There is 
@@ -59,6 +73,9 @@ sees that the pickle is out of date, it will regenerate it. This takes about 5 m
 
 This can also be run manually via `make refresh-vocab`, or `python backend/db/refresh_dataset_group_tables.py 
 --dataset-group vocab`.
+
+To see when this refresh was last successfully run, consult the `last_refreshed_vocab_tables` variable in the `manage` 
+table.
 
 ### Standard Operating Procedure (SOP) for vocabulary refresh
 Every 6 months or so, whenever the vocab tables are updated:
