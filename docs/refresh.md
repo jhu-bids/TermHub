@@ -1,4 +1,5 @@
-### Refresh: Concept set tables (`code_sets`, `concept_set_container`, `concept_set_version_item` `concept_set_members`)
+# Database refreshing
+## Core (concept set) tables (`code_sets`, `concept_set_container`, `concept_set_version_item`, `concept_set_members`)
 There are several database refreshes, which synchronize TermHub with its data source, the N3C data enclave. The most 
 important of these is for the concept set tables. After these tables are synchronized, any dependent tables or views 
 are also regenerated.
@@ -21,7 +22,7 @@ initialized from scratch), `last_refresh_result` ("success" or "error"), and `la
 the datetime of the last successful run, you can open up VS-Hub and look at the console; it prints this on app 
 initialization. 
 
-### Refresh: Counts tables
+## Counts tables
 Patient and record counts are updated in the N3C data enclave routinely, typically every few weeks or months. There is 
 a [GitHub action](https://github.com/jhu-bids/TermHub/actions/workflows/refresh_counts.yml) that checks nightly for 
 any changes and updates if so.
@@ -35,7 +36,7 @@ This can also be run manually via `make refresh-counts`, or `python backend/db/r
 To see when this refresh was last successfully run, consult the `last_refreshed_counts_tables` variable in the `manage` 
 table.
 
-### Refresh: Vocabulary tables
+## Vocabulary tables
 OMOP vocabulary tables are updated typically every 6 months. There is 
 a [GitHub action](https://github.com/jhu-bids/TermHub/actions/workflows/refresh_voc.yml) that checks nightly for 
 any changes and updates if so. 
@@ -58,10 +59,19 @@ This can also be run manually via `make refresh-vocab`, or `python backend/db/re
 To see when this refresh was last successfully run, consult the `last_refreshed_vocab_tables` variable in the `manage` 
 table.
 
-### Standard Operating Procedure (SOP) for vocabulary refresh
+## Standard Operating Procedure (SOP) for vocabulary refresh
 Every 6 months or so, whenever the vocab tables are updated:
 1. Run the vocab refresh locally.
 2. Go to https://portal.azure.com/ and restart the TermHub server(s).
 3. After 15 minutes or so, face check the app in the browser to make sure it's working.
 4. It's also a good idea to run the frontend [Playwright E2E tests](https://github.com/jhu-bids/termhub/actions), 
 though these do run nightly.
+
+## Monitoring
+Failed GitHub actions will result in an email sent to termhub-support@jh.edu. They will link to a log for a specific run
+of actions in https://github.com/jhu-bids/termhub/actions. Since development has halted as of 2025/01, these failures 
+have hitherto been completely out of our control. However, they have all resolved on their own after some time (days, 
+hours, or in most cases by the very next refresh 20 minutes later). Therefore, if you observe errors showing up, the 
+best thing to do is ignore them unless they are still failing, i.e. they have failed multiple times, and the last time 
+they ran (within the last 20 minutes) was also a failure. A list of failures out of our control that we have previously 
+observed can be found in [refresh_failure_history.md](refresh_failure_history.md). 
