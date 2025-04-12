@@ -25,6 +25,7 @@ Allows comparison of overlapping concept sets, display of cset metadata, display
 ## Docs index
 - [TermHub home page](./README.md)
 - [Developer](./docs/developer.md)
+  - [Refresh](./docs/refresh.md) 
 - [Backend](./backend/README.md)
   - [DB counts](./docs/backend/db/analysis.md) 
 - [Frontend](./frontend/README.md)
