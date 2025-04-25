@@ -294,35 +294,37 @@ def get_datetime_dataset_last_updated(identifier: str) -> str:
 
 
 def download_and_transform(
-    dataset_name: str = None, dataset_rid: str = None, ref: str = 'master', output_dir: str = None, outpath: str = None,
+    dataset_name: List[str] = None, dataset_rid: str = None, ref: str = 'master', output_dir: str = None, outpath: str = None,
     transforms_only=False, dataset_config: Dict = None, force_if_exists=True
 ):
     """Download dataset & run transformations"""
-    print(f'INFO: Downloading: {dataset_name}')
-    dataset_rid = DATASET_REGISTRY[dataset_name]['rid'] if not dataset_rid else dataset_rid
-    dataset_name = DATASET_REGISTRY_RID_NAME_MAP[dataset_rid] if not dataset_name else dataset_name
-    dataset_config = dataset_config if dataset_config else DATASET_REGISTRY[dataset_name]
+    dataset_names = dataset_name if isinstance(dataset_name, list) else [dataset_name]
+    for dataset_name in dataset_names:
+        print(f'INFO: Downloading: {dataset_name}')
+        dataset_rid = DATASET_REGISTRY[dataset_name]['rid'] if not dataset_rid else dataset_rid
+        dataset_name = DATASET_REGISTRY_RID_NAME_MAP[dataset_rid] if not dataset_name else dataset_name
+        dataset_config = dataset_config if dataset_config else DATASET_REGISTRY[dataset_name]
 
-    # Download
-    if not transforms_only:
-        # todo: would be good to accept either 'outdir' or 'outpath'.
-        if not outpath:
-            outpath = os.path.join(output_dir, f'{dataset_name}.csv') if output_dir else None
-        if os.path.exists(outpath) and not force_if_exists:
-            t = time.ctime(os.path.getmtime(outpath))
-            print(f'Skipping {os.path.basename(outpath)}: {t}, {os.path.getsize(outpath)} bytes.')
-        else:
-            if os.path.exists(outpath):
+        # Download
+        if not transforms_only:
+            # todo: would be good to accept either 'outdir' or 'outpath'.
+            if not outpath:
+                outpath = os.path.join(output_dir, f'{dataset_name}.csv') if output_dir else None
+            if os.path.exists(outpath) and not force_if_exists:
                 t = time.ctime(os.path.getmtime(outpath))
-                print(f'Clobbering {os.path.basename(outpath)}: {t}, {os.path.getsize(outpath)} bytes.')
-            end_ref = get_transaction(dataset_rid, ref)
-            args = {'dataset_rid': dataset_rid, 'end_ref': end_ref}
-            file_parts = views2(**args)
-            # asyncio.run(download_and_combine_dataset_parts(dataset_rid, file_parts))
-            download_csv_from_parquet_parts(dataset_config, file_parts, outpath=outpath)
+                print(f'Skipping {os.path.basename(outpath)}: {t}, {os.path.getsize(outpath)} bytes.')
+            else:
+                if os.path.exists(outpath):
+                    t = time.ctime(os.path.getmtime(outpath))
+                    print(f'Clobbering {os.path.basename(outpath)}: {t}, {os.path.getsize(outpath)} bytes.')
+                end_ref = get_transaction(dataset_rid, ref)
+                args = {'dataset_rid': dataset_rid, 'end_ref': end_ref}
+                file_parts = views2(**args)
+                # asyncio.run(download_and_combine_dataset_parts(dataset_rid, file_parts))
+                download_csv_from_parquet_parts(dataset_config, file_parts, outpath=outpath)
 
-    # Transform
-    transform(dataset_config)
+        # Transform
+        transform(dataset_config)
 
 
 def download_datasets(

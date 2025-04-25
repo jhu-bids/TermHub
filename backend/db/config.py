@@ -97,7 +97,9 @@ STANDALONE_TABLES = [
     'session_concept',
     'sessions',
     'test',
-    'code_sets_audit'
+    'code_sets_audit',
+    'vocabulary',
+    'domain',
 ]
 # DERIVED_TABLE_DEPENDENCY_MAP: Shows which tables are needed to create a derived table. Generally the idea is that when
 #  the dependency tables are updated, the dependent table also needs to be updated. But some tables in here have

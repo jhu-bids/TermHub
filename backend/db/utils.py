@@ -1047,4 +1047,6 @@ def cli():
 
 
 if __name__ == '__main__':
+    # with get_db_connection(schema='') as con:
+    #     load_csv(con, 'domain')
     cli()

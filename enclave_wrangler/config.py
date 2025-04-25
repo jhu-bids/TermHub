@@ -158,6 +158,20 @@ DATASET_REGISTRY = OrderedDict({
         'sort_idx': ['relationship_name'],
         'dataset_groups': ['vocab']
     },
+    'vocabulary': {
+        'name': 'vocabulary',
+        'rid': 'ri.foundry.main.dataset.0e1acd60-6eeb-49e1-9189-1b8a6221ac29',
+        'column_names': ["vocabulary_id", "vocabulary_name", "vocabulary_reference", "vocabulary_version", "vocabulary_concept_id"],
+        'sort_idx': ['vocabulary_id'],
+        'dataset_groups': ['vocab']
+    },
+    'domain': {
+        'name': 'domain',
+        'rid': 'ri.foundry.main.dataset.e1f7eefb-4730-43cf-9bad-42b0c3803740',
+        'column_names': ["domain_id", "domain_name", "domain_concept_id"],
+        'sort_idx': ['domain_id'],
+        'dataset_groups': ['vocab']
+    },
     # not downloadable -- yet
     # 'safe_harbor_term_usage': {
     #     'name': 'safe_harbor_term_usage',
