@@ -1,6 +1,7 @@
 # Developer docs
 ## [Frontend](../frontend/README.md)
 ## [Backend](../backend/README.md)
+## [Refresh](./refresh.md)
 
 ## Testing
 ### Backend tests
@@ -11,62 +12,7 @@ We do have some end-to-end test workflows. Can run them locally via `make test-f
 you can see alternative commands (e.g. debugging). There is also a GitHub action for this.
 
 ## Database
-### Refresh: Concept set tables (`code_sets`, `concept_set_container`, `concept_set_version_item` `concept_set_members`)
-There are several database refreshes, which synchronize TermHub with its data source, the N3C data enclave. The most 
-important of these is for the concept set tables. After these tables are synchronized, any dependent tables or views 
-are also regenerated.
-
-A refresh is done nightly via [GitHub action](https://github.com/jhu-bids/TermHub/actions/workflows/db_refresh.yml), 
-but this can also be run manually, either by (a) using the [GitHub action](https://github.com/jhu-bids/TermHub/actions/workflows/db_refresh.yml), or (b) running the Python script 
-manually via `python backend/db/full_data_refresh.py`, which supports the following CLI parameters.
-
-| Parameter                              | Default | Description                                                                                                                                                                                                                                  |
-|----------------------------------------|---------|----------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------|
-| `-t` / `--hours-threshold-for-updates` | 24      | Threshold for how many hours since last update before we require refreshes. If last update time was less than this, nothing will happen. Will evaluate this separately for downloads of local artefacts as well as uploading data to the DB. |
-| `-o` / `--objects`                     | False   | Download objects.                                                                                                                                                                                                                            |
-| `-c` / `--datasets-csets`              | False   | Download datasets from the "cset" group.                                                                                                                                                                                                     |
-| `-v` / `--datasets-vocab`              | False   | Download datasets from the "vocab" group                                                                                                                                                                                                     |
-| `-f` / `--force-download-if-exists`    | True    | If the dataset/object already exists as a local file, force a re-download. This is moot if the last update was done within --hours-threshold-for-updates.                                                                                    |
-| `-l` / `--use-local-db`                | False   | Use local database instead of server.                                                                                                                                                                                                        |
-
-### Refresh: Counts tables
-Patient and record counts are updated in the N3C data enclave routinely, typically every few weeks or months. There is 
-a [GitHub action](https://github.com/jhu-bids/TermHub/actions/workflows/refresh_counts.yml) that checks nightly for 
-any changes and updates if so.
-
-This refresh updates the `concept_set_counts_clamped` and `deidentified_term_usage_by_domain_clamped` tables, as well 
-as their derived tables and views.
-
-This can also be run manually via `make refresh-counts`, or `python backend/db/refresh_dataset_group_tables.py 
---dataset-group counts`.
-
-### Refresh: Vocabulary tables
-OMOP vocabulary tables are updated typically every 6 months. There is 
-a [GitHub action](https://github.com/jhu-bids/TermHub/actions/workflows/refresh_voc.yml) that checks nightly for 
-any changes and updates if so. 
-
-**Warning**: As of November 2024, the GitHub action for this no longer works 100% of the time. Inexplicably, even with 
-the same inputs, sometimes it only takes ~4.5 hours, and sometimes it takes >6 hours, which is greater than the maximum 
-allowable time for GitHub actions. If it fails, then we can do the following: (i) perhaps just try running the action 
-again; maybe it will take <6 hours the second time, or (ii) just run the refresh locally. 
-
-This refresh updates the `concept`, `concept_ancestor`, `concept_relationship`, `relationship` tables, as well 
-as their derived tables and views.
-
-Additionally, whenever this refresh occurs, the `networkx` graph `term-vocab/relationship_graph.pickle` needs updating. 
-Presently this does not happen as part of the refresh runs, but afterward. The next time that the app starts, if it 
-sees that the pickle is out of date, it will regenerate it. This takes about 5 minutes.
-
-This can also be run manually via `make refresh-vocab`, or `python backend/db/refresh_dataset_group_tables.py 
---dataset-group vocab`.
-
-### Standard Operating Procedure (SOP) for vocabulary refresh
-Every 6 months or so, whenever the vocab tables are updated:
-1. Run the vocab refresh locally.
-2. Go to https://portal.azure.com/ and restart the TermHub server(s).
-3. After 15 minutes or so, face check the app in the browser to make sure it's working.
-4. It's also a good idea to run the frontend [Playwright E2E tests](https://github.com/jhu-bids/termhub/actions), 
-though these do run nightly.
+### [Refresh](./refresh.md)
 
 ### Allowing remote access
 To allow a new user to access the database remotely, their IP address must be added to Azure: (i) select 
@@ -78,12 +24,12 @@ You should have an environmental variable called `psql_conn`, set as follows:
 `psql_conn="host=$TERMHUB_DB_HOST port=$TERMHUB_DB_PORT dbname=$TERMHUB_DB_DB user=$TERMHUB_DB_USER 
 password=$TERMHUB_DB_PASS sslmode=require"`
 
-If you run `./db_backup.sh`, it will generate commands that you can directly copy/paste into the terminal to (i) 
-create the backup, and (ii) restore it.
+If you run `./db_backup.sh`, it will generate commands that you can directly copy/paste into the terminal to create a 
+backup file.
 
-**Optional steps**
-- [Google Drive](https://drive.google.com/drive/folders/1Nc2ZVzjT62q__wrNRfKfFsstaMvrG3Rm): Uploading the backup there as well can be helpful because it has happened in the past that our 
-- backup schemas on PostgreSQL have gotten corrupted.
+Then, it should be uploaded to the [BIDS Teams drive](https://livejohnshopkins.sharepoint.com/sites/BiomedicalInformaticsandDataScience/Shared%20Documents/Forms/AllItems.aspx?id=%2Fsites%2FBiomedicalInformaticsandDataScience%2FShared%20Documents%2FResearch%2FProjects%2FTermHub%2FBackups&viewid=51daccc9%2D8479%2D4ef4%2Da7bf%2D65b689881f3a). 
+The `./db_backup.sh` will instruct otherwise for this step. It will say to upload to the remote PostgreSQL server. 
+However, this is only for if TermHub is actively funded and in use.
 
 ### Adding new tables / views
 If any new views or derived tables are added, there are some additional steps that need to be followed in order to avoid
@@ -323,6 +269,7 @@ So if the version was 1.10.2 before, it would be 1.11.0 after.
 ### How to do a version update
 1. Update the version in `frontend/src/env.js`
 2. Tag the version in GitHub: `git tag VERSION; git push --tags`
+
 
 ## Periodic maintenance
 ### Updating environmental variables

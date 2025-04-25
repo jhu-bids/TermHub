@@ -1,6 +1,6 @@
 ## TermHub Backend
 
-[Understanding the code](./call_graph.md)
+[Understanding the code](../docs/call_graph.md)
 ### Running locally
 `uvicorn backend.app:APP --reload`
 

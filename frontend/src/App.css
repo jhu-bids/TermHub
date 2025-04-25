@@ -139,11 +139,6 @@ textarea {
   margin: 3px;
 }
 
-.info-block {
-  font-family: "Roboto", sans-serif;
-  padding: 0 20px;
-}
-
 /* from floating-ui popover sandbox:
     https://codesandbox.io/s/distracted-swirles-jo1pvu?file=/src/styles.css:59-312
  */

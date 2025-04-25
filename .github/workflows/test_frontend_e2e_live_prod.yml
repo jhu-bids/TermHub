@@ -17,11 +17,9 @@ jobs:
     runs-on: ubuntu-latest
     steps:
     - uses: actions/checkout@v4
-      with:
-        # TODO: If fails on prod, try dev again
-        #  Q: why is this 'dev' if it's for the test on prod? A: Because when we deployed to prod, our playwright tests hadn't been updated yet.
-#        ref: dev
-        ref: prod
+# 2024/12: Due to maintenance mode, we now only have 1 server. And the branch for deployment is basically = to both main and develop now. So we can just let this run on the default branch.
+#      with:
+#        ref: prod
 
     - name: Setup Node.js
       uses: actions/setup-node@v4

@@ -16,7 +16,7 @@ import { get, keyBy, orderBy, difference, isNumber, isEmpty, flatten } from 'lod
 import Card from '@mui/material/Card';
 import CardContent from '@mui/material/CardContent';
 import Typography from '@mui/material/Typography';
-import { DOCS } from './AboutPage';
+import { BlankSearchIntro } from './AboutPage';
 import { useDataGetter, getResearcherIdsFromCsets } from '../state/DataGetter';
 import {useCids, useCodesetIds} from '../state/AppState';
 
@@ -341,7 +341,7 @@ export function ConceptSetsPage () {
     return (
       <>
         <CsetSearch {...props} />
-        <div className="info-block">{DOCS.blank_search_intro}</div>
+        <BlankSearchIntro/>
       </>
     );
   }
