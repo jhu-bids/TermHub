@@ -210,7 +210,6 @@ uvloop==0.16.0
 validators==0.20.0
 virtualenv==20.15.1
 virtualenv-clone==0.5.7
-virtualenvwrapper==4.8.4
 watchdog==3.0.0
 watchfiles==0.15.0
 webcolors==1.12

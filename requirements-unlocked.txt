@@ -29,9 +29,7 @@ airium==0.2.6  # resolves "Please use pip<24.1 if you need to use this version."
 # dev dependencies
 # jq
 # psutil  # for memory profiling, if needed
-# joe uses this:
-virtualenvwrapper
-# todo: why is this here? Should come with Python distribution:
+# todo: not sure if we need this here. this comes with python dist, but we have had issues sometimes and need to upgrade, but I think this is handled by the GH action. It's difficult to say whether we want a fixed version or not because they do deprecate. We've had errors with both fixed and upgradeable, I think.
 setuptools
 
 # non-PyPi packages
