@@ -273,6 +273,10 @@ So if the version was 1.10.2 before, it would be 1.11.0 after.
 
 ## Periodic maintenance
 ### Updating environmental variables
+
+- To check on auth token expiration run `python -c "from enclave_wrangler.utils import check_token_ttl; print(check_token_ttl(format='date-days'))"`
+- To see the list of variables that should be included in `env/.env` and `ENV_FILE`, see [.env.example](https://github.com/jhu-bids/TermHub/blob/develop/.env.example)
+
 If any environmental variables are created/updated/deleted, follow these steps.
 
 1. **Local `.env`:** All devs need to update their `env/.env` file. Each dev's `.env` should be exactly the same.
