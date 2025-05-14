@@ -103,7 +103,7 @@ multidict==6.0.4
 myst-parser==1.0.0
 ndex2==3.5.0
 networkx==3.3
-numpy==1.23.1
+numpy>=1.23.1
 nxontology==0.4.1
 oauthlib==3.2.2
 ols-client==0.1.3
