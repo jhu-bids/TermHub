@@ -836,4 +836,5 @@ def usage():  # -> JSON_TYPE
 
 
 if __name__ == '__main__':
-    generate_n3c_comparison_rpt()
+    # generate_n3c_comparison_rpt()
+    whoami(verbose=True)

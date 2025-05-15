@@ -320,9 +320,9 @@ def get_url_from_api_path(path):
     return url
 
 
-def whoami():
+def whoami(verbose=False):
     url = f'https://{config["HOSTNAME"]}/multipass/api/me'
-    return enclave_get(url).json()
+    return enclave_get(url, verbose=verbose).json()
 # other api calls to get user info: https://unite.nih.gov/workspace/documentation/product/foundry-backend/security-api
 
 
