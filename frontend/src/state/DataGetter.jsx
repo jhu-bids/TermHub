@@ -153,6 +153,7 @@ export class DataGetter {
       alertTitle: 'Get all concept sets (partial) to populate select list',
       apiResultShape: 'array of keyed obj',
     },
+    /* i don't think whoami is needed, but not removing for now */
     whoami: {
       expectedParams: undefined,
       api: 'whoami',

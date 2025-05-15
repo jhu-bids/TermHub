@@ -199,7 +199,7 @@ export function CsetComparisonPage() {
     selected_csets,
     csmi,
     researchers,
-    currentUserId,
+    // currentUserId,
     specialConcepts,
   } = data;
 
@@ -215,8 +215,7 @@ export function CsetComparisonPage() {
       if (typeof (api_call_group_id) === 'undefined') return;
       if (!graphOptions) return;
 
-      let whoami = dataGetter.fetchAndCacheItems(dataGetter.apiCalls.whoami,
-          undefined);
+      // let whoami = dataGetter.fetchAndCacheItems(dataGetter.apiCalls.whoami, undefined);
 
       const graphData = await fetchGraphData({
         dataGetter,
@@ -260,7 +259,7 @@ export function CsetComparisonPage() {
 
       _gc.setGraphDisplayConfig(graphOptions, allRows, displayedRows);
 
-      const currentUserId = (await whoami).id;
+      // const currentUserId = (await whoami).id;
       const researcherIds = getResearcherIdsFromCsets(selected_csets);
       let researchers = await dataGetter.fetchAndCacheItems(
           dataGetter.apiCalls.researchers, researcherIds);
@@ -273,7 +272,7 @@ export function CsetComparisonPage() {
         csmi,
         concepts,
         researchers,
-        currentUserId,
+        // currentUserId,
         specialConcepts,
         gc: _gc,
         displayedRows,
