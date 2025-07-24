@@ -331,7 +331,7 @@ def find_termhub_missing_csets(con: Connection = None) -> Set[int]:
 def fetch_all_csets(filter_results=True) -> List[Dict]:
     """Fetch all concept sets from the enclave
 
-    :param filter_results (bool): If True, will filter out any old draftts from an old, incompatible data model (
+    :param filter_results (bool): If True, will filter out any old drafts from an old, incompatible data model (
     sourceApplicationVersion 1.0), as well as archived csets."""
     csets: List[Dict] = make_objects_request('OMOPConceptSet', return_type='data', handle_paginated=True)
     csets = [cset['properties'] for cset in csets]
@@ -522,11 +522,11 @@ def fetch_cset_and_member_objects(
     # Expression items & concept set members
     expression_items: List[Dict] = []
     member_items: List[Dict] = []
-    print(f' - fetching expressions/members for {len(cset_versions_by_id)} versions:')
+    print(f' - fetching expressions/members for {len(cset_versions_by_id)} versions')
     i = 0
     for version_id, cset in cset_versions_by_id.items():
         i += 1
-        print(f'   - {i}: {version_id}')
+        # print(f'   - {i}: {version_id}')
         # todo: if failed to get expression items, should we not check for members? maybe ok because flagged
         # - fetch expression items
         try:

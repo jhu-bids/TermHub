@@ -84,7 +84,6 @@ kgcl-rdflib==0.5.0
 kgcl_schema==0.6.8
 kiwisolver==1.4.4
 lark==1.1.5
-lru-dict==1.1.8
 lxml==4.9.2
 Markdown==3.3.7
 markdown-it-py==2.2.0

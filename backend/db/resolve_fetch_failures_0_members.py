@@ -211,7 +211,7 @@ def get_failures_0_members(
 
 def resolve_fetch_failures_0_members(
     version_ids: Union[int, List[int]] = None, use_local_db=False, polling_interval_seconds=30, schema=SCHEMA,
-    expansion_threshold_seconds=2 * 60 * 60, loop=False, force=False
+    expansion_threshold_seconds=3 * 60 * 60, loop=False, force=False
 ):
     """Resolve situations where we tried to fetch data from the Enclave, but failed due to the concept set being too new
     resulting in initial fetch of concept set members being 0.
@@ -241,7 +241,7 @@ def resolve_fetch_failures_0_members(
     i = 0
     t0 = datetime.now()
     cset_is_draft_map: Dict[int, bool] = {}
-    print(f"Fetching concept set versions and their related objects: {', '.join([str(x) for x in failed_cset_ids])}")
+    print(f"Fetching {len(failed_cset_ids)} concept set versions and their related objects: {', '.join([str(x) for x in failed_cset_ids])}")
     while len(failed_cset_ids) > 0 and (datetime.now() - t0).total_seconds() < expansion_threshold_seconds:
         i += 1
         if loop:
