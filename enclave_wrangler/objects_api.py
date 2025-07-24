@@ -542,7 +542,10 @@ def fetch_cset_and_member_objects(
                     call_github_action('resolve-fetch-failures-excess-items')
         # - fetch member items
         try:
-            cset['member_items']: List[Dict] = get_concept_set_version_members(version_id, return_detail='full')
+            # let's not bother getting members if it's a draft
+            cset['member_items']: List[Dict] = []
+            if not cset['properties']['isDraft']:
+                cset['member_items']: List[Dict] = get_concept_set_version_members(version_id, return_detail='full')
         except EnclavePaginationLimitErr as err:
             cset['member_items']: List[Dict] = err.args[1]['results_prior_to_error']
             if flag_issues:
