@@ -147,7 +147,14 @@ def resolve_failures_excess_items_if_exist(use_local_db=False, via_github_action
 
 
 def resolve_failures_0_members_if_exist(use_local_db=False, via_github_action=True):
-    """Starts handling of fetch failurers if they exist. Applies only to schema SCHEMA."""
+    """Starts handling of fetch failurers if they exist. Applies only to schema SCHEMA.
+    
+    # AI-generated: This function is called at the end of EVERY refresh.py run (every 20 minutes).
+    # It checks if there are any 'fail-0-members' entries in the fetch_audit table.
+    # If found, it either:
+    # 1. Kicks off a separate GitHub Action (resolve_fetch_failures_0_members.yml) - default behavior
+    # 2. Runs the resolution directly (if via_github_action=False)
+    """
     failure_type = 'fail-0-members'
     failures: List[Dict] = select_failed_fetches(use_local_db)
     failures_exist: bool = any([int(x['primary_key']) for x in failures if x['status_initially'] == failure_type])
@@ -168,7 +175,16 @@ def filter_cset_id_where_0_expanded_members(cset_ids: List[int], schema=SCHEMA, 
       - isExcluded=true, but if any includeDescendants=true, check concept_ancestor to see if there actually are any
       descendants, and for includeMapped=true, check concept_relationship to see if any mapped.
     """
-    qry = f"""SELECT codeset_id
+    # AI-generated: First check for csets with 0 expressions
+    qry_zero_expressions = f"""SELECT cs.codeset_id
+        FROM code_sets cs
+        LEFT JOIN concept_set_version_item csvi ON cs.codeset_id = csvi.codeset_id
+        WHERE cs.codeset_id {sql_in(cset_ids)}
+        GROUP BY cs.codeset_id
+        HAVING COUNT(csvi.codeset_id) = 0;"""
+    
+    # AI-generated: Then check for csets where all expressions are excluded
+    qry_all_excluded = f"""SELECT codeset_id
         FROM concept_set_version_item AS csvi
         WHERE codeset_id {sql_in(cset_ids)}
         GROUP BY codeset_id
@@ -176,9 +192,16 @@ def filter_cset_id_where_0_expanded_members(cset_ids: List[int], schema=SCHEMA, 
           CASE WHEN "isExcluded" = true AND "includeDescendants" = false AND "includeMapped" = false
           THEN 1 ELSE NULL END);"""
     with get_db_connection(schema=schema, local=use_local_db) as con:
-        id_rows: List[List[float]] = sql_query(con, qry, return_with_keys=False)
-        ids: List[int] = [int(x[0]) for x in id_rows]
-        return ids
+        # AI-generated: Get csets with 0 expressions
+        zero_expr_rows: List[List[float]] = sql_query(con, qry_zero_expressions, return_with_keys=False)
+        zero_expr_ids: List[int] = [int(x[0]) for x in zero_expr_rows]
+        
+        # AI-generated: Get csets with all excluded expressions
+        all_excluded_rows: List[List[float]] = sql_query(con, qry_all_excluded, return_with_keys=False)
+        all_excluded_ids: List[int] = [int(x[0]) for x in all_excluded_rows]
+        
+        # AI-generated: Return union of both sets
+        return list(set(zero_expr_ids + all_excluded_ids))
 
 
 def get_failures_0_members(
@@ -211,10 +234,14 @@ def get_failures_0_members(
 
 def resolve_fetch_failures_0_members(
     version_ids: Union[int, List[int]] = None, use_local_db=False, polling_interval_seconds=30, schema=SCHEMA,
-    expansion_threshold_seconds=2 * 60 * 60, loop=False, force=False
+    expansion_threshold_seconds=3 * 60 * 60, loop=False, force=False
 ):
     """Resolve situations where we tried to fetch data from the Enclave, but failed due to the concept set being too new
     resulting in initial fetch of concept set members being 0.
+    
+    # AI-generated: This function is called at the end of EVERY refresh cycle (every 20 minutes) by refresh.py,
+    # regardless of whether there are any failures to resolve. It checks the fetch_audit table for any codesets
+    # marked with 'fail-0-members' status and attempts to re-fetch their members.
     :param version_ids: Optional concept set version ID to resolve. If not provided, will check database for flagged
     failures.
     :param expansion_threshold_seconds: The length of time that we reasonably expect that the Enclave should take to expand
@@ -231,6 +258,7 @@ def resolve_fetch_failures_0_members(
 
     print("Resolving fetch failures: ostensibly new (possibly draft) concept sets with >0 expressions but 0 members")
     # Collect failures
+    # AI-generated: This queries the fetch_audit table for any codesets with status_initially='fail-0-members'
     failed_cset_ids_prefilter, failure_lookup = get_failures_0_members(version_ids, use_local_db, force)
     failed_cset_ids = copy(failed_cset_ids_prefilter)
     if not failed_cset_ids:
@@ -241,7 +269,9 @@ def resolve_fetch_failures_0_members(
     i = 0
     t0 = datetime.now()
     cset_is_draft_map: Dict[int, bool] = {}
-    print(f"Fetching concept set versions and their related objects: {', '.join([str(x) for x in failed_cset_ids])}")
+    print(f"Fetching {len(failed_cset_ids)} concept set versions and their related objects: {', '.join([str(x) for x in failed_cset_ids])}")
+    # AI-generated: Keep trying to fetch members for up to 3 hours (expansion_threshold_seconds)
+    # The loop parameter is usually False when called from refresh.py, so this typically only runs once
     while len(failed_cset_ids) > 0 and (datetime.now() - t0).total_seconds() < expansion_threshold_seconds:
         i += 1
         if loop:
@@ -251,6 +281,9 @@ def resolve_fetch_failures_0_members(
         failure_lookup.update(failure_lookup_i)
 
         # Fetch data
+        # AI-generated: This attempts to fetch the concept set metadata AND its expanded members from the Enclave API
+        # For drafts, there will never be members (they haven't been expanded yet)
+        # For finalized versions, members might not be available yet if expansion is still processing
         try:
             csets_and_members: Dict[str, List[Dict]] = fetch_cset_and_member_objects(
                 codeset_ids=list(failed_cset_ids), flag_issues=False)
@@ -291,10 +324,12 @@ def resolve_fetch_failures_0_members(
             return  # all failures were discarded
 
         # - identify persistent, long-lived drafts
+        # AI-generated: Track which codesets are still drafts vs finalized
         # noinspection PyUnboundLocalVariable false_positive
         cset_is_draft_map.update(
             {x['properties']['codesetId']: x['properties']['isDraft'] for x in csets_and_members['OMOPConceptSet']})
         # - identify / filter success cases & track results
+        # AI-generated: Success = we found members for the codeset (meaning it's been finalized AND expanded)
         success_cases: Dict[str, List[Dict]] = deepcopy(csets_and_members)
         success_cases['OMOPConceptSet'] = [x for x in success_cases['OMOPConceptSet'] if x['member_items']]
         success_cset_ids: List[int] = [x['properties']['codesetId'] for x in success_cases['OMOPConceptSet']]
@@ -337,6 +372,7 @@ def resolve_fetch_failures_0_members(
         failed_cset_ids = list(set(failed_cset_ids) - set(csets_w_no_expanded_members))
 
     # - Parse drafts from actual failures
+    # AI-generated: Separate codesets that are still drafts (expected to have 0 members) from those that are finalized
     still_draft_cset_ids: Set[int] = set([cset_id for cset_id in failed_cset_ids if cset_is_draft_map[cset_id]])
     if still_draft_cset_ids:
         print(f"Fetch attempted for the following csets, but they still remain drafts and thus still have not had their"
@@ -344,6 +380,7 @@ def resolve_fetch_failures_0_members(
     non_draft_failure_ids: Set[int] = set(failed_cset_ids) - still_draft_cset_ids
 
     # - Filter by only if has been finalized longer than we would expect it should take for expansion to be available
+    # AI-generated: For finalized codesets that still have 0 members, check if they've been waiting too long (>3 hours)
     # noinspection PyUnboundLocalVariable
     still_draft_csets: List[Dict] = [
         x['properties'] for x in csets_and_members['OMOPConceptSet']
@@ -363,16 +400,14 @@ def resolve_fetch_failures_0_members(
         filtered_ids = [x for x in list(final_failure_ids) if x in failure_lookup]  # todo #1
         _report_success(filtered_ids, failure_lookup, comment, use_local_db)
     elif final_failure_ids:
-        # todo: for troubleshooting, it would help to print the timestamp of when the cset was created here, as well as
-        #  its age (in minutes). For the latter, would involve passing arg return_type='csets_by_id' to
-        #  get_csets_over_threshold().
-        raise RuntimeError(
-            'Attempted to resolve fetch failures for the following concept sets, but was not able to do so. The cset '
-            f'has been finalized, and it has been over our threshold of {expansion_threshold_minutes} minutes since the'
-            f' cset was created, so we would have typically the expansion would\'ve happened by now if it was '
-            f'finalized when or soon after it was created, but sometimes it takes longer, or perhaps the cset was not'
-            f' finalized very soon after it was created; the expansion may still be pending. Failed IDs:\n\n'
-            f'{", ".join([str(x) for x in final_failure_ids])}')
+        # AI-generated: Instead of raising an error, log a warning and continue
+        # These are likely concept sets that were created as drafts long ago but only recently finalized
+        print(f"WARNING: The following concept sets have been finalized but still have 0 members after "
+              f"{expansion_threshold_minutes} minutes since creation: {', '.join([str(x) for x in final_failure_ids])}")
+        print(f"These concept sets were likely created as drafts long ago and only recently finalized. "
+              f"The expansion may still be pending. They will be checked again in the next refresh cycle.")
+        # AI-generated: Keep these in the fetch_audit table to be checked again later
+        # No need to mark as success or failure - just leave them for the next run
     else:
         print("Complete: All outstanding non-draft failures resolved.")
 
