@@ -198,12 +198,15 @@ def get_all_csets(con: Connection = None) -> Union[Dict, List]:
         SELECT codeset_id,
               concept_set_version_title,
               alias,
+              replace(left(codeset_created_at, 16), 'T', ' ') AS codeset_created_at,
               version,
               --concepts
               counts,
               distinct_person_cnt,
               total_cnt
-        FROM {SCHEMA}.all_csets""")
+        FROM {SCHEMA}.all_csets
+        ORDER BY 4 DESC
+        """)
     # can't check for dups with json object in the results
     # if len(set(results)) != len(results):
     #     raise "Duplicate records in all_csets. Please alert app admin: sigfried@sigfried.org"
