@@ -13,12 +13,13 @@ CREATE TABLE IF NOT EXISTS {{schema}}concept_relationship_plus{{optional_suffix}
           , c1.standard_concept AS sc1
           , cr.concept_id_1
           , c1.concept_name AS concept_name_1
-          , c1.concept_code
+          , c1.concept_code AS concept_code_1
           , cr.relationship_id
           , c2.vocabulary_id AS vocabulary_id_2
           , c2.standard_concept AS sc2
           , cr.concept_id_2
-          , c2.concept_name AS concept_name_2
+          , c2.concept_name AS concept_name_2   -- added 2025-08-29 and running in postgres
+          , c2.concept_code AS concept_code_2
           , c1.total_cnt AS total_cnt_1
   FROM {{schema}}concept_relationship cr
   JOIN {{schema}}concepts_with_counts c1 ON cr.concept_id_1 = c1.concept_id -- AND c1.invalid_reason IS NULL
