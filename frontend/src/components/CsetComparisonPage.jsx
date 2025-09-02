@@ -63,7 +63,6 @@ import {
 import {GraphContainer, ExpandState} from '../state/GraphState';
 import {getResearcherIdsFromCsets, useDataGetter} from '../state/DataGetter';
 import {LI} from './AboutPage';
-import {isEqual} from '@react-sigma/core';
 // import {AddConcepts} from "./AddConcepts";
 
 // TODO: Find concepts w/ good overlap and save a good URL for that

@@ -529,6 +529,8 @@ def fetch_cset_and_member_objects(
         # print(f'   - {i}: {version_id}')
         # todo: if failed to get expression items, should we not check for members? maybe ok because flagged
         # - fetch expression items
+        cset['member_items']: List[Dict] = []
+        cset['expression_items']: List[Dict] = []
         try:
             cset['expression_items']: List[Dict] = \
                 get_concept_set_version_expression_items(version_id, return_detail='full')
@@ -542,7 +544,9 @@ def fetch_cset_and_member_objects(
                     call_github_action('resolve-fetch-failures-excess-items')
         # - fetch member items
         try:
-            cset['member_items']: List[Dict] = get_concept_set_version_members(version_id, return_detail='full')
+            # let's not bother getting members if it's a draft
+            if not cset['properties']['isDraft']:
+                cset['member_items']: List[Dict] = get_concept_set_version_members(version_id, return_detail='full')
         except EnclavePaginationLimitErr as err:
             cset['member_items']: List[Dict] = err.args[1]['results_prior_to_error']
             if flag_issues:

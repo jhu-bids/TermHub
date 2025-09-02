@@ -1,8 +1,9 @@
 name: "Resolve fetch failures: New csets w/ 0 members"
 
 on:
-  schedule:
-    - cron: '10 5 * * *'  # every day 5:10am GMT (12:10/1:10am EST/EDT)
+  # AI-generated: Removed the daily schedule since this is already triggered by refresh.py every 20 minutes
+  # schedule:
+  #   - cron: '10 5 * * *'  # every day 5:10am GMT (12:10/1:10am EST/EDT)
   workflow_dispatch:
     inputs:
       # todo: support list of IDs (comma-delimited)
@@ -10,6 +11,9 @@ on:
         description: 'Optional: Concept set version ID'
         required: false
 #        type: string  # integer not supported; type will be corrected by script
+  # AI-generated: Allow triggering from other workflows (like refresh.py does)
+  repository_dispatch:
+    types: [resolve_fetch_failures_0_members]
 jobs:
   resolve-fetch-failures-0-members:
     runs-on: ubuntu-latest

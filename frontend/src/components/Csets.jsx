@@ -32,16 +32,18 @@ function initialOpts (all_csets, codesetIds) { // option rows for autocomplete d
     .map((d) => ({
       label:
         // `${d.codeset_id} - ${d.alias}` +
-        `${d.codeset_id} - ${d.concept_set_version_title}` +
-        (isNumber(d.version) ? ` (v${d.version})` : '') + ' ' +
+        // `${d.codeset_id} - ${d.concept_set_version_title}; ` +
+        `${d.concept_set_version_title}; ` +
+        // (isNumber(d.version) ? ` (v${d.version})` : '') + ' ' +
         `${d.archived ? 'archived' : ''}` +
         (d.counts ?
-          get(d, ['counts', 'Expression items']).toLocaleString() +
-          ' definitions (expression items), ' +
-          get(d, ['counts', 'Members']).toLocaleString() +
-          ' expansion concepts (members)'
+          // get(d, ['counts', 'Expression items']).toLocaleString() + ' definitions (expression items), ' +
+          get(d, ['counts', 'Expression items']).toLocaleString() + ' expressions, ' +
+          // get(d, ['counts', 'Members']).toLocaleString() + ' expansion concepts (members)'
+          get(d, ['counts', 'Members']).toLocaleString() + ' expansion concepts'
           //`(${d.counts['Expression items'].toLocaleString()} expression items, ${d.counts.Members.toLocaleString()} members)`
-          : '(Empty)'),
+          : '(Empty)') +
+          `; ID: ${d.codeset_id}; ${d.codeset_created_at} UTC`,
       value: d.codeset_id,
       id: `search-${d.codeset_id}`,
       // selected: codesetIds.includes(d.codeset_id),
