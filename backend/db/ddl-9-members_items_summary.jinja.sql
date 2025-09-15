@@ -1,4 +1,5 @@
 -- Table: members_items_summary ----------------------------------------------------------------------------------------
+-- For each code set, lists the totals of members and expressions, in isolation or their intersection.
 DROP TABLE IF EXISTS {{schema}}members_items_summary{{optional_suffix}} CASCADE;
 
 CREATE TABLE {{schema}}members_items_summary{{optional_suffix}} AS

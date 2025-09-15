@@ -1,4 +1,7 @@
 -- Table: codeset_counts -----------------------------------------------------------------------------------------------
+-- For each codeset, create JSON structures that aggregate the count of each type of member, e.g. "expression item only"
+-- , "member only", and "Expression item and member", and also the number of members that have membership due to
+-- associated flag, e.g. "M" because they are mapped, or D because they are descendants.
 DROP TABLE IF EXISTS {{schema}}codeset_counts{{optional_suffix}} CASCADE;
 
 CREATE TABLE {{schema}}codeset_counts{{optional_suffix}} AS

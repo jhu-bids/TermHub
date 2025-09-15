@@ -1,4 +1,7 @@
 -- Table: concepts_with_counts  ----------------------------------------------------------------------------------------
+-- Collapses concept counts into a table with 1 row per concept, where domains are concatenated, we add domain_cnt to
+-- show number of domains the concept appears in / applies to, and get the total count or all concept appearances for
+-- all domains.
 DROP TABLE IF EXISTS {{schema}}concepts_with_counts{{optional_suffix}} CASCADE;
 
 CREATE TABLE IF NOT EXISTS {{schema}}concepts_with_counts{{optional_suffix}} AS (

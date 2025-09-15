@@ -1,7 +1,10 @@
 -- Table: all_csets ----------------------------------------------------------------------------------------------------
+-- Gather all concept set information into a single table: concept set fields, container fields, record and patient
+-- counts.
 -- todo: change CREATE TABLE cset_term_usage_rec_counts to `CREATE TEMP TABLE`?
 DROP TABLE IF EXISTS {{schema}}all_csets{{optional_suffix}} CASCADE;
 
+-- Compute record counts per concept
 DROP TABLE IF EXISTS {{schema}}cset_term_usage_rec_counts;
 CREATE TABLE {{schema}}cset_term_usage_rec_counts AS
     SELECT csm.codeset_id, SUM(cwc.total_cnt) AS total_cnt
