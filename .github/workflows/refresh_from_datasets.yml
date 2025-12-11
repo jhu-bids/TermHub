@@ -5,6 +5,7 @@ on:
 
 jobs:
   refresh-db:
+    if: false  # Disabled - N3C API access removed
     runs-on: macos-latest
     steps:
       - name: Checkout repository and submodules

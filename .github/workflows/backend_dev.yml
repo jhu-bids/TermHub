@@ -21,6 +21,7 @@ on:
 
 jobs:
   build:
+    if: false  # Disabled - N3C API access removed
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v2

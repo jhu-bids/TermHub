@@ -24,6 +24,7 @@ on:
     types: [refresh-db]
 jobs:
   refresh-db:
+    if: false  # Disabled - N3C API access removed
 #    runs-on: ubuntu-18.04
     runs-on: ubuntu-latest
     steps:

@@ -8,6 +8,7 @@ on:
   workflow_dispatch:
 jobs:
   kill-idle-cons:
+    if: false  # Disabled - N3C API access removed
     runs-on: ubuntu-latest
     steps:
       # Set up

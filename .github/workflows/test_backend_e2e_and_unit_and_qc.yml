@@ -15,6 +15,7 @@ on:
 
 jobs:
   test:
+    if: false  # Disabled - N3C API access removed
     strategy:
       fail-fast: false
       matrix:

@@ -9,6 +9,7 @@ on:
     types: [resolve-fetch-failures-excess-items]
 jobs:
   resolve-fetch-failures-excess-items:
+    if: false  # Disabled - N3C API access removed
     runs-on: ubuntu-latest
     steps:
       - name: Checkout repository and submodules

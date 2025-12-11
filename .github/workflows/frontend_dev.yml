@@ -14,7 +14,7 @@ on:
 
 jobs:
   build_and_deploy_job:
-    if: github.event_name == 'push' || (github.event_name == 'pull_request' && github.event.action != 'closed') || github.event_name == 'workflow_dispatch'
+    if: false  # Disabled - dev server taken down
     runs-on: ubuntu-latest
     name: Build and Deploy
     steps:
@@ -54,7 +54,7 @@ jobs:
           ###### End of Repository/Build Configurations ######
 
   close_pull_request_job:
-    if: github.event_name == 'pull_request' && github.event.action == 'closed'
+    if: false  # Disabled - dev server taken down
     runs-on: ubuntu-latest
     name: Close Pull Request
     steps:

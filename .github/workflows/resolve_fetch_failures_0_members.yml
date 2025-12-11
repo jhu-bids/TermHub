@@ -16,6 +16,7 @@ on:
     types: [resolve_fetch_failures_0_members]
 jobs:
   resolve-fetch-failures-0-members:
+    if: false  # Disabled - N3C API access removed
     runs-on: ubuntu-latest
     steps:
       - name: Checkout repository and submodules
