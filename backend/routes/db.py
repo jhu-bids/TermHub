@@ -4,7 +4,9 @@
 """
 import io
 import json
+import re
 import urllib.parse
+import zipfile
 from datetime import datetime
 from functools import cache, lru_cache
 from typing import Dict, List, Union, Set, Optional
@@ -23,9 +25,7 @@ from backend.db.utils import get_db_connection, sql_query, SCHEMA, sql_query_sin
 from backend.utils import return_err_with_trace, commify, recs2dicts, call_github_action
 from enclave_wrangler.config import RESEARCHER_COLS
 from enclave_wrangler.models import convert_rows
-from enclave_wrangler.objects_api import get_n3c_recommended_csets, get_codeset_json, get_bundle_codeset_ids, \
-        get_bundle_names
-from enclave_wrangler.utils import make_objects_request, whoami, check_token_ttl
+from backend.db.cache_bundle_data import get_cached_bundle_names, get_cached_bundle_codeset_ids
 
 FLAGS = ['includeDescendants', 'includeMapped', 'isExcluded']
 JSON_TYPE = Union[Dict, List]
@@ -470,6 +470,62 @@ def cset_download(codeset_id: int, sort_json: bool = False) -> Dict:
     return {'items': items_jsn}
 
 
+def sanitize_filename(name: str) -> str:
+    """Sanitize a string for use as a filename."""
+    # Replace problematic characters with underscores
+    name = re.sub(r'[<>:"/\\|?*]', '_', name)
+    # Remove leading/trailing whitespace and dots
+    name = name.strip('. ')
+    return name[:200]  # Limit length
+
+
+@router.get("/bundle-download")
+def bundle_download(bundle: str):
+    """Download all concept sets in a bundle as a zip file of Atlas JSON files.
+
+    Each concept set is saved as a separate JSON file named:
+    {concept_set_name}.{codeset_id}.json
+    """
+    codeset_ids = get_cached_bundle_codeset_ids(bundle)
+    if not codeset_ids:
+        return {"error": f"Bundle '{bundle}' not found or has no concept sets"}
+
+    # Get concept set names for filenames
+    with get_db_connection() as con:
+        query = text("""
+            SELECT codeset_id, concept_set_version_title
+            FROM all_csets
+            WHERE codeset_id = ANY(:codeset_ids)
+        """)
+        cset_names = {row['codeset_id']: row['concept_set_version_title']
+                      for row in sql_query(con, query, {'codeset_ids': codeset_ids})}
+
+    # Create zip file in memory
+    zip_buffer = io.BytesIO()
+    bundle_dirname = sanitize_filename(bundle)
+
+    with zipfile.ZipFile(zip_buffer, 'w', zipfile.ZIP_DEFLATED) as zip_file:
+        for codeset_id in codeset_ids:
+            try:
+                atlas_json = cset_download(codeset_id, sort_json=True)
+                cset_name = cset_names.get(codeset_id, 'unknown')
+                filename = f"{bundle_dirname}/{sanitize_filename(cset_name)}.{codeset_id}.json"
+                zip_file.writestr(filename, json.dumps(atlas_json, indent=2))
+            except Exception as e:
+                # Log error but continue with other codesets
+                print(f"Error downloading codeset {codeset_id}: {e}")
+
+    zip_buffer.seek(0)
+
+    return StreamingResponse(
+        zip_buffer,
+        media_type="application/zip",
+        headers={
+            "Content-Disposition": f"attachment; filename={bundle_dirname}.zip"
+        }
+    )
+
+
 # Utility functions ----------------------------------------------------------------------------------------------------
 @cache
 def parse_codeset_ids(qstring) -> List[int]:
@@ -479,18 +535,6 @@ def parse_codeset_ids(qstring) -> List[int]:
     requested_codeset_ids = qstring.split('|')
     requested_codeset_ids = [int(x) for x in requested_codeset_ids]
     return requested_codeset_ids
-
-
-@cache
-def get_container(concept_set_name):
-    """This is for getting the RID of a dataset. This is available via the ontology API, not the dataset API.
-    TODO: This needs caching, but the @cache decorator is not working."""
-    return make_objects_request(f'objects/OMOPConceptSetContainer/{urllib.parse.quote(concept_set_name)}')
-
-
-@router.get('/whoami')
-def _whoami():
-    return whoami()
 
 
 # @router.get('/test-auth')     # ended up using front end auth instead of this
@@ -539,32 +583,13 @@ def _whoami():
 
 @router.get("/get-n3c-recommended-codeset_ids")
 def get_n3c_recommended_codeset_ids():  # -> Dict[int, Union[Dict, None]]
-    """Get N3C recommended codeset IDs"""
-    codeset_ids = get_n3c_recommended_csets()
-    return codeset_ids
-
-
-@router.get("/download-n3c-recommended")
-def download_n3c_recommended():
-    """"
-        This one is trying to get all useful cset information including definition
-        It seems to work fine, but is not being used.
-    """
-    codeset_ids = get_n3c_recommended_csets()
-    csets_from_ac = get_csets(codeset_ids)
-    # researcher_ids =
-    # return uniq(flatten(csets.map(cset= > Object.keys(cset.researchers))));
-    csets = []
-    with get_db_connection() as con:
-        for codeset_id in codeset_ids:
-            cset = get_codeset_json(codeset_id, con)
-            csets.append(cset)
-    return {'codeset_json': csets, 'codeset_metadata': csets_from_ac}
+    """Get N3C recommended codeset IDs from cached bundle data"""
+    return get_cached_bundle_codeset_ids('N3C Recommended')
 
 
 @router.get("/get-bundle-names")
 def _get_bundle_names():  # -> Union[List[Row], StreamingResponse]
-    return sorted(get_bundle_names())
+    return get_cached_bundle_names()
 
 
 @router.get("/n3c-recommended-report", response_model=False)
@@ -585,7 +610,7 @@ todo: possibly drop return typing, or figure out how to get it correct.
  generating the response model from the type annotation with the path operation decorator parameter response_model
  =None. Read more: https://fastapi.tiangolo.com/tutorial/response-model/
 """
-    codeset_ids = get_bundle_codeset_ids(bundle)
+    codeset_ids = get_cached_bundle_codeset_ids(bundle)
     q = f"""
             SELECT
                   ac.is_most_recent_version,
@@ -831,15 +856,6 @@ def generate_n3c_comparison_rpt():
                           'rpt': json.dumps(rpt)})
 
 
-@router.get("/check-token")
-def check_token() -> Dict:
-    """Check Enclave authorization tokentoken"""
-    w = whoami()
-    # name = w.get('username', 'No name')
-    t = check_token_ttl(format='date-days')
-    return {'whoami': w, 'expires': t}
-
-
 # todo: can / should we replace this query with selecting from `apijoin` table instead?
 def usage_query(verbose=True) -> List[Dict]:
     """Query for usage data
@@ -870,4 +886,4 @@ def usage():  # -> JSON_TYPE
 
 if __name__ == '__main__':
     # generate_n3c_comparison_rpt()
-    whoami(verbose=True)
+    pass

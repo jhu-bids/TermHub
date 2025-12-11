@@ -153,16 +153,6 @@ export class DataGetter {
       alertTitle: 'Get all concept sets (partial) to populate select list',
       apiResultShape: 'array of keyed obj',
     },
-    /* i don't think whoami is needed, but not removing for now */
-    whoami: {
-      expectedParams: undefined,
-      api: 'whoami',
-      protocols: ['get'],
-      cacheSlice: 'whoami',
-      key: undefined,
-      alertTitle: 'Get all information about current user',
-      apiResultShape: 'obj',
-    },
     csets: {
       expectedParams: [],  // codeset_ids
       api: 'get-csets',

@@ -51,7 +51,6 @@ import MuiAppBar from "./components/MuiAppBar";
 import {DataCacheProvider, useDataCache} from "./state/DataCache";
 import {AlertMessages} from "./components/AlertMessages";
 import {N3CRecommended, BundleReport, N3CComparisonRpt} from "./components/N3CRecommended";
-import {UsageReport} from "./components/UsageReport";
 import {AddConcepts} from "./components/AddConcepts";
 // import {EnclaveAuthTest, AuthCallback, Logout, } from "./components/utils";
 import {DEPLOYMENT} from "./env";
@@ -174,7 +173,6 @@ export function RoutesContainer() {
         <Route path="N3CRecommended" element={<N3CRecommended/>} />
         <Route path="BundleReport" element={<BundleReport/>} />
         <Route path="N3CComparisonRpt" element={<N3CComparisonRpt/>} />
-        <Route path="usage" element={<UsageReport/>} />
         {/* <Route path="OMOPConceptSet/:conceptId" element={<OldConceptSet />} /> */}
       </Route>
     </Routes>

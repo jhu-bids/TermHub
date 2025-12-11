@@ -10,7 +10,7 @@ import Button from '@mui/material/Button';
 import {Link, useLocation} from 'react-router-dom';
 import {VERSION} from '../env';
 import {useDataCache} from '../state/DataCache';
-import {useDataGetter} from '../state/DataGetter';
+import {backend_url, useDataGetter} from '../state/DataGetter';
 import {
   useSearchParamsState,
   useSessionStorage,
@@ -18,27 +18,44 @@ import {
 import {useCodesetIds, resetReducers} from '../state/AppState';
 import {isEmpty} from 'lodash';
 
-export function ViewBundleReportSelector({bundles}) {
+export function BundleSelector({bundles}) {
   const navigate = useNavigate();
+  const [selectedBundle, setSelectedBundle] = useState(null);
 
   if (isEmpty(bundles)) {
     return null;
   }
 
   const handleOptionSelect = (event, selectedOption) => {
-    if (selectedOption) {
-      navigate(`/BundleReport?bundle=${selectedOption.value}`);
-    }
+    setSelectedBundle(selectedOption?.value || null);
   };
 
   return (
-      <Autocomplete
-          style={{width: 400}}
-          options={bundles.map(b => ({label: b, value: b}))}
-          renderInput={(params) => <TextField {...params}
-                                              label="View a bundle report"/>}
-          onChange={handleOptionSelect}
-      />
+      <div>
+        <Autocomplete
+            style={{width: 400, marginBottom: '10px'}}
+            options={bundles.map(b => ({label: b, value: b}))}
+            renderInput={(params) => <TextField {...params}
+                                                label="Choose a bundle"/>}
+            onChange={handleOptionSelect}
+        />
+        {selectedBundle && (
+            <div style={{display: 'flex', gap: '10px'}}>
+              <Button
+                  variant={'contained'}
+                  onClick={() => navigate(`/BundleReport?bundle=${selectedBundle}`)}
+              >
+                View report
+              </Button>
+              <Button
+                  variant={'contained'}
+                  href={backend_url(`bundle-download?bundle=${encodeURIComponent(selectedBundle)}`)}
+              >
+                Download JSON zip
+              </Button>
+            </div>
+        )}
+      </div>
   );
 };
 
@@ -58,8 +75,6 @@ export function AboutPage() {
   const ss = useSessionStorage();
   const sp = useSearchParamsState();
   const loadCSetsRef = useRef(null);
-  const [refreshButtonClicked, setRefreshButtonClicked] = useState();
-  const [lastRefreshed, setLastRefreshed] = useState();
   const location = useLocation();
   const {search} = location;  // querystring for passing along to page links
   const [bundles, setBundles] = useState(null);
@@ -78,39 +93,6 @@ export function AboutPage() {
       }
     })();
   });
-
-  const handleRefresh = async () => {
-    try {
-      console.log(
-          'Triggering database refresh and clearing cache so new data will be fetched when ready');
-      // empty cache immediately, and then again after the db-refresh call is done
-      dataCache.clear();
-      await dataGetter.axiosCall('db-refresh');
-      dataCache.clear();
-    } catch (error) {
-      console.error('Error:', error);
-    }
-  };
-
-  // const linkPath = `/OMOPConceptSets?${localCodesetIds.map(d => `codeset_ids=${d}`).join("&")}`;
-
-  /* I don't know if this code was working before 2024-11 cache refactoring,
-      but now there's no dataCache.lastRefreshed or .cacheCheck, so it's broken
-  useEffect(() => {
-    (async () => {
-      try {
-        let lastRefreshed = dataCache.lastRefreshed();
-        if (!lastRefreshed) {
-          await dataCache.cacheCheck(dataGetter);
-          lastRefreshed = dataCache.lastRefreshed();
-        }
-        setLastRefreshed(lastRefreshed);
-      } catch (e) {
-        console.warn(
-            'was getting a max update depth exceeded here. fix it if it comes up again');
-      }
-    })();
-  }, []); */
 
   console.log(loadCSetsRef);
   return (
@@ -149,31 +131,6 @@ export function AboutPage() {
           </Button>
         </TextBody>
 
-        <TextH1>Database Refresh</TextH1>
-        <TextBody>Will refresh the database with the latest data from the N3C
-          Enclave.</TextBody>
-        <TextBody><b>IMPORTANT:</b> There is a delay in the Enclave where when a
-          concept set draft is finalized, its concept set members must be
-          expanded. This can take between 20-45 minutes to complete. At that
-          time, the members will be visible in the UI and also the API for
-          fetching by VS-Hub. VS-Hub will detect if this issue occurs and
-          will continue to check until the members are available and import
-          them as soon as they are.
-        </TextBody>
-        <TextBody>Last refresh: {lastRefreshed
-            ? lastRefreshed.toLocaleString()
-            : 'fetching it...'}</TextBody>
-        <TextBody>
-          <Button
-              variant={'contained'}
-              onClick={() => {
-                setRefreshButtonClicked(Date());
-                handleRefresh();
-              }}>
-            Refresh database
-          </Button>
-        </TextBody>
-
         <TextH1>View / download N3C recommended concept sets</TextH1>
         <TextBody>
           <Button to="/BundleReport?bundle=N3C Recommended"
@@ -193,7 +150,7 @@ export function AboutPage() {
           </Button>
         </TextBody>
 
-        <ViewBundleReportSelector bundles={bundles}/>
+        <BundleSelector bundles={bundles}/>
 
         <TextH1>How to's</TextH1>
         <TextH2>How to: Fix the app if it's acting weird</TextH2>
