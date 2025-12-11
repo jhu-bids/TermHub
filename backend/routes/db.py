@@ -24,7 +24,7 @@ from backend.utils import return_err_with_trace, commify, recs2dicts, call_githu
 from enclave_wrangler.config import RESEARCHER_COLS
 from enclave_wrangler.models import convert_rows
 from enclave_wrangler.objects_api import get_n3c_recommended_csets, get_codeset_json, get_bundle_codeset_ids, \
-        get_bundle_names, get_concept_set_version_expression_items, items_to_atlas_json_format, get_codeset_json
+        get_bundle_names
 from enclave_wrangler.utils import make_objects_request, whoami, check_token_ttl
 
 FLAGS = ['includeDescendants', 'includeMapped', 'isExcluded']
@@ -414,30 +414,60 @@ def db_refresh_route():
 
 FLAGS = ['includeDescendants', 'includeMapped', 'isExcluded']
 @router.get("/cset-download")
-def cset_download(codeset_id: int, atlas_items=True, sort_json: bool = False) -> Dict:
-    """Download concept set
-        Had deleted this, but it's used for atlas-json download for existing concept sets
+def cset_download(codeset_id: int, sort_json: bool = False) -> Dict:
+    """Download concept set as Atlas JSON format.
+
+    Uses local database instead of N3C API. Queries cset_members_items joined
+    with concept table to get all fields needed for Atlas JSON format.
     """
-    # if not atlas_items_only: # and False  TODO: document this param and what it does (what does it do again?)
-    #     jsn = get_codeset_json(codeset_id) #  , use_cache=False)
-    #     if sort_json:
-    #         jsn['items'].sort(key=lambda i: i['concept']['CONCEPT_ID'])
-    #     return jsn
+    with get_db_connection() as con:
+        query = text("""
+            SELECT
+                cmi.concept_id,
+                cmi."isExcluded",
+                cmi."includeDescendants",
+                cmi."includeMapped",
+                cmi.concept_name,
+                cmi.concept_code,
+                cmi.concept_class_id,
+                cmi.vocabulary_id,
+                cmi.standard_concept,
+                c.domain_id,
+                c.invalid_reason,
+                c.valid_start_date,
+                c.valid_end_date
+            FROM cset_members_items cmi
+            JOIN concept c ON cmi.concept_id = c.concept_id
+            WHERE cmi.codeset_id = :codeset_id
+              AND cmi.item = true
+        """)
+        rows = sql_query(con, query, {'codeset_id': codeset_id})
 
-    items = get_concept_set_version_expression_items(codeset_id, return_detail='full', handle_paginated=True)
-    items = [i['properties'] for i in items]
+    items_jsn = []
+    for row in rows:
+        item = {
+            'includeDescendants': row.get('includeDescendants', False) or False,
+            'includeMapped': row.get('includeMapped', False) or False,
+            'isExcluded': row.get('isExcluded', False) or False,
+            'concept': {
+                'CONCEPT_ID': row['concept_id'],
+                'CONCEPT_NAME': row['concept_name'],
+                'CONCEPT_CODE': row['concept_code'],
+                'CONCEPT_CLASS_ID': row['concept_class_id'],
+                'VOCABULARY_ID': row['vocabulary_id'],
+                'DOMAIN_ID': row['domain_id'],
+                'STANDARD_CONCEPT': row['standard_concept'],
+                'INVALID_REASON': row['invalid_reason'],
+                'VALID_START_DATE': str(row['valid_start_date']) if row['valid_start_date'] else None,
+                'VALID_END_DATE': str(row['valid_end_date']) if row['valid_end_date'] else None,
+            }
+        }
+        items_jsn.append(item)
+
     if sort_json:
-        items.sort(key=lambda i: i['conceptId'])
+        items_jsn.sort(key=lambda i: i['concept']['CONCEPT_ID'])
 
-    # if include_metadata:
-
-    if atlas_items:
-        items_jsn = items_to_atlas_json_format(items)
-        return {'items': items_jsn}
-    else:
-        return items  #  when would we want this?
-    # pdump(items)
-    # pdump(items_jsn)
+    return {'items': items_jsn}
 
 
 # Utility functions ----------------------------------------------------------------------------------------------------
