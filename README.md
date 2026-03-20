@@ -1,4 +1,7 @@
 # TermHub
+
+**TermHub/VS-Hub was developed for N3C and funding for its development and maintenance has expired. It would be a valuable tool for people working with concept/value sets in other contexts but would need adapting. For more information, contact Sigfried Gold**
+
 [![Test - Frontend - Unit tests and QC](https://github.com/jhu-bids/TermHub/actions/workflows/test_frontend_unit_and_qc.yml/badge.svg)](https://github.com/jhu-bids/TermHub/actions/workflows/test_frontend_unit_and_qc.yml)
 [![Test - Backend - E2E and unit tests and QC](https://github.com/jhu-bids/TermHub/actions/workflows/test_backend_e2e_and_unit_and_qc.yml/badge.svg)](https://github.com/jhu-bids/TermHub/actions/workflows/test_backend_e2e_and_unit_and_qc.yml)
 [![Test, Frontend Prod, Playwright E2E](https://github.com/jhu-bids/TermHub/actions/workflows/test_frontend_e2e_live_prod.yml/badge.svg)](https://github.com/jhu-bids/TermHub/actions/workflows/test_frontend_e2e_live_prod.yml)
